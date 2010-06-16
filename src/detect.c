@@ -783,18 +783,18 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             /* if we have stream msgs, inspect against those first */
             if (smsg != NULL) {
                 char pmatch = 0;
-                int i = 0;
+                uint8_t pmq_idx = 0;
                 StreamMsg *smsg_inspect = smsg;
-                for ( ; smsg_inspect != NULL; smsg_inspect = smsg_inspect->next, i++) {
-                    if (det_ctx->smsg_pmq[i].pattern_id_array_cnt == 0) {
-                        SCLogDebug("no match in smsg_inspect %p (%u), idx %d", smsg_inspect, smsg_inspect->data.data_len, i);
+                for ( ; smsg_inspect != NULL; smsg_inspect = smsg_inspect->next, pmq_idx++) {
+                    if (det_ctx->smsg_pmq[pmq_idx].pattern_id_array_cnt == 0) {
+                        SCLogDebug("no match in smsg_inspect %p (%u), idx %d", smsg_inspect, smsg_inspect->data.data_len, pmq_idx);
                         continue;
                     }
 
-                    if (det_ctx->smsg_pmq[i].pattern_id_bitarray != NULL) {
+                    if (det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray != NULL) {
                         /* filter out sigs that want pattern matches, but
                          * have no matches */
-                        if (!(det_ctx->smsg_pmq[i].pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8))) &&
+                        if (!(det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8))) &&
                                 (s->flags & SIG_FLAG_MPM) && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
                             SCLogDebug("no match in this smsg");
                             continue;
