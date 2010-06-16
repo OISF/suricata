@@ -30,6 +30,7 @@
 
 #include "detect.h"
 #include "detect-parse.h"
+#include "detect-engine-state.h"
 
 #include "detect-urilen.h"
 #include "util-debug.h"
@@ -575,6 +576,7 @@ end:
 
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 

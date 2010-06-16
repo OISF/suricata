@@ -34,6 +34,8 @@
 
 #include "flow-util.h"
 
+#include "detect-engine-state.h"
+
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"
 #include "stream.h"
@@ -1353,6 +1355,7 @@ static int AppLayerParserTest01 (void)
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 

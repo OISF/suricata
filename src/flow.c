@@ -1657,12 +1657,12 @@ static int FlowTest03 (void) {
 
     if (FlowTestPrune(&f, &ts) != 1) {
         SCSpinDestroy(&fb.s);
-        SCMutexDestroy(&f.m);
+        FLOW_DESTROY(&f);
         return 0;
     }
 
     SCSpinDestroy(&fb.s);
-    SCMutexDestroy(&f.m);
+    FLOW_DESTROY(&f);
     return 1;
 }
 
@@ -1709,12 +1709,11 @@ static int FlowTest04 (void) {
 
     if (FlowTestPrune(&f, &ts) != 1) {
         SCSpinDestroy(&fb.s);
-        SCMutexDestroy(&f.m);
+        FLOW_DESTROY(&f);
         return 0;
     }
-
-    SCMutexDestroy(&f.m);
     SCSpinDestroy(&fb.s);
+    FLOW_DESTROY(&f);
     return 1;
 
 }
@@ -1751,12 +1750,12 @@ static int FlowTest05 (void) {
 
     if (FlowTestPrune(&f, &ts) != 1) {
         SCSpinDestroy(&fb.s);
-        SCMutexDestroy(&f.m);
+        FLOW_DESTROY(&f);
         return 0;
     }
 
     SCSpinDestroy(&fb.s);
-    SCMutexDestroy(&f.m);
+    FLOW_DESTROY(&f);
     return 1;
 }
 
@@ -1804,12 +1803,12 @@ static int FlowTest06 (void) {
 
     if (FlowTestPrune(&f, &ts) != 1) {
         SCSpinDestroy(&fb.s);
-        SCMutexDestroy(&f.m);
+        FLOW_DESTROY(&f);
         return 0;
     }
 
     SCSpinDestroy(&fb.s);
-    SCMutexDestroy(&f.m);
+    FLOW_DESTROY(&f);
     return 1;
 
 }

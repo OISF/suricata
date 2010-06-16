@@ -32,6 +32,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-state.h"
 #include "flow.h"
 #include "detect-flow.h"
 #include "flow-var.h"
@@ -527,6 +528,7 @@ static int HTTPUriTest01(void) {
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -596,8 +598,8 @@ static int HTTPUriTest02(void) {
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state == NULL)
-        HTPStateFree(htp_state);
+    if (htp_state != NULL) HTPStateFree(htp_state);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -665,8 +667,8 @@ static int HTTPUriTest03(void) {
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state == NULL)
-        HTPStateFree(htp_state);
+    if (htp_state != NULL) HTPStateFree(htp_state);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -736,8 +738,8 @@ static int HTTPUriTest04(void) {
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state == NULL)
-        HTPStateFree(htp_state);
+    if (htp_state != NULL) HTPStateFree(htp_state);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -893,6 +895,7 @@ end:
 
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -1027,6 +1030,7 @@ end:
 
     //FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -1349,6 +1353,7 @@ end:
 
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -1482,6 +1487,7 @@ end:
 
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -1603,6 +1609,7 @@ end:
 
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 #endif /* UNITTESTS */

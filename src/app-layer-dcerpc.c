@@ -36,6 +36,8 @@
 
 #include "flow-util.h"
 
+#include "detect-engine-state.h"
+
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
@@ -1886,6 +1888,7 @@ int DCERPCParserTest01(void) {
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -2079,6 +2082,7 @@ int DCERPCParserTest02(void) {
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -2265,6 +2269,7 @@ int DCERPCParserTest03(void) {
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 

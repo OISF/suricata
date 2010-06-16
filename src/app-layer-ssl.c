@@ -37,6 +37,8 @@
 #include "stream-tcp.h"
 #include "stream.h"
 
+#include "detect-engine-state.h"
+
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 
@@ -298,6 +300,7 @@ static int SSLParserTest01(void) {
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -353,6 +356,7 @@ static int SSLParserTest02(void) {
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -689,6 +693,7 @@ static int SSLParserTest03(void) {
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 #endif /* UNITTESTS */

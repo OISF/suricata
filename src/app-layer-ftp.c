@@ -33,6 +33,8 @@
 
 #include "flow-util.h"
 
+#include "detect-engine-state.h"
+
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
@@ -326,6 +328,7 @@ int FTPParserTest01(void) {
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -428,6 +431,7 @@ int FTPParserTest06(void) {
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -480,6 +484,7 @@ int FTPParserTest07(void) {
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -533,6 +538,7 @@ int FTPParserTest10(void) {
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 #endif /* UNITTESTS */

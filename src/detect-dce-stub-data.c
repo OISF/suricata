@@ -30,6 +30,7 @@
 
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
+#include "detect-engine-state.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -732,6 +733,7 @@ static int DetectDceStubDataTestParse02(void)
 
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -1240,6 +1242,7 @@ static int DetectDceStubDataTestParse03(void)
 
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -1519,6 +1522,7 @@ static int DetectDceStubDataTestParse04(void)
 
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -1758,6 +1762,7 @@ static int DetectDceStubDataTestParse05(void)
 
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 

@@ -38,6 +38,7 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
+#include "detect-engine-state.h"
 
 #include "util-var-name.h"
 #include "util-unittest-helper.h"
@@ -1224,6 +1225,7 @@ static int DetectPcreTestSig01Real(int mpm_type) {
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
+    FLOW_DESTROY(&f);
 end:
     return result;
 }
@@ -1285,6 +1287,7 @@ static int DetectPcreTestSig02Real(int mpm_type) {
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
+    FLOW_DESTROY(&f);
 end:
     return result;
 }
@@ -1497,6 +1500,7 @@ end:
 
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 
@@ -1659,6 +1663,7 @@ end:
 
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 

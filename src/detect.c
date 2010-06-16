@@ -3513,6 +3513,7 @@ static int SigTest06Real (int mpm_type) {
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 static int SigTest06B2g (void) {
@@ -3604,12 +3605,14 @@ end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     AppLayerParserCleanupState(&f);
+    FLOW_DESTROY(&f);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
+
     return result;
 }
 static int SigTest07B2g (void) {
@@ -3710,6 +3713,7 @@ static int SigTest08Real (int mpm_type) {
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 static int SigTest08B2g (void) {
@@ -3806,6 +3810,7 @@ static int SigTest09Real (int mpm_type) {
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 static int SigTest09B2g (void) {
@@ -3897,6 +3902,7 @@ static int SigTest10Real (int mpm_type) {
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 static int SigTest10B2g (void) {
@@ -3974,6 +3980,7 @@ static int SigTest11Real (int mpm_type) {
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
     return result;
 }
 static int SigTest11B2g (void) {
@@ -4041,6 +4048,7 @@ end:
         SigCleanSignatures(de_ctx);
         DetectEngineCtxFree(de_ctx);
     }
+    FLOW_DESTROY(&f);
     return result;
 }
 static int SigTest12B2g (void) {
@@ -4106,6 +4114,7 @@ static int SigTest13Real (int mpm_type) {
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    FLOW_DESTROY(&f);
     return result;
 }
 static int SigTest13B2g (void) {
@@ -4668,6 +4677,7 @@ static int SigTest21Real (int mpm_type) {
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    FLOW_DESTROY(&f);
     return result;
 }
 static int SigTest21B2g (void) {
@@ -4760,6 +4770,7 @@ static int SigTest22Real (int mpm_type) {
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    FLOW_DESTROY(&f);
     return result;
 }
 static int SigTest22B2g (void) {
@@ -4851,6 +4862,7 @@ static int SigTest23Real (int mpm_type) {
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    FLOW_DESTROY(&f);
     return result;
 }
 static int SigTest23B2g (void) {
