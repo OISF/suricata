@@ -1617,35 +1617,35 @@ int DcePayloadTest01(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[0]);
     if ((PacketAlertCheck(&p[0], 1))) {
-        printf("sid 1 didn't match but should have (0): ");
+        printf("sid 1 matched but shouldn't have for packet 0: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[0], 2))) {
-        printf("sid 2 didn't match but should have (0): ");
+        printf("sid 2 matched but shouldn't have for packet 0: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[0], 3))) {
-        printf("sid 3 didn't match but should have: ");
+        printf("sid 3 matched but shouldn't have for packet 0: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[0], 4))) {
-        printf("sid 4 didn't match but should have: ");
+        printf("sid 4 matched but shouldn't have for packet 0: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[0], 5))) {
-        printf("sid 5 didn't match but should have: ");
+        printf("sid 5 matched but shouldn't have for packet 0: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[0], 6))) {
-        printf("sid 6 didn't match but should have: ");
+        printf("sid 6 matched but shouldn't have for packet 0: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[0], 7))) {
-        printf("sid 7 didn't match but should have: ");
+        printf("sid 7 matched but shouldn't have for packet 0: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[0], 8))) {
-        printf("sid 8 didn't match but should have: ");
+        printf("sid 8 matched but shouldn't have for packet 0: ");
         goto end;
     }
 
@@ -1658,35 +1658,35 @@ int DcePayloadTest01(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[1]);
     if ((PacketAlertCheck(&p[1], 1))) {
-        printf("sid 1 didn't match but should have (1): ");
+        printf("sid 1 matched but shouldn't have for packet 1: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[1], 2))) {
-        printf("sid 2 didn't match but should have (1): ");
+        printf("sid 2 matched but shouldn't have for packet 1: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[1], 3))) {
-        printf("sid 3 didn't match but should have: ");
+        printf("sid 3 matched but shouldn't have for packet 1: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[1], 4))) {
-        printf("sid 4 didn't match but should have: ");
+        printf("sid 4 matched but shouldn't have for packet 1: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[1], 5))) {
-        printf("sid 5 didn't match but should have: ");
+        printf("sid 5 matched but shouldn't have for packet 1: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[1], 6))) {
-        printf("sid 6 didn't match but should have: ");
+        printf("sid 6 matched but shouldn't have for packet 1: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[1], 7))) {
-        printf("sid 7 didn't match but should have: ");
+        printf("sid 7 matched but shouldn't have for packet 1: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[1], 8))) {
-        printf("sid 8 didn't match but should have: ");
+        printf("sid 8 matched but shouldn't have for packet 1: ");
         goto end;
     }
 
@@ -1699,35 +1699,35 @@ int DcePayloadTest01(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[2]);
     if ((PacketAlertCheck(&p[2], 1))) {
-        printf("sid 1 didn't match but should have (2): ");
+        printf("sid 1 matched but shouldn't have for packet 2: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[2], 2))) {
-        printf("sid 2 didn't match but should have (2): ");
+        printf("sid 2 matched but shouldn't have for packet 2: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[2], 3))) {
-        printf("sid 3 didn't match but should have: ");
+        printf("sid 3 matched but shouldn't have for packet 2: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[2], 4))) {
-        printf("sid 4 didn't match but should have: ");
+        printf("sid 4 matched but shouldn't have for packet 2: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[2], 5))) {
-        printf("sid 5 didn't match but should have: ");
+        printf("sid 5 matched but shouldn't have for packet 2: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[2], 6))) {
-        printf("sid 6 didn't match but should have: ");
+        printf("sid 6 matched but shouldn't have for packet 2: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[2], 7))) {
-        printf("sid 7 didn't match but should have: ");
+        printf("sid 7 matched but shouldn't have for packet 2: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[2], 8))) {
-        printf("sid 8 didn't match but should have: ");
+        printf("sid 8 matched but shouldn't have for packet 2: ");
         goto end;
     }
 
@@ -1741,35 +1741,35 @@ int DcePayloadTest01(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[3]);
     if (!(PacketAlertCheck(&p[3], 1))) {
-        printf("sid 1 didn't match but should have (3): ");
+        printf("sid 1 didn't match but should have for packet 3: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[3], 2))) {
-        printf("sid 2 didn't match but should have (3): ");
+    if ((PacketAlertCheck(&p[3], 2))) {
+        printf("sid 2 matched but shouldn't have for packet 3: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[3], 3))) {
-        printf("sid 3 didn't match but should have: ");
+    if ((PacketAlertCheck(&p[3], 3))) {
+        printf("sid 3 matched but shouldn't have for packet 3: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[3], 4))) {
-        printf("sid 4 didn't match but should have: ");
+    if ((PacketAlertCheck(&p[3], 4))) {
+        printf("sid 4 matched but shouldn't have for packet 3: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[3], 5))) {
-        printf("sid 5 didn't match but should have: ");
+    if ((PacketAlertCheck(&p[3], 5))) {
+        printf("sid 5 matched but shouldn't have for packet 3: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[3], 6))) {
-        printf("sid 6 didn't match but should have: ");
+    if ((PacketAlertCheck(&p[3], 6))) {
+        printf("sid 6 matched but shouldn't have for packet 3: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[3], 7))) {
-        printf("sid 7 didn't match but should have: ");
+    if ((PacketAlertCheck(&p[3], 7))) {
+        printf("sid 7 matched but shouldn't have for packet 3: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[3], 8))) {
-        printf("sid 8 didn't match but should have: ");
+    if ((PacketAlertCheck(&p[3], 8))) {
+        printf("sid 8 matched but shouldn't have for packet 3: ");
         goto end;
     }
 
@@ -1784,35 +1784,35 @@ int DcePayloadTest01(void)
     SCLogDebug("inspecting packet 4");
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[4]);
     if ((PacketAlertCheck(&p[4], 1))) {
-        printf("sid 1 didn't match but should have (4): ");
+        printf("sid 1 matched but shouldn't have for packet 4: ");
         goto end;
     }
     if (!(PacketAlertCheck(&p[4], 2))) {
-        printf("sid 2 didn't match but should have (4): ");
+        printf("sid 2 didn't match but should have for packet 4: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[4], 3))) {
-        printf("sid 3 didn't match but should have (4): ");
+    if ((PacketAlertCheck(&p[4], 3))) {
+        printf("sid 3 matched but shouldn't have for packet 4: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[4], 4))) {
-        printf("sid 4 didn't match but should have (4): ");
+    if ((PacketAlertCheck(&p[4], 4))) {
+        printf("sid 4 matched but shouldn't have for packet 4: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[4], 5))) {
-        printf("sid 5 didn't match but should have (4): ");
+    if ((PacketAlertCheck(&p[4], 5))) {
+        printf("sid 5 matched but shouldn't have for packet 4: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[4], 6))) {
-        printf("sid 6 didn't match but should have (4): ");
+    if ((PacketAlertCheck(&p[4], 6))) {
+        printf("sid 6 matched but shouldn't have for packet 4: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[4], 7))) {
-        printf("sid 7 didn't match but should have (4): ");
+    if ((PacketAlertCheck(&p[4], 7))) {
+        printf("sid 7 matched but shouldn't have for packet 4: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[4], 8))) {
-        printf("sid 8 didn't match but should have (4): ");
+    if ((PacketAlertCheck(&p[4], 8))) {
+        printf("sid 8 matched but shouldn't have for packet 4: ");
         goto end;
     }
 
@@ -1826,35 +1826,35 @@ int DcePayloadTest01(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[5]);
     if ((PacketAlertCheck(&p[5], 1))) {
-        printf("sid 1 didn't match but should have (5): ");
+        printf("sid 1 matched but shouldn't have for packet 5: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[5], 2))) {
-        printf("sid 2 didn't match but should have (5): ");
+        printf("sid 2 matched but shouldn't have for packet 5: ");
         goto end;
     }
     if (!(PacketAlertCheck(&p[5], 3))) {
-        printf("sid 3 didn't match but should have (5): ");
+        printf("sid 3 didn't match but should have packet 5: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[5], 4))) {
-        printf("sid 4 didn't match but should have (5): ");
+    if ((PacketAlertCheck(&p[5], 4))) {
+        printf("sid 4 matched but shouldn't have for packet 5: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[5], 5))) {
-        printf("sid 5 didn't match but should have (5): ");
+    if ((PacketAlertCheck(&p[5], 5))) {
+        printf("sid 5 matched but shouldn't have for packet 5: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[5], 6))) {
-        printf("sid 6 didn't match but should have (5): ");
+    if ((PacketAlertCheck(&p[5], 6))) {
+        printf("sid 6 matched but shouldn't have for packet 5: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[5], 7))) {
-        printf("sid 7 didn't match but should have (5): ");
+    if ((PacketAlertCheck(&p[5], 7))) {
+        printf("sid 7 matched but shouldn't have for packet 5: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[5], 8))) {
-        printf("sid 8 didn't match but should have (5): ");
+    if ((PacketAlertCheck(&p[5], 8))) {
+        printf("sid 8 matched but shouldn't have for packet 5: ");
         goto end;
     }
 
@@ -1867,35 +1867,35 @@ int DcePayloadTest01(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[6]);
     if ((PacketAlertCheck(&p[6], 1))) {
-        printf("sid 1 didn't match but should have (6): ");
+        printf("sid 1 matched but shouldn't have for packet 6: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[6], 2))) {
-        printf("sid 2 didn't match but should have (6): ");
+        printf("sid 2 matched but shouldn't have for packet 6: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[6], 3))) {
-        printf("sid 3 didn't match but should have (6): ");
+        printf("sid 3 matched but shouldn't have for packet 6: ");
         goto end;
     }
     if (!(PacketAlertCheck(&p[6], 4))) {
-        printf("sid 4 didn't match but should have (6): ");
+        printf("sid 4 didn't match but should have packet 6: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[6], 5))) {
-        printf("sid 5 didn't match but should have (6): ");
+    if ((PacketAlertCheck(&p[6], 5))) {
+        printf("sid 5 matched but shouldn't have for packet 6: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[6], 6))) {
-        printf("sid 6 didn't match but should have (6): ");
+    if ((PacketAlertCheck(&p[6], 6))) {
+        printf("sid 6 matched but shouldn't have for packet 6: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[6], 7))) {
-        printf("sid 7 didn't match but should have (6): ");
+    if ((PacketAlertCheck(&p[6], 7))) {
+        printf("sid 7 matched but shouldn't have for packet 6: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[6], 8))) {
-        printf("sid 8 didn't match but should have (6): ");
+    if ((PacketAlertCheck(&p[6], 8))) {
+        printf("sid 8 matched but shouldn't have for packet 6: ");
         goto end;
     }
 
@@ -1908,35 +1908,35 @@ int DcePayloadTest01(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[7]);
     if ((PacketAlertCheck(&p[7], 1))) {
-        printf("sid 1 didn't match but should have (7): ");
+        printf("sid 1 matched but shouldn't have for packet 7: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[7], 2))) {
-        printf("sid 2 didn't match but should have (7): ");
+        printf("sid 2 matched but shouldn't have for packet 7: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[7], 3))) {
-        printf("sid 3 didn't match but should have (7): ");
+        printf("sid 3 matched but shouldn't have for packet 7: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[7], 4))) {
-        printf("sid 4 didn't match but should have (7): ");
+        printf("sid 4 matched but shouldn't have for packet 7: ");
         goto end;
     }
     if (!(PacketAlertCheck(&p[7], 5))) {
-        printf("sid 5 didn't match but should have (7): ");
+        printf("sid 5 didn't match but should have paket 7: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[7], 6))) {
-        printf("sid 6 didn't match but should have (7): ");
+    if ((PacketAlertCheck(&p[7], 6))) {
+        printf("sid 6 matched but shouldn't have for packet 7: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[7], 7))) {
-        printf("sid 7 didn't match but should have (7): ");
+    if ((PacketAlertCheck(&p[7], 7))) {
+        printf("sid 7 matched but shouldn't have for packet 7: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[7], 8))) {
-        printf("sid 8 didn't match but should have (7): ");
+    if ((PacketAlertCheck(&p[7], 8))) {
+        printf("sid 8 matched but shouldn't have for packet 7: ");
         goto end;
     }
 
@@ -1949,35 +1949,35 @@ int DcePayloadTest01(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[8]);
     if ((PacketAlertCheck(&p[8], 1))) {
-        printf("sid 1 didn't match but should have (8): ");
+        printf("sid 1 matched but shouldn't have for packet 8: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[8], 2))) {
-        printf("sid 2 didn't match but should have (8): ");
+        printf("sid 2 matched but shouldn't have for packet 8: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[8], 3))) {
-        printf("sid 3 didn't match but should have (8): ");
+        printf("sid 3 matched but shouldn't have for packet 8: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[8], 4))) {
-        printf("sid 4 didn't match but should have (8): ");
+        printf("sid 4 matched but shouldn't have for packet 8: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[8], 5))) {
-        printf("sid 5 didn't match but should have (8): ");
+        printf("sid 5 matched but shouldn't have for packet 8: ");
         goto end;
     }
     if (!(PacketAlertCheck(&p[8], 6))) {
-        printf("sid 6 didn't match but should have (8): ");
+        printf("sid 6 didn't match but should have paket 8: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[8], 7))) {
-        printf("sid 7 didn't match but should have (8): ");
+    if ((PacketAlertCheck(&p[8], 7))) {
+        printf("sid 7 matched but shouldn't have for packet 8: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[8], 8))) {
-        printf("sid 8 didn't match but should have (8): ");
+    if ((PacketAlertCheck(&p[8], 8))) {
+        printf("sid 8 matched but shouldn't have for packet 8: ");
         goto end;
     }
 
@@ -1990,35 +1990,35 @@ int DcePayloadTest01(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[9]);
     if ((PacketAlertCheck(&p[9], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 9: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[9], 2))) {
-        printf("sid 2 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 9: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[9], 3))) {
-        printf("sid 3 didn't match but should have: ");
+        printf("sid 3 matched but shouldn't have for packet 9: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[9], 4))) {
-        printf("sid 4 didn't match but should have: ");
+        printf("sid 4 matched but shouldn't have for packet 9: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[9], 5))) {
-        printf("sid 5 didn't match but should have: ");
+        printf("sid 5 matched but shouldn't have for packet 9: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[9], 6))) {
-        printf("sid 6 didn't match but should have: ");
+        printf("sid 6 matched but shouldn't have for packet 9: ");
         goto end;
     }
     if (!(PacketAlertCheck(&p[9], 7))) {
-        printf("sid 7 didn't match but should have: ");
+        printf("sid 7 didn't match but should have for packet 9: ");
         goto end;
     }
-    if (!(PacketAlertCheck(&p[9], 8))) {
-        printf("sid 8 didn't match but should have: ");
+    if ((PacketAlertCheck(&p[9], 8))) {
+        printf("sid 8 matched but shouldn't have for packet 9: ");
         goto end;
     }
 
@@ -2031,41 +2031,52 @@ int DcePayloadTest01(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[10]);
     if ((PacketAlertCheck(&p[10], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 10: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[10], 2))) {
-        printf("sid 2 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 10: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[10], 3))) {
-        printf("sid 3 didn't match but should have: ");
+        printf("sid 3 matched but shouldn't have for packet 10: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[10], 4))) {
-        printf("sid 4 didn't match but should have: ");
+        printf("sid 4 matched but shouldn't have for packet 10: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[10], 5))) {
-        printf("sid 5 didn't match but should have: ");
+        printf("sid 5 matched but shouldn't have for packet 10: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[10], 6))) {
-        printf("sid 6 didn't match but should have: ");
+        printf("sid 6 matched but shouldn't have for packet 10: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[10], 7))) {
-        printf("sid 7 didn't match but should have: ");
+        printf("sid 7 matched but shouldn't have for packet 10: ");
         goto end;
     }
     if (!(PacketAlertCheck(&p[10], 8))) {
-        printf("sid 8 didn't match but should have: ");
+        printf("sid 8 didn't match but should have for paket 10: ");
         goto end;
     }
 
     result = 1;
 
 end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
     return result;
 }
 
@@ -2441,11 +2452,11 @@ int DcePayloadTest02(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[0]);
     if (!(PacketAlertCheck(&p[0], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 didn't match but should have for packet 0: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[0], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 0: ");
         goto end;
     }
 
@@ -2458,11 +2469,11 @@ int DcePayloadTest02(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[1]);
     if ((PacketAlertCheck(&p[1], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 1: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[1], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 1: ");
         goto end;
     }
 
@@ -2475,11 +2486,11 @@ int DcePayloadTest02(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[2]);
     if (!(PacketAlertCheck(&p[2], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 didn't match but should have for packet 2: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[2], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 2: ");
         goto end;
     }
 
@@ -2492,17 +2503,28 @@ int DcePayloadTest02(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[3]);
     if ((PacketAlertCheck(&p[3], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 3: ");
         goto end;
     }
     if (!(PacketAlertCheck(&p[3], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 didn't match but should have for packet 3: ");
         goto end;
     }
 
     result = 1;
 
 end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
     return result;
 }
 
@@ -2878,11 +2900,11 @@ int DcePayloadTest03(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[0]);
     if ((PacketAlertCheck(&p[0], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 0: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[0], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 0: ");
         goto end;
     }
 
@@ -2895,11 +2917,11 @@ int DcePayloadTest03(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[1]);
     if ((PacketAlertCheck(&p[1], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 1: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[1], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 1: ");
         goto end;
     }
 
@@ -2912,11 +2934,11 @@ int DcePayloadTest03(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[2]);
     if ((PacketAlertCheck(&p[2], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 2: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[2], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 2: ");
         goto end;
     }
 
@@ -2929,17 +2951,28 @@ int DcePayloadTest03(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[3]);
     if ((PacketAlertCheck(&p[3], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 3: ");
         goto end;
     }
     if (!(PacketAlertCheck(&p[3], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 didn't match but should have for packet 3: ");
         goto end;
     }
 
     result = 1;
 
 end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
     return result;
 }
 
@@ -3315,11 +3348,11 @@ int DcePayloadTest04(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[0]);
     if ((PacketAlertCheck(&p[0], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 0: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[0], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 0: ");
         goto end;
     }
 
@@ -3332,11 +3365,11 @@ int DcePayloadTest04(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[1]);
     if ((PacketAlertCheck(&p[1], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 1: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[1], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 1: ");
         goto end;
     }
 
@@ -3349,11 +3382,11 @@ int DcePayloadTest04(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[2]);
     if (!(PacketAlertCheck(&p[2], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 didn't match but should have for packet 2: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[2], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 2: ");
         goto end;
     }
 
@@ -3366,17 +3399,28 @@ int DcePayloadTest04(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[3]);
     if ((PacketAlertCheck(&p[3], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 3: ");
         goto end;
     }
     if (!(PacketAlertCheck(&p[3], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 didn't match but should have for packet 3: ");
         goto end;
     }
 
     result = 1;
 
 end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
     return result;
 }
 
@@ -3751,11 +3795,11 @@ int DcePayloadTest05(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[0]);
     if ((PacketAlertCheck(&p[0], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 0: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[0], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 0: ");
         goto end;
     }
 
@@ -3768,11 +3812,11 @@ int DcePayloadTest05(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[1]);
     if ((PacketAlertCheck(&p[1], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 1: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[1], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 1: ");
         goto end;
     }
 
@@ -3785,11 +3829,11 @@ int DcePayloadTest05(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[2]);
     if ((PacketAlertCheck(&p[2], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 2: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[2], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 2: ");
         goto end;
     }
 
@@ -3802,17 +3846,28 @@ int DcePayloadTest05(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[3]);
     if ((PacketAlertCheck(&p[3], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 3: ");
         goto end;
     }
     if (!(PacketAlertCheck(&p[3], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 didn't match but should have for packet 3: ");
         goto end;
     }
 
     result = 1;
 
 end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
     return result;
 }
 
@@ -4188,11 +4243,11 @@ int DcePayloadTest06(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[0]);
     if ((PacketAlertCheck(&p[0], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 0: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[0], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 0: ");
         goto end;
     }
 
@@ -4205,11 +4260,11 @@ int DcePayloadTest06(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[1]);
     if ((PacketAlertCheck(&p[1], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 1: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[1], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 1: ");
         goto end;
     }
 
@@ -4222,11 +4277,11 @@ int DcePayloadTest06(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[2]);
     if ((PacketAlertCheck(&p[2], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 2: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[2], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 2: ");
         goto end;
     }
 
@@ -4239,17 +4294,28 @@ int DcePayloadTest06(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[3]);
     if ((PacketAlertCheck(&p[3], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 3: ");
         goto end;
     }
     if (!(PacketAlertCheck(&p[3], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 didn't match but should have for packet 3: ");
         goto end;
     }
 
     result = 1;
 
 end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
     return result;
 }
 
@@ -4624,11 +4690,11 @@ int DcePayloadTest07(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[0]);
     if ((PacketAlertCheck(&p[0], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 0: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[0], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 0: ");
         goto end;
     }
 
@@ -4641,11 +4707,11 @@ int DcePayloadTest07(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[1]);
     if ((PacketAlertCheck(&p[1], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 1: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[1], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 1: ");
         goto end;
     }
 
@@ -4658,11 +4724,11 @@ int DcePayloadTest07(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[2]);
     if ((PacketAlertCheck(&p[2], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 2: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[2], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 2: ");
         goto end;
     }
 
@@ -4675,17 +4741,28 @@ int DcePayloadTest07(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[3]);
     if ((PacketAlertCheck(&p[3], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 3: ");
         goto end;
     }
     if ((PacketAlertCheck(&p[3], 2))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 2 matched but shouldn't have for packet 3: ");
         goto end;
     }
 
     result = 1;
 
 end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
     return result;
 }
 
@@ -4892,13 +4969,24 @@ int DcePayloadTest08(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[0]);
     if (!(PacketAlertCheck(&p[0], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 didn't match but should have for packet 0: ");
         goto end;
     }
 
     result = 1;
 
 end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
     return result;
 }
 
@@ -5105,13 +5193,24 @@ int DcePayloadTest09(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[0]);
     if (!(PacketAlertCheck(&p[0], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 didn't match but should have for packet 0: ");
         goto end;
     }
 
     result = 1;
 
 end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
     return result;
 }
 
@@ -5318,13 +5417,24 @@ int DcePayloadTest10(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[0]);
     if (!(PacketAlertCheck(&p[0], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 didn't match but should have for packet 0: ");
         goto end;
     }
 
     result = 1;
 
 end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
     return result;
 }
 
@@ -5666,7 +5776,7 @@ int DcePayloadTest11(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[0]);
     if ((PacketAlertCheck(&p[0], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 0: ");
         goto end;
     }
 
@@ -5679,13 +5789,24 @@ int DcePayloadTest11(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[1]);
     if (!(PacketAlertCheck(&p[1], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 didn't match but should have for pacekt 1: ");
         goto end;
     }
 
     result = 1;
 
 end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
     return result;
 }
 
@@ -6028,7 +6149,7 @@ int DcePayloadTest12(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[0]);
     if ((PacketAlertCheck(&p[0], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 0: ");
         goto end;
     }
 
@@ -6041,13 +6162,24 @@ int DcePayloadTest12(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[1]);
     if ((PacketAlertCheck(&p[1], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 1: ");
         goto end;
     }
 
     result = 1;
 
 end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
     return result;
 }
 
@@ -6202,14 +6334,14 @@ int DcePayloadTest13(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[0]);
     if (!(PacketAlertCheck(&p[0], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 didn't match but should have for packet 0: ");
         goto end;
     }
 
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[6]);
     if ((PacketAlertCheck(&p[6], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 6: ");
         goto end;
     }
 
@@ -6222,7 +6354,7 @@ int DcePayloadTest13(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[1]);
     if ((PacketAlertCheck(&p[1], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 1: ");
         goto end;
     }
 
@@ -6238,14 +6370,14 @@ int DcePayloadTest13(void)
      * fresh transaction */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[2]);
     if (!(PacketAlertCheck(&p[2], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 didn't match but should have for packet 2: ");
         goto end;
     }
 
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[7]);
     if ((PacketAlertCheck(&p[7], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 7: ");
         goto end;
     }
 
@@ -6258,7 +6390,7 @@ int DcePayloadTest13(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[3]);
     if ((PacketAlertCheck(&p[3], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 3: ");
         goto end;
     }
 
@@ -6274,7 +6406,7 @@ int DcePayloadTest13(void)
      * fresh transaction */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[4]);
     if (!(PacketAlertCheck(&p[4], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 didn't match but should have for packet 4: ");
         goto end;
     }
 
@@ -6287,13 +6419,24 @@ int DcePayloadTest13(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[5]);
     if ((PacketAlertCheck(&p[5], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 5: ");
         goto end;
     }
 
     result = 1;
 
 end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
     return result;
 }
 
@@ -6432,14 +6575,14 @@ int DcePayloadTest14(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[0]);
     if (!(PacketAlertCheck(&p[0], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 didn't match but should have for packet 0: ");
         goto end;
     }
 
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[1]);
     if ((PacketAlertCheck(&p[1], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 1: ");
         goto end;
     }
 
@@ -6453,7 +6596,7 @@ int DcePayloadTest14(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[2]);
     if ((PacketAlertCheck(&p[2], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 2: ");
         goto end;
     }
 
@@ -6467,7 +6610,7 @@ int DcePayloadTest14(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[3]);
     if ((PacketAlertCheck(&p[3], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 3: ");
         goto end;
     }
 
@@ -6483,7 +6626,7 @@ int DcePayloadTest14(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[4]);
     if (!(PacketAlertCheck(&p[4], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 didn't match but should have for packet 4: ");
         goto end;
     }
 
@@ -6497,13 +6640,24 @@ int DcePayloadTest14(void)
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, &p[5]);
     if ((PacketAlertCheck(&p[5], 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have for packet 5: ");
         goto end;
     }
 
     result = 1;
 
 end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
     return result;
 }
 

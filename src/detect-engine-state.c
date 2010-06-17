@@ -402,6 +402,13 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
         {
             DeStateStoreItem *item = &store->store[store_cnt];
 
+            umatch = 0;
+            uinspect = 0;
+            dmatch = 0;
+            dinspect = 0;
+            appinspect = 0;
+            appmatch = 0;
+
             SCLogDebug("internal id of signature to inspect: %"PRIuMAX,
                     (uintmax_t)item->sid);
 
