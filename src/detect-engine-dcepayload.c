@@ -6051,6 +6051,462 @@ end:
     return result;
 }
 
+
+/**
+ * \test Test the working of detection engien with respect to dce keywords.
+ */
+int DcePayloadTest13(void)
+{
+    int result = 0;
+    uint8_t request1[] = {
+        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x24, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00,
+        0x2c, 0xfd, 0xb5, 0x00, 0x40, 0xaa, 0x01, 0x00,
+        0x00, 0x00, 0x00, 0x02,
+    };
+    uint32_t request1_len = sizeof(request1);
+
+    uint8_t response1[] = {
+        0x05, 0x00, 0x02, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x30, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0xf6, 0x72, 0x28, 0x9c,
+        0xf0, 0x57, 0xd8, 0x11, 0xb0, 0x05, 0x00, 0x0c,
+        0x29, 0x87, 0xea, 0xe9, 0x00, 0x00, 0x00, 0x00,
+    };
+    uint32_t response1_len = sizeof(response1);
+
+    uint8_t request2[] = {
+        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0xa4, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+        0x8c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0xf6, 0x72, 0x28, 0x9c,
+        0xf0, 0x57, 0xd8, 0x11, 0xb0, 0x05, 0x00, 0x0c,
+        0x29, 0x87, 0xea, 0xe9, 0x5c, 0x00, 0x5c, 0x00,
+        0xa8, 0xb9, 0x14, 0x00, 0x2e, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x2e, 0x00, 0x00, 0x00,
+        0x53, 0x00, 0x4f, 0x00, 0x46, 0x00, 0x54, 0x00,
+        0x57, 0x00, 0x41, 0x00, 0x52, 0x00, 0x45, 0x00,
+        0x5c, 0x00, 0x4d, 0x00, 0x69, 0x00, 0x63, 0x00,
+        0x72, 0x00, 0x6f, 0x00, 0x73, 0x00, 0x6f, 0x00,
+        0x66, 0x00, 0x74, 0x00, 0x5c, 0x00, 0x57, 0x00,
+        0x69, 0x00, 0x6e, 0x00, 0x64, 0x00, 0x6f, 0x00,
+        0x77, 0x00, 0x73, 0x00, 0x5c, 0x00, 0x43, 0x00,
+        0x75, 0x00, 0x72, 0x00, 0x72, 0x00, 0x65, 0x00,
+        0x6e, 0x00, 0x74, 0x00, 0x56, 0x00, 0x65, 0x00,
+        0x72, 0x00, 0x73, 0x00, 0x69, 0x00, 0x6f, 0x00,
+        0x6e, 0x00, 0x5c, 0x00, 0x52, 0x00, 0x75, 0x00,
+        0x6e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x03, 0x00, 0x00, 0x00,
+    };
+    uint32_t request2_len = sizeof(request2);
+
+    uint8_t response2[] = {
+        0x05, 0x00, 0x02, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x30, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00,
+        0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0xf7, 0x72, 0x28, 0x9c,
+        0xf0, 0x57, 0xd8, 0x11, 0xb0, 0x05, 0x00, 0x0c,
+        0x29, 0x87, 0xea, 0xe9, 0x00, 0x00, 0x00, 0x00,
+    };
+    uint32_t response2_len = sizeof(response2);
+
+    uint8_t request3[] = {
+        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x70, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
+        0x58, 0x00, 0x00, 0x00, 0x00, 0x00, 0x16, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0xf7, 0x72, 0x28, 0x9c,
+        0xf0, 0x57, 0xd8, 0x11, 0xb0, 0x05, 0x00, 0x0c,
+        0x29, 0x87, 0xea, 0xe9, 0x0c, 0x00, 0x0c, 0x00,
+        0x98, 0xda, 0x14, 0x00, 0x06, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00,
+        0x4f, 0x00, 0x73, 0x00, 0x61, 0x00, 0x33, 0x00,
+        0x32, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x18, 0x00, 0x00, 0x00, 0x4e, 0x00, 0x54, 0x00,
+        0x4f, 0x00, 0x53, 0x00, 0x41, 0x00, 0x33, 0x00,
+        0x32, 0x00, 0x2e, 0x00, 0x45, 0x00, 0x58, 0x00,
+        0x45, 0x00, 0x00, 0x00, 0x18, 0x00, 0x00, 0x00,
+    };
+    uint32_t request3_len = sizeof(request3);
+
+    uint8_t response3[] = {
+        0x05, 0x00, 0x02, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x1c, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00,
+        0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+    };
+    uint32_t response3_len = sizeof(response3);
+
+    TcpSession ssn;
+    Packet p[8];
+    ThreadVars tv;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    int r;
+    int i = 0;
+
+    char *sig1 = "alert tcp any any -> any any "
+        "(dce_stub_data; sid:1;)";
+
+    Signature *s;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    /* let the 7 and the 8th packet be dummy packets the client sends to the server */
+    for (i = 0; i < 8; i++) {
+        memset(&p[i], 0, sizeof(Packet));
+        p[i].src.family = AF_INET;
+        p[i].dst.family = AF_INET;
+        p[i].payload = NULL;
+        p[i].payload_len = 0;
+        p[i].proto = IPPROTO_TCP;
+        p[i].flow = &f;
+        p[i].flowflags |= FLOW_PKT_TOSERVER;
+    }
+    p[1].flowflags |= FLOW_PKT_TOCLIENT;
+    p[3].flowflags |= FLOW_PKT_TOCLIENT;
+    p[5].flowflags |= FLOW_PKT_TOCLIENT;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+    f.alproto = ALPROTO_DCERPC;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    s = de_ctx->sig_list;
+    if (s == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p[0]);
+    if (!(PacketAlertCheck(&p[0], 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p[6]);
+    if ((PacketAlertCheck(&p[6], 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, response1, response1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p[1]);
+    if ((PacketAlertCheck(&p[1], 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    /* we should have a match for the sig once again for the same flow, since
+     * the detection engine state for the flow has been reset because of a
+     * fresh transaction */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p[2]);
+    if (!(PacketAlertCheck(&p[2], 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p[7]);
+    if ((PacketAlertCheck(&p[7], 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, response2, response2_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p[3]);
+    if ((PacketAlertCheck(&p[3], 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, request3, request3_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    /* we should have a match for the sig once again for the same flow, since
+     * the detection engine state for the flow has been reset because of a
+     * fresh transaction */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p[4]);
+    if (!(PacketAlertCheck(&p[4], 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, response3, response3_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p[5]);
+    if ((PacketAlertCheck(&p[5], 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    return result;
+}
+
+/**
+ * \test Test the working of detection engien with respect to dce keywords.
+ */
+int DcePayloadTest14(void)
+{
+    int result = 0;
+
+    uint8_t request1[] = {
+        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x68, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1a, 0x00,
+        0x76, 0x7e, 0x32, 0x00, 0x0f, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00,
+        0x5c, 0x00, 0x5c, 0x00, 0x31, 0x00, 0x37, 0x00,
+        0x31, 0x00, 0x2e, 0x00, 0x37, 0x00, 0x31, 0x00,
+        0x2e, 0x00, 0x38, 0x00, 0x34, 0x00, 0x2e, 0x00,
+        0x36, 0x00, 0x37, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x84, 0xf9, 0x7f, 0x01, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,
+        0x14, 0xfa, 0x7f, 0x01, 0x00, 0x00, 0x00, 0x00
+    };
+    uint32_t request1_len = sizeof(request1);
+
+    uint8_t bind[] = {
+        0x05, 0x00, 0x0b, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x48, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0xb8, 0x10, 0xb8, 0x10, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
+        0x81, 0xbb, 0x7a, 0x36, 0x44, 0x98, 0xf1, 0x35,
+        0xad, 0x32, 0x98, 0xf0, 0x38, 0x00, 0x10, 0x03,
+        0x02, 0x00, 0x00, 0x00, 0x04, 0x5d, 0x88, 0x8a,
+        0xeb, 0x1c, 0xc9, 0x11, 0x9f, 0xe8, 0x08, 0x00,
+        0x2b, 0x10, 0x48, 0x60, 0x02, 0x00, 0x00, 0x00
+    };
+    uint32_t bind_len = sizeof(bind);
+
+    uint8_t bind_ack[] = {
+        0x05, 0x00, 0x0c, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x44, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0xb8, 0x10, 0xb8, 0x10, 0x74, 0x73, 0x00, 0x00,
+        0x0d, 0x00, 0x5c, 0x50, 0x49, 0x50, 0x45, 0x5c,
+        0x6e, 0x74, 0x73, 0x76, 0x63, 0x73, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x04, 0x5d, 0x88, 0x8a, 0xeb, 0x1c, 0xc9, 0x11,
+        0x9f, 0xe8, 0x08, 0x00, 0x2b, 0x10, 0x48, 0x60,
+        0x02, 0x00, 0x00, 0x00
+    };
+    uint32_t bind_ack_len = sizeof(bind_ack);
+
+    uint8_t request2[] = {
+        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x40, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x28, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1b, 0x00,
+        0x64, 0x7e, 0x32, 0x00, 0x0f, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00,
+        0x5c, 0x5c, 0x31, 0x37, 0x31, 0x2e, 0x37, 0x31,
+        0x2e, 0x38, 0x34, 0x2e, 0x36, 0x37, 0x00, 0x8a,
+        0x00, 0x00, 0x00, 0x00, 0x3f, 0x00, 0x0f, 0x00
+    };
+    uint32_t request2_len = sizeof(request2);
+
+    uint8_t response2[] = {
+        0x05, 0x00, 0x02, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x30, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x18, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0xd2, 0xc4, 0x88, 0x14,
+        0xef, 0x31, 0xbb, 0x4d, 0xa8, 0x13, 0xb7, 0x1b,
+        0x47, 0x49, 0xb5, 0xd7, 0x00, 0x00, 0x00, 0x00
+    };
+    uint32_t response2_len = sizeof(response2);
+
+    TcpSession ssn;
+    Packet p[6];
+    ThreadVars tv;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    int r;
+    int i = 0;
+
+    char *sig1 = "alert tcp any any -> any any "
+        "(dce_stub_data; sid:1;)";
+
+    Signature *s;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    for (i = 0; i < 6; i++) {
+        memset(&p[i], 0, sizeof(Packet));
+        p[i].src.family = AF_INET;
+        p[i].dst.family = AF_INET;
+        p[i].payload = NULL;
+        p[i].payload_len = 0;
+        p[i].proto = IPPROTO_TCP;
+        p[i].flow = &f;
+        p[i].flowflags |= FLOW_PKT_TOSERVER;
+    }
+    p[3].flowflags |= FLOW_PKT_TOCLIENT;
+    p[5].flowflags |= FLOW_PKT_TOCLIENT;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+    f.alproto = ALPROTO_DCERPC;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    s = de_ctx->sig_list;
+    if (s == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    /* request 1 */
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p[0]);
+    if (!(PacketAlertCheck(&p[0], 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p[1]);
+    if ((PacketAlertCheck(&p[1], 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    /* bind */
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, bind, bind_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p[2]);
+    if ((PacketAlertCheck(&p[2], 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    /* bind_ack.  A new transaction initiation */
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, bind_ack, bind_ack_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p[3]);
+    if ((PacketAlertCheck(&p[3], 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    /* we should have a match for the sig once again for the same flow, since
+     * the detection engine state for the flow has been reset because of a
+     * fresh transaction */
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, request2, request2_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p[4]);
+    if (!(PacketAlertCheck(&p[4], 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    /* response */
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, response2, response2_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p[5]);
+    if ((PacketAlertCheck(&p[5], 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DcePayloadRegisterTests(void)
@@ -6069,6 +6525,8 @@ void DcePayloadRegisterTests(void)
     UtRegisterTest("DcePayloadTest10", DcePayloadTest10, 1);
     UtRegisterTest("DcePayloadTest11", DcePayloadTest11, 1);
     UtRegisterTest("DcePayloadTest12", DcePayloadTest12, 1);
+    UtRegisterTest("DcePayloadTest13", DcePayloadTest13, 1);
+    UtRegisterTest("DcePayloadTest14", DcePayloadTest14, 1);
 #endif /* UNITTESTS */
 
     return;
