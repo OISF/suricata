@@ -98,13 +98,15 @@ error:
  */
 int DetectDecodeEventMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
-    int ret = 0;
+    SCEnter();
+
     DetectDecodeEventData *de = (DetectDecodeEventData *)m->ctx;
 
-    if(de && DECODER_ISSET_EVENT(p, de->event))
-        return 1;
+    if (DECODER_ISSET_EVENT(p, de->event)) {
+        SCReturnInt(1);
+    }
 
-    return ret;
+    SCReturnInt(0);
 }
 
 /**
