@@ -129,8 +129,6 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p)
     /* Update the count */
     p->alerts.cnt++;
 
-    SCPerfCounterIncr(det_ctx->counter_alerts, det_ctx->tv->sc_perf_pca);
-
     return 0;
 }
 

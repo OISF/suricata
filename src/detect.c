@@ -920,6 +920,9 @@ end:
     /* so now let's iterate the alerts and remove the ones after a pass rule
      * matched (if any). This is done inside PacketAlertFinalize() */
     PacketAlertFinalize(de_ctx, det_ctx, p);
+    if (p->alerts.cnt > 0) {
+        SCPerfCounterAddUI64(det_ctx->counter_alerts, det_ctx->tv->sc_perf_pca, (uint64_t)p->alerts.cnt);
+    }
 
     /* cleanup pkt specific part of the patternmatcher */
     PacketPatternCleanup(th_v, det_ctx);
