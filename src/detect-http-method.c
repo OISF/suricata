@@ -423,6 +423,7 @@ static int DetectHttpMethodSigTest01(void)
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -524,6 +525,7 @@ static int DetectHttpMethodSigTest02(void)
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -624,6 +626,7 @@ static int DetectHttpMethodSigTest03(void)
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);

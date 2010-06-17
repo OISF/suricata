@@ -108,6 +108,20 @@ int DetectFlowMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, S
 {
     SCEnter();
 
+    SCLogDebug("pkt %p", p);
+
+    if (p->flowflags & FLOW_PKT_TOSERVER) {
+        SCLogDebug("FLOW_PKT_TOSERVER");
+    } else if (p->flowflags & FLOW_PKT_TOCLIENT) {
+        SCLogDebug("FLOW_PKT_TOCLIENT");
+    }
+
+    if (p->flowflags & FLOW_PKT_ESTABLISHED) {
+        SCLogDebug("FLOW_PKT_ESTABLISHED");
+    } else if (p->flowflags & FLOW_PKT_STATELESS) {
+        SCLogDebug("FLOW_PKT_STATELESS");
+    }
+
     uint8_t cnt = 0;
     DetectFlowData *fd = (DetectFlowData *)m->ctx;
 

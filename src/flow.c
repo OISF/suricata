@@ -709,6 +709,7 @@ void FlowHandlePacket (ThreadVars *tv, Packet *p)
     f->bytecnt += p->pktlen;
 
     if (f->flags & FLOW_TO_DST_SEEN && f->flags & FLOW_TO_SRC_SEEN) {
+        SCLogDebug("pkt %p FLOW_PKT_ESTABLISHED", p);
         p->flowflags |= FLOW_PKT_ESTABLISHED;
     }
 

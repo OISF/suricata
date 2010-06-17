@@ -853,6 +853,7 @@ static int DetectDceIfaceTestParse12(void)
     f.protoctx = (void *)&ssn;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
@@ -1070,6 +1071,7 @@ static int DetectDceIfaceTestParse13(void)
     f.proto = IPPROTO_TCP;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
@@ -1303,6 +1305,7 @@ static int DetectDceIfaceTestParse14(void)
     f.protoctx = (void *)&ssn;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);

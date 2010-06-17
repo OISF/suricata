@@ -282,7 +282,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     SCLogDebug("s->id %"PRIu32, s->id);
 
     /* Check the uricontent keywords here. */
-    if (alproto == ALPROTO_HTTP) {
+    if (alproto == ALPROTO_HTTP && (flags & STREAM_TOSERVER)) {
         if (s->umatch != NULL) {
             uinspect = 1;
 
@@ -421,7 +421,7 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
             /* let's continue detection */
 
             /* first, check uricontent */
-            if (alproto == ALPROTO_HTTP) {
+            if (alproto == ALPROTO_HTTP && (flags & STREAM_TOSERVER)) {
                 if (s->umatch != NULL) {
                     if (!(item->flags & DE_STATE_FLAG_URI_MATCH)) {
                         SCLogDebug("inspecting uri");
@@ -731,6 +731,7 @@ static int DeStateSigTest01(void) {
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -866,6 +867,7 @@ static int DeStateSigTest02(void) {
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);

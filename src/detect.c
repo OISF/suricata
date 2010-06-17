@@ -439,6 +439,7 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         SignatureHeader *s = &det_ctx->sgh->head_array[i];
 
         if (s->flags & SIG_FLAG_FLOW && !p->flow) {
+            SCLogDebug("flow in sig but not in packet");
             continue;
         }
 
@@ -452,6 +453,7 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         /* if the sig has alproto and the session as well they should match */
         if (s->alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_UNKNOWN) {
             if (s->alproto != alproto) {
+                SCLogDebug("alproto mismatch");
                 continue;
             }
         }
@@ -472,6 +474,7 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         {
             if (de_state_start == FALSE) {
                 if (det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NEW) {
+                    SCLogDebug("not a new match, ignoring");
                     continue;
                 }
             }
@@ -571,8 +574,14 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         FlowIncrUsecnt(p->flow);
 
         SCMutexLock(&p->flow->m);
-        alstate = AppLayerGetProtoStateFromPacket(p);
-        alproto = AppLayerGetProtoFromPacket(p);
+        if (p->flowflags & FLOW_PKT_ESTABLISHED) {
+            alstate = AppLayerGetProtoStateFromPacket(p);
+            alproto = AppLayerGetProtoFromPacket(p);
+            SCLogDebug("alstate %p, alproto %u", alstate, alproto);
+        } else {
+            SCLogDebug("packet doesn't have established flag set");
+        }
+
         if (p->flowflags & FLOW_PKT_TOSERVER && p->flow->flags & FLOW_SGH_TOSERVER) {
             sgh = p->flow->sgh_toserver;
             use_flow_sgh = TRUE;
@@ -580,6 +589,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             sgh = p->flow->sgh_toclient;
             use_flow_sgh = TRUE;
         }
+
         if (p->proto == IPPROTO_TCP) {
             TcpSession *ssn = (TcpSession *)p->flow->protoctx;
             if (ssn != NULL) {
@@ -589,7 +599,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     ssn->toserver_smsg_head = NULL;
                     ssn->toserver_smsg_tail = NULL;
 
-                    //BUG_ON(ssn->toclient_smsg_head != NULL);
                     SCLogDebug("to_server smsg %p", smsg);
                 } else {
                     smsg = ssn->toclient_smsg_head;
@@ -597,19 +606,18 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     ssn->toclient_smsg_head = NULL;
                     ssn->toclient_smsg_tail = NULL;
 
-                    //BUG_ON(ssn->toserver_smsg_head != NULL);
-
                     SCLogDebug("to_client smsg %p", smsg);
                 }
-
             }
         }
         SCMutexUnlock(&p->flow->m);
 
         if (p->flowflags & FLOW_PKT_TOSERVER) {
             flags |= STREAM_TOSERVER;
+            SCLogDebug("flag STREAM_TOSERVER set");
         } else if (p->flowflags & FLOW_PKT_TOCLIENT) {
             flags |= STREAM_TOCLIENT;
+            SCLogDebug("flag STREAM_TOCLIENT set");
         }
         SCLogDebug("p->flowflags 0x%02x", p->flowflags);
     }
@@ -655,9 +663,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     }
 
     /* have a look at the reassembled stream (if any) */
-    if (smsg != NULL && det_ctx->sgh->mpm_stream_ctx != NULL) {
-        cnt = StreamPatternSearch(th_v, det_ctx, smsg);
-        SCLogDebug("cnt %u", cnt);
+    if (p->flowflags & FLOW_PKT_ESTABLISHED) {
+        if (smsg != NULL && det_ctx->sgh->mpm_stream_ctx != NULL) {
+            cnt = StreamPatternSearch(th_v, det_ctx, smsg);
+            SCLogDebug("cnt %u", cnt);
+        }
     }
 
     if (p->payload_len > 0 && det_ctx->sgh->mpm_ctx != NULL &&
@@ -719,14 +729,14 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 DetectPort *dport = DetectPortLookupGroup(s->dp,p->dp);
                 if (dport == NULL) {
                     SCLogDebug("dport didn't match.");
-                    continue;
+                    goto next;
                 }
             }
             if (!(s->flags & SIG_FLAG_SP_ANY)) {
                 DetectPort *sport = DetectPortLookupGroup(s->sp,p->sp);
                 if (sport == NULL) {
                     SCLogDebug("sport didn't match.");
-                    continue;
+                    goto next;
                 }
             }
         }
@@ -736,7 +746,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             DetectAddress *daddr = DetectAddressLookupInHead(&s->dst,&p->dst);
             if (daddr == NULL) {
                 SCLogDebug("dst addr didn't match.");
-                    continue;
+                goto next;
             }
         }
         /* check the source address */
@@ -744,12 +754,19 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             DetectAddress *saddr = DetectAddressLookupInHead(&s->src,&p->src);
             if (saddr == NULL) {
                 SCLogDebug("src addr didn't match.");
-                    continue;
+                goto next;
             }
         }
 
-        SCLogDebug("s->amatch %p, s->umatch %p", s->amatch, s->umatch);
-        if ((s->amatch != NULL || s->umatch != NULL || s->dmatch != NULL) && p->flow != NULL) {
+        SCLogDebug("s->amatch %p, s->umatch %p, s->dmatch %p",
+                s->amatch, s->umatch, s->dmatch);
+
+        if (s->amatch != NULL || s->umatch != NULL || s->dmatch != NULL) {
+            if (alstate == NULL) {
+                SCLogDebug("state matches but no state, we can't match");
+                goto next;
+            }
+
             if (de_state_start == TRUE) {
                 SCLogDebug("stateful app layer match inspection starting");
                 if (DeStateDetectStartDetection(th_v, de_ctx, det_ctx, s,
@@ -3443,6 +3460,7 @@ static int SigTest06Real (int mpm_type) {
     f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -3540,6 +3558,7 @@ static int SigTest07Real (int mpm_type) {
     f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -3637,6 +3656,7 @@ static int SigTest08Real (int mpm_type) {
     f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -3735,6 +3755,7 @@ static int SigTest09Real (int mpm_type) {
     f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -3825,6 +3846,7 @@ static int SigTest10Real (int mpm_type) {
     f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);

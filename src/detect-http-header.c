@@ -474,6 +474,7 @@ static int DetectHttpHeaderTest06(void)
     f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -583,8 +584,10 @@ static int DetectHttpHeaderTest07(void)
     f.dst.family = AF_INET;
     p1.flow = &f;
     p1.flowflags |= FLOW_PKT_TOSERVER;
+    p1.flowflags |= FLOW_PKT_ESTABLISHED;
     p2.flow = &f;
     p2.flowflags |= FLOW_PKT_TOSERVER;
+    p2.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -708,8 +711,10 @@ static int DetectHttpHeaderTest08(void)
     f.dst.family = AF_INET;
     p1.flow = &f;
     p1.flowflags |= FLOW_PKT_TOSERVER;
+    p1.flowflags |= FLOW_PKT_ESTABLISHED;
     p2.flow = &f;
     p2.flowflags |= FLOW_PKT_TOSERVER;
+    p2.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -834,8 +839,10 @@ static int DetectHttpHeaderTest09(void)
     f.dst.family = AF_INET;
     p1.flow = &f;
     p1.flowflags |= FLOW_PKT_TOSERVER;
+    p1.flowflags |= FLOW_PKT_ESTABLISHED;
     p2.flow = &f;
     p2.flowflags |= FLOW_PKT_TOSERVER;
+    p2.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -960,8 +967,10 @@ static int DetectHttpHeaderTest10(void)
     f.dst.family = AF_INET;
     p1.flow = &f;
     p1.flowflags |= FLOW_PKT_TOSERVER;
+    p1.flowflags |= FLOW_PKT_ESTABLISHED;
     p2.flow = &f;
     p2.flowflags |= FLOW_PKT_TOSERVER;
+    p2.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -1076,6 +1085,7 @@ static int DetectHttpHeaderTest11(void)
     f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -1175,6 +1185,7 @@ static int DetectHttpHeaderTest12(void)
     f.dst.family = AF_INET;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -1275,6 +1286,7 @@ static int DetectHttpHeaderTest13(void)
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);

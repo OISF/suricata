@@ -1137,6 +1137,7 @@ static int DetectDceOpnumTestParse08(void)
     f.protoctx = (void *)&ssn;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
@@ -1664,6 +1665,7 @@ static int DetectDceOpnumTestParse09(void)
     f.protoctx = (void *)&ssn;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
@@ -1862,6 +1864,7 @@ static int DetectDceOpnumTestParse10(void)
     f.proto = IPPROTO_TCP;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
@@ -2139,6 +2142,7 @@ static int DetectDceOpnumTestParse11(void)
     f.proto = IPPROTO_TCP;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
@@ -2403,6 +2407,7 @@ static int DetectDceOpnumTestParse12(void)
     f.proto = IPPROTO_TCP;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
@@ -2676,6 +2681,7 @@ static int DetectDceOpnumTestParse13(void)
     f.proto = IPPROTO_TCP;
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);

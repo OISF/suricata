@@ -819,6 +819,7 @@ static int DetectUriSigTest02(void) {
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -931,6 +932,7 @@ static int DetectUriSigTest03(void) {
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -1259,6 +1261,7 @@ static int DetectUriSigTest05(void) {
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -1317,7 +1320,7 @@ static int DetectUriSigTest05(void) {
         goto end;
     }
 
-   /* do detect */
+    /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
     http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
@@ -1383,6 +1386,7 @@ static int DetectUriSigTest06(void) {
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -1461,10 +1465,10 @@ static int DetectUriSigTest06(void) {
         printf("sig: 1 alerted, but it should not:");
         goto end;
     } else if (! PacketAlertCheck(&p, 2)) {
-        printf("sig: 2 did not alerted, but it should:");
+        printf("sig: 2 did not alert, but it should:");
         goto end;
     } else if (! (PacketAlertCheck(&p, 3))) {
-        printf("sig: 3 did not alerted, but it should:");
+        printf("sig: 3 did not alert, but it should:");
         goto end;
     }
 
@@ -1515,6 +1519,7 @@ static int DetectUriSigTest07(void) {
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);

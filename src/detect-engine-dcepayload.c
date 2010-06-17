@@ -1547,6 +1547,7 @@ int DcePayloadTest01(void)
         p[i].proto = IPPROTO_TCP;
         p[i].flow = &f;
         p[i].flowflags |= FLOW_PKT_TOSERVER;
+        p[i].flowflags |= FLOW_PKT_ESTABLISHED;
     }
     p[1].flowflags |= FLOW_PKT_TOCLIENT;
 
@@ -2413,6 +2414,7 @@ int DcePayloadTest02(void)
         p[i].proto = IPPROTO_TCP;
         p[i].flow = &f;
         p[i].flowflags |= FLOW_PKT_TOSERVER;
+        p[i].flowflags |= FLOW_PKT_ESTABLISHED;
     }
     p[1].flowflags |= FLOW_PKT_TOCLIENT;
 
@@ -2861,6 +2863,7 @@ int DcePayloadTest03(void)
         p[i].proto = IPPROTO_TCP;
         p[i].flow = &f;
         p[i].flowflags |= FLOW_PKT_TOSERVER;
+        p[i].flowflags |= FLOW_PKT_ESTABLISHED;
     }
     p[1].flowflags |= FLOW_PKT_TOCLIENT;
 
@@ -3309,6 +3312,7 @@ int DcePayloadTest04(void)
         p[i].proto = IPPROTO_TCP;
         p[i].flow = &f;
         p[i].flowflags |= FLOW_PKT_TOSERVER;
+        p[i].flowflags |= FLOW_PKT_ESTABLISHED;
     }
     p[1].flowflags |= FLOW_PKT_TOCLIENT;
 
@@ -3756,6 +3760,7 @@ int DcePayloadTest05(void)
         p[i].proto = IPPROTO_TCP;
         p[i].flow = &f;
         p[i].flowflags |= FLOW_PKT_TOSERVER;
+        p[i].flowflags |= FLOW_PKT_ESTABLISHED;
     }
     p[1].flowflags |= FLOW_PKT_TOCLIENT;
 
@@ -4204,6 +4209,7 @@ int DcePayloadTest06(void)
         p[i].proto = IPPROTO_TCP;
         p[i].flow = &f;
         p[i].flowflags |= FLOW_PKT_TOSERVER;
+        p[i].flowflags |= FLOW_PKT_ESTABLISHED;
     }
     p[1].flowflags |= FLOW_PKT_TOCLIENT;
 
@@ -4651,6 +4657,7 @@ int DcePayloadTest07(void)
         p[i].proto = IPPROTO_TCP;
         p[i].flow = &f;
         p[i].flowflags |= FLOW_PKT_TOSERVER;
+        p[i].flowflags |= FLOW_PKT_ESTABLISHED;
     }
     p[1].flowflags |= FLOW_PKT_TOCLIENT;
 
@@ -4936,6 +4943,7 @@ int DcePayloadTest08(void)
         p[i].proto = IPPROTO_TCP;
         p[i].flow = &f;
         p[i].flowflags |= FLOW_PKT_TOSERVER;
+        p[i].flowflags |= FLOW_PKT_ESTABLISHED;
     }
 
     FLOW_INITIALIZE(&f);
@@ -5160,6 +5168,7 @@ int DcePayloadTest09(void)
         p[i].proto = IPPROTO_TCP;
         p[i].flow = &f;
         p[i].flowflags |= FLOW_PKT_TOSERVER;
+        p[i].flowflags |= FLOW_PKT_ESTABLISHED;
     }
 
     FLOW_INITIALIZE(&f);
@@ -5384,6 +5393,7 @@ int DcePayloadTest10(void)
         p[i].proto = IPPROTO_TCP;
         p[i].flow = &f;
         p[i].flowflags |= FLOW_PKT_TOSERVER;
+        p[i].flowflags |= FLOW_PKT_ESTABLISHED;
     }
 
     FLOW_INITIALIZE(&f);
@@ -5743,6 +5753,7 @@ int DcePayloadTest11(void)
         p[i].proto = IPPROTO_TCP;
         p[i].flow = &f;
         p[i].flowflags |= FLOW_PKT_TOSERVER;
+        p[i].flowflags |= FLOW_PKT_ESTABLISHED;
     }
 
     FLOW_INITIALIZE(&f);
@@ -6116,6 +6127,7 @@ int DcePayloadTest12(void)
         p[i].proto = IPPROTO_TCP;
         p[i].flow = &f;
         p[i].flowflags |= FLOW_PKT_TOSERVER;
+        p[i].flowflags |= FLOW_PKT_ESTABLISHED;
     }
 
     FLOW_INITIALIZE(&f);
@@ -6298,6 +6310,7 @@ int DcePayloadTest13(void)
         p[i].proto = IPPROTO_TCP;
         p[i].flow = &f;
         p[i].flowflags |= FLOW_PKT_TOSERVER;
+        p[i].flowflags |= FLOW_PKT_ESTABLISHED;
     }
     p[1].flowflags |= FLOW_PKT_TOCLIENT;
     p[3].flowflags |= FLOW_PKT_TOCLIENT;
@@ -6539,6 +6552,7 @@ int DcePayloadTest14(void)
         p[i].proto = IPPROTO_TCP;
         p[i].flow = &f;
         p[i].flowflags |= FLOW_PKT_TOSERVER;
+        p[i].flowflags |= FLOW_PKT_ESTABLISHED;
     }
     p[3].flowflags |= FLOW_PKT_TOCLIENT;
     p[5].flowflags |= FLOW_PKT_TOCLIENT;

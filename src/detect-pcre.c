@@ -1434,6 +1434,7 @@ static int DetectPcreModifPTest04(void) {
 
     p.flow = &f;
     p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -1569,8 +1570,10 @@ static int DetectPcreModifPTest05(void) {
 
     p1.flow = &f;
     p1.flowflags |= FLOW_PKT_TOSERVER;
+    p1.flowflags |= FLOW_PKT_ESTABLISHED;
     p2.flow = &f;
     p2.flowflags |= FLOW_PKT_TOSERVER;
+    p2.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
