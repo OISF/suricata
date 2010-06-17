@@ -278,8 +278,8 @@ int DetectDistanceTestPacket01 (void) {
     if (p == NULL)
         goto end;
 
-    char sig[] = "alert tcp any any -> any any (msg:\"suricata test\"; flow:"
-                 "from_server,established; byte_jump:1,2; content:\"|00|\"; "
+    char sig[] = "alert tcp any any -> any any (msg:\"suricata test\"; "
+                    "byte_jump:1,2; content:\"|00|\"; "
                     "within:1; distance:2; sid:98711212; rev:1;)";
 
     p->flowflags = FLOW_PKT_ESTABLISHED | FLOW_PKT_TOCLIENT;

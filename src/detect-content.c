@@ -30,9 +30,11 @@
 #include "detect-uricontent.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine.h"
+#include "detect-engine-state.h"
 #include "detect-parse.h"
 #include "util-mpm.h"
 #include "flow.h"
+#include "flow-util.h"
 #include "flow-var.h"
 #include "detect-flow.h"
 #include "app-layer.h"
@@ -1743,10 +1745,16 @@ static int SigTest76TestBug134(void)
     uint16_t buflen = strlen((char *)buf);
     Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
     int result = 0;
+    Flow f;
+
+    memset(&f, 0, sizeof(Flow));
+    FLOW_INITIALIZE(&f);
 
     p->dp = 515;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flow = &f;
+
     char sig[] = "alert tcp any any -> any 515 "
             "(msg:\"detect IFS\"; flow:to_server,established; content:\"${IFS}\";"
             " depth:50; offset:0; sid:900091; rev:1;)";
@@ -1759,6 +1767,8 @@ static int SigTest76TestBug134(void)
 end:
     if (p != NULL)
         UTHFreePacket(p);
+
+    FLOW_DESTROY(&f);
     return result;
 }
 

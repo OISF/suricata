@@ -222,6 +222,22 @@ typedef struct PktVar_ {
 /* forward declartion since Packet struct definition requires this */
 struct PacketQueue_;
 
+/* sizes of the members:
+ * src: 17 bytes
+ * dst: 17 bytes
+ * sp/type: 1 byte
+ * dp/code: 1 byte
+ * proto: 1 byte
+ * recurs: 1 byte
+ *
+ * sum of above: 38 bytes
+ *
+ * flow ptr: 4/8 bytes
+ * flags: 1 byte
+ * flowflags: 1 byte
+ *
+ * sum of above 44/48 bytes
+ */
 typedef struct Packet_
 {
     /* Addresses, Ports and protocol
@@ -242,7 +258,89 @@ typedef struct Packet_
      * has the exact same tuple as the lower levels */
     uint8_t recursion_level;
 
+    /*Pkt Flags*/
+    uint8_t flags;
+    /* flow */
+    uint8_t flowflags;
+    struct Flow_ *flow;
+
     struct timeval ts;
+
+    union {
+        /* nfq stuff */
+#ifdef NFQ
+        NFQPacketVars nfq_v;
+#endif /* NFQ */
+
+        /** libpcap vars: shared by Pcap Live mode and Pcap File mode */
+        PcapPacketVars pcap_v;
+    };
+
+    /** data linktype in host order */
+    int datalink;
+
+    /* IPS action to take */
+    uint8_t action;
+
+    /* pkt vars */
+    PktVar *pktvar;
+
+    /* header pointers */
+    EthernetHdr *ethh;
+
+    IPV4Hdr *ip4h;
+    IPV4Vars ip4vars;
+    IPV4Cache ip4c;
+
+    IPV6Hdr *ip6h;
+    IPV6Vars ip6vars;
+    IPV6Cache ip6c;
+    IPV6ExtHdrs ip6eh;
+
+    TCPHdr *tcph;
+    TCPVars tcpvars;
+    TCPCache tcpc;
+
+    UDPHdr *udph;
+    UDPVars udpvars;
+    UDPCache udpc;
+
+    ICMPV4Hdr *icmpv4h;
+    ICMPV4Cache icmpv4c;
+    ICMPV4Vars icmpv4vars;
+
+    ICMPV6Hdr *icmpv6h;
+    ICMPV6Cache icmpv6c;
+    ICMPV6Vars icmpv6vars;
+
+    PPPHdr *ppph;
+    PPPOESessionHdr *pppoesh;
+    PPPOEDiscoveryHdr *pppoedh;
+
+    GREHdr *greh;
+
+    VLANHdr *vlanh;
+
+    /* ptr to the payload of the packet
+     * with it's length. */
+    uint8_t *payload;
+    uint16_t payload_len;
+
+    /* storage: maximum ip packet size + link header */
+    uint8_t pkt[IPV6_HEADER_LEN + 65536 + 28];
+    uint32_t pktlen;
+
+    /* decoder events: review how many events we have */
+    uint8_t events[(DECODE_EVENT_MAX / 8) + 1];
+
+    PacketAlerts alerts;
+
+    /** packet number in the pcap file, matches wireshark */
+    uint64_t pcap_cnt;
+
+    /* double linked list ptrs */
+    struct Packet_ *next;
+    struct Packet_ *prev;
 
     /* ready to set verdict counter, only set in root */
     uint8_t rtv_cnt;
@@ -254,84 +352,6 @@ typedef struct Packet_
     /* tunnel XXX convert to bitfield*/
     char tunnel_pkt;
     char tunnel_verdicted;
-
-    /* nfq stuff */
-#ifdef NFQ
-    NFQPacketVars nfq_v;
-#endif /* NFQ */
-
-    /** libpcap vars: shared by Pcap Live mode and Pcap File mode */
-    PcapPacketVars pcap_v;
-
-    /** data linktype in host order */
-    int datalink;
-
-    /* storage: maximum ip packet size + link header */
-    uint8_t pkt[IPV6_HEADER_LEN + 65536 + 28];
-    uint32_t pktlen;
-
-    /* flow */
-    struct Flow_ *flow;
-    uint8_t flowflags;
-
-    /*Pkt Flags*/
-    uint8_t flags;
-
-    /* pkt vars */
-    PktVar *pktvar;
-
-    /* header pointers */
-    EthernetHdr *ethh;
-    PPPHdr *ppph;
-    PPPOESessionHdr *pppoesh;
-    PPPOEDiscoveryHdr *pppoedh;
-    GREHdr *greh;
-    VLANHdr *vlanh;
-
-    IPV4Hdr *ip4h;
-    IPV4Vars ip4vars;
-    IPV4Cache ip4c;
-
-    IPV6Hdr *ip6h;
-    IPV6Vars ip6vars;
-    IPV6Cache ip6c;
-    IPV6ExtHdrs ip6eh;
-
-    ICMPV4Hdr *icmpv4h;
-    ICMPV4Cache icmpv4c;
-    ICMPV4Vars icmpv4vars;
-
-    ICMPV6Hdr *icmpv6h;
-    ICMPV6Cache icmpv6c;
-    ICMPV6Vars icmpv6vars;
-
-    TCPHdr *tcph;
-    TCPVars tcpvars;
-    TCPCache tcpc;
-
-    UDPHdr *udph;
-    UDPVars udpvars;
-    UDPCache udpc;
-
-    /* ptr to the payload of the packet
-     * with it's length. */
-    uint8_t *payload;
-    uint16_t payload_len;
-
-    /* decoder events: review how many events we have */
-    uint8_t events[(DECODE_EVENT_MAX / 8) + 1];
-
-    PacketAlerts alerts;
-
-    /* IPS action to take */
-    uint8_t action;
-
-    /** packet number in the pcap file, matches wireshark */
-    uint64_t pcap_cnt;
-
-    /* double linked list ptrs */
-    struct Packet_ *next;
-    struct Packet_ *prev;
 
     /* tunnel/encapsulation handling */
     struct Packet_ *root; /* in case of tunnel this is a ptr

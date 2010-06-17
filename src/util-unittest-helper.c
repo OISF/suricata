@@ -25,18 +25,21 @@
  */
 
 #include "suricata-common.h"
+
 #include "decode.h"
+
+#include "flow-private.h"
+#include "flow-util.h"
+
 #include "detect.h"
 #include "detect-parse.h"
+#include "detect-engine.h"
+
 #include "util-debug.h"
 #include "util-time.h"
 #include "util-error.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
-#include <stdarg.h>
-#include "detect-engine.h"
-#include "flow-private.h"
-#include "flow-util.h"
 
 /**
  * \brief UTHBuildPacketReal is a function that create tcp/udp packets for unittests
@@ -586,7 +589,6 @@ int UTHPacketMatchSigMpm(Packet *p, char *sig, uint16_t mpm_type) {
     int result = 0;
 
     DecodeThreadVars dtv;
-
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
 

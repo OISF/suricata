@@ -204,28 +204,6 @@ void DetectExitPrintStats(ThreadVars *tv, void *data) {
         (float)(det_ctx->pkts_uri_searched/(float)(det_ctx->uris)*100));
 }
 
-int SghHasSig(DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid) {
-    if (sgh == NULL) {
-        return 0;
-    }
-
-    uint32_t sig;
-    for (sig = 0; sig < DetectEngineGetMaxSigId(de_ctx); sig++) {
-        if (!(sgh->sig_array[(sig/8)] & (1<<(sig%8))))
-            continue;
-
-        Signature *s = de_ctx->sig_array[sig];
-        if (s == NULL)
-            continue;
-
-        if (sid == s->id) {
-            return 1;
-        }
-    }
-
-    return 0;
-}
-
 /** \brief Create the path if default-rule-path was specified
  *  \param sig_file The name of the file
  *  \retval str Pointer to the string path + sig_file
@@ -441,6 +419,12 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
  *  \param de_state_start flag to indicate if we're at the start of a stateful run
  *  \param p packet
  *  \param alproto application layer protocol
+ *
+ *  Order of SignatureHeader access:
+ *  1. flags
+ *  2. alproto
+ *  3. mpm_pattern_id
+ *  4. num
  */
 static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, char de_state_start, Packet *p,
@@ -452,26 +436,10 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
     det_ctx->match_array_cnt = 0;
 
     for (i = 0; i < det_ctx->sgh->sig_cnt; i++) {
-        Signature *s = det_ctx->sgh->match_array[i];
+        SignatureHeader *s = &det_ctx->sgh->head_array[i];
 
-        if (s->flags & SIG_FLAG_MPM) {
-            /* filter out sigs that want pattern matches, but
-             * have no matches */
-            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8))) &&
-                    (s->flags & SIG_FLAG_MPM) && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
-                SCLogDebug("mpm sig without matches (pat id check in content).");
-                continue;
-            }
-        }
-
-        /* de_state check, filter out all signatures that already had a match before
-         * or just partially match */
-        if (de_state_start == FALSE) {
-            if (s->amatch != NULL || s->umatch != NULL || s->dmatch != NULL) {
-                if (det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NEW) {
-                    continue;
-                }
-            }
+        if (s->flags & SIG_FLAG_FLOW && !p->flow) {
+            continue;
         }
 
         /* filter out the sigs that inspect the payload, if packet
@@ -488,43 +456,29 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
             }
         }
 
-        /* check the source & dst port in the sig */
-        if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
-            if (!(s->flags & SIG_FLAG_DP_ANY)) {
-                DetectPort *dport = DetectPortLookupGroup(s->dp,p->dp);
-                if (dport == NULL) {
-                    SCLogDebug("dport didn't match.");
-                    continue;
-                }
-            }
-            if (!(s->flags & SIG_FLAG_SP_ANY)) {
-                DetectPort *sport = DetectPortLookupGroup(s->sp,p->sp);
-                if (sport == NULL) {
-                    SCLogDebug("sport didn't match.");
-                    continue;
-                }
+        if (s->flags & SIG_FLAG_MPM && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
+            /* filter out sigs that want pattern matches, but
+             * have no matches */
+            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8)))) {
+                SCLogDebug("mpm sig without matches (pat id %"PRIu32" check in content).", s->mpm_pattern_id);
+                continue;
             }
         }
 
-        /* check the destination address */
-        if (!(s->flags & SIG_FLAG_DST_ANY)) {
-            DetectAddress *daddr = DetectAddressLookupInHead(&s->dst,&p->dst);
-            if (daddr == NULL) {
-                SCLogDebug("dst addr didn't match.");
+        /* de_state check, filter out all signatures that already had a match before
+         * or just partially match */
+        if (s->flags & SIG_FLAG_AMATCH || s->flags & SIG_FLAG_UMATCH ||
+                s->flags & SIG_FLAG_DMATCH)
+        {
+            if (de_state_start == FALSE) {
+                if (det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NEW) {
                     continue;
-            }
-        }
-        /* check the source address */
-        if (!(s->flags & SIG_FLAG_SRC_ANY)) {
-            DetectAddress *saddr = DetectAddressLookupInHead(&s->src,&p->src);
-            if (saddr == NULL) {
-                SCLogDebug("src addr didn't match.");
-                    continue;
+                }
             }
         }
 
         /* okay, store it */
-        det_ctx->match_array[det_ctx->match_array_cnt] = s;
+        det_ctx->match_array[det_ctx->match_array_cnt] = s->full_sig;
         det_ctx->match_array_cnt++;
     }
 }
@@ -758,6 +712,41 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         s = det_ctx->match_array[idx];
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
+
+        /* check the source & dst port in the sig */
+        if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
+            if (!(s->flags & SIG_FLAG_DP_ANY)) {
+                DetectPort *dport = DetectPortLookupGroup(s->dp,p->dp);
+                if (dport == NULL) {
+                    SCLogDebug("dport didn't match.");
+                    continue;
+                }
+            }
+            if (!(s->flags & SIG_FLAG_SP_ANY)) {
+                DetectPort *sport = DetectPortLookupGroup(s->sp,p->sp);
+                if (sport == NULL) {
+                    SCLogDebug("sport didn't match.");
+                    continue;
+                }
+            }
+        }
+
+        /* check the destination address */
+        if (!(s->flags & SIG_FLAG_DST_ANY)) {
+            DetectAddress *daddr = DetectAddressLookupInHead(&s->dst,&p->dst);
+            if (daddr == NULL) {
+                SCLogDebug("dst addr didn't match.");
+                    continue;
+            }
+        }
+        /* check the source address */
+        if (!(s->flags & SIG_FLAG_SRC_ANY)) {
+            DetectAddress *saddr = DetectAddressLookupInHead(&s->src,&p->src);
+            if (saddr == NULL) {
+                SCLogDebug("src addr didn't match.");
+                    continue;
+            }
+        }
 
         SCLogDebug("s->amatch %p, s->umatch %p", s->amatch, s->umatch);
         if ((s->amatch != NULL || s->umatch != NULL || s->dmatch != NULL) && p->flow != NULL) {
@@ -1891,7 +1880,7 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressHead *hea
          * and build the temporary destination address list for it */
         uint32_t sig;
         for (sig = 0; sig < de_ctx->sig_array_len; sig++) {
-            if (!(gr->sh->sig_array[(sig/8)] & (1<<(sig%8))))
+            if (!(gr->sh->init->sig_array[(sig/8)] & (1<<(sig%8))))
                 continue;
 
             tmp_s = de_ctx->sig_array[sig];
@@ -2033,6 +2022,7 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressHead *hea
                 }
 
                 SigGroupHeadHashAdd(de_ctx, sgr->sh);
+                SigGroupHeadStore(de_ctx, sgr->sh);
                 de_ctx->gh_unique++;
             } else {
                 SCLogDebug("calling SigGroupHeadFree sgr %p, sgr->sh %p", sgr, sgr->sh);
@@ -2083,7 +2073,7 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
          * and build the temporary destination address list for it */
         uint32_t sig;
         for (sig = 0; sig < de_ctx->sig_array_len; sig++) {
-            if (!(src_gr->sh->sig_array[(sig/8)] & (1<<(sig%8))))
+            if (!(src_gr->sh->init->sig_array[(sig/8)] & (1<<(sig%8))))
                 continue;
 
             tmp_s = de_ctx->sig_array[sig];
@@ -2145,7 +2135,7 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
 
                 uint32_t sig2;
                 for (sig2 = 0; sig2 < max_idx+1; sig2++) {
-                    if (!(dst_gr->sh->sig_array[(sig2/8)] & (1<<(sig2%8))))
+                    if (!(dst_gr->sh->init->sig_array[(sig2/8)] & (1<<(sig2%8))))
                         continue;
 
                     Signature *s = de_ctx->sig_array[sig2];
@@ -2201,7 +2191,7 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
                         DetectPortDpHashReset(de_ctx);
                         uint32_t sig2;
                         for (sig2 = 0; sig2 < max_idx+1; sig2++) {
-                            if (!(sp->sh->sig_array[(sig2/8)] & (1<<(sig2%8))))
+                            if (!(sp->sh->init->sig_array[(sig2/8)] & (1<<(sig2%8))))
                                 continue;
 
                             Signature *s = de_ctx->sig_array[sig2];
@@ -2323,6 +2313,7 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
                                 }
 
                                 SigGroupHeadDPortHashAdd(de_ctx, dp->sh);
+                                SigGroupHeadStore(de_ctx, dp->sh);
                                 de_ctx->gh_unique++;
                             } else {
                                 SCLogDebug("dp %p dp->sh %p is a copy", dp, dp->sh);
@@ -2537,14 +2528,14 @@ void DbgPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
 }
 
 void DbgPrintSigs2(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
-    if (sgh == NULL) {
+    if (sgh == NULL || sgh->init == NULL) {
         printf("\n");
         return;
     }
 
     uint32_t sig;
     for (sig = 0; sig < DetectEngineGetMaxSigId(de_ctx); sig++) {
-        if (sgh->sig_array[(sig/8)] & (1<<(sig%8))) {
+        if (sgh->init->sig_array[(sig/8)] & (1<<(sig%8))) {
             printf("%" PRIu32 " ", de_ctx->sig_array[sig]->id);
         }
     }
@@ -2552,14 +2543,14 @@ void DbgPrintSigs2(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
 }
 
 void DbgSghContainsSig(DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid) {
-    if (sgh == NULL) {
+    if (sgh == NULL || sgh->init == NULL) {
         printf("\n");
         return;
     }
 
     uint32_t sig;
     for (sig = 0; sig < DetectEngineGetMaxSigId(de_ctx); sig++) {
-        if (!(sgh->sig_array[(sig/8)] & (1<<(sig%8))))
+        if (!(sgh->init->sig_array[(sig/8)] & (1<<(sig%8))))
             continue;
 
         Signature *s = de_ctx->sig_array[sig];
@@ -2571,6 +2562,29 @@ void DbgSghContainsSig(DetectEngineCtx *de_ctx, SigGroupHead *sgh, uint32_t sid)
         }
     }
     printf("\n");
+}
+
+/** \brief finalize preparing sgh's */
+int SigAddressPrepareStage4(DetectEngineCtx *de_ctx) {
+    SCEnter();
+
+    //SCLogInfo("sgh's %"PRIu32, de_ctx->sgh_array_cnt);
+
+    uint32_t idx = 0;
+
+    for (idx = 0; idx < de_ctx->sgh_array_cnt; idx++) {
+        SigGroupHead *sgh = de_ctx->sgh_array[idx];
+        if (sgh == NULL)
+            continue;
+
+        SigGroupHeadBuildHeadArray(de_ctx, sgh);
+    }
+
+    SCFree(de_ctx->sgh_array);
+    de_ctx->sgh_array_cnt = 0;
+    de_ctx->sgh_array_size = 0;
+
+    SCReturnInt(0);
 }
 
 /* shortcut for debugging. If enabled Stage5 will
@@ -2921,6 +2935,7 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
 #endif
 
     SigAddressPrepareStage3(de_ctx);
+    SigAddressPrepareStage4(de_ctx);
 
 #ifdef __SC_CUDA_SUPPORT__
     unsigned int cuda_free_after_alloc = 0;

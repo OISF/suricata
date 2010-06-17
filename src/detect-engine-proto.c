@@ -29,14 +29,19 @@
 
 #include "decode.h"
 #include "detect.h"
+
+#include "app-layer-parser.h"
+
+#include "flow-util.h"
 #include "flow-var.h"
+
+#include "detect-engine-siggroup.h"
+#include "detect-engine-state.h"
 
 #include "util-cidr.h"
 #include "util-byte.h"
 #include "util-unittest.h"
 #include "util-debug.h"
-
-#include "detect-engine-siggroup.h"
 
 /*Prototypes*/
 void DetectProtoTests (void);
@@ -349,9 +354,15 @@ static int DetectProtoTestSig01(void) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
+    Flow f;
 
+    memset(&f, 0, sizeof(Flow));
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
+
+    FLOW_INITIALIZE(&f);
+
+    p.flow = &f;
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.proto = IPPROTO_TCP;
@@ -400,6 +411,8 @@ static int DetectProtoTestSig01(void) {
     result = 1;
 
 cleanup:
+    FLOW_DESTROY(&f);
+
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 

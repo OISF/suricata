@@ -83,4 +83,6 @@ int SigGroupHeadContainsSigId (DetectEngineCtx *de_ctx, SigGroupHead *sgh,
 void SigGroupHeadRegisterTests(void);
 void SigGroupHeadPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 
+void SigGroupHeadStore(DetectEngineCtx *, SigGroupHead *);
+int SigGroupHeadBuildHeadArray(DetectEngineCtx *, SigGroupHead *);
 #endif /* __DETECT_ENGINE_SIGGROUP_H__ */
