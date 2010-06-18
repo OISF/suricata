@@ -60,6 +60,7 @@ void SigMatchAppendDcePayload(Signature *, SigMatch *);
 void SigMatchAppendPacket(Signature *, SigMatch *);
 void SigMatchAppendUricontent(Signature *, SigMatch *);
 void SigMatchAppendAppLayer(Signature *, SigMatch *);
+void SigMatchAppendTag(Signature *, SigMatch *);
 
 #endif /* __DETECT_PARSE_H__ */
 

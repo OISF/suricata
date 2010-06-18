@@ -97,6 +97,8 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
     memset(p->tcph, 0, sizeof(TCPHdr));
     p->tcph->th_sport = sport;
     p->tcph->th_dport = dport;
+
+    p->pktlen = sizeof(IPV6Hdr) + sizeof(TCPHdr) + payload_len;
     return p;
 }
 
@@ -159,6 +161,7 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
             memset(p->udph, 0, sizeof(UDPHdr));
             p->udph->uh_sport = sport;
             p->udph->uh_dport = dport;
+            p->pktlen = sizeof(IPV4Hdr) + sizeof(UDPHdr) + payload_len;
         break;
         case IPPROTO_TCP:
             p->tcph = SCMalloc(sizeof(TCPHdr));
@@ -167,6 +170,7 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
             memset(p->tcph, 0, sizeof(TCPHdr));
             p->tcph->th_sport = sport;
             p->tcph->th_dport = dport;
+            p->pktlen = sizeof(IPV4Hdr) + sizeof(TCPHdr) + payload_len;
         break;
         case IPPROTO_ICMP:
         default:

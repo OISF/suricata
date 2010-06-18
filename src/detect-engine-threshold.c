@@ -53,40 +53,6 @@
 #include "tm-modules.h"
 
 /**
- * \brief Handle a packet and check if needs a threshold logic
- *
- * \param de_ctx Detection Context
- * \param sig Signature pointer
- * \param p Packet structure
- *
- */
-int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-                       Signature *s, Packet *p, uint16_t pos)
-{
-    SCEnter();
-    int ret = 0;
-
-    /* retrieve the sig match data */
-    DetectThresholdData *td = SigGetThresholdType(s,p);
-
-    SCLogDebug("td %p", td);
-
-    /* if have none just alert, otherwise handle thresholding */
-    if (td == NULL) {
-        /* Already inserted so get out */
-        ret = 1;
-    } else {
-        ret = PacketAlertThreshold(de_ctx, det_ctx, td, p, s);
-        if (ret == 0) {
-            /* It doesn't match threshold, remove it */
-            PacketAlertRemove(p, pos);
-        }
-    }
-
-    SCReturnInt(ret);
-}
-
-/**
  * \brief Check if a certain signature has threshold option
  *
  * \param sig Signature pointer

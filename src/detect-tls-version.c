@@ -659,11 +659,13 @@ static int DetectTlsVersionTestDetect03(void) {
 
     result = 1;
 end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    if (de_ctx) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    DetectEngineCtxFree(de_ctx);
 
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);

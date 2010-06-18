@@ -52,6 +52,7 @@
 #include "detect-engine-payload.h"
 #include "detect-engine-dcepayload.h"
 #include "detect-engine-state.h"
+#include "detect-engine-tag.h"
 
 #include "tm-queuehandlers.h"
 #include "tm-queues.h"
@@ -759,6 +760,8 @@ int main(int argc, char **argv)
 #endif /* PROFILING */
     SCReputationInitCtx();
 
+    TagInitCtx();
+
     TmModuleReceiveNFQRegister();
     TmModuleVerdictNFQRegister();
     TmModuleDecodeNFQRegister();
@@ -1168,9 +1171,12 @@ int main(int argc, char **argv)
         }
     }
 #endif
+
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
     AlpProtoDestroy();
+
+    TagDestroyCtx();
 
     RunModeShutDown();
     OutputDeregisterAll();

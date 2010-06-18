@@ -40,6 +40,7 @@
 #include "util-radix-tree.h"
 
 #include "detect-threshold.h"
+//#include "detect-engine-tag.h"
 
 #define COUNTER_DETECT_ALERTS 1
 
@@ -272,6 +273,8 @@ typedef struct Signature_ {
     struct SigMatch_ *amatch_tail; /* general app layer  matches, tail of the list */
     struct SigMatch_ *dmatch; /* dce app layer matches */
     struct SigMatch_ *dmatch_tail; /* dce app layer matches, tail of the list */
+    struct SigMatch_ *tmatch; /* list of tags matches */
+    struct SigMatch_ *tmatch_tail; /* tag matches, tail of the list */
 
     /** ptr to the next sig in the list */
     struct Signature_ *next;
@@ -380,6 +383,15 @@ typedef struct ThresholdCtx_    {
     DetectThresholdEntry **th_entry;
     uint32_t th_size;
 } ThresholdCtx;
+
+/** \brief tag ctx */
+typedef struct DetectTagHostCtx_ {
+    HashListTable *tag_hash_table_ipv4;   /**< Ipv4 hash table      */
+    HashListTable *tag_hash_table_ipv6;   /**< Ipv6 hash table      */
+    SCMutex lock;                         /**< Mutex for the ctx    */
+    struct timeval last_ts;               /**< Last time the ctx was pruned */
+} DetectTagHostCtx;
+
 
 /** \brief main detection engine ctx */
 typedef struct DetectEngineCtx_ {

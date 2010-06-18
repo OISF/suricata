@@ -35,6 +35,7 @@
 #include "detect-engine-port.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-iponly.h"
+#include "detect-engine-tag.h"
 
 #include "detect-engine.h"
 

@@ -50,6 +50,7 @@ detect-window.c detect-window.h \
 detect-ftpbounce.c detect-ftpbounce.h \
 detect-engine-address.c detect-engine-address.h \
 detect-engine-threshold.c detect-engine-threshold.h \
+detect-engine-tag.c detect-engine-tag.h \
 detect-engine-address-ipv4.c detect-engine-address-ipv4.h \
 detect-engine-address-ipv6.c detect-engine-address-ipv6.h \
 detect-engine-proto.c detect-engine-proto.h \

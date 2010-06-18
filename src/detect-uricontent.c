@@ -1235,6 +1235,7 @@ end:
  *        match
  */
 static int DetectUriSigTest05(void) {
+    DetectEngineCtx *de_ctx = NULL;
     int result = 0;
     Flow f;
     HtpState *http_state = NULL;
@@ -1283,7 +1284,7 @@ static int DetectUriSigTest05(void) {
     ssn.toserver_smsg_head = stream_msg;
     ssn.toserver_smsg_tail = stream_msg;
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         goto end;
     }
@@ -1361,6 +1362,7 @@ end:
  *        match
  */
 static int DetectUriSigTest06(void) {
+    DetectEngineCtx *de_ctx = NULL;
     int result = 0;
     Flow f;
     HtpState *http_state = NULL;
@@ -1409,7 +1411,7 @@ static int DetectUriSigTest06(void) {
     ssn.toserver_smsg_head = stream_msg;
     ssn.toserver_smsg_tail = stream_msg;
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         goto end;
     }

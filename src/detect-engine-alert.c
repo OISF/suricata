@@ -20,11 +20,46 @@
 #include "detect.h"
 #include "detect-engine-alert.h"
 #include "detect-engine-threshold.h"
+#include "detect-engine-tag.h"
 
 #include "decode.h"
 
 #include "flow.h"
 #include "flow-private.h"
+
+/**
+ * \brief Handle a packet and check if needs a threshold logic
+ *
+ * \param de_ctx Detection Context
+ * \param sig Signature pointer
+ * \param p Packet structure
+ *
+ */
+int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+                       Signature *s, Packet *p, uint16_t pos)
+{
+    SCEnter();
+    int ret = 0;
+
+    /* retrieve the sig match data */
+    DetectThresholdData *td = SigGetThresholdType(s,p);
+
+    SCLogDebug("td %p", td);
+
+    /* if have none just alert, otherwise handle thresholding */
+    if (td == NULL) {
+        /* Already inserted so get out */
+        ret = 1;
+    } else {
+        ret = PacketAlertThreshold(de_ctx, det_ctx, td, p, s);
+        if (ret == 0) {
+            /* It doesn't match threshold, remove it */
+            PacketAlertRemove(p, pos);
+        }
+    }
+
+    SCReturnInt(ret);
+}
 
 
 /**
@@ -132,6 +167,54 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p)
     return 0;
 }
 
+int PacketAlertAppendTag(DetectEngineThreadCtx *det_ctx, Packet *p)
+{
+    int i = 0;
+
+    if (p->alerts.cnt == PACKET_ALERT_MAX)
+        return 0;
+
+    /* It should be usually the last, so check it before iterating */
+    if (p->alerts.cnt == 0) {
+        p->alerts.alerts[p->alerts.cnt].sid = TAG_SIG_ID;
+        p->alerts.alerts[p->alerts.cnt].gid = TAG_SIG_GEN;
+
+        p->alerts.alerts[p->alerts.cnt].num = TAG_SIG_ID;
+        p->alerts.alerts[p->alerts.cnt].order_id = 1000;
+        p->alerts.alerts[p->alerts.cnt].action = ACTION_ALERT;
+        p->alerts.alerts[p->alerts.cnt].rev = 1;
+        p->alerts.alerts[p->alerts.cnt].prio = 2;
+        p->alerts.alerts[p->alerts.cnt].msg = NULL;
+        p->alerts.alerts[p->alerts.cnt].class = 0;
+        p->alerts.alerts[p->alerts.cnt].class_msg = NULL;
+        p->alerts.alerts[p->alerts.cnt].references = NULL;
+    } else {
+        /* We need to make room for this s->num
+         (a bit ugly with mamcpy but we are planning changes here)*/
+        for (i = p->alerts.cnt - 1; i >= 0; i--) {
+            memcpy(&p->alerts.alerts[i + 1], &p->alerts.alerts[i], sizeof(PacketAlert));
+        }
+
+        i++; /* The right place to store the alert */
+
+        p->alerts.alerts[p->alerts.cnt].sid = TAG_SIG_ID;
+        p->alerts.alerts[p->alerts.cnt].gid = TAG_SIG_GEN;
+
+        p->alerts.alerts[p->alerts.cnt].num = TAG_SIG_ID;
+        p->alerts.alerts[p->alerts.cnt].order_id = 1000;
+        p->alerts.alerts[p->alerts.cnt].action = ACTION_ALERT;
+        p->alerts.alerts[p->alerts.cnt].rev = 1;
+        p->alerts.alerts[p->alerts.cnt].prio = 2;
+        p->alerts.alerts[p->alerts.cnt].msg = NULL;
+        p->alerts.alerts[p->alerts.cnt].class = 0;
+        p->alerts.alerts[p->alerts.cnt].class_msg = NULL;
+        p->alerts.alerts[p->alerts.cnt].references = NULL;
+    }
+    p->alerts.cnt++;
+
+    return 0;
+}
+
 /**
  * \brief Check the threshold of the sigs that match, set actions, break on pass action
  *        This function iterate the packet alerts array, removing those that didn't match
@@ -146,6 +229,7 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 
     int i = 0;
     Signature *s = NULL;
+    SigMatch *sm = NULL;
 
     for (i = 0; i < p->alerts.cnt; i++) {
         SCLogDebug("Sig->num: %"PRIu16, p->alerts.alerts[i].num);
@@ -156,6 +240,15 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
         if (res == 0) {
             i--;
         } else {
+            /* Now, if we have an alert, we have to check if we want
+             * to tag this session or src/dst host */
+            sm = s->tmatch;
+            while (sm) {
+                /* tags are set only for alerts */
+                sigmatch_table[sm->type].Match(NULL, det_ctx, p, s, sm);
+                sm = sm->next;
+            }
+
             if (s->flags & SIG_FLAG_IPONLY) {
                 if ((p->flowflags & FLOW_PKT_TOSERVER && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
                     (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET))) {
@@ -194,5 +287,10 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
          * have compacted the array and decreased cnt by one, so
          * process again the same position (with different alert now) */
     }
+
+    /* At this point, we should have all the new alerts. Now check the tag
+     * keyword context for sessions and hosts */
+    TagHandlePacket(de_ctx, det_ctx, p);
 }
+
 

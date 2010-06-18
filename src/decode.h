@@ -671,6 +671,7 @@ void AddressDebugPrint(Address *);
 #define PKT_NOPACKET_INSPECTION         0x01    /**< Flag to indicate that packet header or contents should not be inspected*/
 #define PKT_NOPAYLOAD_INSPECTION        0x02    /**< Flag to indicate that packet contents should not be inspected*/
 #define PKT_ALLOC                       0x04    /**< Packet was alloc'd this run, needs to be freed */
+#define PKT_HAS_TAG                     0x08    /**< Packet has matched a tag */
 
 #endif /* __DECODE_H__ */
 

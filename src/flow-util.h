@@ -49,6 +49,7 @@
         (f)->aldata = NULL; \
         (f)->alflags = 0; \
         (f)->alproto = 0; \
+        (f)->tag_list = NULL; \
     } while (0)
 
 #define FLOW_RECYCLE(f) do { \
@@ -78,6 +79,7 @@
         (f)->aldata = NULL; \
         (f)->alflags = 0; \
         (f)->alproto = 0; \
+        DetectTagDataListFree((f)->tag_list); \
     } while(0)
 
 #define FLOW_DESTROY(f) do { \
@@ -94,6 +96,7 @@
         (f)->aldata = NULL; \
         (f)->alflags = 0; \
         (f)->alproto = 0; \
+        DetectTagDataListFree((f)->tag_list); \
     } while(0)
 
 Flow *FlowAlloc(void);

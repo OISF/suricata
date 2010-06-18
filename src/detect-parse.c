@@ -216,6 +216,33 @@ void SigMatchAppendDcePayload(Signature *s, SigMatch *new) {
     return;
 }
 
+/** \brief Append a sig match to the signatures tag match list
+ *         This is done on other list because the tag keyword
+ *         should be always the last inspected (never ordered)
+ *
+ *  \param s signature
+ *  \param new sigmatch to append
+ */
+void SigMatchAppendTag(Signature *s, SigMatch *new) {
+    if (s->tmatch == NULL) {
+        s->tmatch = new;
+        s->tmatch_tail = new;
+        new->next = NULL;
+        new->prev = NULL;
+    } else {
+        SigMatch *cur = s->tmatch_tail;
+        cur->next = new;
+        new->prev = cur;
+        new->next = NULL;
+        s->tmatch_tail = new;
+    }
+
+    new->idx = s->sm_cnt;
+    s->sm_cnt++;
+
+    return;
+}
+
 /** \brief Append a sig match to the signatures non-payload match list
  *
  *  \param s signature
