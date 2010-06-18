@@ -562,6 +562,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     SigGroupHead *sgh = NULL;
     char use_flow_sgh = FALSE;
     StreamMsg *smsg = NULL;
+    char no_store_flow_sgh = FALSE;
 
     SCEnter();
 
@@ -575,14 +576,22 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         SCMutexLock(&p->flow->m);
 
-        if (p->flowflags & FLOW_PKT_TOSERVER && p->flow->flags & FLOW_SGH_TOSERVER) {
-            sgh = p->flow->sgh_toserver;
-            use_flow_sgh = TRUE;
-        } else if (p->flowflags & FLOW_PKT_TOCLIENT && p->flow->flags & FLOW_SGH_TOCLIENT) {
-            sgh = p->flow->sgh_toclient;
-            use_flow_sgh = TRUE;
+        /* Get the stored sgh from the flow (if any). Make sure we're not using
+         * the sgh for icmp error packets part of the same stream. */
+        if (p->proto == p->flow->proto) { /* filter out icmp */
+            if (p->flowflags & FLOW_PKT_TOSERVER && p->flow->flags & FLOW_SGH_TOSERVER) {
+                sgh = p->flow->sgh_toserver;
+                use_flow_sgh = TRUE;
+            } else if (p->flowflags & FLOW_PKT_TOCLIENT && p->flow->flags & FLOW_SGH_TOCLIENT) {
+                sgh = p->flow->sgh_toclient;
+                use_flow_sgh = TRUE;
+            }
+        } else {
+            no_store_flow_sgh = TRUE;
         }
 
+        /* Retrieve the app layer state and protocol and the tcp reassembled
+         * stream chunks. */
         if (p->flowflags & FLOW_PKT_ESTABLISHED) {
             alstate = AppLayerGetProtoStateFromPacket(p);
             alproto = AppLayerGetProtoFromPacket(p);
@@ -911,7 +920,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     if (alstate != NULL) {
         SCLogDebug("getting de_state_status");
-        int de_state_status = DeStateUpdateInspectTransactionId(p->flow, (flags & STREAM_TOSERVER) ? STREAM_TOSERVER : STREAM_TOCLIENT);
+        int de_state_status = DeStateUpdateInspectTransactionId(p->flow,
+                (flags & STREAM_TOSERVER) ? STREAM_TOSERVER : STREAM_TOCLIENT);
         SCLogDebug("de_state_status %d", de_state_status);
         if (de_state_status == 2) {
             DetectEngineStateReset(p->flow->de_state);
@@ -932,14 +942,19 @@ end:
         StreamPatternCleanup(th_v, det_ctx, smsg);
     }
 
+    /* store the found sgh (or NULL) in the flow to save us from looking it
+     * up again for the next packet. Also return any stream chunk we processed
+     * to the pool. */
     if (p->flow != NULL) {
         SCMutexLock(&p->flow->m);
-        if (p->flowflags & FLOW_PKT_TOSERVER && !(p->flow->flags & FLOW_SGH_TOSERVER)) {
-            p->flow->sgh_toserver = det_ctx->sgh;
-            p->flow->flags |= FLOW_SGH_TOSERVER;
-        } else if (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flow->flags & FLOW_SGH_TOCLIENT)) {
-            p->flow->sgh_toclient = det_ctx->sgh;
-            p->flow->flags |= FLOW_SGH_TOCLIENT;
+        if (no_store_flow_sgh == FALSE) {
+            if (p->flowflags & FLOW_PKT_TOSERVER && !(p->flow->flags & FLOW_SGH_TOSERVER)) {
+                p->flow->sgh_toserver = det_ctx->sgh;
+                p->flow->flags |= FLOW_SGH_TOSERVER;
+            } else if (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flow->flags & FLOW_SGH_TOCLIENT)) {
+                p->flow->sgh_toclient = det_ctx->sgh;
+                p->flow->flags |= FLOW_SGH_TOCLIENT;
+            }
         }
 
         /* if we have (a) smsg(s), return to the pool */
