@@ -64,6 +64,10 @@ defrag:
   prealloc: yes
   timeout: 60
 
+# You can specify a threshold config file by setting "threshold-file"
+# to the path of the threshold config file:
+# threshold-file: /etc/suricata/threshold.config
+
 # The detection engine builds internal groups of signatures. The engine
 # allow us to specify the profile to use for them, to manage memory on an
 # efficient way keeping a good performance. For the profile keyword you
