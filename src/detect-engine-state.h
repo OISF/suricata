@@ -97,7 +97,7 @@ int DeStateDetectContinueDetection(ThreadVars *, DetectEngineCtx *,
         DetectEngineThreadCtx *, Flow *, uint8_t, void *, uint16_t);
 
 const char *DeStateMatchResultToString(DeStateMatchResult);
-int DeStateUpdateInspectTransactionId(Flow *f);
+int DeStateUpdateInspectTransactionId(Flow *, char);
 
 #endif /* __DETECT_ENGINE_STATE_H__ */
 

@@ -1903,6 +1903,8 @@ static int DetectDceOpnumTestParse10(void)
         SCLogDebug("no dcerpc state: ");
         goto end;
     }
+    p.flowflags &=~ FLOW_PKT_TOCLIENT;
+    p.flowflags |= FLOW_PKT_TOSERVER;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
     SCLogDebug("sending bind_ack");
@@ -1913,6 +1915,8 @@ static int DetectDceOpnumTestParse10(void)
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         goto end;
     }
+    p.flowflags &=~ FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_TOCLIENT;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
     SCLogDebug("sending request1");
@@ -1925,6 +1929,8 @@ static int DetectDceOpnumTestParse10(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOCLIENT;
+    p.flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -1943,6 +1949,8 @@ static int DetectDceOpnumTestParse10(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -1959,6 +1967,8 @@ static int DetectDceOpnumTestParse10(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOCLIENT;
+    p.flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -1975,6 +1985,8 @@ static int DetectDceOpnumTestParse10(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -1991,6 +2003,8 @@ static int DetectDceOpnumTestParse10(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOCLIENT;
+    p.flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -2007,6 +2021,8 @@ static int DetectDceOpnumTestParse10(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -2185,6 +2201,8 @@ static int DetectDceOpnumTestParse11(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOCLIENT;
+    p.flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -2200,6 +2218,8 @@ static int DetectDceOpnumTestParse11(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -2215,6 +2235,8 @@ static int DetectDceOpnumTestParse11(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOCLIENT;
+    p.flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -2230,6 +2252,8 @@ static int DetectDceOpnumTestParse11(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -2245,6 +2269,8 @@ static int DetectDceOpnumTestParse11(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOCLIENT;
+    p.flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -2260,6 +2286,8 @@ static int DetectDceOpnumTestParse11(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -2438,6 +2466,8 @@ static int DetectDceOpnumTestParse12(void)
         printf("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         goto end;
     }
+    p.flowflags &=~ FLOW_PKT_TOCLIENT;
+    p.flowflags |= FLOW_PKT_TOSERVER;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
     dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
@@ -2452,6 +2482,8 @@ static int DetectDceOpnumTestParse12(void)
         printf("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         goto end;
     }
+    p.flowflags &=~ FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_TOCLIENT;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
     /* request1 */
@@ -2476,6 +2508,8 @@ static int DetectDceOpnumTestParse12(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOCLIENT;
+    p.flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -2504,6 +2538,8 @@ static int DetectDceOpnumTestParse12(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -2532,6 +2568,8 @@ static int DetectDceOpnumTestParse12(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOCLIENT;
+    p.flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -2560,6 +2598,8 @@ static int DetectDceOpnumTestParse12(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -2730,6 +2770,8 @@ static int DetectDceOpnumTestParse13(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOCLIENT;
+    p.flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -2756,6 +2798,8 @@ static int DetectDceOpnumTestParse13(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -2783,6 +2827,8 @@ static int DetectDceOpnumTestParse13(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOCLIENT;
+    p.flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -2809,6 +2855,8 @@ static int DetectDceOpnumTestParse13(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 

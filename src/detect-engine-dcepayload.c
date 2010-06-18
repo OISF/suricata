@@ -2417,6 +2417,7 @@ int DcePayloadTest02(void)
         p[i].flowflags |= FLOW_PKT_ESTABLISHED;
     }
     p[1].flowflags |= FLOW_PKT_TOCLIENT;
+    p[1].flowflags &=~ FLOW_PKT_TOSERVER;
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -6313,8 +6314,11 @@ int DcePayloadTest13(void)
         p[i].flowflags |= FLOW_PKT_ESTABLISHED;
     }
     p[1].flowflags |= FLOW_PKT_TOCLIENT;
+    p[1].flowflags &=~ FLOW_PKT_TOSERVER;
     p[3].flowflags |= FLOW_PKT_TOCLIENT;
+    p[3].flowflags &=~ FLOW_PKT_TOSERVER;
     p[5].flowflags |= FLOW_PKT_TOCLIENT;
+    p[5].flowflags &=~ FLOW_PKT_TOSERVER;
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -6555,7 +6559,9 @@ int DcePayloadTest14(void)
         p[i].flowflags |= FLOW_PKT_ESTABLISHED;
     }
     p[3].flowflags |= FLOW_PKT_TOCLIENT;
+    p[3].flowflags &=~ FLOW_PKT_TOSERVER;
     p[5].flowflags |= FLOW_PKT_TOCLIENT;
+    p[5].flowflags &=~ FLOW_PKT_TOSERVER;
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;

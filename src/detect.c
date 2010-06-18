@@ -574,13 +574,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         FlowIncrUsecnt(p->flow);
 
         SCMutexLock(&p->flow->m);
-        if (p->flowflags & FLOW_PKT_ESTABLISHED) {
-            alstate = AppLayerGetProtoStateFromPacket(p);
-            alproto = AppLayerGetProtoFromPacket(p);
-            SCLogDebug("alstate %p, alproto %u", alstate, alproto);
-        } else {
-            SCLogDebug("packet doesn't have established flag set");
-        }
 
         if (p->flowflags & FLOW_PKT_TOSERVER && p->flow->flags & FLOW_SGH_TOSERVER) {
             sgh = p->flow->sgh_toserver;
@@ -590,26 +583,35 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             use_flow_sgh = TRUE;
         }
 
-        if (p->proto == IPPROTO_TCP) {
-            TcpSession *ssn = (TcpSession *)p->flow->protoctx;
-            if (ssn != NULL) {
-                if (p->flowflags & FLOW_PKT_TOSERVER) {
-                    smsg = ssn->toserver_smsg_head;
-                    /* deref from the ssn */
-                    ssn->toserver_smsg_head = NULL;
-                    ssn->toserver_smsg_tail = NULL;
+        if (p->flowflags & FLOW_PKT_ESTABLISHED) {
+            alstate = AppLayerGetProtoStateFromPacket(p);
+            alproto = AppLayerGetProtoFromPacket(p);
+            SCLogDebug("alstate %p, alproto %u", alstate, alproto);
 
-                    SCLogDebug("to_server smsg %p", smsg);
-                } else {
-                    smsg = ssn->toclient_smsg_head;
-                    /* deref from the ssn */
-                    ssn->toclient_smsg_head = NULL;
-                    ssn->toclient_smsg_tail = NULL;
+            if (p->proto == IPPROTO_TCP) {
+                TcpSession *ssn = (TcpSession *)p->flow->protoctx;
+                if (ssn != NULL) {
+                    if (p->flowflags & FLOW_PKT_TOSERVER) {
+                        smsg = ssn->toserver_smsg_head;
+                        /* deref from the ssn */
+                        ssn->toserver_smsg_head = NULL;
+                        ssn->toserver_smsg_tail = NULL;
 
-                    SCLogDebug("to_client smsg %p", smsg);
+                        SCLogDebug("to_server smsg %p", smsg);
+                    } else {
+                        smsg = ssn->toclient_smsg_head;
+                        /* deref from the ssn */
+                        ssn->toclient_smsg_head = NULL;
+                        ssn->toclient_smsg_tail = NULL;
+
+                        SCLogDebug("to_client smsg %p", smsg);
+                    }
                 }
             }
+        } else {
+            SCLogDebug("packet doesn't have established flag set");
         }
+
         SCMutexUnlock(&p->flow->m);
 
         if (p->flowflags & FLOW_PKT_TOSERVER) {
@@ -909,7 +911,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     if (alstate != NULL) {
         SCLogDebug("getting de_state_status");
-        int de_state_status = DeStateUpdateInspectTransactionId(p->flow);
+        int de_state_status = DeStateUpdateInspectTransactionId(p->flow, (flags & STREAM_TOSERVER) ? STREAM_TOSERVER : STREAM_TOCLIENT);
         SCLogDebug("de_state_status %d", de_state_status);
         if (de_state_status == 2) {
             DetectEngineStateReset(p->flow->de_state);

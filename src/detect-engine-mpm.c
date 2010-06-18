@@ -151,6 +151,8 @@ uint32_t UriPatternSearch(DetectEngineThreadCtx *det_ctx,
     if (det_ctx->sgh->mpm_uri_ctx == NULL)
         SCReturnUInt(0U);
 
+    //PrintRawDataFp(stdout, uri, uri_len);
+
     uint32_t ret;
 #ifndef __SC_CUDA_SUPPORT__
     ret = mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Search

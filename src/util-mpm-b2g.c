@@ -1173,10 +1173,8 @@ uint32_t B2gSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatche
         uint8_t h = u8_tolower(*buf);
         hi = &ctx->hash1[h];
 
-        if (hi->flags & MPM_PATTERN_ONE_BYTE) {
-            for (thi = hi; thi != NULL; thi = thi->next) {
-                //p = ctx->parray[thi->idx];
-
+        for (thi = hi; thi != NULL; thi = thi->next) {
+            if (hi->flags & MPM_PATTERN_ONE_BYTE) {
                 if (thi->len != 1)
                     continue;
 

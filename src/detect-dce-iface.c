@@ -1108,6 +1108,8 @@ static int DetectDceIfaceTestParse13(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOCLIENT;
+    p.flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -1125,6 +1127,8 @@ static int DetectDceIfaceTestParse13(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -1143,6 +1147,8 @@ static int DetectDceIfaceTestParse13(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOCLIENT;
+    p.flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -1161,6 +1167,8 @@ static int DetectDceIfaceTestParse13(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -1179,6 +1187,8 @@ static int DetectDceIfaceTestParse13(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOCLIENT;
+    p.flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -1195,6 +1205,8 @@ static int DetectDceIfaceTestParse13(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -1211,6 +1223,8 @@ static int DetectDceIfaceTestParse13(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOCLIENT;
+    p.flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
@@ -1227,6 +1241,8 @@ static int DetectDceIfaceTestParse13(void)
         goto end;
     }
 
+    p.flowflags &=~ FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 

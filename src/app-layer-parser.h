@@ -85,6 +85,10 @@ typedef struct AppLayerParserResult_ {
 
 #define APP_LAYER_TRANSACTION_EOF       0x01    /**< Session done, last transaction
                                                      as well */
+#define APP_LAYER_TRANSACTION_TOSERVER  0x02    /**< transaction has been inspected
+                                                     in to server direction. */
+#define APP_LAYER_TRANSACTION_TOCLIENT  0x04    /**< transaction has been inspected
+                                                     in to server direction. */
 
 typedef struct AppLayerParserState_ {
     uint8_t flags;
@@ -162,7 +166,7 @@ uint16_t AlpGetStateIdx(uint16_t);
 
 uint16_t AppLayerGetProtoByName(const char *);
 
-int AppLayerTransactionUpdateInspectId(Flow *);
+int AppLayerTransactionUpdateInspectId(Flow *, char);
 void AppLayerTransactionUpdateLoggedId(Flow *);
 
 int AppLayerTransactionGetLoggableId(Flow *f);

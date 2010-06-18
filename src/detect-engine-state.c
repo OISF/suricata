@@ -154,17 +154,21 @@ void DetectEngineStateReset(DetectEngineState *state) {
 
 /**
  *  \brief update the transaction id
+ *
+ *  \param f unlocked flow
+ *  \param direction STREAM_TOCLIENT / STREAM_TOSERVER
+ *
  *  \retval 2 current transaction done, new available
  *  \retval 1 current transaction done, no new (yet)
  *  \retval 0 current transaction is not done yet
  */
-int DeStateUpdateInspectTransactionId(Flow *f) {
+int DeStateUpdateInspectTransactionId(Flow *f, char direction) {
     SCEnter();
 
     int r = 0;
 
     SCMutexLock(&f->m);
-    r = AppLayerTransactionUpdateInspectId(f);
+    r = AppLayerTransactionUpdateInspectId(f, direction);
     SCMutexUnlock(&f->m);
 
     SCReturnInt(r);

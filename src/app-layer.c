@@ -194,7 +194,7 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
             }
         }
 
-        SCLogDebug("storing smsg in the tcp session");
+        SCLogDebug("storing smsg %p in the tcp session", smsg);
 
         /* store the smsg in the tcp stream */
         if (smsg->flags & STREAM_TOSERVER) {

@@ -291,6 +291,8 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
     int r = -1;
     int ret = 1;
 
+    //PrintRawDataFp(stdout, input, input_len);
+
     HtpState *hstate = (HtpState *)htp_state;
 
     /* if the previous run set the new request flag, we unset it here. As

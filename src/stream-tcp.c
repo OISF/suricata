@@ -221,8 +221,7 @@ void StreamTcpSessionClear(void *ssnptr)
     SCReturn;
 }
 
-/** \brief Function to return the stream back to the pool. It returns the
- *         segments in the stream to the segment pool.
+/** \brief Function to return the stream segments back to the pool.
  *
  *  We don't clear out the app layer storage here as that is under protection
  *  of the "use_cnt" reference counter in the flow. This function is called
@@ -235,7 +234,7 @@ static void StreamTcpSessionPktFree (Packet *p)
 {
     SCEnter();
 
-    StreamMsg *smsg = NULL;
+//    StreamMsg *smsg = NULL;
 
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
     if (ssn == NULL)
@@ -245,6 +244,7 @@ static void StreamTcpSessionPktFree (Packet *p)
     StreamTcpReturnStreamSegments(&ssn->server);
 
     /* if we have (a) smsg(s), return to the pool */
+#if 0
     smsg = ssn->toserver_smsg_head;
     while(smsg != NULL) {
         StreamMsg *smsg_next = smsg->next;
@@ -268,7 +268,7 @@ static void StreamTcpSessionPktFree (Packet *p)
         smsg = smsg_next;
     }
     ssn->toclient_smsg_head = NULL;
-
+#endif
     SCReturn;
 }
 
@@ -1673,7 +1673,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
                                "%" PRIu32 "", ssn, ssn->server.next_seq,
                                ssn->client.last_ack);
 
-                StreamTcpSessionPktFree(p);
+                    StreamTcpSessionPktFree(p);
                 }
             } else
                 return -1;

@@ -1080,11 +1080,13 @@ error:
 
 /**
  *  \param f LOCKED flow
+ *  \param direction STREAM_TOSERVER or STREAM_TOCLIENT
+ *
  *  \retval 2 current transaction done, new available
  *  \retval 1 current transaction done, no new (yet)
  *  \retval 0 current transaction is not done yet
  */
-int AppLayerTransactionUpdateInspectId(Flow *f)
+int AppLayerTransactionUpdateInspectId(Flow *f, char direction)
 {
     SCEnter();
 
@@ -1102,7 +1104,18 @@ int AppLayerTransactionUpdateInspectId(Flow *f)
             SCLogDebug("avail_id %"PRIu16", inspect_id %"PRIu16,
                     parser_state_store->avail_id, parser_state_store->inspect_id);
 
-            if ((parser_state_store->inspect_id+1) < parser_state_store->avail_id) {
+            if (direction == STREAM_TOSERVER)
+                parser_state_store->id_flags |= APP_LAYER_TRANSACTION_TOSERVER;
+            else
+                parser_state_store->id_flags |= APP_LAYER_TRANSACTION_TOCLIENT;
+
+            if ((parser_state_store->inspect_id+1) < parser_state_store->avail_id &&
+                    (parser_state_store->id_flags & APP_LAYER_TRANSACTION_TOCLIENT) &&
+                    (parser_state_store->id_flags & APP_LAYER_TRANSACTION_TOSERVER))
+            {
+                parser_state_store->id_flags &=~ APP_LAYER_TRANSACTION_TOCLIENT;
+                parser_state_store->id_flags &=~ APP_LAYER_TRANSACTION_TOSERVER;
+
                 parser_state_store->inspect_id++;
                 if (parser_state_store->inspect_id < parser_state_store->avail_id) {
                     /* done and more transactions available */
