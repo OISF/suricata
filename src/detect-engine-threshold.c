@@ -463,7 +463,7 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
             if (td->track != TRACK_RULE)
                 lookup_tsh = ThresholdHashSearch(de_ctx, &ste, p);
             else
-                lookup_tsh = s->th_entry;
+                lookup_tsh = (DetectThresholdEntry *)de_ctx->ths_ctx.th_entry[s->num];
 
             if (lookup_tsh != NULL) {
                 /* Check if we have a timeout enabled, if so,
@@ -543,7 +543,7 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                 if (td->track != TRACK_RULE)
                     ThresholdHashAdd(de_ctx, e, p);
                 else
-                    s->th_entry = e;
+                    de_ctx->ths_ctx.th_entry[s->num] = e;
             }
             break;
         }
@@ -666,6 +666,7 @@ void ThresholdHashInit(DetectEngineCtx *de_ctx)
             exit(EXIT_FAILURE);
         }
     }
+
 }
 
 /**
@@ -680,5 +681,7 @@ void ThresholdContextDestroy(DetectEngineCtx *de_ctx)
     HashListTableFree(de_ctx->ths_ctx.threshold_hash_table_src);
     HashListTableFree(de_ctx->ths_ctx.threshold_hash_table_dst_ipv6);
     HashListTableFree(de_ctx->ths_ctx.threshold_hash_table_src_ipv6);
+    if (de_ctx->ths_ctx.th_entry != NULL)
+        SCFree(de_ctx->ths_ctx.th_entry);
 }
 

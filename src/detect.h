@@ -375,6 +375,10 @@ typedef struct ThresholdCtx_    {
     HashListTable *threshold_hash_table_dst_ipv6;   /**< Ipv6 dst hash table */
     HashListTable *threshold_hash_table_src_ipv6;   /**< Ipv6 src hash table */
     SCMutex threshold_table_lock;                   /**< Mutex for hash table */
+
+    /** to support rate_filter "by_rule" option */
+    DetectThresholdEntry **th_entry;
+    uint32_t th_size;
 } ThresholdCtx;
 
 /** \brief main detection engine ctx */
