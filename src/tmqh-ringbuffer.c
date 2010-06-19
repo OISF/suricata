@@ -77,7 +77,7 @@ void TmqhInputRingBufferShutdownHandler(ThreadVars *tv) {
         return;
     }
 
-    rb->shutdown = 1;
+    RingBuffer8Shutdown(rb);
 }
 
 Packet *TmqhInputRingBufferMrSw(ThreadVars *t)

@@ -67,6 +67,9 @@ typedef struct RingBuffer16_ {
 RingBuffer8 *RingBuffer8Init(void);
 void RingBuffer8Destroy(RingBuffer8 *);
 
+void RingBuffer8Shutdown(RingBuffer8 *);
+void RingBufferShutdown(RingBuffer16 *);
+
 /** Single Reader, Single Writer ring buffer, fixed at
  *  256 items so we can use unsigned char's that just
  *  wrap around */
