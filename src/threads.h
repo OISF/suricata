@@ -212,19 +212,19 @@
 #define SCCondDestroy pthread_cond_destroy
 
 #ifdef DBG_THREAD
-#define SCondWait_dbg(cond, mut) ({ \
+#define SCCondWait_dbg(cond, mut) ({ \
     int ret = pthread_cond_wait(cond, mut); \
     switch (ret) { \
         case EINVAL: \
         printf("The value specified by attr is invalid (or a SCCondT not initialized!)\n"); \
-        printf("%16s(%s:%d): (thread:%"PRIuMAX") failed SCondWait %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), mut, retu); \
+        printf("%16s(%s:%d): (thread:%"PRIuMAX") failed SCCondWait %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), mut, retu); \
         break; \
     } \
     ret; \
 })
-#define SCondWait SCondWait_dbg
+#define SCCondWait SCondWait_dbg
 #else
-#define SCondWait(cond, mut) pthread_cond_wait(cond, mut)
+#define SCCondWait(cond, mut) pthread_cond_wait(cond, mut)
 #endif
 
 /** Spinlocks */

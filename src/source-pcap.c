@@ -182,7 +182,7 @@ TmEcode ReceivePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
         SCMutexLock(&packet_q.mutex_q);
         packet_q_len = packet_q.len;
         if (packet_q.len == 0) {
-            SCondWait(&packet_q.cond_q, &packet_q.mutex_q);
+            SCCondWait(&packet_q.cond_q, &packet_q.mutex_q);
         }
         packet_q_len = packet_q.len;
         SCMutexUnlock(&packet_q.mutex_q);

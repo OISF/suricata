@@ -54,7 +54,7 @@ Packet *TmqhInputPacketpool(ThreadVars *t)
     while (p == NULL) {
         p = PacketDequeue(&packet_q);
         if (p == NULL) {
-            SCondWait(&packet_q.cond_q, &packet_q.mutex_q);
+            SCCondWait(&packet_q.cond_q, &packet_q.mutex_q);
         }
     }
     SCMutexUnlock(&packet_q.mutex_q);

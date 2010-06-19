@@ -50,7 +50,7 @@ Packet *TmqhInputSimple(ThreadVars *t)
 
     if (q->len == 0) {
         /* if we have no packets in queue, wait... */
-        SCondWait(&q->cond_q, &q->mutex_q);
+        SCCondWait(&q->cond_q, &q->mutex_q);
     }
 
     if (t->sc_perf_pctx.perf_flag == 1)
@@ -107,7 +107,7 @@ Packet *TmqhInputSimpleOnQ(PacketQueue *q)
     SCMutexLock(&q->mutex_q);
     if (q->len == 0) {
         /* if we have no packets in queue, wait... */
-        SCondWait(&q->cond_q, &q->mutex_q);
+        SCCondWait(&q->cond_q, &q->mutex_q);
     }
 
     if (q->len > 0) {

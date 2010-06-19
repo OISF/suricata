@@ -70,7 +70,7 @@ Packet *TmqhInputFlow(ThreadVars *tv)
     SCMutexLock(&q->mutex_q);
     if (q->len == 0) {
         /* if we have no packets in queue, wait... */
-        SCondWait(&q->cond_q, &q->mutex_q);
+        SCCondWait(&q->cond_q, &q->mutex_q);
     }
 
     if (tv->sc_perf_pctx.perf_flag == 1)

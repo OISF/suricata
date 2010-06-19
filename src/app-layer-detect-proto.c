@@ -481,7 +481,7 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
     p->payload_len = searchlen;
     B2gCudaPushPacketTo_tv_CMB2_APC(p);
     SCMutexLock(&p->cuda_mutex_q);
-    SCondWait(&p->cuda_cond_q, &p->cuda_mutex_q);
+    SCCondWait(&p->cuda_cond_q, &p->cuda_mutex_q);
     p->cuda_done = 1;
     SCMutexUnlock(&p->cuda_mutex_q);
     cnt = p->cuda_matches;

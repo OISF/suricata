@@ -506,7 +506,7 @@ TmEcode ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
      * for the nfq mutex lock with the verdict thread. */
     SCMutexLock(&packet_q.mutex_q);
     if (packet_q.len == 0) {
-        SCondWait(&packet_q.cond_q, &packet_q.mutex_q);
+        SCCondWait(&packet_q.cond_q, &packet_q.mutex_q);
     }
     SCMutexUnlock(&packet_q.mutex_q);
 
