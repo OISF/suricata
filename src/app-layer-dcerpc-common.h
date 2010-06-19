@@ -107,6 +107,30 @@ typedef struct DCERPCHdr_ {
 
 #define DCERPC_HDR_LEN 16
 
+typedef struct DCERPCHdrUdp_ {
+    uint8_t rpc_vers; /* 4 RPC protocol major version (4 LSB only)*/
+    uint8_t type;       /* Packet type (5 LSB only) */
+    uint8_t flags1;     /* Packet flags */
+    uint8_t flags2;     /* Packet flags */
+    uint8_t drep[3];    /* Data representation format label */
+    uint8_t serial_hi;  /* High byte of serial number */
+    uint8_t objectuuid[16];
+    uint8_t interfaceuuid[16];
+    uint8_t activityuuid[16];
+    uint32_t server_boot;/* Server boot time */
+    uint32_t if_vers;    /* Interface version */
+    uint32_t seqnum;     /* Sequence number */
+    uint16_t opnum;      /* Operation number */
+    uint16_t ihint;      /* Interface hint */
+    uint16_t ahint;      /* Activity hint */
+    uint16_t fraglen;        /* Length of packet body */
+    uint16_t fragnum;    /* Fragment number */
+    uint8_t auth_proto; /* Authentication protocol identifier*/
+    uint8_t serial_lo;  /* Low byte of serial number */
+}DCERPCHdrUdp;
+
+#define DCERPC_UDP_HDR_LEN 80
+
 typedef struct DCERPCUuidEntry_ {
     uint16_t ctxid;
     uint16_t result;
@@ -161,6 +185,17 @@ typedef struct DCERPC_ {
     uint16_t transaction_id;
 } DCERPC;
 
+typedef struct DCERPCUDP_ {
+     DCERPCHdrUdp dcerpchdrudp;
+     DCERPCBindBindAck dcerpcbindbindack;
+     DCERPCRequest dcerpcrequest;
+     DCERPCResponse dcerpcresponse;
+     uint16_t bytesprocessed;
+     uint16_t fraglenleft;
+     uint8_t *frag_data;
+     DCERPCUuidEntry *uuid_entry;
+     TAILQ_HEAD(, uuid_entry) uuid_list;
+}DCERPCUDP;
 
 /** First fragment */
 #define PFC_FIRST_FRAG           0x01

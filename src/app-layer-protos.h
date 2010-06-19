@@ -38,6 +38,7 @@ enum {
     ALPROTO_SMB,
     ALPROTO_SMB2,
     ALPROTO_DCERPC,
+    ALPROTO_DCERPC_UDP,
 #ifdef UNITTESTS
     ALPROTO_TEST,
 #endif /* UNITESTS */

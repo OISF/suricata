@@ -100,6 +100,7 @@
 #include "app-layer-tls.h"
 #include "app-layer-smb.h"
 #include "app-layer-dcerpc.h"
+#include "app-layer-dcerpc-udp.h"
 #include "app-layer-htp.h"
 #include "app-layer-ftp.h"
 #include "app-layer-ssl.h"
@@ -800,6 +801,7 @@ int main(int argc, char **argv)
     RegisterTLSParsers();
     RegisterSMBParsers();
     RegisterDCERPCParsers();
+    RegisterDCERPCUDPParsers();
     RegisterFTPParsers();
     RegisterSSLParsers();
     AppLayerParsersInitPostProcess();
@@ -840,6 +842,7 @@ int main(int argc, char **argv)
         TLSParserRegisterTests();
         SMBParserRegisterTests();
         DCERPCParserRegisterTests();
+        DCERPCUDPParserRegisterTests();
         FTPParserRegisterTests();
         DecodeRawRegisterTests();
         DecodePPPOERegisterTests();
