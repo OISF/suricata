@@ -33,7 +33,7 @@
 
 #include "util-ringbuffer.h"
 
-static RingBufferMrMw8 *ringbuffers[256];
+static RingBuffer8 *ringbuffers[256];
 
 Packet *TmqhInputRingBuffer(ThreadVars *t);
 void TmqhOutputRingBuffer(ThreadVars *t, Packet *p);
@@ -55,7 +55,7 @@ void TmqhRingBufferRegister (void) {
 
 Packet *TmqhInputRingBuffer(ThreadVars *t)
 {
-    RingBufferMrMw8 *rb = ringbuffers[t->inq->id];
+    RingBuffer8 *rb = ringbuffers[t->inq->id];
 
     Packet *p = (Packet *)RingBufferMrMw8Get(rb);
 
@@ -70,7 +70,7 @@ void TmqhInputRingBufferShutdownHandler(ThreadVars *tv) {
         return;
     }
 
-    RingBufferMrMw8 *rb = ringbuffers[tv->inq->id];
+    RingBuffer8 *rb = ringbuffers[tv->inq->id];
     if (rb == NULL) {
         return;
     }
@@ -80,7 +80,7 @@ void TmqhInputRingBufferShutdownHandler(ThreadVars *tv) {
 
 void TmqhOutputRingBuffer(ThreadVars *t, Packet *p)
 {
-    RingBufferMrMw8 *rb = ringbuffers[t->outq->id];
+    RingBuffer8 *rb = ringbuffers[t->outq->id];
     RingBufferMrMw8Put(rb, (void *)p);
 }
 

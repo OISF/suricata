@@ -42,13 +42,13 @@
 
 /* Multi Reader, Single Writer, 8 bits */
 
-RingBufferMrSw8 *RingBufferMrSw8Init(void) {
-    RingBufferMrSw8 *rb = SCMalloc(sizeof(RingBufferMrSw8));
+RingBuffer8 *RingBufferMrSw8Init(void) {
+    RingBuffer8 *rb = SCMalloc(sizeof(RingBuffer8));
     if (rb == NULL) {
         return NULL;
     }
 
-    memset(rb, 0x00, sizeof(RingBufferMrSw8));
+    memset(rb, 0x00, sizeof(RingBuffer8));
 
     SC_ATOMIC_INIT(rb->write);
     SC_ATOMIC_INIT(rb->read);
@@ -56,7 +56,7 @@ RingBufferMrSw8 *RingBufferMrSw8Init(void) {
     return rb;
 }
 
-void RingBufferMrSw8Destroy(RingBufferMrSw8 *rb) {
+void RingBufferMrSw8Destroy(RingBuffer8 *rb) {
     if (rb != NULL) {
         SC_ATOMIC_DESTROY(rb->write);
         SC_ATOMIC_DESTROY(rb->read);
@@ -72,7 +72,7 @@ void RingBufferMrSw8Destroy(RingBufferMrSw8 *rb) {
  *  that the threads don't interfere with one another.
  *
  */
-void *RingBufferMrSw8Get(RingBufferMrSw8 *rb) {
+void *RingBufferMrSw8Get(RingBuffer8 *rb) {
     void *ptr;
     /** local pointer for data races. If SCAtomicCompareAndSwap (CAS)
      *  fails we increase our local array idx to try the next array member
@@ -109,7 +109,7 @@ retry:
 /**
  *  \brief put a ptr in the RingBuffer
  */
-int RingBufferMrSw8Put(RingBufferMrSw8 *rb, void *ptr) {
+int RingBufferMrSw8Put(RingBuffer8 *rb, void *ptr) {
     SCLogDebug("ptr %p", ptr);
 
     /* buffer is full, wait... */
@@ -129,13 +129,13 @@ int RingBufferMrSw8Put(RingBufferMrSw8 *rb, void *ptr) {
 
 /* Multi Reader, Single Writer */
 
-RingBufferMrSw *RingBufferMrSwInit(void) {
-    RingBufferMrSw *rb = SCMalloc(sizeof(RingBufferMrSw));
+RingBuffer16 *RingBufferMrSwInit(void) {
+    RingBuffer16 *rb = SCMalloc(sizeof(RingBuffer16));
     if (rb == NULL) {
         return NULL;
     }
 
-    memset(rb, 0x00, sizeof(RingBufferMrSw));
+    memset(rb, 0x00, sizeof(RingBuffer16));
 
     SC_ATOMIC_INIT(rb->write);
     SC_ATOMIC_INIT(rb->read);
@@ -143,7 +143,7 @@ RingBufferMrSw *RingBufferMrSwInit(void) {
     return rb;
 }
 
-void RingBufferMrSwDestroy(RingBufferMrSw *rb) {
+void RingBufferMrSwDestroy(RingBuffer16 *rb) {
     if (rb != NULL) {
         SC_ATOMIC_DESTROY(rb->write);
         SC_ATOMIC_DESTROY(rb->read);
@@ -159,7 +159,7 @@ void RingBufferMrSwDestroy(RingBufferMrSw *rb) {
  *  that the threads don't interfere with one another.
  *
  */
-void *RingBufferMrSwGet(RingBufferMrSw *rb) {
+void *RingBufferMrSwGet(RingBuffer16 *rb) {
     void *ptr;
     /** local pointer for data races. If SCAtomicCompareAndSwap (CAS)
      *  fails we increase our local array idx to try the next array member
@@ -196,7 +196,7 @@ retry:
 /**
  *  \brief put a ptr in the RingBuffer
  */
-int RingBufferMrSwPut(RingBufferMrSw *rb, void *ptr) {
+int RingBufferMrSwPut(RingBuffer16 *rb, void *ptr) {
     SCLogDebug("ptr %p", ptr);
 
     /* buffer is full, wait... */
@@ -216,13 +216,13 @@ int RingBufferMrSwPut(RingBufferMrSw *rb, void *ptr) {
 
 /* Single Reader, Single Writer */
 
-RingBufferSrSw *RingBufferSrSwInit(void) {
-    RingBufferSrSw *rb = SCMalloc(sizeof(RingBufferSrSw));
+RingBuffer16 *RingBufferSrSwInit(void) {
+    RingBuffer16 *rb = SCMalloc(sizeof(RingBuffer16));
     if (rb == NULL) {
         return NULL;
     }
 
-    memset(rb, 0x00, sizeof(RingBufferSrSw));
+    memset(rb, 0x00, sizeof(RingBuffer16));
 
     SC_ATOMIC_INIT(rb->write);
     SC_ATOMIC_INIT(rb->read);
@@ -230,7 +230,7 @@ RingBufferSrSw *RingBufferSrSwInit(void) {
     return rb;
 }
 
-void RingBufferSrSwDestroy(RingBufferSrSw *rb) {
+void RingBufferSrSwDestroy(RingBuffer16 *rb) {
     if (rb != NULL) {
         SC_ATOMIC_DESTROY(rb->write);
         SC_ATOMIC_DESTROY(rb->read);
@@ -239,7 +239,7 @@ void RingBufferSrSwDestroy(RingBufferSrSw *rb) {
     }
 }
 
-void *RingBufferSrSwGet(RingBufferSrSw *rb) {
+void *RingBufferSrSwGet(RingBuffer16 *rb) {
     void *ptr = NULL;
 
     /* buffer is empty, wait... */
@@ -257,7 +257,7 @@ void *RingBufferSrSwGet(RingBufferSrSw *rb) {
     return ptr;
 }
 
-int RingBufferSrSwPut(RingBufferSrSw *rb, void *ptr) {
+int RingBufferSrSwPut(RingBuffer16 *rb, void *ptr) {
     /* buffer is full, wait... */
     while ((unsigned short)(SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
         /* break out if the engine wants to shutdown */
@@ -274,13 +274,13 @@ int RingBufferSrSwPut(RingBufferSrSw *rb, void *ptr) {
 
 /* Multi Reader, Multi Writer, 8 bits */
 
-RingBufferMrMw8 *RingBufferMrMw8Init(void) {
-    RingBufferMrMw8 *rb = SCMalloc(sizeof(RingBufferMrMw8));
+RingBuffer8 *RingBufferMrMw8Init(void) {
+    RingBuffer8 *rb = SCMalloc(sizeof(RingBuffer8));
     if (rb == NULL) {
         return NULL;
     }
 
-    memset(rb, 0x00, sizeof(RingBufferMrMw8));
+    memset(rb, 0x00, sizeof(RingBuffer8));
 
     SC_ATOMIC_INIT(rb->write);
     SC_ATOMIC_INIT(rb->read);
@@ -289,7 +289,7 @@ RingBufferMrMw8 *RingBufferMrMw8Init(void) {
     return rb;
 }
 
-void RingBufferMrMw8Destroy(RingBufferMrMw8 *rb) {
+void RingBufferMrMw8Destroy(RingBuffer8 *rb) {
     if (rb != NULL) {
         SC_ATOMIC_DESTROY(rb->write);
         SC_ATOMIC_DESTROY(rb->read);
@@ -306,7 +306,7 @@ void RingBufferMrMw8Destroy(RingBufferMrMw8 *rb) {
  *  that the threads don't interfere with one another.
  *
  */
-void *RingBufferMrMw8Get(RingBufferMrMw8 *rb) {
+void *RingBufferMrMw8Get(RingBuffer8 *rb) {
     void *ptr;
     /** local pointer for data races. If SCAtomicCompareAndSwap (CAS)
      *  fails we increase our local array idx to try the next array member
@@ -358,7 +358,7 @@ retry:
  *  \retval 0 ok
  *  \retval -1 wait loop interrupted because of engine flags
  */
-int RingBufferMrMw8Put(RingBufferMrMw8 *rb, void *ptr) {
+int RingBufferMrMw8Put(RingBuffer8 *rb, void *ptr) {
     SCLogDebug("ptr %p", ptr);
 
     /* buffer is full, wait... */
@@ -391,13 +391,13 @@ retry:
 
 /* Multi Reader, Multi Writer, 16 bits */
 
-RingBufferMrMw *RingBufferMrMwInit(void) {
-    RingBufferMrMw *rb = SCMalloc(sizeof(RingBufferMrMw));
+RingBuffer16 *RingBufferMrMwInit(void) {
+    RingBuffer16 *rb = SCMalloc(sizeof(RingBuffer16));
     if (rb == NULL) {
         return NULL;
     }
 
-    memset(rb, 0x00, sizeof(RingBufferMrMw));
+    memset(rb, 0x00, sizeof(RingBuffer16));
 
     SC_ATOMIC_INIT(rb->write);
     SC_ATOMIC_INIT(rb->read);
@@ -406,7 +406,7 @@ RingBufferMrMw *RingBufferMrMwInit(void) {
     return rb;
 }
 
-void RingBufferMrMwDestroy(RingBufferMrMw *rb) {
+void RingBufferMrMwDestroy(RingBuffer16 *rb) {
     if (rb != NULL) {
         SC_ATOMIC_DESTROY(rb->write);
         SC_ATOMIC_DESTROY(rb->read);
@@ -423,7 +423,7 @@ void RingBufferMrMwDestroy(RingBufferMrMw *rb) {
  *  that the threads don't interfere with one another.
  *
  */
-void *RingBufferMrMwGet(RingBufferMrMw *rb) {
+void *RingBufferMrMwGet(RingBuffer16 *rb) {
     void *ptr;
     /** local pointer for data races. If SCAtomicCompareAndSwap (CAS)
      *  fails we increase our local array idx to try the next array member
@@ -475,7 +475,7 @@ retry:
  *  \retval 0 ok
  *  \retval -1 wait loop interrupted because of engine flags
  */
-int RingBufferMrMwPut(RingBufferMrMw *rb, void *ptr) {
+int RingBufferMrMwPut(RingBuffer16 *rb, void *ptr) {
     SCLogDebug("ptr %p", ptr);
 
     /* buffer is full, wait... */

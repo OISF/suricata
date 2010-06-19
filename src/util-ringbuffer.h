@@ -33,92 +33,64 @@
  *  read and write pointer. Only the read ptr needs atomic updating.
  */
 
-#define RING_BUFFER_MRSW_8_SIZE 256
+#define RING_BUFFER_8_SIZE 256
+typedef struct RingBuffer8_ {
+    SC_ATOMIC_DECLARE(unsigned char, write);  /**< idx where we put data */
+    SC_ATOMIC_DECLARE(unsigned char, read);   /**< idx where we read data */
+    uint8_t shutdown;
+    SCSpinlock spin; /**< lock protecting writes for multi writer mode*/
+    void *array[RING_BUFFER_8_SIZE];
+} RingBuffer8;
+
+#define RING_BUFFER_16_SIZE 65536
+typedef struct RingBuffer16_ {
+    SC_ATOMIC_DECLARE(unsigned short, write);  /**< idx where we put data */
+    SC_ATOMIC_DECLARE(unsigned short, read);   /**< idx where we read data */
+    uint8_t shutdown;
+    SCSpinlock spin; /**< lock protecting writes for multi writer mode*/
+    void *array[RING_BUFFER_16_SIZE];
+} RingBuffer16;
+
 
 /** Multiple Reader, Single Writer ring buffer, fixed at
  *  256 items so we can use unsigned char's that just
  *  wrap around */
-typedef struct RingBufferMrSw8_ {
-    SC_ATOMIC_DECLARE(unsigned char, write);  /**< idx where we put data */
-    SC_ATOMIC_DECLARE(unsigned char, read);   /**< idx where we read data */
-    uint8_t shutdown;
-    void *array[RING_BUFFER_MRSW_8_SIZE];
-} RingBufferMrSw8;
-
-void *RingBufferMrSw8Get(RingBufferMrSw8 *);
-int RingBufferMrSw8Put(RingBufferMrSw8 *, void *);
-RingBufferMrSw8 *RingBufferMrSw8Init(void);
-void RingBufferMrSw8Destroy(RingBufferMrSw8 *);
-
-#define RING_BUFFER_MRSW_SIZE 65536
+void *RingBufferMrSw8Get(RingBuffer8 *);
+int RingBufferMrSw8Put(RingBuffer8 *, void *);
+RingBuffer8 *RingBufferMrSw8Init(void);
+void RingBufferMrSw8Destroy(RingBuffer8 *);
 
 /** Multiple Reader, Single Writer ring buffer, fixed at
  *  65536 items so we can use unsigned shorts that just
  *  wrap around */
-typedef struct RingBufferMrSw_ {
-    SC_ATOMIC_DECLARE(unsigned short, write);  /**< idx where we put data */
-    SC_ATOMIC_DECLARE(unsigned short, read);   /**< idx where we read data */
-    uint8_t shutdown;
-    void *array[RING_BUFFER_MRSW_SIZE];
-} RingBufferMrSw;
-
-void *RingBufferMrSwGet(RingBufferMrSw *);
-int RingBufferMrSwPut(RingBufferMrSw *, void *);
-RingBufferMrSw *RingBufferMrSwInit(void);
-void RingBufferMrSwDestroy(RingBufferMrSw *);
-
-#define RING_BUFFER_SRSW_SIZE 65536
+void *RingBufferMrSwGet(RingBuffer16 *);
+int RingBufferMrSwPut(RingBuffer16 *, void *);
+RingBuffer16 *RingBufferMrSwInit(void);
+void RingBufferMrSwDestroy(RingBuffer16 *);
 
 /** Single Reader, Single Writer ring buffer, fixed at
  *  65536 items so we can use unsigned shorts that just
  *  wrap around */
-typedef struct RingBufferSrSw_ {
-    SC_ATOMIC_DECLARE(unsigned short, write);  /**< idx where we put data */
-    SC_ATOMIC_DECLARE(unsigned short, read);   /**< idx where we read data */
-    uint8_t shutdown;
-    void *array[RING_BUFFER_SRSW_SIZE];
-} RingBufferSrSw;
-
-void *RingBufferSrSwGet(RingBufferSrSw *);
-int RingBufferSrSwPut(RingBufferSrSw *, void *);
-RingBufferSrSw *RingBufferSrSwInit(void);
-void RingBufferSrSwDestroy(RingBufferSrSw *);
-
-#define RING_BUFFER_MRMW_8_SIZE 256
+void *RingBufferSrSwGet(RingBuffer16 *);
+int RingBufferSrSwPut(RingBuffer16 *, void *);
+RingBuffer16 *RingBufferSrSwInit(void);
+void RingBufferSrSwDestroy(RingBuffer16 *);
 
 /** Multiple Reader, Multi Writer ring buffer, fixed at
  *  256 items so we can use unsigned char's that just
  *  wrap around */
-typedef struct RingBufferMrMw8_ {
-    SC_ATOMIC_DECLARE(unsigned char, write);  /**< idx where we put data */
-    SC_ATOMIC_DECLARE(unsigned char, read);   /**< idx where we read data */
-    uint8_t shutdown;
-    SCSpinlock spin;      /**< lock protecting writes */
-    void *array[RING_BUFFER_MRMW_8_SIZE];
-} RingBufferMrMw8;
-
-void *RingBufferMrMw8Get(RingBufferMrMw8 *);
-int RingBufferMrMw8Put(RingBufferMrMw8 *, void *);
-RingBufferMrMw8 *RingBufferMrMw8Init(void);
-void RingBufferMrMw8Destroy(RingBufferMrMw8 *);
-
-#define RING_BUFFER_MRMW_SIZE 65536
+void *RingBufferMrMw8Get(RingBuffer8 *);
+int RingBufferMrMw8Put(RingBuffer8 *, void *);
+RingBuffer8 *RingBufferMrMw8Init(void);
+void RingBufferMrMw8Destroy(RingBuffer8 *);
 
 /** Multiple Reader, Multi Writer ring buffer, fixed at
  *  65536 items so we can use unsigned char's that just
  *  wrap around */
-typedef struct RingBufferMrMw_ {
-    SC_ATOMIC_DECLARE(unsigned short, write);  /**< idx where we put data */
-    SC_ATOMIC_DECLARE(unsigned short, read);   /**< idx where we read data */
-    uint8_t shutdown;
-    SCSpinlock spin;      /**< lock protecting writes */
-    void *array[RING_BUFFER_MRMW_SIZE];
-} RingBufferMrMw;
-
-void *RingBufferMrMwGet(RingBufferMrMw *);
-int RingBufferMrMwPut(RingBufferMrMw *, void *);
-RingBufferMrMw *RingBufferMrMwInit(void);
-void RingBufferMrMwDestroy(RingBufferMrMw *);
+void *RingBufferMrMwGet(RingBuffer16 *);
+int RingBufferMrMwPut(RingBuffer16 *, void *);
+RingBuffer16 *RingBufferMrMwInit(void);
+void RingBufferMrMwDestroy(RingBuffer16 *);
 
 #endif /* __UTIL_RINGBUFFER_H__ */
 
