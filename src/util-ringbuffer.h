@@ -64,46 +64,44 @@ typedef struct RingBuffer16_ {
     void *array[RING_BUFFER_16_SIZE];
 } RingBuffer16;
 
+RingBuffer8 *RingBuffer8Init(void);
+void RingBuffer8Destroy(RingBuffer8 *);
+
+/** Single Reader, Single Writer ring buffer, fixed at
+ *  256 items so we can use unsigned char's that just
+ *  wrap around */
+void *RingBufferSrSw8Get(RingBuffer8 *);
+int RingBufferSrSw8Put(RingBuffer8 *, void *);
 
 /** Multiple Reader, Single Writer ring buffer, fixed at
  *  256 items so we can use unsigned char's that just
  *  wrap around */
 void *RingBufferMrSw8Get(RingBuffer8 *);
 int RingBufferMrSw8Put(RingBuffer8 *, void *);
-RingBuffer8 *RingBufferMrSw8Init(void);
-void RingBufferMrSw8Destroy(RingBuffer8 *);
 
 /** Multiple Reader, Single Writer ring buffer, fixed at
  *  65536 items so we can use unsigned shorts that just
  *  wrap around */
 void *RingBufferMrSwGet(RingBuffer16 *);
 int RingBufferMrSwPut(RingBuffer16 *, void *);
-RingBuffer16 *RingBufferMrSwInit(void);
-void RingBufferMrSwDestroy(RingBuffer16 *);
 
 /** Single Reader, Single Writer ring buffer, fixed at
  *  65536 items so we can use unsigned shorts that just
  *  wrap around */
 void *RingBufferSrSwGet(RingBuffer16 *);
 int RingBufferSrSwPut(RingBuffer16 *, void *);
-RingBuffer16 *RingBufferSrSwInit(void);
-void RingBufferSrSwDestroy(RingBuffer16 *);
 
 /** Multiple Reader, Multi Writer ring buffer, fixed at
  *  256 items so we can use unsigned char's that just
  *  wrap around */
 void *RingBufferMrMw8Get(RingBuffer8 *);
 int RingBufferMrMw8Put(RingBuffer8 *, void *);
-RingBuffer8 *RingBufferMrMw8Init(void);
-void RingBufferMrMw8Destroy(RingBuffer8 *);
 
 /** Multiple Reader, Multi Writer ring buffer, fixed at
  *  65536 items so we can use unsigned char's that just
  *  wrap around */
 void *RingBufferMrMwGet(RingBuffer16 *);
 int RingBufferMrMwPut(RingBuffer16 *, void *);
-RingBuffer16 *RingBufferMrMwInit(void);
-void RingBufferMrMwDestroy(RingBuffer16 *);
 
 #endif /* __UTIL_RINGBUFFER_H__ */
 

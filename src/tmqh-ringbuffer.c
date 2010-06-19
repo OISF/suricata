@@ -35,34 +35,36 @@
 
 static RingBuffer8 *ringbuffers[256];
 
-Packet *TmqhInputRingBuffer(ThreadVars *t);
-void TmqhOutputRingBuffer(ThreadVars *t, Packet *p);
+Packet *TmqhInputRingBufferMrSw(ThreadVars *t);
+void TmqhOutputRingBufferMrSw(ThreadVars *t, Packet *p);
+Packet *TmqhInputRingBufferSrSw(ThreadVars *t);
+void TmqhOutputRingBufferSrSw(ThreadVars *t, Packet *p);
+Packet *TmqhInputRingBufferSrMw(ThreadVars *t);
+void TmqhOutputRingBufferSrMw(ThreadVars *t, Packet *p);
 void TmqhInputRingBufferShutdownHandler(ThreadVars *);
 
 void TmqhRingBufferRegister (void) {
-    tmqh_table[TMQH_RINGBUFFER].name = "ringbuffer";
-    tmqh_table[TMQH_RINGBUFFER].InHandler = TmqhInputRingBuffer;
-    tmqh_table[TMQH_RINGBUFFER].InShutdownHandler = TmqhInputRingBufferShutdownHandler;
-    tmqh_table[TMQH_RINGBUFFER].OutHandler = TmqhOutputRingBuffer;
+    tmqh_table[TMQH_RINGBUFFER_MRSW].name = "ringbuffer_mrsw";
+    tmqh_table[TMQH_RINGBUFFER_MRSW].InHandler = TmqhInputRingBufferMrSw;
+    tmqh_table[TMQH_RINGBUFFER_MRSW].InShutdownHandler = TmqhInputRingBufferShutdownHandler;
+    tmqh_table[TMQH_RINGBUFFER_MRSW].OutHandler = TmqhOutputRingBufferMrSw;
+
+    tmqh_table[TMQH_RINGBUFFER_SRSW].name = "ringbuffer_srsw";
+    tmqh_table[TMQH_RINGBUFFER_SRSW].InHandler = TmqhInputRingBufferSrSw;
+    tmqh_table[TMQH_RINGBUFFER_SRSW].InShutdownHandler = TmqhInputRingBufferShutdownHandler;
+    tmqh_table[TMQH_RINGBUFFER_SRSW].OutHandler = TmqhOutputRingBufferSrSw;
+
+    tmqh_table[TMQH_RINGBUFFER_SRMW].name = "ringbuffer_srmw";
+    tmqh_table[TMQH_RINGBUFFER_SRMW].InHandler = TmqhInputRingBufferSrMw;
+    tmqh_table[TMQH_RINGBUFFER_SRMW].InShutdownHandler = TmqhInputRingBufferShutdownHandler;
+    tmqh_table[TMQH_RINGBUFFER_SRMW].OutHandler = TmqhOutputRingBufferSrMw;
 
     memset(ringbuffers, 0, sizeof(ringbuffers));
 
     int i = 0;
     for (i = 0; i < 256; i++) {
-        ringbuffers[i] = RingBufferMrMw8Init();
+        ringbuffers[i] = RingBuffer8Init();
     }
-}
-
-Packet *TmqhInputRingBuffer(ThreadVars *t)
-{
-    RingBuffer8 *rb = ringbuffers[t->inq->id];
-
-    Packet *p = (Packet *)RingBufferMrMw8Get(rb);
-
-    if (t->sc_perf_pctx.perf_flag == 1)
-        SCPerfUpdateCounterArray(t->sc_perf_pca, &t->sc_perf_pctx, 0);
-
-    return p;
 }
 
 void TmqhInputRingBufferShutdownHandler(ThreadVars *tv) {
@@ -78,9 +80,57 @@ void TmqhInputRingBufferShutdownHandler(ThreadVars *tv) {
     rb->shutdown = 1;
 }
 
-void TmqhOutputRingBuffer(ThreadVars *t, Packet *p)
+Packet *TmqhInputRingBufferMrSw(ThreadVars *t)
+{
+    RingBuffer8 *rb = ringbuffers[t->inq->id];
+
+    Packet *p = (Packet *)RingBufferMrSw8Get(rb);
+
+    if (t->sc_perf_pctx.perf_flag == 1)
+        SCPerfUpdateCounterArray(t->sc_perf_pca, &t->sc_perf_pctx, 0);
+
+    return p;
+}
+
+void TmqhOutputRingBufferMrSw(ThreadVars *t, Packet *p)
 {
     RingBuffer8 *rb = ringbuffers[t->outq->id];
-    RingBufferMrMw8Put(rb, (void *)p);
+    RingBufferMrSw8Put(rb, (void *)p);
+}
+
+Packet *TmqhInputRingBufferSrSw(ThreadVars *t)
+{
+    RingBuffer8 *rb = ringbuffers[t->inq->id];
+
+    Packet *p = (Packet *)RingBufferSrSw8Get(rb);
+
+    if (t->sc_perf_pctx.perf_flag == 1)
+        SCPerfUpdateCounterArray(t->sc_perf_pca, &t->sc_perf_pctx, 0);
+
+    return p;
+}
+
+void TmqhOutputRingBufferSrSw(ThreadVars *t, Packet *p)
+{
+    RingBuffer8 *rb = ringbuffers[t->outq->id];
+    RingBufferSrSw8Put(rb, (void *)p);
+}
+
+Packet *TmqhInputRingBufferSrMw(ThreadVars *t)
+{
+    RingBuffer8 *rb = ringbuffers[t->inq->id];
+
+    Packet *p = (Packet *)RingBufferSrMw8Get(rb);
+
+    if (t->sc_perf_pctx.perf_flag == 1)
+        SCPerfUpdateCounterArray(t->sc_perf_pca, &t->sc_perf_pctx, 0);
+
+    return p;
+}
+
+void TmqhOutputRingBufferSrMw(ThreadVars *t, Packet *p)
+{
+    RingBuffer8 *rb = ringbuffers[t->outq->id];
+    RingBufferSrMw8Put(rb, (void *)p);
 }
 
