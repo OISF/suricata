@@ -52,5 +52,6 @@ int RunModeErfDagAuto(DetectEngineCtx *, char *);
 
 void RunModeShutDown(void);
 
+int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx, char *file);
 #endif /* __RUNMODES_H__ */
 

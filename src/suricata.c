@@ -1015,6 +1015,7 @@ int main(int argc, char **argv)
         //RunModeFilePcap(de_ctx, pcap_file);
         //RunModeFilePcap2(de_ctx, pcap_file);
         RunModeFilePcapAuto(de_ctx, pcap_file);
+        //RunModeFilePcapAutoFp(de_ctx, pcap_file);
         //RunModeFilePcapAuto2(de_ctx, pcap_file);
     }
     else if (run_mode == MODE_PFRING) {

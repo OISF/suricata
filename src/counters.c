@@ -292,6 +292,8 @@ static char *SCPerfGetLogFilename(void)
  */
 static void SCPerfInitOPCtx(void)
 {
+    SCEnter();
+
     if ( (sc_perf_op_ctx = SCMalloc(sizeof(SCPerfOPIfaceContext))) == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCPerfInitOPCtx. Exiting...");
         exit(EXIT_FAILURE);
@@ -328,7 +330,7 @@ static void SCPerfInitOPCtx(void)
         exit(EXIT_FAILURE);
     }
 
-    return;
+    SCReturn;
 }
 
 /**
@@ -958,7 +960,6 @@ static int SCPerfOutputCounterFileIface()
     if (sc_perf_op_ctx->club_tm == 0) {
         for (u = 0; u < TVT_MAX; u++) {
             tv = tv_root[u];
-
             if (pc_heads == NULL || pc_heads[u] == NULL)
                 continue;
 
@@ -1003,17 +1004,18 @@ static int SCPerfOutputCounterFileIface()
 
     pctmi = sc_perf_op_ctx->pctmi;
     while (pctmi != NULL) {
-        if ( (pc_heads = SCMalloc(pctmi->size * sizeof(SCPerfCounter *))) == NULL)
+        if ((pc_heads = SCMalloc(pctmi->size * sizeof(SCPerfCounter *))) == NULL)
             return 0;
-        memset(pc_heads, 0, pctmi->size * sizeof(SCPerfCounter **));
+        memset(pc_heads, 0, pctmi->size * sizeof(SCPerfCounter *));
 
         for (u = 0; u < pctmi->size; u++) {
             pc_heads[u] = pctmi->head[u]->head;
 
             SCMutexLock(&pctmi->head[u]->m);
 
-            while(strcmp(pctmi->tm_name, pc_heads[u]->name->tm_name))
+            while(pc_heads[u] != NULL && strcmp(pctmi->tm_name, pc_heads[u]->name->tm_name)) {
                 pc_heads[u] = pc_heads[u]->next;
+            }
         }
 
         flag = 1;
@@ -1364,6 +1366,7 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
     SCMutexLock(&sc_perf_op_ctx->pctmi_lock);
 
     pctmi = sc_perf_op_ctx->pctmi;
+    SCLogDebug("pctmi %p", pctmi);
     prev = pctmi;
 
     while (pctmi != NULL) {
@@ -1381,8 +1384,8 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
             return 0;
         memset(temp, 0, sizeof(SCPerfClubTMInst));
 
-        temp->size++;
-        temp->head = SCRealloc(temp->head, temp->size * sizeof(SCPerfContext **));
+        temp->size = 1;
+        temp->head = SCMalloc(sizeof(SCPerfContext **));
         if (temp->head == NULL)
             return 0;
         temp->head[0] = pctx;
@@ -1397,6 +1400,7 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
         return 1;
     }
 
+    /* see if the pctx is already part of this pctmi */
     hpctx = pctmi->head;
     for (u = 0; u < pctmi->size; u++) {
         if (hpctx[u] != pctx)
