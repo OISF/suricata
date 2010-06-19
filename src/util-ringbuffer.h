@@ -26,6 +26,11 @@
 #ifndef __UTIL_RINGBUFFER_H__
 
 #include "util-atomic.h"
+#include "threads.h"
+
+/** When the ringbuffer is full we have two options, either we spin & sleep
+ *  or we use a pthread condition to wait. */
+#define RINGBUFFER_MUTEX_WAIT
 
 /** \brief ring buffer api
  *
@@ -38,6 +43,10 @@ typedef struct RingBuffer8_ {
     SC_ATOMIC_DECLARE(unsigned char, write);  /**< idx where we put data */
     SC_ATOMIC_DECLARE(unsigned char, read);   /**< idx where we read data */
     uint8_t shutdown;
+#ifdef RINGBUFFER_MUTEX_WAIT
+    SCCondT wait_cond;
+    SCMutex wait_mutex;
+#endif /* RINGBUFFER_MUTEX_WAIT */
     SCSpinlock spin; /**< lock protecting writes for multi writer mode*/
     void *array[RING_BUFFER_8_SIZE];
 } RingBuffer8;
@@ -47,6 +56,10 @@ typedef struct RingBuffer16_ {
     SC_ATOMIC_DECLARE(unsigned short, write);  /**< idx where we put data */
     SC_ATOMIC_DECLARE(unsigned short, read);   /**< idx where we read data */
     uint8_t shutdown;
+#ifdef RINGBUFFER_MUTEX_WAIT
+    SCCondT wait_cond;
+    SCMutex wait_mutex;
+#endif /* RINGBUFFER_MUTEX_WAIT */
     SCSpinlock spin; /**< lock protecting writes for multi writer mode*/
     void *array[RING_BUFFER_16_SIZE];
 } RingBuffer16;

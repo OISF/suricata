@@ -53,6 +53,10 @@ RingBuffer8 *RingBufferMrSw8Init(void) {
     SC_ATOMIC_INIT(rb->write);
     SC_ATOMIC_INIT(rb->read);
 
+#ifdef RINGBUFFER_MUTEX_WAIT
+    SCMutexInit(&rb->wait_mutex, NULL);
+    SCCondInit(&rb->wait_cond, NULL);
+#endif
     return rb;
 }
 
@@ -61,6 +65,10 @@ void RingBufferMrSw8Destroy(RingBuffer8 *rb) {
         SC_ATOMIC_DESTROY(rb->write);
         SC_ATOMIC_DESTROY(rb->read);
 
+#ifdef RINGBUFFER_MUTEX_WAIT
+        SCMutexDestroy(&rb->wait_mutex);
+        SCCondDestroy(&rb->wait_cond);
+#endif
         SCFree(rb);
     }
 }
@@ -87,7 +95,16 @@ retry:
         if (rb->shutdown != 0)
             return NULL;
 
+#ifdef RINGBUFFER_MUTEX_WAIT
+        struct timespec cond_time;
+        cond_time.tv_sec = time(NULL) + 1;
+        cond_time.tv_nsec = 0;
+        SCMutexLock(&rb->wait_mutex);
+        SCCondTimedwait(&rb->wait_cond, &rb->wait_mutex, &cond_time);
+        SCMutexUnlock(&rb->wait_mutex);
+#else
         usleep(USLEEP_TIME);
+#endif
     }
 
     /* atomically update rb->read */
@@ -103,6 +120,10 @@ retry:
     } while (!(SC_ATOMIC_CAS(&rb->read, readp, (readp + 1))));
 
     SCLogDebug("ptr %p", ptr);
+
+#ifdef RINGBUFFER_MUTEX_WAIT
+    SCCondSignal(&rb->wait_cond);
+#endif
     return ptr;
 }
 
@@ -118,11 +139,24 @@ int RingBufferMrSw8Put(RingBuffer8 *rb, void *ptr) {
         if (rb->shutdown != 0)
             return -1;
 
+#ifdef RINGBUFFER_MUTEX_WAIT
+        struct timespec cond_time;
+        cond_time.tv_sec = time(NULL) + 1;
+        cond_time.tv_nsec = 0;
+        SCMutexLock(&rb->wait_mutex);
+        SCCondTimedwait(&rb->wait_cond, &rb->wait_mutex, &cond_time);
+        SCMutexUnlock(&rb->wait_mutex);
+#else
         usleep(USLEEP_TIME);
+#endif
     }
 
     rb->array[SC_ATOMIC_GET(rb->write)] = ptr;
     SC_ATOMIC_ADD(rb->write, 1);
+
+#ifdef RINGBUFFER_MUTEX_WAIT
+    SCCondSignal(&rb->wait_cond);
+#endif
     return 0;
 }
 
@@ -140,6 +174,10 @@ RingBuffer16 *RingBufferMrSwInit(void) {
     SC_ATOMIC_INIT(rb->write);
     SC_ATOMIC_INIT(rb->read);
 
+#ifdef RINGBUFFER_MUTEX_WAIT
+    SCMutexInit(&rb->wait_mutex, NULL);
+    SCCondInit(&rb->wait_cond, NULL);
+#endif
     return rb;
 }
 
@@ -148,6 +186,10 @@ void RingBufferMrSwDestroy(RingBuffer16 *rb) {
         SC_ATOMIC_DESTROY(rb->write);
         SC_ATOMIC_DESTROY(rb->read);
 
+#ifdef RINGBUFFER_MUTEX_WAIT
+        SCMutexDestroy(&rb->wait_mutex);
+        SCCondDestroy(&rb->wait_cond);
+#endif
         SCFree(rb);
     }
 }
@@ -174,7 +216,16 @@ retry:
         if (rb->shutdown != 0)
             return NULL;
 
+#ifdef RINGBUFFER_MUTEX_WAIT
+        struct timespec cond_time;
+        cond_time.tv_sec = time(NULL) + 1;
+        cond_time.tv_nsec = 0;
+        SCMutexLock(&rb->wait_mutex);
+        SCCondTimedwait(&rb->wait_cond, &rb->wait_mutex, &cond_time);
+        SCMutexUnlock(&rb->wait_mutex);
+#else
         usleep(USLEEP_TIME);
+#endif
     }
 
     /* atomically update rb->read */
@@ -190,6 +241,10 @@ retry:
     } while (!(SC_ATOMIC_CAS(&rb->read, readp, (readp + 1))));
 
     SCLogDebug("ptr %p", ptr);
+
+#ifdef RINGBUFFER_MUTEX_WAIT
+    SCCondSignal(&rb->wait_cond);
+#endif
     return ptr;
 }
 
@@ -205,11 +260,24 @@ int RingBufferMrSwPut(RingBuffer16 *rb, void *ptr) {
         if (rb->shutdown != 0)
             return -1;
 
+#ifdef RINGBUFFER_MUTEX_WAIT
+        struct timespec cond_time;
+        cond_time.tv_sec = time(NULL) + 1;
+        cond_time.tv_nsec = 0;
+        SCMutexLock(&rb->wait_mutex);
+        SCCondTimedwait(&rb->wait_cond, &rb->wait_mutex, &cond_time);
+        SCMutexUnlock(&rb->wait_mutex);
+#else
         usleep(USLEEP_TIME);
+#endif
     }
 
     rb->array[SC_ATOMIC_GET(rb->write)] = ptr;
     SC_ATOMIC_ADD(rb->write, 1);
+
+#ifdef RINGBUFFER_MUTEX_WAIT
+    SCCondSignal(&rb->wait_cond);
+#endif
     return 0;
 }
 
@@ -227,6 +295,10 @@ RingBuffer16 *RingBufferSrSwInit(void) {
     SC_ATOMIC_INIT(rb->write);
     SC_ATOMIC_INIT(rb->read);
 
+#ifdef RINGBUFFER_MUTEX_WAIT
+    SCMutexInit(&rb->wait_mutex, NULL);
+    SCCondInit(&rb->wait_cond, NULL);
+#endif
     return rb;
 }
 
@@ -234,6 +306,11 @@ void RingBufferSrSwDestroy(RingBuffer16 *rb) {
     if (rb != NULL) {
         SC_ATOMIC_DESTROY(rb->write);
         SC_ATOMIC_DESTROY(rb->read);
+
+#ifdef RINGBUFFER_MUTEX_WAIT
+        SCMutexDestroy(&rb->wait_mutex);
+        SCCondDestroy(&rb->wait_cond);
+#endif
 
         SCFree(rb);
     }
@@ -248,12 +325,24 @@ void *RingBufferSrSwGet(RingBuffer16 *rb) {
         if (rb->shutdown != 0)
             return NULL;
 
+#ifdef RINGBUFFER_MUTEX_WAIT
+        struct timespec cond_time;
+        cond_time.tv_sec = time(NULL) + 1;
+        cond_time.tv_nsec = 0;
+        SCMutexLock(&rb->wait_mutex);
+        SCCondTimedwait(&rb->wait_cond, &rb->wait_mutex, &cond_time);
+        SCMutexUnlock(&rb->wait_mutex);
+#else
         usleep(USLEEP_TIME);
+#endif
     }
 
     ptr = rb->array[SC_ATOMIC_GET(rb->read)];
     SC_ATOMIC_ADD(rb->read, 1);
 
+#ifdef RINGBUFFER_MUTEX_WAIT
+    SCCondSignal(&rb->wait_cond);
+#endif
     return ptr;
 }
 
@@ -264,11 +353,24 @@ int RingBufferSrSwPut(RingBuffer16 *rb, void *ptr) {
         if (rb->shutdown != 0)
             return -1;
 
+#ifdef RINGBUFFER_MUTEX_WAIT
+        struct timespec cond_time;
+        cond_time.tv_sec = time(NULL) + 1;
+        cond_time.tv_nsec = 0;
+        SCMutexLock(&rb->wait_mutex);
+        SCCondTimedwait(&rb->wait_cond, &rb->wait_mutex, &cond_time);
+        SCMutexUnlock(&rb->wait_mutex);
+#else
         usleep(USLEEP_TIME);
+#endif
     }
 
     rb->array[SC_ATOMIC_GET(rb->write)] = ptr;
     SC_ATOMIC_ADD(rb->write, 1);
+
+#ifdef RINGBUFFER_MUTEX_WAIT
+    SCCondSignal(&rb->wait_cond);
+#endif
     return 0;
 }
 
@@ -286,6 +388,10 @@ RingBuffer8 *RingBufferMrMw8Init(void) {
     SC_ATOMIC_INIT(rb->read);
 
     SCSpinInit(&rb->spin, 0);
+#ifdef RINGBUFFER_MUTEX_WAIT
+    SCMutexInit(&rb->wait_mutex, NULL);
+    SCCondInit(&rb->wait_cond, NULL);
+#endif
     return rb;
 }
 
@@ -295,6 +401,11 @@ void RingBufferMrMw8Destroy(RingBuffer8 *rb) {
         SC_ATOMIC_DESTROY(rb->read);
 
         SCSpinDestroy(&rb->spin);
+
+#ifdef RINGBUFFER_MUTEX_WAIT
+        SCMutexDestroy(&rb->wait_mutex);
+        SCCondDestroy(&rb->wait_cond);
+#endif
         SCFree(rb);
     }
 }
@@ -320,8 +431,16 @@ retry:
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return NULL;
-
+#ifdef RINGBUFFER_MUTEX_WAIT
+        struct timespec cond_time;
+        cond_time.tv_sec = time(NULL) + 1;
+        cond_time.tv_nsec = 0;
+        SCMutexLock(&rb->wait_mutex);
+        SCCondTimedwait(&rb->wait_cond, &rb->wait_mutex, &cond_time);
+        SCMutexUnlock(&rb->wait_mutex);
+#else
         usleep(USLEEP_TIME);
+#endif
     }
 
     /* atomically update rb->read */
@@ -337,6 +456,9 @@ retry:
     } while (!(SC_ATOMIC_CAS(&rb->read, readp, (readp + 1))));
 
     SCLogDebug("ptr %p", ptr);
+#ifdef RINGBUFFER_MUTEX_WAIT
+    SCCondSignal(&rb->wait_cond);
+#endif
     return ptr;
 }
 
@@ -368,7 +490,16 @@ retry:
         if (rb->shutdown != 0)
             return -1;
 
+#ifdef RINGBUFFER_MUTEX_WAIT
+        struct timespec cond_time;
+        cond_time.tv_sec = time(NULL) + 1;
+        cond_time.tv_nsec = 0;
+        SCMutexLock(&rb->wait_mutex);
+        SCCondTimedwait(&rb->wait_cond, &rb->wait_mutex, &cond_time);
+        SCMutexUnlock(&rb->wait_mutex);
+#else
         usleep(USLEEP_TIME);
+#endif
     }
 
     /* get our lock */
@@ -386,6 +517,10 @@ retry:
     SC_ATOMIC_ADD(rb->write, 1);
     SCSpinUnlock(&rb->spin);
     SCLogDebug("ptr %p, done", ptr);
+
+#ifdef RINGBUFFER_MUTEX_WAIT
+    SCCondSignal(&rb->wait_cond);
+#endif
     return 0;
 }
 
@@ -403,6 +538,10 @@ RingBuffer16 *RingBufferMrMwInit(void) {
     SC_ATOMIC_INIT(rb->read);
 
     SCSpinInit(&rb->spin, 0);
+#ifdef RINGBUFFER_MUTEX_WAIT
+    SCMutexInit(&rb->wait_mutex, NULL);
+    SCCondInit(&rb->wait_cond, NULL);
+#endif
     return rb;
 }
 
@@ -412,6 +551,12 @@ void RingBufferMrMwDestroy(RingBuffer16 *rb) {
         SC_ATOMIC_DESTROY(rb->read);
 
         SCSpinDestroy(&rb->spin);
+
+#ifdef RINGBUFFER_MUTEX_WAIT
+        SCMutexDestroy(&rb->wait_mutex);
+        SCCondDestroy(&rb->wait_cond);
+#endif
+
         SCFree(rb);
     }
 }
@@ -438,7 +583,16 @@ retry:
         if (rb->shutdown != 0)
             return NULL;
 
+#ifdef RINGBUFFER_MUTEX_WAIT
+        struct timespec cond_time;
+        cond_time.tv_sec = time(NULL) + 1;
+        cond_time.tv_nsec = 0;
+        SCMutexLock(&rb->wait_mutex);
+        SCCondTimedwait(&rb->wait_cond, &rb->wait_mutex, &cond_time);
+        SCMutexUnlock(&rb->wait_mutex);
+#else
         usleep(USLEEP_TIME);
+#endif
     }
 
     /* atomically update rb->read */
@@ -454,6 +608,10 @@ retry:
     } while (!(SC_ATOMIC_CAS(&rb->read, readp, (readp + 1))));
 
     SCLogDebug("ptr %p", ptr);
+
+#ifdef RINGBUFFER_MUTEX_WAIT
+    SCCondSignal(&rb->wait_cond);
+#endif
     return ptr;
 }
 
@@ -485,7 +643,16 @@ retry:
         if (rb->shutdown != 0)
             return -1;
 
+#ifdef RINGBUFFER_MUTEX_WAIT
+        struct timespec cond_time;
+        cond_time.tv_sec = time(NULL) + 1;
+        cond_time.tv_nsec = 0;
+        SCMutexLock(&rb->wait_mutex);
+        SCCondTimedwait(&rb->wait_cond, &rb->wait_mutex, &cond_time);
+        SCMutexUnlock(&rb->wait_mutex);
+#else
         usleep(USLEEP_TIME);
+#endif
     }
 
     /* get our lock */
@@ -503,6 +670,10 @@ retry:
     SC_ATOMIC_ADD(rb->write, 1);
     SCSpinUnlock(&rb->spin);
     SCLogDebug("ptr %p, done", ptr);
+
+#ifdef RINGBUFFER_MUTEX_WAIT
+    SCCondSignal(&rb->wait_cond);
+#endif
     return 0;
 }
 
