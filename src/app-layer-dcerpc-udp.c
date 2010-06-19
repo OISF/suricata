@@ -102,7 +102,7 @@ static uint32_t FragmentDataParser(Flow *f, void *dcerpcudp_state,
  * present to parse the entire header. A slow path is used to parse
  * fragmented packets.
  */
-static uint32_t DCERPCUDPParseHeader(Flow *f, void *dcerpcudp_state,
+static int DCERPCUDPParseHeader(Flow *f, void *dcerpcudp_state,
 		AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
 		AppLayerParserResult *output) {
 	SCEnter();
@@ -113,6 +113,10 @@ static uint32_t DCERPCUDPParseHeader(Flow *f, void *dcerpcudp_state,
 		case 0:
 			if (input_len >= DCERPC_UDP_HDR_LEN) {
 				sstate->dcerpc.dcerpchdrudp.rpc_vers = *p;
+				if (sstate->dcerpc.dcerpchdrudp.rpc_vers != 4) {
+					SCLogDebug("DCERPC UDP Header did not validate");
+					SCReturnInt(-1);
+				}
 				sstate->dcerpc.dcerpchdrudp.type = *(p + 1);
 				sstate->dcerpc.dcerpchdrudp.flags1 = *(p + 2);
 				sstate->dcerpc.dcerpchdrudp.flags2 = *(p + 3);
@@ -222,16 +226,28 @@ static uint32_t DCERPCUDPParseHeader(Flow *f, void *dcerpcudp_state,
 				sstate->uuid_entry = (DCERPCUuidEntry *) SCCalloc(1,
 						sizeof(DCERPCUuidEntry));
 				if (sstate->uuid_entry == NULL) {
-					SCReturnUInt(0);
+					SCReturnUInt(-1);
 				} else {
 					memcpy(sstate->uuid_entry->uuid,
 							sstate->dcerpc.dcerpchdrudp.activityuuid,
 							sizeof(sstate->dcerpc.dcerpchdrudp.activityuuid));
+					TAILQ_INSERT_HEAD(&sstate->uuid_list, sstate->uuid_entry,
+							next);
+#ifdef UNITTESTS
+					if (RunmodeIsUnittests()) {
+						printUUID("DCERPC UDP", sstate->uuid_entry);
+
+					}
+#endif
 				}
-				SCReturnUInt(80U);
+				SCReturnUInt(80);
 				break;
 			} else {
 				sstate->dcerpc.dcerpchdrudp.rpc_vers = *(p++);
+				if (sstate->dcerpc.dcerpchdrudp.rpc_vers != 4) {
+					SCLogDebug("DCERPC UDP Header did not validate");
+					SCReturnInt(-1);
+				}
 				if (!(--input_len))
 					break;
 			}
@@ -563,18 +579,25 @@ static uint32_t DCERPCUDPParseHeader(Flow *f, void *dcerpcudp_state,
 			sstate->uuid_entry = (DCERPCUuidEntry *) SCCalloc(1,
 					sizeof(DCERPCUuidEntry));
 			if (sstate->uuid_entry == NULL) {
-				SCReturnUInt(0);
+				SCReturnUInt(-1);
 			} else {
 				memcpy(sstate->uuid_entry->uuid,
 						sstate->dcerpc.dcerpchdrudp.activityuuid,
 						sizeof(sstate->dcerpc.dcerpchdrudp.activityuuid));
+				TAILQ_INSERT_HEAD(&sstate->uuid_list, sstate->uuid_entry,
+						next);
+#ifdef UNITTESTS
+				if (RunmodeIsUnittests()) {
+					printUUID("DCERPC UDP", sstate->uuid_entry);
+				}
+#endif
 			}
 			--input_len;
 			break;
 		}
 	}
 	sstate->bytesprocessed += (p - input);
-	SCReturnUInt((uint32_t)(p - input));
+	SCReturnInt((p - input));
 }
 
 static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
@@ -582,14 +605,20 @@ static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
 		AppLayerParserResult *output) {
 	uint32_t retval = 0;
 	uint32_t parsed = 0;
+	int hdrretval = 0;
 	SCEnter();
 
 	DCERPCUDPState *sstate = (DCERPCUDPState *) dcerpc_state;
 	while (sstate->bytesprocessed < DCERPC_UDP_HDR_LEN && input_len) {
-		retval = DCERPCUDPParseHeader(f, dcerpc_state, pstate, input,
+		hdrretval = DCERPCUDPParseHeader(f, dcerpc_state, pstate, input,
 				input_len, output);
-		parsed += retval;
-		input_len -= retval;
+		if(hdrretval == -1) {
+			sstate->bytesprocessed = 0;
+			SCReturnInt(hdrretval);
+		} else {
+			parsed += retval;
+			input_len -= retval;
+		}
 	}
 #if 0
 	printf("Done with DCERPCUDPParseHeader bytesprocessed %u/%u left %u\n",
@@ -926,7 +955,7 @@ int DCERPCUDPParserTest01(void) {
 		printUUID("REQUEST", uuid_entry);
 	}
 
-	end:
+end:
 	StreamL7DataPtrFree(&ssn);
 	StreamTcpFreeConfig(TRUE);
 	return result;
