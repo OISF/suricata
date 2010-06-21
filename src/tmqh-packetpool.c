@@ -20,9 +20,12 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Packetpool queue handlers. Packet pool is a simple locking FIFO queue.
- *
- * \todo see if we can replace this by a lockless queue
+ * Packetpool queue handlers. Packet pool is implemented as a ringbuffer.
+ * We're using a multi reader / multi writer version of the ringbuffer,
+ * that is relatively expensive due to the CAS function. But it is necessary
+ * because every thread can return packets to the pool and multiple parts
+ * of the code retrieve packets (Decode, Defrag) and these can run in their
+ * own threads as well.
  */
 
 #include "suricata.h"
@@ -40,24 +43,58 @@
 
 #include "tmqh-packetpool.h"
 
+#include "util-ringbuffer.h"
+
+static RingBuffer16 *ringbuffer = NULL;
+
 void TmqhPacketpoolRegister (void) {
     tmqh_table[TMQH_PACKETPOOL].name = "packetpool";
     tmqh_table[TMQH_PACKETPOOL].InHandler = TmqhInputPacketpool;
     tmqh_table[TMQH_PACKETPOOL].OutHandler = TmqhOutputPacketpool;
+
+    ringbuffer = RingBufferInit();
+}
+
+int PacketPoolIsEmpty(void) {
+    return RingBufferIsEmpty(ringbuffer);
+}
+
+uint16_t PacketPoolSize(void) {
+    return RingBufferSize(ringbuffer);
+}
+
+void PacketPoolWait(void) {
+    RingBufferWait(ringbuffer);
+}
+
+/** \brief a initialized packet
+ *
+ *  \warning Use *only* at init, not at packet runtime
+ */
+void PacketPoolStorePacket(Packet *p) {
+    if (RingBufferIsFull(ringbuffer)) {
+        exit(1);
+    }
+
+    RingBufferMrMwPut(ringbuffer, (void *)p);
+    SCLogDebug("buffersize %u", RingBufferSize(ringbuffer));
+}
+
+Packet *PacketPoolGetPacket(void) {
+    if (RingBufferIsEmpty(ringbuffer))
+        return NULL;
+
+    Packet *p = RingBufferMrMwGet(ringbuffer);
+    return p;
 }
 
 Packet *TmqhInputPacketpool(ThreadVars *t)
 {
     Packet *p = NULL;
 
-    SCMutexLock(&packet_q.mutex_q);
-    while (p == NULL) {
-        p = PacketDequeue(&packet_q);
-        if (p == NULL) {
-            SCCondWait(&packet_q.cond_q, &packet_q.mutex_q);
-        }
+    while(p == NULL) {
+        p = RingBufferMrMwGet(ringbuffer);
     }
-    SCMutexUnlock(&packet_q.mutex_q);
 
     /* packet is clean */
 
@@ -70,7 +107,6 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
 
     SCLogDebug("Packet %p, p->root %p, alloced %s", p, p->root, p->flags & PKT_ALLOC ? "true" : "false");
 
-    PacketQueue *q = &packet_q;
     char proot = 0;
 
     if (IS_TUNNEL_PKT(p)) {
@@ -144,11 +180,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
             p->root = NULL;
         } else {
             PACKET_RECYCLE(p->root);
-
-            SCMutexLock(&q->mutex_q);
-            PacketEnqueue(q, p->root);
-            SCCondSignal(&q->cond_q);
-            SCMutexUnlock(&q->mutex_q);
+            RingBufferMrMwPut(ringbuffer, (void *)p->root);
         }
     }
 
@@ -158,11 +190,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         SCFree(p);
     } else {
         PACKET_RECYCLE(p);
-
-        SCMutexLock(&q->mutex_q);
-        PacketEnqueue(q, p);
-        SCCondSignal(&q->cond_q);
-        SCMutexUnlock(&q->mutex_q);
+        RingBufferMrMwPut(ringbuffer, (void *)p);
     }
 
     SCReturn;

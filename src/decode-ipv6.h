@@ -118,6 +118,19 @@ typedef struct IPV6Vars_
                             * to loop through the exthdrs all the time */
 } IPV6Vars;
 
+#define CLEAR_IPV6_PACKET(p) do { \
+    (p)->ip6h = NULL; \
+    (p)->ip6c.flags = 0; \
+    (p)->ip6c.ver = 0; \
+    (p)->ip6c.cl = 0; \
+    (p)->ip6c.flow = 0; \
+    (p)->ip6c.nh = 0; \
+    (p)->ip6c.plen = 0; \
+    (p)->ip6c.hlim = 0; \
+    (p)->ip6vars.ip_opts_len = 0; \
+    (p)->ip6vars.l4proto = 0; \
+} while (0)
+
 /* Fragment header */
 typedef struct IPV6FragHdr_
 {

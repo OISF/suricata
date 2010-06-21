@@ -210,6 +210,13 @@ typedef struct PacketAlerts_ {
     PacketAlert alerts[PACKET_ALERT_MAX];
 } PacketAlerts;
 
+#define PACKET_DECODER_EVENT_MAX 16
+
+typedef struct PacketDecoderEvents_ {
+    uint8_t cnt;
+    uint8_t events[PACKET_DECODER_EVENT_MAX];
+} PacketDecoderEvents;
+
 typedef struct PktVar_ {
     char *name;
     struct PktVar_ *next; /* right now just implement this as a list,
@@ -258,7 +265,7 @@ typedef struct Packet_
      * has the exact same tuple as the lower levels */
     uint8_t recursion_level;
 
-    /*Pkt Flags*/
+    /* Pkt Flags */
     uint8_t flags;
     /* flow */
     uint8_t flowflags;
@@ -330,9 +337,6 @@ typedef struct Packet_
     uint8_t pkt[IPV6_HEADER_LEN + 65536 + 28];
     uint32_t pktlen;
 
-    /* decoder events: review how many events we have */
-    uint8_t events[(DECODE_EVENT_MAX / 8) + 1];
-
     PacketAlerts alerts;
 
     /** packet number in the pcap file, matches wireshark */
@@ -352,6 +356,9 @@ typedef struct Packet_
     /* tunnel XXX convert to bitfield*/
     char tunnel_pkt;
     char tunnel_verdicted;
+
+    /* decoder events */
+    PacketDecoderEvents events;
 
     /* tunnel/encapsulation handling */
     struct Packet_ *root; /* in case of tunnel this is a ptr
@@ -464,12 +471,57 @@ typedef struct DecodeThreadVars_
  *  \todo the mutex destroy & init is necessary because of the memset, reconsider
  */
 #define PACKET_RECYCLE(p) do {                  \
+        (p)->recursion_level = 0; \
+        (p)->flags = 0; \
+        (p)->flowflags = 0; \
+        (p)->flow = NULL; \
+        (p)->ts.tv_sec = 0; \
+        (p)->ts.tv_usec = 0; \
+        (p)->datalink = 0; \
+        (p)->action = 0; \
         if ((p)->pktvar != NULL) {              \
             PktVarFree((p)->pktvar);            \
+            (p)->pktvar = NULL;                 \
         }                                       \
+        (p)->ethh = NULL; \
+        if ((p)->ip4h != NULL) { \
+            CLEAR_IPV4_PACKET((p)); \
+        } \
+        if ((p)->ip6h != NULL) { \
+            CLEAR_IPV6_PACKET((p)); \
+        } \
+        if ((p)->tcph != NULL) { \
+            CLEAR_TCP_PACKET((p)); \
+        } \
+        if ((p)->udph != NULL) { \
+            CLEAR_UDP_PACKET((p)); \
+        } \
+        if ((p)->icmpv4h != NULL) { \
+            CLEAR_ICMPV4_PACKET((p)); \
+        } \
+        if ((p)->icmpv6h != NULL) { \
+            CLEAR_ICMPV6_PACKET((p)); \
+        } \
+        (p)->ppph = NULL; \
+        (p)->pppoesh = NULL; \
+        (p)->pppoedh = NULL; \
+        (p)->greh = NULL; \
+        (p)->vlanh = NULL; \
+        (p)->payload = NULL; \
+        (p)->payload_len = 0; \
+        (p)->pktlen = 0; \
+        (p)->alerts.cnt = 0; \
+        (p)->next = NULL; \
+        (p)->prev = NULL; \
+        (p)->rtv_cnt = 0; \
+        (p)->tpr_cnt = 0; \
         SCMutexDestroy(&(p)->mutex_rtv_cnt);    \
-        memset((p), 0x00, sizeof(Packet));      \
         SCMutexInit(&(p)->mutex_rtv_cnt, NULL); \
+        (p)->tunnel_proto = 0; \
+        (p)->tunnel_pkt = 0; \
+        (p)->tunnel_verdicted = 0; \
+        (p)->events.cnt = 0; \
+        (p)->root = NULL; \
         PACKET_RESET_CHECKSUMS((p));            \
     } while (0)
 
@@ -565,9 +617,24 @@ void AddressDebugPrint(Address *);
     } while (0)
 
 
-#define DECODER_SET_EVENT(p, e)   ((p)->events[(e/8)] |= (1<<(e%8)))
-#define DECODER_ISSET_EVENT(p, e) ((p)->events[(e/8)] & (1<<(e%8)))
+#define DECODER_SET_EVENT(p, e) do { \
+    if ((p)->events.cnt < PACKET_DECODER_EVENT_MAX) { \
+        (p)->events.events[(p)->events.cnt] = e; \
+        (p)->events.cnt++; \
+    } \
+} while(0)
 
+#define DECODER_ISSET_EVENT(p, e) ({ \
+    int r = 0; \
+    uint8_t u; \
+    for (u = 0; u < (p)->events.cnt; u++) { \
+        if ((p)->events.events[u] == (e)) { \
+            r = 1; \
+            break; \
+        } \
+    } \
+    r; \
+})
 
 /* older libcs don't contain a def for IPPROTO_DCCP
  * inside of <netinet/in.h>

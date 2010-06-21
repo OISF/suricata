@@ -29,6 +29,7 @@
  *
  * Implemented are:
  * Single reader, single writer (lockless)
+ * Single reader, multi writer (partly locked)
  * Multi reader, single writer (lockless)
  * Multi reader, multi writer (partly locked)
  */
@@ -39,24 +40,15 @@
 
 #define USLEEP_TIME 5
 
-__thread uint32_t sleepytime = 5;
-
-static inline void Ringbuffer8Wait(RingBuffer8 *rb) {
-#ifdef RINGBUFFER_MUTEX_WAIT
-    if (sleepytime <= 25) {
-        usleep(5);
-        sleepytime += 5;
-    } else {
-        SCMutexLock(&rb->wait_mutex);
-        SCCondWait(&rb->wait_cond, &rb->wait_mutex);
-        SCMutexUnlock(&rb->wait_mutex);
-    }
-#else
-    usleep(USLEEP_TIME);
-#endif
-}
-
-static inline void RingbufferWait(RingBuffer16 *rb) {
+/** \brief wait function for condition where ringbuffer is either
+ *         full or empty.
+ *
+ *  \param rb ringbuffer
+ *
+ *  Based on RINGBUFFER_MUTEX_WAIT define, we either sleep and spin
+ *  or use thread condition to wait.
+ */
+static inline void RingBuffer8DoWait(RingBuffer8 *rb) {
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCMutexLock(&rb->wait_mutex);
     SCCondWait(&rb->wait_cond, &rb->wait_mutex);
@@ -66,6 +58,40 @@ static inline void RingbufferWait(RingBuffer16 *rb) {
 #endif
 }
 
+/** \brief wait function for condition where ringbuffer is either
+ *         full or empty.
+ *
+ *  \param rb ringbuffer
+ *
+ *  Based on RINGBUFFER_MUTEX_WAIT define, we either sleep and spin
+ *  or use thread condition to wait.
+ */
+static inline void RingBufferDoWait(RingBuffer16 *rb) {
+#ifdef RINGBUFFER_MUTEX_WAIT
+    SCMutexLock(&rb->wait_mutex);
+    SCCondWait(&rb->wait_cond, &rb->wait_mutex);
+    SCMutexUnlock(&rb->wait_mutex);
+#else
+    usleep(USLEEP_TIME);
+#endif
+}
+
+/** \brief wait function for condition where ringbuffer is either
+ *         full or empty.
+ *
+ *  \param rb ringbuffer
+ *
+ *  Based on RINGBUFFER_MUTEX_WAIT define, we either sleep and spin
+ *  or use thread condition to wait.
+ */
+void RingBufferWait(RingBuffer16 *rb) {
+    RingBufferDoWait(rb);
+}
+
+/** \brief tell the ringbuffer to shut down
+ *
+ *  \param rb ringbuffer
+ */
 void RingBuffer8Shutdown(RingBuffer8 *rb) {
     rb->shutdown = 1;
 #ifdef RINGBUFFER_MUTEX_WAIT
@@ -73,11 +99,52 @@ void RingBuffer8Shutdown(RingBuffer8 *rb) {
 #endif
 }
 
+/** \brief tell the ringbuffer to shut down
+ *
+ *  \param rb ringbuffer
+ */
 void RingBufferShutdown(RingBuffer16 *rb) {
     rb->shutdown = 1;
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
 #endif
+}
+
+/** \brief get number of items in the ringbuffer */
+uint16_t RingBufferSize(RingBuffer16 *rb) {
+    SCEnter();
+    uint16_t size = (uint16_t)(SC_ATOMIC_GET(rb->write) - SC_ATOMIC_GET(rb->read));
+    SCReturnUInt(size);
+}
+
+/** \brief check the ringbuffer is empty (no data in it)
+ *
+ *  \param rb ringbuffer
+ *
+ *  \retval 1 empty
+ *  \retval 0 not empty
+ */
+int RingBufferIsEmpty(RingBuffer16 *rb) {
+    if (SC_ATOMIC_GET(rb->write) == SC_ATOMIC_GET(rb->read)) {
+        return 1;
+    }
+
+    return 0;
+}
+
+/** \brief check the ringbuffer is full (no more data will fit)
+ *
+ *  \param rb ringbuffer
+ *
+ *  \retval 1 empty
+ *  \retval 0 not empty
+ */
+int RingBufferIsFull(RingBuffer16 *rb) {
+    if ((unsigned short)(SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
+        return 1;
+    }
+
+    return 0;
 }
 
 /* Single Reader, Single Writer, 8 bits */
@@ -86,12 +153,12 @@ void *RingBufferSrSw8Get(RingBuffer8 *rb) {
     void *ptr = NULL;
 
     /* buffer is empty, wait... */
-    while (SC_ATOMIC_GET(rb->read) == SC_ATOMIC_GET(rb->write)) {
+    while (SC_ATOMIC_GET(rb->write) == SC_ATOMIC_GET(rb->read)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return NULL;
 
-        Ringbuffer8Wait(rb);
+        RingBuffer8DoWait(rb);
     }
 
     ptr = rb->array[SC_ATOMIC_GET(rb->read)];
@@ -100,7 +167,6 @@ void *RingBufferSrSw8Get(RingBuffer8 *rb) {
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
 #endif
-    sleepytime = 5;
     return ptr;
 }
 
@@ -111,7 +177,7 @@ int RingBufferSrSw8Put(RingBuffer8 *rb, void *ptr) {
         if (rb->shutdown != 0)
             return -1;
 
-        Ringbuffer8Wait(rb);
+        RingBuffer8DoWait(rb);
     }
 
     rb->array[SC_ATOMIC_GET(rb->write)] = ptr;
@@ -120,7 +186,6 @@ int RingBufferSrSw8Put(RingBuffer8 *rb, void *ptr) {
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
 #endif
-    sleepytime = 5;
     return 0;
 }
 
@@ -130,12 +195,12 @@ void *RingBufferSrMw8Get(RingBuffer8 *rb) {
     void *ptr = NULL;
 
     /* buffer is empty, wait... */
-    while (SC_ATOMIC_GET(rb->read) == SC_ATOMIC_GET(rb->write)) {
+    while (SC_ATOMIC_GET(rb->write) == SC_ATOMIC_GET(rb->read)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return NULL;
 
-        Ringbuffer8Wait(rb);
+        RingBuffer8DoWait(rb);
     }
 
     ptr = rb->array[SC_ATOMIC_GET(rb->read)];
@@ -144,7 +209,6 @@ void *RingBufferSrMw8Get(RingBuffer8 *rb) {
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
 #endif
-    sleepytime = 5;
     return ptr;
 }
 
@@ -176,7 +240,7 @@ retry:
         if (rb->shutdown != 0)
             return -1;
 
-        Ringbuffer8Wait(rb);
+        RingBuffer8DoWait(rb);
     }
 
     /* get our lock */
@@ -198,7 +262,6 @@ retry:
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
 #endif
-    sleepytime = 5;
     return 0;
 }
 
@@ -221,12 +284,12 @@ void *RingBufferMrSw8Get(RingBuffer8 *rb) {
 
     /* buffer is empty, wait... */
 retry:
-    while (SC_ATOMIC_GET(rb->read) == SC_ATOMIC_GET(rb->write)) {
+    while (SC_ATOMIC_GET(rb->write) == SC_ATOMIC_GET(rb->read)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return NULL;
 
-        Ringbuffer8Wait(rb);
+        RingBuffer8DoWait(rb);
     }
 
     /* atomically update rb->read */
@@ -234,7 +297,7 @@ retry:
     do {
         /* with multiple readers we can get in the situation that we exitted
          * from the wait loop but the rb is empty again once we get here. */
-        if (SC_ATOMIC_GET(rb->read) == SC_ATOMIC_GET(rb->write))
+        if (SC_ATOMIC_GET(rb->write) == SC_ATOMIC_GET(rb->read))
             goto retry;
 
         readp++;
@@ -246,7 +309,6 @@ retry:
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
 #endif
-    sleepytime = 5;
     return ptr;
 }
 
@@ -262,7 +324,7 @@ int RingBufferMrSw8Put(RingBuffer8 *rb, void *ptr) {
         if (rb->shutdown != 0)
             return -1;
 
-        Ringbuffer8Wait(rb);
+        RingBuffer8DoWait(rb);
     }
 
     rb->array[SC_ATOMIC_GET(rb->write)] = ptr;
@@ -271,7 +333,6 @@ int RingBufferMrSw8Put(RingBuffer8 *rb, void *ptr) {
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
 #endif
-    sleepytime = 5;
     return 0;
 }
 
@@ -295,12 +356,12 @@ void *RingBufferMrSwGet(RingBuffer16 *rb) {
 
     /* buffer is empty, wait... */
 retry:
-    while (SC_ATOMIC_GET(rb->read) == SC_ATOMIC_GET(rb->write)) {
+    while (SC_ATOMIC_GET(rb->write) == SC_ATOMIC_GET(rb->read)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return NULL;
 
-        RingbufferWait(rb);
+        RingBufferDoWait(rb);
     }
 
     /* atomically update rb->read */
@@ -308,7 +369,7 @@ retry:
     do {
         /* with multiple readers we can get in the situation that we exitted
          * from the wait loop but the rb is empty again once we get here. */
-        if (SC_ATOMIC_GET(rb->read) == SC_ATOMIC_GET(rb->write))
+        if (SC_ATOMIC_GET(rb->write) == SC_ATOMIC_GET(rb->read))
             goto retry;
 
         readp++;
@@ -320,7 +381,6 @@ retry:
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
 #endif
-    sleepytime = 5;
     return ptr;
 }
 
@@ -336,7 +396,7 @@ int RingBufferMrSwPut(RingBuffer16 *rb, void *ptr) {
         if (rb->shutdown != 0)
             return -1;
 
-        RingbufferWait(rb);
+        RingBufferDoWait(rb);
     }
 
     rb->array[SC_ATOMIC_GET(rb->write)] = ptr;
@@ -345,7 +405,6 @@ int RingBufferMrSwPut(RingBuffer16 *rb, void *ptr) {
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
 #endif
-    sleepytime = 5;
     return 0;
 }
 
@@ -356,12 +415,12 @@ void *RingBufferSrSwGet(RingBuffer16 *rb) {
     void *ptr = NULL;
 
     /* buffer is empty, wait... */
-    while (SC_ATOMIC_GET(rb->read) == SC_ATOMIC_GET(rb->write)) {
+    while (SC_ATOMIC_GET(rb->write) == SC_ATOMIC_GET(rb->read)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return NULL;
 
-        RingbufferWait(rb);
+        RingBufferDoWait(rb);
     }
 
     ptr = rb->array[SC_ATOMIC_GET(rb->read)];
@@ -370,7 +429,6 @@ void *RingBufferSrSwGet(RingBuffer16 *rb) {
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
 #endif
-    sleepytime = 5;
     return ptr;
 }
 
@@ -381,7 +439,7 @@ int RingBufferSrSwPut(RingBuffer16 *rb, void *ptr) {
         if (rb->shutdown != 0)
             return -1;
 
-        RingbufferWait(rb);
+        RingBufferDoWait(rb);
     }
 
     rb->array[SC_ATOMIC_GET(rb->write)] = ptr;
@@ -390,7 +448,6 @@ int RingBufferSrSwPut(RingBuffer16 *rb, void *ptr) {
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
 #endif
-    sleepytime = 5;
     return 0;
 }
 
@@ -447,12 +504,12 @@ void *RingBufferMrMw8Get(RingBuffer8 *rb) {
 
     /* buffer is empty, wait... */
 retry:
-    while (SC_ATOMIC_GET(rb->read) == SC_ATOMIC_GET(rb->write)) {
+    while (SC_ATOMIC_GET(rb->write) == SC_ATOMIC_GET(rb->read)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return NULL;
 
-        Ringbuffer8Wait(rb);
+        RingBuffer8DoWait(rb);
     }
 
     /* atomically update rb->read */
@@ -460,7 +517,7 @@ retry:
     do {
         /* with multiple readers we can get in the situation that we exitted
          * from the wait loop but the rb is empty again once we get here. */
-        if (SC_ATOMIC_GET(rb->read) == SC_ATOMIC_GET(rb->write))
+        if (SC_ATOMIC_GET(rb->write) == SC_ATOMIC_GET(rb->read))
             goto retry;
 
         readp++;
@@ -471,7 +528,6 @@ retry:
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
 #endif
-    sleepytime = 5;
     return ptr;
 }
 
@@ -503,7 +559,7 @@ retry:
         if (rb->shutdown != 0)
             return -1;
 
-        Ringbuffer8Wait(rb);
+        RingBuffer8DoWait(rb);
     }
 
     /* get our lock */
@@ -525,7 +581,6 @@ retry:
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
 #endif
-    sleepytime = 5;
     return 0;
 }
 
@@ -583,12 +638,12 @@ void *RingBufferMrMwGet(RingBuffer16 *rb) {
 
     /* buffer is empty, wait... */
 retry:
-    while (SC_ATOMIC_GET(rb->read) == SC_ATOMIC_GET(rb->write)) {
+    while (SC_ATOMIC_GET(rb->write) == SC_ATOMIC_GET(rb->read)) {
         /* break out if the engine wants to shutdown */
         if (rb->shutdown != 0)
             return NULL;
 
-        RingbufferWait(rb);
+        RingBufferDoWait(rb);
     }
 
     /* atomically update rb->read */
@@ -596,7 +651,7 @@ retry:
     do {
         /* with multiple readers we can get in the situation that we exitted
          * from the wait loop but the rb is empty again once we get here. */
-        if (SC_ATOMIC_GET(rb->read) == SC_ATOMIC_GET(rb->write))
+        if (SC_ATOMIC_GET(rb->write) == SC_ATOMIC_GET(rb->read))
             goto retry;
 
         readp++;
@@ -608,7 +663,6 @@ retry:
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
 #endif
-    sleepytime = 5;
     return ptr;
 }
 
@@ -640,7 +694,7 @@ retry:
         if (rb->shutdown != 0)
             return -1;
 
-        RingbufferWait(rb);
+        RingBufferDoWait(rb);
     }
 
     /* get our lock */
@@ -662,7 +716,6 @@ retry:
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
 #endif
-    sleepytime = 5;
     return 0;
 }
 

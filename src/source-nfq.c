@@ -43,6 +43,7 @@
 #include "util-error.h"
 #include "util-byte.h"
 #include "util-privs.h"
+#include "tmqh-packetpool.h"
 
 #ifndef NFQ
 /** Handle the case where no NFQ support is compiled in.
@@ -504,11 +505,9 @@ TmEcode ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
     /* make sure we have at least one packet in the packet pool, to prevent
      * us from 1) alloc'ing packets at line rate, 2) have a race condition
      * for the nfq mutex lock with the verdict thread. */
-    SCMutexLock(&packet_q.mutex_q);
-    if (packet_q.len == 0) {
-        SCCondWait(&packet_q.cond_q, &packet_q.mutex_q);
+    while (PacketPoolSize() == 0) {
+        PacketPoolWait();
     }
-    SCMutexUnlock(&packet_q.mutex_q);
 
     /* do our nfq magic */
     NFQRecvPkt(ntv);

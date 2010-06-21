@@ -134,6 +134,8 @@
 #include "output.h"
 #include "util-privs.h"
 
+#include "tmqh-packetpool.h"
+
 /*
  * we put this here, because we only use it here in main.
  */
@@ -224,11 +226,6 @@ void GlobalInits()
         SCLogInfo("Trans_Q Mutex not initialized correctly");
         exit(EXIT_FAILURE);
     }
-
-    /* initialize packet queues Here! */
-    memset(&packet_q,0,sizeof(packet_q));
-    SCMutexInit(&packet_q.mutex_q, NULL);
-    SCCondInit(&packet_q.cond_q, NULL);
 }
 
 /* XXX hack: make sure threads can stop the engine by calling this
@@ -965,7 +962,7 @@ int main(int argc, char **argv)
         }
         PACKET_INITIALIZE(p);
 
-        PacketEnqueue(&packet_q,p);
+        PacketPoolStorePacket(p);
     }
     SCLogInfo("preallocated %"PRIiMAX" packets. Total memory %"PRIuMAX"",
         max_pending_packets, (uintmax_t)(max_pending_packets*sizeof(Packet)));
@@ -1099,10 +1096,10 @@ int main(int argc, char **argv)
                     if (suricata_ctl_flags & SURICATA_KILL)
                         break;
 
-                    SCMutexLock(&packet_q.mutex_q);
-                    if (packet_q.len == max_pending_packets)
+                    /* if all packets are returned to the packetpool
+                     * we are done */
+                    if (PacketPoolSize() == max_pending_packets)
                         done = 1;
-                    SCMutexUnlock(&packet_q.mutex_q);
 
                     if (done == 0) {
                         usleep(100);

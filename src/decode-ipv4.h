@@ -174,7 +174,6 @@ typedef struct IPV4Hdr_
 typedef struct IPV4Cache_
 {
     uint16_t flags;
-
     uint8_t ver;
     uint8_t hl;
     uint8_t ip_tos;        /* type of service */
@@ -194,6 +193,38 @@ typedef struct IPV4Cache_
 
 } IPV4Cache;
 
+#define CLEAR_IPV4_PACKET(p) do { \
+    (p)->ip4h = NULL; \
+    (p)->ip4vars.ip_opt_len = 0; \
+    (p)->ip4vars.ip_opt_cnt = 0; \
+    (p)->ip4vars.o_rr = NULL; \
+    (p)->ip4vars.o_qs = NULL; \
+    (p)->ip4vars.o_ts = NULL; \
+    (p)->ip4vars.o_sec = NULL; \
+    (p)->ip4vars.o_lsrr = NULL; \
+    (p)->ip4vars.o_cipso = NULL; \
+    (p)->ip4vars.o_sid = NULL; \
+    (p)->ip4vars.o_ssrr = NULL; \
+    (p)->ip4vars.o_rtralt = NULL; \
+    (p)->ip4c.flags = 0; \
+    (p)->ip4c.ver = 0; \
+    (p)->ip4c.hl = 0; \
+    (p)->ip4c.ip_tos = 0; \
+    (p)->ip4c.ip_len = 0; \
+    (p)->ip4c.ip_id = 0; \
+    (p)->ip4c.ip_off = 0; \
+    (p)->ip4c._ip_off = 0; \
+    (p)->ip4c.rf = 0; \
+    (p)->ip4c.df = 0; \
+    (p)->ip4c.mf = 0; \
+    (p)->ip4c.ip_ttl = 0; \
+    (p)->ip4c.ip_proto = 0; \
+    (p)->ip4c.ip_csum = 0; \
+    (p)->ip4c.comp_csum = 0; \
+    (p)->ip4c.ip_src_u32 = 0; \
+    (p)->ip4c.ip_dst_u32 = 0; \
+} while (0)
+
 /* helper structure with parsed ipv4 info */
 typedef struct IPV4Vars_
 {
@@ -212,6 +243,7 @@ typedef struct IPV4Vars_
     IPV4Opt *o_ssrr;
     IPV4Opt *o_rtralt;
 } IPV4Vars;
+
 
 void DecodeIPV4RegisterTests(void);
 

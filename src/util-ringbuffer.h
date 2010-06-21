@@ -66,9 +66,17 @@ typedef struct RingBuffer16_ {
 
 RingBuffer8 *RingBuffer8Init(void);
 void RingBuffer8Destroy(RingBuffer8 *);
+RingBuffer16 *RingBufferInit(void);
+void RingBuffer16Destroy(RingBuffer16 *);
+
+int RingBufferIsEmpty(RingBuffer16 *);
+int RingBufferIsFull(RingBuffer16 *);
+uint16_t RingBufferSize(RingBuffer16 *);
 
 void RingBuffer8Shutdown(RingBuffer8 *);
 void RingBufferShutdown(RingBuffer16 *);
+
+void RingBufferWait(RingBuffer16 *rb);
 
 /** Single Reader, Single Writer ring buffer, fixed at
  *  256 items so we can use unsigned char's that just
@@ -105,6 +113,9 @@ int RingBufferMrMw8Put(RingBuffer8 *, void *);
  *  wrap around */
 void *RingBufferMrMwGet(RingBuffer16 *);
 int RingBufferMrMwPut(RingBuffer16 *, void *);
+
+void *RingBufferSrMw8Get(RingBuffer8 *);
+int RingBufferSrMw8Put(RingBuffer8 *, void *);
 
 #endif /* __UTIL_RINGBUFFER_H__ */
 

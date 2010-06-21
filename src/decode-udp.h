@@ -54,6 +54,12 @@ typedef struct UDPCache_ {
     int32_t comp_csum;
 } UDPCache;
 
+#define CLEAR_UDP_PACKET(p) do { \
+    (p)->udpvars.hlen = 0; \
+    (p)->udpc.comp_csum = -1; \
+    (p)->udph = NULL; \
+} while (0)
+
 void DecodeUDPV4RegisterTests(void);
 
 /** ------ Inline function ------ */

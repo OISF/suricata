@@ -43,6 +43,7 @@
 #include "conf.h"
 #include "util-error.h"
 #include "util-privs.h"
+#include "tmqh-packetpool.h"
 
 extern uint8_t suricata_ctl_flags;
 extern int max_pending_packets;
@@ -162,13 +163,10 @@ TmEcode ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, 
     /* make sure we have at least one packet in the packet pool, to prevent
      * us from alloc'ing packets at line rate */
     while (packet_q_len == 0) {
-        SCMutexLock(&packet_q.mutex_q);
-        packet_q_len = packet_q.len;
-        if (packet_q.len == 0) {
-            SCCondWait(&packet_q.cond_q, &packet_q.mutex_q);
+        packet_q_len = PacketPoolSize();
+        if (packet_q_len == 0) {
+            PacketPoolWait();
         }
-        packet_q_len = packet_q.len;
-        SCMutexUnlock(&packet_q.mutex_q);
     }
 
     if (postpq == NULL)

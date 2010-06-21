@@ -155,6 +155,7 @@ typedef struct TCPCache_ {
     (p)->tcpvars.ts = NULL; \
     (p)->tcpvars.ws = NULL; \
     (p)->tcpvars.mss = NULL; \
+    (p)->tcpc.comp_csum = -1; \
     (p)->tcpc.ts1 = 0; \
     (p)->tcpc.ts2 = 0; \
 }

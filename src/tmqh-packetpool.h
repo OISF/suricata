@@ -28,5 +28,9 @@ Packet *TmqhInputPacketpool(ThreadVars *);
 void TmqhOutputPacketpool(ThreadVars *, Packet *);
 void TmqhReleasePacketsToPacketPool(PacketQueue *);
 void TmqhPacketpoolRegister (void);
+Packet *PacketPoolGetPacket(void);
+uint16_t PacketPoolSize(void);
+void PacketPoolStorePacket(Packet *);
+void PacketPoolWait(void);
 
 #endif /* __TMQH_PACKETPOOL_H__ */

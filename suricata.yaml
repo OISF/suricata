@@ -104,7 +104,7 @@ threading:
   # thread being created. Regardless of the setting at a minimum 1 detect
   # thread will always be created.
   #
-  detect_thread_ratio: 1.0
+  detect_thread_ratio: 1.5
 
 # Select the multi pattern algorithm you want to run for scan/search the
 # in the engine. The supported algorithms are b2g, b3g and wumanber.
