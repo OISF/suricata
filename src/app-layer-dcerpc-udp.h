@@ -1,12 +1,12 @@
 /*
  * Copyright (c) 2009,2010 Open Information Security Foundation
- * app-layer-dcerpc.h
  *
  * \author Kirby Kuehl <kkuehl@gmail.com>
  */
 
-#ifndef APPLAYERDCERPCUDP_H_
-#define APPLAYERDCERPCUDP_H_
+#ifndef __APP_LAYER_DCERPC_UDP_H__
+#define __APP_LAYER_DCERPC_UDP_H__
+
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-dcerpc-common.h"
@@ -15,16 +15,16 @@
 #include "util-byte.h"
 
 typedef struct DCERPCUDPState_ {
-     DCERPCUDP dcerpc;
-     uint16_t bytesprocessed;
-     uint16_t fraglenleft;
-     uint8_t *frag_data;
-     DCERPCUuidEntry *uuid_entry;
-     TAILQ_HEAD(, DCERPCUuidEntry_) uuid_list;
-}DCERPCUDPState;
+    DCERPCUDP dcerpc;
+    uint16_t bytesprocessed;
+    uint16_t fraglenleft;
+    uint8_t *frag_data;
+    DCERPCUuidEntry *uuid_entry;
+    TAILQ_HEAD(, DCERPCUuidEntry_) uuid_list;
+} DCERPCUDPState;
 
 void RegisterDCERPCUDPParsers(void);
 void DCERPCUDPParserTests(void);
 void DCERPCUDPParserRegisterTests(void);
 
-#endif /* APPLAYERDCERPCUDP_H_ */
+#endif /* __APP_LAYER_DCERPC_UDP_H__ */

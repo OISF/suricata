@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2009, 2010 Open Information Security Foundation
- * app-layer-dcerpc-udp.c
  *
  * \author Kirby Kuehl <kkuehl@gmail.com>
  */
@@ -9,6 +8,9 @@
 
 #include "debug.h"
 #include "decode.h"
+
+#include "flow-util.h"
+
 #include "threads.h"
 
 #include "util-print.h"
@@ -908,9 +910,10 @@ int DCERPCUDPParserTest01(void) {
 	memset(&f, 0, sizeof(f));
 	memset(&ssn, 0, sizeof(ssn));
 	f.protoctx = (void *)&ssn;
+    FLOW_INITIALIZE(&f);
 
 	StreamTcpInitConfig(TRUE);
-	StreamL7DataPtrInit(&ssn);
+	FlowL7DataPtrInit(&f);
 
 	int r = AppLayerParse(&f, ALPROTO_DCERPC_UDP, STREAM_TOSERVER|STREAM_START, dcerpcrequest, requestlen);
 	if (r != 0) {
@@ -919,34 +922,28 @@ int DCERPCUDPParserTest01(void) {
 		goto end;
 	}
 
-	DCERPCUDPState *dcerpc_state = ssn.aldata[AlpGetStateIdx(ALPROTO_DCERPC_UDP)];
+	DCERPCUDPState *dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC_UDP)];
 	if (dcerpc_state == NULL) {
 		printf("no dcerpc state: ");
 		result = 0;
 		goto end;
 	}
 
-	if (dcerpc_state->dcerpc.rpc_vers != 4) {
+	if (dcerpc_state->dcerpc.dcerpchdrudp.rpc_vers != 4) {
 		printf("expected dcerpc version 0x04, got 0x%02x : ",
-				dcerpc_state->dcerpc.rpc_vers);
+				dcerpc_state->dcerpc.dcerpchdrudp.rpc_vers);
 		result = 0;
 		goto end;
 	}
 
-	if (dcerpc_state->dcerpc.ptype != REQUEST) {
-		printf("expected dcerpc type 0x%02x , got 0x%02x : ", REQUEST, dcerpc_state->dcerpc.ptype);
+	if (dcerpc_state->dcerpc.dcerpchdrudp.fraglen != 1392) {
+		printf("expected dcerpc fraglen 0x%02x , got 0x%02x : ", 1392, dcerpc_state->dcerpc.dcerpchdrudp.fraglen);
 		result = 0;
 		goto end;
 	}
 
-	if (dcerpc_state->dcerpc.fraglen != 1392) {
-		printf("expected dcerpc fraglen 0x%02x , got 0x%02x : ", 1392, dcerpc_state->dcerpc.fraglen);
-		result = 0;
-		goto end;
-	}
-
-	if (dcerpc_state->dcerpc.opnum != 4) {
-		printf("expected dcerpc opnum 0x%02x , got 0x%02x : ", 4, dcerpc_state->dcerpc.opnum);
+	if (dcerpc_state->dcerpc.dcerpchdrudp.opnum != 4) {
+		printf("expected dcerpc opnum 0x%02x , got 0x%02x : ", 4, dcerpc_state->dcerpc.dcerpchdrudp.opnum);
 		result = 0;
 		goto end;
 	}
@@ -956,13 +953,12 @@ int DCERPCUDPParserTest01(void) {
 	}
 
 end:
-	StreamL7DataPtrFree(&ssn);
+	FlowL7DataPtrFree(&f);
 	StreamTcpFreeConfig(TRUE);
 	return result;
 }
 
 void DCERPCUDPParserRegisterTests(void) {
-	printf("DCERPCUDPParserRegisterTests\n");
 	UtRegisterTest("DCERPCUDPParserTest01", DCERPCUDPParserTest01, 1);
 }
 #endif
