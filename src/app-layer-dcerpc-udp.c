@@ -63,8 +63,6 @@ static uint32_t FragmentDataParser(Flow *f, void *dcerpcudp_state,
         stub_data_fresh = &sstate->dcerpc.dcerpcresponse.stub_data_fresh;
     }
 
-    fprintf(stdout,"sstate->dcerpc.fraglenleft = %d\n", sstate->dcerpc.fraglenleft);
-
     stub_len = (sstate->dcerpc.fraglenleft < input_len) ? sstate->dcerpc.fraglenleft : input_len;
 
     if (stub_len == 0) {
