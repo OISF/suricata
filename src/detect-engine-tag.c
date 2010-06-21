@@ -130,22 +130,18 @@ void TagRestartCtx() {
  */
 void TagHashInit(DetectTagHostCtx *tag_ctx)
 {
-    if (tag_ctx->tag_hash_table_ipv4 == NULL ||
-        tag_ctx->tag_hash_table_ipv6 == NULL) {
+    tag_ctx->tag_hash_table_ipv4 = HashListTableInit(TAG_HASH_SIZE, TagHashFunc, TagCompareFunc, TagFreeFunc);
+    if(tag_ctx->tag_hash_table_ipv4 == NULL)    {
+        SCLogError(SC_ERR_MEM_ALLOC,
+                "Tag: Failed to initialize ipv4 dst hash table.");
+        exit(EXIT_FAILURE);
+    }
 
-        tag_ctx->tag_hash_table_ipv4 = HashListTableInit(TAG_HASH_SIZE, TagHashFunc, TagCompareFunc, TagFreeFunc);
-        if(tag_ctx->tag_hash_table_ipv4 == NULL)    {
-            SCLogError(SC_ERR_MEM_ALLOC,
-                    "Tag: Failed to initialize ipv4 dst hash table.");
-            exit(EXIT_FAILURE);
-        }
-
-        tag_ctx->tag_hash_table_ipv6 = HashListTableInit(TAG_HASH_SIZE, TagHashFunc, TagCompareFunc, TagFreeFunc);
-        if(tag_ctx->tag_hash_table_ipv6 == NULL)    {
-            SCLogError(SC_ERR_MEM_ALLOC,
-                    "Tag: Failed to initialize ipv4 src hash table.");
-            exit(EXIT_FAILURE);
-        }
+    tag_ctx->tag_hash_table_ipv6 = HashListTableInit(TAG_HASH_SIZE, TagHashFunc, TagCompareFunc, TagFreeFunc);
+    if(tag_ctx->tag_hash_table_ipv6 == NULL)    {
+        SCLogError(SC_ERR_MEM_ALLOC,
+                "Tag: Failed to initialize ipv4 src hash table.");
+        exit(EXIT_FAILURE);
     }
 }
 

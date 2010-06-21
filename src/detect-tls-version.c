@@ -541,6 +541,7 @@ end:
 }
 
 static int DetectTlsVersionTestDetect03(void) {
+    DetectEngineCtx *de_ctx = NULL;
     int result = 0;
     Flow f;
     uint8_t tlsbuf1[] = { 0x16 };
@@ -590,7 +591,7 @@ static int DetectTlsVersionTestDetect03(void) {
     ssn.toserver_smsg_head = stream_msg;
     ssn.toserver_smsg_tail = stream_msg;
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         goto end;
     }

@@ -80,6 +80,7 @@
         (f)->alflags = 0; \
         (f)->alproto = 0; \
         DetectTagDataListFree((f)->tag_list); \
+        (f)->tag_list = NULL; \
     } while(0)
 
 #define FLOW_DESTROY(f) do { \
@@ -97,6 +98,7 @@
         (f)->alflags = 0; \
         (f)->alproto = 0; \
         DetectTagDataListFree((f)->tag_list); \
+        (f)->tag_list = NULL; \
     } while(0)
 
 Flow *FlowAlloc(void);

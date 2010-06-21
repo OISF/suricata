@@ -110,6 +110,9 @@ int DetectTagFlowAdd(Packet *p, DetectTagDataEntry *tde) {
     uint16_t num_tags = 0;
     DetectTagDataEntry *iter = NULL;
 
+    if (p->flow == NULL)
+        return 1;
+
     SCMutexLock(&p->flow->m);
 
     if (p->flow->tag_list == NULL) {
@@ -184,7 +187,7 @@ int DetectTagMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Si
             if (td->direction == DETECT_TAG_DIR_SRC || td->direction == DETECT_TAG_DIR_DST) {
                 SCLogDebug("Tagging Host with sid %"PRIu32":%"PRIu32"", s->id, s->gid);
                 if (TagHashAddTag(tag_ctx, tde, p) == 1)
-                    DetectTagDataEntryFree(tde);
+                    SCFree(tde);
 
             } else {
                 SCLogError(SC_ERR_INVALID_VALUE, "Error on direction of a tag keyword (not src nor dst)");
@@ -194,7 +197,7 @@ int DetectTagMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Si
             if (p->flow != NULL) {
                 /* If it already exists it will be updated */
                 if (DetectTagFlowAdd(p, tde) == 1)
-                    DetectTagDataEntryFree(tde);
+                    SCFree(tde);
             } else {
                 SCLogDebug("No flow to append the session tag");
             }
@@ -384,7 +387,8 @@ void DetectTagDataEntryFree(void *ptr) {
         DetectTagDataEntry *dte = (DetectTagDataEntry *)ptr;
         if (dte->next != NULL)
             DetectTagDataEntryFree(dte->next);
-        SCFree(ptr);
+        dte->next = NULL;
+        SCFree(dte);
     }
 }
 
@@ -857,6 +861,8 @@ cleanup:
     UTHFreePackets(p, 7);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    if (result == 1 && f.tag_list != NULL)
+        DetectTagDataListFree(f.tag_list);
 
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);

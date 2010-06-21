@@ -988,6 +988,13 @@ void SigFree(Signature *s) {
         sm = nsm;
     }
 
+    sm = s->tmatch;
+    while (sm != NULL) {
+        nsm = sm->next;
+        SigMatchFree(sm);
+        sm = nsm;
+    }
+
     DetectAddressHeadCleanup(&s->src);
     DetectAddressHeadCleanup(&s->dst);
 
