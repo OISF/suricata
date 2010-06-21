@@ -63,7 +63,13 @@ static uint32_t FragmentDataParser(Flow *f, void *dcerpcudp_state,
         stub_data_fresh = &sstate->dcerpc.dcerpcresponse.stub_data_fresh;
     }
 
+    fprintf(stdout,"sstate->dcerpc.fraglenleft = %d\n", sstate->dcerpc.fraglenleft);
+
     stub_len = (sstate->dcerpc.fraglenleft < input_len) ? sstate->dcerpc.fraglenleft : input_len;
+
+    if (stub_len == 0) {
+	SCReturnUInt(0);
+    }
     /* if the frag is the the first frag irrespective of it being a part of
      * a multi frag PDU or not, it indicates the previous PDU's stub would
      * have been buffered and processed and we can use the buffer to hold
