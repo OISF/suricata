@@ -229,7 +229,7 @@
  *  \param val the value to add to the variable
  */
 #define SC_ATOMIC_ADD(name, val) \
-    SCAtomicFetchAndAdd(&(name ## _sc_atomic__), (val));
+    SCAtomicFetchAndAdd(&(name ## _sc_atomic__), (val))
 
 /**
  *  \brief sub a value from our atomic variable
@@ -238,7 +238,7 @@
  *  \param val the value to sub from the variable
  */
 #define SC_ATOMIC_SUB(name, val) \
-    SCAtomicFetchAndSub(&(name ## _sc_atomic__), (val));
+    SCAtomicFetchAndSub(&(name ## _sc_atomic__), (val))
 
 /**
  *  \brief atomic Compare and Switch
