@@ -30,7 +30,7 @@
 
 /** When the ringbuffer is full we have two options, either we spin & sleep
  *  or we use a pthread condition to wait. */
-#define RINGBUFFER_MUTEX_WAIT
+//#define RINGBUFFER_MUTEX_WAIT
 
 /** \brief ring buffer api
  *
