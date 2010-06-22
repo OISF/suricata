@@ -71,7 +71,6 @@ TmEcode NoErfDagSupportExit(ThreadVars *tv, void *initdata, void **data)
 
 #include "source-erf-dag.h"
 #include <dagapi.h>
-// #include <dagutil.h>
 
 extern int max_pending_packets;
 extern uint8_t suricata_ctl_flags;
@@ -83,16 +82,18 @@ typedef struct ErfDagThreadVars_ {
     char dagname[DAGNAME_BUFSIZE];
     uint32_t dag_max_read_packets;
 
-    struct timeval  maxwait, poll;  /* Could possibly be made static */
+    struct timeval maxwait, poll;   /* Could possibly be made static */
 
     uint32_t pkts;
     uint64_t bytes;
 
     /* Track current location in the DAG stream input buffer
      */
-    uint8_t* top;                      /* We track top as well so we don't have to
+    uint8_t* top;                   /* We track top as well so we don't have to
                                        call dag_advance_stream again if there
                                        are still pkts to process.
+
+                                       JNM: Currently not used.
                                      */
     uint8_t* btm;
 
@@ -108,6 +109,7 @@ TmEcode ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec, Packet *p);
 
 TmEcode DecodeErfDagThreadInit(ThreadVars *, void *, void **);
 TmEcode DecodeErfDag(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+void ReceiveErfDagCloseStream(int dagfd, int stream);
 
 /**
  * \brief Register the ERF file receiver (reader) module.
@@ -404,6 +406,7 @@ ReceiveErfDag(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
              SCLogError(SC_ERR_ERF_DAG_STREAM_READ_FAILED,
                    "Failed to read from stream: %d, DAG: %s",
                    ewtn->dagstream, ewtn->dagname);
+            ReceiveErfDagCloseStream(ewtn->dagfd, ewtn->dagstream);
             SCReturnInt(err);
         }
     }
@@ -439,7 +442,7 @@ TmEcode ProcessErfDagRecords(ErfDagThreadVars *ewtn,
         prec = (char*)ewtn->btm;
         dr = (dag_record_t*)prec;
 
-        rlen = htons(dr->rlen);
+        rlen = ntohs(dr->rlen);
 
         if (rlen == 20) {
             rlen = 28;
@@ -505,13 +508,16 @@ TmEcode ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec, Packet *p)
     if (p == NULL) SCReturnInt(TM_ECODE_OK);
 
     /* Only support ethernet at this time. */
-    if (dr->type != TYPE_ETH) {
+    if (dr->type != TYPE_ETH &&
+	    dr->type != TYPE_DSM_COLOR_ETH &&
+	    dr->type != TYPE_COLOR_ETH &&
+	    dr->type != TYPE_COLOR_HASH_ETH) {
         SCLogError(SC_ERR_UNIMPLEMENTED,
                    "Processing of DAG record type: %d not implemented.", dr->type);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    wlen = htons(dr->wlen);
+    wlen = ntohs(dr->wlen);
 
     pload = &(dr->rec);
 
@@ -562,19 +568,23 @@ ReceiveErfDagThreadExitStats(ThreadVars *tv, void *data)
  * \param   tv pointer to ThreadVars
  * \param   data pointer that gets cast into PcapThreadVars for ptv
  */
-TmEcode ReceiveErfDagThreadDeinit(ThreadVars *tv, void *data) {
-
+TmEcode ReceiveErfDagThreadDeinit(ThreadVars *tv, void *data)
+{
     SCEnter();
 
     ErfDagThreadVars *ewtn = (ErfDagThreadVars *)data;
 
-    dag_stop_stream(ewtn->dagfd, ewtn->dagstream);
-    dag_detach_stream(ewtn->dagfd, ewtn->dagstream);
-    dag_close(ewtn->dagfd);
+    ReceiveErfDagCloseStream(ewtn->dagfd, ewtn->dagstream);
 
     SCReturnInt(TM_ECODE_OK);
 }
 
+void ReceiveErfDagCloseStream(int dagfd, int stream)
+{
+    dag_stop_stream(dagfd, stream);
+    dag_detach_stream(dagfd, stream);
+    dag_close(dagfd);
+}
 
 /** Decode ErfDag */
 
@@ -627,9 +637,14 @@ TmEcode DecodeErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
     SCEnter();
     DecodeThreadVars *dtv = NULL;
 
-    if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL)
+   // if ( (dtv = SCMalloc(sizeof(DecodeThreadVars))) == NULL)
+   //     SCReturnInt(TM_ECODE_FAILED);
+   // memset(dtv, 0, sizeof(DecodeThreadVars));
+
+    dtv = DecodeThreadVarsAlloc();
+
+    if(dtv == NULL)
         SCReturnInt(TM_ECODE_FAILED);
-    memset(dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeRegisterPerfCounters(dtv, tv);
 
