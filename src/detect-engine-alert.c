@@ -40,9 +40,12 @@ int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
     int ret = 0;
+    DetectThresholdData *td = NULL;
 
     /* retrieve the sig match data */
-    DetectThresholdData *td = SigGetThresholdType(s,p);
+    if (PKT_IS_IPV4(p) || PKT_IS_IPV6(p)) {
+        td = SigGetThresholdType(s,p);
+    }
 
     SCLogDebug("td %p", td);
 
