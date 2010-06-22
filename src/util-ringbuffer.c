@@ -667,6 +667,51 @@ retry:
 }
 
 /**
+ *  \brief get the next ptr from the ring buffer
+ *
+ *  Because we allow for multiple readers we take great care in making sure
+ *  that the threads don't interfere with one another.
+ *
+ *  This version does NOT enter a wait if the buffer is empty loop.
+ *
+ *  \retval ptr pointer to the data, or NULL if buffer is empty
+ */
+void *RingBufferMrMwGetNoWait(RingBuffer16 *rb) {
+    void *ptr;
+    /** local pointer for data races. If SCAtomicCompareAndSwap (CAS)
+     *  fails we increase our local array idx to try the next array member
+     *  until we succeed. Or when the buffer is empty again we jump back
+     *  to the waiting loop. */
+    unsigned short readp;
+
+    /* buffer is empty, wait... */
+retry:
+    while (SC_ATOMIC_GET(rb->write) == SC_ATOMIC_GET(rb->read)) {
+        /* break if buffer is empty */
+        return NULL;
+    }
+
+    /* atomically update rb->read */
+    readp = SC_ATOMIC_GET(rb->read) - 1;
+    do {
+        /* with multiple readers we can get in the situation that we exitted
+         * from the wait loop but the rb is empty again once we get here. */
+        if (SC_ATOMIC_GET(rb->write) == SC_ATOMIC_GET(rb->read))
+            goto retry;
+
+        readp++;
+        ptr = rb->array[readp];
+    } while (!(SC_ATOMIC_CAS(&rb->read, readp, (readp + 1))));
+
+    SCLogDebug("ptr %p", ptr);
+
+#ifdef RINGBUFFER_MUTEX_WAIT
+    SCCondSignal(&rb->wait_cond);
+#endif
+    return ptr;
+}
+
+/**
  *  \brief put a ptr in the RingBuffer.
  *
  *  As we support multiple writers we need to protect 2 things:

@@ -29,7 +29,19 @@
 #include "threads.h"
 
 /** When the ringbuffer is full we have two options, either we spin & sleep
- *  or we use a pthread condition to wait. */
+ *  or we use a pthread condition to wait.
+ *
+ *  \warning this approach isn't working due to a race condition between the
+ *           time it takes for a thread to enter the condwait and the
+ *           signalling. I've obverved the following case: T1 sees that the
+ *           ringbuffer is empty, so it decides to start the wait condition.
+ *           While it is acquiring the lock and entering the wait, T0 puts a
+ *           number of items in the buffer. For each of these it signals T1.
+ *           However, as that thread isn't in the "wait" mode yet, the signals
+ *           are lost. T0 now is done as well and enters it's own wait
+ *           condition. T1 completes it's "wait" initialization. It waits for
+ *           signals, but T0 won't be able to send them as it's waiting itself.
+ */
 //#define RINGBUFFER_MUTEX_WAIT
 
 /** \brief ring buffer api
@@ -112,6 +124,7 @@ int RingBufferMrMw8Put(RingBuffer8 *, void *);
  *  65536 items so we can use unsigned char's that just
  *  wrap around */
 void *RingBufferMrMwGet(RingBuffer16 *);
+void *RingBufferMrMwGetNoWait(RingBuffer16 *);
 int RingBufferMrMwPut(RingBuffer16 *, void *);
 
 void *RingBufferSrMw8Get(RingBuffer8 *);

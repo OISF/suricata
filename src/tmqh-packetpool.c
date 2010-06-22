@@ -80,11 +80,14 @@ void PacketPoolStorePacket(Packet *p) {
     SCLogDebug("buffersize %u", RingBufferSize(ringbuffer));
 }
 
+/** \brief get a packet from the packet pool, but if the
+ *         pool is empty, don't wait, just return NULL
+ */
 Packet *PacketPoolGetPacket(void) {
     if (RingBufferIsEmpty(ringbuffer))
         return NULL;
 
-    Packet *p = RingBufferMrMwGet(ringbuffer);
+    Packet *p = RingBufferMrMwGetNoWait(ringbuffer);
     return p;
 }
 
@@ -92,7 +95,7 @@ Packet *TmqhInputPacketpool(ThreadVars *t)
 {
     Packet *p = NULL;
 
-    while(p == NULL) {
+    while (p == NULL && ringbuffer->shutdown == FALSE) {
         p = RingBufferMrMwGet(ringbuffer);
     }
 
