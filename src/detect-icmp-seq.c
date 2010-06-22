@@ -93,7 +93,7 @@ int DetectIcmpSeqMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p
     DetectIcmpSeqData *iseq = (DetectIcmpSeqData *)m->ctx;
 
     if (PKT_IS_ICMPV4(p)) {
-        SCLogInfo("ICMPV4_GET_SEQ(p) %"PRIu16" (network byte order), "
+        SCLogDebug("ICMPV4_GET_SEQ(p) %"PRIu16" (network byte order), "
                 "%"PRIu16" (host byte order)", ICMPV4_GET_SEQ(p),
                 ntohs(ICMPV4_GET_SEQ(p)));
 
