@@ -103,6 +103,7 @@ void TagInitCtx(void) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for the tagging context");
         exit(EXIT_FAILURE);
     }
+    memset(tag_ctx, 0, sizeof(DetectTagHostCtx));
 
     TimeGet(&tag_ctx->last_ts);
 
@@ -113,6 +114,26 @@ void TagInitCtx(void) {
     }
 
     TagHashInit(tag_ctx);
+}
+
+/**
+ * \brief Destroy tag context hash tables
+ *
+ * \param tag_ctx Tag Context
+ *
+ */
+void TagDestroyCtx(void)
+{
+    HashListTableFree(tag_ctx->tag_hash_table_ipv4);
+    tag_ctx->tag_hash_table_ipv4 = NULL;
+
+    HashListTableFree(tag_ctx->tag_hash_table_ipv6);
+    tag_ctx->tag_hash_table_ipv6 = NULL;
+
+    SCMutexDestroy(&tag_ctx->lock);
+
+    SCFree(tag_ctx);
+    tag_ctx = NULL;
 }
 
 /** \brief Reset the tagging engine context
@@ -286,26 +307,6 @@ int TagHashAddTag(DetectTagHostCtx *tag_ctx, DetectTagDataEntry *tde, Packet *p)
 }
 
 /**
- * \brief Destroy tag context hash tables
- *
- * \param tag_ctx Tag Context
- *
- */
-void TagDestroyCtx(void)
-{
-    HashListTableFree(tag_ctx->tag_hash_table_ipv4);
-    tag_ctx->tag_hash_table_ipv4 = NULL;
-
-    HashListTableFree(tag_ctx->tag_hash_table_ipv6);
-    tag_ctx->tag_hash_table_ipv6 = NULL;
-
-    SCMutexDestroy(&tag_ctx->lock);
-
-    SCFree(tag_ctx);
-    tag_ctx = NULL;
-}
-
-/**
  * \brief Search tags for src and dst. Update entries of the tag, remove if necessary
  *
  * \param de_ctx Detect context
@@ -321,15 +322,9 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
     DetectTagDataEntry *iter = NULL;
     DetectTagDataEntryList tdl;
 
-    struct timeval ts;
-    TimeGet(&ts);
     uint8_t flag_added = 0;
-
-    /* Check for timeout tags if we reached the interval for checking it */
-    if (ts.tv_sec - tag_ctx->last_ts.tv_sec > TAG_TIMEOUT_CHECK_INTERVAL) {
-        TagTimeoutRemove(tag_ctx, &ts);
-        tag_ctx->last_ts.tv_sec = ts.tv_sec;
-    }
+    struct timeval ts = { 0, 0 };
+    TimeGet(&ts);
 
     /* First update and get session tags */
     if (p->flow != NULL) {
@@ -399,7 +394,7 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                         case DETECT_TAG_METRIC_SECONDS:
                             /* last_ts handles this metric, but also a generic time based
                              * expiration to prevent dead sessions/hosts */
-                            if (iter->last_ts.tv_sec - iter->first_ts.tv_sec > iter->td->count) {
+                            if (iter->last_ts.tv_sec - iter->first_ts.tv_sec > (int)iter->td->count) {
                                 /* tag expired */
                                 if (prev != NULL) {
                                     tde = iter;
@@ -435,6 +430,12 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
 
     /* Then search the src and dst hosts at the ctx */
     SCMutexLock(&tag_ctx->lock);
+
+    /* Check for timeout tags if we reached the interval for checking it */
+    if (ts.tv_sec - tag_ctx->last_ts.tv_sec > TAG_TIMEOUT_CHECK_INTERVAL) {
+        TagTimeoutRemove(tag_ctx, &ts);
+        tag_ctx->last_ts.tv_sec = ts.tv_sec;
+    }
 
     DetectTagDataEntryList *tde_src = NULL;
     DetectTagDataEntryList *tde_dst = NULL;
@@ -524,7 +525,7 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                 case DETECT_TAG_METRIC_SECONDS:
                     /* last_ts handles this metric, but also a generic time based
                      * expiration to prevent dead sessions/hosts */
-                    if (iter->last_ts.tv_sec - iter->first_ts.tv_sec > iter->td->count) {
+                    if (iter->last_ts.tv_sec - iter->first_ts.tv_sec > (int)iter->td->count) {
                         /* tag expired */
                         if (prev != NULL) {
                             tde = iter;
@@ -619,7 +620,7 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                 case DETECT_TAG_METRIC_SECONDS:
                     /* last_ts handles this metric, but also a generic time based
                      * expiration to prevent dead sessions/hosts */
-                    if (iter->last_ts.tv_sec - iter->first_ts.tv_sec > iter->td->count) {
+                    if (iter->last_ts.tv_sec - iter->first_ts.tv_sec > (int)iter->td->count) {
                         /* tag expired */
                         if (prev != NULL) {
                             tde = iter;

@@ -632,7 +632,6 @@ void ThresholdHashInit(DetectEngineCtx *de_ctx)
             exit(EXIT_FAILURE);
         }
     }
-
 }
 
 /**
