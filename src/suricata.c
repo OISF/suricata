@@ -51,6 +51,7 @@
 #include "detect-engine-sigorder.h"
 #include "detect-engine-payload.h"
 #include "detect-engine-dcepayload.h"
+#include "detect-engine-uri.h"
 #include "detect-engine-state.h"
 #include "detect-engine-tag.h"
 
@@ -880,6 +881,7 @@ int main(int argc, char **argv)
 #endif
         PayloadRegisterTests();
         DcePayloadRegisterTests();
+        UriRegisterTests();
 #ifdef PROFILING
         SCProfilingRegisterTests();
 #endif

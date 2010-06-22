@@ -840,6 +840,18 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         AppLayerHtpEnableRequestBodyCallback();
 
         SigMatchAppendAppLayer(s, sm);
+    } else if (pd->flags & DETECT_PCRE_URI) {
+        s->flags |= SIG_FLAG_APPLAYER;
+
+        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
+            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting"
+                       " keywords.");
+            goto error;
+        }
+
+        s->alproto = ALPROTO_HTTP;
+
+        SigMatchAppendUricontent(s, sm);
     } else {
         switch (s->alproto) {
             case ALPROTO_DCERPC:
@@ -1180,6 +1192,7 @@ static int DetectPcreTestSig01Real(int mpm_type) {
         "Host: two.example.org\r\n"
         "\r\n\r\n";
     uint16_t buflen = strlen((char *)buf);
+    TcpSession ssn;
     Packet p;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
@@ -1190,13 +1203,25 @@ static int DetectPcreTestSig01Real(int mpm_type) {
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
 
+    memset(&ssn, 0, sizeof(TcpSession));
+
     FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+    f.alproto = ALPROTO_HTTP;
+
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.payload = buf;
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
     p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1215,18 +1240,28 @@ static int DetectPcreTestSig01Real(int mpm_type) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, buf, buflen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
     if (PacketAlertCheck(&p, 1) == 1) {
         result = 1;
     }
 
+end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
     FLOW_DESTROY(&f);
-end:
     return result;
 }
 
