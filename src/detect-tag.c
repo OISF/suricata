@@ -31,12 +31,15 @@
 #include "detect-tag.h"
 #include "detect-engine-tag.h"
 #include "detect-engine.h"
+#include "detect-engine-state.h"
+#include "app-layer-parser.h"
 
 #include "debug.h"
 #include "decode.h"
 
 #include "flow.h"
 #include "flow-var.h"
+#include "flow-util.h"
 #include "stream-tcp-private.h"
 
 #include "util-time.h"
@@ -773,6 +776,7 @@ int DetectTagTestPacket04 (void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
+    FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.dst.family = AF_INET;
     inet_pton(f.src.family, "192.168.1.5", f.src.addr_data32);
@@ -861,14 +865,14 @@ cleanup:
     UTHFreePackets(p, 7);
     if (det_ctx != NULL)
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    if (result == 1 && f.tag_list != NULL)
-        DetectTagDataListFree(f.tag_list);
 
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
         DetectEngineCtxFree(de_ctx);
     }
+
+    FLOW_DESTROY(&f);
 end:
     TagRestartCtx();
     return result;
