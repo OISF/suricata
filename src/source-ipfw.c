@@ -122,18 +122,18 @@ static SCMutex ipfw_socket_lock;
 
 /* IPFW Prototypes */
 TmEcode ReceiveIPFWThreadInit(ThreadVars *, void *, void **);
-TmEcode ReceiveIPFW(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode ReceiveIPFW(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 void ReceiveIPFWThreadExitStats(ThreadVars *, void *);
 TmEcode ReceiveIPFWThreadDeinit(ThreadVars *, void *);
 
 TmEcode IPFWSetVerdict(ThreadVars *, IPFWThreadVars *, Packet *);
-TmEcode VerdictIPFW(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode VerdictIPFW(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode VerdictIPFWThreadInit(ThreadVars *, void *, void **);
 void VerdictIPFWThreadExitStats(ThreadVars *, void *);
 TmEcode VerdictIPFWThreadDeinit(ThreadVars *, void *);
 
 TmEcode DecodeIPFWThreadInit(ThreadVars *, void *, void **);
-TmEcode DecodeIPFW(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode DecodeIPFW(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 
 /**
  * \brief Registration Function for RecieveIPFW.
@@ -187,7 +187,7 @@ void TmModuleDecodeIPFWRegister (void) {
  * \param pq pointer to the PacketQueue (not used here but part of the api)
  * \retval TM_ECODE_FAILED on failure and TM_ECODE_OK on success
  */
-TmEcode ReceiveIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
+TmEcode ReceiveIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
     IPFWThreadVars *ptv = (IPFWThreadVars *)data;
     char pkt[IP_MAXPACKET];
     int pktlen=0;
@@ -399,7 +399,7 @@ TmEcode ReceiveIPFWThreadDeinit(ThreadVars *tv, void *data) {
  * \param data pointer that gets cast into IPFWThreadVars for ptv
  * \param pq pointer to the PacketQueue
  */
-TmEcode DecodeIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode DecodeIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     IPV4Hdr *ip4h = (IPV4Hdr *)p->pkt;
     IPV6Hdr *ip6h = (IPV6Hdr *)p->pkt;
@@ -534,7 +534,7 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p) {
  * \param data pointer that gets cast into IPFWThreadVars for ptv
  * \param pq pointer for the Packet Queue access (Not used)
  */
-TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
+TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
     IPFWThreadVars *ptv = (IPFWThreadVars *)data;
     TmEcode retval = TM_ECODE_OK;
 

@@ -45,13 +45,13 @@
 #include "util-debug.h"
 #include "util-privs.h"
 
-TmEcode ReceivePfring(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode ReceivePfring(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode ReceivePfringThreadInit(ThreadVars *, void *, void **);
 void ReceivePfringThreadExitStats(ThreadVars *, void *);
 TmEcode ReceivePfringThreadDeinit(ThreadVars *, void *);
 
 TmEcode DecodePfringThreadInit(ThreadVars *, void *, void **);
-TmEcode DecodePfring(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode DecodePfring(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 
 extern int max_pending_packets;
 
@@ -187,7 +187,7 @@ void PfringProcessPacket(void *user, struct pfring_pkthdr *h, u_char *pkt, Packe
  * \retval TM_ECODE_OK on success
  * \retval TM_ECODE_FAILED on failure
  */
-TmEcode ReceivePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq) {
+TmEcode ReceivePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
     PfringThreadVars *ptv = (PfringThreadVars *)data;
 
     struct pfring_pkthdr hdr;
@@ -344,7 +344,7 @@ TmEcode ReceivePfringThreadDeinit(ThreadVars *tv, void *data) {
  * \todo Verify that PF_RING only deals with ethernet traffic
  * \retval TM_ECODE_OK is always returned
  */
-TmEcode DecodePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode DecodePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
