@@ -79,7 +79,7 @@ int B2gCudaAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
 int B2gCudaAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
                         uint32_t, uint32_t, uint8_t);
 int B2gCudaPreparePatterns(MpmCtx *mpm_ctx);
-inline uint32_t B2gCudaSearchWrap(MpmCtx *, MpmThreadCtx *,
+uint32_t B2gCudaSearchWrap(MpmCtx *, MpmThreadCtx *,
                                   PatternMatcherQueue *, uint8_t *,
                                   uint16_t);
 uint32_t B2gCudaSearch1(MpmCtx *, MpmThreadCtx *, PatternMatcherQueue *,
@@ -441,8 +441,8 @@ void MpmB2gCudaRegister(void)
 
 void B2gCudaPrintInfo(MpmCtx *mpm_ctx)
 {
+#ifdef DEBUG
     B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx->ctx;
-
     SCLogDebug("MPM B2g Cuda Information:");
     SCLogDebug("Memory allocs:    %" PRIu32, mpm_ctx->memory_cnt);
     SCLogDebug("Memory alloced:   %" PRIu32, mpm_ctx->memory_size);
@@ -456,6 +456,7 @@ void B2gCudaPrintInfo(MpmCtx *mpm_ctx)
     SCLogDebug("Smallest:         %" PRIu32, mpm_ctx->minlen);
     SCLogDebug("Largest:          %" PRIu32, mpm_ctx->maxlen);
     SCLogDebug("Hash size:        %" PRIu32, ctx->hash_size);
+#endif
 
     return;
 }
@@ -1940,7 +1941,7 @@ TmEcode B2gCudaMpmDispThreadDeInit(ThreadVars *tv, void *data)
  * \retval TM_ECODE_OK Always.
  */
 TmEcode B2gCudaMpmDispatcher(ThreadVars *tv, Packet *incoming_buffer,
-                             void *data, PacketQueue *pq)
+                             void *data, PacketQueue *pq, PacketQueue *post_pq)
 {
     SCCudaPBPacketsBuffer *pb = (SCCudaPBPacketsBuffer *)incoming_buffer;
     B2gCudaMpmThreadCtxData *tctx = data;
@@ -2044,7 +2045,7 @@ int B2gCudaResultsPostProcessing(Packet *p, MpmCtx *mpm_ctx,
             SCMutexUnlock(&p->cuda_mutex);
             break;
         } else {
-            SCondWait(&p->cuda_cond, &p->cuda_mutex);
+            SCCondWait(&p->cuda_cond, &p->cuda_mutex);
             SCMutexUnlock(&p->cuda_mutex);
         }
     }
@@ -2154,7 +2155,8 @@ void *CudaMpmB2gThreadsSlot1(void *td)
             pthread_exit((void *) -1);
         }
     }
-    memset(&s->s.slot_pq, 0, sizeof(PacketQueue));
+    memset(&s->s.slot_pre_pq, 0, sizeof(PacketQueue));
+    memset(&s->s.slot_post_pq, 0, sizeof(PacketQueue));
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
     while(run) {
@@ -2166,7 +2168,7 @@ void *CudaMpmB2gThreadsSlot1(void *td)
         if (data == NULL) {
             //printf("%s: TmThreadsSlot1: p == NULL\n", tv->name);
         } else {
-            r = s->s.SlotFunc(tv, (Packet *)data, s->s.slot_data, &s->s.slot_pq);
+            r = s->s.SlotFunc(tv, (Packet *)data, s->s.slot_data, NULL, NULL);
             /* handle error */
 
             /* output the packet */
@@ -2339,7 +2341,7 @@ static int B2gCudaTest01(void)
     pb->packets_address_buffer[0] = &p;
     p.payload_len = strlen(string);
 
-    B2gCudaMpmDispatcher(NULL, (Packet *)pb, tctx, NULL);
+    B2gCudaMpmDispatcher(NULL, (Packet *)pb, tctx, NULL, NULL);
 
     result &= (p.mpm_offsets[0] == 4);
     result &= (p.mpm_offsets[1] == 1);
@@ -2533,7 +2535,7 @@ static int B2gCudaTest02(void)
     for (i = 0; i < no_of_pkts; i++) {
         p[i]->payload = (uint8_t *)strings[i];
         p[i]->payload_len = strlen(strings[i]);
-        SCCudaPBBatchPackets(NULL, p[i], pb_tctx, NULL);
+        SCCudaPBBatchPackets(NULL, p[i], pb_tctx, NULL, NULL);
     }
 
     dq = &data_queues[tmq_outq->id];
@@ -2556,7 +2558,7 @@ static int B2gCudaTest02(void)
     if (b2g_tctx->b2g_cuda_search_kernel == 0)
         goto end;
 
-    B2gCudaMpmDispatcher(NULL, (Packet *)pb, b2g_tctx, NULL);
+    B2gCudaMpmDispatcher(NULL, (Packet *)pb, b2g_tctx, NULL, NULL);
 
     for (i = 0; i < no_of_pkts; i++) {
         for (j = 0; j < p[i]->mpm_offsets[0]; j++)
@@ -2832,7 +2834,7 @@ static int B2gCudaTest03(void)
     for (i = 0; i < no_of_pkts; i++) {
         p[i]->payload = (uint8_t *)strings[i];
         p[i]->payload_len = strlen(strings[i]);
-        SCCudaPBBatchPackets(NULL, p[i], pb_tctx, NULL);
+        SCCudaPBBatchPackets(NULL, p[i], pb_tctx, NULL, NULL);
     }
 
     dq = &data_queues[tmq_outq->id];
@@ -2855,7 +2857,7 @@ static int B2gCudaTest03(void)
     if (b2g_tctx->b2g_cuda_search_kernel == 0)
         goto end;
 
-    B2gCudaMpmDispatcher(NULL, (Packet *)pb, b2g_tctx, NULL);
+    B2gCudaMpmDispatcher(NULL, (Packet *)pb, b2g_tctx, NULL, NULL);
 
     for (i = 0; i < 10; i++)
         SigMatchSignatures(&de_tv, de_ctx, det_ctx, p[i]);

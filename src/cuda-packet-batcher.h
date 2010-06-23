@@ -124,7 +124,7 @@ void SCCudaPBCleanUpQueuesAndBuffers(void);
 void SCCudaPBSetUpQueuesAndBuffers(void);
 void SCCudaPBKillBatchingPackets(void);
 
-TmEcode SCCudaPBBatchPackets(ThreadVars *, Packet *, void *, PacketQueue *);
+TmEcode SCCudaPBBatchPackets(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode SCCudaPBThreadInit(ThreadVars *, void *, void **);
 TmEcode SCCudaPBThreadDeInit(ThreadVars *, void *);
 void SCCudaPBThreadExitStats(ThreadVars *, void *);

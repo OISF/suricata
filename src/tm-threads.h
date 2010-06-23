@@ -34,10 +34,9 @@ enum {
     TVT_MAX,
 };
 
-
 typedef struct TmSlot_ {
     /* function pointers */
-    TmEcode (*SlotFunc)(ThreadVars *, Packet *, void *, PacketQueue *);
+    TmEcode (*SlotFunc)(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 
     TmEcode (*SlotThreadInit)(ThreadVars *, void *, void **);
     void (*SlotThreadExitPrintStats)(ThreadVars *, void *);
@@ -46,10 +45,22 @@ typedef struct TmSlot_ {
     /* data storage */
     void *slot_initdata;
     void *slot_data;
-    PacketQueue slot_pq;
+
+    /**< queue filled by the SlotFunc with packets that will
+     *   be processed futher _before_ the current packet.
+     *   The locks in the queue are NOT used */
+    PacketQueue slot_pre_pq;
+
+    /**< queue filled by the SlotFunc with packets that will
+     *   be processed futher _after_ the current packet. The
+     *   locks in the queue are NOT used */
+    PacketQueue slot_post_pq;
 
     /* linked list, only used by TmVarSlot */
     struct TmSlot_ *slot_next;
+
+    int id; /**< slot id, only used my TmVarSlot to know what the first
+             *   slot is. */
 } TmSlot;
 
 /* 1 function slot */
@@ -61,7 +72,6 @@ typedef struct Tm1Slot_ {
 typedef struct TmVarSlot_ {
     TmSlot *s;
 } TmVarSlot;
-
 extern ThreadVars *tv_root[TVT_MAX];
 
 extern SCMutex tv_root_lock;

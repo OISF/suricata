@@ -129,14 +129,8 @@ static void SCCudaPBSetBatcherAlarmTimeHandler()
  */
 static SigGroupHead *SCCudaPBGetSgh(DetectEngineCtx *de_ctx, Packet *p)
 {
-    int ds, f;
+    int f;
     SigGroupHead *sgh = NULL;
-
-    /* select the dsize_gh */
-    if (p->payload_len <= 100)
-        ds = 0;
-    else
-        ds = 1;
 
     /* select the flow_gh */
     if (p->flowflags & FLOW_PKT_TOCLIENT)
@@ -145,7 +139,7 @@ static SigGroupHead *SCCudaPBGetSgh(DetectEngineCtx *de_ctx, Packet *p)
         f = 1;
 
     /* find the right mpm instance */
-    DetectAddress *ag = DetectAddressLookupInHead(de_ctx->dsize_gh[ds].flow_gh[f].src_gh[p->proto], &p->src);
+    DetectAddress *ag = DetectAddressLookupInHead(de_ctx->flow_gh[f].src_gh[p->proto], &p->src);
     if (ag != NULL) {
         /* source group found, lets try a dst group */
         ag = DetectAddressLookupInHead(ag->dst_gh,&p->dst);
@@ -222,7 +216,7 @@ static void SCCudaPBQueueBuffer(SCCudaPBThreadCtx *tctx)
         SCMutexLock(&dq_inq->mutex_q);
         if (dq_inq->len == 0) {
             /* if we have no data in queue, wait... */
-            SCondWait(&dq_inq->cond_q, &dq_inq->mutex_q);
+            SCCondWait(&dq_inq->cond_q, &dq_inq->mutex_q);
         }
 
         if (run_batcher == 0) {
@@ -279,7 +273,8 @@ void *SCCudaPBTmThreadsSlot1(void *td)
             pthread_exit((void *) -1);
         }
     }
-    memset(&s->s.slot_pq, 0, sizeof(PacketQueue));
+    memset(&s->s.slot_pre_pq, 0, sizeof(PacketQueue));
+    memset(&s->s.slot_post_pq, 0, sizeof(PacketQueue));
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
     while(run) {
@@ -299,12 +294,11 @@ void *SCCudaPBTmThreadsSlot1(void *td)
              * the Batcher TM(which is waiting on a cond from the previous
              * feeder TM).  Please handler the NULL packet case in the
              * function that you now call */
-            r = s->s.SlotFunc(tv, p, s->s.slot_data, &s->s.slot_pq);
+            r = s->s.SlotFunc(tv, p, s->s.slot_data, NULL, NULL);
         } else {
-            r = s->s.SlotFunc(tv, p, s->s.slot_data, &s->s.slot_pq);
+            r = s->s.SlotFunc(tv, p, s->s.slot_data, NULL, NULL);
             /* handle error */
             if (r == TM_ECODE_FAILED) {
-                TmqhReleasePacketsToPacketPool(&s->s.slot_pq);
                 TmqhOutputPacketpool(tv, p);
                 TmThreadsSetFlag(tv, THV_FAILED);
                 break;
@@ -498,7 +492,7 @@ TmEcode SCCudaPBThreadInit(ThreadVars *tv, void *initdata, void **data)
  * \retval TM_ECODE_OK     On success.
  * \retval TM_ECODE_FAILED On failure.
  */
-TmEcode SCCudaPBBatchPackets(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
+TmEcode SCCudaPBBatchPackets(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *post_pq)
 {
 #define ALIGN_UP(offset, alignment) \
     (offset) = ((offset) + (alignment) - 1) & ~((alignment) - 1)
@@ -971,7 +965,7 @@ int SCCudaPBTest01(void)
 
     p.payload = (uint8_t *)strings[0];
     p.payload_len = strlen(strings[0]);
-    SCCudaPBBatchPackets(NULL, &p, tctx, NULL);
+    SCCudaPBBatchPackets(NULL, &p, tctx, NULL, NULL);
     dq = &data_queues[tmq_outq->id];
     result &= (dq->len == 0);
     dq = &data_queues[tmq_inq->id];
@@ -979,7 +973,7 @@ int SCCudaPBTest01(void)
 
     p.payload = (uint8_t *)strings[1];
     p.payload_len = strlen(strings[1]);
-    SCCudaPBBatchPackets(NULL, &p, tctx, NULL);
+    SCCudaPBBatchPackets(NULL, &p, tctx, NULL, NULL);
     dq = &data_queues[tmq_outq->id];
     result &= (dq->len == 0);
     dq = &data_queues[tmq_inq->id];
@@ -987,7 +981,7 @@ int SCCudaPBTest01(void)
 
     p.payload = (uint8_t *)strings[2];
     p.payload_len = strlen(strings[2]);
-    SCCudaPBBatchPackets(NULL, &p, tctx, NULL);
+    SCCudaPBBatchPackets(NULL, &p, tctx, NULL, NULL);
     dq = &data_queues[tmq_outq->id];
     result &= (dq->len == 0);
     dq = &data_queues[tmq_inq->id];
@@ -995,7 +989,7 @@ int SCCudaPBTest01(void)
 
     p.payload = (uint8_t *)strings[3];
     p.payload_len = strlen(strings[3]);
-    SCCudaPBBatchPackets(NULL, &p, tctx, NULL);
+    SCCudaPBBatchPackets(NULL, &p, tctx, NULL, NULL);
     dq = &data_queues[tmq_outq->id];
     result &= (dq->len == 0);
     dq = &data_queues[tmq_inq->id];
@@ -1003,7 +997,7 @@ int SCCudaPBTest01(void)
 
     p.payload = (uint8_t *)strings[4];
     p.payload_len = strlen(strings[4]);
-    SCCudaPBBatchPackets(NULL, &p, tctx, NULL);
+    SCCudaPBBatchPackets(NULL, &p, tctx, NULL, NULL);
     dq = &data_queues[tmq_outq->id];
     result &= (dq->len == 0);
     dq = &data_queues[tmq_inq->id];
@@ -1011,7 +1005,7 @@ int SCCudaPBTest01(void)
 
     p.payload = (uint8_t *)strings[5];
     p.payload_len = strlen(strings[5]);
-    SCCudaPBBatchPackets(NULL, &p, tctx, NULL);
+    SCCudaPBBatchPackets(NULL, &p, tctx, NULL, NULL);
     dq = &data_queues[tmq_outq->id];
     result &= (dq->len == 0);
     dq = &data_queues[tmq_inq->id];
@@ -1019,7 +1013,7 @@ int SCCudaPBTest01(void)
 
     p.payload = (uint8_t *)strings[6];
     p.payload_len = strlen(strings[6]);
-    SCCudaPBBatchPackets(NULL, &p, tctx, NULL);
+    SCCudaPBBatchPackets(NULL, &p, tctx, NULL, NULL);
     dq = &data_queues[tmq_outq->id];
     result &= (dq->len == 0);
     dq = &data_queues[tmq_inq->id];
@@ -1027,7 +1021,7 @@ int SCCudaPBTest01(void)
 
     p.payload = (uint8_t *)strings[7];
     p.payload_len = strlen(strings[7]);
-    SCCudaPBBatchPackets(NULL, &p, tctx, NULL);
+    SCCudaPBBatchPackets(NULL, &p, tctx, NULL, NULL);
     dq = &data_queues[tmq_outq->id];
     result &= (dq->len == 0);
     dq = &data_queues[tmq_inq->id];
@@ -1035,7 +1029,7 @@ int SCCudaPBTest01(void)
 
     p.payload = (uint8_t *)strings[8];
     p.payload_len = strlen(strings[8]);
-    SCCudaPBBatchPackets(NULL, &p, tctx, NULL);
+    SCCudaPBBatchPackets(NULL, &p, tctx, NULL, NULL);
     dq = &data_queues[tmq_outq->id];
     result &= (dq->len == 0);
     dq = &data_queues[tmq_inq->id];
@@ -1043,7 +1037,7 @@ int SCCudaPBTest01(void)
 
     p.payload = (uint8_t *)strings[9];
     p.payload_len = strlen(strings[9]);
-    SCCudaPBBatchPackets(NULL, &p, tctx, NULL);
+    SCCudaPBBatchPackets(NULL, &p, tctx, NULL, NULL);
     dq = &data_queues[tmq_outq->id];
     result &= (dq->len == 1);
     dq = &data_queues[tmq_inq->id];
@@ -1198,7 +1192,7 @@ int SCCudaPBTest02(void)
     string = "test_one";
     p.payload = (uint8_t *)string;
     p.payload_len = strlen(string);
-    SCCudaPBBatchPackets(NULL, &p, tctx, NULL);
+    SCCudaPBBatchPackets(NULL, &p, tctx, NULL, NULL);
     dq = &data_queues[tmq_outq->id];
     result &= (dq->len == 0);
     dq = &data_queues[tmq_inq->id];

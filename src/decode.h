@@ -247,10 +247,6 @@ struct PacketQueue_;
  */
 typedef struct Packet_
 {
-    /* double linked list ptrs */
-    struct Packet_ *next;
-    struct Packet_ *prev;
-
     /* Addresses, Ports and protocol
      * these are on top so we can use
      * the Packet as a hash key */
@@ -359,6 +355,10 @@ typedef struct Packet_
 
     /* decoder events */
     PacketDecoderEvents events;
+
+    /* double linked list ptrs */
+    struct Packet_ *next;
+    struct Packet_ *prev;
 
     /* tunnel/encapsulation handling */
     struct Packet_ *root; /* in case of tunnel this is a ptr
