@@ -312,6 +312,7 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 
                 e->tv_sec1 = p->ts.tv_sec;
                 e->current_count = 1;
+                e->ipv = ste.ipv;
 
                 ret = 1;
 
@@ -347,6 +348,7 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 
                     e->current_count = 1;
                     e->tv_sec1 = p->ts.tv_sec;
+                    e->ipv = ste.ipv;
 
                     ThresholdHashAdd(de_ctx, e, p);
                 }
@@ -376,6 +378,7 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 
                 e->current_count = 1;
                 e->tv_sec1 = p->ts.tv_sec;
+                e->ipv = ste.ipv;
 
                 ThresholdHashAdd(de_ctx, e, p);
 
@@ -415,6 +418,7 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 
                 e->current_count = 1;
                 e->tv_sec1 = p->ts.tv_sec;
+                e->ipv = ste.ipv;
 
                 ThresholdHashAdd(de_ctx, e, p);
             }
@@ -504,6 +508,7 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                 e->current_count = 1;
                 e->tv_sec1 = p->ts.tv_sec;
                 e->tv_timeout = 0;
+                e->ipv = ste.ipv;
 
                 /** The track is by src/dst or by rule? */
                 if (td->track != TRACK_RULE)
