@@ -1721,6 +1721,47 @@ end:
     return result;
 }
 
+/** \test anchored pcre */
+int DetectPcreTestSig07() {
+    uint8_t *buf = (uint8_t *)
+                    "lalala\n";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"pcre with an ending slash\"; pcre:\"/^(la)+$/\"; sid:1;)";
+    if (UTHPacketMatchSig(p, sig) == 0) {
+        result = 0;
+        goto end;
+    }
+    result = 1;
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
+/** \test anchored pcre */
+int DetectPcreTestSig08() {
+    /* test it also without ending in a newline "\n" */
+    uint8_t *buf = (uint8_t *)
+                    "lalala";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"pcre with an ending slash\"; pcre:\"/^(la)+$/\"; sid:1;)";
+    if (UTHPacketMatchSig(p, sig) == 0) {
+        result = 0;
+        goto end;
+    }
+    result = 1;
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -1751,6 +1792,8 @@ void DetectPcreRegisterTests(void) {
     UtRegisterTest("DetectPcreModifPTest04 -- Modifier P", DetectPcreModifPTest04, 1);
     UtRegisterTest("DetectPcreModifPTest05 -- Modifier P fragmented", DetectPcreModifPTest05, 1);
     UtRegisterTest("DetectPcreTestSig06", DetectPcreTestSig06, 1);
+    UtRegisterTest("DetectPcreTestSig07 -- anchored pcre", DetectPcreTestSig07, 1);
+    UtRegisterTest("DetectPcreTestSig08 -- anchored pcre", DetectPcreTestSig08, 1);
 #endif /* UNITTESTS */
 }
 

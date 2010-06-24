@@ -179,8 +179,7 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
             SCLogDebug("spayload_len %"PRIu32, spayload_len);
             BUG_ON(spayload_len > payload_len);
 
-            //PrintRawDataFp(stdout,ud->uricontent,ud->uricontent_len);
-            //PrintRawDataFp(stdout,spayload,spayload_len);
+            //PrintawDataFp(stdout,ud->uricontent,ud->uricontent_len);
 
             /* do the actual search with boyer moore precooked ctx */
             if (ud->flags & DETECT_URICONTENT_NOCASE)
@@ -232,6 +231,7 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
 
         int r = DetectPcrePayloadMatch(det_ctx, s, sm, /* no packet */NULL,
                                        NULL, payload, payload_len);
+        /* PrintRawDataFp(stdout, payload, payload_len); */
         if (r == 1) {
             goto match;
         }
@@ -2063,6 +2063,244 @@ end:
     return result;
 }
 
+/** \test Test pcre /U with anchored regex (bug 155) */
+static int UriTestSig15(void)
+{
+    int result = 0;
+    Flow f;
+    HtpState *http_state = NULL;
+    uint8_t http_buf1[] = "POST /one HTTP/1.0\r\n"
+        "User-Agent: Mozilla/1.0\r\n"
+        "Cookie: hellocatch\r\n\r\n";
+    uint32_t http_buf1_len = sizeof(http_buf1) - 1;
+    uint8_t http_buf2[] = "POST /oneself HTTP/1.0\r\n"
+        "User-Agent: Mozilla/1.0\r\n"
+        "Cookie: hellocatch\r\n\r\n";
+    uint32_t http_buf2_len = sizeof(http_buf2) - 1;
+    TcpSession ssn;
+    Packet p;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&p, 0, sizeof(Packet));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = http_buf1;
+    p.payload_len = http_buf1_len;
+    p.proto = IPPROTO_TCP;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->mpm_matcher = MPM_B2G;
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                   "(msg:\"Test uricontent option\"; "
+                                   "uricontent:one; pcre:/^\\/one(self)?$/U;sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p);
+
+    if (!PacketAlertCheck(&p, 1)) {
+        printf("sig 1 didnt alert with pkt, but it should: ");
+        goto end;
+    }
+
+    DetectEngineStateReset(f.de_state);
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p);
+
+
+    if (!PacketAlertCheck(&p, 1)) {
+        printf("sig 1 didnt alert with payload2, but it should: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
+/** \test Test pcre /U with anchored regex (bug 155) */
+static int UriTestSig16(void)
+{
+    int result = 0;
+    Flow f;
+    HtpState *http_state = NULL;
+    uint8_t http_buf1[] = "POST /search?q=123&aq=7123abcee HTTP/1.0\r\n"
+        "User-Agent: Mozilla/1.0/\r\n"
+        "Host: 1.2.3.4\r\n\r\n";
+    uint32_t http_buf1_len = sizeof(http_buf1) - 1;
+    uint8_t http_buf2[] = "POST /search?q=123&aq=7123abcee HTTP/1.0\r\n"
+        "User-Agent: Mozilla/1.0\r\n"
+        "Cookie: hellocatch\r\n\r\n";
+    uint32_t http_buf2_len = sizeof(http_buf2) - 1;
+    TcpSession ssn;
+    Packet p;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&p, 0, sizeof(Packet));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = http_buf1;
+    p.payload_len = http_buf1_len;
+    p.proto = IPPROTO_TCP;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->mpm_matcher = MPM_B2G;
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any any (msg:\"ET TROJAN Downadup/Conficker A or B Worm reporting\"; flow:to_server,established; uricontent:\"/search?q=\"; pcre:\"/^\\/search\\?q=[0-9]{1,3}(&aq=7(\\?[0-9a-f]{8})?)?/U\"; pcre:\"/\\x0d\\x0aHost\\: \\d+\\.\\d+\\.\\d+\\.\\d+\\x0d\\x0a/\"; reference:url,www.f-secure.com/weblog/archives/00001584.html; reference:url,doc.emergingthreats.net/bin/view/Main/2009024; reference:url,www.emergingthreats.net/cgi-bin/cvsweb.cgi/sigs/VIRUS/TROJAN_Conficker; sid:2009024; rev:9;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p);
+
+    if (!PacketAlertCheck(&p, 2009024)) {
+        printf("sig 1 didnt alert with pkt, but it should: ");
+        goto end;
+    }
+    p.alerts.cnt = 0;
+
+    DetectEngineStateReset(f.de_state);
+    p.payload = http_buf2;
+    p.payload_len = http_buf2_len;
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p);
+
+    if (PacketAlertCheck(&p, 2009024)) {
+        printf("sig 1 alerted, but it should not (host should not match): ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void UriRegisterTests(void)
@@ -2083,6 +2321,8 @@ void UriRegisterTests(void)
     UtRegisterTest("UriTestSig12", UriTestSig12, 1);
     UtRegisterTest("UriTestSig13", UriTestSig13, 1);
     UtRegisterTest("UriTestSig14", UriTestSig14, 1);
+    UtRegisterTest("UriTestSig15", UriTestSig15, 1);
+    UtRegisterTest("UriTestSig16", UriTestSig16, 1);
 #endif /* UNITTESTS */
 
     return;
