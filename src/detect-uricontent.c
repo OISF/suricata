@@ -1247,17 +1247,22 @@ static int DetectUriSigTest05(void) {
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
+    TCPHdr tcp_hdr;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+    memset(&tcp_hdr, 0, sizeof(tcp_hdr));
+
+    tcp_hdr.th_seq = htonl(1000);
 
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.payload = httpbuf1;
     p.payload_len = httplen1;
     p.proto = IPPROTO_TCP;
+    p.tcph = &tcp_hdr;
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -1268,6 +1273,7 @@ static int DetectUriSigTest05(void) {
     p.flowflags |= FLOW_PKT_TOSERVER;
     p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
+    f.proto = p.proto;
 
     StreamTcpInitConfig(TRUE);
     FlowL7DataPtrInit(&f);
@@ -1292,26 +1298,21 @@ static int DetectUriSigTest05(void) {
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent\"; "
-                                   "uricontent:\"foo\"; sid:1;)");
+            "\" Test uricontent\"; uricontent:\"foo\"; sid:1;)");
     if (s == NULL) {
         goto end;
     }
 
     s = s->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent\"; "
-                                   "uricontent:\"one\"; content:\"two\"; sid:2;)");
+            "\" Test uricontent\"; uricontent:\"one\"; content:\"two\"; sid:2;)");
     if (s == NULL) {
         goto end;
     }
 
     s = s->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
-                                   "\" Test uricontent\"; "
-                                   "uricontent:\"one\"; offset:1; depth:10; "
-                                   "uricontent:\"two\"; distance:1; within: 4; "
-                                   "uricontent:\"three\"; distance:1; within: 6; "
-                                   "sid:3;)");
-
+            "\" Test uricontent\"; uricontent:\"one\"; offset:1; depth:10; "
+            "uricontent:\"two\"; distance:1; within: 4; uricontent:\"three\"; "
+            "distance:1; within: 6; sid:3;)");
     if (s == NULL) {
         goto end;
     }
@@ -1374,17 +1375,22 @@ static int DetectUriSigTest06(void) {
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
+    TCPHdr tcp_hdr;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+    memset(&tcp_hdr, 0, sizeof(tcp_hdr));
+
+    tcp_hdr.th_seq = htonl(1000);
 
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.payload = httpbuf1;
     p.payload_len = httplen1;
     p.proto = IPPROTO_TCP;
+    p.tcph = &tcp_hdr;
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -1395,6 +1401,7 @@ static int DetectUriSigTest06(void) {
     p.flowflags |= FLOW_PKT_TOSERVER;
     p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
+    f.proto = p.proto;
 
     StreamTcpInitConfig(TRUE);
     FlowL7DataPtrInit(&f);

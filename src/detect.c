@@ -543,6 +543,85 @@ SigGroupHead *SigMatchSignaturesGetSgh(DetectEngineCtx *de_ctx, DetectEngineThre
     SCReturnPtr(sgh, "SigGroupHead");
 }
 
+/** \brief Get the smsgs relevant to this packet
+ *
+ *  \param f LOCKED flow
+ *  \param p packet
+ *  \param flags stream flags
+ */
+static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags) {
+    SCEnter();
+
+    StreamMsg *smsg = NULL;
+
+    if (p->proto == IPPROTO_TCP) {
+        TcpSession *ssn = (TcpSession *)f->protoctx;
+        if (ssn != NULL) {
+            /* at stream eof, inspect all smsg's */
+            if (flags & STREAM_EOF) {
+                if (p->flowflags & FLOW_PKT_TOSERVER) {
+                    smsg = ssn->toserver_smsg_head;
+                    /* deref from the ssn */
+                    ssn->toserver_smsg_head = NULL;
+                    ssn->toserver_smsg_tail = NULL;
+
+                    SCLogDebug("to_server smsg %p at stream eof", smsg);
+                } else {
+                    smsg = ssn->toclient_smsg_head;
+                    /* deref from the ssn */
+                    ssn->toclient_smsg_head = NULL;
+                    ssn->toclient_smsg_tail = NULL;
+
+                    SCLogDebug("to_client smsg %p at stream eof", smsg);
+                }
+            } else {
+                if (p->flowflags & FLOW_PKT_TOSERVER) {
+                    StreamMsg *head = ssn->toserver_smsg_head;
+                    if (head == NULL) {
+                        SCLogDebug("no smsgs in to_server direction");
+                        goto end;
+                    }
+
+                    /* if the smsg is bigger than the current packet, we will
+                     * process the smsg in a later run */
+                    if ((head->data.seq + head->data.data_len) > (TCP_GET_SEQ(p) + p->payload_len)) {
+                        SCLogDebug("smsg ends beyond current packet, skipping for now");
+                        goto end;
+                    }
+
+                    smsg = head;
+                    /* deref from the ssn */
+                    ssn->toserver_smsg_head = NULL;
+                    ssn->toserver_smsg_tail = NULL;
+
+                    SCLogDebug("to_server smsg %p", smsg);
+                } else {
+                    StreamMsg *head = ssn->toclient_smsg_head;
+                    if (head == NULL)
+                        goto end;
+
+                    /* if the smsg is bigger than the current packet, we will
+                     * process the smsg in a later run */
+                    if ((head->data.seq + head->data.data_len) > (TCP_GET_SEQ(p) + p->payload_len)) {
+                        SCLogDebug("smsg ends beyond current packet, skipping for now");
+                        goto end;
+                    }
+
+                    smsg = head;
+                    /* deref from the ssn */
+                    ssn->toclient_smsg_head = NULL;
+                    ssn->toclient_smsg_tail = NULL;
+
+                    SCLogDebug("to_client smsg %p", smsg);
+                }
+            }
+        }
+    }
+
+end:
+    SCReturnPtr(smsg, "StreamMsg");
+}
+
 /**
  *  \brief Signature match function
  *
@@ -586,6 +665,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 sgh = p->flow->sgh_toclient;
                 use_flow_sgh = TRUE;
             }
+            smsg = SigMatchSignaturesGetSmsg(p->flow, p, flags);
         } else {
             no_store_flow_sgh = TRUE;
         }
@@ -597,26 +677,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             alproto = AppLayerGetProtoFromPacket(p);
             SCLogDebug("alstate %p, alproto %u", alstate, alproto);
 
-            if (p->proto == IPPROTO_TCP) {
-                TcpSession *ssn = (TcpSession *)p->flow->protoctx;
-                if (ssn != NULL) {
-                    if (p->flowflags & FLOW_PKT_TOSERVER) {
-                        smsg = ssn->toserver_smsg_head;
-                        /* deref from the ssn */
-                        ssn->toserver_smsg_head = NULL;
-                        ssn->toserver_smsg_tail = NULL;
-
-                        SCLogDebug("to_server smsg %p", smsg);
-                    } else {
-                        smsg = ssn->toclient_smsg_head;
-                        /* deref from the ssn */
-                        ssn->toclient_smsg_head = NULL;
-                        ssn->toclient_smsg_tail = NULL;
-
-                        SCLogDebug("to_client smsg %p", smsg);
-                    }
-                }
-            }
         } else {
             SCLogDebug("packet doesn't have established flag set");
         }
@@ -676,13 +736,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     /* have a look at the reassembled stream (if any) */
     if (p->flowflags & FLOW_PKT_ESTABLISHED) {
         if (smsg != NULL && det_ctx->sgh->mpm_stream_ctx != NULL) {
-            cnt = StreamPatternSearch(th_v, det_ctx, smsg);
+            cnt = StreamPatternSearch(th_v, det_ctx, p, smsg, flags);
             SCLogDebug("cnt %u", cnt);
         }
     }
 
     if (p->payload_len > 0 && det_ctx->sgh->mpm_ctx != NULL &&
-        !(p->flags & PKT_NOPAYLOAD_INSPECTION))
+        (!(p->flags & PKT_NOPAYLOAD_INSPECTION) && !(p->flags & PKT_STREAM_ADD)))
     {
         /* run the multi packet matcher against the payload of the packet */
         if (det_ctx->sgh->mpm_content_maxlen > p->payload_len) {
@@ -962,7 +1022,7 @@ end:
         }
 
         /* if we have (a) smsg(s), return to the pool */
-        while(smsg != NULL) {
+        while (smsg != NULL) {
             StreamMsg *smsg_next = smsg->next;
             SCLogDebug("returning smsg %p to pool", smsg);
             smsg->next = NULL;

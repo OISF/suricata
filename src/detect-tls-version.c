@@ -557,17 +557,22 @@ static int DetectTlsVersionTestDetect03(void) {
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
+    TCPHdr tcp_hdr;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
+    memset(&tcp_hdr, 0, sizeof(tcp_hdr));
+
+    tcp_hdr.th_seq = htonl(1000);
 
     p.src.family = AF_INET;
     p.dst.family = AF_INET;
     p.payload = tlsbuf4;
     p.payload_len = tlslen4;
     p.proto = IPPROTO_TCP;
+    p.tcph = &tcp_hdr;
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -575,6 +580,7 @@ static int DetectTlsVersionTestDetect03(void) {
     p.flowflags |= FLOW_PKT_TOSERVER;
     p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_TLS;
+    f.proto = p.proto;
 
     StreamTcpInitConfig(TRUE);
     FlowL7DataPtrInit(&f);

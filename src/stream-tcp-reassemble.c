@@ -1297,6 +1297,7 @@ static void StreamTcpSetupMsg(TcpSession *ssn, TcpStream *stream, Packet *p,
 
     smsg->data.data_len = 0;
     smsg->flow = p->flow;
+    BUG_ON(smsg->flow == NULL);
 
     FlowIncrUsecnt(smsg->flow);
 
@@ -1630,7 +1631,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
              * IDS should advance it's ra_base_seq and should not consider this
              * packet any longer, even if it is retransmitted, as end host will
              * drop it anyway */
-             ra_base_seq = seg->seq - 1;
+            ra_base_seq = seg->seq - 1;
 
             smsg->flags |= STREAM_GAP;
             smsg->gap.gap_size = gap_len;
@@ -1656,6 +1657,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
 
                 StreamTcpSetupMsg(ssn, stream, p, smsg);
             }
+            smsg->data.seq = ra_base_seq;
 
             /* handle segments partly before ra_base_seq */
             if (SEQ_GT(ra_base_seq, seg->seq)) {
@@ -1764,6 +1766,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
                     smsg_offset = 0;
 
                     StreamTcpSetupMsg(ssn, stream,p,smsg);
+                    smsg->data.seq = ra_base_seq;
 
                     copy_size = sizeof(smsg->data.data) - smsg_offset;
                     if (copy_size > (seg->payload_len - payload_offset)) {
@@ -1906,7 +1909,7 @@ int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *ra_ctx)
         do {
             smsg = StreamMsgGetFromQueue(ra_ctx->stream_q);
             if (smsg != NULL) {
-                SCLogDebug("smsg %p, next %p, prev %p, flow %p", smsg, smsg->next, smsg->prev, smsg->flow);
+                SCLogDebug("smsg %p, next %p, prev %p, flow %p, q->len %u", smsg, smsg->next, smsg->prev, smsg->flow, ra_ctx->stream_q->len);
 
                 BUG_ON(smsg->flow == NULL);
 
@@ -1959,6 +1962,8 @@ int StreamTcpReassembleHandleSegment(TcpReassemblyThreadCtx *ra_ctx,
             SCLogDebug("StreamTcpReassembleHandleSegmentHandleData error");
             SCReturnInt(-1);
         }
+
+        p->flags |= PKT_STREAM_ADD;
     }
 
     SCReturnInt(0);

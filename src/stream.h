@@ -38,17 +38,18 @@
 #define STREAMQUEUE_FLAG_INIT    0x01
 
 typedef struct StreamMsg_ {
-    uint32_t id; /* unique stream id */
-    uint8_t flags; /* msg flags */
-    Flow *flow; /* parent flow */
+    uint32_t id;    /**< unique stream id */
+    uint8_t flags;  /**< msg flags */
+    Flow *flow;     /**< parent flow */
 
     union {
-        /* case STREAM_START */
+        /* case !STREAM_EOF && !STREAM_GAP */
         struct {
-            Address src_ip, dst_ip;
-            Port src_port, dst_port;
-            uint8_t data[MSG_DATA_SIZE];
-            uint16_t data_len;
+            Address src_ip, dst_ip;     /**< ipaddresses */
+            Port src_port, dst_port;    /**< ports */
+            uint8_t data[MSG_DATA_SIZE];/**< reassembled data */
+            uint16_t data_len;          /**< length of the data */
+            uint32_t seq;               /**< sequence number */
         } data;
         /* case STREAM_GAP */
         struct {

@@ -179,12 +179,14 @@ uint32_t UriPatternSearch(DetectEngineThreadCtx *det_ctx,
  *
  *  \param tv threadvars
  *  \param det_ctx detection engine thread ctx
+ *  \param p packet
  *  \param smsg stream msg (reassembled stream data)
+ *  \param flags stream flags
  *
  *  \retval ret number of matches
  */
 uint32_t StreamPatternSearch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
-                           StreamMsg *smsg)
+        Packet *p, StreamMsg *smsg, uint8_t flags)
 {
     SCEnter();
 

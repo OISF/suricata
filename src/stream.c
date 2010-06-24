@@ -67,6 +67,8 @@ void StreamMsgFree(void *ptr) {
 }
 
 static void StreamMsgEnqueue (StreamMsgQueue *q, StreamMsg *s) {
+    SCEnter();
+    SCLogDebug("s %p", s);
     /* more packets in queue */
     if (q->top != NULL) {
         s->next = q->top;
@@ -82,13 +84,16 @@ static void StreamMsgEnqueue (StreamMsgQueue *q, StreamMsg *s) {
     if (q->len > q->dbg_maxlen)
         q->dbg_maxlen = q->len;
 #endif /* DBG_PERF */
+    SCReturn;
 }
 
 static StreamMsg *StreamMsgDequeue (StreamMsgQueue *q) {
+    SCEnter();
+
     /* if the queue is empty there are no packets left.
      * In that case we sleep and try again. */
     if (q->len == 0) {
-        return NULL;
+        SCReturnPtr(NULL, "StreamMsg");
     }
 
     /* pull the bottom packet from the queue */
@@ -107,7 +112,7 @@ static StreamMsg *StreamMsgDequeue (StreamMsgQueue *q) {
 
     s->next = NULL;
     s->prev = NULL;
-    return s;
+    SCReturnPtr(s, "StreamMsg");
 }
 
 /* Used by stream reassembler to get msgs */
@@ -121,6 +126,7 @@ StreamMsg *StreamMsgGetFromPool(void)
 
 /* Used by l7inspection to return msgs to pool */
 void StreamMsgReturnToPool(StreamMsg *s) {
+    SCLogDebug("s %p", s);
     SCMutexLock(&stream_msg_pool_mutex);
     PoolReturn(stream_msg_pool, (void *)s);
     SCMutexUnlock(&stream_msg_pool_mutex);

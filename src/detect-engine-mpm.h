@@ -35,7 +35,7 @@ uint16_t PatternMatchDefaultMatcher(void);
 
 uint32_t PacketPatternSearch(ThreadVars *, DetectEngineThreadCtx *, Packet *);
 uint32_t UriPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint16_t);
-uint32_t StreamPatternSearch(ThreadVars *, DetectEngineThreadCtx *, StreamMsg *);
+uint32_t StreamPatternSearch(ThreadVars *, DetectEngineThreadCtx *, Packet *, StreamMsg *, uint8_t);
 
 void PacketPatternCleanup(ThreadVars *, DetectEngineThreadCtx *);
 void StreamPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx, StreamMsg *smsg);
