@@ -35,6 +35,8 @@ typedef struct DetectUrilenData_ {
     uint8_t mode;   /**< operator used in the signature */
 }DetectUrilenData;
 
+int DetectUrilenMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
+                       uint8_t, void *, Signature *, SigMatch *);
 void DetectUrilenRegister(void);
 
 #endif	/* _DETECT_URILEN_H */

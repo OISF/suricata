@@ -62,7 +62,7 @@ void DetectUrilenRegister(void)
     sigmatch_table[DETECT_AL_URILEN].name = "urilen";
     sigmatch_table[DETECT_AL_URILEN].Match = NULL;
     sigmatch_table[DETECT_AL_URILEN].alproto = ALPROTO_HTTP;
-    sigmatch_table[DETECT_AL_URILEN].AppLayerMatch = DetectUrilenMatch;
+    sigmatch_table[DETECT_AL_URILEN].AppLayerMatch = NULL /**< We handle this at detect-engine-uri.c now */;
     sigmatch_table[DETECT_AL_URILEN].Setup = DetectUrilenSetup;
     sigmatch_table[DETECT_AL_URILEN].Free = DetectUrilenFree;
     sigmatch_table[DETECT_AL_URILEN].RegisterTests = DetectUrilenRegisterTests;
@@ -301,7 +301,7 @@ static int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, char *urile
     sm->type = DETECT_AL_URILEN;
     sm->ctx = (void *)urilend;
 
-    SigMatchAppendAppLayer(s, sm);
+    SigMatchAppendUricontent(s,sm);
 
     /* Flagged the signature as to inspect the app layer data */
     s->flags |= SIG_FLAG_APPLAYER;
