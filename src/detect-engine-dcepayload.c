@@ -76,8 +76,9 @@
  * \retval 1 Match.
  */
 static int DoInspectDcePayload(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, Signature *s,
-        SigMatch *sm, Flow *f, uint8_t *stub, uint32_t stub_len)
+                               DetectEngineThreadCtx *det_ctx, Signature *s,
+                               SigMatch *sm, Flow *f, uint8_t *stub,
+                               uint32_t stub_len, DCERPCState *dcerpc_state)
 {
     SCEnter();
 
@@ -232,7 +233,7 @@ static int DoInspectDcePayload(DetectEngineCtx *de_ctx,
                      * search for another occurence of this content and see
                      * if the others match then until we run out of matches */
                     int r = DoInspectDcePayload(de_ctx, det_ctx, s, sm->next,
-                                                f, stub, stub_len);
+                                                f, stub, stub_len, dcerpc_state);
                     if (r == 1) {
                         SCReturnInt(1);
                     }
@@ -288,18 +289,48 @@ static int DoInspectDcePayload(DetectEngineCtx *de_ctx,
 
         case DETECT_BYTETEST:
         {
+            DetectBytetestData *data = (DetectBytetestData *)sm->ctx;
+            uint32_t temp_flags = data->flags;
+
+            /* if we have dce enabled we will have to use the endianness
+             * specified by the dce header */
+            if (data->flags & DETECT_BYTETEST_DCE) {
+                /* enable the endianness flag temporarily.  once we are done
+                 * processing we reset the flags to the original value*/
+                data->flags |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] == 0x10) ?
+                                DETECT_BYTETEST_LITTLE: 0);
+            }
+
             if (DetectBytetestDoMatch(det_ctx, s, sm, stub, stub_len) != 1) {
                 SCReturnInt(0);
             }
+
+            /* reset the flags */
+            data->flags = temp_flags;
 
             goto match;
         }
 
         case DETECT_BYTEJUMP:
         {
+            DetectBytejumpData *data = (DetectBytejumpData *)sm->ctx;
+            uint32_t temp_flags = data->flags;
+
+            /* if we have dce enabled we will have to use the endianness
+             * specified by the dce header */
+            if (data->flags & DETECT_BYTEJUMP_DCE) {
+                /* enable the endianness flag temporarily.  once we are done
+                 * processing we reset the flags to the original value*/
+                data->flags |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] == 0x10) ?
+                                DETECT_BYTEJUMP_LITTLE : 0);
+            }
+
             if (DetectBytejumpDoMatch(det_ctx, s, sm, stub, stub_len) != 1) {
                 SCReturnInt(0);
             }
+
+            /* reset the flags */
+            data->flags = temp_flags;
 
             goto match;
         }
@@ -317,7 +348,8 @@ match:
     /* this sigmatch matched, inspect the next one. If it was the last,
      * the payload portion of the signature matched. */
     if (sm->next != NULL) {
-        int r = DoInspectDcePayload(de_ctx, det_ctx, s, sm->next, f, stub, stub_len);
+        int r = DoInspectDcePayload(de_ctx, det_ctx, s, sm->next, f, stub,
+                                    stub_len, dcerpc_state);
         SCReturnInt(r);
     } else {
         SCReturnInt(1);
@@ -373,7 +405,7 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
     det_ctx->payload_offset = 0;
 
     r = DoInspectDcePayload(de_ctx, det_ctx, s, s->dmatch, f,
-                            dce_stub_data, dce_stub_data_len);
+                            dce_stub_data, dce_stub_data_len, dcerpc_state);
     if (r == 1) {
         SCReturnInt(1);
     }
@@ -6681,6 +6713,696 @@ end:
     return result;
 }
 
+/**
+ * \test Test the working of byte_test endianness.
+ */
+int DcePayloadTest15(void)
+{
+    int result = 0;
+
+    uint8_t request1[] = {
+        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x68, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1a, 0x00,
+        0x76, 0x7e, 0x32, 0x00, 0x0f, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00,
+        0x5c, 0x00, 0x5c, 0x00, 0x31, 0x00, 0x37, 0x00,
+        0x31, 0x00, 0x2e, 0x00, 0x37, 0x00, 0x31, 0x00,
+        0x2e, 0x00, 0x38, 0x00, 0x34, 0x00, 0x2e, 0x00,
+        0x36, 0x00, 0x37, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x84, 0xf9, 0x7f, 0x01, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,
+        0x14, 0xfa, 0x7f, 0x01, 0x00, 0x00, 0x00, 0x00
+    };
+    uint32_t request1_len = sizeof(request1);
+
+    TcpSession ssn;
+    Packet p;
+    ThreadVars tv;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    int r;
+
+    char *sig1 = "alert tcp any any -> any any "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "byte_test:2,=,14080,0,relative,dce; sid:1;)";
+    char *sig2 = "alert tcp any any -> any any "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "byte_test:2,=,46,5,relative,dce; sid:2;)";
+
+    Signature *s;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    memset(&p, 0, sizeof(Packet));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = NULL;
+    p.payload_len = 0;
+    p.proto = IPPROTO_TCP;
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+    f.alproto = ALPROTO_DCERPC;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    s = de_ctx->sig_list;
+    if (s == NULL)
+        goto end;
+    s->next = SigInit(de_ctx, sig2);
+    if (s->next == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    /* request 1 */
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p);
+    if (!(PacketAlertCheck(&p, 1))) {
+        printf("sid 1 didn't match but should have for packet: ");
+        goto end;
+    }
+    if (!(PacketAlertCheck(&p, 2))) {
+        printf("sid 2 didn't match but should have for packet: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
+    return result;
+}
+
+/**
+ * \test Test the working of byte_test endianness.
+ */
+int DcePayloadTest16(void)
+{
+    int result = 0;
+
+    uint8_t request1[] = {
+        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x68, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1a, 0x00,
+        0x76, 0x7e, 0x32, 0x00, 0x0f, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00,
+        0x5c, 0x00, 0x5c, 0x00, 0x31, 0x00, 0x37, 0x00,
+        0x31, 0x00, 0x2e, 0x00, 0x37, 0x00, 0x31, 0x00,
+        0x2e, 0x00, 0x38, 0x00, 0x34, 0x00, 0x2e, 0x00,
+        0x36, 0x00, 0x37, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x84, 0xf9, 0x7f, 0x01, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,
+        0x14, 0xfa, 0x7f, 0x01, 0x00, 0x00, 0x00, 0x00
+    };
+    uint32_t request1_len = sizeof(request1);
+
+    TcpSession ssn;
+    Packet p;
+    ThreadVars tv;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    int r;
+
+    char *sig1 = "alert tcp any any -> any any "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "byte_test:2,=,55,0,relative; sid:1;)";
+    char *sig2 = "alert tcp any any -> any any "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "byte_test:2,=,11776,5,relative; sid:2;)";
+
+    Signature *s;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    memset(&p, 0, sizeof(Packet));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = NULL;
+    p.payload_len = 0;
+    p.proto = IPPROTO_TCP;
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+    f.alproto = ALPROTO_DCERPC;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    s = de_ctx->sig_list;
+    if (s == NULL)
+        goto end;
+    s->next = SigInit(de_ctx, sig2);
+    if (s->next == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    /* request 1 */
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p);
+    if (!(PacketAlertCheck(&p, 1))) {
+        printf("sid 1 didn't match but should have for packet: ");
+        goto end;
+    }
+    if (!(PacketAlertCheck(&p, 2))) {
+        printf("sid 2 didn't match but should have for packet: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
+    return result;
+}
+
+/**
+ * \test Test the working of byte_test endianness.
+ */
+int DcePayloadTest17(void)
+{
+    int result = 0;
+
+    uint8_t request1[] = {
+        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x68, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1a, 0x00,
+        0x76, 0x7e, 0x32, 0x00, 0x0f, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00,
+        0x5c, 0x00, 0x5c, 0x00, 0x31, 0x00, 0x37, 0x00,
+        0x31, 0x00, 0x2e, 0x00, 0x37, 0x00, 0x31, 0x00,
+        0x2e, 0x00, 0x38, 0x00, 0x34, 0x00, 0x2e, 0x00,
+        0x36, 0x00, 0x37, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x84, 0xf9, 0x7f, 0x01, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,
+        0x14, 0xfa, 0x7f, 0x01, 0x00, 0x00, 0x00, 0x00
+    };
+    uint32_t request1_len = sizeof(request1);
+
+    TcpSession ssn;
+    Packet p;
+    ThreadVars tv;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    int r;
+
+    char *sig1 = "alert tcp any any -> any any "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "byte_test:2,=,55,0,relative,big; sid:1;)";
+    char *sig2 = "alert tcp any any -> any any "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "byte_test:2,=,46,5,relative,little; sid:2;)";
+
+    Signature *s;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    memset(&p, 0, sizeof(Packet));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = NULL;
+    p.payload_len = 0;
+    p.proto = IPPROTO_TCP;
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+    f.alproto = ALPROTO_DCERPC;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    s = de_ctx->sig_list;
+    if (s == NULL)
+        goto end;
+    s->next = SigInit(de_ctx, sig2);
+    if (s->next == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    /* request 1 */
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p);
+    if (!(PacketAlertCheck(&p, 1))) {
+        printf("sid 1 didn't match but should have for packet: ");
+        goto end;
+    }
+    if (!(PacketAlertCheck(&p, 2))) {
+        printf("sid 2 didn't match but should have for packet: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
+    return result;
+}
+
+/**
+ * \test Test the working of byte_jump endianness.
+ */
+int DcePayloadTest18(void)
+{
+    int result = 0;
+
+    uint8_t request1[] = {
+        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x68, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1a, 0x00,
+        0x76, 0x7e, 0x32, 0x00, 0x0f, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00,
+        0x5c, 0x00, 0x5c, 0x00, 0x31, 0x03, 0x00, 0x03,
+        0x00, 0x00, 0x2e, 0x00, 0x37, 0x00, 0x31, 0x00,
+        0x2e, 0x00, 0x38, 0x00, 0x34, 0x00, 0x2e, 0x00,
+        0x36, 0x00, 0x37, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x84, 0xf9, 0x7f, 0x01, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,
+        0x14, 0xfa, 0x7f, 0x01, 0x00, 0x00, 0x00, 0x00
+    };
+    uint32_t request1_len = sizeof(request1);
+
+    TcpSession ssn;
+    Packet p;
+    ThreadVars tv;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    int r;
+
+    char *sig1 = "alert tcp any any -> any any "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "byte_jump:2,0,relative,dce; byte_test:2,=,46,0,relative,dce; sid:1;)";
+    char *sig2 = "alert tcp any any -> any any "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "byte_jump:2,2,relative,dce; byte_test:2,=,14080,0,relative; sid:2;)";
+
+    Signature *s;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    memset(&p, 0, sizeof(Packet));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = NULL;
+    p.payload_len = 0;
+    p.proto = IPPROTO_TCP;
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+    f.alproto = ALPROTO_DCERPC;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    s = de_ctx->sig_list;
+    if (s == NULL)
+        goto end;
+    s->next = SigInit(de_ctx, sig2);
+    if (s->next == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    /* request 1 */
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p);
+    if (!(PacketAlertCheck(&p, 1))) {
+        printf("sid 1 didn't match but should have for packet: ");
+        goto end;
+    }
+    if (!(PacketAlertCheck(&p, 2))) {
+        printf("sid 2 didn't match but should have for packet: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
+    return result;
+}
+
+/**
+ * \test Test the working of byte_jump endianness.
+ */
+int DcePayloadTest19(void)
+{
+    int result = 0;
+
+    uint8_t request1[] = {
+        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x68, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1a, 0x00,
+        0x76, 0x7e, 0x32, 0x00, 0x0f, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00,
+        0x5c, 0x00, 0x5c, 0x00, 0x31, 0x00, 0x03, 0x00,
+        0x03, 0x00, 0x2e, 0x00, 0x37, 0x00, 0x31, 0x00,
+        0x2e, 0x00, 0x38, 0x00, 0x34, 0x00, 0x2e, 0x00,
+        0x36, 0x00, 0x37, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x84, 0xf9, 0x7f, 0x01, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,
+        0x14, 0xfa, 0x7f, 0x01, 0x00, 0x00, 0x00, 0x00
+    };
+    uint32_t request1_len = sizeof(request1);
+
+    TcpSession ssn;
+    Packet p;
+    ThreadVars tv;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    int r;
+
+    char *sig1 = "alert tcp any any -> any any "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "byte_jump:2,0,relative; byte_test:2,=,46,0,relative,dce; sid:1;)";
+    char *sig2 = "alert tcp any any -> any any "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "byte_jump:2,2,relative; byte_test:2,=,14080,0,relative; sid:2;)";
+
+    Signature *s;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    memset(&p, 0, sizeof(Packet));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = NULL;
+    p.payload_len = 0;
+    p.proto = IPPROTO_TCP;
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+    f.alproto = ALPROTO_DCERPC;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    s = de_ctx->sig_list;
+    if (s == NULL)
+        goto end;
+    s->next = SigInit(de_ctx, sig2);
+    if (s->next == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    /* request 1 */
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p);
+    if (!(PacketAlertCheck(&p, 1))) {
+        printf("sid 1 didn't match but should have for packet: ");
+        goto end;
+    }
+    if (!(PacketAlertCheck(&p, 2))) {
+        printf("sid 2 didn't match but should have for packet: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
+    return result;
+}
+
+/**
+ * \test Test the working of byte_jump endianness.
+ */
+int DcePayloadTest20(void)
+{
+    int result = 0;
+
+    uint8_t request1[] = {
+        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x68, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1a, 0x00,
+        0x76, 0x7e, 0x32, 0x00, 0x0f, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x0f, 0x00, 0x00, 0x00,
+        0x5c, 0x00, 0x5c, 0x00, 0x31, 0x00, 0x03, 0x03,
+        0x00, 0x00, 0x2e, 0x00, 0x37, 0x00, 0x31, 0x00,
+        0x2e, 0x00, 0x38, 0x00, 0x34, 0x00, 0x2e, 0x00,
+        0x36, 0x00, 0x37, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x84, 0xf9, 0x7f, 0x01, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,
+        0x14, 0xfa, 0x7f, 0x01, 0x00, 0x00, 0x00, 0x00
+    };
+    uint32_t request1_len = sizeof(request1);
+
+    TcpSession ssn;
+    Packet p;
+    ThreadVars tv;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    int r;
+
+    char *sig1 = "alert tcp any any -> any any "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "byte_jump:2,0,relative,big; byte_test:2,=,46,0,relative,dce; sid:1;)";
+    char *sig2 = "alert tcp any any -> any any "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "byte_jump:2,2,little,relative; byte_test:2,=,14080,0,relative; sid:2;)";
+
+    Signature *s;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    memset(&p, 0, sizeof(Packet));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = NULL;
+    p.payload_len = 0;
+    p.proto = IPPROTO_TCP;
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+    f.alproto = ALPROTO_DCERPC;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    s = de_ctx->sig_list;
+    if (s == NULL)
+        goto end;
+    s->next = SigInit(de_ctx, sig2);
+    if (s->next == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    /* request 1 */
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p);
+    if (!(PacketAlertCheck(&p, 1))) {
+        printf("sid 1 didn't match but should have for packet: ");
+        goto end;
+    }
+    if (!(PacketAlertCheck(&p, 2))) {
+        printf("sid 2 didn't match but should have for packet: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DcePayloadRegisterTests(void)
@@ -6701,6 +7423,12 @@ void DcePayloadRegisterTests(void)
     UtRegisterTest("DcePayloadTest12", DcePayloadTest12, 1);
     UtRegisterTest("DcePayloadTest13", DcePayloadTest13, 1);
     UtRegisterTest("DcePayloadTest14", DcePayloadTest14, 1);
+    UtRegisterTest("DcePayloadTest15", DcePayloadTest15, 1);
+    UtRegisterTest("DcePayloadTest16", DcePayloadTest16, 1);
+    UtRegisterTest("DcePayloadTest17", DcePayloadTest17, 1);
+    UtRegisterTest("DcePayloadTest18", DcePayloadTest18, 1);
+    UtRegisterTest("DcePayloadTest19", DcePayloadTest19, 1);
+    UtRegisterTest("DcePayloadTest20", DcePayloadTest20, 1);
 #endif /* UNITTESTS */
 
     return;
