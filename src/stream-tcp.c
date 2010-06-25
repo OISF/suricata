@@ -2581,6 +2581,10 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt)
                 SCLogDebug("packet received on default state");
                 break;
         }
+
+        if (ssn->state > TCP_ESTABLISHED) {
+            p->flags |= PKT_STREAM_EOF;
+        }
     }
 
     /* Process stream smsgs we may have in queue */

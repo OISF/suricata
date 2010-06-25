@@ -279,6 +279,8 @@ typedef struct Signature_ {
     /** ptr to the next sig in the list */
     struct Signature_ *next;
 
+    struct SigMatch_ *dsize_sm;
+
     /** inline -- action */
     uint8_t action;
 

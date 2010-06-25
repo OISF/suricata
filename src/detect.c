@@ -458,12 +458,22 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
             }
         }
 
+        /* check for a pattern match of the one pattern in this sig. */
         if (s->flags & SIG_FLAG_MPM && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
             /* filter out sigs that want pattern matches, but
              * have no matches */
             if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8)))) {
                 SCLogDebug("mpm sig without matches (pat id %"PRIu32" check in content).", s->mpm_pattern_id);
-                continue;
+
+                /* pattern didn't match. There is one case where we will inspect
+                 * the signature anyway: if the packet payload was added to the
+                 * stream it is not scanned itself: the stream data is inspected.
+                 * Inspecting both would result in duplicated alerts. There is
+                 * one case where we are going to inspect the packet payload
+                 * anyway: if a signature has the dsize option. */
+                if (!((p->flags & PKT_STREAM_ADD) && (s->flags & SIG_FLAG_DSIZE))) {
+                    continue;
+                }
             }
         }
 
@@ -585,7 +595,8 @@ static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags) {
                     /* if the smsg is bigger than the current packet, we will
                      * process the smsg in a later run */
                     if ((head->data.seq + head->data.data_len) > (TCP_GET_SEQ(p) + p->payload_len)) {
-                        SCLogDebug("smsg ends beyond current packet, skipping for now");
+                        SCLogDebug("smsg ends beyond current packet, skipping for now %"PRIu32">%"PRIu32,
+                                (head->data.seq + head->data.data_len), (TCP_GET_SEQ(p) + p->payload_len));
                         goto end;
                     }
 
@@ -603,7 +614,8 @@ static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags) {
                     /* if the smsg is bigger than the current packet, we will
                      * process the smsg in a later run */
                     if ((head->data.seq + head->data.data_len) > (TCP_GET_SEQ(p) + p->payload_len)) {
-                        SCLogDebug("smsg ends beyond current packet, skipping for now");
+                        SCLogDebug("smsg ends beyond current packet, skipping for now %"PRIu32">%"PRIu32,
+                                (head->data.seq + head->data.data_len), (TCP_GET_SEQ(p) + p->payload_len));
                         goto end;
                     }
 
@@ -651,6 +663,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* grab the protocol state we will detect on */
     if (p->flow != NULL) {
+        if (p->flags & PKT_STREAM_EOF) {
+            flags |= STREAM_EOF;
+            SCLogDebug("STREAM_EOF set");
+        }
+
         FlowIncrUsecnt(p->flow);
 
         SCMutexLock(&p->flow->m);
@@ -665,6 +682,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 sgh = p->flow->sgh_toclient;
                 use_flow_sgh = TRUE;
             }
+
             smsg = SigMatchSignaturesGetSmsg(p->flow, p, flags);
         } else {
             no_store_flow_sgh = TRUE;
@@ -854,11 +872,17 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
 
+        if (s->flags & SIG_FLAG_DSIZE && s->dsize_sm != NULL) {
+            if (sigmatch_table[DETECT_DSIZE].Match(th_v, det_ctx, p, s, s->dsize_sm) == 0)
+                continue;
+        }
+
         /* Check the payload keywords. If we are a MPM sig and we've made
          * to here, we've had at least one of the patterns match */
         if (s->pmatch != NULL) {
-            /* if we have stream msgs, inspect against those first */
-            if (smsg != NULL) {
+            /* if we have stream msgs, inspect against those first,
+             * but not for a "dsize" signature */
+            if (!(s->flags & SIG_FLAG_DSIZE) && smsg != NULL) {
                 char pmatch = 0;
                 uint8_t pmq_idx = 0;
                 StreamMsg *smsg_inspect = smsg;

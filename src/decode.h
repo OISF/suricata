@@ -673,6 +673,7 @@ void AddressDebugPrint(Address *);
 #define PKT_ALLOC                       0x04    /**< Packet was alloc'd this run, needs to be freed */
 #define PKT_HAS_TAG                     0x08    /**< Packet has matched a tag */
 #define PKT_STREAM_ADD                  0x10    /**< Packet payload was added to reassembled stream */
+#define PKT_STREAM_EOF                  0x20    /**< Stream is in eof state */
 
 #endif /* __DECODE_H__ */
 
