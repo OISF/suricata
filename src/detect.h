@@ -394,6 +394,15 @@ typedef struct DetectTagHostCtx_ {
     struct timeval last_ts;               /**< Last time the ctx was pruned */
 } DetectTagHostCtx;
 
+/**
+ * \brief We use this as data to the hash table DetectEngineCtx->dup_sig_hash_table.
+ */
+typedef struct SigWrapper_ {
+    /* the signature we want to wrap */
+    Signature *s;
+    /* the signature right before the above signatue in the det_ctx->sig_list */
+    Signature *s_prev;
+} SigWrapper;
 
 /** \brief main detection engine ctx */
 typedef struct DetectEngineCtx_ {
@@ -438,6 +447,9 @@ typedef struct DetectEngineCtx_ {
 
     HashListTable *sport_hash_table;
     HashListTable *dport_hash_table;
+
+    /* hash table used to cull out duplicate sigs */
+    HashListTable *dup_sig_hash_table;
 
     /* memory counters */
     uint32_t mpm_memory_size;

@@ -296,7 +296,7 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
         if (sig != NULL) {
             SCLogDebug("signature %"PRIu32" loaded", sig->id);
             good++;
-	} else {
+        } else {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing signature \"%s\" from "
                  "file %s at line %"PRId32"", line, sig_file, lineno - multiline);
             if (de_ctx->failure_fatal == 1) {
@@ -387,7 +387,7 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     }
 
     if (ret < 0 && de_ctx->failure_fatal) {
-        SCReturnInt(ret);
+        goto end;
     }
 
     SCSigRegisterSignatureOrderingFuncs(de_ctx);
@@ -406,7 +406,12 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
 
     /* Setup the signature group lookup structure and pattern matchers */
     SigGroupBuild(de_ctx);
-    SCReturnInt(0);
+
+    ret = 0;
+
+ end:
+    DetectParseDupSigHashFree(de_ctx);
+    SCReturnInt(ret);
 }
 
 /**

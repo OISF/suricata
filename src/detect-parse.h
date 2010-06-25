@@ -62,5 +62,8 @@ void SigMatchAppendUricontent(Signature *, SigMatch *);
 void SigMatchAppendAppLayer(Signature *, SigMatch *);
 void SigMatchAppendTag(Signature *, SigMatch *);
 
+int DetectParseDupSigHashInit(DetectEngineCtx *);
+void DetectParseDupSigHashFree(DetectEngineCtx *);
+
 #endif /* __DETECT_PARSE_H__ */
 

@@ -78,6 +78,7 @@ DetectEngineCtx *DetectEngineCtxInit(void) {
     DetectPortDpHashInit(de_ctx);
     ThresholdHashInit(de_ctx);
     VariableNameInitHash();
+    DetectParseDupSigHashInit(de_ctx);
 
     de_ctx->mpm_pattern_id_store = MpmPatternIdTableInitHash();
     if (de_ctx->mpm_pattern_id_store == NULL) {
@@ -105,6 +106,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
     SigGroupHeadMpmUriHashFree(de_ctx);
     SigGroupHeadSPortHashFree(de_ctx);
     SigGroupHeadDPortHashFree(de_ctx);
+    DetectParseDupSigHashFree(de_ctx);
     SCSigSignatureOrderingModuleCleanup(de_ctx);
     DetectPortSpHashFree(de_ctx);
     DetectPortDpHashFree(de_ctx);

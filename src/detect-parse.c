@@ -1339,21 +1339,268 @@ error:
 }
 
 /**
- * \brief Parse and append a Signature into the Detection Engine Context
- *        signature list. If the signature is bidirectional it should append
- *        two Signatures (with the addresses switched).
+ * \brief The hash free function to be the used by the hash table -
+ *        DetectEngineCtx->dup_sig_hash_table.
  *
- * \param de_ctx Pointer to the Detection Engine Context
+ * \param data    Pointer to the data, in our case SigWrapper to be freed.
+ */
+void DetectParseDupSigFreeFunc(void *data)
+{
+    if (data != NULL)
+        free(data);
+
+    return;
+}
+
+/**
+ * \brief The hash function to be the used by the hash table -
+ *        DetectEngineCtx->dup_sig_hash_table.
+ *
+ * \param ht      Pointer to the hash table.
+ * \param data    Pointer to the data, in our case SigWrapper.
+ * \param datalen Not used in our case.
+ *
+ * \retval sw->s->id The generated hash value.
+ */
+uint32_t DetectParseDupSigHashFunc(HashListTable *ht, void *data, uint16_t datalen)
+{
+    SigWrapper *sw = (SigWrapper *)data;
+
+    return (sw->s->id % ht->array_size);
+}
+
+/**
+ * \brief The Compare function to be used by the  hash table -
+ *        DetectEngineCtx->dup_sig_hash_table.
+ *
+ * \param data1 Pointer to the first SigWrapper.
+ * \param len1  Not used.
+ * \param data2 Pointer to the second SigWrapper.
+ * \param len2  Not used.
+ *
+ * \retval 1 If the 2 SigWrappers sent as args match.
+ * \retval 0 If the 2 SigWrappers sent as args do not match.
+ */
+char DetectParseDupSigCompareFunc(void *data1, uint16_t len1, void *data2,
+                                  uint16_t len2)
+{
+    SigWrapper *sw1 = (SigWrapper *)data1;
+    SigWrapper *sw2 = (SigWrapper *)data2;
+
+    if (sw1 == NULL || sw2 == NULL)
+        return 0;
+
+    if (sw1->s->id != sw2->s->id)
+        return 0;
+
+    /* be careful all you non-related signatures with the same sid and no msg.
+     * We treat you all as the same signature */
+    if ((sw1->s->msg == NULL) && (sw2->s->msg == NULL))
+        return 1;
+
+    if ((sw1->s->msg == NULL) || (sw2->s->msg == NULL))
+        return 0;
+
+    if (strlen(sw1->s->msg) != strlen(sw2->s->msg))
+        return 0;
+
+    if (strcmp(sw1->s->msg, sw2->s->msg) != 0)
+        return 0;
+
+    return 1;
+}
+
+/**
+ * \brief Initializes the hash table that is used to cull duplicate sigs.
+ *
+ * \param de_ctx Pointer to the detection engine context.
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int DetectParseDupSigHashInit(DetectEngineCtx *de_ctx)
+{
+    de_ctx->dup_sig_hash_table = HashListTableInit(15000,
+                                                   DetectParseDupSigHashFunc,
+                                                   DetectParseDupSigCompareFunc,
+                                                   DetectParseDupSigFreeFunc);
+    if (de_ctx->dup_sig_hash_table == NULL)
+        goto error;
+
+    return 0;
+
+error:
+    return -1;
+}
+
+/**
+ * \brief Frees the hash table that is used to cull duplicate sigs.
+ *
+ * \param de_ctx Pointer to the detection engine context that holds this table.
+ */
+void DetectParseDupSigHashFree(DetectEngineCtx *de_ctx)
+{
+    if (de_ctx->dup_sig_hash_table != NULL)
+        free(de_ctx->dup_sig_hash_table);
+
+    de_ctx->dup_sig_hash_table = NULL;
+
+    return;
+}
+
+/**
+ * \brief Check if a signature is a duplicate.
+ *
+ *        There are 3 types of return values for this function.
+ *
+ *        - 0, which indicates that the Signature is not a duplicate
+ *          and has to be added to the detection engine list.
+ *        - 1, Signature is duplicate, and the existing signature in
+ *          the list shouldn't be replaced with this duplicate.
+ *        - 2, Signature is duplicate, and the existing signature in
+ *          the list should be replaced with this duplicate.
+ *
+ * \param de_ctx Pointer to the detection engine context.
+ * \param sig    Pointer to the Signature that has to be checked.
+ *
+ * \retval 2 If Signature is duplicate and the existing signature in
+ *           the list should be chucked out and replaced with this.
+ * \retval 1 If Signature is duplicate, and should be chucked out.
+ * \retval 0 If Signature is not a duplicate.
+ */
+static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
+                                                   Signature *sig)
+{
+    /* we won't do any NULL checks on the args */
+
+    /* return value */
+    int ret = 0;
+
+    SigWrapper *sw_dup = NULL;
+    SigWrapper *sw = NULL;
+
+    /* used for making a duplicate_sig_hash_table entry */
+    sw = SCMalloc(sizeof(SigWrapper));
+    if (sw == NULL) {
+        exit(EXIT_FAILURE);
+    }
+    memset(sw, 0, sizeof(SigWrapper));
+    sw->s = sig;
+
+    /* check if we have a duplicate entry for this signature */
+    sw_dup = HashListTableLookup(de_ctx->dup_sig_hash_table, (void *)sw, 0);
+    /* we don't have a duplicate entry for this sig */
+    if (sw_dup == NULL) {
+        /* add it to the hash table */
+        HashListTableAdd(de_ctx->dup_sig_hash_table, (void *)sw, 0);
+
+        /* add the s_prev entry for the previously loaded sw in the hash_table */
+        if (de_ctx->sig_list != NULL) {
+            SigWrapper *sw_old = NULL;
+            SigWrapper sw_tmp;
+            memset(&sw_tmp, 0, sizeof(SigWrapper));
+
+            /* the topmost sig would be the last loaded sig */
+            sw_tmp.s = de_ctx->sig_list;
+            sw_old = HashListTableLookup(de_ctx->dup_sig_hash_table,
+                                         (void *)&sw_tmp, 0);
+            /* sw_old == NULL case is impossible */
+            sw_old->s_prev = sig;
+        }
+
+        ret = 0;
+        goto end;
+    }
+
+    /* if we have reached here we have a duplicate entry for this signature.
+     * Check the signature revision.  Store the signature with the latest rev
+     * and discard the other one */
+    if (sw->s->rev <= sw_dup->s->rev) {
+        ret = 1;
+        goto end;
+    }
+
+    /* the new sig is of a newer revision than the one that is already in the
+     * list.  Remove the old sig from the list */
+    if (sw_dup->s_prev == NULL) {
+        SigWrapper sw_temp;
+        memset(&sw_temp, 0, sizeof(SigWrapper));
+        if (sw_dup->s->flags & SIG_FLAG_BIDIREC) {
+            sw_temp.s = sw_dup->s->next->next;
+            de_ctx->sig_list = sw_dup->s->next->next;
+            SigFree(sw_dup->s->next);
+        } else {
+            sw_temp.s = sw_dup->s->next;
+            de_ctx->sig_list = sw_dup->s->next;
+        }
+        SigWrapper *sw_next = NULL;
+        if (sw_temp.s != NULL) {
+            sw_next = HashListTableLookup(de_ctx->dup_sig_hash_table,
+                                          (void *)&sw_temp, 0);
+            sw_next->s_prev = sw_dup->s_prev;
+        }
+        SigFree(sw_dup->s);
+    } else {
+        SigWrapper sw_temp;
+        memset(&sw_temp, 0, sizeof(SigWrapper));
+        if (sw_dup->s->flags & SIG_FLAG_BIDIREC) {
+            sw_temp.s = sw_dup->s->next->next;
+            sw_dup->s_prev->next = sw_dup->s->next->next;
+            SigFree(sw_dup->s->next);
+        } else {
+            sw_temp.s = sw_dup->s->next;
+            sw_dup->s_prev->next = sw_dup->s->next;
+        }
+        SigWrapper *sw_next = NULL;
+        if (sw_temp.s != NULL) {
+            sw_next = HashListTableLookup(de_ctx->dup_sig_hash_table,
+                                          (void *)&sw_temp, 0);
+            sw_next->s_prev = sw_dup->s_prev;;
+        }
+        SigFree(sw_dup->s);
+    }
+
+    /* make changes to the entry to reflect the presence of the new sig */
+    sw_dup->s = sig;
+    sw_dup->s_prev = NULL;
+
+    /* this is duplicate, but a duplicate that replaced the existing sig entry */
+    ret = 2;
+
+    free(sw);
+
+end:
+    return ret;
+}
+
+/**
+ * \brief Parse and append a Signature into the Detection Engine Context
+ *        signature list.
+ *
+ *        If the signature is bidirectional it should append two signatures
+ *        (with the addresses switched) into the list.  Also handle duplicate
+ *        signatures.  In case of duplicate sigs, use the ones that have the
+ *        latest revision.  We use the sid and the msg to identifiy duplicate
+ *        sigs.  If 2 sigs have the same sid and msg, they are duplicates.
+ *
+ * \param de_ctx Pointer to the Detection Engine Context.
  * \param sigstr Pointer to a character string containing the signature to be
- *               parsed
+ *               parsed.
  *
  * \retval Pointer to the head Signature in the detection engine ctx sig_list
- *               on success; NULL on failure
+ *         on success; NULL on failure.
  */
 Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, char *sigstr) {
     Signature *sig = SigInitReal(de_ctx, sigstr);
     if (sig == NULL)
         return NULL;
+
+    /* checking for the status of duplicate signature */
+    int dup_sig = DetectEngineSignatureIsDuplicate(de_ctx, sig);
+    /* a duplicate signature that should be chucked out.  Check the previously
+     * called function details to understand the different return values */
+    if (dup_sig == 1)
+        goto error;
 
     if (sig->flags & SIG_FLAG_BIDIREC) {
         if (sig->next != NULL) {
@@ -1361,8 +1608,7 @@ Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, char *sigstr) {
         } else {
             goto error;
         }
-    }
-    else {
+    } else {
         /* if this sig is the first one, sig_list should be null */
         sig->next = de_ctx->sig_list;
     }
@@ -1374,10 +1620,11 @@ Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, char *sigstr) {
      * so if the signature is bidirectional, the returned sig will point through "next" ptr
      * to the cloned signatures with the switched addresses
      */
-    return sig;
+    return (dup_sig == 0) ? sig : NULL;
 
 error:
-    if ( sig != NULL ) SigFree(sig);
+    if (sig != NULL)
+        SigFree(sig);
     return NULL;
 }
 
@@ -1522,6 +1769,123 @@ int SigParseTest06 (void) {
 end:
     if (sig != NULL) SigFree(sig);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/**
+ * \test Parsing duplicate sigs.
+ */
+int SigParseTest07(void) {
+    int result = 0;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:1;)");
+    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:1;)");
+
+    result = (de_ctx->sig_list != NULL && de_ctx->sig_list->next == NULL);
+
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/**
+ * \test Parsing duplicate sigs.
+ */
+int SigParseTest08(void) {
+    int result = 0;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:1;)");
+    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:2;)");
+
+    result = (de_ctx->sig_list != NULL && de_ctx->sig_list->next == NULL &&
+              de_ctx->sig_list->rev == 2);
+
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/**
+ * \test Parsing duplicate sigs.
+ */
+int SigParseTest09(void) {
+    int result = 1;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:1;)");
+    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:2;)");
+    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:6;)");
+    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:4;)");
+    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:2; rev:2;)");
+    result &= (de_ctx->sig_list != NULL && de_ctx->sig_list->id == 2 &&
+              de_ctx->sig_list->rev == 2);
+    result &= (de_ctx->sig_list->next != NULL && de_ctx->sig_list->next->id == 1 &&
+              de_ctx->sig_list->next->rev == 6);
+    if (result == 0)
+        goto end;
+
+    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:2; rev:1;)");
+    result &= (de_ctx->sig_list != NULL && de_ctx->sig_list->id == 2 &&
+              de_ctx->sig_list->rev == 2);
+    result &= (de_ctx->sig_list->next != NULL && de_ctx->sig_list->next->id == 1 &&
+              de_ctx->sig_list->next->rev == 6);
+    if (result == 0)
+        goto end;
+
+    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:2; rev:4;)");
+    result &= (de_ctx->sig_list != NULL && de_ctx->sig_list->id == 2 &&
+              de_ctx->sig_list->rev == 4);
+    result &= (de_ctx->sig_list->next != NULL && de_ctx->sig_list->next->id == 1 &&
+              de_ctx->sig_list->next->rev == 6);
+    if (result == 0)
+        goto end;
+
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/**
+ * \test Parsing duplicate sigs.
+ */
+int SigParseTest10(void) {
+    int result = 1;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:1;)");
+    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:2; rev:1;)");
+    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:3; rev:1;)");
+    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:4; rev:1;)");
+    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:5; rev:1;)");
+    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:3; rev:2;)");
+    DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:2; rev:2;)");
+
+    result &= ((de_ctx->sig_list->id == 2) &&
+               (de_ctx->sig_list->next->id == 3) &&
+               (de_ctx->sig_list->next->next->id == 5) &&
+               (de_ctx->sig_list->next->next->next->id == 4) &&
+               (de_ctx->sig_list->next->next->next->next->id == 1));
+
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -2376,6 +2740,7 @@ end:
         DetectEngineCtxFree(de_ctx);
     return result;
 }
+
 #endif /* UNITTESTS */
 
 void SigParseRegisterTests(void) {
@@ -2386,6 +2751,10 @@ void SigParseRegisterTests(void) {
     UtRegisterTest("SigParseTest04", SigParseTest04, 1);
     UtRegisterTest("SigParseTest05", SigParseTest05, 1);
     UtRegisterTest("SigParseTest06", SigParseTest06, 1);
+    UtRegisterTest("SigParseTest07", SigParseTest07, 1);
+    UtRegisterTest("SigParseTest08", SigParseTest08, 1);
+    UtRegisterTest("SigParseTest09", SigParseTest09, 1);
+    UtRegisterTest("SigParseTest10", SigParseTest10, 1);
 
     UtRegisterTest("SigParseBidirecTest06", SigParseBidirecTest06, 1);
     UtRegisterTest("SigParseBidirecTest07", SigParseBidirecTest07, 1);
