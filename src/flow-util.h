@@ -28,6 +28,7 @@
 
 #define FLOW_INITIALIZE(f) do { \
         SCMutexInit(&(f)->m, NULL); \
+        SCMutexInit(&(f)->de_state_m, NULL); \
         (f)->lnext = NULL; \
         (f)->lprev = NULL; \
         (f)->hnext = NULL; \
@@ -69,8 +70,12 @@
         (f)->flowvar = NULL; \
         (f)->protoctx = NULL; \
         SC_ATOMIC_RESET((f)->use_cnt); \
-        DetectEngineStateFree((f)->de_state); \
+        SCMutexLock(&(f)->de_state_m); \
+        if ((f)->de_state != NULL) { \
+            DetectEngineStateReset((f)->de_state); \
+        } \
         (f)->de_state = NULL; \
+        SCMutexUnlock(&(f)->de_state_m); \
         (f)->sgh_toserver = NULL; \
         (f)->sgh_toclient = NULL; \
         AppLayerParserCleanupState(f); \
@@ -89,8 +94,13 @@
         (f)->flowvar = NULL; \
         (f)->protoctx = NULL; \
         SC_ATOMIC_DESTROY((f)->use_cnt); \
-        DetectEngineStateFree((f)->de_state); \
+        SCMutexLock(&(f)->de_state_m); \
+        if ((f)->de_state != NULL) { \
+            DetectEngineStateFree((f)->de_state); \
+        } \
         (f)->de_state = NULL; \
+        SCMutexUnlock(&(f)->de_state_m); \
+        SCMutexDestroy(&(f)->de_state_m); \
         AppLayerParserCleanupState(f); \
         FlowL7DataPtrFree(f); \
         SCFree((f)->aldata); \

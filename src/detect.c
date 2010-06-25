@@ -923,8 +923,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         int de_state_status = DeStateUpdateInspectTransactionId(p->flow,
                 (flags & STREAM_TOSERVER) ? STREAM_TOSERVER : STREAM_TOCLIENT);
         SCLogDebug("de_state_status %d", de_state_status);
+
         if (de_state_status == 2) {
+            SCMutexLock(&p->flow->de_state_m);
             DetectEngineStateReset(p->flow->de_state);
+            SCMutexUnlock(&p->flow->de_state_m);
         }
     }
 

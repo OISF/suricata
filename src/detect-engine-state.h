@@ -74,7 +74,6 @@ typedef struct DetectEngineState_ {
     DeStateStore *head; /**< signature state storage */
     DeStateStore *tail; /**< tail item of the storage list */
     SigIntId cnt;       /**< number of sigs in the storage */
-    SCMutex m;          /**< lock for the de_state object */
 } DetectEngineState;
 
 void DeStateRegisterTests(void);

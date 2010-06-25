@@ -174,6 +174,7 @@ typedef struct Flow_
 
     /** detection engine state */
     struct DetectEngineState_ *de_state;
+    SCMutex de_state_m;          /**< mutex lock for the de_state object */
 
     /** toclient sgh for this flow. Only use when FLOW_SGH_TOCLIENT flow flag
      *  has been set. */
