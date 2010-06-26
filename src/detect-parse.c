@@ -63,6 +63,16 @@ static pcre_extra *option_pcre_extra = NULL;
 static uint32_t dbg_srcportany_cnt = 0;
 static uint32_t dbg_dstportany_cnt = 0;
 
+/**
+ * \brief We use this as data to the hash table DetectEngineCtx->dup_sig_hash_table.
+ */
+typedef struct SigDuplWrapper_ {
+    /* the signature we want to wrap */
+    Signature *s;
+    /* the signature right before the above signatue in the det_ctx->sig_list */
+    Signature *s_prev;
+} SigDuplWrapper;
+
 #define CONFIG_PARTS 8
 
 #define CONFIG_ACTION 0
@@ -1342,7 +1352,7 @@ error:
  * \brief The hash free function to be the used by the hash table -
  *        DetectEngineCtx->dup_sig_hash_table.
  *
- * \param data    Pointer to the data, in our case SigWrapper to be freed.
+ * \param data    Pointer to the data, in our case SigDuplWrapper to be freed.
  */
 void DetectParseDupSigFreeFunc(void *data)
 {
@@ -1357,14 +1367,14 @@ void DetectParseDupSigFreeFunc(void *data)
  *        DetectEngineCtx->dup_sig_hash_table.
  *
  * \param ht      Pointer to the hash table.
- * \param data    Pointer to the data, in our case SigWrapper.
+ * \param data    Pointer to the data, in our case SigDuplWrapper.
  * \param datalen Not used in our case.
  *
  * \retval sw->s->id The generated hash value.
  */
 uint32_t DetectParseDupSigHashFunc(HashListTable *ht, void *data, uint16_t datalen)
 {
-    SigWrapper *sw = (SigWrapper *)data;
+    SigDuplWrapper *sw = (SigDuplWrapper *)data;
 
     return (sw->s->id % ht->array_size);
 }
@@ -1373,19 +1383,19 @@ uint32_t DetectParseDupSigHashFunc(HashListTable *ht, void *data, uint16_t datal
  * \brief The Compare function to be used by the  hash table -
  *        DetectEngineCtx->dup_sig_hash_table.
  *
- * \param data1 Pointer to the first SigWrapper.
+ * \param data1 Pointer to the first SigDuplWrapper.
  * \param len1  Not used.
- * \param data2 Pointer to the second SigWrapper.
+ * \param data2 Pointer to the second SigDuplWrapper.
  * \param len2  Not used.
  *
- * \retval 1 If the 2 SigWrappers sent as args match.
- * \retval 0 If the 2 SigWrappers sent as args do not match.
+ * \retval 1 If the 2 SigDuplWrappers sent as args match.
+ * \retval 0 If the 2 SigDuplWrappers sent as args do not match.
  */
 char DetectParseDupSigCompareFunc(void *data1, uint16_t len1, void *data2,
                                   uint16_t len2)
 {
-    SigWrapper *sw1 = (SigWrapper *)data1;
-    SigWrapper *sw2 = (SigWrapper *)data2;
+    SigDuplWrapper *sw1 = (SigDuplWrapper *)data1;
+    SigDuplWrapper *sw2 = (SigDuplWrapper *)data2;
 
     if (sw1 == NULL || sw2 == NULL)
         return 0;
@@ -1476,15 +1486,15 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
     /* return value */
     int ret = 0;
 
-    SigWrapper *sw_dup = NULL;
-    SigWrapper *sw = NULL;
+    SigDuplWrapper *sw_dup = NULL;
+    SigDuplWrapper *sw = NULL;
 
     /* used for making a duplicate_sig_hash_table entry */
-    sw = SCMalloc(sizeof(SigWrapper));
+    sw = SCMalloc(sizeof(SigDuplWrapper));
     if (sw == NULL) {
         exit(EXIT_FAILURE);
     }
-    memset(sw, 0, sizeof(SigWrapper));
+    memset(sw, 0, sizeof(SigDuplWrapper));
     sw->s = sig;
 
     /* check if we have a duplicate entry for this signature */
@@ -1496,9 +1506,9 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
 
         /* add the s_prev entry for the previously loaded sw in the hash_table */
         if (de_ctx->sig_list != NULL) {
-            SigWrapper *sw_old = NULL;
-            SigWrapper sw_tmp;
-            memset(&sw_tmp, 0, sizeof(SigWrapper));
+            SigDuplWrapper *sw_old = NULL;
+            SigDuplWrapper sw_tmp;
+            memset(&sw_tmp, 0, sizeof(SigDuplWrapper));
 
             /* the topmost sig would be the last loaded sig */
             sw_tmp.s = de_ctx->sig_list;
@@ -1523,8 +1533,8 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
     /* the new sig is of a newer revision than the one that is already in the
      * list.  Remove the old sig from the list */
     if (sw_dup->s_prev == NULL) {
-        SigWrapper sw_temp;
-        memset(&sw_temp, 0, sizeof(SigWrapper));
+        SigDuplWrapper sw_temp;
+        memset(&sw_temp, 0, sizeof(SigDuplWrapper));
         if (sw_dup->s->flags & SIG_FLAG_BIDIREC) {
             sw_temp.s = sw_dup->s->next->next;
             de_ctx->sig_list = sw_dup->s->next->next;
@@ -1533,7 +1543,7 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
             sw_temp.s = sw_dup->s->next;
             de_ctx->sig_list = sw_dup->s->next;
         }
-        SigWrapper *sw_next = NULL;
+        SigDuplWrapper *sw_next = NULL;
         if (sw_temp.s != NULL) {
             sw_next = HashListTableLookup(de_ctx->dup_sig_hash_table,
                                           (void *)&sw_temp, 0);
@@ -1541,8 +1551,8 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
         }
         SigFree(sw_dup->s);
     } else {
-        SigWrapper sw_temp;
-        memset(&sw_temp, 0, sizeof(SigWrapper));
+        SigDuplWrapper sw_temp;
+        memset(&sw_temp, 0, sizeof(SigDuplWrapper));
         if (sw_dup->s->flags & SIG_FLAG_BIDIREC) {
             sw_temp.s = sw_dup->s->next->next;
             sw_dup->s_prev->next = sw_dup->s->next->next;
@@ -1551,7 +1561,7 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
             sw_temp.s = sw_dup->s->next;
             sw_dup->s_prev->next = sw_dup->s->next;
         }
-        SigWrapper *sw_next = NULL;
+        SigDuplWrapper *sw_next = NULL;
         if (sw_temp.s != NULL) {
             sw_next = HashListTableLookup(de_ctx->dup_sig_hash_table,
                                           (void *)&sw_temp, 0);
