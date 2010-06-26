@@ -348,7 +348,7 @@ static Flow *FlowGetNew(Packet *p) {
 
         /* flow is initialized but *unlocked* */
     } else {
-        FLOW_RECYCLE(f);
+        /* flow has been recycled before it went into the spare queue */
 
         /* flow is initialized (recylced) but *unlocked* */
     }

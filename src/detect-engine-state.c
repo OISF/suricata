@@ -261,12 +261,12 @@ static void DeStateSignatureAppend(DetectEngineState *state, Signature *s, SigMa
 int DeStateFlowHasState(Flow *f) {
     SCEnter();
     int r = 0;
-    SCMutexLock(&f->m);
+    SCMutexLock(&f->de_state_m);
     if (f->de_state == NULL || f->de_state->cnt == 0)
         r = 0;
     else
         r = 1;
-    SCMutexUnlock(&f->m);
+    SCMutexUnlock(&f->de_state_m);
     SCReturnInt(r);
 }
 
@@ -364,7 +364,6 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             sm, umatch, dmatch);
 
     SCMutexLock(&f->de_state_m);
-    SCMutexLock(&f->m);
     /* match or no match, we store the state anyway
      * "sm" here is either NULL (complete match) or
      * the last SigMatch that didn't match */
@@ -375,7 +374,6 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         DeStateSignatureAppend(f->de_state, s, sm, umatch, dmatch);
     }
 
-    SCMutexUnlock(&f->m);
     SCMutexUnlock(&f->de_state_m);
 
     SCReturnInt(r);
@@ -543,13 +541,11 @@ int DeStateRestartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
 
     /* first clear the existing state as it belongs
      * to the previous transaction */
-    SCMutexLock(&f->m);
     SCMutexLock(&f->de_state_m);
     if (f->de_state != NULL) {
         DetectEngineStateReset(f->de_state);
     }
     SCMutexUnlock(&f->de_state_m);
-    SCMutexUnlock(&f->m);
 
     SCReturnInt(0);
 }

@@ -53,11 +53,12 @@
         (f)->tag_list = NULL; \
     } while (0)
 
+/** \brief macro to recycle a flow before it goes into the spare queue for reuse.
+ *
+ *  Note that the lnext, lprev, hnext, hprev fields are untouched, those are
+ *  managed by the queueing code. Same goes for fb (FlowBucket ptr) field.
+ */
 #define FLOW_RECYCLE(f) do { \
-        (f)->lnext = NULL; \
-        (f)->lprev = NULL; \
-        (f)->hnext = NULL; \
-        (f)->hprev = NULL; \
         (f)->sp = 0; \
         (f)->dp = 0; \
         (f)->flags = 0; \
@@ -70,18 +71,18 @@
         (f)->flowvar = NULL; \
         (f)->protoctx = NULL; \
         SC_ATOMIC_RESET((f)->use_cnt); \
-        SCMutexLock(&(f)->de_state_m); \
         if ((f)->de_state != NULL) { \
             DetectEngineStateReset((f)->de_state); \
+            (f)->de_state = NULL; \
         } \
-        (f)->de_state = NULL; \
-        SCMutexUnlock(&(f)->de_state_m); \
         (f)->sgh_toserver = NULL; \
         (f)->sgh_toclient = NULL; \
         AppLayerParserCleanupState(f); \
         FlowL7DataPtrFree(f); \
-        SCFree((f)->aldata); \
-        (f)->aldata = NULL; \
+        if ((f)->aldata != NULL) { \
+            SCFree((f)->aldata); \
+            (f)->aldata = NULL; \
+        } \
         (f)->alflags = 0; \
         (f)->alproto = 0; \
         DetectTagDataListFree((f)->tag_list); \
@@ -90,21 +91,21 @@
 
 #define FLOW_DESTROY(f) do { \
         SCMutexDestroy(&(f)->m); \
+        SCMutexDestroy(&(f)->de_state_m); \
         GenericVarFree((f)->flowvar); \
         (f)->flowvar = NULL; \
         (f)->protoctx = NULL; \
         SC_ATOMIC_DESTROY((f)->use_cnt); \
-        SCMutexLock(&(f)->de_state_m); \
         if ((f)->de_state != NULL) { \
             DetectEngineStateFree((f)->de_state); \
         } \
         (f)->de_state = NULL; \
-        SCMutexUnlock(&(f)->de_state_m); \
-        SCMutexDestroy(&(f)->de_state_m); \
         AppLayerParserCleanupState(f); \
         FlowL7DataPtrFree(f); \
-        SCFree((f)->aldata); \
-        (f)->aldata = NULL; \
+        if ((f)->aldata != NULL) { \
+            SCFree((f)->aldata); \
+            (f)->aldata = NULL; \
+        } \
         (f)->alflags = 0; \
         (f)->alproto = 0; \
         DetectTagDataListFree((f)->tag_list); \

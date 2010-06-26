@@ -1351,7 +1351,7 @@ static int FlowClearMemory(Flow* f, uint8_t proto_map) {
         flow_proto[proto_map].Freefunc(f->protoctx);
     }
 
-    FLOW_DESTROY(f);
+    FLOW_RECYCLE(f);
 
     SCReturnInt(1);
 }
