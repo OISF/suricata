@@ -439,9 +439,6 @@ typedef struct DetectEngineCtx_ {
     HashListTable *sport_hash_table;
     HashListTable *dport_hash_table;
 
-    HashListTable *variable_names;
-    uint16_t variable_names_idx;
-
     /* memory counters */
     uint32_t mpm_memory_size;
 

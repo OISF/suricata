@@ -777,9 +777,9 @@ DetectPcreData *DetectPcreParseCapture(char *regexstr, DetectEngineCtx *de_ctx, 
         }
         if (capture_str_ptr != NULL) {
             if (pd->flags & DETECT_PCRE_CAPTURE_PKT)
-                pd->capidx = VariableNameGetIdx(de_ctx,(char *)capture_str_ptr,DETECT_PKTVAR);
+                pd->capidx = VariableNameGetIdx((char *)capture_str_ptr,DETECT_PKTVAR);
             else if (pd->flags & DETECT_PCRE_CAPTURE_FLOW)
-                pd->capidx = VariableNameGetIdx(de_ctx,(char *)capture_str_ptr,DETECT_FLOWVAR);
+                pd->capidx = VariableNameGetIdx((char *)capture_str_ptr,DETECT_FLOWVAR);
         }
     }
     //printf("DetectPcreParseCapture: pd->capname %s\n", pd->capname ? pd->capname : "NULL");

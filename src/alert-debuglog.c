@@ -46,6 +46,9 @@
 #include "output.h"
 #include "alert-debuglog.h"
 #include "util-privs.h"
+#include "flow-var.h"
+#include "flow-bit.h"
+#include "util-var-name.h"
 
 #define DEFAULT_LOG_FILENAME "alert-debug.log"
 
@@ -86,6 +89,80 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
         t->tm_mon + 1, t->tm_mday, t->tm_year - 100,
         sec / 3600, (sec % 3600) / 60, sec % 60,
         (uint32_t) ts->tv_usec);
+}
+
+/**
+ *  \brief Function to log the FlowVars in to alert-debug.log
+ *
+ *  \param aft Pointer to AltertDebugLog Thread
+ *  \param p Pointer to the packet
+ *
+ */
+static void AlertDebugLogFlowVars(AlertDebugLogThread *aft, Packet *p)
+{
+    GenericVar *gv = p->flow->flowvar;
+    uint16_t i;
+    while (gv != NULL) {
+        if (gv->type == DETECT_FLOWVAR || gv->type == DETECT_FLOWINT) {
+            FlowVar *fv = (FlowVar *) gv;
+
+            if (fv->datatype == FLOWVAR_TYPE_STR) {
+                fprintf(aft->file_ctx->fp, "FLOWVAR idx(%"PRIu32"):    "
+                        ,fv->idx);
+                for (i = 0; i < fv->data.fv_str.value_len; i++) {
+                    if (isprint(fv->data.fv_str.value[i]))
+                        fprintf(aft->file_ctx->fp, "%c", fv->data.fv_str.value[i]);
+                    else
+                        fprintf(aft->file_ctx->fp, "\\%02X", fv->data.fv_str.value[i]);
+                }
+            } else if (fv->datatype == FLOWVAR_TYPE_INT) {
+                fprintf(aft->file_ctx->fp, "FLOWVAR idx(%"PRIu32"):   "
+                        " %" PRIu32 "\"", fv->idx, fv->data.fv_int.value);
+            }
+        }
+        gv = gv->next;
+    }
+}
+
+/**
+ *  \brief Function to log the FlowBits in to alert-debug.log
+ *
+ *  \param aft Pointer to AltertDebugLog Thread
+ *  \param p Pointer to the packet
+ *
+ */
+static void AlertDebugLogFlowBits(AlertDebugLogThread *aft, Packet *p)
+{
+    GenericVar *gv = p->flow->flowvar;
+    while (gv != NULL) {
+        if (gv->type == DETECT_FLOWBITS) {
+            FlowBit *fb = (FlowBit *) gv;
+            char *name = VariableIdxGetName(fb->idx, fb->type);
+            if (name != NULL) {
+                fprintf(aft->file_ctx->fp, "FLOWBIT:           %s\n",name);
+                SCFree(name);
+            }
+        }
+        gv = gv->next;
+    }
+}
+
+/**
+ *  \brief Function to log the PktVars in to alert-debug.log
+ *
+ *  \param aft Pointer to AltertDebugLog Thread
+ *  \param p Pointer to the packet
+ *
+ */
+static void AlertDebugLogPktVars(AlertDebugLogThread *aft, Packet *p)
+{
+    PktVar *pv = p->pktvar;
+
+    while(pv != NULL) {
+        fprintf(aft->file_ctx->fp, "PKTVAR:            %s\n", pv->name);
+        PrintRawDataFp(aft->file_ctx->fp, pv->value, pv->value_len);
+        pv = pv->next;
+    }
 }
 
 TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
@@ -136,26 +213,38 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
     }
 
     /* flow stuff */
-    fprintf(aft->file_ctx->fp, "FLOW:              to_server: %s, to_client %s\n",
+    fprintf(aft->file_ctx->fp, "FLOW:              to_server: %s, to_client: %s\n",
         p->flowflags & FLOW_PKT_TOSERVER ? "TRUE" : "FALSE",
         p->flowflags & FLOW_PKT_TOCLIENT ? "TRUE" : "FALSE");
 
-    PktVar *pv = PktVarGet(p,"http_host");
-    if (pv) {
-        fprintf(aft->file_ctx->fp, "PKTVAR:            %s\n", pv->name);
-        PrintRawDataFp(aft->file_ctx->fp, pv->value, pv->value_len);
+    if (p->flow != NULL) {
+        SCMutexLock(&p->flow->m);
+        CreateTimeString(&p->flow->startts, timebuf, sizeof(timebuf));
+        fprintf(aft->file_ctx->fp, "FLOW Start TS:     %s\n",timebuf);
+        fprintf(aft->file_ctx->fp, "FLOW PKTS TODST:   %"PRIu32"\n",p->flow->todstpktcnt);
+        fprintf(aft->file_ctx->fp, "FLOW PKTS TOSRC:   %"PRIu32"\n",p->flow->tosrcpktcnt);
+        fprintf(aft->file_ctx->fp, "FLOW Total Bytes:  %"PRIu64"\n",p->flow->bytecnt);
+        fprintf(aft->file_ctx->fp, "FLOW IPONLY SET:   TOSERVER: %s, TOCLIENT: %s\n",
+        p->flow->flags & FLOW_TOSERVER_IPONLY_SET ? "TRUE" : "FALSE",
+        p->flow->flags & FLOW_TOCLIENT_IPONLY_SET ? "TRUE" : "FALSE");
+        fprintf(aft->file_ctx->fp, "FLOW ACTION:       DROP: %s, PASS %s\n",
+        p->flow->flags & FLOW_ACTION_DROP ? "TRUE" : "FALSE",
+        p->flow->flags & FLOW_ACTION_PASS ? "TRUE" : "FALSE");
+        fprintf(aft->file_ctx->fp, "FLOW NOINSPECTION: PACKET: %s, PAYLOAD: %s, APP_LAYER: %s\n",
+        p->flow->flags & FLOW_NOPACKET_INSPECTION ? "TRUE" : "FALSE",
+        p->flow->flags & FLOW_NOPAYLOAD_INSPECTION ? "TRUE" : "FALSE",
+        p->flow->alflags & FLOW_AL_NO_APPLAYER_INSPECTION ? "TRUE" : "FALSE");
+        fprintf(aft->file_ctx->fp, "FLOW APP_LAYER:    DETECTED: %s, PROTO %"PRIu16"\n",
+        p->flow->alflags & FLOW_AL_PROTO_DETECT_DONE ? "TRUE" : "FALSE", p->flow->alproto);
+        AlertDebugLogFlowVars(aft, p);
+        AlertDebugLogFlowBits(aft, p);
+        SCMutexUnlock(&p->flow->m);
     }
 
-    pv = PktVarGet(p,"http_ua");
-    if (pv) {
-        fprintf(aft->file_ctx->fp, "PKTVAR:            %s\n", pv->name);
-        PrintRawDataFp(aft->file_ctx->fp, pv->value, pv->value_len);
-    }
+    AlertDebugLogPktVars(aft, p);
 
 /* any stuff */
 /* Sig details? */
-/* pkt vars */
-/* flowvars */
 
     aft->file_ctx->alerts += p->alerts.cnt;
 
@@ -193,6 +282,41 @@ TmEcode AlertDebugLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
         fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: fixme] [Priority: %" PRIu32 "] {%" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
             timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
     }
+
+    fprintf(aft->file_ctx->fp, "FLOW:              to_server: %s, to_client: %s\n",
+        p->flowflags & FLOW_PKT_TOSERVER ? "TRUE" : "FALSE",
+        p->flowflags & FLOW_PKT_TOCLIENT ? "TRUE" : "FALSE");
+
+    if (p->flow != NULL) {
+        SCMutexLock(&p->flow->m);
+        CreateTimeString(&p->flow->startts, timebuf, sizeof(timebuf));
+        fprintf(aft->file_ctx->fp, "FLOW Start TS:     %s\n",timebuf);
+        fprintf(aft->file_ctx->fp, "FLOW PKTS TODST:   %"PRIu32"\n",p->flow->todstpktcnt);
+        fprintf(aft->file_ctx->fp, "FLOW PKTS TOSRC:   %"PRIu32"\n",p->flow->tosrcpktcnt);
+        fprintf(aft->file_ctx->fp, "FLOW Total Bytes:  %"PRIu64"\n",p->flow->bytecnt);
+        fprintf(aft->file_ctx->fp, "FLOW IPONLY SET:   TOSERVER: %s, TOCLIENT: %s\n",
+        p->flow->flags & FLOW_TOSERVER_IPONLY_SET ? "TRUE" : "FALSE",
+        p->flow->flags & FLOW_TOCLIENT_IPONLY_SET ? "TRUE" : "FALSE");
+        fprintf(aft->file_ctx->fp, "FLOW ACTION:       DROP: %s, PASS %s\n",
+        p->flow->flags & FLOW_ACTION_DROP ? "TRUE" : "FALSE",
+        p->flow->flags & FLOW_ACTION_PASS ? "TRUE" : "FALSE");
+        fprintf(aft->file_ctx->fp, "FLOW NOINSPECTION: PACKET: %s, PAYLOAD: %s, APP_LAYER: %s\n",
+        p->flow->flags & FLOW_NOPACKET_INSPECTION ? "TRUE" : "FALSE",
+        p->flow->flags & FLOW_NOPAYLOAD_INSPECTION ? "TRUE" : "FALSE",
+        p->flow->alflags & FLOW_AL_NO_APPLAYER_INSPECTION ? "TRUE" : "FALSE");
+        fprintf(aft->file_ctx->fp, "FLOW APP_LAYER:    DETECTED: %s, PROTO %"PRIu16"\n",
+        p->flow->alflags & FLOW_AL_PROTO_DETECT_DONE ? "TRUE" : "FALSE", p->flow->alproto);
+        AlertDebugLogFlowVars(aft, p);
+        AlertDebugLogFlowBits(aft, p);
+        SCMutexUnlock(&p->flow->m);
+    }
+
+    AlertDebugLogPktVars(aft, p);
+
+    fprintf(aft->file_ctx->fp, "PACKET LEN:        %" PRIu32 "\n", p->pktlen);
+    fprintf(aft->file_ctx->fp, "PACKET:\n");
+    PrintRawDataFp(aft->file_ctx->fp, p->pkt, p->pktlen);
+
     fflush(aft->file_ctx->fp);
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
 

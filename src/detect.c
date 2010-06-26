@@ -3200,6 +3200,7 @@ void SigTableRegisterTests(void) {
 #ifdef UNITTESTS
 #include "flow-util.h"
 #include "stream-tcp-reassemble.h"
+#include "util-var-name.h"
 
 static const char *dummy_conf_string =
     "%YAML 1.1\n"

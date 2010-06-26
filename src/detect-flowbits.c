@@ -227,7 +227,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
         goto error;
 
     if (fb_name != NULL) {
-        cd->idx = VariableNameGetIdx(de_ctx,fb_name,DETECT_FLOWBITS);
+        cd->idx = VariableNameGetIdx(fb_name,DETECT_FLOWBITS);
     } else {
         cd->idx = 0;
     }
@@ -578,7 +578,7 @@ static int FlowBitsTestSig04(void) {
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"isset option\"; flowbits:isset,fbt; content:\"GET \"; sid:1;)");
 
-    idx = VariableNameGetIdx(de_ctx,"fbt",DETECT_FLOWBITS);
+    idx = VariableNameGetIdx("fbt",DETECT_FLOWBITS);
 
     if (s == NULL || idx != 1) {
         goto end;
@@ -747,7 +747,7 @@ static int FlowBitsTestSig06(void) {
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    idx = VariableNameGetIdx(de_ctx,"myflow",DETECT_FLOWBITS);
+    idx = VariableNameGetIdx("myflow",DETECT_FLOWBITS);
 
     gv = p.flow->flowvar;
 
@@ -848,7 +848,7 @@ static int FlowBitsTestSig07(void) {
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    idx = VariableNameGetIdx(de_ctx,"myflow",DETECT_FLOWBITS);
+    idx = VariableNameGetIdx("myflow",DETECT_FLOWBITS);
 
     gv = p.flow->flowvar;
 
@@ -952,7 +952,7 @@ static int FlowBitsTestSig08(void) {
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
 
-    idx = VariableNameGetIdx(de_ctx,"myflow",DETECT_FLOWBITS);
+    idx = VariableNameGetIdx("myflow",DETECT_FLOWBITS);
 
     gv = p.flow->flowvar;
 

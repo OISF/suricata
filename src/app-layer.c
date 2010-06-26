@@ -156,6 +156,7 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
                     FlowL7DataPtrInit(smsg->flow);
                     smsg->flow->alproto = alproto;
                     ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
+                    smsg->flow->alflags |= FLOW_AL_PROTO_DETECT_DONE;
 
                     r = AppLayerParse(smsg->flow, alproto, smsg->flow->alflags,
                             smsg->data.data, smsg->data.data_len);
@@ -163,12 +164,14 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
                     if (smsg->flags & STREAM_TOSERVER) {
                         if (smsg->data.data_len >= alp_proto_ctx.toserver.max_len) {
                             ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
+                            smsg->flow->alflags |= FLOW_AL_PROTO_DETECT_DONE;
                             SCLogDebug("ALPROTO_UNKNOWN flow %p", smsg->flow);
                             StreamTcpSetSessionNoReassemblyFlag(ssn, 0);
                         }
                     } else if (smsg->flags & STREAM_TOCLIENT) {
                         if (smsg->data.data_len >= alp_proto_ctx.toclient.max_len) {
                             ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
+                            smsg->flow->alflags |= FLOW_AL_PROTO_DETECT_DONE;
                             SCLogDebug("ALPROTO_UNKNOWN flow %p", smsg->flow);
                             StreamTcpSetSessionNoReassemblyFlag(ssn, 1);
                         }
