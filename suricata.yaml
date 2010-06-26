@@ -2,7 +2,8 @@
 ---
 
 # Number of packets allowed to be processed simultaneously.  Default is a
-# conservative 50.
+# conservative 50. a higher number will make sure CPU's/CPU cores will be
+# more easily kept busy, but will negatively impact caching.
 #max-pending-packets: 50
 
 # Set the order of alerts bassed on actions
@@ -22,24 +23,28 @@ default-log-dir: /var/log/suricata
 # Configure the type of alert (and other) logging you would like.
 outputs:
 
+  # a line based alerts log similar to Snort's fast.log
   - fast:
       enabled: yes
       filename: fast.log
 
+  # log output for use with Barnyard
   - unified-log:
-      enabled: yes
+      enabled: no
       filename: unified.log
 
       # Limit in MB.
       #limit: 32
 
+  # alert output for use with Barnyard
   - unified-alert:
-      enabled: yes
+      enabled: no
       filename: unified.alert
 
       # Limit in MB.
       #limit: 32
 
+  # alert output for use with Barnyard2
   - unified2-alert:
       enabled: yes
       filename: unified2.alert
@@ -47,14 +52,19 @@ outputs:
       # Limit in MB.
       #limit: 32
 
+  # a line based log of HTTP requests (no alerts)
   - http-log:
       enabled: yes
       filename: http.log
 
+  # a full alerts log containing much information for signature writers
+  # or for investigating suspected false positives.
   - alert-debug:
-      enabled: yes
+      enabled: no
       filename: alert-debug.log
 
+  # alert output to prelude (http://www.prelude-technologies.com/) only
+  # available if Suricata has been compiled with --enable-prelude
   - alert-prelude:
       enabled: no
       profile: suricata
