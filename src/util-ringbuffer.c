@@ -37,6 +37,7 @@
 #include "suricata.h"
 #include "util-ringbuffer.h"
 #include "util-atomic.h"
+#include "util-unittest.h"
 
 #define USLEEP_TIME 5
 
@@ -97,6 +98,36 @@ void RingBuffer8Shutdown(RingBuffer8 *rb) {
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
 #endif
+}
+
+/** \brief check the ringbuffer is empty (no data in it)
+ *
+ *  \param rb ringbuffer
+ *
+ *  \retval 1 empty
+ *  \retval 0 not empty
+ */
+int RingBuffer8IsEmpty(RingBuffer8 *rb) {
+    if (SC_ATOMIC_GET(rb->write) == SC_ATOMIC_GET(rb->read)) {
+        return 1;
+    }
+
+    return 0;
+}
+
+/** \brief check the ringbuffer is full (no more data will fit)
+ *
+ *  \param rb ringbuffer
+ *
+ *  \retval 1 empty
+ *  \retval 0 not empty
+ */
+int RingBuffer8IsFull(RingBuffer8 *rb) {
+    if ((unsigned char)(SC_ATOMIC_GET(rb->write) + 1) == SC_ATOMIC_GET(rb->read)) {
+        return 1;
+    }
+
+    return 0;
 }
 
 /** \brief tell the ringbuffer to shut down
@@ -762,5 +793,261 @@ retry:
     SCCondSignal(&rb->wait_cond);
 #endif
     return 0;
+}
+
+#ifdef UNITTESTS
+static int RingBuffer8SrSwInit01 (void) {
+    int result = 0;
+
+    RingBuffer8 *rb = NULL;
+
+    rb = RingBuffer8Init();
+    if (rb == NULL) {
+        printf("rb == NULL: ");
+        goto end;
+    }
+
+    int r = SCSpinLock(&rb->spin);
+    if (r != 0) {
+        printf("r = %d, expected %d: ", r, 0);
+        goto end;
+    }
+    SCSpinUnlock(&rb->spin);
+
+    if (SC_ATOMIC_GET(rb->read) != 0) {
+        printf("read %u, expected 0: ", SC_ATOMIC_GET(rb->read));
+        goto end;
+    }
+
+    if (SC_ATOMIC_GET(rb->write) != 0) {
+        printf("write %u, expected 0: ", SC_ATOMIC_GET(rb->write));
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (rb != NULL) {
+        RingBuffer8Destroy(rb);
+    }
+    return result;
+}
+
+static int RingBuffer8SrSwPut01 (void) {
+    int result = 0;
+
+    RingBuffer8 *rb = NULL;
+
+    rb = RingBuffer8Init();
+    if (rb == NULL) {
+        printf("rb == NULL: ");
+        goto end;
+    }
+
+    if (SC_ATOMIC_GET(rb->read) != 0) {
+        printf("read %u, expected 0: ", SC_ATOMIC_GET(rb->read));
+        goto end;
+    }
+
+    if (SC_ATOMIC_GET(rb->write) != 0) {
+        printf("write %u, expected 0: ", SC_ATOMIC_GET(rb->write));
+        goto end;
+    }
+
+    void *ptr = &result;
+
+    RingBufferSrSw8Put(rb, ptr);
+
+    if (SC_ATOMIC_GET(rb->read) != 0) {
+        printf("read %u, expected 0: ", SC_ATOMIC_GET(rb->read));
+        goto end;
+    }
+
+    if (SC_ATOMIC_GET(rb->write) != 1) {
+        printf("write %u, expected 1: ", SC_ATOMIC_GET(rb->write));
+        goto end;
+    }
+
+    if (rb->array[0] != ptr) {
+        printf("ptr is %p, expected %p: ", rb->array[0], ptr);
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (rb != NULL) {
+        RingBuffer8Destroy(rb);
+    }
+    return result;
+}
+
+static int RingBuffer8SrSwPut02 (void) {
+    int result = 0;
+    RingBuffer8 *rb = NULL;
+
+    int array[255];
+    int cnt = 0;
+    for (cnt = 0; cnt < 255; cnt++) {
+        array[cnt] = cnt;
+    }
+
+    rb = RingBuffer8Init();
+    if (rb == NULL) {
+        printf("rb == NULL: ");
+        goto end;
+    }
+
+    for (cnt = 0; cnt < 255; cnt++) {
+        RingBufferSrSw8Put(rb, (void *)&array[cnt]);
+
+        if (SC_ATOMIC_GET(rb->read) != 0) {
+            printf("read %u, expected 0: ", SC_ATOMIC_GET(rb->read));
+            goto end;
+        }
+
+        if (SC_ATOMIC_GET(rb->write) != (unsigned char)(cnt+1)) {
+            printf("write %u, expected %u: ", SC_ATOMIC_GET(rb->write), (unsigned char)(cnt+1));
+            goto end;
+        }
+
+        if (rb->array[cnt] != (void *)&array[cnt]) {
+            printf("ptr is %p, expected %p: ", rb->array[cnt], (void *)&array[cnt]);
+            goto end;
+        }
+    }
+
+    if (!(RingBuffer8IsFull(rb))) {
+        printf("ringbuffer should be full, isn't: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (rb != NULL) {
+        RingBuffer8Destroy(rb);
+    }
+    return result;
+}
+
+static int RingBuffer8SrSwGet01 (void) {
+    int result = 0;
+
+    RingBuffer8 *rb = NULL;
+
+    rb = RingBuffer8Init();
+    if (rb == NULL) {
+        printf("rb == NULL: ");
+        goto end;
+    }
+
+    void *ptr = &result;
+
+    RingBufferSrSw8Put(rb, ptr);
+    void *ptr2 = RingBufferSrSw8Get(rb);
+
+    if (ptr != ptr2) {
+        printf("ptr %p != ptr2 %p: ", ptr, ptr2);
+        goto end;
+    }
+
+    if (SC_ATOMIC_GET(rb->read) != 1) {
+        printf("read %u, expected 1: ", SC_ATOMIC_GET(rb->read));
+        goto end;
+    }
+
+    if (SC_ATOMIC_GET(rb->write) != 1) {
+        printf("write %u, expected 1: ", SC_ATOMIC_GET(rb->write));
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (rb != NULL) {
+        RingBuffer8Destroy(rb);
+    }
+    return result;
+}
+
+static int RingBuffer8SrSwGet02 (void) {
+    int result = 0;
+    RingBuffer8 *rb = NULL;
+
+    int array[255];
+    int cnt = 0;
+    for (cnt = 0; cnt < 255; cnt++) {
+        array[cnt] = cnt;
+    }
+
+    rb = RingBuffer8Init();
+    if (rb == NULL) {
+        printf("rb == NULL: ");
+        goto end;
+    }
+
+    for (cnt = 0; cnt < 255; cnt++) {
+        RingBufferSrSw8Put(rb, (void *)&array[cnt]);
+
+        if (SC_ATOMIC_GET(rb->read) != 0) {
+            printf("read %u, expected 0: ", SC_ATOMIC_GET(rb->read));
+            goto end;
+        }
+
+        if (SC_ATOMIC_GET(rb->write) != (unsigned char)(cnt+1)) {
+            printf("write %u, expected %u: ", SC_ATOMIC_GET(rb->write), (unsigned char)(cnt+1));
+            goto end;
+        }
+
+        if (rb->array[cnt] != (void *)&array[cnt]) {
+            printf("ptr is %p, expected %p: ", rb->array[cnt], (void *)&array[cnt]);
+            goto end;
+        }
+    }
+
+    if (!(RingBuffer8IsFull(rb))) {
+        printf("ringbuffer should be full, isn't: ");
+        goto end;
+    }
+
+    for (cnt = 0; cnt < 255; cnt++) {
+        void *ptr = RingBufferSrSw8Get(rb);
+
+        if (SC_ATOMIC_GET(rb->read) != (unsigned char)(cnt+1)) {
+            printf("read %u, expected %u: ", SC_ATOMIC_GET(rb->read), (unsigned char)(cnt+1));
+            goto end;
+        }
+
+        if (SC_ATOMIC_GET(rb->write) != 255) {
+            printf("write %u, expected %u: ", SC_ATOMIC_GET(rb->write), 255);
+            goto end;
+        }
+
+        if (ptr != (void *)&array[cnt]) {
+            printf("ptr is %p, expected %p: ", ptr, (void *)&array[cnt]);
+            goto end;
+        }
+    }
+
+    if (!(RingBuffer8IsEmpty(rb))) {
+        printf("ringbuffer should be empty, isn't: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (rb != NULL) {
+        RingBuffer8Destroy(rb);
+    }
+    return result;
+}
+
+#endif /* UNITTESTS */
+
+void DetectRingBufferRegisterTests(void) {
+#ifdef UNITTESTS /* UNITTESTS */
+    UtRegisterTest("RingBuffer8SrSwInit01", RingBuffer8SrSwInit01, 1);
+    UtRegisterTest("RingBuffer8SrSwPut01", RingBuffer8SrSwPut01, 1);
+    UtRegisterTest("RingBuffer8SrSwPut02", RingBuffer8SrSwPut02, 1);
+    UtRegisterTest("RingBuffer8SrSwGet01", RingBuffer8SrSwGet01, 1);
+    UtRegisterTest("RingBuffer8SrSwGet02", RingBuffer8SrSwGet02, 1);
+#endif /* UNITTESTS */
 }
 

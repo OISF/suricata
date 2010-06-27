@@ -139,6 +139,8 @@
 
 #include "tmqh-packetpool.h"
 
+#include "util-ringbuffer.h"
+
 /*
  * we put this here, because we only use it here in main.
  */
@@ -886,6 +888,7 @@ int main(int argc, char **argv)
         SCProfilingRegisterTests();
 #endif
         DeStateRegisterTests();
+        DetectRingBufferRegisterTests();
         if (list_unittests) {
             UtListTests(regex_arg);
         }

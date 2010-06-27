@@ -130,5 +130,7 @@ int RingBufferMrMwPut(RingBuffer16 *, void *);
 void *RingBufferSrMw8Get(RingBuffer8 *);
 int RingBufferSrMw8Put(RingBuffer8 *, void *);
 
+void DetectRingBufferRegisterTests(void);
+
 #endif /* __UTIL_RINGBUFFER_H__ */
 
