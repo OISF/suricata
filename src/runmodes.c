@@ -2511,7 +2511,7 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx, char *file) {
         char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
 
-        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name, qname, "flow","alert-queue1","ringbuffer","varslot");
+        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name, qname, "flow","alert-queue1","ringbuffer_srmw","varslot");
         if (tv_detect_ncpu == NULL) {
             printf("ERROR: TmThreadsCreate failed\n");
             exit(EXIT_FAILURE);
@@ -2562,7 +2562,7 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx, char *file) {
     }
 
     ThreadVars *tv_outputs = TmThreadCreatePacketHandler("Outputs",
-        "alert-queue1", "ringbuffer", "packetpool", "packetpool", "varslot");
+        "alert-queue1", "ringbuffer_srmw", "packetpool", "packetpool", "varslot");
     SetupOutputs(tv_outputs);
 
     if (threading_set_cpu_affinity) {
