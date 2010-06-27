@@ -489,7 +489,7 @@ SigMatch *SigMatchGetLastSMFromLists(Signature *s, int args, ...)
 
     SigMatch *sm[list_index];
     int sm_entries = 0;
-    for (i = 0; sm_entries < list_index; i++) {
+    for (i = 0; i < list_index; i++) {
         sm[sm_entries] = SigMatchGetLastSM(sm_list[i], sm_type[i]);
         if (sm[sm_entries] != NULL)
             sm_entries++;
