@@ -50,7 +50,9 @@ AC_INIT(configure.in)
             CFLAGS="$CFLAGS -W"
     fi
 
-    CFLAGS="$CFLAGS -Wall -fno-strict-aliasing"
+    # remove optimization options that break our code
+    # VJ 2010/06/27: no-tree-pre added. It breaks ringbuffers code.
+    CFLAGS="$CFLAGS -Wall -fno-strict-aliasing -fno-tree-pre"
     CFLAGS="$CFLAGS -Wno-unused-parameter"
     CFLAGS="$CFLAGS -std=gnu99"
 
