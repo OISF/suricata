@@ -71,7 +71,7 @@ static int DetectAckMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     DetectAckData *data = (DetectAckData *)m->ctx;
 
     /* This is only needed on TCP packets */
-    if (IPPROTO_TCP != p->proto) {
+    if (!(PKT_IS_TCP(p))) {
         return 0;
     }
 

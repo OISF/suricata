@@ -72,7 +72,7 @@ static int DetectSeqMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     DetectSeqData *data = (DetectSeqData *)m->ctx;
 
     /* This is only needed on TCP packets */
-    if (IPPROTO_TCP != p->proto) {
+    if (!(PKT_IS_TCP(p))) {
         return 0;
     }
 

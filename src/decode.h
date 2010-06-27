@@ -471,7 +471,12 @@ typedef struct DecodeThreadVars_
  *  \todo the mutex destroy & init is necessary because of the memset, reconsider
  */
 #define PACKET_RECYCLE(p) do {                  \
-        (p)->recursion_level = 0; \
+        CLEAR_ADDR(&(p)->src);                   \
+        CLEAR_ADDR(&(p)->dst);                   \
+        (p)->sp = 0;                            \
+        (p)->dp = 0;                            \
+        (p)->proto = 0;                         \
+        (p)->recursion_level = 0;               \
         (p)->flags = 0; \
         (p)->flowflags = 0; \
         (p)->flow = NULL; \
