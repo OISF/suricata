@@ -390,6 +390,7 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
     SigIntId cnt = 0;
     SigIntId store_cnt = 0;
     DeStateStore *store = NULL;
+    int match = 0;
     char umatch = 0;
     char uinspect = 0;
     char dmatch = 0;
@@ -422,6 +423,7 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
             dinspect = 0;
             appinspect = 0;
             appmatch = 0;
+            match = 0;
 
             SCLogDebug("internal id of signature to inspect: %"PRIuMAX,
                     (uintmax_t)item->sid);
@@ -483,7 +485,6 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
             /* next, check the other sig matches */
             if (item->nm != NULL) {
                 SigMatch *sm;
-                int match = 0;
                 for (sm = item->nm; sm != NULL; sm = sm->next) {
                     match = sigmatch_table[sm->type].AppLayerMatch(tv,
                             det_ctx, f, flags, alstate, s, sm);
