@@ -546,7 +546,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
     /* now determine which one to add to the mpm phase */
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
         Signature *s = sgh->match_array[sig];
-        if (s == NULL)
+        if (s == NULL || s->pmatch == NULL)
             continue;
 
         ContentHash *mpm_ch = NULL;
@@ -602,6 +602,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                 ContentHashFree(ch);
             }
         }
+
         /* now add the mpm_ch to the mpm ctx */
         if (mpm_ch != NULL) {
             DetectContentData *co = mpm_ch->ptr;
@@ -610,9 +611,26 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
             offset = mpm_ch->cnt ? 0 : offset;
             depth = mpm_ch->cnt ? 0 : depth;
             uint8_t flags = 0;
-
             char scan_packet = 0;
             char scan_stream = 0;
+            char scan_negated = 0;
+
+            SigMatch *tmpsm = s->pmatch;
+            for ( ; tmpsm != NULL; tmpsm = tmpsm->next) {
+                if (tmpsm->type != DETECT_CONTENT)
+                    continue;
+
+                DetectContentData *tmp = (DetectContentData *)tmpsm->ctx;
+                if (tmp == NULL)
+                    continue;
+
+                if (co->id == tmp->id) {
+                    if (tmp->flags & DETECT_CONTENT_NEGATED) {
+                        scan_negated = 1;
+                    }
+                    break;
+                }
+            }
 
             if (s->flags & SIG_FLAG_DSIZE) {
                 scan_packet = 1;
@@ -647,6 +665,10 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
             }
 
             s->mpm_pattern_id = co->id;
+            if (scan_negated) {
+                SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
+                s->flags |= SIG_FLAG_MPM_NEGCONTENT;
+            }
 
             SCLogDebug("%"PRIu32" adding co->id %"PRIu32" to the mpm phase (s->num %"PRIu32")", s->id, co->id, s->num);
         } else {

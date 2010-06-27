@@ -1060,10 +1060,6 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
                 continue;
 
             sig->flags |= SIG_FLAG_MPM;
-
-            if (cd->flags & DETECT_CONTENT_NEGATED) {
-                sig->flags |= SIG_FLAG_MPM_NEGCONTENT;
-            }
         }
     }
     for (sm = sig->umatch; sm != NULL; sm = sm->next) {
@@ -1194,13 +1190,8 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
                 continue;
 
             sig->flags |= SIG_FLAG_MPM;
-
-            if (cd->flags & DETECT_CONTENT_NEGATED) {
-                sig->flags |= SIG_FLAG_MPM_NEGCONTENT;
-            }
         }
     }
-
     for (sm = sig->umatch; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_URICONTENT) {
             DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;

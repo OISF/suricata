@@ -234,6 +234,7 @@ DetectUricontentData *DoDetectUricontentSetup (char * contentstr)
     char converted = 0;
 
     {
+        uint8_t escape = 0;
         uint16_t i, x;
         uint8_t bin = 0, binstr[3] = "", binpos = 0;
         for (i = 0, x = 0; i < len; i++) {
@@ -244,6 +245,8 @@ DetectUricontentData *DoDetectUricontentSetup (char * contentstr)
                 } else {
                     bin = 1;
                 }
+            } else if(!escape && str[i] == '\\') {
+                escape = 1;
             } else {
                 if (bin) {
                     if (isdigit(str[i]) ||
@@ -269,6 +272,20 @@ DetectUricontentData *DoDetectUricontentSetup (char * contentstr)
                     } else if (str[i] == ' ') {
                         SCLogDebug("space as part of binary string");
                     }
+                } else if (escape) {
+                    if (str[i] == ':' ||
+                        str[i] == ';' ||
+                        str[i] == '\\' ||
+                        str[i] == '\"')
+                    {
+                        str[x] = str[i];
+                        x++;
+                    } else {
+                        //SCLogDebug("Can't escape %c", str[i]);
+                        goto error;
+                    }
+                    escape = 0;
+                    converted = 1;
                 } else {
                     str[x] = str[i];
                     x++;

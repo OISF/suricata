@@ -464,20 +464,24 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         }
 
         /* check for a pattern match of the one pattern in this sig. */
-        if (s->flags & SIG_FLAG_MPM && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
+        if (s->flags & SIG_FLAG_MPM) {
             /* filter out sigs that want pattern matches, but
              * have no matches */
             if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8)))) {
                 SCLogDebug("mpm sig without matches (pat id %"PRIu32" check in content).", s->mpm_pattern_id);
 
-                /* pattern didn't match. There is one case where we will inspect
-                 * the signature anyway: if the packet payload was added to the
-                 * stream it is not scanned itself: the stream data is inspected.
-                 * Inspecting both would result in duplicated alerts. There is
-                 * one case where we are going to inspect the packet payload
-                 * anyway: if a signature has the dsize option. */
-                if (!((p->flags & PKT_STREAM_ADD) && (s->flags & SIG_FLAG_DSIZE))) {
-                    continue;
+                if (!(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
+                    /* pattern didn't match. There is one case where we will inspect
+                     * the signature anyway: if the packet payload was added to the
+                     * stream it is not scanned itself: the stream data is inspected.
+                     * Inspecting both would result in duplicated alerts. There is
+                     * one case where we are going to inspect the packet payload
+                     * anyway: if a signature has the dsize option. */
+                    if (!((p->flags & PKT_STREAM_ADD) && (s->flags & SIG_FLAG_DSIZE))) {
+                        continue;
+                    }
+                } else {
+                    SCLogDebug("but thats okay, we are looking for neg-content");
                 }
             }
         }
@@ -852,31 +856,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
 
-        SCLogDebug("s->amatch %p, s->umatch %p, s->dmatch %p",
-                s->amatch, s->umatch, s->dmatch);
-
-        if (s->amatch != NULL || s->umatch != NULL || s->dmatch != NULL) {
-            if (alstate == NULL) {
-                SCLogDebug("state matches but no state, we can't match");
-                goto next;
-            }
-
-            if (de_state_start == TRUE) {
-                SCLogDebug("stateful app layer match inspection starting");
-                if (DeStateDetectStartDetection(th_v, de_ctx, det_ctx, s,
-                            p->flow, flags, alstate, alproto) != 1)
-                    goto next;
-            } else {
-                SCLogDebug("signature %"PRIu32" (%"PRIuMAX"): %s",
-                        s->id, (uintmax_t)s->num, DeStateMatchResultToString(det_ctx->de_state_sig_array[s->num]));
-                if (det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NEW) {
-                    if (s->pmatch == NULL && s->dmatch == NULL) {
-                        goto next;
-                    }
-                }
-            }
-        }
-
         if (s->flags & SIG_FLAG_DSIZE && s->dsize_sm != NULL) {
             if (sigmatch_table[DETECT_DSIZE].Match(th_v, det_ctx, p, s, s->dsize_sm) == 0)
                 continue;
@@ -924,6 +903,31 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             } else {
                 if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
                     goto next;
+            }
+        }
+
+        SCLogDebug("s->amatch %p, s->umatch %p, s->dmatch %p",
+                s->amatch, s->umatch, s->dmatch);
+
+        if (s->amatch != NULL || s->umatch != NULL || s->dmatch != NULL) {
+            if (alstate == NULL) {
+                SCLogDebug("state matches but no state, we can't match");
+                goto next;
+            }
+
+            if (de_state_start == TRUE) {
+                SCLogDebug("stateful app layer match inspection starting");
+                if (DeStateDetectStartDetection(th_v, de_ctx, det_ctx, s,
+                            p->flow, flags, alstate, alproto) != 1)
+                    goto next;
+            } else {
+                SCLogDebug("signature %"PRIu32" (%"PRIuMAX"): %s",
+                        s->id, (uintmax_t)s->num, DeStateMatchResultToString(det_ctx->de_state_sig_array[s->num]));
+                if (det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NEW) {
+                    if (s->pmatch == NULL && s->dmatch == NULL) {
+                        goto next;
+                    }
+                }
             }
         }
 
