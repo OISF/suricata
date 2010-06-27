@@ -416,7 +416,9 @@ void *TmThreadsSlot1(void *td) {
             while (s->s.slot_pre_pq.len > 0) {
                 /* handle new packets from this func */
                 Packet *extra_p = PacketDequeue(&s->s.slot_pre_pq);
-                tv->tmqh_out(tv, extra_p);
+                if (extra_p != NULL) {
+                    tv->tmqh_out(tv, extra_p);
+                }
             }
 
             /* output the packet */
@@ -425,7 +427,9 @@ void *TmThreadsSlot1(void *td) {
             while (s->s.slot_post_pq.len > 0) {
                 /* handle new packets from this func */
                 Packet *extra_p = PacketDequeue(&s->s.slot_post_pq);
-                tv->tmqh_out(tv, extra_p);
+                if (extra_p != NULL) {
+                    tv->tmqh_out(tv, extra_p);
+                }
             }
         }
 
@@ -479,6 +483,8 @@ static inline TmEcode TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *sl
         /* handle new packets */
         while (s->slot_pre_pq.len > 0) {
             Packet *extra_p = PacketDequeue(&s->slot_pre_pq);
+            if (extra_p == NULL)
+                continue;
 
             /* see if we need to process the packet */
             if (s->slot_next != NULL) {
@@ -568,6 +574,8 @@ void *TmThreadsSlotVar(void *td) {
             /* now handle the post_pq packets */
             while (s->s->slot_post_pq.len > 0) {
                 Packet *extra_p = PacketDequeue(&s->s->slot_post_pq);
+                if (extra_p == NULL)
+                    continue;
 
                 if (s->s->slot_next != NULL) {
                     r = TmThreadsSlotVarRun(tv, extra_p, s->s->slot_next);
