@@ -29,7 +29,7 @@
 
 void PacketAlertFinalize(DetectEngineCtx *, DetectEngineThreadCtx *, Packet *);
 int PacketAlertAppend(DetectEngineThreadCtx *, Signature *, Packet *);
-int PacketAlertAppendTag(DetectEngineThreadCtx *, Packet *);
+int PacketAlertAppendTag(Packet *, PacketAlert *);
 int PacketAlertCheck(Packet *, uint32_t);
 int PacketAlertRemove(Packet *, uint16_t);
 

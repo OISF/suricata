@@ -186,10 +186,15 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
 {
     AlertUnifiedLogThread *aun = (AlertUnifiedLogThread *)data;
     AlertUnifiedLogPacketHeader hdr;
+    PacketAlert pa_tag;
+    PacketAlert *pa;
     int ret;
     uint8_t ethh_offset = 0;
     uint8_t buf[80000];
     uint32_t buflen = 0;
+
+    if (p->flags & PKT_HAS_TAG)
+        PacketAlertAppendTag(p, &pa_tag);
 
     /* the unified1 format only supports IPv4. */
     if (p->alerts.cnt == 0 || !PKT_IS_IPV4(p))
@@ -211,8 +216,14 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
 
 
     uint16_t i = 0;
-    for (; i < p->alerts.cnt; i++) {
-        PacketAlert *pa = &p->alerts.alerts[i];
+    for (; i < p->alerts.cnt + 1; i++) {
+        if (i < p->alerts.cnt)
+            pa = &p->alerts.alerts[i];
+        else
+            if (p->flags & PKT_HAS_TAG)
+                pa = &pa_tag;
+            else
+                break;
 
         /* fill the hdr structure with the data of the alert */
         hdr.sig_gen = pa->gid;

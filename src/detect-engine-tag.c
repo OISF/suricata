@@ -26,12 +26,17 @@
 
 #include "suricata-common.h"
 #include "util-hash.h"
+#include "util-atomic.h"
 #include "util-time.h"
 #include "util-hashlist.h"
 #include "detect-engine-tag.h"
 #include "detect-tag.h"
 
 static void TagTimeoutRemove(DetectTagHostCtx *tag_ctx, struct timeval *tv);
+
+SC_ATOMIC_DECLARE(unsigned int, num_tags);  /**< Atomic counter, to know if we
+                                                have tagged hosts/sessions,
+                                                to avoid locking */
 
 /* Global Ctx for tagging hosts */
 DetectTagHostCtx *tag_ctx = NULL;
@@ -114,6 +119,7 @@ void TagInitCtx(void) {
     }
 
     TagHashInit(tag_ctx);
+    SC_ATOMIC_INIT(num_tags);
 }
 
 /**
@@ -131,6 +137,7 @@ void TagDestroyCtx(void)
     tag_ctx->tag_hash_table_ipv6 = NULL;
 
     SCMutexDestroy(&tag_ctx->lock);
+    SC_ATOMIC_DESTROY(num_tags);
 
     SCFree(tag_ctx);
     tag_ctx = NULL;
@@ -322,6 +329,11 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
     DetectTagDataEntry *iter = NULL;
     DetectTagDataEntryList tdl;
 
+    unsigned int current_tags = SC_ATOMIC_GET(num_tags);
+    /* If there's no tag, get out of here */
+    if (current_tags == 0)
+        return;
+
     uint8_t flag_added = 0;
     struct timeval ts = { 0, 0 };
     TimeGet(&ts);
@@ -351,18 +363,19 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                                     prev->next = iter->next;
                                     iter = iter->next;
                                     SCFree(tde);
+                                    SC_ATOMIC_SUB(num_tags, 1);
                                     continue;
                                 } else {
                                     p->flow->tag_list->header_entry = iter->next;
                                     tde = iter;
                                     iter = iter->next;
                                     SCFree(tde);
+                                    SC_ATOMIC_SUB(num_tags, 1);
                                     continue;
                                 }
                             } else if (flag_added == 0) {
                                 /* It's matching the tag. Add it to be logged and
                                  * update "flag_added" to add the packet once. */
-                                PacketAlertAppendTag(det_ctx, p);
                                 p->flags |= PKT_HAS_TAG;
                                 flag_added++;
                             }
@@ -375,18 +388,19 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                                     prev->next = iter->next;
                                     iter = iter->next;
                                     SCFree(tde);
+                                    SC_ATOMIC_SUB(num_tags, 1);
                                     continue;
                                 } else {
                                     p->flow->tag_list->header_entry = iter->next;
                                     tde = iter;
                                     iter = iter->next;
                                     SCFree(tde);
+                                    SC_ATOMIC_SUB(num_tags, 1);
                                     continue;
                                 }
                             } else if (flag_added == 0) {
                                 /* It's matching the tag. Add it to be logged and
                                  * update "flag_added" to add the packet once. */
-                                PacketAlertAppendTag(det_ctx, p);
                                 p->flags |= PKT_HAS_TAG;
                                 flag_added++;
                             }
@@ -401,18 +415,19 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                                     prev->next = iter->next;
                                     iter = iter->next;
                                     SCFree(tde);
+                                    SC_ATOMIC_SUB(num_tags, 1);
                                     continue;
                                 } else {
                                     p->flow->tag_list->header_entry = iter->next;
                                     tde = iter;
                                     iter = iter->next;
                                     SCFree(tde);
+                                    SC_ATOMIC_SUB(num_tags, 1);
                                     continue;
                                 }
                             } else if (flag_added == 0) {
                                 /* It's matching the tag. Add it to be logged and
                                  * update "flag_added" to add the packet once. */
-                                PacketAlertAppendTag(det_ctx, p);
                                 p->flags |= PKT_HAS_TAG;
                                 flag_added++;
                             }
@@ -487,13 +502,13 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                             tde = iter;
                             iter = iter->next;
                             SCFree(tde);
+                            SC_ATOMIC_SUB(num_tags, 1);
                             tde_src->header_entry = NULL;
                             continue;
                         }
                     } else if (flag_added == 0) {
                             /* It's matching the tag. Add it to be logged and
                              * update "flag_added" to add the packet once. */
-                            PacketAlertAppendTag(det_ctx, p);
                             p->flags |= PKT_HAS_TAG;
                             flag_added++;
                     }
@@ -511,13 +526,13 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                             tde = iter;
                             iter = iter->next;
                             SCFree(tde);
+                            SC_ATOMIC_SUB(num_tags, 1);
                             tde_src->header_entry = NULL;
                             continue;
                         }
                     } else if (flag_added == 0) {
                             /* It's matching the tag. Add it to be logged and
                              * update "flag_added" to add the packet once. */
-                            PacketAlertAppendTag(det_ctx, p);
                             p->flags |= PKT_HAS_TAG;
                             flag_added++;
                     }
@@ -537,13 +552,13 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                             tde = iter;
                             iter = iter->next;
                             SCFree(tde);
+                            SC_ATOMIC_SUB(num_tags, 1);
                             tde_src->header_entry = NULL;
                             continue;
                         }
                     } else if (flag_added == 0) {
                             /* It's matching the tag. Add it to be logged and
                              * update "flag_added" to add the packet once. */
-                            PacketAlertAppendTag(det_ctx, p);
                             p->flags |= PKT_HAS_TAG;
                             flag_added++;
                     }
@@ -582,13 +597,13 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                             tde = iter;
                             iter = iter->next;
                             SCFree(tde);
+                            SC_ATOMIC_SUB(num_tags, 1);
                             tde_dst->header_entry = NULL;
                             continue;
                         }
                     } else if (flag_added == 0) {
                         /* It's matching the tag. Add it to be logged and
                          * update "flag_added" to add the packet once. */
-                        PacketAlertAppendTag(det_ctx, p);
                         p->flags |= PKT_HAS_TAG;
                         flag_added++;
                     }
@@ -606,13 +621,13 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                             tde = iter;
                             iter = iter->next;
                             SCFree(tde);
+                            SC_ATOMIC_SUB(num_tags, 1);
                             tde_dst->header_entry = NULL;
                             continue;
                         }
                     }  else if (flag_added == 0) {
                         /* It's matching the tag. Add it to be logged and
                          * update "flag_added" to add the packet once. */
-                        PacketAlertAppendTag(det_ctx, p);
                         p->flags |= PKT_HAS_TAG;
                         flag_added++;
                     }
@@ -632,13 +647,13 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                             tde = iter;
                             iter = iter->next;
                             SCFree(tde);
+                            SC_ATOMIC_SUB(num_tags, 1);
                             tde_dst->header_entry = NULL;
                             continue;
                         }
                     } else if (flag_added == 0) {
                         /* It's matching the tag. Add it to be logged and
                          * update "flag_added" to add the packet once. */
-                        PacketAlertAppendTag(det_ctx, p);
                         p->flags |= PKT_HAS_TAG;
                         flag_added++;
                     }
@@ -696,6 +711,7 @@ static void TagTimeoutRemove(DetectTagHostCtx *tag_ctx, struct timeval *tv)
                     tmp = tmp->next;
 
                     SCFree(tde);
+                    SC_ATOMIC_SUB(num_tags, 1);
                 } else {
                     tdl->header_entry = tmp->next;
 
@@ -703,6 +719,7 @@ static void TagTimeoutRemove(DetectTagHostCtx *tag_ctx, struct timeval *tv)
                     tmp = tmp->next;
 
                     SCFree(tde);
+                    SC_ATOMIC_SUB(num_tags, 1);
                 }
             }
         }
@@ -734,6 +751,7 @@ static void TagTimeoutRemove(DetectTagHostCtx *tag_ctx, struct timeval *tv)
                     tmp = tmp->next;
 
                     SCFree(tde);
+                    SC_ATOMIC_SUB(num_tags, 1);
                 } else {
                     tdl->header_entry = tmp->next;
 
@@ -741,6 +759,7 @@ static void TagTimeoutRemove(DetectTagHostCtx *tag_ctx, struct timeval *tv)
                     tmp = tmp->next;
 
                     SCFree(tde);
+                    SC_ATOMIC_SUB(num_tags, 1);
                 }
             }
         }

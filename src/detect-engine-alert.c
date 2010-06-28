@@ -170,50 +170,22 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p)
     return 0;
 }
 
-int PacketAlertAppendTag(DetectEngineThreadCtx *det_ctx, Packet *p)
+/**
+ * \brief Fill the data of a tagged packet to be logged by unified
+ */
+int PacketAlertAppendTag(Packet *p, PacketAlert *pa)
 {
-    int i = 0;
-
-    if (p->alerts.cnt == PACKET_ALERT_MAX)
-        return 0;
-
-    /* It should be usually the last, so check it before iterating */
-    if (p->alerts.cnt == 0) {
-        p->alerts.alerts[p->alerts.cnt].sid = TAG_SIG_ID;
-        p->alerts.alerts[p->alerts.cnt].gid = TAG_SIG_GEN;
-
-        p->alerts.alerts[p->alerts.cnt].num = TAG_SIG_ID;
-        p->alerts.alerts[p->alerts.cnt].order_id = 1000;
-        p->alerts.alerts[p->alerts.cnt].action = ACTION_ALERT;
-        p->alerts.alerts[p->alerts.cnt].rev = 1;
-        p->alerts.alerts[p->alerts.cnt].prio = 2;
-        p->alerts.alerts[p->alerts.cnt].msg = NULL;
-        p->alerts.alerts[p->alerts.cnt].class = 0;
-        p->alerts.alerts[p->alerts.cnt].class_msg = NULL;
-        p->alerts.alerts[p->alerts.cnt].references = NULL;
-    } else {
-        /* We need to make room for this s->num
-         (a bit ugly with mamcpy but we are planning changes here)*/
-        for (i = p->alerts.cnt - 1; i >= 0; i--) {
-            memcpy(&p->alerts.alerts[i + 1], &p->alerts.alerts[i], sizeof(PacketAlert));
-        }
-
-        i++; /* The right place to store the alert */
-
-        p->alerts.alerts[p->alerts.cnt].sid = TAG_SIG_ID;
-        p->alerts.alerts[p->alerts.cnt].gid = TAG_SIG_GEN;
-
-        p->alerts.alerts[p->alerts.cnt].num = TAG_SIG_ID;
-        p->alerts.alerts[p->alerts.cnt].order_id = 1000;
-        p->alerts.alerts[p->alerts.cnt].action = ACTION_ALERT;
-        p->alerts.alerts[p->alerts.cnt].rev = 1;
-        p->alerts.alerts[p->alerts.cnt].prio = 2;
-        p->alerts.alerts[p->alerts.cnt].msg = NULL;
-        p->alerts.alerts[p->alerts.cnt].class = 0;
-        p->alerts.alerts[p->alerts.cnt].class_msg = NULL;
-        p->alerts.alerts[p->alerts.cnt].references = NULL;
-    }
-    p->alerts.cnt++;
+        pa->sid = TAG_SIG_ID;
+        pa->gid = TAG_SIG_GEN;
+        pa->num = TAG_SIG_ID;
+        pa->order_id = 1000;
+        pa->action = ACTION_ALERT;
+        pa->rev = 1;
+        pa->prio = 2;
+        pa->msg = NULL;
+        pa->class = 0;
+        pa->class_msg = NULL;
+        pa->references = NULL;
 
     return 0;
 }

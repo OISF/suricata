@@ -291,6 +291,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
     AlertIPv6Unified2 phdr;
     Unified2AlertFileHeader hdr;
+    PacketAlert pa_tag;
     PacketAlert *pa;
     uint8_t ethh_offset = 0;
     int ret, len;
@@ -363,8 +364,18 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
             break;
     }
 
+    if (p->flags & PKT_HAS_TAG)
+        PacketAlertAppendTag(p, &pa_tag);
+
     uint16_t i = 0;
-    for (; i < p->alerts.cnt; i++) {
+    for (; i < p->alerts.cnt + 1; i++) {
+        if (i < p->alerts.cnt)
+            pa = &p->alerts.alerts[i];
+        else
+            if (p->flags & PKT_HAS_TAG)
+                pa = &pa_tag;
+            else
+                break;
         pa = &p->alerts.alerts[i];
 
         /* fill the header structure with the data of the alert */
@@ -425,6 +436,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     AlertIPv4Unified2 phdr;
     Unified2AlertFileHeader hdr;
     PacketAlert *pa;
+    PacketAlert pa_tag;
     uint8_t ethh_offset = 0;
     int ret, len;
     char write_buffer[sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv4Unified2)];
@@ -484,8 +496,18 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
             break;
     }
 
+    if (p->flags & PKT_HAS_TAG)
+        PacketAlertAppendTag(p, &pa_tag);
+
     uint16_t i = 0;
-    for (; i < p->alerts.cnt; i++) {
+    for (; i < p->alerts.cnt + 1; i++) {
+        if (i < p->alerts.cnt)
+            pa = &p->alerts.alerts[i];
+        else
+            if (p->flags & PKT_HAS_TAG)
+                pa = &pa_tag;
+            else
+                break;
         pa = &p->alerts.alerts[i];
         /* fill the hdr structure with the alert data */
         phdr.generator_id = htonl(pa->gid);
