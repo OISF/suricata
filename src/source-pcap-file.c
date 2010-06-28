@@ -160,24 +160,39 @@ TmEcode ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, 
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    /* make sure we have at least one packet in the packet pool, to prevent
-     * us from alloc'ing packets at line rate */
-    while (packet_q_len == 0) {
-        packet_q_len = PacketPoolSize();
-        if (packet_q_len == 0) {
-            PacketPoolWait();
-        }
-    }
-
-    if (postpq == NULL)
+    if (postpq == NULL) {
         pcap_max_read_packets = 1;
+    }
 
     ptv->array_idx = 0;
     ptv->in_p = p;
 
+    /* make sure we have at least one packet in the packet pool, to prevent
+     * us from alloc'ing packets at line rate */
+    do {
+        packet_q_len = PacketPoolSize();
+        if (packet_q_len == 0) {
+            PacketPoolWait();
+        }
+    } while (packet_q_len == 0);
+
     /* Right now we just support reading packets one at a time. */
     int r = pcap_dispatch(pcap_g.pcap_handle, (pcap_max_read_packets < packet_q_len) ? pcap_max_read_packets : packet_q_len,
             (pcap_handler)PcapFileCallback, (u_char *)ptv);
+    if (r < 0) {
+        SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s",
+                r, pcap_geterr(pcap_g.pcap_handle));
+
+        EngineStop();
+        SCReturnInt(TM_ECODE_FAILED);
+    } else if (r == 0) {
+        SCLogInfo("pcap file end of file reached (pcap err code %" PRId32 ")", r);
+
+        EngineStop();
+        ptv->done = 1;
+
+        /* fall through */
+    }
 
     uint16_t cnt = 0;
     for (cnt = 0; cnt < ptv->array_idx; cnt++) {
@@ -191,20 +206,6 @@ TmEcode ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, 
         } else {
             pp->pcap_cnt = pcap_g.cnt;
         }
-    }
-
-    if (r < 0) {
-        SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s",
-                r, pcap_geterr(pcap_g.pcap_handle));
-
-        EngineStop();
-        SCReturnInt(TM_ECODE_FAILED);
-    } else if (r == 0) {
-        SCLogInfo("pcap file end of file reached (pcap err code %" PRId32 ")", r);
-
-        EngineStop();
-        ptv->done = 1;
-        SCReturnInt(TM_ECODE_OK);
     }
 
     SCReturnInt(TM_ECODE_OK);

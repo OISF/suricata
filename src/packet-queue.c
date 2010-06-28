@@ -134,6 +134,9 @@ void PacketQueueValidate(PacketQueue *q) {
 void PacketEnqueue (PacketQueue *q, Packet *p) {
     //PacketQueueValidateDebug(q);
 
+    if (p == NULL)
+        return;
+
     /* more packets in queue */
     if (q->top != NULL) {
         p->prev = NULL;
@@ -164,6 +167,8 @@ Packet *PacketDequeue (PacketQueue *q) {
         return NULL;
     }
 
+    q->len--;
+
     /* pull the bottom packet from the queue */
     p = q->bot;
     /* Weird issue: sometimes it looks that two thread arrive
@@ -182,8 +187,6 @@ Packet *PacketDequeue (PacketQueue *q) {
         q->top = NULL;
         q->bot = NULL;
     }
-
-    q->len--;
 
     //PacketQueueValidateDebug(q);
     return p;
