@@ -2,7 +2,8 @@ noinst_HEADERS = action-globals.h \
     app-layer-nbss.h app-layer-dcerpc-common.h \
     debug.h decode-events.h \
 	flow-private.h queue.h source-nfq-prototypes.h \
-	suricata-common.h threadvars.h util-binsearch.h
+	suricata-common.h threadvars.h util-binsearch.h \
+    util-atomic.h util-validate.h
 bin_PROGRAMS = suricata
 suricata_SOURCES = suricata.c suricata.h \
 runmodes.c runmodes.h \
@@ -167,6 +168,7 @@ util-cuda-handlers.c util-cuda-handlers.h \
 util-privs.c util-privs.h \
 util-decode-asn1.c util-decode-asn1.h \
 util-ringbuffer.c util-ringbuffer.h \
+util-validate.h \
 tm-modules.c tm-modules.h \
 tm-queues.c tm-queues.h \
 tm-queuehandlers.c tm-queuehandlers.h \

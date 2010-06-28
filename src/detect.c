@@ -138,12 +138,12 @@
 #include "util-unittest-helper.h"
 #include "util-debug.h"
 #include "util-hashlist.h"
-
 #include "util-cuda-handlers.h"
 #include "util-mpm-b2g-cuda.h"
 #include "util-cuda.h"
 #include "util-privs.h"
 #include "util-profiling.h"
+#include "util-validate.h"
 
 SigMatch *SigMatchAlloc(void);
 void DetectExitPrintStats(ThreadVars *tv, void *data);
@@ -1084,6 +1084,8 @@ end:
  */
 TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
+    DEBUG_VALIDATE_PACKET(p);
+
     /* No need to perform any detection on this packet, if the the given flag is set.*/
     if (p->flags & PKT_NOPACKET_INSPECTION)
         return 0;
