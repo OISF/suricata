@@ -1388,7 +1388,7 @@ void SCRadixRemoveKeyIPV6(uint8_t *key_stream, SCRadixTree *tree)
  * \param prefix Pointer to the prefix that contains the ip address
  * \param node   Pointer to the node from where we have to climb the tree
  */
-static inline SCRadixNode *SCRadixFindKeyIPNetblock(SCRadixPrefix *prefix,
+static inline SCRadixNode *SCRadixFindKeyIPNetblock(uint8_t *key_stream, uint8_t key_bitlen,
                                                     SCRadixNode *node)
 {
     SCRadixNode *netmask_node = NULL;
@@ -1407,7 +1407,7 @@ static inline SCRadixNode *SCRadixFindKeyIPNetblock(SCRadixPrefix *prefix,
     netmask_node = node;
 
     for (j = 0; j < netmask_node->netmask_cnt; j++) {
-        bytes = prefix->bitlen / 8;
+        bytes = key_bitlen / 8;
         for (i = 0; i < bytes; i++) {
             mask = -1;
             if ( ((i + 1) * 8) > netmask_node->netmasks[j]) {
@@ -1416,11 +1416,11 @@ static inline SCRadixNode *SCRadixFindKeyIPNetblock(SCRadixPrefix *prefix,
                 else
                     mask = 0;
             }
-            prefix->stream[i] &= mask;
+            key_stream[i] &= mask;
         }
 
-        while (node->bit < prefix->bitlen) {
-            if (SC_RADIX_BITTEST(prefix->stream[node->bit >> 3],
+        while (node->bit < key_bitlen) {
+            if (SC_RADIX_BITTEST(key_stream[node->bit >> 3],
                                  (0x80 >> (node->bit % 8))) ) {
                 node = node->right;
             } else {
@@ -1431,21 +1431,21 @@ static inline SCRadixNode *SCRadixFindKeyIPNetblock(SCRadixPrefix *prefix,
                 return NULL;
         }
 
-        if (node->bit != prefix->bitlen || node->prefix == NULL)
+        if (node->bit != key_bitlen || node->prefix == NULL)
             return NULL;
 
-        if (memcmp(node->prefix->stream, prefix->stream, bytes) == 0) {
-            mask = -1 << (8 - prefix->bitlen % 8);
+        if (memcmp(node->prefix->stream, key_stream, bytes) == 0) {
+            mask = -1 << (8 - key_bitlen % 8);
 
-            if (prefix->bitlen % 8 == 0 ||
-                (node->prefix->stream[bytes] & mask) == (prefix->stream[bytes] & mask)) {
+            if (key_bitlen % 8 == 0 ||
+                (node->prefix->stream[bytes] & mask) == (key_stream[bytes] & mask)) {
                 if (SCRadixPrefixContainNetmaskAndSetUserData(node->prefix, netmask_node->netmasks[j], 0))
                     return node;
             }
         }
     }
 
-    return SCRadixFindKeyIPNetblock(prefix, netmask_node->parent);
+    return SCRadixFindKeyIPNetblock(key_stream, key_bitlen, netmask_node->parent);
 }
 
 /**
@@ -1464,15 +1464,18 @@ static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint16_t key_bitlen,
         return NULL;
 
     SCRadixNode *node = tree->head;
-    SCRadixPrefix *prefix = NULL;
     int mask = 0;
     int bytes = 0;
+    uint8_t tmp_stream[255];
 
-    if ( (prefix = SCRadixCreatePrefix(key_stream, key_bitlen, NULL, 255)) == NULL)
+    if (key_bitlen > 255)
         return NULL;
 
-    while (node->bit < prefix->bitlen) {
-        if (SC_RADIX_BITTEST(prefix->stream[node->bit >> 3],
+    memset(tmp_stream, 0, 255);
+    memcpy(tmp_stream, key_stream, key_bitlen / 8);
+
+    while (node->bit < key_bitlen) {
+        if (SC_RADIX_BITTEST(tmp_stream[node->bit >> 3],
                              (0x80 >> (node->bit % 8))) ) {
             node = node->right;
         } else {
@@ -1480,24 +1483,21 @@ static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint16_t key_bitlen,
         }
 
         if (node == NULL) {
-            SCRadixReleasePrefix(prefix, tree);
             return NULL;
         }
     }
 
-    if (node->bit != prefix->bitlen || node->prefix == NULL) {
-        SCRadixReleasePrefix(prefix, tree);
+    if (node->bit != key_bitlen || node->prefix == NULL) {
         return NULL;
     }
 
-    bytes = prefix->bitlen / 8;
-    if (memcmp(node->prefix->stream, prefix->stream, bytes) == 0) {
-        mask = -1 << (8 - prefix->bitlen % 8);
+    bytes = key_bitlen / 8;
+    if (memcmp(node->prefix->stream, tmp_stream, bytes) == 0) {
+        mask = -1 << (8 - key_bitlen % 8);
 
-        if (prefix->bitlen % 8 == 0 ||
-            (node->prefix->stream[bytes] & mask) == (prefix->stream[bytes] & mask)) {
+        if (key_bitlen % 8 == 0 ||
+            (node->prefix->stream[bytes] & mask) == (tmp_stream[bytes] & mask)) {
             if (SCRadixPrefixContainNetmaskAndSetUserData(node->prefix, key_bitlen, 1)) {
-                SCRadixReleasePrefix(prefix, tree);
                 return node;
             }
         }
@@ -1505,12 +1505,10 @@ static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint16_t key_bitlen,
 
     /* if you are not an ip key, get out of here */
     if (exact_match) {
-        SCRadixReleasePrefix(prefix, tree);
         return NULL;
     }
 
-    SCRadixNode *ret = SCRadixFindKeyIPNetblock(prefix, node);
-    SCRadixReleasePrefix(prefix, tree);
+    SCRadixNode *ret = SCRadixFindKeyIPNetblock(tmp_stream, key_bitlen, node);
     return ret;
 }
 
