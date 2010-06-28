@@ -1662,7 +1662,7 @@ static int FlowTest03 (void) {
     }
 
     SCSpinDestroy(&fb.s);
-    FLOW_DESTROY(&f);
+    //FLOW_DESTROY(&f);
     return 1;
 }
 
@@ -1713,7 +1713,7 @@ static int FlowTest04 (void) {
         return 0;
     }
     SCSpinDestroy(&fb.s);
-    FLOW_DESTROY(&f);
+    //FLOW_DESTROY(&f);
     return 1;
 
 }
@@ -1755,7 +1755,7 @@ static int FlowTest05 (void) {
     }
 
     SCSpinDestroy(&fb.s);
-    FLOW_DESTROY(&f);
+    //FLOW_DESTROY(&f);
     return 1;
 }
 
@@ -1808,7 +1808,7 @@ static int FlowTest06 (void) {
     }
 
     SCSpinDestroy(&fb.s);
-    FLOW_DESTROY(&f);
+    //FLOW_DESTROY(&f);
     return 1;
 
 }
