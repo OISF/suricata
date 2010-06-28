@@ -2078,7 +2078,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
 
     TimeModeSetLive();
     /* create the threads */
-    ThreadVars *tv_receivepcap = TmThreadCreatePacketHandler("ReceivePcap","packetpool","packetpool","pickup-queue","ringbuffer_srsw","1slot");
+    ThreadVars *tv_receivepcap = TmThreadCreatePacketHandler("ReceivePcap","packetpool","packetpool","pickup-queue","simple","1slot");
     if (tv_receivepcap == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(EXIT_FAILURE);
@@ -2101,7 +2101,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
         exit(EXIT_FAILURE);
     }
 
-    ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode1","pickup-queue","ringbuffer_srsw","decode-queue1","ringbuffer_srsw","1slot");
+    ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode1","pickup-queue","simple","decode-queue1","simple","1slot");
     if (tv_decode1 == NULL) {
         printf("ERROR: TmThreadsCreate failed for Decode1\n");
         exit(EXIT_FAILURE);
@@ -2124,7 +2124,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
         exit(EXIT_FAILURE);
     }
 
-    ThreadVars *tv_stream1 = TmThreadCreatePacketHandler("Stream1","decode-queue1","ringbuffer_srsw","stream-queue1","ringbuffer_mrsw","1slot");
+    ThreadVars *tv_stream1 = TmThreadCreatePacketHandler("Stream1","decode-queue1","simple","stream-queue1","simple","1slot");
     if (tv_stream1 == NULL) {
         printf("ERROR: TmThreadsCreate failed for Stream1\n");
         exit(EXIT_FAILURE);
@@ -2166,7 +2166,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
         char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
 
-        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"stream-queue1","ringbuffer_mrsw","verdict-queue","ringbuffer_srmw","1slot");
+        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"stream-queue1","simple","verdict-queue","simple","1slot");
         if (tv_detect_ncpu == NULL) {
             printf("ERROR: TmThreadsCreate failed\n");
             exit(EXIT_FAILURE);
@@ -2209,7 +2209,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
             cpu++;
     }
 
-    ThreadVars *tv_rreject = TmThreadCreatePacketHandler("RespondReject","verdict-queue","ringbuffer_srmw","alert-queue","ringbuffer_srsw","1slot");
+    ThreadVars *tv_rreject = TmThreadCreatePacketHandler("RespondReject","verdict-queue","simple","alert-queue","simple","1slot");
     if (tv_rreject == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(EXIT_FAILURE);
@@ -2233,7 +2233,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
     }
 
     ThreadVars *tv_outputs = TmThreadCreatePacketHandler("Outputs",
-        "alert-queue", "ringbuffer_srsw", "packetpool", "packetpool", "varslot");
+        "alert-queue", "simple", "packetpool", "packetpool", "varslot");
     SetupOutputs(tv_outputs);
 
     if (threading_set_cpu_affinity) {
@@ -2283,7 +2283,7 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
 
     /* create the threads */
     //ThreadVars *tv_receivepcap = TmThreadCreatePacketHandler("ReceivePcapFile","packetpool","packetpool","packetpool","packetpool","1slot");
-    ThreadVars *tv_receivepcap = TmThreadCreatePacketHandler("ReceivePcapFile","packetpool","packetpool","pickup-queue","ringbuffer_srsw","1slot");
+    ThreadVars *tv_receivepcap = TmThreadCreatePacketHandler("ReceivePcapFile","packetpool","packetpool","pickup-queue","simple","1slot");
     if (tv_receivepcap == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(EXIT_FAILURE);
@@ -2306,8 +2306,8 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
         exit(EXIT_FAILURE);
     }
 //#if 0
-    //ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode & Stream","pickup-queue","ringbuffer_srsw","packetpool","packetpool","varslot");
-    ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode & Stream","pickup-queue","ringbuffer_srsw","stream-queue1","ringbuffer_mrsw","varslot");
+    //ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode & Stream","pickup-queue","simple","packetpool","packetpool","varslot");
+    ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode & Stream","pickup-queue","simple","stream-queue1","simple","varslot");
     if (tv_decode1 == NULL) {
         printf("ERROR: TmThreadsCreate failed for Decode1\n");
         exit(EXIT_FAILURE);
@@ -2357,7 +2357,7 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
         char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
 
-        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"stream-queue1","ringbuffer_mrsw","alert-queue1","ringbuffer_srmw","1slot");
+        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"stream-queue1","simple","alert-queue1","simple","1slot");
         if (tv_detect_ncpu == NULL) {
             printf("ERROR: TmThreadsCreate failed\n");
             exit(EXIT_FAILURE);
@@ -2401,7 +2401,7 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
     }
 
     ThreadVars *tv_outputs = TmThreadCreatePacketHandler("Outputs",
-        "alert-queue1", "ringbuffer_srmw", "packetpool", "packetpool", "varslot");
+        "alert-queue1", "simple", "packetpool", "packetpool", "varslot");
     SetupOutputs(tv_outputs);
 
     if (threading_set_cpu_affinity) {
@@ -2511,7 +2511,7 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx, char *file) {
         char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
 
-        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name, qname, "flow","alert-queue1","ringbuffer_srmw","varslot");
+        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name, qname, "flow","alert-queue1","simple","varslot");
         if (tv_detect_ncpu == NULL) {
             printf("ERROR: TmThreadsCreate failed\n");
             exit(EXIT_FAILURE);
@@ -2562,7 +2562,7 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx, char *file) {
     }
 
     ThreadVars *tv_outputs = TmThreadCreatePacketHandler("Outputs",
-        "alert-queue1", "ringbuffer_srmw", "packetpool", "packetpool", "varslot");
+        "alert-queue1", "simple", "packetpool", "packetpool", "varslot");
     SetupOutputs(tv_outputs);
 
     if (threading_set_cpu_affinity) {
