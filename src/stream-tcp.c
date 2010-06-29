@@ -1871,9 +1871,9 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                            "%" PRIu32 ", ACK %" PRIu32 "", ssn, p->payload_len,
                             TCP_GET_SEQ(p), TCP_GET_ACK(p));
 
-                if (SEQ_LT(TCP_GET_SEQ(p), ssn->client.next_seq ||
+                if (SEQ_LT(TCP_GET_SEQ(p), ssn->client.next_seq) ||
                         SEQ_GT(TCP_GET_SEQ(p), (ssn->client.last_ack +
-                                                         ssn->client.window))))
+                                                         ssn->client.window)))
                 {
                     SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 ""
                                " != %" PRIu32 " from stream", ssn,
