@@ -153,7 +153,8 @@ static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
                 /* update offset with prev_offset if we're searching for
                  * matches after the first occurence. */
                 SCLogDebug("offset %"PRIu32", prev_offset %"PRIu32, offset, prev_offset);
-                offset += prev_offset;
+                if (prev_offset != 0)
+                    offset = prev_offset;
 
                 SCLogDebug("offset %"PRIu32", depth %"PRIu32, offset, depth);
 
@@ -178,6 +179,9 @@ static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
 
                 //PrintRawDataFp(stdout,cd->content,cd->content_len);
                 //PrintRawDataFp(stdout,spayload,spayload_len);
+
+                /* \todo Add another optimization here.  If cd->content_len is
+                 * greater than spayload_len found is anyways NULL */
 
                 /* do the actual search */
                 if (cd->flags & DETECT_CONTENT_NOCASE)
@@ -219,8 +223,7 @@ static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
                     }
 
                     /* set the previous match offset to the start of this match + 1 */
-                    prev_offset += (match_offset - (cd->content_len - 1));
-                    prev_offset -= (prev_payload_offset);
+                    prev_offset = (match_offset - (cd->content_len - 1));
                     SCLogDebug("trying to see if there is another match after prev_offset %"PRIu32, prev_offset);
                 }
 
@@ -510,6 +513,31 @@ end:
     return result;
 }
 
+/**
+ * \test Test multiple relative matches.
+ */
+static int PayloadTestSig07(void)
+{
+    uint8_t *buf = (uint8_t *)"         thus thus is a big";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
+        "content:thus; offset:8; content:is; within:6; content:big; within:8; sid:1;)";
+
+    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
+        result = 0;
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void PayloadRegisterTests(void) {
@@ -520,5 +548,6 @@ void PayloadRegisterTests(void) {
     UtRegisterTest("PayloadTestSig04", PayloadTestSig04, 1);
     UtRegisterTest("PayloadTestSig05", PayloadTestSig05, 1);
     UtRegisterTest("PayloadTestSig06", PayloadTestSig06, 1);
+    UtRegisterTest("PayloadTestSig07", PayloadTestSig07, 1);
 #endif /* UNITTESTS */
 }
