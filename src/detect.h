@@ -784,7 +784,7 @@ void SigRegisterTests(void);
 void TmModuleDetectRegister (void);
 
 int SigGroupBuild(DetectEngineCtx *);
-int SigGroupCleanup();
+int SigGroupCleanup (DetectEngineCtx *de_ctx);
 void SigAddressPrepareBidirectionals (DetectEngineCtx *);
 
 int SigLoadSignatures (DetectEngineCtx *, char *);
