@@ -107,14 +107,15 @@ static int DoInspectDcePayload(DetectEngineCtx *de_ctx,
             uint32_t offset = 0;
             uint32_t depth = stub_len;
             uint32_t prev_offset = 0; /**< used in recursive searching */
+            uint32_t prev_payload_offset = det_ctx->payload_offset;
 
             do {
                 if (cd->flags & DETECT_CONTENT_DISTANCE ||
                     cd->flags & DETECT_CONTENT_WITHIN) {
-                    SCLogDebug("det_ctx->payload_offset %"PRIu32,
-                               det_ctx->payload_offset);
+                    SCLogDebug("prev_payload_offset %"PRIu32,
+                               prev_payload_offset);
 
-                    offset = det_ctx->payload_offset;
+                    offset = prev_payload_offset;
                     depth = stub_len;
 
                     if (cd->flags & DETECT_CONTENT_DISTANCE) {
@@ -129,18 +130,18 @@ static int DoInspectDcePayload(DetectEngineCtx *de_ctx,
                     }
 
                     if (cd->flags & DETECT_CONTENT_WITHIN) {
-                        if ((int32_t)depth > (int32_t)(det_ctx->payload_offset + cd->within)) {
-                            depth = det_ctx->payload_offset + cd->within;
+                        if ((int32_t)depth > (int32_t)(prev_payload_offset + cd->within)) {
+                            depth = prev_payload_offset + cd->within;
                         }
 
-                        SCLogDebug("cd->within %"PRIi32", det_ctx->payload_offset "
+                        SCLogDebug("cd->within %"PRIi32", prev_payload_offset "
                                    "%"PRIu32", depth %"PRIu32, cd->within,
-                                   det_ctx->payload_offset, depth);
+                                   prev_payload_offset, depth);
                     }
 
                     if (cd->depth != 0) {
-                        if ((cd->depth + det_ctx->payload_offset) < depth) {
-                            depth = det_ctx->payload_offset + cd->depth;
+                        if ((cd->depth + prev_payload_offset) < depth) {
+                            depth = prev_payload_offset + cd->depth;
                         }
 
                         SCLogDebug("cd->depth %"PRIu32", depth %"PRIu32,
@@ -161,6 +162,7 @@ static int DoInspectDcePayload(DetectEngineCtx *de_ctx,
 
                     /* set offset */
                     offset = cd->offset;
+                    prev_payload_offset = 0;
                 }
 
                 /* update offset with prev_offset if we're searching for
@@ -240,6 +242,7 @@ static int DoInspectDcePayload(DetectEngineCtx *de_ctx,
 
                     /* set the previous match offset to the start of this match + 1 */
                     prev_offset += (match_offset - (cd->content_len - 1));
+                    prev_offset -= (prev_payload_offset);
                     SCLogDebug("trying to see if there is another match after "
                                "prev_offset %"PRIu32, prev_offset);
                 }
@@ -7403,6 +7406,306 @@ end:
     return result;
 }
 
+/**
+ * \test Test the working of consecutive relative matches.
+ */
+int DcePayloadTest21(void)
+{
+    int result = 0;
+
+    uint8_t request1[] = {
+        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x68, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1a, 0x00,
+        0x6e, 0x6f, 0x77, 0x20, 0x74, 0x68, 0x69, 0x73, /* "now this" */
+        0x20, 0x69, 0x73, 0x20, 0x69, 0x73, 0x20, 0x62, /* " is is b" */
+        0x69, 0x67, 0x20, 0x62, 0x69, 0x67, 0x20, 0x73, /* "ig big s" */
+        0x74, 0x72, 0x69, 0x6e, 0x67, 0x20, 0x6e, 0x6f, /* "tring no" */
+        0x77 };                                         /* "w" */
+    uint32_t request1_len = sizeof(request1);
+
+    TcpSession ssn;
+    Packet p;
+    ThreadVars tv;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    int r;
+
+    char *sig1 = "alert tcp any any -> any any "
+        "(msg:\"testing dce consecutive relative matches\"; dce_stub_data; "
+        "content:this; content:is; within:6; content:big; within:8; "
+        "content:string; within:8; sid:1;)";
+
+    Signature *s;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    memset(&p, 0, sizeof(Packet));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = NULL;
+    p.payload_len = 0;
+    p.proto = IPPROTO_TCP;
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+    f.alproto = ALPROTO_DCERPC;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    s = de_ctx->sig_list;
+    if (s == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    /* request 1 */
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p);
+    if (!(PacketAlertCheck(&p, 1))) {
+        printf("sid 1 didn't match but should have for packet: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
+    return result;
+}
+
+/**
+ * \test Test the working of consecutive relative matches.
+ */
+int DcePayloadTest22(void)
+{
+    int result = 0;
+
+    uint8_t request1[] = {
+        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x68, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1a, 0x00,
+        0x6e, 0x6f, 0x77, 0x20, 0x74, 0x68, 0x69, 0x73,   /* "now this" */
+        0x20, 0x69, 0x73, 0x20, 0x69, 0x73, 0x20, 0x69,   /* " is is i" */
+        0x73, 0x20, 0x62, 0x69, 0x67, 0x20, 0x62, 0x69,   /* "s big bi" */
+        0x67, 0x20, 0x62, 0x69, 0x67, 0x20, 0x73, 0x74,   /* "g big st" */
+        0x72, 0x69, 0x6e, 0x67, 0x20, 0x6e, 0x6f, 0x77 }; /* "ring now" */
+    uint32_t request1_len = sizeof(request1);
+
+    TcpSession ssn;
+    Packet p;
+    ThreadVars tv;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    int r;
+
+    char *sig1 = "alert tcp any any -> any any "
+        "(msg:\"testing dce consecutive relative matches\"; dce_stub_data; "
+        "content:this; content:is; within:9; content:big; within:12; "
+        "content:string; within:8; sid:1;)";
+
+    Signature *s;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    memset(&p, 0, sizeof(Packet));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = NULL;
+    p.payload_len = 0;
+    p.proto = IPPROTO_TCP;
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+    f.alproto = ALPROTO_DCERPC;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    s = de_ctx->sig_list;
+    if (s == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    /* request 1 */
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p);
+    if (!(PacketAlertCheck(&p, 1))) {
+        printf("sid 1 didn't match but should have for packet: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
+    return result;
+}
+
+/**
+ * \test Test the working of consecutive relative matches.
+ */
+int DcePayloadTest23(void)
+{
+    int result = 0;
+
+    uint8_t request1[] = {
+        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x68, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1a, 0x00,
+        0x74, 0x68, 0x69, 0x73, 0x20, 0x74, 0x68, 0x69, /* "this thi" */
+        0x73, 0x20, 0x6e, 0x6f, 0x77, 0x20, 0x69, 0x73, /* "s now is" */
+        0x20, 0x69, 0x73, 0x20, 0x20, 0x20, 0x20, 0x20, /* " is     " */
+        0x62, 0x69, 0x67, 0x20, 0x73, 0x74, 0x72, 0x69, /* "big stri" */
+        0x6e, 0x67, 0x20, 0x6e, 0x6f, 0x77 };           /* "ng now"   */
+    uint32_t request1_len = sizeof(request1);
+
+    TcpSession ssn;
+    Packet p;
+    ThreadVars tv;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    int r;
+
+    char *sig1 = "alert tcp any any -> any any "
+        "(msg:\"testing dce consecutive relative matches\"; dce_stub_data; "
+        "content:now; content:this; content:is; within:12; content:big; within:8; "
+        "content:string; within:8; sid:1;)";
+
+    Signature *s;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    memset(&p, 0, sizeof(Packet));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = NULL;
+    p.payload_len = 0;
+    p.proto = IPPROTO_TCP;
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+    f.alproto = ALPROTO_DCERPC;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    s = de_ctx->sig_list;
+    if (s == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    /* request 1 */
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p);
+    if (!(PacketAlertCheck(&p, 1))) {
+        printf("sid 1 didn't match but should have for packet: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DcePayloadRegisterTests(void)
@@ -7429,6 +7732,9 @@ void DcePayloadRegisterTests(void)
     UtRegisterTest("DcePayloadTest18", DcePayloadTest18, 1);
     UtRegisterTest("DcePayloadTest19", DcePayloadTest19, 1);
     UtRegisterTest("DcePayloadTest20", DcePayloadTest20, 1);
+    UtRegisterTest("DcePayloadTest21", DcePayloadTest21, 1);
+    UtRegisterTest("DcePayloadTest22", DcePayloadTest22, 1);
+    UtRegisterTest("DcePayloadTest23", DcePayloadTest23, 1);
 #endif /* UNITTESTS */
 
     return;
