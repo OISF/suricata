@@ -43,7 +43,7 @@ IPReputationCtx *rep_ctx;
  * \retval Pointer to the IPReputationCtx created
  *         NULL Error initializing moule;
  */
-IPReputationCtx *SCReputationInitCtx() {
+IPReputationCtx *SCReputationInitCtx(void) {
     rep_ctx = (IPReputationCtx *)SCMalloc(sizeof(IPReputationCtx));
     if (rep_ctx == NULL)
         return NULL;
@@ -83,7 +83,7 @@ IPReputationCtx *SCReputationInitCtx() {
  * \retval rep_data On success, pointer to the rep_data that has to be sent
  *                   along with the key, to be added to the Radix tree
  */
-Reputation *SCReputationAllocData()
+Reputation *SCReputationAllocData(void)
 {
     Reputation *rep_data = NULL;
 
@@ -114,7 +114,7 @@ void SCReputationFreeData(void *data)
  *
  * \retval ReputationTransaction pointer On success
  */
-ReputationTransaction *SCReputationTransactionAlloc()
+ReputationTransaction *SCReputationTransactionAlloc(void)
 {
     ReputationTransaction *rtx = NULL;
 
@@ -230,7 +230,7 @@ Reputation *SCReputationClone(Reputation *orig)
     return rep;
 }
 
-void SCReputationFreeCtx()
+void SCReputationFreeCtx(IPReputationCtx *rep_ctx)
 {
     if (rep_ctx->reputationIPV4_tree != NULL) {
         SCRadixReleaseRadixTree(rep_ctx->reputationIPV4_tree);
@@ -689,7 +689,7 @@ Reputation *SCReputationUpdateIPV6Data(uint8_t *ipv6addr, ReputationTransaction 
  * \test Adding (from numeric ipv4) and removing host reputation in the Reputation context
  *       tree. THe reputation data is the real one, no copies here.
  */
-int SCReputationTestIPV4AddRemoveHost01()
+int SCReputationTestIPV4AddRemoveHost01(void)
 {
     int i = 0;
     struct in_addr in;
@@ -799,7 +799,7 @@ error:
  * \test Adding (from numeric ipv6) and removing host reputation in the Reputation context
  *       tree. THe reputation data is the real one, no copies here.
  */
-int SCReputationTestIPV6AddRemoveHost01()
+int SCReputationTestIPV6AddRemoveHost01(void)
 {
     uint8_t in[16];
     uint8_t i = 0;
@@ -902,7 +902,7 @@ error:
  * \test Adding (from numeric ipv4) and retrieving reputations
  *       tree. The reputation data retireved are copies of the original.
  */
-int SCReputationTestIPV4AddRemoveHost02()
+int SCReputationTestIPV4AddRemoveHost02(void)
 {
     int i = 0;
     struct in_addr in;
@@ -985,7 +985,7 @@ error:
  * \test Adding (from numeric ipv6) and removing host reputation in the Reputation context
  *       tree. The reputation data retireved are copies of the original.
  */
-int SCReputationTestIPV6AddRemoveHost02()
+int SCReputationTestIPV6AddRemoveHost02(void)
 {
     int i = 0;
     uint8_t in[16];
@@ -1074,7 +1074,7 @@ error:
 /**
  * \test Test searches (best and exact matches)
  */
-int SCReputationTestIPV4BestExactMatch01()
+int SCReputationTestIPV4BestExactMatch01(void)
 {
     int i = 0;
     struct in_addr in;
@@ -1227,7 +1227,7 @@ error:
 /**
  * \test Update transactions
  */
-int SCReputationTestIPV4Update01()
+int SCReputationTestIPV4Update01(void)
 {
     int i = 0;
     struct in_addr in;
@@ -1329,7 +1329,7 @@ error:
 /**
  * \test Update transactions
  */
-int SCReputationTestIPV6Update01()
+int SCReputationTestIPV6Update01(void)
 {
     int i = 0;
     uint8_t in[16];

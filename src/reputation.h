@@ -81,15 +81,15 @@ typedef struct ReputationTransaction_ {
     uint16_t inc[REPUTATION_NUMBER];
     uint16_t dec[REPUTATION_NUMBER];
     uint8_t flags;
-}ReputationTransaction;
+} ReputationTransaction;
 
 /* API */
 Reputation *SCReputationAllocData();
 Reputation *SCReputationClone(Reputation *);
 void SCReputationFreeData(void *);
 
-IPReputationCtx *SCReputationInitCtx();
-void SCReputationFreeCtx();
+IPReputationCtx *SCReputationInitCtx(void);
+void SCReputationFreeCtx(IPReputationCtx *);
 
 void SCReputationPrint(Reputation *);
 void SCReputationRegisterTests(void);
