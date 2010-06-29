@@ -183,7 +183,8 @@ TmEcode ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, 
         SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s",
                 r, pcap_geterr(pcap_g.pcap_handle));
 
-        EngineStop();
+        /* in the error state we just kill the engine */
+        EngineKill();
         SCReturnInt(TM_ECODE_FAILED);
     } else if (r == 0) {
         SCLogInfo("pcap file end of file reached (pcap err code %" PRId32 ")", r);
