@@ -38,8 +38,8 @@
 /*global flow data*/
 typedef struct TcpStreamCnf_ {
     uint32_t memcap; /** max stream mem usage */
-    int max_sessions;
-    int prealloc_sessions;
+    uint32_t max_sessions;
+    uint32_t prealloc_sessions;
     int midstream;
     int async_oneside;
 } TcpStreamCnf;

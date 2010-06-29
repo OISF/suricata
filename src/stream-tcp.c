@@ -345,13 +345,16 @@ void StreamTcpSessionPoolFree(void *s)
 
 void StreamTcpInitConfig(char quiet)
 {
+    intmax_t value = 0;
+
     SCLogDebug("Initializing Stream");
 
     memset(&stream_config,  0, sizeof(stream_config));
 
     /** set config defaults */
-    if ((ConfGetInt("stream.max_sessions", (intmax_t *)&stream_config.max_sessions)) == 0)
-    {
+    if ((ConfGetInt("stream.max_sessions", &value)) == 1) {
+        stream_config.max_sessions = (uint32_t)value;
+    } else {
         if (RunmodeIsUnittests())
             stream_config.max_sessions = 1024;
         else
@@ -361,9 +364,9 @@ void StreamTcpInitConfig(char quiet)
         SCLogInfo("stream \"max_sessions\": %"PRIu32"", stream_config.max_sessions);
     }
 
-    if ((ConfGetInt("stream.prealloc_sessions",
-                    (intmax_t *)&stream_config.prealloc_sessions)) == 0)
-    {
+    if ((ConfGetInt("stream.prealloc_sessions", &value)) == 1) {
+        stream_config.prealloc_sessions = (uint32_t)value;
+    } else {
         if (RunmodeIsUnittests())
             stream_config.prealloc_sessions = 128;
         else
@@ -373,8 +376,9 @@ void StreamTcpInitConfig(char quiet)
         SCLogInfo("stream \"prealloc_sessions\": %"PRIu32"", stream_config.prealloc_sessions);
     }
 
-    if ((ConfGetInt("stream.memcap", (intmax_t *)&stream_config.memcap)) == 0)
-    {
+    if ((ConfGetInt("stream.memcap", &value)) == 1) {
+        stream_config.memcap = (uint32_t)value;
+    } else {
         stream_config.memcap = STREAMTCP_DEFAULT_MEMCAP;
     }
     if (!quiet) {
