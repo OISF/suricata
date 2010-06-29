@@ -1274,7 +1274,7 @@ static void StreamTcpSetupMsg(TcpSession *ssn, TcpStream *stream, Packet *p,
     }
     if (ssn->state > TCP_ESTABLISHED) {
         SCLogDebug("setting STREAM_EOF");
-        smsg->flags = STREAM_EOF;
+        smsg->flags |= STREAM_EOF;
     }
 
     if (p->flowflags & FLOW_PKT_TOSERVER) {
