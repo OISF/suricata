@@ -19,7 +19,7 @@ If building from the git repository you will also need:
 automake
 autoconf
 libtool
-
+pkg-config
 
 Library Requirements
 ====================
@@ -41,7 +41,7 @@ For Debian/Ubuntu Users
 
     sudo apt-get -y install libpcre3 libpcre3-dbg libpcre3-dev \
     build-essential autoconf automake libtool libpcap-dev libnet1-dev \
-    libyaml-0-1 libyaml-dev zlib1g zlib1g-dev
+    libyaml-0-1 libyaml-dev zlib1g zlib1g-dev pkg-config
 
     #if using ubuntu-8.04 to use prebuilt yaml packages you need to
     uncomment the following two lines in your /etc/apt/sources.list to
@@ -82,7 +82,7 @@ For Fedora Core Users
 
     sudo yum -y install libpcap libpcap-devel libnet libnet-devel pcre \
     pcre-devel gcc gcc-c++ automake autoconf libtool make libyaml \
-    libyaml-devel zlib zlib-devel 
+    libyaml-devel zlib zlib-devel pkgconfig
 
     #if building with IPS capabilities via ./configure --enable-nfq
     sudo yum -y install libnfnetlink libnfnetlink-devel \
@@ -120,7 +120,7 @@ For CentOS5 Users
 
     sudo yum -y install libpcap libpcap-devel libnet libnet-devel pcre \
     pcre-devel gcc automake autoconf libtool make gcc-c++ libyaml \
-    libyaml-devel zlib zlib-devel
+    libyaml-devel zlib zlib-devel pkgconfig
 
     #if building with IPS capabilities via ./configure --enable-nfq there
     are no pre-built packages in CentOS base or EPEL for libnfnetlink and
@@ -206,7 +206,7 @@ For FreeBSD 8 Users
 ===================
 
     pkg_add -r autoconf262 automake19 gcc45 libyaml pcre libtool \
-    libnet11 libpcap gmake
+    libnet11 libpcap gmake pkg-config
 
     ### Suricata:
     #Retrieve and install Suricata

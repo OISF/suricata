@@ -64,6 +64,16 @@ AC_INIT(configure.in)
     AC_PROG_LN_S
     AC_PROG_MAKE_SET
 
+    AC_PATH_PROG(HAVE_PKG_CONFIG, pkg-config, "no")
+    if test "$HAVE_PKG_CONFIG" = "no"; then
+    echo
+    echo "   ERROR! pkg-config not found, go get it  "
+    echo "   http://pkg-config.freedesktop.org/wiki/ "
+    echo "   or install from your distribution       "
+    echo
+    exit 1
+    fi
+
 # Checks for libraries.
 
 # Checks for header files.
