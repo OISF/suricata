@@ -39,6 +39,7 @@
 #include "flow-util.h"
 
 #include "util-debug.h"
+#include "util-error.h"
 #include "util-unittest.h"
 #include "util-spm.h"
 #include "util-print.h"
@@ -214,7 +215,7 @@ static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
 
     SigMatch *pm = DetectContentGetLastPattern(s->pmatch_tail);
     if (pm == NULL) {
-        SCLogWarning(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
+        SCLogWarning(SC_ERR_INVALID_SIGNATURE, "http_cookie found inside "
                 "the rule, without a content context.  Please use a "
                 "content keyword before using http_cookie");
         return -1;
@@ -222,10 +223,10 @@ static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
 
     /* http_cookie should not be used with the fast_pattern rule */
     if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_FAST_PATTERN) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "http_cookie rule can not "
-                "be used with the fast_pattern rule keyword");
-
-        return -1;
+        SCLogWarning(SC_WARN_COMPATIBILITY, "http_cookie rule can not "
+                "be used with the fast_pattern rule keyword. Unsetting fast_pattern"
+                "here");
+        ((DetectContentData *)pm->ctx)->flags &= ~DETECT_CONTENT_FAST_PATTERN;
     /* http_cookie should not be used with the rawbytes rule */
     } else if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_RAWBYTES) {
 

@@ -177,10 +177,10 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
     /** \todo snort docs only mention rawbytes, not fast_pattern */
     if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_FAST_PATTERN)
     {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                   "http_method cannot be used with \"fast_pattern\"");
-
-        SCReturnInt(-1);
+        SCLogWarning(SC_WARN_COMPATIBILITY,
+                   "http_method cannot be used with \"fast_pattern\" currently."
+                   "Unsetting fast_pattern on this modifier.");
+        ((DetectContentData *)pm->ctx)->flags &= ~DETECT_CONTENT_FAST_PATTERN;
     } else if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_RAWBYTES)
     {
         SCLogError(SC_ERR_INVALID_SIGNATURE,
