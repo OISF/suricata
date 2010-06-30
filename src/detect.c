@@ -456,7 +456,7 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         }
 
         /* if the sig has alproto and the session as well they should match */
-        if (s->alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_UNKNOWN) {
+        if (s->alproto != ALPROTO_UNKNOWN) {
             if (s->alproto != alproto) {
                 SCLogDebug("alproto mismatch");
                 continue;
