@@ -135,17 +135,21 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
     /* register counters */
     dtv->counter_pkts = SCPerfTVRegisterCounter("decoder.pkts", tv,
                                                 SC_PERF_TYPE_UINT64, "NULL");
+#if 0
     dtv->counter_pkts_per_sec = SCPerfTVRegisterIntervalCounter("decoder.pkts_per_sec",
                                                                 tv, SC_PERF_TYPE_DOUBLE,
                                                                 "NULL", "1s");
+#endif
     dtv->counter_bytes = SCPerfTVRegisterCounter("decoder.bytes", tv,
                                                  SC_PERF_TYPE_UINT64, "NULL");
+#if 0
     dtv->counter_bytes_per_sec = SCPerfTVRegisterIntervalCounter("decoder.bytes_per_sec",
                                                                 tv, SC_PERF_TYPE_DOUBLE,
                                                                 "NULL", "1s");
     dtv->counter_mbit_per_sec = SCPerfTVRegisterIntervalCounter("decoder.mbit_per_sec",
                                                                 tv, SC_PERF_TYPE_DOUBLE,
                                                                 "NULL", "1s");
+#endif
     dtv->counter_ipv4 = SCPerfTVRegisterCounter("decoder.ipv4", tv,
                                                 SC_PERF_TYPE_UINT64, "NULL");
     dtv->counter_ipv6 = SCPerfTVRegisterCounter("decoder.ipv6", tv,
