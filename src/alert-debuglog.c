@@ -372,7 +372,7 @@ TmEcode AlertDebugLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
         return AlertDebugLogIPv4(tv, p, data, pq, postpq);
     } else if (PKT_IS_IPV6(p)) {
         return AlertDebugLogIPv6(tv, p, data, pq, postpq);
-    } else {
+    } else if (p->events.cnt > 0) {
         return AlertDebugLogDecoderEvent(tv, p, data, pq, postpq);
     }
 

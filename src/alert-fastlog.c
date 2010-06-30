@@ -252,7 +252,7 @@ TmEcode AlertFastLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
         return AlertFastLogIPv4(tv, p, data, pq, postpq);
     } else if (PKT_IS_IPV6(p)) {
         return AlertFastLogIPv6(tv, p, data, pq, postpq);
-    } else {
+    } else if (p->events.cnt > 0) {
         return AlertFastLogDecoderEvent(tv, p, data, pq, postpq);
     }
 

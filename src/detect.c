@@ -1184,6 +1184,9 @@ int SignatureIsAppLayer(DetectEngineCtx *de_ctx, Signature *s) {
  *  \retval 0 sig is not ip only
  */
 int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
+    if (s->alproto != ALPROTO_UNKNOWN)
+        return 0;
+
     /* for tcp/udp, only consider sigs that don't have ports set, as ip-only */
     if (!(s->proto.flags & DETECT_PROTO_ANY)) {
         if (s->proto.proto[IPPROTO_TCP / 8] & (1 << (IPPROTO_TCP % 8)) ||
@@ -1267,6 +1270,9 @@ static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, Signature *s) {
  *  \retval 1 DEOnly sig
  */
 static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, Signature *s) {
+    if (s->alproto != ALPROTO_UNKNOWN)
+        return 0;
+
     if (s->pmatch != NULL)
         return 0;
 
