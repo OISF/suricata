@@ -100,7 +100,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                                              DETECT_PCRE, s->pmatch_tail,
                                              DETECT_BYTEJUMP, s->pmatch_tail);
         if (pm1_ots != NULL && pm1_ots->prev != NULL) {
-            pm2_ots = SigMatchGetLastSMFromLists(s, 2,
+            pm2_ots = SigMatchGetLastSMFromLists(s, 6,
                                                  DETECT_CONTENT, pm1_ots->prev,
                                                  DETECT_PCRE, pm1_ots->prev,
                                                  DETECT_BYTEJUMP, pm1_ots->prev);
@@ -248,7 +248,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
             pm = SigMatchGetLastSMFromLists(s, 6,
                                             DETECT_CONTENT, pm->prev,
                                             DETECT_PCRE, pm->prev,
-                                            DETECT_BYTEJUMP, s->pmatch_tail);
+                                            DETECT_BYTEJUMP, pm->prev);
 
             DetectPcreData *pe = NULL;
             if (pm == NULL) {
@@ -283,6 +283,12 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                             goto error;
                         }
                         pe->flags |= DETECT_PCRE_RELATIVE_NEXT;
+
+                        break;
+
+                    case DETECT_BYTEJUMP:
+                        SCLogDebug("No setting relative_next for bytejump.  We "
+                                   "have no use for it");
 
                         break;
 

@@ -619,6 +619,12 @@ int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
 
                     break;
 
+                case DETECT_BYTEJUMP:
+                    SCLogDebug("No setting relative_next for bytejump.  We "
+                               "have no use for it");
+
+                    break;
+
                 default:
                     /* this will never hit */
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"

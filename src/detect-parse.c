@@ -520,16 +520,15 @@ void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
 {
     /* we won't do any checks for args */
 
-    if (sm == *src_sm_list) {
-        *src_sm_list = sm->next;
-    } else {
+    if (sm->prev != NULL)
         sm->prev->next = sm->next;
+    if (sm->next != NULL)
         sm->next->prev = sm->prev;
-    }
 
-    if (sm == *src_sm_list_tail) {
+    if (sm == *src_sm_list)
+        *src_sm_list = sm->next;
+    if (sm == *src_sm_list_tail)
         *src_sm_list_tail = sm->prev;
-    }
 
     if (*dst_sm_list == NULL) {
         *dst_sm_list = sm;
