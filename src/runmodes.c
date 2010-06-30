@@ -2312,7 +2312,7 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
 #if defined(__SC_CUDA_SUPPORT__)
     if (PatternMatchDefaultMatcher() == MPM_B2G_CUDA) {
         ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode",
-                                                             "pickup-queue", "ringbuffer_srsw",
+                                                             "pickup-queue", "simple",
                                                              "decode-queue1", "simple",
                                                              "1slot");
         if (tv_decode1 == NULL) {
@@ -2363,7 +2363,7 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
 
         ThreadVars *tv_stream1 = TmThreadCreatePacketHandler("Stream1",
                                                              "cuda-pb-queue1", "simple",
-                                                             "stream-queue1", "ringbuffer_mrsw",
+                                                             "stream-queue1", "simple",
                                                              "1slot");
         if (tv_stream1 == NULL) {
             printf("ERROR: TmThreadsCreate failed for Stream1\n");
@@ -2386,8 +2386,8 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
         }
     } else {
         ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode & Stream",
-                                                             "pickup-queue", "ringbuffer_srsw",
-                                                             "stream-queue1", "ringbuffer_mrsw",
+                                                             "pickup-queue", "simple",
+                                                             "stream-queue1", "simple",
                                                              "varslot");
         if (tv_decode1 == NULL) {
             printf("ERROR: TmThreadsCreate failed for Decode1\n");

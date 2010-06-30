@@ -92,8 +92,8 @@ static void SCCudaPBSetQueueBufferFlag(int signum)
     SCLogDebug("Cuda Packet Batche alarm generated after %d seconds.  Set the"
                "queue_buffer flag and signal the cuda TM inq.",
                SC_CUDA_PB_BATCHER_ALARM_TIME);
-    //queue_buffer = 1;
-    //SCCondSignal(&((&trans_q[tmq_batcher_inq->id])->cond_q));
+    queue_buffer = 1;
+    SCCondSignal(&((&trans_q[tmq_batcher_inq->id])->cond_q));
 
     return;
 }
