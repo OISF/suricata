@@ -967,7 +967,7 @@ int DetectAsn1Test06(void) {
         if (ac == NULL)
             return 0;
 
-        uint16_t len = 261;
+        uint16_t len = 260;
 
         SCAsn1CtxInit(ac, str, len);
 
