@@ -27,6 +27,28 @@
 #include "util-error.h"
 #include "util-debug.h"
 
+/**
+ *  \brief print a buffer as hex on a single line
+ *
+ *  Prints in the format "00 AA BB"
+ *
+ *  \param fp FILE pointer to print to
+ *  \param buf buffer to print from
+ *  \param buflen length of the input buffer
+ */
+void PrintRawLineHexFp(FILE *fp, uint8_t *buf, uint32_t buflen)
+{
+    char nbuf[2048] = "";
+    char temp[5] = "";
+    uint32_t u = 0;
+
+    for (u = 0; u < buflen; u++) {
+        snprintf(temp, sizeof(temp), "%02X ", buf[u]);
+        strlcat(nbuf, temp, sizeof(nbuf));
+    }
+    fprintf(fp, "%s", nbuf);
+}
+
 void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen)
 {
     char nbuf[2048] = "";

@@ -323,12 +323,57 @@ TmEcode AlertDebugLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
     return TM_ECODE_OK;
 }
 
+TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+{
+    AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
+    int i;
+    char timebuf[64];
+
+    if (p->alerts.cnt == 0)
+        return TM_ECODE_OK;
+
+    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+
+    SCMutexLock(&aft->file_ctx->fp_mutex);
+
+    fprintf(aft->file_ctx->fp, "+================\n");
+    fprintf(aft->file_ctx->fp, "TIME:              %s\n", timebuf);
+    if (p->pcap_cnt > 0) {
+        fprintf(aft->file_ctx->fp, "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt);
+    }
+    fprintf(aft->file_ctx->fp, "ALERT CNT:         %" PRIu32 "\n", p->alerts.cnt);
+
+    for (i = 0; i < p->alerts.cnt; i++) {
+        PacketAlert *pa = &p->alerts.alerts[i];
+
+        fprintf(aft->file_ctx->fp, "ALERT MSG [%02d]:    %s\n", i, pa->msg);
+        fprintf(aft->file_ctx->fp, "ALERT GID [%02d]:    %" PRIu32 "\n", i, pa->gid);
+        fprintf(aft->file_ctx->fp, "ALERT SID [%02d]:    %" PRIu32 "\n", i, pa->sid);
+        fprintf(aft->file_ctx->fp, "ALERT REV [%02d]:    %" PRIu32 "\n", i, pa->rev);
+        fprintf(aft->file_ctx->fp, "ALERT CLASS [%02d]:  %s\n", i, pa->class_msg);
+        fprintf(aft->file_ctx->fp, "ALERT PRIO [%02d]:   %" PRIu32 "\n", i, pa->prio);
+    }
+
+    aft->file_ctx->alerts += p->alerts.cnt;
+
+    fprintf(aft->file_ctx->fp, "PACKET LEN:        %" PRIu32 "\n", p->pktlen);
+    fprintf(aft->file_ctx->fp, "PACKET:\n");
+    PrintRawDataFp(aft->file_ctx->fp, p->pkt, p->pktlen);
+
+    fflush(aft->file_ctx->fp);
+    SCMutexUnlock(&aft->file_ctx->fp_mutex);
+
+    return TM_ECODE_OK;
+}
+
 TmEcode AlertDebugLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     if (PKT_IS_IPV4(p)) {
         return AlertDebugLogIPv4(tv, p, data, pq, postpq);
     } else if (PKT_IS_IPV6(p)) {
         return AlertDebugLogIPv6(tv, p, data, pq, postpq);
+    } else {
+        return AlertDebugLogDecoderEvent(tv, p, data, pq, postpq);
     }
 
     return TM_ECODE_OK;

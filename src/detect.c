@@ -520,6 +520,12 @@ SigGroupHead *SigMatchSignaturesGetSgh(DetectEngineCtx *de_ctx, DetectEngineThre
     int f;
     SigGroupHead *sgh = NULL;
 
+    /* if the packet proto is 0 (not set), we're inspecting it against
+     * the decoder events sgh we have. */
+    if (p->proto == 0 && p->events.cnt > 0) {
+        SCReturnPtr(de_ctx->decoder_event_sgh, "SigGroupHead");
+    }
+
     /* select the flow_gh */
     if (p->flowflags & FLOW_PKT_TOCLIENT)
         f = 0;
@@ -1222,8 +1228,10 @@ iponly:
     }
     return 1;
 }
+
 /**
- * \brief Check if the initialized signature is inspecting the packet payload
+ *  \internal
+ *  \brief Check if the initialized signature is inspecting the packet payload
  *  \param de_ctx detection engine ctx
  *  \param s the signature
  *  \retval 1 sig is inspecting the payload
@@ -1248,6 +1256,43 @@ static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, Signature *s) {
     }
 #endif
     return 0;
+}
+
+/**
+ *  \internal
+ *  \brief check if a signature is decoder event matching only
+ *  \param de_ctx detection engine
+ *  \param s the signature to test
+ *  \retval 0 not a DEOnly sig
+ *  \retval 1 DEOnly sig
+ */
+static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, Signature *s) {
+    if (s->pmatch != NULL)
+        return 0;
+
+    if (s->umatch != NULL)
+        return 0;
+
+    if (s->amatch != NULL)
+        return 0;
+
+    SigMatch *sm = s->match;
+    if (sm == NULL)
+        goto deonly;
+
+    for ( ;sm != NULL; sm = sm->next) {
+        if ( !(sigmatch_table[sm->type].flags & SIGMATCH_DEONLY_COMPAT))
+            return 0;
+    }
+
+deonly:
+    if (!(de_ctx->flags & DE_QUIET)) {
+        SCLogDebug("DE-ONLY (%" PRIu32 "): source %s, dest %s", s->id,
+                   s->flags & SIG_FLAG_SRC_ANY ? "ANY" : "SET",
+                   s->flags & SIG_FLAG_DST_ANY ? "ANY" : "SET");
+    }
+
+    return 1;
 }
 
 /**
@@ -1303,6 +1348,9 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
             cnt_payload++;
 
             SCLogDebug("Signature %"PRIu32" is considered \"Payload inspecting\"", tmp_s->id);
+        } else if (SignatureIsDEOnly(de_ctx, tmp_s) == 1) {
+            tmp_s->flags |= SIG_FLAG_DEONLY;
+            SCLogDebug("Signature %"PRIu32" is considered \"Decoder Event only\"", tmp_s->id);
         }
 
         if (tmp_s->flags & SIG_FLAG_APPLAYER) {
@@ -1830,6 +1878,15 @@ error:
 }
 
 /**
+ *  \internal
+ *  \brief add a decoder event signature to the detection engine ctx
+ */
+static void DetectEngineAddDecoderEventSig(DetectEngineCtx *de_ctx, Signature *s) {
+    SCLogDebug("adding signature %"PRIu32" to the decoder event sgh", s->id);
+    SigGroupHeadAppendSig(de_ctx, &de_ctx->decoder_event_sgh, s);
+}
+
+/**
  * \brief Fill the global src group head, with the sigs included
  *
  * \param de_ctx Pointer to the Detection Engine Context whose Signatures have
@@ -1866,13 +1923,15 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
 
     /* now for every rule add the source group to our temp lists */
     for (tmp_s = de_ctx->sig_list; tmp_s != NULL; tmp_s = tmp_s->next) {
-        //printf("SigAddressPrepareStage2 tmp_s->id %u\n", tmp_s->id);
-        if (!(tmp_s->flags & SIG_FLAG_IPONLY)) {
+        SCLogDebug("tmp_s->id %"PRIu32, tmp_s->id);
+        if (tmp_s->flags & SIG_FLAG_IPONLY) {
+            IPOnlyAddSignature(de_ctx, &de_ctx->io_ctx, tmp_s);
+        } else if (tmp_s->flags & SIG_FLAG_DEONLY) {
+            DetectEngineAddDecoderEventSig(de_ctx, tmp_s);
+        } else {
             DetectEngineLookupFlowAddSig(de_ctx, tmp_s, AF_INET);
             DetectEngineLookupFlowAddSig(de_ctx, tmp_s, AF_INET6);
             DetectEngineLookupFlowAddSig(de_ctx, tmp_s, AF_UNSPEC);
-        } else {
-            IPOnlyAddSignature(de_ctx, &de_ctx->io_ctx, tmp_s);
         }
 
         sigs++;
@@ -2521,6 +2580,15 @@ error:
     return -1;
 }
 
+static void DetectEngineBuildDecoderEventSgh(DetectEngineCtx *de_ctx) {
+    if (de_ctx->decoder_event_sgh == NULL)
+        return;
+
+    uint32_t max_idx = DetectEngineGetMaxSigId(de_ctx);
+    SigGroupHeadSetSigCnt(de_ctx->decoder_event_sgh, max_idx);
+    SigGroupHeadBuildMatchArray(de_ctx, de_ctx->decoder_event_sgh, max_idx);
+}
+
 int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
     int r;
 
@@ -2586,6 +2654,9 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
             }
         }
     }
+
+    /* prepare the decoder event sgh */
+    DetectEngineBuildDecoderEventSgh(de_ctx);
 
     /* cleanup group head (uri)content_array's */
     SigGroupHeadFreeMpmArrays(de_ctx);
@@ -2716,6 +2787,10 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx) {
         SigGroupHeadBuildHeadArray(de_ctx, sgh);
     }
 
+    if (de_ctx->decoder_event_sgh != NULL) {
+        SigGroupHeadBuildHeadArray(de_ctx, de_ctx->decoder_event_sgh);
+    }
+
     SCFree(de_ctx->sgh_array);
     de_ctx->sgh_array_cnt = 0;
     de_ctx->sgh_array_size = 0;
@@ -2740,7 +2815,7 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
     for (f = 0; f < FLOW_STATES; f++) {
         printf("\n");
         for (proto = 0; proto < 256; proto++) {
-            if (proto != 1)
+            if (proto != 0)
                 continue;
 
             for (global_src_gr = de_ctx->flow_gh[f].src_gh[proto]->ipv4_head; global_src_gr != NULL;

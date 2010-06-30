@@ -487,6 +487,10 @@ typedef struct DetectEngineCtx_ {
     struct SigGroupHead_ **sgh_array;
     uint32_t sgh_array_cnt;
     uint32_t sgh_array_size;
+
+    /** sgh for signatures that match against invalid packets. In those cases
+     *  we can't lookup by proto, address, port as we don't have these */
+    struct SigGroupHead_ *decoder_event_sgh;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */

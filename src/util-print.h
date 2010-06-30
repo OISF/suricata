@@ -24,8 +24,9 @@
 #ifndef __UTIL_PRINT_H__
 #define __UTIL_PRINT_H__
 
-void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen);
-void PrintRawDataFp(FILE *fp, uint8_t *buf, uint32_t buflen);
+void PrintRawLineHexFp(FILE *, uint8_t *, uint32_t);
+void PrintRawUriFp(FILE *, uint8_t *, uint32_t);
+void PrintRawDataFp(FILE *, uint8_t *, uint32_t);
 
 #endif /* __UTIL_PRINT_H__ */
 

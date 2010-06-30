@@ -55,6 +55,7 @@
 #include "util-mpm-b2g-cuda.h"
 #include "util-cuda-handlers.h"
 #include "util-privs.h"
+#include "util-print.h"
 
 #define DEFAULT_LOG_FILENAME "fast.log"
 
@@ -202,12 +203,57 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     return TM_ECODE_OK;
 }
 
+TmEcode AlertFastLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+{
+    AlertFastLogThread *aft = (AlertFastLogThread *)data;
+    int i;
+    Reference *ref = NULL;
+    char timebuf[64];
+
+    if (p->alerts.cnt == 0)
+        return TM_ECODE_OK;
+
+    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+
+    SCMutexLock(&aft->file_ctx->fp_mutex);
+
+    aft->file_ctx->alerts += p->alerts.cnt;
+
+    for (i = 0; i < p->alerts.cnt; i++) {
+        PacketAlert *pa = &p->alerts.alerts[i];
+
+        fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: %" PRIu32 "] [**] [Raw pkt: ",
+                timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio);
+
+        PrintRawLineHexFp(aft->file_ctx->fp, p->pkt, p->pktlen < 32 ? p->pktlen : 32);
+        if (p->pcap_cnt != 0) {
+            fprintf(aft->file_ctx->fp, "] [pcap file packet: %"PRIu64"]", p->pcap_cnt);
+        }
+
+        if(pa->references != NULL)  {
+            fprintf(aft->file_ctx->fp," ");
+            for (ref = pa->references; ref != NULL; ref = ref->next)   {
+                fprintf(aft->file_ctx->fp,"[Xref => %s%s]", ref->key, ref->reference);
+            }
+        }
+
+        fprintf(aft->file_ctx->fp,"\n");
+
+        fflush(aft->file_ctx->fp);
+    }
+    SCMutexUnlock(&aft->file_ctx->fp_mutex);
+
+    return TM_ECODE_OK;
+}
+
 TmEcode AlertFastLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     if (PKT_IS_IPV4(p)) {
         return AlertFastLogIPv4(tv, p, data, pq, postpq);
     } else if (PKT_IS_IPV6(p)) {
         return AlertFastLogIPv6(tv, p, data, pq, postpq);
+    } else {
+        return AlertFastLogDecoderEvent(tv, p, data, pq, postpq);
     }
 
     return TM_ECODE_OK;

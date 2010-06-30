@@ -59,6 +59,7 @@ void DetectDecodeEventRegister (void) {
     sigmatch_table[DETECT_DECODE_EVENT].Setup = DetectDecodeEventSetup;
     sigmatch_table[DETECT_DECODE_EVENT].Free  = NULL;
     sigmatch_table[DETECT_DECODE_EVENT].RegisterTests = DecodeEventRegisterTests;
+    sigmatch_table[DETECT_DECODE_EVENT].flags |= SIGMATCH_DEONLY_COMPAT;
 
     const char *eb;
     int eo;
