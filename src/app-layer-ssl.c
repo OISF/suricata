@@ -65,6 +65,8 @@ static int SSLParseClientRecord(Flow *f, void *ssl_state, AppLayerParserState *p
                                 AppLayerParserResult *output)
 {
     SCEnter();
+    SslClient *client = NULL;
+    SslState *ssl_st = NULL;
 
     /* SSL client message should be larger than 9 bytes as we need to know, to
        what is the SSL version and message type */
@@ -74,8 +76,8 @@ static int SSLParseClientRecord(Flow *f, void *ssl_state, AppLayerParserState *p
         SCReturnInt(1);
     }
 
-    SslClient *client = (SslClient *)input;
-    SslState *ssl_st = (SslState *)ssl_state;
+    client = (SslClient *)input;
+    ssl_st = (SslState *)ssl_state;
 
     switch (client->msg_type) {
         case SSL_CLIENT_HELLO:
@@ -259,8 +261,11 @@ extern uint16_t AppLayerParserGetStorageId (void);
 static int SSLParserTest01(void) {
     int result = 0;
     Flow f;
-    uint8_t sslbuf[] = {0x80, 0x31, 0x01, 0x00, 0x02, 0x00, 0x00, 0x00, 0x01 };
-    uint32_t ssllen = sizeof(sslbuf);
+    uint8_t *sslbuf = (uint8_t *) "\x80\x31\x01\x00\x02\x00\x00\x00\x01";
+
+    /* PrintRawDataFp(stdout, sslbuf, 9); */
+
+    uint32_t ssllen = 9;
     TcpSession ssn;
 
     memset(&f, 0, sizeof(f));
@@ -316,6 +321,7 @@ static int SSLParserTest02(void) {
             0x2f, 0x34, 0x84, 0x20, 0xc5};
     uint32_t ssllen = sizeof(sslbuf);
     TcpSession ssn;
+    AppLayerDetectProtoThreadInit();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
