@@ -74,9 +74,13 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *n
     }
 
     if (s->pmatch_tail == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside the "
-                     "rule, without any preceding keywords");
-        return -1;
+        SCLogWarning(SC_WARN_COMPATIBILITY, " a fast_pattern found inside the "
+                     "rule, is not preceding a keyword that support (currently)"
+                     " this optimization. At least, the engine support "
+                     "fast_pattern for content (not for uricontent yet). "
+                     "The signature is being loaded anyway ==> %s",
+                     s->sig_str);
+        return 0;
     }
 
     SigMatch *pm = DetectContentGetLastPattern(s->pmatch_tail);

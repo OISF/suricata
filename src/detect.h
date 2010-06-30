@@ -312,6 +312,10 @@ typedef struct Signature_ {
     /** Reference */
     Reference *references;
 
+    /* Be careful, this pointer is only valid while parsing the sig,
+     * to warn the user about any possible problem */
+    char *sig_str;
+
 #ifdef PROFILING
     uint16_t profiling_id;
 #endif

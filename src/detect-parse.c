@@ -912,6 +912,7 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_
     SCEnter();
 
     char **basics;
+    s->sig_str = sigstr;
 
     int ret = SigParseBasics(s, sigstr, &basics, addrs_direction);
     if (ret < 0) {
@@ -943,6 +944,8 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_
         }
         SCFree(basics);
     }
+
+    s->sig_str = NULL;
 
     SCReturnInt(ret);
 }
