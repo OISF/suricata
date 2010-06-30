@@ -179,7 +179,7 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
     {
         SCLogWarning(SC_WARN_COMPATIBILITY,
                    "http_method cannot be used with \"fast_pattern\" currently."
-                   "Unsetting fast_pattern on this modifier.");
+                   "Unsetting fast_pattern on this modifier. Signature ==> %s", s->sig_str);
         ((DetectContentData *)pm->ctx)->flags &= ~DETECT_CONTENT_FAST_PATTERN;
     } else if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_RAWBYTES)
     {
