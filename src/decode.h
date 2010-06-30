@@ -483,71 +483,76 @@ typedef struct DecodeThreadVars_
  *  \brief Recycle a packet structure for reuse.
  *  \todo the mutex destroy & init is necessary because of the memset, reconsider
  */
-#define PACKET_DO_RECYCLE(p) do {                  \
-        (p)->recursion_level = 0; \
-        (p)->flags = 0; \
-        (p)->flowflags = 0; \
-        (p)->flow = NULL; \
-        (p)->ts.tv_sec = 0; \
-        (p)->ts.tv_usec = 0; \
-        (p)->datalink = 0; \
-        (p)->action = 0; \
+#define PACKET_DO_RECYCLE(p) do {               \
+        CLEAR_ADDR(&(p)->src);                  \
+        CLEAR_ADDR(&(p)->dst);                  \
+        (p)->sp = 0;                            \
+        (p)->dp = 0;                            \
+        (p)->proto = 0;                         \
+        (p)->recursion_level = 0;               \
+        (p)->flags = 0;                         \
+        (p)->flowflags = 0;                     \
+        (p)->flow = NULL;                       \
+        (p)->ts.tv_sec = 0;                     \
+        (p)->ts.tv_usec = 0;                    \
+        (p)->datalink = 0;                      \
+        (p)->action = 0;                        \
         if ((p)->pktvar != NULL) {              \
             PktVarFree((p)->pktvar);            \
             (p)->pktvar = NULL;                 \
         }                                       \
-        (p)->ethh = NULL; \
-        if ((p)->ip4h != NULL) { \
-            CLEAR_IPV4_PACKET((p)); \
-        } \
-        if ((p)->ip6h != NULL) { \
-            CLEAR_IPV6_PACKET((p)); \
-        } \
-        if ((p)->tcph != NULL) { \
-            CLEAR_TCP_PACKET((p)); \
-        } \
-        if ((p)->udph != NULL) { \
-            CLEAR_UDP_PACKET((p)); \
-        } \
-        if ((p)->icmpv4h != NULL) { \
-            CLEAR_ICMPV4_PACKET((p)); \
-        } \
-        if ((p)->icmpv6h != NULL) { \
-            CLEAR_ICMPV6_PACKET((p)); \
-        } \
-        (p)->ppph = NULL; \
-        (p)->pppoesh = NULL; \
-        (p)->pppoedh = NULL; \
-        (p)->greh = NULL; \
-        (p)->vlanh = NULL; \
-        (p)->payload = NULL; \
-        (p)->payload_len = 0; \
-        (p)->pktlen = 0; \
-        (p)->alerts.cnt = 0; \
-        (p)->next = NULL; \
-        (p)->prev = NULL; \
-        (p)->rtv_cnt = 0; \
-        (p)->tpr_cnt = 0; \
+        (p)->ethh = NULL;                       \
+        if ((p)->ip4h != NULL) {                \
+            CLEAR_IPV4_PACKET((p));             \
+        }                                       \
+        if ((p)->ip6h != NULL) {                \
+            CLEAR_IPV6_PACKET((p));             \
+        }                                       \
+        if ((p)->tcph != NULL) {                \
+            CLEAR_TCP_PACKET((p));              \
+        }                                       \
+        if ((p)->udph != NULL) {                \
+            CLEAR_UDP_PACKET((p));              \
+        }                                       \
+        if ((p)->icmpv4h != NULL) {             \
+            CLEAR_ICMPV4_PACKET((p));           \
+        }                                       \
+        if ((p)->icmpv6h != NULL) {             \
+            CLEAR_ICMPV6_PACKET((p));           \
+        }                                       \
+        (p)->ppph = NULL;                       \
+        (p)->pppoesh = NULL;                    \
+        (p)->pppoedh = NULL;                    \
+        (p)->greh = NULL;                       \
+        (p)->vlanh = NULL;                      \
+        (p)->payload = NULL;                    \
+        (p)->payload_len = 0;                   \
+        (p)->pktlen = 0;                        \
+        (p)->alerts.cnt = 0;                    \
+        (p)->next = NULL;                       \
+        (p)->prev = NULL;                       \
+        (p)->rtv_cnt = 0;                       \
+        (p)->tpr_cnt = 0;                       \
         SCMutexDestroy(&(p)->mutex_rtv_cnt);    \
         SCMutexInit(&(p)->mutex_rtv_cnt, NULL); \
-        (p)->tunnel_proto = 0; \
-        (p)->tunnel_pkt = 0; \
-        (p)->tunnel_verdicted = 0; \
-        (p)->events.cnt = 0; \
-        (p)->root = NULL; \
+        (p)->tunnel_proto = 0;                  \
+        (p)->tunnel_pkt = 0;                    \
+        (p)->tunnel_verdicted = 0;              \
+        (p)->events.cnt = 0;                    \
+        (p)->root = NULL;                       \
         PACKET_RESET_CHECKSUMS((p));            \
     } while (0)
 
 #ifndef __SC_CUDA_SUPPORT__
 #define PACKET_RECYCLE(p) PACKET_DO_RECYCLE((p))
 #else
-#define PACKET_RECYCLE(p) do { \
-    PACKET_DO_RECYCLE((p)); \
-    SCMutexDestroy(&(p)->cuda_mutex); \
-    SCCondDestroy(&(p)->cuda_cond); \
-    SCMutexInit(&(p)->cuda_mutex, NULL); \
-    SCCondInit(&(p)->cuda_cond, NULL); \
-    PACKET_RESET_CHECKSUMS((p)); \
+#define PACKET_RECYCLE(p) do {                  \
+    PACKET_DO_RECYCLE((p));                     \
+    SCMutexDestroy(&(p)->cuda_mutex);           \
+    SCCondDestroy(&(p)->cuda_cond);             \
+    SCMutexInit(&(p)->cuda_mutex, NULL);        \
+    SCCondInit(&(p)->cuda_cond, NULL);          \
+    PACKET_RESET_CHECKSUMS((p));                \
 } while(0)
 #endif
 
@@ -562,13 +567,13 @@ typedef struct DecodeThreadVars_
         SCMutexDestroy(&(p)->mutex_rtv_cnt);    \
     } while (0)
 #else
-#define PACKET_CLEANUP(p) do { \
-    if ((p)->pktvar != NULL) { \
-        PktVarFree((p)->pktvar); \
-    } \
-    SCMutexDestroy(&(p)->mutex_rtv_cnt); \
-    SCMutexDestroy(&(p)->cuda_mutex); \
-    SCCondDestroy(&(p)->cuda_cond); \
+#define PACKET_CLEANUP(p) do {                  \
+    if ((p)->pktvar != NULL) {                  \
+        PktVarFree((p)->pktvar);                \
+    }                                           \
+    SCMutexDestroy(&(p)->mutex_rtv_cnt);        \
+    SCMutexDestroy(&(p)->cuda_mutex);           \
+    SCCondDestroy(&(p)->cuda_cond);             \
 } while(0)
 #endif
 
