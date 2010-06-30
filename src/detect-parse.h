@@ -46,7 +46,9 @@ void SigFree(Signature *s);
 Signature *SigInit(DetectEngineCtx *,char *sigstr);
 SigMatch *SigMatchGetLastSM(SigMatch *, uint8_t);
 SigMatch *SigMatchGetLastSMFromLists(Signature *, int, ...);
-
+void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
+                                         SigMatch **, SigMatch **s,
+                                         SigMatch **, SigMatch **);
 void SigParsePrepare(void);
 void SigParseRegisterTests(void);
 Signature *DetectEngineAppendSig(DetectEngineCtx *, char *);

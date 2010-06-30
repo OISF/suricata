@@ -232,72 +232,11 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
 {
     DetectIsdataatData *idad = NULL;
     SigMatch *sm = NULL;
-    SigMatch *match = NULL;
-    SigMatch *match_tail = NULL;
     DetectContentData *cd = NULL;
 
     idad = DetectIsdataatParse(isdataatstr);
-    if (idad == NULL) goto error;
-
-    if (idad->flags & ISDATAAT_RELATIVE) {
-        /* Set it in the last parsed contet because it is relative to that
-         * content match */
-        SCLogDebug("set it in the last parsed content because it is relative "
-                   "to that content match");
-
-        switch (s->alproto) {
-            case ALPROTO_DCERPC:
-                match = s->dmatch;
-                match_tail = s->dmatch_tail;
-                break;
-
-            default:
-                match = s->pmatch;
-                match_tail = s->pmatch_tail;
-                break;
-        }
-
-
-        if (match_tail == NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "No previous content, the flag "
-                       "'relative' cant be used without content");
-            goto  error;
-        }
-
-        SigMatch *m = NULL;
-        /* Search for the first previous DetectContent SigMatch (it can be the
-         * same as this one) */
-        if ( (m = SigMatchGetLastSM(match_tail, DETECT_CONTENT)) != NULL) {
-            cd = (DetectContentData *)m->ctx;
-            if (cd == NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
-                goto error;
-            }
-            cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-
-        } else if ( (m = SigMatchGetLastSM(match_tail, DETECT_PCRE)) != NULL) {
-            DetectPcreData *pe = NULL;
-            pe = (DetectPcreData *)m->ctx;
-            if (pe == NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
-                goto error;
-            }
-            pe->flags |= DETECT_PCRE_RELATIVE;
-
-        } else if ( (m = SigMatchGetLastSM(match_tail, DETECT_BYTEJUMP)) != NULL) {
-            DetectBytejumpData *data = NULL;
-            data = (DetectBytejumpData *)m->ctx;
-            if (data == NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
-                goto error;
-            }
-            data->flags |= DETECT_BYTEJUMP_RELATIVE;
-
-        } else {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
-            goto error;
-        }
-    }
+    if (idad == NULL)
+        goto error;
 
     sm = SigMatchAlloc();
     if (sm == NULL)
@@ -306,17 +245,96 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
     sm->type = DETECT_ISDATAAT;
     sm->ctx = (void *)idad;
 
-    switch (s->alproto) {
-        case ALPROTO_DCERPC:
-            /* If we have a signature that is related to dcerpc, then we add the
-             * sm to Signature->dmatch.  All content inspections for a dce rpc
-             * alproto is done inside detect-engine-dcepayload.c */
-            SigMatchAppendDcePayload(s, sm);
-            break;
+    if (idad->flags & ISDATAAT_RELATIVE) {
+        SCLogDebug("Set it in the last parsed content because it is relative "
+                   "to that content based keyword");
 
-        default:
+        SigMatch *m = NULL;
+        if (s->alproto == ALPROTO_DCERPC) {
+            m = SigMatchGetLastSMFromLists(s, 12,
+                                           DETECT_CONTENT, s->pmatch_tail,
+                                           DETECT_PCRE, s->pmatch_tail,
+                                           DETECT_BYTEJUMP, s->pmatch_tail,
+                                           DETECT_CONTENT, s->dmatch_tail,
+                                           DETECT_PCRE, s->dmatch_tail,
+                                           DETECT_BYTEJUMP, s->dmatch_tail);
+        } else {
+            m = SigMatchGetLastSMFromLists(s, 6,
+                                           DETECT_CONTENT, s->pmatch_tail,
+                                           DETECT_PCRE, s->pmatch_tail,
+                                           DETECT_BYTEJUMP, s->pmatch_tail);
+        }
+
+        if (m == NULL) {
+            if (s->alproto == ALPROTO_DCERPC) {
+                SCLogDebug("isdataat-relative without a previous content based "
+                           "keyword.  Holds good only in the case of DCERPC "
+                           "alproto like now.");
+            } else {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "No related "
+                           "previous-previous content or pcre keyword");
+                goto error;
+            }
+        } else {
+            DetectPcreData *pe = NULL;
+            switch (m->type) {
+                case DETECT_CONTENT:
+                    /* Set the relative next flag on the prev sigmatch */
+                    cd = (DetectContentData *)m->ctx;
+                    if (cd == NULL) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                                   "previous keyword!");
+                        goto error;
+                    }
+                    cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+
+                    break;
+
+                case DETECT_PCRE:
+                    pe = (DetectPcreData *) m->ctx;
+                    if (pe == NULL) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                                   "previous keyword!");
+                        goto error;
+                    }
+                    pe->flags |= DETECT_PCRE_RELATIVE_NEXT;
+
+                    break;
+
+                default:
+                    /* this will never hit */
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                               "previous keyword!");
+                    break;
+            } /* switch */
+        } /* else for if (m == NULL) */
+    } /* if (idad->flags & ISDATAAT_RELATIVE) */
+
+    if (s->alproto == ALPROTO_DCERPC &&
+        idad->flags & ISDATAAT_RELATIVE) {
+        SigMatch *pm = NULL;
+        SigMatch *dm = NULL;
+
+        pm = SigMatchGetLastSMFromLists(s, 6,
+                                        DETECT_CONTENT, s->pmatch_tail,
+                                        DETECT_PCRE, s->pmatch_tail,
+                                        DETECT_BYTEJUMP, s->pmatch_tail);
+        dm = SigMatchGetLastSMFromLists(s, 6,
+                                        DETECT_CONTENT, s->pmatch_tail,
+                                        DETECT_PCRE, s->pmatch_tail,
+                                        DETECT_BYTEJUMP, s->pmatch_tail);
+
+        if (pm == NULL) {
+            SigMatchAppendDcePayload(s, sm);
+        } else if (dm == NULL) {
+            SigMatchAppendDcePayload(s, sm);
+        } else if (pm->idx > dm->idx) {
             SigMatchAppendPayload(s, sm);
-            break;
+        } else {
+            SigMatchAppendDcePayload(s, sm);
+        }
+    } else {
+        SigMatchAppendPayload(s, sm);
     }
 
     return 0;
@@ -401,9 +419,14 @@ int DetectIsdataatTestParse04(void)
     s->alproto = ALPROTO_DCERPC;
 
     result &= (DetectIsdataatSetup(NULL, s, "30") == 0);
-    result &= (s->dmatch != NULL);
+    result &= (s->dmatch == NULL && s->pmatch != NULL);
+    SigFree(s);
+
+    s = SigAlloc();
+    s->alproto = ALPROTO_DCERPC;
     /* failure since we have no preceding content/pcre/bytejump */
-    result &= (DetectIsdataatSetup(NULL, s, "30,relative") == -1);
+    result &= (DetectIsdataatSetup(NULL, s, "30,relative") == 0);
+    result &= (s->dmatch != NULL && s->pmatch == NULL);
 
     SigFree(s);
 
@@ -428,7 +451,9 @@ int DetectIsdataatTestParse05(void)
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing bytejump_body\"; "
                                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                               "content:one; isdataat:4; sid:1;)");
+                               "dce_stub_data; "
+                               "content:one; distance:0; "
+                               "isdataat:4,relative; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -440,8 +465,8 @@ int DetectIsdataatTestParse05(void)
     }
     result &= (s->dmatch_tail->type == DETECT_ISDATAAT);
     data = (DetectIsdataatData *)s->dmatch_tail->ctx;
-    if ( !(!(data->flags & ISDATAAT_RELATIVE) &&
-           !(data->flags & ISDATAAT_RAWBYTES)) ) {
+    if ( !(data->flags & ISDATAAT_RELATIVE) ||
+         (data->flags & ISDATAAT_RAWBYTES) ) {
         result = 0;
         goto end;
     }
@@ -449,7 +474,9 @@ int DetectIsdataatTestParse05(void)
     s->next = SigInit(de_ctx, "alert tcp any any -> any any "
                       "(msg:\"Testing bytejump_body\"; "
                       "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "content:one; isdataat:4,relative; sid:1;)");
+                      "dce_stub_data; "
+                      "content:one; distance:0; "
+                      "isdataat:4,relative; sid:1;)");
     if (s->next == NULL) {
         result = 0;
         goto end;
@@ -461,8 +488,8 @@ int DetectIsdataatTestParse05(void)
     }
     result &= (s->dmatch_tail->type == DETECT_ISDATAAT);
     data = (DetectIsdataatData *)s->dmatch_tail->ctx;
-    if ( !((data->flags & ISDATAAT_RELATIVE) &&
-           !(data->flags & ISDATAAT_RAWBYTES)) ) {
+    if ( !(data->flags & ISDATAAT_RELATIVE) ||
+         (data->flags & ISDATAAT_RAWBYTES) ) {
         result = 0;
         goto end;
     }
@@ -470,7 +497,9 @@ int DetectIsdataatTestParse05(void)
     s->next = SigInit(de_ctx, "alert tcp any any -> any any "
                       "(msg:\"Testing bytejump_body\"; "
                       "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "content:one; isdataat:4,relative,rawbytes; sid:1;)");
+                      "dce_stub_data; "
+                      "content:one; distance:0; "
+                      "isdataat:4,relative,rawbytes; sid:1;)");
     if (s->next == NULL) {
         result = 0;
         goto end;
@@ -482,8 +511,8 @@ int DetectIsdataatTestParse05(void)
     }
     result &= (s->dmatch_tail->type == DETECT_ISDATAAT);
     data = (DetectIsdataatData *)s->dmatch_tail->ctx;
-    if ( !((data->flags & ISDATAAT_RELATIVE) &&
-           (data->flags & ISDATAAT_RAWBYTES)) ) {
+    if ( !(data->flags & ISDATAAT_RELATIVE) ||
+         !(data->flags & ISDATAAT_RAWBYTES) ) {
         result = 0;
         goto end;
     }

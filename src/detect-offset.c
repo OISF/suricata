@@ -64,10 +64,10 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
 
     switch (s->alproto) {
         case ALPROTO_DCERPC:
-            /* If we have a signature that is related to dcerpc, then we add the
-             * sm to Signature->dmatch.  All content inspections for a dce rpc
-             * alproto is done inside detect-engine-dcepayload.c */
-            pm =  SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->dmatch_tail);
+            /* add to the latest "content" keyword from either dmatch or pmatch */
+            pm =  SigMatchGetLastSMFromLists(s, 4,
+                                             DETECT_CONTENT, s->dmatch_tail,
+                                             DETECT_CONTENT, s->pmatch_tail);
             if (pm == NULL) {
                 SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "offset needs"
                            "preceeding content option for dcerpc sig");
@@ -79,9 +79,9 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
             break;
 
         default:
-            pm =  SigMatchGetLastSMFromLists(s, 4,
-                                             DETECT_CONTENT, s->pmatch_tail,
-                                             DETECT_URICONTENT, s->umatch_tail);
+            pm = SigMatchGetLastSMFromLists(s, 4,
+                                            DETECT_CONTENT, s->pmatch_tail,
+                                            DETECT_URICONTENT, s->umatch_tail);
             if (pm == NULL) {
                 SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "distance needs"
                            "preceeding content or uricontent option");

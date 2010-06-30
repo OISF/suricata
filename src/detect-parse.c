@@ -514,6 +514,39 @@ SigMatch *SigMatchGetLastSMFromLists(Signature *s, int args, ...)
     return sm[0];
 }
 
+void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
+                                         SigMatch **src_sm_list, SigMatch **src_sm_list_tail,
+                                         SigMatch **dst_sm_list, SigMatch **dst_sm_list_tail)
+{
+    /* we won't do any checks for args */
+
+    if (sm == *src_sm_list) {
+        *src_sm_list = sm->next;
+    } else {
+        sm->prev->next = sm->next;
+        sm->next->prev = sm->prev;
+    }
+
+    if (sm == *src_sm_list_tail) {
+        *src_sm_list_tail = sm->prev;
+    }
+
+    if (*dst_sm_list == NULL) {
+        *dst_sm_list = sm;
+        *dst_sm_list_tail = sm;
+        sm->next = NULL;
+        sm->prev = NULL;
+    } else {
+        SigMatch *cur = *dst_sm_list_tail;
+        cur->next = sm;
+        sm->prev = cur;
+        sm->next = NULL;
+        *dst_sm_list_tail = sm;
+    }
+
+    return;
+}
+
 void SigParsePrepare(void) {
     char *regexstr = CONFIG_PCRE;
     const char *eb;

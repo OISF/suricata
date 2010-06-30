@@ -1553,21 +1553,21 @@ int DcePayloadTest01(void)
     int i = 0;
 
     char *sig1 = "alert tcp any any -> any any (dce_stub_data; "
-        "content:|26 d0 cf 80|; sid:1;)";
+        "content:|26 d0 cf 80|; distance:0; sid:1;)";
     char *sig2 = "alert tcp any any -> any any (dce_stub_data; "
-        "content:|43 5b 67 26 65|; sid:2;)";
+        "content:|43 5b 67 26 65|; distance:0; sid:2;)";
     char *sig3 = "alert tcp any any -> any any (dce_stub_data; "
-        "content:|71 69 75 3e|; sid:3;)";
+        "content:|71 69 75 3e|; distance:0; sid:3;)";
     char *sig4 = "alert tcp any any -> any any (dce_stub_data; "
-        "content:|6a 68 69 3e 72|; sid:4;)";
+        "content:|6a 68 69 3e 72|; distance:0; sid:4;)";
     char *sig5 = "alert tcp any any -> any any (dce_stub_data; "
-        "content:|61 50 71 45 29 5b 56 3d 5a|; sid:5;)";
+        "content:|61 50 71 45 29 5b 56 3d 5a|; distance:0; sid:5;)";
     char *sig6 = "alert tcp any any -> any any (dce_stub_data; "
-        "content:|23 75 40 5d 32 55|; sid:6;)";
+        "content:|23 75 40 5d 32 55|; distance:0; sid:6;)";
     char *sig7 = "alert tcp any any -> any any (dce_stub_data; "
-        "content:|ee 70 32 65 c1|; sid:7;)";
+        "content:|ee 70 32 65 c1|; distance:0; sid:7;)";
     char *sig8 = "alert tcp any any -> any any (dce_stub_data; "
-        "content:|79 26 46 f7 bf a1|; sid:8;)";
+        "content:|79 26 46 f7 bf a1|; distance:0; sid:8;)";
 
     Signature *s;
 
@@ -2434,7 +2434,7 @@ int DcePayloadTest02(void)
         "(dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
         "sid:1;)";
     char *sig2 = "alert tcp any any -> any any (dce_stub_data; "
-        "content:|2d 5e 63 2a 4c|; sid:2;)";
+        "dce_stub_data; content:|2d 5e 63 2a 4c|; distance:0; sid:2;)";
 
     Signature *s;
 
@@ -2882,9 +2882,9 @@ int DcePayloadTest03(void)
 
     char *sig1 = "alert tcp any any -> any any "
         "(dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef4; "
-        "sid:1;)";
+        "dce_stub_data; sid:1;)";
     char *sig2 = "alert tcp any any -> any any (dce_stub_data; "
-        "content:|2d 5e 63 2a 4c|; sid:2;)";
+        "content:|2d 5e 63 2a 4c|; distance:0; sid:2;)";
 
     Signature *s;
 
@@ -3331,9 +3331,9 @@ int DcePayloadTest04(void)
 
     char *sig1 = "alert tcp any any -> any any "
         "(dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-        "content:|91 27 27 40|; sid:1;)";
+        "dce_stub_data; content:|91 27 27 40|; distance:0; sid:1;)";
     char *sig2 = "alert tcp any any -> any any (dce_stub_data; "
-        "content:|2d 5e 63 2a 4c|; sid:2;)";
+        "content:|2d 5e 63 2a 4c|; distance:0; sid:2;)";
 
     Signature *s;
 
@@ -3779,9 +3779,9 @@ int DcePayloadTest05(void)
 
     char *sig1 = "alert tcp any any -> any any "
         "(dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef4; "
-        "content:|91 27 27 40|; sid:1;)";
+        "dce_stub_data; content:|91 27 27 40|; distance:0; sid:1;)";
     char *sig2 = "alert tcp any any -> any any (dce_stub_data; "
-        "content:|2d 5e 63 2a 4c|; sid:2;)";
+        "dce_stub_data; content:|2d 5e 63 2a 4c|; distance:0; sid:2;)";
 
     Signature *s;
 
@@ -4228,9 +4228,9 @@ int DcePayloadTest06(void)
 
     char *sig1 = "alert tcp any any -> any any "
         "(dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-        "content:|91 27 27 30|; sid:1;)";
+        "dce_stub_data; content:|91 27 27 30|; distance:0; sid:1;)";
     char *sig2 = "alert tcp any any -> any any (dce_stub_data; "
-        "content:|2d 5e 63 2a 4c|; sid:2;)";
+        "content:|2d 5e 63 2a 4c|; distance:0; sid:2;)";
 
     Signature *s;
 
@@ -4676,9 +4676,9 @@ int DcePayloadTest07(void)
 
     char *sig1 = "alert tcp any any -> any any "
         "(dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-        "content:|91 27 27 30|; sid:1;)";
+        "dce_stub_data; content:|91 27 27 30|; distance:0; sid:1;)";
     char *sig2 = "alert tcp any any -> any any (dce_stub_data; "
-        "content:|2d 5e 63 35 25|; sid:2;)";
+        "content:|2d 5e 63 35 25|; distance:0; sid:2;)";
 
     Signature *s;
 
@@ -4963,7 +4963,7 @@ int DcePayloadTest08(void)
     int i = 0;
 
     char *sig1 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:|5d 5b 35|; content:|9e a3|; "
+        "(dce_stub_data; content:|5d 5b 35|; distance:0; content:|9e a3|; "
         "distance:0; within:2; sid:1;)";
 
     Signature *s;
@@ -5188,7 +5188,7 @@ int DcePayloadTest09(void)
     int i = 0;
 
     char *sig1 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:|5d 5b 35|; content:|9e a3|; "
+        "(dce_stub_data; content:|5d 5b 35|; distance:0; content:|9e a3|; "
         "distance:0; within:2; sid:1;)";
 
     Signature *s;
@@ -5413,7 +5413,7 @@ int DcePayloadTest10(void)
     int i = 0;
 
     char *sig1 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:|ad 0d|; content:|ad 0d 00|; "
+        "(dce_stub_data; content:|ad 0d|; distance:0; content:|ad 0d 00|; "
         "distance:-10; within:3; sid:1;)";
 
     Signature *s;
@@ -5773,7 +5773,7 @@ int DcePayloadTest11(void)
     int i = 0;
 
     char *sig1 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:|af, 26, d0|; content:|80 98 6d|; "
+        "(dce_stub_data; content:|af, 26, d0|; distance:0; content:|80 98 6d|; "
         "distance:1; within:3; sid:1;)";
 
     Signature *s;
@@ -6147,7 +6147,7 @@ int DcePayloadTest12(void)
     int i = 0;
 
     char *sig1 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:|af, 26, d0|; content:|80 98 6d|; "
+        "(dce_stub_data; content:|af, 26, d0|; distance:0; content:|80 98 6d|; "
         "distance:2; within:3; sid:1;)";
 
     Signature *s;
@@ -6751,10 +6751,10 @@ int DcePayloadTest15(void)
     int r;
 
     char *sig1 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; distance:0; "
         "byte_test:2,=,14080,0,relative,dce; sid:1;)";
     char *sig2 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; distance:0; "
         "byte_test:2,=,46,5,relative,dce; sid:2;)";
 
     Signature *s;
@@ -6866,10 +6866,10 @@ int DcePayloadTest16(void)
     int r;
 
     char *sig1 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; distance:0; "
         "byte_test:2,=,55,0,relative; sid:1;)";
     char *sig2 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; distance:0; "
         "byte_test:2,=,11776,5,relative; sid:2;)";
 
     Signature *s;
@@ -6981,10 +6981,10 @@ int DcePayloadTest17(void)
     int r;
 
     char *sig1 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; distance:0; "
         "byte_test:2,=,55,0,relative,big; sid:1;)";
     char *sig2 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; distance:0; "
         "byte_test:2,=,46,5,relative,little; sid:2;)";
 
     Signature *s;
@@ -7096,10 +7096,10 @@ int DcePayloadTest18(void)
     int r;
 
     char *sig1 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; distance:0; "
         "byte_jump:2,0,relative,dce; byte_test:2,=,46,0,relative,dce; sid:1;)";
     char *sig2 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; distance:0; "
         "byte_jump:2,2,relative,dce; byte_test:2,=,14080,0,relative; sid:2;)";
 
     Signature *s;
@@ -7211,10 +7211,10 @@ int DcePayloadTest19(void)
     int r;
 
     char *sig1 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; distance:0; "
         "byte_jump:2,0,relative; byte_test:2,=,46,0,relative,dce; sid:1;)";
     char *sig2 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; distance:0; "
         "byte_jump:2,2,relative; byte_test:2,=,14080,0,relative; sid:2;)";
 
     Signature *s;
@@ -7326,10 +7326,10 @@ int DcePayloadTest20(void)
     int r;
 
     char *sig1 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; distance:0; "
         "byte_jump:2,0,relative,big; byte_test:2,=,46,0,relative,dce; sid:1;)";
     char *sig2 = "alert tcp any any -> any any "
-        "(dce_stub_data; content:|5c 00 5c 00 31|; "
+        "(dce_stub_data; content:|5c 00 5c 00 31|; distance:0; "
         "byte_jump:2,2,little,relative; byte_test:2,=,14080,0,relative; sid:2;)";
 
     Signature *s;
@@ -7436,7 +7436,7 @@ int DcePayloadTest21(void)
 
     char *sig1 = "alert tcp any any -> any any "
         "(msg:\"testing dce consecutive relative matches\"; dce_stub_data; "
-        "content:this; content:is; within:6; content:big; within:8; "
+        "content:this; distance:0; content:is; within:6; content:big; within:8; "
         "content:string; within:8; sid:1;)";
 
     Signature *s;
@@ -7536,7 +7536,7 @@ int DcePayloadTest22(void)
 
     char *sig1 = "alert tcp any any -> any any "
         "(msg:\"testing dce consecutive relative matches\"; dce_stub_data; "
-        "content:this; content:is; within:9; content:big; within:12; "
+        "content:this; distance:0; content:is; within:9; content:big; within:12; "
         "content:string; within:8; sid:1;)";
 
     Signature *s;
@@ -7636,7 +7636,8 @@ int DcePayloadTest23(void)
 
     char *sig1 = "alert tcp any any -> any any "
         "(msg:\"testing dce consecutive relative matches\"; dce_stub_data; "
-        "content:now; content:this; content:is; within:12; content:big; within:8; "
+        "content:now; distance:0; content:this; distance:-20; "
+        "content:is; within:12; content:big; within:8; "
         "content:string; within:8; sid:1;)";
 
     Signature *s;
@@ -7735,7 +7736,7 @@ int DcePayloadTest24(void)
 
     char *sig1 = "alert tcp any any -> any any "
         "(msg:\"testing dce consecutive relative matches\"; dce_stub_data; "
-        "content:thus; offset:8; content:is; within:6; "
+        "content:thus; distance:0; offset:8; content:is; within:6; "
         "content:big; within:8; sid:1;)";
 
     Signature *s;
@@ -7807,6 +7808,127 @@ end:
     return result;
 }
 
+/**
+ * \test Test content for dce sig.
+ */
+int DcePayloadParseTest25(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+    Signature *s = NULL;
+    SigMatch *sm = NULL;
+    DetectContentData *data = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                   "(msg:\"Testing bytejump_body\"; "
+                                   "content:one; content:two; "
+                                   "content:three; within:10; "
+                                   "content:four; distance:4; "
+                                   "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                                   "sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    if (s->dmatch_tail != NULL) {
+        result = 0;
+        goto end;
+    }
+    if (s->dmatch_tail != NULL) {
+        result = 0;
+        goto end;
+    }
+
+    sm = s->pmatch;
+    if (sm->type != DETECT_CONTENT) {
+        result = 0;
+        goto end;
+    }
+    data = (DetectContentData *)sm->ctx;
+    if (data->flags & DETECT_CONTENT_RAWBYTES ||
+        data->flags & DETECT_CONTENT_NOCASE ||
+        data->flags & DETECT_CONTENT_WITHIN ||
+        data->flags & DETECT_CONTENT_DISTANCE ||
+        data->flags & DETECT_CONTENT_FAST_PATTERN ||
+        data->flags & DETECT_CONTENT_NEGATED ) {
+        result = 0;
+        goto end;
+    }
+    result &= (strncmp((char *)data->content, "one", 3) == 0);
+    if (result == 0)
+        goto end;
+
+    sm = sm->next;
+    if (sm->type != DETECT_CONTENT) {
+        result = 0;
+        goto end;
+    }
+    data = (DetectContentData *)sm->ctx;
+    if (data->flags & DETECT_CONTENT_RAWBYTES ||
+        data->flags & DETECT_CONTENT_NOCASE ||
+        data->flags & DETECT_CONTENT_WITHIN ||
+        data->flags & DETECT_CONTENT_DISTANCE ||
+        data->flags & DETECT_CONTENT_FAST_PATTERN ||
+        data->flags & DETECT_CONTENT_NEGATED ) {
+        result = 0;
+        goto end;
+    }
+    result &= (strncmp((char *)data->content, "two", 3) == 0);
+    if (result == 0)
+        goto end;
+
+    sm = sm->next;
+    if (sm->type != DETECT_CONTENT) {
+        result = 0;
+        goto end;
+    }
+    data = (DetectContentData *)sm->ctx;
+    if (data->flags & DETECT_CONTENT_RAWBYTES ||
+        data->flags & DETECT_CONTENT_NOCASE ||
+        !(data->flags & DETECT_CONTENT_WITHIN) ||
+        data->flags & DETECT_CONTENT_DISTANCE ||
+        data->flags & DETECT_CONTENT_FAST_PATTERN ||
+        data->flags & DETECT_CONTENT_NEGATED ) {
+        result = 0;
+        goto end;
+    }
+    result &= (strncmp((char *)data->content, "three", 5) == 0);
+    if (result == 0)
+        goto end;
+
+    sm = sm->next;
+    if (sm->type != DETECT_CONTENT) {
+        result = 0;
+        goto end;
+    }
+    data = (DetectContentData *)sm->ctx;
+    if (data->flags & DETECT_CONTENT_RAWBYTES ||
+        data->flags & DETECT_CONTENT_NOCASE ||
+        data->flags & DETECT_CONTENT_WITHIN ||
+        !(data->flags & DETECT_CONTENT_DISTANCE) ||
+        data->flags & DETECT_CONTENT_FAST_PATTERN ||
+        data->flags & DETECT_CONTENT_NEGATED ) {
+        result = 0;
+        goto end;
+    }
+    result &= (strncmp((char *)data->content, "four", 4) == 0);
+    if (result == 0)
+        goto end;
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DcePayloadRegisterTests(void)
@@ -7837,6 +7959,8 @@ void DcePayloadRegisterTests(void)
     UtRegisterTest("DcePayloadTest22", DcePayloadTest22, 1);
     UtRegisterTest("DcePayloadTest23", DcePayloadTest23, 1);
     UtRegisterTest("DcePayloadTest24", DcePayloadTest24, 1);
+
+    UtRegisterTest("DcePayloadParseTest25", DcePayloadParseTest25, 1);
 #endif /* UNITTESTS */
 
     return;

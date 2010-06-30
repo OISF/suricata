@@ -853,25 +853,41 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
 
         SigMatchAppendUricontent(s, sm);
     } else {
-        switch (s->alproto) {
-            case ALPROTO_DCERPC:
-                /* If we have a signature that is related to dcerpc, then we add the
-                 * sm to Signature->dmatch.  All content inspections for a dce rpc
-                 * alproto is done inside detect-engine-dcepayload.c */
-                SigMatchAppendDcePayload(s, sm);
-                break;
+        if (s->alproto == ALPROTO_DCERPC &&
+            pd->flags & DETECT_PCRE_RELATIVE) {
+            SigMatch *pm = NULL;
+            SigMatch *dm = NULL;
 
-            default:
+            pm = SigMatchGetLastSMFromLists(s, 6,
+                                            DETECT_CONTENT, s->pmatch_tail,
+                                            DETECT_PCRE, s->pmatch_tail,
+                                            DETECT_BYTEJUMP, s->pmatch_tail);
+            dm = SigMatchGetLastSMFromLists(s, 6,
+                                            DETECT_CONTENT, s->pmatch_tail,
+                                            DETECT_PCRE, s->pmatch_tail,
+                                            DETECT_BYTEJUMP, s->pmatch_tail);
+
+            if (pm == NULL) {
+                SigMatchAppendDcePayload(s, sm);
+            } else if (dm == NULL) {
+                SigMatchAppendDcePayload(s, sm);
+            } else if (pm->idx > dm->idx) {
                 SigMatchAppendPayload(s, sm);
-                break;
+            } else {
+                SigMatchAppendDcePayload(s, sm);
+            }
+        } else {
+            SigMatchAppendPayload(s, sm);
         }
     }
 
     SCReturnInt(0);
 
 error:
-    if (pd != NULL) DetectPcreFree(pd);
-    if (sm != NULL) SCFree(sm);
+    if (pd != NULL)
+        DetectPcreFree(pd);
+    if (sm != NULL)
+        SCFree(sm);
     SCReturnInt(-1);
 }
 
@@ -1064,15 +1080,14 @@ int DetectPcreParseTest10(void)
     s->alproto = ALPROTO_DCERPC;
 
     result &= (DetectPcreSetup(de_ctx, s, "/bamboo/") == 0);
-    result &= (s->dmatch != NULL);
+    result &= (s->dmatch == NULL && s->pmatch != NULL);
 
     SigFree(s);
 
     s = SigAlloc();
     /* failure since we have no preceding content/pcre/bytejump */
     result &= (DetectPcreSetup(de_ctx, s, "/bamboo/") == 0);
-    result &= (s->dmatch == NULL);
-    result &= (s->pmatch != NULL);
+    result &= (s->dmatch == NULL && s->pmatch != NULL);
 
  end:
     SigFree(s);
@@ -1099,7 +1114,8 @@ int DetectPcreParseTest11(void)
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing bytejump_body\"; "
                                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                               "pcre:/bamboo/; sid:1;)");
+                               "dce_stub_data; "
+                               "pcre:/bamboo/R; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1112,7 +1128,7 @@ int DetectPcreParseTest11(void)
     result &= (s->dmatch_tail->type == DETECT_PCRE);
     data = (DetectPcreData *)s->dmatch_tail->ctx;
     if (data->flags & DETECT_PCRE_RAWBYTES ||
-        data->flags & DETECT_PCRE_RELATIVE ||
+        !(data->flags & DETECT_PCRE_RELATIVE) ||
         data->flags & DETECT_PCRE_URI) {
         result = 0;
         goto end;
@@ -1121,6 +1137,7 @@ int DetectPcreParseTest11(void)
     s->next = SigInit(de_ctx, "alert tcp any any -> any any "
                       "(msg:\"Testing bytejump_body\"; "
                       "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                      "dce_stub_data; "
                       "pcre:/bamboo/R; sid:1;)");
     if (s->next == NULL) {
         result = 0;
@@ -1143,6 +1160,7 @@ int DetectPcreParseTest11(void)
     s->next = SigInit(de_ctx, "alert tcp any any -> any any "
                       "(msg:\"Testing bytejump_body\"; "
                       "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
+                      "dce_stub_data; "
                       "pcre:/bamboo/RB; sid:1;)");
     if (s->next == NULL) {
         result = 0;

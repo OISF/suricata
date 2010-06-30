@@ -65,7 +65,6 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
 {
     char *str = withinstr;
     char dubbed = 0;
-    SigMatch *match_tail = NULL;
     SigMatch *pm = NULL;
 
     /* strip "'s */
@@ -75,35 +74,104 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
         dubbed = 1;
     }
 
-    switch (s->alproto) {
-        case ALPROTO_DCERPC:
-            /* If we have a signature that is related to dcerpc, then we add the
-             * sm to Signature->dmatch.  All content inspections for a dce rpc
-             * alproto is done inside detect-engine-dcepayload.c */
-            pm =  SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->dmatch_tail);
-            if (pm == NULL) {
-                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs"
-                           "preceeding content options for this dcerpc sig");
-                if (dubbed)
-                    SCFree(str);
-                return -1;
-            }
+    /* if we still haven't found that the sig is related to DCERPC,
+     * it's a direct entry into Signature->pmatch */
+    if (s->alproto == ALPROTO_DCERPC) {
+        SigMatch *dcem = NULL;
+        SigMatch *dm = NULL;
+        SigMatch *pm1 = NULL;
+        SigMatch *pm2 = NULL;
 
-            break;
+        SigMatch *dm_ots = NULL;
+        SigMatch *pm1_ots = NULL;
+        SigMatch *pm2_ots = NULL;
 
-        default:
-            pm =  SigMatchGetLastSMFromLists(s, 4,
+        dcem = SigMatchGetLastSMFromLists(s, 6,
+                                          DETECT_DCE_IFACE, s->amatch_tail,
+                                          DETECT_DCE_OPNUM, s->amatch_tail,
+                                          DETECT_DCE_STUB_DATA, s->amatch_tail);
+
+        dm_ots = SigMatchGetLastSMFromLists(s, 6,
+                                            DETECT_CONTENT, s->dmatch_tail,
+                                            DETECT_PCRE, s->dmatch_tail,
+                                            DETECT_BYTEJUMP, s->dmatch_tail);
+        pm1_ots = SigMatchGetLastSMFromLists(s, 6,
                                              DETECT_CONTENT, s->pmatch_tail,
-                                             DETECT_URICONTENT, s->umatch_tail);
-            if (pm == NULL) {
-                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs"
-                           "preceeding content or uricontent option");
-                if (dubbed)
-                    SCFree(str);
-                return -1;
-            }
+                                             DETECT_PCRE, s->pmatch_tail,
+                                             DETECT_BYTEJUMP, s->pmatch_tail);
+        if (pm1_ots != NULL && pm1_ots->prev != NULL) {
+            pm2_ots = SigMatchGetLastSMFromLists(s, 2,
+                                                 DETECT_CONTENT, pm1_ots->prev,
+                                                 DETECT_PCRE, pm1_ots->prev,
+                                                 DETECT_BYTEJUMP, pm1_ots->prev);
+        }
 
-            break;
+        dm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->dmatch_tail);
+        pm1 = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->pmatch_tail);
+        if (pm1 != NULL && pm1->prev != NULL) {
+            pm2 = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, pm1->prev);
+        }
+
+        if (dm == NULL && pm1 == NULL) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid signature.  within "
+                       "needs a preceding content keyword");
+            goto error;
+        }
+
+        if (dm == NULL) {
+            if (pm2_ots == NULL) {
+                if (pm1->idx > dcem->idx) {
+                    /* transfer pm1 to dmatch list and within is against this */
+                    SigMatchTransferSigMatchAcrossLists(pm1,
+                                                        &s->pmatch, &s->pmatch_tail,
+                                                        &s->dmatch, &s->dmatch_tail);
+                    pm = pm1;
+                } else {
+                    /* within is against pm1 and we continue this way */
+                    pm = pm1;
+                }
+            } else if (pm2_ots->idx > dcem->idx) {
+                /* within is against pm1, pm = pm1; */
+                pm = pm1;
+            } else if (pm1->idx > dcem->idx) {
+                /* transfer pm1 to dmatch list and within is against this */
+                SigMatchTransferSigMatchAcrossLists(pm1,
+                                                    &s->pmatch, &s->pmatch_tail,
+                                                    &s->dmatch, &s->dmatch_tail);
+                pm = pm1;
+            } else {
+                /* within is against pm1 and we continue this way */
+                pm = pm1;
+            }
+        } else {
+            if (pm1 == NULL) {
+                /* within is against dm and continue this way */
+                pm = dm;
+            } else if (dm->idx > pm1->idx) {
+                /* within is against dm */
+                pm = dm;
+            } else if (pm2_ots == NULL || pm2_ots->idx < dcem->idx) {
+                /* trasnfer pm1 to dmatch list and pm = pm1 */
+                SigMatchTransferSigMatchAcrossLists(pm1,
+                                                    &s->pmatch, &s->pmatch_tail,
+                                                    &s->dmatch, &s->dmatch_tail);
+                pm = pm1;
+            } else if (pm2_ots->idx > dcem->idx) {
+                /* within is against pm1, pm = pm1 */
+                pm = pm1;
+            }
+        }
+    } else {
+        pm = SigMatchGetLastSMFromLists(s, 4,
+                                         DETECT_CONTENT, s->pmatch_tail,
+                                         DETECT_URICONTENT, s->umatch_tail);
+        if (pm == NULL) {
+            SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs"
+                       "preceeding content or uricontent option");
+            if (dubbed)
+                SCFree(str);
+            return -1;
+        }
     }
 
     DetectUricontentData *ud = NULL;
@@ -177,49 +245,55 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 }
             }
 
-            switch (s->alproto) {
-                case ALPROTO_DCERPC:
-                    match_tail = s->dmatch_tail;
-                    break;
+            pm = SigMatchGetLastSMFromLists(s, 6,
+                                            DETECT_CONTENT, pm->prev,
+                                            DETECT_PCRE, pm->prev,
+                                            DETECT_BYTEJUMP, s->pmatch_tail);
 
-                default:
-                    match_tail = s->pmatch_tail;
-                    break;
-            }
-
-            if ( (pm = SigMatchGetLastSM(match_tail->prev, DETECT_CONTENT)) != NULL) {
-                /* Set the relative next flag on the prev sigmatch */
-                cd = (DetectContentData *)pm->ctx;
-                if (cd == NULL) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
-                               "previous keyword!");
+            DetectPcreData *pe = NULL;
+            if (pm == NULL) {
+                if (s->alproto == ALPROTO_DCERPC) {
+                    SCLogDebug("content relative without a previous content based "
+                               "keyword.  Holds good only in the case of DCERPC "
+                               "alproto like now.");
+                } else {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "No related "
+                               "previous-previous content or pcre keyword");
                     goto error;
                 }
-                cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-
-            } else if ( (pm = SigMatchGetLastSM(match_tail, DETECT_PCRE)) != NULL) {
-                DetectPcreData *pe = NULL;
-                pe = (DetectPcreData *) pm->ctx;
-                if (pe == NULL) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
-                    goto error;
-                }
-                pe->flags |= DETECT_PCRE_RELATIVE;
-
-            } else if ( (pm = SigMatchGetLastSM(match_tail, DETECT_BYTEJUMP)) != NULL) {
-                DetectBytejumpData *data = NULL;
-                data = (DetectBytejumpData *) pm->ctx;
-                if (data == NULL) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous keyword!");
-                    goto error;
-                }
-                data->flags |= DETECT_BYTEJUMP_RELATIVE;
-
             } else {
-                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two "
-                           "preceeding content or uricontent options");
-                goto error;
+                switch (pm->type) {
+                    case DETECT_CONTENT:
+                        /* Set the relative next flag on the prev sigmatch */
+                        cd = (DetectContentData *)pm->ctx;
+                        if (cd == NULL) {
+                            SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                                       "previous keyword!");
+                            goto error;
+                        }
+                        cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+
+                        break;
+
+                    case DETECT_PCRE:
+                        pe = (DetectPcreData *) pm->ctx;
+                        if (pe == NULL) {
+                            SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                                       "previous keyword!");
+                            goto error;
+                        }
+                        pe->flags |= DETECT_PCRE_RELATIVE_NEXT;
+
+                        break;
+
+                    default:
+                        /* this will never hit */
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                                       "previous keyword!");
+                        break;
+                }
             }
+
 
         break;
 

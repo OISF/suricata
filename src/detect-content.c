@@ -437,24 +437,15 @@ static int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, char *cont
 
     DetectContentPrint(cd);
 
-    switch (s->alproto) {
-        case ALPROTO_DCERPC:
-            /* If we have a signature that is related to dcerpc, then we add the
-             * sm to Signature->dmatch.  All content inspections for a dce rpc
-             * alproto is done inside detect-engine-dcepayload.c */
-            SigMatchAppendDcePayload(s, sm);
-            break;
-
-        default:
-            SigMatchAppendPayload(s, sm);
-            break;
-    }
+    SigMatchAppendPayload(s, sm);
 
     return 0;
 
 error:
-    if (cd != NULL) DetectContentFree(cd);
-    if (sm != NULL) SCFree(sm);
+    if (cd != NULL)
+        DetectContentFree(cd);
+    if (sm != NULL)
+        SCFree(sm);
     return -1;
 }
 
@@ -1091,15 +1082,13 @@ int DetectContentParseTest18(void)
     s->alproto = ALPROTO_DCERPC;
 
     result &= (DetectContentSetup(de_ctx, s, "one") == 0);
-    result &= (s->dmatch != NULL);
+    result &= (s->dmatch == NULL && s->pmatch != NULL);
 
     SigFree(s);
 
     s = SigAlloc();
-    /* failure since we have no preceding content/pcre/bytejump */
     result &= (DetectContentSetup(de_ctx, s, "one") == 0);
-    result &= (s->dmatch == NULL);
-    result &= (s->pmatch != NULL);
+    result &= (s->dmatch == NULL && s->pmatch != NULL);
 
  end:
     SigFree(s);
@@ -1126,7 +1115,8 @@ int DetectContentParseTest19(void)
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing bytejump_body\"; "
                                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                               "content:one; sid:1;)");
+                               "dce_stub_data; "
+                               "content:one; distance:0; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1142,7 +1132,7 @@ int DetectContentParseTest19(void)
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         data->flags & DETECT_CONTENT_WITHIN ||
-        data->flags & DETECT_CONTENT_DISTANCE ||
+        !(data->flags & DETECT_CONTENT_DISTANCE) ||
         data->flags & DETECT_CONTENT_FAST_PATTERN ||
         data->flags & DETECT_CONTENT_NEGATED ) {
         result = 0;
@@ -1152,7 +1142,8 @@ int DetectContentParseTest19(void)
     s->next = SigInit(de_ctx, "alert tcp any any -> any any "
                       "(msg:\"Testing bytejump_body\"; "
                       "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "content:one; content:two; within:10; sid:1;)");
+                      "dce_stub_data; "
+                      "content:one; distance:0; content:two; within:10; sid:1;)");
     if (s->next == NULL) {
         result = 0;
         goto end;
@@ -1179,7 +1170,9 @@ int DetectContentParseTest19(void)
     s->next = SigInit(de_ctx, "alert tcp any any -> any any "
                       "(msg:\"Testing bytejump_body\"; "
                       "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "content:one; offset:5; depth:9; content:two; within:10; offset:10; depth:13; sid:1;)");
+                      "dce_stub_data; "
+                      "content:one; offset:5; depth:9; distance:0; "
+                      "content:two; within:10; offset:10; depth:13; sid:1;)");
     if (s->next == NULL) {
         result = 0;
         goto end;
@@ -1206,7 +1199,7 @@ int DetectContentParseTest19(void)
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         data->flags & DETECT_CONTENT_WITHIN ||
-        data->flags & DETECT_CONTENT_DISTANCE ||
+        !(data->flags & DETECT_CONTENT_DISTANCE) ||
         data->flags & DETECT_CONTENT_FAST_PATTERN ||
         data->flags & DETECT_CONTENT_NEGATED ) {
         result = 0;
@@ -1217,7 +1210,9 @@ int DetectContentParseTest19(void)
     s->next = SigInit(de_ctx, "alert tcp any any -> any any "
                       "(msg:\"Testing bytejump_body\"; "
                       "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "content:one; content:two; distance:2; sid:1;)");
+                      "dce_stub_data; "
+                      "content:one; distance:0; "
+                      "content:two; distance:2; sid:1;)");
     if (s->next == NULL) {
         result = 0;
         goto end;
@@ -1244,7 +1239,9 @@ int DetectContentParseTest19(void)
     s->next = SigInit(de_ctx, "alert tcp any any -> any any "
                       "(msg:\"Testing bytejump_body\"; "
                       "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "content:one; content:two; within:10; distance:2; sid:1;)");
+                      "dce_stub_data; "
+                      "content:one; distance:0; "
+                      "content:two; within:10; distance:2; sid:1;)");
     if (s->next == NULL) {
         result = 0;
         goto end;
@@ -1271,7 +1268,8 @@ int DetectContentParseTest19(void)
     s->next = SigInit(de_ctx, "alert tcp any any -> any any "
                       "(msg:\"Testing bytejump_body\"; "
                       "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "content:one; offset:10; sid:1;)");
+                      "dce_stub_data; "
+                      "content:one; distance:0; offset:10; sid:1;)");
     if (s->next == NULL) {
         result = 0;
         goto end;
@@ -1287,7 +1285,7 @@ int DetectContentParseTest19(void)
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         data->flags & DETECT_CONTENT_WITHIN ||
-        data->flags & DETECT_CONTENT_DISTANCE ||
+        !(data->flags & DETECT_CONTENT_DISTANCE) ||
         data->flags & DETECT_CONTENT_FAST_PATTERN ||
         data->flags & DETECT_CONTENT_NEGATED ) {
         result = 0;
@@ -1298,7 +1296,8 @@ int DetectContentParseTest19(void)
     s->next = SigInit(de_ctx, "alert tcp any any -> any any "
                       "(msg:\"Testing bytejump_body\"; "
                       "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "content:one; depth:10; sid:1;)");
+                      "dce_stub_data; "
+                      "content:one; distance:0; depth:10; sid:1;)");
     if (s->next == NULL) {
         result = 0;
         goto end;
@@ -1314,7 +1313,7 @@ int DetectContentParseTest19(void)
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         data->flags & DETECT_CONTENT_WITHIN ||
-        data->flags & DETECT_CONTENT_DISTANCE ||
+        !(data->flags & DETECT_CONTENT_DISTANCE) ||
         data->flags & DETECT_CONTENT_FAST_PATTERN ||
         data->flags & DETECT_CONTENT_NEGATED ) {
         result = 0;
@@ -1325,7 +1324,8 @@ int DetectContentParseTest19(void)
     s->next = SigInit(de_ctx, "alert tcp any any -> any any "
                       "(msg:\"Testing bytejump_body\"; "
                       "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
-                      "content:one; offset:10; depth:2; sid:1;)");
+                      "dce_stub_data; "
+                      "content:one; distance:0; offset:10; depth:2; sid:1;)");
     if (s->next == NULL) {
         result = 0;
         goto end;
@@ -1341,7 +1341,7 @@ int DetectContentParseTest19(void)
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         data->flags & DETECT_CONTENT_WITHIN ||
-        data->flags & DETECT_CONTENT_DISTANCE ||
+        !(data->flags & DETECT_CONTENT_DISTANCE) ||
         data->flags & DETECT_CONTENT_FAST_PATTERN ||
         data->flags & DETECT_CONTENT_NEGATED ) {
         result = 0;
