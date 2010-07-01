@@ -1147,6 +1147,7 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
             if (sstate->bytesprocessed >= sstate->nbss.length + NBSS_HDR_LEN ||
                     sstate->andx.maxchainedandx == 0) {
                 sstate->bytesprocessed = 0;
+                sstate->transaction_id++;
             }
             break;
         default:
@@ -1233,10 +1234,26 @@ static void SMBStateFree(void *s) {
     SCReturn;
 }
 
+/**
+ *  \brief Update the transaction id based on the SMB state
+ */
+void SMBUpdateTransactionId(void *state, uint16_t *id) {
+    SCEnter();
+
+    SMBState *s = (SMBState *)state;
+    SCLogDebug("original id %"PRIu16, *id);
+    (*id) = s->transaction_id;
+    SCLogDebug("updated id %"PRIu16, *id);
+
+    SCReturn;
+}
+
 void RegisterSMBParsers(void) {
     AppLayerRegisterProto("smb", ALPROTO_SMB, STREAM_TOSERVER, SMBParse);
     AppLayerRegisterProto("smb", ALPROTO_SMB, STREAM_TOCLIENT, SMBParse);
     AppLayerRegisterStateFuncs(ALPROTO_SMB, SMBStateAlloc, SMBStateFree);
+    AppLayerRegisterTransactionIdFuncs(ALPROTO_SMB,
+            SMBUpdateTransactionId, NULL);
 }
 
 /* UNITTESTS */

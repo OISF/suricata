@@ -458,8 +458,15 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         /* if the sig has alproto and the session as well they should match */
         if (s->alproto != ALPROTO_UNKNOWN) {
             if (s->alproto != alproto) {
-                SCLogDebug("alproto mismatch");
-                continue;
+                if (s->alproto == ALPROTO_DCERPC) {
+                    if (alproto != ALPROTO_SMB && alproto != ALPROTO_SMB2) {
+                        SCLogDebug("DCERPC sig, alproto not SMB or SMB2");
+                        continue;
+                    }
+                } else {
+                    SCLogDebug("alproto mismatch");
+                    continue;
+                }
             }
         }
 
@@ -671,6 +678,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     char no_store_flow_sgh = FALSE;
 
     SCEnter();
+
+    SCLogDebug("pcap_cnt %"PRIu64, p->pcap_cnt);
 
     p->alerts.cnt = 0;
 
@@ -1017,6 +1026,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         break;
     }
 
+end:
     if (alstate != NULL) {
         SCLogDebug("getting de_state_status");
         int de_state_status = DeStateUpdateInspectTransactionId(p->flow,
@@ -1030,7 +1040,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         }
     }
 
-end:
     /* so now let's iterate the alerts and remove the ones after a pass rule
      * matched (if any). This is done inside PacketAlertFinalize() */
     /* PR: installed "tag" keywords are handled after the threshold inspection */

@@ -313,14 +313,19 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 SCLogDebug("uri inspected but no match");
             }
         }
-    } else if (alproto == ALPROTO_DCERPC) {
+    } else if (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
         if (s->dmatch != NULL) {
             dinspect = 1;
 
             SCLogDebug("inspecting dce payload");
 
+            void *real_alstate = alstate;
+            if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
+                real_alstate = f->aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+            }
+
             if (DetectEngineInspectDcePayload(de_ctx, det_ctx, s, f,
-                        flags, alstate) == 1)
+                        flags, real_alstate) == 1)
             {
                 SCLogDebug("dce payload matched");
                 dmatch = 1;
@@ -456,14 +461,19 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                         SCLogDebug("uri already inspected");
                     }
                 }
-            } else if (alproto == ALPROTO_DCERPC) {
+            } else if (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
                 if (s->dmatch != NULL) {
                     if (!(item->flags & DE_STATE_FLAG_DCE_MATCH)) {
                         SCLogDebug("inspecting dce payload");
                         dinspect = 1;
 
+                        void *real_alstate = alstate;
+                        if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
+                            real_alstate = f->aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+                        }
+
                         if (DetectEngineInspectDcePayload(de_ctx, det_ctx, s, f,
-                                    flags, alstate) == 1)
+                                    flags, real_alstate) == 1)
                         {
                             SCLogDebug("dce payload matched");
                             item->flags |= DE_STATE_FLAG_DCE_MATCH;

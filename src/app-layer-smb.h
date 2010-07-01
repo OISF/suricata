@@ -85,6 +85,7 @@ typedef struct SMBState_ {
     uint16_t bytesprocessed;
     DCERPC dcerpc;
     uint32_t tail;
+    uint16_t transaction_id;
 } SMBState;
 
 #define SMB_FLAGS_SERVER_TO_REDIR 0x80
