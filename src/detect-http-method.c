@@ -336,7 +336,7 @@ int DetectHttpMethodTest03(void)
     return result;
 }
 
-/** \test Check a signature with fast_pattern (fail) */
+/** \test Check a signature with fast_pattern (should work) */
 int DetectHttpMethodTest04(void)
 {
     DetectEngineCtx *de_ctx = NULL;
@@ -353,7 +353,7 @@ int DetectHttpMethodTest04(void)
                                "fast_pattern; "
                                "http_method; sid:1;)");
 
-    if (de_ctx->sig_list == NULL) {
+    if (de_ctx->sig_list != NULL) {
         result = 1;
     }
 

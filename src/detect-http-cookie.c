@@ -385,7 +385,7 @@ end:
 
 /**
  * \test Checks if a http_cookie is registered in a Signature, when fast_pattern
- *       is also specified in the signature
+ *       is also specified in the signature (now it should)
  */
 int DetectHttpCookieTest04(void)
 {
@@ -399,12 +399,12 @@ int DetectHttpCookieTest04(void)
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
                                "(msg:\"Testing http_cookie\"; content:\"one\"; "
                                "fast_pattern; http_cookie; sid:1;)");
-    if (de_ctx->sig_list == NULL)
+    if (de_ctx->sig_list != NULL)
         result = 1;
 
 end:
-    if (de_ctx != NULL)
-        DetectEngineCtxFree(de_ctx);
+    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
     return result;
 }
 
