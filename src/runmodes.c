@@ -163,7 +163,7 @@ static void RunModeInitialize(void)
         threading_detect_ratio = 1;
     }
 
-    printf("threading_detect_ratio %f\n", threading_detect_ratio);
+    SCLogDebug("threading_detect_ratio %f", threading_detect_ratio);
 }
 
 int RunModeIdsPcap(DetectEngineCtx *de_ctx, char *iface) {
