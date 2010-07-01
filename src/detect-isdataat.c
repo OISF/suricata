@@ -326,9 +326,9 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                                         DETECT_PCRE, s->pmatch_tail,
                                         DETECT_BYTEJUMP, s->pmatch_tail);
         dm = SigMatchGetLastSMFromLists(s, 6,
-                                        DETECT_CONTENT, s->pmatch_tail,
-                                        DETECT_PCRE, s->pmatch_tail,
-                                        DETECT_BYTEJUMP, s->pmatch_tail);
+                                        DETECT_CONTENT, s->dmatch_tail,
+                                        DETECT_PCRE, s->dmatch_tail,
+                                        DETECT_BYTEJUMP, s->dmatch_tail);
 
         if (pm == NULL) {
             SigMatchAppendDcePayload(s, sm);
