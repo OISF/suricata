@@ -3,10 +3,20 @@
  *
  * \author Anoop Saldanha <poonaatsoc@gmail.com>
  *
- * \todo Some work yet to be done in this file.  Firstly change the way we get
- *       the sgh.  Once we implement the retrieval of sghs from the flow, as
- *       suggested by victor, we can get rid of the sgh retrieval here.
- *       Make the various parameters user configurable.  Terribly hard-coded now.
+ * \todo
+ *       - Make cuda paramters user configurable.
+ *       - Implement a gpu version of aho-corasick.  That should get rid of a
+ *         lot of post processing and pattern_chopping, and we don't have to
+ *         deal with one or two byte patterns.
+ *       - Currently a lot of packets(~17k) are getting stuck on the detection
+ *         thread, which is a major bottleneck.  Introduce bypass detection
+ *         threads for these 15k non buffered packets and check how the alerts
+ *         are affected by this(out of sequence handling by detection threads).
+ *       - Use texture/shared memory.  This should be handled along with AC.
+ *       - Test the use of host-alloced page locked memory.
+ *       - Test other optimizations like using the sgh held in the flow(if
+ *         present in the flow), instead of retrieving the sgh inside the batcher
+ *         thread.
  */
 
 /* compile in, only if we have a CUDA enabled on this machine */
