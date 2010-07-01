@@ -20,6 +20,9 @@
  * be enabling cuda.  We will only end up screwing performance */
 #define SC_CUDA_PB_MIN_NO_OF_PACKETS 4000
 
+/* the maximum payload size we're sending to the card (defined in decode.h) */
+#define SC_CUDA_PB_MAX_PAYLOAD_SIZE CUDA_MAX_PAYLOAD_SIZE
+
 /**
  * \brief Implement the template SCDQGenericQData to transfer the cuda
  *        packet buffer from the cuda batcher thread to the dispatcher
@@ -87,7 +90,7 @@ typedef struct SCCudaPBPacketDataForGPU_ {
     unsigned int payload_len;
     /* holds the payload.  While we actually store the payload in the buffer,
      * we may not end up using the entire 1480 bytes if the payload is smaller */
-    uint8_t payload[1480];
+    uint8_t payload[SC_CUDA_PB_MAX_PAYLOAD_SIZE];
 } SCCudaPBPacketDataForGPU;
 
 /**

@@ -57,6 +57,10 @@
 
 #include "detect-reference.h"
 
+#ifdef __SC_CUDA_SUPPORT__
+#define CUDA_MAX_PAYLOAD_SIZE 1500
+#endif
+
 /* forward declaration */
 struct DetectionEngineThreadCtx_;
 
@@ -384,7 +388,7 @@ typedef struct Packet_
     SCMutex cuda_mutex;
     SCCondT cuda_cond;
     /* the extra 1 in the 1481, is to hold the no_of_matches from the mpm run */
-    uint16_t mpm_offsets[1481];
+    uint16_t mpm_offsets[CUDA_MAX_PAYLOAD_SIZE + 1];
 #endif
 } Packet;
 

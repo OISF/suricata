@@ -518,6 +518,13 @@ TmEcode SCCudaPBBatchPackets(ThreadVars *tv, Packet *p, void *data, PacketQueue 
      * we end up buffering the packet or not */
     p->cuda_mpm_enabled = 0;
 
+    /* packets that are too big are handled by the cpu */
+    if (p->payload_len > SC_CUDA_PB_MAX_PAYLOAD_SIZE) {
+        SCLogDebug("p->payload_len %"PRIu16" > %d, inspecting on the CPU.",
+            p->payload_len, SC_CUDA_PB_MAX_PAYLOAD_SIZE);
+        return TM_ECODE_OK;
+    }
+
     SCCudaPBThreadCtx *tctx = data;
     /* the packets buffer */
     SCCudaPBPacketsBuffer *pb = (SCCudaPBPacketsBuffer *)tctx->curr_pb;

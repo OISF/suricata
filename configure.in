@@ -635,7 +635,7 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
     ])
 
 # enable debug validation functions & macro's output
-    AC_ARG_ENABLE(debug,
+    AC_ARG_ENABLE(debug-validation,
            AS_HELP_STRING([--enable-debug-validation], [Enable (debug) validation code output]),,[enable_debug_validation=no])
     AS_IF([test "x$enable_debug_validation" = "xyes"], [
         CFLAGS="${CFLAGS} -DDEBUG_VALIDATION"
@@ -685,7 +685,7 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
 
 # enable CUDA output
     AC_ARG_ENABLE(cuda,
-           AS_HELP_STRING([--enable-cuda], [Enable CUDA pattern matching]),,[enable_cuda=no])
+           AS_HELP_STRING([--enable-cuda], [Enable experimental CUDA pattern matching]),,[enable_cuda=no])
     AS_IF([test "x$enable_cuda" = "xyes"], [
         AC_ARG_WITH(cuda_includes,
                 [  --with-cuda-includes=DIR  cuda include directory],
