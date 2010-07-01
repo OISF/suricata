@@ -202,6 +202,14 @@ int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         return -1;
     }
 
+    if (((DetectContentData *)sm->ctx)->flags & DETECT_CONTENT_FAST_PATTERN)
+    {
+        SCLogWarning(SC_WARN_COMPATIBILITY,
+                   "http_header cannot be used with \"fast_pattern\" currently."
+                   "Unsetting fast_pattern on this modifier. Signature ==> %s", s->sig_str);
+        ((DetectContentData *)sm->ctx)->flags &= ~DETECT_CONTENT_FAST_PATTERN;
+    }
+
     /* http_header should not be used with the rawbytes rule */
     if ( ((DetectContentData *)sm->ctx)->flags & DETECT_CONTENT_RAWBYTES) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "http_header rule can not "
