@@ -178,7 +178,7 @@ For Mac OS X Users
     /opt/local/include. The configuration should take care of this.
 
     port install autoconf automake gcc44 make libnet11 libpcap pcre \
-    libyaml libtool
+    libyaml libtool pkgconfig
     export AC_PROG_LIBTOOL=$( which libtool )
 
     ### Suricata:
