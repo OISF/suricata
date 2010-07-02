@@ -184,11 +184,16 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
 
             //PrintawDataFp(stdout,ud->uricontent,ud->uricontent_len);
 
-            /* do the actual search with boyer moore precooked ctx */
-            if (ud->flags & DETECT_URICONTENT_NOCASE)
-                found = BoyerMooreNocase(ud->uricontent, ud->uricontent_len, spayload, spayload_len, ud->bm_ctx->bmGs, ud->bm_ctx->bmBc);
-            else
-                found = BoyerMoore(ud->uricontent, ud->uricontent_len, spayload, spayload_len, ud->bm_ctx->bmGs, ud->bm_ctx->bmBc);
+            /* If we got no matches from the mpm, avoid searching (just check if negated) */
+            if (det_ctx->de_have_httpuri == TRUE) {
+                /* do the actual search with boyer moore precooked ctx */
+                if (ud->flags & DETECT_URICONTENT_NOCASE)
+                    found = BoyerMooreNocase(ud->uricontent, ud->uricontent_len, spayload, spayload_len, ud->bm_ctx->bmGs, ud->bm_ctx->bmBc);
+                else
+                    found = BoyerMoore(ud->uricontent, ud->uricontent_len, spayload, spayload_len, ud->bm_ctx->bmGs, ud->bm_ctx->bmBc);
+            } else {
+                found = NULL;
+            }
 
             /* next we evaluate the result in combination with the
              * negation flag. */
@@ -350,7 +355,7 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
     }
 
     /* if we don't have a uri, don't bother inspecting */
-    if (det_ctx->de_have_httpuri == FALSE) {
+    if (det_ctx->de_have_httpuri == FALSE && !(s->flags & SIG_FLAG_MPM_URI_NEG)) {
         SCLogDebug("We don't have uri");
         goto end;
     }

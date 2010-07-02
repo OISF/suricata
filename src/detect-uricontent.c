@@ -321,7 +321,6 @@ DetectUricontentData *DoDetectUricontentSetup (char * contentstr)
     cd->offset = 0;
     cd->within = 0;
     cd->distance = 0;
-    cd->flags = 0;
 
     /* Prepare Boyer Moore context for searching faster */
     cd->bm_ctx = BoyerMooreCtxInit(cd->uricontent, cd->uricontent_len);
@@ -367,6 +366,9 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contents
     sm = SigMatchAlloc();
     if (sm == NULL)
         goto error;
+
+    if (cd->flags & DETECT_URICONTENT_NEGATED)
+        s->flags |= SIG_FLAG_MPM_URI_NEG;
 
     sm->type = DETECT_URICONTENT;
     sm->ctx = (void *)cd;
