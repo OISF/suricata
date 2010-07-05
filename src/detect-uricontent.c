@@ -367,9 +367,6 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contents
     if (sm == NULL)
         goto error;
 
-    if (cd->flags & DETECT_URICONTENT_NEGATED)
-        s->flags |= SIG_FLAG_MPM_URI_NEG;
-
     sm->type = DETECT_URICONTENT;
     sm->ctx = (void *)cd;
 
