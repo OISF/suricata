@@ -61,74 +61,7 @@ static uint64_t segment_pool_memuse = 0;
 static uint64_t segment_pool_memcnt = 0;
 #endif
 
-/* prototypes */
-static int HandleSegmentStartsBeforeListSegment(TcpStream *, TcpSegment *,
-                                                TcpSegment *);
-static int HandleSegmentStartsAtSameListSegment(TcpStream *, TcpSegment *,
-                                                TcpSegment *);
-static int HandleSegmentStartsAfterListSegment(TcpStream *, TcpSegment *,
-                                               TcpSegment *);
-void StreamTcpSegmentDataReplace(TcpSegment *, TcpSegment *, uint32_t, uint16_t);
-void StreamTcpSegmentDataCopy(TcpSegment *, TcpSegment *);
-TcpSegment* StreamTcpGetSegment(uint16_t);
-void StreamTcpSegmentReturntoPool(TcpSegment *);
-void StreamTcpCreateTestPacket(uint8_t *, uint8_t, uint8_t, uint8_t);
-
-/** \brief alloc a tcp segment pool entry */
-void *TcpSegmentPoolAlloc(void *payload_len) {
-    if (StreamTcpCheckMemcap((uint32_t)sizeof(TcpSegment) + *((uint16_t *) payload_len)) == 0)
-        return NULL;
-
-    TcpSegment *seg = SCMalloc(sizeof (TcpSegment));
-    if (seg == NULL)
-        return NULL;
-
-    memset(seg, 0, sizeof (TcpSegment));
-
-    seg->pool_size = *((uint16_t *) payload_len);
-    seg->payload_len = seg->pool_size;
-
-    seg->payload = SCMalloc(seg->payload_len);
-    if (seg->payload == NULL) {
-        SCFree(seg);
-        return NULL;
-    }
-
-#ifdef DEBUG
-    SCMutexLock(&segment_pool_memuse_mutex);
-    segment_pool_memuse += seg->payload_len;
-    segment_pool_memcnt++;
-    SCLogDebug("segment_pool_memcnt %"PRIu64"", segment_pool_memcnt);
-    SCMutexUnlock(&segment_pool_memuse_mutex);
-#endif
-
-    StreamTcpIncrMemuse((uint32_t)seg->pool_size + sizeof(TcpSegment));
-    return seg;
-}
-
-/** \brief free a tcp segment pool entry */
-void TcpSegmentPoolFree(void *ptr) {
-    if (ptr == NULL)
-        return;
-
-    TcpSegment *seg = (TcpSegment *) ptr;
-
-    StreamTcpDecrMemuse((uint32_t)seg->pool_size + sizeof(TcpSegment));
-
-#ifdef DEBUG
-    SCMutexLock(&segment_pool_memuse_mutex);
-    segment_pool_memuse -= seg->pool_size;
-    segment_pool_memcnt--;
-    SCLogDebug("segment_pool_memcnt %"PRIu64"", segment_pool_memcnt);
-    SCMutexUnlock(&segment_pool_memuse_mutex);
-#endif
-
-    SCFree(seg->payload);
-    SCFree(seg);
-    return;
-}
-
-/* We define serveral pools with prealloced segments with fixed size
+/* We define several pools with prealloced segments with fixed size
  * payloads. We do this to prevent having to do an SCMalloc call for every
  * data segment we receive, which would be a large performance penalty.
  * The cost is in memory of course. */
@@ -153,9 +86,147 @@ static uint64_t segment_pool_cnt = 0;
 /* index to the right pool for all packet sizes. */
 static uint16_t segment_pool_idx[65536]; /* O(1) lookups of the pool */
 
+/* Memory use counters */
+static SCSpinlock stream_reassembly_memuse_spinlock;
+static uint32_t stream_reassembly_memuse;
+static uint32_t stream_reassembly_memuse_max;
+
+/* prototypes */
+static int HandleSegmentStartsBeforeListSegment(TcpStream *, TcpSegment *,
+                                                TcpSegment *);
+static int HandleSegmentStartsAtSameListSegment(TcpStream *, TcpSegment *,
+                                                TcpSegment *);
+static int HandleSegmentStartsAfterListSegment(TcpStream *, TcpSegment *,
+                                               TcpSegment *);
+void StreamTcpSegmentDataReplace(TcpSegment *, TcpSegment *, uint32_t, uint16_t);
+void StreamTcpSegmentDataCopy(TcpSegment *, TcpSegment *);
+TcpSegment* StreamTcpGetSegment(uint16_t);
+void StreamTcpSegmentReturntoPool(TcpSegment *);
+void StreamTcpCreateTestPacket(uint8_t *, uint8_t, uint8_t, uint8_t);
+
+/**
+ *  \brief  Function to Increment the memory usage counter for the TCP reassembly
+ *          segments
+ *
+ *  \param  size Size of the TCP segment and its payload length memory allocated
+ */
+void StreamTcpReassembleIncrMemuse(uint32_t size) {
+
+    SCSpinLock(&stream_reassembly_memuse_spinlock);
+    stream_reassembly_memuse += size;
+
+    if (stream_reassembly_memuse > stream_reassembly_memuse_max)
+        stream_reassembly_memuse_max = stream_reassembly_memuse;
+
+    SCSpinUnlock(&stream_reassembly_memuse_spinlock);
+}
+
+/**
+ *  \brief  Function to Decrease the memory usage counter for the TCP reassembly
+ *          segments
+ *
+ *  \param  size Size of the TCP segment and its payload length memory allocated
+ */
+void StreamTcpReassembleDecrMemuse(uint32_t size) {
+    SCSpinLock(&stream_reassembly_memuse_spinlock);
+
+    if (size <= stream_reassembly_memuse) {
+        stream_reassembly_memuse -= size;
+    } else {
+        BUG_ON(size > stream_reassembly_memuse);
+        stream_reassembly_memuse = 0;
+    }
+
+    SCSpinUnlock(&stream_reassembly_memuse_spinlock);
+}
+
+
+/**
+ * \brief  Function to Check the reassembly memory usage counter against the
+ *         allowed max memory usgae for TCP segments.
+ *
+ * \param  size Size of the TCP segment and its payload length memory allocated
+ * \retval 1 if in bounds
+ * \retval 0 if not in bounds
+ */
+int StreamTcpReassembleCheckMemcap(uint32_t size) {
+    SCEnter();
+
+    int ret = 0;
+    SCSpinLock(&stream_reassembly_memuse_spinlock);
+    if (size + stream_reassembly_memuse <= stream_config.reassembly_memcap)
+        ret = 1;
+    SCSpinUnlock(&stream_reassembly_memuse_spinlock);
+
+    SCReturnInt(ret);
+}
+
+/** \brief alloc a tcp segment pool entry */
+void *TcpSegmentPoolAlloc(void *payload_len) {
+    if (StreamTcpReassembleCheckMemcap((uint32_t)sizeof(TcpSegment) +
+                                            *((uint16_t *) payload_len)) == 0)
+    {
+        return NULL;
+    }
+
+    TcpSegment *seg = SCMalloc(sizeof (TcpSegment));
+    if (seg == NULL)
+        return NULL;
+
+    memset(seg, 0, sizeof (TcpSegment));
+
+    seg->pool_size = *((uint16_t *) payload_len);
+    seg->payload_len = seg->pool_size;
+
+    seg->payload = SCMalloc(seg->payload_len);
+    if (seg->payload == NULL) {
+        SCFree(seg);
+        return NULL;
+    }
+
+#ifdef DEBUG
+    SCMutexLock(&segment_pool_memuse_mutex);
+    segment_pool_memuse += seg->payload_len;
+    segment_pool_memcnt++;
+    SCLogDebug("segment_pool_memcnt %"PRIu64"", segment_pool_memcnt);
+    SCMutexUnlock(&segment_pool_memuse_mutex);
+#endif
+
+    StreamTcpReassembleIncrMemuse((uint32_t)seg->pool_size + sizeof(TcpSegment));
+    return seg;
+}
+
+/** \brief free a tcp segment pool entry */
+void TcpSegmentPoolFree(void *ptr) {
+    if (ptr == NULL)
+        return;
+
+    TcpSegment *seg = (TcpSegment *) ptr;
+
+    StreamTcpReassembleDecrMemuse((uint32_t)seg->pool_size + sizeof(TcpSegment));
+
+#ifdef DEBUG
+    SCMutexLock(&segment_pool_memuse_mutex);
+    segment_pool_memuse -= seg->pool_size;
+    segment_pool_memcnt--;
+    SCLogDebug("segment_pool_memcnt %"PRIu64"", segment_pool_memcnt);
+    SCMutexUnlock(&segment_pool_memuse_mutex);
+#endif
+
+    SCFree(seg->payload);
+    SCFree(seg);
+    return;
+}
+
 int StreamTcpReassembleInit(char quiet)
 {
     StreamMsgQueuesInit();
+
+    /* init the memcap and it's lock */
+    stream_reassembly_memuse = 0;
+    stream_reassembly_memuse_max = 0;
+    SCSpinInit(&stream_reassembly_memuse_spinlock, PTHREAD_PROCESS_PRIVATE);
+
 #ifdef DEBUG
     SCMutexInit(&segment_pool_memuse_mutex, NULL);
 #endif
@@ -210,6 +281,14 @@ void StreamTcpReassembleFree(char quiet)
     }
 
     StreamMsgQueuesDeinit(quiet);
+
+    if (!quiet) {
+        SCLogInfo("Max memuse of the stream reassembly engine %"PRIu32" (in use"
+                " %"PRIu32")", stream_reassembly_memuse_max,
+                stream_reassembly_memuse);
+    }
+
+    SCSpinDestroy(&stream_reassembly_memuse_spinlock);
 
 #ifdef DEBUG
     SCLogDebug("segment_pool_cnt %"PRIu64"", segment_pool_cnt);
@@ -5448,6 +5527,49 @@ end:
     return ret;
 }
 
+/** \test   Test the memcap incrementing/decrementing and memcap check */
+static int StreamTcpReassembleTest44(void)
+{
+    uint8_t ret = 0;
+    StreamTcpInitConfig(TRUE);
+    uint32_t memuse = stream_reassembly_memuse;
+
+    StreamTcpReassembleIncrMemuse(500);
+    if (stream_reassembly_memuse != (memuse+500)) {
+        printf("failed in incrementing the memory");
+        goto end;
+    }
+
+    StreamTcpReassembleDecrMemuse(500);
+    if (stream_reassembly_memuse != memuse) {
+        printf("failed in decrementing the memory");
+        goto end;
+    }
+
+    if (StreamTcpReassembleCheckMemcap(500) != 1) {
+        printf("failed in validating the memcap");
+        goto end;
+    }
+
+    if (StreamTcpReassembleCheckMemcap((memuse + stream_config.reassembly_memcap)) != 0) {
+        printf("failed in validating the memcap");
+        goto end;
+    }
+
+    StreamTcpFreeConfig(TRUE);
+
+    if (stream_reassembly_memuse != 0) {
+        printf("failed in clearing the memory");
+        goto end;
+    }
+
+    ret = 1;
+    return ret;
+end:
+    StreamTcpFreeConfig(TRUE);
+    return ret;
+}
+
 #endif /* UNITTESTS */
 
 /** \brief  The Function Register the Unit tests to test the reassembly engine
@@ -5499,5 +5621,6 @@ void StreamTcpReassembleRegisterTests(void) {
     UtRegisterTest("StreamTcpReassembleTest41 -- app proto test", StreamTcpReassembleTest41, 1);
     UtRegisterTest("StreamTcpReassembleTest42 -- pause/unpause reassembly test", StreamTcpReassembleTest42, 1);
     UtRegisterTest("StreamTcpReassembleTest43 -- min smsg size test", StreamTcpReassembleTest43, 1);
+    UtRegisterTest("StreamTcpReassembleTest44 -- Memcap Test", StreamTcpReassembleTest44, 1);
 #endif /* UNITTESTS */
 }

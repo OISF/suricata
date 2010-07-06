@@ -55,6 +55,19 @@
 
 //#define DEBUG
 
+#define STREAMTCP_DEFAULT_SESSIONS              262144
+#define STREAMTCP_DEFAULT_PREALLOC              32768
+#define STREAMTCP_DEFAULT_MEMCAP                32 * 1024 * 1024 /* 32mb */
+#define STREAMTCP_DEFAULT_REASSEMBLY_MEMCAP     64 * 1024 * 1024 /* 64mb */
+
+#define STREAMTCP_NEW_TIMEOUT                   60
+#define STREAMTCP_EST_TIMEOUT                   3600
+#define STREAMTCP_CLOSED_TIMEOUT                120
+
+#define STREAMTCP_EMERG_NEW_TIMEOUT             10
+#define STREAMTCP_EMERG_EST_TIMEOUT             300
+#define STREAMTCP_EMERG_CLOSED_TIMEOUT          20
+
 typedef struct StreamTcpThread_ {
     uint64_t pkts;
 
@@ -78,18 +91,6 @@ extern void StreamTcpSegmentReturntoPool(TcpSegment *);
 int StreamTcpGetFlowState(void *);
 static int ValidTimestamp(TcpSession * , Packet *);
 void StreamTcpSetOSPolicy(TcpStream*, Packet*);
-
-#define STREAMTCP_DEFAULT_SESSIONS      262144
-#define STREAMTCP_DEFAULT_PREALLOC      32768
-#define STREAMTCP_DEFAULT_MEMCAP        64 * 1024 * 1024 /* 64mb */
-
-#define STREAMTCP_NEW_TIMEOUT           60
-#define STREAMTCP_EST_TIMEOUT           3600
-#define STREAMTCP_CLOSED_TIMEOUT        120
-
-#define STREAMTCP_EMERG_NEW_TIMEOUT     10
-#define STREAMTCP_EMERG_EST_TIMEOUT     300
-#define STREAMTCP_EMERG_CLOSED_TIMEOUT  20
 
 static Pool *ssn_pool = NULL;
 static SCMutex ssn_pool_mutex;
@@ -381,6 +382,13 @@ void StreamTcpInitConfig(char quiet)
     } else {
         stream_config.memcap = STREAMTCP_DEFAULT_MEMCAP;
     }
+
+    if ((ConfGetInt("stream.reassembly.memcap", &value)) == 1) {
+        stream_config.reassembly_memcap = (uint32_t)value;
+    } else {
+        stream_config.reassembly_memcap = STREAMTCP_DEFAULT_REASSEMBLY_MEMCAP;
+    }
+
     if (!quiet) {
         SCLogInfo("stream \"memcap\": %"PRIu32"", stream_config.memcap);
     }
@@ -5699,6 +5707,49 @@ end:
     return ret;
 }
 
+/** \test   Test the memcap incrementing/decrementing and memcap check */
+static int StreamTcpTest28(void)
+{
+    uint8_t ret = 0;
+    StreamTcpInitConfig(TRUE);
+    uint32_t memuse = stream_memuse;
+
+    StreamTcpIncrMemuse(500);
+    if (stream_memuse != (memuse+500)) {
+        printf("failed in incrementing the memory");
+        goto end;
+    }
+
+    StreamTcpDecrMemuse(500);
+    if (stream_memuse != memuse) {
+        printf("failed in decrementing the memory");
+        goto end;
+    }
+
+    if (StreamTcpCheckMemcap(500) != 1) {
+        printf("failed in validating the memcap");
+        goto end;
+    }
+
+    if (StreamTcpCheckMemcap((memuse + stream_config.memcap)) != 0) {
+        printf("failed in validating the memcap");
+        goto end;
+    }
+
+    StreamTcpFreeConfig(TRUE);
+
+    if (stream_memuse != 0) {
+        printf("failed in clearing the memory");
+        goto end;
+    }
+
+    ret = 1;
+    return ret;
+end:
+    StreamTcpFreeConfig(TRUE);
+    return ret;
+}
+
 #endif /* UNITTESTS */
 
 void StreamTcpRegisterTests (void) {
@@ -5749,6 +5800,7 @@ void StreamTcpRegisterTests (void) {
                     StreamTcpTest26, 1);
     UtRegisterTest("StreamTcpTest27 -- test ecn/cwr sessions",
                     StreamTcpTest27, 1);
+    UtRegisterTest("StreamTcpTest28 -- Memcap Test", StreamTcpTest28, 1);
 
     /* set up the reassembly tests as well */
     StreamTcpReassembleRegisterTests();
