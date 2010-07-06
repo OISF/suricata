@@ -102,9 +102,11 @@ enum {
  */
 typedef struct DetectAddress_ {
     /** address data for this group */
-    uint8_t family; /**< address family, AF_INET (IPv4) or AF_INET6 (IPv6) */
-    uint32_t ip[4]; /**< the address, or lower end of a range */
-    uint32_t ip2[4]; /**< higher end of a range */
+    Address ip;
+    Address ip2;
+//    uint8_t family; /**< address family, AF_INET (IPv4) or AF_INET6 (IPv6) */
+//    uint32_t ip[4]; /**< the address, or lower end of a range */
+//    uint32_t ip2[4]; /**< higher end of a range */
 
     /** ptr to the next address (dst addr in that case) or to the src port */
     union {

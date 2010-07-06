@@ -1454,7 +1454,7 @@ static int DetectEngineLookupBuildSourceAddressList(DetectEngineCtx *de_ctx, Det
 
     /* for each source address group in the signature... */
     for (gr = head; gr != NULL; gr = gr->next) {
-        BUG_ON(gr->family == 0 && !(gr->flags & ADDRESS_FLAG_ANY));
+        BUG_ON(gr->ip.family == 0 && !(gr->flags & ADDRESS_FLAG_ANY));
 
         /* ...and each protocol the signature matches on... */
         for (proto = 0; proto < 256; proto++) {
@@ -1598,7 +1598,7 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddress *srchead,
     /* insert the addresses into the tmplist, where it will
      * be sorted descending on 'cnt'. */
     for (gr = srchead; gr != NULL; gr = gr->next) {
-        BUG_ON(gr->family == 0 && !(gr->flags & ADDRESS_FLAG_ANY));
+        BUG_ON(gr->ip.family == 0 && !(gr->flags & ADDRESS_FLAG_ANY));
 
         if (SMALL_MPM(gr->sh->mpm_content_maxlen) && unique_groups > 0)
             unique_groups++;
@@ -1650,7 +1650,7 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddress *srchead,
     if (i == 0) i = groups;
 
     for (gr = tmplist; gr != NULL; ) {
-        BUG_ON(gr->family == 0 && !(gr->flags & ADDRESS_FLAG_ANY));
+        BUG_ON(gr->ip.family == 0 && !(gr->flags & ADDRESS_FLAG_ANY));
 
         if (i == 0) {
             if (joingr == NULL) {
@@ -1703,7 +1703,7 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddress *srchead,
      *
      * Start with inserting the unique groups */
     for (gr = tmplist2; gr != NULL; ) {
-        BUG_ON(gr->family == 0 && !(gr->flags & ADDRESS_FLAG_ANY));
+        BUG_ON(gr->ip.family == 0 && !(gr->flags & ADDRESS_FLAG_ANY));
 
         DetectAddress *newtmp = DetectAddressCopy(gr);
         if (newtmp == NULL) {

@@ -58,10 +58,10 @@
  */
 int DetectAddressCmpIPv4(DetectAddress *a, DetectAddress *b)
 {
-    uint32_t a_ip1 = ntohl(a->ip[0]);
-    uint32_t a_ip2 = ntohl(a->ip2[0]);
-    uint32_t b_ip1 = ntohl(b->ip[0]);
-    uint32_t b_ip2 = ntohl(b->ip2[0]);
+    uint32_t a_ip1 = ntohl(a->ip.addr_data32[0]);
+    uint32_t a_ip2 = ntohl(a->ip2.addr_data32[0]);
+    uint32_t b_ip1 = ntohl(b->ip.addr_data32[0]);
+    uint32_t b_ip2 = ntohl(b->ip2.addr_data32[0]);
 
     if (a_ip1 == b_ip1 && a_ip2 == b_ip2) {
         SCLogDebug("ADDRESS_EQ");
@@ -113,10 +113,10 @@ int DetectAddressCmpIPv4(DetectAddress *a, DetectAddress *b)
 int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
                          DetectAddress *b, DetectAddress **c)
 {
-    uint32_t a_ip1 = ntohl(a->ip[0]);
-    uint32_t a_ip2 = ntohl(a->ip2[0]);
-    uint32_t b_ip1 = ntohl(b->ip[0]);
-    uint32_t b_ip2 = ntohl(b->ip2[0]);
+    uint32_t a_ip1 = ntohl(a->ip.addr_data32[0]);
+    uint32_t a_ip2 = ntohl(a->ip2.addr_data32[0]);
+    uint32_t b_ip1 = ntohl(b->ip.addr_data32[0]);
+    uint32_t b_ip2 = ntohl(b->ip2.addr_data32[0]);
     DetectPort *port = NULL;
     DetectAddress *tmp = NULL;
     DetectAddress *tmp_c = NULL;
@@ -144,19 +144,19 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
     if (r == ADDRESS_LE) {
         SCLogDebug("DetectAddressCutIPv4: r == ADDRESS_LE");
 
-        a->ip[0]  = htonl(a_ip1);
-        a->ip2[0] = htonl(b_ip1 - 1);
+        a->ip.addr_data32[0]  = htonl(a_ip1);
+        a->ip2.addr_data32[0] = htonl(b_ip1 - 1);
 
-        b->ip[0]  = htonl(b_ip1);
-        b->ip2[0] = htonl(a_ip2);
+        b->ip.addr_data32[0]  = htonl(b_ip1);
+        b->ip2.addr_data32[0] = htonl(a_ip2);
 
         tmp_c = DetectAddressInit();
         if (tmp_c == NULL)
             goto error;
 
-        tmp_c->family = AF_INET;
-        tmp_c->ip[0] = htonl(a_ip2 + 1);
-        tmp_c->ip2[0] = htonl(b_ip2);
+        tmp_c->ip.family = AF_INET;
+        tmp_c->ip.addr_data32[0] = htonl(a_ip2 + 1);
+        tmp_c->ip2.addr_data32[0] = htonl(b_ip2);
         *c = tmp_c;
 
         if (de_ctx != NULL) {
@@ -180,19 +180,19 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
     } else if (r == ADDRESS_GE) {
         SCLogDebug("DetectAddressCutIPv4: r == ADDRESS_GE");
 
-        a->ip[0] = htonl(b_ip1);
-        a->ip2[0] = htonl(a_ip1 - 1);
+        a->ip.addr_data32[0] = htonl(b_ip1);
+        a->ip2.addr_data32[0] = htonl(a_ip1 - 1);
 
-        b->ip[0] = htonl(a_ip1);
-        b->ip2[0] = htonl(b_ip2);
+        b->ip.addr_data32[0] = htonl(a_ip1);
+        b->ip2.addr_data32[0] = htonl(b_ip2);
 
         tmp_c = DetectAddressInit();
         if (tmp_c == NULL)
             goto error;
 
-        tmp_c->family = AF_INET;
-        tmp_c->ip[0]  = htonl(b_ip2 + 1);
-        tmp_c->ip2[0] = htonl(a_ip2);
+        tmp_c->ip.family = AF_INET;
+        tmp_c->ip.addr_data32[0]  = htonl(b_ip2 + 1);
+        tmp_c->ip2.addr_data32[0] = htonl(a_ip2);
         *c = tmp_c;
 
         if (de_ctx != NULL) {
@@ -251,11 +251,11 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
         if (a_ip1 == b_ip1) {
             SCLogDebug("DetectAddressCutIPv4: 1");
 
-            a->ip[0] = htonl(a_ip1);
-            a->ip2[0] = htonl(a_ip2);
+            a->ip.addr_data32[0] = htonl(a_ip1);
+            a->ip2.addr_data32[0] = htonl(a_ip2);
 
-            b->ip[0] = htonl(a_ip2 + 1);
-            b->ip2[0] = htonl(b_ip2);
+            b->ip.addr_data32[0] = htonl(a_ip2 + 1);
+            b->ip2.addr_data32[0] = htonl(b_ip2);
 
             if (de_ctx != NULL) {
                 /* 'b' overlaps 'a' so 'a' needs the 'b' sigs */
@@ -268,11 +268,11 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
         } else if (a_ip2 == b_ip2) {
             SCLogDebug("DetectAddressCutIPv4: 2");
 
-            a->ip[0]   = htonl(b_ip1);
-            a->ip2[0] = htonl(a_ip1 - 1);
+            a->ip.addr_data32[0]   = htonl(b_ip1);
+            a->ip2.addr_data32[0] = htonl(a_ip1 - 1);
 
-            b->ip[0]   = htonl(a_ip1);
-            b->ip2[0] = htonl(a_ip2);
+            b->ip.addr_data32[0]   = htonl(a_ip1);
+            b->ip2.addr_data32[0] = htonl(a_ip2);
 
             if (de_ctx != NULL) {
                 /* 'a' overlaps 'b' so 'b' needs the 'a' sigs */
@@ -298,19 +298,19 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
         } else {
             SCLogDebug("3");
 
-            a->ip[0]   = htonl(b_ip1);
-            a->ip2[0] = htonl(a_ip1 - 1);
+            a->ip.addr_data32[0]   = htonl(b_ip1);
+            a->ip2.addr_data32[0] = htonl(a_ip1 - 1);
 
-            b->ip[0]   = htonl(a_ip1);
-            b->ip2[0] = htonl(a_ip2);
+            b->ip.addr_data32[0]   = htonl(a_ip1);
+            b->ip2.addr_data32[0] = htonl(a_ip2);
 
             tmp_c = DetectAddressInit();
             if (tmp_c == NULL)
                 goto error;
 
-            tmp_c->family = AF_INET;
-            tmp_c->ip[0] = htonl(a_ip2 + 1);
-            tmp_c->ip2[0] = htonl(b_ip2);
+            tmp_c->ip.family = AF_INET;
+            tmp_c->ip.addr_data32[0] = htonl(a_ip2 + 1);
+            tmp_c->ip2.addr_data32[0] = htonl(b_ip2);
             *c = tmp_c;
 
             if (de_ctx != NULL) {
@@ -369,11 +369,11 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
         if (a_ip1 == b_ip1) {
             SCLogDebug("DetectAddressCutIPv4: 1");
 
-            a->ip[0] = htonl(b_ip1);
-            a->ip2[0] = htonl(b_ip2);
+            a->ip.addr_data32[0] = htonl(b_ip1);
+            a->ip2.addr_data32[0] = htonl(b_ip2);
 
-            b->ip[0] = htonl(b_ip2 + 1);
-            b->ip2[0] = htonl(a_ip2);
+            b->ip.addr_data32[0] = htonl(b_ip2 + 1);
+            b->ip2.addr_data32[0] = htonl(a_ip2);
 
             if (de_ctx != NULL) {
                 /* 'b' overlaps 'a' so a needs the 'b' sigs */
@@ -399,11 +399,11 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
         } else if (a_ip2 == b_ip2) {
             SCLogDebug("DetectAddressCutIPv4: 2");
 
-            a->ip[0]   = htonl(a_ip1);
-            a->ip2[0] = htonl(b_ip1 - 1);
+            a->ip.addr_data32[0]   = htonl(a_ip1);
+            a->ip2.addr_data32[0] = htonl(b_ip1 - 1);
 
-            b->ip[0]   = htonl(b_ip1);
-            b->ip2[0] = htonl(b_ip2);
+            b->ip.addr_data32[0]   = htonl(b_ip1);
+            b->ip2.addr_data32[0] = htonl(b_ip2);
 
             if (de_ctx != NULL) {
                 /* 'a' overlaps 'b' so a needs the 'a' sigs */
@@ -417,19 +417,19 @@ int DetectAddressCutIPv4(DetectEngineCtx *de_ctx, DetectAddress *a,
         } else {
             SCLogDebug("DetectAddressCutIPv4: 3");
 
-            a->ip[0] = htonl(a_ip1);
-            a->ip2[0] = htonl(b_ip1 - 1);
+            a->ip.addr_data32[0] = htonl(a_ip1);
+            a->ip2.addr_data32[0] = htonl(b_ip1 - 1);
 
-            b->ip[0] = htonl(b_ip1);
-            b->ip2[0] = htonl(b_ip2);
+            b->ip.addr_data32[0] = htonl(b_ip1);
+            b->ip2.addr_data32[0] = htonl(b_ip2);
 
             tmp_c = DetectAddressInit();
             if (tmp_c == NULL)
                 goto error;
 
-            tmp_c->family = AF_INET;
-            tmp_c->ip[0] = htonl(b_ip2 + 1);
-            tmp_c->ip2[0] = htonl(a_ip2);
+            tmp_c->ip.family = AF_INET;
+            tmp_c->ip.addr_data32[0] = htonl(b_ip2 + 1);
+            tmp_c->ip2.addr_data32[0] = htonl(a_ip2);
             *c = tmp_c;
 
             if (de_ctx != NULL) {
@@ -478,26 +478,26 @@ int DetectAddressIsCompleteIPSpaceIPv4(DetectAddress *ag)
         return 0;
 
     /* if we don't start with 0.0.0.0 we know we're good */
-    if (ntohl(ag->ip[0]) != 0x00000000)
+    if (ntohl(ag->ip.addr_data32[0]) != 0x00000000)
         return 0;
 
     /* if we're ending with 255.255.255.255 while we know we started with
      * 0.0.0.0 it's the complete space */
-    if (ntohl(ag->ip2[0]) == 0xFFFFFFFF)
+    if (ntohl(ag->ip2.addr_data32[0]) == 0xFFFFFFFF)
         return 1;
 
-    next_ip = htonl(ntohl(ag->ip2[0]) + 1);
+    next_ip = htonl(ntohl(ag->ip2.addr_data32[0]) + 1);
     ag = ag->next;
 
     for ( ; ag != NULL; ag = ag->next) {
 
-        if (ag->ip[0] != next_ip)
+        if (ag->ip.addr_data32[0] != next_ip)
             return 0;
 
-        if (ntohl(ag->ip2[0]) == 0xFFFFFFFF)
+        if (ntohl(ag->ip2.addr_data32[0]) == 0xFFFFFFFF)
             return 1;
 
-        next_ip = htonl(ntohl(ag->ip2[0]) + 1);
+        next_ip = htonl(ntohl(ag->ip2.addr_data32[0]) + 1);
     }
 
     return 0;
@@ -526,31 +526,31 @@ int DetectAddressIsCompleteIPSpaceIPv4(DetectAddress *ag)
  */
 int DetectAddressCutNotIPv4(DetectAddress *a, DetectAddress **b)
 {
-    uint32_t a_ip1 = ntohl(a->ip[0]);
-    uint32_t a_ip2 = ntohl(a->ip2[0]);
+    uint32_t a_ip1 = ntohl(a->ip.addr_data32[0]);
+    uint32_t a_ip2 = ntohl(a->ip2.addr_data32[0]);
     DetectAddress *tmp_b = NULL;
 
     /* default to NULL */
     *b = NULL;
 
     if (a_ip1 != 0x00000000 && a_ip2 != 0xFFFFFFFF) {
-        a->ip[0]  = htonl(0x00000000);
-        a->ip2[0] = htonl(a_ip1 - 1);
+        a->ip.addr_data32[0]  = htonl(0x00000000);
+        a->ip2.addr_data32[0] = htonl(a_ip1 - 1);
 
         tmp_b = DetectAddressInit();
         if (tmp_b == NULL)
             goto error;
 
-        tmp_b->family = AF_INET;
-        tmp_b->ip[0]  = htonl(a_ip2 + 1);
-        tmp_b->ip2[0] = htonl(0xFFFFFFFF);
+        tmp_b->ip.family = AF_INET;
+        tmp_b->ip.addr_data32[0]  = htonl(a_ip2 + 1);
+        tmp_b->ip2.addr_data32[0] = htonl(0xFFFFFFFF);
         *b = tmp_b;
     } else if (a_ip1 == 0x00000000 && a_ip2 != 0xFFFFFFFF) {
-        a->ip[0] = htonl(a_ip2 + 1);
-        a->ip2[0] = htonl(0xFFFFFFFF);
+        a->ip.addr_data32[0] = htonl(a_ip2 + 1);
+        a->ip2.addr_data32[0] = htonl(0xFFFFFFFF);
     } else if (a_ip1 != 0x00000000 && a_ip2 == 0xFFFFFFFF) {
-        a->ip[0] = htonl(0x00000000);
-        a->ip2[0] = htonl(a_ip1 - 1);
+        a->ip.addr_data32[0] = htonl(0x00000000);
+        a->ip2.addr_data32[0] = htonl(a_ip1 - 1);
     } else {
         goto error;
      }
@@ -591,11 +591,11 @@ int DetectAddressJoinIPv4(DetectEngineCtx *de_ctx, DetectAddress *target,
     if (source == NULL || target == NULL)
         return -1;
 
-    if (ntohl(source->ip[0]) < ntohl(target->ip[0]))
-        target->ip[0] = source->ip[0];
+    if (ntohl(source->ip.addr_data32[0]) < ntohl(target->ip.addr_data32[0]))
+        target->ip.addr_data32[0] = source->ip.addr_data32[0];
 
-    if (ntohl(source->ip2[0]) > ntohl(target->ip2[0]))
-        target->ip2[0] = source->ip2[0];
+    if (ntohl(source->ip2.addr_data32[0]) > ntohl(target->ip2.addr_data32[0]))
+        target->ip2.addr_data32[0] = source->ip2.addr_data32[0];
 
     return 0;
 }
@@ -616,424 +616,424 @@ static int DetectAddressIPv4TestAddressCmp01(void)
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) == ADDRESS_EQ);
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "1.2.3.3", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) == ADDRESS_ES);
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) == ADDRESS_ES);
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "1.2.3.3", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) == ADDRESS_ES);
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "1.2.3.3", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) == ADDRESS_ES);
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) != ADDRESS_ES);
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) == ADDRESS_EB);
 
     if (inet_pton(AF_INET, "1.2.3.3", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) == ADDRESS_EB);
 
     if (inet_pton(AF_INET, "1.2.3.3", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) == ADDRESS_EB);
 
     if (inet_pton(AF_INET, "1.2.3.5", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) != ADDRESS_EB);
 
     if (inet_pton(AF_INET, "1.2.3.3", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "128.128.128.128", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "128.128.128.128", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) == ADDRESS_LE);
 
     if (inet_pton(AF_INET, "1.2.3.3", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "170.170.170.170", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "128.128.128.128", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) == ADDRESS_LE);
 
     if (inet_pton(AF_INET, "170.170.170.170", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "180.180.180.180", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "170.170.170.170", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) != ADDRESS_LE);
 
     if (inet_pton(AF_INET, "170.170.170.169", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "180.180.180.180", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "170.170.170.170", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) == ADDRESS_LE);
 
     if (inet_pton(AF_INET, "170.170.170.169", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "170.170.170.170", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) != ADDRESS_LE);
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "170.170.170.170", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "180.180.180.180", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) == ADDRESS_LT);
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "185.185.185.185", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "180.180.180.180", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     /* we could get a LE */
     result &= (DetectAddressCmpIPv4(a, b) != ADDRESS_LT);
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "180.180.180.180", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "180.180.180.180", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     /* we could get a LE */
     result &= (DetectAddressCmpIPv4(a, b) != ADDRESS_LT);
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "180.180.180.180", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) != ADDRESS_LT);
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "180.180.180.180", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) != ADDRESS_LT);
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "170.170.170.170", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) != ADDRESS_LT);
 
     if (inet_pton(AF_INET, "128.128.128.128", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "1.2.3.3", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "128.128.128.128", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) == ADDRESS_GE);
 
     if (inet_pton(AF_INET, "128.128.128.128", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "1.2.3.3", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "170.170.170.170", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) == ADDRESS_GE);
 
     if (inet_pton(AF_INET, "170.170.170.170", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "170.170.170.170", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "180.180.180.180", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) != ADDRESS_GE);
 
     if (inet_pton(AF_INET, "170.170.170.170", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "170.170.170.169", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "180.180.180.180", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) == ADDRESS_GE);
 
     if (inet_pton(AF_INET, "170.170.170.169", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "170.170.170.170", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) != ADDRESS_GE);
 
     if (inet_pton(AF_INET, "170.170.170.170", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "170.170.169.170", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) != ADDRESS_GE);
 
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "200.200.200.200", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "170.170.170.170", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "185.185.185.185", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) == ADDRESS_GT);
 
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "200.200.200.200", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "170.170.170.170", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) != ADDRESS_GT);
 
     if (inet_pton(AF_INET, "182.168.1.2", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "200.200.200.200", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "170.170.170.170", &in) < 0)
         goto error;
-    b->ip[0] = in.s_addr;
+    b->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    b->ip2[0] = in.s_addr;
+    b->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCmpIPv4(a, b) != ADDRESS_GT);
 
     if (a != NULL)
@@ -1061,18 +1061,18 @@ static int DetectAddressIPv4IsCompleteIPSpace02(void)
 
     if (inet_pton(AF_INET, "0.0.0.0", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "255.255.255.255", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressIsCompleteIPSpaceIPv4(a) == 1);
 
     if (inet_pton(AF_INET, "0.0.0.1", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "255.255.255.255", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressIsCompleteIPSpaceIPv4(a) == 0);
 
     DetectAddressFree(a);
@@ -1082,10 +1082,10 @@ static int DetectAddressIPv4IsCompleteIPSpace02(void)
 
     if (inet_pton(AF_INET, "0.0.0.0", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "255.255.255.254", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressIsCompleteIPSpaceIPv4(a) == 0);
 
     DetectAddressFree(a);
@@ -1111,10 +1111,10 @@ static int DetectAddressIPv4IsCompleteIPSpace03(void)
 
     if (inet_pton(AF_INET, "0.0.0.0", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressIsCompleteIPSpaceIPv4(a) == 0);
 
     if ( (temp->next = DetectAddressInit()) == NULL)
@@ -1123,10 +1123,10 @@ static int DetectAddressIPv4IsCompleteIPSpace03(void)
 
     if (inet_pton(AF_INET, "1.2.3.5", &in) < 0)
         goto error;
-    temp->ip[0] = in.s_addr;
+    temp->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "126.36.62.61", &in) < 0)
         goto error;
-    temp->ip2[0] = in.s_addr;
+    temp->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressIsCompleteIPSpaceIPv4(a) == 0);
 
     if ( (temp->next = DetectAddressInit()) == NULL)
@@ -1135,10 +1135,10 @@ static int DetectAddressIPv4IsCompleteIPSpace03(void)
 
     if (inet_pton(AF_INET, "126.36.62.62", &in) < 0)
         goto error;
-    temp->ip[0] = in.s_addr;
+    temp->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "222.52.21.62", &in) < 0)
         goto error;
-    temp->ip2[0] = in.s_addr;
+    temp->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressIsCompleteIPSpaceIPv4(a) == 0);
 
     if ( (temp->next = DetectAddressInit()) == NULL)
@@ -1147,10 +1147,10 @@ static int DetectAddressIPv4IsCompleteIPSpace03(void)
 
     if (inet_pton(AF_INET, "222.52.21.63", &in) < 0)
         goto error;
-    temp->ip[0] = in.s_addr;
+    temp->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "255.255.255.254", &in) < 0)
         goto error;
-    temp->ip2[0] = in.s_addr;
+    temp->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressIsCompleteIPSpaceIPv4(a) == 0);
 
     if ( (temp->next = DetectAddressInit()) == NULL)
@@ -1159,10 +1159,10 @@ static int DetectAddressIPv4IsCompleteIPSpace03(void)
 
     if (inet_pton(AF_INET, "255.255.255.255", &in) < 0)
         goto error;
-    temp->ip[0] = in.s_addr;
+    temp->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "255.255.255.255", &in) < 0)
         goto error;
-    temp->ip2[0] = in.s_addr;
+    temp->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressIsCompleteIPSpaceIPv4(a) == 1);
 
     DetectAddressFree(a);
@@ -1188,10 +1188,10 @@ static int DetectAddressIPv4IsCompleteIPSpace04(void)
 
     if (inet_pton(AF_INET, "0.0.0.0", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressIsCompleteIPSpaceIPv4(a) == 0);
 
     if ( (temp->next = DetectAddressInit()) == NULL)
@@ -1200,10 +1200,10 @@ static int DetectAddressIPv4IsCompleteIPSpace04(void)
 
     if (inet_pton(AF_INET, "1.2.3.5", &in) < 0)
         goto error;
-    temp->ip[0] = in.s_addr;
+    temp->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "126.36.62.61", &in) < 0)
         goto error;
-    temp->ip2[0] = in.s_addr;
+    temp->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressIsCompleteIPSpaceIPv4(a) == 0);
 
     if ( (temp->next = DetectAddressInit()) == NULL)
@@ -1212,10 +1212,10 @@ static int DetectAddressIPv4IsCompleteIPSpace04(void)
 
     if (inet_pton(AF_INET, "126.36.62.62", &in) < 0)
         goto error;
-    temp->ip[0] = in.s_addr;
+    temp->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "222.52.21.62", &in) < 0)
         goto error;
-    temp->ip2[0] = in.s_addr;
+    temp->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressIsCompleteIPSpaceIPv4(a) == 0);
 
     if ( (temp->next = DetectAddressInit()) == NULL)
@@ -1224,10 +1224,10 @@ static int DetectAddressIPv4IsCompleteIPSpace04(void)
 
     if (inet_pton(AF_INET, "222.52.21.64", &in) < 0)
         goto error;
-    temp->ip[0] = in.s_addr;
+    temp->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "255.255.255.254", &in) < 0)
         goto error;
-    temp->ip2[0] = in.s_addr;
+    temp->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressIsCompleteIPSpaceIPv4(a) == 0);
 
     if ( (temp->next = DetectAddressInit()) == NULL)
@@ -1236,10 +1236,10 @@ static int DetectAddressIPv4IsCompleteIPSpace04(void)
 
     if (inet_pton(AF_INET, "255.255.255.255", &in) < 0)
         goto error;
-    temp->ip[0] = in.s_addr;
+    temp->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "255.255.255.255", &in) < 0)
         goto error;
-    temp->ip2[0] = in.s_addr;
+    temp->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressIsCompleteIPSpaceIPv4(a) == 0);
 
     DetectAddressFree(a);
@@ -1264,10 +1264,10 @@ static int DetectAddressIPv4CutNot05(void)
 
     if (inet_pton(AF_INET, "0.0.0.0", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "255.255.255.255", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCutNotIPv4(a, &b) == -1);
 
     if (a != NULL)
@@ -1296,18 +1296,18 @@ static int DetectAddressIPv4CutNot06(void)
 
     if (inet_pton(AF_INET, "0.0.0.0", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCutNotIPv4(a, &b) == 0);
 
     if (inet_pton(AF_INET, "1.2.3.5", &in) < 0)
         goto error;
-    result = (a->ip[0] == in.s_addr);
+    result = (a->ip.addr_data32[0] == in.s_addr);
     if (inet_pton(AF_INET, "255.255.255.255", &in) < 0)
         goto error;
-    result &= (a->ip2[0] = in.s_addr);
+    result &= (a->ip2.addr_data32[0] = in.s_addr);
     result &= (b == NULL);
 
     if (a != NULL)
@@ -1336,18 +1336,18 @@ static int DetectAddressIPv4CutNot07(void)
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "255.255.255.255", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCutNotIPv4(a, &b) == 0);
 
     if (inet_pton(AF_INET, "0.0.0.0", &in) < 0)
         goto error;
-    result = (a->ip[0] == in.s_addr);
+    result = (a->ip.addr_data32[0] == in.s_addr);
     if (inet_pton(AF_INET, "1.2.3.3", &in) < 0)
         goto error;
-    result &= (a->ip2[0] = in.s_addr);
+    result &= (a->ip2.addr_data32[0] = in.s_addr);
     result &= (b == NULL);
 
     if (a != NULL)
@@ -1376,18 +1376,18 @@ static int DetectAddressIPv4CutNot08(void)
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCutNotIPv4(a, &b) == 0);
 
     if (inet_pton(AF_INET, "0.0.0.0", &in) < 0)
         goto error;
-    result &= (a->ip[0] == in.s_addr);
+    result &= (a->ip.addr_data32[0] == in.s_addr);
     if (inet_pton(AF_INET, "1.2.3.3", &in) < 0)
         goto error;
-    result &= (a->ip2[0] = in.s_addr);
+    result &= (a->ip2.addr_data32[0] = in.s_addr);
 
     if (b == NULL) {
         result = 0;
@@ -1397,10 +1397,10 @@ static int DetectAddressIPv4CutNot08(void)
     }
     if (inet_pton(AF_INET, "1.2.3.5", &in) < 0)
         goto error;
-    result &= (b->ip[0] == in.s_addr);
+    result &= (b->ip.addr_data32[0] == in.s_addr);
     if (inet_pton(AF_INET, "255.255.255.255", &in) < 0)
         goto error;
-    result &= (b->ip2[0] = in.s_addr);
+    result &= (b->ip2.addr_data32[0] = in.s_addr);
 
     if (a != NULL)
         DetectAddressFree(a);
@@ -1428,18 +1428,18 @@ static int DetectAddressIPv4CutNot09(void)
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    a->ip[0] = in.s_addr;
+    a->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    a->ip2[0] = in.s_addr;
+    a->ip2.addr_data32[0] = in.s_addr;
     result &= (DetectAddressCutNotIPv4(a, &b) == 0);
 
     if (inet_pton(AF_INET, "0.0.0.0", &in) < 0)
         goto error;
-    result &= (a->ip[0] == in.s_addr);
+    result &= (a->ip.addr_data32[0] == in.s_addr);
     if (inet_pton(AF_INET, "1.2.3.3", &in) < 0)
         goto error;
-    result &= (a->ip2[0] = in.s_addr);
+    result &= (a->ip2.addr_data32[0] = in.s_addr);
 
     if (b == NULL) {
         result = 0;
@@ -1449,10 +1449,10 @@ static int DetectAddressIPv4CutNot09(void)
     }
     if (inet_pton(AF_INET, "192.168.1.3", &in) < 0)
         goto error;
-    result &= (b->ip[0] == in.s_addr);
+    result &= (b->ip.addr_data32[0] == in.s_addr);
     if (inet_pton(AF_INET, "255.255.255.255", &in) < 0)
         goto error;
-    result &= (b->ip2[0] = in.s_addr);
+    result &= (b->ip2.addr_data32[0] = in.s_addr);
 
     if (a != NULL)
         DetectAddressFree(a);
@@ -1480,113 +1480,113 @@ static int DetectAddressIPv4Join10(void)
 
     if (inet_pton(AF_INET, "128.51.61.124", &in) < 0)
         goto error;
-    target->ip[0] = in.s_addr;
+    target->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    target->ip2[0] = in.s_addr;
+    target->ip2.addr_data32[0] = in.s_addr;
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    source->ip[0] = in.s_addr;
+    source->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    source->ip2[0] = in.s_addr;
+    source->ip2.addr_data32[0] = in.s_addr;
 
     result &= (DetectAddressJoinIPv4(NULL, target, source) == 0);
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    result &= (target->ip[0] == in.s_addr);
+    result &= (target->ip.addr_data32[0] == in.s_addr);
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    result &= (target->ip2[0] == in.s_addr);
+    result &= (target->ip2.addr_data32[0] == in.s_addr);
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    target->ip[0] = in.s_addr;
+    target->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    target->ip2[0] = in.s_addr;
+    target->ip2.addr_data32[0] = in.s_addr;
 
     if (inet_pton(AF_INET, "1.2.3.5", &in) < 0)
         goto error;
-    source->ip[0] = in.s_addr;
+    source->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.1", &in) < 0)
         goto error;
-    source->ip2[0] = in.s_addr;
+    source->ip2.addr_data32[0] = in.s_addr;
 
     result &= (DetectAddressJoinIPv4(NULL, target, source) == 0);
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    result &= (target->ip[0] == in.s_addr);
+    result &= (target->ip.addr_data32[0] == in.s_addr);
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    result &= (target->ip2[0] == in.s_addr);
+    result &= (target->ip2.addr_data32[0] == in.s_addr);
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    target->ip[0] = in.s_addr;
+    target->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    target->ip2[0] = in.s_addr;
+    target->ip2.addr_data32[0] = in.s_addr;
 
     if (inet_pton(AF_INET, "128.1.5.15", &in) < 0)
         goto error;
-    source->ip[0] = in.s_addr;
+    source->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "200.202.200.200", &in) < 0)
         goto error;
-    source->ip2[0] = in.s_addr;
+    source->ip2.addr_data32[0] = in.s_addr;
 
     result &= (DetectAddressJoinIPv4(NULL, target, source) == 0);
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    result &= (target->ip[0] == in.s_addr);
+    result &= (target->ip.addr_data32[0] == in.s_addr);
     if (inet_pton(AF_INET, "200.202.200.200", &in) < 0)
         goto error;
-    result &= (target->ip2[0] == in.s_addr);
+    result &= (target->ip2.addr_data32[0] == in.s_addr);
 
     if (inet_pton(AF_INET, "128.51.61.124", &in) < 0)
         goto error;
-    target->ip[0] = in.s_addr;
+    target->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    target->ip2[0] = in.s_addr;
+    target->ip2.addr_data32[0] = in.s_addr;
 
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    source->ip[0] = in.s_addr;
+    source->ip.addr_data32[0] = in.s_addr;
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    source->ip2[0] = in.s_addr;
-
-    result &= (DetectAddressJoinIPv4(NULL, target, source) == 0);
-    if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
-        goto error;
-    result &= (target->ip[0] == in.s_addr);
-    if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
-        goto error;
-    result &= (target->ip2[0] == in.s_addr);
-
-    if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
-        goto error;
-    target->ip[0] = in.s_addr;
-    if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
-        goto error;
-    target->ip2[0] = in.s_addr;
-
-    if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
-        goto error;
-    source->ip[0] = in.s_addr;
-    if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
-        goto error;
-    source->ip2[0] = in.s_addr;
+    source->ip2.addr_data32[0] = in.s_addr;
 
     result &= (DetectAddressJoinIPv4(NULL, target, source) == 0);
     if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
         goto error;
-    result &= (target->ip[0] == in.s_addr);
+    result &= (target->ip.addr_data32[0] == in.s_addr);
     if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
         goto error;
-    result &= (target->ip2[0] == in.s_addr);
+    result &= (target->ip2.addr_data32[0] == in.s_addr);
+
+    if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
+        goto error;
+    target->ip.addr_data32[0] = in.s_addr;
+    if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
+        goto error;
+    target->ip2.addr_data32[0] = in.s_addr;
+
+    if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
+        goto error;
+    source->ip.addr_data32[0] = in.s_addr;
+    if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
+        goto error;
+    source->ip2.addr_data32[0] = in.s_addr;
+
+    result &= (DetectAddressJoinIPv4(NULL, target, source) == 0);
+    if (inet_pton(AF_INET, "1.2.3.4", &in) < 0)
+        goto error;
+    result &= (target->ip.addr_data32[0] == in.s_addr);
+    if (inet_pton(AF_INET, "192.168.1.2", &in) < 0)
+        goto error;
+    result &= (target->ip2.addr_data32[0] == in.s_addr);
 
     if (source != NULL)
         DetectAddressFree(source);

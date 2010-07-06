@@ -24,11 +24,11 @@
 #ifndef __DETECT_ENGINE_ADDRESS_IPV6_H__
 #define __DETECT_ENGINE_ADDRESS_IPV6_H__
 
-int AddressIPv6Lt(uint32_t *, uint32_t *);
-int AddressIPv6Gt(uint32_t *, uint32_t *);
-int AddressIPv6Eq(uint32_t *, uint32_t *);
-int AddressIPv6Le(uint32_t *, uint32_t *);
-int AddressIPv6Ge(uint32_t *, uint32_t *);
+int AddressIPv6Lt(Address *, Address *);
+int AddressIPv6Gt(Address *, Address *);
+int AddressIPv6Eq(Address *, Address *);
+int AddressIPv6Le(Address *, Address *);
+int AddressIPv6Ge(Address *, Address *);
 
 int DetectAddressCutNotIPv6(DetectAddress *, DetectAddress **);
 int DetectAddressCmpIPv6(DetectAddress *a, DetectAddress *b);
