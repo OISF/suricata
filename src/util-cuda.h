@@ -28,6 +28,7 @@
 
 #include <cuda.h>
 
+#define SC_CUDA_DEFAULT_DEVICE 0
 #define SC_CUDA_DEVICE_NAME_MAX_LEN 128
 
 typedef struct SCCudaDevice_ {
@@ -175,6 +176,9 @@ void SCCudaPrintBasicDeviceInfo(SCCudaDevices *);
 SCCudaDevices *SCCudaGetDeviceList(void);
 
 int SCCudaInitCudaEnvironment(void);
+
+void SCCudaListCards(void);
+int SCCudaIsCudaDeviceIdValid(int);
 
 void SCCudaRegisterTests(void);
 

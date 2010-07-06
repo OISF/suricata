@@ -79,7 +79,7 @@ static int run_batcher = 1;
  * on the traffic
  * \todo make this user configurable, as well allow dynamic update of this
  * variable based on the traffic seen */
-static uint32_t buffer_packet_threshhold = 1280;
+static uint32_t buffer_packet_threshhold = 2400;
 
 /* flag used by the SIG_ALRM handler to indicate that the batcher TM should queue
  * the buffer to be processed by the Cuda Mpm B2g Batcher Thread for further
@@ -546,13 +546,27 @@ TmEcode SCCudaPBBatchPackets(ThreadVars *tv, Packet *p, void *data, PacketQueue 
     /* the sgh to which the incoming packet belongs */
     SigGroupHead *sgh = NULL;
 
-    /* get the signature group head to which this packet belongs.  If it belongs
-     * to no sgh, we don't need to buffer this packet.
-     * \todo Get rid of this, once we get the sgh from the flow */
-    sgh = SCCudaPBGetSgh(tctx->de_ctx, p);
+    if (p->flow != NULL) {
+        /* Get the stored sgh from the flow (if any). Make sure we're not using
+         * the sgh for icmp error packets part of the same stream. */
+        if (p->proto == p->flow->proto) { /* filter out icmp */
+            if (p->flowflags & FLOW_PKT_TOSERVER && p->flow->flags & FLOW_SGH_TOSERVER) {
+                sgh = p->flow->sgh_toserver;
+            } else if (p->flowflags & FLOW_PKT_TOCLIENT && p->flow->flags & FLOW_SGH_TOCLIENT) {
+                sgh = p->flow->sgh_toclient;
+            }
+        }
+    }
+
     if (sgh == NULL) {
-        SCLogDebug("No SigGroupHead match for this packet");
-        return TM_ECODE_OK;
+        /* get the signature group head to which this packet belongs.  If it belongs
+         * to no sgh, we don't need to buffer this packet.
+         * \todo Get rid of this, once we get the sgh from the flow */
+        sgh = SCCudaPBGetSgh(tctx->de_ctx, p);
+        if (sgh == NULL) {
+            SCLogDebug("No SigGroupHead match for this packet");
+            return TM_ECODE_OK;
+        }
     }
 
     /* if the payload is less than the maximum content length in this sgh we
@@ -747,7 +761,7 @@ void SCCudaPBSetUpQueuesAndBuffers(void)
     /* \todo This needs to be changed ASAP.  This can't exceed max_pending_packets.
      * Also we need to make this user configurable and allow dynamic updaes
      * based on live traffic */
-    buffer_packet_threshhold = 1280;
+    buffer_packet_threshhold = 2400;
 
     return;
 }

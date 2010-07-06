@@ -355,6 +355,7 @@ int main(int argc, char **argv)
 #endif
     int dump_config = 0;
     int list_unittests = 0;
+    int list_cuda_cards = 0;
     int daemon = 0;
     char *user_name = NULL;
     char *group_name = NULL;
@@ -412,6 +413,7 @@ int main(int argc, char **argv)
         {"pcap-buffer-size", required_argument, 0, 0},
         {"unittest-filter", required_argument, 0, 'U'},
         {"list-unittests", 0, &list_unittests, 1},
+        {"list-cuda-cards", 0, &list_cuda_cards, 1},
 #ifdef OS_WIN32
 		{"service-install", 0, 0, 0},
 		{"service-remove", 0, 0, 0},
@@ -481,6 +483,12 @@ int main(int argc, char **argv)
                 run_mode = MODE_UNITTEST;
 #else
                 fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
+                exit(EXIT_FAILURE);
+#endif /* UNITTESTS */
+            } else if(strcmp((long_opts[option_index]).name, "list-cuda-cards") == 0) {
+#ifndef __SC_CUDA_SUPPORT__
+                fprintf(stderr, "ERROR: Cuda not enabled. Make sure to pass "
+                        "--enable-cuda to configure when building.\n");
                 exit(EXIT_FAILURE);
 #endif /* UNITTESTS */
             }
@@ -690,6 +698,10 @@ int main(int argc, char **argv)
 #ifdef __SC_CUDA_SUPPORT__
     /* Init the CUDA environment */
     SCCudaInitCudaEnvironment();
+    if (list_cuda_cards) {
+        SCCudaListCards();
+        exit(EXIT_SUCCESS);
+    }
 #endif
 
     if (!CheckValidDaemonModes(daemon, run_mode)) {

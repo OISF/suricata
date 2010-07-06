@@ -65,6 +65,7 @@
 
 #include "tmqh-simple.h"
 
+#include "conf.h"
 #include "util-error.h"
 #include "util-debug.h"
 #include "util-unittest.h"
@@ -226,9 +227,23 @@ int SCCudaHlGetCudaContext(CUcontext *p_context, int handle)
         return 0;
     }
 
+    /* Get default log level and format. */
+    char *cuda_device_id_str = NULL;
+    int cuda_device_id = SC_CUDA_DEFAULT_DEVICE;
+    if (ConfGet("cuda.device_id", &cuda_device_id_str) == 1) {
+        cuda_device_id = atoi(cuda_device_id_str);
+        if (!SCCudaIsCudaDeviceIdValid(cuda_device_id)) {
+            SCLogError(SC_ERR_CUDA_ERROR, "Invalid device id \"%s\" supplied "
+                       "in the conf file", cuda_device_id_str);
+            cuda_device_id = SC_CUDA_DEFAULT_DEVICE;
+        }
+    } else {
+        cuda_device_id = SC_CUDA_DEFAULT_DEVICE;
+    }
+
     /* Get the device list for this CUDA platform and create a new cuda context */
     devices = SCCudaGetDeviceList();
-    if (SCCudaCtxCreate(p_context, 0, devices->devices[0]->device) == -1)
+    if (SCCudaCtxCreate(p_context, 0, devices->devices[cuda_device_id]->device) == -1)
         goto error;
     data->cuda_context = p_context[0];
 

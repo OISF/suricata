@@ -120,6 +120,12 @@ threading:
   #
   detect_thread_ratio: 1.5
 
+# Select the cuda device to use.  The device_id identifies the device to be used
+# if one has multiple devices on the system.  To find out device_id associated
+#  with the card(s) on the system run "suricata --list_cuda_cards".
+cuda:
+  device_id: 0
+
 # Select the multi pattern algorithm you want to run for scan/search the
 # in the engine. The supported algorithms are b2g, b3g and wumanber.
 #

@@ -4069,6 +4069,56 @@ int SCCudaInitCudaEnvironment(void)
     return -1;
 }
 
+/**********************************Cuda_Utility********************************/
+
+/**
+ * \brief List the cuda cards on the system.
+ *
+ */
+void SCCudaListCards(void)
+{
+    int i = 0;
+
+    if (devices == NULL) {
+        SCLogWarning(SC_ERR_CUDA_ERROR, "CUDA engine not initalized!  Please "
+                     "initialize the cuda environment using "
+                     "SCCudaInitCudaEnvironment().");
+        return;
+    }
+
+    printf("CUDA Cards recognized by the suricata CUDA module - \n");
+    printf("|-----------------------------------------------------------------------------|\n");
+    printf("| %-10s | %-20s | %-10s | %-10s | %-13s |\n",
+           "Device Id", "    Device Name", "  Multi-", "Clock Rate", "Cuda Compute");
+    printf("| %-10s | %-20s | %-10s | %-10s | %-13s |\n",
+           "", "", "Processors", "   (MHz)", "Capability");
+    printf("|-----------------------------------------------------------------------------|\n");
+    for (i = 0; i < devices->count; i++) {
+        printf("| %-10d | %-20s | %-10d | %-10d | %d.%-11d |\n",
+               i,
+               devices->devices[i]->name,
+               devices->devices[i]->attr_multiprocessor_count,
+               devices->devices[i]->attr_clock_rate/1000,
+               devices->devices[i]->major_rev,
+               devices->devices[i]->minor_rev);
+    }
+    printf("|-----------------------------------------------------------------------------|\n");
+
+    return;
+}
+
+int SCCudaIsCudaDeviceIdValid(int cuda_device_id)
+{
+    if (devices == NULL) {
+        SCLogWarning(SC_ERR_CUDA_ERROR, "CUDA engine not initalized!  Please "
+                     "initialize the cuda environment using "
+                     "SCCudaInitCudaEnvironment().");
+        return 0;
+    }
+
+    return (cuda_device_id < devices->count);
+}
+
 /**********************************Unittests***********************************/
 
 int SCCudaTest01(void)
