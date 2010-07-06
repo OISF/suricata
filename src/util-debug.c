@@ -943,10 +943,10 @@ SCLogInitData *SCLogAllocLogInitData(void)
 {
     SCLogInitData *sc_lid = NULL;
 
-    if ( (sc_lid = malloc(sizeof(SCLogInitData))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered initializing the logging subsytem. Out of memory. Exiting...");
-        exit(EXIT_FAILURE);
-    }
+    /* not using SCMalloc here because if it fails we can't log */
+    if ( (sc_lid = malloc(sizeof(SCLogInitData))) == NULL)
+        return NULL;
+
     memset(sc_lid, 0, sizeof(SCLogInitData));
 
     return sc_lid;

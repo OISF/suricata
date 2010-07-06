@@ -154,6 +154,7 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
 #define SCFree(a) free((a))
 #endif
 
+#if 0
 #define SCMalloc(a) ({ \
     void *ptrmem = NULL; \
     \
@@ -214,6 +215,11 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     } \
     (void*)ptrmem; \
 })
+#endif
+#define SCMalloc malloc
+#define SCRealloc realloc
+#define SCCalloc calloc
+#define SCStrdup strdup
 
 #define SCFree(a) ({ \
     free(a); \
