@@ -36,13 +36,19 @@
 #include "tm-threads.h"
 
 #include "detect.h"
+#include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-content.h"
 #include "detect-engine-mpm.h"
+#include "detect-engine-state.h"
 
 #include "util-print.h"
 #include "util-pool.h"
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
+
+#include "flow.h"
+#include "flow-util.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -1429,6 +1435,478 @@ int AlpDetectTest14(void) {
     return r;
 }
 
+/** \test test if the engine detect the proto and match with it */
+static int AlpDetectTestSig1(void)
+{
+    int result = 0;
+    Flow f;
+    HtpState *http_state = NULL;
+    uint8_t http_buf1[] = "POST /one HTTP/1.0\r\n"
+        "User-Agent: Mozilla/1.0\r\n"
+        "Cookie: hellocatch\r\n\r\n";
+    uint32_t http_buf1_len = sizeof(http_buf1) - 1;
+    TcpSession ssn;
+    Packet p;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&p, 0, sizeof(Packet));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = http_buf1;
+    p.payload_len = http_buf1_len;
+    p.proto = IPPROTO_TCP;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->mpm_matcher = MPM_B2G;
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                   "(msg:\"Test content option\"; "
+                                   "sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p);
+
+    if (!PacketAlertCheck(&p, 1)) {
+        printf("sig 1 didn't alert, but it should: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
+/** \test test if the engine detect the proto on a non standar port
+ * and match with it */
+static int AlpDetectTestSig2(void)
+{
+    int result = 0;
+    Flow f;
+    HtpState *http_state = NULL;
+    uint8_t http_buf1[] = "POST /one HTTP/1.0\r\n"
+        "User-Agent: Mozilla/1.0\r\n"
+        "Cookie: hellocatch\r\n\r\n";
+    uint32_t http_buf1_len = sizeof(http_buf1) - 1;
+    TcpSession ssn;
+    Packet p;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&p, 0, sizeof(Packet));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p.sp = 12345;
+    p.dp = 88;
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = http_buf1;
+    p.payload_len = http_buf1_len;
+    p.proto = IPPROTO_TCP;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->mpm_matcher = MPM_B2G;
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert http any !80 -> any any "
+                                   "(msg:\"http over non standar port\"; "
+                                   "sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p);
+
+    if (!PacketAlertCheck(&p, 1)) {
+        printf("sig 1 didn't alert, but it should: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
+/** \test test if the engine detect the proto and doesn't match
+ * because the sig expects another proto (ex ftp)*/
+static int AlpDetectTestSig3(void)
+{
+    int result = 0;
+    Flow f;
+    HtpState *http_state = NULL;
+    uint8_t http_buf1[] = "POST /one HTTP/1.0\r\n"
+        "User-Agent: Mozilla/1.0\r\n"
+        "Cookie: hellocatch\r\n\r\n";
+    uint32_t http_buf1_len = sizeof(http_buf1) - 1;
+    TcpSession ssn;
+    Packet p;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&p, 0, sizeof(Packet));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = http_buf1;
+    p.payload_len = http_buf1_len;
+    p.proto = IPPROTO_TCP;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->mpm_matcher = MPM_B2G;
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert ftp any any -> any any "
+                                   "(msg:\"Test content option\"; "
+                                   "sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p);
+
+    if (PacketAlertCheck(&p, 1)) {
+        printf("sig 1 alerted, but it should not (it's not ftp): ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
+/** \test test if the engine detect the proto and doesn't match
+ * because the packet has another proto (ex ftp) */
+static int AlpDetectTestSig4(void)
+{
+    int result = 0;
+    Flow f;
+    HtpState *http_state = NULL;
+    uint8_t http_buf1[] = "MPUT one\r\n";
+    uint32_t http_buf1_len = sizeof(http_buf1) - 1;
+    TcpSession ssn;
+    Packet p;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&p, 0, sizeof(Packet));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p.sp = 12345;
+    p.dp = 88;
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = http_buf1;
+    p.payload_len = http_buf1_len;
+    p.proto = IPPROTO_TCP;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_FTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->mpm_matcher = MPM_B2G;
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert http any !80 -> any any "
+                                   "(msg:\"http over non standar port\"; "
+                                   "sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state != NULL) {
+        printf("this is not http: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p);
+
+    if (PacketAlertCheck(&p, 1)) {
+        printf("sig 1 alerted, but it should not (it's ftp): ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
+/** \test test if the engine detect the proto and match with it
+ *        and also against a content option */
+static int AlpDetectTestSig5(void)
+{
+    int result = 0;
+    Flow f;
+    uint8_t http_buf1[] = "POST /one HTTP/1.0\r\n"
+        "User-Agent: Mozilla/1.0\r\n"
+        "Cookie: hellocatch\r\n\r\n";
+    uint32_t http_buf1_len = sizeof(http_buf1) - 1;
+    TcpSession ssn;
+    Packet p;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&p, 0, sizeof(Packet));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = http_buf1;
+    p.payload_len = http_buf1_len;
+    p.proto = IPPROTO_TCP;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_HTTP;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    StreamMsg *stream_msg = StreamMsgGetFromPool();
+    if (stream_msg == NULL) {
+        printf("no stream_msg: ");
+        goto end;
+    }
+
+    memcpy(stream_msg->data.data, http_buf1, http_buf1_len);
+    stream_msg->data.data_len = http_buf1_len;
+
+    ssn.toserver_smsg_head = stream_msg;
+    ssn.toserver_smsg_tail = stream_msg;
+
+    de_ctx->mpm_matcher = MPM_B2G;
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert http any any -> any any "
+                                   "(msg:\"Test content option\"; "
+                                   "content:\"one\"; sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p);
+
+    if (!PacketAlertCheck(&p, 1)) {
+        printf("sig 1 didn't alert, but it should: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void AlpDetectRegisterTests(void) {
@@ -1447,5 +1925,13 @@ void AlpDetectRegisterTests(void) {
     UtRegisterTest("AlpDetectTest12", AlpDetectTest12, 1);
     UtRegisterTest("AlpDetectTest13", AlpDetectTest13, 1);
     UtRegisterTest("AlpDetectTest14", AlpDetectTest14, 1);
+    UtRegisterTest("AlpDetectTestSig1", AlpDetectTestSig1, 1);
+    UtRegisterTest("AlpDetectTestSig2", AlpDetectTestSig2, 1);
+    UtRegisterTest("AlpDetectTestSig3", AlpDetectTestSig3, 1);
+    UtRegisterTest("AlpDetectTestSig4", AlpDetectTestSig4, 1);
+    /** This is not working. Probably because
+     * of https://redmine.openinfosecfoundation.org/issues/203
+    UtRegisterTest("AlpDetectTestSig5", AlpDetectTestSig5, 1);
+    */
 #endif /* UNITTESTS */
 }

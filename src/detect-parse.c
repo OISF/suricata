@@ -52,6 +52,7 @@
 #include "string.h"
 #include "detect-parse.h"
 #include "detect-engine-iponly.h"
+#include "app-layer-detect-proto.h"
 
 extern int sc_set_caps;
 
@@ -62,6 +63,9 @@ static pcre_extra *option_pcre_extra = NULL;
 
 static uint32_t dbg_srcportany_cnt = 0;
 static uint32_t dbg_dstportany_cnt = 0;
+
+/* Context of the app layer proto detection */
+extern AlpProtoDetectCtx alp_proto_ctx;
 
 /**
  * \brief We use this as data to the hash table DetectEngineCtx->dup_sig_hash_table.
@@ -719,8 +723,18 @@ int SigParseProto(Signature *s, const char *protostr) {
             /* indicate that the signature is app-layer */
             s->flags |= SIG_FLAG_APPLAYER;
 
-            /* app layer is always TCP for now */
-            s->proto.proto[IPPROTO_TCP / 8] |= 1 << (IPPROTO_TCP % 8);
+            /* We are going to set ip proto from the
+             * registered applayer signatures for proto detection */
+            AlpProtoSignature *als = alp_proto_ctx.head;
+            while (als != NULL) {
+                if (als->proto == s->alproto) {
+                    /* Set the ipproto that this AL proto detection sig needs
+                     * Note that an AL proto can be present in more than one
+                     * IP proto (over TCP, UDP..) */
+                    s->proto.proto[als->ip_proto / 8] |= 1 << (als->ip_proto % 8);
+                }
+                als = als->next;
+            }
             return 0;
         }
 

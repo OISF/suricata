@@ -266,9 +266,9 @@ static void FTPStateFree(void *s) {
 
 
 void RegisterFTPParsers(void) {
-    AppLayerRegisterProto("ftp.request", ALPROTO_FTP, STREAM_TOSERVER,
+    AppLayerRegisterProto("ftp", ALPROTO_FTP, STREAM_TOSERVER,
                           FTPParseRequest);
-    AppLayerRegisterProto("ftp.response", ALPROTO_FTP, STREAM_TOCLIENT,
+    AppLayerRegisterProto("ftp", ALPROTO_FTP, STREAM_TOCLIENT,
                           FTPParseResponse);
     AppLayerRegisterParser("ftp.request_command_line", ALPROTO_FTP,
                            FTP_FIELD_REQUEST_LINE, FTPParseRequestCommandLine,
