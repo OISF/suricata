@@ -927,7 +927,7 @@ static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_le
     *stub_data_buffer = realloc(*stub_data_buffer, *stub_data_buffer_len + stub_len);
     if (*stub_data_buffer == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
+        goto end;
     }
     memcpy(*stub_data_buffer + *stub_data_buffer_len, input, stub_len);
 
@@ -947,6 +947,7 @@ static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_le
     }
 #endif
 
+end:
     SCReturnUInt((uint32_t)stub_len);
 }
 

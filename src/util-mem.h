@@ -127,6 +127,7 @@
 
 #else /* DBG_MEM_ALLOC */
 
+#if 0
 #define SCMalloc(a) ({ \
     void *ptrmem = malloc(a); \
     if (ptrmem == NULL) { \
@@ -162,6 +163,11 @@
     } \
     (void*)ptrmem; \
 })
+#endif
+#define SCMalloc malloc
+#define SCRealloc realloc
+#define SCCalloc calloc
+#define SCStrdup strdup
 
 #define SCFree(a) free((a))
 

@@ -563,12 +563,13 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
                     Packet *tp = PacketPseudoPktSetup(p, pkt + IPV4_GET_HLEN(p),
                             IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p),
                             IPV4_GET_IPPROTO(p));
+                    if (tp != NULL) {
+                        /* send that to the Tunnel decoder */
+                        DecodeTunnel(tv, dtv, tp, tp->pkt, tp->pktlen, pq);
 
-                    /* send that to the Tunnel decoder */
-                    DecodeTunnel(tv, dtv, tp, tp->pkt, tp->pktlen, pq);
-
-                    /* add the tp to the packet queue. */
-                    PacketEnqueue(pq,tp);
+                        /* add the tp to the packet queue. */
+                        PacketEnqueue(pq,tp);
+                    }
                 }
                 break;
             }
