@@ -739,8 +739,11 @@ void B2gInitCtx (MpmCtx *mpm_ctx, int module_handle) {
     BUG_ON(mpm_ctx->ctx != NULL);
 
     mpm_ctx->ctx = SCMalloc(sizeof(B2gCtx));
-    if (mpm_ctx->ctx == NULL)
-        return;
+    if (mpm_ctx->ctx == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s, while trying "
+            "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)(sizeof(B2gCtx)));
+        exit(EXIT_FAILURE);
+    }
 
     memset(mpm_ctx->ctx, 0, sizeof(B2gCtx));
 
@@ -750,8 +753,11 @@ void B2gInitCtx (MpmCtx *mpm_ctx, int module_handle) {
     /* initialize the hash we use to speed up pattern insertions */
     B2gCtx *ctx = (B2gCtx *)mpm_ctx->ctx;
     ctx->init_hash = SCMalloc(sizeof(B2gPattern *) * INIT_HASH_SIZE);
-    if (ctx->init_hash == NULL)
-        return;
+    if (ctx->init_hash == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s, while trying "
+            "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)(sizeof(B2gPattern *) * INIT_HASH_SIZE));
+        exit(EXIT_FAILURE);
+    }
 
     memset(ctx->init_hash, 0, sizeof(B2gPattern *) * INIT_HASH_SIZE);
 
@@ -846,8 +852,11 @@ void B2gThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, uint32_t ma
 
     if (sizeof(B2gThreadCtx) > 0) { /* size can be null when optimized */
         mpm_thread_ctx->ctx = SCMalloc(sizeof(B2gThreadCtx));
-        if (mpm_thread_ctx->ctx == NULL)
-            return;
+        if (mpm_thread_ctx->ctx == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s, while trying "
+                    "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)(sizeof(B2gThreadCtx)));
+            exit(EXIT_FAILURE);
+        }
 
         memset(mpm_thread_ctx->ctx, 0, sizeof(B2gThreadCtx));
 

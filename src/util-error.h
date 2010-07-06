@@ -200,6 +200,7 @@ typedef enum {
     SC_ERR_DAG_NOSUPPORT,           /**< no ERF/DAG support compiled in */
     SC_ERR_FATAL,
     SC_ERR_DCERPC,
+    SC_ERR_DETECT_PREPARE,          /**< preparing the detection engine failed */
 } SCError;
 
 const char *SCErrorToString(SCError);

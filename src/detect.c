@@ -1435,8 +1435,8 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
                "adding signatures to signature source addresses... done");
     }
     return 0;
+
 error:
-    printf("SigAddressPrepareStage1 error\n");
     return -1;
 }
 
@@ -3133,8 +3133,14 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
  * \retval 0 Always
  */
 int SigGroupBuild (DetectEngineCtx *de_ctx) {
-    SigAddressPrepareStage1(de_ctx);
-    SigAddressPrepareStage2(de_ctx);
+    if (SigAddressPrepareStage1(de_ctx) != 0) {
+        SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
+        exit(EXIT_FAILURE);
+    }
+    if (SigAddressPrepareStage2(de_ctx) != 0) {
+        SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
+        exit(EXIT_FAILURE);
+    }
 
 #ifdef __SC_CUDA_SUPPORT__
     unsigned int cuda_total = 0;
@@ -3161,8 +3167,14 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
 
 #endif
 
-    SigAddressPrepareStage3(de_ctx);
-    SigAddressPrepareStage4(de_ctx);
+    if (SigAddressPrepareStage3(de_ctx) != 0) {
+        SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
+        exit(EXIT_FAILURE);
+    }
+    if (SigAddressPrepareStage4(de_ctx) != 0) {
+        SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
+        exit(EXIT_FAILURE);
+    }
 
 #ifdef __SC_CUDA_SUPPORT__
     unsigned int cuda_free_after_alloc = 0;
