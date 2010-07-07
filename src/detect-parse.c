@@ -1057,9 +1057,126 @@ void SigFree(Signature *s) {
     if (s->msg != NULL)
         SCFree(s->msg);
 
+    if (s->addr_src_match4 != NULL) {
+        SCFree(s->addr_src_match4);
+    }
+    if (s->addr_dst_match4 != NULL) {
+        SCFree(s->addr_dst_match4);
+    }
+    if (s->addr_src_match6 != NULL) {
+        SCFree(s->addr_src_match6);
+    }
+    if (s->addr_dst_match6 != NULL) {
+        SCFree(s->addr_dst_match6);
+    }
+
     SigRefFree(s);
 
     SCFree(s);
+}
+
+/**
+ *  \internal
+ *  \brief build address match array for cache efficient matching
+ *
+ *  \param s the signature
+ */
+static void SigBuildAddressMatchArray(Signature *s) {
+    /* source addresses */
+    uint16_t cnt = 0;
+    uint16_t idx = 0;
+    DetectAddress *da = s->src.ipv4_head;
+    for ( ; da != NULL; da = da->next) {
+        cnt++;
+    }
+    if (cnt > 0) {
+        s->addr_src_match4 = SCMalloc(cnt * sizeof(DetectMatchAddressIPv4));
+        if (s->addr_src_match4 == NULL) {
+            exit(EXIT_FAILURE);
+        }
+
+        for (da = s->src.ipv4_head; da != NULL; da = da->next) {
+            s->addr_src_match4[idx].ip = ntohl(da->ip.addr_data32[0]);
+            s->addr_src_match4[idx].ip2 = ntohl(da->ip2.addr_data32[0]);
+            idx++;
+        }
+        s->addr_src_match4_cnt = cnt;
+    }
+
+    /* destination addresses */
+    cnt = 0;
+    idx = 0;
+    da = s->dst.ipv4_head;
+    for ( ; da != NULL; da = da->next) {
+        cnt++;
+    }
+    if (cnt > 0) {
+        s->addr_dst_match4 = SCMalloc(cnt * sizeof(DetectMatchAddressIPv4));
+        if (s->addr_dst_match4 == NULL) {
+            exit(EXIT_FAILURE);
+        }
+
+        for (da = s->dst.ipv4_head; da != NULL; da = da->next) {
+            s->addr_dst_match4[idx].ip = ntohl(da->ip.addr_data32[0]);
+            s->addr_dst_match4[idx].ip2 = ntohl(da->ip2.addr_data32[0]);
+            idx++;
+        }
+        s->addr_dst_match4_cnt = cnt;
+    }
+
+    /* source addresses IPv6 */
+    cnt = 0;
+    idx = 0;
+    da = s->src.ipv6_head;
+    for ( ; da != NULL; da = da->next) {
+        cnt++;
+    }
+    if (cnt > 0) {
+        s->addr_src_match6 = SCMalloc(cnt * sizeof(DetectMatchAddressIPv6));
+        if (s->addr_src_match6 == NULL) {
+            exit(EXIT_FAILURE);
+        }
+
+        for (da = s->src.ipv6_head; da != NULL; da = da->next) {
+            s->addr_src_match6[idx].ip[0] = ntohl(da->ip.addr_data32[0]);
+            s->addr_src_match6[idx].ip[1] = ntohl(da->ip.addr_data32[1]);
+            s->addr_src_match6[idx].ip[2] = ntohl(da->ip.addr_data32[2]);
+            s->addr_src_match6[idx].ip[3] = ntohl(da->ip.addr_data32[3]);
+            s->addr_src_match6[idx].ip2[0] = ntohl(da->ip2.addr_data32[0]);
+            s->addr_src_match6[idx].ip2[1] = ntohl(da->ip2.addr_data32[1]);
+            s->addr_src_match6[idx].ip2[2] = ntohl(da->ip2.addr_data32[2]);
+            s->addr_src_match6[idx].ip2[3] = ntohl(da->ip2.addr_data32[3]);
+            idx++;
+        }
+        s->addr_src_match6_cnt = cnt;
+    }
+
+    /* destination addresses IPv6 */
+    cnt = 0;
+    idx = 0;
+    da = s->dst.ipv6_head;
+    for ( ; da != NULL; da = da->next) {
+        cnt++;
+    }
+    if (cnt > 0) {
+        s->addr_dst_match6 = SCMalloc(cnt * sizeof(DetectMatchAddressIPv6));
+        if (s->addr_dst_match6 == NULL) {
+            exit(EXIT_FAILURE);
+        }
+
+        for (da = s->dst.ipv6_head; da != NULL; da = da->next) {
+            s->addr_dst_match6[idx].ip[0] = ntohl(da->ip.addr_data32[0]);
+            s->addr_dst_match6[idx].ip[1] = ntohl(da->ip.addr_data32[1]);
+            s->addr_dst_match6[idx].ip[2] = ntohl(da->ip.addr_data32[2]);
+            s->addr_dst_match6[idx].ip[3] = ntohl(da->ip.addr_data32[3]);
+            s->addr_dst_match6[idx].ip2[0] = ntohl(da->ip2.addr_data32[0]);
+            s->addr_dst_match6[idx].ip2[1] = ntohl(da->ip2.addr_data32[1]);
+            s->addr_dst_match6[idx].ip2[2] = ntohl(da->ip2.addr_data32[2]);
+            s->addr_dst_match6[idx].ip2[3] = ntohl(da->ip2.addr_data32[3]);
+            idx++;
+        }
+        s->addr_dst_match6_cnt = cnt;
+    }
 }
 
 /**
@@ -1178,6 +1295,8 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
     SCLogDebug("sig %"PRIu32" SIG_FLAG_APPLAYER: %s, SIG_FLAG_PACKET: %s",
         sig->id, sig->flags & SIG_FLAG_APPLAYER ? "set" : "not set",
         sig->flags & SIG_FLAG_PACKET ? "set" : "not set");
+
+    SigBuildAddressMatchArray(sig);
 
     SCReturnPtr(sig, "Signature");
 
@@ -1354,6 +1473,8 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
         sig->flags |= SIG_FLAG_AMATCH;
     if (sig->amatch)
         sig->flags |= SIG_FLAG_AMATCH;
+
+    SigBuildAddressMatchArray(sig);
 
     SCLogDebug("sig %"PRIu32" SIG_FLAG_APPLAYER: %s, SIG_FLAG_PACKET: %s",
         sig->id, sig->flags & SIG_FLAG_APPLAYER ? "set" : "not set",

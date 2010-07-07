@@ -135,6 +135,16 @@ typedef struct DetectAddressHead_ {
     DetectAddress *ipv6_head;
 } DetectAddressHead;
 
+typedef struct DetectMatchAddressIPv4_ {
+    uint32_t ip;    /**< address in host order, start of range */
+    uint32_t ip2;   /**< address in host order, end of range */
+} DetectMatchAddressIPv4;
+
+typedef struct DetectMatchAddressIPv6_ {
+    uint32_t ip[4];
+    uint32_t ip2[4];
+} DetectMatchAddressIPv6;
+
 /*
  * DETECT PORT
  */
@@ -253,8 +263,17 @@ typedef struct Signature_ {
 
     SigIntId num; /**< signature number, internal id */
 
-    /** address settings for this signature */
-    DetectAddressHead src, dst;
+    /** ipv4 match arrays */
+    DetectMatchAddressIPv4 *addr_dst_match4;
+    uint16_t addr_dst_match4_cnt;
+    DetectMatchAddressIPv4 *addr_src_match4;
+    uint16_t addr_src_match4_cnt;
+    /** ipv6 match arrays */
+    DetectMatchAddressIPv6 *addr_dst_match6;
+    uint16_t addr_dst_match6_cnt;
+    DetectMatchAddressIPv6 *addr_src_match6;
+    uint16_t addr_src_match6_cnt;
+
     /** port settings for this signature */
     DetectPort *sp, *dp;
 
@@ -321,6 +340,9 @@ typedef struct Signature_ {
 #ifdef PROFILING
     uint16_t profiling_id;
 #endif
+
+    /** address settings for this signature */
+    DetectAddressHead src, dst;
 } Signature;
 
 typedef struct DetectEngineIPOnlyThreadCtx_ {

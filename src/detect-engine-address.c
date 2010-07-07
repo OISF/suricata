@@ -1409,6 +1409,81 @@ int DetectAddressCmp(DetectAddress *a, DetectAddress *b)
 }
 
 /**
+ *  \brief Match a packets address against a signatures addrs array
+ *
+ *  \param addrs array of DetectMatchAddressIPv4's
+ *  \param addrs_cnt array size in members
+ *  \param a packets address
+ *
+ *  \retval 0 no match
+ *  \retval 1 match
+ *
+ *  \note addresses in addrs are in host order
+ *
+ *  \todo array should be ordered, so we can break out of the loop
+ */
+int DetectAddressMatchIPv4(DetectMatchAddressIPv4 *addrs, uint16_t addrs_cnt, Address *a) {
+    SCEnter();
+
+    if (addrs == NULL || addrs_cnt == 0) {
+        SCReturnInt(0);
+    }
+
+    uint16_t idx;
+    for (idx = 0; idx < addrs_cnt; idx++) {
+        if (ntohl(a->addr_data32[0]) >= addrs[idx].ip &&
+            ntohl(a->addr_data32[0]) <= addrs[idx].ip2)
+        {
+            SCReturnInt(1);
+        }
+    }
+
+    SCReturnInt(0);
+}
+
+/**
+ *  \brief Match a packets address against a signatures addrs array
+ *
+ *  \param addrs array of DetectMatchAddressIPv6's
+ *  \param addrs_cnt array size in members
+ *  \param a packets address
+ *
+ *  \retval 0 no match
+ *  \retval 1 match
+ *
+ *  \note addresses in addrs are in host order
+ *
+ *  \todo array should be ordered, so we can break out of the loop
+ */
+int DetectAddressMatchIPv6(DetectMatchAddressIPv6 *addrs, uint16_t addrs_cnt, Address *a) {
+    SCEnter();
+
+    if (addrs == NULL || addrs_cnt == 0) {
+        SCReturnInt(0);
+    }
+
+    uint16_t idx;
+    for (idx = 0; idx < addrs_cnt; idx++) {
+        if ((ntohl(a->addr_data32[0]) >= addrs[idx].ip[0] &&
+             ntohl(a->addr_data32[0]) <= addrs[idx].ip2[0]) &&
+
+            (ntohl(a->addr_data32[1]) >= addrs[idx].ip[1] &&
+             ntohl(a->addr_data32[1]) <= addrs[idx].ip2[1]) &&
+
+            (ntohl(a->addr_data32[2]) >= addrs[idx].ip[2] &&
+             ntohl(a->addr_data32[2]) <= addrs[idx].ip2[2]) &&
+
+            (ntohl(a->addr_data32[3]) >= addrs[idx].ip[3] &&
+             ntohl(a->addr_data32[3]) <= addrs[idx].ip2[3]))
+        {
+            SCReturnInt(1);
+        }
+    }
+
+    SCReturnInt(0);
+}
+
+/**
  * \brief Check if a particular address(ipv4 or ipv6) matches the address
  *        range in the DetectAddress instance.
  *

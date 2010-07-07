@@ -856,18 +856,22 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         /* check the destination address */
         if (!(s->flags & SIG_FLAG_DST_ANY)) {
-            DetectAddress *daddr = DetectAddressLookupInHead(&s->dst,&p->dst);
-            if (daddr == NULL) {
-                SCLogDebug("dst addr didn't match.");
-                goto next;
+            if (PKT_IS_IPV4(p)) {
+                if (DetectAddressMatchIPv4(s->addr_dst_match4, s->addr_dst_match4_cnt, &p->dst) == 0)
+                    goto next;
+            } else if (PKT_IS_IPV6(p)) {
+                if (DetectAddressMatchIPv6(s->addr_dst_match6, s->addr_dst_match6_cnt, &p->dst) == 0)
+                    goto next;
             }
         }
         /* check the source address */
         if (!(s->flags & SIG_FLAG_SRC_ANY)) {
-            DetectAddress *saddr = DetectAddressLookupInHead(&s->src,&p->src);
-            if (saddr == NULL) {
-                SCLogDebug("src addr didn't match.");
-                goto next;
+            if (PKT_IS_IPV4(p)) {
+                if (DetectAddressMatchIPv4(s->addr_src_match4, s->addr_src_match4_cnt, &p->src) == 0)
+                    goto next;
+            } else if (PKT_IS_IPV6(p)) {
+                if (DetectAddressMatchIPv6(s->addr_src_match6, s->addr_src_match6_cnt, &p->src) == 0)
+                    goto next;
             }
         }
 
