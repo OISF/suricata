@@ -1526,31 +1526,35 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
     /* check if we have detected the app layer protocol or not. If it has been
        detected then, process data normally, as we have sent one smsg from
        toserver side already to the app layer */
-    if (!(ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED)) {
-        /* Do not perform reassembling of data from server, until the app layer
-           proto has been detected and we have sent atleast one smsg from client
-           data to app layer */
-        if (PKT_IS_TOSERVER(p)) {
-            SCLogDebug("we didn't detected the app layer protocol till "
-                    "yet, so not doing toclient reassembling");
-            SCReturnInt(0);
-        /* unset the queue init flag, as app layer protocol has not been
-           detected till yet and we need to send the initial smsg again to app
-           layer */
-        } if (PKT_IS_TOCLIENT(p)) {
+    if (ssn->state <= TCP_ESTABLISHED) {
+        if (!(ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED)) {
+            /* Do not perform reassembling of data from server, until the app layer
+               proto has been detected and we have sent atleast one smsg from client
+               data to app layer */
+            if (PKT_IS_TOSERVER(p)) {
+                SCLogDebug("we didn't detected the app layer protocol till "
+                        "yet, so not doing toclient reassembling");
+                SCReturnInt(0);
+                /* unset the queue init flag, as app layer protocol has not been
+                   detected till yet and we need to send the initial smsg again to app
+                   layer */
+            } if (PKT_IS_TOCLIENT(p)) {
+                ra_ctx->stream_q->flags &= ~STREAMQUEUE_FLAG_INIT;
+            }
+            /* initialize the tmp_ra_base_seq for each new run */
+            stream->tmp_ra_base_seq = stream->ra_base_seq;
+            ra_base_seq = stream->tmp_ra_base_seq;
+            /* if app layer protocol has been detected, then restore the reassembled
+               seq. to the value till reassembling has been done and unset the queue
+               init flag permanently for this tcp session */
+        } else if (stream->tmp_ra_base_seq > stream->ra_base_seq) {
+            stream->ra_base_seq = stream->tmp_ra_base_seq;
             ra_ctx->stream_q->flags &= ~STREAMQUEUE_FLAG_INIT;
+            ra_base_seq = stream->ra_base_seq;
+            SCLogDebug("the app layer protocol has been detected");
+        } else {
+            ra_base_seq = stream->ra_base_seq;
         }
-        /* initialize the tmp_ra_base_seq for each new run */
-        stream->tmp_ra_base_seq = stream->ra_base_seq;
-        ra_base_seq = stream->tmp_ra_base_seq;
-    /* if app layer protocol has been detected, then restore the reassembled
-       seq. to the value till reassembling has been done and unset the queue
-       init flag permanently for this tcp session */
-    } else if (stream->tmp_ra_base_seq > stream->ra_base_seq) {
-        stream->ra_base_seq = stream->tmp_ra_base_seq;
-        ra_ctx->stream_q->flags &= ~STREAMQUEUE_FLAG_INIT;
-        ra_base_seq = stream->ra_base_seq;
-        SCLogDebug("the app layer protocol has been detected");
     /* set the ra_bas_seq to stream->ra_base_seq as now app layer protocol
        has been detected */
     } else {
