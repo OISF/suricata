@@ -459,10 +459,11 @@ SigMatch *SigMatchGetLastSM(SigMatch *sm, uint8_t type)
 
 SigMatch *SigMatchGetLastSMFromLists(Signature *s, int args, ...)
 {
-    if (args % 2 != 0) {
+    if (args == 0 || args % 2 != 0) {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "You need to send an even no of args "
-                   "to this function, since we need a SigMatch list for every "
-                   "SigMatch type(send a map of sm_type and sm_list) sent");
+                   "(non zero as well) to this function, since we need a "
+                   "SigMatch list for every SigMatch type(send a map of sm_type "
+                   "and sm_list) sent");
         return NULL;
     }
 
@@ -486,6 +487,9 @@ SigMatch *SigMatchGetLastSMFromLists(Signature *s, int args, ...)
     }
 
     va_end(ap);
+
+    if (list_index == 0)
+        return NULL;
 
     SigMatch *sm[list_index];
     int sm_entries = 0;
