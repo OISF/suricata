@@ -1844,6 +1844,9 @@ static int AlpDetectTestSig5(void)
     p.flowflags |= FLOW_PKT_TOSERVER;
     p.flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
+    f.proto = IPPROTO_TCP;
+    p.flags |= PKT_STREAM_ADD;
+    p.flags |= PKT_STREAM_EOF;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1929,9 +1932,6 @@ void AlpDetectRegisterTests(void) {
     UtRegisterTest("AlpDetectTestSig2", AlpDetectTestSig2, 1);
     UtRegisterTest("AlpDetectTestSig3", AlpDetectTestSig3, 1);
     UtRegisterTest("AlpDetectTestSig4", AlpDetectTestSig4, 1);
-    /** This is not working. Probably because
-     * of https://redmine.openinfosecfoundation.org/issues/203
     UtRegisterTest("AlpDetectTestSig5", AlpDetectTestSig5, 1);
-    */
 #endif /* UNITTESTS */
 }
