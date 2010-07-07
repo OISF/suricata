@@ -58,6 +58,8 @@ typedef struct TcpStream_ {
                                      app layer protocol has not been detected,
                                      beacuse every smsg needs to contain all the
                                      initial segments too */
+    uint32_t reassembly_depth;  /**< The depth value of a stream until when, we
+                                     will reassemble the stream */
 } TcpStream;
 
 /* from /usr/include/netinet/tcp.h */

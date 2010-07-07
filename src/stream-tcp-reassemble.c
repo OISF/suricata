@@ -1315,10 +1315,44 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream,
     SCReturnInt(0);
 }
 
+/**
+ * \brief  Function to Check the reassembly depth valuer against the
+ *         allowed max depth of the stream reassmbly for TCP streams.
+ *
+ * \param  size Size of the depth util now and received packet payload length
+ * \retval 1 if in bounds
+ * \retval 0 if not in bounds
+ */
+int StreamTcpReassembleCheckDepth(uint32_t size) {
+    SCEnter();
+
+    int ret = 0;
+
+    /* if the configured depth value is 0, it means there is no limit on
+       reassembly depth. Otherwise carry on my boy ;) */
+    if (stream_config.reassembly_depth == 0) {
+        ret = 1;
+    } else if (size <= stream_config.reassembly_depth) {
+        ret = 1;
+    }
+
+    SCReturnInt(ret);
+}
+
 int StreamTcpReassembleHandleSegmentHandleData(TcpSession *ssn,
                                                TcpStream *stream, Packet *p)
 {
     SCEnter();
+
+    /* If we have reached the defined depth for either of the stream, then stop
+       reassembling the TCP session */
+    if (StreamTcpReassembleCheckDepth(stream->reassembly_depth + p->payload_len)
+            != 1)
+    {
+        ssn->flags |= STREAMTCP_FLAG_NOCLIENT_REASSEMBLY;
+        ssn->flags |= STREAMTCP_FLAG_NOSERVER_REASSEMBLY;
+        SCReturnInt(0);
+    }
 
     TcpSegment *seg = StreamTcpGetSegment(p->payload_len);
     if (seg == NULL) {
@@ -1331,6 +1365,7 @@ int StreamTcpReassembleHandleSegmentHandleData(TcpSession *ssn,
     seg->seq = TCP_GET_SEQ(p);
     seg->next = NULL;
     seg->prev = NULL;
+    stream->reassembly_depth += p->payload_len;
 
     if (ReassembleInsertSegment(stream, seg, p) != 0) {
         SCLogDebug("ReassembleInsertSegment failed");
@@ -5574,6 +5609,263 @@ end:
     return ret;
 }
 
+/**
+ *  \test   Test to make sure that reassembly_depth is enforced.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int StreamTcpReassembleTest45 (void) {
+    int ret = 0;
+    Packet p;
+    Flow f;
+    TCPHdr tcph;
+    Port sp;
+    Port dp;
+    Address src;
+    Address dst;
+    struct in_addr in;
+    TcpSession ssn;
+
+    memset(&p, 0, sizeof (Packet));
+    memset(&f, 0, sizeof (Flow));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    memset(&src, 0, sizeof(Address));
+    memset(&dst, 0, sizeof(Address));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    uint8_t httpbuf1[] = "/ HTTP/1.0\r\nUser-Agent: Victor/1.0";
+
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+
+    FLOW_INITIALIZE(&f);
+    StreamTcpInitConfig(TRUE);
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+
+    ssn.server.ra_base_seq = 9;
+    ssn.server.isn = 9;
+    ssn.server.last_ack = 60;
+    ssn.client.ra_base_seq = 9;
+    ssn.client.isn = 9;
+    ssn.client.last_ack = 60;
+    f.alproto = ALPROTO_UNKNOWN;
+
+    inet_pton(AF_INET, "1.2.3.4", &in);
+    src.family = AF_INET;
+    src.addr_data32[0] = in.s_addr;
+    inet_pton(AF_INET, "1.2.3.5", &in);
+    dst.family = AF_INET;
+    dst.addr_data32[0] = in.s_addr;
+    sp = 200;
+    dp = 220;
+
+    f.src = src;
+    f.dst = dst;
+    f.sp = sp;
+    f.dp = dp;
+    f.protoctx = &ssn;
+    p.flow = &f;
+
+    tcph.th_win = htons(5480);
+    tcph.th_seq = htonl(10);
+    tcph.th_ack = htonl(20);
+    tcph.th_flags = TH_ACK|TH_PUSH;
+    p.tcph = &tcph;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    p.payload = httpbuf1;
+    p.payload_len = httplen1;
+    ssn.state = TCP_ESTABLISHED;
+    /* set the default value of reassembly depth, as there is no config file */
+    stream_config.reassembly_depth = 1048576;
+    ssn.server.reassembly_depth = 1048530;
+
+    TcpStream *s = NULL;
+    s = &ssn.server;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+        printf("failed in segments reassembly, while processing toclient packet\n");
+        goto end;
+    }
+
+    /* Check if we have flags set or not */
+    if ((ssn.flags & STREAMTCP_FLAG_NOCLIENT_REASSEMBLY) ||
+            (ssn.flags & STREAMTCP_FLAG_NOSERVER_REASSEMBLY)) {
+        printf("there shouldn't be any no reassembly flag be set \n");
+        goto end;
+    }
+
+    p.flowflags = FLOW_PKT_TOSERVER;
+    p.payload_len = httplen1;
+    s = &ssn.client;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+        printf("failed in segments reassembly, while processing toserver packet\n");
+        goto end;
+    }
+
+    /* Check if we have flags set or not */
+    if ((ssn.flags & STREAMTCP_FLAG_NOCLIENT_REASSEMBLY) ||
+            (ssn.flags & STREAMTCP_FLAG_NOSERVER_REASSEMBLY)) {
+        printf("there shouldn't be any no reassembly flag be set \n");
+        goto end;
+    }
+
+    p.flowflags = FLOW_PKT_TOCLIENT;
+    p.payload_len = httplen1;
+    s = &ssn.server;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+        printf("failed in segments reassembly, while processing toserver packet\n");
+        goto end;
+    }
+
+    /* Check if we have flags set or not */
+    if (! (ssn.flags & STREAMTCP_FLAG_NOCLIENT_REASSEMBLY) ||
+            ! (ssn.flags & STREAMTCP_FLAG_NOSERVER_REASSEMBLY)) {
+        printf("the no_reassembly flags should be set, server.reassembly_depth "
+                "%"PRIu32" and p.payload_len %"PRIu16" stream_config.reassembly_"
+                "depth %"PRIu32"\n", ssn.server.reassembly_depth, p.payload_len,
+                stream_config.reassembly_depth);
+        goto end;
+    }
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    StreamTcpReassembleFreeThreadCtx(ra_ctx);
+    return ret;
+}
+
+/**
+ *  \test   Test the undefined config value of reassembly depth.
+ *          the default value of 0 will be loaded and stream will be reassembled
+ *          until the session ended
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int StreamTcpReassembleTest46 (void) {
+    int ret = 0;
+    Packet p;
+    Flow f;
+    TCPHdr tcph;
+    Port sp;
+    Port dp;
+    Address src;
+    Address dst;
+    struct in_addr in;
+    TcpSession ssn;
+
+    memset(&p, 0, sizeof (Packet));
+    memset(&f, 0, sizeof (Flow));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    memset(&src, 0, sizeof(Address));
+    memset(&dst, 0, sizeof(Address));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    uint8_t httpbuf1[] = "/ HTTP/1.0\r\nUser-Agent: Victor/1.0";
+
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+
+    FLOW_INITIALIZE(&f);
+    StreamTcpInitConfig(TRUE);
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+
+    ssn.server.ra_base_seq = 9;
+    ssn.server.isn = 9;
+    ssn.server.last_ack = 60;
+    ssn.client.ra_base_seq = 9;
+    ssn.client.isn = 9;
+    ssn.client.last_ack = 60;
+    f.alproto = ALPROTO_UNKNOWN;
+
+    inet_pton(AF_INET, "1.2.3.4", &in);
+    src.family = AF_INET;
+    src.addr_data32[0] = in.s_addr;
+    inet_pton(AF_INET, "1.2.3.5", &in);
+    dst.family = AF_INET;
+    dst.addr_data32[0] = in.s_addr;
+    sp = 200;
+    dp = 220;
+
+    f.src = src;
+    f.dst = dst;
+    f.sp = sp;
+    f.dp = dp;
+    f.protoctx = &ssn;
+    p.flow = &f;
+
+    tcph.th_win = htons(5480);
+    tcph.th_seq = htonl(10);
+    tcph.th_ack = htonl(20);
+    tcph.th_flags = TH_ACK|TH_PUSH;
+    p.tcph = &tcph;
+    p.flowflags = FLOW_PKT_TOCLIENT;
+
+    p.payload = httpbuf1;
+    p.payload_len = httplen1;
+    ssn.state = TCP_ESTABLISHED;
+
+    ssn.server.reassembly_depth = 1048530;
+
+    TcpStream *s = NULL;
+    s = &ssn.server;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+        printf("failed in segments reassembly, while processing toclient packet\n");
+        goto end;
+    }
+
+    /* Check if we have flags set or not */
+    if ((ssn.flags & STREAMTCP_FLAG_NOCLIENT_REASSEMBLY) ||
+            (ssn.flags & STREAMTCP_FLAG_NOSERVER_REASSEMBLY)) {
+        printf("there shouldn't be any no reassembly flag be set \n");
+        goto end;
+    }
+
+    p.flowflags = FLOW_PKT_TOSERVER;
+    p.payload_len = httplen1;
+    s = &ssn.client;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+        printf("failed in segments reassembly, while processing toserver packet\n");
+        goto end;
+    }
+
+    /* Check if we have flags set or not */
+    if ((ssn.flags & STREAMTCP_FLAG_NOCLIENT_REASSEMBLY) ||
+            (ssn.flags & STREAMTCP_FLAG_NOSERVER_REASSEMBLY)) {
+        printf("there shouldn't be any no reassembly flag be set \n");
+        goto end;
+    }
+
+    p.flowflags = FLOW_PKT_TOCLIENT;
+    p.payload_len = httplen1;
+    s = &ssn.server;
+
+    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+        printf("failed in segments reassembly, while processing toserver packet\n");
+        goto end;
+    }
+
+    /* Check if we have flags set or not */
+    if ((ssn.flags & STREAMTCP_FLAG_NOCLIENT_REASSEMBLY) ||
+           (ssn.flags & STREAMTCP_FLAG_NOSERVER_REASSEMBLY)) {
+        printf("the no_reassembly flags should not be set, server.reassembly_depth "
+                "%"PRIu32" and p.payload_len %"PRIu16" stream_config.reassembly_"
+                "depth %"PRIu32"\n", ssn.server.reassembly_depth, p.payload_len,
+                stream_config.reassembly_depth);
+        goto end;
+    }
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    StreamTcpReassembleFreeThreadCtx(ra_ctx);
+    return ret;
+}
+
 #endif /* UNITTESTS */
 
 /** \brief  The Function Register the Unit tests to test the reassembly engine
@@ -5626,5 +5918,7 @@ void StreamTcpReassembleRegisterTests(void) {
     UtRegisterTest("StreamTcpReassembleTest42 -- pause/unpause reassembly test", StreamTcpReassembleTest42, 1);
     UtRegisterTest("StreamTcpReassembleTest43 -- min smsg size test", StreamTcpReassembleTest43, 1);
     UtRegisterTest("StreamTcpReassembleTest44 -- Memcap Test", StreamTcpReassembleTest44, 1);
+    UtRegisterTest("StreamTcpReassembleTest45 -- Depth Test", StreamTcpReassembleTest45, 1);
+    UtRegisterTest("StreamTcpReassembleTest46 -- Depth Test", StreamTcpReassembleTest46, 1);
 #endif /* UNITTESTS */
 }

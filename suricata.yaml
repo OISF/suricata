@@ -239,6 +239,7 @@ flow-timeouts:
 #   memcap: 33554432 # 32mb memcap
 #   reassembly:
 #     memcap: 67108864 # 64mb reassembly memcap
+#      depth: 1048576  # 1 MB reassembly depth
 #   max_sessions: 262144 # 256k concurrent sessions
 #   prealloc_sessions: 32768 # 32k sessions prealloc'd
 #   midstream: false # don't allow midstream session pickups
@@ -247,6 +248,7 @@ stream:
   memcap: 33554432
   reassembly:
       memcap: 67108864
+      depth: 1048576
 
 # Logging configuration.  This is not about logging IDS alerts, but
 # IDS output about what its doing, errors, etc.

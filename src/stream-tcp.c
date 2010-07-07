@@ -389,6 +389,12 @@ void StreamTcpInitConfig(char quiet)
         stream_config.reassembly_memcap = STREAMTCP_DEFAULT_REASSEMBLY_MEMCAP;
     }
 
+    if ((ConfGetInt("stream.reassembly.depth", &value)) == 1) {
+        stream_config.reassembly_depth = (uint32_t)value;
+    } else {
+        stream_config.reassembly_depth = 0;
+    }
+
     if (!quiet) {
         SCLogInfo("stream \"memcap\": %"PRIu32"", stream_config.memcap);
     }
