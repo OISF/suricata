@@ -122,7 +122,7 @@ threading:
 
 # Select the cuda device to use.  The device_id identifies the device to be used
 # if one has multiple devices on the system.  To find out device_id associated
-#  with the card(s) on the system run "suricata --list_cuda_cards".
+#  with the card(s) on the system run "suricata --list-cuda-cards".
 cuda:
   device_id: 0
 
