@@ -477,7 +477,7 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                                 next);
 #ifdef UNITTESTS
                         if (RunmodeIsUnittests()) {
-                            printUUID("BIND", dcerpc->dcerpcbindbindack.uuid_entry);
+                            printUUID("BINDACK", dcerpc->dcerpcbindbindack.uuid_entry);
                         }
 #endif
                         dcerpc->dcerpcbindbindack.numctxitemsleft--;
