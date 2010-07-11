@@ -1235,7 +1235,10 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
                 }
             }
 
-            if ((SEQ_EQ(TCP_GET_SEQ(p), ssn->client.next_seq))) {
+            /* Check both seq and ack number before accepting the packet and
+               changing to ESTABLISHED state */
+            if ((SEQ_EQ(TCP_GET_SEQ(p), ssn->client.next_seq)) &&
+                    SEQ_EQ(TCP_GET_ACK(p), ssn->server.next_seq)) {
                 SCLogDebug("normal pkt");
 
                 /* process the packet normal, No Async streams :) */
@@ -1291,7 +1294,15 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
 
                 StreamTcpReassembleHandleSegment(stt->ra_ctx, ssn,
                                                      &ssn->server, p);
-
+            /* Upon receiving the packet with correct seq number and wrong
+               ACK number, it causes the other end to send RST. But some target
+               system (Linux & solaris) does not RST the connection, so it is
+               likely to avoid the detection */
+            } else if (SEQ_EQ(TCP_GET_SEQ(p), ssn->client.next_seq)){
+                ssn->flags |= STREAMTCP_FLAG_DETECTION_EVASION_ATTEMPT;
+                SCLogDebug("ssn %p: wrong ack nr on packet, possible evasion!!",
+                            ssn);
+                return -1;
             } else {
                 SCLogDebug("ssn %p: wrong seq nr on packet", ssn);
                 return -1;
@@ -1314,11 +1325,42 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
         case TH_RST|TH_ACK|TH_ECN:
 
             if(ValidReset(ssn, p)) {
-                StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
-                SCLogDebug("ssn %p: Reset received and state changed to "
-                               "TCP_CLOSED", ssn);
+                uint8_t reset = TRUE;
+                /* After receiveing the RST in SYN_RECV state and if detection
+                   evasion flags has been set, then the following operating
+                   systems will not closed the connection. As they consider the
+                   packet as stray packet and not belonging to the current
+                   session, for more information check
+http://www.packetstan.com/2010/06/recently-ive-been-on-campaign-to-make.html */
+                if (ssn->flags & STREAMTCP_FLAG_DETECTION_EVASION_ATTEMPT) {
+                    if (PKT_IS_TOSERVER(p)) {
+                        if ((ssn->server.os_policy == OS_POLICY_LINUX) ||
+                                (ssn->server.os_policy == OS_POLICY_OLD_LINUX) ||
+                                (ssn->server.os_policy == OS_POLICY_SOLARIS))
+                        {
+                            reset = FALSE;
+                            SCLogDebug("Detection evasion has been attempted, so"
+                                    " not resetting the connection !!");
+                        }
+                    } else {
+                        if ((ssn->client.os_policy == OS_POLICY_LINUX) |
+                                (ssn->client.os_policy == OS_POLICY_OLD_LINUX) ||
+                                (ssn->client.os_policy == OS_POLICY_SOLARIS))
+                        {
+                            reset = FALSE;
+                            SCLogDebug("Detection evasion has been attempted, so"
+                                    " not resetting the connection !!");
+                        }
+                    }
+                }
 
-                StreamTcpSessionPktFree(p);
+                if (reset == TRUE) {
+                    StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
+                    SCLogDebug("ssn %p: Reset received and state changed to "
+                                   "TCP_CLOSED", ssn);
+
+                    StreamTcpSessionPktFree(p);
+                }
             } else
                 return -1;
             break;
@@ -2720,7 +2762,7 @@ static int ValidReset(TcpSession *ssn, Packet *p)
         os_policy = ssn->server.os_policy;
     } else {
         if (ssn->client.os_policy == 0)
-            StreamTcpSetOSPolicy(&ssn->server, p);
+            StreamTcpSetOSPolicy(&ssn->client, p);
 
         os_policy = ssn->client.os_policy;
     }

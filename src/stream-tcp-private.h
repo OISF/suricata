@@ -133,6 +133,11 @@ enum
                                                              reassemble for raw
                                                              reassembled data
                                                              inspection */
+#define STREAMTCP_FLAG_DETECTION_EVASION_ATTEMPT 0x3000  /**< Flag to indicate
+                                                             that this session
+                                                             is possible trying
+                                                             to evade the detection
+    (http://www.packetstan.com/2010/06/recently-ive-been-on-campaign-to-make.html) */
 
 #define SEGMENTTCP_FLAG_PROCESSED               0x01    /**< Flag to indicate
                                                              that the current
