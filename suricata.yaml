@@ -234,21 +234,23 @@ flow-timeouts:
     emergency_new: 10
     emergency_established: 100
 
-# Stream engine settings.
+# Stream engine settings. Here the TCP stream tracking and reaasembly
+# engine is configured.
+#
 # stream:
-#   memcap: 33554432 # 32mb memcap
+#   memcap: 33554432            # 32mb tcp session memcap
+#   max_sessions: 262144        # 256k concurrent sessions
+#   prealloc_sessions: 32768    # 32k sessions prealloc'd
+#   midstream: false            # don't allow midstream session pickups
+#   async_oneside: false        # don't enable async stream handling
 #   reassembly:
-#     memcap: 67108864 # 64mb reassembly memcap
-#      depth: 1048576  # 1 MB reassembly depth
-#   max_sessions: 262144 # 256k concurrent sessions
-#   prealloc_sessions: 32768 # 32k sessions prealloc'd
-#   midstream: false # don't allow midstream session pickups
-#   async_oneside: false # don't enable async stream handling
+#     memcap: 67108864          # 64mb tcp reassembly memcap
+#     depth: 1048576            # 1 MB reassembly depth
 stream:
   memcap: 33554432
   reassembly:
-      memcap: 67108864
-      depth: 1048576
+    memcap: 67108864
+    depth: 1048576
 
 # Logging configuration.  This is not about logging IDS alerts, but
 # IDS output about what its doing, errors, etc.
