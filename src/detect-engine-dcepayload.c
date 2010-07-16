@@ -216,9 +216,9 @@ static int DoInspectDcePayload(DetectEngineCtx *de_ctx,
                 } else if (found == NULL && cd->flags & DETECT_CONTENT_NEGATED) {
                     goto match;
                 } else if (found != NULL && cd->flags & DETECT_CONTENT_NEGATED) {
-                    match_offset = (uint32_t)((found - stub) + cd->content_len);
                     SCLogDebug("content %"PRIu32" matched at offset %"PRIu32", but "
                                "negated so no match", cd->id, match_offset);
+                    det_ctx->discontinue_matching = 1;
                     SCReturnInt(0);
                 } else {
                     match_offset = (uint32_t)((found - stub) + cd->content_len);
@@ -242,6 +242,9 @@ static int DoInspectDcePayload(DetectEngineCtx *de_ctx,
                     if (r == 1) {
                         SCReturnInt(1);
                     }
+
+                    if (det_ctx->discontinue_matching)
+                        SCReturnInt(0);
 
                     /* set the previous match offset to the start of this match + 1 */
                     prev_offset = (match_offset - (cd->content_len - 1));
@@ -408,6 +411,7 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
     }
 
     det_ctx->payload_offset = 0;
+    det_ctx->discontinue_matching = 0;
 
     r = DoInspectDcePayload(de_ctx, det_ctx, s, s->dmatch, f,
                             dce_stub_data, dce_stub_data_len, dcerpc_state);
@@ -9909,6 +9913,107 @@ int DcePayloadParseTest41(void)
     return result;
 }
 
+/**
+ * \test Test the working of consecutive relative matches with a negated content.
+ */
+int DcePayloadTest42(void)
+{
+    int result = 0;
+
+    uint8_t request1[] = {
+        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x68, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1a, 0x00,
+        0x77, 0x65, 0x20, 0x6e, 0x65, 0x65, 0x64, 0x20, /* "we need " */
+        0x74, 0x6f, 0x20, 0x66, 0x69, 0x78, 0x20, 0x74, /* "to fix t" */
+        0x68, 0x69, 0x73, 0x20, 0x61, 0x6e, 0x64, 0x20, /* "his and " */
+        0x79, 0x65, 0x73, 0x20, 0x66, 0x69, 0x78, 0x20, /* "yes fix " */
+        0x74, 0x68, 0x69, 0x73, 0x20, 0x6e, 0x6f, 0x77  /* "this now" */
+    };
+    uint32_t request1_len = sizeof(request1);
+
+    TcpSession ssn;
+    Packet p;
+    ThreadVars tv;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    int r;
+
+    char *sig1 = "alert tcp any any -> any any "
+        "(msg:\"testing dce consecutive relative matches\"; dce_stub_data; "
+        "content:fix; distance:0; content:this; within:6; "
+        "content:!\"and\"; distance:0; sid:1;)";
+
+    Signature *s;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    memset(&p, 0, sizeof(Packet));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = NULL;
+    p.payload_len = 0;
+    p.proto = IPPROTO_TCP;
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+    f.alproto = ALPROTO_DCERPC;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    s = de_ctx->sig_list;
+    if (s == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    /* request 1 */
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p);
+    if ((PacketAlertCheck(&p, 1))) {
+        printf("sid 1 matched but shouldn't have for packet: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DcePayloadRegisterTests(void)
@@ -9957,6 +10062,8 @@ void DcePayloadRegisterTests(void)
     UtRegisterTest("DcePayloadParseTest39", DcePayloadParseTest39, 1);
     UtRegisterTest("DcePayloadParseTest40", DcePayloadParseTest40, 1);
     UtRegisterTest("DcePayloadParseTest41", DcePayloadParseTest41, 1);
+
+    UtRegisterTest("DcePayloadTest42", DcePayloadTest42, 1);
 #endif /* UNITTESTS */
 
     return;
