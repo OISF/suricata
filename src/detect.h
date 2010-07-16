@@ -548,6 +548,9 @@ typedef struct DetectionEngineThreadCtx_ {
      *  uricontent */
     uint32_t uricontent_payload_offset;
 
+    /* used to discontinue any more matching */
+    int discontinue_matching;
+
     /* dce stub data */
     uint8_t *dce_stub_data;
     /* dce stub data len */

@@ -69,8 +69,8 @@
  *  \retval 1 match
  */
 static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm,
-        Packet *p, Flow *f, uint8_t *payload, uint32_t payload_len)
+                                  DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *sm,
+                                  Packet *p, Flow *f, uint8_t *payload, uint32_t payload_len)
 {
     SCEnter();
 
@@ -198,8 +198,10 @@ static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
                 } else if (found == NULL && cd->flags & DETECT_CONTENT_NEGATED) {
                     goto match;
                 } else if (found != NULL && cd->flags & DETECT_CONTENT_NEGATED) {
-                    match_offset = (uint32_t)((found - payload) + cd->content_len);
                     SCLogDebug("content %"PRIu32" matched at offset %"PRIu32", but negated so no match", cd->id, match_offset);
+                    /* don't bother carrying recursive matches now, for preceding
+                     * relative keywords */
+                    det_ctx->discontinue_matching = 1;
                     SCReturnInt(0);
                 } else {
                     match_offset = (uint32_t)((found - payload) + cd->content_len);
@@ -221,6 +223,9 @@ static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
                     if (r == 1) {
                         SCReturnInt(1);
                     }
+
+                    if (det_ctx->discontinue_matching)
+                        SCReturnInt(0);
 
                     /* set the previous match offset to the start of this match + 1 */
                     prev_offset = (match_offset - (cd->content_len - 1));
@@ -325,6 +330,7 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
     }
 
     det_ctx->payload_offset = 0;
+    det_ctx->discontinue_matching = 0;
 
     r = DoInspectPacketPayload(de_ctx, det_ctx, s, s->pmatch, p, f, p->payload, p->payload_len);
     if (r == 1) {
@@ -538,6 +544,32 @@ end:
     return result;
 }
 
+/**
+ * \test Test multiple relative matches with negative matches
+ *       and show the need for det_ctx->discontinue_matching.
+ */
+static int PayloadTestSig08(void)
+{
+    uint8_t *buf = (uint8_t *)"we need to fix this and yes fix this now";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
+        "content:fix; content:this; within:6; content:!\"and\"; distance:0; sid:1;)";
+
+    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 1) {
+        result = 0;
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void PayloadRegisterTests(void) {
@@ -549,5 +581,6 @@ void PayloadRegisterTests(void) {
     UtRegisterTest("PayloadTestSig05", PayloadTestSig05, 1);
     UtRegisterTest("PayloadTestSig06", PayloadTestSig06, 1);
     UtRegisterTest("PayloadTestSig07", PayloadTestSig07, 1);
+    UtRegisterTest("PayloadTestSig08", PayloadTestSig08, 1);
 #endif /* UNITTESTS */
 }
