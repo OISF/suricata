@@ -75,6 +75,87 @@ SCEnumCharMap sc_mpm_algo_map[] = {
 #endif
 };
 
+/**
+ *  \brief check if a signature has patterns that are to be inspected
+ *         against a packets payload (as opposed to the stream payload)
+ *
+ *  \param s signature
+ *
+ *  \retval 1 true
+ *  \retval 0 false
+ */
+int SignatureHasPacketContent(Signature *s) {
+    SCEnter();
+
+    if (s == NULL) {
+        SCReturnInt(0);
+    }
+
+    if (!(s->flags & SIG_FLAG_MPM)) {
+        SCLogDebug("no mpm");
+        SCReturnInt(0);
+    }
+
+    if (s->alproto != ALPROTO_UNKNOWN) {
+        SCLogDebug("inspecting app layer");
+        SCReturnInt(0);
+    }
+
+    SigMatch *sm = s->pmatch;
+    if (sm == NULL) {
+        SCReturnInt(0);
+    }
+
+    for ( ;sm != NULL; sm = sm->next) {
+        if (sm->type == DETECT_CONTENT) {
+            SCReturnInt(1);
+        }
+    }
+
+    SCReturnInt(0);
+}
+
+/**
+ *  \brief check if a signature has patterns that are to be inspected
+ *         against the stream payload (as opposed to the individual packets
+ *         payload(s))
+ *
+ *  \param s signature
+ *
+ *  \retval 1 true
+ *  \retval 0 false
+ */
+int SignatureHasStreamContent(Signature *s) {
+    SCEnter();
+
+    if (s == NULL) {
+        SCReturnInt(0);
+    }
+
+    if (!(s->flags & SIG_FLAG_MPM)) {
+        SCLogDebug("no mpm");
+        SCReturnInt(0);
+    }
+
+    if (s->flags & SIG_FLAG_DSIZE) {
+        SCLogDebug("dsize");
+        SCReturnInt(0);
+    }
+
+    SigMatch *sm = s->pmatch;
+    if (sm == NULL) {
+        SCReturnInt(0);
+    }
+
+    for ( ;sm != NULL; sm = sm->next) {
+        if (sm->type == DETECT_CONTENT) {
+            SCReturnInt(1);
+        }
+    }
+
+    SCReturnInt(0);
+}
+
 
 /** \brief  Function to return the default multi pattern matcher algorithm to be
  *          used by the engine
@@ -292,15 +373,18 @@ void PatternMatchDestroyGroup(SigGroupHead *sh) {
     }
 
     /* stream content */
-    if (sh->flags & SIG_GROUP_HAVESTREAMCONTENT && sh->mpm_stream_ctx != NULL &&
-        !(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) {
-        SCLogDebug("destroying mpm_stream_ctx %p (sh %p)", sh->mpm_stream_ctx, sh);
-        mpm_table[sh->mpm_stream_ctx->mpm_type].DestroyCtx(sh->mpm_stream_ctx);
-        SCFree(sh->mpm_stream_ctx);
+    if (sh->flags & SIG_GROUP_HAVESTREAMCONTENT) {
+        if (sh->mpm_stream_ctx != NULL) {
+            if (!(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) {
+                SCLogDebug("destroying mpm_stream_ctx %p (sh %p)", sh->mpm_stream_ctx, sh);
+                mpm_table[sh->mpm_stream_ctx->mpm_type].DestroyCtx(sh->mpm_stream_ctx);
+                SCFree(sh->mpm_stream_ctx);
 
-        /* ready for reuse */
-        sh->mpm_stream_ctx = NULL;
-        sh->flags &= ~SIG_GROUP_HAVESTREAMCONTENT;
+                /* ready for reuse */
+                sh->mpm_stream_ctx = NULL;
+                sh->flags &= ~SIG_GROUP_HAVESTREAMCONTENT;
+            }
+        }
     }
 }
 
@@ -628,35 +712,34 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                 }
             }
 
-            if (s->flags & SIG_FLAG_DSIZE) {
-                scan_packet = 1;
-            } else if (s->alproto == ALPROTO_UNKNOWN) {
-                scan_packet = 1;
-                scan_stream = 1;
-            } else {
-                scan_stream = 1;
-            }
+            scan_packet = SignatureHasPacketContent(s);
+            scan_stream = SignatureHasStreamContent(s);
 
             if (scan_packet) {
-                /* add the content to the "packet" mpm */
-                if (co->flags & DETECT_CONTENT_NOCASE) {
-                    mpm_table[sgh->mpm_ctx->mpm_type].AddPatternNocase(sgh->mpm_ctx,
-                            co->content, co->content_len, offset, depth, co->id,
-                            s->num, flags);
-                } else {
-                    mpm_table[sgh->mpm_ctx->mpm_type].AddPattern(sgh->mpm_ctx,
-                            co->content, co->content_len, offset, depth, co->id,
-                            s->num, flags);
+                if (sgh->flags & SIG_GROUP_HAVECONTENT && !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
+                    /* add the content to the "packet" mpm */
+                    if (co->flags & DETECT_CONTENT_NOCASE) {
+                        mpm_table[sgh->mpm_ctx->mpm_type].AddPatternNocase(sgh->mpm_ctx,
+                                co->content, co->content_len, offset, depth, co->id,
+                                s->num, flags);
+                    } else {
+                        mpm_table[sgh->mpm_ctx->mpm_type].AddPattern(sgh->mpm_ctx,
+                                co->content, co->content_len, offset, depth, co->id,
+                                s->num, flags);
+                    }
                 }
             }
             if (scan_stream) {
-                /* add the content to the "stream" mpm */
-                if (co->flags & DETECT_CONTENT_NOCASE) {
-                    mpm_table[sgh->mpm_stream_ctx->mpm_type].AddPatternNocase(sgh->mpm_stream_ctx,
-                            co->content, co->content_len, offset, depth, co->id, s->num, flags);
-                } else {
-                    mpm_table[sgh->mpm_stream_ctx->mpm_type].AddPattern(sgh->mpm_stream_ctx,
-                            co->content, co->content_len, offset, depth, co->id, s->num, flags);
+                if (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT && !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) {
+                    SCLogDebug("mpm_stream_ctx %p", sgh->mpm_stream_ctx);
+                    /* add the content to the "stream" mpm */
+                    if (co->flags & DETECT_CONTENT_NOCASE) {
+                        mpm_table[sgh->mpm_stream_ctx->mpm_type].AddPatternNocase(sgh->mpm_stream_ctx,
+                                co->content, co->content_len, offset, depth, co->id, s->num, flags);
+                    } else {
+                        mpm_table[sgh->mpm_stream_ctx->mpm_type].AddPattern(sgh->mpm_stream_ctx,
+                                co->content, co->content_len, offset, depth, co->id, s->num, flags);
+                    }
                 }
             }
 
@@ -694,7 +777,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 {
     Signature *s = NULL;
     SigMatch *sm = NULL;
-    uint32_t co_cnt = 0;
+    uint32_t has_co_packet = 0; /**< our sgh has packet payload inspecting content */
+    uint32_t has_co_stream = 0; /**< our shg has stream inspecting content */
     uint32_t ur_cnt = 0;
     uint32_t cnt = 0;
     uint32_t sig = 0;
@@ -717,12 +801,11 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         if (s == NULL)
             continue;
 
-        /* find flow setting of this rule */
-        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_CONTENT) {
-                co_cnt++;
-                s->flags |= SIG_FLAG_MPM;
-            }
+        if (SignatureHasPacketContent(s) == 1) {
+            has_co_packet = 1;
+        }
+        if (SignatureHasStreamContent(s) == 1) {
+            has_co_stream = 1;
         }
 
         for (sm = s->umatch; sm != NULL; sm = sm->next) {
@@ -733,8 +816,11 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         }
     }
 
-    if (co_cnt > 0) {
+    if (has_co_packet > 0) {
         sh->flags |= SIG_GROUP_HAVECONTENT;
+    }
+    if (has_co_stream > 0) {
+        sh->flags |= SIG_GROUP_HAVESTREAMCONTENT;
     }
     if (ur_cnt > 0) {
         sh->flags |= SIG_GROUP_HAVEURICONTENT;
@@ -753,20 +839,21 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 #else
         MpmInitCtx(sh->mpm_ctx, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
 #endif
-        //if (sh->flags & SIG_GROUP_HAVESTREAMCONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) {
-            sh->mpm_stream_ctx = SCMalloc(sizeof(MpmCtx));
-            if (sh->mpm_stream_ctx == NULL)
-                goto error;
-
-            memset(sh->mpm_stream_ctx, 0x00, sizeof(MpmCtx));
-#ifndef __SC_CUDA_SUPPORT__
-            MpmInitCtx(sh->mpm_stream_ctx, de_ctx->mpm_matcher, -1);
-#else
-            MpmInitCtx(sh->mpm_stream_ctx, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
-#endif
-        //}
-
     }
+
+    if (sh->flags & SIG_GROUP_HAVESTREAMCONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) {
+        sh->mpm_stream_ctx = SCMalloc(sizeof(MpmCtx));
+        if (sh->mpm_stream_ctx == NULL)
+            goto error;
+
+        memset(sh->mpm_stream_ctx, 0x00, sizeof(MpmCtx));
+#ifndef __SC_CUDA_SUPPORT__
+        MpmInitCtx(sh->mpm_stream_ctx, de_ctx->mpm_matcher, -1);
+#else
+        MpmInitCtx(sh->mpm_stream_ctx, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
+#endif
+    }
+
     if (sh->flags & SIG_GROUP_HAVEURICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
         sh->mpm_uri_ctx = SCMalloc(sizeof(MpmCtx));
         if (sh->mpm_uri_ctx == NULL)
@@ -991,14 +1078,34 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         }
     }
 
+    /* load the patterns */
+    PatternMatchPreprarePopulateMpm(de_ctx, sh);
+
     /* content */
     if (sh->flags & SIG_GROUP_HAVECONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
-        /* load the patterns */
-        PatternMatchPreprarePopulateMpm(de_ctx, sh);
 
         if (mpm_table[sh->mpm_ctx->mpm_type].Prepare != NULL) {
             mpm_table[sh->mpm_ctx->mpm_type].Prepare(sh->mpm_ctx);
         }
+
+        if (mpm_content_maxdepth) {
+            // printf("mpm_content_maxdepth %" PRIu32 "\n", mpm_content_maxdepth);
+            g_content_maxdepth++;
+        }
+        if (mpm_content_minoffset) {
+            // printf("mpm_content_minoffset %" PRIu32 "\n", mpm_content_minoffset);
+            g_content_minoffset++;
+        }
+        g_content_total++;
+
+        //if (mpm_content_depth_present) printf("(sh %p) at least one depth: %" PRId32 ", depth %" PRIu32 "\n", sh, mpm_content_depth_present, mpm_content_maxdepth_one);
+        //if (mpm_content_offset_present) printf("(sh %p) at least one offset: %" PRId32 ", offset %" PRIu32 "\n", sh, mpm_content_offset_present, mpm_content_minoffset_one);
+        //sh->mpm_ctx->PrintCtx(sh->mpm_ctx);
+    }
+
+    /* content */
+    if (sh->flags & SIG_GROUP_HAVESTREAMCONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) {
+        SCLogDebug("preparing mpm_stream_ctx %p", sh->mpm_stream_ctx);
         if (mpm_table[sh->mpm_stream_ctx->mpm_type].Prepare != NULL) {
             mpm_table[sh->mpm_stream_ctx->mpm_type].Prepare(sh->mpm_stream_ctx);
         }

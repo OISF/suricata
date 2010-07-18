@@ -777,10 +777,15 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* have a look at the reassembled stream (if any) */
     if (p->flowflags & FLOW_PKT_ESTABLISHED) {
+        SCLogDebug("p->flowflags & FLOW_PKT_ESTABLISHED");
         if (smsg != NULL && det_ctx->sgh->mpm_stream_ctx != NULL) {
             cnt = StreamPatternSearch(th_v, det_ctx, p, smsg, flags);
             SCLogDebug("cnt %u", cnt);
+        } else {
+            SCLogDebug("smsg NULL (%p) or det_ctx->sgh->mpm_stream_ctx NULL (%p)", smsg, det_ctx->sgh->mpm_stream_ctx);
         }
+    } else {
+        SCLogDebug("NOT p->flowflags & FLOW_PKT_ESTABLISHED");
     }
 
     if (p->payload_len > 0 && det_ctx->sgh->mpm_ctx != NULL &&
@@ -2473,10 +2478,31 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
                                     } else {
                                         /* XXX write dedicated function for this */
                                         dp->sh->mpm_ctx = mpmsh->mpm_ctx;
-                                        //SCLogDebug("replacing dp->sh, so setting mpm_content_maxlen to %u", mpmsh->mpm_content_maxlen);
+                                        //SCLogDebug("replacing dp->sh, so setting mpm_content_maxlen to %u (was %u)", mpmsh->mpm_content_maxlen, dp->sh->mpm_content_maxlen);
                                         //dp->sh->mpm_content_maxlen = mpmsh->mpm_content_maxlen;
                                         dp->sh->flags |= SIG_GROUP_HEAD_MPM_COPY;
                                         SigGroupHeadClearContent(dp->sh);
+
+                                        de_ctx->mpm_reuse++;
+                                    }
+                                }
+
+                                /* content */
+                                SigGroupHeadLoadStreamContent(de_ctx, dp->sh);
+                                if (dp->sh->init->stream_content_size == 0) {
+                                    de_ctx->mpm_none++;
+                                } else {
+                                    /* now have a look if we can reuse a mpm ctx */
+                                    SigGroupHead *mpmsh = SigGroupHeadMpmStreamHashLookup(de_ctx, dp->sh);
+                                    if (mpmsh == NULL) {
+                                        SigGroupHeadMpmStreamHashAdd(de_ctx, dp->sh);
+
+                                        de_ctx->mpm_unique++;
+                                    } else {
+                                        SCLogDebug("replacing mpm_stream_ctx %p by %p", dp->sh->mpm_stream_ctx, mpmsh->mpm_stream_ctx);
+                                        dp->sh->mpm_stream_ctx = mpmsh->mpm_stream_ctx;
+                                        dp->sh->flags |= SIG_GROUP_HEAD_MPM_STREAM_COPY;
+                                        SigGroupHeadClearStreamContent(dp->sh);
 
                                         de_ctx->mpm_reuse++;
                                     }
@@ -2834,7 +2860,7 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
     for (f = 0; f < FLOW_STATES; f++) {
         printf("\n");
         for (proto = 0; proto < 256; proto++) {
-            if (proto != 0)
+            if (proto != 6)
                 continue;
 
             for (global_src_gr = de_ctx->flow_gh[f].src_gh[proto]->ipv4_head; global_src_gr != NULL;
@@ -2898,6 +2924,7 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
                         for ( ; dp != NULL; dp = dp->next) {
                             printf("   4 Dst port(range): "); DetectPortPrint(dp);
                             printf(" (sigs %" PRIu32 ", sgh %p, maxlen %" PRIu32 ")", dp->sh->sig_cnt, dp->sh, dp->sh->mpm_content_maxlen);
+                            printf(" mpm_ctx %p, mpm_stream_ctx %p", dp->sh->mpm_ctx, dp->sh->mpm_stream_ctx);
 #ifdef PRINTSIGS
                             printf(" - ");
                             for (u = 0; u < dp->sh->sig_cnt; u++) {

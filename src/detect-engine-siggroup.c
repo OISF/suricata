@@ -1441,36 +1441,48 @@ int SigGroupHeadClearUricontent(SigGroupHead *sh)
  */
 int SigGroupHeadLoadStreamContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 {
+    SCEnter();
+
     Signature *s = NULL;
     SigMatch *sm = NULL;
     uint32_t sig = 0;
     DetectContentData *co = NULL;
 
-    if (sgh == NULL)
-        return 0;
+    if (sgh == NULL) {
+        SCReturnInt(0);
+    }
 
-    if (DetectContentMaxId(de_ctx) == 0)
-        return 0;
+    if (DetectContentMaxId(de_ctx) == 0) {
+        SCReturnInt(0);
+    }
 
     BUG_ON(sgh->init == NULL);
 
     sgh->init->stream_content_size = (DetectContentMaxId(de_ctx) / 8) + 1;
     sgh->init->stream_content_array = SCMalloc(sgh->init->stream_content_size);
-    if (sgh->init->stream_content_array == NULL)
-        return -1;
+    if (sgh->init->stream_content_array == NULL) {
+        SCReturnInt(-1);
+    }
 
     memset(sgh->init->stream_content_array,0, sgh->init->stream_content_size);
 
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
         s = sgh->match_array[sig];
+
+        SCLogDebug("s %"PRIu32, s->id);
+
         if (s == NULL)
             continue;
 
-        if (!(s->flags & SIG_FLAG_MPM))
+        if (!(s->flags & SIG_FLAG_MPM)) {
+            SCLogDebug("no mpm");
             continue;
+        }
 
-        if (s->flags & SIG_FLAG_DSIZE)
+        if (s->flags & SIG_FLAG_DSIZE) {
+            SCLogDebug("dsize");
             continue;
+        }
 
         sm = s->pmatch;
         if (sm == NULL)
@@ -1485,7 +1497,7 @@ int SigGroupHeadLoadStreamContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         }
     }
 
-    return 0;
+    SCReturnInt(0);
 }
 
 /**
