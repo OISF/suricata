@@ -176,6 +176,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
 
     DetectUricontentData *ud = NULL;
     DetectContentData *cd = NULL;
+    DetectPcreData *pe = NULL;
 
     switch (pm->type) {
         case DETECT_URICONTENT:
@@ -188,9 +189,9 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
             ud->within = strtol(str, NULL, 10);
             if (ud->within < (int32_t)ud->uricontent_len) {
                 SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
-                        "less than the content length \"%"PRIu32"\" which is invalid, since "
-                        "this will never match.  Invalidating signature", ud->within,
-                        ud->uricontent_len);
+                           "less than the content length \"%"PRIu32"\" which is invalid, since "
+                           "this will never match.  Invalidating signature", ud->within,
+                           ud->uricontent_len);
                 goto error;
             }
 
@@ -202,24 +203,56 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 }
             }
 
-            pm = DetectUricontentGetLastPattern(s->umatch_tail->prev);
+            pm = SigMatchGetLastSMFromLists(s, 6,
+                                            DETECT_URICONTENT, pm->prev,
+                                            DETECT_PCRE, pm->prev,
+                                            DETECT_BYTEJUMP, pm->prev);
             if (pm == NULL) {
-                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two"
-                           " preceeding content or uricontent options");
+                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two "
+                           "preceeding content or uricontent options");
                 goto error;
             }
 
-            /* Set the relative next flag on the prev sigmatch */
-            if (pm->type == DETECT_URICONTENT) {
-                ud = (DetectUricontentData *)pm->ctx;
-                ud->flags |= DETECT_URICONTENT_RELATIVE_NEXT;
-            } else {
-                SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "Unknown previous-previous keyword!\n");
-                goto error;
+            switch (pm->type) {
+                case DETECT_URICONTENT:
+                    /* Set the relative next flag on the prev sigmatch */
+                    ud = (DetectUricontentData *)pm->ctx;
+                    if (ud == NULL) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                                   "previous keyword!");
+                        goto error;
+                    }
+                    ud->flags |= DETECT_URICONTENT_RELATIVE_NEXT;
+
+                    break;
+
+                case DETECT_PCRE:
+                    pe = (DetectPcreData *) pm->ctx;
+                    if (pe == NULL) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                                   "previous keyword!");
+                        goto error;
+                    }
+                    pe->flags |= DETECT_PCRE_RELATIVE_NEXT;
+
+                    break;
+
+                case DETECT_BYTEJUMP:
+                    SCLogDebug("No setting relative_next for bytejump.  We "
+                               "have no use for it");
+
+                    break;
+
+                default:
+                    /* this will never hit */
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                                   "previous keyword!");
+                    break;
             }
+
             DetectUricontentPrint(ud);
 
-        break;
+            break;
 
         case DETECT_CONTENT:
             cd = (DetectContentData *)pm->ctx;
@@ -249,8 +282,6 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                                             DETECT_CONTENT, pm->prev,
                                             DETECT_PCRE, pm->prev,
                                             DETECT_BYTEJUMP, pm->prev);
-
-            DetectPcreData *pe = NULL;
             if (pm == NULL) {
                 if (s->alproto == ALPROTO_DCERPC) {
                     SCLogDebug("content relative without a previous content based "

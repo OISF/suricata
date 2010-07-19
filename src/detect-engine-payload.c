@@ -74,17 +74,13 @@ static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
 {
     SCEnter();
 
-    if (sm == NULL) {
+    if (sm == NULL || payload_len == 0) {
         SCReturnInt(0);
     }
 
     switch(sm->type) {
         case DETECT_CONTENT:
         {
-            if (payload_len == 0) {
-                SCReturnInt(0);
-            }
-
             DetectContentData *cd = NULL;
             cd = (DetectContentData *)sm->ctx;
             SCLogDebug("inspecting content %"PRIu32" payload_len %"PRIu32, cd->id, payload_len);
@@ -260,13 +256,40 @@ static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
         case DETECT_PCRE:
         {
             SCLogDebug("inspecting pcre");
+            DetectPcreData *pe = (DetectPcreData *)sm->ctx;
+            uint32_t prev_payload_offset = det_ctx->payload_offset;
+            uint32_t prev_offset = 0;
+            int r = 0;
 
-            int r = DetectPcrePayloadMatch(det_ctx, s, sm, p, f, payload, payload_len);
-            if (r == 1) {
-                goto match;
-            }
+            det_ctx->pcre_match_start_offset = 0;
+            do {
+                r = DetectPcrePayloadMatch(det_ctx, s, sm, p, f,
+                                           payload, payload_len);
+                if (r == 0) {
+                    det_ctx->discontinue_matching = 1;
+                    SCReturnInt(0);
+                }
 
-            SCReturnInt(0);
+                if (!(pe->flags & DETECT_PCRE_RELATIVE_NEXT)) {
+                    SCLogDebug("no relative match coming up, so this is a match");
+                    goto match;
+                }
+
+                /* save it, in case we need to do a pcre match once again */
+                prev_offset = det_ctx->pcre_match_start_offset;
+
+                /* see if the next payload keywords match. If not, we will
+                 * search for another occurence of this pcre and see
+                 * if the others match, until we run out of matches */
+                r = DoInspectPacketPayload(de_ctx, det_ctx, s, sm->next, p,
+                                           f, payload, payload_len);
+                if (r == 1) {
+                    SCReturnInt(1);
+                }
+
+                det_ctx->payload_offset = prev_payload_offset;
+                det_ctx->pcre_match_start_offset = prev_offset;
+            } while (1);
         }
         case DETECT_BYTETEST:
         {
@@ -570,6 +593,31 @@ end:
     return result;
 }
 
+/**
+ * \test Test pcre recursive matching.
+ */
+static int PayloadTestSig09(void)
+{
+    uint8_t *buf = (uint8_t *)"this is a super duper nova in super nova now";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
+        "pcre:/super/; content:nova; within:7; sid:1;)";
+
+    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
+        result = 0;
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void PayloadRegisterTests(void) {
@@ -582,5 +630,6 @@ void PayloadRegisterTests(void) {
     UtRegisterTest("PayloadTestSig06", PayloadTestSig06, 1);
     UtRegisterTest("PayloadTestSig07", PayloadTestSig07, 1);
     UtRegisterTest("PayloadTestSig08", PayloadTestSig08, 1);
+    UtRegisterTest("PayloadTestSig09", PayloadTestSig09, 1);
 #endif /* UNITTESTS */
 }

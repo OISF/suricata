@@ -239,15 +239,40 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
         } while(1);
     } else if (sm->type == DETECT_PCRE) {
         SCLogDebug("inspecting pcre");
+        DetectPcreData *pe = (DetectPcreData *)sm->ctx;
+        uint32_t prev_payload_offset = det_ctx->payload_offset;
+        uint32_t prev_offset = 0;
+        int r = 0;
 
-        int r = DetectPcrePayloadMatch(det_ctx, s, sm, /* no packet */NULL,
-                                       NULL, payload, payload_len);
-        /* PrintRawDataFp(stdout, payload, payload_len); */
-        if (r == 1) {
-            goto match;
-        }
+        det_ctx->pcre_match_start_offset = 0;
+        do {
+            r = DetectPcrePayloadMatch(det_ctx, s, sm, NULL, NULL,
+                                       payload, payload_len);
+            if (r == 0) {
+                det_ctx->discontinue_matching = 1;
+                SCReturnInt(0);
+            }
 
-        SCReturnInt(0);
+            if (!(pe->flags & DETECT_PCRE_RELATIVE_NEXT)) {
+                SCLogDebug("no relative match coming up, so this is a match");
+                goto match;
+            }
+
+            /* save it, in case we need to do a pcre match once again */
+            prev_offset = det_ctx->pcre_match_start_offset;
+
+            /* see if the next payload keywords match. If not, we will
+             * search for another occurence of this pcre and see
+             * if the others match, until we run out of matches */
+            r = DoInspectPacketUri(de_ctx, det_ctx, s, sm->next,
+                                   payload, payload_len);
+            if (r == 1) {
+                SCReturnInt(1);
+            }
+
+            det_ctx->payload_offset = prev_payload_offset;
+            det_ctx->pcre_match_start_offset = prev_offset;
+        } while (1);
     } else if (sm->type == DETECT_AL_URILEN) {
         SCLogDebug("inspecting uri len");
 
@@ -377,8 +402,6 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
 
     sm = s->umatch;
 
-    det_ctx->payload_offset = 0;
-
 #ifdef DEBUG
     DetectUricontentData *co = (DetectUricontentData *)sm->ctx;
     SCLogDebug("co->id %"PRIu32, co->id);
@@ -394,6 +417,7 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
             continue;
 
         det_ctx->discontinue_matching = 0;
+        det_ctx->payload_offset = 0;
 
         /* Inspect all the uricontents fetched on each
          * transaction at the app layer */
@@ -2784,6 +2808,99 @@ end:
     return result;
 }
 
+/**
+ * \test Test relative pcre.
+ */
+static int UriTestSig22(void)
+{
+    int result = 0;
+    uint8_t *http_buf = (uint8_t *)"POST /this_is_a_super_duper_"
+        "nova_in_super_nova_now HTTP/1.0\r\n"
+        "User-Agent: Mozilla/1.0\r\n";
+    uint32_t http_buf_len = strlen((char *)http_buf);
+    Flow f;
+    TcpSession ssn;
+    HtpState *http_state = NULL;
+    Packet p;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&p, 0, sizeof(Packet));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = http_buf;
+    p.payload_len = http_buf_len;
+    p.proto = IPPROTO_TCP;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->mpm_matcher = MPM_B2G;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"test multiple relative uricontents\"; "
+                               "pcre:/super/U; uricontent:nova; within:7; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf, http_buf_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p);
+
+    if (!PacketAlertCheck(&p, 1)) {
+        printf("sig 1 didn't alert, but it should have: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void UriRegisterTests(void)
@@ -2811,6 +2928,7 @@ void UriRegisterTests(void)
     UtRegisterTest("UriTestSig19", UriTestSig19, 1);
     UtRegisterTest("UriTestSig20", UriTestSig20, 1);
     UtRegisterTest("UriTestSig21", UriTestSig21, 1);
+    UtRegisterTest("UriTestSig22", UriTestSig22, 1);
 #endif /* UNITTESTS */
 
     return;

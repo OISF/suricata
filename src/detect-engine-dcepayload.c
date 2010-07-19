@@ -82,17 +82,13 @@ static int DoInspectDcePayload(DetectEngineCtx *de_ctx,
 {
     SCEnter();
 
-    if (sm == NULL) {
+    if (sm == NULL || stub_len == 0) {
         SCReturnInt(0);
     }
 
     switch(sm->type) {
         case DETECT_CONTENT:
         {
-            if (stub_len == 0) {
-                SCReturnInt(0);
-            }
-
             DetectContentData *cd = NULL;
             cd = (DetectContentData *)sm->ctx;
             SCLogDebug("inspecting content %"PRIu32" stub_len %"PRIu32,
@@ -285,16 +281,41 @@ static int DoInspectDcePayload(DetectEngineCtx *de_ctx,
         case DETECT_PCRE:
         {
             SCLogDebug("inspecting pcre");
+            DetectPcreData *pe = (DetectPcreData *)sm->ctx;
+            uint32_t prev_payload_offset = det_ctx->payload_offset;
+            uint32_t prev_offset = 0;
+            int r = 0;
 
-            int r = DetectPcrePayloadMatch(det_ctx, s, sm, /* no packet */NULL,
-                    f, stub, stub_len);
-            if (r == 1) {
-                goto match;
-            }
+            det_ctx->pcre_match_start_offset = 0;
+            do {
+                r = DetectPcrePayloadMatch(det_ctx, s, sm, NULL, f,
+                                           stub, stub_len);
+                if (r == 0) {
+                    det_ctx->discontinue_matching = 1;
+                    SCReturnInt(0);
+                }
 
-            SCReturnInt(0);
+                if (!(pe->flags & DETECT_PCRE_RELATIVE_NEXT)) {
+                    SCLogDebug("no relative match coming up, so this is a match");
+                    goto match;
+                }
+
+                /* save it, in case we need to do a pcre match once again */
+                prev_offset = det_ctx->pcre_match_start_offset;
+
+                /* see if the next payload keywords match. If not, we will
+                 * search for another occurence of this pcre and see
+                 * if the others match, until we run out of matches */
+                r = DoInspectDcePayload(de_ctx, det_ctx, s, sm->next, f, stub,
+                                        stub_len, dcerpc_state);
+                if (r == 1) {
+                    SCReturnInt(1);
+                }
+
+                det_ctx->payload_offset = prev_payload_offset;
+                det_ctx->pcre_match_start_offset = prev_offset;
+            } while (1);
         }
-
         case DETECT_BYTETEST:
         {
             DetectBytetestData *data = (DetectBytetestData *)sm->ctx;
@@ -10014,6 +10035,107 @@ end:
     return result;
 }
 
+/**
+ * \test Test the working of consecutive relative pcres.
+ */
+int DcePayloadTest43(void)
+{
+    int result = 0;
+
+    uint8_t request1[] = {
+        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x68, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1a, 0x00,
+        0x74, 0x68, 0x69, 0x73, 0x20, 0x69, 0x73, 0x20,
+        0x61, 0x20, 0x73, 0x75, 0x70, 0x65, 0x72, 0x20,
+        0x64, 0x75, 0x70, 0x65, 0x72, 0x20, 0x6e, 0x6f,
+        0x76, 0x61, 0x20, 0x69, 0x6e, 0x20, 0x73, 0x75,
+        0x70, 0x65, 0x72, 0x20, 0x6e, 0x6f, 0x76, 0x61,
+        0x20, 0x6e, 0x6f, 0x77
+    };
+    uint32_t request1_len = sizeof(request1);
+
+    TcpSession ssn;
+    Packet p;
+    ThreadVars tv;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    int r;
+
+    char *sig1 = "alert tcp any any -> any any "
+        "(msg:\"testing dce consecutive relative matches\"; dce_stub_data; "
+        "pcre:/super/R; content:nova; within:7; sid:1;)";
+
+    Signature *s;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    memset(&p, 0, sizeof(Packet));
+    p.src.family = AF_INET;
+    p.dst.family = AF_INET;
+    p.payload = NULL;
+    p.payload_len = 0;
+    p.proto = IPPROTO_TCP;
+    p.flow = &f;
+    p.flowflags |= FLOW_PKT_TOSERVER;
+    p.flowflags |= FLOW_PKT_ESTABLISHED;
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+    f.alproto = ALPROTO_DCERPC;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, sig1);
+    s = de_ctx->sig_list;
+    if (s == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    /* request 1 */
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+    /* detection phase */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, &p);
+    if ( !(PacketAlertCheck(&p, 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DcePayloadRegisterTests(void)
@@ -10064,6 +10186,7 @@ void DcePayloadRegisterTests(void)
     UtRegisterTest("DcePayloadParseTest41", DcePayloadParseTest41, 1);
 
     UtRegisterTest("DcePayloadTest42", DcePayloadTest42, 1);
+    UtRegisterTest("DcePayloadTest43", DcePayloadTest43, 1);
 #endif /* UNITTESTS */
 
     return;

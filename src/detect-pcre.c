@@ -264,22 +264,22 @@ int DetectPcreALMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
 }
 
 /**
- * \brief match a regex on a single payload'
+ * \brief Match a regex on a single payload.
  *
- * \param det_ctx thread detection ctx
- * \param s signature
- * \param sm sig match to match against
- * \param p packet to set PktVars if any
- * \param f flow to set FlowVars if any
- * \param payload payload to inspect
- * \param payload_len lenght of the payload
+ * \param det_ctx     Thread detection ctx.
+ * \param s           Signature.
+ * \param sm          Sig match to match against.
+ * \param p           Packet to set PktVars if any.
+ * \param f           Flow to set FlowVars if any.
+ * \param payload     Payload to inspect.
+ * \param payload_len Length of the payload.
  *
- * \retval 1 match
- * \retval 0 no match
+ * \retval  1 Match.
+ * \retval  0 No match.
  */
 int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
-        SigMatch *sm, Packet *p, Flow *f, uint8_t *payload,
-        uint32_t payload_len)
+                           SigMatch *sm, Packet *p, Flow *f, uint8_t *payload,
+                           uint32_t payload_len)
 {
     SCEnter();
 #define MAX_SUBSTRINGS 30
@@ -287,9 +287,6 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
     int ov[MAX_SUBSTRINGS];
     uint8_t *ptr = NULL;
     uint16_t len = 0;
-
-    if (payload_len == 0)
-        SCReturnInt(0);
 
     DetectPcreData *pe = (DetectPcreData *)sm->ctx;
 
@@ -303,11 +300,14 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
     } else if (pe->flags & DETECT_PCRE_RELATIVE) {
         ptr = payload + det_ctx->payload_offset;
         len = payload_len - det_ctx->payload_offset;
-        if (ptr == NULL || len == 0)
-            SCReturnInt(0);
     } else {
         ptr = payload;
         len = payload_len;
+    }
+
+    if (det_ctx->pcre_match_start_offset != 0) {
+        ptr = payload + det_ctx->pcre_match_start_offset;
+        len = payload_len - det_ctx->pcre_match_start_offset;
     }
 
     /* run the actual pcre detection */
@@ -350,7 +350,8 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
             }
 
             /* update offset for pcre RELATIVE */
-            det_ctx->payload_offset = (ptr+ov[1]) - payload;
+            det_ctx->payload_offset = (ptr + ov[1]) - payload;
+            det_ctx->pcre_match_start_offset = (ptr + ov[0] + 1) - payload;
 
             ret = 1;
         }
@@ -800,6 +801,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     SCEnter();
     DetectPcreData *pd = NULL;
     SigMatch *sm = NULL;
+    SigMatch *prev_sm = NULL;
 
     pd = DetectPcreParse(regexstr);
     if (pd == NULL)
@@ -880,6 +882,73 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
             SigMatchAppendPayload(s, sm);
         }
     }
+
+    if ( !(pd->flags & DETECT_PCRE_RELATIVE)) {
+        SCReturnInt(0);
+    }
+
+    prev_sm = SigMatchGetLastSMFromLists(s, 6,
+                                         DETECT_CONTENT, sm->prev,
+                                         DETECT_URICONTENT, sm->prev,
+                                         DETECT_PCRE, sm->prev);
+    if (prev_sm == NULL) {
+        if (s->alproto == ALPROTO_DCERPC) {
+            SCLogDebug("No preceding content or pcre keyword.  Possible "
+                       "since this is an alproto sig.");
+            SCReturnInt(0);
+        } else {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "No preceding content "
+                       "or uricontent or pcre option");
+            goto error;
+        }
+    }
+
+    DetectContentData *cd = NULL;
+    DetectUricontentData *ud = NULL;
+    DetectPcreData *pe = NULL;
+
+    switch (prev_sm->type) {
+        case DETECT_CONTENT:
+            /* Set the relative next flag on the prev sigmatch */
+            cd = (DetectContentData *)prev_sm->ctx;
+            if (cd == NULL) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                           "previous keyword!");
+                goto error;
+            }
+            cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+
+            break;
+
+        case DETECT_URICONTENT:
+            /* Set the relative next flag on the prev sigmatch */
+            ud = (DetectUricontentData *)prev_sm->ctx;
+            if (ud == NULL) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                           "previous keyword!");
+                goto error;
+            }
+            ud->flags |= DETECT_URICONTENT_RELATIVE_NEXT;
+
+            break;
+
+        case DETECT_PCRE:
+            pe = (DetectPcreData *) prev_sm->ctx;
+            if (pe == NULL) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                           "previous keyword!");
+                goto error;
+            }
+            pe->flags |= DETECT_PCRE_RELATIVE_NEXT;
+
+            break;
+
+        default:
+            /* this will never hit */
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                       "previous keyword!");
+            break;
+    } /* switch (prev_sm->type) */
 
     SCReturnInt(0);
 

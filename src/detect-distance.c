@@ -173,40 +173,74 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
 
     DetectUricontentData *ud = NULL;
     DetectContentData *cd = NULL;
+    DetectPcreData *pe = NULL;
 
     switch (pm->type) {
         case DETECT_URICONTENT:
             ud = (DetectUricontentData *)pm->ctx;
             if (ud == NULL) {
                 SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two "
-                "preceeding content or uricontent options");
+                           "preceeding content or uricontent options");
                 goto error;
             }
 
             ud->distance = strtol(str, NULL, 10);
-            ud->flags |= DETECT_URICONTENT_DISTANCE;
             if (ud->flags & DETECT_URICONTENT_WITHIN) {
                 if ((ud->distance + ud->uricontent_len) > ud->within) {
                     ud->within = ud->distance + ud->uricontent_len;
                 }
             }
 
-            pm = DetectUricontentGetLastPattern(s->umatch_tail->prev);
+            ud->flags |= DETECT_URICONTENT_DISTANCE;
+
+            pm = SigMatchGetLastSMFromLists(s, 6,
+                                            DETECT_URICONTENT, pm->prev,
+                                            DETECT_PCRE, pm->prev,
+                                            DETECT_BYTEJUMP, pm->prev);
             if (pm == NULL) {
-                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two"
-                        " preceeding content or  uricontent options");
+                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "within needs two "
+                           "preceeding content or uricontent options");
                 goto error;
             }
 
-            if (pm->type == DETECT_URICONTENT) {
-                ud = (DetectUricontentData *)pm->ctx;
-                ud->flags |= DETECT_URICONTENT_RELATIVE_NEXT;
-            } else {
-                SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "Unknown previous"
-                        " keyword!");
-                goto error;
+            switch (pm->type) {
+                case DETECT_URICONTENT:
+                    /* Set the relative next flag on the prev sigmatch */
+                    ud = (DetectUricontentData *)pm->ctx;
+                    if (ud == NULL) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                                   "previous keyword!");
+                        goto error;
+                    }
+                    ud->flags |= DETECT_URICONTENT_RELATIVE_NEXT;
+
+                    break;
+
+                case DETECT_PCRE:
+                    pe = (DetectPcreData *) pm->ctx;
+                    if (pe == NULL) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                                   "previous keyword!");
+                        goto error;
+                    }
+                    pe->flags |= DETECT_PCRE_RELATIVE_NEXT;
+
+                    break;
+
+                case DETECT_BYTEJUMP:
+                    SCLogDebug("No setting relative_next for bytejump.  We "
+                               "have no use for it");
+
+                    break;
+
+                default:
+                    /* this will never hit */
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                                   "previous keyword!");
+                    break;
             }
-        break;
+
+            break;
 
         case DETECT_CONTENT:
             cd = (DetectContentData *)pm->ctx;
@@ -228,8 +262,6 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                                             DETECT_CONTENT, pm->prev,
                                             DETECT_PCRE, pm->prev,
                                             DETECT_BYTEJUMP, pm->prev);
-
-            DetectPcreData *pe = NULL;
             if (pm == NULL) {
                 if (s->alproto == ALPROTO_DCERPC) {
                     SCLogDebug("content relative without a previous content based "
