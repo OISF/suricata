@@ -481,9 +481,9 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                         }
 #endif
                         dcerpc->dcerpcbindbindack.numctxitemsleft--;
-                        dcerpc->bytesprocessed += (44);
-                        dcerpc->dcerpcbindbindack.ctxbytesprocessed += (44);
-                        SCReturnUInt(44U);
+                        dcerpc->bytesprocessed += (p - input);
+                        dcerpc->dcerpcbindbindack.ctxbytesprocessed += (p - input);
+                        SCReturnUInt((uint32_t)(p - input));
                     }
                 } else {
                     SCLogDebug("ctxitem %u, expected %u\n", dcerpc->dcerpcbindbindack.ctxid,
