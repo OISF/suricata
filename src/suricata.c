@@ -83,6 +83,7 @@
 #include "log-droplog.h"
 
 #include "log-httplog.h"
+#include "log-pcap.h"
 
 #include "stream-tcp.h"
 
@@ -1041,6 +1042,7 @@ int main(int argc, char **argv)
     TmModuleLogHttpLogRegister();
     TmModuleLogHttpLogIPv4Register();
     TmModuleLogHttpLogIPv6Register();
+    TmModulePcapLogRegister();
 #ifdef __SC_CUDA_SUPPORT__
     TmModuleCudaMpmB2gRegister();
     TmModuleCudaPacketBatcherRegister();

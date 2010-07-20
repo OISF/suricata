@@ -73,10 +73,13 @@ outputs:
       filename: http.log
       append: yes
 
+  - pcap-log:
+      enabled:  no
+      filename: log.pcap
   # a full alerts log containing much information for signature writers
   # or for investigating suspected false positives.
   - alert-debug:
-      enabled: no
+      enabled: yes
       filename: alert-debug.log
       append: yes
 

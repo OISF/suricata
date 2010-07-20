@@ -210,6 +210,7 @@ alert-unified2-alert.c alert-unified2-alert.h \
 alert-syslog.c alert-syslog.h \
 log-droplog.c log-droplog.h \
 log-httplog.c log-httplog.h \
+log-pcap.c log-pcap.h \
 stream.c stream.h \
 stream-tcp.c stream-tcp.h stream-tcp-private.h \
 stream-tcp-reassemble.c stream-tcp-reassemble.h \
