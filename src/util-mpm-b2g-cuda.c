@@ -2520,6 +2520,7 @@ static int B2gCudaTest02(void)
     dq = &data_queues[tmq_inq->id];
     result &= (dq->len == 10);
 
+    SCCudaPBRunningTests(1);
     /* init the TM thread */
     SCCudaPBThreadInit(&tv, de_ctx, (void *)&pb_tctx);
     SCCudaPBSetBufferPacketThreshhold(no_of_pkts);
@@ -2819,6 +2820,7 @@ static int B2gCudaTest03(void)
     dq = &data_queues[tmq_inq->id];
     result &= (dq->len == 10);
 
+    SCCudaPBRunningTests(1);
     /* init the TM thread */
     SCCudaPBThreadInit(&tv, de_ctx, (void *)&pb_tctx);
     SCCudaPBSetBufferPacketThreshhold(no_of_pkts);

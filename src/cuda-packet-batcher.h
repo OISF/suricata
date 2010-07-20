@@ -137,6 +137,8 @@ void TmModuleCudaPacketBatcherRegister(void);
 
 void *SCCudaPBTmThreadsSlot1(void *);
 
+void SCCudaPBRunningTests(int);
+
 #endif /* __SC_CUDA_SUPPORT__ */
 
 #endif /* __CUDA_PACKET_BATCHER_H__ */

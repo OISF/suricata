@@ -86,6 +86,8 @@ static uint32_t buffer_packet_threshhold = 2400;
  * processing on the GPU */
 static int queue_buffer = 0;
 
+static int unittest_mode = 0;
+
 /**
  * \internal
  * \brief The SIG_ALRM handler.  We will set the "queue_buffer" flag thus
@@ -484,8 +486,13 @@ TmEcode SCCudaPBThreadInit(ThreadVars *tv, void *initdata, void **data)
     /* set the SIG_ALRM handler */
     SCCudaPBSetBatcherAlarmTimeHandler();
 
-    /* Set the alarm time limit during which the batcher thread would buffer packets */
-    alarm(SC_CUDA_PB_BATCHER_ALARM_TIME);
+    /* if we are running unittests, don't set the alarm handler.  It will only
+     * cause a seg fault if the tests take too long */
+    if (!unittest_mode) {
+        /* Set the alarm time limit during which the batcher thread would
+         * buffer packets */
+        alarm(SC_CUDA_PB_BATCHER_ALARM_TIME);
+    }
 
     return TM_ECODE_OK;
 }
@@ -514,7 +521,11 @@ TmEcode SCCudaPBBatchPackets(ThreadVars *tv, Packet *p, void *data, PacketQueue 
                    "buffer and reseting the alarm");
         queue_buffer = 0;
         SCCudaPBQueueBuffer(data);
-        alarm(SC_CUDA_PB_BATCHER_ALARM_TIME);
+        /* if we are running unittests, don't set the alarm handler.  It will only
+         * cause a seg fault if the tests take too long */
+        if (!unittest_mode) {
+            alarm(SC_CUDA_PB_BATCHER_ALARM_TIME);
+        }
     }
 
     /* this is possible, since we are using a custom slot function that calls this
@@ -674,7 +685,11 @@ TmEcode SCCudaPBBatchPackets(ThreadVars *tv, Packet *p, void *data, PacketQueue 
                    "time limit.  Buffering the packet buffer and reseting the "
                    "alarm.", buffer_packet_threshhold);
         SCCudaPBQueueBuffer(tctx);
-        alarm(SC_CUDA_PB_BATCHER_ALARM_TIME);
+        /* if we are running unittests, don't set the alarm handler.  It will only
+         * cause a seg fault if the tests take too long */
+        if (!unittest_mode) {
+            alarm(SC_CUDA_PB_BATCHER_ALARM_TIME);
+        }
     }
 
     return TM_ECODE_OK;
@@ -842,6 +857,11 @@ void SCCudaPBKillBatchingPackets(void)
     return;
 }
 
+void SCCudaPBRunningTests(int status)
+{
+    unittest_mode = status;
+}
+
 /***********************************Unittests**********************************/
 
 #ifdef UNITTESTS
@@ -991,6 +1011,7 @@ int SCCudaPBTest01(void)
     result &= (dq->len == 0);
     dq = &data_queues[tmq_inq->id];
     result &= (dq->len == 10);
+    SCCudaPBRunningTests(1);
     SCCudaPBThreadInit(&tv_cuda_PB, de_ctx, (void *)&tctx);
     SCCudaPBSetBufferPacketThreshhold(sizeof(strings)/sizeof(char *));
 
@@ -1216,6 +1237,7 @@ int SCCudaPBTest02(void)
     result &= (dq->len == 0);
     dq = &data_queues[tmq_inq->id];
     result &= (dq->len == 10);
+    SCCudaPBRunningTests(1);
     SCCudaPBThreadInit(&tv_cuda_PB, de_ctx, (void *)&tctx);
 
     result = 1;
