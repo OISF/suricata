@@ -104,16 +104,14 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                 return -1;
             }
             ud->offset = (uint32_t)atoi(str);
-            if (ud->depth != 0 && (ud->uricontent_len + ud->offset) > ud->depth) {
-                if (ud->depth > ud->uricontent_len) {
-                    SCLogDebug("depth increased to %"PRIu32" to match pattern len"
-                        " and offset", ud->depth + ud->offset);
-                    ud->depth += ud->offset;
-                } else {
-                    SCLogDebug("depth increased to %"PRIu32" to match pattern len"
-                            " and offset", ud->uricontent_len + ud->offset);
-                    ud->depth = ud->uricontent_len + ud->offset;
+            if (ud->depth != 0) {
+                if (ud->depth < ud->uricontent_len) {
+                    SCLogDebug("depth increased to %"PRIu32" to match pattern len",
+                               ud->uricontent_len);
+                    ud->depth = ud->uricontent_len;
                 }
+                /* Updating the depth as is relative to the offset */
+                ud->depth += ud->offset;
             }
             break;
 
@@ -125,16 +123,14 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                 return -1;
             }
             cd->offset = (uint32_t)atoi(str);
-            if (cd->depth != 0 && (cd->content_len + cd->offset) > cd->depth) {
-                if (cd->depth > cd->content_len) {
-                    SCLogDebug("depth increased to %"PRIu32" to match pattern len"
-                        " and offset", cd->depth + cd->offset);
-                    cd->depth += cd->offset;
-                } else {
-                    SCLogDebug("depth increased to %"PRIu32" to match pattern len"
-                            " and offset", cd->content_len + cd->offset);
-                    cd->depth = cd->content_len + cd->offset;
+            if (cd->depth != 0) {
+                if (cd->depth < cd->content_len) {
+                    SCLogDebug("depth increased to %"PRIu32" to match pattern len",
+                               cd->content_len);
+                    cd->depth = cd->content_len;
                 }
+                /* Updating the depth as is relative to the offset */
+                cd->depth += cd->offset;
             }
             break;
 

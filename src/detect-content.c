@@ -1134,7 +1134,8 @@ int DetectContentParseTest19(void)
         data->flags & DETECT_CONTENT_WITHIN ||
         !(data->flags & DETECT_CONTENT_DISTANCE) ||
         data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_NEGATED ) {
+        data->flags & DETECT_CONTENT_NEGATED ||
+        result == 0) {
         result = 0;
         goto end;
     }
@@ -1161,7 +1162,8 @@ int DetectContentParseTest19(void)
         !(data->flags & DETECT_CONTENT_WITHIN) ||
         data->flags & DETECT_CONTENT_DISTANCE ||
         data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_NEGATED ) {
+        data->flags & DETECT_CONTENT_NEGATED ||
+        result == 0) {
         result = 0;
         goto end;
     }
@@ -1190,22 +1192,24 @@ int DetectContentParseTest19(void)
         !(data->flags & DETECT_CONTENT_WITHIN) ||
         data->flags & DETECT_CONTENT_DISTANCE ||
         data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_NEGATED ) {
+        data->flags & DETECT_CONTENT_NEGATED ||
+        result == 0) {
         result = 0;
         goto end;
     }
-    result &= (data->within == 10 && data->offset == 10 && data->depth == 13);
+    result &= (data->within == 10 && data->offset == 10 && data->depth == 23);
     data = (DetectContentData *)s->dmatch->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
         data->flags & DETECT_CONTENT_WITHIN ||
         !(data->flags & DETECT_CONTENT_DISTANCE) ||
         data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_NEGATED ) {
+        data->flags & DETECT_CONTENT_NEGATED ||
+        result == 0) {
         result = 0;
         goto end;
     }
-    result &= (data->offset == 5 && data->depth == 9);
+    result &= (data->offset == 5 && data->depth == 14);
 
     s->next = SigInit(de_ctx, "alert tcp any any -> any any "
                       "(msg:\"Testing bytejump_body\"; "
@@ -1230,7 +1234,8 @@ int DetectContentParseTest19(void)
         data->flags & DETECT_CONTENT_WITHIN ||
         !(data->flags & DETECT_CONTENT_DISTANCE) ||
         data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_NEGATED ) {
+        data->flags & DETECT_CONTENT_NEGATED ||
+        result == 0) {
         result = 0;
         goto end;
     }
@@ -1259,7 +1264,8 @@ int DetectContentParseTest19(void)
         !(data->flags & DETECT_CONTENT_WITHIN) ||
         !(data->flags & DETECT_CONTENT_DISTANCE) ||
         data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_NEGATED ) {
+        data->flags & DETECT_CONTENT_NEGATED ||
+        result == 0) {
         result = 0;
         goto end;
     }
@@ -1287,7 +1293,8 @@ int DetectContentParseTest19(void)
         data->flags & DETECT_CONTENT_WITHIN ||
         !(data->flags & DETECT_CONTENT_DISTANCE) ||
         data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_NEGATED ) {
+        data->flags & DETECT_CONTENT_NEGATED ||
+        result == 0) {
         result = 0;
         goto end;
     }
@@ -1315,7 +1322,8 @@ int DetectContentParseTest19(void)
         data->flags & DETECT_CONTENT_WITHIN ||
         !(data->flags & DETECT_CONTENT_DISTANCE) ||
         data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_NEGATED ) {
+        data->flags & DETECT_CONTENT_NEGATED ||
+        result == 0) {
         result = 0;
         goto end;
     }
@@ -1343,7 +1351,8 @@ int DetectContentParseTest19(void)
         data->flags & DETECT_CONTENT_WITHIN ||
         !(data->flags & DETECT_CONTENT_DISTANCE) ||
         data->flags & DETECT_CONTENT_FAST_PATTERN ||
-        data->flags & DETECT_CONTENT_NEGATED ) {
+        data->flags & DETECT_CONTENT_NEGATED ||
+        result == 0) {
         result = 0;
         goto end;
     }

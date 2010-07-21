@@ -1090,7 +1090,7 @@ static int DetectUriSigTest04(void) {
     if (s == NULL ||
         s->umatch == NULL ||
         s->pmatch == NULL ||
-        ((DetectContentData *)s->pmatch->ctx)->depth != 10 ||
+        ((DetectContentData *)s->pmatch->ctx)->depth != 15 ||
         ((DetectContentData *)s->pmatch->ctx)->offset != 5 ||
         s->match != NULL)
     {
@@ -1105,7 +1105,7 @@ static int DetectUriSigTest04(void) {
     if (s == NULL ||
         s->umatch == NULL ||
         s->pmatch == NULL ||
-        ((DetectUricontentData *)s->umatch->ctx)->depth != 10 ||
+        ((DetectUricontentData *)s->umatch->ctx)->depth != 15 ||
         ((DetectUricontentData *)s->umatch->ctx)->offset != 5 ||
         s->match != NULL)
     {
@@ -1140,7 +1140,7 @@ static int DetectUriSigTest04(void) {
         goto end;
     } else if (s->umatch == NULL ||
             s->pmatch == NULL ||
-            ((DetectContentData*) s->pmatch->ctx)->depth != 10 ||
+            ((DetectContentData*) s->pmatch->ctx)->depth != 15 ||
             ((DetectContentData*) s->pmatch->ctx)->offset != 5 ||
             ((DetectContentData*) s->pmatch_tail->ctx)->within != 30 ||
             s->match != NULL)
@@ -1159,7 +1159,7 @@ static int DetectUriSigTest04(void) {
         goto end;
     } else if (s->umatch == NULL ||
             s->pmatch == NULL ||
-            ((DetectContentData*) s->pmatch->ctx)->depth != 10 ||
+            ((DetectContentData*) s->pmatch->ctx)->depth != 15 ||
             ((DetectContentData*) s->pmatch->ctx)->offset != 5 ||
             ((DetectUricontentData*) s->umatch_tail->ctx)->within != 30 ||
             s->match != NULL)
@@ -1179,7 +1179,7 @@ static int DetectUriSigTest04(void) {
     } else if (
             s->umatch == NULL ||
             s->pmatch == NULL ||
-            ((DetectContentData*) s->pmatch->ctx)->depth != 10 ||
+            ((DetectContentData*) s->pmatch->ctx)->depth != 15 ||
             ((DetectContentData*) s->pmatch->ctx)->offset != 5 ||
             ((DetectContentData*) s->pmatch_tail->ctx)->distance != 30 ||
             s->match != NULL)
@@ -1199,7 +1199,7 @@ static int DetectUriSigTest04(void) {
     } else if (
             s->umatch == NULL ||
             s->pmatch == NULL ||
-            ((DetectContentData*) s->pmatch->ctx)->depth != 10 ||
+            ((DetectContentData*) s->pmatch->ctx)->depth != 15 ||
             ((DetectContentData*) s->pmatch->ctx)->offset != 5 ||
             ((DetectContentData*) s->umatch_tail->ctx)->distance != 30 ||
             s->match != NULL)
@@ -1226,7 +1226,7 @@ static int DetectUriSigTest04(void) {
         goto end;
     }
 
-    if (    ((DetectContentData*) s->pmatch->ctx)->depth != 10 ||
+    if (    ((DetectContentData*) s->pmatch->ctx)->depth != 15 ||
             ((DetectContentData*) s->pmatch->ctx)->offset != 5 ||
             ((DetectUricontentData*) s->umatch_tail->ctx)->distance != 30 ||
             ((DetectUricontentData*) s->umatch_tail->ctx)->within != 60 ||

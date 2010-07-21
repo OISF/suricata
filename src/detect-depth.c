@@ -104,14 +104,13 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                 return -1;
             }
             ud->depth = (uint32_t)atoi(str);
-            if (ud->uricontent_len + ud->offset > ud->depth) {
-                uint32_t depth = (ud->depth > ud->uricontent_len) ?
-                    ud->depth : ud->uricontent_len;
-                ud->depth = ud->offset + depth;
-
-                SCLogDebug("depth increased to %"PRIu32" to match pattern len "
-                        "and offset", ud->depth);
+            if (ud->depth < ud->uricontent_len) {
+                ud->depth = ud->uricontent_len;
+                SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
+                           ud->depth);
             }
+            /* Now update the real limit, as depth is relative to the offset */
+            ud->depth += ud->offset;
         }
         break;
 
@@ -124,14 +123,13 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                 return -1;
             }
             cd->depth = (uint32_t)atoi(str);
-            if (cd->content_len + cd->offset > cd->depth) {
-                uint32_t depth = (cd->depth > cd->content_len) ?
-                    cd->depth : cd->content_len;
-                cd->depth = cd->offset + depth;
-
-                SCLogDebug("depth increased to %"PRIu32" to match pattern len "
-                        "and offset", cd->depth);
+            if (cd->depth < cd->content_len) {
+                cd->depth = cd->content_len;
+                SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
+                           cd->depth);
             }
+            /* Now update the real limit, as depth is relative to the offset */
+            cd->depth += cd->offset;
         }
         break;
 
