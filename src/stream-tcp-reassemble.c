@@ -1515,17 +1515,20 @@ void StreamTcpReassembleUnPause (TcpSession *ssn, char direction)
 
 /**
  *  \brief Update the stream reassembly upon receiving an ACK packet.
- *  \todo this function is too long, we need to break it up
+ *  \todo this function is too long, we need to break it up. It needs it BAD
  */
 int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
                                                TcpSession *ssn, TcpStream *stream,
                                                Packet *p)
 {
     SCEnter();
-    if (PKT_IS_TOSERVER(p) && !(ssn->flags & STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED)) {
-        SCLogDebug("toserver reassembling is not done yet , so "
-                   "skipping reassembling at the moment for to_client");
-        SCReturnInt(0);
+
+    if (PKT_IS_TOSERVER(p)) {
+        if (!(ssn->flags & STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED)) {
+            SCLogDebug("toserver reassembling is not done yet, so "
+                    "skipping reassembling at the moment for to_client");
+            SCReturnInt(0);
+        }
     }
 
     if (stream->seg_list == NULL) {
@@ -1542,6 +1545,10 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
         } else {
             SCLogDebug("no segments in the list to reassemble !!");
         }
+
+        /* even if app layer detection failed, we will now move on to
+         * release reassembly for both directions. */
+        ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
 
         SCReturnInt(0);
     }
@@ -2007,7 +2014,9 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
         }
     }
 
-    ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
+    if (ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED) {
+        ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
+    }
 
     SCReturnInt(0);
 }
