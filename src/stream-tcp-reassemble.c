@@ -1542,13 +1542,14 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
             }
             StreamTcpSetupMsg(ssn, stream, p, smsg);
             StreamMsgPutInQueue(ra_ctx->stream_q,smsg);
+
+            /* even if app layer detection failed, we will now move on to
+             * release reassembly for both directions. */
+            ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
+
         } else {
             SCLogDebug("no segments in the list to reassemble !!");
         }
-
-        /* even if app layer detection failed, we will now move on to
-         * release reassembly for both directions. */
-        ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
 
         SCReturnInt(0);
     }
@@ -2014,9 +2015,9 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
         }
     }
 
-    if (ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED) {
+
+    if (ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED)
         ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
-    }
 
     SCReturnInt(0);
 }
@@ -4447,6 +4448,12 @@ static int StreamTcpReassembleTest38 (void) {
     memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
 
+    /* prevent L7 from kicking in */
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 0);
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 0);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 0);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 0);
+
     FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
@@ -4553,6 +4560,18 @@ static int StreamTcpReassembleTest38 (void) {
     tcph.th_seq = htonl(53);
     tcph.th_ack = htonl(100);
     s = &ssn.client;
+    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+        printf("failed in segments reassembly, while processing toserver packet\n");
+        goto end;
+    }
+
+    p.flowflags = FLOW_PKT_TOCLIENT;
+    p.payload = NULL;
+    p.payload_len = 0;
+    tcph.th_seq = htonl(100);
+    tcph.th_ack = htonl(53);
+    s = &ssn.server;
+
     if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
