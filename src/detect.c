@@ -841,6 +841,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         s = det_ctx->match_array[idx];
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
 
+        if (DetectProtoContainsProto(&s->proto, p->proto) == 0) {
+            SCLogDebug("proto didn't match");
+            goto next;
+        }
+
         /* check the source & dst port in the sig */
         if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
             if (!(s->flags & SIG_FLAG_DP_ANY)) {
