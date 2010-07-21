@@ -1522,6 +1522,11 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
                                                Packet *p)
 {
     SCEnter();
+    if (PKT_IS_TOSERVER(p) && !(ssn->flags & STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED)) {
+        SCLogDebug("toserver reassembling is not done yet , so "
+                   "skipping reassembling at the moment for to_client");
+        SCReturnInt(0);
+    }
 
     if (stream->seg_list == NULL) {
         /* send an empty EOF msg if we have no segments but TCP state
@@ -2001,6 +2006,8 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
             stream->ra_base_seq = ra_base_seq;
         }
     }
+
+    ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
 
     SCReturnInt(0);
 }
