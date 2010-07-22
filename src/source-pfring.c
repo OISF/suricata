@@ -54,6 +54,7 @@ TmEcode DecodePfringThreadInit(ThreadVars *, void *, void **);
 TmEcode DecodePfring(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 
 extern int max_pending_packets;
+extern uint8_t suricata_ctl_flags;
 
 #ifndef HAVE_PFRING
 
@@ -194,9 +195,9 @@ TmEcode ReceivePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
     u_char buffer[MAX_CAPLEN];
     int r;
 
-    if (TmThreadsCheckFlag(tv, THV_KILL) || TmThreadsCheckFlag(tv, THV_PAUSE)) {
-        SCLogInfo("interrupted.");
-        return TM_ECODE_OK;
+    if (suricata_ctl_flags & SURICATA_STOP ||
+            suricata_ctl_flags & SURICATA_KILL) {
+        SCReturnInt(TM_ECODE_FAILED);
     }
 
     /* Depending on what compile time options are used for pfring we either return 0 or -1 on error and always 1 for success */
@@ -285,10 +286,11 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
 #endif /* HAVE_PFRING_CLUSTER_TYPE */
 
     if(rc != 0){
-        SCLogError(SC_ERR_PF_RING_SET_CLUSTER_FAILED,"pfring_set_cluster returned %d", rc);
+        SCLogError(SC_ERR_PF_RING_SET_CLUSTER_FAILED,"pfring_set_cluster returned %d for cluster-id: %d", rc, ptv->cluster_id);
         return TM_ECODE_FAILED;
+    }else{
+        SCLogInfo("pfring_set_cluster-id %d set successfully",ptv->cluster_id);
     }
-
     *data = (void *)ptv;
     return TM_ECODE_OK;
 }
