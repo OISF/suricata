@@ -35,6 +35,7 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-reference.h"
+#include "detect-flow.h"
 
 #include "flow.h"
 
@@ -1194,6 +1195,38 @@ static void SigBuildAddressMatchArray(Signature *s) {
 }
 
 /**
+ *  \internal
+ *  \brief validate a just parsed signature for internal inconsistencies
+ *
+ *  \param s just parsed signature
+ *
+ *  \retval 0 invalid
+ *  \retval 1 valid
+ */
+static int SigValidate(Signature *s) {
+    SCEnter();
+
+    /* check for uricontent + from_server/to_client */
+    if (s->flags & SIG_FLAG_MPM_URI) {
+        SigMatch *sm;
+        for (sm = s->match; sm != NULL; sm = sm->next) {
+            if (sm->type == DETECT_FLOW) {
+                DetectFlowData *fd = (DetectFlowData *)sm->ctx;
+                if (fd == NULL)
+                    continue;
+
+                if (fd->flags & FLOW_PKT_TOCLIENT) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use uricontent with flow:to_client or flow:from_server");
+                    SCReturnInt(0);
+                }
+            }
+        }
+    }
+
+    SCReturnInt(1);
+}
+
+/**
  * \brief Parses a signature and adds it to the Detection Engine Context
  * This function is going to be deprecated. Should use DetectEngineAppendSig()
  * or SigInitReal() if you want to control the sig_list building.
@@ -1312,10 +1345,18 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
 
     SigBuildAddressMatchArray(sig);
 
+    /* validate signature, SigValidate will report the error reason */
+    if (SigValidate(sig) == 0) {
+        goto error;
+    }
+
     SCReturnPtr(sig, "Signature");
 
 error:
-    if ( sig != NULL ) SigFree(sig);
+    if (sig != NULL) {
+        SigFree(sig);
+    }
+
     if (de_ctx->failure_fatal == 1) {
         SCLogError(SC_ERR_INVALID_SIGNATURE,"Signature parsing failed: \"%s\"", sigstr);
         exit(EXIT_FAILURE);
@@ -1494,6 +1535,11 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
         sig->id, sig->flags & SIG_FLAG_APPLAYER ? "set" : "not set",
         sig->flags & SIG_FLAG_PACKET ? "set" : "not set");
 
+    /* validate signature, SigValidate will report the error reason */
+    if (SigValidate(sig) == 0) {
+        goto error;
+    }
+
     /**
      * In SigInitReal, the signature returned will point from the ptr next
      * to the cloned signatures with the switched addresses if it has
@@ -1502,9 +1548,10 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
     return sig;
 
 error:
-    if ( sig != NULL ) {
-        if ( sig->next != NULL)
+    if (sig != NULL) {
+        if (sig->next != NULL) {
             SigFree(sig->next);
+        }
         SigFree(sig);
     }
     /* if something failed, restore the old signum count
