@@ -421,7 +421,6 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
  *
  *  \param de_ctx detection engine ctx
  *  \param det_ctx detection engine thread ctx -- array is stored here
- *  \param de_state_start flag to indicate if we're at the start of a stateful run
  *  \param p packet
  *  \param alproto application layer protocol
  *
@@ -432,8 +431,7 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
  *  4. num
  */
 static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, char de_state_start, Packet *p,
-        uint16_t alproto)
+        DetectEngineThreadCtx *det_ctx, Packet *p, uint16_t alproto)
 {
     uint32_t i;
 
@@ -498,11 +496,15 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         if (s->flags & SIG_FLAG_AMATCH || s->flags & SIG_FLAG_UMATCH ||
                 s->flags & SIG_FLAG_DMATCH)
         {
-            if (de_state_start == FALSE) {
-                if (det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NEW) {
-                    SCLogDebug("not a new match, ignoring");
-                    continue;
-                }
+            /* we run after DeStateDetectContinueDetection, so we might have
+             * state NEW here. In that case we'd want to continue detection
+             * for this sig. If we have NOSTATE, stateful detection didn't
+             * start yet for this sig, so we will inspect it.
+             */
+            if (det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NEW &&
+                    det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NOSTATE) {
+                SCLogDebug("de state not NEW or NOSTATE, ignoring");
+                continue;
             }
         }
 
@@ -817,22 +819,18 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     det_ctx->de_mpm_scanned_uri = FALSE;
 
     /* stateful app layer detection */
-    char de_state_start = FALSE;
-    /* initialize to 0 (DE_STATE_MATCH_FULL) */
+
+    /* initialize to 0 (DE_STATE_MATCH_NOSTATE) */
     memset(det_ctx->de_state_sig_array, 0x00, det_ctx->de_state_sig_array_len);
-    if (alstate != NULL) {
-        if (DeStateFlowHasState(p->flow)) {
-            DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p->flow,
-                    flags, alstate, alproto);
-        } else {
-            de_state_start = TRUE;
-        }
-    } else {
-        de_state_start = TRUE;
+
+    /* if applicable, continue stateful detection */
+    if (p->flow != NULL && DeStateFlowHasState(p->flow)) {
+        DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p->flow,
+                flags, alstate, alproto);
     }
 
     /* build the match array */
-    SigMatchSignaturesBuildMatchArray(de_ctx, det_ctx, de_state_start, p, alproto);
+    SigMatchSignaturesBuildMatchArray(de_ctx, det_ctx, p, alproto);
 
     /* inspect the sigs against the packet */
     for (idx = 0; idx < det_ctx->match_array_cnt; idx++) {
@@ -944,18 +942,18 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 goto next;
             }
 
-            if (de_state_start == TRUE) {
+            if (det_ctx->de_state_sig_array[s->num] == DE_STATE_MATCH_NOSTATE) {
                 SCLogDebug("stateful app layer match inspection starting");
                 if (DeStateDetectStartDetection(th_v, de_ctx, det_ctx, s,
                             p->flow, flags, alstate, alproto) != 1)
                     goto next;
             } else {
+                SCLogDebug("already having a destate");
+
                 SCLogDebug("signature %"PRIu32" (%"PRIuMAX"): %s",
                         s->id, (uintmax_t)s->num, DeStateMatchResultToString(det_ctx->de_state_sig_array[s->num]));
                 if (det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NEW) {
-                    if (s->pmatch == NULL && s->dmatch == NULL) {
-                        goto next;
-                    }
+                    goto next;
                 }
             }
         }

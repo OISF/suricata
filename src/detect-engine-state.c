@@ -44,13 +44,16 @@
 #include "util-unittest.h"
 #include "util-profiling.h"
 
+/** convert enum to string */
 #define CASE_CODE(E)  case E: return #E
+
+/** \brief get string for match enum */
 const char *DeStateMatchResultToString(DeStateMatchResult res)
 {
     switch (res) {
+        CASE_CODE (DE_STATE_MATCH_NOSTATE);
         CASE_CODE (DE_STATE_MATCH_FULL);
         CASE_CODE (DE_STATE_MATCH_PARTIAL);
-        CASE_CODE (DE_STATE_MATCH_STORED);
         CASE_CODE (DE_STATE_MATCH_NEW);
     }
 
@@ -439,6 +442,12 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
 
             PROFILING_START;
 
+            /* if we already fully matched previously, detect that here */
+            if (item->flags & DE_STATE_FLAG_FULL_MATCH) {
+                det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_FULL;
+                goto next_sig;
+            }
+
             /* let's continue detection */
 
             /* first, check uricontent */
@@ -513,6 +522,7 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                         if (!appinspect || (appinspect == appmatch)) {
                             det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NEW;
                             SCLogDebug("state set to %s", DeStateMatchResultToString(DE_STATE_MATCH_NEW));
+                            item->flags |= DE_STATE_FLAG_FULL_MATCH;
                         } else {
                             det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_PARTIAL;
                             SCLogDebug("state set to %s", DeStateMatchResultToString(DE_STATE_MATCH_PARTIAL));
@@ -523,7 +533,11 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                 if (appinspect > 0 && (appinspect == appmatch)) {
                     det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NEW;
                     SCLogDebug("state set to %s", DeStateMatchResultToString(DE_STATE_MATCH_NEW));
+                    item->flags |= DE_STATE_FLAG_FULL_MATCH;
                 } else if (uinspect && !umatch) {
+                    det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_PARTIAL;
+                    SCLogDebug("state set to %s", DeStateMatchResultToString(DE_STATE_MATCH_PARTIAL));
+                } else {
                     det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_PARTIAL;
                     SCLogDebug("state set to %s", DeStateMatchResultToString(DE_STATE_MATCH_PARTIAL));
                 }
@@ -532,6 +546,7 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
             SCLogDebug("signature %"PRIu32" match state %s",
                     s->id, DeStateMatchResultToString(det_ctx->de_state_sig_array[item->sid]));
 
+next_sig:
             RULE_PROFILING_END(s, match);
 
         }

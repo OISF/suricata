@@ -47,12 +47,14 @@
 #define DE_STATE_FLAG_PAYLOAD_MATCH 0x01 /**< payload part of the sig matched */
 #define DE_STATE_FLAG_URI_MATCH     0x02 /**< uri part of the sig matched */
 #define DE_STATE_FLAG_DCE_MATCH     0x04 /**< dce payload inspection part matched */
+#define DE_STATE_FLAG_FULL_MATCH    0x08 /**< sig already fully matched */
 
+/** per signature detection engine state */
 typedef enum {
-    DE_STATE_MATCH_FULL = 0,    /**< sig already fully matched, no state */
+    DE_STATE_MATCH_NOSTATE = 0, /**< no state for this sig*/
+    DE_STATE_MATCH_FULL,        /**< sig already fully matched */
     DE_STATE_MATCH_PARTIAL,     /**< partial state match */
-    DE_STATE_MATCH_STORED,      /**< stored match in the state */
-    DE_STATE_MATCH_NEW,         /**< new match */
+    DE_STATE_MATCH_NEW,         /**< new (full) match this run */
 } DeStateMatchResult;
 
 /** \brief State storage for a single signature */
