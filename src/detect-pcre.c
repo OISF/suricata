@@ -856,7 +856,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         SigMatchAppendUricontent(s, sm);
     } else {
         if (s->alproto == ALPROTO_DCERPC &&
-            pd->flags & DETECT_PCRE_RELATIVE) {
+            pd->flags & DETECT_PCRE_RELATIVE)
+        {
             SigMatch *pm = NULL;
             SigMatch *dm = NULL;
 
@@ -883,7 +884,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         }
     }
 
-    if ( !(pd->flags & DETECT_PCRE_RELATIVE)) {
+    if (!(pd->flags & DETECT_PCRE_RELATIVE)) {
         SCReturnInt(0);
     }
 
@@ -899,7 +900,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         } else {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "No preceding content "
                        "or uricontent or pcre option");
-            goto error;
+            SCReturnInt(-1);
         }
     }
 
@@ -912,9 +913,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
             /* Set the relative next flag on the prev sigmatch */
             cd = (DetectContentData *)prev_sm->ctx;
             if (cd == NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
-                           "previous keyword!");
-                goto error;
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "content not setup properly");
+                SCReturnInt(-1);
             }
             cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
 
@@ -924,9 +924,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
             /* Set the relative next flag on the prev sigmatch */
             ud = (DetectUricontentData *)prev_sm->ctx;
             if (ud == NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
-                           "previous keyword!");
-                goto error;
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "uricontent not setup properly");
+                SCReturnInt(-1);
             }
             ud->flags |= DETECT_URICONTENT_RELATIVE_NEXT;
 
@@ -935,9 +934,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         case DETECT_PCRE:
             pe = (DetectPcreData *) prev_sm->ctx;
             if (pe == NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
-                           "previous keyword!");
-                goto error;
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre not setup properly");
+                SCReturnInt(-1);
             }
             pe->flags |= DETECT_PCRE_RELATIVE_NEXT;
 
@@ -945,8 +943,9 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
 
         default:
             /* this will never hit */
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
-                       "previous keyword!");
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "prev sigmatch has unknown type: %"PRIu16,
+                    prev_sm->type);
+            SCReturnInt(-1);
             break;
     } /* switch (prev_sm->type) */
 
@@ -957,15 +956,19 @@ error:
         DetectPcreFree(pd);
     if (sm != NULL)
         SCFree(sm);
+
     SCReturnInt(-1);
 }
 
 void DetectPcreFree(void *ptr) {
     DetectPcreData *pd = (DetectPcreData *)ptr;
 
-    if (pd->capname != NULL) SCFree(pd->capname);
-    if (pd->re != NULL) pcre_free(pd->re);
-    if (pd->sd != NULL) pcre_free(pd->sd);
+    if (pd->capname != NULL)
+        SCFree(pd->capname);
+    if (pd->re != NULL)
+        pcre_free(pd->re);
+    if (pd->sd != NULL)
+        pcre_free(pd->sd);
 
     SCFree(pd);
     return;
