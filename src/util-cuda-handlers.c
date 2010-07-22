@@ -74,6 +74,9 @@
 /* macros decides if cuda is enabled for the platform or not */
 #ifdef __SC_CUDA_SUPPORT__
 
+/* file only exists if cuda is enabled */
+#include "cuda-ptxdump.h"
+
 static SCCudaHlModuleData *module_data = NULL;
 
 static uint8_t module_handle = 1;
@@ -417,8 +420,8 @@ int SCCudaHlGetCudaContext(CUcontext *p_context, char *cuda_profile, int handle)
  *        and associated with this handle and the cuda_module is returned
  *        in the argument.
  *
- * \param p_module  Pointer to a cuda module instance that should be updated
- *                  with a cuda module.
+ * \param p_module The loaded CUmodule that is returned.
+ * \param ptx_image Name of the module source file, w/o the .cu extension
  * \param handle    A unique handle which identifies a module.  Obtained from
  *                  a call to SCCudaHlGetUniqueHandle().
  *
@@ -464,11 +467,35 @@ int SCCudaHlGetCudaModule(CUmodule *p_module, const char *ptx_image, int handle)
     }
     memset(new_module_cumodule, 0, sizeof(SCCudaHlModuleCUmodule));
 
-    /* Create a cuda module, update the module with this cuda module reference
-     * and then return the module reference back to the calling function using
+    /* select the ptx image based on the compute capability supported by all
+     * devices (i.e. the lowest) */
+    char* image = malloc(strlen(ptx_image)+15);
+    memset(image, 0x0, sizeof(image));
+
+    int major = INT_MAX;
+    int minor = INT_MAX;
+    SCCudaDevices *devices = SCCudaGetDeviceList();
+    int i=0;
+    for (; i<devices->count; i++){
+        if (devices->devices[i]->major_rev < major){
+            major = devices->devices[i]->major_rev;
+            minor = devices->devices[i]->minor_rev;
+        }
+        if (devices->devices[i]->major_rev == major &&
+            devices->devices[i]->minor_rev < minor){
+            minor = devices->devices[i]->minor_rev;
+        }
+    }
+    sprintf(image, "%s_sm_%u%u", ptx_image, major, minor);
+
+    /* we don't have a cuda module associated with this module.  Create a
+     * cuda module, update the module with this cuda module reference and
+     * then return the module refernce back to the calling function using
      * the argument */
-    if (SCCudaModuleLoadData(p_module, (void *)ptx_image) == -1)
+    SCLogDebug("Loading kernel module: %s\n",image);
+    if (SCCudaModuleLoadData(p_module, (void *)SCCudaPtxDumpGetModule(image)) == -1)
         goto error;
+    free(image);
 
     new_module_cumodule->cuda_module = p_module[0];
     new_module_cumodule->cuda_module_handle = SCCudaHlGetUniqueHandle();
@@ -487,6 +514,7 @@ int SCCudaHlGetCudaModule(CUmodule *p_module, const char *ptx_image, int handle)
     return new_module_cumodule->cuda_module_handle;
 
  error:
+    free(image);
     return -1;
 }
 

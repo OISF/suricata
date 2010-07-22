@@ -786,6 +786,9 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
         AC_ARG_WITH(cuda_libraries,
                 [  --with-cuda-libraries=DIR    cuda library directory],
                 [with_cuda_libraries="$withval"],[with_cuda_libraries="no"])
+        AC_ARG_WITH(cuda_nvcc,
+                [  --with-cuda-nvcc=DIR  cuda nvcc compiler directory],
+                [with_cuda_nvcc="$withval"],[with_cuda_nvcc=no])
 
         CFLAGS="${CFLAGS} -D__SC_CUDA_SUPPORT__"
 
@@ -799,6 +802,12 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
             LDFLAGS="${LDFLAGS} -L${with_cuda_libraries}"
         fi
 
+        if test "$with_cuda_nvcc" != "no"; then
+            NVCC_DIR="${with_cuda_nvcc}"
+        else
+            NVCC_DIR="/usr/local/cuda/bin"
+        fi
+
         AC_CHECK_HEADER(cuda.h,,[AC_ERROR(cuda.h not found ...)])
 
         LIBCUDA=""
@@ -809,7 +818,24 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
             echo
             exit 1
         fi
+
+        AC_PATH_PROG([NVCC], [nvcc], , [$PATH:$NVCC_DIR])
+        if test "$NVCC" = "no"; then
+            echo
+            echo "   ERROR! CUDA nvcc compiler not found: use --with-cuda-nvcc=DIR"
+            echo
+            exit 1
+        fi
+
+        AC_PATH_PROG([PYTHON], [python], no)
+        if test "$PYTHON" = "no"; then
+            echo
+            echo "   ERROR! Compiling CUDA source requires python interpreter"
+            echo
+            exit 1
+        fi
     ])
+    AM_CONDITIONAL([BUILD_CUDA], [test "${NVCC}" != ""])
 
 
 # Check for libcap-ng
