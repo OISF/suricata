@@ -1595,6 +1595,7 @@ int SigGroupHeadBuildHeadArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
         sgh->head_array[idx].flags = s->flags;
         sgh->head_array[idx].mpm_pattern_id = s->mpm_pattern_id;
+        sgh->head_array[idx].mpm_stream_pattern_id = s->mpm_stream_pattern_id;
         sgh->head_array[idx].alproto = s->alproto;
         sgh->head_array[idx].num = s->num;
         sgh->head_array[idx].full_sig = s;
@@ -1602,6 +1603,7 @@ int SigGroupHeadBuildHeadArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         BUG_ON(s->flags != sgh->head_array[idx].flags);
         BUG_ON(s->alproto != sgh->head_array[idx].alproto);
         BUG_ON(s->mpm_pattern_id != sgh->head_array[idx].mpm_pattern_id);
+        BUG_ON(s->mpm_stream_pattern_id != sgh->head_array[idx].mpm_stream_pattern_id);
         BUG_ON(s->num != sgh->head_array[idx].num);
         BUG_ON(s != sgh->head_array[idx].full_sig);
 

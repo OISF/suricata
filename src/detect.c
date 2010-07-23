@@ -170,7 +170,7 @@ void DetectExitPrintStats(ThreadVars *tv, void *data) {
     DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
     if (det_ctx == NULL)
         return;
-
+#if 0
     SCLogInfo("(%s) (1byte) Pkts %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
         tv->name, det_ctx->pkts, det_ctx->pkts_searched1,
         (float)(det_ctx->pkts_searched1/(float)(det_ctx->pkts)*100));
@@ -202,6 +202,7 @@ void DetectExitPrintStats(ThreadVars *tv, void *data) {
     SCLogInfo("(%s) URI (+byte) Uri's %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
         tv->name, det_ctx->uris, det_ctx->pkts_uri_searched,
         (float)(det_ctx->pkts_uri_searched/(float)(det_ctx->uris)*100));
+#endif
 }
 
 /** \brief Create the path if default-rule-path was specified
@@ -428,7 +429,8 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
  *  1. flags
  *  2. alproto
  *  3. mpm_pattern_id
- *  4. num
+ *  4. mpm_stream_pattern_id
+ *  5. num
  */
 static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Packet *p, uint16_t alproto)
@@ -469,11 +471,32 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         }
 
         /* check for a pattern match of the one pattern in this sig. */
-        if (s->flags & SIG_FLAG_MPM) {
+        if (s->flags & SIG_FLAG_MPM_PACKET) {
             /* filter out sigs that want pattern matches, but
              * have no matches */
             if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8)))) {
                 SCLogDebug("mpm sig without matches (pat id %"PRIu32" check in content).", s->mpm_pattern_id);
+
+                if (!(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
+                    /* pattern didn't match. There is one case where we will inspect
+                     * the signature anyway: if the packet payload was added to the
+                     * stream it is not scanned itself: the stream data is inspected.
+                     * Inspecting both would result in duplicated alerts. There is
+                     * one case where we are going to inspect the packet payload
+                     * anyway: if a signature has the dsize option. */
+                    if (!((p->flags & PKT_STREAM_ADD) && (s->flags & SIG_FLAG_DSIZE))) {
+                        continue;
+                    }
+                } else {
+                    SCLogDebug("but thats okay, we are looking for neg-content");
+                }
+            }
+        }
+        if (s->flags & SIG_FLAG_MPM_STREAM) {
+            /* filter out sigs that want pattern matches, but
+             * have no matches */
+            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_stream_pattern_id / 8)] & (1<<(s->mpm_stream_pattern_id % 8)))) {
+                SCLogDebug("mpm stream sig without matches (pat id %"PRIu32" check in content).", s->mpm_stream_pattern_id);
 
                 if (!(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
                     /* pattern didn't match. There is one case where we will inspect
@@ -800,16 +823,18 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         } else {
             SCLogDebug("search: (%p, maxlen %" PRIu32 ", sgh->sig_cnt %" PRIu32 ")",
                 det_ctx->sgh, det_ctx->sgh->mpm_content_maxlen, det_ctx->sgh->sig_cnt);
-
+#if 0
             if (det_ctx->sgh->mpm_content_maxlen == 1)      det_ctx->pkts_searched1++;
             else if (det_ctx->sgh->mpm_content_maxlen == 2) det_ctx->pkts_searched2++;
             else if (det_ctx->sgh->mpm_content_maxlen == 3) det_ctx->pkts_searched3++;
             else if (det_ctx->sgh->mpm_content_maxlen == 4) det_ctx->pkts_searched4++;
             else                                            det_ctx->pkts_searched++;
-
+#endif
             cnt = PacketPatternSearch(th_v, det_ctx, p);
             if (cnt > 0) {
+#if 0
                 det_ctx->mpm_match++;
+#endif
             }
 
             SCLogDebug("post search: cnt %" PRIu32, cnt);

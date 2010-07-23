@@ -271,6 +271,9 @@ uint32_t StreamPatternSearch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
     uint8_t cnt = 0;
 
     for ( ; smsg != NULL; smsg = smsg->next) {
+        if (smsg->data.data_len < det_ctx->sgh->mpm_streamcontent_maxlen)
+            continue;
+
         //PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
 
         uint32_t r = mpm_table[det_ctx->sgh->mpm_stream_ctx->mpm_type].Search(det_ctx->sgh->mpm_stream_ctx,
@@ -425,8 +428,6 @@ typedef struct ContentHash_ {
     DetectContentData *ptr;
     uint16_t cnt;
     uint8_t use; /* use no matter what */
-    uint8_t nosearch; /* single match, no search after
-                       * mpm match (for this pattern) */
 } ContentHash;
 
 uint32_t ContentHashFunc(HashTable *ht, void *data, uint16_t datalen) {
@@ -463,7 +464,6 @@ ContentHash *ContentHashAlloc(DetectContentData *ptr) {
     ch->ptr = ptr;
     ch->cnt = 1;
     ch->use = 0;
-    ch->nosearch = 0;
 
     return ch;
 }
@@ -531,94 +531,81 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
         if (s == NULL)
             continue;
 
-        int cnt = 0;
-        SigMatch *sm;
-        /* get the total no of patterns in this Signature, as well as find out
-         * if we have a fast_pattern set in this Signature */
-        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_CONTENT) {
-                DetectContentData *co = (DetectContentData *)sm->ctx;
-                if (co == NULL)
-                    continue;
-
-                if (co->flags & DETECT_CONTENT_FAST_PATTERN) {
-                    fast_pattern[sig] = 1;
-                    SCLogDebug("sig %"PRIu32" has a fast pattern, id %"PRIu32"", s->id, co->id);
-
-                    ContentHash *ch = ContentHashAlloc(co);
-                    if (ch == NULL)
-                        goto error;
-
-                    ContentHash *lookup_ch = (ContentHash *)HashTableLookup(ht, ch, 0);
-                    if (lookup_ch == NULL) {
-                        if (HashTableAdd(ht, ch, 0) < 0)
-                            printf("Add hash failed\n");
-                    } else {
-                        /* only set the nosearch flag if all sigs have it
-                         * as their sole pattern */
-                        if (ch->nosearch == 0)
-                            lookup_ch->nosearch = 0;
-
-                        lookup_ch->cnt++;
-                        ContentHashFree(ch);
-                    }
-                }
-                cnt++;
-            }
-        }
-
-        if (fast_pattern[sig] == 1) {
-            if (cnt == 1) {
-                ContentHash *ch = ContentHashAlloc(s->pmatch->ctx);
-                ch->nosearch = 1;
-                ch->use = 1;
-                SCLogDebug("sig %"PRIu32" has a fast pattern, id %"PRIu32"", s->id, ch->ptr->id);
-            }
+        if (SignatureHasPacketContent(s) == 0) {
             continue;
         }
 
-        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_CONTENT) {
-                DetectContentData *co = (DetectContentData *)sm->ctx;
-                if (co == NULL)
-                    continue;
+        int cnt = 0;
+        SigMatch *sm;
 
-                if (co->content_len < sgh->mpm_content_maxlen) {
-                    continue;
-                }
+        /* get the total no of patterns in this Signature, as well as find out
+         * if we have a fast_pattern set in this Signature */
+        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_CONTENT)
+                continue;
+
+            DetectContentData *co = (DetectContentData *)sm->ctx;
+            if (co == NULL)
+                continue;
+
+            cnt++;
+
+            /* special handling of fast pattern keyword */
+            if (co->flags & DETECT_CONTENT_FAST_PATTERN) {
+                fast_pattern[sig] = 1;
+                SCLogDebug("sig %"PRIu32" has a fast pattern, id %"PRIu32"", s->id, co->id);
 
                 ContentHash *ch = ContentHashAlloc(co);
                 if (ch == NULL)
                     goto error;
 
-                if (cnt == 1) {
-                    SCLogDebug("sig has just one pattern, so we know we will "
-                               "use it in the mpm phase and no searching will "
-                               "be necessary.");
-                    ch->nosearch = 1;
-                    ch->use = 1;
-                }
-
                 ContentHash *lookup_ch = (ContentHash *)HashTableLookup(ht, ch, 0);
                 if (lookup_ch == NULL) {
-                    int r = HashTableAdd(ht, ch, 0);
-                    if (r < 0) printf("Add hash failed\n");
+                    if (HashTableAdd(ht, ch, 0) < 0)
+                        printf("Add hash failed\n");
                 } else {
-                    /* at least one sig relies soly on this content
-                     * so flag that we will use this content no matter
-                     * what. */
-                    if (cnt == 1) {
-                        //lookup_ch->use = 1;
-                    }
-
-                    /* only set the nosearch flag if all sigs have it
-                     * as their sole pattern */
-                    if (ch->nosearch == 0)
-                        lookup_ch->nosearch = 0;
-
                     lookup_ch->cnt++;
                     ContentHashFree(ch);
                 }
+            }
+        }
+
+        if (fast_pattern[sig] == 1) {
+            continue;
+        }
+
+        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_CONTENT)
+                continue;
+
+            DetectContentData *co = (DetectContentData *)sm->ctx;
+            if (co == NULL)
+                continue;
+
+            if (co->content_len < sgh->mpm_content_maxlen) {
+                continue;
+            }
+
+            ContentHash *ch = ContentHashAlloc(co);
+            if (ch == NULL)
+                goto error;
+
+            if (cnt == 1) {
+                SCLogDebug("sig has just one pattern, so we know we will "
+                        "use it in the mpm phase.");
+                ch->use = 1;
+            }
+
+            ContentHash *lookup_ch = (ContentHash *)HashTableLookup(ht, ch, 0);
+            if (lookup_ch == NULL) {
+                int r = HashTableAdd(ht, ch, 0);
+                if (r < 0)
+                    printf("Add hash failed\n");
+            } else {
+                lookup_ch->use = ch->use;
+
+                lookup_ch->cnt++;
+                ContentHashFree(ch);
             }
         }
     }
@@ -629,58 +616,69 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
         if (s == NULL || s->pmatch == NULL)
             continue;
 
+        if (SignatureHasPacketContent(s) == 0) {
+            continue;
+        }
+
         ContentHash *mpm_ch = NULL;
-        SigMatch *sm = s->pmatch;
-        for ( ; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_CONTENT) {
-                DetectContentData *co = (DetectContentData *)sm->ctx;
-                if (co == NULL)
-                    continue;
+        SigMatch *sm = NULL;
 
-                if (fast_pattern[sig] == 1) {
-                    if (!(co->flags & DETECT_CONTENT_FAST_PATTERN)) {
-                        SCLogDebug("not a fast pattern %"PRIu32"", co->id);
-                        continue;
-                    }
-                    SCLogDebug("fast pattern %"PRIu32"", co->id);
-                } else if (co->content_len < sgh->mpm_content_maxlen) {
-                    continue;
-                }
+        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_CONTENT)
+                continue;
 
-                ContentHash *ch = ContentHashAlloc(co);
-                if (ch == NULL)
-                    goto error;
+            DetectContentData *co = (DetectContentData *)sm->ctx;
+            if (co == NULL)
+                continue;
 
-                ContentHash *lookup_ch = (ContentHash *)HashTableLookup(ht, ch, 0);
-                if (lookup_ch == NULL) {
+            /* skip in case of:
+             * 1. we expect a fastpattern but this isn't it
+             * 2. we have a smaller content than mpm_content_maxlen */
+            if (fast_pattern[sig] == 1) {
+                if (!(co->flags & DETECT_CONTENT_FAST_PATTERN)) {
+                    SCLogDebug("not a fast pattern %"PRIu32"", co->id);
                     continue;
                 }
+                SCLogDebug("fast pattern %"PRIu32"", co->id);
 
-                SCLogDebug("lookup_ch->use %u, cnt %u", lookup_ch->use, lookup_ch->cnt);
+            } else if (co->content_len < sgh->mpm_content_maxlen) {
+                continue;
+            }
 
-                if (mpm_ch == NULL) {
-                    SCLogDebug("mpm_ch == NULL, so selecting lookup_ch->ptr->id %"PRIu32"", lookup_ch->ptr->id);
+            ContentHash *ch = ContentHashAlloc(co);
+            if (ch == NULL)
+                goto error;
+
+            ContentHash *lookup_ch = (ContentHash *)HashTableLookup(ht, ch, 0);
+            if (lookup_ch == NULL) {
+                continue;
+            }
+
+            SCLogDebug("lookup_ch->use %u, cnt %u", lookup_ch->use, lookup_ch->cnt);
+
+            if (mpm_ch == NULL) {
+                SCLogDebug("mpm_ch == NULL, so selecting lookup_ch->ptr->id %"PRIu32"", lookup_ch->ptr->id);
+                mpm_ch = lookup_ch;
+            } else {
+                uint32_t ls = PatternStrength(lookup_ch->ptr->content,lookup_ch->ptr->content_len);
+                uint32_t ss = PatternStrength(mpm_ch->ptr->content,mpm_ch->ptr->content_len);
+                if (ls > ss) {
+                    SCLogDebug("lookup_ch->ptr->id %"PRIu32" selected over %"PRIu32"", lookup_ch->ptr->id, mpm_ch->ptr->id);
                     mpm_ch = lookup_ch;
-                } else {
-                    uint32_t ls = PatternStrength(lookup_ch->ptr->content,lookup_ch->ptr->content_len);
-                    uint32_t ss = PatternStrength(mpm_ch->ptr->content,mpm_ch->ptr->content_len);
-                    if (ls > ss) {
-                        SCLogDebug("lookup_ch->ptr->id %"PRIu32" selected over %"PRIu32"", lookup_ch->ptr->id, mpm_ch->ptr->id);
+                }
+                else if (ls == ss) {
+                    /* if 2 patterns are of equal strength, we pick the longest */
+                    if (lookup_ch->ptr->content_len > mpm_ch->ptr->content_len) {
+                        SCLogDebug("lookup_ch->ptr->id %"PRIu32" selected over %"PRIu32" as the first is longer",
+                                lookup_ch->ptr->id, mpm_ch->ptr->id);
                         mpm_ch = lookup_ch;
                     }
-                    else if (ls == ss) {
-                        /* if 2 patterns are of equal strength, we pick the longest */
-                        if (lookup_ch->ptr->content_len > mpm_ch->ptr->content_len) {
-                            SCLogDebug("lookup_ch->ptr->id %"PRIu32" selected over %"PRIu32" as the first is longer", lookup_ch->ptr->id, mpm_ch->ptr->id);
-                            mpm_ch = lookup_ch;
-                        }
-                    } else {
-                        SCLogDebug("sticking with mpm_ch");
-                    }
+                } else {
+                    SCLogDebug("sticking with mpm_ch");
                 }
-
-                ContentHashFree(ch);
             }
+
+            ContentHashFree(ch);
         }
 
         /* now add the mpm_ch to the mpm ctx */
@@ -695,6 +693,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
             char scan_stream = 0;
             char scan_negated = 0;
 
+            /* see if our content is actually negated */
             SigMatch *tmpsm = s->pmatch;
             for ( ; tmpsm != NULL; tmpsm = tmpsm->next) {
                 if (tmpsm->type != DETECT_CONTENT)
@@ -712,36 +711,19 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                 }
             }
 
-            scan_packet = SignatureHasPacketContent(s);
-            scan_stream = SignatureHasStreamContent(s);
+            /* add the content to the "packet" mpm */
+            if (co->flags & DETECT_CONTENT_NOCASE) {
+                mpm_table[sgh->mpm_ctx->mpm_type].AddPatternNocase(sgh->mpm_ctx,
+                        co->content, co->content_len, offset, depth, co->id,
+                        s->num, flags);
+            } else {
+                mpm_table[sgh->mpm_ctx->mpm_type].AddPattern(sgh->mpm_ctx,
+                        co->content, co->content_len, offset, depth, co->id,
+                        s->num, flags);
+            }
 
-            if (scan_packet) {
-                if (sgh->flags & SIG_GROUP_HAVECONTENT && !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
-                    /* add the content to the "packet" mpm */
-                    if (co->flags & DETECT_CONTENT_NOCASE) {
-                        mpm_table[sgh->mpm_ctx->mpm_type].AddPatternNocase(sgh->mpm_ctx,
-                                co->content, co->content_len, offset, depth, co->id,
-                                s->num, flags);
-                    } else {
-                        mpm_table[sgh->mpm_ctx->mpm_type].AddPattern(sgh->mpm_ctx,
-                                co->content, co->content_len, offset, depth, co->id,
-                                s->num, flags);
-                    }
-                }
-            }
-            if (scan_stream) {
-                if (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT && !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) {
-                    SCLogDebug("mpm_stream_ctx %p", sgh->mpm_stream_ctx);
-                    /* add the content to the "stream" mpm */
-                    if (co->flags & DETECT_CONTENT_NOCASE) {
-                        mpm_table[sgh->mpm_stream_ctx->mpm_type].AddPatternNocase(sgh->mpm_stream_ctx,
-                                co->content, co->content_len, offset, depth, co->id, s->num, flags);
-                    } else {
-                        mpm_table[sgh->mpm_stream_ctx->mpm_type].AddPattern(sgh->mpm_stream_ctx,
-                                co->content, co->content_len, offset, depth, co->id, s->num, flags);
-                    }
-                }
-            }
+            /* tell matcher we are inspecting packet */
+            s->flags |= SIG_FLAG_MPM_PACKET;
 
             s->mpm_pattern_id = co->id;
             if (scan_negated) {
@@ -757,11 +739,253 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
 
     if (fast_pattern != NULL)
         SCFree(fast_pattern);
+
     HashTableFree(ht);
     return 0;
 error:
     if (fast_pattern != NULL)
         SCFree(fast_pattern);
+
+    if (ht != NULL)
+        HashTableFree(ht);
+    return -1;
+}
+
+/** \brief Setup the content portion of the sig group head */
+static int PatternMatchPreprarePopulateMpmStream(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
+    uint32_t sig;
+    uint32_t *fast_pattern = NULL;
+
+    fast_pattern = (uint32_t *)SCMalloc(sgh->sig_cnt * sizeof(uint32_t));
+    if (fast_pattern == NULL)
+        return -1;
+    memset(fast_pattern, 0, sgh->sig_cnt * sizeof(uint32_t));
+
+    HashTable *ht = HashTableInit(4096, ContentHashFunc, ContentHashCompareFunc, ContentHashFree);
+    if (ht == NULL) {
+        SCFree(fast_pattern);
+        return -1;
+    }
+
+    /* add all the contents to a counting hash */
+    for (sig = 0; sig < sgh->sig_cnt; sig++) {
+        Signature *s = sgh->match_array[sig];
+        if (s == NULL)
+            continue;
+
+        if (SignatureHasStreamContent(s) == 0) {
+            continue;
+        }
+
+        int cnt = 0;
+        SigMatch *sm;
+
+        /* get the total no of patterns in this Signature, as well as find out
+         * if we have a fast_pattern set in this Signature */
+        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_CONTENT)
+                continue;
+
+            DetectContentData *co = (DetectContentData *)sm->ctx;
+            if (co == NULL)
+                continue;
+
+            cnt++;
+
+            /* special handling of fast pattern keyword */
+            if (co->flags & DETECT_CONTENT_FAST_PATTERN) {
+                fast_pattern[sig] = 1;
+                SCLogDebug("sig %"PRIu32" has a fast pattern, id %"PRIu32"", s->id, co->id);
+
+                ContentHash *ch = ContentHashAlloc(co);
+                if (ch == NULL)
+                    goto error;
+
+                ContentHash *lookup_ch = (ContentHash *)HashTableLookup(ht, ch, 0);
+                if (lookup_ch == NULL) {
+                    if (HashTableAdd(ht, ch, 0) < 0)
+                        printf("Add hash failed\n");
+                } else {
+                    lookup_ch->cnt++;
+                    ContentHashFree(ch);
+                }
+            }
+        }
+
+        if (fast_pattern[sig] == 1) {
+            continue;
+        }
+
+        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_CONTENT)
+                continue;
+
+            DetectContentData *co = (DetectContentData *)sm->ctx;
+            if (co == NULL)
+                continue;
+
+            if (co->content_len < sgh->mpm_content_maxlen) {
+                continue;
+            }
+
+            ContentHash *ch = ContentHashAlloc(co);
+            if (ch == NULL)
+                goto error;
+
+            if (cnt == 1) {
+                SCLogDebug("sig has just one pattern, so we know we will "
+                        "use it in the mpm phase.");
+                ch->use = 1;
+            }
+
+            ContentHash *lookup_ch = (ContentHash *)HashTableLookup(ht, ch, 0);
+            if (lookup_ch == NULL) {
+                int r = HashTableAdd(ht, ch, 0);
+                if (r < 0)
+                    printf("Add hash failed\n");
+            } else {
+                lookup_ch->use = ch->use;
+
+                lookup_ch->cnt++;
+                ContentHashFree(ch);
+            }
+        }
+    }
+
+    /* now determine which one to add to the mpm phase */
+    for (sig = 0; sig < sgh->sig_cnt; sig++) {
+        Signature *s = sgh->match_array[sig];
+        if (s == NULL || s->pmatch == NULL)
+            continue;
+
+        if (SignatureHasStreamContent(s) == 0) {
+            continue;
+        }
+
+        ContentHash *mpm_ch = NULL;
+        SigMatch *sm = NULL;
+
+        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
+            if (sm->type != DETECT_CONTENT)
+                continue;
+
+            DetectContentData *co = (DetectContentData *)sm->ctx;
+            if (co == NULL)
+                continue;
+
+            /* skip in case of:
+             * 1. we expect a fastpattern but this isn't it
+             * 2. we have a smaller content than mpm_content_maxlen */
+            if (fast_pattern[sig] == 1) {
+                if (!(co->flags & DETECT_CONTENT_FAST_PATTERN)) {
+                    SCLogDebug("not a fast pattern %"PRIu32"", co->id);
+                    continue;
+                }
+                SCLogDebug("fast pattern %"PRIu32"", co->id);
+            } else if (co->content_len < sgh->mpm_streamcontent_maxlen) {
+                continue;
+            }
+
+            ContentHash *ch = ContentHashAlloc(co);
+            if (ch == NULL)
+                goto error;
+
+            ContentHash *lookup_ch = (ContentHash *)HashTableLookup(ht, ch, 0);
+            if (lookup_ch == NULL) {
+                continue;
+            }
+
+            SCLogDebug("lookup_ch->use %u, cnt %u", lookup_ch->use, lookup_ch->cnt);
+
+            if (mpm_ch == NULL) {
+                SCLogDebug("mpm_ch == NULL, so selecting lookup_ch->ptr->id %"PRIu32"", lookup_ch->ptr->id);
+                mpm_ch = lookup_ch;
+            } else {
+                uint32_t ls = PatternStrength(lookup_ch->ptr->content,lookup_ch->ptr->content_len);
+                uint32_t ss = PatternStrength(mpm_ch->ptr->content,mpm_ch->ptr->content_len);
+                if (ls > ss) {
+                    SCLogDebug("lookup_ch->ptr->id %"PRIu32" selected over %"PRIu32"", lookup_ch->ptr->id, mpm_ch->ptr->id);
+                    mpm_ch = lookup_ch;
+                }
+                else if (ls == ss) {
+                    /* if 2 patterns are of equal strength, we pick the longest */
+                    if (lookup_ch->ptr->content_len > mpm_ch->ptr->content_len) {
+                        SCLogDebug("lookup_ch->ptr->id %"PRIu32" selected over %"PRIu32" as the first is longer",
+                                lookup_ch->ptr->id, mpm_ch->ptr->id);
+                        mpm_ch = lookup_ch;
+                    }
+                } else {
+                    SCLogDebug("sticking with mpm_ch");
+                }
+            }
+
+            ContentHashFree(ch);
+        }
+
+        /* now add the mpm_ch to the mpm ctx */
+        if (mpm_ch != NULL) {
+            DetectContentData *co = mpm_ch->ptr;
+            uint16_t offset = s->flags & SIG_FLAG_RECURSIVE ? 0 : co->offset;
+            uint16_t depth = s->flags & SIG_FLAG_RECURSIVE ? 0 : co->depth;
+            offset = mpm_ch->cnt ? 0 : offset;
+            depth = mpm_ch->cnt ? 0 : depth;
+            uint8_t flags = 0;
+            char scan_packet = 0;
+            char scan_stream = 0;
+            char scan_negated = 0;
+
+            /* see if our content is actually negated */
+            SigMatch *tmpsm = s->pmatch;
+            for ( ; tmpsm != NULL; tmpsm = tmpsm->next) {
+                if (tmpsm->type != DETECT_CONTENT)
+                    continue;
+
+                DetectContentData *tmp = (DetectContentData *)tmpsm->ctx;
+                if (tmp == NULL)
+                    continue;
+
+                if (co->id == tmp->id) {
+                    if (tmp->flags & DETECT_CONTENT_NEGATED) {
+                        scan_negated = 1;
+                    }
+                    break;
+                }
+            }
+
+            SCLogDebug("mpm_stream_ctx %p", sgh->mpm_stream_ctx);
+            /* add the content to the "stream" mpm */
+            if (co->flags & DETECT_CONTENT_NOCASE) {
+                mpm_table[sgh->mpm_stream_ctx->mpm_type].AddPatternNocase(sgh->mpm_stream_ctx,
+                        co->content, co->content_len, offset, depth, co->id, s->num, flags);
+            } else {
+                mpm_table[sgh->mpm_stream_ctx->mpm_type].AddPattern(sgh->mpm_stream_ctx,
+                        co->content, co->content_len, offset, depth, co->id, s->num, flags);
+            }
+
+            /* tell matcher we are inspecting stream */
+            s->flags |= SIG_FLAG_MPM_STREAM;
+
+            s->mpm_stream_pattern_id = co->id;
+            if (scan_negated) {
+                SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
+                s->flags |= SIG_FLAG_MPM_NEGCONTENT;
+            }
+
+            SCLogDebug("%"PRIu32" adding co->id %"PRIu32" to the mpm phase (s->num %"PRIu32")", s->id, co->id, s->num);
+        } else {
+            SCLogDebug("%"PRIu32" no mpm pattern selected", s->id);
+        }
+    }
+
+    if (fast_pattern != NULL)
+        SCFree(fast_pattern);
+
+    HashTableFree(ht);
+    return 0;
+error:
+    if (fast_pattern != NULL)
+        SCFree(fast_pattern);
+
     if (ht != NULL)
         HashTableFree(ht);
     return -1;
@@ -778,8 +1002,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     uint32_t has_co_packet = 0; /**< our sgh has packet payload inspecting content */
-    uint32_t has_co_stream = 0; /**< our shg has stream inspecting content */
-    uint32_t ur_cnt = 0;
+    uint32_t has_co_stream = 0; /**< our sgh has stream inspecting content */
+    uint32_t has_co_uri = 0;    /**< our sgh has uri inspecting content */
     uint32_t cnt = 0;
     uint32_t sig = 0;
 
@@ -794,8 +1018,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     if (!(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))
         sh->mpm_streamcontent_maxlen = 0;
 
-    /** see if this head has content and/or uricontent
-     *  \todo we can move this to the signature init phase */
+    /* see if this head has content and/or uricontent */
     for (sig = 0; sig < sh->sig_cnt; sig++) {
         s = sh->match_array[sig];
         if (s == NULL)
@@ -810,8 +1033,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
         for (sm = s->umatch; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_URICONTENT) {
-                ur_cnt++;
-                s->flags |= SIG_FLAG_MPM_URI;
+                has_co_uri = 1;
             }
         }
     }
@@ -822,7 +1044,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     if (has_co_stream > 0) {
         sh->flags |= SIG_GROUP_HAVESTREAMCONTENT;
     }
-    if (ur_cnt > 0) {
+    if (has_co_uri > 0) {
         sh->flags |= SIG_GROUP_HAVEURICONTENT;
     }
 
@@ -882,135 +1104,93 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         cnt++;
 
         char content_added = 0;
-        uint16_t content_maxlen = 0, uricontent_maxlen = 0;
-        uint16_t content_minlen = 0, uricontent_minlen = 0;
-        uint16_t content_cnt = 0, uricontent_cnt = 0;
-        uint16_t content_maxdepth = 65535;
-        uint16_t content_maxdepth_one = 65535;
-        uint16_t content_minoffset = 65535;
-        uint16_t content_minoffset_one = 65535;
+        char stream_content_added = 0;
+        uint16_t content_maxlen = 0, uricontent_maxlen = 0, stream_content_maxlen = 0;
+        uint16_t content_minlen = 0, uricontent_minlen = 0, stream_content_minlen = 0;
+        uint16_t content_cnt = 0, uricontent_cnt = 0, stream_content_cnt = 0;
         SigMatch *sm;
 
         /* determine the length of the longest pattern */
-        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_CONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
-                DetectContentData *cd = (DetectContentData *)sm->ctx;
+        if (sh->flags & SIG_GROUP_HAVECONTENT &&
+                !(sh->flags & SIG_GROUP_HEAD_MPM_COPY))
+        {
+            if (SignatureHasPacketContent(s) == 1) {
+                for (sm = s->pmatch; sm != NULL; sm = sm->next) {
+                    if (sm->type != DETECT_CONTENT)
+                        continue;
 
-                if (cd->content_len > content_maxlen)
-                    content_maxlen = cd->content_len;
+                    DetectContentData *cd = (DetectContentData *)sm->ctx;
+                    if (cd == NULL)
+                        continue;
 
-                if (content_minlen == 0) content_minlen = cd->content_len;
-                else if (cd->content_len < content_minlen)
-                    content_minlen = cd->content_len;
+                    if (cd->content_len > content_maxlen)
+                        content_maxlen = cd->content_len;
 
-                mpm_content_cnt++;
-                content_cnt++;
+                    if (content_minlen == 0)
+                        content_minlen = cd->content_len;
+                    else if (cd->content_len < content_minlen)
+                        content_minlen = cd->content_len;
 
-                if (!content_added) {
-                    content_added = 1;
+                    mpm_content_cnt++;
+                    content_cnt++;
+
+                    if (!content_added) {
+                        content_added = 1;
+                    }
                 }
-            }
-        }
-        for (sm = s->umatch; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_URICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
-                DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
-                if (ud->uricontent_len > uricontent_maxlen)
-                    uricontent_maxlen = ud->uricontent_len;
 
-                if (uricontent_minlen == 0) uricontent_minlen = ud->uricontent_len;
-                else if (ud->uricontent_len < uricontent_minlen)
-                    uricontent_minlen = ud->uricontent_len;
+                if (content_cnt > 0) {
+                    if (sh->mpm_content_maxlen == 0)
+                        sh->mpm_content_maxlen = content_maxlen;
+                    if (sh->mpm_content_maxlen > content_maxlen) {
+                        SCLogDebug("sgh (%p) sh->mpm_content_maxlen %u set to %u",
+                                sh, sh->mpm_content_maxlen, content_maxlen);
 
-                mpm_uricontent_cnt++;
-                uricontent_cnt++;
-            }
-        }
-
-        /* determine the min offset and max depth of the longest pattern(s) */
-        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_CONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
-                DetectContentData *cd = (DetectContentData *)sm->ctx;
-                //if (content_maxlen < 4) {
-                //printf("\""); PrintRawUriFp(stdout,cd->content,cd->content_len); printf("\" ");
-                //}
-                if (cd->content_len == content_maxlen) {
-                    if (content_maxdepth > cd->depth)
-                        content_maxdepth = cd->depth;
-
-                    if (content_minoffset > cd->offset)
-                        content_minoffset = cd->offset;
-                }
-            }
-        }
-        //if (content_maxlen < 4 && content_cnt) printf(" (%" PRIu32 ", min %" PRIu32 ", max %" PRIu32 ")\n", content_cnt, content_minlen, content_maxlen);
-
-        int content_depth_atleastone = 0;
-        int content_offset_atleastone = 0;
-        /* determine if we have at least one pattern with a depth */
-        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_CONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
-                DetectContentData *cd = (DetectContentData *)sm->ctx;
-                if (cd->depth) {
-                    content_depth_atleastone = 1;
-
-                    if (content_maxdepth_one > cd->depth)
-                        content_maxdepth_one = cd->depth;
-                }
-                if (cd->offset) {
-                    content_offset_atleastone = 1;
-
-                    if (content_minoffset_one > cd->offset)
-                        content_minoffset_one = cd->offset;
+                        sh->mpm_content_maxlen = content_maxlen;
+                    }
                 }
             }
         }
 
-        if (mpm_content_depth_present == -1) mpm_content_depth_present = content_depth_atleastone;
-        else if (content_depth_atleastone == 0) {
-            mpm_content_depth_present = 0;
-        }
+        if (sh->flags & SIG_GROUP_HAVESTREAMCONTENT &&
+                !(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))
+        {
+            if (SignatureHasStreamContent(s) == 1) {
+                for (sm = s->pmatch; sm != NULL; sm = sm->next) {
+                    if (sm->type != DETECT_CONTENT)
+                        continue;
 
-        if (mpm_content_offset_present == -1) mpm_content_offset_present = content_offset_atleastone;
-        else if (content_offset_atleastone == 0) {
-            mpm_content_offset_present = 0;
-        }
+                    DetectContentData *cd = (DetectContentData *)sm->ctx;
+                    if (cd == NULL)
+                        continue;
 
-        if (content_maxdepth == 65535)
-            content_maxdepth = 0;
-        if (content_maxdepth_one == 65535)
-            content_maxdepth_one = 0;
-        if (content_minoffset == 65535)
-            content_minoffset = 0;
-        if (content_minoffset_one == 65535)
-            content_minoffset_one = 0;
+                    if (cd->content_len > stream_content_maxlen)
+                        stream_content_maxlen = cd->content_len;
 
-        if (content_maxdepth != 0) {
-            //printf("content_maxdepth %" PRIu32 " (sid %" PRIu32 ")\n", content_maxdepth, s->id);
-        }
-        if (content_minoffset != 0) {
-            //printf("content_minoffset %" PRIu32 " (sid %" PRIu32 ")\n", content_minoffset, s->id);
-        }
+                    if (stream_content_minlen == 0)
+                        stream_content_minlen = cd->content_len;
+                    else if (cd->content_len < stream_content_minlen)
+                        stream_content_minlen = cd->content_len;
 
-        if (mpm_content_maxdepth > content_maxdepth)
-            mpm_content_maxdepth = content_maxdepth;
-        if (mpm_content_maxdepth_one > content_maxdepth_one)
-            mpm_content_maxdepth_one = content_maxdepth_one;
-        if (mpm_content_minoffset > content_minoffset)
-            mpm_content_minoffset = content_minoffset;
-        if (mpm_content_minoffset_one > content_minoffset_one)
-            mpm_content_minoffset_one = content_minoffset_one;
+                    mpm_content_cnt++;
+                    stream_content_cnt++;
 
-        if (content_cnt) {
-            if (sh->mpm_content_maxlen == 0) sh->mpm_content_maxlen = content_maxlen;
-            if (sh->mpm_content_maxlen > content_maxlen) {
-                SCLogDebug("sgh (%p) sh->mpm_content_maxlen %u set to %u", sh, sh->mpm_content_maxlen, content_maxlen);
-                sh->mpm_content_maxlen = content_maxlen;
+                    if (!stream_content_added) {
+                        stream_content_added = 1;
+                    }
+                }
+
+                if (stream_content_cnt > 0) {
+                    if (sh->mpm_streamcontent_maxlen == 0)
+                        sh->mpm_streamcontent_maxlen = stream_content_maxlen;
+                    if (sh->mpm_streamcontent_maxlen > stream_content_maxlen) {
+                        SCLogDebug("sgh (%p) sh->mpm_streamcontent_maxlen %u set to %u",
+                            sh, sh->mpm_streamcontent_maxlen, stream_content_maxlen);
+
+                        sh->mpm_streamcontent_maxlen = stream_content_maxlen;
+                    }
+                }
             }
-        }
-        if (uricontent_cnt) {
-            if (sh->mpm_uricontent_maxlen == 0) sh->mpm_uricontent_maxlen = uricontent_maxlen;
-            if (sh->mpm_uricontent_maxlen > uricontent_maxlen)
-                sh->mpm_uricontent_maxlen = uricontent_maxlen;
         }
     }
 
@@ -1022,47 +1202,55 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     if (sh->mpm_content_maxlen >= 5) g_content_sigcnt5++;
     if (sh->mpm_content_maxlen >= 10) g_content_sigcnt10++;
 
-    /* add the patterns for uricontent signatures */
-    for (sig = 0; sig < sh->sig_cnt; sig++) {
-        s = sh->match_array[sig];
-        if (s == NULL)
-            continue;
+    if (sh->flags & SIG_GROUP_HAVEURICONTENT &&
+            !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY))
+    {
+        /* add the patterns for uricontent signatures */
+        for (sig = 0; sig < sh->sig_cnt; sig++) {
+            s = sh->match_array[sig];
+            if (s == NULL)
+                continue;
 
-        uint16_t content_maxlen = 0, uricontent_maxlen = 0;
-        uint16_t content_minlen = 0, uricontent_minlen = 0;
+            uint16_t uricontent_maxlen = 0;
+            uint16_t uricontent_minlen = 0;
 
-        /* determine the length of the longest pattern */
-        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_CONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
-                DetectContentData *cd = (DetectContentData *)sm->ctx;
+            /* determine the length of the longest pattern */
+            for (sm = s->umatch; sm != NULL; sm = sm->next) {
+                if (sm->type != DETECT_URICONTENT)
+                    continue;
 
-                if (cd->content_len > content_maxlen)
-                    content_maxlen = cd->content_len;
-
-                if (content_minlen == 0) content_minlen = cd->content_len;
-                else if (cd->content_len < content_minlen)
-                    content_minlen = cd->content_len;
-            }
-        }
-        for (sm = s->umatch; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_URICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
+                if (ud == NULL)
+                    continue;
+
                 if (ud->uricontent_len > uricontent_maxlen)
                     uricontent_maxlen = ud->uricontent_len;
 
-                if (uricontent_minlen == 0) uricontent_minlen = ud->uricontent_len;
+                if (uricontent_minlen == 0)
+                    uricontent_minlen = ud->uricontent_len;
                 else if (ud->uricontent_len < uricontent_minlen)
                     uricontent_minlen = ud->uricontent_len;
             }
-        }
-        char uricontent_mpmadded = 0;
-        for (sm = s->umatch; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_URICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
+
+            if (sh->mpm_uricontent_maxlen == 0)
+                sh->mpm_uricontent_maxlen = uricontent_maxlen;
+            if (sh->mpm_uricontent_maxlen > uricontent_maxlen)
+                sh->mpm_uricontent_maxlen = uricontent_maxlen;
+
+            char uricontent_mpmadded = 0;
+            for (sm = s->umatch; sm != NULL; sm = sm->next) {
+                if (sm->type != DETECT_URICONTENT)
+                    continue;
+
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
+                if (ud == NULL)
+                    continue;
 
                 /* only add the pattern if: we didn't add a pattern already,
                  * length is the same as maxlen (ie we only add the longest pattern) */
-                if (!uricontent_mpmadded && uricontent_maxlen == ud->uricontent_len) {
+                if (uricontent_mpmadded == 0 &&
+                        uricontent_maxlen == ud->uricontent_len)
+                {
                     uint8_t flags = 0;
 
                     if (ud->flags & DETECT_URICONTENT_NOCASE) {
@@ -1076,13 +1264,23 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 }
             }
         }
-    }
 
-    /* load the patterns */
-    PatternMatchPreprarePopulateMpm(de_ctx, sh);
+        if (sh->flags & SIG_GROUP_HAVEURICONTENT) {
+            if (mpm_table[sh->mpm_uri_ctx->mpm_type].Prepare != NULL) {
+                mpm_table[sh->mpm_uri_ctx->mpm_type].Prepare(sh->mpm_uri_ctx);
+            }
+            if (mpm_uricontent_cnt && sh->mpm_uricontent_maxlen > 1) {
+                g_uricontent_search++;
+            }
+
+            //sh->mpm_uri_ctx->PrintCtx(sh->mpm_uri_ctx);
+        }
+
+    }
 
     /* content */
     if (sh->flags & SIG_GROUP_HAVECONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
+        PatternMatchPreprarePopulateMpm(de_ctx, sh);
 
         if (mpm_table[sh->mpm_ctx->mpm_type].Prepare != NULL) {
             mpm_table[sh->mpm_ctx->mpm_type].Prepare(sh->mpm_ctx);
@@ -1097,14 +1295,11 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             g_content_minoffset++;
         }
         g_content_total++;
-
-        //if (mpm_content_depth_present) printf("(sh %p) at least one depth: %" PRId32 ", depth %" PRIu32 "\n", sh, mpm_content_depth_present, mpm_content_maxdepth_one);
-        //if (mpm_content_offset_present) printf("(sh %p) at least one offset: %" PRId32 ", offset %" PRIu32 "\n", sh, mpm_content_offset_present, mpm_content_minoffset_one);
-        //sh->mpm_ctx->PrintCtx(sh->mpm_ctx);
     }
 
-    /* content */
+    /* stream content */
     if (sh->flags & SIG_GROUP_HAVESTREAMCONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) {
+        PatternMatchPreprarePopulateMpmStream(de_ctx, sh);
         SCLogDebug("preparing mpm_stream_ctx %p", sh->mpm_stream_ctx);
         if (mpm_table[sh->mpm_stream_ctx->mpm_type].Prepare != NULL) {
             mpm_table[sh->mpm_stream_ctx->mpm_type].Prepare(sh->mpm_stream_ctx);
@@ -1119,22 +1314,6 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             g_content_minoffset++;
         }
         g_content_total++;
-
-        //if (mpm_content_depth_present) printf("(sh %p) at least one depth: %" PRId32 ", depth %" PRIu32 "\n", sh, mpm_content_depth_present, mpm_content_maxdepth_one);
-        //if (mpm_content_offset_present) printf("(sh %p) at least one offset: %" PRId32 ", offset %" PRIu32 "\n", sh, mpm_content_offset_present, mpm_content_minoffset_one);
-        //sh->mpm_ctx->PrintCtx(sh->mpm_ctx);
-    }
-
-    /* uricontent */
-    if (sh->flags & SIG_GROUP_HAVEURICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
-        if (mpm_table[sh->mpm_uri_ctx->mpm_type].Prepare != NULL) {
-            mpm_table[sh->mpm_uri_ctx->mpm_type].Prepare(sh->mpm_uri_ctx);
-        }
-        if (mpm_uricontent_cnt && sh->mpm_uricontent_maxlen > 1) {
-            g_uricontent_search++;
-        }
-
-        //sh->mpm_uri_ctx->PrintCtx(sh->mpm_uri_ctx);
     }
 
     return 0;

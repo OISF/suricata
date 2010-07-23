@@ -215,6 +215,9 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_AMATCH         0x00080000
 #define SIG_FLAG_DMATCH         0x00100000
 
+#define SIG_FLAG_MPM_PACKET     0x00200000
+#define SIG_FLAG_MPM_STREAM     0x00400000
+
 /* Detection Engine flags */
 #define DE_QUIET           0x01     /**< DE is quiet (esp for unittests) */
 
@@ -244,6 +247,7 @@ typedef struct SignatureHeader_ {
 
     /** pattern in the mpm matcher */
     uint32_t mpm_pattern_id;
+    uint32_t mpm_stream_pattern_id;
 
     SigIntId num; /**< signature number, internal id */
 
@@ -260,6 +264,7 @@ typedef struct Signature_ {
 
     /** pattern in the mpm matcher */
     uint32_t mpm_pattern_id;
+    uint32_t mpm_stream_pattern_id;
 
     SigIntId num; /**< signature number, internal id */
 
