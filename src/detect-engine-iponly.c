@@ -976,7 +976,8 @@ void IPOnlyMatchPacket(DetectEngineCtx *de_ctx,
                     Signature *s = de_ctx->sig_array[u * 8 + i];
 
                     /* Need to check the protocol first */
-                    if (!(s->proto.proto[(p->proto/8)] & (1 << (p->proto % 8))))
+                    if (!(s->proto.proto[(IP_GET_IPPROTO(p)/8)] & (1 << (IP_GET_IPPROTO(p) % 8))))
+
                         continue;
 
                     SCLogDebug("Signum %"PRIu16" match (sid: %"PRIu16", msg: %s)",

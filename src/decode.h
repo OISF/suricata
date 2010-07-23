@@ -191,6 +191,10 @@ typedef uint16_t Port;
 
 #define IPH_IS_VALID(p) (PKT_IS_IPV4((p)) || PKT_IS_IPV6((p)))
 
+/* Retrieve proto regardless of IP version */
+#define IP_GET_IPPROTO(p) \
+    (PKT_IS_IPV4(p)? IPV4_GET_IPPROTO(p) : (PKT_IS_IPV6(p)? IPV6_GET_NH(p) : 0))
+
 /* structure to store the sids/gids/etc the detection engine
  * found in this packet */
 typedef struct PacketAlert_ {

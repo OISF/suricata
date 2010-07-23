@@ -567,7 +567,7 @@ SigGroupHead *SigMatchSignaturesGetSgh(DetectEngineCtx *de_ctx, DetectEngineThre
     SCLogDebug("f %d", f);
 
     /* find the right mpm instance */
-    DetectAddress *ag = DetectAddressLookupInHead(de_ctx->flow_gh[f].src_gh[p->proto], &p->src);
+    DetectAddress *ag = DetectAddressLookupInHead(de_ctx->flow_gh[f].src_gh[IP_GET_IPPROTO(p)], &p->src);
     if (ag != NULL) {
         /* source group found, lets try a dst group */
         ag = DetectAddressLookupInHead(ag->dst_gh, &p->dst);
@@ -723,7 +723,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         /* Get the stored sgh from the flow (if any). Make sure we're not using
          * the sgh for icmp error packets part of the same stream. */
-        if (p->proto == p->flow->proto) { /* filter out icmp */
+        if (IP_GET_IPPROTO(p) == p->flow->proto) { /* filter out icmp */
             if (p->flowflags & FLOW_PKT_TOSERVER && p->flow->flags & FLOW_SGH_TOSERVER) {
                 sgh = p->flow->sgh_toserver;
                 use_flow_sgh = TRUE;
@@ -864,7 +864,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         s = det_ctx->match_array[idx];
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
 
-        if (DetectProtoContainsProto(&s->proto, p->proto) == 0) {
+        if (DetectProtoContainsProto(&s->proto, IP_GET_IPPROTO(p)) == 0) {
             SCLogDebug("proto didn't match");
             goto next;
         }
