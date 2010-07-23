@@ -94,23 +94,12 @@ int DetectDceStubDataMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *
         return 0;
     }
 
-    if (flags & STREAM_TOSERVER) {
-        if (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer == NULL ||
-            dcerpc_state->dcerpc.dcerpcrequest.stub_data_fresh == 0) {
-            return 0;
-        }
-        det_ctx->dce_stub_data = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer;
-        det_ctx->dce_stub_data_len = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len;
+    if (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer != NULL ||
+        dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer != NULL) {
+        return 1;
     } else {
-        if (dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer == NULL ||
-            dcerpc_state->dcerpc.dcerpcresponse.stub_data_fresh == 0) {
-            return 0;
-        }
-        det_ctx->dce_stub_data = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer;
-        det_ctx->dce_stub_data_len = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer_len;
+        return 0;
     }
-
-    return 1;
 }
 
 /**

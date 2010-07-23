@@ -40,6 +40,9 @@
 #include "app-layer-parser.h"
 #include "app-layer-protos.h"
 #include "app-layer-htp.h"
+#include "app-layer-smb.h"
+#include "app-layer-dcerpc-common.h"
+#include "app-layer-dcerpc.h"
 
 #include "util-unittest.h"
 #include "util-profiling.h"
@@ -322,18 +325,26 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
             SCLogDebug("inspecting dce payload");
 
-            void *real_alstate = alstate;
             if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
-                real_alstate = f->aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
-            }
-
-            if (DetectEngineInspectDcePayload(de_ctx, det_ctx, s, f,
-                        flags, real_alstate) == 1)
-            {
-                SCLogDebug("dce payload matched");
-                dmatch = 1;
+                SMBState *smb_state = (SMBState *)alstate;
+                //DCERPCState dcerpc_state;
+                //dcerpc_state.dcerpc = smb_state->dcerpc;
+                if (smb_state->dcerpc_present &&
+                    DetectEngineInspectDcePayload(de_ctx, det_ctx, s, f,
+                                                  flags, &smb_state->dcerpc) == 1) {
+                    SCLogDebug("dce payload matched");
+                    dmatch = 1;
+                } else {
+                    SCLogDebug("dce payload inspected but no match");
+                }
             } else {
-                SCLogDebug("dce payload inspected but no match");
+                if (DetectEngineInspectDcePayload(de_ctx, det_ctx, s, f,
+                                                  flags, alstate) == 1) {
+                    SCLogDebug("dce payload matched");
+                    dmatch = 1;
+                } else {
+                    SCLogDebug("dce payload inspected but no match");
+                }
             }
         }
     }
@@ -346,10 +357,23 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             SCLogDebug("sm %p, sm->next %p", sm, sm->next);
 
             if (sigmatch_table[sm->type].AppLayerMatch != NULL &&
-                    alproto == sigmatch_table[sm->type].alproto)
+                (alproto == sigmatch_table[sm->type].alproto ||
+                 alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) )
             {
-                match = sigmatch_table[sm->type].AppLayerMatch(tv, det_ctx, f,
-                        flags, alstate, s, sm);
+                if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
+                    SMBState *smb_state = (SMBState *)alstate;
+                    //DCERPCState dcerpc_state;
+                    //dcerpc_state.dcerpc = smb_state->dcerpc;
+                    if (smb_state->dcerpc_present) {
+                        match = sigmatch_table[sm->type].
+                            AppLayerMatch(tv, det_ctx, f, flags, &smb_state->dcerpc,
+                                          s, sm);
+                    }
+                } else {
+                    match = sigmatch_table[sm->type].
+                        AppLayerMatch(tv, det_ctx, f, flags, alstate, s, sm);
+                }
+
                 if (match == 0) {
                     break;
                 } else if (sm->next == NULL) {
@@ -476,20 +500,30 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                         SCLogDebug("inspecting dce payload");
                         dinspect = 1;
 
-                        void *real_alstate = alstate;
                         if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
-                            real_alstate = f->aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+                            SMBState *smb_state = (SMBState *)alstate;
+                            //DCERPCState dcerpc_state;
+                            //dcerpc_state.dcerpc = smb_state->dcerpc;
+                            if (smb_state->dcerpc_present &&
+                                DetectEngineInspectDcePayload(de_ctx, det_ctx, s, f,
+                                                              flags, &smb_state->dcerpc) == 1) {
+                                SCLogDebug("dce payload matched");
+                                item->flags |= DE_STATE_FLAG_DCE_MATCH;
+                                dmatch = 1;
+                            } else {
+                                SCLogDebug("dce payload inspected but no match");
+                            }
+                        } else {
+                            if (DetectEngineInspectDcePayload(de_ctx, det_ctx, s, f,
+                                                              flags, alstate) == 1) {
+                                SCLogDebug("dce payload matched");
+                                item->flags |= DE_STATE_FLAG_DCE_MATCH;
+                                dmatch = 1;
+                            } else {
+                                SCLogDebug("dce payload inspected but no match");
+                            }
                         }
 
-                        if (DetectEngineInspectDcePayload(de_ctx, det_ctx, s, f,
-                                    flags, real_alstate) == 1)
-                        {
-                            SCLogDebug("dce payload matched");
-                            item->flags |= DE_STATE_FLAG_DCE_MATCH;
-                            dmatch = 1;
-                        } else {
-                            SCLogDebug("dce payload inspected but no match");
-                        }
                     } else {
                         SCLogDebug("dce payload already inspected");
                     }
@@ -505,8 +539,20 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
             if (item->nm != NULL) {
                 SigMatch *sm;
                 for (sm = item->nm; sm != NULL; sm = sm->next) {
-                    match = sigmatch_table[sm->type].AppLayerMatch(tv,
-                            det_ctx, f, flags, alstate, s, sm);
+                    if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
+                        SMBState *smb_state = (SMBState *)alstate;
+                        //DCERPCState dcerpc_state;
+                        //dcerpc_state.dcerpc = smb_state->dcerpc;
+                        if (smb_state->dcerpc_present) {
+                            match = sigmatch_table[sm->type].
+                                AppLayerMatch(tv, det_ctx, f, flags, &smb_state->dcerpc,
+                                              s, sm);
+                        }
+                    } else {
+                        match = sigmatch_table[sm->type].
+                            AppLayerMatch(tv, det_ctx, f, flags, alstate,
+                                          s, sm);
+                    }
                     /* no match, break out */
                     if (match == 0) {
                         item->nm = sm;

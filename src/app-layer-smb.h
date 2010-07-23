@@ -84,6 +84,7 @@ typedef struct SMBState_ {
     SMBAndX andx;
     uint16_t bytesprocessed;
     DCERPC dcerpc;
+    uint8_t dcerpc_present;
     uint32_t tail;
     uint16_t transaction_id;
 } SMBState;

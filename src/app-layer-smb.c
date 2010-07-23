@@ -585,6 +585,7 @@ static int32_t DataParser(void *smb_state, AppLayerParserState *pstate,
         if (parsed == -1) {
             SCReturnInt(-1);
         } else {
+            sstate->dcerpc_present = 1;
             sstate->bytesprocessed += parsed;
             sstate->bytecount.bytecountleft -= parsed;
             input_len -= parsed;

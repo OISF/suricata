@@ -33,6 +33,7 @@
 
 #include "detect-bytejump.h"
 #include "detect-content.h"
+#include "detect-uricontent.h"
 
 #include "util-byte.h"
 #include "util-unittest.h"
@@ -546,78 +547,6 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
         }
     }
 
-    if (data->flags & DETECT_BYTEJUMP_RELATIVE) {
-        SCLogDebug("Set it in the last parsed content because it is relative "
-                   "to that content based keyword");
-
-        SigMatch *m = NULL;
-        if (s->alproto == ALPROTO_DCERPC) {
-            m = SigMatchGetLastSMFromLists(s, 12,
-                                           DETECT_CONTENT, s->pmatch_tail,
-                                           DETECT_PCRE, s->pmatch_tail,
-                                           DETECT_BYTEJUMP, s->pmatch_tail,
-                                           DETECT_CONTENT, s->dmatch_tail,
-                                           DETECT_PCRE, s->dmatch_tail,
-                                           DETECT_BYTEJUMP, s->dmatch_tail);
-        } else {
-            m = SigMatchGetLastSMFromLists(s, 6,
-                                           DETECT_CONTENT, s->pmatch_tail,
-                                           DETECT_PCRE, s->pmatch_tail,
-                                           DETECT_BYTEJUMP, s->pmatch_tail);
-        }
-
-        DetectContentData *cd = NULL;
-        DetectPcreData *pe = NULL;
-        if (m == NULL) {
-            if (s->alproto == ALPROTO_DCERPC) {
-                SCLogDebug("bytejump-relative without a previous content based "
-                           "keyword.  Holds good only in the case of DCERPC "
-                           "alproto like now.");
-            } else {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "No related "
-                           "previous-previous content or pcre keyword");
-                goto error;
-            }
-        } else {
-            switch (m->type) {
-                case DETECT_CONTENT:
-                    /* Set the relative next flag on the prev sigmatch */
-                    cd = (DetectContentData *)m->ctx;
-                    if (cd == NULL) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
-                                   "previous keyword!");
-                        goto error;
-                    }
-                    cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-
-                    break;
-
-                case DETECT_PCRE:
-                    pe = (DetectPcreData *) m->ctx;
-                    if (pe == NULL) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
-                                   "previous keyword!");
-                        goto error;
-                    }
-                    pe->flags |= DETECT_PCRE_RELATIVE_NEXT;
-
-                    break;
-
-                case DETECT_BYTEJUMP:
-                    SCLogDebug("No setting relative_next for bytejump.  We "
-                               "have no use for it");
-
-                    break;
-
-                default:
-                    /* this will never hit */
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
-                               "previous keyword!");
-                    break;
-            } /* switch */
-        } /* else for if (m == NULL) */
-    } /* if (data->flags & DETECT_BYTEJUMP_RELATIVE) */
-
     if (s->alproto == ALPROTO_DCERPC &&
         data->flags & DETECT_BYTEJUMP_RELATIVE) {
         SigMatch *pm = NULL;
@@ -644,6 +573,81 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
     } else {
         SigMatchAppendPayload(s, sm);
     }
+
+    if ( !(data->flags & DETECT_BYTEJUMP_RELATIVE)) {
+        return(0);
+    }
+
+    SigMatch *prev_sm = NULL;
+    prev_sm = SigMatchGetLastSMFromLists(s, 8,
+                                         DETECT_CONTENT, sm->prev,
+                                         DETECT_URICONTENT, sm->prev,
+                                         DETECT_BYTEJUMP, sm->prev,
+                                         DETECT_PCRE, sm->prev);
+    if (prev_sm == NULL) {
+        if (s->alproto == ALPROTO_DCERPC) {
+            SCLogDebug("No preceding content or pcre keyword.  Possible "
+                       "since this is an alproto sig.");
+            SCReturnInt(0);
+        } else {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "No preceding content "
+                       "or uricontent or pcre option");
+            goto error;
+        }
+    }
+
+    DetectContentData *cd = NULL;
+    DetectUricontentData *ud = NULL;
+    DetectPcreData *pe = NULL;
+
+    switch (prev_sm->type) {
+        case DETECT_CONTENT:
+            /* Set the relative next flag on the prev sigmatch */
+            cd = (DetectContentData *)prev_sm->ctx;
+            if (cd == NULL) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                           "previous keyword!");
+                goto error;
+            }
+            cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+
+            break;
+
+        case DETECT_URICONTENT:
+            /* Set the relative next flag on the prev sigmatch */
+            ud = (DetectUricontentData *)prev_sm->ctx;
+            if (ud == NULL) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                           "previous keyword!");
+                goto error;
+            }
+            ud->flags |= DETECT_URICONTENT_RELATIVE_NEXT;
+
+            break;
+
+        case DETECT_PCRE:
+            pe = (DetectPcreData *)prev_sm->ctx;
+            if (pe == NULL) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                           "previous keyword!");
+                goto error;
+            }
+            pe->flags |= DETECT_PCRE_RELATIVE_NEXT;
+
+            break;
+
+        case DETECT_BYTEJUMP:
+            SCLogDebug("No setting relative_next for bytejump.  We "
+                       "have no use for it");
+
+            break;
+
+        default:
+            /* this will never hit */
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                       "previous keyword!");
+            break;
+    } /* switch */
 
     return 0;
 

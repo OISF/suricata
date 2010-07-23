@@ -888,9 +888,10 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         SCReturnInt(0);
     }
 
-    prev_sm = SigMatchGetLastSMFromLists(s, 6,
+    prev_sm = SigMatchGetLastSMFromLists(s, 8,
                                          DETECT_CONTENT, sm->prev,
                                          DETECT_URICONTENT, sm->prev,
+                                         DETECT_BYTEJUMP, sm->prev,
                                          DETECT_PCRE, sm->prev);
     if (prev_sm == NULL) {
         if (s->alproto == ALPROTO_DCERPC) {
@@ -938,6 +939,12 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
                 SCReturnInt(-1);
             }
             pe->flags |= DETECT_PCRE_RELATIVE_NEXT;
+
+            break;
+
+        case DETECT_BYTEJUMP:
+            SCLogDebug("No setting relative_next for bytejump.  We "
+                       "have no use for it");
 
             break;
 
