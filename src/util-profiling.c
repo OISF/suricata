@@ -197,7 +197,18 @@ void
 SCProfilingDump(FILE *output)
 {
     uint32_t i;
-    SCProfileSummary summary[rules_pca->size];
+
+    if (rules_pca == NULL) {
+        SCLogDebug("No rules specified to provide a profiling summary");
+        return;
+    }
+
+    SCProfileSummary *summary = SCMalloc(sizeof(SCProfileSummary) * rules_pca->size);
+    if (summary == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for profiling summary");
+        return;
+    }
+
     uint32_t count = rules_pca->size;
     uint64_t total_ticks = 0;
 
