@@ -112,17 +112,19 @@ static inline int SCSigGetFlowbitsType(Signature *sig)
 {
     SigMatch *sm = sig->match;
     DetectFlowbitsData *fb = NULL;
-    int flowbits = 0;
+    int flowbits = DETECT_FLOWBITS_CMD_MAX;
 
     while (sm != NULL) {
         if (sm->type == DETECT_FLOWBITS) {
             fb = (DetectFlowbitsData *)sm->ctx;
-            if (flowbits < fb->cmd)
+            if (flowbits > fb->cmd)
                 flowbits = fb->cmd;
         }
 
         sm = sm->next;
     }
+
+    SCLogDebug("Sig %s typeval %d", sig->msg, flowbits);
 
     return flowbits;
 }
@@ -376,7 +378,7 @@ static void SCSigOrderByFlowbits(DetectEngineCtx *de_ctx,
     while (min != NULL && min != max) {
         prev = min;
         /* the sorting logic */
-        if ( *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWBITS])) <=
+        if ( *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWBITS])) >=
              *((int *)(min->user[SC_RADIX_USER_DATA_FLOWBITS])) ) {
             min = min->next;
             continue;
@@ -2056,6 +2058,67 @@ end:
     return result;
 }
 
+static int SCSigTestSignatureOrdering11(void)
+{
+    int result = 1;
+    Signature *prevsig = NULL, *sig = NULL;
+    SCSigSignatureWrapper *sw = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering set\"; flowbits:isnotset,myflow1; flowbits:set,myflow2; sid:1; rev:4;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig = sig;
+    de_ctx->sig_list = sig;
+
+    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering toggle\"; flowbits:toggle,myflow2;sid:2; rev:4; )");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+    prevsig = sig;
+
+    sig = SigInit(de_ctx, "alert tcp any !21:902 -> any any (msg:\"Testing sigordering unset\"; flowbits:isset, myflow1;flowbits:unset,myflow2; sid:3; rev:4; priority:3;)");
+    if (sig == NULL) {
+        goto end;
+    }
+    prevsig->next = sig;
+
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByAction);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowbits);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByFlowvar);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPktvar);
+    SCSigRegisterSignatureOrderingFunc(de_ctx, SCSigOrderByPriority);
+    SCSigOrderSignatures(de_ctx);
+
+    sw = de_ctx->sc_sig_sig_wrapper;
+    uint8_t pos = 0;
+    while (sw != NULL) {
+        switch (pos) {
+            case 0:
+                result &=(sw->sig->id == 1)? 1 : 0;
+            break;
+            case 1:
+                result &=(sw->sig->id == 2)? 1 : 0;
+            break;
+            case 2:
+                result &=(sw->sig->id == 3)? 1 : 0;
+            break;
+        }
+        sw = sw->next;
+        pos++;
+    }
+
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
 #endif
 
 void SCSigRegisterSignatureOrderingTests(void)
@@ -2073,6 +2136,7 @@ void SCSigRegisterSignatureOrderingTests(void)
     UtRegisterTest("SCSigTestSignatureOrdering08", SCSigTestSignatureOrdering08, 1);
     UtRegisterTest("SCSigTestSignatureOrdering09", SCSigTestSignatureOrdering09, 1);
     UtRegisterTest("SCSigTestSignatureOrdering10", SCSigTestSignatureOrdering10, 1);
+    UtRegisterTest("SCSigTestSignatureOrdering11", SCSigTestSignatureOrdering11, 1);
 
 #endif
 
