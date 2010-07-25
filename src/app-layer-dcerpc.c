@@ -62,46 +62,29 @@ enum {
 };
 
 /* \brief hexdump function from libdnet, used for debugging only */
-void hexdump(Flow *f, const void *buf, size_t len) {
+void hexdump(/*Flow *f,*/ const void *buf, size_t len) {
     /* dumps len bytes of *buf to stdout. Looks like:
      * [0000] 75 6E 6B 6E 6F 77 6E 20
      *                  30 FF 00 00 00 00 39 00 unknown 0.....9.
      * (in a single line of course)
      */
-	if (f->src.family == AF_INET) {
-		char src[16];
-		char dst[16];
-		inet_ntop(AF_INET, (const void*)&f->src.addr_data32[0], src,
-				sizeof (src));
-		inet_ntop(AF_INET, (const void*)&f->dst.addr_data32[0], dst,
-				sizeof (dst));
-		printf("%s:%d -> %s:%d\n", src, f->sp, dst, f->dp);
-	} else {
-        char dst6[46];
-        char src6[46];
-        inet_ntop(AF_INET6, (const void*)&f->src.addr_data32, src6,
-                  sizeof (src6));
-        inet_ntop(AF_INET6, (const void*)&f->dst.addr_data32, dst6,
-                  sizeof (dst6));
-	printf("%s:%d -> %s:%d\n", src6, f->sp, dst6, f->dp);
 
-	}
     const unsigned char *p = buf;
     unsigned char c;
     size_t n;
-    char bytestr[4] = { 0 };
-    char addrstr[10] = { 0 };
-    char hexstr[16 * 3 + 5] = { 0 };
-    char charstr[16 * 1 + 5] = { 0 };
-    for (n = 1; n <= len; n++) {
-        if (n % 16 == 1) {
+    char bytestr[4] = {0};
+    char addrstr[10] = {0};
+    char hexstr[ 16*3 + 5] = {0};
+    char charstr[16*1 + 5] = {0};
+    for (n=1; n<=len; n++) {
+        if (n%16 == 1) {
             /* store address for this line */
 #if __WORDSIZE == 64
             snprintf(addrstr, sizeof(addrstr), "%.4lx",
-                    ((uint64_t)p-(uint64_t)buf) );
+            ((uint64_t)p-(uint64_t)buf) );
 #else
-            snprintf(addrstr, sizeof(addrstr), "%.4x", ((uint32_t) p
-                        - (uint32_t) buf));
+            snprintf(addrstr, sizeof(addrstr), "%.4x",
+            ((uint32_t)p-(uint32_t)buf) );
 #endif
         }
 
@@ -112,21 +95,21 @@ void hexdump(Flow *f, const void *buf, size_t len) {
 
         /* store hex str (for left side) */
         snprintf(bytestr, sizeof(bytestr), "%02X ", *p);
-        strlcat(hexstr, bytestr, sizeof(hexstr) - strlen(hexstr) - 1);
+        strncat(hexstr, bytestr, sizeof(hexstr)-strlen(hexstr)-1);
 
         /* store char str (for right side) */
         snprintf(bytestr, sizeof(bytestr), "%c", c);
-        strlcat(charstr, bytestr, sizeof(charstr) - strlen(charstr) - 1);
+        strncat(charstr, bytestr, sizeof(charstr)-strlen(charstr)-1);
 
-        if (n % 16 == 0) {
+        if(n%16 == 0) {
             /* line completed */
             printf("[%4.4s]   %-50.50s  %s\n", addrstr, hexstr, charstr);
             hexstr[0] = 0;
             charstr[0] = 0;
-        } else if (n % 8 == 0) {
+        } else if(n%8 == 0) {
             /* half line: add whitespaces */
-            strlcat(hexstr, "  ", sizeof(hexstr) - strlen(hexstr) - 1);
-            strlcat(charstr, " ", sizeof(charstr) - strlen(charstr) - 1);
+            strncat(hexstr, "  ", sizeof(hexstr)-strlen(hexstr)-1);
+            strncat(charstr, " ", sizeof(charstr)-strlen(charstr)-1);
         }
         p++; /* next byte */
     }
@@ -916,6 +899,8 @@ static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_le
     }
 
     stub_len = (dcerpc->padleft < input_len) ? dcerpc->padleft : input_len;
+    /* To see what is in this stub fragment */
+    //hexdump(input, stub_len);
     /* if the frag is the the first frag irrespective of it being a part of
      * a multi frag PDU or not, it indicates the previous PDU's stub would
      * have been buffered and processed and we can use the buffer to hold
@@ -934,6 +919,8 @@ static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_le
     *stub_data_fresh = 1;
     /* length of the buffered stub */
     *stub_data_buffer_len += stub_len;
+    /* To see the total reassembled stubdata */
+    //hexdump(*stub_data_buffer, *stub_data_buffer_len);
 
     dcerpc->padleft -= stub_len;
     dcerpc->bytesprocessed += stub_len;
@@ -1103,8 +1090,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
     dcerpc->dcerpcrequest.stub_data_fresh = 0;
     dcerpc->dcerpcresponse.stub_data_fresh = 0;
 
+    while(input_len) {
     while (dcerpc->bytesprocessed < DCERPC_HDR_LEN && input_len) {
-        hdrretval = DCERPCParseHeader(dcerpc, input, input_len);
+        hdrretval = DCERPCParseHeader(dcerpc, input + parsed, input_len);
         if (hdrretval == -1) {
             dcerpc->bytesprocessed = 0;
             SCReturnInt(0);
@@ -1116,7 +1104,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
     SCLogDebug("Done with DCERPCParseHeader bytesprocessed %u/%u left %u",
             dcerpc->bytesprocessed, dcerpc->dcerpchdr.frag_length, input_len);
 #if 0
-    printf("Done with DCERPCParseHeader bytesprocessed %u/%u left %u\n",
+    printf("Done with DCERPCParseHeader bytesprocessed %u/%u input_len left %u\n",
             dcerpc->bytesprocessed, dcerpc->dcerpchdr.frag_length, input_len);
     printf("\nDCERPC Version:\t%u\n", dcerpc->dcerpchdr.rpc_vers);
     printf("DCERPC Version Minor:\t%u\n", dcerpc->dcerpchdr.rpc_vers_minor);
@@ -1160,10 +1148,10 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                     }
                     parsed += retval;
                     input_len -= retval;
-                    SCLogDebug("BIND processed %u/%u ctxitems %u/%u",
+                    SCLogDebug("BIND processed %u/%u ctxitems %u/%u input_len left %u\n",
                             dcerpc->bytesprocessed,
                             dcerpc->dcerpchdr.frag_length, dcerpc->dcerpcbindbindack.numctxitemsleft,
-                            dcerpc->dcerpcbindbindack.numctxitems);
+                            dcerpc->dcerpcbindbindack.numctxitems, input_len);
                 } else if (input_len) {
                     //parsed -= input_len;
                     parsed = 0;
@@ -1187,7 +1175,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                 if (retval) {
                     parsed += retval;
                     input_len -= retval;
-                    SCLogDebug("DCERPCParseBINDACK processed %u/%u left %u",
+                    SCLogDebug("DCERPCParseBINDACK processed %u/%u input_len left %u",
                             dcerpc->bytesprocessed, dcerpc->dcerpchdr.frag_length, input_len);
                 } else if (input_len) {
                     SCLogDebug("Error parsing %s\n", (dcerpc->dcerpchdr.type == BIND_ACK) ? "BIND_ACK" : "ALTER_CONTEXT_RESP");
@@ -1278,8 +1266,8 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
 
                 }
             }
-            SCLogDebug("BINDACK processed %u/%u", dcerpc->bytesprocessed,
-                    dcerpc->dcerpchdr.frag_length);
+            SCLogDebug("BINDACK processed %u/%u input_len left %u", dcerpc->bytesprocessed,
+                    dcerpc->dcerpchdr.frag_length, input_len);
             if (dcerpc->bytesprocessed == dcerpc->dcerpchdr.frag_length) {
                 dcerpc->bytesprocessed = 0;
                 dcerpc->dcerpcbindbindack.ctxbytesprocessed = 0;
@@ -1354,6 +1342,8 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
             dcerpc->bytesprocessed = 0;
             break;
     }
+    dcerpc->bytesprocessed = 0;
+  }
     SCReturnInt(parsed);
 }
 
