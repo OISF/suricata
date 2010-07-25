@@ -286,11 +286,11 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
         if (s->alproto == ALPROTO_DCERPC) {
             SCLogDebug("No preceding content or pcre keyword.  Possible "
                        "since this is an alproto sig.");
-            SCReturnInt(0);
+            return 0;
         } else {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "No preceding content "
                        "or uricontent or pcre option");
-            goto error;
+            return -1;
         }
     }
 
@@ -305,7 +305,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
             if (cd == NULL) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
                            "previous keyword!");
-                goto error;
+                return -1;
             }
             cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
 
@@ -317,7 +317,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
             if (ud == NULL) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
                            "previous keyword!");
-                goto error;
+                return -1;
             }
             ud->flags |= DETECT_URICONTENT_RELATIVE_NEXT;
 
@@ -328,7 +328,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
             if (pe == NULL) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
                            "previous keyword!");
-                goto error;
+                return -1;
             }
             pe->flags |= DETECT_PCRE_RELATIVE_NEXT;
 
@@ -344,7 +344,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
             /* this will never hit */
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
                        "previous keyword!");
-            break;
+            return -1;
     } /* switch */
 
     return 0;

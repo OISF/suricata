@@ -617,6 +617,81 @@ end:
     return result;
 }
 
+/**
+ * \test Test invalid sig.
+ */
+static int PayloadTestSig10(void)
+{
+    uint8_t *buf = (uint8_t *)"this is a super duper nova in super nova now";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert udp any any -> any any (msg:\"crash\"; "
+        "byte_test:4,>,2,0,relative; sid:11;)";
+
+    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 1) {
+        result = 0;
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
+/**
+ * \test Test invalid sig.
+ */
+static int PayloadTestSig11(void)
+{
+    uint8_t *buf = (uint8_t *)"this is a super duper nova in super nova now";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert udp any any -> any any (msg:\"crash\"; "
+        "byte_jump:1,0,relative; sid:11;)";
+
+    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 1) {
+        result = 0;
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
+/**
+ * \test Test invalid sig.
+ */
+static int PayloadTestSig12(void)
+{
+    uint8_t *buf = (uint8_t *)"this is a super duper nova in super nova now";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert udp any any -> any any (msg:\"crash\"; "
+        "isdataat:10,relative; sid:11;)";
+
+    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 1) {
+        result = 0;
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void PayloadRegisterTests(void) {
@@ -630,5 +705,8 @@ void PayloadRegisterTests(void) {
     UtRegisterTest("PayloadTestSig07", PayloadTestSig07, 1);
     UtRegisterTest("PayloadTestSig08", PayloadTestSig08, 1);
     UtRegisterTest("PayloadTestSig09", PayloadTestSig09, 1);
+    UtRegisterTest("PayloadTestSig10", PayloadTestSig10, 1);
+    UtRegisterTest("PayloadTestSig11", PayloadTestSig11, 1);
+    UtRegisterTest("PayloadTestSig12", PayloadTestSig12, 1);
 #endif /* UNITTESTS */
 }
