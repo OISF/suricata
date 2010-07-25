@@ -383,18 +383,6 @@ void StreamTcpInitConfig(char quiet)
         stream_config.memcap = STREAMTCP_DEFAULT_MEMCAP;
     }
 
-    if ((ConfGetInt("stream.reassembly.memcap", &value)) == 1) {
-        stream_config.reassembly_memcap = (uint32_t)value;
-    } else {
-        stream_config.reassembly_memcap = STREAMTCP_DEFAULT_REASSEMBLY_MEMCAP;
-    }
-
-    if ((ConfGetInt("stream.reassembly.depth", &value)) == 1) {
-        stream_config.reassembly_depth = (uint32_t)value;
-    } else {
-        stream_config.reassembly_depth = 0;
-    }
-
     if (!quiet) {
         SCLogInfo("stream \"memcap\": %"PRIu32"", stream_config.memcap);
     }
@@ -412,6 +400,24 @@ void StreamTcpInitConfig(char quiet)
     }
     if (!quiet) {
         SCLogInfo("stream \"async_oneside\": %s", stream_config.async_oneside ? "enabled" : "disabled");
+    }
+
+    if ((ConfGetInt("stream.reassembly.memcap", &value)) == 1) {
+        stream_config.reassembly_memcap = (uint32_t)value;
+    } else {
+        stream_config.reassembly_memcap = STREAMTCP_DEFAULT_REASSEMBLY_MEMCAP;
+    }
+    if (!quiet) {
+        SCLogInfo("stream.reassembly \"memcap\": %"PRIu32"", stream_config.reassembly_memcap);
+    }
+
+    if ((ConfGetInt("stream.reassembly.depth", &value)) == 1) {
+        stream_config.reassembly_depth = (uint32_t)value;
+    } else {
+        stream_config.reassembly_depth = 0;
+    }
+    if (!quiet) {
+        SCLogInfo("stream.reassembly \"depth\": %"PRIu32"", stream_config.reassembly_depth);
     }
 
     /* init the memcap and it's lock */
