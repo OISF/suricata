@@ -34,6 +34,7 @@
 
 #include "util-byte.h"
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 #include "util-debug.h"
 
 #define PARSE_REGEX "^\\s*(\"\\s*)?([0-9]+)(\\s*\")?\\s*$"
@@ -329,7 +330,6 @@ int DetectIcmpIdMatchTest01 (void) {
     int result = 0;
     Packet *p = NULL;
     Signature *s = NULL;
-    DecodeThreadVars dtv;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
 

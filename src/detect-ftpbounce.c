@@ -36,6 +36,7 @@
 #include "app-layer.h"
 #include "app-layer-ftp.h"
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 #include "util-debug.h"
 #include "flow.h"
 #include "flow-var.h"

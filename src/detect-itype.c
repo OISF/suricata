@@ -34,6 +34,7 @@
 
 #include "util-byte.h"
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 #include "util-debug.h"
 
 /**
