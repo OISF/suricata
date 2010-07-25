@@ -35,6 +35,7 @@
 #include "util-error.h"
 #include "util-debug.h"
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 
 static int DetectFastPatternSetup(DetectEngineCtx *, Signature *, char *);
 void DetectFastPatternRegisterTests(void);
@@ -257,18 +258,14 @@ int DetectFastPatternTest05(void)
         "strin2.  This is strings3.  We strins_str4. we "
         "have strins_string5";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
+    Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
+
+    p = UTHBuildPacket(buf,buflen,IPPROTO_TCP);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -290,8 +287,8 @@ int DetectFastPatternTest05(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
-    if (PacketPatternSearch(&th_v, det_ctx, &p) != 0)
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
+    if (PacketPatternSearch(&th_v, det_ctx, p) != 0)
         result = 1;
 
     SigGroupCleanup(de_ctx);
@@ -300,6 +297,7 @@ int DetectFastPatternTest05(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
 
 end:
+    UTHFreePackets(&p, 1);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -313,18 +311,13 @@ int DetectFastPatternTest06(void)
         "string2.  This is strings3.  We have strings_str4.  We also have "
         "strings_string5";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
+    Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(buf,buflen,IPPROTO_TCP);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -344,8 +337,8 @@ int DetectFastPatternTest06(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
-    if (PacketPatternSearch(&th_v, det_ctx, &p) != 0)
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
+    if (PacketPatternSearch(&th_v, det_ctx, p) != 0)
         result = 1;
 
     SigGroupCleanup(de_ctx);
@@ -354,6 +347,7 @@ int DetectFastPatternTest06(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
 
 end:
+    UTHFreePackets(&p, 1);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -368,18 +362,13 @@ int DetectFastPatternTest07(void)
         "right now, all the way to hangover.  right.  now here comes our "
         "dark knight strings_string5.  Yes here is our dark knight";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
+    Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(buf,buflen,IPPROTO_TCP);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -399,8 +388,8 @@ int DetectFastPatternTest07(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
-    if (PacketPatternSearch(&th_v, det_ctx, &p) == 0)
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
+    if (PacketPatternSearch(&th_v, det_ctx, p) == 0)
         result = 1;
 
     SigGroupCleanup(de_ctx);
@@ -409,6 +398,7 @@ int DetectFastPatternTest07(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
 
 end:
+    UTHFreePackets(&p, 1);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -423,18 +413,13 @@ int DetectFastPatternTest08(void)
         "right now, all the way to hangover.  right.  now here comes our "
         "dark knight strings3.  Yes here is our dark knight";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
+    Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(buf,buflen,IPPROTO_TCP);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -458,8 +443,8 @@ int DetectFastPatternTest08(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
-    uint32_t r = PacketPatternSearch(&th_v, det_ctx, &p);
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
+    uint32_t r = PacketPatternSearch(&th_v, det_ctx, p);
     if (r != 1) {
         printf("expected 1, got %"PRIu32": ", r);
         goto end;
@@ -467,6 +452,7 @@ int DetectFastPatternTest08(void)
 
     result = 1;
 end:
+    UTHFreePackets(&p, 1);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
@@ -483,18 +469,13 @@ int DetectFastPatternTest09(void)
         "right now, all the way to hangover.  right.  no_strings4 _imp now here "
         "comes our dark knight strings3.  Yes here is our dark knight";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
+    Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(buf,buflen,IPPROTO_TCP);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -514,8 +495,8 @@ int DetectFastPatternTest09(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
-    if (PacketPatternSearch(&th_v, det_ctx, &p) == 0)
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
+    if (PacketPatternSearch(&th_v, det_ctx, p) == 0)
         result = 1;
 
     SigGroupCleanup(de_ctx);
@@ -524,6 +505,7 @@ int DetectFastPatternTest09(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
 
 end:
+    UTHFreePackets(&p, 1);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -539,18 +521,13 @@ int DetectFastPatternTest10(void)
         "right now, all the way to hangover.  right.  strings4_imp now here "
         "comes our dark knight strings5.  Yes here is our dark knight";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
+    Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(buf,buflen,IPPROTO_TCP);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -574,8 +551,8 @@ int DetectFastPatternTest10(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
-    uint32_t r = PacketPatternSearch(&th_v, det_ctx, &p);
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
+    uint32_t r = PacketPatternSearch(&th_v, det_ctx, p);
     if (r != 1) {
         printf("expected 1, got %"PRIu32": ", r);
         goto end;
@@ -583,6 +560,7 @@ int DetectFastPatternTest10(void)
 
     result = 1;
 end:
+    UTHFreePackets(&p, 1);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
@@ -601,18 +579,13 @@ int DetectFastPatternTest11(void)
         "right now, all the way to hangover.  right.  strings5_imp now here "
         "comes our dark knight strings5.  Yes here is our dark knight";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
+    Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(buf,buflen,IPPROTO_TCP);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -632,12 +605,13 @@ int DetectFastPatternTest11(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
-    if (PacketPatternSearch(&th_v, det_ctx, &p) == 0)
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
+    if (PacketPatternSearch(&th_v, det_ctx, p) == 0)
         result = 1;
 
 
 end:
+    UTHFreePackets(&p, 1);
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
         SigCleanSignatures(de_ctx);
@@ -657,18 +631,13 @@ int DetectFastPatternTest12(void)
         "right now, all the way to hangover.  right.  strings5_imp now here "
         "comes our dark knight strings5.  Yes here is our dark knight";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
+    Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(buf,buflen,IPPROTO_TCP);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -688,8 +657,8 @@ int DetectFastPatternTest12(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
-    if (PacketPatternSearch(&th_v, det_ctx, &p) == 0)
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
+    if (PacketPatternSearch(&th_v, det_ctx, p) == 0)
         result = 1;
 
     SigGroupCleanup(de_ctx);
@@ -698,6 +667,7 @@ int DetectFastPatternTest12(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
 
 end:
+    UTHFreePackets(&p, 1);
     DetectEngineCtxFree(de_ctx);
     return result;
 }
@@ -714,18 +684,13 @@ int DetectFastPatternTest13(void)
         "right now, all the way to hangover.  right.  strings5_imp now here "
         "comes our dark knight strings_string5.  Yes here is our dark knight";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
+    Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(buf,buflen,IPPROTO_TCP);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -749,8 +714,8 @@ int DetectFastPatternTest13(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* start the search phase */
-    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
-    uint32_t r = PacketPatternSearch(&th_v, det_ctx, &p);
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
+    uint32_t r = PacketPatternSearch(&th_v, det_ctx, p);
     if (r != 1) {
         printf("expected 1 result, got %"PRIu32": ", r);
         goto end;
@@ -758,6 +723,7 @@ int DetectFastPatternTest13(void)
 
     result = 1;
 end:
+    UTHFreePackets(&p, 1);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
@@ -775,19 +741,14 @@ int DetectFastPatternTest14(void)
         "right now, all the way to hangover.  right.  strings5_imp now here "
         "comes our dark knight strings_string5.  Yes here is our dark knight";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
+    Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     int alertcnt = 0;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(buf,buflen,IPPROTO_TCP);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -811,19 +772,20 @@ int DetectFastPatternTest14(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1)){
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1)){
         alertcnt++;
     }else{
         SCLogInfo("could not match on sig 1 with when fast_pattern is inspecting payload");
         goto end;
     }
-    if (PacketAlertCheck(&p, 2)){
+    if (PacketAlertCheck(p, 2)){
         result = 1;
     }else{
         SCLogInfo("match on sig 1 fast_pattern no match sig 2 inspecting same payload");
     }
 end:
+    UTHFreePackets(&p, 1);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 

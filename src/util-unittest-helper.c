@@ -91,6 +91,8 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
     if (p->ip6h == NULL)
         return NULL;
     memset(p->ip6h, 0, sizeof(IPV6Hdr));
+    p->ip6h->s_ip6_nxt = ipproto;
+
     p->tcph = SCMalloc(sizeof(TCPHdr));
     if (p->tcph == NULL)
         return NULL;
@@ -151,6 +153,7 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
 
     p->ip4h->ip_src.s_addr = p->src.addr_data32[0];
     p->ip4h->ip_dst.s_addr = p->dst.addr_data32[0];
+    p->ip4h->ip_proto = ipproto;
     p->proto = ipproto;
 
     switch (ipproto) {
@@ -162,7 +165,7 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
             p->udph->uh_sport = sport;
             p->udph->uh_dport = dport;
             p->pktlen = sizeof(IPV4Hdr) + sizeof(UDPHdr) + payload_len;
-        break;
+            break;
         case IPPROTO_TCP:
             p->tcph = SCMalloc(sizeof(TCPHdr));
             if (p->tcph == NULL)
@@ -171,10 +174,16 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
             p->tcph->th_sport = sport;
             p->tcph->th_dport = dport;
             p->pktlen = sizeof(IPV4Hdr) + sizeof(TCPHdr) + payload_len;
-        break;
+            break;
         case IPPROTO_ICMP:
+            p->icmpv4h = SCMalloc(sizeof(ICMPV4Hdr));
+            if (p->icmpv4h == NULL)
+                return NULL;
+            memset(p->icmpv4h, 0, sizeof(ICMPV4Hdr));
+            p->pktlen = sizeof(IPV4Hdr) + sizeof(ICMPV4Hdr) + payload_len;
+            break;
         default:
-        break;
+            break;
         /* TODO: Add more protocols */
     }
     return p;

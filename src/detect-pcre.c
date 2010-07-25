@@ -1290,7 +1290,7 @@ static int DetectPcreTestSig01Real(int mpm_type) {
         "\r\n\r\n";
     uint16_t buflen = strlen((char *)buf);
     TcpSession ssn;
-    Packet p;
+    Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
@@ -1298,8 +1298,6 @@ static int DetectPcreTestSig01Real(int mpm_type) {
 
     memset(&f, 0, sizeof(f));
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-
     memset(&ssn, 0, sizeof(TcpSession));
 
     FLOW_INITIALIZE(&f);
@@ -1308,14 +1306,10 @@ static int DetectPcreTestSig01Real(int mpm_type) {
     f.dst.family = AF_INET;
     f.alproto = ALPROTO_HTTP;
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
 
     StreamTcpInitConfig(TRUE);
     FlowL7DataPtrInit(&f);
@@ -1343,8 +1337,8 @@ static int DetectPcreTestSig01Real(int mpm_type) {
         result = 0;
         goto end;
     }
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1) == 1) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1) == 1) {
         result = 1;
     }
 
@@ -1359,7 +1353,18 @@ end:
     StreamTcpFreeConfig(TRUE);
 
     FLOW_DESTROY(&f);
+
+    UTHFreePackets(&p, 1);
     return result;
+}
+static int DetectPcreTestSig01B2g (void) {
+    return DetectPcreTestSig01Real(MPM_B2G);
+}
+static int DetectPcreTestSig01B3g (void) {
+    return DetectPcreTestSig01Real(MPM_B3G);
+}
+static int DetectPcreTestSig01Wm (void) {
+    return DetectPcreTestSig01Real(MPM_WUMANBER);
 }
 
 static int DetectPcreTestSig02Real(int mpm_type) {
@@ -1371,23 +1376,19 @@ static int DetectPcreTestSig02Real(int mpm_type) {
         "Host: two.example.org\r\n"
         "\r\n\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
+    Packet *p = NULL;
     Flow f;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
     memset(&f, 0, sizeof(f));
 
     FLOW_INITIALIZE(&f);
-    p.flow = &f;
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
+
+    p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
+    p->flow = &f;
 
     pcre_match_limit = 100;
     pcre_match_limit_recursion = 100;
@@ -1409,8 +1410,8 @@ static int DetectPcreTestSig02Real(int mpm_type) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 2) == 1) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 2) == 1) {
         result = 1;
     }
 
@@ -1421,19 +1422,9 @@ static int DetectPcreTestSig02Real(int mpm_type) {
     DetectEngineCtxFree(de_ctx);
     FLOW_DESTROY(&f);
 end:
+    UTHFreePackets(&p, 1);
     return result;
 }
-
-static int DetectPcreTestSig01B2g (void) {
-    return DetectPcreTestSig01Real(MPM_B2G);
-}
-static int DetectPcreTestSig01B3g (void) {
-    return DetectPcreTestSig01Real(MPM_B3G);
-}
-static int DetectPcreTestSig01Wm (void) {
-    return DetectPcreTestSig01Real(MPM_WUMANBER);
-}
-
 static int DetectPcreTestSig02B2g (void) {
     return DetectPcreTestSig02Real(MPM_B2G);
 }
@@ -1456,18 +1447,14 @@ static int DetectPcreTestSig03Real(int mpm_type) {
         "Host: two.example.org\r\n"
         "\r\n\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
+    Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 1;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
+
+    p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1487,8 +1474,8 @@ static int DetectPcreTestSig03Real(int mpm_type) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1)){
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1)){
         printf("sid 1 matched even though it shouldn't have:");
         result = 0;
     }
@@ -1498,6 +1485,7 @@ static int DetectPcreTestSig03Real(int mpm_type) {
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    UTHFreePackets(&p, 1);
     return result;
 }
 
@@ -1545,31 +1533,26 @@ static int DetectPcreModifPTest04(void) {
 
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet p;
+    Packet *p = NULL;
     Flow f;
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
 
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -1613,13 +1596,13 @@ static int DetectPcreModifPTest04(void) {
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!(PacketAlertCheck(&p, 1))) {
+    if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
         goto end;
     }
-    if (PacketAlertCheck(&p, 2)) {
+    if (PacketAlertCheck(p, 2)) {
         printf("sid 2 matched but shouldn't: ");
         goto end;
     }
@@ -1633,6 +1616,7 @@ end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
     return result;
 }
 
@@ -1674,42 +1658,31 @@ static int DetectPcreModifPTest05(void) {
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet p1;
-    Packet p2;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
     Flow f;
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p1, 0, sizeof(Packet));
-    memset(&p2, 0, sizeof(Packet));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p1.src.family = AF_INET;
-    p1.dst.family = AF_INET;
-    p1.payload = NULL;
-    p1.payload_len = 0;
-    p1.proto = IPPROTO_TCP;
-
-    p2.src.family = AF_INET;
-    p2.dst.family = AF_INET;
-    p2.payload = NULL;
-    p2.payload_len = 0;
-    p2.proto = IPPROTO_TCP;
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
 
-    p1.flow = &f;
-    p1.flowflags |= FLOW_PKT_TOSERVER;
-    p1.flowflags |= FLOW_PKT_ESTABLISHED;
-    p2.flow = &f;
-    p2.flowflags |= FLOW_PKT_TOSERVER;
-    p2.flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -1746,7 +1719,7 @@ static int DetectPcreModifPTest05(void) {
     }
 
     /* do detect for p1 */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
@@ -1763,25 +1736,25 @@ static int DetectPcreModifPTest05(void) {
     }
 
     /* do detect for p2 */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (!(PacketAlertCheck(&p1, 1))) {
+    if (!(PacketAlertCheck(p1, 1))) {
         printf("sid 1 didn't match on p1 but should have: ");
         goto end;
     }
 
-    if (PacketAlertCheck(&p1, 2)) {
+    if (PacketAlertCheck(p1, 2)) {
         printf("sid 2 did match on p1 but shouldn't have: ");
         /* It's a partial match over 2 chunks*/
         goto end;
     }
 
-    if ((PacketAlertCheck(&p2, 1))) {
+    if ((PacketAlertCheck(p2, 1))) {
         printf("sid 1 did match on p2 but should have: ");
         goto end;
     }
 
-    if (!(PacketAlertCheck(&p2, 2))) {
+    if (!(PacketAlertCheck(p2, 2))) {
         printf("sid 2 didn't match on p2 but should have: ");
         /* It's a partial match over 2 chunks*/
         goto end;
@@ -1796,6 +1769,8 @@ end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
     return result;
 }
 

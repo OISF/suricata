@@ -40,6 +40,7 @@
 
 #include "util-debug.h"
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 #include "util-spm.h"
 #include "util-print.h"
 
@@ -448,7 +449,7 @@ static int DetectHttpHeaderTest05(void)
 static int DetectHttpHeaderTest06(void)
 {
     TcpSession ssn;
-    Packet p;
+    Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -465,25 +466,19 @@ static int DetectHttpHeaderTest06(void)
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
 
-
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(Packet));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -520,9 +515,9 @@ static int DetectHttpHeaderTest06(void)
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!(PacketAlertCheck(&p, 1))) {
+    if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
         goto end;
     }
@@ -539,6 +534,7 @@ end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
     return result;
 }
 
@@ -549,8 +545,8 @@ end:
 static int DetectHttpHeaderTest07(void)
 {
     TcpSession ssn;
-    Packet p1;
-    Packet p2;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
     ThreadVars th_v;
     DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -571,33 +567,22 @@ static int DetectHttpHeaderTest07(void)
 
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p1, 0, sizeof(Packet));
-    memset(&p2, 0, sizeof(Packet));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p1.src.family = AF_INET;
-    p1.dst.family = AF_INET;
-    p1.payload = NULL;
-    p1.payload_len = 0;
-    p1.proto = IPPROTO_TCP;
-
-    p2.src.family = AF_INET;
-    p2.dst.family = AF_INET;
-    p2.payload = NULL;
-    p2.payload_len = 0;
-    p2.proto = IPPROTO_TCP;
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
-    p1.flow = &f;
-    p1.flowflags |= FLOW_PKT_TOSERVER;
-    p1.flowflags |= FLOW_PKT_ESTABLISHED;
-    p2.flow = &f;
-    p2.flowflags |= FLOW_PKT_TOSERVER;
-    p2.flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -634,10 +619,10 @@ static int DetectHttpHeaderTest07(void)
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
-    if ( (PacketAlertCheck(&p1, 1))) {
-        printf("sid 1 didn't match but should have: ");
+    if ( (PacketAlertCheck(p1, 1))) {
+        printf("sid 1 matched but shouldn't have: ");
         goto end;
     }
 
@@ -649,9 +634,9 @@ static int DetectHttpHeaderTest07(void)
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (!(PacketAlertCheck(&p2, 1))) {
+    if (!(PacketAlertCheck(p2, 1))) {
         printf("sid 1 didn't match but should have: ");
         goto end;
     }
@@ -668,6 +653,8 @@ end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
     return result;
 }
 
@@ -678,8 +665,8 @@ end:
 static int DetectHttpHeaderTest08(void)
 {
     TcpSession ssn;
-    Packet p1;
-    Packet p2;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
     ThreadVars th_v;
     DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -697,35 +684,23 @@ static int DetectHttpHeaderTest08(void)
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
 
-
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p1, 0, sizeof(Packet));
-    memset(&p2, 0, sizeof(Packet));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p1.src.family = AF_INET;
-    p1.dst.family = AF_INET;
-    p1.payload = NULL;
-    p1.payload_len = 0;
-    p1.proto = IPPROTO_TCP;
-
-    p2.src.family = AF_INET;
-    p2.dst.family = AF_INET;
-    p2.payload = NULL;
-    p2.payload_len = 0;
-    p2.proto = IPPROTO_TCP;
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
-    p1.flow = &f;
-    p1.flowflags |= FLOW_PKT_TOSERVER;
-    p1.flowflags |= FLOW_PKT_ESTABLISHED;
-    p2.flow = &f;
-    p2.flowflags |= FLOW_PKT_TOSERVER;
-    p2.flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -762,9 +737,9 @@ static int DetectHttpHeaderTest08(void)
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
-    if ((PacketAlertCheck(&p1, 1))) {
+    if ((PacketAlertCheck(p1, 1))) {
         printf("sid 1 didn't match but should have: ");
         goto end;
     }
@@ -777,9 +752,9 @@ static int DetectHttpHeaderTest08(void)
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (!(PacketAlertCheck(&p2, 1))) {
+    if (!(PacketAlertCheck(p2, 1))) {
         printf("sid 1 didn't match but should have: ");
         goto end;
     }
@@ -796,6 +771,8 @@ end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
     return result;
 }
 
@@ -806,8 +783,8 @@ end:
 static int DetectHttpHeaderTest09(void)
 {
     TcpSession ssn;
-    Packet p1;
-    Packet p2;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
     ThreadVars th_v;
     DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -826,35 +803,23 @@ static int DetectHttpHeaderTest09(void)
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
 
-
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p1, 0, sizeof(Packet));
-    memset(&p2, 0, sizeof(Packet));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p1.src.family = AF_INET;
-    p1.dst.family = AF_INET;
-    p1.payload = NULL;
-    p1.payload_len = 0;
-    p1.proto = IPPROTO_TCP;
-
-    p2.src.family = AF_INET;
-    p2.dst.family = AF_INET;
-    p2.payload = NULL;
-    p2.payload_len = 0;
-    p2.proto = IPPROTO_TCP;
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
-    p1.flow = &f;
-    p1.flowflags |= FLOW_PKT_TOSERVER;
-    p1.flowflags |= FLOW_PKT_ESTABLISHED;
-    p2.flow = &f;
-    p2.flowflags |= FLOW_PKT_TOSERVER;
-    p2.flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -891,9 +856,9 @@ static int DetectHttpHeaderTest09(void)
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
-    if ((PacketAlertCheck(&p1, 1))) {
+    if ((PacketAlertCheck(p1, 1))) {
         printf("sid 1 didn't match but should have: ");
         goto end;
     }
@@ -906,9 +871,9 @@ static int DetectHttpHeaderTest09(void)
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (!(PacketAlertCheck(&p2, 1))) {
+    if (!(PacketAlertCheck(p2, 1))) {
         printf("sid 1 didn't match but should have: ");
         goto end;
     }
@@ -925,6 +890,8 @@ end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
     return result;
 }
 
@@ -935,8 +902,8 @@ end:
 static int DetectHttpHeaderTest10(void)
 {
     TcpSession ssn;
-    Packet p1;
-    Packet p2;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
     ThreadVars th_v;
     DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -955,35 +922,23 @@ static int DetectHttpHeaderTest10(void)
     uint32_t http2_len = sizeof(http2_buf) - 1;
     int result = 0;
 
-
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p1, 0, sizeof(Packet));
-    memset(&p2, 0, sizeof(Packet));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p1.src.family = AF_INET;
-    p1.dst.family = AF_INET;
-    p1.payload = NULL;
-    p1.payload_len = 0;
-    p1.proto = IPPROTO_TCP;
-
-    p2.src.family = AF_INET;
-    p2.dst.family = AF_INET;
-    p2.payload = NULL;
-    p2.payload_len = 0;
-    p2.proto = IPPROTO_TCP;
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
-    p1.flow = &f;
-    p1.flowflags |= FLOW_PKT_TOSERVER;
-    p1.flowflags |= FLOW_PKT_ESTABLISHED;
-    p2.flow = &f;
-    p2.flowflags |= FLOW_PKT_TOSERVER;
-    p2.flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -1020,9 +975,9 @@ static int DetectHttpHeaderTest10(void)
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
-    if ((PacketAlertCheck(&p1, 1))) {
+    if ((PacketAlertCheck(p1, 1))) {
         printf("sid 1 didn't match but should have: ");
         goto end;
     }
@@ -1035,9 +990,9 @@ static int DetectHttpHeaderTest10(void)
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if (!(PacketAlertCheck(&p2, 1))) {
+    if (!(PacketAlertCheck(p2, 1))) {
         printf("sid 1 didn't match but should have: ");
         goto end;
     }
@@ -1054,6 +1009,8 @@ end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
     return result;
 }
 
@@ -1064,7 +1021,7 @@ end:
 static int DetectHttpHeaderTest11(void)
 {
     TcpSession ssn;
-    Packet p;
+    Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -1081,25 +1038,19 @@ static int DetectHttpHeaderTest11(void)
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
 
-
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(Packet));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -1136,9 +1087,9 @@ static int DetectHttpHeaderTest11(void)
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!(PacketAlertCheck(&p, 1))) {
+    if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
         goto end;
     }
@@ -1155,6 +1106,7 @@ end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
     return result;
 }
 
@@ -1165,7 +1117,7 @@ end:
 static int DetectHttpHeaderTest12(void)
 {
     TcpSession ssn;
-    Packet p;
+    Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -1182,25 +1134,19 @@ static int DetectHttpHeaderTest12(void)
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
 
-
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(Packet));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -1237,9 +1183,9 @@ static int DetectHttpHeaderTest12(void)
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if ((PacketAlertCheck(&p, 1))) {
+    if ((PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
         goto end;
     }
@@ -1256,6 +1202,7 @@ end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
     return result;
 }
 
@@ -1266,7 +1213,7 @@ end:
 static int DetectHttpHeaderTest13(void)
 {
     TcpSession ssn;
-    Packet p;
+    Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineCtx *de_ctx = NULL;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -1283,26 +1230,20 @@ static int DetectHttpHeaderTest13(void)
     uint32_t http_len = sizeof(http_buf) - 1;
     int result = 0;
 
-
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(Packet));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
 
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -1339,9 +1280,9 @@ static int DetectHttpHeaderTest13(void)
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!(PacketAlertCheck(&p, 1))) {
+    if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
         goto end;
     }
@@ -1358,6 +1299,7 @@ end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
     return result;
 }
 

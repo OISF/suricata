@@ -497,21 +497,15 @@ static int DetectRpcTestSig01(void) {
         /* Port 0 */
         0x00,0x00,0x00,0x00 };
     uint16_t buflen = sizeof(buf);
-    Packet p;
+    Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_UDP;
-    /** Be careful, this is just to match the macro PKT_IS_UDP! */
-    p.udph = (void *)1;
+
+    p = UTHBuildPacket(buf, buflen, IPPROTO_UDP);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -548,20 +542,20 @@ static int DetectRpcTestSig01(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1) == 0) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1) == 0) {
         printf("sid 1 didnt alert, but it should have: ");
         goto cleanup;
-    } else if (PacketAlertCheck(&p, 2) == 0) {
+    } else if (PacketAlertCheck(p, 2) == 0) {
         printf("sid 2 didnt alert, but it should have: ");
         goto cleanup;
-    } else if (PacketAlertCheck(&p, 3) == 0) {
+    } else if (PacketAlertCheck(p, 3) == 0) {
         printf("sid 3 didnt alert, but it should have: ");
         goto cleanup;
-    } else if (PacketAlertCheck(&p, 4) == 0) {
+    } else if (PacketAlertCheck(p, 4) == 0) {
         printf("sid 4 didnt alert, but it should have: ");
         goto cleanup;
-    } else if (PacketAlertCheck(&p, 5) > 0) {
+    } else if (PacketAlertCheck(p, 5) > 0) {
         printf("sid 5 did alert, but should not: ");
         goto cleanup;
     }
@@ -577,7 +571,7 @@ cleanup:
 
     DetectSigGroupPrintMemory();
     DetectAddressPrintMemory();
-
+    UTHFreePackets(&p, 1);
 end:
     return result;
 }

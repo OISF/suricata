@@ -299,37 +299,15 @@ int DetectIcmpSeqParseTest03 (void) {
  */
 int DetectIcmpSeqMatchTest01 (void) {
     int result = 0;
-
-    uint8_t raw_icmpv4[] = {
-        0x08, 0x00, 0x42, 0xb4, 0x02, 0x00, 0x08, 0xa8,
-        0x61, 0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68,
-        0x69, 0x6a, 0x6b, 0x6c, 0x6d, 0x6e, 0x6f, 0x70,
-        0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x61,
-        0x62, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69};
-    Packet p;
+    Packet *p = NULL;
     Signature *s = NULL;
-    DecodeThreadVars dtv;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    IPV4Hdr ip4h;
 
-    memset(&p, 0, sizeof(Packet));
-    memset(&ip4h, 0, sizeof(IPV4Hdr));
-    memset(&dtv, 0, sizeof(DecodeThreadVars));
-    memset(&th_v, 0, sizeof(ThreadVars));
+    memset(&th_v, 0, sizeof(th_v));
 
-    FlowInitConfig(FLOW_QUIET);
-
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.src.addr_data32[0] = 0x01020304;
-    p.dst.addr_data32[0] = 0x04030201;
-
-    ip4h.ip_src.s_addr = p.src.addr_data32[0];
-    ip4h.ip_dst.s_addr = p.dst.addr_data32[0];
-    p.ip4h = &ip4h;
-
-    DecodeICMPV4(&th_v, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
+    p = UTHBuildPacket(NULL, 0, IPPROTO_ICMP);
+    p->icmpv4vars.seq = htons(2216);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -351,11 +329,11 @@ int DetectIcmpSeqMatchTest01 (void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1) == 0) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1) == 0) {
         printf("sid 1 did not alert, but should have: ");
         goto cleanup;
-    } else if (PacketAlertCheck(&p, 2)) {
+    } else if (PacketAlertCheck(p, 2)) {
         printf("sid 2 alerted, but should not have: ");
         goto cleanup;
     }
@@ -369,7 +347,7 @@ cleanup:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    FlowShutdown();
+    UTHFreePackets(&p, 1);
 end:
     return result;
 

@@ -27,6 +27,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-htp.h"
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 
 #include "detect.h"
 #include "detect-parse.h"
@@ -489,30 +490,25 @@ static int DetectUrilenSigTest01(void)
                          "\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet p;
+    Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
 
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -556,13 +552,13 @@ static int DetectUrilenSigTest01(void)
         goto end;
     }
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if ((PacketAlertCheck(&p, 1))) {
+    if ((PacketAlertCheck(p, 1))) {
         printf("sid 1 alerted, but should not have: \n");
         goto end;
     }
-    if (!PacketAlertCheck(&p, 2)) {
+    if (!PacketAlertCheck(p, 2)) {
         printf("sid 2 did not alerted, but should have: \n");
         goto end;
     }
@@ -577,6 +573,7 @@ end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
     return result;
 }
 

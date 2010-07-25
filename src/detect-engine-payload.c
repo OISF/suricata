@@ -582,7 +582,6 @@ static int PayloadTestSig08(void)
         "content:fix; content:this; within:6; content:!\"and\"; distance:0; sid:1;)";
 
     if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 1) {
-        result = 0;
         goto end;
     }
 

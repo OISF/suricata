@@ -36,6 +36,7 @@
 
 #include "util-byte.h"
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 #include "util-debug.h"
 
 /* prototypes */
@@ -141,56 +142,25 @@ static void DetectAckFree(void *ptr)
  */
 static int DetectAckSigTest01Real(int mpm_type)
 {
-    uint8_t *buf = (uint8_t *)"";
-    uint16_t buflen = strlen((char *)buf);
-    Packet p[3];
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    Packet *p3 = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
-    uint8_t tcp_hdr0[] = {
-        0x00, 0x50, 0x8e, 0x16, 0x0d, 0x59, 0xcd, 0x3c,
-        0xcf, 0x0d, 0x21, 0x80, 0xa0, 0x12, 0x16, 0xa0,
-        0xfa, 0x03, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
-        0x04, 0x02, 0x08, 0x0a, 0x6e, 0x18, 0x78, 0x73,
-        0x01, 0x71, 0x74, 0xde, 0x01, 0x03, 0x03, 0x02
-    };
-    uint8_t tcp_hdr1[] = {
-        0x00, 0x50, 0x8e, 0x16, 0x0d, 0x59, 0xcd, 0x3c,
-        0xcf, 0x0d, 0x21, 0x80, 0xa0, 0x12, 0x16, 0xa0,
-        0xfa, 0x03, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
-        0x04, 0x02, 0x08, 0x0a, 0x6e, 0x18, 0x78, 0x73,
-        0x01, 0x71, 0x74, 0xde, 0x01, 0x03, 0x03, 0x02
-    };
 
     memset(&th_v, 0, sizeof(th_v));
 
     /* TCP w/ack=42 */
-    memset(&p[0], 0, sizeof(p[0]));
-    p[0].src.family = AF_INET;
-    p[0].dst.family = AF_INET;
-    p[0].payload = buf;
-    p[0].payload_len = buflen;
-    p[0].proto = IPPROTO_TCP;
-    p[0].tcph = (TCPHdr *)tcp_hdr0;
-    p[0].tcph->th_ack = htonl(42);
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p1->tcph->th_ack = htonl(42);
 
     /* TCP w/ack=100 */
-    memset(&p[1], 0, sizeof(p[1]));
-    p[1].src.family = AF_INET;
-    p[1].dst.family = AF_INET;
-    p[1].payload = buf;
-    p[1].payload_len = buflen;
-    p[1].proto = IPPROTO_TCP;
-    p[1].tcph = (TCPHdr *)tcp_hdr1;
-    p[1].tcph->th_ack = htonl(100);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2->tcph->th_ack = htonl(100);
 
     /* ICMP */
-    memset(&p[2], 0, sizeof(p[2]));
-    p[2].src.family = AF_INET;
-    p[2].dst.family = AF_INET;
-    p[2].payload = buf;
-    p[2].payload_len = buflen;
-    p[2].proto = IPPROTO_ICMP;
+    p3 = UTHBuildPacket(NULL, 0, IPPROTO_ICMP);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -240,32 +210,32 @@ static int DetectAckSigTest01Real(int mpm_type)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p[0]);
-    if (PacketAlertCheck(&p[0], 1) != 0) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (PacketAlertCheck(p1, 1) != 0) {
         printf("sid 1 alerted, but should not have: ");
         goto cleanup;
     }
-    if (PacketAlertCheck(&p[0], 2) == 0) {
+    if (PacketAlertCheck(p1, 2) == 0) {
         printf("sid 2 did not alert, but should have: ");
         goto cleanup;
     }
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p[1]);
-    if (PacketAlertCheck(&p[1], 1) != 0) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    if (PacketAlertCheck(p2, 1) != 0) {
         printf("sid 1 alerted, but should not have: ");
         goto cleanup;
     }
-    if (PacketAlertCheck(&p[1], 2) != 0) {
+    if (PacketAlertCheck(p2, 2) != 0) {
         printf("sid 2 alerted, but should not have: ");
         goto cleanup;
     }
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p[1]);
-    if (PacketAlertCheck(&p[2], 1) != 0) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
+    if (PacketAlertCheck(p3, 1) != 0) {
         printf("sid 1 alerted, but should not have: ");
         goto cleanup;
     }
-    if (PacketAlertCheck(&p[2], 2) != 0) {
+    if (PacketAlertCheck(p3, 2) != 0) {
         printf("sid 2 alerted, but should not have: ");
         goto cleanup;
     }

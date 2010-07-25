@@ -41,6 +41,7 @@
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 #include "util-spm.h"
 #include "util-print.h"
 
@@ -484,31 +485,26 @@ static int DetectHttpCookieSigTest01(void) {
                          " hellocatchme\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet p;
+    Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
 
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -553,13 +549,13 @@ static int DetectHttpCookieSigTest01(void) {
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!(PacketAlertCheck(&p, 1))) {
+    if (!(PacketAlertCheck(p, 1))) {
         printf("sid 1 didn't match but should have: ");
         goto end;
     }
-    if (PacketAlertCheck(&p, 2)) {
+    if (PacketAlertCheck(p, 2)) {
         printf("sid 2 matched but shouldn't: ");
         goto end;
     }
@@ -576,6 +572,8 @@ end:
 
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+
+    UTHFreePackets(&p, 1);
     return result;
 }
 
@@ -586,7 +584,7 @@ static int DetectHttpCookieSigTest02(void) {
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet p;
+    Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -597,20 +595,16 @@ static int DetectHttpCookieSigTest02(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
 
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -648,9 +642,9 @@ static int DetectHttpCookieSigTest02(void) {
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if ((PacketAlertCheck(&p, 1))) {
+    if ((PacketAlertCheck(p, 1))) {
         goto end;
     }
 
@@ -666,6 +660,7 @@ end:
     }
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    UTHFreePackets(&p, 1);
     return result;
 }
 
@@ -677,31 +672,26 @@ static int DetectHttpCookieSigTest03(void) {
         "Cookie: dummy\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet p;
+    Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
 
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -739,9 +729,9 @@ static int DetectHttpCookieSigTest03(void) {
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if ((PacketAlertCheck(&p, 1))) {
+    if ((PacketAlertCheck(p, 1))) {
         goto end;
     }
 
@@ -757,6 +747,7 @@ end:
 
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    UTHFreePackets(&p, 1);
     return result;
 }
 
@@ -768,7 +759,7 @@ static int DetectHttpCookieSigTest04(void) {
         "Cookie: dummy\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet p;
+    Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -779,20 +770,16 @@ static int DetectHttpCookieSigTest04(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
 
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -830,9 +817,9 @@ static int DetectHttpCookieSigTest04(void) {
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(&p, 1)) {
+    if (!PacketAlertCheck(p, 1)) {
         goto end;
     }
 
@@ -848,6 +835,7 @@ end:
 
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    UTHFreePackets(&p, 1);
     return result;
 }
 
@@ -859,7 +847,7 @@ static int DetectHttpCookieSigTest05(void) {
         "Cookie: DuMmY\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet p;
+    Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -870,20 +858,16 @@ static int DetectHttpCookieSigTest05(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
 
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -921,9 +905,9 @@ static int DetectHttpCookieSigTest05(void) {
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(&p, 1)) {
+    if (!PacketAlertCheck(p, 1)) {
         goto end;
     }
 
@@ -939,6 +923,7 @@ end:
 
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    UTHFreePackets(&p, 1);
     return result;
 }
 
@@ -950,7 +935,7 @@ static int DetectHttpCookieSigTest06(void) {
         "Cookie: DuMmY\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet p;
+    Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -961,20 +946,16 @@ static int DetectHttpCookieSigTest06(void) {
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
 
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -1011,9 +992,9 @@ static int DetectHttpCookieSigTest06(void) {
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(&p, 1)) {
+    if (!PacketAlertCheck(p, 1)) {
         printf("sig 1 failed to match: ");
         goto end;
     }
@@ -1030,6 +1011,7 @@ end:
 
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    UTHFreePackets(&p, 1);
     return result;
 }
 
@@ -1041,31 +1023,26 @@ static int DetectHttpCookieSigTest07(void) {
         "Cookie: dummy\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-    Packet p;
+    Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     HtpState *http_state = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
 
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -1103,9 +1080,9 @@ static int DetectHttpCookieSigTest07(void) {
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(&p, 1)) {
+    if (PacketAlertCheck(p, 1)) {
         goto end;
     }
 
@@ -1121,6 +1098,7 @@ end:
 
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
+    UTHFreePackets(&p, 1);
     return result;
 }
 

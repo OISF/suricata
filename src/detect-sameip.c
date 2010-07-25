@@ -35,6 +35,7 @@
 #include "detect-sameip.h"
 
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 
 static int DetectSameipMatch(ThreadVars *, DetectEngineThreadCtx *, Packet *,
                              Signature *, SigMatch *);
@@ -120,7 +121,8 @@ static int DetectSameipSigTest01Real(int mpm_type)
                     "GET / HTTP/1.0\r\n"
                     "\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet p[2];
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
@@ -128,24 +130,10 @@ static int DetectSameipSigTest01Real(int mpm_type)
     memset(&th_v, 0, sizeof(th_v));
 
     /* First packet has same IPs */
-    memset(&p[0], 0, sizeof(p[0]));
-    p[0].src.family = AF_INET;
-    p[0].dst.family = AF_INET;
-    p[0].src.addr_data32[0] = 0x01020304;
-    p[0].dst.addr_data32[0] = 0x01020304;
-    p[0].payload = buf;
-    p[0].payload_len = buflen;
-    p[0].proto = IPPROTO_TCP;
+    p1 = UTHBuildPacketSrcDst(buf, buflen, IPPROTO_TCP, "1.2.3.4", "1.2.3.4");
 
     /* Second packet does not have same IPs */
-    memset(&p[1], 0, sizeof(p[1]));
-    p[1].src.family = AF_INET;
-    p[1].dst.family = AF_INET;
-    p[1].src.addr_data32[0] = 0x01020304;
-    p[1].dst.addr_data32[0] = 0x04030201;
-    p[1].payload = buf;
-    p[1].payload_len = buflen;
-    p[1].proto = IPPROTO_TCP;
+    p2 = UTHBuildPacketSrcDst(buf, buflen, IPPROTO_TCP, "1.2.3.4", "4.3.2.1");
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -165,14 +153,14 @@ static int DetectSameipSigTest01Real(int mpm_type)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p[0]);
-    if (PacketAlertCheck(&p[0], 1) == 0) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (PacketAlertCheck(p1, 1) == 0) {
         printf("sid 2 did not alert, but should have: ");
         goto cleanup;
     }
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p[1]);
-    if (PacketAlertCheck(&p[1], 1) != 0) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    if (PacketAlertCheck(p2, 1) != 0) {
         printf("sid 2 alerted, but should not have: ");
         goto cleanup;
     }

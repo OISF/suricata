@@ -44,6 +44,7 @@
 
 #include "util-debug.h"
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 #include "stream-tcp.h"
 
 #define DETECT_DCE_OPNUM_PCRE_PARSE_ARGS "^\\s*([0-9]{1,5}(\\s*-\\s*[0-9]{1,5}\\s*)?)(,\\s*[0-9]{1,5}(\\s*-\\s*[0-9]{1,5})?\\s*)*$"
@@ -668,7 +669,7 @@ static int DetectDceOpnumTestParse08(void)
     int result = 0;
     Signature *s = NULL;
     ThreadVars th_v;
-    Packet p;
+    Packet *p = NULL;
     Flow f;
     TcpSession ssn;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -1124,21 +1125,16 @@ static int DetectDceOpnumTestParse08(void)
     uint32_t dcerpc_request_len = sizeof(dcerpc_request);
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
@@ -1195,9 +1191,9 @@ static int DetectDceOpnumTestParse08(void)
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (!PacketAlertCheck(p, 1))
         goto end;
 
     result = 1;
@@ -1212,6 +1208,8 @@ static int DetectDceOpnumTestParse08(void)
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
+
+    UTHFreePackets(&p, 1);
     return result;
 }
 
@@ -1223,7 +1221,7 @@ static int DetectDceOpnumTestParse09(void)
     int result = 0;
     Signature *s = NULL;
     ThreadVars th_v;
-    Packet p;
+    Packet *p = NULL;
     Flow f;
     TcpSession ssn;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -1653,21 +1651,16 @@ static int DetectDceOpnumTestParse09(void)
     uint32_t dcerpc_request_len = sizeof(dcerpc_request);
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
@@ -1704,9 +1697,9 @@ static int DetectDceOpnumTestParse09(void)
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (!PacketAlertCheck(p, 1))
         goto end;
 
     result = 1;
@@ -1721,6 +1714,8 @@ static int DetectDceOpnumTestParse09(void)
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
+
+    UTHFreePackets(&p, 1);
     return result;
 }
 
@@ -1733,7 +1728,7 @@ static int DetectDceOpnumTestParse10(void)
     int result = 0;
     Signature *s = NULL;
     ThreadVars th_v;
-    Packet p;
+    Packet *p = NULL;
     Flow f;
     TcpSession ssn;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -1852,22 +1847,17 @@ static int DetectDceOpnumTestParse10(void)
     uint32_t dcerpc_response3_len = sizeof(dcerpc_response3);
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
@@ -1903,9 +1893,9 @@ static int DetectDceOpnumTestParse10(void)
         SCLogDebug("no dcerpc state: ");
         goto end;
     }
-    p.flowflags &=~ FLOW_PKT_TOCLIENT;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    p->flowflags &=~ FLOW_PKT_TOCLIENT;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     SCLogDebug("sending bind_ack");
 
@@ -1915,9 +1905,9 @@ static int DetectDceOpnumTestParse10(void)
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         goto end;
     }
-    p.flowflags &=~ FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_TOCLIENT;
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    p->flowflags &=~ FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_TOCLIENT;
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     SCLogDebug("sending request1");
 
@@ -1929,12 +1919,12 @@ static int DetectDceOpnumTestParse10(void)
         goto end;
     }
 
-    p.flowflags &=~ FLOW_PKT_TOCLIENT;
-    p.flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags &=~ FLOW_PKT_TOCLIENT;
+    p->flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(&p, 1)) {
+    if (!PacketAlertCheck(p, 1)) {
         printf("sig 1 didn't match, but should have: ");
         goto end;
     }
@@ -1949,12 +1939,12 @@ static int DetectDceOpnumTestParse10(void)
         goto end;
     }
 
-    p.flowflags &=~ FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_TOCLIENT;
+    p->flowflags &=~ FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(&p, 1)) {
+    if (PacketAlertCheck(p, 1)) {
         printf("sig 1 did match, shouldn't have on response1: ");
         goto end;
     }
@@ -1967,12 +1957,12 @@ static int DetectDceOpnumTestParse10(void)
         goto end;
     }
 
-    p.flowflags &=~ FLOW_PKT_TOCLIENT;
-    p.flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags &=~ FLOW_PKT_TOCLIENT;
+    p->flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(&p, 1)) {
+    if (!PacketAlertCheck(p, 1)) {
         printf("sig 1 didn't match, but should have on request2: ");
         goto end;
     }
@@ -1985,12 +1975,12 @@ static int DetectDceOpnumTestParse10(void)
         goto end;
     }
 
-    p.flowflags &=~ FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_TOCLIENT;
+    p->flowflags &=~ FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(&p, 1)) {
+    if (PacketAlertCheck(p, 1)) {
         printf("sig 1 did match, shouldn't have on response2: ");
         goto end;
     }
@@ -2003,12 +1993,12 @@ static int DetectDceOpnumTestParse10(void)
         goto end;
     }
 
-    p.flowflags &=~ FLOW_PKT_TOCLIENT;
-    p.flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags &=~ FLOW_PKT_TOCLIENT;
+    p->flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(&p, 1)) {
+    if (!PacketAlertCheck(p, 1)) {
         printf("sig 1 didn't match, but should have on request3: ");
         goto end;
     }
@@ -2021,12 +2011,12 @@ static int DetectDceOpnumTestParse10(void)
         goto end;
     }
 
-    p.flowflags &=~ FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_TOCLIENT;
+    p->flowflags &=~ FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(&p, 1)) {
+    if (PacketAlertCheck(p, 1)) {
         printf("sig 1 did match, shouldn't have on response2: ");
         goto end;
     }
@@ -2043,6 +2033,8 @@ static int DetectDceOpnumTestParse10(void)
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
+
+    UTHFreePackets(&p, 1);
     return result;
 }
 
@@ -2055,7 +2047,7 @@ static int DetectDceOpnumTestParse11(void)
     int result = 0;
     Signature *s = NULL;
     ThreadVars th_v;
-    Packet p;
+    Packet *p = NULL;
     Flow f;
     TcpSession ssn;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -2147,22 +2139,17 @@ static int DetectDceOpnumTestParse11(void)
     uint32_t dcerpc_response3_len = sizeof(dcerpc_response3);
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
@@ -2201,12 +2188,12 @@ static int DetectDceOpnumTestParse11(void)
         goto end;
     }
 
-    p.flowflags &=~ FLOW_PKT_TOCLIENT;
-    p.flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags &=~ FLOW_PKT_TOCLIENT;
+    p->flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (!PacketAlertCheck(p, 1))
         goto end;
 
     /* response1 */
@@ -2218,12 +2205,12 @@ static int DetectDceOpnumTestParse11(void)
         goto end;
     }
 
-    p.flowflags &=~ FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_TOCLIENT;
+    p->flowflags &=~ FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(&p, 1))
+    if (PacketAlertCheck(p, 1))
         goto end;
 
     /* request2 */
@@ -2235,12 +2222,12 @@ static int DetectDceOpnumTestParse11(void)
         goto end;
     }
 
-    p.flowflags &=~ FLOW_PKT_TOCLIENT;
-    p.flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags &=~ FLOW_PKT_TOCLIENT;
+    p->flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (!PacketAlertCheck(p, 1))
         goto end;
 
     /* response2 */
@@ -2252,12 +2239,12 @@ static int DetectDceOpnumTestParse11(void)
         goto end;
     }
 
-    p.flowflags &=~ FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_TOCLIENT;
+    p->flowflags &=~ FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(&p, 1))
+    if (PacketAlertCheck(p, 1))
         goto end;
 
     /* request3 */
@@ -2269,12 +2256,12 @@ static int DetectDceOpnumTestParse11(void)
         goto end;
     }
 
-    p.flowflags &=~ FLOW_PKT_TOCLIENT;
-    p.flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags &=~ FLOW_PKT_TOCLIENT;
+    p->flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (!PacketAlertCheck(p, 1))
         goto end;
 
     /* response3 */
@@ -2286,12 +2273,12 @@ static int DetectDceOpnumTestParse11(void)
         goto end;
     }
 
-    p.flowflags &=~ FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_TOCLIENT;
+    p->flowflags &=~ FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(&p, 1))
+    if (PacketAlertCheck(p, 1))
         goto end;
 
     result = 1;
@@ -2306,6 +2293,8 @@ static int DetectDceOpnumTestParse11(void)
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
+
+    UTHFreePackets(&p, 1);
     return result;
 }
 
@@ -2318,7 +2307,7 @@ static int DetectDceOpnumTestParse12(void)
     int result = 0;
     Signature *s = NULL;
     ThreadVars th_v;
-    Packet p;
+    Packet *p = NULL;
     Flow f;
     TcpSession ssn;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -2425,22 +2414,17 @@ static int DetectDceOpnumTestParse12(void)
     uint32_t dcerpc_response2_len = sizeof(dcerpc_response2);
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
@@ -2466,9 +2450,9 @@ static int DetectDceOpnumTestParse12(void)
         printf("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         goto end;
     }
-    p.flowflags &=~ FLOW_PKT_TOCLIENT;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    p->flowflags &=~ FLOW_PKT_TOCLIENT;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
     if (dcerpc_state == NULL) {
@@ -2482,9 +2466,9 @@ static int DetectDceOpnumTestParse12(void)
         printf("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
         goto end;
     }
-    p.flowflags &=~ FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_TOCLIENT;
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    p->flowflags &=~ FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_TOCLIENT;
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     /* request1 */
     SCLogDebug("Sending request1");
@@ -2508,12 +2492,12 @@ static int DetectDceOpnumTestParse12(void)
         goto end;
     }
 
-    p.flowflags &=~ FLOW_PKT_TOCLIENT;
-    p.flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags &=~ FLOW_PKT_TOCLIENT;
+    p->flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(&p, 1)) {
+    if (!PacketAlertCheck(p, 1)) {
         printf("signature 1 didn't match, should have: ");
         goto end;
     }
@@ -2538,12 +2522,12 @@ static int DetectDceOpnumTestParse12(void)
         goto end;
     }
 
-    p.flowflags &=~ FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_TOCLIENT;
+    p->flowflags &=~ FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(&p, 1)) {
+    if (PacketAlertCheck(p, 1)) {
         printf("sig 1 matched on response 1, but shouldn't: ");
         goto end;
     }
@@ -2568,12 +2552,12 @@ static int DetectDceOpnumTestParse12(void)
         goto end;
     }
 
-    p.flowflags &=~ FLOW_PKT_TOCLIENT;
-    p.flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags &=~ FLOW_PKT_TOCLIENT;
+    p->flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(&p, 1)) {
+    if (!PacketAlertCheck(p, 1)) {
         printf("sig 1 didn't match on request 2: ");
         goto end;
     }
@@ -2598,12 +2582,12 @@ static int DetectDceOpnumTestParse12(void)
         goto end;
     }
 
-    p.flowflags &=~ FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_TOCLIENT;
+    p->flowflags &=~ FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(&p, 1)) {
+    if (PacketAlertCheck(p, 1)) {
         printf("sig 1 matched on response2, but shouldn't: ");
         goto end;
     }
@@ -2620,6 +2604,8 @@ end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
+
+    UTHFreePackets(&p, 1);
     return result;
 }
 
@@ -2632,7 +2618,7 @@ static int DetectDceOpnumTestParse13(void)
     int result = 0;
     Signature *s = NULL;
     ThreadVars th_v;
-    Packet p;
+    Packet *p = NULL;
     Flow f;
     TcpSession ssn;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -2712,22 +2698,17 @@ static int DetectDceOpnumTestParse13(void)
     uint32_t dcerpc_response2_len = sizeof(dcerpc_response2);
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
@@ -2770,12 +2751,12 @@ static int DetectDceOpnumTestParse13(void)
         goto end;
     }
 
-    p.flowflags &=~ FLOW_PKT_TOCLIENT;
-    p.flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags &=~ FLOW_PKT_TOCLIENT;
+    p->flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (!PacketAlertCheck(p, 1))
         goto end;
 
     /* response1 */
@@ -2798,12 +2779,12 @@ static int DetectDceOpnumTestParse13(void)
         goto end;
     }
 
-    p.flowflags &=~ FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_TOCLIENT;
+    p->flowflags &=~ FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(&p, 1))
+    if (PacketAlertCheck(p, 1))
         goto end;
 
     /* request2 */
@@ -2827,12 +2808,12 @@ static int DetectDceOpnumTestParse13(void)
         goto end;
     }
 
-    p.flowflags &=~ FLOW_PKT_TOCLIENT;
-    p.flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags &=~ FLOW_PKT_TOCLIENT;
+    p->flowflags |= FLOW_PKT_TOSERVER;
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(&p, 1))
+    if (!PacketAlertCheck(p, 1))
         goto end;
 
     /* response2 */
@@ -2855,12 +2836,12 @@ static int DetectDceOpnumTestParse13(void)
         goto end;
     }
 
-    p.flowflags &=~ FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_TOCLIENT;
+    p->flowflags &=~ FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_TOCLIENT;
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(&p, 1))
+    if (PacketAlertCheck(p, 1))
         goto end;
 
     result = 1;
@@ -2875,6 +2856,8 @@ static int DetectDceOpnumTestParse13(void)
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
+
+    UTHFreePackets(&p, 1);
     return result;
 }
 #endif

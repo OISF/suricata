@@ -40,7 +40,9 @@
 #include "threadvars.h"
 #include "tm-modules.h"
 #include "util-debug.h"
+
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 
 #include "detect.h"
 #include "detect-parse.h"
@@ -375,17 +377,12 @@ int AlertFastLogTest01()
         "Host: one.example.org\r\n";
 
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
+    Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -404,12 +401,11 @@ int AlertFastLogTest01()
     result = (de_ctx->sig_list != NULL);
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (p.alerts.cnt == 1)
-        result = (strcmp(p.alerts.alerts[0].class_msg, "Unknown are we") == 0);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (p->alerts.cnt == 1)
+        result = (strcmp(p->alerts.alerts[0].class_msg, "Unknown are we") == 0);
     else
         result = 0;
 
@@ -424,9 +420,9 @@ int AlertFastLogTest01()
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 
+    UTHFreePackets(&p, 1);
     return result;
 }
 
@@ -436,17 +432,13 @@ int AlertFastLogTest02()
     uint8_t *buf = (uint8_t *) "GET /one/ HTTP/1.1\r\n"
         "Host: one.example.org\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
+    Packet *p = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
+
+    p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -463,19 +455,22 @@ int AlertFastLogTest02()
             "(msg:\"FastLog test\"; content:GET; "
             "Classtype:unknown; sid:1;)");
     result = (de_ctx->sig_list != NULL);
-    if (result == 0) printf("sig parse failed: ");
+    if (result == 0)
+        printf("sig parse failed: ");
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (p.alerts.cnt == 1) {
-        result = (strcmp(p.alerts.alerts[0].class_msg, "Unknown Traffic") != 0);
-        if (result == 0) printf("p.alerts.alerts[0].class_msg %s: ", p.alerts.alerts[0].class_msg);
-        result = (strcmp(p.alerts.alerts[0].class_msg,
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (p->alerts.cnt == 1) {
+        result = (strcmp(p->alerts.alerts[0].class_msg, "Unknown Traffic") != 0);
+        if (result == 0)
+            printf("p->alerts.alerts[0].class_msg %s: ", p->alerts.alerts[0].class_msg);
+
+        result = (strcmp(p->alerts.alerts[0].class_msg,
                     "Unknown are we") == 0);
-        if (result == 0) printf("p.alerts.alerts[0].class_msg %s: ", p.alerts.alerts[0].class_msg);
+        if (result == 0)
+            printf("p->alerts.alerts[0].class_msg %s: ", p->alerts.alerts[0].class_msg);
     } else {
         result = 0;
     }
@@ -491,9 +486,9 @@ int AlertFastLogTest02()
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 
+    UTHFreePackets(&p, 1);
     return result;
 }
 

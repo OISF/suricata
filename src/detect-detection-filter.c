@@ -384,27 +384,16 @@ int DetectDetectionFilterTestParse06 (void) {
  *  \retval 0 on failure
  */
 static int DetectDetectionFilterTestSig1(void) {
-
-    Packet p;
+    Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
     int alerts = 0;
-    IPV4Hdr ip4h;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    memset(&ip4h, 0, sizeof(ip4h));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.proto = IPPROTO_TCP;
-    p.ip4h = &ip4h;
-    p.ip4h->ip_src.s_addr = 0x01010101;
-    p.ip4h->ip_dst.s_addr = 0x02020202;
-    p.sp = 1024;
-    p.dp = 80;
+    p = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -421,22 +410,22 @@ static int DetectDetectionFilterTestSig1(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    alerts = PacketAlertCheck(&p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    alerts += PacketAlertCheck(&p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    alerts += PacketAlertCheck(&p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    alerts += PacketAlertCheck(&p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    alerts += PacketAlertCheck(&p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    alerts += PacketAlertCheck(&p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    alerts += PacketAlertCheck(&p, 1);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    alerts += PacketAlertCheck(&p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts = PacketAlertCheck(p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 1);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 1);
 
     if(alerts == 5)
         result = 1;
@@ -448,6 +437,7 @@ static int DetectDetectionFilterTestSig1(void) {
     DetectEngineCtxFree(de_ctx);
 
 end:
+    UTHFreePackets(&p, 1);
     return result;
 }
 
@@ -461,31 +451,20 @@ end:
  */
 
 static int DetectDetectionFilterTestSig2(void) {
-
-    Packet p;
+    Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
     int alerts = 0;
-    IPV4Hdr ip4h;
     struct timeval ts;
 
     memset (&ts, 0, sizeof(struct timeval));
     TimeGet(&ts);
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    memset(&ip4h, 0, sizeof(ip4h));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.proto = IPPROTO_TCP;
-    p.ip4h = &ip4h;
-    p.ip4h->ip_src.s_addr = 0x01010101;
-    p.ip4h->ip_dst.s_addr = 0x02020202;
-    p.sp = 1024;
-    p.dp = 80;
+    p = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -502,26 +481,26 @@ static int DetectDetectionFilterTestSig2(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    TimeGet(&p.ts);
+    TimeGet(&p->ts);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    alerts = PacketAlertCheck(&p, 10);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    alerts += PacketAlertCheck(&p, 10);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    alerts += PacketAlertCheck(&p, 10);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts = PacketAlertCheck(p, 10);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
 
     TimeSetIncrementTime(200);
-    TimeGet(&p.ts);
+    TimeGet(&p->ts);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    alerts += PacketAlertCheck(&p, 10);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    alerts += PacketAlertCheck(&p, 10);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    alerts += PacketAlertCheck(&p, 10);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    alerts += PacketAlertCheck(&p, 10);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    alerts += PacketAlertCheck(p, 10);
 
     if (alerts == 1)
         result = 1;
@@ -532,6 +511,7 @@ static int DetectDetectionFilterTestSig2(void) {
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    UTHFreePackets(&p, 1);
     return result;
 }
 

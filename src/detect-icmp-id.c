@@ -327,40 +327,16 @@ int DetectIcmpIdParseTest05 (void) {
  */
 int DetectIcmpIdMatchTest01 (void) {
     int result = 0;
-
-    uint8_t raw_icmpv4[] = {
-        0x08, 0x00, 0x64, 0x03, 0x55, 0x15, 0x00, 0x00,
-        0x58, 0x58, 0x58, 0x58, 0x58, 0x58, 0x58, 0x58,
-        0x58, 0x58, 0x58, 0x58, 0x58, 0x58, 0x58, 0x58,
-        0x58, 0x58, 0x58, 0x58, 0x58, 0x58, 0x58, 0x58,
-        0x58, 0x58, 0x58, 0x58, 0x58, 0x58, 0x58, 0x58,
-        0x58, 0x58, 0x58, 0x58, 0x58, 0x58, 0x58, 0x58,
-        0x58 };
-
-    Packet p;
+    Packet *p = NULL;
     Signature *s = NULL;
     DecodeThreadVars dtv;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    IPV4Hdr ip4h;
 
-    memset(&p, 0, sizeof(Packet));
-    memset(&ip4h, 0, sizeof(IPV4Hdr));
-    memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(ThreadVars));
 
-    FlowInitConfig(FLOW_QUIET);
-
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.src.addr_data32[0] = 0x01020304;
-    p.dst.addr_data32[0] = 0x04030201;
-
-    ip4h.ip_src.s_addr = p.src.addr_data32[0];
-    ip4h.ip_dst.s_addr = p.dst.addr_data32[0];
-    p.ip4h = &ip4h;
-
-    DecodeICMPV4(&th_v, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
+    p = UTHBuildPacket(NULL, 0, IPPROTO_ICMP);
+    p->icmpv4vars.id = htons(21781);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -382,11 +358,11 @@ int DetectIcmpIdMatchTest01 (void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1) == 0) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1) == 0) {
         printf("sid 1 did not alert, but should have: ");
         goto cleanup;
-    } else if (PacketAlertCheck(&p, 2)) {
+    } else if (PacketAlertCheck(p, 2)) {
         printf("sid 2 alerted, but should not have: ");
         goto cleanup;
     }
@@ -400,7 +376,7 @@ cleanup:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    FlowShutdown();
+    UTHFreePackets(&p, 1);
 end:
     return result;
 

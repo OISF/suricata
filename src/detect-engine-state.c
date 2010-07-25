@@ -45,6 +45,7 @@
 #include "app-layer-dcerpc.h"
 
 #include "util-unittest.h"
+#include "util-unittest-helper.h"
 #include "util-profiling.h"
 
 /** convert enum to string */
@@ -786,7 +787,7 @@ static int DeStateSigTest01(void) {
     ThreadVars th_v;
     Flow f;
     TcpSession ssn;
-    Packet p;
+    Packet *p = NULL;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\n";
     uint8_t httpbuf2[] = "User-Agent: Mozilla/1.0\r\n";
     uint8_t httpbuf3[] = "Cookie: dummy\r\nContent-Length: 10\r\n\r\n";
@@ -798,24 +799,19 @@ static int DeStateSigTest01(void) {
     HtpState *http_state = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
 
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -843,12 +839,12 @@ static int DeStateSigTest01(void) {
         goto end;
     }
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1)) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1)) {
         printf("sig 1 alerted: ");
         goto end;
     }
-    p.alerts.cnt = 0;
+    p->alerts.cnt = 0;
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
@@ -856,12 +852,12 @@ static int DeStateSigTest01(void) {
         goto end;
     }
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1)) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1)) {
         printf("sig 1 alerted (2): ");
         goto end;
     }
-    p.alerts.cnt = 0;
+    p->alerts.cnt = 0;
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf3, httplen3);
     if (r != 0) {
@@ -869,12 +865,12 @@ static int DeStateSigTest01(void) {
         goto end;
     }
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (!(PacketAlertCheck(&p, 1))) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (!(PacketAlertCheck(p, 1))) {
         printf("sig 1 didn't alert: ");
         goto end;
     }
-    p.alerts.cnt = 0;
+    p->alerts.cnt = 0;
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf4, httplen4);
     if (r != 0) {
@@ -883,12 +879,12 @@ static int DeStateSigTest01(void) {
         goto end;
     }
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1)) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1)) {
         printf("signature matched, but shouldn't have: ");
         goto end;
     }
-    p.alerts.cnt = 0;
+    p->alerts.cnt = 0;
 
     result = 1;
 end:
@@ -906,6 +902,7 @@ end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
+    UTHFreePacket(p);
     return result;
 }
 
@@ -917,7 +914,7 @@ static int DeStateSigTest02(void) {
     ThreadVars th_v;
     Flow f;
     TcpSession ssn;
-    Packet p;
+    Packet *p = NULL;
     uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n";
     uint8_t httpbuf2[] = "User-Agent: Mozilla/1.0\r\nContent-Length: 10\r\n";
     uint8_t httpbuf3[] = "Cookie: dummy\r\n\r\n";
@@ -934,15 +931,10 @@ static int DeStateSigTest02(void) {
     uint32_t httplen7 = sizeof(httpbuf7) - 1; /* minus the \0 */
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
@@ -950,9 +942,9 @@ static int DeStateSigTest02(void) {
     f.src.family = AF_INET;
     f.dst.family = AF_INET;
 
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -985,12 +977,12 @@ static int DeStateSigTest02(void) {
         goto end;
     }
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1)) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1)) {
         printf("sig 1 alerted: ");
         goto end;
     }
-    p.alerts.cnt = 0;
+    p->alerts.cnt = 0;
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
@@ -998,12 +990,12 @@ static int DeStateSigTest02(void) {
         goto end;
     }
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1)) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1)) {
         printf("sig 1 alerted (2): ");
         goto end;
     }
-    p.alerts.cnt = 0;
+    p->alerts.cnt = 0;
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf3, httplen3);
     if (r != 0) {
@@ -1011,12 +1003,12 @@ static int DeStateSigTest02(void) {
         goto end;
     }
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (!(PacketAlertCheck(&p, 1))) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (!(PacketAlertCheck(p, 1))) {
         printf("sig 1 didn't alert: ");
         goto end;
     }
-    p.alerts.cnt = 0;
+    p->alerts.cnt = 0;
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf4, httplen4);
     if (r != 0) {
@@ -1025,12 +1017,12 @@ static int DeStateSigTest02(void) {
         goto end;
     }
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1)) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1)) {
         printf("signature matched, but shouldn't have: ");
         goto end;
     }
-    p.alerts.cnt = 0;
+    p->alerts.cnt = 0;
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf5, httplen5);
     if (r != 0) {
@@ -1038,12 +1030,12 @@ static int DeStateSigTest02(void) {
         goto end;
     }
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1)) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1)) {
         printf("sig 1 alerted (5): ");
         goto end;
     }
-    p.alerts.cnt = 0;
+    p->alerts.cnt = 0;
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf6, httplen6);
     if (r != 0) {
@@ -1051,12 +1043,12 @@ static int DeStateSigTest02(void) {
         goto end;
     }
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if ((PacketAlertCheck(&p, 1)) || (PacketAlertCheck(&p, 2))) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if ((PacketAlertCheck(p, 1)) || (PacketAlertCheck(p, 2))) {
         printf("sig 1 alerted (request 2, chunk 6): ");
         goto end;
     }
-    p.alerts.cnt = 0;
+    p->alerts.cnt = 0;
 
     SCLogDebug("sending data chunk 7");
 
@@ -1066,12 +1058,12 @@ static int DeStateSigTest02(void) {
         goto end;
     }
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (!(PacketAlertCheck(&p, 2))) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (!(PacketAlertCheck(p, 2))) {
         printf("signature 2 didn't match, but should have: ");
         goto end;
     }
-    p.alerts.cnt = 0;
+    p->alerts.cnt = 0;
 
     result = 1;
 end:
@@ -1086,6 +1078,7 @@ end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
+    UTHFreePacket(p);
     return result;
 }
 #endif

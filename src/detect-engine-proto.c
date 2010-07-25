@@ -349,7 +349,7 @@ end:
  */
 
 static int DetectProtoTestSig01(void) {
-    Packet p;
+    Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
@@ -358,15 +358,13 @@ static int DetectProtoTestSig01(void) {
 
     memset(&f, 0, sizeof(Flow));
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
 
     FLOW_INITIALIZE(&f);
 
-    p.flow = &f;
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.proto = IPPROTO_TCP;
-    p.flowflags |= FLOW_PKT_TOSERVER;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -396,14 +394,14 @@ static int DetectProtoTestSig01(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1)) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1)) {
         printf("sid 1 alerted, but should not have: ");
         goto cleanup;
-    } else if (PacketAlertCheck(&p, 2) == 0) {
+    } else if (PacketAlertCheck(p, 2) == 0) {
         printf("sid 2 did not alert, but should have: ");
         goto cleanup;
-    } else if (PacketAlertCheck(&p, 3) == 0) {
+    } else if (PacketAlertCheck(p, 3) == 0) {
         printf("sid 3 did not alert, but should have: ");
         goto cleanup;
     }
@@ -419,6 +417,7 @@ cleanup:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
+    UTHFreePackets(&p, 1);
 end:
     return result;
 }

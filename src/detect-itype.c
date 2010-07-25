@@ -388,25 +388,16 @@ int DetectITypeParseTest08(void) {
  */
 int DetectITypeMatchTest01(void) {
 
-    Packet p;
+    Packet *p = NULL;
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
-    IPV4Hdr ip4h;
-    ICMPV4Hdr icmpv4h;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    memset(&ip4h, 0, sizeof(ip4h));
-    memset(&icmpv4h, 0, sizeof(icmpv4h));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.proto = IPPROTO_ICMP;
-    p.ip4h = &ip4h;
-    icmpv4h.type = 10;
-    p.icmpv4h = &icmpv4h;
+    p = UTHBuildPacket(NULL, 0, IPPROTO_ICMP);
+    p->icmpv4h->type = 10;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -444,20 +435,20 @@ int DetectITypeMatchTest01(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1) == 0) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1) == 0) {
         SCLogDebug("sid 1 did not alert, but should have");
         goto cleanup;
-    } else if (PacketAlertCheck(&p, 2) == 0) {
+    } else if (PacketAlertCheck(p, 2) == 0) {
         SCLogDebug("sid 2 did not alert, but should have");
         goto cleanup;
-    } else if (PacketAlertCheck(&p, 3)) {
+    } else if (PacketAlertCheck(p, 3)) {
         SCLogDebug("sid 3 alerted, but should not have");
         goto cleanup;
-    } else if (PacketAlertCheck(&p, 4) == 0) {
+    } else if (PacketAlertCheck(p, 4) == 0) {
         SCLogDebug("sid 4 did not alert, but should have");
         goto cleanup;
-    } else if (PacketAlertCheck(&p, 5) == 0) {
+    } else if (PacketAlertCheck(p, 5) == 0) {
         SCLogDebug("sid 5 did not alert, but should have");
         goto cleanup;
     }
@@ -471,6 +462,7 @@ cleanup:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
+    UTHFreePackets(&p, 1);
 end:
     return result;
 }
