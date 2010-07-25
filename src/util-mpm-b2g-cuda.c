@@ -2552,12 +2552,12 @@ static int B2gCudaTest02(void)
     B2gCudaMpmThreadCtxData *b2g_tctx = NULL;
     B2gCudaMpmDispThreadInit(NULL, module_data, (void *)&b2g_tctx);
 
-    if (b2g_tctx->b2g_cuda_context == 0)
+    if (b2g_tctx->b2g_cuda_context == 0 ||
+        b2g_tctx->b2g_cuda_module == 0 ||
+        b2g_tctx->b2g_cuda_search_kernel == 0) {
+        result = 0;
         goto end;
-    if (b2g_tctx->b2g_cuda_module == 0)
-        goto end;
-    if (b2g_tctx->b2g_cuda_search_kernel == 0)
-        goto end;
+    }
 
     B2gCudaMpmDispatcher(NULL, (Packet *)pb, b2g_tctx, NULL, NULL);
 
@@ -2852,12 +2852,12 @@ static int B2gCudaTest03(void)
     B2gCudaMpmThreadCtxData *b2g_tctx = NULL;
     B2gCudaMpmDispThreadInit(NULL, module_data, (void *)&b2g_tctx);
 
-    if (b2g_tctx->b2g_cuda_context == 0)
+    if (b2g_tctx->b2g_cuda_context == 0 ||
+        b2g_tctx->b2g_cuda_module == 0 ||
+        b2g_tctx->b2g_cuda_search_kernel == 0) {
+        result = 0;
         goto end;
-    if (b2g_tctx->b2g_cuda_module == 0)
-        goto end;
-    if (b2g_tctx->b2g_cuda_search_kernel == 0)
-        goto end;
+    }
 
     B2gCudaMpmDispatcher(NULL, (Packet *)pb, b2g_tctx, NULL, NULL);
 
