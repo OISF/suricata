@@ -270,6 +270,9 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
                 SCReturnInt(1);
             }
 
+            if (det_ctx->discontinue_matching)
+                SCReturnInt(0);
+
             det_ctx->payload_offset = prev_payload_offset;
             det_ctx->pcre_match_start_offset = prev_offset;
         } while (1);
