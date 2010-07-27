@@ -635,12 +635,17 @@ static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, uint8_t *input, uint32
 
 static uint32_t DCERPCParseBIND(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
     SCEnter();
+    DCERPCUuidEntry *item;
     uint8_t *p = input;
     if (input_len) {
         switch (dcerpc->bytesprocessed) {
             case 16:
                 dcerpc->dcerpcbindbindack.numctxitems = 0;
                 if (input_len >= 12) {
+                    while ((item = TAILQ_FIRST(&dcerpc->dcerpcbindbindack.uuid_list))) {
+                        TAILQ_REMOVE(&dcerpc->dcerpcbindbindack.uuid_list, item, next);
+                        SCFree(item);
+                    }
                     TAILQ_INIT(&dcerpc->dcerpcbindbindack.uuid_list);
                     dcerpc->dcerpcbindbindack.numctxitems = *(p + 8);
                     dcerpc->dcerpcbindbindack.numctxitemsleft = dcerpc->dcerpcbindbindack.numctxitems;
@@ -688,6 +693,10 @@ static uint32_t DCERPCParseBIND(DCERPC *dcerpc, uint8_t *input, uint32_t input_l
                 if (!(--input_len))
                     break;
             case 24:
+                while ((item = TAILQ_FIRST(&dcerpc->dcerpcbindbindack.uuid_list))) {
+                    TAILQ_REMOVE(&dcerpc->dcerpcbindbindack.uuid_list, item, next);
+                    SCFree(item);
+                }
                 dcerpc->dcerpcbindbindack.numctxitems = *(p++);
                 dcerpc->dcerpcbindbindack.numctxitemsleft = dcerpc->dcerpcbindbindack.numctxitems;
                 TAILQ_INIT(&dcerpc->dcerpcbindbindack.uuid_list);
@@ -3942,6 +3951,99 @@ end:
     return result;
 }
 
+/**
+ * \test DCERPC fragmented bind PDU(one PDU which is frag'ed)
+ */
+int DCERPCParserTest08(void) {
+    int result = 1;
+    Flow f;
+    int r = 0;
+    uint8_t bind1[] = {
+        0x05, 0x00, 0x0b, 0x01, 0x10, 0x00, 0x00, 0x00,
+        0x48, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0xd0, 0x16, 0xd0, 0x16, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
+        0xb8, 0x4a, 0x9f, 0x4d, 0x1c, 0x7d, 0xcf, 0x11,
+        0x86, 0x1e, 0x00, 0x20, 0xaf, 0x6e, 0x7c, 0x57,
+        0x00, 0x00, 0x00, 0x00, 0x04, 0x5d, 0x88, 0x8a,
+        0xeb, 0x1c, 0xc9, 0x11, 0x9f, 0xe8, 0x08, 0x00,
+        0x2b, 0x10, 0x48, 0x60, 0x02, 0x00, 0x00, 0x00
+    };
+    uint32_t bind1_len = sizeof(bind1);
+
+    uint8_t bind2[] = {
+        0x05, 0x00, 0x0b, 0x02, 0x10, 0x00, 0x00, 0x00,
+        0x48, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0xd0, 0x16, 0xd0, 0x16, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0xb8, 0x4a, 0x9f, 0x4d, 0x1c, 0x7d, 0xcf, 0x11,
+        0x86, 0x1e, 0x00, 0x20, 0xaf, 0x6e, 0x7c, 0x67,
+        0x00, 0x00, 0x00, 0x00, 0x04, 0x5d, 0x88, 0x8a,
+        0xeb, 0x1c, 0xc9, 0x11, 0x9f, 0xe8, 0x08, 0x00,
+        0x2b, 0x10, 0x48, 0x60, 0x02, 0x00, 0x00, 0x00
+    };
+    uint32_t bind2_len = sizeof(bind2);
+
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_START,
+                      bind1, bind1_len);
+    if (r != 0) {
+        printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    DCERPCState *dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    if (dcerpc_state == NULL) {
+        printf("no dcerpc state: ");
+        result = 0;
+        goto end;
+    }
+
+    DCERPCUuidEntry *item = NULL;
+    int m = 0;
+    TAILQ_FOREACH(item, &dcerpc_state->dcerpc.dcerpcbindbindack.uuid_list, next) {
+        printf("%d ", m);
+        printUUID("BIND",item);
+        m++;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
+                      bind2, bind2_len);
+    if (r != 0) {
+        printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    item = NULL;
+    m = 0;
+    TAILQ_FOREACH(item, &dcerpc_state->dcerpc.dcerpcbindbindack.uuid_list, next) {
+        printf("%d ", m);
+        printUUID("BIND",item);
+        m++;
+    }
+
+    /* we will need this test later for fragged bind pdus.  keep it */
+    result = 1;
+
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
 void DCERPCParserRegisterTests(void) {
     printf("DCERPCParserRegisterTests\n");
     UtRegisterTest("DCERPCParserTest01", DCERPCParserTest01, 1);
@@ -3951,6 +4053,7 @@ void DCERPCParserRegisterTests(void) {
     UtRegisterTest("DCERPCParserTest05", DCERPCParserTest05, 1);
     UtRegisterTest("DCERPCParserTest06", DCERPCParserTest06, 1);
     UtRegisterTest("DCERPCParserTest07", DCERPCParserTest07, 1);
+    UtRegisterTest("DCERPCParserTest08", DCERPCParserTest08, 1);
 }
 #endif
 
