@@ -74,6 +74,13 @@ static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
 {
     SCEnter();
 
+    det_ctx->inspection_recursion_counter++;
+
+    if (det_ctx->inspection_recursion_counter == de_ctx->inspection_recursion_limit) {
+        det_ctx->discontinue_matching = 1;
+        SCReturnInt(0);
+    }
+
     if (sm == NULL || payload_len == 0) {
         SCReturnInt(0);
     }
@@ -368,6 +375,7 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
 
     det_ctx->payload_offset = 0;
     det_ctx->discontinue_matching = 0;
+    det_ctx->inspection_recursion_counter = 0;
 
     r = DoInspectPacketPayload(de_ctx, det_ctx, s, s->pmatch, p, f, p->payload, p->payload_len);
     if (r == 1) {

@@ -966,7 +966,7 @@ int main(int argc, char **argv)
         DeStateRegisterTests();
         DetectRingBufferRegisterTests();
         MemcmpRegisterTests();
-
+        DetectEngineRegisterTests();
         if (list_unittests) {
             UtListTests(regex_arg);
         }

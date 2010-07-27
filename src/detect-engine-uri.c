@@ -81,6 +81,13 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
 {
     SCEnter();
 
+    det_ctx->inspection_recursion_counter++;
+
+    if (det_ctx->inspection_recursion_counter == de_ctx->inspection_recursion_limit) {
+        det_ctx->discontinue_matching = 1;
+        SCReturnInt(0);
+    }
+
     if (sm == NULL) {
         SCReturnInt(0);
     }
@@ -421,6 +428,7 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
 
         det_ctx->discontinue_matching = 0;
         det_ctx->payload_offset = 0;
+        det_ctx->inspection_recursion_counter = 0;
 
         /* Inspect all the uricontents fetched on each
          * transaction at the app layer */

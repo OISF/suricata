@@ -577,6 +577,9 @@ typedef struct DetectEngineCtx_ {
      *  id sharing and id tracking. */
     MpmPatternIdStore *mpm_pattern_id_store;
 
+    /* maximum recursion depth for content inspection */
+    int inspection_recursion_limit;
+
     /* array containing all sgh's in use so we can loop
      * through it in Stage4. */
     struct SigGroupHead_ **sgh_array;
@@ -634,6 +637,9 @@ typedef struct DetectionEngineThreadCtx_ {
 
     /* used to discontinue any more matching */
     int discontinue_matching;
+
+    /* holds the current recursion depth on content inspection */
+    int inspection_recursion_counter;
 
     /* dce stub data */
     uint8_t *dce_stub_data;

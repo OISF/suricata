@@ -83,6 +83,13 @@ static int DoInspectDcePayload(DetectEngineCtx *de_ctx,
 {
     SCEnter();
 
+    det_ctx->inspection_recursion_counter++;
+
+    if (det_ctx->inspection_recursion_counter == de_ctx->inspection_recursion_limit) {
+        det_ctx->discontinue_matching = 1;
+        SCReturnInt(0);
+    }
+
     if (sm == NULL || stub_len == 0) {
         SCReturnInt(0);
     }
@@ -425,6 +432,7 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
 
         det_ctx->payload_offset = 0;
         det_ctx->discontinue_matching = 0;
+        det_ctx->inspection_recursion_counter = 0;
 
         r = DoInspectDcePayload(de_ctx, det_ctx, s, s->dmatch, f,
                                 dce_stub_data, dce_stub_data_len, dcerpc_state);
@@ -441,6 +449,7 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
 
         det_ctx->payload_offset = 0;
         det_ctx->discontinue_matching = 0;
+        det_ctx->inspection_recursion_counter = 0;
 
         r = DoInspectDcePayload(de_ctx, det_ctx, s, s->dmatch, f,
                                 dce_stub_data, dce_stub_data_len, dcerpc_state);

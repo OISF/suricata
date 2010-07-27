@@ -26,6 +26,7 @@
 #include "detect.h"
 #include "flow.h"
 #include "conf.h"
+#include "conf-yaml-loader.h"
 
 #include "detect-parse.h"
 #include "detect-engine-sigorder.h"
@@ -48,13 +49,22 @@
 #include "util-hash.h"
 #include "util-byte.h"
 #include "util-debug.h"
+#include "util-unittest.h"
 
 #include "util-var-name.h"
 #include "tm-modules.h"
 
+#define DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT 10000
+
 static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *);
+
 DetectEngineCtx *DetectEngineCtxInit(void) {
     DetectEngineCtx *de_ctx;
+
+    ConfNode *seq_node = NULL;
+    ConfNode *insp_recursion_limit_node = NULL;
+    ConfNode *de_engine_node = NULL;
+    char *insp_recursion_limit = NULL;
 
     de_ctx = SCMalloc(sizeof(DetectEngineCtx));
     if (de_ctx == NULL)
@@ -65,6 +75,39 @@ DetectEngineCtx *DetectEngineCtxInit(void) {
     if (ConfGetBool("engine.init_failure_fatal", (int *)&(de_ctx->failure_fatal)) != 1) {
         SCLogDebug("ConfGetBool could not load the value.");
     }
+
+    de_engine_node = ConfGetNode("detect-engine");
+    if (de_engine_node != NULL) {
+        TAILQ_FOREACH(seq_node, &de_engine_node->head, next) {
+            if (strcmp(seq_node->val, "inspection-recursion-limit") != 0)
+                continue;
+
+            insp_recursion_limit_node = ConfNodeLookupChild(seq_node, seq_node->val);
+            if (insp_recursion_limit_node == NULL) {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Error retrieving conf "
+                           "entry for detect-engine:inspection-recursion-limit");
+                break;
+            }
+            insp_recursion_limit = insp_recursion_limit_node->val;
+            SCLogDebug("Found detect-engine:inspection-recursion-limit - %s:%s",
+                       insp_recursion_limit_node->name, insp_recursion_limit_node->val);
+
+            break;
+        }
+    }
+
+    if (insp_recursion_limit != NULL) {
+        de_ctx->inspection_recursion_limit = atoi(insp_recursion_limit);
+    } else {
+        de_ctx->inspection_recursion_limit =
+            DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT;
+    }
+
+    if (de_ctx->inspection_recursion_limit == 0)
+        de_ctx->inspection_recursion_limit = -1;
+
+    SCLogDebug("de_ctx->inspection_recursion_limit: %d",
+               de_ctx->inspection_recursion_limit);
 
     de_ctx->mpm_matcher = PatternMatchDefaultMatcher();
     DetectEngineCtxLoadConf(de_ctx);
@@ -441,3 +484,188 @@ void DetectEngineThreadCtxInfo(ThreadVars *t, DetectEngineThreadCtx *det_ctx) {
     PatternMatchThreadPrint(&det_ctx->mtcu, det_ctx->de_ctx->mpm_matcher);
 }
 
+/*************************************Unittest*********************************/
+
+#ifdef UNITTESTS
+
+static int DetectEngineInitYamlConf(char *conf)
+{
+    ConfCreateContextBackup();
+    ConfInit();
+    return ConfYamlLoadString(conf, strlen(conf));
+}
+
+static void DetectEngineDeInitYamlConf(void)
+{
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return;
+}
+
+static int DetectEngineTest01(void)
+{
+    char *conf =
+        "%YAML 1.1\n"
+        "---\n"
+        "detect-engine:\n"
+        "  - profile: medium\n"
+        "  - custom-values:\n"
+        "      toclient_src_groups: 2\n"
+        "      toclient_dst_groups: 2\n"
+        "      toclient_sp_groups: 2\n"
+        "      toclient_dp_groups: 3\n"
+        "      toserver_src_groups: 2\n"
+        "      toserver_dst_groups: 4\n"
+        "      toserver_sp_groups: 2\n"
+        "      toserver_dp_groups: 25\n"
+        "  - inspection-recursion-limit: 0\n";
+
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if (DetectEngineInitYamlConf(conf) == -1)
+        return 0;
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    result = (de_ctx->inspection_recursion_limit == -1);
+
+ end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    DetectEngineDeInitYamlConf();
+
+    return result;
+}
+
+static int DetectEngineTest02(void)
+{
+    char *conf =
+        "%YAML 1.1\n"
+        "---\n"
+        "detect-engine:\n"
+        "  - profile: medium\n"
+        "  - custom-values:\n"
+        "      toclient_src_groups: 2\n"
+        "      toclient_dst_groups: 2\n"
+        "      toclient_sp_groups: 2\n"
+        "      toclient_dp_groups: 3\n"
+        "      toserver_src_groups: 2\n"
+        "      toserver_dst_groups: 4\n"
+        "      toserver_sp_groups: 2\n"
+        "      toserver_dp_groups: 25\n"
+        "  - inspection-recursion-limit:\n";
+
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if (DetectEngineInitYamlConf(conf) == -1)
+        return 0;
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    result = (de_ctx->inspection_recursion_limit == -1);
+
+ end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    DetectEngineDeInitYamlConf();
+
+    return result;
+}
+
+static int DetectEngineTest03(void)
+{
+    char *conf =
+        "%YAML 1.1\n"
+        "---\n"
+        "detect-engine:\n"
+        "  - profile: medium\n"
+        "  - custom-values:\n"
+        "      toclient_src_groups: 2\n"
+        "      toclient_dst_groups: 2\n"
+        "      toclient_sp_groups: 2\n"
+        "      toclient_dp_groups: 3\n"
+        "      toserver_src_groups: 2\n"
+        "      toserver_dst_groups: 4\n"
+        "      toserver_sp_groups: 2\n"
+        "      toserver_dp_groups: 25\n";
+
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if (DetectEngineInitYamlConf(conf) == -1)
+        return 0;
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    result = (de_ctx->inspection_recursion_limit ==
+              DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT);
+
+ end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    DetectEngineDeInitYamlConf();
+
+    return result;
+}
+
+static int DetectEngineTest04(void)
+{
+    char *conf =
+        "%YAML 1.1\n"
+        "---\n"
+        "detect-engine:\n"
+        "  - profile: medium\n"
+        "  - custom-values:\n"
+        "      toclient_src_groups: 2\n"
+        "      toclient_dst_groups: 2\n"
+        "      toclient_sp_groups: 2\n"
+        "      toclient_dp_groups: 3\n"
+        "      toserver_src_groups: 2\n"
+        "      toserver_dst_groups: 4\n"
+        "      toserver_sp_groups: 2\n"
+        "      toserver_dp_groups: 25\n"
+        "  - inspection-recursion-limit: 10\n";
+
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if (DetectEngineInitYamlConf(conf) == -1)
+        return 0;
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    result = (de_ctx->inspection_recursion_limit == 10);
+
+ end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    DetectEngineDeInitYamlConf();
+
+    return result;
+}
+
+#endif
+
+void DetectEngineRegisterTests()
+{
+
+#ifdef UNITTESTS
+    UtRegisterTest("DetectEngineTest01", DetectEngineTest01, 1);
+    UtRegisterTest("DetectEngineTest02", DetectEngineTest02, 1);
+    UtRegisterTest("DetectEngineTest03", DetectEngineTest03, 1);
+    UtRegisterTest("DetectEngineTest04", DetectEngineTest04, 1);
+#endif
+
+    return;
+}
