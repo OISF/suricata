@@ -150,6 +150,8 @@ typedef struct DCERPCBindBindAck_ {
     uint16_t versionminor;
     DCERPCUuidEntry *uuid_entry;
     TAILQ_HEAD(, DCERPCUuidEntry_) uuid_list;
+    /* hold a count of uuids that don't belong to the first frag */
+    uint16_t non_first_frag_uuids_count;
     uint16_t secondaryaddrlen;
     uint16_t secondaryaddrlenleft;
     uint16_t result;

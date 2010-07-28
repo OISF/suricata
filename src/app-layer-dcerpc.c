@@ -259,6 +259,9 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                             dcerpc->dcerpcbindbindack.numctxitemsleft--;
                             dcerpc->bytesprocessed += (44);
                             dcerpc->dcerpcbindbindack.ctxbytesprocessed += (44);
+                            if (!(dcerpc->dcerpchdr.pfc_flags & PFC_FIRST_FRAG)) {
+                                dcerpc->dcerpcbindbindack.non_first_frag_uuids_count++;
+                            }
                             SCReturnUInt(44U);
                         }
                     } else {
@@ -1135,6 +1138,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
         switch (dcerpc->dcerpchdr.type) {
         case BIND:
         case ALTER_CONTEXT:
+            if (!dcerpc->pdu_fragged) {
+                dcerpc->dcerpcbindbindack.non_first_frag_uuids_count = 0;
+            }
             while (dcerpc->bytesprocessed < DCERPC_HDR_LEN + 12
                    && dcerpc->bytesprocessed < dcerpc->dcerpchdr.frag_length
                    && input_len) {
