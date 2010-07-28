@@ -104,6 +104,12 @@ engine-analysis:
 # group head.  "auto" lets the engine decide the distribution of contexts
 # based on the information the engine gathers on the patterns from each
 # group head.
+#
+# The option inspection_recursion_limit is used to limit the recursive calls
+# in the content inspection code.  For certain payload-sig combinations, we
+# might end up taking too much time in the content inspection code.
+# If the argument specified is 0, the engine uses an internally defined
+# default limit.  On not specifying a value, we use no limits on the recursion.
 detect-engine:
   - profile: medium
   - custom-values:
@@ -116,6 +122,7 @@ detect-engine:
       toserver_sp_groups: 2
       toserver_dp_groups: 25
   - sgh-mpm-context: auto
+  - inspection-recursion-limit: 3000
 
 # Suricata is multi-threaded. Here the threading can be influenced.
 threading:

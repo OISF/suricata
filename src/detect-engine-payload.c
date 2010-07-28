@@ -29,6 +29,8 @@
 #include "decode.h"
 
 #include "detect.h"
+#include "detect-engine.h"
+#include "detect-parse.h"
 #include "detect-content.h"
 #include "detect-pcre.h"
 #include "detect-isdataat.h"
@@ -714,6 +716,104 @@ end:
     return result;
 }
 
+/**
+ * \test Used to check the working of recursion_limit counter.
+ */
+static int PayloadTestSig13(void)
+{
+    uint8_t *buf = (uint8_t *)"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    int result = 0;
+    uint16_t mpm_type = MPM_B2G;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
+        "content:aa; content:aa; distance:0; content:aa; distance:0; "
+        "byte_test:1,>,200,0,relative; sid:1;)";
+
+#include <sys/time.h>
+    struct timeval tv_start, tv_end, tv_diff;
+
+    gettimeofday(&tv_start, NULL);
+
+    do {
+        DecodeThreadVars dtv;
+        ThreadVars th_v;
+        DetectEngineThreadCtx *det_ctx = NULL;
+
+        memset(&dtv, 0, sizeof(DecodeThreadVars));
+        memset(&th_v, 0, sizeof(th_v));
+
+        DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+        if (de_ctx == NULL) {
+            printf("de_ctx == NULL: ");
+            goto end;
+        }
+        de_ctx->inspection_recursion_limit = 3000;
+
+        de_ctx->flags |= DE_QUIET;
+        de_ctx->mpm_matcher = mpm_type;
+
+        de_ctx->sig_list = SigInit(de_ctx, sig);
+        if (de_ctx->sig_list == NULL) {
+            printf("signature == NULL: ");
+            goto end;
+        }
+
+        SigGroupBuild(de_ctx);
+        DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+        SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+        if (PacketAlertCheck(p, de_ctx->sig_list->id) != 1) {
+            printf("signature didn't alert: ");
+            goto end;
+        }
+
+        result = 1;
+    end:
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+
+        if (det_ctx != NULL)
+            DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+
+        if (de_ctx != NULL)
+            DetectEngineCtxFree(de_ctx);
+    } while (0);
+
+    gettimeofday(&tv_end, NULL);
+
+    tv_diff.tv_sec = tv_end.tv_sec - tv_start.tv_sec;
+    tv_diff.tv_usec = tv_end.tv_usec - tv_start.tv_usec;
+
+    printf("%"PRIuMAX".%06"PRIuMAX"\n", tv_diff.tv_sec, tv_diff.tv_usec);
+
+    result = 1;
+
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void PayloadRegisterTests(void) {
@@ -730,5 +830,6 @@ void PayloadRegisterTests(void) {
     UtRegisterTest("PayloadTestSig10", PayloadTestSig10, 1);
     UtRegisterTest("PayloadTestSig11", PayloadTestSig11, 1);
     UtRegisterTest("PayloadTestSig12", PayloadTestSig12, 1);
+    UtRegisterTest("PayloadTestSig13", PayloadTestSig13, 1);
 #endif /* UNITTESTS */
 }
