@@ -931,7 +931,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     if (det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray != NULL) {
                         /* filter out sigs that want pattern matches, but
                          * have no matches */
-                        if (!(det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8))) &&
+                        if (!(det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray[(s->mpm_stream_pattern_id / 8)] & (1<<(s->mpm_stream_pattern_id % 8))) &&
                                 (s->flags & SIG_FLAG_MPM) && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
                             SCLogDebug("no match in this smsg");
                             continue;
