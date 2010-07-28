@@ -1106,7 +1106,20 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
     dcerpc->dcerpcrequest.stub_data_fresh = 0;
     dcerpc->dcerpcresponse.stub_data_fresh = 0;
 
+    /* temporary use.  we will get rid of this later, once we have ironed out
+     * all the endless loops cases */
+    int counter = 0;
+
     while(input_len) {
+        /* we haven't covered a couple of corner cases with fragmented pdus.
+         * temporary fix so that we don'd endlesslessy loop here */
+        if (counter++ == 200) {
+            dcerpc->bytesprocessed = 0;
+            dcerpc->pdu_fragged = 0;
+            dcerpc->dcerpcbindbindack.ctxbytesprocessed = 0;
+            SCReturnInt(0);
+        }
+
         while (dcerpc->bytesprocessed < DCERPC_HDR_LEN && input_len) {
             hdrretval = DCERPCParseHeader(dcerpc, input + parsed, input_len);
             if (hdrretval == -1) {
@@ -1152,7 +1165,10 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                 } else if (input_len) {
                     SCLogDebug("Error Parsing DCERPC %s", (dcerpc->dcerpchdr.type == BIND) ? "BIND" : "ALTER_CONTEXT");
                     parsed = 0;
+                    dcerpc->bytesprocessed = 0;
+                    dcerpc->pdu_fragged = 0;
                     input_len = 0;
+                    SCReturnInt(0);
                 }
             }
             SCLogDebug(
@@ -1177,7 +1193,11 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                     parsed = 0;
                     SCLogDebug("Error Parsing CTX Item %u\n", parsed);
                     input_len = 0;
+                    dcerpc->bytesprocessed = 0;
+                    dcerpc->dcerpcbindbindack.ctxbytesprocessed = 0;
                     dcerpc->dcerpcbindbindack.numctxitemsleft = 0;
+                    dcerpc->pdu_fragged = 0;
+                    SCReturnInt(0);
                 }
             }
             if (dcerpc->bytesprocessed == dcerpc->dcerpchdr.frag_length) {
@@ -1204,6 +1224,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                     SCLogDebug("Error parsing %s\n", (dcerpc->dcerpchdr.type == BIND_ACK) ? "BIND_ACK" : "ALTER_CONTEXT_RESP");
                     parsed = 0;
                     input_len = 0;
+                    dcerpc->bytesprocessed = 0;
+                    dcerpc->pdu_fragged = 0;
+                    SCReturnInt(0);
                 }
             }
 
@@ -1222,6 +1245,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                     SCLogDebug("Error parsing Secondary Address");
                     parsed = 0;
                     input_len = 0;
+                    dcerpc->pdu_fragged = 0;
+                    dcerpc->bytesprocessed = 0;
+                    SCReturnInt(0);
                 }
             }
 
@@ -1247,6 +1273,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                     SCLogDebug("Error parsing DCERPC Padding");
                     parsed = 0;
                     input_len = 0;
+                    dcerpc->bytesprocessed = 0;
+                    dcerpc->pdu_fragged = 0;
+                    SCReturnInt(0);
                 }
             }
 
@@ -1264,6 +1293,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                     SCLogDebug("Error parsing CTX Items");
                     parsed = 0;
                     input_len = 0;
+                    dcerpc->bytesprocessed = 0;
+                    dcerpc->pdu_fragged = 0;
+                    SCReturnInt(0);
                 }
             }
 
@@ -1286,7 +1318,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                     parsed = 0;
                     input_len = 0;
                     dcerpc->dcerpcbindbindack.numctxitemsleft = 0;
-
+                    dcerpc->bytesprocessed = 0;
+                    dcerpc->pdu_fragged = 0;
+                    SCReturnInt(0);
                 }
             }
             SCLogDebug("BINDACK processed %u/%u input_len left %u", dcerpc->bytesprocessed,
@@ -1324,6 +1358,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                     parsed = 0;
                     dcerpc->padleft = 0;
                     input_len = 0;
+                    dcerpc->bytesprocessed = 0;
+                    dcerpc->pdu_fragged = 0;
+                    SCReturnInt(0);
                 }
             }
 
@@ -1339,6 +1376,8 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                     parsed = 0;
                     input_len = 0;
                     dcerpc->bytesprocessed = 0;
+                    dcerpc->pdu_fragged = 0;
+                    SCReturnInt(0);
                 }
             }
 
