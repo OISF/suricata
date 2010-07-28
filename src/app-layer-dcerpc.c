@@ -145,7 +145,7 @@ void printUUID(char *type, DCERPCUuidEntry *uuid) {
 static uint32_t DCERPCParseSecondaryAddr(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
     SCEnter();
     uint8_t *p = input;
-    while (dcerpc->dcerpcbindbindack.secondaryaddrlenleft-- && input_len--) {
+    while (input_len-- && dcerpc->dcerpcbindbindack.secondaryaddrlenleft--) {
         SCLogDebug("0x%02x ", *p);
         p++;
     }
@@ -787,13 +787,13 @@ static uint32_t DCERPCParseBINDACK(DCERPC *dcerpc, uint8_t *input, uint32_t inpu
             if (!(--input_len))
                 break;
         case 24:
-            dcerpc->dcerpcbindbindack.secondaryaddrlen = *(p++);
+            dcerpc->dcerpcbindbindack.secondaryaddrlen = *(p++) << 8;
             if (!(--input_len))
                 break;
         case 25:
-            dcerpc->dcerpcbindbindack.secondaryaddrlen |= *(p++) << 8;
-            if (dcerpc->dcerpchdr.packed_drep[0] == 0x01) {
-                SCByteSwap16(dcerpc->dcerpcbindbindack.secondaryaddrlen);
+            dcerpc->dcerpcbindbindack.secondaryaddrlen |= *(p++);
+            if (dcerpc->dcerpchdr.packed_drep[0] == 0x10) {
+                dcerpc->dcerpcbindbindack.secondaryaddrlen = SCByteSwap16(dcerpc->dcerpcbindbindack.secondaryaddrlen);
             }
             dcerpc->dcerpcbindbindack.secondaryaddrlenleft = dcerpc->dcerpcbindbindack.secondaryaddrlen;
             SCLogDebug("secondaryaddrlen %u 0x%04x\n", dcerpc->dcerpcbindbindack.secondaryaddrlen,
