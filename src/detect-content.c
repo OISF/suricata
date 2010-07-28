@@ -108,16 +108,22 @@ DetectContentData *DetectContentParse (char *contentstr)
             exit(EXIT_FAILURE);
         }
 
+        pos = 0;
         cd->flags |= DETECT_CONTENT_NEGATED;
     }
 
-    if (temp[pos] == '\"' && temp[strlen(temp)-1] == '\"') {
+    if (temp[pos] == '\"' && strlen(temp + pos) == 1)
+        goto error;
+
+    if (temp[pos] == '\"' && temp[pos + strlen(temp + pos) - 1] == '\"') {
         if ((str = SCStrdup(temp + pos + 1)) == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "error allocating memory. exiting...");
             exit(EXIT_FAILURE);
         }
 
         str[strlen(temp) - pos - 2] = '\0';
+    } else if (temp[pos] == '\"' || temp[pos + strlen(temp + pos) - 1] == '\"') {
+        goto error;
     } else {
         if ((str = SCStrdup(temp + pos)) == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "error allocating memory. exiting...");
@@ -127,23 +133,6 @@ DetectContentData *DetectContentParse (char *contentstr)
 
     SCFree(temp);
     temp = NULL;
-
-    /*This was submitted as a patch for bug #11.  But this impliments incorrect behavior as !
-     *inside of quotes should be treated as normal match. */
-    //if (str[0] == '!') {
-    //    if (cd->flags cd->negated == 1 DETECT_CONTENT_NEGATED) {
-    //        SCLogDebug("Invalid negated content. \"!\" located twice at the "
-    //                   "start of the contet string: %s", contentstr);
-    //        goto error;
-    //    } else {
-    //        temp = str;
-    //        if ( (str = SCStrdup(temp + 1)) == NULL)
-    //            goto error;
-    //        cd->negated = 1;
-    //        SCFree(temp);
-    //        temp = NULL;
-    //    }
-    //}
 
     len = strlen(str);
     if (len == 0)
@@ -1396,6 +1385,164 @@ int DetectContentParseTest19(void)
     return result;
 }
 
+/**
+ * \test Test content for dce sig.
+ */
+int DetectContentParseTest20(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(msg:\"test\"; content:""; sid:238012;)");
+    if (de_ctx->sig_list != NULL) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Parsing test
+ */
+int DetectContentParseTest21(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(msg:\"test\"; content:\"; sid:238012;)");
+    if (de_ctx->sig_list != NULL) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Parsing test
+ */
+int DetectContentParseTest22(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(msg:\"test\"; content:\"boo; sid:238012;)");
+    if (de_ctx->sig_list != NULL) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+
+/**
+ * \test Parsing test
+ */
+int DetectContentParseTest23(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(msg:\"test\"; content:boo\"; sid:238012;)");
+    if (de_ctx->sig_list != NULL) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Parsing test
+ */
+int DetectContentParseTest24(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    DetectContentData *cd = 0;
+    Signature *s = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert udp any any -> any any "
+                                   "(msg:\"test\"; content:    !\"boo\"; sid:238012;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        result = 0;
+        goto end;
+    }
+
+    if (s->pmatch_tail == NULL && s->pmatch_tail->ctx) {
+        printf("de_ctx->pmatch_tail == NULL && de_ctx->pmatch_tail->ctx\n");
+        result = 0;
+        goto end;
+    }
+
+    cd = (DetectContentData *)s->pmatch_tail->ctx;
+    result = (strncmp("boo", (char *)cd->content, cd->content_len) == 0);
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
 static int SigTestPositiveTestContent(char *rule, uint8_t *buf)
 {
     uint16_t buflen = strlen((char *)buf);
@@ -1834,15 +1981,20 @@ void DetectContentRegisterTests(void)
     UtRegisterTest("DetectContentParseTest08", DetectContentParseTest08, 1);
     UtRegisterTest("DetectContentParseTest09", DetectContentParseTest09, 1);
     UtRegisterTest("DetectContentParseTest10", DetectContentParseTest10, 1);
-    UtRegisterTest("DetectContentParseTest11", DetectContentParseNegTest11, 1);
-    UtRegisterTest("DetectContentParseTest12", DetectContentParseNegTest12, 1);
-    UtRegisterTest("DetectContentParseTest13", DetectContentParseNegTest13, 1);
-    UtRegisterTest("DetectContentParseTest14", DetectContentParseNegTest14, 1);
-    UtRegisterTest("DetectContentParseTest15", DetectContentParseNegTest15, 1);
-    UtRegisterTest("DetectContentParseTest16", DetectContentParseNegTest16, 1);
+    UtRegisterTest("DetectContentParseNegTest11", DetectContentParseNegTest11, 1);
+    UtRegisterTest("DetectContentParseNegTest12", DetectContentParseNegTest12, 1);
+    UtRegisterTest("DetectContentParseNegTest13", DetectContentParseNegTest13, 1);
+    UtRegisterTest("DetectContentParseNegTest14", DetectContentParseNegTest14, 1);
+    UtRegisterTest("DetectContentParseNegTest15", DetectContentParseNegTest15, 1);
+    UtRegisterTest("DetectContentParseNegTest16", DetectContentParseNegTest16, 1);
     UtRegisterTest("DetectContentParseTest17", DetectContentParseTest17, 1);
     UtRegisterTest("DetectContentParseTest18", DetectContentParseTest18, 1);
     UtRegisterTest("DetectContentParseTest19", DetectContentParseTest19, 1);
+    UtRegisterTest("DetectContentParseTest20", DetectContentParseTest20, 1);
+    UtRegisterTest("DetectContentParseTest21", DetectContentParseTest21, 1);
+    UtRegisterTest("DetectContentParseTest22", DetectContentParseTest22, 1);
+    UtRegisterTest("DetectContentParseTest23", DetectContentParseTest23, 1);
+    UtRegisterTest("DetectContentParseTest24", DetectContentParseTest24, 1);
 
     /* The reals */
     UtRegisterTest("DetectContentLongPatternMatchTest01", DetectContentLongPatternMatchTest01, 1);

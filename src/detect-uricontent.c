@@ -218,10 +218,15 @@ DetectUricontentData *DoDetectUricontentSetup (char * contentstr)
         pos++;
     }
 
-    if (temp[pos] == '\"' && temp[strlen(temp)-1] == '\"') {
+    if (temp[pos] == '\"' && strlen(temp + pos) == 1)
+        goto error;
+
+    if (temp[pos] == '\"' && temp[pos + strlen(temp + pos) - 1] == '\"') {
         if ((str = SCStrdup(temp + pos + 1)) == NULL)
             goto error;
         str[strlen(temp) - pos - 2] = '\0';
+    } else if (temp[pos] == '\"' || temp[pos + strlen(temp + pos) - 1] == '\"') {
+        goto error;
     } else {
         if ((str = SCStrdup(temp + pos)) == NULL)
             goto error;
@@ -1619,6 +1624,164 @@ end:
     UTHFreePackets(&p, 1);
     return result;
 }
+
+/**
+ * \test Test content for dce sig.
+ */
+int DetectUriSigTest08(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(msg:\"test\"; uricontent:""; sid:238012;)");
+    if (de_ctx->sig_list != NULL) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Test content for dce sig.
+ */
+int DetectUriSigTest09(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(msg:\"test\"; uricontent:\"; sid:238012;)");
+    if (de_ctx->sig_list != NULL) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Test content for dce sig.
+ */
+int DetectUriSigTest10(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(msg:\"test\"; uricontent:\"boo; sid:238012;)");
+    if (de_ctx->sig_list != NULL) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Test content for dce sig.
+ */
+int DetectUriSigTest11(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(msg:\"test\"; uricontent:boo\"; sid:238012;)");
+    if (de_ctx->sig_list != NULL) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Parsing test
+ */
+int DetectUriSigTest12(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    DetectUricontentData *ud = 0;
+    Signature *s = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert udp any any -> any any "
+                                   "(msg:\"test\"; uricontent:    !\"boo\"; sid:238012;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        result = 0;
+        goto end;
+    }
+
+    if (s->umatch_tail == NULL && s->umatch_tail->ctx) {
+        printf("de_ctx->pmatch_tail == NULL && de_ctx->pmatch_tail->ctx\n");
+        result = 0;
+        goto end;
+    }
+
+    ud = (DetectUricontentData *)s->umatch_tail->ctx;
+    result = (strncmp("boo", (char *)ud->uricontent, ud->uricontent_len) == 0);
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void HttpUriRegisterTests(void) {
@@ -1634,5 +1797,10 @@ void HttpUriRegisterTests(void) {
     UtRegisterTest("DetectUriSigTest05 - Inspection", DetectUriSigTest05, 1);
     UtRegisterTest("DetectUriSigTest06 - Inspection", DetectUriSigTest06, 1);
     UtRegisterTest("DetectUriSigTest07 - Inspection", DetectUriSigTest07, 1);
+    UtRegisterTest("DetectUriSigTest08", DetectUriSigTest08, 1);
+    UtRegisterTest("DetectUriSigTest09", DetectUriSigTest09, 1);
+    UtRegisterTest("DetectUriSigTest10", DetectUriSigTest10, 1);
+    UtRegisterTest("DetectUriSigTest11", DetectUriSigTest11, 1);
+    UtRegisterTest("DetectUriSigTest12", DetectUriSigTest12, 1);
 #endif /* UNITTESTS */
 }
