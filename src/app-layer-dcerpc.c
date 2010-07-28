@@ -236,8 +236,8 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                     dcerpc->dcerpcbindbindack.version |= *(p + 21) << 8;
                     dcerpc->dcerpcbindbindack.versionminor = *(p + 22);
                     dcerpc->dcerpcbindbindack.versionminor |= *(p + 23) << 8;
-                    if (dcerpc->dcerpcbindbindack.ctxid == dcerpc->dcerpcbindbindack.numctxitems
-                            - dcerpc->dcerpcbindbindack.numctxitemsleft) {
+                    //if (dcerpc->dcerpcbindbindack.ctxid == dcerpc->dcerpcbindbindack.numctxitems
+                    //        - dcerpc->dcerpcbindbindack.numctxitemsleft) {
                         dcerpc->dcerpcbindbindack.uuid_entry = (DCERPCUuidEntry *) SCCalloc(1,
                                 sizeof(DCERPCUuidEntry));
                         if (dcerpc->dcerpcbindbindack.uuid_entry == NULL) {
@@ -264,11 +264,11 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                             }
                             SCReturnUInt(44U);
                         }
-                    } else {
-                        SCLogDebug("ctxitem %u, expected %u\n", dcerpc->dcerpcbindbindack.ctxid,
-                                dcerpc->dcerpcbindbindack.numctxitems - dcerpc->dcerpcbindbindack.numctxitemsleft);
-                        SCReturnUInt(0);
-                    }
+                    //} else {
+                    //    SCLogDebug("ctxitem %u, expected %u\n", dcerpc->dcerpcbindbindack.ctxid,
+                    //            dcerpc->dcerpcbindbindack.numctxitems - dcerpc->dcerpcbindbindack.numctxitemsleft);
+                    //    SCReturnUInt(0);
+                    //}
                 } else {
                     dcerpc->dcerpcbindbindack.ctxid = *(p++);
                     if (!(--input_len))
@@ -447,11 +447,12 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
             case 43:
                 p++;
                 --input_len;
-                if (dcerpc->dcerpcbindbindack.ctxid == dcerpc->dcerpcbindbindack.numctxitems - dcerpc->dcerpcbindbindack.numctxitemsleft) {
+                //if (dcerpc->dcerpcbindbindack.ctxid ==
+                //    (dcerpc->dcerpcbindbindack.numctxitems - dcerpc->dcerpcbindbindack.numctxitemsleft)) {
                     dcerpc->dcerpcbindbindack.uuid_entry = (DCERPCUuidEntry *) SCCalloc(1,
                             sizeof(DCERPCUuidEntry));
                     if (dcerpc->dcerpcbindbindack.uuid_entry == NULL) {
-			SCLogDebug("UUID Entry is NULL\n");
+                        SCLogDebug("UUID Entry is NULL\n");
                         SCReturnUInt(0);
                     } else {
                         memcpy(dcerpc->dcerpcbindbindack.uuid_entry->uuid, dcerpc->dcerpcbindbindack.uuid,
@@ -471,11 +472,11 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                         dcerpc->dcerpcbindbindack.ctxbytesprocessed += (p - input);
                         SCReturnUInt((uint32_t)(p - input));
                     }
-                } else {
-                    SCLogDebug("ctxitem %u, expected %u\n", dcerpc->dcerpcbindbindack.ctxid,
-                            dcerpc->dcerpcbindbindack.numctxitems - dcerpc->dcerpcbindbindack.numctxitemsleft);
-                    SCReturnUInt(0);
-                }
+                //} else {
+                //    SCLogDebug("ctxitem %u, expected %u\n", dcerpc->dcerpcbindbindack.ctxid,
+                //            dcerpc->dcerpcbindbindack.numctxitems - dcerpc->dcerpcbindbindack.numctxitemsleft);
+                //    SCReturnUInt(0);
+                //}
                 break;
         }
     }
