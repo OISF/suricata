@@ -54,7 +54,7 @@
 #include "util-var-name.h"
 #include "tm-modules.h"
 
-#define DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT 10000
+#define DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT 3000
 
 static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *);
 

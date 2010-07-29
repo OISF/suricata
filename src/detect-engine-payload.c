@@ -784,7 +784,6 @@ static int PayloadTestSig13(void)
 
         SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
         if (PacketAlertCheck(p, de_ctx->sig_list->id) != 1) {
-            printf("signature didn't alert: ");
             goto end;
         }
 
@@ -805,7 +804,7 @@ static int PayloadTestSig13(void)
     tv_diff.tv_sec = tv_end.tv_sec - tv_start.tv_sec;
     tv_diff.tv_usec = tv_end.tv_usec - tv_start.tv_usec;
 
-    printf("%"PRIuMAX".%06"PRIuMAX"\n", tv_diff.tv_sec, tv_diff.tv_usec);
+    printf("%ld.%06ld\n", tv_diff.tv_sec, tv_diff.tv_usec);
 
     result = 1;
 
