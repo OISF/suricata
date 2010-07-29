@@ -156,7 +156,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                                                     &s->pmatch, &s->pmatch_tail,
                                                     &s->dmatch, &s->dmatch_tail);
                 pm = pm1;
-            } else if (pm2_ots->idx > dcem->idx) {
+            } else {
                 /* within is against pm1, pm = pm1 */
                 pm = pm1;
             }
