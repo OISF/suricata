@@ -1328,12 +1328,6 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, Signature *s) {
     if (s->amatch != NULL)
         return 0;
 
-    if ( !(s->flags & SIG_FLAG_DP_ANY) ||
-         !(s->flags & SIG_FLAG_SP_ANY))
-    {
-        return 0;
-    }
-
     SigMatch *sm = s->match;
     /* check for conflicting keywords */
     for ( ;sm != NULL; sm = sm->next) {
@@ -1479,8 +1473,12 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
     //DetectPortPrintMemory();
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogInfo("%" PRIu32 " signatures processed. %" PRIu32 " are IP-only rules, %" PRIu32 " are inspecting packet payload, %"PRIu32" inspect application layer, %"PRIu32" are decoding event only",
-            de_ctx->sig_cnt, cnt_iponly, cnt_payload, cnt_applayer, cnt_deonly);
+        SCLogInfo("%" PRIu32 " signatures processed. %" PRIu32 " are IP-only "
+                "rules, %" PRIu32 " are inspecting packet payload, %"PRIu32
+                " inspect application layer, %"PRIu32" are decoder event only",
+                de_ctx->sig_cnt, cnt_iponly, cnt_payload, cnt_applayer,
+                cnt_deonly);
+
         SCLogInfo("building signature grouping structure, stage 1: "
                "adding signatures to signature source addresses... done");
     }
