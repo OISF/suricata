@@ -150,8 +150,6 @@ typedef struct DCERPCBindBindAck_ {
     uint16_t versionminor;
     DCERPCUuidEntry *uuid_entry;
     TAILQ_HEAD(, DCERPCUuidEntry_) uuid_list;
-    /* hold a count of uuids that don't belong to the first frag */
-    uint16_t non_first_frag_uuids_count;
     uint16_t secondaryaddrlen;
     uint16_t secondaryaddrlenleft;
     uint16_t result;
@@ -185,9 +183,6 @@ typedef struct DCERPC_ {
     uint8_t pad;
     uint16_t padleft;
     uint16_t transaction_id;
-    /* indicates if the dcerpc pdu state is in the middle of processing
-     * a fragmented pdu */
-    uint8_t pdu_fragged;
 } DCERPC;
 
 typedef struct DCERPCUDP_ {
