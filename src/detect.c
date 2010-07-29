@@ -1335,13 +1335,18 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, Signature *s) {
     }
 
     SigMatch *sm = s->match;
-    if (sm == NULL)
-        goto deonly;
-
+    /* check for conflicting keywords */
     for ( ;sm != NULL; sm = sm->next) {
         if ( !(sigmatch_table[sm->type].flags & SIGMATCH_DEONLY_COMPAT))
             return 0;
     }
+
+    /* need at least one decode event keyword to be condered decode event. */
+    for ( ;sm != NULL; sm = sm->next) {
+        if (sm->type == DETECT_DECODE_EVENT)
+            goto deonly;
+    }
+    return 0;
 
 deonly:
     if (!(de_ctx->flags & DE_QUIET)) {
