@@ -5843,6 +5843,7 @@ static int StreamTcpReassembleTest46 (void) {
     ssn.state = TCP_ESTABLISHED;
 
     ssn.server.reassembly_depth = 1048530;
+    stream_config.reassembly_depth = 0;
 
     TcpStream *s = NULL;
     s = &ssn.server;
