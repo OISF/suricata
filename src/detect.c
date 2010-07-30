@@ -5092,7 +5092,7 @@ int SigTest24IPV4Keyword(void)
 
     Packet p1, p2;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0\r\n"

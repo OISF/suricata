@@ -1760,7 +1760,7 @@ static int DetectPcreTestSig01Real(int mpm_type) {
     TcpSession ssn;
     Packet *p = NULL;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
     Flow f;
 

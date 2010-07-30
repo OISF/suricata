@@ -1271,7 +1271,7 @@ int SCThresholdConfTest09(void)
 
     Packet *p = UTHBuildPacket((uint8_t*)"lalala", 6, IPPROTO_TCP);
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int alerts = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -1364,7 +1364,7 @@ int SCThresholdConfTest10(void)
     Packet *p2 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.10");
 
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int alerts = 0;
 
     memset(&th_v, 0, sizeof(th_v));
@@ -1459,7 +1459,7 @@ int SCThresholdConfTest11(void)
 
     Packet *p = UTHBuildPacket((uint8_t*)"lalala", 6, IPPROTO_TCP);
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int alerts10 = 0;
     int alerts11 = 0;
     int alerts12 = 0;
@@ -1575,7 +1575,7 @@ int SCThresholdConfTest12(void)
 
     Packet *p = UTHBuildPacket((uint8_t*)"lalala", 6, IPPROTO_TCP);
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int alerts10 = 0;
     int alerts11 = 0;
     int alerts12 = 0;
