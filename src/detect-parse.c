@@ -1244,6 +1244,9 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
     if (sig == NULL)
         goto error;
 
+    /* default gid to 1 */
+    sig->gid = 1;
+
     if (SigParse(de_ctx, sig, sigstr, SIG_DIREC_NORMAL) < 0)
         goto error;
 
@@ -1386,6 +1389,8 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
     /* XXX one day we will support this the way Snort does,
      * through classifications.config */
     sig->prio = 3;
+    /* default gid to 1 */
+    sig->gid = 1;
 
     if (SigParse(de_ctx, sig, sigstr, SIG_DIREC_NORMAL) < 0)
         goto error;
