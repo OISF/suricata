@@ -1781,9 +1781,9 @@ TmEcode B2gCudaMpmDispThreadInit(ThreadVars *tv, void *initdata, void **data)
      * extra 2 bytes(the 1 in 1481 instead of 1480) is to hold the no of
      * matches for the payload.  The remaining 1480 positions in the buffer
      * is to hold the match offsets */
-    tctx->results_buffer = malloc(sizeof(uint16_t) * 1481 * SC_CUDA_PB_MIN_NO_OF_PACKETS);
-    if (tctx->results_buffer == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+    if (SCCudaMemHostAlloc((void**)&tctx->results_buffer, sizeof(uint16_t) * 1481 *
+                SC_CUDA_PB_MIN_NO_OF_PACKETS, CU_MEMHOSTALLOC_PORTABLE) == -1){
+        SCLogError(SC_ERR_CUDA_ERROR, "Error allocating page-locked memory\n");
         exit(EXIT_FAILURE);
     }
 
@@ -1905,7 +1905,9 @@ TmEcode B2gCudaMpmDispThreadDeInit(ThreadVars *tv, void *data)
     }
     SCCudaCtxPushCurrent(dummy_context);
 
-    free(tctx->results_buffer);
+    if (SCCudaMemFreeHost(tctx->results_buffer) == -1)
+        SCLogError(SC_ERR_CUDA_ERROR, "Error deallocating pagelocked memory: "
+                   "results_buffer\n");
     SCCudaHlFreeCudaDevicePtr("MPM_B2G_RESULTS", tctx->b2g_cuda_module_handle);
     SCCudaHlFreeCudaDevicePtr("MPM_B2G_PACKETS_BUFFER", tctx->b2g_cuda_module_handle);
     SCCudaHlFreeCudaDevicePtr("MPM_B2G_PACKETS_BUFFER_OFFSETS",
