@@ -247,7 +247,7 @@ static void SCCudaPBQueueBuffer(SCCudaPBThreadCtx *tctx)
         } else {
             /* Should only happen on signals. */
             SCMutexUnlock(&dq_inq->mutex_q);
-            SCLogDebug("Unable to Relooping in the quest to dequeue new buffer\n");
+            SCLogDebug("Unable to Relooping in the quest to dequeue new buffer");
         }
     } /* while (run_batcher) */
 
@@ -297,7 +297,7 @@ void *SCCudaPBTmThreadsSlot1(void *td)
         p = tv->tmqh_in(tv);
 
         if (p == NULL) {
-            printf("packet is NULL for TM: %s\n", tv->name);
+            SCLogDebug("packet is NULL for TM: %s", tv->name);
             /* the only different between the actual Slot1 function in
              * tm-threads.c and this custom Slot1 function is this call
              * here.  We need to make the call here, even if we don't
@@ -354,20 +354,23 @@ void SCCudaPBDeAllocSCCudaPBPacketsBuffer(SCCudaPBPacketsBuffer *pb)
     if (pb == NULL)
         return;
 
-    if (pb->packets_buffer != NULL){
-        if (SCCudaMemFreeHost(pb->packets_buffer) == -1)
+    if (pb->packets_buffer != NULL) {
+        if (SCCudaMemFreeHost(pb->packets_buffer) == -1) {
             SCLogError(SC_ERR_CUDA_ERROR, "Error deallocating pagelocked memory: "
-                       "packets_buffer\n");
+                       "packets_buffer");
+        }
     }
-    if (pb->packets_offset_buffer != NULL){
-        if (SCCudaMemFreeHost(pb->packets_offset_buffer) == -1)
+    if (pb->packets_offset_buffer != NULL) {
+        if (SCCudaMemFreeHost(pb->packets_offset_buffer) == -1) {
             SCLogError(SC_ERR_CUDA_ERROR, "Error deallocating pagelocked memory: "
-                       "packets_offset_buffer\n");
+                       "packets_offset_buffer");
+        }
     }
-    if (pb->packets_payload_offset_buffer != NULL){
-        if (SCCudaMemFreeHost(pb->packets_payload_offset_buffer) == -1)
+    if (pb->packets_payload_offset_buffer != NULL) {
+        if (SCCudaMemFreeHost(pb->packets_payload_offset_buffer) == -1) {
             SCLogError(SC_ERR_CUDA_ERROR, "Error deallocating pagelocked memory "
-                       "packets_payload_offset_buffer\n");
+                       "packets_payload_offset_buffer");
+        }
     }
     if (pb->packets_address_buffer != NULL)
         free(pb->packets_address_buffer);
@@ -409,45 +412,52 @@ SCCudaPBPacketsBuffer *SCCudaPBAllocSCCudaPBPacketsBuffer(void)
         return NULL;
     }
 
-    if (SCCudaHlGetCudaContext(&data->cuda_context, data->handle) == -1){
-        SCLogError(SC_ERR_CUDA_HANDLER_ERROR, "Error getting cuda context\n");
+    if (SCCudaHlGetCudaContext(&data->cuda_context, data->handle) == -1) {
+        SCLogError(SC_ERR_CUDA_HANDLER_ERROR, "Error getting cuda context");
         return NULL;
     }
 
-    if (SCCudaCtxPushCurrent(data->cuda_context) == -1){
+    if (SCCudaCtxPushCurrent(data->cuda_context) == -1) {
         SCLogError(SC_ERR_CUDA_HANDLER_ERROR,
-                   "Error pushing cuda context to allocate memory\n");
+                   "Error pushing cuda context to allocate memory");
     }
 
-    if (SCCudaMemHostAlloc((void**)&pb->packets_buffer, sizeof(SCCudaPBPacketDataForGPU) *
-                SC_CUDA_PB_MIN_NO_OF_PACKETS, CU_MEMHOSTALLOC_PORTABLE) == -1){
-        SCLogError(SC_ERR_CUDA_ERROR, "Error allocating page-locked memory\n");
+    if (SCCudaMemHostAlloc((void**)&pb->packets_buffer,
+                           sizeof(SCCudaPBPacketDataForGPU) *
+                           SC_CUDA_PB_MIN_NO_OF_PACKETS,
+                           CU_MEMHOSTALLOC_PORTABLE |
+                           CU_MEMHOSTALLOC_WRITECOMBINED) == -1) {
+        SCLogError(SC_ERR_CUDA_ERROR, "Error allocating page-locked memory");
         exit(EXIT_FAILURE);
     }
     memset(pb->packets_buffer, 0, sizeof(SCCudaPBPacketDataForGPU) *
            SC_CUDA_PB_MIN_NO_OF_PACKETS);
 
     /* used to hold the offsets of the buffered packets in the packets_buffer */
-    if (SCCudaMemHostAlloc((void**)&pb->packets_offset_buffer, sizeof(uint32_t) *
-                SC_CUDA_PB_MIN_NO_OF_PACKETS, CU_MEMHOSTALLOC_PORTABLE) == -1){
-        SCLogError(SC_ERR_CUDA_ERROR, "Error allocating page-locked memory\n");
+    if (SCCudaMemHostAlloc((void**)&pb->packets_offset_buffer,
+                           sizeof(uint32_t) * SC_CUDA_PB_MIN_NO_OF_PACKETS,
+                           CU_MEMHOSTALLOC_PORTABLE |
+                           CU_MEMHOSTALLOC_WRITECOMBINED) == -1) {
+        SCLogError(SC_ERR_CUDA_ERROR, "Error allocating page-locked memory");
         exit(EXIT_FAILURE);
     }
     memset(pb->packets_offset_buffer, 0, sizeof(uint32_t) *
            SC_CUDA_PB_MIN_NO_OF_PACKETS);
 
     /* used to hold the offsets of the packets payload */
-    if (SCCudaMemHostAlloc((void**)&pb->packets_payload_offset_buffer, sizeof(uint32_t) *
-                SC_CUDA_PB_MIN_NO_OF_PACKETS, CU_MEMHOSTALLOC_PORTABLE) == -1){
-        SCLogError(SC_ERR_CUDA_ERROR, "Error allocating page-locked memory\n");
+    if (SCCudaMemHostAlloc((void**)&pb->packets_payload_offset_buffer,
+                           sizeof(uint32_t) * SC_CUDA_PB_MIN_NO_OF_PACKETS,
+                           CU_MEMHOSTALLOC_PORTABLE |
+                           CU_MEMHOSTALLOC_WRITECOMBINED) == -1) {
+        SCLogError(SC_ERR_CUDA_ERROR, "Error allocating page-locked memory");
         exit(EXIT_FAILURE);
     }
     memset(pb->packets_payload_offset_buffer, 0, sizeof(uint32_t) *
            SC_CUDA_PB_MIN_NO_OF_PACKETS);
 
-    SCLogDebug("Allocated pagelocked CUDA memory\n");
-    if (SCCudaCtxPopCurrent(NULL) == -1){
-        SCLogError(SC_ERR_CUDA_HANDLER_ERROR, "Could not pop cuda context\n");
+    SCLogDebug("Allocated pagelocked CUDA memory");
+    if (SCCudaCtxPopCurrent(NULL) == -1) {
+        SCLogError(SC_ERR_CUDA_HANDLER_ERROR, "Could not pop cuda context");
     }
 
     /* used to hold the packet addresses for all the packets buffered inside
@@ -757,18 +767,18 @@ TmEcode SCCudaPBThreadDeInit(ThreadVars *tv, void *data)
         if (tctx->curr_pb != NULL) {
             if (SCCudaHlPushCudaContextFromModule("SC_CUDA_PACKET_BATCHER") == -1){
                 SCLogError(SC_ERR_CUDA_HANDLER_ERROR,
-                           "Failed to push cuda context from module\n");
+                           "Failed to push cuda context from module");
             }
 
             SCCudaPBDeAllocSCCudaPBPacketsBuffer(tctx->curr_pb);
             tctx->curr_pb = NULL;
 
             if (SCCudaCtxPopCurrent(NULL) == -1){
-                SCLogError(SC_ERR_CUDA_ERROR, "Failed to pop cuda context\n");
+                SCLogError(SC_ERR_CUDA_ERROR, "Failed to pop cuda context");
             }
 
             if (SCCudaHlDeRegisterModule("SC_CUDA_PACKET_BATCHER") == -1){
-                SCLogError(SC_ERR_CUDA_HANDLER_ERROR, "Failed to deregister module\n");
+                SCLogError(SC_ERR_CUDA_HANDLER_ERROR, "Failed to deregister module");
             }
         }
         free(tctx);
@@ -852,25 +862,31 @@ void SCCudaPBCleanUpQueuesAndBuffers(void)
         return;
     }
     if (SCCudaHlPushCudaContextFromModule("SC_CUDA_PACKET_BATCHER") == -1){
-        SCLogError(SC_ERR_CUDA_HANDLER_ERROR, "Could not push cuda context from module\n");
+        SCLogError(SC_ERR_CUDA_HANDLER_ERROR, "Could not push cuda context from module");
     }
 
     /* clean all the buffers present in the inq */
     dq = &data_queues[tmq_inq->id];
     SCMutexLock(&dq->mutex_q);
     while ( (pb = (SCCudaPBPacketsBuffer *)SCDQDataDequeue(dq)) != NULL) {
-        if (pb->packets_buffer != NULL)
-            if (SCCudaMemFreeHost(pb->packets_buffer) == -1)
+        if (pb->packets_buffer != NULL) {
+            if (SCCudaMemFreeHost(pb->packets_buffer) == -1) {
                 SCLogError(SC_ERR_CUDA_ERROR, "Error deallocating pagelocked memory: "
-                           "packets_buffer\n");
-        if (pb->packets_offset_buffer != NULL)
-            if (SCCudaMemFreeHost(pb->packets_offset_buffer) == -1)
+                           "packets_buffer");
+            }
+        }
+        if (pb->packets_offset_buffer != NULL) {
+            if (SCCudaMemFreeHost(pb->packets_offset_buffer) == -1) {
                 SCLogError(SC_ERR_CUDA_ERROR, "Error deallocating pagelocked memory: "
-                           "packets_offset_buffer\n");
-        if (pb->packets_payload_offset_buffer != NULL)
-            if (SCCudaMemFreeHost(pb->packets_payload_offset_buffer) == -1)
+                           "packets_offset_buffer");
+            }
+        }
+        if (pb->packets_payload_offset_buffer != NULL) {
+            if (SCCudaMemFreeHost(pb->packets_payload_offset_buffer) == -1) {
                 SCLogError(SC_ERR_CUDA_ERROR, "Error deallocating pagelocked memory: "
-                           "packets_payload_offset_buffer\n");
+                           "packets_payload_offset_buffer");
+            }
+        }
 
         free(pb);
     }
@@ -881,23 +897,29 @@ void SCCudaPBCleanUpQueuesAndBuffers(void)
     dq = &data_queues[tmq_outq->id];
     SCMutexLock(&dq->mutex_q);
     while ( (pb = (SCCudaPBPacketsBuffer *)SCDQDataDequeue(dq)) != NULL) {
-        if (pb->packets_buffer != NULL)
-            if (SCCudaMemFreeHost(pb->packets_buffer) == -1)
+        if (pb->packets_buffer != NULL) {
+            if (SCCudaMemFreeHost(pb->packets_buffer) == -1) {
                 SCLogError(SC_ERR_CUDA_ERROR, "Error deallocating pagelocked memory: "
-                           "packets_buffer\n");
-        if (pb->packets_offset_buffer != NULL)
-            if (SCCudaMemFreeHost(pb->packets_offset_buffer) == -1)
+                           "packets_buffer");
+            }
+        }
+        if (pb->packets_offset_buffer != NULL) {
+            if (SCCudaMemFreeHost(pb->packets_offset_buffer) == -1) {
                 SCLogError(SC_ERR_CUDA_ERROR, "Error deallocating pagelocked memory: "
-                           "packets_offset_buffer\n");
-        if (pb->packets_payload_offset_buffer != NULL)
-            if (SCCudaMemFreeHost(pb->packets_payload_offset_buffer) == -1)
+                           "packets_offset_buffer");
+            }
+        }
+        if (pb->packets_payload_offset_buffer != NULL) {
+            if (SCCudaMemFreeHost(pb->packets_payload_offset_buffer) == -1) {
                 SCLogError(SC_ERR_CUDA_ERROR, "Error deallocating pagelocked memory: "
-                           "packets_payload_offset_buffer\n");
+                           "packets_payload_offset_buffer");
+            }
+        }
 
         free(pb);
     }
     if (SCCudaCtxPopCurrent(NULL) == -1){
-        SCLogError(SC_ERR_CUDA_ERROR, "Could not pop cuda context\n");
+        SCLogError(SC_ERR_CUDA_ERROR, "Could not pop cuda context");
     }
     SCMutexUnlock(&dq->mutex_q);
     SCCondSignal(&dq->cond_q);
