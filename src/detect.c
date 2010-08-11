@@ -119,6 +119,8 @@
 #include "app-layer-protos.h"
 #include "app-layer-htp.h"
 #include "detect-tls-version.h"
+#include "detect-ssh-proto-version.h"
+#include "detect-ssh-software-version.h"
 
 #include "action-globals.h"
 #include "tm-modules.h"
@@ -3356,6 +3358,8 @@ void SigTableSetup(void) {
     DetectHttpClientBodyRegister();
     DetectHttpUriRegister();
     DetectAsn1Register();
+    DetectSshVersionRegister();
+    DetectSshSoftwareVersionRegister();
 
     uint8_t i = 0;
     for (i = 0; i < DETECT_TBLSIZE; i++) {

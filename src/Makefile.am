@@ -115,6 +115,8 @@ detect-http-method.c detect-http-method.h \
 detect-http-header.c detect-http-header.h \
 detect-http-uri.c detect-http-uri.h \
 detect-tls-version.c detect-tls-version.h \
+detect-ssh-proto-version.c detect-ssh-proto-version.h \
+detect-ssh-software-version.c detect-ssh-software-version.h \
 detect-icmp-id.c detect-icmp-id.h \
 detect-icmp-seq.c detect-icmp-seq.h \
 detect-dce-iface.c detect-dce-iface.h \
@@ -206,6 +208,7 @@ app-layer-dcerpc.c app-layer-dcerpc.h \
 app-layer-dcerpc-udp.c app-layer-dcerpc-udp.h \
 app-layer-ftp.c app-layer-ftp.h \
 app-layer-ssl.c app-layer-ssl.h \
+app-layer-ssh.c app-layer-ssh.h \
 defrag.c defrag.h \
 output.c output.h \
 win32-misc.c win32-misc.h \

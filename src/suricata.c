@@ -106,6 +106,7 @@
 #include "app-layer-htp.h"
 #include "app-layer-ftp.h"
 #include "app-layer-ssl.h"
+#include "app-layer-ssh.h"
 
 #include "util-radix-tree.h"
 #include "util-host-os-info.h"
@@ -828,6 +829,7 @@ int main(int argc, char **argv)
     RegisterDCERPCUDPParsers();
     RegisterFTPParsers();
     RegisterSSLParsers();
+    RegisterSSHParsers();
     AppLayerParsersInitPostProcess();
 
 #ifdef UNITTESTS
@@ -864,6 +866,7 @@ int main(int argc, char **argv)
         DecodeVLANRegisterTests();
         HTPParserRegisterTests();
         TLSParserRegisterTests();
+        SSHParserRegisterTests();
         SMBParserRegisterTests();
         DCERPCParserRegisterTests();
         DCERPCUDPParserRegisterTests();

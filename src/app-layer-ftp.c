@@ -65,7 +65,7 @@ static int FTPParseRequestCommand(void *ftp_state, uint8_t *input,
     char inputlower[5];
 
     if (input_len >= 4) {
-        memcpy(inputlower,input,5);
+        memcpy(inputlower,input,4);
         int i = 0;
         for (; i < 4; i++)
             inputlower[i] = tolower(inputlower[i]);
@@ -73,6 +73,7 @@ static int FTPParseRequestCommand(void *ftp_state, uint8_t *input,
         if (memcmp(inputlower, "port", 4) == 0) {
             fstate->command = FTP_COMMAND_PORT;
         }
+
         /* else {
          *     Add the ftp commands you need here
          * }
