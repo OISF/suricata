@@ -152,11 +152,32 @@ threading:
   #
   detect_thread_ratio: 1.5
 
-# Select the cuda device to use.  The device_id identifies the device to be used
-# if one has multiple devices on the system.  To find out device_id associated
-#  with the card(s) on the system run "suricata --list-cuda-cards".
+# Cuda configuration.
 cuda:
-  device_id: 0
+  # The "mpm" profile.  On not specifying any of these parameters, the engine's
+  # internal default values are used, which are same as the ones specified here.
+  - mpm:
+      # Threshold limit for no of packets buffered to the GPU.  Once we hit this
+      # limit, we pass the buffer to the gpu.
+      packet_buffer_limit: 2400
+      # The maximum length for a packet that we would buffer to the gpu.
+      # Anything over this is MPM'ed on the CPU.  All entries > 0 are valid.
+      packet_size_limit: 1500
+      # No of packet buffers we initialize.  All entries > 0 are valid.
+      packet_buffers: 10
+      # The timeout limit for batching of packets in secs.  If we don't fill the
+      # buffer within this timeout limit, we pass the currently filled buffer to the gpu.
+      # All entries > 0 are valid.
+      batching_timeout: 1
+      # Specifies whether to use page_locked memory whereever possible.  Accepted values
+      # are "enabled" and "disabled".
+      page_locked: enabled
+      # The device to use for the mpm.  Currently we don't support load balancing
+      # on multiple gpus.  In case you have multiple devices on your system, you
+      # can specify the device to use, using this conf.  By default we hold 0, to
+      # specify the first device cuda sees.  To find out device_id associated with
+      # the card(s) on the system run "suricata --list-cuda-cards".
+      device_id: 0
 
 # Select the multi pattern algorithm you want to run for scan/search the
 # in the engine. The supported algorithms are b2g, b2gc, b2gm, b3g, wumanber,

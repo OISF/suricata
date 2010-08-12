@@ -792,6 +792,11 @@ int main(int argc, char **argv)
      * logging module. */
     SCLogLoadConfig();
 
+#ifdef __SC_CUDA_SUPPORT__
+    /* load the cuda configuration */
+    SCCudaHlGetYamlConf();
+#endif /* __SC_CUDA_SUPPORT__ */
+
     /* Load the Host-OS lookup. */
     SCHInfoLoadFromConfig();
 

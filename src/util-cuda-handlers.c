@@ -51,7 +51,7 @@
  *       cuda modules against a cuda_context, although it is highly unlikely we
  *       would need this feature.
  *
- *       We also need to use a mutex for module_datas.
+ *       We also need to use a mutex for module_data.
  */
 
 #include "suricata-common.h"
@@ -70,13 +70,122 @@
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "packet-queue.h"
+#include "util-mpm.h"
 
 /* macros decides if cuda is enabled for the platform or not */
 #ifdef __SC_CUDA_SUPPORT__
 
-static SCCudaHlModuleData *module_datas = NULL;
+static SCCudaHlModuleData *module_data = NULL;
 
 static uint8_t module_handle = 1;
+
+/* holds the parsed cuda configuration from our yaml file */
+static SCCudaHlCudaProfile *cuda_profiles = NULL;
+
+/* used by unittests only */
+static SCCudaHlCudaProfile *backup_cuda_profiles = NULL;
+
+/**
+ * \brief Needed by unittests.  Backup the existing cuda profile in handlers.
+ */
+void SCCudaHlBackupRegisteredProfiles(void)
+{
+    backup_cuda_profiles = cuda_profiles;
+    cuda_profiles = NULL;
+
+    return;
+}
+
+/**
+ * \brief Needed by unittests.  Restore the previous backup of handlers'
+ *        cuda profile.
+ */
+void SCCudaHlRestoreBackupRegisteredProfiles(void)
+{
+    cuda_profiles = backup_cuda_profiles;
+
+    return;
+}
+
+/**
+ * \brief Parse the "cuda" subsection config from our conf file.
+ */
+void SCCudaHlGetYamlConf(void)
+{
+    SCCudaHlCudaProfile *profile = NULL;
+
+    /* "mpm" profile, found under "cuda.mpm" in the conf file */
+    profile = malloc(sizeof(SCCudaHlCudaProfile));
+    if (profile == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    memset(profile, 0, sizeof(SCCudaHlCudaProfile));
+    profile->name = "mpm";
+    profile->data = MpmCudaConfParse();
+    if (cuda_profiles == NULL) {
+        cuda_profiles = profile;
+    } else {
+        profile->next = cuda_profiles;
+        cuda_profiles = profile;
+    }
+
+    return;
+}
+
+/**
+ * \brief Get a particular cuda profile specified as arg.
+ *
+ * \param profile_name Name of the the profile to retrieve.
+ *
+ * \retval Data associated with the profile.
+ */
+void *SCCudaHlGetProfile(char *profile_name)
+{
+    SCCudaHlCudaProfile *profile = cuda_profiles;
+
+    if (cuda_profiles == NULL ) {
+        SCLogInfo("No cuda profile registered");
+        return NULL;
+    }
+
+    if (profile_name == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "argument profile NULL");
+        return NULL;
+    }
+
+    while (profile != NULL && strcasecmp(profile->name, profile_name) != 0) {
+        profile = profile->next;
+    }
+
+    if (profile != NULL)
+        return profile->data;
+    else
+        return NULL;
+}
+
+/**
+ * \brief Clean the cuda profiles, held in cuda_profiles.
+ */
+void SCCudaHlCleanProfiles(void)
+{
+    SCCudaHlCudaProfile *profile = cuda_profiles;
+    SCCudaHlCudaProfile *profile_next = NULL;
+
+    while (profile != NULL) {
+        profile_next = profile->next;
+        if (profile->data != NULL) {
+            if (strcasecmp(profile->name, "mpm") == 0) {
+                MpmCudaConfCleanup(profile->data);
+            }
+        }
+        free(profile);
+        profile = profile_next;
+    }
+    cuda_profiles = NULL;
+
+    return;
+}
 
 /**
  * \internal
@@ -89,7 +198,7 @@ static uint8_t module_handle = 1;
  */
 SCCudaHlModuleData *SCCudaHlGetModuleData(uint8_t handle)
 {
-    SCCudaHlModuleData *data = module_datas;
+    SCCudaHlModuleData *data = module_data;
 
     if (data == NULL)
         return NULL;
@@ -189,15 +298,16 @@ static int SCCudaHlGetUniqueHandle(void)
  *        in the argument.  If a cuda_context is already present for
  *        a handle, it is returned.
  *
- * \param p_context Pointer to a cuda context instance that should be updated
- *                  with a cuda context.
- * \param handle    A unique handle which identifies a module.  Obtained from
- *                  a call to SCCudaHlGetUniqueHandle().
+ * \param p_context    Pointer to a cuda context instance that should be updated
+ *                     with a cuda context.
+ * \param cuda_profile The cuda profile, supplied as a string.
+ * \param handle       A unique handle which identifies a module.  Obtained from
+ *                     a call to SCCudaHlGetUniqueHandle().
  *
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int SCCudaHlGetCudaContext(CUcontext *p_context, int handle)
+int SCCudaHlGetCudaContext(CUcontext *p_context, char *cuda_profile, int handle)
 {
     SCCudaHlModuleData *data = NULL;
     SCCudaDevices *devices = NULL;
@@ -227,23 +337,23 @@ int SCCudaHlGetCudaContext(CUcontext *p_context, int handle)
         return 0;
     }
 
-    /* Get default log level and format. */
-    char *cuda_device_id_str = NULL;
-    int cuda_device_id = SC_CUDA_DEFAULT_DEVICE;
-    if (ConfGet("cuda.device_id", &cuda_device_id_str) == 1) {
-        cuda_device_id = atoi(cuda_device_id_str);
-        if (!SCCudaIsCudaDeviceIdValid(cuda_device_id)) {
-            SCLogError(SC_ERR_CUDA_ERROR, "Invalid device id \"%s\" supplied "
-                       "in the conf file", cuda_device_id_str);
-            cuda_device_id = SC_CUDA_DEFAULT_DEVICE;
+    int device_id = SC_CUDA_DEFAULT_DEVICE;
+    if (cuda_profile != NULL) {
+        /* Get default log level and format. */
+        MpmCudaConf *profile = SCCudaHlGetProfile(cuda_profile);
+        if (profile != NULL) {
+            if (SCCudaIsCudaDeviceIdValid(profile->device_id)) {
+                device_id = profile->device_id;
+            } else {
+                SCLogError(SC_ERR_CUDA_ERROR, "Invalid device id \"%d\" supplied.  "
+                           "Using the first device.", profile->device_id);
+            }
         }
-    } else {
-        cuda_device_id = SC_CUDA_DEFAULT_DEVICE;
     }
 
     /* Get the device list for this CUDA platform and create a new cuda context */
     devices = SCCudaGetDeviceList();
-    if (SCCudaCtxCreate(p_context, 0, devices->devices[cuda_device_id]->device) == -1)
+    if (SCCudaCtxCreate(p_context, 0, devices->devices[device_id]->device) == -1)
         goto error;
     data->cuda_context = p_context[0];
 
@@ -565,7 +675,7 @@ int SCCudaHlRegisterDispatcherFunc(void *(*SCCudaHlDispFunc)(void *), int handle
  */
 const char *SCCudaHlGetModuleName(int handle)
 {
-    SCCudaHlModuleData *data = module_datas;
+    SCCudaHlModuleData *data = module_data;
 
     while (data != NULL && data->handle != handle) {
         data = data->next;
@@ -587,7 +697,7 @@ const char *SCCudaHlGetModuleName(int handle)
  */
 int SCCudaHlGetModuleHandle(const char *name)
 {
-    SCCudaHlModuleData *data = module_datas;
+    SCCudaHlModuleData *data = module_data;
 
     while (data != NULL &&
            strcmp(data->name, name) != 0) {
@@ -615,7 +725,7 @@ int SCCudaHlGetModuleHandle(const char *name)
  */
 int SCCudaHlRegisterModule(const char *name)
 {
-    SCCudaHlModuleData *data = module_datas;
+    SCCudaHlModuleData *data = module_data;
     SCCudaHlModuleData *new_data = NULL;
 
     while (data != NULL &&
@@ -624,9 +734,8 @@ int SCCudaHlRegisterModule(const char *name)
     }
 
     if (data != NULL) {
-        SCLogError(SC_ERR_CUDA_HANDLER_ERROR, "Module \"%s\" already "
-                   "registered.  Returning the handle for the already "
-                   "registered module", name);
+        SCLogInfo("Module \"%s\" already registered.  Returning the handle "
+                  "for the already registered module", name);
         return data->handle;
     }
 
@@ -646,13 +755,13 @@ int SCCudaHlRegisterModule(const char *name)
     new_data->handle = SCCudaHlGetUniqueHandle();
 
     /* first module to be registered */
-    if (module_datas == NULL) {
-        module_datas = new_data;
+    if (module_data == NULL) {
+        module_data = new_data;
         return new_data->handle;
     }
 
     /* add this new module_data instance to the global module_data list */
-    data = module_datas;
+    data = module_data;
     while (data->next != NULL)
         data = data->next;
     data->next = new_data;
@@ -723,10 +832,10 @@ int SCCudaHlDeRegisterModule(const char *name)
     }
 
     /* find the previous module data instance */
-    if (module_datas == data) {
-        module_datas = module_datas->next;
+    if (module_data == data) {
+        module_data = module_data->next;
     } else {
-        prev_data = module_datas;
+        prev_data = module_data;
         while (prev_data->next != data)
             prev_data = prev_data->next;
         prev_data->next = data->next;
@@ -746,7 +855,7 @@ int SCCudaHlDeRegisterModule(const char *name)
  */
 void SCCudaHlDeRegisterAllRegisteredModules(void)
 {
-    SCCudaHlModuleData *data = module_datas;
+    SCCudaHlModuleData *data = module_data;
     SCCudaHlModuleData *next_data = NULL;
 
     next_data = data;
@@ -759,7 +868,7 @@ void SCCudaHlDeRegisterAllRegisteredModules(void)
         data = next_data;
     }
 
-    module_datas = NULL;
+    module_data = NULL;
 
     return;
 }
@@ -805,7 +914,7 @@ int SCCudaHlTestEnvCudaContextInit(void)
 {
     CUcontext context;
     int module_handle = SCCudaHlRegisterModule("SC_RULES_CONTENT_B2G_CUDA");
-    if (SCCudaHlGetCudaContext(&context, module_handle) == -1) {
+    if (SCCudaHlGetCudaContext(&context, NULL, module_handle) == -1) {
         printf("Error getting a cuda context");
     }
     if (SCCudaHlPushCudaContextFromModule("SC_RULES_CONTENT_B2G_CUDA") == -1) {

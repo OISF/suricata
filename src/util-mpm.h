@@ -50,6 +50,13 @@
                                              pattern matcher algorithms */
 #define BLOOMSIZE_HIGH          2048    /**< High bloomfilter size for the multi
                                              pattern matcher algorithms */
+
+#define MPM_PACKET_BUFFER_LIMIT 2400
+#define MPM_PACKET_SIZE_LIMIT   1500
+#define MPM_PACKET_BUFFERS      10
+#define MPM_BATCHING_TIMEOUT    1
+#define MPM_PAGE_LOCKED         1
+
 enum {
     MPM_NOTSET = 0,
 
@@ -178,11 +185,34 @@ MpmCtx *MpmFactoryGetMpmCtxForProfile(int32_t);
 void MpmFactoryDeRegisterAllMpmCtxProfiles(void);
 int32_t MpmFactoryIsMpmCtxAvailable(MpmCtx *);
 
+/* macros decides if cuda is enabled for the platform or not */
+#ifdef __SC_CUDA_SUPPORT__
+
+/**
+ * \brief Cuda configuration for "mpm" profile.  We can further extend this
+ *        to have conf for specific mpms.  For now its common for all mpms.
+ */
+typedef struct MpmCudaConf_ {
+    int32_t packet_buffer_limit;
+    int16_t packet_size_limit;
+    int8_t packet_buffers;
+    int8_t batching_timeout;
+    int8_t page_locked;
+    int8_t device_id;
+} MpmCudaConf;
+
+#endif /* __SC_CUDA_SUPPORT__ */
+
 int PmqSetup(PatternMatcherQueue *, uint32_t, uint32_t);
 void PmqMerge(PatternMatcherQueue *src, PatternMatcherQueue *dst);
 void PmqReset(PatternMatcherQueue *);
 void PmqCleanup(PatternMatcherQueue *);
 void PmqFree(PatternMatcherQueue *);
+
+#ifdef __SC_CUDA_SUPPORT__
+MpmCudaConf *MpmCudaConfParse(void);
+void MpmCudaConfCleanup(MpmCudaConf *);
+#endif /* __SC_CUDA_SUPPORT */
 
 void MpmTableSetup(void);
 void MpmRegisterTests(void);
@@ -197,4 +227,3 @@ uint32_t MpmGetHashSize(const char *);
 uint32_t MpmGetBloomSize(const char *);
 
 #endif /* __UTIL_MPM_H__ */
-

@@ -61,7 +61,25 @@ typedef struct SCCudaHlModuleData_ {
     struct SCCudaHlModuleData_ *next;
 } SCCudaHlModuleData;
 
-int SCCudaHlGetCudaContext(CUcontext *, int);
+/**
+ * \brief Used to hold the cuda configuration from our conf yaml file
+ */
+typedef struct SCCudaHlCudaProfile_ {
+    /* profile name.  Should be unique */
+    char *name;
+    /* the data associated with this profile */
+    void *data;
+
+    struct SCCudaHlCudaProfile_ *next;
+} SCCudaHlCudaProfile;
+
+void SCCudaHlGetYamlConf(void);
+void *SCCudaHlGetProfile(char *);
+void SCCudaHlCleanProfiles(void);
+void SCCudaHlBackupRegisteredProfiles(void);
+void SCCudaHlRestoreBackupRegisteredProfiles(void);
+
+int SCCudaHlGetCudaContext(CUcontext *, char *, int);
 int SCCudaHlGetCudaModule(CUmodule *, const char *, int);
 int SCCudaHlGetCudaModuleFromFile(CUmodule *, const char *, int);
 int SCCudaHlGetCudaDevicePtr(CUdeviceptr *, const char *, size_t, void *, int);

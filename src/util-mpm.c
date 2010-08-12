@@ -456,6 +456,717 @@ uint32_t MpmGetBloomSize(const char *conf_val)
     SCReturnInt(bloom_value);
 }
 
+
+#ifdef __SC_CUDA_SUPPORT__
+
+/**
+ * \brief Parse the "mpm" profile under the cuda subsection of our conf file.
+ *
+ * \retval profile Pointer to a struct containing the parsed data.
+ */
+MpmCudaConf *MpmCudaConfParse(void)
+{
+    ConfNode *cuda_node = NULL;
+    ConfNode *seq_node = NULL;
+
+    MpmCudaConf *profile = NULL;
+
+    const char *packet_buffer_limit = NULL;
+    const char *packet_size_limit = NULL;
+    const char *packet_buffers = NULL;
+    const char *batching_timeout = NULL;
+    const char *page_locked = NULL;
+    const char *device_id = NULL;
+
+    if ((profile = malloc(sizeof(MpmCudaConf))) == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    memset(profile, 0, sizeof(MpmCudaConf));
+    profile->packet_buffer_limit = MPM_PACKET_BUFFER_LIMIT;
+    profile->packet_size_limit = MPM_PACKET_SIZE_LIMIT;
+    profile->packet_buffers = MPM_PACKET_BUFFERS;
+    profile->batching_timeout = MPM_BATCHING_TIMEOUT;
+    profile->page_locked = MPM_PAGE_LOCKED;
+    profile->device_id = SC_CUDA_DEFAULT_DEVICE;
+
+    cuda_node = ConfGetNode("cuda");
+    if (cuda_node == NULL) {
+        SCLogInfo("No conf found for \"cuda\" in yaml file.  Use default conf");
+        goto end;
+    }
+
+    TAILQ_FOREACH(seq_node, &cuda_node->head, next) {
+        if (strcasecmp(seq_node->val, "mpm") == 0) {
+            packet_buffer_limit = ConfNodeLookupChildValue
+                (seq_node->head.tqh_first, "packet_buffer_limit");
+            packet_size_limit = ConfNodeLookupChildValue
+                (seq_node->head.tqh_first, "packet_size_limit");
+            packet_buffers = ConfNodeLookupChildValue
+                (seq_node->head.tqh_first, "packet_buffers");
+            batching_timeout = ConfNodeLookupChildValue
+                (seq_node->head.tqh_first, "batching_timeout");
+            page_locked = ConfNodeLookupChildValue
+                (seq_node->head.tqh_first, "page_locked");
+            device_id = ConfNodeLookupChildValue
+                (seq_node->head.tqh_first, "device_id");
+
+            /* packet_buffer_size */
+            if (packet_buffer_limit == NULL || strcasecmp(packet_buffer_limit, "") == 0) {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
+                           "cuda.mpm.packet_buffer_limit.  Either NULL or empty");
+            } else {
+                profile->packet_buffer_limit = atoi(packet_buffer_limit);
+                if (profile->packet_buffer_limit <= 0) {
+                    SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
+                               "cuda.mpm.packet_buffer_limit - %s", packet_buffer_limit);
+                    profile->packet_buffer_limit = MPM_PACKET_BUFFER_LIMIT;
+                }
+            }
+
+            /* packet_size_limit */
+            if (packet_size_limit == NULL || strcasecmp(packet_size_limit, "") == 0) {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
+                           "cuda.mpm.packet_size_limit.  Either NULL or empty");
+            } else {
+                profile->packet_size_limit = atoi(packet_size_limit);
+                if (profile->packet_size_limit <= 0) {
+                    SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
+                               "cuda.mpm.packet_size_limit - %s", packet_size_limit);
+                    profile->packet_size_limit = MPM_PACKET_SIZE_LIMIT;
+                }
+            }
+
+            /* packet_buffers */
+            if (packet_buffers == NULL || strcasecmp(packet_buffers, "") == 0) {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
+                           "cuda.mpm.packet_buffers.  Either NULL or empty");
+            } else {
+                profile->packet_buffers = atoi(packet_buffers);
+                if (profile->packet_buffers <= 0) {
+                    SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
+                               "cuda.mpm.packet_buffers - %s", packet_buffers);
+                    profile->packet_buffers = MPM_PACKET_BUFFERS;
+                }
+            }
+
+            /* batching_timeout */
+            if (batching_timeout == NULL || strcasecmp(batching_timeout, "") == 0) {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
+                           "cuda.mpm.batching_timeout.  Either NULL or empty");
+            } else {
+                profile->batching_timeout = atoi(batching_timeout);
+                if (profile->batching_timeout <= 0) {
+                    SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
+                               "cuda.mpm.batching_timeout - %s", batching_timeout);
+                    profile->batching_timeout = MPM_BATCHING_TIMEOUT;
+                }
+            }
+
+            /* page_locked */
+            if (page_locked == NULL || strcasecmp(page_locked, "") == 0) {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
+                           "cuda.mpm.page_locked.  Either NULL or empty");
+            } else {
+                if (strcasecmp(page_locked, "enabled") == 0) {
+                    profile->page_locked = MPM_PAGE_LOCKED;
+                } else if (strcasecmp(page_locked, "disabled") == 0) {
+                    profile->page_locked = !MPM_PAGE_LOCKED;
+                } else {
+                    SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
+                               "cuda.mpm.page_locked - %s", page_locked);
+                }
+            }
+
+            /* device_id */
+            if (device_id == NULL || strcasecmp(device_id, "") == 0) {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
+                           "cuda.mpm.device_id  Either NULL or empty");
+                profile->device_id = SC_CUDA_DEFAULT_DEVICE;
+                continue;
+            } else {
+                profile->device_id = atoi(device_id);
+                if (profile->device_id < 0) {
+                    SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
+                               "cuda.mpm.device_id - %s", device_id);
+                    profile->device_id = SC_CUDA_DEFAULT_DEVICE;
+                    continue;
+                }
+            }
+        } /* if (strcasecmp(seq_node->val, "mpm") == 0) */
+    } /* TAILQ_FOREACH(seq_node, &cuda_node->head, next) */
+
+ end:
+    SCLogDebug("Configuration for \"cuda.mpm\"\n"
+               "packet_buffer_size: %u\n"
+               "packet_size_limit: %d\n"
+               "packet_buffers: %d\n"
+               "batching_timeout: %d\n"
+               "page_locked: %d\n"
+               "device_id: %d\n",
+               profile->packet_buffer_limit, profile->packet_size_limit,
+               profile->packet_buffers, profile->batching_timeout,
+               profile->page_locked, profile->device_id);
+
+    return profile;
+}
+
+/**
+ * \brief Cleanup the parsed "mpm" profile cuda conf.
+ */
+void MpmCudaConfCleanup(MpmCudaConf *conf)
+{
+    if (conf != NULL)
+        free(conf);
+
+    return;
+}
+
+#endif /* __SC_CUDA_SUPPORT */
+
+/************************************Unittests*********************************/
+
+static int MpmInitYamlConf(char *conf)
+{
+    ConfCreateContextBackup();
+    ConfInit();
+    return ConfYamlLoadString(conf, strlen(conf));
+}
+
+static void MpmDeInitYamlConf(void)
+{
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return;
+}
+
+static int MpmTest01(void)
+{
+    char *conf =
+        "%YAML 1.1\n"
+        "---\n"
+        "cuda:\n"
+        "  - mpm:\n"
+        "      packet_buffer_limit: 4000\n"
+        "      packet_size_limit: 1500\n"
+        "      packet_buffers: 10\n"
+        "      batching_timeout: 1\n"
+        "      page_locked: enabled\n"
+        "      device_id: 0\n";
+
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if (MpmInitYamlConf(conf) == -1)
+        return 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    SCCudaHlBackupRegisteredProfiles();
+    SCCudaHlGetYamlConf();
+    MpmCudaConf *profile = SCCudaHlGetProfile("mpm");
+    if (profile == NULL) {
+        printf("Error retrieving mpm profile\n");
+        goto end;
+    }
+
+    result = (profile->packet_buffer_limit == 4000);
+    result &= (profile->packet_size_limit == 1500);
+    result &= (profile->packet_buffers == 10);
+    result &= (profile->batching_timeout == 1);
+    result &= (profile->page_locked == 1);
+    result &= (profile->device_id == 0);
+
+ end:
+    SCCudaHlCleanProfiles();
+
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    MpmDeInitYamlConf();
+    SCCudaHlRestoreBackupRegisteredProfiles();
+
+    return result;
+}
+
+static int MpmTest02(void)
+{
+    char *conf =
+        "%YAML 1.1\n"
+        "---\n"
+        "cuda:\n"
+        "  - mpm:\n"
+        "      packet_buffer_limit: 4001\n"
+        "      packet_size_limit: 1500\n"
+        "      packet_buffers: 12\n"
+        "      batching_timeout: 10\n"
+        "      page_locked: disabled\n"
+        "      device_id: 5\n";
+
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if (MpmInitYamlConf(conf) == -1)
+        return 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    SCCudaHlBackupRegisteredProfiles();
+    SCCudaHlGetYamlConf();
+    MpmCudaConf *profile = SCCudaHlGetProfile("mpm");
+    if (profile == NULL) {
+        printf("Error retrieving mpm profile\n");
+        goto end;
+    }
+
+    result = (profile->packet_buffer_limit == 4001);
+    result &= (profile->packet_size_limit == 1500);
+    result &= (profile->packet_buffers == 12);
+    result &= (profile->batching_timeout == 10);
+    result &= (profile->page_locked == 0);
+    result &= (profile->device_id == 5);
+
+ end:
+    SCCudaHlCleanProfiles();
+
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    MpmDeInitYamlConf();
+    SCCudaHlRestoreBackupRegisteredProfiles();
+
+    return result;
+}
+
+static int MpmTest03(void)
+{
+    char *conf =
+        "%YAML 1.1\n"
+        "---\n"
+        "cuda:\n"
+        "  - mpm:\n"
+        "      packet_buffer_limit: 0\n"
+        "      packet_size_limit: 0\n"
+        "      packet_buffers: 0\n"
+        "      batching_timeout: 0\n"
+        "      page_locked: enbled\n"
+        "      device_id: -1\n";
+
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if (MpmInitYamlConf(conf) == -1)
+        return 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    SCCudaHlBackupRegisteredProfiles();
+    SCCudaHlGetYamlConf();
+    MpmCudaConf *profile = SCCudaHlGetProfile("mpm");
+    if (profile == NULL) {
+        printf("Error retrieving mpm profile\n");
+        goto end;
+    }
+
+    result = (profile->packet_buffer_limit == MPM_PACKET_BUFFER_LIMIT);
+    result &= (profile->packet_size_limit == MPM_PACKET_SIZE_LIMIT);
+    result &= (profile->packet_buffers == MPM_PACKET_BUFFERS);
+    result &= (profile->batching_timeout == MPM_BATCHING_TIMEOUT);
+    result &= (profile->page_locked == MPM_PAGE_LOCKED);
+    result &= (profile->device_id == SC_CUDA_DEFAULT_DEVICE);
+
+ end:
+    SCCudaHlCleanProfiles();
+
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    MpmDeInitYamlConf();
+    SCCudaHlRestoreBackupRegisteredProfiles();
+
+    return result;
+}
+
+static int MpmTest04(void)
+{
+    char *conf =
+        "%YAML 1.1\n"
+        "---\n"
+        "cuda:\n"
+        "  - mpm:\n"
+        "      packet_buffer_limit: -1\n"
+        "      packet_size_limit: -1\n"
+        "      packet_buffers: -1\n"
+        "      batching_timeout: -1\n"
+        "      page_locked: enbled\n"
+        "      device_id: -1\n";
+
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if (MpmInitYamlConf(conf) == -1)
+        return 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    SCCudaHlBackupRegisteredProfiles();
+    SCCudaHlGetYamlConf();
+    MpmCudaConf *profile = SCCudaHlGetProfile("mpm");
+    if (profile == NULL) {
+        printf("Error retrieving mpm profile\n");
+        goto end;
+    }
+
+    result = (profile->packet_buffer_limit == MPM_PACKET_BUFFER_LIMIT);
+    result &= (profile->packet_size_limit == MPM_PACKET_SIZE_LIMIT);
+    result &= (profile->packet_buffers == MPM_PACKET_BUFFERS);
+    result &= (profile->batching_timeout == MPM_BATCHING_TIMEOUT);
+    result &= (profile->page_locked == MPM_PAGE_LOCKED);
+    result &= (profile->device_id == SC_CUDA_DEFAULT_DEVICE);
+
+ end:
+    SCCudaHlCleanProfiles();
+
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    MpmDeInitYamlConf();
+    SCCudaHlRestoreBackupRegisteredProfiles();
+
+    return result;
+}
+
+static int MpmTest05(void)
+{
+    char *conf =
+        "%YAML 1.1\n"
+        "---\n"
+        "cuda:\n"
+        "  - mpm:\n"
+        "      packet_buffer_limit:\n"
+        "      packet_size_limit:\n"
+        "      packet_buffers:\n"
+        "      batching_timeout: 2\n"
+        "      page_locked: enabled\n"
+        "      device_id: 1\n";
+
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if (MpmInitYamlConf(conf) == -1)
+        return 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    SCCudaHlBackupRegisteredProfiles();
+    SCCudaHlGetYamlConf();
+    MpmCudaConf *profile = SCCudaHlGetProfile("mpm");
+    if (profile == NULL) {
+        printf("Error retrieving mpm profile\n");
+        goto end;
+    }
+
+    result = (profile->packet_buffer_limit == MPM_PACKET_BUFFER_LIMIT);
+    result &= (profile->packet_size_limit == MPM_PACKET_SIZE_LIMIT);
+    result &= (profile->packet_buffers == MPM_PACKET_BUFFERS);
+    result &= (profile->batching_timeout == 2);
+    result &= (profile->page_locked == 1);
+    result &= (profile->device_id == 1);
+
+ end:
+    SCCudaHlCleanProfiles();
+
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    MpmDeInitYamlConf();
+    SCCudaHlRestoreBackupRegisteredProfiles();
+
+    return result;
+}
+
+static int MpmTest06(void)
+{
+    char *conf =
+        "%YAML 1.1\n"
+        "---\n"
+        "cuda:\n"
+        "  - mpm:\n"
+        "      packet_buffer_limit: \n"
+        "      packet_size_limit: \n"
+        "      packet_buffers: \n"
+        "      batching_timeout: \n"
+        "      page_locked: \n"
+        "      device_id: \n";
+
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if (MpmInitYamlConf(conf) == -1)
+        return 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    SCCudaHlBackupRegisteredProfiles();
+    SCCudaHlGetYamlConf();
+    MpmCudaConf *profile = SCCudaHlGetProfile("mpm");
+    if (profile == NULL) {
+        printf("Error retrieving mpm profile\n");
+        goto end;
+    }
+
+    result = (profile->packet_buffer_limit == MPM_PACKET_BUFFER_LIMIT);
+    result &= (profile->packet_size_limit == MPM_PACKET_SIZE_LIMIT);
+    result &= (profile->packet_buffers == MPM_PACKET_BUFFERS);
+    result &= (profile->batching_timeout == MPM_BATCHING_TIMEOUT);
+    result &= (profile->page_locked == MPM_PAGE_LOCKED);
+    result &= (profile->device_id == SC_CUDA_DEFAULT_DEVICE);
+
+ end:
+    SCCudaHlCleanProfiles();
+
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    MpmDeInitYamlConf();
+    SCCudaHlRestoreBackupRegisteredProfiles();
+
+    return result;
+}
+
+static int MpmTest07(void)
+{
+    char *conf =
+        "%YAML 1.1\n"
+        "---\n"
+        "cuda:\n"
+        "  - mpm:\n"
+        "      packet_buffer_limit:\n"
+        "      packet_size_limit:\n"
+        "      packet_buffers:\n"
+        "      batching_timeout:\n"
+        "      page_locked:\n"
+        "      device_id:\n";
+
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if (MpmInitYamlConf(conf) == -1)
+        return 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    SCCudaHlBackupRegisteredProfiles();
+    SCCudaHlGetYamlConf();
+    MpmCudaConf *profile = SCCudaHlGetProfile("mpm");
+    if (profile == NULL) {
+        printf("Error retrieving mpm profile\n");
+        goto end;
+    }
+
+    result = (profile->packet_buffer_limit == MPM_PACKET_BUFFER_LIMIT);
+    result &= (profile->packet_size_limit == MPM_PACKET_SIZE_LIMIT);
+    result &= (profile->packet_buffers == MPM_PACKET_BUFFERS);
+    result &= (profile->batching_timeout == MPM_BATCHING_TIMEOUT);
+    result &= (profile->page_locked == MPM_PAGE_LOCKED);
+    result &= (profile->device_id == SC_CUDA_DEFAULT_DEVICE);
+
+ end:
+    SCCudaHlCleanProfiles();
+
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    MpmDeInitYamlConf();
+    SCCudaHlRestoreBackupRegisteredProfiles();
+
+    return result;
+}
+
+static int MpmTest08(void)
+{
+    char *conf =
+        "%YAML 1.1\n"
+        "---\n"
+        "cuda:\n"
+        "  - mpm:\n"
+        "      packet_size_limit: 2000\n"
+        "      page_locked: disabled\n"
+        "      device_id: 4\n";
+
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if (MpmInitYamlConf(conf) == -1)
+        return 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    SCCudaHlBackupRegisteredProfiles();
+    SCCudaHlGetYamlConf();
+    MpmCudaConf *profile = SCCudaHlGetProfile("mpm");
+    if (profile == NULL) {
+        printf("Error retrieving mpm profile\n");
+        goto end;
+    }
+
+    result = (profile->packet_buffer_limit == MPM_PACKET_BUFFER_LIMIT);
+    result &= (profile->packet_size_limit == 2000);
+    result &= (profile->packet_buffers == MPM_PACKET_BUFFERS);
+    result &= (profile->batching_timeout == MPM_BATCHING_TIMEOUT);
+    result &= (profile->page_locked == !MPM_PAGE_LOCKED);
+    result &= (profile->device_id == 4);
+
+ end:
+    SCCudaHlCleanProfiles();
+
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    MpmDeInitYamlConf();
+    SCCudaHlRestoreBackupRegisteredProfiles();
+
+    return result;
+}
+
+static int MpmTest09(void)
+{
+    char *conf =
+        "%YAML 1.1\n"
+        "---\n"
+        "cuda:\n"
+        "  - mpm:\n";
+
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if (MpmInitYamlConf(conf) == -1)
+        return 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    SCCudaHlBackupRegisteredProfiles();
+    SCCudaHlGetYamlConf();
+    MpmCudaConf *profile = SCCudaHlGetProfile("mpm");
+    if (profile == NULL) {
+        printf("Error retrieving mpm profile\n");
+        goto end;
+    }
+
+    result = (profile->packet_buffer_limit == MPM_PACKET_BUFFER_LIMIT);
+    result &= (profile->packet_size_limit == MPM_PACKET_SIZE_LIMIT);
+    result &= (profile->packet_buffers == MPM_PACKET_BUFFERS);
+    result &= (profile->batching_timeout == MPM_BATCHING_TIMEOUT);
+    result &= (profile->page_locked == MPM_PAGE_LOCKED);
+    result &= (profile->device_id == SC_CUDA_DEFAULT_DEVICE);
+
+ end:
+    SCCudaHlCleanProfiles();
+
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    MpmDeInitYamlConf();
+    SCCudaHlRestoreBackupRegisteredProfiles();
+
+    return result;
+}
+
+static int MpmTest10(void)
+{
+    char *conf =
+        "%YAML 1.1\n"
+        "---\n"
+        "cuda:\n";
+
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if (MpmInitYamlConf(conf) == -1)
+        return 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    SCCudaHlBackupRegisteredProfiles();
+    SCCudaHlGetYamlConf();
+    MpmCudaConf *profile = SCCudaHlGetProfile("mpm");
+    if (profile == NULL) {
+        printf("Error retrieving mpm profile\n");
+        goto end;
+    }
+
+    result = (profile->packet_buffer_limit == MPM_PACKET_BUFFER_LIMIT);
+    result &= (profile->packet_size_limit == MPM_PACKET_SIZE_LIMIT);
+    result &= (profile->packet_buffers == MPM_PACKET_BUFFERS);
+    result &= (profile->batching_timeout == MPM_BATCHING_TIMEOUT);
+    result &= (profile->page_locked == MPM_PAGE_LOCKED);
+    result &= (profile->device_id == SC_CUDA_DEFAULT_DEVICE);
+
+ end:
+    SCCudaHlCleanProfiles();
+
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    MpmDeInitYamlConf();
+    SCCudaHlRestoreBackupRegisteredProfiles();
+
+    return result;
+}
+
+static int MpmTest11(void)
+{
+    char *conf =
+        "%YAML 1.1\n"
+        "---\n";
+
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if (MpmInitYamlConf(conf) == -1)
+        return 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    SCCudaHlBackupRegisteredProfiles();
+    SCCudaHlGetYamlConf();
+    MpmCudaConf *profile = SCCudaHlGetProfile("mpm");
+    if (profile == NULL) {
+        printf("Error retrieving mpm profile\n");
+        goto end;
+    }
+
+    result = (profile->packet_buffer_limit == MPM_PACKET_BUFFER_LIMIT);
+    result &= (profile->packet_size_limit == MPM_PACKET_SIZE_LIMIT);
+    result &= (profile->packet_buffers == MPM_PACKET_BUFFERS);
+    result &= (profile->batching_timeout == MPM_BATCHING_TIMEOUT);
+    result &= (profile->page_locked == MPM_PAGE_LOCKED);
+    result &= (profile->device_id == SC_CUDA_DEFAULT_DEVICE);
+
+ end:
+    SCCudaHlCleanProfiles();
+
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    MpmDeInitYamlConf();
+    SCCudaHlRestoreBackupRegisteredProfiles();
+
+    return result;
+}
+
 void MpmRegisterTests(void) {
 #ifdef UNITTESTS
     uint16_t i;
@@ -467,6 +1178,17 @@ void MpmRegisterTests(void) {
             printf("Warning: mpm %s has no unittest registration function...", mpm_table[i].name);
         }
     }
+
+    UtRegisterTest("MpmTest01", MpmTest01, 1);
+    UtRegisterTest("MpmTest02", MpmTest02, 1);
+    UtRegisterTest("MpmTest03", MpmTest03, 1);
+    UtRegisterTest("MpmTest04", MpmTest04, 1);
+    UtRegisterTest("MpmTest05", MpmTest05, 1);
+    UtRegisterTest("MpmTest06", MpmTest06, 1);
+    UtRegisterTest("MpmTest07", MpmTest07, 1);
+    UtRegisterTest("MpmTest08", MpmTest08, 1);
+    UtRegisterTest("MpmTest09", MpmTest09, 1);
+    UtRegisterTest("MpmTest10", MpmTest10, 1);
+    UtRegisterTest("MpmTest11", MpmTest11, 1);
 #endif
 }
-

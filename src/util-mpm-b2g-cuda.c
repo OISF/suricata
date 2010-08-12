@@ -1232,7 +1232,7 @@ void B2gCudaDestroyCtx(MpmCtx *mpm_ctx)
                    "module_data if we are having a module_handle");
         goto error;
     }
-    if (SCCudaHlGetCudaContext(&dummy_context, ctx->module_handle) == -1) {
+    if (SCCudaHlGetCudaContext(&dummy_context, "mpm", ctx->module_handle) == -1) {
         SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda context for the "
                    "module %s", module_data->name);
         goto error;
@@ -1700,6 +1700,7 @@ typedef struct B2gCudaMpmThreadCtxData_ {
  */
 TmEcode B2gCudaMpmDispThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
+    MpmCudaConf *profile = NULL;
     SCCudaHlModuleData *module_data = (SCCudaHlModuleData *)initdata;
 
     if (PatternMatchDefaultMatcher() != MPM_B2G_CUDA)
@@ -1718,7 +1719,7 @@ TmEcode B2gCudaMpmDispThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     tctx->b2g_cuda_module_handle = module_data->handle;
 
-    if (SCCudaHlGetCudaContext(&tctx->b2g_cuda_context, module_data->handle) == -1) {
+    if (SCCudaHlGetCudaContext(&tctx->b2g_cuda_context, "mpm", module_data->handle) == -1) {
         SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda context");
         goto error;
     }
@@ -1777,19 +1778,35 @@ TmEcode B2gCudaMpmDispThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     tctx->b2g_cuda_search_kernel_arg_total = offset;
 
+    profile = SCCudaHlGetProfile("mpm");
+
     /* buffer to hold the b2g cuda mpm match results for 4000 packets.  The
-     * extra 2 bytes(the 1 in 1481 instead of 1480) is to hold the no of
-     * matches for the payload.  The remaining 1480 positions in the buffer
-     * is to hold the match offsets */
-    if (SCCudaMemHostAlloc((void**)&tctx->results_buffer, sizeof(uint16_t) * 1481 *
-                SC_CUDA_PB_MIN_NO_OF_PACKETS, CU_MEMHOSTALLOC_PORTABLE) == -1){
-        SCLogError(SC_ERR_CUDA_ERROR, "Error allocating page-locked memory\n");
-        exit(EXIT_FAILURE);
+     * extra 2 bytes(the extra + 1 ) is to hold the no of
+     * matches for the payload.  The remaining profile->packet_size_limit
+     * positions in the buffer is to hold the match offsets */
+    if (profile->page_locked) {
+        if (SCCudaMemHostAlloc((void**)&tctx->results_buffer,
+                               sizeof(uint16_t) * (profile->packet_size_limit + 1) *
+                               profile->packet_buffer_limit,
+                               CU_MEMHOSTALLOC_PORTABLE) == -1){
+            SCLogError(SC_ERR_CUDA_ERROR, "Error allocating page-locked memory\n");
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        tctx->results_buffer = malloc(sizeof(uint16_t) *
+                                      (profile->packet_size_limit + 1) *
+                                      profile->packet_buffer_limit);
+        if (tctx->results_buffer == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
     }
 
     if (SCCudaHlGetCudaDevicePtr(&tctx->cuda_results_buffer,
                                  "MPM_B2G_RESULTS",
-                                 sizeof(uint16_t) * 1481 * SC_CUDA_PB_MIN_NO_OF_PACKETS,
+                                 sizeof(uint16_t) *
+                                 (profile->packet_size_limit + 1) *
+                                 profile->packet_buffer_limit,
                                  NULL, module_data->handle) == -1) {
         goto error;
     }
@@ -1802,22 +1819,23 @@ TmEcode B2gCudaMpmDispThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     if (SCCudaHlGetCudaDevicePtr(&tctx->cuda_packets_buffer,
                                  "MPM_B2G_PACKETS_BUFFER",
-                                 (sizeof(SCCudaPBPacketDataForGPU) *
-                                  SC_CUDA_PB_MIN_NO_OF_PACKETS),
+                                 profile->packet_buffer_limit *
+                                 (profile->packet_size_limit +
+                                  sizeof(SCCudaPBPacketDataForGPUNonPayload)),
                                  NULL, module_data->handle) == -1) {
         goto error;
     }
 
     if (SCCudaHlGetCudaDevicePtr(&tctx->cuda_packets_offset_buffer,
                                  "MPM_B2G_PACKETS_BUFFER_OFFSETS",
-                                 sizeof(uint32_t) * SC_CUDA_PB_MIN_NO_OF_PACKETS,
+                                 sizeof(uint32_t) * profile->packet_buffer_limit,
                                  NULL, module_data->handle) == -1) {
         goto error;
     }
 
     if (SCCudaHlGetCudaDevicePtr(&tctx->cuda_packets_payload_offset_buffer,
                                  "MPM_B2G_PACKETS_PAYLOAD_BUFFER_OFFSETS",
-                                 sizeof(uint32_t) * SC_CUDA_PB_MIN_NO_OF_PACKETS,
+                                 sizeof(uint32_t) * profile->packet_buffer_limit,
                                  NULL, module_data->handle) == -1) {
         goto error;
     }
@@ -1882,6 +1900,7 @@ TmEcode B2gCudaMpmDispThreadInit(ThreadVars *tv, void *initdata, void **data)
 TmEcode B2gCudaMpmDispThreadDeInit(ThreadVars *tv, void *data)
 {
     B2gCudaMpmThreadCtxData *tctx = data;
+    MpmCudaConf *profile = NULL;
 
     if (tctx == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid arguments.  data NULL\n");
@@ -1898,16 +1917,22 @@ TmEcode B2gCudaMpmDispThreadDeInit(ThreadVars *tv, void *data)
                    "module_data if we are having a module_handle");
         goto error;
     }
-    if (SCCudaHlGetCudaContext(&dummy_context, tctx->b2g_cuda_module_handle) == -1) {
+    if (SCCudaHlGetCudaContext(&dummy_context, "mpm", tctx->b2g_cuda_module_handle) == -1) {
         SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda context for the "
                    "module %s", module_data->name);
         goto error;
     }
     SCCudaCtxPushCurrent(dummy_context);
 
-    if (SCCudaMemFreeHost(tctx->results_buffer) == -1)
-        SCLogError(SC_ERR_CUDA_ERROR, "Error deallocating pagelocked memory: "
-                   "results_buffer\n");
+    profile = SCCudaHlGetProfile("mpm");
+    if (profile->page_locked) {
+        if (SCCudaMemFreeHost(tctx->results_buffer) == -1) {
+            SCLogError(SC_ERR_CUDA_ERROR, "Error deallocating pagelocked memory: "
+                       "results_buffer\n");
+        }
+    } else {
+        free(tctx->results_buffer);
+    }
     SCCudaHlFreeCudaDevicePtr("MPM_B2G_RESULTS", tctx->b2g_cuda_module_handle);
     SCCudaHlFreeCudaDevicePtr("MPM_B2G_PACKETS_BUFFER", tctx->b2g_cuda_module_handle);
     SCCudaHlFreeCudaDevicePtr("MPM_B2G_PACKETS_BUFFER_OFFSETS",
@@ -2291,7 +2316,7 @@ static int B2gCudaTest01(void)
 
     /* get the cuda context and push it */
     CUcontext dummy_context;
-    if (SCCudaHlGetCudaContext(&dummy_context, module_handle) == -1) {
+    if (SCCudaHlGetCudaContext(&dummy_context, "mpm", module_handle) == -1) {
         SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda context for the "
                    "module SC_RULES_CONTENT_B2G_CUDA");
     }
@@ -2323,6 +2348,7 @@ static int B2gCudaTest01(void)
 
     result = 1;
 
+    SCCudaPBSetProfile("mpm");
     pb = SCCudaPBAllocSCCudaPBPacketsBuffer();
     SCCudaPBPacketDataForGPU *curr_packet = (SCCudaPBPacketDataForGPU *)pb->packets_buffer;
 
@@ -2500,6 +2526,7 @@ static int B2gCudaTest02(void)
     }
     SigGroupBuild(de_ctx);
 
+    SCCudaPBSetProfile("mpm");
     SCCudaPBSetUpQueuesAndBuffers();
 
     /* get the queues used by the batcher thread */
@@ -2800,6 +2827,7 @@ static int B2gCudaTest03(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&de_tv, (void *)de_ctx, (void *)&det_ctx);
 
+    SCCudaPBSetProfile("mpm");
     SCCudaPBSetUpQueuesAndBuffers();
 
     /* get the queues used by the batcher thread */

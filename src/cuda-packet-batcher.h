@@ -138,6 +138,7 @@ void TmModuleCudaPacketBatcherRegister(void);
 void *SCCudaPBTmThreadsSlot1(void *);
 
 void SCCudaPBRunningTests(int);
+void SCCudaPBSetProfile(char *);
 
 #endif /* __SC_CUDA_SUPPORT__ */
 

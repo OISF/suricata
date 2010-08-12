@@ -3732,7 +3732,7 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
     de_ctx->cuda_rc_mod_handle = SCCudaHlRegisterModule("SC_RULES_CONTENT_B2G_CUDA");
     if (de_ctx->mpm_matcher == MPM_B2G_CUDA) {
         CUcontext dummy_context;
-        if (SCCudaHlGetCudaContext(&dummy_context,
+        if (SCCudaHlGetCudaContext(&dummy_context, "mpm",
                                    de_ctx->cuda_rc_mod_handle) == -1) {
             SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda context for the "
                        "module SC_RULES_CONTENT_B2G_CUDA");
