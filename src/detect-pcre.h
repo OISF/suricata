@@ -24,16 +24,21 @@
 #ifndef __DETECT_PCRE_H__
 #define __DETECT_PCRE_H__
 
-#define DETECT_PCRE_RELATIVE      0x01
-#define DETECT_PCRE_RAWBYTES      0x02
-#define DETECT_PCRE_URI           0x04
+#define DETECT_PCRE_RELATIVE      0x0001
+#define DETECT_PCRE_RAWBYTES      0x0002
+#define DETECT_PCRE_URI           0x0004
 
-#define DETECT_PCRE_CAPTURE_PKT   0x08
-#define DETECT_PCRE_CAPTURE_FLOW  0x10
-#define DETECT_PCRE_MATCH_LIMIT   0x20
+#define DETECT_PCRE_CAPTURE_PKT   0x0008
+#define DETECT_PCRE_CAPTURE_FLOW  0x0010
+#define DETECT_PCRE_MATCH_LIMIT   0x0020
 
-#define DETECT_PCRE_HTTP_BODY_AL  0x40
-#define DETECT_PCRE_RELATIVE_NEXT 0x80
+#define DETECT_PCRE_HTTP_BODY_AL  0x0040
+#define DETECT_PCRE_RELATIVE_NEXT 0x0080
+
+/* new modifiers 2.8.5.3 support */
+#define DETECT_PCRE_HEADER        0x0100
+#define DETECT_PCRE_COOKIE        0x0200
+#define DETECT_PCRE_METHOD        0x0400
 
 typedef struct DetectPcreData_ {
     /* pcre options */
@@ -41,7 +46,7 @@ typedef struct DetectPcreData_ {
     pcre_extra *sd;
     int opts;
 
-    uint8_t flags;
+    uint16_t flags;
     uint8_t negate;
 
     char *capname;

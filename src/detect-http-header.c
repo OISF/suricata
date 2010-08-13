@@ -260,8 +260,6 @@ int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     /* flag the signature to indicate that we scan the app layer data */
     s->flags |= SIG_FLAG_APPLAYER;
     s->alproto = ALPROTO_HTTP;
-    /* enable http request body callback in the http app layer parser */
-    AppLayerHtpEnableRequestBodyCallback();
 
     return 0;
 

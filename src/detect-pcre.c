@@ -79,6 +79,9 @@ static pcre_extra *parse_capture_regex_study;
 
 int DetectPcreMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 int DetectPcreALMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m);
+int DetectPcreALMatchCookie(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m);
+int DetectPcreALMatchHeader(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m);
+int DetectPcreALMatchMethod(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m);
 static int DetectPcreSetup (DetectEngineCtx *, Signature *, char *);
 void DetectPcreFree(void *);
 void DetectPcreRegisterTests(void);
@@ -104,8 +107,36 @@ void DetectPcreRegister (void) {
     sigmatch_table[DETECT_PCRE_HTTPBODY].Setup = NULL;
     sigmatch_table[DETECT_PCRE_HTTPBODY].Free  = DetectPcreFree;
     sigmatch_table[DETECT_PCRE_HTTPBODY].RegisterTests  = NULL;
-
     sigmatch_table[DETECT_PCRE_HTTPBODY].flags |= SIGMATCH_PAYLOAD;
+
+    /* The same for Cookie, Method and Header */
+    sigmatch_table[DETECT_PCRE_HTTPCOOKIE].name = "__pcre_http_cookie__"; /* not a real keyword */
+    sigmatch_table[DETECT_PCRE_HTTPCOOKIE].Match = NULL;
+    sigmatch_table[DETECT_PCRE_HTTPCOOKIE].AppLayerMatch = DetectPcreALMatchCookie;
+    sigmatch_table[DETECT_PCRE_HTTPCOOKIE].alproto = ALPROTO_HTTP;
+    sigmatch_table[DETECT_PCRE_HTTPCOOKIE].Setup = NULL;
+    sigmatch_table[DETECT_PCRE_HTTPCOOKIE].Free  = DetectPcreFree;
+    sigmatch_table[DETECT_PCRE_HTTPCOOKIE].RegisterTests  = NULL;
+    sigmatch_table[DETECT_PCRE_HTTPCOOKIE].flags |= SIGMATCH_PAYLOAD;
+
+    sigmatch_table[DETECT_PCRE_HTTPMETHOD].name = "__pcre_http_method__"; /* not a real keyword */
+    sigmatch_table[DETECT_PCRE_HTTPMETHOD].Match = NULL;
+    sigmatch_table[DETECT_PCRE_HTTPMETHOD].AppLayerMatch = DetectPcreALMatchMethod;
+    sigmatch_table[DETECT_PCRE_HTTPMETHOD].alproto = ALPROTO_HTTP;
+    sigmatch_table[DETECT_PCRE_HTTPMETHOD].Setup = NULL;
+    sigmatch_table[DETECT_PCRE_HTTPMETHOD].Free  = DetectPcreFree;
+    sigmatch_table[DETECT_PCRE_HTTPMETHOD].RegisterTests  = NULL;
+    sigmatch_table[DETECT_PCRE_HTTPMETHOD].flags |= SIGMATCH_PAYLOAD;
+
+    sigmatch_table[DETECT_PCRE_HTTPHEADER].name = "__pcre_http_header__"; /* not a real keyword */
+    sigmatch_table[DETECT_PCRE_HTTPHEADER].Match = NULL;
+    sigmatch_table[DETECT_PCRE_HTTPHEADER].AppLayerMatch = DetectPcreALMatchHeader;
+    sigmatch_table[DETECT_PCRE_HTTPHEADER].alproto = ALPROTO_HTTP;
+    sigmatch_table[DETECT_PCRE_HTTPHEADER].Setup = NULL;
+    sigmatch_table[DETECT_PCRE_HTTPHEADER].Free  = DetectPcreFree;
+    sigmatch_table[DETECT_PCRE_HTTPHEADER].RegisterTests  = NULL;
+    sigmatch_table[DETECT_PCRE_HTTPHEADER].flags |= SIGMATCH_PAYLOAD;
+
 
     const char *eb;
     int eo;
@@ -161,6 +192,359 @@ void DetectPcreRegister (void) {
 error:
     /* XXX */
     return;
+}
+
+/**
+ * \brief Match a regex on data sent at an http method (needs the l7 parser).
+ *
+ * \param det_ctx  Thread detection ctx.
+ * \param s        Signature.
+ * \param sm       SigMatch to match against.
+ * \param data     Data to match against.
+ * \param data_len Data length.
+ *
+ * \retval 1: match
+ * \retval 0: no match
+ */
+int DetectPcreALDoMatchMethod(DetectEngineThreadCtx *det_ctx, Signature *s,
+                              SigMatch *m, Flow *f, uint8_t flags,
+                              void *state)
+{
+    SCEnter();
+
+    int ret = 0;
+    int toret = 0;
+    size_t idx;
+
+#define MAX_SUBSTRINGS 30
+    int ov[MAX_SUBSTRINGS];
+    uint8_t *ptr = NULL;
+    uint16_t len = 0;
+
+    DetectPcreData *pe = (DetectPcreData *)m->ctx;
+
+    /* define ptr & len */
+    SCMutexLock(&f->m);
+    SCLogDebug("got lock %p", &f->m);
+
+    HtpState *htp_state = (HtpState *)state;
+    if (htp_state == NULL) {
+        SCLogDebug("no HTTP layer state has been received, so no match");
+        goto end;
+    }
+
+    if (!(htp_state->flags & HTP_FLAG_STATE_OPEN)) {
+        SCLogDebug("HTP state not yet properly setup, so no match");
+        goto end;
+    }
+
+    SCLogDebug("htp_state %p, flow %p", htp_state, f);
+    SCLogDebug("htp_state->connp %p", htp_state->connp);
+    SCLogDebug("htp_state->connp->conn %p", htp_state->connp->conn);
+
+    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
+        SCLogDebug("HTTP connection structure is NULL");
+        goto end;
+    }
+
+    htp_tx_t *tx = NULL;
+
+    for (idx = 0;//htp_state->new_in_tx_index;
+         idx < list_size(htp_state->connp->conn->transactions); idx++)
+    {
+        tx = list_get(htp_state->connp->conn->transactions, idx);
+        if (tx == NULL)
+            continue;
+
+        ptr = (uint8_t *) bstr_ptr(tx->request_method);
+        len = bstr_size(tx->request_method);
+        if (ptr == NULL)
+            continue;
+
+        //printf("Matching Method");
+        //PrintRawUriFp(stdout, (uint8_t*)ptr, len);
+
+        /* run the actual pcre detection */
+        ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, 0, 0, ov, MAX_SUBSTRINGS);
+        SCLogDebug("ret %d (negating %s)", ret, pe->negate ? "set" : "not set");
+
+        if (ret == PCRE_ERROR_NOMATCH) {
+            if (pe->negate == 1) {
+                /* regex didn't match with negate option means we
+                 * consider it a match */
+                ret = 1;
+                toret |= ret;
+                break;
+            } else {
+                ret = 0;
+            }
+            toret |= ret;
+        } else if (ret >= 0) {
+            if (pe->negate == 1) {
+                /* regex matched but we're negated, so not
+                 * considering it a match */
+                ret = 0;
+            } else {
+                /* regex matched and we're not negated,
+                 * considering it a match */
+                ret = 1;
+                toret |= ret;
+                break;
+            }
+        } else {
+            SCLogDebug("pcre had matching error");
+            ret = 0;
+        }
+    }
+
+end:
+    SCMutexUnlock(&f->m);
+    SCLogDebug("released lock %p", &f->m);
+
+    SCReturnInt(toret);
+}
+
+/**
+ * \brief Match a regex on data sent at an http header (needs the l7 parser).
+ *
+ * \param det_ctx  Thread detection ctx.
+ * \param s        Signature.
+ * \param sm       SigMatch to match against.
+ * \param data     Data to match against.
+ * \param data_len Data length.
+ *
+ * \retval 1: match
+ * \retval 0: no match
+ */
+int DetectPcreALDoMatchHeader(DetectEngineThreadCtx *det_ctx, Signature *s,
+                              SigMatch *m, Flow *f, uint8_t flags,
+                              void *state)
+{
+    SCEnter();
+
+    int ret = 0;
+    int toret = 0;
+    size_t idx;
+
+#define MAX_SUBSTRINGS 30
+    int ov[MAX_SUBSTRINGS];
+    uint8_t *ptr = NULL;
+    uint16_t len = 0;
+
+    DetectPcreData *pe = (DetectPcreData *)m->ctx;
+
+    /* define ptr & len */
+    SCMutexLock(&f->m);
+    SCLogDebug("got lock %p", &f->m);
+
+    HtpState *htp_state = (HtpState *)state;
+    if (htp_state == NULL) {
+        SCLogDebug("no HTTP layer state has been received, so no match");
+        goto end;
+    }
+
+    if (!(htp_state->flags & HTP_FLAG_STATE_OPEN)) {
+        SCLogDebug("HTP state not yet properly setup, so no match");
+        goto end;
+    }
+
+    SCLogDebug("htp_state %p, flow %p", htp_state, f);
+    SCLogDebug("htp_state->connp %p", htp_state->connp);
+    SCLogDebug("htp_state->connp->conn %p", htp_state->connp->conn);
+
+    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
+        SCLogDebug("HTTP connection structure is NULL");
+        goto end;
+    }
+
+    htp_tx_t *tx = NULL;
+    bstr *headers = NULL;
+
+    for (idx = 0;//htp_state->new_in_tx_index;
+         idx < list_size(htp_state->connp->conn->transactions); idx++)
+    {
+        tx = list_get(htp_state->connp->conn->transactions, idx);
+        if (tx == NULL)
+            continue;
+
+        SCLogDebug("inspecting tx %p", tx);
+
+        headers = htp_tx_get_request_headers_raw(tx);
+        if (headers == NULL)
+            continue;
+
+        ptr = (uint8_t *)bstr_ptr(headers);
+        len = bstr_len(headers);
+        if (ptr == NULL)
+            continue;
+
+        //printf("Matching Header");
+        //PrintRawUriFp(stdout, (uint8_t*)ptr, len);
+
+        /* run the actual pcre detection */
+        ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, 0, 0, ov, MAX_SUBSTRINGS);
+        SCLogDebug("ret %d (negating %s)", ret, pe->negate ? "set" : "not set");
+
+        if (ret == PCRE_ERROR_NOMATCH) {
+            if (pe->negate == 1) {
+                /* regex didn't match with negate option means we
+                 * consider it a match */
+                ret = 1;
+                toret |= ret;
+                break;
+            } else {
+                ret = 0;
+            }
+            toret |= ret;
+        } else if (ret >= 0) {
+            if (pe->negate == 1) {
+                /* regex matched but we're negated, so not
+                 * considering it a match */
+                ret = 0;
+            } else {
+                /* regex matched and we're not negated,
+                 * considering it a match */
+                ret = 1;
+                toret |= ret;
+                break;
+            }
+        } else {
+            SCLogDebug("pcre had matching error");
+            ret = 0;
+        }
+    }
+
+end:
+    SCMutexUnlock(&f->m);
+    SCLogDebug("released lock %p", &f->m);
+
+    SCReturnInt(toret);
+}
+
+/**
+ * \brief Match a regex on data sent at an http cookie (needs the l7 parser).
+ *
+ * \param det_ctx  Thread detection ctx.
+ * \param s        Signature.
+ * \param sm       SigMatch to match against.
+ * \param data     Data to match against.
+ * \param data_len Data length.
+ *
+ * \retval 1: match
+ * \retval 0: no match
+ */
+int DetectPcreALDoMatchCookie(DetectEngineThreadCtx *det_ctx, Signature *s,
+                              SigMatch *m, Flow *f, uint8_t flags,
+                              void *state)
+{
+    SCEnter();
+
+    int ret = 0;
+    int toret = 0;
+    size_t idx;
+
+#define MAX_SUBSTRINGS 30
+    int ov[MAX_SUBSTRINGS];
+    uint8_t *ptr = NULL;
+    uint16_t len = 0;
+
+    DetectPcreData *pe = (DetectPcreData *)m->ctx;
+
+    /* define ptr & len */
+    SCMutexLock(&f->m);
+    SCLogDebug("got lock %p", &f->m);
+
+    HtpState *htp_state = (HtpState *)state;
+    if (htp_state == NULL) {
+        SCLogDebug("no HTTP layer state has been received, so no match");
+        goto end;
+    }
+
+    if (!(htp_state->flags & HTP_FLAG_STATE_OPEN)) {
+        SCLogDebug("HTP state not yet properly setup, so no match");
+        goto end;
+    }
+
+    SCLogDebug("htp_state %p, flow %p", htp_state, f);
+    SCLogDebug("htp_state->connp %p", htp_state->connp);
+    SCLogDebug("htp_state->connp->conn %p", htp_state->connp->conn);
+
+    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
+        SCLogDebug("HTTP connection structure is NULL");
+        goto end;
+    }
+
+    htp_tx_t *tx = NULL;
+
+    for (idx = 0;//htp_state->new_in_tx_index;
+         idx < list_size(htp_state->connp->conn->transactions); idx++)
+    {
+        tx = list_get(htp_state->connp->conn->transactions, idx);
+        if (tx == NULL)
+            continue;
+
+        htp_header_t *h = NULL;
+        h = (htp_header_t *) table_getc(tx->request_headers, "Cookie");
+        if (h == NULL) {
+            SCLogDebug("no HTTP Cookie header in the received request");
+            goto end;
+        }
+        ptr = (uint8_t *) bstr_ptr(h->value);
+        len = bstr_size(h->value);
+
+        if (ptr == NULL)
+            continue;
+
+        //printf("Matching Cookie");
+        //PrintRawUriFp(stdout, (uint8_t*)ptr, len);
+
+        SCLogDebug("we have a cookie header");
+
+        /* run the actual pcre detection */
+        ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, 0, 0, ov, MAX_SUBSTRINGS);
+        SCLogDebug("ret %d (negating %s)", ret, pe->negate ? "set" : "not set");
+
+        if (ret == PCRE_ERROR_NOMATCH) {
+            if (pe->negate == 1) {
+                /* regex didn't match with negate option means we
+                 * consider it a match */
+                ret = 1;
+                toret |= ret;
+                break;
+            } else {
+                ret = 0;
+            }
+            toret |= ret;
+        } else if (ret >= 0) {
+            if (pe->negate == 1) {
+                /* regex matched but we're negated, so not
+                 * considering it a match */
+                ret = 0;
+            } else {
+                /* regex matched and we're not negated,
+                 * considering it a match */
+                ret = 1;
+                toret |= ret;
+                break;
+            }
+        } else {
+            SCLogDebug("pcre had matching error");
+            if (pe->negate == 1) {
+                ret = 1;
+                toret |= ret;
+                break;
+            } else {
+                ret = 0;
+            }
+            toret |= ret;
+        }
+    }
+
+end:
+    SCMutexUnlock(&f->m);
+    SCLogDebug("released lock %p", &f->m);
+
+    SCReturnInt(toret);
 }
 
 int DetectPcreALDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *m, Flow *f, uint8_t flags, void *state) {
@@ -260,6 +644,57 @@ int DetectPcreALMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
                       uint8_t flags, void *state, Signature *s, SigMatch *m)
 {
     int r = DetectPcreALDoMatch(det_ctx, s, m, f, flags, state);
+    SCReturnInt(r);
+}
+
+/**
+ * \brief match the specified pcre at http header, requesting it from htp/L7
+ *
+ * \param t pointer to thread vars
+ * \param det_ctx pointer to the pattern matcher thread
+ * \param p pointer to the current packet
+ * \param m pointer to the sigmatch that we will cast into DetectPcreData
+ *
+ * \retval int 0 no match; 1 match
+ */
+int DetectPcreALMatchHeader(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
+                      uint8_t flags, void *state, Signature *s, SigMatch *m)
+{
+    int r = DetectPcreALDoMatchHeader(det_ctx, s, m, f, flags, state);
+    SCReturnInt(r);
+}
+
+/**
+ * \brief match the specified pcre at http method, requesting it from htp/L7
+ *
+ * \param t pointer to thread vars
+ * \param det_ctx pointer to the pattern matcher thread
+ * \param p pointer to the current packet
+ * \param m pointer to the sigmatch that we will cast into DetectPcreData
+ *
+ * \retval int 0 no match; 1 match
+ */
+int DetectPcreALMatchMethod(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
+                      uint8_t flags, void *state, Signature *s, SigMatch *m)
+{
+    int r = DetectPcreALDoMatchMethod(det_ctx, s, m, f, flags, state);
+    SCReturnInt(r);
+}
+
+/**
+ * \brief match the specified pcre at http cookie, requesting it from htp/L7
+ *
+ * \param t pointer to thread vars
+ * \param det_ctx pointer to the pattern matcher thread
+ * \param p pointer to the current packet
+ * \param m pointer to the sigmatch that we will cast into DetectPcreData
+ *
+ * \retval int 0 no match; 1 match
+ */
+int DetectPcreALMatchCookie(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
+                      uint8_t flags, void *state, Signature *s, SigMatch *m)
+{
+    int r = DetectPcreALDoMatchCookie(det_ctx, s, m, f, flags, state);
     SCReturnInt(r);
 }
 
@@ -663,6 +1098,15 @@ DetectPcreData *DetectPcreParse (char *regexstr)
                 case 'U': /* snort's option */
                     pd->flags |= DETECT_PCRE_URI;
                     break;
+                case 'H': /* snort's option */
+                    pd->flags |= DETECT_PCRE_HEADER;
+                    break;
+                case 'M': /* snort's option */
+                    pd->flags |= DETECT_PCRE_METHOD;
+                    break;
+                case 'C': /* snort's option */
+                    pd->flags |= DETECT_PCRE_COOKIE;
+                    break;
                 case 'O':
                     pd->flags |= DETECT_PCRE_MATCH_LIMIT;
                     break;
@@ -812,6 +1256,9 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     switch (s->alproto) {
         case ALPROTO_DCERPC:
             if ( (pd->flags & DETECT_PCRE_URI) ||
+                 (pd->flags & DETECT_PCRE_METHOD) ||
+                 (pd->flags & DETECT_PCRE_HEADER) ||
+                 (pd->flags & DETECT_PCRE_COOKIE) ||
                  (pd->flags & DETECT_PCRE_HTTP_BODY_AL) ) {
                 SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option. "
                            "DCERPC rule has pcre keyword with http related modifier.");
@@ -834,7 +1281,28 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     sm->type = DETECT_PCRE;
     sm->ctx = (void *)pd;
 
-    if (pd->flags & DETECT_PCRE_HTTP_BODY_AL) {
+    if (pd->flags & DETECT_PCRE_HEADER) {
+        sm->type = DETECT_PCRE_HTTPHEADER;
+
+        SCLogDebug("Header inspection modifier set");
+        s->flags |= SIG_FLAG_APPLAYER;
+
+        SigMatchAppendAppLayer(s, sm);
+    } else if (pd->flags & DETECT_PCRE_COOKIE) {
+        sm->type = DETECT_PCRE_HTTPCOOKIE;
+
+        SCLogDebug("Cookie inspection modifier set");
+        s->flags |= SIG_FLAG_APPLAYER;
+
+        SigMatchAppendAppLayer(s, sm);
+    } else if (pd->flags & DETECT_PCRE_METHOD) {
+        sm->type = DETECT_PCRE_HTTPMETHOD;
+
+        SCLogDebug("Method inspection modifier set");
+        s->flags |= SIG_FLAG_APPLAYER;
+
+        SigMatchAppendAppLayer(s, sm);
+    } else if (pd->flags & DETECT_PCRE_HTTP_BODY_AL) {
         sm->type = DETECT_PCRE_HTTPBODY;
 
         SCLogDebug("Body inspection modifier set");
@@ -1834,6 +2302,546 @@ end:
     return result;
 }
 
+/** \test Check the signature working to alert when cookie modifier is
+ *       passed to pcre
+ */
+static int DetectPcreTestSig09(void) {
+    int result = 0;
+    Flow f;
+    uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
+        "Cookie: dummy\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
+                                   "\"HTTP cookie\"; pcre:\"/dummy/C\"; "
+                                   " sid:1;)");
+    if (s == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (!PacketAlertCheck(p, 1)) {
+        printf("sig 1 failed to match: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
+/** \test Check the signature working to alert when cookie modifier is
+ *       passed to a negated pcre
+ */
+static int DetectPcreTestSig10(void) {
+    int result = 0;
+    Flow f;
+    uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
+        "Cookie: dummoOOooooO\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
+                                   "\"HTTP cookie\"; pcre:!\"/dummy/C\"; "
+                                   " sid:1;)");
+    if (s == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (!PacketAlertCheck(p, 1)) {
+        printf("sig 1 should match: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
+/** \test Check the signature working to alert when method modifier is
+ *       passed to pcre
+ */
+static int DetectPcreTestSig11(void) {
+    int result = 0;
+    Flow f;
+    uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
+        "Cookie: dummy\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
+                                   "\"HTTP method\"; pcre:\"/POST/M\"; "
+                                   " sid:1;)");
+    if (s == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (!PacketAlertCheck(p, 1)) {
+        printf("sig 1 failed to match: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
+/** \test Check the signature working to alert when method modifier is
+ *       passed to a negated pcre
+ */
+static int DetectPcreTestSig12(void) {
+    int result = 0;
+    Flow f;
+    uint8_t httpbuf1[] = "GET / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
+        "Cookie: dummoOOooooO\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
+                                   "\"HTTP method\"; pcre:!\"/POST/M\"; "
+                                   " sid:1;)");
+    if (s == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (!PacketAlertCheck(p, 1)) {
+        printf("sig 1 should match: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
+/** \test Check the signature working to alert when header modifier is
+ *       passed to pcre
+ */
+static int DetectPcreTestSig13(void) {
+    int result = 0;
+    Flow f;
+    uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Mozilla/1.0\r\n"
+        "Cookie: dummy\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
+                                   "\"HTTP header\"; pcre:\"/User[-_]Agent[:]?\\sMozilla/H\"; "
+                                   " sid:1;)");
+    if (s == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (!PacketAlertCheck(p, 1)) {
+        printf("sig 1 failed to match: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
+/** \test Check the signature working to alert when header modifier is
+ *       passed to a negated pcre
+ */
+static int DetectPcreTestSig14(void) {
+    int result = 0;
+    Flow f;
+    uint8_t httpbuf1[] = "GET / HTTP/1.0\r\nUser-Agent: IEXPLORER/1.0\r\n"
+        "Cookie: dummoOOooooO\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
+                                   "\"HTTP header\"; pcre:!\"/User-Agent[:]?\\s+Mozilla/H\"; "
+                                   " sid:1;)");
+    if (s == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (!PacketAlertCheck(p, 1)) {
+        printf("sig 1 should match: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -1866,6 +2874,12 @@ void DetectPcreRegisterTests(void) {
     UtRegisterTest("DetectPcreTestSig06", DetectPcreTestSig06, 1);
     UtRegisterTest("DetectPcreTestSig07 -- anchored pcre", DetectPcreTestSig07, 1);
     UtRegisterTest("DetectPcreTestSig08 -- anchored pcre", DetectPcreTestSig08, 1);
+    UtRegisterTest("DetectPcreTestSig09 -- Cookie modifier", DetectPcreTestSig09, 1);
+    UtRegisterTest("DetectPcreTestSig10 -- negated Cookie modifier", DetectPcreTestSig10, 1);
+    UtRegisterTest("DetectPcreTestSig11 -- Method modifier", DetectPcreTestSig11, 1);
+    UtRegisterTest("DetectPcreTestSig12 -- negated Method modifier", DetectPcreTestSig12, 1);
+    UtRegisterTest("DetectPcreTestSig13 -- Header modifier", DetectPcreTestSig13, 1);
+    UtRegisterTest("DetectPcreTestSig14 -- negated Header modifier", DetectPcreTestSig14, 1);
 #endif /* UNITTESTS */
 }
 
