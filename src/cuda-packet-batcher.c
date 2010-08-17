@@ -4,19 +4,37 @@
  * \author Anoop Saldanha <poonaatsoc@gmail.com>
  *
  * \todo
- *       - Make cuda paramters user configurable.
- *       - Implement a gpu version of aho-corasick.  That should get rid of a
+ *       1 Implement a gpu version of aho-corasick.  That should get rid of a
  *         lot of post processing and pattern_chopping, and we don't have to
- *         deal with one or two byte patterns.
- *       - Currently a lot of packets(~17k) are getting stuck on the detection
+ *         deal with one or two byte patterns. (currently in process)
+ *       2 Use texture/shared memory.  This should be handled along with 1 and 6.
+ *       3 Currently a lot of packets(~17k) are getting stuck on the detection
  *         thread, which is a major bottleneck.  Introduce bypass detection
  *         threads for these 15k non buffered packets and check how the alerts
  *         are affected by this(out of sequence handling by detection threads).
- *       - Use texture/shared memory.  This should be handled along with AC.
- *       - Test the use of host-alloced page locked memory.
- *       - Test other optimizations like using the sgh held in the flow(if
- *         present in the flow), instead of retrieving the sgh inside the batcher
- *         thread.
+ *       4 Test the use of mapped memory(if possible anywhere).
+ *       5 Check parallelising memcopies with kernel execution.
+ *       6 Test this feature - Rearrange the packet stream(either on cpu or gpu),
+ *         where each block in the gpu can access the packet with non-coalesced
+ *         reads.
+ *         2 packets p1 -> aabb ccdd
+ *                   p2 -> eeff gghh
+ *
+ *         stream -> aabbeeffccddgghh.
+ *
+ *         Modify the block size to 16 threads for CC < 2.0 devices and 32 for
+ *         for >= 2.0.
+ *
+ *         The rearrangement of packet stream can be done on the gpu, with no
+ *         perf degradation, using coalesced reads.  Padding packets need to
+ *         be addressed though.
+ *         (Need to give more thought to this task).
+ *
+ *         -- Feel free to pick any task from the agenda, but please
+ *         drop a mail to dev mailing list(or directly to the dev team).  Better
+ *         yet, open a feature request on our bug/feature tracker
+ *         (https://redmine.openinfosecfoundation.org/issues).  Will be a mess if
+ *         2 or more devs end up working on the same task or related tasks.
  */
 
 /* compile in, only if we have a CUDA enabled on this machine */
