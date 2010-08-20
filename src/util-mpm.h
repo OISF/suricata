@@ -196,7 +196,7 @@ typedef struct MpmCudaConf_ {
     int32_t packet_buffer_limit;
     int16_t packet_size_limit;
     int8_t packet_buffers;
-    int8_t batching_timeout;
+    double batching_timeout;
     int8_t page_locked;
     int8_t device_id;
 } MpmCudaConf;

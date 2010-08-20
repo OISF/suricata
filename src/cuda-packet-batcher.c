@@ -109,6 +109,9 @@ static MpmCudaConf *profile = NULL;
  * processing on the GPU */
 static int queue_buffer = 0;
 
+/* struct to configure the SIG_ALRM frequency. */
+static struct itimerval itimer = {{0, 0}, {0, 0}};
+
 static int unittest_mode = 0;
 
 /**
@@ -124,9 +127,9 @@ static int unittest_mode = 0;
  */
 static void SCCudaPBSetQueueBufferFlag(int signum)
 {
-    SCLogDebug("Cuda Packet Batche alarm generated after %d seconds.  Set the"
+    SCLogDebug("Cuda Packet Batche alarm generated after %f seconds.  Set the"
                "queue_buffer flag and signal the cuda TM inq.",
-               SC_CUDA_PB_BATCHER_ALARM_TIME);
+               profile->batching_timeout);
     queue_buffer = 1;
     SCCondSignal(&((&trans_q[tmq_batcher_inq->id])->cond_q));
 
@@ -148,7 +151,27 @@ static void SCCudaPBSetBatcherAlarmTimeHandler()
     action.sa_flags = 0;
     sigaction(SIGALRM, &action, 0);
 
+    itimer.it_value.tv_sec = profile->batching_timeout;
+    itimer.it_value.tv_usec = (profile->batching_timeout
+                               - (int32_t) profile->batching_timeout) * 1000000;
+
     return;
+}
+
+/**
+ * \internal
+ * \brief Reset the batcher alarm.
+ */
+static inline void SCCudaPBResetBatcherAlarm()
+{
+    queue_buffer = 0;
+
+    /* if we are running unittests, don't set the alarm handler.  It will only
+     * cause a seg fault if the tests take too long */
+    if (!unittest_mode) {
+        /* \todo We could update itimer dynamically based on the traffic */
+        setitimer(ITIMER_REAL, &itimer, NULL);
+    }
 }
 
 /**
@@ -587,13 +610,9 @@ TmEcode SCCudaPBThreadInit(ThreadVars *tv, void *initdata, void **data)
     /* set the SIG_ALRM handler */
     SCCudaPBSetBatcherAlarmTimeHandler();
 
-    /* if we are running unittests, don't set the alarm handler.  It will only
-     * cause a seg fault if the tests take too long */
-    if (!unittest_mode) {
-        /* Set the alarm time limit during which the batcher thread would
-         * buffer packets */
-        alarm(profile->batching_timeout);
-    }
+    /* Set the alarm time limit during which the batcher thread would
+     * buffer packets */
+    SCCudaPBResetBatcherAlarm();
 
     return TM_ECODE_OK;
 }
@@ -615,20 +634,15 @@ TmEcode SCCudaPBBatchPackets(ThreadVars *tv, Packet *p, void *data, PacketQueue 
 #define ALIGN_UP(offset, alignment) \
     (offset) = ((offset) + (alignment) - 1) & ~((alignment) - 1)
 
+    SCCudaPBThreadCtx *tctx = data;
+
     /* ah.  we have been signalled that we crossed the time limit within which we
      * need to buffer packets.  Let us queue the buffer to the GPU */
     if (queue_buffer) {
         SCLogDebug("Cuda packet buffer TIME limit exceeded.  Buffering packet "
                    "buffer and reseting the alarm");
-        queue_buffer = 0;
-        SCLogDebug("Cuda packet buffer TIME limit exceeded.  Buffering packet "
-                   "buffer and reseting the alarm");
-        SCCudaPBQueueBuffer(data);
-        /* if we are running unittests, don't set the alarm handler.  It will only
-         * cause a seg fault if the tests take too long */
-        if (!unittest_mode) {
-            alarm(profile->batching_timeout);
-        }
+        SCCudaPBQueueBuffer(tctx);
+        SCCudaPBResetBatcherAlarm();
     }
 
     /* this is possible, since we are using a custom slot function that calls this
@@ -649,7 +663,6 @@ TmEcode SCCudaPBBatchPackets(ThreadVars *tv, Packet *p, void *data, PacketQueue 
         return TM_ECODE_OK;
     }
 
-    SCCudaPBThreadCtx *tctx = data;
     /* the packets buffer */
     SCCudaPBPacketsBuffer *pb = (SCCudaPBPacketsBuffer *)tctx->curr_pb;
     /* the previous packet which has been buffered into the packets_buffer */
@@ -782,17 +795,12 @@ TmEcode SCCudaPBBatchPackets(ThreadVars *tv, Packet *p, void *data, PacketQueue 
      * left in the buffer or we have been informed that we have hit the time limit
      * to queue the buffer */
     if ( (pb->nop_in_buffer == buffer_packet_threshhold) || queue_buffer) {
-        queue_buffer = 0;
         SCLogDebug("Either we have hit the threshold limit for packets(i.e. we "
                    "have %d packets limit) OR we have exceeded the buffering "
                    "time limit.  Buffering the packet buffer and reseting the "
                    "alarm.", buffer_packet_threshhold);
         SCCudaPBQueueBuffer(tctx);
-        /* if we are running unittests, don't set the alarm handler.  It will only
-         * cause a seg fault if the tests take too long */
-        if (!unittest_mode) {
-            alarm(profile->batching_timeout);
-        }
+        SCCudaPBResetBatcherAlarm();
     }
 
     return TM_ECODE_OK;

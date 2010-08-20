@@ -555,8 +555,8 @@ MpmCudaConf *MpmCudaConfParse(void)
                 SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
                            "cuda.mpm.batching_timeout.  Either NULL or empty");
             } else {
-                profile->batching_timeout = atoi(batching_timeout);
-                if (profile->batching_timeout <= 0) {
+                profile->batching_timeout = atof(batching_timeout);
+                if (profile->batching_timeout < 0.000001) {
                     SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
                                "cuda.mpm.batching_timeout - %s", batching_timeout);
                     profile->batching_timeout = MPM_BATCHING_TIMEOUT;
