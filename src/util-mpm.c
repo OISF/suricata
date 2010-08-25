@@ -34,6 +34,8 @@
 #include "util-mpm-b3g.h"
 #include "util-mpm-b2gc.h"
 #include "util-mpm-b2gm.h"
+#include "util-mpm-ac.h"
+#include "util-mpm-ac-gfbs.h"
 #include "util-hashlist.h"
 
 /**
@@ -220,6 +222,8 @@ void MpmTableSetup(void) {
     MpmB3gRegister();
     MpmB2gcRegister();
     MpmB2gmRegister();
+    MpmACRegister();
+    MpmACGfbsRegister();
 }
 
 /** \brief  Function to return the default hash size for the mpm algorithm,

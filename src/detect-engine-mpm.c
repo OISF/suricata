@@ -72,6 +72,8 @@ SCEnumCharMap sc_mpm_algo_map[] = {
     { "b2g",      MPM_B2G },
     { "b3g",      MPM_B3G },
     { "wumanber", MPM_WUMANBER },
+    { "ac",       MPM_AC },
+    { "ac-gfbs",  MPM_AC_GFBS },
 #ifdef __SC_CUDA_SUPPORT__
     { "b2g_cuda", MPM_B2G_CUDA },
 #endif

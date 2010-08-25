@@ -142,6 +142,8 @@ util-mpm-b2g-cuda.c util-mpm-b2g-cuda.h \
 util-mpm-b3g.c util-mpm-b3g.h \
 util-mpm-b2gc.c util-mpm-b2gc.h \
 util-mpm-b2gm.c util-mpm-b2gm.h \
+util-mpm-ac.c util-mpm-ac.h \
+util-mpm-ac-gfbs.c util-mpm-ac-gfbs.h \
 util-cidr.c util-cidr.h \
 util-unittest.c util-unittest.h \
 util-unittest-helper.c util-unittest-helper.h \

@@ -1,0 +1,2136 @@
+/* Copyright (C) 2007-2010 Open Information Security Foundation
+ *
+ * You can copy, redistribute or modify this Program under the terms of
+ * the GNU General Public License version 2 as published by the Free
+ * Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * version 2 along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301, USA.
+ */
+
+/**
+ * \file
+ *
+ * \author Anoop Saldanha <poonaatsoc@gmail.com>
+ *
+ *         Implementation of aho-corasick MPM from -
+ *
+ *         Efficient String Matching: An Aid to Bibliographic Search
+ *         Alfred V. Aho and Margaret J. Corasick
+ */
+
+#include "suricata-common.h"
+#include "suricata.h"
+
+#include "detect.h"
+#include "util-mpm-ac-gfbs.h"
+
+#include "conf.h"
+#include "util-debug.h"
+#include "util-unittest.h"
+
+void SCACGfbsInitCtx(MpmCtx *, int);
+void SCACGfbsInitThreadCtx(MpmCtx *, MpmThreadCtx *, uint32_t);
+void SCACGfbsDestroyCtx(MpmCtx *);
+void SCACGfbsDestroyThreadCtx(MpmCtx *, MpmThreadCtx *);
+int SCACGfbsAddPatternCI(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
+                         uint32_t, uint32_t, uint8_t);
+int SCACGfbsAddPatternCS(MpmCtx *, uint8_t *, uint16_t, uint16_t, uint16_t,
+                         uint32_t, uint32_t, uint8_t);
+int SCACGfbsPreparePatterns(MpmCtx *mpm_ctx);
+uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
+                        PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen);
+void SCACGfbsPrintInfo(MpmCtx *mpm_ctx);
+void SCACGfbsPrintSearchStats(MpmThreadCtx *mpm_thread_ctx);
+void SCACGfbsRegisterTests(void);
+
+/* a placeholder to denote a failure transition in the goto table */
+#define SC_AC_GFBS_FAIL -1
+/* size of the hash table used to speed up pattern insertions initially */
+#define INIT_HASH_SIZE 65536
+
+#define STATE_QUEUE_CONTAINER_SIZE 65536
+
+/**
+ * \brief Helper structure used by AC during state table creation
+ */
+typedef struct StateQueue_ {
+    int32_t store[STATE_QUEUE_CONTAINER_SIZE];
+    int top;
+    int bot;
+} StateQueue;
+
+/**
+ * \brief Register the goto failure table based aho-corasick mpm.
+ */
+void MpmACGfbsRegister(void)
+{
+    mpm_table[MPM_AC_GFBS].name = "ac-gfbs";
+    /* don't need this.  isn't that awesome?  no more chopping and blah blah */
+    mpm_table[MPM_AC_GFBS].max_pattern_length = 0;
+
+    mpm_table[MPM_AC_GFBS].InitCtx = SCACGfbsInitCtx;
+    mpm_table[MPM_AC_GFBS].InitThreadCtx = SCACGfbsInitThreadCtx;
+    mpm_table[MPM_AC_GFBS].DestroyCtx = SCACGfbsDestroyCtx;
+    mpm_table[MPM_AC_GFBS].DestroyThreadCtx = SCACGfbsDestroyThreadCtx;
+    mpm_table[MPM_AC_GFBS].AddPattern = SCACGfbsAddPatternCS;
+    mpm_table[MPM_AC_GFBS].AddPatternNocase = SCACGfbsAddPatternCI;
+    mpm_table[MPM_AC_GFBS].Prepare = SCACGfbsPreparePatterns;
+    mpm_table[MPM_AC_GFBS].Search = SCACGfbsSearch;
+    mpm_table[MPM_AC_GFBS].Cleanup = NULL;
+    mpm_table[MPM_AC_GFBS].PrintCtx = SCACGfbsPrintInfo;
+    mpm_table[MPM_AC_GFBS].PrintThreadCtx = SCACGfbsPrintSearchStats;
+    mpm_table[MPM_AC_GFBS].RegisterUnittests = SCACGfbsRegisterTests;
+
+    return;
+}
+
+/**
+ * \internal
+ * \brief Initialize the AC context with user specified conf parameters.  We
+ *        aren't retrieving anything for AC conf now, but we will certainly
+ *        need it, when we customize AC.
+ */
+static void SCACGfbsGetConfig()
+{
+    //ConfNode *ac_conf;
+    //const char *hash_val = NULL;
+
+    //ConfNode *pm = ConfGetNode("pattern-matcher");
+
+    return;
+}
+
+/**
+ * \internal
+ * \brief Compares 2 patterns.  We use it for the hashing process during the
+ *        the initial pattern insertion time, to cull duplicate sigs.
+ *
+ * \param p      Pointer to the first pattern(SCACGfbsPattern).
+ * \param pat    Pointer to the second pattern(raw pattern array).
+ * \param patlen Pattern length.
+ * \param flags  Flags.  We don't need this.
+ *
+ * \retval hash A 32 bit unsigned hash.
+ */
+static inline int SCACGfbsCmpPattern(SCACGfbsPattern *p, uint8_t *pat, uint16_t patlen,
+                                     char flags)
+{
+    if (p->len != patlen)
+        return 0;
+
+    if (p->flags != flags)
+        return 0;
+
+    if (memcmp(p->cs, pat, patlen) != 0)
+        return 0;
+
+    return 1;
+}
+
+/**
+ * \internal
+ * \brief Creates a hash of the pattern.  We use it for the hashing process
+ *        during the initial pattern insertion time, to cull duplicate sigs.
+ *
+ * \param pat    Pointer to the pattern.
+ * \param patlen Pattern length.
+ *
+ * \retval hash A 32 bit unsigned hash.
+ */
+static inline uint32_t SCACGfbsInitHashRaw(uint8_t *pat, uint16_t patlen)
+{
+    uint32_t hash = patlen * pat[0];
+    if (patlen > 1)
+        hash += pat[1];
+
+    return (hash % INIT_HASH_SIZE);
+}
+
+/**
+ * \internal
+ * \brief Looks up a pattern.  We use it for the hashing process during the
+ *        the initial pattern insertion time, to cull duplicate sigs.
+ *
+ * \param ctx    Pointer to the AC ctx.
+ * \param pat    Pointer to the pattern.
+ * \param patlen Pattern length.
+ * \param flags  Flags.  We don't need this.
+ *
+ * \retval hash A 32 bit unsigned hash.
+ */
+static inline SCACGfbsPattern *SCACGfbsInitHashLookup(SCACGfbsCtx *ctx, uint8_t *pat,
+                                                      uint16_t patlen, char flags)
+{
+    uint32_t hash = SCACGfbsInitHashRaw(pat, patlen);
+
+    if (ctx->init_hash[hash] == NULL) {
+        return NULL;
+    }
+
+    SCACGfbsPattern *t = ctx->init_hash[hash];
+    for ( ; t != NULL; t = t->next) {
+        if (SCACGfbsCmpPattern(t, pat, patlen, flags) == 1)
+            return t;
+    }
+
+    return NULL;
+}
+
+/**
+ * \internal
+ * \brief Allocs a new pattern instance.
+ *
+ * \param mpm_ctx Pointer to the mpm context.
+ *
+ * \retval p Pointer to the newly created pattern.
+ */
+static inline SCACGfbsPattern *SCACGfbsAllocPattern(MpmCtx *mpm_ctx)
+{
+    SCACGfbsPattern *p = SCMalloc(sizeof(SCACGfbsPattern));
+    if (p == NULL) {
+        exit(EXIT_FAILURE);
+    }
+    memset(p, 0, sizeof(SCACGfbsPattern));
+
+    mpm_ctx->memory_cnt++;
+    mpm_ctx->memory_size += sizeof(SCACGfbsPattern);
+
+    return p;
+}
+
+/**
+ * \internal
+ * \brief Used to free SCACGfbsPattern instances.
+ *
+ * \param mpm_ctx Pointer to the mpm context.
+ * \param p       Pointer to the SCACGfbsPattern instance to be freed.
+ */
+static inline void SCACGfbsFreePattern(MpmCtx *mpm_ctx, SCACGfbsPattern *p)
+{
+    if (p != NULL && p->cs != NULL && p->cs != p->ci) {
+        SCFree(p->cs);
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= p->len;
+    }
+
+    if (p != NULL && p->ci != NULL) {
+        SCFree(p->ci);
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= p->len;
+    }
+
+    if (p != NULL) {
+        SCFree(p);
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= sizeof(SCACGfbsPattern);
+    }
+    return;
+}
+
+/**
+ * \internal
+ * \brief Does a memcpy of the input string to lowercase.
+ *
+ * \param d   Pointer to the target area for memcpy.
+ * \param s   Pointer to the src string for memcpy.
+ * \param len len of the string sent in s.
+ */
+static inline void memcpy_tolower(uint8_t *d, uint8_t *s, uint16_t len)
+{
+    uint16_t i;
+    for (i = 0; i < len; i++)
+        d[i] = u8_tolower(s[i]);
+
+    return;
+}
+
+static inline uint32_t SCACGfbsInitHash(SCACGfbsPattern *p)
+{
+    uint32_t hash = p->len * p->cs[0];
+    if (p->len > 1)
+        hash += p->cs[1];
+
+    return (hash % INIT_HASH_SIZE);
+}
+
+static inline int SCACGfbsInitHashAdd(SCACGfbsCtx *ctx, SCACGfbsPattern *p)
+{
+    uint32_t hash = SCACGfbsInitHash(p);
+
+    if (ctx->init_hash[hash] == NULL) {
+        ctx->init_hash[hash] = p;
+        return 0;
+    }
+
+    SCACGfbsPattern *tt = NULL;
+    SCACGfbsPattern *t = ctx->init_hash[hash];
+
+    /* get the list tail */
+    do {
+        tt = t;
+        t = t->next;
+    } while (t != NULL);
+
+    tt->next = p;
+
+    return 0;
+}
+
+/**
+ * \internal
+ * \brief Add a pattern to the mpm-ac context.
+ *
+ * \param mpm_ctx Mpm context.
+ * \param pat     Pointer to the pattern.
+ * \param patlen  Length of the pattern.
+ * \param pid     Pattern id
+ * \param sid     Signature id (internal id).
+ * \param flags   Pattern's MPM_PATTERN_* flags.
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+static int SCACGfbsAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
+                              uint16_t offset, uint16_t depth, uint32_t pid,
+                              uint32_t sid, uint8_t flags)
+{
+    SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
+
+    SCLogDebug("Adding pattern for ctx %p, patlen %"PRIu16" and pid %" PRIu32,
+               ctx, patlen, pid);
+
+    if (patlen == 0) {
+        SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "pattern length 0");
+        return 0;
+    }
+
+    /* check if we have already inserted this pattern */
+    SCACGfbsPattern *p = SCACGfbsInitHashLookup(ctx, pat, patlen, flags);
+    if (p == NULL) {
+        SCLogDebug("Allocing new pattern");
+
+        /* p will never be NULL */
+        p = SCACGfbsAllocPattern(mpm_ctx);
+
+        p->len = patlen;
+        p->flags = flags;
+        p->id = pid;
+
+        p->ci = SCMalloc(patlen);
+        if (p->ci == NULL)
+            goto error;
+        mpm_ctx->memory_cnt++;
+        mpm_ctx->memory_size += patlen;
+        memcpy_tolower(p->ci, pat, patlen);
+
+        /* setup the case sensitive part of the pattern */
+        if (p->flags & MPM_PATTERN_FLAG_NOCASE) {
+            /* nocase means no difference between cs and ci */
+            p->cs = p->ci;
+        } else {
+            if (memcmp(p->ci, pat, p->len) == 0) {
+                /* no diff between cs and ci: pat is lowercase */
+                p->cs = p->ci;
+            } else {
+                p->cs = SCMalloc(patlen);
+                if (p->cs == NULL)
+                    goto error;
+                mpm_ctx->memory_cnt++;
+                mpm_ctx->memory_size += patlen;
+                memcpy(p->cs, pat, patlen);
+            }
+        }
+
+        /* put in the pattern hash */
+        SCACGfbsInitHashAdd(ctx, p);
+
+        if (mpm_ctx->pattern_cnt == 65535) {
+            SCLogError(SC_ERR_AHO_CORASICK, "Max search words reached.  Can't "
+                       "insert anymore.  Exiting");
+            exit(EXIT_FAILURE);
+        }
+        mpm_ctx->pattern_cnt++;
+
+        if (mpm_ctx->maxlen < patlen)
+            mpm_ctx->maxlen = patlen;
+
+        if (mpm_ctx->minlen == 0) {
+            mpm_ctx->minlen = patlen;
+        } else {
+            if (mpm_ctx->minlen > patlen)
+                mpm_ctx->minlen = patlen;
+        }
+    }
+
+    mpm_ctx->total_pattern_cnt++;
+
+    return 0;
+
+error:
+    SCACGfbsFreePattern(mpm_ctx, p);
+    return -1;
+}
+
+/**
+ * \internal
+ * \brief Initialize a new state in the goto and output tables.
+ *
+ * \param mpm_ctx Pointer to the mpm context.
+ *
+ * \retval The state id, of the newly created state.
+ */
+static inline int SCACGfbsInitNewState(MpmCtx *mpm_ctx)
+{
+    SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
+    int ascii_code = 0;
+    int size = 0;
+
+    /* reallocate space in the goto table to include a new state */
+    size = (ctx->state_count + 1) * 1024;
+    ctx->goto_table = SCRealloc(ctx->goto_table, size);
+    if (ctx->goto_table == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    /* set all transitions for the newly assigned state as FAIL transitions */
+    for (ascii_code = 0; ascii_code < 256; ascii_code++) {
+        ctx->goto_table[ctx->state_count][ascii_code] = SC_AC_GFBS_FAIL;
+    }
+
+    /* reallocate space in the output table for the new state */
+    size = (ctx->state_count + 1) * sizeof(SCACGfbsOutputTable);
+    ctx->output_table = SCRealloc(ctx->output_table, size);
+    if (ctx->output_table == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    memset(ctx->output_table + ctx->state_count, 0, sizeof(SCACGfbsOutputTable));
+
+    /* \todo using it temporarily now during dev, since I have restricted
+     *       state var in SCACGfbsCtx->state_table to uint16_t. */
+    if (ctx->state_count > 65536) {
+        printf("state count exceeded\n");
+        exit(EXIT_FAILURE);
+    }
+
+    return ctx->state_count++;
+}
+
+/**
+ * \internal
+ * \brief Adds a pid to the output table for a state.
+ *
+ * \param state   The state to whose output table we should add the pid.
+ * \param pid     The pattern id to add.
+ * \param mpm_ctx Pointer to the mpm context.
+ */
+static void SCACGfbsSetOutputState(int32_t state, uint32_t pid, MpmCtx *mpm_ctx)
+{
+    SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
+    SCACGfbsOutputTable *output_state = &ctx->output_table[state];
+
+    output_state->no_of_entries++;
+    output_state->pids = realloc(output_state->pids,
+                                 output_state->no_of_entries * sizeof(uint32_t));
+    if (output_state->pids == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    output_state->pids[output_state->no_of_entries - 1] = pid;
+
+    return;
+}
+
+/**
+ * \brief Helper function used by SCACGfbsCreateGotoTable.  Adds a pattern to the
+ *        goto table.
+ *
+ * \param pattern     Pointer to the pattern.
+ * \param pattern_len Pattern length.
+ * \param pid         The pattern id, that corresponds to this pattern.  We
+ *                    need it to updated the output table for this pattern.
+ * \param mpm_ctx     Pointer to the mpm context.
+ */
+static inline void SCACGfbsEnter(uint8_t *pattern, uint16_t pattern_len, uint32_t pid,
+                             MpmCtx *mpm_ctx)
+{
+    SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
+    int32_t state = 0;
+    int32_t newstate = 0;
+    int i = 0;
+    int p = 0;
+
+    /* walk down the trie till we have a match for the pattern prefix */
+    state = 0;
+    for (i = 0; i < pattern_len; i++) {
+        if (ctx->goto_table[state][pattern[i]] != SC_AC_GFBS_FAIL) {
+            state = ctx->goto_table[state][pattern[i]];
+        } else {
+            break;
+        }
+    }
+
+    /* add the non-matching pattern suffix to the trie, from the last state
+     * we left off */
+    for (p = i; p < pattern_len; p++) {
+        newstate = SCACGfbsInitNewState(mpm_ctx);
+        ctx->goto_table[state][pattern[p]] = newstate;
+        state = newstate;
+    }
+
+    /* add this pattern id, to the output table of the last state, where the
+     * pattern ends in the trie */
+    SCACGfbsSetOutputState(state, pid, mpm_ctx);
+
+    return;
+}
+
+/**
+ * \internal
+ * \brief Create the goto table.
+ *
+ * \param mpm_ctx Pointer to the mpm context.
+ */
+static inline void SCACGfbsCreateGotoTable(MpmCtx *mpm_ctx)
+{
+    SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
+    uint32_t i = 0;
+
+    /* add each pattern to create the goto table */
+    for (i = 0; i < mpm_ctx->pattern_cnt; i++) {
+        SCACGfbsEnter(ctx->parray[i]->cs, ctx->parray[i]->len,
+                  ctx->parray[i]->id, mpm_ctx);
+    }
+
+    int ascii_code = 0;
+    for (ascii_code = 0; ascii_code < 256; ascii_code++) {
+        if (ctx->goto_table[0][ascii_code] == SC_AC_GFBS_FAIL) {
+            ctx->goto_table[0][ascii_code] = 0;
+        }
+    }
+
+    return;
+}
+
+static inline int SCACGfbsStateQueueIsEmpty(StateQueue *q)
+{
+    if (q->top == q->bot)
+        return 1;
+    else
+        return 0;
+}
+
+static inline void SCACGfbsEnqueue(StateQueue *q, int32_t state)
+{
+    int i = 0;
+
+    /*if we already have this */
+    for (i = q->bot; i < q->top; i++) {
+        if (q->store[i] == state)
+            return;
+    }
+
+    q->store[q->top++] = state;
+
+    if (q->top == STATE_QUEUE_CONTAINER_SIZE)
+        q->top = 0;
+
+    if (q->top == q->bot) {
+        SCLogCritical(SC_ERR_AHO_CORASICK, "Just ran out of space in the queue.  "
+                      "Fatal Error.  Exiting.  Please file a bug report on this");
+        exit(EXIT_FAILURE);
+    }
+
+    return;
+}
+
+static inline int32_t SCACGfbsDequeue(StateQueue *q)
+{
+    if (q->bot == STATE_QUEUE_CONTAINER_SIZE)
+        q->bot = 0;
+
+    if (q->bot == q->top) {
+        SCLogCritical(SC_ERR_AHO_CORASICK, "StateQueue behaving weirdly.  "
+                      "Fatal Error.  Exiting.  Please file a bug report on this");
+        exit(EXIT_FAILURE);
+    }
+
+    return q->store[q->bot++];
+}
+
+/*
+#define SCACGfbsStateQueueIsEmpty(q) (((q)->top == (q)->bot) ? 1 : 0)
+
+#define SCACGfbsEnqueue(q, state) do { \
+                                  int i = 0; \
+                                             \
+                                  for (i = (q)->bot; i < (q)->top; i++) { \
+                                      if ((q)->store[i] == state)       \
+                                      return; \
+                                  } \
+                                    \
+                                  (q)->store[(q)->top++] = state;   \
+                                                                \
+                                  if ((q)->top == STATE_QUEUE_CONTAINER_SIZE) \
+                                      (q)->top = 0;                     \
+                                                                        \
+                                  if ((q)->top == (q)->bot) {           \
+                                  SCLogCritical(SC_ERR_AHO_CORASICK, "Just ran out of space in the queue.  " \
+                                                "Fatal Error.  Exiting.  Please file a bug report on this"); \
+                                  exit(EXIT_FAILURE);                   \
+                                  }                                     \
+                              } while (0)
+
+#define SCACGfbsDequeue(q) ( (((q)->bot == STATE_QUEUE_CONTAINER_SIZE)? ((q)->bot = 0): 0), \
+                         (((q)->bot == (q)->top) ?                      \
+                          (printf("StateQueue behaving "                \
+                                         "weirdly.  Fatal Error.  Exiting.  Please " \
+                                         "file a bug report on this"), \
+                           exit(EXIT_FAILURE)) : 0), \
+                         (q)->store[(q)->bot++])     \
+*/
+
+/**
+ * \internal
+ * \brief Club the output data from 2 states and store it in the 1st state.
+ *        dst_state_data = {dst_state_data} UNION {src_state_data}
+ *
+ * \todo Use a better way to find union of 2 sets.
+ *
+ * \param dst_state First state(also the destination) for the union operation.
+ * \param src_state Second state for the union operation.
+ * \param mpm_ctx Pointer to the mpm context.
+ */
+static inline void SCACGfbsClubOutputStates(int32_t dst_state, int32_t src_state,
+                                            MpmCtx *mpm_ctx)
+{
+    SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
+    uint32_t i = 0;
+    uint32_t j = 0;
+
+    SCACGfbsOutputTable *output_dst_state = &ctx->output_table[dst_state];
+    SCACGfbsOutputTable *output_src_state = &ctx->output_table[src_state];
+
+    for (i = 0; i < output_src_state->no_of_entries; i++) {
+        for (j = 0; j < output_dst_state->no_of_entries; j++) {
+            if (output_src_state->pids[i] == output_dst_state->pids[j]) {
+                break;
+            }
+        }
+        if (j == output_dst_state->no_of_entries) {
+            output_dst_state->no_of_entries++;
+
+            output_dst_state->pids = realloc(output_dst_state->pids,
+                                             (output_dst_state->no_of_entries *
+                                              sizeof(uint32_t)) );
+            if (output_dst_state->pids == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                exit(EXIT_FAILURE);
+            }
+
+            output_dst_state->pids[output_dst_state->no_of_entries - 1] =
+                output_src_state->pids[i];
+        }
+    }
+
+    return;
+}
+
+/**
+ * \internal
+ * \brief Create the failure table.
+ *
+ * \param mpm_ctx Pointer to the mpm context.
+ */
+static inline void SCACGfbsCreateFailureTable(MpmCtx *mpm_ctx)
+{
+    SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
+    int ascii_code = 0;
+    int32_t state = 0;
+    int32_t r_state = 0;
+
+    StateQueue q;
+    memset(&q, 0, sizeof(StateQueue));
+
+    /* allot space for the failure table.  A failure entry in the table for
+     * every state(SCACGfbsCtx->state_count) */
+    ctx->failure_table = malloc(ctx->state_count * sizeof(int32_t));
+    if (ctx->failure_table == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    memset(ctx->failure_table, 0, ctx->state_count * sizeof(int32_t));
+
+    /* add the failure transitions for the 0th state, and add every non-fail
+     * transition from the 0th state to the queue for further processing
+     * of failure states */
+    for (ascii_code = 0; ascii_code < 256; ascii_code++) {
+        int32_t temp_state = ctx->goto_table[0][ascii_code];
+        if (temp_state != 0) {
+            SCACGfbsEnqueue(&q, temp_state);
+            ctx->failure_table[temp_state] = 0;
+        }
+    }
+
+    while (!SCACGfbsStateQueueIsEmpty(&q)) {
+        /* pick up every state from the queue and add failure transitions */
+        r_state = SCACGfbsDequeue(&q);
+        for (ascii_code = 0; ascii_code < 256; ascii_code++) {
+            int32_t temp_state = ctx->goto_table[r_state][ascii_code];
+            if (temp_state == SC_AC_GFBS_FAIL)
+                continue;
+            SCACGfbsEnqueue(&q, temp_state);
+            state = ctx->failure_table[r_state];
+
+            while(ctx->goto_table[state][ascii_code] == SC_AC_GFBS_FAIL)
+                state = ctx->failure_table[state];
+            ctx->failure_table[temp_state] = ctx->goto_table[state][ascii_code];
+            SCACGfbsClubOutputStates(temp_state, ctx->failure_table[temp_state],
+                                 mpm_ctx);
+        }
+    }
+
+    return;
+}
+
+/**
+ * \internal
+ * \brief Creates a new goto table structure(throw out all the failure
+ *        transitions), to hold the existing goto table.
+ *
+ * \param mpm_ctx Pointer to the mpm context.
+ */
+static inline void SCACGfbsCreateModGotoTable(MpmCtx *mpm_ctx)
+{
+    SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
+
+    if (ctx->state_count < 65536) {
+        /* Let us use uint16_t for all.  That way we don't have to worry about
+         * alignment.  Technically 8 bits is all we need to store ascii codes,
+         * but by avoiding it, we save a lot of time on handling alignment */
+        int size = (ctx->state_count * sizeof(SC_AC_GFBS_STATE_TYPE_U16) * 3 +
+                    256 * sizeof(SC_AC_GFBS_STATE_TYPE_U16) * 2);
+        ctx->goto_table_mod = malloc(size);
+        if (ctx->goto_table_mod == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+        memset(ctx->goto_table_mod, 0, size);
+
+        mpm_ctx->memory_cnt++;
+        mpm_ctx->memory_size += size;
+
+        /* buffer to hold pointers in the buffer, so that a state can use it
+         * directly to access its state data */
+        ctx->goto_table_mod_pointers = malloc(ctx->state_count * sizeof(uint8_t *));
+        if (ctx->goto_table_mod_pointers == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+        memset(ctx->goto_table_mod_pointers, 0,
+               ctx->state_count * sizeof(uint8_t *));
+
+        SC_AC_GFBS_STATE_TYPE_U16 temp_states[256];
+        uint16_t *curr_loc = (uint16_t *)ctx->goto_table_mod;
+        uint16_t *no_of_entries = NULL;
+        uint16_t *ascii_codes = NULL;
+        int32_t state = 0;
+        uint16_t ascii_code = 0;
+        uint16_t k = 0;
+        for (state = 0; state < ctx->state_count; state++) {
+            /* store the starting location in the buffer for this state */
+            ctx->goto_table_mod_pointers[state] = (uint8_t *)curr_loc;
+            no_of_entries = curr_loc++;
+            ascii_codes = curr_loc;
+            k = 0;
+            /* store all states that have non fail transitions in the temp buffer */
+            for (ascii_code = 0; ascii_code < 256; ascii_code++) {
+                if (ctx->goto_table[state][ascii_code] == SC_AC_GFBS_FAIL)
+                    continue;
+                ascii_codes[k] = ascii_code;
+                temp_states[k] = ctx->goto_table[state][ascii_code];
+                k++;
+            }
+            /* if we have any non fail transitions from our previous for search,
+             * store the acii codes as well the corresponding states */
+            if (k > 0) {
+                no_of_entries[0] = k;
+                curr_loc += k;
+                memcpy(curr_loc, temp_states, k * sizeof(SC_AC_GFBS_STATE_TYPE_U16));
+                curr_loc += k;
+            }
+        }
+    } else {
+        /* Let us use uint32_t for all.  That way we don't have to worry about
+         * alignment.  Technically 8 bits is all we need to store ascii codes,
+         * but by avoiding it, we save a lot of time on handling alignment */
+        int size = (ctx->state_count * (sizeof(SC_AC_GFBS_STATE_TYPE_U32) * 3) +
+                    256 * (sizeof(SC_AC_GFBS_STATE_TYPE_U32) * 2));
+        ctx->goto_table_mod = malloc(size);
+        if (ctx->goto_table_mod == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+        memset(ctx->goto_table_mod, 0, size);
+
+        mpm_ctx->memory_cnt++;
+        mpm_ctx->memory_size += size;
+
+        /* buffer to hold pointers in the buffer, so that a state can use it
+         * directly to access its state data */
+        ctx->goto_table_mod_pointers = malloc(ctx->state_count * sizeof(uint8_t *));
+        if (ctx->goto_table_mod_pointers == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+        memset(ctx->goto_table_mod_pointers, 0,
+               ctx->state_count * sizeof(uint8_t *));
+
+        SC_AC_GFBS_STATE_TYPE_U32 temp_states[256];
+        uint32_t *curr_loc = (uint32_t *)ctx->goto_table_mod;
+        uint32_t *no_of_entries = NULL;
+        uint32_t *ascii_codes = NULL;
+        int32_t state = 0;
+        uint16_t ascii_code = 0;
+        uint16_t k = 0;
+        for (state = 0; state < ctx->state_count; state++) {
+            /* store the starting location in the buffer for this state */
+            ctx->goto_table_mod_pointers[state] = (uint8_t *)curr_loc;
+            no_of_entries = curr_loc++;
+            ascii_codes = curr_loc;
+            k = 0;
+            /* store all states that have non fail transitions in the temp buffer */
+            for (ascii_code = 0; ascii_code < 256; ascii_code++) {
+                if (ctx->goto_table[state][ascii_code] == SC_AC_GFBS_FAIL)
+                    continue;
+                ascii_codes[k] = ascii_code;
+                temp_states[k] = ctx->goto_table[state][ascii_code];
+                k++;
+            }
+            /* if we have any non fail transitions from our previous for search,
+             * store the acii codes as well the corresponding states */
+            if (k > 0) {
+                no_of_entries[0] = k;
+                curr_loc += k;
+                memcpy(curr_loc, temp_states, k * sizeof(SC_AC_GFBS_STATE_TYPE_U32));
+                curr_loc += k;
+            }
+        }
+    }
+
+    return;
+}
+
+/**
+ * \brief Process the patterns and prepare the state table.
+ *
+ * \param mpm_ctx Pointer to the mpm context.
+ */
+static inline void SCACGfbsPrepareStateTable(MpmCtx *mpm_ctx)
+{
+    SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
+
+    /* create the 0th state in the goto table and output_table */
+    SCACGfbsInitNewState(mpm_ctx);
+
+    /* create the goto table */
+    SCACGfbsCreateGotoTable(mpm_ctx);
+    /* create the failure table */
+    SCACGfbsCreateFailureTable(mpm_ctx);
+    /* create the final state(delta) table */
+    SCACGfbsCreateModGotoTable(mpm_ctx);
+
+    /* we don't need this anymore */
+    free(ctx->goto_table);
+    ctx->goto_table = NULL;
+
+    return;
+}
+
+/**
+ * \brief Process the patterns added to the mpm, and create the internal tables.
+ *
+ * \param mpm_ctx Pointer to the mpm context.
+ */
+int SCACGfbsPreparePatterns(MpmCtx *mpm_ctx)
+{
+    SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
+
+    if (mpm_ctx->pattern_cnt == 0) {
+        SCLogInfo("No patterns supplied to this mpm_ctx");
+        return 0;
+    }
+
+    /* alloc the pattern array */
+    ctx->parray = (SCACGfbsPattern **)SCMalloc(mpm_ctx->pattern_cnt *
+                                               sizeof(SCACGfbsPattern *));
+    if (ctx->parray == NULL)
+        goto error;
+    memset(ctx->parray, 0, mpm_ctx->pattern_cnt * sizeof(SCACGfbsPattern *));
+    mpm_ctx->memory_cnt++;
+    mpm_ctx->memory_size += (mpm_ctx->pattern_cnt * sizeof(SCACGfbsPattern *));
+
+    /* populate it with the patterns in the hash */
+    uint32_t i = 0, p = 0;
+    for (i = 0; i < INIT_HASH_SIZE; i++) {
+        SCACGfbsPattern *node = ctx->init_hash[i], *nnode = NULL;
+        while(node != NULL) {
+            nnode = node->next;
+            node->next = NULL;
+            ctx->parray[p++] = node;
+            node = nnode;
+        }
+    }
+
+    /* we no longer need the hash, so free it's memory */
+    SCFree(ctx->init_hash);
+    ctx->init_hash = NULL;
+
+    /* the memory consumed by a single state in our goto table */
+    //ctx->single_state_size = sizeof(int32_t) * 256;
+
+    /* prepare the state table required by AC */
+    SCACGfbsPrepareStateTable(mpm_ctx);
+
+    /* free all the stored patterns.  Should save us a good 100-200 mbs */
+    for (i = 0; i < mpm_ctx->pattern_cnt; i++) {
+        if (ctx->parray[i] != NULL) {
+            SCACGfbsFreePattern(mpm_ctx, ctx->parray[i]);
+        }
+    }
+    SCFree(ctx->parray);
+    ctx->parray = NULL;
+    mpm_ctx->memory_cnt--;
+    mpm_ctx->memory_size -= (mpm_ctx->pattern_cnt * sizeof(SCACGfbsPattern *));
+
+    return 0;
+
+error:
+    return -1;
+}
+
+/**
+ * \brief Init the mpm thread context.
+ *
+ * \param mpm_ctx        Pointer to the mpm context.
+ * \param mpm_thread_ctx Pointer to the mpm thread context.
+ * \param matchsize      We don't need this.
+ */
+void SCACGfbsInitThreadCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
+                           uint32_t matchsize)
+{
+    memset(mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+
+    mpm_thread_ctx->ctx = SCMalloc(sizeof(SCACGfbsThreadCtx));
+    if (mpm_thread_ctx->ctx == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    memset(mpm_thread_ctx->ctx, 0, sizeof(SCACGfbsThreadCtx));
+    mpm_thread_ctx->memory_cnt++;
+    mpm_thread_ctx->memory_size += sizeof(SCACGfbsThreadCtx);
+
+    return;
+}
+
+/**
+ * \brief Initialize the AC context.
+ *
+ * \param mpm_ctx       Mpm context.
+ * \param module_handle Cuda module handle from the cuda handler API.  We don't
+ *                      have to worry about this here.
+ */
+void SCACGfbsInitCtx(MpmCtx *mpm_ctx, int module_handle)
+{
+    mpm_ctx->ctx = SCMalloc(sizeof(SCACGfbsCtx));
+    if (mpm_ctx->ctx == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    memset(mpm_ctx->ctx, 0, sizeof(SCACGfbsCtx));
+
+    mpm_ctx->memory_cnt++;
+    mpm_ctx->memory_size += sizeof(SCACGfbsCtx);
+
+    /* initialize the hash we use to speed up pattern insertions */
+    SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
+    ctx->init_hash = SCMalloc(sizeof(SCACGfbsPattern *) * INIT_HASH_SIZE);
+    if (ctx->init_hash == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    memset(ctx->init_hash, 0, sizeof(SCACGfbsPattern *) * INIT_HASH_SIZE);
+
+    /* get conf values for AC from our yaml file.  We have no conf values for
+     * now.  We will certainly need this, as we develop the algo */
+    SCACGfbsGetConfig();
+
+    SCReturn;
+}
+
+/**
+ * \brief Destroy the mpm thread context.
+ *
+ * \param mpm_ctx        Pointer to the mpm context.
+ * \param mpm_thread_ctx Pointer to the mpm thread context.
+ */
+void SCACGfbsDestroyThreadCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx)
+{
+    SCACGfbsPrintSearchStats(mpm_thread_ctx);
+
+    if (mpm_thread_ctx->ctx != NULL) {
+        SCFree(mpm_thread_ctx->ctx);
+        mpm_thread_ctx->ctx = NULL;
+        mpm_thread_ctx->memory_cnt--;
+        mpm_thread_ctx->memory_size -= sizeof(SCACGfbsThreadCtx);
+    }
+
+    return;
+}
+
+/**
+ * \brief Destroy the mpm context.
+ *
+ * \param mpm_ctx Pointer to the mpm context.
+ */
+void SCACGfbsDestroyCtx(MpmCtx *mpm_ctx)
+{
+    SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
+    if (ctx == NULL)
+        return;
+
+    if (ctx->init_hash != NULL) {
+        SCFree(ctx->init_hash);
+        ctx->init_hash = NULL;
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= (INIT_HASH_SIZE * sizeof(SCACGfbsPattern *));
+    }
+
+    if (ctx->parray != NULL) {
+        uint32_t i;
+        for (i = 0; i < mpm_ctx->pattern_cnt; i++) {
+            if (ctx->parray[i] != NULL) {
+                SCACGfbsFreePattern(mpm_ctx, ctx->parray[i]);
+            }
+        }
+
+        SCFree(ctx->parray);
+        ctx->parray = NULL;
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= (mpm_ctx->pattern_cnt * sizeof(SCACGfbsPattern *));
+    }
+
+    if (ctx->goto_table_mod != NULL) {
+        SCFree(ctx->goto_table_mod);
+        ctx->goto_table_mod = NULL;
+
+        mpm_ctx->memory_cnt--;
+        if (ctx->state_count < 65536) {
+            mpm_ctx->memory_size -= (ctx->state_count * sizeof(SC_AC_GFBS_STATE_TYPE_U16) * 3 +
+                                     256 * sizeof(SC_AC_GFBS_STATE_TYPE_U16) * 2);
+        } else {
+            mpm_ctx->memory_size -= (ctx->state_count * sizeof(SC_AC_GFBS_STATE_TYPE_U32) * 3 +
+                                     256 * sizeof(SC_AC_GFBS_STATE_TYPE_U32) * 2);
+        }
+    }
+
+    if (ctx->goto_table_mod_pointers != NULL) {
+        SCFree(ctx->goto_table_mod_pointers);
+        ctx->goto_table_mod_pointers = NULL;
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= ctx->state_count * sizeof(uint8_t *);
+    }
+
+    SCFree(mpm_ctx->ctx);
+    mpm_ctx->memory_cnt--;
+    mpm_ctx->memory_size -= sizeof(SCACGfbsCtx);
+
+    return;
+}
+
+/**
+ * \brief The aho corasick search function.
+ *
+ * \param mpm_ctx        Pointer to the mpm context.
+ * \param mpm_thread_ctx Pointer to the mpm thread context.
+ * \param pmq            Pointer to the Pattern Matcher Queue to hold
+ *                       search matches.
+ * \param buf            Buffer to be searched.
+ * \param buflen         Buffer length.
+ *
+ * \retval matches Match count.
+ */
+uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
+                        PatternMatcherQueue *pmq, uint8_t *buf, uint16_t buflen)
+{
+    SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
+    int matches = 0;
+
+    /* really hate the extra cmp here, but can't help it */
+    if (ctx->state_count < 65536) {
+        /* \todo Change it for stateful MPM.  Supply the state using mpm_thread_ctx */
+        int32_t temp_state;
+        uint16_t *no_of_entries;
+        uint16_t *ascii_codes;
+        int i;
+        /* \todo tried loop unrolling with register var, with no perf increase.  Need
+         * to dig deeper */
+        /* with so many var declarations the register declaration here is useless */
+        register int32_t state = 0;
+        for (i = 0; i < buflen; i++) {
+            /* get the goto state transition */
+            no_of_entries = (uint16_t *)ctx->goto_table_mod_pointers[state];
+            if (no_of_entries[0] == 0) {
+                temp_state = SC_AC_GFBS_FAIL;
+            } else {
+                ascii_codes = no_of_entries + 1;
+                if (state == 0) {
+                    temp_state =  ((SC_AC_GFBS_STATE_TYPE_U16 *)(ascii_codes + no_of_entries[0]))[buf[i]];
+                } else {
+                    int low = 0;
+                    int high = no_of_entries[0];
+                    int mid;
+                    temp_state = SC_AC_GFBS_FAIL;
+                    while (low <= high) {
+                        mid = (low + high) / 2;
+                        if (ascii_codes[mid] == buf[i]) {
+                            temp_state = ((SC_AC_GFBS_STATE_TYPE_U16 *)(ascii_codes + no_of_entries[0]))[mid];
+                            break;
+                        } else if (ascii_codes[mid] < buf[i]) {
+                            low = mid + 1;
+                        } else {
+                            high = mid - 1;
+                        }
+                    }
+                }
+            }
+            while (temp_state == SC_AC_GFBS_FAIL) {
+                state = ctx->failure_table[state];
+
+                /* get the goto state transition */
+                no_of_entries = (uint16_t *)ctx->goto_table_mod_pointers[state];
+                if (no_of_entries[0] == 0) {
+                    temp_state = SC_AC_GFBS_FAIL;
+                } else {
+                    ascii_codes = no_of_entries + 1;
+                    if (state == 0) {
+                        temp_state = ((SC_AC_GFBS_STATE_TYPE_U16 *)(ascii_codes + no_of_entries[0]))[buf[i]];
+                    } else {
+                        int low = 0;
+                        int high = no_of_entries[0];
+                        int mid;
+                        temp_state = SC_AC_GFBS_FAIL;
+                        while (low <= high) {
+                            mid = (low + high) / 2;
+                            if (ascii_codes[mid] == buf[i]) {
+                                temp_state = ((SC_AC_GFBS_STATE_TYPE_U16 *)(ascii_codes + no_of_entries[0]))[mid];
+                                break;
+                            } else if (ascii_codes[mid] < buf[i]) {
+                                low = mid + 1;
+                            } else {
+                                high = mid - 1;
+                            }
+                        }
+                    }
+                } /* else - if (no_of_entries[0] == 0) */
+            } /* while (temp_state == SC_AC_GFBS_FAIL) */
+
+            state = temp_state;
+            if (ctx->output_table[state].no_of_entries != 0) {
+                uint32_t k = 0;
+                for (k = 0; k < ctx->output_table[state].no_of_entries; k++) {
+                    matches += MpmVerifyMatch(mpm_thread_ctx, pmq,
+                                              ctx->output_table[state].pids[k]);
+#ifdef SC_AC_COUNTERS
+                    if (mpm_thread_ctx->ctx != NULL) {
+                        SCACGfbsThreadCtx *tctx = (SCACGfbsThreadCtx *)mpm_thread_ctx->ctx;
+                        tctx->total_matches++;
+                    }
+#endif /* SC_AC_COUNTERS */
+                }
+            } /* if (ctx->output_table[state].no_of_entries != 0) */
+        } /* for (i = 0; i < buflen; i++) */
+    } else {
+        /* \todo Change it for stateful MPM.  Supply the state using mpm_thread_ctx */
+        int32_t temp_state = 0;
+        uint32_t *no_of_entries = NULL;
+        uint32_t *ascii_codes = NULL;
+        int i = 0;
+        /* \todo tried loop unrolling with register var, with no perf increase.  Need
+         * to dig deeper */
+        register int32_t state = 0;
+        for (i = 0; i < buflen; i++) {
+            /* get the goto state transition */
+            no_of_entries = (uint32_t *)ctx->goto_table_mod_pointers[state];
+            if (no_of_entries[0] == 0) {
+                temp_state = SC_AC_GFBS_FAIL;
+            } else {
+                ascii_codes = no_of_entries + 1;
+                if (state == 0) {
+                    temp_state =  ((SC_AC_GFBS_STATE_TYPE_U32 *)(ascii_codes + no_of_entries[0]))[buf[i]];
+                } else {
+                    int low = 0;
+                    int high = no_of_entries[0];
+                    int mid;
+                    temp_state = SC_AC_GFBS_FAIL;
+                    while (low <= high) {
+                        mid = (low + high) / 2;
+                        if (ascii_codes[mid] == buf[i]) {
+                            temp_state = ((SC_AC_GFBS_STATE_TYPE_U32 *)(ascii_codes + no_of_entries[0]))[mid];
+                            break;
+                        } else if (ascii_codes[mid] < buf[i]) {
+                            low = mid + 1;
+                        } else {
+                            high = mid - 1;
+                        }
+                    }
+                }
+            }
+            while (temp_state == SC_AC_GFBS_FAIL) {
+                state = ctx->failure_table[state];
+
+                /* get the goto state transition */
+                no_of_entries = (uint32_t *)ctx->goto_table_mod_pointers[state];
+                if (no_of_entries[0] == 0) {
+                    temp_state = SC_AC_GFBS_FAIL;
+                } else {
+                    ascii_codes = no_of_entries + 1;
+                    if (state == 0) {
+                        temp_state = ((SC_AC_GFBS_STATE_TYPE_U32 *)(ascii_codes + no_of_entries[0]))[buf[i]];
+                    } else {
+                        int low = 0;
+                        int high = no_of_entries[0];
+                        int mid;
+                        temp_state = SC_AC_GFBS_FAIL;
+                        while (low <= high) {
+                            mid = (low + high) / 2;
+                            if (ascii_codes[mid] == buf[i]) {
+                                temp_state = ((SC_AC_GFBS_STATE_TYPE_U32 *)(ascii_codes + no_of_entries[0]))[mid];
+                                break;
+                            } else if (ascii_codes[mid] < buf[i]) {
+                                low = mid + 1;
+                            } else {
+                                high = mid - 1;
+                            }
+                        }
+                    }
+                } /* else - if (no_of_entries[0] == 0) */
+            } /* while (temp_state == SC_AC_GFBS_FAIL) */
+            state = temp_state;
+            if (ctx->output_table[state].no_of_entries != 0) {
+                uint32_t k = 0;
+                for (k = 0; k < ctx->output_table[state].no_of_entries; k++) {
+                    matches += MpmVerifyMatch(mpm_thread_ctx, pmq,
+                                              ctx->output_table[state].pids[k]);
+#ifdef SC_AC_COUNTERS
+                    if (mpm_thread_ctx->ctx != NULL) {
+                        SCACGfbsThreadCtx *tctx = (SCACGfbsThreadCtx *)mpm_thread_ctx->ctx;
+                        tctx->total_matches++;
+                    }
+#endif /* SC_AC_COUNTERS */
+                }
+            } /* if (ctx->output_table[state].no_of_entries != 0) */
+        } /* for (i = 0; i < buflen; i++) */
+    }
+
+#ifdef SC_AC_COUNTERS
+    if (mpm_thread_ctx->ctx != NULL) {
+        SCACGfbsThreadCtx *tctx = (SCACGfbsThreadCtx *)mpm_thread_ctx->ctx;
+        tctx->total_calls++;
+    }
+#endif /* SC_AC_COUNTERS */
+
+    return matches;
+}
+
+/**
+ * \brief Add a case insensitive pattern.  Although we have different calls for
+ *        adding case sensitive and insensitive patterns, we make a single call
+ *        for either case.  No special treatment for either case.
+ *
+ * \param mpm_ctx Pointer to the mpm context.
+ * \param pat     The pattern to add.
+ * \param patnen  The pattern length.
+ * \param offset  Ignored.
+ * \param depth   Ignored.
+ * \param pid     The pattern id.
+ * \param sid     Ignored.
+ * \param flags   Flags associated with this pattern.
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int SCACGfbsAddPatternCI(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
+                         uint16_t offset, uint16_t depth, uint32_t pid,
+                         uint32_t sid, uint8_t flags)
+{
+    flags |= MPM_PATTERN_FLAG_NOCASE;
+    return SCACGfbsAddPattern(mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
+}
+
+/**
+ * \brief Add a case sensitive pattern.  Although we have different calls for
+ *        adding case sensitive and insensitive patterns, we make a single call
+ *        for either case.  No special treatment for either case.
+ *
+ * \param mpm_ctx Pointer to the mpm context.
+ * \param pat     The pattern to add.
+ * \param patnen  The pattern length.
+ * \param offset  Ignored.
+ * \param depth   Ignored.
+ * \param pid     The pattern id.
+ * \param sid     Ignored.
+ * \param flags   Flags associated with this pattern.
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int SCACGfbsAddPatternCS(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
+                         uint16_t offset, uint16_t depth, uint32_t pid,
+                         uint32_t sid, uint8_t flags)
+{
+    return SCACGfbsAddPattern(mpm_ctx, pat, patlen, offset, depth, pid, sid, flags);
+}
+
+void SCACGfbsPrintSearchStats(MpmThreadCtx *mpm_thread_ctx)
+{
+
+#ifdef SC_AC_COUNTERS
+    SCACGfbsThreadCtx *ctx = (SCACGfbsThreadCtx *)mpm_thread_ctx->ctx;
+    printf("AC Thread Search stats (ctx %p)\n", ctx);
+    printf("Total calls: %" PRIu32 "\n", ctx->total_calls);
+    printf("Total matches: %" PRIu64 "\n", ctx->total_matches);
+#endif /* SC_AC_COUNTERS */
+
+    return;
+}
+
+void SCACGfbsPrintInfo(MpmCtx *mpm_ctx)
+{
+    SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
+
+    printf("MPM AC Information:\n");
+    printf("Memory allocs:   %" PRIu32 "\n", mpm_ctx->memory_cnt);
+    printf("Memory alloced:  %" PRIu32 "\n", mpm_ctx->memory_size);
+    printf(" Sizeof:\n");
+    printf("  MpmCtx         %" PRIuMAX "\n", (uintmax_t)sizeof(MpmCtx));
+    printf("  SCACGfbsCtx:         %" PRIuMAX "\n", (uintmax_t)sizeof(SCACGfbsCtx));
+    printf("  SCACGfbsPattern      %" PRIuMAX "\n", (uintmax_t)sizeof(SCACGfbsPattern));
+    printf("  SCACGfbsPattern     %" PRIuMAX "\n", (uintmax_t)sizeof(SCACGfbsPattern));
+    printf("Unique Patterns: %" PRIu32 "\n", mpm_ctx->pattern_cnt);
+    printf("Total Patterns:  %" PRIu32 "\n", mpm_ctx->total_pattern_cnt);
+    printf("Smallest:        %" PRIu32 "\n", mpm_ctx->minlen);
+    printf("Largest:         %" PRIu32 "\n", mpm_ctx->maxlen);
+    printf("Total states in the state table:    %" PRIu32 "\n", ctx->state_count);
+    printf("\n");
+
+    return;
+}
+
+/*************************************Unittests********************************/
+
+#ifdef UNITTESTS
+
+static int SCACGfbsTest01(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* 1 match */
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    char *buf = "abcdefghjiklmnopqrstuvwxyz";
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                                  (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 1)
+        result = 1;
+    else
+        printf("1 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest02(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* 1 match */
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"abce", 4, 0, 0, 0, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    char *buf = "abcdefghjiklmnopqrstuvwxyz";
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 0)
+        result = 1;
+    else
+        printf("0 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest03(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* 1 match */
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
+    /* 1 match */
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"bcde", 4, 0, 0, 1, 0, 0);
+    /* 1 match */
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"fghj", 4, 0, 0, 2, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    char *buf = "abcdefghjiklmnopqrstuvwxyz";
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 3)
+        result = 1;
+    else
+        printf("3 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest04(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"bcdegh", 6, 0, 0, 1, 0, 0);
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"fghjxyz", 7, 0, 0, 2, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    char *buf = "abcdefghjiklmnopqrstuvwxyz";
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 1)
+        result = 1;
+    else
+        printf("1 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest05(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    SCACGfbsAddPatternCI(&mpm_ctx, (uint8_t *)"ABCD", 4, 0, 0, 0, 0, 0);
+    SCACGfbsAddPatternCI(&mpm_ctx, (uint8_t *)"bCdEfG", 6, 0, 0, 1, 0, 0);
+    SCACGfbsAddPatternCI(&mpm_ctx, (uint8_t *)"fghJikl", 7, 0, 0, 2, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    char *buf = "abcdefghjiklmnopqrstuvwxyz";
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 3)
+        result = 1;
+    else
+        printf("3 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest06(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    char *buf = "abcd";
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 1)
+        result = 1;
+    else
+        printf("1 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest07(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* should match 30 times */
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"A", 1, 0, 0, 0, 0, 0);
+    /* should match 29 times */
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 1, 0, 0);
+    /* should match 28 times */
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"AAA", 3, 0, 0, 2, 0, 0);
+    /* 26 */
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAA", 5, 0, 0, 3, 0, 0);
+    /* 21 */
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAA", 10, 0, 0, 4, 0, 0);
+    /* 1 */
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+                     30, 0, 0, 5, 0, 0);
+    /* total matches: 135 */
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    char *buf = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 135)
+        result = 1;
+    else
+        printf("135 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest08(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* 1 match */
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)"a", 1);
+
+    if (cnt == 0)
+        result = 1;
+    else
+        printf("0 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest09(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* 1 match */
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"ab", 2, 0, 0, 0, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)"ab", 2);
+
+    if (cnt == 1)
+        result = 1;
+    else
+        printf("1 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest10(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* 1 match */
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"abcdefgh", 8, 0, 0, 0, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    char *buf = "01234567890123456789012345678901234567890123456789"
+                "01234567890123456789012345678901234567890123456789"
+                "abcdefgh"
+                "01234567890123456789012345678901234567890123456789"
+                "01234567890123456789012345678901234567890123456789";
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 1)
+        result = 1;
+    else
+        printf("1 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest11(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    if (SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"he", 2, 0, 0, 1, 0, 0) == -1)
+        goto end;
+    if (SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"she", 3, 0, 0, 2, 0, 0) == -1)
+        goto end;
+    if (SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"his", 3, 0, 0, 3, 0, 0) == -1)
+        goto end;
+    if (SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"hers", 4, 0, 0, 4, 0, 0) == -1)
+        goto end;
+
+    if (SCACGfbsPreparePatterns(&mpm_ctx) == -1)
+        goto end;
+
+    result = 1;
+
+    char *buf = "he";
+    result &= (SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)buf,
+                          strlen(buf)) == 1);
+    buf = "she";
+    result &= (SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)buf,
+                          strlen(buf)) == 2);
+    buf = "his";
+    result &= (SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)buf,
+                          strlen(buf)) == 1);
+    buf = "hers";
+    result &= (SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)buf,
+                          strlen(buf)) == 2);
+
+ end:
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest12(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* 1 match */
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"wxyz", 4, 0, 0, 0, 0, 0);
+    /* 1 match */
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"vwxyz", 5, 0, 0, 1, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    char *buf = "abcdefghijklmnopqrstuvwxyz";
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 2)
+        result = 1;
+    else
+        printf("2 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest13(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* 1 match */
+    char *pat = "abcdefghijklmnopqrstuvwxyzABCD";
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    char *buf = "abcdefghijklmnopqrstuvwxyzABCD";
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 1)
+        result = 1;
+    else
+        printf("1 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest14(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* 1 match */
+    char *pat = "abcdefghijklmnopqrstuvwxyzABCDE";
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    char *buf = "abcdefghijklmnopqrstuvwxyzABCDE";
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 1)
+        result = 1;
+    else
+        printf("1 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest15(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* 1 match */
+    char *pat = "abcdefghijklmnopqrstuvwxyzABCDEF";
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    char *buf = "abcdefghijklmnopqrstuvwxyzABCDEF";
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 1)
+        result = 1;
+    else
+        printf("1 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest16(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* 1 match */
+    char *pat = "abcdefghijklmnopqrstuvwxyzABC";
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    char *buf = "abcdefghijklmnopqrstuvwxyzABC";
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 1)
+        result = 1;
+    else
+        printf("1 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest17(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* 1 match */
+    char *pat = "abcdefghijklmnopqrstuvwxyzAB";
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    char *buf = "abcdefghijklmnopqrstuvwxyzAB";
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 1)
+        result = 1;
+    else
+        printf("1 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest18(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* 1 match */
+    char *pat = "abcde""fghij""klmno""pqrst""uvwxy""z";
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    char *buf = "abcde""fghij""klmno""pqrst""uvwxy""z";
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 1)
+        result = 1;
+    else
+        printf("1 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest19(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* 1 */
+    char *pat = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    char *buf = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 1)
+        result = 1;
+    else
+        printf("1 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    return result;
+}
+
+static int SCACGfbsTest20(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* 1 */
+    char *pat = "AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AA";
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)pat, strlen(pat), 0, 0, 0, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    char *buf = "AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AAAAA""AA";
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 1)
+        result = 1;
+    else
+        printf("1 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest21(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* 1 */
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 0, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                              (uint8_t *)"AA", 2);
+
+    if (cnt == 1)
+        result = 1;
+    else
+        printf("1 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest22(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* 1 match */
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"abcd", 4, 0, 0, 0, 0, 0);
+    /* 1 match */
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"abcde", 5, 0, 0, 1, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    char *buf = "abcdefghijklmnopqrstuvwxyz";
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                              (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 2)
+        result = 1;
+    else
+        printf("2 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest23(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* 1 */
+    SCACGfbsAddPatternCS(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 0, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                                  (uint8_t *)"aa", 2);
+
+    if (cnt == 0)
+        result = 1;
+    else
+        printf("1 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACGfbsTest24(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC_GFBS, -1);
+    SCACGfbsInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* 1 */
+    SCACGfbsAddPatternCI(&mpm_ctx, (uint8_t *)"AA", 2, 0, 0, 0, 0, 0);
+
+    SCACGfbsPreparePatterns(&mpm_ctx);
+
+    uint32_t cnt = SCACGfbsSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                                  (uint8_t *)"aa", 2);
+
+    if (cnt == 1)
+        result = 1;
+    else
+        printf("1 != %" PRIu32 " ",cnt);
+
+    SCACGfbsDestroyCtx(&mpm_ctx);
+    SCACGfbsDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+#endif /* UNITTESTS */
+
+void SCACGfbsRegisterTests(void)
+{
+
+#ifdef UNITTESTS
+    UtRegisterTest("SCACGfbsTest01", SCACGfbsTest01, 1);
+    UtRegisterTest("SCACGfbsTest02", SCACGfbsTest02, 1);
+    UtRegisterTest("SCACGfbsTest03", SCACGfbsTest03, 1);
+    UtRegisterTest("SCACGfbsTest04", SCACGfbsTest04, 1);
+    UtRegisterTest("SCACGfbsTest05", SCACGfbsTest05, 1);
+    UtRegisterTest("SCACGfbsTest06", SCACGfbsTest06, 1);
+    UtRegisterTest("SCACGfbsTest07", SCACGfbsTest07, 1);
+    UtRegisterTest("SCACGfbsTest08", SCACGfbsTest08, 1);
+    UtRegisterTest("SCACGfbsTest09", SCACGfbsTest09, 1);
+    UtRegisterTest("SCACGfbsTest10", SCACGfbsTest10, 1);
+    UtRegisterTest("SCACGfbsTest11", SCACGfbsTest11, 1);
+    UtRegisterTest("SCACGfbsTest12", SCACGfbsTest12, 1);
+    UtRegisterTest("SCACGfbsTest13", SCACGfbsTest13, 1);
+    UtRegisterTest("SCACGfbsTest14", SCACGfbsTest14, 1);
+    UtRegisterTest("SCACGfbsTest15", SCACGfbsTest15, 1);
+    UtRegisterTest("SCACGfbsTest16", SCACGfbsTest16, 1);
+    UtRegisterTest("SCACGfbsTest17", SCACGfbsTest17, 1);
+    UtRegisterTest("SCACGfbsTest18", SCACGfbsTest18, 1);
+    UtRegisterTest("SCACGfbsTest19", SCACGfbsTest19, 1);
+    UtRegisterTest("SCACGfbsTest20", SCACGfbsTest20, 1);
+    UtRegisterTest("SCACGfbsTest21", SCACGfbsTest21, 1);
+    UtRegisterTest("SCACGfbsTest22", SCACGfbsTest22, 1);
+    UtRegisterTest("SCACGfbsTest23", SCACGfbsTest23, 1);
+    UtRegisterTest("SCACGfbsTest24", SCACGfbsTest24, 1);
+#endif
+
+    return;
+}

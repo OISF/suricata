@@ -190,6 +190,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_WARN_ERF_DAG_REC_LEN_CHANGED);
         CASE_CODE (SC_WARN_COMPATIBILITY);
         CASE_CODE (SC_ERR_DCERPC);
+        CASE_CODE (SC_ERR_AHO_CORASICK);
 
         default:
             return "UNKNOWN_ERROR";

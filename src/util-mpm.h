@@ -53,15 +53,22 @@
 enum {
     MPM_NOTSET = 0,
 
+    /* wumanber as the name suggests */
     MPM_WUMANBER,
+    /* bndmq 2 gram */
     MPM_B2G,
 #ifdef __SC_CUDA_SUPPORT__
     MPM_B2G_CUDA,
 #endif
+    /* bndmq 3 gram */
     MPM_B3G,
     MPM_B2GC,
     MPM_B2GM,
 
+    /* aho-corasick */
+    MPM_AC,
+    /* aho-corasick-goto-failure state based */
+    MPM_AC_GFBS,
     /* table size */
     MPM_TABLE_SIZE,
 };
