@@ -98,7 +98,7 @@ int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     htp_tx_t *tx = NULL;
     int ret = 0;
 
-    if (hs == NULL) {
+    if (hs == NULL || hs->connp == NULL || hs->connp->conn == NULL) {
         SCLogDebug("No HTP state.");
         SCReturnInt(0);
     }
