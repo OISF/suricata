@@ -32,6 +32,7 @@
 #include "util-mpm-b2g.h"
 #include "util-mpm-b2g-cuda.h"
 #include "util-mpm-b3g.h"
+#include "util-mpm-b2gc.h"
 #include "util-hashlist.h"
 
 /**
@@ -216,6 +217,7 @@ void MpmTableSetup(void) {
     MpmB2gCudaRegister();
 #endif
     MpmB3gRegister();
+    MpmB2gcRegister();
 }
 
 /** \brief  Function to return the default hash size for the mpm algorithm,

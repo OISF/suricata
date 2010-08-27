@@ -140,6 +140,7 @@ util-mpm-wumanber.c util-mpm-wumanber.h \
 util-mpm-b2g.c util-mpm-b2g.h \
 util-mpm-b2g-cuda.c util-mpm-b2g-cuda.h \
 util-mpm-b3g.c util-mpm-b3g.h \
+util-mpm-b2gc.c util-mpm-b2gc.h \
 util-cidr.c util-cidr.h \
 util-unittest.c util-unittest.h \
 util-unittest-helper.c util-unittest-helper.h \

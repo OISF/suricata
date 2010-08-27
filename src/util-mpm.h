@@ -59,6 +59,7 @@ enum {
     MPM_B2G_CUDA,
 #endif
     MPM_B3G,
+    MPM_B2GC,
 
     /* table size */
     MPM_TABLE_SIZE,
