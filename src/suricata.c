@@ -34,6 +34,7 @@
 #include "threads.h"
 #include "threadvars.h"
 
+#include "util-atomic.h"
 #include "util-spm.h"
 #include "util-hash.h"
 #include "util-hashlist.h"
@@ -142,6 +143,7 @@
 #include "tmqh-packetpool.h"
 
 #include "util-ringbuffer.h"
+#include "util-mem.h"
 
 /*
  * we put this here, because we only use it here in main.
@@ -149,6 +151,13 @@
 volatile sig_atomic_t sigint_count = 0;
 volatile sig_atomic_t sighup_count = 0;
 volatile sig_atomic_t sigterm_count = 0;
+
+/*
+ * Flag to indicate if the engine is at the initialization
+ * or already processing packets. 2 stages: SURICATA_INIT,
+ * SURICATA_RUNTIME and SURICATA_FINALIZE
+ */
+SC_ATOMIC_DECLARE(unsigned int, engine_stage);
 
 /* Max packets processed simultaniously. */
 #define DEFAULT_MAX_PENDING_PACKETS 50
@@ -371,6 +380,8 @@ int main(int argc, char **argv)
     struct stat buf;
 
     sc_set_caps = FALSE;
+
+    SC_ATOMIC_INIT(engine_stage);
 
     /* initialize the logging subsys */
     SCLogInitLogModule(NULL);
@@ -1108,6 +1119,8 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    SC_ATOMIC_CAS(&engine_stage, SURICATA_INIT, SURICATA_RUNTIME);
+
     /* Un-pause all the paused threads */
     TmThreadContinueThreads();
 
@@ -1165,6 +1178,9 @@ int main(int argc, char **argv)
 
         usleep(100);
     }
+
+    /* Update the engine stage/status flag */
+    SC_ATOMIC_CAS(&engine_stage, SURICATA_RUNTIME, SURICATA_DEINIT);
 
 
     FlowShutdown();
@@ -1235,5 +1251,7 @@ int main(int argc, char **argv)
 		return 0;
 	}
 #endif /* OS_WIN32 */
+
+    SC_ATOMIC_DESTROY(engine_stage);
     exit(EXIT_SUCCESS);
 }

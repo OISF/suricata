@@ -44,15 +44,24 @@
 #include "tmqh-packetpool.h"
 
 #include "util-ringbuffer.h"
+#include "util-debug.h"
+#include "util-error.h"
 
 static RingBuffer16 *ringbuffer = NULL;
-
+/**
+ * \brief TmqhPacketpoolRegister
+ * \initonly
+ */
 void TmqhPacketpoolRegister (void) {
     tmqh_table[TMQH_PACKETPOOL].name = "packetpool";
     tmqh_table[TMQH_PACKETPOOL].InHandler = TmqhInputPacketpool;
     tmqh_table[TMQH_PACKETPOOL].OutHandler = TmqhOutputPacketpool;
 
     ringbuffer = RingBufferInit();
+    if (ringbuffer == NULL) {
+        SCLogError(SC_ERR_FATAL, "Error registering Packet pool handler (at ring buffer init)");
+        exit(EXIT_FAILURE);
+    }
 }
 
 int PacketPoolIsEmpty(void) {

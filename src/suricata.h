@@ -51,6 +51,13 @@ enum {
     MODE_DAG,
 };
 
+/* Engine stage/status*/
+enum {
+    SURICATA_INIT = 0,
+    SURICATA_RUNTIME,
+    SURICATA_DEINIT
+};
+
 /* queue's between various other threads
  * XXX move to the TmQueue structure later
  */

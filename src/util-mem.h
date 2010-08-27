@@ -30,6 +30,8 @@
 #ifndef __UTIL_MEM_H__
 #define __UTIL_MEM_H__
 
+extern unsigned int engine_stage_sc_atomic__;
+
 /* Use this only if you want to debug memory allocation and free()
  * It will log a lot of lines more, so think that is a performance killer */
 
@@ -50,6 +52,10 @@
     if (ptrmem == NULL && a > 0) { \
         SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s, while trying " \
             "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)a); \
+        if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
+            SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
+            exit(EXIT_FAILURE); \
+        } \
     } \
     \
     global_mem += a; \
@@ -69,6 +75,10 @@
     if (ptrmem == NULL && a > 0) { \
         SCLogError(SC_ERR_MEM_ALLOC, "SCRealloc failed: %s, while trying " \
             "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)a); \
+        if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
+            SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
+            exit(EXIT_FAILURE); \
+        } \
     } \
     \
     global_mem += a; \
@@ -88,6 +98,10 @@
     if (ptrmem == NULL && a > 0) { \
         SCLogError(SC_ERR_MEM_ALLOC, "SCCalloc failed: %s, while trying " \
             "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)a); \
+        if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
+            SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
+            exit(EXIT_FAILURE); \
+        } \
     } \
     \
     global_mem += a*nm; \
@@ -108,6 +122,10 @@
     if (ptrmem == NULL && len > 0) { \
         SCLogError(SC_ERR_MEM_ALLOC, "SCStrdup failed: %s, while trying " \
             "to allocate %"PRIu64" bytes", strerror(errno), (intmax_t)len); \
+        if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
+            SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
+            exit(EXIT_FAILURE); \
+        } \
     } \
     \
     global_mem += len; \
@@ -126,50 +144,79 @@
 })
 
 #else /* DBG_MEM_ALLOC */
-
 #if 0
+/* without any checks */
+#define SCMalloc malloc
+#define SCRealloc realloc
+#define SCCalloc calloc
+#define SCStrdup strdup
+#define SCFree(a) free((a))
+#endif
+
 #define SCMalloc(a) ({ \
-    void *ptrmem = malloc(a); \
-    if (ptrmem == NULL) { \
+    void *ptrmem = NULL; \
+    \
+    ptrmem = malloc(a); \
+    if (ptrmem == NULL && a > 0) { \
         SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s, while trying " \
             "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)a); \
+        if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
+            SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
+            exit(EXIT_FAILURE); \
+        } \
     } \
     (void*)ptrmem; \
 })
 
 #define SCRealloc(x, a) ({ \
-    void *ptrmem = realloc(x, a); \
-    if (ptrmem == NULL) { \
+    void *ptrmem = NULL; \
+    \
+    ptrmem = realloc(x, a); \
+    if (ptrmem == NULL && a > 0) { \
         SCLogError(SC_ERR_MEM_ALLOC, "SCRealloc failed: %s, while trying " \
             "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)a); \
+        if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
+            SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
+            exit(EXIT_FAILURE); \
+        } \
     } \
     (void*)ptrmem; \
 })
 
 #define SCCalloc(nm, a) ({ \
-    void *ptrmem = calloc(nm, a); \
-    if (ptrmem == NULL) { \
+    void *ptrmem = NULL; \
+    \
+    ptrmem = calloc(nm, a); \
+    if (ptrmem == NULL && a > 0) { \
         SCLogError(SC_ERR_MEM_ALLOC, "SCCalloc failed: %s, while trying " \
             "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)a); \
+        if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
+            SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
+            exit(EXIT_FAILURE); \
+        } \
     } \
     (void*)ptrmem; \
 })
 
 #define SCStrdup(a) ({ \
-    char *ptrmem = strdup(a); \
-    if (ptrmem == NULL) { \
+    char *ptrmem = NULL; \
+    size_t len = strlen(a); \
+    \
+    ptrmem = strdup(a); \
+    if (ptrmem == NULL && len > 0) { \
         SCLogError(SC_ERR_MEM_ALLOC, "SCStrdup failed: %s, while trying " \
-            "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)strlen(a)); \
+            "to allocate %"PRIu64" bytes", strerror(errno), (intmax_t)len); \
+        if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
+            SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
+            exit(EXIT_FAILURE); \
+        } \
     } \
     (void*)ptrmem; \
 })
-#endif
-#define SCMalloc malloc
-#define SCRealloc realloc
-#define SCCalloc calloc
-#define SCStrdup strdup
 
-#define SCFree(a) free((a))
+#define SCFree(a) ({ \
+    free(a); \
+})
 
 #endif /* DBG_MEM_ALLOC */
 

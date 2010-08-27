@@ -123,6 +123,11 @@ void B2gPrintInfo(MpmCtx *mpm_ctx) {
     printf("\n");
 }
 
+/**
+ * \brief B2gAllocPattern allocates a new pattern structure
+ *        and initialize the data
+ * \initonly
+ */
 static inline B2gPattern *B2gAllocPattern(MpmCtx *mpm_ctx) {
     B2gPattern *p = SCMalloc(sizeof(B2gPattern));
     if (p == NULL)
@@ -275,6 +280,8 @@ void B2gFreePattern(MpmCtx *mpm_ctx, B2gPattern *p) {
  *  \param pid pattern id
  *  \param sid signature id (internal id)
  *  \param flags pattern MPM_PATTERN_* flags
+ *
+ *  \initonly
  */
 static int B2gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t offset, uint16_t depth, uint32_t pid, uint32_t sid, uint8_t flags) {
     B2gCtx *ctx = (B2gCtx *)mpm_ctx->ctx;

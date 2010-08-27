@@ -43,6 +43,10 @@ Packet *TmqhInputRingBufferSrMw(ThreadVars *t);
 void TmqhOutputRingBufferSrMw(ThreadVars *t, Packet *p);
 void TmqhInputRingBufferShutdownHandler(ThreadVars *);
 
+/**
+ * \brief TmqhRingBufferRegister
+ * \initonly
+ */
 void TmqhRingBufferRegister (void) {
     tmqh_table[TMQH_RINGBUFFER_MRSW].name = "ringbuffer_mrsw";
     tmqh_table[TMQH_RINGBUFFER_MRSW].InHandler = TmqhInputRingBufferMrSw;
@@ -64,6 +68,10 @@ void TmqhRingBufferRegister (void) {
     int i = 0;
     for (i = 0; i < 256; i++) {
         ringbuffers[i] = RingBuffer8Init();
+        if (ringbuffers[i] == NULL) {
+            SCLogError(SC_ERR_FATAL, "Error allocating memory to register Ringbuffers. Exiting...");
+            exit(EXIT_FAILURE);
+        }
     }
 }
 

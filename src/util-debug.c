@@ -524,6 +524,7 @@ SCLogOPBuffer *SCLogAllocLogOPBuffer(void)
  * \brief Returns a new output_interface_context
  *
  * \retval iface_ctx Pointer to a newly allocated output_interface_context
+ * \initonly
  */
 static inline SCLogOPIfaceCtx *SCLogAllocLogOPIfaceCtx()
 {
@@ -547,6 +548,7 @@ static inline SCLogOPIfaceCtx *SCLogAllocLogOPIfaceCtx()
  * \param log_level  Override of the global_log_level by this interface
  *
  * \retval iface_ctx Pointer to the file output interface context created
+ * \initonly
  */
 static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file,
                                                     const char *log_format,
@@ -607,6 +609,7 @@ error:
  * \param log_level  Override of the global_log_level by this interface
  *
  * \retval iface_ctx Pointer to the console output interface context created
+ * \initonly
  */
 static inline SCLogOPIfaceCtx *SCLogInitConsoleOPIface(const char *log_format,
                                                        SCLogLevel log_level)
@@ -934,13 +937,16 @@ static inline void SCLogSetOPFilter(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
  *        conf file
  *
  * \retval sc_lid Pointer to the newly created SCLogInitData
+ * \initonly
  */
 SCLogInitData *SCLogAllocLogInitData(void)
 {
     SCLogInitData *sc_lid = NULL;
 
-    if ( (sc_lid = malloc(sizeof(SCLogInitData))) == NULL)
-        return NULL;
+    if ( (sc_lid = malloc(sizeof(SCLogInitData))) == NULL) {
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered initializing the logging subsytem. Out of memory. Exiting...");
+        exit(EXIT_FAILURE);
+    }
     memset(sc_lid, 0, sizeof(SCLogInitData));
 
     return sc_lid;
@@ -1073,7 +1079,7 @@ SCLogOPIfaceCtx *SCLogInitOPIfaceCtx(const char *iface_name,
  * \param sc_lid The initialization data for the logging module.  If sc_lid is
  *               NULL, we would stick to the default configuration for the
  *               logging subsystem.
- *
+ * \initonly
  */
 void SCLogInitLogModule(SCLogInitData *sc_lid)
 {

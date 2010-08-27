@@ -42,7 +42,7 @@ BmCtx *BoyerMooreCtxInit(uint8_t *needle, uint32_t needle_len);
 void BoyerMooreCtxToNocase(BmCtx *, uint8_t *, uint32_t);
 void PreBmBc(const uint8_t *x, int32_t m, int32_t *bmBc);
 void BoyerMooreSuffixes(const uint8_t *x, int32_t m, int32_t *suff);
-void PreBmGs(const uint8_t *x, int32_t m, int32_t *bmGs);
+int PreBmGs(const uint8_t *, int32_t, int32_t *);
 uint8_t *BoyerMoore(uint8_t *x, int32_t m, uint8_t *y, int32_t n, int32_t *bmGs, int32_t *bmBc);
 void PreBmBcNocase(const uint8_t *x, int32_t m, int32_t *bmBc);
 void BoyerMooreSuffixesNocase(const uint8_t *x, int32_t m, int32_t *suff);

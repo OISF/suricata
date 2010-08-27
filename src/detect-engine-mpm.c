@@ -1597,6 +1597,7 @@ uint32_t MpmPatternIdStoreGetMaxId(MpmPatternIdStore *ht) {
  *  \param co content pattern data
  *
  *  \retval id pattern id
+ *  \initonly
  */
 uint32_t DetectContentGetId(MpmPatternIdStore *ht, DetectContentData *co) {
     SCEnter();

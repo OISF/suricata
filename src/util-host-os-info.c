@@ -76,8 +76,8 @@ static struct in_addr *SCHInfoValidateIPV4Address(const char *addr_str)
     struct in_addr *addr = NULL;
 
     if ( (addr = SCMalloc(sizeof(struct in_addr))) == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCHInfoValidateIPV4Address. Exiting...");
-        exit(EXIT_FAILURE);
+        SCLogError(SC_ERR_MEM_ALLOC, "Fatal error encountered in SCHInfoValidateIPV4Address. Mem not allocated");
+        return NULL;
     }
 
     if (inet_pton(AF_INET, addr_str, addr) <= 0) {
@@ -124,13 +124,16 @@ static struct in6_addr *SCHInfoValidateIPV6Address(const char *addr_str)
  * \retval user_data On success, pointer to the user_data that has to be sent
  *                   along with the key, to be added to the Radix tree; NULL on
  *                   failure
+ * \initonly
  */
 static void *SCHInfoAllocUserDataOSPolicy(const char *host_os)
 {
     int *user_data = NULL;
 
-    if ( (user_data = SCMalloc(sizeof(int))) == NULL)
-        return NULL;
+    if ( (user_data = SCMalloc(sizeof(int))) == NULL) {
+        SCLogError(SC_ERR_FATAL, "Error allocating memory. Exiting");
+        exit(EXIT_FAILURE);
+    }
 
     /* the host os flavour that has to be sent as user data */
     if ( (*user_data = SCMapEnumNameToValue(host_os, sc_hinfo_os_policy_map)) == -1) {
@@ -199,6 +202,7 @@ static void SCHInfoMaskIPNetblock(uint8_t *stream, int netmask, int bitlen)
  *
  * \retval  0 On successfully adding the host os info to the Radix tree
  * \retval -1 On failure
+ * \initonly (only specified from config, at the startup)
  */
 int SCHInfoAddHostOSInfo(char *host_os, char *host_os_ip_range, int is_ipv4)
 {
@@ -395,6 +399,8 @@ void SCHInfoCleanResources(void)
 
 /**
  * \brief Load the host os policy information from the configuration.
+ *
+ * \initonly (A mem alloc error should cause an exit failure)
  */
 void SCHInfoLoadFromConfig(void)
 {

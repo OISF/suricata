@@ -64,6 +64,10 @@ uint32_t DetectContentMaxId(DetectEngineCtx *de_ctx) {
     return MpmPatternIdStoreGetMaxId(de_ctx->mpm_pattern_id_store);
 }
 
+/**
+ * \brief DetectContentParse
+ * \initonly
+ */
 DetectContentData *DetectContentParse (char *contentstr)
 {
     DetectContentData *cd = NULL;
@@ -74,8 +78,8 @@ DetectContentData *DetectContentParse (char *contentstr)
     uint16_t slen = 0;
 
     if ((temp = SCStrdup(contentstr)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        goto error;
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory. Exiting...");
+        exit(EXIT_FAILURE);
     }
 
     if (strlen(temp) == 0) {
@@ -84,8 +88,11 @@ DetectContentData *DetectContentParse (char *contentstr)
     }
 
     cd = SCMalloc(sizeof(DetectContentData));
-    if (cd == NULL)
-        goto error;
+    if (cd == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory. Exiting...");
+        exit(EXIT_FAILURE);
+    }
+
     memset(cd, 0, sizeof(DetectContentData));
 
     /* skip the first spaces */
@@ -96,19 +103,26 @@ DetectContentData *DetectContentParse (char *contentstr)
 
     if (temp[pos] == '!') {
         SCFree(temp);
-        if ((temp = SCStrdup(contentstr + pos + 1)) == NULL)
-            goto error;
+        if ((temp = SCStrdup(contentstr + pos + 1)) == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "error allocating memory. exiting...");
+            exit(EXIT_FAILURE);
+        }
 
         cd->flags |= DETECT_CONTENT_NEGATED;
     }
 
     if (temp[pos] == '\"' && temp[strlen(temp)-1] == '\"') {
-        if ((str = SCStrdup(temp + pos + 1)) == NULL)
-            goto error;
+        if ((str = SCStrdup(temp + pos + 1)) == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "error allocating memory. exiting...");
+            exit(EXIT_FAILURE);
+        }
+
         str[strlen(temp) - pos - 2] = '\0';
     } else {
-        if ((str = SCStrdup(temp + pos)) == NULL)
-            goto error;
+        if ((str = SCStrdup(temp + pos)) == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "error allocating memory. exiting...");
+            exit(EXIT_FAILURE);
+        }
     }
 
     SCFree(temp);
@@ -216,8 +230,10 @@ DetectContentData *DetectContentParse (char *contentstr)
     }
 
     cd->content = SCMalloc(len);
-    if (cd->content == NULL)
-        goto error;
+    if (cd->content == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "error allocating memory. exiting...");
+        exit(EXIT_FAILURE);
+    }
 
     memcpy(cd->content, str, len);
     cd->content_len = len;

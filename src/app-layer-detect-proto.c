@@ -105,11 +105,13 @@ void AlpProtoInit(AlpProtoDetectCtx *ctx) {
  *  \param ctx the contex
  *  \param co the content match
  *  \param proto the proto id
+ *  \initonly
  */
 static void AlpProtoAddSignature(AlpProtoDetectCtx *ctx, DetectContentData *co, uint16_t ip_proto, uint16_t proto) {
     AlpProtoSignature *s = SCMalloc(sizeof(AlpProtoSignature));
     if (s == NULL) {
-        return;
+        SCLogError(SC_ERR_FATAL, "Error allocating memory. Signature not loaded. Not enough memory so.. exiting..");
+        exit(EXIT_FAILURE);
     }
     memset(s, 0x00, sizeof(AlpProtoSignature));
 

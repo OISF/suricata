@@ -62,6 +62,7 @@ void BoyerMooreCtxToNocase(BmCtx *bm_ctx, uint8_t *needle, uint32_t needle_len) 
  * \param str pointer to the pattern string
  * \param size length of the string
  * \retval BmCtx pointer to the newly created Context for the pattern
+ * \initonly BoyerMoore contexts should be created at init
  */
 BmCtx *BoyerMooreCtxInit(uint8_t *needle, uint32_t needle_len) {
     BmCtx *new = SCMalloc(sizeof(BmCtx));
@@ -80,7 +81,11 @@ BmCtx *BoyerMooreCtxInit(uint8_t *needle, uint32_t needle_len) {
     }
 
     /* Prepare good Suffixes */
-    PreBmGs(needle, needle_len, new->bmGs);
+    if (PreBmGs(needle, needle_len, new->bmGs) == -1) {
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in BooyerMooreCtxInit. Exiting...");
+        exit(EXIT_FAILURE);
+    }
+
 
     return new;
 }
@@ -153,14 +158,15 @@ void BoyerMooreSuffixes(const uint8_t *x, int32_t m, int32_t *suff) {
  * \param x pointer to the pattern string
  * \param m length of the string
  * \param bmGs pointer to an empty array that will hold the prefixes (shifts)
+ * \retval 0 ok, -1 failed
  */
-void PreBmGs(const uint8_t *x, int32_t m, int32_t *bmGs) {
+int PreBmGs(const uint8_t *x, int32_t m, int32_t *bmGs) {
     int32_t i, j;
     int32_t *suff;
 
     suff = SCMalloc(sizeof(int32_t) * (m + 1));
     if (suff == NULL)
-        return;
+        return -1;
 
     BoyerMooreSuffixes(x, m, suff);
 
@@ -178,6 +184,7 @@ void PreBmGs(const uint8_t *x, int32_t m, int32_t *bmGs) {
     for (i = 0; i <= m - 2; ++i)
         bmGs[m - 1 - suff[i]] = m - 1 - i;
     SCFree(suff);
+    return 0;
 }
 
 /**
