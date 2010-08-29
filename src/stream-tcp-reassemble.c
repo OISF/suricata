@@ -1595,7 +1595,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
             /* if app layer protocol has been detected, then restore the reassembled
                seq. to the value till reassembling has been done and unset the queue
                init flag permanently for this tcp session */
-        } else if (stream->tmp_ra_base_seq > stream->ra_base_seq) {
+        } else if (SEQ_GT(stream->tmp_ra_base_seq, stream->ra_base_seq)) {
             stream->ra_base_seq = stream->tmp_ra_base_seq;
             ra_ctx->stream_q->flags &= ~STREAMQUEUE_FLAG_INIT;
             ra_base_seq = stream->ra_base_seq;
@@ -1606,7 +1606,12 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
     /* set the ra_bas_seq to stream->ra_base_seq as now app layer protocol
        has been detected */
     } else {
-        ra_base_seq = stream->ra_base_seq;
+        if (SEQ_GT(stream->tmp_ra_base_seq, stream->ra_base_seq)) {
+            stream->ra_base_seq = stream->tmp_ra_base_seq;
+            ra_base_seq = stream->ra_base_seq;
+        } else {
+            ra_base_seq = stream->ra_base_seq;
+        }
     }
 
     /* check if we have enough data to send to L7 */
@@ -2446,7 +2451,7 @@ void StreamTcpCreateTestPacket(uint8_t *payload, uint8_t value,
  *  \param  stream          Reassembled stream returned from the reassembly functions
  */
 
-static int StreamTcpCheckStreamContents(uint8_t *stream_policy, uint16_t sp_size, TcpStream *stream) {
+int StreamTcpCheckStreamContents(uint8_t *stream_policy, uint16_t sp_size, TcpStream *stream) {
     TcpSegment *temp;
     uint16_t i = 0;
     uint8_t j;
@@ -5902,6 +5907,123 @@ end:
     return ret;
 }
 
+/**
+ *  \test   Test to make sure we detect the sequence wrap around and continue
+ *          stream reassembly properly.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int StreamTcpReassembleTest47 (void) {
+    int ret = 0;
+    Packet p;
+    Flow f;
+    TCPHdr tcph;
+    Port sp;
+    Port dp;
+    Address src;
+    Address dst;
+    struct in_addr in;
+    TcpSession ssn;
+
+    memset(&p, 0, sizeof (Packet));
+    memset(&f, 0, sizeof (Flow));
+    memset(&tcph, 0, sizeof (TCPHdr));
+    memset(&src, 0, sizeof(Address));
+    memset(&dst, 0, sizeof(Address));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    /* prevent L7 from kicking in */
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 0);
+    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 0);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 0);
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 0);
+
+    FLOW_INITIALIZE(&f);
+    StreamTcpInitConfig(TRUE);
+    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
+    AppLayerDetectProtoThreadInit();
+
+    uint8_t httpbuf1[] = "GET /EVILSUFF HTTP/1.1\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+
+    inet_pton(AF_INET, "1.2.3.4", &in);
+    src.family = AF_INET;
+    src.addr_data32[0] = in.s_addr;
+    inet_pton(AF_INET, "1.2.3.5", &in);
+    dst.family = AF_INET;
+    dst.addr_data32[0] = in.s_addr;
+    sp = 200;
+    dp = 220;
+
+    ssn.server.ra_base_seq = 572799781UL;
+    ssn.server.isn = 572799781UL;
+    ssn.server.last_ack = 572799782UL;
+    ssn.client.ra_base_seq = 4294967289UL;
+    ssn.client.isn = 4294967289UL;
+    ssn.client.last_ack = 21;
+    f.alproto = ALPROTO_UNKNOWN;
+
+    f.src = src;
+    f.dst = dst;
+    f.sp = sp;
+    f.dp = dp;
+    f.protoctx = &ssn;
+    p.flow = &f;
+    tcph.th_win = htons(5480);
+    ssn.state = TCP_ESTABLISHED;
+    TcpStream *s = NULL;
+    uint8_t cnt = 0;
+
+    for (cnt=0; cnt < httplen1; cnt++) {
+        tcph.th_seq = htonl(ssn.client.isn + 1 + cnt);
+        tcph.th_ack = htonl(572799782UL);
+        tcph.th_flags = TH_ACK|TH_PUSH;
+        p.tcph = &tcph;
+        p.flowflags = FLOW_PKT_TOSERVER;
+        p.payload = &httpbuf1[cnt];
+        p.payload_len = 1;
+        s = &ssn.client;
+
+        if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+            printf("failed in segments reassembly, while processing toserver "
+                    "packet\n");
+            goto end;
+        }
+
+        p.flowflags = FLOW_PKT_TOCLIENT;
+        p.payload = NULL;
+        p.payload_len = 0;
+        tcph.th_seq = htonl(572799782UL);
+        tcph.th_ack = htonl(ssn.client.isn + 1 + cnt);
+        tcph.th_flags = TH_ACK;
+        p.tcph = &tcph;
+        s = &ssn.server;
+
+        if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+            printf("failed in segments reassembly, while processing toserver "
+                    "packet\n");
+            goto end;
+        }
+
+        /* Process stream smsgs we may have in queue */
+        if (StreamTcpReassembleProcessAppLayer(ra_ctx) < 0) {
+            printf("failed in processing stream smsgs\n");
+            goto end;
+        }
+    }
+
+    if (f.alproto != ALPROTO_HTTP) {
+        printf("App layer protocol (HTTP) should have been detected\n");
+        goto end;
+    }
+
+    ret = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    StreamTcpReassembleFreeThreadCtx(ra_ctx);
+    return ret;
+}
 #endif /* UNITTESTS */
 
 /** \brief  The Function Register the Unit tests to test the reassembly engine
@@ -5956,5 +6078,6 @@ void StreamTcpReassembleRegisterTests(void) {
     UtRegisterTest("StreamTcpReassembleTest44 -- Memcap Test", StreamTcpReassembleTest44, 1);
     UtRegisterTest("StreamTcpReassembleTest45 -- Depth Test", StreamTcpReassembleTest45, 1);
     UtRegisterTest("StreamTcpReassembleTest46 -- Depth Test", StreamTcpReassembleTest46, 1);
+    UtRegisterTest("StreamTcpReassembleTest47 -- TCP Sequence Wraparound Test", StreamTcpReassembleTest47, 1);
 #endif /* UNITTESTS */
 }

@@ -35,6 +35,10 @@
 #include "stream-tcp-reassemble.h"
 
 #define STREAM_VERBOSE    FALSE
+/* Flag to indicate that the checksum validation for the stream engine
+   has been enabled */
+#define STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION    0x01
+
 /*global flow data*/
 typedef struct TcpStreamCnf_ {
     uint32_t memcap; /** max stream mem usage */
@@ -44,6 +48,7 @@ typedef struct TcpStreamCnf_ {
     int async_oneside;
     uint32_t reassembly_memcap; /**< max memory usage for stream reassembly */
     uint32_t reassembly_depth;  /**< Depth until when we reassemble the stream */
+    uint8_t flags;
 } TcpStreamCnf;
 
 TcpStreamCnf stream_config;
