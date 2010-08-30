@@ -30,7 +30,8 @@
 #ifndef __UTIL_MEM_H__
 #define __UTIL_MEM_H__
 
-extern unsigned int engine_stage_sc_atomic__;
+#include "util-atomic.h"
+SC_ATOMIC_EXTERN(unsigned int, engine_stage);
 
 /* Use this only if you want to debug memory allocation and free()
  * It will log a lot of lines more, so think that is a performance killer */

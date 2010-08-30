@@ -54,6 +54,14 @@
     SCSpinlock name ## _sc_lock__
 
 /**
+ *  \brief wrapper to reference an atomic variable already declared on another file (including the spin lock)
+ *
+ */
+#define SC_ATOMIC_EXTERN(type, name) \
+    extern type name ## _sc_atomic__; \
+    extern SCSpinlock name ## _sc_lock__
+
+/**
  *  \brief wrapper to declare an atomic variable including a (spin) lock
  *         to protect it and initialize them.
  */
@@ -198,6 +206,22 @@
  */
 #define SC_ATOMIC_DECLARE(type, name) \
     type name ## _sc_atomic__
+
+/**
+ *  \brief wrapper for referencing an atomic variable declared on another file.
+ *
+ *  \warning Only char, short, int, long, long long and their unsigned
+ *           versions are supported.
+ *
+ *  \param type Type of the variable (char, short, int, long, long long)
+ *  \param name Name of the variable.
+ *
+ *  We just declare the variable here as we rely on atomic operations
+ *  to modify it, so no need for locks.
+ *
+ */
+#define SC_ATOMIC_EXTERN(type, name) \
+    extern type name ## _sc_atomic__
 
 /**
  *  \brief wrapper for declaring an atomic variable and initializing it.
