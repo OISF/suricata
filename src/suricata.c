@@ -168,6 +168,10 @@ uint8_t suricata_ctl_flags = 0;
 /** Run mode selected */
 int run_mode = MODE_UNKNOWN;
 
+/** Engine mode: inline (ENGINE_MODE_IPS) or just
+  * detection mode (ENGINE_MODE_IDS by default) */
+uint8_t engine_mode = ENGINE_MODE_IDS;
+
 /** Maximum packets to simultaneously process. */
 intmax_t max_pending_packets;
 
@@ -385,6 +389,10 @@ int main(int argc, char **argv)
 
     /* initialize the logging subsys */
     SCLogInitLogModule(NULL);
+
+    /* By default use IDS mode, but if nfq or ipfw
+     * are specified, IPS mode will overwrite this */
+    SET_ENGINE_MODE_IDS(engine_mode);
 
 #ifdef OS_WIN32
 	/* service initialization */
@@ -627,6 +635,7 @@ int main(int argc, char **argv)
 #ifdef NFQ
             if (run_mode == MODE_UNKNOWN) {
                 run_mode = MODE_NFQ;
+                SET_ENGINE_MODE_IPS(engine_mode);
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                                                      "has been specified");
@@ -643,6 +652,7 @@ int main(int argc, char **argv)
 #ifdef IPFW
             if (run_mode == MODE_UNKNOWN) {
                 run_mode = MODE_IPFW;
+                SET_ENGINE_MODE_IPS(engine_mode);
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                                                      "has been specified");

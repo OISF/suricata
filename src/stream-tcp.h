@@ -52,9 +52,58 @@ void StreamTcpInitConfig (char);
 void StreamTcpFreeConfig(char);
 void StreamTcpRegisterTests (void);
 
+void StreamTcpSessionPktFree (Packet *);
+
 void StreamTcpIncrMemuse(uint32_t);
 void StreamTcpDecrMemuse(uint32_t);
 int StreamTcpCheckMemcap(uint32_t);
+
+
+/** ------- Inline functions: ------ */
+
+/**
+  * \brief If we are on IPS mode, and got a drop action triggered from
+  * the IP only module, or from a reassembled msg and/or from an
+  * applayer detection, then drop the rest of the packets of the
+  * same stream and avoid inspecting it any further
+  * \param p pointer to the Packet to check
+  * \retval 1 if we must drop this stream
+  * \retval 0 if the stream still legal
+  */
+static inline int StreamTcpCheckFlowDrops(Packet *p) {
+    extern uint8_t engine_mode;
+    /* If we are on IPS mode, and got a drop action triggered from
+     * the IP only module, or from a reassembled msg and/or from an
+     * applayer detection, then drop the rest of the packets of the
+     * same stream and avoid inspecting it any further */
+    if (IS_ENGINE_MODE_IPS(engine_mode) && (p->flow->flags & FLOW_ACTION_DROP))
+        return 1;
+
+    return 0;
+}
+
+/**
+ *  \brief  Function to flip the direction When we missed the SYN packet,
+ *          SYN/ACK is considered as sent by server, but our engine flagged the
+ *          packet as from client for the host whose packet is received first in
+ *          the session.
+ *
+ *  \param  ssn TcpSession to whom this packet belongs
+ *  \param  p   Packet whose flag has to be changed
+ */
+static inline void StreamTcpPacketSwitchDir(TcpSession *ssn, Packet *p)
+{
+    SCLogDebug("ssn %p: switching pkt direction", ssn);
+
+    if (PKT_IS_TOSERVER(p)) {
+        p->flowflags &= ~FLOW_PKT_TOSERVER;
+        p->flowflags |= FLOW_PKT_TOCLIENT;
+    } else {
+        p->flowflags &= ~FLOW_PKT_TOCLIENT;
+        p->flowflags |= FLOW_PKT_TOSERVER;
+    }
+}
+
 
 #endif /* __STREAM_TCP_H__ */
 

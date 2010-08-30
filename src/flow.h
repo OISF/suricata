@@ -254,16 +254,83 @@ int FlowSetProtoFreeFunc (uint8_t , void (*Free)(void *));
 int FlowSetFlowStateFunc (uint8_t , int (*GetProtoState)(void *));
 void FlowUpdateQueue(Flow *);
 
-void FlowLockSetNoPacketInspectionFlag(Flow *);
-void FlowSetNoPacketInspectionFlag(Flow *);
-void FlowLockSetNoPayloadInspectionFlag(Flow *);
-void FlowSetNoPayloadInspectionFlag(Flow *);
-void FlowSetSessionNoApplayerInspectionFlag(Flow *);
+static inline void FlowLockSetNoPacketInspectionFlag(Flow *);
+static inline void FlowSetNoPacketInspectionFlag(Flow *);
+static inline void FlowLockSetNoPayloadInspectionFlag(Flow *);
+static inline void FlowSetNoPayloadInspectionFlag(Flow *);
+static inline void FlowSetSessionNoApplayerInspectionFlag(Flow *);
 
 int FlowGetPacketDirection(Flow *, Packet *);
 
 void FlowL7DataPtrInit(Flow *);
 void FlowL7DataPtrFree(Flow *);
+
+/** ----- Inline functions ----- */
+
+/** \brief Set the No Packet Inspection Flag after locking the flow.
+ *
+ * \param f Flow to set the flag in
+ */
+static inline void FlowLockSetNoPacketInspectionFlag(Flow *f) {
+    SCEnter();
+
+    SCLogDebug("flow %p", f);
+    SCMutexLock(&f->m);
+    f->flags |= FLOW_NOPACKET_INSPECTION;
+    SCMutexUnlock(&f->m);
+
+    SCReturn;
+}
+
+/** \brief Set the No Packet Inspection Flag without locking the flow.
+ *
+ * \param f Flow to set the flag in
+ */
+static inline  void FlowSetNoPacketInspectionFlag(Flow *f) {
+    SCEnter();
+
+    SCLogDebug("flow %p", f);
+    f->flags |= FLOW_NOPACKET_INSPECTION;
+
+    SCReturn;
+}
+
+/** \brief Set the No payload inspection Flag after locking the flow.
+ *
+ * \param f Flow to set the flag in
+ */
+static inline void FlowLockSetNoPayloadInspectionFlag(Flow *f) {
+    SCEnter();
+
+    SCLogDebug("flow %p", f);
+    SCMutexLock(&f->m);
+    f->flags |= FLOW_NOPAYLOAD_INSPECTION;
+    SCMutexUnlock(&f->m);
+
+    SCReturn;
+}
+
+/** \brief Set the No payload inspection Flag without locking the flow.
+ *
+ * \param f Flow to set the flag in
+ */
+static inline void FlowSetNoPayloadInspectionFlag(Flow *f) {
+    SCEnter();
+
+    SCLogDebug("flow %p", f);
+    f->flags |= FLOW_NOPAYLOAD_INSPECTION;
+
+    SCReturn;
+}
+
+/** \brief set flow flag to disable app layer inspection
+ *
+ *  \param f *LOCKED* flow
+ */
+static inline void FlowSetSessionNoApplayerInspectionFlag(Flow *f) {
+    f->alflags |= FLOW_AL_NO_APPLAYER_INSPECTION;
+}
+
 
 #endif /* __FLOW_H__ */
 

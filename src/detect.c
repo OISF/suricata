@@ -51,6 +51,7 @@
 #include "detect-http-method.h"
 
 #include "detect-decode-event.h"
+#include "decode.h"
 
 #include "detect-ipopts.h"
 #include "detect-flags.h"
@@ -146,6 +147,8 @@
 #include "util-privs.h"
 #include "util-profiling.h"
 #include "util-validate.h"
+
+extern uint8_t engine_mode;
 
 SigMatch *SigMatchAlloc(void);
 void DetectExitPrintStats(ThreadVars *tv, void *data);
@@ -691,6 +694,12 @@ end:
  */
 int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p)
 {
+
+
+    /* No need to perform any detection on this packet, if the the given flag is set.*/
+    if (p->flags & PKT_NOPACKET_INSPECTION)
+        return 0;
+
     int match = 0, fmatch = 0;
     Signature *s = NULL;
     SigMatch *sm = NULL;
@@ -703,6 +712,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     char use_flow_sgh = FALSE;
     StreamMsg *smsg = NULL;
     char no_store_flow_sgh = FALSE;
+    uint8_t alert_flags = 0;
 
     SCEnter();
 
@@ -782,7 +792,15 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             /* if it matched a "pass" rule, we have to let it go */
             p->action |= ACTION_PASS;
         }
-        if (p->flow->flags & FLOW_ACTION_DROP) p->action |= ACTION_DROP;
+        /* If we have a drop from IP only module,
+         * we will drop the rest of the flow packets
+         * This will apply only to inline/IPS */
+        if (p->flow != NULL &&
+            (p->flow->flags & FLOW_ACTION_DROP))
+        {
+            alert_flags = PACKET_ALERT_FLAG_DROP_FLOW;
+            p->action |= ACTION_DROP;
+        }
     } else {
         /* Even without flow we should match the packet src/dst */
         IPOnlyMatchPacket(de_ctx, det_ctx, &de_ctx->io_ctx, &det_ctx->io_ctx, p);
@@ -942,6 +960,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                         if (DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, p->flow, smsg_inspect->data.data, smsg_inspect->data.data_len) == 1) {
                             SCLogDebug("match in smsg %p", smsg);
                             pmatch = 1;
+                            /* Tell the enigne that this reassembled stream can drop the
+                             * rest of the pkts with no further inspection */
+                            if (s->action == ACTION_DROP)
+                                alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
                             break;
                         }
                     }
@@ -972,8 +994,12 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             if (det_ctx->de_state_sig_array[s->num] == DE_STATE_MATCH_NOSTATE) {
                 SCLogDebug("stateful app layer match inspection starting");
                 if (DeStateDetectStartDetection(th_v, de_ctx, det_ctx, s,
-                            p->flow, flags, alstate, alproto) != 1)
+                            p->flow, flags, alstate, alproto) != 1) {
                     goto next;
+                } else {
+                    if (s->action == ACTION_DROP)
+                        alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
+                }
             } else {
                 SCLogDebug("already having a destate");
 
@@ -981,6 +1007,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                         s->id, (uintmax_t)s->num, DeStateMatchResultToString(det_ctx->de_state_sig_array[s->num]));
                 if (det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NEW) {
                     goto next;
+                } else {
+                    if (s->action == ACTION_DROP)
+                        alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
                 }
             }
         }
@@ -992,7 +1021,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
             fmatch = 1;
             if (!(s->flags & SIG_FLAG_NOALERT)) {
-                PacketAlertAppend(det_ctx, s, p);
+                PacketAlertAppend(det_ctx, s, p, alert_flags);
             }
         } else {
             if (s->flags & SIG_FLAG_RECURSIVE) {
@@ -1012,7 +1041,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                                 if (!(s->flags & SIG_FLAG_NOALERT)) {
                                     /* only add once */
                                     if (rmatch == 0) {
-                                        PacketAlertAppend(det_ctx, s, p);
+                                        PacketAlertAppend(det_ctx, s, p, alert_flags);
                                     }
                                 }
                                 rmatch = fmatch = 1;
@@ -1045,7 +1074,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                         if (sm == NULL) {
                             fmatch = 1;
                             if (!(s->flags & SIG_FLAG_NOALERT)) {
-                                PacketAlertAppend(det_ctx, s, p);
+                                PacketAlertAppend(det_ctx, s, p, alert_flags);
                             }
                         }
                     } else {
@@ -8828,6 +8857,525 @@ end:
     return result;
 }
 
+/** \test test if the engine set flag to drop pkts of a flow that
+ *        triggered a drop action on IPS mode */
+static int SigTestDropFlow01(void)
+{
+    int result = 0;
+    Flow f;
+    HtpState *http_state = NULL;
+    uint8_t http_buf1[] = "POST /one HTTP/1.0\r\n"
+        "User-Agent: Mozilla/1.0\r\n"
+        "Cookie: hellocatch\r\n\r\n";
+    uint32_t http_buf1_len = sizeof(http_buf1) - 1;
+    TcpSession ssn;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->mpm_matcher = MPM_B2G;
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx, "drop http any any -> any any "
+                                   "(msg:\"Test proto match\"; "
+                                   "sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+    if (!PacketAlertCheck(p, 1)) {
+        printf("sig 1 didn't alert, but it should: ");
+        goto end;
+    }
+
+    if ( !(p->flow->flags & FLOW_ACTION_DROP)) {
+        printf("sig 1 alerted but flow was not flagged correctly: ");
+        goto end;
+    }
+
+    /* Ok, now we know that the flag is set for proto http */
+
+    result = 1;
+
+end:
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
+/** \test test if the engine set flag to drop pkts of a flow that
+ *        triggered a drop action on IPS mode */
+static int SigTestDropFlow02(void)
+{
+    int result = 0;
+    Flow f;
+    HtpState *http_state = NULL;
+    uint8_t http_buf1[] = "POST /one HTTP/1.0\r\n"
+        "User-Agent: Mozilla/1.0\r\n"
+        "Cookie: hellocatch\r\n\r\n";
+    uint32_t http_buf1_len = sizeof(http_buf1) - 1;
+    TcpSession ssn;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->mpm_matcher = MPM_B2G;
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 "
+                                   "(msg:\"Test proto match\"; uricontent:\"one\";"
+                                   "sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
+
+    if (!PacketAlertCheck(p, 1)) {
+        printf("sig 1 didn't alert, but it should: ");
+        goto end;
+    }
+
+    if ( !(p->flow->flags & FLOW_ACTION_DROP)) {
+        printf("sig 1 alerted but flow was not flagged correctly: ");
+        goto end;
+    }
+
+    /* Ok, now we know that the flag is set for app layer sigs
+     * (ex: inspecting uricontent) */
+
+    result = 1;
+
+end:
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
+/** \test test if the engine set flag to drop pkts of a flow that
+ *        triggered a drop action on IPS mode, and it doesn't inspect
+ *        any other packet of the stream */
+static int SigTestDropFlow03(void)
+{
+    int result = 0;
+    Flow f;
+    HtpState *http_state = NULL;
+    uint8_t http_buf1[] = "POST /one HTTP/1.0\r\n"
+        "User-Agent: Mozilla/1.0\r\n"
+        "Cookie: hellocatch\r\n\r\n";
+    uint32_t http_buf1_len = sizeof(http_buf1) - 1;
+
+    uint8_t http_buf2[] = "POST /two HTTP/1.0\r\n"
+        "User-Agent: Mozilla/1.0\r\n"
+        "Cookie: hellocatch\r\n\r\n";
+    uint32_t http_buf2_len = sizeof(http_buf1) - 1;
+
+    /* Set the engine mode to IPS */
+    SET_ENGINE_MODE_IPS(engine_mode);
+
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->mpm_matcher = MPM_B2G;
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 "
+                                   "(msg:\"Test proto match\"; uricontent:\"one\";"
+                                   "sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    /* the no inspection flag should be set after the first sig gets triggered,
+     * so the second packet should not match the next sig (because of no inspection) */
+    s = de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any 80 "
+                                   "(msg:\"Test proto match\"; uricontent:\"two\";"
+                                   "sid:2;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p1);
+
+    if (!PacketAlertCheck(p1, 1)) {
+        printf("sig 1 didn't alert on p1, but it should: ");
+        goto end;
+    }
+
+    if ( !(p1->flow->flags & FLOW_ACTION_DROP)) {
+        printf("sig 1 alerted but flow was not flagged correctly: ");
+        goto end;
+    }
+
+    /* Second part.. Let's feed with another packet */
+    if (StreamTcpCheckFlowDrops(p2) == 1) {
+        SCLogDebug("This flow/stream triggered a drop rule");
+        FlowSetNoPacketInspectionFlag(p2->flow);
+        DecodeSetNoPacketInspectionFlag(p2);
+        FlowSetSessionNoApplayerInspectionFlag(p2->flow);
+        p2->action |= ACTION_DROP;
+        /* return the segments to the pool */
+        StreamTcpSessionPktFree(p2);
+    }
+
+
+    if ( !(p2->flags & PKT_NOPACKET_INSPECTION)) {
+        printf("The packet was not flagged with no-inspection: ");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    if (r != 0) {
+        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p2);
+
+    if (PacketAlertCheck(p2, 1)) {
+        printf("sig 1 alerted, but it should not since the no pkt inspection should be set: ");
+        goto end;
+    }
+
+    if (PacketAlertCheck(p2, 2)) {
+        printf("sig 2 alerted, but it should not since the no pkt inspection should be set: ");
+        goto end;
+    }
+
+    if ( !(p2->action & ACTION_DROP)) {
+        printf("A \"drop\" action should be set from the flow to the packet: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+
+    /* Restore mode to IDS */
+    SET_ENGINE_MODE_IDS(engine_mode);
+    return result;
+}
+
+/** \test test if the engine set flag to drop pkts of a flow that
+ *        triggered a drop action on IDS mode, but continue the inspection
+ *        as usual (instead of on IPS mode) */
+static int SigTestDropFlow04(void)
+{
+    int result = 0;
+    Flow f;
+    HtpState *http_state = NULL;
+    uint8_t http_buf1[] = "POST /one HTTP/1.0\r\n"
+        "User-Agent: Mozilla/1.0\r\n"
+        "Cookie: hellocatch\r\n\r\n";
+    uint32_t http_buf1_len = sizeof(http_buf1) - 1;
+
+    uint8_t http_buf2[] = "POST /two HTTP/1.0\r\n"
+        "User-Agent: Mozilla/1.0\r\n"
+        "Cookie: hellocatch\r\n\r\n";
+    uint32_t http_buf2_len = sizeof(http_buf1) - 1;
+
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    Signature *s = NULL;
+    ThreadVars tv;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ssn, 0, sizeof(TcpSession));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->mpm_matcher = MPM_B2G;
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any 80 "
+                                   "(msg:\"Test proto match\"; uricontent:\"one\";"
+                                   "sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    /* the no inspection flag should be set after the first sig gets triggered,
+     * so the second packet should not match the next sig (because of no inspection) */
+    s = de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any 80 "
+                                   "(msg:\"Test proto match\"; uricontent:\"two\";"
+                                   "sid:2;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p1);
+
+    if (!PacketAlertCheck(p1, 1)) {
+        printf("sig 1 didn't alert on p1, but it should: ");
+        goto end;
+    }
+
+    if ( !(p1->flow->flags & FLOW_ACTION_DROP)) {
+        printf("sig 1 alerted but flow was not flagged correctly: ");
+        goto end;
+    }
+
+    /* Second part.. Let's feed with another packet */
+    if (StreamTcpCheckFlowDrops(p2) == 1) {
+        FlowSetNoPacketInspectionFlag(p2->flow);
+        DecodeSetNoPacketInspectionFlag(p2);
+        FlowSetSessionNoApplayerInspectionFlag(p2->flow);
+        p2->action |= ACTION_DROP;
+        /* return the segments to the pool */
+        StreamTcpSessionPktFree(p2);
+    }
+
+    if ( (p2->flags & PKT_NOPACKET_INSPECTION)) {
+        printf("The packet was flagged with no-inspection but we are not on IPS mode: ");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    if (r != 0) {
+        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&tv, de_ctx, det_ctx, p2);
+
+    if (PacketAlertCheck(p2, 1)) {
+        printf("sig 1 alerted, but it should not since the no pkt inspection should be set: ");
+        goto end;
+    }
+
+    if (!PacketAlertCheck(p2, 2)) {
+        printf("sig 2 didn't alert, but it should, since we are not on IPS mode: ");
+        goto end;
+    }
+
+    if (p2->action & ACTION_DROP) {
+        printf("A \"drop\" action was set from the flow to the packet, but on IDS mode it whould not (it should be inspected as usual: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&tv, det_ctx);
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void SigRegisterTests(void) {
@@ -9029,6 +9577,11 @@ void SigRegisterTests(void) {
     UtRegisterTest("SigTestDepthOffset01Wm", SigTestDepthOffset01Wm, 1);
 
     UtRegisterTest("SigTestDetectAlertCounter", SigTestDetectAlertCounter, 1);
+
+    UtRegisterTest("SigTestDropFlow01", SigTestDropFlow01, 1);
+    UtRegisterTest("SigTestDropFlow02", SigTestDropFlow02, 1);
+    UtRegisterTest("SigTestDropFlow03", SigTestDropFlow03, 1);
+    UtRegisterTest("SigTestDropFlow04", SigTestDropFlow04, 1);
 
 #endif /* UNITTESTS */
 }

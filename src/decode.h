@@ -209,7 +209,13 @@ typedef struct PacketAlert_ {
     char *msg;
     char *class_msg;
     Reference *references;
+    uint8_t flags;
 } PacketAlert;
+
+/* After processing an alert by the thresholding module, if at
+ * last it gets triggered, we might want to stick the drop action to
+ * the flow on IPS mode */
+#define PACKET_ALERT_FLAG_DROP_FLOW 0x01
 
 #define PACKET_ALERT_MAX 256
 

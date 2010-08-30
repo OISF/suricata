@@ -58,6 +58,18 @@ enum {
     SURICATA_DEINIT
 };
 
+/* Engine is acting as */
+enum {
+    ENGINE_MODE_IDS,
+    ENGINE_MODE_IPS,
+};
+
+/** You can use this macros to set/check if we have real drop capabilities */
+#define SET_ENGINE_MODE_IPS(engine_mode) (engine_mode = ENGINE_MODE_IPS);
+#define SET_ENGINE_MODE_IDS(engine_mode) (engine_mode = ENGINE_MODE_IDS);
+#define IS_ENGINE_MODE_IPS(engine_mode) (engine_mode == ENGINE_MODE_IPS)
+#define IS_ENGINE_MODE_IDS(engine_mode) (engine_mode == ENGINE_MODE_IDS)
+
 /* queue's between various other threads
  * XXX move to the TmQueue structure later
  */

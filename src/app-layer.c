@@ -33,6 +33,8 @@
 
 #include "util-debug.h"
 
+extern uint8_t engine_mode;
+
 /** \brief Get the active app layer proto from the packet
  *  \param p packet pointer
  *  \retval alstate void pointer to the state

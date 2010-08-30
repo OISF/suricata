@@ -98,6 +98,8 @@ static SCMutex ssn_pool_mutex;
 static uint64_t ssn_pool_cnt = 0; /** counts ssns, protected by ssn_pool_mutex */
 #endif
 
+extern uint8_t engine_mode;
+
 static SCSpinlock stream_memuse_spinlock;
 static uint32_t stream_memuse;
 static uint32_t stream_memuse_max;
@@ -231,7 +233,7 @@ void StreamTcpSessionClear(void *ssnptr)
  *
  *  \param p Packet used to identify the stream.
  */
-static void StreamTcpSessionPktFree (Packet *p)
+void StreamTcpSessionPktFree (Packet *p)
 {
     SCEnter();
 
@@ -513,28 +515,6 @@ static void StreamTcpPacketSetState(Packet *p, TcpSession *ssn,
     ssn->state = state;
 
     FlowUpdateQueue(p->flow);
-}
-
-/**
- *  \brief  Function to flip the direction When we missed the SYN packet,
- *          SYN/ACK is considered as sent by server, but our engine flagged the
- *          packet as from client for the host whose packet is received first in
- *          the session.
- *
- *  \param  ssn TcpSession to whom this packet belongs
- *  \param  p   Packet whose flag has to be changed
- */
-static void StreamTcpPacketSwitchDir(TcpSession *ssn, Packet *p)
-{
-    SCLogDebug("ssn %p: switching pkt direction", ssn);
-
-    if (PKT_IS_TOSERVER(p)) {
-        p->flowflags &= ~FLOW_PKT_TOSERVER;
-        p->flowflags |= FLOW_PKT_TOCLIENT;
-    } else {
-        p->flowflags &= ~FLOW_PKT_TOCLIENT;
-        p->flowflags |= FLOW_PKT_TOSERVER;
-    }
 }
 
 /**
@@ -2590,6 +2570,21 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt)
 {
     SCEnter();
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
+
+    /* If we are on IPS mode, and got a drop action triggered from
+     * the IP only module, or from a reassembled msg and/or from an
+     * applayer detection, then drop the rest of the packets of the
+     * same stream and avoid inspecting it any further */
+    if (StreamTcpCheckFlowDrops(p) == 1) {
+        SCLogDebug("This flow/stream triggered a drop rule");
+        FlowSetNoPacketInspectionFlag(p->flow);
+        DecodeSetNoPacketInspectionFlag(p);
+        FlowSetSessionNoApplayerInspectionFlag(p->flow);
+        p->action |= ACTION_DROP;
+        /* return the segments to the pool */
+        StreamTcpSessionPktFree(p);
+        SCReturnInt(0);
+    }
 
     if (ssn == NULL || ssn->state == TCP_NONE) {
         if (StreamTcpPacketStateNone(tv, p, stt, ssn) == -1)

@@ -983,7 +983,10 @@ void IPOnlyMatchPacket(DetectEngineCtx *de_ctx,
                                u * 8 + i, s->id, s->msg);
 
                     if ( !(s->flags & SIG_FLAG_NOALERT)) {
-                        PacketAlertAppend(det_ctx, s, p);
+                        if (s->action & ACTION_DROP)
+                            PacketAlertAppend(det_ctx, s, p, PACKET_ALERT_FLAG_DROP_FLOW);
+                        else
+                            PacketAlertAppend(det_ctx, s, p, 0);
                     }
                 }
             }

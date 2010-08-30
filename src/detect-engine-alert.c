@@ -110,7 +110,7 @@ int PacketAlertRemove(Packet *p, uint16_t pos)
     return match;
 }
 
-int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p)
+int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p, uint8_t flags)
 {
     int i = 0;
 
@@ -138,6 +138,7 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p)
         p->alerts.alerts[p->alerts.cnt].class = s->class;
         p->alerts.alerts[p->alerts.cnt].class_msg = s->class_msg;
         p->alerts.alerts[p->alerts.cnt].references = s->references;
+        p->alerts.alerts[p->alerts.cnt].flags = flags;
     } else {
         /* We need to make room for this s->num
          (a bit ugly with mamcpy but we are planning changes here)*/
@@ -162,6 +163,7 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p)
         p->alerts.alerts[i].class = s->class;
         p->alerts.alerts[i].class_msg = s->class_msg;
         p->alerts.alerts[i].references = s->references;
+        p->alerts.alerts[i].flags = flags;
     }
 
     /* Update the count */
@@ -256,6 +258,14 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                  * so we ignore the rest with less prio */
                 p->alerts.cnt = i;
                 break;
+            } else if ( ((p->alerts.alerts[i].flags & PACKET_ALERT_FLAG_DROP_FLOW) ||
+                         (s->flags & SIG_FLAG_APPLAYER))
+                       && p->flow != NULL)
+            {
+                SCMutexLock(&p->flow->m);
+                /* This will apply only on IPS mode (check StreamTcpPacket) */
+                p->flow->flags |= FLOW_ACTION_DROP;
+                SCMutexUnlock(&p->flow->m);
             }
         }
         /* Because we removed the alert from the array, we should
