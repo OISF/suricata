@@ -190,6 +190,8 @@ DetectSshVersionData *DetectSshVersionParse (char *str)
         if (ssh == NULL)
             goto error;
 
+        memset(ssh, 0x00, sizeof(DetectSshVersionData));
+
         /* If we expect a protocol version 2 or 1.99 (considered 2, we
          * will compare it with both strings) */
         if (strcmp("2_compat", str_ptr) == 0) {
@@ -233,7 +235,8 @@ static int DetectSshVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     SigMatch *sm = NULL;
 
     ssh = DetectSshVersionParse(str);
-    if (ssh == NULL) goto error;
+    if (ssh == NULL)
+        goto error;
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
@@ -255,8 +258,10 @@ static int DetectSshVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     return 0;
 
 error:
-    if (ssh != NULL) DetectSshVersionFree(ssh);
-    if (sm != NULL) SCFree(sm);
+    if (ssh != NULL)
+        DetectSshVersionFree(ssh);
+    if (sm != NULL)
+        SCFree(sm);
     return -1;
 
 }

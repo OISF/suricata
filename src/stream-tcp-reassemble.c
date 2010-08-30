@@ -1527,8 +1527,6 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
         if (!(ssn->flags & STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED)) {
             SCLogDebug("toserver reassembling is not done yet, so "
                     "skipping reassembling at the moment for to_client");
-            printf("toserver reassembling is not done yet, so "
-                    "skipping reassembling at the moment for to_client\n");
             SCReturnInt(0);
         }
     }
