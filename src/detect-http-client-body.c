@@ -102,50 +102,66 @@ int DetectHttpClientBodyMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         goto end;
     }
 
-    if (htp_state->body.nchunks == 0) {
-        SCLogDebug("No http chunks to inspect");
-        goto end;
-    } else {
-        HtpBodyChunk *cur = htp_state->body.first;
-        /* no chunks?!! get out of here */
-        if (cur == NULL) {
+    htp_tx_t *tx = NULL;
+    size_t idx = 0;
+
+    for (idx = 0;//hs->new_in_tx_index;
+         idx < list_size(htp_state->connp->conn->transactions); idx++)
+    {
+        tx = list_get(htp_state->connp->conn->transactions, idx);
+        if (tx == NULL)
+            continue;
+
+        SCHtpTxUserData *htud = (SCHtpTxUserData *) htp_tx_get_user_data(tx);
+        if (htud == NULL)
+            continue;
+
+        HtpBodyChunk *cur = htud->body.first;
+
+        if (htud->body.nchunks == 0) {
             SCLogDebug("No http chunks to inspect");
             goto end;
-        }
-
-        /* this applies only for the client request body like the keyword name says */
-        if (htp_state->body.operation != HTP_BODY_REQUEST) {
-            SCLogDebug("htp chunk not a request chunk");
-            goto end;
-        }
-
-        /* this is not how we do it now.  We can rather hold the PM state from
-         * the previous chunk that was matched, and continue right from where
-         * we left off.  We need to devise a scheme to do that, not just for
-         * this keyword, but other keywords need it as well */
-        uint8_t *chunks_buffer = NULL;
-        uint32_t total_chunks_len = 0;
-        /* club all the chunks into one whole buffer and call the SPM on the buffer */
-        while (cur != NULL) {
-            total_chunks_len += cur->len;
-            if ( (chunks_buffer = SCRealloc(chunks_buffer, total_chunks_len)) == NULL) {
-                return 0;
-            }
-            memcpy(chunks_buffer + total_chunks_len - cur->len, cur->data, cur->len);
-            cur = cur->next;
-        }
-        /* call the case insensitive version if nocase has been specified in the sig */
-        if (hcbd->flags & DETECT_AL_HTTP_CLIENT_BODY_NOCASE) {
-            result = (BoyerMooreNocase(hcbd->content, hcbd->content_len, chunks_buffer,
-                                       total_chunks_len, hcbd->bm_ctx->bmGs,
-                                       hcbd->bm_ctx->bmBc) != NULL);
-        /* call the case sensitive version if nocase has been specified in the sig */
         } else {
-            result = (BoyerMoore(hcbd->content, hcbd->content_len, chunks_buffer,
-                                       total_chunks_len, hcbd->bm_ctx->bmGs,
-                                       hcbd->bm_ctx->bmBc) != NULL);
+            /* no chunks?!! get out of here */
+            if (cur == NULL) {
+                SCLogDebug("No http chunks to inspect");
+                goto end;
+            }
+
+            /* this applies only for the client request body like the keyword name says */
+            if (htud->body.operation != HTP_BODY_REQUEST) {
+                SCLogDebug("htp chunk not a request chunk");
+                goto end;
+            }
+
+            /* this is not how we do it now.  We can rather hold the PM state from
+             * the previous chunk that was matched, and continue right from where
+             * we left off.  We need to devise a scheme to do that, not just for
+             * this keyword, but other keywords need it as well */
+            uint8_t *chunks_buffer = NULL;
+            uint32_t total_chunks_len = 0;
+            /* club all the chunks into one whole buffer and call the SPM on the buffer */
+            while (cur != NULL) {
+                total_chunks_len += cur->len;
+                if ( (chunks_buffer = SCRealloc(chunks_buffer, total_chunks_len)) == NULL) {
+                    return 0;
+                }
+                memcpy(chunks_buffer + total_chunks_len - cur->len, cur->data, cur->len);
+                cur = cur->next;
+            }
+            /* call the case insensitive version if nocase has been specified in the sig */
+            if (hcbd->flags & DETECT_AL_HTTP_CLIENT_BODY_NOCASE) {
+                result = (BoyerMooreNocase(hcbd->content, hcbd->content_len, chunks_buffer,
+                                           total_chunks_len, hcbd->bm_ctx->bmGs,
+                                           hcbd->bm_ctx->bmBc) != NULL);
+            /* call the case sensitive version if nocase has been specified in the sig */
+            } else {
+                result = (BoyerMoore(hcbd->content, hcbd->content_len, chunks_buffer,
+                                           total_chunks_len, hcbd->bm_ctx->bmGs,
+                                           hcbd->bm_ctx->bmBc) != NULL);
+            }
+            SCFree(chunks_buffer);
         }
-        SCFree(chunks_buffer);
     }
 
     SCMutexUnlock(&f->m);
@@ -1320,6 +1336,427 @@ end:
     return result;
 }
 
+/** \test multiple http transactions and body chunks of request handling */
+static int DetectHttpClientBodyTest14(void) {
+    int result = 0;
+    Signature *s = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    ThreadVars th_v;
+    Flow f;
+    TcpSession ssn;
+    Packet *p = NULL;
+    uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n";
+    uint8_t httpbuf2[] = "User-Agent: Mozilla/1.0\r\nContent-Length: 10\r\n";
+    uint8_t httpbuf3[] = "Cookie: dummy\r\n\r\n";
+    uint8_t httpbuf4[] = "Body one!!";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
+    uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
+    uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
+    uint8_t httpbuf5[] = "GET /?var=val HTTP/1.1\r\n";
+    uint8_t httpbuf6[] = "User-Agent: Firefox/1.0\r\n";
+    uint8_t httpbuf7[] = "Cookie: dummy2\r\nContent-Length: 10\r\n\r\nBody two!!";
+    uint32_t httplen5 = sizeof(httpbuf5) - 1; /* minus the \0 */
+    uint32_t httplen6 = sizeof(httpbuf6) - 1; /* minus the \0 */
+    uint32_t httplen7 = sizeof(httpbuf7) - 1; /* minus the \0 */
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"POST\"; http_method; content:\"Mozilla\"; http_header; content:\"dummy\"; http_cookie; content:\"one\"; http_client_body; sid:1; rev:1;)");
+    if (s == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"GET\"; http_method; content:\"Firefox\"; http_header; content:\"dummy2\"; http_cookie; content:\"two\"; http_client_body; sid:2; rev:1;)");
+    if (s == NULL) {
+        printf("sig2 parse failed: ");
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1)) {
+        printf("sig 1 alerted: ");
+        goto end;
+    }
+    p->alerts.cnt = 0;
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
+    if (r != 0) {
+        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1)) {
+        printf("sig 1 alerted (2): ");
+        goto end;
+    }
+    p->alerts.cnt = 0;
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf3, httplen3);
+    if (r != 0) {
+        printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1)) {
+        printf("signature matched, but shouldn't have: ");
+        goto end;
+    }
+    p->alerts.cnt = 0;
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf4, httplen4);
+    if (r != 0) {
+        printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (!(PacketAlertCheck(p, 1))) {
+        printf("sig 1 didn't alert: ");
+        goto end;
+    }
+    p->alerts.cnt = 0;
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf5, httplen5);
+    if (r != 0) {
+        printf("toserver chunk 5 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1)) {
+        printf("sig 1 alerted (5): ");
+        goto end;
+    }
+    p->alerts.cnt = 0;
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf6, httplen6);
+    if (r != 0) {
+        printf("toserver chunk 6 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if ((PacketAlertCheck(p, 1)) || (PacketAlertCheck(p, 2))) {
+        printf("sig 1 alerted (request 2, chunk 6): ");
+        goto end;
+    }
+    p->alerts.cnt = 0;
+
+    SCLogDebug("sending data chunk 7");
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf7, httplen7);
+    if (r != 0) {
+        printf("toserver chunk 7 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (!(PacketAlertCheck(p, 2))) {
+        printf("signature 2 didn't match, but should have: ");
+        goto end;
+    }
+    p->alerts.cnt = 0;
+
+    HtpState *htp_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (htp_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    if (list_size(htp_state->connp->conn->transactions) != 2) {
+        printf("The http app layer doesn't have 2 transactions, but it should: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePacket(p);
+    return result;
+}
+
+/** \test multiple http transactions and body chunks of request handling */
+static int DetectHttpClientBodyTest15(void) {
+    int result = 0;
+    Signature *s = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    ThreadVars th_v;
+    Flow f;
+    TcpSession ssn;
+    Packet *p = NULL;
+    uint8_t httpbuf1[] = "POST / HTTP/1.1\r\n";
+    uint8_t httpbuf2[] = "User-Agent: Mozilla/1.0\r\nContent-Length: 10\r\n";
+    uint8_t httpbuf3[] = "Cookie: dummy\r\n\r\n";
+    uint8_t httpbuf4[] = "Body one!!";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
+    uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
+    uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
+    uint8_t httpbuf5[] = "GET /?var=val HTTP/1.1\r\n";
+    uint8_t httpbuf6[] = "User-Agent: Firefox/1.0\r\n";
+    uint8_t httpbuf7[] = "Cookie: dummy2\r\nContent-Length: 10\r\n\r\nBody two!!";
+    uint32_t httplen5 = sizeof(httpbuf5) - 1; /* minus the \0 */
+    uint32_t httplen6 = sizeof(httpbuf6) - 1; /* minus the \0 */
+    uint32_t httplen7 = sizeof(httpbuf7) - 1; /* minus the \0 */
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.proto = IPPROTO_TCP;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"POST\"; http_method; content:\"Mozilla\"; http_header; content:\"dummy\"; http_cookie; content:\"one\"; http_client_body; sid:1; rev:1;)");
+    if (s == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"GET\"; http_method; content:\"Firefox\"; http_header; content:\"dummy2\"; http_cookie; content:\"two\"; http_client_body; sid:2; rev:1;)");
+    if (s == NULL) {
+        printf("sig2 parse failed: ");
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1)) {
+        printf("sig 1 alerted: ");
+        goto end;
+    }
+    p->alerts.cnt = 0;
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
+    if (r != 0) {
+        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1)) {
+        printf("sig 1 alerted (2): ");
+        goto end;
+    }
+    p->alerts.cnt = 0;
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf3, httplen3);
+    if (r != 0) {
+        printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1)) {
+        printf("signature matched, but shouldn't have: ");
+        goto end;
+    }
+    p->alerts.cnt = 0;
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf4, httplen4);
+    if (r != 0) {
+        printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (!(PacketAlertCheck(p, 1))) {
+        printf("sig 1 didn't alert: ");
+        goto end;
+    }
+    p->alerts.cnt = 0;
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf5, httplen5);
+    if (r != 0) {
+        printf("toserver chunk 5 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1)) {
+        printf("sig 1 alerted (5): ");
+        goto end;
+    }
+    p->alerts.cnt = 0;
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf6, httplen6);
+    if (r != 0) {
+        printf("toserver chunk 6 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if ((PacketAlertCheck(p, 1)) || (PacketAlertCheck(p, 2))) {
+        printf("sig 1 alerted (request 2, chunk 6): ");
+        goto end;
+    }
+    p->alerts.cnt = 0;
+
+    SCLogDebug("sending data chunk 7");
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf7, httplen7);
+    if (r != 0) {
+        printf("toserver chunk 7 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (!(PacketAlertCheck(p, 2))) {
+        printf("signature 2 didn't match, but should have: ");
+        goto end;
+    }
+    p->alerts.cnt = 0;
+
+    HtpState *htp_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (htp_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    /* hardcoded check of the transactions and it's client body chunks */
+    if (list_size(htp_state->connp->conn->transactions) != 2) {
+        printf("The http app layer doesn't have 2 transactions, but it should: ");
+        goto end;
+    }
+
+    htp_tx_t *t1 = list_get(htp_state->connp->conn->transactions, 0);
+    htp_tx_t *t2 = list_get(htp_state->connp->conn->transactions, 1);
+
+    SCHtpTxUserData *htud = (SCHtpTxUserData *) htp_tx_get_user_data(t1);
+
+    HtpBodyChunk *cur = htud->body.first;
+    if (htud->body.nchunks == 0) {
+        SCLogDebug("No body data in t1 (it should be removed only when the tx is destroyed): ");
+        goto end;
+    }
+
+    if (memcmp(cur->data, "Body one!!", strlen("Body one!!")) != 0) {
+        SCLogDebug("Body data in t1 is not correctly set: ");
+        goto end;
+    }
+
+    htud = (SCHtpTxUserData *) htp_tx_get_user_data(t2);
+
+    cur = htud->body.first;
+    if (htud->body.nchunks == 0) {
+        SCLogDebug("No body data in t1 (it should be removed only when the tx is destroyed): ");
+        goto end;
+    }
+
+    if (memcmp(cur->data, "Body two!!", strlen("Body two!!")) != 0) {
+        SCLogDebug("Body data in t1 is not correctly set: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    }
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePacket(p);
+    return result;
+}
+
+
 #endif /* UNITTESTS */
 
 void DetectHttpClientBodyRegisterTests(void)
@@ -1338,6 +1775,8 @@ void DetectHttpClientBodyRegisterTests(void)
     UtRegisterTest("DetectHttpClientBodyTest11", DetectHttpClientBodyTest11, 1);
     UtRegisterTest("DetectHttpClientBodyTest12", DetectHttpClientBodyTest12, 1);
     UtRegisterTest("DetectHttpClientBodyTest13", DetectHttpClientBodyTest13, 1);
+    UtRegisterTest("DetectHttpClientBodyTest14", DetectHttpClientBodyTest14, 1);
+    UtRegisterTest("DetectHttpClientBodyTest15", DetectHttpClientBodyTest15, 1);
 #endif /* UNITTESTS */
 
     return;

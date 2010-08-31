@@ -82,11 +82,16 @@ typedef struct HtpBody_ {
                               any pcre (so we can free() without waiting) */
 } HtpBody;
 
+/** Now the Body Chunks will be stored per transaction, at
+  * the tx user data */
+typedef struct SCHtpTxUserData_ {
+    HtpBody body;           /**< Body of the request (if any) */
+} SCHtpTxUserData;
+
 typedef struct HtpState_ {
 
     htp_connp_t *connp;     /**< Connection parser structure for
                                  each connection */
-    HtpBody body;           /**< Body of the request (if any) */
 //    size_t new_in_tx_index; /**< Index to indicate that after this we have
 //                                 new requests to log */
     uint8_t flags;

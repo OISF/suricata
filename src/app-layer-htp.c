@@ -44,11 +44,18 @@
 #include "app-layer-htp.h"
 
 #include "util-spm.h"
-#include "util-unittest.h"
 #include "util-debug.h"
 #include "app-layer-htp.h"
 #include "util-time.h"
 #include <htp/htp.h>
+
+#include "util-unittest.h"
+#include "util-unittest-helper.h"
+#include "flow-util.h"
+
+#include "detect-engine.h"
+#include "detect-engine-state.h"
+#include "detect-parse.h"
 
 #include "conf.h"
 
@@ -146,10 +153,6 @@ static void *HTPStateAlloc(void)
 
     memset(s, 0x00, sizeof(HtpState));
 
-    s->body.nchunks = 0;
-    s->body.operation = HTP_BODY_NONE;
-    s->body.pcre_flags = HTP_PCRE_NONE;
-
 #ifdef DEBUG
     SCMutexLock(&htp_state_mem_lock);
     htp_state_memcnt++;
@@ -176,14 +179,30 @@ void HTPStateFree(void *state)
 
     HtpState *s = (HtpState *)state;
 
+    /* Unset the body inspection */
+    s->flags &=~ HTP_FLAG_NEW_BODY_SET;
+
     /* free the connection parser memory used by HTP library */
     if (s != NULL) {
         if (s->connp != NULL) {
+            size_t i;
+            /* free the list of body chunks */
+            if (s->connp->conn != NULL) {
+                for (i = 0; i < list_size(s->connp->conn->transactions); i++) {
+                    htp_tx_t *tx = (htp_tx_t *)list_get(s->connp->conn->transactions, i);
+                    if (tx != NULL) {
+
+                        SCHtpTxUserData *htud = (SCHtpTxUserData *) htp_tx_get_user_data(tx);
+                        if (htud != NULL) {
+                            HtpBodyFree(&htud->body);
+                            SCFree(htud);
+                        }
+                        htp_tx_set_user_data(tx, NULL);
+
+                    }
+                }
+            }
             htp_connp_destroy_all(s->connp);
-        }
-        /* free the list of body chunks */
-        if (s->body.nchunks > 0) {
-            HtpBodyFree(&s->body);
         }
     }
 
@@ -669,27 +688,27 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                "%"PRIu32"", hstate, d, d->data, (uint32_t)d->len);
 
     //PrintRawDataFp(stdout, d->data, d->len);
+    SCHtpTxUserData *htud = (SCHtpTxUserData *) htp_tx_get_user_data(d->tx);
+    if (htud == NULL) {
+        htud = SCMalloc(sizeof(SCHtpTxUserData));
+        if (htud == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            SCReturnInt(HOOK_OK);
+        }
+        memset(htud, 0, sizeof(SCHtpTxUserData));
+        htud->body.operation = HTP_BODY_NONE;
+        htud->body.pcre_flags = HTP_PCRE_NONE;
 
-    /* If it has been inspected by pcre and there's no match,
-     * remove this chunks */
-    if ( !(hstate->body.pcre_flags & HTP_PCRE_HAS_MATCH) &&
-          (hstate->body.pcre_flags & HTP_PCRE_DONE))
-    {
-        HtpBodyFree(&hstate->body);
+        /* Set the user data for handling body chunks on this transaction */
+        htp_tx_set_user_data(d->tx, htud);
     }
 
-    /* If its a new operation, remove the old data */
-    if (hstate->body.operation == HTP_BODY_RESPONSE) {
-        HtpBodyFree(&hstate->body);
-        hstate->body.pcre_flags = HTP_PCRE_NONE;
-    }
-    hstate->body.operation = HTP_BODY_REQUEST;
+    htud->body.operation = HTP_BODY_REQUEST;
 
-
-    HtpBodyAppendChunk(&hstate->body, (uint8_t*)d->data, (uint32_t)d->len);
-    hstate->body.pcre_flags = HTP_PCRE_NONE;
+    HtpBodyAppendChunk(&htud->body, (uint8_t*)d->data, (uint32_t)d->len);
+    htud->body.pcre_flags = HTP_PCRE_NONE;
     if (SCLogDebugEnabled()) {
-        HtpBodyPrint(&hstate->body);
+        HtpBodyPrint(&htud->body);
     }
 
     /* set the new chunk flag */
@@ -766,12 +785,8 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
         SCReturnInt(HOOK_ERROR);
     }
 
-    /* Free data when we have a response */
-    if (hstate->body.nchunks > 0)
-        HtpBodyFree(&hstate->body);
-
-    hstate->body.operation = HTP_BODY_RESPONSE;
-    hstate->body.pcre_flags = HTP_PCRE_NONE;
+    /* Unset the body inspection (if any) */
+    hstate->flags &=~ HTP_FLAG_NEW_BODY_SET;
 
     /* remove obsolete transactions */
     size_t idx;
@@ -779,6 +794,14 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
         htp_tx_t *tx = list_get(hstate->connp->conn->transactions, idx);
         if (tx == NULL)
             continue;
+
+        /* This will remove obsolete body chunks */
+        SCHtpTxUserData *htud = (SCHtpTxUserData *) htp_tx_get_user_data(tx);
+        if (htud != NULL) {
+            HtpBodyFree(&htud->body);
+            htp_tx_set_user_data(tx, NULL);
+            SCFree(htud);
+        }
 
         htp_tx_destroy(tx);
     }
@@ -1807,6 +1830,7 @@ int HTPParserConfigTest03(void)
 {
     int result = 1;
     Flow f;
+    FLOW_INITIALIZE(&f);
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\nPost"
                          " Data is c0oL!";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -1908,8 +1932,10 @@ end:
     StreamTcpFreeConfig(TRUE);
     if (htp_state != NULL)
         HTPStateFree(htp_state);
+    FLOW_DESTROY(&f);
     return result;
 }
+
 #endif /* UNITTESTS */
 
 /**

@@ -52,7 +52,7 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     ptrmem = malloc(a); \
     if (ptrmem == NULL && a > 0) { \
         SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s, while trying " \
-            "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)a); \
+            "to allocate %Zu bytes", strerror(errno), (size_t)a); \
         if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
             SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
             exit(EXIT_FAILURE); \
@@ -62,7 +62,7 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     global_mem += a; \
     if (print_mem_flag == 1) \
         SCLogInfo("SCMalloc return at %p of size %"PRIdMAX, \
-            ptrmem, (intmax_t)a); \
+            ptrmem, (size_t)a); \
     \
     (void*)ptrmem; \
 })
@@ -75,7 +75,7 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     ptrmem = realloc(x, a); \
     if (ptrmem == NULL && a > 0) { \
         SCLogError(SC_ERR_MEM_ALLOC, "SCRealloc failed: %s, while trying " \
-            "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)a); \
+            "to allocate %Zu bytes", strerror(errno), (size_t)a); \
         if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
             SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
             exit(EXIT_FAILURE); \
@@ -85,7 +85,7 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     global_mem += a; \
     if (print_mem_flag == 1) \
         SCLogInfo("SCRealloc return at %p (old:%p) of size %"PRIdMAX, \
-            ptrmem, x, (intmax_t)a); \
+            ptrmem, x, (size_t)a); \
     \
     (void*)ptrmem; \
 })
@@ -98,7 +98,7 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     ptrmem = calloc(nm, a); \
     if (ptrmem == NULL && a > 0) { \
         SCLogError(SC_ERR_MEM_ALLOC, "SCCalloc failed: %s, while trying " \
-            "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)a); \
+            "to allocate %Zu bytes", strerror(errno), (size_t)a); \
         if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
             SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
             exit(EXIT_FAILURE); \
@@ -107,8 +107,8 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     \
     global_mem += a*nm; \
     if (print_mem_flag == 1) \
-        SCLogInfo("SCCalloc return at %p of size %"PRIdMAX" nm %"PRIdMAX, \
-            ptrmem, (intmax_t)a, (intmax_t)nm); \
+        SCLogInfo("SCCalloc return at %p of size %Zu nm %"PRIdMAX, \
+            ptrmem, (size_t)a, (size_t)nm); \
     \
     (void*)ptrmem; \
 })
@@ -117,12 +117,12 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     char *ptrmem = NULL; \
     extern size_t global_mem; \
     extern uint8_t print_mem_flag; \
-    size_t len = strlen(a); \
     \
     ptrmem = strdup(a); \
-    if (ptrmem == NULL && len > 0) { \
+    if (ptrmem == NULL) { \
+        size_t len = strlen(a); \
         SCLogError(SC_ERR_MEM_ALLOC, "SCStrdup failed: %s, while trying " \
-            "to allocate %"PRIu64" bytes", strerror(errno), (intmax_t)len); \
+            "to allocate %"PRIuMAX" bytes", strerror(errno), (size_t)len); \
         if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
             SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
             exit(EXIT_FAILURE); \
@@ -132,7 +132,7 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     global_mem += len; \
     if (print_mem_flag == 1) \
         SCLogInfo("SCStrdup return at %p of size %"PRIdMAX, \
-            ptrmem, (intmax_t)len); \
+            ptrmem, (size_t)len); \
     \
     (void*)ptrmem; \
 })
@@ -160,7 +160,7 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     ptrmem = malloc(a); \
     if (ptrmem == NULL && a > 0) { \
         SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s, while trying " \
-            "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)a); \
+            "to allocate %Zu bytes", strerror(errno), (size_t)a); \
         if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
             SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
             exit(EXIT_FAILURE); \
@@ -175,7 +175,7 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     ptrmem = realloc(x, a); \
     if (ptrmem == NULL && a > 0) { \
         SCLogError(SC_ERR_MEM_ALLOC, "SCRealloc failed: %s, while trying " \
-            "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)a); \
+            "to allocate %Zu bytes", strerror(errno), (size_t)a); \
         if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
             SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
             exit(EXIT_FAILURE); \
@@ -190,7 +190,7 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     ptrmem = calloc(nm, a); \
     if (ptrmem == NULL && a > 0) { \
         SCLogError(SC_ERR_MEM_ALLOC, "SCCalloc failed: %s, while trying " \
-            "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)a); \
+            "to allocate %Zu bytes", strerror(errno), (size_t)a); \
         if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
             SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
             exit(EXIT_FAILURE); \
@@ -201,12 +201,12 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
 
 #define SCStrdup(a) ({ \
     char *ptrmem = NULL; \
-    size_t len = strlen(a); \
     \
     ptrmem = strdup(a); \
-    if (ptrmem == NULL && len > 0) { \
+    if (ptrmem == NULL) { \
+        size_t len = strlen(a); \
         SCLogError(SC_ERR_MEM_ALLOC, "SCStrdup failed: %s, while trying " \
-            "to allocate %"PRIu64" bytes", strerror(errno), (intmax_t)len); \
+            "to allocate %"PRIuMAX" bytes", strerror(errno), (size_t)len); \
         if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
             SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
             exit(EXIT_FAILURE); \
