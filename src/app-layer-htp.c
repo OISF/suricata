@@ -183,27 +183,23 @@ void HTPStateFree(void *state)
     s->flags &=~ HTP_FLAG_NEW_BODY_SET;
 
     /* free the connection parser memory used by HTP library */
-    if (s != NULL) {
-        if (s->connp != NULL) {
-            size_t i;
-            /* free the list of body chunks */
-            if (s->connp->conn != NULL) {
-                for (i = 0; i < list_size(s->connp->conn->transactions); i++) {
-                    htp_tx_t *tx = (htp_tx_t *)list_get(s->connp->conn->transactions, i);
-                    if (tx != NULL) {
-
-                        SCHtpTxUserData *htud = (SCHtpTxUserData *) htp_tx_get_user_data(tx);
-                        if (htud != NULL) {
-                            HtpBodyFree(&htud->body);
-                            SCFree(htud);
-                        }
-                        htp_tx_set_user_data(tx, NULL);
-
+    if (s != NULL && s->connp != NULL) {
+        size_t i;
+        /* free the list of body chunks */
+        if (s->connp->conn != NULL) {
+            for (i = 0; i < list_size(s->connp->conn->transactions); i++) {
+                htp_tx_t *tx = (htp_tx_t *)list_get(s->connp->conn->transactions, i);
+                if (tx != NULL) {
+                    SCHtpTxUserData *htud = (SCHtpTxUserData *) htp_tx_get_user_data(tx);
+                    if (htud != NULL) {
+                        HtpBodyFree(&htud->body);
+                        SCFree(htud);
                     }
+                    htp_tx_set_user_data(tx, NULL);
                 }
             }
-            htp_connp_destroy_all(s->connp);
         }
+        htp_connp_destroy_all(s->connp);
     }
 
     SCFree(s);
@@ -263,6 +259,7 @@ void HTPStateTransactionFree(void *state, uint16_t id) {
 /**
  * \brief Sets a flag that informs the HTP app layer that some module in the
  *        engine needs the http request body data.
+ * \initonly
  */
 void AppLayerHtpEnableRequestBodyCallback(void)
 {
