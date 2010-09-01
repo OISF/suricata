@@ -612,6 +612,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             /* set the sequence numbers and window */
             ssn->client.isn = TCP_GET_SEQ(p);
             ssn->client.ra_base_seq = ssn->client.isn;
+            ssn->client.tmp_ra_base_seq = ssn->client.isn;
             ssn->client.next_seq = ssn->client.isn + 1;
 
             /*Set the stream timestamp value, if packet has timestamp option
@@ -666,12 +667,14 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             /* sequence number & window */
             ssn->server.isn = TCP_GET_SEQ(p);
             ssn->server.ra_base_seq = ssn->server.isn;
+            ssn->server.tmp_ra_base_seq = ssn->server.isn;
             ssn->server.next_seq = ssn->server.isn + 1;
             ssn->server.window = TCP_GET_WINDOW(p);
             SCLogDebug("ssn %p: server window %u", ssn, ssn->server.window);
 
             ssn->client.isn = TCP_GET_ACK(p) - 1;
             ssn->client.ra_base_seq = ssn->client.isn;
+            ssn->client.tmp_ra_base_seq = ssn->client.isn;
             ssn->client.next_seq = ssn->client.isn + 1;
 
             ssn->client.last_ack = TCP_GET_ACK(p);
@@ -746,6 +749,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             /* set the sequence numbers and window */
             ssn->client.isn = TCP_GET_SEQ(p) - 1;
             ssn->client.ra_base_seq = ssn->client.isn;
+            ssn->client.tmp_ra_base_seq = ssn->client.isn;
             ssn->client.next_seq = TCP_GET_SEQ(p) + p->payload_len;
             ssn->client.window = TCP_GET_WINDOW(p);
             ssn->client.last_ack = TCP_GET_SEQ(p);
@@ -755,6 +759,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
 
             ssn->server.isn = TCP_GET_ACK(p) - 1;
             ssn->server.ra_base_seq = ssn->server.isn;
+            ssn->server.tmp_ra_base_seq = ssn->server.isn;
             ssn->server.next_seq = ssn->server.isn + 1;
             ssn->server.last_ack = TCP_GET_ACK(p);
             ssn->server.next_win = ssn->server.last_ack;
@@ -866,6 +871,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
                  */
                 ssn->server.isn = TCP_GET_SEQ(p);
                 ssn->server.ra_base_seq = ssn->server.isn;
+                ssn->server.tmp_ra_base_seq = ssn->server.isn;
                 ssn->server.next_seq = ssn->server.isn + 1;
 
                 /* Set the stream timestamp value, if packet has timestamp
@@ -932,6 +938,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
                 /* sequence number & window */
                 ssn->client.isn = TCP_GET_SEQ(p);
                 ssn->client.ra_base_seq = ssn->client.isn;
+                ssn->client.tmp_ra_base_seq = ssn->client.isn;
                 ssn->client.next_seq = ssn->client.isn + 1;
 
                 ssn->server.window = TCP_GET_WINDOW(p);
@@ -1010,6 +1017,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
             /* sequence number & window */
             ssn->server.isn = TCP_GET_SEQ(p);
             ssn->server.ra_base_seq = ssn->server.isn;
+            ssn->server.tmp_ra_base_seq = ssn->server.isn;
             ssn->server.next_seq = ssn->server.isn + 1;
 
             ssn->client.window = TCP_GET_WINDOW(p);
@@ -1106,6 +1114,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
             /* Set the server side parameters */
             ssn->server.isn = TCP_GET_ACK(p) - 1;
             ssn->server.ra_base_seq = ssn->server.isn;
+            ssn->server.tmp_ra_base_seq = ssn->server.isn;
             ssn->server.next_seq = ssn->server.isn + 1;
             ssn->server.last_ack = ssn->server.next_seq;
             ssn->server.next_win = ssn->server.last_ack;
