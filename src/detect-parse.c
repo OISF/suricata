@@ -2058,29 +2058,31 @@ int SigParseTest09(void) {
     DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:1; rev:4;)");
     DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:2; rev:2;)");
     result &= (de_ctx->sig_list != NULL && de_ctx->sig_list->id == 2 &&
-              de_ctx->sig_list->rev == 2);
+               de_ctx->sig_list->rev == 2);
+    if (result == 0)
+        goto end;
     result &= (de_ctx->sig_list->next != NULL && de_ctx->sig_list->next->id == 1 &&
-              de_ctx->sig_list->next->rev == 6);
+               de_ctx->sig_list->next->rev == 6);
     if (result == 0)
         goto end;
 
     DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:2; rev:1;)");
     result &= (de_ctx->sig_list != NULL && de_ctx->sig_list->id == 2 &&
-              de_ctx->sig_list->rev == 2);
+               de_ctx->sig_list->rev == 2);
     if (result == 0)
         goto end;
     result &= (de_ctx->sig_list->next != NULL && de_ctx->sig_list->next->id == 1 &&
-              de_ctx->sig_list->next->rev == 6);
+               de_ctx->sig_list->next->rev == 6);
     if (result == 0)
         goto end;
 
     DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (msg:\"boo\"; sid:2; rev:4;)");
     result &= (de_ctx->sig_list != NULL && de_ctx->sig_list->id == 2 &&
-              de_ctx->sig_list->rev == 4);
+               de_ctx->sig_list->rev == 4);
     if (result == 0)
         goto end;
     result &= (de_ctx->sig_list->next != NULL && de_ctx->sig_list->next->id == 1 &&
-              de_ctx->sig_list->next->rev == 6);
+               de_ctx->sig_list->next->rev == 6);
     if (result == 0)
         goto end;
 
