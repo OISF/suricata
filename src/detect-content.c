@@ -147,10 +147,12 @@ DetectContentData *DetectContentParse (char *contentstr)
         uint8_t escape = 0;
         uint8_t binstr[3] = "";
         uint8_t binpos = 0;
+        uint16_t bin_count = 0;
 
         for (i = 0, x = 0; i < len; i++) {
             // SCLogDebug("str[%02u]: %c", i, str[i]);
             if (str[i] == '|') {
+                bin_count++;
                 if (bin) {
                     bin = 0;
                 } else {
@@ -203,6 +205,13 @@ DetectContentData *DetectContentParse (char *contentstr)
                 }
             }
         }
+
+        if (bin_count % 2 != 0) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid hex code assembly in "
+                       "content - %s.  Invalidating signature", str);
+            goto error;
+        }
+
 #if 0//def DEBUG
         if (SCLogDebugEnabled()) {
             for (i = 0; i < x; i++) {
@@ -1472,7 +1481,6 @@ int DetectContentParseTest22(void)
     return result;
 }
 
-
 /**
  * \test Parsing test
  */
@@ -1534,6 +1542,325 @@ int DetectContentParseTest24(void)
 
     cd = (DetectContentData *)s->pmatch_tail->ctx;
     result = (strncmp("boo", (char *)cd->content, cd->content_len) == 0);
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Parsing test
+ */
+int DetectContentParseTest25(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(msg:\"test\"; content:|; sid:1;)");
+    if (de_ctx->sig_list != NULL) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Parsing test
+ */
+int DetectContentParseTest26(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(msg:\"test\"; content:|af; sid:1;)");
+    if (de_ctx->sig_list != NULL) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Parsing test
+ */
+int DetectContentParseTest27(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(msg:\"test\"; content:af|; sid:1;)");
+    if (de_ctx->sig_list != NULL) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Parsing test
+ */
+int DetectContentParseTest28(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(msg:\"test\"; content:|af|; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Parsing test
+ */
+int DetectContentParseTest29(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(msg:\"test\"; content:aast|; sid:1;)");
+    if (de_ctx->sig_list != NULL) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Parsing test
+ */
+int DetectContentParseTest30(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(msg:\"test\"; content:aast|af; sid:1;)");
+    if (de_ctx->sig_list != NULL) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Parsing test
+ */
+int DetectContentParseTest31(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(msg:\"test\"; content:aast|af|; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Parsing test
+ */
+int DetectContentParseTest32(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(msg:\"test\"; content:|af|asdf; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Parsing test
+ */
+int DetectContentParseTest33(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(msg:\"test\"; content:|af|af|; sid:1;)");
+    if (de_ctx->sig_list != NULL) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Parsing test
+ */
+int DetectContentParseTest34(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(msg:\"test\"; content:|af|af|af; sid:1;)");
+    if (de_ctx->sig_list != NULL) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Parsing test
+ */
+int DetectContentParseTest35(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert udp any any -> any any "
+                               "(msg:\"test\"; content:|af|af|af|; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
 
  end:
     SigGroupCleanup(de_ctx);
@@ -1995,6 +2322,17 @@ void DetectContentRegisterTests(void)
     UtRegisterTest("DetectContentParseTest22", DetectContentParseTest22, 1);
     UtRegisterTest("DetectContentParseTest23", DetectContentParseTest23, 1);
     UtRegisterTest("DetectContentParseTest24", DetectContentParseTest24, 1);
+    UtRegisterTest("DetectContentParseTest25", DetectContentParseTest25, 1);
+    UtRegisterTest("DetectContentParseTest26", DetectContentParseTest26, 1);
+    UtRegisterTest("DetectContentParseTest27", DetectContentParseTest27, 1);
+    UtRegisterTest("DetectContentParseTest28", DetectContentParseTest28, 1);
+    UtRegisterTest("DetectContentParseTest29", DetectContentParseTest29, 1);
+    UtRegisterTest("DetectContentParseTest30", DetectContentParseTest30, 1);
+    UtRegisterTest("DetectContentParseTest31", DetectContentParseTest31, 1);
+    UtRegisterTest("DetectContentParseTest32", DetectContentParseTest32, 1);
+    UtRegisterTest("DetectContentParseTest33", DetectContentParseTest33, 1);
+    UtRegisterTest("DetectContentParseTest34", DetectContentParseTest34, 1);
+    UtRegisterTest("DetectContentParseTest35", DetectContentParseTest35, 1);
 
     /* The reals */
     UtRegisterTest("DetectContentLongPatternMatchTest01", DetectContentLongPatternMatchTest01, 1);
