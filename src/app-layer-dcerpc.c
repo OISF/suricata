@@ -908,14 +908,35 @@ static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_le
     }
 
     stub_len = (dcerpc->padleft < input_len) ? dcerpc->padleft : input_len;
+    if (stub_len == 0) {
+        SCLogError(SC_ERR_DCERPC, "stub_len is NULL.  We shouldn't be seeing "
+                   "this.  In case you are, there is something gravely wrong "
+                   "with the dcerpc parser");
+        SCReturnInt(0);
+    }
+
     /* To see what is in this stub fragment */
     //hexdump(input, stub_len);
     /* if the frag is the the first frag irrespective of it being a part of
      * a multi frag PDU or not, it indicates the previous PDU's stub would
      * have been buffered and processed and we can use the buffer to hold
-     * frags from a fresh request/response */
-    if (dcerpc->dcerpchdr.pfc_flags & PFC_FIRST_FRAG) {
+     * frags from a fresh request/response.  Also if the state is in the
+     * process of processing a fragmented pdu, we should append to the
+     * existing stub and not reset the stub buffer */
+    if (dcerpc->dcerpchdr.pfc_flags & PFC_FIRST_FRAG &&
+        !dcerpc->pdu_fragged) {
         *stub_data_buffer_len = 0;
+        /* just a hack to get thing working.  We shouldn't be setting
+         * this var here.  The ideal thing would have been to use
+         * an extra state var, to indicate that the stub parser has made a
+         * fresh entry after reseting the buffer, but maintaing an extra var
+         * would be a nuisance, while we can achieve the same thing with
+         * little or no effort, with a simple set here, although semantically
+         * it is a wrong thing to set it here, since we still can't conclude
+         * if a pdu is fragmented or not at this point, if we are parsing a PDU
+         * that has some stub data in the first segment, but it still doesn't
+         * contain the entire PDU */
+        dcerpc->pdu_fragged = 1;
     }
 
     *stub_data_buffer = realloc(*stub_data_buffer, *stub_data_buffer_len + stub_len);
@@ -1073,10 +1094,10 @@ static int DCERPCParseHeader(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                     break;
             case 15:
                 dcerpc->dcerpchdr.call_id |= *(p++);
-                if (dcerpc->dcerpchdr.packed_drep[0] == 0x01) {
-                    SCByteSwap16(dcerpc->dcerpchdr.frag_length);
-                    SCByteSwap16(dcerpc->dcerpchdr.auth_length);
-                    SCByteSwap32(dcerpc->dcerpchdr.call_id);
+                if (dcerpc->dcerpchdr.packed_drep[0] == 0x10) {
+                    dcerpc->dcerpchdr.frag_length = SCByteSwap16(dcerpc->dcerpchdr.frag_length);
+                    dcerpc->dcerpchdr.auth_length = SCByteSwap16(dcerpc->dcerpchdr.auth_length);
+                    dcerpc->dcerpchdr.call_id = SCByteSwap32(dcerpc->dcerpchdr.call_id);
                 }
                 --input_len;
                 break;
@@ -1089,6 +1110,36 @@ static int DCERPCParseHeader(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
     SCReturnInt((p - input));
 }
 
+static inline void DCERPCResetParsingState(DCERPC *dcerpc) {
+    dcerpc->bytesprocessed = 0;
+    dcerpc->pdu_fragged = 0;
+    dcerpc->dcerpcbindbindack.ctxbytesprocessed = 0;
+
+    return;
+}
+
+static inline void DCERPCResetStub(DCERPC *dcerpc) {
+    if (dcerpc->dcerpchdr.type == REQUEST)
+        dcerpc->dcerpcrequest.stub_data_buffer_len = 0;
+    else if (dcerpc->dcerpchdr.type == RESPONSE)
+        dcerpc->dcerpcresponse.stub_data_buffer_len = 0;
+
+    return;
+}
+
+/**
+ * \todo - Currently the parser is very generic.  Modify it to behave
+ *         like the target's parser.
+ *        - Enable receiving contexts that don't always start with a 0 ctx id.
+ *       - Disable reiniting tailq for mid and last bind pdus.
+ *       - Use a PM to search for subsequent 05 00 when we see an inconsistent
+ *         pdu.  This should be done for each platform based on how it handles
+ *         a condition where it has receives a segment with 2 pdus, while the
+ *         first pdu in the segment is corrupt.
+ *       - Need to hold multiple stub buffers, if we receive something like
+ *         request-response-request in the same segment.  The 2nd request
+ *         would reset the stub_buffer from the first PDU.
+ */
 int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
     SCEnter();
 
@@ -1103,7 +1154,10 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
         while (dcerpc->bytesprocessed < DCERPC_HDR_LEN && input_len) {
             hdrretval = DCERPCParseHeader(dcerpc, input + parsed, input_len);
             if (hdrretval == -1) {
-                dcerpc->bytesprocessed = 0;
+                SCLogWarning(SC_ERR_DCERPC, "Error parsing dce header.  Discarding "
+                             "PDU and reseting parsing state to parse next PDU");
+                /* error parsing pdu header.  Let's clear the dce state */
+                DCERPCResetParsingState(dcerpc);
                 SCReturnInt(0);
             } else {
                 parsed += hdrretval;
@@ -1128,6 +1182,32 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
         printf("DCERPC Call Id:\t0x%08x\n", dcerpc->dcerpchdr.call_id);
 #endif
 
+        /* check if we have parsed the entire input passed in the header parser.
+         * If we have, time to leave */
+        if (input_len == 0) {
+            if (dcerpc->bytesprocessed < 10) {
+                /* if the parser is known to be fragmented at this stage itself,
+                 * we reset the stub buffer here itself */
+                if (!dcerpc->pdu_fragged && dcerpc->dcerpchdr.pfc_flags & PFC_FIRST_FRAG) {
+                    DCERPCResetStub(dcerpc);
+                }
+                dcerpc->pdu_fragged = 1;
+            } else {
+                if (dcerpc->bytesprocessed >= dcerpc->dcerpchdr.frag_length) {
+                    SCLogWarning(SC_ERR_DCERPC, "Weird DCE PDU");
+                    DCERPCResetParsingState(dcerpc);
+                } else {
+                    /* if the parser is known to be fragmented at this stage itself,
+                     * we reset the stub buffer here itself */
+                    if (!dcerpc->pdu_fragged && dcerpc->dcerpchdr.pfc_flags & PFC_FIRST_FRAG) {
+                        DCERPCResetStub(dcerpc);
+                    }
+                    dcerpc->pdu_fragged = 1;
+                }
+            }
+            SCReturnInt(parsed);
+        }
+
         switch (dcerpc->dcerpchdr.type) {
             case BIND:
             case ALTER_CONTEXT:
@@ -1139,11 +1219,13 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                         parsed += retval;
                         input_len -= retval;
                     } else if (input_len) {
-                        SCLogDebug("Error Parsing DCERPC %s",
+                        SCLogDebug("Error Parsing DCERPC %s PDU",
                                    (dcerpc->dcerpchdr.type == BIND) ?
                                    "BIND" : "ALTER_CONTEXT");
                         parsed = 0;
                         input_len = 0;
+                        DCERPCResetParsingState(dcerpc);
+                        SCReturnInt(0);
                     }
                 }
                 SCLogDebug("Done with DCERPCParseBIND bytesprocessed %u/%u numctxitems %u",
@@ -1165,15 +1247,18 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                                    dcerpc->dcerpcbindbindack.numctxitems, input_len);
                     } else if (input_len) {
                         //parsed -= input_len;
-                        parsed = 0;
                         SCLogDebug("Error Parsing CTX Item %u\n", parsed);
+                        parsed = 0;
                         input_len = 0;
                         dcerpc->dcerpcbindbindack.numctxitemsleft = 0;
+                        DCERPCResetParsingState(dcerpc);
+                        SCReturnInt(0);
                     }
                 }
                 if (dcerpc->bytesprocessed == dcerpc->dcerpchdr.frag_length) {
-                    dcerpc->bytesprocessed = 0;
-                    dcerpc->dcerpcbindbindack.ctxbytesprocessed = 0;
+                    DCERPCResetParsingState(dcerpc);
+                } else {
+                    dcerpc->pdu_fragged = 1;
                 }
                 break;
 
@@ -1195,6 +1280,8 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                                    "BIND_ACK" : "ALTER_CONTEXT_RESP");
                         parsed = 0;
                         input_len = 0;
+                        DCERPCResetParsingState(dcerpc);
+                        SCReturnInt(0);
                     }
                 }
 
@@ -1212,6 +1299,8 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                         SCLogDebug("Error parsing Secondary Address");
                         parsed = 0;
                         input_len = 0;
+                        DCERPCResetParsingState(dcerpc);
+                        SCReturnInt(0);
                     }
                 }
 
@@ -1237,6 +1326,8 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                         SCLogDebug("Error parsing DCERPC Padding");
                         parsed = 0;
                         input_len = 0;
+                        DCERPCResetParsingState(dcerpc);
+                        SCReturnInt(0);
                     }
                 }
 
@@ -1254,6 +1345,8 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                         SCLogDebug("Error parsing CTX Items");
                         parsed = 0;
                         input_len = 0;
+                        DCERPCResetParsingState(dcerpc);
+                        SCReturnInt(0);
                     }
                 }
 
@@ -1276,15 +1369,15 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                         parsed = 0;
                         input_len = 0;
                         dcerpc->dcerpcbindbindack.numctxitemsleft = 0;
-
+                        DCERPCResetParsingState(dcerpc);
+                        SCReturnInt(0);
                     }
                 }
                 SCLogDebug("BINDACK processed %u/%u input_len left %u",
                            dcerpc->bytesprocessed,
                            dcerpc->dcerpchdr.frag_length, input_len);
                 if (dcerpc->bytesprocessed == dcerpc->dcerpchdr.frag_length) {
-                    dcerpc->bytesprocessed = 0;
-                    dcerpc->dcerpcbindbindack.ctxbytesprocessed = 0;
+                    DCERPCResetParsingState(dcerpc);
 
                     /* response and request done */
                     if (dcerpc->dcerpchdr.type == BIND_ACK) {
@@ -1293,6 +1386,8 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                         SCLogDebug("transaction_id updated to %"PRIu16,
                                    dcerpc->transaction_id);
                     }
+                } else {
+                    dcerpc->pdu_fragged = 1;
                 }
                 break;
 
@@ -1312,6 +1407,8 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                         parsed = 0;
                         dcerpc->padleft = 0;
                         input_len = 0;
+                        DCERPCResetParsingState(dcerpc);
+                        SCReturnInt(0);
                     }
                 }
 
@@ -1326,7 +1423,8 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                         SCLogDebug("Error parsing DCERPC Stub Data");
                         parsed = 0;
                         input_len = 0;
-                        dcerpc->bytesprocessed = 0;
+                        DCERPCResetParsingState(dcerpc);
+                        SCReturnInt(0);
                     }
                 }
 
@@ -1339,7 +1437,13 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                 }
 
                 if (dcerpc->bytesprocessed == dcerpc->dcerpchdr.frag_length) {
-                    dcerpc->bytesprocessed = 0;
+                    DCERPCResetParsingState(dcerpc);
+                } else {
+                    if (!dcerpc->pdu_fragged &&
+                        dcerpc->dcerpchdr.pfc_flags & PFC_FIRST_FRAG) {
+                        DCERPCResetStub(dcerpc);
+                    }
+                    dcerpc->pdu_fragged = 1;
                 }
 
                 /* response and request done */
@@ -1353,8 +1457,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
 
             default:
                 SCLogDebug("DCERPC Type 0x%02x not implemented yet", dcerpc->dcerpchdr.type);
+                /* \todo Need to walk along till we see the next pdu in the segment */
                 dcerpc->bytesprocessed = 0;
-                break;
+                SCReturnInt(0);
         }
     }
 
@@ -3876,6 +3981,385 @@ end:
     return result;
 }
 
+/**
+ * \test DCERPC fragmented bind PDU(one PDU which is frag'ed).
+ */
+int DCERPCParserTest07(void) {
+    int result = 1;
+    Flow f;
+    int r = 0;
+    uint8_t request1[] = {
+        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x2C, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00,
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+        0x09, 0x0A, 0x0B, 0x0C
+    };
+    uint32_t request1_len = sizeof(request1);
+
+    uint8_t request2[] = {
+        0x0D, 0x0E
+    };
+    uint32_t request2_len = sizeof(request2);
+
+    uint8_t request3[] = {
+        0x0F, 0x10, 0x11, 0x12, 0x13, 0x14
+    };
+    uint32_t request3_len = sizeof(request3);
+
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_START,
+                      request1, request1_len);
+    if (r != 0) {
+        printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    DCERPCState *dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    if (dcerpc_state == NULL) {
+        printf("no dcerpc state: ");
+        result = 0;
+        goto end;
+    }
+
+    result &= (dcerpc_state->dcerpc.bytesprocessed == 36);
+    result &= (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer != NULL &&
+               dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len ==  12);
+    result &= (dcerpc_state->dcerpc.pdu_fragged = 1);
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
+                      request2, request2_len);
+    if (r != 0) {
+        printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    result &= (dcerpc_state->dcerpc.bytesprocessed == 38);
+    result &= (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer != NULL &&
+               dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len == 14);
+    result &= (dcerpc_state->dcerpc.pdu_fragged = 1);
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
+                      request3, request3_len);
+    if (r != 0) {
+        printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    result &= (dcerpc_state->dcerpc.bytesprocessed == 0);
+    result &= (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer != NULL &&
+               dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len == 20);
+    result &= (dcerpc_state->dcerpc.pdu_fragged == 0);
+
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
+/**
+ * \test DCERPC fragmented bind PDU(one PDU which is frag'ed).
+ */
+int DCERPCParserTest08(void) {
+    int result = 1;
+    Flow f;
+    int r = 0;
+    uint8_t request[] = {
+        0x05, 0x02, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x2C, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00,
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+        0x09, 0x0A, 0x0B, 0x0C,
+    };
+    uint32_t request_len = sizeof(request);
+
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_START,
+                      request, request_len);
+    if (r != 0) {
+        printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    DCERPCState *dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    if (dcerpc_state == NULL) {
+        printf("no dcerpc state: ");
+        result = 0;
+        goto end;
+    }
+
+    result &= (dcerpc_state->dcerpc.bytesprocessed == 0);
+    result &= (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer == NULL &&
+               dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len == 0);
+    result &= (dcerpc_state->dcerpc.pdu_fragged == 0);
+
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
+/**
+ * \test DCERPC fragmented bind PDU(one PDU which is frag'ed).
+ */
+int DCERPCParserTest09(void) {
+    int result = 1;
+    Flow f;
+    int r = 0;
+    uint8_t request[] = {
+        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x2C, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00,
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+        0x09, 0x0A, 0x0B, 0x0C,
+    };
+    uint32_t request_len = sizeof(request);
+
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_START,
+                      request, request_len);
+    if (r != 0) {
+        printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    DCERPCState *dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    if (dcerpc_state == NULL) {
+        printf("no dcerpc state: ");
+        result = 0;
+        goto end;
+    }
+
+    result &= (dcerpc_state->dcerpc.bytesprocessed == 36);
+    result &= (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer != NULL &&
+               dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len ==  12);
+    result &= (dcerpc_state->dcerpc.pdu_fragged == 1);
+
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
+/**
+ * \test DCERPC fragmented PDU.
+ */
+int DCERPCParserTest10(void) {
+    int result = 1;
+    Flow f;
+    int r = 0;
+
+    uint8_t fault[] = {
+        0x05, 0x00, 0x03, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x0c, 0x00, 0x00, 0x00,
+        0xf7, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    };
+    uint32_t fault_len = sizeof(fault);
+
+    uint8_t request1[] = {
+        0x05, 0x00
+    };
+    uint32_t request1_len = sizeof(request1);
+
+    uint8_t request2[] = {
+        0x00, 0x03, 0x10, 0x00, 0x00, 0x00, 0x24, 0x00,
+        0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x0c, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x01, 0x02,
+        0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
+        0x0B, 0x0C
+    };
+    uint32_t request2_len = sizeof(request2);
+
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER|STREAM_START,
+                      fault, fault_len);
+    if (r != 0) {
+        printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    DCERPCState *dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    if (dcerpc_state == NULL) {
+        printf("no dcerpc state: ");
+        result = 0;
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
+                      request1, request1_len);
+    if (r != 0) {
+        printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    result &= (dcerpc_state->dcerpc.bytesprocessed == 2);
+    result &= (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer == NULL);
+    result &= (dcerpc_state->dcerpc.pdu_fragged == 1);
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
+                      request2, request2_len);
+    if (r != 0) {
+        printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    result &= (dcerpc_state->dcerpc.bytesprocessed == 0);
+    result &= (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer != NULL &&
+               dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len == 12);
+    result &= (dcerpc_state->dcerpc.pdu_fragged == 0);
+
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
+/**
+ * \test DCERPC fragmented PDU.
+ */
+int DCERPCParserTest11(void) {
+    int result = 1;
+    Flow f;
+    int r = 0;
+
+    uint8_t request1[] = {
+        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x24, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x0c, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00,
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+        0x09, 0x0A, 0x0B, 0x0C
+    };
+    uint32_t request1_len = sizeof(request1);
+
+    uint8_t request2[] = {
+        0x05, 0x00
+    };
+    uint32_t request2_len = sizeof(request2);
+
+    uint8_t request3[] = {
+        0x00, 0x03, 0x10, 0x00, 0x00, 0x00, 0x26, 0x00,
+        0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x0c, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x01, 0x02,
+        0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A,
+        0x0B, 0x0C, 0xFF, 0xFF
+    };
+    uint32_t request3_len = sizeof(request3);
+
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
+                      request1, request1_len);
+    if (r != 0) {
+        printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    DCERPCState *dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    if (dcerpc_state == NULL) {
+        printf("no dcerpc state: ");
+        result = 0;
+        goto end;
+    }
+
+    result &= (dcerpc_state->dcerpc.bytesprocessed == 0);
+    result &= (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer != NULL &&
+               dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len ==  12);
+    result &= (dcerpc_state->dcerpc.pdu_fragged == 0);
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
+                      request2, request2_len);
+    if (r != 0) {
+        printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    result &= (dcerpc_state->dcerpc.bytesprocessed == 2);
+    result &= (dcerpc_state->dcerpc.pdu_fragged == 1);
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
+                      request3, request3_len);
+    if (r != 0) {
+        printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    result &= (dcerpc_state->dcerpc.bytesprocessed == 0);
+    result &= (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer != NULL &&
+               dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len ==  14);
+    result &= (dcerpc_state->dcerpc.pdu_fragged == 0);
+
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DCERPCParserRegisterTests(void) {
@@ -3887,6 +4371,11 @@ void DCERPCParserRegisterTests(void) {
     UtRegisterTest("DCERPCParserTest04", DCERPCParserTest04, 1);
     UtRegisterTest("DCERPCParserTest05", DCERPCParserTest05, 1);
     UtRegisterTest("DCERPCParserTest06", DCERPCParserTest06, 1);
+    UtRegisterTest("DCERPCParserTest07", DCERPCParserTest07, 1);
+    UtRegisterTest("DCERPCParserTest08", DCERPCParserTest08, 1);
+    UtRegisterTest("DCERPCParserTest09", DCERPCParserTest09, 1);
+    UtRegisterTest("DCERPCParserTest10", DCERPCParserTest10, 1);
+    UtRegisterTest("DCERPCParserTest11", DCERPCParserTest11, 1);
 #endif /* UNITTESTS */
 
     return;

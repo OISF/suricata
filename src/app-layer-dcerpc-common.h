@@ -183,6 +183,9 @@ typedef struct DCERPC_ {
     uint8_t pad;
     uint16_t padleft;
     uint16_t transaction_id;
+    /* indicates if the dcerpc pdu state is in the middle of processing
+     * a fragmented pdu */
+    uint8_t pdu_fragged;
 } DCERPC;
 
 typedef struct DCERPCUDP_ {
