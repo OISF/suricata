@@ -79,6 +79,10 @@
 #define SCMutexAttr pthread_mutexattr_t
 #define SCMutexDestroy pthread_mutex_destroy
 
+/** Suricata RWLocks */
+#define SCRWLock pthread_rwlock_t
+#define SCRWLockDestroy pthread_rwlock_destroy
+
 /** Get the Current Thread Id */
 #ifdef OS_FREEBSD
 #define SCGetThreadIdLong(...) ({ \
@@ -373,6 +377,146 @@
     ret; \
 })
 #endif
+
+
+/** RWLock Functions */
+#ifdef DBG_THREADS
+/** When dbg threads is defined, if a rwlock fail to lock, it's
+ * initialized, logged, and does a second try; This is to prevent the system to freeze;
+ * If you see a rwlock, spinlock or condiion not initialized, report it please!
+ */
+#define SCRWLockRDLock_dbg(rwl) ({ \
+    printf("%16s(%s:%d): (thread:%"PRIuMAX") locking rwlock %p\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl); \
+    int retl = pthread_rwlock_rdlock(rwl); \
+    printf("%16s(%s:%d): (thread:%"PRIuMAX") locked rwlock %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl, retl); \
+    if (retl != 0) { \
+        switch (retl) { \
+            case EINVAL: \
+            printf("The value specified by attr is invalid\n"); \
+            retl = pthread_rwlock_init(rwl, NULL); \
+            if (retl != 0) \
+                exit(EXIT_FAILURE); \
+            retl = pthread_rwlock_rdlock(rwl); \
+            break; \
+            case EDEADLK: \
+            printf("A deadlock would occur if the thread blocked waiting for rwlock\n"); \
+            break; \
+        } \
+    } \
+    retl; \
+})
+
+#define SCRWLockWRLock_dbg(rwl) ({ \
+    printf("%16s(%s:%d): (thread:%"PRIuMAX") locking rwlock %p\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl); \
+    int retl = pthread_rwlock_wrlock(rwl); \
+    printf("%16s(%s:%d): (thread:%"PRIuMAX") locked rwlock %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl, retl); \
+    if (retl != 0) { \
+        switch (retl) { \
+            case EINVAL: \
+            printf("The value specified by attr is invalid\n"); \
+            retl = pthread_rwlock_init(rwl, NULL); \
+            if (retl != 0) \
+                exit(EXIT_FAILURE); \
+            retl = pthread_rwlock_wrlock(rwl); \
+            break; \
+            case EDEADLK: \
+            printf("A deadlock would occur if the thread blocked waiting for rwlock\n"); \
+            break; \
+        } \
+    } \
+    retl; \
+})
+
+
+#define SCRWLockTryWRLock_dbg(rwl) ({ \
+    printf("%16s(%s:%d): (thread:%"PRIuMAX") trylocking rwlock %p\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl); \
+    int rett = pthread_rwlock_trywrlock(rwl); \
+    printf("%16s(%s:%d): (thread:%"PRIuMAX") trylocked rwlock %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl, rett); \
+    if (rett != 0) { \
+        switch (rett) { \
+            case EINVAL: \
+            printf("%16s(%s:%d): The value specified by attr is invalid\n", __FUNCTION__, __FILE__, __LINE__); \
+            break; \
+            case EBUSY: \
+            printf("RWLock is already locked\n"); \
+            break; \
+        } \
+    } \
+    rett; \
+})
+
+#define SCRWLockTryRDLock_dbg(rwl) ({ \
+    printf("%16s(%s:%d): (thread:%"PRIuMAX") trylocking rwlock %p\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl); \
+    int rett = pthread_rwlock_tryrdlock(rwl); \
+    printf("%16s(%s:%d): (thread:%"PRIuMAX") trylocked rwlock %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl, rett); \
+    if (rett != 0) { \
+        switch (rett) { \
+            case EINVAL: \
+            printf("%16s(%s:%d): The value specified by attr is invalid\n", __FUNCTION__, __FILE__, __LINE__); \
+            break; \
+            case EBUSY: \
+            printf("RWLock is already locked\n"); \
+            break; \
+        } \
+    } \
+    rett; \
+})
+
+#define SCRWLockInit_dbg(rwl, rwlattr) ({ \
+    int ret; \
+    ret = pthread_rwlock_init(rwl, rwlattr); \
+    if (ret != 0) { \
+        switch (ret) { \
+            case EINVAL: \
+            printf("The value specified by attr is invalid\n"); \
+            printf("%16s(%s:%d): (thread:%"PRIuMAX") rwlock %p initialization returned %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl, ret); \
+            break; \
+            case EAGAIN: \
+            printf("The system temporarily lacks the resources to create another rwlock\n"); \
+            printf("%16s(%s:%d): (thread:%"PRIuMAX") rwlock %p initialization returned %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl, ret); \
+            break; \
+            case ENOMEM: \
+            printf("The process cannot allocate enough memory to create another rwlock\n"); \
+            printf("%16s(%s:%d): (thread:%"PRIuMAX") rwlock %p initialization returned %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl, ret); \
+            break; \
+        } \
+    } \
+    ret; \
+})
+
+#define SCRWLockUnlock_dbg(rwl) ({ \
+    printf("%16s(%s:%d): (thread:%"PRIuMAX") unlocking rwlock %p\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl); \
+    int retu = pthread_rwlock_unlock(rwl); \
+    printf("%16s(%s:%d): (thread:%"PRIuMAX") unlocked rwlock %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), rwl, retu); \
+    if (retu != 0) { \
+        switch (retu) { \
+            case EINVAL: \
+            printf("%16s(%s:%d): The value specified by attr is invalid\n", __FUNCTION__, __FILE__, __LINE__); \
+            break; \
+            case EPERM: \
+            printf("The current thread does not hold a lock on rwlock\n"); \
+            break; \
+        } \
+    } \
+    retu; \
+})
+
+#define SCRWLockInit(rwl, rwlattrs) SCRWLockInit_dbg(rwl, rwlattrs)
+#define SCRWLockRDLock(rwl) SCRWLockRDLock_dbg(rwl)
+#define SCRWLockWRLock(rwl) SCRWLockWRLock_dbg(rwl)
+#define SCRWLockTryWRLock(rwl) SCRWLockTryWRLock_dbg(rwl)
+#define SCRWLockTryRDLock(rwl) SCRWLockTryRDLock_dbg(rwl)
+#define SCRWLockUnlock(rwl) SCRWLockUnlock_dbg(rwl)
+#else
+#define SCRWLockInit(rwl, rwlattr ) pthread_rwlock_init(rwl, rwlattr)
+#define SCRWLockWRLock(rwl) pthread_rwlock_wrlock(rwl)
+#define SCRWLockRDLock(rwl) pthread_rwlock_rdlock(rwl)
+#define SCRWLockTryWRLock(rwl) pthread_rwlock_trywrlock(rwl)
+#define SCRWLockTryRDLock(rwl) pthread_rwlock_tryrdlock(rwl)
+#define SCRWLockUnlock(rwl) pthread_rwlock_unlock(rwl)
+#endif
+
+/** End of RWLock functions */
 
 void ThreadMacrosRegisterTests(void);
 

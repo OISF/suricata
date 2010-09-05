@@ -49,7 +49,7 @@ int ThreadMacrosTest01Mutex(void) {
 }
 
 /**
- * \brief Test Spin Macros
+ * \brief Test Spinlock Macros
  *
  * Valgrind's DRD tool (valgrind-3.5.0-Debian) reports:
  *
@@ -59,7 +59,7 @@ int ThreadMacrosTest01Mutex(void) {
  * ==31156==    by 0x532E8A: UtRunTests (util-unittest.c:182)
  * ==31156==    by 0x4065C3: main (suricata.c:789)
  *
- * To me this is a false possitve, as the whole point of "trylock" is to see
+ * To me this is a false positve, as the whole point of "trylock" is to see
  * if a spinlock is actually locked.
  *
  */
@@ -75,6 +75,51 @@ int ThreadMacrosTest02Spinlocks(void) {
     return (r == 0)? 1 : 0;
 }
 
+/**
+ * \brief Test RWLock macros
+ */
+int ThreadMacrosTest03RWLocks(void) {
+    SCRWLock rwl_write;
+    int r = 0;
+    r |= SCRWLockInit(&rwl_write, NULL);
+    r |= SCRWLockWRLock(&rwl_write);
+    r |= (SCRWLockTryWRLock(&rwl_write) == EBUSY)? 0 : 1;
+    r |= SCRWLockUnlock(&rwl_write);
+    r |= SCRWLockDestroy(&rwl_write);
+
+    return (r == 0)? 1 : 0;
+}
+
+/**
+ * \brief Test RWLock macros
+ */
+int ThreadMacrosTest04RWLocks(void) {
+    SCRWLock rwl_read;
+    int r = 0;
+    r |= SCRWLockInit(&rwl_read, NULL);
+    r |= SCRWLockRDLock(&rwl_read);
+    r |= (SCRWLockTryWRLock(&rwl_read) == EBUSY)? 0 : 1;
+    r |= SCRWLockUnlock(&rwl_read);
+    r |= SCRWLockDestroy(&rwl_read);
+
+    return (r == 0)? 1 : 0;
+}
+
+/**
+ * \brief Test RWLock macros
+ */
+int ThreadMacrosTest05RWLocks(void) {
+    SCRWLock rwl_read;
+    int r = 0;
+    r |= SCRWLockInit(&rwl_read, NULL);
+    r |= SCRWLockWRLock(&rwl_read);
+    r |= (SCRWLockTryRDLock(&rwl_read) == EBUSY)? 0 : 1;
+    r |= SCRWLockUnlock(&rwl_read);
+    r |= SCRWLockDestroy(&rwl_read);
+
+    return (r == 0)? 1 : 0;
+}
+
 #endif /* UNIT TESTS */
 
 /**
@@ -84,6 +129,8 @@ void ThreadMacrosRegisterTests(void)
 {
 #ifdef UNITTESTS /* UNIT TESTS */
     UtRegisterTest("ThreadMacrosTest01Mutex", ThreadMacrosTest01Mutex, 1);
-    UtRegisterTest("ThreadMacrossTest02Spinlocks", ThreadMacrosTest02Spinlocks, 1);
+    UtRegisterTest("ThreadMacrosTest02Spinlocks", ThreadMacrosTest02Spinlocks, 1);
+    UtRegisterTest("ThreadMacrosTest03RWLocks", ThreadMacrosTest03RWLocks, 1);
+    UtRegisterTest("ThreadMacrosTest04RWLocks", ThreadMacrosTest04RWLocks, 1);
 #endif /* UNIT TESTS */
 }
