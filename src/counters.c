@@ -42,6 +42,7 @@
 #define SC_PERF_PCRE_TIMEBASED_INTERVAL "^(?:(\\d+)([shm]))(?:(\\d+)([shm]))?(?:(\\d+)([shm]))?$"
 
 static SCPerfOPIfaceContext *sc_perf_op_ctx = NULL;
+static time_t sc_start_time;
 
 /**
  * \brief Adds a value of type uint64_t to the local counter.
@@ -293,6 +294,9 @@ static char *SCPerfGetLogFilename(void)
 static void SCPerfInitOPCtx(void)
 {
     SCEnter();
+
+    /* Store the engine start time */
+    time(&sc_start_time);
 
     if ( (sc_perf_op_ctx = SCMalloc(sizeof(SCPerfOPIfaceContext))) == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCPerfInitOPCtx. Exiting...");
@@ -945,9 +949,19 @@ static int SCPerfOutputCounterFileIface()
     struct tm local_tm;
     tms = (struct tm *)localtime_r(&tval.tv_sec, &local_tm);
 
+    /* Calculate the Engine uptime */
+    int up_time = (int)difftime(tval.tv_sec, sc_start_time);
+    int sec = up_time % 60;     // Seconds in a minute
+    int in_min = up_time / 60;
+    int min = in_min % 60;      // Minutes in a hour
+    int in_hours = in_min / 60;
+    int hours = in_hours % 24;  // Hours in a day
+    int days = in_hours / 24;
+
     fprintf(sc_perf_op_ctx->fp, "----------------------------------------------"
             "---------------------\n");
-    fprintf(sc_perf_op_ctx->fp, "%" PRId32 "/%" PRId32 "/%04d -- %02d:%02d:%02d\n",
+    fprintf(sc_perf_op_ctx->fp, "Uptime: %"PRId32"d, %02dh %02dm %02ds\n", days, hours, min, sec);
+    fprintf(sc_perf_op_ctx->fp, "Date: %" PRId32 "/%" PRId32 "/%04d -- %02d:%02d:%02d\n",
             tms->tm_mday, tms->tm_mon + 1, tms->tm_year + 1900, tms->tm_hour,
             tms->tm_min, tms->tm_sec);
     fprintf(sc_perf_op_ctx->fp, "----------------------------------------------"
