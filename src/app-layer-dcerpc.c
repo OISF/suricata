@@ -787,13 +787,13 @@ static uint32_t DCERPCParseBINDACK(DCERPC *dcerpc, uint8_t *input, uint32_t inpu
             if (!(--input_len))
                 break;
         case 24:
-            dcerpc->dcerpcbindbindack.secondaryaddrlen = *(p++);
+            dcerpc->dcerpcbindbindack.secondaryaddrlen = *(p++) << 8;
             if (!(--input_len))
                 break;
         case 25:
-            dcerpc->dcerpcbindbindack.secondaryaddrlen |= *(p++) << 8;
-            if (dcerpc->dcerpchdr.packed_drep[0] == 0x01) {
-                SCByteSwap16(dcerpc->dcerpcbindbindack.secondaryaddrlen);
+            dcerpc->dcerpcbindbindack.secondaryaddrlen |= *(p++);
+            if (dcerpc->dcerpchdr.packed_drep[0] == 0x10) {
+                dcerpc->dcerpcbindbindack.secondaryaddrlen = SCByteSwap16(dcerpc->dcerpcbindbindack.secondaryaddrlen);
             }
             dcerpc->dcerpcbindbindack.secondaryaddrlenleft = dcerpc->dcerpcbindbindack.secondaryaddrlen;
             SCLogDebug("secondaryaddrlen %u 0x%04x\n", dcerpc->dcerpcbindbindack.secondaryaddrlen,
@@ -4360,6 +4360,78 @@ end:
     return result;
 }
 
+/**
+ * \test DCERPC fragmented PDU.
+ */
+int DCERPCParserTest12(void) {
+    int result = 1;
+    Flow f;
+    int r = 0;
+
+    uint8_t bind_ack1[] = {
+        0x05, 0x00, 0x0c, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x44, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0xb8, 0x10, 0xb8, 0x10, 0x48, 0x1a, 0x00, 0x00,
+    };
+    uint32_t bind_ack1_len = sizeof(bind_ack1);
+
+    uint8_t bind_ack2[] = {
+        0x0c, 0x00, 0x5c, 0x50, 0x49, 0x50, 0x45, 0x5c,
+        0x6c, 0x73, 0x61, 0x73, 0x73, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x04, 0x5d, 0x88, 0x8a, 0xeb, 0x1c, 0xc9, 0x11,
+        0x9f, 0xe8, 0x08, 0x00, 0x2b, 0x10, 0x48, 0x60,
+        0x02, 0x00, 0x00, 0x00
+    };
+    uint32_t bind_ack2_len = sizeof(bind_ack2);
+
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
+                      bind_ack1, bind_ack1_len);
+    if (r != 0) {
+        printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    DCERPCState *dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    if (dcerpc_state == NULL) {
+        printf("no dcerpc state: ");
+        result = 0;
+        goto end;
+    }
+
+    result &= (dcerpc_state->dcerpc.bytesprocessed == 24);
+    result &= (dcerpc_state->dcerpc.pdu_fragged == 1);
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
+                      bind_ack2, bind_ack2_len);
+    if (r != 0) {
+        printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    result &= (dcerpc_state->dcerpc.bytesprocessed == 0);
+    result &= (dcerpc_state->dcerpc.pdu_fragged == 0);
+
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DCERPCParserRegisterTests(void) {
@@ -4376,6 +4448,7 @@ void DCERPCParserRegisterTests(void) {
     UtRegisterTest("DCERPCParserTest09", DCERPCParserTest09, 1);
     UtRegisterTest("DCERPCParserTest10", DCERPCParserTest10, 1);
     UtRegisterTest("DCERPCParserTest11", DCERPCParserTest11, 1);
+    UtRegisterTest("DCERPCParserTest12", DCERPCParserTest12, 1);
 #endif /* UNITTESTS */
 
     return;
