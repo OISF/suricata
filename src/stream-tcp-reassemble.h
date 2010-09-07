@@ -54,11 +54,13 @@ enum
 typedef struct TcpReassemblyThreadCtx_ {
     StreamMsgQueue *stream_q;
     AlpProtoDetectThreadCtx dp_ctx;   /**< proto detection thread data */
+    /** TCP segments which are not being reassembled due to memcap was reached */
+    uint16_t counter_tcp_segment_memcap;
 } TcpReassemblyThreadCtx;
 
 #define OS_POLICY_DEFAULT   OS_POLICY_BSD
 
-int StreamTcpReassembleHandleSegment(TcpReassemblyThreadCtx *, TcpSession *, TcpStream *, Packet *);
+int StreamTcpReassembleHandleSegment(ThreadVars *, TcpReassemblyThreadCtx *, TcpSession *, TcpStream *, Packet *);
 int StreamTcpReassembleInit(char);
 void StreamTcpReassembleFree(char);
 void StreamTcpReassembleRegisterTests(void);

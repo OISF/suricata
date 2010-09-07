@@ -92,15 +92,15 @@ static uint32_t stream_reassembly_memuse;
 static uint32_t stream_reassembly_memuse_max;
 
 /* prototypes */
-static int HandleSegmentStartsBeforeListSegment(TcpStream *, TcpSegment *,
-                                                TcpSegment *);
-static int HandleSegmentStartsAtSameListSegment(TcpStream *, TcpSegment *,
-                                                TcpSegment *);
-static int HandleSegmentStartsAfterListSegment(TcpStream *, TcpSegment *,
-                                               TcpSegment *);
+static int HandleSegmentStartsBeforeListSegment(ThreadVars *, TcpReassemblyThreadCtx *,
+                                    TcpStream *, TcpSegment *, TcpSegment *);
+static int HandleSegmentStartsAtSameListSegment(ThreadVars *, TcpReassemblyThreadCtx *,
+                                    TcpStream *, TcpSegment *, TcpSegment *);
+static int HandleSegmentStartsAfterListSegment(ThreadVars *, TcpReassemblyThreadCtx *,
+                                    TcpStream *, TcpSegment *, TcpSegment *);
 void StreamTcpSegmentDataReplace(TcpSegment *, TcpSegment *, uint32_t, uint16_t);
 void StreamTcpSegmentDataCopy(TcpSegment *, TcpSegment *);
-TcpSegment* StreamTcpGetSegment(uint16_t);
+TcpSegment* StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *, uint16_t);
 void StreamTcpSegmentReturntoPool(TcpSegment *);
 void StreamTcpCreateTestPacket(uint8_t *, uint8_t, uint8_t, uint8_t);
 
@@ -439,7 +439,8 @@ void PrintList(TcpSegment *seg)
  *  \retval -1      error
  */
 
-static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg, Packet *p)
+static int ReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
+        TcpStream *stream, TcpSegment *seg, Packet *p)
 {
     SCEnter();
 
@@ -503,7 +504,7 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg, Packet *p
                 goto end;
             /* seg overlap with next seg(s) */
             } else {
-                ret_value = HandleSegmentStartsBeforeListSegment(stream, list_seg, seg);
+                ret_value = HandleSegmentStartsBeforeListSegment(tv, ra_ctx, stream, list_seg, seg);
                 if (ret_value == 1) {
                     ret_value = 0;
                     return_seg = TRUE;
@@ -517,7 +518,7 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg, Packet *p
             }
         /* seg starts at same sequence number as list_seg */
         } else if (SEQ_EQ(seg->seq, list_seg->seq)) {
-            ret_value = HandleSegmentStartsAtSameListSegment(stream, list_seg, seg);
+            ret_value = HandleSegmentStartsAtSameListSegment(tv, ra_ctx, stream, list_seg, seg);
             if (ret_value == 1) {
                 ret_value = 0;
                 return_seg = TRUE;
@@ -546,7 +547,7 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg, Packet *p
                     goto end;
                 }
             } else {
-                ret_value = HandleSegmentStartsAfterListSegment(stream, list_seg, seg);
+                ret_value = HandleSegmentStartsAfterListSegment(tv, ra_ctx, stream, list_seg, seg);
                 if (ret_value == 1) {
                     ret_value = 0;
                     return_seg = TRUE;
@@ -586,9 +587,8 @@ end:
  *  \retval -1          error
  */
 
-static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
-                                                TcpSegment *list_seg,
-                                                TcpSegment *seg)
+static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
+        TcpStream *stream, TcpSegment *list_seg, TcpSegment *seg)
 {
     SCEnter();
 
@@ -669,7 +669,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
                        " %" PRIu32 ", list->payload_len %" PRIu32 "",
                        packet_length, seg->payload_len, list_seg->payload_len);
 
-            TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
+            TcpSegment *new_seg = StreamTcpGetSegment(tv, ra_ctx, packet_length);
             if (new_seg == NULL) {
                 SCLogDebug("segment_pool[%"PRIu16"] is empty", segment_pool_idx[packet_length]);
                 SCReturnInt(-1);
@@ -731,7 +731,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
                            (list_seg->prev->seq + list_seg->prev->payload_len));
                 }
 
-                TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
+                TcpSegment *new_seg = StreamTcpGetSegment(tv, ra_ctx, packet_length);
                 if (new_seg == NULL) {
                     SCLogDebug("segment_pool[%"PRIu16"] is empty", segment_pool_idx[packet_length]);
                     SCReturnInt(-1);
@@ -790,7 +790,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
                     packet_length += (seg->seq + seg->payload_len) -
                                         (list_seg->seq + list_seg->payload_len);
 
-                    TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
+                    TcpSegment *new_seg = StreamTcpGetSegment(tv, ra_ctx, packet_length);
                     if (new_seg == NULL) {
                         SCLogDebug("segment_pool[%"PRIu16"] is empty", segment_pool_idx[packet_length]);
                         SCReturnInt(-1);
@@ -856,7 +856,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
                     packet_length += (seg->seq + seg->payload_len) -
                                         (list_seg->seq + list_seg->payload_len);
 
-                    TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
+                    TcpSegment *new_seg = StreamTcpGetSegment(tv, ra_ctx, packet_length);
                     if (new_seg == NULL) {
                         SCLogDebug("segment_pool[%"PRIu16"] is empty",
                                 segment_pool_idx[packet_length]);
@@ -968,9 +968,8 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
  *  \retval -1          error
  */
 
-static int HandleSegmentStartsAtSameListSegment(TcpStream *stream,
-                                                TcpSegment *list_seg,
-                                                TcpSegment *seg)
+static int HandleSegmentStartsAtSameListSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
+        TcpStream *stream, TcpSegment *list_seg, TcpSegment *seg)
 {
     uint16_t overlap = 0;
     uint16_t packet_length;
@@ -1066,7 +1065,7 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream,
 
                 SCLogDebug("packet_length %"PRIu16"", packet_length);
 
-                TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
+                TcpSegment *new_seg = StreamTcpGetSegment(tv, ra_ctx, packet_length);
                 if (new_seg == NULL) {
                     SCLogDebug("egment_pool[%"PRIu16"] is empty", segment_pool_idx[packet_length]);
                     return -1;
@@ -1153,9 +1152,8 @@ static int HandleSegmentStartsAtSameListSegment(TcpStream *stream,
  *  \retval -1          error
  */
 
-static int HandleSegmentStartsAfterListSegment(TcpStream *stream,
-                                               TcpSegment *list_seg,
-                                               TcpSegment *seg)
+static int HandleSegmentStartsAfterListSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
+        TcpStream *stream, TcpSegment *list_seg, TcpSegment *seg)
 {
     SCEnter();
     uint16_t overlap = 0;
@@ -1249,7 +1247,7 @@ static int HandleSegmentStartsAfterListSegment(TcpStream *stream,
                 }
                 SCLogDebug("packet_length %"PRIu16"", packet_length);
 
-                TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
+                TcpSegment *new_seg = StreamTcpGetSegment(tv, ra_ctx, packet_length);
                 if (new_seg == NULL) {
                     SCLogDebug("segment_pool[%"PRIu16"] is empty", segment_pool_idx[packet_length]);
                     SCReturnInt(-1);
@@ -1339,8 +1337,8 @@ int StreamTcpReassembleCheckDepth(uint32_t size) {
     SCReturnInt(ret);
 }
 
-int StreamTcpReassembleHandleSegmentHandleData(TcpSession *ssn,
-                                               TcpStream *stream, Packet *p)
+int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
+                                TcpSession *ssn, TcpStream *stream, Packet *p)
 {
     SCEnter();
 
@@ -1354,7 +1352,7 @@ int StreamTcpReassembleHandleSegmentHandleData(TcpSession *ssn,
         SCReturnInt(0);
     }
 
-    TcpSegment *seg = StreamTcpGetSegment(p->payload_len);
+    TcpSegment *seg = StreamTcpGetSegment(tv, ra_ctx, p->payload_len);
     if (seg == NULL) {
         SCLogDebug("segment_pool[%"PRIu16"] is empty", segment_pool_idx[p->payload_len]);
         SCReturnInt(-1);
@@ -1367,7 +1365,7 @@ int StreamTcpReassembleHandleSegmentHandleData(TcpSession *ssn,
     seg->prev = NULL;
     stream->reassembly_depth += p->payload_len;
 
-    if (ReassembleInsertSegment(stream, seg, p) != 0) {
+    if (ReassembleInsertSegment(tv, ra_ctx, stream, seg, p) != 0) {
         SCLogDebug("ReassembleInsertSegment failed");
         SCReturnInt(-1);
     }
@@ -2066,7 +2064,7 @@ int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *ra_ctx)
     SCReturnInt(r);
 }
 
-int StreamTcpReassembleHandleSegment(TcpReassemblyThreadCtx *ra_ctx,
+int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                                      TcpSession *ssn, TcpStream *stream,
                                      Packet *p)
 {
@@ -2098,7 +2096,7 @@ int StreamTcpReassembleHandleSegment(TcpReassemblyThreadCtx *ra_ctx,
     {
         SCLogDebug("calling StreamTcpReassembleHandleSegmentHandleData");
 
-        if (StreamTcpReassembleHandleSegmentHandleData(ssn, stream, p) != 0) {
+        if (StreamTcpReassembleHandleSegmentHandleData(tv, ra_ctx, ssn, stream, p) != 0) {
             SCLogDebug("StreamTcpReassembleHandleSegmentHandleData error");
             SCReturnInt(-1);
         }
@@ -2198,7 +2196,7 @@ void StreamTcpSegmentDataCopy(TcpSegment *dst_seg, TcpSegment *src_seg)
  *  \param   len    Length which tells the required size of needed segment.
  */
 
-TcpSegment* StreamTcpGetSegment(uint16_t len)
+TcpSegment* StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, uint16_t len)
 {
     uint16_t idx = segment_pool_idx[len];
     SCLogDebug("segment_pool_idx %" PRIu32 " for payload_len %" PRIu32 "",
@@ -2218,6 +2216,9 @@ TcpSegment* StreamTcpGetSegment(uint16_t len)
         SCLogDebug("segment_pool[%u]->empty_list_size %u, "
                    "alloc %u", idx, segment_pool[idx]->empty_list_size,
                    segment_pool[idx]->allocated);
+        /* Increment the counter to show that we are not able to serve the
+           segment request due to memcap limit */
+        SCPerfCounterIncr(ra_ctx->counter_tcp_segment_memcap, tv->sc_perf_pca);
     } else {
 #ifdef DEBUG
         SCMutexLock(&segment_pool_cnt_mutex);
@@ -2282,6 +2283,8 @@ static int StreamTcpReassembleStreamTest(TcpStream *stream) {
     memset(&p, 0, sizeof (Packet));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
+    ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
     p.src.family = AF_INET;
@@ -2297,126 +2300,126 @@ static int StreamTcpReassembleStreamTest(TcpStream *stream) {
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 3;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x42, 2, 4); /*BB*/
     p.tcph->th_seq = htonl(16);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x43, 3, 4); /*CCC*/
     p.tcph->th_seq = htonl(18);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 3;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x44, 1, 4); /*D*/
     p.tcph->th_seq = htonl(22);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x45, 2, 4); /*EE*/
     p.tcph->th_seq = htonl(25);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x46, 3, 4); /*FFF*/
     p.tcph->th_seq = htonl(27);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 3;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x47, 2, 4); /*GG*/
     p.tcph->th_seq = htonl(30);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x48, 2, 4); /*HH*/
     p.tcph->th_seq = htonl(32);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x49, 1, 4); /*I*/
     p.tcph->th_seq = htonl(34);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x4a, 4, 4); /*JJJJ*/
     p.tcph->th_seq = htonl(13);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 4;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x4b, 3, 4); /*KKK*/
     p.tcph->th_seq = htonl(18);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 3;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x4c, 3, 4); /*LLL*/
     p.tcph->th_seq = htonl(21);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 3;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x4d, 3, 4); /*MMM*/
     p.tcph->th_seq = htonl(24);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 3;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x4e, 1, 4); /*N*/
     p.tcph->th_seq = htonl(28);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x4f, 1, 4); /*O*/
     p.tcph->th_seq = htonl(31);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x50, 1, 4); /*P*/
     p.tcph->th_seq = htonl(32);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x51, 2, 4); /*QQ*/
     p.tcph->th_seq = htonl(34);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x30, 1, 4); /*0*/
     p.tcph->th_seq = htonl(11);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
 
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
@@ -2576,6 +2579,8 @@ static int StreamTcpTestStartsBeforeListSegment(TcpStream *stream) {
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
 
+    ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
     p.src.family = AF_INET;
@@ -2592,49 +2597,49 @@ static int StreamTcpTestStartsBeforeListSegment(TcpStream *stream) {
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x44, 1, 4); /*D*/
     p.tcph->th_seq = htonl(22);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x45, 2, 4); /*EE*/
     p.tcph->th_seq = htonl(25);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x41, 2, 4); /*AA*/
     p.tcph->th_seq = htonl(15);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x4a, 4, 4); /*JJJJ*/
     p.tcph->th_seq = htonl(14);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 4;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x4c, 3, 4); /*LLL*/
     p.tcph->th_seq = htonl(21);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 3;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x4d, 3, 4); /*MMM*/
     p.tcph->th_seq = htonl(24);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 3;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
 
     return 1;
@@ -2665,6 +2670,8 @@ static int StreamTcpTestStartsAtSameListSegment(TcpStream *stream) {
     memset(&p, 0, sizeof (Packet));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
+    ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
     p.src.family = AF_INET;
@@ -2681,49 +2688,49 @@ static int StreamTcpTestStartsAtSameListSegment(TcpStream *stream) {
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 3;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x48, 2, 4); /*HH*/
     p.tcph->th_seq = htonl(32);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x49, 1, 4); /*I*/
     p.tcph->th_seq = htonl(34);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x4b, 3, 4); /*KKK*/
     p.tcph->th_seq = htonl(18);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 3;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x4c, 4, 4); /*LLLL*/
     p.tcph->th_seq = htonl(18);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 4;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x50, 1, 4); /*P*/
     p.tcph->th_seq = htonl(32);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x51, 2, 4); /*QQ*/
     p.tcph->th_seq = htonl(34);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
 
     return 1;
@@ -2755,6 +2762,8 @@ static int StreamTcpTestStartsAfterListSegment(TcpStream *stream) {
     memset(&p, 0, sizeof (Packet));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
+    ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
     p.src.family = AF_INET;
@@ -2771,42 +2780,42 @@ static int StreamTcpTestStartsAfterListSegment(TcpStream *stream) {
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x46, 3, 4); /*FFF*/
     p.tcph->th_seq = htonl(27);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 3;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x47, 2, 4); /*GG*/
     p.tcph->th_seq = htonl(30);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x4a, 2, 4); /*JJ*/
     p.tcph->th_seq = htonl(13);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 2;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x4f, 1, 4); /*O*/
     p.tcph->th_seq = htonl(31);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
     StreamTcpCreateTestPacket(payload, 0x4e, 1, 4); /*N*/
     p.tcph->th_seq = htonl(28);
     p.tcph->th_ack = htonl(31);
     p.payload = payload;
     p.payload_len = 1;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, stream, &p) == -1)
         return 0;
 
     return 1;
@@ -3451,6 +3460,8 @@ static int StreamTcpTestMissedPacket (TcpReassemblyThreadCtx *ra_ctx,
     memset(&tcph, 0, sizeof (TCPHdr));
     memset(&src, 0, sizeof(Address));
     memset(&dst, 0, sizeof(Address));
+    ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
 
     inet_pton(AF_INET, "1.2.3.4", &in);
 
@@ -3488,7 +3499,7 @@ static int StreamTcpTestMissedPacket (TcpReassemblyThreadCtx *ra_ctx,
         s = &ssn->client;
     }
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, ssn, s, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, ssn, s, &p) == -1)
         return -1;
 
     return 0;
@@ -4054,6 +4065,8 @@ static int StreamTcpReassembleTest32(void) {
     memset(&p, 0, sizeof (Packet));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
+    ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
     p.src.family = AF_INET;
@@ -4070,7 +4083,7 @@ static int StreamTcpReassembleTest32(void) {
     p.payload_len = 10;
     StreamTcpCreateTestPacket(payload, 0x41, 10, 20); /*AA*/
     p.payload = payload;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &stream, &p) == -1)
         goto end;
 
     p.tcph->th_seq = htonl(20);
@@ -4078,7 +4091,7 @@ static int StreamTcpReassembleTest32(void) {
     p.payload_len = 10;
     StreamTcpCreateTestPacket(payload, 0x42, 10, 20); /*BB*/
     p.payload = payload;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &stream, &p) == -1)
         goto end;
 
     p.tcph->th_seq = htonl(40);
@@ -4086,7 +4099,7 @@ static int StreamTcpReassembleTest32(void) {
     p.payload_len = 10;
     StreamTcpCreateTestPacket(payload, 0x43, 10, 20); /*CC*/
     p.payload = payload;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &stream, &p) == -1)
         goto end;
 
     p.tcph->th_seq = htonl(5);
@@ -4094,7 +4107,7 @@ static int StreamTcpReassembleTest32(void) {
     p.payload_len = 20;
     StreamTcpCreateTestPacket(payload, 0x41, 20, 20); /*AA*/
     p.payload = payload;
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &stream, &p) == -1)
         goto end;
 
     if (StreamTcpCheckStreamContents(check_contents, 35, &stream) != 0) {
@@ -4132,6 +4145,8 @@ static int StreamTcpReassembleTest33(void) {
     memset(&p, 0, sizeof (Packet));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
+    ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
     p.src.family = AF_INET;
@@ -4148,28 +4163,28 @@ static int StreamTcpReassembleTest33(void) {
     p.tcph->th_ack = htonl(31);
     p.payload_len = 10;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &stream, &p) == -1)
         return 0;
 
     p.tcph->th_seq = htonl(20);
     p.tcph->th_ack = htonl(31);
     p.payload_len = 10;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &stream, &p) == -1)
         return 0;
 
     p.tcph->th_seq = htonl(40);
     p.tcph->th_ack = htonl(31);
     p.payload_len = 10;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &stream, &p) == -1)
         return 0;
 
     p.tcph->th_seq = htonl(5);
     p.tcph->th_ack = htonl(31);
     p.payload_len = 30;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &stream, &p) == -1)
         return 0;
 
     StreamTcpFreeConfig(TRUE);
@@ -4199,6 +4214,8 @@ static int StreamTcpReassembleTest34(void) {
     memset(&p, 0, sizeof (Packet));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
+    ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
     p.src.family = AF_INET;
@@ -4215,28 +4232,28 @@ static int StreamTcpReassembleTest34(void) {
     p.tcph->th_ack = htonl(31);
     p.payload_len = 304;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &stream, &p) == -1)
         return 0;
 
     p.tcph->th_seq = htonl(857961534);
     p.tcph->th_ack = htonl(31);
     p.payload_len = 1460;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &stream, &p) == -1)
         return 0;
 
     p.tcph->th_seq = htonl(857963582);
     p.tcph->th_ack = htonl(31);
     p.payload_len = 1460;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &stream, &p) == -1)
         return 0;
 
     p.tcph->th_seq = htonl(857960946);
     p.tcph->th_ack = htonl(31);
     p.payload_len = 1460;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &stream, &p) == -1)
         return 0;
 
     StreamTcpFreeConfig(TRUE);
@@ -4267,6 +4284,8 @@ static int StreamTcpReassembleTest35(void) {
     memset(&p, 0, sizeof (Packet));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
+    ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
     p.src.family = AF_INET;
@@ -4285,7 +4304,7 @@ static int StreamTcpReassembleTest35(void) {
     stream.last_ack = 2257022285UL;
     stream.ra_base_seq = 2257022172UL;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &stream, &p) == -1)
         return 0;
 
     p.tcph->th_seq = htonl(2257022285UL);
@@ -4294,7 +4313,7 @@ static int StreamTcpReassembleTest35(void) {
     stream.last_ack = 2257022285UL;
     stream.ra_base_seq = 2257022172UL;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &stream, &p) == -1)
         return 0;
 
     StreamTcpFreeConfig(TRUE);
@@ -4325,6 +4344,8 @@ static int StreamTcpReassembleTest36(void) {
     memset(&p, 0, sizeof (Packet));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
+    ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
     p.src.family = AF_INET;
@@ -4343,7 +4364,7 @@ static int StreamTcpReassembleTest36(void) {
     stream.last_ack = 1549589007;
     stream.ra_base_seq = 1549589101;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &stream, &p) == -1)
         return 0;
 
     p.tcph->th_seq = htonl(1549589007);
@@ -4352,7 +4373,7 @@ static int StreamTcpReassembleTest36(void) {
     stream.last_ack = 1549589007;
     stream.ra_base_seq = 1549589101;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &stream, &p) == -1)
         return 0;
 
     StreamTcpFreeConfig(TRUE);
@@ -4383,6 +4404,8 @@ static int StreamTcpReassembleTest37(void) {
     memset(&p, 0, sizeof (Packet));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
+    ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
     FLOW_INITIALIZE(&f);
     f.protoctx = &ssn;
     p.src.family = AF_INET;
@@ -4401,7 +4424,7 @@ static int StreamTcpReassembleTest37(void) {
     stream.last_ack = 3061091137UL;
     stream.ra_base_seq = 3061091309UL;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &stream, &p) == -1)
         return 0;
 
     p.tcph->th_seq = htonl(3061089928UL);
@@ -4410,7 +4433,7 @@ static int StreamTcpReassembleTest37(void) {
     stream.last_ack = 3061091137UL;
     stream.ra_base_seq = 3061091309UL;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &stream, &p) == -1)
         return 0;
 
     p.tcph->th_seq = htonl(3061091319UL);
@@ -4419,7 +4442,7 @@ static int StreamTcpReassembleTest37(void) {
     stream.last_ack = 3061091137UL;
     stream.ra_base_seq = 3061091309UL;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx,&ssn, &stream, &p) == -1)
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx,&ssn, &stream, &p) == -1)
         return 0;
 
     StreamTcpFreeConfig(TRUE);
@@ -4452,6 +4475,8 @@ static int StreamTcpReassembleTest38 (void) {
     memset(&src, 0, sizeof(Address));
     memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
+    ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
 
     /* prevent L7 from kicking in */
     StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 0);
@@ -4508,7 +4533,7 @@ static int StreamTcpReassembleTest38 (void) {
     TcpStream *s = NULL;
     s = &ssn.server;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -4526,7 +4551,7 @@ static int StreamTcpReassembleTest38 (void) {
     tcph.th_ack = htonl(55);
     s = &ssn.client;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -4544,7 +4569,7 @@ static int StreamTcpReassembleTest38 (void) {
     tcph.th_seq = htonl(55);
     tcph.th_ack = htonl(53);
     s = &ssn.server;
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -4565,7 +4590,7 @@ static int StreamTcpReassembleTest38 (void) {
     tcph.th_seq = htonl(53);
     tcph.th_ack = htonl(100);
     s = &ssn.client;
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -4577,7 +4602,7 @@ static int StreamTcpReassembleTest38 (void) {
     tcph.th_ack = htonl(53);
     s = &ssn.server;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -4627,6 +4652,8 @@ static int StreamTcpReassembleTest39 (void) {
     memset(&src, 0, sizeof(Address));
     memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
+    ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
 
     FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
@@ -4679,7 +4706,7 @@ static int StreamTcpReassembleTest39 (void) {
     TcpStream *s = NULL;
     s = &ssn.server;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -4697,7 +4724,7 @@ static int StreamTcpReassembleTest39 (void) {
     tcph.th_ack = htonl(55);
     s = &ssn.client;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -4715,7 +4742,7 @@ static int StreamTcpReassembleTest39 (void) {
     tcph.th_seq = htonl(55);
     tcph.th_ack = htonl(53);
     s = &ssn.server;
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -4744,7 +4771,7 @@ static int StreamTcpReassembleTest39 (void) {
     tcph.th_seq = htonl(53);
     tcph.th_ack = htonl(100);
     s = &ssn.client;
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -4768,7 +4795,7 @@ static int StreamTcpReassembleTest39 (void) {
     tcph.th_seq = htonl(100);
     tcph.th_ack = htonl(96);
     s = &ssn.server;
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -4813,6 +4840,8 @@ static int StreamTcpReassembleTest40 (void) {
     memset(&src, 0, sizeof(Address));
     memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
+    ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
 
     FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
@@ -4869,7 +4898,7 @@ static int StreamTcpReassembleTest40 (void) {
     TcpStream *s = NULL;
     s = &ssn.client;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -4889,7 +4918,7 @@ static int StreamTcpReassembleTest40 (void) {
     s = &ssn.server;
     ssn.server.last_ack = 11;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -4908,7 +4937,7 @@ static int StreamTcpReassembleTest40 (void) {
     s = &ssn.client;
     ssn.client.last_ack = 55;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -4921,7 +4950,7 @@ static int StreamTcpReassembleTest40 (void) {
     s = &ssn.server;
     ssn.server.last_ack = 12;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -4954,7 +4983,7 @@ static int StreamTcpReassembleTest40 (void) {
     s = &ssn.client;
     ssn.client.last_ack = 100;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -4967,7 +4996,7 @@ static int StreamTcpReassembleTest40 (void) {
     s = &ssn.server;
     ssn.server.last_ack = 13;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -4992,7 +5021,7 @@ static int StreamTcpReassembleTest40 (void) {
     s = &ssn.client;
     ssn.client.last_ack = 145;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -5005,7 +5034,7 @@ static int StreamTcpReassembleTest40 (void) {
     s = &ssn.server;
     ssn.server.last_ack = 16;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -5061,6 +5090,8 @@ static int StreamTcpReassembleTest41 (void) {
     memset(&src, 0, sizeof(Address));
     memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
+    ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
 
     FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
@@ -5133,7 +5164,7 @@ static int StreamTcpReassembleTest41 (void) {
     TcpStream *s = NULL;
     s = &ssn.server;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet: ");
         goto end;
     }
@@ -5151,7 +5182,7 @@ static int StreamTcpReassembleTest41 (void) {
     tcph.th_ack = htonl(55);
     s = &ssn.client;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet: ");
         goto end;
     }
@@ -5163,7 +5194,7 @@ static int StreamTcpReassembleTest41 (void) {
     tcph.th_ack = htonl(100);
     s = &ssn.client;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet: ");
         goto end;
     }
@@ -5182,7 +5213,7 @@ static int StreamTcpReassembleTest41 (void) {
     tcph.th_ack = htonl(522);
     s = &ssn.server;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet: ");
         goto end;
     }
@@ -5207,7 +5238,7 @@ static int StreamTcpReassembleTest41 (void) {
     tcph.th_ack = htonl(522);
     s = &ssn.server;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet: ");
         goto end;
     }
@@ -5248,6 +5279,8 @@ static int StreamTcpReassembleTest42 (void) {
     memset(&src, 0, sizeof(Address));
     memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
+    ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
 
     FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
@@ -5298,7 +5331,7 @@ static int StreamTcpReassembleTest42 (void) {
     TcpStream *s = NULL;
     s = &ssn.server;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -5316,7 +5349,7 @@ static int StreamTcpReassembleTest42 (void) {
     tcph.th_ack = htonl(55);
     s = &ssn.client;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -5338,7 +5371,7 @@ static int StreamTcpReassembleTest42 (void) {
     tcph.th_ack = htonl(53);
     s = &ssn.server;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -5360,7 +5393,7 @@ static int StreamTcpReassembleTest42 (void) {
     tcph.th_ack = htonl(53);
     s = &ssn.server;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -5407,6 +5440,8 @@ static int StreamTcpReassembleTest43 (void) {
     memset(&src, 0, sizeof(Address));
     memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
+    ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
 
     FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
@@ -5486,7 +5521,7 @@ static int StreamTcpReassembleTest43 (void) {
     TcpStream *s = NULL;
     s = &ssn.server;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -5504,7 +5539,7 @@ static int StreamTcpReassembleTest43 (void) {
     tcph.th_ack = htonl(55);
     s = &ssn.client;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -5523,7 +5558,7 @@ static int StreamTcpReassembleTest43 (void) {
     tcph.th_ack = htonl(44);
     s = &ssn.server;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -5557,7 +5592,7 @@ static int StreamTcpReassembleTest43 (void) {
     tcph.th_ack = htonl(100);
     s = &ssn.client;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -5576,7 +5611,7 @@ static int StreamTcpReassembleTest43 (void) {
     tcph.th_ack = htonl(53);
     s = &ssn.server;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -5673,6 +5708,8 @@ static int StreamTcpReassembleTest45 (void) {
     memset(&src, 0, sizeof(Address));
     memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
+    ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
 
     uint8_t httpbuf1[] = "/ HTTP/1.0\r\nUser-Agent: Victor/1.0";
 
@@ -5723,7 +5760,7 @@ static int StreamTcpReassembleTest45 (void) {
     TcpStream *s = NULL;
     s = &ssn.server;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toclient packet\n");
         goto end;
     }
@@ -5739,7 +5776,7 @@ static int StreamTcpReassembleTest45 (void) {
     p.payload_len = httplen1;
     s = &ssn.client;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -5755,7 +5792,7 @@ static int StreamTcpReassembleTest45 (void) {
     p.payload_len = httplen1;
     s = &ssn.server;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -5803,6 +5840,8 @@ static int StreamTcpReassembleTest46 (void) {
     memset(&src, 0, sizeof(Address));
     memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
+    ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
 
     uint8_t httpbuf1[] = "/ HTTP/1.0\r\nUser-Agent: Victor/1.0";
 
@@ -5853,7 +5892,7 @@ static int StreamTcpReassembleTest46 (void) {
     TcpStream *s = NULL;
     s = &ssn.server;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toclient packet\n");
         goto end;
     }
@@ -5869,7 +5908,7 @@ static int StreamTcpReassembleTest46 (void) {
     p.payload_len = httplen1;
     s = &ssn.client;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -5885,7 +5924,7 @@ static int StreamTcpReassembleTest46 (void) {
     p.payload_len = httplen1;
     s = &ssn.server;
 
-    if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
         printf("failed in segments reassembly, while processing toserver packet\n");
         goto end;
     }
@@ -5932,6 +5971,8 @@ static int StreamTcpReassembleTest47 (void) {
     memset(&src, 0, sizeof(Address));
     memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
+    ThreadVars tv;
+    memset(&tv, 0, sizeof (ThreadVars));
 
     /* prevent L7 from kicking in */
     StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 0);
@@ -5985,7 +6026,7 @@ static int StreamTcpReassembleTest47 (void) {
         p.payload_len = 1;
         s = &ssn.client;
 
-        if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+        if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
             printf("failed in segments reassembly, while processing toserver "
                     "packet\n");
             goto end;
@@ -6000,7 +6041,7 @@ static int StreamTcpReassembleTest47 (void) {
         p.tcph = &tcph;
         s = &ssn.server;
 
-        if (StreamTcpReassembleHandleSegment(ra_ctx, &ssn, s, &p) == -1) {
+        if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, &p) == -1) {
             printf("failed in segments reassembly, while processing toserver "
                     "packet\n");
             goto end;
