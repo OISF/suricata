@@ -2733,7 +2733,8 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx, char *file) {
         char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
 
-        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name, qname, "flow","alert-queue1","simple","varslot");
+        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name, qname, "flow","packetpool","packetpool","varslot");
+        //ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name, qname, "flow","alert-queue1","simple","varslot");
         if (tv_detect_ncpu == NULL) {
             printf("ERROR: TmThreadsCreate failed\n");
             exit(EXIT_FAILURE);
@@ -2772,6 +2773,9 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx, char *file) {
         }
         tv_detect_ncpu->thread_group_name = thread_group_name;
 
+        /* add outputs as well */
+        SetupOutputs(tv_detect_ncpu);
+
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
             printf("ERROR: TmThreadSpawn failed\n");
             exit(EXIT_FAILURE);
@@ -2782,10 +2786,9 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx, char *file) {
         else
             cpu++;
     }
-
+/*
     ThreadVars *tv_outputs = TmThreadCreatePacketHandler("Outputs",
         "alert-queue1", "simple", "packetpool", "packetpool", "varslot");
-    SetupOutputs(tv_outputs);
 
     if (threading_set_cpu_affinity) {
         TmThreadSetCPUAffinity(tv_outputs, 0);
@@ -2797,7 +2800,7 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx, char *file) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
-
+*/
     return 0;
 }
 
