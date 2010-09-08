@@ -236,8 +236,8 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                     dcerpc->dcerpcbindbindack.version |= *(p + 21) << 8;
                     dcerpc->dcerpcbindbindack.versionminor = *(p + 22);
                     dcerpc->dcerpcbindbindack.versionminor |= *(p + 23) << 8;
-                    if (dcerpc->dcerpcbindbindack.ctxid == dcerpc->dcerpcbindbindack.numctxitems
-                            - dcerpc->dcerpcbindbindack.numctxitemsleft) {
+                    //if (dcerpc->dcerpcbindbindack.ctxid == dcerpc->dcerpcbindbindack.numctxitems
+                    //        - dcerpc->dcerpcbindbindack.numctxitemsleft) {
                         dcerpc->dcerpcbindbindack.uuid_entry = (DCERPCUuidEntry *) SCCalloc(1,
                                 sizeof(DCERPCUuidEntry));
                         if (dcerpc->dcerpcbindbindack.uuid_entry == NULL) {
@@ -261,11 +261,11 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                             dcerpc->dcerpcbindbindack.ctxbytesprocessed += (44);
                             SCReturnUInt(44U);
                         }
-                    } else {
-                        SCLogDebug("ctxitem %u, expected %u\n", dcerpc->dcerpcbindbindack.ctxid,
-                                dcerpc->dcerpcbindbindack.numctxitems - dcerpc->dcerpcbindbindack.numctxitemsleft);
-                        SCReturnUInt(0);
-                    }
+                    //} else {
+                    //    SCLogDebug("ctxitem %u, expected %u\n", dcerpc->dcerpcbindbindack.ctxid,
+                    //            dcerpc->dcerpcbindbindack.numctxitems - dcerpc->dcerpcbindbindack.numctxitemsleft);
+                    //    SCReturnUInt(0);
+                    //}
                 } else {
                     dcerpc->dcerpcbindbindack.ctxid = *(p++);
                     if (!(--input_len))
@@ -444,7 +444,7 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
             case 43:
                 p++;
                 --input_len;
-                if (dcerpc->dcerpcbindbindack.ctxid == dcerpc->dcerpcbindbindack.numctxitems - dcerpc->dcerpcbindbindack.numctxitemsleft) {
+                //if (dcerpc->dcerpcbindbindack.ctxid == dcerpc->dcerpcbindbindack.numctxitems - dcerpc->dcerpcbindbindack.numctxitemsleft) {
                     dcerpc->dcerpcbindbindack.uuid_entry = (DCERPCUuidEntry *) SCCalloc(1,
                             sizeof(DCERPCUuidEntry));
                     if (dcerpc->dcerpcbindbindack.uuid_entry == NULL) {
@@ -468,11 +468,11 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                         dcerpc->dcerpcbindbindack.ctxbytesprocessed += (p - input);
                         SCReturnUInt((uint32_t)(p - input));
                     }
-                } else {
-                    SCLogDebug("ctxitem %u, expected %u\n", dcerpc->dcerpcbindbindack.ctxid,
-                            dcerpc->dcerpcbindbindack.numctxitems - dcerpc->dcerpcbindbindack.numctxitemsleft);
-                    SCReturnUInt(0);
-                }
+                //} else {
+                //    SCLogDebug("ctxitem %u, expected %u\n", dcerpc->dcerpcbindbindack.ctxid,
+                //            dcerpc->dcerpcbindbindack.numctxitems - dcerpc->dcerpcbindbindack.numctxitemsleft);
+                //    SCReturnUInt(0);
+                //}
                 break;
         }
     }
@@ -4432,6 +4432,83 @@ end:
     return result;
 }
 
+/**
+ * \test Check if the parser accepts bind pdus that have context ids starting
+ *       from a non-zero value.
+ */
+int DCERPCParserTest13(void) {
+    int result = 1;
+    Flow f;
+    int r = 0;
+
+    uint8_t bind[] = {
+        0x05, 0x00, 0x0b, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x48, 0x00, 0x00, 0x00, 0x7f, 0x00, 0x00, 0x00,
+        0xd0, 0x16, 0xd0, 0x16, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0xa0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46,
+        0x00, 0x00, 0x00, 0x00, 0x04, 0x5d, 0x88, 0x8a,
+        0xeb, 0x1c, 0xc9, 0x11, 0x9f, 0xe8, 0x08, 0x00,
+        0x2b, 0x10, 0x48, 0x60, 0x02, 0x00, 0x00, 0x00
+    };
+    uint32_t bind_len = sizeof(bind);
+
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
+                      bind, bind_len);
+    if (r != 0) {
+        printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    DCERPCState *dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    if (dcerpc_state == NULL) {
+        printf("no dcerpc state: ");
+        result = 0;
+        goto end;
+    }
+
+    result &= (dcerpc_state->dcerpc.bytesprocessed == 0);
+    result &= (dcerpc_state->dcerpc.pdu_fragged == 0);
+    result &= (dcerpc_state->dcerpc.dcerpcbindbindack.numctxitems == 1);
+    if (result == 0)
+        goto end;
+
+    result = 0;
+    uint8_t ctx_uuid_from_pcap[16] = {
+        0x00, 0x00, 0x01, 0xa0, 0x00, 0x00, 0x00, 0x00,
+        0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46};
+    DCERPCUuidEntry *item = NULL;
+    TAILQ_FOREACH(item, &dcerpc_state->dcerpc.dcerpcbindbindack.uuid_list, next) {
+        int i = 0;
+        /* check the interface uuid */
+        for (i = 0; i < 16; i++) {
+            if (ctx_uuid_from_pcap[i] != item->uuid[i]) {
+                goto end;
+            }
+        }
+        result = 1;
+    }
+
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DCERPCParserRegisterTests(void) {
@@ -4449,6 +4526,7 @@ void DCERPCParserRegisterTests(void) {
     UtRegisterTest("DCERPCParserTest10", DCERPCParserTest10, 1);
     UtRegisterTest("DCERPCParserTest11", DCERPCParserTest11, 1);
     UtRegisterTest("DCERPCParserTest12", DCERPCParserTest12, 1);
+    UtRegisterTest("DCERPCParserTest13", DCERPCParserTest13, 1);
 #endif /* UNITTESTS */
 
     return;
