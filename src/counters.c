@@ -960,10 +960,10 @@ static int SCPerfOutputCounterFileIface()
 
     fprintf(sc_perf_op_ctx->fp, "----------------------------------------------"
             "---------------------\n");
-    fprintf(sc_perf_op_ctx->fp, "Uptime: %"PRId32"d, %02dh %02dm %02ds\n", days, hours, min, sec);
-    fprintf(sc_perf_op_ctx->fp, "Date: %" PRId32 "/%" PRId32 "/%04d -- %02d:%02d:%02d\n",
+    fprintf(sc_perf_op_ctx->fp, "Date: %" PRId32 "/%" PRId32 "/%04d -- "
+            "%02d:%02d:%02d (uptime: %"PRId32"d, %02dh %02dm %02ds)\n",
             tms->tm_mday, tms->tm_mon + 1, tms->tm_year + 1900, tms->tm_hour,
-            tms->tm_min, tms->tm_sec);
+            tms->tm_min, tms->tm_sec, days, hours, min, sec);
     fprintf(sc_perf_op_ctx->fp, "----------------------------------------------"
             "---------------------\n");
     fprintf(sc_perf_op_ctx->fp, "%-25s | %-25s | %-s\n", "Counter", "TM Name",
