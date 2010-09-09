@@ -114,7 +114,7 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch
 
     DetectBytetestData *data = (DetectBytetestData *)m->ctx;
     uint8_t *ptr = NULL;
-    uint32_t len = 0;
+    int32_t len = 0;
     uint64_t val = 0;
     int extbytes;
     int neg;
@@ -1369,6 +1369,37 @@ int DetectByteTestTestPacket02 (void) {
 end:
     return result;
 }
+
+int DetectByteTestTestPacket03(void)
+{
+    int result = 0;
+    uint8_t *buf = NULL;
+    uint16_t buflen = 0;
+    buf = malloc(4);
+    if (buf == NULL) {
+        printf("malloc failed\n");
+        exit(EXIT_FAILURE);
+    }
+    memcpy(buf, "boom", 4);
+    buflen = 4;
+
+    Packet *p;
+    p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+
+    if (p == NULL)
+        goto end;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"content + byte_test\"; "
+        "byte_test:1,=,65,214748364; sid:1; rev:1;)";
+
+    result = !UTHPacketMatchSig(p, sig);
+
+    UTHFreePacket(p);
+
+end:
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 
@@ -1399,6 +1430,7 @@ void DetectBytetestRegisterTests(void) {
     UtRegisterTest("DetectBytetestTestParse21", DetectBytetestTestParse21, 1);
     UtRegisterTest("DetectByteTestTestPacket01", DetectByteTestTestPacket01, 1);
     UtRegisterTest("DetectByteTestTestPacket02", DetectByteTestTestPacket02, 1);
+    UtRegisterTest("DetectByteTestTestPacket03", DetectByteTestTestPacket03, 1);
 #endif /* UNITTESTS */
 }
 
