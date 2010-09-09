@@ -781,13 +781,16 @@ int main(int argc, char **argv)
     }
 
     /* create table for O(1) lowercase conversion lookup */
+    /*
     uint8_t c = 0;
+    memset(g_u8_lowercasetable, 0x00, sizeof(g_u8_lowercasetable));
     for ( ; c < 255; c++) {
-       if (c >= 'A' && c <= 'Z')
-           g_u8_lowercasetable[c] = (c + ('a' - 'A'));
-       else
-           g_u8_lowercasetable[c] = c;
+        if (c >= 'A' && c <= 'Z')
+            g_u8_lowercasetable[c] = (c + ('a' - 'A'));
+        else
+            g_u8_lowercasetable[c] = c;
     }
+    */
     /* hardcoded initialization code */
     MpmTableSetup(); /* load the pattern matchers */
     SigTableSetup(); /* load the rule keywords */

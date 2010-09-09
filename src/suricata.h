@@ -80,12 +80,17 @@ SCDQDataQueue data_queues[256];
 void GlobalInits();
 
 /* uppercase to lowercase conversion lookup table */
-uint8_t g_u8_lowercasetable[256];
+//uint8_t g_u8_lowercasetable[256];
+
 /* marco to do the actual lookup */
-#define u8_tolower(c) g_u8_lowercasetable[(c)]
+//#define u8_tolower(c) g_u8_lowercasetable[(c)]
 // these 2 are slower:
 //#define u8_tolower(c) ((c) >= 'A' && (c) <= 'Z') ? g_u8_lowercasetable[(c)] : (c)
-//#define u8_tolower(c) ((c) >= 'A' && (c) <= 'Z') ? ((c) + ('a' - 'A')) : (c)
+//#define u8_tolower(c) (((c) >= 'A' && (c) <= 'Z') ? ((c) + ('a' - 'A')) : (c))
+
+/* this is faster than the table lookup */
+#include <ctype.h>
+#define u8_tolower(c) tolower((uint8_t)(c))
 
 void EngineStop(void);
 void EngineKill(void);
