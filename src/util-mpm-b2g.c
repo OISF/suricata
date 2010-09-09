@@ -41,6 +41,7 @@
 
 #include "util-debug.h"
 #include "util-unittest.h"
+#include "util-memcmp.h"
 #include "conf.h"
 
 #define INIT_HASH_SIZE 65536
@@ -244,7 +245,7 @@ static inline int B2gCmpPattern(B2gPattern *p, uint8_t *pat, uint16_t patlen, ch
     if (p->flags != flags)
         return 0;
 
-    if (memcmp(p->cs, pat, patlen) != 0)
+    if (SCMemcmp(p->cs, pat, patlen) != 0)
         return 0;
 
     return 1;
@@ -320,7 +321,7 @@ static int B2gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_
             /* nocase means no difference between cs and ci */
             p->cs = p->ci;
         } else {
-            if (memcmp(p->ci,pat,p->len) == 0) {
+            if (SCMemcmp(p->ci,pat,p->len) == 0) {
                 /* no diff between cs and ci: pat is lowercase */
                 p->cs = p->ci;
             } else {
@@ -675,21 +676,6 @@ void B2gPrintSearchStats(MpmThreadCtx *mpm_thread_ctx) {
 #endif /* B2G_COUNTERS */
 }
 
-static inline int
-memcmp_lowercase(uint8_t *s1, uint8_t *s2, uint16_t n) {
-    size_t i;
-
-    /* check backwards because we already tested the first
-     * 2 to 4 chars. This way we are more likely to detect
-     * a miss and thus speed up a little... */
-    for (i = n - 1; i; i--) {
-        if (u8_tolower(*(s2+i)) != s1[i])
-            return 1;
-    }
-
-    return 0;
-}
-
 /**
  * \brief   Function to get the user defined values for b2g algorithm from the
  *          config file 'suricata.yaml'
@@ -978,7 +964,8 @@ uint32_t B2gSearchBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
 
                             if (thi->flags & MPM_PATTERN_FLAG_NOCASE) {
 
-                                if (memcmp_lowercase(thi->ci, buf+j, thi->len) == 0) {
+                                //if (memcmp_lowercase(thi->ci, buf+j, thi->len) == 0) {
+                                if (SCMemcmpLowercase(thi->ci, buf+j, thi->len) == 0) {
 #ifdef PRINTMATCH
                                     printf("CI Exact match: "); prt(p->ci, p->len); printf("\n");
 #endif
@@ -989,7 +976,8 @@ uint32_t B2gSearchBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
                                     COUNT(tctx->stat_loop_no_match++);
                                 }
                             } else {
-                                if (memcmp(thi->cs, buf+j, thi->len) == 0) {
+                                if (SCMemcmp(thi->cs, buf+j, thi->len) == 0) {
+                                //if (memcmp(thi->cs, buf+j, thi->len) == 0) {
 #ifdef PRINTMATCH
                                     printf("CS Exact match: "); prt(p->cs, p->len); printf("\n");
 #endif
@@ -1088,7 +1076,7 @@ uint32_t B2gSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcher
 
                 if (thi->flags & MPM_PATTERN_FLAG_NOCASE) {
 
-                    if (memcmp_lowercase(thi->ci, buf+pos, thi->len) == 0) {
+                    if (SCMemcmpLowercase(thi->ci, buf+pos, thi->len) == 0) {
                         COUNT(tctx->stat_loop_match++);
 
                         matches += MpmVerifyMatch(mpm_thread_ctx, pmq, thi->id);
@@ -1096,7 +1084,7 @@ uint32_t B2gSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcher
                         COUNT(tctx->stat_loop_no_match++);
                     }
                 } else {
-                    if (memcmp(thi->cs, buf+pos, thi->len) == 0) {
+                    if (SCMemcmp(thi->cs, buf+pos, thi->len) == 0) {
                         COUNT(tctx->stat_loop_match++);
 
                         matches += MpmVerifyMatch(mpm_thread_ctx, pmq, thi->id);

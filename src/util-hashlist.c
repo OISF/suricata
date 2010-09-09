@@ -30,6 +30,7 @@
 #include "util-hashlist.h"
 #include "util-unittest.h"
 #include "util-debug.h"
+#include "util-memcmp.h"
 
 HashListTable* HashListTableInit(uint32_t size, uint32_t (*Hash)(struct HashListTable_ *, void *, uint16_t), char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *)) {
 
@@ -233,7 +234,7 @@ char HashListTableDefaultCompare(void *data1, uint16_t len1, void *data2, uint16
     if (len1 != len2)
         return 0;
 
-    if (memcmp(data1,data2,len1) != 0)
+    if (SCMemcmp(data1,data2,len1) != 0)
         return 0;
 
     return 1;

@@ -48,7 +48,7 @@
 #include "util-cidr.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
-
+#include "util-memcmp.h"
 
 /* prototypes */
 int SigGroupHeadClearSigs(SigGroupHead *);
@@ -240,7 +240,7 @@ char SigGroupHeadMpmCompareFunc(void *data1, uint16_t len1, void *data2,
     if (sgh1->init->content_size != sgh2->init->content_size)
         return 0;
 
-    if (memcmp(sgh1->init->content_array, sgh2->init->content_array,
+    if (SCMemcmp(sgh1->init->content_array, sgh2->init->content_array,
                sgh1->init->content_size) != 0) {
         return 0;
     }
@@ -367,7 +367,7 @@ char SigGroupHeadMpmUriCompareFunc(void *data1, uint16_t len1, void *data2,
     if (sgh1->init->uri_content_size != sgh2->init->uri_content_size)
         return 0;
 
-    if (memcmp(sgh1->init->uri_content_array, sgh2->init->uri_content_array,
+    if (SCMemcmp(sgh1->init->uri_content_array, sgh2->init->uri_content_array,
                sgh1->init->uri_content_size) != 0) {
         return 0;
     }
@@ -494,7 +494,7 @@ char SigGroupHeadMpmStreamCompareFunc(void *data1, uint16_t len1, void *data2,
     if (sgh1->init->stream_content_size != sgh2->init->stream_content_size)
         return 0;
 
-    if (memcmp(sgh1->init->stream_content_array, sgh2->init->stream_content_array,
+    if (SCMemcmp(sgh1->init->stream_content_array, sgh2->init->stream_content_array,
                sgh1->init->stream_content_size) != 0) {
         return 0;
     }
@@ -626,7 +626,7 @@ char SigGroupHeadCompareFunc(void *data1, uint16_t len1, void *data2,
     if (sgh1->init->sig_size != sgh2->init->sig_size)
         return 0;
 
-    if (memcmp(sgh1->init->sig_array, sgh2->init->sig_array, sgh1->init->sig_size) != 0)
+    if (SCMemcmp(sgh1->init->sig_array, sgh2->init->sig_array, sgh1->init->sig_size) != 0)
         return 0;
 
     return 1;

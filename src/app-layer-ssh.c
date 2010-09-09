@@ -49,6 +49,7 @@
 #include "flow-private.h"
 
 #include "util-byte.h"
+#include "util-memcmp.h"
 
 /**
  * \brief Function to parse the SSH version string of the server
@@ -131,7 +132,7 @@ static int SSHParseServerVersion(Flow *f, void *ssh_state, AppLayerParserState *
         }
 
         /* is it the version line? */
-        if (memcmp("SSH-", line_ptr, 4) == 0) {
+        if (SCMemcmp("SSH-", line_ptr, 4) == 0) {
             if (line_len > 255) {
                 SCLogDebug("Invalid version string, it should be less than 255 characters including <CR><NL>");
                 SCReturnInt(-1);
@@ -464,7 +465,7 @@ static int SSHParseClientVersion(Flow *f, void *ssh_state, AppLayerParserState *
         }
 
         /* is it the version line? */
-        if (memcmp("SSH-", line_ptr, 4) == 0) {
+        if (SCMemcmp("SSH-", line_ptr, 4) == 0) {
             if (line_len > 255) {
                 SCLogDebug("Invalid version string, it should be less than 255 characters including <CR><NL>");
                 SCReturnInt(-1);

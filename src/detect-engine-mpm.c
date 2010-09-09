@@ -52,6 +52,7 @@
 #include "util-enum.h"
 #include "util-debug.h"
 #include "util-print.h"
+#include "util-memcmp.h"
 
 /** \todo make it possible to use multiple pattern matcher algorithms next to
           eachother. */
@@ -440,7 +441,7 @@ char ContentHashCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t le
     DetectContentData *co2 = ch2->ptr;
 
     if (co1->content_len == co2->content_len &&
-        memcmp(co1->content, co2->content, co1->content_len) == 0)
+        SCMemcmp(co1->content, co2->content, co1->content_len) == 0)
         return 1;
 
     return 0;
@@ -453,7 +454,7 @@ char UricontentHashCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t
     DetectUricontentData *ud2 = ch2->ptr;
 
     if (ud1->uricontent_len == ud2->uricontent_len &&
-        memcmp(ud1->uricontent, ud2->uricontent, ud1->uricontent_len) == 0)
+        SCMemcmp(ud1->uricontent, ud2->uricontent, ud1->uricontent_len) == 0)
         return 1;
 
     return 0;
@@ -1523,7 +1524,7 @@ static char MpmPatternIdCompare(void *p1, uint16_t len1, void *p2, uint16_t len2
         SCReturnInt(0);
     }
 
-    if (memcmp(e1->pattern, e2->pattern, e1->pattern_len) != 0) {
+    if (SCMemcmp(e1->pattern, e2->pattern, e1->pattern_len) != 0) {
         SCReturnInt(0);
     }
 

@@ -47,6 +47,7 @@
 #include "util-spm.h"
 #include "util-unittest.h"
 #include "util-debug.h"
+#include "util-memcmp.h"
 
 /**
  * \brief This function is called to determine and set which command is being
@@ -62,15 +63,8 @@ static int FTPParseRequestCommand(void *ftp_state, uint8_t *input,
     SCEnter();
     FtpState *fstate = (FtpState *)ftp_state;
 
-    char inputlower[5];
-
     if (input_len >= 4) {
-        memcpy(inputlower,input,4);
-        int i = 0;
-        for (; i < 4; i++)
-            inputlower[i] = tolower(inputlower[i]);
-
-        if (memcmp(inputlower, "port", 4) == 0) {
+        if (SCMemcmpLowercase("port", input, 4) == 0) {
             fstate->command = FTP_COMMAND_PORT;
         }
 

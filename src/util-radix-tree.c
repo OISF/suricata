@@ -41,6 +41,7 @@
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-unittest.h"
+#include "util-memcmp.h"
 
 /**
  * \brief Validates an IPV4 address and returns the network endian arranged
@@ -1224,7 +1225,7 @@ static void SCRadixRemoveKey(uint8_t *key_stream, uint16_t key_bitlen,
     }
 
     i = prefix->bitlen / 8;
-    if (memcmp(node->prefix->stream, prefix->stream, i) == 0) {
+    if (SCMemcmp(node->prefix->stream, prefix->stream, i) == 0) {
         mask = -1 << (8 - prefix->bitlen % 8);
 
         if (prefix->bitlen % 8 == 0 ||
@@ -1439,7 +1440,7 @@ static inline SCRadixNode *SCRadixFindKeyIPNetblock(uint8_t *key_stream, uint8_t
         if (node->bit != key_bitlen || node->prefix == NULL)
             return NULL;
 
-        if (memcmp(node->prefix->stream, key_stream, bytes) == 0) {
+        if (SCMemcmp(node->prefix->stream, key_stream, bytes) == 0) {
             mask = -1 << (8 - key_bitlen % 8);
 
             if (key_bitlen % 8 == 0 ||
@@ -1497,7 +1498,7 @@ static SCRadixNode *SCRadixFindKey(uint8_t *key_stream, uint16_t key_bitlen,
     }
 
     bytes = key_bitlen / 8;
-    if (memcmp(node->prefix->stream, tmp_stream, bytes) == 0) {
+    if (SCMemcmp(node->prefix->stream, tmp_stream, bytes) == 0) {
         mask = -1 << (8 - key_bitlen % 8);
 
         if (key_bitlen % 8 == 0 ||

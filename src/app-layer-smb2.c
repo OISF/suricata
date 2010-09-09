@@ -43,6 +43,7 @@
 #include "util-spm.h"
 #include "util-unittest.h"
 #include "util-debug.h"
+#include "util-memcmp.h"
 
 #include "app-layer-smb2.h"
 
@@ -101,7 +102,7 @@ static uint32_t SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
         switch (sstate->bytesprocessed) {
             case 4:
                 if (input_len >= SMB2_HDR_LEN) {
-                    if (memcmp(p, "\xfe\x53\x4d\x42", 4) != 0) {
+                    if (SCMemcmp(p, "\xfe\x53\x4d\x42", 4) != 0) {
                         //printf("SMB2 Header did not validate\n");
                         return 0;
                     }

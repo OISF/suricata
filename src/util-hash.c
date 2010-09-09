@@ -29,6 +29,7 @@
 #include "suricata-common.h"
 #include "util-hash.h"
 #include "util-unittest.h"
+#include "util-memcmp.h"
 
 HashTable* HashTableInit(uint32_t size, uint32_t (*Hash)(struct HashTable_ *, void *, uint16_t), char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *)) {
 
@@ -220,7 +221,7 @@ char HashTableDefaultCompare(void *data1, uint16_t len1, void *data2, uint16_t l
     if (len1 != len2)
         return 0;
 
-    if (memcmp(data1,data2,len1) != 0)
+    if (SCMemcmp(data1,data2,len1) != 0)
         return 0;
 
     return 1;
@@ -288,7 +289,7 @@ static char HashTableDefaultCompareTest(void *data1, uint16_t len1, void *data2,
     if (len1 != len2)
         return 0;
 
-    if (memcmp(data1,data2,len1) != 0)
+    if (SCMemcmp(data1,data2,len1) != 0)
         return 0;
 
     return 1;

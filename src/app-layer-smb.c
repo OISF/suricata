@@ -43,6 +43,7 @@
 
 #include "util-spm.h"
 #include "util-unittest.h"
+#include "util-memcmp.h"
 
 #include "app-layer-smb.h"
 
@@ -834,7 +835,7 @@ static int SMBParseHeader(Flow *f, void *smb_state,
         switch (sstate->bytesprocessed) {
             case 4:
                 if (input_len >= SMB_HDR_LEN) {
-                    if (memcmp(p, "\xff\x53\x4d\x42", 4) != 0) {
+                    if (SCMemcmp(p, "\xff\x53\x4d\x42", 4) != 0) {
                         SCLogDebug("SMB Header did not validate");
                         SCReturnInt(-1);
                     }
