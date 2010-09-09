@@ -54,7 +54,10 @@
 
 static uint32_t b2g_hash_size = 0;
 static uint32_t b2g_bloom_size = 0;
+static uint8_t b2g_hash_shift = 0;
 static void *b2g_func;
+
+#define B2G_HASH16(a,b) (((a) << b2g_hash_shift) | (b))
 
 void B2gInitCtx (MpmCtx *, int);
 void B2gThreadInitCtx(MpmCtx *, MpmThreadCtx *, uint32_t);
@@ -703,6 +706,7 @@ static void B2gGetConfig()
     /* init defaults */
     b2g_hash_size = HASHSIZE_LOW;
     b2g_bloom_size = BLOOMSIZE_MEDIUM;
+    b2g_hash_shift = B2G_HASHSHIFT_LOW;
     b2g_func = B2G_SEARCHFUNC;
 
     ConfNode *pm = ConfGetNode("pattern-matcher");
@@ -710,7 +714,7 @@ static void B2gGetConfig()
     if (pm != NULL) {
 
         TAILQ_FOREACH(b2g_conf, &pm->head, next) {
-            if (strncmp(b2g_conf->val, "b2g", 3) == 0) {
+            if (strcmp(b2g_conf->val, "b2g") == 0) {
 
                 algo = ConfNodeLookupChildValue
                         (b2g_conf->head.tqh_first, "algo");
@@ -727,14 +731,35 @@ static void B2gGetConfig()
                     }
                 }
 
-                if (hash_val != NULL)
+                if (hash_val != NULL) {
                     b2g_hash_size = MpmGetHashSize(hash_val);
+                    switch (b2g_hash_size) {
+                        case HASHSIZE_LOWEST:
+                            b2g_hash_shift = B2G_HASHSHIFT_LOWEST;
+                            break;
+                        case HASHSIZE_LOW:
+                            b2g_hash_shift = B2G_HASHSHIFT_LOW;
+                            break;
+                        case HASHSIZE_MEDIUM:
+                            b2g_hash_shift = B2G_HASHSHIFT_MEDIUM;
+                            break;
+                        case HASHSIZE_HIGH:
+                            b2g_hash_shift = B2G_HASHSHIFT_HIGH;
+                            break;
+                        case HASHSIZE_HIGHEST:
+                            b2g_hash_shift = B2G_HASHSHIFT_HIGHEST;
+                            break;
+                        case HASHSIZE_MAX:
+                            b2g_hash_shift = B2G_HASHSHIFT_MAX;
+                            break;
+                    }
+                }
 
                 if (bloom_val != NULL)
                     b2g_bloom_size = MpmGetBloomSize(bloom_val);
 
                 SCLogDebug("hash size is %"PRIu32" and bloom size is %"PRIu32"",
-                b2g_hash_size, b2g_bloom_size);
+                        b2g_hash_size, b2g_bloom_size);
             }
         }
     }
@@ -1941,7 +1966,7 @@ static int B2gTestSearchXX (void) {
     char *word;
     char line[128];
     int w = 0;
-    int w_max = 10000;
+    int w_max = 4000;
 
     while((word = fgets(line, sizeof(line), fp)) != NULL) {
         word[strlen(word) - 1] = '\0';
@@ -2633,6 +2658,8 @@ static int B2gTestSearchXX (void) {
     for (i = 0; i < 100; i++) {
         cnt = ctx->Search(&mpm_ctx, &mpm_thread_ctx, NULL, (uint8_t *)text, len);
     }
+
+    printf("cnt %u ", cnt);
 
     B2gThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
     B2gDestroyCtx(&mpm_ctx);

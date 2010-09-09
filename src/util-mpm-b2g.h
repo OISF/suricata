@@ -27,12 +27,12 @@
 #include "util-mpm.h"
 #include "util-bloomfilter.h"
 
-//#define B2G_HASHSHIFT 8
-//#define B2G_HASHSHIFT 7
-//#define B2G_HASHSHIFT 6
-//#define B2G_HASHSHIFT 5
-#define B2G_HASHSHIFT 4
-//#define B2G_HASHSHIFT 3
+#define B2G_HASHSHIFT_MAX      8
+#define B2G_HASHSHIFT_HIGHEST  7
+#define B2G_HASHSHIFT_HIGH     6
+#define B2G_HASHSHIFT_MEDIUM   5
+#define B2G_HASHSHIFT_LOW      4
+#define B2G_HASHSHIFT_LOWEST   3
 
 //#define B2G_TYPE uint64_t
 #define B2G_TYPE uint32_t
@@ -43,7 +43,6 @@
 //#define B2G_WORD_SIZE 16
 //#define B2G_WORD_SIZE 8
 
-#define B2G_HASH16(a,b) (((a)<<B2G_HASHSHIFT) | (b))
 #define B2G_Q           2
 
 #define B2G_SEARCHFUNC B2gSearchBNDMq
@@ -51,25 +50,16 @@
 
 //#define B2G_SEARCH2
 //#define B2G_COUNTERS
-#if 0
+
 typedef struct B2gPattern_ {
-    uint8_t flags; /**< MPM_PATTERN_FLAG_* flags */
-    uint16_t len; /**< \todo we're limited to 32/64 byte lengths, uint8_t would be fine here */
-    uint8_t *cs; /* case sensitive */
-    uint8_t *ci; /* case INsensitive */
-    struct B2gPattern_ *next;
-    uint32_t id;
-} B2gPattern;
-#endif
-typedef struct B2gPattern_ { //HashItem_ {
     uint16_t len; /**< \todo we're limited to 32/64 byte lengths, uint8_t would be fine here */
     uint8_t flags;
     uint8_t pad0;
-    struct B2gPattern_ *next;
-    uint8_t *cs; /* case sensitive */
     uint8_t *ci; /* case INsensitive */
+    uint8_t *cs; /* case sensitive */
     uint32_t id;
-} B2gPattern;//HashItem;
+    struct B2gPattern_ *next;
+} B2gPattern;
 
 typedef struct B2gCtx_ {
     B2G_TYPE *B2G;
