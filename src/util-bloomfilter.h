@@ -26,10 +26,10 @@
 
 /* Bloom Filter structure */
 typedef struct BloomFilter_ {
-    uint8_t *bitarray;
-    uint32_t bitarray_size;
     uint8_t hash_iterations;
     uint32_t (*Hash)(void *, uint16_t, uint8_t, uint32_t);
+    uint32_t bitarray_size;
+    uint8_t *bitarray;
 } BloomFilter;
 
 /* prototypes */
