@@ -112,7 +112,7 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
     DetectBytejumpData *data = (DetectBytejumpData *)m->ctx;
     uint8_t *ptr = NULL;
     uint8_t *jumpptr = ptr;
-    uint32_t len = 0;
+    int32_t len = 0;
     uint64_t val = 0;
     int extbytes;
 
@@ -1124,6 +1124,39 @@ int DetectByteJumpTestPacket02 (void) {
 end:
     return result;
 }
+
+int DetectByteJumpTestPacket03(void)
+{
+    int result = 0;
+    uint8_t *buf = NULL;
+    uint16_t buflen = 0;
+    buf = malloc(4);
+    if (buf == NULL) {
+        printf("malloc failed\n");
+        exit(EXIT_FAILURE);
+    }
+    memcpy(buf, "boom", 4);
+    buflen = 4;
+
+    Packet *p;
+    p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+
+    if (p == NULL)
+        goto end;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"byte_jump\"; "
+        "byte_jump:1,214748364; sid:1; rev:1;)";
+
+    result = !UTHPacketMatchSig(p, sig);
+
+    UTHFreePacket(p);
+
+end:
+    if (buf != NULL)
+        free(buf);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 
@@ -1145,6 +1178,7 @@ void DetectBytejumpRegisterTests(void) {
     UtRegisterTest("DetectBytejumpTestParse11", DetectBytejumpTestParse11, 1);
     UtRegisterTest("DetectByteJumpTestPacket01", DetectByteJumpTestPacket01, 1);
     UtRegisterTest("DetectByteJumpTestPacket02", DetectByteJumpTestPacket02, 1);
+    UtRegisterTest("DetectByteJumpTestPacket03", DetectByteJumpTestPacket03, 1);
 #endif /* UNITTESTS */
 }
 
