@@ -1261,6 +1261,9 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                 }
                 if (dcerpc->bytesprocessed == dcerpc->dcerpchdr.frag_length) {
                     DCERPCResetParsingState(dcerpc);
+                } else if (dcerpc->bytesprocessed > dcerpc->dcerpchdr.frag_length) {
+                    DCERPCResetParsingState(dcerpc);
+                    SCReturnInt(0);
                 } else {
                     dcerpc->pdu_fragged = 1;
                 }
@@ -1380,9 +1383,8 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                 SCLogDebug("BINDACK processed %u/%u input_len left %u",
                            dcerpc->bytesprocessed,
                            dcerpc->dcerpchdr.frag_length, input_len);
-                if (dcerpc->bytesprocessed == dcerpc->dcerpchdr.frag_length) {
-                    DCERPCResetParsingState(dcerpc);
 
+                if (dcerpc->bytesprocessed == dcerpc->dcerpchdr.frag_length) {
                     /* response and request done */
                     if (dcerpc->dcerpchdr.type == BIND_ACK) {
                         /* update transaction id */
@@ -1390,6 +1392,10 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                         SCLogDebug("transaction_id updated to %"PRIu16,
                                    dcerpc->transaction_id);
                     }
+                    DCERPCResetParsingState(dcerpc);
+                } else if (dcerpc->bytesprocessed > dcerpc->dcerpchdr.frag_length) {
+                    DCERPCResetParsingState(dcerpc);
+                    SCReturnInt(0);
                 } else {
                     dcerpc->pdu_fragged = 1;
                 }
@@ -1440,8 +1446,14 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                                dcerpc->dcerpchdr.frag_length, dcerpc->dcerpcrequest.opnum, input_len);
                 }
 
+                /* don't see how we could break the parser for request pdus, by
+                 * pusing bytesprocessed beyond frag_length.  Let's have the
+                 * check anyways */
                 if (dcerpc->bytesprocessed == dcerpc->dcerpchdr.frag_length) {
                     DCERPCResetParsingState(dcerpc);
+                } else if (dcerpc->bytesprocessed > dcerpc->dcerpchdr.frag_length) {
+                    DCERPCResetParsingState(dcerpc);
+                    SCReturnInt(0);
                 } else {
                     if (!dcerpc->pdu_fragged &&
                         dcerpc->dcerpchdr.pfc_flags & PFC_FIRST_FRAG) {
@@ -4513,6 +4525,122 @@ end:
     return result;
 }
 
+/**
+ * \test Check for another endless loop with bind pdus.
+ */
+int DCERPCParserTest14(void) {
+    int result = 1;
+    Flow f;
+    int r = 0;
+
+    uint8_t bind[] = {
+        0x05, 0x00, 0x0b, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x4A, 0x00, 0x00, 0x00, 0x7f, 0x00, 0x00, 0x00,
+        0xd0, 0x16, 0xd0, 0x16, 0x00, 0x00, 0x00, 0x00,
+        0x02, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0xa0, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46,
+        0x00, 0x00, 0x00, 0x00, 0x04, 0x5d, 0x88, 0x8a,
+        0xeb, 0x1c, 0xc9, 0x11, 0x9f, 0xe8, 0x08, 0x00,
+        0x2b, 0x10, 0x48, 0x60, 0x02, 0x00, 0x00, 0x00,
+        0x02, 0x00, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
+        0x01, 0x02, 0x03, 0x04, 0xFF /* ka boom - endless loop */
+    };
+    uint32_t bind_len = sizeof(bind);
+
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
+                      bind, bind_len);
+    if (r != 0) {
+        printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    DCERPCState *dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    if (dcerpc_state == NULL) {
+        printf("no dcerpc state: ");
+        result = 0;
+        goto end;
+    }
+
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
+/**
+ * \test Check for another endless loop for bind_ack pdus.
+ */
+int DCERPCParserTest15(void) {
+    int result = 1;
+    Flow f;
+    int r = 0;
+
+    uint8_t bind_ack[] = {
+        0x05, 0x00, 0x0c, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x3e, 0x00, 0x00, 0x00, 0x7f, 0x00, 0x00, 0x00,
+        0xd0, 0x16, 0xd0, 0x16, 0xfd, 0x04, 0x01, 0x00,
+        0x04, 0x00, 0x31, 0x33, 0x35, 0x00, 0x00, 0x00,
+        0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x04, 0x5d, 0x88, 0x8a, 0xeb, 0x1c, 0xc9, 0x11,
+        0x9f, 0xe8, 0x08, 0x00, 0x2b, 0x10, 0x48, 0x60,
+        0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x04, 0x5d, 0x88, 0x8a, 0xeb, 0x1c, 0xc9, 0x11,
+        0x9f, 0xe8, 0x08, 0x00, 0x2b, 0x10, 0x48, 0x60,
+        0x01, 0x02, 0x03, 0x04, 0xFF
+    };
+    uint32_t bind_ack_len = sizeof(bind_ack);
+
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
+                      bind_ack, bind_ack_len);
+    if (r != 0) {
+        printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    DCERPCState *dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    if (dcerpc_state == NULL) {
+        printf("no dcerpc state: ");
+        result = 0;
+        goto end;
+    }
+
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DCERPCParserRegisterTests(void) {
@@ -4531,6 +4659,8 @@ void DCERPCParserRegisterTests(void) {
     UtRegisterTest("DCERPCParserTest11", DCERPCParserTest11, 1);
     UtRegisterTest("DCERPCParserTest12", DCERPCParserTest12, 1);
     UtRegisterTest("DCERPCParserTest13", DCERPCParserTest13, 1);
+    UtRegisterTest("DCERPCParserTest14", DCERPCParserTest14, 1);
+    UtRegisterTest("DCERPCParserTest15", DCERPCParserTest15, 1);
 #endif /* UNITTESTS */
 
     return;
