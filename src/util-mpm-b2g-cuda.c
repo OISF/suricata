@@ -1656,6 +1656,7 @@ uint32_t B2gCudaSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
 
 typedef struct B2gCudaMpmThreadCtxData_ {
     int b2g_cuda_module_handle;
+    int b2g_cuda_cumodule_handle;
 
     CUcontext b2g_cuda_context;
     CUmodule b2g_cuda_module;
@@ -1725,16 +1726,18 @@ TmEcode B2gCudaMpmDispThreadInit(ThreadVars *tv, void *initdata, void **data)
     }
 
 #if defined(__x86_64__) || defined(__ia64__)
-    if (SCCudaHlGetCudaModule(&tctx->b2g_cuda_module, b2g_cuda_ptx_image_64_bit,
-                              module_data->handle) == -1) {
-        SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda module");
-    }
+    tctx->b2g_cuda_cumodule_handle = SCCudaHlGetCudaModule(&tctx->b2g_cuda_module,
+                                                         b2g_cuda_ptx_image_64_bit,
+                                                         module_data->handle);
 #else
-    if (SCCudaHlGetCudaModule(&tctx->b2g_cuda_module, b2g_cuda_ptx_image_32_bit,
-                              module_data->handle) == -1) {
-        SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda module");
-    }
+    tctx->b2g_cuda_cumodule_handle = SCCudaHlGetCudaModule(&tctx->b2g_cuda_module,
+                                                         b2g_cuda_ptx_image_32_bit,
+                                                         module_data->handle);
 #endif
+    if (tctx->b2g_cuda_cumodule_handle == -1) {
+        SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda module");
+        goto error;
+    }
 
     if (SCCudaModuleGetFunction(&tctx->b2g_cuda_search_kernel,
                                 tctx->b2g_cuda_module,
@@ -1807,13 +1810,15 @@ TmEcode B2gCudaMpmDispThreadInit(ThreadVars *tv, void *initdata, void **data)
                                  sizeof(uint16_t) *
                                  (profile->packet_size_limit + 1) *
                                  profile->packet_buffer_limit,
-                                 NULL, module_data->handle) == -1) {
+                                 NULL, module_data->handle,
+                                 tctx->b2g_cuda_cumodule_handle) == -1) {
         goto error;
     }
 
     if (SCCudaHlGetCudaDevicePtr(&tctx->cuda_g_u8_lowercasetable,
                                  "G_U8_LOWERCASETABLE", 256 * sizeof(char),
-                                 g_u8_lowercasetable, module_data->handle) == -1) {
+                                 g_u8_lowercasetable, module_data->handle,
+                                 tctx->b2g_cuda_cumodule_handle) == -1) {
         goto error;
     }
 
@@ -1822,21 +1827,24 @@ TmEcode B2gCudaMpmDispThreadInit(ThreadVars *tv, void *initdata, void **data)
                                  profile->packet_buffer_limit *
                                  (profile->packet_size_limit +
                                   sizeof(SCCudaPBPacketDataForGPUNonPayload)),
-                                 NULL, module_data->handle) == -1) {
+                                 NULL, module_data->handle,
+                                 tctx->b2g_cuda_cumodule_handle) == -1) {
         goto error;
     }
 
     if (SCCudaHlGetCudaDevicePtr(&tctx->cuda_packets_offset_buffer,
                                  "MPM_B2G_PACKETS_BUFFER_OFFSETS",
                                  sizeof(uint32_t) * profile->packet_buffer_limit,
-                                 NULL, module_data->handle) == -1) {
+                                 NULL, module_data->handle,
+                                 tctx->b2g_cuda_cumodule_handle) == -1) {
         goto error;
     }
 
     if (SCCudaHlGetCudaDevicePtr(&tctx->cuda_packets_payload_offset_buffer,
                                  "MPM_B2G_PACKETS_PAYLOAD_BUFFER_OFFSETS",
                                  sizeof(uint32_t) * profile->packet_buffer_limit,
-                                 NULL, module_data->handle) == -1) {
+                                 NULL, module_data->handle,
+                                 tctx->b2g_cuda_cumodule_handle) == -1) {
         goto error;
     }
 
@@ -1933,13 +1941,21 @@ TmEcode B2gCudaMpmDispThreadDeInit(ThreadVars *tv, void *data)
     } else {
         free(tctx->results_buffer);
     }
-    SCCudaHlFreeCudaDevicePtr("MPM_B2G_RESULTS", tctx->b2g_cuda_module_handle);
-    SCCudaHlFreeCudaDevicePtr("MPM_B2G_PACKETS_BUFFER", tctx->b2g_cuda_module_handle);
+    SCCudaHlFreeCudaDevicePtr("MPM_B2G_RESULTS",
+                              tctx->b2g_cuda_module_handle,
+                              tctx->b2g_cuda_cumodule_handle);
+    SCCudaHlFreeCudaDevicePtr("MPM_B2G_PACKETS_BUFFER",
+                              tctx->b2g_cuda_module_handle,
+                              tctx->b2g_cuda_cumodule_handle);
     SCCudaHlFreeCudaDevicePtr("MPM_B2G_PACKETS_BUFFER_OFFSETS",
-                              tctx->b2g_cuda_module_handle);
+                              tctx->b2g_cuda_module_handle,
+                              tctx->b2g_cuda_cumodule_handle);
     SCCudaHlFreeCudaDevicePtr("MPM_B2G_PACKETS_PAYLOAD_BUFFER_OFFSETS",
-                              tctx->b2g_cuda_module_handle);
-    SCCudaHlFreeCudaDevicePtr("G_U8_LOWERCASETABLE", tctx->b2g_cuda_module_handle);
+                              tctx->b2g_cuda_module_handle,
+                              tctx->b2g_cuda_cumodule_handle);
+    SCCudaHlFreeCudaDevicePtr("G_U8_LOWERCASETABLE",
+                              tctx->b2g_cuda_module_handle,
+                              tctx->b2g_cuda_cumodule_handle);
 
     free(tctx);
 
