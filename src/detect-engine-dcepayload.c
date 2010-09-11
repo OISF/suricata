@@ -2516,11 +2516,11 @@ int DcePayloadTest02(void)
     }
     /* detection phase */
     SigMatchSignatures(&tv, de_ctx, det_ctx, p[0]);
-    if (!(PacketAlertCheck(p[0], 1))) {
+    if (PacketAlertCheck(p[0], 1)) {
         printf("sid 1 didn't match but should have for packet 0: ");
         goto end;
     }
-    if ((PacketAlertCheck(p[0], 2))) {
+    if (PacketAlertCheck(p[0], 2)) {
         printf("sid 2 matched but shouldn't have for packet 0: ");
         goto end;
     }

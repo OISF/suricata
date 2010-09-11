@@ -274,7 +274,7 @@ static inline int DetectDceIfaceMatchIfaceVersion(uint16_t version,
 int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
                         uint8_t flags, void *state, Signature *s, SigMatch *m)
 {
-    int ret = 1;
+    int ret = 0;
     DCERPCUuidEntry *item = NULL;
     int i = 0;
     DetectDceIfaceData *dce_data = (DetectDceIfaceData *)m->ctx;
@@ -286,21 +286,27 @@ int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
 
     SCMutexLock(&f->m);
 
+    /* we still haven't seen a request */
+    if (!dcerpc_state->dcerpc.dcerpcrequest.first_request_seen)
+        goto end;
+
+    if (!(dcerpc_state->dcerpc.dcerpchdr.type == REQUEST))
+        goto end;
+
     /* if any_frag is not enabled, we need to match only against the first
      * fragment */
     if (!dce_data->any_frag &&
         !(dcerpc_state->dcerpc.dcerpchdr.pfc_flags & PFC_FIRST_FRAG)) {
         /* any_frag has not been set, and apparently it's not the first fragment */
-        ret = 0;
         goto end;
     }
 
-    TAILQ_FOREACH(item, &dcerpc_state->dcerpc.dcerpcbindbindack.uuid_list, next) {
+    TAILQ_FOREACH(item, &dcerpc_state->dcerpc.dcerpcbindbindack.accepted_uuid_list, next) {
         ret = 1;
 
         /* if the uuid has been rejected(item->result == 1), we skip to the
          * next uuid */
-        if (item->result == 1)
+        if (item->result != 0)
             continue;
 
         /* check the interface uuid */
@@ -310,6 +316,9 @@ int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
                 break;
             }
         }
+        ret &= (item->ctxid == dcerpc_state->dcerpc.dcerpcrequest.ctxid);
+        if (ret == 0)
+            continue;
 
         /* check the interface version */
         if (dce_data->op != DETECT_DCE_IFACE_OP_NONE &&
@@ -837,8 +846,16 @@ static int DetectDceIfaceTestParse12(void)
         0x02, 0x00, 0x00, 0x00
     };
 
+    uint8_t dcerpc_request[] = {
+        0x05, 0x00, 0x00, 0x01, 0x10, 0x00, 0x00, 0x00,
+        0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x09, 0x00,
+        0xad, 0x0d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    };
+
     uint32_t dcerpc_bind_len = sizeof(dcerpc_bind);
     uint32_t dcerpc_bindack_len = sizeof(dcerpc_bindack);
+    uint32_t dcerpc_request_len = sizeof(dcerpc_request);
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(f));
@@ -890,7 +907,7 @@ static int DetectDceIfaceTestParse12(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!(PacketAlertCheck(p, 1))) {
+    if (PacketAlertCheck(p, 1)) {
         printf("sid 1 didn't match (1): ");
         goto end;
     }
@@ -908,6 +925,21 @@ static int DetectDceIfaceTestParse12(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1)) {
+        printf("sid 1 matched, but shouldn't have: ");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_request,
+                      dcerpc_request_len);
+    if (r != 0) {
+        SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (!PacketAlertCheck(p, 1)) {
         printf("sid 1 matched, but shouldn't have: ");
         goto end;
     }
@@ -1106,7 +1138,7 @@ static int DetectDceIfaceTestParse13(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!(PacketAlertCheck(p, 1))) {
+    if (PacketAlertCheck(p, 1)) {
         printf("sig 1 didn't match after bind request: ");
         goto end;
     }
@@ -1299,8 +1331,16 @@ static int DetectDceIfaceTestParse14(void)
         0x02, 0x00, 0x00, 0x00
     };
 
+    uint8_t dcerpc_request[] = {
+        0x05, 0x00, 0x00, 0x01, 0x10, 0x00, 0x00, 0x00,
+        0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x09, 0x00,
+        0xad, 0x0d, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    };
+
     uint32_t dcerpc_bind_len = sizeof(dcerpc_bind);
     uint32_t dcerpc_bindack_len = sizeof(dcerpc_bindack);
+    uint32_t dcerpc_request_len = sizeof(dcerpc_request);
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
@@ -1351,7 +1391,7 @@ static int DetectDceIfaceTestParse14(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (!PacketAlertCheck(p, 1))
+    if (PacketAlertCheck(p, 1))
         goto end;
 
     r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_bindack,
@@ -1365,6 +1405,304 @@ static int DetectDceIfaceTestParse14(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     if (PacketAlertCheck(p, 1)) {
+        printf("sig 1 matched but shouldn't have: ");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_request,
+                      dcerpc_request_len);
+    if (r != 0) {
+        SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (!PacketAlertCheck(p, 1)) {
+        printf("sig 1 matched but shouldn't have: ");
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
+/**
+ * \test Test a valid dce_iface entry for a bind and bind_ack
+ */
+static int DetectDceIfaceTestParse15(void)
+{
+    int result = 0;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    Packet *p = NULL;
+    Flow f;
+    TcpSession ssn;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+    DCERPCState *dcerpc_state = NULL;
+    int r = 0;
+
+    uint8_t dcerpc_bind[] = {
+        0x05, 0x00, 0x0b, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x48, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0xd0, 0x16, 0xd0, 0x16, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00,
+        0x40, 0xfd, 0x2c, 0x34, 0x6c, 0x3c, 0xce, 0x11,
+        0xa8, 0x93, 0x08, 0x00, 0x2b, 0x2e, 0x9c, 0x6d,
+        0x00, 0x00, 0x00, 0x00, 0x04, 0x5d, 0x88, 0x8a,
+        0xeb, 0x1c, 0xc9, 0x11, 0x9f, 0xe8, 0x08, 0x00,
+        0x2b, 0x10, 0x48, 0x60, 0x02, 0x00, 0x00, 0x00
+    };
+    uint32_t dcerpc_bind_len = sizeof(dcerpc_bind);
+
+    uint8_t dcerpc_bindack[] = {
+        0x05, 0x00, 0x0c, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x44, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0xb8, 0x10, 0xb8, 0x10, 0x7d, 0xd8, 0x00, 0x00,
+        0x0d, 0x00, 0x5c, 0x70, 0x69, 0x70, 0x65, 0x5c,
+        0x6c, 0x6c, 0x73, 0x72, 0x70, 0x63, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x04, 0x5d, 0x88, 0x8a, 0xeb, 0x1c, 0xc9, 0x11,
+        0x9f, 0xe8, 0x08, 0x00, 0x2b, 0x10, 0x48, 0x60,
+        0x02, 0x00, 0x00, 0x00
+    };
+    uint32_t dcerpc_bindack_len = sizeof(dcerpc_bindack);
+
+    uint8_t dcerpc_alter_context[] = {
+        0x05, 0x00, 0x0e, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x48, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0xd0, 0x16, 0xd0, 0x16, 0x00, 0x00, 0x00, 0x00,
+        0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00,
+        0xd0, 0x4c, 0x67, 0x57, 0x00, 0x52, 0xce, 0x11,
+        0xa8, 0x97, 0x08, 0x00, 0x2b, 0x2e, 0x9c, 0x6d,
+        0x01, 0x00, 0x00, 0x00, 0x04, 0x5d, 0x88, 0x8a,
+        0xeb, 0x1c, 0xc9, 0x11, 0x9f, 0xe8, 0x08, 0x00,
+        0x2b, 0x10, 0x48, 0x60, 0x02, 0x00, 0x00, 0x00
+    };
+    uint32_t dcerpc_alter_context_len = sizeof(dcerpc_alter_context);
+
+    uint8_t dcerpc_alter_context_resp[] = {
+        0x05, 0x00, 0x0f, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x38, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0xb8, 0x10, 0xb8, 0x10, 0x7d, 0xd8, 0x00, 0x00,
+        0x00, 0x00, 0x08, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x04, 0x5d, 0x88, 0x8a,
+        0xeb, 0x1c, 0xc9, 0x11, 0x9f, 0xe8, 0x08, 0x00,
+        0x2b, 0x10, 0x48, 0x60, 0x02, 0x00, 0x00, 0x00
+    };
+    uint32_t dcerpc_alter_context_resp_len = sizeof(dcerpc_alter_context_resp);
+
+    uint8_t dcerpc_request1[] = {
+        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x20, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x20, 0x03, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0xdd, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    };
+    uint32_t dcerpc_request1_len = sizeof(dcerpc_request1);
+
+    uint8_t dcerpc_response1[] = {
+        0x05, 0x00, 0x02, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x30, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x18, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0xf5, 0x66, 0xbf, 0x54,
+        0xc4, 0xdb, 0xdb, 0x4f, 0xa0, 0x01, 0x6d, 0xf4,
+        0xf6, 0xa8, 0x44, 0xb3, 0x00, 0x00, 0x00, 0x00
+    };
+    uint32_t dcerpc_response1_len = sizeof(dcerpc_response1);
+
+    uint8_t dcerpc_request2[] = {
+        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
+        0x20, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
+        0xc6, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x07, 0x9f, 0x13, 0xd9,
+    };
+    uint32_t dcerpc_request2_len = sizeof(dcerpc_request2);
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&p, 0, sizeof(p));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    f.alproto = ALPROTO_DCERPC;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                              "(msg:\"DCERPC\"; "
+                              "dce_iface:57674cd0-5200-11ce-a897-08002b2e9c6d; "
+                              "sid:1;)");
+    if (s == NULL)
+        goto end;
+
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                              "(msg:\"DCERPC\"; "
+                              "dce_iface:342cfd40-3c6c-11ce-a893-08002b2e9c6d; "
+                              "sid:2;)");
+    if (s == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_START,
+                      dcerpc_bind, dcerpc_bind_len);
+    if (r != 0) {
+        SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
+        goto end;
+    }
+
+    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    if (dcerpc_state == NULL) {
+        SCLogDebug("no dcerpc state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (PacketAlertCheck(p, 1))
+        goto end;
+    if (PacketAlertCheck(p, 2))
+        goto end;
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_bindack,
+                      dcerpc_bindack_len);
+    if (r != 0) {
+        SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (PacketAlertCheck(p, 1)) {
+        printf("sig 1 matched but shouldn't have: ");
+        goto end;
+    }
+    if (PacketAlertCheck(p, 2)) {
+        printf("sig 1 matched but shouldn't have: ");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, dcerpc_alter_context,
+                      dcerpc_alter_context_len);
+    if (r != 0) {
+        SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (PacketAlertCheck(p, 1)) {
+        printf("sig 1 matched but shouldn't have: ");
+        goto end;
+    }
+    if (PacketAlertCheck(p, 2)) {
+        printf("sig 1 matched but shouldn't have: ");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_alter_context_resp,
+                      dcerpc_alter_context_resp_len);
+    if (r != 0) {
+        SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (PacketAlertCheck(p, 1)) {
+        printf("sig 1 matched but shouldn't have: ");
+        goto end;
+    }
+    if (PacketAlertCheck(p, 2)) {
+        printf("sig 1 matched but shouldn't have: ");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, dcerpc_request1,
+                      dcerpc_request1_len);
+    if (r != 0) {
+        SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (!PacketAlertCheck(p, 1)) {
+        printf("sig 1 matched but shouldn't have: ");
+        goto end;
+    }
+    if (PacketAlertCheck(p, 2)) {
+        printf("sig 1 matched but shouldn't have: ");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_response1,
+                      dcerpc_response1_len);
+    if (r != 0) {
+        SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (PacketAlertCheck(p, 1)) {
+        printf("sig 1 matched but shouldn't have: ");
+        goto end;
+    }
+    if (PacketAlertCheck(p, 2)) {
+        printf("sig 1 matched but shouldn't have: ");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, dcerpc_request2,
+                      dcerpc_request2_len);
+    if (r != 0) {
+        SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (PacketAlertCheck(p, 1)) {
+        printf("sig 1 matched but shouldn't have: ");
+        goto end;
+    }
+    if (!PacketAlertCheck(p, 2)) {
         printf("sig 1 matched but shouldn't have: ");
         goto end;
     }
@@ -1405,6 +1743,7 @@ void DetectDceIfaceRegisterTests(void)
     UtRegisterTest("DetectDceIfaceTestParse12", DetectDceIfaceTestParse12, 1);
     UtRegisterTest("DetectDceIfaceTestParse13", DetectDceIfaceTestParse13, 1);
     UtRegisterTest("DetectDceIfaceTestParse14", DetectDceIfaceTestParse14, 1);
+    UtRegisterTest("DetectDceIfaceTestParse15", DetectDceIfaceTestParse15, 1);
 #endif
 
     return;

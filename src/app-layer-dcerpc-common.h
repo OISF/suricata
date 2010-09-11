@@ -133,6 +133,7 @@ typedef struct DCERPCHdrUdp_ {
 
 typedef struct DCERPCUuidEntry_ {
     uint16_t ctxid;
+    uint16_t internal_id;
     uint16_t result;
     uint8_t uuid[16];
     uint16_t version;
@@ -150,12 +151,16 @@ typedef struct DCERPCBindBindAck_ {
     uint16_t versionminor;
     DCERPCUuidEntry *uuid_entry;
     TAILQ_HEAD(, DCERPCUuidEntry_) uuid_list;
+    /* the interface uuids that the server has accepted */
+    TAILQ_HEAD(, DCERPCUuidEntry_) accepted_uuid_list;
+    uint16_t uuid_internal_id;
     uint16_t secondaryaddrlen;
     uint16_t secondaryaddrlenleft;
     uint16_t result;
 } DCERPCBindBindAck;
 
 typedef struct DCERPCRequest_ {
+    uint16_t ctxid;
     uint16_t opnum;
     /* holds the stub data for the request */
     uint8_t *stub_data_buffer;
@@ -163,6 +168,7 @@ typedef struct DCERPCRequest_ {
     uint32_t stub_data_buffer_len;
     /* used by the dce preproc to indicate fresh entry in the stub data buffer */
     uint8_t stub_data_fresh;
+    uint8_t first_request_seen;
 } DCERPCRequest;
 
 typedef struct DCERPCResponse_ {
