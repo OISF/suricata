@@ -19,6 +19,7 @@
  * \file
  *
  * \author Kirby Kuehl <kkuehl@gmail.com>
+ * \author Anoop Saldanha <poonaatsoc@gmail.com>
  *
  * DCE/RPC parser and decoder
  */
@@ -1327,6 +1328,11 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                     DCERPCResetParsingState(dcerpc);
                     SCReturnInt(0);
                 } else {
+                    /* temporary fix */
+                    if (dcerpc->dcerpchdr.auth_length != 0 && input_len) {
+                        DCERPCResetParsingState(dcerpc);
+                        SCReturnInt(0);
+                    }
                     dcerpc->pdu_fragged = 1;
                 }
                 break;
@@ -1459,6 +1465,11 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                     DCERPCResetParsingState(dcerpc);
                     SCReturnInt(0);
                 } else {
+                    /* temporary fix */
+                    if (dcerpc->dcerpchdr.auth_length != 0 && input_len) {
+                        DCERPCResetParsingState(dcerpc);
+                        SCReturnInt(0);
+                    }
                     dcerpc->pdu_fragged = 1;
                 }
                 break;
@@ -1520,6 +1531,11 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                     if (!dcerpc->pdu_fragged &&
                         dcerpc->dcerpchdr.pfc_flags & PFC_FIRST_FRAG) {
                         DCERPCResetStub(dcerpc);
+                    }
+                    /* temporary fix */
+                    if (dcerpc->dcerpchdr.auth_length != 0 && input_len) {
+                        DCERPCResetParsingState(dcerpc);
+                        SCReturnInt(0);
                     }
                     dcerpc->pdu_fragged = 1;
                 }
