@@ -20,19 +20,24 @@
  *
  * \author Anoop Saldanha <poonaatsoc@gmail.com>
  *
- *         Implementation of aho-corasick MPM from -
+ *         First iteration of aho-corasick MPM from -
  *
  *         Efficient String Matching: An Aid to Bibliographic Search
  *         Alfred V. Aho and Margaret J. Corasick
  *
  *         - Uses the delta table for calculating transitions, instead of having
  *           separate goto and failure transitions.
- *         - Have currently set the state table, state size to 2bytes, limiting
- *           the no of states to 65536.  We will need to modify this later, so
- *           that we can use something like 24 bits for holding state, and the
- *           last byte to indicate if we have any output entries for the state.
- *           That way we save on the extra read from the output table, since
- *           most states won't have any output entries.
+ *         - If we cross 2 ** 16 states, we use 4 bytes in the transition table
+ *           to hold each state, otherwise we use 2 bytes.
+ *         - This version of the MPM is heavy on memory, but it performs well.
+ *           If you can fit the ruleset with this mpm on your box without hitting
+ *           swap, this is the MPM to go for.
+ *
+ * \todo - Do a proper analyis of our existing MPMs and suggest a good one based
+ *         on the pattern distribution and the expected traffic(say http).
+ *       - Tried out loop unrolling without any perf increase.  Need to dig deeper.
+ *       - Try out holding whether they are any output strings from a particular
+ *         state in one of the bytes of a state var.  Will be useful in cuda esp.
  */
 
 #include "suricata-common.h"

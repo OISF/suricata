@@ -24,6 +24,19 @@
  *
  *         Efficient String Matching: An Aid to Bibliographic Search
  *         Alfred V. Aho and Margaret J. Corasick
+ *
+ *         - We use the goto-failure table to calculate transitions.
+ *         - If we cross 2 ** 16 states, we use 4 bytes in the transition table
+ *           to hold each state, otherwise we use 2 bytes.
+ *         - To reduce memory consumption, we throw all the failure transitions
+ *           out and use binary search to pick out the right transition in
+ *           the modified goto table.
+ *
+ * \todo - Do a proper analyis of our existing MPMs and suggest a good one based
+ *         on the pattern distribution and the expected traffic(say http).
+ *       - Tried out loop unrolling without any perf increase.  Need to dig deeper.
+ *       - Try out holding whether they are any output strings from a particular
+ *         state in one of the bytes of a state var.  Will be useful in cuda esp.
  */
 
 #include "suricata-common.h"
@@ -507,7 +520,7 @@ static inline void SCACGfbsCreateGotoTable(MpmCtx *mpm_ctx)
     /* add each pattern to create the goto table */
     for (i = 0; i < mpm_ctx->pattern_cnt; i++) {
         SCACGfbsEnter(ctx->parray[i]->cs, ctx->parray[i]->len,
-                  ctx->parray[i]->id, mpm_ctx);
+                      ctx->parray[i]->id, mpm_ctx);
     }
 
     int ascii_code = 0;
@@ -694,7 +707,7 @@ static inline void SCACGfbsCreateFailureTable(MpmCtx *mpm_ctx)
                 state = ctx->failure_table[state];
             ctx->failure_table[temp_state] = ctx->goto_table[state][ascii_code];
             SCACGfbsClubOutputStates(temp_state, ctx->failure_table[temp_state],
-                                 mpm_ctx);
+                                     mpm_ctx);
         }
     }
 
