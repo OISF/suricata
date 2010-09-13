@@ -477,6 +477,7 @@ MpmCudaConf *MpmCudaConfParse(void)
     const char *batching_timeout = NULL;
     const char *page_locked = NULL;
     const char *device_id = NULL;
+    const char *cuda_streams = NULL;
 
     if ((profile = malloc(sizeof(MpmCudaConf))) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
@@ -489,6 +490,7 @@ MpmCudaConf *MpmCudaConfParse(void)
     profile->batching_timeout = MPM_BATCHING_TIMEOUT;
     profile->page_locked = MPM_PAGE_LOCKED;
     profile->device_id = SC_CUDA_DEFAULT_DEVICE;
+    profile->cuda_streams = MPM_CUDA_STREAMS;
 
     cuda_node = ConfGetNode("cuda");
     if (cuda_node == NULL) {
@@ -510,6 +512,8 @@ MpmCudaConf *MpmCudaConfParse(void)
                 (seq_node->head.tqh_first, "page_locked");
             device_id = ConfNodeLookupChildValue
                 (seq_node->head.tqh_first, "device_id");
+            cuda_streams = ConfNodeLookupChildValue
+                (seq_node->head.tqh_first, "cuda_streams");
 
             /* packet_buffer_size */
             if (packet_buffer_limit == NULL || strcasecmp(packet_buffer_limit, "") == 0) {
@@ -593,6 +597,22 @@ MpmCudaConf *MpmCudaConfParse(void)
                     continue;
                 }
             }
+
+            /* cuda_streams */
+            if (cuda_streams == NULL || strcasecmp(cuda_streams, "") == 0) {
+                SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
+                        "cuda.mpm.cuda_streams  Either NULL or empty");
+                profile->cuda_streams = MPM_CUDA_STREAMS;
+                continue;
+            } else {
+                profile->cuda_streams = atoi(cuda_streams);
+                if (profile->cuda_streams < 1) {
+                    SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
+                            "cuda.mpm.cuda_streams - %s", cuda_streams);
+                    profile->cuda_streams = MPM_CUDA_STREAMS;
+                    continue;
+                }
+            }
         } /* if (strcasecmp(seq_node->val, "mpm") == 0) */
     } /* TAILQ_FOREACH(seq_node, &cuda_node->head, next) */
 
@@ -653,7 +673,8 @@ static int MpmTest01(void)
         "      packet_buffers: 10\n"
         "      batching_timeout: 1\n"
         "      page_locked: enabled\n"
-        "      device_id: 0\n";
+        "      device_id: 0\n"
+        "      cuda_streams: 2\n";
 
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -679,6 +700,7 @@ static int MpmTest01(void)
     result &= (profile->batching_timeout == 1);
     result &= (profile->page_locked == 1);
     result &= (profile->device_id == 0);
+    result &= (profile->cuda_streams == 2);
 
  end:
     SCCudaHlCleanProfiles();
@@ -703,7 +725,8 @@ static int MpmTest02(void)
         "      packet_buffers: 12\n"
         "      batching_timeout: 10\n"
         "      page_locked: disabled\n"
-        "      device_id: 5\n";
+        "      device_id: 5\n"
+        "      cuda_streams: 4\n";
 
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -729,6 +752,7 @@ static int MpmTest02(void)
     result &= (profile->batching_timeout == 10);
     result &= (profile->page_locked == 0);
     result &= (profile->device_id == 5);
+    result &= (profile->cuda_streams == 4);
 
  end:
     SCCudaHlCleanProfiles();
@@ -753,7 +777,8 @@ static int MpmTest03(void)
         "      packet_buffers: 0\n"
         "      batching_timeout: 0\n"
         "      page_locked: enbled\n"
-        "      device_id: -1\n";
+        "      device_id: -1\n"
+        "      cuda_streams: -1\n";
 
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -779,6 +804,7 @@ static int MpmTest03(void)
     result &= (profile->batching_timeout == MPM_BATCHING_TIMEOUT);
     result &= (profile->page_locked == MPM_PAGE_LOCKED);
     result &= (profile->device_id == SC_CUDA_DEFAULT_DEVICE);
+    result &= (profile->cuda_streams == MPM_CUDA_STREAMS);
 
  end:
     SCCudaHlCleanProfiles();
@@ -803,7 +829,8 @@ static int MpmTest04(void)
         "      packet_buffers: -1\n"
         "      batching_timeout: -1\n"
         "      page_locked: enbled\n"
-        "      device_id: -1\n";
+        "      device_id: -1\n"
+        "      cuda_streams: -1\n";
 
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -829,6 +856,7 @@ static int MpmTest04(void)
     result &= (profile->batching_timeout == MPM_BATCHING_TIMEOUT);
     result &= (profile->page_locked == MPM_PAGE_LOCKED);
     result &= (profile->device_id == SC_CUDA_DEFAULT_DEVICE);
+    result &= (profile->cuda_streams == MPM_CUDA_STREAMS);
 
  end:
     SCCudaHlCleanProfiles();
@@ -853,7 +881,8 @@ static int MpmTest05(void)
         "      packet_buffers:\n"
         "      batching_timeout: 2\n"
         "      page_locked: enabled\n"
-        "      device_id: 1\n";
+        "      device_id: 1\n"
+        "      cuda_streams: 0\n";
 
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -879,6 +908,7 @@ static int MpmTest05(void)
     result &= (profile->batching_timeout == 2);
     result &= (profile->page_locked == 1);
     result &= (profile->device_id == 1);
+    result &= (profile->cuda_streams == 0);
 
  end:
     SCCudaHlCleanProfiles();
@@ -903,7 +933,8 @@ static int MpmTest06(void)
         "      packet_buffers: \n"
         "      batching_timeout: \n"
         "      page_locked: \n"
-        "      device_id: \n";
+        "      device_id: \n"
+        "      cuda_streams: \n";
 
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -929,6 +960,7 @@ static int MpmTest06(void)
     result &= (profile->batching_timeout == MPM_BATCHING_TIMEOUT);
     result &= (profile->page_locked == MPM_PAGE_LOCKED);
     result &= (profile->device_id == SC_CUDA_DEFAULT_DEVICE);
+    result &= (profile->cuda_streams == MPM_CUDA_STREAMS);
 
  end:
     SCCudaHlCleanProfiles();
@@ -953,7 +985,8 @@ static int MpmTest07(void)
         "      packet_buffers:\n"
         "      batching_timeout:\n"
         "      page_locked:\n"
-        "      device_id:\n";
+        "      device_id:\n"
+        "      cuda_streams:\n";
 
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -979,6 +1012,7 @@ static int MpmTest07(void)
     result &= (profile->batching_timeout == MPM_BATCHING_TIMEOUT);
     result &= (profile->page_locked == MPM_PAGE_LOCKED);
     result &= (profile->device_id == SC_CUDA_DEFAULT_DEVICE);
+    result &= (profile->cuda_streams == MPM_CUDA_STREAMS);
 
  end:
     SCCudaHlCleanProfiles();
@@ -1000,7 +1034,8 @@ static int MpmTest08(void)
         "  - mpm:\n"
         "      packet_size_limit: 2000\n"
         "      page_locked: disabled\n"
-        "      device_id: 4\n";
+        "      device_id: 4\n"
+        "      cuda_streams: 8\n";
 
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
@@ -1026,6 +1061,7 @@ static int MpmTest08(void)
     result &= (profile->batching_timeout == MPM_BATCHING_TIMEOUT);
     result &= (profile->page_locked == !MPM_PAGE_LOCKED);
     result &= (profile->device_id == 4);
+    result &= (profile->cuda_streams == 8);
 
  end:
     SCCudaHlCleanProfiles();
@@ -1070,6 +1106,7 @@ static int MpmTest09(void)
     result &= (profile->batching_timeout == MPM_BATCHING_TIMEOUT);
     result &= (profile->page_locked == MPM_PAGE_LOCKED);
     result &= (profile->device_id == SC_CUDA_DEFAULT_DEVICE);
+    result &= (profile->cuda_streams == MPM_CUDA_STREAMS);
 
  end:
     SCCudaHlCleanProfiles();
@@ -1113,6 +1150,7 @@ static int MpmTest10(void)
     result &= (profile->batching_timeout == MPM_BATCHING_TIMEOUT);
     result &= (profile->page_locked == MPM_PAGE_LOCKED);
     result &= (profile->device_id == SC_CUDA_DEFAULT_DEVICE);
+    result &= (profile->cuda_streams == MPM_CUDA_STREAMS);
 
  end:
     SCCudaHlCleanProfiles();
@@ -1155,6 +1193,7 @@ static int MpmTest11(void)
     result &= (profile->batching_timeout == MPM_BATCHING_TIMEOUT);
     result &= (profile->page_locked == MPM_PAGE_LOCKED);
     result &= (profile->device_id == SC_CUDA_DEFAULT_DEVICE);
+    result &= (profile->cuda_streams == MPM_CUDA_STREAMS);
 
  end:
     SCCudaHlCleanProfiles();

@@ -178,6 +178,10 @@ cuda:
       # specify the first device cuda sees.  To find out device_id associated with
       # the card(s) on the system run "suricata --list-cuda-cards".
       device_id: 0
+      # No of Cuda streams used for asynchronous processing. All values > 0 are valid.
+      # For this option you need a device with Compute Capability > 1.0 and
+      # page_locked enabled to have any effect.
+      cuda_streams: 2
 
 # Select the multi pattern algorithm you want to run for scan/search the
 # in the engine. The supported algorithms are b2g, b2gc, b2gm, b3g, wumanber,

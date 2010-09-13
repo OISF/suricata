@@ -56,6 +56,7 @@
 #define MPM_PACKET_BUFFERS      10
 #define MPM_BATCHING_TIMEOUT    1
 #define MPM_PAGE_LOCKED         1
+#define MPM_CUDA_STREAMS        2
 
 enum {
     MPM_NOTSET = 0,
@@ -199,6 +200,7 @@ typedef struct MpmCudaConf_ {
     double batching_timeout;
     int8_t page_locked;
     int8_t device_id;
+    int8_t cuda_streams;
 } MpmCudaConf;
 
 #endif /* __SC_CUDA_SUPPORT__ */

@@ -20,6 +20,7 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  * \author Anoop Saldanha <poonaatsoc@gmail.com>
+ * \author Martin Beyer <martin.beyer@marasystems.de>
  */
 
 #include "suricata-common.h"
@@ -41,6 +42,7 @@
 
 #include "util-cuda-handlers.h"
 #include "util-cuda.h"
+#include "util-cpu.h"
 #include "tm-threads.h"
 #include "threads.h"
 #include "tmqh-simple.h"
@@ -1654,12 +1656,25 @@ uint32_t B2gCudaSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
 
 /*********************Cuda_Specific_Mgmt_Code_Starts_Here**********************/
 
-typedef struct B2gCudaMpmThreadCtxData_ {
-    int b2g_cuda_module_handle;
-    int b2g_cuda_cumodule_handle;
+/*
+ * \brief This data holds all resources needed by a cuda stream such as
+ *        device pointers, host pointers, CUmodule and Kernel function. These
+ *        are only valid within the context of the associated B2gCudaMpmThreadCtxData.
+ */
+typedef struct B2gCudaMpmStreamData_ {
+    /* Stream used for asynchronous memcopy in the Cuda MPM dispatcher.
+     * This is != NULL if the memory is allocated page-locked, i.e. profile->page_locked
+     * is set. Only streams != NULL are used for async. processing. */
+    CUstream cuda_stream;
 
-    CUcontext b2g_cuda_context;
-    CUmodule b2g_cuda_module;
+    /* Flag that indicates if there is some asynchronous operation in progress */
+    uint8_t cuda_async;
+
+    /* The CUmodule for this stream and corresponding handle. We need to load the
+     * cuda module for every stream to avoid rebinding the kernel configuration
+     * with every kernel call. */
+    int b2g_cuda_cumodule_handle;
+    CUmodule b2g_cuda_cumodule;
 
     /* the search kernel */
     CUfunction b2g_cuda_search_kernel;
@@ -1687,7 +1702,290 @@ typedef struct B2gCudaMpmThreadCtxData_ {
     /* gpu buffer corresponding to the global symbol g_u8_lowercasetable
      * XXX Remove this.  Store it as a constant buffer inside the kernel*/
     CUdeviceptr cuda_g_u8_lowercasetable;
+} B2gCudaMpmStreamData;
+
+/*
+ * \brief Cuda specific data for the MPM's thread context.
+ */
+typedef struct B2gCudaMpmThreadCtxData_ {
+    int b2g_cuda_module_handle;
+    CUcontext b2g_cuda_context;
+
+    /* Data of the cuda streams of this context */
+    B2gCudaMpmStreamData *stream_data;
+    uint8_t no_of_streams;
+    /* Data store for packet buffers that are currently processed */
+    Tmq *tmq_streamq;
 } B2gCudaMpmThreadCtxData;
+
+/*
+ * \brief Initialize data for the cuda streams.
+ *
+ * \param tctx    The thread context data of the Cuda MPM.
+ * \param profile The cuda profile used by the MPM.
+ *
+ * \retval 0 on succes, -1 on failure.
+ */
+static int B2gCudaMpmStreamDataInit(B2gCudaMpmThreadCtxData *tctx, MpmCudaConf *profile)
+{
+    SCCudaHlModuleData *module_data = NULL;
+    B2gCudaMpmStreamData *sd = NULL;
+    uint8_t i = 0;
+
+    module_data = SCCudaHlGetModuleData(tctx->b2g_cuda_module_handle);
+    if (module_data == NULL) {
+        SCLogError(SC_ERR_CUDA_HANDLER_ERROR,"No Cuda module data");
+        goto error;
+    }
+
+    SCLogDebug("Initializing data for %"PRIu16" cuda streams", tctx->no_of_streams);
+    for (i = 0; i < tctx->no_of_streams; ++i) {
+        sd = &tctx->stream_data[i];
+
+        /* Init cuda stream */
+        if (profile->page_locked) {
+            if (SCCudaStreamCreate(&sd->cuda_stream, 0) == -1) {
+                SCLogError(SC_ERR_CUDA_ERROR, "Error creating Cuda stream.");
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            SCLogDebug("Disabled asynchronous cuda processing");
+            sd->cuda_stream = NULL;
+        }
+
+        /* Load the CUmodule */
+#if defined(__x86_64__) || defined(__ia64__)
+        sd->b2g_cuda_cumodule_handle = SCCudaHlGetCudaModule(&sd->b2g_cuda_cumodule,
+                                                             b2g_cuda_ptx_image_64_bit,
+                                                             module_data->handle);
+#else
+        sd->b2g_cuda_cumodule_handle = SCCudaHlGetCudaModule(&sd->b2g_cuda_cumodule,
+                                                             b2g_cuda_ptx_image_32_bit,
+                                                             module_data->handle);
+#endif
+        if (sd->b2g_cuda_cumodule_handle == -1) {
+            SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda module");
+            goto error;
+        }
+
+        /* Get kernel from module */
+        if (SCCudaModuleGetFunction(&sd->b2g_cuda_search_kernel,
+                                    sd->b2g_cuda_cumodule,
+                                    B2G_CUDA_SEARCHFUNC_NAME) == -1) {
+            SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda function");
+            goto error;
+        }
+
+        /* Configure kernel execution */
+        if (SCCudaFuncSetBlockShape(sd->b2g_cuda_search_kernel, 32, 1, 1) == -1) {
+            SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error setting function block shape");
+            goto error;
+        }
+
+#define ALIGN_UP(offset, alignment) (offset) = ((offset) + (alignment) - 1) & ~((alignment) - 1)
+
+        int offset = 0;
+
+        ALIGN_UP(offset, __alignof(void *));
+        sd->b2g_cuda_search_kernel_arg0_offset = offset;
+        offset += sizeof(void *);
+
+        ALIGN_UP(offset, __alignof(void *));
+        sd->b2g_cuda_search_kernel_arg1_offset = offset;
+        offset += sizeof(void *);
+
+        ALIGN_UP(offset, __alignof(void *));
+        sd->b2g_cuda_search_kernel_arg2_offset = offset;
+        offset += sizeof(void *);
+
+        ALIGN_UP(offset, __alignof(void *));
+        sd->b2g_cuda_search_kernel_arg3_offset = offset;
+        offset += sizeof(void *);
+
+        ALIGN_UP(offset, __alignof(uint16_t));
+        sd->b2g_cuda_search_kernel_arg4_offset = offset;
+        offset += sizeof(void *);
+
+        ALIGN_UP(offset, __alignof(void *));
+        sd->b2g_cuda_search_kernel_arg5_offset = offset;
+        offset += sizeof(void *);
+
+        tctx->stream_data[i].b2g_cuda_search_kernel_arg_total = offset;
+
+        /* buffer to hold the b2g cuda mpm match results for 4000 packets.  The
+         * extra 2 bytes(the extra + 1 ) is to hold the no of
+         * matches for the payload.  The remaining profile->packet_size_limit
+         * positions in the buffer is to hold the match offsets */
+        if (profile->page_locked) {
+            if (SCCudaMemHostAlloc((void**)&sd->results_buffer,
+                                   sizeof(uint16_t) * (profile->packet_size_limit + 1) *
+                                   profile->packet_buffer_limit,
+                                   CU_MEMHOSTALLOC_PORTABLE) == -1){
+                SCLogError(SC_ERR_CUDA_ERROR, "Error allocating page-locked memory\n");
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            sd->results_buffer = malloc(sizeof(uint16_t) *
+                                        (profile->packet_size_limit + 1) *
+                                        profile->packet_buffer_limit);
+            if (sd->results_buffer == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                exit(EXIT_FAILURE);
+            }
+        }
+
+        if (SCCudaHlGetCudaDevicePtr(&sd->cuda_results_buffer,
+                                    "MPM_B2G_RESULTS",
+                                    sizeof(uint16_t) *
+                                    (profile->packet_size_limit + 1) *
+                                    profile->packet_buffer_limit,
+                                    NULL, module_data->handle,
+                                    sd->b2g_cuda_cumodule_handle) == -1) {
+            goto error;
+        }
+
+        if (SCCudaHlGetCudaDevicePtr(&sd->cuda_g_u8_lowercasetable,
+                                     "G_U8_LOWERCASETABLE", 256 * sizeof(char),
+                                     g_u8_lowercasetable, module_data->handle,
+                                     sd->b2g_cuda_cumodule_handle) == -1) {
+            goto error;
+        }
+
+        if (SCCudaHlGetCudaDevicePtr(&sd->cuda_packets_buffer,
+                                     "MPM_B2G_PACKETS_BUFFER",
+                                     profile->packet_buffer_limit *
+                                     (profile->packet_size_limit +
+                                      sizeof(SCCudaPBPacketDataForGPUNonPayload)),
+                                     NULL, module_data->handle,
+                                     sd->b2g_cuda_cumodule_handle) == -1) {
+            goto error;
+        }
+
+        if (SCCudaHlGetCudaDevicePtr(&sd->cuda_packets_offset_buffer,
+                                     "MPM_B2G_PACKETS_BUFFER_OFFSETS",
+                                     sizeof(uint32_t) * profile->packet_buffer_limit,
+                                     NULL, module_data->handle,
+                                     sd->b2g_cuda_cumodule_handle) == -1) {
+            goto error;
+        }
+
+        if (SCCudaHlGetCudaDevicePtr(&sd->cuda_packets_payload_offset_buffer,
+                                     "MPM_B2G_PACKETS_PAYLOAD_BUFFER_OFFSETS",
+                                     sizeof(uint32_t) * profile->packet_buffer_limit,
+                                     NULL, module_data->handle,
+                                     sd->b2g_cuda_cumodule_handle) == -1) {
+            goto error;
+        }
+
+
+        if (SCCudaParamSetv(sd->b2g_cuda_search_kernel,
+                            sd->b2g_cuda_search_kernel_arg0_offset,
+                            (void *)&sd->cuda_results_buffer,
+                            sizeof(void *)) == -1) {
+            goto error;
+        }
+
+        if (SCCudaParamSetv(sd->b2g_cuda_search_kernel,
+                            sd->b2g_cuda_search_kernel_arg1_offset,
+                            (void *)&sd->cuda_packets_buffer,
+                            sizeof(void *)) == -1) {
+            goto error;
+        }
+
+        if (SCCudaParamSetv(sd->b2g_cuda_search_kernel,
+                            sd->b2g_cuda_search_kernel_arg2_offset,
+                            (void *)&sd->cuda_packets_offset_buffer,
+                            sizeof(void *)) == -1) {
+            goto error;
+        }
+
+        if (SCCudaParamSetv(sd->b2g_cuda_search_kernel,
+                sd->b2g_cuda_search_kernel_arg3_offset,
+                            (void *)&sd->cuda_packets_payload_offset_buffer,
+                            sizeof(void *)) == -1) {
+            goto error;
+        }
+
+        if (SCCudaParamSetv(sd->b2g_cuda_search_kernel,
+                            sd->b2g_cuda_search_kernel_arg5_offset,
+                            (void *)&sd->cuda_g_u8_lowercasetable,
+                            sizeof(void *)) == -1) {
+            goto error;
+        }
+
+        if (SCCudaParamSetSize(sd->b2g_cuda_search_kernel,
+                               sd->b2g_cuda_search_kernel_arg_total) == -1) {
+            goto error;
+        }
+    }
+
+    return 0;
+
+  error:
+    return -1;
+}
+
+/*
+ * \brief DeInitialize data for the cuda streams.
+ *
+ * \param tctx    The thread context data of the Cuda MPM.
+ * \param profile The cuda profile used by the MPM.
+ *
+ * \retval 0 on succes, -1 on failure
+ */
+static int B2gCudaMpmStreamDataDeInit(B2gCudaMpmThreadCtxData *tctx, MpmCudaConf *profile)
+{
+    B2gCudaMpmStreamData *sd = NULL;
+    uint8_t i = 0;
+
+    if (tctx == NULL || profile == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Arguments cannot be NULL");
+        goto error;
+    }
+
+    SCLogDebug("DeInitializing data for %"PRIu16" cuda streams", tctx->no_of_streams);
+    for (i = 0; i < tctx->no_of_streams; ++i) {
+        sd = &tctx->stream_data[i];
+
+        if (sd->cuda_stream != NULL) {
+            if (SCCudaStreamDestroy(sd->cuda_stream) == -1) {
+                SCLogError(SC_ERR_CUDA_ERROR, "Error deallocating Cuda stream ");
+                goto error;
+            }
+        }
+        if (profile->page_locked) {
+            if (SCCudaMemFreeHost(sd->results_buffer) == -1) {
+                SCLogError(SC_ERR_CUDA_ERROR, "Error deallocating pagelocked memory: "
+                                              "results_buffer\n");
+                goto error;
+            }
+        } else {
+            free(sd->results_buffer);
+        }
+        SCCudaHlFreeCudaDevicePtr("MPM_B2G_RESULTS",
+                                  tctx->b2g_cuda_module_handle,
+                                  sd->b2g_cuda_cumodule_handle);
+        SCCudaHlFreeCudaDevicePtr("MPM_B2G_PACKETS_BUFFER",
+                                  tctx->b2g_cuda_module_handle,
+                                  sd->b2g_cuda_cumodule_handle);
+        SCCudaHlFreeCudaDevicePtr("MPM_B2G_PACKETS_BUFFER_OFFSETS",
+                                  tctx->b2g_cuda_module_handle,
+                                  sd->b2g_cuda_cumodule_handle);
+        SCCudaHlFreeCudaDevicePtr("MPM_B2G_PACKETS_PAYLOAD_BUFFER_OFFSETS",
+                                  tctx->b2g_cuda_module_handle,
+                                  sd->b2g_cuda_cumodule_handle);
+        SCCudaHlFreeCudaDevicePtr("G_U8_LOWERCASETABLE",
+                                  tctx->b2g_cuda_module_handle,
+                                  sd->b2g_cuda_cumodule_handle);
+    }
+
+    free(tctx->stream_data);
+
+    return 0;
+
+ error:
+    return -1;
+}
 
 /**
  * \brief The Cuda MPM B2G module's thread init function.
@@ -1720,177 +2018,71 @@ TmEcode B2gCudaMpmDispThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     tctx->b2g_cuda_module_handle = module_data->handle;
 
+    /* Check configuration if streams and async operations can be used.
+     * If (CC == 1.0 || page_locked is disabled) then one stream is used,
+     * else more streams are used. When using the stream for async processing
+     * please check if memory has been allocated page-locked. */
+    profile = SCCudaHlGetProfile("mpm");
+
+    SCCudaDevices *devices = SCCudaGetDeviceList();
+    if (devices == NULL) {
+        SCLogError(SC_ERR_CUDA_ERROR, "CUDA environment not initialized.  "
+                   "Please initialized the CUDA environment by calling "
+                   "SCCudaInitCudaEnvironment() before making any calls "
+                   "to the CUDA API.");
+        goto error;
+    }
+    if (profile->device_id >= devices->count) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Cuda device does not exist.");
+        goto error;
+    }
+    tctx->no_of_streams = profile->cuda_streams;
+
+    if (!devices->devices[profile->device_id]->attr_gpu_overlap) {
+        SCLogInfo("Cuda device does not support gpu overlap. Falling back to 1 stream.");
+        tctx->no_of_streams = 1;
+    }
+    if (!profile->page_locked) {
+        SCLogInfo("In order to use asynchronous operations you need to enable "
+                  "page-locked memory in suricata.yaml.");
+        tctx->no_of_streams = 1;
+    }
+
+    /* Initialize resources for the streams */
+    tctx->stream_data = malloc(tctx->no_of_streams * sizeof(B2gCudaMpmStreamData));
+    if (tctx->stream_data == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory.");
+        exit(EXIT_FAILURE);
+    }
+    memset(tctx->stream_data, 0, tctx->no_of_streams * sizeof(B2gCudaMpmStreamData));
+
     if (SCCudaHlGetCudaContext(&tctx->b2g_cuda_context, "mpm", module_data->handle) == -1) {
         SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda context");
         goto error;
     }
 
-#if defined(__x86_64__) || defined(__ia64__)
-    tctx->b2g_cuda_cumodule_handle = SCCudaHlGetCudaModule(&tctx->b2g_cuda_module,
-                                                         b2g_cuda_ptx_image_64_bit,
-                                                         module_data->handle);
-#else
-    tctx->b2g_cuda_cumodule_handle = SCCudaHlGetCudaModule(&tctx->b2g_cuda_module,
-                                                         b2g_cuda_ptx_image_32_bit,
-                                                         module_data->handle);
-#endif
-    if (tctx->b2g_cuda_cumodule_handle == -1) {
-        SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda module");
+    /* Initialize stream data */
+    if (B2gCudaMpmStreamDataInit(tctx, profile) == -1) {
+        SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error initializing Cuda device data.");
         goto error;
     }
 
-    if (SCCudaModuleGetFunction(&tctx->b2g_cuda_search_kernel,
-                                tctx->b2g_cuda_module,
-                                B2G_CUDA_SEARCHFUNC_NAME) == -1) {
-        SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error getting a cuda function");
-        goto error;
-    }
-
-    if (SCCudaFuncSetBlockShape(tctx->b2g_cuda_search_kernel, 32, 1, 1) == -1) {
-        SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error setting function block shape");
-        goto error;
-    }
-
-#define ALIGN_UP(offset, alignment) (offset) = ((offset) + (alignment) - 1) & ~((alignment) - 1)
-
-    int offset = 0;
-
-    ALIGN_UP(offset, __alignof(void *));
-    tctx->b2g_cuda_search_kernel_arg0_offset = offset;
-    offset += sizeof(void *);
-
-    ALIGN_UP(offset, __alignof(void *));
-    tctx->b2g_cuda_search_kernel_arg1_offset = offset;
-    offset += sizeof(void *);
-
-    ALIGN_UP(offset, __alignof(void *));
-    tctx->b2g_cuda_search_kernel_arg2_offset = offset;
-    offset += sizeof(void *);
-
-    ALIGN_UP(offset, __alignof(void *));
-    tctx->b2g_cuda_search_kernel_arg3_offset = offset;
-    offset += sizeof(void *);
-
-    ALIGN_UP(offset, __alignof(uint16_t));
-    tctx->b2g_cuda_search_kernel_arg4_offset = offset;
-    offset += sizeof(void *);
-
-    ALIGN_UP(offset, __alignof(void *));
-    tctx->b2g_cuda_search_kernel_arg5_offset = offset;
-    offset += sizeof(void *);
-
-    tctx->b2g_cuda_search_kernel_arg_total = offset;
-
-    profile = SCCudaHlGetProfile("mpm");
-
-    /* buffer to hold the b2g cuda mpm match results for 4000 packets.  The
-     * extra 2 bytes(the extra + 1 ) is to hold the no of
-     * matches for the payload.  The remaining profile->packet_size_limit
-     * positions in the buffer is to hold the match offsets */
-    if (profile->page_locked) {
-        if (SCCudaMemHostAlloc((void**)&tctx->results_buffer,
-                               sizeof(uint16_t) * (profile->packet_size_limit + 1) *
-                               profile->packet_buffer_limit,
-                               CU_MEMHOSTALLOC_PORTABLE) == -1){
-            SCLogError(SC_ERR_CUDA_ERROR, "Error allocating page-locked memory\n");
-            exit(EXIT_FAILURE);
-        }
-    } else {
-        tctx->results_buffer = malloc(sizeof(uint16_t) *
-                                      (profile->packet_size_limit + 1) *
-                                      profile->packet_buffer_limit);
-        if (tctx->results_buffer == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(EXIT_FAILURE);
+    /* Setup queue to hold packet buffers for stream processing */
+    char *streamq_name = "b2g_cuda_mpm_streamq";
+    tctx->tmq_streamq = TmqGetQueueByName(streamq_name);
+    if (tctx->tmq_streamq == NULL) {
+        tctx->tmq_streamq = TmqCreateQueue(streamq_name);
+        if (tctx->tmq_streamq == NULL) {
+            goto error;
         }
     }
-
-    if (SCCudaHlGetCudaDevicePtr(&tctx->cuda_results_buffer,
-                                 "MPM_B2G_RESULTS",
-                                 sizeof(uint16_t) *
-                                 (profile->packet_size_limit + 1) *
-                                 profile->packet_buffer_limit,
-                                 NULL, module_data->handle,
-                                 tctx->b2g_cuda_cumodule_handle) == -1) {
-        goto error;
-    }
-
-    if (SCCudaHlGetCudaDevicePtr(&tctx->cuda_g_u8_lowercasetable,
-                                 "G_U8_LOWERCASETABLE", 256 * sizeof(char),
-                                 g_u8_lowercasetable, module_data->handle,
-                                 tctx->b2g_cuda_cumodule_handle) == -1) {
-        goto error;
-    }
-
-    if (SCCudaHlGetCudaDevicePtr(&tctx->cuda_packets_buffer,
-                                 "MPM_B2G_PACKETS_BUFFER",
-                                 profile->packet_buffer_limit *
-                                 (profile->packet_size_limit +
-                                  sizeof(SCCudaPBPacketDataForGPUNonPayload)),
-                                 NULL, module_data->handle,
-                                 tctx->b2g_cuda_cumodule_handle) == -1) {
-        goto error;
-    }
-
-    if (SCCudaHlGetCudaDevicePtr(&tctx->cuda_packets_offset_buffer,
-                                 "MPM_B2G_PACKETS_BUFFER_OFFSETS",
-                                 sizeof(uint32_t) * profile->packet_buffer_limit,
-                                 NULL, module_data->handle,
-                                 tctx->b2g_cuda_cumodule_handle) == -1) {
-        goto error;
-    }
-
-    if (SCCudaHlGetCudaDevicePtr(&tctx->cuda_packets_payload_offset_buffer,
-                                 "MPM_B2G_PACKETS_PAYLOAD_BUFFER_OFFSETS",
-                                 sizeof(uint32_t) * profile->packet_buffer_limit,
-                                 NULL, module_data->handle,
-                                 tctx->b2g_cuda_cumodule_handle) == -1) {
-        goto error;
-    }
-
-    if (SCCudaParamSetv(tctx->b2g_cuda_search_kernel,
-                        tctx->b2g_cuda_search_kernel_arg0_offset,
-                        (void *)&tctx->cuda_results_buffer,
-                        sizeof(void *)) == -1) {
-        goto error;
-    }
-
-    if (SCCudaParamSetv(tctx->b2g_cuda_search_kernel,
-                        tctx->b2g_cuda_search_kernel_arg1_offset,
-                        (void *)&tctx->cuda_packets_buffer,
-                        sizeof(void *)) == -1) {
-        goto error;
-    }
-
-    if (SCCudaParamSetv(tctx->b2g_cuda_search_kernel,
-                        tctx->b2g_cuda_search_kernel_arg2_offset,
-                        (void *)&tctx->cuda_packets_offset_buffer,
-                        sizeof(void *)) == -1) {
-        goto error;
-    }
-
-    if (SCCudaParamSetv(tctx->b2g_cuda_search_kernel,
-                        tctx->b2g_cuda_search_kernel_arg3_offset,
-                        (void *)&tctx->cuda_packets_payload_offset_buffer,
-                        sizeof(void *)) == -1) {
-        goto error;
-    }
-
-    if (SCCudaParamSetv(tctx->b2g_cuda_search_kernel,
-                        tctx->b2g_cuda_search_kernel_arg5_offset,
-                        (void *)&tctx->cuda_g_u8_lowercasetable,
-                        sizeof(void *)) == -1) {
-        goto error;
-    }
-
-    if (SCCudaParamSetSize(tctx->b2g_cuda_search_kernel,
-                           tctx->b2g_cuda_search_kernel_arg_total) == -1) {
-        goto error;
-    }
+    tctx->tmq_streamq->q_type = 1;
+    tctx->tmq_streamq->reader_cnt++;
+    tctx->tmq_streamq->writer_cnt++;
 
     *data = tctx;
 
-     return TM_ECODE_OK;
+    return TM_ECODE_OK;
 
  error:
     return TM_ECODE_FAILED;
@@ -1933,29 +2125,10 @@ TmEcode B2gCudaMpmDispThreadDeInit(ThreadVars *tv, void *data)
     SCCudaCtxPushCurrent(dummy_context);
 
     profile = SCCudaHlGetProfile("mpm");
-    if (profile->page_locked) {
-        if (SCCudaMemFreeHost(tctx->results_buffer) == -1) {
-            SCLogError(SC_ERR_CUDA_ERROR, "Error deallocating pagelocked memory: "
-                       "results_buffer\n");
-        }
-    } else {
-        free(tctx->results_buffer);
+    if (B2gCudaMpmStreamDataDeInit(tctx, profile) == -1) {
+        SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error deallocating Cuda device data.");
+        goto error;
     }
-    SCCudaHlFreeCudaDevicePtr("MPM_B2G_RESULTS",
-                              tctx->b2g_cuda_module_handle,
-                              tctx->b2g_cuda_cumodule_handle);
-    SCCudaHlFreeCudaDevicePtr("MPM_B2G_PACKETS_BUFFER",
-                              tctx->b2g_cuda_module_handle,
-                              tctx->b2g_cuda_cumodule_handle);
-    SCCudaHlFreeCudaDevicePtr("MPM_B2G_PACKETS_BUFFER_OFFSETS",
-                              tctx->b2g_cuda_module_handle,
-                              tctx->b2g_cuda_cumodule_handle);
-    SCCudaHlFreeCudaDevicePtr("MPM_B2G_PACKETS_PAYLOAD_BUFFER_OFFSETS",
-                              tctx->b2g_cuda_module_handle,
-                              tctx->b2g_cuda_cumodule_handle);
-    SCCudaHlFreeCudaDevicePtr("G_U8_LOWERCASETABLE",
-                              tctx->b2g_cuda_module_handle,
-                              tctx->b2g_cuda_cumodule_handle);
 
     free(tctx);
 
@@ -1969,25 +2142,161 @@ TmEcode B2gCudaMpmDispThreadDeInit(ThreadVars *tv, void *data)
     return TM_ECODE_FAILED;
 }
 
+
+/*
+ * \brief Process a packet buffer on the GPU.
+ *
+ * \param pb   Pointer to the packet buffer.
+ * \param tctx Pointer to the thread context which contains the Cuda context, kernel module,
+ *             streams, CPU+GPU memory etc.
+ * \param s    ID of the stream to be used.
+ *
+ * \retval     0 on succes, -1 on failure
+ */
+static int B2gCudaMpmProcessBuffer(SCCudaPBPacketsBuffer *pb, B2gCudaMpmThreadCtxData *tctx, uint16_t s)
+{
+    B2gCudaMpmStreamData *sd = NULL;
+
+    if (pb == NULL || tctx == NULL || s >= tctx->no_of_streams) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Either pb == NULL || tctx == NULL"
+                   "or the CUstream does not exist");
+        goto error;
+    }
+
+    SCLogDebug("Process packet buffer %p in stream %"PRIu16, pb, s);
+
+    sd = &tctx->stream_data[s];
+
+    if (sd->cuda_stream != NULL) {
+        SCLogDebug("B2g Cuda: Asynchronous processing enabled.");
+        sd->cuda_async = 1;
+    }
+
+    /* H->D */
+    if (sd->cuda_async) {
+        if (SCCudaMemcpyHtoDAsync(sd->cuda_packets_buffer,
+                                  pb->packets_buffer,
+                                  pb->packets_buffer_len,
+                                  sd->cuda_stream) == -1) {
+            goto error;
+        }
+
+        if (SCCudaMemcpyHtoDAsync(sd->cuda_packets_offset_buffer,
+                                  pb->packets_offset_buffer,
+                                  sizeof(uint32_t) * pb->nop_in_buffer,
+                                  sd->cuda_stream) == -1) {
+            goto error;
+        }
+
+        if (SCCudaMemcpyHtoDAsync(sd->cuda_packets_payload_offset_buffer,
+                                  pb->packets_payload_offset_buffer,
+                                  sizeof(uint32_t) * pb->nop_in_buffer,
+                                  sd->cuda_stream) == -1) {
+            goto error;
+        }
+    } else {
+        if (SCCudaMemcpyHtoD(sd->cuda_packets_buffer,
+                             pb->packets_buffer,
+                             pb->packets_buffer_len) == -1) {
+            goto error;
+        }
+
+        if (SCCudaMemcpyHtoD(sd->cuda_packets_offset_buffer,
+                             pb->packets_offset_buffer,
+                             sizeof(uint32_t) * pb->nop_in_buffer) == -1) {
+            goto error;
+        }
+
+        if (SCCudaMemcpyHtoD(sd->cuda_packets_payload_offset_buffer,
+                             pb->packets_payload_offset_buffer,
+                             sizeof(uint32_t) * pb->nop_in_buffer) == -1) {
+            goto error;
+        }
+    }
+
+    if (SCCudaParamSeti(sd->b2g_cuda_search_kernel,
+                        sd->b2g_cuda_search_kernel_arg4_offset,
+                        pb->nop_in_buffer) == -1) {
+        goto error;
+    }
+
+    /* Kernel:
+     * the no of threads per block has already been set to 32
+     * \todo if we are very sure we are allocating a multiple of block_size
+     * buffer_threshold, then we can remove this + 1 here below */
+    int no_of_cuda_blocks = (pb->nop_in_buffer / 32) + 1;
+    if (sd->cuda_async) {
+        if (SCCudaLaunchGridAsync(sd->b2g_cuda_search_kernel,
+                                  no_of_cuda_blocks,
+                                  1,
+                                  sd->cuda_stream) == -1) {
+            goto error;
+        }
+    } else {
+        if (SCCudaLaunchGrid(sd->b2g_cuda_search_kernel,
+                             no_of_cuda_blocks,
+                             1) == -1) {
+            goto error;
+        }
+    }
+
+    /* D->H */
+    if (sd->cuda_async) {
+        if (SCCudaMemcpyDtoHAsync(sd->results_buffer,
+                                  sd->cuda_results_buffer,
+                                  sizeof(uint16_t) *
+                                   (pb->nop_in_buffer + pb->packets_total_payload_len),
+                                  sd->cuda_stream) == -1) {
+            goto error;
+        }
+    } else {
+        if (SCCudaMemcpyDtoH(sd->results_buffer,
+                             sd->cuda_results_buffer,
+                             sizeof(uint16_t) *
+                              (pb->nop_in_buffer + pb->packets_total_payload_len)) == -1) {
+            goto error;
+        }
+    }
+
+    return 0;
+
+ error:
+    SCCudaCtxSynchronize();
+    sd->cuda_async = 0;
+
+    return -1;
+}
+
 /**
  * \brief The dispatcher function for the cuda mpm.  Takes a packet, feeds
  *        it to the gpu and informs the calling client when it has the
  *        results ready.
  *
  * \param tv   We don't need this.
- * \param p    Pointer to the Packet which contains all the relevant data,
+ * \param incoming_buffer Pointer to the Packet which contains all the relevant data,
  *             like the bufffer, buflen, the contexts.
  * \param data Pointer to the slot data if anything had been attached in
  *             the thread init function.
- * \param pq   We don't need this.
+ * \param buffer_dq Pointer to a data queue that can contain additional packet buffers
+ *             that should be processed in other CUstreams (if enabled). The dispatcher
+ *             function will dequeue all buffers that have been processed. The queue will
+ *             not be changed if CUstreams are disabled.
+ * \param post_pq We don't need this.
  *
  * \retval TM_ECODE_OK Always.
  */
 TmEcode B2gCudaMpmDispatcher(ThreadVars *tv, Packet *incoming_buffer,
-                             void *data, PacketQueue *pq, PacketQueue *post_pq)
+                             void *data, PacketQueue *buffer_dq, PacketQueue *post_pq)
 {
     SCCudaPBPacketsBuffer *pb = (SCCudaPBPacketsBuffer *)incoming_buffer;
     B2gCudaMpmThreadCtxData *tctx = data;
+
+    SCDQDataQueue *in_dq = (SCDQDataQueue *)buffer_dq;
+    SCDQDataQueue *out_dq = &data_queues[tctx->tmq_streamq->id];
+    SCDQGenericQData *q_ptr = NULL;
+    SCCudaPBPacketsBuffer *pb_in_queue = NULL;
+    uint8_t curr_stream = 0;
+
     uint32_t i = 0;
 
     SCLogDebug("Running the B2g CUDA mpm dispatcher");
@@ -1997,46 +2306,41 @@ TmEcode B2gCudaMpmDispatcher(ThreadVars *tv, Packet *incoming_buffer,
         return TM_ECODE_OK;
     }
 
-    if (SCCudaMemcpyHtoD(tctx->cuda_packets_buffer, pb->packets_buffer,
-                         pb->packets_buffer_len) == -1) {
+    /* Start processing the incoming_buffer */
+    if (B2gCudaMpmProcessBuffer(pb, tctx, curr_stream) == -1) {
         goto error;
     }
 
-    if (SCCudaMemcpyHtoD(tctx->cuda_packets_offset_buffer,
-                         pb->packets_offset_buffer,
-                         sizeof(uint32_t) * pb->nop_in_buffer) == -1) {
-        goto error;
+    /* Check if there are additional buffers in in_dq */
+    while (in_dq != NULL && ++curr_stream < tctx->no_of_streams) {
+        SCMutexLock(&in_dq->mutex_q);
+        pb_in_queue = (SCCudaPBPacketsBuffer *)SCDQDataDequeue(in_dq);
+        SCMutexUnlock(&in_dq->mutex_q);
+        if (pb_in_queue == NULL) {
+            break;
+        }
+
+        /* Add buffer to out_dq and start processing */
+        SCDQDataEnqueue(out_dq, (SCDQGenericQData *)pb_in_queue);
+        if (B2gCudaMpmProcessBuffer(pb_in_queue, tctx, curr_stream) == -1) {
+            goto error;
+        }
     }
 
-    if (SCCudaMemcpyHtoD(tctx->cuda_packets_payload_offset_buffer,
-                         pb->packets_payload_offset_buffer,
-                         sizeof(uint32_t) * pb->nop_in_buffer) == -1) {
-        goto error;
+    /* Sync first packet buffer */
+    curr_stream = 0;
+    if (tctx->stream_data[curr_stream].cuda_async) {
+        SCLogDebug("Synchronize PB %p in Cuda stream %"PRIu16, pb, curr_stream);
+        if (SCCudaStreamSynchronize(tctx->stream_data[curr_stream].cuda_stream) == -1) {
+            SCLogError(SC_ERR_CUDA_ERROR, "Failed to synchronize Cuda stream");
+            goto error;
+        }
+        tctx->stream_data[curr_stream].cuda_async = 0;
     }
-
-    if (SCCudaParamSeti(tctx->b2g_cuda_search_kernel, tctx->b2g_cuda_search_kernel_arg4_offset,
-                        pb->nop_in_buffer) == -1) {
-        goto error;
-    }
-
-    /* the no of threads per block has already been set to 32
-     * \todo if we are very sure we are allocating a multiple of block_size
-     * buffer_threshold, then we can remove this + 1 here below */
-    int no_of_cuda_blocks = (pb->nop_in_buffer / 32) + 1;
-    if (SCCudaLaunchGrid(tctx->b2g_cuda_search_kernel, no_of_cuda_blocks, 1) == -1) {
-        goto error;
-    }
-
-    if (SCCudaMemcpyDtoH(tctx->results_buffer,
-                         tctx->cuda_results_buffer,
-                         sizeof(uint16_t) * (pb->nop_in_buffer + pb->packets_total_payload_len)) == -1) {
-        goto error;
-    }
-
     i = 0;
     for (i = 0; i < pb->nop_in_buffer; i++) {
         memcpy(pb->packets_address_buffer[i]->mpm_offsets,
-               (tctx->results_buffer + i +
+               (tctx->stream_data[curr_stream].results_buffer + i +
                 pb->packets_payload_offset_buffer[i]),
                (pb->packets_address_buffer[i]->payload_len + 1) * sizeof(uint16_t));
         SCMutexLock(&pb->packets_address_buffer[i]->cuda_mutex);
@@ -2045,17 +2349,69 @@ TmEcode B2gCudaMpmDispatcher(ThreadVars *tv, Packet *incoming_buffer,
         SCCondSignal(&pb->packets_address_buffer[i]->cuda_cond);
     }
 
+    /* Sync all other buffers in out_dq (if any) */
+    q_ptr = out_dq->bot;
+    while (q_ptr != NULL && ++curr_stream < tctx->no_of_streams) {
+        pb_in_queue = (SCCudaPBPacketsBuffer *)q_ptr;
+
+        if (tctx->stream_data[curr_stream].cuda_async) {
+            SCLogDebug("Synchronize PB %p in Cuda stream %"PRIu16, pb_in_queue, curr_stream);
+            if (SCCudaStreamSynchronize(tctx->stream_data[curr_stream].cuda_stream) == -1) {
+                SCLogError(SC_ERR_CUDA_ERROR, "Failed to synchronize Cuda stream");
+                goto error;
+            }
+            tctx->stream_data[curr_stream].cuda_async = 0;
+        }
+        i = 0;
+        for (i = 0; i < pb_in_queue->nop_in_buffer; i++) {
+            memcpy(pb_in_queue->packets_address_buffer[i]->mpm_offsets,
+                   (tctx->stream_data[curr_stream].results_buffer + i +
+                    pb_in_queue->packets_payload_offset_buffer[i]),
+                   (pb_in_queue->packets_address_buffer[i]->payload_len + 1) * sizeof(uint16_t));
+            SCMutexLock(&pb_in_queue->packets_address_buffer[i]->cuda_mutex);
+            pb_in_queue->packets_address_buffer[i]->cuda_done = 1;
+            SCMutexUnlock(&pb_in_queue->packets_address_buffer[i]->cuda_mutex);
+            SCCondSignal(&pb_in_queue->packets_address_buffer[i]->cuda_cond);
+        }
+
+        q_ptr = q_ptr->prev;
+    }
+
     SCLogDebug("B2g Cuda mpm dispatcher returning");
+
     return TM_ECODE_OK;
 
  error:
+    if (SCCudaCtxSynchronize() == -1) {
+        SCLogError(SC_ERR_CUDA_ERROR, "Failed to synchronize context.");
+    }
+
+    curr_stream = 0;
+    tctx->stream_data[curr_stream].cuda_async = 0;
     for (i = 0; i < pb->nop_in_buffer; i++) {
         SCMutexLock(&pb->packets_address_buffer[i]->cuda_mutex);
         pb->packets_address_buffer[i]->cuda_done = 1;
         SCMutexUnlock(&pb->packets_address_buffer[i]->cuda_mutex);
         SCCondSignal(&pb->packets_address_buffer[i]->cuda_cond);
     }
+
+    q_ptr = out_dq->bot;
+    while (q_ptr != NULL && ++curr_stream < tctx->no_of_streams) {
+        pb_in_queue = (SCCudaPBPacketsBuffer *)q_ptr;
+        tctx->stream_data[curr_stream].cuda_async = 0;
+
+        for (i = 0; i < pb_in_queue->nop_in_buffer; i++) {
+            SCMutexLock(&pb_in_queue->packets_address_buffer[i]->cuda_mutex);
+            pb_in_queue->packets_address_buffer[i]->cuda_done = 1;
+            SCMutexUnlock(&pb_in_queue->packets_address_buffer[i]->cuda_mutex);
+            SCCondSignal(&pb_in_queue->packets_address_buffer[i]->cuda_cond);
+        }
+
+        q_ptr = q_ptr->prev;
+    }
+
     SCLogError(SC_ERR_B2G_CUDA_ERROR, "B2g Cuda mpm dispatcher returning with error");
+
     return TM_ECODE_OK;
 }
 
@@ -2178,6 +2534,7 @@ void *CudaMpmB2gThreadsSlot1(void *td)
     ThreadVars *tv = (ThreadVars *)td;
     Tm1Slot *s = (Tm1Slot *)tv->tm_slots;
     SCCudaPBPacketsBuffer *data = NULL;
+    B2gCudaMpmThreadCtxData *tctx = NULL;
     char run = 1;
     TmEcode r = TM_ECODE_OK;
 
@@ -2201,6 +2558,8 @@ void *CudaMpmB2gThreadsSlot1(void *td)
     memset(&s->s.slot_pre_pq, 0, sizeof(PacketQueue));
     memset(&s->s.slot_post_pq, 0, sizeof(PacketQueue));
 
+    tctx = (B2gCudaMpmThreadCtxData *)s->s.slot_data;
+
     TmThreadsSetFlag(tv, THV_INIT_DONE);
     while(run) {
         TmThreadTestThreadUnPaused(tv);
@@ -2211,11 +2570,29 @@ void *CudaMpmB2gThreadsSlot1(void *td)
         if (data == NULL) {
             //printf("%s: TmThreadsSlot1: p == NULL\n", tv->name);
         } else {
-            r = s->s.SlotFunc(tv, (Packet *)data, s->s.slot_data, NULL, NULL);
+            /* We pass the current packet buffer (1) to the dispatcher function. The data queue
+             * is checked by the dispatcher thread if there is another packet buffer (2) ready.
+             * If the MPM is configured to use multiple CUstreams, buffer (1) and buffer (2) are
+             * processed in parallel using multiple streams; In this case
+             * data_queues[tctx->tmq_streamq->id] will contain the results of packet buffer (2). */
+            r = s->s.SlotFunc(tv,
+                              (Packet *)data,
+                              (void *)tctx,
+                              (PacketQueue *)&data_queues[tv->inq->id],
+                              NULL);
             /* handle error */
 
-            /* output the packet */
+            /* output the packet buffer (1) */
             TmqhOutputSimpleOnQ(&data_queues[tv->outq->id], (SCDQGenericQData *)data);
+
+            /* output additional packet buffers (2) */
+            while (data != NULL) {
+                data = (SCCudaPBPacketsBuffer *)SCDQDataDequeue(&data_queues[tctx->tmq_streamq->id]);
+                if (data == NULL) {
+                    break;
+                }
+                TmqhOutputSimpleOnQ(&data_queues[tv->outq->id], (SCDQGenericQData *)data);
+            }
         }
 
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
@@ -2350,9 +2727,9 @@ static int B2gCudaTest01(void)
 
     if (tctx->b2g_cuda_context == 0)
         goto end;
-    if (tctx->b2g_cuda_module == 0)
+    if (tctx->stream_data[0].b2g_cuda_cumodule == 0)
         goto end;
-    if (tctx->b2g_cuda_search_kernel == 0)
+    if (tctx->stream_data[0].b2g_cuda_search_kernel == 0)
         goto end;
 
     if (B2gCudaAddPatternCS(&mpm_ctx, (uint8_t *)"one", 3, 0, 0, 1, 1, 0) == -1)
@@ -2598,8 +2975,8 @@ static int B2gCudaTest02(void)
     B2gCudaMpmDispThreadInit(NULL, module_data, (void *)&b2g_tctx);
 
     if (b2g_tctx->b2g_cuda_context == 0 ||
-        b2g_tctx->b2g_cuda_module == 0 ||
-        b2g_tctx->b2g_cuda_search_kernel == 0) {
+        b2g_tctx->stream_data[0].b2g_cuda_cumodule == 0 ||
+        b2g_tctx->stream_data[0].b2g_cuda_search_kernel == 0) {
         result = 0;
         goto end;
     }
@@ -2899,8 +3276,8 @@ static int B2gCudaTest03(void)
     B2gCudaMpmDispThreadInit(NULL, module_data, (void *)&b2g_tctx);
 
     if (b2g_tctx->b2g_cuda_context == 0 ||
-        b2g_tctx->b2g_cuda_module == 0 ||
-        b2g_tctx->b2g_cuda_search_kernel == 0) {
+        b2g_tctx->stream_data[0].b2g_cuda_cumodule == 0 ||
+        b2g_tctx->stream_data[0].b2g_cuda_search_kernel == 0) {
         result = 0;
         goto end;
     }
@@ -2946,6 +3323,718 @@ static int B2gCudaTest03(void)
     return result;
 }
 
+static int B2gCudaTest04(void)
+{
+    uint8_t raw_eth[] = {
+        0x00, 0x25, 0x00, 0x9e, 0xfa, 0xfe, 0x00, 0x02,
+        0xcf, 0x74, 0xfe, 0xe1, 0x08, 0x00, 0x45, 0x00,
+        0x01, 0xcc, 0xcb, 0x91, 0x00, 0x00, 0x34, 0x06,
+        0xdf, 0xa8, 0xd1, 0x55, 0xe3, 0x67, 0xc0, 0xa8,
+        0x64, 0x8c, 0x00, 0x50, 0xc0, 0xb7, 0xd1, 0x11,
+        0xed, 0x63, 0x81, 0xa9, 0x9a, 0x05, 0x80, 0x18,
+        0x00, 0x75, 0x0a, 0xdd, 0x00, 0x00, 0x01, 0x01,
+        0x08, 0x0a, 0x09, 0x8a, 0x06, 0xd0, 0x12, 0x21,
+        0x2a, 0x3b, 0x48, 0x54, 0x54, 0x50, 0x2f, 0x31,
+        0x2e, 0x31, 0x20, 0x33, 0x30, 0x32, 0x20, 0x46,
+        0x6f, 0x75, 0x6e, 0x64, 0x0d, 0x0a, 0x4c, 0x6f,
+        0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x20,
+        0x68, 0x74, 0x74, 0x70, 0x3a, 0x2f, 0x2f, 0x77,
+        0x77, 0x77, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c,
+        0x65, 0x2e, 0x65, 0x73, 0x2f, 0x0d, 0x0a, 0x43,
+        0x61, 0x63, 0x68, 0x65, 0x2d, 0x43, 0x6f, 0x6e,
+        0x74, 0x72, 0x6f, 0x6c, 0x3a, 0x20, 0x70, 0x72,
+        0x69, 0x76, 0x61, 0x74, 0x65, 0x0d, 0x0a, 0x43,
+        0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x54,
+        0x79, 0x70, 0x65, 0x3a, 0x20, 0x74, 0x65, 0x78,
+        0x74, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3b, 0x20,
+        0x63, 0x68, 0x61, 0x72, 0x73, 0x65, 0x74, 0x3d,
+        0x55, 0x54, 0x46, 0x2d, 0x38, 0x0d, 0x0a, 0x44,
+        0x61, 0x74, 0x65, 0x3a, 0x20, 0x4d, 0x6f, 0x6e,
+        0x2c, 0x20, 0x31, 0x34, 0x20, 0x53, 0x65, 0x70,
+        0x20, 0x32, 0x30, 0x30, 0x39, 0x20, 0x30, 0x38,
+        0x3a, 0x34, 0x38, 0x3a, 0x33, 0x31, 0x20, 0x47,
+        0x4d, 0x54, 0x0d, 0x0a, 0x53, 0x65, 0x72, 0x76,
+        0x65, 0x72, 0x3a, 0x20, 0x67, 0x77, 0x73, 0x0d,
+        0x0a, 0x43, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74,
+        0x2d, 0x4c, 0x65, 0x6e, 0x67, 0x74, 0x68, 0x3a,
+        0x20, 0x32, 0x31, 0x38, 0x0d, 0x0a, 0x0d, 0x0a,
+        0x3c, 0x48, 0x54, 0x4d, 0x4c, 0x3e, 0x3c, 0x48,
+        0x45, 0x41, 0x44, 0x3e, 0x3c, 0x6d, 0x65, 0x74,
+        0x61, 0x20, 0x68, 0x74, 0x74, 0x70, 0x2d, 0x65,
+        0x71, 0x75, 0x69, 0x76, 0x3d, 0x22, 0x63, 0x6f,
+        0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x74, 0x79,
+        0x70, 0x65, 0x22, 0x20, 0x63, 0x6f, 0x6e, 0x74,
+        0x65, 0x6e, 0x74, 0x3d, 0x22, 0x74, 0x65, 0x78,
+        0x74, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3b, 0x63,
+        0x68, 0x61, 0x72, 0x73, 0x65, 0x74, 0x3d, 0x75,
+        0x74, 0x66, 0x2d, 0x38, 0x22, 0x3e, 0x0a, 0x3c,
+        0x54, 0x49, 0x54, 0x4c, 0x45, 0x3e, 0x33, 0x30,
+        0x32, 0x20, 0x4d, 0x6f, 0x76, 0x65, 0x64, 0x3c,
+        0x2f, 0x54, 0x49, 0x54, 0x4c, 0x45, 0x3e, 0x3c,
+        0x2f, 0x48, 0x45, 0x41, 0x44, 0x3e, 0x3c, 0x42,
+        0x4f, 0x44, 0x59, 0x3e, 0x0a, 0x3c, 0x48, 0x31,
+        0x3e, 0x33, 0x30, 0x32, 0x20, 0x4d, 0x6f, 0x76,
+        0x65, 0x64, 0x3c, 0x2f, 0x48, 0x31, 0x3e, 0x0a,
+        0x54, 0x68, 0x65, 0x20, 0x64, 0x6f, 0x63, 0x75,
+        0x6d, 0x65, 0x6e, 0x74, 0x20, 0x68, 0x61, 0x73,
+        0x20, 0x6d, 0x6f, 0x76, 0x65, 0x64, 0x0a, 0x3c,
+        0x41, 0x20, 0x48, 0x52, 0x45, 0x46, 0x3d, 0x22,
+        0x68, 0x74, 0x74, 0x70, 0x3a, 0x2f, 0x2f, 0x77,
+        0x77, 0x77, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c,
+        0x65, 0x2e, 0x65, 0x73, 0x2f, 0x22, 0x3e, 0x68,
+        0x65, 0x72, 0x65, 0x3c, 0x2f, 0x41, 0x3e, 0x2e,
+        0x0d, 0x0a, 0x3c, 0x2f, 0x42, 0x4f, 0x44, 0x59,
+        0x3e, 0x3c, 0x2f, 0x48, 0x54, 0x4d, 0x4c, 0x3e,
+        0x0d, 0x0a };
+
+
+    int result = 0;
+    const char *strings[10] = {
+        "test_test_one",
+        "test_two_test",
+        "test_three_test",
+        "test_four_test",
+        "test_five_test",
+        "test_six_test",
+        "test_seven_test",
+        "test_eight_test",
+        "test_nine_test",
+        "test_ten_test"};
+    /* don't shoot me for hardcoding the results.  We will change this in
+     * sometime, by having run a separate mpm on the cpu and then hold
+     * the results in a temp buffer */
+
+    const uint16_t max_pkts_in_buffer = 5;
+    const uint16_t no_of_pkts = max_pkts_in_buffer * 2;
+
+    Packet *p[no_of_pkts];
+    SCCudaPBThreadCtx *pb_tctx = NULL;
+
+    DecodeThreadVars dtv;
+    ThreadVars tv;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx;
+    ThreadVars de_tv;
+
+    SCCudaPBPacketsBuffer *pb = NULL;
+    SCDQDataQueue *dq = NULL;
+
+    char *inq_name = "cuda_batcher_mpm_inqueue";
+    char *outq_name = "cuda_batcher_mpm_outqueue";
+
+    Tmq *tmq_outq = NULL;
+    Tmq *tmq_inq = NULL;
+
+    uint32_t i = 0, j = 0;
+
+    Signature *sig = NULL;
+
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&de_tv, 0, sizeof(ThreadVars));
+
+    FlowInitConfig(FLOW_QUIET);
+    for (i = 0; i < no_of_pkts; i++) {
+        p[i] = malloc(sizeof(Packet));
+        if (p[i] == NULL) {
+            printf("error allocating memory\n");
+            exit(EXIT_FAILURE);
+        }
+        memset(p[i], 0, sizeof(Packet));
+        DecodeEthernet(&tv, &dtv, p[i], raw_eth, sizeof(raw_eth), NULL);
+    }
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->mpm_matcher = MPM_B2G_CUDA;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                               "content:test; sid:0;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = de_ctx->sig_list;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:one; sid:1;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:two; sid:2;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:three; sid:3;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:four; sid:4;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:five; sid:5;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:six; sid:6;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:seven; sid:7;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:eight; sid:8;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:nine; sid:9;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:ten; sid:10;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+
+    /* build the signatures */
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&de_tv, (void *)de_ctx, (void *)&det_ctx);
+
+    SCCudaPBSetProfile("mpm");
+    SCCudaPBSetUpQueuesAndBuffers();
+
+    /* get the queues used by the batcher thread */
+    tmq_inq = TmqGetQueueByName(inq_name);
+    if (tmq_inq == NULL) {
+        printf("tmq_inq NULL\n");
+        goto end;
+    }
+    tmq_outq = TmqGetQueueByName(outq_name);
+    if (tmq_outq == NULL) {
+        printf("tmq_outq NULL\n");
+        goto end;
+    }
+
+    result = 1;
+
+    /* queue state before calling the thread init function */
+    dq = &data_queues[tmq_outq->id];
+    result &= (dq->len == 0);
+    dq = &data_queues[tmq_inq->id];
+    result &= (dq->len == 10);
+
+    SCCudaPBRunningTests(1);
+    /* init the TM thread */
+    SCCudaPBThreadInit(&tv, de_ctx, (void *)&pb_tctx);
+    SCCudaPBSetBufferPacketThreshhold(max_pkts_in_buffer);
+
+    /* queue state after calling the thread init function */
+    dq = &data_queues[tmq_outq->id];
+    result &= (dq->len == 0);
+    dq = &data_queues[tmq_inq->id];
+    result &= (dq->len == 9);
+
+    for (i = 0; i < no_of_pkts; i++) {
+        p[i]->payload = (uint8_t *)strings[i];
+        p[i]->payload_len = strlen(strings[i]);
+        SCCudaPBBatchPackets(NULL, p[i], pb_tctx, NULL, NULL);
+    }
+
+    dq = &data_queues[tmq_outq->id];
+    result &= (dq->len == 2);
+    dq = &data_queues[tmq_inq->id];
+    result &= (dq->len == 7);
+
+    int module_handle = SCCudaHlRegisterModule("SC_RULES_CONTENT_B2G_CUDA");
+    SCCudaHlModuleData *module_data = SCCudaHlGetModuleData(module_handle);
+
+    B2gCudaMpmThreadCtxData *b2g_tctx = NULL;
+    B2gCudaMpmDispThreadInit(NULL, module_data, (void *)&b2g_tctx);
+
+    if (b2g_tctx->no_of_streams < 2) {
+        printf("At least 2 cuda streams needed for this test. Skipping ..\n");
+        goto end;
+    }
+
+    if (b2g_tctx->b2g_cuda_context == 0 ||
+        b2g_tctx->stream_data[0].b2g_cuda_cumodule == 0 ||
+        b2g_tctx->stream_data[0].b2g_cuda_search_kernel == 0) {
+        result = 0;
+        goto end;
+    }
+
+    SCCudaCtxSynchronize();
+
+    /* Run the dispatcher function. */
+    pb = (SCCudaPBPacketsBuffer *)SCDQDataDequeue(&data_queues[tmq_outq->id]);
+    if (pb == NULL) {
+        SCLogError(SC_ERR_INVALID_VALUE, "PacketBuffer should not be empty");
+        result = 0;
+    }
+    result &= (pb->nop_in_buffer == max_pkts_in_buffer);
+    B2gCudaMpmDispatcher(NULL, (Packet *)pb, b2g_tctx, (PacketQueue *)&data_queues[tmq_outq->id], NULL);
+    TmqhOutputSimpleOnQ(&data_queues[tmq_inq->id], (SCDQGenericQData *)pb);
+    if (data_queues[b2g_tctx->tmq_streamq->id].len != 1) {
+        result = 0;
+    }
+    while ((pb = (SCCudaPBPacketsBuffer *)SCDQDataDequeue(&data_queues[b2g_tctx->tmq_streamq->id])) != NULL) {
+        TmqhOutputSimpleOnQ(&data_queues[tmq_inq->id], (SCDQGenericQData *)pb);
+    }
+    if (data_queues[b2g_tctx->tmq_streamq->id].len != 0) {
+        result = 0;
+    }
+
+    for (i = 0; i < no_of_pkts; i++)
+        SigMatchSignatures(&de_tv, de_ctx, det_ctx, p[i]);
+    for (i = 0; i < no_of_pkts; i++) {
+        if (!PacketAlertCheck(p[i], 0)) {
+            result = 0;
+            goto end;
+        }
+        for (j = 1; j <= 10; j++) {
+            if (j == i + 1) {
+                if (!PacketAlertCheck(p[i], j)) {
+                    result = 0;
+                    goto end;
+                }
+            } else {
+                if (PacketAlertCheck(p[i], j)) {
+                    result = 0;
+                    goto end;
+                }
+            }
+        }
+    }
+
+ end:
+    for (i = 0; i < no_of_pkts; i++) {
+        free(p[i]);
+    }
+    SCCudaPBCleanUpQueuesAndBuffers();
+    if (de_ctx) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+    SCCudaPBThreadDeInit(NULL, (void *)pb_tctx);
+    B2gCudaMpmDispThreadDeInit(NULL, (void *)b2g_tctx);
+
+    return result;
+}
+
+static int B2gCudaTest05(void)
+{
+    uint8_t raw_eth[] = {
+        0x00, 0x25, 0x00, 0x9e, 0xfa, 0xfe, 0x00, 0x02,
+        0xcf, 0x74, 0xfe, 0xe1, 0x08, 0x00, 0x45, 0x00,
+        0x01, 0xcc, 0xcb, 0x91, 0x00, 0x00, 0x34, 0x06,
+        0xdf, 0xa8, 0xd1, 0x55, 0xe3, 0x67, 0xc0, 0xa8,
+        0x64, 0x8c, 0x00, 0x50, 0xc0, 0xb7, 0xd1, 0x11,
+        0xed, 0x63, 0x81, 0xa9, 0x9a, 0x05, 0x80, 0x18,
+        0x00, 0x75, 0x0a, 0xdd, 0x00, 0x00, 0x01, 0x01,
+        0x08, 0x0a, 0x09, 0x8a, 0x06, 0xd0, 0x12, 0x21,
+        0x2a, 0x3b, 0x48, 0x54, 0x54, 0x50, 0x2f, 0x31,
+        0x2e, 0x31, 0x20, 0x33, 0x30, 0x32, 0x20, 0x46,
+        0x6f, 0x75, 0x6e, 0x64, 0x0d, 0x0a, 0x4c, 0x6f,
+        0x63, 0x61, 0x74, 0x69, 0x6f, 0x6e, 0x3a, 0x20,
+        0x68, 0x74, 0x74, 0x70, 0x3a, 0x2f, 0x2f, 0x77,
+        0x77, 0x77, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c,
+        0x65, 0x2e, 0x65, 0x73, 0x2f, 0x0d, 0x0a, 0x43,
+        0x61, 0x63, 0x68, 0x65, 0x2d, 0x43, 0x6f, 0x6e,
+        0x74, 0x72, 0x6f, 0x6c, 0x3a, 0x20, 0x70, 0x72,
+        0x69, 0x76, 0x61, 0x74, 0x65, 0x0d, 0x0a, 0x43,
+        0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x54,
+        0x79, 0x70, 0x65, 0x3a, 0x20, 0x74, 0x65, 0x78,
+        0x74, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3b, 0x20,
+        0x63, 0x68, 0x61, 0x72, 0x73, 0x65, 0x74, 0x3d,
+        0x55, 0x54, 0x46, 0x2d, 0x38, 0x0d, 0x0a, 0x44,
+        0x61, 0x74, 0x65, 0x3a, 0x20, 0x4d, 0x6f, 0x6e,
+        0x2c, 0x20, 0x31, 0x34, 0x20, 0x53, 0x65, 0x70,
+        0x20, 0x32, 0x30, 0x30, 0x39, 0x20, 0x30, 0x38,
+        0x3a, 0x34, 0x38, 0x3a, 0x33, 0x31, 0x20, 0x47,
+        0x4d, 0x54, 0x0d, 0x0a, 0x53, 0x65, 0x72, 0x76,
+        0x65, 0x72, 0x3a, 0x20, 0x67, 0x77, 0x73, 0x0d,
+        0x0a, 0x43, 0x6f, 0x6e, 0x74, 0x65, 0x6e, 0x74,
+        0x2d, 0x4c, 0x65, 0x6e, 0x67, 0x74, 0x68, 0x3a,
+        0x20, 0x32, 0x31, 0x38, 0x0d, 0x0a, 0x0d, 0x0a,
+        0x3c, 0x48, 0x54, 0x4d, 0x4c, 0x3e, 0x3c, 0x48,
+        0x45, 0x41, 0x44, 0x3e, 0x3c, 0x6d, 0x65, 0x74,
+        0x61, 0x20, 0x68, 0x74, 0x74, 0x70, 0x2d, 0x65,
+        0x71, 0x75, 0x69, 0x76, 0x3d, 0x22, 0x63, 0x6f,
+        0x6e, 0x74, 0x65, 0x6e, 0x74, 0x2d, 0x74, 0x79,
+        0x70, 0x65, 0x22, 0x20, 0x63, 0x6f, 0x6e, 0x74,
+        0x65, 0x6e, 0x74, 0x3d, 0x22, 0x74, 0x65, 0x78,
+        0x74, 0x2f, 0x68, 0x74, 0x6d, 0x6c, 0x3b, 0x63,
+        0x68, 0x61, 0x72, 0x73, 0x65, 0x74, 0x3d, 0x75,
+        0x74, 0x66, 0x2d, 0x38, 0x22, 0x3e, 0x0a, 0x3c,
+        0x54, 0x49, 0x54, 0x4c, 0x45, 0x3e, 0x33, 0x30,
+        0x32, 0x20, 0x4d, 0x6f, 0x76, 0x65, 0x64, 0x3c,
+        0x2f, 0x54, 0x49, 0x54, 0x4c, 0x45, 0x3e, 0x3c,
+        0x2f, 0x48, 0x45, 0x41, 0x44, 0x3e, 0x3c, 0x42,
+        0x4f, 0x44, 0x59, 0x3e, 0x0a, 0x3c, 0x48, 0x31,
+        0x3e, 0x33, 0x30, 0x32, 0x20, 0x4d, 0x6f, 0x76,
+        0x65, 0x64, 0x3c, 0x2f, 0x48, 0x31, 0x3e, 0x0a,
+        0x54, 0x68, 0x65, 0x20, 0x64, 0x6f, 0x63, 0x75,
+        0x6d, 0x65, 0x6e, 0x74, 0x20, 0x68, 0x61, 0x73,
+        0x20, 0x6d, 0x6f, 0x76, 0x65, 0x64, 0x0a, 0x3c,
+        0x41, 0x20, 0x48, 0x52, 0x45, 0x46, 0x3d, 0x22,
+        0x68, 0x74, 0x74, 0x70, 0x3a, 0x2f, 0x2f, 0x77,
+        0x77, 0x77, 0x2e, 0x67, 0x6f, 0x6f, 0x67, 0x6c,
+        0x65, 0x2e, 0x65, 0x73, 0x2f, 0x22, 0x3e, 0x68,
+        0x65, 0x72, 0x65, 0x3c, 0x2f, 0x41, 0x3e, 0x2e,
+        0x0d, 0x0a, 0x3c, 0x2f, 0x42, 0x4f, 0x44, 0x59,
+        0x3e, 0x3c, 0x2f, 0x48, 0x54, 0x4d, 0x4c, 0x3e,
+        0x0d, 0x0a };
+
+
+    int result = 0;
+    const char *strings[10] = {
+        "test_test_one",
+        "test_two_test",
+        "test_three_test",
+        "test_four_test",
+        "test_five_test",
+        "test_six_test",
+        "test_seven_test",
+        "test_eight_test",
+        "test_nine_test",
+        "test_ten_test"};
+    /* don't shoot me for hardcoding the results.  We will change this in
+     * sometime, by having run a separate mpm on the cpu and then hold
+     * the results in a temp buffer */
+
+    const uint16_t max_pkts_in_buffer = 300;
+    const uint16_t no_of_pkts = max_pkts_in_buffer * 4;
+    uint16_t max_runs = 2;
+
+    Packet *p[no_of_pkts];
+    SCCudaPBThreadCtx *pb_tctx = NULL;
+
+    DecodeThreadVars dtv;
+    ThreadVars tv;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx;
+    ThreadVars de_tv;
+
+    SCCudaPBPacketsBuffer *pb = NULL;
+    SCCudaPBPacketsBuffer *pb2 = NULL;
+    SCDQDataQueue *dq = NULL;
+
+    char *inq_name = "cuda_batcher_mpm_inqueue";
+    char *outq_name = "cuda_batcher_mpm_outqueue";
+
+    Tmq *tmq_outq = NULL;
+    Tmq *tmq_inq = NULL;
+
+    uint32_t i = 0, j = 0;
+
+    Signature *sig = NULL;
+
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&de_tv, 0, sizeof(ThreadVars));
+
+    FlowInitConfig(FLOW_QUIET);
+    for (i = 0; i < no_of_pkts; i++) {
+        p[i] = malloc(sizeof(Packet));
+        if (p[i] == NULL) {
+            printf("error allocating memory\n");
+            exit(EXIT_FAILURE);
+        }
+        memset(p[i], 0, sizeof(Packet));
+        DecodeEthernet(&tv, &dtv, p[i], raw_eth, sizeof(raw_eth), NULL);
+    }
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+    de_ctx->mpm_matcher = MPM_B2G_CUDA;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                               "content:test; sid:0;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = de_ctx->sig_list;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:one; sid:1;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:two; sid:2;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:three; sid:3;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:four; sid:4;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:five; sid:5;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:six; sid:6;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:seven; sid:7;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:eight; sid:8;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:nine; sid:9;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+    sig = sig->next;
+
+    sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
+                        "content:ten; sid:10;)");
+    if (sig->next == NULL) {
+        printf("signature parsing failed\n");
+        goto end;
+    }
+
+    /* build the signatures */
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&de_tv, (void *)de_ctx, (void *)&det_ctx);
+
+    SCCudaPBSetProfile("mpm");
+    SCCudaPBSetUpQueuesAndBuffers();
+
+    /* get the queues used by the batcher thread */
+    tmq_inq = TmqGetQueueByName(inq_name);
+    if (tmq_inq == NULL) {
+        printf("tmq_inq NULL\n");
+        goto end;
+    }
+    tmq_outq = TmqGetQueueByName(outq_name);
+    if (tmq_outq == NULL) {
+        printf("tmq_outq NULL\n");
+        goto end;
+    }
+
+    result = 1;
+
+    /* queue state before calling the thread init function */
+    dq = &data_queues[tmq_outq->id];
+    result &= (dq->len == 0);
+    dq = &data_queues[tmq_inq->id];
+    result &= (dq->len == 10);
+
+    SCCudaPBRunningTests(1);
+    /* init the TM thread */
+    SCCudaPBThreadInit(&tv, de_ctx, (void *)&pb_tctx);
+    SCCudaPBSetBufferPacketThreshhold(max_pkts_in_buffer);
+
+    /* queue state after calling the thread init function */
+    dq = &data_queues[tmq_outq->id];
+    result &= (dq->len == 0);
+    dq = &data_queues[tmq_inq->id];
+    result &= (dq->len == 9);
+
+    int module_handle = SCCudaHlRegisterModule("SC_RULES_CONTENT_B2G_CUDA");
+    SCCudaHlModuleData *module_data = SCCudaHlGetModuleData(module_handle);
+
+    B2gCudaMpmThreadCtxData *b2g_tctx = NULL;
+    B2gCudaMpmDispThreadInit(NULL, module_data, (void *)&b2g_tctx);
+
+    if (b2g_tctx->no_of_streams < 2) {
+        printf("At least 2 cuda streams needed for this test. Skipping ..\n");
+        goto end;
+    }
+
+    if (b2g_tctx->b2g_cuda_context == 0 ||
+        b2g_tctx->stream_data[0].b2g_cuda_cumodule == 0 ||
+        b2g_tctx->stream_data[0].b2g_cuda_search_kernel == 0) {
+        result = 0;
+        goto end;
+    }
+
+    uint64_t start_ = 0;
+    uint64_t stop_ = 0;
+    uint64_t time_nostream_ = 0;
+    uint64_t time_stream_ = 0;
+
+    SCCudaCtxSynchronize();
+
+    /* Benchmark the dispatcher function. */
+    int run = 0;
+    for (run = 0; run < max_runs; ++run) {
+        /* Fill the packet buffers */
+        for (i = 0; i < no_of_pkts; i++) {
+            p[i]->payload = (uint8_t *)strings[i%10];
+            p[i]->payload_len = strlen(strings[i%10]);
+            SCCudaPBBatchPackets(NULL, p[i], pb_tctx, NULL, NULL);
+        }
+
+        dq = &data_queues[tmq_outq->id];
+        result &= (dq->len == 4);
+        dq = &data_queues[tmq_inq->id];
+        result &= (dq->len == 5);
+
+        /* Performance test with two separate calls */
+        pb = (SCCudaPBPacketsBuffer *)SCDQDataDequeue(&data_queues[tmq_outq->id]);
+        pb2 = (SCCudaPBPacketsBuffer *)SCDQDataDequeue(&data_queues[tmq_outq->id]);
+        if (pb == NULL || pb2 == NULL) {
+            SCLogError(SC_ERR_INVALID_VALUE, "PacketBuffer should not be empty");
+            result = 0;
+        }
+        result &= (pb->nop_in_buffer == max_pkts_in_buffer);
+        result &= (pb2->nop_in_buffer == max_pkts_in_buffer);
+        start_ = UtilCpuGetTicks();
+        B2gCudaMpmDispatcher(NULL, (Packet *)pb, b2g_tctx, (PacketQueue *)NULL, (PacketQueue *)NULL);
+        B2gCudaMpmDispatcher(NULL, (Packet *)pb2, b2g_tctx, (PacketQueue *)NULL, (PacketQueue *)NULL);
+        stop_ = UtilCpuGetTicks();
+        TmqhOutputSimpleOnQ(&data_queues[tmq_inq->id], (SCDQGenericQData *)pb);
+        TmqhOutputSimpleOnQ(&data_queues[tmq_inq->id], (SCDQGenericQData *)pb2);
+        time_nostream_ += stop_ - start_;
+
+        /* Performance test with one call using streams */
+        pb = (SCCudaPBPacketsBuffer *)SCDQDataDequeue(&data_queues[tmq_outq->id]);
+        if (pb == NULL) {
+            SCLogError(SC_ERR_INVALID_VALUE, "PacketBuffer should not be empty");
+            result = 0;
+        }
+        result &= (pb->nop_in_buffer == max_pkts_in_buffer);
+        result &= (pb2->nop_in_buffer == max_pkts_in_buffer);
+        start_ = UtilCpuGetTicks();
+        B2gCudaMpmDispatcher(NULL, (Packet *)pb, b2g_tctx, (PacketQueue *)&data_queues[tmq_outq->id], NULL);
+        stop_ = UtilCpuGetTicks();
+        TmqhOutputSimpleOnQ(&data_queues[tmq_inq->id], (SCDQGenericQData *)pb);
+        while ((pb = (SCCudaPBPacketsBuffer *)SCDQDataDequeue(&data_queues[b2g_tctx->tmq_streamq->id])) != NULL) {
+            TmqhOutputSimpleOnQ(&data_queues[tmq_inq->id], (SCDQGenericQData *)pb);
+        }
+        time_stream_ += stop_ - start_;
+    }
+
+    printf("Avg CPU ticks without stream after %i runs: %"PRIu64"\n", run, time_nostream_/run);
+    printf("Avg CPU ticks with 2 streams after %i runs: %"PRIu64"\n", run, time_stream_/run);
+
+    for (i = 0; i < no_of_pkts; i++)
+        SigMatchSignatures(&de_tv, de_ctx, det_ctx, p[i]);
+    for (i = 0; i < no_of_pkts; i++) {
+        if (!PacketAlertCheck(p[i], 0)) {
+            result = 0;
+            goto end;
+        }
+        for (j = 1; j <= 10; j++) {
+            if (j == i%10 + 1) {
+                if (!PacketAlertCheck(p[i], j)) {
+                    result = 0;
+                    goto end;
+                }
+            } else {
+                if (PacketAlertCheck(p[i], j)) {
+                    result = 0;
+                    goto end;
+                }
+            }
+        }
+    }
+
+ end:
+    for (i = 0; i < no_of_pkts; i++) {
+        free(p[i]);
+    }
+    SCCudaPBCleanUpQueuesAndBuffers();
+    if (de_ctx) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+        DetectEngineCtxFree(de_ctx);
+    }
+    SCCudaPBThreadDeInit(NULL, (void *)pb_tctx);
+    B2gCudaMpmDispThreadDeInit(NULL, (void *)b2g_tctx);
+
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 /*********************************Unittests************************************/
@@ -2956,6 +4045,8 @@ void B2gCudaRegisterTests(void)
     UtRegisterTest("B2gCudaTest01", B2gCudaTest01, 1);
     UtRegisterTest("B2gCudaTest02", B2gCudaTest02, 1);
     UtRegisterTest("B2gCudaTest03", B2gCudaTest03, 1);
+    UtRegisterTest("B2gCudaTest04", B2gCudaTest04, 1);
+    UtRegisterTest("B2gCudaTest05", B2gCudaTest05, 1);
 #endif /* UNITTESTS */
 }
 

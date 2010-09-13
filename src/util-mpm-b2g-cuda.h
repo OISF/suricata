@@ -20,6 +20,7 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  * \author Anoop Saldanha <poonaatsoc@gmail.com>
+ * \author Martin Beyer <martin.beyer@marasystems.de>
  */
 
 #ifndef __UTIL_MPM_B2G_CUDA_H__
