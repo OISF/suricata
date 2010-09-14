@@ -793,7 +793,7 @@ static uint32_t DCERPCParseBINDACK(DCERPC *dcerpc, uint8_t *input, uint32_t inpu
             dcerpc->dcerpcbindbindack.uuid_internal_id = 0;
             dcerpc->dcerpcbindbindack.numctxitems = 0;
             if (input_len >= 10) {
-                if (dcerpc->dcerpchdr.packed_drep[0] == 0x10) {
+                if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
                     dcerpc->dcerpcbindbindack.secondaryaddrlen = *(p + 8);
                     dcerpc->dcerpcbindbindack.secondaryaddrlen |= *(p + 9) << 8;
                 } else {
@@ -850,7 +850,7 @@ static uint32_t DCERPCParseBINDACK(DCERPC *dcerpc, uint8_t *input, uint32_t inpu
                 break;
         case 25:
             dcerpc->dcerpcbindbindack.secondaryaddrlen |= *(p++);
-            if (dcerpc->dcerpchdr.packed_drep[0] == 0x10) {
+            if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
                 dcerpc->dcerpcbindbindack.secondaryaddrlen = SCByteSwap16(dcerpc->dcerpcbindbindack.secondaryaddrlen);
             }
             dcerpc->dcerpcbindbindack.secondaryaddrlenleft = dcerpc->dcerpcbindbindack.secondaryaddrlen;
@@ -876,7 +876,7 @@ static uint32_t DCERPCParseREQUEST(DCERPC *dcerpc, uint8_t *input, uint32_t inpu
             dcerpc->dcerpcbindbindack.numctxitems = 0;
             if (input_len >= 8) {
                 if (dcerpc->dcerpchdr.type == REQUEST) {
-                    if (dcerpc->dcerpchdr.packed_drep[0] == 0x10) {
+                    if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
                         dcerpc->dcerpcrequest.ctxid = *(p + 4);
                         dcerpc->dcerpcrequest.ctxid |= *(p + 5) << 8;
                         dcerpc->dcerpcrequest.opnum = *(p + 6);
@@ -920,7 +920,7 @@ static uint32_t DCERPCParseREQUEST(DCERPC *dcerpc, uint8_t *input, uint32_t inpu
         case 21:
             /* context id 2 */
             dcerpc->dcerpcrequest.ctxid |= *(p++);
-            if (dcerpc->dcerpchdr.packed_drep[0] == 0x10) {
+            if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
                 dcerpc->dcerpcrequest.ctxid = SCByteSwap16(dcerpc->dcerpcrequest.ctxid);
             }
             dcerpc->dcerpcrequest.first_request_seen = 1;
@@ -1068,7 +1068,7 @@ static int DCERPCParseHeader(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                     dcerpc->dcerpchdr.packed_drep[1] = *(p + 5);
                     dcerpc->dcerpchdr.packed_drep[2] = *(p + 6);
                     dcerpc->dcerpchdr.packed_drep[3] = *(p + 7);
-                    if (dcerpc->dcerpchdr.packed_drep[0] == 0x10) {
+                    if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
                         dcerpc->dcerpchdr.frag_length = *(p + 8);
                         dcerpc->dcerpchdr.frag_length |= *(p + 9) << 8;
                         dcerpc->dcerpchdr.auth_length = *(p + 10);
@@ -1161,7 +1161,7 @@ static int DCERPCParseHeader(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                     break;
             case 15:
                 dcerpc->dcerpchdr.call_id |= *(p++);
-                if (dcerpc->dcerpchdr.packed_drep[0] == 0x10) {
+                if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
                     dcerpc->dcerpchdr.frag_length = SCByteSwap16(dcerpc->dcerpchdr.frag_length);
                     dcerpc->dcerpchdr.auth_length = SCByteSwap16(dcerpc->dcerpchdr.auth_length);
                     dcerpc->dcerpchdr.call_id = SCByteSwap32(dcerpc->dcerpchdr.call_id);
