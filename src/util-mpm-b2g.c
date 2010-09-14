@@ -119,7 +119,6 @@ void B2gPrintInfo(MpmCtx *mpm_ctx) {
     printf("  B2gPattern      %" PRIuMAX "\n", (uintmax_t)sizeof(B2gPattern));
     printf("  B2gPattern     %" PRIuMAX "\n", (uintmax_t)sizeof(B2gPattern));
     printf("Unique Patterns: %" PRIu32 "\n", mpm_ctx->pattern_cnt);
-    printf("Total Patterns:  %" PRIu32 "\n", mpm_ctx->total_pattern_cnt);
     printf("Smallest:        %" PRIu32 "\n", mpm_ctx->minlen);
     printf("Largest:         %" PRIu32 "\n", mpm_ctx->maxlen);
     printf("Hash size:       %" PRIu32 "\n", ctx->hash_size);
@@ -353,7 +352,6 @@ static int B2gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_
         else if (mpm_ctx->minlen > patlen) mpm_ctx->minlen = patlen;
     }
 
-    mpm_ctx->total_pattern_cnt++;
     return 0;
 
 error:

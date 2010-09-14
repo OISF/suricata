@@ -74,6 +74,7 @@ SCEnumCharMap sc_mpm_algo_map[] = {
     { "b2g_cuda", MPM_B2G_CUDA },
 #endif
     { "b2gc",     MPM_B2GC },
+    { "b2gm",     MPM_B2GM },
 };
 
 /**

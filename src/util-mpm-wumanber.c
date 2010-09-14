@@ -137,7 +137,6 @@ void WmPrintInfo(MpmCtx *mpm_ctx) {
     printf("  WmPattern      %" PRIuMAX "\n", (uintmax_t)sizeof(WmPattern));
     printf("  WmHashItem     %" PRIuMAX "\n", (uintmax_t)sizeof(WmHashItem));
     printf("Unique Patterns: %" PRIu32 "\n", mpm_ctx->pattern_cnt);
-    printf("Total Patterns:  %" PRIu32 "\n", mpm_ctx->total_pattern_cnt);
     printf("Smallest:        %" PRIu32 "\n", mpm_ctx->minlen);
     printf("Largest:         %" PRIu32 "\n", mpm_ctx->maxlen);
     printf("Max shiftlen:    %" PRIu32 "\n", ctx->shiftlen);
@@ -385,7 +384,6 @@ static int WmAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_t
         else if (mpm_ctx->minlen > patlen) mpm_ctx->minlen = patlen;
     }
 
-    mpm_ctx->total_pattern_cnt++;
     return 0;
 
 error:

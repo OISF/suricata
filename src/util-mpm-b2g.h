@@ -55,9 +55,9 @@ typedef struct B2gPattern_ {
     uint16_t len; /**< \todo we're limited to 32/64 byte lengths, uint8_t would be fine here */
     uint8_t flags;
     uint8_t pad0;
+    uint32_t id;
     uint8_t *ci; /* case INsensitive */
     uint8_t *cs; /* case sensitive */
-    uint32_t id;
     struct B2gPattern_ *next;
 } B2gPattern;
 

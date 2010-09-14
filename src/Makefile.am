@@ -141,6 +141,7 @@ util-mpm-b2g.c util-mpm-b2g.h \
 util-mpm-b2g-cuda.c util-mpm-b2g-cuda.h \
 util-mpm-b3g.c util-mpm-b3g.h \
 util-mpm-b2gc.c util-mpm-b2gc.h \
+util-mpm-b2gm.c util-mpm-b2gm.h \
 util-cidr.c util-cidr.h \
 util-unittest.c util-unittest.h \
 util-unittest-helper.c util-unittest-helper.h \
@@ -169,6 +170,7 @@ util-strlcatu.c \
 util-strlcpyu.c \
 util-cuda.c util-cuda.h \
 util-cuda-handlers.c util-cuda-handlers.h \
+util-optimize.h \
 util-privs.c util-privs.h \
 util-decode-asn1.c util-decode-asn1.h \
 util-ringbuffer.c util-ringbuffer.h \

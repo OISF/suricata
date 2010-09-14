@@ -60,6 +60,7 @@ enum {
 #endif
     MPM_B3G,
     MPM_B2GC,
+    MPM_B2GM,
 
     /* table size */
     MPM_TABLE_SIZE,
@@ -94,14 +95,13 @@ typedef struct MpmCtx_ {
     void *ctx;
     uint16_t mpm_type;
 
-    uint32_t memory_cnt;
-    uint32_t memory_size;
-
-    uint32_t pattern_cnt;       /* unique patterns */
-    uint32_t total_pattern_cnt; /* total patterns added */
+    uint16_t pattern_cnt;       /* unique patterns */
 
     uint16_t minlen;
     uint16_t maxlen;
+
+    uint32_t memory_cnt;
+    uint32_t memory_size;
 } MpmCtx;
 
 /** pattern is case insensitive */

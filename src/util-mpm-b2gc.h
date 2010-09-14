@@ -27,6 +27,13 @@
 #include "util-mpm.h"
 #include "util-bloomfilter.h"
 
+#define B2GC_HASHSHIFT_MAX      8
+#define B2GC_HASHSHIFT_HIGHEST  7
+#define B2GC_HASHSHIFT_HIGH     6
+#define B2GC_HASHSHIFT_MEDIUM   5
+#define B2GC_HASHSHIFT_LOW      4
+#define B2GC_HASHSHIFT_LOWEST   3
+
 //#define B2GC_HASHSHIFT 8
 //#define B2GC_HASHSHIFT 7
 //#define B2GC_HASHSHIFT 6
@@ -43,7 +50,6 @@
 //#define B2GC_WORD_SIZE 16
 //#define B2GC_WORD_SIZE 8
 
-#define B2GC_HASH16(a,b) (((a)<<B2GC_HASHSHIFT) | (b))
 #define B2GC_Q           2
 
 #define B2GC_SEARCHFUNC B2gcSearchBNDMq
@@ -63,9 +69,10 @@
  */
 
 typedef struct B2gcPatternHdr_ {
-    uint32_t flags:4;   /* 4 flags */
-    uint32_t len:10;    /* max 1023 */
-    uint32_t id:18;     /* max 256k */
+    uint32_t np_offset; /* offset of the next pattern */
+    uint8_t len;
+    uint8_t flags;
+    uint16_t id;
 } B2gcPatternHdr;
 
 #define B2GC_GET_FLAGS(hdr)         ((hdr)->flags)
@@ -78,10 +85,9 @@ typedef struct B2gcPatternHdr_ {
  */
 
 typedef struct B2gcPattern1_ {
-    uint32_t flags:4;   /**< 4 flags max */
-    uint32_t id:18;     /**< pattern id, max 262143 */
-    uint32_t pad:2;     /**< 2 bits of padding */
-    uint32_t pat:8;     /**< character to match */
+    uint8_t flags;
+    uint8_t pat;
+    uint16_t id;
 } B2gcPattern1;
 
 #define B2GC1_GET_FLAGS(hdr)         ((hdr)->flags)
@@ -93,41 +99,34 @@ typedef struct B2gcPattern_ {
     uint16_t len;
     uint8_t flags;
     uint8_t pad0;
-    uint8_t *pat;
     uint32_t id;
+    uint8_t *pat;
 } B2gcPattern;
 
 typedef struct B2gcCtx_ {
-    B2GC_TYPE m;
-    B2GC_TYPE *B2G;
-
+    /* we store our own multi byte search func ptr here for B2gcSearch1 */
+    uint32_t (*Search)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
     /* hash for looking up the idx in the pattern array */
     uint16_t *ha1;
     uint8_t *patterns1;
     uint32_t pat_x_cnt;
+    uint32_t pat_1_cnt;
+    /* we store our own multi byte search func ptr here for B2gcSearch1 */
+    uint32_t (*MBSearch)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
+
+    B2GC_TYPE m;
+    uint32_t hash_size;
+
+    B2GC_TYPE *B2GC;
+
+    uint8_t *pminlen; /* array containing the minimal length */
+    BloomFilter **bloom;
 
     uint32_t *ha;
     /* patterns in the format |hdr|pattern|hdr|pattern|... */
     uint8_t *patterns;
 
-    uint32_t hash_size;
-
-
-    /* we store our own multi byte search func ptr here for B2gcSearch1 */
-    uint32_t (*Search)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
-
-    /* we store our own multi byte search func ptr here for B2gcSearch1 */
-    uint32_t (*MBSearch2)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
-    uint32_t (*MBSearch)(struct MpmCtx_ *, struct MpmThreadCtx_ *, PatternMatcherQueue *, uint8_t *, uint16_t);
-
-    /* Hash table used at ctx initialization to keep and ordered list of
-     * patterns. The ordered list is used to build the ordered lookup
-     * array. */
     HashListTable *b2gc_init_hash;
-    HashListTable *b2gc_sort_hash;
-    HashListTable *b2gc_sort_hash1;
-    uint32_t pat_1_cnt;
-
 } B2gcCtx;
 
 typedef struct B2gcThreadCtx_ {

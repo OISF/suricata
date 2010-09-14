@@ -133,7 +133,7 @@ cuda:
 # compiled with --enable-cuda: b2g_cuda. Make sure to update your
 # max-pending-packets setting above as well if you use b2g_cuda.
 
-mpm-algo: b2gc
+mpm-algo: b2g
 
 # The memory settings for hash size of these algorithms can vary from lowest
 # (2048) - low (4096) - medium (8192) - high (16384) - highest (32768) - max
@@ -152,13 +152,19 @@ mpm-algo: b2gc
 # settings.
 
 pattern-matcher:
+  - b2gc:
+      search_algo: B2gSearchBNDMq
+      hash_size: low
+      bf_size: medium
+  - b2gm:
+      search_algo: B2gSearchBNDMq
+      hash_size: low
+      bf_size: medium
   - b2g:
-      scan_algo: B2gScanBNDMq
       search_algo: B2gSearchBNDMq
       hash_size: low
       bf_size: medium
   - b3g:
-      scan_algo: B3gScanBNDMq
       search_algo: B3gSearchBNDMq
       hash_size: low
       bf_size: medium
