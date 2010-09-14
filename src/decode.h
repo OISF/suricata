@@ -201,11 +201,11 @@ typedef struct PacketAlert_ {
     SigIntId num; /* Internal num, used for sorting */
     SigIntId order_id; /* Internal num, used for sorting */
     uint8_t action; /* Internal num, used for sorting */
-    uint32_t  gid;
-    uint32_t sid;
-    uint8_t  rev;
+    uint8_t rev;
     uint8_t class;
     uint8_t prio;
+    uint32_t gid;
+    uint32_t sid;
     char *msg;
     char *class_msg;
     Reference *references;

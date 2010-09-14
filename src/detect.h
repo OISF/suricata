@@ -550,7 +550,6 @@ typedef struct DetectionEngineThreadCtx_ {
     uint32_t payload_offset;
     /* used by pcre match function alone */
     uint32_t pcre_match_start_offset;
-
     /** offset into the uri payload of the last match by
      *  uricontent */
     uint32_t uricontent_payload_offset;

@@ -49,7 +49,8 @@
 typedef struct DetectContentData_ {
     uint8_t *content;   /**< ptr to chunk of memory containing the pattern */
     uint8_t content_len;/**< length of the pattern (and size of the memory) */
-
+    uint8_t pad0;
+    uint16_t pad1;
     uint32_t id;        /**< unique pattern id */
 
     uint16_t depth;
@@ -59,7 +60,8 @@ typedef struct DetectContentData_ {
     int32_t distance;
     int32_t within;
     uint8_t flags;
-
+    uint8_t pad2;
+    uint16_t pad3;
     BmCtx *bm_ctx;     /**< Boyer Moore context (for spm search) */
 
 } DetectContentData;

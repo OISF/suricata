@@ -49,8 +49,8 @@ typedef struct DetectPcreData_ {
     uint16_t flags;
     uint8_t negate;
 
-    char *capname;
     uint16_t capidx;
+    char *capname;
 } DetectPcreData;
 
 /* prototypes */
