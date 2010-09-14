@@ -1194,6 +1194,21 @@ static inline void DCERPCResetStub(DCERPC *dcerpc) {
     return;
 }
 
+static inline int DCERPCThrowOutExtraData(DCERPC *dcerpc, uint8_t *input,
+                                           uint16_t input_len) {
+    int parsed = 0;
+    /* the function always assumes that
+     * dcerpc->bytesprocessed < dcerpc->dcerpchdr.frag_length */
+    if (input_len > (dcerpc->dcerpchdr.frag_length - dcerpc->bytesprocessed)) {
+        parsed = dcerpc->dcerpchdr.frag_length - dcerpc->bytesprocessed;
+    } else {
+        parsed = input_len;
+    }
+    dcerpc->bytesprocessed += parsed;
+
+    return parsed;
+}
+
 /**
  * \todo - Currently the parser is very generic.  Modify it to behave
  *         like the target's parser.
@@ -1329,11 +1344,19 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                     SCReturnInt(0);
                 } else {
                     /* temporary fix */
-                    if (dcerpc->dcerpchdr.auth_length != 0 && input_len) {
-                        DCERPCResetParsingState(dcerpc);
-                        SCReturnInt(0);
+                    if (input_len) {
+                        retval = DCERPCThrowOutExtraData(dcerpc, input + parsed,
+                                                         input_len);
+                        input_len -= retval;
+                        parsed += retval;
+                        if (dcerpc->bytesprocessed == dcerpc->dcerpchdr.frag_length) {
+                            DCERPCResetParsingState(dcerpc);
+                        } else {
+                            dcerpc->pdu_fragged = 1;
+                        }
+                    } else {
+                        dcerpc->pdu_fragged = 1;
                     }
-                    dcerpc->pdu_fragged = 1;
                 }
                 break;
 
@@ -1466,11 +1489,19 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                     SCReturnInt(0);
                 } else {
                     /* temporary fix */
-                    if (dcerpc->dcerpchdr.auth_length != 0 && input_len) {
-                        DCERPCResetParsingState(dcerpc);
-                        SCReturnInt(0);
+                    if (input_len) {
+                        retval = DCERPCThrowOutExtraData(dcerpc, input + parsed,
+                                                             input_len);
+                        input_len -= retval;
+                        parsed += retval;
+                        if (dcerpc->bytesprocessed == dcerpc->dcerpchdr.frag_length) {
+                            DCERPCResetParsingState(dcerpc);
+                        } else {
+                            dcerpc->pdu_fragged = 1;
+                        }
+                    } else {
+                        dcerpc->pdu_fragged = 1;
                     }
-                    dcerpc->pdu_fragged = 1;
                 }
                 break;
 
@@ -1533,11 +1564,19 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                         DCERPCResetStub(dcerpc);
                     }
                     /* temporary fix */
-                    if (dcerpc->dcerpchdr.auth_length != 0 && input_len) {
-                        DCERPCResetParsingState(dcerpc);
-                        SCReturnInt(0);
+                    if (input_len) {
+                        retval = DCERPCThrowOutExtraData(dcerpc, input + parsed,
+                                                             input_len);
+                        input_len -= retval;
+                        parsed += retval;
+                        if (dcerpc->bytesprocessed == dcerpc->dcerpchdr.frag_length) {
+                            DCERPCResetParsingState(dcerpc);
+                        } else {
+                            dcerpc->pdu_fragged = 1;
+                        }
+                    } else {
+                        dcerpc->pdu_fragged = 1;
                     }
-                    dcerpc->pdu_fragged = 1;
                 }
 
                 /* response and request done */
@@ -1551,9 +1590,16 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
 
             default:
                 SCLogDebug("DCERPC Type 0x%02x not implemented yet", dcerpc->dcerpchdr.type);
-                /* \todo Need to walk along till we see the next pdu in the segment */
-                dcerpc->bytesprocessed = 0;
-                SCReturnInt(0);
+                retval = DCERPCThrowOutExtraData(dcerpc, input + parsed,
+                                                 input_len);
+                input_len -= retval;
+                parsed += retval;
+                if (dcerpc->bytesprocessed == dcerpc->dcerpchdr.frag_length) {
+                    DCERPCResetParsingState(dcerpc);
+                } else {
+                    dcerpc->pdu_fragged = 1;
+                }
+                break;
         }
     }
 
