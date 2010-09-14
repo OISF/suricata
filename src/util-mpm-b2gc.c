@@ -64,7 +64,7 @@ static void *b2g_func;
 #define B2GC_PMINLEN_MAX    8
 
 /* align pattern storage to these bytes. 1 disables. */
-#define B2GC_ALIGN_PATTERNS 16
+#define B2GC_ALIGN_PATTERNS 2
 
 void B2gcInitCtx (MpmCtx *, int);
 void B2gcThreadInitCtx(MpmCtx *, MpmThreadCtx *, uint32_t);
