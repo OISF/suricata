@@ -1773,6 +1773,7 @@ static int SigTest76TestBug134(void)
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
 
     char sig[] = "alert tcp any any -> any 515 "
             "(msg:\"detect IFS\"; flow:to_server,established; content:\"${IFS}\";"

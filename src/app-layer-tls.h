@@ -47,14 +47,13 @@ enum {
 };
 /* structure to store the TLS state values */
 typedef struct TlsState_ {
+    uint8_t flags;                  /**< Flags to indicate the current TLS
+                                         sessoin state */
     uint8_t client_content_type;    /**< Client content type storage field */
     uint16_t client_version;        /**< Client TLS version storage field */
 
-    uint8_t server_content_type;    /**< Server content type storage field */
     uint16_t server_version;        /**< Server TLS version storage field */
-
-    uint8_t flags;                  /**< Flags to indicate the current TLS
-                                         sessoin state */
+    uint8_t server_content_type;    /**< Server content type storage field */
 } TlsState;
 
 enum {

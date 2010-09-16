@@ -147,22 +147,19 @@ typedef struct Flow_
     uint16_t flags;
 
     /* ts of flow init and last update */
-    struct timeval startts;
     struct timeval lastts;
 
-    /* pointer to the var list */
-    GenericVar *flowvar;
+    SCMutex m;
 
-    uint32_t todstpktcnt;
-    uint32_t tosrcpktcnt;
-    uint64_t bytecnt;
+    /** protocol specific data pointer, e.g. for TcpSession */
+    void *protoctx;
 
     /** mapping to Flow's protocol specific protocols for timeouts
         and state and free functions. */
     uint8_t protomap;
 
-    /** protocol specific data pointer, e.g. for TcpSession */
-    void *protoctx;
+    uint8_t alflags; /**< application level specific flags */
+    uint16_t alproto; /**< application level protocol */
 
     /** how many pkts and stream msgs are using the flow *right now*. This
      *  variable is atomic so not protected by the Flow mutex "m".
@@ -172,9 +169,12 @@ typedef struct Flow_
      */
     SC_ATOMIC_DECLARE(unsigned short, use_cnt);
 
+    uint16_t pad0;
+
+    void **aldata; /**< application level storage ptrs */
+
     /** detection engine state */
     struct DetectEngineState_ *de_state;
-    SCMutex de_state_m;          /**< mutex lock for the de_state object */
 
     /** toclient sgh for this flow. Only use when FLOW_SGH_TOCLIENT flow flag
      *  has been set. */
@@ -183,24 +183,27 @@ typedef struct Flow_
      *  has been set. */
     struct SigGroupHead_ *sgh_toserver;
 
-    SCMutex m;
-
     /** List of tags of this flow (from "tag" keyword of type "session") */
     DetectTagDataEntryList *tag_list;
+
+    /* pointer to the var list */
+    GenericVar *flowvar;
+
+    SCMutex de_state_m;          /**< mutex lock for the de_state object */
 
     /* list flow ptrs
      * NOTE!!! These are NOT protected by the
      * above mutex, but by the FlowQ's */
     struct Flow_ *hnext; /* hash list */
     struct Flow_ *hprev;
+    struct FlowBucket_ *fb;
     struct Flow_ *lnext; /* list */
     struct Flow_ *lprev;
 
-    struct FlowBucket_ *fb;
-
-    uint16_t alproto; /**< application level protocol */
-    void **aldata; /**< application level storage ptrs */
-    uint8_t alflags; /**< application level specific flags */
+    struct timeval startts;
+    uint32_t todstpktcnt;
+    uint32_t tosrcpktcnt;
+    uint64_t bytecnt;
 
 } Flow;
 

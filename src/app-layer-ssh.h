@@ -77,16 +77,17 @@ typedef struct SSHHeader_ {
 
 /** structure to store the SSH state values */
 typedef struct SshState_ {
+    uint8_t flags;                  /**< Flags to indicate the current SSH
+                                         sessoin state */
     uint8_t client_msg_code;    /**< Client content type storage field */
+    uint8_t server_msg_code;    /**< Server content type storage field */
+
     uint8_t *client_proto_version;        /**< Client SSH version storage field */
     uint8_t *client_software_version;        /**< Client SSH version storage field */
 
-    uint8_t server_msg_code;    /**< Server content type storage field */
     uint8_t *server_proto_version;        /**< Server SSH version storage field */
     uint8_t *server_software_version;        /**< Server SSH version storage field */
 
-    uint8_t flags;                  /**< Flags to indicate the current SSH
-                                         sessoin state */
     SshHeader srv_hdr;
     SshHeader cli_hdr;
 } SshState;

@@ -240,16 +240,31 @@ typedef struct IPOnlyCIDRItem_ {
 /** \brief Subset of the Signature for cache efficient prefiltering
  */
 typedef struct SignatureHeader_ {
-    uint32_t flags;
+    union {
+        struct {
+            uint32_t flags;
+            /* app layer signature stuff */
+            uint16_t alproto;
 
-    /* app layer signature stuff */
-    uint16_t alproto;
+            uint16_t mpm_pattern_id_div_8;
+        };
+        uint64_t hdr_copy;
+    };
 
     /** pattern in the mpm matcher */
-    uint32_t mpm_pattern_id;
-    uint32_t mpm_stream_pattern_id;
-
-    SigIntId num; /**< signature number, internal id */
+    union {
+        struct {
+            uint8_t mpm_pattern_id_mod_8;
+            uint8_t pad0;
+            uint16_t mpm_stream_pattern_id_div_8;
+            uint8_t mpm_stream_pattern_id_mod_8;
+            uint8_t pad1;
+            SigIntId num; /**< signature number, internal id */
+        };
+        uint64_t mpm_pattern_copy;
+    };
+    //PatIntId mpm_pattern_id;
+    //PatIntId mpm_stream_pattern_id;
 
     /** pointer to the full signature */
     struct Signature_ *full_sig;
@@ -257,16 +272,47 @@ typedef struct SignatureHeader_ {
 
 /** \brief Signature container */
 typedef struct Signature_ {
-    uint32_t flags;
+    union {
+        struct {
+            uint32_t flags;
 
-    /* app layer signature stuff */
-    uint16_t alproto;
+            /* app layer signature stuff */
+            uint16_t alproto;
+
+            uint16_t mpm_pattern_id_div_8;
+        };
+        uint64_t hdr_copy;
+    };
 
     /** pattern in the mpm matcher */
-    uint32_t mpm_pattern_id;
-    uint32_t mpm_stream_pattern_id;
+    union {
+        struct {
+            uint8_t mpm_pattern_id_mod_8;
+            uint8_t pad0;
+            uint16_t mpm_stream_pattern_id_div_8;
+            uint8_t mpm_stream_pattern_id_mod_8;
+            uint8_t pad1;
+            SigIntId num; /**< signature number, internal id */
+        };
+        uint64_t mpm_pattern_copy;
+    };
+    //PatIntId mpm_pattern_id;
+    //PatIntId mpm_stream_pattern_id;
 
-    SigIntId num; /**< signature number, internal id */
+/*
+    //PatIntId mpm_pattern_id;
+    //PatIntId mpm_stream_pattern_id;
+    uint16_t mpm_pattern_id_div_8;
+    uint8_t mpm_pattern_id_mod_8;
+    uint8_t pad0;
+    //PatIntId mpm_pattern_id;
+    //PatIntId mpm_stream_pattern_id;
+    uint16_t mpm_stream_pattern_id_div_8;
+    uint8_t mpm_stream_pattern_id_mod_8;
+    uint8_t pad1;
+*/
+    /** pattern in the mpm matcher */
+    PatIntId mpm_uripattern_id;
 
     /** ipv4 match arrays */
     DetectMatchAddressIPv4 *addr_dst_match4;
@@ -289,48 +335,37 @@ typedef struct Signature_ {
     IPOnlyCIDRItem *CidrSrc, *CidrDst;
 
     /** ptr to the SigMatch lists */
-    struct SigMatch_ *match; /* non-payload matches */
-    struct SigMatch_ *match_tail; /* non-payload matches, tail of the list */
     struct SigMatch_ *pmatch; /* payload matches */
-    struct SigMatch_ *pmatch_tail; /* payload matches, tail of the list */
     struct SigMatch_ *umatch; /* uricontent payload matches */
-    struct SigMatch_ *umatch_tail; /* uricontent payload matches, tail of the list */
     struct SigMatch_ *amatch; /* general app layer matches */
-    struct SigMatch_ *amatch_tail; /* general app layer  matches, tail of the list */
     struct SigMatch_ *dmatch; /* dce app layer matches */
-    struct SigMatch_ *dmatch_tail; /* dce app layer matches, tail of the list */
+    struct SigMatch_ *match; /* non-payload matches */
     struct SigMatch_ *tmatch; /* list of tags matches */
-    struct SigMatch_ *tmatch_tail; /* tag matches, tail of the list */
-
-    /** ptr to the next sig in the list */
-    struct Signature_ *next;
 
     struct SigMatch_ *dsize_sm;
-
-    /** inline -- action */
-    uint8_t action;
 
     /* helper for init phase */
     uint16_t mpm_content_maxlen;
     uint16_t mpm_uricontent_maxlen;
+
 
     /** number of sigmatches in the match and pmatch list */
     uint16_t sm_cnt;
 
     SigIntId order_id;
 
-    /** pattern in the mpm matcher */
-    uint32_t mpm_uripattern_id;
+    /** inline -- action */
+    uint8_t action;
 
     uint8_t rev;
+    /** classification id **/
+    uint8_t class;
+
     int prio;
 
     uint32_t gid; /**< generator id */
     uint32_t id;  /**< sid, set by the 'sid' rule keyword */
     char *msg;
-
-    /** classification id **/
-    uint8_t class;
 
     /** classification message */
     char *class_msg;
@@ -346,8 +381,18 @@ typedef struct Signature_ {
     uint16_t profiling_id;
 #endif
 
+    struct SigMatch_ *match_tail; /* non-payload matches, tail of the list */
+    struct SigMatch_ *pmatch_tail; /* payload matches, tail of the list */
+    struct SigMatch_ *umatch_tail; /* uricontent payload matches, tail of the list */
+    struct SigMatch_ *amatch_tail; /* general app layer  matches, tail of the list */
+    struct SigMatch_ *dmatch_tail; /* dce app layer matches, tail of the list */
+    struct SigMatch_ *tmatch_tail; /* tag matches, tail of the list */
+
     /** address settings for this signature */
     DetectAddressHead src, dst;
+
+    /** ptr to the next sig in the list */
+    struct Signature_ *next;
 } Signature;
 
 typedef struct DetectEngineIPOnlyThreadCtx_ {
@@ -400,7 +445,7 @@ typedef struct DetectEngineLookupFlow_ {
 /* mpm pattern id api */
 typedef struct MpmPatternIdStore_ {
     HashTable *hash;
-    uint32_t max_id;
+    PatIntId max_id;
 
     uint32_t unique_patterns;
     uint32_t shared_patterns;
@@ -550,9 +595,13 @@ typedef struct DetectionEngineThreadCtx_ {
     uint32_t payload_offset;
     /* used by pcre match function alone */
     uint32_t pcre_match_start_offset;
-    /** offset into the uri payload of the last match by
-     *  uricontent */
-    uint32_t uricontent_payload_offset;
+
+    /* http_uri stuff for uricontent */
+    char de_have_httpuri;
+    char de_mpm_scanned_uri;
+
+    /** id for alert counter */
+    uint16_t counter_alerts;
 
     /* used to discontinue any more matching */
     int discontinue_matching;
@@ -565,32 +614,26 @@ typedef struct DetectionEngineThreadCtx_ {
      * stored in Signature->dmatch, by content, pcre, etc */
     uint32_t dce_payload_offset;
 
-    /** recursive counter */
-    uint8_t pkt_cnt;
-
-    /* http_uri stuff for uricontent */
-    char de_have_httpuri;
-    char de_mpm_scanned_uri;
-
     /** array of signature pointers we're going to inspect in the detection
      *  loop. */
     Signature **match_array;
-    /** size of the array in items (mem size if * sizeof(Signature *) */
+    /** size of the array in items (mem size if * sizeof(Signature *)
+     *  Only used during initialization. */
     uint32_t match_array_len;
     /** size in use */
-    uint32_t match_array_cnt;
+    SigIntId match_array_cnt;
 
     /** Array of sigs that had a state change */
-    uint8_t *de_state_sig_array;
     SigIntId de_state_sig_array_len;
+    uint8_t *de_state_sig_array;
 
+    struct SigGroupHead_ *sgh;
     /** pointer to the current mpm ctx that is stored
      *  in a rule group head -- can be either a content
      *  or uricontent ctx. */
     MpmThreadCtx mtc;   /**< thread ctx for the mpm */
     MpmThreadCtx mtcu;  /**< thread ctx for uricontent mpm */
     MpmThreadCtx mtcs;  /**< thread ctx for stream mpm */
-    struct SigGroupHead_ *sgh;
     PatternMatcherQueue pmq;
     PatternMatcherQueue smsg_pmq[256];
 
@@ -609,21 +652,15 @@ typedef struct DetectionEngineThreadCtx_ {
     uint32_t pkts_uri_searched3;
     uint32_t pkts_uri_searched4;
 
-    /** id for alert counter */
-    uint16_t counter_alerts;
-
     /** ip only rules ctx */
     DetectEngineIPOnlyThreadCtx io_ctx;
 
     DetectEngineCtx *de_ctx;
-
 #ifdef __SC_CUDA_SUPPORT__
     /* each detection thread would have it's own queue where the cuda dispatcher
      * thread can dump the packets once it has processed them */
     Tmq *cuda_mpm_rc_disp_outq;
 #endif
-
-    uint64_t mpm_match;
 } DetectEngineThreadCtx;
 
 /** \brief a single match condition for a signature */
@@ -689,12 +726,12 @@ typedef struct SigGroupHeadInitData_ {
 /** \brief Container for matching data for a signature group */
 typedef struct SigGroupHead_ {
     uint8_t flags;
-
     uint8_t pad0;
-    uint16_t pad1;
-
     /* number of sigs in this head */
-    uint32_t sig_cnt;
+    SigIntId sig_cnt;
+
+    uint16_t mpm_content_maxlen;
+    uint16_t mpm_streamcontent_maxlen;
 
     /** chunk of memory containing the "header" part of each
      *  signature ordered as an array. Used to pre-filter the
@@ -704,10 +741,12 @@ typedef struct SigGroupHead_ {
     /* pattern matcher instances */
     MpmCtx *mpm_ctx;
     MpmCtx *mpm_stream_ctx;
-    uint16_t mpm_content_maxlen;
-    uint16_t mpm_streamcontent_maxlen;
     MpmCtx *mpm_uri_ctx;
     uint16_t mpm_uricontent_maxlen;
+    uint16_t pad1;
+#if __WORDSIZE == 64
+    uint32_t pad2;
+#endif
 
     /** Array with sig ptrs... size is sig_cnt * sizeof(Signature *) */
     Signature **match_array;

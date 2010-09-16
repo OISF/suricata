@@ -60,9 +60,9 @@ typedef struct AppLayerParserResultElmt_ {
     uint16_t flags; /* flags. E.g. local alloc */
     uint16_t name_idx; /* idx for names like "http.request_line.uri" */
 
+    uint32_t data_len; /* length of the data from the ptr */
     uint8_t  *data_ptr; /* point to the position in the "input" data
                           * or ptr to new mem if local alloc flag set */
-    uint32_t data_len; /* length of the data from the ptr */
     struct AppLayerParserResultElmt_ *next;
 } AppLayerParserResultElmt;
 

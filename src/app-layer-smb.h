@@ -76,17 +76,15 @@ typedef struct SMBAndX_ {
 } SMBAndX;
 
 typedef struct SMBState_ {
-    uint32_t head;
     NBSSHdr nbss;
+    uint16_t transaction_id;
+    uint16_t bytesprocessed;
     SMBHdr smb;
     SMBWordCount wordcount;
     SMBByteCount bytecount;
     SMBAndX andx;
-    uint16_t bytesprocessed;
     DCERPC dcerpc;
     uint8_t dcerpc_present;
-    uint32_t tail;
-    uint16_t transaction_id;
 } SMBState;
 
 #define SMB_FLAGS_SERVER_TO_REDIR 0x80

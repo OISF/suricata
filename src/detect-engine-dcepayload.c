@@ -1612,6 +1612,7 @@ int DcePayloadTest01(void)
     for (i = 0; i < 11; i++) {
         p[i] = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
         p[i]->flow = &f;
+        p[i]->flags |= PKT_HAS_FLOW;
         p[i]->flowflags |= FLOW_PKT_TOSERVER;
         p[i]->flowflags |= FLOW_PKT_ESTABLISHED;
     }
@@ -2475,6 +2476,7 @@ int DcePayloadTest02(void)
     for (i = 0; i < 4; i++) {
         p[i] = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
         p[i]->flow = &f;
+        p[i]->flags |= PKT_HAS_FLOW;
         p[i]->flowflags |= FLOW_PKT_TOSERVER;
         p[i]->flowflags |= FLOW_PKT_ESTABLISHED;
     }
@@ -2921,6 +2923,7 @@ int DcePayloadTest03(void)
     for (i = 0; i < 4; i++) {
         p[i] = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
         p[i]->flow = &f;
+        p[i]->flags |= PKT_HAS_FLOW;
         p[i]->flowflags |= FLOW_PKT_TOSERVER;
         p[i]->flowflags |= FLOW_PKT_ESTABLISHED;
     }
@@ -3366,6 +3369,7 @@ int DcePayloadTest04(void)
     for (i = 0; i < 4; i++) {
         p[i] = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
         p[i]->flow = &f;
+        p[i]->flags |= PKT_HAS_FLOW;
         p[i]->flowflags |= FLOW_PKT_TOSERVER;
         p[i]->flowflags |= FLOW_PKT_ESTABLISHED;
     }
@@ -3810,6 +3814,7 @@ int DcePayloadTest05(void)
     for (i = 0; i < 4; i++) {
         p[i] = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
         p[i]->flow = &f;
+        p[i]->flags |= PKT_HAS_FLOW;
         p[i]->flowflags |= FLOW_PKT_TOSERVER;
         p[i]->flowflags |= FLOW_PKT_ESTABLISHED;
     }
@@ -4255,6 +4260,7 @@ int DcePayloadTest06(void)
     for (i = 0; i < 4; i++) {
         p[i] = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
         p[i]->flow = &f;
+        p[i]->flags |= PKT_HAS_FLOW;
         p[i]->flowflags |= FLOW_PKT_TOSERVER;
         p[i]->flowflags |= FLOW_PKT_ESTABLISHED;
     }
@@ -4699,6 +4705,7 @@ int DcePayloadTest07(void)
     for (i = 0; i < 4; i++) {
         p[i] = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
         p[i]->flow = &f;
+        p[i]->flags |= PKT_HAS_FLOW;
         p[i]->flowflags |= FLOW_PKT_TOSERVER;
         p[i]->flowflags |= FLOW_PKT_ESTABLISHED;
     }
@@ -4981,6 +4988,7 @@ int DcePayloadTest08(void)
     for (i = 0; i < 1; i++) {
         p[i] = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
         p[i]->flow = &f;
+        p[i]->flags |= PKT_HAS_FLOW;
         p[i]->flowflags |= FLOW_PKT_TOSERVER;
         p[i]->flowflags |= FLOW_PKT_ESTABLISHED;
     }
@@ -5202,6 +5210,7 @@ int DcePayloadTest09(void)
     for (i = 0; i < 1; i++) {
         p[i] = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
         p[i]->flow = &f;
+        p[i]->flags |= PKT_HAS_FLOW;
         p[i]->flowflags |= FLOW_PKT_TOSERVER;
         p[i]->flowflags |= FLOW_PKT_ESTABLISHED;
     }
@@ -5423,6 +5432,7 @@ int DcePayloadTest10(void)
     for (i = 0; i < 1; i++) {
         p[i] = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
         p[i]->flow = &f;
+        p[i]->flags |= PKT_HAS_FLOW;
         p[i]->flowflags |= FLOW_PKT_TOSERVER;
         p[i]->flowflags |= FLOW_PKT_ESTABLISHED;
     }
@@ -5779,6 +5789,7 @@ int DcePayloadTest11(void)
     for (i = 0; i < 2; i++) {
         p[i] = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
         p[i]->flow = &f;
+        p[i]->flags |= PKT_HAS_FLOW;
         p[i]->flowflags |= FLOW_PKT_TOSERVER;
         p[i]->flowflags |= FLOW_PKT_ESTABLISHED;
     }
@@ -6149,6 +6160,7 @@ int DcePayloadTest12(void)
     for (i = 0; i < 2; i++) {
         p[i] = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
         p[i]->flow = &f;
+        p[i]->flags |= PKT_HAS_FLOW;
         p[i]->flowflags |= FLOW_PKT_TOSERVER;
         p[i]->flowflags |= FLOW_PKT_ESTABLISHED;
     }
@@ -6328,6 +6340,7 @@ int DcePayloadTest13(void)
     for (i = 0; i < 8; i++) {
         p[i] = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
         p[i]->flow = &f;
+        p[i]->flags |= PKT_HAS_FLOW;
         p[i]->flowflags |= FLOW_PKT_TOSERVER;
         p[i]->flowflags |= FLOW_PKT_ESTABLISHED;
     }
@@ -6569,6 +6582,7 @@ int DcePayloadTest14(void)
     for (i = 0; i < 6; i++) {
         p[i] = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
         p[i]->flow = &f;
+        p[i]->flags |= PKT_HAS_FLOW;
         p[i]->flowflags |= FLOW_PKT_TOSERVER;
         p[i]->flowflags |= FLOW_PKT_ESTABLISHED;
     }
@@ -6743,6 +6757,7 @@ int DcePayloadTest15(void)
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -6854,6 +6869,7 @@ int DcePayloadTest16(void)
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -6965,6 +6981,7 @@ int DcePayloadTest17(void)
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -7076,6 +7093,7 @@ int DcePayloadTest18(void)
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -7187,6 +7205,7 @@ int DcePayloadTest19(void)
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -7298,6 +7317,7 @@ int DcePayloadTest20(void)
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -7401,6 +7421,7 @@ int DcePayloadTest21(void)
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -7497,6 +7518,7 @@ int DcePayloadTest22(void)
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -7594,6 +7616,7 @@ int DcePayloadTest23(void)
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -7689,6 +7712,7 @@ int DcePayloadTest24(void)
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -9887,6 +9911,7 @@ int DcePayloadTest42(void)
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 
@@ -9984,6 +10009,7 @@ int DcePayloadTest43(void)
 
     p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
     p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
 

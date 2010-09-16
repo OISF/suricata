@@ -43,12 +43,12 @@
  * \brief Structure that hold the user data and the netmask associated with it.
  */
 typedef struct SCRadixUserData_ {
-    /* holds the netmask value that corresponds to this user data pointer */
-    uint8_t netmask;
     /* holds a pointer to the user data associated with the particular netmask */
     void *user;
     /* pointer to the next user data in the list */
     struct SCRadixUserData_ *next;
+    /* holds the netmask value that corresponds to this user data pointer */
+    uint8_t netmask;
 } SCRadixUserData;
 
 /**
@@ -81,10 +81,12 @@ typedef struct SCRadixNode_ {
      * to determine the path to be taken during a lookup*/
     uint16_t bit;
 
-    /* holds a list of netmaks that come under this node in the tree */
-    uint8_t *netmasks;
+    uint16_t pad0;
+
     /* total no of netmasks that are registered under this node */
     int netmask_cnt;
+    /* holds a list of netmaks that come under this node in the tree */
+    uint8_t *netmasks;
 
     /* holds the prefix that the path to this node holds */
     SCRadixPrefix *prefix;

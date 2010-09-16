@@ -72,7 +72,7 @@ typedef struct B2gcPatternHdr_ {
     uint32_t np_offset; /* offset of the next pattern */
     uint8_t len;
     uint8_t flags;
-    uint16_t id;
+    PatIntId id;
 } B2gcPatternHdr;
 
 #define B2GC_GET_FLAGS(hdr)         ((hdr)->flags)
@@ -87,7 +87,7 @@ typedef struct B2gcPatternHdr_ {
 typedef struct B2gcPattern1_ {
     uint8_t flags;
     uint8_t pat;
-    uint16_t id;
+    PatIntId id;
 } B2gcPattern1;
 
 #define B2GC1_GET_FLAGS(hdr)         ((hdr)->flags)
@@ -99,7 +99,7 @@ typedef struct B2gcPattern_ {
     uint16_t len;
     uint8_t flags;
     uint8_t pad0;
-    uint32_t id;
+    PatIntId id;
     uint8_t *pat;
 } B2gcPattern;
 

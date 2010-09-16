@@ -366,6 +366,7 @@ static int DetectProtoTestSig01(void) {
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flags |= PKT_HAS_FLOW;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {

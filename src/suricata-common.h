@@ -130,6 +130,8 @@
 #define SigIntId uint16_t
 //#define SigIntId uint32_t
 
+/** same for pattern id's */
+#define PatIntId uint16_t
 
 #include <htp/htp.h>
 #include "threads.h"

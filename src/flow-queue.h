@@ -33,11 +33,11 @@ typedef struct FlowQueue_
     Flow *top;
     Flow *bot;
     uint32_t len;
-    SCMutex mutex_q;
-    SCCondT cond_q;
 #ifdef DBG_PERF
     uint32_t dbg_maxlen;
 #endif /* DBG_PERF */
+    SCMutex mutex_q;
+    SCCondT cond_q;
 } FlowQueue;
 
 /* prototypes */

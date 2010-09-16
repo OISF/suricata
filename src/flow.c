@@ -736,6 +736,8 @@ void FlowHandlePacket (ThreadVars *tv, Packet *p)
     p->flow = f;
 
     SCMutexUnlock(&f->m);
+
+    p->flags |= PKT_HAS_FLOW;
 }
 
 /** \brief initialize the configuration

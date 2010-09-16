@@ -147,6 +147,7 @@
 #include "util-privs.h"
 #include "util-profiling.h"
 #include "util-validate.h"
+#include "util-optimize.h"
 
 extern uint8_t engine_mode;
 
@@ -448,7 +449,7 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
     for (i = 0; i < det_ctx->sgh->sig_cnt; i++) {
         SignatureHeader *s = &det_ctx->sgh->head_array[i];
 
-        if (s->flags & SIG_FLAG_FLOW && !p->flow) {
+        if (!(p->flags & PKT_HAS_FLOW) && s->flags & SIG_FLAG_FLOW) {
             SCLogDebug("flow in sig but not in packet");
             continue;
         }
@@ -461,17 +462,15 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         }
 
         /* if the sig has alproto and the session as well they should match */
-        if (s->alproto != ALPROTO_UNKNOWN) {
-            if (s->alproto != alproto) {
-                if (s->alproto == ALPROTO_DCERPC) {
-                    if (alproto != ALPROTO_SMB && alproto != ALPROTO_SMB2) {
-                        SCLogDebug("DCERPC sig, alproto not SMB or SMB2");
-                        continue;
-                    }
-                } else {
-                    SCLogDebug("alproto mismatch");
+        if (s->flags & SIG_FLAG_APPLAYER && s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
+            if (s->alproto == ALPROTO_DCERPC) {
+                if (alproto != ALPROTO_SMB && alproto != ALPROTO_SMB2) {
+                    SCLogDebug("DCERPC sig, alproto not SMB or SMB2");
                     continue;
                 }
+            } else {
+                SCLogDebug("alproto mismatch");
+                continue;
             }
         }
 
@@ -479,7 +478,8 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         if (s->flags & SIG_FLAG_MPM_PACKET) {
             /* filter out sigs that want pattern matches, but
              * have no matches */
-            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8)))) {
+            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] & s->mpm_pattern_id_mod_8)) {
+            //if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8)))) {
                 SCLogDebug("mpm sig without matches (pat id %"PRIu32" check in content).", s->mpm_pattern_id);
 
                 if (!(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
@@ -500,7 +500,7 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         if (s->flags & SIG_FLAG_MPM_STREAM) {
             /* filter out sigs that want pattern matches, but
              * have no matches */
-            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_stream_pattern_id / 8)] & (1<<(s->mpm_stream_pattern_id % 8)))) {
+            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_stream_pattern_id_div_8)] & s->mpm_stream_pattern_id_mod_8)) {
                 SCLogDebug("mpm stream sig without matches (pat id %"PRIu32" check in content).", s->mpm_stream_pattern_id);
 
                 if (!(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
@@ -616,68 +616,67 @@ static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags) {
 
     StreamMsg *smsg = NULL;
 
-    if (p->proto == IPPROTO_TCP) {
+    if (p->proto == IPPROTO_TCP && f->protoctx != NULL) {
         TcpSession *ssn = (TcpSession *)f->protoctx;
-        if (ssn != NULL) {
-            /* at stream eof, inspect all smsg's */
-            if (flags & STREAM_EOF) {
-                if (p->flowflags & FLOW_PKT_TOSERVER) {
-                    smsg = ssn->toserver_smsg_head;
-                    /* deref from the ssn */
-                    ssn->toserver_smsg_head = NULL;
-                    ssn->toserver_smsg_tail = NULL;
 
-                    SCLogDebug("to_server smsg %p at stream eof", smsg);
-                } else {
-                    smsg = ssn->toclient_smsg_head;
-                    /* deref from the ssn */
-                    ssn->toclient_smsg_head = NULL;
-                    ssn->toclient_smsg_tail = NULL;
+        /* at stream eof, inspect all smsg's */
+        if (unlikely(flags & STREAM_EOF)) {
+            if (p->flowflags & FLOW_PKT_TOSERVER) {
+                smsg = ssn->toserver_smsg_head;
+                /* deref from the ssn */
+                ssn->toserver_smsg_head = NULL;
+                ssn->toserver_smsg_tail = NULL;
 
-                    SCLogDebug("to_client smsg %p at stream eof", smsg);
-                }
+                SCLogDebug("to_server smsg %p at stream eof", smsg);
             } else {
-                if (p->flowflags & FLOW_PKT_TOSERVER) {
-                    StreamMsg *head = ssn->toserver_smsg_head;
-                    if (head == NULL) {
-                        SCLogDebug("no smsgs in to_server direction");
-                        goto end;
-                    }
+                smsg = ssn->toclient_smsg_head;
+                /* deref from the ssn */
+                ssn->toclient_smsg_head = NULL;
+                ssn->toclient_smsg_tail = NULL;
 
-                    /* if the smsg is bigger than the current packet, we will
-                     * process the smsg in a later run */
-                    if ((head->data.seq + head->data.data_len) > (TCP_GET_SEQ(p) + p->payload_len)) {
-                        SCLogDebug("smsg ends beyond current packet, skipping for now %"PRIu32">%"PRIu32,
-                                (head->data.seq + head->data.data_len), (TCP_GET_SEQ(p) + p->payload_len));
-                        goto end;
-                    }
-
-                    smsg = head;
-                    /* deref from the ssn */
-                    ssn->toserver_smsg_head = NULL;
-                    ssn->toserver_smsg_tail = NULL;
-
-                    SCLogDebug("to_server smsg %p", smsg);
-                } else {
-                    StreamMsg *head = ssn->toclient_smsg_head;
-                    if (head == NULL)
-                        goto end;
-
-                    /* if the smsg is bigger than the current packet, we will
-                     * process the smsg in a later run */
-                    if ((head->data.seq + head->data.data_len) > (TCP_GET_SEQ(p) + p->payload_len)) {
-                        SCLogDebug("smsg ends beyond current packet, skipping for now %"PRIu32">%"PRIu32,
-                                (head->data.seq + head->data.data_len), (TCP_GET_SEQ(p) + p->payload_len));
-                        goto end;
-                    }
-
-                    smsg = head;
-                    /* deref from the ssn */
-                    ssn->toclient_smsg_head = NULL;
-                    ssn->toclient_smsg_tail = NULL;
-
-                    SCLogDebug("to_client smsg %p", smsg);
+                SCLogDebug("to_client smsg %p at stream eof", smsg);
+            }
+        } else {
+            if (p->flowflags & FLOW_PKT_TOSERVER) {
+                StreamMsg *head = ssn->toserver_smsg_head;
+                if (unlikely(head == NULL)) {
+                    SCLogDebug("no smsgs in to_server direction");
+                    goto end;
                 }
+
+                /* if the smsg is bigger than the current packet, we will
+                 * process the smsg in a later run */
+                if ((head->data.seq + head->data.data_len) > (TCP_GET_SEQ(p) + p->payload_len)) {
+                    SCLogDebug("smsg ends beyond current packet, skipping for now %"PRIu32">%"PRIu32,
+                            (head->data.seq + head->data.data_len), (TCP_GET_SEQ(p) + p->payload_len));
+                    goto end;
+                }
+
+                smsg = head;
+                /* deref from the ssn */
+                ssn->toserver_smsg_head = NULL;
+                ssn->toserver_smsg_tail = NULL;
+
+                SCLogDebug("to_server smsg %p", smsg);
+            } else {
+                StreamMsg *head = ssn->toclient_smsg_head;
+                if (unlikely(head == NULL))
+                    goto end;
+
+                /* if the smsg is bigger than the current packet, we will
+                 * process the smsg in a later run */
+                if ((head->data.seq + head->data.data_len) > (TCP_GET_SEQ(p) + p->payload_len)) {
+                    SCLogDebug("smsg ends beyond current packet, skipping for now %"PRIu32">%"PRIu32,
+                            (head->data.seq + head->data.data_len), (TCP_GET_SEQ(p) + p->payload_len));
+                    goto end;
+                }
+
+                smsg = head;
+                /* deref from the ssn */
+                ssn->toclient_smsg_head = NULL;
+                ssn->toclient_smsg_tail = NULL;
+
+                SCLogDebug("to_client smsg %p", smsg);
             }
         }
     }
@@ -723,7 +722,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     det_ctx->pkts++;
 
     /* grab the protocol state we will detect on */
-    if (p->flow != NULL) {
+    if (p->flags & PKT_HAS_FLOW) {
         if (p->flags & PKT_STREAM_EOF) {
             flags |= STREAM_EOF;
             SCLogDebug("STREAM_EOF set");
@@ -770,41 +769,45 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             SCLogDebug("flag STREAM_TOCLIENT set");
         }
         SCLogDebug("p->flowflags 0x%02x", p->flowflags);
-    }
 
-    /* match the ip only signatures */
-    if ((p->flowflags & FLOW_PKT_TOSERVER && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
-        (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET))) {
-        SCLogDebug("testing against \"ip-only\" signatures");
+        if ((p->flowflags & FLOW_PKT_TOSERVER && !(p->flowflags & FLOW_PKT_TOSERVER_IPONLY_SET)) ||
+                (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flowflags & FLOW_PKT_TOCLIENT_IPONLY_SET))) {
+            SCLogDebug("testing against \"ip-only\" signatures");
 
-        IPOnlyMatchPacket(de_ctx, det_ctx, &de_ctx->io_ctx, &det_ctx->io_ctx, p);
-        /* save in the flow that we scanned this direction... locking is
-         * done in the FlowSetIPOnlyFlag function. */
-        if (p->flow != NULL) {
-            FlowSetIPOnlyFlag(p->flow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
-        }
-    } else if (p->flow != NULL && ((p->flowflags & FLOW_PKT_TOSERVER &&
-                                   (p->flow->flags & FLOW_TOSERVER_IPONLY_SET)) ||
-                                   (p->flowflags & FLOW_PKT_TOCLIENT &&
-                                   (p->flow->flags & FLOW_TOCLIENT_IPONLY_SET)))) {
-        /* Get the result of the first IPOnlyMatch() */
-        if (p->flow->flags & FLOW_ACTION_PASS) {
-            /* if it matched a "pass" rule, we have to let it go */
-            p->action |= ACTION_PASS;
-        }
-        /* If we have a drop from IP only module,
-         * we will drop the rest of the flow packets
-         * This will apply only to inline/IPS */
-        if (p->flow != NULL &&
-            (p->flow->flags & FLOW_ACTION_DROP))
-        {
-            alert_flags = PACKET_ALERT_FLAG_DROP_FLOW;
-            p->action |= ACTION_DROP;
+            IPOnlyMatchPacket(de_ctx, det_ctx, &de_ctx->io_ctx, &det_ctx->io_ctx, p);
+            /* save in the flow that we scanned this direction... locking is
+             * done in the FlowSetIPOnlyFlag function. */
+            if (p->flow != NULL) {
+                FlowSetIPOnlyFlag(p->flow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
+            }
+        } else {
+//if (p->flow != NULL && ((p->flowflags & FLOW_PKT_TOSERVER &&
+//                        (p->flow->flags & FLOW_TOSERVER_IPONLY_SET)) ||
+//                    (p->flowflags & FLOW_PKT_TOCLIENT &&
+//                     (p->flow->flags & FLOW_TOCLIENT_IPONLY_SET)))) {
+            /* Get the result of the first IPOnlyMatch() */
+            if (p->flow->flags & FLOW_ACTION_PASS) {
+                /* if it matched a "pass" rule, we have to let it go */
+                p->action |= ACTION_PASS;
+            }
+            /* If we have a drop from IP only module,
+             * we will drop the rest of the flow packets
+             * This will apply only to inline/IPS */
+            if (p->flow != NULL &&
+                    (p->flow->flags & FLOW_ACTION_DROP))
+            {
+                alert_flags = PACKET_ALERT_FLAG_DROP_FLOW;
+                p->action |= ACTION_DROP;
+            }
         }
     } else {
+        /* no flow */
+
         /* Even without flow we should match the packet src/dst */
         IPOnlyMatchPacket(de_ctx, det_ctx, &de_ctx->io_ctx, &det_ctx->io_ctx, p);
     }
+
+    /* match the ip only signatures */
 
     /* use the sgh from the flow unless we have no flow or the flow
      * sgh wasn't initialized yet */
@@ -851,12 +854,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             else                                            det_ctx->pkts_searched++;
 #endif
             cnt = PacketPatternSearch(th_v, det_ctx, p);
-            if (cnt > 0) {
-#if 0
-                det_ctx->mpm_match++;
-#endif
-            }
-
             SCLogDebug("post search: cnt %" PRIu32, cnt);
         }
     }
@@ -864,14 +861,15 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     det_ctx->de_mpm_scanned_uri = FALSE;
 
     /* stateful app layer detection */
+    if (p->flags & PKT_HAS_FLOW && alstate != NULL) {
+        /* initialize to 0 (DE_STATE_MATCH_NOSTATE) */
+        memset(det_ctx->de_state_sig_array, 0x00, det_ctx->de_state_sig_array_len);
 
-    /* initialize to 0 (DE_STATE_MATCH_NOSTATE) */
-    memset(det_ctx->de_state_sig_array, 0x00, det_ctx->de_state_sig_array_len);
-
-    /* if applicable, continue stateful detection */
-    if (p->flow != NULL && DeStateFlowHasState(p->flow)) {
-        DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p->flow,
-                flags, alstate, alproto);
+        /* if applicable, continue stateful detection */
+        if (DeStateFlowHasState(p->flow)) {
+            DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p->flow,
+                    flags, alstate, alproto);
+        }
     }
 
     /* build the match array */
@@ -951,7 +949,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     if (det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray != NULL) {
                         /* filter out sigs that want pattern matches, but
                          * have no matches */
-                        if (!(det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray[(s->mpm_stream_pattern_id / 8)] & (1<<(s->mpm_stream_pattern_id % 8))) &&
+                        if (!(det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray[(s->mpm_stream_pattern_id_div_8)] & s->mpm_stream_pattern_id_mod_8) &&
                                 (s->flags & SIG_FLAG_MPM) && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
                             SCLogDebug("no match in this smsg");
                             continue;
@@ -1026,7 +1024,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         } else {
             if (s->flags & SIG_FLAG_RECURSIVE) {
                 uint8_t rmatch = 0;
-                det_ctx->pkt_cnt = 0;
+                uint8_t recursion_cnt = 0;
 
                 do {
                     sm = s->match;
@@ -1045,7 +1043,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                                     }
                                 }
                                 rmatch = fmatch = 1;
-                                det_ctx->pkt_cnt++;
+                                recursion_cnt++;
                             }
                         } else {
                             /* done with this sig */
@@ -1056,7 +1054,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
                     /* Limit the number of times we do this recursive thing.
                      * XXX is this a sane limit? Should it be configurable? */
-                    if (det_ctx->pkt_cnt == 10)
+                    if (recursion_cnt == 10)
                         goto done;
                 } while (rmatch);
 
@@ -1125,7 +1123,7 @@ end:
     /* store the found sgh (or NULL) in the flow to save us from looking it
      * up again for the next packet. Also return any stream chunk we processed
      * to the pool. */
-    if (p->flow != NULL) {
+    if (p->flags & PKT_HAS_FLOW) {
         SCMutexLock(&p->flow->m);
         if (no_store_flow_sgh == FALSE) {
             if (p->flowflags & FLOW_PKT_TOSERVER && !(p->flow->flags & FLOW_SGH_TOSERVER)) {
@@ -3770,6 +3768,7 @@ static int SigTest06Real (int mpm_type) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -3865,6 +3864,7 @@ static int SigTest07Real (int mpm_type) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -3960,6 +3960,7 @@ static int SigTest08Real (int mpm_type) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -4055,6 +4056,7 @@ static int SigTest09Real (int mpm_type) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -4142,6 +4144,7 @@ static int SigTest10Real (int mpm_type) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -4228,6 +4231,7 @@ static int SigTest11Real (int mpm_type) {
     f.dst.family = AF_INET;
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -4296,6 +4300,7 @@ static int SigTest12Real (int mpm_type) {
 
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
     p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -4360,6 +4365,7 @@ static int SigTest13Real (int mpm_type) {
 
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
     p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -8888,6 +8894,7 @@ static int SigTestDropFlow01(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -8985,6 +8992,7 @@ static int SigTestDropFlow02(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -9095,10 +9103,12 @@ static int SigTestDropFlow03(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW;
 
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -9258,10 +9268,12 @@ static int SigTestDropFlow04(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW;
 
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);

@@ -269,7 +269,7 @@ int DetectPcreALDoMatchMethod(DetectEngineThreadCtx *det_ctx, Signature *s,
         SCLogDebug("ret %d (negating %s)", ret, pe->negate ? "set" : "not set");
 
         if (ret == PCRE_ERROR_NOMATCH) {
-            if (pe->negate == 1) {
+            if (pe->flags & DETECT_PCRE_NEGATE) {
                 /* regex didn't match with negate option means we
                  * consider it a match */
                 ret = 1;
@@ -280,7 +280,7 @@ int DetectPcreALDoMatchMethod(DetectEngineThreadCtx *det_ctx, Signature *s,
             }
             toret |= ret;
         } else if (ret >= 0) {
-            if (pe->negate == 1) {
+            if (pe->flags & DETECT_PCRE_NEGATE) {
                 /* regex matched but we're negated, so not
                  * considering it a match */
                 ret = 0;
@@ -386,7 +386,7 @@ int DetectPcreALDoMatchHeader(DetectEngineThreadCtx *det_ctx, Signature *s,
         SCLogDebug("ret %d (negating %s)", ret, pe->negate ? "set" : "not set");
 
         if (ret == PCRE_ERROR_NOMATCH) {
-            if (pe->negate == 1) {
+            if (pe->flags & DETECT_PCRE_NEGATE) {
                 /* regex didn't match with negate option means we
                  * consider it a match */
                 ret = 1;
@@ -397,7 +397,7 @@ int DetectPcreALDoMatchHeader(DetectEngineThreadCtx *det_ctx, Signature *s,
             }
             toret |= ret;
         } else if (ret >= 0) {
-            if (pe->negate == 1) {
+            if (pe->flags & DETECT_PCRE_NEGATE) {
                 /* regex matched but we're negated, so not
                  * considering it a match */
                 ret = 0;
@@ -505,7 +505,7 @@ int DetectPcreALDoMatchCookie(DetectEngineThreadCtx *det_ctx, Signature *s,
         SCLogDebug("ret %d (negating %s)", ret, pe->negate ? "set" : "not set");
 
         if (ret == PCRE_ERROR_NOMATCH) {
-            if (pe->negate == 1) {
+            if (pe->flags & DETECT_PCRE_NEGATE) {
                 /* regex didn't match with negate option means we
                  * consider it a match */
                 ret = 1;
@@ -516,7 +516,7 @@ int DetectPcreALDoMatchCookie(DetectEngineThreadCtx *det_ctx, Signature *s,
             }
             toret |= ret;
         } else if (ret >= 0) {
-            if (pe->negate == 1) {
+            if (pe->flags & DETECT_PCRE_NEGATE) {
                 /* regex matched but we're negated, so not
                  * considering it a match */
                 ret = 0;
@@ -529,7 +529,7 @@ int DetectPcreALDoMatchCookie(DetectEngineThreadCtx *det_ctx, Signature *s,
             }
         } else {
             SCLogDebug("pcre had matching error");
-            if (pe->negate == 1) {
+            if (pe->flags & DETECT_PCRE_NEGATE) {
                 ret = 1;
                 toret |= ret;
                 break;
@@ -644,7 +644,7 @@ int DetectPcreALDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *
 
 unlock:
     SCMutexUnlock(&f->m);
-    SCReturnInt(ret ^ pe->negate);
+    SCReturnInt(ret ^ (pe->flags & DETECT_PCRE_NEGATE));
 }
 
 /**
@@ -767,7 +767,7 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
     SCLogDebug("ret %d (negating %s)", ret, pe->negate ? "set" : "not set");
 
     if (ret == PCRE_ERROR_NOMATCH) {
-        if (pe->negate == 1) {
+        if (pe->flags & DETECT_PCRE_NEGATE) {
             /* regex didn't match with negate option means we
              * consider it a match */
             ret = 1;
@@ -775,7 +775,7 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
             ret = 0;
         }
     } else if (ret >= 0) {
-        if (pe->negate == 1) {
+        if (pe->flags & DETECT_PCRE_NEGATE) {
             /* regex matched but we're negated, so not
              * considering it a match */
             ret = 0;
@@ -861,7 +861,7 @@ int DetectPcrePacketPayloadMatch(DetectEngineThreadCtx *det_ctx, Packet *p, Sign
     SCLogDebug("ret %d (negating %s)", ret, pe->negate ? "set" : "not set");
 
     if (ret == PCRE_ERROR_NOMATCH) {
-        if (pe->negate == 1) {
+        if (pe->flags & DETECT_PCRE_NEGATE) {
             /* regex didn't match with negate option means we
              * consider it a match */
             ret = 1;
@@ -869,7 +869,7 @@ int DetectPcrePacketPayloadMatch(DetectEngineThreadCtx *det_ctx, Packet *p, Sign
             ret = 0;
         }
     } else if (ret >= 0) {
-        if (pe->negate == 1) {
+        if (pe->flags & DETECT_PCRE_NEGATE) {
             /* regex matched but we're negated, so not
              * considering it a match */
             ret = 0;
@@ -954,7 +954,7 @@ int DetectPcrePayloadDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
     SCLogDebug("ret %d (negating %s)", ret, pe->negate ? "set" : "not set");
 
     if (ret == PCRE_ERROR_NOMATCH) {
-        if (pe->negate == 1) {
+        if (pe->flags & DETECT_PCRE_NEGATE) {
             /* regex didn't match with negate option means we
              * consider it a match */
             ret = 1;
@@ -962,7 +962,7 @@ int DetectPcrePayloadDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
             ret = 0;
         }
     } else if (ret >= 0) {
-        if (pe->negate == 1) {
+        if (pe->flags & DETECT_PCRE_NEGATE) {
             /* regex matched but we're negated, so not
              * considering it a match */
             ret = 0;
@@ -1076,7 +1076,7 @@ DetectPcreData *DetectPcreParse (char *regexstr)
     memset(pd, 0, sizeof(DetectPcreData));
 
     if (negate)
-        pd->negate = 1;
+        pd->flags |= DETECT_PCRE_NEGATE;
 
     if (op != NULL) {
         while (*op) {
@@ -1795,6 +1795,7 @@ static int DetectPcreTestSig01Real(int mpm_type) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW;
 
     StreamTcpInitConfig(TRUE);
     FlowL7DataPtrInit(&f);
@@ -1874,6 +1875,7 @@ static int DetectPcreTestSig02Real(int mpm_type) {
 
     p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
     p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
 
     pcre_match_limit = 100;
     pcre_match_limit_recursion = 100;
@@ -2038,6 +2040,7 @@ static int DetectPcreModifPTest04(void) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -2165,9 +2168,11 @@ static int DetectPcreModifPTest05(void) {
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW;
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -2350,6 +2355,7 @@ static int DetectPcreTestSig09(void) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -2440,6 +2446,7 @@ static int DetectPcreTestSig10(void) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -2530,6 +2537,7 @@ static int DetectPcreTestSig11(void) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -2620,6 +2628,7 @@ static int DetectPcreTestSig12(void) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -2710,6 +2719,7 @@ static int DetectPcreTestSig13(void) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -2800,6 +2810,7 @@ static int DetectPcreTestSig14(void) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -2895,6 +2906,7 @@ static int DetectPcreTxBodyChunksTest01(void) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -3044,6 +3056,7 @@ static int DetectPcreTxBodyChunksTest02(void) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -3269,6 +3282,7 @@ static int DetectPcreTxBodyChunksTest03(void) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);

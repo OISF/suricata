@@ -29,6 +29,7 @@
 #include "decode-events.h"
 #include "util-unittest.h"
 #include "util-debug.h"
+#include "util-optimize.h"
 #include "flow.h"
 
 static int DecodeTCPOptions(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len)
@@ -124,7 +125,7 @@ static int DecodeTCPOptions(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t le
 
 static int DecodeTCPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len)
 {
-    if (len < TCP_HEADER_LEN) {
+    if (unlikely(len < TCP_HEADER_LEN)) {
         DECODER_SET_EVENT(p, TCP_PKT_TOO_SMALL);
         return -1;
     }
@@ -132,7 +133,7 @@ static int DecodeTCPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len
     p->tcph = (TCPHdr *)pkt;
 
     p->tcpvars.hlen = TCP_GET_HLEN(p);
-    if (len < p->tcpvars.hlen) {
+    if (unlikely(len < p->tcpvars.hlen)) {
         DECODER_SET_EVENT(p, TCP_HLEN_TOO_SMALL);
         return -1;
     }
@@ -141,7 +142,7 @@ static int DecodeTCPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len
     SET_TCP_DST_PORT(p,&p->dp);
 
     p->tcpvars.tcp_opt_len = p->tcpvars.hlen - TCP_HEADER_LEN;
-    if (p->tcpvars.tcp_opt_len > TCP_OPTLENMAX) {
+    if (unlikely(p->tcpvars.tcp_opt_len > TCP_OPTLENMAX)) {
         DECODER_SET_EVENT(p, TCP_INVALID_OPTLEN);
         return -1;
     }
@@ -162,7 +163,7 @@ void DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 {
     SCPerfCounterIncr(dtv->counter_tcp, tv->sc_perf_pca);
 
-    if (DecodeTCPPacket(tv, p,pkt,len) < 0) {
+    if (unlikely(DecodeTCPPacket(tv, p,pkt,len) < 0)) {
         p->tcph = NULL;
         return;
     }

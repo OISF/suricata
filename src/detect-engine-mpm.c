@@ -742,7 +742,8 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
             /* tell matcher we are inspecting packet */
             s->flags |= SIG_FLAG_MPM_PACKET;
 
-            s->mpm_pattern_id = co->id;
+            s->mpm_pattern_id_mod_8 = 1<<(co->id%8);
+            s->mpm_pattern_id_div_8 = co->id/8;
             if (scan_negated) {
                 SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
                 s->flags |= SIG_FLAG_MPM_NEGCONTENT;
@@ -980,7 +981,8 @@ static int PatternMatchPreprarePopulateMpmStream(DetectEngineCtx *de_ctx, SigGro
             /* tell matcher we are inspecting stream */
             s->flags |= SIG_FLAG_MPM_STREAM;
 
-            s->mpm_stream_pattern_id = co->id;
+            s->mpm_stream_pattern_id_div_8 = co->id/8;
+            s->mpm_stream_pattern_id_mod_8 = 1<<(co->id%8);
             if (scan_negated) {
                 SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
                 s->flags |= SIG_FLAG_MPM_NEGCONTENT;

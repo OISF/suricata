@@ -406,11 +406,11 @@ typedef struct PacketQueue_ {
     Packet *top;
     Packet *bot;
     uint16_t len;
-    SCMutex mutex_q;
-    SCCondT cond_q;
 #ifdef DBG_PERF
     uint16_t dbg_maxlen;
 #endif /* DBG_PERF */
+    SCMutex mutex_q;
+    SCCondT cond_q;
 } PacketQueue;
 
 /** \brief Specific ctx for AL proto detection */
@@ -730,6 +730,7 @@ void AddressDebugPrint(Address *);
 #define PKT_HAS_TAG                     0x08    /**< Packet has matched a tag */
 #define PKT_STREAM_ADD                  0x10    /**< Packet payload was added to reassembled stream */
 #define PKT_STREAM_EOF                  0x20    /**< Stream is in eof state */
+#define PKT_HAS_FLOW                    0x40
 
 #endif /* __DECODE_H__ */
 

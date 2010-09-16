@@ -49,13 +49,13 @@ typedef struct SCDQDataQueue_ {
     SCDQGenericQData *bot;
     /* no of items currently in the queue */
     uint16_t len;
+#ifdef DBG_PERF
+    uint16_t dbg_maxlen;
+#endif /* DBG_PERF */
 
     SCMutex mutex_q;
     SCCondT cond_q;
 
-#ifdef DBG_PERF
-    uint16_t dbg_maxlen;
-#endif /* DBG_PERF */
 } SCDQDataQueue;
 
 void SCDQDataEnqueue(SCDQDataQueue *, SCDQGenericQData *);
