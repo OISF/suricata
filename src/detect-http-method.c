@@ -121,20 +121,25 @@ int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         } else if (tx->request_method != NULL) {
             const uint8_t *meth_str = (const uint8_t *)
                                                bstr_ptr(tx->request_method);
-            if ((meth_str != NULL) &&
-                    SpmSearch((uint8_t*) meth_str, bstr_size(tx->request_method),
-                    data->content, data->content_len) != NULL)
-            {
-                SCLogDebug("Matched raw HTTP method values.");
-
-                ret = 1;
+            if (meth_str != NULL) {
+                if (data->flags & DETECT_AL_HTTP_METHOD_NOCASE) {
+                    ret = (SpmNocaseSearch((uint8_t *)meth_str, bstr_size(tx->request_method),
+                                          data->content, data->content_len) != NULL);
+                } else {
+                    ret = (SpmSearch((uint8_t*) meth_str, bstr_size(tx->request_method),
+                    data->content, data->content_len) != NULL);
+                }
+                if (ret == 1) {
+                    SCLogDebug("Matched raw HTTP method values.");
+                }
                 break;
             }
         }
     }
 
     SCMutexUnlock(&f->m);
-    SCReturnInt(ret);
+    //SCReturnInt(ret);
+    SCReturnInt(ret ^ ((data->flags & DETECT_AL_HTTP_METHOD_NEGATED) ? 1 : 0));
 }
 
 /**

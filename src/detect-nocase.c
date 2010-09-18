@@ -36,6 +36,9 @@
 #include "detect-pcre.h"
 #include "detect-http-client-body.h"
 #include "detect-http-cookie.h"
+#include "detect-http-header.h"
+#include "detect-http-method.h"
+#include "detect-http-uri.h"
 
 #include "util-debug.h"
 
@@ -73,6 +76,11 @@ static SigMatch *SigMatchGetLastNocasePattern(Signature *s) {
     SigMatch *hcbd_sm = SigMatchGetLastSM(s->amatch_tail, DETECT_AL_HTTP_CLIENT_BODY);
     /* http cookie SigMatch */
     SigMatch *hcd_sm = SigMatchGetLastSM(s->amatch_tail, DETECT_AL_HTTP_COOKIE);
+    /* http header SigMatch */
+    SigMatch *hhd_sm = SigMatchGetLastSM(s->amatch_tail, DETECT_AL_HTTP_HEADER);
+    /* http method SigMatch */
+    SigMatch *hmd_sm = SigMatchGetLastSM(s->amatch_tail, DETECT_AL_HTTP_METHOD);
+
     SigMatch *temp_sm = NULL;
 
     SigMatch **sm_list = NULL;
@@ -109,6 +117,23 @@ static SigMatch *SigMatchGetLastNocasePattern(Signature *s) {
             exit(EXIT_FAILURE);
         }
         sm_list[sm_list_count - 1] = hcd_sm;
+    }
+    if (hhd_sm != NULL) {
+        sm_list_count++;
+        if ( (sm_list = SCRealloc(sm_list, sizeof(SigMatch *) * sm_list_count)) == NULL) {
+            SCLogError(SC_ERR_FATAL, "Fatal error encountered in SigMatchGetLastNocasePattern. Exiting...");
+            exit(EXIT_FAILURE);
+        }
+        sm_list[sm_list_count - 1] = hhd_sm;
+    }
+
+    if (hmd_sm != NULL) {
+        sm_list_count++;
+        if ( (sm_list = SCRealloc(sm_list, sizeof(SigMatch *) * sm_list_count)) == NULL) {
+            SCLogError(SC_ERR_FATAL, "Fatal error encountered in SigMatchGetLastNocasePattern. Exiting...");
+            exit(EXIT_FAILURE);
+        }
+        sm_list[sm_list_count - 1] = hmd_sm;
     }
 
     if (sm_list_count == 0)
@@ -158,7 +183,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
     SigMatch *pm = SigMatchGetLastNocasePattern(s);
     if (pm == NULL) {
         SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "\"nocase\" needs a preceeding"
-                " content, uricontent, http_client_body or http_cookie option");
+                " content, uricontent, http_client_body, http_header, http_method, http_uri, http_cookie option");
         SCReturnInt(-1);
     }
 
@@ -166,6 +191,8 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
     DetectContentData *cd = NULL;
     DetectHttpClientBodyData *dhcb = NULL;
     DetectHttpCookieData *dhcd = NULL;
+    DetectHttpHeaderData *dhhd = NULL;
+    DetectHttpMethodData *dhmd = NULL;
 
     switch (pm->type) {
         case DETECT_URICONTENT:
@@ -194,6 +221,14 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
             dhcb->flags |= DETECT_AL_HTTP_CLIENT_BODY_NOCASE;
             /* Recreate the context with nocase chars */
             BoyerMooreCtxToNocase(dhcb->bm_ctx, dhcb->content, dhcb->content_len);
+            break;
+        case DETECT_AL_HTTP_HEADER:
+            dhhd =(DetectHttpHeaderData *) pm->ctx;
+            dhhd->flags |= DETECT_AL_HTTP_HEADER_NOCASE;
+            break;
+        case DETECT_AL_HTTP_METHOD:
+            dhmd =(DetectHttpMethodData *) pm->ctx;
+            dhmd->flags |= DETECT_AL_HTTP_METHOD_NOCASE;
             break;
         case DETECT_AL_HTTP_COOKIE:
             dhcd = (DetectHttpCookieData *) pm->ctx;
