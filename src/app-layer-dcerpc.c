@@ -1210,17 +1210,13 @@ static inline int DCERPCThrowOutExtraData(DCERPC *dcerpc, uint8_t *input,
 }
 
 /**
- * \todo - Currently the parser is very generic.  Modify it to behave
- *         like the target's parser.
- *        - Enable receiving contexts that don't always start with a 0 ctx id.
- *       - Disable reiniting tailq for mid and last bind pdus.
+ * \todo - Currently the parser is very generic.  Enable target based
+ *         reassembly.
+ *       - Disable reiniting tailq for mid and last bind/alter_context pdus.
  *       - Use a PM to search for subsequent 05 00 when we see an inconsistent
  *         pdu.  This should be done for each platform based on how it handles
  *         a condition where it has receives a segment with 2 pdus, while the
  *         first pdu in the segment is corrupt.
- *       - Need to hold multiple stub buffers, if we receive something like
- *         request-response-request in the same segment.  The 2nd request
- *         would reset the stub_buffer from the first PDU.
  */
 int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
     SCEnter();
@@ -1232,7 +1228,19 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
     dcerpc->dcerpcrequest.stub_data_fresh = 0;
     dcerpc->dcerpcresponse.stub_data_fresh = 0;
 
+    /* temporary use.  we will get rid of this later, once we have ironed out
+     * all the endless loops cases */
+    int counter = 0;
+
     while(input_len) {
+        /* in case we have any corner cases remainging, we have this */
+        if (counter++ == 30) {
+            SCLogWarning(SC_ERR_DCERPC, "Somehow seem to be stuck inside the dce "
+                         "parser for quite sometime.  Let's get out of here.");
+            DCERPCResetParsingState(dcerpc);
+            SCReturnInt(0);
+        }
+
         while (dcerpc->bytesprocessed < DCERPC_HDR_LEN && input_len) {
             hdrretval = DCERPCParseHeader(dcerpc, input + parsed, input_len);
             if (hdrretval == -1) {
