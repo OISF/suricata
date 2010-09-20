@@ -41,6 +41,7 @@
 #include "util-unittest.h"
 #include "util-hashlist.h"
 #include "util-optimize.h"
+#include "util-memcmp.h"
 
 #include "conf.h"
 
@@ -1093,7 +1094,7 @@ uint32_t B2gcSearchBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternM
                                         prt(pattern, hdr->len);printf("\n");
                                         prt(buf+pos-1, hdr->len);printf("\n");
 #endif
-                                        if (memcmp_lowercase(pattern, buf+pos-1, hdr->len) == 0) {
+                                        if (SCMemcmpLowercase(pattern, buf+pos-1, hdr->len) == 0) {
                                             matches += MpmVerifyMatch(mpm_thread_ctx, pmq, hdr->id);
                                         }
                                     } else {
@@ -1103,7 +1104,7 @@ uint32_t B2gcSearchBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternM
                                         prt(pattern, hdr->len);printf("\n");
                                         prt(buf+pos-1, hdr->len);printf("\n");
 #endif
-                                        if (memcmp(pattern, buf+pos-1, hdr->len) == 0) {
+                                        if (SCMemcmp(pattern, buf+pos-1, hdr->len) == 0) {
                                             matches += MpmVerifyMatch(mpm_thread_ctx, pmq, hdr->id);
                                         }
                                     }
