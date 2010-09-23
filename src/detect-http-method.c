@@ -206,6 +206,8 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
     if (data == NULL)
         goto error;
 
+    memset(data, 0x00, sizeof(DetectHttpMethodData));
+
     data->content_len = ((DetectContentData *)pm->ctx)->content_len;
     data->content = ((DetectContentData *)pm->ctx)->content;
 
