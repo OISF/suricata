@@ -67,8 +67,11 @@ static int MemcmpTest04 (void) {
     uint8_t a[] = "abcd";
     uint8_t b[] = "abcD";
 
-    if (SCMemcmp(a, b, sizeof(a)-1) != 1)
+    int r = SCMemcmp(a, b, sizeof(a)-1);
+    if (r != 1) {
+        printf("%s != %s, but memcmp returned %d: ", a, b, r);
         return 0;
+    }
 
     return 1;
 }

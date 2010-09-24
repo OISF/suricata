@@ -21,6 +21,9 @@
  * \author Victor Julien <victor@inliniac.net>
  *
  * Memcmp implementations for SSE3, SSE4.1 and SSE4.2.
+ *
+ * Both SCMemcmp and SCMemcmpLowercase return 0 on a exact match,
+ * 1 on a failed match.
  */
 
 #ifndef __UTIL_MEMCMP_H__
@@ -302,7 +305,10 @@ static inline int SCMemcmpLowercase(void *s1, void *s2, size_t len) {
 
 /* No SIMD support, fall back to plain memcmp and a home grown lowercase one */
 
-#define SCMemcmp memcmp
+/* wrapper around memcmp to match the retvals of the SIMD implementations */
+#define SCMemcmp(a,b,c) ({ \
+    memcmp((a), (b), (c)) ? 1 : 0; \
+})
 
 static inline int
 SCMemcmpLowercase(void *s1, void *s2, size_t n) {
