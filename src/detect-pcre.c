@@ -266,7 +266,7 @@ int DetectPcreALDoMatchMethod(DetectEngineThreadCtx *det_ctx, Signature *s,
 
         /* run the actual pcre detection */
         ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, 0, 0, ov, MAX_SUBSTRINGS);
-        SCLogDebug("ret %d (negating %s)", ret, pe->negate ? "set" : "not set");
+        SCLogDebug("ret %d (negating %s)", ret, (pe->flags & DETECT_PCRE_NEGATE) ? "set" : "not set");
 
         if (ret == PCRE_ERROR_NOMATCH) {
             if (pe->flags & DETECT_PCRE_NEGATE) {
@@ -383,7 +383,7 @@ int DetectPcreALDoMatchHeader(DetectEngineThreadCtx *det_ctx, Signature *s,
 
         /* run the actual pcre detection */
         ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, 0, 0, ov, MAX_SUBSTRINGS);
-        SCLogDebug("ret %d (negating %s)", ret, pe->negate ? "set" : "not set");
+        SCLogDebug("ret %d (negating %s)", ret, (pe->flags & DETECT_PCRE_NEGATE) ? "set" : "not set");
 
         if (ret == PCRE_ERROR_NOMATCH) {
             if (pe->flags & DETECT_PCRE_NEGATE) {
@@ -502,7 +502,7 @@ int DetectPcreALDoMatchCookie(DetectEngineThreadCtx *det_ctx, Signature *s,
 
         /* run the actual pcre detection */
         ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, 0, 0, ov, MAX_SUBSTRINGS);
-        SCLogDebug("ret %d (negating %s)", ret, pe->negate ? "set" : "not set");
+        SCLogDebug("ret %d (negating %s)", ret, (pe->flags & DETECT_PCRE_NEGATE) ? "set" : "not set");
 
         if (ret == PCRE_ERROR_NOMATCH) {
             if (pe->flags & DETECT_PCRE_NEGATE) {
@@ -764,7 +764,7 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
 
     /* run the actual pcre detection */
     ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, 0, 0, ov, MAX_SUBSTRINGS);
-    SCLogDebug("ret %d (negating %s)", ret, pe->negate ? "set" : "not set");
+    SCLogDebug("ret %d (negating %s)", ret, (pe->flags & DETECT_PCRE_NEGATE) ? "set" : "not set");
 
     if (ret == PCRE_ERROR_NOMATCH) {
         if (pe->flags & DETECT_PCRE_NEGATE) {
@@ -858,7 +858,7 @@ int DetectPcrePacketPayloadMatch(DetectEngineThreadCtx *det_ctx, Packet *p, Sign
 
     /* run the actual pcre detection */
     ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, 0, 0, ov, MAX_SUBSTRINGS);
-    SCLogDebug("ret %d (negating %s)", ret, pe->negate ? "set" : "not set");
+    SCLogDebug("ret %d (negating %s)", ret, (pe->flags & DETECT_PCRE_NEGATE) ? "set" : "not set");
 
     if (ret == PCRE_ERROR_NOMATCH) {
         if (pe->flags & DETECT_PCRE_NEGATE) {
@@ -951,7 +951,7 @@ int DetectPcrePayloadDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
 
     /* run the actual pcre detection */
     ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, 0, 0, ov, MAX_SUBSTRINGS);
-    SCLogDebug("ret %d (negating %s)", ret, pe->negate ? "set" : "not set");
+    SCLogDebug("ret %d (negating %s)", ret, (pe->flags & DETECT_PCRE_NEGATE) ? "set" : "not set");
 
     if (ret == PCRE_ERROR_NOMATCH) {
         if (pe->flags & DETECT_PCRE_NEGATE) {
