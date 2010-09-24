@@ -433,17 +433,22 @@ end:
  * \retval int 1 if the match of all the sids is the specified has the
  *             specified results; 0 if not
  */
-int UTHCheckPacketMatchResults(Packet *p, uint32_t sids[], uint32_t results[], int numsids) {
+int UTHCheckPacketMatchResults(Packet *p, uint32_t sids[],
+        uint32_t results[], int numsids)
+{
     if (p == NULL || sids == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Arguments invalid, check if the packet is NULL, and if the array contain sids is set");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Arguments invalid, check if the "
+                "packet is NULL, and if the array contain sids is set");
         return 0;
     }
+
     int i = 0;
     int res = 1;
     for (; i < numsids; i++) {
         uint16_t r = PacketAlertCheck(p, sids[i]);
         if (r != results[i]) {
-            SCLogInfo("Sid %"PRIu32" matched %"PRIu16" times, and not %"PRIu16" as expected", sids[i], r, results[i]);
+            SCLogInfo("Sid %"PRIu32" matched %"PRIu16" times, and not %"PRIu16
+                    " as expected", sids[i], r, results[i]);
             res = 0;
         } else {
             SCLogInfo("Sid %"PRIu32" matched %"PRIu16" times, as expected", sids[i], r);
