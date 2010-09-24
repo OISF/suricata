@@ -58,6 +58,7 @@
 #include "util-cuda-handlers.h"
 #include "util-privs.h"
 #include "util-print.h"
+#include "util-proto-name.h"
 
 #define DEFAULT_LOG_FILENAME "fast.log"
 
@@ -144,8 +145,19 @@ TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
 
-        fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: %" PRIu32 "] {%" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "",
-                timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio, IPV4_GET_IPPROTO(p), srcip, p->sp, dstip, p->dp);
+        if (SCProtoNameValid(IPV4_GET_IPPROTO(p)) == TRUE) {
+            fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%"
+                    PRIu32 "] %s [**] [Classification: %s] [Priority: %"PRIu32"]"
+                    " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "", timebuf,
+                    pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio,
+                    known_proto[IPV4_GET_IPPROTO(p)], srcip, p->sp, dstip, p->dp);
+        } else {
+            fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%"
+                    PRIu32 "] %s [**] [Classification: %s] [Priority: %"PRIu32"]"
+                    " {PROTO:%03" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "", timebuf,
+                    pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio,
+                    IPV4_GET_IPPROTO(p), srcip, p->sp, dstip, p->dp);
+        }
 
         if(pa->references != NULL)  {
             fprintf(aft->file_ctx->fp," ");
@@ -186,8 +198,21 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
 
-        fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: %" PRIu32 "] {%" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "",
-                timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
+        if (SCProtoNameValid(IPV6_GET_L4PROTO(p)) == TRUE) {
+            fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%"
+                    "" PRIu32 "] %s [**] [Classification: %s] [Priority: %"
+                    "" PRIu32 "] {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "",
+                    timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg,
+                    pa->prio, known_proto[IPV6_GET_L4PROTO(p)], srcip, p->sp,
+                    dstip, p->dp);
+
+        } else {
+            fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%"
+                    "" PRIu32 "] %s [**] [Classification: %s] [Priority: %"
+                    "" PRIu32 "] {PROTO:%03" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "",
+                    timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg,
+                    pa->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
+        }
 
         if(pa->references != NULL)  {
             fprintf(aft->file_ctx->fp," ");

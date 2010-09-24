@@ -176,6 +176,7 @@ util-decode-asn1.c util-decode-asn1.h \
 util-ringbuffer.c util-ringbuffer.h \
 util-validate.h \
 util-memcmp.c util-memcmp.h \
+util-proto-name.c util-proto-name.h \
 tm-modules.c tm-modules.h \
 tm-queues.c tm-queues.h \
 tm-queuehandlers.c tm-queuehandlers.h \

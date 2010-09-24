@@ -145,6 +145,7 @@
 #include "util-ringbuffer.h"
 #include "util-mem.h"
 #include "util-memcmp.h"
+#include "util-proto-name.h"
 
 /*
  * we put this here, because we only use it here in main.
@@ -805,6 +806,7 @@ int main(int argc, char **argv)
     SCProfilingInit();
 #endif /* PROFILING */
     SCReputationInitCtx();
+    SCProtoNameInit();
 
     TagInitCtx();
 
@@ -1248,6 +1250,7 @@ int main(int argc, char **argv)
     RunModeShutDown();
     OutputDeregisterAll();
     TimeDeinit();
+    SCProtoNameDeInit();
 
 #ifdef PROFILING
     if (profiling_rules_enabled)
