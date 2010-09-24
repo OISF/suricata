@@ -125,7 +125,6 @@ TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
 {
     AlertFastLogThread *aft = (AlertFastLogThread *)data;
     int i;
-    Reference *ref = NULL;
     char timebuf[64];
 
     if (p->alerts.cnt == 0)
@@ -159,13 +158,6 @@ TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
                     IPV4_GET_IPPROTO(p), srcip, p->sp, dstip, p->dp);
         }
 
-        if(pa->references != NULL)  {
-            fprintf(aft->file_ctx->fp," ");
-            for (ref = pa->references; ref != NULL; ref = ref->next)   {
-                fprintf(aft->file_ctx->fp,"[Xref => %s%s]", ref->key, ref->reference);
-            }
-        }
-
         fprintf(aft->file_ctx->fp,"\n");
 
         fflush(aft->file_ctx->fp);
@@ -179,7 +171,6 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
 {
     AlertFastLogThread *aft = (AlertFastLogThread *)data;
     int i;
-    Reference *ref = NULL;
     char timebuf[64];
 
     if (p->alerts.cnt == 0)
@@ -214,13 +205,6 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
                     pa->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
         }
 
-        if(pa->references != NULL)  {
-            fprintf(aft->file_ctx->fp," ");
-            for (ref = pa->references; ref != NULL; ref = ref->next)   {
-                fprintf(aft->file_ctx->fp,"[Xref => %s%s]", ref->key, ref->reference);
-            }
-        }
-
         fprintf(aft->file_ctx->fp,"\n");
 
         fflush(aft->file_ctx->fp);
@@ -234,7 +218,6 @@ TmEcode AlertFastLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQu
 {
     AlertFastLogThread *aft = (AlertFastLogThread *)data;
     int i;
-    Reference *ref = NULL;
     char timebuf[64];
 
     if (p->alerts.cnt == 0)
@@ -255,13 +238,6 @@ TmEcode AlertFastLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQu
         PrintRawLineHexFp(aft->file_ctx->fp, p->pkt, p->pktlen < 32 ? p->pktlen : 32);
         if (p->pcap_cnt != 0) {
             fprintf(aft->file_ctx->fp, "] [pcap file packet: %"PRIu64"]", p->pcap_cnt);
-        }
-
-        if(pa->references != NULL)  {
-            fprintf(aft->file_ctx->fp," ");
-            for (ref = pa->references; ref != NULL; ref = ref->next)   {
-                fprintf(aft->file_ctx->fp,"[Xref => %s%s]", ref->key, ref->reference);
-            }
         }
 
         fprintf(aft->file_ctx->fp,"\n");
