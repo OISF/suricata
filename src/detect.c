@@ -156,6 +156,7 @@ void DetectExitPrintStats(ThreadVars *tv, void *data);
 
 void DbgPrintSigs(DetectEngineCtx *, SigGroupHead *);
 void DbgPrintSigs2(DetectEngineCtx *, SigGroupHead *);
+static void PacketCreateMask(Packet *p, SignatureMask *mask, uint16_t alproto, void *alstate, StreamMsg *smsg);
 
 /* tm module api functions */
 TmEcode Detect(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
@@ -429,17 +430,22 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
  *  \param de_ctx detection engine ctx
  *  \param det_ctx detection engine thread ctx -- array is stored here
  *  \param p packet
+ *  \param mask Packets mask
  *  \param alproto application layer protocol
  *
  *  Order of SignatureHeader access:
- *  1. flags
- *  2. alproto
- *  3. mpm_pattern_id
- *  4. mpm_stream_pattern_id
- *  5. num
+ *  1. mask
+ *  2. flags
+ *  3. alproto
+ *  4. mpm_pattern_id_div8
+ *  4. mpm_pattern_id_mod8
+ *  5. mpm_stream_pattern_id_div8
+ *  5. mpm_stream_pattern_id_mod8
+ *  6. num
  */
 static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, Packet *p, uint16_t alproto)
+        DetectEngineThreadCtx *det_ctx, Packet *p, SignatureMask mask,
+        uint16_t alproto)
 {
     uint32_t i;
 
@@ -449,6 +455,13 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
     for (i = 0; i < det_ctx->sgh->sig_cnt; i++) {
         SignatureHeader *s = &det_ctx->sgh->head_array[i];
 
+        if ((mask & s->mask) != s->mask) {
+            SCLogDebug("Mask mismatch. mask %02X, s->mask %02x, after AND %02x", mask, s->mask, mask & s->mask);
+            continue;
+        }
+        SCLogDebug("Mask match. mask %02X, s->mask %02x, after AND %02x", mask, s->mask, mask & s->mask);
+
+#if 0
         if (!(p->flags & PKT_HAS_FLOW) && s->flags & SIG_FLAG_FLOW) {
             SCLogDebug("flow in sig but not in packet");
             continue;
@@ -460,7 +473,7 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
             SCLogDebug("no payload inspection enabled and sig has payload portion.");
             continue;
         }
-
+#endif
         /* if the sig has alproto and the session as well they should match */
         if (s->flags & SIG_FLAG_APPLAYER && s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
             if (s->alproto == ALPROTO_DCERPC) {
@@ -480,7 +493,7 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
              * have no matches */
             if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] & s->mpm_pattern_id_mod_8)) {
             //if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8)))) {
-                SCLogDebug("mpm sig without matches (pat id %"PRIu32" check in content).", s->mpm_pattern_id);
+                //SCLogDebug("mpm sig without matches (pat id %"PRIu32" check in content).", s->mpm_pattern_id);
 
                 if (!(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
                     /* pattern didn't match. There is one case where we will inspect
@@ -501,7 +514,7 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
             /* filter out sigs that want pattern matches, but
              * have no matches */
             if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_stream_pattern_id_div_8)] & s->mpm_stream_pattern_id_mod_8)) {
-                SCLogDebug("mpm stream sig without matches (pat id %"PRIu32" check in content).", s->mpm_stream_pattern_id);
+                //SCLogDebug("mpm stream sig without matches (pat id %"PRIu32" check in content).", s->mpm_stream_pattern_id);
 
                 if (!(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
                     /* pattern didn't match. There is one case where we will inspect
@@ -813,6 +826,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
     }
 
+    /* create our prefilter mask */
+    SignatureMask mask = 0;
+    PacketCreateMask(p, &mask, alproto, alstate, smsg);
+
     /* if we didn't get a sig group head, we
      * have nothing to do.... */
     if (det_ctx->sgh == NULL) {
@@ -865,7 +882,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     }
 
     /* build the match array */
-    SigMatchSignaturesBuildMatchArray(de_ctx, det_ctx, p, alproto);
+    SigMatchSignaturesBuildMatchArray(de_ctx, det_ctx, p, mask, alproto);
 
     /* inspect the sigs against the packet */
     for (idx = 0; idx < det_ctx->match_array_cnt; idx++) {
@@ -873,7 +890,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         s = det_ctx->match_array[idx];
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
-
+#if 0
+        if ((mask & s->mask) != s->mask) {
+            SCLogDebug("Mask mismatch. mask %02X, s->mask %02x, after AND %02x", mask, s->mask, mask & s->mask);
+            goto next;
+        }
+        SCLogDebug("Mask match. mask %02X, s->mask %02x, after AND %02x", mask, s->mask, mask & s->mask);
+#endif
         if (DetectProtoContainsProto(&s->proto, IP_GET_IPPROTO(p)) == 0) {
             SCLogDebug("proto didn't match");
             goto next;
@@ -1377,6 +1400,130 @@ deonly:
     return 1;
 }
 
+/* Create mask for this packet + it's flow if it has one
+ *
+ * Sets SIG_MASK_REQUIRE_PAYLOAD, SIG_MASK_REQUIRE_FLOW,
+ * SIG_MASK_REQUIRE_HTTP_STATE, SIG_MASK_REQUIRE_DCE_STATE,
+ * SIG_MASK_REQUIRE_FLOWBIT
+ */
+static void
+PacketCreateMask(Packet *p, SignatureMask *mask, uint16_t alproto, void *alstate, StreamMsg *smsg) {
+    if (!(p->flags & PKT_NOPAYLOAD_INSPECTION) && (p->payload_len > 0 || smsg != NULL)) {
+        SCLogDebug("packet has payload");
+        (*mask) |= SIG_MASK_REQUIRE_PAYLOAD;
+    }
+
+    if (p->flags & PKT_HAS_FLOW) {
+        SCLogDebug("packet has flow");
+        (*mask) |= SIG_MASK_REQUIRE_FLOW;
+
+        if (alstate != NULL) {
+            switch(alproto) {
+                case ALPROTO_HTTP:
+                    SCLogDebug("packet/flow has http state");
+                    (*mask) |= SIG_MASK_REQUIRE_HTTP_STATE;
+                    break;
+                case ALPROTO_SMB:
+                case ALPROTO_SMB2:
+                case ALPROTO_DCERPC:
+                    SCLogDebug("packet/flow has dce state");
+                    (*mask) |= SIG_MASK_REQUIRE_DCE_STATE;
+                    break;
+            }
+        }
+
+        SCMutexLock(&p->flow->m);
+        GenericVar *gv = p->flow->flowvar;
+        for ( ; gv != NULL; gv = gv->next) {
+            if (gv->type == DETECT_FLOWBITS) {
+                SCLogDebug("packet/flow has flowbit(s)");
+                (*mask) |= SIG_MASK_REQUIRE_FLOWBIT;
+                break;
+            }
+        }
+        SCMutexUnlock(&p->flow->m);
+    }
+}
+
+static int SignatureCreateMask(Signature *s) {
+    SCEnter();
+
+    if (s->pmatch != NULL) {
+        s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
+        SCLogDebug("sig requires payload");
+    }
+
+    if (s->dmatch != NULL) {
+        s->mask |= SIG_MASK_REQUIRE_DCE_STATE;
+        SCLogDebug("sig requires dce state");
+    }
+
+    if (s->umatch != NULL) {
+        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
+        SCLogDebug("sig requires dce http state");
+    }
+
+    SigMatch *sm;
+    for (sm = s->amatch ; sm != NULL; sm = sm->next) {
+        switch(sm->type) {
+            case DETECT_AL_HTTP_COOKIE:
+            case DETECT_AL_HTTP_METHOD:
+            case DETECT_AL_URILEN:
+            case DETECT_AL_HTTP_CLIENT_BODY:
+            case DETECT_AL_HTTP_HEADER:
+            case DETECT_AL_HTTP_URI:
+            case DETECT_PCRE_HTTPBODY:
+            case DETECT_PCRE_HTTPCOOKIE:
+            case DETECT_PCRE_HTTPHEADER:
+            case DETECT_PCRE_HTTPMETHOD:
+                s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
+                SCLogDebug("sig requires dce http state");
+                break;
+        }
+    }
+
+    for (sm = s->match ; sm != NULL; sm = sm->next) {
+        switch(sm->type) {
+            case DETECT_FLOWBITS:
+            {
+                /* figure out what flowbit action */
+                DetectFlowbitsData *fb = (DetectFlowbitsData *)sm->ctx;
+                if (fb->cmd == DETECT_FLOWBITS_CMD_ISSET) {
+                    s->mask |= SIG_MASK_REQUIRE_FLOWBIT;
+                    SCLogDebug("sig requires flowbit(s)");
+                }
+            }
+            break;
+        }
+    }
+
+    if (s->mask & SIG_MASK_REQUIRE_DCE_STATE ||
+            s->mask & SIG_MASK_REQUIRE_HTTP_STATE ||
+            s->mask & SIG_MASK_REQUIRE_FLOWBIT)
+    {
+        s->mask |= SIG_MASK_REQUIRE_FLOW;
+        SCLogDebug("sig requires flow");
+    }
+
+    if (s->flags & SIG_FLAG_FLOW) {
+        s->mask |= SIG_MASK_REQUIRE_FLOW;
+        SCLogDebug("sig requires flow");
+    }
+
+    if (s->amatch != NULL) {
+        s->mask |= SIG_MASK_REQUIRE_FLOW;
+        SCLogDebug("sig requires flow");
+    }
+
+    if (s->flags & SIG_FLAG_APPLAYER) {
+        s->mask |= SIG_MASK_REQUIRE_FLOW;
+        SCLogDebug("sig requires flow");
+    }
+
+    SCLogDebug("mask %02X", s->mask);
+    SCReturnInt(0);
+}
+
 /**
  * \brief Add all signatures to their own source address group
  *
@@ -1489,6 +1636,8 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
             }
             cnt++;
         }
+
+        SignatureCreateMask(tmp_s);
 
         de_ctx->sig_cnt++;
     }
@@ -4887,8 +5036,10 @@ static int SigTest21Real (int mpm_type) {
 
     p1 = UTHBuildPacket((uint8_t *)buf1, buf1len, IPPROTO_TCP);
     p1->flow = &f;
+    p1->flags |= PKT_HAS_FLOW;
     p2 = UTHBuildPacket((uint8_t *)buf2, buf2len, IPPROTO_TCP);
     p2->flow = &f;
+    p2->flags |= PKT_HAS_FLOW;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -4961,6 +5112,7 @@ static int SigTest22Real (int mpm_type) {
 
     p1 = UTHBuildPacket((uint8_t *)buf1, buf1len, IPPROTO_TCP);
     p1->flow = &f;
+    p1->flags |= PKT_HAS_FLOW;
 
     /* packet 2 */
     uint8_t *buf2 = (uint8_t *)"GET /two/ HTTP/1.0\r\n"
@@ -4970,6 +5122,7 @@ static int SigTest22Real (int mpm_type) {
 
     p2 = UTHBuildPacket((uint8_t *)buf2, buf2len, IPPROTO_TCP);
     p2->flow = &f;
+    p2->flags |= PKT_HAS_FLOW;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -5045,6 +5198,7 @@ static int SigTest23Real (int mpm_type) {
 
     p1 = UTHBuildPacket((uint8_t *)buf1, buf1len, IPPROTO_TCP);
     p1->flow = &f;
+    p1->flags |= PKT_HAS_FLOW;
 
     /* packet 2 */
     uint8_t *buf2 = (uint8_t *)"GET /two/ HTTP/1.0\r\n"
@@ -5054,6 +5208,7 @@ static int SigTest23Real (int mpm_type) {
 
     p2 = UTHBuildPacket((uint8_t *)buf2, buf2len, IPPROTO_TCP);
     p2->flow = &f;
+    p2->flags |= PKT_HAS_FLOW;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {

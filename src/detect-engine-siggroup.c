@@ -1594,24 +1594,9 @@ int SigGroupHeadBuildHeadArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         if (s == NULL)
             continue;
 
-//        sgh->head_array[idx].flags = s->flags;
-//        sgh->head_array[idx].alproto = s->alproto;
-//        sgh->head_array[idx].num = s->num;
-        sgh->head_array[idx].hdr_copy = s->hdr_copy;
-        sgh->head_array[idx].mpm_pattern_copy = s->mpm_pattern_copy;
-//        sgh->head_array[idx].mpm_pattern_id_div_8 = s->mpm_pattern_id_div_8;
-//        sgh->head_array[idx].mpm_pattern_id_mod_8 = s->mpm_pattern_id_mod_8;
-//        sgh->head_array[idx].mpm_stream_pattern_copy = s->mpm_stream_pattern_copy;
-//        sgh->head_array[idx].mpm_stream_pattern_id_div_8 = s->mpm_stream_pattern_id_div_8;
-//        sgh->head_array[idx].mpm_stream_pattern_id_mod_8 = s->mpm_stream_pattern_id_mod_8;
+        sgh->head_array[idx].hdr_copy1 = s->hdr_copy1;
+        sgh->head_array[idx].hdr_copy2 = s->hdr_copy2;
         sgh->head_array[idx].full_sig = s;
-
-//        BUG_ON(s->flags != sgh->head_array[idx].flags);
-//        BUG_ON(s->alproto != sgh->head_array[idx].alproto);
-//        BUG_ON(s->mpm_pattern_id != sgh->head_array[idx].mpm_pattern_id);
-//        BUG_ON(s->mpm_stream_pattern_id != sgh->head_array[idx].mpm_stream_pattern_id);
-//        BUG_ON(s->num != sgh->head_array[idx].num);
-//        BUG_ON(s != sgh->head_array[idx].full_sig);
 
         idx++;
     }

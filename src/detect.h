@@ -218,6 +218,22 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_MPM_PACKET     0x00200000
 #define SIG_FLAG_MPM_STREAM     0x00400000
 
+/* signature mask flags */
+#define SIG_MASK_REQUIRE_PAYLOAD    0x01
+#define SIG_MASK_REQUIRE_FLOW       0x02
+//#define SIG_MASK_REQUIRE_PKTVAR     0x04
+
+#define SIG_MASK_REQUIRE_FLOWBIT    0x08
+//#define SIG_MASK_REQUIRE_FLOWVAR    0x10
+//#define SIG_MASK_REQUIRE_FLOWINT    0x20
+
+#define SIG_MASK_REQUIRE_HTTP_STATE 0x40
+#define SIG_MASK_REQUIRE_DCE_STATE  0x80
+
+/* for now a uint8_t is enough */
+#define SignatureMask uint8_t
+
+
 /* Detection Engine flags */
 #define DE_QUIET           0x01     /**< DE is quiet (esp for unittests) */
 
@@ -243,26 +259,22 @@ typedef struct SignatureHeader_ {
     union {
         struct {
             uint32_t flags;
-            /* app layer signature stuff */
-            uint16_t alproto;
-
             uint16_t mpm_pattern_id_div_8;
+            uint8_t mpm_pattern_id_mod_8;
+            SignatureMask mask;
         };
-        uint64_t hdr_copy;
+        uint64_t hdr_copy1;
     };
-
-    /** pattern in the mpm matcher */
     union {
         struct {
-            uint8_t mpm_pattern_id_mod_8;
-            uint8_t pad0;
+            uint16_t alproto;
             uint16_t mpm_stream_pattern_id_div_8;
             uint8_t mpm_stream_pattern_id_mod_8;
-            uint8_t pad1;
             SigIntId num; /**< signature number, internal id */
         };
-        uint64_t mpm_pattern_copy;
+        uint64_t hdr_copy2;
     };
+
     //PatIntId mpm_pattern_id;
     //PatIntId mpm_stream_pattern_id;
 
@@ -275,27 +287,22 @@ typedef struct Signature_ {
     union {
         struct {
             uint32_t flags;
-
-            /* app layer signature stuff */
-            uint16_t alproto;
-
             uint16_t mpm_pattern_id_div_8;
+            uint8_t mpm_pattern_id_mod_8;
+            SignatureMask mask;
         };
-        uint64_t hdr_copy;
+        uint64_t hdr_copy1;
     };
-
-    /** pattern in the mpm matcher */
     union {
         struct {
-            uint8_t mpm_pattern_id_mod_8;
-            uint8_t pad0;
+            uint16_t alproto;
             uint16_t mpm_stream_pattern_id_div_8;
             uint8_t mpm_stream_pattern_id_mod_8;
-            uint8_t pad1;
             SigIntId num; /**< signature number, internal id */
         };
-        uint64_t mpm_pattern_copy;
+        uint64_t hdr_copy2;
     };
+
     //PatIntId mpm_pattern_id;
     //PatIntId mpm_stream_pattern_id;
 
@@ -358,8 +365,12 @@ typedef struct Signature_ {
     uint8_t action;
 
     uint8_t rev;
+
     /** classification id **/
     uint8_t class;
+
+    /* signature match mask */
+    //SignatureMask mask;
 
     int prio;
 
