@@ -1545,6 +1545,7 @@ static int DetectDceIfaceTestParse15(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     p->flow = &f;
+    p->flags |= PKT_HAS_FLOW;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_DCERPC;
