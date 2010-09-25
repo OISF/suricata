@@ -1235,8 +1235,8 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
     while(input_len) {
         /* in case we have any corner cases remainging, we have this */
         if (counter++ == 30) {
-            SCLogWarning(SC_ERR_DCERPC, "Somehow seem to be stuck inside the dce "
-                         "parser for quite sometime.  Let's get out of here.");
+            SCLogDebug("Somehow seem to be stuck inside the dce "
+                    "parser for quite sometime.  Let's get out of here.");
             DCERPCResetParsingState(dcerpc);
             SCReturnInt(0);
         }
@@ -1244,8 +1244,8 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
         while (dcerpc->bytesprocessed < DCERPC_HDR_LEN && input_len) {
             hdrretval = DCERPCParseHeader(dcerpc, input + parsed, input_len);
             if (hdrretval == -1) {
-                SCLogWarning(SC_ERR_DCERPC, "Error parsing dce header.  Discarding "
-                             "PDU and reseting parsing state to parse next PDU");
+                SCLogDebug("Error parsing dce header.  Discarding "
+                        "PDU and reseting parsing state to parse next PDU");
                 /* error parsing pdu header.  Let's clear the dce state */
                 DCERPCResetParsingState(dcerpc);
                 SCReturnInt(0);
@@ -1284,7 +1284,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                 dcerpc->pdu_fragged = 1;
             } else {
                 if (dcerpc->bytesprocessed >= dcerpc->dcerpchdr.frag_length) {
-                    SCLogWarning(SC_ERR_DCERPC, "Weird DCE PDU");
+                    SCLogDebug("Weird DCE PDU");
                     DCERPCResetParsingState(dcerpc);
                 } else {
                     /* if the parser is known to be fragmented at this stage itself,
