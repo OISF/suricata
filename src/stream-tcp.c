@@ -597,6 +597,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         case TH_SYN | TH_PUSH:
         case TH_SYN | TH_URG:
         case TH_SYN:
+        case TH_SYN|TH_PUSH|TH_URG:
         {
             if (ssn == NULL) {
                 ssn = StreamTcpNewSession(p);
