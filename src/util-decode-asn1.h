@@ -181,8 +181,9 @@ typedef struct Asn1Ctx_ {
 
     uint8_t *iter;
 
-    uint8_t cur_frame;
-    Asn1Node *asn1_stack[ASN1_MAX_FRAMES];
+    uint16_t cur_frame;
+    Asn1Node *asn1_stack2[ASN1_MAX_FRAMES];
+    Asn1Node **asn1_stack;
 
     uint8_t parser_status;
 
@@ -213,6 +214,7 @@ uint8_t SCAsn1DecodeContent(Asn1Ctx *);
 uint8_t SCAsn1CheckBounds(Asn1Ctx *);
 
 void DecodeAsn1RegisterTests(void);
+void SCAsn1LoadConfig();
 
 #endif /* __DECODE_ASN1_H__ */
 
