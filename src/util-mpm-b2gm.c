@@ -368,14 +368,6 @@ static char B2gmHashPatternCompare(void *pattern1, uint16_t len1,
     return 1;
 }
 
-static void B2gmHashPatternFree(void *pattern) {
-    B2gmPattern *p = (B2gmPattern *)pattern;
-
-    SCFree(p->pat);
-
-    SCFree(pattern);
-}
-
 static inline uint32_t B2gmBloomHash(void *data, uint16_t datalen, uint8_t iter, uint32_t hash_size) {
      uint8_t *d = (uint8_t *)data;
      uint16_t i;
@@ -734,17 +726,6 @@ void B2gmPrintSearchStats(MpmThreadCtx *mpm_thread_ctx) {
 
 static inline int
 memcmp_lowercase(const uint8_t *s1, const uint8_t *s2, const uint16_t n) {
-#if 0
-    uint8_t buf[256];
-
-    uint16_t u = 0;
-    for ( ; u < n; u++) {
-        buf[u] = u8_tolower(s2[u]);
-    }
-
-    return memcmp(s1, buf, n);
-#endif
-//#if 0
     size_t i;
 
     /* check backwards because we already tested the first
@@ -756,7 +737,6 @@ memcmp_lowercase(const uint8_t *s1, const uint8_t *s2, const uint16_t n) {
     }
 
     return 0;
-//#endif
 }
 
 /**
