@@ -31,7 +31,20 @@
 #include "util-print.h"
 
 #include "util-decode-asn1.h"
+#include "conf.h"
 
+uint16_t asn1_max_frames_config = ASN1_MAX_FRAMES;
+
+void SCAsn1LoadConfig() {
+    intmax_t value = 0;
+
+    /** set config defaults */
+    if ((ConfGetInt("asn1_max_frames", &value)) == 1) {
+        asn1_max_frames_config = (uint16_t)value;
+        SCLogDebug("Max stack frame set to %"PRIu16, asn1_max_frames_config);
+    }
+
+}
 
 /**
  * \brief Decode and check the identifier information of the
@@ -325,10 +338,19 @@ uint8_t SCAsn1CheckBounds(Asn1Ctx *ac) {
 Asn1Ctx *SCAsn1CtxNew(void) {
     Asn1Ctx *ac = SCMalloc(sizeof(Asn1Ctx));
 
-    if (ac == NULL)
+    if (ac == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         return NULL;
-
+    }
     memset(ac, 0, sizeof(Asn1Ctx));
+
+    ac->asn1_stack = SCMalloc(sizeof(Asn1Node *) * asn1_max_frames_config);
+    if (ac->asn1_stack == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        return NULL;
+    }
+    memset(ac->asn1_stack, 0, sizeof(Asn1Node *) * asn1_max_frames_config);
+
     return ac;
 }
 
@@ -361,10 +383,14 @@ void SCAsn1CtxDestroy(Asn1Ctx *ac) {
  * \retval Asn1Node pointer to the new node allocated
  */
 Asn1Node *SCAsn1CtxNewFrame(Asn1Ctx *ac, uint16_t node) {
+    if (node >= asn1_max_frames_config) {
+        return NULL;
+    }
+
     if (ac->asn1_stack[node] == NULL)
         ac->asn1_stack[node] = SCMalloc(sizeof(Asn1Node));
 
-    if (ac->asn1_stack[node] == NULL)
+    if (&ac->asn1_stack[node] == NULL)
         return NULL;
 
     memset(ac->asn1_stack[node], 0, sizeof(Asn1Node));
@@ -404,7 +430,7 @@ uint8_t SCAsn1Decode(Asn1Ctx *ac, uint16_t node_id) {
     /* while remaining data, and no fatal error, or end, or max stack frames */
     while (ac->iter < ac->end
            && !(ac->parser_status & ASN1_STATUS_DONE)
-           && ac->cur_frame < ASN1_MAX_FRAMES)
+           && ac->cur_frame < asn1_max_frames_config)
     {
         /* Prepare a new frame */
         if (SCAsn1CtxNewFrame(ac, node_id) == NULL)
