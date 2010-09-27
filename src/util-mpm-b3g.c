@@ -49,7 +49,11 @@
 
 static uint32_t b3g_hash_size = 0;
 static uint32_t b3g_bloom_size = 0;
+static uint8_t b3g_hash_shift = 0;
+static uint8_t b3g_hash_shift2 = 0;
 static void *b3g_func;
+
+#define B3G_HASH(a,b,c)   (((a) << b3g_hash_shift) | (b) << (b3g_hash_shift2) |(c))
 
 void B3gInitCtx (MpmCtx *, int);
 void B3gThreadInitCtx(MpmCtx *, MpmThreadCtx *, uint32_t);
@@ -419,7 +423,7 @@ static void B3gPrepareHash(MpmCtx *mpm_ctx) {
             }
             ctx->pat_1_cnt++;
         } else if(ctx->parray[i]->len == 2) {
-            idx = (uint16_t)(ctx->parray[i]->ci[0] << B3G_HASHSHIFT | ctx->parray[i]->ci[1]);
+            idx = (uint16_t)(ctx->parray[i]->ci[0] << b3g_hash_shift | ctx->parray[i]->ci[1]);
             if (ctx->hash2[idx] == NULL) {
                 B3gHashItem *hi = B3gAllocHashItem(mpm_ctx);
                 if (hi == NULL)
@@ -676,8 +680,35 @@ void B3gGetConfig()
                     }
                 }
 
-                if (hash_val != NULL)
+                if (hash_val != NULL) {
                     b3g_hash_size = MpmGetHashSize(hash_val);
+                    switch (b3g_hash_size) {
+                        case HASHSIZE_LOWEST:
+                            b3g_hash_shift = B3G_HASHSHIFT_LOWEST;
+                            b3g_hash_shift2 = B3G_HASHSHIFT_LOWEST2;
+                            break;
+                        case HASHSIZE_LOW:
+                            b3g_hash_shift = B3G_HASHSHIFT_LOW;
+                            b3g_hash_shift2 = B3G_HASHSHIFT_LOW2;
+                            break;
+                        case HASHSIZE_MEDIUM:
+                            b3g_hash_shift = B3G_HASHSHIFT_MEDIUM;
+                            b3g_hash_shift2 = B3G_HASHSHIFT_MEDIUM2;
+                            break;
+                        case HASHSIZE_HIGH:
+                            b3g_hash_shift = B3G_HASHSHIFT_HIGH;
+                            b3g_hash_shift2 = B3G_HASHSHIFT_HIGH2;
+                            break;
+                        case HASHSIZE_HIGHEST:
+                            b3g_hash_shift = B3G_HASHSHIFT_HIGHEST;
+                            b3g_hash_shift2 = B3G_HASHSHIFT_HIGHEST2;
+                            break;
+                        case HASHSIZE_MAX:
+                            b3g_hash_shift = B3G_HASHSHIFT_MAX;
+                            b3g_hash_shift2 = B3G_HASHSHIFT_MAX2;
+                            break;
+                    }
+                }
 
                 if (bloom_val != NULL)
                     b3g_bloom_size = MpmGetBloomSize(bloom_val);
@@ -1061,7 +1092,7 @@ uint32_t B3gSearch12(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatch
 
         if (buf != bufend) {
             /* save one conversion by reusing h8 */
-            uint16_t h16 = (uint16_t)(h8 << B3G_HASHSHIFT | u8_tolower(*(buf+1)));
+            uint16_t h16 = (uint16_t)(h8 << b3g_hash_shift | u8_tolower(*(buf+1)));
             hi = ctx->hash2[h16];
 
             for (thi = hi; thi != NULL; thi = thi->nxt) {
@@ -1105,7 +1136,7 @@ uint32_t B3gSearch2(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatche
     //printf("BUF "); prt(buf,buflen); printf("\n");
 
     while (buf <= bufend) {
-        uint16_t h = u8_tolower(*buf) << B3G_HASHSHIFT | u8_tolower(*(buf+1));
+        uint16_t h = u8_tolower(*buf) << b3g_hash_shift | u8_tolower(*(buf+1));
         hi = ctx->hash2[h];
 
         if (hi != NULL) {

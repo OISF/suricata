@@ -27,11 +27,18 @@
 #include "util-mpm.h"
 #include "util-bloomfilter.h"
 
-//#define B3G_HASHSHIFT 8
-//#define B3G_HASHSHIFT 7
-//#define B3G_HASHSHIFT 6
-//#define B3G_HASHSHIFT 5
-#define B3G_HASHSHIFT 4
+#define B3G_HASHSHIFT_MAX      8
+#define B3G_HASHSHIFT_MAX2     5
+#define B3G_HASHSHIFT_HIGHEST  7
+#define B3G_HASHSHIFT_HIGHEST2 4
+#define B3G_HASHSHIFT_HIGH     6
+#define B3G_HASHSHIFT_HIGH2    3
+#define B3G_HASHSHIFT_MEDIUM   5
+#define B3G_HASHSHIFT_MEDIUM2  2
+#define B3G_HASHSHIFT_LOW      4
+#define B3G_HASHSHIFT_LOW2     1
+#define B3G_HASHSHIFT_LOWEST   3
+#define B3G_HASHSHIFT_LOWEST2  1
 
 #define B3G_TYPE uint32_t
 //#define B3G_TYPE uint16_t
@@ -40,7 +47,6 @@
 //#define B3G_WORD_SIZE 8
 #define B3G_WORD_SIZE     32
 
-#define B3G_HASH(a,b,c)   (((a)<<B3G_HASHSHIFT) | (b)<<(B3G_HASHSHIFT-3) |(c))
 #define B3G_Q             3
 
 //#define B3G_SEARCHFUNC      B3gSearch
