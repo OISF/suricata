@@ -2194,7 +2194,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
             printf("ERROR: TmThreadsCreate failed for Decode1\n");
             exit(EXIT_FAILURE);
         }
-        tm_module = TmModuleGetByName("DecodePcapFile");
+        tm_module = TmModuleGetByName("DecodePcap");
         if (tm_module == NULL) {
             printf("ERROR: TmModuleGetByName DecodePcap failed\n");
             exit(EXIT_FAILURE);
