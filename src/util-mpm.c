@@ -646,6 +646,8 @@ void MpmCudaConfCleanup(MpmCudaConf *conf)
 
 /************************************Unittests*********************************/
 
+#ifdef __SC_CUDA_SUPPORT__
+
 static int MpmInitYamlConf(char *conf)
 {
     ConfCreateContextBackup();
@@ -1206,6 +1208,8 @@ static int MpmTest11(void)
     return result;
 }
 
+#endif /* __SC_CUDA_SUPPORT__ */
+
 void MpmRegisterTests(void) {
 #ifdef UNITTESTS
     uint16_t i;
@@ -1218,6 +1222,7 @@ void MpmRegisterTests(void) {
         }
     }
 
+#ifdef __SC_CUDA_SUPPORT__
     UtRegisterTest("MpmTest01", MpmTest01, 1);
     UtRegisterTest("MpmTest02", MpmTest02, 1);
     UtRegisterTest("MpmTest03", MpmTest03, 1);
@@ -1229,5 +1234,7 @@ void MpmRegisterTests(void) {
     UtRegisterTest("MpmTest09", MpmTest09, 1);
     UtRegisterTest("MpmTest10", MpmTest10, 1);
     UtRegisterTest("MpmTest11", MpmTest11, 1);
+#endif /* __SC_CUDA_SUPPORT__ */
+
 #endif
 }
