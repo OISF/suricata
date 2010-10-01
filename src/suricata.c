@@ -818,8 +818,8 @@ int main(int argc, char **argv)
         }
     }
 
-    /* create table for O(1) lowercase conversion lookup */
-    /*
+    /* create table for O(1) lowercase conversion lookup.  It was removed, but
+     * we still need it for cuda.  So resintalling it back into the codebase */
     uint8_t c = 0;
     memset(g_u8_lowercasetable, 0x00, sizeof(g_u8_lowercasetable));
     for ( ; c < 255; c++) {
@@ -828,7 +828,7 @@ int main(int argc, char **argv)
         else
             g_u8_lowercasetable[c] = c;
     }
-    */
+
     /* hardcoded initialization code */
     MpmTableSetup(); /* load the pattern matchers */
     SigTableSetup(); /* load the rule keywords */

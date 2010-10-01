@@ -80,7 +80,7 @@ SCDQDataQueue data_queues[256];
 void GlobalInits();
 
 /* uppercase to lowercase conversion lookup table */
-//uint8_t g_u8_lowercasetable[256];
+uint8_t g_u8_lowercasetable[256];
 
 /* marco to do the actual lookup */
 //#define u8_tolower(c) g_u8_lowercasetable[(c)]

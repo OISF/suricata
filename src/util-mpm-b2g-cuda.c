@@ -454,7 +454,6 @@ void B2gCudaPrintInfo(MpmCtx *mpm_ctx)
     SCLogDebug("  B2gCudaPattern  %" PRIuMAX, (uintmax_t)sizeof(B2gCudaPattern));
     SCLogDebug("  B2gCudaHashItem %" PRIuMAX, (uintmax_t)sizeof(B2gCudaHashItem));
     SCLogDebug("Unique Patterns:  %" PRIu32, mpm_ctx->pattern_cnt);
-    SCLogDebug("Total Patterns:   %" PRIu32, mpm_ctx->total_pattern_cnt);
     SCLogDebug("Smallest:         %" PRIu32, mpm_ctx->minlen);
     SCLogDebug("Largest:          %" PRIu32, mpm_ctx->maxlen);
     SCLogDebug("Hash size:        %" PRIu32, ctx->hash_size);
@@ -680,7 +679,6 @@ static inline int B2gCudaAddPattern(MpmCtx *mpm_ctx, uint8_t *pat,
         else if (mpm_ctx->minlen > patlen) mpm_ctx->minlen = patlen;
     }
 
-    mpm_ctx->total_pattern_cnt++;
     return 0;
 
 error:
