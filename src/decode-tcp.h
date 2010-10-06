@@ -182,7 +182,7 @@ static inline uint16_t TCPCalculateChecksum(uint16_t *shdr, uint16_t *pkt,
     uint16_t pad = 0;
     uint32_t csum = shdr[0];
 
-    csum += shdr[1] + shdr[2] + shdr[3] + htons(6 + tlen);
+    csum += shdr[1] + shdr[2] + shdr[3] + htons(6) + htons(tlen);
 
     csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
         pkt[7] + pkt[9];
@@ -222,8 +222,9 @@ static inline uint16_t TCPCalculateChecksum(uint16_t *shdr, uint16_t *pkt,
     }
 
     csum = (csum >> 16) + (csum & 0x0000FFFF);
+    csum += (csum >> 16);
 
-    return (uint16_t) ~csum;
+    return (uint16_t)~csum;
 }
 
 /**
@@ -244,7 +245,7 @@ static inline uint16_t TCPV6CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
 
     csum += shdr[1] + shdr[2] + shdr[3] + shdr[4] + shdr[5] + shdr[6] +
         shdr[7] + shdr[8] + shdr[9] + shdr[10] + shdr[11] + shdr[12] +
-        shdr[13] + shdr[14] + shdr[15] + htons(6 + tlen);
+        shdr[13] + shdr[14] + shdr[15] + htons(6) + htons(tlen);
 
     csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
         pkt[7] + pkt[9];
@@ -284,8 +285,9 @@ static inline uint16_t TCPV6CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
     }
 
     csum = (csum >> 16) + (csum & 0x0000FFFF);
+    csum += (csum >> 16);
 
-    return (uint16_t) ~csum;
+    return (uint16_t)~csum;
 }
 
 
