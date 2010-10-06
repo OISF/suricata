@@ -2118,7 +2118,7 @@ static int B2gcTestSearch21 (void) {
 }
 #endif /* UNITTESTS */
 
-//#if 0
+#if 0
 static int B2gcTestSearchXX (void) {
     MpmCtx mpm_ctx;
     memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
@@ -2833,7 +2833,7 @@ static int B2gcTestSearchXX (void) {
 
     return 1;
 }
-//#endif
+#endif
 
 void B2gcRegisterTests(void) {
 #ifdef UNITTESTS
@@ -2874,8 +2874,8 @@ void B2gcRegisterTests(void) {
     UtRegisterTest("B2gcTestSearch20", B2gcTestSearch20, 1);
     UtRegisterTest("B2gcTestSearch21", B2gcTestSearch21, 1);
 /*
-*/
     UtRegisterTest("B2gcTestSearchXX", B2gcTestSearchXX, 1);
+*/
 #endif /* UNITTESTS */
 }
 
