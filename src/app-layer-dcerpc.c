@@ -239,33 +239,42 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                     dcerpc->dcerpcbindbindack.versionminor |= *(p + 23) << 8;
                     //if (dcerpc->dcerpcbindbindack.ctxid == dcerpc->dcerpcbindbindack.numctxitems
                     //        - dcerpc->dcerpcbindbindack.numctxitemsleft) {
-                    dcerpc->dcerpcbindbindack.uuid_entry = (DCERPCUuidEntry *)
-                        SCCalloc(1, sizeof(DCERPCUuidEntry));
+
+                    dcerpc->dcerpcbindbindack.uuid_entry = (DCERPCUuidEntry *)SCCalloc(1, sizeof(DCERPCUuidEntry));
                     if (dcerpc->dcerpcbindbindack.uuid_entry == NULL) {
                         SCLogDebug("UUID Entry is NULL");
                         SCReturnUInt(0);
-                    } else {
-                        dcerpc->dcerpcbindbindack.uuid_entry->internal_id =
-                            dcerpc->dcerpcbindbindack.uuid_internal_id++;
-                        memcpy(dcerpc->dcerpcbindbindack.uuid_entry->uuid,
-                               dcerpc->dcerpcbindbindack.uuid,
-                               sizeof(dcerpc->dcerpcbindbindack.uuid));
-                        dcerpc->dcerpcbindbindack.uuid_entry->ctxid = dcerpc->dcerpcbindbindack.ctxid;
-                        dcerpc->dcerpcbindbindack.uuid_entry->version = dcerpc->dcerpcbindbindack.version;
-                        dcerpc->dcerpcbindbindack.uuid_entry->versionminor = dcerpc->dcerpcbindbindack.versionminor;
-                        TAILQ_INSERT_HEAD(&dcerpc->dcerpcbindbindack.uuid_list,
-                                          dcerpc->dcerpcbindbindack.uuid_entry,
-                                          next);
-#ifdef UNITTESTS
-                        if (RunmodeIsUnittests()) {
-                            printUUID("BIND", dcerpc->dcerpcbindbindack.uuid_entry);
-                        }
-#endif
-                        dcerpc->dcerpcbindbindack.numctxitemsleft--;
-                        dcerpc->bytesprocessed += (44);
-                        dcerpc->dcerpcbindbindack.ctxbytesprocessed += (44);
-                        SCReturnUInt(44U);
                     }
+
+                    dcerpc->dcerpcbindbindack.uuid_entry->internal_id = dcerpc->dcerpcbindbindack.uuid_internal_id++;
+
+                    memcpy(dcerpc->dcerpcbindbindack.uuid_entry->uuid,
+                            dcerpc->dcerpcbindbindack.uuid,
+                            sizeof(dcerpc->dcerpcbindbindack.uuid));
+
+                    dcerpc->dcerpcbindbindack.uuid_entry->ctxid = dcerpc->dcerpcbindbindack.ctxid;
+                    dcerpc->dcerpcbindbindack.uuid_entry->version = dcerpc->dcerpcbindbindack.version;
+                    dcerpc->dcerpcbindbindack.uuid_entry->versionminor = dcerpc->dcerpcbindbindack.versionminor;
+
+                    /* store the first frag flag in the uuid as pfc_flags will
+                     * be overwritten by new packets. */
+                    if (dcerpc->dcerpchdr.pfc_flags & PFC_FIRST_FRAG) {
+                        dcerpc->dcerpcbindbindack.uuid_entry->flags |= DCERPC_UUID_ENTRY_FLAG_FF;
+                    }
+
+                    TAILQ_INSERT_HEAD(&dcerpc->dcerpcbindbindack.uuid_list,
+                            dcerpc->dcerpcbindbindack.uuid_entry,
+                            next);
+#ifdef UNITTESTS
+                    if (RunmodeIsUnittests()) {
+                        printUUID("BIND", dcerpc->dcerpcbindbindack.uuid_entry);
+                    }
+#endif
+                    dcerpc->dcerpcbindbindack.numctxitemsleft--;
+                    dcerpc->bytesprocessed += (44);
+                    dcerpc->dcerpcbindbindack.ctxbytesprocessed += (44);
+                    SCReturnUInt(44U);
+
                     //} else {
                     //    SCLogDebug("ctxitem %u, expected %u\n", dcerpc->dcerpcbindbindack.ctxid,
                     //            dcerpc->dcerpcbindbindack.numctxitems - dcerpc->dcerpcbindbindack.numctxitemsleft);
@@ -455,28 +464,36 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                 if (dcerpc->dcerpcbindbindack.uuid_entry == NULL) {
                     SCLogDebug("UUID Entry is NULL\n");
                     SCReturnUInt(0);
-                } else {
-                    dcerpc->dcerpcbindbindack.uuid_entry->internal_id =
-                        dcerpc->dcerpcbindbindack.uuid_internal_id++;
-                    memcpy(dcerpc->dcerpcbindbindack.uuid_entry->uuid,
-                           dcerpc->dcerpcbindbindack.uuid,
-                           sizeof(dcerpc->dcerpcbindbindack.uuid));
-                    dcerpc->dcerpcbindbindack.uuid_entry->ctxid = dcerpc->dcerpcbindbindack.ctxid;
-                    dcerpc->dcerpcbindbindack.uuid_entry->version = dcerpc->dcerpcbindbindack.version;
-                    dcerpc->dcerpcbindbindack.uuid_entry->versionminor = dcerpc->dcerpcbindbindack.versionminor;
-                    TAILQ_INSERT_HEAD(&dcerpc->dcerpcbindbindack.uuid_list,
-                                      dcerpc->dcerpcbindbindack.uuid_entry,
-                                      next);
-#ifdef UNITTESTS
-                    if (RunmodeIsUnittests()) {
-                        printUUID("BINDACK", dcerpc->dcerpcbindbindack.uuid_entry);
-                    }
-#endif
-                    dcerpc->dcerpcbindbindack.numctxitemsleft--;
-                    dcerpc->bytesprocessed += (p - input);
-                    dcerpc->dcerpcbindbindack.ctxbytesprocessed += (p - input);
-                    SCReturnUInt((uint32_t)(p - input));
                 }
+
+                dcerpc->dcerpcbindbindack.uuid_entry->internal_id =
+                    dcerpc->dcerpcbindbindack.uuid_internal_id++;
+                memcpy(dcerpc->dcerpcbindbindack.uuid_entry->uuid,
+                        dcerpc->dcerpcbindbindack.uuid,
+                        sizeof(dcerpc->dcerpcbindbindack.uuid));
+                dcerpc->dcerpcbindbindack.uuid_entry->ctxid = dcerpc->dcerpcbindbindack.ctxid;
+                dcerpc->dcerpcbindbindack.uuid_entry->version = dcerpc->dcerpcbindbindack.version;
+                dcerpc->dcerpcbindbindack.uuid_entry->versionminor = dcerpc->dcerpcbindbindack.versionminor;
+
+                /* store the first frag flag in the uuid as pfc_flags will
+                 * be overwritten by new packets. */
+                if (dcerpc->dcerpchdr.pfc_flags & PFC_FIRST_FRAG) {
+                    dcerpc->dcerpcbindbindack.uuid_entry->flags |= DCERPC_UUID_ENTRY_FLAG_FF;
+                }
+
+                TAILQ_INSERT_HEAD(&dcerpc->dcerpcbindbindack.uuid_list,
+                        dcerpc->dcerpcbindbindack.uuid_entry,
+                        next);
+#ifdef UNITTESTS
+                if (RunmodeIsUnittests()) {
+                    printUUID("BINDACK", dcerpc->dcerpcbindbindack.uuid_entry);
+                }
+#endif
+                dcerpc->dcerpcbindbindack.numctxitemsleft--;
+                dcerpc->bytesprocessed += (p - input);
+                dcerpc->dcerpcbindbindack.ctxbytesprocessed += (p - input);
+                SCReturnUInt((uint32_t)(p - input));
+
                 //} else {
                 //    SCLogDebug("ctxitem %u, expected %u\n", dcerpc->dcerpcbindbindack.ctxid,
                 //            dcerpc->dcerpcbindbindack.numctxitems - dcerpc->dcerpcbindbindack.numctxitemsleft);

@@ -263,27 +263,32 @@ static inline DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
 int DetectDceOpnumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
                         uint8_t flags, void *state, Signature *s, SigMatch *m)
 {
+    SCEnter();
+
     DetectDceOpnumData *dce_data = (DetectDceOpnumData *)m->ctx;
     DetectDceOpnumRange *dor = dce_data->range;
+
     DCERPCState *dcerpc_state = (DCERPCState *)state;
     if (dcerpc_state == NULL) {
         SCLogDebug("No DCERPCState for the flow");
-        return 0;
+        SCReturnInt(0);
     }
 
     for ( ; dor != NULL; dor = dor->next) {
         if (dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED) {
-            if (dor->range1 == dcerpc_state->dcerpc.dcerpcrequest.opnum)
-                return 1;
+            if (dor->range1 == dcerpc_state->dcerpc.dcerpcrequest.opnum) {
+                SCReturnInt(1);
+            }
         } else {
             if (dor->range1 <= dcerpc_state->dcerpc.dcerpcrequest.opnum &&
-                dor->range2 >= dcerpc_state->dcerpc.dcerpcrequest.opnum) {
-                return 1;
+                dor->range2 >= dcerpc_state->dcerpc.dcerpcrequest.opnum)
+            {
+                SCReturnInt(1);
             }
         }
     }
 
-    return 0;
+    SCReturnInt(0);
 }
 
 /**

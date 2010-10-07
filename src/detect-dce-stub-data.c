@@ -90,17 +90,20 @@ void DetectDceStubDataRegister(void)
 int DetectDceStubDataMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
                            uint8_t flags, void *state, Signature *s, SigMatch *m)
 {
+    SCEnter();
+
     DCERPCState *dcerpc_state = (DCERPCState *)state;
     if (dcerpc_state == NULL) {
         SCLogDebug("No DCERPCState for the flow");
-        return 0;
+        SCReturnInt(0);
     }
 
     if (dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer != NULL ||
-        dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer != NULL) {
-        return 1;
+        dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer != NULL)
+    {
+        SCReturnInt(1);
     } else {
-        return 0;
+        SCReturnInt(0);
     }
 }
 

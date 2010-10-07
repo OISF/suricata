@@ -274,6 +274,8 @@ static inline int DetectDceIfaceMatchIfaceVersion(uint16_t version,
 int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
                         uint8_t flags, void *state, Signature *s, SigMatch *m)
 {
+    SCEnter();
+
     int ret = 0;
     DCERPCUuidEntry *item = NULL;
     int i = 0;
@@ -281,7 +283,7 @@ int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
     DCERPCState *dcerpc_state = (DCERPCState *)state;
     if (dcerpc_state == NULL) {
         SCLogDebug("No DCERPCState for the flow");
-        return 0;
+        SCReturnInt(0);
     }
 
     SCMutexLock(&f->m);
@@ -293,16 +295,14 @@ int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
     if (!(dcerpc_state->dcerpc.dcerpchdr.type == REQUEST))
         goto end;
 
-    /* if any_frag is not enabled, we need to match only against the first
-     * fragment */
-    if (!dce_data->any_frag &&
-        !(dcerpc_state->dcerpc.dcerpchdr.pfc_flags & PFC_FIRST_FRAG)) {
-        /* any_frag has not been set, and apparently it's not the first fragment */
-        goto end;
-    }
-
     TAILQ_FOREACH(item, &dcerpc_state->dcerpc.dcerpcbindbindack.accepted_uuid_list, next) {
+        SCLogDebug("item %p", item);
         ret = 1;
+
+        /* if any_frag is not enabled, we need to match only against the first
+         * fragment */
+        if (!dce_data->any_frag && !(item->flags & DCERPC_UUID_ENTRY_FLAG_FF))
+            continue;
 
         /* if the uuid has been rejected(item->result == 1), we skip to the
          * next uuid */
@@ -331,9 +331,9 @@ int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
             goto end;
     }
 
- end:
+end:
     SCMutexUnlock(&f->m);
-    return ret;
+    SCReturnInt(ret);
 }
 
 /**

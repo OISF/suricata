@@ -131,6 +131,9 @@ typedef struct DCERPCHdrUdp_ {
 
 #define DCERPC_UDP_HDR_LEN 80
 
+#define DCERPC_UUID_ENTRY_FLAG_FF       0x0001  /**< FIRST flag set on the packet
+                                                  that contained this uuid entry */
+
 typedef struct DCERPCUuidEntry_ {
     uint16_t ctxid;
     uint16_t internal_id;
@@ -138,6 +141,7 @@ typedef struct DCERPCUuidEntry_ {
     uint8_t uuid[16];
     uint16_t version;
     uint16_t versionminor;
+    uint16_t flags;                             /**< DCERPC_UUID_ENTRY_FLAG_* flags */
     TAILQ_ENTRY(DCERPCUuidEntry_) next;
 } DCERPCUuidEntry;
 
