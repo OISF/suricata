@@ -116,7 +116,7 @@ For CentOS5 Users
 
     #You will be required to use the fedora EPEL repository for some 
     packages to enable this repo it is the same for i386 or x86_64
-    sudo rpm -Uvh http://download.fedora.redhat.com/pub/epel/5/i386/epel-release-5-3.noarch.rpm
+    sudo rpm -Uvh http://download.fedora.redhat.com/pub/epel/5/i386/epel-release-5-4.noarch.rpm
 
     sudo yum -y install libpcap libpcap-devel libnet libnet-devel pcre \
     pcre-devel gcc automake autoconf libtool make gcc-c++ libyaml \
