@@ -61,6 +61,7 @@ static SCPerfCounterArray *rules_pca;
  */
 typedef struct SCProfileData_ {
     uint64_t matches;
+    uint64_t max;
 } SCProfileData;
 SCProfileData rules_profile_data[0xffff];
 
@@ -73,6 +74,7 @@ typedef struct SCProfileSummary_ {
     double avgticks;
     uint64_t checks;
     uint64_t matches;
+    uint64_t max;
 } SCProfileSummary;
 
 int profiling_rules_enabled = 0;
@@ -203,7 +205,8 @@ SCProfilingDump(FILE *output)
         return;
     }
 
-    SCProfileSummary *summary = SCMalloc(sizeof(SCProfileSummary) * rules_pca->size);
+    int summary_size = sizeof(SCProfileSummary) * rules_pca->size;
+    SCProfileSummary *summary = SCMalloc(summary_size);
     if (summary == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for profiling summary");
         return;
@@ -214,15 +217,17 @@ SCProfilingDump(FILE *output)
 
     SCLogInfo("Dumping profiling data.");
 
-    memset(summary, 0, sizeof(summary));
+    memset(summary, 0, summary_size);
     for (i = 1; i < count + 1; i++) {
         summary[i - 1].name = rules_pca->head[i].pc->name->cname;
         summary[i - 1].ticks =  rules_pca->head[i].ui64_cnt;
-        if (rules_pca->head[i].ui64_cnt)
+        if (rules_pca->head[i].ui64_cnt) {
             summary[i - 1].avgticks = (long double)rules_pca->head[i].ui64_cnt /
                 (long double)rules_pca->head[i].syncs;
+        }
         summary[i - 1].checks = rules_pca->head[i].syncs;
         summary[i - 1].matches = rules_profile_data[i].matches;
+        summary[i - 1].max = rules_profile_data[i].max;
         total_ticks += summary[i - 1].ticks;
     }
 
@@ -245,24 +250,26 @@ SCProfilingDump(FILE *output)
         break;
     }
 
-    fprintf(output, "  %-12s %-12s %-6s %-8s %-8s %-11s\n", "Rule", "Ticks", "%", "Checks", "Matches", "Avg Ticks");
+    fprintf(output, "  %-12s %-12s %-6s %-8s %-8s %-11s %-11s\n", "Rule", "Ticks", "%", "Checks", "Matches", "Max Ticks", "Avg Ticks");
     fprintf(output, "  ------------ "
         "------------ "
         "------ "
         "-------- "
         "-------- "
         "----------- "
+        "----------- "
         "\n");
     for (i = 0; i < MIN(count, profiling_rules_limit); i++) {
         double percent = (long double)summary[i].ticks /
             (long double)total_ticks * 100;
         fprintf(output,
-            "  %-12s %-12"PRIu64" %-6.2f %-8"PRIu64" %-8"PRIu64" %-8.2f\n",
+            "  %-12s %-12"PRIu64" %-6.2f %-8"PRIu64" %-8"PRIu64" %-11"PRIu64" %-8.2f\n",
             summary[i].name,
             summary[i].ticks,
             percent,
             summary[i].checks,
             summary[i].matches,
+            summary[i].max,
             summary[i].avgticks);
     }
 
@@ -337,6 +344,8 @@ SCProfilingUpdateRuleCounter(uint16_t id, uint64_t ticks, int match)
     SCMutexLock(&rules_ctx.m);
     SCProfilingCounterAddUI64(id, ticks);
     rules_profile_data[id].matches += match;
+    if (ticks > rules_profile_data[id].max)
+        rules_profile_data[id].max = ticks;
     SCMutexUnlock(&rules_ctx.m);
 }
 
