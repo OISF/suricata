@@ -75,40 +75,21 @@ uint8_t tv_aof = THV_RESTART_THREAD;
  *  \retval 0 flag is not set
  */
 int TmThreadsCheckFlag(ThreadVars *tv, uint8_t flag) {
-    int r;
-    if (SCSpinLock(&(tv)->flags_spinlock) != 0) {
-        SCLogError(SC_ERR_SPINLOCK,"spin lock errno=%d",errno);
-        return 0;
-    }
-    r = (tv->flags & flag);
-    SCSpinUnlock(&tv->flags_spinlock);
-    return r;
+    return (SC_ATOMIC_GET(tv->flags) & flag)? 1 : 0;
 }
 
 /**
  *  \brief Set a thread flag
  */
 void TmThreadsSetFlag(ThreadVars *tv, uint8_t flag) {
-    if (SCSpinLock(&tv->flags_spinlock) != 0) {
-        SCLogError(SC_ERR_SPINLOCK,"spin lock errno=%d",errno);
-        return;
-    }
-
-    tv->flags |= flag;
-    SCSpinUnlock(&tv->flags_spinlock);
+    SC_ATOMIC_OR(tv->flags, flag);
 }
 
 /**
  *  \brief Unset a thread flag
  */
 void TmThreadsUnsetFlag(ThreadVars *tv, uint8_t flag) {
-    if (SCSpinLock(&tv->flags_spinlock) != 0) {
-        SCLogError(SC_ERR_SPINLOCK,"spin lock errno=%d",errno);
-        return;
-    }
-
-    tv->flags &= ~flag;
-    SCSpinUnlock(&tv->flags_spinlock);
+    SC_ATOMIC_NAND(tv->flags, flag);
 }
 
 /* 1 slot functions */
@@ -809,7 +790,7 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
         goto error;
     memset(tv, 0, sizeof(ThreadVars));
 
-    SCSpinInit(&tv->flags_spinlock, PTHREAD_PROCESS_PRIVATE);
+    SC_ATOMIC_INIT(tv->flags);
     SCMutexInit(&tv->sc_perf_pctx.m, NULL);
 
     tv->name = name;
