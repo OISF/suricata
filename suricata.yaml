@@ -94,9 +94,16 @@ engine-analysis:
 # The detection engine builds internal groups of signatures. The engine
 # allow us to specify the profile to use for them, to manage memory on an
 # efficient way keeping a good performance. For the profile keyword you
-# can use the words "low", "medium", "high" or "custom". If you use custom
+# can use the words "low", "medium", "high" or "custom". If you use custom
 # make sure to define the values at "- custom-values" as your convenience.
-# Usually you would prefer medium/high/low
+# Usually you would prefer medium/high/low.
+#
+# "sgh mpm-context", indicates how the staging should allot mpm contexts for
+# the signature groups.  "single" indicates the use of a single context for
+# all the signature group heads.  "full" indicates a mpm_context for each
+# group head.  "auto" lets the engine decide the distribution of contexts
+# based on the information the engine gathers on the patterns from each
+# group head.
 detect-engine:
   - profile: medium
   - custom-values:
@@ -108,6 +115,7 @@ detect-engine:
       toserver_dst_groups: 4
       toserver_sp_groups: 2
       toserver_dp_groups: 25
+  - sgh-mpm-context: single
 
 # Suricata is multi-threaded. Here the threading can be influenced.
 threading:
@@ -136,7 +144,15 @@ cuda:
   device_id: 0
 
 # Select the multi pattern algorithm you want to run for scan/search the
-# in the engine. The supported algorithms are b2g, b3g and wumanber.
+# in the engine. The supported algorithms are b2g, b3g, wumanber, ac and
+# ac-gfbs.
+#
+# The mpm you choose also decides the distribution of mpm contexts for
+# signature groups, specified by the conf - "detect-engine.sgh_mpm_context".
+# Selecting "ac" as the mpm would require "detect-engine.sgh_mpm_context"
+# to be set to "single", because of ac's memory requirements, unless the
+# ruleset is small enough to fit in one's memory, in which case one can
+# use "full" with "ac".  Rest of the mpms can be run in "full" mode.
 #
 # There is also a CUDA pattern matcher (only available if Suricata was
 # compiled with --enable-cuda: b2g_cuda. Make sure to update your

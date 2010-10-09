@@ -567,6 +567,9 @@ typedef struct DetectEngineCtx_ {
     uint16_t max_uniq_small_toserver_sp_groups;
     uint16_t max_uniq_small_toserver_dp_groups;
 */
+
+    uint8_t sgh_mpm_context;
+
     /** hash table for looking up patterns for
      *  id sharing and id tracking. */
     MpmPatternIdStore *mpm_pattern_id_store;
@@ -590,6 +593,13 @@ enum {
     ENGINE_PROFILE_HIGH,
     ENGINE_PROFILE_CUSTOM,
     ENGINE_PROFILE_MAX
+};
+
+/* Siggroup mpm context profile */
+enum {
+    ENGINE_SGH_MPM_CONTEXT_FULL,
+    ENGINE_SGH_MPM_CONTEXT_SINGLE,
+    ENGINE_SGH_MPM_CONTEXT_AUTO
 };
 
 /**

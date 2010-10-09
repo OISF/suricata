@@ -144,6 +144,8 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
     const char *max_uniq_toserver_sp_groups_str = NULL;
     const char *max_uniq_toserver_dp_groups_str = NULL;
 
+    char *sgh_mpm_context = NULL;
+
     ConfNode *de_ctx_custom = ConfGetNode("detect-engine");
     ConfNode *opt = NULL;
 
@@ -151,6 +153,8 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
         TAILQ_FOREACH(opt, &de_ctx_custom->head, next) {
             if (strncmp(opt->val, "profile", 3) == 0) {
                 de_ctx_profile = opt->head.tqh_first->val;
+            } else if (strcmp(opt->val, "sgh-mpm-context") == 0) {
+                sgh_mpm_context = opt->head.tqh_first->val;
             }
         }
     }
@@ -169,8 +173,29 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
         SCLogDebug("Profile for detection engine groups is \"%s\"", de_ctx_profile);
     } else {
         SCLogDebug("Profile for detection engine groups not provided "
-                "at suricata.yaml. Using default (\"medium\").");
+                   "at suricata.yaml. Using default (\"medium\").");
     }
+
+    if (sgh_mpm_context != NULL) {
+        if (strcmp(sgh_mpm_context, "single") == 0) {
+            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_CONTEXT_SINGLE;
+        } else if (strcmp(sgh_mpm_context, "full") == 0) {
+            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_CONTEXT_FULL;
+        } else if (strcmp(sgh_mpm_context, "auto") == 0) {
+            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_CONTEXT_AUTO;
+        } else {
+           SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "You have supplied an "
+                        "invalid conf value for detect-engine.sgh-mpm-context-"
+                        "%s", sgh_mpm_context);
+        }
+    } else {
+           SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "You have supplied a "
+                        "value for detect-engine.sgh-mpm-context.  Using "
+                        "default value of full\n");
+           de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_CONTEXT_FULL;
+    }
+
+
 
     opt = NULL;
     switch (profile) {
