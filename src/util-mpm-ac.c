@@ -384,8 +384,6 @@ static int SCACAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
         }
     }
 
-    mpm_ctx->total_pattern_cnt++;
-
     return 0;
 
 error:
@@ -430,10 +428,10 @@ static inline int SCACInitNewState(MpmCtx *mpm_ctx)
 
     /* \todo using it temporarily now during dev, since I have restricted
      *       state var in SCACCtx->state_table to uint16_t. */
-    if (ctx->state_count > 65536) {
-        printf("state count exceeded\n");
-        exit(EXIT_FAILURE);
-    }
+    //if (ctx->state_count > 65536) {
+    //    printf("state count exceeded\n");
+    //    exit(EXIT_FAILURE);
+    //}
 
     return ctx->state_count++;
 }
@@ -1209,7 +1207,6 @@ void SCACPrintInfo(MpmCtx *mpm_ctx)
     printf("  SCACPattern      %" PRIuMAX "\n", (uintmax_t)sizeof(SCACPattern));
     printf("  SCACPattern     %" PRIuMAX "\n", (uintmax_t)sizeof(SCACPattern));
     printf("Unique Patterns: %" PRIu32 "\n", mpm_ctx->pattern_cnt);
-    printf("Total Patterns:  %" PRIu32 "\n", mpm_ctx->total_pattern_cnt);
     printf("Smallest:        %" PRIu32 "\n", mpm_ctx->minlen);
     printf("Largest:         %" PRIu32 "\n", mpm_ctx->maxlen);
     printf("Total states in the state table:    %" PRIu32 "\n", ctx->state_count);
