@@ -51,7 +51,7 @@ typedef struct ThreadVars_ {
     char *name;
     char *thread_group_name;
 
-    SC_ATOMIC_DECLARE(unsigned short, flags);
+    SC_ATOMIC_DECLARE(unsigned char, flags);
 
     /** aof(action on failure) determines what should be done with the thread
         when it encounters certain conditions like failures */

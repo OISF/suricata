@@ -75,7 +75,7 @@ uint8_t tv_aof = THV_RESTART_THREAD;
  *  \retval 0 flag is not set
  */
 int TmThreadsCheckFlag(ThreadVars *tv, uint8_t flag) {
-    return (SC_ATOMIC_GET(tv->flags) & flag)? 1 : 0;
+    return ((SC_ATOMIC_GET(tv->flags) & flag)? 1 : 0);
 }
 
 /**
@@ -89,7 +89,7 @@ void TmThreadsSetFlag(ThreadVars *tv, uint8_t flag) {
  *  \brief Unset a thread flag
  */
 void TmThreadsUnsetFlag(ThreadVars *tv, uint8_t flag) {
-    SC_ATOMIC_NAND(tv->flags, flag);
+    SC_ATOMIC_AND(tv->flags, ~flag);
 }
 
 /* 1 slot functions */
