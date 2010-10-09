@@ -75,7 +75,7 @@ uint8_t tv_aof = THV_RESTART_THREAD;
  *  \retval 0 flag is not set
  */
 int TmThreadsCheckFlag(ThreadVars *tv, uint8_t flag) {
-    return ((SC_ATOMIC_GET(tv->flags) & flag)? 1 : 0);
+    return (SC_ATOMIC_GET(tv->flags) & flag) ? 1 : 0;
 }
 
 /**
@@ -1385,6 +1385,10 @@ TmEcode TmThreadWaitOnThreadInit(void)
             while (started == FALSE) {
                 if (TmThreadsCheckFlag(tv, THV_INIT_DONE)) {
                     started = TRUE;
+                } else {
+                    /* sleep a little to give the thread some
+                     * time to finish initialization */
+                    usleep(100);
                 }
 
                 if (TmThreadsCheckFlag(tv, THV_FAILED)) {
