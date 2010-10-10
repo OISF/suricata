@@ -7771,6 +7771,7 @@ void StreamTcpRegisterTests (void) {
 
     /* set up the reassembly tests as well */
     StreamTcpReassembleRegisterTests();
+
 #endif /* UNITTESTS */
 }
 
