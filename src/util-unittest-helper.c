@@ -24,6 +24,8 @@
  * when constructing unittests
  */
 
+#include <netinet/in.h>
+
 #include "suricata-common.h"
 
 #include "decode.h"
@@ -73,12 +75,23 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
     p->payload_len = payload_len;
     p->proto = ipproto;
 
+    p->ip6h = SCMalloc(sizeof(IPV6Hdr));
+    if (p->ip6h == NULL)
+        return NULL;
+    memset(p->ip6h, 0, sizeof(IPV6Hdr));
+    p->ip6h->s_ip6_nxt = ipproto;
+    p->ip6h->s_ip6_plen = htons(payload_len + sizeof(TCPHdr));
+
     inet_pton(AF_INET6, src, &in);
     p->src.addr_data32[0] = in[0];
     p->src.addr_data32[1] = in[1];
     p->src.addr_data32[2] = in[2];
     p->src.addr_data32[3] = in[3];
     p->sp = sport;
+    p->ip6h->ip6_src[0] = in[0];
+    p->ip6h->ip6_src[1] = in[1];
+    p->ip6h->ip6_src[2] = in[2];
+    p->ip6h->ip6_src[3] = in[3];
 
     inet_pton(AF_INET6, dst, &in);
     p->dst.addr_data32[0] = in[0];
@@ -86,19 +99,17 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
     p->dst.addr_data32[2] = in[2];
     p->dst.addr_data32[3] = in[3];
     p->dp = dport;
-
-    p->ip6h = SCMalloc(sizeof(IPV6Hdr));
-    if (p->ip6h == NULL)
-        return NULL;
-    memset(p->ip6h, 0, sizeof(IPV6Hdr));
-    p->ip6h->s_ip6_nxt = ipproto;
+    p->ip6h->ip6_dst[0] = in[0];
+    p->ip6h->ip6_dst[1] = in[1];
+    p->ip6h->ip6_dst[2] = in[2];
+    p->ip6h->ip6_dst[3] = in[3];
 
     p->tcph = SCMalloc(sizeof(TCPHdr));
     if (p->tcph == NULL)
         return NULL;
     memset(p->tcph, 0, sizeof(TCPHdr));
-    p->tcph->th_sport = sport;
-    p->tcph->th_dport = dport;
+    p->tcph->th_sport = htons(sport);
+    p->tcph->th_dport = htons(dport);
 
     SET_PKT_LEN(p, sizeof(IPV6Hdr) + sizeof(TCPHdr) + payload_len);
     return p;
@@ -155,6 +166,7 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
     p->ip4h->ip_src.s_addr = p->src.addr_data32[0];
     p->ip4h->ip_dst.s_addr = p->dst.addr_data32[0];
     p->ip4h->ip_proto = ipproto;
+    p->ip4h->ip_verhl = sizeof(IPV4Hdr);
     p->proto = ipproto;
 
     switch (ipproto) {
@@ -172,8 +184,8 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
             if (p->tcph == NULL)
                 return NULL;
             memset(p->tcph, 0, sizeof(TCPHdr));
-            p->tcph->th_sport = sport;
-            p->tcph->th_dport = dport;
+            p->tcph->th_sport = htons(sport);
+            p->tcph->th_dport = htons(dport);
             SET_PKT_LEN(p, sizeof(IPV4Hdr) + sizeof(TCPHdr) + payload_len);
             break;
         case IPPROTO_ICMP:
@@ -773,9 +785,9 @@ int CheckUTHTestPacket(Packet *p, uint16_t ipproto) {
         case IPPROTO_TCP:
             if (p->tcph == NULL)
                 return 0;
-            if (p->tcph->th_sport != sport)
+            if (ntohs(p->tcph->th_sport) != sport)
                 return 0;
-            if (p->tcph->th_dport != dport)
+            if (ntohs(p->tcph->th_dport) != dport)
                 return 0;
         break;
     }

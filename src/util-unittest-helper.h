@@ -48,7 +48,8 @@ int UTHMatchPacketsWithResults(DetectEngineCtx *, Packet **, int, uint32_t *, ui
 int UTHGenericTest(Packet **, int, char **, uint32_t *, uint32_t *, int);
 
 uint32_t UTHBuildPacketOfFlows(uint32_t, uint32_t, uint8_t);
-
+Packet *UTHBuildPacketIPV6Real(uint8_t *, uint16_t , uint16_t , char *, char *,
+                           uint16_t , uint16_t );
 void UTHRegisterTests(void);
 
 #endif /* __UTIL_UNITTEST_HELPER__ */

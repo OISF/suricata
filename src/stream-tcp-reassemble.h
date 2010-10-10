@@ -30,6 +30,29 @@
 #include "app-layer-detect-proto.h"
 #include "stream-tcp-private.h"
 
+#define PSUEDO_PKT_SET_IPV4HDR(nipv4h,ipv4h) do { \
+        (nipv4h)->ip_src = IPV4_GET_RAW_IPDST(ipv4h); \
+        (nipv4h)->ip_dst = IPV4_GET_RAW_IPSRC(ipv4h); \
+    } while (0)
+
+#define PSUEDO_PKT_SET_IPV6HDR(nipv6h,ipv6h) do { \
+        (nipv6h)->ip6_src[0] = (ipv6h)->ip6_dst[0]; \
+        (nipv6h)->ip6_src[1] = (ipv6h)->ip6_dst[1]; \
+        (nipv6h)->ip6_src[2] = (ipv6h)->ip6_dst[2]; \
+        (nipv6h)->ip6_src[3] = (ipv6h)->ip6_dst[3]; \
+        (nipv6h)->ip6_dst[0] = (ipv6h)->ip6_src[0]; \
+        (nipv6h)->ip6_dst[1] = (ipv6h)->ip6_src[1]; \
+        (nipv6h)->ip6_dst[2] = (ipv6h)->ip6_src[2]; \
+        (nipv6h)->ip6_dst[3] = (ipv6h)->ip6_src[3]; \
+    } while (0)
+
+#define PSUEDO_PKT_SET_TCPHDR(ntcph,tcph) do { \
+        COPY_PORT((tcph)->th_dport, (ntcph)->th_sport); \
+        COPY_PORT((tcph)->th_sport, (ntcph)->th_dport); \
+        (ntcph)->th_seq = (tcph)->th_ack; \
+        (ntcph)->th_ack = (tcph)->th_seq; \
+    } while (0)
+
 /** Supported OS list and default OS policy is BSD */
 enum
 {
@@ -60,7 +83,7 @@ typedef struct TcpReassemblyThreadCtx_ {
 
 #define OS_POLICY_DEFAULT   OS_POLICY_BSD
 
-int StreamTcpReassembleHandleSegment(ThreadVars *, TcpReassemblyThreadCtx *, TcpSession *, TcpStream *, Packet *);
+int StreamTcpReassembleHandleSegment(ThreadVars *, TcpReassemblyThreadCtx *, TcpSession *, TcpStream *, Packet *, PacketQueue *);
 int StreamTcpReassembleInit(char);
 void StreamTcpReassembleFree(char);
 void StreamTcpReassembleRegisterTests(void);
