@@ -113,6 +113,7 @@
 #include "detect-http-client-body.h"
 #include "detect-http-header.h"
 #include "detect-http-uri.h"
+#include "detect-http-stat-msg.h"
 
 #include "util-rule-vars.h"
 
@@ -3711,6 +3712,7 @@ void SigTableSetup(void) {
     DetectDceStubDataRegister();
     DetectHttpCookieRegister();
     DetectHttpMethodRegister();
+    DetectHttpStatMsgRegister();
     DetectTlsVersionRegister();
     DetectUrilenRegister();
     DetectDetectionFilterRegister();
