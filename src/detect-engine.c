@@ -178,21 +178,20 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
 
     if (sgh_mpm_context != NULL) {
         if (strcmp(sgh_mpm_context, "single") == 0) {
-            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_CONTEXT_SINGLE;
+            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE;
         } else if (strcmp(sgh_mpm_context, "full") == 0) {
-            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_CONTEXT_FULL;
+            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
         } else if (strcmp(sgh_mpm_context, "auto") == 0) {
-            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_CONTEXT_AUTO;
+            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_AUTO;
         } else {
            SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "You have supplied an "
                         "invalid conf value for detect-engine.sgh-mpm-context-"
                         "%s", sgh_mpm_context);
         }
     } else {
-           SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "You have supplied a "
-                        "value for detect-engine.sgh-mpm-context.  Using "
-                        "default value of full\n");
-           de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_CONTEXT_FULL;
+        SCLogInfo("You have not supplied a value for "
+                  "detect-engine.sgh-mpm-context.  Using default value of full");
+        de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
     }
 
 

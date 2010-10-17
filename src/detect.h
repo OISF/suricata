@@ -568,6 +568,7 @@ typedef struct DetectEngineCtx_ {
     uint16_t max_uniq_small_toserver_dp_groups;
 */
 
+    /* specify the configuration for mpm context factory */
     uint8_t sgh_mpm_context;
 
     /** hash table for looking up patterns for
@@ -579,6 +580,11 @@ typedef struct DetectEngineCtx_ {
     struct SigGroupHead_ **sgh_array;
     uint32_t sgh_array_cnt;
     uint32_t sgh_array_size;
+
+    int32_t sgh_mpm_context_packet;
+    int32_t sgh_mpm_context_stream;
+    int32_t sgh_mpm_context_uri;
+    int32_t sgh_mpm_context_app_proto_detect;
 
     /** sgh for signatures that match against invalid packets. In those cases
      *  we can't lookup by proto, address, port as we don't have these */
@@ -597,9 +603,9 @@ enum {
 
 /* Siggroup mpm context profile */
 enum {
-    ENGINE_SGH_MPM_CONTEXT_FULL,
-    ENGINE_SGH_MPM_CONTEXT_SINGLE,
-    ENGINE_SGH_MPM_CONTEXT_AUTO
+    ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL,
+    ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE,
+    ENGINE_SGH_MPM_FACTORY_CONTEXT_AUTO
 };
 
 /**

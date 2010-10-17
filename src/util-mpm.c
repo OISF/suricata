@@ -38,6 +38,166 @@
 #include "util-mpm-ac-gfbs.h"
 #include "util-hashlist.h"
 
+MpmCtxFactoryContainer *mpm_ctx_factory_container = NULL;
+
+/**
+ * \brief Register a new Mpm Context.
+ *
+ * \param name A new profile to be registered to store this MpmCtx.
+ *
+ * \retval id Return the id created for the new MpmCtx profile.
+ */
+int32_t MpmFactoryRegisterMpmCtxProfile(const char *name, uint8_t flags)
+{
+    /* the very first entry */
+    if (mpm_ctx_factory_container == NULL) {
+        mpm_ctx_factory_container = malloc(sizeof(MpmCtxFactoryContainer));
+        if (mpm_ctx_factory_container == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+        memset(mpm_ctx_factory_container, 0, sizeof(MpmCtxFactoryContainer));
+
+        MpmCtxFactoryItem *item = malloc(sizeof(MpmCtxFactoryItem));
+        if (item == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+
+        item[0].name = strdup(name);
+        if (item[0].name == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+
+        item[0].mpm_ctx = malloc(sizeof(MpmCtx));
+        if (item[0].mpm_ctx == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+        memset(item[0].mpm_ctx, 0, sizeof(MpmCtx));
+
+        /* our id starts from 0 always.  Helps us with the ctx retrieval from
+         * the array */
+        item[0].id = 0;
+
+        /* store the flag */
+        item[0].flags = flags;
+
+        /* store the newly created item */
+        mpm_ctx_factory_container->items = item;
+        mpm_ctx_factory_container->no_of_items++;
+
+        /* the first id is always 0 */
+        return item[0].id;
+    } else {
+        int i;
+        MpmCtxFactoryItem *items = mpm_ctx_factory_container->items;
+        for (i = 0; i < mpm_ctx_factory_container->no_of_items; i++) {
+            if (items[i].name != NULL && strcmp(items[i].name, name) == 0) {
+                /* looks like we have this mpm_ctx freed */
+                if (items[i].mpm_ctx == NULL) {
+                    items[i].mpm_ctx = malloc(sizeof(MpmCtx));
+                    if (items[i].mpm_ctx == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                        exit(EXIT_FAILURE);
+                    }
+                    memset(items[i].mpm_ctx, 0, sizeof(MpmCtx));
+                }
+                items[i].flags = flags;
+                return items[i].id;
+            }
+        }
+
+        /* let's make the new entry */
+        if ((items = realloc(items, (mpm_ctx_factory_container->no_of_items + 1) *
+                             sizeof(MpmCtxFactoryItem))) == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+
+        MpmCtxFactoryItem *new_item = &items[mpm_ctx_factory_container->no_of_items];
+        new_item[0].name = strdup(name);
+        if (new_item[0].name == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+
+        new_item[0].mpm_ctx = malloc(sizeof(MpmCtx));
+        if (new_item[0].mpm_ctx == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+        memset(new_item[0].mpm_ctx, 0, sizeof(MpmCtx));
+
+        new_item[0].id = mpm_ctx_factory_container->no_of_items;
+        new_item[0].flags = flags;
+        mpm_ctx_factory_container->no_of_items++;
+
+        /* the newly created id */
+        return new_item[0].id;
+    }
+}
+
+int32_t MpmFactoryIsMpmCtxAvailable(MpmCtx *mpm_ctx)
+{
+    if (mpm_ctx == NULL)
+        return 0;
+
+    if (mpm_ctx_factory_container == NULL) {
+        return 0;
+    } else {
+        int i;
+        for (i = 0; i < mpm_ctx_factory_container->no_of_items; i++) {
+            if (mpm_ctx == mpm_ctx_factory_container->items[i].mpm_ctx)
+                return 1;
+        }
+        return 0;
+    }
+}
+
+MpmCtx *MpmFactoryGetMpmCtxForProfile(int32_t id)
+{
+    if (id == MPM_CTX_FACTORY_UNIQUE_CONTEXT) {
+        MpmCtx *mpm_ctx = malloc(sizeof(MpmCtx));
+        if (mpm_ctx == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+        memset(mpm_ctx, 0, sizeof(MpmCtx));
+        return mpm_ctx;
+    } else if (id < -1) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument - %d\n", id);
+        return NULL;
+    } else if (id >= mpm_ctx_factory_container->no_of_items) {
+        /* this id does not exist */
+        return NULL;
+    } else {
+        return mpm_ctx_factory_container->items[id].mpm_ctx;
+    }
+}
+
+void MpmFactoryDeRegisterAllMpmCtxProfiles(void)
+{
+    if (mpm_ctx_factory_container == NULL)
+        return;
+
+    int i = 0;
+    MpmCtxFactoryItem *items = mpm_ctx_factory_container->items;
+    for (i = 0; i < mpm_ctx_factory_container->no_of_items; i++) {
+        if (items[i].name != NULL)
+            free(items[i].name);
+        if (items[i].mpm_ctx != NULL)
+            free(items[i].mpm_ctx);
+    }
+
+    free(mpm_ctx_factory_container->items);
+    free(mpm_ctx_factory_container);
+    mpm_ctx_factory_container = NULL;
+
+    return;
+}
+
 /**
  *  \brief Setup a pmq
  *

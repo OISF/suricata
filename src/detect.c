@@ -1658,6 +1658,23 @@ static int SignatureCreateMask(Signature *s) {
     SCReturnInt(0);
 }
 
+static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
+{
+    de_ctx->sgh_mpm_context_packet =
+        MpmFactoryRegisterMpmCtxProfile("packet",
+                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
+    de_ctx->sgh_mpm_context_uri =
+        MpmFactoryRegisterMpmCtxProfile("uri",
+                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
+    de_ctx->sgh_mpm_context_stream =
+        MpmFactoryRegisterMpmCtxProfile("stream",
+                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
+    de_ctx->sgh_mpm_context_app_proto_detect =
+        MpmFactoryRegisterMpmCtxProfile("app_proto_detect", 0);
+
+    return;
+}
+
 /**
  * \brief Add all signatures to their own source address group
  *
@@ -3511,6 +3528,12 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
  * \retval 0 Always
  */
 int SigGroupBuild (DetectEngineCtx *de_ctx) {
+    /* if we are using single sgh_mpm_context then let us init the standard mpm
+     * contexts using the mpm_ctx factory */
+    if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
+        SigInitStandardMpmFactoryContexts(de_ctx);
+    }
+
     if (SigAddressPrepareStage1(de_ctx) != 0) {
         SCLogError(SC_ERR_DETECT_PREPARE, "initializing the detection engine failed");
         exit(EXIT_FAILURE);
@@ -3579,6 +3602,24 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
             exit(EXIT_FAILURE);
     }
 #endif
+
+    if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
+        MpmCtx *mpm_ctx = NULL;
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_packet);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_uri);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_stream);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+    }
 
 //    SigAddressPrepareStage5(de_ctx);
 //    DetectAddressPrintMemory();

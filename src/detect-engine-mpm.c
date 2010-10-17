@@ -361,8 +361,10 @@ void PatternMatchDestroyGroup(SigGroupHead *sh) {
     if (sh->flags & SIG_GROUP_HAVECONTENT && sh->mpm_ctx != NULL &&
         !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
         SCLogDebug("destroying mpm_ctx %p (sh %p)", sh->mpm_ctx, sh);
-        mpm_table[sh->mpm_ctx->mpm_type].DestroyCtx(sh->mpm_ctx);
-        SCFree(sh->mpm_ctx);
+        if (!MpmFactoryIsMpmCtxAvailable(sh->mpm_ctx)) {
+            mpm_table[sh->mpm_ctx->mpm_type].DestroyCtx(sh->mpm_ctx);
+            SCFree(sh->mpm_ctx);
+        }
 
         /* ready for reuse */
         sh->mpm_ctx = NULL;
@@ -373,8 +375,10 @@ void PatternMatchDestroyGroup(SigGroupHead *sh) {
     if (sh->flags & SIG_GROUP_HAVEURICONTENT && sh->mpm_uri_ctx != NULL &&
         !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
         SCLogDebug("destroying mpm_uri_ctx %p (sh %p)", sh->mpm_uri_ctx, sh);
-        mpm_table[sh->mpm_uri_ctx->mpm_type].DestroyCtx(sh->mpm_uri_ctx);
-        SCFree(sh->mpm_uri_ctx);
+        if (!MpmFactoryIsMpmCtxAvailable(sh->mpm_uri_ctx)) {
+            mpm_table[sh->mpm_uri_ctx->mpm_type].DestroyCtx(sh->mpm_uri_ctx);
+            SCFree(sh->mpm_uri_ctx);
+        }
 
         /* ready for reuse */
         sh->mpm_uri_ctx = NULL;
@@ -386,8 +390,10 @@ void PatternMatchDestroyGroup(SigGroupHead *sh) {
         if (sh->mpm_stream_ctx != NULL) {
             if (!(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) {
                 SCLogDebug("destroying mpm_stream_ctx %p (sh %p)", sh->mpm_stream_ctx, sh);
-                mpm_table[sh->mpm_stream_ctx->mpm_type].DestroyCtx(sh->mpm_stream_ctx);
-                SCFree(sh->mpm_stream_ctx);
+                if (!MpmFactoryIsMpmCtxAvailable(sh->mpm_stream_ctx)) {
+                    mpm_table[sh->mpm_stream_ctx->mpm_type].DestroyCtx(sh->mpm_stream_ctx);
+                    SCFree(sh->mpm_stream_ctx);
+                }
 
                 /* ready for reuse */
                 sh->mpm_stream_ctx = NULL;
@@ -1344,12 +1350,12 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
     /* intialize contexes */
     if (sh->flags & SIG_GROUP_HAVECONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
-        /* search */
-        sh->mpm_ctx = SCMalloc(sizeof(MpmCtx));
-        if (sh->mpm_ctx == NULL)
-            goto error;
+        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
+            sh->mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_packet);
+        } else {
+            sh->mpm_ctx = MpmFactoryGetMpmCtxForProfile(MPM_CTX_FACTORY_UNIQUE_CONTEXT);
+        }
 
-        memset(sh->mpm_ctx, 0x00, sizeof(MpmCtx));
 #ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_ctx, de_ctx->mpm_matcher, -1);
 #else
@@ -1358,11 +1364,12 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     }
 
     if (sh->flags & SIG_GROUP_HAVESTREAMCONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) {
-        sh->mpm_stream_ctx = SCMalloc(sizeof(MpmCtx));
-        if (sh->mpm_stream_ctx == NULL)
-            goto error;
+        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
+            sh->mpm_stream_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_stream);
+        } else {
+            sh->mpm_stream_ctx = MpmFactoryGetMpmCtxForProfile(MPM_CTX_FACTORY_UNIQUE_CONTEXT);
+        }
 
-        memset(sh->mpm_stream_ctx, 0x00, sizeof(MpmCtx));
 #ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_stream_ctx, de_ctx->mpm_matcher, -1);
 #else
@@ -1371,11 +1378,12 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     }
 
     if (sh->flags & SIG_GROUP_HAVEURICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
-        sh->mpm_uri_ctx = SCMalloc(sizeof(MpmCtx));
-        if (sh->mpm_uri_ctx == NULL)
-            goto error;
+        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
+            sh->mpm_uri_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_uri);
+        } else {
+            sh->mpm_uri_ctx = MpmFactoryGetMpmCtxForProfile(MPM_CTX_FACTORY_UNIQUE_CONTEXT);
+        }
 
-        memset(sh->mpm_uri_ctx, 0x00, sizeof(MpmCtx));
 #ifndef __SC_CUDA_SUPPORT__
         MpmInitCtx(sh->mpm_uri_ctx, de_ctx->mpm_matcher, -1);
 #else
@@ -1517,7 +1525,9 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         PatternMatchPreprarePopulateMpmUri(de_ctx, sh);
 
         if (mpm_table[sh->mpm_uri_ctx->mpm_type].Prepare != NULL) {
-            mpm_table[sh->mpm_uri_ctx->mpm_type].Prepare(sh->mpm_uri_ctx);
+            if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                mpm_table[sh->mpm_uri_ctx->mpm_type].Prepare(sh->mpm_uri_ctx);
+            }
         }
 
         //sh->mpm_uri_ctx->PrintCtx(sh->mpm_uri_ctx);
@@ -1529,7 +1539,9 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         PatternMatchPreprarePopulateMpm(de_ctx, sh);
 
         if (mpm_table[sh->mpm_ctx->mpm_type].Prepare != NULL) {
-            mpm_table[sh->mpm_ctx->mpm_type].Prepare(sh->mpm_ctx);
+            if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                mpm_table[sh->mpm_ctx->mpm_type].Prepare(sh->mpm_ctx);
+            }
         }
     }
 
@@ -1538,14 +1550,16 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         PatternMatchPreprarePopulateMpmStream(de_ctx, sh);
         SCLogDebug("preparing mpm_stream_ctx %p", sh->mpm_stream_ctx);
         if (mpm_table[sh->mpm_stream_ctx->mpm_type].Prepare != NULL) {
-            mpm_table[sh->mpm_stream_ctx->mpm_type].Prepare(sh->mpm_stream_ctx);
+            if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
+                mpm_table[sh->mpm_stream_ctx->mpm_type].Prepare(sh->mpm_stream_ctx);
+            }
         }
     }
 
     return 0;
-error:
+    //error:
     /* XXX */
-    return -1;
+    //return -1;
 }
 
 /** \brief Pattern ID Hash for sharing pattern id's

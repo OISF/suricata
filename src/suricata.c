@@ -1261,6 +1261,9 @@ int main(int argc, char **argv)
 #endif
 
     SigCleanSignatures(de_ctx);
+    if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
+        MpmFactoryDeRegisterAllMpmCtxProfiles();
+    }
     DetectEngineCtxFree(de_ctx);
     AlpProtoDestroy();
 

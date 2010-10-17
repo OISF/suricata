@@ -102,7 +102,7 @@ typedef struct MpmCtx_ {
     void *ctx;
     uint16_t mpm_type;
 
-    uint16_t pattern_cnt;       /* unique patterns */
+    uint32_t pattern_cnt;       /* unique patterns */
 
     uint16_t minlen;
     uint16_t maxlen;
@@ -110,6 +110,24 @@ typedef struct MpmCtx_ {
     uint32_t memory_cnt;
     uint32_t memory_size;
 } MpmCtx;
+
+/* if we want to retrieve an unique mpm context from the mpm context factory
+ * we should supply this as the key */
+#define MPM_CTX_FACTORY_UNIQUE_CONTEXT -1
+
+#define MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD 0x01
+
+typedef struct MpmCtxFactoryItem_ {
+    char *name;
+    MpmCtx *mpm_ctx;
+    int32_t id;
+    uint8_t flags;
+} MpmCtxFactoryItem;
+
+typedef struct MpmCtxFactoryContainer_ {
+    MpmCtxFactoryItem *items;
+    int32_t no_of_items;
+} MpmCtxFactoryContainer;
 
 /** pattern is case insensitive */
 #define MPM_PATTERN_FLAG_NOCASE     0x01
@@ -153,6 +171,11 @@ typedef struct MpmTableElmt_ {
 } MpmTableElmt;
 
 MpmTableElmt mpm_table[MPM_TABLE_SIZE];
+
+int32_t MpmFactoryRegisterMpmCtxProfile(const char *, uint8_t flags);
+MpmCtx *MpmFactoryGetMpmCtxForProfile(int32_t);
+void MpmFactoryDeRegisterAllMpmCtxProfiles(void);
+int32_t MpmFactoryIsMpmCtxAvailable(MpmCtx *);
 
 int PmqSetup(PatternMatcherQueue *, uint32_t, uint32_t);
 void PmqMerge(PatternMatcherQueue *src, PatternMatcherQueue *dst);
