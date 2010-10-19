@@ -450,6 +450,7 @@ char ContentHashCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t le
     DetectContentData *co2 = ch2->ptr;
 
     if (co1->content_len == co2->content_len &&
+        co1->flags == co2->flags &&
         SCMemcmp(co1->content, co2->content, co1->content_len) == 0)
         return 1;
 
