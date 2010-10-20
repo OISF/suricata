@@ -391,6 +391,10 @@ static int SCACAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
             if (mpm_ctx->minlen > patlen)
                 mpm_ctx->minlen = patlen;
         }
+
+        /* we need the max pat id */
+        if (pid > ctx->max_pat_id)
+            ctx->max_pat_id = pid;
     }
 
     return 0;
@@ -527,7 +531,7 @@ static inline void SCACCreateGotoTable(MpmCtx *mpm_ctx)
 
     /* add each pattern to create the goto table */
     for (i = 0; i < mpm_ctx->pattern_cnt; i++) {
-        SCACEnter(ctx->parray[i]->cs, ctx->parray[i]->len,
+        SCACEnter(ctx->parray[i]->ci, ctx->parray[i]->len,
                   ctx->parray[i]->id, mpm_ctx);
     }
 
@@ -839,6 +843,27 @@ static inline void SCACClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx)
     return;
 }
 
+static inline void SCACInsertCaseSensitiveEntriesForPatterns(MpmCtx *mpm_ctx)
+{
+    SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
+    uint32_t state = 0;
+    uint32_t k = 0;
+
+    for (state = 0; state < ctx->state_count; state++) {
+        if (ctx->output_table[state].no_of_entries == 0)
+            continue;
+
+        for (k = 0; k < ctx->output_table[state].no_of_entries; k++) {
+            if (ctx->pid_pat_list[ctx->output_table[state].pids[k]].cs != NULL) {
+                ctx->output_table[state].pids[k] &= 0x0000FFFF;
+                ctx->output_table[state].pids[k] |= 1 << 16;
+            }
+        }
+    }
+
+    return;
+}
+
 #if 0
 static void SCACPrintDeltaTable(MpmCtx *mpm_ctx)
 {
@@ -879,6 +904,9 @@ static inline void SCACPrepareStateTable(MpmCtx *mpm_ctx)
     SCACCreateDeltaTable(mpm_ctx);
     /* club the output state presence with delta transition entries */
     SCACClubOutputStatePresenceWithDeltaTable(mpm_ctx);
+
+    /* club nocase entries */
+    SCACInsertCaseSensitiveEntriesForPatterns(mpm_ctx);
 
 #if 0
     SCACPrintDeltaTable(mpm_ctx);
@@ -934,6 +962,32 @@ int SCACPreparePatterns(MpmCtx *mpm_ctx)
 
     /* the memory consumed by a single state in our goto table */
     ctx->single_state_size = sizeof(int32_t) * 256;
+
+    /* handle no case patterns */
+    ctx->pid_pat_list = malloc((ctx->max_pat_id + 1)* sizeof(SCACPatternList));
+    if (ctx->pid_pat_list == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    memset(ctx->pid_pat_list, 0, (ctx->max_pat_id + 1) * sizeof(SCACPatternList));
+
+    for (i = 0; i < mpm_ctx->pattern_cnt; i++) {
+        if (ctx->parray[i]->flags & MPM_PATTERN_FLAG_NOCASE) {
+            ;
+        } else {
+            if (memcmp(ctx->parray[i]->original_pat, ctx->parray[i]->ci,
+                       ctx->parray[i]->len) != 0) {
+                ctx->pid_pat_list[ctx->parray[i]->id].cs = malloc(ctx->parray[i]->len);
+                if (ctx->pid_pat_list[ctx->parray[i]->id].cs == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                    exit(EXIT_FAILURE);
+                }
+                memcpy(ctx->pid_pat_list[ctx->parray[i]->id].cs,
+                       ctx->parray[i]->original_pat, ctx->parray[i]->len);
+                ctx->pid_pat_list[ctx->parray[i]->id].patlen = ctx->parray[i]->len;
+            }
+        }
+    }
 
     /* prepare the state table required by AC */
     SCACPrepareStateTable(mpm_ctx);
@@ -1111,6 +1165,7 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
     SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
     int i = 0;
     int matches = 0;
+    int j = 0;
 
     if (ctx->state_count < 65536) {
         /* \todo tried loop unrolling with register var, with no perf increase.  Need
@@ -1118,12 +1173,24 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         /* \todo Change it for stateful MPM.  Supply the state using mpm_thread_ctx */
         register SC_AC_STATE_TYPE_U16 state = 0;
         for (i = 0; i < buflen; i++) {
-            state = ctx->state_table_u16[state][buf[i]];
+            state = ctx->state_table_u16[state][u8_tolower(buf[i])];
             if (ctx->output_table[state].no_of_entries != 0) {
                 uint32_t k = 0;
-                for (k = 0; k < ctx->output_table[state].no_of_entries; k++) {
-                    matches += MpmVerifyMatch(mpm_thread_ctx, pmq,
-                                              ctx->output_table[state].pids[k]);
+                uint32_t no_of_entries = ctx->output_table[state].no_of_entries;
+                uint32_t *pids = ctx->output_table[state].pids;
+                for (k = 0; k < no_of_entries; k++) {
+                    if (pids[k] & 0xFFFF0000) {
+                        int ibuf = i;
+                        for (j = ctx->pid_pat_list[pids[k] & 0x0000FFFF].patlen - 1; j >= 0; j--, ibuf--) {
+                            if (buf[ibuf] != ctx->pid_pat_list[pids[k] & 0x0000FFFF].cs[j])
+                                goto loop;
+                        }
+                        matches += MpmVerifyMatch(mpm_thread_ctx, pmq, pids[k] & 0x0000FFFF);
+                    } else {
+                        matches += MpmVerifyMatch(mpm_thread_ctx, pmq, pids[k]);
+                    }
+                loop:
+                    ;
                 }
             }
         } /* for (i = 0; i < buflen; i++) */
@@ -1134,20 +1201,31 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         SC_AC_STATE_TYPE_U32 (*state_table_u32)[256] = ctx->state_table_u32;
         register SC_AC_STATE_TYPE_U32 state = 0;
         for (i = 0; i < buflen; i++) {
-            state = state_table_u32[state & 0x00FFFFFF][buf[i]];
+            state = state_table_u32[state & 0x00FFFFFF][u8_tolower(buf[i])];
             if (state & 0xFF000000) {
                 uint32_t no_of_entries = ctx->output_table[state & 0x00FFFFFF].no_of_entries;
                 uint32_t *pids = ctx->output_table[state & 0x00FFFFFF].pids;
                 uint32_t k;
                 for (k = 0; k < no_of_entries; k++) {
-                    if (pmq->pattern_id_bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
-                        ;
+                    if (pids[k] & 0xFFFF0000) {
+                        int ibuf = i;
+                        for (j = ctx->pid_pat_list[pids[k] & 0x0000FFFF].patlen - 1; j >= 0; j--, ibuf--) {
+                            if (buf[ibuf] != ctx->pid_pat_list[pids[k] & 0x0000FFFF].cs[j])
+                                goto loop1;
+                        }
+                        matches += MpmVerifyMatch(mpm_thread_ctx, pmq, pids[k] & 0x0000FFFF);
                     } else {
-                        pmq->pattern_id_bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
-                        pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = pids[k];
+                        if (pmq->pattern_id_bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
+                            ;
+                        } else {
+                            pmq->pattern_id_bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
+                            pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = pids[k];
+                        }
+                        matches++;
                     }
+                loop1:
+                    ;
                 }
-                matches += no_of_entries;
             }
         } /* for (i = 0; i < buflen; i++) */
     } /* else - if (ctx->state_count < 65536) */
@@ -2016,7 +2094,7 @@ static int SCACTest25(void)
 
     SCACAddPatternCI(&mpm_ctx, (uint8_t *)"ABCD", 4, 0, 0, 0, 0, 0);
     SCACAddPatternCI(&mpm_ctx, (uint8_t *)"bCdEfG", 6, 0, 0, 1, 0, 0);
-    SCACAddPatternCI(&mpm_ctx, (uint8_t *)"fghJikl", 7, 0, 0, 2, 0, 0);
+    SCACAddPatternCI(&mpm_ctx, (uint8_t *)"fghiJkl", 7, 0, 0, 2, 0, 0);
 
     SCACPreparePatterns(&mpm_ctx);
 

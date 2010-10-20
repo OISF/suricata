@@ -42,6 +42,11 @@ typedef struct SCACPattern_ {
     struct SCACPattern_ *next;
 } SCACPattern;
 
+typedef struct SCACPatternList_ {
+    uint8_t *cs;
+    uint16_t patlen;
+} SCACPatternList;
+
 typedef struct SCACOutputTable_ {
     /* list of pattern sids */
     uint32_t *pids;
@@ -68,9 +73,11 @@ typedef struct SCACCtx_ {
     int32_t (*goto_table)[256];
     int32_t *failure_table;
     SCACOutputTable *output_table;
+    SCACPatternList *pid_pat_list;
 
     /* the size of each state */
     uint16_t single_state_size;
+    uint16_t max_pat_id;
 } SCACCtx;
 
 typedef struct SCACThreadCtx_ {
