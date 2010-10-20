@@ -177,9 +177,9 @@ static inline void memcpy_tolower(uint8_t *d, uint8_t *s, uint16_t len) {
  * INIT HASH START
  */
 static inline uint32_t B2gInitHash(B2gPattern *p) {
-    uint32_t hash = p->len * p->cs[0];
+    uint32_t hash = p->len * p->original_pat[0];
     if (p->len > 1)
-        hash += p->cs[1];
+        hash += p->original_pat[1];
 
     return (hash % INIT_HASH_SIZE);
 }
@@ -220,7 +220,8 @@ static inline int B2gInitHashAdd(B2gCtx *ctx, B2gPattern *p) {
 
 static inline int B2gCmpPattern(B2gPattern *p, uint8_t *pat, uint16_t patlen, char flags);
 
-static inline B2gPattern *B2gInitHashLookup(B2gCtx *ctx, uint8_t *pat, uint16_t patlen, char flags) {
+static inline B2gPattern *B2gInitHashLookup(B2gCtx *ctx, uint8_t *pat, uint16_t patlen, char flags,
+                                            uint32_t pid) {
     uint32_t hash = B2gInitHashRaw(pat,patlen);
 
     //printf("B2gInitHashLookup: %" PRIu32 ", head %p\n", hash, ctx->init_hash[hash]);
@@ -231,7 +232,8 @@ static inline B2gPattern *B2gInitHashLookup(B2gCtx *ctx, uint8_t *pat, uint16_t 
 
     B2gPattern *t = ctx->init_hash[hash];
     for ( ; t != NULL; t = t->next) {
-        if (B2gCmpPattern(t,pat,patlen,flags) == 1)
+        //if (B2gCmpPattern(t,pat,patlen,flags) == 1)
+        if (t->flags == flags && t->id == pid)
             return t;
     }
 
@@ -295,7 +297,7 @@ static int B2gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_
         return 0;
 
     /* get a memory piece */
-    B2gPattern *p = B2gInitHashLookup(ctx, pat, patlen, flags);
+    B2gPattern *p = B2gInitHashLookup(ctx, pat, patlen, flags, pid);
     if (p == NULL) {
         SCLogDebug("allocing new pattern");
 
@@ -306,6 +308,13 @@ static int B2gAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen, uint16_
         p->len = patlen;
         p->flags = flags;
         p->id = pid;
+
+        p->original_pat = SCMalloc(patlen);
+        if (p->original_pat == NULL)
+            goto error;
+        mpm_ctx->memory_cnt++;
+        mpm_ctx->memory_size += patlen;
+        memcpy(p->original_pat, pat, patlen);
 
         /* setup the case insensitive part of the pattern */
         p->ci = SCMalloc(patlen);
@@ -752,7 +761,10 @@ static void B2gGetConfig()
 void B2gInitCtx (MpmCtx *mpm_ctx, int module_handle) {
     SCLogDebug("mpm_ctx %p, ctx %p", mpm_ctx, mpm_ctx->ctx);
 
-    BUG_ON(mpm_ctx->ctx != NULL);
+    if (mpm_ctx->ctx != NULL)
+        return;
+
+    //BUG_ON(mpm_ctx->ctx != NULL);
 
     mpm_ctx->ctx = SCMalloc(sizeof(B2gCtx));
     if (mpm_ctx->ctx == NULL) {

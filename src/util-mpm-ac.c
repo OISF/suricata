@@ -181,7 +181,8 @@ static inline uint32_t SCACInitHashRaw(uint8_t *pat, uint16_t patlen)
  * \retval hash A 32 bit unsigned hash.
  */
 static inline SCACPattern *SCACInitHashLookup(SCACCtx *ctx, uint8_t *pat,
-                                              uint16_t patlen, char flags)
+                                              uint16_t patlen, char flags,
+                                              uint32_t pid)
 {
     uint32_t hash = SCACInitHashRaw(pat, patlen);
 
@@ -191,7 +192,8 @@ static inline SCACPattern *SCACInitHashLookup(SCACCtx *ctx, uint8_t *pat,
 
     SCACPattern *t = ctx->init_hash[hash];
     for ( ; t != NULL; t = t->next) {
-        if (SCACCmpPattern(t, pat, patlen, flags) == 1)
+        //if (SCACCmpPattern(t, pat, patlen, flags) == 1)
+        if (t->flags == flags && t->id == pid)
             return t;
     }
 
@@ -268,9 +270,9 @@ static inline void memcpy_tolower(uint8_t *d, uint8_t *s, uint16_t len)
 
 static inline uint32_t SCACInitHash(SCACPattern *p)
 {
-    uint32_t hash = p->len * p->cs[0];
+    uint32_t hash = p->len * p->original_pat[0];
     if (p->len > 1)
-        hash += p->cs[1];
+        hash += p->original_pat[1];
 
     return (hash % INIT_HASH_SIZE);
 }
@@ -327,7 +329,7 @@ static int SCACAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
     }
 
     /* check if we have already inserted this pattern */
-    SCACPattern *p = SCACInitHashLookup(ctx, pat, patlen, flags);
+    SCACPattern *p = SCACInitHashLookup(ctx, pat, patlen, flags, pid);
     if (p == NULL) {
         SCLogDebug("Allocing new pattern");
 
@@ -337,6 +339,13 @@ static int SCACAddPattern(MpmCtx *mpm_ctx, uint8_t *pat, uint16_t patlen,
         p->len = patlen;
         p->flags = flags;
         p->id = pid;
+
+        p->original_pat = SCMalloc(patlen);
+        if (p->original_pat == NULL)
+            goto error;
+        mpm_ctx->memory_cnt++;
+        mpm_ctx->memory_size += patlen;
+        memcpy(p->original_pat, pat, patlen);
 
         p->ci = SCMalloc(patlen);
         if (p->ci == NULL)
@@ -1994,6 +2003,37 @@ static int SCACTest24(void)
     return result;
 }
 
+static int SCACTest25(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC, -1);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    SCACAddPatternCI(&mpm_ctx, (uint8_t *)"ABCD", 4, 0, 0, 0, 0, 0);
+    SCACAddPatternCI(&mpm_ctx, (uint8_t *)"bCdEfG", 6, 0, 0, 1, 0, 0);
+    SCACAddPatternCI(&mpm_ctx, (uint8_t *)"fghJikl", 7, 0, 0, 2, 0, 0);
+
+    SCACPreparePatterns(&mpm_ctx);
+
+    char *buf = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 3)
+        result = 1;
+    else
+        printf("3 != %" PRIu32 " ",cnt);
+
+    SCACDestroyCtx(&mpm_ctx);
+    SCACDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void SCACRegisterTests(void)
@@ -2024,6 +2064,7 @@ void SCACRegisterTests(void)
     UtRegisterTest("SCACTest22", SCACTest22, 1);
     UtRegisterTest("SCACTest23", SCACTest23, 1);
     UtRegisterTest("SCACTest24", SCACTest24, 1);
+    UtRegisterTest("SCACTest25", SCACTest25, 1);
 #endif
 
     return;

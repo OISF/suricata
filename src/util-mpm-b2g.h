@@ -56,6 +56,7 @@ typedef struct B2gPattern_ {
     uint8_t flags;
     uint8_t pad0;
     uint32_t id;
+    uint8_t *original_pat;
     uint8_t *ci; /* case INsensitive */
     uint8_t *cs; /* case sensitive */
     struct B2gPattern_ *next;

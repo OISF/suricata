@@ -30,6 +30,8 @@ typedef struct SCACPattern_ {
     uint16_t len;
     /* flags decribing the pattern */
     uint8_t flags;
+    /* holds the original pattern that was added */
+    uint8_t *original_pat;
     /* case sensitive */
     uint8_t *cs;
     /* case INsensitive */

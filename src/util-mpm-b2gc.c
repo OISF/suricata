@@ -904,7 +904,10 @@ static void B2gcGetConfig()
 void B2gcInitCtx (MpmCtx *mpm_ctx, int module_handle) {
     SCLogDebug("mpm_ctx %p, ctx %p", mpm_ctx, mpm_ctx->ctx);
 
-    BUG_ON(mpm_ctx->ctx != NULL);
+    if (mpm_ctx->ctx != NULL)
+        return;
+
+    //BUG_ON(mpm_ctx->ctx != NULL);
 
     mpm_ctx->ctx = SCMalloc(sizeof(B2gcCtx));
     if (mpm_ctx->ctx == NULL) {
