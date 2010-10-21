@@ -127,6 +127,7 @@ detect-detection-filter.c detect-detection-filter.h \
 detect-http-client-body.c detect-http-client-body.h \
 detect-http-stat-msg.c detect-http-stat-msg.h \
 detect-asn1.c detect-asn1.h \
+detect-http-stat-code.c detect-http-stat-code.h \
 util-atomic.h \
 util-print.c util-print.h \
 util-fmemopen.c util-fmemopen.h \

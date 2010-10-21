@@ -968,6 +968,109 @@ end:
     return result;
 }
 
+/** \test Check a signature with an request method and negation of the same */
+static int DetectHttpMethodSigTest04(void)
+{
+    int result = 0;
+    Flow f;
+    uint8_t httpbuf1[] = "GET / HTTP/1.0\r\n"
+                         "Host: foo.bar.tld\r\n"
+                         "\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+    Packet *p = NULL;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,
+                                   "alert tcp any any -> any any "
+                                   "(msg:\"Testing http_method\"; "
+                                   "content:\"GET\"; "
+                                   "http_method; sid:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    s = s->next = SigInit(de_ctx,
+                          "alert tcp any any -> any any "
+                          "(msg:\"Testing http_method\"; "
+                          "content:!\"GET\"; "
+                          "http_method; sid:2;)");
+    if (s == NULL) {
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    if (r != 0) {
+        SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        SCLogDebug("no http state: ");
+        goto end;
+    }
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (!(PacketAlertCheck(p, 1))) {
+        printf("sid 1 didn't match but should have: ");
+        goto end;
+    }
+    if (PacketAlertCheck(p, 2)) {
+        printf("sid 2 matched but shouldn't have: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+
+    if (de_ctx != NULL) SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
+    if (det_ctx != NULL) DetectEngineThreadCtxDeinit(&th_v, (void *) det_ctx);
+    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -991,6 +1094,7 @@ void DetectHttpMethodRegisterTests(void) {
     UtRegisterTest("DetectHttpMethodSigTest01", DetectHttpMethodSigTest01, 1);
     UtRegisterTest("DetectHttpMethodSigTest02", DetectHttpMethodSigTest02, 1);
     UtRegisterTest("DetectHttpMethodSigTest03", DetectHttpMethodSigTest03, 1);
+    UtRegisterTest("DetectHttpMethodSigTest04", DetectHttpMethodSigTest04, 1);
 #endif /* UNITTESTS */
 }
 
