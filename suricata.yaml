@@ -115,7 +115,7 @@ detect-engine:
       toserver_dst_groups: 4
       toserver_sp_groups: 2
       toserver_dp_groups: 25
-  - sgh-mpm-context: single
+  - sgh-mpm-context: auto
 
 # Suricata is multi-threaded. Here the threading can be influenced.
 threading:
