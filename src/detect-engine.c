@@ -182,7 +182,12 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
         } else if (strcmp(sgh_mpm_context, "full") == 0) {
             de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
         } else if (strcmp(sgh_mpm_context, "auto") == 0) {
-            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_AUTO;
+            /* for now, since we still haven't implemented any intelligence into
+             * understanding the patterns and distributing mpm_ctx across sgh */
+            if (de_ctx->mpm_matcher == MPM_AC)
+                de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE;
+            else
+                de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
         } else {
            SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "You have supplied an "
                         "invalid conf value for detect-engine.sgh-mpm-context-"
