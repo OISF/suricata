@@ -30,6 +30,8 @@ typedef struct SCACGfbsPattern_ {
     uint16_t len;
     /* flags decribing the pattern */
     uint8_t flags;
+    /* holds the original pattern that was added */
+    uint8_t *original_pat;
     /* case sensitive */
     uint8_t *cs;
     /* case INsensitive */
@@ -39,6 +41,11 @@ typedef struct SCACGfbsPattern_ {
 
     struct SCACGfbsPattern_ *next;
 } SCACGfbsPattern;
+
+typedef struct SCACGfbsPatternList_ {
+    uint8_t *cs;
+    uint16_t patlen;
+} SCACGfbsPatternList;
 
 typedef struct SCACGfbsOutputTable_ {
     /* list of pattern sids */
@@ -78,9 +85,11 @@ typedef struct SCACGfbsCtx_ {
     int32_t (*goto_table)[256];
     int32_t *failure_table;
     SCACGfbsOutputTable *output_table;
+    SCACGfbsPatternList *pid_pat_list;
 
     /* the size of each state */
     uint16_t single_state_size;
+    uint16_t max_pat_id;
 } SCACGfbsCtx;
 
 typedef struct SCACGfbsThreadCtx_ {
