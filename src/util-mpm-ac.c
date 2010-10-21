@@ -36,8 +36,13 @@
  * \todo - Do a proper analyis of our existing MPMs and suggest a good one based
  *         on the pattern distribution and the expected traffic(say http).
  *       - Tried out loop unrolling without any perf increase.  Need to dig deeper.
- *       - Try out holding whether they are any output strings from a particular
- *         state in one of the bytes of a state var.  Will be useful in cuda esp.
+ *       - Irrespective of whether we cross 2 ** 16 states or not,shift to using
+ *         uint32_t for state type, so that we can integrate it's status as a
+ *         final state or not in the topmost byte.  We are already doing it if
+ *         state_count is > 2 ** 16.
+ *       - Test case-senstive patterns if they have any ascii chars.  If they
+ *         don't treat them as nocase.
+ *       - Carry out other optimizations we are working on.  hashes, compression.
  */
 
 #include "suricata-common.h"
@@ -239,6 +244,12 @@ static inline void SCACFreePattern(MpmCtx *mpm_ctx, SCACPattern *p)
 
     if (p != NULL && p->ci != NULL) {
         SCFree(p->ci);
+        mpm_ctx->memory_cnt--;
+        mpm_ctx->memory_size -= p->len;
+    }
+
+    if (p != NULL && p->original_pat != NULL) {
+        SCFree(p->original_pat);
         mpm_ctx->memory_cnt--;
         mpm_ctx->memory_size -= p->len;
     }
