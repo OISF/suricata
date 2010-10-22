@@ -45,6 +45,7 @@ typedef struct SCACPattern_ {
 typedef struct SCACPatternList_ {
     uint8_t *cs;
     uint16_t patlen;
+    uint16_t case_state;
 } SCACPatternList;
 
 typedef struct SCACOutputTable_ {

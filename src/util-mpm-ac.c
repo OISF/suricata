@@ -472,6 +472,12 @@ static void SCACSetOutputState(int32_t state, uint32_t pid, MpmCtx *mpm_ctx)
 {
     SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
     SCACOutputTable *output_state = &ctx->output_table[state];
+    uint32_t i = 0;
+
+    for (i = 0; i < output_state->no_of_entries; i++) {
+        if (output_state->pids[i] == pid)
+            return;
+    }
 
     output_state->no_of_entries++;
     output_state->pids = realloc(output_state->pids,
@@ -984,7 +990,12 @@ int SCACPreparePatterns(MpmCtx *mpm_ctx)
 
     for (i = 0; i < mpm_ctx->pattern_cnt; i++) {
         if (ctx->parray[i]->flags & MPM_PATTERN_FLAG_NOCASE) {
-            ;
+            if (ctx->pid_pat_list[ctx->parray[i]->id].case_state == 0)
+                ctx->pid_pat_list[ctx->parray[i]->id].case_state = 1;
+            else if (ctx->pid_pat_list[ctx->parray[i]->id].case_state == 1)
+                ctx->pid_pat_list[ctx->parray[i]->id].case_state = 1;
+            else
+                ctx->pid_pat_list[ctx->parray[i]->id].case_state = 3;
         } else {
             if (memcmp(ctx->parray[i]->original_pat, ctx->parray[i]->ci,
                        ctx->parray[i]->len) != 0) {
@@ -996,6 +1007,13 @@ int SCACPreparePatterns(MpmCtx *mpm_ctx)
                 memcpy(ctx->pid_pat_list[ctx->parray[i]->id].cs,
                        ctx->parray[i]->original_pat, ctx->parray[i]->len);
                 ctx->pid_pat_list[ctx->parray[i]->id].patlen = ctx->parray[i]->len;
+
+                if (ctx->pid_pat_list[ctx->parray[i]->id].case_state == 0)
+                    ctx->pid_pat_list[ctx->parray[i]->id].case_state = 2;
+                else if (ctx->pid_pat_list[ctx->parray[i]->id].case_state == 2)
+                    ctx->pid_pat_list[ctx->parray[i]->id].case_state = 2;
+                else
+                    ctx->pid_pat_list[ctx->parray[i]->id].case_state = 3;
             }
         }
     }
@@ -1193,8 +1211,12 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                     if (pids[k] & 0xFFFF0000) {
                         int ibuf = i;
                         for (j = ctx->pid_pat_list[pids[k] & 0x0000FFFF].patlen - 1; j >= 0; j--, ibuf--) {
-                            if (buf[ibuf] != ctx->pid_pat_list[pids[k] & 0x0000FFFF].cs[j])
-                                goto loop;
+                            if (buf[ibuf] != ctx->pid_pat_list[pids[k] & 0x0000FFFF].cs[j]) {
+                                if (ctx->pid_pat_list[pids[k] & 0x0000FFFF].case_state == 3)
+                                    break;
+                                else
+                                    goto loop;
+                            }
                         }
                         matches += MpmVerifyMatch(mpm_thread_ctx, pmq, pids[k] & 0x0000FFFF);
                     } else {
@@ -1221,8 +1243,12 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                     if (pids[k] & 0xFFFF0000) {
                         int ibuf = i;
                         for (j = ctx->pid_pat_list[pids[k] & 0x0000FFFF].patlen - 1; j >= 0; j--, ibuf--) {
-                            if (buf[ibuf] != ctx->pid_pat_list[pids[k] & 0x0000FFFF].cs[j])
-                                goto loop1;
+                            if (buf[ibuf] != ctx->pid_pat_list[pids[k] & 0x0000FFFF].cs[j]) {
+                                if (ctx->pid_pat_list[pids[k] & 0x0000FFFF].case_state == 3)
+                                    break;
+                                else
+                                    goto loop1;
+                            }
                         }
                         matches += MpmVerifyMatch(mpm_thread_ctx, pmq, pids[k] & 0x0000FFFF);
                     } else {
@@ -2123,6 +2149,36 @@ static int SCACTest25(void)
     return result;
 }
 
+static int SCACTest26(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0x00, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC, -1);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    SCACAddPatternCI(&mpm_ctx, (uint8_t *)"Works", 5, 0, 0, 1, 0, 0);
+    SCACAddPatternCS(&mpm_ctx, (uint8_t *)"Works", 5, 0, 0, 1, 0, 0);
+
+    SCACPreparePatterns(&mpm_ctx);
+
+    char *buf = "works";
+    uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 1)
+        result = 1;
+    else
+        printf("3 != %" PRIu32 " ",cnt);
+
+    SCACDestroyCtx(&mpm_ctx);
+    SCACDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void SCACRegisterTests(void)
@@ -2154,6 +2210,7 @@ void SCACRegisterTests(void)
     UtRegisterTest("SCACTest23", SCACTest23, 1);
     UtRegisterTest("SCACTest24", SCACTest24, 1);
     UtRegisterTest("SCACTest25", SCACTest25, 1);
+    UtRegisterTest("SCACTest26", SCACTest26, 1);
 #endif
 
     return;
