@@ -375,6 +375,8 @@ static int DetectDceIfaceSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     }
 
     s->alproto = ALPROTO_DCERPC;
+    /* Flagged the signature as to inspect the app layer data */
+    s->flags |= SIG_FLAG_APPLAYER;
     return 0;
 
  error:
