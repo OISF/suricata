@@ -26,17 +26,21 @@
 
 /* Flags affecting this content */
 
-#define DETECT_CONTENT_NOCASE            0x01
-#define DETECT_CONTENT_DISTANCE          0x02
-#define DETECT_CONTENT_WITHIN            0x04
-#define DETECT_CONTENT_FAST_PATTERN      0x08
+#define DETECT_CONTENT_NOCASE            0x0001
+#define DETECT_CONTENT_DISTANCE          0x0002
+#define DETECT_CONTENT_WITHIN            0x0004
+#define DETECT_CONTENT_OFFSET            0x0008
+#define DETECT_CONTENT_DEPTH             0x0010
+#define DETECT_CONTENT_FAST_PATTERN      0x0020
+#define DETECT_CONTENT_FAST_PATTERN_ONLY 0x0040
+#define DETECT_CONTENT_FAST_PATTERN_CHOP 0x0080
 /** content applies to a "raw"/undecoded field if applicable */
-#define DETECT_CONTENT_RAWBYTES          0x10
+#define DETECT_CONTENT_RAWBYTES          0x0100
 /** content is negated */
-#define DETECT_CONTENT_NEGATED           0x20
+#define DETECT_CONTENT_NEGATED           0x0200
 
 /** a relative match to this content is next, used in matching phase */
-#define DETECT_CONTENT_RELATIVE_NEXT     0x40
+#define DETECT_CONTENT_RELATIVE_NEXT     0x0400
 
 #define DETECT_CONTENT_IS_SINGLE(c) (!((c)->flags & DETECT_CONTENT_DISTANCE || \
                                        (c)->flags & DETECT_CONTENT_WITHIN || \
@@ -49,7 +53,7 @@
 typedef struct DetectContentData_ {
     uint8_t *content;   /**< ptr to chunk of memory containing the pattern */
     uint8_t content_len;/**< length of the pattern (and size of the memory) */
-    uint8_t flags;
+    uint16_t flags;
     PatIntId id;        /**< unique pattern id */
     uint16_t depth;
     uint16_t offset;
@@ -58,7 +62,13 @@ typedef struct DetectContentData_ {
     int32_t distance;
     int32_t within;
     BmCtx *bm_ctx;     /**< Boyer Moore context (for spm search) */
-
+    /* if someone wants to add an extra var to this structutre of size 1 byte
+     * you can reduce the below var to uint8_t.  No problemo */
+    uint16_t avoid_double_check;
+    /* for chopped fast pattern, the offset */
+    uint16_t fp_chop_offset;
+    /* for chopped fast pattern, the length */
+    uint16_t fp_chop_len;
 } DetectContentData;
 
 /* prototypes */

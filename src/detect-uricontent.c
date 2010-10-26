@@ -1196,7 +1196,7 @@ static int DetectUriSigTest04(void) {
             s->pmatch == NULL ||
             ((DetectContentData*) s->pmatch->ctx)->depth != 15 ||
             ((DetectContentData*) s->pmatch->ctx)->offset != 5 ||
-            ((DetectContentData*) s->umatch_tail->ctx)->distance != 30 ||
+            ((DetectUricontentData*) s->umatch_tail->ctx)->distance != 30 ||
             s->match != NULL)
     {
         printf("sig 10 failed to parse: ");

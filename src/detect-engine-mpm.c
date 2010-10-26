@@ -34,6 +34,7 @@
 #include "detect-engine-siggroup.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-iponly.h"
+#include "detect-parse.h"
 #include "util-mpm.h"
 #include "conf.h"
 
@@ -729,16 +730,62 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                 }
             }
 
-            /* add the content to the "packet" mpm */
-            if (co->flags & DETECT_CONTENT_NOCASE) {
-                mpm_table[sgh->mpm_ctx->mpm_type].AddPatternNocase(sgh->mpm_ctx,
-                        co->content, co->content_len, offset, depth, co->id,
-                        s->num, flags);
+            if (co->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+                /* add the content to the "packet" mpm */
+                if (co->flags & DETECT_CONTENT_NOCASE) {
+                    mpm_table[sgh->mpm_ctx->mpm_type].
+                        AddPatternNocase(sgh->mpm_ctx,
+                                         co->content + co->fp_chop_offset,
+                                         co->fp_chop_len,
+                                         0, 0, co->id, s->num, flags);
+                } else {
+                    mpm_table[sgh->mpm_ctx->mpm_type].
+                        AddPattern(sgh->mpm_ctx,
+                                   co->content + co->fp_chop_offset,
+                                   co->fp_chop_len,
+                                   0, 0, co->id, s->num, flags);
+                }
             } else {
-                mpm_table[sgh->mpm_ctx->mpm_type].AddPattern(sgh->mpm_ctx,
-                        co->content, co->content_len, offset, depth, co->id,
-                        s->num, flags);
-            }
+                if (co->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                    co->avoid_double_check = 1;
+                } else {
+                    if (!(co->flags & DETECT_CONTENT_RELATIVE_NEXT)) {
+                        SigMatch *tmp_sm = s->pmatch;
+                        for ( ; tmp_sm != NULL; tmp_sm = tmp_sm->next) {
+                            if (tmp_sm->type != DETECT_CONTENT)
+                                continue;
+
+                            DetectContentData *tmp_co = (DetectContentData *)tmpsm->ctx;
+                            if (tmp_co == NULL)
+                                continue;
+
+                            if (co->id == tmp_co->id)
+                                break;
+                        }
+
+                        SigMatch *prev_sm = SigMatchGetLastSMFromLists(s, 2,
+                                                                       DETECT_CONTENT, tmp_sm->prev);
+                        if (prev_sm != NULL) {
+                            DetectContentData *prev_co = (DetectContentData *)prev_sm->ctx;
+                            if (!(prev_co->flags & DETECT_CONTENT_RELATIVE_NEXT))
+                                    co->avoid_double_check = 1;
+                        }
+                    }
+                } /* else - if (co->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) */
+
+                /* add the content to the "packet" mpm */
+                if (co->flags & DETECT_CONTENT_NOCASE) {
+                    mpm_table[sgh->mpm_ctx->mpm_type].
+                        AddPatternNocase(sgh->mpm_ctx,
+                                         co->content, co->content_len,
+                                         offset, depth, co->id, s->num, flags);
+                } else {
+                    mpm_table[sgh->mpm_ctx->mpm_type].
+                        AddPattern(sgh->mpm_ctx,
+                                   co->content, co->content_len,
+                                   offset, depth, co->id, s->num, flags);
+                }
+            } /* else - if (co->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) */
 
             /* tell matcher we are inspecting packet */
             s->flags |= SIG_FLAG_MPM_PACKET;

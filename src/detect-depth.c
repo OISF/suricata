@@ -55,6 +55,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
     char *str = depthstr;
     char dubbed = 0;
     SigMatch *pm = NULL;
+    DetectContentData *cd = NULL;
 
     /* strip "'s */
     if (depthstr[0] == '\"' && depthstr[strlen(depthstr)-1] == '\"') {
@@ -115,13 +116,28 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
         break;
 
         case DETECT_CONTENT:
-        {
-            DetectContentData *cd = (DetectContentData *)pm->ctx;
+
+            cd = (DetectContentData *)pm->ctx;
             if (cd == NULL) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
                 if (dubbed) SCFree(str);
                 return -1;
             }
+
+            if (cd->flags & DETECT_CONTENT_NEGATED) {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "negated keyword set along with a fast_pattern");
+                    goto error;
+                }
+            } else {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "keyword set along with a fast_pattern:only;");
+                    goto error;
+                }
+            }
+
             cd->depth = (uint32_t)atoi(str);
             if (cd->depth < cd->content_len) {
                 cd->depth = cd->content_len;
@@ -130,8 +146,9 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
             }
             /* Now update the real limit, as depth is relative to the offset */
             cd->depth += cd->offset;
-        }
-        break;
+            cd->flags |= DETECT_CONTENT_DEPTH;
+
+            break;
 
         default:
             SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs a preceeding "
@@ -141,6 +158,12 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
         break;
     }
 
-    if (dubbed) SCFree(str);
+    if (dubbed)
+        SCFree(str);
     return 0;
+
+error:
+    if (dubbed)
+        SCFree(str);
+    return -1;
 }

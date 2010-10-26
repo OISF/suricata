@@ -78,6 +78,15 @@ defrag:
   prealloc: yes
   timeout: 60
 
+# When run with the option --engine-analysis, the engine will read each of
+# the parameters below, and print reports for each of the enabled sections
+# and exit.  The reports are printed to a file in the default log dir
+# given by the parameter "default-log-dir", with engine reporting
+# subsection below printing reports in its own report file.
+engine-analysis:
+  # enables printing reports for fast-pattern for every rule.
+  rules-fast-pattern: yes
+
 # You can specify a threshold config file by setting "threshold-file"
 # to the path of the threshold config file:
 # threshold-file: /etc/suricata/threshold.config

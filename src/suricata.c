@@ -170,6 +170,10 @@ uint8_t suricata_ctl_flags = 0;
 /** Run mode selected */
 int run_mode = MODE_UNKNOWN;
 
+/** engine_analysis.  disabled(0) by default, unless enabled by the user by
+  * running the engine with --engine-analysis */
+int engine_analysis = 0;
+
 /** Engine mode: inline (ENGINE_MODE_IPS) or just
   * detection mode (ENGINE_MODE_IDS by default) */
 uint8_t engine_mode = ENGINE_MODE_IDS;
@@ -330,6 +334,12 @@ void usage(const char *progname)
     printf("\t--list-unittests             : list unit tests\n");
     printf("\t--fatal-unittests            : enable fatal failure on unittest error\n");
 #endif /* UNITTESTS */
+#ifdef __SC_CUDA_SUPPORT__
+    printf("\t--list-cuda-cards            : list cuda supported cards\n");
+#endif
+    printf("\t--engine-analysis            : print reports on analysis of different sections in the engine and exit.\n"
+           "\t                               Please have a look at the conf parameter engine-analysis on what reports\n"
+           "\t                               can be printed\n");
     printf("\t--pidfile <file>             : write pid to this file (only for daemon mode)\n");
     printf("\t--init-errors-fatal          : enable fatal failure on signature init error\n");
     printf("\t--dump-config                : show the running configuration\n");
@@ -436,6 +446,7 @@ int main(int argc, char **argv)
         {"unittest-filter", required_argument, 0, 'U'},
         {"list-unittests", 0, &list_unittests, 1},
         {"list-cuda-cards", 0, &list_cuda_cards, 1},
+        {"engine-analysis", 0, &engine_analysis, 1},
 #ifdef OS_WIN32
 		{"service-install", 0, 0, 0},
 		{"service-remove", 0, 0, 0},
@@ -513,6 +524,8 @@ int main(int argc, char **argv)
                         "--enable-cuda to configure when building.\n");
                 exit(EXIT_FAILURE);
 #endif /* UNITTESTS */
+            } else if(strcmp((long_opts[option_index]).name, "engine-analysis") == 0) {
+                printf("==Carrying out engine analyis==\n");
             }
 #ifdef OS_WIN32
             else if(strcmp((long_opts[option_index]).name, "service-install") == 0) {
@@ -778,8 +791,10 @@ int main(int argc, char **argv)
     SCHInfoLoadFromConfig();
 
     if (run_mode == MODE_UNKNOWN) {
-        usage(argv[0]);
-        exit(EXIT_FAILURE);
+        if (!engine_analysis) {
+            usage(argv[0]);
+            exit(EXIT_FAILURE);
+        }
     }
 
     /* create table for O(1) lowercase conversion lookup */
@@ -1046,6 +1061,9 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
     }
 
+    if (engine_analysis) {
+        exit(EXIT_SUCCESS);
+    }
 
 #ifdef PROFILING
     SCProfilingInitRuleCounters(de_ctx);

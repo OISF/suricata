@@ -151,6 +151,10 @@
 
 extern uint8_t engine_mode;
 
+extern int engine_analysis;
+static int fp_engine_analysis_set = 0;
+static FILE *fp_engine_analysis_FD = NULL;
+
 SigMatch *SigMatchAlloc(void);
 void DetectExitPrintStats(ThreadVars *tv, void *data);
 
@@ -244,6 +248,90 @@ char *DetectLoadCompleteSigPath(char *sig_file)
 }
 
 /**
+ * \brief Prints analysis of fast pattern for a signature.
+ *
+ *        The code here mimics the logic to select fast_pattern from staging.
+ *        If any changes are made to the staging logic, this should follow suit.
+ *
+ * \param s Pointer to the signature.
+ */
+void EngineAnalysisFastPattern(Signature *s)
+{
+    int fast_pattern_set = 0;
+    int fast_pattern_only_set = 0;
+    int fast_pattern_chop_set = 0;
+    int content_maxlen = 0;
+    DetectContentData *cd = NULL;
+    DetectContentData *fp_cd = NULL;
+    SigMatch *sm = NULL;
+
+    for (sm = s->pmatch; sm != NULL; sm = sm->next) {
+        if (sm->type != DETECT_CONTENT)
+            continue;
+
+        cd = (DetectContentData *)sm->ctx;
+        if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+            fast_pattern_set = 1;
+            if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                fast_pattern_only_set = 1;
+            } else if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+                fast_pattern_chop_set = 1;
+            }
+            fp_cd = cd;
+            break;
+        } else if (cd->content_len <= content_maxlen) {
+            continue;
+        }
+
+        fp_cd = cd;
+    }
+
+    if (fp_cd == NULL) {
+        fprintf(fp_engine_analysis_FD, "== Sid: %u ==\n", s->id);
+        fprintf(fp_engine_analysis_FD, "    No content present\n");
+        return;
+    }
+
+    fprintf(fp_engine_analysis_FD, "== Sid: %u ==\n", s->id);
+    fprintf(fp_engine_analysis_FD, "    Fast pattern matcher: content\n");
+    fprintf(fp_engine_analysis_FD, "    Fast pattern set: %s\n", fast_pattern_set ? "yes" : "no");
+    fprintf(fp_engine_analysis_FD, "    Fast pattern only set: %s\n",
+            fast_pattern_only_set ? "yes" : "no");
+    fprintf(fp_engine_analysis_FD, "    Fast pattern chop set: %s\n",
+            fast_pattern_chop_set ? "yes" : "no");
+    if (fast_pattern_chop_set) {
+        fprintf(fp_engine_analysis_FD, "    Fast pattern offset, length: %u, %u\n",
+                fp_cd->fp_chop_offset, fp_cd->fp_chop_len);
+    }
+    fprintf(fp_engine_analysis_FD, "    Content negated: %s\n",
+            (fp_cd->flags & DETECT_CONTENT_NEGATED) ? "yes" : "no");
+
+    uint8_t *pat = malloc(fp_cd->content_len + 1);
+    if (pat == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    memcpy(pat, cd->content, cd->content_len);
+    pat[cd->content_len] = '\0';
+    fprintf(fp_engine_analysis_FD, "    Original content: %s\n", pat);
+
+    if (fast_pattern_chop_set) {
+        uint8_t *pat = malloc(fp_cd->fp_chop_len + 1);
+        if (pat == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+        memcpy(pat, cd->content + fp_cd->fp_chop_offset, fp_cd->fp_chop_len);
+        pat[fp_cd->fp_chop_len] = '\0';
+        fprintf(fp_engine_analysis_FD, "    Final content: %s\n", pat);
+    } else {
+        fprintf(fp_engine_analysis_FD, "    Final content: %s\n", pat);
+    }
+
+    return;
+}
+
+/**
  *  \brief Load a file with signatures
  *  \param de_ctx Pointer to the detection engine context
  *  \param sig_file Filename to load signatures from
@@ -302,6 +390,9 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
         sig = DetectEngineAppendSig(de_ctx, line);
         (*sigs_tot)++;
         if (sig != NULL) {
+            if (fp_engine_analysis_set) {
+                EngineAnalysisFastPattern(sig);
+            }
             SCLogDebug("signature %"PRIu32" loaded", sig->id);
             good++;
         } else {
@@ -337,6 +428,40 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     int cntf = 0;
     int sigtotal = 0;
     char *sfile = NULL;
+
+    if (engine_analysis) {
+        if ((ConfGetBool("engine-analysis.rules-fast-pattern",
+                         &fp_engine_analysis_set)) == 0) {
+            fp_engine_analysis_set = 0;
+        }
+
+        if (fp_engine_analysis_set) {
+            char log_path[256], *log_dir;
+            if (ConfGet("default-log-dir", &log_dir) != 1)
+                log_dir = DEFAULT_LOG_DIR;
+            snprintf(log_path, 256, "%s/%s", log_dir, "rules_fast_pattern.txt");
+
+            fp_engine_analysis_FD = fopen(log_path, "w");
+            if (fp_engine_analysis_FD == NULL) {
+                SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", log_path,
+                           strerror(errno));
+                return -1;
+            }
+            struct timeval tval;
+            struct tm *tms;
+            gettimeofday(&tval, NULL);
+            struct tm local_tm;
+            tms = (struct tm *)localtime_r(&tval.tv_sec, &local_tm);
+            fprintf(fp_engine_analysis_FD, "----------------------------------------------"
+                    "---------------------\n");
+            fprintf(fp_engine_analysis_FD, "Date: %" PRId32 "/%" PRId32 "/%04d -- "
+                    "%02d:%02d:%02d\n",
+                    tms->tm_mday, tms->tm_mon + 1, tms->tm_year + 1900, tms->tm_hour,
+                    tms->tm_min, tms->tm_sec);
+            fprintf(fp_engine_analysis_FD, "----------------------------------------------"
+                    "---------------------\n");
+        }
+    }
 
     /* ok, let's load signature files from the general config */
     rule_files = ConfGetNode("rule-files");
@@ -418,6 +543,15 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     ret = 0;
 
  end:
+    if (engine_analysis) {
+        if (fp_engine_analysis_set) {
+            if (fp_engine_analysis_FD != NULL) {
+                fclose(fp_engine_analysis_FD);
+                fp_engine_analysis_FD = NULL;
+            }
+        }
+    }
+
     DetectParseDupSigHashFree(de_ctx);
     SCReturnInt(ret);
 }

@@ -122,6 +122,21 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                 if (dubbed) SCFree(str);
                 return -1;
             }
+
+            if (cd->flags & DETECT_CONTENT_NEGATED) {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "negated keyword set along with a fast_pattern");
+                    goto error;
+                }
+            } else {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "keyword set along with a fast_pattern:only;");
+                    goto error;
+                }
+            }
+
             cd->offset = (uint32_t)atoi(str);
             if (cd->depth != 0) {
                 if (cd->depth < cd->content_len) {
@@ -132,6 +147,9 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                 /* Updating the depth as is relative to the offset */
                 cd->depth += cd->offset;
             }
+
+            cd->flags |= DETECT_CONTENT_OFFSET;
+
             break;
 
         default:
@@ -146,5 +164,10 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
     if (dubbed)
         SCFree(str);
     return 0;
+
+error:
+    if (dubbed)
+        SCFree(str);
+    return -1;
 }
 

@@ -250,6 +250,20 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 goto error;
             }
 
+            if (cd->flags & DETECT_CONTENT_NEGATED) {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "negated keyword set along with a fast_pattern");
+                    goto error;
+                }
+            } else {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "keyword set along with a fast_pattern:only;");
+                    goto error;
+                }
+            }
+
             cd->distance = strtol(str, NULL, 10);
             cd->flags |= DETECT_CONTENT_DISTANCE;
             if (cd->flags & DETECT_CONTENT_WITHIN) {
@@ -283,6 +297,14 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                             goto error;
                         }
                         cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+
+                        if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                            SCLogError(SC_ERR_INVALID_SIGNATURE, "Previous keyword "
+                                       "has a fast_pattern:only; set.  You can't "
+                                       "have relative keywords around a fast_pattern "
+                                       "only content");
+                            goto error;
+                        }
 
                         break;
 
