@@ -743,6 +743,7 @@ void AddressDebugPrint(Address *);
 #define PKT_STREAM_ADD                  0x10    /**< Packet payload was added to reassembled stream */
 #define PKT_STREAM_EOF                  0x20    /**< Stream is in eof state */
 #define PKT_HAS_FLOW                    0x40
+#define PKT_PSEUDO_STREAM_END           0x80    /**< Pseudo packet to end the stream */
 
 #endif /* __DECODE_H__ */
 

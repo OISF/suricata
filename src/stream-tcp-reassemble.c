@@ -1454,6 +1454,9 @@ static int StreamTcpReassembleRawCheckLimit(TcpSession *ssn, TcpStream *stream,
     if (ssn->state >= TCP_TIME_WAIT)
         SCReturnInt(1);
 
+    if (p->flags & PKT_PSEUDO_STREAM_END)
+        SCReturnInt(1);
+
     /* check if we have enough data to send to L7 */
     if (p->flowflags & FLOW_PKT_TOCLIENT) {
         SCLogDebug("StreamMsgQueueGetMinInitChunkLen(STREAM_TOSERVER) %"PRIu32,
@@ -2368,9 +2371,16 @@ int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *ra_ctx)
         do {
             smsg = StreamMsgGetFromQueue(ra_ctx->stream_q);
             if (smsg != NULL) {
-                SCLogDebug("smsg %p, next %p, prev %p, flow %p, q->len %u", smsg, smsg->next, smsg->prev, smsg->flow, ra_ctx->stream_q->len);
+                SCLogDebug("smsg %p, next %p, prev %p, flow %p, q->len %u, "
+                        "smsg->data.datalen %u, direction %s%s",
+                        smsg, smsg->next, smsg->prev, smsg->flow,
+                        ra_ctx->stream_q->len, smsg->data.data_len,
+                        smsg->flags & STREAM_TOSERVER : "toserver":"",
+                        smsg->flags & STREAM_TOCLIENT : "toclient":"");
 
                 BUG_ON(smsg->flow == NULL);
+
+                //PrintRawDataFp(stderr, smsg->data.data, smsg->data.data_len);
 
                 /* Handle the stream msg. No need to use locking, flow is
                  * already locked at this point. Don't break out of the
@@ -2402,9 +2412,6 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
         opposing_stream = &ssn->client;
     }
 
-    /* Create the pseudo packet from the reassembled stream to detect the attack */
-    StreamTcpReassemblePseudoPacketCreate(opposing_stream, p, pq);
-
     /* handle ack received */
     if (StreamTcpReassembleHandleSegmentUpdateACK(ra_ctx, ssn, opposing_stream, p) != 0)
     {
@@ -2429,95 +2436,6 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
 }
 
 /**
- * \brief   Function to fetch a packet from the packet allocation queue for
- *          creation of the pseudo packet from the reassembled stream.
- *
- * @param parent    Pointer to the parent of the pseudo packet
- * @param pkt       pointer to the raw packet of the parent
- * @param len       length of the packet
- * @return          upon success returns the pointer to the new pseudo packet
- *                  otherwise NULL
- */
-Packet *StreamTcpReassemblePseudoSetup(Packet *parent, uint8_t *pkt, uint32_t len)
-{
-    Packet *p = PacketGetFromQueueOrAlloc();
-    if (p == NULL || len == 0) {
-        return NULL;
-    }
-
-    /* set the root ptr to the lowest layer */
-    if (parent->root != NULL)
-        p->root = parent->root;
-    else
-        p->root = parent;
-
-    /* copy packet and set lenght, proto */
-    p->tunnel_proto = parent->proto;
-    p->pktlen = len;
-    memcpy(&p->pkt, pkt, (len - parent->payload_len));
-    p->recursion_level = parent->recursion_level + 1;
-    p->ts.tv_sec = parent->ts.tv_sec;
-    p->ts.tv_usec = parent->ts.tv_usec;
-
-    /* set tunnel flags */
-
-    /* tell new packet it's part of a tunnel */
-    SET_TUNNEL_PKT(p);
-    /* tell parent packet it's part of a tunnel */
-    SET_TUNNEL_PKT(parent);
-
-    /* increment tunnel packet refcnt in the root packet */
-    TUNNEL_INCR_PKT_TPR(p);
-
-    return p;
-}
-
-/**
- * \brief   Function to setup the IP and TCP header of the pseudo packet from
- *          the newly copied raw packet contents of the parent.
- *
- * @param np    pointer to the pseudo packet
- * @param p     pointer to the original packet
- */
-void StreamTcpReassemblePseudoPacketSetupHeader(Packet *np, Packet *p)
-{
-    /* Setup the IP header */
-    if (PKT_IS_IPV4(p)) {
-        np->ip4h = (IPV4Hdr *)(np->pkt + (np->pktlen - IPV4_GET_IPLEN(p)));
-        PSUEDO_PKT_SET_IPV4HDR(np->ip4h, p->ip4h);
-
-        /* Similarly setup the TCP header with ports in opposite direction */
-        np->tcph = (TCPHdr *)(np->ip4h + IPV4_GET_HLEN(p));
-        PSUEDO_PKT_SET_TCPHDR(np->tcph, p->tcph);
-
-        /* Setup the adress and port details */
-        SET_IPV4_SRC_ADDR(np, &np->src);
-        SET_IPV4_DST_ADDR(np, &np->dst);
-        SET_TCP_SRC_PORT(np, &np->sp);
-        SET_TCP_DST_PORT(np, &np->dp);
-
-    } else if (PKT_IS_IPV6(p)) {
-        np->ip6h = (IPV6Hdr *)(np->pkt + (np->pktlen - IPV6_GET_PLEN(p) - IPV6_HEADER_LEN));
-        PSUEDO_PKT_SET_IPV6HDR(np->ip6h, p->ip6h);
-
-        /* Similarly setup the TCP header with ports in opposite direction */
-        np->tcph = (TCPHdr *)(np->ip6h + IPV6_HEADER_LEN);
-        PSUEDO_PKT_SET_TCPHDR(np->tcph, p->tcph);
-
-        /* Setup the adress and port details */
-        SET_IPV6_SRC_ADDR(np, &np->src);
-        SET_IPV6_DST_ADDR(np, &np->dst);
-        SET_TCP_SRC_PORT(np, &np->sp);
-        SET_TCP_DST_PORT(np, &np->dp);
-    }
-
-    /* Setup the payload pointer to the starting of payload location as in the
-       original packet, so that we don't overwrite the protocols headers */
-    np->payload = np->pkt + (np->pktlen - p->payload_len);
-    np->payload_len = 0;
-}
-
-/**
  * \brief   Function to copy the reassembled stream segments in to the pseudo
  *          packet payload.
  *
@@ -2535,14 +2453,14 @@ void StreamTcpReassemblePseudoPacketCreate(TcpStream *stream, Packet *p,
         SCReturn;
     }
 
-    Packet *np = StreamTcpReassemblePseudoSetup(p, p->pkt, p->pktlen);
+    Packet *np = StreamTcpPseudoSetup(p, p->pkt, p->pktlen);
     if (np == NULL) {
         SCLogDebug("The packet received from packet allocation is NULL");
         SCReturn;
     }
 
     /* Setup the IP and TCP headers */
-    StreamTcpReassemblePseudoPacketSetupHeader(np,p);
+    StreamTcpPseudoPacketSetupHeader(np,p);
 
     /* Start the reassembling of received reassembled segments in to the
        pseudo packet to scan and detect the unwanted attacks. Resistance is
@@ -2599,13 +2517,13 @@ void StreamTcpReassemblePseudoPacketCreate(TcpStream *stream, Packet *p,
                     np->ip6h->s_ip6_plen = (TCP_GET_HLEN(np)) + np->payload_len;
                 }
                 PacketEnqueue(pq, np);
-                Packet *gap = StreamTcpReassemblePseudoSetup(p, p->pkt, p->pktlen);
+                Packet *gap = StreamTcpPseudoSetup(p, p->pkt, p->pktlen);
                 if (gap == NULL) {
                     SCLogDebug("The packet received from packet allocation is NULL");
                     SCReturn;
                 }
                 np = gap;
-                StreamTcpReassemblePseudoPacketSetupHeader(np,p);
+                StreamTcpPseudoPacketSetupHeader(np,p);
             }
         }
 
@@ -2675,13 +2593,13 @@ void StreamTcpReassemblePseudoPacketCreate(TcpStream *stream, Packet *p,
                     np->ip6h->s_ip6_plen = (TCP_GET_HLEN(np)) + np->payload_len;
                 }
                 PacketEnqueue(pq, np);
-                Packet *newp = StreamTcpReassemblePseudoSetup(p, p->pkt, p->pktlen);
+                Packet *newp = StreamTcpPseudoSetup(p, p->pkt, p->pktlen);
                 if (newp == NULL) {
                     SCLogDebug("The packet received from Allocation queue is NULL");
                     SCReturn;
                 }
                 np = newp;
-                StreamTcpReassemblePseudoPacketSetupHeader(np,p);
+                StreamTcpPseudoPacketSetupHeader(np,p);
             }
 
             /* if the payload len is bigger than what we copied, we handle the

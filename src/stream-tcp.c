@@ -74,6 +74,11 @@
 typedef struct StreamTcpThread_ {
     uint64_t pkts;
 
+    /** queue for pseudo packet(s) that were created in the stream
+     *  process and need further handling. Currently only used when
+     *  receiving (valid) RST packets */
+    PacketQueue pseudo_queue;
+
     uint16_t counter_tcp_sessions;
     /** sessions not picked up because memcap was reached */
     uint16_t counter_tcp_ssn_memcap;
@@ -94,6 +99,7 @@ extern void StreamTcpSegmentReturntoPool(TcpSegment *);
 int StreamTcpGetFlowState(void *);
 static int ValidTimestamp(TcpSession * , Packet *);
 void StreamTcpSetOSPolicy(TcpStream*, Packet*);
+void StreamTcpPseudoPacketCreateStreamEndPacket(Packet *, TcpSession *, PacketQueue *);
 
 static Pool *ssn_pool = NULL;
 static SCMutex ssn_pool_mutex;
@@ -1726,6 +1732,9 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
         case TH_RST|TH_ACK|TH_ECN|TH_CWR:
 
             if(ValidReset(ssn, p)) {
+                /* force both streams to reassemble, if necessary */
+                StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
+
                 if(PKT_IS_TOSERVER(p)) {
                     StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
                     SCLogDebug("ssn %p: Reset received and state changed to "
@@ -2038,7 +2047,10 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
         case TH_RST|TH_ACK|TH_ECN:
         case TH_RST|TH_ACK|TH_ECN|TH_CWR:
 
-            if(ValidReset(ssn, p)) {
+            if (ValidReset(ssn, p)) {
+                /* force both streams to reassemble, if necessary */
+                StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
+
                 StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
                 SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
                             ssn);
@@ -2152,7 +2164,10 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
         case TH_RST|TH_ACK|TH_ECN:
         case TH_RST|TH_ACK|TH_ECN|TH_CWR:
 
-            if(ValidReset(ssn, p)) {
+            if (ValidReset(ssn, p)) {
+                /* force both streams to reassemble, if necessary */
+                StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
+
                 StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
                 SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
                             ssn);
@@ -2657,8 +2672,9 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
     }
 
     if (ssn == NULL || ssn->state == TCP_NONE) {
-        if (StreamTcpPacketStateNone(tv, p, stt, ssn, pq) == -1)
-            SCReturnInt(-1);
+        if (StreamTcpPacketStateNone(tv, p, stt, ssn, &stt->pseudo_queue) == -1) {
+            goto error;
+        }
 
         if (ssn != NULL)
             SCLogDebug("ssn->alproto %"PRIu16"", p->flow->alproto);
@@ -2670,40 +2686,49 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
 
         switch (ssn->state) {
             case TCP_SYN_SENT:
-                if(StreamTcpPacketStateSynSent(tv, p, stt, ssn, pq))
-                    SCReturnInt(-1);
+                if(StreamTcpPacketStateSynSent(tv, p, stt, ssn, &stt->pseudo_queue)) {
+                    goto error;
+                }
                 break;
             case TCP_SYN_RECV:
-                if(StreamTcpPacketStateSynRecv(tv, p, stt, ssn, pq))
-                    SCReturnInt(-1);
+                if(StreamTcpPacketStateSynRecv(tv, p, stt, ssn, &stt->pseudo_queue)) {
+                    goto error;
+                }
                 break;
             case TCP_ESTABLISHED:
-                if(StreamTcpPacketStateEstablished(tv, p, stt, ssn, pq))
-                    SCReturnInt(-1);
+                if(StreamTcpPacketStateEstablished(tv, p, stt, ssn, &stt->pseudo_queue)) {
+                    goto error;
+                }
                 break;
             case TCP_FIN_WAIT1:
-                if(StreamTcpPacketStateFinWait1(tv, p, stt, ssn, pq))
-                    SCReturnInt(-1);
+                if(StreamTcpPacketStateFinWait1(tv, p, stt, ssn, &stt->pseudo_queue)) {
+                    goto error;
+                }
                 break;
             case TCP_FIN_WAIT2:
-                if(StreamTcpPacketStateFinWait2(tv, p, stt, ssn, pq))
-                    SCReturnInt(-1);
+                if(StreamTcpPacketStateFinWait2(tv, p, stt, ssn, &stt->pseudo_queue)) {
+                    goto error;
+                }
                 break;
             case TCP_CLOSING:
-                if(StreamTcpPacketStateClosing(tv, p, stt, ssn, pq))
-                    SCReturnInt(-1);
+                if(StreamTcpPacketStateClosing(tv, p, stt, ssn, &stt->pseudo_queue)) {
+                    goto error;
+                }
                 break;
             case TCP_CLOSE_WAIT:
-                if(StreamTcpPacketStateCloseWait(tv, p, stt, ssn, pq))
-                    SCReturnInt(-1);
+                if(StreamTcpPacketStateCloseWait(tv, p, stt, ssn, &stt->pseudo_queue)) {
+                    goto error;
+                }
                 break;
             case TCP_LAST_ACK:
-                if(StreamTcpPakcetStateLastAck(tv, p, stt, ssn, pq))
-                    SCReturnInt(-1);
+                if(StreamTcpPakcetStateLastAck(tv, p, stt, ssn, &stt->pseudo_queue)) {
+                    goto error;
+                }
                 break;
             case TCP_TIME_WAIT:
-                if(StreamTcpPacketStateTimeWait(tv, p, stt, ssn, pq))
-                    SCReturnInt(-1);
+                if(StreamTcpPacketStateTimeWait(tv, p, stt, ssn, &stt->pseudo_queue)) {
+                    goto error;
+                }
                 break;
             case TCP_CLOSED:
                 /* TCP session memory is not returned to pool until timeout.
@@ -2721,7 +2746,7 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                 {
                     SCLogDebug("reusing closed TCP session");
 
-                    if (StreamTcpPacketStateNone(tv,p,stt,ssn)) {
+                    if (StreamTcpPacketStateNone(tv,p,stt,ssn, &stt->pseudo_queue)) {
                         SCReturnInt(-1);
                     }
                 } else {
@@ -2738,11 +2763,48 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         }
     }
 
+    /* deal with a pseudo packet that is created upon receiving a RST
+     * segment. To be sure we process both sides of the connection, we
+     * inject a fake packet into the system, forcing reassembly of the
+     * opposing direction.
+     * There should be only one, but to be sure we do a while loop. */
+    while (stt->pseudo_queue.len > 0) {
+        SCLogDebug("processing pseudo packet / stream end");
+        Packet *np = PacketDequeue(&stt->pseudo_queue);
+        if (np != NULL) {
+            /* process the opposing direction of the original packet */
+            if (PKT_IS_TOSERVER(np)) {
+                SCLogDebug("pseudo packet is to server");
+                StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
+                        &ssn->client, np, NULL);
+            } else {
+                SCLogDebug("pseudo packet is to client");
+                StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
+                        &ssn->server, np, NULL);
+            }
+
+            /* enqueue this packet so we inspect it in detect etc */
+            PacketEnqueue(pq, np);
+        }
+        SCLogDebug("processing pseudo packet / stream end done");
+    }
+
     /* Process stream smsgs we may have in queue */
-    if (StreamTcpReassembleProcessAppLayer(stt->ra_ctx) < 0)
-        SCReturnInt(-1);
+    if (StreamTcpReassembleProcessAppLayer(stt->ra_ctx) < 0) {
+        goto error;
+    }
 
     SCReturnInt(0);
+
+error:
+    /* make sure we don't leave packets in our pseudo queue */
+    while (stt->pseudo_queue.len > 0) {
+        Packet *np = PacketDequeue(&stt->pseudo_queue);
+        if (np != NULL) {
+            PacketEnqueue(pq, np);
+        }
+    }
+    SCReturnInt(-1);
 }
 
 /**
@@ -3208,6 +3270,156 @@ void StreamTcpSetSessionNoReassemblyFlag (TcpSession *ssn, char direction)
 {
     direction ? (ssn->server.flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY) :
                 (ssn->client.flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY);
+}
+
+/**
+ * \brief   Function to fetch a packet from the packet allocation queue for
+ *          creation of the pseudo packet from the reassembled stream.
+ *
+ * @param parent    Pointer to the parent of the pseudo packet
+ * @param pkt       pointer to the raw packet of the parent
+ * @param len       length of the packet
+ * @return          upon success returns the pointer to the new pseudo packet
+ *                  otherwise NULL
+ */
+Packet *StreamTcpPseudoSetup(Packet *parent, uint8_t *pkt, uint32_t len)
+{
+    Packet *p = PacketGetFromQueueOrAlloc();
+    if (p == NULL || len == 0) {
+        return NULL;
+    }
+
+    /* set the root ptr to the lowest layer */
+    if (parent->root != NULL)
+        p->root = parent->root;
+    else
+        p->root = parent;
+
+    /* copy packet and set lenght, proto */
+    p->tunnel_proto = parent->proto;
+    p->pktlen = len;
+    memcpy(&p->pkt, pkt, (len - parent->payload_len));
+    p->recursion_level = parent->recursion_level + 1;
+    p->ts.tv_sec = parent->ts.tv_sec;
+    p->ts.tv_usec = parent->ts.tv_usec;
+
+    p->flow = parent->flow;
+
+    /* set tunnel flags */
+
+    /* tell new packet it's part of a tunnel */
+    SET_TUNNEL_PKT(p);
+    /* tell parent packet it's part of a tunnel */
+    SET_TUNNEL_PKT(parent);
+
+    /* increment tunnel packet refcnt in the root packet */
+    TUNNEL_INCR_PKT_TPR(p);
+
+    return p;
+}
+
+/**
+ * \brief   Function to setup the IP and TCP header of the pseudo packet from
+ *          the newly copied raw packet contents of the parent.
+ *
+ * @param np    pointer to the pseudo packet
+ * @param p     pointer to the original packet
+ */
+void StreamTcpPseudoPacketSetupHeader(Packet *np, Packet *p)
+{
+    /* Setup the IP header */
+    if (PKT_IS_IPV4(p)) {
+        np->ip4h = (IPV4Hdr *)(np->pkt + (np->pktlen - IPV4_GET_IPLEN(p)));
+        PSUEDO_PKT_SET_IPV4HDR(np->ip4h, p->ip4h);
+
+        /* Similarly setup the TCP header with ports in opposite direction */
+        np->tcph = (TCPHdr *)(np->ip4h + IPV4_GET_HLEN(p));
+        PSUEDO_PKT_SET_TCPHDR(np->tcph, p->tcph);
+
+        /* Setup the adress and port details */
+        SET_IPV4_SRC_ADDR(np, &np->src);
+        SET_IPV4_DST_ADDR(np, &np->dst);
+        SET_TCP_SRC_PORT(np, &np->sp);
+        SET_TCP_DST_PORT(np, &np->dp);
+
+    } else if (PKT_IS_IPV6(p)) {
+        np->ip6h = (IPV6Hdr *)(np->pkt + (np->pktlen - IPV6_GET_PLEN(p) - IPV6_HEADER_LEN));
+        PSUEDO_PKT_SET_IPV6HDR(np->ip6h, p->ip6h);
+
+        /* Similarly setup the TCP header with ports in opposite direction */
+        np->tcph = (TCPHdr *)(np->ip6h + IPV6_HEADER_LEN);
+        PSUEDO_PKT_SET_TCPHDR(np->tcph, p->tcph);
+
+        /* Setup the adress and port details */
+        SET_IPV6_SRC_ADDR(np, &np->src);
+        SET_IPV6_DST_ADDR(np, &np->dst);
+        SET_TCP_SRC_PORT(np, &np->sp);
+        SET_TCP_DST_PORT(np, &np->dp);
+    }
+
+    /* Setup the payload pointer to the starting of payload location as in the
+       original packet, so that we don't overwrite the protocols headers */
+    np->payload = NULL; //= np->pkt + (np->pktlen - p->payload_len);
+    np->payload_len = 0;
+}
+
+/** \brief Create a pseudo packet injected into the engine to signal the
+ *         opposing direction of this stream to wrap up stream reassembly.
+ *
+ *  \param p real packet
+ *  \param pq packet queue to store the new pseudo packet in
+ */
+void StreamTcpPseudoPacketCreateStreamEndPacket(Packet *p, TcpSession *ssn, PacketQueue *pq)
+{
+    SCEnter();
+
+    /* no need for a pseudo packet if there is nothing left to reassemble */
+    if (PKT_IS_TOSERVER(p)) {
+        if (ssn->server.seg_list == NULL) {
+            SCReturn;
+        }
+    } else if (PKT_IS_TOCLIENT(p)) {
+        if (ssn->client.seg_list == NULL) {
+            SCReturn;
+        }
+    }
+
+    Packet *np = StreamTcpPseudoSetup(p, p->pkt, p->pktlen);
+    if (np == NULL) {
+        SCLogDebug("The packet received from packet allocation is NULL");
+        SCReturn;
+    }
+
+    /* Setup the IP and TCP headers */
+    StreamTcpPseudoPacketSetupHeader(np,p);
+
+    np->flags |= PKT_STREAM_EOF;
+    np->flags |= PKT_HAS_FLOW;
+    np->flags |= PKT_PSEUDO_STREAM_END;
+
+    np->flowflags = p->flowflags;
+
+    if (PKT_IS_TOSERVER(p)) {
+        SCLogDebug("original is to_server, so pseudo is to_client");
+        np->flowflags &= ~FLOW_PKT_TOSERVER;
+        np->flowflags |= FLOW_PKT_TOCLIENT;
+#ifdef DEBUG
+        BUG_ON(!(PKT_IS_TOCLIENT(np)));
+        BUG_ON((PKT_IS_TOSERVER(np)));
+#endif
+    } else if (PKT_IS_TOCLIENT(p)) {
+        SCLogDebug("original is to_client, so pseudo is to_server");
+        np->flowflags &= ~FLOW_PKT_TOCLIENT;
+        np->flowflags |= FLOW_PKT_TOSERVER;
+#ifdef DEBUG
+        BUG_ON(!(PKT_IS_TOSERVER(np)));
+        BUG_ON((PKT_IS_TOCLIENT(np)));
+#endif
+    }
+
+    PacketEnqueue(pq, np);
+
+    SCReturn;
 }
 
 #ifdef UNITTESTS

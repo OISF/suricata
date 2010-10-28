@@ -154,7 +154,7 @@ void StreamMsgPutInQueue(StreamMsgQueue *q, StreamMsg *s)
 void StreamMsgQueuesInit(void) {
     SCMutexInit(&stream_pool_memuse_mutex, NULL);
 
-    stream_msg_pool = PoolInit(5000,250,StreamMsgAlloc,NULL,StreamMsgFree);
+    stream_msg_pool = PoolInit(0,250,StreamMsgAlloc,NULL,StreamMsgFree);
     if (stream_msg_pool == NULL)
         exit(EXIT_FAILURE); /* XXX */
 }

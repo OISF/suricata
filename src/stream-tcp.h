@@ -63,6 +63,8 @@ void StreamTcpIncrMemuse(uint32_t);
 void StreamTcpDecrMemuse(uint32_t);
 int StreamTcpCheckMemcap(uint32_t);
 
+void StreamTcpPseudoPacketSetupHeader(Packet *, Packet *);
+Packet *StreamTcpPseudoSetup(Packet *, uint8_t *, uint32_t);
 
 /** ------- Inline functions: ------ */
 
