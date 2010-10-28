@@ -956,10 +956,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 uint8_t pmq_idx = 0;
                 StreamMsg *smsg_inspect = smsg;
                 for ( ; smsg_inspect != NULL; smsg_inspect = smsg_inspect->next, pmq_idx++) {
-                    if (det_ctx->smsg_pmq[pmq_idx].pattern_id_array_cnt == 0) {
-                        SCLogDebug("no match in smsg_inspect %p (%u), idx %d", smsg_inspect, smsg_inspect->data.data_len, pmq_idx);
-                        continue;
-                    }
+                    //if (det_ctx->smsg_pmq[pmq_idx].pattern_id_array_cnt == 0) {
+                    //    SCLogDebug("no match in smsg_inspect %p (%u), idx %d", smsg_inspect, smsg_inspect->data.data_len, pmq_idx);
+                    //    continue;
+                    //}
 
                     if (det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray != NULL) {
                         /* filter out sigs that want pattern matches, but
