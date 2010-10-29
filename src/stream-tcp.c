@@ -3373,6 +3373,10 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(Packet *p, TcpSession *ssn, Pack
 {
     SCEnter();
 
+    if (p->flags & PKT_PSEUDO_STREAM_END) {
+        SCReturn;
+    }
+
     /* no need for a pseudo packet if there is nothing left to reassemble */
     if (PKT_IS_TOSERVER(p)) {
         if (ssn->server.seg_list == NULL) {
