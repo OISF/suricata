@@ -748,6 +748,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
             } else {
                 if (co->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
                     co->avoid_double_check = 1;
+                /* see if we can bypass the match validation for this pattern */
                 } else {
                     if (!(co->flags & DETECT_CONTENT_RELATIVE_NEXT)) {
                         SigMatch *tmp_sm = s->pmatch;
@@ -767,8 +768,9 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                                                                        DETECT_CONTENT, tmp_sm->prev);
                         if (prev_sm != NULL) {
                             DetectContentData *prev_co = (DetectContentData *)prev_sm->ctx;
-                            if (!(prev_co->flags & DETECT_CONTENT_RELATIVE_NEXT))
-                                    co->avoid_double_check = 1;
+                            if (!(prev_co->flags & DETECT_CONTENT_RELATIVE_NEXT)) {
+                                co->avoid_double_check = 1;
+                            }
                         }
                     }
                 } /* else - if (co->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) */
