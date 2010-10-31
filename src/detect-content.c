@@ -447,7 +447,8 @@ static int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, char *cont
 
     sm->type = DETECT_CONTENT;
     sm->ctx = (void *)cd;
-    cd->id = DetectContentGetId(de_ctx->mpm_pattern_id_store, cd);
+    //cd->id = DetectContentGetId(de_ctx->mpm_pattern_id_store, cd);
+    cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_CONTENT);
 
     DetectContentPrint(cd);
 

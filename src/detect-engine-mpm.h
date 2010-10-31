@@ -61,6 +61,7 @@ void MpmPatternIdTableFreeHash(MpmPatternIdStore *);
 uint32_t MpmPatternIdStoreGetMaxId(MpmPatternIdStore *);
 uint32_t DetectContentGetId(MpmPatternIdStore *, DetectContentData *);
 uint32_t DetectUricontentGetId(MpmPatternIdStore *, DetectUricontentData *);
+uint32_t DetectPatternGetId(MpmPatternIdStore *, void *, uint8_t);
 
 #endif /* __DETECT_ENGINE_MPM_H__ */
 

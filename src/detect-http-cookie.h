@@ -28,8 +28,12 @@
 #define DETECT_AL_HTTP_COOKIE_NEGATED  0x02
 
 typedef struct DetectHttpCookieData_ {
-    uint8_t *data;
-    uint8_t data_len;
+    /* please keep the order of the first 2 members intact, since we use the
+     * same template obtained from DetectContentData to access these members
+     * for pattern id retrieval from DetectPatternGetId() */
+    uint8_t *content;
+    uint8_t content_len;
+    PatIntId id;
     uint8_t flags;
 } DetectHttpCookieData;
 

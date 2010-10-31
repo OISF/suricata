@@ -1572,7 +1572,9 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 typedef struct MpmPatternIdTableElmt_ {
     uint8_t *pattern;       /**< ptr to the pattern */
     uint16_t pattern_len;   /**< pattern len */
-    uint32_t id;            /**< pattern id */
+    PatIntId id;            /**< pattern id */
+    uint16_t dup_count;     /**< duplicate count */
+    uint8_t sm_type;        /**< SigMatch type */
 } MpmPatternIdTableElmt;
 
 /** \brief Hash compare func for MpmPatternId api
@@ -1587,7 +1589,8 @@ static char MpmPatternIdCompare(void *p1, uint16_t len1, void *p2, uint16_t len2
     MpmPatternIdTableElmt *e1 = (MpmPatternIdTableElmt *)p1;
     MpmPatternIdTableElmt *e2 = (MpmPatternIdTableElmt *)p2;
 
-    if (e1->pattern_len != e2->pattern_len) {
+    if (e1->pattern_len != e2->pattern_len ||
+        e1->sm_type != e2->sm_type) {
         SCReturnInt(0);
     }
 
@@ -1735,6 +1738,8 @@ uint32_t DetectUricontentGetId(MpmPatternIdStore *ht, DetectUricontentData *co) 
     BUG_ON(e->pattern == NULL);
     memcpy(e->pattern, co->uricontent, co->uricontent_len);
     e->pattern_len = co->uricontent_len;
+    e->sm_type = DETECT_URICONTENT;
+    e->dup_count = 1;
     e->id = 0;
 
     r = HashTableLookup(ht->hash, (void *)e, sizeof(MpmPatternIdTableElmt));
@@ -1751,6 +1756,7 @@ uint32_t DetectUricontentGetId(MpmPatternIdStore *ht, DetectUricontentData *co) 
         ht->unique_patterns++;
     } else {
         id = r->id;
+        r->dup_count++;
 
         ht->shared_patterns++;
     }
@@ -1761,3 +1767,160 @@ uint32_t DetectUricontentGetId(MpmPatternIdStore *ht, DetectUricontentData *co) 
     SCReturnUInt(id);
 }
 
+/**
+ * \brief Get the pattern id for a for any content related keyword.
+ *
+ *        Supported keywords are content, http_client_body,
+ *        http_method, http_uri, http_header, http_cookie.
+ *
+ *        Please note that you can't use it to get a pattern id for
+ *        uricontent.  To retrieve a uricontent pattern id please
+ *        use DetectUricontentGetId().
+ *
+ * \param ht   Mpm pattern id hash table store.
+ * \param ctx  The keyword context.
+ * \param type The SigMatch context.
+ *
+ * \retval id Pattern id.
+ */
+uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_type)
+{
+    SCEnter();
+
+    MpmPatternIdTableElmt *e = NULL;
+    MpmPatternIdTableElmt *r = NULL;
+    PatIntId id = 0;
+
+    e = malloc(sizeof(MpmPatternIdTableElmt));
+    if (e == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+
+    /* if uricontent had used content and content_len as its struct members
+     * we wouldn't have needed this if/else here */
+    if (sm_type == DETECT_URICONTENT) {
+        DetectUricontentData *ud = ctx;
+        e->pattern = SCMalloc(ud->uricontent_len);
+        if (e->pattern == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+        memcpy(e->pattern, ud->uricontent, ud->uricontent_len);
+        e->pattern_len = ud->uricontent_len;
+
+        /* CONTENT, HTTP_(CLIENT_BODY|METHOD|URI|COOKIE|HEADER) */
+    } else {
+        DetectContentData *cd = ctx;
+        e->pattern = SCMalloc(cd->content_len);
+        if (e->pattern == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+        memcpy(e->pattern, cd->content, cd->content_len);
+        e->pattern_len = cd->content_len;
+    }
+    e->dup_count = 1;
+    e->sm_type = sm_type;
+    e->id = 0;
+
+    r = HashTableLookup(ht->hash, (void *)e, sizeof(MpmPatternIdTableElmt));
+    if (r == NULL) {
+        /* we don't have a duplicate with this pattern + id type.  If the id is
+         * for content, then it is the first entry for such a
+         * pattern + id combination.  Let us create an entry for it */
+        if (sm_type == DETECT_CONTENT) {
+            e->id = ht->max_id;
+            ht->max_id++;
+            id = e->id;
+
+            int ret = HashTableAdd(ht->hash, e, sizeof(MpmPatternIdTableElmt));
+            BUG_ON(ret != 0);
+
+            e = NULL;
+
+            /* the id type is not content or uricontent.  It would be one of
+             * those http_ modifiers against content then */
+        } else {
+            /* we know that this is one of those http_ modifiers against content.
+             * So we would have seen a content before coming across this http_
+             * modifier.  Let's retrieve this content entry that has already
+             * been registered. */
+            e->sm_type = DETECT_CONTENT;
+            MpmPatternIdTableElmt *tmp_r = HashTableLookup(ht->hash, (void *)e, sizeof(MpmPatternIdTableElmt));
+            if (tmp_r == NULL) {
+                SCLogError(SC_ERR_FATAL, "How can this happen?  We have to have "
+                           "a content of type DETECT_CONTENT already registered "
+                           "at this point.  Impossible");
+                exit(EXIT_FAILURE);
+            }
+
+            /* we have retrieved the content, and the content registered was the
+             * first entry made(dup_count is 1) for that content.  Let us just
+             * reset the sm_type to the http_ keyword's sm_type */
+            if (tmp_r->dup_count == 1) {
+                tmp_r->sm_type = sm_type;
+                id = tmp_r->id;
+
+                /* interestingly we have more than one entry for this content.
+                 * Out of these tmp_r->dup_count entries, one would be for the content
+                 * entry made for this http_ modifier.  Erase this entry and make
+                 * a separate entry for the http_ modifier(of course with a new id) */
+            } else {
+                tmp_r->dup_count--;
+                /* reset the sm_type, since we changed it to DETECT_CONTENT prev */
+                e->sm_type = sm_type;
+                e->id = ht->max_id;
+                ht->max_id++;
+                id = e->id;
+
+                int ret = HashTableAdd(ht->hash, e, sizeof(MpmPatternIdTableElmt));
+                BUG_ON(ret != 0);
+
+                e = NULL;
+            }
+        }
+
+        /* we do seem to have an entry for this already */
+    } else {
+        /* oh cool!  It is a duplicate for content, uricontent types.  Update the
+         * dup_count and get out */
+        if (sm_type == DETECT_CONTENT) {
+            r->dup_count++;
+            id = r->id;
+            goto end;
+        }
+
+        /* uh oh!  a duplicate for a http_ modifier type.  Let's increase the
+         * dup_count for the entry */
+        r->dup_count++;
+        id = r->id;
+
+        /* let's get the content entry associated with the http keyword we are
+         * currently operating on */
+        e->sm_type = DETECT_CONTENT;
+        MpmPatternIdTableElmt *tmp_r = HashTableLookup(ht->hash, (void *)e, sizeof(MpmPatternIdTableElmt));
+        if (tmp_r == NULL) {
+            SCLogError(SC_ERR_FATAL, "How can this happen?  We have to have "
+                       "a content of type DETECT_CONTENT already registered "
+                       "at this point.  Impossible");
+            exit(EXIT_FAILURE);
+        }
+        /* so there are more than one content keyword entries for this pattern.
+         * Reduce the dup_count */
+        if (tmp_r->dup_count > 1) {
+            tmp_r->dup_count--;
+
+            /* We have just one entry.  Remove this hash table entry */
+        } else {
+            HashTableRemove(ht->hash, tmp_r, sizeof(MpmPatternIdTableElmt));
+            ht->max_id--;
+        }
+    }
+
+ end:
+    if (e != NULL)
+        MpmPatternIdTableElmtFree(e);
+
+    SCReturnUInt(id);
+}

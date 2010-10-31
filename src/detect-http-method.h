@@ -28,8 +28,12 @@
 #define DETECT_AL_HTTP_METHOD_NEGATED  0x02
 
 typedef struct DetectHttpMethodData_ {
+    /* please keep the order of the first 2 members intact, since we use the
+     * same template obtained from DetectContentData to access these members
+     * for pattern id retrieval from DetectPatternGetId() */
     uint8_t *content;     /**< Raw HTTP method content to match */
-    size_t   content_len; /**< Raw HTTP method content length */
+    uint8_t  content_len; /**< Raw HTTP method content length */
+    PatIntId id;
     int      method;      /**< Numeric HTTP method to match */
     uint8_t flags;
 } DetectHttpMethodData;

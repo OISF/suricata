@@ -144,14 +144,14 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         /* call the case insensitive version if nocase has been specified in the sig */
         if (co->flags & DETECT_AL_HTTP_COOKIE_NOCASE) {
             if (SpmNocaseSearch((uint8_t *) bstr_ptr(h->value), bstr_size(h->value),
-                          co->data, co->data_len) != NULL) {
+                          co->content, co->content_len) != NULL) {
                 SCLogDebug("match has been found in received request and given http_"
                            "cookie rule");
                 ret = 1;
             }
         } else {
             if (SpmSearch((uint8_t *) bstr_ptr(h->value), bstr_size(h->value),
-                                co->data, co->data_len) != NULL) {
+                                co->content, co->content_len) != NULL) {
                 SCLogDebug("match has been found in received request and given http_"
                            "cookie rule");
                 ret = 1;
@@ -178,8 +178,8 @@ void DetectHttpCookieFree(void *ptr)
     DetectHttpCookieData *hcd = (DetectHttpCookieData *)ptr;
     if (hcd == NULL)
         return;
-    if (hcd->data != NULL)
-        SCFree(hcd->data);
+    if (hcd->content != NULL)
+        SCFree(hcd->content);
     SCFree(hcd);
 }
 
@@ -248,13 +248,15 @@ static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
         goto error;
     memset(hd, 0, sizeof(DetectHttpCookieData));
 
-    hd->data_len = ((DetectContentData *)pm->ctx)->content_len;
-    hd->data = ((DetectContentData *)pm->ctx)->content;
+    hd->content_len = ((DetectContentData *)pm->ctx)->content_len;
+    hd->content = ((DetectContentData *)pm->ctx)->content;
     hd->flags |= (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_NOCASE) ?
         DETECT_AL_HTTP_COOKIE_NOCASE : 0;
     hd->flags |= (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_NEGATED) ?
         DETECT_AL_HTTP_COOKIE_NEGATED : 0;
+    hd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, hd, DETECT_AL_HTTP_COOKIE);
     nm->type = DETECT_AL_HTTP_COOKIE;
+    //hd->id = ((DetectContentData *)pm->ctx)->id;
     nm->ctx = (void *)hd;
 
     /* pull the previous content from the pmatch list, append
@@ -474,6 +476,244 @@ end:
     if (de_ctx != NULL) {
         DetectEngineCtxFree(de_ctx);
     }
+    return result;
+}
+
+int DetectHttpCookieTest07(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; content:one; http_cookie; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->amatch == NULL) {
+        printf("de_ctx->sig_list->amatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectHttpCookieData *hcd = de_ctx->sig_list->amatch_tail->ctx;
+    if (cd->id == hcd->id)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpCookieTest08(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; http_cookie; content:one; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->amatch == NULL) {
+        printf("de_ctx->sig_list->amatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectHttpCookieData *hcd = de_ctx->sig_list->amatch_tail->ctx;
+    if (cd->id == hcd->id)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpCookieTest09(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; content:one; content:one; http_cookie; content:one; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->amatch == NULL) {
+        printf("de_ctx->sig_list->amatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectHttpCookieData *hcd = de_ctx->sig_list->amatch_tail->ctx;
+    if (cd->id != 0 || hcd->id != 1)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpCookieTest10(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; http_cookie; content:one; content:one; content:one; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->amatch == NULL) {
+        printf("de_ctx->sig_list->amatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectHttpCookieData *hcd = de_ctx->sig_list->amatch_tail->ctx;
+    if (cd->id != 1 || hcd->id != 0)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpCookieTest11(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; http_cookie; "
+                               "content:one; content:one; http_cookie; content:one; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->amatch == NULL) {
+        printf("de_ctx->sig_list->amatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectHttpCookieData *hcd1 = de_ctx->sig_list->amatch_tail->ctx;
+    DetectHttpCookieData *hcd2 = de_ctx->sig_list->amatch_tail->prev->ctx;
+    if (cd->id != 1 || hcd1->id != 0 || hcd2->id != 0)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpCookieTest12(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; http_cookie; "
+                               "content:one; content:one; http_cookie; content:two; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->amatch == NULL) {
+        printf("de_ctx->sig_list->amatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectHttpCookieData *hcd1 = de_ctx->sig_list->amatch_tail->ctx;
+    DetectHttpCookieData *hcd2 = de_ctx->sig_list->amatch_tail->prev->ctx;
+    if (cd->id != 2 || hcd1->id != 0 || hcd2->id != 0)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -1123,6 +1363,12 @@ void DetectHttpCookieRegisterTests (void)
     UtRegisterTest("DetectHttpCookieTest04", DetectHttpCookieTest04, 1);
     UtRegisterTest("DetectHttpCookieTest05", DetectHttpCookieTest05, 1);
     UtRegisterTest("DetectHttpCookieTest06", DetectHttpCookieTest06, 1);
+    UtRegisterTest("DetectHttpCookieTest07", DetectHttpCookieTest07, 1);
+    UtRegisterTest("DetectHttpCookieTest08", DetectHttpCookieTest08, 1);
+    UtRegisterTest("DetectHttpCookieTest09", DetectHttpCookieTest09, 1);
+    UtRegisterTest("DetectHttpCookieTest10", DetectHttpCookieTest10, 1);
+    UtRegisterTest("DetectHttpCookieTest11", DetectHttpCookieTest11, 1);
+    UtRegisterTest("DetectHttpCookieTest12", DetectHttpCookieTest12, 1);
     UtRegisterTest("DetectHttpCookieSigTest01", DetectHttpCookieSigTest01, 1);
     UtRegisterTest("DetectHttpCookieSigTest02", DetectHttpCookieSigTest02, 1);
     UtRegisterTest("DetectHttpCookieSigTest03", DetectHttpCookieSigTest03, 1);

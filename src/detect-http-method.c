@@ -214,6 +214,7 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
     method = bstr_memdup((char *)data->content, data->content_len);
     /** \todo error check */
     data->method = htp_convert_method_to_number(method);
+    data->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, data, DETECT_AL_HTTP_METHOD);
     bstr_free(method);
 
     nm->type = DETECT_AL_HTTP_METHOD;
@@ -395,6 +396,244 @@ int DetectHttpMethodTest05(void)
  end:
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpMethodTest06(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; content:one; http_method; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->amatch == NULL) {
+        printf("de_ctx->sig_list->amatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectHttpMethodData *hmd = de_ctx->sig_list->amatch_tail->ctx;
+    if (cd->id == hmd->id)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpMethodTest07(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; http_method; content:one; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->amatch == NULL) {
+        printf("de_ctx->sig_list->amatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectHttpMethodData *hmd = de_ctx->sig_list->amatch_tail->ctx;
+    if (cd->id == hmd->id)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpMethodTest08(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; content:one; content:one; http_method; content:one; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->amatch == NULL) {
+        printf("de_ctx->sig_list->amatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectHttpMethodData *hmd = de_ctx->sig_list->amatch_tail->ctx;
+    if (cd->id != 0 || hmd->id != 1)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpMethodTest09(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; http_method; content:one; content:one; content:one; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->amatch == NULL) {
+        printf("de_ctx->sig_list->amatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectHttpMethodData *hmd = de_ctx->sig_list->amatch_tail->ctx;
+    if (cd->id != 1 || hmd->id != 0)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpMethodTest10(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; http_method; "
+                               "content:one; content:one; http_method; content:one; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->amatch == NULL) {
+        printf("de_ctx->sig_list->amatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectHttpMethodData *hmd1 = de_ctx->sig_list->amatch_tail->ctx;
+    DetectHttpMethodData *hmd2 = de_ctx->sig_list->amatch_tail->prev->ctx;
+    if (cd->id != 1 || hmd1->id != 0 || hmd2->id != 0)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpMethodTest11(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; http_method; "
+                               "content:one; content:one; http_method; content:two; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->amatch == NULL) {
+        printf("de_ctx->sig_list->amatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectHttpMethodData *hmd1 = de_ctx->sig_list->amatch_tail->ctx;
+    DetectHttpMethodData *hmd2 = de_ctx->sig_list->amatch_tail->prev->ctx;
+    if (cd->id != 2 || hmd1->id != 0 || hmd2->id != 0)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -699,6 +938,12 @@ void DetectHttpMethodRegisterTests(void) {
     UtRegisterTest("DetectHttpMethodTest03", DetectHttpMethodTest03, 1);
     UtRegisterTest("DetectHttpMethodTest04", DetectHttpMethodTest04, 1);
     UtRegisterTest("DetectHttpMethodTest05", DetectHttpMethodTest05, 1);
+    UtRegisterTest("DetectHttpMethodTest06", DetectHttpMethodTest06, 1);
+    UtRegisterTest("DetectHttpMethodTest07", DetectHttpMethodTest07, 1);
+    UtRegisterTest("DetectHttpMethodTest08", DetectHttpMethodTest08, 1);
+    UtRegisterTest("DetectHttpMethodTest09", DetectHttpMethodTest09, 1);
+    UtRegisterTest("DetectHttpMethodTest10", DetectHttpMethodTest10, 1);
+    UtRegisterTest("DetectHttpMethodTest11", DetectHttpMethodTest11, 1);
     UtRegisterTest("DetectHttpMethodSigTest01", DetectHttpMethodSigTest01, 1);
     UtRegisterTest("DetectHttpMethodSigTest02", DetectHttpMethodSigTest02, 1);
     UtRegisterTest("DetectHttpMethodSigTest03", DetectHttpMethodSigTest03, 1);

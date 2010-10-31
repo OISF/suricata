@@ -30,8 +30,12 @@
 #include "util-spm-bm.h"
 
 typedef struct DetectHttpClientBodyData_ {
+    /* please keep the order of the first 2 members intact, since we use the
+     * same template obtained from DetectContentData to access these members
+     * for pattern id retrieval from DetectPatternGetId() */
     uint8_t *content;
     uint8_t content_len;
+    PatIntId id;
     uint8_t flags;
     BmCtx *bm_ctx;
 } DetectHttpClientBodyData;

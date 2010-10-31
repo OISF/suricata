@@ -238,6 +238,8 @@ int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         DETECT_AL_HTTP_HEADER_NOCASE : 0;
     hcbd->flags |= (((DetectContentData *)sm->ctx)->flags & DETECT_CONTENT_NEGATED) ?
         DETECT_AL_HTTP_HEADER_NEGATED : 0;
+    //hcbd->id = ((DetectContentData *)sm->ctx)->id;
+    hcbd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, hcbd, DETECT_AL_HTTP_HEADER);
 
     nm = SigMatchAlloc();
     if (nm == NULL) {
@@ -1313,6 +1315,244 @@ end:
     return result;
 }
 
+int DetectHttpHeaderTest14(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; content:one; http_header; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->amatch == NULL) {
+        printf("de_ctx->sig_list->amatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectHttpHeaderData *hhd = de_ctx->sig_list->amatch_tail->ctx;
+    if (cd->id == hhd->id)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpHeaderTest15(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; http_header; content:one; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->amatch == NULL) {
+        printf("de_ctx->sig_list->amatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectHttpHeaderData *hhd = de_ctx->sig_list->amatch_tail->ctx;
+    if (cd->id == hhd->id)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpHeaderTest16(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; content:one; content:one; http_header; content:one; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->amatch == NULL) {
+        printf("de_ctx->sig_list->amatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectHttpHeaderData *hhd = de_ctx->sig_list->amatch_tail->ctx;
+    if (cd->id != 0 || hhd->id != 1)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpHeaderTest17(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; http_header; content:one; content:one; content:one; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->amatch == NULL) {
+        printf("de_ctx->sig_list->amatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectHttpHeaderData *hhd = de_ctx->sig_list->amatch_tail->ctx;
+    if (cd->id != 1 || hhd->id != 0)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpHeaderTest18(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; http_header; "
+                               "content:one; content:one; http_header; content:one; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->amatch == NULL) {
+        printf("de_ctx->sig_list->amatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectHttpHeaderData *hhd1 = de_ctx->sig_list->amatch_tail->ctx;
+    DetectHttpHeaderData *hhd2 = de_ctx->sig_list->amatch_tail->prev->ctx;
+    if (cd->id != 1 || hhd1->id != 0 || hhd2->id != 0)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpHeaderTest19(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; http_header; "
+                               "content:one; content:one; http_header; content:two; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->amatch == NULL) {
+        printf("de_ctx->sig_list->amatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectHttpHeaderData *hhd1 = de_ctx->sig_list->amatch_tail->ctx;
+    DetectHttpHeaderData *hhd2 = de_ctx->sig_list->amatch_tail->prev->ctx;
+    if (cd->id != 2 || hhd1->id != 0 || hhd2->id != 0)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DetectHttpHeaderRegisterTests(void)
@@ -1331,6 +1571,12 @@ void DetectHttpHeaderRegisterTests(void)
     UtRegisterTest("DetectHttpHeaderTest11", DetectHttpHeaderTest11, 1);
     UtRegisterTest("DetectHttpHeaderTest12", DetectHttpHeaderTest12, 1);
     UtRegisterTest("DetectHttpHeaderTest13", DetectHttpHeaderTest13, 1);
+    UtRegisterTest("DetectHttpHeaderTest14", DetectHttpHeaderTest14, 1);
+    UtRegisterTest("DetectHttpHeaderTest15", DetectHttpHeaderTest15, 1);
+    UtRegisterTest("DetectHttpHeaderTest16", DetectHttpHeaderTest16, 1);
+    UtRegisterTest("DetectHttpHeaderTest17", DetectHttpHeaderTest17, 1);
+    UtRegisterTest("DetectHttpHeaderTest18", DetectHttpHeaderTest18, 1);
+    UtRegisterTest("DetectHttpHeaderTest19", DetectHttpHeaderTest19, 1);
 #endif /* UNITTESTS */
 
     return;

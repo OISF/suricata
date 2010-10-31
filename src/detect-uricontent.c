@@ -2112,6 +2112,222 @@ int DetectUriContentParseTest23(void)
     return result;
 }
 
+int DetectUricontentSigTest08(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; content:one; http_uri; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->umatch == NULL) {
+        printf("de_ctx->sig_list->umatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectUricontentData *ud = de_ctx->sig_list->umatch_tail->ctx;
+    if (cd->id == ud->id)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectUricontentSigTest09(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(uricontent:one; content:one; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->umatch == NULL) {
+        printf("de_ctx->sig_list->umatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectUricontentData *ud = de_ctx->sig_list->umatch_tail->ctx;
+    if (cd->id == ud->id)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectUricontentSigTest10(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(uricontent:one; content:one; content:one; http_uri; "
+                               "content:two; content:one; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->umatch == NULL) {
+        printf("de_ctx->sig_list->umatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd1 = de_ctx->sig_list->pmatch_tail->prev->prev->ctx;
+    DetectContentData *cd2 = de_ctx->sig_list->pmatch_tail->prev->ctx;
+    DetectContentData *cd3 = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectUricontentData *ud1 = de_ctx->sig_list->umatch_tail->prev->ctx;
+    DetectUricontentData *ud2 = de_ctx->sig_list->umatch_tail->ctx;
+    if (cd1->id != 1 || cd2->id != 2 || cd3->id != 1 || ud1->id != 0 || ud2->id != 0)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectUricontentSigTest11(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; http_uri; content:one; uricontent:one; "
+                               "content:two; content:one; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->umatch == NULL) {
+        printf("de_ctx->sig_list->umatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd1 = de_ctx->sig_list->pmatch_tail->prev->prev->ctx;
+    DetectContentData *cd2 = de_ctx->sig_list->pmatch_tail->prev->ctx;
+    DetectContentData *cd3 = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectUricontentData *ud1 = de_ctx->sig_list->umatch_tail->prev->ctx;
+    DetectUricontentData *ud2 = de_ctx->sig_list->umatch_tail->ctx;
+    if (cd1->id != 1 || cd2->id != 2 || cd3->id != 1 || ud1->id != 0 || ud2->id != 0)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectUricontentSigTest12(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; http_uri; content:one; uricontent:one; "
+                               "content:two; content:one; http_uri; content:one; "
+                               "uricontent:one; uricontent: two; "
+                               "content:one; content:three; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->pmatch == NULL) {
+        printf("de_ctx->sig_list->pmatch == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->umatch == NULL) {
+        printf("de_ctx->sig_list->umatch == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *cd1 = de_ctx->sig_list->pmatch_tail->prev->prev->prev->prev->ctx;
+    DetectContentData *cd2 = de_ctx->sig_list->pmatch_tail->prev->prev->prev->ctx;
+    DetectContentData *cd3 = de_ctx->sig_list->pmatch_tail->prev->prev->ctx;
+    DetectContentData *cd4 = de_ctx->sig_list->pmatch_tail->prev->ctx;
+    DetectContentData *cd5 = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectUricontentData *ud1 = de_ctx->sig_list->umatch_tail->prev->prev->prev->prev->ctx;
+    DetectUricontentData *ud2 = de_ctx->sig_list->umatch_tail->prev->prev->prev->ctx;
+    DetectUricontentData *ud3 = de_ctx->sig_list->umatch_tail->prev->prev->ctx;
+    DetectUricontentData *ud4 = de_ctx->sig_list->umatch_tail->prev->ctx;
+    DetectUricontentData *ud5 = de_ctx->sig_list->umatch_tail->ctx;
+    if (cd1->id != 1 || cd2->id != 2 || cd3->id != 1 || cd4->id != 1 || cd5->id != 4 ||
+        ud1->id != 0 || ud2->id != 0 || ud3->id != 0 || ud4->id != 0 || ud5->id != 3) {
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void HttpUriRegisterTests(void) {
@@ -2120,6 +2336,7 @@ void HttpUriRegisterTests(void) {
     UtRegisterTest("HTTPUriTest02", HTTPUriTest02, 1);
     UtRegisterTest("HTTPUriTest03", HTTPUriTest03, 1);
     UtRegisterTest("HTTPUriTest04", HTTPUriTest04, 1);
+
     UtRegisterTest("DetectUriSigTest01", DetectUriSigTest01, 1);
     UtRegisterTest("DetectUriSigTest02", DetectUriSigTest02, 1);
     UtRegisterTest("DetectUriSigTest03", DetectUriSigTest03, 1);
@@ -2144,5 +2361,10 @@ void HttpUriRegisterTests(void) {
     UtRegisterTest("DetectUriContentParseTest21", DetectUriContentParseTest21, 1);
     UtRegisterTest("DetectUriContentParseTest22", DetectUriContentParseTest22, 1);
     UtRegisterTest("DetectUriContentParseTest23", DetectUriContentParseTest23, 1);
+    UtRegisterTest("DetectUricontentSigTest08", DetectUricontentSigTest08, 1);
+    UtRegisterTest("DetectUricontentSigTest09", DetectUricontentSigTest09, 1);
+    UtRegisterTest("DetectUricontentSigTest10", DetectUricontentSigTest10, 1);
+    UtRegisterTest("DetectUricontentSigTest11", DetectUricontentSigTest11, 1);
+    UtRegisterTest("DetectUricontentSigTest12", DetectUricontentSigTest12, 1);
 #endif /* UNITTESTS */
 }
