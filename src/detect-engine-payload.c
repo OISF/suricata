@@ -209,7 +209,13 @@ static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
                         goto match;
                     }
 
-                    BUG_ON(sm->next == NULL);
+                    /* bail out if we have no next match. Technically this is an
+                     * error, as the current cd has the DETECT_CONTENT_RELATIVE_NEXT
+                     * flag set. */
+                    if (sm->next == NULL) {
+                        SCReturnInt(0);
+                    }
+
                     SCLogDebug("content %"PRIu32, cd->id);
 
                     /* see if the next payload keywords match. If not, we will
