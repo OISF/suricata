@@ -34,7 +34,6 @@ typedef struct DetectHttpMethodData_ {
     uint8_t *content;     /**< Raw HTTP method content to match */
     uint8_t  content_len; /**< Raw HTTP method content length */
     PatIntId id;
-    int      method;      /**< Numeric HTTP method to match */
     uint8_t flags;
 } DetectHttpMethodData;
 

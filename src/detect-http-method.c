@@ -92,6 +92,7 @@ int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                           Signature *s, SigMatch *sm)
 {
     SCEnter();
+
     size_t idx;
     DetectHttpMethodData *data = (DetectHttpMethodData *)sm->ctx;
     HtpState *hs = (HtpState *)state;
@@ -108,37 +109,33 @@ int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
          idx < list_size(hs->connp->conn->transactions); idx++)
     {
         tx = list_get(hs->connp->conn->transactions, idx);
-        if (tx == NULL)
+        if (tx == NULL || tx->request_method == NULL)
             continue;
 
-        /* Compare the numeric methods if they are known, otherwise compare
-         * the raw values. */
-        if (data->method != M_UNKNOWN) {
-            if (data->method == tx->request_method_number) {
-               SCLogDebug("Matched numeric HTTP method values.");
-                ret = 1;
+        const uint8_t *meth_str = (const uint8_t *)bstr_ptr(tx->request_method);
+        if (meth_str != NULL) {
+            /*
+            printf("Method buffer: ");PrintRawUriFp(stdout, meth_str, bstr_size(tx->request_method));printf("\n");
+            printf("Pattern:       ");PrintRawUriFp(stdout, data->content, data->content_len);printf("\n");
+            */
+
+            if (data->flags & DETECT_AL_HTTP_METHOD_NOCASE) {
+                SCLogDebug("no case inspection");
+                ret = (SpmNocaseSearch((uint8_t *)meth_str, bstr_size(tx->request_method),
+                            data->content, data->content_len) != NULL);
+            } else {
+                SCLogDebug("case sensitive inspection");
+                ret = (SpmSearch((uint8_t *)meth_str, bstr_size(tx->request_method),
+                            data->content, data->content_len) != NULL);
             }
-        } else if (tx->request_method != NULL) {
-            const uint8_t *meth_str = (const uint8_t *)
-                                               bstr_ptr(tx->request_method);
-            if (meth_str != NULL) {
-                if (data->flags & DETECT_AL_HTTP_METHOD_NOCASE) {
-                    ret = (SpmNocaseSearch((uint8_t *)meth_str, bstr_size(tx->request_method),
-                                          data->content, data->content_len) != NULL);
-                } else {
-                    ret = (SpmSearch((uint8_t*) meth_str, bstr_size(tx->request_method),
-                    data->content, data->content_len) != NULL);
-                }
-                if (ret == 1) {
-                    SCLogDebug("Matched raw HTTP method values.");
-                }
+            if (ret == 1) {
+                SCLogDebug("matched HTTP method.");
                 break;
             }
         }
     }
 
     SCMutexUnlock(&f->m);
-    //SCReturnInt(ret);
     SCReturnInt(ret ^ ((data->flags & DETECT_AL_HTTP_METHOD_NEGATED) ? 1 : 0));
 }
 
@@ -157,7 +154,6 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
 {
     SCEnter();
     DetectHttpMethodData *data = NULL;
-    bstr *method;
     /** new sig match to replace previous content */
     SigMatch *nm = NULL;
 
@@ -210,12 +206,12 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
 
     data->content_len = ((DetectContentData *)pm->ctx)->content_len;
     data->content = ((DetectContentData *)pm->ctx)->content;
+    /* transfer the nocase flag if it has already been set */
+    if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_NOCASE) {
+        data->flags |= DETECT_AL_HTTP_METHOD_NOCASE;
+    }
 
-    method = bstr_memdup((char *)data->content, data->content_len);
-    /** \todo error check */
-    data->method = htp_convert_method_to_number(method);
     data->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, data, DETECT_AL_HTTP_METHOD);
-    bstr_free(method);
 
     nm->type = DETECT_AL_HTTP_METHOD;
     nm->ctx = (void *)data;
@@ -637,6 +633,53 @@ int DetectHttpMethodTest11(void)
     return result;
 }
 
+/** \test setting the nocase flag */
+static int DetectHttpMethodTest12(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    if (DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                               "(content:one; http_method; nocase; sid:1;)") == NULL) {
+        printf("DetectEngineAppend == NULL: ");
+        goto end;
+    }
+    if (DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
+                               "(content:one; nocase; http_method; sid:2;)") == NULL) {
+        printf("DetectEngineAppend == NULL: ");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->amatch == NULL) {
+        printf("de_ctx->sig_list->amatch == NULL: ");
+        goto end;
+    }
+
+    DetectHttpMethodData *hmd1 = de_ctx->sig_list->amatch_tail->ctx;
+    DetectHttpMethodData *hmd2 = de_ctx->sig_list->next->amatch_tail->ctx;
+
+    if (!(hmd1->flags & DETECT_AL_HTTP_METHOD_NOCASE)) {
+        printf("nocase flag not set on sig 1: ");
+        goto end;
+    }
+
+    if (!(hmd2->flags & DETECT_AL_HTTP_METHOD_NOCASE)) {
+        printf("nocase flag not set on sig 2: ");
+        goto end;
+    }
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
 /** \test Check a signature with an known request method */
 static int DetectHttpMethodSigTest01(void)
 {
@@ -944,6 +987,7 @@ void DetectHttpMethodRegisterTests(void) {
     UtRegisterTest("DetectHttpMethodTest09", DetectHttpMethodTest09, 1);
     UtRegisterTest("DetectHttpMethodTest10", DetectHttpMethodTest10, 1);
     UtRegisterTest("DetectHttpMethodTest11", DetectHttpMethodTest11, 1);
+    UtRegisterTest("DetectHttpMethodTest12 -- nocase flag", DetectHttpMethodTest12, 1);
     UtRegisterTest("DetectHttpMethodSigTest01", DetectHttpMethodSigTest01, 1);
     UtRegisterTest("DetectHttpMethodSigTest02", DetectHttpMethodSigTest02, 1);
     UtRegisterTest("DetectHttpMethodSigTest03", DetectHttpMethodSigTest03, 1);
