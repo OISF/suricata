@@ -53,6 +53,7 @@ char REFERENCE_MCAFEE[] =    "http://vil.nai.com/vil/dispVirus.asp?virus_k=";
 char REFERENCE_URL[] =       "http://";
 char REFERENCE_TELUS[] =     "http://";
 char REFERENCE_BID[] =       "http://";
+char REFERENCE_SECUNIA[] =   "http://";
 
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
@@ -174,6 +175,8 @@ static Reference *DetectReferenceParse (char *rawstr)
         ref->key = REFERENCE_ARACHNIDS;
     } else if (strcasecmp(ref_key,"bid") == 0) {
         ref->key = REFERENCE_ARACHNIDS;
+    } else if (strcasecmp(ref_key,"secunia") == 0) {
+        ref->key = REFERENCE_SECUNIA;
     } else {
         SCLogError(SC_ERR_REFERENCE_UNKNOWN, "unknown reference key \"%s\". "
                 "Supported keys are cve, bugtraq, nessus, url, mcafee, "
