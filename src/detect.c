@@ -429,14 +429,20 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     int sigtotal = 0;
     char *sfile = NULL;
 
+    /* needed by engine_analysis */
+    char log_path[256];
+
     if (engine_analysis) {
         if ((ConfGetBool("engine-analysis.rules-fast-pattern",
                          &fp_engine_analysis_set)) == 0) {
+            SCLogInfo("Conf parameter \"engine-analysis.rules-fast-pattern\" not "
+                      "found.  Defaulting to not printing the fast_pattern "
+                      "report.");
             fp_engine_analysis_set = 0;
         }
 
         if (fp_engine_analysis_set) {
-            char log_path[256], *log_dir;
+            char *log_dir;
             if (ConfGet("default-log-dir", &log_dir) != 1)
                 log_dir = DEFAULT_LOG_DIR;
             snprintf(log_path, 256, "%s/%s", log_dir, "rules_fast_pattern.txt");
@@ -460,6 +466,8 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
                     tms->tm_min, tms->tm_sec);
             fprintf(fp_engine_analysis_FD, "----------------------------------------------"
                     "---------------------\n");
+        } else {
+            SCLogInfo("Engine-Analysis for fast_pattern disabled in conf file.");
         }
     }
 
@@ -546,6 +554,8 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     if (engine_analysis) {
         if (fp_engine_analysis_set) {
             if (fp_engine_analysis_FD != NULL) {
+                SCLogInfo("Engine-Analyis for fast_pattern printed to file - %s",
+                          log_path);
                 fclose(fp_engine_analysis_FD);
                 fp_engine_analysis_FD = NULL;
             }

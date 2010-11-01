@@ -525,7 +525,7 @@ int main(int argc, char **argv)
                 exit(EXIT_FAILURE);
 #endif /* UNITTESTS */
             } else if(strcmp((long_opts[option_index]).name, "engine-analysis") == 0) {
-                printf("==Carrying out engine analyis==\n");
+                // do nothing for now
             }
 #ifdef OS_WIN32
             else if(strcmp((long_opts[option_index]).name, "service-install") == 0) {
@@ -793,6 +793,17 @@ int main(int argc, char **argv)
     if (run_mode == MODE_UNKNOWN) {
         if (!engine_analysis) {
             usage(argv[0]);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    if (engine_analysis) {
+        SCLogInfo("== Carrying out Engine Analysis ==");
+        char *temp = NULL;
+        if (ConfGet("engine-analysis", &temp) == 0) {
+            SCLogInfo("no engine-analysis parameter(s) defined in conf file.  "
+                      "Please define/enable them in the conf to use this "
+                      "feature.");
             exit(EXIT_FAILURE);
         }
     }
