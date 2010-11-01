@@ -31,7 +31,6 @@
 #include "detect-engine-mpm.h"
 
 #include "decode.h"
-#include "detect.h"
 #include "flow-var.h"
 #include "decode-events.h"
 #include "stream-tcp.h"
@@ -45,26 +44,26 @@
 #define PARSE_REGEX "^\\s*([A-Za-z]+)\\s*,\"?\\s*\"?\\s*([a-zA-Z0-9\\-_\\.\\/\\?\\=]+)\"?\\s*\"?"
 
 /* Static prefix for references - Maybe we should move them to reference.config in the future */
-char REFERENCE_BUGTRAQ[] =   "http://www.securityfocus.com/bid/";
-char REFERENCE_CVE[] =       "http://cve.mitre.org/cgi-bin/cvename.cgi?name=";
-char REFERENCE_NESSUS[] =    "http://cgi.nessus.org/plugins/dump.php3?id=";
+char REFERENCE_BUGTRAQ[] = "http://www.securityfocus.com/bid/";
+char REFERENCE_CVE[] = "http://cve.mitre.org/cgi-bin/cvename.cgi?name=";
+char REFERENCE_NESSUS[] = "http://cgi.nessus.org/plugins/dump.php3?id=";
 char REFERENCE_ARACHNIDS[] = "http://www.whitehats.com/info/IDS";
-char REFERENCE_MCAFEE[] =    "http://vil.nai.com/vil/dispVirus.asp?virus_k=";
-char REFERENCE_URL[] =       "http://";
-char REFERENCE_TELUS[] =     "http://";
-char REFERENCE_BID[] =       "http://";
-char REFERENCE_SECUNIA[] =   "http://";
+char REFERENCE_MCAFEE[] = "http://vil.nai.com/vil/dispVirus.asp?virus_k=";
+char REFERENCE_URL[] = "http://";
+char REFERENCE_TELUS[] = "http://";
+char REFERENCE_BID[] = "http://";
+char REFERENCE_SECUNIA[] = "http://";
 
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-static int DetectReferenceSetup (DetectEngineCtx *, Signature *s, char *str);
+static int DetectReferenceSetup(DetectEngineCtx *, Signature *s, char *str);
 
 /**
  * \brief Registration function for reference: keyword
  */
-
-void DetectReferenceRegister (void) {
+void DetectReferenceRegister(void)
+{
     sigmatch_table[DETECT_REFERENCE].name = "reference";
     sigmatch_table[DETECT_REFERENCE].Match = NULL;
     sigmatch_table[DETECT_REFERENCE].Setup = DetectReferenceSetup;
@@ -78,28 +77,27 @@ void DetectReferenceRegister (void) {
     opts |= PCRE_CASELESS;
 
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if (parse_regex == NULL)
-    {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
+    if (parse_regex == NULL) {
+        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at "
+                   "offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (eb != NULL)
-    {
+    if (eb != NULL) {
         SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         goto error;
     }
 
 error:
     return;
-
 }
 
 /**
  *  \brief Free a Reference object
  */
-void DetectReferenceFree(Reference *ref) {
+void DetectReferenceFree(Reference *ref)
+{
     SCEnter();
 
     if (ref->reference != NULL) {
@@ -116,10 +114,10 @@ void DetectReferenceFree(Reference *ref) {
  *
  * \param rawstr Pointer to the user provided reference options
  *
- * \retval ref pointer to signature reference on success
- * \retval NULL on failure
+ * \retval ref  Pointer to signature reference on success.
+ * \retval NULL On failure.
  */
-static Reference *DetectReferenceParse (char *rawstr)
+static Reference *DetectReferenceParse(char *rawstr)
 {
     SCEnter();
 
@@ -131,9 +129,11 @@ static Reference *DetectReferenceParse (char *rawstr)
     const char *ref_key = NULL;
     const char *ref_content = NULL;
 
-    ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
+    ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr),
+                    0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 2) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, "
+                   "ret %" PRId32 ", string %s", ret, rawstr);
         goto error;
     }
 
@@ -144,13 +144,13 @@ static Reference *DetectReferenceParse (char *rawstr)
     }
     memset(ref, 0, sizeof(Reference));
 
-    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS,1, &ref_key);
+    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 1, &ref_key);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
         goto error;
     }
 
-    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS,2, &ref_content);
+    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, &ref_content);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
         goto error;
@@ -216,17 +216,18 @@ error:
 
 /**
  * \internal
- * \brief this function is used to add the parsed reference into the current signature
+ * \brief Used to add the parsed reference into the current signature.
  *
- * \param de_ctx pointer to the Detection Engine Context
- * \param s pointer to the Current Signature
- * \param m pointer to the Current SigMatch
- * \param rawstr pointer to the user provided reference options
+ * \param de_ctx Pointer to the Detection Engine Context.
+ * \param s      Pointer to the Current Signature.
+ * \param m      Pointer to the Current SigMatch.
+ * \param rawstr Pointer to the user provided reference options.
  *
- * \retval 0 on Success
- * \retval -1 on Failure
+ * \retval  0 On Success.
+ * \retval -1 On Failure.
  */
-static int DetectReferenceSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+static int DetectReferenceSetup (DetectEngineCtx *de_ctx, Signature *s,
+                                 char *rawstr)
 {
     SCEnter();
 
@@ -245,7 +246,7 @@ static int DetectReferenceSetup (DetectEngineCtx *de_ctx, Signature *s, char *ra
     } else {
         actual_reference = s->references;
 
-        while (actual_reference->next != NULL)    {
+        while (actual_reference->next != NULL) {
             actual_reference = actual_reference->next;
         }
 
@@ -264,9 +265,6 @@ error:
     SCReturnInt(-1);
 }
 
-/*
- * ONLY TESTS BELOW THIS COMMENT
- */
 #ifdef UNITTESTS
 
 /**
@@ -288,7 +286,8 @@ static int DetectReferenceParseTest01(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any (msg:\"One reference\"; reference:cve,001-2010; sid:2;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                                   "(msg:\"One reference\"; reference:cve,001-2010; sid:2;)");
 
     if (s == NULL) {
         goto cleanup;
@@ -300,7 +299,7 @@ static int DetectReferenceParseTest01(void)
 
     ref = s->references;
     if (strcmp(ref->key,"http://cve.mitre.org/cgi-bin/cvename.cgi?name=") != 0 ||
-            strcmp(ref->reference,"001-2010") != 0)  {
+        strcmp(ref->reference,"001-2010") != 0) {
         goto cleanup;
     }
 
@@ -332,7 +331,10 @@ static int DetectReferenceParseTest02(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any (msg:\"Two references\"; reference:url,www.openinfosecfoundation.org; reference:cve,001-2010; sid:2;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                                   "(msg:\"Two references\"; "
+                                   "reference:url,www.openinfosecfoundation.org; "
+                                   "reference:cve,001-2010; sid:2;)");
     if (s == NULL) {
         printf("sig parse failed: ");
         goto cleanup;
@@ -344,18 +346,16 @@ static int DetectReferenceParseTest02(void)
     }
 
     if (strcmp(s->references->key, "http://") != 0 ||
-            strcmp(s->references->reference, "www.openinfosecfoundation.org") != 0) {
+        strcmp(s->references->reference, "www.openinfosecfoundation.org") != 0) {
         printf("first ref failed: ");
         goto cleanup;
-
     }
 
     if (strcmp(s->references->next->key,
-                "http://cve.mitre.org/cgi-bin/cvename.cgi?name=") != 0 ||
-            strcmp(s->references->next->reference, "001-2010") != 0) {
+               "http://cve.mitre.org/cgi-bin/cvename.cgi?name=") != 0 ||
+        strcmp(s->references->next->reference, "001-2010") != 0) {
         printf("second ref failed: ");
         goto cleanup;
-
     }
 
     result = 1;
@@ -365,7 +365,6 @@ cleanup:
         DetectEngineCtxFree(de_ctx);
     }
     return result;
-
 }
 
 /**
@@ -385,26 +384,32 @@ static int DetectReferenceParseTest03(void)
 
     de_ctx->flags |= DE_QUIET;
 
-    s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any (msg:\"invalid ref\"; reference:unknownkey,001-2010; sid:2;)");
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                                   "(msg:\"invalid ref\"; "
+                                   "reference:unknownkey,001-2010; sid:2;)");
     if (s != NULL) {
         printf("sig parsed even though it's invalid: ");
         goto cleanup;
     }
 
     result = 1;
+
 cleanup:
     if (de_ctx != NULL) {
         DetectEngineCtxFree(de_ctx);
     }
-
     return result;
 }
+
 #endif /* UNITTESTS */
 
-void ReferenceRegisterTests(void) {
+void ReferenceRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("DetectReferenceParseTest01", DetectReferenceParseTest01, 1);
     UtRegisterTest("DetectReferenceParseTest02", DetectReferenceParseTest02, 1);
     UtRegisterTest("DetectReferenceParseTest03", DetectReferenceParseTest03, 1);
 #endif /* UNITTESTS */
+
+    return;
 }
