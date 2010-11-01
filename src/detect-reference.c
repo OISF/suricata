@@ -42,7 +42,7 @@
 #include "util-byte.h"
 #include "util-debug.h"
 
-#define PARSE_REGEX "^\\s*(cve|nessus|url|mcafee|bugtraq|arachnids|bid|telus)\\s*,\"?\\s*\"?\\s*([a-zA-Z0-9\\-_\\.\\/\\?\\=]+)\"?\\s*\"?"
+#define PARSE_REGEX "^\\s*([A-Za-z]+)\\s*,\"?\\s*\"?\\s*([a-zA-Z0-9\\-_\\.\\/\\?\\=]+)\"?\\s*\"?"
 
 /* Static prefix for references - Maybe we should move them to reference.config in the future */
 char REFERENCE_BUGTRAQ[] =   "http://www.securityfocus.com/bid/";
