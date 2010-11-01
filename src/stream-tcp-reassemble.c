@@ -2375,8 +2375,8 @@ int StreamTcpReassembleProcessAppLayer(TcpReassemblyThreadCtx *ra_ctx)
                         "smsg->data.datalen %u, direction %s%s",
                         smsg, smsg->next, smsg->prev, smsg->flow,
                         ra_ctx->stream_q->len, smsg->data.data_len,
-                        smsg->flags & STREAM_TOSERVER : "toserver":"",
-                        smsg->flags & STREAM_TOCLIENT : "toclient":"");
+                        smsg->flags & STREAM_TOSERVER ? "toserver":"",
+                        smsg->flags & STREAM_TOCLIENT ? "toclient":"");
 
                 BUG_ON(smsg->flow == NULL);
 
