@@ -42,7 +42,7 @@
 #include "util-byte.h"
 #include "util-debug.h"
 
-#define PARSE_REGEX "^\\s*(cve|nessus|url|mcafee|bugtraq|arachnids)\\s*,\"?\\s*\"?\\s*([a-zA-Z0-9\\-_\\.\\/\\?\\=]+)\"?\\s*\"?"
+#define PARSE_REGEX "^\\s*(cve|nessus|url|mcafee|bugtraq|arachnids|bid|telus)\\s*,\"?\\s*\"?\\s*([a-zA-Z0-9\\-_\\.\\/\\?\\=]+)\"?\\s*\"?"
 
 /* Static prefix for references - Maybe we should move them to reference.config in the future */
 char REFERENCE_BUGTRAQ[] =   "http://www.securityfocus.com/bid/";
@@ -51,6 +51,8 @@ char REFERENCE_NESSUS[] =    "http://cgi.nessus.org/plugins/dump.php3?id=";
 char REFERENCE_ARACHNIDS[] = "http://www.whitehats.com/info/IDS";
 char REFERENCE_MCAFEE[] =    "http://vil.nai.com/vil/dispVirus.asp?virus_k=";
 char REFERENCE_URL[] =       "http://";
+char REFERENCE_TELUS[] =     "http://";
+char REFERENCE_BID[] =       "http://";
 
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
@@ -167,6 +169,10 @@ static Reference *DetectReferenceParse (char *rawstr)
     } else if (strcasecmp(ref_key,"mcafee") == 0) {
         ref->key = REFERENCE_MCAFEE;
     } else if (strcasecmp(ref_key,"arachnids") == 0) {
+        ref->key = REFERENCE_ARACHNIDS;
+    } else if (strcasecmp(ref_key,"telus") == 0) {
+        ref->key = REFERENCE_ARACHNIDS;
+    } else if (strcasecmp(ref_key,"bid") == 0) {
         ref->key = REFERENCE_ARACHNIDS;
     } else {
         SCLogError(SC_ERR_REFERENCE_UNKNOWN, "unknown reference key \"%s\". "
