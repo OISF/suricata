@@ -401,17 +401,21 @@ uint32_t MpmGetHashSize(const char *conf_val)
     SCEnter();
     uint32_t hash_value = HASHSIZE_LOW;
 
-    if(strncmp(conf_val, "lowest", 6) == 0) {
+    if(strcmp(conf_val, "lowest") == 0) {
         hash_value = HASHSIZE_LOWEST;
-    } else if(strncmp(conf_val, "low", 3) == 0) {
+    } else if(strcmp(conf_val, "low") == 0) {
         hash_value = HASHSIZE_LOW;
-    } else if(strncmp(conf_val, "medium", 6) == 0) {
+    } else if(strcmp(conf_val, "medium") == 0) {
         hash_value = HASHSIZE_MEDIUM;
-    } else if(strncmp(conf_val, "high", 4) == 0) {
+    } else if(strcmp(conf_val, "high") == 0) {
         hash_value = HASHSIZE_HIGH;
-    } else if(strncmp(conf_val, "highest", 7) == 0) {
-        hash_value = HASHSIZE_HIGHEST;
-    } else if(strncmp(conf_val, "max", 3) == 0) {
+    /* "highest" is supported in 1.0 to 1.0.2, so we keep supporting
+     * it for backwards compatibility */
+    } else if(strcmp(conf_val, "highest") == 0) {
+        hash_value = HASHSIZE_HIGHER;
+    } else if(strcmp(conf_val, "higher") == 0) {
+        hash_value = HASHSIZE_HIGHER;
+    } else if(strcmp(conf_val, "max") == 0) {
         hash_value = HASHSIZE_MAX;
     }
 

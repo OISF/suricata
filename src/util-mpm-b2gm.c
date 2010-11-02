@@ -791,8 +791,8 @@ static void B2gmGetConfig()
                         case HASHSIZE_HIGH:
                             b2gm_hash_shift = B2GM_HASHSHIFT_HIGH;
                             break;
-                        case HASHSIZE_HIGHEST:
-                            b2gm_hash_shift = B2GM_HASHSHIFT_HIGHEST;
+                        case HASHSIZE_HIGHER:
+                            b2gm_hash_shift = B2GM_HASHSHIFT_HIGHER;
                             break;
                         case HASHSIZE_MAX:
                             b2gm_hash_shift = B2GM_HASHSHIFT_MAX;

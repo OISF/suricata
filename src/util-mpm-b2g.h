@@ -28,7 +28,7 @@
 #include "util-bloomfilter.h"
 
 #define B2G_HASHSHIFT_MAX      8
-#define B2G_HASHSHIFT_HIGHEST  7
+#define B2G_HASHSHIFT_HIGHER   7
 #define B2G_HASHSHIFT_HIGH     6
 #define B2G_HASHSHIFT_MEDIUM   5
 #define B2G_HASHSHIFT_LOW      4

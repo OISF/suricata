@@ -161,7 +161,7 @@ cuda:
 mpm-algo: b2gc
 
 # The memory settings for hash size of these algorithms can vary from lowest
-# (2048) - low (4096) - medium (8192) - high (16384) - highest (32768) - max
+# (2048) - low (4096) - medium (8192) - high (16384) - higher (32768) - max
 # (65536). The bloomfilter sizes of these algorithms can vary from low (512) -
 # medium (1024) - high (2048).
 #

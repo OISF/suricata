@@ -40,7 +40,7 @@
                                              pattern matcher algorithms */
 #define HASHSIZE_HIGH           16384   /**< High hash size for the multi
                                              pattern matcher algorithms */
-#define HASHSIZE_HIGHEST        32768   /**< Highest hash size for the multi
+#define HASHSIZE_HIGHER         32768   /**< Higher hash size for the multi
                                              pattern matcher algorithms */
 #define HASHSIZE_MAX            65536   /**< Max hash size for the multi
                                              pattern matcher algorithms */

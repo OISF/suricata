@@ -699,9 +699,9 @@ void B3gGetConfig()
                             b3g_hash_shift = B3G_HASHSHIFT_HIGH;
                             b3g_hash_shift2 = B3G_HASHSHIFT_HIGH2;
                             break;
-                        case HASHSIZE_HIGHEST:
-                            b3g_hash_shift = B3G_HASHSHIFT_HIGHEST;
-                            b3g_hash_shift2 = B3G_HASHSHIFT_HIGHEST2;
+                        case HASHSIZE_HIGHER:
+                            b3g_hash_shift = B3G_HASHSHIFT_HIGHER;
+                            b3g_hash_shift2 = B3G_HASHSHIFT_HIGHER2;
                             break;
                         case HASHSIZE_MAX:
                             b3g_hash_shift = B3G_HASHSHIFT_MAX;
