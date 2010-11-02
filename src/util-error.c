@@ -191,6 +191,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_WARN_COMPATIBILITY);
         CASE_CODE (SC_ERR_DCERPC);
         CASE_CODE (SC_ERR_AHO_CORASICK);
+        CASE_CODE (SC_ERR_REFERENCE_CONFIG);
 
         default:
             return "UNKNOWN_ERROR";

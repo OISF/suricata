@@ -443,6 +443,7 @@ rule-files:
  - emerging-current_events.rules
 
 classification-file: /etc/suricata/classification.config
+reference-config-file: /etc/suricata/reference.config
 
 # Holds variables that would be used by the engine.
 vars:

@@ -992,8 +992,8 @@ Signature *SigAlloc (void) {
 static void SigRefFree (Signature *s) {
     SCEnter();
 
-    Reference *ref = NULL;
-    Reference *next_ref = NULL;
+    DetectReference *ref = NULL;
+    DetectReference *next_ref = NULL;
 
     if (s == NULL) {
         SCReturn;

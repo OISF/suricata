@@ -118,6 +118,7 @@
 #include "util-rule-vars.h"
 #include "util-classification-config.h"
 #include "util-threshold-config.h"
+#include "util-reference-config.h"
 #include "util-profiling.h"
 
 #include "defrag.h"
@@ -951,6 +952,7 @@ int main(int argc, char **argv)
         UtilActionRegisterTests();
         SCClassConfRegisterTests();
         SCThresholdConfRegisterTests();
+        SCRConfRegisterTests();
         SSLParserRegisterTests();
 #ifdef __SC_CUDA_SUPPORT__
         SCCudaRegisterTests();
@@ -1059,6 +1061,12 @@ int main(int argc, char **argv)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
     SCClassConfLoadClassficationConfigFile(de_ctx);
+    if (SCRConfLoadReferenceConfigFile(de_ctx) == -1) {
+        SCLogInfo("Having trouble loading references from reference.config");
+        exit(EXIT_FAILURE);
+    }
+
+    exit(EXIT_FAILURE);
 
     ActionInitConfig();
 

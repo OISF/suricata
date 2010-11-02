@@ -202,6 +202,7 @@ typedef enum {
     SC_ERR_DCERPC,
     SC_ERR_DETECT_PREPARE,          /**< preparing the detection engine failed */
     SC_ERR_AHO_CORASICK,
+    SC_ERR_REFERENCE_CONFIG,
 } SCError;
 
 const char *SCErrorToString(SCError);

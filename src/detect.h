@@ -382,7 +382,7 @@ typedef struct Signature_ {
     char *class_msg;
 
     /** Reference */
-    Reference *references;
+    DetectReference *references;
 
     /* Be careful, this pointer is only valid while parsing the sig,
      * to warn the user about any possible problem */
@@ -503,6 +503,8 @@ typedef struct DetectEngineCtx_ {
 
     /* hash table used for holding the classification config info */
     HashTable *class_conf_ht;
+    /* hash table used for holding the reference config info */
+    HashTable *reference_conf_ht;
 
     /* main sigs */
     DetectEngineLookupFlow flow_gh[FLOW_STATES];

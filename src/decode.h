@@ -208,7 +208,7 @@ typedef struct PacketAlert_ {
     uint32_t sid;
     char *msg;
     char *class_msg;
-    Reference *references;
+    DetectReference *references;
     uint8_t flags;
 } PacketAlert;
 

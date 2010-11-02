@@ -28,27 +28,31 @@
 #include "decode-ipv4.h"
 #include "decode-tcp.h"
 
-/** Signature reference list */
-typedef struct Reference_ {
-    char *key;                  /**< pointer to key */
-    char *reference;            /**< reference data */
-    struct Reference_ *next;   /**< next reference in the signature */
-} Reference;
-
 /**
- * Registration function for reference: keyword
+ * \brief Signature reference list.
  */
-void DetectReferenceRegister (void);
+typedef struct DetectReference_ {
+    /* pointer to key */
+    char *key;
+    /* reference data */
+    char *reference;
+    /* next reference in the signature */
+    struct DetectReference_ *next;
+} DetectReference;
 
 /**
- * This function registers unit tests for Reference
+ * Registration function for Reference keyword
+ */
+void DetectReferenceRegister(void);
+
+/**
+ * This function registers unit tests for Reference keyword.
  */
 void ReferenceRegisterTests(void);
 
 /**
  * Free function for a Reference object
  */
-void DetectReferenceFree(Reference *);
+void DetectReferenceFree(DetectReference *);
 
 #endif /*__DETECT_REFERENCE_H__ */
-
