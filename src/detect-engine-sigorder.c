@@ -825,9 +825,8 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
     SCSigSignatureWrapper *sigw = NULL;
 
     int i = 0;
-#ifndef UNITTESTS
-    SCLogInfo("ordering signatures in memory");
-#endif
+    SCLogDebug("ordering signatures in memory");
+
     sig = de_ctx->sig_list;
     while (sig != NULL) {
         i++;
@@ -841,10 +840,8 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
         sig = sig->next;
     }
 
-#ifndef UNITTESTS
-    printf("SCSigOrderSignatures: Total Signatures to be processed by the"
-           "sigordering module: %d\n", i);
-#endif
+    SCLogDebug("Total Signatures to be processed by the"
+           "sigordering module: %d", i);
 
     /* Re-order it in the Detection Engine Context sig_list */
     de_ctx->sig_list = NULL;
@@ -866,9 +863,7 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
         sigw = sigw->next;
     }
 
-#ifndef UNITTESTS
-    SCLogInfo("total signatures reordered by the sigordering module: %d", i);
-#endif
+    SCLogDebug("total signatures reordered by the sigordering module: %d", i);
     return;
 }
 
