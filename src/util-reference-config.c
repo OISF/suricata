@@ -77,7 +77,7 @@ static int SCRConfInitContext(DetectEngineCtx *de_ctx)
     int opts = 0;
 
     /* init the hash table to be used by the reference config references */
-    de_ctx->reference_conf_ht = HashTableInit(4096, SCRConfReferenceHashFunc,
+    de_ctx->reference_conf_ht = HashTableInit(128, SCRConfReferenceHashFunc,
                                               SCRConfReferenceHashCompareFunc,
                                               SCRConfReferenceHashFree);
     if (de_ctx->reference_conf_ht == NULL) {
@@ -167,9 +167,8 @@ static char *SCRConfStringToLowercase(const char *str)
     char *new_str = NULL;
     char *temp_str = NULL;
 
-    if ( (new_str = SCStrdup(str)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
+    if ((new_str = SCStrdup(str)) == NULL) {
+        return NULL;
     }
 
     temp_str = new_str;
@@ -213,14 +212,14 @@ static int SCRConfAddReference(char *rawstr, DetectEngineCtx *de_ctx)
     /* retrieve the reference system */
     ret = pcre_get_substring((char *)rawstr, ov, 30, 1, &system);
     if (ret < 0) {
-        SCLogInfo("pcre_get_substring() failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring() failed");
         goto error;
     }
 
     /* retrieve the reference url */
     ret = pcre_get_substring((char *)rawstr, ov, 30, 2, &url);
     if (ret < 0) {
-        SCLogInfo("pcre_get_substring() failed");
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring() failed");
         goto error;
     }
 
@@ -328,19 +327,19 @@ SCRConfReference *SCRConfAllocSCRConfReference(const char *system,
     }
 
     if ((ref = SCMalloc(sizeof(SCRConfReference))) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
+        return NULL;
     }
     memset(ref, 0, sizeof(SCRConfReference));
 
     if ((ref->system = SCRConfStringToLowercase(system)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
+        SCFree(ref);
+        return NULL;
     }
 
     if (url != NULL && (ref->url = SCStrdup(url)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
+        SCFree(ref->system);
+        SCFree(ref);
+        return NULL;
     }
 
     return ref;
@@ -459,8 +458,8 @@ void SCRConfReferenceHashFree(void *data)
 int SCRConfLoadReferenceConfigFile(DetectEngineCtx *de_ctx)
 {
     if (SCRConfInitContext(de_ctx) == -1) {
-        SCLogError(SC_ERR_REFERENCE_CONFIG, "Error initializing reference "
-                   "config API");
+        printf("\nPlease check the \"reference-file\" option in your suricata.yaml file.\n");
+        exit(EXIT_FAILURE);
         return -1;
     }
 

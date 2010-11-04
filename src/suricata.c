@@ -1061,12 +1061,7 @@ int main(int argc, char **argv)
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
 
     SCClassConfLoadClassficationConfigFile(de_ctx);
-    if (SCRConfLoadReferenceConfigFile(de_ctx) == -1) {
-        SCLogInfo("Having trouble loading references from reference.config");
-        exit(EXIT_FAILURE);
-    }
-
-    exit(EXIT_FAILURE);
+    SCRConfLoadReferenceConfigFile(de_ctx);
 
     ActionInitConfig();
 
