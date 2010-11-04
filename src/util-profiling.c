@@ -315,7 +315,7 @@ SCProfilingInitRuleCounters(DetectEngineCtx *de_ctx)
         count++;
     }
     rules_pca = SCPerfGetAllCountersArray(&rules_ctx);
-    SCLogInfo("Registered %"PRIu32" rule profiling counters.\n", count);
+    SCLogInfo("Registered %"PRIu32" rule profiling counters.", count);
 }
 
 /**
