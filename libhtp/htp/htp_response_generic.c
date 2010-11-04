@@ -33,6 +33,9 @@ int htp_parse_response_line_generic(htp_connp_t *connp) {
     }
 
     tx->response_protocol = bstr_memdup((char *)data, pos);
+    if (tx->response_protocol == NULL) {
+        return HTP_ERROR;
+    }
     tx->response_protocol_number = htp_parse_protocol(tx->response_protocol);
 
 #ifdef HTP_DEBUG
@@ -52,6 +55,9 @@ int htp_parse_response_line_generic(htp_connp_t *connp) {
     }
 
     tx->response_status = bstr_memdup((char *)data + start, pos - start);
+    if (tx->response_status == NULL) {
+        return HTP_ERROR;
+    }
     tx->response_status_number = htp_parse_status(tx->response_status);
 
 #ifdef HTP_DEBUG
@@ -64,6 +70,9 @@ int htp_parse_response_line_generic(htp_connp_t *connp) {
     }
 
     tx->response_message = bstr_memdup((char *)data + pos, len - pos);
+    if (tx->response_message == NULL) {
+        return HTP_ERROR;
+    }
 
 #ifdef HTP_DEBUG
     fprint_raw_data(stderr, __FUNCTION__, (unsigned char *)bstr_ptr(tx->response_message), bstr_len(tx->response_message));
@@ -175,7 +184,13 @@ int htp_parse_response_header_generic(htp_connp_t *connp, htp_header_t *h, char 
 
     // Now extract the name and the value
     h->name = bstr_memdup(data + name_start, name_end - name_start);
+    if (h->name == NULL) {
+        return HTP_ERROR;
+    }
     h->value = bstr_memdup(data + value_start, value_end - value_start);
+    if (h->value == NULL) {
+        return HTP_ERROR;
+    }
 
     return HTP_OK;
 }

@@ -517,6 +517,9 @@ int htp_connp_RES_HEADERS(htp_connp_t *connp) {
 
             // Add the raw header line to the list
             connp->out_header_line->line = bstr_memdup((char *) connp->out_line, connp->out_line_len);
+            if (connp->out_header_line->line == NULL) {
+                return HTP_ERROR;
+            }
             list_add(connp->out_tx->response_header_lines, connp->out_header_line);
             connp->out_header_line = NULL;
 
@@ -584,6 +587,9 @@ int htp_connp_RES_LINE(htp_connp_t *connp) {
             }
 
             connp->out_tx->response_line = bstr_memdup((char *) connp->out_line, connp->out_line_len);
+            if (connp->out_tx->response_line == NULL) {
+                return HTP_ERROR;
+            }
 
             // Parse response line
             if (connp->cfg->parse_response_line(connp) != HTP_OK) {

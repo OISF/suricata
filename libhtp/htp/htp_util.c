@@ -927,6 +927,9 @@ int decode_u_encoding(htp_cfg_t *cfg, htp_tx_t *tx, unsigned char *data) {
  */
 int htp_decode_path_inplace(htp_cfg_t *cfg, htp_tx_t *tx, bstr *path) {
     unsigned char *data = (unsigned char *) bstr_ptr(path);
+    if (data == NULL) {
+        return -1;
+    }
     size_t len = bstr_len(path);
 
     // TODO I don't like this function. It's too complex.

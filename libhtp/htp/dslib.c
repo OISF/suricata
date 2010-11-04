@@ -459,6 +459,8 @@ static void *table_get_internal(table_t *table, bstr *key) {
 void *table_getc(table_t *table, char *cstr) {
     // TODO This is very inefficient
     bstr *key = bstr_cstrdup(cstr);
+    if (key == NULL)
+        return NULL;
     bstr_tolowercase(key);
     void *data = table_get_internal(table, key);
     free(key);
@@ -473,8 +475,12 @@ void *table_getc(table_t *table, char *cstr) {
  * @return table element, or NULL if not found
  */
 void *table_get(table_t *table, bstr *key) {
+    if (table == NULL)
+        return NULL;
     // TODO This is very inefficient
     bstr *lkey = bstr_dup_lower(key);
+    if (lkey == NULL)
+        return NULL;
     void *data = table_get_internal(table, lkey);
     free(lkey);
     return data;
