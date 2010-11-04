@@ -46,6 +46,10 @@ int htp_process_request_header_generic(htp_connp_t *connp) {
         }
 
         data = (unsigned char *)bstr_ptr(hl->line);
+        if (data == NULL) {
+            free(h);
+            return HTP_ERROR;
+        }
         len = bstr_len(hl->line);
         hl->header = h;
     } else {
@@ -225,7 +229,13 @@ int htp_parse_request_header_generic(htp_connp_t *connp, htp_header_t *h, unsign
 
     // Now extract the name and the value
     h->name = bstr_memdup((char *)data + name_start, name_end - name_start);
+    if (h->name == NULL) {
+        return HTP_ERROR;
+    }
     h->value = bstr_memdup((char *)data + value_start, value_end - value_start);
+    if (h->name == NULL) {
+        return HTP_ERROR;
+    }
 
     return HTP_OK;
 }
@@ -251,6 +261,9 @@ int htp_parse_request_line_generic(htp_connp_t *connp) {
     // No, we don't care if the method is empty.
 
     tx->request_method = bstr_memdup((char *)data, pos);
+    if (tx->request_method == NULL) {
+        return HTP_ERROR;
+    }
     tx->request_method_number = htp_convert_method_to_number(tx->request_method);
 
     // Ignore whitespace after request method. The RFC allows
@@ -268,6 +281,9 @@ int htp_parse_request_line_generic(htp_connp_t *connp) {
     }
 
     tx->request_uri = bstr_memdup((char *)data + start, pos - start);
+    if (tx->request_uri == NULL) {
+        return HTP_ERROR;
+    }
 
     // Ignore whitespace after URI
     while ((pos < len) && (htp_is_space(data[pos]))) {
@@ -283,6 +299,9 @@ int htp_parse_request_line_generic(htp_connp_t *connp) {
 
     // The protocol information spreads until the end of the line.
     tx->request_protocol = bstr_memdup((char *)data + pos, len - pos);
+    if (tx->request_protocol == NULL) {
+        return HTP_ERROR;
+    }
     tx->request_protocol_number = htp_parse_protocol(tx->request_protocol);
 
     return HTP_OK;
