@@ -301,9 +301,10 @@ static void SCRConfParseFile(DetectEngineCtx *de_ctx)
         i++;
     }
 
+#ifdef UNITTESTS
     SCLogInfo("Added \"%d\" reference types from the reference.config file",
               de_ctx->reference_conf_ht->count);
-
+#endif /* UNITTESTS */
     return;
 }
 
