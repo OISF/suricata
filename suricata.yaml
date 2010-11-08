@@ -562,7 +562,7 @@ profiling:
     # performance impact if compiled in.
     enabled: yes
 
-    # Sort options: ticks, avgticks, checks, matches
+    # Sort options: ticks, avgticks, checks, matches, maxticks
     sort: avgticks
 
     # Limit the number of items printed at exit.

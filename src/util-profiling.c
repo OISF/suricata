@@ -45,6 +45,7 @@ enum {
     SC_PROFILING_RULES_SORT_BY_AVG_TICKS,
     SC_PROFILING_RULES_SORT_BY_CHECKS,
     SC_PROFILING_RULES_SORT_BY_MATCHES,
+    SC_PROFILING_RULES_SORT_BY_MAX_TICKS,
 };
 static int profiling_rules_sort_order = SC_PROFILING_RULES_SORT_BY_TICKS;
 
@@ -126,6 +127,15 @@ SCProfilingInit(void)
                 profiling_rules_sort_order =
                     SC_PROFILING_RULES_SORT_BY_MATCHES;
             }
+            else if (strcmp(val, "maxticks") == 0) {
+                profiling_rules_sort_order =
+                    SC_PROFILING_RULES_SORT_BY_MAX_TICKS;
+            }
+            else {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                    "Invalid profiling sort order: %s", val);
+                exit(EXIT_FAILURE);
+            }
         }
 
         val = ConfNodeLookupChildValue(conf, "limit");
@@ -195,6 +205,17 @@ SCProfileSummarySortByMatches(const void *a, const void *b)
     return s1->matches - s0->matches;
 }
 
+/**
+ * \brief Qsort comparison function to sort by max ticks.
+ */
+static int
+SCProfileSummarySortByMaxTicks(const void *a, const void *b)
+{
+    const SCProfileSummary *s0 = a;
+    const SCProfileSummary *s1 = b;
+    return s1->max - s0->max;
+}
+
 void
 SCProfilingDump(FILE *output)
 {
@@ -248,6 +269,10 @@ SCProfilingDump(FILE *output)
         qsort(summary, count, sizeof(SCProfileSummary),
             SCProfileSummarySortByMatches);
         break;
+    case SC_PROFILING_RULES_SORT_BY_MAX_TICKS:
+        qsort(summary, count, sizeof(SCProfileSummary),
+            SCProfileSummarySortByMaxTicks);
+        break;
     }
 
     fprintf(output, "  %-12s %-12s %-6s %-8s %-8s %-11s %-11s\n", "Rule", "Ticks", "%", "Checks", "Matches", "Max Ticks", "Avg Ticks");
@@ -260,6 +285,13 @@ SCProfilingDump(FILE *output)
         "----------- "
         "\n");
     for (i = 0; i < MIN(count, profiling_rules_limit); i++) {
+
+        /* Stop dumping when we hit our first rule with 0 checks.  Due
+         * to sorting this will be the beginning of all the rules with
+         * 0 checks. */
+        if (summary[i].checks == 0)
+            break;
+
         double percent = (long double)summary[i].ticks /
             (long double)total_ticks * 100;
         fprintf(output,
