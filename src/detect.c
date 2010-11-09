@@ -1146,12 +1146,14 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
             /* Retrieve the app layer state and protocol and the tcp reassembled
              * stream chunks. */
-            if (p->flowflags & FLOW_PKT_ESTABLISHED) {
+            if ((IP_GET_IPPROTO(p) == IPPROTO_TCP && p->flags & PKT_STREAM_EST) ||
+                (IP_GET_IPPROTO(p) == IPPROTO_UDP && p->flowflags & FLOW_PKT_ESTABLISHED))
+            {
                 alstate = AppLayerGetProtoStateFromPacket(p);
                 alproto = AppLayerGetProtoFromPacket(p);
                 SCLogDebug("alstate %p, alproto %u", alstate, alproto);
             } else {
-                SCLogDebug("packet doesn't have established flag set");
+                SCLogDebug("packet doesn't have established flag set (proto %d)", IP_GET_IPPROTO(p));
             }
         }
         SCMutexUnlock(&p->flow->m);
@@ -1844,7 +1846,12 @@ PacketCreateMask(Packet *p, SignatureMask *mask, uint16_t alproto, void *alstate
                     SCLogDebug("packet/flow has dce state");
                     (*mask) |= SIG_MASK_REQUIRE_DCE_STATE;
                     break;
+                default:
+                    SCLogDebug("packet/flow has other state");
+                    break;
             }
+        } else {
+            SCLogDebug("no alstate");
         }
     }
 }

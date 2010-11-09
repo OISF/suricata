@@ -53,6 +53,8 @@
 #include "stream-tcp.h"
 
 #include "app-layer-parser.h"
+#include "app-layer-protos.h"
+
 #include "util-host-os-info.h"
 #include "util-privs.h"
 
@@ -2758,7 +2760,9 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                 break;
         }
 
-        if (ssn->state > TCP_ESTABLISHED) {
+        if (ssn->state == TCP_ESTABLISHED) {
+            p->flags |= PKT_STREAM_EST;
+        } else if (ssn->state > TCP_ESTABLISHED) {
             p->flags |= PKT_STREAM_EOF;
         }
     }
@@ -3297,6 +3301,7 @@ Packet *StreamTcpPseudoSetup(Packet *parent, uint8_t *pkt, uint32_t len)
 
     /* copy packet and set lenght, proto */
     p->tunnel_proto = parent->proto;
+    p->proto = parent->proto;
     p->pktlen = len;
     memcpy(&p->pkt, pkt, (len - parent->payload_len));
     p->recursion_level = parent->recursion_level + 1;
@@ -3398,11 +3403,12 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(Packet *p, TcpSession *ssn, Pack
     /* Setup the IP and TCP headers */
     StreamTcpPseudoPacketSetupHeader(np,p);
 
+    np->flowflags = p->flowflags;
+
+    np->flags |= PKT_STREAM_EST;
     np->flags |= PKT_STREAM_EOF;
     np->flags |= PKT_HAS_FLOW;
     np->flags |= PKT_PSEUDO_STREAM_END;
-
-    np->flowflags = p->flowflags;
 
     if (PKT_IS_TOSERVER(p)) {
         SCLogDebug("original is to_server, so pseudo is to_client");

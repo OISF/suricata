@@ -281,7 +281,7 @@ typedef struct Packet_
     uint8_t recursion_level;
 
     /* Pkt Flags */
-    uint8_t flags;
+    uint16_t flags;
     /* flow */
     uint8_t flowflags;
     struct Flow_ *flow;
@@ -736,14 +736,15 @@ void AddressDebugPrint(Address *);
 #define VLAN_OVER_GRE       13
 
 /*Packet Flags*/
-#define PKT_NOPACKET_INSPECTION         0x01    /**< Flag to indicate that packet header or contents should not be inspected*/
-#define PKT_NOPAYLOAD_INSPECTION        0x02    /**< Flag to indicate that packet contents should not be inspected*/
-#define PKT_ALLOC                       0x04    /**< Packet was alloc'd this run, needs to be freed */
-#define PKT_HAS_TAG                     0x08    /**< Packet has matched a tag */
-#define PKT_STREAM_ADD                  0x10    /**< Packet payload was added to reassembled stream */
-#define PKT_STREAM_EOF                  0x20    /**< Stream is in eof state */
-#define PKT_HAS_FLOW                    0x40
-#define PKT_PSEUDO_STREAM_END           0x80    /**< Pseudo packet to end the stream */
+#define PKT_NOPACKET_INSPECTION         0x0001    /**< Flag to indicate that packet header or contents should not be inspected*/
+#define PKT_NOPAYLOAD_INSPECTION        0x0002    /**< Flag to indicate that packet contents should not be inspected*/
+#define PKT_ALLOC                       0x0004    /**< Packet was alloc'd this run, needs to be freed */
+#define PKT_HAS_TAG                     0x0008    /**< Packet has matched a tag */
+#define PKT_STREAM_ADD                  0x0010    /**< Packet payload was added to reassembled stream */
+#define PKT_STREAM_EST                  0x0020    /**< Packet is part of establised stream */
+#define PKT_STREAM_EOF                  0x0040    /**< Stream is in eof state */
+#define PKT_HAS_FLOW                    0x0080
+#define PKT_PSEUDO_STREAM_END           0x0100    /**< Pseudo packet to end the stream */
 
 #endif /* __DECODE_H__ */
 

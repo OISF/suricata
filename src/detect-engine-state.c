@@ -488,7 +488,6 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         DeStateSignatureAppend(f->de_state, s, sm, umatch, dmatch, hcbdmatch,
                                hhdmatch, hrhdmatch, hmdmatch, hcdmatch);
     }
-
     SCMutexUnlock(&f->de_state_m);
 
     SCReturnInt(r);
