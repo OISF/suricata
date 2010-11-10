@@ -19,6 +19,7 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
+ * \author Anoop Saldanha <poonaatsoc@gmail.com>
  *
  * Implements the offset keyword
  */
@@ -100,9 +101,25 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
             ud = (DetectUricontentData *)pm->ctx;
             if (ud == NULL) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
-                if (dubbed) SCFree(str);
+                if (dubbed)
+                    SCFree(str);
                 return -1;
             }
+
+            if (ud->flags & DETECT_URICONTENT_NEGATED) {
+                if (ud->flags & DETECT_URICONTENT_FAST_PATTERN) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "negated keyword set along with a fast_pattern");
+                    goto error;
+                }
+            } else {
+                if (ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "keyword set along with a fast_pattern:only;");
+                    goto error;
+                }
+            }
+
             ud->offset = (uint32_t)atoi(str);
             if (ud->depth != 0) {
                 if (ud->depth < ud->uricontent_len) {
@@ -113,13 +130,17 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                 /* Updating the depth as is relative to the offset */
                 ud->depth += ud->offset;
             }
+
+            ud->flags |= DETECT_URICONTENT_OFFSET;
+
             break;
 
         case DETECT_CONTENT:
             cd = (DetectContentData *)pm->ctx;
             if (cd == NULL) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
-                if (dubbed) SCFree(str);
+                if (dubbed)
+                    SCFree(str);
                 return -1;
             }
 
@@ -155,8 +176,9 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
         default:
             SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs a preceeding"
                     " content or uricontent option");
-            if (dubbed) SCFree(str);
-                return -1;
+            if (dubbed)
+                SCFree(str);
+            return -1;
 
             break;
     }

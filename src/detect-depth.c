@@ -19,6 +19,7 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
+ * \author Anoop Saldanha <poonaatsoc@gmail.com>
  *
  * Implements the depth keyword
  */
@@ -56,6 +57,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
     char dubbed = 0;
     SigMatch *pm = NULL;
     DetectContentData *cd = NULL;
+    DetectUricontentData *ud = NULL;
 
     /* strip "'s */
     if (depthstr[0] == '\"' && depthstr[strlen(depthstr)-1] == '\"') {
@@ -97,13 +99,28 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
 
     switch (pm->type) {
         case DETECT_URICONTENT:
-        {
-            DetectUricontentData *ud = (DetectUricontentData *)pm->ctx;
+            ud = (DetectUricontentData *)pm->ctx;
             if (ud == NULL) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
-                if (dubbed) SCFree(str);
+                if (dubbed)
+                    SCFree(str);
                 return -1;
             }
+
+            if (ud->flags & DETECT_URICONTENT_NEGATED) {
+                if (ud->flags & DETECT_URICONTENT_FAST_PATTERN) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "negated keyword set along with a fast_pattern");
+                    goto error;
+                }
+            } else {
+                if (ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "keyword set along with a fast_pattern:only;");
+                    goto error;
+                }
+            }
+
             ud->depth = (uint32_t)atoi(str);
             if (ud->depth < ud->uricontent_len) {
                 ud->depth = ud->uricontent_len;
@@ -112,11 +129,11 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
             }
             /* Now update the real limit, as depth is relative to the offset */
             ud->depth += ud->offset;
-        }
-        break;
+            ud->flags |= DETECT_URICONTENT_DEPTH;
+
+            break;
 
         case DETECT_CONTENT:
-
             cd = (DetectContentData *)pm->ctx;
             if (cd == NULL) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");

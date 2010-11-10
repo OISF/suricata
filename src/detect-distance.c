@@ -19,6 +19,7 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
+ * \author Anoop Saldanha <poonaatsoc@gmail.com>
  *
  * Implements the distance keyword
  */
@@ -184,6 +185,20 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 goto error;
             }
 
+            if (ud->flags & DETECT_URICONTENT_NEGATED) {
+                if (ud->flags & DETECT_URICONTENT_FAST_PATTERN) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "negated keyword set along with a fast_pattern");
+                    goto error;
+                }
+            } else {
+                if (ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "keyword set along with a fast_pattern:only;");
+                    goto error;
+                }
+            }
+
             ud->distance = strtol(str, NULL, 10);
             if (ud->flags & DETECT_URICONTENT_WITHIN) {
                 if ((ud->distance + ud->uricontent_len) > ud->within) {
@@ -213,6 +228,14 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                         goto error;
                     }
                     ud->flags |= DETECT_URICONTENT_RELATIVE_NEXT;
+
+                    if (ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "Previous keyword "
+                                   "has a fast_pattern:only; set.  You can't "
+                                   "have relative keywords around a fast_pattern "
+                                   "only content");
+                        goto error;
+                    }
 
                     break;
 
