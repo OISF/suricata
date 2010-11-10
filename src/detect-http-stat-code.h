@@ -31,7 +31,7 @@ typedef struct DetectHttpStatCodeData_ {
     uint8_t *data;
     uint8_t data_len;
     uint8_t flags;
-    int     code;      /**< Numeric HTTP status code to match */
+    int16_t code;       /**< Numeric HTTP status code to match */
 } DetectHttpStatCodeData;
 
 /* prototypes */
@@ -39,7 +39,6 @@ int DetectHttpStatCodeMatch (ThreadVars *, DetectEngineThreadCtx *,
                            Flow *, uint8_t , void *, Signature *,
                            SigMatch *);
 void DetectHttpStatCodeRegister(void);
-
 
 #endif	/* _DETECT_HTTP_STAT_CODE_H */
 

@@ -270,8 +270,10 @@ static int DetectHttpStatMsgSetup (DetectEngineCtx *de_ctx, Signature *s, char *
     s->alproto = ALPROTO_HTTP;
     return 0;
 error:
-    if (hd != NULL) DetectHttpStatMsgFree(hd);
-    if(sm !=NULL) SCFree(sm);
+    if (hd != NULL)
+        DetectHttpStatMsgFree(hd);
+    if (sm != NULL)
+        SCFree(sm);
     return -1;
 }
 

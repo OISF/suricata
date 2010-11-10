@@ -282,8 +282,10 @@ static int DetectHttpStatCodeSetup (DetectEngineCtx *de_ctx, Signature *s, char 
     s->alproto = ALPROTO_HTTP;
     SCReturnInt(0);
 error:
-    if (hd != NULL) DetectHttpStatCodeFree(hd);
-    if(sm !=NULL) SCFree(sm);
+    if (hd != NULL)
+        DetectHttpStatCodeFree(hd);
+    if(sm !=NULL)
+        SCFree(sm);
     SCReturnInt(-1);
 }
 
@@ -299,28 +301,32 @@ int DetectHttpStatCodeTest01(void)
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
-    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+    if ((de_ctx = DetectEngineCtxInit()) == NULL) {
+        printf("DetectEngineCtxInit failed: ");
         goto end;
+    }
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_stat_code\"; http_stat_code;sid:1;)");
-    if (de_ctx->sig_list != NULL)
+            "(msg:\"Testing http_stat_code\"; http_stat_code; sid:1;)");
+    if (de_ctx->sig_list != NULL) {
+        printf("sid 1 parse failed to error out: ");
         goto end;
+    }
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_stat_code\"; content:\"|FF F1|\";"
-                                " rawbytes; http_stat_code;sid:1;)");
-    if (de_ctx->sig_list != NULL)
+            "(msg:\"Testing http_stat_code\"; content:\"|FF F1|\";"
+            " rawbytes; http_stat_code; sid:2;)");
+    if (de_ctx->sig_list != NULL) {
+        printf("sid 2 parse failed to error out: ");
         goto end;
+    }
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"Testing http_stat_code\"; content:\"100\";"
-            "fast_pattern; http_stat_code;sid:1;)");
-    if (de_ctx->sig_list == NULL ||
-            ((DetectContentData *)de_ctx->sig_list->amatch->ctx)->flags &
-            DETECT_CONTENT_FAST_PATTERN)
-    {
+            "(msg:\"Testing http_stat_code\"; content:\"100\";"
+            "fast_pattern; http_stat_code; sid:3;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("sid 3 parse failed: ");
         goto end;
     }
 
@@ -422,15 +428,16 @@ static int DetectHttpStatCodeSigTest01(void) {
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
+        printf("DetectEngineCtxInit failed: ");
         goto end;
     }
 
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP status code\"; content:\"200\"; "
-                                   "http_stat_code; sid:1;)");
+            "\"HTTP status code\"; content:\"200\"; http_stat_code; sid:1;)");
     if (s == NULL) {
+        printf("sig parse failed: ");
         goto end;
     }
 
@@ -440,21 +447,18 @@ static int DetectHttpStatCodeSigTest01(void) {
     int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         goto end;
     }
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOCLIENT, httpbuf2, httplen2);
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         goto end;
     }
 
     http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (http_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
