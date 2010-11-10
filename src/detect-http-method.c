@@ -210,6 +210,10 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
     if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_NOCASE) {
         data->flags |= DETECT_AL_HTTP_METHOD_NOCASE;
     }
+    /* transfer the negate flag */
+    if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_NEGATED) {
+        data->flags |= DETECT_AL_HTTP_METHOD_NEGATED;
+    }
 
     data->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, data, DETECT_AL_HTTP_METHOD);
 
@@ -1012,19 +1016,15 @@ static int DetectHttpMethodSigTest04(void)
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,
-                                   "alert tcp any any -> any any "
-                                   "(msg:\"Testing http_method\"; "
-                                   "content:\"GET\"; "
-                                   "http_method; sid:1;)");
+            "alert tcp any any -> any any (msg:\"Testing http_method\"; "
+            "content:\"GET\"; http_method; sid:1;)");
     if (s == NULL) {
         goto end;
     }
 
     s = s->next = SigInit(de_ctx,
-                          "alert tcp any any -> any any "
-                          "(msg:\"Testing http_method\"; "
-                          "content:!\"GET\"; "
-                          "http_method; sid:2;)");
+            "alert tcp any any -> any any (msg:\"Testing http_method\"; "
+            "content:!\"GET\"; http_method; sid:2;)");
     if (s == NULL) {
         goto end;
     }
@@ -1059,10 +1059,16 @@ static int DetectHttpMethodSigTest04(void)
 
 end:
 
-    if (de_ctx != NULL) SigGroupCleanup(de_ctx);
-    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
-    if (det_ctx != NULL) DetectEngineThreadCtxDeinit(&th_v, (void *) det_ctx);
-    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+    }
+    if (det_ctx != NULL) {
+        DetectEngineThreadCtxDeinit(&th_v, (void *) det_ctx);
+    }
+    if (de_ctx != NULL) {
+        DetectEngineCtxFree(de_ctx);
+    }
 
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
