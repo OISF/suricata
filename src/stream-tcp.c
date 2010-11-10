@@ -2725,15 +2725,23 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt)
                     SCReturnInt(-1);
                 break;
             case TCP_CLOSED:
-                /* As our TCP session memory is not returned to pool, until
-                   timeout. If in the mean time we receive any other session from
-                   the same client reusing same port then we switch back to
-                   tcp state none */
-                if (PKT_IS_TOSERVER(p) && (p->tcph->th_flags & TH_SYN)) {
-                    if(SEQ_EQ(ssn->client.next_seq, TCP_GET_SEQ(p))) {
-                        if(StreamTcpPacketStateNone(tv,p,stt,ssn)) {
-                            SCReturnInt(-1);
-                        }
+                /* TCP session memory is not returned to pool until timeout.
+                 * If in the mean time we receive any other session from
+                 * the same client reusing same port then we switch back to
+                 * tcp state none, but only on a valid SYN that is not a
+                 * resend from our previous session.
+                 *
+                 * We also check it's not a SYN/ACK, all other SYN pkt
+                 * validation is done at StreamTcpPacketStateNone();
+                 */
+                if (PKT_IS_TOSERVER(p) && (p->tcph->th_flags & TH_SYN) &&
+                    !(p->tcph->th_flags & TH_ACK) &&
+                    !(SEQ_EQ(ssn->client.isn, TCP_GET_SEQ(p))))
+                {
+                    SCLogDebug("reusing closed TCP session");
+
+                    if (StreamTcpPacketStateNone(tv,p,stt,ssn)) {
+                        SCReturnInt(-1);
                     }
                 } else {
                     SCLogDebug("packet received on closed state");
