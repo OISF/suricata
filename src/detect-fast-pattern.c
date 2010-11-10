@@ -1291,7 +1291,7 @@ int DetectFastPatternTest28(void)
     if (de_ctx->sig_list == NULL)
         goto end;
 
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->prev->ctx;
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
         !(cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
@@ -1301,8 +1301,6 @@ int DetectFastPatternTest28(void)
     } else {
         result = 0;
     }
-
-    result = 1;
 
  end:
     SigCleanSignatures(de_ctx);
@@ -1323,7 +1321,7 @@ int DetectFastPatternTest29(void)
                                "(content:one; content:two; within:30; content:two; fast_pattern:only; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->prev->ctx;
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
         !(cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
@@ -1333,8 +1331,6 @@ int DetectFastPatternTest29(void)
     } else {
         result = 0;
     }
-
-    result = 1;
 
  end:
     SigCleanSignatures(de_ctx);
@@ -1355,7 +1351,7 @@ int DetectFastPatternTest30(void)
                                "(content:one; content:two; offset:30; content:two; fast_pattern:only; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->prev->ctx;
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
         !(cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
@@ -1365,8 +1361,6 @@ int DetectFastPatternTest30(void)
     } else {
         result = 0;
     }
-
-    result = 1;
 
  end:
     SigCleanSignatures(de_ctx);
@@ -1387,7 +1381,7 @@ int DetectFastPatternTest31(void)
                                "(content:one; content:two; depth:30; content:two; fast_pattern:only; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->prev->ctx;
+    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
         !(cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
@@ -1397,8 +1391,6 @@ int DetectFastPatternTest31(void)
     } else {
         result = 0;
     }
-
-    result = 1;
 
  end:
     SigCleanSignatures(de_ctx);
@@ -1430,8 +1422,6 @@ int DetectFastPatternTest32(void)
     } else {
         result = 0;
     }
-
-    result = 1;
 
  end:
     SigCleanSignatures(de_ctx);
@@ -1551,9 +1541,6 @@ int DetectFastPatternTest37(void)
         result = 0;
     }
 
-
-    result = 1;
-
  end:
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -1583,9 +1570,6 @@ int DetectFastPatternTest38(void)
     } else {
         result = 0;
     }
-
-
-    result = 1;
 
  end:
     SigCleanSignatures(de_ctx);
@@ -1617,9 +1601,6 @@ int DetectFastPatternTest39(void)
         result = 0;
     }
 
-
-    result = 1;
-
  end:
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -1649,9 +1630,6 @@ int DetectFastPatternTest40(void)
     } else {
         result = 0;
     }
-
-
-    result = 1;
 
  end:
     SigCleanSignatures(de_ctx);
@@ -1683,9 +1661,6 @@ int DetectFastPatternTest41(void)
         result = 0;
     }
 
-
-    result = 1;
-
  end:
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -1715,9 +1690,6 @@ int DetectFastPatternTest42(void)
     } else {
         result = 0;
     }
-
-
-    result = 1;
 
  end:
     SigCleanSignatures(de_ctx);
@@ -1749,9 +1721,6 @@ int DetectFastPatternTest43(void)
         result = 0;
     }
 
-
-    result = 1;
-
  end:
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -1782,9 +1751,6 @@ int DetectFastPatternTest44(void)
         result = 0;
     }
 
-
-    result = 1;
-
  end:
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -1814,9 +1780,6 @@ int DetectFastPatternTest45(void)
     } else {
         result = 0;
     }
-
-
-    result = 1;
 
  end:
     SigCleanSignatures(de_ctx);
@@ -1914,9 +1877,6 @@ int DetectFastPatternTest49(void)
     } else {
         result = 0;
     }
-
-
-    result = 1;
 
  end:
     SigCleanSignatures(de_ctx);
