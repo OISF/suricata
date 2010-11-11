@@ -380,7 +380,7 @@ static int DetectDceOpnumTestParse01(void)
     result &= (DetectDceOpnumSetup(NULL, s, "12,26,62,61,6513--") == -1);
     result &= (DetectDceOpnumSetup(NULL, s, "12-14,12,121,62-8") == -1);
 
-    if (s->match != NULL) {
+    if (s->amatch != NULL) {
         SigFree(s);
         result &= 1;
     }
@@ -400,14 +400,16 @@ static int DetectDceOpnumTestParse02(void)
 
     result = (DetectDceOpnumSetup(NULL, s, "12") == 0);
 
-    if (s->match != NULL) {
-        temp = s->match;
+    if (s->amatch != NULL) {
+        temp = s->amatch;
         dod = temp->ctx;
         if (dod == NULL)
             goto end;
         dor = dod->range;
         result &= (dor->range1 == 12 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
         result &= (dor->next == NULL);
+    } else {
+        result = 0;
     }
 
  end:
@@ -427,14 +429,16 @@ static int DetectDceOpnumTestParse03(void)
 
     result = (DetectDceOpnumSetup(NULL, s, "12-24") == 0);
 
-    if (s->match != NULL) {
-        temp = s->match;
+    if (s->amatch != NULL) {
+        temp = s->amatch;
         dod = temp->ctx;
         if (dod == NULL)
             goto end;
         dor = dod->range;
         result &= (dor->range1 == 12 && dor->range2 == 24);
         result &= (dor->next == NULL);
+    } else {
+        result = 0;
     }
 
  end:
@@ -454,8 +458,8 @@ static int DetectDceOpnumTestParse04(void)
 
     result = (DetectDceOpnumSetup(NULL, s, "12-24,24,62-72,623-635,62,25,213-235") == 0);
 
-    if (s->match != NULL) {
-        temp = s->match;
+    if (s->amatch != NULL) {
+        temp = s->amatch;
         dod = temp->ctx;
         if (dod == NULL)
             goto end;
@@ -499,6 +503,8 @@ static int DetectDceOpnumTestParse04(void)
         result &= (dor->range1 == 213 && dor->range2 == 235);
         if (result == 0)
             goto end;
+    } else {
+        result = 0;
     }
 
  end:
@@ -518,8 +524,8 @@ static int DetectDceOpnumTestParse05(void)
 
     result = (DetectDceOpnumSetup(NULL, s, "1,2,3,4,5,6,7") == 0);
 
-    if (s->match != NULL) {
-        temp = s->match;
+    if (s->amatch != NULL) {
+        temp = s->amatch;
         dod = temp->ctx;
         if (dod == NULL)
             goto end;
@@ -563,6 +569,8 @@ static int DetectDceOpnumTestParse05(void)
         result &= (dor->range1 == 7 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
         if (result == 0)
             goto end;
+    } else {
+        result = 0;
     }
 
  end:
@@ -582,8 +590,8 @@ static int DetectDceOpnumTestParse06(void)
 
     result = (DetectDceOpnumSetup(NULL, s, "1-2,3-4,5-6,7-8") == 0);
 
-    if (s->match != NULL) {
-        temp = s->match;
+    if (s->amatch != NULL) {
+        temp = s->amatch;
         dod = temp->ctx;
         if (dod == NULL)
             goto end;
@@ -609,7 +617,8 @@ static int DetectDceOpnumTestParse06(void)
         result &= (dor->range1 == 7 && dor->range2 == 8);
         if (result == 0)
             goto end;
-
+    } else {
+        result = 0;
     }
 
  end:
@@ -629,8 +638,8 @@ static int DetectDceOpnumTestParse07(void)
 
     result = (DetectDceOpnumSetup(NULL, s, "1-2,3-4,5-6,7-8,9") == 0);
 
-    if (s->match != NULL) {
-        temp = s->match;
+    if (s->amatch != NULL) {
+        temp = s->amatch;
         dod = temp->ctx;
         if (dod == NULL)
             goto end;
@@ -661,6 +670,8 @@ static int DetectDceOpnumTestParse07(void)
         result &= (dor->range1 == 9 && dor->range2 == DCE_OPNUM_RANGE_UNINITIALIZED);
         if (result == 0)
             goto end;
+    } else {
+        result = 0;
     }
 
  end:

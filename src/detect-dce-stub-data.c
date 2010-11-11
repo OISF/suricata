@@ -161,8 +161,10 @@ static int DetectDceStubDataTestParse01(void)
 
     result = (DetectDceStubDataSetup(NULL, &s, NULL) == 0);
 
-    if (s.match != NULL) {
+    if (s.amatch != NULL) {
         result = 1;
+    } else {
+        result = 0;
     }
 
     return result;
