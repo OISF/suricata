@@ -717,6 +717,8 @@ error:
  * \retval -1 On failure
  */
 int SigParseProto(Signature *s, const char *protostr) {
+    SCEnter();
+
     int r = DetectProtoParse(&s->proto, (char *)protostr);
     if (r < 0) {
         s->alproto = AppLayerGetProtoByName(protostr);
@@ -736,13 +738,15 @@ int SigParseProto(Signature *s, const char *protostr) {
                 }
                 als = als->next;
             }
-            return 0;
+            SCReturnInt(0);
         }
 
-        return -1;
+        SCLogError(SC_ERR_UNKNOWN_PROTOCOL, "protocol \"%s\" cannot be used "
+                "in a signature", protostr);
+        SCReturnInt(-1);
     }
 
-    return 0;
+    SCReturnInt(0);
 }
 
 /**
@@ -852,7 +856,11 @@ int SigParseAction(Signature *s, const char *action) {
     }
 }
 
-int SigParseBasics(Signature *s, char *sigstr, char ***result, uint8_t addrs_direction) {
+/**
+ *  \internal
+ *  \brief split a signature string into a few blocks for further parsing
+ */
+static int SigParseBasics(Signature *s, char *sigstr, char ***result, uint8_t addrs_direction) {
 #define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
     int ret = 0, i = 0;
@@ -863,7 +871,7 @@ int SigParseBasics(Signature *s, char *sigstr, char ***result, uint8_t addrs_dir
 
     ret = pcre_exec(config_pcre, config_pcre_extra, sigstr, strlen(sigstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 8 && ret != 9) {
-        printf("SigParseBasics: pcre_exec failed: ret %" PRId32 ", sigstr \"%s\"\n", ret, sigstr);
+        SCLogDebug("pcre_exec failed: ret %" PRId32 ", sigstr \"%s\"", ret, sigstr);
         goto error;
     }
 
@@ -903,7 +911,8 @@ int SigParseBasics(Signature *s, char *sigstr, char ***result, uint8_t addrs_dir
     /* For "ip" we parse the ports as well, even though they will be just "any".
      *  We do this for later sgh building for the tcp and udp protocols. */
     if (DetectProtoContainsProto(&s->proto, IPPROTO_TCP) ||
-        DetectProtoContainsProto(&s->proto, IPPROTO_UDP)) {
+        DetectProtoContainsProto(&s->proto, IPPROTO_UDP))
+    {
         if (SigParsePort(s, arr[CONFIG_SP], SIG_DIREC_SRC ^ addrs_direction) < 0)
             goto error;
         if (SigParsePort(s, arr[CONFIG_DP], SIG_DIREC_DST ^ addrs_direction) < 0)
@@ -927,6 +936,17 @@ error:
     return -1;
 }
 
+/**
+ *  \brief parse a signature
+ *
+ *  \param de_ctx detection engine ctx to add it to
+ *  \param s memory structure to store the signature in
+ *  \param sigstr the raw signature as a null terminated string
+ *  \param addrs_direction direction (for bi-directional sigs)
+ *
+ *  \param -1 parse error
+ *  \param 0 ok
+ */
 int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_direction) {
     SCEnter();
 
@@ -1216,7 +1236,7 @@ static int SigValidate(Signature *s) {
                     continue;
 
                 if (fd->flags & FLOW_PKT_TOCLIENT) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use uricontent with flow:to_client or flow:from_server");
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use uricontent / http_uri with flow:to_client or flow:from_server");
                     SCReturnInt(0);
                 }
             }
