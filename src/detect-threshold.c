@@ -225,7 +225,7 @@ static int DetectThresholdSetup (DetectEngineCtx *de_ctx, Signature *s, char *ra
     SigMatch *tmpm = NULL;
 
     /* checks if there is a previous instance of detection_filter */
-    tmpm = SigMatchGetLastSM(s->match_tail, DETECT_DETECTION_FILTER);
+    tmpm = SigMatchGetLastSM(s->sm_lists[DETECT_SM_LIST_MATCH], DETECT_DETECTION_FILTER);
     if (tmpm != NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "\"detection_filter\" and \"threshold\" are not allowed in the same rule");
         SCReturnInt(-1);

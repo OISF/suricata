@@ -110,7 +110,7 @@ static void SCSigRegisterSignatureOrderingFunc(DetectEngineCtx *de_ctx,
  */
 static inline int SCSigGetFlowbitsType(Signature *sig)
 {
-    SigMatch *sm = sig->match;
+    SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
     DetectFlowbitsData *fb = NULL;
     int flowbits = DETECT_FLOWBITS_CMD_MAX;
 
@@ -145,7 +145,7 @@ static inline int SCSigGetFlowbitsType(Signature *sig)
  */
 static inline int SCSigGetFlowvarType(Signature *sig)
 {
-    SigMatch *sm = sig->match;
+    SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
     DetectPcreData *pd = NULL;
     int type = DETECT_FLOWVAR_NOT_USED;
 
@@ -181,7 +181,7 @@ static inline int SCSigGetFlowvarType(Signature *sig)
  */
 static inline int SCSigGetPktvarType(Signature *sig)
 {
-    SigMatch *sm = sig->match;
+    SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
     DetectPcreData *pd = NULL;
     int type = DETECT_PKTVAR_NOT_USED;
 

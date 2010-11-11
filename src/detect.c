@@ -1175,7 +1175,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         /* if we get here but have no sigmatches to match against,
          * we consider the sig matched. */
-        if (s->match == NULL) {
+        if (s->sm_lists[DETECT_SM_LIST_MATCH] == NULL) {
             SCLogDebug("signature matched without sigmatches");
 
             fmatch = 1;
@@ -1188,7 +1188,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 uint8_t recursion_cnt = 0;
 
                 do {
-                    sm = s->match;
+                    sm = s->sm_lists[DETECT_SM_LIST_MATCH];
                     while (sm) {
                         match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
                         if (match > 0) {
@@ -1220,7 +1220,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 } while (rmatch);
 
             } else {
-                sm = s->match;
+                sm = s->sm_lists[DETECT_SM_LIST_MATCH];
 
                 SCLogDebug("running match functions, sm %p", sm);
                 while (sm) {
@@ -1454,7 +1454,7 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
     if (s->amatch != NULL)
         return 0;
 
-    SigMatch *sm = s->match;
+    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
     if (sm == NULL)
         goto iponly;
 
@@ -1522,7 +1522,7 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, Signature *s) {
     if (s->amatch != NULL)
         return 0;
 
-    SigMatch *sm = s->match;
+    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
     /* check for conflicting keywords */
     for ( ;sm != NULL; sm = sm->next) {
         if ( !(sigmatch_table[sm->type].flags & SIGMATCH_DEONLY_COMPAT))
@@ -1628,7 +1628,7 @@ static int SignatureCreateMask(Signature *s) {
         }
     }
 
-    for (sm = s->match ; sm != NULL; sm = sm->next) {
+    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH] ; sm != NULL; sm = sm->next) {
         switch(sm->type) {
             case DETECT_FLOWBITS:
             {
@@ -1758,7 +1758,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
             char copresent = 0;
             SigMatch *sm;
             DetectContentData *co;
-            for (sm = tmp_s->match; sm != NULL; sm = sm->next) {
+            for (sm = tmp_s->sm_lists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
                 if (sm->type != DETECT_CONTENT)
                     continue;
 
@@ -1891,7 +1891,7 @@ static int DetectEngineLookupFlowAddSig(DetectEngineCtx *de_ctx, Signature *s, i
     uint8_t flags = 0;
 
     if (s->flags & SIG_FLAG_FLOW) {
-        SigMatch *sm = s->match;
+        SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
         for ( ; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_FLOW)
                 continue;

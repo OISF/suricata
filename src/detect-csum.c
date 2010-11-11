@@ -856,10 +856,10 @@ int DetectCsumIPV4ValidArgsTestParse01(void)
     result &= (DetectIPV4CsumSetup(NULL, &s, "\"VALID\"") == 0);
     result &= (DetectIPV4CsumSetup(NULL, &s, "\"iNvaLid\"") == 0);
 
-    while (s.match != NULL) {
-        DetectIPV4CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        DetectIPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
 
@@ -880,10 +880,10 @@ int DetectCsumIPV4InValidArgsTestParse02(void)
     result &= (DetectIPV4CsumSetup(NULL, &s, "VALieD") == -1);
     result &= (DetectIPV4CsumSetup(NULL, &s, "iNvamid") == -1);
 
-    while (s.match != NULL) {
-        DetectIPV4CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        DetectIPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
 
@@ -901,28 +901,28 @@ int DetectCsumIPV4ValidArgsTestParse03(void)
 
     result = (DetectIPV4CsumSetup(NULL, &s, "valid") == 0);
 
-    while (s.match != NULL) {
-        if (s.match->ctx != NULL) {
-            cd = (DetectCsumData *)s.match->ctx;
+    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
+            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
             result &= (cd->valid == 1);
         }
-        DetectIPV4CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+        DetectIPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
-    s.match = NULL;
+    s.sm_lists[DETECT_SM_LIST_MATCH] = NULL;
 
     result &= (DetectIPV4CsumSetup(NULL, &s, "INVALID") == 0);
 
-    if (s.match != NULL) {
-        if (s.match->ctx != NULL) {
-            cd = (DetectCsumData *)s.match->ctx;
+    if (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
+            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
             result &= (cd->valid == 0);
         }
-        DetectIPV4CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+        DetectIPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
 
@@ -943,10 +943,10 @@ int DetectCsumICMPV4ValidArgsTestParse01(void)
     result &= (DetectICMPV4CsumSetup(NULL, &s, "VALID") == 0);
     result &= (DetectICMPV4CsumSetup(NULL, &s, "iNvaLid") == 0);
 
-    while (s.match != NULL) {
-        DetectICMPV4CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        DetectICMPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
 
@@ -966,10 +966,10 @@ int DetectCsumICMPV4InValidArgsTestParse02(void) {
     result &= (DetectICMPV4CsumSetup(NULL, &s, "VALieD") == -1);
     result &= (DetectICMPV4CsumSetup(NULL, &s, "iNvamid") == -1);
 
-    while (s.match != NULL) {
-        DetectICMPV4CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        DetectICMPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
 
@@ -986,28 +986,28 @@ int DetectCsumICMPV4ValidArgsTestParse03(void) {
 
     result = (DetectICMPV4CsumSetup(NULL, &s, "valid") == 0);
 
-    while (s.match != NULL) {
-        if (s.match->ctx != NULL) {
-            cd = (DetectCsumData *)s.match->ctx;
+    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
+            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
             result &= (cd->valid == 1);
         }
-        DetectICMPV4CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+        DetectICMPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
-    s.match = NULL;
+    s.sm_lists[DETECT_SM_LIST_MATCH] = NULL;
 
     result &= (DetectICMPV4CsumSetup(NULL, &s, "INVALID") == 0);
 
-    if (s.match != NULL) {
-        if (s.match->ctx != NULL) {
-            cd = (DetectCsumData *)s.match->ctx;
+    if (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
+            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
             result &= (cd->valid == 0);
         }
-        DetectICMPV4CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+        DetectICMPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
 
@@ -1028,10 +1028,10 @@ int DetectCsumTCPV4ValidArgsTestParse01(void)
     result &= (DetectTCPV4CsumSetup(NULL, &s, "VALID") == 0);
     result &= (DetectTCPV4CsumSetup(NULL, &s, "iNvaLid") == 0);
 
-    while (s.match != NULL) {
-        DetectTCPV4CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        DetectTCPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
 
@@ -1051,10 +1051,10 @@ int DetectCsumTCPV4InValidArgsTestParse02(void) {
     result &= (DetectTCPV4CsumSetup(NULL, &s, "VALieD") == -1);
     result &= (DetectTCPV4CsumSetup(NULL, &s, "iNvamid") == -1);
 
-    while (s.match != NULL) {
-        DetectTCPV4CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        DetectTCPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
 
@@ -1071,28 +1071,28 @@ int DetectCsumTCPV4ValidArgsTestParse03(void) {
 
     result = (DetectTCPV4CsumSetup(NULL, &s, "valid") == 0);
 
-    while (s.match != NULL) {
-        if (s.match->ctx != NULL) {
-            cd = (DetectCsumData *)s.match->ctx;
+    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
+            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
             result &= (cd->valid == 1);
         }
-        DetectTCPV4CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+        DetectTCPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
-    s.match = NULL;
+    s.sm_lists[DETECT_SM_LIST_MATCH] = NULL;
 
     result &= (DetectTCPV4CsumSetup(NULL, &s, "INVALID") == 0);
 
-    if (s.match != NULL) {
-        if (s.match->ctx != NULL) {
-            cd = (DetectCsumData *)s.match->ctx;
+    if (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
+            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
             result &= (cd->valid == 0);
         }
-        DetectTCPV4CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+        DetectTCPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
 
@@ -1113,10 +1113,10 @@ int DetectCsumUDPV4ValidArgsTestParse01(void)
     result &= (DetectUDPV4CsumSetup(NULL, &s, "VALID") == 0);
     result &= (DetectUDPV4CsumSetup(NULL, &s, "iNvaLid") == 0);
 
-    while (s.match != NULL) {
-        DetectUDPV4CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        DetectUDPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
 
@@ -1136,10 +1136,10 @@ int DetectCsumUDPV4InValidArgsTestParse02(void) {
     result &= (DetectUDPV4CsumSetup(NULL, &s, "VALieD") == -1);
     result &= (DetectUDPV4CsumSetup(NULL, &s, "iNvamid") == -1);
 
-    while (s.match != NULL) {
-        DetectUDPV4CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        DetectUDPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
 
@@ -1156,28 +1156,28 @@ int DetectCsumUDPV4ValidArgsTestParse03(void) {
 
     result = (DetectUDPV4CsumSetup(NULL, &s, "valid") == 0);
 
-    while (s.match != NULL) {
-        if (s.match->ctx != NULL) {
-            cd = (DetectCsumData *)s.match->ctx;
+    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
+            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
             result &= (cd->valid == 1);
         }
-        DetectUDPV4CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+        DetectUDPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
-    s.match = NULL;
+    s.sm_lists[DETECT_SM_LIST_MATCH] = NULL;
 
     result &= (DetectUDPV4CsumSetup(NULL, &s, "INVALID") == 0);
 
-    if (s.match != NULL) {
-        if (s.match->ctx != NULL) {
-            cd = (DetectCsumData *)s.match->ctx;
+    if (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
+            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
             result &= (cd->valid == 0);
         }
-        DetectUDPV4CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+        DetectUDPV4CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
 
@@ -1198,10 +1198,10 @@ int DetectCsumTCPV6ValidArgsTestParse01(void)
     result &= (DetectTCPV6CsumSetup(NULL, &s, "VALID") == 0);
     result &= (DetectTCPV6CsumSetup(NULL, &s, "iNvaLid") == 0);
 
-    while (s.match != NULL) {
-        DetectTCPV6CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        DetectTCPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
 
@@ -1221,10 +1221,10 @@ int DetectCsumTCPV6InValidArgsTestParse02(void) {
     result &= (DetectTCPV6CsumSetup(NULL, &s, "VALieD") == -1);
     result &= (DetectTCPV6CsumSetup(NULL, &s, "iNvamid") == -1);
 
-    while (s.match != NULL) {
-        DetectTCPV6CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        DetectTCPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
 
@@ -1241,28 +1241,28 @@ int DetectCsumTCPV6ValidArgsTestParse03(void) {
 
     result = (DetectTCPV6CsumSetup(NULL, &s, "valid") == 0);
 
-    while (s.match != NULL) {
-        if (s.match->ctx != NULL) {
-            cd = (DetectCsumData *)s.match->ctx;
+    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
+            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
             result &= (cd->valid == 1);
         }
-        DetectTCPV6CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+        DetectTCPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
-    s.match = NULL;
+    s.sm_lists[DETECT_SM_LIST_MATCH] = NULL;
 
     result &= (DetectTCPV6CsumSetup(NULL, &s, "INVALID") == 0);
 
-    if (s.match != NULL) {
-        if (s.match->ctx != NULL) {
-            cd = (DetectCsumData *)s.match->ctx;
+    if (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
+            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
             result &= (cd->valid == 0);
         }
-        DetectTCPV6CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+        DetectTCPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
 
@@ -1283,10 +1283,10 @@ int DetectCsumUDPV6ValidArgsTestParse01(void)
     result &= (DetectUDPV6CsumSetup(NULL, &s, "VALID") == 0);
     result &= (DetectUDPV6CsumSetup(NULL, &s, "iNvaLid") == 0);
 
-    while (s.match != NULL) {
-        DetectUDPV6CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        DetectUDPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
 
@@ -1306,10 +1306,10 @@ int DetectCsumUDPV6InValidArgsTestParse02(void) {
     result &= (DetectUDPV6CsumSetup(NULL, &s, "VALieD") == -1);
     result &= (DetectUDPV6CsumSetup(NULL, &s, "iNvamid") == -1);
 
-    while (s.match != NULL) {
-        DetectUDPV6CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        DetectUDPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
 
@@ -1326,28 +1326,28 @@ int DetectCsumUDPV6ValidArgsTestParse03(void) {
 
     result = (DetectUDPV6CsumSetup(NULL, &s, "valid") == 0);
 
-    while (s.match != NULL) {
-        if (s.match->ctx != NULL) {
-            cd = (DetectCsumData *)s.match->ctx;
+    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
+            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
             result &= (cd->valid == 1);
         }
-        DetectUDPV6CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+        DetectUDPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
-    s.match = NULL;
+    s.sm_lists[DETECT_SM_LIST_MATCH] = NULL;
 
     result &= (DetectUDPV6CsumSetup(NULL, &s, "INVALID") == 0);
 
-    if (s.match != NULL) {
-        if (s.match->ctx != NULL) {
-            cd = (DetectCsumData *)s.match->ctx;
+    if (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
+            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
             result &= (cd->valid == 0);
         }
-        DetectUDPV6CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+        DetectUDPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
 
@@ -1368,10 +1368,10 @@ int DetectCsumICMPV6ValidArgsTestParse01(void)
     result &= (DetectICMPV6CsumSetup(NULL, &s, "VALID") == 0);
     result &= (DetectICMPV6CsumSetup(NULL, &s, "iNvaLid") == 0);
 
-    while (s.match != NULL) {
-        DetectICMPV6CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        DetectICMPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
 
@@ -1391,10 +1391,10 @@ int DetectCsumICMPV6InValidArgsTestParse02(void) {
     result &= (DetectICMPV6CsumSetup(NULL, &s, "VALieD") == -1);
     result &= (DetectICMPV6CsumSetup(NULL, &s, "iNvamid") == -1);
 
-    while (s.match != NULL) {
-        DetectICMPV6CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        DetectICMPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
 
@@ -1411,28 +1411,28 @@ int DetectCsumICMPV6ValidArgsTestParse03(void) {
 
     result = (DetectICMPV6CsumSetup(NULL, &s, "valid") == 0);
 
-    while (s.match != NULL) {
-        if (s.match->ctx != NULL) {
-            cd = (DetectCsumData *)s.match->ctx;
+    while (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
+            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
             result &= (cd->valid == 1);
         }
-        DetectICMPV6CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+        DetectICMPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
-    s.match = NULL;
+    s.sm_lists[DETECT_SM_LIST_MATCH] = NULL;
 
     result &= (DetectICMPV6CsumSetup(NULL, &s, "INVALID") == 0);
 
-    if (s.match != NULL) {
-        if (s.match->ctx != NULL) {
-            cd = (DetectCsumData *)s.match->ctx;
+    if (s.sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+        if (s.sm_lists[DETECT_SM_LIST_MATCH]->ctx != NULL) {
+            cd = (DetectCsumData *)s.sm_lists[DETECT_SM_LIST_MATCH]->ctx;
             result &= (cd->valid == 0);
         }
-        DetectICMPV6CsumFree(s.match->ctx);
-        temp = s.match;
-        s.match = s.match->next;
+        DetectICMPV6CsumFree(s.sm_lists[DETECT_SM_LIST_MATCH]->ctx);
+        temp = s.sm_lists[DETECT_SM_LIST_MATCH];
+        s.sm_lists[DETECT_SM_LIST_MATCH] = s.sm_lists[DETECT_SM_LIST_MATCH]->next;
         SCFree(temp);
     }
 

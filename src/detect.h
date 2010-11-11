@@ -76,6 +76,19 @@ struct SCSigSignatureWrapper_;
  * DETECT ADDRESS
  */
 
+/* holds the values for different possible lists in struct Signature.
+ * These codes are access points to particular lists in the array
+ * Signature->sm_lists[DETECT_SM_LIST_MAX] */
+enum {
+    DETECT_SM_LIST_MATCH = 0,
+    DETECT_SM_LIST_PMATCH,
+    DETECT_SM_LIST_UMATCH,
+    DETECT_SM_LIST_AMATCH,
+    DETECT_SM_LIST_DMATCH,
+    DETECT_SM_LIST_TMATCH,
+    DETECT_SM_LIST_MAX,
+};
+
 /* a is ... than b */
 enum {
     ADDRESS_ER = -1, /**< error e.g. compare ipv4 and ipv6 */
@@ -341,12 +354,15 @@ typedef struct Signature_ {
     /** netblocks and hosts specified at the sid, in CIDR format */
     IPOnlyCIDRItem *CidrSrc, *CidrDst;
 
+    /* holds all sm lists */
+    struct SigMatch_ *sm_lists[DETECT_SM_LIST_MAX];
+
     /** ptr to the SigMatch lists */
     struct SigMatch_ *pmatch; /* payload matches */
     struct SigMatch_ *umatch; /* uricontent payload matches */
     struct SigMatch_ *amatch; /* general app layer matches */
     struct SigMatch_ *dmatch; /* dce app layer matches */
-    struct SigMatch_ *match; /* non-payload matches */
+    //struct SigMatch_ *match; /* non-payload matches */
     struct SigMatch_ *tmatch; /* list of tags matches */
 
     struct SigMatch_ *dsize_sm;
@@ -392,7 +408,10 @@ typedef struct Signature_ {
     uint16_t profiling_id;
 #endif
 
-    struct SigMatch_ *match_tail; /* non-payload matches, tail of the list */
+    /* holds all sm lists' tails */
+    struct SigMatch_ *sm_lists_tail[DETECT_SM_LIST_MAX];
+
+    //struct SigMatch_ *match_tail; /* non-payload matches, tail of the list */
     struct SigMatch_ *pmatch_tail; /* payload matches, tail of the list */
     struct SigMatch_ *umatch_tail; /* uricontent payload matches, tail of the list */
     struct SigMatch_ *amatch_tail; /* general app layer  matches, tail of the list */

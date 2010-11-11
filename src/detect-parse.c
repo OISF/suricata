@@ -264,20 +264,20 @@ void SigMatchAppendTag(Signature *s, SigMatch *new) {
  *  \param new sigmatch to append
  */
 void SigMatchAppendPacket(Signature *s, SigMatch *new) {
-    if (s->match == NULL) {
-        s->match = new;
-        s->match_tail = new;
+    if (s->sm_lists[DETECT_SM_LIST_MATCH] == NULL) {
+        s->sm_lists[DETECT_SM_LIST_MATCH] = new;
+        s->sm_lists_tail[DETECT_SM_LIST_MATCH] = new;
         new->next = NULL;
         new->prev = NULL;
     } else {
-        SigMatch *cur = s->match;
+        SigMatch *cur = s->sm_lists[DETECT_SM_LIST_MATCH];
 
         for ( ; cur->next != NULL; cur = cur->next);
 
         cur->next = new;
         new->next = NULL;
         new->prev = cur;
-        s->match_tail = new;
+        s->sm_lists_tail[DETECT_SM_LIST_MATCH] = new;
     }
 
     new->idx = s->sm_cnt;
@@ -418,19 +418,19 @@ void SigMatchReplaceContentToUricontent(Signature *s, SigMatch *old, SigMatch *n
  * \param new   pointer to the new sigmatch, which will replace m
  */
 void SigMatchReplace(Signature *s, SigMatch *m, SigMatch *new) {
-    if (s->match == NULL) {
-        s->match = new;
+    if (s->sm_lists[DETECT_SM_LIST_MATCH] == NULL) {
+        s->sm_lists[DETECT_SM_LIST_MATCH] = new;
         return;
     }
 
     if (m == NULL) {
-        s->match = new;
+        s->sm_lists[DETECT_SM_LIST_MATCH] = new;
     } else if (m->prev == NULL) {
         if (m->next != NULL) {
             m->next->prev = new;
             new->next = m->next;
         }
-        s->match = new;
+        s->sm_lists[DETECT_SM_LIST_MATCH] = new;
     } else {
         m->prev->next = new;
         new->prev = m->prev;
@@ -1044,7 +1044,7 @@ void SigFree(Signature *s) {
     if (s->CidrSrc != NULL)
         IPOnlyCIDRListFree(s->CidrSrc);*/
 
-    SigMatch *sm = s->match, *nsm;
+    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH], *nsm;
     while (sm != NULL) {
         nsm = sm->next;
         SigMatchFree(sm);
@@ -1229,7 +1229,7 @@ static int SigValidate(Signature *s) {
     /* check for uricontent + from_server/to_client */
     if (s->flags & SIG_FLAG_MPM_URI) {
         SigMatch *sm;
-        for (sm = s->match; sm != NULL; sm = sm->next) {
+        for (sm = s->sm_lists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_FLOW) {
                 DetectFlowData *fd = (DetectFlowData *)sm->ctx;
                 if (fd == NULL)
@@ -1342,8 +1342,8 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
      * app layer flag wasn't already set in which case we
      * only consider the app layer */
     if (!(sig->flags & SIG_FLAG_APPLAYER)) {
-        if (sig->match != NULL) {
-            SigMatch *sm = sig->match;
+        if (sig->sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+            SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
             for ( ; sm != NULL; sm = sm->next) {
                 if (sigmatch_table[sm->type].AppLayerMatch != NULL)
                     sig->flags |= SIG_FLAG_APPLAYER;
@@ -1534,8 +1534,8 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
      * app layer flag wasn't already set in which case we
      * only consider the app layer */
     if (!(sig->flags & SIG_FLAG_APPLAYER)) {
-        if (sig->match != NULL) {
-            SigMatch *sm = sig->match;
+        if (sig->sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+            SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
             for ( ; sm != NULL; sm = sm->next) {
                 if (sigmatch_table[sm->type].AppLayerMatch != NULL)
                     sig->flags |= SIG_FLAG_APPLAYER;

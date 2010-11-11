@@ -716,7 +716,7 @@ int DetectContentLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize, ch
     }
 
     SCLogDebug("---DetectContentLongPatternMatchTest---");
-    DetectContentPrintAll(de_ctx->sig_list->match);
+    DetectContentPrintAll(de_ctx->sig_list->sm_lists[DETECT_SM_LIST_MATCH]);
 
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);

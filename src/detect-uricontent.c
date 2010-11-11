@@ -1075,7 +1075,7 @@ static int DetectUriSigTest04(void) {
     if (s == NULL ||
         s->umatch == NULL ||
         s->pmatch != NULL ||
-        s->match != NULL)
+        s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
     {
         printf("sig 1 failed to parse: ");
         goto end;
@@ -1087,7 +1087,7 @@ static int DetectUriSigTest04(void) {
     if (s == NULL ||
         s->umatch == NULL ||
         s->pmatch == NULL ||
-        s->match != NULL)
+        s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
     {
         printf("sig 2 failed to parse: ");
         goto end;
@@ -1102,7 +1102,7 @@ static int DetectUriSigTest04(void) {
         s->pmatch == NULL ||
         ((DetectContentData *)s->pmatch->ctx)->depth != 15 ||
         ((DetectContentData *)s->pmatch->ctx)->offset != 5 ||
-        s->match != NULL)
+        s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
     {
         printf("sig 3 failed to parse: ");
         goto end;
@@ -1117,7 +1117,7 @@ static int DetectUriSigTest04(void) {
         s->pmatch == NULL ||
         ((DetectUricontentData *)s->umatch->ctx)->depth != 15 ||
         ((DetectUricontentData *)s->umatch->ctx)->offset != 5 ||
-        s->match != NULL)
+        s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
     {
         printf("sig 4 failed to parse: ");
         goto end;
@@ -1153,7 +1153,7 @@ static int DetectUriSigTest04(void) {
             ((DetectContentData*) s->pmatch->ctx)->depth != 15 ||
             ((DetectContentData*) s->pmatch->ctx)->offset != 5 ||
             ((DetectContentData*) s->pmatch_tail->ctx)->within != 30 ||
-            s->match != NULL)
+            s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
     {
         printf("sig 7 failed to parse: ");
         DetectContentPrint((DetectContentData*) s->pmatch_tail->ctx);
@@ -1172,7 +1172,7 @@ static int DetectUriSigTest04(void) {
             ((DetectContentData*) s->pmatch->ctx)->depth != 15 ||
             ((DetectContentData*) s->pmatch->ctx)->offset != 5 ||
             ((DetectUricontentData*) s->umatch_tail->ctx)->within != 30 ||
-            s->match != NULL)
+            s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
     {
         printf("sig 8 failed to parse: ");
         DetectUricontentPrint((DetectUricontentData*) s->umatch_tail->ctx);
@@ -1192,7 +1192,7 @@ static int DetectUriSigTest04(void) {
             ((DetectContentData*) s->pmatch->ctx)->depth != 15 ||
             ((DetectContentData*) s->pmatch->ctx)->offset != 5 ||
             ((DetectContentData*) s->pmatch_tail->ctx)->distance != 30 ||
-            s->match != NULL)
+            s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
     {
         printf("sig 9 failed to parse: ");
         DetectContentPrint((DetectContentData*) s->pmatch_tail->ctx);
@@ -1212,7 +1212,7 @@ static int DetectUriSigTest04(void) {
             ((DetectContentData*) s->pmatch->ctx)->depth != 15 ||
             ((DetectContentData*) s->pmatch->ctx)->offset != 5 ||
             ((DetectUricontentData*) s->umatch_tail->ctx)->distance != 30 ||
-            s->match != NULL)
+            s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
     {
         printf("sig 10 failed to parse: ");
         DetectUricontentPrint((DetectUricontentData*) s->umatch_tail->ctx);
@@ -1242,7 +1242,7 @@ static int DetectUriSigTest04(void) {
             ((DetectUricontentData*) s->umatch_tail->ctx)->within != 60 ||
             ((DetectContentData*) s->pmatch_tail->ctx)->distance != 45 ||
             ((DetectContentData*) s->pmatch_tail->ctx)->within != 70 ||
-            s->match != NULL) {
+            s->sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
         printf("sig 10 failed to parse, content not setup properly: ");
         DetectContentPrint((DetectContentData*) s->pmatch->ctx);
         DetectUricontentPrint((DetectUricontentData*) s->umatch_tail->ctx);

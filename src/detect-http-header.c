@@ -324,7 +324,7 @@ static int DetectHttpHeaderTest01(void)
         goto end;
     }
 
-    sm = de_ctx->sig_list->match;
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_MATCH];
     if (sm != NULL) {
         result &= (sm->type == DETECT_AL_HTTP_HEADER);
         result &= (sm->next == NULL);
