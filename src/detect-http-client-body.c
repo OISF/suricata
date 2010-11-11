@@ -198,13 +198,13 @@ int DetectHttpClientBodySetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         return -1;
     }
 
-    if (s->pmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "http_client_body found inside the "
                    "rule, without any preceding content keywords");
         return -1;
     }
 
-    sm = DetectContentGetLastPattern(s->pmatch_tail);
+    sm = DetectContentGetLastPattern(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
     /* if still we are unable to find any content previous keywords, it is an
      * invalid rule */
     if (sm == NULL) {
@@ -1788,8 +1788,8 @@ int DetectHttpClientBodyTest16(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->pmatch == NULL) {
-        printf("de_ctx->sig_list->pmatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
         goto end;
     }
 
@@ -1798,7 +1798,7 @@ int DetectHttpClientBodyTest16(void)
         goto end;
     }
 
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     DetectHttpClientBodyData *hcbd = de_ctx->sig_list->amatch_tail->ctx;
     if (cd->id == hcbd->id)
         goto end;
@@ -1827,8 +1827,8 @@ int DetectHttpClientBodyTest17(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->pmatch == NULL) {
-        printf("de_ctx->sig_list->pmatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
         goto end;
     }
 
@@ -1837,7 +1837,7 @@ int DetectHttpClientBodyTest17(void)
         goto end;
     }
 
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     DetectHttpClientBodyData *hcbd = de_ctx->sig_list->amatch_tail->ctx;
     if (cd->id == hcbd->id)
         goto end;
@@ -1866,8 +1866,8 @@ int DetectHttpClientBodyTest18(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->pmatch == NULL) {
-        printf("de_ctx->sig_list->pmatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
         goto end;
     }
 
@@ -1876,7 +1876,7 @@ int DetectHttpClientBodyTest18(void)
         goto end;
     }
 
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     DetectHttpClientBodyData *hcbd = de_ctx->sig_list->amatch_tail->ctx;
     if (cd->id != 0 || hcbd->id != 1)
         goto end;
@@ -1905,8 +1905,8 @@ int DetectHttpClientBodyTest19(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->pmatch == NULL) {
-        printf("de_ctx->sig_list->pmatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
         goto end;
     }
 
@@ -1915,7 +1915,7 @@ int DetectHttpClientBodyTest19(void)
         goto end;
     }
 
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     DetectHttpClientBodyData *hcbd = de_ctx->sig_list->amatch_tail->ctx;
     if (cd->id != 1 || hcbd->id != 0)
         goto end;
@@ -1945,8 +1945,8 @@ int DetectHttpClientBodyTest20(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->pmatch == NULL) {
-        printf("de_ctx->sig_list->pmatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
         goto end;
     }
 
@@ -1955,7 +1955,7 @@ int DetectHttpClientBodyTest20(void)
         goto end;
     }
 
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     DetectHttpClientBodyData *hcbd1 = de_ctx->sig_list->amatch_tail->ctx;
     DetectHttpClientBodyData *hcbd2 = de_ctx->sig_list->amatch_tail->prev->ctx;
     if (cd->id != 1 || hcbd1->id != 0 || hcbd2->id != 0)
@@ -1986,8 +1986,8 @@ int DetectHttpClientBodyTest21(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->pmatch == NULL) {
-        printf("de_ctx->sig_list->pmatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
         goto end;
     }
 
@@ -1996,7 +1996,7 @@ int DetectHttpClientBodyTest21(void)
         goto end;
     }
 
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     DetectHttpClientBodyData *hcbd1 = de_ctx->sig_list->amatch_tail->ctx;
     DetectHttpClientBodyData *hcbd2 = de_ctx->sig_list->amatch_tail->prev->ctx;
     if (cd->id != 2 || hcbd1->id != 0 || hcbd2->id != 0)

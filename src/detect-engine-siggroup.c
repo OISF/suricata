@@ -1307,7 +1307,7 @@ int SigGroupHeadLoadContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         if (s->alproto != ALPROTO_UNKNOWN)
             continue;
 
-        sm = s->pmatch;
+        sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
         if (sm == NULL)
             continue;
 
@@ -1485,7 +1485,7 @@ int SigGroupHeadLoadStreamContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             continue;
         }
 
-        sm = s->pmatch;
+        sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
         if (sm == NULL)
             continue;
 

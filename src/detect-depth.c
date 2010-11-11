@@ -71,7 +71,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
             /* add to the latest content keyword from either dmatch or pmatch */
             pm =  SigMatchGetLastSMFromLists(s, 4,
                                              DETECT_CONTENT, s->dmatch_tail,
-                                             DETECT_CONTENT, s->pmatch_tail);
+                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
             if (pm == NULL) {
                 SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs "
                            "preceeding content option for dcerpc sig");
@@ -84,7 +84,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
 
         default:
             pm =  SigMatchGetLastSMFromLists(s, 4,
-                                             DETECT_CONTENT, s->pmatch_tail,
+                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                              DETECT_URICONTENT, s->umatch_tail);
             if (pm == NULL) {
                 SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs "

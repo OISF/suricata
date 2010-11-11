@@ -107,7 +107,7 @@ int SignatureHasPacketContent(Signature *s) {
         SCReturnInt(0);
     }
 
-    SigMatch *sm = s->pmatch;
+    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
     if (sm == NULL) {
         SCReturnInt(0);
     }
@@ -148,7 +148,7 @@ int SignatureHasStreamContent(Signature *s) {
         SCReturnInt(0);
     }
 
-    SigMatch *sm = s->pmatch;
+    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
     if (sm == NULL) {
         SCReturnInt(0);
     }
@@ -571,7 +571,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
 
         /* get the total no of patterns in this Signature, as well as find out
          * if we have a fast_pattern set in this Signature */
-        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
+        for (sm = s->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;
 
@@ -605,7 +605,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
             continue;
         }
 
-        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
+        for (sm = s->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;
 
@@ -644,7 +644,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
     /* now determine which one to add to the mpm phase */
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
         Signature *s = sgh->match_array[sig];
-        if (s == NULL || s->pmatch == NULL)
+        if (s == NULL || s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL)
             continue;
 
         if (SignatureHasPacketContent(s) == 0) {
@@ -654,7 +654,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
         ContentHash *mpm_ch = NULL;
         SigMatch *sm = NULL;
 
-        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
+        for (sm = s->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;
 
@@ -723,7 +723,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
             char scan_negated = 0;
 
             /* see if our content is actually negated */
-            SigMatch *tmpsm = s->pmatch;
+            SigMatch *tmpsm = s->sm_lists[DETECT_SM_LIST_PMATCH];
             for ( ; tmpsm != NULL; tmpsm = tmpsm->next) {
                 if (tmpsm->type != DETECT_CONTENT)
                     continue;
@@ -761,7 +761,7 @@ static int PatternMatchPreprarePopulateMpm(DetectEngineCtx *de_ctx, SigGroupHead
                 /* see if we can bypass the match validation for this pattern */
                 } else {
                     if (!(co->flags & DETECT_CONTENT_RELATIVE_NEXT)) {
-                        SigMatch *tmp_sm = s->pmatch;
+                        SigMatch *tmp_sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
                         for ( ; tmp_sm != NULL; tmp_sm = tmp_sm->next) {
                             if (tmp_sm->type != DETECT_CONTENT)
                                 continue;
@@ -860,7 +860,7 @@ static int PatternMatchPreprarePopulateMpmStream(DetectEngineCtx *de_ctx, SigGro
 
         /* get the total no of patterns in this Signature, as well as find out
          * if we have a fast_pattern set in this Signature */
-        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
+        for (sm = s->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;
 
@@ -894,7 +894,7 @@ static int PatternMatchPreprarePopulateMpmStream(DetectEngineCtx *de_ctx, SigGro
             continue;
         }
 
-        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
+        for (sm = s->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;
 
@@ -933,7 +933,7 @@ static int PatternMatchPreprarePopulateMpmStream(DetectEngineCtx *de_ctx, SigGro
     /* now determine which one to add to the mpm phase */
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
         Signature *s = sgh->match_array[sig];
-        if (s == NULL || s->pmatch == NULL)
+        if (s == NULL || s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL)
             continue;
 
         if (SignatureHasStreamContent(s) == 0) {
@@ -943,7 +943,7 @@ static int PatternMatchPreprarePopulateMpmStream(DetectEngineCtx *de_ctx, SigGro
         ContentHash *mpm_ch = NULL;
         SigMatch *sm = NULL;
 
-        for (sm = s->pmatch; sm != NULL; sm = sm->next) {
+        for (sm = s->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_CONTENT)
                 continue;
 
@@ -1011,7 +1011,7 @@ static int PatternMatchPreprarePopulateMpmStream(DetectEngineCtx *de_ctx, SigGro
             char scan_negated = 0;
 
             /* see if our content is actually negated */
-            SigMatch *tmpsm = s->pmatch;
+            SigMatch *tmpsm = s->sm_lists[DETECT_SM_LIST_PMATCH];
             for ( ; tmpsm != NULL; tmpsm = tmpsm->next) {
                 if (tmpsm->type != DETECT_CONTENT)
                     continue;
@@ -1244,7 +1244,7 @@ static int PatternMatchPreprarePopulateMpmUri(DetectEngineCtx *de_ctx, SigGroupH
             uint8_t flags = 0;
 #if 0
             /* see if our content is actually negated */
-            SigMatch *tmpsm = s->pmatch;
+            SigMatch *tmpsm = s->sm_lists[DETECT_SM_LIST_PMATCH];
             for ( ; tmpsm != NULL; tmpsm = tmpsm->next) {
                 if (tmpsm->type != DETECT_CONTENT)
                     continue;
@@ -1416,7 +1416,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 !(sh->flags & SIG_GROUP_HEAD_MPM_COPY))
         {
             if (SignatureHasPacketContent(s) == 1) {
-                for (sm = s->pmatch; sm != NULL; sm = sm->next) {
+                for (sm = s->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
                     if (sm->type != DETECT_CONTENT)
                         continue;
 
@@ -1454,7 +1454,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 !(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))
         {
             if (SignatureHasStreamContent(s) == 1) {
-                for (sm = s->pmatch; sm != NULL; sm = sm->next) {
+                for (sm = s->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
                     if (sm->type != DETECT_CONTENT)
                         continue;
 

@@ -107,7 +107,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
     DetectContentData *cd = NULL;
     DetectUricontentData *ud = NULL;
 
-    if (s->pmatch_tail == NULL && s->umatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL && s->umatch_tail == NULL) {
         SCLogWarning(SC_WARN_COMPATIBILITY, "fast_pattern found inside the "
                      "rule, without a preceding content based keyword.  "
                      "Currently we provide fast_pattern support for content "
@@ -116,7 +116,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
     }
 
     SigMatch *pm = SigMatchGetLastSMFromLists(s, 4,
-                                              DETECT_CONTENT, s->pmatch_tail,
+                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                               DETECT_URICONTENT, s->umatch_tail);
     if (pm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
@@ -302,7 +302,7 @@ int DetectFastPatternTest01(void)
         goto end;
 
     result = 0;
-    sm = de_ctx->sig_list->pmatch;
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH];
     while (sm != NULL) {
         if (sm->type == DETECT_CONTENT) {
             if ( ((DetectContentData *)sm->ctx)->flags &
@@ -344,7 +344,7 @@ int DetectFastPatternTest02(void)
         goto end;
 
     result = 0;
-    sm = de_ctx->sig_list->pmatch;
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH];
     while (sm != NULL) {
         if (sm->type == DETECT_CONTENT) {
             if (((DetectContentData *)sm->ctx)->flags &
@@ -385,7 +385,7 @@ int DetectFastPatternTest03(void)
         goto end;
 
     result = 0;
-    sm = de_ctx->sig_list->pmatch;
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH];
     while (sm != NULL) {
         if (sm->type == DETECT_CONTENT) {
             if ( !(((DetectContentData *)sm->ctx)->flags &
@@ -999,7 +999,7 @@ int DetectFastPatternTest15(void)
         goto end;
 
     result = 0;
-    sm = de_ctx->sig_list->pmatch;
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH];
     while (sm != NULL) {
         if (sm->type == DETECT_CONTENT) {
             if ( ((DetectContentData *)sm->ctx)->flags &
@@ -1040,7 +1040,7 @@ int DetectFastPatternTest16(void)
         goto end;
 
     result = 0;
-    sm = de_ctx->sig_list->pmatch;
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH];
     while (sm != NULL) {
         if (sm->type == DETECT_CONTENT) {
             if ( ((DetectContentData *)sm->ctx)->flags &
@@ -1077,7 +1077,7 @@ int DetectFastPatternTest17(void)
         goto end;
 
     result = 0;
-    sm = de_ctx->sig_list->pmatch;
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH];
     DetectContentData *cd = sm->ctx;
     if (sm != NULL && sm->type == DETECT_CONTENT) {
         if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
@@ -1113,7 +1113,7 @@ int DetectFastPatternTest18(void)
         goto end;
 
     result = 0;
-    sm = de_ctx->sig_list->pmatch;
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH];
     DetectContentData *cd = sm->ctx;
     if (sm != NULL && sm->type == DETECT_CONTENT) {
         if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
@@ -1345,7 +1345,7 @@ int DetectFastPatternTest28(void)
     if (de_ctx->sig_list == NULL)
         goto end;
 
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
         !(cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
@@ -1375,7 +1375,7 @@ int DetectFastPatternTest29(void)
                                "(content:one; content:two; within:30; content:two; fast_pattern:only; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
         !(cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
@@ -1405,7 +1405,7 @@ int DetectFastPatternTest30(void)
                                "(content:one; content:two; offset:30; content:two; fast_pattern:only; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
         !(cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
@@ -1435,7 +1435,7 @@ int DetectFastPatternTest31(void)
                                "(content:one; content:two; depth:30; content:two; fast_pattern:only; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
         !(cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
@@ -1465,7 +1465,7 @@ int DetectFastPatternTest32(void)
                                "(content:!one; fast_pattern; content:two; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->prev->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         cd->flags & DETECT_CONTENT_NEGATED &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
@@ -1584,7 +1584,7 @@ int DetectFastPatternTest37(void)
                                "(content:one; content:two; fast_pattern:3,4; content:three; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->prev->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
         cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
@@ -1614,7 +1614,7 @@ int DetectFastPatternTest38(void)
                                "(content:one; content:two; fast_pattern:3,4; content:three; distance:30; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->prev->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
         cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
@@ -1644,7 +1644,7 @@ int DetectFastPatternTest39(void)
                                "(content:one; content:two; fast_pattern:3,4; content:three; within:30; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->prev->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
         cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
@@ -1674,7 +1674,7 @@ int DetectFastPatternTest40(void)
                                "(content:one; content:two; fast_pattern:3,4; content:three; offset:30; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->prev->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
         cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
@@ -1704,7 +1704,7 @@ int DetectFastPatternTest41(void)
                                "(content:one; content:two; fast_pattern:3,4; content:three; depth:30; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->prev->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
         cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
@@ -1734,7 +1734,7 @@ int DetectFastPatternTest42(void)
                                "(content:one; content:two; distance:10; content:three; fast_pattern:3,4; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
         cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
@@ -1764,7 +1764,7 @@ int DetectFastPatternTest43(void)
                                "(content:one; content:two; within:10; content:three; fast_pattern:3,4; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
         cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
@@ -1794,7 +1794,7 @@ int DetectFastPatternTest44(void)
                                "(content:one; content:two; offset:10; content:three; fast_pattern:3,4; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
         cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
@@ -1824,7 +1824,7 @@ int DetectFastPatternTest45(void)
                                "(content:one; content:two; depth:10; content:three; fast_pattern:3,4; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
         cd->flags & cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
@@ -1920,7 +1920,7 @@ int DetectFastPatternTest49(void)
                                "(content:one; content:!two; fast_pattern:3,4; content:three; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->prev->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
     if (cd->flags & DETECT_CONTENT_FAST_PATTERN &&
         cd->flags & DETECT_CONTENT_NEGATED &&
         !(cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&

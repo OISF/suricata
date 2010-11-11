@@ -1347,13 +1347,13 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
             SigMatch *dm = NULL;
 
             pm = SigMatchGetLastSMFromLists(s, 6,
-                                            DETECT_CONTENT, s->pmatch_tail,
-                                            DETECT_PCRE, s->pmatch_tail,
-                                            DETECT_BYTEJUMP, s->pmatch_tail);
+                                            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                            DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                            DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
             dm = SigMatchGetLastSMFromLists(s, 6,
-                                            DETECT_CONTENT, s->pmatch_tail,
-                                            DETECT_PCRE, s->pmatch_tail,
-                                            DETECT_BYTEJUMP, s->pmatch_tail);
+                                            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                            DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                            DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
 
             if (pm == NULL) {
                 SigMatchAppendDcePayload(s, sm);
@@ -1644,14 +1644,14 @@ int DetectPcreParseTest10(void)
     s->alproto = ALPROTO_DCERPC;
 
     result &= (DetectPcreSetup(de_ctx, s, "/bamboo/") == 0);
-    result &= (s->dmatch == NULL && s->pmatch != NULL);
+    result &= (s->dmatch == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
     SigFree(s);
 
     s = SigAlloc();
     /* failure since we have no preceding content/pcre/bytejump */
     result &= (DetectPcreSetup(de_ctx, s, "/bamboo/") == 0);
-    result &= (s->dmatch == NULL && s->pmatch != NULL);
+    result &= (s->dmatch == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
  end:
     SigFree(s);

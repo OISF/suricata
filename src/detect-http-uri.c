@@ -95,13 +95,13 @@ static int DetectHttpUriSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         return -1;
     }
 
-    if (s->pmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "http_uri found inside the "
                      "rule, without any preceding content keywords");
         return -1;
     }
 
-    SigMatch *pm = DetectContentGetLastPattern(s->pmatch_tail);
+    SigMatch *pm = DetectContentGetLastPattern(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
     if (pm == NULL) {
         SCLogWarning(SC_ERR_INVALID_SIGNATURE, "http_uri modifies \"content\""
                 "but none was found");
@@ -366,8 +366,8 @@ int DetectHttpUriTest06(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->pmatch == NULL) {
-        printf("de_ctx->sig_list->pmatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
         goto end;
     }
 
@@ -376,7 +376,7 @@ int DetectHttpUriTest06(void)
         goto end;
     }
 
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     DetectUricontentData *ud = de_ctx->sig_list->umatch_tail->ctx;
     if (cd->id == ud->id)
         goto end;
@@ -405,8 +405,8 @@ int DetectHttpUriTest07(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->pmatch == NULL) {
-        printf("de_ctx->sig_list->pmatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
         goto end;
     }
 
@@ -415,7 +415,7 @@ int DetectHttpUriTest07(void)
         goto end;
     }
 
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     DetectUricontentData *ud = de_ctx->sig_list->umatch_tail->ctx;
     if (cd->id == ud->id)
         goto end;
@@ -444,8 +444,8 @@ int DetectHttpUriTest08(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->pmatch == NULL) {
-        printf("de_ctx->sig_list->pmatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
         goto end;
     }
 
@@ -454,7 +454,7 @@ int DetectHttpUriTest08(void)
         goto end;
     }
 
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     DetectUricontentData *ud = de_ctx->sig_list->umatch_tail->ctx;
     if (cd->id != 0 || ud->id != 1)
         goto end;
@@ -483,8 +483,8 @@ int DetectHttpUriTest09(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->pmatch == NULL) {
-        printf("de_ctx->sig_list->pmatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
         goto end;
     }
 
@@ -493,7 +493,7 @@ int DetectHttpUriTest09(void)
         goto end;
     }
 
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     DetectUricontentData *ud = de_ctx->sig_list->umatch_tail->ctx;
     if (cd->id != 1 || ud->id != 0)
         goto end;
@@ -523,8 +523,8 @@ int DetectHttpUriTest10(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->pmatch == NULL) {
-        printf("de_ctx->sig_list->pmatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
         goto end;
     }
 
@@ -533,7 +533,7 @@ int DetectHttpUriTest10(void)
         goto end;
     }
 
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     DetectUricontentData *ud1 = de_ctx->sig_list->umatch_tail->ctx;
     DetectUricontentData *ud2 = de_ctx->sig_list->umatch_tail->prev->ctx;
     if (cd->id != 1 || ud1->id != 0 || ud2->id != 0)
@@ -564,8 +564,8 @@ int DetectHttpUriTest11(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->pmatch == NULL) {
-        printf("de_ctx->sig_list->pmatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
         goto end;
     }
 
@@ -574,7 +574,7 @@ int DetectHttpUriTest11(void)
         goto end;
     }
 
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     DetectUricontentData *ud1 = de_ctx->sig_list->umatch_tail->ctx;
     DetectUricontentData *ud2 = de_ctx->sig_list->umatch_tail->prev->ctx;
     if (cd->id != 2 || ud1->id != 0 || ud2->id != 0)

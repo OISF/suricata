@@ -583,9 +583,9 @@ int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
         SigMatch *dm = NULL;
 
         pm = SigMatchGetLastSMFromLists(s, 6,
-                                        DETECT_CONTENT, s->pmatch_tail,
-                                        DETECT_PCRE, s->pmatch_tail,
-                                        DETECT_BYTEJUMP, s->pmatch_tail);
+                                        DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                        DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
         dm = SigMatchGetLastSMFromLists(s, 6,
                                         DETECT_CONTENT, s->dmatch_tail,
                                         DETECT_PCRE, s->dmatch_tail,

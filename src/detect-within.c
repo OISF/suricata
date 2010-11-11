@@ -76,7 +76,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
     }
 
     /* if we still haven't found that the sig is related to DCERPC,
-     * it's a direct entry into Signature->pmatch */
+     * it's a direct entry into Signature->[DETECT_SM_LIST_PMATCH] */
     if (s->alproto == ALPROTO_DCERPC) {
         SigMatch *dcem = NULL;
         SigMatch *dm = NULL;
@@ -97,9 +97,9 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                                             DETECT_PCRE, s->dmatch_tail,
                                             DETECT_BYTEJUMP, s->dmatch_tail);
         pm1_ots = SigMatchGetLastSMFromLists(s, 6,
-                                             DETECT_CONTENT, s->pmatch_tail,
-                                             DETECT_PCRE, s->pmatch_tail,
-                                             DETECT_BYTEJUMP, s->pmatch_tail);
+                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                             DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                             DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
         if (pm1_ots != NULL && pm1_ots->prev != NULL) {
             pm2_ots = SigMatchGetLastSMFromLists(s, 6,
                                                  DETECT_CONTENT, pm1_ots->prev,
@@ -108,7 +108,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
         }
 
         dm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->dmatch_tail);
-        pm1 = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->pmatch_tail);
+        pm1 = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
         if (pm1 != NULL && pm1->prev != NULL) {
             pm2 = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, pm1->prev);
         }
@@ -124,7 +124,8 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 if (pm1->idx > dcem->idx) {
                     /* transfer pm1 to dmatch list and within is against this */
                     SigMatchTransferSigMatchAcrossLists(pm1,
-                                                        &s->pmatch, &s->pmatch_tail,
+                                                        &s->sm_lists[DETECT_SM_LIST_PMATCH],
+                                                        &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                                         &s->dmatch, &s->dmatch_tail);
                     pm = pm1;
                 } else {
@@ -137,7 +138,8 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
             } else if (pm1->idx > dcem->idx) {
                 /* transfer pm1 to dmatch list and within is against this */
                 SigMatchTransferSigMatchAcrossLists(pm1,
-                                                    &s->pmatch, &s->pmatch_tail,
+                                                    &s->sm_lists[DETECT_SM_LIST_PMATCH],
+                                                    &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                                     &s->dmatch, &s->dmatch_tail);
                 pm = pm1;
             } else {
@@ -154,7 +156,8 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
             } else if (pm2_ots == NULL || pm2_ots->idx < dcem->idx) {
                 /* trasnfer pm1 to dmatch list and pm = pm1 */
                 SigMatchTransferSigMatchAcrossLists(pm1,
-                                                    &s->pmatch, &s->pmatch_tail,
+                                                    &s->sm_lists[DETECT_SM_LIST_PMATCH],
+                                                    &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                                     &s->dmatch, &s->dmatch_tail);
                 pm = pm1;
             } else {
@@ -164,7 +167,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
         }
     } else {
         pm = SigMatchGetLastSMFromLists(s, 4,
-                                         DETECT_CONTENT, s->pmatch_tail,
+                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                          DETECT_URICONTENT, s->umatch_tail);
         if (pm == NULL) {
             SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs"

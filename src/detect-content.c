@@ -378,7 +378,7 @@ SigMatch *SigMatchGetLastPattern(Signature *s) {
 
     BUG_ON(s == NULL);
 
-    SigMatch *co_sm = DetectContentGetLastPattern(s->pmatch_tail);
+    SigMatch *co_sm = DetectContentGetLastPattern(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
     SigMatch *ur_sm = SigMatchGetLastSM(s->umatch_tail, DETECT_URICONTENT);
     SigMatch *sm = NULL;
 
@@ -707,8 +707,8 @@ int DetectContentLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize, ch
     }
     de_ctx->sig_list->next = NULL;
 
-    if (de_ctx->sig_list->pmatch_tail->type == DETECT_CONTENT) {
-        DetectContentData *co = (DetectContentData *)de_ctx->sig_list->pmatch_tail->ctx;
+    if (de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->type == DETECT_CONTENT) {
+        DetectContentData *co = (DetectContentData *)de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
         if (co->flags & DETECT_CONTENT_RELATIVE_NEXT) {
             printf("relative next flag set on final match which is content: ");
             goto end;
@@ -1097,13 +1097,13 @@ int DetectContentParseTest18(void)
     s->alproto = ALPROTO_DCERPC;
 
     result &= (DetectContentSetup(de_ctx, s, "one") == 0);
-    result &= (s->dmatch == NULL && s->pmatch != NULL);
+    result &= (s->dmatch == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
     SigFree(s);
 
     s = SigAlloc();
     result &= (DetectContentSetup(de_ctx, s, "one") == 0);
-    result &= (s->dmatch == NULL && s->pmatch != NULL);
+    result &= (s->dmatch == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
  end:
     SigFree(s);
@@ -1142,7 +1142,7 @@ int DetectContentParseTest19(void)
         goto end;
     }
     result &= (s->dmatch_tail->type == DETECT_CONTENT);
-    result &= (s->pmatch == NULL);
+    result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
     data = (DetectContentData *)s->dmatch_tail->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
@@ -1170,7 +1170,7 @@ int DetectContentParseTest19(void)
         goto end;
     }
     result &= (s->dmatch_tail->type == DETECT_CONTENT);
-    result &= (s->pmatch == NULL);
+    result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
     data = (DetectContentData *)s->dmatch_tail->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
@@ -1200,7 +1200,7 @@ int DetectContentParseTest19(void)
         goto end;
     }
     result &= (s->dmatch_tail->type == DETECT_CONTENT);
-    result &= (s->pmatch == NULL);
+    result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
     data = (DetectContentData *)s->dmatch_tail->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
@@ -1242,7 +1242,7 @@ int DetectContentParseTest19(void)
         goto end;
     }
     result &= (s->dmatch_tail->type == DETECT_CONTENT);
-    result &= (s->pmatch == NULL);
+    result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
     data = (DetectContentData *)s->dmatch_tail->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
@@ -1272,7 +1272,7 @@ int DetectContentParseTest19(void)
         goto end;
     }
     result &= (s->dmatch_tail->type == DETECT_CONTENT);
-    result &= (s->pmatch == NULL);
+    result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
     data = (DetectContentData *)s->dmatch_tail->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
@@ -1301,7 +1301,7 @@ int DetectContentParseTest19(void)
         goto end;
     }
     result &= (s->dmatch_tail->type == DETECT_CONTENT);
-    result &= (s->pmatch == NULL);
+    result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
     data = (DetectContentData *)s->dmatch_tail->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
@@ -1330,7 +1330,7 @@ int DetectContentParseTest19(void)
         goto end;
     }
     result &= (s->dmatch_tail->type == DETECT_CONTENT);
-    result &= (s->pmatch == NULL);
+    result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
     data = (DetectContentData *)s->dmatch_tail->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
@@ -1359,7 +1359,7 @@ int DetectContentParseTest19(void)
         goto end;
     }
     result &= (s->dmatch_tail->type == DETECT_CONTENT);
-    result &= (s->pmatch == NULL);
+    result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
     data = (DetectContentData *)s->dmatch_tail->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
@@ -1385,7 +1385,7 @@ int DetectContentParseTest19(void)
         result = 0;
         goto end;
     }
-    result &= (s->pmatch != NULL);
+    result &= (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 
  end:
     SigGroupCleanup(de_ctx);
@@ -1535,13 +1535,13 @@ int DetectContentParseTest24(void)
         goto end;
     }
 
-    if (s->pmatch_tail == NULL && s->pmatch_tail->ctx) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL && s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx) {
         printf("de_ctx->pmatch_tail == NULL && de_ctx->pmatch_tail->ctx\n");
         result = 0;
         goto end;
     }
 
-    cd = (DetectContentData *)s->pmatch_tail->ctx;
+    cd = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     result = (strncmp("boo", (char *)cd->content, cd->content_len) == 0);
 
  end:

@@ -193,17 +193,17 @@ void SigMatchAppendUricontent(Signature *s, SigMatch *new) {
 }
 
 void SigMatchAppendPayload(Signature *s, SigMatch *new) {
-    if (s->pmatch == NULL) {
-        s->pmatch = new;
-        s->pmatch_tail = new;
+    if (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+        s->sm_lists[DETECT_SM_LIST_PMATCH] = new;
+        s->sm_lists_tail[DETECT_SM_LIST_PMATCH] = new;
         new->next = NULL;
         new->prev = NULL;
     } else {
-        SigMatch *cur = s->pmatch_tail;
+        SigMatch *cur = s->sm_lists_tail[DETECT_SM_LIST_PMATCH];
         cur->next = new;
         new->prev = cur;
         new->next = NULL;
-        s->pmatch_tail = new;
+        s->sm_lists_tail[DETECT_SM_LIST_PMATCH] = new;
     }
 
     new->idx = s->sm_cnt;
@@ -290,13 +290,13 @@ void SigMatchAppendPacket(Signature *s, SigMatch *new) {
 void SigMatchReplaceContent(Signature *s, SigMatch *old, SigMatch *new) {
     BUG_ON(old == NULL);
 
-    SigMatch *m = s->pmatch;
+    SigMatch *m = s->sm_lists[DETECT_SM_LIST_PMATCH];
     SigMatch *pm = m;
 
     for ( ; m != NULL; m = m->next) {
         if (m == old) {
-            if (m == s->pmatch) {
-                s->pmatch = m->next;
+            if (m == s->sm_lists[DETECT_SM_LIST_PMATCH]) {
+                s->sm_lists[DETECT_SM_LIST_PMATCH] = m->next;
                 if (m->next != NULL) {
                     m->next->prev = NULL;
                 }
@@ -307,15 +307,15 @@ void SigMatchReplaceContent(Signature *s, SigMatch *old, SigMatch *new) {
                 }
             }
 
-            if (m == s->pmatch_tail) {
+            if (m == s->sm_lists_tail[DETECT_SM_LIST_PMATCH]) {
                 if (pm == m) {
-                    s->pmatch_tail = NULL;
+                    s->sm_lists_tail[DETECT_SM_LIST_PMATCH] = NULL;
                 } else {
-                    s->pmatch_tail = pm;
+                    s->sm_lists_tail[DETECT_SM_LIST_PMATCH] = pm;
                 }
             }
 
-            //printf("m %p  s->pmatch %p s->pmatch_tail %p\n", m, s->pmatch, s->pmatch_tail);
+            //printf("m %p  s->sm_lists[DETECT_SM_LIST_PMATCH] %p s->sm_lists_tail[DETECT_SM_LIST_PMATCH] %p\n", m, s->sm_lists[DETECT_SM_LIST_PMATCH], s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
             break;
         }
 
@@ -354,13 +354,13 @@ void SigMatchReplaceContent(Signature *s, SigMatch *old, SigMatch *new) {
 void SigMatchReplaceContentToUricontent(Signature *s, SigMatch *old, SigMatch *new) {
     BUG_ON(old == NULL);
 
-    SigMatch *m = s->pmatch;
+    SigMatch *m = s->sm_lists[DETECT_SM_LIST_PMATCH];
     SigMatch *pm = m;
 
     for ( ; m != NULL; m = m->next) {
         if (m == old) {
-            if (m == s->pmatch) {
-                s->pmatch = m->next;
+            if (m == s->sm_lists[DETECT_SM_LIST_PMATCH]) {
+                s->sm_lists[DETECT_SM_LIST_PMATCH] = m->next;
                 if (m->next != NULL) {
                     m->next->prev = NULL;
                 }
@@ -371,15 +371,15 @@ void SigMatchReplaceContentToUricontent(Signature *s, SigMatch *old, SigMatch *n
                 }
             }
 
-            if (m == s->pmatch_tail) {
+            if (m == s->sm_lists_tail[DETECT_SM_LIST_PMATCH]) {
                 if (pm == m) {
-                    s->pmatch_tail = NULL;
+                    s->sm_lists_tail[DETECT_SM_LIST_PMATCH] = NULL;
                 } else {
-                    s->pmatch_tail = pm;
+                    s->sm_lists_tail[DETECT_SM_LIST_PMATCH] = pm;
                 }
             }
 
-            //printf("m %p  s->pmatch %p s->pmatch_tail %p\n", m, s->pmatch, s->pmatch_tail);
+            //printf("m %p  s->sm_lists[DETECT_SM_LIST_PMATCH] %p s->sm_lists_tail[DETECT_SM_LIST_PMATCH] %p\n", m, s->sm_lists[DETECT_SM_LIST_PMATCH], s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
             break;
         }
 
@@ -1051,7 +1051,7 @@ void SigFree(Signature *s) {
         sm = nsm;
     }
 
-    sm = s->pmatch;
+    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
     while (sm != NULL) {
         nsm = sm->next;
         SigMatchFree(sm);
@@ -1279,7 +1279,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
 
     /* see if need to set the SIG_FLAG_MPM flag */
     SigMatch *sm;
-    for (sm = sig->pmatch; sm != NULL; sm = sm->next) {
+    for (sm = sig->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_CONTENT) {
             DetectContentData *cd = (DetectContentData *)sm->ctx;
             if (cd == NULL)
@@ -1308,7 +1308,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
     if (sig->flags & SIG_FLAG_MPM) {
         sig->mpm_content_maxlen = 0;
 
-        for (sm = sig->pmatch; sm != NULL; sm = sm->next) {
+        for (sm = sig->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
                  if (cd == NULL)
@@ -1421,7 +1421,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
 
     /* see if need to set the SIG_FLAG_MPM flag */
     SigMatch *sm;
-    for (sm = sig->pmatch; sm != NULL; sm = sm->next) {
+    for (sm = sig->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_CONTENT) {
             DetectContentData *cd = (DetectContentData *)sm->ctx;
             if (cd == NULL)
@@ -1450,7 +1450,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
     if (sig->flags & SIG_FLAG_MPM) {
         sig->mpm_content_maxlen = 0;
 
-        for (sm = sig->pmatch; sm != NULL; sm = sm->next) {
+        for (sm = sig->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_CONTENT) {
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
                 if (cd == NULL)
@@ -1499,7 +1499,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
             sig->next->mpm_content_maxlen = 0;
 
             SigMatch *sm;
-            for (sm = sig->next->pmatch; sm != NULL; sm = sm->next) {
+            for (sm = sig->next->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
                 if (sm->type == DETECT_CONTENT) {
                     DetectContentData *cd = (DetectContentData *)sm->ctx;
                     if (cd == NULL)

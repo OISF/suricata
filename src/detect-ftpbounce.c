@@ -208,7 +208,7 @@ int DetectFtpbounceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (!(PKT_IS_TCP(p)))
         return 0;
 
-    SigMatch *sm = SigMatchGetLastSM(s->pmatch_tail, DETECT_CONTENT);
+    SigMatch *sm = SigMatchGetLastSM(s->sm_lists_tail[DETECT_SM_LIST_PMATCH], DETECT_CONTENT);
     if (sm == NULL)
         return 0;
 

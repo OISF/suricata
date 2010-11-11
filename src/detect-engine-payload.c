@@ -371,7 +371,7 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
     SCEnter();
     int r = 0;
 
-    if (s->pmatch == NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
         SCReturnInt(0);
     }
 
@@ -379,7 +379,7 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
     det_ctx->discontinue_matching = 0;
     det_ctx->inspection_recursion_counter = 0;
 
-    r = DoInspectPacketPayload(de_ctx, det_ctx, s, s->pmatch, p, f, p->payload, p->payload_len);
+    r = DoInspectPacketPayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_PMATCH], p, f, p->payload, p->payload_len);
     if (r == 1) {
         SCReturnInt(1);
     }
@@ -411,13 +411,13 @@ int DetectEngineInspectStreamPayload(DetectEngineCtx *de_ctx,
     SCEnter();
     int r = 0;
 
-    if (s->pmatch == NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
         SCReturnInt(0);
     }
 
     det_ctx->payload_offset = 0;
 
-    r = DoInspectPacketPayload(de_ctx, det_ctx, s, s->pmatch, NULL, f, payload, payload_len);
+    r = DoInspectPacketPayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_PMATCH], NULL, f, payload, payload_len);
     if (r == 1) {
         SCReturnInt(1);
     }

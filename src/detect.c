@@ -267,7 +267,7 @@ void EngineAnalysisFastPattern(Signature *s)
     DetectContentData *fp_cd = NULL;
     SigMatch *sm = NULL;
 
-    for (sm = s->pmatch; sm != NULL; sm = sm->next) {
+    for (sm = s->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
         if (sm->type != DETECT_CONTENT)
             continue;
 
@@ -1094,7 +1094,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         /* Check the payload keywords. If we are a MPM sig and we've made
          * to here, we've had at least one of the patterns match */
-        if (s->pmatch != NULL) {
+        if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
             /* if we have stream msgs, inspect against those first,
              * but not for a "dsize" signature */
             if (!(s->flags & SIG_FLAG_DSIZE) && smsg != NULL) {
@@ -1445,7 +1445,7 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
         }
     }
 
-    if (s->pmatch != NULL)
+    if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL)
         return 0;
 
     if (s->umatch != NULL)
@@ -1482,11 +1482,11 @@ iponly:
  */
 static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, Signature *s) {
 
-    if (s->pmatch != NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
         return 1;
     }
 #if 0
-    SigMatch *sm = s->pmatch;
+    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
     if (sm == NULL)
         return 0;
 
@@ -1513,7 +1513,7 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, Signature *s) {
     if (s->alproto != ALPROTO_UNKNOWN)
         return 0;
 
-    if (s->pmatch != NULL)
+    if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL)
         return 0;
 
     if (s->umatch != NULL)
@@ -1594,7 +1594,7 @@ PacketCreateMask(Packet *p, SignatureMask *mask, uint16_t alproto, void *alstate
 static int SignatureCreateMask(Signature *s) {
     SCEnter();
 
-    if (s->pmatch != NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
         SCLogDebug("sig requires payload");
     }
@@ -7449,16 +7449,16 @@ int SigTest37ContentAndIsdataatKeywords02Real (int mpm_type) {
         goto end;
     }
 
-    if (s->pmatch->type != DETECT_CONTENT) {
+    if (s->sm_lists[DETECT_SM_LIST_PMATCH]->type != DETECT_CONTENT) {
         printf("type not content: ");
         goto end;
     }
 /*
-    if (s->pmatch->next == NULL) {
-        printf("s->pmatch->next == NULL: ");
+    if (s->sm_lists[DETECT_SM_LIST_PMATCH]->next == NULL) {
+        printf("s->sm_lists[DETECT_SM_LIST_PMATCH]->next == NULL: ");
         goto end;
     }
-    if (s->pmatch->next->type != DETECT_ISDATAAT) {
+    if (s->sm_lists[DETECT_SM_LIST_PMATCH]->next->type != DETECT_ISDATAAT) {
         printf("type not isdataat: ");
         goto end;
     }
@@ -7630,7 +7630,7 @@ int SigTest40NoPayloadInspection02(void) {
     }
 
 //    sigmatch_table[DETECT_CONTENT].flags |= SIGMATCH_PAYLOAD;
-//    de_ctx->sig_list->pmatch->type = DETECT_CONTENT;
+//    de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH]->type = DETECT_CONTENT;
 
     SigGroupBuild(de_ctx);
     //PatternMatchPrepare(mpm_ctx,MPM_B2G);

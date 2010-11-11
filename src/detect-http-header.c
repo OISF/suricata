@@ -205,13 +205,13 @@ int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         return -1;
     }
 
-    if (s->pmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "http_header found inside the "
                    "rule, without any preceding content keywords");
         return -1;
     }
 
-    sm = DetectContentGetLastPattern(s->pmatch_tail);
+    sm = DetectContentGetLastPattern(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
     /* if still we are unable to find any content previous keywords, it is an
      * invalid rule */
     if (sm == NULL) {
@@ -1350,8 +1350,8 @@ int DetectHttpHeaderTest14(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->pmatch == NULL) {
-        printf("de_ctx->sig_list->pmatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
         goto end;
     }
 
@@ -1360,7 +1360,7 @@ int DetectHttpHeaderTest14(void)
         goto end;
     }
 
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     DetectHttpHeaderData *hhd = de_ctx->sig_list->amatch_tail->ctx;
     if (cd->id == hhd->id)
         goto end;
@@ -1389,8 +1389,8 @@ int DetectHttpHeaderTest15(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->pmatch == NULL) {
-        printf("de_ctx->sig_list->pmatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
         goto end;
     }
 
@@ -1399,7 +1399,7 @@ int DetectHttpHeaderTest15(void)
         goto end;
     }
 
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     DetectHttpHeaderData *hhd = de_ctx->sig_list->amatch_tail->ctx;
     if (cd->id == hhd->id)
         goto end;
@@ -1428,8 +1428,8 @@ int DetectHttpHeaderTest16(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->pmatch == NULL) {
-        printf("de_ctx->sig_list->pmatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
         goto end;
     }
 
@@ -1438,7 +1438,7 @@ int DetectHttpHeaderTest16(void)
         goto end;
     }
 
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     DetectHttpHeaderData *hhd = de_ctx->sig_list->amatch_tail->ctx;
     if (cd->id != 0 || hhd->id != 1)
         goto end;
@@ -1467,8 +1467,8 @@ int DetectHttpHeaderTest17(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->pmatch == NULL) {
-        printf("de_ctx->sig_list->pmatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
         goto end;
     }
 
@@ -1477,7 +1477,7 @@ int DetectHttpHeaderTest17(void)
         goto end;
     }
 
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     DetectHttpHeaderData *hhd = de_ctx->sig_list->amatch_tail->ctx;
     if (cd->id != 1 || hhd->id != 0)
         goto end;
@@ -1507,8 +1507,8 @@ int DetectHttpHeaderTest18(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->pmatch == NULL) {
-        printf("de_ctx->sig_list->pmatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
         goto end;
     }
 
@@ -1517,7 +1517,7 @@ int DetectHttpHeaderTest18(void)
         goto end;
     }
 
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     DetectHttpHeaderData *hhd1 = de_ctx->sig_list->amatch_tail->ctx;
     DetectHttpHeaderData *hhd2 = de_ctx->sig_list->amatch_tail->prev->ctx;
     if (cd->id != 1 || hhd1->id != 0 || hhd2->id != 0)
@@ -1548,8 +1548,8 @@ int DetectHttpHeaderTest19(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->pmatch == NULL) {
-        printf("de_ctx->sig_list->pmatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] == NULL\n");
         goto end;
     }
 
@@ -1558,7 +1558,7 @@ int DetectHttpHeaderTest19(void)
         goto end;
     }
 
-    DetectContentData *cd = de_ctx->sig_list->pmatch_tail->ctx;
+    DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     DetectHttpHeaderData *hhd1 = de_ctx->sig_list->amatch_tail->ctx;
     DetectHttpHeaderData *hhd2 = de_ctx->sig_list->amatch_tail->prev->ctx;
     if (cd->id != 2 || hhd1->id != 0 || hhd2->id != 0)

@@ -68,7 +68,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
             /* add to the latest "content" keyword from either dmatch or pmatch */
             pm =  SigMatchGetLastSMFromLists(s, 4,
                                              DETECT_CONTENT, s->dmatch_tail,
-                                             DETECT_CONTENT, s->pmatch_tail);
+                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
             if (pm == NULL) {
                 SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "offset needs"
                            "preceeding content option for dcerpc sig");
@@ -81,7 +81,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
 
         default:
             pm = SigMatchGetLastSMFromLists(s, 4,
-                                            DETECT_CONTENT, s->pmatch_tail,
+                                            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                             DETECT_URICONTENT, s->umatch_tail);
             if (pm == NULL) {
                 SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "distance needs"
