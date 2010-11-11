@@ -71,7 +71,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                                              DETECT_CONTENT, s->dmatch_tail,
                                              DETECT_CONTENT, s->pmatch_tail);
             if (pm == NULL) {
-                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "depth needs"
+                SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs "
                            "preceeding content option for dcerpc sig");
                 if (dubbed)
                     SCFree(str);
@@ -85,7 +85,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                                              DETECT_CONTENT, s->pmatch_tail,
                                              DETECT_URICONTENT, s->umatch_tail);
             if (pm == NULL) {
-                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "distance needs"
+                SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs "
                            "preceeding content or uricontent option");
                 if (dubbed)
                     SCFree(str);
