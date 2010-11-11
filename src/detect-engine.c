@@ -238,8 +238,8 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
         }
     } else {
         SCLogInfo("You have not supplied a value for "
-                  "detect-engine.sgh-mpm-context.  Using default value of full");
-        de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
+                  "detect-engine.sgh-mpm-context. Using default value of \"auto\"");
+        de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_AUTO;
     }
 
 
