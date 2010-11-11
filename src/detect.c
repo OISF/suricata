@@ -3718,6 +3718,7 @@ void SigTableSetup(void) {
     DetectUrilenRegister();
     DetectDetectionFilterRegister();
     DetectHttpHeaderRegister();
+    DetectHttpRawHeaderRegister();
     DetectHttpClientBodyRegister();
     DetectHttpUriRegister();
     DetectAsn1Register();

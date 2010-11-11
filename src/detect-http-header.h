@@ -38,5 +38,6 @@ typedef struct DetectHttpHeaderData_ {
 } DetectHttpHeaderData;
 
 void DetectHttpHeaderRegister(void);
+void DetectHttpRawHeaderRegister(void);
 
 #endif /* __DETECT_HTTP_HEADER_H__ */

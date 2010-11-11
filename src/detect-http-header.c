@@ -21,6 +21,8 @@
  * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
  *
  * Implements support for the http_header keyword
+ *
+ * \todo this is actually the raw match
  */
 
 #include "suricata-common.h"
@@ -72,6 +74,23 @@ void DetectHttpHeaderRegister(void)
     sigmatch_table[DETECT_AL_HTTP_HEADER].RegisterTests = DetectHttpHeaderRegisterTests;
 
     sigmatch_table[DETECT_AL_HTTP_HEADER].flags |= SIGMATCH_PAYLOAD ;
+}
+
+/**
+ * \brief Registers the keyword handlers for the "http_raw_header" keyword.
+ */
+void DetectHttpRawHeaderRegister(void)
+{
+    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].name = "http_raw_header";
+    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].Match = NULL;
+    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].AppLayerMatch = DetectHttpHeaderMatch;
+    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].alproto = ALPROTO_HTTP;
+    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].Setup = DetectHttpHeaderSetup;
+    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].Free  = DetectHttpHeaderFree;
+    //sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].RegisterTests = DetectHttpHeaderRegisterTests;
+    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].RegisterTests = NULL;
+
+    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].flags |= SIGMATCH_PAYLOAD ;
 }
 
 /**
