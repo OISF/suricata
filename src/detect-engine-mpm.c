@@ -435,8 +435,8 @@ uint32_t UricontentHashFunc(HashTable *ht, void *data, uint16_t datalen) {
      DetectUricontentData *ud = ch->ptr;
      uint32_t hash = 0;
      int i;
-     for (i = 0; i < ud->uricontent_len; i++) {
-         hash += ud->uricontent[i];
+     for (i = 0; i < ud->content_len; i++) {
+         hash += ud->content[i];
      }
      hash = hash % ht->array_size;
      SCLogDebug("hash %" PRIu32 "", hash);
@@ -463,9 +463,9 @@ char UricontentHashCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t
     DetectUricontentData *ud1 = ch1->ptr;
     DetectUricontentData *ud2 = ch2->ptr;
 
-    if (ud1->uricontent_len == ud2->uricontent_len &&
+    if (ud1->content_len == ud2->content_len &&
         ((ud1->flags & DETECT_URICONTENT_NOCASE) == (ud2->flags & DETECT_URICONTENT_NOCASE)) &&
-        SCMemcmp(ud1->uricontent, ud2->uricontent, ud1->uricontent_len) == 0)
+        SCMemcmp(ud1->content, ud2->content, ud1->content_len) == 0)
         return 1;
 
     return 0;
@@ -1140,7 +1140,7 @@ static int PatternMatchPreprarePopulateMpmUri(DetectEngineCtx *de_ctx, SigGroupH
             if (ud == NULL)
                 continue;
 
-            if (ud->uricontent_len < sgh->mpm_uricontent_maxlen) {
+            if (ud->content_len < sgh->mpm_uricontent_maxlen) {
                 continue;
             }
 
@@ -1198,7 +1198,7 @@ static int PatternMatchPreprarePopulateMpmUri(DetectEngineCtx *de_ctx, SigGroupH
 
             } else
 #endif
-            if (ud->uricontent_len < sgh->mpm_uricontent_maxlen) {
+            if (ud->content_len < sgh->mpm_uricontent_maxlen) {
                 continue;
             }
 
@@ -1217,15 +1217,15 @@ static int PatternMatchPreprarePopulateMpmUri(DetectEngineCtx *de_ctx, SigGroupH
                 SCLogDebug("mpm_ch == NULL, so selecting lookup_ch->ptr->id %"PRIu32"", lookup_ch->ptr->id);
                 mpm_ch = lookup_ch;
             } else {
-                uint32_t ls = PatternStrength(lookup_ch->ptr->uricontent,lookup_ch->ptr->uricontent_len);
-                uint32_t ss = PatternStrength(mpm_ch->ptr->uricontent,mpm_ch->ptr->uricontent_len);
+                uint32_t ls = PatternStrength(lookup_ch->ptr->content,lookup_ch->ptr->content_len);
+                uint32_t ss = PatternStrength(mpm_ch->ptr->content,mpm_ch->ptr->content_len);
                 if (ls > ss) {
                     SCLogDebug("lookup_ch->ptr->id %"PRIu32" selected over %"PRIu32"", lookup_ch->ptr->id, mpm_ch->ptr->id);
                     mpm_ch = lookup_ch;
                 }
                 else if (ls == ss) {
                     /* if 2 patterns are of equal strength, we pick the longest */
-                    if (lookup_ch->ptr->uricontent_len > mpm_ch->ptr->uricontent_len) {
+                    if (lookup_ch->ptr->content_len > mpm_ch->ptr->content_len) {
                         SCLogDebug("lookup_ch->ptr->id %"PRIu32" selected over %"PRIu32" as the first is longer",
                                 lookup_ch->ptr->id, mpm_ch->ptr->id);
                         mpm_ch = lookup_ch;
@@ -1264,10 +1264,10 @@ static int PatternMatchPreprarePopulateMpmUri(DetectEngineCtx *de_ctx, SigGroupH
             /* add the content to the "packet" mpm */
             if (ud->flags & DETECT_URICONTENT_NOCASE) {
                 mpm_table[sgh->mpm_uri_ctx->mpm_type].AddPatternNocase(sgh->mpm_uri_ctx,
-                        ud->uricontent, ud->uricontent_len, 0, 0, ud->id, s->num, flags);
+                        ud->content, ud->content_len, 0, 0, ud->id, s->num, flags);
             } else {
                 mpm_table[sgh->mpm_uri_ctx->mpm_type].AddPattern(sgh->mpm_uri_ctx,
-                        ud->uricontent, ud->uricontent_len, 0, 0, ud->id,
+                        ud->content, ud->content_len, 0, 0, ud->id,
                         s->num, flags);
             }
 
@@ -1500,13 +1500,13 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 if (ud == NULL)
                     continue;
 
-                if (ud->uricontent_len > uricontent_maxlen)
-                    uricontent_maxlen = ud->uricontent_len;
+                if (ud->content_len > uricontent_maxlen)
+                    uricontent_maxlen = ud->content_len;
 
                 if (uricontent_minlen == 0)
-                    uricontent_minlen = ud->uricontent_len;
-                else if (ud->uricontent_len < uricontent_minlen)
-                    uricontent_minlen = ud->uricontent_len;
+                    uricontent_minlen = ud->content_len;
+                else if (ud->content_len < uricontent_minlen)
+                    uricontent_minlen = ud->content_len;
 
                 if (!uricontent_added) {
                     uricontent_added = 1;
@@ -1734,10 +1734,10 @@ uint32_t DetectUricontentGetId(MpmPatternIdStore *ht, DetectUricontentData *co) 
 
     e = malloc(sizeof(MpmPatternIdTableElmt));
     BUG_ON(e == NULL);
-    e->pattern = SCMalloc(co->uricontent_len);
+    e->pattern = SCMalloc(co->content_len);
     BUG_ON(e->pattern == NULL);
-    memcpy(e->pattern, co->uricontent, co->uricontent_len);
-    e->pattern_len = co->uricontent_len;
+    memcpy(e->pattern, co->content, co->content_len);
+    e->pattern_len = co->content_len;
     e->sm_type = DETECT_URICONTENT;
     e->dup_count = 1;
     e->id = 0;
@@ -1801,13 +1801,13 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_type)
      * we wouldn't have needed this if/else here */
     if (sm_type == DETECT_URICONTENT) {
         DetectUricontentData *ud = ctx;
-        e->pattern = SCMalloc(ud->uricontent_len);
+        e->pattern = SCMalloc(ud->content_len);
         if (e->pattern == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             exit(EXIT_FAILURE);
         }
-        memcpy(e->pattern, ud->uricontent, ud->uricontent_len);
-        e->pattern_len = ud->uricontent_len;
+        memcpy(e->pattern, ud->content, ud->content_len);
+        e->pattern_len = ud->content_len;
 
         /* CONTENT, HTTP_(CLIENT_BODY|METHOD|URI|COOKIE|HEADER) */
     } else {

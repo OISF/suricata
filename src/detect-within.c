@@ -208,19 +208,19 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
             }
 
             ud->within = strtol(str, NULL, 10);
-            if (ud->within < (int32_t)ud->uricontent_len) {
+            if (ud->within < (int32_t)ud->content_len) {
                 SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
                            "less than the content length \"%"PRIu32"\" which is invalid, since "
                            "this will never match.  Invalidating signature", ud->within,
-                           ud->uricontent_len);
+                           ud->content_len);
                 goto error;
             }
 
             ud->flags |= DETECT_URICONTENT_WITHIN;
 
             if (ud->flags & DETECT_URICONTENT_DISTANCE) {
-                if ((ud->distance + ud->uricontent_len) > ud->within) {
-                    ud->within = ud->distance + ud->uricontent_len;
+                if ((ud->distance + ud->content_len) > ud->within) {
+                    ud->within = ud->distance + ud->content_len;
                 }
             }
 

@@ -134,17 +134,17 @@ static int DetectHttpUriSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         goto error;
     memset(duc, 0, sizeof(DetectUricontentData));
 
-    duc->uricontent_len = ((DetectContentData *)pm->ctx)->content_len;
-    if ((duc->uricontent = SCMalloc(duc->uricontent_len)) == NULL)
+    duc->content_len = ((DetectContentData *)pm->ctx)->content_len;
+    if ((duc->content = SCMalloc(duc->content_len)) == NULL)
         goto error;
-    memcpy(duc->uricontent, ((DetectContentData *)pm->ctx)->content, duc->uricontent_len);
+    memcpy(duc->content, ((DetectContentData *)pm->ctx)->content, duc->content_len);
 
     duc->flags |= (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_NOCASE) ?
         DETECT_URICONTENT_NOCASE : 0;
     duc->flags |= (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_NEGATED) ?
         DETECT_URICONTENT_NEGATED : 0;
     duc->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, duc, DETECT_URICONTENT);
-    duc->bm_ctx = BoyerMooreCtxInit(duc->uricontent, duc->uricontent_len);
+    duc->bm_ctx = BoyerMooreCtxInit(duc->content, duc->content_len);
 
     nm->type = DETECT_URICONTENT;
     nm->ctx = (void *)duc;
@@ -171,8 +171,8 @@ static int DetectHttpUriSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
     return 0;
 error:
     if (duc != NULL) {
-        if (duc->uricontent != NULL)
-            SCFree(duc->uricontent);
+        if (duc->content != NULL)
+            SCFree(duc->content);
         SCFree(duc);
     }
     if(sm !=NULL) SCFree(sm);
@@ -335,8 +335,8 @@ int DetectHttpUriTest05(void)
     }
 
     char *str = "we are testing http_uri keyword";
-    int uricomp = memcmp((const char *)((DetectUricontentData*) s->sm_lists[DETECT_SM_LIST_UMATCH]->ctx)->uricontent, str, strlen(str)-1);
-    int urilen = ((DetectUricontentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx)->uricontent_len;
+    int uricomp = memcmp((const char *)((DetectUricontentData*) s->sm_lists[DETECT_SM_LIST_UMATCH]->ctx)->content, str, strlen(str)-1);
+    int urilen = ((DetectUricontentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx)->content_len;
     if (uricomp != 0 ||
         urilen != strlen("we are testing http_uri keyword")) {
         printf("sig failed to parse, content not setup properly\n");

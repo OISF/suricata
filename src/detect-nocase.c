@@ -203,7 +203,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
             }
             ud->flags |= DETECT_URICONTENT_NOCASE;
             /* Recreate the context with nocase chars */
-            BoyerMooreCtxToNocase(ud->bm_ctx, ud->uricontent, ud->uricontent_len);
+            BoyerMooreCtxToNocase(ud->bm_ctx, ud->content, ud->content_len);
             break;
 
         case DETECT_CONTENT:

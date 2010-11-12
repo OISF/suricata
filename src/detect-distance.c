@@ -204,8 +204,8 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
 
             ud->distance = strtol(str, NULL, 10);
             if (ud->flags & DETECT_URICONTENT_WITHIN) {
-                if ((ud->distance + ud->uricontent_len) > ud->within) {
-                    ud->within = ud->distance + ud->uricontent_len;
+                if ((ud->distance + ud->content_len) > ud->within) {
+                    ud->within = ud->distance + ud->content_len;
                 }
             }
 

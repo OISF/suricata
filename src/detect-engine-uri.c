@@ -189,15 +189,15 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
             SCLogDebug("spayload_len %"PRIu32, spayload_len);
             BUG_ON(spayload_len > payload_len);
 
-            //PrintawDataFp(stdout,ud->uricontent,ud->uricontent_len);
+            //PrintawDataFp(stdout,ud->content,ud->content_len);
 
             /* If we got no matches from the mpm, avoid searching (just check if negated) */
             if (det_ctx->de_have_httpuri == TRUE) {
                 /* do the actual search with boyer moore precooked ctx */
                 if (ud->flags & DETECT_URICONTENT_NOCASE)
-                    found = BoyerMooreNocase(ud->uricontent, ud->uricontent_len, spayload, spayload_len, ud->bm_ctx->bmGs, ud->bm_ctx->bmBc);
+                    found = BoyerMooreNocase(ud->content, ud->content_len, spayload, spayload_len, ud->bm_ctx->bmGs, ud->bm_ctx->bmBc);
                 else
-                    found = BoyerMoore(ud->uricontent, ud->uricontent_len, spayload, spayload_len, ud->bm_ctx->bmGs, ud->bm_ctx->bmBc);
+                    found = BoyerMoore(ud->content, ud->content_len, spayload, spayload_len, ud->bm_ctx->bmGs, ud->bm_ctx->bmBc);
             } else {
                 found = NULL;
             }
@@ -215,7 +215,7 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
                 det_ctx->discontinue_matching = 1;
                 SCReturnInt(0);
             } else {
-                match_offset = (uint32_t)((found - payload) + ud->uricontent_len);
+                match_offset = (uint32_t)((found - payload) + ud->content_len);
                 SCLogDebug("uricontent %"PRIu32" matched at offset %"PRIu32"", ud->id, match_offset);
                 det_ctx->payload_offset = match_offset;
 
@@ -239,7 +239,7 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
                     SCReturnInt(0);
 
                 /* set the previous match offset to the start of this match + 1 */
-                prev_offset = (match_offset - (ud->uricontent_len - 1));
+                prev_offset = (match_offset - (ud->content_len - 1));
                 SCLogDebug("trying to see if there is another match after prev_offset %"PRIu32, prev_offset);
             }
 

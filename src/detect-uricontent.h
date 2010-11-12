@@ -52,8 +52,8 @@
 #include "app-layer-htp.h"
 
 typedef struct DetectUricontentData_ {
-    uint8_t *uricontent;
-    uint8_t uricontent_len;
+    uint8_t *content;
+    uint8_t content_len;
     PatIntId id;
     uint32_t flags;
     uint16_t depth;

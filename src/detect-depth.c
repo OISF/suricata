@@ -122,8 +122,8 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
             }
 
             ud->depth = (uint32_t)atoi(str);
-            if (ud->depth < ud->uricontent_len) {
-                ud->depth = ud->uricontent_len;
+            if (ud->depth < ud->content_len) {
+                ud->depth = ud->content_len;
                 SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
                            ud->depth);
             }

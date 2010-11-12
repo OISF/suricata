@@ -101,8 +101,8 @@ void DetectUricontentFree(void *ptr) {
     if (cd == NULL)
         SCReturn;
 
-    if (cd->uricontent != NULL)
-        SCFree(cd->uricontent);
+    if (cd->content != NULL)
+        SCFree(cd->content);
 
     BoyerMooreCtxDeInit(cd->bm_ctx);
 
@@ -120,14 +120,14 @@ void DetectUricontentPrint(DetectUricontentData *cd)
         SCLogDebug("Detect UricontentData \"cd\" is NULL");
         return;
     }
-    char *tmpstr = SCMalloc(sizeof(char) * cd->uricontent_len + 1);
+    char *tmpstr = SCMalloc(sizeof(char) * cd->content_len + 1);
     if (tmpstr == NULL)
         return;
 
     if (tmpstr != NULL) {
-        for (i = 0; i < cd->uricontent_len; i++) {
-            if (isprint(cd->uricontent[i]))
-                tmpstr[i] = cd->uricontent[i];
+        for (i = 0; i < cd->content_len; i++) {
+            if (isprint(cd->content[i]))
+                tmpstr[i] = cd->content[i];
             else
                 tmpstr[i] = '.';
         }
@@ -136,12 +136,12 @@ void DetectUricontentPrint(DetectUricontentData *cd)
         SCFree(tmpstr);
     } else {
         SCLogDebug("Uricontent: ");
-        for (i = 0; i < cd->uricontent_len; i++)
-            SCLogDebug("%c", cd->uricontent[i]);
+        for (i = 0; i < cd->content_len; i++)
+            SCLogDebug("%c", cd->content[i]);
     }
 
     SCLogDebug("Uricontent_id: %"PRIu32, cd->id);
-    SCLogDebug("Uricontent_len: %"PRIu16, cd->uricontent_len);
+    SCLogDebug("Uricontent_len: %"PRIu16, cd->content_len);
     SCLogDebug("Depth: %"PRIu16, cd->depth);
     SCLogDebug("Offset: %"PRIu16, cd->offset);
     SCLogDebug("Within: %"PRIi32, cd->within);
@@ -324,22 +324,22 @@ DetectUricontentData *DoDetectUricontentSetup (char * contentstr)
 
     SCLogDebug("len %" PRIu32 "", len);
 
-    cd->uricontent = SCMalloc(len);
-    if (cd->uricontent == NULL) {
+    cd->content = SCMalloc(len);
+    if (cd->content == NULL) {
         SCFree(cd);
         SCFree(str);
         return NULL;;
     }
 
-    memcpy(cd->uricontent, str, len);
-    cd->uricontent_len = len;
+    memcpy(cd->content, str, len);
+    cd->content_len = len;
     cd->depth = 0;
     cd->offset = 0;
     cd->within = 0;
     cd->distance = 0;
 
     /* Prepare Boyer Moore context for searching faster */
-    cd->bm_ctx = BoyerMooreCtxInit(cd->uricontent, cd->uricontent_len);
+    cd->bm_ctx = BoyerMooreCtxInit(cd->content, cd->content_len);
 
     SCFree(str);
     return cd;
@@ -1782,7 +1782,7 @@ int DetectUriSigTest12(void)
     }
 
     ud = (DetectUricontentData *)s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
-    result = (strncmp("boo", (char *)ud->uricontent, ud->uricontent_len) == 0);
+    result = (strncmp("boo", (char *)ud->content, ud->content_len) == 0);
 
  end:
     SigGroupCleanup(de_ctx);

@@ -1331,9 +1331,9 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
                     continue;
 
                 if (sig->mpm_uricontent_maxlen == 0)
-                    sig->mpm_uricontent_maxlen = ud->uricontent_len;
-                if (sig->mpm_uricontent_maxlen < ud->uricontent_len)
-                    sig->mpm_uricontent_maxlen = ud->uricontent_len;
+                    sig->mpm_uricontent_maxlen = ud->content_len;
+                if (sig->mpm_uricontent_maxlen < ud->content_len)
+                    sig->mpm_uricontent_maxlen = ud->content_len;
             }
         }
     }
@@ -1472,9 +1472,9 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
                 if (ud == NULL)
                     continue;
                 if (sig->mpm_uricontent_maxlen == 0)
-                    sig->mpm_uricontent_maxlen = ud->uricontent_len;
-                if (sig->mpm_uricontent_maxlen < ud->uricontent_len)
-                    sig->mpm_uricontent_maxlen = ud->uricontent_len;
+                    sig->mpm_uricontent_maxlen = ud->content_len;
+                if (sig->mpm_uricontent_maxlen < ud->content_len)
+                    sig->mpm_uricontent_maxlen = ud->content_len;
             }
         }
     }
@@ -1522,9 +1522,9 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
                         continue;
 
                     if (sig->next->mpm_uricontent_maxlen == 0)
-                        sig->next->mpm_uricontent_maxlen = ud->uricontent_len;
-                    if (sig->next->mpm_uricontent_maxlen < ud->uricontent_len)
-                        sig->next->mpm_uricontent_maxlen = ud->uricontent_len;
+                        sig->next->mpm_uricontent_maxlen = ud->content_len;
+                    if (sig->next->mpm_uricontent_maxlen < ud->content_len)
+                        sig->next->mpm_uricontent_maxlen = ud->content_len;
                 }
             }
         }
