@@ -361,7 +361,7 @@ typedef struct Signature_ {
     //struct SigMatch_ *pmatch; /* payload matches */
     //struct SigMatch_ *umatch; /* uricontent payload matches */
     //struct SigMatch_ *amatch; /* general app layer matches */
-    struct SigMatch_ *dmatch; /* dce app layer matches */
+    //struct SigMatch_ *dmatch; /* dce app layer matches */
     //struct SigMatch_ *match; /* non-payload matches */
     struct SigMatch_ *tmatch; /* list of tags matches */
 
@@ -415,7 +415,7 @@ typedef struct Signature_ {
     //struct SigMatch_ *pmatch_tail; /* payload matches, tail of the list */
     //struct SigMatch_ *umatch_tail; /* uricontent payload matches, tail of the list */
     //struct SigMatch_ *amatch_tail; /* general app layer  matches, tail of the list */
-    struct SigMatch_ *dmatch_tail; /* dce app layer matches, tail of the list */
+    //struct SigMatch_ *dmatch_tail; /* dce app layer matches, tail of the list */
     struct SigMatch_ *tmatch_tail; /* tag matches, tail of the list */
 
     /** address settings for this signature */
@@ -665,7 +665,7 @@ typedef struct DetectionEngineThreadCtx_ {
     /* dce stub data len */
     uint32_t dce_stub_data_len;
     /* offset into the payload of the last match for dce related sigmatches,
-     * stored in Signature->dmatch, by content, pcre, etc */
+     * stored in s->sm_lists[DETECT_SM_LIST_DMATCH], by content, pcre, etc */
     uint32_t dce_payload_offset;
 
     /** array of signature pointers we're going to inspect in the detection

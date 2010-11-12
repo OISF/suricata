@@ -420,7 +420,7 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
     uint16_t dce_stub_data_len;
     int r = 0;
 
-    if (s->dmatch == NULL || dcerpc_state == NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL || dcerpc_state == NULL) {
         SCReturnInt(0);
     }
 
@@ -434,7 +434,7 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
         det_ctx->discontinue_matching = 0;
         det_ctx->inspection_recursion_counter = 0;
 
-        r = DoInspectDcePayload(de_ctx, det_ctx, s, s->dmatch, f,
+        r = DoInspectDcePayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_DMATCH], f,
                                 dce_stub_data, dce_stub_data_len, dcerpc_state);
         if (r == 1) {
             SCReturnInt(1);
@@ -451,7 +451,7 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
         det_ctx->discontinue_matching = 0;
         det_ctx->inspection_recursion_counter = 0;
 
-        r = DoInspectDcePayload(de_ctx, det_ctx, s, s->dmatch, f,
+        r = DoInspectDcePayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_DMATCH], f,
                                 dce_stub_data, dce_stub_data_len, dcerpc_state);
         if (r == 1) {
             SCReturnInt(1);
@@ -7807,7 +7807,7 @@ int DcePayloadParseTest25(void)
         goto end;
     }
 
-    if (s->dmatch_tail != NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] != NULL) {
         result = 0;
         goto end;
     }
@@ -7929,7 +7929,7 @@ int DcePayloadParseTest26(void)
         goto end;
     }
 
-    if (s->dmatch_tail != NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] != NULL) {
         result = 0;
         goto end;
     }
@@ -8055,7 +8055,7 @@ int DcePayloadParseTest27(void)
         goto end;
     }
 
-    if (s->dmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -8064,7 +8064,7 @@ int DcePayloadParseTest27(void)
         goto end;
     }
 
-    sm = s->dmatch;
+    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -8181,7 +8181,7 @@ int DcePayloadParseTest28(void)
         goto end;
     }
 
-    if (s->dmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -8190,7 +8190,7 @@ int DcePayloadParseTest28(void)
         goto end;
     }
 
-    sm = s->dmatch;
+    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -8309,7 +8309,7 @@ int DcePayloadParseTest29(void)
         goto end;
     }
 
-    if (s->dmatch_tail != NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] != NULL) {
         result = 0;
         goto end;
     }
@@ -8450,7 +8450,7 @@ int DcePayloadParseTest30(void)
         goto end;
     }
 
-    if (s->dmatch_tail != NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] != NULL) {
         result = 0;
         goto end;
     }
@@ -8596,7 +8596,7 @@ int DcePayloadParseTest31(void)
         goto end;
     }
 
-    if (s->dmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -8605,7 +8605,7 @@ int DcePayloadParseTest31(void)
         goto end;
     }
 
-    sm = s->dmatch;
+    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
     if (sm->type != DETECT_BYTEJUMP) {
         result = 0;
         goto end;
@@ -8742,7 +8742,7 @@ int DcePayloadParseTest32(void)
         goto end;
     }
 
-    if (s->dmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -8751,7 +8751,7 @@ int DcePayloadParseTest32(void)
         goto end;
     }
 
-    sm = s->dmatch;
+    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
     if (sm->type != DETECT_BYTEJUMP) {
         result = 0;
         goto end;
@@ -8888,7 +8888,7 @@ int DcePayloadParseTest33(void)
         goto end;
     }
 
-    if (s->dmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -8897,7 +8897,7 @@ int DcePayloadParseTest33(void)
         goto end;
     }
 
-    sm = s->dmatch;
+    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
     if (sm->type != DETECT_PCRE) {
         result = 0;
         goto end;
@@ -9030,7 +9030,7 @@ int DcePayloadParseTest34(void)
         goto end;
     }
 
-    if (s->dmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -9039,7 +9039,7 @@ int DcePayloadParseTest34(void)
         goto end;
     }
 
-    sm = s->dmatch;
+    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
     if (sm->type != DETECT_PCRE) {
         result = 0;
         goto end;
@@ -9151,7 +9151,7 @@ int DcePayloadParseTest35(void)
         goto end;
     }
 
-    if (s->dmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -9160,7 +9160,7 @@ int DcePayloadParseTest35(void)
         goto end;
     }
 
-    sm = s->dmatch;
+    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
     if (sm->type != DETECT_BYTETEST) {
         result = 0;
         goto end;
@@ -9238,7 +9238,7 @@ int DcePayloadParseTest36(void)
         goto end;
     }
 
-    if (s->dmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -9247,7 +9247,7 @@ int DcePayloadParseTest36(void)
         goto end;
     }
 
-    sm = s->dmatch;
+    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
     if (sm->type != DETECT_ISDATAAT) {
         result = 0;
         goto end;
@@ -9342,7 +9342,7 @@ int DcePayloadParseTest37(void)
         goto end;
     }
 
-    if (s->dmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -9351,7 +9351,7 @@ int DcePayloadParseTest37(void)
         goto end;
     }
 
-    sm = s->dmatch;
+    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
     if (sm->type != DETECT_BYTEJUMP) {
         result = 0;
         goto end;
@@ -9450,7 +9450,7 @@ int DcePayloadParseTest38(void)
         goto end;
     }
 
-    if (s->dmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -9459,7 +9459,7 @@ int DcePayloadParseTest38(void)
         goto end;
     }
 
-    sm = s->dmatch;
+    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
     if (sm->type != DETECT_PCRE) {
         result = 0;
         goto end;
@@ -9566,7 +9566,7 @@ int DcePayloadParseTest39(void)
         goto end;
     }
 
-    if (s->dmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -9597,7 +9597,7 @@ int DcePayloadParseTest39(void)
 
     result &= (sm->next == NULL);
 
-    sm = s->dmatch;
+    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
     data = (DetectContentData *)sm->ctx;
     if (data->flags & DETECT_CONTENT_RAWBYTES ||
         data->flags & DETECT_CONTENT_NOCASE ||
@@ -9654,7 +9654,7 @@ int DcePayloadParseTest40(void)
         goto end;
     }
 
-    if (s->dmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -9663,7 +9663,7 @@ int DcePayloadParseTest40(void)
         goto end;
     }
 
-    sm = s->dmatch;
+    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -9783,7 +9783,7 @@ int DcePayloadParseTest41(void)
         goto end;
     }
 
-    if (s->dmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -9792,7 +9792,7 @@ int DcePayloadParseTest41(void)
         goto end;
     }
 
-    sm = s->dmatch;
+    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
     if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
@@ -10107,7 +10107,7 @@ int DcePayloadParseTest44(void)
         goto end;
     }
 
-    if (s->dmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -10116,7 +10116,7 @@ int DcePayloadParseTest44(void)
         goto end;
     }
 
-    sm = s->dmatch;
+    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
     if (sm->type != DETECT_ISDATAAT) {
         result = 0;
         goto end;
@@ -10232,7 +10232,7 @@ int DcePayloadParseTest45(void)
         goto end;
     }
 
-    if (s->dmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -10241,7 +10241,7 @@ int DcePayloadParseTest45(void)
         goto end;
     }
 
-    sm = s->dmatch;
+    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
     if (sm->type != DETECT_BYTEJUMP) {
         result = 0;
         goto end;
@@ -10343,7 +10343,7 @@ int DcePayloadParseTest46(void)
         goto end;
     }
 
-    if (s->dmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
         result = 0;
         goto end;
     }
@@ -10352,7 +10352,7 @@ int DcePayloadParseTest46(void)
         goto end;
     }
 
-    sm = s->dmatch;
+    sm = s->sm_lists[DETECT_SM_LIST_DMATCH];
     if (sm->type != DETECT_BYTETEST) {
         result = 0;
         goto end;

@@ -255,9 +255,9 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                                         DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                         DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
         dm = SigMatchGetLastSMFromLists(s, 6,
-                                        DETECT_CONTENT, s->dmatch_tail,
-                                        DETECT_PCRE, s->dmatch_tail,
-                                        DETECT_BYTEJUMP, s->dmatch_tail);
+                                        DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
+                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
+                                        DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
 
         if (pm == NULL) {
             SigMatchAppendDcePayload(s, sm);
@@ -429,14 +429,14 @@ int DetectIsdataatTestParse04(void)
     s->alproto = ALPROTO_DCERPC;
 
     result &= (DetectIsdataatSetup(NULL, s, "30") == 0);
-    result &= (s->dmatch == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
+    result &= (s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
     SigFree(s);
 
     s = SigAlloc();
     s->alproto = ALPROTO_DCERPC;
     /* failure since we have no preceding content/pcre/bytejump */
     result &= (DetectIsdataatSetup(NULL, s, "30,relative") == 0);
-    result &= (s->dmatch != NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
+    result &= (s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL);
 
     SigFree(s);
 
@@ -469,12 +469,12 @@ int DetectIsdataatTestParse05(void)
         goto end;
     }
     s = de_ctx->sig_list;
-    if (s->dmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->dmatch_tail->type == DETECT_ISDATAAT);
-    data = (DetectIsdataatData *)s->dmatch_tail->ctx;
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_ISDATAAT);
+    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
     if ( !(data->flags & ISDATAAT_RELATIVE) ||
          (data->flags & ISDATAAT_RAWBYTES) ) {
         result = 0;
@@ -492,12 +492,12 @@ int DetectIsdataatTestParse05(void)
         goto end;
     }
     s = s->next;
-    if (s->dmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->dmatch_tail->type == DETECT_ISDATAAT);
-    data = (DetectIsdataatData *)s->dmatch_tail->ctx;
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_ISDATAAT);
+    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
     if ( !(data->flags & ISDATAAT_RELATIVE) ||
          (data->flags & ISDATAAT_RAWBYTES) ) {
         result = 0;
@@ -515,12 +515,12 @@ int DetectIsdataatTestParse05(void)
         goto end;
     }
     s = s->next;
-    if (s->dmatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] == NULL) {
         result = 0;
         goto end;
     }
-    result &= (s->dmatch_tail->type == DETECT_ISDATAAT);
-    data = (DetectIsdataatData *)s->dmatch_tail->ctx;
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->type == DETECT_ISDATAAT);
+    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_DMATCH]->ctx;
     if ( !(data->flags & ISDATAAT_RELATIVE) ||
          !(data->flags & ISDATAAT_RAWBYTES) ) {
         result = 0;
@@ -535,7 +535,7 @@ int DetectIsdataatTestParse05(void)
         goto end;
     }
     s = s->next;
-    if (s->dmatch_tail != NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_DMATCH] != NULL) {
         result = 0;
         goto end;
     }

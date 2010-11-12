@@ -93,9 +93,9 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                                           DETECT_DCE_STUB_DATA, s->sm_lists_tail[DETECT_SM_LIST_AMATCH]);
 
         dm_ots = SigMatchGetLastSMFromLists(s, 6,
-                                            DETECT_CONTENT, s->dmatch_tail,
-                                            DETECT_PCRE, s->dmatch_tail,
-                                            DETECT_BYTEJUMP, s->dmatch_tail);
+                                            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
+                                            DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
+                                            DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
         pm1_ots = SigMatchGetLastSMFromLists(s, 6,
                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                              DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
@@ -107,7 +107,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                                                  DETECT_BYTEJUMP, pm1_ots->prev);
         }
 
-        dm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->dmatch_tail);
+        dm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
         pm1 = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
         if (pm1 != NULL && pm1->prev != NULL) {
             pm2 = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, pm1->prev);
@@ -126,7 +126,8 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                     SigMatchTransferSigMatchAcrossLists(pm1,
                                                         &s->sm_lists[DETECT_SM_LIST_PMATCH],
                                                         &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                                        &s->dmatch, &s->dmatch_tail);
+                                                        &s->sm_lists[DETECT_SM_LIST_DMATCH],
+                                                        &s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
                     pm = pm1;
                 } else {
                     /* within is against pm1 and we continue this way */
@@ -140,7 +141,8 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 SigMatchTransferSigMatchAcrossLists(pm1,
                                                     &s->sm_lists[DETECT_SM_LIST_PMATCH],
                                                     &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                                    &s->dmatch, &s->dmatch_tail);
+                                                    &s->sm_lists[DETECT_SM_LIST_DMATCH],
+                                                    &s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
                 pm = pm1;
             } else {
                 /* within is against pm1 and we continue this way */
@@ -158,7 +160,8 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 SigMatchTransferSigMatchAcrossLists(pm1,
                                                     &s->sm_lists[DETECT_SM_LIST_PMATCH],
                                                     &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                                    &s->dmatch, &s->dmatch_tail);
+                                                    &s->sm_lists[DETECT_SM_LIST_DMATCH],
+                                                    &s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
                 pm = pm1;
             } else {
                 /* within is against pm1, pm = pm1 */

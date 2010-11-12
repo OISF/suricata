@@ -211,18 +211,18 @@ void SigMatchAppendPayload(Signature *s, SigMatch *new) {
 }
 
 void SigMatchAppendDcePayload(Signature *s, SigMatch *new) {
-    SCLogDebug("Append SigMatch against Sigature->dmatch(dce) list");
-    if (s->dmatch == NULL) {
-        s->dmatch = new;
-        s->dmatch_tail = new;
+    SCLogDebug("Append SigMatch against s->sm_lists[DETECT_SM_LIST_DMATCH](dce) list");
+    if (s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL) {
+        s->sm_lists[DETECT_SM_LIST_DMATCH] = new;
+        s->sm_lists_tail[DETECT_SM_LIST_DMATCH] = new;
         new->next = NULL;
         new->prev = NULL;
     } else {
-        SigMatch *cur = s->dmatch_tail;
+        SigMatch *cur = s->sm_lists_tail[DETECT_SM_LIST_DMATCH];
         cur->next = new;
         new->prev = cur;
         new->next = NULL;
-        s->dmatch_tail = new;
+        s->sm_lists_tail[DETECT_SM_LIST_DMATCH] = new;
     }
 
     new->idx = s->sm_cnt;
@@ -1357,7 +1357,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
 
     if (sig->sm_lists[DETECT_SM_LIST_UMATCH])
         sig->flags |= SIG_FLAG_UMATCH;
-    if (sig->dmatch)
+    if (sig->sm_lists[DETECT_SM_LIST_DMATCH])
         sig->flags |= SIG_FLAG_AMATCH;
     if (sig->sm_lists[DETECT_SM_LIST_AMATCH])
         sig->flags |= SIG_FLAG_AMATCH;
@@ -1549,7 +1549,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
 
     if (sig->sm_lists[DETECT_SM_LIST_UMATCH])
         sig->flags |= SIG_FLAG_UMATCH;
-    if (sig->dmatch)
+    if (sig->sm_lists[DETECT_SM_LIST_DMATCH])
         sig->flags |= SIG_FLAG_AMATCH;
     if (sig->sm_lists[DETECT_SM_LIST_AMATCH])
         sig->flags |= SIG_FLAG_AMATCH;

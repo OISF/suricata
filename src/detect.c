@@ -1141,10 +1141,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
 
-        SCLogDebug("s->sm_lists[DETECT_SM_LIST_AMATCH] %p, s->sm_lists[DETECT_SM_LIST_UMATCH] %p, s->dmatch %p",
-                s->sm_lists[DETECT_SM_LIST_AMATCH], s->sm_lists[DETECT_SM_LIST_UMATCH], s->dmatch);
+        SCLogDebug("s->sm_lists[DETECT_SM_LIST_AMATCH] %p, s->sm_lists[DETECT_SM_LIST_UMATCH] %p, s->sm_lists[DETECT_SM_LIST_DMATCH] %p",
+                s->sm_lists[DETECT_SM_LIST_AMATCH], s->sm_lists[DETECT_SM_LIST_UMATCH], s->sm_lists[DETECT_SM_LIST_DMATCH]);
 
-        if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL || s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL || s->dmatch != NULL) {
+        if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL || s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL || s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL) {
             if (alstate == NULL) {
                 SCLogDebug("state matches but no state, we can't match");
                 goto next;
@@ -1599,7 +1599,7 @@ static int SignatureCreateMask(Signature *s) {
         SCLogDebug("sig requires payload");
     }
 
-    if (s->dmatch != NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_DCE_STATE;
         SCLogDebug("sig requires dce state");
     }

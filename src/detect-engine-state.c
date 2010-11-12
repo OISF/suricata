@@ -321,7 +321,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             }
         }
     } else if (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
-        if (s->dmatch != NULL) {
+        if (s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL) {
             dinspect = 1;
 
             SCLogDebug("inspecting dce payload");
@@ -496,7 +496,7 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                     }
                 }
             } else if (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
-                if (s->dmatch != NULL) {
+                if (s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL) {
                     if (!(item->flags & DE_STATE_FLAG_DCE_MATCH)) {
                         SCLogDebug("inspecting dce payload");
                         dinspect = 1;

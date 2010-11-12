@@ -70,7 +70,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
         case ALPROTO_DCERPC:
             /* add to the latest content keyword from either dmatch or pmatch */
             pm =  SigMatchGetLastSMFromLists(s, 4,
-                                             DETECT_CONTENT, s->dmatch_tail,
+                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
             if (pm == NULL) {
                 SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs "
