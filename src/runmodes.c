@@ -3191,7 +3191,8 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
     /* create the threads */
 
     /* receive nfq */
-    ThreadVars *tv_receivenfq = TmThreadCreatePacketHandler("ReceiveNFQ","packetpool","packetpool","pickup-queue","simple","1slot_noinout");
+    ThreadVars *tv_receivenfq = TmThreadCreatePacketHandler("ReceiveNFQ",
+            "packetpool","packetpool","pickup-queue","simple","1slot_noinout");
     if (tv_receivenfq == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(EXIT_FAILURE);
@@ -3215,7 +3216,8 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
     }
 
     /* decode and stream */
-    ThreadVars *tv_decode = TmThreadCreatePacketHandler("Decode1","pickup-queue","simple","decode-queue","simple","varslot");
+    ThreadVars *tv_decode = TmThreadCreatePacketHandler("Decode1",
+            "pickup-queue","simple","decode-queue","simple","varslot");
     if (tv_decode == NULL) {
         printf("ERROR: TmThreadsCreate failed for Decode1\n");
         exit(EXIT_FAILURE);
@@ -3265,7 +3267,8 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
         char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
 
-        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"decode-queue","simple","verdict-queue","simple","1slot");
+        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,
+                "decode-queue","simple","verdict-queue","simple","1slot");
         if (tv_detect_ncpu == NULL) {
             printf("ERROR: TmThreadsCreate failed\n");
             exit(EXIT_FAILURE);
@@ -3308,7 +3311,8 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
             cpu++;
     }
 
-    ThreadVars *tv_verdict = TmThreadCreatePacketHandler("Verdict","verdict-queue","simple","alert-queue","simple","varslot");
+    ThreadVars *tv_verdict = TmThreadCreatePacketHandler("Verdict",
+            "verdict-queue","simple","alert-queue","simple","varslot");
     if (tv_verdict == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(EXIT_FAILURE);
