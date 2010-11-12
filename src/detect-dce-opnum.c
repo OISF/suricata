@@ -380,7 +380,7 @@ static int DetectDceOpnumTestParse01(void)
     result &= (DetectDceOpnumSetup(NULL, s, "12,26,62,61,6513--") == -1);
     result &= (DetectDceOpnumSetup(NULL, s, "12-14,12,121,62-8") == -1);
 
-    if (s->amatch != NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
         SigFree(s);
         result &= 1;
     }
@@ -400,8 +400,8 @@ static int DetectDceOpnumTestParse02(void)
 
     result = (DetectDceOpnumSetup(NULL, s, "12") == 0);
 
-    if (s->amatch != NULL) {
-        temp = s->amatch;
+    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
+        temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
         dod = temp->ctx;
         if (dod == NULL)
             goto end;
@@ -429,8 +429,8 @@ static int DetectDceOpnumTestParse03(void)
 
     result = (DetectDceOpnumSetup(NULL, s, "12-24") == 0);
 
-    if (s->amatch != NULL) {
-        temp = s->amatch;
+    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
+        temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
         dod = temp->ctx;
         if (dod == NULL)
             goto end;
@@ -458,8 +458,8 @@ static int DetectDceOpnumTestParse04(void)
 
     result = (DetectDceOpnumSetup(NULL, s, "12-24,24,62-72,623-635,62,25,213-235") == 0);
 
-    if (s->amatch != NULL) {
-        temp = s->amatch;
+    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
+        temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
         dod = temp->ctx;
         if (dod == NULL)
             goto end;
@@ -524,8 +524,8 @@ static int DetectDceOpnumTestParse05(void)
 
     result = (DetectDceOpnumSetup(NULL, s, "1,2,3,4,5,6,7") == 0);
 
-    if (s->amatch != NULL) {
-        temp = s->amatch;
+    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
+        temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
         dod = temp->ctx;
         if (dod == NULL)
             goto end;
@@ -590,8 +590,8 @@ static int DetectDceOpnumTestParse06(void)
 
     result = (DetectDceOpnumSetup(NULL, s, "1-2,3-4,5-6,7-8") == 0);
 
-    if (s->amatch != NULL) {
-        temp = s->amatch;
+    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
+        temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
         dod = temp->ctx;
         if (dod == NULL)
             goto end;
@@ -638,8 +638,8 @@ static int DetectDceOpnumTestParse07(void)
 
     result = (DetectDceOpnumSetup(NULL, s, "1-2,3-4,5-6,7-8,9") == 0);
 
-    if (s->amatch != NULL) {
-        temp = s->amatch;
+    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
+        temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
         dod = temp->ctx;
         if (dod == NULL)
             goto end;

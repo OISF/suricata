@@ -88,9 +88,9 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
         SigMatch *pm2_ots = NULL;
 
         dcem = SigMatchGetLastSMFromLists(s, 6,
-                                          DETECT_DCE_IFACE, s->amatch_tail,
-                                          DETECT_DCE_OPNUM, s->amatch_tail,
-                                          DETECT_DCE_STUB_DATA, s->amatch_tail);
+                                          DETECT_DCE_IFACE, s->sm_lists_tail[DETECT_SM_LIST_AMATCH],
+                                          DETECT_DCE_OPNUM, s->sm_lists_tail[DETECT_SM_LIST_AMATCH],
+                                          DETECT_DCE_STUB_DATA, s->sm_lists_tail[DETECT_SM_LIST_AMATCH]);
 
         dm_ots = SigMatchGetLastSMFromLists(s, 6,
                                             DETECT_CONTENT, s->dmatch_tail,

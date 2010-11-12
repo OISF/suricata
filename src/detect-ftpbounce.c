@@ -297,7 +297,7 @@ int DetectFtpbounceTestSetup01(void)
 
     /* ftpbounce doesn't accept options so the str is NULL */
     res = !DetectFtpbounceSetup(de_ctx, s, NULL);
-    res &= s->amatch != NULL && s->amatch->type & DETECT_FTPBOUNCE;
+    res &= s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL && s->sm_lists[DETECT_SM_LIST_AMATCH]->type & DETECT_FTPBOUNCE;
 
     SigFree(s);
     return res;

@@ -364,7 +364,7 @@ int DetectHttpCookieTest03(void)
     }
 
     result = 0;
-    sm = de_ctx->sig_list->amatch;
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH];
     if (sm == NULL) {
         printf("no sigmatch(es): ");
         goto end;
@@ -457,9 +457,9 @@ int DetectHttpCookieTest06(void)
 
     Signature *s = de_ctx->sig_list;
 
-    BUG_ON(s->amatch == NULL);
+    BUG_ON(s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL);
 
-    if (s->amatch->type != DETECT_AL_HTTP_COOKIE)
+    if (s->sm_lists[DETECT_SM_LIST_AMATCH]->type != DETECT_AL_HTTP_COOKIE)
         goto end;
 
     if (s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL) {
@@ -500,13 +500,13 @@ int DetectHttpCookieTest07(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->amatch == NULL) {
-        printf("de_ctx->sig_list->amatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectHttpCookieData *hcd = de_ctx->sig_list->amatch_tail->ctx;
+    DetectHttpCookieData *hcd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
     if (cd->id == hcd->id)
         goto end;
 
@@ -539,13 +539,13 @@ int DetectHttpCookieTest08(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->amatch == NULL) {
-        printf("de_ctx->sig_list->amatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectHttpCookieData *hcd = de_ctx->sig_list->amatch_tail->ctx;
+    DetectHttpCookieData *hcd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
     if (cd->id == hcd->id)
         goto end;
 
@@ -578,13 +578,13 @@ int DetectHttpCookieTest09(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->amatch == NULL) {
-        printf("de_ctx->sig_list->amatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectHttpCookieData *hcd = de_ctx->sig_list->amatch_tail->ctx;
+    DetectHttpCookieData *hcd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
     if (cd->id != 0 || hcd->id != 1)
         goto end;
 
@@ -617,13 +617,13 @@ int DetectHttpCookieTest10(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->amatch == NULL) {
-        printf("de_ctx->sig_list->amatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectHttpCookieData *hcd = de_ctx->sig_list->amatch_tail->ctx;
+    DetectHttpCookieData *hcd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
     if (cd->id != 1 || hcd->id != 0)
         goto end;
 
@@ -657,14 +657,14 @@ int DetectHttpCookieTest11(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->amatch == NULL) {
-        printf("de_ctx->sig_list->amatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectHttpCookieData *hcd1 = de_ctx->sig_list->amatch_tail->ctx;
-    DetectHttpCookieData *hcd2 = de_ctx->sig_list->amatch_tail->prev->ctx;
+    DetectHttpCookieData *hcd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectHttpCookieData *hcd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->prev->ctx;
     if (cd->id != 1 || hcd1->id != 0 || hcd2->id != 0)
         goto end;
 
@@ -698,14 +698,14 @@ int DetectHttpCookieTest12(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->amatch == NULL) {
-        printf("de_ctx->sig_list->amatch == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectHttpCookieData *hcd1 = de_ctx->sig_list->amatch_tail->ctx;
-    DetectHttpCookieData *hcd2 = de_ctx->sig_list->amatch_tail->prev->ctx;
+    DetectHttpCookieData *hcd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectHttpCookieData *hcd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->prev->ctx;
     if (cd->id != 2 || hcd1->id != 0 || hcd2->id != 0)
         goto end;
 

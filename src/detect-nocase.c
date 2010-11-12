@@ -73,13 +73,13 @@ static SigMatch *SigMatchGetLastNocasePattern(Signature *s) {
     SigMatch *co_sm = DetectContentGetLastPattern(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
     SigMatch *ur_sm = SigMatchGetLastSM(s->sm_lists_tail[DETECT_SM_LIST_UMATCH], DETECT_URICONTENT);
     /* http client body SigMatch */
-    SigMatch *hcbd_sm = SigMatchGetLastSM(s->amatch_tail, DETECT_AL_HTTP_CLIENT_BODY);
+    SigMatch *hcbd_sm = SigMatchGetLastSM(s->sm_lists_tail[DETECT_SM_LIST_AMATCH], DETECT_AL_HTTP_CLIENT_BODY);
     /* http cookie SigMatch */
-    SigMatch *hcd_sm = SigMatchGetLastSM(s->amatch_tail, DETECT_AL_HTTP_COOKIE);
+    SigMatch *hcd_sm = SigMatchGetLastSM(s->sm_lists_tail[DETECT_SM_LIST_AMATCH], DETECT_AL_HTTP_COOKIE);
     /* http header SigMatch */
-    SigMatch *hhd_sm = SigMatchGetLastSM(s->amatch_tail, DETECT_AL_HTTP_HEADER);
+    SigMatch *hhd_sm = SigMatchGetLastSM(s->sm_lists_tail[DETECT_SM_LIST_AMATCH], DETECT_AL_HTTP_HEADER);
     /* http method SigMatch */
-    SigMatch *hmd_sm = SigMatchGetLastSM(s->amatch_tail, DETECT_AL_HTTP_METHOD);
+    SigMatch *hmd_sm = SigMatchGetLastSM(s->sm_lists_tail[DETECT_SM_LIST_AMATCH], DETECT_AL_HTTP_METHOD);
 
     SigMatch *temp_sm = NULL;
 

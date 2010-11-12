@@ -161,7 +161,7 @@ static int DetectDceStubDataTestParse01(void)
 
     result = (DetectDceStubDataSetup(NULL, &s, NULL) == 0);
 
-    if (s.amatch != NULL) {
+    if (s.sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
         result = 1;
     } else {
         result = 0;

@@ -411,11 +411,11 @@ static int DetectDceIfaceTestParse01(void)
 
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC") == 0);
 
-    if (s->amatch == NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
         SCReturnInt(0);
     }
 
-    temp = s->amatch;
+    temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
     did = temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
@@ -451,11 +451,11 @@ static int DetectDceIfaceTestParse02(void)
 
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,>1") == 0);
 
-    if (s->amatch == NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
         SCReturnInt(0);
     }
 
-    temp = s->amatch;
+    temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
     did = temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
@@ -491,11 +491,11 @@ static int DetectDceIfaceTestParse03(void)
 
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,<10") == 0);
 
-    if (s->amatch == NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
         SCReturnInt(0);
     }
 
-    temp = s->amatch;
+    temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
     did = temp->ctx;
     result &= 1;
     for (i = 0; i < 16; i++) {
@@ -527,11 +527,11 @@ static int DetectDceIfaceTestParse04(void)
 
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,!10") == 0);
 
-    if (s->amatch == NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
         SCReturnInt(0);
     }
 
-    temp = s->amatch;
+    temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
     did = temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
@@ -567,11 +567,11 @@ static int DetectDceIfaceTestParse05(void)
 
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,=10") == 0);
 
-    if (s->amatch == NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
         SCReturnInt(0);
     }
 
-    temp = s->amatch;
+    temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
     did = temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
@@ -607,11 +607,11 @@ static int DetectDceIfaceTestParse06(void)
 
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,any_frag") == 0);
 
-    if (s->amatch == NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
         SCReturnInt(0);
     }
 
-    temp = s->amatch;
+    temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
     did = temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
@@ -647,11 +647,11 @@ static int DetectDceIfaceTestParse07(void)
 
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,>1,any_frag") == 0);
 
-    if (s->amatch == NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
         SCReturnInt(0);
     }
 
-    temp = s->amatch;
+    temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
     did = temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
@@ -685,11 +685,11 @@ static int DetectDceIfaceTestParse08(void)
 
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,<1,any_frag") == 0);
 
-    if (s->amatch == NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
         SCReturnInt(0);
     }
 
-    temp = s->amatch;
+    temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
     did = temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
@@ -725,7 +725,7 @@ static int DetectDceIfaceTestParse09(void)
 
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,=1,any_frag") == 0);
 
-    temp = s->amatch;
+    temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
     did = temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);
@@ -761,11 +761,11 @@ static int DetectDceIfaceTestParse10(void)
 
     result = (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,!1,any_frag") == 0);
 
-    if (s->amatch == NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
         SCReturnInt(0);
     }
 
-    temp = s->amatch;
+    temp = s->sm_lists[DETECT_SM_LIST_AMATCH];
     did = temp->ctx;
     if (did == NULL) {
         SCReturnInt(0);

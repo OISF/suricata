@@ -152,17 +152,17 @@ SigTableElmt *SigTableGet(char *name) {
  * \param new pointer to the SigMatch of type uricontent to be appended
  */
 void SigMatchAppendAppLayer(Signature *s, SigMatch *new) {
-    if (s->amatch == NULL) {
-        s->amatch = new;
-        s->amatch_tail = new;
+    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
+        s->sm_lists[DETECT_SM_LIST_AMATCH] = new;
+        s->sm_lists_tail[DETECT_SM_LIST_AMATCH] = new;
         new->next = NULL;
         new->prev = NULL;
     } else {
-        SigMatch *cur = s->amatch_tail;
+        SigMatch *cur = s->sm_lists_tail[DETECT_SM_LIST_AMATCH];
         cur->next = new;
         new->prev = cur;
         new->next = NULL;
-        s->amatch_tail = new;
+        s->sm_lists_tail[DETECT_SM_LIST_AMATCH] = new;
     }
 
     new->idx = s->sm_cnt;
@@ -324,20 +324,20 @@ void SigMatchReplaceContent(Signature *s, SigMatch *old, SigMatch *new) {
 
     /* finally append the "new" sig match to the app layer list */
     /** \todo if the app layer gets it's own list, adapt this code */
-    if (s->amatch == NULL) {
-        s->amatch = new;
-        s->amatch_tail = new;
+    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
+        s->sm_lists[DETECT_SM_LIST_AMATCH] = new;
+        s->sm_lists_tail[DETECT_SM_LIST_AMATCH] = new;
         new->next = NULL;
         new->prev = NULL;
     } else {
-        SigMatch *cur = s->amatch;
+        SigMatch *cur = s->sm_lists[DETECT_SM_LIST_AMATCH];
 
         for ( ; cur->next != NULL; cur = cur->next);
 
         cur->next = new;
         new->next = NULL;
         new->prev = cur;
-        s->amatch_tail = new;
+        s->sm_lists_tail[DETECT_SM_LIST_AMATCH] = new;
     }
 
     /* move over the idx */
@@ -1065,7 +1065,7 @@ void SigFree(Signature *s) {
         sm = nsm;
     }
 
-    sm = s->amatch;
+    sm = s->sm_lists[DETECT_SM_LIST_AMATCH];
     while (sm != NULL) {
         nsm = sm->next;
         SigMatchFree(sm);
@@ -1359,7 +1359,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
         sig->flags |= SIG_FLAG_UMATCH;
     if (sig->dmatch)
         sig->flags |= SIG_FLAG_AMATCH;
-    if (sig->amatch)
+    if (sig->sm_lists[DETECT_SM_LIST_AMATCH])
         sig->flags |= SIG_FLAG_AMATCH;
 
     SCLogDebug("sig %"PRIu32" SIG_FLAG_APPLAYER: %s, SIG_FLAG_PACKET: %s",
@@ -1551,7 +1551,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
         sig->flags |= SIG_FLAG_UMATCH;
     if (sig->dmatch)
         sig->flags |= SIG_FLAG_AMATCH;
-    if (sig->amatch)
+    if (sig->sm_lists[DETECT_SM_LIST_AMATCH])
         sig->flags |= SIG_FLAG_AMATCH;
 
     SigBuildAddressMatchArray(sig);

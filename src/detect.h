@@ -360,7 +360,7 @@ typedef struct Signature_ {
     /** ptr to the SigMatch lists */
     //struct SigMatch_ *pmatch; /* payload matches */
     //struct SigMatch_ *umatch; /* uricontent payload matches */
-    struct SigMatch_ *amatch; /* general app layer matches */
+    //struct SigMatch_ *amatch; /* general app layer matches */
     struct SigMatch_ *dmatch; /* dce app layer matches */
     //struct SigMatch_ *match; /* non-payload matches */
     struct SigMatch_ *tmatch; /* list of tags matches */
@@ -414,7 +414,7 @@ typedef struct Signature_ {
     //struct SigMatch_ *match_tail; /* non-payload matches, tail of the list */
     //struct SigMatch_ *pmatch_tail; /* payload matches, tail of the list */
     //struct SigMatch_ *umatch_tail; /* uricontent payload matches, tail of the list */
-    struct SigMatch_ *amatch_tail; /* general app layer  matches, tail of the list */
+    //struct SigMatch_ *amatch_tail; /* general app layer  matches, tail of the list */
     struct SigMatch_ *dmatch_tail; /* dce app layer matches, tail of the list */
     struct SigMatch_ *tmatch_tail; /* tag matches, tail of the list */
 

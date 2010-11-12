@@ -288,7 +288,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 {
     SCEnter();
 
-    SigMatch *sm = s->amatch;
+    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_AMATCH];
     int match = 0;
     int r = 0;
     char umatch = 0;
@@ -353,7 +353,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     appinspect = uinspect + dinspect;
     appmatch = umatch + dmatch;
 
-    if (s->amatch != NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
         for ( ; sm != NULL; sm = sm->next) {
             SCLogDebug("sm %p, sm->next %p", sm, sm->next);
 
