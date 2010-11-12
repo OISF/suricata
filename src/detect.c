@@ -1141,10 +1141,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
 
-        SCLogDebug("s->amatch %p, s->umatch %p, s->dmatch %p",
-                s->amatch, s->umatch, s->dmatch);
+        SCLogDebug("s->amatch %p, s->sm_lists[DETECT_SM_LIST_UMATCH] %p, s->dmatch %p",
+                s->amatch, s->sm_lists[DETECT_SM_LIST_UMATCH], s->dmatch);
 
-        if (s->amatch != NULL || s->umatch != NULL || s->dmatch != NULL) {
+        if (s->amatch != NULL || s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL || s->dmatch != NULL) {
             if (alstate == NULL) {
                 SCLogDebug("state matches but no state, we can't match");
                 goto next;
@@ -1448,7 +1448,7 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
     if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL)
         return 0;
 
-    if (s->umatch != NULL)
+    if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL)
         return 0;
 
     if (s->amatch != NULL)
@@ -1516,7 +1516,7 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, Signature *s) {
     if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL)
         return 0;
 
-    if (s->umatch != NULL)
+    if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL)
         return 0;
 
     if (s->amatch != NULL)
@@ -1604,7 +1604,7 @@ static int SignatureCreateMask(Signature *s) {
         SCLogDebug("sig requires dce state");
     }
 
-    if (s->umatch != NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
         SCLogDebug("sig requires dce http state");
     }

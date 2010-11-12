@@ -175,17 +175,17 @@ void SigMatchAppendAppLayer(Signature *s, SigMatch *new) {
  * \param new pointer to the SigMatch of type uricontent to be appended
  */
 void SigMatchAppendUricontent(Signature *s, SigMatch *new) {
-    if (s->umatch == NULL) {
-        s->umatch = new;
-        s->umatch_tail = new;
+    if (s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL) {
+        s->sm_lists[DETECT_SM_LIST_UMATCH] = new;
+        s->sm_lists_tail[DETECT_SM_LIST_UMATCH] = new;
         new->next = NULL;
         new->prev = NULL;
     } else {
-        SigMatch *cur = s->umatch_tail;
+        SigMatch *cur = s->sm_lists_tail[DETECT_SM_LIST_UMATCH];
         cur->next = new;
         new->prev = cur;
         new->next = NULL;
-        s->umatch_tail = new;
+        s->sm_lists_tail[DETECT_SM_LIST_UMATCH] = new;
     }
 
     new->idx = s->sm_cnt;
@@ -388,20 +388,20 @@ void SigMatchReplaceContentToUricontent(Signature *s, SigMatch *old, SigMatch *n
 
     /* finally append the "new" sig match to the app layer list */
     /** \todo if the app layer gets it's own list, adapt this code */
-    if (s->umatch == NULL) {
-        s->umatch = new;
-        s->umatch_tail = new;
+    if (s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL) {
+        s->sm_lists[DETECT_SM_LIST_UMATCH] = new;
+        s->sm_lists_tail[DETECT_SM_LIST_UMATCH] = new;
         new->next = NULL;
         new->prev = NULL;
     } else {
-        SigMatch *cur = s->umatch;
+        SigMatch *cur = s->sm_lists[DETECT_SM_LIST_UMATCH];
 
         for ( ; cur->next != NULL; cur = cur->next);
 
         cur->next = new;
         new->next = NULL;
         new->prev = cur;
-        s->umatch_tail = new;
+        s->sm_lists_tail[DETECT_SM_LIST_UMATCH] = new;
     }
 
     /* move over the idx */
@@ -1058,7 +1058,7 @@ void SigFree(Signature *s) {
         sm = nsm;
     }
 
-    sm = s->umatch;
+    sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
     while (sm != NULL) {
         nsm = sm->next;
         SigMatchFree(sm);
@@ -1288,7 +1288,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
             sig->flags |= SIG_FLAG_MPM;
         }
     }
-    for (sm = sig->umatch; sm != NULL; sm = sm->next) {
+    for (sm = sig->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_URICONTENT) {
             DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
             if (ud == NULL)
@@ -1324,7 +1324,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
     if (sig->flags & SIG_FLAG_MPM_URI) {
         sig->mpm_uricontent_maxlen = 0;
 
-        for (sm = sig->umatch; sm != NULL; sm = sm->next) {
+        for (sm = sig->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_URICONTENT) {
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
                 if (ud == NULL)
@@ -1355,7 +1355,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
         }
     }
 
-    if (sig->umatch)
+    if (sig->sm_lists[DETECT_SM_LIST_UMATCH])
         sig->flags |= SIG_FLAG_UMATCH;
     if (sig->dmatch)
         sig->flags |= SIG_FLAG_AMATCH;
@@ -1430,7 +1430,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
             sig->flags |= SIG_FLAG_MPM;
         }
     }
-    for (sm = sig->umatch; sm != NULL; sm = sm->next) {
+    for (sm = sig->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_URICONTENT) {
             DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
             if (ud == NULL)
@@ -1466,7 +1466,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
     if (sig->flags & SIG_FLAG_MPM_URI) {
         sig->mpm_uricontent_maxlen = 0;
 
-        for (sm = sig->umatch; sm != NULL; sm = sm->next) {
+        for (sm = sig->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_URICONTENT) {
                 DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
                 if (ud == NULL)
@@ -1515,7 +1515,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
         if (sig->next->flags & SIG_FLAG_MPM_URI) {
             sig->next->mpm_uricontent_maxlen = 0;
 
-            for (sm = sig->next->umatch; sm != NULL; sm = sm->next) {
+            for (sm = sig->next->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
                 if (sm->type == DETECT_URICONTENT) {
                     DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
                     if (ud == NULL)
@@ -1547,7 +1547,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
         }
     }
 
-    if (sig->umatch)
+    if (sig->sm_lists[DETECT_SM_LIST_UMATCH])
         sig->flags |= SIG_FLAG_UMATCH;
     if (sig->dmatch)
         sig->flags |= SIG_FLAG_AMATCH;

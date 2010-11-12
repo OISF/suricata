@@ -1097,7 +1097,7 @@ static int PatternMatchPreprarePopulateMpmUri(DetectEngineCtx *de_ctx, SigGroupH
 
         /* get the total no of patterns in this Signature, as well as find out
          * if we have a fast_pattern set in this Signature */
-        for (sm = s->umatch; sm != NULL; sm = sm->next) {
+        for (sm = s->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_URICONTENT)
                 continue;
 
@@ -1132,7 +1132,7 @@ static int PatternMatchPreprarePopulateMpmUri(DetectEngineCtx *de_ctx, SigGroupH
             continue;
         }
 #endif
-        for (sm = s->umatch; sm != NULL; sm = sm->next) {
+        for (sm = s->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_URICONTENT)
                 continue;
 
@@ -1171,13 +1171,13 @@ static int PatternMatchPreprarePopulateMpmUri(DetectEngineCtx *de_ctx, SigGroupH
     /* now determine which one to add to the mpm phase */
     for (sig = 0; sig < sgh->sig_cnt; sig++) {
         Signature *s = sgh->match_array[sig];
-        if (s == NULL || s->umatch == NULL)
+        if (s == NULL || s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL)
             continue;
 
         UricontentHash *mpm_ch = NULL;
         SigMatch *sm = NULL;
 
-        for (sm = s->umatch; sm != NULL; sm = sm->next) {
+        for (sm = s->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_URICONTENT)
                 continue;
 
@@ -1333,7 +1333,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             has_co_stream = 1;
         }
 
-        for (sm = s->umatch; sm != NULL; sm = sm->next) {
+        for (sm = s->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_URICONTENT) {
                 has_co_uri = 1;
             }
@@ -1492,7 +1492,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY))
         {
             /* determine the length of the longest pattern */
-            for (sm = s->umatch; sm != NULL; sm = sm->next) {
+            for (sm = s->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
                 if (sm->type != DETECT_URICONTENT)
                     continue;
 

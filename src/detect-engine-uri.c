@@ -410,7 +410,7 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
         }
     }
 
-    sm = s->umatch;
+    sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
 
 #ifdef DEBUG
     DetectUricontentData *co = (DetectUricontentData *)sm->ctx;
@@ -432,7 +432,7 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
 
         /* Inspect all the uricontents fetched on each
          * transaction at the app layer */
-        r = DoInspectPacketUri(de_ctx, det_ctx, s, s->umatch,
+        r = DoInspectPacketUri(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_UMATCH],
                 (uint8_t *) bstr_ptr(tx->request_uri_normalized),
                 bstr_len(tx->request_uri_normalized));
 

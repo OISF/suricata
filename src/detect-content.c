@@ -379,7 +379,7 @@ SigMatch *SigMatchGetLastPattern(Signature *s) {
     BUG_ON(s == NULL);
 
     SigMatch *co_sm = DetectContentGetLastPattern(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
-    SigMatch *ur_sm = SigMatchGetLastSM(s->umatch_tail, DETECT_URICONTENT);
+    SigMatch *ur_sm = SigMatchGetLastSM(s->sm_lists_tail[DETECT_SM_LIST_UMATCH], DETECT_URICONTENT);
     SigMatch *sm = NULL;
 
     if (co_sm != NULL && ur_sm != NULL) {

@@ -1388,7 +1388,7 @@ int SigGroupHeadLoadUricontent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         if (!(s->flags & SIG_FLAG_MPM_URI))
             continue;
 
-        sm = s->umatch;
+        sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
         if (sm == NULL)
             continue;
 

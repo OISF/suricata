@@ -462,12 +462,12 @@ int DetectHttpCookieTest06(void)
     if (s->amatch->type != DETECT_AL_HTTP_COOKIE)
         goto end;
 
-    if (s->umatch == NULL) {
+    if (s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL) {
         printf("expected another SigMatch, got NULL: ");
         goto end;
     }
 
-    if (s->umatch->type != DETECT_URICONTENT) {
+    if (s->sm_lists[DETECT_SM_LIST_UMATCH]->type != DETECT_URICONTENT) {
         goto end;
     }
 

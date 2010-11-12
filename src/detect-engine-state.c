@@ -306,7 +306,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
     /* Check the uricontent keywords here. */
     if (alproto == ALPROTO_HTTP && (flags & STREAM_TOSERVER)) {
-        if (s->umatch != NULL) {
+        if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
             uinspect = 1;
 
             SCLogDebug("inspecting uri");
@@ -477,7 +477,7 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
 
             /* first, check uricontent */
             if (alproto == ALPROTO_HTTP && (flags & STREAM_TOSERVER)) {
-                if (s->umatch != NULL) {
+                if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
                     if (!(item->flags & DE_STATE_FLAG_URI_MATCH)) {
                         SCLogDebug("inspecting uri");
                         uinspect = 1;

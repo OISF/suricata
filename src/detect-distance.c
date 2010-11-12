@@ -165,7 +165,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
     } else {
         pm = SigMatchGetLastSMFromLists(s, 4,
                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                        DETECT_URICONTENT, s->umatch_tail);
+                                        DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH]);
         if (pm == NULL) {
             SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs"
                        "preceeding content or uricontent option");

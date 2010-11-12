@@ -107,7 +107,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
     DetectContentData *cd = NULL;
     DetectUricontentData *ud = NULL;
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL && s->umatch_tail == NULL) {
+    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL && s->sm_lists_tail[DETECT_SM_LIST_UMATCH] == NULL) {
         SCLogWarning(SC_WARN_COMPATIBILITY, "fast_pattern found inside the "
                      "rule, without a preceding content based keyword.  "
                      "Currently we provide fast_pattern support for content "
@@ -117,7 +117,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
 
     SigMatch *pm = SigMatchGetLastSMFromLists(s, 4,
                                               DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                              DETECT_URICONTENT, s->umatch_tail);
+                                              DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH]);
     if (pm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
                    "the rule, without a content context. Please use a "
@@ -2046,7 +2046,7 @@ int DetectFastPatternTest54(void)
         goto end;
 
     result = 0;
-    sm = de_ctx->sig_list->umatch;
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH];
     while (sm != NULL) {
         if (sm->type == DETECT_URICONTENT) {
             if ( ((DetectUricontentData *)sm->ctx)->flags &
@@ -2087,7 +2087,7 @@ int DetectFastPatternTest55(void)
         goto end;
 
     result = 0;
-    sm = de_ctx->sig_list->umatch;
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH];
     while (sm != NULL) {
         if (sm->type == DETECT_URICONTENT) {
             if ( ((DetectUricontentData *)sm->ctx)->flags &
@@ -2124,7 +2124,7 @@ int DetectFastPatternTest56(void)
         goto end;
 
     result = 0;
-    sm = de_ctx->sig_list->umatch;
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH];
     DetectUricontentData *ud = sm->ctx;
     if (sm != NULL && sm->type == DETECT_URICONTENT) {
         if (ud->flags & DETECT_URICONTENT_FAST_PATTERN &&
@@ -2160,7 +2160,7 @@ int DetectFastPatternTest57(void)
         goto end;
 
     result = 0;
-    sm = de_ctx->sig_list->umatch;
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH];
     DetectUricontentData *ud = sm->ctx;
     if (sm != NULL && sm->type == DETECT_URICONTENT) {
         if (ud->flags & DETECT_URICONTENT_FAST_PATTERN &&
@@ -2392,7 +2392,7 @@ int DetectFastPatternTest67(void)
     if (de_ctx->sig_list == NULL)
         goto end;
 
-    DetectUricontentData *ud = de_ctx->sig_list->umatch_tail->ctx;
+    DetectUricontentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (ud->flags & DETECT_URICONTENT_FAST_PATTERN &&
         ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY &&
         !(ud->flags & ud->flags & DETECT_URICONTENT_FAST_PATTERN_CHOP) &&
@@ -2422,7 +2422,7 @@ int DetectFastPatternTest68(void)
                                "(uricontent:one; uricontent:two; within:30; uricontent:two; fast_pattern:only; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectUricontentData *ud = de_ctx->sig_list->umatch_tail->ctx;
+    DetectUricontentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (ud->flags & DETECT_URICONTENT_FAST_PATTERN &&
         ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY &&
         !(ud->flags & ud->flags & DETECT_URICONTENT_FAST_PATTERN_CHOP) &&
@@ -2452,7 +2452,7 @@ int DetectFastPatternTest69(void)
                                "(uricontent:one; uricontent:two; offset:30; uricontent:two; fast_pattern:only; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectUricontentData *ud = de_ctx->sig_list->umatch_tail->ctx;
+    DetectUricontentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (ud->flags & DETECT_URICONTENT_FAST_PATTERN &&
         ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY &&
         !(ud->flags & ud->flags & DETECT_URICONTENT_FAST_PATTERN_CHOP) &&
@@ -2482,7 +2482,7 @@ int DetectFastPatternTest70(void)
                                "(uricontent:one; uricontent:two; depth:30; uricontent:two; fast_pattern:only; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectUricontentData *ud = de_ctx->sig_list->umatch_tail->ctx;
+    DetectUricontentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (ud->flags & DETECT_URICONTENT_FAST_PATTERN &&
         ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY &&
         !(ud->flags & ud->flags & DETECT_URICONTENT_FAST_PATTERN_CHOP) &&
@@ -2512,7 +2512,7 @@ int DetectFastPatternTest71(void)
                                "(uricontent:!one; fast_pattern; uricontent:two; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectUricontentData *ud = de_ctx->sig_list->umatch_tail->prev->ctx;
+    DetectUricontentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
     if (ud->flags & DETECT_URICONTENT_FAST_PATTERN &&
         ud->flags & DETECT_URICONTENT_NEGATED &&
         !(ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY) &&
@@ -2631,7 +2631,7 @@ int DetectFastPatternTest76(void)
                                "(uricontent:one; uricontent:two; fast_pattern:3,4; uricontent:three; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectUricontentData *ud = de_ctx->sig_list->umatch_tail->prev->ctx;
+    DetectUricontentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
     if (ud->flags & DETECT_URICONTENT_FAST_PATTERN &&
         !(ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY) &&
         ud->flags & ud->flags & DETECT_URICONTENT_FAST_PATTERN_CHOP &&
@@ -2661,7 +2661,7 @@ int DetectFastPatternTest77(void)
                                "(uricontent:one; uricontent:two; fast_pattern:3,4; uricontent:three; distance:30; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectUricontentData *ud = de_ctx->sig_list->umatch_tail->prev->ctx;
+    DetectUricontentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
     if (ud->flags & DETECT_URICONTENT_FAST_PATTERN &&
         !(ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY) &&
         ud->flags & ud->flags & DETECT_URICONTENT_FAST_PATTERN_CHOP &&
@@ -2691,7 +2691,7 @@ int DetectFastPatternTest78(void)
                                "(uricontent:one; uricontent:two; fast_pattern:3,4; uricontent:three; within:30; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectUricontentData *ud = de_ctx->sig_list->umatch_tail->prev->ctx;
+    DetectUricontentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
     if (ud->flags & DETECT_URICONTENT_FAST_PATTERN &&
         !(ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY) &&
         ud->flags & ud->flags & DETECT_URICONTENT_FAST_PATTERN_CHOP &&
@@ -2721,7 +2721,7 @@ int DetectFastPatternTest79(void)
                                "(uricontent:one; uricontent:two; fast_pattern:3,4; uricontent:three; offset:30; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectUricontentData *ud = de_ctx->sig_list->umatch_tail->prev->ctx;
+    DetectUricontentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
     if (ud->flags & DETECT_URICONTENT_FAST_PATTERN &&
         !(ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY) &&
         ud->flags & ud->flags & DETECT_URICONTENT_FAST_PATTERN_CHOP &&
@@ -2751,7 +2751,7 @@ int DetectFastPatternTest80(void)
                                "(uricontent:one; uricontent:two; fast_pattern:3,4; uricontent:three; depth:30; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectUricontentData *ud = de_ctx->sig_list->umatch_tail->prev->ctx;
+    DetectUricontentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
     if (ud->flags & DETECT_URICONTENT_FAST_PATTERN &&
         !(ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY) &&
         ud->flags & ud->flags & DETECT_URICONTENT_FAST_PATTERN_CHOP &&
@@ -2781,7 +2781,7 @@ int DetectFastPatternTest81(void)
                                "(uricontent:one; uricontent:two; distance:10; uricontent:three; fast_pattern:3,4; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectUricontentData *ud = de_ctx->sig_list->umatch_tail->ctx;
+    DetectUricontentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (ud->flags & DETECT_URICONTENT_FAST_PATTERN &&
         !(ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY) &&
         ud->flags & ud->flags & DETECT_URICONTENT_FAST_PATTERN_CHOP &&
@@ -2811,7 +2811,7 @@ int DetectFastPatternTest82(void)
                                "(uricontent:one; uricontent:two; within:10; uricontent:three; fast_pattern:3,4; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectUricontentData *ud = de_ctx->sig_list->umatch_tail->ctx;
+    DetectUricontentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (ud->flags & DETECT_URICONTENT_FAST_PATTERN &&
         !(ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY) &&
         ud->flags & ud->flags & DETECT_URICONTENT_FAST_PATTERN_CHOP &&
@@ -2841,7 +2841,7 @@ int DetectFastPatternTest83(void)
                                "(uricontent:one; uricontent:two; offset:10; uricontent:three; fast_pattern:3,4; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectUricontentData *ud = de_ctx->sig_list->umatch_tail->ctx;
+    DetectUricontentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (ud->flags & DETECT_URICONTENT_FAST_PATTERN &&
         !(ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY) &&
         ud->flags & ud->flags & DETECT_URICONTENT_FAST_PATTERN_CHOP &&
@@ -2871,7 +2871,7 @@ int DetectFastPatternTest84(void)
                                "(uricontent:one; uricontent:two; depth:10; uricontent:three; fast_pattern:3,4; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectUricontentData *ud = de_ctx->sig_list->umatch_tail->ctx;
+    DetectUricontentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (ud->flags & DETECT_URICONTENT_FAST_PATTERN &&
         !(ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY) &&
         ud->flags & ud->flags & DETECT_URICONTENT_FAST_PATTERN_CHOP &&
@@ -2970,7 +2970,7 @@ int DetectFastPatternTest88(void)
                                "(uricontent:one; uricontent:!two; fast_pattern:3,4; uricontent:three; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
-    DetectUricontentData *ud = de_ctx->sig_list->umatch_tail->prev->ctx;
+    DetectUricontentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
     if (ud->flags & DETECT_URICONTENT_FAST_PATTERN &&
         ud->flags & DETECT_URICONTENT_NEGATED &&
         !(ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY) &&

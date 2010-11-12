@@ -85,7 +85,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
         default:
             pm =  SigMatchGetLastSMFromLists(s, 4,
                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                             DETECT_URICONTENT, s->umatch_tail);
+                                             DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH]);
             if (pm == NULL) {
                 SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs "
                            "preceeding content or uricontent option");
