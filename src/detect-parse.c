@@ -239,17 +239,17 @@ void SigMatchAppendDcePayload(Signature *s, SigMatch *new) {
  *  \param new sigmatch to append
  */
 void SigMatchAppendTag(Signature *s, SigMatch *new) {
-    if (s->tmatch == NULL) {
-        s->tmatch = new;
-        s->tmatch_tail = new;
+    if (s->sm_lists[DETECT_SM_LIST_TMATCH] == NULL) {
+        s->sm_lists[DETECT_SM_LIST_TMATCH] = new;
+        s->sm_lists_tail[DETECT_SM_LIST_TMATCH] = new;
         new->next = NULL;
         new->prev = NULL;
     } else {
-        SigMatch *cur = s->tmatch_tail;
+        SigMatch *cur = s->sm_lists_tail[DETECT_SM_LIST_TMATCH];
         cur->next = new;
         new->prev = cur;
         new->next = NULL;
-        s->tmatch_tail = new;
+        s->sm_lists_tail[DETECT_SM_LIST_TMATCH] = new;
     }
 
     new->idx = s->sm_cnt;
@@ -1072,7 +1072,7 @@ void SigFree(Signature *s) {
         sm = nsm;
     }
 
-    sm = s->tmatch;
+    sm = s->sm_lists[DETECT_SM_LIST_TMATCH];
     while (sm != NULL) {
         nsm = sm->next;
         SigMatchFree(sm);

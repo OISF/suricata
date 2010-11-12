@@ -354,17 +354,6 @@ typedef struct Signature_ {
     /** netblocks and hosts specified at the sid, in CIDR format */
     IPOnlyCIDRItem *CidrSrc, *CidrDst;
 
-    /* holds all sm lists */
-    struct SigMatch_ *sm_lists[DETECT_SM_LIST_MAX];
-
-    /** ptr to the SigMatch lists */
-    //struct SigMatch_ *pmatch; /* payload matches */
-    //struct SigMatch_ *umatch; /* uricontent payload matches */
-    //struct SigMatch_ *amatch; /* general app layer matches */
-    //struct SigMatch_ *dmatch; /* dce app layer matches */
-    //struct SigMatch_ *match; /* non-payload matches */
-    struct SigMatch_ *tmatch; /* list of tags matches */
-
     struct SigMatch_ *dsize_sm;
 
     /* helper for init phase */
@@ -408,15 +397,10 @@ typedef struct Signature_ {
     uint16_t profiling_id;
 #endif
 
+    /* holds all sm lists */
+    struct SigMatch_ *sm_lists[DETECT_SM_LIST_MAX];
     /* holds all sm lists' tails */
     struct SigMatch_ *sm_lists_tail[DETECT_SM_LIST_MAX];
-
-    //struct SigMatch_ *match_tail; /* non-payload matches, tail of the list */
-    //struct SigMatch_ *pmatch_tail; /* payload matches, tail of the list */
-    //struct SigMatch_ *umatch_tail; /* uricontent payload matches, tail of the list */
-    //struct SigMatch_ *amatch_tail; /* general app layer  matches, tail of the list */
-    //struct SigMatch_ *dmatch_tail; /* dce app layer matches, tail of the list */
-    struct SigMatch_ *tmatch_tail; /* tag matches, tail of the list */
 
     /** address settings for this signature */
     DetectAddressHead src, dst;

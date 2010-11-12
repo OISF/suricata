@@ -219,7 +219,7 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
         } else {
             /* Now, if we have an alert, we have to check if we want
              * to tag this session or src/dst host */
-            sm = s->tmatch;
+            sm = s->sm_lists[DETECT_SM_LIST_TMATCH];
             while (sm) {
                 /* tags are set only for alerts */
                 sigmatch_table[sm->type].Match(NULL, det_ctx, p, s, sm);
