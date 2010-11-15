@@ -103,6 +103,101 @@ void *AppLayerGetProtoStateFromFlow(Flow *f) {
 extern AlpProtoDetectCtx alp_proto_ctx;
 
 /**
+ *  \brief Handle a chunk of TCP data
+ *
+ *  If the protocol is yet unknown, the proto detection code is run first.
+ *
+ *  \param dp_ctx Thread app layer detect context
+ *  \param smsg Stream message
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
+ */
+int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, TcpSession *ssn, uint8_t *data, uint32_t data_len, uint8_t flags)
+{
+    SCEnter();
+
+    uint16_t alproto = ALPROTO_UNKNOWN;
+    int r = 0;
+
+    BUG_ON(f == NULL);
+    BUG_ON(ssn == NULL);
+
+    alproto = f->alproto;
+
+    /* Copy some needed flags */
+    if (flags & STREAM_TOSERVER)
+        f->alflags |= FLOW_AL_STREAM_TOSERVER;
+    if (flags & STREAM_TOCLIENT)
+        f->alflags |= FLOW_AL_STREAM_TOCLIENT;
+    if (flags & STREAM_GAP)
+        f->alflags |= FLOW_AL_STREAM_GAP;
+    if (flags & STREAM_EOF)
+        f->alflags |= FLOW_AL_STREAM_EOF;
+
+    if (!(f->alflags & FLOW_AL_NO_APPLAYER_INSPECTION)) {
+        /* if we don't know the proto yet and we have received a stream
+         * initializer message, we run proto detection.
+         * We receive 2 stream init msgs (one for each direction) but we
+         * only run the proto detection once. */
+        if (alproto == ALPROTO_UNKNOWN && flags & STREAM_START) {
+            SCLogDebug("Stream initializer (len %" PRIu32 " (%" PRIu32 "))",
+                    data_len, MSG_DATA_SIZE);
+
+            //printf("=> Init Stream Data -- start\n");
+            //PrintRawDataFp(stdout, data, data_len);
+            //printf("=> Init Stream Data -- end\n");
+
+            alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx,
+                    data, data_len, f->alflags, IPPROTO_TCP);
+            if (alproto != ALPROTO_UNKNOWN) {
+                /* store the proto and setup the L7 data array */
+                FlowL7DataPtrInit(f);
+                f->alproto = alproto;
+                ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
+                f->alflags |= FLOW_AL_PROTO_DETECT_DONE;
+
+                r = AppLayerParse(f, alproto, f->alflags, data, data_len);
+            } else {
+                if (flags & STREAM_TOSERVER) {
+                    if (data_len >= alp_proto_ctx.toserver.max_len) {
+                        ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
+                        f->alflags |= FLOW_AL_PROTO_DETECT_DONE;
+                        SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
+                        StreamTcpSetSessionNoReassemblyFlag(ssn, 0);
+                    }
+                } else if (flags & STREAM_TOCLIENT) {
+                    if (data_len >= alp_proto_ctx.toclient.max_len) {
+                        ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
+                        f->alflags |= FLOW_AL_PROTO_DETECT_DONE;
+                        SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
+                        StreamTcpSetSessionNoReassemblyFlag(ssn, 1);
+                    }
+                }
+            }
+        } else {
+            SCLogDebug("stream data (len %" PRIu32 " (%" PRIu32 ")), alproto "
+                    "%"PRIu16" (flow %p)", data_len, MSG_DATA_SIZE,
+                    alproto, f);
+
+            //printf("=> Stream Data -- start\n");
+            //PrintRawDataFp(stdout, data, data_len);
+            //printf("=> Stream Data -- end\n");
+
+            /* if we don't have a data object here we are not getting it
+             * a start msg should have gotten us one */
+            if (alproto != ALPROTO_UNKNOWN) {
+                r = AppLayerParse(f, alproto, flags, data, data_len);
+            } else {
+                SCLogDebug(" smsg not start, but no l7 data? Weird");
+            }
+        }
+    }
+
+    SCReturnInt(r);
+}
+
+/**
  *  \brief Handle a app layer TCP message
  *
  *  If the protocol is yet unknown, the proto detection code is run first.
