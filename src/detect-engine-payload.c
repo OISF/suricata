@@ -96,8 +96,8 @@ static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
             /* we might have already have this content matched by the mpm.
              * (if there is any other reason why we'd want to avoid checking
              *  it here, please fill it in) */
-            if (cd->avoid_double_check)
-                goto match;
+            //if (cd->avoid_double_check)
+            //    goto match;
 
             /* rule parsers should take care of this */
             BUG_ON(cd->depth != 0 && cd->depth <= cd->offset);

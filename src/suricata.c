@@ -55,6 +55,7 @@
 #include "detect-engine-uri.h"
 #include "detect-engine-state.h"
 #include "detect-engine-tag.h"
+#include "detect-fast-pattern.h"
 
 #include "tm-queuehandlers.h"
 #include "tm-queues.h"
@@ -825,6 +826,7 @@ int main(int argc, char **argv)
     SigTableSetup(); /* load the rule keywords */
     TmqhSetup();
 
+    SCFPAddFPSupportForSMTypes();
     CIDRInit();
     SigParsePrepare();
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);

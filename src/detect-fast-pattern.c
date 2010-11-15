@@ -45,6 +45,89 @@ static pcre_extra *parse_regex_study = NULL;
 static int DetectFastPatternSetup(DetectEngineCtx *, Signature *, char *);
 void DetectFastPatternRegisterTests(void);
 
+/* holds the list of sm's that should be given fp support */
+SCFPSupportSMType *sm_fp_support_smtype_list = NULL;
+/* holds the list of sm match lists that need to be searched for a keyword
+ * that has fp support */
+SCFPSupportSMList *sm_fp_support_smlist_list = NULL;
+
+/**
+ * \brief Lets one add a sm list id to be searched for potential fp supported
+ *        keywords later.
+ *
+ * \param list_id SM list id.
+ */
+static void SCFPAddFPSupportForSMList(int list_id)
+{
+    if (sm_fp_support_smlist_list != NULL) {
+        SCFPSupportSMList *tmp_smlist_fp = sm_fp_support_smlist_list;
+        while (tmp_smlist_fp != NULL) {
+            if (tmp_smlist_fp->list_id == list_id)
+                return;
+            tmp_smlist_fp = tmp_smlist_fp->next;
+        }
+    }
+
+    SCFPSupportSMList *new_smlist_fp = malloc(sizeof(SCFPSupportSMList));
+    if (new_smlist_fp == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    memset(new_smlist_fp, 0, sizeof(SCFPSupportSMList));
+    new_smlist_fp->list_id = list_id;
+
+    new_smlist_fp->next = sm_fp_support_smlist_list;
+    sm_fp_support_smlist_list = new_smlist_fp;
+
+    return;
+}
+
+/**
+ * \brief Lets one add a sigmatch type for fast pattern support(explains the weird
+ *        name the function has).
+ *
+ * \param sm_type The sigmatch for which fp support has to be added.
+ */
+static void SCFPAddFPSupportForSMType(uint8_t sm_type)
+{
+    if (sm_fp_support_smtype_list != NULL) {
+        SCFPSupportSMType *tmp_smtype_fp = sm_fp_support_smtype_list;
+        while (tmp_smtype_fp != NULL) {
+            if (tmp_smtype_fp->sm_type == sm_type) {
+                return;
+            }
+            tmp_smtype_fp = tmp_smtype_fp->next;
+        }
+    }
+
+    SCFPSupportSMType *new_smtype_fp = malloc(sizeof(SCFPSupportSMType));
+    if (new_smtype_fp == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    memset(new_smtype_fp, 0, sizeof(SCFPSupportSMType));
+    new_smtype_fp->sm_type = sm_type;
+
+    new_smtype_fp->next = sm_fp_support_smtype_list;
+    sm_fp_support_smtype_list = new_smtype_fp;
+
+    return;
+}
+
+/**
+ * \brief Registers the keywords(SMs) that should be given fp support.
+ */
+void SCFPAddFPSupportForSMTypes(void)
+{
+    SCFPAddFPSupportForSMType(DETECT_CONTENT);
+    SCFPAddFPSupportForSMList(DETECT_SM_LIST_PMATCH);
+
+    SCFPAddFPSupportForSMType(DETECT_URICONTENT);
+    SCFPAddFPSupportForSMList(DETECT_SM_LIST_UMATCH);
+
+    return;
+}
+
 /**
  * \brief Registration function for fast_pattern keyword
  */
@@ -666,7 +749,7 @@ int DetectFastPatternTest09(void)
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"fast_pattern test\"; content:string1; "
-                               "content:string2; content:strings3; fast_pattern; "
+                               "content:string2; content:strings3; "
                                "content:strings4_imp; fast_pattern; "
                                "content:strings_string5; sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -720,7 +803,7 @@ int DetectFastPatternTest10(void)
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"fast_pattern test\"; content:string1; "
-                               "content:string2; content:strings3; fast_pattern; "
+                               "content:string2; content:strings3; "
                                "content:strings4_imp; fast_pattern; "
                                "content:strings_string5; sid:1;)");
     if (de_ctx->sig_list == NULL) {
