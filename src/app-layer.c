@@ -108,12 +108,17 @@ extern AlpProtoDetectCtx alp_proto_ctx;
  *  If the protocol is yet unknown, the proto detection code is run first.
  *
  *  \param dp_ctx Thread app layer detect context
- *  \param smsg Stream message
+ *  \param f Flow
+ *  \param ssn TCP Session
+ *  \param data ptr to reassembled data
+ *  \param data_len length of the data chunk
+ *  \param flags control flags
  *
  *  \retval 0 ok
  *  \retval -1 error
  */
-int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, TcpSession *ssn, uint8_t *data, uint32_t data_len, uint8_t flags)
+int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
+        TcpSession *ssn, uint8_t *data, uint32_t data_len, uint8_t flags)
 {
     SCEnter();
 
@@ -128,8 +133,9 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, TcpSession *
     /* Copy some needed flags */
     if (flags & STREAM_TOSERVER)
         f->alflags |= FLOW_AL_STREAM_TOSERVER;
-    if (flags & STREAM_TOCLIENT)
+    else if (flags & STREAM_TOCLIENT)
         f->alflags |= FLOW_AL_STREAM_TOCLIENT;
+
     if (flags & STREAM_GAP)
         f->alflags |= FLOW_AL_STREAM_GAP;
     if (flags & STREAM_EOF)
