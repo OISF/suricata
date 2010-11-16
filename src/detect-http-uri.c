@@ -108,14 +108,6 @@ static int DetectHttpUriSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         return -1;
     }
 
-    if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_FAST_PATTERN)
-    {
-        SCLogWarning(SC_WARN_COMPATIBILITY,
-                   "http_uri cannot be used with \"fast_pattern\" currently."
-                   "Unsetting fast_pattern on this modifier. Signature ==> %s", s->sig_str);
-        ((DetectContentData *)pm->ctx)->flags &= ~DETECT_CONTENT_FAST_PATTERN;
-    }
-
     /* http_uri should not be used with the rawbytes rule */
     if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_RAWBYTES) {
 
@@ -143,6 +135,15 @@ static int DetectHttpUriSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         DETECT_URICONTENT_NOCASE : 0;
     duc->flags |= (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_NEGATED) ?
         DETECT_URICONTENT_NEGATED : 0;
+    duc->flags |= (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_FAST_PATTERN) ?
+        DETECT_URICONTENT_FAST_PATTERN : 0;
+    duc->flags |= (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) ?
+        DETECT_URICONTENT_FAST_PATTERN_ONLY : 0;
+    if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+        duc->flags |= DETECT_URICONTENT_FAST_PATTERN_CHOP;
+        duc->fp_chop_offset = ((DetectContentData *)pm->ctx)->fp_chop_offset;
+        duc->fp_chop_len = ((DetectContentData *)pm->ctx)->fp_chop_len;
+    }
     duc->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, duc, DETECT_URICONTENT);
     duc->bm_ctx = BoyerMooreCtxInit(duc->content, duc->content_len);
 
