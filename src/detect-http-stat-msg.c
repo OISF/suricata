@@ -205,7 +205,7 @@ static int DetectHttpStatMsgSetup (DetectEngineCtx *de_ctx, Signature *s, char *
         return -1;
     }
 
-    SigMatch *pm = DetectContentGetLastPattern(s->pmatch_tail);
+    SigMatch *pm = DetectContentGetLastPattern(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
     if (pm == NULL) {
         SCLogWarning(SC_ERR_INVALID_SIGNATURE, "http_stat_msg found inside "
                 "the rule, without a content context.  Please use a "
@@ -311,7 +311,7 @@ int DetectHttpStatMsgTest01(void)
                                "(msg:\"Testing http_stat_msg\"; content:\"one\";"
             "fast_pattern; http_stat_msg;sid:1;)");
     if (de_ctx->sig_list == NULL ||
-            ((DetectContentData *)de_ctx->sig_list->amatch->ctx)->flags &
+            ((DetectContentData *)de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH]->ctx)->flags &
             DETECT_CONTENT_FAST_PATTERN)
     {
         goto end;
@@ -349,7 +349,7 @@ int DetectHttpStatMsgTest02(void)
     }
 
     result = 0;
-    sm = de_ctx->sig_list->amatch;
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH];
     if (sm == NULL) {
         printf("no sigmatch(es): ");
         goto end;

@@ -212,7 +212,7 @@ static int DetectHttpStatCodeSetup (DetectEngineCtx *de_ctx, Signature *s, char 
         SCReturnInt(-1);
     }
 
-    SigMatch *pm = DetectContentGetLastPattern(s->pmatch_tail);
+    SigMatch *pm = DetectContentGetLastPattern(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
     if (pm == NULL) {
         SCLogWarning(SC_ERR_INVALID_SIGNATURE, "http_stat_code found inside "
                 "the rule, without a content context.  Please use a "
@@ -362,7 +362,7 @@ int DetectHttpStatCodeTest02(void)
     }
 
     result = 0;
-    sm = de_ctx->sig_list->amatch;
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH];
     if (sm == NULL) {
         printf("no sigmatch(es): ");
         goto end;
