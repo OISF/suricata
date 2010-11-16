@@ -151,12 +151,17 @@ TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
     char srcip[16], dstip[16];
+    uint32_t sp, dp;
     if ((PKT_IS_TOSERVER(p))) {
         inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
+        sp = p->sp;
+        dp = p->dp;
     } else {
         inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), dstip, sizeof(dstip));
+        sp = p->dp;
+        dp = p->sp;
     }
 
     SCMutexLock(&aft->file_ctx->fp_mutex);
@@ -204,7 +209,7 @@ TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
 
         /* ip/tcp header info */
         fprintf(aft->file_ctx->fp, " [**] %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
-                srcip, p->sp, dstip, p->dp);
+                srcip, sp, dstip, dp);
 
         aft->uri_cnt ++;
 
@@ -262,12 +267,17 @@ TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
     char srcip[46], dstip[46];
+    uint32_t sp, dp;
     if ((PKT_IS_TOSERVER(p))) {
         inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+        sp = p->sp;
+        dp = p->dp;
     } else {
         inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+        sp = p->dp;
+        dp = p->sp;
     }
     SCMutexLock(&aft->file_ctx->fp_mutex);
     for (idx = logged; idx < loggable; idx++)
@@ -314,7 +324,7 @@ TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
 
         /* ip/tcp header info */
         fprintf(aft->file_ctx->fp, " [**] %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
-                srcip, p->sp, dstip, p->dp);
+                srcip, sp, dstip, dp);
 
         aft->uri_cnt++;
 
