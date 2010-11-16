@@ -230,6 +230,8 @@ typedef struct DetectPort_ {
 
 #define SIG_FLAG_MPM_PACKET     0x00200000
 #define SIG_FLAG_MPM_STREAM     0x00400000
+#define SIG_FLAG_MPM_URICONTENT 0x00800000
+#define SIG_FLAG_MPM_URICONTENT_NEG 0x01000000
 
 /* signature mask flags */
 #define SIG_MASK_REQUIRE_PAYLOAD    0x01

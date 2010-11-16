@@ -839,6 +839,10 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                             s->mpm_stream_pattern_id_div_8 = cd->id / 8;
                             s->mpm_stream_pattern_id_mod_8 = 1 << (cd->id % 8);
                         }
+                        if (cd->flags & DETECT_CONTENT_NEGATED) {
+                            SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
+                            s->flags |= SIG_FLAG_MPM_NEGCONTENT;
+                        }
                     }
 
                     break;
@@ -895,17 +899,14 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                         }
                     }
                     /* tell matcher we are inspecting uri */
-                    s->flags |= SIG_FLAG_MPM_URI;
+                    s->flags |= SIG_FLAG_MPM_URICONTENT;
                     s->mpm_uripattern_id = ud->id;
+                    if (ud->flags & DETECT_URICONTENT_NEGATED)
+                        s->flags |= SIG_FLAG_MPM_URICONTENT_NEG;
 
                     break;
                 } /* case DETECT_URICONTENT */
             } /* switch (mpm_sm->type) */
-
-            if (scan_negated) {
-                SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
-                s->flags |= SIG_FLAG_MPM_NEGCONTENT;
-            }
 
             SCLogDebug("%"PRIu32" adding co->id %"PRIu32" to the mpm phase (s->num %"PRIu32")", s->id, co->id, s->num);
         } else {
@@ -1914,34 +1915,38 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
         PatternMatchPreparePopulateMpm(de_ctx, sh, populate_mpm_flags);
 
-        //if (mpm_table[sh->mpm_ctx->mpm_type].Prepare != NULL) {
         if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
             if (sh->mpm_ctx != NULL) {
                 if (sh->mpm_ctx->pattern_cnt == 0) {
                     sh->mpm_ctx = NULL;
                 } else {
-                    if (!(populate_mpm_flags & POPULATE_MPM_AVOID_PACKET_MPM_PATTERNS))
-                        mpm_table[sh->mpm_ctx->mpm_type].Prepare(sh->mpm_ctx);
+                    if (!(populate_mpm_flags & POPULATE_MPM_AVOID_PACKET_MPM_PATTERNS)) {
+                        if (mpm_table[sh->mpm_ctx->mpm_type].Prepare != NULL)
+                            mpm_table[sh->mpm_ctx->mpm_type].Prepare(sh->mpm_ctx);
+                        }
                 }
             }
             if (sh->mpm_stream_ctx != NULL) {
                 if (sh->mpm_stream_ctx->pattern_cnt == 0) {
                     sh->mpm_stream_ctx = NULL;
                 } else {
-                    if (!(populate_mpm_flags & POPULATE_MPM_AVOID_STREAM_MPM_PATTERNS))
-                        mpm_table[sh->mpm_stream_ctx->mpm_type].Prepare(sh->mpm_stream_ctx);
+                    if (!(populate_mpm_flags & POPULATE_MPM_AVOID_STREAM_MPM_PATTERNS)) {
+                        if (mpm_table[sh->mpm_stream_ctx->mpm_type].Prepare != NULL)
+                            mpm_table[sh->mpm_stream_ctx->mpm_type].Prepare(sh->mpm_stream_ctx);
+                    }
                 }
             }
             if (sh->mpm_uri_ctx != NULL) {
                 if (sh->mpm_uri_ctx->pattern_cnt == 0) {
                     sh->mpm_uri_ctx = NULL;
                 } else {
-                    if (!(populate_mpm_flags & POPULATE_MPM_AVOID_URI_MPM_PATTERNS))
-                        mpm_table[sh->mpm_uri_ctx->mpm_type].Prepare(sh->mpm_uri_ctx);
+                    if (!(populate_mpm_flags & POPULATE_MPM_AVOID_URI_MPM_PATTERNS)) {
+                        if (mpm_table[sh->mpm_uri_ctx->mpm_type].Prepare != NULL)
+                            mpm_table[sh->mpm_uri_ctx->mpm_type].Prepare(sh->mpm_uri_ctx);
+                    }
                 }
             }
         }
-        //}
     }
 
     ///* uricontent */
