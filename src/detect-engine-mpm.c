@@ -555,8 +555,7 @@ uint32_t PatternStrength(uint8_t *pat, uint16_t patlen) {
  * \retval  0 Always.
  */
 static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
-                                          SigGroupHead *sgh,
-                                          uint8_t populate_mpm_flags)
+                                          SigGroupHead *sgh)
 {
     uint32_t sig;
     uint32_t *fast_pattern = NULL;
@@ -598,9 +597,8 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                 switch (sm->type) {
                     case DETECT_CONTENT:
                         if (sig_has_no_pkt_and_stream_content ||
-                            (populate_mpm_flags & POPULATE_MPM_AVOID_PACKET_MPM_PATTERNS &&
-                             populate_mpm_flags & POPULATE_MPM_AVOID_STREAM_MPM_PATTERNS)) {
-                            break;
+                            (!(sgh->flags & SIG_GROUP_HAVECONTENT && !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY)) &&
+                             !(sgh->flags & SIG_GROUP_HAVESTREAMCONTENT && !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)))) {                             break;
                         }
                         cd = (DetectContentData *)sm->ctx;
                         /* special handling of fast pattern keyword */
@@ -609,9 +607,8 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                         }
 
                         break;
-
                     case DETECT_URICONTENT:
-                        if (populate_mpm_flags & POPULATE_MPM_AVOID_URI_MPM_PATTERNS) {
+                        if (!(sgh->flags & SIG_GROUP_HAVEURICONTENT && !(sgh->flags & SIG_GROUP_HEAD_MPM_URI_COPY))) {
                             break;
                         }
                         ud = (DetectUricontentData *)sm->ctx;
@@ -693,8 +690,8 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                     switch (sm->type) {
                         case DETECT_CONTENT:
                             if (sig_has_no_pkt_and_stream_content ||
-                                (populate_mpm_flags & POPULATE_MPM_AVOID_PACKET_MPM_PATTERNS &&
-                                 populate_mpm_flags & POPULATE_MPM_AVOID_STREAM_MPM_PATTERNS)) {
+                                (!(sgh->flags & SIG_GROUP_HAVECONTENT && !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY)) &&
+                                 !(sgh->flags & SIG_GROUP_HAVESTREAMCONTENT && !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)))) {
                                 continue;
                             }
                             cd = (DetectContentData *)sm->ctx;
@@ -704,7 +701,8 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                             break;
 
                         case DETECT_URICONTENT:
-                            if (populate_mpm_flags & POPULATE_MPM_AVOID_URI_MPM_PATTERNS) {
+                                 if (!(sgh->flags & SIG_GROUP_HAVEURICONTENT &&
+                                       !(sgh->flags & SIG_GROUP_HEAD_MPM_URI_COPY))) {
                                 continue;
                             }
                             ud = (DetectUricontentData *)sm->ctx;
@@ -742,45 +740,58 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
         /* now add the mpm_ch to the mpm ctx */
         if (mpm_sm != NULL) {
             uint8_t flags = 0;
-            char scan_negated = 0;
 
             DetectContentData *cd = NULL;
             DetectUricontentData *ud = NULL;
-            switch (mpm_sm->type) {
-                case DETECT_CONTENT:
-                    cd = (DetectContentData *)mpm_sm->ctx;
-                    if (cd->flags & DETECT_CONTENT_NEGATED)
-                        scan_negated = 1;
-
-                    break;
-
-                case DETECT_URICONTENT:
-                    ud = (DetectUricontentData *)mpm_sm->ctx;
-                    if (ud->flags & DETECT_URICONTENT_NEGATED)
-                        scan_negated = 1;
-
-                    break;
-            }
-
             switch (mpm_sm->type) {
                 case DETECT_CONTENT:
                 {
                     cd = (DetectContentData *)mpm_sm->ctx;
                     if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
                         /* add the content to the "packet" mpm */
-                        if (cd->flags & DETECT_CONTENT_NOCASE) {
-                            mpm_table[sgh->mpm_ctx->mpm_type].
-                                AddPatternNocase(sgh->mpm_ctx,
-                                                 cd->content + cd->fp_chop_offset,
-                                                 cd->fp_chop_len,
-                                                 0, 0, cd->id, s->num, flags);
-                        } else {
-                            mpm_table[sgh->mpm_ctx->mpm_type].
-                                AddPattern(sgh->mpm_ctx,
-                                           cd->content + cd->fp_chop_offset,
-                                           cd->fp_chop_len,
-                                           0, 0, cd->id, s->num, flags);
+                        if (SignatureHasPacketContent(s) &&
+                            (sgh->flags & SIG_GROUP_HAVECONTENT && !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY))) {
+
+                            if (cd->flags & DETECT_CONTENT_NOCASE) {
+                                mpm_table[sgh->mpm_ctx->mpm_type].
+                                    AddPatternNocase(sgh->mpm_ctx,
+                                                     cd->content + cd->fp_chop_offset,
+                                                     cd->fp_chop_len,
+                                                     0, 0, cd->id, s->num, flags);
+                            } else {
+                                mpm_table[sgh->mpm_ctx->mpm_type].
+                                    AddPattern(sgh->mpm_ctx,
+                                               cd->content + cd->fp_chop_offset,
+                                               cd->fp_chop_len,
+                                               0, 0, cd->id, s->num, flags);
+                            }
+                            /* tell matcher we are inspecting packet */
+                            s->flags |= SIG_FLAG_MPM_PACKET;
+                            s->mpm_pattern_id_div_8 = cd->id / 8;
+                            s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
                         }
+                        if (SignatureHasStreamContent(s) &&
+                            (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT && !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
+
+                            if (cd->flags & DETECT_CONTENT_NOCASE) {
+                                mpm_table[sgh->mpm_ctx->mpm_type].
+                                    AddPatternNocase(sgh->mpm_ctx,
+                                                     cd->content + cd->fp_chop_offset,
+                                                     cd->fp_chop_len,
+                                                     0, 0, cd->id, s->num, flags);
+                            } else {
+                                mpm_table[sgh->mpm_ctx->mpm_type].
+                                    AddPattern(sgh->mpm_ctx,
+                                               cd->content + cd->fp_chop_offset,
+                                               cd->fp_chop_len,
+                                               0, 0, cd->id, s->num, flags);
+                            }
+                            /* tell matcher we are inspecting stream */
+                            s->flags |= SIG_FLAG_MPM_STREAM;
+                            s->mpm_stream_pattern_id_div_8 = cd->id / 8;
+                            s->mpm_stream_pattern_id_mod_8 = 1 << (cd->id % 8);
+                        }
+
                     } else {
                         if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
                             cd->avoid_double_check = 1;
@@ -802,7 +813,7 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                         } /* else - if (co->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) */
 
                         if (SignatureHasPacketContent(s) &&
-                            !(populate_mpm_flags & POPULATE_MPM_AVOID_PACKET_MPM_PATTERNS)) {
+                            (sgh->flags & SIG_GROUP_HAVECONTENT && !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY))) {
                             /* add the content to the "packet" mpm */
                             if (cd->flags & DETECT_CONTENT_NOCASE) {
                                 mpm_table[sgh->mpm_ctx->mpm_type].
@@ -821,7 +832,7 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                             s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
                         }
                         if (SignatureHasStreamContent(s) &&
-                            !(populate_mpm_flags & POPULATE_MPM_AVOID_STREAM_MPM_PATTERNS)) {
+                            (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT && !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
                             /* add the content to the "packet" mpm */
                             if (cd->flags & DETECT_CONTENT_NOCASE) {
                                 mpm_table[sgh->mpm_stream_ctx->mpm_type].
@@ -1909,18 +1920,18 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         }
     }
 
-    if (!((populate_mpm_flags & POPULATE_MPM_AVOID_PACKET_MPM_PATTERNS) &&
-          (populate_mpm_flags & POPULATE_MPM_AVOID_STREAM_MPM_PATTERNS) &&
-          (populate_mpm_flags & POPULATE_MPM_AVOID_URI_MPM_PATTERNS))) {
+    if ( (sh->flags & SIG_GROUP_HAVECONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) ||
+         (sh->flags & SIG_GROUP_HAVESTREAMCONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) ||
+         (sh->flags & SIG_GROUP_HAVEURICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) ) {
 
-        PatternMatchPreparePopulateMpm(de_ctx, sh, populate_mpm_flags);
+        PatternMatchPreparePopulateMpm(de_ctx, sh);
 
         if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
             if (sh->mpm_ctx != NULL) {
                 if (sh->mpm_ctx->pattern_cnt == 0) {
                     sh->mpm_ctx = NULL;
                 } else {
-                    if (!(populate_mpm_flags & POPULATE_MPM_AVOID_PACKET_MPM_PATTERNS)) {
+                    if (sh->flags & SIG_GROUP_HAVECONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
                         if (mpm_table[sh->mpm_ctx->mpm_type].Prepare != NULL)
                             mpm_table[sh->mpm_ctx->mpm_type].Prepare(sh->mpm_ctx);
                         }
@@ -1930,7 +1941,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 if (sh->mpm_stream_ctx->pattern_cnt == 0) {
                     sh->mpm_stream_ctx = NULL;
                 } else {
-                    if (!(populate_mpm_flags & POPULATE_MPM_AVOID_STREAM_MPM_PATTERNS)) {
+                    if (sh->flags & SIG_GROUP_HAVESTREAMCONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) {
                         if (mpm_table[sh->mpm_stream_ctx->mpm_type].Prepare != NULL)
                             mpm_table[sh->mpm_stream_ctx->mpm_type].Prepare(sh->mpm_stream_ctx);
                     }
@@ -1940,7 +1951,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 if (sh->mpm_uri_ctx->pattern_cnt == 0) {
                     sh->mpm_uri_ctx = NULL;
                 } else {
-                    if (!(populate_mpm_flags & POPULATE_MPM_AVOID_URI_MPM_PATTERNS)) {
+                    if (sh->flags & SIG_GROUP_HAVEURICONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY)) {
                         if (mpm_table[sh->mpm_uri_ctx->mpm_type].Prepare != NULL)
                             mpm_table[sh->mpm_uri_ctx->mpm_type].Prepare(sh->mpm_uri_ctx);
                     }
