@@ -172,7 +172,8 @@ typedef struct MpmTableElmt_ {
 
 MpmTableElmt mpm_table[MPM_TABLE_SIZE];
 
-int32_t MpmFactoryRegisterMpmCtxProfile(const char *, uint8_t flags);
+int32_t MpmFactoryRegisterMpmCtxProfile(const char *, uint8_t);
+void MpmFactoryReClaimMpmCtx(MpmCtx *);
 MpmCtx *MpmFactoryGetMpmCtxForProfile(int32_t);
 void MpmFactoryDeRegisterAllMpmCtxProfiles(void);
 int32_t MpmFactoryIsMpmCtxAvailable(MpmCtx *);

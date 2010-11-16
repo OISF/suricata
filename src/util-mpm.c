@@ -180,6 +180,14 @@ MpmCtx *MpmFactoryGetMpmCtxForProfile(int32_t id)
     }
 }
 
+void MpmFactoryReClaimMpmCtx(MpmCtx *mpm_ctx)
+{
+    if (!MpmFactoryIsMpmCtxAvailable(mpm_ctx))
+        free(mpm_ctx);
+
+    return;
+}
+
 void MpmFactoryDeRegisterAllMpmCtxProfiles(void)
 {
     if (mpm_ctx_factory_container == NULL)
