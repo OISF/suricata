@@ -25,11 +25,13 @@
 #define __DETECT_BYTETEST_H__
 
 /** Bytetest Operators */
-#define DETECT_BYTETEST_OP_LT     '<' /**< "less than" operator */
-#define DETECT_BYTETEST_OP_GT     '>' /**< "greater than" operator */
-#define DETECT_BYTETEST_OP_EQ     '=' /**< "equals" operator */
-#define DETECT_BYTETEST_OP_AND    '&' /**< "bitwise and" operator */
-#define DETECT_BYTETEST_OP_OR     '^' /**< "bitwise or" operator */
+#define DETECT_BYTETEST_OP_LT     1 /**< "less than" operator */
+#define DETECT_BYTETEST_OP_GT     2 /**< "greater than" operator */
+#define DETECT_BYTETEST_OP_EQ     3 /**< "equals" operator */
+#define DETECT_BYTETEST_OP_AND    4 /**< "bitwise and" operator */
+#define DETECT_BYTETEST_OP_OR     5 /**< "bitwise or" operator */
+#define DETECT_BYTETEST_OP_GE     6 /**< greater than equal operator */
+#define DETECT_BYTETEST_OP_LE     7 /**< less than equal operator */
 
 /** Bytetest Base */
 #define DETECT_BYTETEST_BASE_UNSET  0 /**< Unset type value string (automatic)*/

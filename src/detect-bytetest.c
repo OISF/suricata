@@ -224,6 +224,16 @@ int DetectBytetestDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch
                 match = 1;
             }
             break;
+        case DETECT_BYTETEST_OP_GE:
+        if (val >= data->value) {
+            match = 1;
+        }
+        break;
+        case DETECT_BYTETEST_OP_LE:
+        if (val <= data->value) {
+            match = 1;
+        }
+        break;
         default:
             /* Should never get here as we handle this in parsing. */
             SCReturnInt(-1);
@@ -436,6 +446,10 @@ DetectBytetestData *DetectBytetestParse(char *optstr)
             data->op |= DETECT_BYTETEST_OP_AND;
         } else if (strcmp("^", args[2]) == 0) {
             data->op |= DETECT_BYTETEST_OP_OR;
+        } else if (strcmp(">=", args[2]) == 0) {
+            data->op |= DETECT_BYTETEST_OP_GE;
+        } else if (strcmp("<=", args[2]) == 0) {
+            data->op |= DETECT_BYTETEST_OP_LE;
         } else {
             SCLogError(SC_ERR_INVALID_OPERATOR, "Invalid operator");
             goto error;
@@ -1400,6 +1414,66 @@ end:
     return result;
 }
 
+/** \test Test the byte_test signature matching with operator <= */
+int DetectByteTestTestPacket04(void)
+{
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"GET /AllWorkAndNoPlayMakesWillADullBoy HTTP/1.0"
+                    "User-Agent: Wget/1.11.4"
+                    "Accept: */*"
+                    "Host: www.google.com"
+                    "Connection: Keep-Alive"
+                    "Date: Mon, 04 Jan 2010 17:29:39 GMT";
+    uint16_t buflen = strlen((char *)buf);
+
+    Packet *p;
+    p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+
+    if (p == NULL)
+        goto end;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"content + byte_test +"
+                    "relative\"; content:\"GET \"; depth:4; content:\"HTTP/1.\"; "
+    "byte_test:1,<=,0,0,relative,string,dec; sid:124; rev:1;)";
+
+    result = UTHPacketMatchSig(p, sig);
+
+    UTHFreePacket(p);
+
+end:
+    return result;
+}
+
+/** \test Test the byte_test signature matching with operator >= */
+int DetectByteTestTestPacket05(void)
+{
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"GET /AllWorkAndNoPlayMakesWillADullBoy HTTP/1.0"
+                    "User-Agent: Wget/1.11.4"
+                    "Accept: */*"
+                    "Host: www.google.com"
+                    "Connection: Keep-Alive"
+                    "Date: Mon, 04 Jan 2010 17:29:39 GMT";
+    uint16_t buflen = strlen((char *)buf);
+
+    Packet *p;
+    p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+
+    if (p == NULL)
+        goto end;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"content + byte_test +"
+                    "relative\"; content:\"GET \"; depth:4; content:\"HTTP/1.\"; "
+    "byte_test:1,>=,0,0,relative,string,dec; sid:125; rev:1;)";
+
+    result = UTHPacketMatchSig(p, sig);
+
+    UTHFreePacket(p);
+
+end:
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 
@@ -1431,6 +1505,8 @@ void DetectBytetestRegisterTests(void) {
     UtRegisterTest("DetectByteTestTestPacket01", DetectByteTestTestPacket01, 1);
     UtRegisterTest("DetectByteTestTestPacket02", DetectByteTestTestPacket02, 1);
     UtRegisterTest("DetectByteTestTestPacket03", DetectByteTestTestPacket03, 1);
+    UtRegisterTest("DetectByteTestTestPacket04", DetectByteTestTestPacket04, 1);
+    UtRegisterTest("DetectByteTestTestPacket05", DetectByteTestTestPacket05, 1);
 #endif /* UNITTESTS */
 }
 
