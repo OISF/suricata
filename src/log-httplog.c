@@ -151,7 +151,7 @@ TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
     char srcip[16], dstip[16];
-    uint32_t sp, dp;
+    Port sp, dp;
     if ((PKT_IS_TOSERVER(p))) {
         inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
@@ -208,7 +208,7 @@ TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
         }
 
         /* ip/tcp header info */
-        fprintf(aft->file_ctx->fp, " [**] %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
+        fprintf(aft->file_ctx->fp, " [**] %s:%" PRIu16 " -> %s:%" PRIu16 "\n",
                 srcip, sp, dstip, dp);
 
         aft->uri_cnt ++;
@@ -267,7 +267,7 @@ TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
     char srcip[46], dstip[46];
-    uint32_t sp, dp;
+    Port sp, dp;
     if ((PKT_IS_TOSERVER(p))) {
         inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
@@ -323,7 +323,7 @@ TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
         }
 
         /* ip/tcp header info */
-        fprintf(aft->file_ctx->fp, " [**] %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
+        fprintf(aft->file_ctx->fp, " [**] %s:%" PRIu16 " -> %s:%" PRIu16 "\n",
                 srcip, sp, dstip, dp);
 
         aft->uri_cnt++;
