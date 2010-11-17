@@ -114,7 +114,7 @@ int DetectHttpHeaderMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     int result = 0;
-    DetectHttpHeaderData *hcbd = (DetectHttpHeaderData *)m->ctx;
+    DetectContentData *hcbd = (DetectContentData *)m->ctx;
     HtpState *htp_state = (HtpState *)state;
 
     SCMutexLock(&f->m);
@@ -146,7 +146,7 @@ int DetectHttpHeaderMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
         if (bstr_len(headers) > 0) {
             /* call the case sensitive version if nocase has been specified in the sig */
-            if (hcbd->flags & DETECT_AL_HTTP_HEADER_NOCASE) {
+            if (hcbd->flags & DETECT_CONTENT_NOCASE) {
                 result = (SpmNocaseSearch((uint8_t *)bstr_ptr(headers), bstr_len(headers),
                                           hcbd->content, hcbd->content_len) != NULL);
             } else {
@@ -157,7 +157,7 @@ int DetectHttpHeaderMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     }
 
     SCMutexUnlock(&f->m);
-    SCReturnInt(result ^ ((hcbd->flags & DETECT_AL_HTTP_HEADER_NEGATED) ? 1 : 0));
+    SCReturnInt(result ^ ((hcbd->flags & DETECT_CONTENT_NEGATED) ? 1 : 0));
 
  end:
     SCMutexUnlock(&f->m);
@@ -171,7 +171,7 @@ int DetectHttpHeaderMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  */
 void DetectHttpHeaderFree(void *ptr)
 {
-    DetectHttpHeaderData *hd = (DetectHttpHeaderData *)ptr;
+    DetectContentData *hd = (DetectContentData *)ptr;
     if (hd == NULL)
         return;
     if (hd->content != NULL)
@@ -195,7 +195,7 @@ void DetectHttpHeaderFree(void *ptr)
 int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
     /* http_header_data (hcbd) */
-    DetectHttpHeaderData *hcbd = NULL;
+    DetectContentData *hcbd = NULL;
     SigMatch *nm = NULL;
     SigMatch *sm = NULL;
 
@@ -243,20 +243,20 @@ int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     }
 
     /* setup the HttpHeaderData's data from content data structure's data */
-    hcbd = SCMalloc(sizeof(DetectHttpHeaderData));
+    hcbd = SCMalloc(sizeof(DetectContentData));
     if (hcbd == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc() failed");
         goto error;
     }
-    memset(hcbd, 0, sizeof(DetectHttpHeaderData));
+    memset(hcbd, 0, sizeof(DetectContentData));
 
     /* transfer the pattern details from the content struct to the clientbody struct */
     hcbd->content = ((DetectContentData *)sm->ctx)->content;
     hcbd->content_len = ((DetectContentData *)sm->ctx)->content_len;
     hcbd->flags |= (((DetectContentData *)sm->ctx)->flags & DETECT_CONTENT_NOCASE) ?
-        DETECT_AL_HTTP_HEADER_NOCASE : 0;
+        DETECT_CONTENT_NOCASE : 0;
     hcbd->flags |= (((DetectContentData *)sm->ctx)->flags & DETECT_CONTENT_NEGATED) ?
-        DETECT_AL_HTTP_HEADER_NEGATED : 0;
+        DETECT_CONTENT_NEGATED : 0;
     //hcbd->id = ((DetectContentData *)sm->ctx)->id;
     hcbd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, hcbd, DETECT_AL_HTTP_HEADER);
 
@@ -1361,7 +1361,7 @@ int DetectHttpHeaderTest14(void)
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectHttpHeaderData *hhd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hhd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
     if (cd->id == hhd->id)
         goto end;
 
@@ -1400,7 +1400,7 @@ int DetectHttpHeaderTest15(void)
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectHttpHeaderData *hhd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hhd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
     if (cd->id == hhd->id)
         goto end;
 
@@ -1439,7 +1439,7 @@ int DetectHttpHeaderTest16(void)
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectHttpHeaderData *hhd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hhd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
     if (cd->id != 0 || hhd->id != 1)
         goto end;
 
@@ -1478,7 +1478,7 @@ int DetectHttpHeaderTest17(void)
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectHttpHeaderData *hhd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hhd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
     if (cd->id != 1 || hhd->id != 0)
         goto end;
 
@@ -1518,8 +1518,8 @@ int DetectHttpHeaderTest18(void)
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectHttpHeaderData *hhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
-    DetectHttpHeaderData *hhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->prev->ctx;
+    DetectContentData *hhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->prev->ctx;
     if (cd->id != 1 || hhd1->id != 0 || hhd2->id != 0)
         goto end;
 
@@ -1559,8 +1559,8 @@ int DetectHttpHeaderTest19(void)
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectHttpHeaderData *hhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
-    DetectHttpHeaderData *hhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->prev->ctx;
+    DetectContentData *hhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->prev->ctx;
     if (cd->id != 2 || hhd1->id != 0 || hhd2->id != 0)
         goto end;
 

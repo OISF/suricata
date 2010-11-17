@@ -191,7 +191,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
     DetectContentData *cd = NULL;
     DetectContentData *dhcb = NULL;
     DetectContentData *dhcd = NULL;
-    DetectHttpHeaderData *dhhd = NULL;
+    DetectContentData *dhhd = NULL;
     DetectContentData *dhmd = NULL;
 
     switch (pm->type) {
@@ -223,8 +223,8 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
             BoyerMooreCtxToNocase(dhcb->bm_ctx, dhcb->content, dhcb->content_len);
             break;
         case DETECT_AL_HTTP_HEADER:
-            dhhd =(DetectHttpHeaderData *) pm->ctx;
-            dhhd->flags |= DETECT_AL_HTTP_HEADER_NOCASE;
+            dhhd =(DetectContentData *) pm->ctx;
+            dhhd->flags |= DETECT_CONTENT_NOCASE;
             break;
         case DETECT_AL_HTTP_METHOD:
             dhmd =(DetectContentData *) pm->ctx;

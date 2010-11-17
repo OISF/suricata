@@ -24,19 +24,6 @@
 #ifndef __DETECT_HTTP_HEADER_H__
 #define __DETECT_HTTP_HEADER_H__
 
-#define DETECT_AL_HTTP_HEADER_NOCASE   0x01
-#define DETECT_AL_HTTP_HEADER_NEGATED  0x02
-
-typedef struct DetectHttpHeaderData_ {
-    /* please keep the order of the first 2 members intact, since we use the
-     * same template obtained from DetectContentData to access these members
-     * for pattern id retrieval from DetectPatternGetId() */
-    uint8_t *content;
-    uint8_t content_len;
-    PatIntId id;
-    uint8_t flags;
-} DetectHttpHeaderData;
-
 void DetectHttpHeaderRegister(void);
 void DetectHttpRawHeaderRegister(void);
 
