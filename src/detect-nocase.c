@@ -192,7 +192,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
     DetectContentData *dhcb = NULL;
     DetectContentData *dhcd = NULL;
     DetectHttpHeaderData *dhhd = NULL;
-    DetectHttpMethodData *dhmd = NULL;
+    DetectContentData *dhmd = NULL;
 
     switch (pm->type) {
         case DETECT_URICONTENT:
@@ -227,8 +227,8 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
             dhhd->flags |= DETECT_AL_HTTP_HEADER_NOCASE;
             break;
         case DETECT_AL_HTTP_METHOD:
-            dhmd =(DetectHttpMethodData *) pm->ctx;
-            dhmd->flags |= DETECT_AL_HTTP_METHOD_NOCASE;
+            dhmd =(DetectContentData *) pm->ctx;
+            dhmd->flags |= DETECT_CONTENT_NOCASE;
             break;
         case DETECT_AL_HTTP_COOKIE:
             dhcd = (DetectContentData *) pm->ctx;

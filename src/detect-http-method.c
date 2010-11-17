@@ -94,7 +94,7 @@ int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     size_t idx;
-    DetectHttpMethodData *data = (DetectHttpMethodData *)sm->ctx;
+    DetectContentData *data = (DetectContentData *)sm->ctx;
     HtpState *hs = (HtpState *)state;
     htp_tx_t *tx = NULL;
     int ret = 0;
@@ -119,7 +119,7 @@ int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
             printf("Pattern:       ");PrintRawUriFp(stdout, data->content, data->content_len);printf("\n");
             */
 
-            if (data->flags & DETECT_AL_HTTP_METHOD_NOCASE) {
+            if (data->flags & DETECT_CONTENT_NOCASE) {
                 SCLogDebug("no case inspection");
                 ret = (SpmNocaseSearch((uint8_t *)meth_str, bstr_size(tx->request_method),
                             data->content, data->content_len) != NULL);
@@ -136,7 +136,7 @@ int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     }
 
     SCMutexUnlock(&f->m);
-    SCReturnInt(ret ^ ((data->flags & DETECT_AL_HTTP_METHOD_NEGATED) ? 1 : 0));
+    SCReturnInt(ret ^ ((data->flags & DETECT_CONTENT_NEGATED) ? 1 : 0));
 }
 
 /**
@@ -153,7 +153,7 @@ int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
     SCEnter();
-    DetectHttpMethodData *data = NULL;
+    DetectContentData *data = NULL;
     /** new sig match to replace previous content */
     SigMatch *nm = NULL;
 
@@ -198,21 +198,21 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
         goto error;
     }
 
-    data = SCMalloc(sizeof(DetectHttpMethodData));
+    data = SCMalloc(sizeof(DetectContentData));
     if (data == NULL)
         goto error;
 
-    memset(data, 0x00, sizeof(DetectHttpMethodData));
+    memset(data, 0x00, sizeof(DetectContentData));
 
     data->content_len = ((DetectContentData *)pm->ctx)->content_len;
     data->content = ((DetectContentData *)pm->ctx)->content;
     /* transfer the nocase flag if it has already been set */
     if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_NOCASE) {
-        data->flags |= DETECT_AL_HTTP_METHOD_NOCASE;
+        data->flags |= DETECT_CONTENT_NOCASE;
     }
     /* transfer the negate flag */
     if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_NEGATED) {
-        data->flags |= DETECT_AL_HTTP_METHOD_NEGATED;
+        data->flags |= DETECT_CONTENT_NEGATED;
     }
 
     data->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, data, DETECT_AL_HTTP_METHOD);
@@ -251,12 +251,12 @@ error:
 }
 
 /**
- * \brief this function will free memory associated with DetectHttpMethodData
+ * \brief this function will free memory associated with DetectContentData
  *
- * \param id_d pointer to DetectHttpMethodData
+ * \param id_d pointer to DetectContentData
  */
 void DetectHttpMethodFree(void *ptr) {
-    DetectHttpMethodData *data = (DetectHttpMethodData *)ptr;
+    DetectContentData *data = (DetectContentData *)ptr;
 
     if (data->content != NULL) SCFree(data->content);
     SCFree(data);
@@ -426,7 +426,7 @@ int DetectHttpMethodTest06(void)
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectHttpMethodData *hmd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hmd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
     if (cd->id == hmd->id)
         goto end;
 
@@ -465,7 +465,7 @@ int DetectHttpMethodTest07(void)
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectHttpMethodData *hmd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hmd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
     if (cd->id == hmd->id)
         goto end;
 
@@ -504,7 +504,7 @@ int DetectHttpMethodTest08(void)
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectHttpMethodData *hmd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hmd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
     if (cd->id != 0 || hmd->id != 1)
         goto end;
 
@@ -543,7 +543,7 @@ int DetectHttpMethodTest09(void)
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectHttpMethodData *hmd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hmd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
     if (cd->id != 1 || hmd->id != 0)
         goto end;
 
@@ -583,8 +583,8 @@ int DetectHttpMethodTest10(void)
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectHttpMethodData *hmd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
-    DetectHttpMethodData *hmd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->prev->ctx;
+    DetectContentData *hmd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hmd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->prev->ctx;
     if (cd->id != 1 || hmd1->id != 0 || hmd2->id != 0)
         goto end;
 
@@ -624,8 +624,8 @@ int DetectHttpMethodTest11(void)
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectHttpMethodData *hmd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
-    DetectHttpMethodData *hmd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->prev->ctx;
+    DetectContentData *hmd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hmd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->prev->ctx;
     if (cd->id != 2 || hmd1->id != 0 || hmd2->id != 0)
         goto end;
 
@@ -664,15 +664,15 @@ static int DetectHttpMethodTest12(void)
         goto end;
     }
 
-    DetectHttpMethodData *hmd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
-    DetectHttpMethodData *hmd2 = de_ctx->sig_list->next->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hmd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hmd2 = de_ctx->sig_list->next->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
 
-    if (!(hmd1->flags & DETECT_AL_HTTP_METHOD_NOCASE)) {
+    if (!(hmd1->flags & DETECT_CONTENT_NOCASE)) {
         printf("nocase flag not set on sig 1: ");
         goto end;
     }
 
-    if (!(hmd2->flags & DETECT_AL_HTTP_METHOD_NOCASE)) {
+    if (!(hmd2->flags & DETECT_CONTENT_NOCASE)) {
         printf("nocase flag not set on sig 2: ");
         goto end;
     }
