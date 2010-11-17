@@ -1391,7 +1391,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     }
 
     DetectContentData *cd = NULL;
-    DetectUricontentData *ud = NULL;
+    DetectContentData *ud = NULL;
     DetectPcreData *pe = NULL;
 
     switch (prev_sm->type) {
@@ -1408,12 +1408,12 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
 
         case DETECT_URICONTENT:
             /* Set the relative next flag on the prev sigmatch */
-            ud = (DetectUricontentData *)prev_sm->ctx;
+            ud = (DetectContentData *)prev_sm->ctx;
             if (ud == NULL) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "uricontent not setup properly");
                 SCReturnInt(-1);
             }
-            ud->flags |= DETECT_URICONTENT_RELATIVE_NEXT;
+            ud->flags |= DETECT_CONTENT_RELATIVE_NEXT;
 
             break;
 

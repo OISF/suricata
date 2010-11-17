@@ -94,11 +94,11 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
             break;
     }
 
-    DetectUricontentData *ud = NULL;
+    DetectContentData *ud = NULL;
     DetectContentData *cd = NULL;
     switch (pm->type) {
         case DETECT_URICONTENT:
-            ud = (DetectUricontentData *)pm->ctx;
+            ud = (DetectContentData *)pm->ctx;
             if (ud == NULL) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
                 if (dubbed)
@@ -106,14 +106,14 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                 return -1;
             }
 
-            if (ud->flags & DETECT_URICONTENT_NEGATED) {
-                if (ud->flags & DETECT_URICONTENT_FAST_PATTERN) {
+            if (ud->flags & DETECT_CONTENT_NEGATED) {
+                if (ud->flags & DETECT_CONTENT_FAST_PATTERN) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
                                "negated keyword set along with a fast_pattern");
                     goto error;
                 }
             } else {
-                if (ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY) {
+                if (ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
                                "keyword set along with a fast_pattern:only;");
                     goto error;
@@ -131,7 +131,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                 ud->depth += ud->offset;
             }
 
-            ud->flags |= DETECT_URICONTENT_OFFSET;
+            ud->flags |= DETECT_CONTENT_OFFSET;
 
             break;
 

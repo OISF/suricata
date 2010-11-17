@@ -90,13 +90,13 @@ uint32_t DetectUricontentMaxId(DetectEngineCtx *de_ctx)
 }
 
 /**
- * \brief this function will Free memory associated with DetectUricontentData
+ * \brief this function will Free memory associated with DetectContentData
  *
  * \param cd pointer to DetectUricotentData
  */
 void DetectUricontentFree(void *ptr) {
     SCEnter();
-    DetectUricontentData *cd = (DetectUricontentData *)ptr;
+    DetectContentData *cd = (DetectContentData *)ptr;
 
     if (cd == NULL)
         SCReturn;
@@ -113,7 +113,7 @@ void DetectUricontentFree(void *ptr) {
 /**
  * \brief Helper function to print a DetectContentData
  */
-void DetectUricontentPrint(DetectUricontentData *cd)
+void DetectUricontentPrint(DetectContentData *cd)
 {
     int i = 0;
     if (cd == NULL) {
@@ -148,9 +148,9 @@ void DetectUricontentPrint(DetectUricontentData *cd)
     SCLogDebug("Distance: %"PRIi32, cd->distance);
     SCLogDebug("flags: %u ", cd->flags);
     SCLogDebug("negated: %s ",
-            cd->flags & DETECT_URICONTENT_NEGATED ? "true" : "false");
+            cd->flags & DETECT_CONTENT_NEGATED ? "true" : "false");
     SCLogDebug("relative match next: %s ",
-            cd->flags & DETECT_URICONTENT_RELATIVE_NEXT ? "true" : "false");
+            cd->flags & DETECT_CONTENT_RELATIVE_NEXT ? "true" : "false");
     SCLogDebug("-----------");
 }
 
@@ -173,7 +173,7 @@ SigMatch *DetectUricontentGetLastPattern(SigMatch *sm)
     if (sm == NULL)
         return NULL;
 
-    DetectUricontentData *cd = (DetectUricontentData*) sm->ctx;
+    DetectContentData *cd = (DetectContentData*) sm->ctx;
     if (cd == NULL)
         return NULL;
 
@@ -185,9 +185,9 @@ SigMatch *DetectUricontentGetLastPattern(SigMatch *sm)
  *          the rule set.
  * \param   contentstr  Pointer to the string which has been defined in the rule
  */
-DetectUricontentData *DoDetectUricontentSetup (char * contentstr)
+DetectContentData *DoDetectUricontentSetup (char * contentstr)
 {
-    DetectUricontentData *cd = NULL;
+    DetectContentData *cd = NULL;
     char *temp = NULL;
     char *str = NULL;
     uint16_t len = 0;
@@ -202,10 +202,10 @@ DetectUricontentData *DoDetectUricontentSetup (char * contentstr)
         return NULL;
     }
 
-    cd = SCMalloc(sizeof(DetectUricontentData));
+    cd = SCMalloc(sizeof(DetectContentData));
     if (cd == NULL)
         goto error;
-    memset(cd,0,sizeof(DetectUricontentData));
+    memset(cd,0,sizeof(DetectContentData));
 
     /* skip the first spaces */
     slen = strlen(temp);
@@ -214,7 +214,7 @@ DetectUricontentData *DoDetectUricontentSetup (char * contentstr)
     };
 
     if (temp[pos] == '!') {
-        cd->flags |= DETECT_URICONTENT_NEGATED;
+        cd->flags |= DETECT_CONTENT_NEGATED;
         pos++;
     }
 
@@ -365,7 +365,7 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contents
 {
     SCEnter();
 
-    DetectUricontentData *cd = NULL;
+    DetectContentData *cd = NULL;
     SigMatch *sm = NULL;
 
     if (s->alproto == ALPROTO_DCERPC) {
@@ -1115,8 +1115,8 @@ static int DetectUriSigTest04(void) {
     if (s == NULL ||
         s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL ||
         s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL ||
-        ((DetectUricontentData *)s->sm_lists[DETECT_SM_LIST_UMATCH]->ctx)->depth != 15 ||
-        ((DetectUricontentData *)s->sm_lists[DETECT_SM_LIST_UMATCH]->ctx)->offset != 5 ||
+        ((DetectContentData *)s->sm_lists[DETECT_SM_LIST_UMATCH]->ctx)->depth != 15 ||
+        ((DetectContentData *)s->sm_lists[DETECT_SM_LIST_UMATCH]->ctx)->offset != 5 ||
         s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
     {
         printf("sig 4 failed to parse: ");
@@ -1171,11 +1171,11 @@ static int DetectUriSigTest04(void) {
             s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL ||
             ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->depth != 15 ||
             ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->offset != 5 ||
-            ((DetectUricontentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx)->within != 30 ||
+            ((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx)->within != 30 ||
             s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
     {
         printf("sig 8 failed to parse: ");
-        DetectUricontentPrint((DetectUricontentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx);
+        DetectUricontentPrint((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx);
         goto end;
     }
 
@@ -1211,11 +1211,11 @@ static int DetectUriSigTest04(void) {
             s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL ||
             ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->depth != 15 ||
             ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->offset != 5 ||
-            ((DetectUricontentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx)->distance != 30 ||
+            ((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx)->distance != 30 ||
             s->sm_lists[DETECT_SM_LIST_MATCH] != NULL)
     {
         printf("sig 10 failed to parse: ");
-        DetectUricontentPrint((DetectUricontentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx);
+        DetectUricontentPrint((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx);
         goto end;
     }
 
@@ -1238,14 +1238,14 @@ static int DetectUriSigTest04(void) {
 
     if (    ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->depth != 15 ||
             ((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx)->offset != 5 ||
-            ((DetectUricontentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx)->distance != 30 ||
-            ((DetectUricontentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx)->within != 60 ||
+            ((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx)->distance != 30 ||
+            ((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx)->within != 60 ||
             ((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx)->distance != 45 ||
             ((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx)->within != 70 ||
             s->sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
         printf("sig 10 failed to parse, content not setup properly: ");
         DetectContentPrint((DetectContentData*) s->sm_lists[DETECT_SM_LIST_PMATCH]->ctx);
-        DetectUricontentPrint((DetectUricontentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx);
+        DetectUricontentPrint((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx);
         DetectContentPrint((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx);
         goto end;
     }
@@ -1757,7 +1757,7 @@ int DetectUriSigTest11(void)
 int DetectUriSigTest12(void)
 {
     DetectEngineCtx *de_ctx = NULL;
-    DetectUricontentData *ud = 0;
+    DetectContentData *ud = 0;
     Signature *s = NULL;
     int result = 1;
 
@@ -1781,7 +1781,7 @@ int DetectUriSigTest12(void)
         goto end;
     }
 
-    ud = (DetectUricontentData *)s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    ud = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     result = (strncmp("boo", (char *)ud->content, ud->content_len) == 0);
 
  end:
@@ -2139,7 +2139,7 @@ int DetectUricontentSigTest08(void)
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectUricontentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (cd->id == ud->id)
         goto end;
 
@@ -2178,7 +2178,7 @@ int DetectUricontentSigTest09(void)
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectUricontentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (cd->id == ud->id)
         goto end;
 
@@ -2220,8 +2220,8 @@ int DetectUricontentSigTest10(void)
     DetectContentData *cd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->prev->ctx;
     DetectContentData *cd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
     DetectContentData *cd3 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectUricontentData *ud1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
-    DetectUricontentData *ud2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    DetectContentData *ud1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
+    DetectContentData *ud2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (cd1->id != 1 || cd2->id != 2 || cd3->id != 1 || ud1->id != 0 || ud2->id != 0)
         goto end;
 
@@ -2263,8 +2263,8 @@ int DetectUricontentSigTest11(void)
     DetectContentData *cd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->prev->ctx;
     DetectContentData *cd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
     DetectContentData *cd3 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectUricontentData *ud1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
-    DetectUricontentData *ud2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    DetectContentData *ud1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
+    DetectContentData *ud2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (cd1->id != 1 || cd2->id != 2 || cd3->id != 1 || ud1->id != 0 || ud2->id != 0)
         goto end;
 
@@ -2310,11 +2310,11 @@ int DetectUricontentSigTest12(void)
     DetectContentData *cd3 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->prev->ctx;
     DetectContentData *cd4 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->prev->ctx;
     DetectContentData *cd5 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectUricontentData *ud1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->prev->prev->prev->ctx;
-    DetectUricontentData *ud2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->prev->prev->ctx;
-    DetectUricontentData *ud3 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->prev->ctx;
-    DetectUricontentData *ud4 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
-    DetectUricontentData *ud5 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    DetectContentData *ud1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->prev->prev->prev->ctx;
+    DetectContentData *ud2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->prev->prev->ctx;
+    DetectContentData *ud3 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->prev->ctx;
+    DetectContentData *ud4 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
+    DetectContentData *ud5 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (cd1->id != 1 || cd2->id != 2 || cd3->id != 1 || cd4->id != 1 || cd5->id != 4 ||
         ud1->id != 0 || ud2->id != 0 || ud3->id != 0 || ud4->id != 0 || ud5->id != 3) {
         goto end;

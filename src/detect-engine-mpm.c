@@ -417,7 +417,7 @@ typedef struct ContentHash_ {
 } ContentHash;
 
 typedef struct UricontentHash_ {
-    DetectUricontentData *ptr;
+    DetectContentData *ptr;
     uint16_t cnt;
     uint8_t use; /* use no matter what */
 } UricontentHash;
@@ -437,7 +437,7 @@ uint32_t ContentHashFunc(HashTable *ht, void *data, uint16_t datalen) {
 
 uint32_t UricontentHashFunc(HashTable *ht, void *data, uint16_t datalen) {
      UricontentHash *ch = (UricontentHash *)data;
-     DetectUricontentData *ud = ch->ptr;
+     DetectContentData *ud = ch->ptr;
      uint32_t hash = 0;
      int i;
      for (i = 0; i < ud->content_len; i++) {
@@ -465,11 +465,11 @@ char ContentHashCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t le
 char UricontentHashCompareFunc(void *data1, uint16_t len1, void *data2, uint16_t len2) {
     UricontentHash *ch1 = (UricontentHash *)data1;
     UricontentHash *ch2 = (UricontentHash *)data2;
-    DetectUricontentData *ud1 = ch1->ptr;
-    DetectUricontentData *ud2 = ch2->ptr;
+    DetectContentData *ud1 = ch1->ptr;
+    DetectContentData *ud2 = ch2->ptr;
 
     if (ud1->content_len == ud2->content_len &&
-        ((ud1->flags & DETECT_URICONTENT_NOCASE) == (ud2->flags & DETECT_URICONTENT_NOCASE)) &&
+        ((ud1->flags & DETECT_CONTENT_NOCASE) == (ud2->flags & DETECT_CONTENT_NOCASE)) &&
         SCMemcmp(ud1->content, ud2->content, ud1->content_len) == 0)
         return 1;
 
@@ -488,7 +488,7 @@ ContentHash *ContentHashAlloc(DetectContentData *ptr) {
     return ch;
 }
 
-UricontentHash *UricontentHashAlloc(DetectUricontentData *ptr) {
+UricontentHash *UricontentHashAlloc(DetectContentData *ptr) {
     UricontentHash *ch = SCMalloc(sizeof(UricontentHash));
     if (ch == NULL)
         return NULL;
@@ -596,7 +596,7 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                  * should have a much more compact function.  Applies everywhere
                  * else where we have used a switch like this */
                 DetectContentData *cd = NULL;
-                DetectUricontentData *ud = NULL;
+                DetectContentData *ud = NULL;
                 switch (sm->type) {
                     case DETECT_CONTENT:
                         if (sig_has_no_pkt_and_stream_content ||
@@ -619,9 +619,9 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                               !(sgh->flags & SIG_GROUP_HEAD_MPM_URI_COPY))) {
                             break;
                         }
-                        ud = (DetectUricontentData *)sm->ctx;
+                        ud = (DetectContentData *)sm->ctx;
                         /* special handling of fast pattern keyword */
-                        if (ud->flags & DETECT_URICONTENT_FAST_PATTERN) {
+                        if (ud->flags & DETECT_CONTENT_FAST_PATTERN) {
                             fast_pattern[sig] = 1;
                         }
 
@@ -670,7 +670,7 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                  * 2. we have a smaller content than mpm_content_maxlen */
                 if (fast_pattern[sig]) {
                     DetectContentData *cd = NULL;
-                    DetectUricontentData *ud = NULL;
+                    DetectContentData *ud = NULL;
                     switch (sm->type) {
                         case DETECT_CONTENT:
                             cd = (DetectContentData *)sm->ctx;
@@ -683,8 +683,8 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                             break;
 
                         case DETECT_URICONTENT:
-                            ud = (DetectUricontentData *)sm->ctx;
-                            if (!(ud->flags & DETECT_URICONTENT_FAST_PATTERN)) {
+                            ud = (DetectContentData *)sm->ctx;
+                            if (!(ud->flags & DETECT_CONTENT_FAST_PATTERN)) {
                                 SCLogDebug("not a fast pattern %"PRIu32"", co->id);
                                 continue;
                             }
@@ -694,7 +694,7 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                     } /* switch (sm->type) */
                 } else {
                     DetectContentData *cd = NULL;
-                    DetectUricontentData *ud = NULL;
+                    DetectContentData *ud = NULL;
                     switch (sm->type) {
                         case DETECT_CONTENT:
                             if (sig_has_no_pkt_and_stream_content ||
@@ -715,7 +715,7 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                                   !(sgh->flags & SIG_GROUP_HEAD_MPM_URI_COPY))) {
                                 continue;
                             }
-                            ud = (DetectUricontentData *)sm->ctx;
+                            ud = (DetectContentData *)sm->ctx;
                             if (ud->content_len < sgh->mpm_uricontent_maxlen)
                                 continue;
 
@@ -752,7 +752,7 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
             uint8_t flags = 0;
 
             DetectContentData *cd = NULL;
-            DetectUricontentData *ud = NULL;
+            DetectContentData *ud = NULL;
             switch (mpm_sm->type) {
                 case DETECT_CONTENT:
                 {
@@ -878,10 +878,10 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                 } /* case DETECT_CONTENT */
                 case DETECT_URICONTENT:
                 {
-                    ud = (DetectUricontentData *)mpm_sm->ctx;
-                    if (ud->flags & DETECT_URICONTENT_FAST_PATTERN_CHOP) {
+                    ud = (DetectContentData *)mpm_sm->ctx;
+                    if (ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
                         /* add the content to the "uri" mpm */
-                        if (ud->flags & DETECT_URICONTENT_NOCASE) {
+                        if (ud->flags & DETECT_CONTENT_NOCASE) {
                             mpm_table[sgh->mpm_ctx->mpm_type].
                                 AddPatternNocase(sgh->mpm_ctx,
                                                  ud->content + ud->fp_chop_offset,
@@ -932,7 +932,7 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                     /* tell matcher we are inspecting uri */
                     s->flags |= SIG_FLAG_MPM_URICONTENT;
                     s->mpm_uripattern_id = ud->id;
-                    if (ud->flags & DETECT_URICONTENT_NEGATED)
+                    if (ud->flags & DETECT_CONTENT_NEGATED)
                         s->flags |= SIG_FLAG_MPM_URICONTENT_NEG;
 
                     break;
@@ -1512,14 +1512,14 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
 //            if (sm->type != DETECT_URICONTENT)
 //                continue;
 //
-//            DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
+//            DetectContentData *ud = (DetectContentData *)sm->ctx;
 //            if (ud == NULL)
 //                continue;
 //
 //            cnt++;
 //#if 0
 //            /* special handling of fast pattern keyword */
-//            if (co->flags & DETECT_URICONTENT_FAST_PATTERN) {
+//            if (co->flags & DETECT_CONTENT_FAST_PATTERN) {
 //                fast_pattern[sig] = 1;
 //                SCLogDebug("sig %"PRIu32" has a fast pattern, id %"PRIu32"", s->id, co->id);
 //
@@ -1547,7 +1547,7 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
 //            if (sm->type != DETECT_URICONTENT)
 //                continue;
 //
-//            DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
+//            DetectContentData *ud = (DetectContentData *)sm->ctx;
 //            if (ud == NULL)
 //                continue;
 //
@@ -1592,7 +1592,7 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
 //            if (sm->type != DETECT_URICONTENT)
 //                continue;
 //
-//            DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
+//            DetectContentData *ud = (DetectContentData *)sm->ctx;
 //            if (ud == NULL)
 //                continue;
 //
@@ -1651,7 +1651,7 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
 //
 //        /* now add the mpm_ch to the mpm ctx */
 //        if (mpm_ch != NULL) {
-//            DetectUricontentData *ud = mpm_ch->ptr;
+//            DetectContentData *ud = mpm_ch->ptr;
 //            uint8_t flags = 0;
 //#if 0
 //            /* see if our content is actually negated */
@@ -1673,7 +1673,7 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
 //            }
 //#endif
 //            /* add the content to the "packet" mpm */
-//            if (ud->flags & DETECT_URICONTENT_NOCASE) {
+//            if (ud->flags & DETECT_CONTENT_NOCASE) {
 //                mpm_table[sgh->mpm_uri_ctx->mpm_type].AddPatternNocase(sgh->mpm_uri_ctx,
 //                        ud->content, ud->content_len, 0, 0, ud->id, s->num, flags);
 //            } else {
@@ -1907,7 +1907,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 if (sm->type != DETECT_URICONTENT)
                     continue;
 
-                DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
+                DetectContentData *ud = (DetectContentData *)sm->ctx;
                 if (ud == NULL)
                     continue;
 
@@ -2177,7 +2177,7 @@ uint32_t DetectContentGetId(MpmPatternIdStore *ht, DetectContentData *co) {
  *
  *  \retval id pattern id
  */
-uint32_t DetectUricontentGetId(MpmPatternIdStore *ht, DetectUricontentData *co) {
+uint32_t DetectUricontentGetId(MpmPatternIdStore *ht, DetectContentData *co) {
     SCEnter();
 
     BUG_ON(ht == NULL || ht->hash == NULL);
@@ -2254,7 +2254,7 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_type)
     /* if uricontent had used content and content_len as its struct members
      * we wouldn't have needed this if/else here */
     if (sm_type == DETECT_URICONTENT) {
-        DetectUricontentData *ud = ctx;
+        DetectContentData *ud = ctx;
         e->pattern = SCMalloc(ud->content_len);
         if (e->pattern == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");

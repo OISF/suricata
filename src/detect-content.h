@@ -51,14 +51,12 @@
 #include "util-spm-bm.h"
 
 typedef struct DetectContentData_ {
-    uint8_t *content;   /**< ptr to chunk of memory containing the pattern */
-    uint8_t content_len;/**< length of the pattern (and size of the memory) */
+    uint8_t *content;
+    uint8_t content_len;
     uint16_t flags;
-    PatIntId id;        /**< unique pattern id */
+    PatIntId id;
     uint16_t depth;
     uint16_t offset;
-    /** distance from the last match this match should start.
-     *  Can be negative */
     int32_t distance;
     int32_t within;
     BmCtx *bm_ctx;     /**< Boyer Moore context (for spm search) */

@@ -187,7 +187,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
         SCReturnInt(-1);
     }
 
-    DetectUricontentData *ud = NULL;
+    DetectContentData *ud = NULL;
     DetectContentData *cd = NULL;
     DetectHttpClientBodyData *dhcb = NULL;
     DetectHttpCookieData *dhcd = NULL;
@@ -196,12 +196,12 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
 
     switch (pm->type) {
         case DETECT_URICONTENT:
-            ud = (DetectUricontentData *)pm->ctx;
+            ud = (DetectContentData *)pm->ctx;
             if (ud == NULL) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
                 SCReturnInt(-1);
             }
-            ud->flags |= DETECT_URICONTENT_NOCASE;
+            ud->flags |= DETECT_CONTENT_NOCASE;
             /* Recreate the context with nocase chars */
             BoyerMooreCtxToNocase(ud->bm_ctx, ud->content, ud->content_len);
             break;

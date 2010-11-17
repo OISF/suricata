@@ -1362,7 +1362,7 @@ int SigGroupHeadLoadUricontent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     Signature *s = NULL;
     SigMatch *sm = NULL;
     uint32_t sig = 0;
-    DetectUricontentData *co = NULL;
+    DetectContentData *co = NULL;
 
     if (sgh == NULL)
         return 0;
@@ -1394,7 +1394,7 @@ int SigGroupHeadLoadUricontent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
         for ( ;sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_URICONTENT) {
-                co = (DetectUricontentData *)sm->ctx;
+                co = (DetectContentData *)sm->ctx;
 
                 sgh->init->uri_content_array[co->id / 8] |= 1 << (co->id % 8);
             }

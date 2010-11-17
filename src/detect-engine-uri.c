@@ -97,8 +97,8 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
             SCReturnInt(0);
         }
 
-        DetectUricontentData *ud = NULL;
-        ud = (DetectUricontentData *)sm->ctx;
+        DetectContentData *ud = NULL;
+        ud = (DetectContentData *)sm->ctx;
         SCLogDebug("inspecting content %"PRIu32" payload_len %"PRIu32, ud->id, payload_len);
 
         /* rule parsers should take care of this */
@@ -113,14 +113,14 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
         uint32_t prev_payload_offset = det_ctx->payload_offset;
 
         do {
-            if (ud->flags & DETECT_URICONTENT_DISTANCE ||
-                ud->flags & DETECT_URICONTENT_WITHIN) {
+            if (ud->flags & DETECT_CONTENT_DISTANCE ||
+                ud->flags & DETECT_CONTENT_WITHIN) {
                 SCLogDebug("prev_payload_offset %"PRIu32, prev_payload_offset);
 
                 offset = prev_payload_offset;
                 depth = payload_len;
 
-                if (ud->flags & DETECT_URICONTENT_DISTANCE) {
+                if (ud->flags & DETECT_CONTENT_DISTANCE) {
                     if (ud->distance < 0 && (uint32_t)(abs(ud->distance)) > offset)
                         offset = 0;
                     else
@@ -130,7 +130,7 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
                         ud->distance, offset, depth);
                 }
 
-                if (ud->flags & DETECT_URICONTENT_WITHIN) {
+                if (ud->flags & DETECT_CONTENT_WITHIN) {
                     if ((int32_t)depth > (int32_t)(prev_payload_offset + ud->within)) {
                         depth = prev_payload_offset + ud->within;
                     }
@@ -176,7 +176,7 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
             /* if offset is bigger than depth we can never match on a pattern.
              * We can however, "match" on a negated pattern. */
             if (offset > depth || depth == 0) {
-                if (ud->flags & DETECT_URICONTENT_NEGATED) {
+                if (ud->flags & DETECT_CONTENT_NEGATED) {
                     goto match;
                 } else {
                     SCReturnInt(0);
@@ -194,7 +194,7 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
             /* If we got no matches from the mpm, avoid searching (just check if negated) */
             if (det_ctx->de_have_httpuri == TRUE) {
                 /* do the actual search with boyer moore precooked ctx */
-                if (ud->flags & DETECT_URICONTENT_NOCASE)
+                if (ud->flags & DETECT_CONTENT_NOCASE)
                     found = BoyerMooreNocase(ud->content, ud->content_len, spayload, spayload_len, ud->bm_ctx->bmGs, ud->bm_ctx->bmBc);
                 else
                     found = BoyerMoore(ud->content, ud->content_len, spayload, spayload_len, ud->bm_ctx->bmGs, ud->bm_ctx->bmBc);
@@ -204,13 +204,13 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
 
             /* next we evaluate the result in combination with the
              * negation flag. */
-            SCLogDebug("found %p ud negated %s", found, ud->flags & DETECT_URICONTENT_NEGATED ? "true" : "false");
+            SCLogDebug("found %p ud negated %s", found, ud->flags & DETECT_CONTENT_NEGATED ? "true" : "false");
 
-            if (found == NULL && !(ud->flags & DETECT_URICONTENT_NEGATED)) {
+            if (found == NULL && !(ud->flags & DETECT_CONTENT_NEGATED)) {
                 SCReturnInt(0);
-            } else if (found == NULL && ud->flags & DETECT_URICONTENT_NEGATED) {
+            } else if (found == NULL && ud->flags & DETECT_CONTENT_NEGATED) {
                 goto match;
-            } else if (found != NULL && ud->flags & DETECT_URICONTENT_NEGATED) {
+            } else if (found != NULL && ud->flags & DETECT_CONTENT_NEGATED) {
                 SCLogDebug("uricontent %"PRIu32" matched at offset %"PRIu32", but negated so no match", ud->id, match_offset);
                 det_ctx->discontinue_matching = 1;
                 SCReturnInt(0);
@@ -219,7 +219,7 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
                 SCLogDebug("uricontent %"PRIu32" matched at offset %"PRIu32"", ud->id, match_offset);
                 det_ctx->payload_offset = match_offset;
 
-                if (!(ud->flags & DETECT_URICONTENT_RELATIVE_NEXT)) {
+                if (!(ud->flags & DETECT_CONTENT_RELATIVE_NEXT)) {
                     SCLogDebug("no relative match coming up, so this is a match");
                     goto match;
                 }
@@ -413,7 +413,7 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
     sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
 
 #ifdef DEBUG
-    DetectUricontentData *co = (DetectUricontentData *)sm->ctx;
+    DetectContentData *co = (DetectContentData *)sm->ctx;
     SCLogDebug("co->id %"PRIu32, co->id);
 #endif
 

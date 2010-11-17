@@ -1290,13 +1290,13 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
     }
     for (sm = sig->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_URICONTENT) {
-            DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
+            DetectContentData *ud = (DetectContentData *)sm->ctx;
             if (ud == NULL)
                 continue;
 
             sig->flags |= SIG_FLAG_MPM_URI;
 
-            if (ud->flags & DETECT_URICONTENT_NEGATED) {
+            if (ud->flags & DETECT_CONTENT_NEGATED) {
                 sig->flags |= SIG_FLAG_MPM_URI_NEG;
             }
         }
@@ -1326,7 +1326,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
 
         for (sm = sig->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_URICONTENT) {
-                DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
+                DetectContentData *ud = (DetectContentData *)sm->ctx;
                 if (ud == NULL)
                     continue;
 
@@ -1432,13 +1432,13 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
     }
     for (sm = sig->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_URICONTENT) {
-            DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
+            DetectContentData *ud = (DetectContentData *)sm->ctx;
             if (ud == NULL)
                 continue;
 
             sig->flags |= SIG_FLAG_MPM_URI;
 
-            if (ud->flags & DETECT_URICONTENT_NEGATED) {
+            if (ud->flags & DETECT_CONTENT_NEGATED) {
                 sig->flags |= SIG_FLAG_MPM_URI_NEG;
             }
         }
@@ -1468,7 +1468,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
 
         for (sm = sig->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_URICONTENT) {
-                DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
+                DetectContentData *ud = (DetectContentData *)sm->ctx;
                 if (ud == NULL)
                     continue;
                 if (sig->mpm_uricontent_maxlen == 0)
@@ -1517,7 +1517,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
 
             for (sm = sig->next->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
                 if (sm->type == DETECT_URICONTENT) {
-                    DetectUricontentData *ud = (DetectUricontentData *)sm->ctx;
+                    DetectContentData *ud = (DetectContentData *)sm->ctx;
                     if (ud == NULL)
                         continue;
 

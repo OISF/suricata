@@ -83,7 +83,7 @@ void DetectHttpUriRegister (void) {
 
 static int DetectHttpUriSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
-    DetectUricontentData *duc = NULL;
+    DetectContentData *duc = NULL;
     SigMatch *sm = NULL;
 
     /** new sig match to replace previous content */
@@ -121,10 +121,10 @@ static int DetectHttpUriSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         goto error;
 
     /* Setup the uricontent data from content data structure */
-    duc = SCMalloc(sizeof(DetectUricontentData));
+    duc = SCMalloc(sizeof(DetectContentData));
     if (duc == NULL)
         goto error;
-    memset(duc, 0, sizeof(DetectUricontentData));
+    memset(duc, 0, sizeof(DetectContentData));
 
     duc->content_len = ((DetectContentData *)pm->ctx)->content_len;
     if ((duc->content = SCMalloc(duc->content_len)) == NULL)
@@ -132,15 +132,15 @@ static int DetectHttpUriSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
     memcpy(duc->content, ((DetectContentData *)pm->ctx)->content, duc->content_len);
 
     duc->flags |= (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_NOCASE) ?
-        DETECT_URICONTENT_NOCASE : 0;
+        DETECT_CONTENT_NOCASE : 0;
     duc->flags |= (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_NEGATED) ?
-        DETECT_URICONTENT_NEGATED : 0;
+        DETECT_CONTENT_NEGATED : 0;
     duc->flags |= (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_FAST_PATTERN) ?
-        DETECT_URICONTENT_FAST_PATTERN : 0;
+        DETECT_CONTENT_FAST_PATTERN : 0;
     duc->flags |= (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) ?
-        DETECT_URICONTENT_FAST_PATTERN_ONLY : 0;
+        DETECT_CONTENT_FAST_PATTERN_ONLY : 0;
     if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
-        duc->flags |= DETECT_URICONTENT_FAST_PATTERN_CHOP;
+        duc->flags |= DETECT_CONTENT_FAST_PATTERN_CHOP;
         duc->fp_chop_offset = ((DetectContentData *)pm->ctx)->fp_chop_offset;
         duc->fp_chop_len = ((DetectContentData *)pm->ctx)->fp_chop_len;
     }
@@ -336,8 +336,8 @@ int DetectHttpUriTest05(void)
     }
 
     char *str = "we are testing http_uri keyword";
-    int uricomp = memcmp((const char *)((DetectUricontentData*) s->sm_lists[DETECT_SM_LIST_UMATCH]->ctx)->content, str, strlen(str)-1);
-    int urilen = ((DetectUricontentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx)->content_len;
+    int uricomp = memcmp((const char *)((DetectContentData*) s->sm_lists[DETECT_SM_LIST_UMATCH]->ctx)->content, str, strlen(str)-1);
+    int urilen = ((DetectContentData*) s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx)->content_len;
     if (uricomp != 0 ||
         urilen != strlen("we are testing http_uri keyword")) {
         printf("sig failed to parse, content not setup properly\n");
@@ -378,7 +378,7 @@ int DetectHttpUriTest06(void)
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectUricontentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (cd->id == ud->id)
         goto end;
 
@@ -417,7 +417,7 @@ int DetectHttpUriTest07(void)
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectUricontentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (cd->id == ud->id)
         goto end;
 
@@ -456,7 +456,7 @@ int DetectHttpUriTest08(void)
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectUricontentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (cd->id != 0 || ud->id != 1)
         goto end;
 
@@ -495,7 +495,7 @@ int DetectHttpUriTest09(void)
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectUricontentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     if (cd->id != 1 || ud->id != 0)
         goto end;
 
@@ -535,8 +535,8 @@ int DetectHttpUriTest10(void)
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectUricontentData *ud1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
-    DetectUricontentData *ud2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
+    DetectContentData *ud1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    DetectContentData *ud2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
     if (cd->id != 1 || ud1->id != 0 || ud2->id != 0)
         goto end;
 
@@ -576,8 +576,8 @@ int DetectHttpUriTest11(void)
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectUricontentData *ud1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
-    DetectUricontentData *ud2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
+    DetectContentData *ud1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    DetectContentData *ud2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_UMATCH]->prev->ctx;
     if (cd->id != 2 || ud1->id != 0 || ud2->id != 0)
         goto end;
 

@@ -175,27 +175,27 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
         }
     }
 
-    DetectUricontentData *ud = NULL;
+    DetectContentData *ud = NULL;
     DetectContentData *cd = NULL;
     DetectPcreData *pe = NULL;
 
     switch (pm->type) {
         case DETECT_URICONTENT:
-            ud = (DetectUricontentData *)pm->ctx;
+            ud = (DetectContentData *)pm->ctx;
             if (ud == NULL) {
                 SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two "
                            "preceeding content or uricontent options");
                 goto error;
             }
 
-            if (ud->flags & DETECT_URICONTENT_NEGATED) {
-                if (ud->flags & DETECT_URICONTENT_FAST_PATTERN) {
+            if (ud->flags & DETECT_CONTENT_NEGATED) {
+                if (ud->flags & DETECT_CONTENT_FAST_PATTERN) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
                                "negated keyword set along with a fast_pattern");
                     goto error;
                 }
             } else {
-                if (ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY) {
+                if (ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
                     SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
                                "keyword set along with a fast_pattern:only;");
                     goto error;
@@ -203,13 +203,13 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
             }
 
             ud->distance = strtol(str, NULL, 10);
-            if (ud->flags & DETECT_URICONTENT_WITHIN) {
+            if (ud->flags & DETECT_CONTENT_WITHIN) {
                 if ((ud->distance + ud->content_len) > ud->within) {
                     ud->within = ud->distance + ud->content_len;
                 }
             }
 
-            ud->flags |= DETECT_URICONTENT_DISTANCE;
+            ud->flags |= DETECT_CONTENT_DISTANCE;
 
             pm = SigMatchGetLastSMFromLists(s, 6,
                                             DETECT_URICONTENT, pm->prev,
@@ -224,15 +224,15 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
             switch (pm->type) {
                 case DETECT_URICONTENT:
                     /* Set the relative next flag on the prev sigmatch */
-                    ud = (DetectUricontentData *)pm->ctx;
+                    ud = (DetectContentData *)pm->ctx;
                     if (ud == NULL) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
                                    "previous keyword!");
                         goto error;
                     }
-                    ud->flags |= DETECT_URICONTENT_RELATIVE_NEXT;
+                    ud->flags |= DETECT_CONTENT_RELATIVE_NEXT;
 
-                    if (ud->flags & DETECT_URICONTENT_FAST_PATTERN_ONLY) {
+                    if (ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "Previous keyword "
                                    "has a fast_pattern:only; set.  You can't "
                                    "have relative keywords around a fast_pattern "

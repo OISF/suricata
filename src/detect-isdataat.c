@@ -295,7 +295,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
     }
 
     DetectContentData *cd = NULL;
-    DetectUricontentData *ud = NULL;
+    DetectContentData *ud = NULL;
     DetectPcreData *pe = NULL;
 
     switch (prev_sm->type) {
@@ -313,13 +313,13 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
 
         case DETECT_URICONTENT:
             /* Set the relative next flag on the prev sigmatch */
-            ud = (DetectUricontentData *)prev_sm->ctx;
+            ud = (DetectContentData *)prev_sm->ctx;
             if (ud == NULL) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
                            "previous keyword!");
                 return -1;
             }
-            ud->flags |= DETECT_URICONTENT_RELATIVE_NEXT;
+            ud->flags |= DETECT_CONTENT_RELATIVE_NEXT;
 
             break;
 
