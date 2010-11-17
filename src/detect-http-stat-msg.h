@@ -24,19 +24,9 @@
 #ifndef _DETECT_HTTP_STAT_MSG_H
 #define	_DETECT_HTTP_STAT_MSG_H
 
-#define DETECT_AL_HTTP_STAT_MSG_NOCASE   0x01
-#define DETECT_AL_HTTP_STAT_MSG_NEGATED  0x02
-
-typedef struct DetectHttpStatMsgData_ {
-    uint8_t *data;
-    uint8_t data_len;
-    uint8_t flags;
-} DetectHttpStatMsgData;
-
 /* prototypes */
-int DetectHttpStatMsgMatch (ThreadVars *, DetectEngineThreadCtx *,
-                           Flow *, uint8_t , void *, Signature *,
-                           SigMatch *);
+int DetectHttpStatMsgMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
+                            uint8_t , void *, Signature *, SigMatch *);
 void DetectHttpStatMsgRegister(void);
 
 #endif	/* _DETECT_HTTP_STAT_MSG_H */

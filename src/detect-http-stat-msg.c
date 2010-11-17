@@ -101,7 +101,7 @@ int DetectHttpStatMsgMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     SCMutexLock(&f->m);
     SCLogDebug("got lock %p", &f->m);
 
-    DetectHttpStatMsgData *co = (DetectHttpStatMsgData *)sm->ctx;
+    DetectContentData *co = (DetectContentData *)sm->ctx;
 
     HtpState *htp_state = (HtpState *)state;
     if (htp_state == NULL) {
@@ -137,9 +137,9 @@ int DetectHttpStatMsgMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         SCLogDebug("we have a response message");
 
         /* call the case insensitive version if nocase has been specified in the sig */
-        if (co->flags & DETECT_AL_HTTP_STAT_MSG_NOCASE) {
+        if (co->flags & DETECT_CONTENT_NOCASE) {
             if (SpmNocaseSearch((uint8_t *) bstr_ptr(tx->response_message),
-                    bstr_len(tx->response_message), co->data, co->data_len) != NULL)
+                    bstr_len(tx->response_message), co->content, co->content_len) != NULL)
             {
                 SCLogDebug("match has been found in received request and given http_"
                            "stat_msg rule");
@@ -147,7 +147,7 @@ int DetectHttpStatMsgMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
             }
         } else {
             if (SpmSearch((uint8_t *) bstr_ptr(tx->response_message),
-                    bstr_len(tx->response_message), co->data, co->data_len) != NULL)
+                    bstr_len(tx->response_message), co->content, co->content_len) != NULL)
             {
                 SCLogDebug("match has been found in received request and given http_"
                            "stat_msg rule");
@@ -157,7 +157,7 @@ int DetectHttpStatMsgMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     }
 
     SCMutexUnlock(&f->m);
-    SCReturnInt(ret ^ ((co->flags & DETECT_AL_HTTP_STAT_MSG_NEGATED) ? 1 : 0));
+    SCReturnInt(ret ^ ((co->flags & DETECT_CONTENT_NEGATED) ? 1 : 0));
 
 end:
     SCMutexUnlock(&f->m);
@@ -172,11 +172,11 @@ end:
  */
 void DetectHttpStatMsgFree(void *ptr)
 {
-    DetectHttpStatMsgData *hsmd = (DetectHttpStatMsgData *)ptr;
+    DetectContentData *hsmd = (DetectContentData *)ptr;
     if (hsmd == NULL)
         return;
-    if (hsmd->data != NULL)
-        SCFree(hsmd->data);
+    if (hsmd->content != NULL)
+        SCFree(hsmd->content);
     SCFree(hsmd);
 }
 
@@ -193,7 +193,7 @@ void DetectHttpStatMsgFree(void *ptr)
 
 static int DetectHttpStatMsgSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
-    DetectHttpStatMsgData *hd = NULL;
+    DetectContentData *hd = NULL;
     SigMatch *sm = NULL;
 
     /** new sig match to replace previous content */
@@ -235,19 +235,19 @@ static int DetectHttpStatMsgSetup (DetectEngineCtx *de_ctx, Signature *s, char *
     }
 
     /* Setup the HttpStatMsg data from Content data structure */
-    hd = SCMalloc(sizeof(DetectHttpStatMsgData));
+    hd = SCMalloc(sizeof(DetectContentData));
     if (hd == NULL)
         goto error;
 
-    memset(hd, 0, sizeof(DetectHttpStatMsgData));
+    memset(hd, 0, sizeof(DetectContentData));
 
     /* Setup the http_stat_msg keyword data */
-    hd->data_len = ((DetectContentData *)pm->ctx)->content_len;
-    hd->data = ((DetectContentData *)pm->ctx)->content;
+    hd->content_len = ((DetectContentData *)pm->ctx)->content_len;
+    hd->content = ((DetectContentData *)pm->ctx)->content;
     hd->flags |= (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_NOCASE) ?
-        DETECT_AL_HTTP_STAT_MSG_NOCASE : 0x00;
+        DETECT_CONTENT_NOCASE : 0x00;
     hd->flags |= (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_NEGATED) ?
-        DETECT_AL_HTTP_STAT_MSG_NEGATED : 0x00;
+        DETECT_CONTENT_NEGATED : 0x00;
     nm->type = DETECT_AL_HTTP_STAT_MSG;
     nm->ctx = (void *)hd;
 
@@ -367,8 +367,8 @@ int DetectHttpStatMsgTest02(void)
         sm = sm->next;
     }
 
-    if (! (((DetectHttpStatMsgData *)prev->ctx)->flags &
-            DETECT_AL_HTTP_STAT_MSG_NOCASE))
+    if (! (((DetectContentData *)prev->ctx)->flags &
+            DETECT_CONTENT_NOCASE))
     {
         result = 0;
     }
