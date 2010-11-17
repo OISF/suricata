@@ -189,7 +189,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
 
     DetectContentData *ud = NULL;
     DetectContentData *cd = NULL;
-    DetectHttpClientBodyData *dhcb = NULL;
+    DetectContentData *dhcb = NULL;
     DetectHttpCookieData *dhcd = NULL;
     DetectHttpHeaderData *dhhd = NULL;
     DetectHttpMethodData *dhmd = NULL;
@@ -217,8 +217,8 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
             BoyerMooreCtxToNocase(cd->bm_ctx, cd->content, cd->content_len);
             break;
         case DETECT_AL_HTTP_CLIENT_BODY:
-            dhcb =(DetectHttpClientBodyData *) pm->ctx;
-            dhcb->flags |= DETECT_AL_HTTP_CLIENT_BODY_NOCASE;
+            dhcb =(DetectContentData *) pm->ctx;
+            dhcb->flags |= DETECT_CONTENT_NOCASE;
             /* Recreate the context with nocase chars */
             BoyerMooreCtxToNocase(dhcb->bm_ctx, dhcb->content, dhcb->content_len);
             break;
