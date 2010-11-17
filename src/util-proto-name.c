@@ -38,6 +38,7 @@ void SCProtoNameInit()
     if (fp != NULL) {
         char line[200];
         char *ptr = NULL;
+
         while(fgets(line, sizeof(line), fp) != NULL) {
             if (line[0] == '#')
                 continue;
@@ -45,14 +46,16 @@ void SCProtoNameInit()
             char *name = strtok_r(line," \t", &ptr);
             if (name == NULL)
                 continue;
+
             char *proto_ch = strtok_r(NULL," \t", &ptr);
             if (proto_ch == NULL)
                 continue;
+
             int proto = atoi(proto_ch);
             if (proto >= 255)
                 continue;
-            char *cname = strtok_r(NULL, " \t", &ptr);
 
+            char *cname = strtok_r(NULL, " \t", &ptr);
             if (cname != NULL) {
                 known_proto[proto] = strdup(cname);
             } else {
@@ -67,14 +70,14 @@ void SCProtoNameInit()
  * \brief   Function to check if the received protocol number is valid and do
  *          we have corresponding name entry for this number or not.
  *
- * @param proto Protocol number to be validated
- * @return  On success returns TRUE otherwise FALSE
+ * \param proto Protocol number to be validated
+ * \retval ret On success returns TRUE otherwise FALSE
  */
 uint8_t SCProtoNameValid(uint16_t proto)
 {
     uint8_t ret = FALSE;
-    if ((proto <= 255) && known_proto[proto] != NULL)
-    {
+
+    if (proto <= 255 && known_proto[proto] != NULL) {
         ret = TRUE;
     }
 

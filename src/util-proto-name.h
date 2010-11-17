@@ -21,16 +21,18 @@
  * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
  */
 
-#ifndef _UTIL_PROTO_NAME_H
-#define	_UTIL_PROTO_NAME_H
+#ifndef __UTIL_PROTO_NAME_H__
+#define	__UTIL_PROTO_NAME_H__
 
 #define PROTO_FILE  "/etc/protocols"
 
-/* Structure to hold the information related to known protocol in /etc/protocols */
-char *known_proto[255];
-uint8_t SCProtoNameValid(uint16_t );
+/** Lookup array to hold the information related to known protocol
+ *  in /etc/protocols */
+char *known_proto[256];
+
+uint8_t SCProtoNameValid(uint16_t);
 void SCProtoNameInit(void);
 void SCProtoNameDeInit(void);
 
-#endif	/* _UTIL_PROTO_NAME_H */
+#endif	/* __UTIL_PROTO_NAME_H__ */
 
