@@ -219,37 +219,25 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
                    "at suricata.yaml. Using default (\"medium\").");
     }
 
-    if (sgh_mpm_context != NULL) {
+    /* detect-engine.sgh-mpm-context option parsing */
+    if (sgh_mpm_context == NULL || strcmp(sgh_mpm_context, "auto") == 0) {
+        /* for now, since we still haven't implemented any intelligence into
+         * understanding the patterns and distributing mpm_ctx across sgh */
+        if (de_ctx->mpm_matcher == MPM_AC || de_ctx->mpm_matcher == MPM_AC_GFBS)
+            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE;
+        else
+            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
+    } else {
         if (strcmp(sgh_mpm_context, "single") == 0) {
             de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE;
         } else if (strcmp(sgh_mpm_context, "full") == 0) {
             de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
-        } else if (strcmp(sgh_mpm_context, "auto") == 0) {
-            /* for now, since we still haven't implemented any intelligence into
-             * understanding the patterns and distributing mpm_ctx across sgh */
-            if (de_ctx->mpm_matcher == MPM_AC || de_ctx->mpm_matcher == MPM_AC_GFBS)
-                de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE;
-            else
-                de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
         } else {
            SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "You have supplied an "
                         "invalid conf value for detect-engine.sgh-mpm-context-"
                         "%s", sgh_mpm_context);
         }
-    } else {
-        SCLogInfo("You have not supplied a value for "
-                  "detect-engine.sgh-mpm-context. Using default value of \"auto\"");
-        if (de_ctx->mpm_matcher == MPM_AC || de_ctx->mpm_matcher == MPM_AC_GFBS)
-            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE;
-        else
-            de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
-
-        /* someday when our engine turns intelligent we will actualy support this
-         * option internally */
-        //de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_AUTO;
     }
-
-
 
     opt = NULL;
     switch (profile) {
