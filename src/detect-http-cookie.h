@@ -24,24 +24,10 @@
 #ifndef _DETECT_HTTP_COOKIE_H
 #define	_DETECT_HTTP_COOKIE_H
 
-#define DETECT_AL_HTTP_COOKIE_NOCASE   0x01
-#define DETECT_AL_HTTP_COOKIE_NEGATED  0x02
-
-typedef struct DetectHttpCookieData_ {
-    /* please keep the order of the first 2 members intact, since we use the
-     * same template obtained from DetectContentData to access these members
-     * for pattern id retrieval from DetectPatternGetId() */
-    uint8_t *content;
-    uint8_t content_len;
-    PatIntId id;
-    uint8_t flags;
-} DetectHttpCookieData;
-
 /* prototypes */
 void DetectHttpCookieRegister (void);
-
-int DetectHttpCookieDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
-        SigMatch *sm, Flow *f, uint8_t flags, void *state);
+int DetectHttpCookieDoMatch(DetectEngineThreadCtx *, Signature *, SigMatch *,
+                            Flow *, uint8_t, void *);
 
 #endif	/* _DETECT_HTTP_COOKIE_H */
 
