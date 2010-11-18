@@ -131,6 +131,9 @@ int DetectHttpStatMsgMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         if (tx == NULL)
             continue;
 
+        if (tx->response_message == NULL)
+            continue;
+
         SCLogDebug("we have a response message");
 
         /* call the case insensitive version if nocase has been specified in the sig */
