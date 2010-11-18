@@ -233,6 +233,8 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_MPM_URICONTENT 0x00800000
 #define SIG_FLAG_MPM_URICONTENT_NEG 0x01000000
 
+#define SIG_FLAG_HAS_NO_PKT_AND_STREAM_CONTENT 0x02000000
+
 /* signature mask flags */
 #define SIG_MASK_REQUIRE_PAYLOAD    0x01
 #define SIG_MASK_REQUIRE_FLOW       0x02
@@ -247,6 +249,9 @@ typedef struct DetectPort_ {
 
 /* for now a uint8_t is enough */
 #define SignatureMask uint8_t
+
+#define DETECT_ENGINE_THREAD_CTX_INSPECTING_PACKET 0x0001
+#define DETECT_ENGINE_THREAD_CTX_INSPECTING_STREAM 0x0002
 
 
 /* Detection Engine flags */
@@ -641,7 +646,8 @@ typedef struct DetectionEngineThreadCtx_ {
     uint16_t counter_alerts;
 
     /* used to discontinue any more matching */
-    int discontinue_matching;
+    uint16_t discontinue_matching;
+    uint16_t flags;
 
     /* holds the current recursion depth on content inspection */
     int inspection_recursion_counter;

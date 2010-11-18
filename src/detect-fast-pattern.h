@@ -49,7 +49,7 @@ extern SCFPSupportSMList *sm_fp_support_smlist_list;
  * \retval 1 If supported.
  * \retval 0 If not.
  */
-static inline int SCFPDoWeSupportFPForSMType(uint8_t sm_type)
+static inline int FastPatternSupportEnabledForSigMatchType(uint8_t sm_type)
 {
     if (sm_fp_support_smtype_list == NULL)
         return 0;
@@ -74,7 +74,7 @@ static inline int SCFPDoWeSupportFPForSMType(uint8_t sm_type)
  * \retval 1 If supported.
  * \retval 0 If not.
  */
-static inline int SCFPDoWeSupportFPForSMList(int list_id)
+static inline int FastPatternSupportEnabledForSigMatchList(int list_id)
 {
     if (sm_fp_support_smlist_list == NULL)
         return 0;
@@ -90,9 +90,7 @@ static inline int SCFPDoWeSupportFPForSMList(int list_id)
     return 0;
 }
 
-void SCFPAddFPSupportForSMTypes(void);
-/* not implemented as of now.  If there's a need we'll implement it */
-void SCFPRemoveFPSupportForSMType(uint8_t);
+void SupportFastPatternForSigMatchTypes(void);
 
 void DetectFastPatternRegister(void);
 

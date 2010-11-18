@@ -826,7 +826,7 @@ int main(int argc, char **argv)
     SigTableSetup(); /* load the rule keywords */
     TmqhSetup();
 
-    SCFPAddFPSupportForSMTypes();
+    SupportFastPatternForSigMatchTypes();
     CIDRInit();
     SigParsePrepare();
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);

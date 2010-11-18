@@ -42,6 +42,10 @@
 /** a relative match to this content is next, used in matching phase */
 #define DETECT_CONTENT_RELATIVE_NEXT     0x0400
 
+#define DETECT_CONTENT_PACKET_MPM        0x0800
+#define DETECT_CONTENT_STREAM_MPM        0x1000
+#define DETECT_CONTENT_URI_MPM           0x2000
+
 #define DETECT_CONTENT_IS_SINGLE(c) (!((c)->flags & DETECT_CONTENT_DISTANCE || \
                                        (c)->flags & DETECT_CONTENT_WITHIN || \
                                        (c)->flags & DETECT_CONTENT_RELATIVE_NEXT || \
@@ -59,10 +63,8 @@ typedef struct DetectContentData_ {
     uint16_t offset;
     int32_t distance;
     int32_t within;
-    BmCtx *bm_ctx;     /**< Boyer Moore context (for spm search) */
-    /* if someone wants to add an extra var to this structutre of size 1 byte
-     * you can reduce the below var to uint8_t.  No problemo */
-    uint16_t avoid_double_check;
+    /* Boyer Moore context (for spm search) */
+    BmCtx *bm_ctx;
     /* for chopped fast pattern, the offset */
     uint16_t fp_chop_offset;
     /* for chopped fast pattern, the length */

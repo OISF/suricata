@@ -545,209 +545,11 @@ uint32_t PatternStrength(uint8_t *pat, uint16_t patlen) {
     return s;
 }
 
-/**
- * \brief Setup the mpm content.
- *
- * \param de_ctx Pointer to the detect engine context.
- * \param sgh    Pointer to the signature group head against which we are
- *               adding patterns to the mpm ctx.
- *
- * \retval  0 Always.
- */
-static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
-                                          SigGroupHead *sgh)
+static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
+                                       SigGroupHead *sgh, Signature *s,
+                                       SigMatch *mpm_sm)
 {
-    uint32_t sig;
-    uint32_t *fast_pattern = NULL;
-
-    fast_pattern = (uint32_t *)SCMalloc(sgh->sig_cnt * sizeof(uint32_t));
-    if (fast_pattern == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
-    memset(fast_pattern, 0, sgh->sig_cnt * sizeof(uint32_t));
-
-    /* add all mpm candidates to a hash */
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        Signature *s = sgh->match_array[sig];
-        if (s == NULL)
-            continue;
-
-        int sig_has_no_pkt_and_stream_content = 0;
-        if (!SignatureHasPacketContent(s) && !SignatureHasStreamContent(s)) {
-            sig_has_no_pkt_and_stream_content = 1;
-        }
-
-        int list_id = 0;
-        for ( ; list_id < DETECT_SM_LIST_MAX; list_id++) {
-            /* we have no keywords that support fp in this Signature sm list */
-            if (!SCFPDoWeSupportFPForSMList(list_id))
-                continue;
-
-            SigMatch *sm = NULL;
-            /* get the total no of patterns in this Signature, as well as find out
-             * if we have a fast_pattern set in this Signature */
-            for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
-                /* this keyword isn't registered for fp support */
-                if (!SCFPDoWeSupportFPForSMType(sm->type))
-                    continue;
-
-                /* \todo once we unify the flags, this switch will go and we
-                 * should have a much more compact function.  Applies everywhere
-                 * else where we have used a switch like this */
-                DetectContentData *cd = NULL;
-                DetectContentData *ud = NULL;
-                switch (sm->type) {
-                    case DETECT_CONTENT:
-                        if (sig_has_no_pkt_and_stream_content ||
-                            (!(sgh->flags & SIG_GROUP_HAVECONTENT &&
-                               !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY)) &&
-                             !(sgh->flags & SIG_GROUP_HAVESTREAMCONTENT &&
-                               !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)))) {
-                            break;
-                        }
-                        cd = (DetectContentData *)sm->ctx;
-                        /* special handling of fast pattern keyword */
-                        if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
-                            fast_pattern[sig] = 1;
-                        }
-
-                        break;
-
-                    case DETECT_URICONTENT:
-                        if (!(sgh->flags & SIG_GROUP_HAVEURICONTENT &&
-                              !(sgh->flags & SIG_GROUP_HEAD_MPM_URI_COPY))) {
-                            break;
-                        }
-                        ud = (DetectContentData *)sm->ctx;
-                        /* special handling of fast pattern keyword */
-                        if (ud->flags & DETECT_CONTENT_FAST_PATTERN) {
-                            fast_pattern[sig] = 1;
-                        }
-
-                        break;
-
-                    default:
-                        SCLogError(SC_ERR_FATAL, "We shouldn't even be seeing this");
-                        exit(EXIT_FAILURE);
-                } /* switch (sm->type) */
-
-                /* found a fast pattern for the sig.  Let's get outta here */
-                if (fast_pattern[sig])
-                    break;
-            } /* for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) */
-
-            /* found a fast pattern for the sig.  Let's get outta here */
-            if (fast_pattern[sig])
-                break;
-        } /* for ( ; list_id < DETECT_SM_LIST_MAX; list_id++) */
-    } /* for (sig = 0; sig < sgh->sig_cnt; sig++) { */
-
-    /* now determine which one to add to the mpm phase */
-    for (sig = 0; sig < sgh->sig_cnt; sig++) {
-        Signature *s = sgh->match_array[sig];
-        if (s == NULL)
-            continue;
-
-        int sig_has_no_pkt_and_stream_content = 0;
-        if (!SignatureHasPacketContent(s) && !SignatureHasStreamContent(s)) {
-            sig_has_no_pkt_and_stream_content = 1;
-        }
-
-        SigMatch *mpm_sm = NULL;
-        SigMatch *sm = NULL;
-        int list_id = 0;
-        for ( ; list_id < DETECT_SM_LIST_MAX; list_id++) {
-            if (!SCFPDoWeSupportFPForSMList(list_id))
-                continue;
-
-            for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
-                if (!SCFPDoWeSupportFPForSMType(sm->type))
-                    continue;
-
-                /* skip in case of:
-                 * 1. we expect a fastpattern but this isn't it
-                 * 2. we have a smaller content than mpm_content_maxlen */
-                if (fast_pattern[sig]) {
-                    DetectContentData *cd = NULL;
-                    DetectContentData *ud = NULL;
-                    switch (sm->type) {
-                        case DETECT_CONTENT:
-                            cd = (DetectContentData *)sm->ctx;
-                            if (!(cd->flags & DETECT_CONTENT_FAST_PATTERN)) {
-                                SCLogDebug("not a fast pattern %"PRIu32"", co->id);
-                                continue;
-                            }
-                            SCLogDebug("fast pattern %"PRIu32"", co->id);
-
-                            break;
-
-                        case DETECT_URICONTENT:
-                            ud = (DetectContentData *)sm->ctx;
-                            if (!(ud->flags & DETECT_CONTENT_FAST_PATTERN)) {
-                                SCLogDebug("not a fast pattern %"PRIu32"", co->id);
-                                continue;
-                            }
-                            SCLogDebug("fast pattern %"PRIu32"", co->id);
-
-                            break;
-                    } /* switch (sm->type) */
-                } else {
-                    DetectContentData *cd = NULL;
-                    DetectContentData *ud = NULL;
-                    switch (sm->type) {
-                        case DETECT_CONTENT:
-                            if (sig_has_no_pkt_and_stream_content ||
-                                (!(sgh->flags & SIG_GROUP_HAVECONTENT &&
-                                   !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY)) &&
-                                 !(sgh->flags & SIG_GROUP_HAVESTREAMCONTENT &&
-                                   !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)))) {
-                                continue;
-                            }
-                            cd = (DetectContentData *)sm->ctx;
-                            if (cd->content_len < sgh->mpm_content_maxlen)
-                                continue;
-
-                            break;
-
-                        case DETECT_URICONTENT:
-                            if (!(sgh->flags & SIG_GROUP_HAVEURICONTENT &&
-                                  !(sgh->flags & SIG_GROUP_HEAD_MPM_URI_COPY))) {
-                                continue;
-                            }
-                            ud = (DetectContentData *)sm->ctx;
-                            if (ud->content_len < sgh->mpm_uricontent_maxlen)
-                                continue;
-
-                            break;
-                    } /* switch (sm->type) */
-                } /* else - if (fast_pattern[sig] == 1) */
-
-                if (mpm_sm == NULL) {
-                    mpm_sm = sm;
-                    if (fast_pattern[sig])
-                        break;
-                } else {
-                    DetectContentData *data1 = (DetectContentData *)sm->ctx;
-                    DetectContentData *data2 = (DetectContentData *)mpm_sm->ctx;
-                    uint32_t ls = PatternStrength(data1->content, data1->content_len);
-                    uint32_t ss = PatternStrength(data2->content, data2->content_len);
-                    if (ls > ss) {
-                        mpm_sm = sm;
-                    } else if (ls == ss) {
-                        /* if 2 patterns are of equal strength, we pick the longest */
-                        if (data1->content_len > data2->content_len)
-                            mpm_sm = sm;
-                    } else {
-                        SCLogDebug("sticking with mpm_sm");
-                    }
-                } /* else - if (mpm == NULL) */
-            } /* for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) */
-            if (mpm_sm != NULL && fast_pattern[sig])
-                break;
-        } /* for ( ; list_id < DETECT_SM_LIST_MAX; list_id++) */
-
-        /* now add the mpm_ch to the mpm ctx */
+            /* now add the mpm_ch to the mpm ctx */
         if (mpm_sm != NULL) {
             uint8_t flags = 0;
 
@@ -806,8 +608,17 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
 
                     } else {
                         if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                            /* we will revisit you my dear friend */
-                            ;//cd->avoid_double_check = 1;
+                            if (SignatureHasPacketContent(s) &&
+                                (sgh->flags & SIG_GROUP_HAVECONTENT &&
+                                 !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY))) {
+                                cd->flags |= DETECT_CONTENT_PACKET_MPM;
+                            }
+                            if (SignatureHasStreamContent(s) &&
+                                (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT
+                                 && !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
+                                cd->flags |= DETECT_CONTENT_STREAM_MPM;
+                            }
+
                             /* see if we can bypass the match validation for this pattern */
                         } else {
                             if (!(cd->flags & DETECT_CONTENT_RELATIVE_NEXT) &&
@@ -819,12 +630,20 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                                 if (prev_sm != NULL) {
                                     DetectContentData *prev_cd = (DetectContentData *)prev_sm->ctx;
                                     if (!(prev_cd->flags & DETECT_CONTENT_RELATIVE_NEXT)) {
-                                        /* we will revisit you my dear friend */
-                                        ;//cd->avoid_double_check = 1;
+                                        if (SignatureHasPacketContent(s) &&
+                                            (sgh->flags & SIG_GROUP_HAVECONTENT &&
+                                             !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY))) {
+                                            cd->flags |= DETECT_CONTENT_PACKET_MPM;
+                                        }
+                                        if (SignatureHasStreamContent(s) &&
+                                            (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT
+                                             && !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
+                                            cd->flags |= DETECT_CONTENT_STREAM_MPM;
+                                        }
                                     }
-                                }
+                                } /* if (prev_sm != NULL) */
                             }
-                        } /* else - if (co->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) */
+                        } /* else - if (co->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
 
                         if (SignatureHasPacketContent(s) &&
                             (sgh->flags & SIG_GROUP_HAVECONTENT &&
@@ -896,8 +715,8 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                         }
                     } else {
                         if (ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                            ;/* we will revisit you my dear friend */
-                            //ud->avoid_double_check = 1;
+                            ud->flags |= DETECT_CONTENT_URI_MPM;
+
                             /* see if we can bypass the match validation for this pattern */
                         } else {
                             if (!(ud->flags & DETECT_CONTENT_RELATIVE_NEXT) &&
@@ -909,12 +728,11 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                                 if (prev_sm != NULL) {
                                     DetectContentData *prev_ud = (DetectContentData *)prev_sm->ctx;
                                     if (!(prev_ud->flags & DETECT_CONTENT_RELATIVE_NEXT)) {
-                                        /* we will revisit you my dear friend */
-                                        ;//ud->avoid_double_check = 1;
+                                        ud->flags |= DETECT_CONTENT_URI_MPM;
                                     }
                                 }
                             }
-                        } /* else - if (ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) */
+                        } /* else - if (ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
 
                         /* add the content to the "packet" mpm */
                         if (ud->flags & DETECT_CONTENT_NOCASE) {
@@ -939,10 +757,230 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                 } /* case DETECT_URICONTENT */
             } /* switch (mpm_sm->type) */
 
-            SCLogDebug("%"PRIu32" adding co->id %"PRIu32" to the mpm phase (s->num %"PRIu32")", s->id, co->id, s->num);
+            SCLogDebug("%"PRIu32" adding co->id %"PRIu32" to the mpm phase "
+                       "(s->num %"PRIu32")", s->id, co->id, s->num);
         } else {
             SCLogDebug("%"PRIu32" no mpm pattern selected", s->id);
         } /* else - if (mpm_sm != NULL) */
+
+        return;
+}
+
+/**
+ * \internal
+ * \brief Helper function for PrepareGroupPopulateMpm.  Used to decide if a
+ *        pattern should be skipped or considered under certain conditions.
+ *
+ * \param sgh Pointer to the sgh.
+ * \param s   Pointer to the signature.
+ * \param sm  Pointer to the SigMatch which holds the content.
+ *
+ * \retval 1 If the content should be skipped.
+ * \retval 0 Otherwise.
+ */
+static int PopulateMpmSkipContent(SigGroupHead *sgh, Signature *s, SigMatch *sm)
+{
+    switch (sm->type) {
+        case DETECT_CONTENT:
+        {
+            if (s->flags & SIG_FLAG_HAS_NO_PKT_AND_STREAM_CONTENT) {
+                return 1;
+            }
+
+            if (!(sgh->flags & SIG_GROUP_HAVECONTENT &&
+                  !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY)) &&
+                !(sgh->flags & SIG_GROUP_HAVESTREAMCONTENT &&
+                  !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
+                return 1;
+            }
+
+            DetectContentData *cd = sm->ctx;
+            if (cd->flags & DETECT_CONTENT_FAST_PATTERN)
+                return 0;
+
+            if (sgh->flags & SIG_GROUP_HAVECONTENT &&
+                !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY) &&
+                sgh->flags & SIG_GROUP_HAVESTREAMCONTENT &&
+                !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) {
+                if (sgh->mpm_content_maxlen == sgh->mpm_streamcontent_maxlen) {
+                    if (cd->content_len < sgh->mpm_content_maxlen)
+                        return 1;
+                    else
+                        return 0;
+                } else if (sgh->mpm_content_maxlen < sgh->mpm_streamcontent_maxlen) {
+                    if (cd->content_len < sgh->mpm_content_maxlen)
+                        return 1;
+                    else
+                        return 0;
+                } else {
+                    if (cd->content_len < sgh->mpm_streamcontent_maxlen)
+                        return 1;
+                    else
+                        return 0;
+                }
+            } else if (sgh->flags & SIG_GROUP_HAVECONTENT &&
+                       !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
+                if (cd->content_len < sgh->mpm_content_maxlen)
+                    return 1;
+                else
+                    return 0;
+            } else if (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT &&
+                       !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)){
+                if (cd->content_len < sgh->mpm_streamcontent_maxlen)
+                    return 1;
+                else
+                    return 0;
+            }
+        }
+
+        case DETECT_URICONTENT:
+        {
+            if (!(sgh->flags & SIG_GROUP_HAVEURICONTENT &&
+                  !(sgh->flags & SIG_GROUP_HEAD_MPM_URI_COPY))) {
+                return 1;
+            }
+
+            DetectContentData *cd = sm->ctx;
+            if (cd->flags & DETECT_CONTENT_FAST_PATTERN)
+                return 0;
+
+            if (cd->content_len < sgh->mpm_uricontent_maxlen)
+                return 1;
+            else
+                return 0;
+        }
+
+        default:
+            return 0;
+    }
+
+}
+
+/**
+ * \internal
+ * \brief Setup the mpm content.
+ *
+ * \param de_ctx Pointer to the detect engine context.
+ * \param sgh    Pointer to the signature group head against which we are
+ *               adding patterns to the mpm ctx.
+ *
+ * \retval  0 Always.
+ */
+static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
+                                          SigGroupHead *sgh)
+{
+    uint32_t sig;
+    uint32_t *fast_pattern = NULL;
+
+    fast_pattern = (uint32_t *)SCMalloc(sgh->sig_cnt * sizeof(uint32_t));
+    if (fast_pattern == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
+    }
+    memset(fast_pattern, 0, sgh->sig_cnt * sizeof(uint32_t));
+
+    /* add all mpm candidates to a hash */
+    for (sig = 0; sig < sgh->sig_cnt; sig++) {
+        Signature *s = sgh->match_array[sig];
+        if (s == NULL)
+            continue;
+
+        if (!(s->flags & SIG_FLAG_HAS_NO_PKT_AND_STREAM_CONTENT) &&
+            !SignatureHasPacketContent(s) && !SignatureHasStreamContent(s)) {
+            s->flags |= SIG_FLAG_HAS_NO_PKT_AND_STREAM_CONTENT;
+        }
+
+        int list_id = 0;
+        for ( ; list_id < DETECT_SM_LIST_MAX; list_id++) {
+            /* we have no keywords that support fp in this Signature sm list */
+            if (!FastPatternSupportEnabledForSigMatchList(list_id))
+                continue;
+
+            SigMatch *sm = NULL;
+            /* get the total no of patterns in this Signature, as well as find out
+             * if we have a fast_pattern set in this Signature */
+            for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
+                /* this keyword isn't registered for fp support */
+                if (!FastPatternSupportEnabledForSigMatchType(sm->type))
+                    continue;
+
+                if (PopulateMpmSkipContent(sgh, s, sm)) {
+                    continue;
+                }
+
+                DetectContentData *cd = (DetectContentData *)sm->ctx;
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+                    fast_pattern[sig] = 1;
+                    break;
+                }
+            } /* for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) */
+
+            /* found a fast pattern for the sig.  Let's get outta here */
+            if (fast_pattern[sig])
+                break;
+        } /* for ( ; list_id < DETECT_SM_LIST_MAX; list_id++) */
+    } /* for (sig = 0; sig < sgh->sig_cnt; sig++) { */
+
+    /* now determine which one to add to the mpm phase */
+    for (sig = 0; sig < sgh->sig_cnt; sig++) {
+        Signature *s = sgh->match_array[sig];
+        if (s == NULL)
+            continue;
+
+        SigMatch *mpm_sm = NULL;
+        SigMatch *sm = NULL;
+        int list_id = 0;
+        for ( ; list_id < DETECT_SM_LIST_MAX; list_id++) {
+            if (!FastPatternSupportEnabledForSigMatchList(list_id))
+                continue;
+
+            for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
+                if (!FastPatternSupportEnabledForSigMatchType(sm->type))
+                    continue;
+
+                /* skip in case of:
+                 * 1. we expect a fastpattern but this isn't it
+                 * 2. we have a smaller content than mpm_content_maxlen */
+                if (fast_pattern[sig]) {
+                    /* can be any content based keyword since all of them
+                     * now use a unified structure - DetectContentData */
+                    DetectContentData *cd = (DetectContentData *)sm->ctx;
+                    if (!(cd->flags & DETECT_CONTENT_FAST_PATTERN)) {
+                        SCLogDebug("not a fast pattern %"PRIu32"", co->id);
+                        continue;
+                    }
+                    SCLogDebug("fast pattern %"PRIu32"", co->id);
+                } else {
+                    if (PopulateMpmSkipContent(sgh, s, sm)) {
+                        continue;
+                    }
+                } /* else - if (fast_pattern[sig] == 1) */
+
+                if (mpm_sm == NULL) {
+                    mpm_sm = sm;
+                    if (fast_pattern[sig])
+                        break;
+                } else {
+                    DetectContentData *data1 = (DetectContentData *)sm->ctx;
+                    DetectContentData *data2 = (DetectContentData *)mpm_sm->ctx;
+                    uint32_t ls = PatternStrength(data1->content, data1->content_len);
+                    uint32_t ss = PatternStrength(data2->content, data2->content_len);
+                    if (ls > ss) {
+                        mpm_sm = sm;
+                    } else if (ls == ss) {
+                        /* if 2 patterns are of equal strength, we pick the longest */
+                        if (data1->content_len > data2->content_len)
+                            mpm_sm = sm;
+                    } else {
+                        SCLogDebug("sticking with mpm_sm");
+                    }
+                } /* else - if (mpm == NULL) */
+            } /* for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) */
+            if (mpm_sm != NULL && fast_pattern[sig])
+                break;
+        } /* for ( ; list_id < DETECT_SM_LIST_MAX; list_id++) */
+
+        PopulateMpmAddPatternToMpm(de_ctx, sgh, s, mpm_sm);
     } /* for (sig = 0; sig < sgh->sig_cnt; sig++) */
 
     if (fast_pattern != NULL)

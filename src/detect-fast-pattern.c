@@ -57,7 +57,7 @@ SCFPSupportSMList *sm_fp_support_smlist_list = NULL;
  *
  * \param list_id SM list id.
  */
-static void SCFPAddFPSupportForSMList(int list_id)
+static void SupportFastPatternForSigMatchList(int list_id)
 {
     if (sm_fp_support_smlist_list != NULL) {
         SCFPSupportSMList *tmp_smlist_fp = sm_fp_support_smlist_list;
@@ -88,7 +88,7 @@ static void SCFPAddFPSupportForSMList(int list_id)
  *
  * \param sm_type The sigmatch for which fp support has to be added.
  */
-static void SCFPAddFPSupportForSMType(uint8_t sm_type)
+static void SupportFastPatternForSigMatchType(uint8_t sm_type)
 {
     if (sm_fp_support_smtype_list != NULL) {
         SCFPSupportSMType *tmp_smtype_fp = sm_fp_support_smtype_list;
@@ -117,13 +117,13 @@ static void SCFPAddFPSupportForSMType(uint8_t sm_type)
 /**
  * \brief Registers the keywords(SMs) that should be given fp support.
  */
-void SCFPAddFPSupportForSMTypes(void)
+void SupportFastPatternForSigMatchTypes(void)
 {
-    SCFPAddFPSupportForSMType(DETECT_CONTENT);
-    SCFPAddFPSupportForSMList(DETECT_SM_LIST_PMATCH);
+    SupportFastPatternForSigMatchType(DETECT_CONTENT);
+    SupportFastPatternForSigMatchList(DETECT_SM_LIST_PMATCH);
 
-    SCFPAddFPSupportForSMType(DETECT_URICONTENT);
-    SCFPAddFPSupportForSMList(DETECT_SM_LIST_UMATCH);
+    SupportFastPatternForSigMatchType(DETECT_URICONTENT);
+    SupportFastPatternForSigMatchList(DETECT_SM_LIST_UMATCH);
 
     return;
 }
