@@ -757,8 +757,6 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 } /* case DETECT_URICONTENT */
             } /* switch (mpm_sm->type) */
 
-            SCLogDebug("%"PRIu32" adding co->id %"PRIu32" to the mpm phase "
-                       "(s->num %"PRIu32")", s->id, co->id, s->num);
         } else {
             SCLogDebug("%"PRIu32" no mpm pattern selected", s->id);
         } /* else - if (mpm_sm != NULL) */
@@ -946,10 +944,10 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                      * now use a unified structure - DetectContentData */
                     DetectContentData *cd = (DetectContentData *)sm->ctx;
                     if (!(cd->flags & DETECT_CONTENT_FAST_PATTERN)) {
-                        SCLogDebug("not a fast pattern %"PRIu32"", co->id);
+                        SCLogDebug("not a fast pattern %"PRIu32"", cd->id);
                         continue;
                     }
-                    SCLogDebug("fast pattern %"PRIu32"", co->id);
+                    SCLogDebug("fast pattern %"PRIu32"", cd->id);
                 } else {
                     if (PopulateMpmSkipContent(sgh, s, sm)) {
                         continue;
