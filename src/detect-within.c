@@ -169,12 +169,13 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
             }
         }
     } else {
-        pm = SigMatchGetLastSMFromLists(s, 4,
+        pm = SigMatchGetLastSMFromLists(s, 6,
                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                        DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH]);
+                                        DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                        DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]);
         if (pm == NULL) {
             SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs"
-                       "preceeding content or uricontent option");
+                       "preceeding content or uricontent or http_client_body option");
             if (dubbed)
                 SCFree(str);
             return -1;
@@ -382,8 +383,32 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 }
             }
 
+            break;
 
-        break;
+        case DETECT_AL_HTTP_CLIENT_BODY:
+            cd = (DetectContentData *)pm->ctx;
+            cd->within = strtol(str, NULL, 10);
+            if (cd->within < (int32_t)cd->content_len) {
+                SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
+                           "less than the content length \"%"PRIu32"\" which is invalid, since "
+                           "this will never match.  Invalidating signature", ud->within,
+                           ud->content_len);
+                goto error;
+            }
+
+            cd->flags |= DETECT_CONTENT_WITHIN;
+
+            pm = SigMatchGetLastSMFromLists(s, 2,
+                                            DETECT_AL_HTTP_CLIENT_BODY, pm->prev);
+            if (pm == NULL) {
+                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance for http_client_body "
+                           "needs preceeding http_client_body content");
+                goto error;
+            }
+
+            ((DetectContentData *)pm->ctx)->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+
+            break;
 
         default:
             SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two "

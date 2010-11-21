@@ -25,6 +25,7 @@
  * This file provides a HTTP protocol support for the engine using HTP library.
  */
 
+#include "suricata.h"
 #include "suricata-common.h"
 #include "debug.h"
 #include "decode.h"
@@ -70,6 +71,7 @@ struct HTPCfgRec_ {
 static SCRadixTree *cfgtree;
 /** List of HTP configurations. */
 static HTPCfgRec cfglist;
+static HTPCfgRec cfglist_backup;
 
 #ifdef DEBUG
 static SCMutex htp_state_mem_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -537,7 +539,7 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
  * \param len length of the chunk pointed by data
  * \retval none
  */
-void HtpBodyAppendChunk(HtpBody *body, uint8_t *data, uint32_t len)
+void HtpBodyAppendChunk(SCHtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32_t len)
 {
     SCEnter();
 
@@ -560,6 +562,7 @@ void HtpBodyAppendChunk(HtpBody *body, uint8_t *data, uint32_t len)
         }
 
         memcpy(bd->data, data, len);
+        htud->content_len_so_far = len;
         body->first = body->last = bd;
         body->nchunks++;
         bd->next = NULL;
@@ -570,6 +573,11 @@ void HtpBodyAppendChunk(HtpBody *body, uint8_t *data, uint32_t len)
             /* Weird, but sometimes htp lib calls the callback
              * more than once for the same chunk, with more
              * len, so updating the len */
+            if (body->last->len > len)
+                htud->content_len_so_far -= (body->last->len - len);
+            else
+                htud->content_len_so_far += (len - body->last->len);
+
             body->last->len = len;
             bd = body->last;
 
@@ -593,6 +601,7 @@ void HtpBodyAppendChunk(HtpBody *body, uint8_t *data, uint32_t len)
             }
 
             memcpy(bd->data, data, len);
+            htud->content_len_so_far += len;
             body->last->next = bd;
             body->last = bd;
             body->nchunks++;
@@ -696,13 +705,17 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
         htud->body.operation = HTP_BODY_NONE;
         htud->body.pcre_flags = HTP_PCRE_NONE;
 
+        htp_header_t *cl = table_getc(d->tx->request_headers, "content-length");
+        if (cl != NULL)
+            htud->content_len = htp_parse_content_length(cl->value);
+
         /* Set the user data for handling body chunks on this transaction */
         htp_tx_set_user_data(d->tx, htud);
     }
 
     htud->body.operation = HTP_BODY_REQUEST;
 
-    HtpBodyAppendChunk(&htud->body, (uint8_t*)d->data, (uint32_t)d->len);
+    HtpBodyAppendChunk(htud, &htud->body, (uint8_t*)d->data, (uint32_t)d->len);
     htud->body.pcre_flags = HTP_PCRE_NONE;
     if (SCLogDebugEnabled()) {
         HtpBodyPrint(&htud->body);
@@ -1019,6 +1032,22 @@ static void HTPConfigure(void)
     }
 
     SCReturn;
+}
+
+static void HtpConfigCreateBackup(void)
+{
+    cfglist_backup.cfg = cfglist.cfg;
+    cfglist_backup.next = cfglist.next;
+
+    return;
+}
+
+static void HtpConfigRestoreBackup(void)
+{
+    cfglist.cfg = cfglist_backup.cfg;
+    cfglist.next = cfglist_backup.next;
+
+    return;
 }
 
 /**
@@ -1753,6 +1782,7 @@ libhtp:\n\
 
     ConfCreateContextBackup();
     ConfInit();
+    HtpConfigCreateBackup();
 
     ConfYamlLoadString(input, strlen(input));
 
@@ -1816,8 +1846,10 @@ libhtp:\n\
     ret = 1;
 
 end:
+    HTPFreeConfig();
     ConfDeInit();
     ConfRestoreContextBackup();
+    HtpConfigRestoreBackup();
 
     return ret;
 }
@@ -1858,6 +1890,7 @@ libhtp:\n\
 
     ConfCreateContextBackup();
     ConfInit();
+    HtpConfigCreateBackup();
 
     ConfYamlLoadString(input, strlen(input));
 
@@ -1922,8 +1955,10 @@ libhtp:\n\
     }
 
 end:
+    HTPFreeConfig();
     ConfDeInit();
     ConfRestoreContextBackup();
+    HtpConfigRestoreBackup();
 
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);

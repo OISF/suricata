@@ -85,7 +85,12 @@ typedef struct HtpBody_ {
 /** Now the Body Chunks will be stored per transaction, at
   * the tx user data */
 typedef struct SCHtpTxUserData_ {
-    HtpBody body;           /**< Body of the request (if any) */
+    /* Body of the request (if any) */
+    HtpBody body;
+    /* Holds the length of the htp request body */
+    uint32_t content_len;
+    /* Holds the length of the htp request body seen so far */
+    uint32_t content_len_so_far;
 } SCHtpTxUserData;
 
 typedef struct HtpState_ {

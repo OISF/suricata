@@ -163,12 +163,14 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
             }
         }
     } else {
-        pm = SigMatchGetLastSMFromLists(s, 4,
+        pm = SigMatchGetLastSMFromLists(s, 6,
                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                        DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH]);
+                                        DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                        DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]);
+
         if (pm == NULL) {
             SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs"
-                       "preceeding content or uricontent option");
+                       "preceeding content or uricontent option or http_client_body options");
             if (dubbed)
                 SCFree(str);
             return -1;
@@ -358,6 +360,29 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                         break;
                 }
             }
+
+            break;
+
+        case DETECT_AL_HTTP_CLIENT_BODY:
+            cd = (DetectContentData *)pm->ctx;
+            cd->distance = strtol(str, NULL, 10);
+            if (cd->flags & DETECT_CONTENT_WITHIN) {
+                if ((cd->distance + cd->content_len) > cd->within) {
+                    cd->within = cd->distance + cd->content_len;
+                }
+            }
+
+            cd->flags |= DETECT_CONTENT_DISTANCE;
+
+            pm = SigMatchGetLastSMFromLists(s, 2,
+                                            DETECT_AL_HTTP_CLIENT_BODY, pm->prev);
+            if (pm == NULL) {
+                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance for http_client_body "
+                           "needs preceeding http_client_body content");
+                goto error;
+            }
+
+            ((DetectContentData *)pm->ctx)->flags |= DETECT_CONTENT_RELATIVE_NEXT;
 
             break;
 

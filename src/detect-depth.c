@@ -83,12 +83,13 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
             break;
 
         default:
-            pm =  SigMatchGetLastSMFromLists(s, 4,
+            pm =  SigMatchGetLastSMFromLists(s, 6,
                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                             DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH]);
+                                             DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                             DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]);
             if (pm == NULL) {
                 SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs "
-                           "preceeding content or uricontent option");
+                           "preceeding content or uricontent option or http_client_body option");
                 if (dubbed)
                     SCFree(str);
                 return -1;
@@ -155,6 +156,20 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                 }
             }
 
+            cd->depth = (uint32_t)atoi(str);
+            if (cd->depth < cd->content_len) {
+                cd->depth = cd->content_len;
+                SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
+                           cd->depth);
+            }
+            /* Now update the real limit, as depth is relative to the offset */
+            cd->depth += cd->offset;
+            cd->flags |= DETECT_CONTENT_DEPTH;
+
+            break;
+
+        case DETECT_AL_HTTP_CLIENT_BODY:
+            cd = (DetectContentData *)pm->ctx;
             cd->depth = (uint32_t)atoi(str);
             if (cd->depth < cd->content_len) {
                 cd->depth = cd->content_len;

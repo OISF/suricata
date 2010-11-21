@@ -63,6 +63,7 @@ detect-engine-iponly.c detect-engine-iponly.h \
 detect-engine-payload.c detect-engine-payload.h \
 detect-engine-dcepayload.c detect-engine-dcepayload.h \
 detect-engine-uri.c detect-engine-uri.h \
+detect-engine-hcbd.c detect-engine-hcbd.h \
 detect-engine-state.c detect-engine-state.h \
 detect-parse.c detect-parse.h \
 detect-ack.c detect-ack.h \

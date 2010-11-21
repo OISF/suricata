@@ -80,12 +80,13 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
             break;
 
         default:
-            pm = SigMatchGetLastSMFromLists(s, 4,
+            pm = SigMatchGetLastSMFromLists(s, 6,
                                             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                            DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH]);
+                                            DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                            DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]);
             if (pm == NULL) {
-                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "distance needs"
-                           "preceeding content or uricontent option");
+                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "offset needs"
+                           "preceeding content or uricontent option or http_client_body option");
                 if (dubbed)
                     SCFree(str);
                 return -1;
@@ -94,6 +95,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
             break;
     }
 
+    /* we can remove this switch now with the unified structure */
     DetectContentData *ud = NULL;
     DetectContentData *cd = NULL;
     switch (pm->type) {
@@ -158,6 +160,23 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                 }
             }
 
+            cd->offset = (uint32_t)atoi(str);
+            if (cd->depth != 0) {
+                if (cd->depth < cd->content_len) {
+                    SCLogDebug("depth increased to %"PRIu32" to match pattern len",
+                               cd->content_len);
+                    cd->depth = cd->content_len;
+                }
+                /* Updating the depth as is relative to the offset */
+                cd->depth += cd->offset;
+            }
+
+            cd->flags |= DETECT_CONTENT_OFFSET;
+
+            break;
+
+        case DETECT_AL_HTTP_CLIENT_BODY:
+            cd = (DetectContentData *)pm->ctx;
             cd->offset = (uint32_t)atoi(str);
             if (cd->depth != 0) {
                 if (cd->depth < cd->content_len) {

@@ -681,7 +681,7 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         /* de_state check, filter out all signatures that already had a match before
          * or just partially match */
         if (s->flags & SIG_FLAG_AMATCH || s->flags & SIG_FLAG_UMATCH ||
-                s->flags & SIG_FLAG_DMATCH)
+                s->flags & SIG_FLAG_DMATCH || s->flags & SIG_FLAG_HCBDMATCH)
         {
             /* we run after DeStateDetectContinueDetection, so we might have
              * state NEW here. In that case we'd want to continue detection
@@ -1144,7 +1144,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         SCLogDebug("s->sm_lists[DETECT_SM_LIST_AMATCH] %p, s->sm_lists[DETECT_SM_LIST_UMATCH] %p, s->sm_lists[DETECT_SM_LIST_DMATCH] %p",
                 s->sm_lists[DETECT_SM_LIST_AMATCH], s->sm_lists[DETECT_SM_LIST_UMATCH], s->sm_lists[DETECT_SM_LIST_DMATCH]);
 
-        if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL || s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL || s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL) {
+        if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL ||
+            s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL ||
+            s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL ||
+            s->sm_lists[DETECT_SM_LIST_HCBDMATCH]) {
             if (alstate == NULL) {
                 SCLogDebug("state matches but no state, we can't match");
                 goto next;
@@ -1451,6 +1454,9 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
     if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL)
         return 0;
 
+    if (s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL)
+        return 0;
+
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL)
         return 0;
 
@@ -1520,6 +1526,9 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, Signature *s) {
         return 0;
 
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL)
+        return 0;
+
+    if (s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL)
         return 0;
 
     SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
@@ -1606,7 +1615,12 @@ static int SignatureCreateMask(Signature *s) {
 
     if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
-        SCLogDebug("sig requires dce http state");
+        SCLogDebug("sig requires http state");
+    }
+
+    if (s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL) {
+        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
+        SCLogDebug("sig requires http app state");
     }
 
     SigMatch *sm;
