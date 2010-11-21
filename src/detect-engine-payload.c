@@ -97,11 +97,13 @@ static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
              * (if there is any other reason why we'd want to avoid checking
              *  it here, please fill it in) */
             if (det_ctx->flags & DETECT_ENGINE_THREAD_CTX_INSPECTING_PACKET) {
-                if (cd->flags & DETECT_CONTENT_PACKET_MPM)
+                if (cd->flags & DETECT_CONTENT_PACKET_MPM && !(cd->flags & DETECT_CONTENT_NEGATED)) {
                     goto match;
+                }
             } else if (det_ctx->flags & DETECT_ENGINE_THREAD_CTX_INSPECTING_STREAM) {
-                if (cd->flags & DETECT_CONTENT_STREAM_MPM)
+                if (cd->flags & DETECT_CONTENT_STREAM_MPM && !(cd->flags & DETECT_CONTENT_NEGATED)) {
                     goto match;
+                }
             }
 
             /* rule parsers should take care of this */
@@ -824,6 +826,31 @@ static int PayloadTestSig13(void)
     return result;
 }
 
+/**
+ * \test normal & negated matching, both absolute and relative
+ */
+static int PayloadTestSig14(void)
+{
+    uint8_t *buf = (uint8_t *)"User-Agent: Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9.1b4) Gecko/20090423 Firefox/3.6 GTB5";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert tcp any any -> any any (content:\"User-Agent|3A| Mozilla/5.0 |28|Macintosh|3B| \"; content:\"Firefox/3.\"; distance:0; content:!\"Firefox/3.6.12\"; distance:-10; content:!\"Mozilla/5.0 |28|Macintosh|3B| U|3B| Intel Mac OS X 10.5|3B| en-US|3B| rv|3A|1.9.1b4|29| Gecko/20090423 Firefox/3.6 GTB5\"; sid:1; rev:1;)";
+
+    //char sig[] = "alert tcp any any -> any any (content:\"User-Agent: Mozilla/5.0 (Macintosh; \"; content:\"Firefox/3.\"; distance:0; content:!\"Firefox/3.6.12\"; distance:-10; content:!\"Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9.1b4) Gecko/20090423 Firefox/3.6 GTB5\"; sid:1; rev:1;)";
+
+    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 1) {
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void PayloadRegisterTests(void) {
@@ -841,5 +868,6 @@ void PayloadRegisterTests(void) {
     UtRegisterTest("PayloadTestSig11", PayloadTestSig11, 1);
     UtRegisterTest("PayloadTestSig12", PayloadTestSig12, 1);
     UtRegisterTest("PayloadTestSig13", PayloadTestSig13, 1);
+    UtRegisterTest("PayloadTestSig14", PayloadTestSig14, 1);
 #endif /* UNITTESTS */
 }

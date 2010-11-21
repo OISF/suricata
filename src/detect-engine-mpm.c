@@ -582,6 +582,10 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                             s->flags |= SIG_FLAG_MPM_PACKET;
                             s->mpm_pattern_id_div_8 = cd->id / 8;
                             s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
+                            if (cd->flags & DETECT_CONTENT_NEGATED) {
+                                SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
+                                s->flags |= SIG_FLAG_MPM_PACKET_NEG;
+                            }
                         }
                         if (SignatureHasStreamContent(s) &&
                             (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT &&
@@ -604,6 +608,10 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                             s->flags |= SIG_FLAG_MPM_STREAM;
                             s->mpm_stream_pattern_id_div_8 = cd->id / 8;
                             s->mpm_stream_pattern_id_mod_8 = 1 << (cd->id % 8);
+                            if (cd->flags & DETECT_CONTENT_NEGATED) {
+                                SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
+                                s->flags |= SIG_FLAG_MPM_STREAM_NEG;
+                            }
                         }
 
                     } else {
@@ -665,6 +673,10 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                             s->flags |= SIG_FLAG_MPM_PACKET;
                             s->mpm_pattern_id_div_8 = cd->id / 8;
                             s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
+                            if (cd->flags & DETECT_CONTENT_NEGATED) {
+                                SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
+                                s->flags |= SIG_FLAG_MPM_PACKET_NEG;
+                            }
                         }
                         if (SignatureHasStreamContent(s) &&
                             (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT
@@ -686,10 +698,10 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                             s->flags |= SIG_FLAG_MPM_STREAM;
                             s->mpm_stream_pattern_id_div_8 = cd->id / 8;
                             s->mpm_stream_pattern_id_mod_8 = 1 << (cd->id % 8);
-                        }
-                        if (cd->flags & DETECT_CONTENT_NEGATED) {
-                            SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
-                            s->flags |= SIG_FLAG_MPM_NEGCONTENT;
+                            if (cd->flags & DETECT_CONTENT_NEGATED) {
+                                SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
+                                s->flags |= SIG_FLAG_MPM_STREAM_NEG;
+                            }
                         }
                     }
 

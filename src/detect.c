@@ -641,7 +641,7 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
             //if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8)))) {
                 //SCLogDebug("mpm sig without matches (pat id %"PRIu32" check in content).", s->mpm_pattern_id);
 
-                if (!(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
+                if (!(s->flags & SIG_FLAG_MPM_PACKET_NEG)) {
                     /* pattern didn't match. There is one case where we will inspect
                      * the signature anyway: if the packet payload was added to the
                      * stream it is not scanned itself: the stream data is inspected.
@@ -662,7 +662,7 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
             if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_stream_pattern_id_div_8)] & s->mpm_stream_pattern_id_mod_8)) {
                 //SCLogDebug("mpm stream sig without matches (pat id %"PRIu32" check in content).", s->mpm_stream_pattern_id);
 
-                if (!(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
+                if (!(s->flags & SIG_FLAG_MPM_STREAM_NEG)) {
                     /* pattern didn't match. There is one case where we will inspect
                      * the signature anyway: if the packet payload was added to the
                      * stream it is not scanned itself: the stream data is inspected.
@@ -1111,7 +1111,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                         /* filter out sigs that want pattern matches, but
                          * have no matches */
                         if (!(det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray[(s->mpm_stream_pattern_id_div_8)] & s->mpm_stream_pattern_id_mod_8) &&
-                                (s->flags & SIG_FLAG_MPM) && !(s->flags & SIG_FLAG_MPM_NEGCONTENT)) {
+                                (s->flags & SIG_FLAG_MPM_STREAM) && !(s->flags & SIG_FLAG_MPM_STREAM_NEG)) {
                             SCLogDebug("no match in this smsg");
                             continue;
                         }
