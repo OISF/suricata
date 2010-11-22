@@ -649,7 +649,18 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                                             cd->flags |= DETECT_CONTENT_STREAM_MPM;
                                         }
                                     }
-                                } /* if (prev_sm != NULL) */
+                                } else {
+                                    if (SignatureHasPacketContent(s) &&
+                                        (sgh->flags & SIG_GROUP_HAVECONTENT &&
+                                         !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY))) {
+                                        cd->flags |= DETECT_CONTENT_PACKET_MPM;
+                                    }
+                                    if (SignatureHasStreamContent(s) &&
+                                        (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT
+                                         && !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
+                                        cd->flags |= DETECT_CONTENT_STREAM_MPM;
+                                    }
+                                } /* else - if (prev_sm != NULL) */
                             }
                         } /* else - if (co->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
 
