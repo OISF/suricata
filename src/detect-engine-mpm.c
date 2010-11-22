@@ -742,6 +742,8 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                                     if (!(prev_ud->flags & DETECT_CONTENT_RELATIVE_NEXT)) {
                                         ud->flags |= DETECT_CONTENT_URI_MPM;
                                     }
+                                } else {
+                                    ud->flags |= DETECT_CONTENT_URI_MPM;
                                 }
                             }
                         } /* else - if (ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
