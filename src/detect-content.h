@@ -49,8 +49,8 @@
 #define DETECT_CONTENT_IS_SINGLE(c) (!((c)->flags & DETECT_CONTENT_DISTANCE || \
                                        (c)->flags & DETECT_CONTENT_WITHIN || \
                                        (c)->flags & DETECT_CONTENT_RELATIVE_NEXT || \
-                                       (c)->depth > 0 || \
-                                       (c)->within > 0))
+                                       (c)->flags & DETECT_CONTENT_DEPTH || \
+                                       (c)->flags & DETECT_CONTENT_OFFSET))
 
 #include "util-spm-bm.h"
 

@@ -549,107 +549,95 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                                        SigGroupHead *sgh, Signature *s,
                                        SigMatch *mpm_sm)
 {
-            /* now add the mpm_ch to the mpm ctx */
-        if (mpm_sm != NULL) {
-            uint8_t flags = 0;
+    /* now add the mpm_ch to the mpm ctx */
+    if (mpm_sm != NULL) {
+        uint8_t flags = 0;
 
-            DetectContentData *cd = NULL;
-            DetectContentData *ud = NULL;
-            switch (mpm_sm->type) {
-                case DETECT_CONTENT:
-                {
-                    cd = (DetectContentData *)mpm_sm->ctx;
-                    if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
-                        /* add the content to the "packet" mpm */
+        DetectContentData *cd = NULL;
+        DetectContentData *ud = NULL;
+        switch (mpm_sm->type) {
+        case DETECT_CONTENT:
+            {
+                cd = (DetectContentData *)mpm_sm->ctx;
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+                    /* add the content to the "packet" mpm */
+                    if (SignatureHasPacketContent(s) &&
+                        (sgh->flags & SIG_GROUP_HAVECONTENT &&
+                         !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY))) {
+
+                        if (cd->flags & DETECT_CONTENT_NOCASE) {
+                            mpm_table[sgh->mpm_ctx->mpm_type].
+                                AddPatternNocase(sgh->mpm_ctx,
+                                                 cd->content + cd->fp_chop_offset,
+                                                 cd->fp_chop_len,
+                                                 0, 0, cd->id, s->num, flags);
+                        } else {
+                            mpm_table[sgh->mpm_ctx->mpm_type].
+                                AddPattern(sgh->mpm_ctx,
+                                           cd->content + cd->fp_chop_offset,
+                                           cd->fp_chop_len,
+                                           0, 0, cd->id, s->num, flags);
+                        }
+                        /* tell matcher we are inspecting packet */
+                        s->flags |= SIG_FLAG_MPM_PACKET;
+                        s->mpm_pattern_id_div_8 = cd->id / 8;
+                        s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
+                        if (cd->flags & DETECT_CONTENT_NEGATED) {
+                            SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
+                            s->flags |= SIG_FLAG_MPM_PACKET_NEG;
+                        }
+                    }
+                    if (SignatureHasStreamContent(s) &&
+                        (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT &&
+                         !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
+
+                        if (cd->flags & DETECT_CONTENT_NOCASE) {
+                            mpm_table[sgh->mpm_ctx->mpm_type].
+                                AddPatternNocase(sgh->mpm_ctx,
+                                                 cd->content + cd->fp_chop_offset,
+                                                 cd->fp_chop_len,
+                                                 0, 0, cd->id, s->num, flags);
+                        } else {
+                            mpm_table[sgh->mpm_ctx->mpm_type].
+                                AddPattern(sgh->mpm_ctx,
+                                           cd->content + cd->fp_chop_offset,
+                                           cd->fp_chop_len,
+                                           0, 0, cd->id, s->num, flags);
+                        }
+                        /* tell matcher we are inspecting stream */
+                        s->flags |= SIG_FLAG_MPM_STREAM;
+                        s->mpm_stream_pattern_id_div_8 = cd->id / 8;
+                        s->mpm_stream_pattern_id_mod_8 = 1 << (cd->id % 8);
+                        if (cd->flags & DETECT_CONTENT_NEGATED) {
+                            SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
+                            s->flags |= SIG_FLAG_MPM_STREAM_NEG;
+                        }
+                    }
+
+                } else {
+                    if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
                         if (SignatureHasPacketContent(s) &&
                             (sgh->flags & SIG_GROUP_HAVECONTENT &&
                              !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY))) {
-
-                            if (cd->flags & DETECT_CONTENT_NOCASE) {
-                                mpm_table[sgh->mpm_ctx->mpm_type].
-                                    AddPatternNocase(sgh->mpm_ctx,
-                                                     cd->content + cd->fp_chop_offset,
-                                                     cd->fp_chop_len,
-                                                     0, 0, cd->id, s->num, flags);
-                            } else {
-                                mpm_table[sgh->mpm_ctx->mpm_type].
-                                    AddPattern(sgh->mpm_ctx,
-                                               cd->content + cd->fp_chop_offset,
-                                               cd->fp_chop_len,
-                                               0, 0, cd->id, s->num, flags);
-                            }
-                            /* tell matcher we are inspecting packet */
-                            s->flags |= SIG_FLAG_MPM_PACKET;
-                            s->mpm_pattern_id_div_8 = cd->id / 8;
-                            s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
-                            if (cd->flags & DETECT_CONTENT_NEGATED) {
-                                SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
-                                s->flags |= SIG_FLAG_MPM_PACKET_NEG;
-                            }
+                            cd->flags |= DETECT_CONTENT_PACKET_MPM;
                         }
                         if (SignatureHasStreamContent(s) &&
-                            (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT &&
-                             !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
-
-                            if (cd->flags & DETECT_CONTENT_NOCASE) {
-                                mpm_table[sgh->mpm_ctx->mpm_type].
-                                    AddPatternNocase(sgh->mpm_ctx,
-                                                     cd->content + cd->fp_chop_offset,
-                                                     cd->fp_chop_len,
-                                                     0, 0, cd->id, s->num, flags);
-                            } else {
-                                mpm_table[sgh->mpm_ctx->mpm_type].
-                                    AddPattern(sgh->mpm_ctx,
-                                               cd->content + cd->fp_chop_offset,
-                                               cd->fp_chop_len,
-                                               0, 0, cd->id, s->num, flags);
-                            }
-                            /* tell matcher we are inspecting stream */
-                            s->flags |= SIG_FLAG_MPM_STREAM;
-                            s->mpm_stream_pattern_id_div_8 = cd->id / 8;
-                            s->mpm_stream_pattern_id_mod_8 = 1 << (cd->id % 8);
-                            if (cd->flags & DETECT_CONTENT_NEGATED) {
-                                SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
-                                s->flags |= SIG_FLAG_MPM_STREAM_NEG;
-                            }
+                            (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT
+                             && !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
+                            cd->flags |= DETECT_CONTENT_STREAM_MPM;
                         }
 
+                        /* see if we can bypass the match validation for this pattern */
                     } else {
-                        if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                            if (SignatureHasPacketContent(s) &&
-                                (sgh->flags & SIG_GROUP_HAVECONTENT &&
-                                 !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY))) {
-                                cd->flags |= DETECT_CONTENT_PACKET_MPM;
-                            }
-                            if (SignatureHasStreamContent(s) &&
-                                (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT
-                                 && !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
-                                cd->flags |= DETECT_CONTENT_STREAM_MPM;
-                            }
+                        if (!(cd->flags & DETECT_CONTENT_RELATIVE_NEXT) &&
+                            !(cd->flags & DETECT_CONTENT_DEPTH) &&
+                            !(cd->flags & DETECT_CONTENT_OFFSET)) {
 
-                            /* see if we can bypass the match validation for this pattern */
-                        } else {
-                            if (!(cd->flags & DETECT_CONTENT_RELATIVE_NEXT) &&
-                                !(cd->flags & DETECT_CONTENT_DEPTH) &&
-                                !(cd->flags & DETECT_CONTENT_OFFSET)) {
-
-                                SigMatch *prev_sm = SigMatchGetLastSMFromLists(s, 2,
-                                                                               mpm_sm->type, mpm_sm->prev);
-                                if (prev_sm != NULL) {
-                                    DetectContentData *prev_cd = (DetectContentData *)prev_sm->ctx;
-                                    if (!(prev_cd->flags & DETECT_CONTENT_RELATIVE_NEXT)) {
-                                        if (SignatureHasPacketContent(s) &&
-                                            (sgh->flags & SIG_GROUP_HAVECONTENT &&
-                                             !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY))) {
-                                            cd->flags |= DETECT_CONTENT_PACKET_MPM;
-                                        }
-                                        if (SignatureHasStreamContent(s) &&
-                                            (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT
-                                             && !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
-                                            cd->flags |= DETECT_CONTENT_STREAM_MPM;
-                                        }
-                                    }
-                                } else {
+                            SigMatch *prev_sm = SigMatchGetLastSMFromLists(s, 2,
+                                                                           mpm_sm->type, mpm_sm->prev);
+                            if (prev_sm != NULL) {
+                                DetectContentData *prev_cd = (DetectContentData *)prev_sm->ctx;
+                                if (!(prev_cd->flags & DETECT_CONTENT_RELATIVE_NEXT)) {
                                     if (SignatureHasPacketContent(s) &&
                                         (sgh->flags & SIG_GROUP_HAVECONTENT &&
                                          !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY))) {
@@ -660,133 +648,147 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                                          && !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
                                         cd->flags |= DETECT_CONTENT_STREAM_MPM;
                                     }
-                                } /* else - if (prev_sm != NULL) */
-                            }
-                        } /* else - if (co->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
-
-                        if (SignatureHasPacketContent(s) &&
-                            (sgh->flags & SIG_GROUP_HAVECONTENT &&
-                             !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY))) {
-
-                            /* add the content to the "packet" mpm */
-                            if (cd->flags & DETECT_CONTENT_NOCASE) {
-                                mpm_table[sgh->mpm_ctx->mpm_type].
-                                    AddPatternNocase(sgh->mpm_ctx,
-                                                     cd->content, cd->content_len,
-                                                     0, 0, cd->id, s->num, flags);
+                                }
                             } else {
-                                mpm_table[sgh->mpm_ctx->mpm_type].
-                                    AddPattern(sgh->mpm_ctx,
-                                               cd->content, cd->content_len,
-                                               0, 0, cd->id, s->num, flags);
-                            }
-                            /* tell matcher we are inspecting packet */
-                            s->flags |= SIG_FLAG_MPM_PACKET;
-                            s->mpm_pattern_id_div_8 = cd->id / 8;
-                            s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
-                            if (cd->flags & DETECT_CONTENT_NEGATED) {
-                                SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
-                                s->flags |= SIG_FLAG_MPM_PACKET_NEG;
-                            }
+                                if (SignatureHasPacketContent(s) &&
+                                    (sgh->flags & SIG_GROUP_HAVECONTENT &&
+                                     !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY))) {
+                                    cd->flags |= DETECT_CONTENT_PACKET_MPM;
+                                }
+                                if (SignatureHasStreamContent(s) &&
+                                    (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT
+                                     && !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
+                                    cd->flags |= DETECT_CONTENT_STREAM_MPM;
+                                }
+                            } /* else - if (prev_sm != NULL) */
                         }
-                        if (SignatureHasStreamContent(s) &&
-                            (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT
-                             && !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
+                    } /* else - if (co->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
 
-                            /* add the content to the "packet" mpm */
-                            if (cd->flags & DETECT_CONTENT_NOCASE) {
-                                mpm_table[sgh->mpm_stream_ctx->mpm_type].
-                                    AddPatternNocase(sgh->mpm_stream_ctx,
-                                                     cd->content, cd->content_len,
-                                                     0, 0, cd->id, s->num, flags);
-                            } else {
-                                mpm_table[sgh->mpm_stream_ctx->mpm_type].
-                                    AddPattern(sgh->mpm_stream_ctx,
-                                               cd->content, cd->content_len,
-                                               0, 0, cd->id, s->num, flags);
-                            }
-                            /* tell matcher we are inspecting stream */
-                            s->flags |= SIG_FLAG_MPM_STREAM;
-                            s->mpm_stream_pattern_id_div_8 = cd->id / 8;
-                            s->mpm_stream_pattern_id_mod_8 = 1 << (cd->id % 8);
-                            if (cd->flags & DETECT_CONTENT_NEGATED) {
-                                SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
-                                s->flags |= SIG_FLAG_MPM_STREAM_NEG;
-                            }
-                        }
-                    }
+                    if (SignatureHasPacketContent(s) &&
+                        (sgh->flags & SIG_GROUP_HAVECONTENT &&
+                         !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY))) {
 
-                    break;
-                } /* case DETECT_CONTENT */
-                case DETECT_URICONTENT:
-                {
-                    ud = (DetectContentData *)mpm_sm->ctx;
-                    if (ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
-                        /* add the content to the "uri" mpm */
-                        if (ud->flags & DETECT_CONTENT_NOCASE) {
+                        /* add the content to the "packet" mpm */
+                        if (cd->flags & DETECT_CONTENT_NOCASE) {
                             mpm_table[sgh->mpm_ctx->mpm_type].
                                 AddPatternNocase(sgh->mpm_ctx,
-                                                 ud->content + ud->fp_chop_offset,
-                                                 ud->fp_chop_len,
-                                                 0, 0, ud->id, s->num, flags);
+                                                 cd->content, cd->content_len,
+                                                 0, 0, cd->id, s->num, flags);
                         } else {
                             mpm_table[sgh->mpm_ctx->mpm_type].
                                 AddPattern(sgh->mpm_ctx,
-                                           ud->content + ud->fp_chop_offset,
-                                           ud->fp_chop_len,
-                                           0, 0, ud->id, s->num, flags);
+                                           cd->content, cd->content_len,
+                                           0, 0, cd->id, s->num, flags);
                         }
-                    } else {
-                        if (ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                            ud->flags |= DETECT_CONTENT_URI_MPM;
-
-                            /* see if we can bypass the match validation for this pattern */
-                        } else {
-                            if (!(ud->flags & DETECT_CONTENT_RELATIVE_NEXT) &&
-                                !(ud->flags & DETECT_CONTENT_DEPTH) &&
-                                !(ud->flags & DETECT_CONTENT_OFFSET)) {
-
-                                SigMatch *prev_sm = SigMatchGetLastSMFromLists(s, 2,
-                                                                               mpm_sm->type, mpm_sm->prev);
-                                if (prev_sm != NULL) {
-                                    DetectContentData *prev_ud = (DetectContentData *)prev_sm->ctx;
-                                    if (!(prev_ud->flags & DETECT_CONTENT_RELATIVE_NEXT)) {
-                                        ud->flags |= DETECT_CONTENT_URI_MPM;
-                                    }
-                                } else {
-                                    ud->flags |= DETECT_CONTENT_URI_MPM;
-                                }
-                            }
-                        } /* else - if (ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
-
-                        /* add the content to the "packet" mpm */
-                        if (ud->flags & DETECT_CONTENT_NOCASE) {
-                            mpm_table[sgh->mpm_uri_ctx->mpm_type].
-                                AddPatternNocase(sgh->mpm_uri_ctx,
-                                                 ud->content, ud->content_len,
-                                                 0, 0, ud->id, s->num, flags);
-                        } else {
-                            mpm_table[sgh->mpm_uri_ctx->mpm_type].
-                                AddPattern(sgh->mpm_uri_ctx,
-                                           ud->content, ud->content_len,
-                                           0, 0, ud->id, s->num, flags);
+                        /* tell matcher we are inspecting packet */
+                        s->flags |= SIG_FLAG_MPM_PACKET;
+                        s->mpm_pattern_id_div_8 = cd->id / 8;
+                        s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
+                        if (cd->flags & DETECT_CONTENT_NEGATED) {
+                            SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
+                            s->flags |= SIG_FLAG_MPM_PACKET_NEG;
                         }
                     }
-                    /* tell matcher we are inspecting uri */
-                    s->flags |= SIG_FLAG_MPM_URICONTENT;
-                    s->mpm_uripattern_id = ud->id;
-                    if (ud->flags & DETECT_CONTENT_NEGATED)
-                        s->flags |= SIG_FLAG_MPM_URICONTENT_NEG;
+                    if (SignatureHasStreamContent(s) &&
+                        (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT
+                         && !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
 
-                    break;
-                } /* case DETECT_URICONTENT */
-            } /* switch (mpm_sm->type) */
+                        /* add the content to the "packet" mpm */
+                        if (cd->flags & DETECT_CONTENT_NOCASE) {
+                            mpm_table[sgh->mpm_stream_ctx->mpm_type].
+                                AddPatternNocase(sgh->mpm_stream_ctx,
+                                                 cd->content, cd->content_len,
+                                                 0, 0, cd->id, s->num, flags);
+                        } else {
+                            mpm_table[sgh->mpm_stream_ctx->mpm_type].
+                                AddPattern(sgh->mpm_stream_ctx,
+                                           cd->content, cd->content_len,
+                                           0, 0, cd->id, s->num, flags);
+                        }
+                        /* tell matcher we are inspecting stream */
+                        s->flags |= SIG_FLAG_MPM_STREAM;
+                        s->mpm_stream_pattern_id_div_8 = cd->id / 8;
+                        s->mpm_stream_pattern_id_mod_8 = 1 << (cd->id % 8);
+                        if (cd->flags & DETECT_CONTENT_NEGATED) {
+                            SCLogDebug("flagging sig %"PRIu32" to be looking for negated mpm", s->id);
+                            s->flags |= SIG_FLAG_MPM_STREAM_NEG;
+                        }
+                    }
+                }
 
-        } else {
-            SCLogDebug("%"PRIu32" no mpm pattern selected", s->id);
-        } /* else - if (mpm_sm != NULL) */
+                break;
+            } /* case DETECT_CONTENT */
+        case DETECT_URICONTENT:
+            {
+                ud = (DetectContentData *)mpm_sm->ctx;
+                if (ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+                    /* add the content to the "uri" mpm */
+                    if (ud->flags & DETECT_CONTENT_NOCASE) {
+                        mpm_table[sgh->mpm_ctx->mpm_type].
+                            AddPatternNocase(sgh->mpm_ctx,
+                                             ud->content + ud->fp_chop_offset,
+                                             ud->fp_chop_len,
+                                             0, 0, ud->id, s->num, flags);
+                    } else {
+                        mpm_table[sgh->mpm_ctx->mpm_type].
+                            AddPattern(sgh->mpm_ctx,
+                                       ud->content + ud->fp_chop_offset,
+                                       ud->fp_chop_len,
+                                       0, 0, ud->id, s->num, flags);
+                    }
+                } else {
+                    if (ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                        ud->flags |= DETECT_CONTENT_URI_MPM;
 
-        return;
+                        /* see if we can bypass the match validation for this pattern */
+                    } else {
+                        if (!(ud->flags & DETECT_CONTENT_RELATIVE_NEXT) &&
+                            !(ud->flags & DETECT_CONTENT_DEPTH) &&
+                            !(ud->flags & DETECT_CONTENT_OFFSET)) {
+
+                            SigMatch *prev_sm = SigMatchGetLastSMFromLists(s, 2,
+                                                                           mpm_sm->type, mpm_sm->prev);
+                            if (prev_sm != NULL) {
+                                DetectContentData *prev_ud = (DetectContentData *)prev_sm->ctx;
+                                if (!(prev_ud->flags & DETECT_CONTENT_RELATIVE_NEXT)) {
+                                    ud->flags |= DETECT_CONTENT_URI_MPM;
+                                }
+                            } else {
+                                ud->flags |= DETECT_CONTENT_URI_MPM;
+                            }
+                        }
+                    } /* else - if (ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
+
+                    /* add the content to the "packet" mpm */
+                    if (ud->flags & DETECT_CONTENT_NOCASE) {
+                        mpm_table[sgh->mpm_uri_ctx->mpm_type].
+                            AddPatternNocase(sgh->mpm_uri_ctx,
+                                             ud->content, ud->content_len,
+                                             0, 0, ud->id, s->num, flags);
+                    } else {
+                        mpm_table[sgh->mpm_uri_ctx->mpm_type].
+                            AddPattern(sgh->mpm_uri_ctx,
+                                       ud->content, ud->content_len,
+                                       0, 0, ud->id, s->num, flags);
+                    }
+                }
+                /* tell matcher we are inspecting uri */
+                s->flags |= SIG_FLAG_MPM_URICONTENT;
+                s->mpm_uripattern_id = ud->id;
+                if (ud->flags & DETECT_CONTENT_NEGATED)
+                    s->flags |= SIG_FLAG_MPM_URICONTENT_NEG;
+
+                break;
+            } /* case DETECT_URICONTENT */
+        } /* switch (mpm_sm->type) */
+
+        SCLogDebug("%"PRIu32" adding co->id %"PRIu32" to the mpm phase "
+                   "(s->num %"PRIu32")", s->id, co->id, s->num);
+    } else {
+        SCLogDebug("%"PRIu32" no mpm pattern selected", s->id);
+    } /* else - if (mpm_sm != NULL) */
+
+    return;
 }
 
 /**
