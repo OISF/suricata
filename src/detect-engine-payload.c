@@ -98,10 +98,16 @@ static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
              *  it here, please fill it in) */
             if (det_ctx->flags & DETECT_ENGINE_THREAD_CTX_INSPECTING_PACKET) {
                 if (cd->flags & DETECT_CONTENT_PACKET_MPM && !(cd->flags & DETECT_CONTENT_NEGATED)) {
-                    goto match;
+                    /* we will remove this check in the end */
+                    if (!DETECT_CONTENT_IS_SINGLE(cd))
+                        abort();
+                    //goto match;
                 }
             } else if (det_ctx->flags & DETECT_ENGINE_THREAD_CTX_INSPECTING_STREAM) {
                 if (cd->flags & DETECT_CONTENT_STREAM_MPM && !(cd->flags & DETECT_CONTENT_NEGATED)) {
+                    /* we will remove this check in the end */
+                    if (!DETECT_CONTENT_IS_SINGLE(cd))
+                        abort();
                     goto match;
                 }
             }

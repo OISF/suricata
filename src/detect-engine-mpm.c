@@ -549,6 +549,8 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                                        SigGroupHead *sgh, Signature *s,
                                        SigMatch *mpm_sm)
 {
+    s->mpm_sm = mpm_sm;
+
     /* now add the mpm_ch to the mpm ctx */
     if (mpm_sm != NULL) {
         uint8_t flags = 0;
@@ -561,10 +563,7 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 cd = (DetectContentData *)mpm_sm->ctx;
                 if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
                     /* add the content to the "packet" mpm */
-                    if (SignatureHasPacketContent(s) &&
-                        (sgh->flags & SIG_GROUP_HAVECONTENT &&
-                         !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY))) {
-
+                    if (SignatureHasPacketContent(s)) {
                         if (cd->flags & DETECT_CONTENT_NOCASE) {
                             mpm_table[sgh->mpm_ctx->mpm_type].
                                 AddPatternNocase(sgh->mpm_ctx,
@@ -587,10 +586,7 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                             s->flags |= SIG_FLAG_MPM_PACKET_NEG;
                         }
                     }
-                    if (SignatureHasStreamContent(s) &&
-                        (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT &&
-                         !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
-
+                    if (SignatureHasStreamContent(s)) {
                         if (cd->flags & DETECT_CONTENT_NOCASE) {
                             mpm_table[sgh->mpm_ctx->mpm_type].
                                 AddPatternNocase(sgh->mpm_ctx,
@@ -613,61 +609,24 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                             s->flags |= SIG_FLAG_MPM_STREAM_NEG;
                         }
                     }
-
                 } else {
                     if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                        if (SignatureHasPacketContent(s) &&
-                            (sgh->flags & SIG_GROUP_HAVECONTENT &&
-                             !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY))) {
+                        if (SignatureHasPacketContent(s))
                             cd->flags |= DETECT_CONTENT_PACKET_MPM;
-                        }
-                        if (SignatureHasStreamContent(s) &&
-                            (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT
-                             && !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
+                        if (SignatureHasStreamContent(s))
                             cd->flags |= DETECT_CONTENT_STREAM_MPM;
-                        }
 
                         /* see if we can bypass the match validation for this pattern */
                     } else {
-                        if (!(cd->flags & DETECT_CONTENT_RELATIVE_NEXT) &&
-                            !(cd->flags & DETECT_CONTENT_DEPTH) &&
-                            !(cd->flags & DETECT_CONTENT_OFFSET)) {
-
-                            SigMatch *prev_sm = SigMatchGetLastSMFromLists(s, 2,
-                                                                           mpm_sm->type, mpm_sm->prev);
-                            if (prev_sm != NULL) {
-                                DetectContentData *prev_cd = (DetectContentData *)prev_sm->ctx;
-                                if (!(prev_cd->flags & DETECT_CONTENT_RELATIVE_NEXT)) {
-                                    if (SignatureHasPacketContent(s) &&
-                                        (sgh->flags & SIG_GROUP_HAVECONTENT &&
-                                         !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY))) {
-                                        cd->flags |= DETECT_CONTENT_PACKET_MPM;
-                                    }
-                                    if (SignatureHasStreamContent(s) &&
-                                        (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT
-                                         && !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
-                                        cd->flags |= DETECT_CONTENT_STREAM_MPM;
-                                    }
-                                }
-                            } else {
-                                if (SignatureHasPacketContent(s) &&
-                                    (sgh->flags & SIG_GROUP_HAVECONTENT &&
-                                     !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY))) {
-                                    cd->flags |= DETECT_CONTENT_PACKET_MPM;
-                                }
-                                if (SignatureHasStreamContent(s) &&
-                                    (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT
-                                     && !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
-                                    cd->flags |= DETECT_CONTENT_STREAM_MPM;
-                                }
-                            } /* else - if (prev_sm != NULL) */
+                        if (DETECT_CONTENT_IS_SINGLE(cd)) {
+                            if (SignatureHasPacketContent(s))
+                                cd->flags |= DETECT_CONTENT_PACKET_MPM;
+                            if (SignatureHasStreamContent(s))
+                                cd->flags |= DETECT_CONTENT_STREAM_MPM;
                         }
                     } /* else - if (co->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
 
-                    if (SignatureHasPacketContent(s) &&
-                        (sgh->flags & SIG_GROUP_HAVECONTENT &&
-                         !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY))) {
-
+                    if (SignatureHasPacketContent(s)) {
                         /* add the content to the "packet" mpm */
                         if (cd->flags & DETECT_CONTENT_NOCASE) {
                             mpm_table[sgh->mpm_ctx->mpm_type].
@@ -689,10 +648,7 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                             s->flags |= SIG_FLAG_MPM_PACKET_NEG;
                         }
                     }
-                    if (SignatureHasStreamContent(s) &&
-                        (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT
-                         && !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
-
+                    if (SignatureHasStreamContent(s)) {
                         /* add the content to the "packet" mpm */
                         if (cd->flags & DETECT_CONTENT_NOCASE) {
                             mpm_table[sgh->mpm_stream_ctx->mpm_type].
@@ -742,20 +698,8 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
 
                         /* see if we can bypass the match validation for this pattern */
                     } else {
-                        if (!(ud->flags & DETECT_CONTENT_RELATIVE_NEXT) &&
-                            !(ud->flags & DETECT_CONTENT_DEPTH) &&
-                            !(ud->flags & DETECT_CONTENT_OFFSET)) {
-
-                            SigMatch *prev_sm = SigMatchGetLastSMFromLists(s, 2,
-                                                                           mpm_sm->type, mpm_sm->prev);
-                            if (prev_sm != NULL) {
-                                DetectContentData *prev_ud = (DetectContentData *)prev_sm->ctx;
-                                if (!(prev_ud->flags & DETECT_CONTENT_RELATIVE_NEXT)) {
-                                    ud->flags |= DETECT_CONTENT_URI_MPM;
-                                }
-                            } else {
-                                ud->flags |= DETECT_CONTENT_URI_MPM;
-                            }
+                        if (DETECT_CONTENT_IS_SINGLE(ud)) {
+                            ud->flags |= DETECT_CONTENT_URI_MPM;
                         }
                     } /* else - if (ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
 
@@ -791,95 +735,99 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
     return;
 }
 
-/**
- * \internal
- * \brief Helper function for PrepareGroupPopulateMpm.  Used to decide if a
- *        pattern should be skipped or considered under certain conditions.
- *
- * \param sgh Pointer to the sgh.
- * \param s   Pointer to the signature.
- * \param sm  Pointer to the SigMatch which holds the content.
- *
- * \retval 1 If the content should be skipped.
- * \retval 0 Otherwise.
- */
-static int PopulateMpmSkipContent(SigGroupHead *sgh, Signature *s, SigMatch *sm)
-{
-    switch (sm->type) {
-        case DETECT_CONTENT:
-        {
-            if (s->flags & SIG_FLAG_HAS_NO_PKT_AND_STREAM_CONTENT) {
-                return 1;
-            }
-
-            if (!(sgh->flags & SIG_GROUP_HAVECONTENT &&
-                  !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY)) &&
-                !(sgh->flags & SIG_GROUP_HAVESTREAMCONTENT &&
-                  !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
-                return 1;
-            }
-
-            DetectContentData *cd = sm->ctx;
-            if (cd->flags & DETECT_CONTENT_FAST_PATTERN)
-                return 0;
-
-            if (sgh->flags & SIG_GROUP_HAVECONTENT &&
-                !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY) &&
-                sgh->flags & SIG_GROUP_HAVESTREAMCONTENT &&
-                !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) {
-                if (sgh->mpm_content_maxlen == sgh->mpm_streamcontent_maxlen) {
-                    if (cd->content_len < sgh->mpm_content_maxlen)
-                        return 1;
-                    else
-                        return 0;
-                } else if (sgh->mpm_content_maxlen < sgh->mpm_streamcontent_maxlen) {
-                    if (cd->content_len < sgh->mpm_content_maxlen)
-                        return 1;
-                    else
-                        return 0;
-                } else {
-                    if (cd->content_len < sgh->mpm_streamcontent_maxlen)
-                        return 1;
-                    else
-                        return 0;
-                }
-            } else if (sgh->flags & SIG_GROUP_HAVECONTENT &&
-                       !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
-                if (cd->content_len < sgh->mpm_content_maxlen)
-                    return 1;
-                else
-                    return 0;
-            } else if (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT &&
-                       !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)){
-                if (cd->content_len < sgh->mpm_streamcontent_maxlen)
-                    return 1;
-                else
-                    return 0;
-            }
-        }
-
-        case DETECT_URICONTENT:
-        {
-            if (!(sgh->flags & SIG_GROUP_HAVEURICONTENT &&
-                  !(sgh->flags & SIG_GROUP_HEAD_MPM_URI_COPY))) {
-                return 1;
-            }
-
-            DetectContentData *cd = sm->ctx;
-            if (cd->flags & DETECT_CONTENT_FAST_PATTERN)
-                return 0;
-
-            if (cd->content_len < sgh->mpm_uricontent_maxlen)
-                return 1;
-            else
-                return 0;
-        }
-
-        default:
-            return 0;
-    }
-
-}
+///**
+// * \internal
+// * \brief Helper function for PrepareGroupPopulateMpm.  Used to decide if a
+// *        pattern should be skipped or considered under certain conditions.
+// *
+// * \param sgh Pointer to the sgh.
+// * \param s   Pointer to the signature.
+// * \param sm  Pointer to the SigMatch which holds the content.
+// *
+// * \retval 1 If the content should be skipped.
+// * \retval 0 Otherwise.
+// */
+//static int PopulateMpmSkipContent(SigGroupHead *sgh, Signature *s, SigMatch *sm)
+//{
+//    switch (sm->type) {
+//        case DETECT_CONTENT:
+//        {
+//            if (s->flags & SIG_FLAG_HAS_NO_PKT_AND_STREAM_CONTENT) {
+//                return 1;
+//            }
+//
+//            if (!(sgh->flags & SIG_GROUP_HAVECONTENT &&
+//                  !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY)) &&
+//                !(sgh->flags & SIG_GROUP_HAVESTREAMCONTENT &&
+//                  !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
+//                return 1;
+//            }
+//
+//            DetectContentData *cd = sm->ctx;
+//            if (cd->flags & DETECT_CONTENT_FAST_PATTERN)
+//                return 0;
+//
+//            return 1;
+//
+//            if (sgh->flags & SIG_GROUP_HAVECONTENT &&
+//                !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY) &&
+//                sgh->flags & SIG_GROUP_HAVESTREAMCONTENT &&
+//                !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) {
+//                if (sgh->mpm_content_maxlen == sgh->mpm_streamcontent_maxlen) {
+//                    if (cd->content_len < sgh->mpm_content_maxlen)
+//                        return 1;
+//                    else
+//                        return 0;
+//                } else if (sgh->mpm_content_maxlen < sgh->mpm_streamcontent_maxlen) {
+//                    if (cd->content_len < sgh->mpm_content_maxlen)
+//                        return 1;
+//                    else
+//                        return 0;
+//                } else {
+//                    if (cd->content_len < sgh->mpm_streamcontent_maxlen)
+//                        return 1;
+//                    else
+//                        return 0;
+//                }
+//            } else if (sgh->flags & SIG_GROUP_HAVECONTENT &&
+//                       !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
+//                if (cd->content_len < sgh->mpm_content_maxlen)
+//                    return 1;
+//                else
+//                    return 0;
+//            } else if (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT &&
+//                       !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)){
+//                if (cd->content_len < sgh->mpm_streamcontent_maxlen)
+//                    return 1;
+//                else
+//                    return 0;
+//            }
+//        }
+//
+//        case DETECT_URICONTENT:
+//        {
+//            if (!(sgh->flags & SIG_GROUP_HAVEURICONTENT &&
+//                  !(sgh->flags & SIG_GROUP_HEAD_MPM_URI_COPY))) {
+//                return 1;
+//            }
+//
+//            DetectContentData *cd = sm->ctx;
+//            if (cd->flags & DETECT_CONTENT_FAST_PATTERN)
+//                return 0;
+//
+//            return 1;
+//
+//            if (cd->content_len < sgh->mpm_uricontent_maxlen)
+//                return 1;
+//            else
+//                return 0;
+//        }
+//
+//        default:
+//            return 0;
+//    }
+//
+//}
 
 /**
  * \internal
@@ -910,6 +858,13 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
         if (s == NULL)
             continue;
 
+        /* we already have a sm set as fp for this sig.  Add it to the current
+         * mpm context */
+        if (s->mpm_sm != NULL) {
+            PopulateMpmAddPatternToMpm(de_ctx, sgh, s, s->mpm_sm);
+            continue;
+        }
+
         if (!(s->flags & SIG_FLAG_HAS_NO_PKT_AND_STREAM_CONTENT) &&
             !SignatureHasPacketContent(s) && !SignatureHasStreamContent(s)) {
             s->flags |= SIG_FLAG_HAS_NO_PKT_AND_STREAM_CONTENT;
@@ -929,9 +884,9 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                 if (!FastPatternSupportEnabledForSigMatchType(sm->type))
                     continue;
 
-                if (PopulateMpmSkipContent(sgh, s, sm)) {
-                    continue;
-                }
+                //if (PopulateMpmSkipContent(sgh, s, sm)) {
+                //    continue;
+                //}
 
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
                 if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
@@ -951,6 +906,35 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
         Signature *s = sgh->match_array[sig];
         if (s == NULL)
             continue;
+        /* have taken care of this in the previous loop.  move on to the next sig */
+        if (s->mpm_sm != NULL) {
+            continue;
+        }
+
+        int max_len = 0;
+        /* get the longest pattern in the sig */
+        if (!fast_pattern[sig]) {
+            SigMatch *sm = NULL;
+            int list_id = 0;
+            for ( ; list_id < DETECT_SM_LIST_MAX; list_id++) {
+                if (!FastPatternSupportEnabledForSigMatchList(list_id))
+                    continue;
+
+                for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
+                    if (!FastPatternSupportEnabledForSigMatchType(sm->type))
+                        continue;
+
+                    //if (PopulateMpmSkipContent(sgh, s, sm)) {
+                    //    continue;
+                    //}
+
+                    DetectContentData *cd = (DetectContentData *)sm->ctx;
+                    if (max_len < cd->content_len)
+                        max_len = cd->content_len;
+                }
+            }
+        }
+
 
         SigMatch *mpm_sm = NULL;
         SigMatch *sm = NULL;
@@ -964,8 +948,7 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                     continue;
 
                 /* skip in case of:
-                 * 1. we expect a fastpattern but this isn't it
-                 * 2. we have a smaller content than mpm_content_maxlen */
+                 * 1. we expect a fastpattern but this isn't it */
                 if (fast_pattern[sig]) {
                     /* can be any content based keyword since all of them
                      * now use a unified structure - DetectContentData */
@@ -976,9 +959,14 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                     }
                     SCLogDebug("fast pattern %"PRIu32"", cd->id);
                 } else {
-                    if (PopulateMpmSkipContent(sgh, s, sm)) {
+                    //if (PopulateMpmSkipContent(sgh, s, sm)) {
+                    //    continue;
+                    //}
+
+                    DetectContentData *cd = (DetectContentData *)sm->ctx;
+                    if (cd->content_len < max_len)
                         continue;
-                    }
+
                 } /* else - if (fast_pattern[sig] == 1) */
 
                 if (mpm_sm == NULL) {
@@ -1782,17 +1770,17 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     uint32_t has_co_packet = 0; /**< our sgh has packet payload inspecting content */
     uint32_t has_co_stream = 0; /**< our sgh has stream inspecting content */
     uint32_t has_co_uri = 0;    /**< our sgh has uri inspecting content */
-    uint32_t cnt = 0;
+    //uint32_t cnt = 0;
     uint32_t sig = 0;
 
-    if (!(sh->flags & SIG_GROUP_HEAD_MPM_COPY))
-        sh->mpm_content_maxlen = 0;
-
-    if (!(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY))
-        sh->mpm_uricontent_maxlen = 0;
-
-    if (!(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))
-        sh->mpm_streamcontent_maxlen = 0;
+    //if (!(sh->flags & SIG_GROUP_HEAD_MPM_COPY))
+    //    sh->mpm_content_maxlen = 0;
+    //
+    //if (!(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY))
+    //    sh->mpm_uricontent_maxlen = 0;
+    //
+    //if (!(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))
+    //    sh->mpm_streamcontent_maxlen = 0;
 
     /* see if this head has content and/or uricontent */
     for (sig = 0; sig < sh->sig_cnt; sig++) {
@@ -1868,133 +1856,133 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     }
 
     /* for each signature in this group do */
-    for (sig = 0; sig < sh->sig_cnt; sig++) {
-        s = sh->match_array[sig];
-        if (s == NULL)
-            continue;
-
-        cnt++;
-
-        char content_added = 0;
-        char uricontent_added = 0;
-        char stream_content_added = 0;
-        uint16_t content_maxlen = 0, stream_content_maxlen = 0;
-        uint16_t content_minlen = 0, stream_content_minlen = 0;
-        uint16_t uricontent_maxlen = 0;
-        uint16_t uricontent_minlen = 0;
-
-        SigMatch *sm;
-
-        /* determine the length of the longest pattern */
-        if (sh->flags & SIG_GROUP_HAVECONTENT &&
-                !(sh->flags & SIG_GROUP_HEAD_MPM_COPY))
-        {
-            if (SignatureHasPacketContent(s) == 1) {
-                for (sm = s->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
-                    if (sm->type != DETECT_CONTENT)
-                        continue;
-
-                    DetectContentData *cd = (DetectContentData *)sm->ctx;
-                    if (cd == NULL)
-                        continue;
-
-                    if (cd->content_len > content_maxlen)
-                        content_maxlen = cd->content_len;
-
-                    if (content_minlen == 0)
-                        content_minlen = cd->content_len;
-                    else if (cd->content_len < content_minlen)
-                        content_minlen = cd->content_len;
-
-                    if (!content_added) {
-                        content_added = 1;
-                    }
-                }
-
-                if (content_added > 0) {
-                    if (sh->mpm_content_maxlen == 0)
-                        sh->mpm_content_maxlen = content_maxlen;
-                    if (sh->mpm_content_maxlen > content_maxlen) {
-                        SCLogDebug("sgh (%p) sh->mpm_content_maxlen %u set to %u",
-                                sh, sh->mpm_content_maxlen, content_maxlen);
-
-                        sh->mpm_content_maxlen = content_maxlen;
-                    }
-                }
-            }
-        }
-
-        if (sh->flags & SIG_GROUP_HAVESTREAMCONTENT &&
-                !(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))
-        {
-            if (SignatureHasStreamContent(s) == 1) {
-                for (sm = s->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
-                    if (sm->type != DETECT_CONTENT)
-                        continue;
-
-                    DetectContentData *cd = (DetectContentData *)sm->ctx;
-                    if (cd == NULL)
-                        continue;
-
-                    if (cd->content_len > stream_content_maxlen)
-                        stream_content_maxlen = cd->content_len;
-
-                    if (stream_content_minlen == 0)
-                        stream_content_minlen = cd->content_len;
-                    else if (cd->content_len < stream_content_minlen)
-                        stream_content_minlen = cd->content_len;
-
-                    if (!stream_content_added) {
-                        stream_content_added = 1;
-                    }
-                }
-
-                if (stream_content_added > 0) {
-                    if (sh->mpm_streamcontent_maxlen == 0)
-                        sh->mpm_streamcontent_maxlen = stream_content_maxlen;
-                    if (sh->mpm_streamcontent_maxlen > stream_content_maxlen) {
-                        SCLogDebug("sgh (%p) sh->mpm_streamcontent_maxlen %u set to %u",
-                            sh, sh->mpm_streamcontent_maxlen, stream_content_maxlen);
-
-                        sh->mpm_streamcontent_maxlen = stream_content_maxlen;
-                    }
-                }
-            }
-        }
-
-        if (sh->flags & SIG_GROUP_HAVEURICONTENT &&
-                !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY))
-        {
-            /* determine the length of the longest pattern */
-            for (sm = s->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
-                if (sm->type != DETECT_URICONTENT)
-                    continue;
-
-                DetectContentData *ud = (DetectContentData *)sm->ctx;
-                if (ud == NULL)
-                    continue;
-
-                if (ud->content_len > uricontent_maxlen)
-                    uricontent_maxlen = ud->content_len;
-
-                if (uricontent_minlen == 0)
-                    uricontent_minlen = ud->content_len;
-                else if (ud->content_len < uricontent_minlen)
-                    uricontent_minlen = ud->content_len;
-
-                if (!uricontent_added) {
-                    uricontent_added = 1;
-                }
-            }
-
-            if (uricontent_added) {
-                if (sh->mpm_uricontent_maxlen == 0)
-                    sh->mpm_uricontent_maxlen = uricontent_maxlen;
-                if (sh->mpm_uricontent_maxlen > uricontent_maxlen)
-                    sh->mpm_uricontent_maxlen = uricontent_maxlen;
-            }
-        }
-    }
+    //for (sig = 0; sig < sh->sig_cnt; sig++) {
+    //    s = sh->match_array[sig];
+    //    if (s == NULL)
+    //        continue;
+    //
+    //    cnt++;
+    //
+    //    char content_added = 0;
+    //    char uricontent_added = 0;
+    //    char stream_content_added = 0;
+    //    uint16_t content_maxlen = 0, stream_content_maxlen = 0;
+    //    uint16_t content_minlen = 0, stream_content_minlen = 0;
+    //    uint16_t uricontent_maxlen = 0;
+    //    uint16_t uricontent_minlen = 0;
+    //
+    //    SigMatch *sm;
+    //
+    //    /* determine the length of the longest pattern */
+    //    if (sh->flags & SIG_GROUP_HAVECONTENT &&
+    //            !(sh->flags & SIG_GROUP_HEAD_MPM_COPY))
+    //    {
+    //        if (SignatureHasPacketContent(s) == 1) {
+    //            for (sm = s->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
+    //                if (sm->type != DETECT_CONTENT)
+    //                    continue;
+    //
+    //                DetectContentData *cd = (DetectContentData *)sm->ctx;
+    //                if (cd == NULL)
+    //                    continue;
+    //
+    //                if (cd->content_len > content_maxlen)
+    //                    content_maxlen = cd->content_len;
+    //
+    //                if (content_minlen == 0)
+    //                    content_minlen = cd->content_len;
+    //                else if (cd->content_len < content_minlen)
+    //                    content_minlen = cd->content_len;
+    //
+    //                if (!content_added) {
+    //                    content_added = 1;
+    //                }
+    //            }
+    //
+    //            if (content_added > 0) {
+    //                if (sh->mpm_content_maxlen == 0)
+    //                    sh->mpm_content_maxlen = content_maxlen;
+    //                if (sh->mpm_content_maxlen > content_maxlen) {
+    //                    SCLogDebug("sgh (%p) sh->mpm_content_maxlen %u set to %u",
+    //                            sh, sh->mpm_content_maxlen, content_maxlen);
+    //
+    //                    sh->mpm_content_maxlen = content_maxlen;
+    //                }
+    //            }
+    //        }
+    //    }
+    //
+    //    if (sh->flags & SIG_GROUP_HAVESTREAMCONTENT &&
+    //            !(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))
+    //    {
+    //        if (SignatureHasStreamContent(s) == 1) {
+    //            for (sm = s->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
+    //                if (sm->type != DETECT_CONTENT)
+    //                    continue;
+    //
+    //                DetectContentData *cd = (DetectContentData *)sm->ctx;
+    //                if (cd == NULL)
+    //                    continue;
+    //
+    //                if (cd->content_len > stream_content_maxlen)
+    //                    stream_content_maxlen = cd->content_len;
+    //
+    //                if (stream_content_minlen == 0)
+    //                    stream_content_minlen = cd->content_len;
+    //                else if (cd->content_len < stream_content_minlen)
+    //                    stream_content_minlen = cd->content_len;
+    //
+    //                if (!stream_content_added) {
+    //                    stream_content_added = 1;
+    //                }
+    //            }
+    //
+    //            if (stream_content_added > 0) {
+    //                if (sh->mpm_streamcontent_maxlen == 0)
+    //                    sh->mpm_streamcontent_maxlen = stream_content_maxlen;
+    //                if (sh->mpm_streamcontent_maxlen > stream_content_maxlen) {
+    //                    SCLogDebug("sgh (%p) sh->mpm_streamcontent_maxlen %u set to %u",
+    //                        sh, sh->mpm_streamcontent_maxlen, stream_content_maxlen);
+    //
+    //                    sh->mpm_streamcontent_maxlen = stream_content_maxlen;
+    //                }
+    //            }
+    //        }
+    //    }
+    //
+    //    if (sh->flags & SIG_GROUP_HAVEURICONTENT &&
+    //            !(sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY))
+    //    {
+    //        /* determine the length of the longest pattern */
+    //        for (sm = s->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
+    //            if (sm->type != DETECT_URICONTENT)
+    //                continue;
+    //
+    //            DetectContentData *ud = (DetectContentData *)sm->ctx;
+    //            if (ud == NULL)
+    //                continue;
+    //
+    //            if (ud->content_len > uricontent_maxlen)
+    //                uricontent_maxlen = ud->content_len;
+    //
+    //            if (uricontent_minlen == 0)
+    //                uricontent_minlen = ud->content_len;
+    //            else if (ud->content_len < uricontent_minlen)
+    //                uricontent_minlen = ud->content_len;
+    //
+    //            if (!uricontent_added) {
+    //                uricontent_added = 1;
+    //            }
+    //        }
+    //
+    //        if (uricontent_added) {
+    //            if (sh->mpm_uricontent_maxlen == 0)
+    //                sh->mpm_uricontent_maxlen = uricontent_maxlen;
+    //            if (sh->mpm_uricontent_maxlen > uricontent_maxlen)
+    //                sh->mpm_uricontent_maxlen = uricontent_maxlen;
+    //        }
+    //    }
+    //}
 
     if ( (sh->flags & SIG_GROUP_HAVECONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) ||
          (sh->flags & SIG_GROUP_HAVESTREAMCONTENT && !(sh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) ||
@@ -2037,6 +2025,13 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                 }
             }
         }
+    } else {
+        MpmFactoryReClaimMpmCtx(sh->mpm_ctx);
+        sh->mpm_ctx = NULL;
+        MpmFactoryReClaimMpmCtx(sh->mpm_stream_ctx);
+        sh->mpm_stream_ctx = NULL;
+        MpmFactoryReClaimMpmCtx(sh->mpm_uri_ctx);
+        sh->mpm_uri_ctx = NULL;
     }
 
     ///* uricontent */

@@ -182,6 +182,9 @@ MpmCtx *MpmFactoryGetMpmCtxForProfile(int32_t id)
 
 void MpmFactoryReClaimMpmCtx(MpmCtx *mpm_ctx)
 {
+    if (mpm_ctx == NULL)
+        return;
+
     if (!MpmFactoryIsMpmCtxAvailable(mpm_ctx))
         free(mpm_ctx);
 

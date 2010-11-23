@@ -306,6 +306,15 @@ typedef struct SignatureHeader_ {
     struct Signature_ *full_sig;
 } SignatureHeader;
 
+/** \brief a single match condition for a signature */
+typedef struct SigMatch_ {
+    uint16_t idx; /**< position in the signature */
+    uint8_t type; /**< match type */
+    void *ctx; /**< plugin specific data */
+    struct SigMatch_ *next;
+    struct SigMatch_ *prev;
+} SigMatch;
+
 /** \brief Signature container */
 typedef struct Signature_ {
     union {
@@ -344,6 +353,9 @@ typedef struct Signature_ {
 */
     /** pattern in the mpm matcher */
     PatIntId mpm_uripattern_id;
+
+    /* the fast pattern added from this signature */
+    SigMatch *mpm_sm;
 
     /** ipv4 match arrays */
     DetectMatchAddressIPv4 *addr_dst_match4;
@@ -712,15 +724,6 @@ typedef struct DetectionEngineThreadCtx_ {
     Tmq *cuda_mpm_rc_disp_outq;
 #endif
 } DetectEngineThreadCtx;
-
-/** \brief a single match condition for a signature */
-typedef struct SigMatch_ {
-    uint16_t idx; /**< position in the signature */
-    uint8_t type; /**< match type */
-    void *ctx; /**< plugin specific data */
-    struct SigMatch_ *next;
-    struct SigMatch_ *prev;
-} SigMatch;
 
 /** \brief element in sigmatch type table. */
 typedef struct SigTableElmt_ {
