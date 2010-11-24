@@ -1132,12 +1132,34 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 if (pmatch == 0) {
                     SCLogDebug("no match in smsg, fall back to packet payload");
 
+                    if (sms_runflags & SMS_USED_PM) {
+                        if (s->flags & SIG_FLAG_MPM_PACKET && !(s->flags & SIG_FLAG_MPM_PACKET_NEG) &&
+                            !(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] &
+                              s->mpm_pattern_id_mod_8)) {
+                            goto next;
+                        }
+                        if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1) {
+                            goto next;
+                        }
+                    } else {
+                        if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
+                            goto next;
+                    }
+                }
+            } else {
+                if (sms_runflags & SMS_USED_PM) {
+                    if (s->flags & SIG_FLAG_MPM_PACKET && !(s->flags & SIG_FLAG_MPM_PACKET_NEG) &&
+                        !(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] &
+                          s->mpm_pattern_id_mod_8)) {
+                        goto next;
+                    }
+                    if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1) {
+                        goto next;
+                    }
+                } else {
                     if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
                         goto next;
                 }
-            } else {
-                if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
-                    goto next;
             }
         }
 
@@ -1281,7 +1303,7 @@ end:
 
     /* cleanup pkt specific part of the patternmatcher */
     //if (sms_runflags & SMS_USED_PM) {
-        PacketPatternCleanup(th_v, det_ctx);
+    PacketPatternCleanup(th_v, det_ctx);
         //}
 
     /* store the found sgh (or NULL) in the flow to save us from looking it
