@@ -764,6 +764,9 @@ end:
     SCReturnInt(0);
 }
 
+uint32_t applayererrors = 0;
+uint32_t applayerhttperrors = 0;
+
 /**
  * \brief Layer 7 Parsing main entry point.
  *
@@ -912,6 +915,10 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
     SCReturnInt(0);
 error:
     if (ssn != NULL) {
+        applayererrors++;
+        if (f->alproto == ALPROTO_HTTP)
+            applayerhttperrors++;
+
         /* Set the no app layer inspection flag for both
          * the stream in this Flow */
         FlowSetSessionNoApplayerInspectionFlag(f);

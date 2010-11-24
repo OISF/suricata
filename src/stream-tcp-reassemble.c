@@ -261,6 +261,9 @@ int StreamTcpReassembleInit(char quiet)
     return 0;
 }
 
+extern uint32_t applayererrors;
+extern uint32_t applayerhttperrors;
+
 void StreamTcpReassembleFree(char quiet)
 {
     uint16_t u16 = 0;
@@ -297,6 +300,9 @@ void StreamTcpReassembleFree(char quiet)
     SCMutexDestroy(&segment_pool_memuse_mutex);
     SCMutexDestroy(&segment_pool_cnt_mutex);
 #endif
+
+    SCLogInfo("applayererrors %u", applayererrors);
+    SCLogInfo("applayerhttperrors %u", applayerhttperrors);
 }
 
 TcpReassemblyThreadCtx *StreamTcpReassembleInitThreadCtx(void)
