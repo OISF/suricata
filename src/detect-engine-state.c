@@ -410,7 +410,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         }
     }
 
-    SCLogDebug("detection done, store results: sm %p, uri %d, dce %d", hcbd %d,
+    SCLogDebug("detection done, store results: sm %p, uri %d, dce %d, hcbd %d",
                sm, umatch, dmatch, hcbdmatch);
 
     SCMutexLock(&f->de_state_m);
