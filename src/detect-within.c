@@ -396,6 +396,20 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 goto error;
             }
 
+            if (cd->flags & DETECT_CONTENT_NEGATED) {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "negated keyword set along with a fast_pattern");
+                    goto error;
+                }
+            } else {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "keyword set along with a fast_pattern:only;");
+                    goto error;
+                }
+            }
+
             cd->flags |= DETECT_CONTENT_WITHIN;
 
             pm = SigMatchGetLastSMFromLists(s, 2,
@@ -406,6 +420,14 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 goto error;
             }
 
+            cd = (DetectContentData *)pm->ctx;
+            if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Previous keyword "
+                           "has a fast_pattern:only; set.  You can't "
+                           "have relative keywords around a fast_pattern "
+                           "only content");
+                goto error;
+            }
             ((DetectContentData *)pm->ctx)->flags |= DETECT_CONTENT_RELATIVE_NEXT;
 
             break;

@@ -45,6 +45,7 @@
 #define DETECT_CONTENT_PACKET_MPM        0x0800
 #define DETECT_CONTENT_STREAM_MPM        0x1000
 #define DETECT_CONTENT_URI_MPM           0x2000
+#define DETECT_CONTENT_HCBD_MPM          0x4000
 
 #define DETECT_CONTENT_IS_SINGLE(c) (!((c)->flags & DETECT_CONTENT_DISTANCE || \
                                        (c)->flags & DETECT_CONTENT_WITHIN || \

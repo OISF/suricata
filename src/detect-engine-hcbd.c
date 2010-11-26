@@ -26,6 +26,7 @@
 
 #include "detect.h"
 #include "detect-engine.h"
+#include "detect-engine-mpm.h"
 #include "detect-parse.h"
 #include "detect-engine-state.h"
 #include "detect-uricontent.h"
@@ -96,6 +97,9 @@ static int DoInspectHttpClientBody(DetectEngineCtx *de_ctx,
 
         DetectContentData *cd = (DetectContentData *)sm->ctx;
         SCLogDebug("inspecting content %"PRIu32" payload_len %"PRIu32, cd->id, payload_len);
+
+        if (cd->flags & DETECT_CONTENT_HCBD_MPM && !(cd->flags & DETECT_CONTENT_NEGATED))
+            goto match;
 
         /* rule parsers should take care of this */
         BUG_ON(cd->depth != 0 && cd->depth <= cd->offset);
@@ -202,7 +206,6 @@ static int DoInspectHttpClientBody(DetectEngineCtx *de_ctx,
                 }
 
                 BUG_ON(sm->next == NULL);
-                SCLogDebug("uricontent %"PRIu32, cd->id);
 
                 /* see if the next payload keywords match. If not, we will
                  * search for another occurence of this uricontent and see
@@ -243,6 +246,102 @@ match:
 }
 
 /**
+ * \brief Helps buffer request bodies for different transactions and stores them
+ *        away in detection code.  Also calls the mpm on the bodies.
+ *
+ * \param det_ctx   Detection engine thread ctx.
+ * \param f         Pointer to the flow.
+ * \param htp_state http state.
+ * \param call_mpm  1 if we are also to call the mpm no the buffered bodies or
+ *                  0 if we to just buffer the bodies.
+ *
+ * \retval cnt The match count from the mpm call.  If call_mpm is 0, the retval
+ *             is ignored.
+ */
+static uint32_t DetectEngineInspectHttpClientBodyMpmInspect(DetectEngineThreadCtx *det_ctx,
+                                                            Flow *f, HtpState *htp_state,
+                                                            int call_mpm) {
+    uint32_t cnt = 0;
+    size_t idx = 0;
+    htp_tx_t *tx = NULL;
+    int i = 0;
+
+    for (idx = AppLayerTransactionGetInspectId(f);
+         i < det_ctx->hcbd_buffers_list_len; idx++, i++) {
+
+        /* if the buffer already exists, use it */
+        if (det_ctx->hcbd_buffers[i] != NULL) {
+            if (call_mpm) {
+                cnt += HttpClientBodyPatternSearch(det_ctx,
+                                                   det_ctx->hcbd_buffers[i],
+                                                   det_ctx->hcbd_buffers_len[i]);
+            }
+            continue;
+        }
+
+        tx = list_get(htp_state->connp->conn->transactions, idx);
+        tx = list_get(htp_state->connp->conn->transactions, idx);
+        if (tx == NULL)
+            continue;
+
+        SCHtpTxUserData *htud = (SCHtpTxUserData *)htp_tx_get_user_data(tx);
+        if (htud == NULL)
+            continue;
+
+        HtpBodyChunk *cur = htud->body.first;
+
+        if (htud->body.nchunks == 0) {
+            SCLogDebug("No http chunks to inspect for this transacation");
+            continue;
+        } else {
+            /* no chunks?!! move on to the next transaction */
+            if (cur == NULL) {
+                SCLogDebug("No http chunks to inspect");
+                continue;
+            }
+
+            /* this applies only for the client request body like the keyword name says */
+            if (htud->body.operation != HTP_BODY_REQUEST) {
+                SCLogDebug("htp chunk not a request chunk");
+                continue;
+            }
+
+            if (htud->content_len != htud->content_len_so_far) {
+                SCLogDebug("we still haven't seen the entire request body.  "
+                           "Let's defer body inspection till we see the "
+                           "entire body.");
+                continue;
+            }
+
+            uint8_t *chunks_buffer = NULL;
+            uint32_t chunks_buffer_len = 0;
+            while (cur != NULL) {
+                /* \todo Currently we limit the body length we inspect.  We
+                 * should change to handling chunks statefully */
+                if (chunks_buffer_len > 20000)
+                    break;
+                chunks_buffer_len += cur->len;
+                if ( (chunks_buffer = SCRealloc(chunks_buffer, chunks_buffer_len)) == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+                    exit(EXIT_FAILURE);
+                }
+                memcpy(chunks_buffer + chunks_buffer_len - cur->len, cur->data, cur->len);
+                cur = cur->next;
+            }
+            /* store the buffers.  We will need it for further inspection */
+            det_ctx->hcbd_buffers[i] = chunks_buffer;
+            det_ctx->hcbd_buffers_len[i] = chunks_buffer_len;
+
+            /* carry out the mpm */
+            if (call_mpm)
+                cnt += HttpClientBodyPatternSearch(det_ctx, chunks_buffer, chunks_buffer_len);
+        } /* else - if (htud->body.nchunks == 0) */
+    } /* for (idx = AppLayerTransactionGetInspectId(f); .. */
+
+    SCReturnUInt(cnt);
+}
+
+/**
  * \brief Do the http_client_body content inspection for a signature.
  *
  * \param de_ctx  Detection engine context.
@@ -263,6 +362,7 @@ int DetectEngineInspectHttpClientBody(DetectEngineCtx *de_ctx,
     SCEnter();
     int r = 0;
     HtpState *htp_state = NULL;
+    int i = 0;
 
     htp_state = (HtpState *)alstate;
     if (htp_state == NULL) {
@@ -278,59 +378,76 @@ int DetectEngineInspectHttpClientBody(DetectEngineCtx *de_ctx,
         goto end;
     }
 
-    size_t idx = 0;
-    for ( ; idx < list_size(htp_state->connp->conn->transactions); idx++)
-    {
-        htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, idx);
-        if (tx == NULL)
-            continue;
-
-        SCHtpTxUserData *htud = (SCHtpTxUserData *) htp_tx_get_user_data(tx);
-        if (htud == NULL)
-            continue;
-
-        HtpBodyChunk *cur = htud->body.first;
-
-        if (htud->body.nchunks == 0) {
-            SCLogDebug("No http chunks to inspect");
+    /* it is either the first entry into this function.  If it is not,
+     * then we just don't have any http transactions */
+    if (det_ctx->hcbd_buffers_list_len == 0) {
+        /* get the transaction id */
+        int tmp_idx = AppLayerTransactionGetInspectId(f);
+        /* error!  get out of here */
+        if (tmp_idx == -1)
             goto end;
-        } else {
-            /* no chunks?!! get out of here */
-            if (cur == NULL) {
-                SCLogDebug("No http chunks to inspect");
-                goto end;
-            }
 
-            /* this applies only for the client request body like the keyword name says */
-            if (htud->body.operation != HTP_BODY_REQUEST) {
-                SCLogDebug("htp chunk not a request chunk");
-                goto end;
-            }
+        /* let's get the transaction count.  We need this to hold the client body
+         * buffer for each transaction */
+        det_ctx->hcbd_buffers_list_len = list_size(htp_state->connp->conn->transactions) - tmp_idx;
+        /* no transactions?!  cool.  get out of here */
+        if (det_ctx->hcbd_buffers_list_len == 0)
+            goto end;
 
-            if (htud->content_len != htud->content_len_so_far)
-                continue;
+        /* assign space to hold buffers.  Each per transaction */
+        det_ctx->hcbd_buffers = malloc(det_ctx->hcbd_buffers_list_len * sizeof(uint8_t *));
+        if (det_ctx->hcbd_buffers == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+        memset(det_ctx->hcbd_buffers, 0, det_ctx->hcbd_buffers_list_len * sizeof(uint8_t *));
 
-            uint8_t *chunks_buffer = NULL;
-            uint32_t total_chunks_len = 0;
-            while (cur != NULL) {
-                /* \todo Currently we limit the body length we inspect.  We
-                 * should change to handling chunks statefully */
-                if (total_chunks_len > 20000)
-                    break;
-                total_chunks_len += cur->len;
-                if ( (chunks_buffer = SCRealloc(chunks_buffer, total_chunks_len)) == NULL) {
-                    return 0;
-                }
-                memcpy(chunks_buffer + total_chunks_len - cur->len, cur->data, cur->len);
-                cur = cur->next;
-            }
+        det_ctx->hcbd_buffers_len = malloc(det_ctx->hcbd_buffers_list_len * sizeof(uint32_t));
+        if (det_ctx->hcbd_buffers_len == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+        memset(det_ctx->hcbd_buffers_len, 0, det_ctx->hcbd_buffers_list_len * sizeof(uint32_t));
+    } /* if (det_ctx->hcbd_buffers_list_len == 0) */
 
-            r = DoInspectHttpClientBody(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HCBDMATCH],
-                                        chunks_buffer, total_chunks_len);
-            SCFree(chunks_buffer);
-            if (r == 1) {
-                break;
-            }
+    if (s->flags & SIG_FLAG_MPM_HCBDCONTENT) {
+        if (det_ctx->de_mpm_scanned_hcbd == FALSE) {
+            uint32_t cnt = DetectEngineInspectHttpClientBodyMpmInspect(det_ctx, f, htp_state, 1);
+            if (cnt <= 0)
+                det_ctx->de_have_hcbd = FALSE;
+
+            det_ctx->de_mpm_scanned_hcbd = TRUE;
+        }
+    } else {
+        DetectEngineInspectHttpClientBodyMpmInspect(det_ctx, f, htp_state, 0);
+    }
+
+    if (det_ctx->de_have_hcbd == FALSE &&
+        s->flags & SIG_FLAG_MPM_HCBDCONTENT &&
+        !(s->flags & SIG_FLAG_MPM_HCBDCONTENT_NEG)) {
+        SCLogDebug("mpm results failure for client_body.  Get out of here");
+        goto end;
+    }
+
+    if ((s->flags & SIG_FLAG_MPM_HCBDCONTENT) && (det_ctx->de_mpm_scanned_hcbd == TRUE)) {
+        /* filter out the sig that needs a match, but have no matches */
+        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_hcbdpattern_id / 8)] & (1 << (s->mpm_hcbdpattern_id % 8))) &&
+            !(s->flags & SIG_FLAG_MPM_HCBDCONTENT_NEG)) {
+            goto end;
+        }
+    }
+
+    for (i = 0; i < det_ctx->hcbd_buffers_list_len; i++) {
+        uint8_t *hcbd_buffer = det_ctx->hcbd_buffers[i];
+        uint32_t hcbd_buffer_len = det_ctx->hcbd_buffers_len[i];
+
+        if (hcbd_buffer == NULL)
+            continue;
+
+        r = DoInspectHttpClientBody(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HCBDMATCH],
+                                    hcbd_buffer, hcbd_buffer_len);
+        if (r == 1) {
+            break;
         }
     }
 
@@ -2241,6 +2358,302 @@ end:
     return result;
 }
 
+static int DetectEngineHttpClientBodyTest17(void)
+{
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    uint8_t http1_buf[] = "This is dummy body1";
+    uint32_t http1_len = sizeof(http1_buf) - 1;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(msg:\"http client body test\"; "
+                               "content:body1; http_client_body; "
+                               "content:bambu; http_client_body; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    /* start the search phase */
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p1);
+    uint32_t r = HttpClientBodyPatternSearch(det_ctx, http1_buf, http1_len);
+    if (r != 1) {
+        printf("expected 1 result, got %"PRIu32": ", r);
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    return result;
+}
+
+static int DetectEngineHttpClientBodyTest18(void)
+{
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    uint8_t http1_buf[] = "This is dummy body1";
+    uint32_t http1_len = sizeof(http1_buf) - 1;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(msg:\"http client body test\"; "
+                               "content:body1; http_client_body; "
+                               "content:bambu; http_client_body; fast_pattern; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    /* start the search phase */
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p1);
+    uint32_t r = HttpClientBodyPatternSearch(det_ctx, http1_buf, http1_len);
+    if (r != 0) {
+        printf("expected 1 result, got %"PRIu32": ", r);
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    return result;
+}
+
+static int DetectEngineHttpClientBodyTest19(void)
+{
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    uint8_t http1_buf[] = "This is dummy body1";
+    uint32_t http1_len = sizeof(http1_buf) - 1;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(msg:\"http client body test\"; "
+                               "content:bambu; http_client_body; "
+                               "content:is; http_client_body; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    /* start the search phase */
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p1);
+    uint32_t r = HttpClientBodyPatternSearch(det_ctx, http1_buf, http1_len);
+    if (r != 0) {
+        printf("expected 1 result, got %"PRIu32": ", r);
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    return result;
+}
+
+static int DetectEngineHttpClientBodyTest20(void)
+{
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    Flow f;
+    uint8_t http1_buf[] = "This is dummy body1";
+    uint32_t http1_len = sizeof(http1_buf) - 1;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(msg:\"http client body test\"; "
+                               "content:bambu; http_client_body; "
+                               "content:is; http_client_body; fast_pattern; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    /* start the search phase */
+    det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p1);
+    uint32_t r = HttpClientBodyPatternSearch(det_ctx, http1_buf, http1_len);
+    if (r != 2) {
+        printf("expected 1 result, got %"PRIu32": ", r);
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void HttpClientBodyRegisterTests(void)
@@ -2279,6 +2692,14 @@ void HttpClientBodyRegisterTests(void)
                    DetectEngineHttpClientBodyTest15, 1);
     UtRegisterTest("DetectEngineHttpClientBodyTest16",
                    DetectEngineHttpClientBodyTest16, 1);
+    UtRegisterTest("DetectEngineHttpClientBodyTest17",
+                   DetectEngineHttpClientBodyTest17, 1);
+    UtRegisterTest("DetectEngineHttpClientBodyTest18",
+                   DetectEngineHttpClientBodyTest18, 1);
+    UtRegisterTest("DetectEngineHttpClientBodyTest19",
+                   DetectEngineHttpClientBodyTest19, 1);
+    UtRegisterTest("DetectEngineHttpClientBodyTest20",
+                   DetectEngineHttpClientBodyTest20, 1);
 #endif /* UNITTESTS */
 
     return;

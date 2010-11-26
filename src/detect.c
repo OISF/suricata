@@ -872,6 +872,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     Signature *s = NULL;
     SigMatch *sm = NULL;
 
+    det_ctx->de_have_hcbd = TRUE;
+    det_ctx->de_mpm_scanned_hcbd = FALSE;
+
     SCEnter();
 
     /* No need to perform any detection on this packet, if the the given flag is set.*/
@@ -1306,6 +1309,17 @@ end:
     PacketPatternCleanup(th_v, det_ctx);
         //}
 
+    if (det_ctx->hcbd_buffers_list_len != 0) {
+        int i;
+        for (i = 0; i < det_ctx->hcbd_buffers_list_len; i++) {
+            if (det_ctx->hcbd_buffers[i] != NULL)
+                SCFree(det_ctx->hcbd_buffers[i]);
+        }
+        SCFree(det_ctx->hcbd_buffers);
+        det_ctx->hcbd_buffers = NULL;
+        det_ctx->hcbd_buffers_list_len = 0;
+    }
+
     /* store the found sgh (or NULL) in the flow to save us from looking it
      * up again for the next packet. Also return any stream chunk we processed
      * to the pool. */
@@ -1716,6 +1730,9 @@ static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
                                         MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
     de_ctx->sgh_mpm_context_stream =
         MpmFactoryRegisterMpmCtxProfile("stream",
+                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
+    de_ctx->sgh_mpm_context_hcbd =
+        MpmFactoryRegisterMpmCtxProfile("hcbd",
                                         MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
     de_ctx->sgh_mpm_context_app_proto_detect =
         MpmFactoryRegisterMpmCtxProfile("app_proto_detect", 0);
@@ -3664,6 +3681,12 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
             mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
         //printf("uri- %d\n", mpm_ctx->pattern_cnt);
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_hcbd);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+        //printf("hcbd- %d\n", mpm_ctx->pattern_cnt);
 
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_stream);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
