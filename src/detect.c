@@ -311,27 +311,37 @@ void EngineAnalysisFastPattern(Signature *s)
     fprintf(fp_engine_analysis_FD, "    Content negated: %s\n",
             (fp_cd->flags & DETECT_CONTENT_NEGATED) ? "yes" : "no");
 
-    uint8_t *pat = malloc(fp_cd->content_len + 1);
+    uint16_t patlen = fp_cd->content_len;
+    uint8_t *pat = SCMalloc(fp_cd->content_len + 1);
     if (pat == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
     memcpy(pat, cd->content, cd->content_len);
     pat[cd->content_len] = '\0';
-    fprintf(fp_engine_analysis_FD, "    Original content: %s\n", pat);
+    fprintf(fp_engine_analysis_FD, "    Original content: ");
+    PrintRawUriFp(fp_engine_analysis_FD, pat, patlen);
+    fprintf(fp_engine_analysis_FD, "\n");
 
     if (fast_pattern_chop_set) {
-        uint8_t *pat = malloc(fp_cd->fp_chop_len + 1);
+        SCFree(pat);
+        patlen = fp_cd->fp_chop_len;
+        pat = SCMalloc(fp_cd->fp_chop_len + 1);
         if (pat == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             exit(EXIT_FAILURE);
         }
         memcpy(pat, cd->content + fp_cd->fp_chop_offset, fp_cd->fp_chop_len);
         pat[fp_cd->fp_chop_len] = '\0';
-        fprintf(fp_engine_analysis_FD, "    Final content: %s\n", pat);
+        fprintf(fp_engine_analysis_FD, "    Final content: ");
+        PrintRawUriFp(fp_engine_analysis_FD, pat, patlen);
+        fprintf(fp_engine_analysis_FD, "\n");
     } else {
-        fprintf(fp_engine_analysis_FD, "    Final content: %s\n", pat);
+        fprintf(fp_engine_analysis_FD, "    Final content: ");
+        PrintRawUriFp(fp_engine_analysis_FD, pat, patlen);
+        fprintf(fp_engine_analysis_FD, "\n");
     }
+    SCFree(pat);
 
     return;
 }
