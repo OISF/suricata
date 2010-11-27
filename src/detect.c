@@ -7626,14 +7626,18 @@ int SigTest40NoPacketInspection01(void) {
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
     Packet p;
+    TCPHdr tcphdr;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     PacketQueue pq;
+    Flow f;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
     memset(&p, 0, sizeof(p));
     memset(&pq, 0, sizeof(pq));
+    memset(&f, 0, sizeof(f));
+    memset(&tcphdr, 0, sizeof(tcphdr));
 
     p.src.family = AF_INET;
     p.src.addr_data32[0] = 0x0102080a;
@@ -7646,6 +7650,10 @@ int SigTest40NoPacketInspection01(void) {
     p.sp = 21;
     p.flowflags |= FLOW_PKT_TOSERVER;
     p.flags |= PKT_NOPACKET_INSPECTION;
+    p.tcph = &tcphdr;
+    p.flow = &f;
+
+    FLOW_INITIALIZE(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -7661,9 +7669,7 @@ int SigTest40NoPacketInspection01(void) {
     }
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
-    //DetectEngineIPOnlyThreadInit(de_ctx,&det_ctx->io_ctx);
     det_ctx->de_ctx = de_ctx;
 
     Detect(&th_v, &p, det_ctx, &pq, NULL);
