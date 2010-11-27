@@ -20,9 +20,9 @@
  *
  * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
  *
- * Implements support for the http_header keyword
+ * Implements support for http_header keyword.
  *
- * \todo this is actually the raw match
+ * \todo this is actually the raw match.
  */
 
 #include "suricata-common.h"
@@ -53,9 +53,8 @@
 #include "detect-http-header.h"
 #include "stream-tcp.h"
 
-int DetectHttpHeaderMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                              Flow *f, uint8_t flags, void *state, Signature *s,
-                              SigMatch *m);
+int DetectHttpHeaderMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
+                          uint8_t, void *, Signature *, SigMatch *);
 int DetectHttpHeaderSetup(DetectEngineCtx *, Signature *, char *);
 void DetectHttpHeaderRegisterTests(void);
 void DetectHttpHeaderFree(void *);
@@ -108,20 +107,20 @@ void DetectHttpRawHeaderRegister(void)
  * \retval 0 On no match.
  */
 int DetectHttpHeaderMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                              Flow *f, uint8_t flags, void *state, Signature *s,
-                              SigMatch *m)
+                          Flow *f, uint8_t flags, void *state, Signature *s,
+                          SigMatch *m)
 {
     SCEnter();
 
     int result = 0;
-    DetectContentData *hcbd = (DetectContentData *)m->ctx;
+    DetectContentData *hhd = (DetectContentData *)m->ctx;
     HtpState *htp_state = (HtpState *)state;
 
     SCMutexLock(&f->m);
 
     if (htp_state == NULL || htp_state->connp == NULL ||
         htp_state->connp->conn == NULL) {
-        SCLogDebug("No htp state, no match at http header data");
+        SCLogDebug("No htp state, no match for http header data");
         goto end;
     }
 
@@ -129,9 +128,9 @@ int DetectHttpHeaderMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     bstr *headers = NULL;
     size_t idx = 0;
 
-    for (idx = 0;//htp_state->new_in_tx_index;
-         idx < list_size(htp_state->connp->conn->transactions); idx++)
-    {
+    //htp_state->new_in_tx_index;
+    size_t l_size = list_size(htp_state->connp->conn->transactions);
+    for (idx = 0; idx < l_size; idx++) {
         tx = list_get(htp_state->connp->conn->transactions, idx);
 
         if (tx == NULL)
@@ -142,22 +141,21 @@ int DetectHttpHeaderMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
             continue;
 
         SCLogDebug("inspecting tx %p", tx);
-//        PrintRawUriFp(stdout, (uint8_t *)bstr_ptr(headers), bstr_len(headers));
 
         if (bstr_len(headers) > 0) {
             /* call the case sensitive version if nocase has been specified in the sig */
-            if (hcbd->flags & DETECT_CONTENT_NOCASE) {
+            if (hhd->flags & DETECT_CONTENT_NOCASE) {
                 result = (SpmNocaseSearch((uint8_t *)bstr_ptr(headers), bstr_len(headers),
-                                          hcbd->content, hcbd->content_len) != NULL);
+                                          hhd->content, hhd->content_len) != NULL);
             } else {
                 result = (SpmSearch((uint8_t *)bstr_ptr(headers), bstr_len(headers),
-                                    hcbd->content, hcbd->content_len) != NULL);
+                                    hhd->content, hhd->content_len) != NULL);
             }
         }
     }
 
     SCMutexUnlock(&f->m);
-    SCReturnInt(result ^ ((hcbd->flags & DETECT_CONTENT_NEGATED) ? 1 : 0));
+    SCReturnInt(result ^ ((hhd->flags & DETECT_CONTENT_NEGATED) ? 1 : 0));
 
  end:
     SCMutexUnlock(&f->m);
@@ -171,12 +169,14 @@ int DetectHttpHeaderMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  */
 void DetectHttpHeaderFree(void *ptr)
 {
-    DetectContentData *hd = (DetectContentData *)ptr;
-    if (hd == NULL)
+    DetectContentData *hhd = (DetectContentData *)ptr;
+    if (hhd == NULL)
         return;
-    if (hd->content != NULL)
-        SCFree(hd->content);
-    SCFree(hd);
+    if (hhd->content != NULL)
+        SCFree(hhd->content);
+    SCFree(hhd);
+
+    return;
 }
 
 /**
@@ -194,14 +194,13 @@ void DetectHttpHeaderFree(void *ptr)
  */
 int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
-    /* http_header_data (hcbd) */
-    DetectContentData *hcbd = NULL;
+    /* http_header_data (hhd) */
+    DetectContentData *hhd = NULL;
     SigMatch *nm = NULL;
     SigMatch *sm = NULL;
 
     if (arg != NULL && strcmp(arg, "") != 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "http_header supplied with no "
-                   "args");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "http_header supplied with no args");
         return -1;
     }
 
@@ -222,8 +221,7 @@ int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         return -1;
     }
 
-    if (((DetectContentData *)sm->ctx)->flags & DETECT_CONTENT_FAST_PATTERN)
-    {
+    if (((DetectContentData *)sm->ctx)->flags & DETECT_CONTENT_FAST_PATTERN) {
         SCLogWarning(SC_WARN_COMPATIBILITY,
                    "http_header cannot be used with \"fast_pattern\" currently."
                    "Unsetting fast_pattern on this modifier. Signature ==> %s", s->sig_str);
@@ -231,7 +229,7 @@ int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     }
 
     /* http_header should not be used with the rawbytes rule */
-    if ( ((DetectContentData *)sm->ctx)->flags & DETECT_CONTENT_RAWBYTES) {
+    if (((DetectContentData *)sm->ctx)->flags & DETECT_CONTENT_RAWBYTES) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "http_header rule can not "
                    "be used with the rawbytes rule keyword");
         return -1;
@@ -243,22 +241,21 @@ int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     }
 
     /* setup the HttpHeaderData's data from content data structure's data */
-    hcbd = SCMalloc(sizeof(DetectContentData));
-    if (hcbd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc() failed");
-        goto error;
+    hhd = SCMalloc(sizeof(DetectContentData));
+    if (hhd == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+        exit(EXIT_FAILURE);
     }
-    memset(hcbd, 0, sizeof(DetectContentData));
+    memset(hhd, 0, sizeof(DetectContentData));
 
     /* transfer the pattern details from the content struct to the clientbody struct */
-    hcbd->content = ((DetectContentData *)sm->ctx)->content;
-    hcbd->content_len = ((DetectContentData *)sm->ctx)->content_len;
-    hcbd->flags |= (((DetectContentData *)sm->ctx)->flags & DETECT_CONTENT_NOCASE) ?
-        DETECT_CONTENT_NOCASE : 0;
-    hcbd->flags |= (((DetectContentData *)sm->ctx)->flags & DETECT_CONTENT_NEGATED) ?
-        DETECT_CONTENT_NEGATED : 0;
-    //hcbd->id = ((DetectContentData *)sm->ctx)->id;
-    hcbd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, hcbd, DETECT_AL_HTTP_HEADER);
+    DetectContentData *cd = (DetectContentData *)sm->ctx;
+    hhd->content = cd->content;
+    hhd->content_len = cd->content_len;
+    hhd->flags |= cd->flags & DETECT_CONTENT_NOCASE ? DETECT_CONTENT_NOCASE : 0;
+    hhd->flags |= cd->flags & DETECT_CONTENT_NEGATED ? DETECT_CONTENT_NEGATED : 0;
+    //hhd->id = ((DetectContentData *)sm->ctx)->id;
+    hhd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, hhd, DETECT_AL_HTTP_HEADER);
 
     nm = SigMatchAlloc();
     if (nm == NULL) {
@@ -266,7 +263,7 @@ int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         goto error;
     }
     nm->type = DETECT_AL_HTTP_HEADER;
-    nm->ctx = (void *)hcbd;
+    nm->ctx = (void *)hhd;
 
     /* pull the previous content from the pmatch list, append
      * the new match to the match list */
@@ -285,8 +282,8 @@ int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     return 0;
 
 error:
-    if (hcbd != NULL)
-        DetectHttpHeaderFree(hcbd);
+    if (hhd != NULL)
+        DetectHttpHeaderFree(hhd);
     if(nm != NULL)
         SCFree(sm);
 
