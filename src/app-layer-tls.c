@@ -898,8 +898,9 @@ static int TLSParserTest05(void) {
     AppLayerParserState *parser_state = &parser_state_store->to_server;
 
     if (!(parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) &&
-            !(ssn.flags & STREAMTCP_FLAG_NOCLIENT_REASSEMBLY) &&
-            !(ssn.flags & STREAMTCP_FLAG_NOSERVER_REASSEMBLY)) {
+        !(ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) &&
+        !(ssn.server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY))
+    {
         printf("The flags should be set\n");
         result = 0;
         goto end;
@@ -993,8 +994,8 @@ static int TLSParserTest06(void) {
     AppLayerParserState *parser_state = &parser_state_store->to_server;
 
     if ((parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) ||
-            (ssn.flags & STREAMTCP_FLAG_NOCLIENT_REASSEMBLY) ||
-            (ssn.flags & STREAMTCP_FLAG_NOSERVER_REASSEMBLY)) {
+            (ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ||
+            (ssn.server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
         printf("The flags should not be set\n");
         result = 0;
         goto end;
@@ -1019,8 +1020,8 @@ static int TLSParserTest06(void) {
     }
 
     if (!(parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) &&
-            !(ssn.flags & STREAMTCP_FLAG_NOCLIENT_REASSEMBLY) &&
-            !(ssn.flags & STREAMTCP_FLAG_NOSERVER_REASSEMBLY)) {
+            !(ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) &&
+            !(ssn.server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
         printf("The flags should be set\n");
         result = 0;
         goto end;
@@ -1337,8 +1338,8 @@ static int TLSParserTest08(void) {
     AppLayerParserState *parser_state = &parser_state_store->to_server;
 
     if (!(parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) &&
-            !(ssn.flags & STREAMTCP_FLAG_NOCLIENT_REASSEMBLY) &&
-            !(ssn.flags & STREAMTCP_FLAG_NOSERVER_REASSEMBLY)) {
+            !(ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) &&
+            !(ssn.server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
         printf("The flags should be set\n");
         result = 0;
         goto end;

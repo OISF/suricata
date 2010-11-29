@@ -27,14 +27,19 @@
 #include "flow.h"
 #include "decode.h"
 
+#include "stream-tcp.h"
+
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-detect-proto.h"
+
 #include "stream.h"
 
 uint16_t AppLayerGetProtoFromPacket(Packet *);
 void *AppLayerGetProtoStateFromPacket(Packet *);
 void *AppLayerGetProtoStateFromFlow(Flow *);
+int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *, Flow *, TcpSession *, uint8_t *, uint32_t, uint8_t);
+int AppLayerHandleTCPMsg(AlpProtoDetectThreadCtx *, StreamMsg *);
 int AppLayerHandleMsg(AlpProtoDetectThreadCtx *, StreamMsg *);
 int AppLayerHandleUdp(AlpProtoDetectThreadCtx *, Flow *, Packet *p);
 

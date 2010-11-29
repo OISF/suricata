@@ -102,6 +102,8 @@ void *AppLayerGetProtoStateFromFlow(Flow *f) {
 /** global app layer detection context */
 extern AlpProtoDetectCtx alp_proto_ctx;
 
+//#define PRINT
+
 /**
  *  \brief Handle a chunk of TCP data
  *
@@ -131,29 +133,46 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
     alproto = f->alproto;
 
     /* Copy some needed flags */
-    if (flags & STREAM_TOSERVER)
+    if (flags & STREAM_TOSERVER) {
         f->alflags |= FLOW_AL_STREAM_TOSERVER;
-    else if (flags & STREAM_TOCLIENT)
+        SCLogDebug("STREAM_TOSERVER");
+    } else if (flags & STREAM_TOCLIENT) {
         f->alflags |= FLOW_AL_STREAM_TOCLIENT;
+        SCLogDebug("STREAM_TOCLIENT");
+    }
 
-    if (flags & STREAM_GAP)
+    if (flags & STREAM_GAP) {
         f->alflags |= FLOW_AL_STREAM_GAP;
-    if (flags & STREAM_EOF)
-        f->alflags |= FLOW_AL_STREAM_EOF;
+        SCLogDebug("STREAM_GAP");
+    }
 
+    if (flags & STREAM_EOF) {
+        f->alflags |= FLOW_AL_STREAM_EOF;
+        SCLogDebug("STREAM_EOF");
+    }
+
+    SCLogDebug("data_len %u flags %02X", data_len, flags);
     if (!(f->alflags & FLOW_AL_NO_APPLAYER_INSPECTION)) {
         /* if we don't know the proto yet and we have received a stream
          * initializer message, we run proto detection.
          * We receive 2 stream init msgs (one for each direction) but we
          * only run the proto detection once. */
-        if (alproto == ALPROTO_UNKNOWN && flags & STREAM_START) {
-            SCLogDebug("Stream initializer (len %" PRIu32 " (%" PRIu32 "))",
-                    data_len, MSG_DATA_SIZE);
-
-            //printf("=> Init Stream Data -- start\n");
-            //PrintRawDataFp(stdout, data, data_len);
-            //printf("=> Init Stream Data -- end\n");
-
+        if (alproto == ALPROTO_UNKNOWN && flags & STREAM_GAP) {
+            ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
+            f->alflags |= FLOW_AL_PROTO_DETECT_DONE;
+            SCLogDebug("ALPROTO_UNKNOWN flow %p, due to GAP in stream start", f);
+            StreamTcpSetSessionNoReassemblyFlag(ssn, 0);
+        } else if (alproto == ALPROTO_UNKNOWN && flags & STREAM_START) {
+            SCLogDebug("Stream initializer (len %" PRIu32 ")", data_len);
+#ifdef PRINT
+            if (data_len > 0) {
+                printf("=> Init Stream Data -- start %s%s\n",
+                        flags & STREAM_TOCLIENT ? "toclient" : "",
+                        flags & STREAM_TOSERVER ? "toserver" : "");
+                PrintRawDataFp(stdout, data, data_len);
+                printf("=> Init Stream Data -- end\n");
+            }
+#endif
             alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx,
                     data, data_len, f->alflags, IPPROTO_TCP);
             if (alproto != ALPROTO_UNKNOWN) {
@@ -166,6 +185,7 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
                 r = AppLayerParse(f, alproto, f->alflags, data, data_len);
             } else {
                 if (flags & STREAM_TOSERVER) {
+                    SCLogDebug("alp_proto_ctx.toserver.max_len %u", alp_proto_ctx.toserver.max_len);
                     if (data_len >= alp_proto_ctx.toserver.max_len) {
                         ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
                         f->alflags |= FLOW_AL_PROTO_DETECT_DONE;
@@ -182,14 +202,17 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
                 }
             }
         } else {
-            SCLogDebug("stream data (len %" PRIu32 " (%" PRIu32 ")), alproto "
-                    "%"PRIu16" (flow %p)", data_len, MSG_DATA_SIZE,
-                    alproto, f);
-
-            //printf("=> Stream Data -- start\n");
-            //PrintRawDataFp(stdout, data, data_len);
-            //printf("=> Stream Data -- end\n");
-
+            SCLogDebug("stream data (len %" PRIu32 " alproto "
+                    "%"PRIu16" (flow %p)", data_len, alproto, f);
+#ifdef PRINT
+            if (data_len > 0) {
+                printf("=> Stream Data -- start %s%s\n",
+                        flags & STREAM_TOCLIENT ? "toclient" : "",
+                        flags & STREAM_TOSERVER ? "toserver" : "");
+                PrintRawDataFp(stdout, data, data_len);
+                printf("=> Stream Data -- end\n");
+            }
+#endif
             /* if we don't have a data object here we are not getting it
              * a start msg should have gotten us one */
             if (alproto != ALPROTO_UNKNOWN) {
@@ -198,9 +221,86 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
                 SCLogDebug(" smsg not start, but no l7 data? Weird");
             }
         }
+    } else {
+        SCLogDebug("FLOW_AL_NO_APPLAYER_INSPECTION is set");
     }
 
     SCReturnInt(r);
+}
+
+/**
+ *  \brief Attach a stream message to the TCP session for inspection
+ *         in the detection engine.
+ *
+ *  \param dp_ctx Thread app layer detect context
+ *  \param smsg Stream message
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
+ */
+int AppLayerHandleTCPMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
+{
+    SCEnter();
+
+    SCLogDebug("smsg %p", smsg);
+    BUG_ON(smsg->flow == NULL);
+
+    TcpSession *ssn = smsg->flow->protoctx;
+    if (ssn != NULL) {
+        SCLogDebug("storing smsg %p in the tcp session", smsg);
+
+        /* store the smsg in the tcp stream */
+        if (smsg->flags & STREAM_TOSERVER) {
+            SCLogDebug("storing smsg in the to_server");
+
+            /* put the smsg in the stream list */
+            if (ssn->toserver_smsg_head == NULL) {
+                ssn->toserver_smsg_head = smsg;
+                ssn->toserver_smsg_tail = smsg;
+                smsg->next = NULL;
+                smsg->prev = NULL;
+            } else {
+                StreamMsg *cur = ssn->toserver_smsg_tail;
+                cur->next = smsg;
+                smsg->prev = cur;
+                smsg->next = NULL;
+                ssn->toserver_smsg_tail = smsg;
+            }
+        } else {
+            SCLogDebug("storing smsg in the to_client");
+
+            /* put the smsg in the stream list */
+            if (ssn->toclient_smsg_head == NULL) {
+                ssn->toclient_smsg_head = smsg;
+                ssn->toclient_smsg_tail = smsg;
+                smsg->next = NULL;
+                smsg->prev = NULL;
+            } else {
+                StreamMsg *cur = ssn->toclient_smsg_tail;
+                cur->next = smsg;
+                smsg->prev = cur;
+                smsg->next = NULL;
+                ssn->toclient_smsg_tail = smsg;
+            }
+        }
+
+        /* flow is free again */
+        FlowDecrUsecnt(smsg->flow);
+        /* dereference the flow */
+        smsg->flow = NULL;
+    } else { /* no ssn ptr */
+        /* if there is no ssn ptr we won't
+         * be inspecting this msg in detect
+         * so return it to the pool. */
+
+        /* flow is free again */
+        FlowDecrUsecnt(smsg->flow);
+
+        /* return the used message to the queue */
+        StreamMsgReturnToPool(smsg);
+    }
+
+    SCReturnInt(0);
 }
 
 /**

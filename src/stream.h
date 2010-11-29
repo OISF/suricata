@@ -35,8 +35,6 @@
 /** size of the data chunks sent to the app layer parser. */
 #define MSG_DATA_SIZE       2048
 
-#define STREAMQUEUE_FLAG_INIT    0x01
-
 typedef struct StreamMsg_ {
     uint32_t id;    /**< unique stream id */
     uint8_t flags;  /**< msg flags */
@@ -65,9 +63,7 @@ typedef struct StreamMsgQueue_ {
     StreamMsg *top;
     StreamMsg *bot;
     uint16_t len;
-//    SCMutex mutex_q;
-//    SCCondT cond_q;
-    uint8_t flags;
+    //uint8_t flags;
 #ifdef DBG_PERF
     uint16_t dbg_maxlen;
 #endif /* DBG_PERF */

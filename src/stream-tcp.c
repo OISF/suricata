@@ -615,8 +615,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
 
             /* set the sequence numbers and window */
             ssn->client.isn = TCP_GET_SEQ(p);
-            ssn->client.ra_base_seq = ssn->client.isn;
-            ssn->client.tmp_ra_base_seq = ssn->client.isn;
+            STREAMTCP_SET_RA_BASE_SEQ(&ssn->client, ssn->client.isn);
             ssn->client.next_seq = ssn->client.isn + 1;
 
             /*Set the stream timestamp value, if packet has timestamp option
@@ -670,15 +669,13 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
 
             /* sequence number & window */
             ssn->server.isn = TCP_GET_SEQ(p);
-            ssn->server.ra_base_seq = ssn->server.isn;
-            ssn->server.tmp_ra_base_seq = ssn->server.isn;
+            STREAMTCP_SET_RA_BASE_SEQ(&ssn->server, ssn->server.isn);
             ssn->server.next_seq = ssn->server.isn + 1;
             ssn->server.window = TCP_GET_WINDOW(p);
             SCLogDebug("ssn %p: server window %u", ssn, ssn->server.window);
 
             ssn->client.isn = TCP_GET_ACK(p) - 1;
-            ssn->client.ra_base_seq = ssn->client.isn;
-            ssn->client.tmp_ra_base_seq = ssn->client.isn;
+            STREAMTCP_SET_RA_BASE_SEQ(&ssn->client, ssn->client.isn);
             ssn->client.next_seq = ssn->client.isn + 1;
 
             ssn->client.last_ack = TCP_GET_ACK(p);
@@ -752,8 +749,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
 
             /* set the sequence numbers and window */
             ssn->client.isn = TCP_GET_SEQ(p) - 1;
-            ssn->client.ra_base_seq = ssn->client.isn;
-            ssn->client.tmp_ra_base_seq = ssn->client.isn;
+            STREAMTCP_SET_RA_BASE_SEQ(&ssn->client, ssn->client.isn);
             ssn->client.next_seq = TCP_GET_SEQ(p) + p->payload_len;
             ssn->client.window = TCP_GET_WINDOW(p);
             ssn->client.last_ack = TCP_GET_SEQ(p);
@@ -762,8 +758,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
                     ssn, ssn->client.isn, ssn->client.next_seq);
 
             ssn->server.isn = TCP_GET_ACK(p) - 1;
-            ssn->server.ra_base_seq = ssn->server.isn;
-            ssn->server.tmp_ra_base_seq = ssn->server.isn;
+            STREAMTCP_SET_RA_BASE_SEQ(&ssn->server, ssn->server.isn);
             ssn->server.next_seq = ssn->server.isn + 1;
             ssn->server.last_ack = TCP_GET_ACK(p);
             ssn->server.next_win = ssn->server.last_ack;
@@ -874,8 +869,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
                  * check the SYN/ACK pkt with that.
                  */
                 ssn->server.isn = TCP_GET_SEQ(p);
-                ssn->server.ra_base_seq = ssn->server.isn;
-                ssn->server.tmp_ra_base_seq = ssn->server.isn;
+                STREAMTCP_SET_RA_BASE_SEQ(&ssn->server, ssn->server.isn);
                 ssn->server.next_seq = ssn->server.isn + 1;
 
                 /* Set the stream timestamp value, if packet has timestamp
@@ -941,8 +935,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
 
                 /* sequence number & window */
                 ssn->client.isn = TCP_GET_SEQ(p);
-                ssn->client.ra_base_seq = ssn->client.isn;
-                ssn->client.tmp_ra_base_seq = ssn->client.isn;
+                STREAMTCP_SET_RA_BASE_SEQ(&ssn->client, ssn->client.isn);
                 ssn->client.next_seq = ssn->client.isn + 1;
 
                 ssn->server.window = TCP_GET_WINDOW(p);
@@ -1020,8 +1013,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
 
             /* sequence number & window */
             ssn->server.isn = TCP_GET_SEQ(p);
-            ssn->server.ra_base_seq = ssn->server.isn;
-            ssn->server.tmp_ra_base_seq = ssn->server.isn;
+            STREAMTCP_SET_RA_BASE_SEQ(&ssn->server, ssn->server.isn);
             ssn->server.next_seq = ssn->server.isn + 1;
 
             ssn->client.window = TCP_GET_WINDOW(p);
@@ -1117,8 +1109,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
 
             /* Set the server side parameters */
             ssn->server.isn = TCP_GET_ACK(p) - 1;
-            ssn->server.ra_base_seq = ssn->server.isn;
-            ssn->server.tmp_ra_base_seq = ssn->server.isn;
+            STREAMTCP_SET_RA_BASE_SEQ(&ssn->server, ssn->server.isn);
             ssn->server.next_seq = ssn->server.isn + 1;
             ssn->server.last_ack = ssn->server.next_seq;
             ssn->server.next_win = ssn->server.last_ack;
@@ -1444,69 +1435,60 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
 
     if (!(SEQ_GEQ(TCP_GET_SEQ(p), ssn->client.last_ack))) {
         if (ssn->flags & STREAMTCP_FLAG_ASYNC) {
-
             SCLogDebug("ssn %p: server => Asynchrouns stream, packet SEQ"
                     " %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "),"
                     " ssn->client.last_ack %" PRIu32 ", ssn->client.next_win"
-                    "%" PRIu32"(%"PRIu32") (ssn->client.ra_base_seq %"PRIu32")",
-                    ssn, TCP_GET_SEQ(p), p->payload_len, TCP_GET_SEQ(p)
-                    +p->payload_len, ssn->client.last_ack, ssn->client.next_win,
-                    TCP_GET_SEQ(p) + p->payload_len - ssn->client.next_win,
-                    ssn->client.ra_base_seq);
+                    "%" PRIu32"(%"PRIu32")", ssn, TCP_GET_SEQ(p),
+                    p->payload_len, TCP_GET_SEQ(p) + p->payload_len,
+                    ssn->client.last_ack, ssn->client.next_win,
+                    TCP_GET_SEQ(p) + p->payload_len - ssn->client.next_win);
 
-            /*update the last_ack to current seq number as the session is
-              async and other stream is not updating it anymore :(*/
+            /* update the last_ack to current seq number as the session is
+             * async and other stream is not updating it anymore :( */
             ssn->client.last_ack = TCP_GET_SEQ(p);
 
         } else if (SEQ_EQ(ssn->client.next_seq, TCP_GET_SEQ(p)) &&
                 (stream_config.async_oneside == TRUE) &&
                 (ssn->flags & STREAMTCP_FLAG_MIDSTREAM)) {
-
             SCLogDebug("ssn %p: server => Asynchronous stream, packet SEQ."
                     " %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "), "
                     "ssn->client.last_ack %" PRIu32 ", ssn->client.next_win "
-                    "%" PRIu32 "(%"PRIu32") (ssn->client.ra_base_seq %"PRIu32")"
-                    , ssn, TCP_GET_SEQ(p), p->payload_len, TCP_GET_SEQ(p)
-                    +p->payload_len, ssn->client.last_ack, ssn->client.next_win,
-                    TCP_GET_SEQ(p) + p->payload_len - ssn->client.next_win,
-                    ssn->client.ra_base_seq);
+                    "%" PRIu32 "(%"PRIu32")", ssn, TCP_GET_SEQ(p),
+                    p->payload_len, TCP_GET_SEQ(p) + p->payload_len,
+                    ssn->client.last_ack, ssn->client.next_win,
+                    TCP_GET_SEQ(p) + p->payload_len - ssn->client.next_win);
 
-            /*it seems we missed SYN and SYN/ACK packets of this session.
+            /* it seems we missed SYN and SYN/ACK packets of this session.
              * Update the last_ack to current seq number as the session
-             * is async and other stream is not updating it anymore :(*/
+             * is async and other stream is not updating it anymore :( */
             ssn->client.last_ack = TCP_GET_SEQ(p);
             ssn->flags |= STREAMTCP_FLAG_ASYNC;
 
         } else if (SEQ_EQ(ssn->client.last_ack, (ssn->client.isn + 1)) &&
                 (stream_config.async_oneside == TRUE) &&
                 (ssn->flags & STREAMTCP_FLAG_MIDSTREAM)) {
-
             SCLogDebug("ssn %p: server => Asynchronous stream, packet SEQ"
                     " %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "), "
                     "ssn->client.last_ack %" PRIu32 ", ssn->client.next_win "
-                    "%" PRIu32 "(%"PRIu32") (ssn->client.ra_base_seq %"PRIu32")"
-                    , ssn, TCP_GET_SEQ(p), p->payload_len, TCP_GET_SEQ(p)
-                    +p->payload_len, ssn->client.last_ack, ssn->client.next_win,
-                    TCP_GET_SEQ(p) + p->payload_len - ssn->client.next_win,
-                    ssn->client.ra_base_seq);
+                    "%" PRIu32 "(%"PRIu32")", ssn, TCP_GET_SEQ(p),
+                    p->payload_len, TCP_GET_SEQ(p) + p->payload_len,
+                    ssn->client.last_ack, ssn->client.next_win,
+                    TCP_GET_SEQ(p) + p->payload_len - ssn->client.next_win);
 
-            /*it seems we missed SYN and SYN/ACK packets of this session.
+            /* it seems we missed SYN and SYN/ACK packets of this session.
              * Update the last_ack to current seq number as the session
              * is async and other stream is not updating it anymore :(*/
             ssn->client.last_ack = TCP_GET_SEQ(p);
             ssn->flags |= STREAMTCP_FLAG_ASYNC;
 
         } else {
-
             SCLogDebug("ssn %p: server => SEQ before last_ack, packet SEQ"
                     " %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "), "
                     "ssn->client.last_ack %" PRIu32 ", ssn->client.next_win "
-                    "%" PRIu32 "(%"PRIu32") (ssn->client.ra_base_seq %"PRIu32")"
-                    , ssn, TCP_GET_SEQ(p), p->payload_len, TCP_GET_SEQ(p)
-                    +p->payload_len, ssn->client.last_ack, ssn->client.next_win,
-                    TCP_GET_SEQ(p) + p->payload_len - ssn->client.next_win,
-                    ssn->client.ra_base_seq);
-
+                    "%" PRIu32 "(%"PRIu32")", ssn, TCP_GET_SEQ(p),
+                    p->payload_len, TCP_GET_SEQ(p) + p->payload_len,
+                    ssn->client.last_ack, ssn->client.next_win,
+                    TCP_GET_SEQ(p) + p->payload_len - ssn->client.next_win);
             return -1;
         }
     }
@@ -1545,11 +1527,10 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
         SCLogDebug("ssn %p: toserver => SEQ out of window, packet SEQ "
                 "%" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "),"
                 "ssn->client.last_ack %" PRIu32 ", ssn->client.next_win "
-                "%" PRIu32 "(%"PRIu32") (ssn->client.ra_base_seq %"PRIu32")",
-                ssn, TCP_GET_SEQ(p), p->payload_len, TCP_GET_SEQ(p)
-                +p->payload_len, ssn->client.last_ack, ssn->client.next_win,
-                TCP_GET_SEQ(p) + p->payload_len - ssn->client.next_win,
-                ssn->client.ra_base_seq);
+                "%" PRIu32 "(%"PRIu32")", ssn, TCP_GET_SEQ(p),
+                p->payload_len, TCP_GET_SEQ(p) + p->payload_len,
+                ssn->client.last_ack, ssn->client.next_win,
+                TCP_GET_SEQ(p) + p->payload_len - ssn->client.next_win);
     }
     return 0;
 }
@@ -1590,11 +1571,10 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
             SCLogDebug("ssn %p: client => Asynchrouns stream, packet SEQ"
                     " %" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "),"
                     " ssn->client.last_ack %" PRIu32 ", ssn->client.next_win"
-                    " %"PRIu32"(%"PRIu32") (ssn->client.ra_base_seq %"PRIu32")",
-                    ssn, TCP_GET_SEQ(p), p->payload_len, TCP_GET_SEQ(p)
-                    +p->payload_len, ssn->server.last_ack, ssn->server.next_win,
-                    TCP_GET_SEQ(p) + p->payload_len - ssn->server.next_win,
-                    ssn->server.ra_base_seq);
+                    " %"PRIu32"(%"PRIu32")", ssn, TCP_GET_SEQ(p),
+                    p->payload_len, TCP_GET_SEQ(p) + p->payload_len,
+                    ssn->server.last_ack, ssn->server.next_win,
+                    TCP_GET_SEQ(p) + p->payload_len - ssn->server.next_win);
 
             ssn->server.last_ack = TCP_GET_SEQ(p);
 
@@ -1639,14 +1619,14 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
         SCLogDebug("ssn %p: client => SEQ out of window, packet SEQ"
                    "%" PRIu32 ", payload size %" PRIu32 " (%" PRIu32 "),"
                    " ssn->server.last_ack %" PRIu32 ", ssn->server.next_win "
-                   "%" PRIu32 "(%"PRIu32") (ssn->server.ra_base_seq %"PRIu32")",
-                    ssn, TCP_GET_SEQ(p), p->payload_len, TCP_GET_SEQ(p) +
-                    p->payload_len, ssn->server.last_ack, ssn->server.next_win,
-                    TCP_GET_SEQ(p) + p->payload_len - ssn->server.next_win,
-                    ssn->server.ra_base_seq);
+                   "%" PRIu32 "(%"PRIu32")", ssn, TCP_GET_SEQ(p),
+                   p->payload_len, TCP_GET_SEQ(p) + p->payload_len,
+                   ssn->server.last_ack, ssn->server.next_win,
+                   TCP_GET_SEQ(p) + p->payload_len - ssn->server.next_win);
     }
     return 0;
 }
+
 /**
  *  \brief  Function to handle the TCP_ESTABLISHED state. The function handles
  *          ACK, FIN, RST packets and correspondingly changes the connection
@@ -3225,8 +3205,8 @@ static int ValidTimestamp (TcpSession *ssn, Packet *p)
  */
 void StreamTcpSetSessionNoReassemblyFlag (TcpSession *ssn, char direction)
 {
-    direction ? (ssn->flags |= STREAMTCP_FLAG_NOSERVER_REASSEMBLY) :
-                (ssn->flags |= STREAMTCP_FLAG_NOCLIENT_REASSEMBLY);
+    direction ? (ssn->server.flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY) :
+                (ssn->client.flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY);
 }
 
 #ifdef UNITTESTS
@@ -7019,9 +6999,9 @@ static int StreamTcpTest37(void) {
         goto end;
     }
 
-    if (((TcpSession *)p->flow->protoctx)->client.tmp_ra_base_seq != 3) {
+    if (((TcpSession *)p->flow->protoctx)->client.ra_raw_base_seq != 3) {
         printf("the ssn->client.next_seq should be 3, but it is %"PRIu32"\n",
-                ((TcpSession *)p->flow->protoctx)->client.tmp_ra_base_seq);
+                ((TcpSession *)p->flow->protoctx)->client.ra_raw_base_seq);
         goto end;
     }
 

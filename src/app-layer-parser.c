@@ -668,7 +668,9 @@ static int AppLayerDoParse(Flow *f, void *app_layer_state, AppLayerParserState *
     AppLayerParserResult result = { NULL, NULL, 0 };
 
     SCLogDebug("parser_idx %" PRIu32 "", parser_idx);
+    //printf("--- (%u)\n", input_len);
     //PrintRawDataFp(stdout, input,input_len);
+    //printf("---\n");
 
     /* invoke the parser */
     int r = al_parser_table[parser_idx].AppLayerParser(f, app_layer_state,
@@ -764,8 +766,10 @@ end:
     SCReturnInt(0);
 }
 
+#ifdef DEBUG
 uint32_t applayererrors = 0;
 uint32_t applayerhttperrors = 0;
+#endif
 
 /**
  * \brief Layer 7 Parsing main entry point.
@@ -915,10 +919,11 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
     SCReturnInt(0);
 error:
     if (ssn != NULL) {
+#ifdef DEBUG
         applayererrors++;
         if (f->alproto == ALPROTO_HTTP)
             applayerhttperrors++;
-
+#endif
         /* Set the no app layer inspection flag for both
          * the stream in this Flow */
         FlowSetSessionNoApplayerInspectionFlag(f);

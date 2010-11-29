@@ -48,16 +48,17 @@ typedef struct TcpStream_ {
                                 longer time.(RFC 1323)*/
 
     /* reassembly */
-    uint32_t ra_base_seq; /**< reassembled seq. We've reassembled up to this point. */
+    uint32_t ra_app_base_seq; /**< reassembled seq. We've reassembled up to this point. */
+    uint32_t tmp_ra_app_base_seq;   /**< Temporary reassembled seq, to be used until
+                                     app layer protocol has not been detected,
+                                     beacuse every smsg needs to contain all the
+                                     initial segments too */
+    uint32_t ra_raw_base_seq; /**< reassembled seq. We've reassembled up to this point. */
     TcpSegment *seg_list; /**< list of TCP segments that are not yet (fully) used in reassembly */
     uint8_t wscale;     /**< wscale setting in this direction */
     uint8_t os_policy; /**< target based OS policy used for reassembly and handling packets*/
     uint16_t flags;      /**< Flag specific to the stream e.g. Timestamp */
     TcpSegment *seg_list_tail;  /**< Last segment in the reassembled stream seg list*/
-    uint32_t tmp_ra_base_seq;   /**< Temporary reassembled seq, to be used until
-                                     app layer protocol has not been detected,
-                                     beacuse every smsg needs to contain all the
-                                     initial segments too */
     uint32_t reassembly_depth;  /**< The depth value of a stream until when, we
                                      will reassemble the stream */
 } TcpStream;
@@ -79,73 +80,57 @@ enum
     TCP_CLOSED,
 };
 
-#define STREAMTCP_FLAG_MIDSTREAM                0x0001  /**< Flag for mid stream
-                                                             session*/
-#define STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED    0x0002  /**< Flag for mid stream
-                                                             established
-                                                             session*/
-#define STREAMTCP_FLAG_MIDSTREAM_SYNACK         0x0004  /**< Flag for mid session
-                                                             when syn/ack is
-                                                             received*/
-#define STREAMTCP_FLAG_TIMESTAMP                0x0008  /**< Flag for TCP
-                                                             Timestamp option*/
-#define STREAMTCP_FLAG_SERVER_WSCALE            0x0010  /**< Server supports
-                                                             wscale (even though
-                                                             it can be 0) */
-#define STREAMTCP_FLAG_ZERO_TIMESTAMP           0x0020  /**< Flag to indicate the
-                                                             zero value of
-                                                             timestamp*/
-#define STREAMTCP_FLAG_NOCLIENT_REASSEMBLY      0x0040  /**< Flag to avoid stream
-                                                             reassembly/app layer
-                                                             inspection for the
-                                                             client stream.*/
-#define STREAMTCP_FLAG_NOSERVER_REASSEMBLY      0x0080  /**< Flag to avoid stream
-                                                             reassembly / app layer
-                                                             inspection for the
-                                                             server stream.*/
-#define STREAMTCP_FLAG_ASYNC                    0x0100  /**< Flag to indicate
-                                                             that the session is
-                                                             handling asynchronous
-                                                             stream.*/
-#define STREAMTCP_FLAG_4WHS                     0x0200  /**< Flag to indicate
-                                                             we're dealing with
-                                                             4WHS: SYN, SYN,
-                                                             SYN/ACK, ACK
- (http://www.breakingpointsystems.com/community/blog/tcp-portals-the-three-way-handshake-is-a-lie) */
+/*
+ * Per SESSION flags
+ */
 
-#define STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED 0x0400  /**< Flag to indicate
-                                                             the app layer has
-                                                             detected the app
-                                                             layer protocol on
-                                                             the current
-                                                             TCP session */
-#define STREAMTCP_FLAG_PAUSE_TOSERVER_REASSEMBLY 0x0800 /**< Flag to pause stream
-                                                             reassembly / app layer
-                                                             inspection for the
-                                                             server stream.*/
-#define STREAMTCP_FLAG_PAUSE_TOCLIENT_REASSEMBLY 0x1000 /**< Flag to pause stream
-                                                             reassembly / app layer
-                                                             inspection for the
-                                                             client stream.*/
-#define STREAMTCP_FLAG_DETECTION_EVASION_ATTEMPT 0x2000  /**< Flag to indicate
-                                                             that this session
-                                                             is possible trying
-                                                             to evade the detection
-    (http://www.packetstan.com/2010/06/recently-ive-been-on-campaign-to-make.html) */
-#define STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED 0x4000 /**< Flag to indicate
-                                                             that this session
-                                                             has reassembled to_server
-                                                             chunks */
+/** Flag for mid stream session */
+#define STREAMTCP_FLAG_MIDSTREAM                    0x0001
+/** Flag for mid stream established session */
+#define STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED        0x0002
+/** Flag for mid session when syn/ack is received */
+#define STREAMTCP_FLAG_MIDSTREAM_SYNACK             0x0004
+/** Flag for TCP Timestamp option */
+#define STREAMTCP_FLAG_TIMESTAMP                    0x0008
+/** Server supports wscale (even though it can be 0) */
+#define STREAMTCP_FLAG_SERVER_WSCALE                0x0010
+/** Flag to indicate the zero value of timestamp */
+#define STREAMTCP_FLAG_ZERO_TIMESTAMP               0x0020
+/** Flag to indicate that the session is handling asynchronous stream.*/
+#define STREAMTCP_FLAG_ASYNC                        0x0040
+/** Flag to indicate we're dealing with 4WHS: SYN, SYN, SYN/ACK, ACK
+ * (http://www.breakingpointsystems.com/community/blog/tcp-portals-the-three-way-handshake-is-a-lie) */
+#define STREAMTCP_FLAG_4WHS                         0x0080
+/** Flag to indicate the app layer has detected the app layer protocol on
+ *  the current TCP session */
+#define STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED 0x0100
+/** Flag to indicate that this session is possible trying to evade the detection
+ *  (http://www.packetstan.com/2010/06/recently-ive-been-on-campaign-to-make.html) */
+#define STREAMTCP_FLAG_DETECTION_EVASION_ATTEMPT    0x0200
+/** Flag to indicate that this stream direction has reassembled chunks */
+#define STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED  0x0400
 
-#define SEGMENTTCP_FLAG_PROCESSED               0x01    /**< Flag to indicate
-                                                             that the current
-                                                             segment has been
-                                                             processed by the
-                                                             reassembly code and
-                                                             should be deleted
-                                                             after app layer
-                                                             protocol has been
-                                                             detected. */
+
+/*
+ * Per STREAM flags
+ */
+
+/** stream is in a gap state */
+#define STREAMTCP_STREAM_FLAG_GAP               0x01
+/** Flag to avoid stream reassembly/app layer inspection for the stream */
+#define STREAMTCP_STREAM_FLAG_NOREASSEMBLY      0x02
+/** Flag to pause stream reassembly / app layer inspection for the stream.*/
+#define STREAMTCP_STREAM_FLAG_PAUSE_REASSEMBLY  0x04
+
+/*
+ * Per SEGMENT flags
+ */
+/** Flag to indicate that the current segment has been processed by the
+ *  reassembly code and should be deleted after app layer protocol has been
+ *  detected. */
+#define SEGMENTTCP_FLAG_RAW_PROCESSED       0x01
+/** App Layer reassembly code is done with this segment */
+#define SEGMENTTCP_FLAG_APPLAYER_PROCESSED  0x02
 
 #define PAWS_24DAYS         2073600         /**< 24 days in seconds */
 
@@ -161,6 +146,14 @@ enum
 #define SEQ_LEQ(a,b) ((int32_t)((a) - (b)) <= 0)
 #define SEQ_GT(a,b)  ((int32_t)((a) - (b)) >  0)
 #define SEQ_GEQ(a,b) ((int32_t)((a) - (b)) >= 0)
+
+#define STREAMTCP_SET_RA_BASE_SEQ(stream, seq) { \
+    do { \
+        (stream)->ra_raw_base_seq = (seq); \
+        (stream)->ra_app_base_seq = (seq); \
+        (stream)->tmp_ra_app_base_seq = (seq); \
+    } while(0); \
+}
 
 typedef struct TcpSession_ {
     uint8_t state;
