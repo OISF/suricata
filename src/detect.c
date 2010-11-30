@@ -114,6 +114,7 @@
 #include "detect-http-header.h"
 #include "detect-http-uri.h"
 #include "detect-http-stat-msg.h"
+#include "detect-engine-hcbd.h"
 
 #include "util-rule-vars.h"
 
@@ -1309,16 +1310,7 @@ end:
     PacketPatternCleanup(th_v, det_ctx);
         //}
 
-    if (det_ctx->hcbd_buffers_list_len != 0) {
-        int i;
-        for (i = 0; i < det_ctx->hcbd_buffers_list_len; i++) {
-            if (det_ctx->hcbd_buffers[i] != NULL)
-                SCFree(det_ctx->hcbd_buffers[i]);
-        }
-        SCFree(det_ctx->hcbd_buffers);
-        det_ctx->hcbd_buffers = NULL;
-        det_ctx->hcbd_buffers_list_len = 0;
-    }
+    DetectEngineCleanHCBDBuffers(det_ctx);
 
     /* store the found sgh (or NULL) in the flow to save us from looking it
      * up again for the next packet. Also return any stream chunk we processed

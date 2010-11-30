@@ -35,6 +35,7 @@
 #include "detect-engine-address.h"
 #include "detect-engine-port.h"
 #include "detect-engine-mpm.h"
+#include "detect-engine-hcbd.h"
 #include "detect-engine-iponly.h"
 #include "detect-engine-tag.h"
 
@@ -188,6 +189,7 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
     const char *max_uniq_toserver_dp_groups_str = NULL;
 
     char *sgh_mpm_context = NULL;
+    char *hcbd_buffer_limit = NULL;
 
     ConfNode *de_ctx_custom = ConfGetNode("detect-engine");
     ConfNode *opt = NULL;
@@ -198,6 +200,9 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
                 de_ctx_profile = opt->head.tqh_first->val;
             } else if (strcmp(opt->val, "sgh-mpm-context") == 0) {
                 sgh_mpm_context = opt->head.tqh_first->val;
+            } else if (strcmp(opt->val,
+                              "http-client-request-body-buffer-limit") == 0) {
+                hcbd_buffer_limit = opt->head.tqh_first->val;
             }
         }
     }
@@ -237,6 +242,14 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
                         "invalid conf value for detect-engine.sgh-mpm-context-"
                         "%s", sgh_mpm_context);
         }
+    }
+
+    if (hcbd_buffer_limit == NULL) {
+        de_ctx->hcbd_buffer_limit = ENGINE_HCBD_BUFFER_LIMIT;
+    } else {
+        de_ctx->hcbd_buffer_limit = atoi(hcbd_buffer_limit);
+        if (de_ctx->hcbd_buffer_limit <= 0)
+            de_ctx->hcbd_buffer_limit = ENGINE_HCBD_BUFFER_LIMIT;
     }
 
     opt = NULL;

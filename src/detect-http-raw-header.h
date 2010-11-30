@@ -15,20 +15,16 @@
  * 02110-1301, USA.
  */
 
-/** \file
+/**
+ * \file
  *
- * \author Anoop Saldanha <poonaatsoc@gmail.com>
+ * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
  */
 
-#ifndef __DETECT_ENGINE_HCBD_H__
-#define __DETECT_ENGINE_HCBD_H__
+#ifndef __DETECT_HTTP_HEADER_H__
+#define __DETECT_HTTP_HEADER_H__
 
-#define ENGINE_HCBD_BUFFER_LIMIT 20000
+void DetectHttpHeaderRegister(void);
+void DetectHttpRawHeaderRegister(void);
 
-int DetectEngineInspectHttpClientBody(DetectEngineCtx *, DetectEngineThreadCtx *,
-                                      Signature *, Flow *, uint8_t, void *);
-void DetectEngineCleanHCBDBuffers(DetectEngineThreadCtx *);
-void HttpClientBodyRegisterTests(void);
-
-#endif /* __DETECT_ENGINE_HCBD_H__ */
-
+#endif /* __DETECT_HTTP_HEADER_H__ */

@@ -609,6 +609,8 @@ typedef struct DetectEngineCtx_ {
     /* maximum recursion depth for content inspection */
     int inspection_recursion_limit;
 
+    int hcbd_buffer_limit;
+
     /* array containing all sgh's in use so we can loop
      * through it in Stage4. */
     struct SigGroupHead_ **sgh_array;

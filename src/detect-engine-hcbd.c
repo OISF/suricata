@@ -57,7 +57,7 @@
 #include "app-layer-protos.h"
 
 /**
- * \brief Run the actual payload match function for uricontent.
+ * \brief Run the actual payload match function for http request body.
  *
  *        For accounting the last match in relative matching the
  *        det_ctx->payload_offset int is used.
@@ -66,8 +66,8 @@
  * \param det_ctx     Detection engine thread context.
  * \param s           Signature to inspect.
  * \param sm          SigMatch to inspect.
- * \param payload     Ptr to the uricontent payload to inspect.
- * \param payload_len Length of the uricontent payload.
+ * \param payload     Ptr to the request body to inspect.
+ * \param payload_len Length of the request body.
  *
  * \retval 0 no match.
  * \retval 1 match.
@@ -252,15 +252,15 @@ match:
  * \param det_ctx   Detection engine thread ctx.
  * \param f         Pointer to the flow.
  * \param htp_state http state.
- * \param call_mpm  1 if we are also to call the mpm no the buffered bodies or
- *                  0 if we to just buffer the bodies.
  *
  * \retval cnt The match count from the mpm call.  If call_mpm is 0, the retval
  *             is ignored.
  */
-static uint32_t DetectEngineInspectHttpClientBodyMpmInspect(DetectEngineThreadCtx *det_ctx,
-                                                            Flow *f, HtpState *htp_state,
-                                                            int call_mpm) {
+static uint32_t DetectEngineInspectHttpClientBodyMpmInspect(DetectEngineCtx *de_ctx,
+                                                            DetectEngineThreadCtx *det_ctx,
+                                                            Signature *s, Flow *f,
+                                                            HtpState *htp_state)
+{
     uint32_t cnt = 0;
     size_t idx = 0;
     htp_tx_t *tx = NULL;
@@ -271,7 +271,8 @@ static uint32_t DetectEngineInspectHttpClientBodyMpmInspect(DetectEngineThreadCt
 
         /* if the buffer already exists, use it */
         if (det_ctx->hcbd_buffers[i] != NULL) {
-            if (call_mpm) {
+            /* we only call the mpm if the hcbd mpm has been set */
+            if (s->flags & SIG_FLAG_MPM_HCBDCONTENT) {
                 cnt += HttpClientBodyPatternSearch(det_ctx,
                                                    det_ctx->hcbd_buffers[i],
                                                    det_ctx->hcbd_buffers_len[i]);
@@ -279,7 +280,6 @@ static uint32_t DetectEngineInspectHttpClientBodyMpmInspect(DetectEngineThreadCt
             continue;
         }
 
-        tx = list_get(htp_state->connp->conn->transactions, idx);
         tx = list_get(htp_state->connp->conn->transactions, idx);
         if (tx == NULL)
             continue;
@@ -314,11 +314,11 @@ static uint32_t DetectEngineInspectHttpClientBodyMpmInspect(DetectEngineThreadCt
             }
 
             uint8_t *chunks_buffer = NULL;
-            uint32_t chunks_buffer_len = 0;
+            int32_t chunks_buffer_len = 0;
             while (cur != NULL) {
                 /* \todo Currently we limit the body length we inspect.  We
                  * should change to handling chunks statefully */
-                if (chunks_buffer_len > 20000)
+                if (chunks_buffer_len > de_ctx->hcbd_buffer_limit)
                     break;
                 chunks_buffer_len += cur->len;
                 if ( (chunks_buffer = SCRealloc(chunks_buffer, chunks_buffer_len)) == NULL) {
@@ -332,8 +332,8 @@ static uint32_t DetectEngineInspectHttpClientBodyMpmInspect(DetectEngineThreadCt
             det_ctx->hcbd_buffers[i] = chunks_buffer;
             det_ctx->hcbd_buffers_len[i] = chunks_buffer_len;
 
-            /* carry out the mpm */
-            if (call_mpm)
+            /* carry out the mpm if we have hcbd mpm set */
+            if (s->flags & SIG_FLAG_MPM_HCBDCONTENT)
                 cnt += HttpClientBodyPatternSearch(det_ctx, chunks_buffer, chunks_buffer_len);
         } /* else - if (htud->body.nchunks == 0) */
     } /* for (idx = AppLayerTransactionGetInspectId(f); .. */
@@ -395,31 +395,34 @@ int DetectEngineInspectHttpClientBody(DetectEngineCtx *de_ctx,
             goto end;
 
         /* assign space to hold buffers.  Each per transaction */
-        det_ctx->hcbd_buffers = malloc(det_ctx->hcbd_buffers_list_len * sizeof(uint8_t *));
+        det_ctx->hcbd_buffers = SCMalloc(det_ctx->hcbd_buffers_list_len * sizeof(uint8_t *));
         if (det_ctx->hcbd_buffers == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(EXIT_FAILURE);
+            goto end;
         }
         memset(det_ctx->hcbd_buffers, 0, det_ctx->hcbd_buffers_list_len * sizeof(uint8_t *));
 
-        det_ctx->hcbd_buffers_len = malloc(det_ctx->hcbd_buffers_list_len * sizeof(uint32_t));
+        det_ctx->hcbd_buffers_len = SCMalloc(det_ctx->hcbd_buffers_list_len * sizeof(uint32_t));
         if (det_ctx->hcbd_buffers_len == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            exit(EXIT_FAILURE);
+            goto end;
         }
         memset(det_ctx->hcbd_buffers_len, 0, det_ctx->hcbd_buffers_list_len * sizeof(uint32_t));
     } /* if (det_ctx->hcbd_buffers_list_len == 0) */
 
     if (s->flags & SIG_FLAG_MPM_HCBDCONTENT) {
         if (det_ctx->de_mpm_scanned_hcbd == FALSE) {
-            uint32_t cnt = DetectEngineInspectHttpClientBodyMpmInspect(det_ctx, f, htp_state, 1);
+            uint32_t cnt = DetectEngineInspectHttpClientBodyMpmInspect(de_ctx,
+                                                                       det_ctx, s,
+                                                                       f, htp_state);
             if (cnt <= 0)
                 det_ctx->de_have_hcbd = FALSE;
 
             det_ctx->de_mpm_scanned_hcbd = TRUE;
         }
     } else {
-        DetectEngineInspectHttpClientBodyMpmInspect(det_ctx, f, htp_state, 0);
+        DetectEngineInspectHttpClientBodyMpmInspect(de_ctx, det_ctx, s, f,
+                                                    htp_state);
     }
 
     if (det_ctx->de_have_hcbd == FALSE &&
@@ -455,6 +458,28 @@ end:
     SCMutexUnlock(&f->m);
     SCReturnInt(r);
 }
+
+/**
+ * \brief Clean the hcbd buffers.
+ *
+ * \param det_ctx Pointer to the detection engine thread ctx.
+ */
+void DetectEngineCleanHCBDBuffers(DetectEngineThreadCtx *det_ctx)
+{
+    if (det_ctx->hcbd_buffers_list_len != 0) {
+        int i;
+        for (i = 0; i < det_ctx->hcbd_buffers_list_len; i++) {
+            if (det_ctx->hcbd_buffers[i] != NULL)
+                SCFree(det_ctx->hcbd_buffers[i]);
+        }
+        SCFree(det_ctx->hcbd_buffers);
+        det_ctx->hcbd_buffers = NULL;
+        det_ctx->hcbd_buffers_list_len = 0;
+    }
+
+    return;
+}
+
 
 /***********************************Unittests**********************************/
 

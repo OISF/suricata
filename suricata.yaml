@@ -110,6 +110,9 @@ engine-analysis:
 # might end up taking too much time in the content inspection code.
 # If the argument specified is 0, the engine uses an internally defined
 # default limit.  On not specifying a value, we use no limits on the recursion.
+#
+# The option http-client-body-buffer-limit, is used to specify the buffer
+# limit for http request body we inspect.
 detect-engine:
   - profile: medium
   - custom-values:
@@ -123,6 +126,7 @@ detect-engine:
       toserver_dp_groups: 25
   - sgh-mpm-context: auto
   - inspection-recursion-limit: 3000
+  - http-client-request-body-buffer-limit: 20000
 
 # Suricata is multi-threaded. Here the threading can be influenced.
 threading:

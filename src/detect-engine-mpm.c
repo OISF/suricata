@@ -2330,8 +2330,9 @@ uint32_t DetectContentGetId(MpmPatternIdStore *ht, DetectContentData *co) {
     MpmPatternIdTableElmt *r = NULL;
     uint32_t id = 0;
 
-    e = malloc(sizeof(MpmPatternIdTableElmt));
+    e = SCMalloc(sizeof(MpmPatternIdTableElmt));
     BUG_ON(e == NULL);
+    memset(e, 0, sizeof(MpmPatternIdTableElmt));
     e->pattern = SCMalloc(co->content_len);
     BUG_ON(e->pattern == NULL);
     memcpy(e->pattern, co->content, co->content_len);
@@ -2379,7 +2380,7 @@ uint32_t DetectUricontentGetId(MpmPatternIdStore *ht, DetectContentData *co) {
     MpmPatternIdTableElmt *r = NULL;
     uint32_t id = 0;
 
-    e = malloc(sizeof(MpmPatternIdTableElmt));
+    e = SCMalloc(sizeof(MpmPatternIdTableElmt));
     BUG_ON(e == NULL);
     e->pattern = SCMalloc(co->content_len);
     BUG_ON(e->pattern == NULL);
@@ -2438,7 +2439,7 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_type)
     MpmPatternIdTableElmt *r = NULL;
     PatIntId id = 0;
 
-    e = malloc(sizeof(MpmPatternIdTableElmt));
+    e = SCMalloc(sizeof(MpmPatternIdTableElmt));
     if (e == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
