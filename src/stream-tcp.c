@@ -84,6 +84,8 @@ typedef struct StreamTcpThread_ {
     uint16_t counter_tcp_sessions;
     /** sessions not picked up because memcap was reached */
     uint16_t counter_tcp_ssn_memcap;
+    /** pseudo packets processed */
+    uint16_t counter_tcp_pseudo;
 
     TcpReassemblyThreadCtx *ra_ctx;         /**< tcp reassembly thread data */
 } StreamTcpThread;
@@ -1736,6 +1738,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
             if(ValidReset(ssn, p)) {
                 /* force both streams to reassemble, if necessary */
                 StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
+                SCPerfCounterIncr(stt->counter_tcp_pseudo, tv->sc_perf_pca);
 
                 if(PKT_IS_TOSERVER(p)) {
                     StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
@@ -2052,6 +2055,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
             if (ValidReset(ssn, p)) {
                 /* force both streams to reassemble, if necessary */
                 StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
+                SCPerfCounterIncr(stt->counter_tcp_pseudo, tv->sc_perf_pca);
 
                 StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
                 SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
@@ -2169,6 +2173,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
             if (ValidReset(ssn, p)) {
                 /* force both streams to reassemble, if necessary */
                 StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
+                SCPerfCounterIncr(stt->counter_tcp_pseudo, tv->sc_perf_pca);
 
                 StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
                 SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
@@ -2887,6 +2892,9 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
                                                         SC_PERF_TYPE_UINT64,
                                                         "NULL");
     stt->counter_tcp_ssn_memcap = SCPerfTVRegisterCounter("tcp.ssn_memcap_drop", tv,
+                                                        SC_PERF_TYPE_UINT64,
+                                                        "NULL");
+    stt->counter_tcp_pseudo = SCPerfTVRegisterCounter("tcp.pseudo", tv,
                                                         SC_PERF_TYPE_UINT64,
                                                         "NULL");
 
