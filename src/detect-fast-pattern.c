@@ -291,6 +291,13 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
             goto error;
         }
 
+        if (offset + length > cd->content_len) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Fast pattern (length + "
+                    "offset (%u)) exceeds pattern length (%u)",
+                    offset + length, cd->content_len);
+            goto error;
+        }
+
         cd->fp_chop_offset = offset;
         cd->fp_chop_len = length;
         cd->flags |= DETECT_CONTENT_FAST_PATTERN_CHOP;
