@@ -86,7 +86,12 @@ enum {
     DETECT_SM_LIST_AMATCH,
     DETECT_SM_LIST_DMATCH,
     DETECT_SM_LIST_TMATCH,
+    /* list for http_client_body keyword and the ones relative to it */
     DETECT_SM_LIST_HCBDMATCH,
+    /* list for http_header keyword and the ones relative to it */
+    DETECT_SM_LIST_HHDMATCH,
+    /* list for http_raw_header keyword and the ones relative to it */
+    DETECT_SM_LIST_HRHDMATCH,
     DETECT_SM_LIST_MAX,
 };
 
@@ -229,17 +234,23 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_AMATCH         0x00080000
 #define SIG_FLAG_DMATCH         0x00100000
 #define SIG_FLAG_HCBDMATCH      0x00200000
+#define SIG_FLAG_HHDMATCH       0x00400000
 
-#define SIG_FLAG_MPM_PACKET     0x00400000
-#define SIG_FLAG_MPM_PACKET_NEG 0x00800000
-#define SIG_FLAG_MPM_STREAM     0x01000000
-#define SIG_FLAG_MPM_STREAM_NEG 0x02000000
-#define SIG_FLAG_MPM_URICONTENT 0x04000000
-#define SIG_FLAG_MPM_URICONTENT_NEG 0x08000000
-#define SIG_FLAG_MPM_HCBDCONTENT 0x10000000
-#define SIG_FLAG_MPM_HCBDCONTENT_NEG 0x20000000
+#define SIG_FLAG_MPM_PACKET     0x00800000
+#define SIG_FLAG_MPM_PACKET_NEG 0x01000000
+#define SIG_FLAG_MPM_STREAM     0x02000000
+#define SIG_FLAG_MPM_STREAM_NEG 0x04000000
+#define SIG_FLAG_MPM_URICONTENT 0x08000000
+#define SIG_FLAG_MPM_URICONTENT_NEG 0x10000000
+#define SIG_FLAG_MPM_HCBDCONTENT 0x20000000
+#define SIG_FLAG_MPM_HCBDCONTENT_NEG 0x40000000
 
-#define SIG_FLAG_HAS_NO_PKT_AND_STREAM_CONTENT 0x40000000
+#define SIG_FLAG_HAS_NO_PKT_AND_STREAM_CONTENT 0x80000000
+
+/* the mpm specific flags in Signature, held in Signature->mpm_flags */
+#define SIG_FLAG_MPM_HHDCONTENT 0x00000001
+#define SIG_FLAG_MPM_HHDCONTENT_NEG 0x00000002
+
 
 /* signature mask flags */
 #define SIG_MASK_REQUIRE_PAYLOAD    0x01
@@ -338,6 +349,9 @@ typedef struct Signature_ {
         uint64_t hdr_copy2;
     };
 
+    /* mpm flags */
+    uint32_t mpm_flags;
+
     //PatIntId mpm_pattern_id;
     //PatIntId mpm_stream_pattern_id;
 
@@ -356,6 +370,7 @@ typedef struct Signature_ {
     /** pattern in the mpm matcher */
     PatIntId mpm_uripattern_id;
     PatIntId mpm_hcbdpattern_id;
+    PatIntId mpm_hhdpattern_id;
 
     /* the fast pattern added from this signature */
     SigMatch *mpm_sm;
@@ -609,6 +624,7 @@ typedef struct DetectEngineCtx_ {
     /* maximum recursion depth for content inspection */
     int inspection_recursion_limit;
 
+    /* conf parameter that limits the length of the http request body inspected */
     int hcbd_buffer_limit;
 
     /* array containing all sgh's in use so we can loop
@@ -621,6 +637,7 @@ typedef struct DetectEngineCtx_ {
     int32_t sgh_mpm_context_stream;
     int32_t sgh_mpm_context_uri;
     int32_t sgh_mpm_context_hcbd;
+    int32_t sgh_mpm_context_hhd;
     int32_t sgh_mpm_context_app_proto_detect;
 
     /** sgh for signatures that match against invalid packets. In those cases
@@ -668,9 +685,17 @@ typedef struct DetectionEngineThreadCtx_ {
     char de_have_hcbd;
     char de_mpm_scanned_hcbd;
 
+    /* detectione engine context for hhd mpm */
+    char de_have_hhd;
+    char de_mpm_scanned_hhd;
+
     uint8_t **hcbd_buffers;
     uint32_t *hcbd_buffers_len;
     uint16_t hcbd_buffers_list_len;
+
+    uint8_t **hhd_buffers;
+    uint32_t *hhd_buffers_len;
+    uint16_t hhd_buffers_list_len;
 
     /** id for alert counter */
     uint16_t counter_alerts;
@@ -763,11 +788,12 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HAVEURICONTENT        0x0002
 #define SIG_GROUP_HAVESTREAMCONTENT     0x0004
 #define SIG_GROUP_HAVEHCBDCONTENT       0x0008
-#define SIG_GROUP_HEAD_MPM_COPY         0x0010
-#define SIG_GROUP_HEAD_MPM_URI_COPY     0x0020
-#define SIG_GROUP_HEAD_MPM_STREAM_COPY  0x0040
-#define SIG_GROUP_HEAD_FREE             0x0080
-#define SIG_GROUP_HEAD_REFERENCED       0x0100 /**< sgh is being referenced by others, don't clear */
+#define SIG_GROUP_HAVEHHDCONTENT        0x0010
+#define SIG_GROUP_HEAD_MPM_COPY         0x0020
+#define SIG_GROUP_HEAD_MPM_URI_COPY     0x0040
+#define SIG_GROUP_HEAD_MPM_STREAM_COPY  0x0080
+#define SIG_GROUP_HEAD_FREE             0x0100
+#define SIG_GROUP_HEAD_REFERENCED       0x0200 /**< sgh is being referenced by others, don't clear */
 
 typedef struct SigGroupHeadInitData_ {
     /* list of content containers
@@ -810,6 +836,7 @@ typedef struct SigGroupHead_ {
     MpmCtx *mpm_stream_ctx;
     MpmCtx *mpm_uri_ctx;
     MpmCtx *mpm_hcbd_ctx;
+    MpmCtx *mpm_hhd_ctx;
     uint16_t mpm_uricontent_maxlen;
     uint16_t pad1;
 #if __WORDSIZE == 64

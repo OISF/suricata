@@ -21,7 +21,7 @@
  * \author Victor Julien <victor@inliniac.net>
  * \author Anoop Saldanha <poonaatsoc@gmail.com>
  *
- * Implements the depth keyword
+ * Implements the depth keyword.
  */
 
 #include "suricata-common.h"
@@ -60,9 +60,9 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
     DetectContentData *ud = NULL;
 
     /* strip "'s */
-    if (depthstr[0] == '\"' && depthstr[strlen(depthstr)-1] == '\"') {
-        str = SCStrdup(depthstr+1);
-        str[strlen(depthstr)-2] = '\0';
+    if (depthstr[0] == '\"' && depthstr[strlen(depthstr) - 1] == '\"') {
+        str = SCStrdup(depthstr + 1);
+        str[strlen(depthstr) - 2] = '\0';
         dubbed = 1;
     }
 
@@ -83,13 +83,15 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
             break;
 
         default:
-            pm =  SigMatchGetLastSMFromLists(s, 6,
+            pm =  SigMatchGetLastSMFromLists(s, 8,
                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                              DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-                                             DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]);
+                                             DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+                                             DETECT_AL_HTTP_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]);
             if (pm == NULL) {
                 SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs "
-                           "preceeding content or uricontent option or http_client_body option");
+                           "preceeding content, uricontent option, http_client_body "
+                           "or http_header option");
                 if (dubbed)
                     SCFree(str);
                 return -1;
@@ -196,12 +198,38 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
 
             break;
 
+        case DETECT_AL_HTTP_HEADER:
+            cd = (DetectContentData *)pm->ctx;
+            if (cd->flags & DETECT_CONTENT_NEGATED) {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "negated keyword set along with a fast_pattern");
+                    goto error;
+                }
+            } else {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "keyword set along with a fast_pattern:only;");
+                    goto error;
+                }
+            }
+
+            cd->depth = (uint32_t)atoi(str);
+            if (cd->depth < cd->content_len) {
+                cd->depth = cd->content_len;
+                SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
+                           cd->depth);
+            }
+            /* Now update the real limit, as depth is relative to the offset */
+            cd->depth += cd->offset;
+            cd->flags |= DETECT_CONTENT_DEPTH;
+
+            break;
+
         default:
             SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs a preceeding "
                     "content (or uricontent) option");
-            if (dubbed) SCFree(str);
-                return -1;
-        break;
+            goto error;
     }
 
     if (dubbed)

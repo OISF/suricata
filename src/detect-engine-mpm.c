@@ -263,12 +263,14 @@ uint32_t UriPatternSearch(DetectEngineThreadCtx *det_ctx,
     SCReturnUInt(ret);
 }
 
-/** \brief Uri Pattern match -- searches for one pattern per signature.
+/** \brief Http client body pattern match -- searches for one pattern per
+ *         signature.
  *
- *  \param det_ctx detection engine thread ctx
- *  \param p packet to inspect
+ *  \param det_ctx  Detection engine thread ctx.
+ *  \param body     The request body to inspect.
+ *  \param body_len Body length.
  *
- *  \retval ret number of matches
+ *  \retval ret Number of matches.
  */
 uint32_t HttpClientBodyPatternSearch(DetectEngineThreadCtx *det_ctx,
                                      uint8_t *body, uint32_t body_len)
@@ -282,6 +284,31 @@ uint32_t HttpClientBodyPatternSearch(DetectEngineThreadCtx *det_ctx,
     ret = mpm_table[det_ctx->sgh->mpm_hcbd_ctx->mpm_type].
         Search(det_ctx->sgh->mpm_hcbd_ctx, &det_ctx->mtcu,
                &det_ctx->pmq, body, body_len);
+
+    SCReturnUInt(ret);
+}
+
+/**
+ * \brief Http header match -- searches for one pattern per signature.
+ *
+ * \param det_ctx     Detection engine thread ctx.
+ * \param headers     Headers to inspect.
+ * \param headers_len Headers length.
+ *
+ *  \retval ret Number of matches.
+ */
+uint32_t HttpHeaderPatternSearch(DetectEngineThreadCtx *det_ctx,
+                                 uint8_t *headers, uint32_t headers_len)
+{
+    SCEnter();
+
+    if (det_ctx->sgh->mpm_hhd_ctx == NULL)
+        SCReturnUInt(0);
+
+    uint32_t ret;
+    ret = mpm_table[det_ctx->sgh->mpm_hhd_ctx->mpm_type].
+        Search(det_ctx->sgh->mpm_hhd_ctx, &det_ctx->mtcu,
+               &det_ctx->pmq, headers, headers_len);
 
     SCReturnUInt(ret);
 }
@@ -581,6 +608,7 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
         DetectContentData *cd = NULL;
         DetectContentData *ud = NULL;
         DetectContentData *hcbd = NULL;
+        DetectContentData *hhd = NULL;
         switch (mpm_sm->type) {
         case DETECT_CONTENT:
             {
@@ -731,7 +759,7 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                         }
                     } /* else - if (ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
 
-                    /* add the content to the "packet" mpm */
+                    /* add the content to the "uri" mpm */
                     if (ud->flags & DETECT_CONTENT_NOCASE) {
                         mpm_table[sgh->mpm_uri_ctx->mpm_type].
                             AddPatternNocase(sgh->mpm_uri_ctx,
@@ -757,7 +785,7 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
             {
                 hcbd = (DetectContentData *)mpm_sm->ctx;
                 if (hcbd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
-                    /* add the content to the "uri" mpm */
+                    /* add the content to the "hcbd" mpm */
                     if (hcbd->flags & DETECT_CONTENT_NOCASE) {
                         mpm_table[sgh->mpm_hcbd_ctx->mpm_type].
                             AddPatternNocase(sgh->mpm_hcbd_ctx,
@@ -784,7 +812,7 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                         }
                     } /* else - if (hcbd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
 
-                    /* add the content to the "packet" mpm */
+                    /* add the content to the "hcbd" mpm */
                     if (hcbd->flags & DETECT_CONTENT_NOCASE) {
                         mpm_table[sgh->mpm_hcbd_ctx->mpm_type].
                             AddPatternNocase(sgh->mpm_hcbd_ctx,
@@ -805,6 +833,59 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
 
                 break;
             } /* case DETECT_AL_HTTP_CLIENT_BODY */
+
+        case DETECT_AL_HTTP_HEADER:
+            {
+                hhd = (DetectContentData *)mpm_sm->ctx;
+                if (hhd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+                    /* add the content to the "hhd" mpm */
+                    if (hhd->flags & DETECT_CONTENT_NOCASE) {
+                        mpm_table[sgh->mpm_hhd_ctx->mpm_type].
+                            AddPatternNocase(sgh->mpm_hhd_ctx,
+                                             hhd->content + hhd->fp_chop_offset,
+                                             hhd->fp_chop_len,
+                                             0, 0, hhd->id, s->num, flags);
+                    } else {
+                        mpm_table[sgh->mpm_hhd_ctx->mpm_type].
+                            AddPattern(sgh->mpm_hhd_ctx,
+                                       hhd->content + hhd->fp_chop_offset,
+                                       hhd->fp_chop_len,
+                                       0, 0, hhd->id, s->num, flags);
+                    }
+                } else {
+                    if (hhd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                        if (DETECT_CONTENT_IS_SINGLE(hhd)) {
+                            hhd->flags |= DETECT_CONTENT_HHD_MPM;
+                        }
+
+                        /* see if we can bypass the match validation for this pattern */
+                    } else {
+                        if (DETECT_CONTENT_IS_SINGLE(hhd)) {
+                            hhd->flags |= DETECT_CONTENT_HHD_MPM;
+                        }
+                    } /* else - if (hhd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
+
+                    /* add the content to the "hhd" mpm */
+                    if (hhd->flags & DETECT_CONTENT_NOCASE) {
+                        mpm_table[sgh->mpm_hhd_ctx->mpm_type].
+                            AddPatternNocase(sgh->mpm_hhd_ctx,
+                                             hhd->content, hhd->content_len,
+                                             0, 0, hhd->id, s->num, flags);
+                    } else {
+                        mpm_table[sgh->mpm_hhd_ctx->mpm_type].
+                            AddPattern(sgh->mpm_hhd_ctx,
+                                       hhd->content, hhd->content_len,
+                                       0, 0, hhd->id, s->num, flags);
+                    }
+                }
+                /* tell matcher we are inspecting uri */
+                s->mpm_flags |= SIG_FLAG_MPM_HHDCONTENT;
+                s->mpm_hhdpattern_id = hhd->id;
+                if (hhd->flags & DETECT_CONTENT_NEGATED)
+                    s->mpm_flags |= SIG_FLAG_MPM_HHDCONTENT_NEG;
+
+                break;
+            } /* case DETECT_AL_HTTP_HEADER */
 
         } /* switch (mpm_sm->type) */
 
@@ -1853,7 +1934,10 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     uint32_t has_co_packet = 0; /**< our sgh has packet payload inspecting content */
     uint32_t has_co_stream = 0; /**< our sgh has stream inspecting content */
     uint32_t has_co_uri = 0;    /**< our sgh has uri inspecting content */
+    /* used to indicate if sgh has atleast one sig with http_client_body */
     uint32_t has_co_hcbd = 0;
+    /* used to indicate if sgh has atleast one sig with http_header */
+    uint32_t has_co_hhd = 0;
     //uint32_t cnt = 0;
     uint32_t sig = 0;
 
@@ -1888,6 +1972,11 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         if (s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL) {
             has_co_hcbd = 1;
         }
+
+        if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL) {
+            has_co_hhd = 1;
+        }
+
     }
 
     if (has_co_packet > 0) {
@@ -1901,6 +1990,9 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     }
     if (has_co_hcbd > 0) {
         sh->flags |= SIG_GROUP_HAVEHCBDCONTENT;
+    }
+    if (has_co_hhd > 0) {
+        sh->flags |= SIG_GROUP_HAVEHHDCONTENT;
     }
 
     /* intialize contexes */
@@ -1965,7 +2057,7 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             sh->mpm_hcbd_ctx = MpmFactoryGetMpmCtxForProfile(MPM_CTX_FACTORY_UNIQUE_CONTEXT);
         }
         if (sh->mpm_hcbd_ctx == NULL) {
-            SCLogDebug("sh->mpm_stream_ctx == NULL. This should never happen");
+            SCLogDebug("sh->mpm_hcbd_ctx == NULL. This should never happen");
             exit(EXIT_FAILURE);
         }
 
@@ -1973,6 +2065,24 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         MpmInitCtx(sh->mpm_hcbd_ctx, de_ctx->mpm_matcher, -1);
 #else
         MpmInitCtx(sh->mpm_hcbd_ctx, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
+#endif
+    }
+
+    if (sh->flags & SIG_GROUP_HAVEHHDCONTENT) {
+        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
+            sh->mpm_hhd_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_hhd);
+        } else {
+            sh->mpm_hhd_ctx = MpmFactoryGetMpmCtxForProfile(MPM_CTX_FACTORY_UNIQUE_CONTEXT);
+        }
+        if (sh->mpm_hhd_ctx == NULL) {
+            SCLogDebug("sh->mpm_hhd_ctx == NULL. This should never happen");
+            exit(EXIT_FAILURE);
+        }
+
+#ifndef __SC_CUDA_SUPPORT__
+        MpmInitCtx(sh->mpm_hhd_ctx, de_ctx->mpm_matcher, -1);
+#else
+        MpmInitCtx(sh->mpm_hhd_ctx, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
 #endif
     }
 
@@ -2108,7 +2218,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     if (sh->flags & SIG_GROUP_HAVECONTENT ||
         sh->flags & SIG_GROUP_HAVESTREAMCONTENT ||
         sh->flags & SIG_GROUP_HAVEURICONTENT ||
-        sh->flags & SIG_GROUP_HAVEHCBDCONTENT) {
+        sh->flags & SIG_GROUP_HAVEHCBDCONTENT ||
+        sh->flags & SIG_GROUP_HAVEHHDCONTENT) {
 
         PatternMatchPreparePopulateMpm(de_ctx, sh);
 
@@ -2157,6 +2268,18 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                     }
                 }
             }
+            if (sh->mpm_hhd_ctx != NULL) {
+                if (sh->mpm_hhd_ctx->pattern_cnt == 0) {
+                    MpmFactoryReClaimMpmCtx(sh->mpm_hhd_ctx);
+                    sh->mpm_hhd_ctx = NULL;
+                } else {
+                    if (sh->flags & SIG_GROUP_HAVEHHDCONTENT) {
+                        if (mpm_table[sh->mpm_hhd_ctx->mpm_type].Prepare != NULL)
+                            mpm_table[sh->mpm_hhd_ctx->mpm_type].Prepare(sh->mpm_hhd_ctx);
+                    }
+                }
+            }
+
         } /* if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) */
     } else {
         MpmFactoryReClaimMpmCtx(sh->mpm_ctx);
@@ -2167,6 +2290,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         sh->mpm_uri_ctx = NULL;
         MpmFactoryReClaimMpmCtx(sh->mpm_hcbd_ctx);
         sh->mpm_hcbd_ctx = NULL;
+        MpmFactoryReClaimMpmCtx(sh->mpm_hhd_ctx);
+        sh->mpm_hhd_ctx = NULL;
     }
 
     ///* uricontent */

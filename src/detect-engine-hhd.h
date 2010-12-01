@@ -20,15 +20,13 @@
  * \author Anoop Saldanha <poonaatsoc@gmail.com>
  */
 
-#ifndef __DETECT_ENGINE_HCBD_H__
-#define __DETECT_ENGINE_HCBD_H__
+#ifndef __DETECT_ENGINE_HHD_H__
+#define __DETECT_ENGINE_HHD_H__
 
-#define ENGINE_HCBD_BUFFER_LIMIT 20000
+int DetectEngineInspectHttpHeader(DetectEngineCtx *, DetectEngineThreadCtx *,
+                                  Signature *, Flow *, uint8_t, void *);
+void DetectEngineCleanHHDBuffers(DetectEngineThreadCtx *);
+void DetectEngineHttpHeaderRegisterTests(void);
 
-int DetectEngineInspectHttpClientBody(DetectEngineCtx *, DetectEngineThreadCtx *,
-                                      Signature *, Flow *, uint8_t, void *);
-void DetectEngineCleanHCBDBuffers(DetectEngineThreadCtx *);
-void DetectEngineHttpClientBodyRegisterTests(void);
-
-#endif /* __DETECT_ENGINE_HCBD_H__ */
+#endif /* __DETECT_ENGINE_HHD_H__ */
 

@@ -123,7 +123,8 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                     SigMatchTransferSigMatchAcrossLists(pm1,
                                                         &s->sm_lists[DETECT_SM_LIST_PMATCH],
                                                         &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                                        &s->sm_lists[DETECT_SM_LIST_DMATCH], &s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
+                                                        &s->sm_lists[DETECT_SM_LIST_DMATCH],
+                                                        &s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
                     pm = pm1;
                 } else {
                     /* within is against pm1 and we continue this way */
@@ -137,7 +138,8 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 SigMatchTransferSigMatchAcrossLists(pm1,
                                                     &s->sm_lists[DETECT_SM_LIST_PMATCH],
                                                     &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                                    &s->sm_lists[DETECT_SM_LIST_DMATCH], &s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
+                                                    &s->sm_lists[DETECT_SM_LIST_DMATCH],
+                                                    &s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
                 pm = pm1;
             } else {
                 /* within is against pm1 and we continue this way */
@@ -164,14 +166,15 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
             }
         }
     } else {
-        pm = SigMatchGetLastSMFromLists(s, 6,
+        pm = SigMatchGetLastSMFromLists(s, 8,
                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                         DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-                                        DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]);
-
+                                        DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+                                        DETECT_AL_HTTP_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]);
         if (pm == NULL) {
             SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs"
-                       "preceeding content or uricontent option or http_client_body options");
+                       "preceeding content, uricontent option, http_client_body "
+                       "or http_header option");
             if (dubbed)
                 SCFree(str);
             return -1;
@@ -389,6 +392,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
 
             cd->flags |= DETECT_CONTENT_DISTANCE;
 
+            /* reassigning pm */
             pm = SigMatchGetLastSMFromLists(s, 2,
                                             DETECT_AL_HTTP_CLIENT_BODY, pm->prev);
             if (pm == NULL) {
@@ -396,7 +400,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                            "needs preceeding http_client_body content");
                 goto error;
             }
-
+            /* reassigning cd */
             cd = (DetectContentData *)pm->ctx;
             if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "Previous keyword "
@@ -405,22 +409,68 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                            "only content");
                 goto error;
             }
-            ((DetectContentData *)pm->ctx)->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+            cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+
+            break;
+
+        case DETECT_AL_HTTP_HEADER:
+            cd = (DetectContentData *)pm->ctx;
+            if (cd->flags & DETECT_CONTENT_NEGATED) {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "negated keyword set along with a fast_pattern");
+                    goto error;
+                }
+            } else {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "keyword set along with a fast_pattern:only;");
+                    goto error;
+                }
+            }
+
+            cd->distance = strtol(str, NULL, 10);
+            if (cd->flags & DETECT_CONTENT_WITHIN) {
+                if ((cd->distance + cd->content_len) > cd->within) {
+                    cd->within = cd->distance + cd->content_len;
+                }
+            }
+            cd->flags |= DETECT_CONTENT_DISTANCE;
+
+            /* reassigning pm */
+            pm = SigMatchGetLastSMFromLists(s, 2,
+                                            DETECT_AL_HTTP_HEADER, pm->prev);
+            if (pm == NULL) {
+                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance for http_header "
+                           "needs preceeding http_header content");
+                goto error;
+            }
+            /* reassigning cd */
+            cd = (DetectContentData *)pm->ctx;
+            if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Previous keyword "
+                           "has a fast_pattern:only; set.  You can't "
+                           "have relative keywords around a fast_pattern "
+                           "only content");
+                goto error;
+            }
+            cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
 
             break;
 
         default:
             SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two "
                        "preceeding content or uricontent options");
-            if (dubbed) SCFree(str);
-                return -1;
-        break;
+            goto error;
     }
 
-    if (dubbed) SCFree(str);
+    if (dubbed)
+        SCFree(str);
     return 0;
+
 error:
-    if (dubbed) SCFree(str);
+    if (dubbed)
+        SCFree(str);
     return -1;
 }
 

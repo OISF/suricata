@@ -188,20 +188,11 @@ int DetectHttpClientBodyMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  */
 int DetectHttpClientBodySetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
-    /* http_client_body_data (hcbd) */
-    DetectContentData *hcbd = NULL;
-    SigMatch *nm = NULL;
+    DetectContentData *cd = NULL;
     SigMatch *sm = NULL;
 
     if (arg != NULL && strcmp(arg, "") != 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "http_client_body supplied with no "
-                   "args");
-        return -1;
-    }
-
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "http_client_body found inside the "
-                   "rule, without any preceding content keywords");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "http_client_body supplied with args");
         return -1;
     }
 
@@ -216,19 +207,21 @@ int DetectHttpClientBodySetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         return -1;
     }
 
+    cd = (DetectContentData *)sm->ctx;
+
     /* http_client_body should not be used with the rawbytes rule */
-    if ( ((DetectContentData *)sm->ctx)->flags & DETECT_CONTENT_RAWBYTES) {
+    if (cd->flags & DETECT_CONTENT_RAWBYTES) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "http_client_body rule can not "
                    "be used with the rawbytes rule keyword");
         return -1;
     }
 
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords");
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains a non http "
+                   "alproto set");
         goto error;
     }
 
-    DetectContentData *cd = (DetectContentData *)sm->ctx;
     if (cd->flags & DETECT_CONTENT_WITHIN || cd->flags & DETECT_CONTENT_DISTANCE) {
         SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
                                                    DETECT_CONTENT, sm->prev,
@@ -272,11 +265,11 @@ int DetectHttpClientBodySetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     return 0;
 
 error:
-    if (hcbd != NULL)
-        DetectHttpClientBodyFree(hcbd);
+    if (cd != NULL)
+        DetectHttpClientBodyFree(cd);
 
-        if(nm != NULL)
-        SCFree(nm);
+    if (sm != NULL)
+        SCFree(sm);
 
     return -1;
 }

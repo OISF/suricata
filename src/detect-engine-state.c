@@ -32,6 +32,7 @@
 
 #include "detect-engine-uri.h"
 #include "detect-engine-hcbd.h"
+#include "detect-engine-hhd.h"
 #include "detect-engine-dcepayload.h"
 
 #include "stream-tcp.h"
@@ -204,7 +205,9 @@ int DeStateUpdateInspectTransactionId(Flow *f, char direction) {
  * \param dce did dce already match (if any)
  * \param hcbd did http client body already match (if any)
  */
-static void DeStateSignatureAppend(DetectEngineState *state, Signature *s, SigMatch *sm, char uri, char dce, char hcbd) {
+static void DeStateSignatureAppend(DetectEngineState *state, Signature *s,
+                                   SigMatch *sm, char uri, char dce, char hcbd,
+                                   char hhd) {
     DeStateStore *store = state->tail;
 
     if (store == NULL) {
@@ -240,6 +243,9 @@ static void DeStateSignatureAppend(DetectEngineState *state, Signature *s, SigMa
     }
     if (hcbd) {
         store->store[idx].flags |= DE_STATE_FLAG_HCBD_MATCH;
+    }
+    if (hhd) {
+        store->store[idx].flags |= DE_STATE_FLAG_HHD_MATCH;
     }
     store->store[idx].nm = sm;
     state->cnt++;
@@ -302,6 +308,8 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     char uinspect = 0;
     char hcbdmatch = 0;
     char hcbdinspect = 0;
+    char hhdmatch = 0;
+    char hhdinspect = 0;
     char dmatch = 0;
     char dinspect = 0;
     char appinspect = 0;
@@ -313,7 +321,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
     SCLogDebug("s->id %"PRIu32, s->id);
 
-    /* Check the uricontent keywords here. */
+    /* Check the uricontent, http client body, http header keywords here */
     if (alproto == ALPROTO_HTTP && (flags & STREAM_TOSERVER)) {
         if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
             uinspect = 1;
@@ -337,6 +345,15 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             }
             SCLogDebug("inspecting http client body");
         }
+        if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL) {
+            hhdinspect = 1;
+            if (DetectEngineInspectHttpHeader(de_ctx, det_ctx, s, f,
+                                              flags, alstate) == 1) {
+                hhdmatch = 1;
+            }
+            SCLogDebug("inspecting http client body");
+        }
+
     } else if (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
         if (s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL) {
             dinspect = 1;
@@ -367,8 +384,8 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         }
     }
 
-    appinspect = uinspect + dinspect + hcbdinspect;
-    appmatch = umatch + dmatch + hcbdmatch;
+    appinspect = uinspect + dinspect + hcbdinspect + hhdinspect;
+    appmatch = umatch + dmatch + hcbdmatch + hhdmatch;
 
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL) {
         for ( ; sm != NULL; sm = sm->next) {
@@ -410,8 +427,8 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         }
     }
 
-    SCLogDebug("detection done, store results: sm %p, uri %d, dce %d, hcbd %d",
-               sm, umatch, dmatch, hcbdmatch);
+    SCLogDebug("detection done, store results: sm %p, uri %d, dce %d, hcbd %d "
+               "hhd %d", sm, umatch, dmatch, hcbdmatch, hhdmatch);
 
     SCMutexLock(&f->de_state_m);
     /* match or no match, we store the state anyway
@@ -421,7 +438,8 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         f->de_state = DetectEngineStateAlloc();
     }
     if (f->de_state != NULL) {
-        DeStateSignatureAppend(f->de_state, s, sm, umatch, dmatch, hcbdmatch);
+        /* \todo shift to an array to transfer these match values*/
+        DeStateSignatureAppend(f->de_state, s, sm, umatch, dmatch, hcbdmatch, hhdmatch);
     }
 
     SCMutexUnlock(&f->de_state_m);
@@ -445,6 +463,8 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
     char uinspect = 0;
     char hcbdmatch = 0;
     char hcbdinspect = 0;
+    char hhdmatch = 0;
+    char hhdinspect = 0;
     char dmatch = 0;
     char dinspect = 0;
     char appinspect = 0;
@@ -473,6 +493,8 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
             uinspect = 0;
             hcbdmatch = 0;
             hcbdinspect = 0;
+            hhdmatch = 0;
+            hhdinspect = 0;
             dmatch = 0;
             dinspect = 0;
             appinspect = 0;
@@ -523,9 +545,22 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
 
                         if (DetectEngineInspectHttpClientBody(de_ctx, det_ctx, s, f,
                                                               flags, alstate) == 1) {
-                            SCLogDebug("uri matched");
+                            SCLogDebug("http client body matched");
                             item->flags |= DE_STATE_FLAG_HCBD_MATCH;
                             hcbdmatch = 1;
+                        }
+                    }
+                }
+                if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL) {
+                    if (!(item->flags & DE_STATE_FLAG_HHD_MATCH)) {
+                        SCLogDebug("inspecting http header data");
+                        hhdinspect = 1;
+
+                        if (DetectEngineInspectHttpHeader(de_ctx, det_ctx, s, f,
+                                                          flags, alstate) == 1) {
+                            SCLogDebug("http header matched");
+                            item->flags |= DE_STATE_FLAG_HHD_MATCH;
+                            hhdmatch = 1;
                         }
                     }
                 }
@@ -566,8 +601,8 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
 
             }
 
-            appinspect = uinspect + dinspect + hcbdinspect;
-            appmatch = umatch + dmatch + hcbdmatch;
+            appinspect = uinspect + dinspect + hcbdinspect + hhdinspect;
+            appmatch = umatch + dmatch + hcbdmatch + hhdmatch;
             SCLogDebug("appinspect %d, appmatch %d", appinspect, appmatch);
 
             /* next, check the other sig matches */
@@ -707,39 +742,39 @@ static int DeStateTest02(void) {
     memset(&s, 0x00, sizeof(s));
 
     s.num = 0;
-    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0);
+    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0, 0);
     s.num = 11;
-    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0);
+    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0, 0);
     s.num = 22;
-    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0);
+    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0, 0);
     s.num = 33;
-    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0);
+    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0, 0);
     s.num = 44;
-    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0);
+    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0, 0);
     s.num = 55;
-    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0);
+    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0, 0);
     s.num = 66;
-    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0);
+    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0, 0);
     s.num = 77;
-    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0);
+    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0, 0);
     s.num = 88;
-    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0);
+    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0, 0);
     s.num = 99;
-    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0);
+    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0, 0);
     s.num = 100;
-    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0);
+    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0, 0);
     s.num = 111;
-    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0);
+    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0, 0);
     s.num = 122;
-    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0);
+    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0, 0);
     s.num = 133;
-    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0);
+    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0, 0);
     s.num = 144;
-    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0);
+    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0, 0);
     s.num = 155;
-    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0);
+    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0, 0);
     s.num = 166;
-    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0);
+    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0, 0);
 
     if (state->head == NULL) {
         goto end;
@@ -782,9 +817,9 @@ static int DeStateTest03(void) {
     memset(&s, 0x00, sizeof(s));
 
     s.num = 11;
-    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0);
+    DeStateSignatureAppend(state, &s, NULL, 0, 0, 0, 0);
     s.num = 22;
-    DeStateSignatureAppend(state, &s, NULL, 1, 0, 0);
+    DeStateSignatureAppend(state, &s, NULL, 1, 0, 0, 0);
 
     if (state->head == NULL) {
         goto end;

@@ -29,8 +29,6 @@
 #include "detect-engine-mpm.h"
 #include "detect-parse.h"
 #include "detect-engine-state.h"
-#include "detect-uricontent.h"
-#include "detect-urilen.h"
 #include "detect-pcre.h"
 #include "detect-isdataat.h"
 #include "detect-bytetest.h"
@@ -208,8 +206,8 @@ static int DoInspectHttpClientBody(DetectEngineCtx *de_ctx,
                 BUG_ON(sm->next == NULL);
 
                 /* see if the next payload keywords match. If not, we will
-                 * search for another occurence of this uricontent and see
-                 * if the others match then until we run out of matches */
+                 * search for another occurence of this http client body content
+                 * and see if the others match then until we run out of matches */
                 int r = DoInspectHttpClientBody(de_ctx, det_ctx, s, sm->next,
                                                 payload, payload_len);
                 if (r == 1) {
@@ -2681,7 +2679,7 @@ end:
 
 #endif /* UNITTESTS */
 
-void HttpClientBodyRegisterTests(void)
+void DetectEngineHttpClientBodyRegisterTests(void)
 {
 
 #ifdef UNITTESTS

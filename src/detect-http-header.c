@@ -21,8 +21,6 @@
  * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
  *
  * Implements support for http_header keyword.
- *
- * \todo this is actually the raw match.
  */
 
 #include "suricata-common.h"
@@ -35,6 +33,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 #include "detect-content.h"
+#include "detect-pcre.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -73,23 +72,6 @@ void DetectHttpHeaderRegister(void)
     sigmatch_table[DETECT_AL_HTTP_HEADER].RegisterTests = DetectHttpHeaderRegisterTests;
 
     sigmatch_table[DETECT_AL_HTTP_HEADER].flags |= SIGMATCH_PAYLOAD ;
-}
-
-/**
- * \brief Registers the keyword handlers for the "http_raw_header" keyword.
- */
-void DetectHttpRawHeaderRegister(void)
-{
-    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].name = "http_raw_header";
-    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].Match = NULL;
-    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].AppLayerMatch = DetectHttpHeaderMatch;
-    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].alproto = ALPROTO_HTTP;
-    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].Setup = DetectHttpHeaderSetup;
-    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].Free  = DetectHttpHeaderFree;
-    //sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].RegisterTests = DetectHttpHeaderRegisterTests;
-    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].RegisterTests = NULL;
-
-    sigmatch_table[DETECT_AL_HTTP_RAW_HEADER].flags |= SIGMATCH_PAYLOAD ;
 }
 
 /**
@@ -194,23 +176,16 @@ void DetectHttpHeaderFree(void *ptr)
  */
 int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
-    /* http_header_data (hhd) */
-    DetectContentData *hhd = NULL;
-    SigMatch *nm = NULL;
+    DetectContentData *cd = NULL;
     SigMatch *sm = NULL;
 
     if (arg != NULL && strcmp(arg, "") != 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "http_header supplied with no args");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "http_header supplied with args");
         return -1;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "http_header found inside the "
-                   "rule, without any preceding content keywords");
-        return -1;
-    }
-
-    sm = DetectContentGetLastPattern(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+    sm =  SigMatchGetLastSMFromLists(s, 2,
+                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
     /* if still we are unable to find any content previous keywords, it is an
      * invalid rule */
     if (sm == NULL) {
@@ -221,59 +196,57 @@ int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         return -1;
     }
 
-    if (((DetectContentData *)sm->ctx)->flags & DETECT_CONTENT_FAST_PATTERN) {
-        SCLogWarning(SC_WARN_COMPATIBILITY,
-                   "http_header cannot be used with \"fast_pattern\" currently."
-                   "Unsetting fast_pattern on this modifier. Signature ==> %s", s->sig_str);
-        ((DetectContentData *)sm->ctx)->flags &= ~DETECT_CONTENT_FAST_PATTERN;
-    }
+    /* cast for further use */
+    cd = (DetectContentData *)sm->ctx;
 
     /* http_header should not be used with the rawbytes rule */
-    if (((DetectContentData *)sm->ctx)->flags & DETECT_CONTENT_RAWBYTES) {
+    if (cd->flags & DETECT_CONTENT_RAWBYTES) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "http_header rule can not "
                    "be used with the rawbytes rule keyword");
         return -1;
     }
 
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords");
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains a non http "
+                   "alproto set");
         goto error;
     }
 
-    /* setup the HttpHeaderData's data from content data structure's data */
-    hhd = SCMalloc(sizeof(DetectContentData));
-    if (hhd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
+    if (cd->flags & DETECT_CONTENT_WITHIN || cd->flags & DETECT_CONTENT_DISTANCE) {
+        SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
+                                                   DETECT_CONTENT, sm->prev,
+                                                   DETECT_PCRE, sm->prev);
+        /* pm is never NULL.  So no NULL check */
+        if (pm->type == DETECT_CONTENT) {
+            DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+            tmp_cd->flags &= ~DETECT_CONTENT_RELATIVE_NEXT;
+        } else {
+            DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+            tmp_pd->flags &= ~DETECT_PCRE_RELATIVE_NEXT;
+        }
+
+        /* please note.  reassigning pm */
+        pm = SigMatchGetLastSMFromLists(s, 2,
+                                        DETECT_AL_HTTP_HEADER,
+                                        s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]);
+        if (pm == NULL) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "http_header seen with a "
+                       "distance or within without a previous http_header "
+                       "content.  Invalidating signature.");
+            goto error;
+        }
+        DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+        tmp_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
     }
-    memset(hhd, 0, sizeof(DetectContentData));
+    cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_AL_HTTP_HEADER);
+    sm->type = DETECT_AL_HTTP_HEADER;
 
-    /* transfer the pattern details from the content struct to the clientbody struct */
-    DetectContentData *cd = (DetectContentData *)sm->ctx;
-    hhd->content = cd->content;
-    hhd->content_len = cd->content_len;
-    hhd->flags |= cd->flags & DETECT_CONTENT_NOCASE ? DETECT_CONTENT_NOCASE : 0;
-    hhd->flags |= cd->flags & DETECT_CONTENT_NEGATED ? DETECT_CONTENT_NEGATED : 0;
-    //hhd->id = ((DetectContentData *)sm->ctx)->id;
-    hhd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, hhd, DETECT_AL_HTTP_HEADER);
-
-    nm = SigMatchAlloc();
-    if (nm == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        goto error;
-    }
-    nm->type = DETECT_AL_HTTP_HEADER;
-    nm->ctx = (void *)hhd;
-
-    /* pull the previous content from the pmatch list, append
-     * the new match to the match list */
-    SigMatchReplaceContent(s, sm, nm);
-
-    /* free the old content sigmatch, the content pattern memory
-     * is taken over by the new sigmatch */
-    BoyerMooreCtxDeInit(((DetectContentData *)sm->ctx)->bm_ctx);
-    SCFree(sm->ctx);
-    SCFree(sm);
+    /* transfer the sm from the pmatch list to hhdmatch list */
+    SigMatchTransferSigMatchAcrossLists(sm,
+                                        &s->sm_lists[DETECT_SM_LIST_PMATCH],
+                                        &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                        &s->sm_lists[DETECT_SM_LIST_HHDMATCH],
+                                        &s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]);
 
     /* flag the signature to indicate that we scan the app layer data */
     s->flags |= SIG_FLAG_APPLAYER;
@@ -282,9 +255,10 @@ int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     return 0;
 
 error:
-    if (hhd != NULL)
-        DetectHttpHeaderFree(hhd);
-    if(nm != NULL)
+    if (cd != NULL)
+        DetectHttpHeaderFree(cd);
+
+    if(sm != NULL)
         SCFree(sm);
 
     return -1;
@@ -321,11 +295,12 @@ static int DetectHttpHeaderTest01(void)
         goto end;
     }
 
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_MATCH];
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH];
     if (sm != NULL) {
         result &= (sm->type == DETECT_AL_HTTP_HEADER);
         result &= (sm->next == NULL);
     } else {
+        result = 0;
         printf("Error updating content pattern to http_header pattern: ");
     }
 
@@ -853,6 +828,7 @@ static int DetectHttpHeaderTest09(void)
         goto end;
 
     de_ctx->flags |= DE_QUIET;
+    de_ctx->mpm_matcher = MPM_AC;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
@@ -882,7 +858,7 @@ static int DetectHttpHeaderTest09(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
     if ((PacketAlertCheck(p1, 1))) {
-        printf("sid 1 didn't match but should have: ");
+        printf("sid 1 matched but shouldn't have: ");
         goto end;
     }
 
@@ -1352,13 +1328,13 @@ int DetectHttpHeaderTest14(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hhd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hhd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
     if (cd->id == hhd->id)
         goto end;
 
@@ -1391,13 +1367,13 @@ int DetectHttpHeaderTest15(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hhd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hhd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
     if (cd->id == hhd->id)
         goto end;
 
@@ -1430,13 +1406,13 @@ int DetectHttpHeaderTest16(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hhd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hhd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
     if (cd->id != 0 || hhd->id != 1)
         goto end;
 
@@ -1469,13 +1445,13 @@ int DetectHttpHeaderTest17(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hhd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hhd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
     if (cd->id != 1 || hhd->id != 0)
         goto end;
 
@@ -1509,14 +1485,14 @@ int DetectHttpHeaderTest18(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
-    DetectContentData *hhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->prev->ctx;
+    DetectContentData *hhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
+    DetectContentData *hhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->ctx;
     if (cd->id != 1 || hhd1->id != 0 || hhd2->id != 0)
         goto end;
 
@@ -1550,14 +1526,14 @@ int DetectHttpHeaderTest19(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
-    DetectContentData *hhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->prev->ctx;
+    DetectContentData *hhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
+    DetectContentData *hhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->ctx;
     if (cd->id != 2 || hhd1->id != 0 || hhd2->id != 0)
         goto end;
 

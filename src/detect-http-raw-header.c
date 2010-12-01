@@ -294,7 +294,7 @@ static int DetectHttpRawHeaderTest01(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing http_header\"; "
-                               "content:one; http_header; sid:1;)");
+                               "content:one; http_raw_header; sid:1;)");
     if (de_ctx->sig_list != NULL) {
         result = 1;
     } else {
@@ -335,7 +335,7 @@ static int DetectHttpRawHeaderTest02(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing http_header\"; "
-                               "content:one; http_header:; sid:1;)");
+                               "content:one; http_raw_header:; sid:1;)");
     if (de_ctx->sig_list != NULL)
         result = 1;
     else
@@ -365,7 +365,7 @@ static int DetectHttpRawHeaderTest03(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing http_header\"; "
-                               "http_header; sid:1;)");
+                               "http_raw_header; sid:1;)");
     if (de_ctx->sig_list == NULL)
         result = 1;
     else
@@ -395,7 +395,7 @@ static int DetectHttpRawHeaderTest04(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing http_header\"; "
-                               "content:one; rawbytes; http_header; sid:1;)");
+                               "content:one; rawbytes; http_raw_header; sid:1;)");
     if (de_ctx->sig_list == NULL)
         result = 1;
     else
@@ -425,7 +425,7 @@ static int DetectHttpRawHeaderTest05(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing http_header\"; "
-                               "content:one; nocase; http_header; sid:1;)");
+                               "content:one; nocase; http_raw_header; sid:1;)");
     if (de_ctx->sig_list != NULL)
         result = 1;
     else
@@ -490,7 +490,7 @@ static int DetectHttpRawHeaderTest06(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:\"Content-Type: text/html\"; http_header; "
+                               "content:\"Content-Type: text/html\"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -596,7 +596,7 @@ static int DetectHttpRawHeaderTest07(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:Mozilla; http_header; "
+                               "content:Mozilla; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -716,7 +716,7 @@ static int DetectHttpRawHeaderTest08(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:\"Gecko/20091221 Firefox/3.5.7\"; http_header; "
+                               "content:\"Gecko/20091221 Firefox/3.5.7\"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -837,7 +837,7 @@ static int DetectHttpRawHeaderTest09(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:\"Firefox/3.5.7|0D 0A|Content\"; http_header; "
+                               "content:\"Firefox/3.5.7|0D 0A|Content\"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -958,7 +958,7 @@ static int DetectHttpRawHeaderTest10(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:\"firefox/3.5.7|0D 0A|content\"; nocase; http_header;"
+                               "content:\"firefox/3.5.7|0D 0A|content\"; nocase; http_raw_header;"
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1071,7 +1071,7 @@ static int DetectHttpRawHeaderTest11(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:!lalalalala; http_header; "
+                               "content:!lalalalala; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1168,7 +1168,7 @@ static int DetectHttpRawHeaderTest12(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:!\"User-Agent: Mozilla/5.0 \"; http_header; "
+                               "content:!\"User-Agent: Mozilla/5.0 \"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1266,7 +1266,7 @@ static int DetectHttpRawHeaderTest13(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:\"Host: www.openinfosecfoundation.org\"; http_header; "
+                               "content:\"Host: www.openinfosecfoundation.org\"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1322,7 +1322,7 @@ int DetectHttpRawHeaderTest14(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:one; content:one; http_header; sid:1;)");
+                               "(content:one; content:one; http_raw_header; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1361,7 +1361,7 @@ int DetectHttpRawHeaderTest15(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:one; http_header; content:one; sid:1;)");
+                               "(content:one; http_raw_header; content:one; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1400,7 +1400,7 @@ int DetectHttpRawHeaderTest16(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:one; content:one; content:one; http_header; content:one; sid:1;)");
+                               "(content:one; content:one; content:one; http_raw_header; content:one; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1439,7 +1439,7 @@ int DetectHttpRawHeaderTest17(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:one; http_header; content:one; content:one; content:one; sid:1;)");
+                               "(content:one; http_raw_header; content:one; content:one; content:one; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1478,8 +1478,8 @@ int DetectHttpRawHeaderTest18(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:one; http_header; "
-                               "content:one; content:one; http_header; content:one; sid:1;)");
+                               "(content:one; http_raw_header; "
+                               "content:one; content:one; http_raw_header; content:one; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -1519,8 +1519,8 @@ int DetectHttpRawHeaderTest19(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:one; http_header; "
-                               "content:one; content:one; http_header; content:two; sid:1;)");
+                               "(content:one; http_raw_header; "
+                               "content:one; content:one; http_raw_header; content:two; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;

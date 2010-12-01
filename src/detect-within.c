@@ -169,13 +169,15 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
             }
         }
     } else {
-        pm = SigMatchGetLastSMFromLists(s, 6,
+        pm = SigMatchGetLastSMFromLists(s, 8,
                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                         DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-                                        DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]);
+                                        DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+                                        DETECT_AL_HTTP_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]);
         if (pm == NULL) {
             SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs"
-                       "preceeding content or uricontent or http_client_body option");
+                       "preceeding content, uricontent, http_client_body or "
+                       "http_header option");
             if (dubbed)
                 SCFree(str);
             return -1;
@@ -412,6 +414,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
 
             cd->flags |= DETECT_CONTENT_WITHIN;
 
+            /* reassigning pm */
             pm = SigMatchGetLastSMFromLists(s, 2,
                                             DETECT_AL_HTTP_CLIENT_BODY, pm->prev);
             if (pm == NULL) {
@@ -419,7 +422,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                            "needs preceeding http_client_body content");
                 goto error;
             }
-
+            /* reassigning cd */
             cd = (DetectContentData *)pm->ctx;
             if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "Previous keyword "
@@ -428,17 +431,61 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                            "only content");
                 goto error;
             }
-            ((DetectContentData *)pm->ctx)->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+            cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+
+            break;
+
+        case DETECT_AL_HTTP_HEADER:
+            cd = (DetectContentData *)pm->ctx;
+            if (cd->flags & DETECT_CONTENT_NEGATED) {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "negated keyword set along with a fast_pattern");
+                    goto error;
+                }
+            } else {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "keyword set along with a fast_pattern:only;");
+                    goto error;
+                }
+            }
+
+            cd->within = strtol(str, NULL, 10);
+            if (cd->within < (int32_t)cd->content_len) {
+                SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
+                           "less than the content length \"%"PRIu32"\" which is invalid, since "
+                           "this will never match.  Invalidating signature", ud->within,
+                           ud->content_len);
+                goto error;
+            }
+            cd->flags |= DETECT_CONTENT_WITHIN;
+
+            /* reassigning pm */
+            pm = SigMatchGetLastSMFromLists(s, 2,
+                                            DETECT_AL_HTTP_HEADER, pm->prev);
+            if (pm == NULL) {
+                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance for http_header_body "
+                           "needs preceeding http_header content");
+                goto error;
+            }
+            /* reassigning cd */
+            cd = (DetectContentData *)pm->ctx;
+            if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Previous keyword "
+                           "has a fast_pattern:only; set.  You can't "
+                           "have relative keywords around a fast_pattern "
+                           "only content");
+                goto error;
+            }
+            cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
 
             break;
 
         default:
             SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two "
                        "preceeding content or uricontent options");
-            if (dubbed)
-                SCFree(str);
-                return -1;
-        break;
+            goto error;
     }
 
     if (dubbed)
@@ -450,6 +497,8 @@ error:
         SCFree(str);
     return -1;
 }
+
+/***********************************Unittests**********************************/
 
 #ifdef UNITTESTS
 #include "util-unittest-helper.h"

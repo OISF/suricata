@@ -64,6 +64,7 @@ detect-engine-payload.c detect-engine-payload.h \
 detect-engine-dcepayload.c detect-engine-dcepayload.h \
 detect-engine-uri.c detect-engine-uri.h \
 detect-engine-hcbd.c detect-engine-hcbd.h \
+detect-engine-hhd.c detect-engine-hhd.h \
 detect-engine-state.c detect-engine-state.h \
 detect-parse.c detect-parse.h \
 detect-ack.c detect-ack.h \
@@ -114,6 +115,7 @@ detect-icode.c detect-icode.h \
 detect-http-cookie.c detect-http-cookie.h \
 detect-http-method.c detect-http-method.h \
 detect-http-header.c detect-http-header.h \
+detect-http-raw-header.c detect-http-raw-header.h \
 detect-http-uri.c detect-http-uri.h \
 detect-tls-version.c detect-tls-version.h \
 detect-ssh-proto-version.c detect-ssh-proto-version.h \
