@@ -181,11 +181,12 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
 
     /* Search for the first previous SigMatch that supports nocase */
     //SigMatch *pm = SigMatchGetLastNocasePattern(s);
-    SigMatch *pm = SigMatchGetLastSMFromLists(s, 12,
+    SigMatch *pm = SigMatchGetLastSMFromLists(s, 14,
                                               DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                               DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                               DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
                                               DETECT_AL_HTTP_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
+                                              DETECT_AL_HTTP_RAW_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                                               DETECT_AL_HTTP_COOKIE, s->sm_lists_tail[DETECT_SM_LIST_AMATCH],
                                               DETECT_AL_HTTP_METHOD, s->sm_lists_tail[DETECT_SM_LIST_AMATCH]);
     if (pm == NULL) {
@@ -199,6 +200,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
     DetectContentData *dhcb = NULL;
     DetectContentData *dhcd = NULL;
     DetectContentData *dhhd = NULL;
+    DetectContentData *dhrhd = NULL;
     DetectContentData *dhmd = NULL;
 
     switch (pm->type) {
@@ -232,6 +234,10 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
         case DETECT_AL_HTTP_HEADER:
             dhhd =(DetectContentData *) pm->ctx;
             dhhd->flags |= DETECT_CONTENT_NOCASE;
+            break;
+        case DETECT_AL_HTTP_RAW_HEADER:
+            dhrhd =(DetectContentData *) pm->ctx;
+            dhrhd->flags |= DETECT_CONTENT_NOCASE;
             break;
         case DETECT_AL_HTTP_METHOD:
             dhmd =(DetectContentData *) pm->ctx;

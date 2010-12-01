@@ -15,15 +15,18 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
+/** \file
  *
- * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
+ * \author Anoop Saldanha <poonaatsoc@gmail.com>
  */
 
-#ifndef __DETECT_HTTP_RAW_HEADER_H__
-#define __DETECT_HTTP_RAW_HEADER_H__
+#ifndef __DETECT_ENGINE_HRHD_H__
+#define __DETECT_ENGINE_HRHD_H__
 
-void DetectHttpRawHeaderRegister(void);
+int DetectEngineInspectHttpRawHeader(DetectEngineCtx *, DetectEngineThreadCtx *,
+                                     Signature *, Flow *, uint8_t, void *);
+void DetectEngineCleanHRHDBuffers(DetectEngineThreadCtx *);
+void DetectEngineHttpRawHeaderRegisterTests(void);
 
-#endif /* __DETECT_HTTP_RAW_HEADER_H__ */
+#endif /* __DETECT_ENGINE_HHD_H__ */
+

@@ -55,6 +55,7 @@
 #include "detect-engine-uri.h"
 #include "detect-engine-hcbd.h"
 #include "detect-engine-hhd.h"
+#include "detect-engine-hrhd.h"
 #include "detect-engine-state.h"
 #include "detect-engine-tag.h"
 #include "detect-fast-pattern.h"
@@ -971,6 +972,7 @@ int main(int argc, char **argv)
         MemcmpRegisterTests();
         DetectEngineHttpClientBodyRegisterTests();
         DetectEngineHttpHeaderRegisterTests();
+        DetectEngineHttpRawHeaderRegisterTests();
         DetectEngineRegisterTests();
         SCLogRegisterTests();
         if (list_unittests) {

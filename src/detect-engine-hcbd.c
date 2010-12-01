@@ -270,7 +270,7 @@ static uint32_t DetectEngineInspectHttpClientBodyMpmInspect(DetectEngineCtx *de_
         /* if the buffer already exists, use it */
         if (det_ctx->hcbd_buffers[i] != NULL) {
             /* we only call the mpm if the hcbd mpm has been set */
-            if (s->flags & SIG_FLAG_MPM_HCBDCONTENT) {
+            if (s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT) {
                 cnt += HttpClientBodyPatternSearch(det_ctx,
                                                    det_ctx->hcbd_buffers[i],
                                                    det_ctx->hcbd_buffers_len[i]);
@@ -331,7 +331,7 @@ static uint32_t DetectEngineInspectHttpClientBodyMpmInspect(DetectEngineCtx *de_
             det_ctx->hcbd_buffers_len[i] = chunks_buffer_len;
 
             /* carry out the mpm if we have hcbd mpm set */
-            if (s->flags & SIG_FLAG_MPM_HCBDCONTENT)
+            if (s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT)
                 cnt += HttpClientBodyPatternSearch(det_ctx, chunks_buffer, chunks_buffer_len);
         } /* else - if (htud->body.nchunks == 0) */
     } /* for (idx = AppLayerTransactionGetInspectId(f); .. */
@@ -408,7 +408,7 @@ int DetectEngineInspectHttpClientBody(DetectEngineCtx *de_ctx,
         memset(det_ctx->hcbd_buffers_len, 0, det_ctx->hcbd_buffers_list_len * sizeof(uint32_t));
     } /* if (det_ctx->hcbd_buffers_list_len == 0) */
 
-    if (s->flags & SIG_FLAG_MPM_HCBDCONTENT) {
+    if (s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT) {
         if (det_ctx->de_mpm_scanned_hcbd == FALSE) {
             uint32_t cnt = DetectEngineInspectHttpClientBodyMpmInspect(de_ctx,
                                                                        det_ctx, s,
@@ -424,16 +424,16 @@ int DetectEngineInspectHttpClientBody(DetectEngineCtx *de_ctx,
     }
 
     if (det_ctx->de_have_hcbd == FALSE &&
-        s->flags & SIG_FLAG_MPM_HCBDCONTENT &&
-        !(s->flags & SIG_FLAG_MPM_HCBDCONTENT_NEG)) {
+        s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT &&
+        !(s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT_NEG)) {
         SCLogDebug("mpm results failure for client_body.  Get out of here");
         goto end;
     }
 
-    if ((s->flags & SIG_FLAG_MPM_HCBDCONTENT) && (det_ctx->de_mpm_scanned_hcbd == TRUE)) {
+    if ((s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT) && (det_ctx->de_mpm_scanned_hcbd == TRUE)) {
         /* filter out the sig that needs a match, but have no matches */
         if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_hcbdpattern_id / 8)] & (1 << (s->mpm_hcbdpattern_id % 8))) &&
-            !(s->flags & SIG_FLAG_MPM_HCBDCONTENT_NEG)) {
+            !(s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT_NEG)) {
             goto end;
         }
     }

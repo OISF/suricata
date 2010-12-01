@@ -65,13 +65,15 @@ void DetectHttpHeaderRegister(void)
 {
     sigmatch_table[DETECT_AL_HTTP_HEADER].name = "http_header";
     sigmatch_table[DETECT_AL_HTTP_HEADER].Match = NULL;
-    sigmatch_table[DETECT_AL_HTTP_HEADER].AppLayerMatch = DetectHttpHeaderMatch;
-    sigmatch_table[DETECT_AL_HTTP_HEADER].alproto = ALPROTO_HTTP;
+    sigmatch_table[DETECT_AL_HTTP_HEADER].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_HTTP_HEADER].Setup = DetectHttpHeaderSetup;
     sigmatch_table[DETECT_AL_HTTP_HEADER].Free  = DetectHttpHeaderFree;
     sigmatch_table[DETECT_AL_HTTP_HEADER].RegisterTests = DetectHttpHeaderRegisterTests;
+    sigmatch_table[DETECT_AL_HTTP_HEADER].alproto = ALPROTO_HTTP;
 
     sigmatch_table[DETECT_AL_HTTP_HEADER].flags |= SIGMATCH_PAYLOAD ;
+
+    return;
 }
 
 /**
@@ -258,7 +260,7 @@ error:
     if (cd != NULL)
         DetectHttpHeaderFree(cd);
 
-    if(sm != NULL)
+    if (sm != NULL)
         SCFree(sm);
 
     return -1;

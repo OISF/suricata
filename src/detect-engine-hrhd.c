@@ -26,7 +26,7 @@
 
 #include "detect.h"
 #include "detect-engine.h"
-#include "detect-engine-hhd.h"
+#include "detect-engine-hrhd.h"
 #include "detect-engine-mpm.h"
 #include "detect-parse.h"
 #include "detect-engine-state.h"
@@ -56,7 +56,7 @@
 #include "app-layer-protos.h"
 
 /**
- * \brief Run the actual payload match function for http header.
+ * \brief Run the actual payload match function for http raw header.
  *
  *        For accounting the last match in relative matching the
  *        det_ctx->payload_offset var is used.
@@ -65,13 +65,13 @@
  * \param det_ctx     Detection engine thread context.
  * \param s           Signature to inspect.
  * \param sm          SigMatch to inspect.
- * \param payload     Ptr to the http headers buffer to inspect.
- * \param payload_len Length of the http headers buffer.
+ * \param payload     Ptr to the http raw headers buffer to inspect.
+ * \param payload_len Length of the http raw headers buffer.
  *
  * \retval 0 no match.
  * \retval 1 match.
  */
-static int DoInspectHttpHeader(DetectEngineCtx *de_ctx,
+static int DoInspectHttpRawHeader(DetectEngineCtx *de_ctx,
                                DetectEngineThreadCtx *det_ctx,
                                Signature *s, SigMatch *sm,
                                uint8_t *payload, uint32_t payload_len)
@@ -89,7 +89,7 @@ static int DoInspectHttpHeader(DetectEngineCtx *de_ctx,
         SCReturnInt(0);
     }
 
-    if (sm->type == DETECT_AL_HTTP_HEADER) {
+    if (sm->type == DETECT_AL_HTTP_RAW_HEADER) {
         if (payload_len == 0) {
             SCReturnInt(0);
         }
@@ -98,7 +98,7 @@ static int DoInspectHttpHeader(DetectEngineCtx *de_ctx,
         SCLogDebug("inspecting http headers %"PRIu32" payload_len %"PRIu32,
                    cd->id, payload_len);
 
-        if (cd->flags & DETECT_CONTENT_HHD_MPM && !(cd->flags & DETECT_CONTENT_NEGATED))
+        if (cd->flags & DETECT_CONTENT_HRHD_MPM && !(cd->flags & DETECT_CONTENT_NEGATED))
             goto match;
 
         /* rule parsers should take care of this */
@@ -208,9 +208,9 @@ static int DoInspectHttpHeader(DetectEngineCtx *de_ctx,
                 BUG_ON(sm->next == NULL);
 
                 /* see if the next payload keywords match. If not, we will
-                 * search for another occurence of this http header content and
-                 * see if the others match then until we run out of matches */
-                int r = DoInspectHttpHeader(de_ctx, det_ctx, s, sm->next,
+                 * search for another occurence of this http raw header content
+                 * and see if the others match then until we run out of matches */
+                int r = DoInspectHttpRawHeader(de_ctx, det_ctx, s, sm->next,
                                             payload, payload_len);
                 if (r == 1) {
                     SCReturnInt(1);
@@ -237,8 +237,8 @@ match:
     /* this sigmatch matched, inspect the next one. If it was the last,
      * the payload portion of the signature matched. */
     if (sm->next != NULL) {
-        int r = DoInspectHttpHeader(de_ctx, det_ctx, s, sm->next, payload,
-                                    payload_len);
+        int r = DoInspectHttpRawHeader(de_ctx, det_ctx, s, sm->next, payload,
+                                       payload_len);
         SCReturnInt(r);
     } else {
         SCReturnInt(1);
@@ -246,7 +246,7 @@ match:
 }
 
 /**
- * \brief Helps buffer http normalized headers from different transactions and
+ * \brief Helps buffer http raw headers from different transactions and
  *        stores them away in detection context.  Also calls the mpm on the
  *        buffers.
  *
@@ -256,9 +256,9 @@ match:
  *
  * \retval cnt The match count from the mpm call.
  */
-static uint32_t DetectEngineInspectHttpHeaderMpmInspect(DetectEngineThreadCtx *det_ctx,
-                                                        Signature *s, Flow *f,
-                                                        HtpState *htp_state)
+static uint32_t DetectEngineInspectHttpRawHeaderMpmInspect(DetectEngineThreadCtx *det_ctx,
+                                                           Signature *s, Flow *f,
+                                                           HtpState *htp_state)
 {
     uint32_t cnt = 0;
     size_t idx = 0;
@@ -266,14 +266,14 @@ static uint32_t DetectEngineInspectHttpHeaderMpmInspect(DetectEngineThreadCtx *d
     int i = 0;
 
     for (idx = AppLayerTransactionGetInspectId(f);
-         i < det_ctx->hhd_buffers_list_len; idx++, i++) {
+         i < det_ctx->hrhd_buffers_list_len; idx++, i++) {
 
         /* if the buffer already exists, use it */
-        if (det_ctx->hhd_buffers[i] != NULL) {
-            if (s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT) {
-                cnt += HttpHeaderPatternSearch(det_ctx,
-                                               det_ctx->hhd_buffers[i],
-                                               det_ctx->hhd_buffers_len[i]);
+        if (det_ctx->hrhd_buffers[i] != NULL) {
+            if (s->mpm_flags & SIG_FLAG_MPM_HRHDCONTENT) {
+                cnt += HttpRawHeaderPatternSearch(det_ctx,
+                                                  det_ctx->hrhd_buffers[i],
+                                                  det_ctx->hrhd_buffers_len[i]);
             }
             continue;
         }
@@ -282,46 +282,24 @@ static uint32_t DetectEngineInspectHttpHeaderMpmInspect(DetectEngineThreadCtx *d
         if (tx == NULL)
             continue;
 
-        htp_header_t *h = NULL;
-        uint8_t *headers_buffer = NULL;
-        uint32_t headers_buffer_len = 0;
-        table_iterator_reset(tx->request_headers);
-        while (table_iterator_next(tx->request_headers, (void **)&h) != NULL) {
-            int size1 = bstr_size(h->name);
-            int size2 = bstr_size(h->value);
-            /* the extra 4 bytes if for ": " and "\r\n" */
-            headers_buffer = realloc(headers_buffer, headers_buffer_len + size1 + size2 + 4);
-            if (headers_buffer == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory\n");
-                exit(EXIT_FAILURE);
-            }
-            memcpy(headers_buffer + headers_buffer_len, bstr_ptr(h->name), size1);
-            headers_buffer_len += size1;
-            headers_buffer[headers_buffer_len] = ':';
-            headers_buffer[headers_buffer_len + 1] = ' ';
-            headers_buffer_len += 2;
-            memcpy(headers_buffer + headers_buffer_len, bstr_ptr(h->value), size2);
-            headers_buffer_len += size2 + 2;
-            /* \r */
-            headers_buffer[headers_buffer_len - 2] = '\r';
-            /* \n */
-            headers_buffer[headers_buffer_len - 1] = '\n';
-        }
-
+        bstr *raw_headers = htp_tx_get_request_headers_raw(tx);
+        if (raw_headers == NULL)
+            continue;
         /* store the buffers.  We will need it for further inspection */
-        det_ctx->hhd_buffers[i] = headers_buffer;
-        det_ctx->hhd_buffers_len[i] = headers_buffer_len;
+        det_ctx->hrhd_buffers[i] = (uint8_t *)bstr_ptr(raw_headers);
+        det_ctx->hrhd_buffers_len[i] = bstr_len(raw_headers);
 
         /* carry out the mpm */
-        if (s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT)
-            cnt += HttpHeaderPatternSearch(det_ctx, headers_buffer, headers_buffer_len);
+        if (s->mpm_flags & SIG_FLAG_MPM_HRHDCONTENT)
+            cnt += HttpRawHeaderPatternSearch(det_ctx, det_ctx->hrhd_buffers[i],
+                                              det_ctx->hrhd_buffers_len[i]);
     } /* for (idx = AppLayerTransactionGetInspectId(f); .. */
 
     SCReturnUInt(cnt);
 }
 
 /**
- * \brief Do the http_header content inspection for a signature.
+ * \brief Do the http_raw_header content inspection for a signature.
  *
  * \param de_ctx  Detection engine context.
  * \param det_ctx Detection engine thread context.
@@ -333,10 +311,10 @@ static uint32_t DetectEngineInspectHttpHeaderMpmInspect(DetectEngineThreadCtx *d
  * \retval 0 No match.
  * \retval 1 Match.
  */
-int DetectEngineInspectHttpHeader(DetectEngineCtx *de_ctx,
-                                  DetectEngineThreadCtx *det_ctx,
-                                  Signature *s, Flow *f, uint8_t flags,
-                                  void *alstate)
+int DetectEngineInspectHttpRawHeader(DetectEngineCtx *de_ctx,
+                                     DetectEngineThreadCtx *det_ctx,
+                                     Signature *s, Flow *f, uint8_t flags,
+                                     void *alstate)
 {
     SCEnter();
     int r = 0;
@@ -359,7 +337,7 @@ int DetectEngineInspectHttpHeader(DetectEngineCtx *de_ctx,
 
     /* it is either the first entry into this function.  If it is not,
      * then we just don't have any http transactions */
-    if (det_ctx->hhd_buffers_list_len == 0) {
+    if (det_ctx->hrhd_buffers_list_len == 0) {
         /* get the transaction id */
         int tmp_idx = AppLayerTransactionGetInspectId(f);
         /* error!  get out of here */
@@ -368,64 +346,64 @@ int DetectEngineInspectHttpHeader(DetectEngineCtx *de_ctx,
 
         /* let's get the transaction count.  We need this to hold the header
          * buffer for each transaction */
-        det_ctx->hhd_buffers_list_len = list_size(htp_state->connp->conn->transactions) - tmp_idx;
+        det_ctx->hrhd_buffers_list_len = list_size(htp_state->connp->conn->transactions) - tmp_idx;
         /* no transactions?!  cool.  get out of here */
-        if (det_ctx->hhd_buffers_list_len == 0)
+        if (det_ctx->hrhd_buffers_list_len == 0)
             goto end;
 
         /* assign space to hold buffers.  Each per transaction */
-        det_ctx->hhd_buffers = SCMalloc(det_ctx->hhd_buffers_list_len * sizeof(uint8_t *));
-        if (det_ctx->hhd_buffers == NULL) {
+        det_ctx->hrhd_buffers = SCMalloc(det_ctx->hrhd_buffers_list_len * sizeof(uint8_t *));
+        if (det_ctx->hrhd_buffers == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             return 0;
         }
-        memset(det_ctx->hhd_buffers, 0, det_ctx->hhd_buffers_list_len * sizeof(uint8_t *));
+        memset(det_ctx->hrhd_buffers, 0, det_ctx->hrhd_buffers_list_len * sizeof(uint8_t *));
 
-        det_ctx->hhd_buffers_len = SCMalloc(det_ctx->hhd_buffers_list_len * sizeof(uint32_t));
-        if (det_ctx->hhd_buffers_len == NULL) {
+        det_ctx->hrhd_buffers_len = SCMalloc(det_ctx->hrhd_buffers_list_len * sizeof(uint32_t));
+        if (det_ctx->hrhd_buffers_len == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             return 0;
         }
-        memset(det_ctx->hhd_buffers_len, 0, det_ctx->hhd_buffers_list_len * sizeof(uint32_t));
-    } /* if (det_ctx->hhd_buffers_list_len == 0) */
+        memset(det_ctx->hrhd_buffers_len, 0, det_ctx->hrhd_buffers_list_len * sizeof(uint32_t));
+    } /* if (det_ctx->hrhd_buffers_list_len == 0) */
 
-    if (s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT) {
-        if (det_ctx->de_mpm_scanned_hhd == FALSE) {
-            uint32_t cnt = DetectEngineInspectHttpHeaderMpmInspect(det_ctx, s,
-                                                                   f, htp_state);
+    if (s->mpm_flags & SIG_FLAG_MPM_HRHDCONTENT) {
+        if (det_ctx->de_mpm_scanned_hrhd == FALSE) {
+            uint32_t cnt = DetectEngineInspectHttpRawHeaderMpmInspect(det_ctx, s,
+                                                                      f, htp_state);
             if (cnt <= 0)
-                det_ctx->de_have_hhd = FALSE;
+                det_ctx->de_have_hrhd = FALSE;
 
-            det_ctx->de_mpm_scanned_hhd = TRUE;
+            det_ctx->de_mpm_scanned_hrhd = TRUE;
         }
     } else {
-        DetectEngineInspectHttpHeaderMpmInspect(det_ctx, s, f, htp_state);
+        DetectEngineInspectHttpRawHeaderMpmInspect(det_ctx, s, f, htp_state);
     }
 
-    if (det_ctx->de_have_hhd == FALSE &&
-        s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT &&
-        !(s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT_NEG)) {
-        SCLogDebug("mpm results failure for http headers.  Get out of here");
+    if (det_ctx->de_have_hrhd == FALSE &&
+        s->mpm_flags & SIG_FLAG_MPM_HRHDCONTENT &&
+        !(s->mpm_flags & SIG_FLAG_MPM_HRHDCONTENT_NEG)) {
+        SCLogDebug("mpm results failure for http raw headers.  Get out of here");
         goto end;
     }
 
-    if ((s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT) && (det_ctx->de_mpm_scanned_hhd == TRUE)) {
+    if ((s->mpm_flags & SIG_FLAG_MPM_HRHDCONTENT) && (det_ctx->de_mpm_scanned_hrhd == TRUE)) {
         /* filter out the sig that needs a match, but have no matches */
-        if (!(s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT_NEG) &&
-            !(det_ctx->pmq.pattern_id_bitarray[(s->mpm_hhdpattern_id / 8)] & (1 << (s->mpm_hhdpattern_id % 8)))) {
+        if (!(s->mpm_flags & SIG_FLAG_MPM_HRHDCONTENT_NEG) &&
+            !(det_ctx->pmq.pattern_id_bitarray[(s->mpm_hrhdpattern_id / 8)] & (1 << (s->mpm_hrhdpattern_id % 8)))) {
             goto end;
         }
     }
 
-    for (i = 0; i < det_ctx->hhd_buffers_list_len; i++) {
-        uint8_t *hhd_buffer = det_ctx->hhd_buffers[i];
-        uint32_t hhd_buffer_len = det_ctx->hhd_buffers_len[i];
+    for (i = 0; i < det_ctx->hrhd_buffers_list_len; i++) {
+        uint8_t *hrhd_buffer = det_ctx->hrhd_buffers[i];
+        uint32_t hrhd_buffer_len = det_ctx->hrhd_buffers_len[i];
 
-        if (hhd_buffer == NULL)
+        if (hrhd_buffer == NULL)
             continue;
 
-        r = DoInspectHttpHeader(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HHDMATCH],
-                                hhd_buffer, hhd_buffer_len);
+        r = DoInspectHttpRawHeader(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HRHDMATCH],
+                                   hrhd_buffer, hrhd_buffer_len);
         if (r == 1) {
             break;
         }
@@ -437,21 +415,16 @@ end:
 }
 
 /**
- * \brief Clean the hhd buffers.
+ * \brief Clean the hrhd buffers.
  *
  * \param det_ctx Pointer to the detection engine thread ctx.
  */
-void DetectEngineCleanHHDBuffers(DetectEngineThreadCtx *det_ctx)
+void DetectEngineCleanHRHDBuffers(DetectEngineThreadCtx *det_ctx)
 {
-    if (det_ctx->hhd_buffers_list_len != 0) {
-        int i;
-        for (i = 0; i < det_ctx->hhd_buffers_list_len; i++) {
-            if (det_ctx->hhd_buffers[i] != NULL)
-                SCFree(det_ctx->hhd_buffers[i]);
-        }
-        SCFree(det_ctx->hhd_buffers);
-        det_ctx->hhd_buffers = NULL;
-        det_ctx->hhd_buffers_list_len = 0;
+    if (det_ctx->hrhd_buffers_list_len != 0) {
+        SCFree(det_ctx->hrhd_buffers);
+        det_ctx->hrhd_buffers = NULL;
+        det_ctx->hrhd_buffers_list_len = 0;
     }
 
     return;
@@ -465,7 +438,7 @@ void DetectEngineCleanHHDBuffers(DetectEngineThreadCtx *det_ctx)
  *\test Test that the http_header content matches against a http request
  *      which holds the content.
  */
-static int DetectEngineHttpHeaderTest01(void)
+static int DetectEngineHttpRawHeaderTest01(void)
 {
     TcpSession ssn;
     Packet *p = NULL;
@@ -507,7 +480,7 @@ static int DetectEngineHttpHeaderTest01(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:\"one\"; http_header; "
+                               "content:\"one\"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -557,7 +530,7 @@ end:
  *\test Test that the http_header content matches against a http request
  *      which holds the content.
  */
-static int DetectEngineHttpHeaderTest02(void)
+static int DetectEngineHttpRawHeaderTest02(void)
 {
     TcpSession ssn;
     Packet *p = NULL;
@@ -599,7 +572,7 @@ static int DetectEngineHttpHeaderTest02(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:\"one\"; depth:15; http_header; "
+                               "content:\"one\"; depth:15; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -649,7 +622,7 @@ end:
  *\test Test that the http_header content matches against a http request
  *      which holds the content.
  */
-static int DetectEngineHttpHeaderTest03(void)
+static int DetectEngineHttpRawHeaderTest03(void)
 {
     TcpSession ssn;
     Packet *p = NULL;
@@ -691,7 +664,7 @@ static int DetectEngineHttpHeaderTest03(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:!one; depth:5; http_header; "
+                               "content:!one; depth:5; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -741,7 +714,7 @@ end:
  *\test Test that the http_header content matches against a http request
  *      which holds the content.
  */
-static int DetectEngineHttpHeaderTest04(void)
+static int DetectEngineHttpRawHeaderTest04(void)
 {
     TcpSession ssn;
     Packet *p = NULL;
@@ -783,7 +756,7 @@ static int DetectEngineHttpHeaderTest04(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:one; depth:5; http_header; "
+                               "content:one; depth:5; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -833,7 +806,7 @@ end:
  *\test Test that the http_header content matches against a http request
  *      which holds the content.
  */
-static int DetectEngineHttpHeaderTest05(void)
+static int DetectEngineHttpRawHeaderTest05(void)
 {
     TcpSession ssn;
     Packet *p = NULL;
@@ -875,7 +848,7 @@ static int DetectEngineHttpHeaderTest05(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:!one; depth:15; http_header; "
+                               "content:!one; depth:15; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -925,7 +898,7 @@ end:
  *\test Test that the http_header content matches against a http request
  *      which holds the content.
  */
-static int DetectEngineHttpHeaderTest06(void)
+static int DetectEngineHttpRawHeaderTest06(void)
 {
     TcpSession ssn;
     Packet *p = NULL;
@@ -967,7 +940,7 @@ static int DetectEngineHttpHeaderTest06(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:\"one\"; offset:10; http_header; "
+                               "content:\"one\"; offset:10; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1017,7 +990,7 @@ end:
  *\test Test that the http_header content matches against a http request
  *      which holds the content.
  */
-static int DetectEngineHttpHeaderTest07(void)
+static int DetectEngineHttpRawHeaderTest07(void)
 {
     TcpSession ssn;
     Packet *p = NULL;
@@ -1059,7 +1032,7 @@ static int DetectEngineHttpHeaderTest07(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:!one; offset:15; http_header; "
+                               "content:!one; offset:15; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1109,7 +1082,7 @@ end:
  *\test Test that the http_header content matches against a http request
  *      which holds the content.
  */
-static int DetectEngineHttpHeaderTest08(void)
+static int DetectEngineHttpRawHeaderTest08(void)
 {
     TcpSession ssn;
     Packet *p = NULL;
@@ -1151,7 +1124,7 @@ static int DetectEngineHttpHeaderTest08(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:one; offset:15; http_header; "
+                               "content:one; offset:15; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1201,7 +1174,7 @@ end:
  *\test Test that the http_header content matches against a http request
  *      which holds the content.
  */
-static int DetectEngineHttpHeaderTest09(void)
+static int DetectEngineHttpRawHeaderTest09(void)
 {
     TcpSession ssn;
     Packet *p = NULL;
@@ -1243,7 +1216,7 @@ static int DetectEngineHttpHeaderTest09(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:!one; offset:10; http_header; "
+                               "content:!one; offset:10; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1293,7 +1266,7 @@ end:
  *\test Test that the http_header content matches against a http request
  *      which holds the content.
  */
-static int DetectEngineHttpHeaderTest10(void)
+static int DetectEngineHttpRawHeaderTest10(void)
 {
     TcpSession ssn;
     Packet *p = NULL;
@@ -1335,7 +1308,7 @@ static int DetectEngineHttpHeaderTest10(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:one; http_header; content:three; http_header; within:10; "
+                               "content:one; http_raw_header; content:three; http_raw_header; within:10; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1385,7 +1358,7 @@ end:
  *\test Test that the http_header content matches against a http request
  *      which holds the content.
  */
-static int DetectEngineHttpHeaderTest11(void)
+static int DetectEngineHttpRawHeaderTest11(void)
 {
     TcpSession ssn;
     Packet *p = NULL;
@@ -1427,7 +1400,7 @@ static int DetectEngineHttpHeaderTest11(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:one; http_header; content:!three; http_header; within:5; "
+                               "content:one; http_raw_header; content:!three; http_raw_header; within:5; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1477,7 +1450,7 @@ end:
  *\test Test that the http_header content matches against a http request
  *      which holds the content.
  */
-static int DetectEngineHttpHeaderTest12(void)
+static int DetectEngineHttpRawHeaderTest12(void)
 {
     TcpSession ssn;
     Packet *p = NULL;
@@ -1519,7 +1492,7 @@ static int DetectEngineHttpHeaderTest12(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:one; http_header; content:!three; http_header; within:10; "
+                               "content:one; http_raw_header; content:!three; http_raw_header; within:10; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1569,7 +1542,7 @@ end:
  *\test Test that the http_header content matches against a http request
  *      which holds the content.
  */
-static int DetectEngineHttpHeaderTest13(void)
+static int DetectEngineHttpRawHeaderTest13(void)
 {
     TcpSession ssn;
     Packet *p = NULL;
@@ -1611,7 +1584,7 @@ static int DetectEngineHttpHeaderTest13(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:one; http_header; content:three; http_header; within:5; "
+                               "content:one; http_raw_header; content:three; http_raw_header; within:5; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1661,7 +1634,7 @@ end:
  *\test Test that the http_header content matches against a http request
  *      which holds the content.
  */
-static int DetectEngineHttpHeaderTest14(void)
+static int DetectEngineHttpRawHeaderTest14(void)
 {
     TcpSession ssn;
     Packet *p = NULL;
@@ -1703,7 +1676,7 @@ static int DetectEngineHttpHeaderTest14(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:one; http_header; content:five; http_header; distance:7; "
+                               "content:one; http_raw_header; content:five; http_raw_header; distance:7; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1753,7 +1726,7 @@ end:
  *\test Test that the http_header content matches against a http request
  *      which holds the content.
  */
-static int DetectEngineHttpHeaderTest15(void)
+static int DetectEngineHttpRawHeaderTest15(void)
 {
     TcpSession ssn;
     Packet *p = NULL;
@@ -1795,7 +1768,7 @@ static int DetectEngineHttpHeaderTest15(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:one; http_header; content:!five; http_header; distance:15; "
+                               "content:one; http_raw_header; content:!five; http_raw_header; distance:15; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1845,7 +1818,7 @@ end:
  *\test Test that the http_header content matches against a http request
  *      which holds the content.
  */
-static int DetectEngineHttpHeaderTest16(void)
+static int DetectEngineHttpRawHeaderTest16(void)
 {
     TcpSession ssn;
     Packet *p = NULL;
@@ -1887,7 +1860,7 @@ static int DetectEngineHttpHeaderTest16(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:one; http_header; content:!five; http_header; distance:7; "
+                               "content:one; http_raw_header; content:!five; http_raw_header; distance:7; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1937,7 +1910,7 @@ end:
  *\test Test that the http_header content matches against a http request
  *      which holds the content.
  */
-static int DetectEngineHttpHeaderTest17(void)
+static int DetectEngineHttpRawHeaderTest17(void)
 {
     TcpSession ssn;
     Packet *p = NULL;
@@ -1979,7 +1952,7 @@ static int DetectEngineHttpHeaderTest17(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:one; http_header; content:five; http_header; distance:15; "
+                               "content:one; http_raw_header; content:five; http_raw_header; distance:15; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2029,7 +2002,7 @@ end:
  *\test Test that the http_header content matches against a http request
  *      which holds the content.
  */
-static int DetectEngineHttpHeaderTest18(void)
+static int DetectEngineHttpRawHeaderTest18(void)
 {
     TcpSession ssn;
     Packet *p = NULL;
@@ -2069,7 +2042,7 @@ static int DetectEngineHttpHeaderTest18(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:one; http_header; content:five; http_header; "
+                               "content:one; http_raw_header; content:five; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2079,7 +2052,7 @@ static int DetectEngineHttpHeaderTest18(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    uint32_t r = HttpHeaderPatternSearch(det_ctx, http_buf, http_len);
+    uint32_t r = HttpRawHeaderPatternSearch(det_ctx, http_buf, http_len);
     if (r != 2) {
         printf("expected result 2, got %"PRIu32": ", r);
         goto end;
@@ -2106,7 +2079,7 @@ end:
  *\test Test that the http_header content matches against a http request
  *      which holds the content.
  */
-static int DetectEngineHttpHeaderTest19(void)
+static int DetectEngineHttpRawHeaderTest19(void)
 {
     TcpSession ssn;
     Packet *p = NULL;
@@ -2146,7 +2119,7 @@ static int DetectEngineHttpHeaderTest19(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:one; http_header; fast_pattern; content:five; http_header; "
+                               "content:one; http_raw_header; fast_pattern; content:five; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2156,7 +2129,7 @@ static int DetectEngineHttpHeaderTest19(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    uint32_t r = HttpHeaderPatternSearch(det_ctx, http_buf, http_len);
+    uint32_t r = HttpRawHeaderPatternSearch(det_ctx, http_buf, http_len);
     if (r != 1) {
         printf("expected result 1, got %"PRIu32": ", r);
         goto end;
@@ -2181,48 +2154,48 @@ end:
 
 #endif /* UNITTESTS */
 
-void DetectEngineHttpHeaderRegisterTests(void)
+void DetectEngineHttpRawHeaderRegisterTests(void)
 {
 
 #ifdef UNITTESTS
-    UtRegisterTest("DetectEngineHttpHeaderTest01",
-                   DetectEngineHttpHeaderTest01, 1);
-    UtRegisterTest("DetectEngineHttpHeaderTest02",
-                   DetectEngineHttpHeaderTest02, 1);
-    UtRegisterTest("DetectEngineHttpHeaderTest03",
-                   DetectEngineHttpHeaderTest03, 1);
-    UtRegisterTest("DetectEngineHttpHeaderTest04",
-                   DetectEngineHttpHeaderTest04, 1);
-    UtRegisterTest("DetectEngineHttpHeaderTest05",
-                   DetectEngineHttpHeaderTest05, 1);
-    UtRegisterTest("DetectEngineHttpHeaderTest06",
-                   DetectEngineHttpHeaderTest06, 1);
-    UtRegisterTest("DetectEngineHttpHeaderTest07",
-                   DetectEngineHttpHeaderTest07, 1);
-    UtRegisterTest("DetectEngineHttpHeaderTest08",
-                   DetectEngineHttpHeaderTest08, 1);
-    UtRegisterTest("DetectEngineHttpHeaderTest09",
-                   DetectEngineHttpHeaderTest09, 1);
-    UtRegisterTest("DetectEngineHttpHeaderTest10",
-                   DetectEngineHttpHeaderTest10, 1);
-    UtRegisterTest("DetectEngineHttpHeaderTest11",
-                   DetectEngineHttpHeaderTest11, 1);
-    UtRegisterTest("DetectEngineHttpHeaderTest12",
-                   DetectEngineHttpHeaderTest12, 1);
-    UtRegisterTest("DetectEngineHttpHeaderTest13",
-                   DetectEngineHttpHeaderTest13, 1);
-    UtRegisterTest("DetectEngineHttpHeaderTest14",
-                   DetectEngineHttpHeaderTest14, 1);
-    UtRegisterTest("DetectEngineHttpHeaderTest15",
-                   DetectEngineHttpHeaderTest15, 1);
-    UtRegisterTest("DetectEngineHttpHeaderTest16",
-                   DetectEngineHttpHeaderTest16, 1);
-    UtRegisterTest("DetectEngineHttpHeaderTest17",
-                   DetectEngineHttpHeaderTest17, 1);
-    UtRegisterTest("DetectEngineHttpHeaderTest18",
-                   DetectEngineHttpHeaderTest18, 1);
-    UtRegisterTest("DetectEngineHttpHeaderTest19",
-                   DetectEngineHttpHeaderTest19, 1);
+    UtRegisterTest("DetectEngineHttpRawHeaderTest01",
+                   DetectEngineHttpRawHeaderTest01, 1);
+    UtRegisterTest("DetectEngineHttpRawHeaderTest02",
+                   DetectEngineHttpRawHeaderTest02, 1);
+    UtRegisterTest("DetectEngineHttpRawHeaderTest03",
+                   DetectEngineHttpRawHeaderTest03, 1);
+    UtRegisterTest("DetectEngineHttpRawHeaderTest04",
+                   DetectEngineHttpRawHeaderTest04, 1);
+    UtRegisterTest("DetectEngineHttpRawHeaderTest05",
+                   DetectEngineHttpRawHeaderTest05, 1);
+    UtRegisterTest("DetectEngineHttpRawHeaderTest06",
+                   DetectEngineHttpRawHeaderTest06, 1);
+    UtRegisterTest("DetectEngineHttpRawHeaderTest07",
+                   DetectEngineHttpRawHeaderTest07, 1);
+    UtRegisterTest("DetectEngineHttpRawHeaderTest08",
+                   DetectEngineHttpRawHeaderTest08, 1);
+    UtRegisterTest("DetectEngineHttpRawHeaderTest09",
+                   DetectEngineHttpRawHeaderTest09, 1);
+    UtRegisterTest("DetectEngineHttpRawHeaderTest10",
+                   DetectEngineHttpRawHeaderTest10, 1);
+    UtRegisterTest("DetectEngineHttpRawHeaderTest11",
+                   DetectEngineHttpRawHeaderTest11, 1);
+    UtRegisterTest("DetectEngineHttpRawHeaderTest12",
+                   DetectEngineHttpRawHeaderTest12, 1);
+    UtRegisterTest("DetectEngineHttpRawHeaderTest13",
+                   DetectEngineHttpRawHeaderTest13, 1);
+    UtRegisterTest("DetectEngineHttpRawHeaderTest14",
+                   DetectEngineHttpRawHeaderTest14, 1);
+    UtRegisterTest("DetectEngineHttpRawHeaderTest15",
+                   DetectEngineHttpRawHeaderTest15, 1);
+    UtRegisterTest("DetectEngineHttpRawHeaderTest16",
+                   DetectEngineHttpRawHeaderTest16, 1);
+    UtRegisterTest("DetectEngineHttpRawHeaderTest17",
+                   DetectEngineHttpRawHeaderTest17, 1);
+    UtRegisterTest("DetectEngineHttpRawHeaderTest18",
+                   DetectEngineHttpRawHeaderTest18, 1);
+    UtRegisterTest("DetectEngineHttpRawHeaderTest19",
+                   DetectEngineHttpRawHeaderTest19, 1);
 #endif /* UNITTESTS */
 
     return;
