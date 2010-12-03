@@ -65,6 +65,7 @@ detect-engine-dcepayload.c detect-engine-dcepayload.h \
 detect-engine-uri.c detect-engine-uri.h \
 detect-engine-hcbd.c detect-engine-hcbd.h \
 detect-engine-hhd.c detect-engine-hhd.h \
+detect-engine-hrhd.c detect-engine-hrhd.h \
 detect-engine-state.c detect-engine-state.h \
 detect-parse.c detect-parse.h \
 detect-ack.c detect-ack.h \
