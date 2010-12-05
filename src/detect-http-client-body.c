@@ -226,17 +226,22 @@ int DetectHttpClientBodySetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
                                                    DETECT_CONTENT, sm->prev,
                                                    DETECT_PCRE, sm->prev);
-        /* pm is never NULL.  So no NULL check */
-        if (pm->type == DETECT_CONTENT) {
-            DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
-            tmp_cd->flags &= ~DETECT_CONTENT_RELATIVE_NEXT;
-        } else {
-            DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
-            tmp_pd->flags &= ~ DETECT_PCRE_RELATIVE_NEXT;
-        }
+        /* pm can be NULL now.  To accomodate parsing sigs like -
+         * content:one; http_modifier; content:two; distance:0; http_modifier */
+        if (pm != NULL) {
+            if (pm->type == DETECT_CONTENT) {
+                DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+                tmp_cd->flags &= ~DETECT_CONTENT_RELATIVE_NEXT;
+            } else {
+                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                tmp_pd->flags &= ~ DETECT_PCRE_RELATIVE_NEXT;
+            }
 
-        pm =  SigMatchGetLastSMFromLists(s, 2,
-                                         DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]);
+        } /* if (pm != NULL) */
+
+        /* reassigning pm */
+        pm = SigMatchGetLastSMFromLists(s, 2,
+                                        DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]);
         if (pm == NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "http_client_body seen with a "
                        "distance or within without a previous http_client_body "
@@ -265,11 +270,10 @@ int DetectHttpClientBodySetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     return 0;
 
 error:
-    if (cd != NULL)
-        DetectHttpClientBodyFree(cd);
-
-    if (sm != NULL)
-        SCFree(sm);
+    //if (cd != NULL)
+    //    DetectHttpClientBodyFree(cd);
+    //if (sm != NULL)
+    //    SCFree(sm);
 
     return -1;
 }
@@ -2365,6 +2369,166 @@ int DetectHttpClientBodyTest28(void)
     return result;
 }
 
+int DetectHttpClientBodyTest29(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; http_client_body; "
+                               "content:two; distance:0; http_client_body; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HCBDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HCBDMATCH] == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *hcbd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]->prev->ctx;
+    DetectContentData *hcbd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]->ctx;
+    if (hcbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
+        memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
+        hcbd2->flags != DETECT_CONTENT_DISTANCE ||
+        memcmp(hcbd2->content, "two", hcbd1->content_len) != 0) {
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpClientBodyTest30(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; http_client_body; "
+                               "content:two; within:5; http_client_body; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HCBDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HCBDMATCH] == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *hcbd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]->prev->ctx;
+    DetectContentData *hcbd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]->ctx;
+    if (hcbd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
+        memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
+        hcbd2->flags != DETECT_CONTENT_WITHIN ||
+        memcmp(hcbd2->content, "two", hcbd1->content_len) != 0) {
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpClientBodyTest31(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; within:5; http_client_body; sid:1;)");
+    if (de_ctx->sig_list != NULL) {
+        printf("de_ctx->sig_list != NULL\n");
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpClientBodyTest32(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; http_client_body; within:5; sid:1;)");
+    if (de_ctx->sig_list != NULL) {
+        printf("de_ctx->sig_list != NULL\n");
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpClientBodyTest33(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; within:5; sid:1;)");
+    if (de_ctx->sig_list != NULL) {
+        printf("de_ctx->sig_list != NULL\n");
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DetectHttpClientBodyRegisterTests(void)
@@ -2399,6 +2563,11 @@ void DetectHttpClientBodyRegisterTests(void)
     UtRegisterTest("DetectHttpClientBodyTest26", DetectHttpClientBodyTest26, 1);
     UtRegisterTest("DetectHttpClientBodyTest27", DetectHttpClientBodyTest27, 1);
     UtRegisterTest("DetectHttpClientBodyTest28", DetectHttpClientBodyTest28, 1);
+    UtRegisterTest("DetectHttpClientBodyTest29", DetectHttpClientBodyTest29, 1);
+    UtRegisterTest("DetectHttpClientBodyTest30", DetectHttpClientBodyTest30, 1);
+    UtRegisterTest("DetectHttpClientBodyTest31", DetectHttpClientBodyTest31, 1);
+    UtRegisterTest("DetectHttpClientBodyTest32", DetectHttpClientBodyTest32, 1);
+    UtRegisterTest("DetectHttpClientBodyTest33", DetectHttpClientBodyTest33, 1);
 #endif /* UNITTESTS */
 
     return;

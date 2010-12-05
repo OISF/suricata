@@ -335,9 +335,10 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                                "keyword.  Holds good only in the case of DCERPC "
                                "alproto like now.");
                 } else {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "No related "
-                               "previous-previous content or pcre keyword");
-                    goto error;
+                    //SCLogError(SC_ERR_INVALID_SIGNATURE, "No related "
+                    //           "previous-previous content or pcre keyword");
+                    //goto error;
+                    ;
                 }
             } else {
                 switch (pm->type) {

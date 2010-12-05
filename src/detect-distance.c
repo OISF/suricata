@@ -315,9 +315,10 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                                "keyword.  Holds good only in the case of DCERPC "
                                "alproto like now.");
                 } else {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "No related "
-                               "previous-previous content or pcre keyword");
-                    goto error;
+                    //SCLogError(SC_ERR_INVALID_SIGNATURE, "No related "
+                    //"previous-previous content or pcre keyword");
+                    //goto error;
+                    ;
                 }
             } else {
                 switch (pm->type) {
