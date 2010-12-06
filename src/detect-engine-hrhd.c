@@ -205,7 +205,12 @@ static int DoInspectHttpRawHeader(DetectEngineCtx *de_ctx,
                     goto match;
                 }
 
-                BUG_ON(sm->next == NULL);
+                /* bail out if we have no next match. Technically this is an
+                 * error, as the current cd has the DETECT_CONTENT_RELATIVE_NEXT
+                 * flag set. */
+                if (sm->next == NULL) {
+                    SCReturnInt(0);
+                }
 
                 /* see if the next payload keywords match. If not, we will
                  * search for another occurence of this http raw header content
@@ -255,6 +260,8 @@ match:
  * \param htp_state http state.
  *
  * \retval cnt The match count from the mpm call.
+ *
+ * \warning Make sure the flow is locked.
  */
 static uint32_t DetectEngineInspectHttpRawHeaderMpmInspect(DetectEngineThreadCtx *det_ctx,
                                                            Signature *s, Flow *f,
@@ -285,6 +292,7 @@ static uint32_t DetectEngineInspectHttpRawHeaderMpmInspect(DetectEngineThreadCtx
         bstr *raw_headers = htp_tx_get_request_headers_raw(tx);
         if (raw_headers == NULL)
             continue;
+
         /* store the buffers.  We will need it for further inspection */
         det_ctx->hrhd_buffers[i] = (uint8_t *)bstr_ptr(raw_headers);
         det_ctx->hrhd_buffers_len[i] = bstr_len(raw_headers);
@@ -330,8 +338,8 @@ int DetectEngineInspectHttpRawHeader(DetectEngineCtx *de_ctx,
     /* locking the flow, we will inspect the htp state */
     SCMutexLock(&f->m);
 
-    if (htp_state->connp == NULL) {
-        SCLogDebug("HTP state has no connp");
+    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
+        SCLogDebug("HTP state has no conn(p)");
         goto end;
     }
 
@@ -354,15 +362,15 @@ int DetectEngineInspectHttpRawHeader(DetectEngineCtx *de_ctx,
         /* assign space to hold buffers.  Each per transaction */
         det_ctx->hrhd_buffers = SCMalloc(det_ctx->hrhd_buffers_list_len * sizeof(uint8_t *));
         if (det_ctx->hrhd_buffers == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            return 0;
+            r = 0;
+            goto end;
         }
         memset(det_ctx->hrhd_buffers, 0, det_ctx->hrhd_buffers_list_len * sizeof(uint8_t *));
 
         det_ctx->hrhd_buffers_len = SCMalloc(det_ctx->hrhd_buffers_list_len * sizeof(uint32_t));
         if (det_ctx->hrhd_buffers_len == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            return 0;
+            r = 0;
+            goto end;
         }
         memset(det_ctx->hrhd_buffers_len, 0, det_ctx->hrhd_buffers_list_len * sizeof(uint32_t));
     } /* if (det_ctx->hrhd_buffers_list_len == 0) */
@@ -422,8 +430,10 @@ end:
 void DetectEngineCleanHRHDBuffers(DetectEngineThreadCtx *det_ctx)
 {
     if (det_ctx->hrhd_buffers_list_len != 0) {
-        SCFree(det_ctx->hrhd_buffers);
-        det_ctx->hrhd_buffers = NULL;
+        if (det_ctx->hrhd_buffers != NULL) {
+            SCFree(det_ctx->hrhd_buffers);
+            det_ctx->hrhd_buffers = NULL;
+        }
         det_ctx->hrhd_buffers_list_len = 0;
     }
 

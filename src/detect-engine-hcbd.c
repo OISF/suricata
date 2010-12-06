@@ -203,7 +203,12 @@ static int DoInspectHttpClientBody(DetectEngineCtx *de_ctx,
                     goto match;
                 }
 
-                BUG_ON(sm->next == NULL);
+                /* bail out if we have no next match. Technically this is an
+                 * error, as the current cd has the DETECT_CONTENT_RELATIVE_NEXT
+                 * flag set. */
+                if (sm->next == NULL) {
+                    SCReturnInt(0);
+                }
 
                 /* see if the next payload keywords match. If not, we will
                  * search for another occurence of this http client body content
@@ -253,6 +258,8 @@ match:
  *
  * \retval cnt The match count from the mpm call.  If call_mpm is 0, the retval
  *             is ignored.
+ *
+ * \warning Make sure flow is locked.
  */
 static uint32_t DetectEngineInspectHttpClientBodyMpmInspect(DetectEngineCtx *de_ctx,
                                                             DetectEngineThreadCtx *det_ctx,
@@ -318,11 +325,12 @@ static uint32_t DetectEngineInspectHttpClientBodyMpmInspect(DetectEngineCtx *de_
                  * should change to handling chunks statefully */
                 if (chunks_buffer_len > de_ctx->hcbd_buffer_limit)
                     break;
+
                 chunks_buffer_len += cur->len;
                 if ( (chunks_buffer = SCRealloc(chunks_buffer, chunks_buffer_len)) == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-                    exit(EXIT_FAILURE);
+                    goto end;
                 }
+
                 memcpy(chunks_buffer + chunks_buffer_len - cur->len, cur->data, cur->len);
                 cur = cur->next;
             }
@@ -336,6 +344,7 @@ static uint32_t DetectEngineInspectHttpClientBodyMpmInspect(DetectEngineCtx *de_
         } /* else - if (htud->body.nchunks == 0) */
     } /* for (idx = AppLayerTransactionGetInspectId(f); .. */
 
+end:
     SCReturnUInt(cnt);
 }
 
@@ -371,8 +380,8 @@ int DetectEngineInspectHttpClientBody(DetectEngineCtx *de_ctx,
     /* locking the flow, we will inspect the htp state */
     SCMutexLock(&f->m);
 
-    if (htp_state->connp == NULL) {
-        SCLogDebug("HTP state has no connp");
+    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
+        SCLogDebug("HTP state has no conn(p)");
         goto end;
     }
 
@@ -395,14 +404,14 @@ int DetectEngineInspectHttpClientBody(DetectEngineCtx *de_ctx,
         /* assign space to hold buffers.  Each per transaction */
         det_ctx->hcbd_buffers = SCMalloc(det_ctx->hcbd_buffers_list_len * sizeof(uint8_t *));
         if (det_ctx->hcbd_buffers == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            r = 0;
             goto end;
         }
         memset(det_ctx->hcbd_buffers, 0, det_ctx->hcbd_buffers_list_len * sizeof(uint8_t *));
 
         det_ctx->hcbd_buffers_len = SCMalloc(det_ctx->hcbd_buffers_list_len * sizeof(uint32_t));
         if (det_ctx->hcbd_buffers_len == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            r = 0;
             goto end;
         }
         memset(det_ctx->hcbd_buffers_len, 0, det_ctx->hcbd_buffers_list_len * sizeof(uint32_t));
@@ -470,8 +479,10 @@ void DetectEngineCleanHCBDBuffers(DetectEngineThreadCtx *det_ctx)
             if (det_ctx->hcbd_buffers[i] != NULL)
                 SCFree(det_ctx->hcbd_buffers[i]);
         }
-        SCFree(det_ctx->hcbd_buffers);
-        det_ctx->hcbd_buffers = NULL;
+        if (det_ctx->hcbd_buffers != NULL) {
+            SCFree(det_ctx->hcbd_buffers);
+            det_ctx->hcbd_buffers = NULL;
+        }
         det_ctx->hcbd_buffers_list_len = 0;
     }
 

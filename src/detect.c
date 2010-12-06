@@ -1329,9 +1329,7 @@ end:
     }
 
     /* cleanup pkt specific part of the patternmatcher */
-    //if (sms_runflags & SMS_USED_PM) {
     PacketPatternCleanup(th_v, det_ctx);
-        //}
 
     DetectEngineCleanHCBDBuffers(det_ctx);
     DetectEngineCleanHHDBuffers(det_ctx);

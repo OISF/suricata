@@ -205,7 +205,12 @@ static int DoInspectHttpHeader(DetectEngineCtx *de_ctx,
                     goto match;
                 }
 
-                BUG_ON(sm->next == NULL);
+                /* bail out if we have no next match. Technically this is an
+                 * error, as the current cd has the DETECT_CONTENT_RELATIVE_NEXT
+                 * flag set. */
+                if (sm->next == NULL) {
+                    SCReturnInt(0);
+                }
 
                 /* see if the next payload keywords match. If not, we will
                  * search for another occurence of this http header content and
@@ -251,10 +256,12 @@ match:
  *        buffers.
  *
  * \param det_ctx   Detection engine thread ctx.
- * \param f         Pointer to the flow.
+ * \param f         Pointer to the locked flow.
  * \param htp_state http state.
  *
  * \retval cnt The match count from the mpm call.
+ *
+ * \warning Make sure flow is locked.
  */
 static uint32_t DetectEngineInspectHttpHeaderMpmInspect(DetectEngineThreadCtx *det_ctx,
                                                         Signature *s, Flow *f,
@@ -284,17 +291,19 @@ static uint32_t DetectEngineInspectHttpHeaderMpmInspect(DetectEngineThreadCtx *d
 
         htp_header_t *h = NULL;
         uint8_t *headers_buffer = NULL;
-        uint32_t headers_buffer_len = 0;
+        size_t headers_buffer_len = 0;
+
         table_iterator_reset(tx->request_headers);
         while (table_iterator_next(tx->request_headers, (void **)&h) != NULL) {
-            int size1 = bstr_size(h->name);
-            int size2 = bstr_size(h->value);
+            size_t size1 = bstr_size(h->name);
+            size_t size2 = bstr_size(h->value);
+
             /* the extra 4 bytes if for ": " and "\r\n" */
-            headers_buffer = realloc(headers_buffer, headers_buffer_len + size1 + size2 + 4);
+            headers_buffer = SCRealloc(headers_buffer, headers_buffer_len + size1 + size2 + 4);
             if (headers_buffer == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory\n");
-                exit(EXIT_FAILURE);
+                continue;
             }
+
             memcpy(headers_buffer + headers_buffer_len, bstr_ptr(h->name), size1);
             headers_buffer_len += size1;
             headers_buffer[headers_buffer_len] = ':';
@@ -352,8 +361,8 @@ int DetectEngineInspectHttpHeader(DetectEngineCtx *de_ctx,
     /* locking the flow, we will inspect the htp state */
     SCMutexLock(&f->m);
 
-    if (htp_state->connp == NULL) {
-        SCLogDebug("HTP state has no connp");
+    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
+        SCLogDebug("HTP state has no conn(p)");
         goto end;
     }
 
@@ -376,15 +385,15 @@ int DetectEngineInspectHttpHeader(DetectEngineCtx *de_ctx,
         /* assign space to hold buffers.  Each per transaction */
         det_ctx->hhd_buffers = SCMalloc(det_ctx->hhd_buffers_list_len * sizeof(uint8_t *));
         if (det_ctx->hhd_buffers == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            return 0;
+            r = 0;
+            goto end;
         }
         memset(det_ctx->hhd_buffers, 0, det_ctx->hhd_buffers_list_len * sizeof(uint8_t *));
 
         det_ctx->hhd_buffers_len = SCMalloc(det_ctx->hhd_buffers_list_len * sizeof(uint32_t));
         if (det_ctx->hhd_buffers_len == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-            return 0;
+            r = 0;
+            goto end;
         }
         memset(det_ctx->hhd_buffers_len, 0, det_ctx->hhd_buffers_list_len * sizeof(uint32_t));
     } /* if (det_ctx->hhd_buffers_list_len == 0) */
@@ -449,8 +458,10 @@ void DetectEngineCleanHHDBuffers(DetectEngineThreadCtx *det_ctx)
             if (det_ctx->hhd_buffers[i] != NULL)
                 SCFree(det_ctx->hhd_buffers[i]);
         }
-        SCFree(det_ctx->hhd_buffers);
-        det_ctx->hhd_buffers = NULL;
+        if (det_ctx->hhd_buffers != NULL) {
+            SCFree(det_ctx->hhd_buffers);
+            det_ctx->hhd_buffers = NULL;
+        }
         det_ctx->hhd_buffers_list_len = 0;
     }
 
