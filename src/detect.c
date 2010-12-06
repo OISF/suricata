@@ -730,10 +730,7 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
 
         /* de_state check, filter out all signatures that already had a match before
          * or just partially match */
-        if (s->flags & SIG_FLAG_AMATCH || s->flags & SIG_FLAG_UMATCH ||
-            s->flags & SIG_FLAG_DMATCH || s->flags & SIG_FLAG_HCBDMATCH ||
-            s->flags & SIG_FLAG_HHDMATCH || s->flags & SIG_FLAG_HRHDMATCH)
-        {
+        if (s->flags & SIG_FLAG_AMATCH) {
             /* we run after DeStateDetectContinueDetection, so we might have
              * state NEW here. In that case we'd want to continue detection
              * for this sig. If we have NOSTATE, stateful detection didn't
@@ -1261,13 +1258,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         SCLogDebug("s->sm_lists[DETECT_SM_LIST_AMATCH] %p, s->sm_lists[DETECT_SM_LIST_UMATCH] %p, s->sm_lists[DETECT_SM_LIST_DMATCH] %p",
                 s->sm_lists[DETECT_SM_LIST_AMATCH], s->sm_lists[DETECT_SM_LIST_UMATCH], s->sm_lists[DETECT_SM_LIST_DMATCH]);
 
-        if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL ||
-            s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL ||
-            s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL ||
-            s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
-            s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL ||
-            s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL) {
-
+        /* consider stateful sig matches */
+        if (s->flags & SIG_FLAG_AMATCH) {
             if (alstate == NULL) {
                 SCLogDebug("state matches but no state, we can't match");
                 goto next;

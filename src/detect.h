@@ -230,12 +230,12 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_BIDIREC        0x00010000  /**< signature has bidirectional operator */
 #define SIG_FLAG_PACKET         0x00020000  /**< signature has matches against a packet (as opposed to app layer) */
 
-#define SIG_FLAG_UMATCH         0x00040000
+// 0x00040000 unused
 #define SIG_FLAG_AMATCH         0x00080000
-#define SIG_FLAG_DMATCH         0x00100000
-#define SIG_FLAG_HCBDMATCH      0x00200000
-#define SIG_FLAG_HHDMATCH       0x00400000
-#define SIG_FLAG_HRHDMATCH      0x00800000
+// 0x00100000 unused
+// 0x00200000 unused
+// 0x00400000 unused
+// 0x00800000 unused
 
 #define SIG_FLAG_MPM_PACKET     0x01000000
 #define SIG_FLAG_MPM_PACKET_NEG 0x02000000

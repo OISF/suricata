@@ -1385,13 +1385,17 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
     }
 
     if (sig->sm_lists[DETECT_SM_LIST_UMATCH])
-        sig->flags |= SIG_FLAG_UMATCH;
+        sig->flags |= SIG_FLAG_AMATCH;
     if (sig->sm_lists[DETECT_SM_LIST_DMATCH])
         sig->flags |= SIG_FLAG_AMATCH;
     if (sig->sm_lists[DETECT_SM_LIST_AMATCH])
         sig->flags |= SIG_FLAG_AMATCH;
     if (sig->sm_lists[DETECT_SM_LIST_HCBDMATCH])
-        sig->flags |= SIG_FLAG_HCBDMATCH;
+        sig->flags |= SIG_FLAG_AMATCH;
+    if (sig->sm_lists[DETECT_SM_LIST_HHDMATCH])
+        sig->flags |= SIG_FLAG_AMATCH;
+    if (sig->sm_lists[DETECT_SM_LIST_HRHDMATCH])
+        sig->flags |= SIG_FLAG_AMATCH;
 
     SCLogDebug("sig %"PRIu32" SIG_FLAG_APPLAYER: %s, SIG_FLAG_PACKET: %s",
         sig->id, sig->flags & SIG_FLAG_APPLAYER ? "set" : "not set",
@@ -1579,10 +1583,16 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
     }
 
     if (sig->sm_lists[DETECT_SM_LIST_UMATCH])
-        sig->flags |= SIG_FLAG_UMATCH;
+        sig->flags |= SIG_FLAG_AMATCH;
     if (sig->sm_lists[DETECT_SM_LIST_DMATCH])
         sig->flags |= SIG_FLAG_AMATCH;
     if (sig->sm_lists[DETECT_SM_LIST_AMATCH])
+        sig->flags |= SIG_FLAG_AMATCH;
+    if (sig->sm_lists[DETECT_SM_LIST_HCBDMATCH])
+        sig->flags |= SIG_FLAG_AMATCH;
+    if (sig->sm_lists[DETECT_SM_LIST_HHDMATCH])
+        sig->flags |= SIG_FLAG_AMATCH;
+    if (sig->sm_lists[DETECT_SM_LIST_HRHDMATCH])
         sig->flags |= SIG_FLAG_AMATCH;
 
     SigBuildAddressMatchArray(sig);
