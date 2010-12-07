@@ -343,7 +343,7 @@ static int DetectFtpbounceTestALMatch02(void) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_FTP;
 
     StreamTcpInitConfig(TRUE);
@@ -476,7 +476,7 @@ static int DetectFtpbounceTestALMatch03(void) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_FTP;
 
     StreamTcpInitConfig(TRUE);

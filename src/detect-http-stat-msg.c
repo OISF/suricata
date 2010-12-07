@@ -407,7 +407,7 @@ static int DetectHttpStatMsgSigTest01(void) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -516,7 +516,7 @@ static int DetectHttpStatMsgSigTest02(void) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -615,7 +615,7 @@ static int DetectHttpStatMsgSigTest03(void) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);

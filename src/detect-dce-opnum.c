@@ -1153,7 +1153,7 @@ static int DetectDceOpnumTestParse08(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
@@ -1680,7 +1680,7 @@ static int DetectDceOpnumTestParse09(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
@@ -1878,7 +1878,7 @@ static int DetectDceOpnumTestParse10(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
@@ -2171,7 +2171,7 @@ static int DetectDceOpnumTestParse11(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
@@ -2447,7 +2447,7 @@ static int DetectDceOpnumTestParse12(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
@@ -2732,7 +2732,7 @@ static int DetectDceOpnumTestParse13(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);

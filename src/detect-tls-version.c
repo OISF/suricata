@@ -337,7 +337,7 @@ static int DetectTlsVersionTestDetect01(void) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
@@ -452,7 +452,7 @@ static int DetectTlsVersionTestDetect02(void) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
@@ -567,7 +567,7 @@ static int DetectTlsVersionTestDetect03(void) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_TLS;
     f.proto = p->proto;
 

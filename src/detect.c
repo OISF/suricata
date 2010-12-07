@@ -4329,7 +4329,7 @@ static int SigTest06Real (int mpm_type) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -4425,7 +4425,7 @@ static int SigTest07Real (int mpm_type) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -4521,7 +4521,7 @@ static int SigTest08Real (int mpm_type) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -4617,7 +4617,7 @@ static int SigTest09Real (int mpm_type) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -4705,7 +4705,7 @@ static int SigTest10Real (int mpm_type) {
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -4792,7 +4792,7 @@ static int SigTest11Real (int mpm_type) {
     f.dst.family = AF_INET;
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -4861,7 +4861,7 @@ static int SigTest12Real (int mpm_type) {
 
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -4926,7 +4926,7 @@ static int SigTest13Real (int mpm_type) {
 
     p = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -5468,10 +5468,10 @@ static int SigTest21Real (int mpm_type) {
 
     p1 = UTHBuildPacket((uint8_t *)buf1, buf1len, IPPROTO_TCP);
     p1->flow = &f;
-    p1->flags |= PKT_HAS_FLOW;
+    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     p2 = UTHBuildPacket((uint8_t *)buf2, buf2len, IPPROTO_TCP);
     p2->flow = &f;
-    p2->flags |= PKT_HAS_FLOW;
+    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -5551,7 +5551,7 @@ static int SigTest22Real (int mpm_type) {
 
     p1 = UTHBuildPacket((uint8_t *)buf1, buf1len, IPPROTO_TCP);
     p1->flow = &f;
-    p1->flags |= PKT_HAS_FLOW;
+    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
 
     /* packet 2 */
     uint8_t *buf2 = (uint8_t *)"GET /two/ HTTP/1.0\r\n"
@@ -5561,7 +5561,7 @@ static int SigTest22Real (int mpm_type) {
 
     p2 = UTHBuildPacket((uint8_t *)buf2, buf2len, IPPROTO_TCP);
     p2->flow = &f;
-    p2->flags |= PKT_HAS_FLOW;
+    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -5637,7 +5637,7 @@ static int SigTest23Real (int mpm_type) {
 
     p1 = UTHBuildPacket((uint8_t *)buf1, buf1len, IPPROTO_TCP);
     p1->flow = &f;
-    p1->flags |= PKT_HAS_FLOW;
+    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
 
     /* packet 2 */
     uint8_t *buf2 = (uint8_t *)"GET /two/ HTTP/1.0\r\n"
@@ -5647,7 +5647,7 @@ static int SigTest23Real (int mpm_type) {
 
     p2 = UTHBuildPacket((uint8_t *)buf2, buf2len, IPPROTO_TCP);
     p2->flow = &f;
-    p2->flags |= PKT_HAS_FLOW;
+    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -9693,7 +9693,7 @@ static int SigTestDropFlow01(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -9791,7 +9791,7 @@ static int SigTestDropFlow02(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -9902,12 +9902,12 @@ static int SigTestDropFlow03(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW;
+    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
 
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW;
+    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
@@ -10067,12 +10067,12 @@ static int SigTestDropFlow04(void)
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
-    p1->flags |= PKT_HAS_FLOW;
+    p1->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
 
     p2->flow = &f;
     p2->flowflags |= FLOW_PKT_TOSERVER;
     p2->flowflags |= FLOW_PKT_ESTABLISHED;
-    p2->flags |= PKT_HAS_FLOW;
+    p2->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);

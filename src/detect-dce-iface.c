@@ -870,7 +870,7 @@ static int DetectDceIfaceTestParse12(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
@@ -1102,7 +1102,7 @@ static int DetectDceIfaceTestParse13(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
@@ -1358,7 +1358,7 @@ static int DetectDceIfaceTestParse14(void)
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
@@ -1547,7 +1547,7 @@ static int DetectDceIfaceTestParse15(void)
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     p->flow = &f;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     f.alproto = ALPROTO_DCERPC;
