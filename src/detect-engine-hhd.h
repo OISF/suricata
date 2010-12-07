@@ -23,6 +23,11 @@
 #ifndef __DETECT_ENGINE_HHD_H__
 #define __DETECT_ENGINE_HHD_H__
 
+#include "app-layer-htp.h"
+
+void DetectEngineBufferHttpHeaders(DetectEngineThreadCtx *, Flow *,
+                                   HtpState *);
+int DetectEngineRunHttpHeaderMpm(DetectEngineThreadCtx *);
 int DetectEngineInspectHttpHeader(DetectEngineCtx *, DetectEngineThreadCtx *,
                                   Signature *, Flow *, uint8_t, void *);
 void DetectEngineCleanHHDBuffers(DetectEngineThreadCtx *);

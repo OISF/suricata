@@ -255,35 +255,62 @@ match:
  *        stores them away in detection context.  Also calls the mpm on the
  *        buffers.
  *
+ * \param de_ctx    Detection engine ctx.
  * \param det_ctx   Detection engine thread ctx.
  * \param f         Pointer to the locked flow.
  * \param htp_state http state.
  *
- * \retval cnt The match count from the mpm call.
- *
  * \warning Make sure flow is locked.
  */
-static uint32_t DetectEngineInspectHttpHeaderMpmInspect(DetectEngineThreadCtx *det_ctx,
-                                                        Signature *s, Flow *f,
-                                                        HtpState *htp_state)
+void DetectEngineBufferHttpHeaders(DetectEngineThreadCtx *det_ctx, Flow *f,
+                                   HtpState *htp_state)
 {
-    uint32_t cnt = 0;
     size_t idx = 0;
     htp_tx_t *tx = NULL;
     int i = 0;
 
+    /* locking the flow, we will inspect the htp state */
+    SCMutexLock(&f->m);
+
+    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
+        SCLogDebug("HTP state has no conn(p)");
+        goto end;
+    }
+
+    /* it is either the first entry into this function.  If it is not,
+     * then we just don't have any http transactions */
+    if (det_ctx->hhd_buffers_list_len == 0) {
+        /* get the transaction id */
+        int tmp_idx = AppLayerTransactionGetInspectId(f);
+        /* error!  get out of here */
+        if (tmp_idx == -1)
+            goto end;
+
+        /* let's get the transaction count.  We need this to hold the header
+         * buffer for each transaction */
+        det_ctx->hhd_buffers_list_len = list_size(htp_state->connp->conn->transactions) - tmp_idx;
+        /* no transactions?!  cool.  get out of here */
+        if (det_ctx->hhd_buffers_list_len == 0)
+            goto end;
+
+        /* assign space to hold buffers.  Each per transaction */
+        det_ctx->hhd_buffers = SCMalloc(det_ctx->hhd_buffers_list_len * sizeof(uint8_t *));
+        if (det_ctx->hhd_buffers == NULL) {
+            goto end;
+        }
+        memset(det_ctx->hhd_buffers, 0, det_ctx->hhd_buffers_list_len * sizeof(uint8_t *));
+
+        det_ctx->hhd_buffers_len = SCMalloc(det_ctx->hhd_buffers_list_len * sizeof(uint32_t));
+        if (det_ctx->hhd_buffers_len == NULL) {
+            goto end;
+        }
+        memset(det_ctx->hhd_buffers_len, 0, det_ctx->hhd_buffers_list_len * sizeof(uint32_t));
+    } else {
+        goto end;
+    } /* else - if (det_ctx->hhd_buffers_list_len == 0) */
+
     for (idx = AppLayerTransactionGetInspectId(f);
          i < det_ctx->hhd_buffers_list_len; idx++, i++) {
-
-        /* if the buffer already exists, use it */
-        if (det_ctx->hhd_buffers[i] != NULL) {
-            if (s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT) {
-                cnt += HttpHeaderPatternSearch(det_ctx,
-                                               det_ctx->hhd_buffers[i],
-                                               det_ctx->hhd_buffers_len[i]);
-            }
-            continue;
-        }
 
         tx = list_get(htp_state->connp->conn->transactions, idx);
         if (tx == NULL)
@@ -321,12 +348,25 @@ static uint32_t DetectEngineInspectHttpHeaderMpmInspect(DetectEngineThreadCtx *d
         det_ctx->hhd_buffers[i] = headers_buffer;
         det_ctx->hhd_buffers_len[i] = headers_buffer_len;
 
-        /* carry out the mpm */
-        if (s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT)
-            cnt += HttpHeaderPatternSearch(det_ctx, headers_buffer, headers_buffer_len);
     } /* for (idx = AppLayerTransactionGetInspectId(f); .. */
 
-    SCReturnUInt(cnt);
+ end:
+    SCMutexUnlock(&f->m);
+    return;
+}
+
+int DetectEngineRunHttpHeaderMpm(DetectEngineThreadCtx *det_ctx)
+{
+    int i;
+    uint32_t cnt = 0;
+
+    for (i = 0; i < det_ctx->hhd_buffers_list_len; i++) {
+        cnt += HttpHeaderPatternSearch(det_ctx,
+                                       det_ctx->hhd_buffers[i],
+                                       det_ctx->hhd_buffers_len[i]);
+    }
+
+    return cnt;
 }
 
 /**
@@ -366,65 +406,35 @@ int DetectEngineInspectHttpHeader(DetectEngineCtx *de_ctx,
         goto end;
     }
 
-    /* it is either the first entry into this function.  If it is not,
-     * then we just don't have any http transactions */
-    if (det_ctx->hhd_buffers_list_len == 0) {
-        /* get the transaction id */
-        int tmp_idx = AppLayerTransactionGetInspectId(f);
-        /* error!  get out of here */
-        if (tmp_idx == -1)
-            goto end;
+    DetectEngineBufferHttpHeaders(det_ctx, f, htp_state);
 
-        /* let's get the transaction count.  We need this to hold the header
-         * buffer for each transaction */
-        det_ctx->hhd_buffers_list_len = list_size(htp_state->connp->conn->transactions) - tmp_idx;
-        /* no transactions?!  cool.  get out of here */
-        if (det_ctx->hhd_buffers_list_len == 0)
-            goto end;
+    //if (s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT) {
+    //    if (det_ctx->de_mpm_scanned_hhd == FALSE) {
+    //        uint32_t cnt = DetectEngineInspectHttpHeaderMpmInspect(det_ctx, s,
+    //                                                               f, htp_state);
+    //        if (cnt <= 0)
+    //            det_ctx->de_have_hhd = FALSE;
+    //
+    //        det_ctx->de_mpm_scanned_hhd = TRUE;
+    //    }
+    //} else {
+    //    DetectEngineInspectHttpHeaderMpmInspect(det_ctx, s, f, htp_state);
+    //}
 
-        /* assign space to hold buffers.  Each per transaction */
-        det_ctx->hhd_buffers = SCMalloc(det_ctx->hhd_buffers_list_len * sizeof(uint8_t *));
-        if (det_ctx->hhd_buffers == NULL) {
-            r = 0;
-            goto end;
-        }
-        memset(det_ctx->hhd_buffers, 0, det_ctx->hhd_buffers_list_len * sizeof(uint8_t *));
+    //if (det_ctx->de_have_hhd == FALSE &&
+    //    s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT &&
+    //    !(s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT_NEG)) {
+    //    SCLogDebug("mpm results failure for http headers.  Get out of here");
+    //    goto end;
+    //}
 
-        det_ctx->hhd_buffers_len = SCMalloc(det_ctx->hhd_buffers_list_len * sizeof(uint32_t));
-        if (det_ctx->hhd_buffers_len == NULL) {
-            r = 0;
-            goto end;
-        }
-        memset(det_ctx->hhd_buffers_len, 0, det_ctx->hhd_buffers_list_len * sizeof(uint32_t));
-    } /* if (det_ctx->hhd_buffers_list_len == 0) */
-
-    if (s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT) {
-        if (det_ctx->de_mpm_scanned_hhd == FALSE) {
-            uint32_t cnt = DetectEngineInspectHttpHeaderMpmInspect(det_ctx, s,
-                                                                   f, htp_state);
-            if (cnt <= 0)
-                det_ctx->de_have_hhd = FALSE;
-
-            det_ctx->de_mpm_scanned_hhd = TRUE;
-        }
-    } else {
-        DetectEngineInspectHttpHeaderMpmInspect(det_ctx, s, f, htp_state);
-    }
-
-    if (det_ctx->de_have_hhd == FALSE &&
-        s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT &&
-        !(s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT_NEG)) {
-        SCLogDebug("mpm results failure for http headers.  Get out of here");
-        goto end;
-    }
-
-    if ((s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT) && (det_ctx->de_mpm_scanned_hhd == TRUE)) {
-        /* filter out the sig that needs a match, but have no matches */
-        if (!(s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT_NEG) &&
-            !(det_ctx->pmq.pattern_id_bitarray[(s->mpm_hhdpattern_id / 8)] & (1 << (s->mpm_hhdpattern_id % 8)))) {
-            goto end;
-        }
-    }
+    //if ((s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT) && (det_ctx->de_mpm_scanned_hhd == TRUE)) {
+    //    /* filter out the sig that needs a match, but have no matches */
+    //    if (!(s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT_NEG) &&
+    //        !(det_ctx->pmq.pattern_id_bitarray[(s->mpm_hhdpattern_id / 8)] & (1 << (s->mpm_hhdpattern_id % 8)))) {
+    //        goto end;
+    //    }
+    //}
 
     for (i = 0; i < det_ctx->hhd_buffers_list_len; i++) {
         uint8_t *hhd_buffer = det_ctx->hhd_buffers[i];

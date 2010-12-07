@@ -710,6 +710,15 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
             }
         }
 
+        if (s->full_sig->mpm_flags & SIG_FLAG_MPM_HHDCONTENT) {
+            if (!(det_ctx->pmq.pattern_id_bitarray[(s->full_sig->mpm_hhdpattern_id / 8)] &
+                  (1 << (s->full_sig->mpm_hhdpattern_id % 8)))) {
+                if (!(s->full_sig->mpm_flags & SIG_FLAG_MPM_HHDCONTENT_NEG)) {
+                    continue;
+                }
+            }
+        }
+
         /* de_state check, filter out all signatures that already had a match before
          * or just partially match */
         if (s->flags & SIG_FLAG_AMATCH || s->flags & SIG_FLAG_UMATCH ||
@@ -930,12 +939,11 @@ static inline void RunMpmsOnFlow(DetectEngineCtx *de_ctx,
             cnt = DetectEngineRunHttpClientBodyMpm(det_ctx);
             SCLogDebug("hcbd search: cnt %" PRIu32, cnt);
         }
-        //if (sgh->flags & SIG_GROUP_HEAD_MPM_HHD) {
-        //
-        //    cnt = DetectEngineInspectHttpHeaderMpmInspect(det_ctx, f,
-        //                                                  htp_state);
-        //    SCLogDebug("hhd search: cnt %" PRIu32, cnt);
-        //}
+        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HHD) {
+            DetectEngineBufferHttpHeaders(det_ctx, p->flow, alstate);
+            cnt = DetectEngineRunHttpHeaderMpm(det_ctx);
+            SCLogDebug("hhd search: cnt %" PRIu32, cnt);
+        }
         //if (sgh->flags & SIG_GROUP_HEAD_MPM_HHD) {
         //    cnt = DetectEngineInspectHttpRawHeaderMpmInspect(det_ctx, f,
         //                                                     htp_state);
@@ -973,8 +981,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     //det_ctx->de_have_hcbd = TRUE;
     //det_ctx->de_mpm_scanned_hcbd = FALSE;
 
-    det_ctx->de_have_hhd = TRUE;
-    det_ctx->de_mpm_scanned_hhd = FALSE;
+    //det_ctx->de_have_hhd = TRUE;
+    //det_ctx->de_mpm_scanned_hhd = FALSE;
 
     det_ctx->de_have_hrhd = TRUE;
     det_ctx->de_mpm_scanned_hrhd = FALSE;

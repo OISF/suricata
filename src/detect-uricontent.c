@@ -469,8 +469,12 @@ uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f, Htp
     size_t idx = 0;
     htp_tx_t *tx = NULL;
 
+    /* locking the flow, we will inspect the htp state */
+    SCMutexLock(&f->m);
+
     if (htp_state == NULL || htp_state->connp == NULL) {
         SCLogDebug("no HTTP state / no connp");
+        SCMutexUnlock(&f->m);
         SCReturnUInt(0U);
     }
 
@@ -486,6 +490,7 @@ uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f, Htp
                 bstr_len(tx->request_uri_normalized));
     }
 
+    SCMutexUnlock(&f->m);
     SCReturnUInt(cnt);
 }
 

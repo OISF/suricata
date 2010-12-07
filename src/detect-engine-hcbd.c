@@ -267,6 +267,14 @@ void DetectEngineBufferHttpClientBodies(DetectEngineCtx *de_ctx,
     htp_tx_t *tx = NULL;
     int i = 0;
 
+    /* locking the flow, we will inspect the htp state */
+    SCMutexLock(&f->m);
+
+    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
+        SCLogDebug("HTP state has no conn(p)");
+        goto end;
+    }
+
     /* it is either the first entry into this function.  If it is not,
      * then we just don't have any http transactions */
     if (det_ctx->hcbd_buffers_list_len == 0) {
@@ -274,31 +282,31 @@ void DetectEngineBufferHttpClientBodies(DetectEngineCtx *de_ctx,
         int tmp_idx = AppLayerTransactionGetInspectId(f);
         /* error!  get out of here */
         if (tmp_idx == -1)
-            return;
+            goto end;
 
         /* let's get the transaction count.  We need this to hold the client body
          * buffer for each transaction */
         det_ctx->hcbd_buffers_list_len = list_size(htp_state->connp->conn->transactions) - tmp_idx;
         /* no transactions?!  cool.  get out of here */
         if (det_ctx->hcbd_buffers_list_len == 0)
-            return;
+            goto end;
 
         /* assign space to hold buffers.  Each per transaction */
         det_ctx->hcbd_buffers = SCMalloc(det_ctx->hcbd_buffers_list_len * sizeof(uint8_t *));
         if (det_ctx->hcbd_buffers == NULL) {
-            return;
+            goto end;
         }
         memset(det_ctx->hcbd_buffers, 0, det_ctx->hcbd_buffers_list_len * sizeof(uint8_t *));
 
         det_ctx->hcbd_buffers_len = SCMalloc(det_ctx->hcbd_buffers_list_len * sizeof(uint32_t));
         if (det_ctx->hcbd_buffers_len == NULL) {
-            return;
+            goto end;
         }
         memset(det_ctx->hcbd_buffers_len, 0, det_ctx->hcbd_buffers_list_len * sizeof(uint32_t));
 
     } else {
         /* we already have the buffer space alloted.  Get out of there */
-        return;
+        goto end;
     }
 
     for (idx = AppLayerTransactionGetInspectId(f);
@@ -347,7 +355,7 @@ void DetectEngineBufferHttpClientBodies(DetectEngineCtx *de_ctx,
 
                 chunks_buffer_len += cur->len;
                 if ( (chunks_buffer = SCRealloc(chunks_buffer, chunks_buffer_len)) == NULL) {
-                    return;
+                    goto end;
                 }
 
                 memcpy(chunks_buffer + chunks_buffer_len - cur->len, cur->data, cur->len);
@@ -360,6 +368,8 @@ void DetectEngineBufferHttpClientBodies(DetectEngineCtx *de_ctx,
         } /* else - if (htud->body.nchunks == 0) */
     } /* for (idx = AppLayerTransactionGetInspectId(f); .. */
 
+ end:
+    SCMutexUnlock(&f->m);
     return;
 }
 
