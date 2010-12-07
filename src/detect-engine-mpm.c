@@ -633,7 +633,7 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
         DetectContentData *hhd = NULL;
         DetectContentData *hrhd = NULL;
         switch (mpm_sm->type) {
-        case DETECT_CONTENT:
+            case DETECT_CONTENT:
             {
                 cd = (DetectContentData *)mpm_sm->ctx;
                 if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
@@ -757,7 +757,8 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
 
                 break;
             } /* case DETECT_CONTENT */
-        case DETECT_URICONTENT:
+
+            case DETECT_URICONTENT:
             {
                 ud = (DetectContentData *)mpm_sm->ctx;
                 if (ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
@@ -812,7 +813,7 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 break;
             } /* case DETECT_URICONTENT */
 
-        case DETECT_AL_HTTP_CLIENT_BODY:
+            case DETECT_AL_HTTP_CLIENT_BODY:
             {
                 hcbd = (DetectContentData *)mpm_sm->ctx;
                 if (hcbd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
@@ -867,7 +868,7 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 break;
             } /* case DETECT_AL_HTTP_CLIENT_BODY */
 
-        case DETECT_AL_HTTP_HEADER:
+            case DETECT_AL_HTTP_HEADER:
             {
                 hhd = (DetectContentData *)mpm_sm->ctx;
                 if (hhd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
@@ -922,7 +923,7 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 break;
             } /* case DETECT_AL_HTTP_HEADER */
 
-        case DETECT_AL_HTTP_RAW_HEADER:
+            case DETECT_AL_HTTP_RAW_HEADER:
             {
                 hrhd = (DetectContentData *)mpm_sm->ctx;
                 if (hrhd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
@@ -1188,7 +1189,6 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                 }
             }
         }
-
 
         SigMatch *mpm_sm = NULL;
         SigMatch *sm = NULL;

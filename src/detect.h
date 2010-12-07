@@ -683,20 +683,20 @@ typedef struct DetectionEngineThreadCtx_ {
     uint32_t pcre_match_start_offset;
 
     /* http_uri stuff for uricontent */
-    char de_have_httpuri;
-    char de_mpm_scanned_uri;
+    //char de_have_httpuri;
+    //char de_mpm_scanned_uri;
 
     /* detectione engine context for hcbd mpm */
-    char de_have_hcbd;
-    char de_mpm_scanned_hcbd;
+    //char de_have_hcbd;
+    //char de_mpm_scanned_hcbd;
 
     /* detectione engine context for hhd mpm */
-    char de_have_hhd;
-    char de_mpm_scanned_hhd;
+    //char de_have_hhd;
+    //char de_mpm_scanned_hhd;
 
     /* detectione engine context for hrhd mpm */
-    char de_have_hrhd;
-    char de_mpm_scanned_hrhd;
+    //char de_have_hrhd;
+    //char de_mpm_scanned_hrhd;
 
     uint8_t **hcbd_buffers;
     uint32_t *hcbd_buffers_len;

@@ -1008,8 +1008,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     //det_ctx->de_have_hhd = TRUE;
     //det_ctx->de_mpm_scanned_hhd = FALSE;
 
-    det_ctx->de_have_hrhd = TRUE;
-    det_ctx->de_mpm_scanned_hrhd = FALSE;
+    //det_ctx->de_have_hrhd = TRUE;
+    //det_ctx->de_mpm_scanned_hrhd = FALSE;
 
     SCEnter();
 
@@ -1126,7 +1126,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* stateful app layer detection */
     if (p->flags & PKT_HAS_FLOW && alstate != NULL) {
-        det_ctx->de_mpm_scanned_uri = FALSE;
+        //det_ctx->de_mpm_scanned_uri = FALSE;
 
         /* initialize to 0 (DE_STATE_MATCH_NOSTATE) */
         memset(det_ctx->de_state_sig_array, 0x00, det_ctx->de_state_sig_array_len);
