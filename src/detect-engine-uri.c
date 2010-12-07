@@ -195,15 +195,15 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
             //PrintawDataFp(stdout,ud->content,ud->content_len);
 
             /* If we got no matches from the mpm, avoid searching (just check if negated) */
-            if (det_ctx->de_have_httpuri == TRUE) {
+            //if (det_ctx->de_have_httpuri == TRUE) {
                 /* do the actual search with boyer moore precooked ctx */
                 if (ud->flags & DETECT_CONTENT_NOCASE)
                     found = BoyerMooreNocase(ud->content, ud->content_len, spayload, spayload_len, ud->bm_ctx->bmGs, ud->bm_ctx->bmBc);
                 else
                     found = BoyerMoore(ud->content, ud->content_len, spayload, spayload_len, ud->bm_ctx->bmGs, ud->bm_ctx->bmBc);
-            } else {
-                found = NULL;
-            }
+            //} else {
+            //    found = NULL;
+            //}
 
             /* next we evaluate the result in combination with the
              * negation flag. */
@@ -377,47 +377,47 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
         goto end;
     }
 
-    det_ctx->de_have_httpuri = TRUE;
-    /* If we have the uricontent multi pattern matcher signatures in
-       signature list, then search the received HTTP uri(s) in the htp
-       state against those patterns */
-    if (s->flags & SIG_FLAG_MPM_URICONTENT) {
-        if (det_ctx->de_mpm_scanned_uri == FALSE) {
-            uint32_t cnt = DetectUricontentInspectMpm(det_ctx, f, htp_state);
-
-            /* only consider uri sigs if we've seen at least one match */
-            /** \warning when we start supporting negated uri content matches
-             * we need to update this check as well */
-            if (cnt <= 0) {
-                det_ctx->de_have_httpuri = FALSE;
-            }
-
-            SCLogDebug("uricontent cnt %"PRIu32"", cnt);
-
-            /* make sure we don't inspect this mpm again */
-            det_ctx->de_mpm_scanned_uri = TRUE;
-
-        }
-    }
+    //det_ctx->de_have_httpuri = TRUE;
+    ///* If we have the uricontent multi pattern matcher signatures in
+    //   signature list, then search the received HTTP uri(s) in the htp
+    //   state against those patterns */
+    //if (s->flags & SIG_FLAG_MPM_URICONTENT) {
+    //    if (det_ctx->de_mpm_scanned_uri == FALSE) {
+    //        uint32_t cnt = DetectUricontentInspectMpm(det_ctx, f, htp_state);
+    //
+    //        /* only consider uri sigs if we've seen at least one match */
+    //        /** \warning when we start supporting negated uri content matches
+    //         * we need to update this check as well */
+    //        if (cnt <= 0) {
+    //            det_ctx->de_have_httpuri = FALSE;
+    //        }
+    //
+    //        SCLogDebug("uricontent cnt %"PRIu32"", cnt);
+    //
+    //        /* make sure we don't inspect this mpm again */
+    //        det_ctx->de_mpm_scanned_uri = TRUE;
+    //
+    //    }
+    //}
 
     /* if we don't have a uri, don't bother inspecting */
-    if (det_ctx->de_have_httpuri == FALSE && !(s->flags & SIG_FLAG_MPM_URICONTENT_NEG)) {
-        SCLogDebug("We don't have uri");
-        goto end;
-    }
-
-    if ((s->flags & SIG_FLAG_MPM_URICONTENT) && (det_ctx->de_mpm_scanned_uri == TRUE)) {
-        if (det_ctx->pmq.pattern_id_bitarray != NULL) {
-            /* filter out sigs that want pattern matches, but
-             * have no matches */
-            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_uripattern_id / 8)] & (1<<(s->mpm_uripattern_id % 8))) &&
-                    (s->flags & SIG_FLAG_MPM_URICONTENT) && !(s->flags & SIG_FLAG_MPM_URICONTENT_NEG)) {
-                SCLogDebug("mpm sig without matches (pat id %"PRIu32
-                        " check in uri).", s->mpm_uripattern_id);
-                goto end;
-            }
-        }
-    }
+    //if (det_ctx->de_have_httpuri == FALSE && !(s->flags & SIG_FLAG_MPM_URICONTENT_NEG)) {
+    //    SCLogDebug("We don't have uri");
+    //    goto end;
+    //}
+    //
+    //if ((s->flags & SIG_FLAG_MPM_URICONTENT) && (det_ctx->de_mpm_scanned_uri == TRUE)) {
+    //    if (det_ctx->pmq.pattern_id_bitarray != NULL) {
+    //        /* filter out sigs that want pattern matches, but
+    //         * have no matches */
+    //        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_uripattern_id / 8)] & (1<<(s->mpm_uripattern_id % 8))) &&
+    //                (s->flags & SIG_FLAG_MPM_URICONTENT) && !(s->flags & SIG_FLAG_MPM_URICONTENT_NEG)) {
+    //            SCLogDebug("mpm sig without matches (pat id %"PRIu32
+    //                    " check in uri).", s->mpm_uripattern_id);
+    //            goto end;
+    //        }
+    //    }
+    //}
 
     sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
 

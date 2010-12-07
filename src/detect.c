@@ -692,6 +692,15 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
             }
         }
 
+        if (s->full_sig->flags & SIG_FLAG_MPM_URICONTENT) {
+            if (!(det_ctx->pmq.pattern_id_bitarray[(s->full_sig->mpm_uripattern_id / 8)] &
+                  (1 << (s->full_sig->mpm_uripattern_id % 8)))) {
+                if (!(s->full_sig->flags & SIG_FLAG_MPM_URICONTENT_NEG)) {
+                    continue;
+                }
+            }
+        }
+
         /* de_state check, filter out all signatures that already had a match before
          * or just partially match */
         if (s->flags & SIG_FLAG_AMATCH || s->flags & SIG_FLAG_UMATCH ||
@@ -863,6 +872,71 @@ end:
 #define SMS_USED_PM             0x02
 #define SMS_USED_STREAM_PM      0x04
 
+static inline void RunMpmsOnFlow(DetectEngineCtx *de_ctx,
+                                 DetectEngineThreadCtx *det_ctx,
+                                 StreamMsg *smsg, Packet *p, uint8_t flags,
+                                 uint16_t alproto, void *alstate,
+                                 uint8_t *sms_runflags)
+{
+    uint32_t cnt = 0;
+
+    /* have a look at the reassembled stream (if any) */
+    if (p->flowflags & FLOW_PKT_ESTABLISHED) {
+        SCLogDebug("p->flowflags & FLOW_PKT_ESTABLISHED");
+        if (smsg != NULL && det_ctx->sgh->mpm_stream_ctx != NULL) {
+            cnt = StreamPatternSearch(det_ctx, p, smsg, flags);
+            SCLogDebug("Stream Mpm cnt %u", cnt);
+            *sms_runflags |= SMS_USED_STREAM_PM;
+        } else {
+            SCLogDebug("smsg NULL (%p) or det_ctx->sgh->mpm_stream_ctx "
+                       "NULL (%p)", smsg, det_ctx->sgh->mpm_stream_ctx);
+        }
+    } else {
+        SCLogDebug("NOT p->flowflags & FLOW_PKT_ESTABLISHED");
+    }
+
+    if (p->payload_len > 0 && det_ctx->sgh->mpm_ctx != NULL &&
+        (!(p->flags & PKT_NOPAYLOAD_INSPECTION) && !(p->flags & PKT_STREAM_ADD))) {
+
+        /* run the multi packet matcher against the payload of the packet */
+        if (det_ctx->sgh->mpm_content_maxlen > p->payload_len) {
+            SCLogDebug("not mpm-inspecting as pkt payload is smaller than "
+                       "the largest content length we need to match");
+        } else {
+            SCLogDebug("search: (%p, maxlen %" PRIu32 ", sgh->sig_cnt %" PRIu32 ")",
+                det_ctx->sgh, det_ctx->sgh->mpm_content_maxlen, det_ctx->sgh->sig_cnt);
+            cnt = PacketPatternSearch(det_ctx, p);
+            SCLogDebug("post search: cnt %" PRIu32, cnt);
+            *sms_runflags |= SMS_USED_PM;
+        }
+    }
+
+    if (alproto == ALPROTO_HTTP && alstate != NULL) {
+        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_URI) {
+            cnt = DetectUricontentInspectMpm(det_ctx, p->flow, alstate);
+            SCLogDebug("uri search: cnt %" PRIu32, cnt);
+        }
+        //if (sgh->flags & SIG_GROUP_HEAD_MPM_HCBD) {
+        //    cnt = DetectEngineInspectHttpClientBodyMpmInspect(de_ctx, det_ctx,
+        //                                                      f, htp_state);
+        //    SCLogDebug("hcbd search: cnt %" PRIu32, cnt);
+        //}
+        //if (sgh->flags & SIG_GROUP_HEAD_MPM_HHD) {
+        //    cnt = DetectEngineInspectHttpHeaderMpmInspect(det_ctx, f,
+        //                                                  htp_state);
+        //    SCLogDebug("hhd search: cnt %" PRIu32, cnt);
+        //}
+        //if (sgh->flags & SIG_GROUP_HEAD_MPM_HHD) {
+        //    cnt = DetectEngineInspectHttpRawHeaderMpmInspect(det_ctx, f,
+        //                                                     htp_state);
+        //    SCLogDebug("hrhd search: cnt %" PRIu32, cnt);
+        //}
+    }
+
+    return;
+}
+
+
 /**
  *  \brief Signature match function
  *
@@ -879,7 +953,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     int fmatch = 0;
     uint32_t idx;
 
-    uint32_t cnt = 0;
     uint8_t flags = 0;          /* flow/state flags */
 
     void *alstate = NULL;
@@ -1007,35 +1080,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         goto end;
     }
 
-    /* have a look at the reassembled stream (if any) */
-    if (p->flowflags & FLOW_PKT_ESTABLISHED) {
-        SCLogDebug("p->flowflags & FLOW_PKT_ESTABLISHED");
-        if (smsg != NULL && det_ctx->sgh->mpm_stream_ctx != NULL) {
-            cnt = StreamPatternSearch(th_v, det_ctx, p, smsg, flags);
-            SCLogDebug("cnt %u", cnt);
-            sms_runflags |= SMS_USED_STREAM_PM;
-        } else {
-            SCLogDebug("smsg NULL (%p) or det_ctx->sgh->mpm_stream_ctx NULL (%p)", smsg, det_ctx->sgh->mpm_stream_ctx);
-        }
-    } else {
-        SCLogDebug("NOT p->flowflags & FLOW_PKT_ESTABLISHED");
-    }
-
-    if (p->payload_len > 0 && det_ctx->sgh->mpm_ctx != NULL &&
-        (!(p->flags & PKT_NOPAYLOAD_INSPECTION) && !(p->flags & PKT_STREAM_ADD)))
-    {
-        /* run the multi packet matcher against the payload of the packet */
-        if (det_ctx->sgh->mpm_content_maxlen > p->payload_len) {
-            SCLogDebug("not mpm-inspecting as pkt payload is smaller than "
-                "the largest content length we need to match");
-        } else {
-            SCLogDebug("search: (%p, maxlen %" PRIu32 ", sgh->sig_cnt %" PRIu32 ")",
-                det_ctx->sgh, det_ctx->sgh->mpm_content_maxlen, det_ctx->sgh->sig_cnt);
-            cnt = PacketPatternSearch(th_v, det_ctx, p);
-            SCLogDebug("post search: cnt %" PRIu32, cnt);
-            sms_runflags |= SMS_USED_PM;
-        }
-    }
+    RunMpmsOnFlow(de_ctx, det_ctx, smsg, p, flags, alproto, alstate, &sms_runflags);
 
     /* stateful app layer detection */
     if (p->flags & PKT_HAS_FLOW && alstate != NULL) {

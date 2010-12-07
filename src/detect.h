@@ -797,17 +797,23 @@ typedef struct SigTableElmt_ {
     char *name;
 } SigTableElmt;
 
-#define SIG_GROUP_HAVECONTENT           0x0001
-#define SIG_GROUP_HAVEURICONTENT        0x0002
-#define SIG_GROUP_HAVESTREAMCONTENT     0x0004
-#define SIG_GROUP_HAVEHCBDCONTENT       0x0008
-#define SIG_GROUP_HAVEHHDCONTENT        0x0010
-#define SIG_GROUP_HAVEHRHDCONTENT       0x0020
-#define SIG_GROUP_HEAD_MPM_COPY         0x0040
-#define SIG_GROUP_HEAD_MPM_URI_COPY     0x0080
-#define SIG_GROUP_HEAD_MPM_STREAM_COPY  0x0100
-#define SIG_GROUP_HEAD_FREE             0x0200
-#define SIG_GROUP_HEAD_REFERENCED       0x0400 /**< sgh is being referenced by others, don't clear */
+#define SIG_GROUP_HAVECONTENT           0x00000001
+#define SIG_GROUP_HAVEURICONTENT        0x00000002
+#define SIG_GROUP_HAVESTREAMCONTENT     0x00000004
+#define SIG_GROUP_HAVEHCBDCONTENT       0x00000008
+#define SIG_GROUP_HAVEHHDCONTENT        0x00000010
+#define SIG_GROUP_HAVEHRHDCONTENT       0x00000020
+#define SIG_GROUP_HEAD_MPM_COPY         0x00000040
+#define SIG_GROUP_HEAD_MPM_URI_COPY     0x00000080
+#define SIG_GROUP_HEAD_MPM_STREAM_COPY  0x00000100
+#define SIG_GROUP_HEAD_FREE             0x00000200
+#define SIG_GROUP_HEAD_MPM_PACKET       0x00000400
+#define SIG_GROUP_HEAD_MPM_STREAM       0x00000800
+#define SIG_GROUP_HEAD_MPM_URI          0x00001000
+#define SIG_GROUP_HEAD_MPM_HCBD         0x00002000
+#define SIG_GROUP_HEAD_MPM_HHD          0x00004000
+#define SIG_GROUP_HEAD_MPM_HRHD         0x00008000
+#define SIG_GROUP_HEAD_REFERENCED       0x00010000 /**< sgh is being referenced by others, don't clear */
 
 typedef struct SigGroupHeadInitData_ {
     /* list of content containers
@@ -833,12 +839,11 @@ typedef struct SigGroupHeadInitData_ {
 
 /** \brief Container for matching data for a signature group */
 typedef struct SigGroupHead_ {
-    uint16_t flags;
+    uint32_t flags;
     /* number of sigs in this head */
     SigIntId sig_cnt;
 
     uint16_t mpm_content_maxlen;
-    uint16_t mpm_streamcontent_maxlen;
 
     /** chunk of memory containing the "header" part of each
      *  signature ordered as an array. Used to pre-filter the
@@ -852,8 +857,9 @@ typedef struct SigGroupHead_ {
     MpmCtx *mpm_hcbd_ctx;
     MpmCtx *mpm_hhd_ctx;
     MpmCtx *mpm_hrhd_ctx;
+
+    uint16_t mpm_streamcontent_maxlen;
     uint16_t mpm_uricontent_maxlen;
-    uint16_t pad1;
 #if __WORDSIZE == 64
     uint32_t pad2;
 #endif

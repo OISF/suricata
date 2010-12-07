@@ -33,9 +33,9 @@
 
 uint16_t PatternMatchDefaultMatcher(void);
 
-uint32_t PacketPatternSearch(ThreadVars *, DetectEngineThreadCtx *, Packet *);
+uint32_t PacketPatternSearch(DetectEngineThreadCtx *, Packet *);
 uint32_t UriPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint16_t);
-uint32_t StreamPatternSearch(ThreadVars *, DetectEngineThreadCtx *, Packet *, StreamMsg *, uint8_t);
+uint32_t StreamPatternSearch(DetectEngineThreadCtx *, Packet *, StreamMsg *, uint8_t);
 uint32_t HttpClientBodyPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t);
 uint32_t HttpHeaderPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t);
 uint32_t HttpRawHeaderPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint32_t);

@@ -191,14 +191,12 @@ uint16_t PatternMatchDefaultMatcher(void) {
 
 /** \brief Pattern match -- searches for only one pattern per signature.
  *
- *  \param tv threadvars
  *  \param det_ctx detection engine thread ctx
  *  \param p packet to inspect
  *
  *  \retval ret number of matches
  */
-uint32_t PacketPatternSearch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
-                             Packet *p)
+uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
 {
     SCEnter();
 
@@ -340,7 +338,6 @@ uint32_t HttpRawHeaderPatternSearch(DetectEngineThreadCtx *det_ctx,
 
 /** \brief Pattern match -- searches for only one pattern per signature.
  *
- *  \param tv threadvars
  *  \param det_ctx detection engine thread ctx
  *  \param p packet
  *  \param smsg stream msg (reassembled stream data)
@@ -348,8 +345,8 @@ uint32_t HttpRawHeaderPatternSearch(DetectEngineThreadCtx *det_ctx,
  *
  *  \retval ret number of matches
  */
-uint32_t StreamPatternSearch(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
-        Packet *p, StreamMsg *smsg, uint8_t flags)
+uint32_t StreamPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p,
+                             StreamMsg *smsg, uint8_t flags)
 {
     SCEnter();
 
@@ -751,6 +748,12 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                         }
                     }
                 }
+                if (SignatureHasPacketContent(s)) {
+                    sgh->flags |= SIG_GROUP_HEAD_MPM_PACKET;
+                }
+                if (SignatureHasStreamContent(s)) {
+                    sgh->flags |= SIG_GROUP_HEAD_MPM_STREAM;
+                }
 
                 break;
             } /* case DETECT_CONTENT */
@@ -803,6 +806,8 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 s->mpm_uripattern_id = ud->id;
                 if (ud->flags & DETECT_CONTENT_NEGATED)
                     s->flags |= SIG_FLAG_MPM_URICONTENT_NEG;
+
+                sgh->flags |= SIG_GROUP_HEAD_MPM_URI;
 
                 break;
             } /* case DETECT_URICONTENT */
@@ -857,6 +862,8 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 if (hcbd->flags & DETECT_CONTENT_NEGATED)
                     s->mpm_flags |= SIG_FLAG_MPM_HCBDCONTENT_NEG;
 
+                sgh->flags |= SIG_GROUP_HEAD_MPM_HCBD;
+
                 break;
             } /* case DETECT_AL_HTTP_CLIENT_BODY */
 
@@ -910,6 +917,8 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 if (hhd->flags & DETECT_CONTENT_NEGATED)
                     s->mpm_flags |= SIG_FLAG_MPM_HHDCONTENT_NEG;
 
+                sgh->flags |= SIG_GROUP_HEAD_MPM_HHD;
+
                 break;
             } /* case DETECT_AL_HTTP_HEADER */
 
@@ -962,6 +971,8 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 s->mpm_hrhdpattern_id = hrhd->id;
                 if (hrhd->flags & DETECT_CONTENT_NEGATED)
                     s->mpm_flags |= SIG_FLAG_MPM_HRHDCONTENT_NEG;
+
+                sgh->flags |= SIG_GROUP_HEAD_MPM_HRHD;
 
                 break;
             } /* case DETECT_AL_HTTP_RAW_HEADER */
