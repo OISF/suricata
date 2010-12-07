@@ -25,8 +25,17 @@
 
 #define ENGINE_HCBD_BUFFER_LIMIT 20000
 
-int DetectEngineInspectHttpClientBody(DetectEngineCtx *, DetectEngineThreadCtx *,
-                                      Signature *, Flow *, uint8_t, void *);
+#include "app-layer-htp.h"
+
+int DetectEngineRunHttpClientBodyMpm(DetectEngineThreadCtx *);
+void DetectEngineBufferHttpClientBodies(DetectEngineCtx *,
+                                        DetectEngineThreadCtx *,
+                                        Flow *, HtpState *);
+int DetectEngineInspectHttpClientBody(DetectEngineCtx *,
+                                      DetectEngineThreadCtx *,
+                                      Signature *, Flow *, uint8_t,
+                                      void *);
+
 void DetectEngineCleanHCBDBuffers(DetectEngineThreadCtx *);
 void DetectEngineHttpClientBodyRegisterTests(void);
 

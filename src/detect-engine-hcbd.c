@@ -252,38 +252,57 @@ match:
  * \brief Helps buffer request bodies for different transactions and stores them
  *        away in detection code.  Also calls the mpm on the bodies.
  *
+ * \param de_ctx    Detection Engine ctx.
  * \param det_ctx   Detection engine thread ctx.
  * \param f         Pointer to the flow.
  * \param htp_state http state.
  *
- * \retval cnt The match count from the mpm call.  If call_mpm is 0, the retval
- *             is ignored.
- *
  * \warning Make sure flow is locked.
  */
-static uint32_t DetectEngineInspectHttpClientBodyMpmInspect(DetectEngineCtx *de_ctx,
-                                                            DetectEngineThreadCtx *det_ctx,
-                                                            Signature *s, Flow *f,
-                                                            HtpState *htp_state)
+void DetectEngineBufferHttpClientBodies(DetectEngineCtx *de_ctx,
+                                       DetectEngineThreadCtx *det_ctx,
+                                       Flow *f, HtpState *htp_state)
 {
-    uint32_t cnt = 0;
     size_t idx = 0;
     htp_tx_t *tx = NULL;
     int i = 0;
 
+    /* it is either the first entry into this function.  If it is not,
+     * then we just don't have any http transactions */
+    if (det_ctx->hcbd_buffers_list_len == 0) {
+        /* get the transaction id */
+        int tmp_idx = AppLayerTransactionGetInspectId(f);
+        /* error!  get out of here */
+        if (tmp_idx == -1)
+            return;
+
+        /* let's get the transaction count.  We need this to hold the client body
+         * buffer for each transaction */
+        det_ctx->hcbd_buffers_list_len = list_size(htp_state->connp->conn->transactions) - tmp_idx;
+        /* no transactions?!  cool.  get out of here */
+        if (det_ctx->hcbd_buffers_list_len == 0)
+            return;
+
+        /* assign space to hold buffers.  Each per transaction */
+        det_ctx->hcbd_buffers = SCMalloc(det_ctx->hcbd_buffers_list_len * sizeof(uint8_t *));
+        if (det_ctx->hcbd_buffers == NULL) {
+            return;
+        }
+        memset(det_ctx->hcbd_buffers, 0, det_ctx->hcbd_buffers_list_len * sizeof(uint8_t *));
+
+        det_ctx->hcbd_buffers_len = SCMalloc(det_ctx->hcbd_buffers_list_len * sizeof(uint32_t));
+        if (det_ctx->hcbd_buffers_len == NULL) {
+            return;
+        }
+        memset(det_ctx->hcbd_buffers_len, 0, det_ctx->hcbd_buffers_list_len * sizeof(uint32_t));
+
+    } else {
+        /* we already have the buffer space alloted.  Get out of there */
+        return;
+    }
+
     for (idx = AppLayerTransactionGetInspectId(f);
          i < det_ctx->hcbd_buffers_list_len; idx++, i++) {
-
-        /* if the buffer already exists, use it */
-        if (det_ctx->hcbd_buffers[i] != NULL) {
-            /* we only call the mpm if the hcbd mpm has been set */
-            if (s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT) {
-                cnt += HttpClientBodyPatternSearch(det_ctx,
-                                                   det_ctx->hcbd_buffers[i],
-                                                   det_ctx->hcbd_buffers_len[i]);
-            }
-            continue;
-        }
 
         tx = list_get(htp_state->connp->conn->transactions, idx);
         if (tx == NULL)
@@ -328,7 +347,7 @@ static uint32_t DetectEngineInspectHttpClientBodyMpmInspect(DetectEngineCtx *de_
 
                 chunks_buffer_len += cur->len;
                 if ( (chunks_buffer = SCRealloc(chunks_buffer, chunks_buffer_len)) == NULL) {
-                    goto end;
+                    return;
                 }
 
                 memcpy(chunks_buffer + chunks_buffer_len - cur->len, cur->data, cur->len);
@@ -338,15 +357,26 @@ static uint32_t DetectEngineInspectHttpClientBodyMpmInspect(DetectEngineCtx *de_
             det_ctx->hcbd_buffers[i] = chunks_buffer;
             det_ctx->hcbd_buffers_len[i] = chunks_buffer_len;
 
-            /* carry out the mpm if we have hcbd mpm set */
-            if (s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT)
-                cnt += HttpClientBodyPatternSearch(det_ctx, chunks_buffer, chunks_buffer_len);
         } /* else - if (htud->body.nchunks == 0) */
     } /* for (idx = AppLayerTransactionGetInspectId(f); .. */
 
-end:
-    SCReturnUInt(cnt);
+    return;
 }
+
+int DetectEngineRunHttpClientBodyMpm(DetectEngineThreadCtx *det_ctx)
+{
+    int i;
+    uint32_t cnt = 0;
+
+    for (i = 0; i < det_ctx->hcbd_buffers_list_len; i++) {
+        cnt += HttpClientBodyPatternSearch(det_ctx,
+                                           det_ctx->hcbd_buffers[i],
+                                           det_ctx->hcbd_buffers_len[i]);
+    }
+
+    return cnt;
+}
+
 
 /**
  * \brief Do the http_client_body content inspection for a signature.
@@ -385,67 +415,37 @@ int DetectEngineInspectHttpClientBody(DetectEngineCtx *de_ctx,
         goto end;
     }
 
-    /* it is either the first entry into this function.  If it is not,
-     * then we just don't have any http transactions */
-    if (det_ctx->hcbd_buffers_list_len == 0) {
-        /* get the transaction id */
-        int tmp_idx = AppLayerTransactionGetInspectId(f);
-        /* error!  get out of here */
-        if (tmp_idx == -1)
-            goto end;
+    DetectEngineBufferHttpClientBodies(de_ctx, det_ctx, f, htp_state);
 
-        /* let's get the transaction count.  We need this to hold the client body
-         * buffer for each transaction */
-        det_ctx->hcbd_buffers_list_len = list_size(htp_state->connp->conn->transactions) - tmp_idx;
-        /* no transactions?!  cool.  get out of here */
-        if (det_ctx->hcbd_buffers_list_len == 0)
-            goto end;
+    //if (s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT) {
+    //    if (det_ctx->de_mpm_scanned_hcbd == FALSE) {
+    //        uint32_t cnt = DetectEngineInspectHttpClientBodyMpmInspect(de_ctx,
+    //                                                                   det_ctx, s,
+    //                                                                   f, htp_state);
+    //        if (cnt <= 0)
+    //            det_ctx->de_have_hcbd = FALSE;
+    //
+    //        det_ctx->de_mpm_scanned_hcbd = TRUE;
+    //    }
+    //} else {
+    //    DetectEngineInspectHttpClientBodyMpmInspect(de_ctx, det_ctx, s, f,
+    //                                                htp_state);
+    //}
 
-        /* assign space to hold buffers.  Each per transaction */
-        det_ctx->hcbd_buffers = SCMalloc(det_ctx->hcbd_buffers_list_len * sizeof(uint8_t *));
-        if (det_ctx->hcbd_buffers == NULL) {
-            r = 0;
-            goto end;
-        }
-        memset(det_ctx->hcbd_buffers, 0, det_ctx->hcbd_buffers_list_len * sizeof(uint8_t *));
-
-        det_ctx->hcbd_buffers_len = SCMalloc(det_ctx->hcbd_buffers_list_len * sizeof(uint32_t));
-        if (det_ctx->hcbd_buffers_len == NULL) {
-            r = 0;
-            goto end;
-        }
-        memset(det_ctx->hcbd_buffers_len, 0, det_ctx->hcbd_buffers_list_len * sizeof(uint32_t));
-    } /* if (det_ctx->hcbd_buffers_list_len == 0) */
-
-    if (s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT) {
-        if (det_ctx->de_mpm_scanned_hcbd == FALSE) {
-            uint32_t cnt = DetectEngineInspectHttpClientBodyMpmInspect(de_ctx,
-                                                                       det_ctx, s,
-                                                                       f, htp_state);
-            if (cnt <= 0)
-                det_ctx->de_have_hcbd = FALSE;
-
-            det_ctx->de_mpm_scanned_hcbd = TRUE;
-        }
-    } else {
-        DetectEngineInspectHttpClientBodyMpmInspect(de_ctx, det_ctx, s, f,
-                                                    htp_state);
-    }
-
-    if (det_ctx->de_have_hcbd == FALSE &&
-        s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT &&
-        !(s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT_NEG)) {
-        SCLogDebug("mpm results failure for client_body.  Get out of here");
-        goto end;
-    }
-
-    if ((s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT) && (det_ctx->de_mpm_scanned_hcbd == TRUE)) {
-        /* filter out the sig that needs a match, but have no matches */
-        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_hcbdpattern_id / 8)] & (1 << (s->mpm_hcbdpattern_id % 8))) &&
-            !(s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT_NEG)) {
-            goto end;
-        }
-    }
+    //if (det_ctx->de_have_hcbd == FALSE &&
+    //    s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT &&
+    //    !(s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT_NEG)) {
+    //    SCLogDebug("mpm results failure for client_body.  Get out of here");
+    //    goto end;
+    //}
+    //
+    //if ((s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT) && (det_ctx->de_mpm_scanned_hcbd == TRUE)) {
+    //    /* filter out the sig that needs a match, but have no matches */
+    //    if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_hcbdpattern_id / 8)] & (1 << (s->mpm_hcbdpattern_id % 8))) &&
+    //        !(s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT_NEG)) {
+    //        goto end;
+    //    }
+    //}
 
     for (i = 0; i < det_ctx->hcbd_buffers_list_len; i++) {
         uint8_t *hcbd_buffer = det_ctx->hcbd_buffers[i];
