@@ -417,9 +417,6 @@ int DetectEngineInspectHttpClientBody(DetectEngineCtx *de_ctx,
         SCReturnInt(0);
     }
 
-    /* locking the flow, we will inspect the htp state */
-    SCMutexLock(&f->m);
-
     if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
         SCLogDebug("HTP state has no conn(p)");
         goto end;
@@ -472,7 +469,6 @@ int DetectEngineInspectHttpClientBody(DetectEngineCtx *de_ctx,
     }
 
 end:
-    SCMutexUnlock(&f->m);
     SCReturnInt(r);
 }
 
