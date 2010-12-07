@@ -174,8 +174,8 @@ void DetectHttpRawHeaderFree(void *ptr)
  *               being parsed.
  * \param arg    Pointer to the string holding the keyword value.
  *
- * \retval  0 On success
- * \retval -1 On failure
+ * \retval  0 On success.
+ * \retval -1 On failure.
  */
 int DetectHttpRawHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
@@ -217,14 +217,16 @@ int DetectHttpRawHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
                                                    DETECT_CONTENT, sm->prev,
                                                    DETECT_PCRE, sm->prev);
-        /* pm is never NULL.  So no NULL check */
-        if (pm->type == DETECT_CONTENT) {
-            DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
-            tmp_cd->flags &= ~DETECT_CONTENT_RELATIVE_NEXT;
-        } else {
-            DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
-            tmp_pd->flags &= ~DETECT_PCRE_RELATIVE_NEXT;
-        }
+        if (pm != NULL) {
+            /* pm is never NULL.  So no NULL check */
+            if (pm->type == DETECT_CONTENT) {
+                DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+                tmp_cd->flags &= ~DETECT_CONTENT_RELATIVE_NEXT;
+            } else {
+                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                tmp_pd->flags &= ~DETECT_PCRE_RELATIVE_NEXT;
+            }
+        } /* if (pm != NULL) */
 
         /* please note.  reassigning pm */
         pm = SigMatchGetLastSMFromLists(s, 2,
@@ -256,10 +258,10 @@ int DetectHttpRawHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     return 0;
 
 error:
-    if (cd != NULL)
-        DetectHttpRawHeaderFree(cd);
-    if (sm != NULL)
-        SCFree(sm);
+    //if (cd != NULL)
+    //    DetectHttpRawHeaderFree(cd);
+    //if (sm != NULL)
+    //    SCFree(sm);
 
     return -1;
 }
@@ -1544,6 +1546,166 @@ int DetectHttpRawHeaderTest19(void)
     return result;
 }
 
+int DetectHttpRawHeaderTest20(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; http_raw_header; "
+                               "content:two; distance:0; http_raw_header; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HRHDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HRHDMATCH] == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *hrhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH]->prev->ctx;
+    DetectContentData *hrhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH]->ctx;
+    if (hrhd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
+        memcmp(hrhd1->content, "one", hrhd1->content_len) != 0 ||
+        hrhd2->flags != DETECT_CONTENT_DISTANCE ||
+        memcmp(hrhd2->content, "two", hrhd1->content_len) != 0) {
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpRawHeaderTest21(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; http_raw_header; "
+                               "content:two; within:5; http_raw_header; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL\n");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HRHDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HRHDMATCH] == NULL\n");
+        goto end;
+    }
+
+    DetectContentData *hrhd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH]->prev->ctx;
+    DetectContentData *hrhd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH]->ctx;
+    if (hrhd1->flags != DETECT_CONTENT_RELATIVE_NEXT ||
+        memcmp(hrhd1->content, "one", hrhd1->content_len) != 0 ||
+        hrhd2->flags != DETECT_CONTENT_WITHIN ||
+        memcmp(hrhd2->content, "two", hrhd1->content_len) != 0) {
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpRawHeaderTest22(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; within:5; http_raw_header; sid:1;)");
+    if (de_ctx->sig_list != NULL) {
+        printf("de_ctx->sig_list != NULL\n");
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpRawHeaderTest23(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; http_raw_header; within:5; sid:1;)");
+    if (de_ctx->sig_list != NULL) {
+        printf("de_ctx->sig_list != NULL\n");
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectHttpRawHeaderTest24(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:one; within:5; sid:1;)");
+    if (de_ctx->sig_list != NULL) {
+        printf("de_ctx->sig_list != NULL\n");
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DetectHttpRawHeaderRegisterTests(void)
@@ -1568,6 +1730,11 @@ void DetectHttpRawHeaderRegisterTests(void)
     UtRegisterTest("DetectHttpRawHeaderTest17", DetectHttpRawHeaderTest17, 1);
     UtRegisterTest("DetectHttpRawHeaderTest18", DetectHttpRawHeaderTest18, 1);
     UtRegisterTest("DetectHttpRawHeaderTest19", DetectHttpRawHeaderTest19, 1);
+    UtRegisterTest("DetectHttpRawHeaderTest20", DetectHttpRawHeaderTest20, 1);
+    UtRegisterTest("DetectHttpRawHeaderTest21", DetectHttpRawHeaderTest21, 1);
+    UtRegisterTest("DetectHttpRawHeaderTest22", DetectHttpRawHeaderTest22, 1);
+    UtRegisterTest("DetectHttpRawHeaderTest23", DetectHttpRawHeaderTest23, 1);
+    UtRegisterTest("DetectHttpRawHeaderTest24", DetectHttpRawHeaderTest24, 1);
 #endif /* UNITTESTS */
 
     return;
