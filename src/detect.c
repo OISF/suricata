@@ -899,6 +899,20 @@ end:
 #define SMS_USED_PM             0x02
 #define SMS_USED_STREAM_PM      0x04
 
+/**
+ * \internal
+ * \brief Run mpm on packet, stream and other buffers based on
+ *        alproto, sgh state.
+ *
+ * \param de_ctx       Pointer to the detection engine context.
+ * \param det_ctx      Pointer to the detection engine thread context.
+ * \param smsg         The stream segment to inspect for stream mpm.
+ * \param p            Packet.
+ * \param flags        Not sure why I put this here.  Don't seem to be using it.
+ * \param alproto      Flow alproto.
+ * \param alstate      Flow alstate.
+ * \param sms_runflags Used to store state by detection engine.
+ */
 static inline void RunMpmsOnFlow(DetectEngineCtx *de_ctx,
                                  DetectEngineThreadCtx *det_ctx,
                                  StreamMsg *smsg, Packet *p, uint8_t flags,
@@ -938,6 +952,7 @@ static inline void RunMpmsOnFlow(DetectEngineCtx *de_ctx,
         }
     }
 
+    /* all http based mpms */
     if (alproto == ALPROTO_HTTP && alstate != NULL) {
         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_URI) {
             cnt = DetectUricontentInspectMpm(det_ctx, p->flow, alstate);

@@ -252,8 +252,7 @@ match:
 
 /**
  * \brief Helps buffer http raw headers from different transactions and
- *        stores them away in detection context.  Also calls the mpm on the
- *        buffers.
+ *        stores them away in detection context.
  *
  * \param de_ctx    Detection engine ctx.
  * \param det_ctx   Detection engine thread ctx.
@@ -387,34 +386,6 @@ int DetectEngineInspectHttpRawHeader(DetectEngineCtx *de_ctx,
     }
 
     DetectEngineBufferHttpRawHeaders(det_ctx, f, htp_state);
-
-    //if (s->mpm_flags & SIG_FLAG_MPM_HRHDCONTENT) {
-    //    if (det_ctx->de_mpm_scanned_hrhd == FALSE) {
-    //        uint32_t cnt = DetectEngineInspectHttpRawHeaderMpmInspect(det_ctx, s,
-    //                                                                  f, htp_state);
-    //        if (cnt <= 0)
-    //            det_ctx->de_have_hrhd = FALSE;
-    //
-    //        det_ctx->de_mpm_scanned_hrhd = TRUE;
-    //    }
-    //} else {
-    //    DetectEngineInspectHttpRawHeaderMpmInspect(det_ctx, s, f, htp_state);
-    //}
-
-    //if (det_ctx->de_have_hrhd == FALSE &&
-    //    s->mpm_flags & SIG_FLAG_MPM_HRHDCONTENT &&
-    //    !(s->mpm_flags & SIG_FLAG_MPM_HRHDCONTENT_NEG)) {
-    //    SCLogDebug("mpm results failure for http raw headers.  Get out of here");
-    //    goto end;
-    //}
-    //
-    //if ((s->mpm_flags & SIG_FLAG_MPM_HRHDCONTENT) && (det_ctx->de_mpm_scanned_hrhd == TRUE)) {
-    //    /* filter out the sig that needs a match, but have no matches */
-    //    if (!(s->mpm_flags & SIG_FLAG_MPM_HRHDCONTENT_NEG) &&
-    //        !(det_ctx->pmq.pattern_id_bitarray[(s->mpm_hrhdpattern_id / 8)] & (1 << (s->mpm_hrhdpattern_id % 8)))) {
-    //        goto end;
-    //    }
-    //}
 
     for (i = 0; i < det_ctx->hrhd_buffers_list_len; i++) {
         uint8_t *hrhd_buffer = det_ctx->hrhd_buffers[i];

@@ -252,8 +252,7 @@ match:
 
 /**
  * \brief Helps buffer http normalized headers from different transactions and
- *        stores them away in detection context.  Also calls the mpm on the
- *        buffers.
+ *        stores them away in detection context.
  *
  * \param de_ctx    Detection engine ctx.
  * \param det_ctx   Detection engine thread ctx.
@@ -404,35 +403,6 @@ int DetectEngineInspectHttpHeader(DetectEngineCtx *de_ctx,
     }
 
     DetectEngineBufferHttpHeaders(det_ctx, f, htp_state);
-
-    //if (s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT) {
-    //    if (det_ctx->de_mpm_scanned_hhd == FALSE) {
-    //        uint32_t cnt = DetectEngineInspectHttpHeaderMpmInspect(det_ctx, s,
-    //                                                               f, htp_state);
-    //        if (cnt <= 0)
-    //            det_ctx->de_have_hhd = FALSE;
-    //
-    //        det_ctx->de_mpm_scanned_hhd = TRUE;
-    //    }
-    //} else {
-    //    DetectEngineInspectHttpHeaderMpmInspect(det_ctx, s, f, htp_state);
-    //}
-
-    //if (det_ctx->de_have_hhd == FALSE &&
-    //    s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT &&
-    //    !(s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT_NEG)) {
-    //    SCLogDebug("mpm results failure for http headers.  Get out of here");
-    //    goto end;
-    //}
-
-    //if ((s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT) && (det_ctx->de_mpm_scanned_hhd == TRUE)) {
-    //    /* filter out the sig that needs a match, but have no matches */
-    //    if (!(s->mpm_flags & SIG_FLAG_MPM_HHDCONTENT_NEG) &&
-    //        !(det_ctx->pmq.pattern_id_bitarray[(s->mpm_hhdpattern_id / 8)] & (1 << (s->mpm_hhdpattern_id % 8)))) {
-    //        goto end;
-    //    }
-    //}
-
 
     for (i = 0; i < det_ctx->hhd_buffers_list_len; i++) {
         uint8_t *hhd_buffer = det_ctx->hhd_buffers[i];

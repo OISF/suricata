@@ -250,7 +250,7 @@ match:
 
 /**
  * \brief Helps buffer request bodies for different transactions and stores them
- *        away in detection code.  Also calls the mpm on the bodies.
+ *        away in detection code.
  *
  * \param de_ctx    Detection Engine ctx.
  * \param det_ctx   Detection engine thread ctx.
@@ -423,36 +423,6 @@ int DetectEngineInspectHttpClientBody(DetectEngineCtx *de_ctx,
     }
 
     DetectEngineBufferHttpClientBodies(de_ctx, det_ctx, f, htp_state);
-
-    //if (s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT) {
-    //    if (det_ctx->de_mpm_scanned_hcbd == FALSE) {
-    //        uint32_t cnt = DetectEngineInspectHttpClientBodyMpmInspect(de_ctx,
-    //                                                                   det_ctx, s,
-    //                                                                   f, htp_state);
-    //        if (cnt <= 0)
-    //            det_ctx->de_have_hcbd = FALSE;
-    //
-    //        det_ctx->de_mpm_scanned_hcbd = TRUE;
-    //    }
-    //} else {
-    //    DetectEngineInspectHttpClientBodyMpmInspect(de_ctx, det_ctx, s, f,
-    //                                                htp_state);
-    //}
-
-    //if (det_ctx->de_have_hcbd == FALSE &&
-    //    s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT &&
-    //    !(s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT_NEG)) {
-    //    SCLogDebug("mpm results failure for client_body.  Get out of here");
-    //    goto end;
-    //}
-    //
-    //if ((s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT) && (det_ctx->de_mpm_scanned_hcbd == TRUE)) {
-    //    /* filter out the sig that needs a match, but have no matches */
-    //    if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_hcbdpattern_id / 8)] & (1 << (s->mpm_hcbdpattern_id % 8))) &&
-    //        !(s->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT_NEG)) {
-    //        goto end;
-    //    }
-    //}
 
     for (i = 0; i < det_ctx->hcbd_buffers_list_len; i++) {
         uint8_t *hcbd_buffer = det_ctx->hcbd_buffers[i];
