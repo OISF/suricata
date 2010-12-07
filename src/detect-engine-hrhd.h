@@ -23,8 +23,15 @@
 #ifndef __DETECT_ENGINE_HRHD_H__
 #define __DETECT_ENGINE_HRHD_H__
 
-int DetectEngineInspectHttpRawHeader(DetectEngineCtx *, DetectEngineThreadCtx *,
-                                     Signature *, Flow *, uint8_t, void *);
+#include "app-layer-htp.h"
+
+int DetectEngineInspectHttpRawHeader(DetectEngineCtx *,
+                                     DetectEngineThreadCtx *,
+                                     Signature *, Flow *, uint8_t,
+                                     void *);
+void DetectEngineBufferHttpRawHeaders(DetectEngineThreadCtx *det_ctx,
+                                      Flow *f, HtpState *);
+int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *, Flow *);
 void DetectEngineCleanHRHDBuffers(DetectEngineThreadCtx *);
 void DetectEngineHttpRawHeaderRegisterTests(void);
 

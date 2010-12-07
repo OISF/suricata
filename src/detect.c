@@ -719,6 +719,15 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
             }
         }
 
+        if (s->full_sig->mpm_flags & SIG_FLAG_MPM_HRHDCONTENT) {
+            if (!(det_ctx->pmq.pattern_id_bitarray[(s->full_sig->mpm_hrhdpattern_id / 8)] &
+                  (1 << (s->full_sig->mpm_hrhdpattern_id % 8)))) {
+                if (!(s->full_sig->mpm_flags & SIG_FLAG_MPM_HRHDCONTENT_NEG)) {
+                    continue;
+                }
+            }
+        }
+
         /* de_state check, filter out all signatures that already had a match before
          * or just partially match */
         if (s->flags & SIG_FLAG_AMATCH || s->flags & SIG_FLAG_UMATCH ||
@@ -944,11 +953,11 @@ static inline void RunMpmsOnFlow(DetectEngineCtx *de_ctx,
             cnt = DetectEngineRunHttpHeaderMpm(det_ctx);
             SCLogDebug("hhd search: cnt %" PRIu32, cnt);
         }
-        //if (sgh->flags & SIG_GROUP_HEAD_MPM_HHD) {
-        //    cnt = DetectEngineInspectHttpRawHeaderMpmInspect(det_ctx, f,
-        //                                                     htp_state);
-        //    SCLogDebug("hrhd search: cnt %" PRIu32, cnt);
-        //}
+        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HRHD) {
+            DetectEngineBufferHttpRawHeaders(det_ctx, p->flow, alstate);
+            cnt = DetectEngineRunHttpRawHeaderMpm(det_ctx, p->flow);
+            SCLogDebug("hrhd search: cnt %" PRIu32, cnt);
+        }
     }
 
     return;
