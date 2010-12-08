@@ -268,6 +268,11 @@ static void DetectEngineBufferHttpHeaders(DetectEngineThreadCtx *det_ctx, Flow *
     htp_tx_t *tx = NULL;
     int i = 0;
 
+    if (htp_state == NULL) {
+        SCLogDebug("no HTTP state");
+        goto end;
+    }
+
     if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
         SCLogDebug("HTP state has no conn(p)");
         goto end;
@@ -359,9 +364,11 @@ int DetectEngineRunHttpHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f, HtpSta
     int i;
     uint32_t cnt = 0;
 
-    SCMutexLock(&f->m);
-    DetectEngineBufferHttpHeaders(det_ctx, f, htp_state);
-    SCMutexUnlock(&f->m);
+    if (det_ctx->hhd_buffers_list_len == 0) {
+        SCMutexLock(&f->m);
+        DetectEngineBufferHttpHeaders(det_ctx, f, htp_state);
+        SCMutexUnlock(&f->m);
+    }
 
     for (i = 0; i < det_ctx->hhd_buffers_list_len; i++) {
         cnt += HttpHeaderPatternSearch(det_ctx,
@@ -392,23 +399,13 @@ int DetectEngineInspectHttpHeader(DetectEngineCtx *de_ctx,
 {
     SCEnter();
     int r = 0;
-    HtpState *htp_state = NULL;
     int i = 0;
 
-    SCMutexLock(&f->m);
-
-    htp_state = (HtpState *)alstate;
-    if (htp_state == NULL) {
-        SCLogDebug("no HTTP state");
-        goto end;
+    if (det_ctx->hhd_buffers_list_len == 0) {
+        SCMutexLock(&f->m);
+        DetectEngineBufferHttpHeaders(det_ctx, f, alstate);
+        SCMutexUnlock(&f->m);
     }
-
-    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
-        SCLogDebug("HTP state has no conn(p)");
-        goto end;
-    }
-
-    DetectEngineBufferHttpHeaders(det_ctx, f, htp_state);
 
     for (i = 0; i < det_ctx->hhd_buffers_list_len; i++) {
         uint8_t *hhd_buffer = det_ctx->hhd_buffers[i];
@@ -424,8 +421,6 @@ int DetectEngineInspectHttpHeader(DetectEngineCtx *de_ctx,
         }
     }
 
-end:
-    SCMutexUnlock(&f->m);
     SCReturnInt(r);
 }
 

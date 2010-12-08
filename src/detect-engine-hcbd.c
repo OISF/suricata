@@ -266,6 +266,15 @@ static void DetectEngineBufferHttpClientBodies(DetectEngineCtx *de_ctx,
     htp_tx_t *tx = NULL;
     int i = 0;
 
+    if (det_ctx->hcbd_buffers_list_len > 0) {
+        SCReturn;
+    }
+
+    if (htp_state == NULL) {
+        SCLogDebug("no HTTP state");
+        goto end;
+    }
+
     if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
         SCLogDebug("HTP state has no conn(p)");
         goto end;
@@ -374,9 +383,12 @@ int DetectEngineRunHttpClientBodyMpm(DetectEngineCtx *de_ctx,
     int i;
     uint32_t cnt = 0;
 
-    SCMutexLock(&f->m);
-    DetectEngineBufferHttpClientBodies(de_ctx, det_ctx, f, htp_state);
-    SCMutexUnlock(&f->m);
+    /* bail before locking if we have nothing to do */
+    if (det_ctx->hcbd_buffers_list_len == 0) {
+        SCMutexLock(&f->m);
+        DetectEngineBufferHttpClientBodies(de_ctx, det_ctx, f, htp_state);
+        SCMutexUnlock(&f->m);
+    }
 
     for (i = 0; i < det_ctx->hcbd_buffers_list_len; i++) {
         cnt += HttpClientBodyPatternSearch(det_ctx,
@@ -407,23 +419,14 @@ int DetectEngineInspectHttpClientBody(DetectEngineCtx *de_ctx,
 {
     SCEnter();
     int r = 0;
-    HtpState *htp_state = NULL;
     int i = 0;
 
-    SCMutexLock(&f->m);
-
-    htp_state = (HtpState *)alstate;
-    if (htp_state == NULL) {
-        SCLogDebug("no HTTP state");
-        goto end;
+    /* bail before locking if we have nothing to do */
+    if (det_ctx->hcbd_buffers_list_len == 0) {
+        SCMutexLock(&f->m);
+        DetectEngineBufferHttpClientBodies(de_ctx, det_ctx, f, alstate);
+        SCMutexUnlock(&f->m);
     }
-
-    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
-        SCLogDebug("HTP state has no conn(p)");
-        goto end;
-    }
-
-    DetectEngineBufferHttpClientBodies(de_ctx, det_ctx, f, htp_state);
 
     for (i = 0; i < det_ctx->hcbd_buffers_list_len; i++) {
         uint8_t *hcbd_buffer = det_ctx->hcbd_buffers[i];
@@ -439,8 +442,6 @@ int DetectEngineInspectHttpClientBody(DetectEngineCtx *de_ctx,
         }
     }
 
-end:
-    SCMutexUnlock(&f->m);
     SCReturnInt(r);
 }
 
