@@ -908,33 +908,16 @@ end:
  * \param det_ctx      Pointer to the detection engine thread context.
  * \param smsg         The stream segment to inspect for stream mpm.
  * \param p            Packet.
- * \param flags        Not sure why I put this here.  Don't seem to be using it.
+ * \param flags        Flags.
  * \param alproto      Flow alproto.
  * \param alstate      Flow alstate.
  * \param sms_runflags Used to store state by detection engine.
  */
-static inline void RunMpmsOnFlow(DetectEngineCtx *de_ctx,
-                                 DetectEngineThreadCtx *det_ctx,
-                                 StreamMsg *smsg, Packet *p, uint8_t flags,
-                                 uint16_t alproto, void *alstate,
-                                 uint8_t *sms_runflags)
+static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, StreamMsg *smsg, Packet *p,
+        uint8_t flags, uint16_t alproto, void *alstate, uint8_t *sms_runflags)
 {
     uint32_t cnt = 0;
-
-    /* have a look at the reassembled stream (if any) */
-    if (p->flowflags & FLOW_PKT_ESTABLISHED) {
-        SCLogDebug("p->flowflags & FLOW_PKT_ESTABLISHED");
-        if (smsg != NULL && det_ctx->sgh->mpm_stream_ctx != NULL) {
-            cnt = StreamPatternSearch(det_ctx, p, smsg, flags);
-            SCLogDebug("Stream Mpm cnt %u", cnt);
-            *sms_runflags |= SMS_USED_STREAM_PM;
-        } else {
-            SCLogDebug("smsg NULL (%p) or det_ctx->sgh->mpm_stream_ctx "
-                       "NULL (%p)", smsg, det_ctx->sgh->mpm_stream_ctx);
-        }
-    } else {
-        SCLogDebug("NOT p->flowflags & FLOW_PKT_ESTABLISHED");
-    }
 
     if (p->payload_len > 0 && det_ctx->sgh->mpm_ctx != NULL &&
         (!(p->flags & PKT_NOPAYLOAD_INSPECTION) && !(p->flags & PKT_STREAM_ADD))) {
@@ -952,30 +935,43 @@ static inline void RunMpmsOnFlow(DetectEngineCtx *de_ctx,
         }
     }
 
-    /* all http based mpms */
-    if (alproto == ALPROTO_HTTP && alstate != NULL) {
-        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_URI) {
-            cnt = DetectUricontentInspectMpm(det_ctx, p->flow, alstate);
-            SCLogDebug("uri search: cnt %" PRIu32, cnt);
+    /* have a look at the reassembled stream (if any) */
+    if (p->flowflags & FLOW_PKT_ESTABLISHED) {
+        SCLogDebug("p->flowflags & FLOW_PKT_ESTABLISHED");
+        if (smsg != NULL && det_ctx->sgh->mpm_stream_ctx != NULL) {
+            cnt = StreamPatternSearch(det_ctx, p, smsg, flags);
+            SCLogDebug("Stream Mpm cnt %u", cnt);
+            *sms_runflags |= SMS_USED_STREAM_PM;
+        } else {
+            SCLogDebug("smsg NULL (%p) or det_ctx->sgh->mpm_stream_ctx "
+                       "NULL (%p)", smsg, det_ctx->sgh->mpm_stream_ctx);
         }
-        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HCBD) {
-            DetectEngineBufferHttpClientBodies(de_ctx, det_ctx, p->flow, alstate);
-            cnt = DetectEngineRunHttpClientBodyMpm(det_ctx);
-            SCLogDebug("hcbd search: cnt %" PRIu32, cnt);
-        }
-        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HHD) {
-            DetectEngineBufferHttpHeaders(det_ctx, p->flow, alstate);
-            cnt = DetectEngineRunHttpHeaderMpm(det_ctx);
-            SCLogDebug("hhd search: cnt %" PRIu32, cnt);
-        }
-        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HRHD) {
-            DetectEngineBufferHttpRawHeaders(det_ctx, p->flow, alstate);
-            cnt = DetectEngineRunHttpRawHeaderMpm(det_ctx, p->flow);
-            SCLogDebug("hrhd search: cnt %" PRIu32, cnt);
-        }
-    }
 
-    return;
+        /* all http based mpms */
+        if (alproto == ALPROTO_HTTP && alstate != NULL) {
+            if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_URI) {
+                cnt = DetectUricontentInspectMpm(det_ctx, p->flow, alstate);
+                SCLogDebug("uri search: cnt %" PRIu32, cnt);
+            }
+            if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HCBD) {
+                DetectEngineBufferHttpClientBodies(de_ctx, det_ctx, p->flow, alstate);
+                cnt = DetectEngineRunHttpClientBodyMpm(det_ctx);
+                SCLogDebug("hcbd search: cnt %" PRIu32, cnt);
+            }
+            if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HHD) {
+                DetectEngineBufferHttpHeaders(det_ctx, p->flow, alstate);
+                cnt = DetectEngineRunHttpHeaderMpm(det_ctx);
+                SCLogDebug("hhd search: cnt %" PRIu32, cnt);
+            }
+            if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HRHD) {
+                DetectEngineBufferHttpRawHeaders(det_ctx, p->flow, alstate);
+                cnt = DetectEngineRunHttpRawHeaderMpm(det_ctx, p->flow);
+                SCLogDebug("hrhd search: cnt %" PRIu32, cnt);
+            }
+        }
+    } else {
+        SCLogDebug("NOT p->flowflags & FLOW_PKT_ESTABLISHED");
+    }
 }
 
 
@@ -991,34 +987,22 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     uint8_t alert_flags = 0;
     uint16_t alproto = ALPROTO_UNKNOWN;
     int match = 0;
-
     int fmatch = 0;
     uint32_t idx;
-
     uint8_t flags = 0;          /* flow/state flags */
-
     void *alstate = NULL;
     StreamMsg *smsg = NULL;
     Signature *s = NULL;
     SigMatch *sm = NULL;
 
-    //det_ctx->de_have_hcbd = TRUE;
-    //det_ctx->de_mpm_scanned_hcbd = FALSE;
-
-    //det_ctx->de_have_hhd = TRUE;
-    //det_ctx->de_mpm_scanned_hhd = FALSE;
-
-    //det_ctx->de_have_hrhd = TRUE;
-    //det_ctx->de_mpm_scanned_hrhd = FALSE;
-
     SCEnter();
+
+    SCLogDebug("pcap_cnt %"PRIu64, p->pcap_cnt);
 
     /* No need to perform any detection on this packet, if the the given flag is set.*/
     if (p->flags & PKT_NOPACKET_INSPECTION) {
         SCReturnInt(0);
     }
-
-    SCLogDebug("pcap_cnt %"PRIu64, p->pcap_cnt);
 
     p->alerts.cnt = 0;
 
@@ -1122,12 +1106,12 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         goto end;
     }
 
-    RunMpmsOnFlow(de_ctx, det_ctx, smsg, p, flags, alproto, alstate, &sms_runflags);
+    /* run the mpm for each type */
+    DetectMpmPrefilter(de_ctx, det_ctx, smsg, p, flags, alproto,
+            alstate, &sms_runflags);
 
     /* stateful app layer detection */
     if (p->flags & PKT_HAS_FLOW && alstate != NULL) {
-        //det_ctx->de_mpm_scanned_uri = FALSE;
-
         /* initialize to 0 (DE_STATE_MATCH_NOSTATE) */
         memset(det_ctx->de_state_sig_array, 0x00, det_ctx->de_state_sig_array_len);
 
