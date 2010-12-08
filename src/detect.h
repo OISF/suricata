@@ -231,7 +231,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_PACKET         0x00020000  /**< signature has matches against a packet (as opposed to app layer) */
 
 // 0x00040000 unused
-#define SIG_FLAG_AMATCH         0x00080000
+#define SIG_FLAG_STATE_MATCH    0x00080000  /**< signature has matches that require stateful inspection */
 // 0x00100000 unused
 // 0x00200000 unused
 // 0x00400000 unused
