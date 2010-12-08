@@ -709,10 +709,6 @@ typedef struct DetectionEngineThreadCtx_ {
     uint32_t *hhd_buffers_len;
     uint16_t hhd_buffers_list_len;
 
-    uint8_t **hrhd_buffers;
-    uint32_t *hrhd_buffers_len;
-    uint16_t hrhd_buffers_list_len;
-
     /** id for alert counter */
     uint16_t counter_alerts;
 

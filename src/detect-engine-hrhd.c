@@ -250,64 +250,30 @@ match:
     }
 }
 
-/**
- * \brief Helps buffer http raw headers from different transactions and
- *        stores them away in detection context.
- *
- * \param de_ctx    Detection engine ctx.
- * \param det_ctx   Detection engine thread ctx.
- * \param f         Pointer to the flow.
- * \param htp_state http state.
- *
- * \warning Make sure the flow is locked.
- */
-static void DetectEngineBufferHttpRawHeaders(DetectEngineThreadCtx *det_ctx,
-                                      Flow *f, HtpState *htp_state)
+int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f, HtpState *htp_state)
 {
-    size_t idx = 0;
     htp_tx_t *tx = NULL;
-    int i = 0;
+    int i;
+    uint32_t cnt = 0;
+    size_t idx;
+
+    /* we need to lock because the buffers are not actually true buffers
+     * but are ones that point to a buffer given by libhtp */
+    SCMutexLock(&f->m);
+
+    if (htp_state == NULL) {
+        SCLogDebug("no HTTP state");
+        goto end;
+    }
 
     if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
         SCLogDebug("HTP state has no conn(p)");
         goto end;
     }
 
-    /* it is either the first entry into this function.  If it is not,
-     * then we just don't have any http transactions */
-    if (det_ctx->hrhd_buffers_list_len == 0) {
-        /* get the transaction id */
-        int tmp_idx = AppLayerTransactionGetInspectId(f);
-        /* error!  get out of here */
-        if (tmp_idx == -1)
-            goto end;
-
-        /* let's get the transaction count.  We need this to hold the header
-         * buffer for each transaction */
-        det_ctx->hrhd_buffers_list_len = list_size(htp_state->connp->conn->transactions) - tmp_idx;
-        /* no transactions?!  cool.  get out of here */
-        if (det_ctx->hrhd_buffers_list_len == 0)
-            goto end;
-
-        /* assign space to hold buffers.  Each per transaction */
-        det_ctx->hrhd_buffers = SCMalloc(det_ctx->hrhd_buffers_list_len * sizeof(uint8_t *));
-        if (det_ctx->hrhd_buffers == NULL) {
-            goto end;
-        }
-        memset(det_ctx->hrhd_buffers, 0, det_ctx->hrhd_buffers_list_len * sizeof(uint8_t *));
-
-        det_ctx->hrhd_buffers_len = SCMalloc(det_ctx->hrhd_buffers_list_len * sizeof(uint32_t));
-        if (det_ctx->hrhd_buffers_len == NULL) {
-            goto end;
-        }
-        memset(det_ctx->hrhd_buffers_len, 0, det_ctx->hrhd_buffers_list_len * sizeof(uint32_t));
-
-    } else {
-        goto end;
-    } /* else -if (det_ctx->hrhd_buffers_list_len == 0) */
-
-    for (idx = AppLayerTransactionGetInspectId(f);
-         i < det_ctx->hrhd_buffers_list_len; idx++, i++) {
+    idx = AppLayerTransactionGetInspectId(f);
+    int list_size = list_size(htp_state->connp->conn->transactions) - idx;
+    for (i = 0; i < list_size; idx++, i++) {
 
         tx = list_get(htp_state->connp->conn->transactions, idx);
         if (tx == NULL)
@@ -317,35 +283,13 @@ static void DetectEngineBufferHttpRawHeaders(DetectEngineThreadCtx *det_ctx,
         if (raw_headers == NULL)
             continue;
 
-        /* store the buffers.  We will need it for further inspection */
-        det_ctx->hrhd_buffers[i] = (uint8_t *)bstr_ptr(raw_headers);
-        det_ctx->hrhd_buffers_len[i] = bstr_len(raw_headers);
-
-    } /* for (idx = AppLayerTransactionGetInspectId(f); .. */
-
-end:
-    return;
-}
-
-int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f, HtpState *htp_state)
-{
-    int i;
-    uint32_t cnt = 0;
-
-    /* we need to lock because the buffers are not actually true buffers
-     * but are ones that point to a buffer given by libhtp */
-    SCMutexLock(&f->m);
-
-    DetectEngineBufferHttpRawHeaders(det_ctx, f, htp_state);
-
-    for (i = 0; i < det_ctx->hrhd_buffers_list_len; i++) {
         cnt += HttpRawHeaderPatternSearch(det_ctx,
-                                          det_ctx->hrhd_buffers[i],
-                                          det_ctx->hrhd_buffers_len[i]);
+                                          (uint8_t *)bstr_ptr(raw_headers),
+                                          bstr_len(raw_headers));
     }
 
+ end:
     SCMutexUnlock(&f->m);
-
     return cnt;
 }
 
@@ -370,7 +314,9 @@ int DetectEngineInspectHttpRawHeader(DetectEngineCtx *de_ctx,
     SCEnter();
     int r = 0;
     HtpState *htp_state = NULL;
+    htp_tx_t *tx = NULL;
     int i = 0;
+    size_t idx;
 
     SCMutexLock(&f->m);
 
@@ -385,17 +331,21 @@ int DetectEngineInspectHttpRawHeader(DetectEngineCtx *de_ctx,
         goto end;
     }
 
-    DetectEngineBufferHttpRawHeaders(det_ctx, f, htp_state);
+    idx = AppLayerTransactionGetInspectId(f);
+    int list_size = list_size(htp_state->connp->conn->transactions) - idx;
+    for (i = 0; i < list_size; idx++, i++) {
 
-    for (i = 0; i < det_ctx->hrhd_buffers_list_len; i++) {
-        uint8_t *hrhd_buffer = det_ctx->hrhd_buffers[i];
-        uint32_t hrhd_buffer_len = det_ctx->hrhd_buffers_len[i];
+        tx = list_get(htp_state->connp->conn->transactions, idx);
+        if (tx == NULL)
+            continue;
 
-        if (hrhd_buffer == NULL)
+        bstr *raw_headers = htp_tx_get_request_headers_raw(tx);
+        if (raw_headers == NULL)
             continue;
 
         r = DoInspectHttpRawHeader(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HRHDMATCH],
-                                   hrhd_buffer, hrhd_buffer_len);
+                                   (uint8_t *)bstr_ptr(raw_headers),
+                                   bstr_len(raw_headers));
         if (r == 1) {
             break;
         }
@@ -404,24 +354,6 @@ int DetectEngineInspectHttpRawHeader(DetectEngineCtx *de_ctx,
 end:
     SCMutexUnlock(&f->m);
     SCReturnInt(r);
-}
-
-/**
- * \brief Clean the hrhd buffers.
- *
- * \param det_ctx Pointer to the detection engine thread ctx.
- */
-void DetectEngineCleanHRHDBuffers(DetectEngineThreadCtx *det_ctx)
-{
-    if (det_ctx->hrhd_buffers_list_len != 0) {
-        if (det_ctx->hrhd_buffers != NULL) {
-            SCFree(det_ctx->hrhd_buffers);
-            det_ctx->hrhd_buffers = NULL;
-        }
-        det_ctx->hrhd_buffers_list_len = 0;
-    }
-
-    return;
 }
 
 /***********************************Unittests**********************************/
