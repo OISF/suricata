@@ -218,41 +218,32 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_DEONLY         0x00000080  /**< decode event only signature */
 
 #define SIG_FLAG_MPM            0x00000100  /**< sig has mpm portion (content) */
-#define SIG_FLAG_MPM_NEGCONTENT 0x00000200  /**< sig has negative mpm portion(!content) */
-#define SIG_FLAG_MPM_URI        0x00000400  /**< sig has mpm portion (uricontent) */
-#define SIG_FLAG_MPM_URI_NEG    0x00000800  /**< sig has negative mpm portion(!uricontent) */
+#define SIG_FLAG_MPM_URI        0x00000200  /**< sig has mpm portion (uricontent) */
+#define SIG_FLAG_PAYLOAD        0x00000400  /**< signature is inspecting the packet payload */
+#define SIG_FLAG_DSIZE          0x00000800  /**< signature has a dsize setting */
 
-#define SIG_FLAG_PAYLOAD        0x00001000  /**< signature is inspecting the packet payload */
-#define SIG_FLAG_DSIZE          0x00002000  /**< signature has a dsize setting */
-#define SIG_FLAG_FLOW           0x00004000  /**< signature has a flow setting */
+#define SIG_FLAG_FLOW           0x00001000  /**< signature has a flow setting */
+#define SIG_FLAG_APPLAYER       0x00002000  /**< signature applies to app layer instead of packets */
+#define SIG_FLAG_BIDIREC        0x00004000  /**< signature has bidirectional operator */
+#define SIG_FLAG_PACKET         0x00008000  /**< signature has matches against a packet (as opposed to app layer) */
 
-#define SIG_FLAG_APPLAYER       0x00008000  /**< signature applies to app layer instead of packets */
-#define SIG_FLAG_BIDIREC        0x00010000  /**< signature has bidirectional operator */
-#define SIG_FLAG_PACKET         0x00020000  /**< signature has matches against a packet (as opposed to app layer) */
+#define SIG_FLAG_STATE_MATCH                    0x00010000  /**< signature has matches that require stateful inspection */
+#define SIG_FLAG_HAS_NO_PKT_AND_STREAM_CONTENT  0x00020000
+#define SIG_FLAG_MPM_PACKET                     0x00040000
+#define SIG_FLAG_MPM_PACKET_NEG                 0x00080000
 
-// 0x00040000 unused
-#define SIG_FLAG_STATE_MATCH    0x00080000  /**< signature has matches that require stateful inspection */
-// 0x00100000 unused
-// 0x00200000 unused
-// 0x00400000 unused
-// 0x00800000 unused
+#define SIG_FLAG_MPM_STREAM                     0x00100000
+#define SIG_FLAG_MPM_STREAM_NEG                 0x00200000
+#define SIG_FLAG_MPM_URICONTENT                 0x00400000
+#define SIG_FLAG_MPM_URICONTENT_NEG             0x00800000
 
-#define SIG_FLAG_MPM_PACKET     0x01000000
-#define SIG_FLAG_MPM_PACKET_NEG 0x02000000
-#define SIG_FLAG_MPM_STREAM     0x04000000
-#define SIG_FLAG_MPM_STREAM_NEG 0x08000000
-#define SIG_FLAG_MPM_URICONTENT 0x10000000
-#define SIG_FLAG_MPM_URICONTENT_NEG 0x20000000
+#define SIG_FLAG_MPM_HHDCONTENT                 0x01000000
+#define SIG_FLAG_MPM_HHDCONTENT_NEG             0x02000000
+#define SIG_FLAG_MPM_HRHDCONTENT                0x04000000
+#define SIG_FLAG_MPM_HRHDCONTENT_NEG            0x08000000
 
-#define SIG_FLAG_HAS_NO_PKT_AND_STREAM_CONTENT 0x40000000
-
-/* the mpm specific flags in Signature, held in Signature->mpm_flags */
-#define SIG_FLAG_MPM_HHDCONTENT      0x00000001
-#define SIG_FLAG_MPM_HHDCONTENT_NEG  0x00000002
-#define SIG_FLAG_MPM_HRHDCONTENT     0x00000004
-#define SIG_FLAG_MPM_HRHDCONTENT_NEG 0x00000008
-#define SIG_FLAG_MPM_HCBDCONTENT     0x00000010
-#define SIG_FLAG_MPM_HCBDCONTENT_NEG 0x00000020
+#define SIG_FLAG_MPM_HCBDCONTENT                0x10000000
+#define SIG_FLAG_MPM_HCBDCONTENT_NEG            0x20000000
 
 
 /* signature mask flags */
@@ -314,9 +305,16 @@ typedef struct SignatureHeader_ {
         };
         uint64_t hdr_copy2;
     };
-
-    //PatIntId mpm_pattern_id;
-    //PatIntId mpm_stream_pattern_id;
+    union {
+        struct {
+            /** pattern in the mpm matcher */
+            PatIntId mpm_uripattern_id;
+            PatIntId mpm_hcbdpattern_id;
+            PatIntId mpm_hhdpattern_id;
+            PatIntId mpm_hrhdpattern_id;
+        };
+        uint64_t hdr_copy3;
+    };
 
     /** pointer to the full signature */
     struct Signature_ *full_sig;
@@ -351,9 +349,19 @@ typedef struct Signature_ {
         };
         uint64_t hdr_copy2;
     };
+    union {
+        struct {
+            /** pattern in the mpm matcher */
+            PatIntId mpm_uripattern_id;
+            PatIntId mpm_hcbdpattern_id;
+            PatIntId mpm_hhdpattern_id;
+            PatIntId mpm_hrhdpattern_id;
+        };
+        uint64_t hdr_copy3;
+    };
 
     /* mpm flags */
-    uint32_t mpm_flags;
+//    uint32_t mpm_flags;
 
     //PatIntId mpm_pattern_id;
     //PatIntId mpm_stream_pattern_id;
@@ -370,11 +378,6 @@ typedef struct Signature_ {
     uint8_t mpm_stream_pattern_id_mod_8;
     uint8_t pad1;
 */
-    /** pattern in the mpm matcher */
-    PatIntId mpm_uripattern_id;
-    PatIntId mpm_hcbdpattern_id;
-    PatIntId mpm_hhdpattern_id;
-    PatIntId mpm_hrhdpattern_id;
 
     /* the fast pattern added from this signature */
     SigMatch *mpm_sm;

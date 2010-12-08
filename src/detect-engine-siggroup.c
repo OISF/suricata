@@ -1596,6 +1596,7 @@ int SigGroupHeadBuildHeadArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
         sgh->head_array[idx].hdr_copy1 = s->hdr_copy1;
         sgh->head_array[idx].hdr_copy2 = s->hdr_copy2;
+        sgh->head_array[idx].hdr_copy3 = s->hdr_copy3;
         sgh->head_array[idx].full_sig = s;
 
         idx++;

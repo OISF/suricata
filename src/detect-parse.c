@@ -1324,10 +1324,6 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
                 continue;
 
             sig->flags |= SIG_FLAG_MPM_URI;
-
-            if (ud->flags & DETECT_CONTENT_NEGATED) {
-                sig->flags |= SIG_FLAG_MPM_URI_NEG;
-            }
         }
     }
 
@@ -1472,10 +1468,6 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
                 continue;
 
             sig->flags |= SIG_FLAG_MPM_URI;
-
-            if (ud->flags & DETECT_CONTENT_NEGATED) {
-                sig->flags |= SIG_FLAG_MPM_URI_NEG;
-            }
         }
     }
 

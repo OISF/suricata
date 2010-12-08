@@ -693,36 +693,36 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         }
 
         if (s->full_sig->flags & SIG_FLAG_MPM_URICONTENT) {
-            if (!(det_ctx->pmq.pattern_id_bitarray[(s->full_sig->mpm_uripattern_id / 8)] &
-                  (1 << (s->full_sig->mpm_uripattern_id % 8)))) {
+            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_uripattern_id / 8)] &
+                  (1 << (s->mpm_uripattern_id % 8)))) {
                 if (!(s->full_sig->flags & SIG_FLAG_MPM_URICONTENT_NEG)) {
                     continue;
                 }
             }
         }
 
-        if (s->full_sig->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT) {
-            if (!(det_ctx->pmq.pattern_id_bitarray[(s->full_sig->mpm_hcbdpattern_id / 8)] &
-                  (1 << (s->full_sig->mpm_hcbdpattern_id % 8)))) {
-                if (!(s->full_sig->mpm_flags & SIG_FLAG_MPM_HCBDCONTENT_NEG)) {
+        if (s->flags & SIG_FLAG_MPM_HCBDCONTENT) {
+            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_hcbdpattern_id / 8)] &
+                  (1 << (s->mpm_hcbdpattern_id % 8)))) {
+                if (!(s->flags & SIG_FLAG_MPM_HCBDCONTENT_NEG)) {
                     continue;
                 }
             }
         }
 
-        if (s->full_sig->mpm_flags & SIG_FLAG_MPM_HHDCONTENT) {
-            if (!(det_ctx->pmq.pattern_id_bitarray[(s->full_sig->mpm_hhdpattern_id / 8)] &
-                  (1 << (s->full_sig->mpm_hhdpattern_id % 8)))) {
-                if (!(s->full_sig->mpm_flags & SIG_FLAG_MPM_HHDCONTENT_NEG)) {
+        if (s->flags & SIG_FLAG_MPM_HHDCONTENT) {
+            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_hhdpattern_id / 8)] &
+                  (1 << (s->mpm_hhdpattern_id % 8)))) {
+                if (!(s->flags & SIG_FLAG_MPM_HHDCONTENT_NEG)) {
                     continue;
                 }
             }
         }
 
-        if (s->full_sig->mpm_flags & SIG_FLAG_MPM_HRHDCONTENT) {
-            if (!(det_ctx->pmq.pattern_id_bitarray[(s->full_sig->mpm_hrhdpattern_id / 8)] &
-                  (1 << (s->full_sig->mpm_hrhdpattern_id % 8)))) {
-                if (!(s->full_sig->mpm_flags & SIG_FLAG_MPM_HRHDCONTENT_NEG)) {
+        if (s->flags & SIG_FLAG_MPM_HRHDCONTENT) {
+            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_hrhdpattern_id / 8)] &
+                  (1 << (s->mpm_hrhdpattern_id % 8)))) {
+                if (!(s->flags & SIG_FLAG_MPM_HRHDCONTENT_NEG)) {
                     continue;
                 }
             }
