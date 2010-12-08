@@ -951,18 +951,15 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                 SCLogDebug("uri search: cnt %" PRIu32, cnt);
             }
             if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HCBD) {
-                DetectEngineBufferHttpClientBodies(de_ctx, det_ctx, p->flow, alstate);
-                cnt = DetectEngineRunHttpClientBodyMpm(det_ctx);
+                cnt = DetectEngineRunHttpClientBodyMpm(de_ctx, det_ctx, p->flow, alstate);
                 SCLogDebug("hcbd search: cnt %" PRIu32, cnt);
             }
             if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HHD) {
-                DetectEngineBufferHttpHeaders(det_ctx, p->flow, alstate);
-                cnt = DetectEngineRunHttpHeaderMpm(det_ctx);
+                cnt = DetectEngineRunHttpHeaderMpm(det_ctx, p->flow, alstate);
                 SCLogDebug("hhd search: cnt %" PRIu32, cnt);
             }
             if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HRHD) {
-                DetectEngineBufferHttpRawHeaders(det_ctx, p->flow, alstate);
-                cnt = DetectEngineRunHttpRawHeaderMpm(det_ctx, p->flow);
+                cnt = DetectEngineRunHttpRawHeaderMpm(det_ctx, p->flow, alstate);
                 SCLogDebug("hrhd search: cnt %" PRIu32, cnt);
             }
         }

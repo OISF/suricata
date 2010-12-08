@@ -259,16 +259,12 @@ match:
  *
  * \warning Make sure flow is locked.
  */
-void DetectEngineBufferHttpClientBodies(DetectEngineCtx *de_ctx,
-                                       DetectEngineThreadCtx *det_ctx,
-                                       Flow *f, HtpState *htp_state)
+static void DetectEngineBufferHttpClientBodies(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, Flow *f, HtpState *htp_state)
 {
     size_t idx = 0;
     htp_tx_t *tx = NULL;
     int i = 0;
-
-    /* locking the flow, we will inspect the htp state */
-    SCMutexLock(&f->m);
 
     if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
         SCLogDebug("HTP state has no conn(p)");
@@ -368,15 +364,19 @@ void DetectEngineBufferHttpClientBodies(DetectEngineCtx *de_ctx,
         } /* else - if (htud->body.nchunks == 0) */
     } /* for (idx = AppLayerTransactionGetInspectId(f); .. */
 
- end:
-    SCMutexUnlock(&f->m);
+end:
     return;
 }
 
-int DetectEngineRunHttpClientBodyMpm(DetectEngineThreadCtx *det_ctx)
+int DetectEngineRunHttpClientBodyMpm(DetectEngineCtx *de_ctx,
+        DetectEngineThreadCtx *det_ctx, Flow *f, HtpState *htp_state)
 {
     int i;
     uint32_t cnt = 0;
+
+    SCMutexLock(&f->m);
+    DetectEngineBufferHttpClientBodies(de_ctx, det_ctx, f, htp_state);
+    SCMutexUnlock(&f->m);
 
     for (i = 0; i < det_ctx->hcbd_buffers_list_len; i++) {
         cnt += HttpClientBodyPatternSearch(det_ctx,
@@ -402,19 +402,20 @@ int DetectEngineRunHttpClientBodyMpm(DetectEngineThreadCtx *det_ctx)
  * \retval 1 Match.
  */
 int DetectEngineInspectHttpClientBody(DetectEngineCtx *de_ctx,
-                                      DetectEngineThreadCtx *det_ctx,
-                                      Signature *s, Flow *f, uint8_t flags,
-                                      void *alstate)
+        DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, uint8_t flags,
+        void *alstate)
 {
     SCEnter();
     int r = 0;
     HtpState *htp_state = NULL;
     int i = 0;
 
+    SCMutexLock(&f->m);
+
     htp_state = (HtpState *)alstate;
     if (htp_state == NULL) {
         SCLogDebug("no HTTP state");
-        SCReturnInt(0);
+        goto end;
     }
 
     if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
@@ -439,6 +440,7 @@ int DetectEngineInspectHttpClientBody(DetectEngineCtx *de_ctx,
     }
 
 end:
+    SCMutexUnlock(&f->m);
     SCReturnInt(r);
 }
 

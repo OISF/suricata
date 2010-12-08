@@ -25,9 +25,7 @@
 
 #include "app-layer-htp.h"
 
-void DetectEngineBufferHttpHeaders(DetectEngineThreadCtx *, Flow *,
-                                   HtpState *);
-int DetectEngineRunHttpHeaderMpm(DetectEngineThreadCtx *);
+int DetectEngineRunHttpHeaderMpm(DetectEngineThreadCtx *, Flow *, HtpState *);
 int DetectEngineInspectHttpHeader(DetectEngineCtx *, DetectEngineThreadCtx *,
                                   Signature *, Flow *, uint8_t, void *);
 void DetectEngineCleanHHDBuffers(DetectEngineThreadCtx *);
