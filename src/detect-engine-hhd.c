@@ -278,37 +278,31 @@ static void DetectEngineBufferHttpHeaders(DetectEngineThreadCtx *det_ctx, Flow *
         goto end;
     }
 
-    /* it is either the first entry into this function.  If it is not,
-     * then we just don't have any http transactions */
-    if (det_ctx->hhd_buffers_list_len == 0) {
-        /* get the transaction id */
-        int tmp_idx = AppLayerTransactionGetInspectId(f);
-        /* error!  get out of here */
-        if (tmp_idx == -1)
-            goto end;
-
-        /* let's get the transaction count.  We need this to hold the header
-         * buffer for each transaction */
-        det_ctx->hhd_buffers_list_len = list_size(htp_state->connp->conn->transactions) - tmp_idx;
-        /* no transactions?!  cool.  get out of here */
-        if (det_ctx->hhd_buffers_list_len == 0)
-            goto end;
-
-        /* assign space to hold buffers.  Each per transaction */
-        det_ctx->hhd_buffers = SCMalloc(det_ctx->hhd_buffers_list_len * sizeof(uint8_t *));
-        if (det_ctx->hhd_buffers == NULL) {
-            goto end;
-        }
-        memset(det_ctx->hhd_buffers, 0, det_ctx->hhd_buffers_list_len * sizeof(uint8_t *));
-
-        det_ctx->hhd_buffers_len = SCMalloc(det_ctx->hhd_buffers_list_len * sizeof(uint32_t));
-        if (det_ctx->hhd_buffers_len == NULL) {
-            goto end;
-        }
-        memset(det_ctx->hhd_buffers_len, 0, det_ctx->hhd_buffers_list_len * sizeof(uint32_t));
-    } else {
+    /* get the transaction id */
+    int tmp_idx = AppLayerTransactionGetInspectId(f);
+    /* error!  get out of here */
+    if (tmp_idx == -1)
         goto end;
-    } /* else - if (det_ctx->hhd_buffers_list_len == 0) */
+
+    /* let's get the transaction count.  We need this to hold the header
+     * buffer for each transaction */
+    det_ctx->hhd_buffers_list_len = list_size(htp_state->connp->conn->transactions) - tmp_idx;
+    /* no transactions?!  cool.  get out of here */
+    if (det_ctx->hhd_buffers_list_len == 0)
+        goto end;
+
+    /* assign space to hold buffers.  Each per transaction */
+    det_ctx->hhd_buffers = SCMalloc(det_ctx->hhd_buffers_list_len * sizeof(uint8_t *));
+    if (det_ctx->hhd_buffers == NULL) {
+        goto end;
+    }
+    memset(det_ctx->hhd_buffers, 0, det_ctx->hhd_buffers_list_len * sizeof(uint8_t *));
+
+    det_ctx->hhd_buffers_len = SCMalloc(det_ctx->hhd_buffers_list_len * sizeof(uint32_t));
+    if (det_ctx->hhd_buffers_len == NULL) {
+        goto end;
+    }
+    memset(det_ctx->hhd_buffers_len, 0, det_ctx->hhd_buffers_list_len * sizeof(uint32_t));
 
     for (idx = AppLayerTransactionGetInspectId(f);
          i < det_ctx->hhd_buffers_list_len; idx++, i++) {
