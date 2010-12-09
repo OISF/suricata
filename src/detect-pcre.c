@@ -743,8 +743,8 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
     DetectPcreData *pe = (DetectPcreData *)sm->ctx;
 
     /* If we want to inspect the http body, we will use HTP L7 parser */
-    if (pe->flags & DETECT_PCRE_HTTP_BODY_AL)
-        SCReturnInt(0);
+    //if (pe->flags & DETECT_PCRE_HTTP_BODY_AL)
+    //    SCReturnInt(0);
 
     if (s->flags & SIG_FLAG_RECURSIVE) {
         ptr = payload + det_ctx->payload_offset;
@@ -1320,13 +1320,11 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
 
         SigMatchAppendAppLayer(s, sm);
     } else if (pd->flags & DETECT_PCRE_HTTP_BODY_AL) {
-        sm->type = DETECT_PCRE_HTTPBODY;
-
         SCLogDebug("Body inspection modifier set");
         s->flags |= SIG_FLAG_APPLAYER;
         AppLayerHtpEnableRequestBodyCallback();
 
-        SigMatchAppendAppLayer(s, sm);
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCBDMATCH);
     } else if (pd->flags & DETECT_PCRE_URI) {
         s->flags |= SIG_FLAG_APPLAYER;
 
@@ -1340,9 +1338,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
 
         SigMatchAppendUricontent(s, sm);
     } else {
-        if (s->alproto == ALPROTO_DCERPC &&
-            pd->flags & DETECT_PCRE_RELATIVE)
-        {
+        if (s->alproto == ALPROTO_DCERPC && pd->flags & DETECT_PCRE_RELATIVE) {
             SigMatch *pm = NULL;
             SigMatch *dm = NULL;
 
@@ -1376,7 +1372,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     prev_sm = SigMatchGetLastSMFromLists(s, 8,
                                          DETECT_CONTENT, sm->prev,
                                          DETECT_URICONTENT, sm->prev,
-                                         DETECT_BYTEJUMP, sm->prev,
+                                         DETECT_AL_HTTP_CLIENT_BODY, sm->prev,
                                          DETECT_PCRE, sm->prev);
     if (prev_sm == NULL) {
         if (s->alproto == ALPROTO_DCERPC) {
@@ -1391,11 +1387,12 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     }
 
     DetectContentData *cd = NULL;
-    DetectContentData *ud = NULL;
     DetectPcreData *pe = NULL;
 
     switch (prev_sm->type) {
         case DETECT_CONTENT:
+        case DETECT_URICONTENT:
+        case DETECT_AL_HTTP_CLIENT_BODY:
             /* Set the relative next flag on the prev sigmatch */
             cd = (DetectContentData *)prev_sm->ctx;
             if (cd == NULL) {
@@ -1406,17 +1403,6 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
 
             break;
 
-        case DETECT_URICONTENT:
-            /* Set the relative next flag on the prev sigmatch */
-            ud = (DetectContentData *)prev_sm->ctx;
-            if (ud == NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "uricontent not setup properly");
-                SCReturnInt(-1);
-            }
-            ud->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-
-            break;
-
         case DETECT_PCRE:
             pe = (DetectPcreData *) prev_sm->ctx;
             if (pe == NULL) {
@@ -1424,12 +1410,6 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
                 SCReturnInt(-1);
             }
             pe->flags |= DETECT_PCRE_RELATIVE_NEXT;
-
-            break;
-
-        case DETECT_BYTEJUMP:
-            SCLogDebug("No setting relative_next for bytejump.  We "
-                       "have no use for it");
 
             break;
 
@@ -2012,11 +1992,10 @@ static int DetectPcreModifPTest04(void) {
         "Transfer-Encoding: chunked\r\n"
         "Content-Type: text/html; charset=utf-8\r\n"
         "\r\n"
-        "88b7\r\n"
+        "15"
         "\r\n"
-        "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\r\n"
-        "\r\n"
-        "<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en-gb\" lang=\"en-gb\">\r\n\r\n";
+        "<!DOCTYPE html PUBLIC\r\n"
+        "0\r\n";
 
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -2135,13 +2114,11 @@ static int DetectPcreModifPTest05(void) {
         "Transfer-Encoding: chunked\r\n"
         "Content-Type: text/html; charset=utf-8\r\n"
         "\r\n"
-        "88b7\r\n"
+        "15"
         "\r\n"
         "<!DOC";
 
-    uint8_t httpbuf2[] = "TYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\r\n"
-        "\r\n"
-        "<html xmlns=\"http://www.w3.org/1999/xhtml\" xml:lang=\"en-gb\" lang=\"en-gb\">\r\n\r\n";
+    uint8_t httpbuf2[] = "<!DOCTYPE html PUBLIC\r\n0\r\n";
 
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
@@ -2218,7 +2195,7 @@ static int DetectPcreModifPTest05(void) {
         goto end;
     }
 
-    if (!(PacketAlertCheck(p1, 1))) {
+    if (PacketAlertCheck(p1, 1)) {
         printf("sid 1 didn't match on p1 but should have: ");
         goto end;
     }
@@ -2239,7 +2216,7 @@ static int DetectPcreModifPTest05(void) {
     /* do detect for p2 */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
 
-    if ((PacketAlertCheck(p2, 1))) {
+    if (!(PacketAlertCheck(p2, 1))) {
         printf("sid 1 did match on p2 but should have: ");
         goto end;
     }

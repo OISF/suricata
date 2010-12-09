@@ -229,6 +229,47 @@ static int DoInspectHttpClientBody(DetectEngineCtx *de_ctx,
             }
 
         } while(1);
+
+    } else if (sm->type == DETECT_PCRE) {
+        SCLogDebug("inspecting pcre");
+        DetectPcreData *pe = (DetectPcreData *)sm->ctx;
+        uint32_t prev_payload_offset = det_ctx->payload_offset;
+        uint32_t prev_offset = 0;
+        int r = 0;
+
+        det_ctx->pcre_match_start_offset = 0;
+        do {
+            r = DetectPcrePayloadMatch(det_ctx, s, sm, NULL, NULL,
+                                       payload, payload_len);
+
+            if (r == 0) {
+                det_ctx->discontinue_matching = 1;
+                SCReturnInt(0);
+            }
+
+            if (!(pe->flags & DETECT_PCRE_RELATIVE_NEXT)) {
+                SCLogDebug("no relative match coming up, so this is a match");
+                goto match;
+            }
+
+            /* save it, in case we need to do a pcre match once again */
+            prev_offset = det_ctx->pcre_match_start_offset;
+
+            /* see if the next payload keywords match. If not, we will
+             * search for another occurence of this pcre and see
+             * if the others match, until we run out of matches */
+            int r = DoInspectHttpClientBody(de_ctx, det_ctx, s, sm->next,
+                                            payload, payload_len);
+            if (r == 1) {
+                SCReturnInt(1);
+            }
+
+            if (det_ctx->discontinue_matching)
+                SCReturnInt(0);
+
+            det_ctx->payload_offset = prev_payload_offset;
+            det_ctx->pcre_match_start_offset = prev_offset;
+        } while (1);
     } else {
         /* we should never get here, but bail out just in case */
         BUG_ON(1);
@@ -333,6 +374,27 @@ static void DetectEngineBufferHttpClientBodies(DetectEngineCtx *de_ctx,
             if (htud->body.operation != HTP_BODY_REQUEST) {
                 SCLogDebug("htp chunk not a request chunk");
                 continue;
+            }
+
+            /* in case of chunked transfer encoding, we don't have the length
+             * of the request body until we see a chunk with length 0.  This
+             * doesn't let us use the request body callback function to
+             * figure out the end of request body.  Instead we do it here.  If
+             * the length is 0, and we have already seen content, it indicates
+             * chunked transfer.  We also check if the parser has truly seen
+             * the last chunk by checking the progress state for the
+             * transaction.  If we are done parsing all the chunks, we would
+             * have it set to something other than TX_PROGRESS_REQ_BODY.
+             * Either ways we should be moving away from buffering in the end
+             * and running content validation on this buffer type of architecture
+             * to a stateful inspection, where we can inspect body chunks as and
+             * when they come */
+            if (htud->content_len == 0) {
+                if ((htud->content_len_so_far > 0) &&
+                    tx->progress != TX_PROGRESS_REQ_BODY) {
+                    /* final length of the body */
+                    htud->content_len = htud->content_len_so_far;
+                }
             }
 
             if (htud->content_len != htud->content_len_so_far) {
@@ -2659,6 +2721,966 @@ end:
     return result;
 }
 
+static int DetectEngineHttpClientBodyTest21(void)
+{
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+    Flow f;
+    uint8_t http1_buf[] =
+        "GET /index.html HTTP/1.0\r\n"
+        "Host: www.openinfosecfoundation.org\r\n"
+        "Content-Type: text/html\r\n"
+        "Content-Length: 46\r\n"
+        "\r\n"
+        "This is dummy body1";
+    uint8_t http2_buf[] =
+        "This is dummy message body2";
+    uint32_t http1_len = sizeof(http1_buf) - 1;
+    uint32_t http2_len = sizeof(http2_buf) - 1;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(msg:\"http client body test\"; "
+                               "pcre:/body1/P; "
+                               "content:!dummy; http_client_body; within:7; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http1_buf, http1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: \n");
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    if (PacketAlertCheck(p1, 1)) {
+        printf("sid 1 matched but shouldn't have\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http2_buf, http2_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+
+    if (!PacketAlertCheck(p2, 1)) {
+        printf("sid 1 didn't match but shouldn't have");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    return result;
+}
+
+static int DetectEngineHttpClientBodyTest22(void)
+{
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+    Flow f;
+    uint8_t http1_buf[] =
+        "GET /index.html HTTP/1.0\r\n"
+        "Host: www.openinfosecfoundation.org\r\n"
+        "Content-Type: text/html\r\n"
+        "Content-Length: 46\r\n"
+        "\r\n"
+        "This is dummy body1";
+    uint8_t http2_buf[] =
+        "This is dummy message body2";
+    uint32_t http1_len = sizeof(http1_buf) - 1;
+    uint32_t http2_len = sizeof(http2_buf) - 1;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(msg:\"http client body test\"; "
+                               "pcre:/body1/P; "
+                               "content:!dummy; within:7; http_client_body; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http1_buf, http1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: \n");
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    if (PacketAlertCheck(p1, 1)) {
+        printf("sid 1 matched but shouldn't have\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http2_buf, http2_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+
+    if (!PacketAlertCheck(p2, 1)) {
+        printf("sid 1 didn't match but shouldn't have");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    return result;
+}
+
+static int DetectEngineHttpClientBodyTest23(void)
+{
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+    Flow f;
+    uint8_t http1_buf[] =
+        "GET /index.html HTTP/1.0\r\n"
+        "Host: www.openinfosecfoundation.org\r\n"
+        "Content-Type: text/html\r\n"
+        "Content-Length: 46\r\n"
+        "\r\n"
+        "This is dummy body1";
+    uint8_t http2_buf[] =
+        "This is dummy message body2";
+    uint32_t http1_len = sizeof(http1_buf) - 1;
+    uint32_t http2_len = sizeof(http2_buf) - 1;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(msg:\"http client body test\"; "
+                               "pcre:/body1/P; "
+                               "content:!dummy; distance:3; http_client_body; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http1_buf, http1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: \n");
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    if (PacketAlertCheck(p1, 1)) {
+        printf("sid 1 matched but shouldn't have\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http2_buf, http2_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+
+    if (PacketAlertCheck(p2, 1)) {
+        printf("sid 1 matched but shouldn't have");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    return result;
+}
+
+static int DetectEngineHttpClientBodyTest24(void)
+{
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+    Flow f;
+    uint8_t http1_buf[] =
+        "GET /index.html HTTP/1.0\r\n"
+        "Host: www.openinfosecfoundation.org\r\n"
+        "Content-Type: text/html\r\n"
+        "Content-Length: 46\r\n"
+        "\r\n"
+        "This is dummy body1";
+    uint8_t http2_buf[] =
+        "This is dummy message body2";
+    uint32_t http1_len = sizeof(http1_buf) - 1;
+    uint32_t http2_len = sizeof(http2_buf) - 1;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(msg:\"http client body test\"; "
+                               "pcre:/body1/P; "
+                               "content:!dummy; distance:13; http_client_body; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http1_buf, http1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: \n");
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    if (PacketAlertCheck(p1, 1)) {
+        printf("sid 1 matched but shouldn't have\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http2_buf, http2_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+
+    if (!PacketAlertCheck(p2, 1)) {
+        printf("sid 1 didn't match but should have");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    return result;
+}
+
+static int DetectEngineHttpClientBodyTest25(void)
+{
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+    Flow f;
+    uint8_t http1_buf[] =
+        "GET /index.html HTTP/1.0\r\n"
+        "Host: www.openinfosecfoundation.org\r\n"
+        "Content-Type: text/html\r\n"
+        "Content-Length: 46\r\n"
+        "\r\n"
+        "This is dummy body1";
+    uint8_t http2_buf[] =
+        "This is dummy message body2";
+    uint32_t http1_len = sizeof(http1_buf) - 1;
+    uint32_t http2_len = sizeof(http2_buf) - 1;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(msg:\"http client body test\"; "
+                               "pcre:/body1/P; "
+                               "content:dummy; within:15; http_client_body; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http1_buf, http1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: \n");
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    if (PacketAlertCheck(p1, 1)) {
+        printf("sid 1 matched but shouldn't have\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http2_buf, http2_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+
+    if (!PacketAlertCheck(p2, 1)) {
+        printf("sid 1 didn't match but should have");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    return result;
+}
+
+static int DetectEngineHttpClientBodyTest26(void)
+{
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+    Flow f;
+    uint8_t http1_buf[] =
+        "GET /index.html HTTP/1.0\r\n"
+        "Host: www.openinfosecfoundation.org\r\n"
+        "Content-Type: text/html\r\n"
+        "Content-Length: 46\r\n"
+        "\r\n"
+        "This is dummy body1";
+    uint8_t http2_buf[] =
+        "This is dummy message body2";
+    uint32_t http1_len = sizeof(http1_buf) - 1;
+    uint32_t http2_len = sizeof(http2_buf) - 1;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(msg:\"http client body test\"; "
+                               "pcre:/body1/P; "
+                               "content:dummy; within:10; http_client_body; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http1_buf, http1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: \n");
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    if (PacketAlertCheck(p1, 1)) {
+        printf("sid 1 matched but shouldn't have\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http2_buf, http2_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+
+    if (PacketAlertCheck(p2, 1)) {
+        printf("sid 1 matched but shouldn't have");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    return result;
+}
+
+static int DetectEngineHttpClientBodyTest27(void)
+{
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+    Flow f;
+    uint8_t http1_buf[] =
+        "GET /index.html HTTP/1.0\r\n"
+        "Host: www.openinfosecfoundation.org\r\n"
+        "Content-Type: text/html\r\n"
+        "Content-Length: 46\r\n"
+        "\r\n"
+        "This is dummy body1";
+    uint8_t http2_buf[] =
+        "This is dummy message body2";
+    uint32_t http1_len = sizeof(http1_buf) - 1;
+    uint32_t http2_len = sizeof(http2_buf) - 1;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(msg:\"http client body test\"; "
+                               "pcre:/body1/P; "
+                               "content:dummy; distance:8; http_client_body; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http1_buf, http1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: \n");
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    if (PacketAlertCheck(p1, 1)) {
+        printf("sid 1 matched but shouldn't have\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http2_buf, http2_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+
+    if (!PacketAlertCheck(p2, 1)) {
+        printf("sid 1 didn't match but should have");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    return result;
+}
+
+static int DetectEngineHttpClientBodyTest28(void)
+{
+    TcpSession ssn;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    ThreadVars th_v;
+    DetectEngineCtx *de_ctx = NULL;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    HtpState *http_state = NULL;
+    Flow f;
+    uint8_t http1_buf[] =
+        "GET /index.html HTTP/1.0\r\n"
+        "Host: www.openinfosecfoundation.org\r\n"
+        "Content-Type: text/html\r\n"
+        "Content-Length: 46\r\n"
+        "\r\n"
+        "This is dummy body1";
+    uint8_t http2_buf[] =
+        "This is dummy message body2";
+    uint32_t http1_len = sizeof(http1_buf) - 1;
+    uint32_t http2_len = sizeof(http2_buf) - 1;
+    int result = 0;
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p1 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+    p2 = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    p1->flow = &f;
+    p1->flowflags |= FLOW_PKT_TOSERVER;
+    p1->flowflags |= FLOW_PKT_ESTABLISHED;
+    p1->flags |= PKT_HAS_FLOW;
+    p2->flow = &f;
+    p2->flowflags |= FLOW_PKT_TOSERVER;
+    p2->flowflags |= FLOW_PKT_ESTABLISHED;
+    p2->flags |= PKT_HAS_FLOW;
+    f.alproto = ALPROTO_HTTP;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
+                               "(msg:\"http client body test\"; "
+                               "pcre:/body1/P; "
+                               "content:dummy; distance:14; http_client_body; "
+                               "sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http1_buf, http1_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: \n");
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+
+    if (PacketAlertCheck(p1, 1)) {
+        printf("sid 1 matched but shouldn't have\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http2_buf, http2_len);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: \n", r);
+        result = 0;
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+
+    if (PacketAlertCheck(p2, 1)) {
+        printf("sid 1 matched but shouldn't have");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL)
+        SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p1, 1);
+    UTHFreePackets(&p2, 1);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DetectEngineHttpClientBodyRegisterTests(void)
@@ -2705,6 +3727,22 @@ void DetectEngineHttpClientBodyRegisterTests(void)
                    DetectEngineHttpClientBodyTest19, 1);
     UtRegisterTest("DetectEngineHttpClientBodyTest20",
                    DetectEngineHttpClientBodyTest20, 1);
+    UtRegisterTest("DetectEngineHttpClientBodyTest21",
+                   DetectEngineHttpClientBodyTest21, 1);
+    UtRegisterTest("DetectEngineHttpClientBodyTest22",
+                   DetectEngineHttpClientBodyTest22, 1);
+    UtRegisterTest("DetectEngineHttpClientBodyTest23",
+                   DetectEngineHttpClientBodyTest23, 1);
+    UtRegisterTest("DetectEngineHttpClientBodyTest24",
+                   DetectEngineHttpClientBodyTest24, 1);
+    UtRegisterTest("DetectEngineHttpClientBodyTest25",
+                   DetectEngineHttpClientBodyTest25, 1);
+    UtRegisterTest("DetectEngineHttpClientBodyTest26",
+                   DetectEngineHttpClientBodyTest26, 1);
+    UtRegisterTest("DetectEngineHttpClientBodyTest27",
+                   DetectEngineHttpClientBodyTest27, 1);
+    UtRegisterTest("DetectEngineHttpClientBodyTest28",
+                   DetectEngineHttpClientBodyTest28, 1);
 #endif /* UNITTESTS */
 
     return;

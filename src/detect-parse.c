@@ -170,6 +170,32 @@ void SigMatchAppendAppLayer(Signature *s, SigMatch *new) {
 }
 
 /**
+ * \brief Append a SigMatch to the list type.
+ *
+ * \param s    Signature.
+ * \param new  The sig match to append.
+ * \param list The list to append to.
+ */
+void SigMatchAppendSMToList(Signature *s, SigMatch *new, int list)
+{
+    if (s->sm_lists[list] == NULL) {
+        s->sm_lists[list] = new;
+        s->sm_lists_tail[list] = new;
+        new->next = NULL;
+        new->prev = NULL;
+    } else {
+        SigMatch *cur = s->sm_lists_tail[list];
+        cur->next = new;
+        new->prev = cur;
+        new->next = NULL;
+        s->sm_lists_tail[list] = new;
+    }
+
+    new->idx = s->sm_cnt;
+    s->sm_cnt++;
+}
+
+/**
  * \brief append a SigMatch of type uricontent to the Signature structure
  * \param s pointer to the Signature
  * \param new pointer to the SigMatch of type uricontent to be appended
