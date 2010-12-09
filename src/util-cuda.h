@@ -125,6 +125,24 @@ int SCCudaMemsetD2D8(CUdeviceptr, unsigned int, unsigned char, unsigned int,
 int SCCudaMemsetD32(CUdeviceptr, unsigned int, unsigned int);
 int SCCudaMemsetD8(CUdeviceptr, unsigned char, unsigned int);
 
+int SCCudaTexRefCreate(CUtexref *);
+int SCCudaTexRefDestroy(CUtexref);
+int SCCudaTexRefGetAddress(CUdeviceptr *, CUtexref);
+int SCCudaTexRefGetAddressMode(CUaddress_mode *, CUtexref, int);
+int SCCudaTexRefGetArray(CUarray *, CUtexref);
+int SCCudaTexRefGetFilterMode(CUfilter_mode *, CUtexref);
+int SCCudaTexRefGetFlags(unsigned int *, CUtexref);
+int SCCudaTexRefGetFormat(CUarray_format *, int *, CUtexref);
+int SCCudaTexRefSetAddress(unsigned int *, CUtexref, CUdeviceptr,
+                           unsigned int);
+int SCCudaTexRefSetAddress2D(CUtexref, const CUDA_ARRAY_DESCRIPTOR *,
+                             CUdeviceptr, unsigned int);
+int SCCudaTexRefSetAddressMode(CUtexref, int, CUaddress_mode);
+int SCCudaTexRefSetArray(CUtexref, CUarray, unsigned int);
+int SCCudaTexRefSetFilterMode(CUtexref, CUfilter_mode);
+int SCCudaTexRefSetFlags(CUtexref, unsigned int);
+int SCCudaTexRefSetFormat(CUtexref, CUarray_format, int);
+
 int SCCudaFuncGetAttribute(int *, CUfunction_attribute, CUfunction);
 int SCCudaFuncSetBlockShape(CUfunction, int, int, int);
 int SCCudaFuncSetSharedSize(CUfunction, unsigned int);

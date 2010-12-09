@@ -131,6 +131,22 @@ typedef enum SCCudaAPIS_ {
     SC_CUDA_CU_MEMSET_D2_D8,
     SC_CUDA_CU_MEMSET_D32,
     SC_CUDA_CU_MEMSET_D8,
+    /* texture reference api */
+    SC_CUDA_CU_TEX_REF_CREATE,
+    SC_CUDA_CU_TEX_REF_DESTROY,
+    SC_CUDA_CU_TEX_REF_GET_ADDRESS,
+    SC_CUDA_CU_TEX_REF_GET_ADDRESS_MODE,
+    SC_CUDA_CU_TEX_REF_GET_ARRAY,
+    SC_CUDA_CU_TEX_REF_GET_FILTER_MODE,
+    SC_CUDA_CU_TEX_REF_GET_FLAGS,
+    SC_CUDA_CU_TEX_REF_GET_FORMAT,
+    SC_CUDA_CU_TEX_REF_SET_ADDRESS,
+    SC_CUDA_CU_TEX_REF_SET_ADDRESS_2D,
+    SC_CUDA_CU_TEX_REF_SET_ADDRESS_MODE,
+    SC_CUDA_CU_TEX_REF_SET_ARRAY,
+    SC_CUDA_CU_TEX_REF_SET_FILTER_MODE,
+    SC_CUDA_CU_TEX_REF_SET_FLAGS,
+    SC_CUDA_CU_TEX_REF_SET_FORMAT,
 } SCCudaAPIS;
 
 SCEnumCharMap sc_cuda_api_names_string_map[] = {
@@ -226,6 +242,22 @@ SCEnumCharMap sc_cuda_api_names_string_map[] = {
     { "cuMemsetD2D8",              SC_CUDA_CU_MEMSET_D2_D8 },
     { "cuMemsetD32",               SC_CUDA_CU_MEMSET_D32 },
     { "cuMemsetD8",                SC_CUDA_CU_MEMSET_D8 },
+    /* texture reference api */
+    { "cuTexRefCreate",            SC_CUDA_CU_TEX_REF_CREATE},
+    { "cuTexRefDestroy",           SC_CUDA_CU_TEX_REF_DESTROY},
+    { "cuTexRefGetAddress",        SC_CUDA_CU_TEX_REF_GET_ADDRESS},
+    { "cuTexRefGetAddressMode",    SC_CUDA_CU_TEX_REF_GET_ADDRESS_MODE},
+    { "cuTexRefGetArray",          SC_CUDA_CU_TEX_REF_GET_ARRAY},
+    { "cuTexRefGetFilterMode",     SC_CUDA_CU_TEX_REF_GET_FILTER_MODE},
+    { "cuTexRefGetFlags",          SC_CUDA_CU_TEX_REF_GET_FLAGS},
+    { "cuTexRefGetFormat",         SC_CUDA_CU_TEX_REF_GET_FORMAT},
+    { "cuTexRefSetAddress",        SC_CUDA_CU_TEX_REF_SET_ADDRESS},
+    { "cuTexRefSetAddress2D",      SC_CUDA_CU_TEX_REF_SET_ADDRESS_2D},
+    { "cuTexRefSetAddressMode",    SC_CUDA_CU_TEX_REF_SET_ADDRESS_MODE},
+    { "cuTexRefSetArray",          SC_CUDA_CU_TEX_REF_SET_ARRAY},
+    { "cuTexRefSetFilterMode",     SC_CUDA_CU_TEX_REF_SET_FILTER_MODE},
+    { "cuTexRefSetFlags",          SC_CUDA_CU_TEX_REF_SET_FLAGS},
+    { "cuTexRefSetFormat",         SC_CUDA_CU_TEX_REF_SET_FORMAT},
 };
 
 static SCCudaDevices *devices = NULL;
@@ -2121,6 +2153,490 @@ int SCCudaMemsetD8(CUdeviceptr dst_device, unsigned char uc, unsigned int n)
 
     result = cuMemsetD8(dst_device, uc, n);
     if (SCCudaHandleRetValue(result, SC_CUDA_CU_MEMSET_D8) == -1)
+        goto error;
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+/***********************Texture_Reference_Management_API***********************/
+
+/**
+ * \brief Creates a texture reference and returns its handle in *pTexRef. Once
+ *        created, the application must call cuTexRefSetArray() or cuTexRefSetAddress()
+ *        to associate the reference with allocated memory. Other texture reference
+ *        functions are used to specify the format and interpretation (addressing,
+ *        filtering, etc.) to be used when the memory is read through this texture
+ *        reference. To associate the texture reference with a texture ordinal for
+ *        a given function, the application should call cuParamSetTexRef().
+ *
+ * \param p_tex_ref  Returned texture reference
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int SCCudaTexRefCreate(CUtexref *p_tex_ref)
+{
+    CUresult result = 0;
+
+    if (p_tex_ref == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+                   "p_tex_ref is NULL");
+        goto error;
+    }
+
+    result = cuTexRefCreate(p_tex_ref);
+    if (SCCudaHandleRetValue(result, SC_CUDA_CU_TEX_REF_CREATE) == -1)
+        goto error;
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+/**
+ * \brief Destroys the texture reference specified by hTexRef.
+ *
+ * \param h_tex_ref  Texture reference to destroy
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int SCCudaTexRefDestroy(CUtexref h_tex_ref)
+{
+    CUresult result = 0;
+
+    result = cuTexRefDestroy(h_tex_ref);
+    if (SCCudaHandleRetValue(result, SC_CUDA_CU_TEX_REF_DESTROY) == -1)
+        goto error;
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+/**
+ * \brief Returns in *pdptr the base address bound to the texture reference
+ *        hTexRef, or returns CUDA_ERROR_INVALID_VALUE if the texture reference
+ *        is not bound to any device memory range.
+ *
+ * \param pdptr      Returned device address
+ * \param h_tex_ref  Texture reference
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int SCCudaTexRefGetAddress(CUdeviceptr *pdptr, CUtexref h_tex_ref)
+{
+    CUresult result = 0;
+
+    if (pdptr == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+                   "pdptr is NULL");
+        goto error;
+    }
+
+    result = cuTexRefGetAddress(pdptr, h_tex_ref);
+    if (SCCudaHandleRetValue(result, SC_CUDA_CU_TEX_REF_GET_ADDRESS) == -1)
+        goto error;
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+/**
+ * \brief Returns in *pam the addressing mode corresponding to the dimension
+ *        dim of the texture reference hTexRef. Currently, the only valid value
+ *        for dim are 0 and 1.
+ *
+ * \param pam        Returned addressing mode
+ * \param h_tex_ref  Texture reference
+ * \param dim        Dimension
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int SCCudaTexRefGetAddressMode(CUaddress_mode *pam, CUtexref h_tex_ref, int dim)
+{
+    CUresult result = 0;
+
+    if (pam == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+                   "pam is NULL");
+        goto error;
+    }
+
+    result = cuTexRefGetAddressMode(pam, h_tex_ref, dim);
+    if (SCCudaHandleRetValue(result, SC_CUDA_CU_TEX_REF_GET_ADDRESS_MODE) == -1)
+        goto error;
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+/**
+ * \brief Returns in *phArray the CUDA array bound to the texture reference
+ *        hTexRef, or returns CUDA_ERROR_INVALID_VALUE if the texture reference
+ *        is not bound to any CUDA array.
+ *
+ * \param ph_array   Returned array
+ * \param h_tex_ref  Texture reference
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int SCCudaTexRefGetArray(CUarray *ph_array, CUtexref h_tex_ref)
+{
+    CUresult result = 0;
+
+    if (ph_array == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+                   "ph_array is NULL");
+        goto error;
+    }
+
+    result = cuTexRefGetArray(ph_array, h_tex_ref);
+    if (SCCudaHandleRetValue(result, SC_CUDA_CU_TEX_REF_GET_ARRAY) == -1)
+        goto error;
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+/**
+ * \brief Returns in *pfm the filtering mode of the texture reference hTexRef.
+ *
+ * \param pfm        Returned filtering mode
+ * \param h_tex_ref  Texture reference
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int SCCudaTexRefGetFilterMode(CUfilter_mode *pfm, CUtexref h_tex_ref)
+{
+    CUresult result = 0;
+
+    if (pfm == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+                   "pfm is NULL");
+        goto error;
+    }
+
+    result = cuTexRefGetFilterMode(pfm, h_tex_ref);
+    if (SCCudaHandleRetValue(result, SC_CUDA_CU_TEX_REF_GET_FILTER_MODE) == -1)
+        goto error;
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+/**
+ * \brief Returns in *pFlags the flags of the texture reference hTexRef.
+ *
+ * \param p_flags    Returned flags
+ * \param h_tex_ref  Texture reference
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int SCCudaTexRefGetFlags(unsigned int *p_flags, CUtexref h_tex_ref)
+{
+    CUresult result = 0;
+
+    if (p_flags == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+                   "p_flags is NULL");
+        goto error;
+    }
+
+    result = cuTexRefGetFlags(p_flags, h_tex_ref);
+    if (SCCudaHandleRetValue(result, SC_CUDA_CU_TEX_REF_GET_FLAGS) == -1)
+        goto error;
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+/**
+ * \brief Returns in *pFormat and *pNumChannels the format and number of
+ *        components of the CUDA array bound to the texture reference hTexRef.
+ *        If pFormat or pNumChannels is NULL, it will be ignored.
+ *
+ * \param p_format        Returned format
+ * \param p_num_channels  Returned number of components
+ * \param h_tex_ref       Texture reference
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int SCCudaTexRefGetFormat(CUarray_format *p_format, int *p_num_channels,
+                          CUtexref h_tex_ref)
+{
+    CUresult result = 0;
+
+    if (p_format == NULL || p_num_channels == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+                   "p_format == NULL || p_num_channels == NULL");
+        goto error;
+    }
+
+    result = cuTexRefGetFormat(p_format, p_num_channels, h_tex_ref);
+    if (SCCudaHandleRetValue(result, SC_CUDA_CU_TEX_REF_GET_FORMAT) == -1)
+        goto error;
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+/**
+ * \brief Binds a linear address range to the texture reference hTexRef. Any
+ *        previous address or CUDA array state associated with the texture
+ *        reference is superseded by this function. Any memory previously
+ *        bound to hTexRef is unbound.
+ *
+ *        Since the hardware enforces an alignment requirement on texture
+ *        base addresses, cuTexRefSetAddress() passes back a byte offset in
+ *        *ByteOffset that must be applied to texture fetches in order to read
+ *        from the desired memory. This offset must be divided by the texel
+ *        size and passed to kernels that read from the texture so they can be
+ *        applied to the tex1Dfetch() function.
+ *
+ *        If the device memory pointer was returned from cuMemAlloc(), the
+ *        offset is guaranteed to be 0 and NULL may be passed as the
+ *        ByteOffset parameter.
+ *
+ * \param byte_offset  Returned byte offset
+ * \param h_tex_ref    Texture reference to bind
+ * \param dptr         Device pointer to bind
+ * \param bytes        Size of memory to bind in bytes
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int SCCudaTexRefSetAddress(unsigned int *byte_offset, CUtexref h_tex_ref,
+                           CUdeviceptr dptr, unsigned int bytes)
+{
+    CUresult result = 0;
+
+    if (byte_offset == NULL) {
+        SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
+                   "byte_offset is NULL");
+        goto error;
+    }
+
+    result = cuTexRefSetAddress(byte_offset, h_tex_ref, dptr, bytes);
+    if (SCCudaHandleRetValue(result, SC_CUDA_CU_TEX_REF_SET_ADDRESS) == -1)
+        goto error;
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+/**
+ * \brief Binds a linear address range to the texture reference hTexRef. Any
+ *        previous address or CUDA array state associated with the texture
+ *        reference is superseded by this function. Any memory previously bound
+ *        to hTexRef is unbound.
+ *
+ *        Using a tex2D() function inside a kernel requires a call to either
+ *        cuTexRefSetArray() to bind the corresponding texture reference to an
+ *        array, or cuTexRefSetAddress2D() to bind the texture reference to
+ *        linear memory.
+ *
+ *        Function calls to cuTexRefSetFormat() cannot follow calls to
+ *        cuTexRefSetAddress2D() for the same texture reference.
+ *
+ *        It is required that dptr be aligned to the appropriate hardware-
+ *        specific texture alignment. You can query this value using the device
+ *        attribute CU_DEVICE_ATTRIBUTE_TEXTURE_ALIGNMENT. If an unaligned dptr
+ *        is supplied, CUDA_ERROR_INVALID_VALUE is returned.
+ *
+ * \param h_tex_ref  Texture reference to bind
+ * \param desc       Descriptor of CUDA array
+ * \param dptr       Device pointer to bind
+ * \param pitch      Line pitch in bytes
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int SCCudaTexRefSetAddress2D(CUtexref h_tex_ref, const CUDA_ARRAY_DESCRIPTOR *desc,
+                             CUdeviceptr dptr, unsigned int pitch)
+{
+    CUresult result = 0;
+
+    result = cuTexRefSetAddress2D(h_tex_ref, desc, dptr, pitch);
+    if (SCCudaHandleRetValue(result, SC_CUDA_CU_TEX_REF_SET_ADDRESS_2D) == -1)
+        goto error;
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+/**
+ * \brief Specifies the addressing mode am for the given dimension dim of the
+ *        texture reference hTexRef. If dim is zero, the addressing mode is
+ *        applied to the first parameter of the functions used to fetch from
+ *        the texture; if dim is 1, the second, and so on. CUaddress_mode is
+ *        defined as:
+ *
+ *        typedef enum CUaddress_mode_enum {
+ *            CU_TR_ADDRESS_MODE_WRAP = 0,
+ *            CU_TR_ADDRESS_MODE_CLAMP = 1,
+ *            CU_TR_ADDRESS_MODE_MIRROR = 2,
+ *        } CUaddress_mode;
+ *
+ * \param h_tex_ref  Texture reference
+ * \param dim        Dimension
+ * \param am         Addressing mode to set
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int SCCudaTexRefSetAddressMode(CUtexref h_tex_ref, int dim, CUaddress_mode am)
+{
+    CUresult result = 0;
+
+    result = cuTexRefSetAddressMode(h_tex_ref, dim, am);
+    if (SCCudaHandleRetValue(result, SC_CUDA_CU_TEX_REF_SET_ADDRESS_MODE) == -1)
+        goto error;
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+/**
+ * \brief Binds the CUDA array hArray to the texture reference hTexRef. Any
+ *        previous address or CUDA array state associated with the texture
+ *        reference is superseded by this function. Flags must be set to
+ *        CU_TRSA_OVERRIDE_FORMAT. Any CUDA array previously bound to hTexRef
+ *        is unbound.
+ *
+ * \param h_tex_ref  Texture reference to bind
+ * \param h_array    Array to bind
+ * \param flags      Options (must be CU_TRSA_OVERRIDE_FORMAT)
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int SCCudaTexRefSetArray(CUtexref h_tex_ref, CUarray h_array, unsigned int flags)
+{
+    CUresult result = 0;
+
+    result = cuTexRefSetArray(h_tex_ref, h_array, flags);
+    if (SCCudaHandleRetValue(result, SC_CUDA_CU_TEX_REF_SET_ARRAY) == -1)
+        goto error;
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+/**
+ * \brief Specifies the filtering mode fm to be used when reading memory through
+ *        the texture reference hTexRef. CUfilter_mode_enum is defined as:
+ *
+ *        typedef enum CUfilter_mode_enum {
+ *            CU_TR_FILTER_MODE_POINT = 0,
+ *            CU_TR_FILTER_MODE_LINEAR = 1
+ *        } CUfilter_mode;
+ *
+ * \param h_tex_ref  Texture reference
+ * \param fm         Filtering mode to set
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int SCCudaTexRefSetFilterMode(CUtexref h_tex_ref, CUfilter_mode fm)
+{
+    CUresult result = 0;
+
+    result = cuTexRefSetFilterMode(h_tex_ref, fm);
+    if (SCCudaHandleRetValue(result, SC_CUDA_CU_TEX_REF_SET_FILTER_MODE) == -1)
+        goto error;
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+/**
+ * \brief Specifies optional flags via Flags to specify the behavior of data
+ *        returned through the texture reference hTexRef. The valid flags are:
+ *
+ *        * CU_TRSF_READ_AS_INTEGER, which suppresses the default behavior of
+ *          having the texture promote integer data to floating point data in
+ *          the range [0, 1];
+ *        * CU_TRSF_NORMALIZED_COORDINATES, which suppresses the default
+ *          behavior of having the texture coordinates range from [0, Dim) where
+ *          Dim is the width or height of the CUDA array. Instead, the texture
+ *          coordinates [0, 1.0) reference the entire breadth of the array
+ *          dimension;
+ *
+ * \param h_tex_ref  Texture reference
+ * \param flags      Optional flags to set
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int SCCudaTexRefSetFlags(CUtexref h_tex_ref, unsigned int flags)
+{
+    CUresult result = 0;
+
+    result = cuTexRefSetFlags(h_tex_ref, flags);
+    if (SCCudaHandleRetValue(result, SC_CUDA_CU_TEX_REF_SET_FLAGS) == -1)
+        goto error;
+
+    return 0;
+
+ error:
+    return -1;
+}
+
+/**
+ * \brief Specifies the format of the data to be read by the texture reference
+ *        hTexRef. fmt and NumPackedComponents are exactly analogous to the
+ *        Format and NumChannels members of the CUDA_ARRAY_DESCRIPTOR structure:
+ *        They specify the format of each component and the number of components
+ *        per array element.
+ *
+ * \param h_tex_ref  Texture reference
+ * \param fmt        Format to set
+ * \param num_packed_components  Number of components per array element
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int SCCudaTexRefSetFormat(CUtexref h_tex_ref, CUarray_format fmt,
+                          int num_packed_components)
+{
+    CUresult result = 0;
+
+    result = cuTexRefSetFormat(h_tex_ref, fmt, num_packed_components);
+    if (SCCudaHandleRetValue(result, SC_CUDA_CU_TEX_REF_SET_FORMAT) == -1)
         goto error;
 
     return 0;
