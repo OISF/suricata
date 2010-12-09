@@ -471,23 +471,30 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
             cd->flags |= DETECT_CONTENT_WITHIN;
 
             /* reassigning pm */
-            pm = SigMatchGetLastSMFromLists(s, 2,
-                                            DETECT_AL_HTTP_HEADER, pm->prev);
+            pm = SigMatchGetLastSMFromLists(s, 4,
+                                            DETECT_AL_HTTP_HEADER, pm->prev,
+                                            DETECT_PCRE, pm->prev);
             if (pm == NULL) {
                 SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance for http_header "
                            "needs preceeding http_header content");
                 goto error;
             }
-            /* reassigning cd */
-            cd = (DetectContentData *)pm->ctx;
-            if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Previous keyword "
-                           "has a fast_pattern:only; set.  You can't "
-                           "have relative keywords around a fast_pattern "
-                           "only content");
-                goto error;
+
+            if (pm->type == DETECT_PCRE) {
+                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                tmp_pd->flags |=  DETECT_PCRE_RELATIVE_NEXT;
+            } else {
+                /* reassigning cd */
+                cd = (DetectContentData *)pm->ctx;
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Previous keyword "
+                               "has a fast_pattern:only; set.  You can't "
+                               "have relative keywords around a fast_pattern "
+                               "only content");
+                    goto error;
+                }
+                cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
             }
-            cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
 
             break;
 

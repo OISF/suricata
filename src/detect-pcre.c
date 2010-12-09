@@ -1299,12 +1299,10 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     sm->ctx = (void *)pd;
 
     if (pd->flags & DETECT_PCRE_HEADER) {
-        sm->type = DETECT_PCRE_HTTPHEADER;
-
         SCLogDebug("Header inspection modifier set");
         s->flags |= SIG_FLAG_APPLAYER;
 
-        SigMatchAppendAppLayer(s, sm);
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HHDMATCH);
     } else if (pd->flags & DETECT_PCRE_COOKIE) {
         sm->type = DETECT_PCRE_HTTPCOOKIE;
 
@@ -1369,10 +1367,11 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         SCReturnInt(0);
     }
 
-    prev_sm = SigMatchGetLastSMFromLists(s, 8,
+    prev_sm = SigMatchGetLastSMFromLists(s, 10,
                                          DETECT_CONTENT, sm->prev,
                                          DETECT_URICONTENT, sm->prev,
                                          DETECT_AL_HTTP_CLIENT_BODY, sm->prev,
+                                         DETECT_AL_HTTP_HEADER, sm->prev,
                                          DETECT_PCRE, sm->prev);
     if (prev_sm == NULL) {
         if (s->alproto == ALPROTO_DCERPC) {
@@ -1393,6 +1392,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         case DETECT_CONTENT:
         case DETECT_URICONTENT:
         case DETECT_AL_HTTP_CLIENT_BODY:
+        case DETECT_AL_HTTP_HEADER:
             /* Set the relative next flag on the prev sigmatch */
             cd = (DetectContentData *)prev_sm->ctx;
             if (cd == NULL) {
