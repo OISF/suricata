@@ -81,8 +81,6 @@ typedef struct HtpBody_ {
     uint32_t nchunks;    /**< Number of chunks in the current operation */
     uint8_t operation;   /**< This flag indicate if it's a request
                               or a response */
-    uint8_t pcre_flags;  /**< This flag indicate if no chunk matched
-                              any pcre (so we can free() without waiting) */
 } HtpBody;
 
 #define HTP_BODY_COMPLETE   0x01    /* body is complete or limit is reached,

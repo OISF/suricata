@@ -78,9 +78,7 @@ static pcre *parse_capture_regex;
 static pcre_extra *parse_capture_regex_study;
 
 int DetectPcreMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-int DetectPcreALMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m);
 int DetectPcreALMatchCookie(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m);
-int DetectPcreALMatchHeader(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m);
 int DetectPcreALMatchMethod(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m);
 static int DetectPcreSetup (DetectEngineCtx *, Signature *, char *);
 void DetectPcreFree(void *);
@@ -97,19 +95,6 @@ void DetectPcreRegister (void) {
 
     sigmatch_table[DETECT_PCRE].flags |= SIGMATCH_PAYLOAD;
 
-    /* register a separate sm type for the httpbody stuff
-     * because then we don't need to figure out if we need
-     * the match or AppLayerMatch function in Detect */
-    sigmatch_table[DETECT_PCRE_HTTPBODY].name = "__pcre_http_body__"; /* not a real keyword */
-    sigmatch_table[DETECT_PCRE_HTTPBODY].Match = NULL;
-    sigmatch_table[DETECT_PCRE_HTTPBODY].AppLayerMatch = DetectPcreALMatch;
-    sigmatch_table[DETECT_PCRE_HTTPBODY].alproto = ALPROTO_HTTP;
-    sigmatch_table[DETECT_PCRE_HTTPBODY].Setup = NULL;
-    sigmatch_table[DETECT_PCRE_HTTPBODY].Free  = DetectPcreFree;
-    sigmatch_table[DETECT_PCRE_HTTPBODY].RegisterTests  = NULL;
-    sigmatch_table[DETECT_PCRE_HTTPBODY].flags |= SIGMATCH_PAYLOAD;
-
-    /* The same for Cookie, Method and Header */
     sigmatch_table[DETECT_PCRE_HTTPCOOKIE].name = "__pcre_http_cookie__"; /* not a real keyword */
     sigmatch_table[DETECT_PCRE_HTTPCOOKIE].Match = NULL;
     sigmatch_table[DETECT_PCRE_HTTPCOOKIE].AppLayerMatch = DetectPcreALMatchCookie;
@@ -127,16 +112,6 @@ void DetectPcreRegister (void) {
     sigmatch_table[DETECT_PCRE_HTTPMETHOD].Free  = DetectPcreFree;
     sigmatch_table[DETECT_PCRE_HTTPMETHOD].RegisterTests  = NULL;
     sigmatch_table[DETECT_PCRE_HTTPMETHOD].flags |= SIGMATCH_PAYLOAD;
-
-    sigmatch_table[DETECT_PCRE_HTTPHEADER].name = "__pcre_http_header__"; /* not a real keyword */
-    sigmatch_table[DETECT_PCRE_HTTPHEADER].Match = NULL;
-    sigmatch_table[DETECT_PCRE_HTTPHEADER].AppLayerMatch = DetectPcreALMatchHeader;
-    sigmatch_table[DETECT_PCRE_HTTPHEADER].alproto = ALPROTO_HTTP;
-    sigmatch_table[DETECT_PCRE_HTTPHEADER].Setup = NULL;
-    sigmatch_table[DETECT_PCRE_HTTPHEADER].Free  = DetectPcreFree;
-    sigmatch_table[DETECT_PCRE_HTTPHEADER].RegisterTests  = NULL;
-    sigmatch_table[DETECT_PCRE_HTTPHEADER].flags |= SIGMATCH_PAYLOAD;
-
 
     const char *eb;
     int eo;
@@ -305,123 +280,6 @@ end:
 }
 
 /**
- * \brief Match a regex on data sent at an http header (needs the l7 parser).
- *
- * \param det_ctx  Thread detection ctx.
- * \param s        Signature.
- * \param sm       SigMatch to match against.
- * \param data     Data to match against.
- * \param data_len Data length.
- *
- * \retval 1: match
- * \retval 0: no match
- */
-int DetectPcreALDoMatchHeader(DetectEngineThreadCtx *det_ctx, Signature *s,
-                              SigMatch *m, Flow *f, uint8_t flags,
-                              void *state)
-{
-    SCEnter();
-
-    int ret = 0;
-    int toret = 0;
-    size_t idx;
-
-#define MAX_SUBSTRINGS 30
-    int ov[MAX_SUBSTRINGS];
-    uint8_t *ptr = NULL;
-    uint16_t len = 0;
-
-    DetectPcreData *pe = (DetectPcreData *)m->ctx;
-
-    /* define ptr & len */
-    SCMutexLock(&f->m);
-    SCLogDebug("got lock %p", &f->m);
-
-    HtpState *htp_state = (HtpState *)state;
-    if (htp_state == NULL) {
-        SCLogDebug("no HTTP layer state has been received, so no match");
-        goto end;
-    }
-
-    if (!(htp_state->flags & HTP_FLAG_STATE_OPEN)) {
-        SCLogDebug("HTP state not yet properly setup, so no match");
-        goto end;
-    }
-
-    SCLogDebug("htp_state %p, flow %p", htp_state, f);
-    SCLogDebug("htp_state->connp %p", htp_state->connp);
-    SCLogDebug("htp_state->connp->conn %p", htp_state->connp->conn);
-
-    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
-        SCLogDebug("HTTP connection structure is NULL");
-        goto end;
-    }
-
-    htp_tx_t *tx = NULL;
-    bstr *headers = NULL;
-
-    for (idx = 0;//htp_state->new_in_tx_index;
-         idx < list_size(htp_state->connp->conn->transactions); idx++)
-    {
-        tx = list_get(htp_state->connp->conn->transactions, idx);
-        if (tx == NULL)
-            continue;
-
-        SCLogDebug("inspecting tx %p", tx);
-
-        headers = htp_tx_get_request_headers_raw(tx);
-        if (headers == NULL)
-            continue;
-
-        ptr = (uint8_t *)bstr_ptr(headers);
-        len = bstr_len(headers);
-        if (ptr == NULL)
-            continue;
-
-        //printf("Matching Header");
-        //PrintRawUriFp(stdout, (uint8_t*)ptr, len);
-
-        /* run the actual pcre detection */
-        ret = pcre_exec(pe->re, pe->sd, (char *)ptr, len, 0, 0, ov, MAX_SUBSTRINGS);
-        SCLogDebug("ret %d (negating %s)", ret, (pe->flags & DETECT_PCRE_NEGATE) ? "set" : "not set");
-
-        if (ret == PCRE_ERROR_NOMATCH) {
-            if (pe->flags & DETECT_PCRE_NEGATE) {
-                /* regex didn't match with negate option means we
-                 * consider it a match */
-                ret = 1;
-                toret |= ret;
-                break;
-            } else {
-                ret = 0;
-            }
-            toret |= ret;
-        } else if (ret >= 0) {
-            if (pe->flags & DETECT_PCRE_NEGATE) {
-                /* regex matched but we're negated, so not
-                 * considering it a match */
-                ret = 0;
-            } else {
-                /* regex matched and we're not negated,
-                 * considering it a match */
-                ret = 1;
-                toret |= ret;
-                break;
-            }
-        } else {
-            SCLogDebug("pcre had matching error");
-            ret = 0;
-        }
-    }
-
-end:
-    SCMutexUnlock(&f->m);
-    SCLogDebug("released lock %p", &f->m);
-
-    SCReturnInt(toret);
-}
-
-/**
  * \brief Match a regex on data sent at an http cookie (needs the l7 parser).
  *
  * \param det_ctx  Thread detection ctx.
@@ -545,140 +403,6 @@ end:
     SCLogDebug("released lock %p", &f->m);
 
     SCReturnInt(toret);
-}
-
-int DetectPcreALDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *m, Flow *f, uint8_t flags, void *state) {
-#define MAX_SUBSTRINGS 30
-    SCEnter();
-    int ret = 0;
-    int pcreret = 0;
-    int ov[MAX_SUBSTRINGS];
-
-    DetectPcreData *pe = (DetectPcreData *)m->ctx;
-    if ( !(pe->flags & DETECT_PCRE_HTTP_BODY_AL))
-        SCReturnInt(0);
-
-    SCMutexLock(&f->m);
-
-    /** If enabled http body inspection
-      * TODO: Add more HTTP options here if needed
-      */
-    HtpState *htp_state = (HtpState *)state;
-    if (htp_state == NULL) {
-        SCLogDebug("No htp state, no match at http body data");
-        goto unlock;
-    }
-
-    htp_tx_t *tx = NULL;
-    size_t idx = 0;
-
-    for (idx = 0;//hs->new_in_tx_index;
-         idx < list_size(htp_state->connp->conn->transactions); idx++)
-    {
-        tx = list_get(htp_state->connp->conn->transactions, idx);
-        if (tx == NULL)
-            continue;
-
-        SCHtpTxUserData *htud = (SCHtpTxUserData *) htp_tx_get_user_data(tx);
-        if (htud == NULL)
-            continue;
-
-        HtpBodyChunk *cur = htud->body.first;
-        if (htud->body.nchunks == 0) {
-            SCLogDebug("No body data to inspect");
-            goto unlock;
-        } else {
-            pcreret = 0;
-            int wspace[255];
-            int flags = PCRE_PARTIAL;
-
-            if (cur == NULL) {
-                SCLogDebug("No body chunks to inspect");
-                goto unlock;
-            }
-            htud->body.pcre_flags |= HTP_PCRE_DONE;
-
-            while (cur != NULL) {
-                if (SCLogDebugEnabled()) {
-                    printf("\n");
-                    PrintRawUriFp(stdout, (uint8_t*)cur->data, cur->len);
-                    printf("\n");
-                }
-                pcreret = pcre_dfa_exec(pe->re, NULL, (char*)cur->data, cur->len, 0,
-                                        flags|PCRE_DFA_SHORTEST, ov, MAX_SUBSTRINGS,
-                                        wspace, MAX_SUBSTRINGS);
-                cur = cur->next;
-
-                SCLogDebug("Pcre Ret %d", pcreret);
-                switch (pcreret) {
-                    case PCRE_ERROR_PARTIAL:
-                        /* make pcre to use the working space of the last partial
-                         * match, (match over multiple chunks)
-                         */
-                        SCLogDebug("partial match");
-                        flags |= PCRE_DFA_RESTART;
-                        htud->body.pcre_flags |= HTP_PCRE_HAS_MATCH;
-                    break;
-                    case PCRE_ERROR_NOMATCH:
-                        SCLogDebug("no match");
-                        flags = PCRE_PARTIAL;
-                    break;
-                    case 0:
-                        SCLogDebug("Perfect Match!");
-                        ret = 1;
-                        goto unlock;
-                    break;
-                    default:
-                        if (pcreret > 0) {
-                            SCLogDebug("Match with captured data");
-                            ret = 1;
-                        } else {
-                            SCLogDebug("No match, pcre failed");
-                            ret = 0;
-                        }
-                        goto unlock;
-                }
-            }
-        }
-    }
-
-unlock:
-    SCMutexUnlock(&f->m);
-    SCReturnInt(ret ^ (pe->flags & DETECT_PCRE_NEGATE));
-}
-
-/**
- * \brief match the specified pcre at http body, requesting it from htp/L7
- *
- * \param t pointer to thread vars
- * \param det_ctx pointer to the pattern matcher thread
- * \param p pointer to the current packet
- * \param m pointer to the sigmatch that we will cast into DetectPcreData
- *
- * \retval int 0 no match; 1 match
- */
-int DetectPcreALMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
-                      uint8_t flags, void *state, Signature *s, SigMatch *m)
-{
-    int r = DetectPcreALDoMatch(det_ctx, s, m, f, flags, state);
-    SCReturnInt(r);
-}
-
-/**
- * \brief match the specified pcre at http header, requesting it from htp/L7
- *
- * \param t pointer to thread vars
- * \param det_ctx pointer to the pattern matcher thread
- * \param p pointer to the current packet
- * \param m pointer to the sigmatch that we will cast into DetectPcreData
- *
- * \retval int 0 no match; 1 match
- */
-int DetectPcreALMatchHeader(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
-                      uint8_t flags, void *state, Signature *s, SigMatch *m)
-{
-    int r = DetectPcreALDoMatchHeader(det_ctx, s, m, f, flags, state);
-    SCReturnInt(r);
 }
 
 /**

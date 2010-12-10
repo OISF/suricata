@@ -661,7 +661,6 @@ void HtpBodyFree(HtpBody *body)
         prev = cur;
     }
     body->first = body->last = NULL;
-    body->pcre_flags = HTP_PCRE_NONE;
     body->operation = HTP_BODY_NONE;
 }
 
@@ -686,7 +685,6 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
         }
         memset(htud, 0, sizeof(SCHtpTxUserData));
         htud->body.operation = HTP_BODY_NONE;
-        htud->body.pcre_flags = HTP_PCRE_NONE;
 
         htp_header_t *cl = table_getc(d->tx->request_headers, "content-length");
         if (cl != NULL)
@@ -721,8 +719,6 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
         } else if (htud->content_len_so_far == htud->content_len) {
             htud->flags |= HTP_BODY_COMPLETE;
         }
-
-        htud->body.pcre_flags = HTP_PCRE_NONE;
 
         /* set the new chunk flag */
         hstate->flags |= HTP_FLAG_NEW_BODY_SET;
