@@ -393,25 +393,22 @@ static void DetectEngineBufferHttpClientBodies(DetectEngineCtx *de_ctx,
                 if ((htud->content_len_so_far > 0) &&
                     tx->progress != TX_PROGRESS_REQ_BODY) {
                     /* final length of the body */
-                    htud->content_len = htud->content_len_so_far;
+                    htud->flags |= HTP_BODY_COMPLETE;
                 }
             }
 
-            if (htud->content_len != htud->content_len_so_far) {
+            /* inspect the body if the transfer is complete or we have hit
+             * our body size limit */
+            if (!(htud->flags & HTP_BODY_COMPLETE)) {
                 SCLogDebug("we still haven't seen the entire request body.  "
-                           "Let's defer body inspection till we see the "
-                           "entire body.");
+                        "Let's defer body inspection till we see the "
+                        "entire body.");
                 continue;
             }
 
             uint8_t *chunks_buffer = NULL;
             int32_t chunks_buffer_len = 0;
             while (cur != NULL) {
-                /* \todo Currently we limit the body length we inspect.  We
-                 * should change to handling chunks statefully */
-                if (chunks_buffer_len > de_ctx->hcbd_buffer_limit)
-                    break;
-
                 chunks_buffer_len += cur->len;
                 if ( (chunks_buffer = SCRealloc(chunks_buffer, chunks_buffer_len)) == NULL) {
                     goto end;

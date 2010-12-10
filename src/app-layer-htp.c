@@ -61,11 +61,13 @@
 #include "conf.h"
 
 /** Need a linked list in order to keep track of these */
-typedef struct HTPCfgRec_ HTPCfgRec;
-struct HTPCfgRec_ {
-    htp_cfg_t         *cfg;
-    HTPCfgRec         *next;
-};
+typedef struct HTPCfgRec_ {
+    htp_cfg_t           *cfg;
+    struct HTPCfgRec_   *next;
+
+    /** max size of the client body we inspect */
+    uint32_t            request_body_limit;
+} HTPCfgRec;
 
 /** Fast lookup tree (radix) for the various HTP configurations */
 static SCRadixTree *cfgtree;
@@ -352,8 +354,12 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
                 htp = htp_cfg_rec->cfg;
                 SCLogDebug("LIBHTP using config: %p", htp);
             }
+
+            hstate->request_body_limit = htp_cfg_rec->request_body_limit;
         } else {
             SCLogDebug("Using default HTP config: %p", htp);
+
+            hstate->request_body_limit = cfglist.request_body_limit;
         }
 
         if (NULL == htp) {
@@ -537,27 +543,28 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
  * \param body pointer to the HtpBody holding the list
  * \param data pointer to the data of the chunk
  * \param len length of the chunk pointed by data
- * \retval none
+ * \retval 0 ok
+ * \retval -1 error
  */
-void HtpBodyAppendChunk(SCHtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32_t len)
+int HtpBodyAppendChunk(SCHtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32_t len)
 {
     SCEnter();
 
     HtpBodyChunk *bd = NULL;
 
-    if (len == 0 || data == NULL)
-        goto error;
+    if (len == 0 || data == NULL) {
+        SCReturnInt(0);
+    }
 
     if (body->nchunks == 0) {
         /* New chunk */
         bd = (HtpBodyChunk *)SCMalloc(sizeof(HtpBodyChunk));
         if (bd == NULL)
-            return;
+            goto error;
 
         bd->len = len;
         bd->data = SCMalloc(len);
         if (bd->data == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "malloc failed: %s", strerror(errno));
             goto error;
         }
 
@@ -568,51 +575,28 @@ void HtpBodyAppendChunk(SCHtpTxUserData *htud, HtpBody *body, uint8_t *data, uin
         bd->next = NULL;
         bd->id = body->nchunks;
     } else {
-        /* New or old, we have to check it.. */
-        if (body->last->data == data) {
-            /* Weird, but sometimes htp lib calls the callback
-             * more than once for the same chunk, with more
-             * len, so updating the len */
-            if (body->last->len > len)
-                htud->content_len_so_far -= (body->last->len - len);
-            else
-                htud->content_len_so_far += (len - body->last->len);
+        bd = (HtpBodyChunk *)SCMalloc(sizeof(HtpBodyChunk));
+        if (bd == NULL)
+            goto error;
 
-            body->last->len = len;
-            bd = body->last;
-
-            bd->data = SCRealloc(bd->data, len);
-            if (bd->data == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "realloc failed: %s", strerror(errno));
-                goto error;
-            }
-
-            memcpy(bd->data, data, len);
-        } else {
-            bd = (HtpBodyChunk *)SCMalloc(sizeof(HtpBodyChunk));
-            if (bd == NULL)
-                return;
-
-            bd->len = len;
-            bd->data = SCMalloc(len);
-            if (bd->data == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "malloc failed: %s", strerror(errno));
-                goto error;
-            }
-
-            memcpy(bd->data, data, len);
-            htud->content_len_so_far += len;
-            body->last->next = bd;
-            body->last = bd;
-            body->nchunks++;
-            bd->next = NULL;
-            bd->id = body->nchunks;
+        bd->len = len;
+        bd->data = SCMalloc(len);
+        if (bd->data == NULL) {
+            goto error;
         }
+
+        memcpy(bd->data, data, len);
+        htud->content_len_so_far += len;
+        body->last->next = bd;
+        body->last = bd;
+        body->nchunks++;
+        bd->next = NULL;
+        bd->id = body->nchunks;
     }
     SCLogDebug("Body %p; Chunk id: %"PRIu32", data %p, len %"PRIu32"", body,
                 bd->id, bd->data, (uint32_t)bd->len);
 
-    SCReturn;
+    SCReturnInt(0);
 
 error:
     if (bd != NULL) {
@@ -621,7 +605,7 @@ error:
         }
         SCFree(bd->data);
     }
-    SCReturn;
+    SCReturnInt(-1);
 }
 
 /**
@@ -698,7 +682,6 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     if (htud == NULL) {
         htud = SCMalloc(sizeof(SCHtpTxUserData));
         if (htud == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             SCReturnInt(HOOK_OK);
         }
         memset(htud, 0, sizeof(SCHtpTxUserData));
@@ -715,14 +698,39 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
     htud->body.operation = HTP_BODY_REQUEST;
 
-    HtpBodyAppendChunk(htud, &htud->body, (uint8_t*)d->data, (uint32_t)d->len);
-    htud->body.pcre_flags = HTP_PCRE_NONE;
-    if (SCLogDebugEnabled()) {
-        HtpBodyPrint(&htud->body);
-    }
+    SCLogDebug("htud->content_len_so_far %u", htud->content_len_so_far);
+    SCLogDebug("hstate->request_body_limit %u", hstate->request_body_limit);
 
-    /* set the new chunk flag */
-    hstate->flags |= HTP_FLAG_NEW_BODY_SET;
+    /* within limits, add the body chunk to the state. */
+    if (htud->content_len_so_far < hstate->request_body_limit)
+    {
+        uint32_t len = (uint32_t)d->len;
+
+        if ((htud->content_len_so_far + len) > hstate->request_body_limit) {
+            len = hstate->request_body_limit - htud->content_len_so_far;
+            BUG_ON(len > (uint32_t)d->len);
+        }
+
+        SCLogDebug("len %u", len);
+
+        int r = HtpBodyAppendChunk(htud, &htud->body, (uint8_t*)d->data, len);
+        if (r < 0) {
+            htud->flags |= HTP_BODY_COMPLETE;
+        } else if (htud->content_len_so_far >= hstate->request_body_limit) {
+            htud->flags |= HTP_BODY_COMPLETE;
+        } else if (htud->content_len_so_far == htud->content_len) {
+            htud->flags |= HTP_BODY_COMPLETE;
+        }
+
+        htud->body.pcre_flags = HTP_PCRE_NONE;
+
+        /* set the new chunk flag */
+        hstate->flags |= HTP_FLAG_NEW_BODY_SET;
+
+        //if (SCLogDebugEnabled()) {
+        //    HtpBodyPrint(&htud->body);
+        //}
+    }
 
     SCReturnInt(HOOK_OK);
 }
@@ -857,6 +865,7 @@ static void HTPConfigure(void)
 
     SCLogDebug("LIBHTP default config: %p", cfglist.cfg);
 
+    cfglist.request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
     htp_config_register_request(cfglist.cfg, HTPCallbackRequest);
     htp_config_register_response(cfglist.cfg, HTPCallbackResponse);
     htp_config_set_generate_request_uri_normalized(cfglist.cfg, 1);
@@ -898,10 +907,34 @@ static void HTPConfigure(void)
                     }
 
                 }
+            } else if (strcasecmp("client-request-body-buffer-limit", p->name) == 0) {
+                /* limit */
+                TAILQ_FOREACH(pval, &p->head, next) {
+                    SCLogDebug("LIBHTP default: %s=%s",
+                               p->name, pval->val);
+
+                    int limit = atoi(pval->val);
+
+                    if (limit >= 0) {
+                        SCLogDebug("LIBHTP default: %s=%s (%d)",
+                                   p->name, pval->val, limit);
+
+                        cfglist.request_body_limit = (uint32_t)limit;
+                    }
+                    else {
+                        SCLogWarning(SC_ERR_UNKNOWN_VALUE,
+                                "LIBHTP malformed client-request-body-buffer-limit "
+                                "\"%s\", using default %u", pval->val,
+                                HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT);
+                        cfglist.request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
+                        continue;
+                    }
+
+                }
             } else {
                 SCLogWarning(SC_ERR_UNKNOWN_VALUE,
-                             "LIBHTP Ignoring unknown default config: %s",
-                             p->name);
+                        "LIBHTP Ignoring unknown default config: %s",
+                        p->name);
             }
         }
     }
@@ -953,6 +986,7 @@ static void HTPConfigure(void)
                 }
             }
 
+            htprec->request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
             htp_config_register_request(htp, HTPCallbackRequest);
             htp_config_register_response(htp, HTPCallbackResponse);
             htp_config_set_generate_request_uri_normalized(htp, 1);
@@ -1022,6 +1056,30 @@ static void HTPConfigure(void)
                         }
 
                     }
+                } else if (strcasecmp("client-request-body-buffer-limit", p->name) == 0) {
+                    /* limit */
+                    TAILQ_FOREACH(pval, &p->head, next) {
+                        SCLogDebug("LIBHTP default: %s=%s",
+                                p->name, pval->val);
+
+                        int limit = atoi(pval->val);
+
+                        if (limit >= 0) {
+                            SCLogDebug("LIBHTP default: %s=%s (%d)",
+                                    p->name, pval->val, limit);
+
+                            htprec->request_body_limit = (uint32_t)limit;
+                        }
+                        else {
+                            SCLogWarning(SC_ERR_UNKNOWN_VALUE,
+                                    "LIBHTP malformed client-request-body-buffer-limit "
+                                    "\"%s\", using default %u", pval->val,
+                                    HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT);
+                            htprec->request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
+                            continue;
+                        }
+
+                    }
                 } else {
                     SCLogWarning(SC_ERR_UNKNOWN_VALUE,
                                  "LIBHTP Ignoring unknown server config: %s",
@@ -1038,6 +1096,7 @@ static void HtpConfigCreateBackup(void)
 {
     cfglist_backup.cfg = cfglist.cfg;
     cfglist_backup.next = cfglist.next;
+    cfglist_backup.request_body_limit = cfglist.request_body_limit;
 
     return;
 }
@@ -1046,6 +1105,7 @@ static void HtpConfigRestoreBackup(void)
 {
     cfglist.cfg = cfglist_backup.cfg;
     cfglist.next = cfglist_backup.next;
+    cfglist.request_body_limit = cfglist_backup.request_body_limit;
 
     return;
 }

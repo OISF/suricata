@@ -31,6 +31,9 @@
 
 #include <htp/htp.h>
 
+/* default request body limit */
+#define HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT    4096U
+
 #define HTP_FLAG_STATE_OPEN         0x01    /**< Flag to indicate that HTTP
                                              connection is open */
 #define HTP_FLAG_STATE_CLOSED       0x02    /**< Flag to indicate that HTTP
@@ -82,6 +85,9 @@ typedef struct HtpBody_ {
                               any pcre (so we can free() without waiting) */
 } HtpBody;
 
+#define HTP_BODY_COMPLETE   0x01    /* body is complete or limit is reached,
+                                       either way, this is it. */
+
 /** Now the Body Chunks will be stored per transaction, at
   * the tx user data */
 typedef struct SCHtpTxUserData_ {
@@ -91,17 +97,17 @@ typedef struct SCHtpTxUserData_ {
     uint32_t content_len;
     /* Holds the length of the htp request body seen so far */
     uint32_t content_len_so_far;
+    uint8_t flags;
 } SCHtpTxUserData;
 
 typedef struct HtpState_ {
 
     htp_connp_t *connp;     /**< Connection parser structure for
                                  each connection */
-//    size_t new_in_tx_index; /**< Index to indicate that after this we have
-//                                 new requests to log */
     uint8_t flags;
     uint16_t transaction_cnt;
     uint16_t transaction_done;
+    uint32_t request_body_limit;
 } HtpState;
 
 void RegisterHTPParsers(void);
