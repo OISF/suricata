@@ -1,6 +1,11 @@
 %YAML 1.1
 ---
 
+# Suricata configuration file. In addition to the comments describing all
+# options in this file, full documentation can be found at:
+# https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Suricatayaml
+
+
 # Number of packets allowed to be processed simultaneously.  Default is a
 # conservative 50. a higher number will make sure CPU's/CPU cores will be
 # more easily kept busy, but will negatively impact caching.
