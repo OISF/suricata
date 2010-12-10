@@ -903,7 +903,7 @@ static void HTPConfigure(void)
                     }
 
                 }
-            } else if (strcasecmp("client-request-body-buffer-limit", p->name) == 0) {
+            } else if (strcasecmp("request-body-limit", p->name) == 0) {
                 /* limit */
                 TAILQ_FOREACH(pval, &p->head, next) {
                     SCLogDebug("LIBHTP default: %s=%s",
@@ -919,7 +919,7 @@ static void HTPConfigure(void)
                     }
                     else {
                         SCLogWarning(SC_ERR_UNKNOWN_VALUE,
-                                "LIBHTP malformed client-request-body-buffer-limit "
+                                "LIBHTP malformed request-body-limit "
                                 "\"%s\", using default %u", pval->val,
                                 HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT);
                         cfglist.request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
@@ -1052,7 +1052,7 @@ static void HTPConfigure(void)
                         }
 
                     }
-                } else if (strcasecmp("client-request-body-buffer-limit", p->name) == 0) {
+                } else if (strcasecmp("request-body-limit", p->name) == 0) {
                     /* limit */
                     TAILQ_FOREACH(pval, &p->head, next) {
                         SCLogDebug("LIBHTP default: %s=%s",
@@ -1068,7 +1068,7 @@ static void HTPConfigure(void)
                         }
                         else {
                             SCLogWarning(SC_ERR_UNKNOWN_VALUE,
-                                    "LIBHTP malformed client-request-body-buffer-limit "
+                                    "LIBHTP malformed request-body-limit "
                                     "\"%s\", using default %u", pval->val,
                                     HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT);
                             htprec->request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
