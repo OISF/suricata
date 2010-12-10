@@ -37,10 +37,11 @@
 
 /* new modifiers 2.8.5.3 support */
 #define DETECT_PCRE_HEADER          0x0100
-#define DETECT_PCRE_COOKIE          0x0200
-#define DETECT_PCRE_METHOD          0x0400
+#define DETECT_PCRE_RAW_HEADER      0x0200
+#define DETECT_PCRE_COOKIE          0x0400
+#define DETECT_PCRE_METHOD          0x0800
 
-#define DETECT_PCRE_NEGATE          0x0800
+#define DETECT_PCRE_NEGATE          0x1000
 
 typedef struct DetectPcreData_ {
     /* pcre options */

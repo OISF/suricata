@@ -842,6 +842,9 @@ DetectPcreData *DetectPcreParse (char *regexstr)
                 case 'H': /* snort's option */
                     pd->flags |= DETECT_PCRE_HEADER;
                     break;
+                case 'D': /* snort's option */
+                    pd->flags |= DETECT_PCRE_RAW_HEADER;
+                    break;
                 case 'M': /* snort's option */
                     pd->flags |= DETECT_PCRE_METHOD;
                     break;
@@ -999,6 +1002,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
             if ( (pd->flags & DETECT_PCRE_URI) ||
                  (pd->flags & DETECT_PCRE_METHOD) ||
                  (pd->flags & DETECT_PCRE_HEADER) ||
+                 (pd->flags & DETECT_PCRE_RAW_HEADER) ||
                  (pd->flags & DETECT_PCRE_COOKIE) ||
                  (pd->flags & DETECT_PCRE_HTTP_BODY_AL) ) {
                 SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option. "
@@ -1027,6 +1031,11 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         s->flags |= SIG_FLAG_APPLAYER;
 
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HHDMATCH);
+    } else if (pd->flags & DETECT_PCRE_RAW_HEADER) {
+        SCLogDebug("Raw header inspection modifier set");
+        s->flags |= SIG_FLAG_APPLAYER;
+
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRHDMATCH);
     } else if (pd->flags & DETECT_PCRE_COOKIE) {
         sm->type = DETECT_PCRE_HTTPCOOKIE;
 
@@ -1091,11 +1100,12 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         SCReturnInt(0);
     }
 
-    prev_sm = SigMatchGetLastSMFromLists(s, 10,
+    prev_sm = SigMatchGetLastSMFromLists(s, 12,
                                          DETECT_CONTENT, sm->prev,
                                          DETECT_URICONTENT, sm->prev,
                                          DETECT_AL_HTTP_CLIENT_BODY, sm->prev,
                                          DETECT_AL_HTTP_HEADER, sm->prev,
+                                         DETECT_AL_HTTP_RAW_HEADER, sm->prev,
                                          DETECT_PCRE, sm->prev);
     if (prev_sm == NULL) {
         if (s->alproto == ALPROTO_DCERPC) {
@@ -1117,6 +1127,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         case DETECT_URICONTENT:
         case DETECT_AL_HTTP_CLIENT_BODY:
         case DETECT_AL_HTTP_HEADER:
+        case DETECT_AL_HTTP_RAW_HEADER:
             /* Set the relative next flag on the prev sigmatch */
             cd = (DetectContentData *)prev_sm->ctx;
             if (cd == NULL) {
