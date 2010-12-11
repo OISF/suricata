@@ -753,6 +753,7 @@ int main(int argc, char **argv)
     /* Initializations for global vars, queues, etc (memsets, mutex init..) */
     GlobalInits();
     TimeInit();
+    SupportFastPatternForSigMatchTypes();
 
     /* Load yaml configuration file if provided. */
     if (conf_filename != NULL) {
@@ -834,7 +835,6 @@ int main(int argc, char **argv)
     SigTableSetup(); /* load the rule keywords */
     TmqhSetup();
 
-    SupportFastPatternForSigMatchTypes();
     CIDRInit();
     SigParsePrepare();
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);

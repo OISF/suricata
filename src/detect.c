@@ -253,43 +253,23 @@ char *DetectLoadCompleteSigPath(char *sig_file)
     return path;
 }
 
-/**
- * \brief Prints analysis of fast pattern for a signature.
- *
- *        The code here mimics the logic to select fast_pattern from staging.
- *        If any changes are made to the staging logic, this should follow suit.
- *
- * \param s Pointer to the signature.
- */
-void EngineAnalysisFastPattern(Signature *s)
+static inline void EngineAnalysisWriteFastPattern(Signature *s, SigMatch *mpm_sm)
 {
     int fast_pattern_set = 0;
     int fast_pattern_only_set = 0;
     int fast_pattern_chop_set = 0;
-    int content_maxlen = 0;
-    DetectContentData *cd = NULL;
     DetectContentData *fp_cd = NULL;
-    SigMatch *sm = NULL;
 
-    for (sm = s->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
-        if (sm->type != DETECT_CONTENT)
-            continue;
-
-        cd = (DetectContentData *)sm->ctx;
-        if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+    if (mpm_sm != NULL) {
+        fp_cd = (DetectContentData *)mpm_sm->ctx;
+        if (fp_cd->flags & DETECT_CONTENT_FAST_PATTERN) {
             fast_pattern_set = 1;
-            if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+            if (fp_cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
                 fast_pattern_only_set = 1;
-            } else if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+            } else if (fp_cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
                 fast_pattern_chop_set = 1;
             }
-            fp_cd = cd;
-            break;
-        } else if (cd->content_len <= content_maxlen) {
-            continue;
         }
-
-        fp_cd = cd;
     }
 
     if (fp_cd == NULL) {
@@ -299,7 +279,17 @@ void EngineAnalysisFastPattern(Signature *s)
     }
 
     fprintf(fp_engine_analysis_FD, "== Sid: %u ==\n", s->id);
-    fprintf(fp_engine_analysis_FD, "    Fast pattern matcher: content\n");
+    fprintf(fp_engine_analysis_FD, "    Fast pattern matcher: ");
+    if (mpm_sm->type == DETECT_CONTENT)
+        fprintf(fp_engine_analysis_FD, "content\n");
+    else if (mpm_sm->type == DETECT_URICONTENT)
+        fprintf(fp_engine_analysis_FD, "uricontent\n");
+    else if (mpm_sm->type == DETECT_AL_HTTP_CLIENT_BODY)
+        fprintf(fp_engine_analysis_FD, "http_client_body\n");
+    else if (mpm_sm->type == DETECT_AL_HTTP_HEADER)
+        fprintf(fp_engine_analysis_FD, "http_header\n");
+    else if (mpm_sm->type == DETECT_AL_HTTP_RAW_HEADER)
+        fprintf(fp_engine_analysis_FD, "http_raw_header\n");
     fprintf(fp_engine_analysis_FD, "    Fast pattern set: %s\n", fast_pattern_set ? "yes" : "no");
     fprintf(fp_engine_analysis_FD, "    Fast pattern only set: %s\n",
             fast_pattern_only_set ? "yes" : "no");
@@ -318,8 +308,8 @@ void EngineAnalysisFastPattern(Signature *s)
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
-    memcpy(pat, cd->content, cd->content_len);
-    pat[cd->content_len] = '\0';
+    memcpy(pat, fp_cd->content, fp_cd->content_len);
+    pat[fp_cd->content_len] = '\0';
     fprintf(fp_engine_analysis_FD, "    Original content: ");
     PrintRawUriFp(fp_engine_analysis_FD, pat, patlen);
     fprintf(fp_engine_analysis_FD, "\n");
@@ -332,7 +322,7 @@ void EngineAnalysisFastPattern(Signature *s)
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             exit(EXIT_FAILURE);
         }
-        memcpy(pat, cd->content + fp_cd->fp_chop_offset, fp_cd->fp_chop_len);
+        memcpy(pat, fp_cd->content + fp_cd->fp_chop_offset, fp_cd->fp_chop_len);
         pat[fp_cd->fp_chop_len] = '\0';
         fprintf(fp_engine_analysis_FD, "    Final content: ");
         PrintRawUriFp(fp_engine_analysis_FD, pat, patlen);
@@ -343,6 +333,126 @@ void EngineAnalysisFastPattern(Signature *s)
         fprintf(fp_engine_analysis_FD, "\n");
     }
     SCFree(pat);
+
+    return;
+}
+
+/**
+ * \brief Prints analysis of fast pattern for a signature.
+ *
+ *        The code here mimics the logic to select fast_pattern from staging.
+ *        If any changes are made to the staging logic, this should follow suit.
+ *
+ * \param s Pointer to the signature.
+ */
+void EngineAnalysisFastPattern(Signature *s)
+{
+    SigMatch *mpm_sm = NULL;
+    uint32_t fast_pattern = 0;
+    int sig_has_no_pkt_and_stream_content = 0;
+    int list_id = 0;
+
+    if (!SignatureHasPacketContent(s) && !SignatureHasStreamContent(s)) {
+        sig_has_no_pkt_and_stream_content = 1;
+    }
+
+    for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
+        /* we have no keywords that support fp in this Signature sm list */
+        if (!FastPatternSupportEnabledForSigMatchList(list_id))
+            continue;
+
+        SigMatch *sm = NULL;
+        /* get the total no of patterns in this Signature, as well as find out
+         * if we have a fast_pattern set in this Signature */
+        for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
+            /* this keyword isn't registered for fp support */
+            if (!FastPatternSupportEnabledForSigMatchType(sm->type))
+                continue;
+
+            DetectContentData *cd = (DetectContentData *)sm->ctx;
+            if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+                fast_pattern = 1;
+                break;
+            }
+        } /* for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) */
+
+        /* found a fast pattern for the sig.  Let's get outta here */
+        if (fast_pattern)
+            break;
+    } /* for ( ; list_id < DETECT_SM_LIST_MAX; list_id++) */
+
+    int max_len = 0;
+    /* get the longest pattern in the sig */
+    if (!fast_pattern) {
+        SigMatch *sm = NULL;
+        for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
+            if (!FastPatternSupportEnabledForSigMatchList(list_id))
+                continue;
+
+            for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
+                if (!FastPatternSupportEnabledForSigMatchType(sm->type))
+                    continue;
+
+                DetectContentData *cd = (DetectContentData *)sm->ctx;
+                if (max_len < cd->content_len)
+                    max_len = cd->content_len;
+            }
+        }
+    }
+
+    SigMatch *sm = NULL;
+    for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
+        if (!FastPatternSupportEnabledForSigMatchList(list_id))
+            continue;
+
+        for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
+            if (!FastPatternSupportEnabledForSigMatchType(sm->type))
+                continue;
+
+            /* skip in case of:
+             * 1. we expect a fastpattern but this isn't it */
+            if (fast_pattern) {
+                /* can be any content based keyword since all of them
+                 * now use a unified structure - DetectContentData */
+                DetectContentData *cd = (DetectContentData *)sm->ctx;
+                if (!(cd->flags & DETECT_CONTENT_FAST_PATTERN)) {
+                    SCLogDebug("not a fast pattern %"PRIu32"", cd->id);
+                    continue;
+                }
+                SCLogDebug("fast pattern %"PRIu32"", cd->id);
+            } else {
+                DetectContentData *cd = (DetectContentData *)sm->ctx;
+                if (cd->content_len < max_len)
+                    continue;
+
+            } /* else - if (fast_pattern[sig] == 1) */
+
+            if (mpm_sm == NULL) {
+                mpm_sm = sm;
+                if (fast_pattern)
+                    break;
+            } else {
+                DetectContentData *data1 = (DetectContentData *)sm->ctx;
+                DetectContentData *data2 = (DetectContentData *)mpm_sm->ctx;
+                uint32_t ls = PatternStrength(data1->content, data1->content_len);
+                uint32_t ss = PatternStrength(data2->content, data2->content_len);
+                if (ls > ss) {
+                    mpm_sm = sm;
+                } else if (ls == ss) {
+                    /* if 2 patterns are of equal strength, we pick the longest */
+                    if (data1->content_len > data2->content_len)
+                        mpm_sm = sm;
+                } else {
+                    SCLogDebug("sticking with mpm_sm");
+                }
+            } /* else - if (mpm == NULL) */
+        } /* for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) */
+        if (mpm_sm != NULL && fast_pattern)
+            break;
+    } /* for ( ; list_id < DETECT_SM_LIST_MAX; list_id++) */
+
+    /* output result to file */
+    EngineAnalysisWriteFastPattern(s, mpm_sm);
 
     return;
 }
@@ -432,7 +542,7 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
  *  \param sig_file Filename holding signatures
  *  \retval -1 on error
  */
-int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
+int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file)
 {
     SCEnter();
 
