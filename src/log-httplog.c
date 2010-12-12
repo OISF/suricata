@@ -56,7 +56,7 @@ TmEcode LogHttpLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueu
 TmEcode LogHttpLogThreadInit(ThreadVars *, void *, void **);
 TmEcode LogHttpLogThreadDeinit(ThreadVars *, void *);
 void LogHttpLogExitPrintStats(ThreadVars *, void *);
-int LogHttpLogOpenFileCtx(LogFileCtx* , const char *);
+int LogHttpLogOpenFileCtx(LogFileCtx* , const char *, const char *);
 static void LogHttpLogDeInitCtx(OutputCtx *);
 
 void TmModuleLogHttpLogRegister (void) {
@@ -424,8 +424,11 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
     if (filename == NULL)
         filename = DEFAULT_LOG_FILENAME;
 
+    const char *mode = ConfNodeLookupChildValue(conf, "append");
+    if (mode == NULL)
+        mode = DEFAULT_LOG_MODE_APPEND;
     /** fill the new LogFileCtx with the specific LogHttpLog configuration */
-    ret=LogHttpLogOpenFileCtx(file_ctx, filename);
+    ret=LogHttpLogOpenFileCtx(file_ctx, filename, mode);
 
     if(ret < 0)
         return NULL;
@@ -451,14 +454,19 @@ static void LogHttpLogDeInitCtx(OutputCtx *output_ctx)
  *  \param config_file for loading separate configs
  *  \return -1 if failure, 0 if succesful
  * */
-int LogHttpLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename)
+int LogHttpLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename, const
+                            char *mode)
 {
     char log_path[PATH_MAX], *log_dir;
     if (ConfGet("default-log-dir", &log_dir) != 1)
         log_dir = DEFAULT_LOG_DIR;
     snprintf(log_path, PATH_MAX, "%s/%s", log_dir, filename);
 
-    file_ctx->fp = fopen(log_path, "w");
+    if (strncmp(mode, "yes", sizeof(mode)) == 0) {
+        file_ctx->fp = fopen(log_path, "a");
+    } else {
+        file_ctx->fp = fopen(log_path, "w");
+    }
 
     if (file_ctx->fp == NULL) {
         SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", log_path,

@@ -60,7 +60,7 @@ TmEcode AlertDebugLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQ
 TmEcode AlertDebugLogThreadInit(ThreadVars *, void*, void **);
 TmEcode AlertDebugLogThreadDeinit(ThreadVars *, void *);
 void AlertDebugLogExitPrintStats(ThreadVars *, void *);
-int AlertDebugLogOpenFileCtx(LogFileCtx* , const char *);
+int AlertDebugLogOpenFileCtx(LogFileCtx* , const char *, const char *);
 
 void TmModuleAlertDebugLogRegister (void) {
     tmm_modules[TMM_ALERTDEBUGLOG].name = MODULE_NAME;
@@ -440,8 +440,12 @@ OutputCtx *AlertDebugLogInitCtx(ConfNode *conf)
     if (filename == NULL)
         filename = DEFAULT_LOG_FILENAME;
 
+    const char *mode = ConfNodeLookupChildValue(conf, "append");
+    if (mode == NULL)
+        mode = DEFAULT_LOG_MODE_APPEND;
+
     /** fill the new LogFileCtx with the specific AlertDebugLog configuration */
-    ret=AlertDebugLogOpenFileCtx(file_ctx, filename);
+    ret=AlertDebugLogOpenFileCtx(file_ctx, filename, mode);
 
     if(ret < 0)
         return NULL;
@@ -459,15 +463,21 @@ OutputCtx *AlertDebugLogInitCtx(ConfNode *conf)
  *  \param filename name of log file
  *  \return -1 if failure, 0 if succesful
  * */
-int AlertDebugLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename)
+int AlertDebugLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename, const
+                                char *mode)
 {
     int ret=0;
 
     char log_path[PATH_MAX], *log_dir;
     if (ConfGet("default-log-dir", &log_dir) != 1)
         log_dir = DEFAULT_LOG_DIR;
-    snprintf(log_path, PATH_MAX, "%s/%s", log_dir, DEFAULT_LOG_FILENAME);
-    file_ctx->fp = fopen(log_path, "w");
+    snprintf(log_path, PATH_MAX, "%s/%s", log_dir, filename);
+    if (strncmp(mode, "yes", sizeof(mode)) == 0) {
+        file_ctx->fp = fopen(log_path, "a");
+    } else {
+        file_ctx->fp = fopen(log_path, "w");
+    }
+
     if (file_ctx->fp == NULL) {
         SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", log_path,
             strerror(errno));

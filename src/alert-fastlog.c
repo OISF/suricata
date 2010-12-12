@@ -70,7 +70,7 @@ TmEcode AlertFastLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQu
 TmEcode AlertFastLogThreadInit(ThreadVars *, void *, void **);
 TmEcode AlertFastLogThreadDeinit(ThreadVars *, void *);
 void AlertFastLogExitPrintStats(ThreadVars *, void *);
-static int AlertFastLogOpenFileCtx(LogFileCtx *, const char *);
+static int AlertFastLogOpenFileCtx(LogFileCtx *, const char *, const char *);
 void AlertFastLogRegisterTests(void);
 static void AlertFastLogDeInitCtx(OutputCtx *);
 
@@ -318,7 +318,12 @@ OutputCtx *AlertFastLogInitCtx(ConfNode *conf)
     const char *filename = ConfNodeLookupChildValue(conf, "filename");
     if (filename == NULL)
         filename = DEFAULT_LOG_FILENAME;
-    if (AlertFastLogOpenFileCtx(logfile_ctx, filename) < 0) {
+
+    const char *mode = ConfNodeLookupChildValue(conf, "append");
+    if (mode == NULL)
+        mode = DEFAULT_LOG_MODE_APPEND;
+
+    if (AlertFastLogOpenFileCtx(logfile_ctx, filename, mode) < 0) {
         LogFileFreeCtx(logfile_ctx);
         return NULL;
     }
@@ -346,14 +351,19 @@ static void AlertFastLogDeInitCtx(OutputCtx *output_ctx)
  *  \param filename name of log file
  *  \return -1 if failure, 0 if succesful
  * */
-static int AlertFastLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename)
+static int AlertFastLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename,
+                                    const char *mode)
 {
     char log_path[PATH_MAX], *log_dir;
     if (ConfGet("default-log-dir", &log_dir) != 1)
         log_dir = DEFAULT_LOG_DIR;
     snprintf(log_path, PATH_MAX, "%s/%s", log_dir, filename);
 
-    file_ctx->fp = fopen(log_path, "w");
+    if (strncmp(mode, "yes", sizeof(mode)) == 0) {
+        file_ctx->fp = fopen(log_path, "a");
+    } else {
+        file_ctx->fp = fopen(log_path, "w");
+    }
 
     if (file_ctx->fp == NULL) {
         SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", log_path,

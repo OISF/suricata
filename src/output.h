@@ -26,6 +26,8 @@
 
 #include "suricata.h"
 
+#define DEFAULT_LOG_MODE_APPEND     "yes"
+
 typedef struct OutputModule_ {
     char *name;
     char *conf_name;

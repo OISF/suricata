@@ -36,6 +36,7 @@ outputs:
   - fast:
       enabled: yes
       filename: fast.log
+      append: yes
 
   # log output for use with Barnyard
   - unified-log:
@@ -65,12 +66,14 @@ outputs:
   - http-log:
       enabled: yes
       filename: http.log
+      append: yes
 
   # a full alerts log containing much information for signature writers
   # or for investigating suspected false positives.
   - alert-debug:
       enabled: no
       filename: alert-debug.log
+      append: yes
 
   # alert output to prelude (http://www.prelude-technologies.com/) only
   # available if Suricata has been compiled with --enable-prelude
