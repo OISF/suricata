@@ -129,7 +129,6 @@ void PcapFileCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     p->ts.tv_sec = h->ts.tv_sec;
     p->ts.tv_usec = h->ts.tv_usec;
     SCLogDebug("p->ts.tv_sec %"PRIuMAX"", (uintmax_t)p->ts.tv_sec);
-    TimeSet(&p->ts);
     p->datalink = pcap_g.datalink;
 
     ptv->pkts++;
@@ -316,6 +315,10 @@ TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
 
     SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->sc_perf_pca, p->pktlen);
     SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca, p->pktlen);
+
+    /* update the engine time representation based on the timestamp
+     * of the packet. */
+    TimeSet(&p->ts);
 
     /* call the decoder */
     pcap_g.Decoder(tv, dtv, p, p->pkt, p->pktlen, pq);
