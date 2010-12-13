@@ -98,13 +98,12 @@ typedef struct LogHttpLogThread_ {
 static void CreateTimeString (const struct timeval *ts, char *str, size_t size) {
     time_t time = ts->tv_sec;
     struct tm local_tm;
-    struct tm *t = gmtime_r(&time, &local_tm);
+    struct tm *t = (struct tm *)localtime_r(&time, &local_tm);
     uint32_t sec = ts->tv_sec % 86400;
 
     snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u",
-        t->tm_mon + 1, t->tm_mday, t->tm_year - 100,
-        sec / 3600, (sec % 3600) / 60, sec % 60,
-        (uint32_t) ts->tv_usec);
+        t->tm_mon + 1, t->tm_mday, t->tm_year + 1900, t->tm_hour,
+            t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
 }
 
 TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
