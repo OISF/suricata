@@ -38,6 +38,14 @@
 #include "util-mpm-ac-gfbs.h"
 #include "util-hashlist.h"
 
+#include "detect-engine.h"
+#include "util-cuda-handlers.h"
+#include "util-cuda.h"
+#include "conf.h"
+#include "conf-yaml-loader.h"
+#include "queue.h"
+#include "util-unittest.h"
+
 MpmCtxFactoryContainer *mpm_ctx_factory_container = NULL;
 
 /**
