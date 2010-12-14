@@ -245,13 +245,14 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_MPM_HCBDCONTENT                0x10000000
 #define SIG_FLAG_MPM_HCBDCONTENT_NEG            0x20000000
 
+#define SIG_FLAG_REQUIRE_FLOWVAR                0x40000000 /**< signature can only match if a flowbit, flowvar or flowint is available. */
 
 /* signature mask flags */
 #define SIG_MASK_REQUIRE_PAYLOAD    0x01
 #define SIG_MASK_REQUIRE_FLOW       0x02
 //#define SIG_MASK_REQUIRE_PKTVAR     0x04
 
-#define SIG_MASK_REQUIRE_FLOWBIT    0x08
+//#define SIG_MASK_REQUIRE_FLOWBIT    0x08 // VJ: can't prefilter as it's dynamic
 //#define SIG_MASK_REQUIRE_FLOWVAR    0x10
 //#define SIG_MASK_REQUIRE_FLOWINT    0x20
 

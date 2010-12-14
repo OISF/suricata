@@ -1125,13 +1125,23 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         s = det_ctx->match_array[idx];
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
-#if 0
-        if ((mask & s->mask) != s->mask) {
-            SCLogDebug("Mask mismatch. mask %02X, s->mask %02x, after AND %02x", mask, s->mask, mask & s->mask);
-            goto next;
+
+        /* check if this signature has a requirement for flowvars of some type
+         * and if so, if we actually have any in the flow. If not, the sig
+         * can't match and we skip it. */
+        if (p->flags & PKT_HAS_FLOW && s->flags & SIG_FLAG_REQUIRE_FLOWVAR) {
+            SCMutexLock(&p->flow->m);
+            int m  = p->flow->flowvar ? 1 : 0;
+            SCMutexUnlock(&p->flow->m);
+
+            /* no flowvars? skip this sig */
+            if (m == 0) {
+                SCLogDebug("skipping sig as the flow has no flowvars and sig "
+                        "has SIG_FLAG_REQUIRE_FLOWVAR flag set.");
+                goto next;
+            }
         }
-        SCLogDebug("Mask match. mask %02X, s->mask %02x, after AND %02x", mask, s->mask, mask & s->mask);
-#endif
+
         if (DetectProtoContainsProto(&s->proto, IP_GET_IPPROTO(p)) == 0) {
             SCLogDebug("proto didn't match");
             goto next;
@@ -1680,8 +1690,7 @@ deonly:
 /* Create mask for this packet + it's flow if it has one
  *
  * Sets SIG_MASK_REQUIRE_PAYLOAD, SIG_MASK_REQUIRE_FLOW,
- * SIG_MASK_REQUIRE_HTTP_STATE, SIG_MASK_REQUIRE_DCE_STATE,
- * SIG_MASK_REQUIRE_FLOWBIT
+ * SIG_MASK_REQUIRE_HTTP_STATE, SIG_MASK_REQUIRE_DCE_STATE
  */
 static void
 PacketCreateMask(Packet *p, SignatureMask *mask, uint16_t alproto, void *alstate, StreamMsg *smsg) {
@@ -1708,17 +1717,6 @@ PacketCreateMask(Packet *p, SignatureMask *mask, uint16_t alproto, void *alstate
                     break;
             }
         }
-
-        SCMutexLock(&p->flow->m);
-        GenericVar *gv = p->flow->flowvar;
-        for ( ; gv != NULL; gv = gv->next) {
-            if (gv->type == DETECT_FLOWBITS) {
-                SCLogDebug("packet/flow has flowbit(s)");
-                (*mask) |= SIG_MASK_REQUIRE_FLOWBIT;
-                break;
-            }
-        }
-        SCMutexUnlock(&p->flow->m);
     }
 }
 
@@ -1781,17 +1779,24 @@ static int SignatureCreateMask(Signature *s) {
                 /* figure out what flowbit action */
                 DetectFlowbitsData *fb = (DetectFlowbitsData *)sm->ctx;
                 if (fb->cmd == DETECT_FLOWBITS_CMD_ISSET) {
-                    s->mask |= SIG_MASK_REQUIRE_FLOWBIT;
-                    SCLogDebug("sig requires flowbit(s)");
+                    /* not a mask flag, but still set it here */
+                    s->flags |= SIG_FLAG_REQUIRE_FLOWVAR;
+
+                    SCLogDebug("SIG_FLAG_REQUIRE_FLOWVAR set as sig has "
+                            "flowbit isset option.");
                 }
+
+                /* flow is required for any flowbit manipulation */
+                s->mask |= SIG_MASK_REQUIRE_FLOW;
+                SCLogDebug("sig requires flow to be able to manipulate "
+                        "flowbit(s)");
             }
             break;
         }
     }
 
     if (s->mask & SIG_MASK_REQUIRE_DCE_STATE ||
-            s->mask & SIG_MASK_REQUIRE_HTTP_STATE ||
-            s->mask & SIG_MASK_REQUIRE_FLOWBIT)
+        s->mask & SIG_MASK_REQUIRE_HTTP_STATE)
     {
         s->mask |= SIG_MASK_REQUIRE_FLOW;
         SCLogDebug("sig requires flow");
@@ -5435,15 +5440,18 @@ static int SigTest21Real (int mpm_type) {
         goto end;
     }
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    if (PacketAlertCheck(p2, 2))
-        result = 1;
+    if (!(PacketAlertCheck(p2, 2))) {
+        printf("sid 2 didn't alert, but should have: ");
+        goto end;
+    }
 
+    result = 1;
+end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-end:
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
     FLOW_DESTROY(&f);
