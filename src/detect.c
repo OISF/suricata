@@ -1025,6 +1025,15 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 }
 
                 smsg = SigMatchSignaturesGetSmsg(p->flow, p, flags);
+#if 0
+                StreamMsg *tmpsmsg = smsg;
+                while (tmpsmsg) {
+                    printf("detect ---start---:\n");
+                    PrintRawDataFp(stdout,tmpsmsg->data.data,tmpsmsg->data.data_len);
+                    printf("detect ---end---:\n");
+                    tmpsmsg = tmpsmsg->next;
+                }
+#endif
             }
 
             /* Retrieve the app layer state and protocol and the tcp reassembled

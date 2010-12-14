@@ -165,17 +165,17 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
                 } else {
                     if (smsg->flags & STREAM_TOSERVER) {
                         if (smsg->data.data_len >= alp_proto_ctx.toserver.max_len) {
+                            /* protocol detection has failed */
                             ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
-                            smsg->flow->alflags |= FLOW_AL_PROTO_DETECT_DONE;
+                            smsg->flow->alflags |= FLOW_AL_PROTO_DETECT_DONE|FLOW_AL_NO_APPLAYER_INSPECTION;
                             SCLogDebug("ALPROTO_UNKNOWN flow %p", smsg->flow);
-                            StreamTcpSetSessionNoReassemblyFlag(ssn, 0);
                         }
                     } else if (smsg->flags & STREAM_TOCLIENT) {
                         if (smsg->data.data_len >= alp_proto_ctx.toclient.max_len) {
+                            /* protocol detection has failed */
                             ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
-                            smsg->flow->alflags |= FLOW_AL_PROTO_DETECT_DONE;
+                            smsg->flow->alflags |= FLOW_AL_PROTO_DETECT_DONE|FLOW_AL_NO_APPLAYER_INSPECTION;
                             SCLogDebug("ALPROTO_UNKNOWN flow %p", smsg->flow);
-                            StreamTcpSetSessionNoReassemblyFlag(ssn, 1);
                         }
                     }
                 }
@@ -204,7 +204,9 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
         /* store the smsg in the tcp stream */
         if (smsg->flags & STREAM_TOSERVER) {
             SCLogDebug("storing smsg in the to_server");
-
+#if 0
+            PrintRawDataFp(stdout,smsg->data.data,smsg->data.data_len);
+#endif
             /* put the smsg in the stream list */
             if (ssn->toserver_smsg_head == NULL) {
                 ssn->toserver_smsg_head = smsg;
