@@ -140,22 +140,31 @@ static inline int SCLogMapLogLevelToSyslogLevel(int log_level)
     switch (log_level) {
         case SC_LOG_EMERGENCY:
             syslog_log_level = LOG_EMERG;
+            break;
         case SC_LOG_ALERT:
             syslog_log_level = LOG_ALERT;
+            break;
         case SC_LOG_CRITICAL:
             syslog_log_level = LOG_CRIT;
+            break;
         case SC_LOG_ERROR:
             syslog_log_level = LOG_ERR;
+            break;
         case SC_LOG_WARNING:
             syslog_log_level = LOG_WARNING;
+            break;
         case SC_LOG_NOTICE:
             syslog_log_level = LOG_NOTICE;
+            break;
         case SC_LOG_INFO:
             syslog_log_level = LOG_INFO;
+            break;
         case SC_LOG_DEBUG:
             syslog_log_level = LOG_DEBUG;
+            break;
         default:
             syslog_log_level = LOG_EMERG;
+            break;
     }
 
     return syslog_log_level;

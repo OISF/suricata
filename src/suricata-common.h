@@ -57,6 +57,10 @@
 
 #include <pcre.h>
 
+#if HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #ifdef HAVE_SYSLOG_H
 #include <syslog.h>
 #else
@@ -67,10 +71,6 @@
 #include "win32-misc.h"
 #include "win32-service.h"
 #endif /* OS_WIN32 */
-#if HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #include <sys/time.h>
 
 #if HAVE_POLL_H
