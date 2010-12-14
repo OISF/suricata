@@ -78,6 +78,14 @@ outputs:
       enabled: no
       profile: suricata
 
+  # Stats.log contains data from various counters of the suricata engine.
+  # The interval field (in seconds) tells after how long output will be written
+  # on the log file.
+  - stats:
+      enabled: yes
+      filename: stats1.log
+      interval: 40
+
 defrag:
   max-frags: 65535
   prealloc: yes

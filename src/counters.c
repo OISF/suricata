@@ -43,6 +43,8 @@
 
 static SCPerfOPIfaceContext *sc_perf_op_ctx = NULL;
 static time_t sc_start_time;
+static uint32_t sc_counter_int = SC_PERF_MGMTT_TTS;
+static const char *enabled = "yes";
 
 /**
  * \brief Adds a value of type uint64_t to the local counter.
@@ -264,10 +266,11 @@ void SCPerfCounterSetDouble(uint16_t id, SCPerfCounterArray *pca,
  * \retval An allocated string containing the log filename on success or NULL on
  *         failure.
  */
-static char *SCPerfGetLogFilename(void)
+static char *SCPerfGetLogFilename(ConfNode *stats)
 {
     char *log_dir = NULL;
     char *log_filename = NULL;
+    const char* filename = NULL;
 
     if (ConfGet("default-log-dir", &log_dir) != 1)
         log_dir = DEFAULT_LOG_DIR;
@@ -276,8 +279,17 @@ static char *SCPerfGetLogFilename(void)
         return NULL;
     }
 
+    if (stats != NULL) {
+        filename = ConfNodeLookupChildValue(stats, "filename");
+        if (filename == NULL) {
+            filename = SC_PERF_DEFAULT_LOG_FILENAME;
+        }
+    } else {
+        filename = SC_PERF_DEFAULT_LOG_FILENAME;
+    }
+
     if (snprintf(log_filename, PATH_MAX, "%s/%s", log_dir,
-                 SC_PERF_DEFAULT_LOG_FILENAME) < 0) {
+                 filename) < 0) {
         SCLogError(SC_ERR_SPRINTF, "Sprintf Error");
         SCFree(log_filename);
         return NULL;
@@ -295,6 +307,28 @@ static void SCPerfInitOPCtx(void)
 {
     SCEnter();
 
+    ConfNode *root = ConfGetNode("outputs");
+    ConfNode *node = NULL;
+    ConfNode *stats = NULL;
+    if (root != NULL) {
+        TAILQ_FOREACH(node, &root->head, next) {
+            if (strncmp(node->val, "stats", 5) == 0) {
+                stats = node->head.tqh_first;
+            }
+        }
+    }
+    /* Check if the stats module is enabled or not */
+    if (stats != NULL) {
+        enabled = ConfNodeLookupChildValue(stats, "enabled");
+        if (strncmp(enabled, "no", 2) == 0) {
+            SCLogDebug("Stats module has been disabled");
+            SCReturn;
+        }
+        const char *interval = ConfNodeLookupChildValue(stats, "interval");
+        if (interval != NULL)
+            sc_counter_int = (uint32_t) atoi(interval);
+    }
+
     /* Store the engine start time */
     time(&sc_start_time);
 
@@ -306,7 +340,7 @@ static void SCPerfInitOPCtx(void)
 
     sc_perf_op_ctx->iface = SC_PERF_IFACE_FILE;
 
-    if ( (sc_perf_op_ctx->file = SCPerfGetLogFilename()) == NULL) {
+    if ( (sc_perf_op_ctx->file = SCPerfGetLogFilename(stats)) == NULL) {
         SCLogInfo("Error retrieving Perf Counter API output file path");
     }
 
@@ -343,6 +377,11 @@ static void SCPerfInitOPCtx(void)
  */
 static void SCPerfReleaseOPCtx()
 {
+    if (sc_perf_op_ctx == NULL) {
+        SCLogDebug("Counter module has been disabled");
+        return;
+    }
+
     SCPerfClubTMInst *pctmi = NULL;
     SCPerfClubTMInst *temp = NULL;
     pctmi = sc_perf_op_ctx->pctmi;
@@ -404,7 +443,7 @@ static void *SCPerfMgmtThread(void *arg)
     while (run) {
         TmThreadTestThreadUnPaused(tv_local);
 
-        cond_time.tv_sec = time(NULL) + SC_PERF_MGMTT_TTS;
+        cond_time.tv_sec = time(NULL) + sc_counter_int;
         cond_time.tv_nsec = 0;
 
         SCMutexLock(tv_local->m);
@@ -1109,6 +1148,10 @@ void SCPerfInitCounterApi(void)
  */
 void SCPerfSpawnThreads(void)
 {
+    if (strncmp(enabled, "no", 2) == 0) {
+        return;
+    }
+
     ThreadVars *tv_wakeup = NULL;
     ThreadVars *tv_mgmt = NULL;
 
@@ -1366,6 +1409,11 @@ uint16_t SCPerfRegisterIntervalCounter(char *cname, char *tm_name, int type,
  */
 int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
 {
+    if (sc_perf_op_ctx == NULL) {
+        SCLogDebug("Counter module has been disabled");
+        return 0;
+    }
+
     SCPerfClubTMInst *pctmi = NULL;
     SCPerfClubTMInst *prev = NULL;
     SCPerfClubTMInst *temp = NULL;
