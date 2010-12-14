@@ -1166,7 +1166,12 @@ void SCLogLoadConfig(void)
         if (enabled != NULL && strcmp(enabled, "no") == 0)
             continue;
 
+        /* if available use the log format setting for this output,
+         * otherwise fall back to the global setting. */
         format = ConfNodeLookupChildValue(output, "format");
+        if (format == NULL)
+            format = sc_lid->global_log_format;
+
         level_s = ConfNodeLookupChildValue(output, "level");
         if (level_s != NULL) {
             level = SCMapEnumNameToValue(level_s, sc_log_level_map);
