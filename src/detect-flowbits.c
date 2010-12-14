@@ -727,6 +727,7 @@ static int FlowBitsTestSig06(void) {
     p.payload = buf;
     p.payload_len = buflen;
     p.proto = IPPROTO_TCP;
+    p.flags |= PKT_HAS_FLOW;
 
     de_ctx = DetectEngineCtxInit();
 
