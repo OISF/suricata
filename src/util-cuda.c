@@ -735,7 +735,7 @@ int SCCudaMemAllocPitch(CUdeviceptr *dptr, unsigned int *p_pitch,
 {
     CUresult result = 0;
 
-    if (dptr == NULL|| p_pitch) {
+    if (dptr == NULL || p_pitch == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "dptr is NULL or p_pitch is NULL");
         goto error;
@@ -858,7 +858,7 @@ int SCCudaMemcpy2D(const CUDA_MEMCPY2D *p_copy)
 {
     CUresult result = 0;
 
-    if (p_copy) {
+    if (p_copy == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "p_copy is NULL");
         goto error;
@@ -986,7 +986,7 @@ int SCCudaMemcpy2DAsync(const CUDA_MEMCPY2D *p_copy, CUstream h_stream)
 {
     CUresult result = 0;
 
-    if (p_copy) {
+    if (p_copy == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "p_copy is NULL");
         goto error;
@@ -1114,7 +1114,7 @@ int SCCudaMemcpy2DUnaligned(const CUDA_MEMCPY2D *p_copy)
 {
     CUresult result = 0;
 
-    if (p_copy) {
+    if (p_copy == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "p_copy is NULL");
         goto error;
@@ -1240,7 +1240,7 @@ int SCCudaMemcpy3D(const CUDA_MEMCPY3D *p_copy)
 {
     CUresult result = 0;
 
-    if (p_copy) {
+    if (p_copy == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "p_copy is NULL");
         goto error;
@@ -1371,7 +1371,7 @@ int SCCudaMemcpy3DAsync(const CUDA_MEMCPY3D *p_copy, CUstream h_stream)
 {
     CUresult result = 0;
 
-    if (p_copy) {
+    if (p_copy == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "p_copy is NULL");
         goto error;
@@ -3357,7 +3357,7 @@ int SCCudaModuleLoad(CUmodule *module, const char *fname)
 {
     CUresult result = 0;
 
-    if (module == NULL|| fname == NULL) {
+    if (module == NULL || fname == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "module is NULL or fname is NULL");
         goto error;
@@ -3391,7 +3391,7 @@ int SCCudaModuleLoadData(CUmodule *module, const char *image)
 {
     CUresult result = 0;
 
-    if (module == NULL|| image == NULL) {
+    if (module == NULL || image == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "module is NULL or image is NULL");
         goto error;
@@ -3460,7 +3460,7 @@ int SCCudaModuleLoadDataEx(CUmodule *module, const char *image,
 {
     CUresult result = 0;
 
-    if (module == NULL|| image == NULL || options == NULL ||
+    if (module == NULL || image == NULL || options == NULL ||
         option_values == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "module is NULL or image is NULL or options is NULL or "
@@ -3498,7 +3498,7 @@ int SCCudaModuleLoadFatBinary(CUmodule *module, const void *fat_cubin)
 {
     CUresult result = 0;
 
-    if (module == NULL|| fat_cubin == NULL) {
+    if (module == NULL || fat_cubin == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
                    "module is NULL or fatCubin is NULL");
         goto error;
