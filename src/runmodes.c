@@ -91,6 +91,9 @@ void RunModeInitializeOutputs(void)
 
     TAILQ_FOREACH(output, &outputs->head, next) {
 
+        if (strcmp(output->val, "stats") == 0)
+            continue;
+
         OutputModule *module = OutputGetModuleByConfName(output->val);
         if (module == NULL) {
             SCLogWarning(SC_ERR_INVALID_ARGUMENT,

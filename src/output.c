@@ -57,7 +57,7 @@ OutputRegisterModule(char *name, char *conf_name,
     module->InitFunc = InitFunc;
     TAILQ_INSERT_TAIL(&output_modules, module, entries);
 
-    SCLogInfo("Output module \"%s\" registered.", name);
+    SCLogDebug("Output module \"%s\" registered.", name);
 }
 
 /**

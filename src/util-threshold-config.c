@@ -101,7 +101,7 @@ int SCThresholdConfInitContext(DetectEngineCtx *de_ctx, FILE *utfd)
     if (fd == NULL) {
         filename = SCThresholdConfGetConfFilename();
         if ( (fd = fopen(filename, "r")) == NULL) {
-            SCLogError(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
+            SCLogWarning(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
             goto error;
         }
     }

@@ -609,7 +609,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file)
             if (r > 0) {
                 cnt += r;
             } else if (r == 0){
-                SCLogError(SC_ERR_NO_RULES, "No rules loaded from %s", sfile);
+                SCLogWarning(SC_ERR_NO_RULES, "No rules loaded from %s", sfile);
                 if (de_ctx->failure_fatal == 1) {
                     exit(EXIT_FAILURE);
                 }
@@ -643,11 +643,16 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file)
 
     /* now we should have signatures to work with */
     if (cnt <= 0) {
-        SCLogError(SC_ERR_NO_RULES_LOADED, "%d rule files specified, but no rule was loaded at all!", cntf);
-        if (de_ctx->failure_fatal == 1) {
-            exit(EXIT_FAILURE);
+        if (cntf > 0) {
+           SCLogError(SC_ERR_NO_RULES_LOADED, "%d rule files specified, but no rule was loaded at all!", cntf);
+           if (de_ctx->failure_fatal == 1) {
+               exit(EXIT_FAILURE);
+           }
+           ret = -1;
+        } else {
+            SCLogInfo("No signatures supplied.");
+            goto end;
         }
-        ret = -1;
     } else {
         /* we report the total of files and rules successfully loaded and failed */
         SCLogInfo("%" PRId32 " rule files processed. %" PRId32 " rules succesfully loaded, %" PRId32 " rules failed", cntf, cnt, sigtotal-cnt);
@@ -2096,7 +2101,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
                 cnt_deonly);
 
         SCLogInfo("building signature grouping structure, stage 1: "
-               "adding signatures to signature source addresses... done");
+               "adding signatures to signature source addresses... complete");
     }
     return 0;
 
@@ -2576,11 +2581,10 @@ static void DetectEngineAddDecoderEventSig(DetectEngineCtx *de_ctx, Signature *s
  */
 int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     Signature *tmp_s = NULL;
-    DetectAddress *gr = NULL;
     uint32_t sigs = 0;
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogInfo("building signature grouping structure, stage 2: "
+        SCLogDebug("building signature grouping structure, stage 2: "
                   "building source address lists...");
     }
 
@@ -2648,9 +2652,10 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
 
     IPOnlyPrepare(de_ctx);
     IPOnlyPrint(de_ctx, &de_ctx->io_ctx);
-
+#ifdef DEBUG
+    DetectAddress *gr = NULL;
     if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogInfo("%" PRIu32 " total signatures:", sigs);
+        SCLogDebug("%" PRIu32 " total signatures:", sigs);
     }
 
     /* TCP */
@@ -2671,7 +2676,7 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
         }
     }
     if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogInfo("TCP Source address blocks:     any: %4u, ipv4: %4u, ipv6: %4u.", cnt_any, cnt_ipv4, cnt_ipv6);
+        SCLogDebug("TCP Source address blocks:     any: %4u, ipv4: %4u, ipv6: %4u.", cnt_any, cnt_ipv4, cnt_ipv6);
     }
 
     cnt_any = 0, cnt_ipv4 = 0, cnt_ipv6 = 0;
@@ -2691,7 +2696,7 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
         }
     }
     if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogInfo("UDP Source address blocks:     any: %4u, ipv4: %4u, ipv6: %4u.", cnt_any, cnt_ipv4, cnt_ipv6);
+        SCLogDebug("UDP Source address blocks:     any: %4u, ipv4: %4u, ipv6: %4u.", cnt_any, cnt_ipv4, cnt_ipv6);
     }
 
     cnt_any = 0, cnt_ipv4 = 0, cnt_ipv6 = 0;
@@ -2711,11 +2716,11 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
         }
     }
     if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogInfo("ICMP Source address blocks:    any: %4u, ipv4: %4u, ipv6: %4u.", cnt_any, cnt_ipv4, cnt_ipv6);
+        SCLogDebug("ICMP Source address blocks:    any: %4u, ipv4: %4u, ipv6: %4u.", cnt_any, cnt_ipv4, cnt_ipv6);
     }
-
+#endif /* DEBUG */
     if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogInfo("building signature grouping structure, stage 2: building source address list... done");
+        SCLogInfo("building signature grouping structure, stage 2: building source address list... complete");
     }
 
     return 0;
@@ -3293,7 +3298,7 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
     int r;
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogInfo("building signature grouping structure, stage 3: "
+        SCLogDebug("building signature grouping structure, stage 3: "
                "building destination address lists...");
     }
     //DetectAddressPrintMemory();
@@ -3380,16 +3385,17 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
             de_ctx->mpm_unique ? de_ctx->mpm_memory_size / de_ctx->mpm_unique: 0);
 
         SCLogInfo("max sig id %" PRIu32 ", array size %" PRIu32 "", DetectEngineGetMaxSigId(de_ctx), DetectEngineGetMaxSigId(de_ctx) / 8 + 1);
-        SCLogInfo("signature group heads: unique %" PRIu32 ", copies %" PRIu32 ".", de_ctx->gh_unique, de_ctx->gh_reuse);
-        SCLogInfo("MPM instances: %" PRIu32 " unique, copies %" PRIu32 " (none %" PRIu32 ").",
+        SCLogDebug("signature group heads: unique %" PRIu32 ", copies %" PRIu32 ".", de_ctx->gh_unique, de_ctx->gh_reuse);
+        SCLogDebug("MPM instances: %" PRIu32 " unique, copies %" PRIu32 " (none %" PRIu32 ").",
                 de_ctx->mpm_unique, de_ctx->mpm_reuse, de_ctx->mpm_none);
-        SCLogInfo("MPM (URI) instances: %" PRIu32 " unique, copies %" PRIu32 " (none %" PRIu32 ").",
+        SCLogDebug("MPM (URI) instances: %" PRIu32 " unique, copies %" PRIu32 " (none %" PRIu32 ").",
                 de_ctx->mpm_uri_unique, de_ctx->mpm_uri_reuse, de_ctx->mpm_uri_none);
-        SCLogInfo("MPM max patcnt %" PRIu32 ", avg %" PRIu32 "", de_ctx->mpm_max_patcnt, de_ctx->mpm_unique?de_ctx->mpm_tot_patcnt/de_ctx->mpm_unique:0);
+        SCLogDebug("MPM max patcnt %" PRIu32 ", avg %" PRIu32 "", de_ctx->mpm_max_patcnt, de_ctx->mpm_unique?de_ctx->mpm_tot_patcnt/de_ctx->mpm_unique:0);
         if (de_ctx->mpm_uri_tot_patcnt && de_ctx->mpm_uri_unique)
-            SCLogInfo("MPM (URI) max patcnt %" PRIu32 ", avg %" PRIu32 " (%" PRIu32 "/%" PRIu32 ")", de_ctx->mpm_uri_max_patcnt, de_ctx->mpm_uri_tot_patcnt/de_ctx->mpm_uri_unique, de_ctx->mpm_uri_tot_patcnt, de_ctx->mpm_uri_unique);
-        SCLogInfo("port maxgroups: %" PRIu32 ", avg %" PRIu32 ", tot %" PRIu32 "", g_groupportlist_maxgroups, g_groupportlist_groupscnt ? g_groupportlist_totgroups/g_groupportlist_groupscnt : 0, g_groupportlist_totgroups);
-        SCLogInfo("building signature grouping structure, stage 3: building destination address lists... done");
+            SCLogDebug("MPM (URI) max patcnt %" PRIu32 ", avg %" PRIu32 " (%" PRIu32 "/%" PRIu32 ")", de_ctx->mpm_uri_max_patcnt, de_ctx->mpm_uri_tot_patcnt/de_ctx->mpm_uri_unique, de_ctx->mpm_uri_tot_patcnt, de_ctx->mpm_uri_unique);
+        SCLogDebug("port maxgroups: %" PRIu32 ", avg %" PRIu32 ", tot %" PRIu32 "", g_groupportlist_maxgroups, g_groupportlist_groupscnt ? g_groupportlist_totgroups/g_groupportlist_groupscnt : 0, g_groupportlist_totgroups);
+
+        SCLogInfo("building signature grouping structure, stage 3: building destination address lists... complete");
     }
     return 0;
 error:
@@ -3401,7 +3407,7 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx) {
     BUG_ON(de_ctx == NULL);
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogInfo("cleaning up signature grouping structure...");
+        SCLogDebug("cleaning up signature grouping structure...");
     }
 
     int f, proto;
@@ -3416,7 +3422,7 @@ int SigAddressCleanupStage1(DetectEngineCtx *de_ctx) {
     IPOnlyDeinit(de_ctx, &de_ctx->io_ctx);
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogInfo("cleaning up signature grouping structure... done");
+        SCLogInfo("cleaning up signature grouping structure... complete");
     }
     return 0;
 }

@@ -164,11 +164,11 @@ void UtilCpuPrintSummary() {
     uint16_t cpus_conf = UtilCpuGetNumProcessorsConfigured();
     uint16_t cpus_online = UtilCpuGetNumProcessorsOnline();
 
-    SCLogInfo("CPUs Summary: ");
+    SCLogDebug("CPUs Summary: ");
     if (cpus_conf > 0)
-        SCLogInfo("CPUs online: %"PRIu16, cpus_conf);
+        SCLogDebug("CPUs configured: %"PRIu16, cpus_conf);
     if (cpus_online > 0)
-        SCLogInfo("CPUs configured %"PRIu16, cpus_online);
+        SCLogInfo("CPUs/cores online: %"PRIu16, cpus_online);
     if (cpus_online == 0 && cpus_conf == 0)
         SCLogInfo("Couldn't retireve any information of CPU's, please, send your operating "
                   "system info and check util-cpu.{c,h}");
