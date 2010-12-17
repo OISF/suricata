@@ -83,8 +83,8 @@ outputs:
   # on the log file.
   - stats:
       enabled: yes
-      filename: stats1.log
-      interval: 40
+      filename: stats.log
+      interval: 8
 
 defrag:
   max-frags: 65535

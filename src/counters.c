@@ -43,8 +43,10 @@
 
 static SCPerfOPIfaceContext *sc_perf_op_ctx = NULL;
 static time_t sc_start_time;
-static uint32_t sc_counter_int = SC_PERF_MGMTT_TTS;
-static const char *enabled = "yes";
+/** refresh interval in seconds */
+static uint32_t sc_counter_tts = SC_PERF_MGMTT_TTS;
+/** is the stats counter enabled? */
+static char sc_counter_enabled = TRUE;
 
 /**
  * \brief Adds a value of type uint64_t to the local counter.
@@ -319,14 +321,15 @@ static void SCPerfInitOPCtx(void)
     }
     /* Check if the stats module is enabled or not */
     if (stats != NULL) {
-        enabled = ConfNodeLookupChildValue(stats, "enabled");
-        if (strncmp(enabled, "no", 2) == 0) {
+        const char *enabled = ConfNodeLookupChildValue(stats, "enabled");
+        if (strcasecmp(enabled, "no") == 0) {
+            sc_counter_enabled = FALSE;
             SCLogDebug("Stats module has been disabled");
             SCReturn;
         }
         const char *interval = ConfNodeLookupChildValue(stats, "interval");
         if (interval != NULL)
-            sc_counter_int = (uint32_t) atoi(interval);
+            sc_counter_tts = (uint32_t) atoi(interval);
     }
 
     /* Store the engine start time */
@@ -443,7 +446,7 @@ static void *SCPerfMgmtThread(void *arg)
     while (run) {
         TmThreadTestThreadUnPaused(tv_local);
 
-        cond_time.tv_sec = time(NULL) + sc_counter_int;
+        cond_time.tv_sec = time(NULL) + sc_counter_tts;
         cond_time.tv_nsec = 0;
 
         SCMutexLock(tv_local->m);
@@ -1148,8 +1151,10 @@ void SCPerfInitCounterApi(void)
  */
 void SCPerfSpawnThreads(void)
 {
-    if (strncmp(enabled, "no", 2) == 0) {
-        return;
+    SCEnter();
+
+    if (!sc_counter_enabled) {
+        SCReturn;
     }
 
     ThreadVars *tv_wakeup = NULL;
@@ -1183,7 +1188,7 @@ void SCPerfSpawnThreads(void)
         exit(EXIT_FAILURE);
     }
 
-    return;
+    SCReturn;
 }
 
 /**

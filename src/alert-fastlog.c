@@ -115,7 +115,7 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
     struct tm *t = (struct tm *)localtime_r(&time, &local_tm);
 
     snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u",
-            t->tm_mon + 1, t->tm_mday, 1, t->tm_year + 1900, t->tm_hour,
+            t->tm_mon + 1, t->tm_mday, t->tm_year + 1900, t->tm_hour,
             t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
 }
 
