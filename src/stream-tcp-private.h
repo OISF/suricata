@@ -127,18 +127,12 @@ enum
                                                              reassembly / app layer
                                                              inspection for the
                                                              client stream.*/
-#define STREAMTCP_FLAG_NO_APPLAYER_INSPECTION   0x2000  /**< don't send any more
-                                                             data to the app layer
-                                                             parser, but still
-                                                             reassemble for raw
-                                                             reassembled data
-                                                             inspection */
-#define STREAMTCP_FLAG_DETECTION_EVASION_ATTEMPT 0x4000  /**< Flag to indicate
+#define STREAMTCP_FLAG_DETECTION_EVASION_ATTEMPT 0x2000  /**< Flag to indicate
                                                              that this session
                                                              is possible trying
                                                              to evade the detection
     (http://www.packetstan.com/2010/06/recently-ive-been-on-campaign-to-make.html) */
-#define STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED 0x8000 /**< Flag to indicate
+#define STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED 0x4000 /**< Flag to indicate
                                                              that this session
                                                              has reassembled to_server
                                                              chunks */
