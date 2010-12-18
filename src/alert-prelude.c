@@ -144,6 +144,8 @@ void TmModuleAlertPreludeRegister (void) {
 typedef struct AlertPreludeCtx_ {
     /** The client (which has the send function) */
     prelude_client_t *client;
+    int log_packet_content;
+    int log_packet_header;
 } AlertPreludeCtx;
 
 /**
@@ -481,7 +483,7 @@ static int PacketToDataV6(Packet *p, PacketAlert *pa, idmef_alert_t *alert)
  *
  * \return 0 if ok
  */
-static int PacketToData(Packet *p, PacketAlert *pa, idmef_alert_t *alert)
+static int PacketToData(Packet *p, PacketAlert *pa, idmef_alert_t *alert, AlertPreludeCtx *ctx)
 {
     SCEnter();
 
@@ -491,39 +493,42 @@ static int PacketToData(Packet *p, PacketAlert *pa, idmef_alert_t *alert)
     AddIntData(alert, "snort_rule_sid", pa->sid);
     AddIntData(alert, "snort_rule_rev", pa->rev);
 
-    if ( PKT_IS_IPV4(p) )
-        PacketToDataV4(p, pa, alert);
+    if (ctx->log_packet_header) {
+        if ( PKT_IS_IPV4(p) )
+            PacketToDataV4(p, pa, alert);
 
-    else if ( PKT_IS_IPV6(p) )
-        PacketToDataV6(p, pa, alert);
+        else if ( PKT_IS_IPV6(p) )
+            PacketToDataV6(p, pa, alert);
 
-    if ( PKT_IS_TCP(p) ) {
-        AddIntData(alert, "tcp_seq", ntohl(p->tcph->th_seq));
-        AddIntData(alert, "tcp_ack", ntohl(p->tcph->th_ack));
+        if ( PKT_IS_TCP(p) ) {
+            AddIntData(alert, "tcp_seq", ntohl(p->tcph->th_seq));
+            AddIntData(alert, "tcp_ack", ntohl(p->tcph->th_ack));
 
-        AddIntData(alert, "tcp_off", TCP_GET_RAW_OFFSET(p->tcph));
-        AddIntData(alert, "tcp_res", TCP_GET_RAW_X2(p->tcph));
-        AddIntData(alert, "tcp_flags", p->tcph->th_flags);
+            AddIntData(alert, "tcp_off", TCP_GET_RAW_OFFSET(p->tcph));
+            AddIntData(alert, "tcp_res", TCP_GET_RAW_X2(p->tcph));
+            AddIntData(alert, "tcp_flags", p->tcph->th_flags);
 
-        AddIntData(alert, "tcp_win", ntohs(p->tcph->th_win));
-        AddIntData(alert, "tcp_sum", ntohs(p->tcph->th_sum));
-        AddIntData(alert, "tcp_urp", ntohs(p->tcph->th_urp));
+            AddIntData(alert, "tcp_win", ntohs(p->tcph->th_win));
+            AddIntData(alert, "tcp_sum", ntohs(p->tcph->th_sum));
+            AddIntData(alert, "tcp_urp", ntohs(p->tcph->th_urp));
 
+        }
+
+        else if ( PKT_IS_UDP(p) ) {
+            AddIntData(alert, "udp_len", ntohs(p->udph->uh_len));
+            AddIntData(alert, "udp_sum", ntohs(p->udph->uh_sum));
+        }
+
+        else if ( PKT_IS_ICMPV4(p) ) {
+            AddIntData(alert, "icmp_type", p->icmpv4h->type);
+            AddIntData(alert, "icmp_code", p->icmpv4h->code);
+            AddIntData(alert, "icmp_sum", ntohs(p->icmpv4h->checksum));
+
+        }
     }
 
-    else if ( PKT_IS_UDP(p) ) {
-        AddIntData(alert, "udp_len", ntohs(p->udph->uh_len));
-        AddIntData(alert, "udp_sum", ntohs(p->udph->uh_sum));
-    }
-
-    else if ( PKT_IS_ICMPV4(p) ) {
-        AddIntData(alert, "icmp_type", p->icmpv4h->type);
-        AddIntData(alert, "icmp_code", p->icmpv4h->code);
-        AddIntData(alert, "icmp_sum", ntohs(p->icmpv4h->checksum));
-
-    }
-
-    AddByteData(alert, "payload", p->payload, p->payload_len);
+    if (ctx->log_packet_content)
+        AddByteData(alert, "payload", p->payload, p->payload_len);
 
     SCReturnInt(0);
 }
@@ -697,7 +702,7 @@ TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
     if ( ret < 0 )
         goto err;
 
-    ret = PacketToData(p, pa, alert);
+    ret = PacketToData(p, pa, alert, apn->ctx);
     if ( ret < 0 )
         goto err;
 
@@ -793,6 +798,8 @@ OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
     prelude_client_t *client;
     AlertPreludeCtx *ctx;
     const char *prelude_profile_name;
+    const char *log_packet_content;
+    const char *log_packet_header;
     OutputCtx *output_ctx;
 
     SCEnter();
@@ -806,6 +813,9 @@ OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
     prelude_profile_name = ConfNodeLookupChildValue(conf, "profile");
     if (prelude_profile_name == NULL)
         prelude_profile_name = DEFAULT_PRELUDE_PROFILE;
+
+    log_packet_content = ConfNodeLookupChildValue(conf, "log_packet_content");
+    log_packet_header = ConfNodeLookupChildValue(conf, "log_packet_header");
 
     ret = prelude_client_new(&client, prelude_profile_name);
     if ( ret < 0 || ! client ) {
@@ -838,6 +848,12 @@ OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
     }
 
     ctx->client = client;
+    ctx->log_packet_content = 0;
+    ctx->log_packet_header = 1;
+    if (log_packet_content && strcmp(log_packet_content,"yes")==0)
+        ctx->log_packet_content = 1;
+    if (log_packet_header && strcmp(log_packet_header,"yes")!=0)
+        ctx->log_packet_header = 0;
 
     output_ctx = SCMalloc(sizeof(OutputCtx));
     if (output_ctx == NULL)
