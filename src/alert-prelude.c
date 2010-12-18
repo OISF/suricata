@@ -200,7 +200,7 @@ static int SetupAnalyzer(idmef_analyzer_t *analyzer)
  *
  * \return 0 if ok
  */
-static int EventToImpact(PacketAlert *pa, idmef_alert_t *alert)
+static int EventToImpact(PacketAlert *pa, Packet *p, idmef_alert_t *alert)
 {
     int ret;
     prelude_string_t *str;
@@ -231,6 +231,18 @@ static int EventToImpact(PacketAlert *pa, idmef_alert_t *alert)
         severity = IDMEF_IMPACT_SEVERITY_INFO;
 
     idmef_impact_set_severity(impact, severity);
+
+    if (p->action & ACTION_REJECT || p->action & ACTION_REJECT_BOTH ||
+        p->action & ACTION_REJECT_DST || p->action & ACTION_DROP) {
+        idmef_action_t *action;
+
+        ret = idmef_action_new(&action);
+        if ( ret < 0 )
+            SCReturnInt(ret);
+
+        idmef_action_set_category(action, IDMEF_ACTION_CATEGORY_BLOCK_INSTALLED);
+        idmef_assessment_set_action(assessment, action, 0);
+    }
 
     ret = idmef_impact_new_description(impact, &str);
     if ( ret < 0 )
@@ -673,7 +685,7 @@ TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
 
     prelude_string_set_ref(str, pa->msg);
 
-    ret = EventToImpact(pa, alert);
+    ret = EventToImpact(pa, p, alert);
     if ( ret < 0 )
         goto err;
 
