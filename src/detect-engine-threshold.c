@@ -270,6 +270,9 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
         ste.ipv = 4;
     else if (PKT_IS_IPV6(p))
         ste.ipv = 6;
+    else {
+        SCReturnInt(0);
+    }
 
     ste.sid = s->id;
     ste.gid = s->gid;
