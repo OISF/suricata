@@ -197,15 +197,18 @@ DetectITypeData *DetectITypeParse(char *itypestr) {
     }
 
     for (i = 0; i < (ret-1); i++) {
-        if (args[i] != NULL) SCFree(args[i]);
+        if (args[i] != NULL)
+            SCFree(args[i]);
     }
     return itd;
 
 error:
-    for (i = 0; i < (ret-1); i++) {
-        if (args[i] != NULL) SCFree(args[i]);
+    for (i = 0; i < (ret-1) && i < 4; i++) {
+        if (args[i] != NULL)
+            SCFree(args[i]);
     }
-    if (itd != NULL) DetectITypeFree(itd);
+    if (itd != NULL)
+        DetectITypeFree(itd);
     return NULL;
 }
 

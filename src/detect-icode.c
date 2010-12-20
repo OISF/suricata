@@ -197,15 +197,18 @@ DetectICodeData *DetectICodeParse(char *icodestr) {
     }
 
     for (i = 0; i < (ret-1); i++) {
-        if (args[i] != NULL) SCFree(args[i]);
+        if (args[i] != NULL)
+            SCFree(args[i]);
     }
     return icd;
 
 error:
-    for (i = 0; i < (ret-1); i++) {
-        if (args[i] != NULL) SCFree(args[i]);
+    for (i = 0; i < (ret-1) && i < 4; i++) {
+        if (args[i] != NULL)
+            SCFree(args[i]);
     }
-    if (icd != NULL) DetectICodeFree(icd);
+    if (icd != NULL)
+        DetectICodeFree(icd);
     return NULL;
 }
 
