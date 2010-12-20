@@ -698,25 +698,29 @@ int SCLogAddFDFilter(const char *function)
         if (strcmp(function, curr->func) == 0) {
 
             SCMutexUnlock(&sc_log_fd_filters_m);
-
             return 0;
         }
 
         curr = curr->next;
     }
 
-    if ( (temp = SCMalloc(sizeof(SCLogFDFilter))) == NULL)
-        return -1;
+    if ( (temp = SCMalloc(sizeof(SCLogFDFilter))) == NULL) {
+        printf("Error Allocating memory (SCMalloc)\n");
+        exit(EXIT_FAILURE);
+    }
     memset(temp, 0, sizeof(SCLogFDFilter));
 
     if ( (temp->func = SCStrdup(function)) == NULL) {
-        printf("Error Allocating memory\n");
+        printf("Error Allocating memory (SCStrdup)\n");
         exit(EXIT_FAILURE);
     }
 
     if (sc_log_fd_filters == NULL)
         sc_log_fd_filters = temp;
-    else
+    /* clang thinks prev can be NULL, but it can't be unless
+     * sc_log_fd_filters is also NULL which is handled here.
+     * Doing this "fix" to shut clang up. */
+    else if (prev != NULL)
         prev->next = temp;
 
     SCMutexUnlock(&sc_log_fd_filters_m);
