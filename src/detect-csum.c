@@ -177,7 +177,8 @@ void DetectCsumRegister (void)
  * \param cd  Pointer to the DetectCsumData structure that holds the keyword
  *            value sent as argument
  *
- * \retval 1 if the keyvalue has been parsed successfully, and 0 otherwise
+ * \retval 1 the keyvalue has been parsed successfully
+ * \retval 0 error
  */
 static int DetectCsumParseArg(const char *key, DetectCsumData *cd)
 {
@@ -186,8 +187,12 @@ static int DetectCsumParseArg(const char *key, DetectCsumData *cd)
     if (key[0] == '\"' && key[strlen(key) - 1] == '\"') {
         str = SCStrdup(key + 1);
         str[strlen(key) - 2] = '\0';
-    } else
+    } else {
         str = SCStrdup(key);
+    }
+    if (str == NULL) {
+        goto error;
+    }
 
     if (strcasecmp(str, DETECT_CSUM_VALID) == 0 ||
         strcasecmp(str, DETECT_CSUM_INVALID) == 0) {
@@ -196,7 +201,9 @@ static int DetectCsumParseArg(const char *key, DetectCsumData *cd)
         return 1;
     }
 
-    SCFree(str);
+error:
+    if (str != NULL)
+        SCFree(str);
     return 0;
 }
 
