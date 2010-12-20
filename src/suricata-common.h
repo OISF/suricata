@@ -26,6 +26,10 @@
 #ifndef __SURICATA_COMMON_H__
 #define __SURICATA_COMMON_H__
 
+#ifdef DEBUG
+#define DBG_PERF
+#endif
+
 #define TRUE   1
 #define FALSE  0
 

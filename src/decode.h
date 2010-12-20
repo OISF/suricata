@@ -24,13 +24,6 @@
 #ifndef __DECODE_H__
 #define __DECODE_H__
 
-//#define IPQ
-//#define NFQ
-//#define IPFW
-//#define PCAP
-
-//#define DEBUG
-#define DBG_PERF
 //#define DBG_THREADS
 #define COUNTERS
 
