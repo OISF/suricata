@@ -108,10 +108,23 @@ Flow *FlowDequeue (FlowQueue *q) {
     return f;
 }
 
+/**
+ *  \brief Transfer a flow from one queue to another
+ *
+ *  \param f the flow to be transfered
+ *  \param srcq the source queue, where the flow will be removed. The param may
+ *              be NULL.
+ *  \param dstq the dest queue where the flow will be placed
+ *  \param need_srclock does the srcq need locking? 1 yes, 0 no
+ *
+ */
 void FlowRequeue(Flow *f, FlowQueue *srcq, FlowQueue *dstq, uint8_t need_srclock)
 {
-    if (srcq != NULL)
-    {
+#ifdef DEBUG
+    BUG_ON(dstq == NULL);
+#endif /* DEBUG */
+
+    if (srcq != NULL) {
         if (need_srclock == 1) {
             SCMutexLock(&srcq->mutex_q);
         }
@@ -131,11 +144,15 @@ void FlowRequeue(Flow *f, FlowQueue *srcq, FlowQueue *dstq, uint8_t need_srclock
         f->lprev = NULL;
 
         /* don't unlock if src and dst are the same */
-        if (srcq != dstq && need_srclock == 1) SCMutexUnlock(&srcq->mutex_q);
+        if (srcq != dstq && need_srclock == 1) {
+            SCMutexUnlock(&srcq->mutex_q);
+        }
     }
 
     /* now put it in dst */
-    if (srcq != dstq) SCMutexLock(&dstq->mutex_q);
+    if (srcq != dstq) {
+        SCMutexLock(&dstq->mutex_q);
+    }
 
     /* add to new queue (append) */
     f->lprev = dstq->bot;
@@ -154,5 +171,4 @@ void FlowRequeue(Flow *f, FlowQueue *srcq, FlowQueue *dstq, uint8_t need_srclock
 
     SCMutexUnlock(&dstq->mutex_q);
 }
-
 
