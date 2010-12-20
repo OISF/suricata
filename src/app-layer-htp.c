@@ -353,9 +353,9 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
             if (htp_cfg_rec != NULL) {
                 htp = htp_cfg_rec->cfg;
                 SCLogDebug("LIBHTP using config: %p", htp);
-            }
 
-            hstate->request_body_limit = htp_cfg_rec->request_body_limit;
+                hstate->request_body_limit = htp_cfg_rec->request_body_limit;
+            }
         } else {
             SCLogDebug("Using default HTP config: %p", htp);
 
