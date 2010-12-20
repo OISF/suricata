@@ -171,6 +171,7 @@ DetectRpcData *DetectRpcParse (char *rpcstr)
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 ", string %s", ret, rpcstr);
         goto error;
     }
+
     if (ret > 1) {
         const char *str_ptr;
         res = pcre_get_substring((char *)rpcstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
@@ -242,15 +243,18 @@ DetectRpcData *DetectRpcParse (char *rpcstr)
             }
     }
     for (i = 0; i < (ret -1); i++){
-        if (args[i] != NULL) SCFree(args[i]);
+        if (args[i] != NULL)
+            SCFree(args[i]);
     }
     return rd;
 
 error:
-    for (i = 0; i < (ret -1); i++){
-        if (args[i] != NULL) SCFree(args[i]);
+    for (i = 0; i < (ret -1) && i < 4; i++){
+        if (args[i] != NULL)
+            SCFree(args[i]);
     }
-    if (rd != NULL) DetectRpcFree(rd);
+    if (rd != NULL)
+        DetectRpcFree(rd);
     return NULL;
 
 }

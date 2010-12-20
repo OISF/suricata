@@ -142,7 +142,6 @@ DetectWindowData *DetectWindowParse(char *windowstr) {
     if (wd == NULL)
         goto error;
 
-
     if (ret > 1) {
         const char *str_ptr;
         res = pcre_get_substring((char *)windowstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
@@ -173,15 +172,18 @@ DetectWindowData *DetectWindowParse(char *windowstr) {
 
 	int i = 0;
     for (i = 0; i < (ret -1); i++){
-        if (args[i] != NULL) SCFree(args[i]);
+        if (args[i] != NULL)
+            SCFree(args[i]);
     }
     return wd;
 
 error:
-    for (i = 0; i < (ret -1); i++){
-        if (args[i] != NULL) SCFree(args[i]);
+    for (i = 0; i < (ret -1) && i < 4; i++){
+        if (args[i] != NULL)
+            SCFree(args[i]);
     }
-    if (wd != NULL) DetectWindowFree(wd);
+    if (wd != NULL)
+        DetectWindowFree(wd);
     return NULL;
 
 }

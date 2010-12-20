@@ -114,6 +114,7 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
         SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, optstr);
         goto error;
     }
+
     for (i = 0; i < (ret - 1); i++) {
         res = pcre_get_substring((char *)optstr, ov, MAX_SUBSTRINGS,
                                  i + 1, &str_ptr);
@@ -153,15 +154,18 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
     }
 
     for (i = 0; i < (ret - 1); i++){
-        if (args[i] != NULL) SCFree(args[i]);
+        if (args[i] != NULL)
+            SCFree(args[i]);
     }
     return data;
 
 error:
-    for (i = 0; i < (ret - 1); i++){
-        if (args[i] != NULL) SCFree(args[i]);
+    for (i = 0; i < (ret - 1) && i < 3; i++){
+        if (args[i] != NULL)
+            SCFree(args[i]);
     }
-    if (data != NULL) SCFree(data);
+    if (data != NULL)
+        SCFree(data);
     return NULL;
 }
 

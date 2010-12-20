@@ -201,7 +201,8 @@ DetectIsdataatData *DetectIsdataatParse (char *isdataatstr)
         }
 
         for (i = 0; i < (ret -1); i++) {
-            if (args[i] != NULL) SCFree(args[i]);
+            if (args[i] != NULL)
+                SCFree(args[i]);
         }
 
         return idad;
@@ -210,11 +211,13 @@ DetectIsdataatData *DetectIsdataatParse (char *isdataatstr)
 
 error:
 
-    for (i = 0; i < (ret -1); i++){
-        if (args[i] != NULL) SCFree(args[i]);
+    for (i = 0; i < (ret -1) && i < 4; i++){
+        if (args[i] != NULL)
+            SCFree(args[i]);
     }
 
-    if (idad != NULL) DetectIsdataatFree(idad);
+    if (idad != NULL)
+        DetectIsdataatFree(idad);
     return NULL;
 
 }

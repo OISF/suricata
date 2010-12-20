@@ -164,6 +164,7 @@ DetectFlowData *DetectFlowParse (char *flowstr)
         SCLogError(SC_ERR_PCRE_MATCH, "parse error, ret %" PRId32 ", string %s", ret, flowstr);
         goto error;
     }
+
     if (ret > 1) {
         const char *str_ptr;
         res = pcre_get_substring((char *)flowstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
@@ -198,7 +199,7 @@ DetectFlowData *DetectFlowParse (char *flowstr)
     fd->match_cnt = 0;
 
     int i;
-    for (i = 0; i < (ret -1); i++) {
+    for (i = 0; i < (ret - 1); i++) {
         if (args[i]) {
             /* inspect our options and set the flags */
             if (strcasecmp(args[i], "established") == 0) {
@@ -265,15 +266,20 @@ DetectFlowData *DetectFlowParse (char *flowstr)
         }
     }
     for (i = 0; i < (ret -1); i++){
-        if (args[i] != NULL) SCFree(args[i]);
+        if (args[i] != NULL)
+            SCFree(args[i]);
     }
     return fd;
 
 error:
-    for (i = 0; i < (ret -1); i++){
-        if (args[i] != NULL) SCFree(args[i]);
+    /* ret can be higher than 3 */
+    for (i = 0; i < (ret - 1) && i < 4; i++){
+        if (args[i] != NULL)
+            SCFree(args[i]);
     }
-    if (fd != NULL) DetectFlowFree(fd);
+
+    if (fd != NULL)
+        DetectFlowFree(fd);
     return NULL;
 
 }

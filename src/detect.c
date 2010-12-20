@@ -5512,7 +5512,7 @@ static int SigTest20Wm (void) {
 static int SigTest21Real (int mpm_type) {
     ThreadVars th_v;
     memset(&th_v, 0, sizeof(th_v));
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     Flow f;
@@ -5572,10 +5572,14 @@ static int SigTest21Real (int mpm_type) {
 
     result = 1;
 end:
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+        if (det_ctx != NULL) {
+            DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+        }
+    }
     DetectEngineCtxFree(de_ctx);
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
