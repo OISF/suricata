@@ -1764,7 +1764,7 @@ int DetectUriSigTest12(void)
     DetectEngineCtx *de_ctx = NULL;
     DetectContentData *ud = 0;
     Signature *s = NULL;
-    int result = 1;
+    int result = 0;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1775,21 +1775,19 @@ int DetectUriSigTest12(void)
                                    "alert udp any any -> any any "
                                    "(msg:\"test\"; uricontent:    !\"boo\"; sid:238012;)");
     if (de_ctx->sig_list == NULL) {
-        printf("de_ctx->sig_list == NULL\n");
-        result = 0;
+        printf("de_ctx->sig_list == NULL: ");
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_UMATCH] == NULL && s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx) {
-        printf("de_ctx->pmatch_tail == NULL && de_ctx->pmatch_tail->ctx\n");
-        result = 0;
+    if (s->sm_lists_tail[DETECT_SM_LIST_UMATCH] == NULL || s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx == NULL) {
+        printf("de_ctx->pmatch_tail == NULL && de_ctx->pmatch_tail->ctx == NULL: ");
         goto end;
     }
 
     ud = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
     result = (strncmp("boo", (char *)ud->content, ud->content_len) == 0);
 
- end:
+end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
