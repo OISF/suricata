@@ -177,17 +177,17 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p, u
  */
 int PacketAlertAppendTag(Packet *p, PacketAlert *pa)
 {
-        pa->sid = TAG_SIG_ID;
-        pa->gid = TAG_SIG_GEN;
-        pa->num = TAG_SIG_ID;
-        pa->order_id = 1000;
-        pa->action = ACTION_ALERT;
-        pa->rev = 1;
-        pa->prio = 2;
-        pa->msg = NULL;
-        pa->class = 0;
-        pa->class_msg = NULL;
-        pa->references = NULL;
+    pa->sid = TAG_SIG_ID;
+    pa->gid = TAG_SIG_GEN;
+    pa->num = TAG_SIG_ID;
+    pa->order_id = 1000;
+    pa->action = ACTION_ALERT;
+    pa->rev = 1;
+    pa->prio = 2;
+    pa->msg = NULL;
+    pa->class = 0;
+    pa->class_msg = NULL;
+    pa->references = NULL;
 
     return 0;
 }

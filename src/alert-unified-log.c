@@ -192,13 +192,18 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     uint8_t ethh_offset = 0;
     uint8_t buf[80000];
     uint32_t buflen = 0;
-
-    if (p->flags & PKT_HAS_TAG)
-        PacketAlertAppendTag(p, &pa_tag);
+    uint16_t alert_cnt = p->alerts.cnt;
 
     /* the unified1 format only supports IPv4. */
-    if (p->alerts.cnt == 0 || !PKT_IS_IPV4(p))
+    if (alert_cnt == 0 || !PKT_IS_IPV4(p))
         return TM_ECODE_OK;
+
+    /* initialize the pa_tag structure if we have tags */
+    if (p->flags & PKT_HAS_TAG) {
+        PacketAlertAppendTag(p, &pa_tag);
+        /* one extra "alert" to process */
+        alert_cnt++;
+    }
 
     /* if we have no ethernet header (e.g. when using nfq), we have to create
      * one ourselves. */
@@ -214,16 +219,17 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     hdr.pktflags = 0; /* XXX */
     hdr.pktlen = hdr.caplen = p->pktlen + ethh_offset;
 
-
     uint16_t i = 0;
-    for (; i < p->alerts.cnt + 1; i++) {
-        if (i < p->alerts.cnt)
+    for (; i < alert_cnt; i++) {
+        /* if all alerts are processed, do the tag (if any) */
+        if (i < p->alerts.cnt) {
             pa = &p->alerts.alerts[i];
-        else
+        } else {
             if (p->flags & PKT_HAS_TAG)
                 pa = &pa_tag;
             else
                 break;
+        }
 
         /* fill the hdr structure with the data of the alert */
         hdr.sig_gen = pa->gid;
