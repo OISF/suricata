@@ -227,6 +227,7 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_m
 {
 #ifndef OS_WIN32
     struct timeval tv;
+    int opt;
 #endif
     nfq_t->queue_num = queue_num;
 
@@ -305,6 +306,19 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint16_t queue_num, uint32_t queue_m
 
     nfq_t->nh = nfq_nfnlh(nfq_t->h);
     nfq_t->fd = nfnl_fd(nfq_t->nh);
+
+    /* Set some netlink specific option on the socket to increase
+	performance */
+    opt = 1;
+#ifdef NETLINK_BROADCAST_SEND_ERROR
+    setsockopt(nfq_t->fd, SOL_NETLINK,
+		    NETLINK_BROADCAST_SEND_ERROR, &opt, sizeof(int));
+#endif
+    /* Don't send error about no buffer space available but drop the
+	packets instead */
+#ifdef NETLINK_NO_ENOBUFS
+    setsockopt(nfq_t->fd, SOL_NETLINK, NETLINK_NO_ENOBUFS, &opt, sizeof(int));
+#endif
 
     /* set a timeout to the socket so we can check for a signal
      * in case we don't get packets for a longer period. */
