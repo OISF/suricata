@@ -129,7 +129,7 @@ uint16_t UtilCpuGetNumProcessorsOnline() {
 /**
  * \brief Get the maximum number of cpus allowed in the system
  *        This syscall is present on Solaris, but it's not on linux
- *        or macosx. Maybe you should look at UtilCpuGetNumProcessorsConfig()
+ *        or macosx. Maybe you should look at UtilCpuGetNumProcessorsConfigured()
  * \retval 0 if the syscall is not available or we have an error;
  *           otherwise it will return the number of cpus allowed
  */
