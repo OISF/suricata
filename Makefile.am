@@ -5,7 +5,8 @@ ACLOCAL_AMFLAGS = -I m4
 EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml \
 	doc/AUTHORS doc/GITGUIDE doc/INSTALL doc/NEWS \
 	doc/README doc/TODO doc/INSTALL.PF_RING \
-        doc/INSTALL.WINDOWS classification.config
+        doc/INSTALL.WINDOWS classification.config \
+        reference.config
 if BUILD_LIBHTP
  HTP_DIR = libhtp
 endif
