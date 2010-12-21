@@ -1530,13 +1530,13 @@ int DetectContentParseTest24(void)
                                    "alert udp any any -> any any "
                                    "(msg:\"test\"; content:    !\"boo\"; sid:238012;)");
     if (de_ctx->sig_list == NULL) {
-        printf("de_ctx->sig_list == NULL\n");
+        printf("de_ctx->sig_list == NULL: ");
         result = 0;
         goto end;
     }
 
-    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL && s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx) {
-        printf("de_ctx->pmatch_tail == NULL && de_ctx->pmatch_tail->ctx\n");
+    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL || s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx == NULL) {
+        printf("de_ctx->pmatch_tail == NULL || de_ctx->pmatch_tail->ctx == NULL: ");
         result = 0;
         goto end;
     }
@@ -1544,7 +1544,7 @@ int DetectContentParseTest24(void)
     cd = (DetectContentData *)s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
     result = (strncmp("boo", (char *)cd->content, cd->content_len) == 0);
 
- end:
+end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);

@@ -178,7 +178,7 @@ DetectWindowData *DetectWindowParse(char *windowstr) {
     return wd;
 
 error:
-    for (i = 0; i < (ret -1) && i < 4; i++){
+    for (i = 0; i < (ret -1) && i < 3; i++){
         if (args[i] != NULL)
             SCFree(args[i]);
     }

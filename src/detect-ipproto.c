@@ -160,7 +160,7 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
     return data;
 
 error:
-    for (i = 0; i < (ret - 1) && i < 3; i++){
+    for (i = 0; i < (ret - 1) && i < 2; i++){
         if (args[i] != NULL)
             SCFree(args[i]);
     }

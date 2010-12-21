@@ -9057,7 +9057,6 @@ int DcePayloadParseTest34(void)
         goto end;
     }
     bd = (DetectBytejumpData *)sm->ctx;
-    bd = (DetectBytejumpData *)sm->ctx;
     if (bd->flags & DETECT_BYTEJUMP_BEGIN ||
         bd->flags & DETECT_BYTEJUMP_LITTLE ||
         bd->flags & DETECT_BYTEJUMP_BIG ||

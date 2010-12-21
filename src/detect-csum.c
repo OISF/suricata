@@ -186,12 +186,15 @@ static int DetectCsumParseArg(const char *key, DetectCsumData *cd)
 
     if (key[0] == '\"' && key[strlen(key) - 1] == '\"') {
         str = SCStrdup(key + 1);
+        if (str == NULL) {
+            goto error;
+        }
         str[strlen(key) - 2] = '\0';
     } else {
         str = SCStrdup(key);
-    }
-    if (str == NULL) {
-        goto error;
+        if (str == NULL) {
+            goto error;
+        }
     }
 
     if (strcasecmp(str, DETECT_CSUM_VALID) == 0 ||

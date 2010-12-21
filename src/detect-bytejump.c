@@ -111,7 +111,7 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
 
     DetectBytejumpData *data = (DetectBytejumpData *)m->ctx;
     uint8_t *ptr = NULL;
-    uint8_t *jumpptr = ptr;
+    uint8_t *jumpptr = NULL;
     int32_t len = 0;
     uint64_t val = 0;
     int extbytes;
@@ -219,7 +219,7 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 {
     DetectBytejumpData *data = (DetectBytejumpData *)m->ctx;
     uint8_t *ptr = NULL;
-    uint8_t *jumpptr = ptr;
+    uint8_t *jumpptr = NULL;
     uint16_t len = 0;
     uint64_t val = 0;
     int extbytes;

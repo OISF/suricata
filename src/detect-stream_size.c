@@ -239,12 +239,18 @@ DetectStreamSizeData *DetectStreamSizeParse (char *streamstr) {
     if (strlen(mode) == 0)
         goto error;
 
-    if(mode[0] == '<') sd->mode = DETECTSSIZE_LT;
-    else if (strcmp("<=", mode) == 0) sd->mode = DETECTSSIZE_LEQ;
-    else if (mode[0] == '>') sd->mode = DETECTSSIZE_GT;
-    else if (strcmp(">=", mode)) sd->mode = DETECTSSIZE_GEQ;
-    else if (strcmp("!=", mode)) sd->mode = DETECTSSIZE_NEQ;
-    else if (mode[0] == '=') sd->mode = DETECTSSIZE_EQ;
+    if (mode[0] == '<')
+        sd->mode = DETECTSSIZE_LT;
+    else if (strcmp("<=", mode) == 0)
+        sd->mode = DETECTSSIZE_LEQ;
+    else if (mode[0] == '>')
+        sd->mode = DETECTSSIZE_GT;
+    else if (strcmp(">=", mode) == 0)
+        sd->mode = DETECTSSIZE_GEQ;
+    else if (strcmp("!=", mode) == 0)
+        sd->mode = DETECTSSIZE_NEQ;
+    else if (mode[0] == '=')
+        sd->mode = DETECTSSIZE_EQ;
     else {
         SCLogError(SC_ERR_INVALID_OPERATOR, "Invalid operator");
         goto error;
@@ -255,49 +261,34 @@ DetectStreamSizeData *DetectStreamSizeParse (char *streamstr) {
 
     /* inspect our options and set the flags */
     if (strcmp(arg, "server") == 0) {
-        if (sd->flags & STREAM_SIZE_SERVER) {
-            SCLogDebug("DetectStreamSizeParse error STREAM_SIZE_SERVER flag is already set ");
-            goto error;
-        }
         sd->flags |= STREAM_SIZE_SERVER;
-
     } else if (strcmp(arg, "client") == 0) {
-
-        if (sd->flags & STREAM_SIZE_CLIENT) {
-            SCLogDebug("DetectStreamSizeParse error STREAM_SIZE_CLIENT flag is already set ");
-            goto error;
-        }
         sd->flags |= STREAM_SIZE_CLIENT;
-
     } else if ((strcmp(arg, "both") == 0)) {
-
-        if (sd->flags & STREAM_SIZE_SERVER || sd->flags & STREAM_SIZE_CLIENT) {
-            SCLogDebug("DetectStreamSizeParse error STREAM_SIZE_SERVER or STREAM_SIZE_CLIENT flag is already set ");
-            goto error;
-        }
         sd->flags |= STREAM_SIZE_BOTH;
     } else if (strcmp(arg, "either") == 0) {
-
-        if (sd->flags & STREAM_SIZE_SERVER || sd->flags & STREAM_SIZE_CLIENT) {
-            SCLogDebug("DetectStreamSizeParse error STREAM_SIZE_SERVER or STREAM_SIZE_CLIENT flag is already set ");
-            goto error;
-        }
         sd->flags |= STREAM_SIZE_EITHER;
-
     } else {
         goto error;
     }
 
-    if (mode != NULL) SCFree(mode);
-    if (arg != NULL) SCFree(arg);
-    if (value != NULL) SCFree(value);
+    if (mode != NULL)
+        SCFree(mode);
+    if (arg != NULL)
+        SCFree(arg);
+    if (value != NULL)
+        SCFree(value);
     return sd;
 
 error:
-    if (mode != NULL) SCFree(mode);
-    if (arg != NULL) SCFree(arg);
-    if (value != NULL) SCFree(value);
-    if (sd != NULL) DetectStreamSizeFree(sd);
+    if (mode != NULL)
+        SCFree(mode);
+    if (arg != NULL)
+        SCFree(arg);
+    if (value != NULL)
+        SCFree(value);
+    if (sd != NULL)
+        DetectStreamSizeFree(sd);
 
     return NULL;
 }

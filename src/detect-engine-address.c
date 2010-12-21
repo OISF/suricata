@@ -389,7 +389,6 @@ int DetectAddressInsert(DetectEngineCtx *de_ctx, DetectAddressHead *gh,
                         DetectAddress *new)
 {
     DetectAddress *head = NULL;
-    DetectPort *port = new->port;
     DetectAddress *cur = NULL;
     DetectAddress *c = NULL;
     int r = 0;
@@ -415,7 +414,7 @@ int DetectAddressInsert(DetectEngineCtx *de_ctx, DetectAddressHead *gh,
             if (r == ADDRESS_EQ) {
                 /* exact overlap/match */
                 if (cur != new) {
-                    port = new->port;
+                    DetectPort *port = new->port;
                     for ( ; port != NULL; port = port->next)
                         DetectPortInsertCopy(de_ctx, &cur->port, port);
                     SigGroupHeadCopySigs(de_ctx, new->sh, &cur->sh);

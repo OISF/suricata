@@ -71,6 +71,8 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
     /* strip "'s */
     if (withinstr[0] == '\"' && withinstr[strlen(withinstr)-1] == '\"') {
         str = SCStrdup(withinstr+1);
+        if (str == NULL)
+            goto error;
         str[strlen(withinstr)-2] = '\0';
         dubbed = 1;
     }
@@ -395,8 +397,8 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
             if (cd->within < (int32_t)cd->content_len) {
                 SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
                            "less than the content length \"%"PRIu32"\" which is invalid, since "
-                           "this will never match.  Invalidating signature", ud->within,
-                           ud->content_len);
+                           "this will never match.  Invalidating signature", cd->within,
+                           cd->content_len);
                 goto error;
             }
 
@@ -464,8 +466,8 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
             if (cd->within < (int32_t)cd->content_len) {
                 SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
                            "less than the content length \"%"PRIu32"\" which is invalid, since "
-                           "this will never match.  Invalidating signature", ud->within,
-                           ud->content_len);
+                           "this will never match.  Invalidating signature", cd->within,
+                           cd->content_len);
                 goto error;
             }
             cd->flags |= DETECT_CONTENT_WITHIN;
@@ -518,8 +520,8 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
             if (cd->within < (int32_t)cd->content_len) {
                 SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
                            "less than the content length \"%"PRIu32"\" which is invalid, since "
-                           "this will never match.  Invalidating signature", ud->within,
-                           ud->content_len);
+                           "this will never match.  Invalidating signature", cd->within,
+                           cd->content_len);
                 goto error;
             }
             cd->flags |= DETECT_CONTENT_WITHIN;
