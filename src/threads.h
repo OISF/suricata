@@ -30,22 +30,28 @@
 #ifdef OS_FREEBSD
 
 #include <sys/thr.h>
-#define PRIO_LOW 2
-#define PRIO_MEDIUM 0
-#define PRIO_HIGH -2
+enum {
+    PRIO_LOW = 2,
+    PRIO_MEDIUM = 0,
+    PRIO_HIGH = -2,
+};
 
 #elif OS_DARWIN
 
 #include <mach/mach_init.h>
-#define PRIO_LOW 2
-#define PRIO_MEDIUM 0
-#define PRIO_HIGH -2
+enum {
+    PRIO_LOW = 2,
+    PRIO_MEDIUM = 0,
+    PRIO_HIGH = -2,
+};
 
 #elif OS_WIN32
 
-#define PRIO_LOW THREAD_PRIORITY_LOWEST
-#define PRIO_MEDIUM THREAD_PRIORITY_NORMAL
-#define PRIO_HIGH THREAD_PRIORITY_HIGHEST
+enum {
+    PRIO_LOW = THREAD_PRIORITY_LOWEST,
+    PRIO_MEDIUM = THREAD_PRIORITY_NORMAL,
+    PRIO_HIGH = THREAD_PRIORITY_HIGHEST,
+};
 
 #else /* LINUX */
 
@@ -57,9 +63,11 @@
 #define THREAD_NAME_LEN 16
 #endif
 
-#define PRIO_LOW 2
-#define PRIO_MEDIUM  0
-#define PRIO_HIGH -2
+enum {
+    PRIO_LOW = 2,
+    PRIO_MEDIUM = 0,
+    PRIO_HIGH = -2,
+};
 
 #endif /* OS_FREEBSD */
 
