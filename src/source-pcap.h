@@ -28,6 +28,10 @@ void TmModuleReceivePcapRegister (void);
 void TmModuleDecodePcapRegister (void);
 void PcapTranslateIPToDevice(char *pcap_dev, size_t len);
 
+int PcapLiveRegisterDevice(char *);
+int PcapLiveGetDeviceCount(void);
+char *PcapLiveGetDevice(int);
+
 /* XXX replace with user configurable options */
 #define LIBPCAP_SNAPLEN     1518
 #define LIBPCAP_COPYWAIT    500

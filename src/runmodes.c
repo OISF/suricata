@@ -2074,37 +2074,80 @@ int RunModeIdsPfring4(DetectEngineCtx *de_ctx, char *iface) {
 int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
     SCEnter();
     /* tname = Detect + cpuid, this is 11bytes length as max */
-    char tname[12];
+    char tname[16];
     uint16_t cpu = 0;
+    TmModule *tm_module;
+    uint16_t thread;
 
     RunModeInitialize();
+    TimeModeSetLive();
 
     /* Available cpus */
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
+    int npcap = PcapLiveGetDeviceCount();
 
-    TimeModeSetLive();
-    /* create the threads */
-    ThreadVars *tv_receivepcap = TmThreadCreatePacketHandler("ReceivePcap","packetpool","packetpool","pickup-queue","simple","1slot");
-    if (tv_receivepcap == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(EXIT_FAILURE);
-    }
-    TmModule *tm_module = TmModuleGetByName("ReceivePcap");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName failed for ReceivePcap\n");
-        exit(EXIT_FAILURE);
-    }
-    Tm1SlotSetFunc(tv_receivepcap,tm_module,(void *)iface);
+    if (npcap == 1) {
+        /* create the threads */
+        ThreadVars *tv_receivepcap = TmThreadCreatePacketHandler("ReceivePcap","packetpool","packetpool","pickup-queue","simple","1slot");
+        if (tv_receivepcap == NULL) {
+            printf("ERROR: TmThreadsCreate failed\n");
+            exit(EXIT_FAILURE);
+        }
+        tm_module = TmModuleGetByName("ReceivePcap");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName failed for ReceivePcap\n");
+            exit(EXIT_FAILURE);
+        }
+        Tm1SlotSetFunc(tv_receivepcap,tm_module,(void *)iface);
 
-    if (threading_set_cpu_affinity) {
-        TmThreadSetCPUAffinity(tv_receivepcap, 0);
-        if (ncpus > 1)
-            TmThreadSetThreadPriority(tv_receivepcap, PRIO_MEDIUM);
-    }
+        if (threading_set_cpu_affinity) {
+            TmThreadSetCPUAffinity(tv_receivepcap, 0);
+            if (ncpus > 1)
+                TmThreadSetThreadPriority(tv_receivepcap, PRIO_MEDIUM);
+        }
+        if (TmThreadSpawn(tv_receivepcap) != TM_ECODE_OK) {
+            printf("ERROR: TmThreadSpawn failed\n");
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        SCLogInfo("Using %d pcap device(s).", npcap);
 
-    if (TmThreadSpawn(tv_receivepcap) != TM_ECODE_OK) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(EXIT_FAILURE);
+        for (thread = 0; thread < npcap; thread++) {
+            char *pcap_dev = PcapLiveGetDevice(thread);
+            if (pcap_dev == NULL) {
+                printf("Failed to lookup pcap dev %d\n", thread);
+                exit(EXIT_FAILURE);
+            }
+            SCLogDebug("pcap_dev %s", pcap_dev);
+
+            snprintf(tname, sizeof(tname),"RecvPcap-%s", pcap_dev);
+            char *tnamec = SCStrdup(tname);
+            char *pcap_devc = SCStrdup(pcap_dev);
+
+            /* create the threads */
+            ThreadVars *tv_receivepcap = TmThreadCreatePacketHandler(tnamec,"packetpool","packetpool","pickup-queue","simple","1slot");
+            if (tv_receivepcap == NULL) {
+                printf("ERROR: TmThreadsCreate failed\n");
+                exit(EXIT_FAILURE);
+            }
+            tm_module = TmModuleGetByName("ReceivePcap");
+            if (tm_module == NULL) {
+                printf("ERROR: TmModuleGetByName failed for ReceivePcap\n");
+                exit(EXIT_FAILURE);
+            }
+            Tm1SlotSetFunc(tv_receivepcap,tm_module,(void *)pcap_devc);
+
+            if (threading_set_cpu_affinity) {
+                TmThreadSetCPUAffinity(tv_receivepcap, 0);
+                if (ncpus > 1)
+                    TmThreadSetThreadPriority(tv_receivepcap, PRIO_MEDIUM);
+            }
+
+            if (TmThreadSpawn(tv_receivepcap) != TM_ECODE_OK) {
+                printf("ERROR: TmThreadSpawn failed\n");
+                exit(EXIT_FAILURE);
+            }
+        }
     }
 
 #if defined(__SC_CUDA_SUPPORT__)
@@ -2265,7 +2308,6 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
     if (thread_max < 1)
         thread_max = 1;
 
-    int thread;
     for (thread = 0; thread < thread_max; thread++) {
         snprintf(tname, sizeof(tname),"Detect%"PRIu16, thread+1);
         if (tname == NULL)

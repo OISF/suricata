@@ -48,7 +48,18 @@
 extern uint8_t suricata_ctl_flags;
 extern int max_pending_packets;
 
+/** control how many packet libpcap may read in one go */
 static int pcap_max_read_packets = 0;
+
+/** storage for pcap device names */
+typedef struct PcapDevice_ {
+    char *dev;  /**< the device (e.g. "eth0") */
+    TAILQ_ENTRY(PcapDevice_) next;
+} PcapDevice;
+
+/** private device list */
+static TAILQ_HEAD(, PcapDevice_) pcap_devices =
+    TAILQ_HEAD_INITIALIZER(pcap_devices);
 
 /** max packets < 65536 */
 #define PCAP_FILE_MAX_PKTS 256
@@ -519,6 +530,66 @@ TmEcode DecodePcapThreadInit(ThreadVars *tv, void *initdata, void **data)
     *data = (void *)dtv;
 
     SCReturnInt(TM_ECODE_OK);
+}
+
+/**
+ *  \brief Add a pcap device for monitoring
+ *
+ *  \param dev string with the device name
+ *
+ *  \retval 0 on success.
+ *  \retval -1 on failure.
+ */
+int PcapLiveRegisterDevice(char *dev)
+{
+    PcapDevice *pd = SCMalloc(sizeof(PcapDevice));
+    if (pd == NULL) {
+        return -1;
+    }
+
+    pd->dev = SCStrdup(dev);
+    TAILQ_INSERT_TAIL(&pcap_devices, pd, next);
+
+    SCLogDebug("Pcap device \"%s\" registered.", dev);
+    return 0;
+}
+
+/**
+ *  \brief Get the number of registered devices
+ *
+ *  \retval cnt the number of registered devices
+ */
+int PcapLiveGetDeviceCount(void) {
+    int i = 0;
+    PcapDevice *pd;
+
+    TAILQ_FOREACH(pd, &pcap_devices, next) {
+        i++;
+    }
+
+    return i;
+}
+
+/**
+ *  \brief Get a pointer to the device at idx
+ *
+ *  \param number idx of the device in our list
+ *
+ *  \retval ptr pointer to the string containing the device
+ *  \retval NULL on error
+ */
+char *PcapLiveGetDevice(int number) {
+    int i = 0;
+    PcapDevice *pd;
+
+    TAILQ_FOREACH(pd, &pcap_devices, next) {
+        if (i == number) {
+            return pd->dev;
+        }
+
+        i++;
+    }
+    return NULL;
 }
 
 void PcapTranslateIPToDevice(char *pcap_dev, size_t len)

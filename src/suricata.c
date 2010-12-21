@@ -638,6 +638,17 @@ int main(int argc, char **argv)
         case 'i':
             if (run_mode == MODE_UNKNOWN) {
                 run_mode = MODE_PCAP_DEV;
+                PcapLiveRegisterDevice(optarg);
+            } else if (run_mode == MODE_PCAP_DEV) {
+#ifdef OS_WIN32
+                SCLogError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT, "pcap multi dev "
+                        "support is not (yet) supported on Windows.");
+                exit(EXIT_FAILURE);
+#else
+                SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
+                        "multiple pcap devices to get packets is experimental.");
+                PcapLiveRegisterDevice(optarg);
+#endif
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                                                      "has been specified");
@@ -645,7 +656,7 @@ int main(int argc, char **argv)
                 exit(EXIT_FAILURE);
             }
 			memset(pcap_dev, 0, sizeof(pcap_dev));
-			      strncpy(pcap_dev, optarg, ((strlen(optarg) < sizeof(pcap_dev)) ? (strlen(optarg)) : (sizeof(pcap_dev)-1)));
+            strlcpy(pcap_dev, optarg, ((strlen(optarg) < sizeof(pcap_dev)) ? (strlen(optarg)+1) : (sizeof(pcap_dev))));
             break;
         case 'l':
             if (ConfSet("default-log-dir", optarg, 0) != 1) {
