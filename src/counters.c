@@ -47,6 +47,8 @@ static time_t sc_start_time;
 static uint32_t sc_counter_tts = SC_PERF_MGMTT_TTS;
 /** is the stats counter enabled? */
 static char sc_counter_enabled = TRUE;
+/** append or overwrite? 1: append, 0: overwrite */
+static char sc_counter_append = TRUE;
 
 /**
  * \brief Adds a value of type uint64_t to the local counter.
@@ -330,6 +332,10 @@ static void SCPerfInitOPCtx(void)
         const char *interval = ConfNodeLookupChildValue(stats, "interval");
         if (interval != NULL)
             sc_counter_tts = (uint32_t) atoi(interval);
+
+        const char *append = ConfNodeLookupChildValue(stats, "append");
+        if (append != NULL)
+            sc_counter_append = (strcasecmp(append,"yes") == 0);
     }
 
     /* Store the engine start time */
@@ -347,7 +353,13 @@ static void SCPerfInitOPCtx(void)
         SCLogInfo("Error retrieving Perf Counter API output file path");
     }
 
-    if ( (sc_perf_op_ctx->fp = fopen(sc_perf_op_ctx->file, "w+")) == NULL) {
+    char *mode;
+    if (sc_counter_append)
+        mode = "a+";
+    else
+        mode = "w+";
+
+    if ( (sc_perf_op_ctx->fp = fopen(sc_perf_op_ctx->file, mode)) == NULL) {
         SCLogError(SC_ERR_FOPEN, "fopen error opening file \"%s\".  Resorting "
                    "to using the standard output for output",
                    sc_perf_op_ctx->file);

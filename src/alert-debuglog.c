@@ -466,25 +466,26 @@ OutputCtx *AlertDebugLogInitCtx(ConfNode *conf)
 int AlertDebugLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename, const
                                 char *mode)
 {
-    int ret=0;
+    char log_path[PATH_MAX];
+    char *log_dir;
 
-    char log_path[PATH_MAX], *log_dir;
     if (ConfGet("default-log-dir", &log_dir) != 1)
         log_dir = DEFAULT_LOG_DIR;
+
     snprintf(log_path, PATH_MAX, "%s/%s", log_dir, filename);
-    if (strncmp(mode, "yes", sizeof(mode)) == 0) {
+
+    if (strcasecmp(mode, "yes") == 0) {
         file_ctx->fp = fopen(log_path, "a");
     } else {
         file_ctx->fp = fopen(log_path, "w");
     }
 
     if (file_ctx->fp == NULL) {
-        SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", log_path,
+        SCLogError(SC_ERR_FOPEN, "failed to open %s: %s", log_path,
             strerror(errno));
         return -1;
     }
 
-    return ret;
+    return 0;
 }
-
 
