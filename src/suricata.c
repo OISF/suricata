@@ -1300,6 +1300,7 @@ int main(int argc, char **argv)
     OutputDeregisterAll();
     TimeDeinit();
     SCProtoNameDeInit();
+    DefragDestroy();
 
 #ifdef PROFILING
     if (profiling_rules_enabled)
