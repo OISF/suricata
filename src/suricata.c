@@ -302,7 +302,11 @@ static void SetBpfString(int optind, char *argv[]) {
 
 void usage(const char *progname)
 {
+#ifdef REVISION
+    printf("%s %s (rev %s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
+#else
     printf("%s %s\n", PROG_NAME, PROG_VER);
+#endif
     printf("USAGE: %s\n\n", progname);
     printf("\t-c <path>                    : path to configuration file\n");
     printf("\t-i <dev or ip>               : run in pcap live mode\n");
@@ -420,7 +424,11 @@ int main(int argc, char **argv)
 	}
 #endif /* OS_WIN32 */
 
+#ifdef REVISION
+    SCLogInfo("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
+#else
     SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
+#endif
 
     /* Initialize the configuration module. */
     ConfInit();
@@ -706,7 +714,11 @@ int main(int argc, char **argv)
 #endif
             break;
         case 'V':
+#ifdef REVISION
+            printf("\nThis is %s version %s (rev %s)\n\n", PROG_NAME, PROG_VER, xstr(REVISION));
+#else
             printf("\nThis is %s version %s\n\n", PROG_NAME, PROG_VER);
+#endif
             exit(EXIT_SUCCESS);
         default:
             usage(argv[0]);

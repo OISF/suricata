@@ -123,6 +123,11 @@
 #include <assert.h>
 #define BUG_ON(x) assert(!(x))
 
+/* we need this to stringify the defines which are supplied at compiletime see:
+   http://gcc.gnu.org/onlinedocs/gcc-3.4.1/cpp/Stringification.html#Stringification */
+#define xstr(s) str(s)
+#define str(s) #s
+
 /** type for the internal signature id. Since it's used in the matching engine
  *  extensively keeping this as small as possible reduces the overall memory
  *  footprint of the engine. Set to uint32_t if the engine needs to support
