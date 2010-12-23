@@ -1301,6 +1301,7 @@ int main(int argc, char **argv)
     TimeDeinit();
     SCProtoNameDeInit();
     DefragDestroy();
+    TmqhPacketpoolDestroy();
 
 #ifdef PROFILING
     if (profiling_rules_enabled)

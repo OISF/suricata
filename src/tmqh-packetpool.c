@@ -64,6 +64,12 @@ void TmqhPacketpoolRegister (void) {
     }
 }
 
+void TmqhPacketpoolDestroy (void) {
+    if (ringbuffer != NULL) {
+       RingBufferDestroy(ringbuffer);
+    }
+}
+
 int PacketPoolIsEmpty(void) {
     return RingBufferIsEmpty(ringbuffer);
 }
