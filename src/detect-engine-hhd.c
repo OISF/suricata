@@ -476,6 +476,10 @@ void DetectEngineCleanHHDBuffers(DetectEngineThreadCtx *det_ctx)
             SCFree(det_ctx->hhd_buffers);
             det_ctx->hhd_buffers = NULL;
         }
+        if (det_ctx->hhd_buffers_len != NULL) {
+            SCFree(det_ctx->hhd_buffers_len);
+            det_ctx->hhd_buffers_len = NULL;
+        }
         det_ctx->hhd_buffers_list_len = 0;
     }
 

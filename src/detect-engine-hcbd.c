@@ -513,6 +513,10 @@ void DetectEngineCleanHCBDBuffers(DetectEngineThreadCtx *det_ctx)
             SCFree(det_ctx->hcbd_buffers);
             det_ctx->hcbd_buffers = NULL;
         }
+        if (det_ctx->hcbd_buffers_len != NULL) {
+            SCFree(det_ctx->hcbd_buffers_len);
+            det_ctx->hcbd_buffers_len = NULL;
+        }
         det_ctx->hcbd_buffers_list_len = 0;
     }
 
