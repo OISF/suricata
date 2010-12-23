@@ -813,6 +813,18 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
         fi
     fi
 
+# get revision
+    if test -f ./revision; then
+        REVISION=`cat ./revision`
+        CFLAGS="${CFLAGS} -DREVISION=\"${REVISION}\""
+    else
+        GIT=`which git`
+        if test "$GIT" != ""; then
+            REVISION=`git describe --always`
+            CFLAGS="${CFLAGS} -DREVISION=\"${REVISION}\""
+        fi
+    fi
+
 AC_SUBST(CFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(CPPFLAGS)
