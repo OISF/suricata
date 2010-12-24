@@ -187,39 +187,6 @@ void DetectExitPrintStats(ThreadVars *tv, void *data) {
     DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
     if (det_ctx == NULL)
         return;
-#if 0
-    SCLogInfo("(%s) (1byte) Pkts %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
-        tv->name, det_ctx->pkts, det_ctx->pkts_searched1,
-        (float)(det_ctx->pkts_searched1/(float)(det_ctx->pkts)*100));
-    SCLogInfo("(%s) (2byte) Pkts %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
-        tv->name, det_ctx->pkts, det_ctx->pkts_searched2,
-        (float)(det_ctx->pkts_searched2/(float)(det_ctx->pkts)*100));
-    SCLogInfo("(%s) (3byte) Pkts %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
-        tv->name, det_ctx->pkts, det_ctx->pkts_searched3,
-        (float)(det_ctx->pkts_searched3/(float)(det_ctx->pkts)*100));
-    SCLogInfo("(%s) (4byte) Pkts %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
-        tv->name, det_ctx->pkts, det_ctx->pkts_searched4,
-        (float)(det_ctx->pkts_searched4/(float)(det_ctx->pkts)*100));
-    SCLogInfo("(%s) (+byte) Pkts %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
-        tv->name, det_ctx->pkts, det_ctx->pkts_searched,
-        (float)(det_ctx->pkts_searched/(float)(det_ctx->pkts)*100));
-
-    SCLogInfo("(%s) URI (1byte) Uri's %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
-        tv->name, det_ctx->uris, det_ctx->pkts_uri_searched1,
-        (float)(det_ctx->pkts_uri_searched1/(float)(det_ctx->uris)*100));
-    SCLogInfo("(%s) URI (2byte) Uri's %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
-        tv->name, det_ctx->uris, det_ctx->pkts_uri_searched2,
-        (float)(det_ctx->pkts_uri_searched2/(float)(det_ctx->uris)*100));
-    SCLogInfo("(%s) URI (3byte) Uri's %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
-        tv->name, det_ctx->uris, det_ctx->pkts_uri_searched3,
-        (float)(det_ctx->pkts_uri_searched3/(float)(det_ctx->uris)*100));
-    SCLogInfo("(%s) URI (4byte) Uri's %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
-        tv->name, det_ctx->uris, det_ctx->pkts_uri_searched4,
-        (float)(det_ctx->pkts_uri_searched4/(float)(det_ctx->uris)*100));
-    SCLogInfo("(%s) URI (+byte) Uri's %" PRIu32 ", Searched %" PRIu32 " (%02.1f).",
-        tv->name, det_ctx->uris, det_ctx->pkts_uri_searched,
-        (float)(det_ctx->pkts_uri_searched/(float)(det_ctx->uris)*100));
-#endif
 }
 
 /** \brief Create the path if default-rule-path was specified
@@ -2815,65 +2782,6 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressHead *hea
                 SigGroupHeadSetSigCnt(sgr->sh, max_idx);
                 SigGroupHeadBuildMatchArray(de_ctx, sgr->sh, max_idx);
 
-                /* content */
-                //SigGroupHeadLoadContent(de_ctx, sgr->sh);
-                //if (sgr->sh->init->content_size == 0) {
-                //    de_ctx->mpm_none++;
-                //} else {
-                //    /* now have a look if we can reuse a mpm ctx */
-                //    SigGroupHead *mpmsh = SigGroupHeadMpmHashLookup(de_ctx, sgr->sh);
-                //    if (mpmsh == NULL) {
-                //        SigGroupHeadMpmHashAdd(de_ctx, sgr->sh);
-                //
-                //        de_ctx->mpm_unique++;
-                //    } else {
-                //        sgr->sh->mpm_ctx = mpmsh->mpm_ctx;
-                //        sgr->sh->flags |= SIG_GROUP_HEAD_MPM_COPY;
-                //        SigGroupHeadClearContent(sgr->sh);
-                //
-                //        de_ctx->mpm_reuse++;
-                //    }
-                //}
-                //
-                ///* content */
-                //SigGroupHeadLoadStreamContent(de_ctx, sgr->sh);
-                //if (sgr->sh->init->stream_content_size == 0) {
-                //    de_ctx->mpm_none++;
-                //} else {
-                //    /* now have a look if we can reuse a mpm ctx */
-                //    SigGroupHead *mpmsh = SigGroupHeadMpmStreamHashLookup(de_ctx, sgr->sh);
-                //    if (mpmsh == NULL) {
-                //        SigGroupHeadMpmStreamHashAdd(de_ctx, sgr->sh);
-                //
-                //        de_ctx->mpm_unique++;
-                //    } else {
-                //        sgr->sh->mpm_stream_ctx = mpmsh->mpm_stream_ctx;
-                //        sgr->sh->flags |= SIG_GROUP_HEAD_MPM_STREAM_COPY;
-                //        SigGroupHeadClearStreamContent(sgr->sh);
-                //
-                //        de_ctx->mpm_reuse++;
-                //    }
-                //}
-                //
-                ///* uricontent */
-                //SigGroupHeadLoadUricontent(de_ctx, sgr->sh);
-                //if (sgr->sh->init->uri_content_size == 0) {
-                //    de_ctx->mpm_uri_none++;
-                //} else {
-                //    /* now have a look if we can reuse a uri mpm ctx */
-                //    SigGroupHead *mpmsh = SigGroupHeadMpmUriHashLookup(de_ctx, sgr->sh);
-                //    if (mpmsh == NULL) {
-                //        SigGroupHeadMpmUriHashAdd(de_ctx, sgr->sh);
-                //        de_ctx->mpm_uri_unique++;
-                //    } else {
-                //        sgr->sh->mpm_uri_ctx = mpmsh->mpm_uri_ctx;
-                //        sgr->sh->flags |= SIG_GROUP_HEAD_MPM_URI_COPY;
-                //        SigGroupHeadClearUricontent(sgr->sh);
-                //
-                //        de_ctx->mpm_uri_reuse++;
-                //    }
-                //}
-
                 /* init the pattern matcher, this will respect the copy
                  * setting */
                 if (PatternMatchPrepareGroup(de_ctx, sgr->sh) < 0) {
@@ -3125,67 +3033,6 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
                                 SigGroupHeadSetSigCnt(dp->sh, max_idx);
                                 SigGroupHeadBuildMatchArray(de_ctx,dp->sh, max_idx);
 
-                                //SigGroupHeadLoadContent(de_ctx, dp->sh);
-                                //if (dp->sh->init->content_size == 0) {
-                                //    de_ctx->mpm_none++;
-                                //} else {
-                                //    /* now have a look if we can reuse a mpm ctx */
-                                //    SigGroupHead *mpmsh = SigGroupHeadMpmHashLookup(de_ctx, dp->sh);
-                                //    if (mpmsh == NULL) {
-                                //        SigGroupHeadMpmHashAdd(de_ctx, dp->sh);
-                                //
-                                //        de_ctx->mpm_unique++;
-                                //    } else {
-                                //        /* XXX write dedicated function for this */
-                                //        dp->sh->mpm_ctx = mpmsh->mpm_ctx;
-                                //        //SCLogDebug("replacing dp->sh, so setting mpm_content_maxlen to %u (was %u)", mpmsh->mpm_content_maxlen, dp->sh->mpm_content_maxlen);
-                                //        //dp->sh->mpm_content_maxlen = mpmsh->mpm_content_maxlen;
-                                //        dp->sh->flags |= SIG_GROUP_HEAD_MPM_COPY;
-                                //        SigGroupHeadClearContent(dp->sh);
-                                //
-                                //        de_ctx->mpm_reuse++;
-                                //    }
-                                //}
-                                //
-                                ///* content */
-                                //SigGroupHeadLoadStreamContent(de_ctx, dp->sh);
-                                //if (dp->sh->init->stream_content_size == 0) {
-                                //    de_ctx->mpm_none++;
-                                //} else {
-                                //    /* now have a look if we can reuse a mpm ctx */
-                                //    SigGroupHead *mpmsh = SigGroupHeadMpmStreamHashLookup(de_ctx, dp->sh);
-                                //    if (mpmsh == NULL) {
-                                //        SigGroupHeadMpmStreamHashAdd(de_ctx, dp->sh);
-                                //
-                                //        de_ctx->mpm_unique++;
-                                //    } else {
-                                //        SCLogDebug("replacing mpm_stream_ctx %p by %p", dp->sh->mpm_stream_ctx, mpmsh->mpm_stream_ctx);
-                                //        dp->sh->mpm_stream_ctx = mpmsh->mpm_stream_ctx;
-                                //        dp->sh->flags |= SIG_GROUP_HEAD_MPM_STREAM_COPY;
-                                //        SigGroupHeadClearStreamContent(dp->sh);
-                                //
-                                //        de_ctx->mpm_reuse++;
-                                //    }
-                                //}
-                                //
-                                //SigGroupHeadLoadUricontent(de_ctx, dp->sh);
-                                //if (dp->sh->init->uri_content_size == 0) {
-                                //    de_ctx->mpm_uri_none++;
-                                //} else {
-                                //    /* now have a look if we can reuse a uri mpm ctx */
-                                //    SigGroupHead *mpmsh = SigGroupHeadMpmUriHashLookup(de_ctx, dp->sh);
-                                //    if (mpmsh == NULL) {
-                                //        SigGroupHeadMpmUriHashAdd(de_ctx, dp->sh);
-                                //
-                                //        de_ctx->mpm_uri_unique++;
-                                //    } else {
-                                //        dp->sh->mpm_uri_ctx = mpmsh->mpm_uri_ctx;
-                                //        dp->sh->flags |= SIG_GROUP_HEAD_MPM_URI_COPY;
-                                //        SigGroupHeadClearUricontent(dp->sh);
-                                //
-                                //        de_ctx->mpm_uri_reuse++;
-                                //    }
-                                //}
                                 /* init the pattern matcher, this will respect the copy
                                  * setting */
                                 if (PatternMatchPrepareGroup(de_ctx, dp->sh) < 0) {

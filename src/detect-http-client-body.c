@@ -51,9 +51,6 @@
 #include "detect-http-client-body.h"
 #include "stream-tcp.h"
 
-int DetectHttpClientBodyMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                              Flow *f, uint8_t flags, void *state, Signature *s,
-                              SigMatch *m);
 int DetectHttpClientBodySetup(DetectEngineCtx *, Signature *, char *);
 void DetectHttpClientBodyRegisterTests(void);
 void DetectHttpClientBodyFree(void *);
@@ -72,105 +69,6 @@ void DetectHttpClientBodyRegister(void)
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].alproto = ALPROTO_HTTP;
 
     sigmatch_table[DETECT_AL_HTTP_CLIENT_BODY].flags |= SIGMATCH_PAYLOAD ;
-}
-
-/**
- * \brief App layer match function for the "http_client_body" keyword.
- *
- * \param t       Pointer to the ThreadVars instance.
- * \param det_ctx Pointer to the DetectEngineThreadCtx.
- * \param f       Pointer to the flow.
- * \param flags   Pointer to the flags indicating the flow direction.
- * \param state   Pointer to the app layer state data.
- * \param s       Pointer to the Signature instance.
- * \param m       Pointer to the SigMatch.
- *
- * \retval 1 On Match.
- * \retval 0 On no match.
- */
-int DetectHttpClientBodyMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                              Flow *f, uint8_t flags, void *state, Signature *s,
-                              SigMatch *m)
-{
-    int result = 0;
-    DetectContentData *hcbd = (DetectContentData *)m->ctx;
-    HtpState *htp_state = (HtpState *)state;
-
-    SCMutexLock(&f->m);
-
-    if (htp_state == NULL) {
-        SCLogDebug("No htp state, no match at http body data");
-        goto end;
-    }
-
-    htp_tx_t *tx = NULL;
-    size_t idx = 0;
-
-    for (idx = 0;//hs->new_in_tx_index;
-         idx < list_size(htp_state->connp->conn->transactions); idx++)
-    {
-        tx = list_get(htp_state->connp->conn->transactions, idx);
-        if (tx == NULL)
-            continue;
-
-        SCHtpTxUserData *htud = (SCHtpTxUserData *) htp_tx_get_user_data(tx);
-        if (htud == NULL)
-            continue;
-
-        HtpBodyChunk *cur = htud->body.first;
-
-        if (htud->body.nchunks == 0) {
-            SCLogDebug("No http chunks to inspect");
-            goto end;
-        } else {
-            /* no chunks?!! get out of here */
-            if (cur == NULL) {
-                SCLogDebug("No http chunks to inspect");
-                goto end;
-            }
-
-            /* this applies only for the client request body like the keyword name says */
-            if (htud->body.operation != HTP_BODY_REQUEST) {
-                SCLogDebug("htp chunk not a request chunk");
-                goto end;
-            }
-
-            /* this is not how we do it now.  We can rather hold the PM state from
-             * the previous chunk that was matched, and continue right from where
-             * we left off.  We need to devise a scheme to do that, not just for
-             * this keyword, but other keywords need it as well */
-            uint8_t *chunks_buffer = NULL;
-            uint32_t total_chunks_len = 0;
-            /* club all the chunks into one whole buffer and call the SPM on the buffer */
-            while (cur != NULL) {
-                total_chunks_len += cur->len;
-                if ( (chunks_buffer = SCRealloc(chunks_buffer, total_chunks_len)) == NULL) {
-                    return 0;
-                }
-                memcpy(chunks_buffer + total_chunks_len - cur->len, cur->data, cur->len);
-                cur = cur->next;
-            }
-            /* call the case insensitive version if nocase has been specified in the sig */
-            if (hcbd->flags & DETECT_CONTENT_NOCASE) {
-                result = (BoyerMooreNocase(hcbd->content, hcbd->content_len, chunks_buffer,
-                                           total_chunks_len, hcbd->bm_ctx->bmGs,
-                                           hcbd->bm_ctx->bmBc) != NULL);
-            /* call the case sensitive version if nocase has been specified in the sig */
-            } else {
-                result = (BoyerMoore(hcbd->content, hcbd->content_len, chunks_buffer,
-                                           total_chunks_len, hcbd->bm_ctx->bmGs,
-                                           hcbd->bm_ctx->bmBc) != NULL);
-            }
-            SCFree(chunks_buffer);
-        }
-    }
-
-    SCMutexUnlock(&f->m);
-    return result ^ ((hcbd->flags & DETECT_CONTENT_NEGATED) ? 1 : 0);
-
- end:
-    SCMutexUnlock(&f->m);
-    return result;
 }
 
 /**
