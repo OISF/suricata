@@ -52,8 +52,6 @@
 #include "detect-http-header.h"
 #include "stream-tcp.h"
 
-int DetectHttpHeaderMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
-                          uint8_t, void *, Signature *, SigMatch *);
 int DetectHttpHeaderSetup(DetectEngineCtx *, Signature *, char *);
 void DetectHttpHeaderRegisterTests(void);
 void DetectHttpHeaderFree(void *);
@@ -77,76 +75,6 @@ void DetectHttpHeaderRegister(void)
 }
 
 /**
- * \brief App layer match function for the "http_header" keyword.
- *
- * \param t       Pointer to the ThreadVars instance.
- * \param det_ctx Pointer to the DetectEngineThreadCtx.
- * \param f       Pointer to the flow.
- * \param flags   Pointer to the flags indicating the flow direction.
- * \param state   Pointer to the app layer state data.
- * \param s       Pointer to the Signature instance.
- * \param m       Pointer to the SigMatch.
- *
- * \retval 1 On Match.
- * \retval 0 On no match.
- */
-int DetectHttpHeaderMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                          Flow *f, uint8_t flags, void *state, Signature *s,
-                          SigMatch *m)
-{
-    SCEnter();
-
-    int result = 0;
-    DetectContentData *hhd = (DetectContentData *)m->ctx;
-    HtpState *htp_state = (HtpState *)state;
-
-    SCMutexLock(&f->m);
-
-    if (htp_state == NULL || htp_state->connp == NULL ||
-        htp_state->connp->conn == NULL) {
-        SCLogDebug("No htp state, no match for http header data");
-        goto end;
-    }
-
-    htp_tx_t *tx = NULL;
-    bstr *headers = NULL;
-    size_t idx = 0;
-
-    //htp_state->new_in_tx_index;
-    size_t l_size = list_size(htp_state->connp->conn->transactions);
-    for (idx = 0; idx < l_size; idx++) {
-        tx = list_get(htp_state->connp->conn->transactions, idx);
-
-        if (tx == NULL)
-            continue;
-
-        headers = htp_tx_get_request_headers_raw(tx);
-        if (headers == NULL)
-            continue;
-
-        SCLogDebug("inspecting tx %p", tx);
-
-        if (bstr_len(headers) > 0) {
-            /* call the case sensitive version if nocase has been specified in the sig */
-            if (hhd->flags & DETECT_CONTENT_NOCASE) {
-                result = (SpmNocaseSearch((uint8_t *)bstr_ptr(headers), bstr_len(headers),
-                                          hhd->content, hhd->content_len) != NULL);
-            } else {
-                result = (SpmSearch((uint8_t *)bstr_ptr(headers), bstr_len(headers),
-                                    hhd->content, hhd->content_len) != NULL);
-            }
-        }
-    }
-
-    SCMutexUnlock(&f->m);
-    SCReturnInt(result ^ ((hhd->flags & DETECT_CONTENT_NEGATED) ? 1 : 0));
-
- end:
-    SCMutexUnlock(&f->m);
-    SCReturnInt(result);
-}
-
-/**
  * \brief this function clears the memory of http_header modifier keyword
  *
  * \param ptr   Pointer to the Detection Header Data
@@ -156,6 +84,7 @@ void DetectHttpHeaderFree(void *ptr)
     DetectContentData *hhd = (DetectContentData *)ptr;
     if (hhd == NULL)
         return;
+
     if (hhd->content != NULL)
         SCFree(hhd->content);
     SCFree(hhd);

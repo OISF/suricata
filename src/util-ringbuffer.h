@@ -79,7 +79,7 @@ typedef struct RingBuffer16_ {
 RingBuffer8 *RingBuffer8Init(void);
 void RingBuffer8Destroy(RingBuffer8 *);
 RingBuffer16 *RingBufferInit(void);
-void RingBuffer16Destroy(RingBuffer16 *);
+void RingBufferDestroy(RingBuffer16 *);
 
 int RingBufferIsEmpty(RingBuffer16 *);
 int RingBufferIsFull(RingBuffer16 *);
