@@ -1919,21 +1919,32 @@ end:
  * \param de_ctx Pointer to the Detection Engine Context.
  * \param sigstr Pointer to a character string containing the signature to be
  *               parsed.
+ * \param sig_file Pointer to a character string containing the filename from
+ *                 which signature is read
+ * \param lineno Line number from where signature is read
  *
  * \retval Pointer to the head Signature in the detection engine ctx sig_list
  *         on success; NULL on failure.
  */
-Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, char *sigstr) {
+Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, char *sigstr)
+{
     Signature *sig = SigInitReal(de_ctx, sigstr);
-    if (sig == NULL)
+    if (sig == NULL) {
         return NULL;
+    }
 
     /* checking for the status of duplicate signature */
     int dup_sig = DetectEngineSignatureIsDuplicate(de_ctx, sig);
     /* a duplicate signature that should be chucked out.  Check the previously
      * called function details to understand the different return values */
-    if (dup_sig == 1)
+    if (dup_sig == 1) {
+        SCLogError(SC_ERR_DUPLICATE_SIG, "Duplicate signature \"%s\"", sigstr);
         goto error;
+    } else if (dup_sig == 2) {
+        SCLogWarning(SC_ERR_DUPLICATE_SIG, "Signature with newer revision,"
+                " so the older sig replaced by this new signature \"%s\"",
+                sigstr);
+    }
 
     if (sig->init_flags & SIG_FLAG_BIDIREC) {
         if (sig->next != NULL) {
@@ -1953,7 +1964,7 @@ Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, char *sigstr) {
      * so if the signature is bidirectional, the returned sig will point through "next" ptr
      * to the cloned signatures with the switched addresses
      */
-    return (dup_sig == 0) ? sig : NULL;
+    return (dup_sig == 0 || dup_sig == 2) ? sig : NULL;
 
 error:
     if (sig != NULL)

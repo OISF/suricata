@@ -203,6 +203,7 @@ typedef enum {
     SC_ERR_DETECT_PREPARE,          /**< preparing the detection engine failed */
     SC_ERR_AHO_CORASICK,
     SC_ERR_REFERENCE_CONFIG,
+    SC_ERR_DUPLICATE_SIG,       /**< Error to indicate that signature is duplicate */
     SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL,
     SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT,
     SC_ERR_HTTP_METHOD_NEEDS_PRECEEDING_CONTENT,
