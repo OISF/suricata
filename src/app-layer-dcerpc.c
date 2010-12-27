@@ -1677,6 +1677,12 @@ static void DCERPCStateFree(void *s) {
         SCFree(item);
     }
 
+    while ((item = TAILQ_FIRST(&sstate->dcerpc.dcerpcbindbindack.accepted_uuid_list))) {
+        //printUUID("Free", item);
+        TAILQ_REMOVE(&sstate->dcerpc.dcerpcbindbindack.accepted_uuid_list, item, next);
+        SCFree(item);
+    }
+
     if (sstate->dcerpc.dcerpcrequest.stub_data_buffer != NULL) {
         free(sstate->dcerpc.dcerpcrequest.stub_data_buffer);
         sstate->dcerpc.dcerpcrequest.stub_data_buffer = NULL;
