@@ -327,6 +327,9 @@ flow-timeouts:
                                 # packet. If csum validation is specified as
                                 # "yes", then packet with invalid csum will not
                                 # be processed by the engine stream/app layer.
+                                # Warning: locally generated trafic can be
+                                # generated without checksum due to hardware offload
+                                # of checksum
 #   max_sessions: 262144        # 256k concurrent sessions
 #   prealloc_sessions: 32768    # 32k sessions prealloc'd
 #   midstream: false            # don't allow midstream session pickups

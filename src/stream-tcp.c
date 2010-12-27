@@ -2784,7 +2784,7 @@ int StreamTcpValidateChecksum(Packet *p)
 
     if (p->tcpc.comp_csum != p->tcph->th_sum) {
         ret = 0;
-        SCLogDebug("Checksum of recevied packet %p is invalid",p);
+        SCLogDebug("Checksum of received packet %p is invalid",p);
     }
 
     return ret;
