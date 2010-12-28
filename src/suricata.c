@@ -45,6 +45,7 @@
 #include "util-cpu.h"
 #include "util-action.h"
 #include "util-pidfile.h"
+#include "util-ioctl.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
@@ -814,8 +815,18 @@ int main(int argc, char **argv)
 
     /* Pull the default packet size from the config, if not found fall
      * back on a sane default. */
-    if (ConfGetInt("default-packet-size", &default_packet_size) != 1)
-        default_packet_size = DEFAULT_PACKET_SIZE;
+    if (ConfGetInt("default-packet-size", &default_packet_size) != 1) {
+        switch (run_mode) {
+            case MODE_PCAP_DEV:
+            case MODE_PFRING:
+                /* find payload for interface and use it */
+                default_packet_size = GetIfaceMaxPayloadSize(pcap_dev);
+                if (default_packet_size)
+                    break;
+            default:
+                default_packet_size = DEFAULT_PACKET_SIZE;
+        }
+    }
     SCLogDebug("Default packet size set to %"PRIiMAX, default_packet_size);
 
     /* Since our config is now loaded we can finish configurating the
