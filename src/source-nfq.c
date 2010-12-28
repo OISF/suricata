@@ -179,11 +179,7 @@ void NFQSetupPkt (Packet *p, void *data)
             SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "NFQ sent too big packet");
             SET_PKT_LEN(p, 0);
         } else {
-            ret = PacketCopyData(p, (uint8_t *)pktdata, ret);
-            if (ret == -1) {
-                SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "NFQ send strange packet");
-                SET_PKT_LEN(p, 0);
-            }
+            PacketCopyData(p, (uint8_t *)pktdata, ret);
         }
     } else if (ret ==  -1) {
         /* unable to get pointer to data, ensure packet length is zero.

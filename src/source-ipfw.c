@@ -254,8 +254,7 @@ TmEcode ReceiveIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
     ptv->bytes += pktlen;
 
     p->datalink = ptv->datalink;
-    if (PacketCopyData(p, pkt, pktlen) == -1)
-        SCReturnInt(TM_ECODE_FAILED);
+    PacketCopyData(p, pkt, pktlen);
     SCLogDebug("Packet info: pkt_len: %" PRIu32 " (pkt %02x, pkt_data %02x)", GET_PKT_LEN(p), *pkt, GET_PKT_DATA(p));
 
     /* pass on... */

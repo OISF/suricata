@@ -527,8 +527,7 @@ TmEcode ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec, Packet *p)
     /* Take into account for link type Ethernet ETH frame starts
      * after ther ERF header + pad.
      */
-    if (PacketCopyData(p, pload->eth.dst, GET_PKT_LEN(p)) == -1)
-        SCReturnInt(TM_ECODE_FAILED);
+    PacketCopyData(p, pload->eth.dst, GET_PKT_LEN(p));
 
     SCLogDebug("pktlen: %" PRIu32 " (pkt %02x, pkt data %02x)",
                GET_PKT_LEN(p), *p, *GET_PKT_DATA(p));

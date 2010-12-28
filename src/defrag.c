@@ -558,7 +558,7 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
             /* This is the first packet, we use this packets link and
              * IPv4 header. We also copy in its data. */
             if (PacketCopyData(rp, frag->pkt, frag->len) == -1)
-                return NULL;
+                goto remove_tracker;
             rp->ip4h = (IPV4Hdr *)(GET_PKT_DATA(rp) + frag->ip_hdr_offset);
             hlen = frag->hlen;
             ip_hdr_offset = frag->ip_hdr_offset;
@@ -578,7 +578,7 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
             if (PacketCopyDataOffset(rp, fragmentable_offset + frag->offset + frag->ltrim,
                 frag->pkt + frag->data_offset + frag->ltrim,
                 frag->data_len - frag->ltrim) == -1) {
-                return NULL;
+                goto remove_tracker;
             }
             if (frag->offset + frag->data_len > fragmentable_len)
                 fragmentable_len = frag->offset + frag->data_len;

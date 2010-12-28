@@ -171,9 +171,7 @@ void PfringProcessPacket(void *user, struct pfring_pkthdr *h, u_char *pkt, Packe
     /* PF_RING all packets are marked as a link type of ethernet so that is what we do here.  */
     p->datalink = LINKTYPE_ETHERNET;
 
-    if (PacketCopyData(p, pkt, h->caplen) == -1)
-        SCLogError(SC_ERR_MEM_ALLOC, "PF_RING process packet failed: %s", strerror(errno));
-
+    PacketCopyData(p, pkt, h->caplen);
 }
 
 /**
