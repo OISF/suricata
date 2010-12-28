@@ -299,7 +299,9 @@ static int DecodeICMPV4test01(void) {
         0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab,
         0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab, 0xab,
         0xab };
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
     int ret = 0;
@@ -307,30 +309,32 @@ static int DecodeICMPV4test01(void) {
 
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.src.addr_data32[0] = 0x01020304;
-    p.dst.addr_data32[0] = 0x04030201;
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->src.addr_data32[0] = 0x01020304;
+    p->dst.addr_data32[0] = 0x04030201;
 
-    ip4h.ip_src.s_addr = p.src.addr_data32[0];
-    ip4h.ip_dst.s_addr = p.dst.addr_data32[0];
-    p.ip4h = &ip4h;
+    ip4h.ip_src.s_addr = p->src.addr_data32[0];
+    ip4h.ip_dst.s_addr = p->dst.addr_data32[0];
+    p->ip4h = &ip4h;
 
-    DecodeICMPV4(&tv, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
+    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
 
-    if (NULL!=p.icmpv4h) {
-        if (p.icmpv4h->type==8 && p.icmpv4h->code==0) {
+    if (NULL!=p->icmpv4h) {
+        if (p->icmpv4h->type==8 && p->icmpv4h->code==0) {
             ret = 1;
         }
     }
 
     FlowShutdown();
+    SCFree(p);
     return ret;
 }
 
@@ -347,7 +351,9 @@ static int DecodeICMPV4test02(void) {
         0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f,
         0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27,
         0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f };
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
     int ret = 0;
@@ -355,29 +361,31 @@ static int DecodeICMPV4test02(void) {
 
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.src.addr_data32[0] = 0x01020304;
-    p.dst.addr_data32[0] = 0x04030201;
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->src.addr_data32[0] = 0x01020304;
+    p->dst.addr_data32[0] = 0x04030201;
 
-    ip4h.ip_src.s_addr = p.src.addr_data32[0];
-    ip4h.ip_dst.s_addr = p.dst.addr_data32[0];
-    p.ip4h = &ip4h;
+    ip4h.ip_src.s_addr = p->src.addr_data32[0];
+    ip4h.ip_dst.s_addr = p->dst.addr_data32[0];
+    p->ip4h = &ip4h;
 
-    DecodeICMPV4(&tv, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
+    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
 
-    if (NULL!=p.icmpv4h) {
-        if (p.icmpv4h->type==0 && p.icmpv4h->code==0) {
+    if (NULL!=p->icmpv4h) {
+        if (p->icmpv4h->type==0 && p->icmpv4h->code==0) {
             ret = 1;
         }
     }
 
     FlowShutdown();
+    SCFree(p);
     return ret;
 }
 
@@ -392,7 +400,9 @@ static int DecodeICMPV4test03(void) {
         0x01, 0x11, 0xde, 0xfd, 0xc0, 0xa8, 0x01, 0x0d,
         0xd1, 0x55, 0xe3, 0x93, 0x8b, 0x12, 0x82, 0xaa,
         0x00, 0x28, 0x7c, 0xdd };
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
     int ret = 0;
@@ -400,42 +410,43 @@ static int DecodeICMPV4test03(void) {
 
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.src.addr_data32[0] = 0x01020304;
-    p.dst.addr_data32[0] = 0x04030201;
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->src.addr_data32[0] = 0x01020304;
+    p->dst.addr_data32[0] = 0x04030201;
 
-    ip4h.ip_src.s_addr = p.src.addr_data32[0];
-    ip4h.ip_dst.s_addr = p.dst.addr_data32[0];
-    p.ip4h = &ip4h;
+    ip4h.ip_src.s_addr = p->src.addr_data32[0];
+    ip4h.ip_dst.s_addr = p->dst.addr_data32[0];
+    p->ip4h = &ip4h;
 
-    DecodeICMPV4(&tv, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
+    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
 
-    if (NULL == p.icmpv4h) {
+    if (NULL == p->icmpv4h) {
         goto end;
     }
 
     /* check it's type 11 code 0 */
-    if (p.icmpv4h->type != 11 || p.icmpv4h->code != 0) {
+    if (p->icmpv4h->type != 11 || p->icmpv4h->code != 0) {
         goto end;
     }
 
     /* check it's source port 4747 to port 43650 */
-    if (p.icmpv4vars.emb_sport != htons(4747) ||
-            p.icmpv4vars.emb_dport != htons(43650)) {
+    if (p->icmpv4vars.emb_sport != htons(4747) ||
+            p->icmpv4vars.emb_dport != htons(43650)) {
         goto end;
     }
 
     /* check the src,dst IPs contained inside */
     char s[16], d[16];
 
-    inet_ntop(AF_INET, &(p.icmpv4vars.emb_ip4_src), s, sizeof(s));
-    inet_ntop(AF_INET, &(p.icmpv4vars.emb_ip4_dst), d, sizeof(d));
+    inet_ntop(AF_INET, &(p->icmpv4vars.emb_ip4_src), s, sizeof(s));
+    inet_ntop(AF_INET, &(p->icmpv4vars.emb_ip4_dst), d, sizeof(d));
 
     /* ICMPv4 embedding IPV4 192.168.1.13->209.85.227.147 pass */
     if (strcmp(s, "192.168.1.13") == 0 && strcmp(d, "209.85.227.147") == 0) {
@@ -444,6 +455,7 @@ static int DecodeICMPV4test03(void) {
 
 end:
     FlowShutdown();
+    SCFree(p);
     return ret;
 }
 
@@ -460,7 +472,9 @@ static int DecodeICMPV4test04(void) {
         0x3e, 0x36, 0x38, 0x7c, 0x00, 0x00, 0x00, 0x00,
         0xa0, 0x02, 0x16, 0xd0, 0x72, 0x04, 0x00, 0x00,
         0x02, 0x04, 0x05, 0x8a, 0x04, 0x02, 0x08, 0x0a };
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
     int ret = 0;
@@ -468,42 +482,43 @@ static int DecodeICMPV4test04(void) {
 
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.src.addr_data32[0] = 0x01020304;
-    p.dst.addr_data32[0] = 0x04030201;
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->src.addr_data32[0] = 0x01020304;
+    p->dst.addr_data32[0] = 0x04030201;
 
-    ip4h.ip_src.s_addr = p.src.addr_data32[0];
-    ip4h.ip_dst.s_addr = p.dst.addr_data32[0];
-    p.ip4h = &ip4h;
+    ip4h.ip_src.s_addr = p->src.addr_data32[0];
+    ip4h.ip_dst.s_addr = p->dst.addr_data32[0];
+    p->ip4h = &ip4h;
 
-    DecodeICMPV4(&tv, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
+    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
 
-    if (NULL == p.icmpv4h) {
+    if (NULL == p->icmpv4h) {
         goto end;
     }
 
     /* check the type,code pair is correct - type 3, code 10 */
-    if (p.icmpv4h->type != 3 || p.icmpv4h->code != 10) {
+    if (p->icmpv4h->type != 3 || p->icmpv4h->code != 10) {
         goto end;
     }
 
     /* check it's src port 2737 to dst port 12800 */
-    if (p.icmpv4vars.emb_sport != htons(2737) ||
-            p.icmpv4vars.emb_dport != htons(12800)) {
+    if (p->icmpv4vars.emb_sport != htons(2737) ||
+            p->icmpv4vars.emb_dport != htons(12800)) {
         goto end;
     }
 
     // check the src,dst IPs contained inside
     char s[16], d[16];
 
-    inet_ntop(AF_INET, &(p.icmpv4vars.emb_ip4_src), s, sizeof(s));
-    inet_ntop(AF_INET, &(p.icmpv4vars.emb_ip4_dst), d, sizeof(d));
+    inet_ntop(AF_INET, &(p->icmpv4vars.emb_ip4_src), s, sizeof(s));
+    inet_ntop(AF_INET, &(p->icmpv4vars.emb_ip4_dst), d, sizeof(d));
 
     // ICMPv4 embedding IPV4 192.168.1.13->88.96.22.41
     if (strcmp(s, "192.168.1.13") == 0 && strcmp(d, "88.96.22.41") == 0) {
@@ -512,6 +527,7 @@ static int DecodeICMPV4test04(void) {
 
 end:
     FlowShutdown();
+    SCFree(p);
     return ret;
 }
 
@@ -561,7 +577,9 @@ static int ICMPV4InvalidType07(void) {
         0x28, 0x29, 0x2a, 0x2b, 0x2c, 0x2d, 0x2e, 0x2f,
         0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x38};
 
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+    return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
     int ret = 0;
@@ -569,27 +587,29 @@ static int ICMPV4InvalidType07(void) {
 
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.src.addr_data32[0] = 0x01020304;
-    p.dst.addr_data32[0] = 0x04030201;
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->src.addr_data32[0] = 0x01020304;
+    p->dst.addr_data32[0] = 0x04030201;
 
-    ip4h.ip_src.s_addr = p.src.addr_data32[0];
-    ip4h.ip_dst.s_addr = p.dst.addr_data32[0];
-    p.ip4h = &ip4h;
+    ip4h.ip_src.s_addr = p->src.addr_data32[0];
+    ip4h.ip_dst.s_addr = p->dst.addr_data32[0];
+    p->ip4h = &ip4h;
 
-    DecodeICMPV4(&tv, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
+    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
 
-    if(DECODER_ISSET_EVENT(&p,ICMPV4_UNKNOWN_TYPE)) {
+    if(DECODER_ISSET_EVENT(p,ICMPV4_UNKNOWN_TYPE)) {
         ret = 1;
     }
 
     FlowShutdown();
+    SCFree(p);
     return ret;
 }
 
@@ -601,7 +621,9 @@ static int DecodeICMPV4test08(void) {
     uint8_t raw_icmpv4[] = {
         0x08, 0x00, 0x78, 0x47, 0xfc, 0x55, 0x00, 0x00
     };
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
     int ret = 0;
@@ -609,29 +631,31 @@ static int DecodeICMPV4test08(void) {
 
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.src.addr_data32[0] = 0x01020304;
-    p.dst.addr_data32[0] = 0x04030201;
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->src.addr_data32[0] = 0x01020304;
+    p->dst.addr_data32[0] = 0x04030201;
 
-    ip4h.ip_src.s_addr = p.src.addr_data32[0];
-    ip4h.ip_dst.s_addr = p.dst.addr_data32[0];
-    p.ip4h = &ip4h;
+    ip4h.ip_src.s_addr = p->src.addr_data32[0];
+    ip4h.ip_dst.s_addr = p->dst.addr_data32[0];
+    p->ip4h = &ip4h;
 
-    DecodeICMPV4(&tv, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
+    DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
 
-    if (NULL!=p.icmpv4h) {
-        if (p.icmpv4h->type==8 && p.icmpv4h->code==0) {
+    if (NULL!=p->icmpv4h) {
+        if (p->icmpv4h->type==8 && p->icmpv4h->code==0) {
             ret = 1;
         }
     }
 
     FlowShutdown();
+    SCFree(p);
     return ret;
 }
 #endif /* UNITTESTS */

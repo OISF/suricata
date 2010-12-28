@@ -257,20 +257,25 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 static int DecodeGREtest01 (void)   {
 
     uint8_t raw_gre[] = { 0x00 ,0x6e ,0x62 };
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+    return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodeGRE(&tv, &dtv, &p, raw_gre, sizeof(raw_gre), NULL);
+    DecodeGRE(&tv, &dtv, p, raw_gre, sizeof(raw_gre), NULL);
 
-    if(DECODER_ISSET_EVENT(&p,GRE_PKT_TOO_SMALL))  {
+    if(DECODER_ISSET_EVENT(p,GRE_PKT_TOO_SMALL))  {
+        SCFree(p);
         return 1;
     }
 
+    SCFree(p);
     return 0;
 }
 
@@ -294,20 +299,25 @@ static int DecodeGREtest02 (void)   {
         0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00, 0x01,
         0x00, 0x00, 0x29, 0x10, 0x00, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00 };
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodeGRE(&tv, &dtv, &p, raw_gre, sizeof(raw_gre), NULL);
+    DecodeGRE(&tv, &dtv, p, raw_gre, sizeof(raw_gre), NULL);
 
-    if(DECODER_ISSET_EVENT(&p,GRE_WRONG_VERSION))  {
+    if(DECODER_ISSET_EVENT(p,GRE_WRONG_VERSION))  {
+        SCFree(p);
         return 1;
     }
 
+    SCFree(p);
     return 0;
 }
 
@@ -332,21 +342,26 @@ static int DecodeGREtest03 (void)   {
         0x03, 0x63, 0x6f, 0x6d, 0x00, 0x00, 0x01, 0x00,
         0x01, 0x00, 0x00, 0x29, 0x10, 0x00, 0x00, 0x00,
         0x00, 0x00, 0x00, 0x00 };
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
-    DecodeGRE(&tv, &dtv, &p, raw_gre, sizeof(raw_gre), NULL);
+    DecodeGRE(&tv, &dtv, p, raw_gre, sizeof(raw_gre), NULL);
 
-    if(p.greh == NULL) {
+    if(p->greh == NULL) {
+        SCFree(p);
         return 0;
     }
 
 
+    SCFree(p);
     return 1;
 }
 #endif /* UNITTESTS */

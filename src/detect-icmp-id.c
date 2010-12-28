@@ -398,28 +398,31 @@ int DetectIcmpIdMatchTest02 (void) {
         0x51, 0xa6, 0xbb, 0x35, 0x59, 0x8a, 0x5a, 0xe2,
         0x00, 0x14, 0x00, 0x00 };
 
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     Signature *s = NULL;
     DecodeThreadVars dtv;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     IPV4Hdr ip4h;
 
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(ThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
 
-    p.src.addr_data32[0] = 0x01020304;
-    p.dst.addr_data32[0] = 0x04030201;
+    p->src.addr_data32[0] = 0x01020304;
+    p->dst.addr_data32[0] = 0x04030201;
 
-    ip4h.ip_src.s_addr = p.src.addr_data32[0];
-    ip4h.ip_dst.s_addr = p.dst.addr_data32[0];
-    p.ip4h = &ip4h;
+    ip4h.ip_src.s_addr = p->src.addr_data32[0];
+    ip4h.ip_dst.s_addr = p->dst.addr_data32[0];
+    p->ip4h = &ip4h;
 
-    DecodeICMPV4(&th_v, &dtv, &p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
+    DecodeICMPV4(&th_v, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -436,8 +439,8 @@ int DetectIcmpIdMatchTest02 (void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1)) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1)) {
         printf("sid 1 alerted, but should not have: ");
         goto cleanup;
     }
@@ -453,6 +456,7 @@ cleanup:
 
     FlowShutdown();
 end:
+    SCFree(p);
     return result;
 }
 #endif /* UNITTESTS */

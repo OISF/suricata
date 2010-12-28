@@ -293,29 +293,32 @@ int DetectFragOffsetParseTest03 (void) {
  */
 int DetectFragOffsetMatchTest01 (void) {
     int result = 0;
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     Signature *s = NULL;
     DecodeThreadVars dtv;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     IPV4Hdr ip4h;
 
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&ip4h, 0, sizeof(IPV4Hdr));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(ThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.src.addr_data32[0] = 0x01020304;
-    p.dst.addr_data32[0] = 0x04030201;
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->src.addr_data32[0] = 0x01020304;
+    p->dst.addr_data32[0] = 0x04030201;
 
-    ip4h.ip_src.s_addr = p.src.addr_data32[0];
-    ip4h.ip_dst.s_addr = p.dst.addr_data32[0];
+    ip4h.ip_src.s_addr = p->src.addr_data32[0];
+    ip4h.ip_dst.s_addr = p->dst.addr_data32[0];
     ip4h.ip_off = 0x2222;
-    p.ip4h = &ip4h;
+    p->ip4h = &ip4h;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -337,11 +340,11 @@ int DetectFragOffsetMatchTest01 (void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 1) == 0) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1) == 0) {
         printf("sid 1 did not alert, but should have: ");
         goto cleanup;
-    } else if (PacketAlertCheck(&p, 2)) {
+    } else if (PacketAlertCheck(p, 2)) {
         printf("sid 2 alerted, but should not have: ");
         goto cleanup;
     }
@@ -357,6 +360,7 @@ cleanup:
 
     FlowShutdown();
 end:
+    SCFree(p);
     return result;
 
 }

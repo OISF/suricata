@@ -2695,16 +2695,19 @@ int SigTestBidirec04 (void) {
         0x6b,0x65,0x65,0x70,0x2d,0x61,0x6c,0x69,
         0x76,0x65,0x0d,0x0a,0x0d,0x0a }; /* end rawpkt1_ether */
 
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     DecodeThreadVars dtv;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
 
     FlowInitConfig(FLOW_QUIET);
-    DecodeEthernet(&th_v, &dtv, &p, rawpkt1_ether, sizeof(rawpkt1_ether), NULL);
+    DecodeEthernet(&th_v, &dtv, p, rawpkt1_ether, sizeof(rawpkt1_ether), NULL);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* At this point we have a list of 4 signatures. The last one
@@ -2713,11 +2716,11 @@ int SigTestBidirec04 (void) {
 
     SigGroupBuild(de_ctx);
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     /* only sid 2 should match with a packet going to 192.168.1.1 port 80 */
-    if (PacketAlertCheck(&p, 1) <= 0 && PacketAlertCheck(&p, 3) <= 0 &&
-        PacketAlertCheck(&p, 2) == 1) {
+    if (PacketAlertCheck(p, 1) <= 0 && PacketAlertCheck(p, 3) <= 0 &&
+        PacketAlertCheck(p, 2) == 1) {
         result = 1;
     }
 
@@ -2732,6 +2735,7 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
+    SCFree(p);
     return result;
 }
 

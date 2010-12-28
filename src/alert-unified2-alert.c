@@ -756,44 +756,58 @@ static int Unified2Test01 (void)   {
         0x05, 0xb4, 0x04, 0x02, 0x08, 0x0a, 0x00, 0x1c,
         0x28, 0x81, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03,
         0x03, 0x06};
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     int ret;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&pq, 0, sizeof(PacketQueue));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
 
-    p.alerts.cnt++;
-    p.alerts.alerts[p.alerts.cnt-1].sid = 1;
-    p.alerts.alerts[p.alerts.cnt-1].gid = 1;
-    p.alerts.alerts[p.alerts.cnt-1].rev = 1;
-    p.pktlen = sizeof(raw_ipv4_tcp);
+    p->alerts.cnt++;
+    p->alerts.alerts[p->alerts.cnt-1].sid = 1;
+    p->alerts.alerts[p->alerts.cnt-1].gid = 1;
+    p->alerts.alerts[p->alerts.cnt-1].rev = 1;
+    p->pktlen = sizeof(raw_ipv4_tcp);
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodeEthernet(&tv, &dtv, &p, raw_ipv4_tcp, sizeof(raw_ipv4_tcp), &pq);
+    DecodeEthernet(&tv, &dtv, p, raw_ipv4_tcp, sizeof(raw_ipv4_tcp), &pq);
 
     FlowShutdown();
 
     oc = Unified2AlertInitCtx(NULL);
-    if (oc == NULL)
+    if (oc == NULL) {
+        SCFree(p);
         return 0;
+    }
     lf = (LogFileCtx *)oc->data;
-    if(lf == NULL)
+    if(lf == NULL) {
+        SCFree(p);
         return 0;
+    }
     ret = Unified2AlertThreadInit(&tv, oc, &data);
-    if(ret == TM_ECODE_FAILED)
+    if(ret == TM_ECODE_FAILED) {
+        SCFree(p);
         return 0;
-    ret = Unified2Alert(&tv, &p, data, &pq, NULL);
-    if(ret == TM_ECODE_FAILED)
+    }
+    ret = Unified2Alert(&tv, p, data, &pq, NULL);
+    if(ret == TM_ECODE_FAILED) {
+        SCFree(p);
         return 0;
+    }
     ret = Unified2AlertThreadDeinit(&tv, data);
-    if(ret == -1)
+    if(ret == -1) {
+        SCFree(p);
         return 0;
+    }
 
     Unified2AlertDeInitCtx(oc);
 
+    SCFree(p);
     return 1;
 }
 
@@ -825,44 +839,58 @@ static int Unified2Test02 (void)   {
         0x00, 0x00, 0x02, 0x04, 0x05, 0xa0, 0x04, 0x02,
         0x08, 0x0a, 0x00, 0x0a, 0x22, 0xa8, 0x00, 0x00,
         0x00, 0x00, 0x01, 0x03, 0x03, 0x05 };
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     int ret;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&pq, 0, sizeof(PacketQueue));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
 
-    p.alerts.cnt++;
-    p.alerts.alerts[p.alerts.cnt-1].sid = 1;
-    p.alerts.alerts[p.alerts.cnt-1].gid = 1;
-    p.alerts.alerts[p.alerts.cnt-1].rev = 1;
-    p.pktlen = sizeof(raw_ipv6_tcp);
+    p->alerts.cnt++;
+    p->alerts.alerts[p->alerts.cnt-1].sid = 1;
+    p->alerts.alerts[p->alerts.cnt-1].gid = 1;
+    p->alerts.alerts[p->alerts.cnt-1].rev = 1;
+    p->pktlen = sizeof(raw_ipv6_tcp);
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodeEthernet(&tv, &dtv, &p, raw_ipv6_tcp, sizeof(raw_ipv6_tcp), &pq);
+    DecodeEthernet(&tv, &dtv, p, raw_ipv6_tcp, sizeof(raw_ipv6_tcp), &pq);
 
     FlowShutdown();
 
     oc = Unified2AlertInitCtx(NULL);
-    if (oc == NULL)
+    if (oc == NULL) {
+        SCFree(p);
         return 0;
+    }
     lf = (LogFileCtx *)oc->data;
-    if(lf == NULL)
+    if(lf == NULL) {
+        SCFree(p);
         return 0;
+    }
     ret = Unified2AlertThreadInit(&tv, oc, &data);
-    if(ret == -1)
+    if(ret == -1) {
+        SCFree(p);
         return 0;
-    ret = Unified2Alert(&tv, &p, data, &pq, NULL);
-    if(ret == TM_ECODE_FAILED)
+    }
+    ret = Unified2Alert(&tv, p, data, &pq, NULL);
+    if(ret == TM_ECODE_FAILED) {
+        SCFree(p);
         return 0;
+    }
     ret = Unified2AlertThreadDeinit(&tv, data);
-    if(ret == -1)
+    if(ret == -1) {
+        SCFree(p);
         return 0;
+    }
 
     Unified2AlertDeInitCtx(oc);
 
+    SCFree(p);
     return 1;
 }
 
@@ -900,41 +928,54 @@ static int Unified2Test03 (void) {
         0x69, 0x6e, 0x67, 0x2e, 0x66, 0x72, 0x65, 0x65,
         0x6e, 0x6f, 0x64, 0x65, 0x2e, 0x6e, 0x65, 0x74,
         0x0d, 0x0a};
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     int ret;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&pq, 0, sizeof(PacketQueue));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
 
-    p.alerts.cnt++;
-    p.alerts.alerts[p.alerts.cnt-1].sid = 1;
-    p.alerts.alerts[p.alerts.cnt-1].gid = 1;
-    p.alerts.alerts[p.alerts.cnt-1].rev = 1;
-    p.pktlen = sizeof(raw_gre);
+    p->alerts.cnt++;
+    p->alerts.alerts[p->alerts.cnt-1].sid = 1;
+    p->alerts.alerts[p->alerts.cnt-1].gid = 1;
+    p->alerts.alerts[p->alerts.cnt-1].rev = 1;
+    p->pktlen = sizeof(raw_gre);
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodeEthernet(&tv, &dtv, &p, raw_gre, sizeof(raw_gre), &pq);
+    DecodeEthernet(&tv, &dtv, p, raw_gre, sizeof(raw_gre), &pq);
 
     FlowShutdown();
 
     oc = Unified2AlertInitCtx(NULL);
-    if (oc == NULL)
+    if (oc == NULL) {
+        SCFree(p);
         return 0;
+    }
     lf = (LogFileCtx *)oc->data;
-    if(lf == NULL)
+    if(lf == NULL) {
+        SCFree(p);
         return 0;
+    }
     ret = Unified2AlertThreadInit(&tv, oc, &data);
-    if(ret == -1)
+    if(ret == -1) {
+        SCFree(p);
         return 0;
-    ret = Unified2Alert(&tv, &p, data, &pq, NULL);
-    if(ret == TM_ECODE_FAILED)
+    }
+    ret = Unified2Alert(&tv, p, data, &pq, NULL);
+    if(ret == TM_ECODE_FAILED) {
+        SCFree(p);
         return 0;
+    }
     ret = Unified2AlertThreadDeinit(&tv, data);
-    if(ret == -1)
+    if(ret == -1) {
+        SCFree(p);
         return 0;
+    }
 
     Unified2AlertDeInitCtx(oc);
 
@@ -944,6 +985,7 @@ static int Unified2Test03 (void) {
         pkt = PacketDequeue(&pq);
     }
 
+    SCFree(p);
     return 1;
 }
 
@@ -969,44 +1011,58 @@ static int Unified2Test04 (void)   {
         0xea, 0x37, 0x00, 0x17, 0x6d, 0x0b, 0xba, 0xc3,
         0x00, 0x00, 0x00, 0x00, 0x60, 0x02, 0x10, 0x20,
         0xdd, 0xe1, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4};
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     int ret;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&pq, 0, sizeof(PacketQueue));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
 
-    p.alerts.cnt++;
-    p.alerts.alerts[p.alerts.cnt-1].sid = 1;
-    p.alerts.alerts[p.alerts.cnt-1].gid = 1;
-    p.alerts.alerts[p.alerts.cnt-1].rev = 1;
-    p.pktlen = sizeof(raw_ppp);
+    p->alerts.cnt++;
+    p->alerts.alerts[p->alerts.cnt-1].sid = 1;
+    p->alerts.alerts[p->alerts.cnt-1].gid = 1;
+    p->alerts.alerts[p->alerts.cnt-1].rev = 1;
+    p->pktlen = sizeof(raw_ppp);
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodePPP(&tv, &dtv, &p, raw_ppp, sizeof(raw_ppp), &pq);
+    DecodePPP(&tv, &dtv, p, raw_ppp, sizeof(raw_ppp), &pq);
 
     FlowShutdown();
 
     oc = Unified2AlertInitCtx(NULL);
-    if (oc == NULL)
+    if (oc == NULL) {
+        SCFree(p);
         return 0;
+    }
     lf = (LogFileCtx *)oc->data;
-    if(lf == NULL)
+    if(lf == NULL) {
+        SCFree(p);
         return 0;
+    }
     ret = Unified2AlertThreadInit(&tv, oc, &data);
-    if(ret == -1)
+    if(ret == -1) {
+        SCFree(p);
         return 0;
-    ret = Unified2Alert(&tv, &p, data, &pq, NULL);
-    if(ret == TM_ECODE_FAILED)
+    }
+    ret = Unified2Alert(&tv, p, data, &pq, NULL);
+    if(ret == TM_ECODE_FAILED) {
+        SCFree(p);
         return 0;
+    }
     ret = Unified2AlertThreadDeinit(&tv, data);
-    if(ret == -1)
+    if(ret == -1) {
+        SCFree(p);
         return 0;
+    }
 
     Unified2AlertDeInitCtx(oc);
 
+    SCFree(p);
     return 1;
 }
 
@@ -1036,46 +1092,60 @@ static int Unified2Test05 (void)   {
         0x05, 0xb4, 0x04, 0x02, 0x08, 0x0a, 0x00, 0x1c,
         0x28, 0x81, 0x00, 0x00, 0x00, 0x00, 0x01, 0x03,
         0x03, 0x06};
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     int ret;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&pq, 0, sizeof(PacketQueue));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
 
-    p.alerts.cnt++;
-    p.alerts.alerts[p.alerts.cnt-1].sid = 1;
-    p.alerts.alerts[p.alerts.cnt-1].gid = 1;
-    p.alerts.alerts[p.alerts.cnt-1].rev = 1;
-    p.pktlen = sizeof(raw_ipv4_tcp);
+    p->alerts.cnt++;
+    p->alerts.alerts[p->alerts.cnt-1].sid = 1;
+    p->alerts.alerts[p->alerts.cnt-1].gid = 1;
+    p->alerts.alerts[p->alerts.cnt-1].rev = 1;
+    p->pktlen = sizeof(raw_ipv4_tcp);
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodeEthernet(&tv, &dtv, &p, raw_ipv4_tcp, sizeof(raw_ipv4_tcp), &pq);
+    DecodeEthernet(&tv, &dtv, p, raw_ipv4_tcp, sizeof(raw_ipv4_tcp), &pq);
 
     FlowShutdown();
 
-    p.action = ACTION_DROP;
+    p->action = ACTION_DROP;
 
     oc = Unified2AlertInitCtx(NULL);
-    if (oc == NULL)
+    if (oc == NULL) {
+        SCFree(p);
         return 0;
+    }
     lf = (LogFileCtx *)oc->data;
-    if(lf == NULL)
+    if(lf == NULL) {
+        SCFree(p);
         return 0;
+    }
     ret = Unified2AlertThreadInit(&tv, oc, &data);
-    if(ret == -1)
+    if(ret == -1) {
+        SCFree(p);
         return 0;
-    ret = Unified2Alert(&tv, &p, data, &pq, NULL);
-    if(ret == TM_ECODE_FAILED)
+    }
+    ret = Unified2Alert(&tv, p, data, &pq, NULL);
+    if(ret == TM_ECODE_FAILED) {
+        SCFree(p);
         return 0;
+    }
     ret = Unified2AlertThreadDeinit(&tv, data);
-    if(ret == TM_ECODE_FAILED)
+    if(ret == TM_ECODE_FAILED) {
+        SCFree(p);
         return 0;
+    }
 
     Unified2AlertDeInitCtx(oc);
 
+    SCFree(p);
     return 1;
 }
 

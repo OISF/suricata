@@ -4957,19 +4957,22 @@ static int SigTest15Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "CONNECT 213.92.8.7:31204 HTTP/1.1";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
-    p.dp = 80;
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->payload = buf;
+    p->payload_len = buflen;
+    p->proto = IPPROTO_TCP;
+    p->dp = 80;
 
     ConfCreateContextBackup();
     ConfInit();
@@ -4993,8 +4996,8 @@ static int SigTest15Real (int mpm_type) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 2008284))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 2008284))
         result = 0;
     else
         result = 1;
@@ -5006,6 +5009,7 @@ static int SigTest15Real (int mpm_type) {
 end:
     ConfDeInit();
     ConfRestoreContextBackup();
+    SCFree(p);
     return result;
 }
 static int SigTest15B2g (void) {
@@ -5161,20 +5165,23 @@ static int SigTest18Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
-    p.dp = 34260;
-    p.sp = 21;
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->payload = buf;
+    p->payload_len = buflen;
+    p->proto = IPPROTO_TCP;
+    p->dp = 34260;
+    p->sp = 21;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -5194,8 +5201,8 @@ static int SigTest18Real (int mpm_type) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (!PacketAlertCheck(&p, 2003055))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (!PacketAlertCheck(p, 2003055))
         result = 1;
     else
         printf("signature shouldn't match, but did: ");
@@ -5205,6 +5212,7 @@ static int SigTest18Real (int mpm_type) {
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    SCFree(p);
     return result;
 }
 static int SigTest18B2g (void) {
@@ -5221,23 +5229,26 @@ int SigTest19Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.src.addr_data32[0] = 0x0102080a;
-    p.dst.addr_data32[0] = 0x04030201;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
-    p.dp = 34260;
-    p.sp = 21;
-    p.flowflags |= FLOW_PKT_TOSERVER;
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
+    p->src.family = AF_INET;
+    p->src.addr_data32[0] = 0x0102080a;
+    p->dst.addr_data32[0] = 0x04030201;
+    p->dst.family = AF_INET;
+    p->payload = buf;
+    p->payload_len = buflen;
+    p->proto = IPPROTO_TCP;
+    p->dp = 34260;
+    p->sp = 21;
+    p->flowflags |= FLOW_PKT_TOSERVER;
 
     ConfCreateContextBackup();
     ConfInit();
@@ -5260,8 +5271,8 @@ int SigTest19Real (int mpm_type) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 999))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 999))
         result = 1;
     else
         printf("signature didn't match, but should have: ");
@@ -5272,6 +5283,7 @@ int SigTest19Real (int mpm_type) {
 end:
     ConfDeInit();
     ConfRestoreContextBackup();
+    SCFree(p);
     return result;
 }
 static int SigTest19B2g (void) {
@@ -5288,23 +5300,26 @@ static int SigTest20Real (int mpm_type) {
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.src.addr_data32[0] = 0x0102080a;
-    p.dst.addr_data32[0] = 0x04030201;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
-    p.dp = 34260;
-    p.sp = 21;
-    p.flowflags |= FLOW_PKT_TOSERVER;
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
+    p->src.family = AF_INET;
+    p->src.addr_data32[0] = 0x0102080a;
+    p->dst.addr_data32[0] = 0x04030201;
+    p->dst.family = AF_INET;
+    p->payload = buf;
+    p->payload_len = buflen;
+    p->proto = IPPROTO_TCP;
+    p->dp = 34260;
+    p->sp = 21;
+    p->flowflags |= FLOW_PKT_TOSERVER;
 
     ConfCreateContextBackup();
     ConfInit();
@@ -5329,8 +5344,8 @@ static int SigTest20Real (int mpm_type) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
     //DetectEngineIPOnlyThreadInit(de_ctx,&det_ctx->io_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 999))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 999))
         result = 1;
     else
         printf("signature didn't match, but should have: ");
@@ -5343,6 +5358,7 @@ static int SigTest20Real (int mpm_type) {
 end:
     ConfDeInit();
     ConfRestoreContextBackup();
+    SCFree(p);
     return result;
 }
 static int SigTest20B2g (void) {
@@ -5626,7 +5642,12 @@ int SigTest24IPV4Keyword(void)
         0x40, 0x01, 0xb7, 0x52, 0xc0, 0xa8, 0x01, 0x03,
         0xc0, 0xa8, 0x01, 0x06};
 
-    Packet p1, p2;
+    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    if (p1 == NULL)
+        return 0;
+    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    if (p2 == NULL)
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
@@ -5636,26 +5657,28 @@ int SigTest24IPV4Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, SIZE_OF_PACKET);
-    memset(&p2, 0, SIZE_OF_PACKET);
-    p1.ip4c.comp_csum = -1;
-    p2.ip4c.comp_csum = -1;
+    memset(p1, 0, SIZE_OF_PACKET);
+    p1->pkt = (uint8_t *)(p1 + 1);
+    memset(p2, 0, SIZE_OF_PACKET);
+    p2->pkt = (uint8_t *)(p2 + 1);
+    p1->ip4c.comp_csum = -1;
+    p2->ip4c.comp_csum = -1;
 
-    p1.ip4h = (IPV4Hdr *)valid_raw_ipv4;
+    p1->ip4h = (IPV4Hdr *)valid_raw_ipv4;
 
-    p1.src.family = AF_INET;
-    p1.dst.family = AF_INET;
-    p1.payload = buf;
-    p1.payload_len = buflen;
-    p1.proto = IPPROTO_TCP;
+    p1->src.family = AF_INET;
+    p1->dst.family = AF_INET;
+    p1->payload = buf;
+    p1->payload_len = buflen;
+    p1->proto = IPPROTO_TCP;
 
-    p2.ip4h = (IPV4Hdr *)invalid_raw_ipv4;
+    p2->ip4h = (IPV4Hdr *)invalid_raw_ipv4;
 
-    p2.src.family = AF_INET;
-    p2.dst.family = AF_INET;
-    p2.payload = buf;
-    p2.payload_len = buflen;
-    p2.proto = IPPROTO_TCP;
+    p2->src.family = AF_INET;
+    p2->dst.family = AF_INET;
+    p2->payload = buf;
+    p2->payload_len = buflen;
+    p2->proto = IPPROTO_TCP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -5686,14 +5709,14 @@ int SigTest24IPV4Keyword(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
-    if (!(PacketAlertCheck(&p1, 1))) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (!(PacketAlertCheck(p1, 1))) {
         printf("signature 1 didn't match, but should have: ");
         goto end;
     }
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
-    if (!((PacketAlertCheck(&p2, 2)))) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    if (!((PacketAlertCheck(p2, 2)))) {
         printf("signature 2 didn't match, but should have: ");
         goto end;
     }
@@ -5706,6 +5729,8 @@ end:
         DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
         DetectEngineCtxFree(de_ctx);
     }
+    SCFree(p1);
+    SCFree(p2);
     return result;
 }
 
@@ -5721,7 +5746,12 @@ int SigTest25NegativeIPV4Keyword(void)
         0x40, 0x01, 0xb7, 0x52, 0xc0, 0xa8, 0x01, 0x03,
         0xc0, 0xa8, 0x01, 0x06};
 
-    Packet p1, p2;
+    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    if (p1 == NULL)
+        return 0;
+    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    if (p2 == NULL)
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 1;
@@ -5731,26 +5761,28 @@ int SigTest25NegativeIPV4Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, SIZE_OF_PACKET);
-    memset(&p2, 0, SIZE_OF_PACKET);
-    p1.ip4c.comp_csum = -1;
-    p2.ip4c.comp_csum = -1;
+    memset(p1, 0, SIZE_OF_PACKET);
+    p1->pkt = (uint8_t *)(p1 + 1);
+    memset(p2, 0, SIZE_OF_PACKET);
+    p2->pkt = (uint8_t *)(p2 + 1);
+    p1->ip4c.comp_csum = -1;
+    p2->ip4c.comp_csum = -1;
 
-    p1.ip4h = (IPV4Hdr *)valid_raw_ipv4;
+    p1->ip4h = (IPV4Hdr *)valid_raw_ipv4;
 
-    p1.src.family = AF_INET;
-    p1.dst.family = AF_INET;
-    p1.payload = buf;
-    p1.payload_len = buflen;
-    p1.proto = IPPROTO_TCP;
+    p1->src.family = AF_INET;
+    p1->dst.family = AF_INET;
+    p1->payload = buf;
+    p1->payload_len = buflen;
+    p1->proto = IPPROTO_TCP;
 
-    p2.ip4h = (IPV4Hdr *)invalid_raw_ipv4;
+    p2->ip4h = (IPV4Hdr *)invalid_raw_ipv4;
 
-    p2.src.family = AF_INET;
-    p2.dst.family = AF_INET;
-    p2.payload = buf;
-    p2.payload_len = buflen;
-    p2.proto = IPPROTO_TCP;
+    p2->src.family = AF_INET;
+    p2->dst.family = AF_INET;
+    p2->payload = buf;
+    p2->payload_len = buflen;
+    p2->proto = IPPROTO_TCP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -5781,14 +5813,14 @@ int SigTest25NegativeIPV4Keyword(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
-    if (PacketAlertCheck(&p1, 1))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (PacketAlertCheck(p1, 1))
         result &= 0;
     else
         result &= 1;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
-    if (PacketAlertCheck(&p2, 2))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    if (PacketAlertCheck(p2, 2))
         result &= 0;
     else
         result &= 1;
@@ -5798,6 +5830,8 @@ int SigTest25NegativeIPV4Keyword(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    SCFree(p1);
+    SCFree(p2);
     return result;
 }
 
@@ -5823,7 +5857,12 @@ int SigTest26TCPV4Keyword(void)
         0x01, 0x71, 0x74, 0xde, 0x01, 0x03, 0x03, 0x03};
 
 
-    Packet p1, p2;
+    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    if (p1 == NULL)
+        return 0;
+    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    if (p2 == NULL)
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 1;
@@ -5833,28 +5872,30 @@ int SigTest26TCPV4Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, SIZE_OF_PACKET);
-    memset(&p2, 0, SIZE_OF_PACKET);
+    memset(p1, 0, SIZE_OF_PACKET);
+    p1->pkt = (uint8_t *)(p1 + 1);
+    memset(p2, 0, SIZE_OF_PACKET);
+    p2->pkt = (uint8_t *)(p2 + 1);
 
-    p1.tcpc.comp_csum = -1;
-    p1.ip4h = (IPV4Hdr *)raw_ipv4;
-    p1.tcph = (TCPHdr *)valid_raw_tcp;
-    p1.tcpvars.hlen = 0;
-    p1.src.family = AF_INET;
-    p1.dst.family = AF_INET;
-    p1.payload = buf;
-    p1.payload_len = buflen;
-    p1.proto = IPPROTO_TCP;
+    p1->tcpc.comp_csum = -1;
+    p1->ip4h = (IPV4Hdr *)raw_ipv4;
+    p1->tcph = (TCPHdr *)valid_raw_tcp;
+    p1->tcpvars.hlen = 0;
+    p1->src.family = AF_INET;
+    p1->dst.family = AF_INET;
+    p1->payload = buf;
+    p1->payload_len = buflen;
+    p1->proto = IPPROTO_TCP;
 
-    p2.tcpc.comp_csum = -1;
-    p2.ip4h = (IPV4Hdr *)raw_ipv4;
-    p2.tcph = (TCPHdr *)invalid_raw_tcp;
-    p2.tcpvars.hlen = 0;
-    p2.src.family = AF_INET;
-    p2.dst.family = AF_INET;
-    p2.payload = buf;
-    p2.payload_len = buflen;
-    p2.proto = IPPROTO_TCP;
+    p2->tcpc.comp_csum = -1;
+    p2->ip4h = (IPV4Hdr *)raw_ipv4;
+    p2->tcph = (TCPHdr *)invalid_raw_tcp;
+    p2->tcpvars.hlen = 0;
+    p2->src.family = AF_INET;
+    p2->dst.family = AF_INET;
+    p2->payload = buf;
+    p2->payload_len = buflen;
+    p2->proto = IPPROTO_TCP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -5885,14 +5926,14 @@ int SigTest26TCPV4Keyword(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
-    if (PacketAlertCheck(&p1, 1))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (PacketAlertCheck(p1, 1))
         result &= 1;
     else
         result &= 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
-    if (PacketAlertCheck(&p2, 2))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    if (PacketAlertCheck(p2, 2))
         result &= 1;
     else
         result &= 0;
@@ -5902,6 +5943,8 @@ int SigTest26TCPV4Keyword(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    SCFree(p1);
+    SCFree(p2);
     return result;
 }
 
@@ -5927,7 +5970,12 @@ int SigTest27NegativeTCPV4Keyword(void)
         0x01, 0x71, 0x74, 0xde, 0x01, 0x03, 0x03, 0x03};
 
 
-    Packet p1, p2;
+    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    if (p1 == NULL)
+        return 0;
+    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    if (p2 == NULL)
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 1;
@@ -5937,30 +5985,32 @@ int SigTest27NegativeTCPV4Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, SIZE_OF_PACKET);
-    memset(&p2, 0, SIZE_OF_PACKET);
+    memset(p1, 0, SIZE_OF_PACKET);
+    p1->pkt = (uint8_t *)(p1 + 1);
+    memset(p2, 0, SIZE_OF_PACKET);
+    p2->pkt = (uint8_t *)(p2 + 1);
 
-    p1.tcpc.comp_csum = -1;
-    p1.ip4h = (IPV4Hdr *)raw_ipv4;
-    p1.tcph = (TCPHdr *)valid_raw_tcp;
+    p1->tcpc.comp_csum = -1;
+    p1->ip4h = (IPV4Hdr *)raw_ipv4;
+    p1->tcph = (TCPHdr *)valid_raw_tcp;
     //p1.tcpvars.hlen = TCP_GET_HLEN((&p));
-    p1.tcpvars.hlen = 0;
-    p1.src.family = AF_INET;
-    p1.dst.family = AF_INET;
-    p1.payload = buf;
-    p1.payload_len = buflen;
-    p1.proto = IPPROTO_TCP;
+    p1->tcpvars.hlen = 0;
+    p1->src.family = AF_INET;
+    p1->dst.family = AF_INET;
+    p1->payload = buf;
+    p1->payload_len = buflen;
+    p1->proto = IPPROTO_TCP;
 
-    p2.tcpc.comp_csum = -1;
-    p2.ip4h = (IPV4Hdr *)raw_ipv4;
-    p2.tcph = (TCPHdr *)invalid_raw_tcp;
+    p2->tcpc.comp_csum = -1;
+    p2->ip4h = (IPV4Hdr *)raw_ipv4;
+    p2->tcph = (TCPHdr *)invalid_raw_tcp;
     //p2.tcpvars.hlen = TCP_GET_HLEN((&p));
-    p2.tcpvars.hlen = 0;
-    p2.src.family = AF_INET;
-    p2.dst.family = AF_INET;
-    p2.payload = buf;
-    p2.payload_len = buflen;
-    p2.proto = IPPROTO_TCP;
+    p2->tcpvars.hlen = 0;
+    p2->src.family = AF_INET;
+    p2->dst.family = AF_INET;
+    p2->payload = buf;
+    p2->payload_len = buflen;
+    p2->proto = IPPROTO_TCP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -5992,14 +6042,14 @@ int SigTest27NegativeTCPV4Keyword(void)
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
-    if (PacketAlertCheck(&p1, 1))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (PacketAlertCheck(p1, 1))
         result &= 0;
     else
         result &= 1;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
-    if (PacketAlertCheck(&p2, 2)) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    if (PacketAlertCheck(p2, 2)) {
         result &= 0;
     }
     else
@@ -6011,6 +6061,8 @@ int SigTest27NegativeTCPV4Keyword(void)
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    SCFree(p1);
+    SCFree(p2);
     return result;
 }
 
@@ -6042,7 +6094,12 @@ int SigTest28TCPV6Keyword(void)
         0x00, 0x00, 0x01, 0x01, 0x08, 0x0a, 0x00, 0x08,
         0xca, 0x5a, 0x00, 0x01, 0x69, 0x28};
 
-    Packet p1, p2;
+    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    if (p1 == NULL)
+        return 0;
+    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    if (p2 == NULL)
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 1;
@@ -6051,30 +6108,32 @@ int SigTest28TCPV6Keyword(void)
                     "\r\n\r\n";
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, SIZE_OF_PACKET);
-    memset(&p2, 0, SIZE_OF_PACKET);
+    memset(p1, 0, SIZE_OF_PACKET);
+    p1->pkt = (uint8_t *)(p1 + 1);
+    memset(p2, 0, SIZE_OF_PACKET);
+    p2->pkt = (uint8_t *)(p2 + 1);
 
-    p1.tcpc.comp_csum = -1;
-    p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
-    p1.tcph = (TCPHdr *) (valid_raw_ipv6 + 54);
-    p1.src.family = AF_INET;
-    p1.dst.family = AF_INET;
-    p1.tcpvars.hlen = TCP_GET_HLEN((&p1));
-    p1.payload = buf;
-    p1.payload_len = p1.tcpvars.hlen;
-    p1.tcpvars.hlen = 0;
-    p1.proto = IPPROTO_TCP;
+    p1->tcpc.comp_csum = -1;
+    p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
+    p1->tcph = (TCPHdr *) (valid_raw_ipv6 + 54);
+    p1->src.family = AF_INET;
+    p1->dst.family = AF_INET;
+    p1->tcpvars.hlen = TCP_GET_HLEN((p1));
+    p1->payload = buf;
+    p1->payload_len = p1->tcpvars.hlen;
+    p1->tcpvars.hlen = 0;
+    p1->proto = IPPROTO_TCP;
 
-    p2.tcpc.comp_csum = -1;
-    p2.ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
-    p2.tcph = (TCPHdr *) (invalid_raw_ipv6 + 54);
-    p2.src.family = AF_INET;
-    p2.dst.family = AF_INET;
-    p2.tcpvars.hlen = TCP_GET_HLEN((&p2));
-    p2.payload = buf;
-    p2.payload_len = p2.tcpvars.hlen;
-    p2.tcpvars.hlen = 0;
-    p2.proto = IPPROTO_TCP;
+    p2->tcpc.comp_csum = -1;
+    p2->ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
+    p2->tcph = (TCPHdr *) (invalid_raw_ipv6 + 54);
+    p2->src.family = AF_INET;
+    p2->dst.family = AF_INET;
+    p2->tcpvars.hlen = TCP_GET_HLEN((p2));
+    p2->payload = buf;
+    p2->payload_len = p2->tcpvars.hlen;
+    p2->tcpvars.hlen = 0;
+    p2->proto = IPPROTO_TCP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -6106,14 +6165,14 @@ int SigTest28TCPV6Keyword(void)
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
-    if (PacketAlertCheck(&p1, 1))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (PacketAlertCheck(p1, 1))
         result &= 1;
     else
         result &= 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
-    if (PacketAlertCheck(&p2, 2))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    if (PacketAlertCheck(p2, 2))
         result &= 1;
     else
         result &= 0;
@@ -6124,6 +6183,8 @@ int SigTest28TCPV6Keyword(void)
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    SCFree(p1);
+    SCFree(p2);
     return result;
 }
 
@@ -6155,7 +6216,12 @@ int SigTest29NegativeTCPV6Keyword(void)
         0x00, 0x00, 0x01, 0x01, 0x08, 0x0a, 0x00, 0x08,
         0xca, 0x5a, 0x00, 0x01, 0x69, 0x28};
 
-    Packet p1, p2;
+    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    if (p1 == NULL)
+        return 0;
+    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    if (p2 == NULL)
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 1;
@@ -6164,30 +6230,32 @@ int SigTest29NegativeTCPV6Keyword(void)
                     "\r\n\r\n";
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, SIZE_OF_PACKET);
-    memset(&p2, 0, SIZE_OF_PACKET);
+    memset(p1, 0, SIZE_OF_PACKET);
+    p1->pkt = (uint8_t *)(p1 + 1);
+    memset(p2, 0, SIZE_OF_PACKET);
+    p2->pkt = (uint8_t *)(p2 + 1);
 
-    p1.tcpc.comp_csum = -1;
-    p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
-    p1.tcph = (TCPHdr *) (valid_raw_ipv6 + 54);
-    p1.src.family = AF_INET;
-    p1.dst.family = AF_INET;
-    p1.tcpvars.hlen = TCP_GET_HLEN((&p1));
-    p1.payload = buf;
-    p1.payload_len = p1.tcpvars.hlen;
-    p1.tcpvars.hlen = 0;
-    p1.proto = IPPROTO_TCP;
+    p1->tcpc.comp_csum = -1;
+    p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
+    p1->tcph = (TCPHdr *) (valid_raw_ipv6 + 54);
+    p1->src.family = AF_INET;
+    p1->dst.family = AF_INET;
+    p1->tcpvars.hlen = TCP_GET_HLEN((p1));
+    p1->payload = buf;
+    p1->payload_len = p1->tcpvars.hlen;
+    p1->tcpvars.hlen = 0;
+    p1->proto = IPPROTO_TCP;
 
-    p2.tcpc.comp_csum = -1;
-    p2.ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
-    p2.tcph = (TCPHdr *) (invalid_raw_ipv6 + 54);
-    p2.src.family = AF_INET;
-    p2.dst.family = AF_INET;
-    p2.tcpvars.hlen = TCP_GET_HLEN((&p2));
-    p2.payload = buf;
-    p2.payload_len = p2.tcpvars.hlen;
-    p2.tcpvars.hlen = 0;
-    p2.proto = IPPROTO_TCP;
+    p2->tcpc.comp_csum = -1;
+    p2->ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
+    p2->tcph = (TCPHdr *) (invalid_raw_ipv6 + 54);
+    p2->src.family = AF_INET;
+    p2->dst.family = AF_INET;
+    p2->tcpvars.hlen = TCP_GET_HLEN((p2));
+    p2->payload = buf;
+    p2->payload_len = p2->tcpvars.hlen;
+    p2->tcpvars.hlen = 0;
+    p2->proto = IPPROTO_TCP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -6220,14 +6288,14 @@ int SigTest29NegativeTCPV6Keyword(void)
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
-    if (PacketAlertCheck(&p1, 1))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (PacketAlertCheck(p1, 1))
         result &= 0;
     else
         result &= 1;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
-    if (PacketAlertCheck(&p2, 2))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    if (PacketAlertCheck(p2, 2))
         result &= 0;
     else
         result &= 1;
@@ -6238,6 +6306,8 @@ int SigTest29NegativeTCPV6Keyword(void)
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    SCFree(p1);
+    SCFree(p2);
     return result;
 }
 
@@ -6274,7 +6344,12 @@ int SigTest30UDPV4Keyword(void)
         0x61, 0x64, 0x01, 0x6c, 0x06, 0x67, 0x6f, 0x6f,
         0x67, 0x6c, 0x65, 0xc0, 0x27};
 
-    Packet p1, p2;
+    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    if (p1 == NULL)
+        return 0;
+    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    if (p2 == NULL)
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 1;
@@ -6283,28 +6358,30 @@ int SigTest30UDPV4Keyword(void)
                     "\r\n\r\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, SIZE_OF_PACKET);
-    memset(&p2, 0, SIZE_OF_PACKET);
+    memset(p1, 0, SIZE_OF_PACKET);
+    p1->pkt = (uint8_t *)(p1 + 1);
+    memset(p2, 0, SIZE_OF_PACKET);
+    p2->pkt = (uint8_t *)(p2 + 1);
 
-    p1.udpc.comp_csum = -1;
-    p1.ip4h = (IPV4Hdr *)raw_ipv4;
-    p1.udph = (UDPHdr *)valid_raw_udp;
-    p1.udpvars.hlen = UDP_HEADER_LEN;
-    p1.src.family = AF_INET;
-    p1.dst.family = AF_INET;
-    p1.payload = buf;
-    p1.payload_len = sizeof(valid_raw_udp) - p1.udpvars.hlen;
-    p1.proto = IPPROTO_UDP;
+    p1->udpc.comp_csum = -1;
+    p1->ip4h = (IPV4Hdr *)raw_ipv4;
+    p1->udph = (UDPHdr *)valid_raw_udp;
+    p1->udpvars.hlen = UDP_HEADER_LEN;
+    p1->src.family = AF_INET;
+    p1->dst.family = AF_INET;
+    p1->payload = buf;
+    p1->payload_len = sizeof(valid_raw_udp) - p1->udpvars.hlen;
+    p1->proto = IPPROTO_UDP;
 
-    p2.udpc.comp_csum = -1;
-    p2.ip4h = (IPV4Hdr *)raw_ipv4;
-    p2.udph = (UDPHdr *)invalid_raw_udp;
-    p2.udpvars.hlen = UDP_HEADER_LEN;
-    p2.src.family = AF_INET;
-    p2.dst.family = AF_INET;
-    p2.payload = buf;
-    p2.payload_len = sizeof(invalid_raw_udp) - p2.udpvars.hlen;
-    p2.proto = IPPROTO_UDP;
+    p2->udpc.comp_csum = -1;
+    p2->ip4h = (IPV4Hdr *)raw_ipv4;
+    p2->udph = (UDPHdr *)invalid_raw_udp;
+    p2->udpvars.hlen = UDP_HEADER_LEN;
+    p2->src.family = AF_INET;
+    p2->dst.family = AF_INET;
+    p2->payload = buf;
+    p2->payload_len = sizeof(invalid_raw_udp) - p2->udpvars.hlen;
+    p2->proto = IPPROTO_UDP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -6337,14 +6414,14 @@ int SigTest30UDPV4Keyword(void)
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
-    if (PacketAlertCheck(&p1, 1))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (PacketAlertCheck(p1, 1))
         result &= 1;
     else
         result &= 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
-    if (PacketAlertCheck(&p2, 2))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    if (PacketAlertCheck(p2, 2))
         result &= 1;
     else
         result &= 0;
@@ -6355,6 +6432,8 @@ int SigTest30UDPV4Keyword(void)
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    SCFree(p1);
+    SCFree(p2);
     return result;
 }
 
@@ -6391,7 +6470,12 @@ int SigTest31NegativeUDPV4Keyword(void)
         0x61, 0x64, 0x01, 0x6c, 0x06, 0x67, 0x6f, 0x6f,
         0x67, 0x6c, 0x65, 0xc0, 0x27};
 
-    Packet p1, p2;
+    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    if (p1 == NULL)
+        return 0;
+    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    if (p2 == NULL)
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 1;
@@ -6400,28 +6484,30 @@ int SigTest31NegativeUDPV4Keyword(void)
                     "\r\n\r\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, SIZE_OF_PACKET);
-    memset(&p2, 0, SIZE_OF_PACKET);
+    memset(p1, 0, SIZE_OF_PACKET);
+    p1->pkt = (uint8_t *)(p1 + 1);
+    memset(p2, 0, SIZE_OF_PACKET);
+    p2->pkt = (uint8_t *)(p2 + 1);
 
-    p1.udpc.comp_csum = -1;
-    p1.ip4h = (IPV4Hdr *)raw_ipv4;
-    p1.udph = (UDPHdr *)valid_raw_udp;
-    p1.udpvars.hlen = UDP_HEADER_LEN;
-    p1.src.family = AF_INET;
-    p1.dst.family = AF_INET;
-    p1.payload = buf;
-    p1.payload_len = sizeof(valid_raw_udp) - p1.udpvars.hlen;
-    p1.proto = IPPROTO_UDP;
+    p1->udpc.comp_csum = -1;
+    p1->ip4h = (IPV4Hdr *)raw_ipv4;
+    p1->udph = (UDPHdr *)valid_raw_udp;
+    p1->udpvars.hlen = UDP_HEADER_LEN;
+    p1->src.family = AF_INET;
+    p1->dst.family = AF_INET;
+    p1->payload = buf;
+    p1->payload_len = sizeof(valid_raw_udp) - p1->udpvars.hlen;
+    p1->proto = IPPROTO_UDP;
 
-    p2.udpc.comp_csum = -1;
-    p2.ip4h = (IPV4Hdr *)raw_ipv4;
-    p2.udph = (UDPHdr *)invalid_raw_udp;
-    p2.udpvars.hlen = UDP_HEADER_LEN;
-    p2.src.family = AF_INET;
-    p2.dst.family = AF_INET;
-    p2.payload = buf;
-    p2.payload_len = sizeof(invalid_raw_udp) - p2.udpvars.hlen;
-    p2.proto = IPPROTO_UDP;
+    p2->udpc.comp_csum = -1;
+    p2->ip4h = (IPV4Hdr *)raw_ipv4;
+    p2->udph = (UDPHdr *)invalid_raw_udp;
+    p2->udpvars.hlen = UDP_HEADER_LEN;
+    p2->src.family = AF_INET;
+    p2->dst.family = AF_INET;
+    p2->payload = buf;
+    p2->payload_len = sizeof(invalid_raw_udp) - p2->udpvars.hlen;
+    p2->proto = IPPROTO_UDP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -6453,14 +6539,14 @@ int SigTest31NegativeUDPV4Keyword(void)
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
-    if (PacketAlertCheck(&p1, 1))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (PacketAlertCheck(p1, 1))
         result &= 0;
     else
         result &= 1;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
-    if (PacketAlertCheck(&p2, 2)) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    if (PacketAlertCheck(p2, 2)) {
         result &= 0;
     }
     else
@@ -6472,6 +6558,8 @@ int SigTest31NegativeUDPV4Keyword(void)
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    SCFree(p1);
+    SCFree(p2);
     return result;
 }
 
@@ -6502,7 +6590,12 @@ int SigTest32UDPV6Keyword(void)
         0x00, 0x00, 0xf9, 0xc8, 0xe7, 0x36, 0x57, 0xb0,
         0x09, 0x01};
 
-    Packet p1, p2;
+    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    if (p1 == NULL)
+        return 0;
+    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    if (p2 == NULL)
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 1;
@@ -6511,28 +6604,30 @@ int SigTest32UDPV6Keyword(void)
                     "\r\n\r\n";
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, SIZE_OF_PACKET);
-    memset(&p2, 0, SIZE_OF_PACKET);
+    memset(p1, 0, SIZE_OF_PACKET);
+    p1->pkt = (uint8_t *)(p1 + 1);
+    memset(p2, 0, SIZE_OF_PACKET);
+    p2->pkt = (uint8_t *)(p2 + 1);
 
-    p1.udpc.comp_csum = -1;
-    p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
-    p1.udph = (UDPHdr *) (valid_raw_ipv6 + 54);
-    p1.src.family = AF_INET;
-    p1.dst.family = AF_INET;
-    p1.udpvars.hlen = UDP_HEADER_LEN;
-    p1.payload = buf;
-    p1.payload_len = IPV6_GET_PLEN((&p1)) - p1.udpvars.hlen;
-    p1.proto = IPPROTO_UDP;
+    p1->udpc.comp_csum = -1;
+    p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
+    p1->udph = (UDPHdr *) (valid_raw_ipv6 + 54);
+    p1->src.family = AF_INET;
+    p1->dst.family = AF_INET;
+    p1->udpvars.hlen = UDP_HEADER_LEN;
+    p1->payload = buf;
+    p1->payload_len = IPV6_GET_PLEN((p1)) - p1->udpvars.hlen;
+    p1->proto = IPPROTO_UDP;
 
-    p2.udpc.comp_csum = -1;
-    p2.ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
-    p2.udph = (UDPHdr *) (invalid_raw_ipv6 + 54);
-    p2.src.family = AF_INET;
-    p2.dst.family = AF_INET;
-    p2.udpvars.hlen = UDP_HEADER_LEN;
-    p2.payload = buf;
-    p2.payload_len = IPV6_GET_PLEN((&p2)) - p2.udpvars.hlen;
-    p2.proto = IPPROTO_UDP;
+    p2->udpc.comp_csum = -1;
+    p2->ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
+    p2->udph = (UDPHdr *) (invalid_raw_ipv6 + 54);
+    p2->src.family = AF_INET;
+    p2->dst.family = AF_INET;
+    p2->udpvars.hlen = UDP_HEADER_LEN;
+    p2->payload = buf;
+    p2->payload_len = IPV6_GET_PLEN((p2)) - p2->udpvars.hlen;
+    p2->proto = IPPROTO_UDP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -6564,14 +6659,14 @@ int SigTest32UDPV6Keyword(void)
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
-    if (PacketAlertCheck(&p1, 1))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (PacketAlertCheck(p1, 1))
         result &= 1;
     else
         result &= 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
-    if (PacketAlertCheck(&p2, 2))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    if (PacketAlertCheck(p2, 2))
         result &= 1;
     else
         result &= 0;
@@ -6582,6 +6677,8 @@ int SigTest32UDPV6Keyword(void)
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    SCFree(p1);
+    SCFree(p2);
     return result;
 }
 
@@ -6611,7 +6708,12 @@ int SigTest33NegativeUDPV6Keyword(void)
         0x00, 0x00, 0xf9, 0xc8, 0xe7, 0x36, 0x57, 0xb0,
         0x09, 0x01};
 
-    Packet p1, p2;
+    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    if (p1 == NULL)
+        return 0;
+    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    if (p2 == NULL)
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 1;
@@ -6620,28 +6722,30 @@ int SigTest33NegativeUDPV6Keyword(void)
                     "\r\n\r\n";
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, SIZE_OF_PACKET);
-    memset(&p2, 0, SIZE_OF_PACKET);
+    memset(p1, 0, SIZE_OF_PACKET);
+    p1->pkt = (uint8_t *)(p1 + 1);
+    memset(p2, 0, SIZE_OF_PACKET);
+    p2->pkt = (uint8_t *)(p2 + 1);
 
-    p1.udpc.comp_csum = -1;
-    p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
-    p1.udph = (UDPHdr *) (valid_raw_ipv6 + 54);
-    p1.src.family = AF_INET;
-    p1.dst.family = AF_INET;
-    p1.udpvars.hlen = UDP_HEADER_LEN;
-    p1.payload = buf;
-    p1.payload_len = IPV6_GET_PLEN((&p1)) - p1.udpvars.hlen;
-    p1.proto = IPPROTO_UDP;
+    p1->udpc.comp_csum = -1;
+    p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
+    p1->udph = (UDPHdr *) (valid_raw_ipv6 + 54);
+    p1->src.family = AF_INET;
+    p1->dst.family = AF_INET;
+    p1->udpvars.hlen = UDP_HEADER_LEN;
+    p1->payload = buf;
+    p1->payload_len = IPV6_GET_PLEN((p1)) - p1->udpvars.hlen;
+    p1->proto = IPPROTO_UDP;
 
-    p2.udpc.comp_csum = -1;
-    p2.ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
-    p2.udph = (UDPHdr *) (invalid_raw_ipv6 + 54);
-    p2.src.family = AF_INET;
-    p2.dst.family = AF_INET;
-    p2.udpvars.hlen = UDP_HEADER_LEN;
-    p2.payload = buf;
-    p2.payload_len = IPV6_GET_PLEN((&p2)) - p2.udpvars.hlen;
-    p2.proto = IPPROTO_UDP;
+    p2->udpc.comp_csum = -1;
+    p2->ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
+    p2->udph = (UDPHdr *) (invalid_raw_ipv6 + 54);
+    p2->src.family = AF_INET;
+    p2->dst.family = AF_INET;
+    p2->udpvars.hlen = UDP_HEADER_LEN;
+    p2->payload = buf;
+    p2->payload_len = IPV6_GET_PLEN((p2)) - p2->udpvars.hlen;
+    p2->proto = IPPROTO_UDP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -6673,14 +6777,14 @@ int SigTest33NegativeUDPV6Keyword(void)
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
-    if (PacketAlertCheck(&p1, 1))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (PacketAlertCheck(p1, 1))
         result &= 0;
     else
         result &= 1;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
-    if (PacketAlertCheck(&p2, 2))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    if (PacketAlertCheck(p2, 2))
         result &= 0;
     else
         result &= 1;
@@ -6691,6 +6795,8 @@ int SigTest33NegativeUDPV6Keyword(void)
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    SCFree(p1);
+    SCFree(p2);
     return result;
 }
 
@@ -6722,7 +6828,12 @@ int SigTest34ICMPV4Keyword(void)
         0x2c, 0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33,
         0x34, 0x35, 0x36, 0x38};
 
-    Packet p1, p2;
+    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    if (p1 == NULL)
+        return 0;
+    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    if (p2 == NULL)
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 1;
@@ -6732,28 +6843,30 @@ int SigTest34ICMPV4Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, SIZE_OF_PACKET);
-    memset(&p2, 0, SIZE_OF_PACKET);
+    memset(p1, 0, SIZE_OF_PACKET);
+    p1->pkt = (uint8_t *)(p1 + 1);
+    memset(p2, 0, SIZE_OF_PACKET);
+    p2->pkt = (uint8_t *)(p2 + 1);
 
-    p1.icmpv4c.comp_csum = -1;
-    p1.ip4h = (IPV4Hdr *)(valid_raw_ipv4);
-    p1.ip4h->ip_verhl = 69;
-    p1.icmpv4h = (ICMPV4Hdr *) (valid_raw_ipv4 + IPV4_GET_RAW_HLEN(p1.ip4h) * 4);
-    p1.src.family = AF_INET;
-    p1.dst.family = AF_INET;
-    p1.payload = buf;
-    p1.payload_len = buflen;
-    p1.proto = IPPROTO_ICMP;
+    p1->icmpv4c.comp_csum = -1;
+    p1->ip4h = (IPV4Hdr *)(valid_raw_ipv4);
+    p1->ip4h->ip_verhl = 69;
+    p1->icmpv4h = (ICMPV4Hdr *) (valid_raw_ipv4 + IPV4_GET_RAW_HLEN(p1->ip4h) * 4);
+    p1->src.family = AF_INET;
+    p1->dst.family = AF_INET;
+    p1->payload = buf;
+    p1->payload_len = buflen;
+    p1->proto = IPPROTO_ICMP;
 
-    p2.icmpv4c.comp_csum = -1;
-    p2.ip4h = (IPV4Hdr *)(invalid_raw_ipv4);
-    p2.ip4h->ip_verhl = 69;
-    p2.icmpv4h = (ICMPV4Hdr *) (invalid_raw_ipv4 + IPV4_GET_RAW_HLEN(p2.ip4h) * 4);
-    p2.src.family = AF_INET;
-    p2.dst.family = AF_INET;
-    p2.payload = buf;
-    p2.payload_len = buflen;
-    p2.proto = IPPROTO_ICMP;
+    p2->icmpv4c.comp_csum = -1;
+    p2->ip4h = (IPV4Hdr *)(invalid_raw_ipv4);
+    p2->ip4h->ip_verhl = 69;
+    p2->icmpv4h = (ICMPV4Hdr *) (invalid_raw_ipv4 + IPV4_GET_RAW_HLEN(p2->ip4h) * 4);
+    p2->src.family = AF_INET;
+    p2->dst.family = AF_INET;
+    p2->payload = buf;
+    p2->payload_len = buflen;
+    p2->proto = IPPROTO_ICMP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -6784,14 +6897,14 @@ int SigTest34ICMPV4Keyword(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
-    if (PacketAlertCheck(&p1, 1))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (PacketAlertCheck(p1, 1))
         result &= 1;
     else
         result &= 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
-    if (PacketAlertCheck(&p2, 2))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    if (PacketAlertCheck(p2, 2))
         result &= 1;
     else
         result &= 0;
@@ -6801,6 +6914,8 @@ int SigTest34ICMPV4Keyword(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    SCFree(p1);
+    SCFree(p2);
     return result;
 }
 
@@ -6832,7 +6947,12 @@ int SigTest35NegativeICMPV4Keyword(void)
         0x2c, 0x2d, 0x2e, 0x2f, 0x30, 0x31, 0x32, 0x33,
         0x34, 0x35, 0x36, 0x38};
 
-    Packet p1, p2;
+    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    if (p1 == NULL)
+        return 0;
+    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    if (p2 == NULL)
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 1;
@@ -6842,28 +6962,30 @@ int SigTest35NegativeICMPV4Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, SIZE_OF_PACKET);
-    memset(&p2, 0, SIZE_OF_PACKET);
+    memset(p1, 0, SIZE_OF_PACKET);
+    p1->pkt = (uint8_t *)(p1 + 1);
+    memset(p2, 0, SIZE_OF_PACKET);
+    p2->pkt = (uint8_t *)(p2 + 1);
 
-    p1.icmpv4c.comp_csum = -1;
-    p1.ip4h = (IPV4Hdr *)(valid_raw_ipv4);
-    p1.ip4h->ip_verhl = 69;
-    p1.icmpv4h = (ICMPV4Hdr *) (valid_raw_ipv4 + IPV4_GET_RAW_HLEN(p1.ip4h) * 4);
-    p1.src.family = AF_INET;
-    p1.dst.family = AF_INET;
-    p1.payload = buf;
-    p1.payload_len = buflen;
-    p1.proto = IPPROTO_ICMP;
+    p1->icmpv4c.comp_csum = -1;
+    p1->ip4h = (IPV4Hdr *)(valid_raw_ipv4);
+    p1->ip4h->ip_verhl = 69;
+    p1->icmpv4h = (ICMPV4Hdr *) (valid_raw_ipv4 + IPV4_GET_RAW_HLEN(p1->ip4h) * 4);
+    p1->src.family = AF_INET;
+    p1->dst.family = AF_INET;
+    p1->payload = buf;
+    p1->payload_len = buflen;
+    p1->proto = IPPROTO_ICMP;
 
-    p2.icmpv4c.comp_csum = -1;
-    p2.ip4h = (IPV4Hdr *)(invalid_raw_ipv4);
-    p2.ip4h->ip_verhl = 69;
-    p2.icmpv4h = (ICMPV4Hdr *) (invalid_raw_ipv4 + IPV4_GET_RAW_HLEN(p2.ip4h) * 4);
-    p2.src.family = AF_INET;
-    p2.dst.family = AF_INET;
-    p2.payload = buf;
-    p2.payload_len = buflen;
-    p2.proto = IPPROTO_ICMP;
+    p2->icmpv4c.comp_csum = -1;
+    p2->ip4h = (IPV4Hdr *)(invalid_raw_ipv4);
+    p2->ip4h->ip_verhl = 69;
+    p2->icmpv4h = (ICMPV4Hdr *) (invalid_raw_ipv4 + IPV4_GET_RAW_HLEN(p2->ip4h) * 4);
+    p2->src.family = AF_INET;
+    p2->dst.family = AF_INET;
+    p2->payload = buf;
+    p2->payload_len = buflen;
+    p2->proto = IPPROTO_ICMP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -6895,14 +7017,14 @@ int SigTest35NegativeICMPV4Keyword(void)
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
-    if (PacketAlertCheck(&p1, 1))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (PacketAlertCheck(p1, 1))
         result &= 0;
     else
         result &= 1;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
-    if (PacketAlertCheck(&p2, 2))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    if (PacketAlertCheck(p2, 2))
         result &= 0;
     else {
         result &= 1;
@@ -6914,6 +7036,8 @@ int SigTest35NegativeICMPV4Keyword(void)
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    SCFree(p1);
+    SCFree(p2);
     return result;
 }
 
@@ -6955,7 +7079,12 @@ int SigTest36ICMPV6Keyword(void)
         0x00, 0x00, 0xf9, 0xc8, 0xe7, 0x36, 0xf5, 0xed,
         0x08, 0x01};
 
-    Packet p1, p2;
+    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    if (p1 == NULL)
+        return 0;
+    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    if (p2 == NULL)
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 1;
@@ -6965,28 +7094,30 @@ int SigTest36ICMPV6Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, SIZE_OF_PACKET);
-    memset(&p2, 0, SIZE_OF_PACKET);
+    memset(p1, 0, SIZE_OF_PACKET);
+    p1->pkt = (uint8_t *)(p1 + 1);
+    memset(p2, 0, SIZE_OF_PACKET);
+    p2->pkt = (uint8_t *)(p2 + 1);
 
-    p1.icmpv6c.comp_csum = -1;
-    p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
-    p1.icmpv6h = (ICMPV6Hdr *) (valid_raw_ipv6 + 54);
-    p1.ip6c.plen = IPV6_GET_PLEN(&(p1));
-    p1.src.family = AF_INET;
-    p1.dst.family = AF_INET;
-    p1.payload = buf;
-    p1.payload_len = buflen;
-    p1.proto = IPPROTO_ICMPV6;
+    p1->icmpv6c.comp_csum = -1;
+    p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
+    p1->icmpv6h = (ICMPV6Hdr *) (valid_raw_ipv6 + 54);
+    p1->ip6c.plen = IPV6_GET_PLEN(p1);
+    p1->src.family = AF_INET;
+    p1->dst.family = AF_INET;
+    p1->payload = buf;
+    p1->payload_len = buflen;
+    p1->proto = IPPROTO_ICMPV6;
 
-    p2.icmpv6c.comp_csum = -1;
-    p2.ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
-    p2.icmpv6h = (ICMPV6Hdr *) (invalid_raw_ipv6 + 54);
-    p2.ip6c.plen = IPV6_GET_PLEN(&(p2));
-    p2.src.family = AF_INET;
-    p2.dst.family = AF_INET;
-    p2.payload = buf;
-    p2.payload_len = buflen;
-    p2.proto = IPPROTO_ICMPV6;
+    p2->icmpv6c.comp_csum = -1;
+    p2->ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
+    p2->icmpv6h = (ICMPV6Hdr *) (invalid_raw_ipv6 + 54);
+    p2->ip6c.plen = IPV6_GET_PLEN(p2);
+    p2->src.family = AF_INET;
+    p2->dst.family = AF_INET;
+    p2->payload = buf;
+    p2->payload_len = buflen;
+    p2->proto = IPPROTO_ICMPV6;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -7018,14 +7149,14 @@ int SigTest36ICMPV6Keyword(void)
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
-    if (PacketAlertCheck(&p1, 1))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (PacketAlertCheck(p1, 1))
         result &= 1;
     else
         result &= 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
-    if (PacketAlertCheck(&p2, 2))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    if (PacketAlertCheck(p2, 2))
         result &= 1;
     else
         result &= 0;
@@ -7036,6 +7167,8 @@ int SigTest36ICMPV6Keyword(void)
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    SCFree(p1);
+    SCFree(p2);
     return result;
 }
 
@@ -7077,7 +7210,12 @@ int SigTest37NegativeICMPV6Keyword(void)
         0x00, 0x00, 0xf9, 0xc8, 0xe7, 0x36, 0xf5, 0xed,
         0x08, 0x01};
 
-    Packet p1, p2;
+    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    if (p1 == NULL)
+        return 0;
+    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    if (p2 == NULL)
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 1;
@@ -7087,28 +7225,30 @@ int SigTest37NegativeICMPV6Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, SIZE_OF_PACKET);
-    memset(&p2, 0, SIZE_OF_PACKET);
+    memset(p1, 0, SIZE_OF_PACKET);
+    p1->pkt = (uint8_t *)(p1 + 1);
+    memset(p2, 0, SIZE_OF_PACKET);
+    p2->pkt = (uint8_t *)(p2 + 1);
 
-    p1.icmpv6c.comp_csum = -1;
-    p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
-    p1.icmpv6h = (ICMPV6Hdr *) (valid_raw_ipv6 + 54);
-    p1.ip6c.plen = IPV6_GET_PLEN(&(p1));
-    p1.src.family = AF_INET;
-    p1.dst.family = AF_INET;
-    p1.payload = buf;
-    p1.payload_len = buflen;
-    p1.proto = IPPROTO_ICMPV6;
+    p1->icmpv6c.comp_csum = -1;
+    p1->ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
+    p1->icmpv6h = (ICMPV6Hdr *) (valid_raw_ipv6 + 54);
+    p1->ip6c.plen = IPV6_GET_PLEN(p1);
+    p1->src.family = AF_INET;
+    p1->dst.family = AF_INET;
+    p1->payload = buf;
+    p1->payload_len = buflen;
+    p1->proto = IPPROTO_ICMPV6;
 
-    p2.icmpv6c.comp_csum = -1;
-    p2.ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
-    p2.icmpv6h = (ICMPV6Hdr *) (invalid_raw_ipv6 + 54);
-    p2.ip6c.plen = IPV6_GET_PLEN(&(p2));
-    p2.src.family = AF_INET;
-    p2.dst.family = AF_INET;
-    p2.payload = buf;
-    p2.payload_len = buflen;
-    p2.proto = IPPROTO_ICMPV6;
+    p2->icmpv6c.comp_csum = -1;
+    p2->ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
+    p2->icmpv6h = (ICMPV6Hdr *) (invalid_raw_ipv6 + 54);
+    p2->ip6c.plen = IPV6_GET_PLEN(p2);
+    p2->src.family = AF_INET;
+    p2->dst.family = AF_INET;
+    p2->payload = buf;
+    p2->payload_len = buflen;
+    p2->proto = IPPROTO_ICMPV6;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -7140,14 +7280,14 @@ int SigTest37NegativeICMPV6Keyword(void)
     //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
-    if (PacketAlertCheck(&p1, 1))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (PacketAlertCheck(p1, 1))
         result &= 0;
     else
         result &= 1;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
-    if (PacketAlertCheck(&p2, 2))
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    if (PacketAlertCheck(p2, 2))
         result &= 0;
     else
         result &= 1;
@@ -7158,12 +7298,16 @@ int SigTest37NegativeICMPV6Keyword(void)
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    SCFree(p1);
+    SCFree(p2);
     return result;
 }
 
 int SigTest38Real(int mpm_type)
 {
-    Packet p1;
+    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    if (p1 == NULL)
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 1;
@@ -7202,29 +7346,38 @@ int SigTest38Real(int mpm_type)
     uint16_t buflen = sizeof(buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, SIZE_OF_PACKET);
+    memset(p1, 0, SIZE_OF_PACKET);
+    p1->pkt = (uint8_t *)(p1 + 1);
 
     /* Copy raw data into packet */
-    if (PacketCopyData(&p1, raw_eth, ethlen) == -1)
+    if (PacketCopyData(p1, raw_eth, ethlen) == -1) {
+        SCFree(p1);
         return 1;
-    if (PacketCopyDataOffset(&p1, ethlen, raw_ipv4, ipv4len) == -1)
+    }
+    if (PacketCopyDataOffset(p1, ethlen, raw_ipv4, ipv4len) == -1) {
+        SCFree(p1);
         return 1;
-    if (PacketCopyDataOffset(&p1, ethlen + ipv4len, raw_tcp, tcplen) == -1)
+    }
+    if (PacketCopyDataOffset(p1, ethlen + ipv4len, raw_tcp, tcplen) == -1) {
+        SCFree(p1);
         return 1;
-    if (PacketCopyDataOffset(&p1, ethlen + ipv4len + tcplen, buf, buflen) == -1)
+    }
+    if (PacketCopyDataOffset(p1, ethlen + ipv4len + tcplen, buf, buflen) == -1) {
+        SCFree(p1);
         return 1;
-    SET_PKT_LEN(&p1, ethlen + ipv4len + tcplen + buflen);
+    }
+    SET_PKT_LEN(p1, ethlen + ipv4len + tcplen + buflen);
 
-    p1.tcpc.comp_csum = -1;
-    p1.ethh = (EthernetHdr *)raw_eth;
-    p1.ip4h = (IPV4Hdr *)raw_ipv4;
-    p1.tcph = (TCPHdr *)raw_tcp;
-    p1.tcpvars.hlen = 0;
-    p1.src.family = AF_INET;
-    p1.dst.family = AF_INET;
-    p1.payload = GET_PKT_DATA(&p1) + ethlen + ipv4len + tcplen;
-    p1.payload_len = buflen;
-    p1.proto = IPPROTO_TCP;
+    p1->tcpc.comp_csum = -1;
+    p1->ethh = (EthernetHdr *)raw_eth;
+    p1->ip4h = (IPV4Hdr *)raw_ipv4;
+    p1->tcph = (TCPHdr *)raw_tcp;
+    p1->tcpvars.hlen = 0;
+    p1->src.family = AF_INET;
+    p1->dst.family = AF_INET;
+    p1->payload = GET_PKT_DATA(p1) + ethlen + ipv4len + tcplen;
+    p1->payload_len = buflen;
+    p1->proto = IPPROTO_TCP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -7256,15 +7409,15 @@ int SigTest38Real(int mpm_type)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
-    if (PacketAlertCheck(&p1, 1)) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (PacketAlertCheck(p1, 1)) {
         result = 1;
     } else {
         result = 0;
         printf("sid 1 didn't alert, but should have: ");
         goto cleanup;
     }
-    if (PacketAlertCheck(&p1, 2)) {
+    if (PacketAlertCheck(p1, 2)) {
         result = 1;
     } else {
         result = 0;
@@ -7280,6 +7433,7 @@ cleanup:
     DetectEngineCtxFree(de_ctx);
 
 end:
+    SCFree(p1);
     return result;
 }
 static int SigTest38B2g (void) {
@@ -7294,7 +7448,9 @@ static int SigTest38Wm (void) {
 
 int SigTest39Real(int mpm_type)
 {
-    Packet p1;
+    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    if (p1 == NULL)
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 1;
@@ -7333,29 +7489,38 @@ int SigTest39Real(int mpm_type)
     uint16_t buflen = sizeof(buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, SIZE_OF_PACKET);
+    memset(p1, 0, SIZE_OF_PACKET);
+    p1->pkt = (uint8_t *)(p1 + 1);
 
     /* Copy raw data into packet */
-    if (PacketCopyData(&p1, raw_eth, ethlen) == -1)
+    if (PacketCopyData(p1, raw_eth, ethlen) == -1) {
+        SCFree(p1);
         return 1;
-    if (PacketCopyDataOffset(&p1, ethlen, raw_ipv4, ipv4len) == -1)
+    }
+    if (PacketCopyDataOffset(p1, ethlen, raw_ipv4, ipv4len) == -1) {
+        SCFree(p1);
         return 1;
-    if (PacketCopyDataOffset(&p1, ethlen + ipv4len, raw_tcp, tcplen) == -1)
+    }
+    if (PacketCopyDataOffset(p1, ethlen + ipv4len, raw_tcp, tcplen) == -1) {
+        SCFree(p1);
         return 1;
-    if (PacketCopyDataOffset(&p1, ethlen + ipv4len + tcplen, buf, buflen) == -1)
+    }
+    if (PacketCopyDataOffset(p1, ethlen + ipv4len + tcplen, buf, buflen) == -1) {
+        SCFree(p1);
         return 1;
-    SET_PKT_LEN(&p1, ethlen + ipv4len + tcplen + buflen);
+    }
+    SET_PKT_LEN(p1, ethlen + ipv4len + tcplen + buflen);
 
-    p1.tcpc.comp_csum = -1;
-    p1.ethh = (EthernetHdr *)raw_eth;
-    p1.ip4h = (IPV4Hdr *)raw_ipv4;
-    p1.tcph = (TCPHdr *)raw_tcp;
-    p1.tcpvars.hlen = 0;
-    p1.src.family = AF_INET;
-    p1.dst.family = AF_INET;
-    p1.payload = GET_PKT_DATA(&p1) + ethlen + ipv4len + tcplen;
-    p1.payload_len = buflen;
-    p1.proto = IPPROTO_TCP;
+    p1->tcpc.comp_csum = -1;
+    p1->ethh = (EthernetHdr *)raw_eth;
+    p1->ip4h = (IPV4Hdr *)raw_ipv4;
+    p1->tcph = (TCPHdr *)raw_tcp;
+    p1->tcpvars.hlen = 0;
+    p1->src.family = AF_INET;
+    p1->dst.family = AF_INET;
+    p1->payload = GET_PKT_DATA(p1) + ethlen + ipv4len + tcplen;
+    p1->payload_len = buflen;
+    p1->proto = IPPROTO_TCP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -7392,15 +7557,15 @@ int SigTest39Real(int mpm_type)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
-    if (PacketAlertCheck(&p1, 1)) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (PacketAlertCheck(p1, 1)) {
         result = 1;
     } else {
         result = 0;
         printf("sid 1 didn't alert, but should have: ");
         goto cleanup;
     }
-    if (PacketAlertCheck(&p1, 2)) {
+    if (PacketAlertCheck(p1, 2)) {
         result = 1;
     } else {
         result = 0;
@@ -7416,6 +7581,7 @@ cleanup:
     DetectEngineCtxFree(de_ctx);
 
 end:
+    SCFree(p1);
     return result;
 }
 static int SigTest39B2g (void) {
@@ -7472,18 +7638,21 @@ int SigTest36ContentAndIsdataatKeywords01Real (int mpm_type) {
 	,0x65,0x72,0x65,0x3c,0x2f,0x41,0x3e,0x2e,0x0d,0x0a,0x3c,0x2f,0x42,0x4f,0x44,0x59
 	,0x3e,0x3c,0x2f,0x48,0x54,0x4d,0x4c,0x3e,0x0d,0x0a };
 
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     DecodeThreadVars dtv;
 
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
 
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 
     FlowInitConfig(FLOW_QUIET);
-    DecodeEthernet(&th_v, &dtv, &p, raw_eth, sizeof(raw_eth), NULL);
+    DecodeEthernet(&th_v, &dtv, p, raw_eth, sizeof(raw_eth), NULL);
 
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -7504,8 +7673,8 @@ int SigTest36ContentAndIsdataatKeywords01Real (int mpm_type) {
     //PatternMatchPrepare(mpm_ctx, mpm_type);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 101) == 0) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 101) == 0) {
         result = 0;
         goto end;
     } else {
@@ -7520,6 +7689,7 @@ int SigTest36ContentAndIsdataatKeywords01Real (int mpm_type) {
     DetectEngineCtxFree(de_ctx);
     FlowShutdown();
 
+    SCFree(p);
     return result;
 
 end:
@@ -7539,6 +7709,7 @@ end:
 
     FlowShutdown();
 
+    SCFree(p);
     return result;
 }
 
@@ -7585,18 +7756,21 @@ int SigTest37ContentAndIsdataatKeywords02Real (int mpm_type) {
 	,0x65,0x72,0x65,0x3c,0x2f,0x41,0x3e,0x2e,0x0d,0x0a,0x3c,0x2f,0x42,0x4f,0x44,0x59
 	,0x3e,0x3c,0x2f,0x48,0x54,0x4d,0x4c,0x3e,0x0d,0x0a };
 
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     DecodeThreadVars dtv;
 
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
 
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 
     FlowInitConfig(FLOW_QUIET);
-    DecodeEthernet(&th_v, &dtv, &p, raw_eth, sizeof(raw_eth), NULL);
+    DecodeEthernet(&th_v, &dtv, p, raw_eth, sizeof(raw_eth), NULL);
 
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -7631,8 +7805,8 @@ int SigTest37ContentAndIsdataatKeywords02Real (int mpm_type) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, 101) == 0) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 101) == 0) {
         result = 1;
         goto end;
     } else {
@@ -7647,6 +7821,7 @@ int SigTest37ContentAndIsdataatKeywords02Real (int mpm_type) {
     DetectEngineCtxFree(de_ctx);
     FlowShutdown();
 
+    SCFree(p);
     return result;
 
 end:
@@ -7664,6 +7839,7 @@ end:
 
     FlowShutdown();
 
+    SCFree(p);
     return result;
 }
 
@@ -7700,8 +7876,10 @@ int SigTest40NoPacketInspection01(void) {
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
     TCPHdr tcphdr;
+    if (p == NULL)
+    return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     PacketQueue pq;
@@ -7709,24 +7887,25 @@ int SigTest40NoPacketInspection01(void) {
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&pq, 0, sizeof(pq));
     memset(&f, 0, sizeof(f));
     memset(&tcphdr, 0, sizeof(tcphdr));
 
-    p.src.family = AF_INET;
-    p.src.addr_data32[0] = 0x0102080a;
-    p.dst.addr_data32[0] = 0x04030201;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
-    p.dp = 34260;
-    p.sp = 21;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flags |= PKT_NOPACKET_INSPECTION;
-    p.tcph = &tcphdr;
-    p.flow = &f;
+    p->src.family = AF_INET;
+    p->src.addr_data32[0] = 0x0102080a;
+    p->dst.addr_data32[0] = 0x04030201;
+    p->dst.family = AF_INET;
+    p->payload = buf;
+    p->payload_len = buflen;
+    p->proto = IPPROTO_TCP;
+    p->dp = 34260;
+    p->sp = 21;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flags |= PKT_NOPACKET_INSPECTION;
+    p->tcph = &tcphdr;
+    p->flow = &f;
 
     FLOW_INITIALIZE(&f);
 
@@ -7747,8 +7926,8 @@ int SigTest40NoPacketInspection01(void) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
     det_ctx->de_ctx = de_ctx;
 
-    Detect(&th_v, &p, det_ctx, &pq, NULL);
-    if (PacketAlertCheck(&p, 2))
+    Detect(&th_v, p, det_ctx, &pq, NULL);
+    if (PacketAlertCheck(p, 2))
         result = 0;
     else
         result = 1;
@@ -7759,6 +7938,7 @@ int SigTest40NoPacketInspection01(void) {
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    SCFree(p);
     return result;
 }
 
@@ -7772,19 +7952,22 @@ int SigTest40NoPayloadInspection02(void) {
     uint8_t *buf = (uint8_t *)
                     "220 (vsFTPd 2.0.5)\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+    return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 1;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
-    p.flags |= PKT_NOPAYLOAD_INSPECTION;
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->payload = buf;
+    p->payload_len = buflen;
+    p->proto = IPPROTO_TCP;
+    p->flags |= PKT_NOPAYLOAD_INSPECTION;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -7810,9 +7993,9 @@ int SigTest40NoPayloadInspection02(void) {
     if (!(de_ctx->sig_list->flags & SIG_FLAG_PAYLOAD))
         result = 0;
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (PacketAlertCheck(&p, 1))
+    if (PacketAlertCheck(p, 1))
         result &= 0;
     else
         result &= 1;
@@ -7826,6 +8009,7 @@ int SigTest40NoPayloadInspection02(void) {
     //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
+    SCFree(p);
     return result;
 }
 
@@ -7838,18 +8022,21 @@ static int SigTestMemory01 (void) {
                     "Host: two.example.org\r\n"
                     "\r\n\r\n";
     uint16_t buflen = strlen((char *)buf);
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload = buf;
-    p.payload_len = buflen;
-    p.proto = IPPROTO_TCP;
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->payload = buf;
+    p->payload_len = buflen;
+    p->proto = IPPROTO_TCP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -7883,6 +8070,7 @@ printf("@exit\n\n");
 
     result = 1;
 end:
+    SCFree(p);
     return result;
 }
 
@@ -8304,17 +8492,20 @@ end:
 static int SigTestSgh03 (void) {
     ThreadVars th_v;
     int result = 0;
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     DetectEngineThreadCtx *det_ctx;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload_len = 1;
-    p.proto = IPPROTO_TCP;
-    p.dp = 80;
-    p.dst.addr_data32[0] = 0x04030201;
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->payload_len = 1;
+    p->proto = IPPROTO_TCP;
+    p->dp = 80;
+    p->dst.addr_data32[0] = 0x04030201;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -8354,7 +8545,7 @@ static int SigTestSgh03 (void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigGroupHead *sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
+    SigGroupHead *sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
     if (sgh == NULL) {
         printf("no sgh: ");
         goto end;
@@ -8391,9 +8582,9 @@ static int SigTestSgh03 (void) {
         goto end;
     }
 
-    p.dst.addr_data32[0] = 0x05030201;
+    p->dst.addr_data32[0] = 0x05030201;
 
-    sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
+    sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
     if (sgh == NULL) {
         printf("no sgh: ");
         goto end;
@@ -8425,14 +8616,14 @@ static int SigTestSgh03 (void) {
     }
 
     if (sgh->mpm_content_maxlen != 3) {
-        printf("sgh->mpm_content_maxlen %u, expected 3 (%x): ", sgh->mpm_content_maxlen, p.dst.addr_data32[0]);
+        printf("sgh->mpm_content_maxlen %u, expected 3 (%x): ", sgh->mpm_content_maxlen, p->dst.addr_data32[0]);
         goto end;
     }
 
 
-    p.dst.addr_data32[0] = 0x06030201;
+    p->dst.addr_data32[0] = 0x06030201;
 
-    sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
+    sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
     if (sgh == NULL) {
         printf("no sgh: ");
         goto end;
@@ -8466,23 +8657,27 @@ static int SigTestSgh03 (void) {
 
     result = 1;
 end:
+    SCFree(p);
     return result;
 }
 
 static int SigTestSgh04 (void) {
     ThreadVars th_v;
     int result = 0;
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     DetectEngineThreadCtx *det_ctx;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload_len = 1;
-    p.proto = IPPROTO_TCP;
-    p.dp = 80;
-    p.dst.addr_data32[0] = 0x04030201;
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->payload_len = 1;
+    p->proto = IPPROTO_TCP;
+    p->dp = 80;
+    p->dst.addr_data32[0] = 0x04030201;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -8522,7 +8717,7 @@ static int SigTestSgh04 (void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigGroupHead *sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
+    SigGroupHead *sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
     if (sgh == NULL) {
         printf("no sgh: ");
         goto end;
@@ -8558,9 +8753,9 @@ static int SigTestSgh04 (void) {
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
 #endif
-    p.dst.addr_data32[0] = 0x05030201;
+    p->dst.addr_data32[0] = 0x05030201;
 
-    sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
+    sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
     if (sgh == NULL) {
         printf("no sgh: ");
         goto end;
@@ -8594,9 +8789,9 @@ static int SigTestSgh04 (void) {
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
 #endif
-    p.dst.addr_data32[0] = 0x06030201;
+    p->dst.addr_data32[0] = 0x06030201;
 
-    sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
+    sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
     if (sgh == NULL) {
         printf("no sgh: ");
         goto end;
@@ -8623,9 +8818,9 @@ static int SigTestSgh04 (void) {
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
 #endif
-    p.proto = IPPROTO_GRE;
+    p->proto = IPPROTO_GRE;
 
-    sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
+    sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
     if (sgh == NULL) {
         printf("no sgh: ");
         goto end;
@@ -8654,6 +8849,7 @@ static int SigTestSgh04 (void) {
 
     result = 1;
 end:
+    SCFree(p);
     return result;
 }
 
@@ -8661,17 +8857,20 @@ end:
 static int SigTestSgh05 (void) {
     ThreadVars th_v;
     int result = 0;
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     DetectEngineThreadCtx *det_ctx;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.payload_len = 1;
-    p.proto = IPPROTO_TCP;
-    p.dp = 80;
-    p.dst.addr_data32[0] = 0x04030201;
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->payload_len = 1;
+    p->proto = IPPROTO_TCP;
+    p->dp = 80;
+    p->dst.addr_data32[0] = 0x04030201;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -8689,7 +8888,7 @@ static int SigTestSgh05 (void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigGroupHead *sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, &p);
+    SigGroupHead *sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
     if (sgh == NULL) {
         printf("no sgh: ");
         goto end;
@@ -8711,6 +8910,7 @@ static int SigTestSgh05 (void) {
 
     result = 1;
 end:
+    SCFree(p);
     return result;
 }
 
@@ -9194,41 +9394,53 @@ static int SigTestWithinReal01 (int mpm_type) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* packet 1 */
-    Packet p1;
-    memset(&p1, 0, SIZE_OF_PACKET);
-    DecodeEthernet(&th_v, &dtv, &p1, rawpkt1, sizeof(rawpkt1), NULL);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
-    if (!(PacketAlertCheck(&p1, 556))) {
+    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    if (p1 == NULL)
+        return 0;
+    memset(p1, 0, SIZE_OF_PACKET);
+    p1->pkt = (uint8_t *)(p1 + 1);
+    DecodeEthernet(&th_v, &dtv, p1, rawpkt1, sizeof(rawpkt1), NULL);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
+    if (!(PacketAlertCheck(p1, 556))) {
         printf("failed to match on packet 1: ");
         goto end;
     }
 
     /* packet 2 */
-    Packet p2;
-    memset(&p2, 0, SIZE_OF_PACKET);
-    DecodeEthernet(&th_v, &dtv, &p2, rawpkt2, sizeof(rawpkt2), NULL);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
-    if (!(PacketAlertCheck(&p2, 556))) {
+    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    if (p2 == NULL)
+        return 0;
+    memset(p2, 0, SIZE_OF_PACKET);
+    p2->pkt = (uint8_t *)(p2 + 1);
+    DecodeEthernet(&th_v, &dtv, p2, rawpkt2, sizeof(rawpkt2), NULL);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
+    if (!(PacketAlertCheck(p2, 556))) {
         printf("failed to match on packet 2: ");
         goto end;
     }
 
     /* packet 3 */
-    Packet p3;
-    memset(&p3, 0, SIZE_OF_PACKET);
-    DecodeEthernet(&th_v, &dtv, &p3, rawpkt3, sizeof(rawpkt3), NULL);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p3);
-    if (!(PacketAlertCheck(&p3, 556))) {
+    Packet *p3 = SCMalloc(SIZE_OF_PACKET);
+    if (p3 == NULL)
+        return 0;
+    memset(p3, 0, SIZE_OF_PACKET);
+    p3->pkt = (uint8_t *)(p3 + 1);
+    DecodeEthernet(&th_v, &dtv, p3, rawpkt3, sizeof(rawpkt3), NULL);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p3);
+    if (!(PacketAlertCheck(p3, 556))) {
         printf("failed to match on packet 3: ");
         goto end;
     }
 
     /* packet 4 */
-    Packet p4;
-    memset(&p4, 0, SIZE_OF_PACKET);
-    DecodeEthernet(&th_v, &dtv, &p4, rawpkt4, sizeof(rawpkt4), NULL);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p4);
-    if (!(PacketAlertCheck(&p4, 556))) {
+    Packet *p4 = SCMalloc(SIZE_OF_PACKET);
+    if (p4 == NULL)
+        return 0;
+    memset(p4, 0, SIZE_OF_PACKET);
+    p4->pkt = (uint8_t *)(p4 + 1);
+    DecodeEthernet(&th_v, &dtv, p4, rawpkt4, sizeof(rawpkt4), NULL);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p4);
+    if (!(PacketAlertCheck(p4, 556))) {
         printf("failed to match on packet 4: ");
         goto end;
     }
@@ -9258,6 +9470,10 @@ end:
         DetectEngineCtxFree(de_ctx);
 
     FlowShutdown();
+    SCFree(p1);
+    SCFree(p2);
+    SCFree(p3);
+    SCFree(p4);
     return result;
 }
 

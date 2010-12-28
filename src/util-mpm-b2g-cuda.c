@@ -2755,24 +2755,28 @@ static int B2gCudaTest01(void)
     pb->packets_offset_buffer[0] = 0;
     pb->packets_payload_offset_buffer[0] = 0;
 
-    Packet p;
-    memset(&p, 0, SIZE_OF_PACKET);
-    pb->packets_address_buffer[0] = &p;
-    p.payload_len = strlen(string);
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
+    pb->packets_address_buffer[0] = p;
+    p->payload_len = strlen(string);
 
     B2gCudaMpmDispatcher(NULL, (Packet *)pb, tctx, NULL, NULL);
 
-    result &= (p.mpm_offsets[0] == 4);
-    result &= (p.mpm_offsets[1] == 1);
-    result &= (p.mpm_offsets[2] == 5);
-    result &= (p.mpm_offsets[3] == 9);
-    result &= (p.mpm_offsets[4] == 13);
+    result &= (p->mpm_offsets[0] == 4);
+    result &= (p->mpm_offsets[1] == 1);
+    result &= (p->mpm_offsets[2] == 5);
+    result &= (p->mpm_offsets[3] == 9);
+    result &= (p->mpm_offsets[4] == 13);
 
  end:
     SCCudaPBDeAllocSCCudaPBPacketsBuffer(pb);
     B2gCudaMpmDispThreadDeInit(NULL, (void *)tctx);
     B2gCudaDestroyCtx(&mpm_ctx);
     B2gCudaThreadDestroyCtx(&mpm_ctx, &mpm_thread_ctx);
+    SCFree(p);
     return result;
 }
 

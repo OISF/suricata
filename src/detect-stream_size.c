@@ -388,7 +388,9 @@ static int DetectStreamSizeParseTest03 (void) {
     TcpSession ssn;
     ThreadVars tv;
     DetectEngineThreadCtx dtx;
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+    return 0;
     Signature s;
     SigMatch sm;
     TcpStream client;
@@ -398,7 +400,8 @@ static int DetectStreamSizeParseTest03 (void) {
     memset(&ssn, 0, sizeof(TcpSession));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtx, 0, sizeof(DetectEngineThreadCtx));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&s, 0, sizeof(Signature));
     memset(&sm, 0, sizeof(SigMatch));
     memset(&client, 0, sizeof(TcpStream));
@@ -410,22 +413,26 @@ static int DetectStreamSizeParseTest03 (void) {
         if (!(sd->flags & STREAM_SIZE_CLIENT)) {
             printf("sd->flags not STREAM_SIZE_CLIENT: ");
             DetectStreamSizeFree(sd);
+            SCFree(p);
             return 0;
         }
 
         if (sd->mode != DETECTSSIZE_GT) {
             printf("sd->mode not DETECTSSIZE_GT: ");
             DetectStreamSizeFree(sd);
+            SCFree(p);
             return 0;
         }
 
         if (sd->ssize != 8) {
             printf("sd->ssize is %"PRIu32", not 8: ", sd->ssize);
             DetectStreamSizeFree(sd);
+            SCFree(p);
             return 0;
         }
     } else {
         printf("sd == NULL: ");
+        SCFree(p);
         return 0;
     }
 
@@ -433,15 +440,16 @@ static int DetectStreamSizeParseTest03 (void) {
     client.isn = 10;
     ssn.client = client;
     f.protoctx = &ssn;
-    p.flow = &f;
-    p.tcph = &tcph;
+    p->flow = &f;
+    p->tcph = &tcph;
     sm.ctx = sd;
 
-    result = DetectStreamSizeMatch(&tv, &dtx, &p, &s, &sm);
+    result = DetectStreamSizeMatch(&tv, &dtx, p, &s, &sm);
     if (result == 0) {
         printf("result 0 != 1: ");
     }
     DetectStreamSizeFree(sd);
+    SCFree(p);
     return result;
 }
 
@@ -457,7 +465,9 @@ static int DetectStreamSizeParseTest04 (void) {
     TcpSession ssn;
     ThreadVars tv;
     DetectEngineThreadCtx dtx;
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+    return 0;
     Signature s;
     SigMatch sm;
     TcpStream client;
@@ -467,7 +477,8 @@ static int DetectStreamSizeParseTest04 (void) {
     memset(&ssn, 0, sizeof(TcpSession));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtx, 0, sizeof(DetectEngineThreadCtx));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&s, 0, sizeof(Signature));
     memset(&sm, 0, sizeof(SigMatch));
     memset(&client, 0, sizeof(TcpStream));
@@ -476,22 +487,28 @@ static int DetectStreamSizeParseTest04 (void) {
 
     sd = DetectStreamSizeParse(" client , > , 8 ");
     if (sd != NULL) {
-        if (!(sd->flags & STREAM_SIZE_CLIENT) && sd->mode != DETECTSSIZE_GT && sd->ssize != 8)
-            return 0;
-    } else
+        if (!(sd->flags & STREAM_SIZE_CLIENT) && sd->mode != DETECTSSIZE_GT && sd->ssize != 8) {
+        SCFree(p);
         return 0;
+        }
+    } else
+        {
+        SCFree(p);
+        return 0;
+        }
 
     client.next_seq = 20;
     client.isn = 12;
     ssn.client = client;
     f.protoctx = &ssn;
-    p.flow = &f;
-    p.ip4h = &ip4h;
+    p->flow = &f;
+    p->ip4h = &ip4h;
     sm.ctx = sd;
 
-    if (!DetectStreamSizeMatch(&tv, &dtx, &p, &s, &sm))
+    if (!DetectStreamSizeMatch(&tv, &dtx, p, &s, &sm))
         result = 1;
 
+    SCFree(p);
     return result;
 }
 #endif /* UNITTESTS */

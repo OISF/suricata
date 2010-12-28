@@ -286,7 +286,9 @@ int DecodeEventTestParse05 (void) {
  * \test DecodeEventTestParse06 is a test for match function with valid decode-event value
  */
 int DecodeEventTestParse06 (void) {
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars tv;
     int ret = 0;
     DetectDecodeEventData *de = NULL;
@@ -294,9 +296,10 @@ int DecodeEventTestParse06 (void) {
 
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
 
-    DECODER_SET_EVENT(&p,PPP_PKT_TOO_SMALL);
+    DECODER_SET_EVENT(p,PPP_PKT_TOO_SMALL);
 
     de = DetectDecodeEventParse("ppp.pkt_too_small");
     if (de == NULL)
@@ -311,14 +314,17 @@ int DecodeEventTestParse06 (void) {
     sm->type = DETECT_DECODE_EVENT;
     sm->ctx = (void *)de;
 
-    ret = DetectDecodeEventMatch(&tv,NULL,&p,NULL,sm);
+    ret = DetectDecodeEventMatch(&tv,NULL,p,NULL,sm);
 
-    if(ret)
+    if(ret) {
+        SCFree(p);
         return 1;
+    }
 
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
+    SCFree(p);
     return 0;
 }
 #endif /* UNITTESTS */

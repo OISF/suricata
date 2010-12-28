@@ -279,31 +279,34 @@ static int TCPGetWscaleTest01(void)
                                 0x8a, 0xaf, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
                                 0x04, 0x02, 0x08, 0x0a, 0x00, 0x62, 0x88, 0x28,
                                 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x03, 0x02};
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     IPV4Hdr ip4h;
     ThreadVars tv;
     DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.ip4h = &ip4h;
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->ip4h = &ip4h;
 
 
     FlowInitConfig(FLOW_QUIET);
-    DecodeTCP(&tv, &dtv, &p, raw_tcp, sizeof(raw_tcp), NULL);
+    DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp), NULL);
     FlowShutdown();
 
-    if (p.tcph == NULL) {
+    if (p->tcph == NULL) {
         printf("tcp packet decode failed: ");
         goto end;
     }
 
-    uint8_t wscale = TCP_GET_WSCALE(&p);
+    uint8_t wscale = TCP_GET_WSCALE(p);
     if (wscale != 2) {
         printf("wscale %"PRIu8", expected 2: ", wscale);
         goto end;
@@ -311,6 +314,7 @@ static int TCPGetWscaleTest01(void)
 
     retval = 1;
 end:
+    SCFree(p);
     return retval;
 }
 
@@ -323,30 +327,33 @@ static int TCPGetWscaleTest02(void)
                                 0x8a, 0xaf, 0x00, 0x00, 0x02, 0x04, 0x05, 0xb4,
                                 0x04, 0x02, 0x08, 0x0a, 0x00, 0x62, 0x88, 0x28,
                                 0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x03, 0x0f};
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     IPV4Hdr ip4h;
     ThreadVars tv;
     DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.ip4h = &ip4h;
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->ip4h = &ip4h;
 
     FlowInitConfig(FLOW_QUIET);
-    DecodeTCP(&tv, &dtv, &p, raw_tcp, sizeof(raw_tcp), NULL);
+    DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp), NULL);
     FlowShutdown();
 
-    if (p.tcph == NULL) {
+    if (p->tcph == NULL) {
         printf("tcp packet decode failed: ");
         goto end;
     }
 
-    uint8_t wscale = TCP_GET_WSCALE(&p);
+    uint8_t wscale = TCP_GET_WSCALE(p);
     if (wscale != 0) {
         printf("wscale %"PRIu8", expected 0: ", wscale);
         goto end;
@@ -354,6 +361,7 @@ static int TCPGetWscaleTest02(void)
 
     retval = 1;
 end:
+    SCFree(p);
     return retval;
 }
 
@@ -365,30 +373,33 @@ static int TCPGetWscaleTest03(void)
                                 0xdd, 0xa3, 0x6f, 0xf8, 0x80, 0x10, 0x05, 0xb4,
                                 0x7c, 0x70, 0x00, 0x00, 0x01, 0x01, 0x08, 0x0a,
                                 0x00, 0x62, 0x88, 0x9e, 0x00, 0x00, 0x00, 0x00};
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     IPV4Hdr ip4h;
     ThreadVars tv;
     DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.ip4h = &ip4h;
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->ip4h = &ip4h;
 
     FlowInitConfig(FLOW_QUIET);
-    DecodeTCP(&tv, &dtv, &p, raw_tcp, sizeof(raw_tcp), NULL);
+    DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp), NULL);
     FlowShutdown();
 
-    if (p.tcph == NULL) {
+    if (p->tcph == NULL) {
         printf("tcp packet decode failed: ");
         goto end;
     }
 
-    uint8_t wscale = TCP_GET_WSCALE(&p);
+    uint8_t wscale = TCP_GET_WSCALE(p);
     if (wscale != 0) {
         printf("wscale %"PRIu8", expected 0: ", wscale);
         goto end;
@@ -396,6 +407,7 @@ static int TCPGetWscaleTest03(void)
 
     retval = 1;
 end:
+    SCFree(p);
     return retval;
 }
 #endif /* UNITTESTS */

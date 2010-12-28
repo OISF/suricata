@@ -449,31 +449,34 @@ static int DetectFtpbounceTestALMatch03(void) {
 
     TcpSession ssn;
     Flow f;
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     Signature *s = NULL;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
 
     memset(&th_v, 0, sizeof(th_v));
-    memset(&p, 0, sizeof(p));
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    p.src.family = AF_INET;
-    p.dst.family = AF_INET;
-    p.src.addr_data32[0] = 0x04030201;
-    p.payload = NULL;
-    p.payload_len = 0;
-    p.proto = IPPROTO_TCP;
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->src.addr_data32[0] = 0x04030201;
+    p->payload = NULL;
+    p->payload_len = 0;
+    p->proto = IPPROTO_TCP;
 
     FLOW_INITIALIZE(&f);
     f.src.address.address_un_data32[0]=0x04030201;
     f.protoctx =(void *)&ssn;
 
-    p.flow = &f;
-    p.flowflags |= FLOW_PKT_TOSERVER;
-    p.flowflags |= FLOW_PKT_ESTABLISHED;
-    p.flags |= PKT_HAS_FLOW;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW;
     f.alproto = ALPROTO_FTP;
 
     StreamTcpInitConfig(TRUE);
@@ -537,10 +540,10 @@ static int DetectFtpbounceTestALMatch03(void) {
     }
 
     /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     /* It should not match */
-    if (!(PacketAlertCheck(&p, 1))) {
+    if (!(PacketAlertCheck(p, 1))) {
         result = 1;
     } else {
         SCLogDebug("It should not match here!");
@@ -556,6 +559,7 @@ end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
+    SCFree(p);
     return result;
 }
 

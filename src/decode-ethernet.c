@@ -105,16 +105,20 @@ static int DecodeEthernetTest01 (void)   {
         0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd, 0xab, 0xcd,
         0xab, 0xcd };
 
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+    return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv,  0, sizeof(ThreadVars));
-    memset(&p,   0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
 
-    DecodeEthernet(&tv, &dtv, &p, raw_eth, sizeof(raw_eth), NULL);
+    DecodeEthernet(&tv, &dtv, p, raw_eth, sizeof(raw_eth), NULL);
 
+    SCFree(p);
     return 0;
 }
 #endif /* UNITTESTS */

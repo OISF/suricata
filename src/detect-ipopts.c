@@ -266,7 +266,9 @@ int IpOptsTestParse02 (void) {
  *  \retval 0 on failure
  */
 int IpOptsTestParse03 (void) {
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars tv;
     int ret = 0;
     DetectIpOptsData *de = NULL;
@@ -274,13 +276,14 @@ int IpOptsTestParse03 (void) {
     IPV4Hdr ip4h;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
-    p.ip4h = &ip4h;
-    p.IPV4_OPTS[0].type = IPV4_OPT_RR;
+    p->ip4h = &ip4h;
+    p->IPV4_OPTS[0].type = IPV4_OPT_RR;
 
-    p.IPV4_OPTS_CNT++;
+    p->IPV4_OPTS_CNT++;
 
     de = DetectIpOptsParse("rr");
 
@@ -294,14 +297,17 @@ int IpOptsTestParse03 (void) {
     sm->type = DETECT_IPOPTS;
     sm->ctx = (void *)de;
 
-    ret = DetectIpOptsMatch(&tv,NULL,&p,NULL,sm);
+    ret = DetectIpOptsMatch(&tv,NULL,p,NULL,sm);
 
-    if(ret)
+    if(ret) {
+        SCFree(p);
         return 1;
+    }
 
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
+    SCFree(p);
     return 0;
 }
 
@@ -312,7 +318,9 @@ error:
  *  \retval 0 on failure
  */
 int IpOptsTestParse04 (void) {
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars tv;
     int ret = 0;
     DetectIpOptsData *de = NULL;
@@ -320,13 +328,14 @@ int IpOptsTestParse04 (void) {
     IPV4Hdr ip4h;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
-    p.ip4h = &ip4h;
-    p.IPV4_OPTS[0].type = IPV4_OPT_RR;
+    p->ip4h = &ip4h;
+    p->IPV4_OPTS[0].type = IPV4_OPT_RR;
 
-    p.IPV4_OPTS_CNT++;
+    p->IPV4_OPTS_CNT++;
 
     de = DetectIpOptsParse("lsrr");
 
@@ -340,14 +349,17 @@ int IpOptsTestParse04 (void) {
     sm->type = DETECT_IPOPTS;
     sm->ctx = (void *)de;
 
-    ret = DetectIpOptsMatch(&tv,NULL,&p,NULL,sm);
+    ret = DetectIpOptsMatch(&tv,NULL,p,NULL,sm);
 
-    if(ret)
+    if(ret) {
+        SCFree(p);
         return 1;
+    }
 
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
+    SCFree(p);
     return 0;
 }
 #endif /* UNITTESTS */

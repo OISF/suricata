@@ -681,18 +681,21 @@ int DetectContentLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize, ch
 {
     int result = 0;
 
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     DecodeThreadVars dtv;
 
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
 
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 
     FlowInitConfig(FLOW_QUIET);
-    DecodeEthernet(&th_v, &dtv, &p, raw_eth_pkt, pktsize, NULL);
+    DecodeEthernet(&th_v, &dtv, p, raw_eth_pkt, pktsize, NULL);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -721,8 +724,8 @@ int DetectContentLongPatternMatchTest(uint8_t *raw_eth_pkt, uint16_t pktsize, ch
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
-    if (PacketAlertCheck(&p, sid) != 1) {
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, sid) != 1) {
         goto end;
     }
 
@@ -738,6 +741,7 @@ end:
     }
     FlowShutdown();
 
+    SCFree(p);
     return result;
 }
 

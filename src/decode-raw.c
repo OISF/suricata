@@ -76,27 +76,34 @@ static int DecodeRawTest01 (void)   {
         0x29, 0x9c, 0x00, 0x00, 0x02, 0x04, 0x05, 0x8c,
         0x04, 0x02, 0x08, 0x0a, 0x00, 0xdd, 0x1a, 0x39,
         0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x03, 0x02 };
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+    return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv,  0, sizeof(ThreadVars));
-    memset(&p,   0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
 
-    if (PacketCopyData(&p, raw_ip, sizeof(raw_ip)) == -1)
-        return 1;
+    if (PacketCopyData(p, raw_ip, sizeof(raw_ip)) == -1) {
+    SCFree(p);
+    return 1;
+    }
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodeRaw(&tv, &dtv, &p, raw_ip, p.pktlen, NULL);
-    if (p.ip6h == NULL) {
+    DecodeRaw(&tv, &dtv, p, raw_ip, p->pktlen, NULL);
+    if (p->ip6h == NULL) {
         printf("expected a valid ipv6 header but it was NULL: ");
         FlowShutdown();
+        SCFree(p);
         return 1;
     }
 
     FlowShutdown();
+    SCFree(p);
     return 0;
 
 }
@@ -115,26 +122,33 @@ static int DecodeRawTest02 (void)   {
         0x70, 0x02, 0x40, 0x00, 0xb8, 0xc8, 0x00, 0x00,
         0x02, 0x04, 0x05, 0xb4, 0x01, 0x01, 0x04, 0x02 };
 
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+    return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv,  0, sizeof(ThreadVars));
-    memset(&p,   0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
 
-    if (PacketCopyData(&p, raw_ip, sizeof(raw_ip)) == -1)
-        return 1;
+    if (PacketCopyData(p, raw_ip, sizeof(raw_ip)) == -1) {
+    SCFree(p);
+    return 1;
+    }
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodeRaw(&tv, &dtv, &p, raw_ip, p.pktlen, NULL);
+    DecodeRaw(&tv, &dtv, p, raw_ip, p->pktlen, NULL);
     FlowShutdown();
-    if (p.ip4h == NULL) {
+    if (p->ip4h == NULL) {
         printf("expected a valid ipv4 header but it was NULL: ");
+        SCFree(p);
         return 1;
     }
 
+    SCFree(p);
     return 0;
 }
 /** DecodeRawtest03
@@ -154,27 +168,34 @@ static int DecodeRawTest03 (void)   {
         0x34, 0x40, 0x67, 0x31, 0x3b, 0x63, 0x61, 0x74,
         0x20, 0x6b, 0x65, 0x79, 0x3b };
 
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+    return 0;
     ThreadVars tv;
     DecodeThreadVars dtv;
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv,  0, sizeof(ThreadVars));
-    memset(&p,   0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
 
-    if (PacketCopyData(&p, raw_ip, sizeof(raw_ip)) == -1)
-        return 1;
+    if (PacketCopyData(p, raw_ip, sizeof(raw_ip)) == -1) {
+    SCFree(p);
+    return 1;
+    }
 
     FlowInitConfig(FLOW_QUIET);
 
-    DecodeRaw(&tv, &dtv, &p, raw_ip, p.pktlen, NULL);
-    if (DECODER_ISSET_EVENT(&p,IPRAW_INVALID_IPV)) {
+    DecodeRaw(&tv, &dtv, p, raw_ip, p->pktlen, NULL);
+    if (DECODER_ISSET_EVENT(p,IPRAW_INVALID_IPV)) {
         FlowShutdown();
+        SCFree(p);
         return 0;
     } else {
         printf("expected IPRAW_INVALID_IPV to be set but it wasn't: ");
     }
     FlowShutdown();
+    SCFree(p);
     return 1;
 }
 

@@ -534,7 +534,9 @@ static int FlagsTestParse02 (void) {
  *  \retval 0 on failure
  */
 static int FlagsTestParse03 (void) {
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars tv;
     int ret = 0;
     DetectFlagsData *de = NULL;
@@ -543,13 +545,14 @@ static int FlagsTestParse03 (void) {
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p.ip4h = &ipv4h;
-    p.tcph = &tcph;
-    p.tcph->th_flags = TH_ACK|TH_PUSH|TH_SYN|TH_RST;
+    p->ip4h = &ipv4h;
+    p->tcph = &tcph;
+    p->tcph->th_flags = TH_ACK|TH_PUSH|TH_SYN|TH_RST;
 
     de = DetectFlagsParse("AP+");
 
@@ -563,17 +566,19 @@ static int FlagsTestParse03 (void) {
     sm->type = DETECT_FLAGS;
     sm->ctx = (void *)de;
 
-    ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
+    ret = DetectFlagsMatch(&tv,NULL,p,NULL,sm);
 
     if(ret) {
         if (de) SCFree(de);
         if (sm) SCFree(sm);
+        SCFree(p);
         return 1;
     }
 
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
+    SCFree(p);
     return 0;
 }
 
@@ -584,7 +589,9 @@ error:
  *  \retval 0 on failure
  */
 static int FlagsTestParse04 (void) {
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars tv;
     int ret = 0;
     DetectFlagsData *de = NULL;
@@ -593,13 +600,14 @@ static int FlagsTestParse04 (void) {
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p.ip4h = &ipv4h;
-    p.tcph = &tcph;
-    p.tcph->th_flags = TH_SYN;
+    p->ip4h = &ipv4h;
+    p->tcph = &tcph;
+    p->tcph->th_flags = TH_SYN;
 
     de = DetectFlagsParse("A");
 
@@ -613,17 +621,19 @@ static int FlagsTestParse04 (void) {
     sm->type = DETECT_FLAGS;
     sm->ctx = (void *)de;
 
-    ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
+    ret = DetectFlagsMatch(&tv,NULL,p,NULL,sm);
 
     if(ret) {
         if (de) SCFree(de);
         if (sm) SCFree(sm);
+        SCFree(p);
         return 1;
     }
 
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
+    SCFree(p);
     return 0;
 }
 
@@ -634,7 +644,9 @@ error:
  *  \retval 0 on failure
  */
 static int FlagsTestParse05 (void) {
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars tv;
     int ret = 0;
     DetectFlagsData *de = NULL;
@@ -643,13 +655,14 @@ static int FlagsTestParse05 (void) {
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p.ip4h = &ipv4h;
-    p.tcph = &tcph;
-    p.tcph->th_flags = TH_ACK|TH_PUSH|TH_SYN|TH_RST;
+    p->ip4h = &ipv4h;
+    p->tcph = &tcph;
+    p->tcph->th_flags = TH_ACK|TH_PUSH|TH_SYN|TH_RST;
 
     de = DetectFlagsParse("+AP,SR");
 
@@ -663,17 +676,19 @@ static int FlagsTestParse05 (void) {
     sm->type = DETECT_FLAGS;
     sm->ctx = (void *)de;
 
-    ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
+    ret = DetectFlagsMatch(&tv,NULL,p,NULL,sm);
 
     if(ret) {
         if (de) SCFree(de);
         if (sm) SCFree(sm);
+        SCFree(p);
         return 1;
     }
 
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
+    SCFree(p);
     return 0;
 }
 
@@ -684,7 +699,9 @@ error:
  *  \retval 0 on failure
  */
 static int FlagsTestParse06 (void) {
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars tv;
     int ret = 0;
     DetectFlagsData *de = NULL;
@@ -693,13 +710,14 @@ static int FlagsTestParse06 (void) {
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p.ip4h = &ipv4h;
-    p.tcph = &tcph;
-    p.tcph->th_flags = TH_ACK|TH_PUSH|TH_SYN|TH_RST;
+    p->ip4h = &ipv4h;
+    p->tcph = &tcph;
+    p->tcph->th_flags = TH_ACK|TH_PUSH|TH_SYN|TH_RST;
 
     de = DetectFlagsParse("+AP,UR");
 
@@ -713,17 +731,19 @@ static int FlagsTestParse06 (void) {
     sm->type = DETECT_FLAGS;
     sm->ctx = (void *)de;
 
-    ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
+    ret = DetectFlagsMatch(&tv,NULL,p,NULL,sm);
 
     if(ret) {
         if (de) SCFree(de);
         if (sm) SCFree(sm);
+        SCFree(p);
         return 1;
     }
 
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
+    SCFree(p);
     return 0;
 }
 
@@ -734,7 +754,9 @@ error:
  *  \retval 0 on failure
  */
 static int FlagsTestParse07 (void) {
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars tv;
     int ret = 0;
     DetectFlagsData *de = NULL;
@@ -743,13 +765,14 @@ static int FlagsTestParse07 (void) {
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p.ip4h = &ipv4h;
-    p.tcph = &tcph;
-    p.tcph->th_flags = TH_SYN|TH_RST;
+    p->ip4h = &ipv4h;
+    p->tcph = &tcph;
+    p->tcph->th_flags = TH_SYN|TH_RST;
 
     de = DetectFlagsParse("*AP");
 
@@ -763,17 +786,19 @@ static int FlagsTestParse07 (void) {
     sm->type = DETECT_FLAGS;
     sm->ctx = (void *)de;
 
-    ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
+    ret = DetectFlagsMatch(&tv,NULL,p,NULL,sm);
 
     if(ret) {
         if (de) SCFree(de);
         if (sm) SCFree(sm);
+        SCFree(p);
         return 1;
     }
 
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
+    SCFree(p);
     return 0;
 }
 
@@ -784,7 +809,9 @@ error:
  *  \retval 0 on failure
  */
 static int FlagsTestParse08 (void) {
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars tv;
     int ret = 0;
     DetectFlagsData *de = NULL;
@@ -793,13 +820,14 @@ static int FlagsTestParse08 (void) {
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p.ip4h = &ipv4h;
-    p.tcph = &tcph;
-    p.tcph->th_flags = TH_SYN|TH_RST;
+    p->ip4h = &ipv4h;
+    p->tcph = &tcph;
+    p->tcph->th_flags = TH_SYN|TH_RST;
 
     de = DetectFlagsParse("*SA");
 
@@ -813,17 +841,19 @@ static int FlagsTestParse08 (void) {
     sm->type = DETECT_FLAGS;
     sm->ctx = (void *)de;
 
-    ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
+    ret = DetectFlagsMatch(&tv,NULL,p,NULL,sm);
 
     if(ret) {
         if (de) SCFree(de);
         if (sm) SCFree(sm);
+        SCFree(p);
         return 1;
     }
 
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
+    SCFree(p);
     return 0;
 }
 
@@ -834,7 +864,9 @@ error:
  *  \retval 0 on failure
  */
 static int FlagsTestParse09 (void) {
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars tv;
     int ret = 0;
     DetectFlagsData *de = NULL;
@@ -843,13 +875,14 @@ static int FlagsTestParse09 (void) {
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p.ip4h = &ipv4h;
-    p.tcph = &tcph;
-    p.tcph->th_flags = TH_SYN|TH_RST;
+    p->ip4h = &ipv4h;
+    p->tcph = &tcph;
+    p->tcph->th_flags = TH_SYN|TH_RST;
 
     de = DetectFlagsParse("!PA");
 
@@ -863,17 +896,19 @@ static int FlagsTestParse09 (void) {
     sm->type = DETECT_FLAGS;
     sm->ctx = (void *)de;
 
-    ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
+    ret = DetectFlagsMatch(&tv,NULL,p,NULL,sm);
 
     if(ret) {
         if (de) SCFree(de);
         if (sm) SCFree(sm);
+        SCFree(p);
         return 1;
     }
 
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
+    SCFree(p);
     return 0;
 }
 
@@ -884,7 +919,9 @@ error:
  *  \retval 0 on failure
  */
 static int FlagsTestParse10 (void) {
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars tv;
     int ret = 0;
     DetectFlagsData *de = NULL;
@@ -893,13 +930,14 @@ static int FlagsTestParse10 (void) {
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p.ip4h = &ipv4h;
-    p.tcph = &tcph;
-    p.tcph->th_flags = TH_SYN|TH_RST;
+    p->ip4h = &ipv4h;
+    p->tcph = &tcph;
+    p->tcph->th_flags = TH_SYN|TH_RST;
 
     de = DetectFlagsParse("!AP");
 
@@ -913,17 +951,19 @@ static int FlagsTestParse10 (void) {
     sm->type = DETECT_FLAGS;
     sm->ctx = (void *)de;
 
-    ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
+    ret = DetectFlagsMatch(&tv,NULL,p,NULL,sm);
 
     if(ret) {
         if (de) SCFree(de);
         if (sm) SCFree(sm);
+        SCFree(p);
         return 1;
     }
 
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
+    SCFree(p);
     return 0;
 }
 
@@ -934,7 +974,9 @@ error:
  *  \retval 0 on failure
  */
 static int FlagsTestParse11 (void) {
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars tv;
     int ret = 0;
     DetectFlagsData *de = NULL;
@@ -943,13 +985,14 @@ static int FlagsTestParse11 (void) {
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p.ip4h = &ipv4h;
-    p.tcph = &tcph;
-    p.tcph->th_flags = TH_SYN|TH_RST|TH_URG;
+    p->ip4h = &ipv4h;
+    p->tcph = &tcph;
+    p->tcph->th_flags = TH_SYN|TH_RST|TH_URG;
 
     de = DetectFlagsParse("*AP,SR");
 
@@ -963,17 +1006,19 @@ static int FlagsTestParse11 (void) {
     sm->type = DETECT_FLAGS;
     sm->ctx = (void *)de;
 
-    ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
+    ret = DetectFlagsMatch(&tv,NULL,p,NULL,sm);
 
     if(ret) {
         if (de) SCFree(de);
         if (sm) SCFree(sm);
+        SCFree(p);
         return 1;
     }
 
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
+    SCFree(p);
     return 0;
 }
 
@@ -984,7 +1029,9 @@ error:
  *  \retval 0 on failure
  */
 static int FlagsTestParse12 (void) {
-    Packet p;
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
     ThreadVars tv;
     int ret = 0;
     DetectFlagsData *de = NULL;
@@ -993,13 +1040,14 @@ static int FlagsTestParse12 (void) {
     TCPHdr tcph;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     memset(&tcph, 0, sizeof(TCPHdr));
 
-    p.ip4h = &ipv4h;
-    p.tcph = &tcph;
-    p.tcph->th_flags = TH_SYN;
+    p->ip4h = &ipv4h;
+    p->tcph = &tcph;
+    p->tcph->th_flags = TH_SYN;
 
     de = DetectFlagsParse("0");
 
@@ -1015,17 +1063,19 @@ static int FlagsTestParse12 (void) {
     sm->type = DETECT_FLAGS;
     sm->ctx = (void *)de;
 
-    ret = DetectFlagsMatch(&tv,NULL,&p,NULL,sm);
+    ret = DetectFlagsMatch(&tv,NULL,p,NULL,sm);
 
     if(ret) {
         if (de) SCFree(de);
         if (sm) SCFree(sm);
+        SCFree(p);
         return 1;
     }
 
 error:
     if (de) SCFree(de);
     if (sm) SCFree(sm);
+    SCFree(p);
     return 0;
 }
 
