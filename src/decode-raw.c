@@ -43,10 +43,10 @@ void DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
     if (IP_GET_RAW_VER(pkt) == 4) {
         SCLogDebug("IPV4 Packet");
-        DecodeIPV4(tv, dtv, p, p->pkt, p->pktlen, pq);
+        DecodeIPV4(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
     } else if (IP_GET_RAW_VER(pkt) == 6) {
         SCLogDebug("IPV6 Packet");
-        DecodeIPV6(tv, dtv, p, p->pkt, p->pktlen, pq);
+        DecodeIPV6(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
     } else {
         SCLogDebug("Unknown ip version %" PRIu8 "", IP_GET_RAW_VER(pkt));
         DECODER_SET_EVENT(p,IPRAW_INVALID_IPV);
@@ -82,10 +82,10 @@ static int DecodeRawTest01 (void)   {
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv,  0, sizeof(ThreadVars));
-    memset(&p,   0, sizeof(Packet));
+    memset(&p,   0, SIZE_OF_PACKET);
 
-    p.pktlen = sizeof(raw_ip);
-    memcpy(p.pkt, raw_ip, p.pktlen);
+    if (PacketCopyData(&p, raw_ip, sizeof(raw_ip)) == -1)
+        return 1;
 
     FlowInitConfig(FLOW_QUIET);
 
@@ -121,10 +121,10 @@ static int DecodeRawTest02 (void)   {
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv,  0, sizeof(ThreadVars));
-    memset(&p,   0, sizeof(Packet));
+    memset(&p,   0, SIZE_OF_PACKET);
 
-    p.pktlen = sizeof(raw_ip);
-    memcpy(p.pkt, raw_ip, p.pktlen);
+    if (PacketCopyData(&p, raw_ip, sizeof(raw_ip)) == -1)
+        return 1;
 
     FlowInitConfig(FLOW_QUIET);
 
@@ -160,10 +160,10 @@ static int DecodeRawTest03 (void)   {
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv,  0, sizeof(ThreadVars));
-    memset(&p,   0, sizeof(Packet));
+    memset(&p,   0, SIZE_OF_PACKET);
 
-    p.pktlen = sizeof(raw_ip);
-    memcpy(p.pkt, raw_ip, p.pktlen);
+    if (PacketCopyData(&p, raw_ip, sizeof(raw_ip)) == -1)
+        return 1;
 
     FlowInitConfig(FLOW_QUIET);
 

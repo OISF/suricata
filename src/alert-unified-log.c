@@ -217,7 +217,7 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     hdr.tv.tv_sec = hdr.ref_tv.tv_sec = p->ts.tv_sec;
     hdr.tv.tv_usec = hdr.ref_tv.tv_usec = p->ts.tv_usec;
     hdr.pktflags = 0; /* XXX */
-    hdr.pktlen = hdr.caplen = p->pktlen + ethh_offset;
+    hdr.pktlen = hdr.caplen = GET_PKT_LEN(p) + ethh_offset;
 
     uint16_t i = 0;
     for (; i < alert_cnt; i++) {
@@ -250,13 +250,13 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
             buflen += sizeof(ethh);
         }
 
-        memcpy(buf+buflen,&p->pkt,p->pktlen);
-        buflen += p->pktlen;
+        memcpy(buf+buflen, GET_PKT_DATA(p),GET_PKT_LEN(p));
+        buflen += GET_PKT_LEN(p);
 
         /** Wait for the mutex. We dont want all the threads rotating the file
          * at the same time :) */
         SCMutexLock(&aun->file_ctx->fp_mutex);
-        if ((aun->file_ctx->size_current + sizeof(hdr) + p->pktlen + ethh_offset) > aun->file_ctx->size_limit) {
+        if ((aun->file_ctx->size_current + sizeof(hdr) + GET_PKT_LEN(p) + ethh_offset) > aun->file_ctx->size_limit) {
             if (AlertUnifiedLogRotateFile(tv,aun) < 0) {
                 SCMutexUnlock(&aun->file_ctx->fp_mutex);
                 aun->file_ctx->alerts += i;

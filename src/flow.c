@@ -706,7 +706,7 @@ void FlowHandlePacket (ThreadVars *tv, Packet *p)
         f->tosrcpktcnt++;
         p->flowflags |= FLOW_PKT_TOCLIENT;
     }
-    f->bytecnt += p->pktlen;
+    f->bytecnt += GET_PKT_LEN(p);
 
     if (f->flags & FLOW_TO_DST_SEEN && f->flags & FLOW_TO_SRC_SEEN) {
         SCLogDebug("pkt %p FLOW_PKT_ESTABLISHED", p);

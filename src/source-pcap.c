@@ -162,9 +162,11 @@ void PcapCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     ptv->bytes += h->caplen;
 
     p->datalink = ptv->datalink;
-    p->pktlen = h->caplen;
-    memcpy(p->pkt, pkt, p->pktlen);
-    SCLogDebug("p->pktlen: %" PRIu32 " (pkt %02x, p->pkt %02x)", p->pktlen, *pkt, *p->pkt);
+    SET_PKT_LEN(p, h->caplen);
+    if (PacketCopyData(p, pkt, GET_PKT_LEN(p)) == -1)
+        SCReturn;
+    SCLogDebug("pktlen: %" PRIu32 " (pkt %02x, pkt data %02x)",
+               GET_PKT_LEN(p), *pkt, *GET_PKT_DATA(p));
 
     /* store the packet in our array */
     ptv->array[ptv->array_idx] = p;
@@ -483,29 +485,29 @@ TmEcode DecodePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
     SCPerfCounterIncr(dtv->counter_pkts, tv->sc_perf_pca);
     SCPerfCounterIncr(dtv->counter_pkts_per_sec, tv->sc_perf_pca);
 
-    SCPerfCounterAddUI64(dtv->counter_bytes, tv->sc_perf_pca, p->pktlen);
+    SCPerfCounterAddUI64(dtv->counter_bytes, tv->sc_perf_pca, GET_PKT_LEN(p));
 #if 0
-    SCPerfCounterAddDouble(dtv->counter_bytes_per_sec, tv->sc_perf_pca, p->pktlen);
+    SCPerfCounterAddDouble(dtv->counter_bytes_per_sec, tv->sc_perf_pca, GET_PKT_LEN(p));
     SCPerfCounterAddDouble(dtv->counter_mbit_per_sec, tv->sc_perf_pca,
-                           (p->pktlen * 8)/1000000.0);
+                           (GET_PKT_LEN(p) * 8)/1000000.0);
 #endif
 
-    SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->sc_perf_pca, p->pktlen);
-    SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca, p->pktlen);
+    SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->sc_perf_pca, GET_PKT_LEN(p));
+    SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca, GET_PKT_LEN(p));
 
     /* call the decoder */
     switch(p->datalink) {
         case LINKTYPE_LINUX_SLL:
-            DecodeSll(tv, dtv, p, p->pkt, p->pktlen, pq);
+            DecodeSll(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
             break;
         case LINKTYPE_ETHERNET:
-            DecodeEthernet(tv, dtv, p,p->pkt, p->pktlen, pq);
+            DecodeEthernet(tv, dtv, p,GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
             break;
         case LINKTYPE_PPP:
-            DecodePPP(tv, dtv, p, p->pkt, p->pktlen, pq);
+            DecodePPP(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
             break;
         case LINKTYPE_RAW:
-            DecodeRaw(tv, dtv, p, p->pkt, p->pktlen, pq);
+            DecodeRaw(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
             break;
         default:
             SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED, "Error: datalink type %" PRId32 " not yet supported in module DecodePcap", p->datalink);

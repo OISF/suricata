@@ -272,7 +272,7 @@ int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
      */
     if (data->flags & DETECT_BYTETEST_RELATIVE) {
         ptr = det_ctx->pkt_ptr;
-        len = p->pktlen - det_ctx->pkt_off;
+        len = GET_PKT_LEN(p) - det_ctx->pkt_off;
 
         /* No match if there is no relative base */
         if (ptr == NULL || len == 0) {
@@ -290,9 +290,9 @@ int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     /* Validate that the to-be-extracted is within the packet
      * \todo Should this validate it is in the *payload*?
      */
-    if (ptr < p->pkt || data->nbytes > len) {
+    if (ptr < GET_PKT_DATA(p) || data->nbytes > len) {
         SCLogDebug("Data not within packet pkt=%p, ptr=%p, len=%d, nbytes=%d",
-                    p->pkt, ptr, len, data->nbytes);
+                    GET_PKT_DATA(p), ptr, len, data->nbytes);
         return 0;
     }
 

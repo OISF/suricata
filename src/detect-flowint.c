@@ -1412,7 +1412,7 @@ int DetectFlowintTestPacket01Real()
 
     /* Decode the packets, and test the matches*/
     for (i = 0;i < 11;i++) {
-        memset(&p, 0, sizeof(Packet));
+        memset(&p, 0, SIZE_OF_PACKET);
         DecodeEthernet(&th_v, &dtv, &p, pkts[i], pktssizes[i], NULL);
 
         SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -1749,7 +1749,7 @@ int DetectFlowintTestPacket02Real()
 
     /* Decode the packets, and test the matches*/
     for (i = 0;i < 11;i++) {
-        memset(&p, 0, sizeof(Packet));
+        memset(&p, 0, SIZE_OF_PACKET);
         DecodeEthernet(&th_v, &dtv, &p, pkts[i], pktssizes[i], NULL);
 
         SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);
@@ -2082,7 +2082,7 @@ int DetectFlowintTestPacket03Real()
 
     /* Decode the packets, and test the matches*/
     for (i = 0;i < 11;i++) {
-        memset(&p, 0, sizeof(Packet));
+        memset(&p, 0, SIZE_OF_PACKET);
         DecodeEthernet(&th_v, &dtv, &p, pkts[i], pktssizes[i], NULL);
 
         SigMatchSignatures(&th_v, de_ctx, det_ctx, &p);

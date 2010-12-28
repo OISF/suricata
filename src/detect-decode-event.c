@@ -294,7 +294,7 @@ int DecodeEventTestParse06 (void) {
 
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     DECODER_SET_EVENT(&p,PPP_PKT_TOO_SMALL);
 

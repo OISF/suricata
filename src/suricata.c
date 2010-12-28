@@ -1082,11 +1082,11 @@ int main(int argc, char **argv)
 #endif /* OS_WIN32 */
 
     /* pre allocate packets */
-    SCLogDebug("preallocating packets... packet size %" PRIuMAX "", (uintmax_t)sizeof(Packet));
+    SCLogDebug("preallocating packets... packet size %" PRIuMAX "", (uintmax_t)SIZE_OF_PACKET);
     int i = 0;
     for (i = 0; i < max_pending_packets; i++) {
         /* XXX pkt alloc function */
-        Packet *p = SCMalloc(sizeof(Packet));
+        Packet *p = SCMalloc(SIZE_OF_PACKET);
         if (p == NULL) {
             SCLogError(SC_ERR_FATAL, "Fatal error encountered while allocating a packet. Exiting...");
             exit(EXIT_FAILURE);
@@ -1096,7 +1096,7 @@ int main(int argc, char **argv)
         PacketPoolStorePacket(p);
     }
     SCLogInfo("preallocated %"PRIiMAX" packets. Total memory %"PRIuMAX"",
-        max_pending_packets, (uintmax_t)(max_pending_packets*sizeof(Packet)));
+        max_pending_packets, (uintmax_t)(max_pending_packets*SIZE_OF_PACKET));
 
     FlowInitConfig(FLOW_VERBOSE);
 

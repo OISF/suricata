@@ -274,7 +274,7 @@ int IpOptsTestParse03 (void) {
     IPV4Hdr ip4h;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
     p.ip4h = &ip4h;
@@ -320,7 +320,7 @@ int IpOptsTestParse04 (void) {
     IPV4Hdr ip4h;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
     memset(&ip4h, 0, sizeof(IPV4Hdr));
 
     p.ip4h = &ip4h;

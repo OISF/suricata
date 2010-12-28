@@ -240,8 +240,8 @@ int Unified2PacketTypeAlert (ThreadVars *t, Packet *p, void *data)
     int ret, len;
     char write_buffer[sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet) + IPV4_MAXPACKET_LEN];
 
-    if(p->pktlen > 0)
-        len = (sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet)) - 4 + p->pktlen;
+    if(GET_PKT_LEN(p) > 0)
+        len = (sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet)) - 4 + GET_PKT_LEN(p);
     else
         len = (sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet)) - 4;
 
@@ -251,7 +251,7 @@ int Unified2PacketTypeAlert (ThreadVars *t, Packet *p, void *data)
     memset(&phdr, 0, sizeof(Unified2Packet));
 
     hdr.type = htonl(UNIFIED2_PACKET_TYPE);
-    hdr.length = htonl(sizeof(Unified2Packet) -4 + p->pktlen);
+    hdr.length = htonl(sizeof(Unified2Packet) -4 + GET_PKT_LEN(p));
 
     memcpy(write_buffer,&hdr,sizeof(Unified2AlertFileHeader));
 
@@ -260,10 +260,10 @@ int Unified2PacketTypeAlert (ThreadVars *t, Packet *p, void *data)
     phdr.event_id = 0;
     phdr.event_second = phdr.packet_second = htonl(p->ts.tv_sec);
     phdr.packet_microsecond = htonl(p->ts.tv_usec);
-    phdr.packet_length = htonl(p->pktlen);
+    phdr.packet_length = htonl(GET_PKT_LEN(p));
 
     memcpy(write_buffer+sizeof(Unified2AlertFileHeader),&phdr,sizeof(Unified2Packet) - 4);
-    memcpy(write_buffer + sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet) - 4 , p->pkt, p->pktlen);
+    memcpy(write_buffer + sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet) - 4 , GET_PKT_DATA(p), GET_PKT_LEN(p));
 
     ret = fwrite(write_buffer,len, 1, aun->file_ctx->fp);
     if (ret != 1) {
@@ -762,7 +762,7 @@ static int Unified2Test01 (void)   {
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&pq, 0, sizeof(PacketQueue));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     p.alerts.cnt++;
     p.alerts.alerts[p.alerts.cnt-1].sid = 1;
@@ -831,7 +831,7 @@ static int Unified2Test02 (void)   {
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&pq, 0, sizeof(PacketQueue));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     p.alerts.cnt++;
     p.alerts.alerts[p.alerts.cnt-1].sid = 1;
@@ -906,7 +906,7 @@ static int Unified2Test03 (void) {
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&pq, 0, sizeof(PacketQueue));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     p.alerts.cnt++;
     p.alerts.alerts[p.alerts.cnt-1].sid = 1;
@@ -975,7 +975,7 @@ static int Unified2Test04 (void)   {
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&pq, 0, sizeof(PacketQueue));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     p.alerts.cnt++;
     p.alerts.alerts[p.alerts.cnt-1].sid = 1;
@@ -1042,7 +1042,7 @@ static int Unified2Test05 (void)   {
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&pq, 0, sizeof(PacketQueue));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     p.alerts.cnt++;
     p.alerts.alerts[p.alerts.cnt-1].sid = 1;

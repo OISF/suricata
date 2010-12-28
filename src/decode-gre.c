@@ -196,7 +196,7 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                     Packet *tp = PacketPseudoPktSetup(p, pkt + header_len,
                             len - header_len, IPPROTO_IP);
                     if (tp != NULL) {
-                        DecodeTunnel(tv, dtv, tp, tp->pkt, tp->pktlen, pq);
+                        DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp), GET_PKT_LEN(tp), pq);
                         PacketEnqueue(pq,tp);
                     }
                 }
@@ -209,7 +209,7 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                     Packet *tp = PacketPseudoPktSetup(p, pkt + header_len,
                             len - header_len, PPP_OVER_GRE);
                     if (tp != NULL) {
-                        DecodeTunnel(tv, dtv, tp, tp->pkt, tp->pktlen, pq);
+                        DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp), GET_PKT_LEN(tp), pq);
                         PacketEnqueue(pq,tp);
                     }
                 }
@@ -222,7 +222,7 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                     Packet *tp = PacketPseudoPktSetup(p, pkt + header_len,
                             len - header_len, IPPROTO_IPV6);
                     if (tp != NULL) {
-                        DecodeTunnel(tv, dtv, tp, tp->pkt, tp->pktlen, pq);
+                        DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp), GET_PKT_LEN(tp), pq);
                         PacketEnqueue(pq,tp);
                     }
                 }
@@ -235,7 +235,7 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                     Packet *tp = PacketPseudoPktSetup(p, pkt + header_len,
                             len - header_len, VLAN_OVER_GRE);
                     if (tp != NULL) {
-                        DecodeTunnel(tv, dtv, tp, tp->pkt, tp->pktlen, pq);
+                        DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp), GET_PKT_LEN(tp), pq);
                         PacketEnqueue(pq,tp);
                     }
                 }
@@ -262,7 +262,7 @@ static int DecodeGREtest01 (void)   {
     DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeGRE(&tv, &dtv, &p, raw_gre, sizeof(raw_gre), NULL);
@@ -299,7 +299,7 @@ static int DecodeGREtest02 (void)   {
     DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeGRE(&tv, &dtv, &p, raw_gre, sizeof(raw_gre), NULL);
@@ -337,7 +337,7 @@ static int DecodeGREtest03 (void)   {
     DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeGRE(&tv, &dtv, &p, raw_gre, sizeof(raw_gre), NULL);

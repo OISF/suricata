@@ -713,7 +713,7 @@ static int FlowBitsTestSig06(void) {
     int result = 0;
     int idx = 0;
 
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(Flow));
     memset(&flowvar, 0, sizeof(GenericVar));
@@ -811,7 +811,7 @@ static int FlowBitsTestSig07(void) {
     int result = 0;
     int idx = 0;
 
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(Flow));
     memset(&flowvar, 0, sizeof(GenericVar));
@@ -913,7 +913,7 @@ static int FlowBitsTestSig08(void) {
     int result = 0;
     int idx = 0;
 
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
     memset(&th_v, 0, sizeof(th_v));
     memset(&f, 0, sizeof(Flow));
     memset(&flowvar, 0, sizeof(GenericVar));

@@ -348,7 +348,7 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                 /* update counters */
                 iter->last_ts.tv_sec = ts.tv_sec;
                 iter->packets++;
-                iter->bytes += p->pktlen;
+                iter->bytes += GET_PKT_LEN(p);
 
                 /* If this packet triggered the rule with tag, we dont need
                  * to log it (the alert will log it) */
@@ -482,7 +482,7 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         /* update counters */
         iter->last_ts.tv_sec = ts.tv_sec;
         iter->packets++;
-        iter->bytes += p->pktlen;
+        iter->bytes += GET_PKT_LEN(p);
 
         /* If this packet triggered the rule with tag, we dont need
          * to log it (the alert will log it) */
@@ -577,7 +577,7 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         /* update counters */
         iter->last_ts.tv_sec = ts.tv_sec;
         iter->packets++;
-        iter->bytes += p->pktlen;
+        iter->bytes += GET_PKT_LEN(p);
 
         /* If this packet triggered the rule with tag, we dont need
          * to log it (the alert will log it) */

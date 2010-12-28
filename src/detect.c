@@ -5636,8 +5636,8 @@ int SigTest24IPV4Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, sizeof(Packet));
-    memset(&p2, 0, sizeof(Packet));
+    memset(&p1, 0, SIZE_OF_PACKET);
+    memset(&p2, 0, SIZE_OF_PACKET);
     p1.ip4c.comp_csum = -1;
     p2.ip4c.comp_csum = -1;
 
@@ -5731,8 +5731,8 @@ int SigTest25NegativeIPV4Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, sizeof(Packet));
-    memset(&p2, 0, sizeof(Packet));
+    memset(&p1, 0, SIZE_OF_PACKET);
+    memset(&p2, 0, SIZE_OF_PACKET);
     p1.ip4c.comp_csum = -1;
     p2.ip4c.comp_csum = -1;
 
@@ -5833,8 +5833,8 @@ int SigTest26TCPV4Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, sizeof(Packet));
-    memset(&p2, 0, sizeof(Packet));
+    memset(&p1, 0, SIZE_OF_PACKET);
+    memset(&p2, 0, SIZE_OF_PACKET);
 
     p1.tcpc.comp_csum = -1;
     p1.ip4h = (IPV4Hdr *)raw_ipv4;
@@ -5937,8 +5937,8 @@ int SigTest27NegativeTCPV4Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, sizeof(Packet));
-    memset(&p2, 0, sizeof(Packet));
+    memset(&p1, 0, SIZE_OF_PACKET);
+    memset(&p2, 0, SIZE_OF_PACKET);
 
     p1.tcpc.comp_csum = -1;
     p1.ip4h = (IPV4Hdr *)raw_ipv4;
@@ -6051,8 +6051,8 @@ int SigTest28TCPV6Keyword(void)
                     "\r\n\r\n";
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, sizeof(Packet));
-    memset(&p2, 0, sizeof(Packet));
+    memset(&p1, 0, SIZE_OF_PACKET);
+    memset(&p2, 0, SIZE_OF_PACKET);
 
     p1.tcpc.comp_csum = -1;
     p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
@@ -6164,8 +6164,8 @@ int SigTest29NegativeTCPV6Keyword(void)
                     "\r\n\r\n";
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, sizeof(Packet));
-    memset(&p2, 0, sizeof(Packet));
+    memset(&p1, 0, SIZE_OF_PACKET);
+    memset(&p2, 0, SIZE_OF_PACKET);
 
     p1.tcpc.comp_csum = -1;
     p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
@@ -6283,8 +6283,8 @@ int SigTest30UDPV4Keyword(void)
                     "\r\n\r\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, sizeof(Packet));
-    memset(&p2, 0, sizeof(Packet));
+    memset(&p1, 0, SIZE_OF_PACKET);
+    memset(&p2, 0, SIZE_OF_PACKET);
 
     p1.udpc.comp_csum = -1;
     p1.ip4h = (IPV4Hdr *)raw_ipv4;
@@ -6400,8 +6400,8 @@ int SigTest31NegativeUDPV4Keyword(void)
                     "\r\n\r\nyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy";
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, sizeof(Packet));
-    memset(&p2, 0, sizeof(Packet));
+    memset(&p1, 0, SIZE_OF_PACKET);
+    memset(&p2, 0, SIZE_OF_PACKET);
 
     p1.udpc.comp_csum = -1;
     p1.ip4h = (IPV4Hdr *)raw_ipv4;
@@ -6511,8 +6511,8 @@ int SigTest32UDPV6Keyword(void)
                     "\r\n\r\n";
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, sizeof(Packet));
-    memset(&p2, 0, sizeof(Packet));
+    memset(&p1, 0, SIZE_OF_PACKET);
+    memset(&p2, 0, SIZE_OF_PACKET);
 
     p1.udpc.comp_csum = -1;
     p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
@@ -6620,8 +6620,8 @@ int SigTest33NegativeUDPV6Keyword(void)
                     "\r\n\r\n";
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, sizeof(Packet));
-    memset(&p2, 0, sizeof(Packet));
+    memset(&p1, 0, SIZE_OF_PACKET);
+    memset(&p2, 0, SIZE_OF_PACKET);
 
     p1.udpc.comp_csum = -1;
     p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
@@ -6732,8 +6732,8 @@ int SigTest34ICMPV4Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, sizeof(Packet));
-    memset(&p2, 0, sizeof(Packet));
+    memset(&p1, 0, SIZE_OF_PACKET);
+    memset(&p2, 0, SIZE_OF_PACKET);
 
     p1.icmpv4c.comp_csum = -1;
     p1.ip4h = (IPV4Hdr *)(valid_raw_ipv4);
@@ -6842,8 +6842,8 @@ int SigTest35NegativeICMPV4Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, sizeof(Packet));
-    memset(&p2, 0, sizeof(Packet));
+    memset(&p1, 0, SIZE_OF_PACKET);
+    memset(&p2, 0, SIZE_OF_PACKET);
 
     p1.icmpv4c.comp_csum = -1;
     p1.ip4h = (IPV4Hdr *)(valid_raw_ipv4);
@@ -6965,8 +6965,8 @@ int SigTest36ICMPV6Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, sizeof(Packet));
-    memset(&p2, 0, sizeof(Packet));
+    memset(&p1, 0, SIZE_OF_PACKET);
+    memset(&p2, 0, SIZE_OF_PACKET);
 
     p1.icmpv6c.comp_csum = -1;
     p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
@@ -7087,8 +7087,8 @@ int SigTest37NegativeICMPV6Keyword(void)
     uint16_t buflen = strlen((char *)buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, sizeof(Packet));
-    memset(&p2, 0, sizeof(Packet));
+    memset(&p1, 0, SIZE_OF_PACKET);
+    memset(&p2, 0, SIZE_OF_PACKET);
 
     p1.icmpv6c.comp_csum = -1;
     p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
@@ -7202,14 +7202,18 @@ int SigTest38Real(int mpm_type)
     uint16_t buflen = sizeof(buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, sizeof(Packet));
+    memset(&p1, 0, SIZE_OF_PACKET);
 
     /* Copy raw data into packet */
-    memcpy(&p1.pkt, raw_eth, ethlen);
-    memcpy(p1.pkt + ethlen, raw_ipv4, ipv4len);
-    memcpy(p1.pkt + ethlen + ipv4len, raw_tcp, tcplen);
-    memcpy(p1.pkt + ethlen + ipv4len + tcplen, buf, buflen);
-    p1.pktlen = ethlen + ipv4len + tcplen + buflen;
+    if (PacketCopyData(&p1, raw_eth, ethlen) == -1)
+        return 1;
+    if (PacketCopyDataOffset(&p1, ethlen, raw_ipv4, ipv4len) == -1)
+        return 1;
+    if (PacketCopyDataOffset(&p1, ethlen + ipv4len, raw_tcp, tcplen) == -1)
+        return 1;
+    if (PacketCopyDataOffset(&p1, ethlen + ipv4len + tcplen, buf, buflen) == -1)
+        return 1;
+    SET_PKT_LEN(&p1, ethlen + ipv4len + tcplen + buflen);
 
     p1.tcpc.comp_csum = -1;
     p1.ethh = (EthernetHdr *)raw_eth;
@@ -7218,7 +7222,7 @@ int SigTest38Real(int mpm_type)
     p1.tcpvars.hlen = 0;
     p1.src.family = AF_INET;
     p1.dst.family = AF_INET;
-    p1.payload = p1.pkt + ethlen + ipv4len + tcplen;
+    p1.payload = GET_PKT_DATA(&p1) + ethlen + ipv4len + tcplen;
     p1.payload_len = buflen;
     p1.proto = IPPROTO_TCP;
 
@@ -7329,14 +7333,18 @@ int SigTest39Real(int mpm_type)
     uint16_t buflen = sizeof(buf);
 
     memset(&th_v, 0, sizeof(ThreadVars));
-    memset(&p1, 0, sizeof(Packet));
+    memset(&p1, 0, SIZE_OF_PACKET);
 
     /* Copy raw data into packet */
-    memcpy(&p1.pkt, raw_eth, ethlen);
-    memcpy(p1.pkt + ethlen, raw_ipv4, ipv4len);
-    memcpy(p1.pkt + ethlen + ipv4len, raw_tcp, tcplen);
-    memcpy(p1.pkt + ethlen + ipv4len + tcplen, buf, buflen);
-    p1.pktlen = ethlen + ipv4len + tcplen + buflen;
+    if (PacketCopyData(&p1, raw_eth, ethlen) == -1)
+        return 1;
+    if (PacketCopyDataOffset(&p1, ethlen, raw_ipv4, ipv4len) == -1)
+        return 1;
+    if (PacketCopyDataOffset(&p1, ethlen + ipv4len, raw_tcp, tcplen) == -1)
+        return 1;
+    if (PacketCopyDataOffset(&p1, ethlen + ipv4len + tcplen, buf, buflen) == -1)
+        return 1;
+    SET_PKT_LEN(&p1, ethlen + ipv4len + tcplen + buflen);
 
     p1.tcpc.comp_csum = -1;
     p1.ethh = (EthernetHdr *)raw_eth;
@@ -7345,7 +7353,7 @@ int SigTest39Real(int mpm_type)
     p1.tcpvars.hlen = 0;
     p1.src.family = AF_INET;
     p1.dst.family = AF_INET;
-    p1.payload = p1.pkt + ethlen + ipv4len + tcplen;
+    p1.payload = GET_PKT_DATA(&p1) + ethlen + ipv4len + tcplen;
     p1.payload_len = buflen;
     p1.proto = IPPROTO_TCP;
 
@@ -7470,7 +7478,7 @@ int SigTest36ContentAndIsdataatKeywords01Real (int mpm_type) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
 
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 
@@ -7583,7 +7591,7 @@ int SigTest37ContentAndIsdataatKeywords02Real (int mpm_type) {
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
 
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 
@@ -9187,7 +9195,7 @@ static int SigTestWithinReal01 (int mpm_type) {
 
     /* packet 1 */
     Packet p1;
-    memset(&p1, 0, sizeof(Packet));
+    memset(&p1, 0, SIZE_OF_PACKET);
     DecodeEthernet(&th_v, &dtv, &p1, rawpkt1, sizeof(rawpkt1), NULL);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p1);
     if (!(PacketAlertCheck(&p1, 556))) {
@@ -9197,7 +9205,7 @@ static int SigTestWithinReal01 (int mpm_type) {
 
     /* packet 2 */
     Packet p2;
-    memset(&p2, 0, sizeof(Packet));
+    memset(&p2, 0, SIZE_OF_PACKET);
     DecodeEthernet(&th_v, &dtv, &p2, rawpkt2, sizeof(rawpkt2), NULL);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p2);
     if (!(PacketAlertCheck(&p2, 556))) {
@@ -9207,7 +9215,7 @@ static int SigTestWithinReal01 (int mpm_type) {
 
     /* packet 3 */
     Packet p3;
-    memset(&p3, 0, sizeof(Packet));
+    memset(&p3, 0, SIZE_OF_PACKET);
     DecodeEthernet(&th_v, &dtv, &p3, rawpkt3, sizeof(rawpkt3), NULL);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p3);
     if (!(PacketAlertCheck(&p3, 556))) {
@@ -9217,7 +9225,7 @@ static int SigTestWithinReal01 (int mpm_type) {
 
     /* packet 4 */
     Packet p4;
-    memset(&p4, 0, sizeof(Packet));
+    memset(&p4, 0, SIZE_OF_PACKET);
     DecodeEthernet(&th_v, &dtv, &p4, rawpkt4, sizeof(rawpkt4), NULL);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, &p4);
     if (!(PacketAlertCheck(&p4, 556))) {

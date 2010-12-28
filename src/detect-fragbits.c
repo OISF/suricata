@@ -402,7 +402,7 @@ static int FragBitsTestParse03 (void) {
     SigMatch *sm = NULL;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     AlpProtoFinalize2Thread(&dtv.udp_dp_ctx);
@@ -494,7 +494,7 @@ static int FragBitsTestParse04 (void) {
     SigMatch *sm = NULL;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&ipv4h, 0, sizeof(IPV4Hdr));
     AlpProtoFinalize2Thread(&dtv.udp_dp_ctx);

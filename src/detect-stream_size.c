@@ -398,7 +398,7 @@ static int DetectStreamSizeParseTest03 (void) {
     memset(&ssn, 0, sizeof(TcpSession));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtx, 0, sizeof(DetectEngineThreadCtx));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
     memset(&s, 0, sizeof(Signature));
     memset(&sm, 0, sizeof(SigMatch));
     memset(&client, 0, sizeof(TcpStream));
@@ -467,7 +467,7 @@ static int DetectStreamSizeParseTest04 (void) {
     memset(&ssn, 0, sizeof(TcpSession));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&dtx, 0, sizeof(DetectEngineThreadCtx));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
     memset(&s, 0, sizeof(Signature));
     memset(&sm, 0, sizeof(SigMatch));
     memset(&client, 0, sizeof(TcpStream));

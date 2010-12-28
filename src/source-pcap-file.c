@@ -134,9 +134,9 @@ void PcapFileCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     ptv->pkts++;
     ptv->bytes += h->caplen;
 
-    p->pktlen = h->caplen;
-    memcpy(p->pkt, pkt, p->pktlen);
-    //printf("PcapFileCallback: p->pktlen: %" PRIu32 " (pkt %02x, p->pkt %02x)\n", p->pktlen, *pkt, *p->pkt);
+    if (PacketCopyData(p, pkt, h->caplen))
+        SCReturn;
+    //printf("PcapFileCallback: p->pktlen: %" PRIu32 " (pkt %02x, p->pkt %02x)\n", GET_PKT_LEN(p), *pkt, *GET_PKT_DATA(p));
 
     /* store the packet in our array */
     ptv->array[ptv->array_idx] = p;
@@ -308,21 +308,21 @@ TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     SCPerfCounterIncr(dtv->counter_pkts, tv->sc_perf_pca);
     SCPerfCounterIncr(dtv->counter_pkts_per_sec, tv->sc_perf_pca);
 
-    SCPerfCounterAddUI64(dtv->counter_bytes, tv->sc_perf_pca, p->pktlen);
+    SCPerfCounterAddUI64(dtv->counter_bytes, tv->sc_perf_pca, GET_PKT_LEN(p));
 #if 0
-    SCPerfCounterAddDouble(dtv->counter_bytes_per_sec, tv->sc_perf_pca, p->pktlen);
+    SCPerfCounterAddDouble(dtv->counter_bytes_per_sec, tv->sc_perf_pca, GET_PKT_LEN(p));
     SCPerfCounterAddDouble(dtv->counter_mbit_per_sec, tv->sc_perf_pca,
-                           (p->pktlen * 8)/1000000.0 );
+                           (GET_PKT_LEN(p) * 8)/1000000.0 );
 #endif
-    SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->sc_perf_pca, p->pktlen);
-    SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca, p->pktlen);
+    SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->sc_perf_pca, GET_PKT_LEN(p));
+    SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca, GET_PKT_LEN(p));
 
     /* update the engine time representation based on the timestamp
      * of the packet. */
     TimeSet(&p->ts);
 
     /* call the decoder */
-    pcap_g.Decoder(tv, dtv, p, p->pkt, p->pktlen, pq);
+    pcap_g.Decoder(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
 
     SCReturnInt(TM_ECODE_OK);
 }

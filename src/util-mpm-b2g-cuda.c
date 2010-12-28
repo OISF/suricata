@@ -2756,7 +2756,7 @@ static int B2gCudaTest01(void)
     pb->packets_payload_offset_buffer[0] = 0;
 
     Packet p;
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
     pb->packets_address_buffer[0] = &p;
     p.payload_len = strlen(string);
 
@@ -2892,12 +2892,12 @@ static int B2gCudaTest02(void)
 
     memset(p, 0, sizeof(p));
     for (i = 0; i < no_of_pkts; i++) {
-        p[i] = malloc(sizeof(Packet));
+        p[i] = malloc(SIZE_OF_PACKET);
         if (p[i] == NULL) {
             printf("error allocating memory\n");
             exit(EXIT_FAILURE);
         }
-        memset(p[i], 0, sizeof(Packet));
+        memset(p[i], 0, SIZE_OF_PACKET);
         DecodeEthernet(&tv, &dtv, p[i], raw_eth, sizeof(raw_eth), NULL);
     }
 
@@ -3111,12 +3111,12 @@ static int B2gCudaTest03(void)
 
     FlowInitConfig(FLOW_QUIET);
     for (i = 0; i < no_of_pkts; i++) {
-        p[i] = malloc(sizeof(Packet));
+        p[i] = malloc(SIZE_OF_PACKET);
         if (p[i] == NULL) {
             printf("error allocating memory\n");
             exit(EXIT_FAILURE);
         }
-        memset(p[i], 0, sizeof(Packet));
+        memset(p[i], 0, SIZE_OF_PACKET);
         DecodeEthernet(&tv, &dtv, p[i], raw_eth, sizeof(raw_eth), NULL);
     }
 

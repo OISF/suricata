@@ -474,10 +474,10 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
                                                 &tdir->pmq, buf,
                                                 searchlen);
 #else
-    Packet *p = SCMalloc(sizeof(Packet));
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (p == NULL)
         goto end;
-    memset(p, 0, sizeof(Packet));
+    memset(p, 0, SIZE_OF_PACKET);
 
     p->cuda_done = 0;
     p->cuda_free_packet = 1;

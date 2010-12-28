@@ -60,10 +60,10 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
                            uint16_t sport, uint16_t dport) {
     uint32_t in[4];
 
-    Packet *p = SCMalloc(sizeof(Packet));
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (p == NULL)
         return NULL;
-    memset(p, 0, sizeof(Packet));
+    memset(p, 0, SIZE_OF_PACKET);
 
     TimeSet(&p->ts);
 
@@ -100,7 +100,7 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
     p->tcph->th_sport = sport;
     p->tcph->th_dport = dport;
 
-    p->pktlen = sizeof(IPV6Hdr) + sizeof(TCPHdr) + payload_len;
+    SET_PKT_LEN(p, sizeof(IPV6Hdr) + sizeof(TCPHdr) + payload_len);
     return p;
 }
 
@@ -123,10 +123,11 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
                            uint16_t sport, uint16_t dport) {
     struct in_addr in;
 
-    Packet *p = SCMalloc(sizeof(Packet));
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (p == NULL)
         return NULL;
-    memset(p, 0, sizeof(Packet));
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = ((uint8_t *)p) + sizeof(*p);
 
     struct timeval tv;
     TimeGet(&tv);
@@ -164,7 +165,7 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
             memset(p->udph, 0, sizeof(UDPHdr));
             p->udph->uh_sport = sport;
             p->udph->uh_dport = dport;
-            p->pktlen = sizeof(IPV4Hdr) + sizeof(UDPHdr) + payload_len;
+            SET_PKT_LEN(p, sizeof(IPV4Hdr) + sizeof(UDPHdr) + payload_len);
             break;
         case IPPROTO_TCP:
             p->tcph = SCMalloc(sizeof(TCPHdr));
@@ -173,14 +174,14 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
             memset(p->tcph, 0, sizeof(TCPHdr));
             p->tcph->th_sport = sport;
             p->tcph->th_dport = dport;
-            p->pktlen = sizeof(IPV4Hdr) + sizeof(TCPHdr) + payload_len;
+            SET_PKT_LEN(p, sizeof(IPV4Hdr) + sizeof(TCPHdr) + payload_len);
             break;
         case IPPROTO_ICMP:
             p->icmpv4h = SCMalloc(sizeof(ICMPV4Hdr));
             if (p->icmpv4h == NULL)
                 return NULL;
             memset(p->icmpv4h, 0, sizeof(ICMPV4Hdr));
-            p->pktlen = sizeof(IPV4Hdr) + sizeof(ICMPV4Hdr) + payload_len;
+            SET_PKT_LEN(p, sizeof(IPV4Hdr) + sizeof(ICMPV4Hdr) + payload_len);
             break;
         default:
             break;
@@ -235,12 +236,12 @@ Packet **UTHBuildPacketArrayFromEth(uint8_t *raw_eth[], int *pktsize, int numpkt
 
     int i = 0;
     for (; i < numpkts; i++) {
-        p[i] = SCMalloc(sizeof(Packet));
+        p[i] = SCMalloc(SIZE_OF_PACKET);
         if (p[i] == NULL) {
             SCFree(p);
             return NULL;
         }
-        memset(p[i], 0, sizeof(Packet));
+        memset(p[i], 0, SIZE_OF_PACKET);
         DecodeEthernet(&th_v, &dtv, p[i], raw_eth[i], pktsize[i], NULL);
     }
     return p;
@@ -258,10 +259,10 @@ Packet **UTHBuildPacketArrayFromEth(uint8_t *raw_eth[], int *pktsize, int numpkt
 Packet *UTHBuildPacketFromEth(uint8_t *raw_eth, uint16_t pktsize) {
     DecodeThreadVars dtv;
     ThreadVars th_v;
-    Packet *p = SCMalloc(sizeof(Packet));
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (p == NULL)
         return NULL;
-    memset(p, 0, sizeof(Packet));
+    memset(p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 

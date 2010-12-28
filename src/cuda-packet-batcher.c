@@ -1171,7 +1171,7 @@ int SCCudaPBTest01(void)
     packets_buffer_len += packets_offset_buffer[(sizeof(strings)/sizeof(char *)) - 1] +
         sizeof(SCCudaPBPacketDataForGPUNonPayload) + strlen(strings[(sizeof(strings)/sizeof(char *)) - 1]);
 
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&tv_cuda_PB, 0, sizeof(ThreadVars));
@@ -1399,7 +1399,7 @@ int SCCudaPBTest02(void)
     SCDQDataQueue *dq = NULL;
 
 
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&tv_cuda_PB, 0, sizeof(ThreadVars));

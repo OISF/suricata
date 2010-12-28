@@ -246,9 +246,9 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
 
     aft->file_ctx->alerts += p->alerts.cnt;
 
-    fprintf(aft->file_ctx->fp, "PACKET LEN:        %" PRIu32 "\n", p->pktlen);
+    fprintf(aft->file_ctx->fp, "PACKET LEN:        %" PRIu32 "\n", GET_PKT_LEN(p));
     fprintf(aft->file_ctx->fp, "PACKET:\n");
-    PrintRawDataFp(aft->file_ctx->fp, p->pkt, p->pktlen);
+    PrintRawDataFp(aft->file_ctx->fp, GET_PKT_DATA(p), GET_PKT_LEN(p));
 
     fflush(aft->file_ctx->fp);
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
@@ -311,9 +311,9 @@ TmEcode AlertDebugLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
 
     AlertDebugLogPktVars(aft, p);
 
-    fprintf(aft->file_ctx->fp, "PACKET LEN:        %" PRIu32 "\n", p->pktlen);
+    fprintf(aft->file_ctx->fp, "PACKET LEN:        %" PRIu32 "\n", GET_PKT_LEN(p));
     fprintf(aft->file_ctx->fp, "PACKET:\n");
-    PrintRawDataFp(aft->file_ctx->fp, p->pkt, p->pktlen);
+    PrintRawDataFp(aft->file_ctx->fp, GET_PKT_DATA(p), GET_PKT_LEN(p));
 
     fflush(aft->file_ctx->fp);
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
@@ -354,9 +354,9 @@ TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQ
 
     aft->file_ctx->alerts += p->alerts.cnt;
 
-    fprintf(aft->file_ctx->fp, "PACKET LEN:        %" PRIu32 "\n", p->pktlen);
+    fprintf(aft->file_ctx->fp, "PACKET LEN:        %" PRIu32 "\n", GET_PKT_LEN(p));
     fprintf(aft->file_ctx->fp, "PACKET:\n");
-    PrintRawDataFp(aft->file_ctx->fp, p->pkt, p->pktlen);
+    PrintRawDataFp(aft->file_ctx->fp, GET_PKT_DATA(p), GET_PKT_LEN(p));
 
     fflush(aft->file_ctx->fp);
     SCMutexUnlock(&aft->file_ctx->fp_mutex);

@@ -565,7 +565,7 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
                             IPV4_GET_IPPROTO(p));
                     if (tp != NULL) {
                         /* send that to the Tunnel decoder */
-                        DecodeTunnel(tv, dtv, tp, tp->pkt, tp->pktlen, pq);
+                        DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp), GET_PKT_LEN(tp), pq);
 
                         /* add the tp to the packet queue. */
                         PacketEnqueue(pq,tp);
@@ -584,7 +584,7 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
         Packet *rp = Defrag(tv, dtv, NULL, p);
         if (rp != NULL) {
             /* Got re-assembled packet, re-run through decoder. */
-            DecodeIPV4(tv, dtv, rp, rp->pkt, rp->pktlen, pq);
+            DecodeIPV4(tv, dtv, rp, GET_PKT_DATA(rp), GET_PKT_LEN(rp), pq);
             PacketEnqueue(pq, rp);
         }
     }
@@ -631,7 +631,7 @@ int DecodeIPV4OptionsNONETest01(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     if (rc != 0) {
@@ -639,7 +639,7 @@ int DecodeIPV4OptionsNONETest01(void) {
         return 0;
     }
 
-    for (i = 0; i < (uint16_t)sizeof(Packet); i++) {
+    for (i = 0; i < (uint16_t)SIZE_OF_PACKET; i++) {
         if (*data) {
             /* Should not have modified packet data */
             //printf("Data modified at offset %" PRIu16 "\n", i);
@@ -663,7 +663,7 @@ int DecodeIPV4OptionsEOLTest01(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     if (rc != 0) {
@@ -671,7 +671,7 @@ int DecodeIPV4OptionsEOLTest01(void) {
         return 0;
     }
 
-    for (i = 0; i < (uint16_t)sizeof(Packet); i++) {
+    for (i = 0; i < (uint16_t)SIZE_OF_PACKET; i++) {
         if (*data) {
             /* Should not have modified packet data */
             //printf("Data modified at offset %" PRIu16 "\n", i);
@@ -695,7 +695,7 @@ int DecodeIPV4OptionsNOPTest01(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     if (rc != 0) {
@@ -703,7 +703,7 @@ int DecodeIPV4OptionsNOPTest01(void) {
         return 0;
     }
 
-    for (i = 0; i < (uint16_t)sizeof(Packet); i++) {
+    for (i = 0; i < (uint16_t)SIZE_OF_PACKET; i++) {
         if (*data) {
             /* Should not have modified packet data */
             //printf("Data modified at offset %" PRIu16 "\n", i);
@@ -729,7 +729,7 @@ int DecodeIPV4OptionsRRTest01(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",rr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_rr, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -760,7 +760,7 @@ int DecodeIPV4OptionsRRTest02(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",rr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_rr, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -786,7 +786,7 @@ int DecodeIPV4OptionsRRTest03(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",rr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_rr, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -812,7 +812,7 @@ int DecodeIPV4OptionsRRTest04(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",rr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_rr, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -834,7 +834,7 @@ int DecodeIPV4OptionsQSTest01(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",qs=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_qs, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -861,7 +861,7 @@ int DecodeIPV4OptionsQSTest02(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",qs=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_qs, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -887,7 +887,7 @@ int DecodeIPV4OptionsTSTest01(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",ts=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_ts, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -918,7 +918,7 @@ int DecodeIPV4OptionsTSTest02(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",ts=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_ts, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -944,7 +944,7 @@ int DecodeIPV4OptionsTSTest03(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",ts=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_ts, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -970,7 +970,7 @@ int DecodeIPV4OptionsTSTest04(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",ts=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_ts, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -993,7 +993,7 @@ int DecodeIPV4OptionsSECTest01(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",sec=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_sec, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -1021,7 +1021,7 @@ int DecodeIPV4OptionsSECTest02(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",sec=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_sec, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -1047,7 +1047,7 @@ int DecodeIPV4OptionsLSRRTest01(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",lsrr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_lsrr, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -1078,7 +1078,7 @@ int DecodeIPV4OptionsLSRRTest02(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",lsrr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_lsrr, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -1104,7 +1104,7 @@ int DecodeIPV4OptionsLSRRTest03(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",lsrr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_lsrr, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -1130,7 +1130,7 @@ int DecodeIPV4OptionsLSRRTest04(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",lsrr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_lsrr, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -1154,7 +1154,7 @@ int DecodeIPV4OptionsCIPSOTest01(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",rr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_cipso, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -1181,7 +1181,7 @@ int DecodeIPV4OptionsSIDTest01(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",sid=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_sid, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -1208,7 +1208,7 @@ int DecodeIPV4OptionsSIDTest02(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",sid=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_sid, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -1234,7 +1234,7 @@ int DecodeIPV4OptionsSSRRTest01(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",ssrr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_ssrr, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -1265,7 +1265,7 @@ int DecodeIPV4OptionsSSRRTest02(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",ssrr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_ssrr, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -1291,7 +1291,7 @@ int DecodeIPV4OptionsSSRRTest03(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",ssrr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_ssrr, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -1317,7 +1317,7 @@ int DecodeIPV4OptionsSSRRTest04(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",ssrr=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_ssrr, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -1339,7 +1339,7 @@ int DecodeIPV4OptionsRTRALTTest01(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",rtralt=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_rtralt, (uintmax_t)&p.IPV4_OPTS[0]);
@@ -1366,7 +1366,7 @@ int DecodeIPV4OptionsRTRALTTest02(void) {
     int rc;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
 
     rc = DecodeIPV4Options(&tv, &p, raw_opts, sizeof(raw_opts));
     //printf("rc=%d,cnt=%" PRIu16 ",type=%" PRIu8 ",len=%" PRIu8 ",rtralt=%" PRIuMAX "/%" PRIuMAX "\n", rc, p.IPV4_OPTS_CNT, p.IPV4_OPTS[0].type, p.IPV4_OPTS[0].len, (uintmax_t)p.ip4vars.o_rtralt, (uintmax_t)&p.IPV4_OPTS[0]);

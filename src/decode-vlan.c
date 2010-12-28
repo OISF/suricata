@@ -109,7 +109,7 @@ static int DecodeVLANtest01 (void)   {
     DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeVLAN(&tv, &dtv, &p, raw_vlan, sizeof(raw_vlan), NULL);
@@ -141,7 +141,7 @@ static int DecodeVLANtest02 (void)   {
     DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     DecodeVLAN(&tv, &dtv, &p, raw_vlan, sizeof(raw_vlan), NULL);
@@ -174,7 +174,7 @@ static int DecodeVLANtest03 (void)   {
     DecodeThreadVars dtv;
 
     memset(&tv, 0, sizeof(ThreadVars));
-    memset(&p, 0, sizeof(Packet));
+    memset(&p, 0, SIZE_OF_PACKET);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);

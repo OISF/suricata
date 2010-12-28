@@ -177,15 +177,18 @@ void NFQSetupPkt (Packet *p, void *data)
              * to trigger an error in packet decoding.
              * This is unlikely to happen */
             SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "NFQ sent too big packet");
-            p->pktlen = 0;
+            SET_PKT_LEN(p, 0);
         } else {
-            memcpy(p->pkt, pktdata, ret);
-            p->pktlen = (size_t)ret;
+            ret = PacketCopyData(p, (uint8_t *)pktdata, ret);
+            if (ret == -1) {
+                SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "NFQ send strange packet");
+                SET_PKT_LEN(p, 0);
+            }
         }
     } else if (ret ==  -1) {
         /* unable to get pointer to data, ensure packet length is zero.
          * This will trigger an error in packet decoding */
-        p->pktlen = 0;
+        SET_PKT_LEN(p, 0);
     }
 
     ret = nfq_get_timestamp(tb, &p->ts);
@@ -214,7 +217,7 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 
 #ifdef COUNTERS
     nfq_t->pkts++;
-    nfq_t->bytes += p->pktlen;
+    nfq_t->bytes += GET_PKT_LEN(p);
 #endif /* COUNTERS */
 
     /* pass on... */
@@ -630,24 +633,24 @@ TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packet
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
     SCPerfCounterIncr(dtv->counter_pkts, tv->sc_perf_pca);
-    SCPerfCounterAddUI64(dtv->counter_bytes, tv->sc_perf_pca, p->pktlen);
-    SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->sc_perf_pca, p->pktlen);
-    SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca, p->pktlen);
+    SCPerfCounterAddUI64(dtv->counter_bytes, tv->sc_perf_pca, GET_PKT_LEN(p));
+    SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->sc_perf_pca, GET_PKT_LEN(p));
+    SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca, GET_PKT_LEN(p));
 #if 0
-    SCPerfCounterAddDouble(dtv->counter_bytes_per_sec, tv->sc_perf_pca, p->pktlen);
+    SCPerfCounterAddDouble(dtv->counter_bytes_per_sec, tv->sc_perf_pca, GET_PKT_LEN(p));
     SCPerfCounterAddDouble(dtv->counter_mbit_per_sec, tv->sc_perf_pca,
-                           (p->pktlen * 8)/1000000.0);
+                           (GET_PKT_LEN(p) * 8)/1000000.0);
 #endif
 
     if (IPV4_GET_RAW_VER(ip4h) == 4) {
         SCLogDebug("IPv4 packet");
 
-        DecodeIPV4(tv, dtv, p, p->pkt, p->pktlen, pq);
+        DecodeIPV4(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
     } else if(IPV6_GET_RAW_VER(ip6h) == 6) {
         SCLogDebug("IPv6 packet");
-        DecodeIPV6(tv, dtv, p, p->pkt, p->pktlen, pq);
+        DecodeIPV6(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
     } else {
-        SCLogDebug("packet unsupported by NFQ, first byte: %02x", *p->pkt);
+        SCLogDebug("packet unsupported by NFQ, first byte: %02x", *GET_PKT_DATA(p));
     }
 
     return TM_ECODE_OK;

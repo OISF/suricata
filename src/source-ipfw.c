@@ -254,9 +254,9 @@ TmEcode ReceiveIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
     ptv->bytes += pktlen;
 
     p->datalink = ptv->datalink;
-    p->pktlen = pktlen;
-    memcpy(p->pkt, pkt, p->pktlen);
-    SCLogDebug("Packet info: p->pktlen: %" PRIu32 " (pkt %02x, p->pkt %02x)", p->pktlen, *pkt, *p->pkt);
+    if (PacketCopyData(p, pkt, pktlen) == -1)
+        SCReturnInt(TM_ECODE_FAILED);
+    SCLogDebug("Packet info: pkt_len: %" PRIu32 " (pkt %02x, pkt_data %02x)", GET_PKT_LEN(p), *pkt, GET_PKT_DATA(p));
 
     /* pass on... */
     tv->tmqh_out(tv, p);
@@ -401,30 +401,30 @@ TmEcode ReceiveIPFWThreadDeinit(ThreadVars *tv, void *data) {
  */
 TmEcode DecodeIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
-    IPV4Hdr *ip4h = (IPV4Hdr *)p->pkt;
-    IPV6Hdr *ip6h = (IPV6Hdr *)p->pkt;
+    IPV4Hdr *ip4h = (IPV4Hdr *)GET_PKT_DATA(p);
+    IPV6Hdr *ip6h = (IPV6Hdr *)GET_PKT_DATA(p);
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
     SCEnter();
 
     /* update counters */
     SCPerfCounterIncr(dtv->counter_pkts, tv->sc_perf_pca);
-    SCPerfCounterAddUI64(dtv->counter_bytes, tv->sc_perf_pca, p->pktlen);
-    SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->sc_perf_pca, p->pktlen);
-    SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca, p->pktlen);
+    SCPerfCounterAddUI64(dtv->counter_bytes, tv->sc_perf_pca, GET_PKT_LEN(p));
+    SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->sc_perf_pca, GET_PKT_LEN(p));
+    SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca, GET_PKT_LEN(p));
 
     /* Process IP packets */
     if (IPV4_GET_RAW_VER(ip4h) == 4) {
         SCLogDebug("DecodeIPFW ip4 processing");
-        DecodeIPV4(tv, dtv, p, p->pkt, p->pktlen, pq);
+        DecodeIPV4(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
 
     } else if(IPV6_GET_RAW_VER(ip6h) == 6) {
         SCLogDebug("DecodeIPFW ip6 processing");
-        DecodeIPV6(tv, dtv, p, p->pkt, p->pktlen, pq);
+        DecodeIPV6(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
 
     } else {
         /* We don't support anything besides IP packets for now, bridged packets? */
-        SCLogInfo("IPFW unknown protocol support %02x", *p->pkt);
+        SCLogInfo("IPFW unknown protocol support %02x", *GET_PKT_DATA(p));
        SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -485,7 +485,7 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p) {
         /* For divert sockets, accepting means writing the
          * packet back to the socket for ipfw to pick up
          */
-        SCLogDebug("IPFWSetVerdict writing to socket %d, %p, %u", ipfw_sock,p->pkt,p->pktlen);
+        SCLogDebug("IPFWSetVerdict writing to socket %d, %p, %u", ipfw_sock,GET_PKT_DATA(p),GET_PKT_LEN(p));
 
 
         while ( (poll(&IPFWpoll,1,IPFW_SOCKET_POLL_MSEC)) < 1) {
@@ -498,7 +498,7 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p) {
         }
 
         SCMutexLock(&ipfw_socket_lock);
-        if (sendto(ipfw_sock, p->pkt, p->pktlen, 0,(struct sockaddr *)&ipfw_sin, ipfw_sinlen) == -1) {
+        if (sendto(ipfw_sock, GET_PKT_DATA(p), GET_PKT_LEN(p), 0,(struct sockaddr *)&ipfw_sin, ipfw_sinlen) == -1) {
             SCLogWarning(SC_WARN_IPFW_XMIT,"Write to ipfw divert socket failed: %s",strerror(errno));
             SCMutexUnlock(&ipfw_socket_lock);
             SCReturnInt(TM_ECODE_FAILED);
@@ -506,7 +506,7 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p) {
 
         SCMutexUnlock(&ipfw_socket_lock);
 
-        SCLogDebug("Sent Packet back into IPFW Len: %d",p->pktlen);
+        SCLogDebug("Sent Packet back into IPFW Len: %d",GET_PKT_LEN(p));
 
     } /* end IPFW_ACCEPT */
 

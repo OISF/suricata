@@ -111,7 +111,7 @@ static int DecodeEthernetTest01 (void)   {
 
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&tv,  0, sizeof(ThreadVars));
-    memset(&p,   0, sizeof(Packet));
+    memset(&p,   0, SIZE_OF_PACKET);
 
     DecodeEthernet(&tv, &dtv, &p, raw_eth, sizeof(raw_eth), NULL);
 
