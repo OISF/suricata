@@ -15,6 +15,11 @@
 # pattern matcher scans many packets in parallel.
 #max-pending-packets: 50
 
+# Preallocated size for packet. Default is 1514 which is the classical
+# size for pcap on ethernet. You should adjust this value to the highest
+# packet size (MTU + hardware header) on your system.
+#default-packet-size: 1514
+
 # Set the order of alerts bassed on actions
 # The default order is pass, drop, reject, alert
 action-order:

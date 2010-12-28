@@ -192,6 +192,11 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     /* we're done with the tunnel root now as well */
     if (proot == 1) {
         SCLogDebug("getting rid of root pkt... alloc'd %s", p->root->flags & PKT_ALLOC ? "true" : "false");
+        /* if p->root uses extended data, free them */
+        if (p->root->ext_pkt) {
+            SCFree(p->root->ext_pkt);
+            p->root->ext_pkt = NULL;
+        }
         if (p->root->flags & PKT_ALLOC) {
             PACKET_CLEANUP(p->root);
             SCFree(p->root);
@@ -200,6 +205,12 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
             PACKET_RECYCLE(p->root);
             RingBufferMrMwPut(ringbuffer, (void *)p->root);
         }
+    }
+
+    /* if p uses extended data, free them */
+    if (p->ext_pkt) {
+        SCFree(p->ext_pkt);
+        p->ext_pkt = NULL;
     }
 
     SCLogDebug("getting rid of tunnel pkt... alloc'd %s (root %p)", p->flags & PKT_ALLOC ? "true" : "false", p->root);

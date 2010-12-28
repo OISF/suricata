@@ -27,6 +27,7 @@
 #include "suricata.h"
 #include "decode.h"
 #include "util-debug.h"
+#include "util-mem.h"
 #include "app-layer-detect-proto.h"
 #include "tm-modules.h"
 #include "util-error.h"
@@ -66,7 +67,7 @@ Packet *PacketGetFromQueueOrAlloc(void) {
 
     if (p == NULL) {
         /* non fatal, we're just not processing a packet then */
-        p = SCMalloc(sizeof(Packet));
+        p = SCMalloc(SIZE_OF_PACKET);
         if (p == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s", strerror(errno));
             return NULL;
@@ -107,8 +108,7 @@ Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
 
     /* copy packet and set lenght, proto */
     p->tunnel_proto = proto;
-    p->pktlen = len;
-    memcpy(&p->pkt, pkt, len);
+    PacketCopyData(p, pkt, len);
     p->recursion_level = parent->recursion_level + 1;
     p->ts.tv_sec = parent->ts.tv_sec;
     p->ts.tv_usec = parent->ts.tv_usec;
@@ -242,4 +242,56 @@ DecodeThreadVars *DecodeThreadVarsAlloc() {
     AlpProtoFinalize2Thread(&dtv->udp_dp_ctx);
 
     return dtv;
+}
+
+/**
+ *  \brief Copy data to Packet payload at given offset
+ *
+ *  \param Pointer to the Packet to modify
+ *  \param Offset of the copy relatively to payload of Packet
+ *  \param Pointer to the data to copy
+ *  \param Length of the data to copy
+ */
+inline int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datalen)
+{
+    if (offset + datalen > MAX_PAYLOAD_SIZE) {
+        /* too big */
+        return -1;
+    }
+
+    if (! p->ext_pkt) {
+        if (offset + datalen <= default_packet_size) {
+            memcpy(p->pkt + offset, data, datalen);
+        } else {
+            /* here we need a dynamic allocation. This case should rarely
+             * occur as there is a high probability the first frag has
+             * reveal the packet size*/
+            p->ext_pkt = SCMalloc(MAX_PAYLOAD_SIZE);
+            if (p->ext_pkt == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s", strerror(errno));
+                SET_PKT_LEN(p, 0);
+                return -1;
+            }
+            /* copy initial data */
+            memcpy(p->ext_pkt, &p->pkt, p->pktlen);
+            /* copy data as asked */
+            memcpy(p->ext_pkt + offset, data, datalen);
+        }
+    } else {
+        memcpy(p->ext_pkt + offset, data, datalen);
+    }
+    return 0;
+}
+
+/**
+ *  \brief Copy data to Packet payload and set packet length
+ *
+ *  \param Pointer to the Packet to modify
+ *  \param Pointer to the data to copy
+ *  \param Length of the data to copy
+ */
+inline int PacketCopyData(Packet *p, uint8_t *pktdata, int pktlen)
+{
+    SET_PKT_LEN(p, (size_t)pktlen);
+    return PacketCopyDataOffset(p, 0, pktdata, pktlen);
 }

@@ -156,6 +156,14 @@ typedef struct Address_ {
 #define GET_TCP_SRC_PORT(p)  ((p)->sp)
 #define GET_TCP_DST_PORT(p)  ((p)->dp)
 
+#define GET_PKT_LEN(p) ((p)->pktlen)
+#define GET_PKT_DATA(p) ((((p)->ext_pkt) == NULL ) ? (p)->pkt : (p)->ext_pkt)
+
+#define SET_PKT_LEN(p, len) do { \
+    (p)->pktlen = len;		 \
+    } while (0)
+
+
 /* Port is just a uint16_t */
 typedef uint16_t Port;
 #define SET_PORT(v, p) ((p) = (v))
@@ -340,8 +348,9 @@ typedef struct Packet_
     uint8_t *payload;
     uint16_t payload_len;
 
-    /* storage: maximum ip packet size + link header */
-    uint8_t pkt[IPV6_HEADER_LEN + 65536 + 28];
+    /* storage: set to pointer to heap and extended via allocation if necessary */
+    uint8_t *pkt;
+    uint8_t *ext_pkt;
     uint32_t pktlen;
 
     PacketAlerts alerts;
@@ -394,6 +403,12 @@ typedef struct Packet_
     uint16_t mpm_offsets[CUDA_MAX_PAYLOAD_SIZE + 1];
 #endif
 } Packet;
+
+#define DEFAULT_PACKET_SIZE 1500 + ETHERNET_HEADER_LEN
+/* storage: maximum ip packet size + link header */
+#define MAX_PAYLOAD_SIZE IPV6_HEADER_LEN + 65536 + 28
+intmax_t default_packet_size;
+#define SIZE_OF_PACKET default_packet_size + sizeof(Packet)
 
 typedef struct PacketQueue_ {
     Packet *top;
@@ -471,17 +486,19 @@ typedef struct DecodeThreadVars_
  */
 #ifndef __SC_CUDA_SUPPORT__
 #define PACKET_INITIALIZE(p) { \
-    memset((p), 0x00, sizeof(Packet)); \
+    memset((p), 0x00, SIZE_OF_PACKET); \
     SCMutexInit(&(p)->mutex_rtv_cnt, NULL); \
     PACKET_RESET_CHECKSUMS((p)); \
+    (p)->pkt = ((uint8_t *)(p)) + sizeof(Packet); \
 }
 #else
 #define PACKET_INITIALIZE(p) { \
-    memset((p), 0x00, sizeof(Packet)); \
+    memset((p), 0x00, SIZE_OF_PACKET); \
     SCMutexInit(&(p)->mutex_rtv_cnt, NULL); \
     PACKET_RESET_CHECKSUMS((p)); \
     SCMutexInit(&(p)->cuda_mutex, NULL); \
     SCCondInit(&(p)->cuda_cond, NULL); \
+    (p)->pkt = ((uint8_t *)(p)) + sizeof(Packet); \
 }
 #endif
 
@@ -627,6 +644,8 @@ typedef struct DecodeThreadVars_
 void DecodeRegisterPerfCounters(DecodeThreadVars *, ThreadVars *);
 Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto);
 Packet *PacketGetFromQueueOrAlloc(void);
+int PacketCopyData(Packet *p, uint8_t *pktdata, int pktlen);
+int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datalen);
 
 DecodeThreadVars *DecodeThreadVarsAlloc();
 

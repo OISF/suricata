@@ -812,6 +812,12 @@ int main(int argc, char **argv)
         max_pending_packets = DEFAULT_MAX_PENDING_PACKETS;
     SCLogDebug("Max pending packets set to %"PRIiMAX, max_pending_packets);
 
+    /* Pull the default packet size from the config, if not found fall
+     * back on a sane default. */
+    if (ConfGetInt("default-packet-size", &default_packet_size) != 1)
+        default_packet_size = DEFAULT_PACKET_SIZE;
+    SCLogDebug("Default packet size set to %"PRIiMAX, default_packet_size);
+
     /* Since our config is now loaded we can finish configurating the
      * logging module. */
     SCLogLoadConfig();
