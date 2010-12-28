@@ -307,7 +307,6 @@ int SCCudaHlGetCudaModuleFromFile(CUmodule *p_module, const char *filename, int 
     /* Register new CUmodule in the module */
     new_module_cumodule = SCMalloc(sizeof(SCCudaHlModuleCUmodule));
     if (new_module_cumodule == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCCudaHlRegisterModule. Exiting...");
         exit(EXIT_FAILURE);
     }
     memset(new_module_cumodule, 0, sizeof(SCCudaHlModuleCUmodule));
@@ -461,7 +460,6 @@ int SCCudaHlGetCudaModule(CUmodule *p_module, const char *ptx_image, int handle)
     /* Register new CUmodule in the module */
     new_module_cumodule = SCMalloc(sizeof(SCCudaHlModuleCUmodule));
     if (new_module_cumodule == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCCudaHlRegisterModule. Exiting...");
         exit(EXIT_FAILURE);
     }
     memset(new_module_cumodule, 0, sizeof(SCCudaHlModuleCUmodule));
@@ -828,7 +826,6 @@ int SCCudaHlRegisterModule(const char *name)
     /* the module is not already registered.  Register the module */
     new_data = SCMalloc(sizeof(SCCudaHlModuleData));
     if (new_data == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCCudaHlRegisterModule. Exiting...");
         exit(EXIT_FAILURE);
     }
     memset(new_data, 0, sizeof(SCCudaHlModuleData));

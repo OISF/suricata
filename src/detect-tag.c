@@ -177,7 +177,6 @@ int DetectTagMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Si
     DetectTagDataEntry *tde = NULL;
     tde = SCMalloc(sizeof(DetectTagDataEntry));
     if (tde == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Allocation failed for tag entry. The rule will alert, but no session/host will be taged");
         return 1;
     }
     memset(tde, 0, sizeof(DetectTagDataEntry));

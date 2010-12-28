@@ -1013,7 +1013,6 @@ void SCACGfbsInitThreadCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
 
     mpm_thread_ctx->ctx = SCMalloc(sizeof(SCACGfbsThreadCtx));
     if (mpm_thread_ctx->ctx == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
     memset(mpm_thread_ctx->ctx, 0, sizeof(SCACGfbsThreadCtx));
@@ -1037,7 +1036,6 @@ void SCACGfbsInitCtx(MpmCtx *mpm_ctx, int module_handle)
 
     mpm_ctx->ctx = SCMalloc(sizeof(SCACGfbsCtx));
     if (mpm_ctx->ctx == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
     memset(mpm_ctx->ctx, 0, sizeof(SCACGfbsCtx));
@@ -1049,7 +1047,6 @@ void SCACGfbsInitCtx(MpmCtx *mpm_ctx, int module_handle)
     SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
     ctx->init_hash = SCMalloc(sizeof(SCACGfbsPattern *) * INIT_HASH_SIZE);
     if (ctx->init_hash == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
     memset(ctx->init_hash, 0, sizeof(SCACGfbsPattern *) * INIT_HASH_SIZE);

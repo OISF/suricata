@@ -1242,7 +1242,6 @@ void AppLayerParsersInitPostProcess(void)
             if (parser_local_id < al_proto_table[u16].map_size) {
                 al_proto_table[u16].map[parser_local_id] = SCMalloc(sizeof(AppLayerLocalMap));
                 if (al_proto_table[u16].map[parser_local_id] == NULL) {
-                    SCLogError(SC_ERR_FATAL, "Fatal error encountered in AppLayerParsersInitPostProcess. Exiting...");
                     exit(EXIT_FAILURE);
                 }
 

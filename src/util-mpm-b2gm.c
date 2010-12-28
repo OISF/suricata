@@ -817,8 +817,6 @@ void B2gmInitCtx (MpmCtx *mpm_ctx, int module_handle) {
 
     mpm_ctx->ctx = SCMalloc(sizeof(B2gmCtx));
     if (mpm_ctx->ctx == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s, while trying "
-            "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)(sizeof(B2gmCtx)));
         exit(EXIT_FAILURE);
     }
 
@@ -831,8 +829,6 @@ void B2gmInitCtx (MpmCtx *mpm_ctx, int module_handle) {
     B2gmCtx *ctx = (B2gmCtx *)mpm_ctx->ctx;
     ctx->init_hash = SCMalloc(sizeof(B2gmPattern *) * INIT_HASH_SIZE);
     if (ctx->init_hash == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s, while trying "
-            "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)(sizeof(B2gmPattern *) * INIT_HASH_SIZE));
         exit(EXIT_FAILURE);
     }
 
@@ -915,8 +911,6 @@ void B2gmThreadInitCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, uint32_t m
     if (sizeof(B2gmThreadCtx) > 0) { /* size can be null when optimized */
         mpm_thread_ctx->ctx = SCMalloc(sizeof(B2gmThreadCtx));
         if (mpm_thread_ctx->ctx == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s, while trying "
-                    "to allocate %"PRIdMAX" bytes", strerror(errno), (intmax_t)(sizeof(B2gmThreadCtx)));
             exit(EXIT_FAILURE);
         }
 

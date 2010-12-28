@@ -76,7 +76,6 @@ BmCtx *BoyerMooreCtxInit(uint8_t *needle, uint32_t needle_len) {
 
     new->bmGs = SCMalloc(sizeof(int32_t) * (needle_len + 1));
     if (new->bmGs == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in BooyerMooreCtxInit. Exiting...");
         exit(EXIT_FAILURE);
     }
 

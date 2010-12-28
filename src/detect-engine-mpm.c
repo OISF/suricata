@@ -1761,7 +1761,6 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_type)
 
     e = SCMalloc(sizeof(MpmPatternIdTableElmt));
     if (e == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
     }
 
@@ -1771,7 +1770,6 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_type)
         DetectContentData *ud = ctx;
         e->pattern = SCMalloc(ud->content_len);
         if (e->pattern == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             exit(EXIT_FAILURE);
         }
         memcpy(e->pattern, ud->content, ud->content_len);
@@ -1782,7 +1780,6 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_type)
         DetectContentData *cd = ctx;
         e->pattern = SCMalloc(cd->content_len);
         if (e->pattern == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             exit(EXIT_FAILURE);
         }
         memcpy(e->pattern, cd->content, cd->content_len);

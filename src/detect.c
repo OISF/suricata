@@ -286,7 +286,6 @@ static inline void EngineAnalysisWriteFastPattern(Signature *s, SigMatch *mpm_sm
         patlen = fp_cd->fp_chop_len;
         pat = SCMalloc(fp_cd->fp_chop_len + 1);
         if (pat == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             exit(EXIT_FAILURE);
         }
         memcpy(pat, fp_cd->content + fp_cd->fp_chop_offset, fp_cd->fp_chop_len);

@@ -105,7 +105,6 @@ uint32_t TagHashFunc(HashListTable *ht, void *data, uint16_t datalen)
 void TagInitCtx(void) {
     tag_ctx = SCMalloc(sizeof(DetectTagHostCtx));
     if (tag_ctx == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for the tagging context");
         exit(EXIT_FAILURE);
     }
     memset(tag_ctx, 0, sizeof(DetectTagHostCtx));

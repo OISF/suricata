@@ -261,7 +261,6 @@ SigNumArray *SigNumArrayNew(DetectEngineCtx *de_ctx,
 
     new->array = SCMalloc(io_ctx->max_idx / 8 + 1);
     if (new->array == NULL) {
-       SCLogError(SC_ERR_FATAL, "Fatal error encountered in SigNumArrayNew. Exiting...");
        exit(EXIT_FAILURE);
     }
 
@@ -294,7 +293,6 @@ SigNumArray *SigNumArrayCopy(SigNumArray *orig) {
 
     new->array = SCMalloc(orig->size);
     if (new->array == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SigNumArrayCopy. Exiting...");
         exit(EXIT_FAILURE);
     }
 
@@ -840,7 +838,6 @@ void DetectEngineIPOnlyThreadInit(DetectEngineCtx *de_ctx,
     io_tctx->sig_match_size = de_ctx->io_ctx.max_idx / 8 + 1;
     io_tctx->sig_match_array = SCMalloc(io_tctx->sig_match_size);
     if (io_tctx->sig_match_array == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in DetectEngineIPOnlyThreadInit. Exiting...");
         exit(EXIT_FAILURE);
     }
 

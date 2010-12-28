@@ -89,7 +89,6 @@ DetectContentData *DetectContentParse (char *contentstr)
 
     cd = SCMalloc(sizeof(DetectContentData));
     if (cd == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory. Exiting...");
         exit(EXIT_FAILURE);
     }
 
@@ -229,7 +228,6 @@ DetectContentData *DetectContentParse (char *contentstr)
 
     cd->content = SCMalloc(len);
     if (cd->content == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "error allocating memory. exiting...");
         exit(EXIT_FAILURE);
     }
 

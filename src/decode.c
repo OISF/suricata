@@ -69,7 +69,6 @@ Packet *PacketGetFromQueueOrAlloc(void) {
         /* non fatal, we're just not processing a packet then */
         p = SCMalloc(SIZE_OF_PACKET);
         if (p == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s", strerror(errno));
             return NULL;
         }
 
@@ -268,7 +267,6 @@ inline int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datale
              * reveal the packet size*/
             p->ext_pkt = SCMalloc(MAX_PAYLOAD_SIZE);
             if (p->ext_pkt == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s", strerror(errno));
                 SET_PKT_LEN(p, 0);
                 return -1;
             }

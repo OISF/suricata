@@ -129,7 +129,6 @@ static DetectReference *DetectReferenceParse(char *rawstr, DetectEngineCtx *de_c
 
     ref = SCMalloc(sizeof(DetectReference));
     if (ref == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "malloc failed: %s", strerror(errno));
         goto error;
     }
     memset(ref, 0, sizeof(DetectReference));

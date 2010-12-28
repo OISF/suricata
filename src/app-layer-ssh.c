@@ -157,7 +157,6 @@ static int SSHParseServerVersion(Flow *f, void *ssh_state, AppLayerParserState *
         uint64_t proto_ver_len = (uint64_t)(proto_end - line_ptr);
         state->server_proto_version = SCMalloc(proto_ver_len + 1);
         if (state->server_proto_version == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             SCReturnInt(-1);
         }
         memcpy(state->server_proto_version, line_ptr, proto_ver_len);
@@ -184,7 +183,6 @@ static int SSHParseServerVersion(Flow *f, void *ssh_state, AppLayerParserState *
         uint64_t sw_ver_len = (uint64_t)(sw_end - line_ptr);
         state->server_software_version = SCMalloc(sw_ver_len + 1);
         if (state->server_software_version == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             SCReturnInt(-1);
         }
         memcpy(state->server_software_version, line_ptr, sw_ver_len);
@@ -490,7 +488,6 @@ static int SSHParseClientVersion(Flow *f, void *ssh_state, AppLayerParserState *
         uint64_t proto_ver_len = (uint64_t)(proto_end - line_ptr);
         state->client_proto_version = SCMalloc(proto_ver_len + 1);
         if (state->client_proto_version == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             SCReturnInt(-1);
         }
         memcpy(state->client_proto_version, line_ptr, proto_ver_len);
@@ -517,7 +514,6 @@ static int SSHParseClientVersion(Flow *f, void *ssh_state, AppLayerParserState *
         uint64_t sw_ver_len = (uint64_t)(sw_end - line_ptr);
         state->client_software_version = SCMalloc(sw_ver_len + 1);
         if (state->client_software_version == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             SCReturnInt(-1);
         }
         memcpy(state->client_software_version, line_ptr, sw_ver_len);
