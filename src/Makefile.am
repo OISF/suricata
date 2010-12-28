@@ -230,7 +230,8 @@ win32-service.c win32-service.h \
 util-action.c util-action.h \
 win32-syslog.h \
 util-profiling.c util-profiling.h \
-cuda-packet-batcher.c cuda-packet-batcher.h
+cuda-packet-batcher.c cuda-packet-batcher.h \
+util-ioctl.h util-ioctl.c
 
 # set the include path found by configure
 INCLUDES= $(all_includes)
