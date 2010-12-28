@@ -6920,7 +6920,7 @@ end:
     SCFree(p);
     return ret;
 }
-
+#if 0
 /**
  *  \test   Test to make sure we setup the ipv4 pseudo packet properly
  *
@@ -7153,6 +7153,7 @@ end:
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
     return ret;
 }
+#endif
 #endif /* UNITTESTS */
 
 /** \brief  The Function Register the Unit tests to test the reassembly engine
