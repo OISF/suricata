@@ -628,8 +628,8 @@ TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
 TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
 
-    IPV4Hdr *ip4h = (IPV4Hdr *)p->pkt;
-    IPV6Hdr *ip6h = (IPV6Hdr *)p->pkt;
+    IPV4Hdr *ip4h = (IPV4Hdr *)GET_PKT_DATA(p);
+    IPV6Hdr *ip6h = (IPV6Hdr *)GET_PKT_DATA(p);
     DecodeThreadVars *dtv = (DecodeThreadVars *)data;
 
     SCPerfCounterIncr(dtv->counter_pkts, tv->sc_perf_pca);
@@ -644,7 +644,6 @@ TmEcode DecodeNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packet
 
     if (IPV4_GET_RAW_VER(ip4h) == 4) {
         SCLogDebug("IPv4 packet");
-
         DecodeIPV4(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
     } else if(IPV6_GET_RAW_VER(ip6h) == 6) {
         SCLogDebug("IPv6 packet");
