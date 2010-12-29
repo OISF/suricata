@@ -118,6 +118,7 @@
 #include "detect-engine-hcbd.h"
 #include "detect-engine-hhd.h"
 #include "detect-engine-hrhd.h"
+#include "detect-engine-hmd.h"
 
 #include "util-rule-vars.h"
 
@@ -703,14 +704,14 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         SCLogDebug("Mask match. mask %02X, s->mask %02x, after AND %02x", mask, s->mask, mask & s->mask);
 
 #if 0
-        if (!(p->flags & PKT_HAS_FLOW) && s->flags & SIG_FLAG_FLOW) {
+        if (!(p->flags & PKT_HAS_FLOW) && s->init_flags & SIG_FLAG_FLOW) {
             SCLogDebug("flow in sig but not in packet");
             continue;
         }
 
         /* filter out the sigs that inspect the payload, if packet
            no payload inspection flag is set*/
-        if ((p->flags & PKT_NOPAYLOAD_INSPECTION) && (s->flags & SIG_FLAG_PAYLOAD)) {
+        if ((p->flags & PKT_NOPAYLOAD_INSPECTION) && (s->init_flags & SIG_FLAG_PAYLOAD)) {
             SCLogDebug("no payload inspection enabled and sig has payload portion.");
             continue;
         }
@@ -774,8 +775,8 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         }
 
         if (s->full_sig->flags & SIG_FLAG_MPM_URICONTENT) {
-            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_uripattern_id / 8)] &
-                  (1 << (s->mpm_uripattern_id % 8)))) {
+            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
+                  (1 << (s->mpm_http_pattern_id % 8)))) {
                 if (!(s->full_sig->flags & SIG_FLAG_MPM_URICONTENT_NEG)) {
                     continue;
                 }
@@ -783,8 +784,8 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         }
 
         if (s->flags & SIG_FLAG_MPM_HCBDCONTENT) {
-            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_hcbdpattern_id / 8)] &
-                  (1 << (s->mpm_hcbdpattern_id % 8)))) {
+            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
+                  (1 << (s->mpm_http_pattern_id % 8)))) {
                 if (!(s->flags & SIG_FLAG_MPM_HCBDCONTENT_NEG)) {
                     continue;
                 }
@@ -792,8 +793,8 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         }
 
         if (s->flags & SIG_FLAG_MPM_HHDCONTENT) {
-            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_hhdpattern_id / 8)] &
-                  (1 << (s->mpm_hhdpattern_id % 8)))) {
+            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
+                  (1 << (s->mpm_http_pattern_id % 8)))) {
                 if (!(s->flags & SIG_FLAG_MPM_HHDCONTENT_NEG)) {
                     continue;
                 }
@@ -801,9 +802,18 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         }
 
         if (s->flags & SIG_FLAG_MPM_HRHDCONTENT) {
-            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_hrhdpattern_id / 8)] &
-                  (1 << (s->mpm_hrhdpattern_id % 8)))) {
+            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
+                  (1 << (s->mpm_http_pattern_id % 8)))) {
                 if (!(s->flags & SIG_FLAG_MPM_HRHDCONTENT_NEG)) {
+                    continue;
+                }
+            }
+        }
+
+        if (s->flags & SIG_FLAG_MPM_HMDCONTENT) {
+            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
+                  (1 << (s->mpm_http_pattern_id % 8)))) {
+                if (!(s->flags & SIG_FLAG_MPM_HMDCONTENT_NEG)) {
                     continue;
                 }
             }
@@ -1042,6 +1052,10 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
             if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HRHD) {
                 cnt = DetectEngineRunHttpRawHeaderMpm(det_ctx, p->flow, alstate);
                 SCLogDebug("hrhd search: cnt %" PRIu32, cnt);
+            }
+            if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HMD) {
+                cnt = DetectEngineRunHttpMethodMpm(det_ctx, p->flow, alstate);
+                SCLogDebug("hmd search: cnt %" PRIu32, cnt);
             }
         }
     } else {
@@ -1673,6 +1687,9 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
     if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL)
         return 0;
 
+    if (s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL)
+        return 0;
+
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL)
         return 0;
 
@@ -1751,6 +1768,9 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, Signature *s) {
         return 0;
 
     if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL)
+        return 0;
+
+    if (s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL)
         return 0;
 
     SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
@@ -1843,6 +1863,11 @@ static int SignatureCreateMask(Signature *s) {
         SCLogDebug("sig requires http app state");
     }
 
+    if (s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL) {
+        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
+        SCLogDebug("sig requires http app state");
+    }
+
     SigMatch *sm;
     for (sm = s->sm_lists[DETECT_SM_LIST_AMATCH] ; sm != NULL; sm = sm->next) {
         switch(sm->type) {
@@ -1892,7 +1917,7 @@ static int SignatureCreateMask(Signature *s) {
         SCLogDebug("sig requires flow");
     }
 
-    if (s->flags & SIG_FLAG_FLOW) {
+    if (s->init_flags & SIG_FLAG_FLOW) {
         s->mask |= SIG_MASK_REQUIRE_FLOW;
         SCLogDebug("sig requires flow");
     }
@@ -1930,6 +1955,9 @@ static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
                                         MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
     de_ctx->sgh_mpm_context_hrhd =
         MpmFactoryRegisterMpmCtxProfile("hrhd",
+                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
+    de_ctx->sgh_mpm_context_hmd =
+        MpmFactoryRegisterMpmCtxProfile("hmd",
                                         MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
     de_ctx->sgh_mpm_context_app_proto_detect =
         MpmFactoryRegisterMpmCtxProfile("app_proto_detect", 0);
@@ -1987,12 +2015,12 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
 
         /* see if any sig is inspecting the packet payload */
         } else if (SignatureIsInspectingPayload(de_ctx, tmp_s) == 1) {
-            tmp_s->flags |= SIG_FLAG_PAYLOAD;
+            tmp_s->init_flags |= SIG_FLAG_PAYLOAD;
             cnt_payload++;
 
             SCLogDebug("Signature %"PRIu32" is considered \"Payload inspecting\"", tmp_s->id);
         } else if (SignatureIsDEOnly(de_ctx, tmp_s) == 1) {
-            tmp_s->flags |= SIG_FLAG_DEONLY;
+            tmp_s->init_flags |= SIG_FLAG_DEONLY;
             SCLogDebug("Signature %"PRIu32" is considered \"Decoder Event only\"", tmp_s->id);
             cnt_deonly++;
         }
@@ -2140,7 +2168,7 @@ error:
 static int DetectEngineLookupFlowAddSig(DetectEngineCtx *de_ctx, Signature *s, int family) {
     uint8_t flags = 0;
 
-    if (s->flags & SIG_FLAG_FLOW) {
+    if (s->init_flags & SIG_FLAG_FLOW) {
         SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
         for ( ; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_FLOW)
@@ -2575,7 +2603,7 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
         SCLogDebug("tmp_s->id %"PRIu32, tmp_s->id);
         if (tmp_s->flags & SIG_FLAG_IPONLY) {
             IPOnlyAddSignature(de_ctx, &de_ctx->io_ctx, tmp_s);
-        } else if (tmp_s->flags & SIG_FLAG_DEONLY) {
+        } else if (tmp_s->init_flags & SIG_FLAG_DEONLY) {
             DetectEngineAddDecoderEventSig(de_ctx, tmp_s);
         } else {
             DetectEngineLookupFlowAddSig(de_ctx, tmp_s, AF_INET);
@@ -3777,6 +3805,12 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
             mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
         //printf("hrhd- %d\n", mpm_ctx->pattern_cnt);
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_hmd);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+        //printf("hmd- %d\n", mpm_ctx->pattern_cnt);
 
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_stream);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
@@ -7989,7 +8023,7 @@ int SigTest40NoPayloadInspection02(void) {
     //PatternMatchPrepare(mpm_ctx,MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    if (!(de_ctx->sig_list->flags & SIG_FLAG_PAYLOAD))
+    if (!(de_ctx->sig_list->init_flags & SIG_FLAG_PAYLOAD))
         result = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);

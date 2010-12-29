@@ -34,6 +34,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-engine-state.h"
 #include "detect-content.h"
+#include "detect-pcre.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -64,7 +65,8 @@ void DetectHttpMethodFree(void *);
 void DetectHttpMethodRegister(void) {
     sigmatch_table[DETECT_AL_HTTP_METHOD].name = "http_method";
     sigmatch_table[DETECT_AL_HTTP_METHOD].Match = NULL;
-    sigmatch_table[DETECT_AL_HTTP_METHOD].AppLayerMatch = DetectHttpMethodMatch;
+    //sigmatch_table[DETECT_AL_HTTP_METHOD].AppLayerMatch = DetectHttpMethodMatch;
+    sigmatch_table[DETECT_AL_HTTP_METHOD].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_HTTP_METHOD].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_AL_HTTP_METHOD].Setup = DetectHttpMethodSetup;
     sigmatch_table[DETECT_AL_HTTP_METHOD].Free  = DetectHttpMethodFree;
@@ -140,113 +142,106 @@ int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 }
 
 /**
- * \brief this function is used to add the parsed "http_method" option
- * \brief into the current signature
+ * \brief This function is used to add the parsed "http_method" option
+ *        into the current signature.
  *
- * \param de_ctx pointer to the Detection Engine Context
- * \param s      pointer to the Current Signature
- * \param str    pointer to the user provided option string
+ * \param de_ctx Pointer to the Detection Engine Context.
+ * \param s      Pointer to the Current Signature.
+ * \param str    Pointer to the user provided option string.
  *
- * \retval 0 on Success
- * \retval -1 on Failure
+ * \retval  0 on Success.
+ * \retval -1 on Failure.
  */
 static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
     SCEnter();
-    DetectContentData *data = NULL;
-    /** new sig match to replace previous content */
-    SigMatch *nm = NULL;
+    DetectContentData *cd = NULL;
 
     if ((str != NULL) && (strcmp(str, "") != 0)) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,
-                   "http_method does not take an argument");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "http_method does not take an argument");
         SCReturnInt(-1);
     }
 
     if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                   "http_method modifier used before any signature match");
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method modifier used "
+                   "before any signature match");
         SCReturnInt(-1);
     }
 
-    SigMatch *pm = DetectContentGetLastPattern(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
-    if (pm == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                "http_method modifies \"content\", but none was found");
+    SigMatch *sm = DetectContentGetLastPattern(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+    if (sm == NULL) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method modifies \"content\", "
+                   "but none was found");
         SCReturnInt(-1);
     }
 
-    /** \todo snort docs only mention rawbytes, not fast_pattern */
-    if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_FAST_PATTERN)
+    cd = (DetectContentData *)sm->ctx;
+
+    if (cd->flags & DETECT_CONTENT_RAWBYTES)
     {
-        SCLogWarning(SC_WARN_COMPATIBILITY,
-                   "http_method cannot be used with \"fast_pattern\" currently."
-                   "Unsetting fast_pattern on this modifier. Signature ==> %s", s->sig_str);
-        ((DetectContentData *)pm->ctx)->flags &= ~DETECT_CONTENT_FAST_PATTERN;
-    } else if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_RAWBYTES)
-    {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,
-                   "http_method cannot be used with \"rawbytes\"");
-
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method cannot be used "
+                   "with \"rawbytes\"");
         SCReturnInt(-1);
     }
-
-    /* Setup the new sigmatch */
-    nm = SigMatchAlloc();
-    if (nm == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "SigMatchAlloc failed");
-        goto error;
-    }
-
-    data = SCMalloc(sizeof(DetectContentData));
-    if (data == NULL)
-        goto error;
-
-    memset(data, 0x00, sizeof(DetectContentData));
-
-    data->content_len = ((DetectContentData *)pm->ctx)->content_len;
-    data->content = ((DetectContentData *)pm->ctx)->content;
-    /* transfer the nocase flag if it has already been set */
-    if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_NOCASE) {
-        data->flags |= DETECT_CONTENT_NOCASE;
-    }
-    /* transfer the negate flag */
-    if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_NEGATED) {
-        data->flags |= DETECT_CONTENT_NEGATED;
-    }
-
-    data->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, data, DETECT_AL_HTTP_METHOD);
-
-    nm->type = DETECT_AL_HTTP_METHOD;
-    nm->ctx = (void *)data;
-
-    /* pull the previous content from the pmatch list, append
-     * the new match to the match list */
-    SigMatchReplaceContent(s, pm, nm);
-
-    /* free the old content sigmatch, the memory for the pattern
-     * is taken over by our new sigmatch */
-    BoyerMooreCtxDeInit(((DetectContentData *)pm->ctx)->bm_ctx);
-    SCFree(pm->ctx);
-    SCFree(pm);
-
-    /* Flagged the signature as to inspect the app layer data */
-    s->flags |= SIG_FLAG_APPLAYER;
 
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains a non http "
+                   "alproto set");
         goto error;
     }
 
+    if (cd->flags & DETECT_CONTENT_WITHIN || cd->flags & DETECT_CONTENT_DISTANCE) {
+        SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
+                                                   DETECT_CONTENT, sm->prev,
+                                                   DETECT_PCRE, sm->prev);
+        if (pm != NULL) {
+            /* pm is never NULL.  So no NULL check */
+            if (pm->type == DETECT_CONTENT) {
+                DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+                tmp_cd->flags &= ~DETECT_CONTENT_RELATIVE_NEXT;
+            } else {
+                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                tmp_pd->flags &= ~DETECT_PCRE_RELATIVE_NEXT;
+            }
+        } /* if (pm != NULL) */
+
+        /* please note.  reassigning pm */
+        pm = SigMatchGetLastSMFromLists(s, 4,
+                                        DETECT_AL_HTTP_METHOD,
+                                        s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
+                                        DETECT_PCRE,
+                                        s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]);
+        if (pm == NULL) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method seen with a "
+                       "distance or within without a previous http_method "
+                       "content.  Invalidating signature.");
+            goto error;
+        }
+        if (pm->type == DETECT_PCRE) {
+            DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+            tmp_pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
+        } else {
+            DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+            tmp_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+        }
+    }
+    cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_AL_HTTP_METHOD);
+    sm->type = DETECT_AL_HTTP_METHOD;
+
+    /* transfer the sm from the pmatch list to hmdmatch list */
+    SigMatchTransferSigMatchAcrossLists(sm,
+                                        &s->sm_lists[DETECT_SM_LIST_PMATCH],
+                                        &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                        &s->sm_lists[DETECT_SM_LIST_HMDMATCH],
+                                        &s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]);
+
+    /* flag the signature to indicate that we scan the app layer data */
+    s->flags |= SIG_FLAG_APPLAYER;
     s->alproto = ALPROTO_HTTP;
+
     SCReturnInt(0);
 
 error:
-    if (data != NULL) DetectHttpMethodFree(data);
-    if (nm != NULL) {
-        if (nm->ctx != NULL) DetectHttpMethodFree(nm);
-        SCFree(nm);
-    }
     SCReturnInt(-1);
 }
 
@@ -289,8 +284,10 @@ int DetectHttpMethodTest01(void)
     }
 
  end:
-    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -314,8 +311,10 @@ int DetectHttpMethodTest02(void)
     }
 
  end:
-    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -340,8 +339,10 @@ int DetectHttpMethodTest03(void)
     }
 
  end:
-    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -367,8 +368,10 @@ int DetectHttpMethodTest04(void)
     }
 
  end:
-    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -394,8 +397,10 @@ int DetectHttpMethodTest05(void)
     }
 
  end:
-    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+    if (de_ctx != NULL)
+        SigCleanSignatures(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -420,13 +425,13 @@ int DetectHttpMethodTest06(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HMDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HMDMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hmd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hmd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]->ctx;
     if (cd->id == hmd->id)
         goto end;
 
@@ -459,13 +464,13 @@ int DetectHttpMethodTest07(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HMDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HMDMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hmd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hmd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]->ctx;
     if (cd->id == hmd->id)
         goto end;
 
@@ -498,13 +503,13 @@ int DetectHttpMethodTest08(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HMDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HMDMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hmd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hmd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]->ctx;
     if (cd->id != 0 || hmd->id != 1)
         goto end;
 
@@ -537,13 +542,13 @@ int DetectHttpMethodTest09(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HMDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HMDMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hmd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hmd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]->ctx;
     if (cd->id != 1 || hmd->id != 0)
         goto end;
 
@@ -577,14 +582,14 @@ int DetectHttpMethodTest10(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HMDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HMDMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hmd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
-    DetectContentData *hmd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->prev->ctx;
+    DetectContentData *hmd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]->ctx;
+    DetectContentData *hmd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]->prev->ctx;
     if (cd->id != 1 || hmd1->id != 0 || hmd2->id != 0)
         goto end;
 
@@ -618,14 +623,14 @@ int DetectHttpMethodTest11(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HMDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HMDMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hmd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
-    DetectContentData *hmd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->prev->ctx;
+    DetectContentData *hmd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]->ctx;
+    DetectContentData *hmd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]->prev->ctx;
     if (cd->id != 2 || hmd1->id != 0 || hmd2->id != 0)
         goto end;
 
@@ -659,13 +664,13 @@ static int DetectHttpMethodTest12(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL: ");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HMDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HMDMATCH] == NULL: ");
         goto end;
     }
 
-    DetectContentData *hmd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
-    DetectContentData *hmd2 = de_ctx->sig_list->next->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hmd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]->ctx;
+    DetectContentData *hmd2 = de_ctx->sig_list->next->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]->ctx;
 
     if (!(hmd1->flags & DETECT_CONTENT_NOCASE)) {
         printf("nocase flag not set on sig 1: ");

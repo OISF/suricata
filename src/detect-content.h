@@ -48,6 +48,7 @@
 #define DETECT_CONTENT_HCBD_MPM          0x00004000
 #define DETECT_CONTENT_HHD_MPM           0x00008000
 #define DETECT_CONTENT_HRHD_MPM          0x00010000
+#define DETECT_CONTENT_HMD_MPM           0x00020000
 
 #define DETECT_CONTENT_IS_SINGLE(c) (!((c)->flags & DETECT_CONTENT_DISTANCE || \
                                        (c)->flags & DETECT_CONTENT_WITHIN || \

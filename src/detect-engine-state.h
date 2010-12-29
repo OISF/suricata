@@ -50,7 +50,8 @@
 #define DE_STATE_FLAG_HCBD_MATCH    0x08 /**< hcbd payload inspection part matched */
 #define DE_STATE_FLAG_HHD_MATCH     0x10 /**< hhd payload inspection part matched */
 #define DE_STATE_FLAG_HRHD_MATCH    0x20 /**< hrhd payload inspection part matched */
-#define DE_STATE_FLAG_FULL_MATCH    0x40 /**< sig already fully matched */
+#define DE_STATE_FLAG_HMD_MATCH     0x40 /**< hmd payload inspection part matched */
+#define DE_STATE_FLAG_FULL_MATCH    0x80 /**< sig already fully matched */
 
 /** per signature detection engine state */
 typedef enum {

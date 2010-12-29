@@ -598,7 +598,7 @@ static int DetectTlsVersionTestDetect03(void) {
         goto end;
     }
 
-    if (s->flags & SIG_FLAG_PACKET) {
+    if (s->init_flags & SIG_FLAG_PACKET) {
         SCLogDebug("SIG_FLAG_PACKET flags");
     }
 

@@ -92,6 +92,8 @@ enum {
     DETECT_SM_LIST_HHDMATCH,
     /* list for http_raw_header keyword and the ones relative to it */
     DETECT_SM_LIST_HRHDMATCH,
+    /* list for http_method keyword and the ones relative to it */
+    DETECT_SM_LIST_HMDMATCH,
     DETECT_SM_LIST_MAX,
 };
 
@@ -214,38 +216,46 @@ typedef struct DetectPort_ {
 
 #define SIG_FLAG_DP_ANY         0x00000010  /**< destination port is any */
 #define SIG_FLAG_NOALERT        0x00000020  /**< no alert flag is set */
-#define SIG_FLAG_IPONLY         0x00000040  /**< ip only signature */
-#define SIG_FLAG_DEONLY         0x00000080  /**< decode event only signature */
 
-#define SIG_FLAG_MPM            0x00000100  /**< sig has mpm portion (content) */
-#define SIG_FLAG_MPM_URI        0x00000200  /**< sig has mpm portion (uricontent) */
-#define SIG_FLAG_PAYLOAD        0x00000400  /**< signature is inspecting the packet payload */
-#define SIG_FLAG_DSIZE          0x00000800  /**< signature has a dsize setting */
+#define SIG_FLAG_MPM            0x00000040  /**< sig has mpm portion (content) */
+#define SIG_FLAG_MPM_URI        0x00000080  /**< sig has mpm portion (uricontent) */
+#define SIG_FLAG_DSIZE          0x00000100  /**< signature has a dsize setting */
 
-#define SIG_FLAG_FLOW           0x00001000  /**< signature has a flow setting */
-#define SIG_FLAG_APPLAYER       0x00002000  /**< signature applies to app layer instead of packets */
-#define SIG_FLAG_BIDIREC        0x00004000  /**< signature has bidirectional operator */
-#define SIG_FLAG_PACKET         0x00008000  /**< signature has matches against a packet (as opposed to app layer) */
+#define SIG_FLAG_APPLAYER       0x00000200  /**< signature applies to app layer instead of packets */
+#define SIG_FLAG_IPONLY         0x00000400  /**< ip only signature */
 
-#define SIG_FLAG_STATE_MATCH                    0x00010000  /**< signature has matches that require stateful inspection */
-#define SIG_FLAG_HAS_NO_PKT_AND_STREAM_CONTENT  0x00020000
-#define SIG_FLAG_MPM_PACKET                     0x00040000
-#define SIG_FLAG_MPM_PACKET_NEG                 0x00080000
+#define SIG_FLAG_STATE_MATCH                    0x00000800  /**< signature has matches that require stateful inspection */
+#define SIG_FLAG_HAS_NO_PKT_AND_STREAM_CONTENT  0x00001000
+#define SIG_FLAG_MPM_PACKET                     0x00002000
+#define SIG_FLAG_MPM_PACKET_NEG                 0x00004000
 
-#define SIG_FLAG_MPM_STREAM                     0x00100000
-#define SIG_FLAG_MPM_STREAM_NEG                 0x00200000
-#define SIG_FLAG_MPM_URICONTENT                 0x00400000
-#define SIG_FLAG_MPM_URICONTENT_NEG             0x00800000
+#define SIG_FLAG_MPM_STREAM                     0x00008000
+#define SIG_FLAG_MPM_STREAM_NEG                 0x00010000
 
-#define SIG_FLAG_MPM_HHDCONTENT                 0x01000000
-#define SIG_FLAG_MPM_HHDCONTENT_NEG             0x02000000
-#define SIG_FLAG_MPM_HRHDCONTENT                0x04000000
-#define SIG_FLAG_MPM_HRHDCONTENT_NEG            0x08000000
+#define SIG_FLAG_MPM_URICONTENT                 0x00020000
+#define SIG_FLAG_MPM_URICONTENT_NEG             0x00040000
 
-#define SIG_FLAG_MPM_HCBDCONTENT                0x10000000
-#define SIG_FLAG_MPM_HCBDCONTENT_NEG            0x20000000
+#define SIG_FLAG_MPM_HHDCONTENT                 0x00080000
+#define SIG_FLAG_MPM_HHDCONTENT_NEG             0x00100000
 
-#define SIG_FLAG_REQUIRE_FLOWVAR                0x40000000 /**< signature can only match if a flowbit, flowvar or flowint is available. */
+#define SIG_FLAG_MPM_HRHDCONTENT                0x00200000
+#define SIG_FLAG_MPM_HRHDCONTENT_NEG            0x00400000
+
+#define SIG_FLAG_MPM_HCBDCONTENT                0x00800000
+#define SIG_FLAG_MPM_HCBDCONTENT_NEG            0x01000000
+
+#define SIG_FLAG_MPM_HMDCONTENT                 0x02000000
+#define SIG_FLAG_MPM_HMDCONTENT_NEG             0x04000000
+
+#define SIG_FLAG_REQUIRE_FLOWVAR                0x08000000 /**< signature can only match if a flowbit, flowvar or flowint is available. */
+
+/* signature init flags */
+#define SIG_FLAG_DEONLY         0x00000001  /**< decode event only signature */
+#define SIG_FLAG_PACKET         0x00000002  /**< signature has matches against a packet (as opposed to app layer) */
+#define SIG_FLAG_FLOW           0x00000004  /**< signature has a flow setting */
+#define SIG_FLAG_BIDIREC        0x00000008  /**< signature has bidirectional operator */
+#define SIG_FLAG_PAYLOAD        0x00000010  /**< signature is inspecting the packet payload */
+
 
 /* signature mask flags */
 #define SIG_MASK_REQUIRE_PAYLOAD    0x01
@@ -309,10 +319,7 @@ typedef struct SignatureHeader_ {
     union {
         struct {
             /** pattern in the mpm matcher */
-            PatIntId mpm_uripattern_id;
-            PatIntId mpm_hcbdpattern_id;
-            PatIntId mpm_hhdpattern_id;
-            PatIntId mpm_hrhdpattern_id;
+            PatIntId mpm_http_pattern_id;
         };
         uint64_t hdr_copy3;
     };
@@ -352,11 +359,7 @@ typedef struct Signature_ {
     };
     union {
         struct {
-            /** pattern in the mpm matcher */
-            PatIntId mpm_uripattern_id;
-            PatIntId mpm_hcbdpattern_id;
-            PatIntId mpm_hhdpattern_id;
-            PatIntId mpm_hrhdpattern_id;
+            PatIntId mpm_http_pattern_id;
         };
         uint64_t hdr_copy3;
     };
@@ -453,6 +456,9 @@ typedef struct Signature_ {
 
     /** address settings for this signature */
     DetectAddressHead src, dst;
+
+    /* used to hold flags that are predominantly used during init */
+    uint32_t init_flags;
 
     /** ptr to the next sig in the list */
     struct Signature_ *next;
@@ -647,6 +653,7 @@ typedef struct DetectEngineCtx_ {
     int32_t sgh_mpm_context_hcbd;
     int32_t sgh_mpm_context_hhd;
     int32_t sgh_mpm_context_hrhd;
+    int32_t sgh_mpm_context_hmd;
     int32_t sgh_mpm_context_app_proto_detect;
 
     /** sgh for signatures that match against invalid packets. In those cases
@@ -803,17 +810,19 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HAVEHCBDCONTENT       0x00000008
 #define SIG_GROUP_HAVEHHDCONTENT        0x00000010
 #define SIG_GROUP_HAVEHRHDCONTENT       0x00000020
-#define SIG_GROUP_HEAD_MPM_COPY         0x00000040
-#define SIG_GROUP_HEAD_MPM_URI_COPY     0x00000080
-#define SIG_GROUP_HEAD_MPM_STREAM_COPY  0x00000100
-#define SIG_GROUP_HEAD_FREE             0x00000200
-#define SIG_GROUP_HEAD_MPM_PACKET       0x00000400
-#define SIG_GROUP_HEAD_MPM_STREAM       0x00000800
-#define SIG_GROUP_HEAD_MPM_URI          0x00001000
-#define SIG_GROUP_HEAD_MPM_HCBD         0x00002000
-#define SIG_GROUP_HEAD_MPM_HHD          0x00004000
-#define SIG_GROUP_HEAD_MPM_HRHD         0x00008000
-#define SIG_GROUP_HEAD_REFERENCED       0x00010000 /**< sgh is being referenced by others, don't clear */
+#define SIG_GROUP_HAVEHMDCONTENT        0x00000040
+#define SIG_GROUP_HEAD_MPM_COPY         0x00000080
+#define SIG_GROUP_HEAD_MPM_URI_COPY     0x00000100
+#define SIG_GROUP_HEAD_MPM_STREAM_COPY  0x00000200
+#define SIG_GROUP_HEAD_FREE             0x00000400
+#define SIG_GROUP_HEAD_MPM_PACKET       0x00000800
+#define SIG_GROUP_HEAD_MPM_STREAM       0x00001000
+#define SIG_GROUP_HEAD_MPM_URI          0x00002000
+#define SIG_GROUP_HEAD_MPM_HCBD         0x00004000
+#define SIG_GROUP_HEAD_MPM_HHD          0x00008000
+#define SIG_GROUP_HEAD_MPM_HRHD         0x00010000
+#define SIG_GROUP_HEAD_MPM_HMD          0x00020000
+#define SIG_GROUP_HEAD_REFERENCED       0x00040000 /**< sgh is being referenced by others, don't clear */
 
 typedef struct SigGroupHeadInitData_ {
     /* list of content containers
@@ -857,6 +866,7 @@ typedef struct SigGroupHead_ {
     MpmCtx *mpm_hcbd_ctx;
     MpmCtx *mpm_hhd_ctx;
     MpmCtx *mpm_hrhd_ctx;
+    MpmCtx *mpm_hmd_ctx;
 
     uint16_t mpm_streamcontent_maxlen;
     uint16_t mpm_uricontent_maxlen;
