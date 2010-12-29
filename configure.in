@@ -820,7 +820,7 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
     else
         GIT=`which git`
         if test "$GIT" != ""; then
-            REVISION=`git describe --always`
+            REVISION=`git rev-parse --short HEAD`
             CFLAGS="${CFLAGS} -DREVISION=\"${REVISION}\""
         fi
     fi
