@@ -177,8 +177,7 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
 
     cd = (DetectContentData *)sm->ctx;
 
-    if (cd->flags & DETECT_CONTENT_RAWBYTES)
-    {
+    if (cd->flags & DETECT_CONTENT_RAWBYTES) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method cannot be used "
                    "with \"rawbytes\"");
         SCReturnInt(-1);

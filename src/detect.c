@@ -119,6 +119,7 @@
 #include "detect-engine-hhd.h"
 #include "detect-engine-hrhd.h"
 #include "detect-engine-hmd.h"
+#include "detect-engine-hcd.h"
 
 #include "util-rule-vars.h"
 
@@ -819,6 +820,14 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
             }
         }
 
+        if (s->flags & SIG_FLAG_MPM_HCDCONTENT) {
+            if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
+                  (1 << (s->mpm_http_pattern_id % 8)))) {
+                if (!(s->flags & SIG_FLAG_MPM_HCDCONTENT_NEG)) {
+                    continue;
+                }
+            }
+        }
         /* de_state check, filter out all signatures that already had a match before
          * or just partially match */
         if (s->flags & SIG_FLAG_STATE_MATCH) {
@@ -1056,6 +1065,10 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
             if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HMD) {
                 cnt = DetectEngineRunHttpMethodMpm(det_ctx, p->flow, alstate);
                 SCLogDebug("hmd search: cnt %" PRIu32, cnt);
+            }
+            if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HCD) {
+                cnt = DetectEngineRunHttpCookieMpm(det_ctx, p->flow, alstate);
+                SCLogDebug("hcd search: cnt %" PRIu32, cnt);
             }
         }
     } else {
@@ -1690,6 +1703,9 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
     if (s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL)
         return 0;
 
+    if (s->sm_lists[DETECT_SM_LIST_HCDMATCH] != NULL)
+        return 0;
+
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL)
         return 0;
 
@@ -1771,6 +1787,9 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, Signature *s) {
         return 0;
 
     if (s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL)
+        return 0;
+
+    if (s->sm_lists[DETECT_SM_LIST_HCDMATCH] != NULL)
         return 0;
 
     SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
@@ -1868,6 +1887,11 @@ static int SignatureCreateMask(Signature *s) {
         SCLogDebug("sig requires http app state");
     }
 
+    if (s->sm_lists[DETECT_SM_LIST_HCDMATCH] != NULL) {
+        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
+        SCLogDebug("sig requires http app state");
+    }
+
     SigMatch *sm;
     for (sm = s->sm_lists[DETECT_SM_LIST_AMATCH] ; sm != NULL; sm = sm->next) {
         switch(sm->type) {
@@ -1958,6 +1982,9 @@ static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
                                         MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
     de_ctx->sgh_mpm_context_hmd =
         MpmFactoryRegisterMpmCtxProfile("hmd",
+                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
+    de_ctx->sgh_mpm_context_hcd =
+        MpmFactoryRegisterMpmCtxProfile("hcd",
                                         MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
     de_ctx->sgh_mpm_context_app_proto_detect =
         MpmFactoryRegisterMpmCtxProfile("app_proto_detect", 0);
@@ -3811,6 +3838,12 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
             mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
         //printf("hmd- %d\n", mpm_ctx->pattern_cnt);
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_hcd);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+        //printf("hcd- %d\n", mpm_ctx->pattern_cnt);
 
         mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_stream);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {

@@ -33,6 +33,7 @@
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "detect-content.h"
+#include "detect-pcre.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -65,7 +66,8 @@ void DetectHttpCookieFree(void *);
 void DetectHttpCookieRegister (void) {
     sigmatch_table[DETECT_AL_HTTP_COOKIE].name = "http_cookie";
     sigmatch_table[DETECT_AL_HTTP_COOKIE].Match = NULL;
-    sigmatch_table[DETECT_AL_HTTP_COOKIE].AppLayerMatch = DetectHttpCookieMatch;
+    sigmatch_table[DETECT_AL_HTTP_COOKIE].AppLayerMatch = NULL;
+    //sigmatch_table[DETECT_AL_HTTP_COOKIE].AppLayerMatch = DetectHttpCookieMatch;
     sigmatch_table[DETECT_AL_HTTP_COOKIE].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_AL_HTTP_COOKIE].Setup = DetectHttpCookieSetup;
     sigmatch_table[DETECT_AL_HTTP_COOKIE].Free  = DetectHttpCookieFree;
@@ -196,92 +198,97 @@ void DetectHttpCookieFree(void *ptr)
 
 static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
-    DetectContentData *hd = NULL;
+    DetectContentData *cd = NULL;
     SigMatch *sm = NULL;
 
-    /** new sig match to replace previous content */
-    SigMatch *nm = NULL;
-
     if (str != NULL && strcmp(str, "") != 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "http_cookie shouldn't be supplied with"
-                                        " an argument");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "http_cookie shouldn't be supplied "
+                   "with an argument");
         return -1;
     }
 
     if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "http_cookie found inside the "
-                     "rule, without any preceding content keywords");
+                   "rule, without any preceding content keywords");
         return -1;
     }
 
-    SigMatch *pm = DetectContentGetLastPattern(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
-    if (pm == NULL) {
+    sm = DetectContentGetLastPattern(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+    if (sm == NULL) {
         SCLogWarning(SC_ERR_INVALID_SIGNATURE, "http_cookie found inside "
                 "the rule, without a content context.  Please use a "
                 "content keyword before using http_cookie");
         return -1;
     }
 
-    /* http_cookie should not be used with the fast_pattern rule */
-    if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_FAST_PATTERN) {
-        SCLogWarning(SC_WARN_COMPATIBILITY, "http_cookie rule can not "
-                "be used with the fast_pattern rule keyword. "
-                "Unsetting fast_pattern on this modifier. Signature ==> %s", s->sig_str);
-        ((DetectContentData *)pm->ctx)->flags &= ~DETECT_CONTENT_FAST_PATTERN;
+    cd = (DetectContentData *)sm->ctx;
+
     /* http_cookie should not be used with the rawbytes rule */
-    } else if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_RAWBYTES) {
+    if (cd->flags & DETECT_CONTENT_RAWBYTES) {
 
         SCLogError(SC_ERR_INVALID_SIGNATURE, "http_cookie rule can not "
-                "be used with the rawbytes rule keyword");
+                   "be used with the rawbytes rule keyword");
         return -1;
     }
 
-    nm = SigMatchAlloc();
-    if (nm == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "SigMatchAlloc failed");
-        goto error;
-    }
-
-    /* Setup the HttpCookie data from Content data structure */
-    hd = SCMalloc(sizeof(DetectContentData));
-    if (hd == NULL)
-        goto error;
-    memset(hd, 0, sizeof(DetectContentData));
-
-    hd->content_len = ((DetectContentData *)pm->ctx)->content_len;
-    hd->content = ((DetectContentData *)pm->ctx)->content;
-    hd->flags |= (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_NOCASE) ?
-        DETECT_CONTENT_NOCASE : 0;
-    hd->flags |= (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_NEGATED) ?
-        DETECT_CONTENT_NEGATED : 0;
-    hd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, hd, DETECT_AL_HTTP_COOKIE);
-    nm->type = DETECT_AL_HTTP_COOKIE;
-    //hd->id = ((DetectContentData *)pm->ctx)->id;
-    nm->ctx = (void *)hd;
-
-    /* pull the previous content from the pmatch list, append
-     * the new match to the match list */
-    SigMatchReplaceContent(s, pm, nm);
-
-    /* free the old content sigmatch, the content pattern memory
-     * is taken over by the new sigmatch */
-    BoyerMooreCtxDeInit(((DetectContentData *)pm->ctx)->bm_ctx);
-    SCFree(pm->ctx);
-    SCFree(pm);
-
-    /* Flagged the signature as to inspect the app layer data */
-    s->flags |= SIG_FLAG_APPLAYER;
-
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains a non http "
+                   "alproto set");
         goto error;
     }
 
+    if (cd->flags & DETECT_CONTENT_WITHIN || cd->flags & DETECT_CONTENT_DISTANCE) {
+        SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
+                                                   DETECT_CONTENT, sm->prev,
+                                                   DETECT_PCRE, sm->prev);
+        if (pm != NULL) {
+            /* pm is never NULL.  So no NULL check */
+            if (pm->type == DETECT_CONTENT) {
+                DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+                tmp_cd->flags &= ~DETECT_CONTENT_RELATIVE_NEXT;
+            } else {
+                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                tmp_pd->flags &= ~DETECT_PCRE_RELATIVE_NEXT;
+            }
+        } /* if (pm != NULL) */
+
+        /* please note.  reassigning pm */
+        pm = SigMatchGetLastSMFromLists(s, 4,
+                                        DETECT_AL_HTTP_COOKIE,
+                                        s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
+                                        DETECT_PCRE,
+                                        s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]);
+        if (pm == NULL) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "http_cookie seen with a "
+                       "distance or within without a previous http_cookie "
+                       "content.  Invalidating signature.");
+            goto error;
+        }
+        if (pm->type == DETECT_PCRE) {
+            DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+            tmp_pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
+        } else {
+            DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+            tmp_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+        }
+    }
+    cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_AL_HTTP_COOKIE);
+    sm->type = DETECT_AL_HTTP_COOKIE;
+
+    /* transfer the sm from the pmatch list to hmdmatch list */
+    SigMatchTransferSigMatchAcrossLists(sm,
+                                        &s->sm_lists[DETECT_SM_LIST_PMATCH],
+                                        &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                        &s->sm_lists[DETECT_SM_LIST_HCDMATCH],
+                                        &s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]);
+
+    /* flag the signature to indicate that we scan the app layer data */
+    s->flags |= SIG_FLAG_APPLAYER;
     s->alproto = ALPROTO_HTTP;
+
     return 0;
+
 error:
-    if (hd != NULL) DetectHttpCookieFree(hd);
-    if(sm !=NULL) SCFree(sm);
     return -1;
 }
 
@@ -364,7 +371,7 @@ int DetectHttpCookieTest03(void)
     }
 
     result = 0;
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH];
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HCDMATCH];
     if (sm == NULL) {
         printf("no sigmatch(es): ");
         goto end;
@@ -457,9 +464,9 @@ int DetectHttpCookieTest06(void)
 
     Signature *s = de_ctx->sig_list;
 
-    BUG_ON(s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL);
+    BUG_ON(s->sm_lists[DETECT_SM_LIST_HCDMATCH] == NULL);
 
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH]->type != DETECT_AL_HTTP_COOKIE)
+    if (s->sm_lists[DETECT_SM_LIST_HCDMATCH]->type != DETECT_AL_HTTP_COOKIE)
         goto end;
 
     if (s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL) {
@@ -500,13 +507,13 @@ int DetectHttpCookieTest07(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HCDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HCDMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hcd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hcd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]->ctx;
     if (cd->id == hcd->id)
         goto end;
 
@@ -539,13 +546,13 @@ int DetectHttpCookieTest08(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HCDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HCDMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hcd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hcd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]->ctx;
     if (cd->id == hcd->id)
         goto end;
 
@@ -578,13 +585,13 @@ int DetectHttpCookieTest09(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HCDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HCDMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hcd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hcd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]->ctx;
     if (cd->id != 0 || hcd->id != 1)
         goto end;
 
@@ -617,13 +624,13 @@ int DetectHttpCookieTest10(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HCDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HCDMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hcd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
+    DetectContentData *hcd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]->ctx;
     if (cd->id != 1 || hcd->id != 0)
         goto end;
 
@@ -657,14 +664,14 @@ int DetectHttpCookieTest11(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HCDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HCDMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hcd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
-    DetectContentData *hcd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->prev->ctx;
+    DetectContentData *hcd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]->ctx;
+    DetectContentData *hcd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]->prev->ctx;
     if (cd->id != 1 || hcd1->id != 0 || hcd2->id != 0)
         goto end;
 
@@ -698,14 +705,14 @@ int DetectHttpCookieTest12(void)
         goto end;
     }
 
-    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH] == NULL\n");
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HCDMATCH] == NULL) {
+        printf("de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HCDMATCH] == NULL\n");
         goto end;
     }
 
     DetectContentData *cd = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
-    DetectContentData *hcd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->ctx;
-    DetectContentData *hcd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_AMATCH]->prev->ctx;
+    DetectContentData *hcd1 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]->ctx;
+    DetectContentData *hcd2 = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]->prev->ctx;
     if (cd->id != 2 || hcd1->id != 0 || hcd2->id != 0)
         goto end;
 

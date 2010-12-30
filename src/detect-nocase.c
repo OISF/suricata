@@ -187,8 +187,8 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
                                               DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
                                               DETECT_AL_HTTP_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                                               DETECT_AL_HTTP_RAW_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
-                                              DETECT_AL_HTTP_COOKIE, s->sm_lists_tail[DETECT_SM_LIST_AMATCH],
-                                              DETECT_AL_HTTP_METHOD, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]);
+                                              DETECT_AL_HTTP_METHOD, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
+                                              DETECT_AL_HTTP_COOKIE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]);
     if (pm == NULL) {
         SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "\"nocase\" needs a preceeding"
                 " content, uricontent, http_client_body, http_header, http_method, http_uri, http_cookie option");

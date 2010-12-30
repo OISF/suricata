@@ -44,14 +44,15 @@
 /** number of DeStateStoreItem's in one DeStateStore object */
 #define DE_STATE_CHUNK_SIZE         16
 
-#define DE_STATE_FLAG_PAYLOAD_MATCH 0x01 /**< payload part of the sig matched */
-#define DE_STATE_FLAG_URI_MATCH     0x02 /**< uri part of the sig matched */
-#define DE_STATE_FLAG_DCE_MATCH     0x04 /**< dce payload inspection part matched */
-#define DE_STATE_FLAG_HCBD_MATCH    0x08 /**< hcbd payload inspection part matched */
-#define DE_STATE_FLAG_HHD_MATCH     0x10 /**< hhd payload inspection part matched */
-#define DE_STATE_FLAG_HRHD_MATCH    0x20 /**< hrhd payload inspection part matched */
-#define DE_STATE_FLAG_HMD_MATCH     0x40 /**< hmd payload inspection part matched */
-#define DE_STATE_FLAG_FULL_MATCH    0x80 /**< sig already fully matched */
+#define DE_STATE_FLAG_PAYLOAD_MATCH 0x0001 /**< payload part of the sig matched */
+#define DE_STATE_FLAG_URI_MATCH     0x0002 /**< uri part of the sig matched */
+#define DE_STATE_FLAG_DCE_MATCH     0x0004 /**< dce payload inspection part matched */
+#define DE_STATE_FLAG_HCBD_MATCH    0x0008 /**< hcbd payload inspection part matched */
+#define DE_STATE_FLAG_HHD_MATCH     0x0010 /**< hhd payload inspection part matched */
+#define DE_STATE_FLAG_HRHD_MATCH    0x0020 /**< hrhd payload inspection part matched */
+#define DE_STATE_FLAG_HMD_MATCH     0x0040 /**< hmd payload inspection part matched */
+#define DE_STATE_FLAG_HCD_MATCH     0x0080 /**< hcd payload inspection part matched */
+#define DE_STATE_FLAG_FULL_MATCH    0x0100 /**< sig already fully matched */
 
 /** per signature detection engine state */
 typedef enum {
