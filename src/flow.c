@@ -1577,6 +1577,8 @@ static int FlowTest03 (void) {
     FlowBucket fb;
     struct timeval ts;
 
+    FlowQueueInit(&flow_spare_q);
+
     memset(&ssn, 0, sizeof(TcpSession));
     memset(&f, 0, sizeof(Flow));
     memset(&ts, 0, sizeof(ts));
@@ -1596,11 +1598,14 @@ static int FlowTest03 (void) {
     if (FlowTestPrune(&f, &ts) != 1) {
         SCSpinDestroy(&fb.s);
         FLOW_DESTROY(&f);
+        FlowQueueDestroy(&flow_spare_q);
         return 0;
     }
 
     SCSpinDestroy(&fb.s);
-    //FLOW_DESTROY(&f);
+    FLOW_DESTROY(&f);
+
+    FlowQueueDestroy(&flow_spare_q);
     return 1;
 }
 
@@ -1621,6 +1626,8 @@ static int FlowTest04 (void) {
     TcpStream client;
     uint8_t payload[3] = {0x41, 0x41, 0x41};
 
+    FlowQueueInit(&flow_spare_q);
+
     memset(&ssn, 0, sizeof(TcpSession));
     memset(&f, 0, sizeof(Flow));
     memset(&fb, 0, sizeof(FlowBucket));
@@ -1648,10 +1655,12 @@ static int FlowTest04 (void) {
     if (FlowTestPrune(&f, &ts) != 1) {
         SCSpinDestroy(&fb.s);
         FLOW_DESTROY(&f);
+        FlowQueueDestroy(&flow_spare_q);
         return 0;
     }
     SCSpinDestroy(&fb.s);
-    //FLOW_DESTROY(&f);
+    FLOW_DESTROY(&f);
+    FlowQueueDestroy(&flow_spare_q);
     return 1;
 
 }
@@ -1669,6 +1678,8 @@ static int FlowTest05 (void) {
     Flow f;
     FlowBucket fb;
     struct timeval ts;
+
+    FlowQueueInit(&flow_spare_q);
 
     memset(&ssn, 0, sizeof(TcpSession));
     memset(&f, 0, sizeof(Flow));
@@ -1689,11 +1700,13 @@ static int FlowTest05 (void) {
     if (FlowTestPrune(&f, &ts) != 1) {
         SCSpinDestroy(&fb.s);
         FLOW_DESTROY(&f);
+        FlowQueueDestroy(&flow_spare_q);
         return 0;
     }
 
     SCSpinDestroy(&fb.s);
-    //FLOW_DESTROY(&f);
+    FLOW_DESTROY(&f);
+    FlowQueueDestroy(&flow_spare_q);
     return 1;
 }
 
@@ -1713,6 +1726,8 @@ static int FlowTest06 (void) {
     TcpSegment seg;
     TcpStream client;
     uint8_t payload[3] = {0x41, 0x41, 0x41};
+
+    FlowQueueInit(&flow_spare_q);
 
     memset(&ssn, 0, sizeof(TcpSession));
     memset(&f, 0, sizeof(Flow));
@@ -1742,11 +1757,13 @@ static int FlowTest06 (void) {
     if (FlowTestPrune(&f, &ts) != 1) {
         SCSpinDestroy(&fb.s);
         FLOW_DESTROY(&f);
+        FlowQueueDestroy(&flow_spare_q);
         return 0;
     }
 
     SCSpinDestroy(&fb.s);
-    //FLOW_DESTROY(&f);
+    FLOW_DESTROY(&f);
+    FlowQueueDestroy(&flow_spare_q);
     return 1;
 
 }
