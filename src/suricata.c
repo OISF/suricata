@@ -1280,7 +1280,7 @@ int main(int argc, char **argv)
 
         TmThreadCheckThreadState();
 
-        usleep(100);
+        usleep(10* 1000);
     }
 
     /* Update the engine stage/status flag */
