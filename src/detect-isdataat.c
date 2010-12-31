@@ -49,7 +49,7 @@
 /**
  * \brief Regex for parsing our isdataat options
  */
-#define PARSE_REGEX  "^\\s*([0-9]{1,5})\\s*(,\\s*relative)?\\s*(,\\s*rawbytes\\s*)?\\s*$"
+#define PARSE_REGEX  "^\\s*!?([0-9]{1,5})\\s*(,\\s*relative)?\\s*(,\\s*rawbytes\\s*)?\\s*$"
 
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
@@ -200,6 +200,10 @@ DetectIsdataatData *DetectIsdataatParse (char *isdataatstr)
                 idad->flags |= ISDATAAT_RAWBYTES;
         }
 
+        if (isdataatstr[0] == '!') {
+            idad->flags |= ISDATAAT_NEGATED;
+        }
+
         for (i = 0; i < (ret -1); i++) {
             if (args[i] != NULL)
                 SCFree(args[i]);
@@ -235,6 +239,9 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
 {
     DetectIsdataatData *idad = NULL;
     SigMatch *sm = NULL;
+    SigMatch *dm = NULL;
+    SigMatch *pm = NULL;
+    SigMatch *prev_pm = NULL;
 
     idad = DetectIsdataatParse(isdataatstr);
     if (idad == NULL)
@@ -249,8 +256,6 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
 
     if (s->alproto == ALPROTO_DCERPC &&
         idad->flags & ISDATAAT_RELATIVE) {
-        SigMatch *pm = NULL;
-        SigMatch *dm = NULL;
 
         pm = SigMatchGetLastSMFromLists(s, 6,
                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
@@ -270,40 +275,106 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
         } else {
             SigMatchAppendDcePayload(s, sm);
         }
+        prev_pm = SigMatchGetLastSMFromLists(s, 6,
+                                             DETECT_CONTENT, sm->prev,
+                                             DETECT_BYTEJUMP, sm->prev,
+                                             DETECT_PCRE, sm->prev);
     } else {
-        SigMatchAppendPayload(s, sm);
+        pm = SigMatchGetLastSMFromLists(s, 30,
+                                        DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                        DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                        DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+                                        DETECT_AL_HTTP_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
+                                        DETECT_AL_HTTP_RAW_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
+                                        DETECT_AL_HTTP_METHOD, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
+                                        DETECT_AL_HTTP_COOKIE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
+                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
+                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
+                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
+                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
+                                        DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+        if (pm == NULL) {
+            if (idad->flags & ISDATAAT_RELATIVE) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "isdataat relative seen "
+                           "without a previous content uricontent, "
+                           "http_client_body, http_header, http_raw_header, "
+                           "http_method or http_cookie keyword");
+                goto error;
+            } else {
+                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
+            }
+        } else {
+            int list_type;
+            if (pm->type == DETECT_PCRE || pm->type == DETECT_BYTEJUMP) {
+                list_type = SigMatchListSMBelongsTo(s, pm);
+                if (list_type == -1) {
+                    goto error;
+                }
+            } else {
+                switch (pm->type) {
+                    case DETECT_CONTENT:
+                        list_type = DETECT_SM_LIST_PMATCH;
+                        break;
+                    case DETECT_URICONTENT:
+                        list_type = DETECT_SM_LIST_UMATCH;
+                        break;
+                    case DETECT_AL_HTTP_CLIENT_BODY:
+                        list_type = DETECT_SM_LIST_HCBDMATCH;
+                        break;
+                    case DETECT_AL_HTTP_RAW_HEADER:
+                        list_type = DETECT_SM_LIST_HRHDMATCH;
+                        break;
+                    case DETECT_AL_HTTP_HEADER:
+                        list_type = DETECT_SM_LIST_HHDMATCH;
+                        break;
+                    case DETECT_AL_HTTP_METHOD:
+                        list_type = DETECT_SM_LIST_HMDMATCH;
+                        break;
+                    case DETECT_AL_HTTP_COOKIE:
+                        list_type = DETECT_SM_LIST_HCDMATCH;
+                        break;
+                } /* switch */
+            } /* else */
+
+            SigMatchAppendSMToList(s, sm, list_type);
+        } /* else - if (pm == NULL) */
+
+        prev_pm = pm;
     }
 
-    if ( !(idad->flags & ISDATAAT_RELATIVE)) {
+    if (!(idad->flags & ISDATAAT_RELATIVE)) {
         return 0;
     }
 
-    SigMatch *prev_sm = NULL;
-    prev_sm = SigMatchGetLastSMFromLists(s, 8,
-                                         DETECT_CONTENT, sm->prev,
-                                         DETECT_URICONTENT, sm->prev,
-                                         DETECT_BYTEJUMP, sm->prev,
-                                         DETECT_PCRE, sm->prev);
-    if (prev_sm == NULL) {
+    if (prev_pm == NULL) {
         if (s->alproto == ALPROTO_DCERPC) {
             SCLogDebug("No preceding content or pcre keyword.  Possible "
-                       "since this is an alproto sig.");
+                       "since this is a dce alproto sig.");
             return 0;
         } else {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "No preceding content "
-                       "or uricontent or pcre option");
-            return -1;
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "No preceding content, pcre, "
+                       "uricontent, http_client_body, http_header, "
+                       "http_raw_header, http_method or http_cookie keyword");
+            goto error;
         }
     }
 
     DetectContentData *cd = NULL;
-    DetectContentData *ud = NULL;
     DetectPcreData *pe = NULL;
 
-    switch (prev_sm->type) {
+    switch (prev_pm->type) {
         case DETECT_CONTENT:
+        case DETECT_URICONTENT:
+        case DETECT_AL_HTTP_CLIENT_BODY:
+        case DETECT_AL_HTTP_HEADER:
+        case DETECT_AL_HTTP_RAW_HEADER:
+        case DETECT_AL_HTTP_METHOD:
+        case DETECT_AL_HTTP_COOKIE:
             /* Set the relative next flag on the prev sigmatch */
-            cd = (DetectContentData *)prev_sm->ctx;
+            cd = (DetectContentData *)prev_pm->ctx;
             if (cd == NULL) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
                            "previous keyword!");
@@ -313,20 +384,8 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
 
             break;
 
-        case DETECT_URICONTENT:
-            /* Set the relative next flag on the prev sigmatch */
-            ud = (DetectContentData *)prev_sm->ctx;
-            if (ud == NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
-                           "previous keyword!");
-                return -1;
-            }
-            ud->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-
-            break;
-
         case DETECT_PCRE:
-            pe = (DetectPcreData *)prev_sm->ctx;
+            pe = (DetectPcreData *)prev_pm->ctx;
             if (pe == NULL) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
                            "previous keyword!");
@@ -337,9 +396,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
             break;
 
         case DETECT_BYTEJUMP:
-            SCLogDebug("No setting relative_next for bytejump.  We "
-                       "have no use for it");
-
+            SCLogDebug("Do nothing for bytejump");
             break;
 
         default:
@@ -352,10 +409,10 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
     return 0;
 
 error:
-    if (idad != NULL)
-        DetectIsdataatFree(idad);
-    if (sm != NULL)
-        SCFree(sm);
+    //if (idad != NULL)
+    //    DetectIsdataatFree(idad);
+    //if (sm != NULL)
+    //    SCFree(sm);
     return -1;
 }
 
@@ -550,6 +607,358 @@ int DetectIsdataatTestParse05(void)
     return result;
 }
 
+int DetectIsdataatTestParse06(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+    Signature *s = NULL;
+    DetectIsdataatData *data = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing bytejump_body\"; "
+                               "content:one; "
+                               "isdataat:!4,relative; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        goto end;
+    }
+
+    s = de_ctx->sig_list;
+    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+        goto end;
+    }
+
+    result = 1;
+
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->type == DETECT_ISDATAAT);
+    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_PMATCH]->ctx;
+    if ( !(data->flags & ISDATAAT_RELATIVE) ||
+         (data->flags & ISDATAAT_RAWBYTES) ||
+         !(data->flags & ISDATAAT_NEGATED) ) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+int DetectIsdataatTestParse07(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+    Signature *s = NULL;
+    DetectIsdataatData *data = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing bytejump_body\"; "
+                               "uricontent:one; "
+                               "isdataat:!4,relative; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        goto end;
+    }
+
+    s = de_ctx->sig_list;
+    if (s->sm_lists_tail[DETECT_SM_LIST_UMATCH] == NULL) {
+        goto end;
+    }
+
+    result = 1;
+
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->type == DETECT_ISDATAAT);
+    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    if ( !(data->flags & ISDATAAT_RELATIVE) ||
+         (data->flags & ISDATAAT_RAWBYTES) ||
+         !(data->flags & ISDATAAT_NEGATED) ) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+int DetectIsdataatTestParse08(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+    Signature *s = NULL;
+    DetectIsdataatData *data = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing bytejump_body\"; "
+                               "content:one; http_uri; "
+                               "isdataat:!4,relative; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        goto end;
+    }
+
+    s = de_ctx->sig_list;
+    if (s->sm_lists_tail[DETECT_SM_LIST_UMATCH] == NULL) {
+        goto end;
+    }
+
+    result = 1;
+
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->type == DETECT_ISDATAAT);
+    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_UMATCH]->ctx;
+    if ( !(data->flags & ISDATAAT_RELATIVE) ||
+         (data->flags & ISDATAAT_RAWBYTES) ||
+         !(data->flags & ISDATAAT_NEGATED) ) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+int DetectIsdataatTestParse09(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+    Signature *s = NULL;
+    DetectIsdataatData *data = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing bytejump_body\"; "
+                               "content:one; http_client_body; "
+                               "isdataat:!4,relative; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        goto end;
+    }
+
+    s = de_ctx->sig_list;
+    if (s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH] == NULL) {
+        goto end;
+    }
+
+    result = 1;
+
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]->type == DETECT_ISDATAAT);
+    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]->ctx;
+    if ( !(data->flags & ISDATAAT_RELATIVE) ||
+         (data->flags & ISDATAAT_RAWBYTES) ||
+         !(data->flags & ISDATAAT_NEGATED) ) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+int DetectIsdataatTestParse10(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+    Signature *s = NULL;
+    DetectIsdataatData *data = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing bytejump_body\"; "
+                               "content:one; http_header; "
+                               "isdataat:!4,relative; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        goto end;
+    }
+
+    s = de_ctx->sig_list;
+    if (s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH] == NULL) {
+        goto end;
+    }
+
+    result = 1;
+
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->type == DETECT_ISDATAAT);
+    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->ctx;
+    if ( !(data->flags & ISDATAAT_RELATIVE) ||
+         (data->flags & ISDATAAT_RAWBYTES) ||
+         !(data->flags & ISDATAAT_NEGATED) ) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+int DetectIsdataatTestParse11(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+    Signature *s = NULL;
+    DetectIsdataatData *data = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing bytejump_body\"; "
+                               "content:one; http_raw_header; "
+                               "isdataat:!4,relative; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        goto end;
+    }
+
+    s = de_ctx->sig_list;
+    if (s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH] == NULL) {
+        goto end;
+    }
+
+    result = 1;
+
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH]->type == DETECT_ISDATAAT);
+    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH]->ctx;
+    if ( !(data->flags & ISDATAAT_RELATIVE) ||
+         (data->flags & ISDATAAT_RAWBYTES) ||
+         !(data->flags & ISDATAAT_NEGATED) ) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+int DetectIsdataatTestParse12(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+    Signature *s = NULL;
+    DetectIsdataatData *data = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing bytejump_body\"; "
+                               "content:one; http_method; "
+                               "isdataat:!4,relative; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        goto end;
+    }
+
+    s = de_ctx->sig_list;
+    if (s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH] == NULL) {
+        goto end;
+    }
+
+    result = 1;
+
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]->type == DETECT_ISDATAAT);
+    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]->ctx;
+    if ( !(data->flags & ISDATAAT_RELATIVE) ||
+         (data->flags & ISDATAAT_RAWBYTES) ||
+         !(data->flags & ISDATAAT_NEGATED) ) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+int DetectIsdataatTestParse13(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+    Signature *s = NULL;
+    DetectIsdataatData *data = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing bytejump_body\"; "
+                               "content:one; http_cookie; "
+                               "isdataat:!4,relative; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        goto end;
+    }
+
+    s = de_ctx->sig_list;
+    if (s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH] == NULL) {
+        goto end;
+    }
+
+    result = 1;
+
+    result &= (s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]->type == DETECT_ISDATAAT);
+    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]->ctx;
+    if ( !(data->flags & ISDATAAT_RELATIVE) ||
+         (data->flags & ISDATAAT_RAWBYTES) ||
+         !(data->flags & ISDATAAT_NEGATED) ) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
 /**
  * \test DetectIsdataatTestPacket01 is a test to check matches of
  * isdataat, and isdataat relative
@@ -663,6 +1072,14 @@ void DetectIsdataatRegisterTests(void) {
     UtRegisterTest("DetectIsdataatTestParse03", DetectIsdataatTestParse03, 1);
     UtRegisterTest("DetectIsdataatTestParse04", DetectIsdataatTestParse04, 1);
     UtRegisterTest("DetectIsdataatTestParse05", DetectIsdataatTestParse05, 1);
+    UtRegisterTest("DetectIsdataatTestParse06", DetectIsdataatTestParse06, 1);
+    UtRegisterTest("DetectIsdataatTestParse07", DetectIsdataatTestParse07, 1);
+    UtRegisterTest("DetectIsdataatTestParse08", DetectIsdataatTestParse08, 1);
+    UtRegisterTest("DetectIsdataatTestParse09", DetectIsdataatTestParse09, 1);
+    UtRegisterTest("DetectIsdataatTestParse10", DetectIsdataatTestParse10, 1);
+    UtRegisterTest("DetectIsdataatTestParse11", DetectIsdataatTestParse11, 1);
+    UtRegisterTest("DetectIsdataatTestParse12", DetectIsdataatTestParse12, 1);
+    UtRegisterTest("DetectIsdataatTestParse13", DetectIsdataatTestParse13, 1);
     UtRegisterTest("DetectIsdataatTestPacket01", DetectIsdataatTestPacket01, 1);
     UtRegisterTest("DetectIsdataatTestPacket02", DetectIsdataatTestPacket02, 1);
     UtRegisterTest("DetectIsdataatTestPacket03", DetectIsdataatTestPacket03, 1);

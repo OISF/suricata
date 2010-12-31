@@ -269,17 +269,25 @@ static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
             if (id->flags & ISDATAAT_RELATIVE) {
                 if (det_ctx->payload_offset + id->dataat > payload_len) {
                     SCLogDebug("det_ctx->payload_offset + id->dataat %"PRIu32" > %"PRIu32, det_ctx->payload_offset + id->dataat, payload_len);
+                    if (id->flags & ISDATAAT_NEGATED)
+                        goto match;
                     SCReturnInt(0);
                 } else {
                     SCLogDebug("relative isdataat match");
+                    if (id->flags & ISDATAAT_NEGATED)
+                        SCReturnInt(0);
                     goto match;
                 }
             } else {
                 if (id->dataat < payload_len) {
                     SCLogDebug("absolute isdataat match");
+                    if (id->flags & ISDATAAT_NEGATED)
+                        SCReturnInt(0);
                     goto match;
                 } else {
                     SCLogDebug("absolute isdataat mismatch, id->isdataat %"PRIu32", payload_len %"PRIu32"", id->dataat,payload_len);
+                    if (id->flags & ISDATAAT_NEGATED)
+                        goto match;
                     SCReturnInt(0);
                 }
             }
@@ -855,6 +863,52 @@ end:
     return result;
 }
 
+static int PayloadTestSig15(void)
+{
+    uint8_t *buf = (uint8_t *)"this is a super duper nova in super nova now";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
+        "content:nova; isdataat:18,relative; sid:1;)";
+
+    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
+        result = 0;
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
+static int PayloadTestSig16(void)
+{
+    uint8_t *buf = (uint8_t *)"this is a super duper nova in super nova now";
+    uint16_t buflen = strlen((char *)buf);
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
+        "content:nova; isdataat:!20,relative; sid:1;)";
+
+    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
+        result = 0;
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void PayloadRegisterTests(void) {
@@ -873,5 +927,9 @@ void PayloadRegisterTests(void) {
     UtRegisterTest("PayloadTestSig12", PayloadTestSig12, 1);
     UtRegisterTest("PayloadTestSig13", PayloadTestSig13, 1);
     UtRegisterTest("PayloadTestSig14", PayloadTestSig14, 1);
+    UtRegisterTest("PayloadTestSig15", PayloadTestSig15, 1);
+    UtRegisterTest("PayloadTestSig16", PayloadTestSig16, 1);
 #endif /* UNITTESTS */
+
+    return;
 }

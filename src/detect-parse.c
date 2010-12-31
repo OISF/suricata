@@ -581,6 +581,24 @@ void SigMatchTransferSigMatchAcrossLists(SigMatch *sm,
     return;
 }
 
+int SigMatchListSMBelongsTo(Signature *s, SigMatch *key_sm)
+{
+    int list = 0;
+
+    for (list = 0; list < DETECT_SM_LIST_MAX; list++) {
+        SigMatch *sm = s->sm_lists[list];
+        while (sm != NULL) {
+            if (sm == key_sm)
+                return list;
+            sm = sm->next;
+        }
+    }
+
+    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unable to find the sm in any of the "
+               "sm lists");
+    return -1;
+}
+
 void SigParsePrepare(void) {
     char *regexstr = CONFIG_PCRE;
     const char *eb;
