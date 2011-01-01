@@ -96,6 +96,11 @@ outputs:
       filename: stats.log
       interval: 8
 
+  # a line based alerts log similar to fast.log into syslog
+  - syslog:
+      enabled: no
+      facility: local5
+
 # When running in NFQ inline mode, it is possible to use a simulated
 # non-terminal NFQUEUE verdict.
 # This permit to do send all needed packet to suricata via this a rule:

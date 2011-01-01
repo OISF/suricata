@@ -29,6 +29,7 @@
 #include "util-error.h"
 #include "pcre.h"
 #include "util-debug-filters.h"
+#include "syslog.h"
 
 #ifndef __UTIL_DEBUG_H__
 #define __UTIL_DEBUG_H__

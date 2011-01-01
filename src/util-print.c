@@ -49,6 +49,26 @@ void PrintRawLineHexFp(FILE *fp, uint8_t *buf, uint32_t buflen)
     fprintf(fp, "%s", nbuf);
 }
 
+/**
+ *  \brief print a buffer as hex on a single line in to retbuf buffer
+ *
+ *  Prints in the format "00 AA BB"
+ *
+ *  \param retbuf pointer to the buffer which will have the result
+ *  \param buf buffer to print from
+ *  \param buflen length of the input buffer
+ */
+void PrintRawLineHexBuf(char *retbuf, uint8_t *buf, uint32_t buflen)
+{
+    char temp[5] = "";
+    uint32_t u = 0;
+
+    for (u = 0; u < buflen; u++) {
+        snprintf(temp, sizeof(temp), "%02X ", buf[u]);
+        strlcat(retbuf, temp, sizeof(retbuf));
+    }
+}
+
 void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen)
 {
     char nbuf[2048] = "";

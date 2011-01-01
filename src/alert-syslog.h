@@ -18,16 +18,17 @@
 /**
  * \file
  *
- * \author Victor Julien <victor@inliniac.net>
+ * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
+ *
+ * alert syslog modeule header file
+ *
  */
 
-#ifndef __UTIL_PRINT_H__
-#define __UTIL_PRINT_H__
+#ifndef ALERT_SYSLOG_H
+#define	ALERT_SYSLOG_H
 
-void PrintRawLineHexFp(FILE *, uint8_t *, uint32_t);
-void PrintRawUriFp(FILE *, uint8_t *, uint32_t);
-void PrintRawDataFp(FILE *, uint8_t *, uint32_t);
-void PrintRawLineHexBuf(char *, uint8_t *, uint32_t );
+void TmModuleAlertSyslogRegister (void);
+void TmModuleAlertSyslogIPv4Register (void);
+void TmModuleAlertSyslogIPv6Register (void);
 
-#endif /* __UTIL_PRINT_H__ */
-
+#endif	/* ALERT_SYSLOG_H */

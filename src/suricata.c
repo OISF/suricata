@@ -79,6 +79,7 @@
 #include "alert-unified2-alert.h"
 #include "alert-debuglog.h"
 #include "alert-prelude.h"
+#include "alert-syslog.h"
 
 #include "log-httplog.h"
 
@@ -918,9 +919,12 @@ int main(int argc, char **argv)
     TmModuleRespondRejectRegister();
     TmModuleAlertFastLogIPv4Register();
     TmModuleAlertFastLogIPv6Register();
+    TmModuleAlertSyslogIPv4Register();
+    TmModuleAlertSyslogIPv6Register();
     TmModuleAlertUnifiedLogRegister();
     TmModuleAlertUnifiedAlertRegister();
     TmModuleUnified2AlertRegister();
+    TmModuleAlertSyslogRegister();
     TmModuleStreamTcpRegister();
     TmModuleLogHttpLogRegister();
     TmModuleLogHttpLogIPv4Register();

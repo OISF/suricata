@@ -41,6 +41,7 @@
 #include "tm-threads.h"
 
 #include "util-unittest.h"
+#include "util-syslog.h"
 
 #include "conf.h"
 
@@ -65,32 +66,6 @@ SCEnumCharMap sc_log_op_iface_map[ ] = {
     { "File",           SC_LOG_OP_IFACE_FILE },
     { "Syslog",         SC_LOG_OP_IFACE_SYSLOG },
     { NULL,             -1 }
-};
-
-/* holds the string-enum mapping for the syslog facility in SCLogOPIfaceCtx */
-SCEnumCharMap sc_syslog_facility_map[] = {
-    { "auth",           LOG_AUTH },
-    { "authpriv",       LOG_AUTHPRIV },
-    { "cron",           LOG_CRON },
-    { "daemon",         LOG_DAEMON },
-    { "ftp",            LOG_FTP },
-    { "kern",           LOG_KERN },
-    { "lpr",            LOG_LPR },
-    { "mail",           LOG_MAIL },
-    { "news",           LOG_NEWS },
-    { "security",       LOG_AUTH },
-    { "syslog",         LOG_SYSLOG },
-    { "user",           LOG_USER },
-    { "uucp",           LOG_UUCP },
-    { "local0",         LOG_LOCAL0 },
-    { "local1",         LOG_LOCAL1 },
-    { "local2",         LOG_LOCAL2 },
-    { "local3",         LOG_LOCAL3 },
-    { "local4",         LOG_LOCAL4 },
-    { "local5",         LOG_LOCAL5 },
-    { "local6",         LOG_LOCAL6 },
-    { "local7",         LOG_LOCAL7 },
-    { NULL,             -1         }
 };
 
 #if defined (OS_WIN32)
@@ -882,7 +857,7 @@ static inline void SCLogSetOPIface(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
                 if (s == NULL)
                     s = SC_LOG_DEF_SYSLOG_FACILITY_STR;
 
-                op_ifaces_ctx = SCLogInitSyslogOPIface(SCMapEnumNameToValue(s, sc_syslog_facility_map), NULL, -1);
+                op_ifaces_ctx = SCLogInitSyslogOPIface(SCMapEnumNameToValue(s, SCGetFacilityMap()), NULL, -1);
                 break;
             default:
                 break;
@@ -1072,7 +1047,7 @@ SCLogOPIfaceCtx *SCLogInitOPIfaceCtx(const char *iface_name,
         case SC_LOG_OP_IFACE_FILE:
             return SCLogInitFileOPIface(arg, log_format, log_level);
         case SC_LOG_OP_IFACE_SYSLOG:
-            return SCLogInitSyslogOPIface(SCMapEnumNameToValue(arg, sc_syslog_facility_map), log_format, log_level);
+            return SCLogInitSyslogOPIface(SCMapEnumNameToValue(arg, SCGetFacilityMap()), log_format, log_level);
         default:
 #ifdef DEBUG
             printf("Output Interface \"%s\" not supported by the logging module",
@@ -1208,12 +1183,12 @@ void SCLogLoadConfig(void)
             const char *facility_s = ConfNodeLookupChildValue(output,
                 "facility");
             if (facility_s != NULL) {
-                facility = SCMapEnumNameToValue(facility_s,
-                    sc_syslog_facility_map);
+                facility = SCMapEnumNameToValue(facility_s, SCGetFacilityMap());
                 if (facility == -1) {
-                    SCLogError(SC_ERR_INVALID_ARGUMENT,
-                        "Invalid syslog facility: %s", facility_s);
-                    exit(EXIT_FAILURE);
+                    SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Invalid syslog "
+                            "facility: \"%s\", now using \"%s\" as syslog "
+                            "facility", facility_s, SC_LOG_DEF_SYSLOG_FACILITY_STR);
+                    facility = SC_LOG_DEF_SYSLOG_FACILITY;
                 }
             }
             printf("Initialization syslog logging with format \"%s\".\n",
@@ -1295,7 +1270,7 @@ void SCLogInitLogModuleIfEnvSet(void)
             if (s == NULL)
                 s = SC_LOG_DEF_SYSLOG_FACILITY_STR;
 
-            op_ifaces_ctx = SCLogInitSyslogOPIface(SCMapEnumNameToValue(s, sc_syslog_facility_map), NULL, -1);
+            op_ifaces_ctx = SCLogInitSyslogOPIface(SCMapEnumNameToValue(s, SCGetFacilityMap()), NULL, -1);
             break;
         default:
             break;

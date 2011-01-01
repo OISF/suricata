@@ -18,16 +18,13 @@
 /**
  * \file
  *
- * \author Victor Julien <victor@inliniac.net>
+ * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
+ *
  */
 
-#ifndef __UTIL_PRINT_H__
-#define __UTIL_PRINT_H__
+#ifndef UTIL_SYSLOG_H
+#define	UTIL_SYSLOG_H
 
-void PrintRawLineHexFp(FILE *, uint8_t *, uint32_t);
-void PrintRawUriFp(FILE *, uint8_t *, uint32_t);
-void PrintRawDataFp(FILE *, uint8_t *, uint32_t);
-void PrintRawLineHexBuf(char *, uint8_t *, uint32_t );
+SCEnumCharMap *SCGetFacilityMap(void);
 
-#endif /* __UTIL_PRINT_H__ */
-
+#endif	/* UTIL_SYSLOG_H */
