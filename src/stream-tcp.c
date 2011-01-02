@@ -3310,8 +3310,7 @@ Packet *StreamTcpPseudoSetup(Packet *parent, uint8_t *pkt, uint32_t len)
     /* copy packet and set lenght, proto */
     p->tunnel_proto = parent->proto;
     p->proto = parent->proto;
-    p->pktlen = len;
-    memcpy(&p->pkt, pkt, (len - parent->payload_len));
+    PacketCopyData(p, pkt, len);
     p->recursion_level = parent->recursion_level + 1;
     p->ts.tv_sec = parent->ts.tv_sec;
     p->ts.tv_usec = parent->ts.tv_usec;
@@ -3402,7 +3401,7 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(Packet *p, TcpSession *ssn, Pack
         }
     }
 
-    Packet *np = StreamTcpPseudoSetup(p, p->pkt, p->pktlen);
+    Packet *np = StreamTcpPseudoSetup(p, GET_PKT_DATA(p), GET_PKT_LEN(p));
     if (np == NULL) {
         SCLogDebug("The packet received from packet allocation is NULL");
         SCReturn;
