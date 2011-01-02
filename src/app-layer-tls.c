@@ -42,6 +42,7 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-tls.h"
+#include "app-layer-ssl.h"
 
 #include "conf.h"
 
@@ -165,7 +166,7 @@ static int TLSParseClientVersion(Flow *f, void *tls_state, AppLayerParserState *
  * \brief Function to parse the TLS field in packet received from the client
  *
  *  \param  tls_state   Pointer the state in which the value to be stored
- *  \param  pstate      Application layer tarser state for this session
+ *  \param  pstate      Application layer parser state for this session
  *  \param  input       Pointer the received input data
  *  \param  input_len   Length in bytes of the received data
  *  \param  output      Pointer to the list of parsed output elements
@@ -175,6 +176,17 @@ static int TLSParseClientRecord(Flow *f, void *tls_state, AppLayerParserState *p
                                 AppLayerParserResult *output)
 {
     SCEnter();
+
+    /* SSL client message should be larger than 9 bytes as we need to know, to
+       what is the SSL version and message type */
+    if (input_len >= 9) {
+        if (SSLParseClientRecord(f, tls_state, pstate, input, input_len, output)
+                == 1)
+        {
+            SCLogDebug("it seems the ssl version 2 is detected");
+            SCReturnInt(1);
+        }
+    }
 
     SCLogDebug("tls_state %p, pstate %p, input %p,input_len %" PRIu32 "",
             tls_state, pstate, input, input_len);
@@ -300,6 +312,15 @@ static int TLSParseServerRecord(Flow *f, void *tls_state, AppLayerParserState *p
                                 AppLayerParserResult *output)
 {
     SCEnter();
+
+    if (input_len >= 7) {
+        if (SSLParseServerRecord(f, tls_state, pstate, input, input_len, output)
+                == 1)
+        {
+            SCLogDebug("it seems the ssl version 2 is detected");
+            SCReturnInt(1);
+        }
+    }
 
     SCLogDebug("tls_state %p, pstate %p, input %p,input_len %" PRIu32 "",
             tls_state, pstate, input, input_len);
@@ -1372,5 +1393,7 @@ void TLSParserRegisterTests(void) {
 
     UtRegisterTest("TLSParserMultimsgTest01", TLSParserMultimsgTest01, 1);
     UtRegisterTest("TLSParserMultimsgTest02", TLSParserMultimsgTest02, 1);
+
+    SSLParserRegisterTests();
 #endif /* UNITTESTS */
 }

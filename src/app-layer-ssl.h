@@ -27,14 +27,6 @@
 #define SSL_CLIENT_VERSION			0x0002
 #define SSL_SERVER_VERSION			0x0002
 
-/* SSL state flags */
-#define SSL_FLAG_CLIENT_HS              0x01
-#define SSL_FLAG_SERVER_HS              0x02
-#define SSL_FLAG_CLIENT_MASTER_KEY      0x04
-#define SSL_FLAG_CLIENT_SSN_ENCRYPTED   0x08
-#define SSL_FLAG_SERVER_SSN_ENCRYPTED   0x10
-#define SSL_FLAG_NO_SESSION_ID          0x20
-
 /* SSL message types */
 #define SSL_ERROR			0
 #define SSL_CLIENT_HELLO		1
@@ -75,7 +67,12 @@ typedef struct SslServer_ {
     uint8_t major_ver;
 } SslServer;
 
-void RegisterSSLParsers(void);
+int SSLParseClientRecord(Flow *, void *, AppLayerParserState *, uint8_t *,
+                            uint32_t , AppLayerParserResult *);
+
+int SSLParseServerRecord(Flow *, void *, AppLayerParserState *, uint8_t *,
+                            uint32_t , AppLayerParserResult *);
+
 void SSLParserRegisterTests(void);
 
 #endif	/* _APP_LAYER_SSL_H */

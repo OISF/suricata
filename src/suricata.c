@@ -948,7 +948,6 @@ int main(int argc, char **argv)
     RegisterDCERPCParsers();
     RegisterDCERPCUDPParsers();
     RegisterFTPParsers();
-    RegisterSSLParsers();
     RegisterSSHParsers();
     AppLayerParsersInitPostProcess();
 
@@ -1018,7 +1017,6 @@ int main(int argc, char **argv)
         SCClassConfRegisterTests();
         SCThresholdConfRegisterTests();
         SCRConfRegisterTests();
-        SSLParserRegisterTests();
 #ifdef __SC_CUDA_SUPPORT__
         SCCudaRegisterTests();
 #endif

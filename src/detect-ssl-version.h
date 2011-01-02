@@ -16,39 +16,33 @@
  */
 
 /**
- * \file
+ * \file   detect-ssl-version.h
  *
- * \author Victor Julien <victor@inliniac.net>
+ * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
+ *
  */
 
-#ifndef __APP_LAYER_PROTOS_H__
-#define __APP_LAYER_PROTOS_H__
+#ifndef DETECT_SSL_VERSION_H
+#define	DETECT_SSL_VERSION_H
 
-enum {
-    ALPROTO_UNKNOWN = 0,
-    ALPROTO_HTTP,
-    ALPROTO_FTP,
-    ALPROTO_SMTP,
-    ALPROTO_TLS, /* SSLv2, SSLv3 & TLSv1 */
-    ALPROTO_SSH,
-    ALPROTO_IMAP,
-    ALPROTO_MSN,
-    ALPROTO_JABBER,
-    ALPROTO_SMB,
-    ALPROTO_SMB2,
-    ALPROTO_DCERPC,
-    ALPROTO_DCERPC_UDP,
-#ifdef UNITTESTS
-    ALPROTO_TEST,
-#endif /* UNITESTS */
-    /* keep last */
-    ALPROTO_MAX,
-};
+#define DETECT_SSL_VERSION_NEGATED   0x01
 
-typedef struct TlsConfig_ {
-    int no_reassemble;
-}TlsConfig;
+#define SSLv2   0
+#define SSLv3   1
+#define TLS10   2
+#define TLS11   3
+#define TLS12   4
 
-TlsConfig tls;
-#endif /* __APP_LAYER_PROTOS_H__ */
+typedef struct SSLVersionData_ {
+    uint16_t ver; /** ssl version to match */
+    uint8_t flags;
+}SSLVersionData;
 
+typedef struct DetectSslVersionData_ {
+    SSLVersionData data[5];
+} DetectSslVersionData;
+
+/* prototypes */
+void DetectSslVersionRegister (void);
+
+#endif	/* DETECT_SSL_VERSION_H */

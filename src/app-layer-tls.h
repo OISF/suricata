@@ -32,6 +32,13 @@
                                                      client will now on sends
                                                      encrypted msgs. */
 
+#define TLS_FLAG_SSL_CLIENT_HS               0x04    /**< SSL state flags */
+#define TLS_FLAG_SSL_SERVER_HS               0x08
+#define TLS_FLAG_SSL_CLIENT_MASTER_KEY       0x10
+#define TLS_FLAG_SSL_CLIENT_SSN_ENCRYPTED    0x20
+#define TLS_FLAG_SSL_SERVER_SSN_ENCRYPTED    0x40
+#define TLS_FLAG_SSL_NO_SESSION_ID           0x80
+
 enum {
     TLS_FIELD_NONE = 0,
 
@@ -59,6 +66,7 @@ typedef struct TlsState_ {
 enum {
     TLS_VERSION_INVALID = 0x0000,
     TLS_VERSION_VALID = 0x0001,
+    SSL_VERSION_2 = 0x0002,
     SSL_VERSION_3 = 0x0300,
     TLS_VERSION_10 = 0x0301,
     TLS_VERSION_11 = 0x0302,

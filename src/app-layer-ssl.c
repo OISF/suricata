@@ -43,6 +43,7 @@
 #include "app-layer-parser.h"
 
 #include "app-layer-ssl.h"
+#include "app-layer-tls.h"
 
 #include "util-spm.h"
 #include "util-unittest.h"
@@ -54,75 +55,66 @@
 /**
  * \brief Function to parse the SSL field in packet received from the client
  *
- *  \param  ssl_state   Pointer the state in which the value to be stored
+ *  \param  app_state   Pointer the state in which the value to be stored
  *  \param  pstate      Application layer tarser state for this session
  *  \param  input       Pointer the received input data
  *  \param  input_len   Length in bytes of the received data
  *  \param  output      Pointer to the list of parsed output elements
  */
-static int SSLParseClientRecord(Flow *f, void *ssl_state, AppLayerParserState *pstate,
+int SSLParseClientRecord(Flow *f, void *app_state, AppLayerParserState *pstate,
                                 uint8_t *input, uint32_t input_len,
                                 AppLayerParserResult *output)
 {
     SCEnter();
     SslClient *client = NULL;
-    SslState *ssl_st = NULL;
-
-    /* SSL client message should be larger than 9 bytes as we need to know, to
-       what is the SSL version and message type */
-    if (input_len < 9) {
-        SCLogDebug("Input message length (%"PRIu32") is not equal to minimum "
-                "valid ssl record message length, thus returning", input_len);
-        SCReturnInt(1);
-    }
+    TlsState *app_st = NULL;
 
     client = (SslClient *)input;
-    ssl_st = (SslState *)ssl_state;
+    app_st = (TlsState *)app_state;
 
     switch (client->msg_type) {
         case SSL_CLIENT_HELLO:
             if (client->major_ver != 0x02) {
-                SCLogError(SC_ERR_ALPARSER, "SSL version is not equal to 2, "
-                        "incorrect message!!");
+                SCLogDebug("SSL version is not equal to 2, incorrect message!!");
                 SCReturnInt(-1);
             }
 
-            ssl_st->flags |= SSL_FLAG_CLIENT_HS;
-            ssl_st->client_content_type = client->msg_type;
-            ssl_st->client_version = client->minor_ver|client->major_ver;
+            app_st->flags |= TLS_FLAG_SSL_CLIENT_HS;
+            app_st->client_content_type = client->msg_type;
+            app_st->client_version = client->minor_ver|client->major_ver;
             if (client->session_id_len == 0) {
-                ssl_st->flags |= SSL_FLAG_NO_SESSION_ID;
+                app_st->flags |= TLS_FLAG_SSL_NO_SESSION_ID;
             }
             SCLogDebug("SSLv2 CLIENT_HELLO message has been received");
 
             break;
         case SSL_CLIENT_MASTER_KEY:
-            if ( ! (ssl_st->flags & SSL_FLAG_CLIENT_HS)) {
+            if ( ! (app_st->flags & TLS_FLAG_SSL_CLIENT_HS)) {
                 SCLogDebug("client hello is not seen before master key "
                         "message!!");
                 break;
             }
-            ssl_st->flags |= SSL_FLAG_CLIENT_MASTER_KEY;
-            ssl_st->client_content_type = client->msg_type;
+            app_st->flags |= TLS_FLAG_SSL_CLIENT_MASTER_KEY;
+            app_st->client_content_type = client->msg_type;
             SCLogDebug("SSLv2 CLIENT_MASTER_KEY message has been received");
 
             break;
         case SSL_CLIENT_CERTIFICATE:
         case SSL_CLIENT_FINISHED:
         case SSL_REQUEST_CERTIFICATE:
-            if ((ssl_st->flags & SSL_FLAG_CLIENT_HS) &&
-                    (ssl_st->flags & SSL_FLAG_SERVER_HS))
+            if ((app_st->flags & TLS_FLAG_SSL_CLIENT_HS) &&
+                    (app_st->flags & TLS_FLAG_SSL_SERVER_HS))
             {
-                if (ssl_st->flags & SSL_FLAG_NO_SESSION_ID) {
-                    ssl_st->flags |= SSL_FLAG_CLIENT_SSN_ENCRYPTED;
+                if (app_st->flags & TLS_FLAG_SSL_NO_SESSION_ID) {
+                    app_st->flags |= TLS_FLAG_SSL_CLIENT_SSN_ENCRYPTED;
                     SCLogDebug("SSLv2 Client side has started the encryption");
-                } else if (ssl_st->flags & SSL_FLAG_CLIENT_MASTER_KEY) {
-                    ssl_st->flags |= SSL_FLAG_CLIENT_SSN_ENCRYPTED;
+                } else if (app_st->flags & TLS_FLAG_SSL_CLIENT_MASTER_KEY) {
+                    app_st->flags |= TLS_FLAG_SSL_CLIENT_SSN_ENCRYPTED;
                     SCLogDebug("SSLv2 Client side has started the encryption");
                 }
 
-                if ((ssl_st->flags & SSL_FLAG_CLIENT_SSN_ENCRYPTED) &&
-                        (ssl_st->flags & SSL_FLAG_SERVER_SSN_ENCRYPTED))
+                if ((app_st->flags & TLS_FLAG_SSL_CLIENT_SSN_ENCRYPTED) &&
+                        (app_st->flags & TLS_FLAG_SSL_SERVER_SSN_ENCRYPTED))
                 {
                     pstate->flags |= APP_LAYER_PARSER_DONE;
                     pstate->flags |= APP_LAYER_PARSER_NO_INSPECTION;
@@ -130,16 +122,18 @@ static int SSLParseClientRecord(Flow *f, void *ssl_state, AppLayerParserState *p
                     SCLogDebug("SSLv2 No reassembly & inspection has been set");
                 }
             }
-            ssl_st->client_content_type = client->msg_type;
+            app_st->client_content_type = client->msg_type;
 
             break;
         case SSL_ERROR:
-            SCLogError(SC_ERR_ALPARSER, "Error encountered in establishing the "
-                    "sslv2 session");
+            SCLogWarning(SC_ERR_ALPARSER, "Error encountered in establishing the "
+                    "sslv2 session, may be tls version");
             SCReturnInt(-1);
         default:
-            SCLogError(SC_ERR_ALPARSER, "Incorrect message type (%"PRIu8") "
-                    "while establishing the sslv2 session", client->msg_type);
+            SCLogDebug("Incorrect message type (%"PRIu8") "
+                    "while establishing the sslv2 session, may be tls version",
+                    client->msg_type);
+            SCReturnInt(-1);
             break;
     }
     SCReturnInt(1);
@@ -148,51 +142,43 @@ static int SSLParseClientRecord(Flow *f, void *ssl_state, AppLayerParserState *p
 /**
  * \brief Function to parse the SSL field in packet received from the server
  *
- *  \param  ssl_state   Pointer the state in which the value to be stored
+ *  \param  app_state   Pointer the state in which the value to be stored
  *  \param  pstate      Application layer tarser state for this session
  *  \param  input       Pointer the received input data
  *  \param  input_len   Length in bytes of the received data
  *  \param  output      Pointer to the list of parsed output elements
  */
-static int SSLParseServerRecord(Flow *f, void *ssl_state, AppLayerParserState *pstate,
+int SSLParseServerRecord(Flow *f, void *app_state, AppLayerParserState *pstate,
                                 uint8_t *input, uint32_t input_len,
                                 AppLayerParserResult *output)
 {
     SCEnter();
-    SCEnter();
     SslServer *server = (SslServer *)input;
-    SslState *ssl_st = (SslState *)ssl_state;
-
-    if (input_len < 7) {
-        SCLogDebug("Input message lentgh (%"PRIu32") is not equal to minimum "
-                "valid ssl record message length, thus returning!!", input_len);
-        SCReturnInt(1);
-    }
+    TlsState *app_st = (TlsState *)app_state;
 
     switch (server->msg_type) {
         case SSL_SERVER_HELLO:
             if (server->major_ver != 0x02) {
-                SCLogError(SC_ERR_ALPARSER, "SSL version is not equal to 2, "
-                        "incorrect message!!");
+                SCLogDebug("SSL version is not equal to 2, incorrect message!!");
                 SCReturnInt(-1);
             }
             SCLogDebug("SSLv2 SERVER_HELLO message has been received");
 
-            ssl_st->flags |= SSL_FLAG_SERVER_HS;
-            ssl_st->server_content_type = server->msg_type;
-            ssl_st->server_version = server->minor_ver|server->major_ver;
+            app_st->flags |= TLS_FLAG_SSL_SERVER_HS;
+            app_st->server_content_type = server->msg_type;
+            app_st->server_version = server->minor_ver|server->major_ver;
             break;
         case SSL_SERVER_VERIFY:
         case SSL_SERVER_FINISHED:
         case SSL_REQUEST_CERTIFICATE:
-            if ((ssl_st->flags & SSL_FLAG_SERVER_HS) &&
-                    (ssl_st->flags & SSL_FLAG_CLIENT_HS))
+            if ((app_st->flags & TLS_FLAG_SSL_SERVER_HS) &&
+                    (app_st->flags & TLS_FLAG_SSL_CLIENT_HS))
             {
-                ssl_st->flags |= SSL_FLAG_SERVER_SSN_ENCRYPTED;
+                app_st->flags |= TLS_FLAG_SSL_SERVER_SSN_ENCRYPTED;
                 SCLogDebug("SSLv2 Server side has started the encryption");
 
-                if ((ssl_st->flags & SSL_FLAG_CLIENT_SSN_ENCRYPTED) &&
-                        (ssl_st->flags & SSL_FLAG_SERVER_SSN_ENCRYPTED))
+                if ((app_st->flags & TLS_FLAG_SSL_CLIENT_SSN_ENCRYPTED) &&
+                        (app_st->flags & TLS_FLAG_SSL_SERVER_SSN_ENCRYPTED))
                 {
                     pstate->flags |= APP_LAYER_PARSER_DONE;
                     pstate->flags |= APP_LAYER_PARSER_NO_INSPECTION;
@@ -200,55 +186,21 @@ static int SSLParseServerRecord(Flow *f, void *ssl_state, AppLayerParserState *p
                     SCLogDebug("SSLv2 No reassembly & inspection has been set");
                 }
             }
-            ssl_st->server_content_type = server->msg_type;
+            app_st->server_content_type = server->msg_type;
 
             break;
         case SSL_ERROR:
-            SCLogError(SC_ERR_ALPARSER, "Error encountered in establishing the "
-                    "sslv2 session");
+            SCLogWarning(SC_ERR_ALPARSER, "Error encountered in establishing the "
+                    "sslv2 session, may be tls version");
             SCReturnInt(-1);
         default:
-            SCLogError(SC_ERR_ALPARSER, "Incorrect message type (%"PRIu8") "
-                    "while establishing the sslv2 session", server->msg_type);
+            SCLogDebug("Incorrect message type (%"PRIu8") "
+                    "while establishing the sslv2 session, may be tls version",
+                    server->msg_type);
+            SCReturnInt(-1);
             break;
     }
     SCReturnInt(1);
-}
-
-/** \brief Function to allocates the TLS state memory
- */
-static void *SSLStateAlloc(void)
-{
-    SCEnter();
-    void *s = SCMalloc(sizeof(SslState));
-    if (s == NULL)
-        return NULL;
-
-    memset(s, 0, sizeof(SslState));
-    SCReturnPtr(s, "SslState");
-}
-
-/** \brief Function to free the TLS state memory
- */
-static void SSLStateFree(void *s)
-{
-    SCEnter();
-    SCFree(s);
-    SCReturn;
-}
-
-/** \brief Function to register the SSL protocol parsers and other functions
- */
-void RegisterSSLParsers(void)
-{
-    AppLayerRegisterProto("ssl", ALPROTO_SSL, STREAM_TOSERVER,
-                          SSLParseClientRecord);
-
-    AppLayerRegisterProto("ssl", ALPROTO_SSL, STREAM_TOCLIENT,
-                            SSLParseServerRecord);
-
-    AppLayerRegisterStateFuncs(ALPROTO_SSL, SSLStateAlloc, SSLStateFree);
-
 }
 
 #ifdef UNITTESTS
@@ -277,27 +229,27 @@ static int SSLParserTest01(void) {
     StreamTcpInitConfig(TRUE);
     FlowL7DataPtrInit(&f);
 
-    int r = AppLayerParse(&f, ALPROTO_SSL, STREAM_TOSERVER|STREAM_EOF, sslbuf, ssllen);
+    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER|STREAM_EOF, sslbuf, ssllen);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    SslState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_SSL)];
-    if (ssl_state == NULL) {
+    TlsState *app_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (app_state == NULL) {
         printf("no ssl state: ");
         goto end;
     }
 
-    if (ssl_state->client_content_type != 0x1) {
+    if (app_state->client_content_type != 0x1) {
         printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x1,
-                ssl_state->client_content_type);
+                app_state->client_content_type);
         goto end;
     }
 
-    if (ssl_state->client_version != SSL_CLIENT_VERSION) {
+    if (app_state->client_version != SSL_CLIENT_VERSION) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                SSL_CLIENT_VERSION, ssl_state->client_version);
+                SSL_CLIENT_VERSION, app_state->client_version);
         goto end;
     }
 
@@ -332,30 +284,30 @@ static int SSLParserTest02(void) {
     StreamTcpInitConfig(TRUE);
     FlowL7DataPtrInit(&f);
 
-    int r = AppLayerParse(&f, ALPROTO_SSL, STREAM_TOCLIENT|STREAM_EOF, sslbuf, ssllen);
+    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOCLIENT|STREAM_EOF, sslbuf, ssllen);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    SslState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_SSL)];
-    if (ssl_state == NULL) {
+    TlsState *app_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (app_state == NULL) {
         printf("no ssl state: ");
         result = 0;
         goto end;
     }
 
-    if (ssl_state->server_content_type != SSL_SERVER_HELLO) {
+    if (app_state->server_content_type != SSL_SERVER_HELLO) {
         printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ",
-                SSL_SERVER_HELLO, ssl_state->client_content_type);
+                SSL_SERVER_HELLO, app_state->client_content_type);
         result = 0;
         goto end;
     }
 
-    if (ssl_state->server_version != SSL_SERVER_VERSION) {
+    if (app_state->server_version != SSL_SERVER_VERSION) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                SSL_SERVER_VERSION, ssl_state->client_version);
+                SSL_SERVER_VERSION, app_state->client_version);
         result = 0;
         goto end;
     }
@@ -658,23 +610,23 @@ static int SSLParserTest03(void) {
         goto end;
     }
 
-    SslState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_SSL)];
-    if (ssl_state == NULL) {
+    TlsState *app_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (app_state == NULL) {
         printf("no ssl state: ");
         result = 0;
         goto end;
     }
 
-    if (ssl_state->client_content_type != 0x7) {
+    if (app_state->client_content_type != 0x7) {
         printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x7,
-                ssl_state->client_content_type);
+                app_state->client_content_type);
         result = 0;
         goto end;
     }
 
-    if (ssl_state->client_version != SSL_CLIENT_VERSION) {
+    if (app_state->client_version != SSL_CLIENT_VERSION) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                SSL_CLIENT_VERSION, ssl_state->client_version);
+                SSL_CLIENT_VERSION, app_state->client_version);
         result = 0;
         goto end;
     }
