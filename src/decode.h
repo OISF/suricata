@@ -745,6 +745,7 @@ void AddressDebugPrint(Address *);
 #define PKT_STREAM_EOF                  0x0040    /**< Stream is in eof state */
 #define PKT_HAS_FLOW                    0x0080
 #define PKT_PSEUDO_STREAM_END           0x0100    /**< Pseudo packet to end the stream */
+#define PKT_STREAM_MODIFIED             0x0200    /**< Packet is modified by the stream engine, we need to recalc the csum and reinject/replace */
 
 #endif /* __DECODE_H__ */
 

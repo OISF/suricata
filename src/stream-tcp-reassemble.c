@@ -50,6 +50,7 @@
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
+#include "stream-tcp-inline.h"
 
 #include "stream.h"
 
@@ -97,11 +98,11 @@ static uint32_t stream_reassembly_memuse_max;
 
 /* prototypes */
 static int HandleSegmentStartsBeforeListSegment(ThreadVars *, TcpReassemblyThreadCtx *,
-                                    TcpStream *, TcpSegment *, TcpSegment *);
+                                    TcpStream *, TcpSegment *, TcpSegment *, Packet *);
 static int HandleSegmentStartsAtSameListSegment(ThreadVars *, TcpReassemblyThreadCtx *,
-                                    TcpStream *, TcpSegment *, TcpSegment *);
+                                    TcpStream *, TcpSegment *, TcpSegment *, Packet *);
 static int HandleSegmentStartsAfterListSegment(ThreadVars *, TcpReassemblyThreadCtx *,
-                                    TcpStream *, TcpSegment *, TcpSegment *);
+                                    TcpStream *, TcpSegment *, TcpSegment *, Packet *);
 void StreamTcpSegmentDataReplace(TcpSegment *, TcpSegment *, uint32_t, uint16_t);
 void StreamTcpSegmentDataCopy(TcpSegment *, TcpSegment *);
 TcpSegment* StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *, uint16_t);
@@ -474,8 +475,8 @@ static int ReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ct
     /* insert the segment in the stream list using this fast track, if seg->seq
        is equal or higher than stream->seg_list_tail.*/
     if (SEQ_GEQ(seg->seq, (stream->seg_list_tail->seq +
-            stream->seg_list_tail->payload_len))) {
-
+            stream->seg_list_tail->payload_len)))
+    {
         stream->seg_list_tail->next = seg;
         seg->prev = stream->seg_list_tail;
         stream->seg_list_tail = seg;
@@ -484,8 +485,9 @@ static int ReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ct
     }
 
     /* If the OS policy is not set then set the OS policy for this stream */
-    if (stream->os_policy == 0)
+    if (stream->os_policy == 0) {
         StreamTcpSetOSPolicy(stream, p);
+    }
 
     for (; list_seg != NULL; list_seg = next_list_seg) {
         next_list_seg = list_seg->next;
@@ -513,10 +515,12 @@ static int ReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ct
                     seg->prev = list_seg->prev;
                 }
                 list_seg->prev = seg;
+
                 goto end;
+
             /* seg overlap with next seg(s) */
             } else {
-                ret_value = HandleSegmentStartsBeforeListSegment(tv, ra_ctx, stream, list_seg, seg);
+                ret_value = HandleSegmentStartsBeforeListSegment(tv, ra_ctx, stream, list_seg, seg, p);
                 if (ret_value == 1) {
                     ret_value = 0;
                     return_seg = TRUE;
@@ -528,9 +532,10 @@ static int ReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ct
                     goto end;
                 }
             }
+
         /* seg starts at same sequence number as list_seg */
         } else if (SEQ_EQ(seg->seq, list_seg->seq)) {
-            ret_value = HandleSegmentStartsAtSameListSegment(tv, ra_ctx, stream, list_seg, seg);
+            ret_value = HandleSegmentStartsAtSameListSegment(tv, ra_ctx, stream, list_seg, seg, p);
             if (ret_value == 1) {
                 ret_value = 0;
                 return_seg = TRUE;
@@ -541,6 +546,7 @@ static int ReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ct
                 return_seg = TRUE;
                 goto end;
             }
+
         /* seg starts at sequence number higher than list_seg */
         } else if (SEQ_GT(seg->seq, list_seg->seq)) {
             if (((SEQ_GEQ(seg->seq, (list_seg->seq + list_seg->payload_len))))
@@ -559,7 +565,7 @@ static int ReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ct
                     goto end;
                 }
             } else {
-                ret_value = HandleSegmentStartsAfterListSegment(tv, ra_ctx, stream, list_seg, seg);
+                ret_value = HandleSegmentStartsAfterListSegment(tv, ra_ctx, stream, list_seg, seg, p);
                 if (ret_value == 1) {
                     ret_value = 0;
                     return_seg = TRUE;
@@ -586,21 +592,23 @@ end:
 }
 
 /**
- *  \brief  Function to handle the newly arrived segment, when newly arrived
- *          starts with the sequence number lower than the original segment and
- *          ends at different position relative to original segment.
- *          The packet is handled based on its target OS.
+ *  \brief Function to handle the newly arrived segment, when newly arrived
+ *         starts with the sequence number lower than the original segment and
+ *         ends at different position relative to original segment.
+ *         The packet is handled based on its target OS.
  *
- *  \param  list_seg    Original Segment in the stream
- *  \param  seg         Newly arrived segment
- *  \param  prev_seg    Previous segment in the stream segment list
+ *  \param list_seg Original Segment in the stream
+ *  \param seg      Newly arrived segment
+ *  \param prev_seg Previous segment in the stream segment list
+ *  \param p        Packet
+ *
  *  \retval 1           done
  *  \retval 0           not done yet
  *  \retval -1          error
  */
 
 static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
-        TcpStream *stream, TcpSegment *list_seg, TcpSegment *seg)
+        TcpStream *stream, TcpSegment *list_seg, TcpSegment *seg, Packet *p)
 {
     SCEnter();
 
@@ -665,8 +673,8 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
     }
 
     if (overlap > 0) {
-        /* Handling case when the packet starts before the first packet in the
-         * list */
+        /* Handling case when the segment starts before the first segment in
+         * the list */
         if (list_seg->prev == NULL) {
             if (end_after == TRUE && list_seg->next != NULL &&
                     SEQ_LT(list_seg->next->seq, (seg->seq + seg->payload_len)))
@@ -697,7 +705,7 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
             uint16_t replace = (uint16_t) (list_seg->seq - seg->seq);
             SCLogDebug("copying %"PRIu16" bytes to new_seg", replace);
             StreamTcpSegmentDataReplace(new_seg, seg, seg->seq, replace);
-//#if 0
+
             /* if any, data after list_seg->seq + list_seg->payload_len */
             if (SEQ_GT((seg->seq + seg->payload_len), (list_seg->seq +
                     list_seg->payload_len)) && return_after == TRUE)
@@ -709,8 +717,8 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
                 StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->seq +
                                              list_seg->payload_len), replace);
             }
-//#endif
-            /*update the stream last_seg in case of removal of list_seg*/
+
+            /* update the stream last_seg in case of removal of list_seg */
             if (stream->seg_list_tail == list_seg)
                 stream->seg_list_tail = new_seg;
 
@@ -916,44 +924,50 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
             }
         }
 
-        switch (os_policy) {
-            case OS_POLICY_SOLARIS:
-            case OS_POLICY_HPUX11:
-                if (end_after == TRUE || end_same == TRUE) {
-                    StreamTcpSegmentDataReplace(list_seg, seg, overlap_point,
-                                                overlap);
-                    end_after = FALSE;
-                } else {
+        if (StreamTcpInlineMode()) {
+            if (StreamTcpInlineSegmentCompare(seg, list_seg) != 0) {
+                StreamTcpInlineSegmentReplacePacket(p, list_seg);
+            }
+        } else {
+            switch (os_policy) {
+                case OS_POLICY_SOLARIS:
+                case OS_POLICY_HPUX11:
+                    if (end_after == TRUE || end_same == TRUE) {
+                        StreamTcpSegmentDataReplace(list_seg, seg, overlap_point,
+                                overlap);
+                        end_after = FALSE;
+                    } else {
+                        SCLogDebug("using old data in starts before list case, "
+                                "list_seg->seq %" PRIu32 " policy %" PRIu32 " "
+                                "overlap %" PRIu32 "", list_seg->seq, os_policy,
+                                overlap);
+                    }
+                    break;
+                case OS_POLICY_VISTA:
+                case OS_POLICY_FIRST:
                     SCLogDebug("using old data in starts before list case, "
-                               "list_seg->seq %" PRIu32 " policy %" PRIu32 " "
-                               "overlap %" PRIu32 "", list_seg->seq, os_policy,
-                               overlap);
-                }
-                break;
-            case OS_POLICY_VISTA:
-            case OS_POLICY_FIRST:
-                SCLogDebug("using old data in starts before list case, "
-                           "list_seg->seq %" PRIu32 " policy %" PRIu32 " "
-                           "overlap %" PRIu32 "", list_seg->seq, os_policy,
-                           overlap);
-                break;
-            case OS_POLICY_BSD:
-            case OS_POLICY_HPUX10:
-            case OS_POLICY_IRIX:
-            case OS_POLICY_WINDOWS:
-            case OS_POLICY_WINDOWS2K3:
-            case OS_POLICY_OLD_LINUX:
-            case OS_POLICY_LINUX:
-            case OS_POLICY_MACOS:
-            case OS_POLICY_LAST:
-            default:
-                SCLogDebug("replacing old data in starts before list seg "
-                           "list_seg->seq %" PRIu32 " policy %" PRIu32 " "
-                           "overlap %" PRIu32 "", list_seg->seq, os_policy,
-                           overlap);
-                StreamTcpSegmentDataReplace(list_seg, seg, overlap_point,
-                                            overlap);
-                break;
+                            "list_seg->seq %" PRIu32 " policy %" PRIu32 " "
+                            "overlap %" PRIu32 "", list_seg->seq, os_policy,
+                            overlap);
+                    break;
+                case OS_POLICY_BSD:
+                case OS_POLICY_HPUX10:
+                case OS_POLICY_IRIX:
+                case OS_POLICY_WINDOWS:
+                case OS_POLICY_WINDOWS2K3:
+                case OS_POLICY_OLD_LINUX:
+                case OS_POLICY_LINUX:
+                case OS_POLICY_MACOS:
+                case OS_POLICY_LAST:
+                default:
+                    SCLogDebug("replacing old data in starts before list seg "
+                            "list_seg->seq %" PRIu32 " policy %" PRIu32 " "
+                            "overlap %" PRIu32 "", list_seg->seq, os_policy,
+                            overlap);
+                    StreamTcpSegmentDataReplace(list_seg, seg, overlap_point,
+                            overlap);
+                    break;
+            }
         }
         /* To return from for loop as seg is finished with current list_seg
            no need to check further (improve performance)*/
@@ -980,7 +994,7 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
  */
 
 static int HandleSegmentStartsAtSameListSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
-        TcpStream *stream, TcpSegment *list_seg, TcpSegment *seg)
+        TcpStream *stream, TcpSegment *list_seg, TcpSegment *seg, Packet *p)
 {
     uint16_t overlap = 0;
     uint16_t packet_length;
@@ -1099,46 +1113,53 @@ static int HandleSegmentStartsAtSameListSegment(ThreadVars *tv, TcpReassemblyThr
                     stream->seg_list_tail = new_seg;
             }
         }
-        switch (os_policy) {
-            case OS_POLICY_OLD_LINUX:
-            case OS_POLICY_SOLARIS:
-            case OS_POLICY_HPUX11:
-                if (end_after == TRUE || end_same == TRUE) {
+
+        if (StreamTcpInlineMode()) {
+            if (StreamTcpInlineSegmentCompare(list_seg, seg) != 0) {
+                StreamTcpInlineSegmentReplacePacket(p, list_seg);
+            }
+        } else {
+            switch (os_policy) {
+                case OS_POLICY_OLD_LINUX:
+                case OS_POLICY_SOLARIS:
+                case OS_POLICY_HPUX11:
+                    if (end_after == TRUE || end_same == TRUE) {
+                        StreamTcpSegmentDataReplace(list_seg, seg, seg->seq, overlap);
+                        end_after = FALSE;
+                    } else {
+                        SCLogDebug("using old data in starts at list case, "
+                                "list_seg->seq %" PRIu32 " policy %" PRIu32 " "
+                                "overlap %" PRIu32 "", list_seg->seq, os_policy,
+                                overlap);
+                    }
+                    break;
+                case OS_POLICY_LAST:
                     StreamTcpSegmentDataReplace(list_seg, seg, seg->seq, overlap);
-                    end_after = FALSE;
-                } else {
-                    SCLogDebug("using old data in starts at list case, "
-                               "list_seg->seq %" PRIu32 " policy %" PRIu32 " "
-                               "overlap %" PRIu32 "", list_seg->seq, os_policy,
-                               overlap);
-                }
-                break;
-            case OS_POLICY_LAST:
-                StreamTcpSegmentDataReplace(list_seg, seg, seg->seq, overlap);
-                break;
-            case OS_POLICY_LINUX:
-                if (end_after == TRUE) {
-                    StreamTcpSegmentDataReplace(list_seg, seg, seg->seq, overlap);
-                } else {
-                    SCLogDebug("using old data in starts at list case, "
-                               "list_seg->seq %" PRIu32 " policy %" PRIu32 " "
-                               "overlap %" PRIu32 "", list_seg->seq, os_policy,
-                               overlap);
-                }
-                break;
-            case OS_POLICY_BSD:
-            case OS_POLICY_HPUX10:
-            case OS_POLICY_IRIX:
-            case OS_POLICY_WINDOWS:
-            case OS_POLICY_WINDOWS2K3:
-            case OS_POLICY_VISTA:
-            case OS_POLICY_MACOS:
-            case OS_POLICY_FIRST:
-            default:
-                SCLogDebug("using old data in starts at list case, list_seg->seq"
-                           " %" PRIu32 " policy %" PRIu32 " overlap %" PRIu32 "",
-                           list_seg->seq, os_policy, overlap);
-                break;
+                    break;
+                case OS_POLICY_LINUX:
+                    if (end_after == TRUE) {
+                        StreamTcpSegmentDataReplace(list_seg, seg, seg->seq, overlap);
+                    } else {
+                        SCLogDebug("using old data in starts at list case, "
+                                "list_seg->seq %" PRIu32 " policy %" PRIu32 " "
+                                "overlap %" PRIu32 "", list_seg->seq, os_policy,
+                                overlap);
+                    }
+                    break;
+                case OS_POLICY_BSD:
+                case OS_POLICY_HPUX10:
+                case OS_POLICY_IRIX:
+                case OS_POLICY_WINDOWS:
+                case OS_POLICY_WINDOWS2K3:
+                case OS_POLICY_VISTA:
+                case OS_POLICY_MACOS:
+                case OS_POLICY_FIRST:
+                default:
+                    SCLogDebug("using old data in starts at list case, list_seg->seq"
+                            " %" PRIu32 " policy %" PRIu32 " overlap %" PRIu32 "",
+                            list_seg->seq, os_policy, overlap);
+                    break;
+            }
         }
 
         /* return 1 if we're done */
@@ -1164,7 +1185,7 @@ static int HandleSegmentStartsAtSameListSegment(ThreadVars *tv, TcpReassemblyThr
  */
 
 static int HandleSegmentStartsAfterListSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
-        TcpStream *stream, TcpSegment *list_seg, TcpSegment *seg)
+        TcpStream *stream, TcpSegment *list_seg, TcpSegment *seg, Packet *p)
 {
     SCEnter();
     uint16_t overlap = 0;
@@ -1284,38 +1305,45 @@ static int HandleSegmentStartsAfterListSegment(ThreadVars *tv, TcpReassemblyThre
                     stream->seg_list_tail = new_seg;
             }
         }
-        switch (os_policy) {
-            case OS_POLICY_SOLARIS:
-            case OS_POLICY_HPUX11:
-                if (end_after == TRUE) {
-                    StreamTcpSegmentDataReplace(list_seg, seg, seg->seq, overlap);
-                    end_after = FALSE;
-                } else {
-                    SCLogDebug("using old data in starts beyond list case, "
-                               "list_seg->seq %" PRIu32 " policy %" PRIu32 " "
+
+        if (StreamTcpInlineMode()) {
+            if (StreamTcpInlineSegmentCompare(list_seg, seg) != 0) {
+                StreamTcpInlineSegmentReplacePacket(p, list_seg);
+            }
+        } else {
+            switch (os_policy) {
+                case OS_POLICY_SOLARIS:
+                case OS_POLICY_HPUX11:
+                    if (end_after == TRUE) {
+                        StreamTcpSegmentDataReplace(list_seg, seg, seg->seq, overlap);
+                        end_after = FALSE;
+                    } else {
+                        SCLogDebug("using old data in starts beyond list case, "
+                                "list_seg->seq %" PRIu32 " policy %" PRIu32 " "
                                 "overlap %" PRIu32 "", list_seg->seq, os_policy,
                                 overlap);
-                }
-                break;
-            case OS_POLICY_LAST:
-                StreamTcpSegmentDataReplace(list_seg, seg, seg->seq, overlap);
-                break;
-            case OS_POLICY_BSD:
-            case OS_POLICY_HPUX10:
-            case OS_POLICY_IRIX:
-            case OS_POLICY_WINDOWS:
-            case OS_POLICY_WINDOWS2K3:
-            case OS_POLICY_VISTA:
-            case OS_POLICY_OLD_LINUX:
-            case OS_POLICY_LINUX:
-            case OS_POLICY_MACOS:
-            case OS_POLICY_FIRST:
-            default: /* DEFAULT POLICY */
-                SCLogDebug("using old data in starts beyond list case, "
-                           "list_seg->seq %" PRIu32 " policy %" PRIu32 " "
-                           "overlap %" PRIu32 "", list_seg->seq, os_policy,
+                    }
+                    break;
+                case OS_POLICY_LAST:
+                    StreamTcpSegmentDataReplace(list_seg, seg, seg->seq, overlap);
+                    break;
+                case OS_POLICY_BSD:
+                case OS_POLICY_HPUX10:
+                case OS_POLICY_IRIX:
+                case OS_POLICY_WINDOWS:
+                case OS_POLICY_WINDOWS2K3:
+                case OS_POLICY_VISTA:
+                case OS_POLICY_OLD_LINUX:
+                case OS_POLICY_LINUX:
+                case OS_POLICY_MACOS:
+                case OS_POLICY_FIRST:
+                default: /* DEFAULT POLICY */
+                    SCLogDebug("using old data in starts beyond list case, "
+                            "list_seg->seq %" PRIu32 " policy %" PRIu32 " "
+                            "overlap %" PRIu32 "", list_seg->seq, os_policy,
                             overlap);
-                break;
+                    break;
+            }
         }
         if (end_before == TRUE || end_same == TRUE || handle_beyond == FALSE) {
             SCReturnInt(1);
@@ -1556,6 +1584,10 @@ static void StreamTcpRemoveSegmentFromStream(TcpStream *stream, TcpSegment *seg)
 
 /**
  *  \brief Update the stream reassembly upon receiving an ACK packet.
+ *
+ *  Stream is in the opposite direction of the packet, as the ACK-packet
+ *  is ACK'ing the stream.
+ *
  *  \todo this function is too long, we need to break it up. It needs it BAD
  */
 static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
@@ -2672,6 +2704,7 @@ void StreamTcpReassemblePseudoPacketCreate(TcpStream *stream, Packet *p,
  *  \param  len         Length up to which data is need to be replaced
  *
  *  \todo VJ We can remove the abort()s later.
+ *  \todo VJ Why not memcpy?
  */
 void StreamTcpSegmentDataReplace(TcpSegment *dst_seg, TcpSegment *src_seg,
                                  uint32_t start_point, uint16_t len)
@@ -2679,6 +2712,8 @@ void StreamTcpSegmentDataReplace(TcpSegment *dst_seg, TcpSegment *src_seg,
     uint32_t seq;
     uint16_t src_pos = 0;
     uint16_t dst_pos = 0;
+
+    SCLogDebug("start_point %u", start_point);
 
     if (SEQ_GT(start_point, dst_seg->seq)) {
         dst_pos = start_point - dst_seg->seq;
@@ -7211,5 +7246,7 @@ void StreamTcpReassembleRegisterTests(void) {
     UtRegisterTest("StreamTcpReassembleTest47 -- TCP Sequence Wraparound Test", StreamTcpReassembleTest47, 1);
 //    UtRegisterTest("StreamTcpReassembleTest48 -- Pseudo IPv4 Packet Test", StreamTcpReassembleTest48, 1);
 //    UtRegisterTest("StreamTcpReassembleTest49 -- Pseudo IPv6 Packet Test", StreamTcpReassembleTest49, 1);
+
+    StreamTcpInlineRegisterTests();
 #endif /* UNITTESTS */
 }

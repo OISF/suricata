@@ -207,6 +207,7 @@ log-httplog.c log-httplog.h \
 stream.c stream.h \
 stream-tcp.c stream-tcp.h stream-tcp-private.h \
 stream-tcp-reassemble.c stream-tcp-reassemble.h \
+stream-tcp-inline.c stream-tcp-inline.h \
 respond-reject.c respond-reject.h \
 respond-reject-libnet11.h respond-reject-libnet11.c \
 conf.c conf.h \

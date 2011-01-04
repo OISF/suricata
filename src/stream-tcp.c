@@ -117,6 +117,9 @@ static SCSpinlock stream_memuse_spinlock;
 static uint32_t stream_memuse;
 static uint32_t stream_memuse_max;
 
+/* stream engine running in "inline" mode. */
+int stream_inline = 0;
+
 void TmModuleStreamTcpRegister (void)
 {
     tmm_modules[TMM_STREAMTCP].name = "StreamTcp";
@@ -444,6 +447,17 @@ void StreamTcpInitConfig(char quiet)
 
     if (!quiet) {
         SCLogInfo("stream.reassembly \"depth\": %"PRIu32"", stream_config.reassembly_depth);
+    }
+
+    char *inl = NULL;
+    if ((ConfGet("stream.inline", &inl)) == 1) {
+        if (strncmp(csum, "yes", 3) == 0) {
+            stream_inline = 1;
+        }
+    }
+
+    if (!quiet) {
+        SCLogInfo("stream.\"inline\": %s", stream_inline ? "enabled" : "disabled");
     }
 
     /* init the memcap and it's lock */

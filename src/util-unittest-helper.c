@@ -158,10 +158,9 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
     p->dst.addr_data32[0] = in.s_addr;
     p->dp = dport;
 
-    p->ip4h = SCMalloc(sizeof(IPV4Hdr));
+    p->ip4h = (IPV4Hdr *)GET_PKT_DATA(p);
     if (p->ip4h == NULL)
         return NULL;
-    memset(p->ip4h, 0, sizeof(IPV4Hdr));
 
     p->ip4h->ip_src.s_addr = p->src.addr_data32[0];
     p->ip4h->ip_dst.s_addr = p->dst.addr_data32[0];
@@ -169,36 +168,42 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
     p->ip4h->ip_verhl = sizeof(IPV4Hdr);
     p->proto = ipproto;
 
+    int hdr_offset = sizeof(IPV4Hdr);
     switch (ipproto) {
         case IPPROTO_UDP:
-            p->udph = SCMalloc(sizeof(UDPHdr));
+            p->udph = (UDPHdr *)(GET_PKT_DATA(p) + sizeof(IPV4Hdr));
             if (p->udph == NULL)
                 return NULL;
-            memset(p->udph, 0, sizeof(UDPHdr));
+
             p->udph->uh_sport = sport;
             p->udph->uh_dport = dport;
-            SET_PKT_LEN(p, sizeof(IPV4Hdr) + sizeof(UDPHdr) + payload_len);
+            hdr_offset += sizeof(UDPHdr);
             break;
         case IPPROTO_TCP:
-            p->tcph = SCMalloc(sizeof(TCPHdr));
+            p->tcph = (TCPHdr *)(GET_PKT_DATA(p) + sizeof(IPV4Hdr));
             if (p->tcph == NULL)
                 return NULL;
-            memset(p->tcph, 0, sizeof(TCPHdr));
+
             p->tcph->th_sport = htons(sport);
             p->tcph->th_dport = htons(dport);
-            SET_PKT_LEN(p, sizeof(IPV4Hdr) + sizeof(TCPHdr) + payload_len);
+            hdr_offset += sizeof(TCPHdr);
             break;
         case IPPROTO_ICMP:
-            p->icmpv4h = SCMalloc(sizeof(ICMPV4Hdr));
+            p->icmpv4h = (ICMPV4Hdr *)(GET_PKT_DATA(p) + sizeof(IPV4Hdr));
             if (p->icmpv4h == NULL)
                 return NULL;
-            memset(p->icmpv4h, 0, sizeof(ICMPV4Hdr));
-            SET_PKT_LEN(p, sizeof(IPV4Hdr) + sizeof(ICMPV4Hdr) + payload_len);
+
+            hdr_offset += sizeof(ICMPV4Hdr);
             break;
         default:
             break;
         /* TODO: Add more protocols */
     }
+
+    memcpy(GET_PKT_DATA(p)+hdr_offset, payload, payload_len);
+    SET_PKT_LEN(p, hdr_offset + payload_len);
+    p->payload = GET_PKT_DATA(p)+hdr_offset;
+
     return p;
 }
 
@@ -358,7 +363,7 @@ void UTHFreePackets(Packet **p, int numpkts) {
 void UTHFreePacket(Packet *p) {
     if (p == NULL)
         return;
-
+#if 0 // VJ we now use one buffer
     switch (p->proto) {
         case IPPROTO_UDP:
             if (p->udph != NULL)
@@ -378,6 +383,7 @@ void UTHFreePacket(Packet *p) {
         break;
         /* TODO: Add more protocols */
     }
+#endif
     SCFree(p);
 }
 
