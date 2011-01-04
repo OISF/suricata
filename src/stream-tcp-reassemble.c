@@ -756,8 +756,7 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
                 uint16_t copy_len = (uint16_t) (list_seg->seq - seg->seq);
                 SCLogDebug("copy_len %" PRIu32 " (%" PRIu32 " - %" PRIu32 ")",
                             copy_len, list_seg->seq, seg->seq);
-                StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->prev->seq +
-                                    list_seg->prev->payload_len), copy_len);
+                StreamTcpSegmentDataReplace(new_seg, seg, seg->seq, copy_len);
 
                 /*update the stream last_seg in case of removal of list_seg*/
                 if (stream->seg_list_tail == list_seg)
@@ -2123,7 +2122,7 @@ void StreamTcpSegmentDataReplace(TcpSegment *dst_seg, TcpSegment *src_seg,
                                  uint32_t start_point, uint16_t len)
 {
     uint32_t seq;
-    uint16_t s_cnt = 0;
+    uint16_t src_pos = 0;
     uint16_t dst_pos = 0;
 
     if (SEQ_GT(start_point, dst_seg->seq)) {
@@ -2139,23 +2138,19 @@ void StreamTcpSegmentDataReplace(TcpSegment *dst_seg, TcpSegment *src_seg,
             return;
     }
 
+    src_pos = (uint16_t)(start_point - src_seg->seq);
+
     SCLogDebug("Replacing data from dst_pos %"PRIu16"", dst_pos);
 
-    for (seq = start_point; SEQ_LT(seq, (start_point + len)); seq++) {
-        if (SCLogDebugEnabled()) {
-            BUG_ON((dst_pos > dst_seg->payload_len));
-        } else {
-            if (dst_pos > dst_seg->payload_len)
-                return;
-        }
-
-        dst_seg->payload[dst_pos] = src_seg->payload[s_cnt];
-
-        dst_pos++;
-        s_cnt++;
+    for (seq = start_point; SEQ_LT(seq, (start_point + len)) &&
+            src_pos < src_seg->payload_len && dst_pos < dst_seg->payload_len;
+            seq++, dst_pos++, src_pos++)
+    {
+        dst_seg->payload[dst_pos] = src_seg->payload[src_pos];
     }
-    SCLogDebug("Replaced data of size %"PRIu16" up to dst_pos %"PRIu16"",
-                s_cnt, dst_pos);
+
+    SCLogDebug("Replaced data of size %"PRIu16" up to src_pos %"PRIu16
+            " dst_pos %"PRIu16, len, src_pos, dst_pos);
 }
 
 /**
