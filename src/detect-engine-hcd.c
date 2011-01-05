@@ -325,7 +325,7 @@ int DetectEngineRunHttpCookieMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
                                                      "Cookie");
         if (h == NULL) {
             SCLogDebug("HTTP cookie header not present in this request");
-            goto end;
+            continue;
         }
 
         cnt += HttpCookiePatternSearch(det_ctx,
@@ -387,7 +387,7 @@ int DetectEngineInspectHttpCookie(DetectEngineCtx *de_ctx,
                                                      "Cookie");
         if (h == NULL) {
             SCLogDebug("HTTP cookie header not present in this request");
-            goto end;
+            continue;
         }
 
         r = DoInspectHttpCookie(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HCDMATCH],

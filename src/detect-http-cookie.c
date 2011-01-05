@@ -53,9 +53,6 @@
 #include "detect-http-cookie.h"
 #include "stream-tcp.h"
 
-int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                           Flow *f, uint8_t flags, void *state, Signature *s,
-                           SigMatch *m);
 static int DetectHttpCookieSetup (DetectEngineCtx *, Signature *, char *);
 void DetectHttpCookieRegisterTests(void);
 void DetectHttpCookieFree(void *);
@@ -67,107 +64,12 @@ void DetectHttpCookieRegister (void) {
     sigmatch_table[DETECT_AL_HTTP_COOKIE].name = "http_cookie";
     sigmatch_table[DETECT_AL_HTTP_COOKIE].Match = NULL;
     sigmatch_table[DETECT_AL_HTTP_COOKIE].AppLayerMatch = NULL;
-    //sigmatch_table[DETECT_AL_HTTP_COOKIE].AppLayerMatch = DetectHttpCookieMatch;
     sigmatch_table[DETECT_AL_HTTP_COOKIE].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_AL_HTTP_COOKIE].Setup = DetectHttpCookieSetup;
     sigmatch_table[DETECT_AL_HTTP_COOKIE].Free  = DetectHttpCookieFree;
     sigmatch_table[DETECT_AL_HTTP_COOKIE].RegisterTests = DetectHttpCookieRegisterTests;
 
     sigmatch_table[DETECT_AL_HTTP_COOKIE].flags |= SIGMATCH_PAYLOAD;
-}
-
-/**
- * \brief match the specified content in the signature with the received http
- *        cookie header in the http request.
- *
- * \param t         pointer to thread vars
- * \param det_ctx   pointer to the pattern matcher thread
- * \param f         pointer to the current flow
- * \param flags     flags to indicate the direction of the received packet
- * \param state     pointer the app layer state, which will cast into HtpState
- * \param s         pointer to the current signature
- * \param sm        pointer to the sigmatch
- *
- * \retval 0 no match
- * \retval 1 match
- */
-int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                           Flow *f, uint8_t flags, void *state, Signature *s,
-                           SigMatch *sm)
-{
-    SCEnter();
-
-    int ret = 0;
-    size_t idx;
-
-    SCMutexLock(&f->m);
-    SCLogDebug("got lock %p", &f->m);
-
-    DetectContentData *co = (DetectContentData *)sm->ctx;
-
-    HtpState *htp_state = (HtpState *)state;
-    if (htp_state == NULL) {
-        SCLogDebug("no HTTP layer state has been received, so no match");
-        goto end;
-    }
-
-    if (!(htp_state->flags & HTP_FLAG_STATE_OPEN)) {
-        SCLogDebug("HTP state not yet properly setup, so no match");
-        goto end;
-    }
-
-    SCLogDebug("htp_state %p, flow %p", htp_state, f);
-    SCLogDebug("htp_state->connp %p", htp_state->connp);
-    SCLogDebug("htp_state->connp->conn %p", htp_state->connp->conn);
-
-    if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
-        SCLogDebug("HTTP connection structure is NULL");
-        goto end;
-    }
-
-    htp_tx_t *tx = NULL;
-
-    for (idx = 0;//htp_state->new_in_tx_index;
-         idx < list_size(htp_state->connp->conn->transactions); idx++)
-    {
-        tx = list_get(htp_state->connp->conn->transactions, idx);
-        if (tx == NULL)
-            continue;
-
-        htp_header_t *h = NULL;
-        h = (htp_header_t *) table_getc(tx->request_headers, "Cookie");
-        if (h == NULL) {
-            SCLogDebug("no HTTP Cookie header in the received request");
-            goto end;
-        }
-
-        SCLogDebug("we have a cookie header");
-
-        /* call the case insensitive version if nocase has been specified in the sig */
-        if (co->flags & DETECT_CONTENT_NOCASE) {
-            if (SpmNocaseSearch((uint8_t *) bstr_ptr(h->value), bstr_size(h->value),
-                          co->content, co->content_len) != NULL) {
-                SCLogDebug("match has been found in received request and given http_"
-                           "cookie rule");
-                ret = 1;
-            }
-        } else {
-            if (SpmSearch((uint8_t *) bstr_ptr(h->value), bstr_size(h->value),
-                                co->content, co->content_len) != NULL) {
-                SCLogDebug("match has been found in received request and given http_"
-                           "cookie rule");
-                ret = 1;
-            }
-        }
-    }
-
-    SCMutexUnlock(&f->m);
-    return ret ^ ((co->flags & DETECT_CONTENT_NEGATED) ? 1 : 0);
-
-end:
-    SCMutexUnlock(&f->m);
-    SCLogDebug("released lock %p", &f->m);
-    SCReturnInt(ret);
 }
 
 /**
@@ -208,15 +110,15 @@ static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     }
 
     if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "http_cookie found inside the "
-                   "rule, without any preceding content keywords");
+        SCLogError(SC_ERR_HTTP_COOKIE_NEEDS_PRECEEDING_CONTENT, "http_cookie "
+                "found inside the rule, without any preceding content keywords");
         return -1;
     }
 
     sm = DetectContentGetLastPattern(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
     if (sm == NULL) {
-        SCLogWarning(SC_ERR_INVALID_SIGNATURE, "http_cookie found inside "
-                "the rule, without a content context.  Please use a "
+        SCLogWarning(SC_ERR_HTTP_COOKIE_NEEDS_PRECEEDING_CONTENT, "http_cookie "
+                "found inside the rule, without a content context.  Please use a "
                 "content keyword before using http_cookie");
         return -1;
     }
@@ -225,15 +127,14 @@ static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
 
     /* http_cookie should not be used with the rawbytes rule */
     if (cd->flags & DETECT_CONTENT_RAWBYTES) {
-
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "http_cookie rule can not "
-                   "be used with the rawbytes rule keyword");
+        SCLogError(SC_ERR_HTTP_COOKIE_INCOMPATIBLE_WITH_RAWBYTES, "http_cookie "
+                "rule can not be used with the rawbytes rule keyword");
         return -1;
     }
 
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains a non http "
-                   "alproto set");
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains keywords"
+                "that conflict with http_cookie");
         goto error;
     }
 
@@ -259,9 +160,9 @@ static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
                                         DETECT_PCRE,
                                         s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]);
         if (pm == NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "http_cookie seen with a "
-                       "distance or within without a previous http_cookie "
-                       "content.  Invalidating signature.");
+            SCLogError(SC_ERR_HTTP_COOKIE_RELATIVE_MISSING, "http_cookie with "
+                    "a distance or within requires preceeding http_cookie "
+                    "content, but none was found");
             goto error;
         }
         if (pm->type == DETECT_PCRE) {

@@ -53,8 +53,6 @@
 #include "stream-tcp.h"
 
 
-int DetectHttpMethodMatch(ThreadVars *, DetectEngineThreadCtx *,
-                          Flow *, uint8_t, void *, Signature *, SigMatch *);
 static int DetectHttpMethodSetup(DetectEngineCtx *, Signature *, char *);
 void DetectHttpMethodRegisterTests(void);
 void DetectHttpMethodFree(void *);
@@ -65,7 +63,6 @@ void DetectHttpMethodFree(void *);
 void DetectHttpMethodRegister(void) {
     sigmatch_table[DETECT_AL_HTTP_METHOD].name = "http_method";
     sigmatch_table[DETECT_AL_HTTP_METHOD].Match = NULL;
-    //sigmatch_table[DETECT_AL_HTTP_METHOD].AppLayerMatch = DetectHttpMethodMatch;
     sigmatch_table[DETECT_AL_HTTP_METHOD].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_HTTP_METHOD].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_AL_HTTP_METHOD].Setup = DetectHttpMethodSetup;
@@ -74,71 +71,6 @@ void DetectHttpMethodRegister(void) {
     sigmatch_table[DETECT_AL_HTTP_METHOD].flags |= SIGMATCH_PAYLOAD;
 
     SCLogDebug("registering http_method rule option");
-}
-
-/**
- * \brief match the specified version on a tls session
- *
- * \param t       pointer to thread vars
- * \param det_ctx pointer to the pattern matcher thread
- * \param f       pointer to the current flow
- * \param flags   flags to indicate the direction of the received packet
- * \param state   pointer the app layer state, which will cast into HtpState
- * \param sm      pointer to the sigmatch
- *
- * \retval 0 no match
- * \retval 1 match
- */
-int DetectHttpMethodMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                          Flow *f, uint8_t flags, void *state,
-                          Signature *s, SigMatch *sm)
-{
-    SCEnter();
-
-    size_t idx;
-    DetectContentData *data = (DetectContentData *)sm->ctx;
-    HtpState *hs = (HtpState *)state;
-    htp_tx_t *tx = NULL;
-    int ret = 0;
-
-    if (hs == NULL || hs->connp == NULL || hs->connp->conn == NULL) {
-        SCLogDebug("No HTP state.");
-        SCReturnInt(0);
-    }
-
-    SCMutexLock(&f->m);
-    for (idx = 0;//hs->new_in_tx_index;
-         idx < list_size(hs->connp->conn->transactions); idx++)
-    {
-        tx = list_get(hs->connp->conn->transactions, idx);
-        if (tx == NULL || tx->request_method == NULL)
-            continue;
-
-        const uint8_t *meth_str = (const uint8_t *)bstr_ptr(tx->request_method);
-        if (meth_str != NULL) {
-            /*
-            printf("Method buffer: ");PrintRawUriFp(stdout, meth_str, bstr_size(tx->request_method));printf("\n");
-            printf("Pattern:       ");PrintRawUriFp(stdout, data->content, data->content_len);printf("\n");
-            */
-
-            if (data->flags & DETECT_CONTENT_NOCASE) {
-                SCLogDebug("no case inspection");
-                ret = (SpmNocaseSearch((uint8_t *)meth_str, bstr_size(tx->request_method),
-                            data->content, data->content_len) != NULL);
-            } else {
-                SCLogDebug("case sensitive inspection");
-                ret = (SpmSearch((uint8_t *)meth_str, bstr_size(tx->request_method),
-                            data->content, data->content_len) != NULL);
-            }
-            if (ret == 1) {
-                SCLogDebug("matched HTTP method.");
-                break;
-            }
-        }
-    }
-
-    SCMutexUnlock(&f->m);
-    SCReturnInt(ret ^ ((data->flags & DETECT_CONTENT_NEGATED) ? 1 : 0));
 }
 
 /**
@@ -163,29 +95,29 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
     }
 
     if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method modifier used "
-                   "before any signature match");
+        SCLogError(SC_ERR_HTTP_METHOD_NEEDS_PRECEEDING_CONTENT, "http_method "
+                "modifies preceeding \"content\", but none was found");
         SCReturnInt(-1);
     }
 
     SigMatch *sm = DetectContentGetLastPattern(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
     if (sm == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method modifies \"content\", "
-                   "but none was found");
+        SCLogError(SC_ERR_HTTP_METHOD_NEEDS_PRECEEDING_CONTENT, "http_method "
+                "modifies preceeding \"content\", but none was found");
         SCReturnInt(-1);
     }
 
     cd = (DetectContentData *)sm->ctx;
 
     if (cd->flags & DETECT_CONTENT_RAWBYTES) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method cannot be used "
-                   "with \"rawbytes\"");
+        SCLogError(SC_ERR_HTTP_METHOD_INCOMPATIBLE_WITH_RAWBYTES, "http_method "
+                "cannot be used with \"rawbytes\"");
         SCReturnInt(-1);
     }
 
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains a non http "
-                   "alproto set");
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains keywords"
+                "that conflict with http_method");
         goto error;
     }
 
@@ -211,9 +143,9 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
                                         DETECT_PCRE,
                                         s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]);
         if (pm == NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "http_method seen with a "
-                       "distance or within without a previous http_method "
-                       "content.  Invalidating signature.");
+            SCLogError(SC_ERR_HTTP_METHOD_RELATIVE_MISSING, "http_method with "
+                    "a distance or within requires preceeding http_method "
+                    "content, but none was found");
             goto error;
         }
         if (pm->type == DETECT_PCRE) {
@@ -252,7 +184,8 @@ error:
 void DetectHttpMethodFree(void *ptr) {
     DetectContentData *data = (DetectContentData *)ptr;
 
-    if (data->content != NULL) SCFree(data->content);
+    if (data->content != NULL)
+        SCFree(data->content);
     SCFree(data);
 }
 

@@ -8049,11 +8049,7 @@ int SigTest40NoPayloadInspection02(void) {
         goto end;
     }
 
-//    sigmatch_table[DETECT_CONTENT].flags |= SIGMATCH_PAYLOAD;
-//    de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH]->type = DETECT_CONTENT;
-
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx,MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     if (!(de_ctx->sig_list->init_flags & SIG_FLAG_PAYLOAD))
@@ -8072,7 +8068,6 @@ int SigTest40NoPayloadInspection02(void) {
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     SCFree(p);
