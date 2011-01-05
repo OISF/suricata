@@ -539,6 +539,11 @@ TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
 
     SCEnter();
 
+    /* can't verdict a "fake" packet */
+    if (p->flags & PKT_PSEUDO_STREAM_END) {
+        SCReturnInt(TM_ECODE_OK);
+    }
+
     /* This came from NFQ.
      *  if this is a tunnel packet we check if we are ready to verdict
      * already. */

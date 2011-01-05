@@ -588,6 +588,11 @@ TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
 
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 
+    /* can't verdict a "fake" packet */
+    if (p->flags & PKT_PSEUDO_STREAM_END) {
+        SCReturnInt(TM_ECODE_OK);
+    }
+
     /* if this is a tunnel packet we check if we are ready to verdict
      * already. */
     if (IS_TUNNEL_PKT(p)) {
