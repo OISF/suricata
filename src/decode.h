@@ -225,11 +225,14 @@ typedef struct PacketAlerts_ {
     PacketAlert alerts[PACKET_ALERT_MAX];
 } PacketAlerts;
 
-#define PACKET_DECODER_EVENT_MAX 16
+/** number of decoder events we support per packet. Power of 2 minus 1
+ *  for memory layout */
+#define PACKET_DECODER_EVENT_MAX 15
 
+/** data structure to store decoder, defrag and stream events */
 typedef struct PacketDecoderEvents_ {
-    uint8_t cnt;
-    uint8_t events[PACKET_DECODER_EVENT_MAX];
+    uint8_t cnt;                                /**< number of events */
+    uint8_t events[PACKET_DECODER_EVENT_MAX];   /**< array of events */
 } PacketDecoderEvents;
 
 typedef struct PktVar_ {
