@@ -1331,6 +1331,8 @@ int main(int argc, char **argv)
     }
 #endif
 
+    AppLayerHtpPrintStats();
+
     SigCleanSignatures(de_ctx);
     if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
         MpmFactoryDeRegisterAllMpmCtxProfiles();

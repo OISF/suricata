@@ -161,6 +161,7 @@ static void *HTPStateAlloc(void)
     SCMutexLock(&htp_state_mem_lock);
     htp_state_memcnt++;
     htp_state_memuse += sizeof(HtpState);
+    SCLogDebug("htp memory %"PRIu64" (%"PRIu64")", htp_state_memuse, htp_state_memcnt);
     SCMutexUnlock(&htp_state_mem_lock);
 #endif
 
@@ -188,6 +189,8 @@ void HTPStateFree(void *state)
 
     /* free the connection parser memory used by HTP library */
     if (s != NULL && s->connp != NULL) {
+        SCLogDebug("freeing HTP state");
+
         size_t i;
         /* free the list of body chunks */
         if (s->connp->conn != NULL) {
@@ -212,6 +215,7 @@ void HTPStateFree(void *state)
     SCMutexLock(&htp_state_mem_lock);
     htp_state_memcnt--;
     htp_state_memuse -= sizeof(HtpState);
+    SCLogDebug("htp memory %"PRIu64" (%"PRIu64")", htp_state_memuse, htp_state_memcnt);
     SCMutexUnlock(&htp_state_mem_lock);
 #endif
 
@@ -1086,6 +1090,14 @@ static void HTPConfigure(void)
     }
 
     SCReturn;
+}
+
+void AppLayerHtpPrintStats(void) {
+#ifdef DEBUG
+    SCMutexLock(&htp_state_mem_lock);
+    SCLogInfo("htp memory %"PRIu64" (%"PRIu64")", htp_state_memuse, htp_state_memcnt);
+    SCMutexUnlock(&htp_state_mem_lock);
+#endif
 }
 
 static void HtpConfigCreateBackup(void)
