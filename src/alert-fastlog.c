@@ -25,7 +25,7 @@
  *
  * \todo Print the protocol as a string
  * \todo Support classifications
- * \todo Support more than just IPv4/IPv4 TCP/UDP.
+ * \todo Support more than just IPv4/IPv6 TCP/UDP.
  * \todo Print [drop] as well if appropriate
  */
 
