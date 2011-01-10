@@ -59,8 +59,6 @@ typedef struct TcpStream_ {
     uint8_t os_policy; /**< target based OS policy used for reassembly and handling packets*/
     uint16_t flags;      /**< Flag specific to the stream e.g. Timestamp */
     TcpSegment *seg_list_tail;  /**< Last segment in the reassembled stream seg list*/
-    uint32_t reassembly_depth;  /**< The depth value of a stream until when, we
-                                     will reassemble the stream */
     uint32_t pseudo_ra_base_seq;    /**< Base sequence until when we have
                                          reassembled the psuedo packet */
 } TcpStream;

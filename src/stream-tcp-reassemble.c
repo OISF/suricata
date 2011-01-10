@@ -1384,27 +1384,27 @@ static int HandleSegmentStartsAfterListSegment(ThreadVars *tv, TcpReassemblyThre
 }
 
 /**
- * \brief  Function to Check the reassembly depth valuer against the
- *         allowed max depth of the stream reassmbly for TCP streams.
+ * \brief Function to Check the reassembly depth valuer against the
+ *        allowed max depth of the stream reassmbly for TCP streams.
  *
- * \param  size Size of the depth util now and received packet payload length
+ * \param stream stream direction
+ * \param size size of the segment that is added
+ *
  * \retval 1 if in bounds
  * \retval 0 if not in bounds
  */
-int StreamTcpReassembleCheckDepth(uint32_t size) {
+int StreamTcpReassembleCheckDepth(TcpStream *stream, uint32_t size) {
     SCEnter();
-
-    int ret = 0;
 
     /* if the configured depth value is 0, it means there is no limit on
        reassembly depth. Otherwise carry on my boy ;) */
     if (stream_config.reassembly_depth == 0) {
-        ret = 1;
-    } else if (size <= stream_config.reassembly_depth) {
-        ret = 1;
+        SCReturnInt(1);
+    } else if (((stream->next_seq - stream->isn) + size) <= stream_config.reassembly_depth) {
+        SCReturnInt(1);
     }
 
-    SCReturnInt(ret);
+    SCReturnInt(0);
 }
 
 int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
@@ -1414,7 +1414,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
 
     /* If we have reached the defined depth for either of the stream, then stop
        reassembling the TCP session */
-    if (StreamTcpReassembleCheckDepth(stream->reassembly_depth + p->payload_len) != 1)
+    if (StreamTcpReassembleCheckDepth(stream, p->payload_len) != 1)
     {
         ssn->server.flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY;
         ssn->client.flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY;
@@ -1430,7 +1430,6 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     memcpy(seg->payload, p->payload, p->payload_len);
     seg->payload_len = p->payload_len;
     seg->seq = TCP_GET_SEQ(p);
-    stream->reassembly_depth += p->payload_len;
 
     if (ReassembleInsertSegment(tv, ra_ctx, stream, seg, p) != 0) {
         SCLogDebug("ReassembleInsertSegment failed");
@@ -4081,12 +4080,12 @@ static int StreamTcpReassembleTest19(void) {
     StreamTcpInitConfig(TRUE);
     if (StreamTcpTestStartsAfterListSegment(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
-	StreamTcpFreeConfig(TRUE);
+        StreamTcpFreeConfig(TRUE);
         return 0;
     }
     if (StreamTcpCheckStreamContents(stream_after_solaris, sizeof(stream_after_solaris), &stream) == 0) {
         printf("failed in stream matching!!\n");
-	StreamTcpFreeConfig(TRUE);
+        StreamTcpFreeConfig(TRUE);
         return 0;
     }
     StreamTcpFreeConfig(TRUE);
@@ -4108,12 +4107,12 @@ static int StreamTcpReassembleTest20(void) {
     StreamTcpInitConfig(TRUE);
     if (StreamTcpReassembleStreamTest(&stream) == 0) {
         printf("failed in segments reassembly!!\n");
-	StreamTcpFreeConfig(TRUE);
+        StreamTcpFreeConfig(TRUE);
         return 0;
     }
     if (StreamTcpCheckStreamContents(stream_solaris, sizeof(stream_solaris), &stream) == 0) {
         printf("failed in stream matching!!\n");
-	StreamTcpFreeConfig(TRUE);
+        StreamTcpFreeConfig(TRUE);
         return 0;
     }
     StreamTcpFreeConfig(TRUE);
@@ -6678,9 +6677,11 @@ static int StreamTcpReassembleTest45 (void) {
     ssn.server.ra_raw_base_seq = 9;
     ssn.server.isn = 9;
     ssn.server.last_ack = 60;
+    ssn.server.next_seq = ssn.server.isn;
     ssn.client.ra_raw_base_seq = 9;
     ssn.client.isn = 9;
     ssn.client.last_ack = 60;
+    ssn.client.next_seq = ssn.client.isn;
     f.alproto = ALPROTO_UNKNOWN;
 
     inet_pton(AF_INET, "1.2.3.4", &in);
@@ -6709,9 +6710,9 @@ static int StreamTcpReassembleTest45 (void) {
     p->payload = httpbuf1;
     p->payload_len = httplen1;
     ssn.state = TCP_ESTABLISHED;
+
     /* set the default value of reassembly depth, as there is no config file */
-    stream_config.reassembly_depth = 1048576;
-    ssn.server.reassembly_depth = 1048530;
+    stream_config.reassembly_depth = httplen1 + 1;
 
     TcpStream *s = NULL;
     s = &ssn.server;
@@ -6727,6 +6728,7 @@ static int StreamTcpReassembleTest45 (void) {
         printf("there shouldn't be any no reassembly flag be set \n");
         goto end;
     }
+    ssn.server.next_seq += httplen1;
 
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = httplen1;
@@ -6743,6 +6745,7 @@ static int StreamTcpReassembleTest45 (void) {
         printf("there shouldn't be any no reassembly flag be set \n");
         goto end;
     }
+    ssn.client.next_seq += httplen1;
 
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = httplen1;
@@ -6756,9 +6759,9 @@ static int StreamTcpReassembleTest45 (void) {
     /* Check if we have flags set or not */
     if (!(ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ||
         !(ssn.server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
-        printf("the no_reassembly flags should be set, server.reassembly_depth "
-                "%"PRIu32" and p.payload_len %"PRIu16" stream_config.reassembly_"
-                "depth %"PRIu32"\n", ssn.server.reassembly_depth, p->payload_len,
+        printf("the no_reassembly flags should be set, "
+                "p.payload_len %"PRIu16" stream_config.reassembly_"
+                "depth %"PRIu32"\n", p->payload_len,
                 stream_config.reassembly_depth);
         goto end;
     }
@@ -6815,9 +6818,11 @@ static int StreamTcpReassembleTest46 (void) {
     ssn.server.ra_raw_base_seq = ssn.server.ra_app_base_seq = 9;
     ssn.server.isn = 9;
     ssn.server.last_ack = 60;
+    ssn.server.next_seq = ssn.server.isn;
     ssn.client.ra_raw_base_seq = ssn.client.ra_app_base_seq = 9;
     ssn.client.isn = 9;
     ssn.client.last_ack = 60;
+    ssn.client.next_seq = ssn.client.isn;
     f.alproto = ALPROTO_UNKNOWN;
 
     inet_pton(AF_INET, "1.2.3.4", &in);
@@ -6847,7 +6852,6 @@ static int StreamTcpReassembleTest46 (void) {
     p->payload_len = httplen1;
     ssn.state = TCP_ESTABLISHED;
 
-    ssn.server.reassembly_depth = 1048530;
     stream_config.reassembly_depth = 0;
 
     TcpStream *s = NULL;
@@ -6864,6 +6868,7 @@ static int StreamTcpReassembleTest46 (void) {
         printf("there shouldn't be any no reassembly flag be set \n");
         goto end;
     }
+    ssn.server.next_seq += httplen1;
 
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = httplen1;
@@ -6880,6 +6885,7 @@ static int StreamTcpReassembleTest46 (void) {
         printf("there shouldn't be any no reassembly flag be set \n");
         goto end;
     }
+    ssn.client.next_seq += httplen1;
 
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = httplen1;
@@ -6893,9 +6899,9 @@ static int StreamTcpReassembleTest46 (void) {
     /* Check if we have flags set or not */
     if ((ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ||
         (ssn.server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
-        printf("the no_reassembly flags should not be set, server.reassembly_depth "
-                "%"PRIu32" and p->payload_len %"PRIu16" stream_config.reassembly_"
-                "depth %"PRIu32": ", ssn.server.reassembly_depth, p->payload_len,
+        printf("the no_reassembly flags should not be set, "
+                "p->payload_len %"PRIu16" stream_config.reassembly_"
+                "depth %"PRIu32": ", p->payload_len,
                 stream_config.reassembly_depth);
         goto end;
     }
