@@ -27,8 +27,8 @@
 #include "decode.h"
 typedef struct TcpSegment_ {
     uint8_t *payload;
-    uint16_t payload_len; /* actual size of the payload */
-    uint16_t pool_size; /* size of the memory */
+    uint16_t payload_len;       /**< actual size of the payload */
+    uint16_t pool_size;         /**< size of the memory */
     uint32_t seq;
     struct TcpSegment_ *next;
     struct TcpSegment_ *prev;
