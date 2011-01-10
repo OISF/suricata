@@ -3289,9 +3289,9 @@ int SCCudaModuleGetGlobal(CUdeviceptr *dptr, unsigned int *bytes, CUmodule hmod,
 {
     CUresult result = 0;
 
-    if (dptr == NULL || bytes == NULL || name == NULL) {
+    if (name == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENTS, "Invalid argument supplied.  "
-                   "dptr is NULL or bytes is NULL or name is NULL");
+                   "name is NULL");
         goto error;
     }
 
