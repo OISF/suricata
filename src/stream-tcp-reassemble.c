@@ -1387,6 +1387,9 @@ static int HandleSegmentStartsAfterListSegment(ThreadVars *tv, TcpReassemblyThre
  * \brief Function to Check the reassembly depth valuer against the
  *        allowed max depth of the stream reassmbly for TCP streams.
  *
+ * \todo maybe we can make an exception for packets that are retransmissions
+ *       so they are between isn and next_seq
+ *
  * \param stream stream direction
  * \param size size of the segment that is added
  *
