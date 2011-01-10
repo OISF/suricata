@@ -104,7 +104,7 @@ void StreamTcpSetOSPolicy(TcpStream*, Packet*);
 void StreamTcpPseudoPacketCreateStreamEndPacket(Packet *, TcpSession *, PacketQueue *);
 
 static int StreamTcpHandleTimestamp(TcpSession * , Packet *);
-static int ValidReset(TcpSession * , Packet *);
+static int StreamTcpValidateRst(TcpSession * , Packet *);
 static inline int StreamTcpValidateAck(TcpStream *, Packet *);
 
 static Pool *ssn_pool = NULL;
@@ -1219,7 +1219,7 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
         case TH_RST|TH_ACK:
         case TH_RST|TH_ACK|TH_ECN:
         case TH_RST|TH_ACK|TH_ECN|TH_CWR:
-            if (ValidReset(ssn, p)) {
+            if (StreamTcpValidateRst(ssn, p)) {
                 if (PKT_IS_TOSERVER(p)) {
                     if (SEQ_EQ(TCP_GET_SEQ(p), ssn->client.isn) &&
                             SEQ_EQ(TCP_GET_WINDOW(p), 0) &&
@@ -1496,7 +1496,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
         case TH_RST|TH_ACK|TH_ECN:
         case TH_RST|TH_ACK|TH_ECN|TH_CWR:
 
-            if(ValidReset(ssn, p)) {
+            if(StreamTcpValidateRst(ssn, p)) {
                 uint8_t reset = TRUE;
                 /* After receiveing the RST in SYN_RECV state and if detection
                    evasion flags has been set, then the following operating
@@ -1939,7 +1939,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
         case TH_RST|TH_ACK|TH_ECN:
         case TH_RST|TH_ACK|TH_ECN|TH_CWR:
 
-            if (ValidReset(ssn, p)) {
+            if (StreamTcpValidateRst(ssn, p)) {
                 /* force both streams to reassemble, if necessary */
                 StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
                 SCPerfCounterIncr(stt->counter_tcp_pseudo, tv->sc_perf_pca);
@@ -1986,7 +1986,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
                     StreamTcpSessionPktFree(p);
                 }
             } else {
-                /* invalid RST, error is given in ValidReset() */
+                /* invalid RST, error is given in StreamTcpValidateRst() */
                 return -1;
             }
             break;
@@ -2332,7 +2332,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
         case TH_RST|TH_ACK|TH_ECN:
         case TH_RST|TH_ACK|TH_ECN|TH_CWR:
 
-            if (ValidReset(ssn, p)) {
+            if (StreamTcpValidateRst(ssn, p)) {
                 /* force both streams to reassemble, if necessary */
                 StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
                 SCPerfCounterIncr(stt->counter_tcp_pseudo, tv->sc_perf_pca);
@@ -2466,7 +2466,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
         case TH_RST|TH_ACK|TH_ECN:
         case TH_RST|TH_ACK|TH_ECN|TH_CWR:
 
-            if (ValidReset(ssn, p)) {
+            if (StreamTcpValidateRst(ssn, p)) {
                 /* force both streams to reassemble, if necessary */
                 StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
                 SCPerfCounterIncr(stt->counter_tcp_pseudo, tv->sc_perf_pca);
@@ -3382,7 +3382,7 @@ void StreamTcpExitPrintStats(ThreadVars *tv, void *data)
  *  \param   p      Packet which has to be checked for its validity
  */
 
-static int ValidReset(TcpSession *ssn, Packet *p)
+static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
 {
 
     uint8_t os_policy;
