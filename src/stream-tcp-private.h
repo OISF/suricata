@@ -59,8 +59,6 @@ typedef struct TcpStream_ {
     uint8_t os_policy; /**< target based OS policy used for reassembly and handling packets*/
     uint16_t flags;      /**< Flag specific to the stream e.g. Timestamp */
     TcpSegment *seg_list_tail;  /**< Last segment in the reassembled stream seg list*/
-    uint32_t pseudo_ra_base_seq;    /**< Base sequence until when we have
-                                         reassembled the psuedo packet */
 } TcpStream;
 
 /* from /usr/include/netinet/tcp.h */
@@ -152,7 +150,6 @@ enum
         (stream)->ra_raw_base_seq = (seq); \
         (stream)->ra_app_base_seq = (seq); \
         (stream)->tmp_ra_app_base_seq = (seq); \
-        (stream)->pseudo_ra_base_seq = (seq); \
     } while(0); \
 }
 

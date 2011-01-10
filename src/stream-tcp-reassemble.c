@@ -2535,234 +2535,6 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
 }
 
 /**
- * \brief   Function to copy the reassembled stream segments in to the pseudo
- *          packet payload.
- *
- * @param stream    pointer to the stream of which segments are to be copied
- * @param p         pointer to the original received packet
- * @param pq        pointer to the packet queue where pseudo packet will be
- *                  enqueued
- */
-void StreamTcpReassemblePseudoPacketCreate(TcpStream *stream, Packet *p,
-                                            PacketQueue *pq)
-{
-    SCEnter();
-    if (stream->seg_list == NULL) {
-        SCLogDebug("there is no segments in the stream, so return");
-        SCReturn;
-    }
-
-    Packet *np = StreamTcpPseudoSetup(p, p->pkt, p->pktlen);
-    if (np == NULL) {
-        SCLogDebug("The packet received from packet allocation is NULL");
-        SCReturn;
-    }
-
-    /* Setup the IP and TCP headers */
-    StreamTcpPseudoPacketSetupHeader(np,p);
-
-    /* Start the reassembling of received reassembled segments in to the
-       pseudo packet to scan and detect the unwanted attacks. Resistance is
-       FUTILE ;) */
-    uint16_t pseudo_offset = 0;
-    uint16_t payload_offset = 0;
-    uint16_t payload_len = 0;
-    TcpSegment *seg = stream->seg_list;
-    uint32_t next_seq = stream->pseudo_ra_base_seq + 1;
-
-    /* loop through the segments and fill one or more msgs */
-    for (; seg != NULL && SEQ_LT(seg->seq, stream->last_ack);) {
-        SCLogDebug("seg %p", seg);
-
-        /* If packets are fully before ra_base_seq, skip them. We do this
-         * because we've reassembled up to the ra_base_seq point already,
-         * so we won't do anything with segments before it anyway. */
-        SCLogDebug("checking for pre pseudo_ra_base_seq %"PRIu32" seg %p seq %"PRIu32""
-                   " len %"PRIu16", combined %"PRIu32" and stream->last_ack "
-                   "%"PRIu32"", stream->pseudo_ra_base_seq, seg, seg->seq,
-                    seg->payload_len, seg->seq+seg->payload_len, stream->last_ack);
-
-        if (SEQ_LEQ((seg->seq + seg->payload_len), (stream->pseudo_ra_base_seq+1)) ||
-                SEQ_LEQ(stream->last_ack, (stream->pseudo_ra_base_seq +
-                                            (stream->pseudo_ra_base_seq - seg->seq))))
-        {
-            SCLogDebug("continue to next segment, as pre ra_base_seq %"PRIu32""
-                    " seg %p seq %"PRIu32" len %"PRIu16"", stream->pseudo_ra_base_seq, seg,
-                    seg->seq, seg->payload_len);
-            seg = seg->next;
-            continue;
-        }
-
-        /* we've run into a sequence gap */
-        if (SEQ_GT(seg->seq, next_seq)) {
-            SCLogDebug("expected next_seq %" PRIu32 ", got %" PRIu32 " , "
-                       "stream->last_ack %" PRIu32 ".", next_seq, seg->seq,
-                    stream->last_ack);
-            next_seq = seg->seq;
-            /* We have missed the packet and end host has ack'd it, so
-             * IDS should advance it's ra_base_seq and should not consider this
-             * packet any longer, even if it is retransmitted, as end host will
-             * drop it anyway */
-            stream->pseudo_ra_base_seq = seg->seq - 1;
-            /* As we have a gap in the next payload, so if we have some data in
-               the current pseudo packet then fetch another packet, under new
-               packet as the parent */
-            if (np->payload_len > 0) {
-                /* Set the correct payload length in the IP header */
-                if (PKT_IS_IPV4(np)) {
-                    np->ip4h->ip_len = (IPV4_GET_HLEN(np)) + (TCP_GET_HLEN(np)) +
-                            np->payload_len;
-                } else if (PKT_IS_IPV6(np)) {
-                    np->ip6h->s_ip6_plen = (TCP_GET_HLEN(np)) + np->payload_len;
-                }
-                PacketEnqueue(pq, np);
-                Packet *gap = StreamTcpPseudoSetup(p, p->pkt, p->pktlen);
-                if (gap == NULL) {
-                    SCLogDebug("The packet received from packet allocation is NULL");
-                    SCReturn;
-                }
-                np = gap;
-                StreamTcpPseudoPacketSetupHeader(np,p);
-            }
-        }
-
-        /* if the segment ends beyond ra_base_seq we need to consider it */
-        if (SEQ_GT((seg->seq + seg->payload_len), stream->pseudo_ra_base_seq)) {
-            SCLogDebug("seg->seq %" PRIu32 ", seg->payload_len %" PRIu32 ", "
-                       "stream->pseudo_ra_base_seq %" PRIu32 "", seg->seq,
-                       seg->payload_len, stream->pseudo_ra_base_seq);
-
-            /* handle segments partly before ra_base_seq */
-            if (SEQ_GT(stream->pseudo_ra_base_seq, seg->seq)) {
-                payload_offset = stream->pseudo_ra_base_seq - seg->seq;
-
-                if (SEQ_LT(stream->last_ack, (seg->seq + seg->payload_len))) {
-
-                    if (SEQ_LT(stream->last_ack, stream->pseudo_ra_base_seq)) {
-                        payload_len = (stream->last_ack - seg->seq);
-                    } else {
-                        payload_len = (stream->last_ack - seg->seq) -
-                                                                payload_offset;
-                    }
-                } else {
-                    payload_len = seg->payload_len - payload_offset;
-                }
-
-                if (SCLogDebugEnabled()) {
-                    BUG_ON(payload_offset > seg->payload_len);
-                    BUG_ON((payload_len + payload_offset) > seg->payload_len);
-                }
-            } else {
-                payload_offset = 0;
-
-                if (SEQ_LT(stream->last_ack, (seg->seq + seg->payload_len))) {
-                    payload_len = stream->last_ack - seg->seq;
-                } else {
-                    payload_len = seg->payload_len;
-                }
-            }
-            SCLogDebug("payload_offset is %"PRIu16", payload_len is %"PRIu16""
-                       " and stream->last_ack is %"PRIu32"", payload_offset,
-                        payload_len, stream->last_ack);
-            /* copy the data into the pseudo packet payload */
-            uint16_t copy_size = PSEUDO_PACKET_PAYLOAD_SIZE - np->payload_len - pseudo_offset;
-            if (copy_size > payload_len) {
-                copy_size = payload_len;
-            }
-
-            if (SCLogDebugEnabled()) {
-                BUG_ON(copy_size > PSEUDO_PACKET_PAYLOAD_SIZE);
-            }
-            SCLogDebug("copy_size is %"PRIu16"", copy_size);
-
-            memcpy(np->payload + pseudo_offset, seg->payload + payload_offset,
-                    copy_size);
-            pseudo_offset += copy_size;
-            stream->pseudo_ra_base_seq += copy_size;
-            SCLogDebug("stream->pseudo_ra_base_seq %"PRIu32"", stream->pseudo_ra_base_seq);
-
-            np->payload_len += copy_size;
-
-            if (np->payload_len == PSEUDO_PACKET_PAYLOAD_SIZE) {
-                /* Set the correct payload length in the IP header */
-                if (PKT_IS_IPV4(np)) {
-                    np->ip4h->ip_len = (IPV4_GET_HLEN(np)) + (TCP_GET_HLEN(np)) +
-                            np->payload_len;
-                } else if (PKT_IS_IPV6(np)) {
-                    np->ip6h->s_ip6_plen = (TCP_GET_HLEN(np)) + np->payload_len;
-                }
-                PacketEnqueue(pq, np);
-                Packet *newp = StreamTcpPseudoSetup(p, p->pkt, p->pktlen);
-                if (newp == NULL) {
-                    SCLogDebug("The packet received from Allocation queue is NULL");
-                    SCReturn;
-                }
-                np = newp;
-                StreamTcpPseudoPacketSetupHeader(np,p);
-            }
-
-            /* if the payload len is bigger than what we copied, we handle the
-             * rest of the payload next... */
-            if (copy_size < payload_len) {
-                SCLogDebug("copy_size %" PRIu32 " < %" PRIu32 "", copy_size,
-                            payload_len);
-
-                payload_offset += copy_size;
-                payload_len -= copy_size;
-                SCLogDebug("payload_offset is %"PRIu16", seg->payload_len is "
-                           "%"PRIu16" and stream->last_ack is %"PRIu32"",
-                            payload_offset, seg->payload_len, stream->last_ack);
-                if (SCLogDebugEnabled()) {
-                    BUG_ON(payload_offset > seg->payload_len);
-                }
-
-                copy_size = PSEUDO_PACKET_PAYLOAD_SIZE - np->payload_len - pseudo_offset;
-                if (copy_size > (seg->payload_len - payload_offset)) {
-                    copy_size = (seg->payload_len - payload_offset);
-                }
-
-                if (SCLogDebugEnabled()) {
-                    BUG_ON(copy_size > PSEUDO_PACKET_PAYLOAD_SIZE);
-                }
-                SCLogDebug("copy_size is %"PRIu16"", copy_size);
-
-                memcpy(np->payload + pseudo_offset, seg->payload + payload_offset,
-                        copy_size);
-                pseudo_offset += copy_size;
-                stream->pseudo_ra_base_seq += copy_size;
-                SCLogDebug("stream->pseudo_ra_base_seq %"PRIu32"", stream->pseudo_ra_base_seq);
-
-                np->payload_len += copy_size;
-                SCLogDebug("copied payload_offset %" PRIu32 ", "
-                           "pseudo_offset %" PRIu32 ", copy_size %" PRIu32 "",
-                           payload_offset, pseudo_offset, copy_size);
-            } else {
-                payload_offset = 0;
-            }
-        }
-
-        /* done with this segment, switch to the next if any */
-        next_seq = seg->seq + seg->payload_len;
-        seg = seg->next;
-    }
-
-    /* XXX VJ can you check how to set the TCP header length properly. As in IPv4
-     * case, after running the following if the contents are changing in the unit
-     * test */
-    //PrintRawDataFp(stdout, np->payload, np->payload_len);
-    /* Set the correct payload length in the IP header */
-    if (PKT_IS_IPV4(np)) {
-        np->ip4h->ip_len = (IPV4_GET_HLEN(np)) + (TCP_GET_HLEN(np)) +
-                np->payload_len;
-    } else if (PKT_IS_IPV6(np)) {
-        np->ip6h->s_ip6_plen = (TCP_GET_HLEN(np)) + np->payload_len;
-    }
-    //PrintRawDataFp(stdout, np->payload, np->payload_len);
-    PacketEnqueue(pq, np);
-    SCReturn;
-}
-
-/**
  *  \brief  Function to replace the data from a specific point up to given length.
  *
  *  \param  dst_seg     Destination segment to replace the data
@@ -4518,7 +4290,6 @@ static int StreamTcpReassembleTest28 (void) {
 
     ssn.server.last_ack = 22;
     ssn.server.ra_raw_base_seq = ssn.server.ra_app_base_seq = 6;
-    ssn.server.pseudo_ra_base_seq = 6;
     ssn.server.isn = 6;
 
     StreamTcpCreateTestPacket(payload, 0x41, 2, 4); /*AA*/
@@ -4526,7 +4297,6 @@ static int StreamTcpReassembleTest28 (void) {
     ack = 20;
     if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 2, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
         printf("failed in segments reassembly (1): ");
-abort();
         goto end;
     }
 
@@ -4536,7 +4306,6 @@ abort();
     ack = 12;
     if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 0, th_flags, flowflags, TCP_ESTABLISHED) == -1) {
         printf("failed in segments reassembly (2): ");
-abort();
         goto end;
     }
 
@@ -4552,7 +4321,6 @@ abort();
     ack = 20;
     if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 3, th_flag, flowflags, TCP_ESTABLISHED) == -1) {
         printf("failed in segments reassembly (4): ");
-abort();
         goto end;
     }
 
@@ -4562,13 +4330,11 @@ abort();
     ack = 15;
     if (StreamTcpTestMissedPacket (ra_ctx, &ssn, seq, ack, payload, 0, th_flags, flowflags, TCP_TIME_WAIT) == -1) {
         printf("failed in segments reassembly (5): ");
-abort();
         goto end;
     }
 
     if (StreamTcpCheckQueue(check_contents, q, 1) == 0) {
         printf("failed in stream matching (6): ");
-abort();
         goto end;
     }
 
@@ -4692,7 +4458,6 @@ static int StreamTcpReassembleTest30 (void) {
 
     ssn.server.last_ack = 22;
     ssn.server.ra_raw_base_seq = ssn.server.ra_app_base_seq = 9;
-    ssn.server.pseudo_ra_base_seq = 9;
     ssn.server.isn = 9;
 
     StreamTcpInitConfig(TRUE);
@@ -7042,240 +6807,6 @@ end:
     SCFree(p);
     return ret;
 }
-#if 0
-/**
- *  \test   Test to make sure we setup the ipv4 pseudo packet properly
- *
- *  \retval On success it returns 1 and on failure 0.
- */
-
-static int StreamTcpReassembleTest48 (void) {
-    int ret = 0;
-    Flow f;
-    TcpSession ssn;
-    char srcip[] = "1.2.3.4";
-    char dstip[] = "1.2.3.5";
-
-    PacketQueue pq;
-    memset(&pq,0,sizeof(PacketQueue));
-    memset(&f, 0, sizeof (Flow));
-    memset(&ssn, 0, sizeof(TcpSession));
-    ThreadVars tv;
-    memset(&tv, 0, sizeof (ThreadVars));
-
-    FLOW_INITIALIZE(&f);
-    StreamTcpInitConfig(TRUE);
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    AppLayerDetectProtoThreadInit();
-
-    uint8_t httpbuf1[] = "GET /EVILSTUFF HTTP/1.1\r\n\r\n";
-    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
-
-    Packet *p = UTHBuildPacketReal(httpbuf1, httplen1, IPPROTO_TCP, srcip,
-                                    dstip, 80, 2345);
-    STREAMTCP_SET_RA_BASE_SEQ(&ssn.server, 572799781UL);
-    ssn.server.isn = 572799781UL;
-    ssn.server.last_ack = 572799782UL;
-    STREAMTCP_SET_RA_BASE_SEQ(&ssn.client, 4294967289UL);
-    ssn.client.isn = 4294967289UL;
-    ssn.client.last_ack = 21;
-    f.alproto = ALPROTO_UNKNOWN;
-
-    SET_IPV4_SRC_ADDR(p,&f.src);
-    SET_IPV4_DST_ADDR(p,&f.dst);
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
-    f.sp = p->sp;
-    f.dp = p->dp;
-    f.protoctx = &ssn;
-    p->flow = &f;
-    p->tcph->th_win = htons(5480);
-    ssn.state = TCP_ESTABLISHED;
-    TcpStream *s = NULL;
-    uint8_t cnt = 0;
-
-    p->tcph->th_seq = htonl(ssn.client.isn + 1 + cnt);
-    p->tcph->th_ack = htonl(572799782UL);
-    p->tcph->th_flags = TH_ACK|TH_PUSH;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    s = &ssn.client;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver "
-                "packet\n");
-        goto end;
-    }
-
-    p->flowflags = FLOW_PKT_TOCLIENT;
-    p->payload = NULL;
-    p->payload_len = 0;
-    p->tcph->th_seq = htonl(572799782UL);
-    p->tcph->th_ack = htonl(ssn.client.isn + 1 + cnt);
-    p->tcph->th_flags = TH_RST|TH_ACK;
-    s = &ssn.server;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver "
-                "packet\n");
-        goto end;
-    }
-
-    /* Process stream smsgs we may have in queue */
-    if (StreamTcpReassembleProcessAppLayer(ra_ctx) < 0) {
-        printf("failed in processing stream smsgs\n");
-        goto end;
-    }
-
-    if (f.alproto != ALPROTO_HTTP) {
-        printf("App layer protocol (HTTP) should have been detected\n");
-        goto end;
-    }
-
-    Packet *pp = PacketDequeue(&pq);
-    if (pp == NULL) {
-        printf("pp == NULL: ");
-        goto end;
-    }
-
-    char srcip1[16], dstip1[16];
-    inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(pp), srcip1, sizeof(srcip1));
-    inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(pp), dstip1, sizeof(dstip1));
-    if ((strcmp(srcip1, dstip) != 0) || (strcmp(dstip1, srcip) != 0)) {
-        printf("failed in setting ip address properly srcip1 %s dstip1 %s srcip %s dstip %s\n",
-                srcip1, dstip1, srcip, dstip);
-        goto end;
-    }
-
-    if (memcmp(httpbuf1, pp->payload, pp->payload_len) != 0) {
-        PrintRawDataFp(stdout, pp->payload, pp->payload_len);
-        PrintRawDataFp(stdout, httpbuf1, pp->payload_len);
-        goto end;
-    }
-
-    ret = 1;
-end:
-    StreamTcpFreeConfig(TRUE);
-    StreamTcpReassembleFreeThreadCtx(ra_ctx);
-    return ret;
-}
-
-/**
- *  \test   Test to make sure we setup the ipv6 pseudo packet properly
- *
- *  \retval On success it returns 1 and on failure 0.
- */
-
-static int StreamTcpReassembleTest49 (void) {
-    int ret = 0;
-    Flow f;
-    TcpSession ssn;
-    char srcip[] = "::1";
-    char dstip[] = "::1";
-
-    PacketQueue pq;
-    memset(&pq,0,sizeof(PacketQueue));
-    memset(&f, 0, sizeof (Flow));
-    memset(&ssn, 0, sizeof(TcpSession));
-    ThreadVars tv;
-
-    memset(&tv, 0, sizeof (ThreadVars));
-
-    FLOW_INITIALIZE(&f);
-    StreamTcpInitConfig(TRUE);
-    TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    AppLayerDetectProtoThreadInit();
-
-    uint8_t httpbuf1[] = "GET /EVILSTUFF HTTP/1.1\r\n\r\n";
-    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
-
-    Packet *p = UTHBuildPacketIPV6Real(httpbuf1, httplen1, IPPROTO_TCP, srcip,
-                                    dstip, 80, 2345);
-
-    STREAMTCP_SET_RA_BASE_SEQ(&ssn.server, 572799781UL);
-    ssn.server.isn = 572799781UL;
-    ssn.server.last_ack = 572799782UL;
-    STREAMTCP_SET_RA_BASE_SEQ(&ssn.client, 4294967289UL);
-    ssn.client.isn = 4294967289UL;
-    ssn.client.last_ack = 21;
-    f.alproto = ALPROTO_UNKNOWN;
-
-    SET_IPV6_SRC_ADDR(p,&f.src);
-    SET_IPV6_DST_ADDR(p,&f.dst);
-    f.src.family = AF_INET6;
-    f.dst.family = AF_INET6;
-    f.sp = p->sp;
-    f.dp = p->dp;
-    f.protoctx = &ssn;
-    p->flow = &f;
-    p->tcph->th_win = htons(5480);
-    ssn.state = TCP_ESTABLISHED;
-    TcpStream *s = NULL;
-    uint8_t cnt = 0;
-
-    p->tcph->th_seq = htonl(ssn.client.isn + 1 + cnt);
-    p->tcph->th_ack = htonl(572799782UL);
-    p->tcph->th_flags = TH_ACK|TH_PUSH;
-    p->flowflags = FLOW_PKT_TOSERVER;
-    s = &ssn.client;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver "
-                "packet\n");
-        goto end;
-    }
-
-    p->flowflags = FLOW_PKT_TOCLIENT;
-    p->payload = NULL;
-    p->payload_len = 0;
-    p->tcph->th_seq = htonl(572799782UL);
-    p->tcph->th_ack = htonl(ssn.client.isn + 1 + cnt);
-    p->tcph->th_flags = TH_ACK;
-    s = &ssn.server;
-
-    if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver "
-                "packet\n");
-        goto end;
-    }
-
-    /* Process stream smsgs we may have in queue */
-    if (StreamTcpReassembleProcessAppLayer(ra_ctx) < 0) {
-        printf("failed in processing stream smsgs\n");
-        goto end;
-    }
-
-    if (f.alproto != ALPROTO_HTTP) {
-        printf("App layer protocol (HTTP) should have been detected\n");
-        goto end;
-    }
-
-    Packet *pp = PacketDequeue(&pq);
-    if (pp == NULL) {
-        printf("pp == NULL: ");
-        goto end;
-    }
-    char srcip1[46], dstip1[46];
-    inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(pp), srcip1, sizeof(srcip1));
-    inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(pp), dstip1, sizeof(dstip1));
-    if ((strcmp(srcip1, dstip) != 0) || (strcmp(dstip1, srcip) != 0)) {
-        printf("failed in setting ip address properly srcip1 %s dstip1 %s srcip %s dstip %s\n",
-                srcip1, dstip1, srcip, dstip);
-        goto end;
-    }
-
-    if (memcmp(httpbuf1, pp->payload, pp->payload_len) != 0) {
-        PrintRawDataFp(stdout, pp->payload, pp->payload_len);
-        PrintRawDataFp(stdout, httpbuf1, pp->payload_len);
-        goto end;
-    }
-
-    ret = 1;
-end:
-    StreamTcpFreeConfig(TRUE);
-    StreamTcpReassembleFreeThreadCtx(ra_ctx);
-    return ret;
-}
-#endif
 #endif /* UNITTESTS */
 
 /** \brief  The Function Register the Unit tests to test the reassembly engine
@@ -7331,8 +6862,6 @@ void StreamTcpReassembleRegisterTests(void) {
     UtRegisterTest("StreamTcpReassembleTest45 -- Depth Test", StreamTcpReassembleTest45, 1);
     UtRegisterTest("StreamTcpReassembleTest46 -- Depth Test", StreamTcpReassembleTest46, 1);
     UtRegisterTest("StreamTcpReassembleTest47 -- TCP Sequence Wraparound Test", StreamTcpReassembleTest47, 1);
-//    UtRegisterTest("StreamTcpReassembleTest48 -- Pseudo IPv4 Packet Test", StreamTcpReassembleTest48, 1);
-//    UtRegisterTest("StreamTcpReassembleTest49 -- Pseudo IPv6 Packet Test", StreamTcpReassembleTest49, 1);
 
     StreamTcpInlineRegisterTests();
 #endif /* UNITTESTS */
