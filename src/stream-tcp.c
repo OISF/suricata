@@ -3399,11 +3399,24 @@ static int ValidReset(TcpSession *ssn, Packet *p)
             StreamTcpSetOSPolicy(&ssn->server, p);
 
         os_policy = ssn->server.os_policy;
+
+        if (StreamTcpValidateAck(&ssn->server, p) == -1) {
+            SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
+            StreamTcpSetEvent(p, STREAM_RST_INVALID_ACK);
+            SCReturnInt(-1);
+        }
+
     } else {
         if (ssn->client.os_policy == 0)
             StreamTcpSetOSPolicy(&ssn->client, p);
 
         os_policy = ssn->client.os_policy;
+
+        if (StreamTcpValidateAck(&ssn->client, p) == -1) {
+            SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
+            StreamTcpSetEvent(p, STREAM_RST_INVALID_ACK);
+            SCReturnInt(-1);
+        }
     }
 
     switch (os_policy) {
