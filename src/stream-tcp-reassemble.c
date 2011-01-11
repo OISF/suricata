@@ -1519,9 +1519,9 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
         size = p->payload_len;
 #endif
 
-    TcpSegment *seg = StreamTcpGetSegment(tv, ra_ctx, p->payload_len);
+    TcpSegment *seg = StreamTcpGetSegment(tv, ra_ctx, size);
     if (seg == NULL) {
-        SCLogDebug("segment_pool[%"PRIu16"] is empty", segment_pool_idx[p->payload_len]);
+        SCLogDebug("segment_pool[%"PRIu16"] is empty", segment_pool_idx[size]);
 
         StreamTcpSetEvent(p, STREAM_REASSEMBLY_NO_SEGMENT);
         SCReturnInt(-1);
