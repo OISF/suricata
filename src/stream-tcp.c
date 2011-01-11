@@ -258,8 +258,6 @@ void StreamTcpSessionPktFree (Packet *p)
 {
     SCEnter();
 
-//    StreamMsg *smsg = NULL;
-
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
     if (ssn == NULL)
         SCReturn;
@@ -267,32 +265,6 @@ void StreamTcpSessionPktFree (Packet *p)
     StreamTcpReturnStreamSegments(&ssn->client);
     StreamTcpReturnStreamSegments(&ssn->server);
 
-    /* if we have (a) smsg(s), return to the pool */
-#if 0
-    smsg = ssn->toserver_smsg_head;
-    while(smsg != NULL) {
-        StreamMsg *smsg_next = smsg->next;
-        SCLogDebug("returning smsg %p to pool", smsg);
-        smsg->next = NULL;
-        smsg->prev = NULL;
-        smsg->flow = NULL;
-        StreamMsgReturnToPool(smsg);
-        smsg = smsg_next;
-    }
-    ssn->toserver_smsg_head = NULL;
-
-    smsg = ssn->toclient_smsg_head;
-    while(smsg != NULL) {
-        StreamMsg *smsg_next = smsg->next;
-        SCLogDebug("returning smsg %p to pool", smsg);
-        smsg->next = NULL;
-        smsg->prev = NULL;
-        smsg->flow = NULL;
-        StreamMsgReturnToPool(smsg);
-        smsg = smsg_next;
-    }
-    ssn->toclient_smsg_head = NULL;
-#endif
     SCReturn;
 }
 
@@ -411,7 +383,7 @@ void StreamTcpInitConfig(char quiet)
     }
 
     if ((ConfGetBool("stream.midstream", &stream_config.midstream)) == 0) {
-        stream_config.midstream = FALSE;/*In the final patch it will be FALSE*/
+        stream_config.midstream = FALSE;
     }
     if (!quiet) {
         SCLogInfo("stream \"midstream\" session pickups: %s", stream_config.midstream ? "enabled" : "disabled");
@@ -419,7 +391,7 @@ void StreamTcpInitConfig(char quiet)
 
     if ((ConfGetBool("stream.async_oneside", &stream_config.async_oneside)) == 0)
     {
-        stream_config.async_oneside = FALSE; /*In the final patch it will be FALSE*/
+        stream_config.async_oneside = FALSE;
     }
     if (!quiet) {
         SCLogInfo("stream \"async_oneside\": %s", stream_config.async_oneside ? "enabled" : "disabled");
@@ -483,14 +455,8 @@ void StreamTcpInitConfig(char quiet)
 
     StreamTcpReassembleInit(quiet);
 
-    /* set the default TCP timeout, free function and flow state function
+    /* set the default free function and flow state function
      * values. */
-    //FlowSetProtoTimeout(IPPROTO_TCP, STREAMTCP_NEW_TIMEOUT,
-    //                    STREAMTCP_EST_TIMEOUT, STREAMTCP_CLOSED_TIMEOUT);
-    //FlowSetProtoEmergencyTimeout(IPPROTO_TCP, STREAMTCP_EMERG_NEW_TIMEOUT,
-    //                             STREAMTCP_EMERG_EST_TIMEOUT,
-    //                             STREAMTCP_EMERG_CLOSED_TIMEOUT);
-
     FlowSetProtoFreeFunc(IPPROTO_TCP, StreamTcpSessionClear);
     FlowSetFlowStateFunc(IPPROTO_TCP, StreamTcpGetFlowState);
 }
@@ -679,8 +645,8 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             STREAMTCP_SET_RA_BASE_SEQ(&ssn->client, ssn->client.isn);
             ssn->client.next_seq = ssn->client.isn + 1;
 
-            /*Set the stream timestamp value, if packet has timestamp option
-             * enabled.*/
+            /* Set the stream timestamp value, if packet has timestamp option
+             * enabled. */
             if (p->tcpvars.ts != NULL) {
                 ssn->client.last_ts = TCP_GET_TSVAL(p);
                 SCLogDebug("ssn %p: p->tcpvars.ts %p, %02x", ssn, p->tcpvars.ts,
@@ -688,10 +654,10 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
 
                 if (ssn->client.last_ts == 0)
                     ssn->client.flags |= STREAMTCP_FLAG_ZERO_TIMESTAMP;
+
                 ssn->client.last_pkt_ts = p->ts.tv_sec;
                 ssn->client.flags |= STREAMTCP_FLAG_TIMESTAMP;
             }
-
 
             ssn->server.window = TCP_GET_WINDOW(p);
             if (p->tcpvars.ws != NULL) {
@@ -1877,9 +1843,9 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
         case TH_ACK|TH_PUSH|TH_ECN|TH_CWR:
         case TH_ACK|TH_PUSH|TH_URG:
             /* Urgent pointer size can be more than the payload size, as it tells
-               the future coming data from the sender will be handled urgently
-               untill data of size equal to urgent offset has been processed
-              (RFC 2147)*/
+             * the future coming data from the sender will be handled urgently
+             * until data of size equal to urgent offset has been processed
+             * (RFC 2147) */
 
             /* If the timestamp option is enabled for both the streams, then
              * validate the received packet timestamp value against the
@@ -2004,6 +1970,9 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
  *  \param  tv      Thread Variable containig  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Strean Thread module registered to handle the stream handling
+ *
+ *  \retval 0 success
+ *  \retval -1 something wrong with the packet
  */
 
 static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt,
@@ -2109,6 +2078,9 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt,
  *  \param  tv      Thread Variable containig  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Strean Thread module registered to handle the stream handling
+ *
+ *  \retval 0 success
+ *  \retval -1 something wrong with the packet
  */
 
 static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
