@@ -79,6 +79,8 @@ typedef struct TcpReassemblyThreadCtx_ {
     AlpProtoDetectThreadCtx dp_ctx;   /**< proto detection thread data */
     /** TCP segments which are not being reassembled due to memcap was reached */
     uint16_t counter_tcp_segment_memcap;
+    /** number of streams that stop reassembly because their depth is reached */
+    uint16_t counter_tcp_stream_depth;
 } TcpReassemblyThreadCtx;
 
 #define OS_POLICY_DEFAULT   OS_POLICY_BSD

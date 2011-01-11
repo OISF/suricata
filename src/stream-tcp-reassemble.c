@@ -446,6 +446,21 @@ void PrintList(TcpSegment *seg)
 }
 
 /**
+ *  \internal
+ *  \brief Get the active ra_base_seq, considering stream gaps
+ *
+ *  \retval seq the active ra_base_seq
+ */
+static inline uint32_t StreamTcpReassembleGetRaBaseSeq(TcpStream *stream)
+{
+    if (!(stream->flags & STREAMTCP_STREAM_FLAG_GAP)) {
+        SCReturnUInt(stream->ra_app_base_seq);
+    } else {
+        SCReturnUInt(stream->ra_raw_base_seq);
+    }
+}
+
+/**
  *  \brief  Function to handle the insertion newly arrived segment,
  *          The packet is handled based on its target OS.
  *
@@ -471,14 +486,11 @@ static int ReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ct
 
     /* before our ra_app_base_seq we don't insert it in our list,
      * or ra_raw_base_seq if in stream gap state */
-    if ((!(stream->flags & STREAMTCP_STREAM_FLAG_GAP) &&
-                SEQ_LEQ((TCP_GET_SEQ(p)+p->payload_len),(stream->ra_app_base_seq+1))) ||
-          (stream->flags & STREAMTCP_STREAM_FLAG_GAP &&
-                SEQ_LEQ((TCP_GET_SEQ(p)+p->payload_len),(stream->ra_raw_base_seq+1))))
+    if (SEQ_LEQ((TCP_GET_SEQ(p)+p->payload_len),(StreamTcpReassembleGetRaBaseSeq(stream)+1)))
     {
         SCLogDebug("not inserting: SEQ+payload %"PRIu32", last_ack %"PRIu32", "
-                "ra_app_base_seq %"PRIu32, (TCP_GET_SEQ(p)+p->payload_len),
-                stream->last_ack, stream->ra_app_base_seq);
+                "ra_(app|raw)_base_seq %"PRIu32, (TCP_GET_SEQ(p)+p->payload_len),
+                stream->last_ack, StreamTcpReassembleGetRaBaseSeq(stream));
         return_seg = TRUE;
         ret_value = -1;
         goto end;
@@ -1384,30 +1396,65 @@ static int HandleSegmentStartsAfterListSegment(ThreadVars *tv, TcpReassemblyThre
 }
 
 /**
- * \brief Function to Check the reassembly depth valuer against the
+ *  \internal
+ *  \brief Function to Check the reassembly depth valuer against the
  *        allowed max depth of the stream reassmbly for TCP streams.
  *
- * \todo maybe we can make an exception for packets that are retransmissions
- *       so they are between isn and next_seq
+ *  \param stream stream direction
+ *  \param seq sequence number where "size" starts
+ *  \param size size of the segment that is added
  *
- * \param stream stream direction
- * \param size size of the segment that is added
- *
- * \retval 1 if in bounds
- * \retval 0 if not in bounds
+ *  \retval size Part of the size that fits in the depth, 0 if none
  */
-int StreamTcpReassembleCheckDepth(TcpStream *stream, uint32_t size) {
+static uint32_t StreamTcpReassembleCheckDepth(TcpStream *stream,
+        uint32_t seq, uint32_t size)
+{
     SCEnter();
 
     /* if the configured depth value is 0, it means there is no limit on
        reassembly depth. Otherwise carry on my boy ;) */
     if (stream_config.reassembly_depth == 0) {
-        SCReturnInt(1);
-    } else if (((stream->next_seq - stream->isn) + size) <= stream_config.reassembly_depth) {
-        SCReturnInt(1);
+        SCReturnUInt(size);
     }
 
-    SCReturnInt(0);
+    /* if the final flag is set, we're not accepting anymore */
+    if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {
+        SCReturnUInt(0);
+    }
+
+    /* if the ra_base_seq has moved passed the depth window we stop
+     * checking and just reject the rest of the packets including
+     * retransmissions. Saves us the hassle of dealing with sequence
+     * wraps as well */
+    if (SEQ_GEQ((StreamTcpReassembleGetRaBaseSeq(stream)+1),(stream->isn + stream_config.reassembly_depth))) {
+        stream->flags |= STREAMTCP_STREAM_FLAG_DEPTH_REACHED;
+        SCReturnUInt(0);
+    }
+
+    SCLogDebug("full Depth not yet reached: %"PRIu32" <= %"PRIu32,
+            (StreamTcpReassembleGetRaBaseSeq(stream)+1),
+            (stream->isn + stream_config.reassembly_depth));
+
+    if (SEQ_GEQ(seq, stream->isn) && SEQ_LT(seq, (stream->isn + stream_config.reassembly_depth))) {
+        /* packet (partly?) fits the depth window */
+
+        if (SEQ_LEQ((seq + size),(stream->isn + stream_config.reassembly_depth))) {
+            /* complete fit */
+            SCReturnUInt(size);
+        } else {
+            /* partial fit, return only what fits */
+            uint32_t part = (stream->isn + stream_config.reassembly_depth) - seq;
+#if DEBUG
+            BUG_ON(part > size);
+#else
+            if (part > size)
+                part = size;
+#endif
+            SCReturnUInt(part);
+        }
+    }
+
+    SCReturnUInt(0);
 }
 
 int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
@@ -1417,12 +1464,28 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
 
     /* If we have reached the defined depth for either of the stream, then stop
        reassembling the TCP session */
-    if (StreamTcpReassembleCheckDepth(stream, p->payload_len) != 1)
-    {
-        ssn->server.flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY;
-        ssn->client.flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY;
+    uint32_t size = StreamTcpReassembleCheckDepth(stream, TCP_GET_SEQ(p), p->payload_len);
+    SCLogDebug("ssn %p: check depth returned %"PRIu32, ssn, size);
+
+    if (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) {
+        /* increment stream depth counter */
+        SCPerfCounterIncr(ra_ctx->counter_tcp_stream_depth, tv->sc_perf_pca);
+
+        stream->flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY;
+        SCLogDebug("ssn %p: reassembly depth reached, "
+                "STREAMTCP_STREAM_FLAG_NOREASSEMBLY set", ssn);
+    }
+    if (size == 0) {
+        SCLogDebug("ssn %p: depth reached, not reassembling", ssn);
         SCReturnInt(0);
     }
+
+#if DEBUG
+    BUG_ON(size > p->payload_len);
+#else
+    if (size > p->payload_len)
+        size = p->payload_len;
+#endif
 
     TcpSegment *seg = StreamTcpGetSegment(tv, ra_ctx, p->payload_len);
     if (seg == NULL) {
@@ -1430,8 +1493,8 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
         SCReturnInt(-1);
     }
 
-    memcpy(seg->payload, p->payload, p->payload_len);
-    seg->payload_len = p->payload_len;
+    memcpy(seg->payload, p->payload, size);
+    seg->payload_len = size;
     seg->seq = TCP_GET_SEQ(p);
 
     if (ReassembleInsertSegment(tv, ra_ctx, stream, seg, p) != 0) {
@@ -6442,14 +6505,12 @@ static int StreamTcpReassembleTest45 (void) {
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
 
-    ssn.server.ra_raw_base_seq = 9;
+    STREAMTCP_SET_RA_BASE_SEQ(&ssn.server, 9);
     ssn.server.isn = 9;
     ssn.server.last_ack = 60;
-    ssn.server.next_seq = ssn.server.isn;
-    ssn.client.ra_raw_base_seq = 9;
+    STREAMTCP_SET_RA_BASE_SEQ(&ssn.client, 9);
     ssn.client.isn = 9;
     ssn.client.last_ack = 60;
-    ssn.client.next_seq = ssn.client.isn;
     f.alproto = ALPROTO_UNKNOWN;
 
     inet_pton(AF_INET, "1.2.3.4", &in);
@@ -6486,50 +6547,47 @@ static int StreamTcpReassembleTest45 (void) {
     s = &ssn.server;
 
     if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toclient packet\n");
+        printf("failed in segments reassembly, while processing toclient packet: ");
         goto end;
     }
 
     /* Check if we have flags set or not */
-    if ((ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ||
-        (ssn.server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
-        printf("there shouldn't be any no reassembly flag be set \n");
+    if (s->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) {
+        printf("there shouldn't be a noreassembly flag be set: ");
         goto end;
     }
-    ssn.server.next_seq += httplen1;
+    STREAMTCP_SET_RA_BASE_SEQ(&ssn.server, ssn.server.isn + httplen1);
 
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = httplen1;
     s = &ssn.client;
 
     if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet\n");
+        printf("failed in segments reassembly, while processing toserver packet: ");
         goto end;
     }
 
     /* Check if we have flags set or not */
-    if ((ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ||
-        (ssn.server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
-        printf("there shouldn't be any no reassembly flag be set \n");
+    if (s->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) {
+        printf("there shouldn't be a noreassembly flag be set: ");
         goto end;
     }
-    ssn.client.next_seq += httplen1;
+    STREAMTCP_SET_RA_BASE_SEQ(&ssn.client, ssn.client.isn + httplen1);
 
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = httplen1;
     s = &ssn.server;
 
     if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
-        printf("failed in segments reassembly, while processing toserver packet\n");
+        printf("failed in segments reassembly, while processing toserver packet: ");
         goto end;
     }
 
     /* Check if we have flags set or not */
-    if (!(ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ||
-        !(ssn.server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
-        printf("the no_reassembly flags should be set, "
+    if (!(s->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
+        printf("the noreassembly flags should be set, "
                 "p.payload_len %"PRIu16" stream_config.reassembly_"
-                "depth %"PRIu32"\n", p->payload_len,
+                "depth %"PRIu32": ", p->payload_len,
                 stream_config.reassembly_depth);
         goto end;
     }
@@ -6583,11 +6641,11 @@ static int StreamTcpReassembleTest46 (void) {
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
 
-    ssn.server.ra_raw_base_seq = ssn.server.ra_app_base_seq = 9;
+    STREAMTCP_SET_RA_BASE_SEQ(&ssn.server, 9);
     ssn.server.isn = 9;
     ssn.server.last_ack = 60;
     ssn.server.next_seq = ssn.server.isn;
-    ssn.client.ra_raw_base_seq = ssn.client.ra_app_base_seq = 9;
+    STREAMTCP_SET_RA_BASE_SEQ(&ssn.client, 9);
     ssn.client.isn = 9;
     ssn.client.last_ack = 60;
     ssn.client.next_seq = ssn.client.isn;
@@ -6636,7 +6694,7 @@ static int StreamTcpReassembleTest46 (void) {
         printf("there shouldn't be any no reassembly flag be set \n");
         goto end;
     }
-    ssn.server.next_seq += httplen1;
+    STREAMTCP_SET_RA_BASE_SEQ(&ssn.server, ssn.server.isn + httplen1);
 
     p->flowflags = FLOW_PKT_TOSERVER;
     p->payload_len = httplen1;
@@ -6653,10 +6711,12 @@ static int StreamTcpReassembleTest46 (void) {
         printf("there shouldn't be any no reassembly flag be set \n");
         goto end;
     }
-    ssn.client.next_seq += httplen1;
+    STREAMTCP_SET_RA_BASE_SEQ(&ssn.client, ssn.client.isn + httplen1);
 
     p->flowflags = FLOW_PKT_TOCLIENT;
     p->payload_len = httplen1;
+    tcph.th_seq = htonl(10 + httplen1);
+    tcph.th_ack = htonl(20 + httplen1);
     s = &ssn.server;
 
     if (StreamTcpReassembleHandleSegment(&tv, ra_ctx, &ssn, s, p, &pq) == -1) {
