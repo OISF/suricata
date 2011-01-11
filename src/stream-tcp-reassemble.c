@@ -24,8 +24,7 @@
  * Reference:
  * Judy Novak, Steve Sturges: Target-Based TCP Stream Reassembly August, 2007
  *
- * \todo segment insert fasttrack: most pkts are in order
-*/
+ */
 
 #include <arpa/inet.h>
 
@@ -461,14 +460,17 @@ static inline uint32_t StreamTcpReassembleGetRaBaseSeq(TcpStream *stream)
 }
 
 /**
+ *  \internal
  *  \brief  Function to handle the insertion newly arrived segment,
  *          The packet is handled based on its target OS.
  *
  *  \param  stream  The given TCP stream to which this new segment belongs
  *  \param  seg     Newly arrived segment
  *  \param  p       received packet
- *  \retval 0       success
- *  \retval -1      error
+ *
+ *  \retval 0  success
+ *  \retval -1 error -- either we hit a memory issue (OOM/memcap) or we received
+ *             a segment before ra_base_seq.
  */
 
 static int ReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
@@ -479,7 +481,9 @@ static int ReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ct
     TcpSegment *list_seg = stream->seg_list;
     TcpSegment *next_list_seg = NULL;
 
+#if DEBUG
     PrintList(stream->seg_list);
+#endif
 
     int ret_value = 0;
     char return_seg = FALSE;
@@ -493,6 +497,8 @@ static int ReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ct
                 stream->last_ack, StreamTcpReassembleGetRaBaseSeq(stream));
         return_seg = TRUE;
         ret_value = -1;
+
+        StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEGMENT_BEFORE_BASE_SEQ);
         goto end;
     }
 
@@ -500,6 +506,7 @@ static int ReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ct
             "ra_app_base_seq %"PRIu32, (TCP_GET_SEQ(p)+p->payload_len),
             stream->last_ack, stream->ra_app_base_seq);
 
+    /* fast track */
     if (list_seg == NULL) {
         SCLogDebug("empty list, inserting seg %p seq %" PRIu32 ", "
                    "len %" PRIu32 "", seg, seg->seq, seg->payload_len);
@@ -639,9 +646,9 @@ end:
  *  \param prev_seg Previous segment in the stream segment list
  *  \param p        Packet
  *
- *  \retval 1           done
- *  \retval 0           not done yet
- *  \retval -1          error
+ *  \retval 1 success and done
+ *  \retval 0 success, but not done yet
+ *  \retval -1 error, will *only* happen on memory errors
  */
 
 static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
@@ -729,6 +736,8 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
             TcpSegment *new_seg = StreamTcpGetSegment(tv, ra_ctx, packet_length);
             if (new_seg == NULL) {
                 SCLogDebug("segment_pool[%"PRIu16"] is empty", segment_pool_idx[packet_length]);
+
+                StreamTcpSetEvent(p, STREAM_REASSEMBLY_NO_SEGMENT);
                 SCReturnInt(-1);
             }
             new_seg->payload_len = packet_length;
@@ -791,6 +800,8 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
                 TcpSegment *new_seg = StreamTcpGetSegment(tv, ra_ctx, packet_length);
                 if (new_seg == NULL) {
                     SCLogDebug("segment_pool[%"PRIu16"] is empty", segment_pool_idx[packet_length]);
+
+                    StreamTcpSetEvent(p, STREAM_REASSEMBLY_NO_SEGMENT);
                     SCReturnInt(-1);
                 }
 
@@ -849,6 +860,8 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
                     TcpSegment *new_seg = StreamTcpGetSegment(tv, ra_ctx, packet_length);
                     if (new_seg == NULL) {
                         SCLogDebug("segment_pool[%"PRIu16"] is empty", segment_pool_idx[packet_length]);
+
+                        StreamTcpSetEvent(p, STREAM_REASSEMBLY_NO_SEGMENT);
                         SCReturnInt(-1);
                     }
                     new_seg->payload_len = packet_length;
@@ -900,64 +913,66 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
             } else {
                 if (SEQ_GT(seg->seq, (list_seg->prev->seq +
                                 list_seg->prev->payload_len)))
-                    {
-                        packet_length = list_seg->payload_len + (list_seg->seq -
-                                                                 seg->seq);
-                    } else {
-                        packet_length = list_seg->payload_len + (list_seg->seq -
-                                                (list_seg->prev->seq +
-                                                 list_seg->prev->payload_len));
-                    }
+                {
+                    packet_length = list_seg->payload_len + (list_seg->seq -
+                            seg->seq);
+                } else {
+                    packet_length = list_seg->payload_len + (list_seg->seq -
+                            (list_seg->prev->seq +
+                             list_seg->prev->payload_len));
+                }
 
-                    packet_length += (seg->seq + seg->payload_len) -
-                                        (list_seg->seq + list_seg->payload_len);
+                packet_length += (seg->seq + seg->payload_len) -
+                    (list_seg->seq + list_seg->payload_len);
 
-                    TcpSegment *new_seg = StreamTcpGetSegment(tv, ra_ctx, packet_length);
-                    if (new_seg == NULL) {
-                        SCLogDebug("segment_pool[%"PRIu16"] is empty",
-                                segment_pool_idx[packet_length]);
-                        SCReturnInt(-1);
-                    }
-                    new_seg->payload_len = packet_length;
+                TcpSegment *new_seg = StreamTcpGetSegment(tv, ra_ctx, packet_length);
+                if (new_seg == NULL) {
+                    SCLogDebug("segment_pool[%"PRIu16"] is empty",
+                            segment_pool_idx[packet_length]);
 
-                    if (SEQ_GT((list_seg->prev->seq +
-                                    list_seg->prev->payload_len), seg->seq))
-                    {
-                        new_seg->seq = (list_seg->prev->seq +
-                                            list_seg->prev->payload_len);
-                    } else {
-                        new_seg->seq = seg->seq;
-                    }
-                    SCLogDebug("new_seg->seq %"PRIu32" and new->payload_len "
-                           "%" PRIu16"", new_seg->seq, new_seg->payload_len);
-                    new_seg->next = list_seg->next;
-                    new_seg->prev = list_seg->prev;
+                    StreamTcpSetEvent(p, STREAM_REASSEMBLY_NO_SEGMENT);
+                    SCReturnInt(-1);
+                }
+                new_seg->payload_len = packet_length;
 
-                    /* create a new seg, copy the list_seg data over */
-                    StreamTcpSegmentDataCopy(new_seg, list_seg);
+                if (SEQ_GT((list_seg->prev->seq +
+                                list_seg->prev->payload_len), seg->seq))
+                {
+                    new_seg->seq = (list_seg->prev->seq +
+                            list_seg->prev->payload_len);
+                } else {
+                    new_seg->seq = seg->seq;
+                }
+                SCLogDebug("new_seg->seq %"PRIu32" and new->payload_len "
+                        "%" PRIu16"", new_seg->seq, new_seg->payload_len);
+                new_seg->next = list_seg->next;
+                new_seg->prev = list_seg->prev;
 
-                    /* copy the part before list_seg */
-                    uint16_t copy_len = list_seg->seq - new_seg->seq;
-                    StreamTcpSegmentDataReplace(new_seg, seg, new_seg->seq,
-                                                copy_len);
+                /* create a new seg, copy the list_seg data over */
+                StreamTcpSegmentDataCopy(new_seg, list_seg);
 
-                    /* copy the part after list_seg */
-                    copy_len = (seg->seq + seg->payload_len) -
-                                    (list_seg->seq + list_seg->payload_len);
-                    StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->seq +
-                                              list_seg->payload_len), copy_len);
+                /* copy the part before list_seg */
+                uint16_t copy_len = list_seg->seq - new_seg->seq;
+                StreamTcpSegmentDataReplace(new_seg, seg, new_seg->seq,
+                        copy_len);
 
-                    if (new_seg->prev != NULL) {
-                        new_seg->prev->next = new_seg;
-                    }
+                /* copy the part after list_seg */
+                copy_len = (seg->seq + seg->payload_len) -
+                    (list_seg->seq + list_seg->payload_len);
+                StreamTcpSegmentDataReplace(new_seg, seg, (list_seg->seq +
+                            list_seg->payload_len), copy_len);
 
-                    /*update the stream last_seg in case of removal of list_seg*/
-                    if (stream->seg_list_tail == list_seg)
-                        stream->seg_list_tail = new_seg;
+                if (new_seg->prev != NULL) {
+                    new_seg->prev->next = new_seg;
+                }
 
-                    StreamTcpSegmentReturntoPool(list_seg);
-                    list_seg = new_seg;
-                    return_after = TRUE;
+                /*update the stream last_seg in case of removal of list_seg*/
+                if (stream->seg_list_tail == list_seg)
+                    stream->seg_list_tail = new_seg;
+
+                StreamTcpSegmentReturntoPool(list_seg);
+                list_seg = new_seg;
+                return_after = TRUE;
             }
         }
 
@@ -1025,9 +1040,10 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
  *  \param  list_seg    Original Segment in the stream
  *  \param  seg         Newly arrived segment
  *  \param  prev_seg    Previous segment in the stream segment list
- *  \retval 1           done
- *  \retval 0           not done yet
- *  \retval -1          error
+ *
+ *  \retval 1 success and done
+ *  \retval 0 success, but not done yet
+ *  \retval -1 error, will *only* happen on memory errors
  */
 
 static int HandleSegmentStartsAtSameListSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
@@ -1130,6 +1146,8 @@ static int HandleSegmentStartsAtSameListSegment(ThreadVars *tv, TcpReassemblyThr
                 TcpSegment *new_seg = StreamTcpGetSegment(tv, ra_ctx, packet_length);
                 if (new_seg == NULL) {
                     SCLogDebug("egment_pool[%"PRIu16"] is empty", segment_pool_idx[packet_length]);
+
+                    StreamTcpSetEvent(p, STREAM_REASSEMBLY_NO_SEGMENT);
                     return -1;
                 }
                 new_seg->payload_len = packet_length;
@@ -1208,6 +1226,7 @@ static int HandleSegmentStartsAtSameListSegment(ThreadVars *tv, TcpReassemblyThr
 }
 
 /**
+ *  \internal
  *  \brief  Function to handle the newly arrived segment, when newly arrived
  *          starts with the sequence number higher than the original segment and
  *          ends at different position relative to original segment.
@@ -1216,9 +1235,10 @@ static int HandleSegmentStartsAtSameListSegment(ThreadVars *tv, TcpReassemblyThr
  *  \param  list_seg    Original Segment in the stream
  *  \param  seg         Newly arrived segment
  *  \param  prev_seg    Previous segment in the stream segment list
- *  \retval 1           done
- *  \retval 0           not done yet
- *  \retval -1          error
+
+ *  \retval 1 success and done
+ *  \retval 0 success, but not done yet
+ *  \retval -1 error, will *only* happen on memory errors
  */
 
 static int HandleSegmentStartsAfterListSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
@@ -1325,6 +1345,8 @@ static int HandleSegmentStartsAfterListSegment(ThreadVars *tv, TcpReassemblyThre
                 TcpSegment *new_seg = StreamTcpGetSegment(tv, ra_ctx, packet_length);
                 if (new_seg == NULL) {
                     SCLogDebug("segment_pool[%"PRIu16"] is empty", segment_pool_idx[packet_length]);
+
+                    StreamTcpSetEvent(p, STREAM_REASSEMBLY_NO_SEGMENT);
                     SCReturnInt(-1);
                 }
                 new_seg->payload_len = packet_length;
@@ -1457,6 +1479,16 @@ static uint32_t StreamTcpReassembleCheckDepth(TcpStream *stream,
     SCReturnUInt(0);
 }
 
+/**
+ *  \brief Insert a packets TCP data into the stream reassembly engine.
+ *
+ *  \retval 0 good segment, as far as we checked.
+ *  \retval -1 badness, reason to drop in inline mode
+ *
+ *  If the retval is 0 the segment is inserted correctly, or overlap is handled,
+ *  or it wasn't added because of reassembly depth.
+ *
+ */
 int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx,
                                 TcpSession *ssn, TcpStream *stream, Packet *p)
 {
@@ -1490,6 +1522,8 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     TcpSegment *seg = StreamTcpGetSegment(tv, ra_ctx, p->payload_len);
     if (seg == NULL) {
         SCLogDebug("segment_pool[%"PRIu16"] is empty", segment_pool_idx[p->payload_len]);
+
+        StreamTcpSetEvent(p, STREAM_REASSEMBLY_NO_SEGMENT);
         SCReturnInt(-1);
     }
 
@@ -1704,7 +1738,9 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
     }
 
     SCLogDebug("stream->seg_list %p", stream->seg_list);
+#ifdef DEBUG
     PrintList(stream->seg_list);
+#endif
 
     if (stream->seg_list == NULL) {
         /* send an empty EOF msg if we have no segments but TCP state
