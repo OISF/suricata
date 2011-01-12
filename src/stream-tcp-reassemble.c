@@ -1554,6 +1554,21 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     } \
 }
 
+#define STREAM_SET_INLINE_FLAGS(ssn, stream, p, flag) { \
+    flag = 0; \
+    if ((stream)->ra_app_base_seq == (stream)->isn) { \
+        flag |= STREAM_START; \
+    } \
+    if ((ssn)->state > TCP_ESTABLISHED) { \
+        flag |= STREAM_EOF; \
+    } \
+    if ((p)->flowflags & FLOW_PKT_TOSERVER) { \
+        flag |= STREAM_TOSERVER; \
+    } else { \
+        flag |= STREAM_TOCLIENT; \
+    } \
+}
+
 static void StreamTcpSetupMsg(TcpSession *ssn, TcpStream *stream, Packet *p,
                               StreamMsg *smsg)
 {
@@ -1711,6 +1726,457 @@ static void StreamTcpRemoveSegmentFromStream(TcpStream *stream, TcpSegment *seg)
 
     if (stream->seg_list_tail == seg)
         stream->seg_list_tail = seg->prev;
+}
+
+/**
+ *  \brief Update the stream reassembly upon receiving a data segment
+ *
+ *  Reassembly is in the same direction of the packet.
+ *
+ *  \todo this function is too long, we need to break it up. It needs it BAD
+ */
+static int StreamTcpReassembleInlineAppLayer (TcpReassemblyThreadCtx *ra_ctx,
+        TcpSession *ssn, TcpStream *stream, Packet *p)
+{
+    SCEnter();
+
+    uint8_t flags = 0;
+
+    /* check if toserver reassembly has started before reassembling toclient. */
+    if (PKT_IS_TOCLIENT(p) &&
+        !(ssn->flags & STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED))
+    {
+        SCLogDebug("toserver reassembling is not done yet, so "
+                "skipping reassembling at the moment for to_client");
+        SCReturnInt(0);
+    }
+
+    SCLogDebug("stream->seg_list %p", stream->seg_list);
+#ifdef DEBUG
+    PrintList(stream->seg_list);
+    PrintRawDataFp(stdout, p->payload, p->payload_len);
+#endif
+
+    if (stream->seg_list == NULL) {
+        /* send an empty EOF msg if we have no segments but TCP state
+         * is beyond ESTABLISHED */
+        if (ssn->state > TCP_ESTABLISHED) {
+            SCLogDebug("sending empty eof message");
+            /* send EOF to app layer */
+            STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
+            AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
+                    NULL, 0, flags|STREAM_EOF);
+
+            /* even if app layer detection failed, we will now move on to
+             * release reassembly for both directions. */
+            ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
+
+        } else {
+            SCLogDebug("no segments in the list to reassemble");
+        }
+
+        SCReturnInt(0);
+    }
+
+    /* check if reassembling has been paused for the moment or not */
+    if (stream->flags & STREAMTCP_STREAM_FLAG_PAUSE_REASSEMBLY) {
+        SCLogDebug("reassembling has been paused for this stream, so no"
+                " reassembling at the moment");
+        SCReturnInt(0);
+    }
+
+    if (stream->flags & STREAMTCP_STREAM_FLAG_GAP) {
+        SCReturnInt(0);
+    }
+
+    uint32_t ra_base_seq;
+
+    /* check if we have detected the app layer protocol or not. If it has been
+       detected then, process data normally, as we have sent one smsg from
+       toserver side already to the app layer */
+    if (ssn->state <= TCP_ESTABLISHED) {
+        if (!(ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED)) {
+            /* Do not perform reassembling of data from server, until the app layer
+               proto has been detected and we have sent atleast one smsg from client
+               data to app layer */
+            if (PKT_IS_TOCLIENT(p)) {
+                SCLogDebug("we didn't detected the app layer protocol till "
+                        "yet, so not doing toclient reassembling");
+                SCReturnInt(0);
+            }
+            /* initialize the tmp_ra_base_seq for each new run */
+            stream->tmp_ra_app_base_seq = stream->ra_app_base_seq;
+            ra_base_seq = stream->tmp_ra_app_base_seq;
+            /* if app layer protocol has been detected, then restore the reassembled
+               seq. to the value till reassembling has been done and unset the queue
+               init flag permanently for this tcp session */
+        } else if (SEQ_GT(stream->tmp_ra_app_base_seq, stream->ra_app_base_seq)) {
+            stream->ra_app_base_seq = stream->tmp_ra_app_base_seq;
+            ra_base_seq = stream->ra_app_base_seq;
+            SCLogDebug("the app layer protocol has been detected");
+        } else {
+            ra_base_seq = stream->ra_app_base_seq;
+        }
+    /* set the ra_bas_seq to stream->ra_base_seq as now app layer protocol
+       has been detected */
+    } else {
+        if (SEQ_GT(stream->tmp_ra_app_base_seq, stream->ra_app_base_seq)) {
+            stream->ra_app_base_seq = stream->tmp_ra_app_base_seq;
+            ra_base_seq = stream->ra_app_base_seq;
+        } else {
+            ra_base_seq = stream->ra_app_base_seq;
+        }
+    }
+
+    SCLogDebug("ra_base_seq %u", ra_base_seq);
+
+    uint8_t data[4096];
+    uint32_t data_len = 0;
+    uint16_t payload_offset = 0;
+    uint16_t payload_len = 0;
+    uint32_t next_seq = ra_base_seq + 1;
+
+    /* loop through the segments and fill one or more msgs */
+    TcpSegment *seg = stream->seg_list;
+    SCLogDebug("pre-loop seg %p", seg);
+    for (; seg != NULL && SEQ_LT(seg->seq, stream->next_seq);) {
+        SCLogDebug("seg %p", seg);
+
+        /* if app layer protocol has been detected, then remove all the segments
+           which has been previously processed and reassembled */
+        if ((ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED) &&
+                (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
+                (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))
+        {
+            SCLogDebug("segment(%p) of length %"PRIu16" has been processed,"
+                    " so return it to pool", seg, seg->payload_len);
+            TcpSegment *next_seg = seg->next;
+            StreamTcpRemoveSegmentFromStream(stream, seg);
+            StreamTcpSegmentReturntoPool(seg);
+            seg = next_seg;
+            continue;
+        }
+
+        /* If packets are fully before ra_base_seq, skip them. We do this
+         * because we've reassembled up to the ra_base_seq point already,
+         * so we won't do anything with segments before it anyway. */
+        SCLogDebug("checking for pre ra_base_seq %"PRIu32" seg %p seq %"PRIu32""
+                   " len %"PRIu16", combined %"PRIu32" and stream->last_ack "
+                   "%"PRIu32"", ra_base_seq, seg, seg->seq,
+                   seg->payload_len, seg->seq+seg->payload_len, stream->last_ack);
+
+        /* Remove the segments which are either completely before the
+           ra_base_seq or if they are beyond ra_base_seq, but the segment offset
+           from which we need to copy in to smsg is beyond the stream->last_ack.
+           As we are copying until the stream->last_ack only */
+        /** \todo we should probably not even insert them into the seglist */
+
+        if ((SEQ_LEQ((seg->seq + seg->payload_len), (ra_base_seq+1)) ||
+                SEQ_LEQ(stream->last_ack, (ra_base_seq + (ra_base_seq - seg->seq)))) &&
+                (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
+                (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))
+        {
+            SCLogDebug("removing pre ra_base_seq %"PRIu32" seg %p seq %"PRIu32
+                    " len %"PRIu16"", ra_base_seq, seg, seg->seq, seg->payload_len);
+
+            TcpSegment *next_seg = seg->next;
+            StreamTcpRemoveSegmentFromStream(stream, seg);
+            StreamTcpSegmentReturntoPool(seg);
+            seg = next_seg;
+            continue;
+        }
+
+        /* we've run into a sequence gap */
+        if (SEQ_GT(seg->seq, next_seq)) {
+
+            /* first, pass on data before the gap */
+            if (data_len > 0) {
+                SCLogDebug("pre GAP data");
+
+                STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
+
+                /* if app layer protocol has not been detected till yet,
+                   then check did we have sent message to app layer already
+                   or not. If not then sent the message and set flag that first
+                   message has been sent. No more data till proto has not
+                   been detected */
+                if (!(ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED)) {
+                    /* process what we have so far */
+                    BUG_ON(data_len > sizeof(data));
+                    AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
+                            data, data_len, flags);
+
+                    stream->tmp_ra_app_base_seq = ra_base_seq;
+                } else {
+                    /* process what we have so far */
+                    AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
+                            data, data_len, flags);
+
+                    stream->ra_app_base_seq = ra_base_seq;
+                }
+            }
+
+            /* don't conclude it's a gap straight away. If ra_base_seq is lower
+             * than last_ack - the window, we consider it a gap. */
+            if (SEQ_GT((stream->last_ack - stream->window), ra_base_seq) ||
+                ssn->state > TCP_ESTABLISHED)
+            {
+                /* see what the length of the gap is, gap length is seg->seq -
+                 * (ra_base_seq +1) */
+#ifdef DEBUG
+                uint32_t gap_len = seg->seq - next_seq;
+                SCLogDebug("expected next_seq %" PRIu32 ", got %" PRIu32 " , "
+                        "stream->last_ack %" PRIu32 ". Seq gap %" PRIu32"",
+                        next_seq, seg->seq, stream->last_ack, gap_len);
+#endif
+
+                next_seq = seg->seq;
+
+                /* we need to update the ra_base_seq, if app layer proto has
+                   been detected and we are setting new stream message. Otherwise
+                   every smsg will be with flag STREAM_START set, which we
+                   don't want :-) */
+                if (ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED) {
+                    stream->ra_app_base_seq = ra_base_seq;
+                } else {
+                    stream->tmp_ra_app_base_seq = ra_base_seq;
+                }
+
+                /* We have missed the packet and end host has ack'd it, so
+                 * IDS should advance it's ra_base_seq and should not consider this
+                 * packet any longer, even if it is retransmitted, as end host will
+                 * drop it anyway */
+                ra_base_seq = seg->seq - 1;
+
+                /* send gap signal */
+                STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
+                AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
+                        NULL, 0, flags|STREAM_GAP);
+                data_len = 0;
+
+                /* set a GAP flag and make sure not bothering this stream anymore */
+                stream->flags |= STREAMTCP_STREAM_FLAG_GAP;
+                /* flag reassembly as started, so the to_client part can start */
+                ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
+
+                dbg_app_layer_gap++;
+                break;
+            } else {
+                SCLogDebug("possible GAP, but waiting to see if out of order "
+                        "packets might solve that");
+                dbg_app_layer_gap_candidate++;
+                break;
+            }
+        }
+
+        /* if the segment ends beyond ra_base_seq we need to consider it */
+        if (SEQ_GT((seg->seq + seg->payload_len), ra_base_seq)) {
+            SCLogDebug("seg->seq %" PRIu32 ", seg->payload_len %" PRIu32 ", "
+                    "ra_base_seq %" PRIu32 "", seg->seq,
+                    seg->payload_len, ra_base_seq);
+
+            /* handle segments partly before ra_base_seq */
+            if (SEQ_GT(ra_base_seq, seg->seq)) {
+                payload_offset = ra_base_seq - seg->seq -1;
+
+                if (SEQ_LT(stream->next_seq, (seg->seq + seg->payload_len))) {
+                    if (SEQ_LT(stream->next_seq, ra_base_seq)) {
+                        payload_len = (stream->next_seq - seg->seq);
+                    } else {
+                        payload_len = (stream->next_seq - seg->seq) - payload_offset;
+                    }
+                } else {
+                    payload_len = seg->payload_len - payload_offset;
+                }
+
+                if (SCLogDebugEnabled()) {
+                    BUG_ON(payload_offset > seg->payload_len);
+                    BUG_ON((payload_len + payload_offset) > seg->payload_len);
+                }
+            } else {
+                payload_offset = 0;
+
+                if (SEQ_LT(stream->next_seq, (seg->seq + seg->payload_len))) {
+                    payload_len = stream->next_seq - seg->seq;
+                } else {
+                    payload_len = seg->payload_len;
+                }
+            }
+            SCLogDebug("payload_offset is %"PRIu16", payload_len is %"PRIu16""
+                       " and stream->next_seq is %"PRIu32"", payload_offset,
+                        payload_len, stream->next_seq);
+
+            if (payload_len == 0) {
+                SCLogDebug("no payload_len, so bail out");
+                break;
+            }
+
+            /* copy the data into the smsg */
+            uint16_t copy_size = sizeof(data) - data_len;
+            if (copy_size > payload_len) {
+                copy_size = payload_len;
+            }
+            if (SCLogDebugEnabled()) {
+                BUG_ON(copy_size > sizeof(data));
+            }
+            SCLogDebug("copy_size is %"PRIu16"", copy_size);
+            memcpy(data + data_len, seg->payload + payload_offset, copy_size);
+            data_len += copy_size;
+            ra_base_seq += copy_size;
+            SCLogDebug("ra_base_seq %"PRIu32", data_len %"PRIu32, ra_base_seq, data_len);
+
+            /* queue the smsg if it's full */
+            if (data_len == sizeof(data)) {
+                /* if app layer protocol has not been detected till yet,
+                   then check did we have sent message to app layer already
+                   or not. If not then sent the message and set flag that first
+                   message has been sent. No more data till proto has not
+                   been detected */
+                if (!(ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED)) {
+                    /* process what we have so far */
+                    STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
+                    BUG_ON(data_len > sizeof(data));
+                    AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
+                            data, data_len, flags);
+                    data_len = 0;
+
+                    stream->tmp_ra_app_base_seq = ra_base_seq;
+                } else {
+                    /* process what we have so far */
+                    STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
+                    BUG_ON(data_len > sizeof(data));
+                    AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
+                            data, data_len, flags);
+                    data_len = 0;
+
+                    stream->ra_app_base_seq = ra_base_seq;
+                }
+            }
+
+            /* if the payload len is bigger than what we copied, we handle the
+             * rest of the payload next... */
+            if (copy_size < payload_len) {
+                SCLogDebug("copy_size %" PRIu32 " < %" PRIu32 "", copy_size,
+                            payload_len);
+
+                payload_offset += copy_size;
+                payload_len -= copy_size;
+                SCLogDebug("payload_offset is %"PRIu16", seg->payload_len is "
+                           "%"PRIu16" and stream->last_ack is %"PRIu32"",
+                            payload_offset, seg->payload_len, stream->last_ack);
+                if (SCLogDebugEnabled()) {
+                    BUG_ON(payload_offset > seg->payload_len);
+                }
+
+                /* we need a while loop here as the packets theoretically can be
+                 * 64k */
+                char segment_done = FALSE;
+                while (segment_done == FALSE) {
+                    SCLogDebug("new msg at offset %" PRIu32 ", payload_len "
+                               "%" PRIu32 "", payload_offset, payload_len);
+                    data_len = 0;
+
+                    copy_size = sizeof(data) - data_len;
+                    if (copy_size > (seg->payload_len - payload_offset)) {
+                        copy_size = (seg->payload_len - payload_offset);
+                    }
+                    if (SCLogDebugEnabled()) {
+                        BUG_ON(copy_size > sizeof(data));
+                    }
+
+                    SCLogDebug("copy payload_offset %" PRIu32 ", data_len "
+                                "%" PRIu32 ", copy_size %" PRIu32 "",
+                                payload_offset, data_len, copy_size);
+                    memcpy(data + data_len, seg->payload +
+                            payload_offset, copy_size);
+                    data_len += copy_size;
+                    ra_base_seq += copy_size;
+                    SCLogDebug("ra_base_seq %"PRIu32, ra_base_seq);
+                    SCLogDebug("copied payload_offset %" PRIu32 ", "
+                               "data_len %" PRIu32 ", copy_size %" PRIu32 "",
+                               payload_offset, data_len, copy_size);
+
+                    if (data_len == sizeof(data)) {
+                        /* if app layer protocol has not been detected till yet,
+                           then check did we have sent message to app layer already
+                           or not. If not then sent the message and set flag that first
+                           message has been sent. No more data till proto has not
+                           been detected */
+                        if (!(ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED)) {
+                            /* process what we have so far */
+                            STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
+                            BUG_ON(data_len > sizeof(data));
+                            AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
+                                    data, data_len, flags);
+                            data_len = 0;
+
+                            stream->tmp_ra_app_base_seq = ra_base_seq;
+                        } else {
+                            /* process what we have so far */
+                            STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
+                            BUG_ON(data_len > sizeof(data));
+                            AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
+                                    data, data_len, flags);
+                            data_len = 0;
+
+                            stream->ra_app_base_seq = ra_base_seq;
+                        }
+                    }
+
+                    /* see if we have segment payload left to process */
+                    if ((copy_size + payload_offset) < seg->payload_len) {
+                        payload_offset += copy_size;
+                        payload_len -= copy_size;
+
+                        if (SCLogDebugEnabled()) {
+                            BUG_ON(payload_offset > seg->payload_len);
+                        }
+                    } else {
+                        payload_offset = 0;
+                        segment_done = TRUE;
+                    }
+                }
+            } else {
+                payload_offset = 0;
+            }
+        }
+
+        /* done with this segment, return it to the pool */
+        TcpSegment *next_seg = seg->next;
+        next_seq = seg->seq + seg->payload_len;
+        seg->flags |= SEGMENTTCP_FLAG_APPLAYER_PROCESSED;
+        seg = next_seg;
+    }
+
+    /* put the partly filled smsg in the queue to the l7 handler */
+    if (data_len > 0) {
+        SCLogDebug("data_len > 0, %u", data_len);
+        if (!(ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED)) {
+            /* process what we have so far */
+            STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
+            BUG_ON(data_len > sizeof(data));
+            AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
+                    data, data_len, flags);
+            stream->tmp_ra_app_base_seq = ra_base_seq;
+        } else {
+            /* process what we have so far */
+            STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
+            BUG_ON(data_len > sizeof(data));
+            AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
+                    data, data_len, flags);
+
+            stream->ra_app_base_seq = ra_base_seq;
+        }
+    }
+
+    if (ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED) {
+        SCLogDebug("proto detection already completed");
+        ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
+    } else {
+        SCLogDebug("protocol detection not yet completed");
+    }
+
+    SCReturnInt(0);
 }
 
 /**
@@ -2538,8 +3004,10 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
     SCLogDebug("stream->seg_list %p", stream->seg_list);
 
     int r = 0;
-    if (StreamTcpReassembleAppLayer(ra_ctx, ssn, stream, p) < 0)
-        r = -1;
+    if (!(StreamTcpInlineMode())) {
+        if (StreamTcpReassembleAppLayer(ra_ctx, ssn, stream, p) < 0)
+            r = -1;
+    }
     if (StreamTcpReassembleRaw(ra_ctx, ssn, stream, p) < 0)
         r = -1;
 
@@ -2620,11 +3088,23 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
     /* If no stream reassembly/application layer protocol inspection, then
        simple return */
     if (p->payload_len > 0 && !(stream->flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
-        SCLogDebug("calling StreamTcpReassembleHandleSegmentHandleData");
+        if (!(StreamTcpInlineMode())) {
+            SCLogDebug("calling StreamTcpReassembleHandleSegmentHandleData");
 
-        if (StreamTcpReassembleHandleSegmentHandleData(tv, ra_ctx, ssn, stream, p) != 0) {
-            SCLogDebug("StreamTcpReassembleHandleSegmentHandleData error");
-            SCReturnInt(-1);
+            if (StreamTcpReassembleHandleSegmentHandleData(tv, ra_ctx, ssn, stream, p) != 0) {
+                SCLogDebug("StreamTcpReassembleHandleSegmentHandleData error");
+                SCReturnInt(-1);
+            }
+        } else {
+            SCLogDebug("calling StreamTcpReassembleHandleSegmentHandleData");
+
+            if (StreamTcpReassembleHandleSegmentHandleData(tv, ra_ctx, ssn, stream, p) != 0) {
+                SCLogDebug("StreamTcpReassembleHandleSegmentHandleData error");
+                SCReturnInt(-1);
+            }
+
+            if (StreamTcpReassembleInlineAppLayer(ra_ctx, ssn, stream, p) < 0)
+                SCReturnInt(-1);
         }
 
         p->flags |= PKT_STREAM_ADD;
