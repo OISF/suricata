@@ -429,7 +429,7 @@ void StreamTcpInitConfig(char quiet)
 
     char *inl = NULL;
     if ((ConfGet("stream.inline", &inl)) == 1) {
-        if (strncmp(csum, "yes", 3) == 0) {
+        if (strcasecmp(inl, "yes") == 0) {
             stream_inline = 1;
         }
     }
@@ -3281,7 +3281,7 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                 break;
         }
 
-        if (ssn->state == TCP_ESTABLISHED) {
+        if (ssn->state >= TCP_ESTABLISHED) {
             p->flags |= PKT_STREAM_EST;
         } else if (ssn->state > TCP_ESTABLISHED) {
             p->flags |= PKT_STREAM_EOF;
