@@ -103,6 +103,7 @@ int StreamTcpGetFlowState(void *);
 void StreamTcpSetOSPolicy(TcpStream*, Packet*);
 void StreamTcpPseudoPacketCreateStreamEndPacket(Packet *, TcpSession *, PacketQueue *);
 
+static int StreamTcpValidateTimestamp(TcpSession * , Packet *);
 static int StreamTcpHandleTimestamp(TcpSession * , Packet *);
 static int StreamTcpValidateRst(TcpSession * , Packet *);
 static inline int StreamTcpValidateAck(TcpStream *, Packet *);
@@ -1302,7 +1303,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
              * stream->last_ts. If the timestamp is valid then process the
              * packet normally otherwise the drop the packet (RFC 1323)*/
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
-                if (!(StreamTcpHandleTimestamp(ssn, p))) {
+                if (!(StreamTcpValidateTimestamp(ssn, p))) {
                     return -1;
                 }
             }
@@ -1326,6 +1327,10 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to client: SEQ "
                            "%" PRIu32 ", ACK %" PRIu32 "", ssn, p->payload_len,
                            TCP_GET_SEQ(p), TCP_GET_ACK(p));
+
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
 
                 StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
                 ssn->server.next_seq += p->payload_len;
@@ -1377,6 +1382,10 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
 
                 /* process the packet normal, No Async streams :) */
 
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
+
                 StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
 
                 ssn->client.next_seq += p->payload_len;
@@ -1413,6 +1422,10 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
 
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
                 ssn->client.last_ack = TCP_GET_ACK(p);
+
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
 
                 if (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) {
                     ssn->server.window = TCP_GET_WINDOW(p);
@@ -1497,6 +1510,10 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
                     SCLogDebug("ssn %p: Reset received and state changed to "
                                    "TCP_CLOSED", ssn);
 
+                    if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                        StreamTcpHandleTimestamp(ssn, p);
+                    }
+
                     StreamTcpSessionPktFree(p);
                 }
             } else
@@ -1506,7 +1523,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
 
             /* FIN is handled in the same way as in TCP_ESTABLISHED case */;
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
-                if (!StreamTcpHandleTimestamp(ssn, p))
+                if (!StreamTcpValidateTimestamp(ssn, p))
                     return -1;
             }
 
@@ -1630,6 +1647,10 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
         /* Check if the ACK value is sane and inside the window limit */
         StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
 
+        if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+            StreamTcpHandleTimestamp(ssn, p);
+        }
+
         /* Update the next_seq, in case if we have missed the server packet
            and client has already received and acked it */
         if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
@@ -1731,6 +1752,10 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
                     ssn->client.window);
 
         StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
+
+        if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+            StreamTcpHandleTimestamp(ssn, p);
+        }
 
         /* Update the next_seq, in case if we have missed the client packet
            and server has already received and acked it */
@@ -1852,7 +1877,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
              * stream->last_ts. If the timestamp is valid then process the
              * packet normally otherwise the drop the packet (RFC 1323) */
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
-                if (!StreamTcpHandleTimestamp(ssn, p))
+                if (!StreamTcpValidateTimestamp(ssn, p))
                     return -1;
             }
 
@@ -1886,7 +1911,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
         case TH_FIN|TH_ACK|TH_PUSH|TH_ECN|TH_CWR:
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
-                if (!StreamTcpHandleTimestamp(ssn, p))
+                if (!StreamTcpValidateTimestamp(ssn, p))
                     return -1;
             }
 
@@ -1923,6 +1948,10 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
 
                     StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
 
+                    if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                        StreamTcpHandleTimestamp(ssn, p);
+                    }
+
                     StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
                                                          &ssn->client, p, pq);
                     SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
@@ -1942,6 +1971,10 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
                     ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
                     StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
+
+                    if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                        StreamTcpHandleTimestamp(ssn, p);
+                    }
 
                     StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
                                                          &ssn->server, p, pq);
@@ -1978,7 +2011,6 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
 static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt,
                                 TcpSession *ssn, Packet *p, PacketQueue *pq)
 {
-
     if (PKT_IS_TOSERVER(p)) {
         SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to server: SEQ %" PRIu32 ","
                 " ACK %" PRIu32 "", ssn, p->payload_len, TCP_GET_SEQ(p),
@@ -2012,6 +2044,10 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt,
         ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
         StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
+
+        if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+            StreamTcpHandleTimestamp(ssn, p);
+        }
 
         /* Update the next_seq, in case if we have missed the client packet
            and server has already received and acked it */
@@ -2056,6 +2092,10 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *stt,
 
         StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
 
+        if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+            StreamTcpHandleTimestamp(ssn, p);
+        }
+
         /* Update the next_seq, in case if we have missed the client packet
            and server has already received and acked it */
         if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
@@ -2097,7 +2137,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
         case TH_ACK|TH_ECN|TH_CWR:
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
-                if (!StreamTcpHandleTimestamp(ssn, p))
+                if (!StreamTcpValidateTimestamp(ssn, p))
                     return -1;
             }
 
@@ -2127,6 +2167,10 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
                 StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
+
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
 
                 /* Update the next_seq, in case if we have missed the client
                    packet and server has already received and acked it */
@@ -2173,6 +2217,10 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
 
                 StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
 
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
+
                 /* Update the next_seq, in case if we have missed the client
                    packet and server has already received and acked it */
                 if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
@@ -2202,7 +2250,7 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
         case TH_FIN|TH_ACK|TH_PUSH|TH_ECN|TH_CWR:
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
-                if (!StreamTcpHandleTimestamp(ssn, p))
+                if (!StreamTcpValidateTimestamp(ssn, p))
                     return -1;
             }
 
@@ -2233,6 +2281,10 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
                 StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
+
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
 
                 /* Update the next_seq, in case if we have missed the client
                    packet and server has already received and acked it */
@@ -2279,6 +2331,10 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
 
                 StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
 
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
+
                 /* Update the next_seq, in case if we have missed the client
                    packet and server has already received and acked it */
                 if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
@@ -2312,6 +2368,10 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
                 SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
                             ssn);
+
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
 
                 StreamTcpSessionPktFree(p);
             }
@@ -2350,7 +2410,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
         case TH_ACK|TH_ECN|TH_CWR:
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
-                if (!StreamTcpHandleTimestamp(ssn, p))
+                if (!StreamTcpValidateTimestamp(ssn, p))
                     return -1;
             }
 
@@ -2379,6 +2439,10 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
                 StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
+
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
 
                 if (SEQ_EQ(ssn->client.next_seq, TCP_GET_SEQ(p))) {
                     ssn->client.next_seq += p->payload_len;
@@ -2418,6 +2482,10 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
 
                 StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
 
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
+
                 if (SEQ_EQ(ssn->server.next_seq, TCP_GET_SEQ(p))) {
                     ssn->server.next_seq += p->payload_len;
                     SCLogDebug("ssn %p: ssn->server.next_seq %" PRIu32 "",
@@ -2447,6 +2515,10 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
                             ssn);
 
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
+
                 StreamTcpSessionPktFree(p);
             }
             else
@@ -2455,7 +2527,7 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
 
         case TH_FIN:
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
-                if (!StreamTcpHandleTimestamp(ssn, p))
+                if (!StreamTcpValidateTimestamp(ssn, p))
                     return -1;
             }
 
@@ -2486,6 +2558,10 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
                 StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
+
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
 
                 /* Update the next_seq, in case if we have missed the client
                    packet and server has already received and acked it */
@@ -2525,6 +2601,10 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
                 StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
+
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
 
                 /* Update the next_seq, in case if we have missed the client
                    packet and server has already received and acked it */
@@ -2569,7 +2649,7 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
         case TH_ACK|TH_ECN|TH_CWR:
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
-                if (!StreamTcpHandleTimestamp(ssn, p))
+                if (!StreamTcpValidateTimestamp(ssn, p))
                     return -1;
             }
 
@@ -2599,6 +2679,9 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
 
                 StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
 
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
                 /* Update the next_seq, in case if we have missed the client
                    packet and server has already received and acked it */
                 if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
@@ -2634,6 +2717,10 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
                 StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
+
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
 
                 /* Update the next_seq, in case if we have missed the client
                    packet and server has already received and acked it */
@@ -2690,7 +2777,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
         case TH_FIN|TH_ACK|TH_ECN|TH_CWR:
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
-                if (!StreamTcpHandleTimestamp(ssn, p))
+                if (!StreamTcpValidateTimestamp(ssn, p))
                     SCReturnInt(-1);
             }
 
@@ -2721,6 +2808,10 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
                 StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
+
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
 
                 /* Update the next_seq, in case if we have missed the client
                    packet and server has already received and acked it */
@@ -2760,6 +2851,10 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
 
                 StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
 
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
+
                 /* Update the next_seq, in case if we have missed the client
                    packet and server has already received and acked it */
                 if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
@@ -2778,7 +2873,7 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
         case TH_ACK|TH_ECN:
         case TH_ACK|TH_ECN|TH_CWR:
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
-                if (!StreamTcpHandleTimestamp(ssn, p))
+                if (!StreamTcpValidateTimestamp(ssn, p))
                     SCReturnInt(-1);
             }
 
@@ -2806,6 +2901,10 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
                 StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
+
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
 
                 /* Update the next_seq, in case if we have missed the client
                    packet and server has already received and acked it */
@@ -2844,6 +2943,10 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
                 StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
+
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
 
                 /* Update the next_seq, in case if we have missed the client
                    packet and server has already received and acked it */
@@ -2890,7 +2993,7 @@ static int StreamTcpPakcetStateLastAck(ThreadVars *tv, Packet *p,
         case TH_ACK|TH_ECN|TH_CWR:
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
-                if (!StreamTcpHandleTimestamp(ssn, p))
+                if (!StreamTcpValidateTimestamp(ssn, p))
                     return -1;
             }
 
@@ -2919,6 +3022,10 @@ static int StreamTcpPakcetStateLastAck(ThreadVars *tv, Packet *p,
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
                 StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
+
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
 
                 /* Update the next_seq, in case if we have missed the client
                    packet and server has already received and acked it */
@@ -2964,7 +3071,7 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
         case TH_ACK|TH_ECN|TH_CWR:
 
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
-                if (!StreamTcpHandleTimestamp(ssn, p))
+                if (!StreamTcpValidateTimestamp(ssn, p))
                     return -1;
             }
 
@@ -2993,6 +3100,10 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
                 StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
+
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
 
                 /* Update the next_seq, in case if we have missed the client
                    packet and server has already received and acked it */
@@ -3031,6 +3142,10 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
                 StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
+
+                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                    StreamTcpHandleTimestamp(ssn, p);
+                }
 
                 /* Update the next_seq, in case if we have missed the client
                    packet and server has already received and acked it */
@@ -3363,7 +3478,7 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
     uint8_t os_policy;
 
     if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
-        if (!StreamTcpHandleTimestamp(ssn, p))
+        if (!StreamTcpValidateTimestamp(ssn, p))
             return -1;
     }
 
@@ -3535,6 +3650,152 @@ int StreamTcpGetFlowState(void *s)
     }
 
     SCReturnInt(FLOW_STATE_CLOSED);
+}
+
+/**
+ *  \brief Function to check the validity of the received timestamp based on
+ *         the target OS of the given stream.
+ *
+ *  It's passive except for:
+ *  1. it sets the os policy on the stream if necessary
+ *  2. it sets an event in the packet if necessary
+ *
+ *  \param ssn TCP session to which the given packet belongs
+ *  \param p Packet which has to be checked for its validity
+ *
+ *  \retval 1 if the timestamp is valid
+ *  \retval 0 if the timestamp is invalid
+ */
+static int StreamTcpValidateTimestamp (TcpSession *ssn, Packet *p)
+{
+    SCEnter();
+
+    TcpStream *sender_stream;
+    TcpStream *receiver_stream;
+    uint8_t ret = 1;
+    uint8_t check_ts = 1;
+
+    if (PKT_IS_TOSERVER(p)) {
+        sender_stream = &ssn->client;
+        receiver_stream = &ssn->server;
+    } else {
+        sender_stream = &ssn->server;
+        receiver_stream = &ssn->client;
+    }
+
+    /* Set up the os_policy to be used in validating the timestamps based on
+       the target system */
+    if (receiver_stream->os_policy == 0) {
+        StreamTcpSetOSPolicy(receiver_stream, p);
+    }
+
+    if (p->tcpvars.ts != NULL) {
+        uint32_t ts = TCP_GET_TSVAL(p);
+        uint32_t last_pkt_ts = sender_stream->last_pkt_ts;
+        uint32_t last_ts = sender_stream->last_ts;
+
+        if (sender_stream->flags & STREAMTCP_FLAG_ZERO_TIMESTAMP) {
+            /* The 3whs used the timestamp with 0 value. */
+            switch (receiver_stream->os_policy) {
+                case OS_POLICY_LINUX:
+                case OS_POLICY_WINDOWS2K3:
+                    /* Linux and windows 2003 does not allow the use of 0 as
+                     * timestamp in the 3whs. */
+                    check_ts = 0;
+                    break;
+
+                case OS_POLICY_OLD_LINUX:
+                case OS_POLICY_WINDOWS:
+                case OS_POLICY_VISTA:
+                    if (SEQ_EQ(sender_stream->next_seq, TCP_GET_SEQ(p))) {
+                        last_ts = ts;
+                        check_ts = 0; /*next packet will be checked for validity
+                                        and stream TS has been updated with this
+                                        one.*/
+                    }
+                    break;
+            }
+        }
+
+        if (receiver_stream->os_policy == OS_POLICY_HPUX11) {
+            /* HPUX11 igoners the timestamp of out of order packets */
+            if (!SEQ_EQ(sender_stream->next_seq, TCP_GET_SEQ(p)))
+                check_ts = 0;
+        }
+
+        if (ts == 0) {
+            switch (receiver_stream->os_policy) {
+                case OS_POLICY_OLD_LINUX:
+                case OS_POLICY_WINDOWS:
+                case OS_POLICY_WINDOWS2K3:
+                case OS_POLICY_VISTA:
+                case OS_POLICY_SOLARIS:
+                    /* Old Linux and windows allowed packet with 0 timestamp. */
+                    break;
+                default:
+                    /* other OS simply drop the pakcet with 0 timestamp, when
+                     * 3whs has valid timestamp*/
+                    goto invalid;
+            }
+        }
+
+        if (check_ts) {
+            int32_t result = 0;
+
+            SCLogDebug("ts %"PRIu32", last_ts %"PRIu32"", ts, last_ts);
+
+            if (receiver_stream->os_policy == OS_POLICY_LINUX) {
+                /* Linux accepts TS which are off by one.*/
+                result = (int32_t) ((ts - last_ts) + 1);
+            } else {
+                result = (int32_t) (ts - last_ts);
+            }
+
+            SCLogDebug("result %"PRIi32", p->ts.tv_sec %"PRIuMAX"", result, (uintmax_t)p->ts.tv_sec);
+
+            if (last_pkt_ts == 0 &&
+                    (ssn->flags & STREAMTCP_FLAG_MIDSTREAM))
+            {
+                last_pkt_ts = p->ts.tv_sec;
+            }
+
+            if (result < 0) {
+                SCLogDebug("timestamp is not valid last_ts "
+                           "%" PRIu32 " p->tcpvars->ts %" PRIu32 " result "
+                           "%" PRId32 "", last_ts, ts, result);
+                /* candidate for rejection */
+                ret = 0;
+            } else if ((sender_stream->last_ts != 0) &&
+                        (((uint32_t) p->ts.tv_sec) >
+                            last_pkt_ts + PAWS_24DAYS))
+            {
+                SCLogDebug("packet is not valid last_pkt_ts "
+                           "%" PRIu32 " p->ts.tv_sec %" PRIu32 "",
+                            last_pkt_ts, (uint32_t) p->ts.tv_sec);
+                /* candidate for rejection */
+                ret = 0;
+            }
+
+            if (ret == 0) {
+                /* if the timestamp of packet is not valid then, check if the
+                 * current stream timestamp is not so old. if so then we need to
+                 * accept the packet and update the stream->last_ts (RFC 1323)*/
+                if ((SEQ_EQ(sender_stream->next_seq, TCP_GET_SEQ(p))) &&
+                        (((uint32_t) p->ts.tv_sec > (last_pkt_ts + PAWS_24DAYS))))
+                {
+                    SCLogDebug("timestamp considered valid anyway");
+                } else {
+                    goto invalid;
+                }
+            }
+        }
+    }
+
+    SCReturnInt(1);
+
+invalid:
+    StreamTcpSetEvent(p, STREAM_PKT_INVALID_TIMESTAMP);
+    SCReturnInt(0);
 }
 
 /**
