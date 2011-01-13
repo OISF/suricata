@@ -95,6 +95,11 @@ TmEcode NoNFQSupportExit(ThreadVars *tv, void *initdata, void **data)
 extern int max_pending_packets;
 
 #define NFQ_BURST_FACTOR 4
+
+#ifndef SOL_NETLINK
+#define SOL_NETLINK 270
+#endif
+
 //#define NFQ_DFT_QUEUE_LEN NFQ_BURST_FACTOR * MAX_PENDING
 //#define NFQ_NF_BUFSIZE 1500 * NFQ_DFT_QUEUE_LEN
 
