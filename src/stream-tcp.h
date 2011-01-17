@@ -41,13 +41,24 @@
 
 /*global flow data*/
 typedef struct TcpStreamCnf_ {
-    uint32_t memcap; /** max stream mem usage */
+    /** stream tracking
+     *
+     * max stream mem usage
+     */
+    uint32_t memcap;
+
     uint32_t max_sessions;
     uint32_t prealloc_sessions;
     int midstream;
     int async_oneside;
     uint32_t reassembly_memcap; /**< max memory usage for stream reassembly */
     uint32_t reassembly_depth;  /**< Depth until when we reassemble the stream */
+
+    /** reassembly -- inline mode
+     *
+     *  sliding window size for raw stream reassembly
+     */
+    uint32_t reassembly_inline_window;
     uint8_t flags;
 } TcpStreamCnf;
 

@@ -49,8 +49,8 @@
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
+#include "stream-tcp-util.h"
 #include "stream.h"
-#include "stream-tcp.h"
 
 #include "app-layer-parser.h"
 #include "app-layer-protos.h"
@@ -64,6 +64,7 @@
 #define STREAMTCP_DEFAULT_PREALLOC              32768
 #define STREAMTCP_DEFAULT_MEMCAP                32 * 1024 * 1024 /* 32mb */
 #define STREAMTCP_DEFAULT_REASSEMBLY_MEMCAP     64 * 1024 * 1024 /* 64mb */
+#define STREAMTCP_DEFAULT_REASSEMBLY_WINDOW     3000
 
 #define STREAMTCP_NEW_TIMEOUT                   60
 #define STREAMTCP_EST_TIMEOUT                   3600
@@ -98,7 +99,6 @@ static int StreamTcpHandleFin(ThreadVars *tv, StreamTcpThread *, TcpSession *, P
 void StreamTcpRegisterTests (void);
 void StreamTcpReturnStreamSegments (TcpStream *);
 void StreamTcpInitConfig(char);
-extern void StreamTcpSegmentReturntoPool(TcpSegment *);
 int StreamTcpGetFlowState(void *);
 void StreamTcpSetOSPolicy(TcpStream*, Packet*);
 void StreamTcpPseudoPacketCreateStreamEndPacket(Packet *, TcpSession *, PacketQueue *);
@@ -167,24 +167,6 @@ int StreamTcpCheckMemcap(uint32_t size) {
     SCSpinUnlock(&stream_memuse_spinlock);
 
     SCReturnInt(ret);
-}
-
-void StreamTcpReturnStreamSegments (TcpStream *stream)
-{
-    TcpSegment *seg = stream->seg_list;
-    TcpSegment *next_seg;
-
-    if (seg == NULL)
-        return;
-
-    while (seg != NULL) {
-        next_seg = seg->next;
-        StreamTcpSegmentReturntoPool(seg);
-        seg = next_seg;
-    }
-
-    stream->seg_list = NULL;
-    stream->seg_list_tail = NULL;
 }
 
 /** \brief Function to return the stream back to the pool. It returns the
@@ -437,6 +419,9 @@ void StreamTcpInitConfig(char quiet)
     if (!quiet) {
         SCLogInfo("stream.\"inline\": %s", stream_inline ? "enabled" : "disabled");
     }
+
+    /** \todo yaml part */
+    stream_config.reassembly_inline_window = STREAMTCP_DEFAULT_REASSEMBLY_WINDOW;
 
     /* init the memcap and it's lock */
     stream_memuse = 0;

@@ -102,5 +102,11 @@ void StreamTcpReassemblePause (TcpSession *, char );
 void StreamTcpReassembleUnPause (TcpSession *, char );
 int StreamTcpCheckStreamContents(uint8_t *, uint16_t , TcpStream *);
 
+int StreamTcpReassembleInsertSegment(ThreadVars *, TcpReassemblyThreadCtx *, TcpStream *, TcpSegment *, Packet *);
+TcpSegment* StreamTcpGetSegment(ThreadVars *, TcpReassemblyThreadCtx *, uint16_t);
+
+void StreamTcpReturnStreamSegments(TcpStream *);
+void StreamTcpSegmentReturntoPool(TcpSegment *);
+
 #endif /* __STREAM_TCP_REASSEMBLE_H__ */
 
