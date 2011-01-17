@@ -192,6 +192,8 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     /* we're done with the tunnel root now as well */
     if (proot == 1) {
         SCLogDebug("getting rid of root pkt... alloc'd %s", p->root->flags & PKT_ALLOC ? "true" : "false");
+
+        FlowDecrUsecnt(p->root->flow);
         /* if p->root uses extended data, free them */
         if (p->root->ext_pkt) {
             SCFree(p->root->ext_pkt);
