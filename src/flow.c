@@ -169,6 +169,14 @@ void FlowUpdateQueue(Flow *f)
     }
 }
 
+#ifdef FLOW_PRUNE_DEBUG
+static uint64_t prune_queue_lock = 0;
+static uint64_t prune_queue_empty = 0;
+static uint64_t prune_flow_lock = 0;
+static uint64_t prune_bucket_lock = 0;
+static uint64_t prune_no_timeout = 0;
+static uint64_t prune_usecnt = 0;
+#endif
 
 /** FlowPrune
  *
@@ -194,6 +202,10 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
             SCLogDebug("was locked");
         if (mr == EINVAL)
             SCLogDebug("bad mutex value");
+
+#ifdef FLOW_PRUNE_DEBUG
+        prune_queue_lock++;
+#endif
         return 0;
     }
 
@@ -201,11 +213,19 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
     if (f == NULL) {
         SCMutexUnlock(&q->mutex_q);
         SCLogDebug("top is null");
+
+#ifdef FLOW_PRUNE_DEBUG
+        prune_queue_empty++;
+#endif
         return 0;
     }
     if (SCMutexTrylock(&f->m) != 0) {
         SCLogDebug("cant lock 1");
         SCMutexUnlock(&q->mutex_q);
+
+#ifdef FLOW_PRUNE_DEBUG
+        prune_flow_lock++;
+#endif
         return 0;
     }
 
@@ -215,6 +235,10 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
     if (SCSpinTrylock(&f->fb->s) != 0) {
         SCMutexUnlock(&f->m);
         SCLogDebug("cant lock 2");
+
+#ifdef FLOW_PRUNE_DEBUG
+        prune_bucket_lock++;
+#endif
         return 0;
     }
 
@@ -270,6 +294,10 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
         SCSpinUnlock(&f->fb->s);
         SCMutexUnlock(&f->m);
         SCLogDebug("timeout check failed");
+
+#ifdef FLOW_PRUNE_DEBUG
+        prune_no_timeout++;
+#endif
         return 0;
     }
 
@@ -280,6 +308,10 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
         SCSpinUnlock(&f->fb->s);
         SCMutexUnlock(&f->m);
         SCLogDebug("it is in one of the threads");
+
+#ifdef FLOW_PRUNE_DEBUG
+        prune_usecnt++;
+#endif
         return 0;
     }
 
@@ -1107,6 +1139,16 @@ void *FlowManagerThread(void *td)
     SCLogInfo("%" PRIu32 " new flows, %" PRIu32 " established flows were "
               "timed out, %"PRIu32" flows in closed state", new_cnt,
               established_cnt, closing_cnt);
+
+#ifdef FLOW_PRUNE_DEBUG
+    SCLogInfo("prune_queue_lock %"PRIu64, prune_queue_lock);
+    SCLogInfo("prune_queue_empty %"PRIu64, prune_queue_empty);
+    SCLogInfo("prune_flow_lock %"PRIu64, prune_flow_lock);
+    SCLogInfo("prune_bucket_lock %"PRIu64, prune_bucket_lock);
+    SCLogInfo("prune_no_timeout %"PRIu64, prune_no_timeout);
+    SCLogInfo("prune_usecnt %"PRIu64, prune_usecnt);
+#endif
+
     pthread_exit((void *) 0);
 }
 
