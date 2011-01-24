@@ -159,6 +159,27 @@ threading:
   # On Intel Core2 and Nehalem CPU's enabling this will degrade performance.
   #
   set_cpu_affinity: no
+  # Tune cpu affinity of suricata threads. Each family of threads can be bound
+  # on specific CPUs.
+  cpu_affinity:
+    - management_cpu_set:
+        cpu: [ 0 ]  # include only these cpus in affinity settings
+    - receive_cpu_set:
+        cpu: [ 0 ]  # include only these cpus in affinity settings
+    - decode_cpu_set:
+        cpu: [ 0, 1 ]
+        mode: "balanced"
+    - stream_cpu_set:
+        cpu: [ "0-1" ]
+    - detect_cpu_set:
+        cpu: [ "all" ]
+        mode: "exclusive" # run detect threads in these cpus
+    - verdict_cpu_set:
+        cpu: [ 0 ]
+    - reject_cpu_set:
+        cpu: [ 0 ]
+    - output_cpu_set:
+        cpu: [ "all" ]
   #
   # By default Suricata creates one "detect" thread per available CPU/CPU core.
   # This setting allows controlling this behaviour. A ratio setting of 2 will
