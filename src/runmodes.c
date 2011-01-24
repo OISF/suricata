@@ -3156,9 +3156,6 @@ int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx) {
 int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
     SCEnter();
     char tname[12];
-#if 0
-    uint16_t cpu = 0;
-#endif
 
     /* Available cpus */
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
@@ -3219,13 +3216,6 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
         exit(EXIT_FAILURE);
     }
 
-#if 0
-    /* start with cpu 1 so that if we're creating an odd number of detect
-     * threads we're not creating the most on CPU0. */
-    if (ncpus > 0)
-        cpu = 1;
-#endif
-
     /* always create at least one thread */
     int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
     if (thread_max == 0)
@@ -3256,17 +3246,6 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
         Tm1SlotSetFunc(tv_detect_ncpu,tm_module,(void *)de_ctx);
 
 	TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
-#if 0
-	/* If we have more than one core/cpu, the first Detect thread
-	 * (at cpu 0) will have less priority (higher 'nice' value)
-	 * In this case we will set the thread priority to +10 (default is 0)
-	 */
-	if (cpu == 0 && ncpus > 1) {
-	    TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_LOW);
-	} else if (ncpus > 1) {
-	    TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_MEDIUM);
-	}
-#endif
 
         char *thread_group_name = SCStrdup("Detect");
         if (thread_group_name == NULL) {
