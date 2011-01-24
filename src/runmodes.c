@@ -166,7 +166,7 @@ static void RunModeInitialize(void)
     }
     /* try to get custom cpu mask value if needed */
     if (threading_set_cpu_affinity == TRUE) {
-	AffinitySetupLoadFromConfig();
+        AffinitySetupLoadFromConfig();
     }
     if ((ConfGetFloat("threading.detect_thread_ratio", &threading_detect_ratio)) != 1) {
         threading_detect_ratio = 1;
@@ -3245,7 +3245,7 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
         }
         Tm1SlotSetFunc(tv_detect_ncpu,tm_module,(void *)de_ctx);
 
-	TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
+        TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
 
         char *thread_group_name = SCStrdup("Detect");
         if (thread_group_name == NULL) {

@@ -160,7 +160,7 @@ typedef struct Address_ {
 #define GET_PKT_DATA(p) ((((p)->ext_pkt) == NULL ) ? (p)->pkt : (p)->ext_pkt)
 
 #define SET_PKT_LEN(p, len) do { \
-    (p)->pktlen = len;		 \
+    (p)->pktlen = len; \
     } while (0)
 
 
