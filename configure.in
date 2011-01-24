@@ -424,7 +424,7 @@ esac
     echo "   ERROR!  libnetfilter_queue library not found, go get it"
     echo "   from www.netfilter.org."
     echo "   we automatically append libnetfilter_queue/ when searching"
-    echo "   for headers etc. when the --with-libnfq-inlcudes directive"
+    echo "   for headers etc. when the --with-libnfq-includes directive"
     echo "   is used"
     echo
     exit 1 
