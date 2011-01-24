@@ -55,6 +55,8 @@ typedef struct NFQThreadVars_
     uint16_t nfq_index;
     ThreadVars *tv;
 
+    char buf[70000];
+
 } NFQThreadVars;
 
 typedef struct NFQQueueVars_

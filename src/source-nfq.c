@@ -542,12 +542,11 @@ void *NFQGetThread(int number) {
  * \note separate functions for Linux and Win32 for readability.
  */
 #ifndef OS_WIN32
-void NFQRecvPkt(NFQQueueVars *t) {
+void NFQRecvPkt(NFQQueueVars *t, NFQThreadVars *tv) {
     int rv, ret;
-    char buf[70000];
 
     /* XXX what happens on rv == 0? */
-    rv = recv(t->fd, buf, sizeof(buf), 0);
+    rv = recv(t->fd, tv->buf, sizeof(tv->buf), 0);
 
     if (rv < 0) {
         if (errno == EINTR || errno == EWOULDBLOCK) {
@@ -570,7 +569,7 @@ void NFQRecvPkt(NFQQueueVars *t) {
         //printf("NFQRecvPkt: t %p, rv = %" PRId32 "\n", t, rv);
 
         SCMutexLock(&t->mutex_qh);
-        ret = nfq_handle_packet(t->h, buf, rv);
+        ret = nfq_handle_packet(t->h, tv->buf, rv);
         SCMutexUnlock(&t->mutex_qh);
 
         if (ret != 0) {
@@ -579,9 +578,8 @@ void NFQRecvPkt(NFQQueueVars *t) {
     }
 }
 #else /* WIN32 version of NFQRecvPkt */
-void NFQRecvPkt(NFQQueueVars *t) {
+void NFQRecvPkt(NFQQueueVars *t, NFQThreadVars *tv) {
     int rv, ret;
-    char buf[70000];
     static int timeouted = 0;
 
     if (timeouted) {
@@ -595,7 +593,7 @@ void NFQRecvPkt(NFQQueueVars *t) {
 
 read_packet_again:
 
-    if (!ReadFile(t->fd, buf, sizeof(buf), (DWORD*)&rv, &t->ovr)) {
+    if (!ReadFile(t->fd, tv->buf, sizeof(tv->buf), (DWORD*)&rv, &t->ovr)) {
         if (GetLastError() != ERROR_IO_PENDING) {
             rv = -1;
             errno = EIO;
@@ -664,7 +662,7 @@ TmEcode ReceiveNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
     }
 
     /* do our nfq magic */
-    NFQRecvPkt(nq);
+    NFQRecvPkt(nq, ntv);
 
     return TM_ECODE_OK;
 }
