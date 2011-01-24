@@ -782,6 +782,15 @@ TmEcode TmThreadSetCPU(ThreadVars *tv, uint8_t type) {
     return TM_ECODE_OK;
 }
 
+int TmThreadGetNbThreads(uint8_t type)
+{
+    if (type > MAX_CPU_SET) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid cpu type family");
+        return 0;
+    }
+    return thread_affinity[type].nb_threads;
+}
+
 /**
  * \brief Set the thread options (cpu affinitythread)
  *        Priority should be already set by pthread_create

@@ -2284,7 +2284,9 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
         cpu = 1;
 
     /* always create at least one thread */
-    int thread_max = ncpus * threading_detect_ratio;
+    int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
+    if (thread_max == 0)
+        thread_max = ncpus * threading_detect_ratio;
     if (thread_max < 1)
         thread_max = 1;
 
@@ -2548,7 +2550,9 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
         cpu = 1;
 
     /* always create at least one thread */
-    int thread_max = ncpus * threading_detect_ratio;
+    int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
+    if (thread_max == 0)
+        thread_max = ncpus * threading_detect_ratio;
     if (thread_max < 1)
         thread_max = 1;
 
@@ -2643,7 +2647,9 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx, char *file) {
         cpu = 1;
 
     /* always create at least one thread */
-    int thread_max = ncpus * threading_detect_ratio;
+    int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
+    if (thread_max == 0)
+        thread_max = ncpus * threading_detect_ratio;
     if (thread_max < 1)
         thread_max = 1;
 
@@ -2828,7 +2834,9 @@ int RunModeFilePcapAuto2(DetectEngineCtx *de_ctx, char *file) {
         cpu = 1;
 
     /* always create at least one thread */
-    int thread_max = ncpus * threading_detect_ratio;
+    int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
+    if (thread_max == 0)
+        thread_max = ncpus * threading_detect_ratio;
     if (thread_max < 1)
         thread_max = 1;
 
@@ -3005,7 +3013,9 @@ int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx) {
         cpu = 1;
 
     /* always create at least one thread */
-    int thread_max = ncpus * threading_detect_ratio;
+    int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
+    if (thread_max == 0)
+        thread_max = ncpus * threading_detect_ratio;
     if (thread_max < 1)
         thread_max = 1;
 
@@ -3217,7 +3227,9 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
 #endif
 
     /* always create at least one thread */
-    int thread_max = ncpus * threading_detect_ratio;
+    int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
+    if (thread_max == 0)
+        thread_max = ncpus * threading_detect_ratio;
     if (thread_max < 1)
         thread_max = 1;
 
@@ -3416,7 +3428,9 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx, char *iface) {
         cpu = 1;
 
     /* always create at least one thread */
-    int thread_max = ncpus * threading_detect_ratio;
+    int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
+    if (thread_max == 0)
+        thread_max = ncpus * threading_detect_ratio;
     if (thread_max < 1)
         thread_max = 1;
 
@@ -3589,7 +3603,9 @@ int RunModeErfFileAuto(DetectEngineCtx *de_ctx, char *file)
         cpu = 1;
 
     /* always create at least one thread */
-    int thread_max = ncpus * threading_detect_ratio;
+    int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
+    if (thread_max == 0)
+        thread_max = ncpus * threading_detect_ratio;
     if (thread_max < 1)
         thread_max = 1;
 
@@ -3756,7 +3772,9 @@ int RunModeErfDagAuto(DetectEngineCtx *de_ctx, char *file)
         cpu = 1;
 
     /* always create at least one thread */
-    int thread_max = ncpus * threading_detect_ratio;
+    int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
+    if (thread_max == 0)
+        thread_max = ncpus * threading_detect_ratio;
     if (thread_max < 1)
         thread_max = 1;
 

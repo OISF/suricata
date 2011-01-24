@@ -96,6 +96,7 @@ TmEcode TmThreadSetThreadPriority(ThreadVars *, int);
 TmEcode TmThreadSetCPU(ThreadVars *, uint8_t);
 TmEcode TmThreadSetupOptions(ThreadVars *);
 void TmThreadSetPrio(ThreadVars *);
+int TmThreadGetNbThreads(uint8_t type);
 
 void TmThreadInitMC(ThreadVars *);
 void TmThreadTestThreadUnPaused(ThreadVars *);
