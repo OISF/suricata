@@ -3230,7 +3230,9 @@ int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx) {
 int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
     SCEnter();
     char tname[12];
+#if 0
     uint16_t cpu = 0;
+#endif
 
     /* Available cpus */
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
@@ -3255,11 +3257,7 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
     }
     Tm1SlotSetFunc(tv_receivenfq,tm_module,nfq_id);
 
-    if (threading_set_cpu_affinity) {
-        TmThreadSetCPUAffinity(tv_receivenfq, 0);
-        if (ncpus > 1)
-            TmThreadSetThreadPriority(tv_receivenfq, PRIO_MEDIUM);
-    }
+    TmThreadSetCPU(tv_receivenfq, RECEIVE_CPU_SET);
 
     if (TmThreadSpawn(tv_receivenfq) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -3288,21 +3286,19 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
     }
     TmVarSlotSetFuncAppend(tv_decode,tm_module,NULL);
 
-    if (threading_set_cpu_affinity) {
-        TmThreadSetCPUAffinity(tv_decode, 0);
-        if (ncpus > 1)
-            TmThreadSetThreadPriority(tv_decode, PRIO_MEDIUM);
-    }
+    TmThreadSetCPU(tv_decode, DECODE_CPU_SET);
 
     if (TmThreadSpawn(tv_decode) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
     }
 
+#if 0
     /* start with cpu 1 so that if we're creating an odd number of detect
      * threads we're not creating the most on CPU0. */
     if (ncpus > 0)
         cpu = 1;
+#endif
 
     /* always create at least one thread */
     int thread_max = ncpus * threading_detect_ratio;
@@ -3316,7 +3312,7 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
             break;
 
         char *thread_name = SCStrdup(tname);
-        SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
+        SCLogDebug("Assigning %s affinity", thread_name);
 
         ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,
                 "decode-queue","simple","verdict-queue","simple","1slot");
@@ -3331,18 +3327,18 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
         }
         Tm1SlotSetFunc(tv_detect_ncpu,tm_module,(void *)de_ctx);
 
-        if (threading_set_cpu_affinity) {
-            TmThreadSetCPUAffinity(tv_detect_ncpu, (int)cpu);
-            /* If we have more than one core/cpu, the first Detect thread
-             * (at cpu 0) will have less priority (higher 'nice' value)
-             * In this case we will set the thread priority to +10 (default is 0)
-             */
-            if (cpu == 0 && ncpus > 1) {
-                TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_LOW);
-            } else if (ncpus > 1) {
-                TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_MEDIUM);
-            }
-        }
+	TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
+#if 0
+	/* If we have more than one core/cpu, the first Detect thread
+	 * (at cpu 0) will have less priority (higher 'nice' value)
+	 * In this case we will set the thread priority to +10 (default is 0)
+	 */
+	if (cpu == 0 && ncpus > 1) {
+	    TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_LOW);
+	} else if (ncpus > 1) {
+	    TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_MEDIUM);
+	}
+#endif
 
         char *thread_group_name = SCStrdup("Detect");
         if (thread_group_name == NULL) {
@@ -3355,11 +3351,6 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
             printf("ERROR: TmThreadSpawn failed\n");
             exit(EXIT_FAILURE);
         }
-
-        if ((cpu + 1) == ncpus)
-            cpu = 0;
-        else
-            cpu++;
     }
 
     ThreadVars *tv_verdict = TmThreadCreatePacketHandler("Verdict",
@@ -3382,11 +3373,7 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
     }
     TmVarSlotSetFuncAppend(tv_verdict,tm_module,NULL);
 
-    if (threading_set_cpu_affinity) {
-        TmThreadSetCPUAffinity(tv_verdict, 0);
-        if (ncpus > 1)
-            TmThreadSetThreadPriority(tv_verdict, PRIO_MEDIUM);
-    }
+    TmThreadSetCPU(tv_verdict, VERDICT_CPU_SET);
 
     if (TmThreadSpawn(tv_verdict) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
@@ -3396,11 +3383,8 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
     ThreadVars *tv_outputs = TmThreadCreatePacketHandler("Outputs",
         "alert-queue", "simple", "packetpool", "packetpool", "varslot");
 
-    if (threading_set_cpu_affinity) {
-        TmThreadSetCPUAffinity(tv_outputs, 0);
-        if (ncpus > 1)
-            TmThreadSetThreadPriority(tv_outputs, PRIO_MEDIUM);
-    }
+    TmThreadSetCPU(tv_outputs, OUTPUT_CPU_SET);
+
     SetupOutputs(tv_outputs);
     if (TmThreadSpawn(tv_outputs) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
