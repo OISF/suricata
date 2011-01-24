@@ -33,6 +33,7 @@ enum {
     VERDICT_CPU_SET,
     REJECT_CPU_SET,
     OUTPUT_CPU_SET,
+    MANAGEMENT_CPU_SET,
     MAX_CPU_SET
 };
 

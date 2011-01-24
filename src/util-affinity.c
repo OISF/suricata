@@ -74,6 +74,13 @@ ThreadsAffinityType thread_affinity[MAX_CPU_SET] = {
         .prio = PRIO_MEDIUM,
         .lcpu = 0,
     },
+    {
+        .name = "management_cpu_set",
+        .mode_flag = BALANCED_AFFINITY,
+        .prio = PRIO_MEDIUM,
+        .lcpu = 0,
+    },
+
 };
 
 /**
