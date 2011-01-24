@@ -93,6 +93,7 @@ void TmThreadRemove(ThreadVars *, int);
 
 TmEcode TmThreadSetCPUAffinity(ThreadVars *, uint16_t);
 TmEcode TmThreadSetThreadPriority(ThreadVars *, int);
+TmEcode TmThreadSetCPU(ThreadVars *, uint8_t);
 TmEcode TmThreadSetupOptions(ThreadVars *);
 void TmThreadSetPrio(ThreadVars *);
 

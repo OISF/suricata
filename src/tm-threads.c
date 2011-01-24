@@ -20,6 +20,7 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  * \author Anoop Saldanha <poonaatsoc@gmail.com>
+ * \author Eric Leblond <eleblond@edenwall.com>
  *
  * Thread management functions
  */
@@ -27,6 +28,7 @@
 #include "suricata-common.h"
 #include "suricata.h"
 #include "stream.h"
+#include "runmodes.h"
 #include "threadvars.h"
 #include "tm-queues.h"
 #include "tm-queuehandlers.h"
@@ -38,6 +40,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include "util-privs.h"
+#include "util-cpu.h"
 
 #ifdef OS_FREEBSD
 #include <sched.h>
@@ -660,6 +663,32 @@ void TmVarSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data) {
     }
 }
 
+#ifdef OS_WIN32
+static int SetCPUAffinitySet(uint32_t cs) {
+    return 0;
+}
+#else
+static int SetCPUAffinitySet(cpu_set_t *cs) {
+#ifdef OS_FREEBSD
+    int r = cpuset_setaffinity(CPU_LEVEL_WHICH,CPU_WHICH_TID,SCGetThreadIdLong(),sizeof(cpu_set_t),cs);
+#elif OS_DARWIN
+    int r = thread_policy_set(mach_thread_self(), THREAD_AFFINITY_POLICY, (void*)cs, THREAD_AFFINITY_POLICY_COUNT);
+#else
+    pid_t tid = syscall(SYS_gettid);
+    int r = sched_setaffinity(tid,sizeof(cpu_set_t),cs);
+#endif /* OS_FREEBSD */
+
+    if (r != 0) {
+        printf("Warning: sched_setaffinity failed (%" PRId32 "): %s\n", r, strerror(errno));
+        return -1;
+    }
+
+    return 0;
+}
+#endif
+
+
+
 /**
  * \brief Set the thread affinity on the calling thread
  * \param cpuid id of the core/cpu to setup the affinity
@@ -678,24 +707,18 @@ static int SetCPUAffinity(uint16_t cpuid) {
     CPU_SET(cpu,&cs);
 #endif /* OS_WIN32 */
 
-#ifdef OS_FREEBSD
-    int r = cpuset_setaffinity(CPU_LEVEL_WHICH,CPU_WHICH_TID,SCGetThreadIdLong(),sizeof(cpu_set_t),&cs);
-#elif OS_DARWIN
-    int r = thread_policy_set(mach_thread_self(), THREAD_AFFINITY_POLICY, (void*)&cs, THREAD_AFFINITY_POLICY_COUNT);
-#elif OS_WIN32
-	int r = (0 == SetThreadAffinityMask(GetCurrentThread(), cs));
-#else
-    pid_t tid = syscall(SYS_gettid);
-    int r = sched_setaffinity(tid,sizeof(cpu_set_t),&cs);
-#endif /* OS_FREEBSD */
-
+#ifdef OS_WIN32
+    int r = (0 == SetThreadAffinityMask(GetCurrentThread(), cs));
     if (r != 0) {
-        printf("Warning: sched_setaffinity failed (%" PRId32 "): %s\n", r, strerror(errno));
-        return -1;
+	printf("Warning: sched_setaffinity failed (%" PRId32 "): %s\n", r, strerror(errno));
+	return -1;
     }
     SCLogDebug("CPU Affinity for thread %lu set to CPU %" PRId32, SCGetThreadIdLong(), cpu);
 
     return 0;
+#else
+    return SetCPUAffinitySet(&cs);
+#endif /* OS_WIN32 */
 }
 
 
@@ -745,6 +768,20 @@ TmEcode TmThreadSetCPUAffinity(ThreadVars *tv, uint16_t cpu) {
     return TM_ECODE_OK;
 }
 
+
+TmEcode TmThreadSetCPU(ThreadVars *tv, uint8_t type) {
+    if (! threading_set_cpu_affinity)
+        return TM_ECODE_OK;
+    if (type > MAX_CPU_SET) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid cpu type family");
+        return TM_ECODE_FAILED;
+    }
+
+    tv->thread_setup_flags |= THREAD_SET_AFFTYPE;
+    tv->cpu_affinity = type;
+    return TM_ECODE_OK;
+}
+
 /**
  * \brief Set the thread options (cpu affinitythread)
  *        Priority should be already set by pthread_create
@@ -755,7 +792,19 @@ TmEcode TmThreadSetupOptions(ThreadVars *tv) {
         SCLogInfo("Setting affinity for \"%s\" Module to cpu/core %"PRIu16", thread id %lu", tv->name, tv->cpu_affinity, SCGetThreadIdLong());
         SetCPUAffinity(tv->cpu_affinity);
     }
-    TmThreadSetPrio(tv);
+    if (tv->thread_setup_flags & THREAD_SET_PRIORITY)
+        TmThreadSetPrio(tv);
+    if (tv->thread_setup_flags & THREAD_SET_AFFTYPE) {
+        ThreadsAffinityType *taf = &thread_affinity[tv->cpu_affinity];
+        if (taf->mode_flag == EXCLUSIVE_AFFINITY) {
+            int cpu = AffinityGetNextCPU(taf);
+            SetCPUAffinity(cpu);
+        } else {
+            SetCPUAffinitySet(&taf->cpu_set);
+        }
+        tv->thread_priority = taf->prio;
+        TmThreadSetPrio(tv);
+    }
     return TM_ECODE_OK;
 }
 

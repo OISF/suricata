@@ -98,6 +98,7 @@ typedef struct ThreadVars_ {
 /** Thread setup flags: */
 #define THREAD_SET_AFFINITY     0x01 /** CPU/Core affinity */
 #define THREAD_SET_PRIORITY     0x02 /** Real time priority */
+#define THREAD_SET_AFFTYPE      0x04 /** Priority and affinity */
 
 #endif /* __THREADVARS_H__ */
 
