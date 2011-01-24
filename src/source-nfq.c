@@ -32,6 +32,8 @@
 #include "decode.h"
 #include "packet-queue.h"
 #include "threads.h"
+#include "conf.h"
+#include "conf-yaml-loader.h"
 #include "threadvars.h"
 #include "tm-queuehandlers.h"
 #include "tm-modules.h"
@@ -122,6 +124,14 @@ TmEcode VerdictNFQThreadDeinit(ThreadVars *, void *);
 TmEcode DecodeNFQ(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode DecodeNFQThreadInit(ThreadVars *, void *, void **);
 
+typedef struct NFQCnf_ {
+    int repeat_mode;
+    uint32_t mark;
+    uint32_t mask;
+} NFQCnf;
+
+NFQCnf nfq_config;
+
 void TmModuleReceiveNFQRegister (void) {
     /* XXX create a general NFQ setup function */
     memset(&nfq_g, 0, sizeof(nfq_g));
@@ -151,6 +161,41 @@ void TmModuleDecodeNFQRegister (void) {
     tmm_modules[TMM_DECODENFQ].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODENFQ].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODENFQ].RegisterTests = NULL;
+}
+
+/** \brief          To initialize the NFQ global configuration data
+ *
+ *  \param  quiet   It tells the mode of operation, if it is TRUE nothing will
+ *                  be get printed.
+ */
+void NFQInitConfig(char quiet)
+{
+    intmax_t value = 0;
+
+    SCLogDebug("Initializing NFQ");
+
+    memset(&nfq_config,  0, sizeof(nfq_config));
+    if ((ConfGetBool("nfq.repeat_mode", &nfq_config.repeat_mode)) == 0) {
+        nfq_config.repeat_mode = FALSE;
+    }
+
+    if ((ConfGetInt("nfq.mark", &value)) == 1) {
+        nfq_config.mark = (uint32_t)value;
+    }
+
+    if ((ConfGetInt("nfq.mask", &value)) == 1) {
+        nfq_config.mask = (uint32_t)value;
+    }
+
+    if (!quiet) {
+        if (nfq_config.repeat_mode == TRUE) {
+            SCLogInfo("NFQ running in REPEAT mode with mark %"PRIu32"/%"PRIu32,
+                    nfq_config.mark, nfq_config.mask);
+        } else {
+            SCLogInfo("NFQ running in standard ACCEPT/DROP mode");
+        }
+    }
+
 }
 
 void NFQSetupPkt (Packet *p, void *data)
@@ -656,20 +701,48 @@ void NFQSetVerdict(Packet *p) {
         t->dropped++;
 #endif /* COUNTERS */
     } else {
-        verdict = NF_ACCEPT;
+        if (nfq_config.repeat_mode == FALSE) {
+            verdict = NF_ACCEPT;
+        } else {
+            verdict = NF_REPEAT;
+        }
 #ifdef COUNTERS
         t->accepted++;
 #endif /* COUNTERS */
     }
 
     SCMutexLock(&t->mutex_qh);
-    if (p->flags & PKT_STREAM_MODIFIED) {
-        ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, GET_PKT_LEN(p), GET_PKT_DATA(p));
+    if (nfq_config.repeat_mode == FALSE) {
+        if (p->flags & PKT_STREAM_MODIFIED) {
+            ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, GET_PKT_LEN(p), GET_PKT_DATA(p));
 #ifdef COUNTERS
-        t->replaced++;
+            t->replaced++;
 #endif /* COUNTERS */
+        } else {
+            ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, 0, NULL);
+        }
     } else {
-        ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, 0, NULL);
+#ifdef HAVE_NFQ_SET_VERDICT2
+        if (p->flags & PKT_STREAM_MODIFIED) {
+            ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
+                    (nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask),
+                    GET_PKT_LEN(p), GET_PKT_DATA(p));
+        } else {
+            ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
+                    (nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask),
+                    0, NULL);
+        }
+#else /* fall back to old function */
+        if (p->flags & PKT_STREAM_MODIFIED) {
+            ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
+                    htonl((nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask)),
+                    GET_PKT_LEN(p), GET_PKT_DATA(p));
+        } else {
+            ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
+                    htonl((nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask)),
+                    0, NULL);
+        }
+#endif
     }
     SCMutexUnlock(&t->mutex_qh);
 

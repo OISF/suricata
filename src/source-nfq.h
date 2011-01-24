@@ -96,6 +96,7 @@ typedef struct NFQGlobalVars_
     char unbind;
 } NFQGlobalVars;
 
+void NFQInitConfig(char quiet);
 int NFQRegisterQueue(char *queue);
 int NFQGetQueueCount(void);
 void *NFQGetQueue(int number);

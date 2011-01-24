@@ -836,6 +836,11 @@ int main(int argc, char **argv)
     }
     SCLogDebug("Default packet size set to %"PRIiMAX, default_packet_size);
 
+#ifdef NFQ
+    if (run_mode == MODE_NFQ)
+        NFQInitConfig(FALSE);
+#endif
+
     /* Since our config is now loaded we can finish configurating the
      * logging module. */
     SCLogLoadConfig();

@@ -96,6 +96,16 @@ outputs:
       filename: stats.log
       interval: 8
 
+# When running in NFQ inline mode, it is possible to use a simulated
+# non-terminal NFQUEUE verdict.
+# This permit to do send all needed packet to suricata via this a rule:
+#        iptables -I FORWARD -m mark ! --mark $MARK/$MASK -j NFQUEUE
+# And below, you can have your standard filtering ruleset.
+nfq:
+#  repeat_mode: true
+#  mark: 1
+#  mask: 1
+
 defrag:
   max-frags: 65535
   prealloc: yes
