@@ -53,5 +53,8 @@ int RunModeErfDagAuto(DetectEngineCtx *, char *);
 void RunModeShutDown(void);
 
 int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx, char *file);
+
+
+int threading_set_cpu_affinity;
 #endif /* __RUNMODES_H__ */
 

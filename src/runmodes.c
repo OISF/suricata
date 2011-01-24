@@ -33,6 +33,7 @@
 #include "util-affinity.h"
 #include "conf.h"
 #include "queue.h"
+#include "runmodes.h"
 
 #include "alert-fastlog.h"
 #include "alert-prelude.h"
@@ -152,7 +153,6 @@ static void SetupOutputs(ThreadVars *tv)
     }
 }
 
-static int threading_set_cpu_affinity = FALSE;
 static float threading_detect_ratio = 1;
 
 /**
@@ -160,8 +160,13 @@ static float threading_detect_ratio = 1;
  */
 static void RunModeInitialize(void)
 {
+    threading_set_cpu_affinity = FALSE;
     if ((ConfGetBool("threading.set_cpu_affinity", &threading_set_cpu_affinity)) == 0) {
         threading_set_cpu_affinity = FALSE;
+    }
+    /* try to get custom cpu mask value if needed */
+    if (threading_set_cpu_affinity == TRUE) {
+	AffinitySetupLoadFromConfig();
     }
     if ((ConfGetFloat("threading.detect_thread_ratio", &threading_detect_ratio)) != 1) {
         threading_detect_ratio = 1;
