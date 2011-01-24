@@ -242,6 +242,13 @@ int AppLayerHandleTCPMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
 {
     SCEnter();
 
+#ifdef PRINT
+    printf("=> Init Stream Data -- start %s%s\n",
+            smsg->flags & STREAM_TOCLIENT ? "toclient" : "",
+            smsg->flags & STREAM_TOSERVER ? "toserver" : "");
+    PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+    printf("=> Init Stream Data -- end\n");
+#endif
     SCLogDebug("smsg %p", smsg);
     BUG_ON(smsg->flow == NULL);
 
