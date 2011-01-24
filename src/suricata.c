@@ -668,7 +668,7 @@ int main(int argc, char **argv)
             }
             if (stat(optarg, &buf) != 0) {
                 SCLogError(SC_ERR_LOGDIR_CMDLINE, "The logging directory \"%s\" "
-                        "upplied at the commandline (-l %s) doesn't "
+                        "supplied at the commandline (-l %s) doesn't "
                         "exist. Shutting down the engine.", optarg, optarg);
                 exit(EXIT_FAILURE);
             }
@@ -678,11 +678,16 @@ int main(int argc, char **argv)
             if (run_mode == MODE_UNKNOWN) {
                 run_mode = MODE_NFQ;
                 SET_ENGINE_MODE_IPS(engine_mode);
+                if (NFQRegisterQueue(optarg) == -1)
+                    exit(EXIT_FAILURE);
+            } else if (run_mode == MODE_NFQ) {
+                if (NFQRegisterQueue(optarg) == -1)
+                    exit(EXIT_FAILURE);
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                                                      "has been specified");
                 usage(argv[0]);
-                exit(EXIT_SUCCESS);
+                exit(EXIT_FAILURE);
             }
             nfq_id = optarg;
 #else
