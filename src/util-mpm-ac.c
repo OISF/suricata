@@ -997,8 +997,8 @@ int SCACPreparePatterns(MpmCtx *mpm_ctx)
             else
                 ctx->pid_pat_list[ctx->parray[i]->id].case_state = 3;
         } else {
-            if (memcmp(ctx->parray[i]->original_pat, ctx->parray[i]->ci,
-                       ctx->parray[i]->len) != 0) {
+            //if (memcmp(ctx->parray[i]->original_pat, ctx->parray[i]->ci,
+            //           ctx->parray[i]->len) != 0) {
                 ctx->pid_pat_list[ctx->parray[i]->id].cs = malloc(ctx->parray[i]->len);
                 if (ctx->pid_pat_list[ctx->parray[i]->id].cs == NULL) {
                     SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
@@ -1014,7 +1014,7 @@ int SCACPreparePatterns(MpmCtx *mpm_ctx)
                     ctx->pid_pat_list[ctx->parray[i]->id].case_state = 2;
                 else
                     ctx->pid_pat_list[ctx->parray[i]->id].case_state = 3;
-            }
+                //}
         }
     }
 
