@@ -131,6 +131,7 @@ typedef struct NFQCnf_ {
     int repeat_mode;
     uint32_t mark;
     uint32_t mask;
+    uint32_t next_queue;
 } NFQCnf;
 
 NFQCnf nfq_config;
@@ -188,6 +189,10 @@ void NFQInitConfig(char quiet)
 
     if ((ConfGetInt("nfq.mask", &value)) == 1) {
         nfq_config.mask = (uint32_t)value;
+    }
+
+    if ((ConfGetInt("nfq.next_queue", &value)) == 1) {
+        nfq_config.next_queue = ((uint32_t)value) << 16;
     }
 
     if (!quiet) {
@@ -725,7 +730,11 @@ void NFQSetVerdict(Packet *p) {
 #endif /* COUNTERS */
     } else {
         if (nfq_config.repeat_mode == FALSE) {
-            verdict = NF_ACCEPT;
+            if (nfq_config.next_queue) {
+                verdict = ((uint32_t) NF_QUEUE) | nfq_config.next_queue;
+            } else {
+                verdict = NF_ACCEPT;
+            }
         } else {
             verdict = NF_REPEAT;
         }
