@@ -185,7 +185,7 @@ util-optimize.h \
 util-privs.c util-privs.h \
 util-decode-asn1.c util-decode-asn1.h \
 util-ringbuffer.c util-ringbuffer.h \
-util-validate.h \
+util-validate.h util-affinity.h util-affinity.c \
 util-memcmp.c util-memcmp.h \
 util-proto-name.c util-proto-name.h \
 tm-modules.c tm-modules.h \
