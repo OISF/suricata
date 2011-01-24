@@ -2176,6 +2176,66 @@ static int SCACTest26(void)
     return result;
 }
 
+static int SCACTest27(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC, -1);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* 0 match */
+    SCACAddPatternCS(&mpm_ctx, (uint8_t *)"ONE", 3, 0, 0, 0, 0, 0);
+
+    SCACPreparePatterns(&mpm_ctx);
+
+    char *buf = "tone";
+    uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 0)
+        result = 1;
+    else
+        printf("0 != %" PRIu32 " ",cnt);
+
+    SCACDestroyCtx(&mpm_ctx);
+    SCACDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
+static int SCACTest28(void)
+{
+    int result = 0;
+    MpmCtx mpm_ctx;
+    MpmThreadCtx mpm_thread_ctx;
+
+    memset(&mpm_ctx, 0, sizeof(MpmCtx));
+    memset(&mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+    MpmInitCtx(&mpm_ctx, MPM_AC, -1);
+    SCACInitThreadCtx(&mpm_ctx, &mpm_thread_ctx, 0);
+
+    /* 0 match */
+    SCACAddPatternCS(&mpm_ctx, (uint8_t *)"one", 3, 0, 0, 0, 0, 0);
+
+    SCACPreparePatterns(&mpm_ctx);
+
+    char *buf = "tONE";
+    uint32_t cnt = SCACSearch(&mpm_ctx, &mpm_thread_ctx, NULL,
+                               (uint8_t *)buf, strlen(buf));
+
+    if (cnt == 0)
+        result = 1;
+    else
+        printf("0 != %" PRIu32 " ",cnt);
+
+    SCACDestroyCtx(&mpm_ctx);
+    SCACDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void SCACRegisterTests(void)
@@ -2208,6 +2268,8 @@ void SCACRegisterTests(void)
     UtRegisterTest("SCACTest24", SCACTest24, 1);
     UtRegisterTest("SCACTest25", SCACTest25, 1);
     UtRegisterTest("SCACTest26", SCACTest26, 1);
+    UtRegisterTest("SCACTest27", SCACTest27, 1);
+    UtRegisterTest("SCACTest28", SCACTest28, 1);
 #endif
 
     return;
