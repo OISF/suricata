@@ -799,10 +799,22 @@ TmEcode TmThreadSetupOptions(ThreadVars *tv) {
         if (taf->mode_flag == EXCLUSIVE_AFFINITY) {
             int cpu = AffinityGetNextCPU(taf);
             SetCPUAffinity(cpu);
+            /* If CPU is in a set overwrite the default thread prio */
+            if (CPU_ISSET(cpu, &taf->lowprio_cpu)) {
+                tv->thread_priority = PRIO_LOW;
+            } else if (CPU_ISSET(cpu, &taf->medprio_cpu)) {
+                tv->thread_priority = PRIO_MEDIUM;
+            }  else if (CPU_ISSET(cpu, &taf->hiprio_cpu)) {
+                tv->thread_priority = PRIO_HIGH;
+            } else {
+                tv->thread_priority = taf->prio;
+            }
+            SCLogInfo("Setting prio %d for \"%s\" Module to cpu/core %"PRIu16", thread id %lu",
+                  tv->thread_priority, tv->name, cpu, SCGetThreadIdLong());
         } else {
             SetCPUAffinitySet(&taf->cpu_set);
+            tv->thread_priority = taf->prio;
         }
-        tv->thread_priority = taf->prio;
         TmThreadSetPrio(tv);
     }
     return TM_ECODE_OK;

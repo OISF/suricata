@@ -174,12 +174,19 @@ threading:
     - detect_cpu_set:
         cpu: [ "all" ]
         mode: "exclusive" # run detect threads in these cpus
+        low_prio: [ 0 ]
+        medium_prio: [ "1-2" ]
+        high_prio: [ 3 ]
+        prio: "medium"
     - verdict_cpu_set:
         cpu: [ 0 ]
+        prio: "high"
     - reject_cpu_set:
         cpu: [ 0 ]
+        prio: "low"
     - output_cpu_set:
         cpu: [ "all" ]
+        prio: "medium"
   #
   # By default Suricata creates one "detect" thread per available CPU/CPU core.
   # This setting allows controlling this behaviour. A ratio setting of 2 will

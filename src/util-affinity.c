@@ -115,6 +115,59 @@ static void AffinitySetupInit()
     return;
 }
 
+static void build_cpuset(ConfNode *node, cpu_set_t *cpu)
+{
+    ConfNode *lnode;
+    TAILQ_FOREACH(lnode, &node->head, next) {
+        int i;
+        long int a,b;
+        int stop = 0;
+        if (!strcmp(lnode->val, "all")) {
+            a = 0;
+            b = UtilCpuGetNumProcessorsConfigured();
+            stop = 1;
+        } else if (index(lnode->val, '-') != NULL) {
+            char *sep = index(lnode->val, '-');
+            char *end;
+            a = strtoul(lnode->val, &end, 10);
+            if (end != sep) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                        "invalid cpu range (start invalid): \"%s\"",
+                        lnode->val);
+                exit(EXIT_FAILURE);
+            }
+            b = strtol(sep + 1, &end, 10);
+            if (end != sep + strlen(sep)) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                        "invalid cpu range (end invalid): \"%s\"",
+                        lnode->val);
+                exit(EXIT_FAILURE);
+            }
+            if (a > b) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                        "invalid cpu range (bad order): \"%s\"",
+                        lnode->val);
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            char *end;
+            a = strtoul(lnode->val, &end, 10);
+            if (end != lnode->val + strlen(lnode->val)) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT,
+                        "invalid cpu range (not an integer): \"%s\"",
+                        lnode->val);
+                exit(EXIT_FAILURE);
+            }
+            b = a;
+        }
+        for (i = a; i<= b; i++) {
+            CPU_SET(i, cpu);
+        }
+        if (stop)
+            break;
+    }
+}
+
 /**
  * \brief Extract cpu affinity configuration from current config file
  */
@@ -135,7 +188,6 @@ void AffinitySetupLoadFromConfig()
     TAILQ_FOREACH(affinity, &root->head, next) {
         ThreadsAffinityType *taf = GetAffinityTypeFromName(affinity->val);
         ConfNode *node = NULL;
-        ConfNode *lnode;
 
         if (taf == NULL) {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "unknown cpu_affinity type");
@@ -144,62 +196,39 @@ void AffinitySetupLoadFromConfig()
             SCLogInfo("Found affinity definition for \"%s\"",
                       affinity->val);
         }
+
         CPU_ZERO(&taf->cpu_set);
-
         node = ConfNodeLookupChild(affinity->head.tqh_first, "cpu");
-
         if (node == NULL) {
             SCLogInfo("unable to find 'cpu'");
         } else {
-            TAILQ_FOREACH(lnode, &node->head, next) {
-                int i;
-                long int a,b;
-                int stop = 0;
-                if (!strcmp(lnode->val, "all")) {
-                    a = 0;
-                    b = UtilCpuGetNumProcessorsConfigured();
-                    stop = 1;
-                } else if (index(lnode->val, '-') != NULL) {
-                    char *sep = index(lnode->val, '-');
-                    char *end;
-                    a = strtoul(lnode->val, &end, 10);
-                    if (end != sep) {
-                        SCLogError(SC_ERR_INVALID_ARGUMENT,
-                                "invalid cpu range (start invalid): \"%s\"",
-                                lnode->val);
-                        exit(EXIT_FAILURE);
-                    }
-                    b = strtol(sep + 1, &end, 10);
-                    if (end != sep + strlen(sep)) {
-                        SCLogError(SC_ERR_INVALID_ARGUMENT,
-                                "invalid cpu range (end invalid): \"%s\"",
-                                lnode->val);
-                        exit(EXIT_FAILURE);
-                    }
-                    if (a > b) {
-                        SCLogError(SC_ERR_INVALID_ARGUMENT,
-                                "invalid cpu range (bad order): \"%s\"",
-                                lnode->val);
-                        exit(EXIT_FAILURE);
-                    }
-                } else {
-                    char *end;
-                    a = strtoul(lnode->val, &end, 10);
-                    if (end != lnode->val + strlen(lnode->val)) {
-                        SCLogError(SC_ERR_INVALID_ARGUMENT,
-                                "invalid cpu range (not an integer): \"%s\"",
-                                lnode->val);
-                        exit(EXIT_FAILURE);
-                    }
-                    b = a;
-                }
-                for (i = a; i<= b; i++) {
-                    CPU_SET(i, &taf->cpu_set);
-                }
-                if (stop)
-                    break;
-            }
+            build_cpuset(node, &taf->cpu_set);
         }
+
+        CPU_ZERO(&taf->lowprio_cpu);
+        node = ConfNodeLookupChild(affinity->head.tqh_first, "low_prio");
+        if (node == NULL) {
+            SCLogDebug("unable to find 'low_prio' using default value");
+        } else {
+            build_cpuset(node, &taf->lowprio_cpu);
+        }
+
+        CPU_ZERO(&taf->medprio_cpu);
+        node = ConfNodeLookupChild(affinity->head.tqh_first, "medium_prio");
+        if (node == NULL) {
+            SCLogDebug("unable to find 'medium_prio' using default value");
+        } else {
+            build_cpuset(node, &taf->medprio_cpu);
+        }
+
+        CPU_ZERO(&taf->hiprio_cpu);
+        node = ConfNodeLookupChild(affinity->head.tqh_first, "high_prio");
+        if (node == NULL) {
+            SCLogDebug("unable to find 'high_prio' using default value");
+        } else {
+            build_cpuset(node, &taf->hiprio_cpu);
+        }
+
 
         node = ConfNodeLookupChild(affinity->head.tqh_first, "mode");
         if (node != NULL) {
