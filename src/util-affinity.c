@@ -124,7 +124,7 @@ static void build_cpuset(ConfNode *node, cpu_set_t *cpu)
         int stop = 0;
         if (!strcmp(lnode->val, "all")) {
             a = 0;
-            b = UtilCpuGetNumProcessorsConfigured();
+            b = UtilCpuGetNumProcessorsOnline() - 1;
             stop = 1;
         } else if (index(lnode->val, '-') != NULL) {
             char *sep = index(lnode->val, '-');
@@ -188,6 +188,7 @@ void AffinitySetupLoadFromConfig()
     TAILQ_FOREACH(affinity, &root->head, next) {
         ThreadsAffinityType *taf = GetAffinityTypeFromName(affinity->val);
         ConfNode *node = NULL;
+        ConfNode *nprio = NULL;
 
         if (taf == NULL) {
             SCLogError(SC_ERR_INVALID_ARGUMENT, "unknown cpu_affinity type");
@@ -206,29 +207,45 @@ void AffinitySetupLoadFromConfig()
         }
 
         CPU_ZERO(&taf->lowprio_cpu);
-        node = ConfNodeLookupChild(affinity->head.tqh_first, "low_prio");
-        if (node == NULL) {
-            SCLogDebug("unable to find 'low_prio' using default value");
-        } else {
-            build_cpuset(node, &taf->lowprio_cpu);
-        }
-
         CPU_ZERO(&taf->medprio_cpu);
-        node = ConfNodeLookupChild(affinity->head.tqh_first, "medium_prio");
-        if (node == NULL) {
-            SCLogDebug("unable to find 'medium_prio' using default value");
-        } else {
-            build_cpuset(node, &taf->medprio_cpu);
-        }
-
         CPU_ZERO(&taf->hiprio_cpu);
-        node = ConfNodeLookupChild(affinity->head.tqh_first, "high_prio");
-        if (node == NULL) {
-            SCLogDebug("unable to find 'high_prio' using default value");
-        } else {
-            build_cpuset(node, &taf->hiprio_cpu);
-        }
+        nprio = ConfNodeLookupChild(affinity->head.tqh_first, "prio");
+        if (nprio != NULL) {
+            node = ConfNodeLookupChild(nprio, "low");
+            if (node == NULL) {
+                SCLogDebug("unable to find 'low' prio using default value");
+            } else {
+                build_cpuset(node, &taf->lowprio_cpu);
+            }
 
+            node = ConfNodeLookupChild(nprio, "medium");
+            if (node == NULL) {
+                SCLogDebug("unable to find 'medium' prio using default value");
+            } else {
+                build_cpuset(node, &taf->medprio_cpu);
+            }
+
+            node = ConfNodeLookupChild(nprio, "high");
+            if (node == NULL) {
+                SCLogDebug("unable to find 'high' prio using default value");
+            } else {
+                build_cpuset(node, &taf->hiprio_cpu);
+            }
+            node = ConfNodeLookupChild(nprio, "default");
+            if (node != NULL) {
+                if (!strcmp(node->val, "low")) {
+                    taf->prio = PRIO_LOW;
+                } else if (!strcmp(node->val, "medium")) {
+                    taf->prio = PRIO_MEDIUM;
+                } else if (!strcmp(node->val, "high")) {
+                    taf->prio = PRIO_HIGH;
+                } else {
+                    SCLogError(SC_ERR_INVALID_ARGUMENT, "unknown cpu_affinity prio");
+                    exit(EXIT_FAILURE);
+                }
+                SCLogInfo("Using default prio '%s'", node->val);
+            }
+        }
 
         node = ConfNodeLookupChild(affinity->head.tqh_first, "mode");
         if (node != NULL) {
@@ -238,20 +255,6 @@ void AffinitySetupLoadFromConfig()
                 taf->mode_flag = BALANCED_AFFINITY;
             } else {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "unknown cpu_affinity node");
-                exit(EXIT_FAILURE);
-            }
-        }
-
-        node = ConfNodeLookupChild(affinity->head.tqh_first, "prio");
-        if (node != NULL) {
-            if (!strcmp(node->val, "low")) {
-                taf->prio = PRIO_LOW;
-            } else if (!strcmp(node->val, "medium")) {
-                taf->prio = PRIO_MEDIUM;
-            } else if (!strcmp(node->val, "high")) {
-                taf->prio = PRIO_HIGH;
-            } else {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "unknown cpu_affinity prio");
                 exit(EXIT_FAILURE);
             }
         }

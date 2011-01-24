@@ -47,7 +47,7 @@ typedef struct ThreadsAffinityType_ {
     char *name;
     cpu_set_t cpu_set;
     uint8_t mode_flag;
-    uint8_t prio;
+    int prio;
     int nb_threads;
     cpu_set_t lowprio_cpu;
     cpu_set_t medprio_cpu;
