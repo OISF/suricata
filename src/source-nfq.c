@@ -96,6 +96,9 @@ TmEcode NoNFQSupportExit(ThreadVars *tv, void *initdata, void **data)
 
 extern int max_pending_packets;
 
+#define MAX_ALREADY_TREATED 5
+int already_seen_warning;
+
 #define NFQ_BURST_FACTOR 4
 
 #ifndef SOL_NETLINK
@@ -198,7 +201,7 @@ void NFQInitConfig(char quiet)
 
 }
 
-void NFQSetupPkt (Packet *p, void *data)
+int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
 {
     struct nfq_data *tb = (struct nfq_data *)data;
     int ret;
@@ -212,10 +215,20 @@ void NFQSetupPkt (Packet *p, void *data)
         p->nfq_v.hw_protocol = ph->hw_protocol;
     }
     p->nfq_v.mark = nfq_get_nfmark(tb);
+    if (nfq_config.repeat_mode == TRUE) {
+            if ((nfq_config.mark & nfq_config.mask) ==
+                    (p->nfq_v.mark & nfq_config.mask)) {
+                if (already_seen_warning < MAX_ALREADY_TREATED)
+                    SCLogInfo("Packet seems already treated by suricata");
+                already_seen_warning++;
+                ret = nfq_set_verdict(qh, p->nfq_v.id, NF_ACCEPT, 0, NULL);
+                return -1 ;
+            }
+    }
     p->nfq_v.ifi  = nfq_get_indev(tb);
     p->nfq_v.ifo  = nfq_get_outdev(tb);
 
-    ret = nfq_get_payload(tb, &pktdata);
+    ret = nfq_get_payload(tb, (unsigned char **) &pktdata);
     if (ret > 0) {
         /* nfq_get_payload returns a pointer to a part of memory
          * that is not preserved over the lifetime of our packet.
@@ -242,7 +255,7 @@ void NFQSetupPkt (Packet *p, void *data)
     }
 
     p->datalink = DLT_RAW;
-    return;
+    return 0;
 }
 
 static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
@@ -250,6 +263,7 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
 {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
     ThreadVars *tv = ntv->tv;
+    int ret;
 
     /* grab a packet */
     Packet *p = PacketGetFromQueueOrAlloc();
@@ -258,7 +272,18 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     }
 
     p->nfq_v.nfq_index = ntv->nfq_index;
-    NFQSetupPkt(p, (void *)nfa);
+    ret = NFQSetupPkt(p, qh, (void *)nfa);
+    if (ret == -1) {
+#ifdef COUNTERS
+        NFQQueueVars *nfq_q = NFQGetQueue(ntv->nfq_index);
+        nfq_q->errs++;
+        nfq_q->pkts++;
+        nfq_q->bytes += GET_PKT_LEN(p);
+#endif /* COUNTERS */
+        /* recycle Packet and leave */
+        PACKET_RECYCLE(p);
+        return 0;
+    }
 
 #ifdef COUNTERS
     NFQQueueVars *nfq_q = NFQGetQueue(ntv->nfq_index);
