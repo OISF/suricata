@@ -30,6 +30,7 @@
 #include "util-time.h"
 #include "util-cpu.h"
 #include "util-byte.h"
+#include "util-affinity.h"
 #include "conf.h"
 #include "queue.h"
 

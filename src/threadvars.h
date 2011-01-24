@@ -25,6 +25,7 @@
 #define __THREADVARS_H__
 
 #include "util-mpm.h"
+#include "util-affinity.h"
 #include "tm-queues.h"
 #include "counters.h"
 #include "threads.h"
