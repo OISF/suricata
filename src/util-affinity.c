@@ -243,20 +243,27 @@ void AffinitySetupLoadFromConfig()
         }
 
         node = ConfNodeLookupChild(affinity->head.tqh_first, "prio");
-        if (node == NULL)
-            continue;
-        if (!strcmp(node->val, "low")) {
-            taf->prio = PRIO_LOW;
-        } else if (!strcmp(node->val, "medium")) {
-            taf->prio = PRIO_MEDIUM;
-        } else if (!strcmp(node->val, "high")) {
-            taf->prio = PRIO_HIGH;
-        } else {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "unknown cpu_affinity prio");
-            exit(EXIT_FAILURE);
+        if (node != NULL) {
+            if (!strcmp(node->val, "low")) {
+                taf->prio = PRIO_LOW;
+            } else if (!strcmp(node->val, "medium")) {
+                taf->prio = PRIO_MEDIUM;
+            } else if (!strcmp(node->val, "high")) {
+                taf->prio = PRIO_HIGH;
+            } else {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "unknown cpu_affinity prio");
+                exit(EXIT_FAILURE);
+            }
         }
 
-
+        node = ConfNodeLookupChild(affinity->head.tqh_first, "threads");
+        if (node != NULL) {
+            taf->nb_threads = atoi(node->val);
+            if (! taf->nb_threads) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "bad value for threads count");
+                exit(EXIT_FAILURE);
+            }
+        }
     }
 }
 
