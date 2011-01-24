@@ -292,8 +292,6 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint32_t queue_maxlen)
         return TM_ECODE_FAILED;
     }
 
-    /* XXX detect this at configure time & make it an option */
-#define HAVE_NFQ_MAXLEN
 #ifdef HAVE_NFQ_MAXLEN
     if (queue_maxlen > 0) {
         SCLogInfo("setting queue length to %" PRId32 "", queue_maxlen);

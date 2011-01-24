@@ -412,6 +412,9 @@ case $host in
 ;;
 *)
     AC_CHECK_LIB(netfilter_queue, nfq_open,, NFQ="no",)
+    AC_CHECK_LIB([netfilter_queue], [nfq_set_queue_maxlen],AC_DEFINE_UNQUOTED([HAVE_NFQ_MAXLEN],[1],[Found queue max length support in netfilter_queue]) ,,[-lnfnetlink])
+
+
 ;;
 esac
 
