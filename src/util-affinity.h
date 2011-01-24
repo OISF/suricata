@@ -52,6 +52,7 @@ typedef struct ThreadsAffinityType_ {
     cpu_set_t lowprio_cpu;
     cpu_set_t medprio_cpu;
     cpu_set_t hiprio_cpu;
+    SCMutex taf_mutex;
     uint16_t lcpu; /* use by exclusive mode */
 } ThreadsAffinityType;
 

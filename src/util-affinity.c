@@ -110,6 +110,7 @@ static void AffinitySetupInit()
         for (j = 0; j < ncpu; j++) {
             CPU_SET(j, cs);
         }
+	SCMutexInit(&thread_affinity[i].taf_mutex, NULL);
     }
 
     return;
@@ -276,7 +277,10 @@ void AffinitySetupLoadFromConfig()
  */
 int AffinityGetNextCPU(ThreadsAffinityType *taf)
 {
-    int ncpu = taf->lcpu;
+    int ncpu = 0;
+
+    SCMutexLock(&taf->taf_mutex);
+    ncpu = taf->lcpu;
     while (!CPU_ISSET(ncpu, &taf->cpu_set)) {
         ncpu++;
         if (ncpu >= UtilCpuGetNumProcessorsOnline())
@@ -285,5 +289,7 @@ int AffinityGetNextCPU(ThreadsAffinityType *taf)
     taf->lcpu = ncpu + 1;
     if (taf->lcpu >= UtilCpuGetNumProcessorsOnline())
         taf->lcpu = 0;
+    SCMutexUnlock(&taf->taf_mutex);
+    SCLogInfo("Setting affinity on CPU %d", ncpu);
     return ncpu;
 }
