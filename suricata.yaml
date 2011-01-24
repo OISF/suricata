@@ -100,11 +100,15 @@ outputs:
 # non-terminal NFQUEUE verdict.
 # This permit to do send all needed packet to suricata via this a rule:
 #        iptables -I FORWARD -m mark ! --mark $MARK/$MASK -j NFQUEUE
-# And below, you can have your standard filtering ruleset.
+# And below, you can have your standard filtering ruleset. To activate
+# this mode, you need to set mode to 'repeat'
+# If you want packet to be sent to another queue after an ACCEPT decision
+# set mode to 'route' and set next_queue value.
 nfq:
-#  repeat_mode: true
-#  mark: 1
-#  mask: 1
+#  mode: accept
+#  repeat_mark: 1
+#  repeat_mask: 1
+#  route_queue: 2
 
 defrag:
   max-frags: 65535

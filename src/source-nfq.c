@@ -33,6 +33,7 @@
 #include "packet-queue.h"
 #include "threads.h"
 #include "conf.h"
+#include "config.h"
 #include "conf-yaml-loader.h"
 #include "threadvars.h"
 #include "tm-queuehandlers.h"
@@ -127,8 +128,14 @@ TmEcode VerdictNFQThreadDeinit(ThreadVars *, void *);
 TmEcode DecodeNFQ(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode DecodeNFQThreadInit(ThreadVars *, void *, void **);
 
+typedef enum NFQMode_ {
+    NFQ_ACCEPT_MODE,
+    NFQ_REPEAT_MODE,
+    NFQ_ROUTE_MODE,
+} NFQMode;
+
 typedef struct NFQCnf_ {
-    int repeat_mode;
+    NFQMode mode;
     uint32_t mark;
     uint32_t mask;
     uint32_t next_queue;
@@ -175,32 +182,52 @@ void TmModuleDecodeNFQRegister (void) {
 void NFQInitConfig(char quiet)
 {
     intmax_t value = 0;
+    char* nfq_mode = NULL;
 
     SCLogDebug("Initializing NFQ");
 
     memset(&nfq_config,  0, sizeof(nfq_config));
-    if ((ConfGetBool("nfq.repeat_mode", &nfq_config.repeat_mode)) == 0) {
-        nfq_config.repeat_mode = FALSE;
+
+    if ((ConfGet("nfq.mode", &nfq_mode)) == 0) {
+        nfq_config.mode = NFQ_ACCEPT_MODE;
+    } else {
+        if (!strcmp("accept", nfq_mode)) {
+            nfq_config.mode = NFQ_ACCEPT_MODE;
+        } else if (!strcmp("repeat", nfq_mode)) {
+            nfq_config.mode = NFQ_REPEAT_MODE;
+        }  else if (!strcmp("route", nfq_mode)) {
+            nfq_config.mode = NFQ_ROUTE_MODE;
+        } else {
+            SCLogError(SC_LOG_ERROR, "Unknown nfq.mode");
+            exit(EXIT_FAILURE);
+        }
     }
 
-    if ((ConfGetInt("nfq.mark", &value)) == 1) {
+    if ((ConfGetInt("nfq.repeat_mark", &value)) == 1) {
         nfq_config.mark = (uint32_t)value;
     }
 
-    if ((ConfGetInt("nfq.mask", &value)) == 1) {
+    if ((ConfGetInt("nfq.repeat_mask", &value)) == 1) {
         nfq_config.mask = (uint32_t)value;
     }
 
-    if ((ConfGetInt("nfq.next_queue", &value)) == 1) {
+    if ((ConfGetInt("nfq.route_queue", &value)) == 1) {
         nfq_config.next_queue = ((uint32_t)value) << 16;
     }
 
     if (!quiet) {
-        if (nfq_config.repeat_mode == TRUE) {
-            SCLogInfo("NFQ running in REPEAT mode with mark %"PRIu32"/%"PRIu32,
-                    nfq_config.mark, nfq_config.mask);
-        } else {
-            SCLogInfo("NFQ running in standard ACCEPT/DROP mode");
+        switch (nfq_config.mode) {
+            case NFQ_ACCEPT_MODE:
+                SCLogInfo("NFQ running in standard ACCEPT/DROP mode");
+                break;
+            case NFQ_REPEAT_MODE:
+                SCLogInfo("NFQ running in REPEAT mode with mark %"PRIu32"/%"PRIu32,
+                        nfq_config.mark, nfq_config.mask);
+                break;
+            case NFQ_ROUTE_MODE:
+                SCLogInfo("NFQ running in route mode with next queue %"PRIu32,
+                        nfq_config.next_queue);
+            break;
         }
     }
 
@@ -220,7 +247,7 @@ int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
         p->nfq_v.hw_protocol = ph->hw_protocol;
     }
     p->nfq_v.mark = nfq_get_nfmark(tb);
-    if (nfq_config.repeat_mode == TRUE) {
+    if (nfq_config.mode == NFQ_REPEAT_MODE) {
             if ((nfq_config.mark & nfq_config.mask) ==
                     (p->nfq_v.mark & nfq_config.mask)) {
                 if (already_seen_warning < MAX_ALREADY_TREATED)
@@ -286,7 +313,7 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
         nfq_q->bytes += GET_PKT_LEN(p);
 #endif /* COUNTERS */
         /* recycle Packet and leave */
-        PACKET_RECYCLE(p);
+        TmqhOutputPacketpool(tv, p);
         return 0;
     }
 
@@ -715,8 +742,8 @@ void ReceiveNFQThreadExitStats(ThreadVars *tv, void *data) {
  * \brief NFQ verdict function
  */
 void NFQSetVerdict(Packet *p) {
-    int ret;
-    uint32_t verdict;
+    int ret = 0;
+    uint32_t verdict = NF_ACCEPT;
     NFQQueueVars *t = nfq_q + p->nfq_v.nfq_index;
 
     //printf("%p verdicting on queue %" PRIu32 "\n", t, t->queue_num);
@@ -729,52 +756,62 @@ void NFQSetVerdict(Packet *p) {
         t->dropped++;
 #endif /* COUNTERS */
     } else {
-        if (nfq_config.repeat_mode == FALSE) {
-            if (nfq_config.next_queue) {
-                verdict = ((uint32_t) NF_QUEUE) | nfq_config.next_queue;
-            } else {
+        switch (nfq_config.mode) {
+            case NFQ_ACCEPT_MODE:
                 verdict = NF_ACCEPT;
-            }
-        } else {
-            verdict = NF_REPEAT;
+                break;
+            case NFQ_REPEAT_MODE:
+                verdict = NF_REPEAT;
+                break;
+            case NFQ_ROUTE_MODE:
+                verdict = ((uint32_t) NF_QUEUE) | nfq_config.next_queue;
+                break;
         }
 #ifdef COUNTERS
         t->accepted++;
 #endif /* COUNTERS */
     }
 
-    SCMutexLock(&t->mutex_qh);
-    if (nfq_config.repeat_mode == FALSE) {
-        if (p->flags & PKT_STREAM_MODIFIED) {
-            ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, GET_PKT_LEN(p), GET_PKT_DATA(p));
+    switch (nfq_config.mode) {
+        case NFQ_ACCEPT_MODE:
+        case NFQ_ROUTE_MODE:
+            if (p->flags & PKT_STREAM_MODIFIED) {
+                ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, GET_PKT_LEN(p), GET_PKT_DATA(p));
 #ifdef COUNTERS
-            t->replaced++;
+                t->replaced++;
 #endif /* COUNTERS */
-        } else {
-            ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, 0, NULL);
-        }
-    } else {
+            } else {
+                ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, 0, NULL);
+            }
+            break;
+        case NFQ_REPEAT_MODE:
 #ifdef HAVE_NFQ_SET_VERDICT2
-        if (p->flags & PKT_STREAM_MODIFIED) {
-            ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
-                    (nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask),
-                    GET_PKT_LEN(p), GET_PKT_DATA(p));
-        } else {
-            ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
-                    (nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask),
-                    0, NULL);
-        }
+            if (p->flags & PKT_STREAM_MODIFIED) {
+                ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
+                        (nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask),
+                        GET_PKT_LEN(p), GET_PKT_DATA(p));
+#ifdef COUNTERS
+                t->replaced++;
+#endif /* COUNTERS */
+            } else {
+                ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
+                        (nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask),
+                        0, NULL);
+            }
 #else /* fall back to old function */
-        if (p->flags & PKT_STREAM_MODIFIED) {
-            ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
-                    htonl((nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask)),
-                    GET_PKT_LEN(p), GET_PKT_DATA(p));
-        } else {
-            ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
-                    htonl((nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask)),
-                    0, NULL);
-        }
-#endif
+            if (p->flags & PKT_STREAM_MODIFIED) {
+                ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
+                        htonl((nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask)),
+                        GET_PKT_LEN(p), GET_PKT_DATA(p));
+#ifdef COUNTERS
+                t->replaced++;
+#endif /* COUNTERS */
+            } else {
+                ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
+                        htonl((nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask)),
+                        0, NULL);
+            }
+#endif /* HAVE_NFQ_SET_VERDICT2 */
     }
     SCMutexUnlock(&t->mutex_qh);
 
