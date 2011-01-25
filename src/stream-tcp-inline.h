@@ -29,6 +29,7 @@
 int StreamTcpInlineMode(void);
 int StreamTcpInlineSegmentCompare(TcpSegment *, TcpSegment *);
 void StreamTcpInlineSegmentReplacePacket(Packet *, TcpSegment *);
+void StreamTcpInlineRecalcCsum(Packet *);
 
 void StreamTcpInlineRegisterTests(void);
 

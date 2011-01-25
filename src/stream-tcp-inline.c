@@ -180,6 +180,39 @@ void StreamTcpInlineSegmentReplacePacket(Packet *p, TcpSegment *seg) {
     }
 }
 
+/**
+ *  \brief Recalculate the csum for a modified packet
+ *
+ *  \param p packet to inspect
+ */
+void StreamTcpInlineRecalcCsum(Packet *p) {
+    if (!(p->flags & PKT_STREAM_MODIFIED)) {
+        SCReturn;
+    }
+
+    if (!(PKT_IS_TCP(p))) {
+        SCReturn;
+    }
+
+    if (PKT_IS_IPV4(p)) {
+        /* TCP */
+        p->tcph->th_sum = 0;
+        p->tcph->th_sum = TCPCalculateChecksum((uint16_t *)&(p->ip4h->ip_src),
+                (uint16_t *)p->tcph, (p->payload_len + p->tcpvars.hlen));
+        /* IPV4 */
+        p->ip4h->ip_csum = 0;
+        p->ip4h->ip_csum = IPV4CalculateChecksum((uint16_t *)p->ip4h,
+                IPV4_GET_RAW_HLEN(p->ip4h));
+    } else if (PKT_IS_IPV6(p)) {
+        /* just TCP for IPV6 */
+        p->tcph->th_sum = 0;
+        p->tcph->th_sum = TCPV6CalculateChecksum((uint16_t *)&(p->ip6h->ip6_src),
+                (uint16_t *)p->tcph, (p->payload_len + p->tcpvars.hlen));
+    }
+
+    SCReturn;
+}
+
 #ifdef UNITTESTS
 
 /** \test full overlap */

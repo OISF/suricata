@@ -49,6 +49,7 @@
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
+#include "stream-tcp-inline.h"
 #include "stream-tcp-util.h"
 #include "stream.h"
 
@@ -3255,7 +3256,7 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                     SCLogDebug("reusing closed TCP session");
 
                     if (StreamTcpPacketStateNone(tv,p,stt,ssn, &stt->pseudo_queue)) {
-                        SCReturnInt(-1);
+                        goto error;
                     }
                 } else {
                     SCLogDebug("packet received on closed state");
@@ -3304,6 +3305,11 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         goto error;
     }
 
+    /* recalc the csum on the packet if it was modified */
+    if (p->flags & PKT_STREAM_MODIFIED) {
+        StreamTcpInlineRecalcCsum(p);
+    }
+
     SCReturnInt(0);
 
 error:
@@ -3313,6 +3319,15 @@ error:
         if (np != NULL) {
             PacketEnqueue(pq, np);
         }
+    }
+
+    /* recalc the csum on the packet if it was modified */
+    if (p->flags & PKT_STREAM_MODIFIED) {
+        StreamTcpInlineRecalcCsum(p);
+    }
+
+    if (StreamTcpInlineMode()) {
+        p->action |= ACTION_DROP;
     }
     SCReturnInt(-1);
 }

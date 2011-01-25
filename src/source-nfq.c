@@ -573,7 +573,11 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
     }
 
     SCMutexLock(&t->mutex_qh);
-    ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, 0, NULL);
+    if (p->flags & PKT_STREAM_MODIFIED) {
+        ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, GET_PKT_LEN(p), GET_PKT_DATA(p));
+    } else {
+        ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, 0, NULL);
+    }
     SCMutexUnlock(&t->mutex_qh);
 
     if (ret < 0) {
