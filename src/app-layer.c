@@ -166,7 +166,7 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
             SCLogDebug("Stream initializer (len %" PRIu32 ")", data_len);
 #ifdef PRINT
             if (data_len > 0) {
-                printf("=> Init Stream Data -- start %s%s\n",
+                printf("=> Init Stream Data (app layer) -- start %s%s\n",
                         flags & STREAM_TOCLIENT ? "toclient" : "",
                         flags & STREAM_TOSERVER ? "toserver" : "");
                 PrintRawDataFp(stdout, data, data_len);
@@ -206,7 +206,7 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
                     "%"PRIu16" (flow %p)", data_len, alproto, f);
 #ifdef PRINT
             if (data_len > 0) {
-                printf("=> Stream Data -- start %s%s\n",
+                printf("=> Stream Data (app layer) -- start %s%s\n",
                         flags & STREAM_TOCLIENT ? "toclient" : "",
                         flags & STREAM_TOSERVER ? "toserver" : "");
                 PrintRawDataFp(stdout, data, data_len);
@@ -243,11 +243,11 @@ int AppLayerHandleTCPMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
     SCEnter();
 
 #ifdef PRINT
-    printf("=> Init Stream Data -- start %s%s\n",
+    printf("=> Stream Data (raw reassembly) -- start %s%s\n",
             smsg->flags & STREAM_TOCLIENT ? "toclient" : "",
             smsg->flags & STREAM_TOSERVER ? "toserver" : "");
     PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
-    printf("=> Init Stream Data -- end\n");
+    printf("=> Stream Data -- end\n");
 #endif
     SCLogDebug("smsg %p", smsg);
     BUG_ON(smsg->flow == NULL);

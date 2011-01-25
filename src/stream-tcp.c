@@ -3269,7 +3269,8 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
 
         if (ssn->state >= TCP_ESTABLISHED) {
             p->flags |= PKT_STREAM_EST;
-        } else if (ssn->state > TCP_ESTABLISHED) {
+        }
+        if (ssn->state > TCP_ESTABLISHED) {
             p->flags |= PKT_STREAM_EOF;
         }
     }
