@@ -897,6 +897,46 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
                 }
             }
         } else if (end_after == TRUE) {
+            if (list_seg->prev != NULL && SEQ_LT((list_seg->prev->seq + list_seg->prev->payload_len), list_seg->seq)) {
+                SCLogDebug("GAP to fill before list segment, size %u", list_seg->seq - (list_seg->prev->seq + list_seg->prev->payload_len));
+
+                packet_length = list_seg->seq - (list_seg->prev->seq + list_seg->prev->payload_len);
+                if (packet_length > seg->payload_len) {
+                    packet_length = seg->payload_len;
+                }
+
+                TcpSegment *new_seg = StreamTcpGetSegment(tv, ra_ctx, packet_length);
+                if (new_seg == NULL) {
+                    SCLogDebug("segment_pool[%"PRIu16"] is empty", segment_pool_idx[packet_length]);
+
+                    StreamTcpSetEvent(p, STREAM_REASSEMBLY_NO_SEGMENT);
+                    SCReturnInt(-1);
+                }
+                new_seg->payload_len = packet_length;
+
+                if (SEQ_GT((list_seg->prev->seq +
+                                list_seg->prev->payload_len), seg->seq))
+                {
+                    new_seg->seq = (list_seg->prev->seq +
+                            list_seg->prev->payload_len);
+                } else {
+                    new_seg->seq = seg->seq;
+                }
+
+                SCLogDebug("new_seg->seq %"PRIu32" and new->payload_len "
+                        "%" PRIu16"", new_seg->seq, new_seg->payload_len);
+
+                new_seg->next = list_seg;
+                new_seg->prev = list_seg->prev;
+                list_seg->prev->next = new_seg;
+                list_seg->prev = new_seg;
+
+                /* create a new seg, copy the list_seg data over */
+                StreamTcpSegmentDataCopy(new_seg, seg);
+
+                PrintList(stream->seg_list);
+            }
+
             if (list_seg->next != NULL) {
                 if (SEQ_LEQ((seg->seq + seg->payload_len), list_seg->next->seq))
                 {
@@ -1944,6 +1984,7 @@ static int StreamTcpReassembleInlineAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                     stream->ra_app_base_seq = ra_base_seq;
                 }
                 data_sent += data_len;
+                data_len = 0;
             }
 
             /* don't conclude it's a gap straight away. If ra_base_seq is lower
@@ -3554,7 +3595,9 @@ void StreamTcpSegmentDataCopy(TcpSegment *dst_seg, TcpSegment *src_seg)
         dst_pos = dst_seg->seq - src_seg->seq;
 
     SCLogDebug("Copying data from dst_pos %"PRIu16"", dst_pos);
-    for (i = src_seg->seq; SEQ_LT(i, (src_seg->seq + src_seg->payload_len)); i++)
+    for (i = src_seg->seq;
+            (SEQ_LT(i, (src_seg->seq + src_seg->payload_len)) &&
+             SEQ_LT(i, (dst_seg->seq + dst_seg->payload_len))); i++)
     {
         dst_seg->payload[dst_pos] = src_seg->payload[src_pos];
 
@@ -8831,6 +8874,92 @@ end:
     return ret;
 }
 
+/** \test test insert with overlap
+ */
+static int StreamTcpReassembleInsertTest01(void) {
+    int ret = 0;
+    TcpReassemblyThreadCtx *ra_ctx = NULL;
+    ThreadVars tv;
+    TcpSession ssn;
+    Flow f;
+
+    memset(&tv, 0x00, sizeof(tv));
+
+    StreamTcpUTInit(&ra_ctx);
+    StreamTcpUTSetupSession(&ssn);
+    StreamTcpUTSetupStream(&ssn.client, 1);
+    FLOW_INITIALIZE(&f);
+
+    uint8_t stream_payload1[] = "AAAAABBBBBCCCCCDDDDD";
+    uint8_t payload[] = { 'C', 'C', 'C', 'C', 'C' };
+    Packet *p = UTHBuildPacketReal(payload, 5, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
+    if (p == NULL) {
+        printf("couldn't get a packet: ");
+        goto end;
+    }
+    p->tcph->th_seq = htonl(12);
+    p->flow = &f;
+
+    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
+        printf("failed to add segment 1: ");
+        goto end;
+    }
+    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  7, 'B', 5) == -1) {
+        printf("failed to add segment 2: ");
+        goto end;
+    }
+    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 14, 'D', 2) == -1) {
+        printf("failed to add segment 3: ");
+        goto end;
+    }
+    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 16, 'D', 6) == -1) {
+        printf("failed to add segment 4: ");
+        goto end;
+    }
+    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client, 12, 'C', 5) == -1) {
+        printf("failed to add segment 5: ");
+        goto end;
+    }
+    ssn.client.next_seq = 21;
+
+    int r = StreamTcpReassembleInlineRaw(ra_ctx, &ssn, &ssn.client, p);
+    if (r < 0) {
+        printf("StreamTcpReassembleInlineRaw failed: ");
+        goto end;
+    }
+
+    if (ra_ctx->stream_q->len != 1) {
+        printf("expected a single stream message, got %u: ", ra_ctx->stream_q->len);
+        goto end;
+    }
+
+    StreamMsg *smsg = ra_ctx->stream_q->top;
+    if (smsg->data.data_len != 20) {
+        printf("expected data length to be 20, got %u: ", smsg->data.data_len);
+        goto end;
+    }
+
+    if (!(memcmp(stream_payload1, smsg->data.data, 20) == 0)) {
+        printf("data is not what we expected:\nExpected:\n");
+        PrintRawDataFp(stdout, stream_payload1, 20);
+        printf("Got:\n");
+        PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
+        goto end;
+    }
+
+    if (ssn.client.ra_raw_base_seq != 21) {
+        printf("ra_raw_base_seq %"PRIu32", expected 21: ", ssn.client.ra_raw_base_seq);
+        goto end;
+    }
+    ret = 1;
+end:
+    FLOW_DESTROY(&f);
+    UTHFreePacket(p);
+    StreamTcpUTClearSession(&ssn);
+    StreamTcpUTDeinit(ra_ctx);
+    return ret;
+}
+
 #endif /* UNITTESTS */
 
 /** \brief  The Function Register the Unit tests to test the reassembly engine
@@ -8898,6 +9027,8 @@ void StreamTcpReassembleRegisterTests(void) {
     UtRegisterTest("StreamTcpReassembleInlineTest09 -- inline RAW ra 9 GAP cleanup", StreamTcpReassembleInlineTest09, 1);
 
     UtRegisterTest("StreamTcpReassembleInlineTest10 -- inline APP ra 10", StreamTcpReassembleInlineTest10, 1);
+
+    UtRegisterTest("StreamTcpReassembleInsertTest01 -- insert with overlap", StreamTcpReassembleInsertTest01, 1);
 
     StreamTcpInlineRegisterTests();
     StreamTcpUtilRegisterTests();
