@@ -1989,12 +1989,16 @@ static int StreamTcpReassembleInlineAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                 /* flag reassembly as started, so the to_client part can start */
                 ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
 
+#ifdef DEBUG
                 dbg_app_layer_gap++;
+#endif
                 break;
             } else {
                 SCLogDebug("possible GAP, but waiting to see if out of order "
                         "packets might solve that");
+#ifdef DEBUG
                 dbg_app_layer_gap_candidate++;
+#endif
                 break;
             }
         }
@@ -2770,12 +2774,16 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                 /* flag reassembly as started, so the to_client part can start */
                 ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
 
+#ifdef DEBUG
                 dbg_app_layer_gap++;
+#endif
                 break;
             } else {
                 SCLogDebug("possible GAP, but waiting to see if out of order "
                         "packets might solve that");
+#ifdef DEBUG
                 dbg_app_layer_gap_candidate++;
+#endif
                 break;
             }
         }
