@@ -33,7 +33,7 @@
 #define STREAM_GAP          FLOW_AL_STREAM_GAP
 
 /** size of the data chunks sent to the app layer parser. */
-#define MSG_DATA_SIZE       2048
+#define MSG_DATA_SIZE       4024 /* 4096 - 72 (size of rest of the struct) */
 
 typedef struct StreamMsg_ {
     uint32_t id;    /**< unique stream id */
