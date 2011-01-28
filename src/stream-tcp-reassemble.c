@@ -900,7 +900,7 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
             if (list_seg->prev != NULL && SEQ_LT((list_seg->prev->seq + list_seg->prev->payload_len), list_seg->seq)) {
                 SCLogDebug("GAP to fill before list segment, size %u", list_seg->seq - (list_seg->prev->seq + list_seg->prev->payload_len));
 
-                packet_length = list_seg->seq - (list_seg->prev->seq + list_seg->prev->payload_len);
+                packet_length = list_seg->seq - seg->seq;
                 if (packet_length > seg->payload_len) {
                     packet_length = seg->payload_len;
                 }
@@ -4113,6 +4113,7 @@ static int StreamTcpTestStartsBeforeListSegment(TcpStream *stream) {
         return 0;
     }
 
+    SCLogDebug("sending segment with SEQ 21, len 3");
     StreamTcpCreateTestPacket(payload, 0x4c, 3, 4); /*LLL*/
     p->tcph->th_seq = htonl(21);
     p->tcph->th_ack = htonl(31);
