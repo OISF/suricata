@@ -260,7 +260,11 @@ int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
     p->nfq_v.ifi  = nfq_get_indev(tb);
     p->nfq_v.ifo  = nfq_get_outdev(tb);
 
+#ifdef NFQ_GET_PAYLOAD_SIGNED
+    ret = nfq_get_payload(tb, &pktdata);
+#else
     ret = nfq_get_payload(tb, (unsigned char **) &pktdata);
+#endif /* NFQ_GET_PAYLOAD_SIGNED */
     if (ret > 0) {
         /* nfq_get_payload returns a pointer to a part of memory
          * that is not preserved over the lifetime of our packet.
