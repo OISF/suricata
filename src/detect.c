@@ -142,6 +142,7 @@
 #include "conf-yaml-loader.h"
 
 #include "stream-tcp.h"
+#include "stream-tcp-inline.h"
 
 #include "util-classification-config.h"
 #include "util-print.h"
@@ -926,8 +927,8 @@ static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags) {
     if (p->proto == IPPROTO_TCP && f->protoctx != NULL) {
         TcpSession *ssn = (TcpSession *)f->protoctx;
 
-        /* at stream eof, inspect all smsg's */
-        if (unlikely(flags & STREAM_EOF)) {
+        /* at stream eof, or in inline mode, inspect all smsg's */
+        if (flags & STREAM_EOF || StreamTcpInlineMode()) {
             if (p->flowflags & FLOW_PKT_TOSERVER) {
                 smsg = ssn->toserver_smsg_head;
                 /* deref from the ssn */
@@ -1575,7 +1576,7 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
     DEBUG_VALIDATE_PACKET(p);
 
     /* No need to perform any detection on this packet, if the the given flag is set.*/
-    if (p->flags & PKT_NOPACKET_INSPECTION)
+    if (p->flags & PKT_NOPACKET_INSPECTION || p->action & ACTION_DROP)
         return 0;
 
     DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
