@@ -545,8 +545,9 @@ void ReceiveNFQThreadExitStats(ThreadVars *tv, void *data) {
 void VerdictNFQThreadExitStats(ThreadVars *tv, void *data) {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
 #ifdef COUNTERS
-    SCLogInfo("(%s) Pkts accepted %" PRIu32 ", dropped %" PRIu32 "",
-            tv->name, ntv->accepted, ntv->dropped);
+    SCLogInfo("(%s) Pkts accepted %" PRIu32 ", dropped %" PRIu32
+            ", replaced %" PRIu32, tv->name, ntv->accepted,
+            ntv->dropped, ntv->replaced);
 #endif
 }
 
@@ -575,6 +576,9 @@ void NFQSetVerdict(NFQThreadVars *t, Packet *p) {
     SCMutexLock(&t->mutex_qh);
     if (p->flags & PKT_STREAM_MODIFIED) {
         ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, GET_PKT_LEN(p), GET_PKT_DATA(p));
+#ifdef COUNTERS
+        t->replaced++;
+#endif /* COUNTERS */
     } else {
         ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, 0, NULL);
     }

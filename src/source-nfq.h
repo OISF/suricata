@@ -75,6 +75,7 @@ typedef struct NFQThreadVars_
     uint32_t errs;
     uint32_t accepted;
     uint32_t dropped;
+    uint32_t replaced;
 
     ThreadVars *tv;
 } NFQThreadVars;
