@@ -1191,7 +1191,7 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
     SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
     int i = 0;
     int matches = 0;
-    int j = 0;
+    //int j = 0;
 
     if (ctx->state_count < 65536) {
         /* \todo tried loop unrolling with register var, with no perf increase.  Need
@@ -1206,21 +1206,19 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 uint32_t *pids = ctx->output_table[state].pids;
                 for (k = 0; k < no_of_entries; k++) {
                     if (pids[k] & 0xFFFF0000) {
-                        int ibuf = i;
-                        for (j = ctx->pid_pat_list[pids[k] & 0x0000FFFF].patlen - 1; j >= 0; j--, ibuf--) {
-                            if (buf[ibuf] != ctx->pid_pat_list[pids[k] & 0x0000FFFF].cs[j]) {
-                                if (ctx->pid_pat_list[pids[k] & 0x0000FFFF].case_state == 3)
-                                    break;
-                                else
-                                    goto loop;
-                            }
+                        if (memcmp(ctx->pid_pat_list[pids[k] & 0x0000FFFF].cs,
+                                   buf + i - ctx->pid_pat_list[pids[k] & 0x0000FFFF].patlen + 1,
+                                   ctx->pid_pat_list[pids[k] & 0x0000FFFF].patlen) != 0) {
+                            /* inside loop */
+                            if (ctx->pid_pat_list[pids[k] & 0x0000FFFF].case_state != 3)
+                                continue;
                         }
                         matches += MpmVerifyMatch(mpm_thread_ctx, pmq, pids[k] & 0x0000FFFF);
                     } else {
                         matches += MpmVerifyMatch(mpm_thread_ctx, pmq, pids[k]);
                     }
-                loop:
-                    ;
+                    //loop:
+                    //;
                 }
             }
         } /* for (i = 0; i < buflen; i++) */
@@ -1229,6 +1227,7 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
          * to dig deeper */
         /* \todo Change it for stateful MPM.  Supply the state using mpm_thread_ctx */
         SC_AC_STATE_TYPE_U32 (*state_table_u32)[256] = ctx->state_table_u32;
+        SCACPatternList *pid_pat_list = ctx->pid_pat_list;
         register SC_AC_STATE_TYPE_U32 state = 0;
         for (i = 0; i < buflen; i++) {
             state = state_table_u32[state & 0x00FFFFFF][u8_tolower(buf[i])];
@@ -1238,16 +1237,21 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 uint32_t k;
                 for (k = 0; k < no_of_entries; k++) {
                     if (pids[k] & 0xFFFF0000) {
-                        int ibuf = i;
-                        for (j = ctx->pid_pat_list[pids[k] & 0x0000FFFF].patlen - 1; j >= 0; j--, ibuf--) {
-                            if (buf[ibuf] != ctx->pid_pat_list[pids[k] & 0x0000FFFF].cs[j]) {
-                                if (ctx->pid_pat_list[pids[k] & 0x0000FFFF].case_state == 3)
-                                    break;
-                                else
-                                    goto loop1;
+                        if (memcmp(pid_pat_list[pids[k] & 0x0000FFFF].cs,
+                                   buf + i - pid_pat_list[pids[k] & 0x0000FFFF].patlen + 1,
+                                   pid_pat_list[pids[k] & 0x0000FFFF].patlen) != 0) {
+                            /* inside loop */
+                            if (pid_pat_list[pids[k] & 0x0000FFFF].case_state != 3) {
+                                continue;
                             }
                         }
-                        matches += MpmVerifyMatch(mpm_thread_ctx, pmq, pids[k] & 0x0000FFFF);
+                        if (pmq->pattern_id_bitarray[(pids[k] & 0x0000FFFF) / 8] & (1 << ((pids[k] & 0x0000FFFF) % 8))) {
+                            ;
+                        } else {
+                            pmq->pattern_id_bitarray[(pids[k] & 0x0000FFFF) / 8] |= (1 << ((pids[k] & 0x0000FFFF) % 8));
+                            pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = pids[k] & 0x0000FFFF;
+                        }
+                        matches++;
                     } else {
                         if (pmq->pattern_id_bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
                             ;
@@ -1257,8 +1261,8 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         }
                         matches++;
                     }
-                loop1:
-                    ;
+                    //loop1:
+                    //;
                 }
             }
         } /* for (i = 0; i < buflen; i++) */
