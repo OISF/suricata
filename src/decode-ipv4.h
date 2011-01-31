@@ -120,7 +120,7 @@ typedef struct IPV4Hdr_
     ((p)->ip4c.flags & IPV4_CACHE_HLEN ? \
     (p)->ip4c.hl : ((p)->ip4c.flags |= IPV4_CACHE_HLEN, (p)->ip4c.hl = IPV4_GET_RAW_HLEN((p)->ip4h) << 2))
 #define IPV4_GET_IPTOS(p) \
-     IPV4_GET_RAW_IPTOS(p)
+     IPV4_GET_RAW_IPTOS((p)->ip4h)
 #define IPV4_GET_IPLEN(p) \
     ((p)->ip4c.flags & IPV4_CACHE_IPLEN ? \
     (p)->ip4c.ip_len : ((p)->ip4c.flags |= IPV4_CACHE_IPLEN, (p)->ip4c.ip_len = ntohs(IPV4_GET_RAW_IPLEN((p)->ip4h))))

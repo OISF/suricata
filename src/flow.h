@@ -69,6 +69,11 @@
 /** Sgh for toclient direction set (even if it's NULL) */
 #define FLOW_SGH_TOCLIENT           0x1000
 
+/** packet to server direction has been logged in drop file (only in IPS mode) */
+#define FLOW_TOSERVER_DROP_LOGGED   0x2000
+/** packet to client direction has been logged in drop file (only in IPS mode) */
+#define FLOW_TOCLIENT_DROP_LOGGED   0x4000
+
 /* pkt flow flags */
 #define FLOW_PKT_TOSERVER               0x01
 #define FLOW_PKT_TOCLIENT               0x02

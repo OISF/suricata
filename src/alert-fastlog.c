@@ -23,10 +23,8 @@
  * Logs alerts in a line based text format compatible to Snort's
  * alert_fast format.
  *
- * \todo Print the protocol as a string
  * \todo Support classifications
  * \todo Support more than just IPv4/IPv6 TCP/UDP.
- * \todo Print [drop] as well if appropriate
  */
 
 #include "suricata-common.h"
@@ -124,6 +122,8 @@ TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     AlertFastLogThread *aft = (AlertFastLogThread *)data;
     int i;
     char timebuf[64];
+    char *action = "";
+    extern uint8_t engine_mode;
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
@@ -142,17 +142,23 @@ TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
 
+        if (pa->action == ACTION_DROP && IS_ENGINE_MODE_IPS(engine_mode)) {
+            action = "[Drop] ";
+        } else if (pa->action == ACTION_DROP) {
+            action = "[wDrop] ";
+        }
+
         if (SCProtoNameValid(IPV4_GET_IPPROTO(p)) == TRUE) {
-            fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%"
+            fprintf(aft->file_ctx->fp, "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%"
                     PRIu32 "] %s [**] [Classification: %s] [Priority: %"PRIu32"]"
-                    " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "", timebuf,
+                    " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "", timebuf, action,
                     pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio,
                     known_proto[IPV4_GET_IPPROTO(p)], srcip, p->sp, dstip, p->dp);
         } else {
-            fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%"
+            fprintf(aft->file_ctx->fp, "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%"
                     PRIu32 "] %s [**] [Classification: %s] [Priority: %"PRIu32"]"
                     " {PROTO:%03" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "", timebuf,
-                    pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio,
+                    action, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio,
                     IPV4_GET_IPPROTO(p), srcip, p->sp, dstip, p->dp);
         }
 
@@ -170,6 +176,8 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     AlertFastLogThread *aft = (AlertFastLogThread *)data;
     int i;
     char timebuf[64];
+    char *action = "";
+    extern uint8_t engine_mode;
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
@@ -186,6 +194,12 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
 
         inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+
+        if (pa->action == ACTION_DROP && IS_ENGINE_MODE_IPS(engine_mode)) {
+            action = "[Drop] ";
+        } else if (pa->action == ACTION_DROP) {
+            action = "[wDrop] ";
+        }
 
         if (SCProtoNameValid(IPV6_GET_L4PROTO(p)) == TRUE) {
             fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%"
@@ -217,6 +231,8 @@ TmEcode AlertFastLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQu
     AlertFastLogThread *aft = (AlertFastLogThread *)data;
     int i;
     char timebuf[64];
+    char *action = "";
+    extern uint8_t engine_mode;
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
@@ -229,6 +245,12 @@ TmEcode AlertFastLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQu
 
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
+
+        if (pa->action == ACTION_DROP && IS_ENGINE_MODE_IPS(engine_mode)) {
+            action = "[Drop] ";
+        } else if (pa->action == ACTION_DROP) {
+            action = "[wDrop] ";
+        }
 
         fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: %" PRIu32 "] [**] [Raw pkt: ",
                 timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio);

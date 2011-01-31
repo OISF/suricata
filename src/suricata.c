@@ -80,6 +80,7 @@
 #include "alert-debuglog.h"
 #include "alert-prelude.h"
 #include "alert-syslog.h"
+#include "log-droplog.h"
 
 #include "log-httplog.h"
 
@@ -925,6 +926,7 @@ int main(int argc, char **argv)
     TmModuleAlertUnifiedAlertRegister();
     TmModuleUnified2AlertRegister();
     TmModuleAlertSyslogRegister();
+    TmModuleLogDropLogRegister();
     TmModuleStreamTcpRegister();
     TmModuleLogHttpLogRegister();
     TmModuleLogHttpLogIPv4Register();

@@ -75,6 +75,7 @@
 #define TCP_GET_RAW_ACK(tcph)                ntohl((tcph)->th_ack)
 
 #define TCP_GET_RAW_WINDOW(tcph)             ntohs((tcph)->th_win)
+#define TCP_GET_RAW_URG_POINTER(tcph)        ntohs((tcph)->th_urp)
 
 /** macro for getting the first timestamp from the packet. Timestamp is in host
  *  order and either returned from the cache or from the packet directly. */
@@ -95,6 +96,7 @@
 #define TCP_GET_SEQ(p)                       TCP_GET_RAW_SEQ(p->tcph)
 #define TCP_GET_ACK(p)                       TCP_GET_RAW_ACK(p->tcph)
 #define TCP_GET_WINDOW(p)                    TCP_GET_RAW_WINDOW(p->tcph)
+#define TCP_GET_URG_POINTER(p)               TCP_GET_RAW_URG_POINTER(p->tcph)
 
 #define TCP_ISSET_FLAG_FIN(p)                ((p)->tcph->th_flags & TH_FIN)
 #define TCP_ISSET_FLAG_SYN(p)                ((p)->tcph->th_flags & TH_SYN)

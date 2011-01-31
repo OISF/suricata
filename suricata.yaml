@@ -102,6 +102,12 @@ outputs:
       facility: local5
       #level: Info ## possible levels: Emergency, Alert, Critical,
                    ## Error, Warning, Notice, Info, Debug
+  # a line based information for dropped packet
+  - drop:
+      enabled: yes
+      filename: drop.log
+      append: yes
+
 
 # When running in NFQ inline mode, it is possible to use a simulated
 # non-terminal NFQUEUE verdict.
