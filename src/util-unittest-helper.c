@@ -66,6 +66,7 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
     if (p == NULL)
         return NULL;
     memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
 
     TimeSet(&p->ts);
 
@@ -259,6 +260,7 @@ Packet **UTHBuildPacketArrayFromEth(uint8_t *raw_eth[], int *pktsize, int numpkt
             return NULL;
         }
         memset(p[i], 0, SIZE_OF_PACKET);
+        p[i]->pkt = (uint8_t *)(p[i] + 1);
         DecodeEthernet(&th_v, &dtv, p[i], raw_eth[i], pktsize[i], NULL);
     }
     return p;
@@ -280,6 +282,7 @@ Packet *UTHBuildPacketFromEth(uint8_t *raw_eth, uint16_t pktsize) {
     if (p == NULL)
         return NULL;
     memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 

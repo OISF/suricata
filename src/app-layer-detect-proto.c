@@ -478,6 +478,7 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
     if (p == NULL)
         goto end;
     memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
 
     p->cuda_done = 0;
     p->cuda_free_packet = 1;

@@ -2757,7 +2757,7 @@ static int B2gCudaTest01(void)
 
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (p == NULL)
-        return 0;
+        goto end;
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
     pb->packets_address_buffer[0] = p;
@@ -2902,6 +2902,7 @@ static int B2gCudaTest02(void)
             exit(EXIT_FAILURE);
         }
         memset(p[i], 0, SIZE_OF_PACKET);
+        p[i]->pkt = (uint8_t *)(p[i] + 1);
         DecodeEthernet(&tv, &dtv, p[i], raw_eth, sizeof(raw_eth), NULL);
     }
 
@@ -3121,6 +3122,7 @@ static int B2gCudaTest03(void)
             exit(EXIT_FAILURE);
         }
         memset(p[i], 0, SIZE_OF_PACKET);
+        p[i]->pkt = (uint8_t *)(p[i] + 1);
         DecodeEthernet(&tv, &dtv, p[i], raw_eth, sizeof(raw_eth), NULL);
     }
 
@@ -3443,6 +3445,7 @@ static int B2gCudaTest04(void)
             exit(EXIT_FAILURE);
         }
         memset(p[i], 0, sizeof(Packet));
+        p[i]->pkt = (uint8_t *)(p[i] + 1);
         DecodeEthernet(&tv, &dtv, p[i], raw_eth, sizeof(raw_eth), NULL);
     }
 
@@ -3786,6 +3789,7 @@ static int B2gCudaTest05(void)
             exit(EXIT_FAILURE);
         }
         memset(p[i], 0, sizeof(Packet));
+        p[i]->pkt = (uint8_t *)(p[i] + 1);
         DecodeEthernet(&tv, &dtv, p[i], raw_eth, sizeof(raw_eth), NULL);
     }
 
