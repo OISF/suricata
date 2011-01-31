@@ -666,6 +666,8 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
         CFLAGS="${CFLAGS} -DUNITTESTS"
     ])
 
+    AM_CONDITIONAL([BUILD_UNITTESTS], [test "x$enable_unittests" = "xyes"])
+
 # enable native timeval for unified alert output
     AC_ARG_ENABLE(unified-native-timeval,
            AS_HELP_STRING([--enable-unified-native-timeval], [Use native timeval for unified outputs]),,[enable_unified_native_timeval=no])

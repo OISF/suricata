@@ -253,3 +253,7 @@ endif
 
 #suricata_CFLAGS = -Wall -fno-strict-aliasing 
 
+if BUILD_UNITTESTS
+check:
+	$(top_builddir)/src/suricata -u -c $(top_srcdir)/suricata.yaml
+endif
