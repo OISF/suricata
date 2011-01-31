@@ -25,6 +25,7 @@
 #ifndef UTIL_SYSLOG_H
 #define	UTIL_SYSLOG_H
 
-SCEnumCharMap *SCGetFacilityMap(void);
+SCEnumCharMap *SCSyslogGetFacilityMap(void);
+SCEnumCharMap *SCSyslogGetLogLevelMap(void);
 
 #endif	/* UTIL_SYSLOG_H */

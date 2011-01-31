@@ -100,6 +100,8 @@ outputs:
   - syslog:
       enabled: no
       facility: local5
+      #level: Info ## possible levels: Emergency, Alert, Critical,
+                   ## Error, Warning, Notice, Info, Debug
 
 # When running in NFQ inline mode, it is possible to use a simulated
 # non-terminal NFQUEUE verdict.

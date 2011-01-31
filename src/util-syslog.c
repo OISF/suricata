@@ -53,6 +53,24 @@ SCEnumCharMap sc_syslog_facility_map[] = {
 };
 
 /** \brief returns the syslog facility enum map */
-SCEnumCharMap *SCGetFacilityMap() {
+SCEnumCharMap *SCSyslogGetFacilityMap() {
     return sc_syslog_facility_map;
 }
+
+SCEnumCharMap sc_syslog_level_map[ ] = {
+    { "Emergency",      LOG_EMERG },
+    { "Alert",          LOG_ALERT },
+    { "Critical",       LOG_CRIT },
+    { "Error",          LOG_ERR },
+    { "Warning",        LOG_WARNING },
+    { "Notice",         LOG_NOTICE },
+    { "Info",           LOG_INFO },
+    { "Debug",          LOG_DEBUG },
+    { NULL,             -1 }
+};
+
+/** \brief returns the syslog facility enum map */
+SCEnumCharMap *SCSyslogGetLogLevelMap() {
+    return sc_syslog_level_map;
+}
+

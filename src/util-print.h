@@ -27,7 +27,7 @@
 void PrintRawLineHexFp(FILE *, uint8_t *, uint32_t);
 void PrintRawUriFp(FILE *, uint8_t *, uint32_t);
 void PrintRawDataFp(FILE *, uint8_t *, uint32_t);
-void PrintRawLineHexBuf(char *, uint8_t *, uint32_t );
+void PrintRawLineHexBuf(char *, uint32_t, uint8_t *, uint32_t );
 
 #endif /* __UTIL_PRINT_H__ */
 

@@ -54,6 +54,8 @@
 #define DEFAULT_ALERT_SYSLOG_LEVEL              LOG_ERR
 #define MODULE_NAME                             "AlertSyslog"
 
+static int alert_syslog_level = DEFAULT_ALERT_SYSLOG_LEVEL;
+
 typedef struct AlertSyslogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     LogFileCtx* file_ctx;
@@ -111,7 +113,7 @@ void TmModuleAlertSyslogIPv6Register (void) {
 OutputCtx *AlertSyslogInitCtx(ConfNode *conf)
 {
     const char *enabled = ConfNodeLookupChildValue(conf, "enabled");
-    if (enabled != NULL && strncmp(enabled, "no", 2) == 0) {
+    if (enabled != NULL && strcasecmp(enabled, "no") == 0) {
         SCLogDebug("alert-syslog module has been disabled");
         return NULL;
     }
@@ -127,7 +129,7 @@ OutputCtx *AlertSyslogInitCtx(ConfNode *conf)
         return NULL;
     }
 
-    int facility = SCMapEnumNameToValue(facility_s, SCGetFacilityMap());
+    int facility = SCMapEnumNameToValue(facility_s, SCSyslogGetFacilityMap());
     if (facility == -1) {
         SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Invalid syslog facility: \"%s\","
                 " now using \"%s\" as syslog facility", facility_s,
@@ -135,13 +137,22 @@ OutputCtx *AlertSyslogInitCtx(ConfNode *conf)
         facility = DEFAULT_ALERT_SYSLOG_FACILITY;
     }
 
+    const char *level_s = ConfNodeLookupChildValue(conf, "level");
+    if (level_s != NULL) {
+        int level = SCMapEnumNameToValue(level_s, SCSyslogGetLogLevelMap());
+        if (level != -1) {
+            alert_syslog_level = level;
+        }
+    }
+
     openlog(NULL, LOG_NDELAY, facility);
 
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    OutputCtx *output_ctx = SCMalloc(sizeof(OutputCtx));
     if (output_ctx == NULL) {
         SCLogDebug("AlertSyslogInitCtx: Could not create new OutputCtx");
         return NULL;
     }
+    memset(output_ctx, 0x00, sizeof(OutputCtx));
 
     output_ctx->data = logfile_ctx;
     output_ctx->DeInit = AlertSyslogDeInitCtx;
@@ -161,7 +172,9 @@ static void AlertSyslogDeInitCtx(OutputCtx *output_ctx)
 {
     if (output_ctx != NULL) {
         LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
-        LogFileFreeCtx(logfile_ctx);
+        if (logfile_ctx != NULL) {
+            LogFileFreeCtx(logfile_ctx);
+        }
         free(output_ctx);
     }
     closelog();
@@ -177,18 +190,18 @@ static void AlertSyslogDeInitCtx(OutputCtx *output_ctx)
  */
 TmEcode AlertSyslogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
+    if(initdata == NULL) {
+        SCLogDebug("Error getting context for AlertSyslog. \"initdata\" "
+                "argument NULL");
+        return TM_ECODE_FAILED;
+    }
+
     AlertSyslogThread *ast = SCMalloc(sizeof(AlertSyslogThread));
     if (ast == NULL)
         return TM_ECODE_FAILED;
 
     memset(ast, 0, sizeof(AlertSyslogThread));
-    if(initdata == NULL)
-    {
-        SCLogDebug("Error getting context for AlertSyslog. \"initdata\" "
-                "argument NULL");
-        SCFree(ast);
-        return TM_ECODE_FAILED;
-    }
+
     /** Use the Ouptut Context (file pointer and mutex) */
     ast->file_ctx = ((OutputCtx *)initdata)->data;
 
@@ -249,13 +262,13 @@ TmEcode AlertSyslogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
 
         if (SCProtoNameValid(IPV4_GET_IPPROTO(p)) == TRUE) {
-            syslog(DEFAULT_ALERT_SYSLOG_LEVEL, "[%" PRIu32 ":%" PRIu32 ":%"
+            syslog(alert_syslog_level, "[%" PRIu32 ":%" PRIu32 ":%"
                     PRIu32 "] %s [Classification: %s] [Priority: %"PRIu32"]"
                     " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "", pa->gid, pa->sid,
                     pa->rev, pa->msg, pa->class_msg, pa->prio,
                     known_proto[IPV4_GET_IPPROTO(p)], srcip, p->sp, dstip, p->dp);
         } else {
-            syslog(DEFAULT_ALERT_SYSLOG_LEVEL, "[%" PRIu32 ":%" PRIu32 ":%"
+            syslog(alert_syslog_level, "[%" PRIu32 ":%" PRIu32 ":%"
                     PRIu32 "] %s [Classification: %s] [Priority: %"PRIu32"]"
                     " {PROTO:%03" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "",
                     pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio,
@@ -299,7 +312,7 @@ TmEcode AlertSyslogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
 
         if (SCProtoNameValid(IPV6_GET_L4PROTO(p)) == TRUE) {
-            syslog(DEFAULT_ALERT_SYSLOG_LEVEL, "[%" PRIu32 ":%" PRIu32 ":%"
+            syslog(alert_syslog_level, "[%" PRIu32 ":%" PRIu32 ":%"
                     "" PRIu32 "] %s [Classification: %s] [Priority: %"
                     "" PRIu32 "] {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "",
                     pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg,
@@ -307,7 +320,7 @@ TmEcode AlertSyslogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
                     dstip, p->dp);
 
         } else {
-            syslog(DEFAULT_ALERT_SYSLOG_LEVEL, "[%" PRIu32 ":%" PRIu32 ":%"
+            syslog(alert_syslog_level, "[%" PRIu32 ":%" PRIu32 ":%"
                     "" PRIu32 "] %s [Classification: %s] [Priority: %"
                     "" PRIu32 "] {PROTO:%03" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "",
                     pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg,
@@ -343,23 +356,33 @@ TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, Packet *p, void *data,
     SCMutexLock(&ast->file_ctx->fp_mutex);
 
     ast->file_ctx->alerts += p->alerts.cnt;
-    char temp_buf[2048];
+    char temp_buf_hdr[512];
+    char temp_buf_pkt[65] = "";
+    char temp_buf_tail[32];
+    char alert[2048] = "";
 
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
 
-        syslog(DEFAULT_ALERT_SYSLOG_LEVEL, "[%" PRIu32 ":%" PRIu32 ":%" PRIu32 "]"
-                " %s [Classification: %s] [Priority: %" PRIu32 "] [**] [Raw pkt: ",
-                pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio);
+        snprintf(temp_buf_hdr, sizeof(temp_buf_hdr), "[%" PRIu32 ":%" PRIu32
+                ":%" PRIu32 "] %s [Classification: %s] [Priority: %" PRIu32
+                "] [**] [Raw pkt: ", pa->gid, pa->sid, pa->rev, pa->msg,
+                pa->class_msg, pa->prio);
+        strlcpy(alert, temp_buf_hdr, sizeof(alert));
 
-        PrintRawLineHexBuf(temp_buf, p->pkt, p->pktlen < 32 ? p->pktlen : 32);
-        syslog(DEFAULT_ALERT_SYSLOG_LEVEL, "%s", temp_buf);
+        PrintRawLineHexBuf(temp_buf_pkt, sizeof(temp_buf_pkt), p->pkt, p->pktlen < 32 ? p->pktlen : 32);
+        strlcat(alert, temp_buf_pkt, sizeof(alert));
 
         if (p->pcap_cnt != 0) {
-            syslog(DEFAULT_ALERT_SYSLOG_LEVEL, "] [pcap file packet: %"PRIu64"]",
+            snprintf(temp_buf_tail, sizeof(temp_buf_tail), "] [pcap file packet: %"PRIu64"]",
                     p->pcap_cnt);
+        } else {
+            temp_buf_tail[0] = ']';
+            temp_buf_tail[1] = '\0';
         }
+        strlcat(alert, temp_buf_tail, sizeof(alert));
 
+        syslog(alert_syslog_level, "%s", alert);
     }
     SCMutexUnlock(&ast->file_ctx->fp_mutex);
 
@@ -381,11 +404,11 @@ TmEcode AlertSyslog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
                         PacketQueue *postpq)
 {
     if (PKT_IS_IPV4(p)) {
-        return AlertSyslogIPv4(tv, p, data, pq, postpq);
+        return AlertSyslogIPv4(tv, p, data, pq, NULL);
     } else if (PKT_IS_IPV6(p)) {
-        return AlertSyslogIPv6(tv, p, data, pq, postpq);
+        return AlertSyslogIPv6(tv, p, data, pq, NULL);
     } else if (p->events.cnt > 0) {
-        return AlertSyslogDecoderEvent(tv, p, data, pq, postpq);
+        return AlertSyslogDecoderEvent(tv, p, data, pq, NULL);
     }
 
     return TM_ECODE_OK;
@@ -405,3 +428,4 @@ void AlertSyslogExitPrintStats(ThreadVars *tv, void *data) {
 
     SCLogInfo("(%s) Alerts %" PRIu64 "", tv->name, ast->file_ctx->alerts);
 }
+

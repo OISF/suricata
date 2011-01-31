@@ -55,17 +55,21 @@ void PrintRawLineHexFp(FILE *fp, uint8_t *buf, uint32_t buflen)
  *  Prints in the format "00 AA BB"
  *
  *  \param retbuf pointer to the buffer which will have the result
+ *  \param rebuflen lenght of the buffer
  *  \param buf buffer to print from
  *  \param buflen length of the input buffer
  */
-void PrintRawLineHexBuf(char *retbuf, uint8_t *buf, uint32_t buflen)
+void PrintRawLineHexBuf(char *retbuf, uint32_t retbuflen, uint8_t *buf, uint32_t buflen)
 {
     char temp[5] = "";
     uint32_t u = 0;
+    uint32_t written = 0;
 
     for (u = 0; u < buflen; u++) {
-        snprintf(temp, sizeof(temp), "%02X ", buf[u]);
-        strlcat(retbuf, temp, sizeof(retbuf));
+        written += (uint32_t)snprintf(temp, sizeof(temp), "%02X ", buf[u]);
+        if (written < retbuflen) {
+            strlcat(retbuf, temp, sizeof(retbuf));
+        }
     }
 }
 

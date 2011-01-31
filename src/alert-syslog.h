@@ -24,11 +24,12 @@
  *
  */
 
-#ifndef ALERT_SYSLOG_H
-#define	ALERT_SYSLOG_H
+#ifndef __ALERT_SYSLOG_H__
+#define __ALERT_SYSLOG_H__
 
 void TmModuleAlertSyslogRegister (void);
 void TmModuleAlertSyslogIPv4Register (void);
 void TmModuleAlertSyslogIPv6Register (void);
 
-#endif	/* ALERT_SYSLOG_H */
+#endif /* __ALERT_SYSLOG_H__ */
+

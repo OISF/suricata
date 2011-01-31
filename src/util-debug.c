@@ -857,7 +857,7 @@ static inline void SCLogSetOPIface(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
                 if (s == NULL)
                     s = SC_LOG_DEF_SYSLOG_FACILITY_STR;
 
-                op_ifaces_ctx = SCLogInitSyslogOPIface(SCMapEnumNameToValue(s, SCGetFacilityMap()), NULL, -1);
+                op_ifaces_ctx = SCLogInitSyslogOPIface(SCMapEnumNameToValue(s, SCSyslogGetFacilityMap()), NULL, -1);
                 break;
             default:
                 break;
@@ -1047,7 +1047,7 @@ SCLogOPIfaceCtx *SCLogInitOPIfaceCtx(const char *iface_name,
         case SC_LOG_OP_IFACE_FILE:
             return SCLogInitFileOPIface(arg, log_format, log_level);
         case SC_LOG_OP_IFACE_SYSLOG:
-            return SCLogInitSyslogOPIface(SCMapEnumNameToValue(arg, SCGetFacilityMap()), log_format, log_level);
+            return SCLogInitSyslogOPIface(SCMapEnumNameToValue(arg, SCSyslogGetFacilityMap()), log_format, log_level);
         default:
 #ifdef DEBUG
             printf("Output Interface \"%s\" not supported by the logging module",
@@ -1183,7 +1183,7 @@ void SCLogLoadConfig(void)
             const char *facility_s = ConfNodeLookupChildValue(output,
                 "facility");
             if (facility_s != NULL) {
-                facility = SCMapEnumNameToValue(facility_s, SCGetFacilityMap());
+                facility = SCMapEnumNameToValue(facility_s, SCSyslogGetFacilityMap());
                 if (facility == -1) {
                     SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Invalid syslog "
                             "facility: \"%s\", now using \"%s\" as syslog "
@@ -1270,7 +1270,7 @@ void SCLogInitLogModuleIfEnvSet(void)
             if (s == NULL)
                 s = SC_LOG_DEF_SYSLOG_FACILITY_STR;
 
-            op_ifaces_ctx = SCLogInitSyslogOPIface(SCMapEnumNameToValue(s, SCGetFacilityMap()), NULL, -1);
+            op_ifaces_ctx = SCLogInitSyslogOPIface(SCMapEnumNameToValue(s, SCSyslogGetFacilityMap()), NULL, -1);
             break;
         default:
             break;
