@@ -74,6 +74,19 @@ AC_INIT(configure.in)
     exit 1
     fi
 
+    AC_PATH_PROG(HAVE_COCCINELLE_CONFIG, spatch, "no")
+    if test "$HAVE_COCCINELLE_CONFIG" = "no"; then
+    echo
+    echo "   Warning! spatch not found, you will not be  "
+    echo "   able to run code checking with coccinelle "
+    echo "   get it from http://coccinelle.lip6.fr       "
+    echo "   or install from your distribution           "
+    echo
+    fi
+    AM_CONDITIONAL([HAVE_COCCINELLE], [test "$HAVE_COCCINELLE_CONFIG" != "no"])
+
+
+
 # Checks for libraries.
 
 # Checks for header files.
@@ -852,7 +865,7 @@ AC_SUBST(CFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(CPPFLAGS)
 
-AC_OUTPUT(Makefile src/Makefile)
+AC_OUTPUT(Makefile src/Makefile qa/Makefile qa/coccinelle/Makefile)
 
 echo "
 Suricata Configuration:
