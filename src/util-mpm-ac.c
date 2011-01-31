@@ -702,7 +702,7 @@ static inline void SCACCreateFailureTable(MpmCtx *mpm_ctx)
 
     /* allot space for the failure table.  A failure entry in the table for
      * every state(SCACCtx->state_count) */
-    ctx->failure_table = malloc(ctx->state_count * sizeof(int32_t));
+    ctx->failure_table = SCMalloc(ctx->state_count * sizeof(int32_t));
     if (ctx->failure_table == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
@@ -757,7 +757,7 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
         /* create space for the state table.  We could have used the existing goto
          * table, but since we have it set to hold 32 bit state values, we will create
          * a new state table here of type SC_AC_STATE_TYPE(current set to uint16_t) */
-        ctx->state_table_u16 = malloc(ctx->state_count *
+        ctx->state_table_u16 = SCMalloc(ctx->state_count *
                                       sizeof(SC_AC_STATE_TYPE_U16) * 256);
         if (ctx->state_table_u16 == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
@@ -798,7 +798,7 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
         /* create space for the state table.  We could have used the existing goto
          * table, but since we have it set to hold 32 bit state values, we will create
          * a new state table here of type SC_AC_STATE_TYPE(current set to uint16_t) */
-        ctx->state_table_u32 = malloc(ctx->state_count *
+        ctx->state_table_u32 = SCMalloc(ctx->state_count *
                                       sizeof(SC_AC_STATE_TYPE_U32) * 256);
         if (ctx->state_table_u32 == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
@@ -981,7 +981,7 @@ int SCACPreparePatterns(MpmCtx *mpm_ctx)
     ctx->single_state_size = sizeof(int32_t) * 256;
 
     /* handle no case patterns */
-    ctx->pid_pat_list = malloc((ctx->max_pat_id + 1)* sizeof(SCACPatternList));
+    ctx->pid_pat_list = SCMalloc((ctx->max_pat_id + 1)* sizeof(SCACPatternList));
     if (ctx->pid_pat_list == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
@@ -999,7 +999,7 @@ int SCACPreparePatterns(MpmCtx *mpm_ctx)
         } else {
             //if (memcmp(ctx->parray[i]->original_pat, ctx->parray[i]->ci,
             //           ctx->parray[i]->len) != 0) {
-                ctx->pid_pat_list[ctx->parray[i]->id].cs = malloc(ctx->parray[i]->len);
+                ctx->pid_pat_list[ctx->parray[i]->id].cs = SCMalloc(ctx->parray[i]->len);
                 if (ctx->pid_pat_list[ctx->parray[i]->id].cs == NULL) {
                     SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
                     exit(EXIT_FAILURE);
