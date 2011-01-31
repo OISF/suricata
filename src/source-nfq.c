@@ -248,14 +248,14 @@ int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
     }
     p->nfq_v.mark = nfq_get_nfmark(tb);
     if (nfq_config.mode == NFQ_REPEAT_MODE) {
-            if ((nfq_config.mark & nfq_config.mask) ==
-                    (p->nfq_v.mark & nfq_config.mask)) {
-                if (already_seen_warning < MAX_ALREADY_TREATED)
-                    SCLogInfo("Packet seems already treated by suricata");
-                already_seen_warning++;
-                ret = nfq_set_verdict(qh, p->nfq_v.id, NF_ACCEPT, 0, NULL);
-                return -1 ;
-            }
+        if ((nfq_config.mark & nfq_config.mask) ==
+                (p->nfq_v.mark & nfq_config.mask)) {
+            if (already_seen_warning < MAX_ALREADY_TREATED)
+                SCLogInfo("Packet seems already treated by suricata");
+            already_seen_warning++;
+            ret = nfq_set_verdict(qh, p->nfq_v.id, NF_ACCEPT, 0, NULL);
+            return -1 ;
+        }
     }
     p->nfq_v.ifi  = nfq_get_indev(tb);
     p->nfq_v.ifo  = nfq_get_outdev(tb);
@@ -746,6 +746,11 @@ void ReceiveNFQThreadExitStats(ThreadVars *tv, void *data) {
  * \brief NFQ verdict function
  */
 void NFQSetVerdict(Packet *p) {
+    /* can't verdict a "fake" packet */
+    if (p->flags & PKT_PSEUDO_STREAM_END) {
+        return;
+    }
+
     int ret = 0;
     uint32_t verdict = NF_ACCEPT;
     NFQQueueVars *t = nfq_q + p->nfq_v.nfq_index;
@@ -771,19 +776,24 @@ void NFQSetVerdict(Packet *p) {
                 verdict = ((uint32_t) NF_QUEUE) | nfq_config.next_queue;
                 break;
         }
+
+        if (p->flags & PKT_STREAM_MODIFIED) {
+#ifdef COUNTERS
+            t->replaced++;
+#endif /* COUNTERS */
+        }
+
 #ifdef COUNTERS
         t->accepted++;
 #endif /* COUNTERS */
     }
 
     switch (nfq_config.mode) {
+        default:
         case NFQ_ACCEPT_MODE:
         case NFQ_ROUTE_MODE:
             if (p->flags & PKT_STREAM_MODIFIED) {
                 ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, GET_PKT_LEN(p), GET_PKT_DATA(p));
-#ifdef COUNTERS
-                t->replaced++;
-#endif /* COUNTERS */
             } else {
                 ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, 0, NULL);
             }
@@ -794,9 +804,6 @@ void NFQSetVerdict(Packet *p) {
                 ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
                         (nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask),
                         GET_PKT_LEN(p), GET_PKT_DATA(p));
-#ifdef COUNTERS
-                t->replaced++;
-#endif /* COUNTERS */
             } else {
                 ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
                         (nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask),
@@ -807,15 +814,13 @@ void NFQSetVerdict(Packet *p) {
                 ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
                         htonl((nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask)),
                         GET_PKT_LEN(p), GET_PKT_DATA(p));
-#ifdef COUNTERS
-                t->replaced++;
-#endif /* COUNTERS */
             } else {
                 ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
                         htonl((nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask)),
                         0, NULL);
             }
 #endif /* HAVE_NFQ_SET_VERDICT2 */
+            break;
     }
     SCMutexUnlock(&t->mutex_qh);
 
@@ -828,11 +833,6 @@ void NFQSetVerdict(Packet *p) {
  * \brief NFQ verdict module packet entry function
  */
 TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
-    /* can't verdict a "fake" packet */
-    if (p->flags & PKT_PSEUDO_STREAM_END) {
-        SCReturnInt(TM_ECODE_OK);
-    }
-
     /* if this is a tunnel packet we check if we are ready to verdict
      * already. */
     if (IS_TUNNEL_PKT(p)) {
