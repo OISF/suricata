@@ -255,5 +255,5 @@ endif
 
 if BUILD_UNITTESTS
 check:
-	$(top_builddir)/src/suricata -u -c $(top_srcdir)/suricata.yaml
+	$(top_builddir)/src/suricata -u
 endif
