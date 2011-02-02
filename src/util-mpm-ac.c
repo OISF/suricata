@@ -54,6 +54,7 @@
 #include "conf.h"
 #include "util-debug.h"
 #include "util-unittest.h"
+#include "util-memcmp.h"
 
 void SCACInitCtx(MpmCtx *, int);
 void SCACInitThreadCtx(MpmCtx *, MpmThreadCtx *, uint32_t);
@@ -1206,7 +1207,7 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 uint32_t *pids = ctx->output_table[state].pids;
                 for (k = 0; k < no_of_entries; k++) {
                     if (pids[k] & 0xFFFF0000) {
-                        if (memcmp(ctx->pid_pat_list[pids[k] & 0x0000FFFF].cs,
+                        if (SCMemcmp(ctx->pid_pat_list[pids[k] & 0x0000FFFF].cs,
                                    buf + i - ctx->pid_pat_list[pids[k] & 0x0000FFFF].patlen + 1,
                                    ctx->pid_pat_list[pids[k] & 0x0000FFFF].patlen) != 0) {
                             /* inside loop */
@@ -1237,7 +1238,7 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 uint32_t k;
                 for (k = 0; k < no_of_entries; k++) {
                     if (pids[k] & 0xFFFF0000) {
-                        if (memcmp(pid_pat_list[pids[k] & 0x0000FFFF].cs,
+                        if (SCMemcmp(pid_pat_list[pids[k] & 0x0000FFFF].cs,
                                    buf + i - pid_pat_list[pids[k] & 0x0000FFFF].patlen + 1,
                                    pid_pat_list[pids[k] & 0x0000FFFF].patlen) != 0) {
                             /* inside loop */
