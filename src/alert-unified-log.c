@@ -341,11 +341,12 @@ error:
 OutputCtx *AlertUnifiedLogInitCtx(ConfNode *conf)
 {
     int ret = 0;
-    LogFileCtx* file_ctx=LogFileNewCtx();
+    LogFileCtx* file_ctx = NULL;
 
+    file_ctx = LogFileNewCtx();
     if (file_ctx == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Couldn't create new file_ctx");
-        return NULL;
+        goto error;
     }
 
     const char *filename = NULL;
@@ -370,7 +371,7 @@ OutputCtx *AlertUnifiedLogInitCtx(ConfNode *conf)
             if (limit < MIN_LIMIT) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                     "Fail to initialize unified log output, limit less than "
-                    "allowed minimum.");
+                    "allowed minimum: %d.", MIN_LIMIT);
                 exit(EXIT_FAILURE);
             }
             SCLogDebug("limit set to %"PRIu32, limit);
@@ -380,11 +381,11 @@ OutputCtx *AlertUnifiedLogInitCtx(ConfNode *conf)
 
     ret = AlertUnifiedLogOpenFileCtx(file_ctx, filename);
     if (ret < 0)
-        return NULL;
+        goto error;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (output_ctx == NULL)
-        return NULL;
+        goto error;
     output_ctx->data = file_ctx;
     output_ctx->DeInit = AlertUnifiedLogDeInitCtx;
 
@@ -392,13 +393,23 @@ OutputCtx *AlertUnifiedLogInitCtx(ConfNode *conf)
        filename, limit);
 
     return output_ctx;
+
+error:
+    if (file_ctx != NULL) {
+        LogFileFreeCtx(file_ctx);
+    }
+    return NULL;
 }
 
 static void AlertUnifiedLogDeInitCtx(OutputCtx *output_ctx)
 {
-    LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
-    LogFileFreeCtx(logfile_ctx);
-    free(output_ctx);
+    if (output_ctx != NULL) {
+        LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
+        if (logfile_ctx != NULL) {
+            LogFileFreeCtx(logfile_ctx);
+        }
+        free(output_ctx);
+    }
 }
 
 /** \brief Read the config set the file pointer, open the file
@@ -435,22 +446,23 @@ int AlertUnifiedLogOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
 
     snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, log_dir, prefix, (uint32_t)ts.tv_sec);
 
-    /* XXX filename & location */
     file_ctx->fp = fopen(filename, "wb");
     if (file_ctx->fp == NULL) {
         SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", filename,
             strerror(errno));
-        return TM_ECODE_FAILED;
+        return -1;
     }
 
     /** Write Unified header */
     ret = AlertUnifiedLogWriteFileHeader(file_ctx);
     if (ret != 0) {
         printf("Error: AlertUnifiedLogWriteFileHeader failed.\n");
-        return TM_ECODE_FAILED;
+
+        fclose(file_ctx->fp);
+        return -1;
     }
 
-    return TM_ECODE_OK;
+    return 0;
 }
 
 #ifdef UNITTESTS

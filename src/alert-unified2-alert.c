@@ -621,13 +621,13 @@ error:
  * */
 OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
 {
-    int ret=0;
-    LogFileCtx* file_ctx=LogFileNewCtx();
+    int ret = 0;
+    LogFileCtx* file_ctx = NULL;
 
+    file_ctx = LogFileNewCtx();
     if (file_ctx == NULL) {
-        SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC, "Unified2AlertInitCtx: "
-                   "Couldn't create new file_ctx");
-        return NULL;
+        SCLogError(SC_ERR_UNIFIED2_ALERT_GENERIC, "Couldn't create new file_ctx");
+        goto error;
     }
 
     const char *filename = NULL;
@@ -645,14 +645,14 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
         if (s_limit != NULL) {
             if (ByteExtractStringUint32(&limit, 10, 0, s_limit) == -1) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "Fail to initialize unified2 output, invalid limit: %s",
+                    "Failed to initialize unified2 output, invalid limit: %s",
                     s_limit);
                 exit(EXIT_FAILURE);
             }
             if (limit < MIN_LIMIT) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "Fail to initialize unified2 output, limit less than "
-                    "allowed minimum.");
+                    "Failed to initialize unified2 output, limit less than "
+                    "allowed minimum: %d.", MIN_LIMIT);
                 exit(EXIT_FAILURE);
             }
         }
@@ -661,11 +661,11 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
 
     ret = Unified2AlertOpenFileCtx(file_ctx, filename);
     if (ret < 0)
-        return NULL;
+        goto error;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (output_ctx == NULL)
-        return NULL;
+        goto error;
     output_ctx->data = file_ctx;
     output_ctx->DeInit = Unified2AlertDeInitCtx;
 
@@ -673,13 +673,24 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
        filename, limit);
 
     return output_ctx;
+
+error:
+    if (file_ctx != NULL) {
+        LogFileFreeCtx(file_ctx);
+    }
+
+    return NULL;
 }
 
 static void Unified2AlertDeInitCtx(OutputCtx *output_ctx)
 {
-    LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
-    LogFileFreeCtx(logfile_ctx);
-    free(output_ctx);
+    if (output_ctx != NULL) {
+        LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
+        if (logfile_ctx != NULL) {
+            LogFileFreeCtx(logfile_ctx);
+        }
+        free(output_ctx);
+    }
 }
 
 /** \brief Read the config set the file pointer, open the file
@@ -697,6 +708,8 @@ int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
         filename = file_ctx->filename = SCMalloc(PATH_MAX); /* XXX some sane default? */
         if (filename == NULL)
             return -1;
+
+        memset(filename, 0x00, PATH_MAX);
     }
 
     /** get the time so we can have a filename with seconds since epoch */
@@ -716,10 +729,9 @@ int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
 
     snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, log_dir, prefix, (uint32_t)ts.tv_sec);
 
-    /* XXX filename & location */
     file_ctx->fp = fopen(filename, "wb");
     if (file_ctx->fp == NULL) {
-        SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", filename,
+        SCLogError(SC_ERR_FOPEN, "failed to open %s: %s", filename,
             strerror(errno));
         ret = -1;
     }

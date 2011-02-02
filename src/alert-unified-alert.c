@@ -299,12 +299,12 @@ error:
 OutputCtx *AlertUnifiedAlertInitCtx(ConfNode *conf)
 {
     int ret = 0;
-    LogFileCtx *file_ctx = LogFileNewCtx();
+    LogFileCtx *file_ctx = NULL;
 
+    file_ctx = LogFileNewCtx();
     if (file_ctx == NULL) {
-        SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC,
-                   "AlertUnifiedAlertInitCtx: Couldn't create new file_ctx");
-        return NULL;
+        SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC, "Couldn't create new file_ctx");
+        goto error;
     }
 
     const char *filename = NULL;
@@ -328,7 +328,7 @@ OutputCtx *AlertUnifiedAlertInitCtx(ConfNode *conf)
             if (limit < MIN_LIMIT) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                     "Fail to initialize unified alert output, limit less than "
-                    "allowed minimum.");
+                    "allowed minimum: %d.", MIN_LIMIT);
                 exit(EXIT_FAILURE);
             }
         }
@@ -337,11 +337,11 @@ OutputCtx *AlertUnifiedAlertInitCtx(ConfNode *conf)
 
     ret = AlertUnifiedAlertOpenFileCtx(file_ctx, filename);
     if (ret < 0)
-        return NULL;
+        goto error;
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (output_ctx == NULL)
-        return NULL;
+        goto error;
     output_ctx->data = file_ctx;
     output_ctx->DeInit = AlertUnifiedAlertDeInitCtx;
 
@@ -349,13 +349,23 @@ OutputCtx *AlertUnifiedAlertInitCtx(ConfNode *conf)
        filename, limit);
 
     return output_ctx;
+
+error:
+    if (file_ctx != NULL) {
+        LogFileFreeCtx(file_ctx);
+    }
+    return NULL;
 }
 
 static void AlertUnifiedAlertDeInitCtx(OutputCtx *output_ctx)
 {
-    LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
-    LogFileFreeCtx(logfile_ctx);
-    free(output_ctx);
+    if (output_ctx != NULL) {
+        LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
+        if (logfile_ctx != NULL) {
+            LogFileFreeCtx(logfile_ctx);
+        }
+        free(output_ctx);
+    }
 }
 
 /** \brief Read the config set the file pointer, open the file
@@ -392,12 +402,11 @@ int AlertUnifiedAlertOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
 
     snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, log_dir, prefix, (uint32_t)ts.tv_sec);
 
-    /* XXX filename & location */
     file_ctx->fp = fopen(filename, "wb");
     if (file_ctx->fp == NULL) {
         SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", filename,
             strerror(errno));
-        return TM_ECODE_FAILED;
+        return -1;
     }
     file_ctx->flags = 0;
 
@@ -406,10 +415,12 @@ int AlertUnifiedAlertOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
     if (ret != 0) {
         SCLogError(SC_ERR_UNIFIED_ALERT_GENERIC,
                    "Error: AlertUnifiedLogWriteFileHeader failed");
-        return TM_ECODE_FAILED;
+
+        fclose(file_ctx->fp);
+        return -1;
     }
 
-    return TM_ECODE_OK;
+    return 0;
 }
 
 #ifdef UNITTESTS

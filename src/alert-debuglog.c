@@ -420,20 +420,33 @@ void AlertDebugLogExitPrintStats(ThreadVars *tv, void *data) {
     SCLogInfo("(%s) Alerts %" PRIu64 "", tv->name, aft->file_ctx->alerts);
 }
 
+static void AlertDebugLogDeInitCtx(OutputCtx *output_ctx)
+{
+    if (output_ctx != NULL) {
+        LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
+        if (logfile_ctx != NULL) {
+            LogFileFreeCtx(logfile_ctx);
+        }
+        free(output_ctx);
+    }
+}
 
-/** \brief Create a new LogFileCtx for alert debug logging.
+/**
+ *  \brief Create a new LogFileCtx for alert debug logging.
+ *
  *  \param ConfNode containing configuration for this logger.
- *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
- * */
+ *
+ *  \return output_ctx if succesful, NULL otherwise
+ */
 OutputCtx *AlertDebugLogInitCtx(ConfNode *conf)
 {
-    int ret=0;
-    LogFileCtx* file_ctx=LogFileNewCtx();
+    int ret = 0;
+    LogFileCtx *file_ctx = NULL;
 
-    if(file_ctx == NULL)
-    {
-        SCLogDebug("AlertDebugLogInitCtx: Couldn't create new file_ctx");
-        return NULL;
+    file_ctx = LogFileNewCtx();
+    if(file_ctx == NULL) {
+        SCLogDebug("couldn't create new file_ctx");
+        goto error;
     }
 
     const char *filename = ConfNodeLookupChildValue(conf, "filename");
@@ -445,17 +458,26 @@ OutputCtx *AlertDebugLogInitCtx(ConfNode *conf)
         mode = DEFAULT_LOG_MODE_APPEND;
 
     /** fill the new LogFileCtx with the specific AlertDebugLog configuration */
-    ret=AlertDebugLogOpenFileCtx(file_ctx, filename, mode);
-
+    ret = AlertDebugLogOpenFileCtx(file_ctx, filename, mode);
     if(ret < 0)
-        return NULL;
+        goto error;
 
-    OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
+    OutputCtx *output_ctx = SCMalloc(sizeof(OutputCtx));
     if (output_ctx == NULL)
-        return NULL;
+        goto error;
+
+    memset(output_ctx, 0x00, sizeof(OutputCtx));
     output_ctx->data = file_ctx;
+    output_ctx->DeInit = AlertDebugLogDeInitCtx;
 
     return output_ctx;
+
+error:
+    if (file_ctx != NULL) {
+        LogFileFreeCtx(file_ctx);
+    }
+
+    return NULL;
 }
 
 /** \brief Read the config set the file pointer, open the file
