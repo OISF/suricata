@@ -25,6 +25,20 @@
 #define __UTIL_AFFINITY_H__
 #include "suricata-common.h"
 
+#ifdef OS_FREEBSD
+#include <sched.h>
+#include <sys/param.h>
+#include <sys/resource.h>
+#include <sys/cpuset.h>
+#include <sys/thr.h>
+#define cpu_set_t cpuset_t
+#elif OS_DARWIN
+#include <mach/mach.h>
+#include <mach/mach_init.h>
+#include <mach/thread_policy.h>
+#define cpu_set_t thread_affinity_policy_data_t
+#endif
+
 enum {
     RECEIVE_CPU_SET,
     DECODE_CPU_SET,
