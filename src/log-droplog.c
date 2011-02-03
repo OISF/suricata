@@ -101,16 +101,16 @@ typedef struct LogDropLogThread_ {
  */
 TmEcode LogDropLogThreadInit(ThreadVars *t, void *initdata, void **data)
 {
+    if(initdata == NULL) {
+        SCLogDebug("Error getting context for LogDropLog. \"initdata\" argument NULL");
+        return TM_ECODE_FAILED;
+    }
+
     LogDropLogThread *dlt = SCMalloc(sizeof(LogDropLogThread));
     if (dlt == NULL)
         return TM_ECODE_FAILED;
     memset(dlt, 0, sizeof(LogDropLogThread));
-    if(initdata == NULL)
-    {
-        SCLogDebug("Error getting context for LogDropLog.  \"initdata\" argument NULL");
-        SCFree(dlt);
-        return TM_ECODE_FAILED;
-    }
+
     /** Use the Ouptut Context (file pointer and mutex) */
     dlt->file_ctx = ((OutputCtx *)initdata)->data;
 
@@ -148,7 +148,7 @@ TmEcode LogDropLogThreadDeinit(ThreadVars *t, void *data)
 OutputCtx *LogDropLogInitCtx(ConfNode *conf)
 {
     const char *enable = ConfNodeLookupChildValue(conf, "enabled");
-    if (enable == NULL || strncmp (enable, "no", 2) == 0) {
+    if (enable == NULL || strcasecmp (enable, "no") == 0) {
         return NULL;
     }
 
@@ -172,8 +172,10 @@ OutputCtx *LogDropLogInitCtx(ConfNode *conf)
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (output_ctx == NULL)
+    if (output_ctx == NULL) {
+        LogFileFreeCtx(logfile_ctx);
         return NULL;
+    }
     output_ctx->data = logfile_ctx;
     output_ctx->DeInit = LogDropLogDeInitCtx;
 
@@ -189,9 +191,13 @@ OutputCtx *LogDropLogInitCtx(ConfNode *conf)
  */
 static void LogDropLogDeInitCtx(OutputCtx *output_ctx)
 {
-    LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
-    LogFileFreeCtx(logfile_ctx);
-    free(output_ctx);
+    if (output_ctx != NULL) {
+        LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
+        if (logfile_ctx != NULL) {
+            LogFileFreeCtx(logfile_ctx);
+        }
+        free(output_ctx);
+    }
 }
 
 /** \brief Read the config set the file pointer, open the file
@@ -255,8 +261,9 @@ TmEcode LogDropLogNetFilter (ThreadVars *tv, Packet *p, void *data, PacketQueue 
     uint16_t proto = 0;
     char timebuf[64];
 
-    if (! (p->action & ACTION_DROP))
+    if (!(p->action & ACTION_DROP)) {
         return TM_ECODE_OK;
+    }
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
@@ -351,19 +358,19 @@ TmEcode LogDropLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
 {
     /* Check if we are in inline mode or not, if not then no need to log */
     extern uint8_t engine_mode;
-    if (! IS_ENGINE_MODE_IPS(engine_mode)) {
-        printf("engine is not running in inlin mode, so returning\n");
+    if (!IS_ENGINE_MODE_IPS(engine_mode)) {
+        SCLogDebug("engine is not running in inline mode, so returning");
         return TM_ECODE_OK;
     }
 
-    if ( (p->flow != NULL) && (p->flow->flags & FLOW_ACTION_DROP) ) {
-        if (PKT_IS_TOSERVER(p) && ! (p->flow->flags & FLOW_TOSERVER_DROP_LOGGED))
-        {
+    if ((p->flow != NULL) && (p->flow->flags & FLOW_ACTION_DROP)) {
+        if (PKT_IS_TOSERVER(p) && !(p->flow->flags & FLOW_TOSERVER_DROP_LOGGED)) {
             p->flow->flags |= FLOW_TOSERVER_DROP_LOGGED;
-            return LogDropLogNetFilter(tv, p, data, pq, postpq);
-        } else if (! (p->flow->flags & FLOW_TOCLIENT_DROP_LOGGED)) {
+            return LogDropLogNetFilter(tv, p, data, pq, NULL);
+
+        } else if (PKT_IS_TOCLIENT(p) && !(p->flow->flags & FLOW_TOCLIENT_DROP_LOGGED)) {
             p->flow->flags |= FLOW_TOCLIENT_DROP_LOGGED;
-            return LogDropLogNetFilter(tv, p, data, pq, postpq);
+            return LogDropLogNetFilter(tv, p, data, pq, NULL);
         }
     } else {
         return LogDropLogNetFilter(tv, p, data, pq, postpq);
