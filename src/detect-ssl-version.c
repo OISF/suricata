@@ -60,16 +60,17 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectSslVersionMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,
-                            uint8_t, void *, Signature *, SigMatch *);
-static int DetectSslVersionSetup (DetectEngineCtx *, Signature *, char *);
+int DetectSslVersionMatch(ThreadVars *, DetectEngineThreadCtx *, Flow *,
+                          uint8_t, void *, Signature *, SigMatch *);
+static int DetectSslVersionSetup(DetectEngineCtx *, Signature *, char *);
 void DetectSslVersionRegisterTests(void);
 void DetectSslVersionFree(void *);
 
 /**
  * \brief Registration function for keyword: ssl_version
  */
-void DetectSslVersionRegister (void) {
+void DetectSslVersionRegister(void)
+{
     sigmatch_table[DETECT_AL_SSL_VERSION].name = "ssl_version";
     sigmatch_table[DETECT_AL_SSL_VERSION].Match = NULL;
     sigmatch_table[DETECT_AL_SSL_VERSION].AppLayerMatch = DetectSslVersionMatch;
@@ -96,6 +97,7 @@ void DetectSslVersionRegister (void) {
         SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         goto error;
     }
+
     return;
 
 error:
@@ -113,7 +115,7 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectSslVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+int DetectSslVersionMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                 Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
 {
     SCEnter();
@@ -125,22 +127,18 @@ int DetectSslVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         SCReturnInt(0);
     }
 
-    if (ssl == NULL) {
-        SCLogDebug("no ssl_version data, no match");
-        SCReturnInt(0);
-    }
-
     SCMutexLock(&f->m);
+
     int ret = 0;
     uint16_t ver = 0;
     uint8_t sig_ver = -1;
     if (flags & STREAM_TOCLIENT) {
         SCLogDebug("server (toclient) version is 0x%02X",
-                    app_state->server_version);
+                   app_state->server_version);
         ver = app_state->server_version;
     } else if (flags & STREAM_TOSERVER) {
         SCLogDebug("client (toserver) version is 0x%02X",
-                    app_state->client_version);
+                   app_state->client_version);
         ver = app_state->client_version;
     }
     switch(ver) {
@@ -185,7 +183,7 @@ int DetectSslVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
  * \retval ssl pointer to DetectSslVersionData on success
  * \retval NULL on failure
  */
-DetectSslVersionData *DetectSslVersionParse (char *str)
+DetectSslVersionData *DetectSslVersionParse(char *str)
 {
     DetectSslVersionData *ssl = NULL;
 	#define MAX_SUBSTRINGS 30
@@ -302,7 +300,8 @@ static int DetectSslVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     SigMatch *sm = NULL;
 
     ssl = DetectSslVersionParse(str);
-    if (ssl == NULL) goto error;
+    if (ssl == NULL)
+        goto error;
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
@@ -324,10 +323,11 @@ static int DetectSslVersionSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     return 0;
 
 error:
-    if (ssl != NULL) DetectSslVersionFree(ssl);
-    if (sm != NULL) SCFree(sm);
+    if (ssl != NULL)
+        DetectSslVersionFree(ssl);
+    if (sm != NULL)
+        SCFree(sm);
     return -1;
-
 }
 
 /**
@@ -335,10 +335,13 @@ error:
  *
  * \param id_d pointer to DetectSslVersionData
  */
-void DetectSslVersionFree(void *ptr) {
-    DetectSslVersionData *svd = (DetectSslVersionData *)ptr;
-    SCFree(svd);
+void DetectSslVersionFree(void *ptr)
+{
+    if (ptr != NULL)
+        SCFree(ptr);
 }
+
+/**********************************Unittests***********************************/
 
 #ifdef UNITTESTS /* UNITTESTS */
 
@@ -346,7 +349,7 @@ void DetectSslVersionFree(void *ptr) {
  * \test DetectSslVersionTestParse01 is a test to make sure that we parse the
  *      "ssl_version" option correctly when given valid ssl_version option
  */
-int DetectSslVersionTestParse01 (void) {
+int DetectSslVersionTestParse01(void) {
     DetectSslVersionData *ssl = NULL;
     ssl = DetectSslVersionParse("SSlv3");
     if (ssl != NULL && ssl->data[SSLv3].ver == SSL_VERSION_3) {
@@ -362,7 +365,7 @@ int DetectSslVersionTestParse01 (void) {
  *      "ssl_version" option correctly when given an invalid ssl_version option
  *       it should return ssl = NULL
  */
-int DetectSslVersionTestParse02 (void) {
+int DetectSslVersionTestParse02(void) {
     DetectSslVersionData *ssl = NULL;
     ssl = DetectSslVersionParse("2.5");
     if (ssl == NULL) {
@@ -377,7 +380,7 @@ int DetectSslVersionTestParse02 (void) {
  * \test DetectSslVersionTestParse03 is a test to make sure that we parse the
  *      "ssl_version" options correctly when given valid ssl_version options
  */
-int DetectSslVersionTestParse03 (void) {
+int DetectSslVersionTestParse03(void) {
     DetectSslVersionData *ssl = NULL;
     ssl = DetectSslVersionParse("SSlv3,tls1.0, !tls1.2");
     if (ssl != NULL && ssl->data[SSLv3].ver == SSL_VERSION_3 &&
@@ -395,7 +398,7 @@ int DetectSslVersionTestParse03 (void) {
 #include "stream-tcp-reassemble.h"
 
 /** \test Send a get request in three chunks + more data. */
-static int DetectSslVersionTestDetect01(void) {
+static int DetectSslVersionTestDetect01(void){
     int result = 0;
     Flow f;
     uint8_t sslbuf1[] = { 0x16 };
@@ -495,6 +498,7 @@ static int DetectSslVersionTestDetect01(void) {
     }
 
     result = 1;
+
 end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -510,7 +514,7 @@ end:
     return result;
 }
 
-static int DetectSslVersionTestDetect02(void) {
+static int DetectSslVersionTestDetect02(void){
     int result = 0;
     Flow f;
     uint8_t sslbuf1[] = { 0x16 };
@@ -608,6 +612,7 @@ static int DetectSslVersionTestDetect02(void) {
     }
 
     result = 1;
+
 end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -623,7 +628,7 @@ end:
     return result;
 }
 
-static int DetectSslVersionTestDetect03(void) {
+static int DetectSslVersionTestDetect03(void){
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
     Flow f;
@@ -740,6 +745,7 @@ static int DetectSslVersionTestDetect03(void) {
     }
 
     result = 1;
+
 end:
     if (de_ctx != NULL) {
         SigGroupCleanup(de_ctx);
