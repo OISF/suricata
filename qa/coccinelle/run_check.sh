@@ -1,9 +1,16 @@
 #!/bin/sh
 
+if [ $1 ]; then
+	LIST=$1;
+else
+	LIST=$(git ls-tree -r --name-only --full-tree  HEAD src/ | grep -E '*.c$')
+	PREFIX="../../"
+fi
+
 for SMPL in *.cocci; do
 	echo "Testing cocci file: $SMPL"
-	for FILE in $(git ls-tree -r --name-only --full-tree  HEAD src/ | grep -E '*.c$') ; do
-		spatch -sp_file $SMPL  ../../$FILE 2>/dev/null || exit 1;
+	for FILE in $LIST ; do
+		spatch -sp_file $SMPL  $PREFIX$FILE 2>/dev/null || exit 1;
 	done
 done
 
