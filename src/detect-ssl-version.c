@@ -398,7 +398,8 @@ int DetectSslVersionTestParse03(void) {
 #include "stream-tcp-reassemble.h"
 
 /** \test Send a get request in three chunks + more data. */
-static int DetectSslVersionTestDetect01(void){
+static int DetectSslVersionTestDetect01(void)
+{
     int result = 0;
     Flow f;
     uint8_t sslbuf1[] = { 0x16 };
@@ -426,7 +427,7 @@ static int DetectSslVersionTestDetect01(void){
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
@@ -514,7 +515,8 @@ end:
     return result;
 }
 
-static int DetectSslVersionTestDetect02(void){
+static int DetectSslVersionTestDetect02(void)
+{
     int result = 0;
     Flow f;
     uint8_t sslbuf1[] = { 0x16 };
@@ -542,7 +544,7 @@ static int DetectSslVersionTestDetect02(void){
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
@@ -616,19 +618,17 @@ static int DetectSslVersionTestDetect02(void){
 end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
-
     UTHFreePackets(&p, 1);
     return result;
 }
 
-static int DetectSslVersionTestDetect03(void){
+static int DetectSslVersionTestDetect03(void)
+{
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
     Flow f;
@@ -658,7 +658,7 @@ static int DetectSslVersionTestDetect03(void){
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    p->flags |= PKT_HAS_FLOW;
+    p->flags |= PKT_HAS_FLOW | PKT_STREAM_EST;
     f.alproto = ALPROTO_TLS;
     f.proto = p->proto;
 
@@ -766,7 +766,8 @@ end:
 /**
  * \brief this function registers unit tests for DetectSslVersion
  */
-void DetectSslVersionRegisterTests(void) {
+void DetectSslVersionRegisterTests(void)
+{
 #ifdef UNITTESTS /* UNITTESTS */
     UtRegisterTest("DetectSslVersionTestParse01", DetectSslVersionTestParse01, 1);
     UtRegisterTest("DetectSslVersionTestParse02", DetectSslVersionTestParse02, 1);
@@ -775,4 +776,6 @@ void DetectSslVersionRegisterTests(void) {
     UtRegisterTest("DetectSslVersionTestDetect02", DetectSslVersionTestDetect02, 1);
     UtRegisterTest("DetectSslVersionTestDetect03", DetectSslVersionTestDetect03, 1);
 #endif /* UNITTESTS */
+
+    return;
 }
