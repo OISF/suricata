@@ -126,7 +126,7 @@ int SSLParseClientRecord(Flow *f, void *app_state, AppLayerParserState *pstate,
 
             break;
         case SSL_ERROR:
-            SCLogWarning(SC_ERR_ALPARSER, "Error encountered in establishing the "
+            SCLogDebug("Error encountered in establishing the "
                     "sslv2 session, may be tls version");
             SCReturnInt(-1);
         default:
@@ -190,7 +190,7 @@ int SSLParseServerRecord(Flow *f, void *app_state, AppLayerParserState *pstate,
 
             break;
         case SSL_ERROR:
-            SCLogWarning(SC_ERR_ALPARSER, "Error encountered in establishing the "
+            SCLogDebug("Error encountered in establishing the "
                     "sslv2 session, may be tls version");
             SCReturnInt(-1);
         default:
