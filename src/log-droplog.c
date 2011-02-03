@@ -261,7 +261,7 @@ TmEcode LogDropLogNetFilter (ThreadVars *tv, Packet *p, void *data, PacketQueue 
     uint16_t proto = 0;
     char timebuf[64];
 
-    if (!(p->action & ACTION_DROP)) {
+    if (!(p->action & ACTION_DROP) || PKT_IS_PSEUDOPKT(p)) {
         return TM_ECODE_OK;
     }
 
