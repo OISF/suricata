@@ -98,6 +98,9 @@ int DetectTtlMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Si
     uint8_t pttl;
     DetectTtlData *ttld = (DetectTtlData *) m->ctx;
 
+    if (PKT_IS_PSEUDOPKT(p))
+        return 0;
+
     if (PKT_IS_IPV4(p)) {
         pttl = IPV4_GET_IPTTL(p);
     } else if (PKT_IS_IPV6(p)) {

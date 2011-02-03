@@ -107,7 +107,7 @@ int DetectIdMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
     /**
      * To match a ipv4 packet with a "id" rule
      */
-    if (!PKT_IS_IPV4(p)) {
+    if (!PKT_IS_IPV4(p) || PKT_IS_PSEUDOPKT(p)) {
         return 0;
     }
 

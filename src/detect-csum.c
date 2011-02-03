@@ -320,7 +320,7 @@ int DetectTCPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 {
     DetectCsumData *cd = (DetectCsumData *)m->ctx;
 
-    if (p->ip4h == NULL || p->proto != IPPROTO_TCP)
+    if (p->ip4h == NULL || p->proto != IPPROTO_TCP || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->tcpc.comp_csum == -1)
@@ -412,7 +412,7 @@ int DetectTCPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 {
     DetectCsumData *cd = (DetectCsumData *)m->ctx;
 
-    if (p->ip6h == NULL || p->proto != IPPROTO_TCP)
+    if (p->ip6h == NULL || p->proto != IPPROTO_TCP || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->tcpc.comp_csum == -1)
@@ -504,7 +504,7 @@ int DetectUDPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 {
     DetectCsumData *cd = (DetectCsumData *)m->ctx;
 
-    if (p->ip4h == NULL || p->proto != IPPROTO_UDP)
+    if (p->ip4h == NULL || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->udpc.comp_csum == -1)
@@ -596,7 +596,7 @@ int DetectUDPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 {
     DetectCsumData *cd = (DetectCsumData *)m->ctx;
 
-    if (p->ip6h == NULL || p->proto != IPPROTO_UDP)
+    if (p->ip6h == NULL || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->udpc.comp_csum == -1)
@@ -688,7 +688,7 @@ int DetectICMPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 {
     DetectCsumData *cd = (DetectCsumData *)m->ctx;
 
-    if (p->ip4h == NULL || p->proto != IPPROTO_ICMP)
+    if (p->ip4h == NULL || p->proto != IPPROTO_ICMP || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->icmpv4c.comp_csum == -1)
@@ -779,7 +779,7 @@ int DetectICMPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 {
     DetectCsumData *cd = (DetectCsumData *)m->ctx;
 
-    if (p->ip6h == NULL || p->proto != IPPROTO_ICMPV6)
+    if (p->ip6h == NULL || p->proto != IPPROTO_ICMPV6 || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->icmpv6c.comp_csum == -1)

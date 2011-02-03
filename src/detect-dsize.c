@@ -101,6 +101,10 @@ int DetectDsizeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, 
     SCEnter();
     int ret = 0;
 
+    if (PKT_IS_PSEUDOPKT(p)) {
+        SCReturnInt(0);
+    }
+
     DetectDsizeData *dd = (DetectDsizeData *)m->ctx;
 
     SCLogDebug("p->payload_len %"PRIu16"", p->payload_len);

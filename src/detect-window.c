@@ -103,7 +103,8 @@ error:
  */
 int DetectWindowMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m) {
     DetectWindowData *wd = (DetectWindowData *)m->ctx;
-    if ( !(PKT_IS_TCP(p)) || wd == NULL) {
+
+    if ( !(PKT_IS_TCP(p)) || wd == NULL || PKT_IS_PSEUDOPKT(p)) {
         return 0;
     }
 

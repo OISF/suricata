@@ -104,7 +104,7 @@ int DetectIpOptsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
     int ipopt = 0;
     DetectIpOptsData *de = (DetectIpOptsData *)m->ctx;
 
-    if(!de || !PKT_IS_IPV4(p) || !p)
+    if (!de || !PKT_IS_IPV4(p) || PKT_IS_PSEUDOPKT(p))
         return ret;
 
     /* IPV4_OPT_ANY matches on any options */
