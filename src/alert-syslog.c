@@ -370,7 +370,7 @@ TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, Packet *p, void *data,
                 pa->class_msg, pa->prio);
         strlcpy(alert, temp_buf_hdr, sizeof(alert));
 
-        PrintRawLineHexBuf(temp_buf_pkt, sizeof(temp_buf_pkt), p->pkt, p->pktlen < 32 ? p->pktlen : 32);
+        PrintRawLineHexBuf(temp_buf_pkt, sizeof(temp_buf_pkt), GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
         strlcat(alert, temp_buf_pkt, sizeof(alert));
 
         if (p->pcap_cnt != 0) {

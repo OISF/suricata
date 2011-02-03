@@ -744,7 +744,7 @@ int DetectTagTestPacket03 (void) {
     int i = 0;
     for (; i < num_packets; i++) {
         SigMatchSignatures(&th_v, de_ctx, det_ctx, p[i]);
-        sum += p[i]->pktlen;
+        sum += GET_PKT_LEN(p[i]);
         //printf("Sum %"PRIu32"\n", sum);
         if (UTHCheckPacketMatchResults(p[i], sid, (uint32_t *)&results[i][0], numsigs) == 0)
             goto cleanup;
@@ -860,7 +860,7 @@ int DetectTagTestPacket04 (void) {
         p[i]->flow = &f;
         p[i]->flow->protoctx = &ssn;
         SigMatchSignatures(&th_v, de_ctx, det_ctx, p[i]);
-        sum += p[i]->pktlen;
+        sum += GET_PKT_LEN(p[i]);
         //printf("Sum %"PRIu32"\n", sum);
         if (UTHCheckPacketMatchResults(p[i], sid, (uint32_t *)&results[i][0], numsigs) == 0)
             goto cleanup;

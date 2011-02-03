@@ -783,7 +783,7 @@ static int Unified2Test01 (void)   {
     p->alerts.alerts[p->alerts.cnt-1].sid = 1;
     p->alerts.alerts[p->alerts.cnt-1].gid = 1;
     p->alerts.alerts[p->alerts.cnt-1].rev = 1;
-    p->pktlen = sizeof(raw_ipv4_tcp);
+    SET_PKT_LEN(p, sizeof(raw_ipv4_tcp));
 
     FlowInitConfig(FLOW_QUIET);
 
@@ -866,7 +866,7 @@ static int Unified2Test02 (void)   {
     p->alerts.alerts[p->alerts.cnt-1].sid = 1;
     p->alerts.alerts[p->alerts.cnt-1].gid = 1;
     p->alerts.alerts[p->alerts.cnt-1].rev = 1;
-    p->pktlen = sizeof(raw_ipv6_tcp);
+    SET_PKT_LEN(p, sizeof(raw_ipv6_tcp));
 
     FlowInitConfig(FLOW_QUIET);
 
@@ -955,7 +955,7 @@ static int Unified2Test03 (void) {
     p->alerts.alerts[p->alerts.cnt-1].sid = 1;
     p->alerts.alerts[p->alerts.cnt-1].gid = 1;
     p->alerts.alerts[p->alerts.cnt-1].rev = 1;
-    p->pktlen = sizeof(raw_gre);
+    SET_PKT_LEN(p, sizeof(raw_gre));
 
     FlowInitConfig(FLOW_QUIET);
 
@@ -1038,7 +1038,7 @@ static int Unified2Test04 (void)   {
     p->alerts.alerts[p->alerts.cnt-1].sid = 1;
     p->alerts.alerts[p->alerts.cnt-1].gid = 1;
     p->alerts.alerts[p->alerts.cnt-1].rev = 1;
-    p->pktlen = sizeof(raw_ppp);
+    SET_PKT_LEN(p, sizeof(raw_ppp));
 
     FlowInitConfig(FLOW_QUIET);
 
@@ -1119,7 +1119,7 @@ static int Unified2Test05 (void)   {
     p->alerts.alerts[p->alerts.cnt-1].sid = 1;
     p->alerts.alerts[p->alerts.cnt-1].gid = 1;
     p->alerts.alerts[p->alerts.cnt-1].rev = 1;
-    p->pktlen = sizeof(raw_ipv4_tcp);
+    SET_PKT_LEN(p, sizeof(raw_ipv4_tcp));
 
     FlowInitConfig(FLOW_QUIET);
 

@@ -172,9 +172,9 @@ static inline uint16_t TCPV6CalculateChecksum(uint16_t *, uint16_t *, uint16_t);
  * \brief Calculates the checksum for the TCP packet
  *
  * \param shdr Pointer to source address field from the IP packet.  Used as a
- *             part of the psuedoheader for computing the checksum
+ *             part of the pseudoheader for computing the checksum
  * \param pkt  Pointer to the start of the TCP packet
- * \param hlen Total length of the TCP packet(header + payload)
+ * \param tlen Total length of the TCP packet(header + payload)
  *
  * \retval csum Checksum for the TCP packet
  */
