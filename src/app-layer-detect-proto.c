@@ -311,11 +311,6 @@ void AlpProtoFinalizeGlobal(AlpProtoDetectCtx *ctx) {
         exit(EXIT_FAILURE);
 #endif
 
-    /* tell the stream reassembler, that initially we only want chunks of size
-       min_len */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, ctx->toclient.min_len);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, ctx->toserver.min_len);
-
     /* allocate and initialize the mapping between pattern id and signature */
     ctx->map = (AlpProtoSignature **)SCMalloc(ctx->sigs * sizeof(AlpProtoSignature *));
     if (ctx->map == NULL) {
@@ -602,9 +597,6 @@ void *AppLayerDetectProtoThread(void *td)
 
     /* get the stream msg queue for this thread */
     StreamMsgQueue *stream_q = StreamMsgQueueGetByPort(0);
-    /* set the minimum size we expect */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, INSPECT_BYTES);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, INSPECT_BYTES);
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
 

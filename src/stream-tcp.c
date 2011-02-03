@@ -4556,8 +4556,6 @@ static int StreamTcpTest05 (void) {
     StreamTcpInitConfig(TRUE);
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
@@ -4722,8 +4720,6 @@ static int StreamTcpTest07 (void) {
     stream_config.midstream = TRUE;
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
@@ -4814,8 +4810,6 @@ static int StreamTcpTest08 (void) {
     stream_config.midstream = TRUE;
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
@@ -4903,8 +4897,6 @@ static int StreamTcpTest09 (void) {
     stream_config.midstream = TRUE;
 
     //prevent L7 from kicking in
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
@@ -5490,8 +5482,6 @@ static int StreamTcpTest14 (void) {
     SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
@@ -5890,8 +5880,6 @@ static int StreamTcpTest15 (void) {
     SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
@@ -6062,8 +6050,6 @@ static int StreamTcpTest16 (void) {
     SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
@@ -6235,8 +6221,6 @@ static int StreamTcpTest17 (void) {
     SCHInfoAddHostOSInfo(os_policy_name, ip_addr, -1);
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
@@ -6643,8 +6627,6 @@ static int StreamTcpTest23(void)
     StreamTcpInitConfig(TRUE);
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
@@ -6727,8 +6709,6 @@ static int StreamTcpTest24(void)
     StreamTcpInitConfig(TRUE);
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
@@ -6832,8 +6812,6 @@ static int StreamTcpTest25(void) {
     p->flowflags = FLOW_PKT_TOSERVER;
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
@@ -7173,8 +7151,6 @@ static int StreamTcpTest29(void)
     StreamTcpInitConfig(TRUE);
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
     ssn.client.os_policy = OS_POLICY_BSD;
     p.src.family = AF_INET;
@@ -7319,8 +7295,6 @@ static int StreamTcpTest30(void)
     StreamTcpInitConfig(TRUE);
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
     ssn.client.os_policy = OS_POLICY_BSD;
     p.src.family = AF_INET;
@@ -7460,8 +7434,6 @@ static int StreamTcpTest31(void)
     StreamTcpInitConfig(TRUE);
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
     ssn.client.os_policy = OS_POLICY_LINUX;
     p.src.family = AF_INET;

@@ -35,10 +35,8 @@ static uint64_t stream_pool_memuse = 0;
 static uint64_t stream_pool_memcnt = 0;
 
 /* per queue setting */
-static uint16_t toserver_min_init_chunk_len = 0;
-static uint16_t toserver_min_chunk_len = 0;
-static uint16_t toclient_min_init_chunk_len = 0;
-static uint16_t toclient_min_chunk_len = 0;
+static uint16_t toserver_min_chunk_len = 2560;
+static uint16_t toclient_min_chunk_len = 2560;
 
 static Pool *stream_msg_pool = NULL;
 static SCMutex stream_msg_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -191,27 +189,11 @@ StreamMsgQueue *StreamMsgQueueGetByPort(uint16_t port) {
     return NULL;//&stream_q;
 }
 
-void StreamMsgQueueSetMinInitChunkLen(uint8_t dir, uint16_t len) {
-    if (dir == FLOW_PKT_TOSERVER) {
-        toserver_min_init_chunk_len = len;
-    } else {
-        toclient_min_init_chunk_len = len;
-    }
-}
-
 void StreamMsgQueueSetMinChunkLen(uint8_t dir, uint16_t len) {
     if (dir == FLOW_PKT_TOSERVER) {
         toserver_min_chunk_len = len;
     } else {
         toclient_min_chunk_len = len;
-    }
-}
-
-uint16_t StreamMsgQueueGetMinInitChunkLen(uint8_t dir) {
-    if (dir == FLOW_PKT_TOSERVER) {
-        return toserver_min_init_chunk_len;
-    } else {
-        return toclient_min_init_chunk_len;
     }
 }
 

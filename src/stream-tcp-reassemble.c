@@ -1736,54 +1736,28 @@ static int StreamTcpReassembleRawCheckLimit(TcpSession *ssn, TcpStream *stream,
 
     /* check if we have enough data to send to L7 */
     if (p->flowflags & FLOW_PKT_TOCLIENT) {
-        SCLogDebug("StreamMsgQueueGetMinInitChunkLen(STREAM_TOSERVER) %"PRIu32,
-                StreamMsgQueueGetMinInitChunkLen(STREAM_TOSERVER));
         SCLogDebug("StreamMsgQueueGetMinChunkLen(STREAM_TOSERVER) %"PRIu32,
                 StreamMsgQueueGetMinChunkLen(STREAM_TOSERVER));
 
-        if (stream->ra_raw_base_seq == stream->isn) {
-            if (StreamMsgQueueGetMinInitChunkLen(STREAM_TOSERVER) >
-                    (stream->last_ack - stream->ra_raw_base_seq)) {
-                SCLogDebug("toserver min init chunk len not yet reached: "
-                           "last_ack %"PRIu32", ra_raw_base_seq %"PRIu32", len "
-                           "%"PRIu32"", stream->last_ack, stream->ra_raw_base_seq,
-                            StreamMsgQueueGetMinInitChunkLen(STREAM_TOSERVER));
-                SCReturnInt(0);
-            }
-        } else {
-            if (StreamMsgQueueGetMinChunkLen(STREAM_TOSERVER) >
-                    (stream->last_ack - stream->ra_raw_base_seq)) {
-                SCLogDebug("toserver min chunk len not yet reached: "
-                           "last_ack %"PRIu32", ra_raw_base_seq %"PRIu32", len "
-                           "%"PRIu32"", stream->last_ack, stream->ra_raw_base_seq,
-                            StreamMsgQueueGetMinChunkLen(STREAM_TOSERVER));
-                SCReturnInt(0);
-            }
+        if (StreamMsgQueueGetMinChunkLen(STREAM_TOSERVER) >
+                (stream->last_ack - stream->ra_raw_base_seq)) {
+            SCLogDebug("toserver min chunk len not yet reached: "
+                    "last_ack %"PRIu32", ra_raw_base_seq %"PRIu32", len "
+                    "%"PRIu32"", stream->last_ack, stream->ra_raw_base_seq,
+                    StreamMsgQueueGetMinChunkLen(STREAM_TOSERVER));
+            SCReturnInt(0);
         }
     } else {
-        SCLogDebug("StreamMsgQueueGetMinInitChunkLen(STREAM_TOCLIENT) %"PRIu32,
-                StreamMsgQueueGetMinInitChunkLen(STREAM_TOCLIENT));
         SCLogDebug("StreamMsgQueueGetMinChunkLen(STREAM_TOCLIENT) %"PRIu32,
                 StreamMsgQueueGetMinChunkLen(STREAM_TOCLIENT));
 
-        if (stream->ra_raw_base_seq == stream->isn) {
-            if (StreamMsgQueueGetMinInitChunkLen(STREAM_TOCLIENT) >
-                    (stream->last_ack - stream->ra_raw_base_seq)) {
-                SCLogDebug("toclient min init chunk len not yet reached: "
-                           "last_ack %"PRIu32", ra_base_seq %"PRIu32", len "
-                           "%"PRIu32"", stream->last_ack, stream->ra_raw_base_seq,
-                            StreamMsgQueueGetMinInitChunkLen(STREAM_TOCLIENT));
-                SCReturnInt(0);
-            }
-        } else {
-            if (StreamMsgQueueGetMinChunkLen(STREAM_TOCLIENT) >
-                    (stream->last_ack - stream->ra_raw_base_seq)) {
-                SCLogDebug("toclient min chunk len not yet reached: "
-                           "last_ack %"PRIu32", ra_base_seq %"PRIu32", len "
-                           "%"PRIu32"", stream->last_ack, stream->ra_raw_base_seq,
-                            StreamMsgQueueGetMinChunkLen(STREAM_TOCLIENT));
-                SCReturnInt(0);
-            }
+        if (StreamMsgQueueGetMinChunkLen(STREAM_TOCLIENT) >
+                (stream->last_ack - stream->ra_raw_base_seq)) {
+            SCLogDebug("toclient min chunk len not yet reached: "
+                    "last_ack %"PRIu32", ra_base_seq %"PRIu32", len "
+                    "%"PRIu32"", stream->last_ack, stream->ra_raw_base_seq,
+                    StreamMsgQueueGetMinChunkLen(STREAM_TOCLIENT));
+            SCReturnInt(0);
         }
     }
 
@@ -3051,7 +3025,7 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
 {
     SCEnter();
     SCLogDebug("start p %p", p);
-
+#if 0
     if (PKT_IS_TOSERVER(p) &&
         !(ssn->flags & STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED))
     {
@@ -3059,7 +3033,7 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                 "skipping reassembling at the moment for to_client");
         SCReturnInt(0);
     }
-
+#endif
     if (stream->seg_list == NULL) {
         /* send an empty EOF msg if we have no segments but TCP state
          * is beyond ESTABLISHED */
@@ -3089,14 +3063,14 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                 " reassembling at the moment");
         SCReturnInt(0);
     }
-
+#if 0
     if (ssn->state <= TCP_ESTABLISHED &&
             !(ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED)) {
         SCLogDebug("only starting raw reassembly after app layer protocol "
                 "detection has completed.");
         SCReturnInt(0);
     }
-
+#endif
     /* check if we have enough data */
     if (StreamTcpReassembleRawCheckLimit(ssn,stream,p) == 0) {
         SCLogDebug("not yet reassembling");
@@ -3670,8 +3644,6 @@ static int StreamTcpReassembleStreamTest(TcpStream *stream) {
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
     PacketQueue pq;
@@ -4032,8 +4004,6 @@ static int StreamTcpTestStartsBeforeListSegment(TcpStream *stream) {
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
     PacketQueue pq;
@@ -4153,8 +4123,6 @@ static int StreamTcpTestStartsAtSameListSegment(TcpStream *stream) {
     memset(&pq,0,sizeof(PacketQueue));
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
@@ -4271,8 +4239,6 @@ static int StreamTcpTestStartsAfterListSegment(TcpStream *stream) {
     memset(&pq,0,sizeof(PacketQueue));
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
@@ -5243,8 +5209,6 @@ static int StreamTcpReassembleTest28 (void) {
     StreamMsgQueue *q = ra_ctx->stream_q;
 
     StreamTcpInitConfig(TRUE);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
@@ -5605,8 +5569,6 @@ static int StreamTcpReassembleTest32(void) {
     StreamTcpInitConfig(TRUE);
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
@@ -5691,8 +5653,6 @@ static int StreamTcpReassembleTest33(void) {
     StreamTcpInitConfig(TRUE);
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
@@ -5774,8 +5734,6 @@ static int StreamTcpReassembleTest34(void) {
     StreamTcpInitConfig(TRUE);
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 4096);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 4096);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 4096);
 
@@ -5858,8 +5816,6 @@ static int StreamTcpReassembleTest35(void) {
     StreamTcpInitConfig(TRUE);
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 10);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 10);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 10);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 10);
 
@@ -5929,8 +5885,6 @@ static int StreamTcpReassembleTest36(void) {
     StreamTcpInitConfig(TRUE);
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 10);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 10);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 10);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 10);
 
@@ -6000,8 +5954,6 @@ static int StreamTcpReassembleTest37(void) {
     StreamTcpInitConfig(TRUE);
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 10);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 10);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 10);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 10);
 
@@ -6105,8 +6057,6 @@ static int StreamTcpReassembleTest38 (void) {
     memset(&tv, 0, sizeof (ThreadVars));
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 0);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 0);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 0);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 0);
 
@@ -6803,8 +6753,6 @@ static int StreamTcpReassembleTest41 (void) {
     uint8_t httpbuf2[] = "HTTP/1.0 200 OK\r\nServer: VictorServer/1.0\r\n\r\n";
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
 
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 0);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 0);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 0);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 0);
 
@@ -7179,22 +7127,6 @@ static int StreamTcpReassembleTest43 (void) {
     ssn.client.isn = 9;
     ssn.client.last_ack = 600;
     f.alproto = ALPROTO_UNKNOWN;
-
-    /* Check the minimum init smsg length. It should be equal to the min length
-       of given signature in toserver direction. */
-    if (StreamMsgQueueGetMinInitChunkLen(FLOW_PKT_TOSERVER) != 2) {
-        printf("the min init length should be equal to 2, not %"PRIu16": ",
-                StreamMsgQueueGetMinInitChunkLen(FLOW_PKT_TOSERVER));
-        goto end;
-    }
-
-    /* Check the minimum init smsg length. It should be equal to the min length
-       of given signature in toclient direction. */
-    if (StreamMsgQueueGetMinInitChunkLen(FLOW_PKT_TOCLIENT) != 2) {
-        printf("the min init length should be equal to 2, not %"PRIu16": ",
-                StreamMsgQueueGetMinInitChunkLen(FLOW_PKT_TOCLIENT));
-        goto end;
-    }
 
     inet_pton(AF_INET, "1.2.3.4", &in);
     src.family = AF_INET;
@@ -7701,8 +7633,6 @@ static int StreamTcpReassembleTest47 (void) {
     memset(&tv, 0, sizeof (ThreadVars));
 
     /* prevent L7 from kicking in */
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOSERVER, 0);
-    StreamMsgQueueSetMinInitChunkLen(FLOW_PKT_TOCLIENT, 0);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 0);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 0);
 
