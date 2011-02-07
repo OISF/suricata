@@ -772,6 +772,44 @@ static int HandleSegmentStartsBeforeListSegment(TcpStream *stream,
                 }
             }
         } else if (end_after == TRUE) {
+            if (list_seg->prev != NULL && SEQ_LT((list_seg->prev->seq + list_seg->prev->payload_len), list_seg->seq)) {
+                SCLogDebug("GAP to fill before list segment, size %u", list_seg->seq - (list_seg->prev->seq + list_seg->prev->payload_len));
+
+                packet_length = list_seg->seq - seg->seq;
+                if (packet_length > seg->payload_len) {
+                    packet_length = seg->payload_len;
+                }
+
+                TcpSegment *new_seg = StreamTcpGetSegment(packet_length);
+                if (new_seg == NULL) {
+                    SCLogDebug("segment_pool[%"PRIu16"] is empty", segment_pool_idx[packet_length]);
+                    SCReturnInt(-1);
+                }
+                new_seg->payload_len = packet_length;
+
+                if (SEQ_GT((list_seg->prev->seq +
+                                list_seg->prev->payload_len), seg->seq))
+                {
+                    new_seg->seq = (list_seg->prev->seq +
+                            list_seg->prev->payload_len);
+                } else {
+                    new_seg->seq = seg->seq;
+                }
+
+                SCLogDebug("new_seg->seq %"PRIu32" and new->payload_len "
+                        "%" PRIu16"", new_seg->seq, new_seg->payload_len);
+
+                new_seg->next = list_seg;
+                new_seg->prev = list_seg->prev;
+                list_seg->prev->next = new_seg;
+                list_seg->prev = new_seg;
+
+                /* create a new seg, copy the list_seg data over */
+                StreamTcpSegmentDataCopy(new_seg, seg);
+
+                PrintList(stream->seg_list);
+            }
+
             if (list_seg->next != NULL) {
                 if (SEQ_LEQ((seg->seq + seg->payload_len), list_seg->next->seq))
                 {
