@@ -75,6 +75,18 @@ IPOnlyCIDRItem *IPOnlyCIDRItemNew() {
     SCReturnPtr(item, "IPOnlyCIDRItem");
 }
 
+uint8_t IPOnlyCIDRItemCompare(IPOnlyCIDRItem *head,
+                                         IPOnlyCIDRItem *item) {
+    uint8_t i = 0;
+    for (; i < head->netmask / 32 || i < 1; i++) {
+        if (item->ip[i] < head->ip[i])
+        //if (*(uint8_t *)(item->ip + i) < *(uint8_t *)(head->ip + i))
+            return 1;
+    }
+    return 0;
+}
+
+
 /**
  * \brief This function insert a IPOnlyCIDRItem
  *        to a list of IPOnlyCIDRItems sorted by netmask
@@ -93,9 +105,15 @@ IPOnlyCIDRItem *IPOnlyCIDRItemInsertReal(IPOnlyCIDRItem *head,
         return head;
 
     /* Compare with the head */
-    if (item->netmask <= head->netmask) {
+    if (item->netmask < head->netmask || (item->netmask == head->netmask && IPOnlyCIDRItemCompare(head, item))) {
         item->next = head;
         return item;
+    }
+
+    if (item->netmask == head->netmask && !IPOnlyCIDRItemCompare(head, item)) {
+        item->next = head->next;
+        head->next = item;
+        return head;
     }
 
     for (prev = it = head;
@@ -105,6 +123,7 @@ IPOnlyCIDRItem *IPOnlyCIDRItemInsertReal(IPOnlyCIDRItem *head,
 
     if (it == NULL) {
         prev->next = item;
+        item->next = NULL;
     } else {
         item->next = it;
         prev->next = item;
@@ -138,7 +157,7 @@ IPOnlyCIDRItem *IPOnlyCIDRItemInsert(IPOnlyCIDRItem *head,
         return head;
     }
 
-    SCLogDebug("Inserting item(%p)->netmast %u head %p", item, item->netmask, head);
+    SCLogDebug("Inserting item(%p)->netmask %u head %p", item, item->netmask, head);
 
     prev = item;
     while (prev != NULL) {
@@ -147,7 +166,11 @@ IPOnlyCIDRItem *IPOnlyCIDRItemInsert(IPOnlyCIDRItem *head,
         /* Separate from the item list */
         prev->next = NULL;
 
+        //SCLogDebug("Before:");
+        //IPOnlyCIDRListPrint(head);
         head = IPOnlyCIDRItemInsertReal(head, prev);
+        //SCLogDebug("After:");
+        //IPOnlyCIDRListPrint(head);
         prev = it;
     }
 
@@ -1013,14 +1036,14 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx) {
     /* Prepare Src radix trees */
     for (src = (de_ctx->io_ctx).ip_src; src != NULL; ) {
         if (src->family == AF_INET) {
-            /*
+        /*
             SCLogDebug("To IPv4");
             SCLogDebug("Item has netmask %"PRIu16" negated: %s; IP: %s; "
                        "signum: %"PRIu16, src->netmask,
                         (src->negated) ? "yes":"no",
                         inet_ntoa( *(struct in_addr*)&src->ip[0]),
                         src->signum);
-            */
+        */
 
             if (src->netmask == 32)
                 node = SCRadixFindKeyIPV4ExactMatch((uint8_t *)&src->ip[0],
@@ -1090,9 +1113,14 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx) {
                                                          (de_ctx->io_ctx).tree_ipv4src, sna,
                                                          src->netmask);
 
-                    if (node == NULL)
+                    if (node == NULL) {
+                        char tmpstr[64];
+                        inet_ntop(src->family, &src->ip[0], tmpstr, sizeof(tmpstr));
                         SCLogError(SC_ERR_IPONLY_RADIX, "Error inserting in the"
-                                   " src ipv4 radix tree");
+                                   " src ipv4 radix tree ip %s netmask %"PRIu8, tmpstr, src->netmask);
+                        //SCRadixPrintTree((de_ctx->io_ctx).tree_ipv4src);
+                        exit(-1);
+                    }
                 }
             } else {
                 SCLogDebug("Exact match found");
