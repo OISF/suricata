@@ -449,20 +449,20 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                     /* Take the action to perform */
                     switch (td->new_action) {
                         case TH_ACTION_ALERT:
-                            p->action |= ACTION_ALERT;
-                        break;
+                            ALERT_PACKET(p);
+                            break;
                         case TH_ACTION_DROP:
-                            p->action |= ACTION_DROP;
-                        break;
+                            DROP_PACKET(p);
+                            break;
                         case TH_ACTION_REJECT:
-                            p->action |= ACTION_REJECT;
-                        break;
+                            REJECT_PACKET(p);
+                            break;
                         case TH_ACTION_PASS:
-                            p->action |= ACTION_PASS;
-                        break;
+                            PASS_PACKET(p);
+                            break;
                         default:
                             /* Weird, leave the default action */
-                        break;
+                            break;
                     }
                     ret = 1;
                 }
@@ -477,20 +477,20 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                     /* Take the action to perform */
                     switch (td->new_action) {
                         case TH_ACTION_ALERT:
-                            p->action |= ACTION_ALERT;
-                        break;
+                            ALERT_PACKET(p);
+                            break;
                         case TH_ACTION_DROP:
-                            p->action |= ACTION_DROP;
-                        break;
+                            DROP_PACKET(p);
+                            break;
                         case TH_ACTION_REJECT:
-                            p->action |= ACTION_REJECT;
-                        break;
+                            REJECT_PACKET(p);
+                            break;
                         case TH_ACTION_PASS:
-                            p->action |= ACTION_PASS;
-                        break;
+                            PASS_PACKET(p);
+                            break;
                         default:
                             /* Weird, leave the default action */
-                        break;
+                            break;
                     }
                         ret = 1;
                     }

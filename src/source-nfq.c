@@ -758,14 +758,14 @@ void NFQSetVerdict(Packet *p) {
     //printf("%p verdicting on queue %" PRIu32 "\n", t, t->queue_num);
     SCMutexLock(&t->mutex_qh);
 
-    if (p->action & ACTION_REJECT || p->action & ACTION_REJECT_BOTH ||
-        p->action & ACTION_REJECT_DST || p->action & ACTION_DROP) {
+    if (p->action & ACTION_DROP) {
         verdict = NF_DROP;
 #ifdef COUNTERS
         t->dropped++;
 #endif /* COUNTERS */
     } else {
         switch (nfq_config.mode) {
+            default:
             case NFQ_ACCEPT_MODE:
                 verdict = NF_ACCEPT;
                 break;

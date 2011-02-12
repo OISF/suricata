@@ -234,8 +234,7 @@ static int EventToImpact(PacketAlert *pa, Packet *p, idmef_alert_t *alert)
 
     idmef_impact_set_severity(impact, severity);
 
-    if (p->action & ACTION_REJECT || p->action & ACTION_REJECT_BOTH ||
-        p->action & ACTION_REJECT_DST || p->action & ACTION_DROP) {
+    if (p->action & ACTION_DROP) {
         idmef_action_t *action;
 
         ret = idmef_action_new(&action);

@@ -608,11 +608,47 @@ typedef struct DecodeThreadVars_
 /* macro's for setting the action
  * handle the case of a root packet
  * for tunnels */
-#define ACCEPT_PACKET(p)       ((p)->root ? ((p)->root->action = ACTION_ACCEPT) : ((p)->action = ACTION_ACCEPT))
-#define DROP_PACKET(p)         ((p)->root ? ((p)->root->action = ACTION_DROP) : ((p)->action = ACTION_DROP))
-#define REJECT_PACKET(p)       ((p)->root ? ((p)->root->action = ACTION_REJECT) : ((p)->action = ACTION_REJECT))
-#define REJECT_PACKET_DST(p)   ((p)->root ? ((p)->root->action = ACTION_REJECT_DST) : ((p)->action = ACTION_REJECT_DST))
-#define REJECT_PACKET_BOTH(p)  ((p)->root ? ((p)->root->action = ACTION_REJECT_BOTH) : ((p)->action = ACTION_REJECT_BOTH))
+#define ALERT_PACKET(p) do { \
+    ((p)->root ? \
+     ((p)->root->action = ACTION_ALERT) : \
+     ((p)->action = ACTION_ALERT)); \
+} while (0)
+
+#define ACCEPT_PACKET(p) do { \
+    ((p)->root ? \
+     ((p)->root->action = ACTION_ACCEPT) : \
+     ((p)->action = ACTION_ACCEPT)); \
+} while (0)
+
+#define DROP_PACKET(p) do { \
+    ((p)->root ? \
+     ((p)->root->action = ACTION_DROP) : \
+     ((p)->action = ACTION_DROP)); \
+} while (0)
+
+#define REJECT_PACKET(p) do { \
+    ((p)->root ? \
+     ((p)->root->action = (ACTION_REJECT|ACTION_DROP)) : \
+     ((p)->action = (ACTION_REJECT|ACTION_DROP))); \
+} while (0)
+
+#define REJECT_PACKET_DST(p) do { \
+    ((p)->root ? \
+     ((p)->root->action = (ACTION_REJECT_DST|ACTION_DROP)) : \
+     ((p)->action = (ACTION_REJECT_DST|ACTION_DROP))); \
+} while (0)
+
+#define REJECT_PACKET_BOTH(p) do { \
+    ((p)->root ? \
+     ((p)->root->action = (ACTION_REJECT_BOTH|ACTION_DROP)) : \
+     ((p)->action = (ACTION_REJECT_BOTH|ACTION_DROP))); \
+} while (0)
+
+#define PASS_PACKET(p) do { \
+    ((p)->root ? \
+     ((p)->root->action = ACTION_PASS) : \
+     ((p)->action = ACTION_PASS)); \
+} while (0)
 
 #define TUNNEL_INCR_PKT_RTV(p) do {                                                 \
         SCMutexLock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt);   \
