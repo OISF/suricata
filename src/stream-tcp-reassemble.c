@@ -934,7 +934,9 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
                 /* create a new seg, copy the list_seg data over */
                 StreamTcpSegmentDataCopy(new_seg, seg);
 
+#ifdef DEBUG
                 PrintList(stream->seg_list);
+#endif
             }
 
             if (list_seg->next != NULL) {
