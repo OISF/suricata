@@ -21,7 +21,21 @@
  * \author Kirby Kuehl <kkuehl@gmail.com>
  * \author Anoop Saldanha <poonaatsoc@gmail.com>
  *
- * DCE/RPC parser and decoder
+ * \file DCE/RPC parser and decoder
+ *
+ * \todo Remove all the unnecessary per byte incremental loops with a full one
+ *       time jump, i.e.
+ *
+ *       input[0], input_len
+ *       for (i = 0; i < x; i++)
+ *           input++;
+ *
+ *       with
+ *
+ *       input += x;
+ *
+ *       You'll be surprised at how many such cases we have here.  We also need
+ *       to do the same for htp parser.  Should speed up the engine drastically.
  */
 
 #include "suricata-common.h"
