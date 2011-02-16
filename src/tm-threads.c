@@ -664,13 +664,9 @@ void TmVarSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data) {
     }
 }
 
-#ifdef OS_WIN32
-static int SetCPUAffinitySet(uint32_t cs) {
-    return 0;
-}
-#else
+#if !defined OS_WIN32 && !defined __OpenBSD__
 static int SetCPUAffinitySet(cpu_set_t *cs) {
-#ifdef OS_FREEBSD
+#if  defined OS_FREEBSD
     int r = cpuset_setaffinity(CPU_LEVEL_WHICH,CPU_WHICH_TID,SCGetThreadIdLong(),sizeof(cpu_set_t),cs);
 #elif OS_DARWIN
     int r = thread_policy_set(mach_thread_self(), THREAD_AFFINITY_POLICY, (void*)cs, THREAD_AFFINITY_POLICY_COUNT);
@@ -696,11 +692,14 @@ static int SetCPUAffinitySet(cpu_set_t *cs) {
  * \retval 0 if all goes well; -1 if something is wrong
  */
 static int SetCPUAffinity(uint16_t cpuid) {
-
+#if !defined __OpenBSD__
     int cpu = (int)cpuid;
+#endif
 
 #ifdef OS_WIN32
 	DWORD cs = 1 << cpu;
+#elif defined __OpenBSD__
+    return 0;
 #else
     cpu_set_t cs;
 
@@ -717,7 +716,7 @@ static int SetCPUAffinity(uint16_t cpuid) {
     SCLogDebug("CPU Affinity for thread %lu set to CPU %" PRId32, SCGetThreadIdLong(), cpu);
 
     return 0;
-#else
+#elif !defined __OpenBSD__
     return SetCPUAffinitySet(&cs);
 #endif /* OS_WIN32 */
 }
@@ -802,6 +801,7 @@ TmEcode TmThreadSetupOptions(ThreadVars *tv) {
         SCLogInfo("Setting affinity for \"%s\" Module to cpu/core %"PRIu16", thread id %lu", tv->name, tv->cpu_affinity, SCGetThreadIdLong());
         SetCPUAffinity(tv->cpu_affinity);
     }
+#if !defined OS_WIN32 && !defined __OpenBSD__
     if (tv->thread_setup_flags & THREAD_SET_PRIORITY)
         TmThreadSetPrio(tv);
     if (tv->thread_setup_flags & THREAD_SET_AFFTYPE) {
@@ -827,6 +827,7 @@ TmEcode TmThreadSetupOptions(ThreadVars *tv) {
         }
         TmThreadSetPrio(tv);
     }
+#endif
     return TM_ECODE_OK;
 }
 

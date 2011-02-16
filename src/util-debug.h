@@ -29,7 +29,11 @@
 #include "util-error.h"
 #include "pcre.h"
 #include "util-debug-filters.h"
+#if defined __OpenBSD__
+//#include <sys/syslog.h>
+#else
 #include "syslog.h"
+#endif
 
 #ifndef __UTIL_DEBUG_H__
 #define __UTIL_DEBUG_H__

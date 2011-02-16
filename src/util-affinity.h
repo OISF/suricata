@@ -25,14 +25,18 @@
 #define __UTIL_AFFINITY_H__
 #include "suricata-common.h"
 
-#ifdef OS_FREEBSD
+#if defined OS_FREEBSD
 #include <sched.h>
 #include <sys/param.h>
 #include <sys/resource.h>
 #include <sys/cpuset.h>
 #include <sys/thr.h>
 #define cpu_set_t cpuset_t
-#elif OS_DARWIN
+#elif defined __OpenBSD__
+#include <sched.h>
+#include <sys/param.h>
+#include <sys/resource.h>
+#elif defined OS_DARWIN
 #include <mach/mach.h>
 #include <mach/mach_init.h>
 #include <mach/thread_policy.h>
@@ -62,13 +66,17 @@ enum {
 
 typedef struct ThreadsAffinityType_ {
     char *name;
+#if !defined OS_WIN32 && !defined __OpenBSD__
     cpu_set_t cpu_set;
+#endif
     uint8_t mode_flag;
     int prio;
     int nb_threads;
+#if !defined OS_WIN32 && !defined __OpenBSD__
     cpu_set_t lowprio_cpu;
     cpu_set_t medprio_cpu;
     cpu_set_t hiprio_cpu;
+#endif
     SCMutex taf_mutex;
     uint16_t lcpu; /* use by exclusive mode */
 } ThreadsAffinityType;

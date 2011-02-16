@@ -37,6 +37,10 @@
 #define USE_FMEM_WRAPPER 1
 #endif
 
+#ifdef __OpenBSD__
+#define USE_FMEM_WRAPPER 1
+#endif
+
 #ifdef OS_WIN32
 #define USE_FMEM_WRAPPER 1
 #endif

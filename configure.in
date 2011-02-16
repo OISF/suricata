@@ -123,6 +123,11 @@ AC_INIT(configure.in)
                     CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet11"
                     LDFLAGS="${LDFLAGS} -L/usr/local/lib -L/usr/local/lib/libnet11"
                     ;;
+           *-*-openbsd*)
+                    CFLAGS="${CFLAGS} -D__OpenBSD__"
+                    CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet-1.1"
+                    LDFLAGS="${LDFLAGS} -L/usr/local/lib -I/usr/local/lib/libnet-1.1"
+                    ;;
 	   *darwin*|*Darwin*)
                     CFLAGS="${CFLAGS} -DOS_DARWIN"
                     CPPFLAGS="${CPPFLAGS} -I/opt/local/include"

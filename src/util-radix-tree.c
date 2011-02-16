@@ -30,7 +30,7 @@
 #include "suricata-common.h"
 
 #include "suricata-common.h"
-#ifdef OS_FREEBSD
+#if defined OS_FREEBSD || defined __OpenBSD__
 #include <netinet/in.h>
 #endif /* OS_FREEBSD */
 #ifdef OS_DARWIN

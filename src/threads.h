@@ -27,9 +27,11 @@
 #ifndef __THREADS_H__
 #define __THREADS_H__
 
-#ifdef OS_FREEBSD
+#if defined OS_FREEBSD || __OpenBSD__
 
+#if ! defined __OpenBSD__
 #include <sys/thr.h>
+#endif
 enum {
     PRIO_LOW = 2,
     PRIO_MEDIUM = 0,
@@ -97,6 +99,13 @@ enum {
     long tmpthid; \
     thr_self(&tmpthid); \
     u_long tid = (u_long)tmpthid; \
+    tid; \
+})
+#elif __OpenBSD__
+#define SCGetThreadIdLong(...) ({ \
+    pid_t tpid; \
+    tpid = getpid(); \
+    u_long tid = (u_long)tpid; \
     tid; \
 })
 #elif OS_WIN32
@@ -361,7 +370,7 @@ enum {
  */
 #ifndef PR_SET_NAME /*PR_SET_NAME */
 #define SCSetThreadName(n)
-#elif OS_FREEBSD /* FreeBSD */
+#elif defined OS_FREEBSD || __OpenBSD__ /* FreeBSD or OpenBSD */
 /** \todo Add implementation for FreeBSD */
 #define SCSetThreadName(n)
 #elif OS_WIN32 /* Windows */

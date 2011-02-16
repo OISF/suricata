@@ -24,9 +24,9 @@
  * when constructing unittests
  */
 
+#include "suricata-common.h"
 #include <netinet/in.h>
 
-#include "suricata-common.h"
 
 #include "decode.h"
 
