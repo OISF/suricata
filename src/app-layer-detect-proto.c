@@ -370,7 +370,9 @@ void AppLayerDetectProtoThreadInit(void) {
     AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|01 00 02|", 5, 2, STREAM_TOSERVER);
     /* subsection - SSLv2 style record by client, but informing the server the max
      * version it supports */
-    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|01 03 00|", 5, 2, STREAM_TOSERVER);
+    /* Updated by Anoop Saldanha.  Disabled it for now.  We'll get back to it
+     * after some tests */
+    //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|01 03 00|", 5, 2, STREAM_TOSERVER);
     AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|00 02|", 7, 5, STREAM_TOCLIENT);
 
     /** SSLv3 */
