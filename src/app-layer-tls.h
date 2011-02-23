@@ -15,66 +15,79 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Victor Julien <victor@inliniac.net>
- * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
- */
+#ifndef __APP_LAYER_SSL_H__
+#define __APP_LAYER_SSL_H__
 
-#ifndef __APP_LAYER_TLS_H__
-#define __APP_LAYER_TLS_H__
+/* Flag to indicate that server will now on send encrypted msgs */
+#define SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC   0x0001
+/* Flag to indicate that client will now on send encrypted msgs */
+#define SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC   0x0002
+#define SSL_AL_FLAG_CHANGE_CIPHER_SPEC          0x0004
 
-#define TLS_FLAG_SERVER_CHANGE_CIPHER_SPEC   0x01    /**< Flag to indicate that
-                                                     server will now on sends
-                                                     encrypted msgs. */
-#define TLS_FLAG_CLIENT_CHANGE_CIPHER_SPEC   0x02    /**< Flag to indicate that
-                                                     client will now on sends
-                                                     encrypted msgs. */
+/* SSL related flags */
+#define SSL_AL_FLAG_SSL_CLIENT_HS               0x0008
+#define SSL_AL_FLAG_SSL_SERVER_HS               0x0010
+#define SSL_AL_FLAG_SSL_CLIENT_MASTER_KEY       0x0020
+#define SSL_AL_FLAG_SSL_CLIENT_SSN_ENCRYPTED    0x0040
+#define SSL_AL_FLAG_SSL_SERVER_SSN_ENCRYPTED    0x0080
+#define SSL_AL_FLAG_SSL_NO_SESSION_ID           0x0100
 
-#define TLS_FLAG_SSL_CLIENT_HS               0x04    /**< SSL state flags */
-#define TLS_FLAG_SSL_SERVER_HS               0x08
-#define TLS_FLAG_SSL_CLIENT_MASTER_KEY       0x10
-#define TLS_FLAG_SSL_CLIENT_SSN_ENCRYPTED    0x20
-#define TLS_FLAG_SSL_SERVER_SSN_ENCRYPTED    0x40
-#define TLS_FLAG_SSL_NO_SESSION_ID           0x80
+/* flags specific to detect-ssl-state keyword */
+#define SSL_AL_FLAG_STATE_CLIENT_HELLO          0x0200
+#define SSL_AL_FLAG_STATE_SERVER_HELLO          0x0400
+#define SSL_AL_FLAG_STATE_CLIENT_KEYX           0x0800
+#define SSL_AL_FLAG_STATE_SERVER_KEYX           0x1000
+#define SSL_AL_FLAG_STATE_UNKNOWN               0x2000
 
+
+/* SSL versions.  We'll use a unified format for all, with the top byte
+ * holding the major version and the lower byte the minor version */
 enum {
-    TLS_FIELD_NONE = 0,
-
-    TLS_FIELD_CLIENT_CONTENT_TYPE, /* len 1 */
-    TLS_FIELD_CLIENT_VERSION,      /* len 2 */
-
-    TLS_FIELD_SERVER_CONTENT_TYPE, /* len 1 */
-    TLS_FIELD_SERVER_VERSION,      /* len 2 */
-
-    TLS_FIELD_LENGTH,
-    /* must be last */
-    TLS_FIELD_MAX,
-};
-/* structure to store the TLS state values */
-typedef struct TlsState_ {
-    uint8_t flags;                  /**< Flags to indicate the current TLS
-                                         sessoin state */
-    uint8_t client_content_type;    /**< Client content type storage field */
-    uint16_t client_version;        /**< Client TLS version storage field */
-
-    uint16_t server_version;        /**< Server TLS version storage field */
-    uint8_t server_content_type;    /**< Server content type storage field */
-} TlsState;
-
-enum {
-    TLS_VERSION_INVALID = 0x0000,
-    TLS_VERSION_VALID = 0x0001,
-    SSL_VERSION_2 = 0x0002,
+    TLS_VERSION_UNKNOWN = 0x0000,
+    SSL_VERSION_2 = 0x0200,
     SSL_VERSION_3 = 0x0300,
     TLS_VERSION_10 = 0x0301,
     TLS_VERSION_11 = 0x0302,
     TLS_VERSION_12 = 0x0303,
 };
 
-void RegisterTLSParsers(void);
-void TLSParserRegisterTests(void);
+/**
+ * \brief SSLv[2.0|3.[0|1|2|3]] state structure.
+ *
+ *        Structure to store the SSL state values.
+ */
+typedef struct SslState_ {
+    /* record length */
+    uint32_t record_length;
+    /* record length's length for SSLv2 */
+    uint32_t record_lengths_length;
 
-#endif /* __APP_LAYER_TLS_H__ */
+    /* Flags to indicate the current SSL session state */
+    uint32_t flags;
 
+    uint16_t client_version;
+    uint16_t server_version;
+    uint8_t client_content_type;
+    uint8_t server_content_type;
+
+    /* dummy var.  You can replace this if you want to */
+    uint8_t pad0;
+
+    uint8_t cur_content_type;
+    uint32_t handshake_length;
+    uint16_t handshake_client_hello_ssl_version;
+    uint16_t handshake_server_hello_ssl_version;
+    /* the no of bytes processed in the currently parsed record */
+    uint16_t bytes_processed;
+
+    uint16_t cur_ssl_version;
+    uint8_t handshake_type;
+
+    /* sslv2 client hello session id length */
+    uint16_t session_id_length;
+} SslState;
+
+void RegisterSslParsers(void);
+void SslParserRegisterTests(void);
+
+#endif /* __APP_LAYER_SSL_H__ */

@@ -121,7 +121,7 @@ int DetectSslVersionMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     DetectSslVersionData *ssl = (DetectSslVersionData *)m->ctx;
-    TlsState *app_state = (TlsState *)state;
+    SslState *app_state = (SslState *)state;
     if (app_state == NULL) {
         SCLogDebug("no app state, no match");
         SCReturnInt(0);
@@ -472,7 +472,7 @@ static int DetectSslVersionTestDetect01(void)
         goto end;
     }
 
-    TlsState *app_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    SslState *app_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
     if (app_state == NULL) {
         printf("no ssl state: ");
         goto end;
@@ -589,7 +589,7 @@ static int DetectSslVersionTestDetect02(void)
         goto end;
     }
 
-    TlsState *app_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    SslState *app_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
     if (app_state == NULL) {
         printf("no ssl state: ");
         goto end;
@@ -720,7 +720,7 @@ static int DetectSslVersionTestDetect03(void)
         goto end;
     }
 
-    TlsState *app_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    SslState *app_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
     if (app_state == NULL) {
         printf("no ssl state: ");
         goto end;

@@ -1056,7 +1056,7 @@ int main(int argc, char **argv)
     AppLayerDetectProtoThreadInit();
     RegisterAppLayerParsers();
     RegisterHTPParsers();
-    RegisterTLSParsers();
+    RegisterSslParsers();
     RegisterSMBParsers();
     RegisterDCERPCParsers();
     RegisterDCERPCUDPParsers();
@@ -1097,7 +1097,7 @@ int main(int argc, char **argv)
         DecodePPPRegisterTests();
         DecodeVLANRegisterTests();
         HTPParserRegisterTests();
-        TLSParserRegisterTests();
+        SslParserRegisterTests();
         SSHParserRegisterTests();
         SMBParserRegisterTests();
         DCERPCParserRegisterTests();

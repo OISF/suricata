@@ -15,65 +15,65 @@
  * 02110-1301, USA.
  */
 
-/**
- * \file
- *
- * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
- */
-
-#ifndef _APP_LAYER_SSL_H
-#define	_APP_LAYER_SSL_H
-
-#define SSL_CLIENT_VERSION			0x0002
-#define SSL_SERVER_VERSION			0x0002
-
-/* SSL message types */
-#define SSL_ERROR			0
-#define SSL_CLIENT_HELLO		1
-#define SSL_CLIENT_MASTER_KEY		2
-#define SSL_CLIENT_FINISHED		3
-#define SSL_SERVER_HELLO		4
-#define SSL_SERVER_VERIFY		5
-#define SSL_SERVER_FINISHED		6
-#define SSL_REQUEST_CERTIFICATE		7
-#define SSL_CLIENT_CERTIFICATE		8
-
-/* structure to store the SSL state values */
-typedef struct SslState_ {
-    uint8_t flags;                  /**< Flags to indicate the current SSL
-                                         sessoin state */
-    uint8_t client_content_type;    /**< Client content type storage field */
-    uint16_t client_version;        /**< Client SSL version storage field */
-
-    uint16_t server_version;        /**< Server SSL version storage field */
-    uint8_t server_content_type;    /**< Server content type storage field */
-} SslState;
-
-typedef struct SslClient_ {
-    uint16_t length;        /**< Length of the received message */
-    uint8_t msg_type;
-    uint8_t minor_ver;
-    uint8_t major_ver;
-    uint16_t cipher_spec_len;
-    uint16_t session_id_len;
-} SslClient;
-
-typedef struct SslServer_ {
-    uint16_t lentgth;
-    uint8_t msg_type;
-    uint8_t session_id;
-    uint8_t cert;
-    uint8_t minor_ver;
-    uint8_t major_ver;
-} SslServer;
-
-int SSLParseClientRecord(Flow *, void *, AppLayerParserState *, uint8_t *,
-                            uint32_t , AppLayerParserResult *);
-
-int SSLParseServerRecord(Flow *, void *, AppLayerParserState *, uint8_t *,
-                            uint32_t , AppLayerParserResult *);
-
-void SSLParserRegisterTests(void);
-
-#endif	/* _APP_LAYER_SSL_H */
+///**
+// * \file
+// *
+// * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
+// */
+//
+//#ifndef _APP_LAYER_SSL_H
+//#define	_APP_LAYER_SSL_H
+//
+//#define SSL_CLIENT_VERSION			0x0002
+//#define SSL_SERVER_VERSION			0x0002
+//
+///* SSL message types */
+//#define SSL_ERROR			0
+//#define SSL_CLIENT_HELLO		1
+//#define SSL_CLIENT_MASTER_KEY		2
+//#define SSL_CLIENT_FINISHED		3
+//#define SSL_SERVER_HELLO		4
+//#define SSL_SERVER_VERIFY		5
+//#define SSL_SERVER_FINISHED		6
+//#define SSL_REQUEST_CERTIFICATE		7
+//#define SSL_CLIENT_CERTIFICATE		8
+//
+///* structure to store the SSL state values */
+//typedef struct SslState_ {
+//    uint8_t flags;                  /**< Flags to indicate the current SSL
+//                                         sessoin state */
+//    uint8_t client_content_type;    /**< Client content type storage field */
+//    uint16_t client_version;        /**< Client SSL version storage field */
+//
+//    uint16_t server_version;        /**< Server SSL version storage field */
+//    uint8_t server_content_type;    /**< Server content type storage field */
+//} SslState;
+//
+//typedef struct SslClient_ {
+//    uint16_t length;        /**< Length of the received message */
+//    uint8_t msg_type;
+//    uint8_t minor_ver;
+//    uint8_t major_ver;
+//    uint16_t cipher_spec_len;
+//    uint16_t session_id_len;
+//} SslClient;
+//
+//typedef struct SslServer_ {
+//    uint16_t lentgth;
+//    uint8_t msg_type;
+//    uint8_t session_id;
+//    uint8_t cert;
+//    uint8_t minor_ver;
+//    uint8_t major_ver;
+//} SslServer;
+//
+//int SSLParseClientRecord(Flow *, void *, AppLayerParserState *, uint8_t *,
+//                            uint32_t , AppLayerParserResult *);
+//
+//int SSLParseServerRecord(Flow *, void *, AppLayerParserState *, uint8_t *,
+//                            uint32_t , AppLayerParserResult *);
+//
+//void SSLParserRegisterTests(void);
+//
+//#endif	/* _APP_LAYER_SSL_H */
 
