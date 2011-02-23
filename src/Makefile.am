@@ -224,7 +224,6 @@ app-layer-detect-proto.c app-layer-detect-proto.h \
 app-layer-parser.c app-layer-parser.h \
 app-layer-protos.h \
 app-layer-htp.c app-layer-htp.h \
-app-layer-tls.c app-layer-tls.h \
 app-layer-smb.c app-layer-smb.h \
 app-layer-smb2.c app-layer-smb2.h \
 app-layer-dcerpc.c app-layer-dcerpc.h \
