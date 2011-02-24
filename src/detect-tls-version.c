@@ -45,7 +45,7 @@
 
 #include "app-layer.h"
 
-#include "app-layer-tls.h"
+#include "app-layer-ssl.h"
 #include "detect-tls-version.h"
 
 #include "stream-tcp.h"
@@ -115,8 +115,8 @@ int DetectTlsVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *
     SCEnter();
 
     DetectTlsVersionData *tls_data = (DetectTlsVersionData *)m->ctx;
-    SslState *tls_state = (SslState *)state;
-    if (tls_state == NULL) {
+    SSLState *ssl_state = (SSLState *)state;
+    if (ssl_state == NULL) {
         SCLogDebug("no tls state, no match");
         SCReturnInt(0);
     }
@@ -126,12 +126,12 @@ int DetectTlsVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *
     SCLogDebug("looking for tls_data->ver 0x%02X (flags 0x%02X)", tls_data->ver, flags);
 
     if (flags & STREAM_TOCLIENT) {
-        SCLogDebug("server (toclient) version is 0x%02X", tls_state->server_version);
-        if (tls_data->ver == tls_state->server_version)
+        SCLogDebug("server (toclient) version is 0x%02X", ssl_state->server_version);
+        if (tls_data->ver == ssl_state->server_version)
             ret = 1;
     } else if (flags & STREAM_TOSERVER) {
-        SCLogDebug("client (toserver) version is 0x%02X", tls_state->client_version);
-        if (tls_data->ver == tls_state->client_version)
+        SCLogDebug("client (toserver) version is 0x%02X", ssl_state->client_version);
+        if (tls_data->ver == ssl_state->client_version)
             ret = 1;
     }
     SCMutexUnlock(&f->m);
@@ -382,24 +382,24 @@ static int DetectTlsVersionTestDetect01(void) {
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         goto end;
     }
 
-    if (tls_state->client_content_type != 0x16) {
-        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x16, tls_state->client_content_type);
+    if (ssl_state->client_content_type != 0x16) {
+        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x16, ssl_state->client_content_type);
         goto end;
     }
 
-    if (tls_state->client_version != TLS_VERSION_10) {
-        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", TLS_VERSION_10, tls_state->client_version);
+    if (ssl_state->client_version != TLS_VERSION_10) {
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", TLS_VERSION_10, ssl_state->client_version);
         goto end;
     }
 
-    SCLogDebug("tls_state is at %p, tls_state->server_version 0x%02X tls_state->client_version 0x%02X",
-        tls_state, tls_state->server_version, tls_state->client_version);
+    SCLogDebug("ssl_state is at %p, ssl_state->server_version 0x%02X ssl_state->client_version 0x%02X",
+        ssl_state, ssl_state->server_version, ssl_state->client_version);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -497,19 +497,19 @@ static int DetectTlsVersionTestDetect02(void) {
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         goto end;
     }
 
-    if (tls_state->client_content_type != 0x16) {
-        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x16, tls_state->client_content_type);
+    if (ssl_state->client_content_type != 0x16) {
+        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x16, ssl_state->client_content_type);
         goto end;
     }
 
-    if (tls_state->client_version != TLS_VERSION_10) {
-        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", TLS_VERSION_10, tls_state->client_version);
+    if (ssl_state->client_version != TLS_VERSION_10) {
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", TLS_VERSION_10, ssl_state->client_version);
         goto end;
     }
 
@@ -629,19 +629,19 @@ static int DetectTlsVersionTestDetect03(void) {
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         goto end;
     }
 
-    if (tls_state->client_content_type != 0x16) {
-        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x16, tls_state->client_content_type);
+    if (ssl_state->client_content_type != 0x16) {
+        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x16, ssl_state->client_content_type);
         goto end;
     }
 
-    if (tls_state->client_version != TLS_VERSION_10) {
-        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", TLS_VERSION_10, tls_state->client_version);
+    if (ssl_state->client_version != TLS_VERSION_10) {
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", TLS_VERSION_10, ssl_state->client_version);
         goto end;
     }
 

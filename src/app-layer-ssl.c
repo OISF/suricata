@@ -30,7 +30,6 @@
 
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
-#include "app-layer-tls.h"
 #include "app-layer-ssl.h"
 
 #include "conf.h"
@@ -76,58 +75,58 @@
 
 #define SSLV3_RECORD_LEN 5
 
-static void SSLParserReset(SslState *ssl_state)
+static void SSLParserReset(SSLState *ssl_state)
 {
     ssl_state->bytes_processed = 0;
 }
 
-static int SSLv3ParseHandshakeType(SslState *tls_state, uint8_t *input,
+static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
                                    uint32_t input_len)
 {
     uint8_t *initial_input = input;
     uint32_t parsed = 0;
 
-    switch (tls_state->handshake_type) {
+    switch (ssl_state->handshake_type) {
         case SSLV3_HS_CLIENT_HELLO:
-            tls_state->flags |= SSL_AL_FLAG_STATE_CLIENT_HELLO;
+            ssl_state->flags |= SSL_AL_FLAG_STATE_CLIENT_HELLO;
 
-            switch (tls_state->bytes_processed) {
+            switch (ssl_state->bytes_processed) {
                 case 9:
-                    tls_state->bytes_processed++;
-                    tls_state->handshake_client_hello_ssl_version = *(input++) << 8;
+                    ssl_state->bytes_processed++;
+                    ssl_state->handshake_client_hello_ssl_version = *(input++) << 8;
                     if (--input_len == 0)
                         break;
                 case 10:
-                    tls_state->bytes_processed++;
-                    tls_state->handshake_client_hello_ssl_version |= *(input++);
+                    ssl_state->bytes_processed++;
+                    ssl_state->handshake_client_hello_ssl_version |= *(input++);
                     if (--input_len == 0)
                         break;
             }
             break;
 
         case SSLV3_HS_SERVER_HELLO:
-            tls_state->flags |= SSL_AL_FLAG_STATE_SERVER_HELLO;
+            ssl_state->flags |= SSL_AL_FLAG_STATE_SERVER_HELLO;
 
-            switch (tls_state->bytes_processed) {
+            switch (ssl_state->bytes_processed) {
                 case 9:
-                    tls_state->bytes_processed++;
-                    tls_state->handshake_server_hello_ssl_version = *(input++) << 8;
+                    ssl_state->bytes_processed++;
+                    ssl_state->handshake_server_hello_ssl_version = *(input++) << 8;
                     if (--input_len == 0)
                         break;
                 case 10:
-                    tls_state->bytes_processed++;
-                    tls_state->handshake_server_hello_ssl_version |= *(input++);
+                    ssl_state->bytes_processed++;
+                    ssl_state->handshake_server_hello_ssl_version |= *(input++);
                     if (--input_len == 0)
                         break;
             }
             break;
 
         case SSLV3_HS_SERVER_KEY_EXCHANGE:
-            tls_state->flags |= SSL_AL_FLAG_STATE_SERVER_KEYX;
+            ssl_state->flags |= SSL_AL_FLAG_STATE_SERVER_KEYX;
             break;
 
         case SSLV3_HS_CLIENT_KEY_EXCHANGE:
-            tls_state->flags |= SSL_AL_FLAG_STATE_CLIENT_KEYX;
+            ssl_state->flags |= SSL_AL_FLAG_STATE_CLIENT_KEYX;
             break;
 
         case SSLV3_HS_HELLO_REQUEST:
@@ -144,53 +143,53 @@ static int SSLv3ParseHandshakeType(SslState *tls_state, uint8_t *input,
 
     /* looks like we have another record */
     parsed += (input - initial_input);
-    if ((input_len + tls_state->bytes_processed) >= tls_state->record_length + SSLV3_RECORD_LEN) {
-        uint32_t diff = tls_state->record_length + SSLV3_RECORD_LEN - tls_state->bytes_processed;
+    if ((input_len + ssl_state->bytes_processed) >= ssl_state->record_length + SSLV3_RECORD_LEN) {
+        uint32_t diff = ssl_state->record_length + SSLV3_RECORD_LEN - ssl_state->bytes_processed;
         parsed += diff;
-        tls_state->bytes_processed += diff;
+        ssl_state->bytes_processed += diff;
         return parsed;
 
         /* we still don't have the entire record for the one we are
          * currently parsing */
     } else {
         parsed += input_len;
-        tls_state->bytes_processed += input_len;
+        ssl_state->bytes_processed += input_len;
         return parsed;
     }
 }
 
-static int SSLv3ParseHandshakeProtocol(SslState *tls_state, uint8_t *input,
+static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, uint8_t *input,
                                        uint32_t input_len)
 {
     uint8_t *initial_input = input;
     int retval;
 
-    switch (tls_state->bytes_processed) {
+    switch (ssl_state->bytes_processed) {
         case 5:
             if (input_len >= 4) {
-                tls_state->handshake_type = *(input++);
+                ssl_state->handshake_type = *(input++);
                 input += 3;
                 input_len -= 4;
-                tls_state->bytes_processed += 4;
+                ssl_state->bytes_processed += 4;
                 break;
             } else {
-                tls_state->handshake_type = *(input++);
-                tls_state->bytes_processed++;
+                ssl_state->handshake_type = *(input++);
+                ssl_state->bytes_processed++;
                 if (--input_len == 0)
                     break;
             }
         case 6:
-            tls_state->bytes_processed++;
+            ssl_state->bytes_processed++;
             input++;
             if (--input_len == 0)
                 break;
         case 7:
-            tls_state->bytes_processed++;
+            ssl_state->bytes_processed++;
             input++;
             if (--input_len == 0)
                 break;
         case 8:
-            tls_state->bytes_processed++;
+            ssl_state->bytes_processed++;
             input++;
             if (--input_len == 0)
                 break;
@@ -199,7 +198,7 @@ static int SSLv3ParseHandshakeProtocol(SslState *tls_state, uint8_t *input,
     if (input_len == 0)
         return (input - initial_input);
 
-    retval = SSLv3ParseHandshakeType(tls_state, input, input_len);
+    retval = SSLv3ParseHandshakeType(ssl_state, input, input_len);
     if (retval == -1) {
         SCReturnInt(-1);
     } else {
@@ -208,140 +207,140 @@ static int SSLv3ParseHandshakeProtocol(SslState *tls_state, uint8_t *input,
     }
 }
 
-static int SSLv3ParseRecord(uint8_t direction, SslState *tls_state,
+static int SSLv3ParseRecord(uint8_t direction, SSLState *ssl_state,
                             uint8_t *input, uint32_t input_len)
 {
     uint8_t *initial_input = input;
 
-    switch (tls_state->bytes_processed) {
+    switch (ssl_state->bytes_processed) {
         case 0:
             if (input_len >= 5) {
                 /* toserver - 0 */
-                tls_state->cur_content_type = input[0];
+                ssl_state->cur_content_type = input[0];
                 if (direction == 0) {
-                    tls_state->client_content_type = input[0];
-                    tls_state->client_version = input[1] << 8;
-                    tls_state->client_version |= input[2];
+                    ssl_state->client_content_type = input[0];
+                    ssl_state->client_version = input[1] << 8;
+                    ssl_state->client_version |= input[2];
 
                     /* toclient - 1 */
                 } else {
-                    tls_state->server_content_type = input[0];
-                    tls_state->server_version = input[1] << 8;
-                    tls_state->server_version |= input[2];
+                    ssl_state->server_content_type = input[0];
+                    ssl_state->server_version = input[1] << 8;
+                    ssl_state->server_version |= input[2];
                 }
-                tls_state->record_length = input[3] << 8;
-                tls_state->record_length |= input[4];
-                tls_state->bytes_processed += SSLV3_RECORD_LEN;
+                ssl_state->record_length = input[3] << 8;
+                ssl_state->record_length |= input[4];
+                ssl_state->bytes_processed += SSLV3_RECORD_LEN;
                 return SSLV3_RECORD_LEN;
             } else {
-                tls_state->cur_content_type = *input;
+                ssl_state->cur_content_type = *input;
                 if (direction == 0) {
-                    tls_state->client_content_type = *(input++);
+                    ssl_state->client_content_type = *(input++);
                 } else {
-                    tls_state->server_content_type = *(input++);
+                    ssl_state->server_content_type = *(input++);
                 }
                 if (--input_len == 0)
                     break;
             }
         case 1:
             if (direction == 0) {
-                tls_state->client_version = *(input++) << 8;
+                ssl_state->client_version = *(input++) << 8;
             } else {
-                tls_state->server_version = *(input++) << 8;
+                ssl_state->server_version = *(input++) << 8;
             }
             if (--input_len == 0)
                 break;
         case 2:
             if (direction == 0) {
-                tls_state->client_version |= *(input++);
+                ssl_state->client_version |= *(input++);
             } else {
-                tls_state->server_version |= *(input++);
+                ssl_state->server_version |= *(input++);
             }
             if (--input_len == 0)
                 break;
         case 3:
-            tls_state->record_length = *(input++) << 8;
+            ssl_state->record_length = *(input++) << 8;
             if (--input_len == 0)
                 break;
         case 4:
-            tls_state->record_length |= *(input++);
-            if (tls_state->record_length <= SSLV3_RECORD_LEN)
+            ssl_state->record_length |= *(input++);
+            if (ssl_state->record_length <= SSLV3_RECORD_LEN)
                 return -1;
             if (--input_len == 0)
                 break;
-    } /* switch (tls_state->bytes_processed) */
+    } /* switch (ssl_state->bytes_processed) */
 
-    tls_state->bytes_processed += (input - initial_input);
+    ssl_state->bytes_processed += (input - initial_input);
 
     return (input - initial_input);
 }
 
-static int SSLv2ParseRecord(uint8_t direction, SslState *tls_state,
+static int SSLv2ParseRecord(uint8_t direction, SSLState *ssl_state,
                             uint8_t *input, uint32_t input_len)
 {
     uint8_t *initial_input = input;
 
-    if (tls_state->record_lengths_length == 2) {
-        switch (tls_state->bytes_processed) {
+    if (ssl_state->record_lengths_length == 2) {
+        switch (ssl_state->bytes_processed) {
             case 0:
-                if (input_len >= tls_state->record_lengths_length + 1) {
-                    tls_state->record_length = (0x7f & input[0]) << 8 | input[1];
-                    tls_state->cur_content_type = input[2];
+                if (input_len >= ssl_state->record_lengths_length + 1) {
+                    ssl_state->record_length = (0x7f & input[0]) << 8 | input[1];
+                    ssl_state->cur_content_type = input[2];
                     if (direction == 0) {
-                        tls_state->client_content_type = input[2];
-                        tls_state->client_version = SSL_VERSION_2;
+                        ssl_state->client_content_type = input[2];
+                        ssl_state->client_version = SSL_VERSION_2;
                     } else {
-                        tls_state->server_content_type = input[2];
-                        tls_state->server_version = SSL_VERSION_2;
+                        ssl_state->server_content_type = input[2];
+                        ssl_state->server_version = SSL_VERSION_2;
                     }
-                    tls_state->bytes_processed += 3;
+                    ssl_state->bytes_processed += 3;
                     return 3;
                 } else {
-                    tls_state->record_length = (0x7f & *(input++)) << 8;
+                    ssl_state->record_length = (0x7f & *(input++)) << 8;
                     if (--input_len == 0)
                         break;
                 }
 
             case 1:
-                tls_state->record_length |= *(input++);
+                ssl_state->record_length |= *(input++);
                 if (--input_len == 0)
                     break;
             case 2:
-                tls_state->cur_content_type = *input;
+                ssl_state->cur_content_type = *input;
                 if (direction == 0) {
-                    tls_state->client_content_type = *(input++);
-                    tls_state->client_version = SSL_VERSION_2;
+                    ssl_state->client_content_type = *(input++);
+                    ssl_state->client_version = SSL_VERSION_2;
                 } else {
-                    tls_state->server_content_type = *(input++);
-                    tls_state->server_version = SSL_VERSION_2;
+                    ssl_state->server_content_type = *(input++);
+                    ssl_state->server_version = SSL_VERSION_2;
                 }
                 if (--input_len == 0)
                     break;
-        } /* switch (tls_state->bytes_processed) */
+        } /* switch (ssl_state->bytes_processed) */
 
     } else {
-        switch (tls_state->bytes_processed) {
+        switch (ssl_state->bytes_processed) {
             case 0:
-                if (input_len >= tls_state->record_lengths_length + 1) {
-                    tls_state->record_length = (0x3f & input[0]) << 8 | input[1];
-                    tls_state->cur_content_type = input[3];
+                if (input_len >= ssl_state->record_lengths_length + 1) {
+                    ssl_state->record_length = (0x3f & input[0]) << 8 | input[1];
+                    ssl_state->cur_content_type = input[3];
                     if (direction == 0) {
-                        tls_state->client_content_type = input[3];
-                        tls_state->client_version = SSL_VERSION_2;
+                        ssl_state->client_content_type = input[3];
+                        ssl_state->client_version = SSL_VERSION_2;
                     } else {
-                        tls_state->server_content_type = input[3];
-                        tls_state->server_version = SSL_VERSION_2;
+                        ssl_state->server_content_type = input[3];
+                        ssl_state->server_version = SSL_VERSION_2;
                     }
-                    tls_state->bytes_processed += 4;
+                    ssl_state->bytes_processed += 4;
                     return 4;
                 } else {
-                    tls_state->record_length = (0x3f & *(input++)) << 8;
+                    ssl_state->record_length = (0x3f & *(input++)) << 8;
                     if (--input_len == 0)
                         break;
                 }
 
             case 1:
-                tls_state->record_length |= *(input++);
+                ssl_state->record_length |= *(input++);
                 if (--input_len == 0)
                     break;
 
@@ -352,43 +351,43 @@ static int SSLv2ParseRecord(uint8_t direction, SslState *tls_state,
                     break;
 
             case 3:
-                tls_state->cur_content_type = *input;
+                ssl_state->cur_content_type = *input;
                 if (direction == 0) {
-                    tls_state->client_content_type = *(input++);
-                    tls_state->client_version = SSL_VERSION_2;
+                    ssl_state->client_content_type = *(input++);
+                    ssl_state->client_version = SSL_VERSION_2;
                 } else {
-                    tls_state->server_content_type = *(input++);
-                    tls_state->server_version = SSL_VERSION_2;
+                    ssl_state->server_content_type = *(input++);
+                    ssl_state->server_version = SSL_VERSION_2;
                 }
                 if (--input_len == 0)
                     break;
-        } /* switch (tls_state->bytes_processed) */
+        } /* switch (ssl_state->bytes_processed) */
     }
 
-    tls_state->bytes_processed += (input - initial_input);
+    ssl_state->bytes_processed += (input - initial_input);
 
     return (input - initial_input);
 }
 
-static int SSLv2Decode(uint8_t direction, SslState *tls_state,
+static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
                        AppLayerParserState *pstate, uint8_t *input,
                        uint32_t input_len)
 {
     int retval = 0;
     uint8_t *initial_input = input;
 
-    if (tls_state->bytes_processed == 0) {
+    if (ssl_state->bytes_processed == 0) {
         if (input[0] & 0x80) {
-            tls_state->record_lengths_length = 2;
+            ssl_state->record_lengths_length = 2;
         } else {
-            tls_state->record_lengths_length = 3;
+            ssl_state->record_lengths_length = 3;
         }
     }
 
     /* the + 1 because, we also read one extra byte inside SSLv2ParseRecord
      * to read the msg_type */
-    if (tls_state->bytes_processed < (tls_state->record_lengths_length + 1)) {
-        retval = SSLv2ParseRecord(direction, tls_state, input, input_len);
+    if (ssl_state->bytes_processed < (ssl_state->record_lengths_length + 1)) {
+        retval = SSLv2ParseRecord(direction, ssl_state, input, input_len);
         if (retval == -1) {
             SCLogDebug("Error parsing SSLv2Header");
             return -1;
@@ -402,7 +401,7 @@ static int SSLv2Decode(uint8_t direction, SslState *tls_state,
         return (input - initial_input);
     }
 
-    switch (tls_state->cur_content_type) {
+    switch (ssl_state->cur_content_type) {
         case SSLV2_MT_ERROR:
             SCLogWarning(SC_ERR_ALPARSER, "SSLV2_MT_ERROR msg_type recived.  "
                          "Error encountered in establishing the sslv2 "
@@ -411,111 +410,111 @@ static int SSLv2Decode(uint8_t direction, SslState *tls_state,
             break;
 
         case SSLV2_MT_CLIENT_HELLO:
-            tls_state->flags |= SSL_AL_FLAG_STATE_CLIENT_HELLO;
-            tls_state->flags |= SSL_AL_FLAG_SSL_CLIENT_HS;
+            ssl_state->flags |= SSL_AL_FLAG_STATE_CLIENT_HELLO;
+            ssl_state->flags |= SSL_AL_FLAG_SSL_CLIENT_HS;
 
-            if (tls_state->record_lengths_length == 3) {
-                switch (tls_state->bytes_processed) {
+            if (ssl_state->record_lengths_length == 3) {
+                switch (ssl_state->bytes_processed) {
                     case 4:
                         if (input_len >= 6) {
-                            tls_state->session_id_length = input[4] << 8;
-                            tls_state->session_id_length |= input[5];
+                            ssl_state->session_id_length = input[4] << 8;
+                            ssl_state->session_id_length |= input[5];
                             input += 6;
                             input_len -= 6;
-                            tls_state->bytes_processed += 6;
-                            if (tls_state->session_id_length == 0) {
-                                tls_state->flags |= SSL_AL_FLAG_SSL_NO_SESSION_ID;
+                            ssl_state->bytes_processed += 6;
+                            if (ssl_state->session_id_length == 0) {
+                                ssl_state->flags |= SSL_AL_FLAG_SSL_NO_SESSION_ID;
                             }
                             break;
                         } else {
                             input++;
-                            tls_state->bytes_processed++;
+                            ssl_state->bytes_processed++;
                             if (--input_len == 0)
                                 break;
                         }
                     case 5:
                         input++;
-                        tls_state->bytes_processed++;
+                        ssl_state->bytes_processed++;
                         if (--input_len == 0)
                             break;
                     case 6:
                         input++;
-                        tls_state->bytes_processed++;
+                        ssl_state->bytes_processed++;
                         if (--input_len == 0)
                             break;
                     case 7:
                         input++;
-                        tls_state->bytes_processed++;
+                        ssl_state->bytes_processed++;
                         if (--input_len == 0)
                             break;
                     case 8:
-                        tls_state->session_id_length = *(input++) << 8;
-                        tls_state->bytes_processed++;
+                        ssl_state->session_id_length = *(input++) << 8;
+                        ssl_state->bytes_processed++;
                         if (--input_len == 0)
                             break;
                     case 9:
-                        tls_state->session_id_length |= *(input++);
-                        tls_state->bytes_processed++;
+                        ssl_state->session_id_length |= *(input++);
+                        ssl_state->bytes_processed++;
                         if (--input_len == 0)
                             break;
-                } /* switch (tls_state->bytes_processed) */
+                } /* switch (ssl_state->bytes_processed) */
 
-                /* tls_state->record_lengths_length is 3 */
+                /* ssl_state->record_lengths_length is 3 */
             } else {
-                switch (tls_state->bytes_processed) {
+                switch (ssl_state->bytes_processed) {
                     case 3:
                         if (input_len >= 6) {
-                            tls_state->session_id_length = input[4] << 8;
-                            tls_state->session_id_length |= input[5];
+                            ssl_state->session_id_length = input[4] << 8;
+                            ssl_state->session_id_length |= input[5];
                             input += 6;
                             input_len -= 6;
-                            tls_state->bytes_processed += 6;
-                            if (tls_state->session_id_length == 0) {
-                                tls_state->flags |= SSL_AL_FLAG_SSL_NO_SESSION_ID;
+                            ssl_state->bytes_processed += 6;
+                            if (ssl_state->session_id_length == 0) {
+                                ssl_state->flags |= SSL_AL_FLAG_SSL_NO_SESSION_ID;
                             }
                             break;
                         } else {
                             input++;
-                            tls_state->bytes_processed++;
+                            ssl_state->bytes_processed++;
                             if (--input_len == 0)
                                 break;
                         }
                     case 4:
                         input++;
-                        tls_state->bytes_processed++;
+                        ssl_state->bytes_processed++;
                         if (--input_len == 0)
                             break;
                     case 5:
                         input++;
-                        tls_state->bytes_processed++;
+                        ssl_state->bytes_processed++;
                         if (--input_len == 0)
                             break;
                     case 6:
                         input++;
-                        tls_state->bytes_processed++;
+                        ssl_state->bytes_processed++;
                         if (--input_len == 0)
                             break;
                     case 7:
-                        tls_state->session_id_length = *(input++) << 8;
-                        tls_state->bytes_processed++;
+                        ssl_state->session_id_length = *(input++) << 8;
+                        ssl_state->bytes_processed++;
                         if (--input_len == 0)
                             break;
                     case 8:
-                        tls_state->session_id_length |= *(input++);
-                        tls_state->bytes_processed++;
+                        ssl_state->session_id_length |= *(input++);
+                        ssl_state->bytes_processed++;
                         if (--input_len == 0)
                             break;
-                } /* switch (tls_state->bytes_processed) */
-            } /* else - if (tls_state->record_lengths_length == 3) */
+                } /* switch (ssl_state->bytes_processed) */
+            } /* else - if (ssl_state->record_lengths_length == 3) */
 
             break;
 
         case SSLV2_MT_CLIENT_MASTER_KEY:
-            if ( !(tls_state->flags & SSL_AL_FLAG_SSL_CLIENT_HS)) {
+            if ( !(ssl_state->flags & SSL_AL_FLAG_SSL_CLIENT_HS)) {
                 SCLogDebug("Client hello is not seen before master key "
                            "message!!");
             }
-            tls_state->flags |= SSL_AL_FLAG_SSL_CLIENT_MASTER_KEY;
+            ssl_state->flags |= SSL_AL_FLAG_SSL_CLIENT_MASTER_KEY;
 
             break;
 
@@ -524,36 +523,36 @@ static int SSLv2Decode(uint8_t direction, SslState *tls_state,
                 SCLogDebug("Incorrect SSL Record type sent in the toclient "
                            "direction!");
             } else {
-                tls_state->flags |= SSL_AL_FLAG_STATE_CLIENT_KEYX;
+                ssl_state->flags |= SSL_AL_FLAG_STATE_CLIENT_KEYX;
             }
         case SSLV2_MT_SERVER_VERIFY:
         case SSLV2_MT_SERVER_FINISHED:
             if (direction == 0 &&
-                !(tls_state->cur_content_type & SSLV2_MT_CLIENT_CERTIFICATE)) {
+                !(ssl_state->cur_content_type & SSLV2_MT_CLIENT_CERTIFICATE)) {
                 SCLogDebug("Incorrect SSL Record type sent in the toserver "
                            "direction!");
             }
         case SSLV2_MT_CLIENT_FINISHED:
         case SSLV2_MT_REQUEST_CERTIFICATE:
             /* both ways hello seen */
-            if ((tls_state->flags & SSL_AL_FLAG_SSL_CLIENT_HS) &&
-                (tls_state->flags & SSL_AL_FLAG_SSL_SERVER_HS)) {
+            if ((ssl_state->flags & SSL_AL_FLAG_SSL_CLIENT_HS) &&
+                (ssl_state->flags & SSL_AL_FLAG_SSL_SERVER_HS)) {
 
                 if (direction == 0) {
-                    if (tls_state->flags & SSL_AL_FLAG_SSL_NO_SESSION_ID) {
-                        tls_state->flags |= SSL_AL_FLAG_SSL_CLIENT_SSN_ENCRYPTED;
+                    if (ssl_state->flags & SSL_AL_FLAG_SSL_NO_SESSION_ID) {
+                        ssl_state->flags |= SSL_AL_FLAG_SSL_CLIENT_SSN_ENCRYPTED;
                         SCLogDebug("SSLv2 client side has started the encryption");
-                    } else if (tls_state->flags & SSL_AL_FLAG_SSL_CLIENT_MASTER_KEY) {
-                        tls_state->flags |= SSL_AL_FLAG_SSL_CLIENT_SSN_ENCRYPTED;
+                    } else if (ssl_state->flags & SSL_AL_FLAG_SSL_CLIENT_MASTER_KEY) {
+                        ssl_state->flags |= SSL_AL_FLAG_SSL_CLIENT_SSN_ENCRYPTED;
                         SCLogDebug("SSLv2 client side has started the encryption");
                     }
                 } else {
-                    tls_state->flags |= SSL_AL_FLAG_SSL_SERVER_SSN_ENCRYPTED;
+                    ssl_state->flags |= SSL_AL_FLAG_SSL_SERVER_SSN_ENCRYPTED;
                     SCLogDebug("SSLv2 Server side has started the encryption");
                 }
 
-                if ((tls_state->flags & SSL_AL_FLAG_SSL_CLIENT_SSN_ENCRYPTED) &&
-                    (tls_state->flags & SSL_AL_FLAG_SSL_SERVER_SSN_ENCRYPTED)) {
+                if ((ssl_state->flags & SSL_AL_FLAG_SSL_CLIENT_SSN_ENCRYPTED) &&
+                    (ssl_state->flags & SSL_AL_FLAG_SSL_SERVER_SSN_ENCRYPTED)) {
                     pstate->flags |= APP_LAYER_PARSER_DONE;
                     pstate->flags |= APP_LAYER_PARSER_NO_INSPECTION;
                     pstate->flags |= APP_LAYER_PARSER_NO_REASSEMBLY;
@@ -564,40 +563,40 @@ static int SSLv2Decode(uint8_t direction, SslState *tls_state,
             break;
 
         case SSLV2_MT_SERVER_HELLO:
-            tls_state->flags |= SSL_AL_FLAG_STATE_SERVER_HELLO;
-            tls_state->flags |= SSL_AL_FLAG_SSL_SERVER_HS;
+            ssl_state->flags |= SSL_AL_FLAG_STATE_SERVER_HELLO;
+            ssl_state->flags |= SSL_AL_FLAG_SSL_SERVER_HS;
 
             break;
     }
 
-    if (input_len + tls_state->bytes_processed >=
-        (tls_state->record_length + tls_state->record_lengths_length)) {
+    if (input_len + ssl_state->bytes_processed >=
+        (ssl_state->record_length + ssl_state->record_lengths_length)) {
         /* looks like we have another record after this*/
-        uint32_t diff = tls_state->record_length +
-            tls_state->record_lengths_length + - tls_state->bytes_processed;
+        uint32_t diff = ssl_state->record_length +
+            ssl_state->record_lengths_length + - ssl_state->bytes_processed;
         input += diff;
         input_len -= diff;
-        SSLParserReset(tls_state);
+        SSLParserReset(ssl_state);
         return (input - initial_input);
 
         /* we still don't have the entire record for the one we are
          * currently parsing */
     } else {
         input += input_len;
-        tls_state->bytes_processed += input_len;
+        ssl_state->bytes_processed += input_len;
         return (input - initial_input);
     }
 }
 
-static int SSLv3Decode(uint8_t direction, SslState *tls_state,
+static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
                        AppLayerParserState *pstate, uint8_t *input,
                        uint32_t input_len)
 {
     int retval = 0;
     uint32_t parsed = 0;
 
-    if (tls_state->bytes_processed < SSLV3_RECORD_LEN) {
-        retval = SSLv3ParseRecord(direction, tls_state, input, input_len);
+    if (ssl_state->bytes_processed < SSLV3_RECORD_LEN) {
+        retval = SSLv3ParseRecord(direction, ssl_state, input, input_len);
         if (retval == -1) {
             SCLogDebug("Error parsing SSLv3Header");
             return -1;
@@ -611,23 +610,23 @@ static int SSLv3Decode(uint8_t direction, SslState *tls_state,
         return parsed;
     }
 
-    switch (tls_state->cur_content_type) {
+    switch (ssl_state->cur_content_type) {
         /* we don't need any data from these types */
         case SSLV3_CHANGE_CIPHER_SPEC:
-            tls_state->flags |= SSL_AL_FLAG_CHANGE_CIPHER_SPEC;
+            ssl_state->flags |= SSL_AL_FLAG_CHANGE_CIPHER_SPEC;
 
             if (direction)
-                tls_state->flags |= SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC;
+                ssl_state->flags |= SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC;
             else
-                tls_state->flags |= SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC;
+                ssl_state->flags |= SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC;
 
             break;
 
         case SSLV3_ALERT_PROTOCOL:
             break;
         case SSLV3_APPLICATION_PROTOCOL:
-            if ((tls_state->flags & SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC) &&
-                (tls_state->flags & SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC)) {
+            if ((ssl_state->flags & SSL_AL_FLAG_CLIENT_CHANGE_CIPHER_SPEC) &&
+                (ssl_state->flags & SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC)) {
                 /* set flags */
                 pstate->flags |= APP_LAYER_PARSER_DONE;
                 pstate->flags |= APP_LAYER_PARSER_NO_INSPECTION;
@@ -636,18 +635,18 @@ static int SSLv3Decode(uint8_t direction, SslState *tls_state,
             }
 
         case SSLV3_HANDSHAKE_PROTOCOL:
-            if (tls_state->flags & SSL_AL_FLAG_CHANGE_CIPHER_SPEC)
+            if (ssl_state->flags & SSL_AL_FLAG_CHANGE_CIPHER_SPEC)
                 break;
 
-            retval = SSLv3ParseHandshakeProtocol(tls_state, input + parsed, input_len);
+            retval = SSLv3ParseHandshakeProtocol(ssl_state, input + parsed, input_len);
             if (retval == -1) {
                 SCLogDebug("Error parsing SSLv3.x.  Let's get outta here");
                 return -1;
             } else {
                 parsed += retval;
                 input_len -= retval;
-                if (tls_state->bytes_processed == tls_state->record_length + SSLV3_RECORD_LEN) {
-                    SSLParserReset(tls_state);
+                if (ssl_state->bytes_processed == ssl_state->record_length + SSLV3_RECORD_LEN) {
+                    SSLParserReset(ssl_state);
                 }
                 return parsed;
             }
@@ -659,19 +658,19 @@ static int SSLv3Decode(uint8_t direction, SslState *tls_state,
             return -1;
     }
 
-    if (input_len + tls_state->bytes_processed >= tls_state->record_length + SSLV3_RECORD_LEN) {
+    if (input_len + ssl_state->bytes_processed >= ssl_state->record_length + SSLV3_RECORD_LEN) {
         /* looks like we have another record */
-        uint32_t diff = tls_state->record_length + SSLV3_RECORD_LEN - tls_state->bytes_processed;
+        uint32_t diff = ssl_state->record_length + SSLV3_RECORD_LEN - ssl_state->bytes_processed;
         parsed += diff;
         input_len -= diff;
-        SSLParserReset(tls_state);
+        SSLParserReset(ssl_state);
         return parsed;
 
         /* we still don't have the entire record for the one we are
          * currently parsing */
     } else {
         parsed += input_len;
-        tls_state->bytes_processed += input_len;
+        ssl_state->bytes_processed += input_len;
         return parsed;
     }
 
@@ -705,8 +704,7 @@ static int SSLDecode(uint8_t direction, void *alstate, AppLayerParserState *psta
 {
     SCEnter();
 
-    static int a = 0;
-    SslState *tls_state = (SslState *)alstate;
+    SSLState *ssl_state = (SSLState *)alstate;
     int retval = 0;
     uint8_t counter = 0;
 
@@ -715,26 +713,26 @@ static int SSLDecode(uint8_t direction, void *alstate, AppLayerParserState *psta
         if (counter++ == 30) {
             SCLogDebug("Looks like we have looped quite a bit.  Reset state "
                        "and get out of here");
-            SSLParserReset(tls_state);
+            SSLParserReset(ssl_state);
             return 0;
         }
 
-        /* tls_state->bytes_processed is either ways it is either 0 for a
+        /* ssl_state->bytes_processed is either ways it is either 0 for a
          * fresh record or positive to indicate a record currently being
          * parsed */
-        switch (tls_state->bytes_processed) {
+        switch (ssl_state->bytes_processed) {
             /* fresh record */
             case 0:
                 /* only SSLv2, has one of the top 2 bits set */
                 if (input[0] & 0x80 || input[0] & 0x40) {
                     SCLogDebug("SSLv2 detected");
-                    tls_state->cur_ssl_version = SSL_VERSION_2;
-                    retval = SSLv2Decode(direction, tls_state, pstate, input,
+                    ssl_state->cur_ssl_version = SSL_VERSION_2;
+                    retval = SSLv2Decode(direction, ssl_state, pstate, input,
                                          input_len);
                     if (retval == -1) {
                         SCLogDebug("Error parsing SSLv2.x.  Reseting parser "
                                    "state.  Let's get outta here");
-                        SSLParserReset(tls_state);
+                        SSLParserReset(ssl_state);
                         return 0;
                     } else {
                         input_len -= retval;
@@ -742,12 +740,12 @@ static int SSLDecode(uint8_t direction, void *alstate, AppLayerParserState *psta
                     }
                 } else {
                     SCLogDebug("SSLv3.x detected");
-                    retval = SSLv3Decode(direction, tls_state, pstate, input,
+                    retval = SSLv3Decode(direction, ssl_state, pstate, input,
                                          input_len);
                     if (retval == -1) {
                         SCLogDebug("Error parsing SSLv3.x.  Reseting parser "
                                    "state.  Let's get outta here");
-                        SSLParserReset(tls_state);
+                        SSLParserReset(ssl_state);
                         return 0;
                     } else {
                         input_len -= retval;
@@ -760,15 +758,15 @@ static int SSLDecode(uint8_t direction, void *alstate, AppLayerParserState *psta
             default:
                 /* we would have established by now if we are dealing with
                  * SSLv2 or above */
-                if (tls_state->cur_ssl_version == SSL_VERSION_2) {
+                if (ssl_state->cur_ssl_version == SSL_VERSION_2) {
                     SCLogDebug("Continuing parsing SSLv2 record from where we "
                                "previously left off");
-                    retval = SSLv2Decode(direction, tls_state, pstate, input,
+                    retval = SSLv2Decode(direction, ssl_state, pstate, input,
                                          input_len);
                     if (retval == -1) {
                         SCLogDebug("Error parsing SSLv2.x.  Reseting parser "
                                    "state.  Let's get outta here");
-                        SSLParserReset(tls_state);
+                        SSLParserReset(ssl_state);
                         return 0;
                     } else {
                         input_len -= retval;
@@ -777,12 +775,12 @@ static int SSLDecode(uint8_t direction, void *alstate, AppLayerParserState *psta
                 } else {
                     SCLogDebug("Continuing parsing SSLv3.x record from where we "
                                "previously left off");
-                    retval = SSLv3Decode(direction, tls_state, pstate, input,
+                    retval = SSLv3Decode(direction, ssl_state, pstate, input,
                                          input_len);
                     if (retval == -1) {
                         SCLogDebug("Error parsing SSLv3.x.  Reseting parser "
                                    "state.  Let's get outta here");
-                        SSLParserReset(tls_state);
+                        SSLParserReset(ssl_state);
                         return 0;
                     } else {
                         input_len -= retval;
@@ -791,7 +789,7 @@ static int SSLDecode(uint8_t direction, void *alstate, AppLayerParserState *psta
                 }
 
                 break;
-        } /* switch (tls_state->bytes_processed) */
+        } /* switch (ssl_state->bytes_processed) */
     } /* while (input_len) */
 
     SCReturnInt(1);
@@ -815,12 +813,12 @@ int SSLParseServerRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
  * \internal
  * \brief Function to allocate the SSL state memory.
  */
-void *SslStateAlloc(void)
+void *SSLStateAlloc(void)
 {
-    void *ssl_state = SCMalloc(sizeof(SslState));
+    void *ssl_state = SCMalloc(sizeof(SSLState));
     if (ssl_state == NULL)
         return NULL;
-    memset(ssl_state, 0, sizeof(SslState));
+    memset(ssl_state, 0, sizeof(SSLState));
 
     return ssl_state;
 }
@@ -829,14 +827,14 @@ void *SslStateAlloc(void)
  * \internal
  * \brief Function to free the SSL state memory.
  */
-void SslStateFree(void *p)
+void SSLStateFree(void *p)
 {
     SCFree(p);
 }
 
 /** \brief Function to register the SSL protocol parser and other functions
  */
-void RegisterSslParsers(void)
+void RegisterSSLParsers(void)
 {
     AppLayerRegisterProto("tls", ALPROTO_TLS, STREAM_TOSERVER,
                           SSLParseClientRecord);
@@ -844,7 +842,7 @@ void RegisterSslParsers(void)
     AppLayerRegisterProto("tls", ALPROTO_TLS, STREAM_TOCLIENT,
                           SSLParseServerRecord);
 
-    AppLayerRegisterStateFuncs(ALPROTO_TLS, SslStateAlloc, SslStateFree);
+    AppLayerRegisterStateFuncs(ALPROTO_TLS, SSLStateAlloc, SSLStateFree);
 
     /* Get the value of no reassembly option from the config file */
     if(ConfGetBool("tls.no_reassemble", &tls.no_reassemble) != 1)
@@ -860,7 +858,7 @@ extern uint16_t AppLayerParserGetStorageId (void);
 /**
  *\test Send a get request in one chunk.
  */
-static int TLSParserTest01(void)
+static int SSLParserTest01(void)
 {
     int result = 1;
     Flow f;
@@ -882,23 +880,23 @@ static int TLSParserTest01(void)
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_content_type != 0x16) {
+    if (ssl_state->client_content_type != 0x16) {
         printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x16,
-                tls_state->client_content_type);
+                ssl_state->client_content_type);
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_version != TLS_VERSION_10) {
+    if (ssl_state->client_version != TLS_VERSION_10) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                TLS_VERSION_10, tls_state->client_version);
+                TLS_VERSION_10, ssl_state->client_version);
         result = 0;
         goto end;
     }
@@ -909,7 +907,7 @@ end:
 }
 
 /** \test Send a get request in two chunks. */
-static int TLSParserTest02(void) {
+static int SSLParserTest02(void) {
     int result = 1;
     Flow f;
     uint8_t tlsbuf1[] = { 0x16 };
@@ -939,23 +937,23 @@ static int TLSParserTest02(void) {
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_content_type != 0x16) {
+    if (ssl_state->client_content_type != 0x16) {
         printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x16,
-                tls_state->client_content_type);
+                ssl_state->client_content_type);
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_version != TLS_VERSION_10) {
+    if (ssl_state->client_version != TLS_VERSION_10) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                TLS_VERSION_10, tls_state->client_version);
+                TLS_VERSION_10, ssl_state->client_version);
         result = 0;
         goto end;
     }
@@ -966,7 +964,7 @@ end:
 }
 
 /** \test Send a get request in three chunks. */
-static int TLSParserTest03(void) {
+static int SSLParserTest03(void) {
     int result = 1;
     Flow f;
     uint8_t tlsbuf1[] = { 0x16 };
@@ -1005,23 +1003,23 @@ static int TLSParserTest03(void) {
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_content_type != 0x16) {
+    if (ssl_state->client_content_type != 0x16) {
         printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x16,
-                tls_state->client_content_type);
+                ssl_state->client_content_type);
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_version != TLS_VERSION_10) {
+    if (ssl_state->client_version != TLS_VERSION_10) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                TLS_VERSION_10, tls_state->client_version);
+                TLS_VERSION_10, ssl_state->client_version);
         result = 0;
         goto end;
     }
@@ -1032,7 +1030,7 @@ end:
 }
 
 /** \test Send a get request in three chunks + more data. */
-static int TLSParserTest04(void) {
+static int SSLParserTest04(void) {
     int result = 1;
     Flow f;
     uint8_t tlsbuf1[] = { 0x16 };
@@ -1080,23 +1078,23 @@ static int TLSParserTest04(void) {
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_content_type != 0x16) {
+    if (ssl_state->client_content_type != 0x16) {
         printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x16,
-                tls_state->client_content_type);
+                ssl_state->client_content_type);
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_version != TLS_VERSION_10) {
+    if (ssl_state->client_version != TLS_VERSION_10) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                TLS_VERSION_10, tls_state->client_version);
+                TLS_VERSION_10, ssl_state->client_version);
         result = 0;
         goto end;
     }
@@ -1108,7 +1106,7 @@ end:
 
 /** \test   Test the setting up of no reassembly and no payload inspection flag
  *          after detection of the TLS handshake completion */
-static int TLSParserTest05(void) {
+static int SSLParserTest05(void) {
     int result = 1;
     Flow f;
     uint8_t tlsbuf[] = { 0x16, 0x03, 0x01, 0x00, 0x01 };
@@ -1163,23 +1161,23 @@ static int TLSParserTest05(void) {
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_content_type != 0x17) {
+    if (ssl_state->client_content_type != 0x17) {
         printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x17,
-                tls_state->client_content_type);
+                ssl_state->client_content_type);
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_version != TLS_VERSION_10) {
+    if (ssl_state->client_version != TLS_VERSION_10) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                TLS_VERSION_10, tls_state->client_version);
+                TLS_VERSION_10, ssl_state->client_version);
         result = 0;
         goto end;
     }
@@ -1213,7 +1211,7 @@ end:
 /** \test   Test the setting up of no reassembly and no payload inspection flag
  *          after detection of the valid TLS handshake completion, the rouge
  *          0x17 packet will not be considered in the detection process */
-static int TLSParserTest06(void) {
+static int SSLParserTest06(void) {
     int result = 1;
     Flow f;
     uint8_t tlsbuf[] = { 0x16, 0x03, 0x01, 0x00, 0x01 };
@@ -1259,23 +1257,23 @@ static int TLSParserTest06(void) {
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_content_type != 0x17) {
+    if (ssl_state->client_content_type != 0x17) {
         printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x17,
-                tls_state->client_content_type);
+                ssl_state->client_content_type);
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_version != TLS_VERSION_10) {
+    if (ssl_state->client_version != TLS_VERSION_10) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                TLS_VERSION_10, tls_state->client_version);
+                TLS_VERSION_10, ssl_state->client_version);
         result = 0;
         goto end;
     }
@@ -1332,7 +1330,7 @@ end:
 }
 
 /** \test multimsg test */
-static int TLSParserMultimsgTest01(void) {
+static int SSLParserMultimsgTest01(void) {
     int result = 1;
     Flow f;
     /* 3 msgs */
@@ -1380,23 +1378,23 @@ static int TLSParserMultimsgTest01(void) {
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_content_type != 0x16) {
+    if (ssl_state->client_content_type != 0x16) {
         printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x16,
-                tls_state->client_content_type);
+                ssl_state->client_content_type);
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_version != TLS_VERSION_10) {
+    if (ssl_state->client_version != TLS_VERSION_10) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                TLS_VERSION_10, tls_state->client_version);
+                TLS_VERSION_10, ssl_state->client_version);
         result = 0;
         goto end;
     }
@@ -1407,7 +1405,7 @@ end:
 }
 
 /** \test multimsg test server */
-static int TLSParserMultimsgTest02(void) {
+static int SSLParserMultimsgTest02(void) {
     int result = 1;
     Flow f;
     /* 3 msgs */
@@ -1455,23 +1453,23 @@ static int TLSParserMultimsgTest02(void) {
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
     }
 
-    if (tls_state->server_content_type != 0x16) {
+    if (ssl_state->server_content_type != 0x16) {
         printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x16,
-                tls_state->server_content_type);
+                ssl_state->server_content_type);
         result = 0;
         goto end;
     }
 
-    if (tls_state->server_version != 0x0301) {
+    if (ssl_state->server_version != 0x0301) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", 0x0301,
-                tls_state->server_version);
+                ssl_state->server_version);
         result = 0;
         goto end;
     }
@@ -1484,7 +1482,7 @@ end:
 /**
  *  \test   Test the detection of SSLv3 protocol from the given packet
  */
-static int TLSParserTest07(void) {
+static int SSLParserTest07(void) {
     int result = 1;
     Flow f;
     uint8_t tlsbuf[] = { 0x16, 0x03, 0x00, 0x00, 0x6f, 0x01,
@@ -1519,23 +1517,23 @@ static int TLSParserTest07(void) {
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_content_type != 0x16) {
+    if (ssl_state->client_content_type != 0x16) {
         printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x17,
-                tls_state->client_content_type);
+                ssl_state->client_content_type);
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_version != SSL_VERSION_3) {
+    if (ssl_state->client_version != SSL_VERSION_3) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                SSL_VERSION_3, tls_state->client_version);
+                SSL_VERSION_3, ssl_state->client_version);
         result = 0;
         goto end;
     }
@@ -1548,7 +1546,7 @@ end:
 
 /** \test   Test the setting up of no reassembly and no payload inspection flag
  *          after detection of the SSLv3 handshake completion */
-static int TLSParserTest08(void) {
+static int SSLParserTest08(void) {
     int result = 1;
     Flow f;
     uint8_t tlsbuf[] = { 0x16, 0x03, 0x00, 0x00, 0x01 };
@@ -1603,23 +1601,23 @@ static int TLSParserTest08(void) {
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_content_type != 0x17) {
+    if (ssl_state->client_content_type != 0x17) {
         printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x17,
-                tls_state->client_content_type);
+                ssl_state->client_content_type);
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_version != SSL_VERSION_3) {
+    if (ssl_state->client_version != SSL_VERSION_3) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                SSL_VERSION_3, tls_state->client_version);
+                SSL_VERSION_3, ssl_state->client_version);
         result = 0;
         goto end;
     }
@@ -1663,7 +1661,7 @@ end:
 /**
  * \test Tests the parser for handling fragmented records.
  */
-static int TLSParserTest09(void)
+static int SSLParserTest09(void)
 {
     int result = 1;
     Flow f;
@@ -1713,30 +1711,30 @@ static int TLSParserTest09(void)
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_content_type != 0x16) {
+    if (ssl_state->client_content_type != 0x16) {
         printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x17,
-                tls_state->client_content_type);
+                ssl_state->client_content_type);
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_version != SSL_VERSION_3) {
+    if (ssl_state->client_version != SSL_VERSION_3) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                SSL_VERSION_3, tls_state->client_version);
+                SSL_VERSION_3, ssl_state->client_version);
         result = 0;
         goto end;
     }
 
-    if (tls_state->handshake_client_hello_ssl_version != SSL_VERSION_3) {
+    if (ssl_state->handshake_client_hello_ssl_version != SSL_VERSION_3) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                SSL_VERSION_3, tls_state->handshake_client_hello_ssl_version);
+                SSL_VERSION_3, ssl_state->handshake_client_hello_ssl_version);
         result = 0;
         goto end;
     }
@@ -1750,7 +1748,7 @@ end:
 /**
  * \test Tests the parser for handling fragmented records.
  */
-static int TLSParserTest10(void)
+static int SSLParserTest10(void)
 {
     int result = 1;
     Flow f;
@@ -1800,30 +1798,30 @@ static int TLSParserTest10(void)
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_content_type != 0x16) {
+    if (ssl_state->client_content_type != 0x16) {
         printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x17,
-                tls_state->client_content_type);
+                ssl_state->client_content_type);
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_version != SSL_VERSION_3) {
+    if (ssl_state->client_version != SSL_VERSION_3) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                SSL_VERSION_3, tls_state->client_version);
+                SSL_VERSION_3, ssl_state->client_version);
         result = 0;
         goto end;
     }
 
-    if (tls_state->handshake_client_hello_ssl_version != SSL_VERSION_3) {
+    if (ssl_state->handshake_client_hello_ssl_version != SSL_VERSION_3) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                SSL_VERSION_3, tls_state->handshake_client_hello_ssl_version);
+                SSL_VERSION_3, ssl_state->handshake_client_hello_ssl_version);
         result = 0;
         goto end;
     }
@@ -1837,7 +1835,7 @@ end:
 /**
  * \test Tests the parser for handling fragmented records.
  */
-static int TLSParserTest11(void)
+static int SSLParserTest11(void)
 {
     int result = 1;
     Flow f;
@@ -1886,30 +1884,30 @@ static int TLSParserTest11(void)
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_content_type != 0x16) {
+    if (ssl_state->client_content_type != 0x16) {
         printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x17,
-                tls_state->client_content_type);
+                ssl_state->client_content_type);
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_version != SSL_VERSION_3) {
+    if (ssl_state->client_version != SSL_VERSION_3) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                SSL_VERSION_3, tls_state->client_version);
+                SSL_VERSION_3, ssl_state->client_version);
         result = 0;
         goto end;
     }
 
-    if (tls_state->handshake_client_hello_ssl_version != SSL_VERSION_3) {
+    if (ssl_state->handshake_client_hello_ssl_version != SSL_VERSION_3) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                SSL_VERSION_3, tls_state->handshake_client_hello_ssl_version);
+                SSL_VERSION_3, ssl_state->handshake_client_hello_ssl_version);
         result = 0;
         goto end;
     }
@@ -1923,7 +1921,7 @@ end:
 /**
  * \test Tests the parser for handling fragmented records.
  */
-static int TLSParserTest12(void)
+static int SSLParserTest12(void)
 {
     int result = 1;
     Flow f;
@@ -1984,30 +1982,30 @@ static int TLSParserTest12(void)
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_content_type != 0x16) {
+    if (ssl_state->client_content_type != 0x16) {
         printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x17,
-                tls_state->client_content_type);
+                ssl_state->client_content_type);
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_version != SSL_VERSION_3) {
+    if (ssl_state->client_version != SSL_VERSION_3) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                SSL_VERSION_3, tls_state->client_version);
+                SSL_VERSION_3, ssl_state->client_version);
         result = 0;
         goto end;
     }
 
-    if (tls_state->handshake_client_hello_ssl_version != SSL_VERSION_3) {
+    if (ssl_state->handshake_client_hello_ssl_version != SSL_VERSION_3) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                SSL_VERSION_3, tls_state->handshake_client_hello_ssl_version);
+                SSL_VERSION_3, ssl_state->handshake_client_hello_ssl_version);
         result = 0;
         goto end;
     }
@@ -2021,7 +2019,7 @@ end:
 /**
  * \test Tests the parser for handling fragmented records.
  */
-static int TLSParserTest13(void)
+static int SSLParserTest13(void)
 {
     int result = 1;
     Flow f;
@@ -2094,30 +2092,30 @@ static int TLSParserTest13(void)
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_content_type != 0x16) {
+    if (ssl_state->client_content_type != 0x16) {
         printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x17,
-                tls_state->client_content_type);
+                ssl_state->client_content_type);
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_version != SSL_VERSION_3) {
+    if (ssl_state->client_version != SSL_VERSION_3) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                SSL_VERSION_3, tls_state->client_version);
+                SSL_VERSION_3, ssl_state->client_version);
         result = 0;
         goto end;
     }
 
-    if (tls_state->handshake_client_hello_ssl_version != SSL_VERSION_3) {
+    if (ssl_state->handshake_client_hello_ssl_version != SSL_VERSION_3) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                SSL_VERSION_3, tls_state->handshake_client_hello_ssl_version);
+                SSL_VERSION_3, ssl_state->handshake_client_hello_ssl_version);
         result = 0;
         goto end;
     }
@@ -2131,7 +2129,7 @@ end:
 /**
  * \test Tests the parser for handling fragmented records.
  */
-static int TLSParserTest14(void)
+static int SSLParserTest14(void)
 {
     int result = 1;
     Flow f;
@@ -2169,8 +2167,8 @@ static int TLSParserTest14(void)
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
@@ -2185,7 +2183,7 @@ end:
 /**
  * \test Tests the parser for handling fragmented records.
  */
-static int TLSParserTest15(void)
+static int SSLParserTest15(void)
 {
     int result = 1;
     Flow f;
@@ -2223,8 +2221,8 @@ static int TLSParserTest15(void)
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
@@ -2239,7 +2237,7 @@ end:
 /**
  * \test Tests the parser for handling fragmented records.
  */
-static int TLSParserTest16(void)
+static int SSLParserTest16(void)
 {
     int result = 1;
     Flow f;
@@ -2277,8 +2275,8 @@ static int TLSParserTest16(void)
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
@@ -2293,7 +2291,7 @@ end:
 /**
  * \test Tests the parser for handling fragmented records.
  */
-static int TLSParserTest17(void)
+static int SSLParserTest17(void)
 {
     int result = 1;
     Flow f;
@@ -2331,8 +2329,8 @@ static int TLSParserTest17(void)
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
@@ -2347,7 +2345,7 @@ end:
 /**
  * \test Tests the parser for handling fragmented records.
  */
-static int TLSParserTest18(void)
+static int SSLParserTest18(void)
 {
     int result = 1;
     Flow f;
@@ -2386,8 +2384,8 @@ static int TLSParserTest18(void)
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
@@ -2402,7 +2400,7 @@ end:
 /**
  * \test Tests the parser for handling fragmented records.
  */
-static int TLSParserTest19(void)
+static int SSLParserTest19(void)
 {
     int result = 1;
     Flow f;
@@ -2429,8 +2427,8 @@ static int TLSParserTest19(void)
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
@@ -2445,7 +2443,7 @@ end:
 /**
  * \test Tests the parser for handling fragmented records.
  */
-static int TLSParserTest20(void)
+static int SSLParserTest20(void)
 {
     int result = 1;
     Flow f;
@@ -2472,8 +2470,8 @@ static int TLSParserTest20(void)
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
@@ -2488,7 +2486,7 @@ end:
 /**
  * \test SSLv2 Record parsing.
  */
-static int TLSParserTest21(void)
+static int SSLParserTest21(void)
 {
     int result = 0;
     Flow f;
@@ -2516,7 +2514,7 @@ static int TLSParserTest21(void)
         goto end;
     }
 
-    SslState *app_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    SSLState *app_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
     if (app_state == NULL) {
         printf("no ssl state: ");
         goto end;
@@ -2545,7 +2543,7 @@ end:
 /**
  * \test SSLv2 Record parsing.
  */
-static int TLSParserTest22(void)
+static int SSLParserTest22(void)
 {
     int result = 1;
     Flow f;
@@ -2578,7 +2576,7 @@ static int TLSParserTest22(void)
         goto end;
     }
 
-    SslState *app_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    SSLState *app_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
     if (app_state == NULL) {
         printf("no ssl state: ");
         result = 0;
@@ -2608,7 +2606,7 @@ end:
 /**
  * \test SSLv2 Record parsing.
  */
-static int TLSParserTest23(void)
+static int SSLParserTest23(void)
 {
     int result = 1;
     Flow f;
@@ -2877,7 +2875,7 @@ static int TLSParserTest23(void)
         goto end;
     }
 
-    SslState *app_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    SSLState *app_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
     if (app_state == NULL) {
         printf("no ssl state: ");
         result = 0;
@@ -3049,7 +3047,7 @@ end:
 /**
  * \test Tests the parser for handling fragmented records.
  */
-static int TLSParserTest24(void)
+static int SSLParserTest24(void)
 {
     int result = 1;
     Flow f;
@@ -3099,30 +3097,30 @@ static int TLSParserTest24(void)
         goto end;
     }
 
-    SslState *tls_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-    if (tls_state == NULL) {
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
         printf("no tls state: ");
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_content_type != 0x16) {
+    if (ssl_state->client_content_type != 0x16) {
         printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x16,
-                tls_state->client_content_type);
+                ssl_state->client_content_type);
         result = 0;
         goto end;
     }
 
-    if (tls_state->client_version != SSL_VERSION_3) {
+    if (ssl_state->client_version != SSL_VERSION_3) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                SSL_VERSION_3, tls_state->client_version);
+                SSL_VERSION_3, ssl_state->client_version);
         result = 0;
         goto end;
     }
 
-    if (tls_state->handshake_client_hello_ssl_version != SSL_VERSION_3) {
+    if (ssl_state->handshake_client_hello_ssl_version != SSL_VERSION_3) {
         printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-                SSL_VERSION_3, tls_state->handshake_client_hello_ssl_version);
+                SSL_VERSION_3, ssl_state->handshake_client_hello_ssl_version);
         result = 0;
         goto end;
     }
@@ -3135,38 +3133,38 @@ end:
 
 #endif /* UNITTESTS */
 
-void SslParserRegisterTests(void)
+void SSLParserRegisterTests(void)
 {
 #ifdef UNITTESTS
-    UtRegisterTest("TLSParserTest01", TLSParserTest01, 1);
-    UtRegisterTest("TLSParserTest02", TLSParserTest02, 1);
-    UtRegisterTest("TLSParserTest03", TLSParserTest03, 1);
-    UtRegisterTest("TLSParserTest04", TLSParserTest04, 1);
+    UtRegisterTest("SSLParserTest01", SSLParserTest01, 1);
+    UtRegisterTest("SSLParserTest02", SSLParserTest02, 1);
+    UtRegisterTest("SSLParserTest03", SSLParserTest03, 1);
+    UtRegisterTest("SSLParserTest04", SSLParserTest04, 1);
     /* Updated by Anoop Saldanha.  Faulty tests.  Disable it for now */
-    //UtRegisterTest("TLSParserTest05", TLSParserTest05, 1);
-    //UtRegisterTest("TLSParserTest06", TLSParserTest06, 1);
-    UtRegisterTest("TLSParserTest07", TLSParserTest07, 1);
-    //UtRegisterTest("TLSParserTest08", TLSParserTest08, 1);
-    UtRegisterTest("TLSParserTest09", TLSParserTest09, 1);
-    UtRegisterTest("TLSParserTest10", TLSParserTest10, 1);
-    UtRegisterTest("TLSParserTest11", TLSParserTest11, 1);
-    UtRegisterTest("TLSParserTest12", TLSParserTest12, 1);
-    UtRegisterTest("TLSParserTest13", TLSParserTest13, 1);
+    //UtRegisterTest("SSLParserTest05", SSLParserTest05, 1);
+    //UtRegisterTest("SSLParserTest06", SSLParserTest06, 1);
+    UtRegisterTest("SSLParserTest07", SSLParserTest07, 1);
+    //UtRegisterTest("SSLParserTest08", SSLParserTest08, 1);
+    UtRegisterTest("SSLParserTest09", SSLParserTest09, 1);
+    UtRegisterTest("SSLParserTest10", SSLParserTest10, 1);
+    UtRegisterTest("SSLParserTest11", SSLParserTest11, 1);
+    UtRegisterTest("SSLParserTest12", SSLParserTest12, 1);
+    UtRegisterTest("SSLParserTest13", SSLParserTest13, 1);
 
-    UtRegisterTest("TLSParserTest14", TLSParserTest14, 1);
-    UtRegisterTest("TLSParserTest15", TLSParserTest15, 1);
-    UtRegisterTest("TLSParserTest16", TLSParserTest16, 1);
-    UtRegisterTest("TLSParserTest17", TLSParserTest17, 1);
-    UtRegisterTest("TLSParserTest18", TLSParserTest18, 1);
-    UtRegisterTest("TLSParserTest19", TLSParserTest19, 1);
-    UtRegisterTest("TLSParserTest20", TLSParserTest20, 1);
-    UtRegisterTest("TLSParserTest21", TLSParserTest21, 1);
-    UtRegisterTest("TLSParserTest22", TLSParserTest22, 1);
-    UtRegisterTest("TLSParserTest23", TLSParserTest23, 1);
-    UtRegisterTest("TLSParserTest24", TLSParserTest24, 1);
+    UtRegisterTest("SSLParserTest14", SSLParserTest14, 1);
+    UtRegisterTest("SSLParserTest15", SSLParserTest15, 1);
+    UtRegisterTest("SSLParserTest16", SSLParserTest16, 1);
+    UtRegisterTest("SSLParserTest17", SSLParserTest17, 1);
+    UtRegisterTest("SSLParserTest18", SSLParserTest18, 1);
+    UtRegisterTest("SSLParserTest19", SSLParserTest19, 1);
+    UtRegisterTest("SSLParserTest20", SSLParserTest20, 1);
+    UtRegisterTest("SSLParserTest21", SSLParserTest21, 1);
+    UtRegisterTest("SSLParserTest22", SSLParserTest22, 1);
+    UtRegisterTest("SSLParserTest23", SSLParserTest23, 1);
+    UtRegisterTest("SSLParserTest24", SSLParserTest24, 1);
 
-    UtRegisterTest("TLSParserMultimsgTest01", TLSParserMultimsgTest01, 1);
-    UtRegisterTest("TLSParserMultimsgTest02", TLSParserMultimsgTest02, 1);
+    UtRegisterTest("SSLParserMultimsgTest01", SSLParserMultimsgTest01, 1);
+    UtRegisterTest("SSLParserMultimsgTest02", SSLParserMultimsgTest02, 1);
 #endif /* UNITTESTS */
 
     return;

@@ -56,13 +56,13 @@ enum {
  *
  *        Structure to store the SSL state values.
  */
-typedef struct SslState_ {
+typedef struct SSLState_ {
     /* record length */
     uint32_t record_length;
     /* record length's length for SSLv2 */
     uint32_t record_lengths_length;
 
-    /* Flags to indicate the current SSL session state */
+    /* holds some state flags we need */
     uint32_t flags;
 
     uint16_t client_version;
@@ -85,9 +85,9 @@ typedef struct SslState_ {
 
     /* sslv2 client hello session id length */
     uint16_t session_id_length;
-} SslState;
+} SSLState;
 
-void RegisterSslParsers(void);
-void SslParserRegisterTests(void);
+void RegisterSSLParsers(void);
+void SSLParserRegisterTests(void);
 
 #endif /* __APP_LAYER_SSL_H__ */
