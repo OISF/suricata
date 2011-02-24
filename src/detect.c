@@ -131,6 +131,7 @@
 #include "detect-ssh-software-version.h"
 #include "detect-http-stat-code.h"
 #include "detect-ssl-version.h"
+#include "detect-ssl-state.h"
 
 #include "action-globals.h"
 #include "tm-modules.h"
@@ -3988,6 +3989,7 @@ void SigTableSetup(void) {
     DetectHttpUriRegister();
     DetectAsn1Register();
     DetectSshVersionRegister();
+    DetectSslStateRegister();
     DetectSshSoftwareVersionRegister();
     DetectHttpStatCodeRegister();
     DetectSslVersionRegister();
