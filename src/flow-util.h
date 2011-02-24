@@ -24,6 +24,8 @@
 #ifndef __FLOW_UTIL_H__
 #define __FLOW_UTIL_H__
 
+#include "detect-engine-state.h"
+
 #define COPY_TIMESTAMP(src,dst) ((dst)->tv_sec = (src)->tv_sec, (dst)->tv_usec = (src)->tv_usec)
 
 #define FLOW_INITIALIZE(f) do { \

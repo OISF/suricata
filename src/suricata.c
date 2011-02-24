@@ -109,7 +109,6 @@
 
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
-#include "app-layer-tls.h"
 #include "app-layer-smb.h"
 #include "app-layer-dcerpc.h"
 #include "app-layer-dcerpc-udp.h"
@@ -1056,7 +1055,7 @@ int main(int argc, char **argv)
     AppLayerDetectProtoThreadInit();
     RegisterAppLayerParsers();
     RegisterHTPParsers();
-    RegisterSslParsers();
+    RegisterSSLParsers();
     RegisterSMBParsers();
     RegisterDCERPCParsers();
     RegisterDCERPCUDPParsers();
@@ -1097,7 +1096,7 @@ int main(int argc, char **argv)
         DecodePPPRegisterTests();
         DecodeVLANRegisterTests();
         HTPParserRegisterTests();
-        SslParserRegisterTests();
+        SSLParserRegisterTests();
         SSHParserRegisterTests();
         SMBParserRegisterTests();
         DCERPCParserRegisterTests();
