@@ -423,20 +423,20 @@ void PrintList2(TcpSegment *seg)
              * a hack though, we're going to check next how we end up with
              * a segment list with seq differences that big */
             if (!(SEQ_LT(seg->prev->seq,seg->seq))) {
-                SCLogDebug("inconsistant list: SEQ_LT(seg->seq,seg->prev->seq)) =="
+                SCLogDebug("inconsistent list: SEQ_LT(seg->seq,seg->prev->seq)) =="
                         " TRUE, seg->seq %" PRIu32 ", seg->prev->seq %" PRIu32 ""
                         "", seg->seq, seg->prev->seq);
             }
         }
 
         if (SEQ_LT(seg->seq,next_seq)) {
-            SCLogDebug("inconsistant list: SEQ_LT(seg->seq,next_seq)) == TRUE, "
+            SCLogDebug("inconsistent list: SEQ_LT(seg->seq,next_seq)) == TRUE, "
                        "seg->seq %" PRIu32 ", next_seq %" PRIu32 "", seg->seq,
                        next_seq);
         }
 
         if (prev_seg != seg->prev) {
-            SCLogDebug("inconsistant list: prev_seg %p != seg->prev %p",
+            SCLogDebug("inconsistent list: prev_seg %p != seg->prev %p",
                         prev_seg, seg->prev);
         }
 
@@ -472,7 +472,7 @@ void PrintList(TcpSegment *seg)
              * a hack though, we're going to check next how we end up with
              * a segment list with seq differences that big */
             if (!(SEQ_LT(seg->prev->seq,seg->seq))) {
-                SCLogDebug("inconsistant list: SEQ_LT(seg->seq,seg->prev->seq)) == "
+                SCLogDebug("inconsistent list: SEQ_LT(seg->seq,seg->prev->seq)) == "
                         "TRUE, seg->seq %" PRIu32 ", seg->prev->seq %" PRIu32 "",
                         seg->seq, seg->prev->seq);
                 PrintList2(head_seg);
@@ -481,7 +481,7 @@ void PrintList(TcpSegment *seg)
         }
 
         if (SEQ_LT(seg->seq,next_seq)) {
-            SCLogDebug("inconsistant list: SEQ_LT(seg->seq,next_seq)) == TRUE, "
+            SCLogDebug("inconsistent list: SEQ_LT(seg->seq,next_seq)) == TRUE, "
                        "seg->seq %" PRIu32 ", next_seq %" PRIu32 "", seg->seq,
                        next_seq);
             PrintList2(head_seg);
@@ -489,7 +489,7 @@ void PrintList(TcpSegment *seg)
         }
 
         if (prev_seg != seg->prev) {
-            SCLogDebug("inconsistant list: prev_seg %p != seg->prev %p",
+            SCLogDebug("inconsistent list: prev_seg %p != seg->prev %p",
                        prev_seg, seg->prev);
             PrintList2(head_seg);
             abort();
@@ -559,8 +559,8 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
         goto end;
     }
 
-    SCLogDebug("SEQ+payload %"PRIu32", last_ack %"PRIu32", "
-            "ra_app_base_seq %"PRIu32, (TCP_GET_SEQ(p)+p->payload_len),
+    SCLogDebug("SEQ %"PRIu32", SEQ+payload %"PRIu32", last_ack %"PRIu32", "
+            "ra_app_base_seq %"PRIu32, TCP_GET_SEQ(p), (TCP_GET_SEQ(p)+p->payload_len),
             stream->last_ack, stream->ra_app_base_seq);
 
     /* fast track */
@@ -663,6 +663,7 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
                 if (list_seg->next == NULL) {
                     list_seg->next = seg;
                     seg->prev = list_seg;
+                    stream->seg_list_tail = seg;
                     goto end;
                 }
             } else {
@@ -724,6 +725,7 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
 #ifdef DEBUG
     SCLogDebug("seg->seq %" PRIu32 ", seg->payload_len %" PRIu32 "", seg->seq,
                 seg->payload_len);
+    PrintList(stream->seg_list);
 #endif
 
     if (SEQ_GT((seg->seq + seg->payload_len), list_seg->seq) &&
@@ -774,6 +776,47 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
     }
 
     if (overlap > 0) {
+        /* handle the case where we need to fill a gap before list_seg first */
+        if (list_seg->prev != NULL && SEQ_LT((list_seg->prev->seq + list_seg->prev->payload_len), list_seg->seq)) {
+            SCLogDebug("GAP to fill before list segment, size %u", list_seg->seq - (list_seg->prev->seq + list_seg->prev->payload_len));
+
+            uint32_t new_seq = (list_seg->prev->seq + list_seg->prev->payload_len);
+            if (SEQ_GT(seg->seq, new_seq)) {
+                new_seq = seg->seq;
+            }
+
+            packet_length = list_seg->seq - new_seq;
+            if (packet_length > seg->payload_len) {
+                packet_length = seg->payload_len;
+            }
+
+            TcpSegment *new_seg = StreamTcpGetSegment(tv, ra_ctx, packet_length);
+            if (new_seg == NULL) {
+                SCLogDebug("segment_pool[%"PRIu16"] is empty", segment_pool_idx[packet_length]);
+
+                StreamTcpSetEvent(p, STREAM_REASSEMBLY_NO_SEGMENT);
+                SCReturnInt(-1);
+            }
+            new_seg->payload_len = packet_length;
+
+            new_seg->seq = new_seq;
+
+            SCLogDebug("new_seg->seq %"PRIu32" and new->payload_len "
+                    "%" PRIu16"", new_seg->seq, new_seg->payload_len);
+
+            new_seg->next = list_seg;
+            new_seg->prev = list_seg->prev;
+            list_seg->prev->next = new_seg;
+            list_seg->prev = new_seg;
+
+            /* create a new seg, copy the list_seg data over */
+            StreamTcpSegmentDataCopy(new_seg, seg);
+
+#ifdef DEBUG
+            PrintList(stream->seg_list);
+#endif
+        }
+
         /* Handling case when the segment starts before the first segment in
          * the list */
         if (list_seg->prev == NULL) {
@@ -837,6 +880,7 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
             stream->seg_list = new_seg;
             SCLogDebug("list_seg now %p, stream->seg_list now %p", list_seg,
                         stream->seg_list);
+
         } else if (end_before == TRUE || end_same == TRUE) {
             /* Handling overlapping with more than one segment and filling gap */
             if (SEQ_GT(list_seg->seq, (list_seg->prev->seq +
@@ -897,48 +941,6 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
                 }
             }
         } else if (end_after == TRUE) {
-            if (list_seg->prev != NULL && SEQ_LT((list_seg->prev->seq + list_seg->prev->payload_len), list_seg->seq)) {
-                SCLogDebug("GAP to fill before list segment, size %u", list_seg->seq - (list_seg->prev->seq + list_seg->prev->payload_len));
-
-                packet_length = list_seg->seq - seg->seq;
-                if (packet_length > seg->payload_len) {
-                    packet_length = seg->payload_len;
-                }
-
-                TcpSegment *new_seg = StreamTcpGetSegment(tv, ra_ctx, packet_length);
-                if (new_seg == NULL) {
-                    SCLogDebug("segment_pool[%"PRIu16"] is empty", segment_pool_idx[packet_length]);
-
-                    StreamTcpSetEvent(p, STREAM_REASSEMBLY_NO_SEGMENT);
-                    SCReturnInt(-1);
-                }
-                new_seg->payload_len = packet_length;
-
-                if (SEQ_GT((list_seg->prev->seq +
-                                list_seg->prev->payload_len), seg->seq))
-                {
-                    new_seg->seq = (list_seg->prev->seq +
-                            list_seg->prev->payload_len);
-                } else {
-                    new_seg->seq = seg->seq;
-                }
-
-                SCLogDebug("new_seg->seq %"PRIu32" and new->payload_len "
-                        "%" PRIu16"", new_seg->seq, new_seg->payload_len);
-
-                new_seg->next = list_seg;
-                new_seg->prev = list_seg->prev;
-                list_seg->prev->next = new_seg;
-                list_seg->prev = new_seg;
-
-                /* create a new seg, copy the list_seg data over */
-                StreamTcpSegmentDataCopy(new_seg, seg);
-
-#ifdef DEBUG
-                PrintList(stream->seg_list);
-#endif
-            }
-
             if (list_seg->next != NULL) {
                 if (SEQ_LEQ((seg->seq + seg->payload_len), list_seg->next->seq))
                 {
@@ -1121,7 +1123,7 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
             }
         }
         /* To return from for loop as seg is finished with current list_seg
-           no need to check further (improve performance)*/
+           no need to check further (improve performance) */
         if (end_before == TRUE || end_same == TRUE || return_after == TRUE) {
             SCReturnInt(1);
         }
@@ -3587,20 +3589,26 @@ void StreamTcpSegmentDataReplace(TcpSegment *dst_seg, TcpSegment *src_seg,
 
 void StreamTcpSegmentDataCopy(TcpSegment *dst_seg, TcpSegment *src_seg)
 {
-    uint32_t i;
+    uint32_t u;
     uint16_t dst_pos = 0;
     uint16_t src_pos = 0;
+    uint32_t seq;
 
-    if (SEQ_GT(src_seg->seq, dst_seg->seq))
+    if (SEQ_GT(dst_seg->seq, src_seg->seq)) {
+        src_pos = dst_seg->seq - src_seg->seq;
+        seq = dst_seg->seq;
+    } else {
         dst_pos = src_seg->seq - dst_seg->seq;
-    else
-        dst_pos = dst_seg->seq - src_seg->seq;
+        seq = src_seg->seq;
+    }
 
-    SCLogDebug("Copying data from dst_pos %"PRIu16"", dst_pos);
-    for (i = src_seg->seq;
-            (SEQ_LT(i, (src_seg->seq + src_seg->payload_len)) &&
-             SEQ_LT(i, (dst_seg->seq + dst_seg->payload_len))); i++)
+    SCLogDebug("Copying data from seq %"PRIu32"", seq);
+    for (u = seq;
+            (SEQ_LT(u, (src_seg->seq + src_seg->payload_len)) &&
+             SEQ_LT(u, (dst_seg->seq + dst_seg->payload_len))); u++)
     {
+        //SCLogDebug("u %"PRIu32, u);
+
         dst_seg->payload[dst_pos] = src_seg->payload[src_pos];
 
         dst_pos++;
@@ -8963,6 +8971,90 @@ end:
     return ret;
 }
 
+/** \test test insert with overlaps
+ */
+static int StreamTcpReassembleInsertTest02(void) {
+    int ret = 0;
+    TcpReassemblyThreadCtx *ra_ctx = NULL;
+    ThreadVars tv;
+    TcpSession ssn;
+
+    memset(&tv, 0x00, sizeof(tv));
+
+    StreamTcpUTInit(&ra_ctx);
+    StreamTcpUTSetupSession(&ssn);
+    StreamTcpUTSetupStream(&ssn.client, 1);
+
+    int i;
+    for (i = 2; i < 10; i++) {
+        int len;
+        len = i % 2;
+        if (len == 0)
+            len = 1;
+        int seq;
+        seq = i * 10;
+        if (seq < 2)
+            seq = 2;
+
+        if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  seq, 'A', len) == -1) {
+            printf("failed to add segment 1: ");
+            goto end;
+        }
+    }
+    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'B', 1024) == -1) {
+        printf("failed to add segment 2: ");
+        goto end;
+    }
+
+    ret = 1;
+end:
+    StreamTcpUTClearSession(&ssn);
+    StreamTcpUTDeinit(ra_ctx);
+    return ret;
+}
+
+/** \test test insert with overlaps
+ */
+static int StreamTcpReassembleInsertTest03(void) {
+    int ret = 0;
+    TcpReassemblyThreadCtx *ra_ctx = NULL;
+    ThreadVars tv;
+    TcpSession ssn;
+
+    memset(&tv, 0x00, sizeof(tv));
+
+    StreamTcpUTInit(&ra_ctx);
+    StreamTcpUTSetupSession(&ssn);
+    StreamTcpUTSetupStream(&ssn.client, 1);
+
+    if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 1024) == -1) {
+        printf("failed to add segment 2: ");
+        goto end;
+    }
+
+    int i;
+    for (i = 2; i < 10; i++) {
+        int len;
+        len = i % 2;
+        if (len == 0)
+            len = 1;
+        int seq;
+        seq = i * 10;
+        if (seq < 2)
+            seq = 2;
+
+        if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  seq, 'B', len) == -1) {
+            printf("failed to add segment 2: ");
+            goto end;
+        }
+    }
+    ret = 1;
+end:
+    StreamTcpUTClearSession(&ssn);
+    StreamTcpUTDeinit(ra_ctx);
+    return ret;
+}
+
 #endif /* UNITTESTS */
 
 /** \brief  The Function Register the Unit tests to test the reassembly engine
@@ -9032,6 +9124,8 @@ void StreamTcpReassembleRegisterTests(void) {
     UtRegisterTest("StreamTcpReassembleInlineTest10 -- inline APP ra 10", StreamTcpReassembleInlineTest10, 1);
 
     UtRegisterTest("StreamTcpReassembleInsertTest01 -- insert with overlap", StreamTcpReassembleInsertTest01, 1);
+    UtRegisterTest("StreamTcpReassembleInsertTest02 -- insert with overlap", StreamTcpReassembleInsertTest02, 1);
+    UtRegisterTest("StreamTcpReassembleInsertTest03 -- insert with overlap", StreamTcpReassembleInsertTest03, 1);
 
     StreamTcpInlineRegisterTests();
     StreamTcpUtilRegisterTests();
