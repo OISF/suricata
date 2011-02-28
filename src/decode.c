@@ -163,6 +163,8 @@ void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
                                                SC_PERF_TYPE_UINT64, "NULL");
     dtv->counter_udp = SCPerfTVRegisterCounter("decoder.udp", tv,
                                                SC_PERF_TYPE_UINT64, "NULL");
+    dtv->counter_sctp = SCPerfTVRegisterCounter("decoder.sctp", tv,
+                                               SC_PERF_TYPE_UINT64, "NULL");
     dtv->counter_icmpv4 = SCPerfTVRegisterCounter("decoder.icmpv4", tv,
                                                   SC_PERF_TYPE_UINT64, "NULL");
     dtv->counter_icmpv6 = SCPerfTVRegisterCounter("decoder.icmpv6", tv,

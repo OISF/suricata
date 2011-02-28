@@ -147,6 +147,18 @@ typedef struct Address_ {
         SET_PORT(UDP_GET_DST_PORT((pkt)), *prt); \
     } while (0)
 
+/* Set the SCTP ports into the Ports of the Packet.
+ * Make sure p->sctph is initialized and validated. */
+#define SET_SCTP_SRC_PORT(pkt, prt) do {          \
+        SET_PORT(SCTP_GET_SRC_PORT((pkt)), *prt); \
+    } while (0)
+
+#define SET_SCTP_DST_PORT(pkt, prt) do {          \
+        SET_PORT(SCTP_GET_DST_PORT((pkt)), *prt); \
+    } while (0)
+
+
+
 #define GET_IPV4_SRC_ADDR_U32(p) ((p)->src.addr_data32[0])
 #define GET_IPV4_DST_ADDR_U32(p) ((p)->dst.addr_data32[0])
 #define GET_IPV4_SRC_ADDR_PTR(p) ((p)->src.addr_data32)
@@ -331,6 +343,8 @@ typedef struct Packet_
     UDPVars udpvars;
     UDPCache udpc;
 
+    SCTPHdr *sctph;
+
     ICMPV4Hdr *icmpv4h;
     ICMPV4Cache icmpv4c;
     ICMPV4Vars icmpv4vars;
@@ -456,6 +470,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_raw;
     uint16_t counter_tcp;
     uint16_t counter_udp;
+    uint16_t counter_sctp;
     uint16_t counter_icmpv4;
     uint16_t counter_icmpv6;
     uint16_t counter_ppp;
@@ -541,6 +556,9 @@ typedef struct DecodeThreadVars_
         }                                       \
         if ((p)->udph != NULL) {                \
             CLEAR_UDP_PACKET((p));              \
+        }                                       \
+        if ((p)->sctph != NULL) {                \
+            CLEAR_SCTP_PACKET((p));              \
         }                                       \
         if ((p)->icmpv4h != NULL) {             \
             CLEAR_ICMPV4_PACKET((p));           \
