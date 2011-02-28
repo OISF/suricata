@@ -62,6 +62,7 @@ enum {
     FLOW_PROTO_TCP,
     FLOW_PROTO_UDP,
     FLOW_PROTO_ICMP,
+    FLOW_PROTO_SCTP,
 
     /* should be last */
     FLOW_PROTO_MAX,

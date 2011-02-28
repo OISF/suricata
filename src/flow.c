@@ -660,7 +660,7 @@ void FlowDecrUsecnt(Flow *f) {
  *  \retval 1 to_client
  */
 int FlowGetPacketDirection(Flow *f, Packet *p) {
-    if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
+    if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP || p->proto == IPPROTO_SCTP) {
         if (!(CMP_PORT(p->sp,p->dp))) {
             /* update flags and counters */
             if (CMP_PORT(f->sp,p->sp)) {

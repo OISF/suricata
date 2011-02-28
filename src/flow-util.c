@@ -100,6 +100,8 @@ uint8_t FlowGetProtoMapping(uint8_t proto) {
             return FLOW_PROTO_UDP;
         case IPPROTO_ICMP:
             return FLOW_PROTO_ICMP;
+	case IPPROTO_SCTP:
+            return FLOW_PROTO_SCTP;
         default:
             return FLOW_PROTO_DEFAULT;
     }
@@ -142,6 +144,9 @@ void FlowInit(Flow *f, Packet *p)
     } else if (p->icmpv6h != NULL) {
         f->type = p->type;
         f->code = p->code;
+    } else if (p->sctph != NULL) { /* XXX MACRO */
+        SET_SCTP_SRC_PORT(p,&f->sp);
+        SET_SCTP_DST_PORT(p,&f->dp);
     } /* XXX handle default */
     else {
         printf("FIXME: %s:%s:%" PRId32 "\n", __FILE__, __FUNCTION__, __LINE__);
