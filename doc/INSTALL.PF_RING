@@ -2,7 +2,7 @@
 apt-get install dkms
 
 #We need subversion for checking out the PF_RING code we need flex and bisonfor libpcap
-apt-get subversion flex bison
+apt-get install subversion flex bison
 
 #Install the debs needed for suricata.
 apt-get install libpcre3-dev libpcap-dev libyaml-dev zlib1g-dev libcap-ng-dev libnet1-dev
@@ -70,6 +70,7 @@ mkdir -p /opt/PF_RING/{bin,lib,include/linux,sbin}
 #Build and install the userland lib.
 cp -f /usr/src/PF_RING_CURRENT_SVN/kernel/linux/pf_ring.h /opt/PF_RING/include/linux/
 cd /usr/src/PF_RING_CURRENT_SVN/userland/lib
+./configure
 sed -i -e 's/INSTDIR   = \${DESTDIR}\/usr\/local/INSTDIR   = \${DESTDIR}\/opt\/PF_RING/' Makefile
 cp -f pfring_e1000e_dna.h /opt/PF_RING/include
 make &&  make install
