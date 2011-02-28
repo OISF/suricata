@@ -955,7 +955,8 @@ static int SigParseBasics(Signature *s, char *sigstr, char ***result, uint8_t ad
     /* For "ip" we parse the ports as well, even though they will be just "any".
      *  We do this for later sgh building for the tcp and udp protocols. */
     if (DetectProtoContainsProto(&s->proto, IPPROTO_TCP) ||
-        DetectProtoContainsProto(&s->proto, IPPROTO_UDP))
+        DetectProtoContainsProto(&s->proto, IPPROTO_UDP) ||
+        DetectProtoContainsProto(&s->proto, IPPROTO_SCTP))
     {
         if (SigParsePort(s, arr[CONFIG_SP], SIG_DIREC_SRC ^ addrs_direction) < 0)
             goto error;

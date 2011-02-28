@@ -1149,7 +1149,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             /* Retrieve the app layer state and protocol and the tcp reassembled
              * stream chunks. */
             if ((IP_GET_IPPROTO(p) == IPPROTO_TCP && p->flags & PKT_STREAM_EST) ||
-                (IP_GET_IPPROTO(p) == IPPROTO_UDP && p->flowflags & FLOW_PKT_ESTABLISHED))
+                (IP_GET_IPPROTO(p) == IPPROTO_UDP && p->flowflags & FLOW_PKT_ESTABLISHED) ||
+                (IP_GET_IPPROTO(p) == IPPROTO_SCTP && p->flowflags & FLOW_PKT_ESTABLISHED))
             {
                 alstate = AppLayerGetProtoStateFromPacket(p);
                 alproto = AppLayerGetProtoFromPacket(p);
@@ -1269,7 +1270,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         }
 
         /* check the source & dst port in the sig */
-        if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP) {
+        if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP || p->proto == IPPROTO_SCTP) {
             if (!(s->flags & SIG_FLAG_DP_ANY)) {
                 DetectPort *dport = DetectPortLookupGroup(s->dp,p->dp);
                 if (dport == NULL) {
@@ -1674,7 +1675,8 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
     /* for tcp/udp, only consider sigs that don't have ports set, as ip-only */
     if (!(s->proto.flags & DETECT_PROTO_ANY)) {
         if (s->proto.proto[IPPROTO_TCP / 8] & (1 << (IPPROTO_TCP % 8)) ||
-            s->proto.proto[IPPROTO_UDP / 8] & (1 << (IPPROTO_UDP % 8))) {
+            s->proto.proto[IPPROTO_UDP / 8] & (1 << (IPPROTO_UDP % 8)) ||
+            s->proto.proto[IPPROTO_SCTP / 8] & (1 << (IPPROTO_SCTP % 8))) {
             if (!(s->flags & SIG_FLAG_SP_ANY))
                 return 0;
 
@@ -2710,6 +2712,7 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     }
 
     cnt_any = 0, cnt_ipv4 = 0, cnt_ipv6 = 0;
+    /* UDP */
     for (f = 0; f < FLOW_STATES; f++) {
         for (gr = de_ctx->flow_gh[f].src_gh[17]->any_head; gr != NULL; gr = gr->next) {
             cnt_any++;
@@ -2729,6 +2732,28 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
         SCLogDebug("UDP Source address blocks:     any: %4u, ipv4: %4u, ipv6: %4u.", cnt_any, cnt_ipv4, cnt_ipv6);
     }
 
+    cnt_any = 0, cnt_ipv4 = 0, cnt_ipv6 = 0;
+    /* SCTP */
+    for (f = 0; f < FLOW_STATES; f++) {
+        for (gr = de_ctx->flow_gh[f].src_gh[IPPROTO_SCTP]->any_head; gr != NULL; gr = gr->next) {
+            cnt_any++;
+        }
+    }
+    for (f = 0; f < FLOW_STATES; f++) {
+        for (gr = de_ctx->flow_gh[f].src_gh[IPPROTO_SCTP]->ipv4_head; gr != NULL; gr = gr->next) {
+            cnt_ipv4++;
+        }
+    }
+    for (f = 0; f < FLOW_STATES; f++) {
+        for (gr = de_ctx->flow_gh[f].src_gh[IPPROTO_SCTP]->ipv6_head; gr != NULL; gr = gr->next) {
+            cnt_ipv6++;
+        }
+    }
+    if (!(de_ctx->flags & DE_QUIET)) {
+        SCLogDebug("SCTP Source address blocks:     any: %4u, ipv4: %4u, ipv6: %4u.", cnt_any, cnt_ipv4, cnt_ipv6);
+    }
+
+    /* ICMP */
     cnt_any = 0, cnt_ipv4 = 0, cnt_ipv6 = 0;
     for (f = 0; f < FLOW_STATES; f++) {
         for (gr = de_ctx->flow_gh[f].src_gh[1]->any_head; gr != NULL; gr = gr->next) {
@@ -3228,6 +3253,11 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
             printf ("BuildDestinationAddressHeads(src_gh[17],AF_INET) failed\n");
             goto error;
         }
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_SCTP],AF_INET,f);
+        if (r < 0) {
+            printf ("BuildDestinationAddressHeads(src_gh[IPPROTO_SCTP],AF_INET) failed\n");
+            goto error;
+        }
         r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[6],AF_INET6,f);
         if (r < 0) {
             printf ("BuildDestinationAddressHeads(src_gh[6],AF_INET) failed\n");
@@ -3236,6 +3266,11 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
         r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[17],AF_INET6,f);
         if (r < 0) {
             printf ("BuildDestinationAddressHeads(src_gh[17],AF_INET) failed\n");
+            goto error;
+        }
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_SCTP],AF_INET6,f);
+        if (r < 0) {
+            printf ("BuildDestinationAddressHeads(src_gh[IPPROTO_SCTP],AF_INET) failed\n");
             goto error;
         }
         r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[6],AF_UNSPEC,f);
@@ -3248,8 +3283,13 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
             printf ("BuildDestinationAddressHeads(src_gh[17],AF_INET) failed\n");
             goto error;
         }
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_SCTP],AF_UNSPEC,f);
+        if (r < 0) {
+            printf ("BuildDestinationAddressHeads(src_gh[IPPROTO_SCTP],AF_INET) failed\n");
+            goto error;
+        }
         for (proto = 0; proto < 256; proto++) {
-            if (proto == IPPROTO_TCP || proto == IPPROTO_UDP)
+            if (proto == IPPROTO_TCP || proto == IPPROTO_UDP || proto == IPPROTO_SCTP)
                 continue;
 
             r = BuildDestinationAddressHeads(de_ctx, de_ctx->flow_gh[f].src_gh[proto],AF_INET,f);
