@@ -79,7 +79,7 @@ typedef enum {
 #define SC_LOG_DEF_LOG_FORMAT "[%i] %t - (%f:%l) <%d> (%n) -- "
 
 /* The maximum length of the log message */
-#define SC_LOG_MAX_LOG_MSG_LEN 1024
+#define SC_LOG_MAX_LOG_MSG_LEN 2048
 
 /* The maximum length of the log format */
 #define SC_LOG_MAX_LOG_FORMAT_LEN 128
