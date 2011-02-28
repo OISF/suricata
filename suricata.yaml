@@ -448,6 +448,9 @@ logging:
 # PF_RING configuration. for use with native PF_RING support
 # for more info see http://www.ntop.org/PF_RING.html
 pfring:
+  # Number of receive threads (>1 will enable experimental flow pinned
+  # runmode)
+  threads: 1
 
   # Default interface we will listen on.
   interface: eth0

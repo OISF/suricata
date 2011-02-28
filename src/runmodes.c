@@ -48,6 +48,8 @@
 
 #include "cuda-packet-batcher.h"
 
+#include "source-pfring.h"
+
 /**
  * A list of output modules that will be active for the run mode.
  */
@@ -3532,6 +3534,145 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx, char *iface) {
     if (TmThreadSpawn(tv_outputs) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
         exit(EXIT_FAILURE);
+    }
+
+    return 0;
+}
+
+int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx, char *iface) {
+    SCEnter();
+    char tname[12];
+    char qname[12];
+    uint16_t cpu = 0;
+    char queues[2048] = "";
+
+    RunModeInitialize();
+
+    TimeModeSetLive();
+
+    /* Available cpus */
+    uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
+
+    /* start with cpu 1 so that if we're creating an odd number of detect
+     * threads we're not creating the most on CPU0. */
+    if (ncpus > 0)
+        cpu = 1;
+
+    /* always create at least one thread */
+    int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
+    if (thread_max == 0)
+        thread_max = ncpus * threading_detect_ratio;
+    if (thread_max < 1)
+        thread_max = 1;
+
+    int thread;
+    for (thread = 0; thread < thread_max; thread++) {
+        if (strlen(queues) > 0)
+            strlcat(queues, ",", sizeof(queues));
+
+        snprintf(qname, sizeof(qname),"pickup%"PRIu16, thread+1);
+        strlcat(queues, qname, sizeof(queues));
+    }
+    SCLogDebug("queues %s", queues);
+
+    int pfring_threads = PfringConfGetThreads();
+    /* create the threads */
+    for (thread = 0; thread < pfring_threads; thread++) {
+        snprintf(tname, sizeof(tname),"RecvPfring%"PRIu16, thread+1);
+        char *thread_name = SCStrdup(tname);
+
+        ThreadVars *tv_receive = TmThreadCreatePacketHandler(thread_name,"packetpool","packetpool",queues,"flow","varslot");
+        if (tv_receive == NULL) {
+            printf("ERROR: TmThreadsCreate failed\n");
+            exit(EXIT_FAILURE);
+        }
+        TmModule *tm_module = TmModuleGetByName("ReceivePfring");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName failed for ReceivePfring\n");
+            exit(EXIT_FAILURE);
+        }
+        TmVarSlotSetFuncAppend(tv_receive,tm_module,iface);
+
+        tm_module = TmModuleGetByName("DecodePfring");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName DecodePfring failed\n");
+            exit(EXIT_FAILURE);
+        }
+        TmVarSlotSetFuncAppend(tv_receive,tm_module,NULL);
+
+        if (threading_set_cpu_affinity) {
+            TmThreadSetCPUAffinity(tv_receive, 0);
+            if (ncpus > 1)
+                TmThreadSetThreadPriority(tv_receive, PRIO_MEDIUM);
+        }
+
+        if (TmThreadSpawn(tv_receive) != TM_ECODE_OK) {
+            printf("ERROR: TmThreadSpawn failed\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    for (thread = 0; thread < thread_max; thread++) {
+        snprintf(tname, sizeof(tname),"Detect%"PRIu16, thread+1);
+        snprintf(qname, sizeof(qname),"pickup%"PRIu16, thread+1);
+
+        SCLogDebug("tname %s, qname %s", tname, qname);
+
+        char *thread_name = SCStrdup(tname);
+        SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
+
+        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name, qname, "flow","packetpool","packetpool","varslot");
+        //ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name, qname, "flow","alert-queue1","simple","varslot");
+        if (tv_detect_ncpu == NULL) {
+            printf("ERROR: TmThreadsCreate failed\n");
+            exit(EXIT_FAILURE);
+        }
+        TmModule *tm_module = TmModuleGetByName("StreamTcp");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+            exit(EXIT_FAILURE);
+        }
+        TmVarSlotSetFuncAppend(tv_detect_ncpu,tm_module,NULL);
+
+        tm_module = TmModuleGetByName("Detect");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName Detect failed\n");
+            exit(EXIT_FAILURE);
+        }
+        TmVarSlotSetFuncAppend(tv_detect_ncpu,tm_module,(void *)de_ctx);
+
+        if (threading_set_cpu_affinity) {
+            TmThreadSetCPUAffinity(tv_detect_ncpu, (int)cpu);
+            /* If we have more than one core/cpu, the first Detect thread
+             * (at cpu 0) will have less priority (higher 'nice' value)
+             * In this case we will set the thread priority to +10 (default is 0)
+             */
+            if (cpu == 0 && ncpus > 1) {
+                TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_LOW);
+            } else if (ncpus > 1) {
+                TmThreadSetThreadPriority(tv_detect_ncpu, PRIO_MEDIUM);
+            }
+        }
+
+        char *thread_group_name = SCStrdup("Detect");
+        if (thread_group_name == NULL) {
+            printf("Error allocating memory\n");
+            exit(EXIT_FAILURE);
+        }
+        tv_detect_ncpu->thread_group_name = thread_group_name;
+
+        /* add outputs as well */
+        SetupOutputs(tv_detect_ncpu);
+
+        if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
+            printf("ERROR: TmThreadSpawn failed\n");
+            exit(EXIT_FAILURE);
+        }
+
+        if ((cpu + 1) == ncpus)
+            cpu = 0;
+        else
+            cpu++;
     }
 
     return 0;

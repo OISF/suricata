@@ -54,6 +54,7 @@ void RunModeShutDown(void);
 
 int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx, char *file);
 
+int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx, char *iface);
 
 int threading_set_cpu_affinity;
 #endif /* __RUNMODES_H__ */

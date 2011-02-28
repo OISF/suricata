@@ -1186,11 +1186,16 @@ int main(int argc, char **argv)
         //RunModeFilePcapAuto2(de_ctx, pcap_file);
     }
     else if (run_mode == MODE_PFRING) {
+        PfringLoadConfig();
         //RunModeIdsPfring3(de_ctx, pfring_dev);
         //RunModeIdsPfring2(de_ctx, pfring_dev);
         //RunModeIdsPfring(de_ctx, pfring_dev);
         //RunModeIdsPfring4(de_ctx, pfring_dev);
-        RunModeIdsPfringAuto(de_ctx, pfring_dev);
+        if (PfringConfGetThreads() == 1) {
+            RunModeIdsPfringAuto(de_ctx, pfring_dev);
+        } else {
+            RunModeIdsPfringAutoFp(de_ctx, pfring_dev);
+        }
     }
     else if (run_mode == MODE_NFQ) {
         //RunModeIpsNFQ(de_ctx, nfq_id);
