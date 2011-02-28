@@ -116,6 +116,10 @@ int DetectProtoParse(DetectProto *dp, char *str)
         proto = IPPROTO_ICMPV6;
         dp->proto[proto / 8] |= 1 << (proto % 8);
         SCLogDebug("ICMP protocol detected, sig applies both to ICMPv4 and ICMPv6");
+    } else if (strcasecmp(str, "sctp") == 0) {
+        proto = IPPROTO_SCTP;
+        dp->proto[proto / 8] |= 1 << (proto % 8);
+        SCLogDebug("SCTP protocol detected");
     } else if (strcasecmp(str,"ip") == 0) {
         /* Proto "ip" is treated as an "any" */
         dp->flags |= DETECT_PROTO_ANY;
