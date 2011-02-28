@@ -31,6 +31,7 @@ decode-icmpv4.c decode-icmpv4.h \
 decode-icmpv6.c decode-icmpv6.h \
 decode-tcp.c decode-tcp.h \
 decode-udp.c decode-udp.h \
+decode-sctp.c decode-sctp.h \
 flow.c flow.h \
 flow-queue.c flow-queue.h \
 flow-hash.c flow-hash.h \
