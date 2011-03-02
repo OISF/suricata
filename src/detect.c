@@ -2693,17 +2693,17 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     /* TCP */
     uint32_t cnt_any = 0, cnt_ipv4 = 0, cnt_ipv6 = 0;
     for (f = 0; f < FLOW_STATES; f++) {
-        for (gr = de_ctx->flow_gh[f].src_gh[6]->any_head; gr != NULL; gr = gr->next) {
+        for (gr = de_ctx->flow_gh[f].src_gh[IPPROTO_TCP]->any_head; gr != NULL; gr = gr->next) {
             cnt_any++;
         }
     }
     for (f = 0; f < FLOW_STATES; f++) {
-        for (gr = de_ctx->flow_gh[f].src_gh[6]->ipv4_head; gr != NULL; gr = gr->next) {
+        for (gr = de_ctx->flow_gh[f].src_gh[IPPROTO_TCP]->ipv4_head; gr != NULL; gr = gr->next) {
             cnt_ipv4++;
         }
     }
     for (f = 0; f < FLOW_STATES; f++) {
-        for (gr = de_ctx->flow_gh[f].src_gh[6]->ipv6_head; gr != NULL; gr = gr->next) {
+        for (gr = de_ctx->flow_gh[f].src_gh[IPPROTO_TCP]->ipv6_head; gr != NULL; gr = gr->next) {
             cnt_ipv6++;
         }
     }
@@ -2714,17 +2714,17 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     cnt_any = 0, cnt_ipv4 = 0, cnt_ipv6 = 0;
     /* UDP */
     for (f = 0; f < FLOW_STATES; f++) {
-        for (gr = de_ctx->flow_gh[f].src_gh[17]->any_head; gr != NULL; gr = gr->next) {
+        for (gr = de_ctx->flow_gh[f].src_gh[IPPROTO_UDP]->any_head; gr != NULL; gr = gr->next) {
             cnt_any++;
         }
     }
     for (f = 0; f < FLOW_STATES; f++) {
-        for (gr = de_ctx->flow_gh[f].src_gh[17]->ipv4_head; gr != NULL; gr = gr->next) {
+        for (gr = de_ctx->flow_gh[f].src_gh[IPPROTO_UDP]->ipv4_head; gr != NULL; gr = gr->next) {
             cnt_ipv4++;
         }
     }
     for (f = 0; f < FLOW_STATES; f++) {
-        for (gr = de_ctx->flow_gh[f].src_gh[17]->ipv6_head; gr != NULL; gr = gr->next) {
+        for (gr = de_ctx->flow_gh[f].src_gh[IPPROTO_UDP]->ipv6_head; gr != NULL; gr = gr->next) {
             cnt_ipv6++;
         }
     }
@@ -3243,12 +3243,12 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
     int f = 0;
     int proto;
     for (f = 0; f < FLOW_STATES; f++) {
-        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[6],AF_INET,f);
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_TCP],AF_INET,f);
         if (r < 0) {
             printf ("BuildDestinationAddressHeads(src_gh[6],AF_INET) failed\n");
             goto error;
         }
-        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[17],AF_INET,f);
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_UDP],AF_INET,f);
         if (r < 0) {
             printf ("BuildDestinationAddressHeads(src_gh[17],AF_INET) failed\n");
             goto error;
@@ -3258,12 +3258,12 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
             printf ("BuildDestinationAddressHeads(src_gh[IPPROTO_SCTP],AF_INET) failed\n");
             goto error;
         }
-        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[6],AF_INET6,f);
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_TCP],AF_INET6,f);
         if (r < 0) {
             printf ("BuildDestinationAddressHeads(src_gh[6],AF_INET) failed\n");
             goto error;
         }
-        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[17],AF_INET6,f);
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_UDP],AF_INET6,f);
         if (r < 0) {
             printf ("BuildDestinationAddressHeads(src_gh[17],AF_INET) failed\n");
             goto error;
@@ -3273,12 +3273,12 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
             printf ("BuildDestinationAddressHeads(src_gh[IPPROTO_SCTP],AF_INET) failed\n");
             goto error;
         }
-        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[6],AF_UNSPEC,f);
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_TCP],AF_UNSPEC,f);
         if (r < 0) {
             printf ("BuildDestinationAddressHeads(src_gh[6],AF_INET) failed\n");
             goto error;
         }
-        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[17],AF_UNSPEC,f);
+        r = BuildDestinationAddressHeadsWithBothPorts(de_ctx, de_ctx->flow_gh[f].src_gh[IPPROTO_UDP],AF_UNSPEC,f);
         if (r < 0) {
             printf ("BuildDestinationAddressHeads(src_gh[17],AF_INET) failed\n");
             goto error;
@@ -3471,7 +3471,7 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
     for (f = 0; f < FLOW_STATES; f++) {
         printf("\n");
         for (proto = 0; proto < 256; proto++) {
-            if (proto != 6)
+            if (proto != IPPROTO_TCP)
                 continue;
 
             for (global_src_gr = de_ctx->flow_gh[f].src_gh[proto]->ipv4_head; global_src_gr != NULL;
