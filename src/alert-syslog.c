@@ -54,6 +54,7 @@
 #define DEFAULT_ALERT_SYSLOG_LEVEL              LOG_ERR
 #define MODULE_NAME                             "AlertSyslog"
 
+extern uint8_t engine_mode;
 static int alert_syslog_level = DEFAULT_ALERT_SYSLOG_LEVEL;
 
 typedef struct AlertSyslogThread_ {
@@ -245,6 +246,7 @@ TmEcode AlertSyslogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
 {
     AlertSyslogThread *ast = (AlertSyslogThread *)data;
     int i;
+    char *action = "";
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
@@ -261,18 +263,24 @@ TmEcode AlertSyslogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
 
+        if (pa->action == ACTION_DROP && IS_ENGINE_MODE_IPS(engine_mode)) {
+            action = "[Drop] ";
+        } else if (pa->action == ACTION_DROP) {
+            action = "[wDrop] ";
+        }
+
         if (SCProtoNameValid(IPV4_GET_IPPROTO(p)) == TRUE) {
-            syslog(alert_syslog_level, "[%" PRIu32 ":%" PRIu32 ":%"
+            syslog(alert_syslog_level, "%s[%" PRIu32 ":%" PRIu32 ":%"
                     PRIu32 "] %s [Classification: %s] [Priority: %"PRIu32"]"
-                    " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "", pa->gid, pa->sid,
-                    pa->rev, pa->msg, pa->class_msg, pa->prio,
+                    " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "", action, pa->gid,
+                    pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio,
                     known_proto[IPV4_GET_IPPROTO(p)], srcip, p->sp, dstip, p->dp);
         } else {
-            syslog(alert_syslog_level, "[%" PRIu32 ":%" PRIu32 ":%"
+            syslog(alert_syslog_level, "%s[%" PRIu32 ":%" PRIu32 ":%"
                     PRIu32 "] %s [Classification: %s] [Priority: %"PRIu32"]"
                     " {PROTO:%03" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "",
-                    pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio,
-                    IPV4_GET_IPPROTO(p), srcip, p->sp, dstip, p->dp);
+                    action, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg,
+                    pa->prio, IPV4_GET_IPPROTO(p), srcip, p->sp, dstip, p->dp);
         }
     }
     SCMutexUnlock(&ast->file_ctx->fp_mutex);
@@ -296,6 +304,7 @@ TmEcode AlertSyslogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
 {
     AlertSyslogThread *ast = (AlertSyslogThread *)data;
     int i;
+    char *action = "";
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
@@ -311,19 +320,25 @@ TmEcode AlertSyslogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
 
+        if (pa->action == ACTION_DROP && IS_ENGINE_MODE_IPS(engine_mode)) {
+            action = "[Drop] ";
+        } else if (pa->action == ACTION_DROP) {
+            action = "[wDrop] ";
+        }
+
         if (SCProtoNameValid(IPV6_GET_L4PROTO(p)) == TRUE) {
-            syslog(alert_syslog_level, "[%" PRIu32 ":%" PRIu32 ":%"
+            syslog(alert_syslog_level, "%s[%" PRIu32 ":%" PRIu32 ":%"
                     "" PRIu32 "] %s [Classification: %s] [Priority: %"
                     "" PRIu32 "] {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "",
-                    pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg,
+                    action, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg,
                     pa->prio, known_proto[IPV6_GET_L4PROTO(p)], srcip, p->sp,
                     dstip, p->dp);
 
         } else {
-            syslog(alert_syslog_level, "[%" PRIu32 ":%" PRIu32 ":%"
+            syslog(alert_syslog_level, "%s[%" PRIu32 ":%" PRIu32 ":%"
                     "" PRIu32 "] %s [Classification: %s] [Priority: %"
                     "" PRIu32 "] {PROTO:%03" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "",
-                    pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg,
+                    action, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg,
                     pa->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
         }
 
@@ -349,6 +364,7 @@ TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, Packet *p, void *data,
 {
     AlertSyslogThread *ast = (AlertSyslogThread *)data;
     int i;
+    char *action = "";
 
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
@@ -364,9 +380,15 @@ TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, Packet *p, void *data,
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
 
-        snprintf(temp_buf_hdr, sizeof(temp_buf_hdr), "[%" PRIu32 ":%" PRIu32
+        if (pa->action == ACTION_DROP && IS_ENGINE_MODE_IPS(engine_mode)) {
+            action = "[Drop] ";
+        } else if (pa->action == ACTION_DROP) {
+            action = "[wDrop] ";
+        }
+
+        snprintf(temp_buf_hdr, sizeof(temp_buf_hdr), "%s[%" PRIu32 ":%" PRIu32
                 ":%" PRIu32 "] %s [Classification: %s] [Priority: %" PRIu32
-                "] [**] [Raw pkt: ", pa->gid, pa->sid, pa->rev, pa->msg,
+                "] [**] [Raw pkt: ", action, pa->gid, pa->sid, pa->rev, pa->msg,
                 pa->class_msg, pa->prio);
         strlcpy(alert, temp_buf_hdr, sizeof(alert));
 
