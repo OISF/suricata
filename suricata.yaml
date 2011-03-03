@@ -160,9 +160,6 @@ engine-analysis:
 # might end up taking too much time in the content inspection code.
 # If the argument specified is 0, the engine uses an internally defined
 # default limit.  On not specifying a value, we use no limits on the recursion.
-#
-# The option http-client-body-buffer-limit, is used to specify the buffer
-# limit for http request body we inspect.
 detect-engine:
   - profile: medium
   - custom-values:
@@ -632,13 +629,13 @@ asn1_max_frames: 256
 #
 # default-config:       Used when no server-config matches
 #   personality:        List of personalities used by default
-#   request-body-limit: Limit reassembly of request body for inspection
+#   request_body_limit: Limit reassembly of request body for inspection
 #                       by http_client_body & pcre /P option.
 #
 # server-config:        List of server configurations to use if address matches
 #   address:            List of ip addresses or networks for this block
 #   personalitiy:       List of personalities used by this block
-#   request-body-limit: Limit reassembly of request body for inspection
+#   request_body_limit: Limit reassembly of request body for inspection
 #                       by http_client_body & pcre /P option.
 #
 # Currently Available Personalities:
@@ -658,21 +655,21 @@ libhtp:
 
    default-config:
      personality: IDS
-     request-body-limit: 3072
+     request_body_limit: 3072
 
    server-config:
 
      - apache:
          address: [192.168.1.0/24, 127.0.0.0/8, "::1"]
          personality: Apache_2_2
-         request-body-limit: 4096
+         request_body_limit: 4096
 
      - iis7:
          address:
            - 192.168.0.0/24
            - 192.168.10.0/24
          personality: IIS_7_0
-         request-body-limit: 4096
+         request_body_limit: 4096
 
 # rule profiling settings. Only effective if Suricata has been built with the
 # the --enable-profiling configure flag.
