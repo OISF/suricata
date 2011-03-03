@@ -27,7 +27,6 @@
 #include "suricata-common.h"
 #include <netinet/in.h>
 
-
 #include "decode.h"
 
 #include "flow-private.h"
@@ -42,6 +41,19 @@
 #include "util-error.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
+
+/**
+ *  \brief return the uint32_t for a ipv4 address string
+ *
+ *  \param str Valid ipaddress in string form (e.g. 1.2.3.4)
+ *
+ *  \retval uint the uin32_t representation
+ */
+uint32_t UTHSetIPv4Address(char *str) {
+    struct in_addr in;
+    inet_pton(AF_INET, str, &in);
+    return (uint32_t)in.s_addr;
+}
 
 /**
  * \brief UTHBuildPacketReal is a function that create tcp/udp packets for unittests

@@ -5359,8 +5359,8 @@ int SigTest19Real (int mpm_type) {
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
     p->src.family = AF_INET;
-    p->src.addr_data32[0] = 0x0102080a;
-    p->dst.addr_data32[0] = 0x04030201;
+    p->src.addr_data32[0] = UTHSetIPv4Address("192.168.0.1");
+    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");
     p->dst.family = AF_INET;
     p->payload = buf;
     p->payload_len = buflen;
@@ -5430,8 +5430,8 @@ static int SigTest20Real (int mpm_type) {
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
     p->src.family = AF_INET;
-    p->src.addr_data32[0] = 0x0102080a;
-    p->dst.addr_data32[0] = 0x04030201;
+    p->src.addr_data32[0] = UTHSetIPv4Address("192.168.0.1");
+    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");
     p->dst.family = AF_INET;
     p->payload = buf;
     p->payload_len = buflen;
@@ -8013,8 +8013,8 @@ int SigTest40NoPacketInspection01(void) {
     memset(&tcphdr, 0, sizeof(tcphdr));
 
     p->src.family = AF_INET;
-    p->src.addr_data32[0] = 0x0102080a;
-    p->dst.addr_data32[0] = 0x04030201;
+    p->src.addr_data32[0] = UTHSetIPv4Address("192.168.0.1");
+    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");
     p->dst.family = AF_INET;
     p->payload = buf;
     p->payload_len = buflen;
@@ -8619,7 +8619,7 @@ static int SigTestSgh03 (void) {
     p->payload_len = 1;
     p->proto = IPPROTO_TCP;
     p->dp = 80;
-    p->dst.addr_data32[0] = 0x04030201;
+    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -8696,7 +8696,7 @@ static int SigTestSgh03 (void) {
         goto end;
     }
 
-    p->dst.addr_data32[0] = 0x05030201;
+    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.5");
 
     sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
     if (sgh == NULL) {
@@ -8735,7 +8735,7 @@ static int SigTestSgh03 (void) {
     }
 
 
-    p->dst.addr_data32[0] = 0x06030201;
+    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.6");
 
     sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
     if (sgh == NULL) {
@@ -8791,7 +8791,7 @@ static int SigTestSgh04 (void) {
     p->payload_len = 1;
     p->proto = IPPROTO_TCP;
     p->dp = 80;
-    p->dst.addr_data32[0] = 0x04030201;
+    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -8867,7 +8867,7 @@ static int SigTestSgh04 (void) {
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
 #endif
-    p->dst.addr_data32[0] = 0x05030201;
+    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.5");
 
     sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
     if (sgh == NULL) {
@@ -8903,7 +8903,7 @@ static int SigTestSgh04 (void) {
     printf("sgh->sig_size %u\n", sgh->sig_size);
     printf("sgh->refcnt %u\n", sgh->refcnt);
 #endif
-    p->dst.addr_data32[0] = 0x06030201;
+    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.6");
 
     sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
     if (sgh == NULL) {
@@ -8984,7 +8984,7 @@ static int SigTestSgh05 (void) {
     p->payload_len = 1;
     p->proto = IPPROTO_TCP;
     p->dp = 80;
-    p->dst.addr_data32[0] = 0x04030201;
+    p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {

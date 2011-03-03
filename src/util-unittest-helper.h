@@ -24,6 +24,8 @@
 #ifndef __UTIL_UNITTEST_HELPER__
 #define __UTIL_UNITTEST_HELPER__
 
+uint32_t UTHSetIPv4Address(char *);
+
 Packet *UTHBuildPacketReal(uint8_t *, uint16_t, uint16_t, char *, char *, uint16_t, uint16_t);
 Packet *UTHBuildPacket(uint8_t *, uint16_t, uint16_t);
 Packet *UTHBuildPacketSrcDst(uint8_t *, uint16_t, uint16_t, char *, char *);
