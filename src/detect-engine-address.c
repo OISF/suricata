@@ -1642,8 +1642,8 @@ int AddressTestParse02(void)
     DetectAddress *dd = DetectAddressParseSingle("1.2.3.4");
 
     if (dd) {
-        if (dd->ip2.addr_data32[0] != 0x04030201 ||
-            dd->ip.addr_data32[0] != 0x04030201) {
+        if (dd->ip2.addr_data32[0] != ntohl(16909060) ||
+            dd->ip.addr_data32[0] != ntohl(16909060)) {
             result = 0;
         }
 
@@ -1672,8 +1672,8 @@ int AddressTestParse04(void)
     DetectAddress *dd = DetectAddressParseSingle("1.2.3.4/255.255.255.0");
 
     if (dd) {
-        if (dd->ip2.addr_data32[0] != 0xff030201 ||
-            dd->ip.addr_data32[0] != 0x00030201) {
+        if (dd->ip.addr_data32[0] != ntohl(16909056)||
+            dd->ip2.addr_data32[0] != ntohl(16909311)) {
             result = 0;
         }
 
@@ -1702,8 +1702,8 @@ int AddressTestParse06(void)
     DetectAddress *dd = DetectAddressParseSingle("1.2.3.4/24");
 
     if (dd) {
-        if (dd->ip2.addr_data32[0] != 0xff030201 ||
-            dd->ip.addr_data32[0] != 0x00030201) {
+        if (dd->ip2.addr_data32[0] != ntohl(16909311) ||
+            dd->ip.addr_data32[0] != ntohl(16909056)) {
             result = 0;
         }
 
@@ -1732,10 +1732,10 @@ int AddressTestParse08(void)
     DetectAddress *dd = DetectAddressParseSingle("2001::/3");
 
     if (dd) {
-        if (dd->ip.addr_data32[0] != 0x00000020 || dd->ip.addr_data32[1] != 0x00000000 ||
+        if (dd->ip.addr_data32[0] != ntohl(536870912) || dd->ip.addr_data32[1] != 0x00000000 ||
             dd->ip.addr_data32[2] != 0x00000000 || dd->ip.addr_data32[3] != 0x00000000 ||
 
-            dd->ip2.addr_data32[0] != 0xFFFFFF3F || dd->ip2.addr_data32[1] != 0xFFFFFFFF ||
+            dd->ip2.addr_data32[0] != ntohl(1073741823) || dd->ip2.addr_data32[1] != 0xFFFFFFFF ||
             dd->ip2.addr_data32[2] != 0xFFFFFFFF || dd->ip2.addr_data32[3] != 0xFFFFFFFF) {
             DetectAddressPrint(dd);
             result = 0;
@@ -1766,10 +1766,10 @@ int AddressTestParse10(void)
     DetectAddress *dd = DetectAddressParseSingle("2001::/128");
 
    if (dd) {
-        if (dd->ip.addr_data32[0] != 0x00000120 || dd->ip.addr_data32[1] != 0x00000000 ||
+        if (dd->ip.addr_data32[0] != ntohl(536936448) || dd->ip.addr_data32[1] != 0x00000000 ||
             dd->ip.addr_data32[2] != 0x00000000 || dd->ip.addr_data32[3] != 0x00000000 ||
 
-            dd->ip2.addr_data32[0] != 0x00000120 || dd->ip2.addr_data32[1] != 0x00000000 ||
+            dd->ip2.addr_data32[0] != ntohl(536936448) || dd->ip2.addr_data32[1] != 0x00000000 ||
             dd->ip2.addr_data32[2] != 0x00000000 || dd->ip2.addr_data32[3] != 0x00000000) {
             DetectAddressPrint(dd);
             result = 0;
@@ -1800,10 +1800,10 @@ int AddressTestParse12(void)
     DetectAddress *dd = DetectAddressParseSingle("2001::/48");
 
     if (dd) {
-        if (dd->ip.addr_data32[0] != 0x00000120 || dd->ip.addr_data32[1] != 0x00000000 ||
+        if (dd->ip.addr_data32[0] != ntohl(536936448) || dd->ip.addr_data32[1] != 0x00000000 ||
             dd->ip.addr_data32[2] != 0x00000000 || dd->ip.addr_data32[3] != 0x00000000 ||
 
-            dd->ip2.addr_data32[0] != 0x00000120 || dd->ip2.addr_data32[1] != 0xFFFF0000 ||
+            dd->ip2.addr_data32[0] != ntohl(536936448) || dd->ip2.addr_data32[1] != ntohl(65535) ||
             dd->ip2.addr_data32[2] != 0xFFFFFFFF || dd->ip2.addr_data32[3] != 0xFFFFFFFF) {
             DetectAddressPrint(dd);
             result = 0;
@@ -1833,10 +1833,10 @@ int AddressTestParse14(void)
     DetectAddress *dd = DetectAddressParseSingle("2001::/16");
 
     if (dd) {
-        if (dd->ip.addr_data32[0] != 0x00000120 || dd->ip.addr_data32[1] != 0x00000000 ||
+        if (dd->ip.addr_data32[0] != ntohl(536936448) || dd->ip.addr_data32[1] != 0x00000000 ||
             dd->ip.addr_data32[2] != 0x00000000 || dd->ip.addr_data32[3] != 0x00000000 ||
 
-            dd->ip2.addr_data32[0] != 0xFFFF0120 || dd->ip2.addr_data32[1] != 0xFFFFFFFF ||
+            dd->ip2.addr_data32[0] != ntohl(537001983) || dd->ip2.addr_data32[1] != 0xFFFFFFFF ||
             dd->ip2.addr_data32[2] != 0xFFFFFFFF || dd->ip2.addr_data32[3] != 0xFFFFFFFF) {
             result = 0;
         }
@@ -1899,8 +1899,8 @@ int AddressTestParse18(void)
     DetectAddress *dd = DetectAddressParseSingle("1.2.3.4-1.2.3.6");
 
     if (dd) {
-        if (dd->ip2.addr_data32[0] != 0x06030201 ||
-            dd->ip.addr_data32[0] != 0x04030201) {
+        if (dd->ip2.addr_data32[0] != ntohl(16909062) ||
+            dd->ip.addr_data32[0] != ntohl(16909060)) {
             result = 0;
         }
 
@@ -1941,11 +1941,11 @@ int AddressTestParse21(void)
     DetectAddress *dd = DetectAddressParseSingle("2001::1-2001::4");
 
     if (dd) {
-        if (dd->ip.addr_data32[0] != 0x00000120 || dd->ip.addr_data32[1] != 0x00000000 ||
-            dd->ip.addr_data32[2] != 0x00000000 || dd->ip.addr_data32[3] != 0x01000000 ||
+        if (dd->ip.addr_data32[0] != ntohl(536936448) || dd->ip.addr_data32[1] != 0x00000000 ||
+            dd->ip.addr_data32[2] != 0x00000000 || dd->ip.addr_data32[3] != ntohl(1) ||
 
-            dd->ip2.addr_data32[0] != 0x00000120 || dd->ip2.addr_data32[1] != 0x00000000 ||
-            dd->ip2.addr_data32[2] != 0x00000000 || dd->ip2.addr_data32[3] != 0x04000000) {
+            dd->ip2.addr_data32[0] != ntohl(536936448) || dd->ip2.addr_data32[1] != 0x00000000 ||
+            dd->ip2.addr_data32[2] != 0x00000000 || dd->ip2.addr_data32[3] != ntohl(4)) {
             result = 0;
         }
 
@@ -2039,7 +2039,7 @@ int AddressTestParse28(void)
 
     if (dd) {
         if (dd->flags & ADDRESS_FLAG_NOT &&
-            dd->ip.addr_data32[0] == 0x04030201) {
+            dd->ip.addr_data32[0] == ntohl(16909060)) {
             result = 1;
         }
 
@@ -2069,8 +2069,8 @@ int AddressTestParse30(void)
 
     if (dd) {
         if (dd->flags & ADDRESS_FLAG_NOT &&
-            dd->ip.addr_data32[0] == 0x00030201 &&
-            dd->ip2.addr_data32[0] == 0xFF030201) {
+            dd->ip.addr_data32[0] == ntohl(16909056) &&
+            dd->ip2.addr_data32[0] == ntohl(16909311)) {
             result = 1;
         }
 
@@ -2115,8 +2115,8 @@ int AddressTestParse33(void)
 
     if (dd) {
         if (dd->flags & ADDRESS_FLAG_NOT &&
-            dd->ip.addr_data32[0] == 0x00000120 && dd->ip.addr_data32[1] == 0x00000000 &&
-            dd->ip.addr_data32[2] == 0x00000000 && dd->ip.addr_data32[3] == 0x01000000) {
+            dd->ip.addr_data32[0] == ntohl(536936448) && dd->ip.addr_data32[1] == 0x00000000 &&
+            dd->ip.addr_data32[2] == 0x00000000 && dd->ip.addr_data32[3] == ntohl(1)) {
             result = 1;
         }
 
@@ -2146,10 +2146,10 @@ int AddressTestParse35(void)
 
     if (dd) {
         if (dd->flags & ADDRESS_FLAG_NOT &&
-            dd->ip.addr_data32[0] == 0x00000120 && dd->ip.addr_data32[1] == 0x00000000 &&
+            dd->ip.addr_data32[0] == ntohl(536936448) && dd->ip.addr_data32[1] == 0x00000000 &&
             dd->ip.addr_data32[2] == 0x00000000 && dd->ip.addr_data32[3] == 0x00000000 &&
 
-            dd->ip2.addr_data32[0] == 0xFFFF0120 && dd->ip2.addr_data32[1] == 0xFFFFFFFF &&
+            dd->ip2.addr_data32[0] == ntohl(537001983) && dd->ip2.addr_data32[1] == 0xFFFFFFFF &&
             dd->ip2.addr_data32[2] == 0xFFFFFFFF && dd->ip2.addr_data32[3] == 0xFFFFFFFF) {
             result = 1;
         }
@@ -2990,11 +2990,11 @@ int AddressTestAddressGroupSetup11(void)
                      * 10.10.11.0/10.10.11.1
                      * 10.10.11.2/255.255.255.255
                      */
-                    if (one->ip.addr_data32[0]   == 0x00000000 && one->ip2.addr_data32[0]   == 0xFF090A0A &&
-                        two->ip.addr_data32[0]   == 0x000A0A0A && two->ip2.addr_data32[0]   == 0x090A0A0A &&
-                        three->ip.addr_data32[0] == 0x0A0A0A0A && three->ip2.addr_data32[0] == 0xFF0A0A0A &&
-                        four->ip.addr_data32[0]  == 0x000B0A0A && four->ip2.addr_data32[0]  == 0x010B0A0A &&
-                        five->ip.addr_data32[0]  == 0x020B0A0A && five->ip2.addr_data32[0]  == 0xFFFFFFFF) {
+                    if (one->ip.addr_data32[0] == 0x00000000 && one->ip2.addr_data32[0] == ntohl(168430079) &&
+                        two->ip.addr_data32[0] == ntohl(168430080) && two->ip2.addr_data32[0] == ntohl(168430089) &&
+                        three->ip.addr_data32[0] == ntohl(168430090) && three->ip2.addr_data32[0] == ntohl(168430335) &&
+                        four->ip.addr_data32[0] == ntohl(168430336) && four->ip2.addr_data32[0] == ntohl(168430337) &&
+                        five->ip.addr_data32[0] == ntohl(168430338) && five->ip2.addr_data32[0]  == 0xFFFFFFFF) {
                         result = 1;
                     }
                 }
@@ -3029,11 +3029,11 @@ int AddressTestAddressGroupSetup12 (void)
                      * 10.10.11.0/10.10.11.1
                      * 10.10.11.2/255.255.255.255
                      */
-                    if (one->ip.addr_data32[0]   == 0x00000000 && one->ip2.addr_data32[0]   == 0xFF090A0A &&
-                        two->ip.addr_data32[0]   == 0x000A0A0A && two->ip2.addr_data32[0]   == 0x090A0A0A &&
-                        three->ip.addr_data32[0] == 0x0A0A0A0A && three->ip2.addr_data32[0] == 0xFF0A0A0A &&
-                        four->ip.addr_data32[0]  == 0x000B0A0A && four->ip2.addr_data32[0]  == 0x010B0A0A &&
-                        five->ip.addr_data32[0]  == 0x020B0A0A && five->ip2.addr_data32[0]  == 0xFFFFFFFF) {
+                    if (one->ip.addr_data32[0] == 0x00000000 && one->ip2.addr_data32[0] == ntohl(168430079) &&
+                        two->ip.addr_data32[0] == ntohl(168430080) && two->ip2.addr_data32[0] == ntohl(168430089) &&
+                        three->ip.addr_data32[0] == ntohl(168430090) && three->ip2.addr_data32[0] == ntohl(168430335) &&
+                        four->ip.addr_data32[0] == ntohl(168430336) && four->ip2.addr_data32[0] == ntohl(168430337) &&
+                        five->ip.addr_data32[0] == ntohl(168430338) && five->ip2.addr_data32[0]  == 0xFFFFFFFF) {
                         result = 1;
                     }
                 }
@@ -3068,11 +3068,11 @@ int AddressTestAddressGroupSetup13(void)
                      * 10.10.11.0/10.10.11.1
                      * 10.10.11.2/255.255.255.255
                      */
-                    if (one->ip.addr_data32[0]   == 0x00000000 && one->ip2.addr_data32[0]   == 0xFF090A0A &&
-                        two->ip.addr_data32[0]   == 0x000A0A0A && two->ip2.addr_data32[0]   == 0x090A0A0A &&
-                        three->ip.addr_data32[0] == 0x0A0A0A0A && three->ip2.addr_data32[0] == 0xFF0A0A0A &&
-                        four->ip.addr_data32[0]  == 0x000B0A0A && four->ip2.addr_data32[0]  == 0x010B0A0A &&
-                        five->ip.addr_data32[0]  == 0x020B0A0A && five->ip2.addr_data32[0]  == 0xFFFFFFFF) {
+                    if (one->ip.addr_data32[0] == 0x00000000 && one->ip2.addr_data32[0] == ntohl(168430079) &&
+                        two->ip.addr_data32[0] == ntohl(168430080) && two->ip2.addr_data32[0] == ntohl(168430089) &&
+                        three->ip.addr_data32[0] == ntohl(168430090) && three->ip2.addr_data32[0] == ntohl(168430335) &&
+                        four->ip.addr_data32[0] == ntohl(168430336) && four->ip2.addr_data32[0] == ntohl(168430337) &&
+                        five->ip.addr_data32[0] == ntohl(168430338) && five->ip2.addr_data32[0]  == 0xFFFFFFFF) {
                         result = 1;
                     }
                 }
@@ -3100,8 +3100,8 @@ int AddressTestAddressGroupSetupIPv414(void)
                  * 0.0.0.0/1.2.3.3
                  * 1.2.3.5/255.255.255.255
                  */
-                if (one->ip.addr_data32[0]   == 0x00000000 && one->ip2.addr_data32[0]   == 0x03030201 &&
-                    two->ip.addr_data32[0]   == 0x05030201 && two->ip2.addr_data32[0]   == 0xFFFFFFFF) {
+                if (one->ip.addr_data32[0] == 0x00000000 && one->ip2.addr_data32[0] == ntohl(16909059) &&
+                    two->ip.addr_data32[0] == ntohl(16909061) && two->ip2.addr_data32[0] == 0xFFFFFFFF) {
                     result = 1;
                 } else {
                     printf("unexpected addresses: ");
@@ -3132,7 +3132,7 @@ int AddressTestAddressGroupSetupIPv415(void)
                 /* result should be:
                  * 0.0.0.1/255.255.255.255
                  */
-                if (one->ip.addr_data32[0] == 0x01000000 && one->ip2.addr_data32[0] == 0xFFFFFFFF)
+                if (one->ip.addr_data32[0] == ntohl(1) && one->ip2.addr_data32[0] == 0xFFFFFFFF)
                     result = 1;
             }
         }
@@ -3156,7 +3156,7 @@ int AddressTestAddressGroupSetupIPv416(void)
                 /* result should be:
                  * 0.0.0.0/255.255.255.254
                  */
-                if (one->ip.addr_data32[0]   == 0x00000000 && one->ip2.addr_data32[0]   == 0xFEFFFFFF)
+                if (one->ip.addr_data32[0] == 0x00000000 && one->ip2.addr_data32[0] == ntohl(4294967294))
                     result = 1;
             }
         }
@@ -3399,39 +3399,39 @@ int AddressTestAddressGroupSetup24(void)
                         one->ip.addr_data32[1] == 0x00000000 &&
                         one->ip.addr_data32[2] == 0x00000000 &&
                         one->ip.addr_data32[3] == 0x00000000 &&
-                        one->ip2.addr_data32[0] == 0xFFFFFF1F &&
+                        one->ip2.addr_data32[0] == ntohl(536870911) &&
                         one->ip2.addr_data32[1] == 0xFFFFFFFF &&
                         one->ip2.addr_data32[2] == 0xFFFFFFFF &&
                         one->ip2.addr_data32[3] == 0xFFFFFFFF &&
 
-                        two->ip.addr_data32[0] == 0x00000020 &&
+                        two->ip.addr_data32[0] == ntohl(536870912) &&
                         two->ip.addr_data32[1] == 0x00000000 &&
                         two->ip.addr_data32[2] == 0x00000000 &&
                         two->ip.addr_data32[3] == 0x00000000 &&
-                        two->ip2.addr_data32[0] == 0x00000120 &&
+                        two->ip2.addr_data32[0] == ntohl(536936448) &&
                         two->ip2.addr_data32[1] == 0x00000000 &&
                         two->ip2.addr_data32[2] == 0x00000000 &&
-                        two->ip2.addr_data32[3] == 0x03000000 &&
+                        two->ip2.addr_data32[3] == ntohl(3) &&
 
-                        three->ip.addr_data32[0] == 0x00000120 &&
+                        three->ip.addr_data32[0] == ntohl(536936448) &&
                         three->ip.addr_data32[1] == 0x00000000 &&
                         three->ip.addr_data32[2] == 0x00000000 &&
-                        three->ip.addr_data32[3] == 0x04000000 &&
-                        three->ip2.addr_data32[0] == 0x00000120 &&
+                        three->ip.addr_data32[3] == ntohl(4) &&
+                        three->ip2.addr_data32[0] == ntohl(536936448) &&
                         three->ip2.addr_data32[1] == 0x00000000 &&
                         three->ip2.addr_data32[2] == 0x00000000 &&
-                        three->ip2.addr_data32[3] == 0x06000000 &&
+                        three->ip2.addr_data32[3] == ntohl(6) &&
 
-                        four->ip.addr_data32[0] == 0x00000120 &&
+                        four->ip.addr_data32[0] == ntohl(536936448) &&
                         four->ip.addr_data32[1] == 0x00000000 &&
                         four->ip.addr_data32[2] == 0x00000000 &&
-                        four->ip.addr_data32[3] == 0x07000000 &&
-                        four->ip2.addr_data32[0] == 0xFFFFFF3F &&
+                        four->ip.addr_data32[3] == ntohl(7) &&
+                        four->ip2.addr_data32[0] == ntohl(1073741823) &&
                         four->ip2.addr_data32[1] == 0xFFFFFFFF &&
                         four->ip2.addr_data32[2] == 0xFFFFFFFF &&
                         four->ip2.addr_data32[3] == 0xFFFFFFFF &&
 
-                        five->ip.addr_data32[0] == 0x00000040 &&
+                        five->ip.addr_data32[0] == ntohl(1073741824) &&
                         five->ip.addr_data32[1] == 0x00000000 &&
                         five->ip.addr_data32[2] == 0x00000000 &&
                         five->ip.addr_data32[3] == 0x00000000 &&
@@ -3469,39 +3469,39 @@ int AddressTestAddressGroupSetup25(void)
                         one->ip.addr_data32[1] == 0x00000000 &&
                         one->ip.addr_data32[2] == 0x00000000 &&
                         one->ip.addr_data32[3] == 0x00000000 &&
-                        one->ip2.addr_data32[0]  == 0xFFFFFF1F &&
+                        one->ip2.addr_data32[0]  == ntohl(536870911) &&
                         one->ip2.addr_data32[1]  == 0xFFFFFFFF &&
                         one->ip2.addr_data32[2]  == 0xFFFFFFFF &&
                         one->ip2.addr_data32[3]  == 0xFFFFFFFF &&
 
-                        two->ip.addr_data32[0] == 0x00000020 &&
+                        two->ip.addr_data32[0] == ntohl(536870912) &&
                         two->ip.addr_data32[1] == 0x00000000 &&
                         two->ip.addr_data32[2] == 0x00000000 &&
                         two->ip.addr_data32[3] == 0x00000000 &&
-                        two->ip2.addr_data32[0] == 0x00000120 &&
+                        two->ip2.addr_data32[0] == ntohl(536936448) &&
                         two->ip2.addr_data32[1] == 0x00000000 &&
                         two->ip2.addr_data32[2] == 0x00000000 &&
-                        two->ip2.addr_data32[3] == 0x03000000 &&
+                        two->ip2.addr_data32[3] == ntohl(3) &&
 
-                        three->ip.addr_data32[0] == 0x00000120 &&
+                        three->ip.addr_data32[0] == ntohl(536936448) &&
                         three->ip.addr_data32[1] == 0x00000000 &&
                         three->ip.addr_data32[2] == 0x00000000 &&
-                        three->ip.addr_data32[3] == 0x04000000 &&
-                        three->ip2.addr_data32[0] == 0x00000120 &&
+                        three->ip.addr_data32[3] == ntohl(4) &&
+                        three->ip2.addr_data32[0] == ntohl(536936448) &&
                         three->ip2.addr_data32[1] == 0x00000000 &&
                         three->ip2.addr_data32[2] == 0x00000000 &&
-                        three->ip2.addr_data32[3] == 0x06000000 &&
+                        three->ip2.addr_data32[3] == ntohl(6) &&
 
-                        four->ip.addr_data32[0] == 0x00000120 &&
+                        four->ip.addr_data32[0] == ntohl(536936448) &&
                         four->ip.addr_data32[1] == 0x00000000 &&
                         four->ip.addr_data32[2] == 0x00000000 &&
-                        four->ip.addr_data32[3] == 0x07000000 &&
-                        four->ip2.addr_data32[0] == 0xFFFFFF3F &&
+                        four->ip.addr_data32[3] == ntohl(7) &&
+                        four->ip2.addr_data32[0] == ntohl(1073741823) &&
                         four->ip2.addr_data32[1] == 0xFFFFFFFF &&
                         four->ip2.addr_data32[2] == 0xFFFFFFFF &&
                         four->ip2.addr_data32[3] == 0xFFFFFFFF &&
 
-                        five->ip.addr_data32[0] == 0x00000040 &&
+                        five->ip.addr_data32[0] == ntohl(1073741824) &&
                         five->ip.addr_data32[1] == 0x00000000 &&
                         five->ip.addr_data32[2] == 0x00000000 &&
                         five->ip.addr_data32[3] == 0x00000000 &&
@@ -3539,39 +3539,39 @@ int AddressTestAddressGroupSetup26(void)
                         one->ip.addr_data32[1] == 0x00000000 &&
                         one->ip.addr_data32[2] == 0x00000000 &&
                         one->ip.addr_data32[3] == 0x00000000 &&
-                        one->ip2.addr_data32[0] == 0xFFFFFF1F &&
+                        one->ip2.addr_data32[0] == ntohl(536870911) &&
                         one->ip2.addr_data32[1] == 0xFFFFFFFF &&
                         one->ip2.addr_data32[2] == 0xFFFFFFFF &&
                         one->ip2.addr_data32[3] == 0xFFFFFFFF &&
 
-                        two->ip.addr_data32[0] == 0x00000020 &&
+                        two->ip.addr_data32[0] == ntohl(536870912) &&
                         two->ip.addr_data32[1] == 0x00000000 &&
                         two->ip.addr_data32[2] == 0x00000000 &&
                         two->ip.addr_data32[3] == 0x00000000 &&
-                        two->ip2.addr_data32[0] == 0x00000120 &&
+                        two->ip2.addr_data32[0] == ntohl(536936448) &&
                         two->ip2.addr_data32[1] == 0x00000000 &&
                         two->ip2.addr_data32[2] == 0x00000000 &&
-                        two->ip2.addr_data32[3] == 0x03000000 &&
+                        two->ip2.addr_data32[3] == ntohl(3) &&
 
-                        three->ip.addr_data32[0] == 0x00000120 &&
+                        three->ip.addr_data32[0] == ntohl(536936448) &&
                         three->ip.addr_data32[1] == 0x00000000 &&
                         three->ip.addr_data32[2] == 0x00000000 &&
-                        three->ip.addr_data32[3] == 0x04000000 &&
-                        three->ip2.addr_data32[0] == 0x00000120 &&
+                        three->ip.addr_data32[3] == ntohl(4) &&
+                        three->ip2.addr_data32[0] == ntohl(536936448) &&
                         three->ip2.addr_data32[1] == 0x00000000 &&
                         three->ip2.addr_data32[2] == 0x00000000 &&
-                        three->ip2.addr_data32[3] == 0x06000000 &&
+                        three->ip2.addr_data32[3] == ntohl(6) &&
 
-                        four->ip.addr_data32[0] == 0x00000120 &&
+                        four->ip.addr_data32[0] == ntohl(536936448) &&
                         four->ip.addr_data32[1] == 0x00000000 &&
                         four->ip.addr_data32[2] == 0x00000000 &&
-                        four->ip.addr_data32[3] == 0x07000000 &&
-                        four->ip2.addr_data32[0] == 0xFFFFFF3F &&
+                        four->ip.addr_data32[3] == ntohl(7) &&
+                        four->ip2.addr_data32[0] == ntohl(1073741823) &&
                         four->ip2.addr_data32[1] == 0xFFFFFFFF &&
                         four->ip2.addr_data32[2] == 0xFFFFFFFF &&
                         four->ip2.addr_data32[3] == 0xFFFFFFFF &&
 
-                        five->ip.addr_data32[0] == 0x00000040 &&
+                        five->ip.addr_data32[0] == ntohl(1073741824) &&
                         five->ip.addr_data32[1] == 0x00000000 &&
                         five->ip.addr_data32[2] == 0x00000000 &&
                         five->ip.addr_data32[3] == 0x00000000 &&
@@ -3811,11 +3811,11 @@ int AddressTestCutIPv403(void)
     if (c == NULL)
         goto error;
 
-    if (a->ip.addr_data32[0] != 0x00020201 && a->ip2.addr_data32[0] != 0xff020201)
+    if (a->ip.addr_data32[0] != ntohl(16908800) || a->ip2.addr_data32[0] != ntohl(16909055))
         goto error;
-    if (b->ip.addr_data32[0] != 0x00030201 && b->ip2.addr_data32[0] != 0x04030201)
+    if (b->ip.addr_data32[0] != ntohl(16909056) || b->ip2.addr_data32[0] != ntohl(16909060))
         goto error;
-    if (c->ip.addr_data32[0] != 0x05030201 && c->ip2.addr_data32[0] != 0xff030201)
+    if (c->ip.addr_data32[0] != ntohl(16909061) || c->ip2.addr_data32[0] != ntohl(16909311))
         goto error;
 
     DetectAddressFree(a);
@@ -3842,12 +3842,13 @@ int AddressTestCutIPv404(void)
     if (c == NULL)
         goto error;
 
-    if (a->ip.addr_data32[0] != 0x00030201 && a->ip2.addr_data32[0] != 0x02030201)
+    if (a->ip.addr_data32[0] != ntohl(16909056) || a->ip2.addr_data32[0] != ntohl(16909058))
         goto error;
-    if (b->ip.addr_data32[0] != 0x03030201 && b->ip2.addr_data32[0] != 0x04030201)
+    if (b->ip.addr_data32[0] != ntohl(16909059) || b->ip2.addr_data32[0] != ntohl(16909061))
         goto error;
-    if (c->ip.addr_data32[0] != 0x05030201 && c->ip2.addr_data32[0] != 0x06030201)
+    if (c->ip.addr_data32[0] != ntohl(16909062) || c->ip2.addr_data32[0] != ntohl(16909062))
         goto error;
+
 
     DetectAddressFree(a);
     DetectAddressFree(b);
@@ -3873,11 +3874,11 @@ int AddressTestCutIPv405(void)
     if (c == NULL)
         goto error;
 
-    if (a->ip.addr_data32[0] != 0x00030201 && a->ip2.addr_data32[0] != 0x02030201)
+    if (a->ip.addr_data32[0] != ntohl(16909056) || a->ip2.addr_data32[0] != ntohl(16909058))
         goto error;
-    if (b->ip.addr_data32[0] != 0x03030201 && b->ip2.addr_data32[0] != 0x06030201)
+    if (b->ip.addr_data32[0] != ntohl(16909059) || b->ip2.addr_data32[0] != ntohl(16909062))
         goto error;
-    if (c->ip.addr_data32[0] != 0x07030201 && c->ip2.addr_data32[0] != 0x09030201)
+    if (c->ip.addr_data32[0] != ntohl(16909063) || c->ip2.addr_data32[0] != ntohl(16909065))
         goto error;
 
     DetectAddressFree(a);
@@ -3904,11 +3905,11 @@ int AddressTestCutIPv406(void)
     if (c == NULL)
         goto error;
 
-    if (a->ip.addr_data32[0] != 0x00030201 && a->ip2.addr_data32[0] != 0x02030201)
+    if (a->ip.addr_data32[0] != ntohl(16909056) || a->ip2.addr_data32[0] != ntohl(16909058))
         goto error;
-    if (b->ip.addr_data32[0] != 0x03030201 && b->ip2.addr_data32[0] != 0x06030201)
+    if (b->ip.addr_data32[0] != ntohl(16909059) || b->ip2.addr_data32[0] != ntohl(16909062))
         goto error;
-    if (c->ip.addr_data32[0] != 0x07030201 && c->ip2.addr_data32[0] != 0x09030201)
+    if (c->ip.addr_data32[0] != ntohl(16909063) || c->ip2.addr_data32[0] != ntohl(16909065))
         goto error;
 
     DetectAddressFree(a);
@@ -3935,9 +3936,9 @@ int AddressTestCutIPv407(void)
     if (c != NULL)
         goto error;
 
-    if (a->ip.addr_data32[0] != 0x00030201 && a->ip2.addr_data32[0] != 0x06030201)
+    if (a->ip.addr_data32[0] != ntohl(16909056) || a->ip2.addr_data32[0] != ntohl(16909062))
         goto error;
-    if (b->ip.addr_data32[0] != 0x07030201 && b->ip2.addr_data32[0] != 0x09030201)
+    if (b->ip.addr_data32[0] != ntohl(16909063) || b->ip2.addr_data32[0] != ntohl(16909065))
         goto error;
 
     DetectAddressFree(a);
@@ -3964,9 +3965,9 @@ int AddressTestCutIPv408(void)
     if (c != NULL)
         goto error;
 
-    if (a->ip.addr_data32[0] != 0x00030201 && a->ip2.addr_data32[0] != 0x02030201)
+    if (a->ip.addr_data32[0] != ntohl(16909056) || a->ip2.addr_data32[0] != ntohl(16909058))
         goto error;
-    if (b->ip.addr_data32[0] != 0x03030201 && b->ip2.addr_data32[0] != 0x09030201)
+    if (b->ip.addr_data32[0] != ntohl(16909059) || b->ip2.addr_data32[0] != ntohl(16909065))
         goto error;
 
     DetectAddressFree(a);
@@ -3993,9 +3994,9 @@ int AddressTestCutIPv409(void)
     if (c != NULL)
         goto error;
 
-    if (a->ip.addr_data32[0] != 0x00030201 && a->ip2.addr_data32[0] != 0x06030201)
+    if (a->ip.addr_data32[0] != ntohl(16909056) || a->ip2.addr_data32[0] != ntohl(16909062))
         goto error;
-    if (b->ip.addr_data32[0] != 0x07030201 && b->ip2.addr_data32[0] != 0x09030201)
+    if (b->ip.addr_data32[0] != ntohl(16909063) || b->ip2.addr_data32[0] != ntohl(16909065))
         goto error;
 
     DetectAddressFree(a);
@@ -4022,9 +4023,9 @@ int AddressTestCutIPv410(void)
     if (c != NULL)
         goto error;
 
-    if (a->ip.addr_data32[0] != 0x00030201 && a->ip2.addr_data32[0] != 0x02030201)
+    if (a->ip.addr_data32[0] != ntohl(16909056) || a->ip2.addr_data32[0] != ntohl(16909058))
         goto error;
-    if (b->ip.addr_data32[0] != 0x03030201 && b->ip2.addr_data32[0] != 0x09030201)
+    if (b->ip.addr_data32[0] != ntohl(16909059) || b->ip2.addr_data32[0] != ntohl(16909065))
         goto error;
 
     DetectAddressFree(a);
