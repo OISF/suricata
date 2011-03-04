@@ -103,7 +103,9 @@ static int DoInspectDcePayload(DetectEngineCtx *de_ctx,
                        cd->id, stub_len);
 
             /* rule parsers should take care of this */
+#ifdef DEBUG
             BUG_ON(cd->depth != 0 && cd->depth <= cd->offset);
+#endif
 
             /* search for our pattern, checking the matches recursively.
              * if we match we look for the next SigMatch as well */
@@ -197,7 +199,9 @@ static int DoInspectDcePayload(DetectEngineCtx *de_ctx,
                 uint32_t sstub_len = depth - offset;
                 uint32_t match_offset = 0;
                 SCLogDebug("sstub_len %"PRIu32, sstub_len);
+#ifdef DEBUG
                 BUG_ON(sstub_len > stub_len);
+#endif
 
                 /* do the actual search */
                 if (cd->flags & DETECT_CONTENT_NOCASE) {
@@ -235,7 +239,13 @@ static int DoInspectDcePayload(DetectEngineCtx *de_ctx,
                         goto match;
                     }
 
-                    BUG_ON(sm->next == NULL);
+                    /* bail out if we have no next match. Technically this is an
+                     * error, as the current cd has the DETECT_CONTENT_RELATIVE_NEXT
+                     * flag set. */
+                    if (sm->next == NULL) {
+                        SCReturnInt(0);
+                    }
+
                     SCLogDebug("content %"PRIu32, cd->id);
 
                     /* see if the next payload keywords match. If not, we will
@@ -378,7 +388,10 @@ static int DoInspectDcePayload(DetectEngineCtx *de_ctx,
         /* we should never get here, but bail out just in case */
         default:
         {
+            SCLogDebug("sm->type %u", sm->type);
+#ifdef DEBUG
             BUG_ON(1);
+#endif
         }
     }
 

@@ -105,7 +105,9 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
             goto match;
 
         /* rule parsers should take care of this */
+#ifdef DEBUG
         BUG_ON(ud->depth != 0 && ud->depth <= ud->offset);
+#endif
 
         /* search for our pattern, checking the matches recursively.
          * if we match we look for the next SigMatch as well */
@@ -190,7 +192,9 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
             uint32_t spayload_len = depth - offset;
             uint32_t match_offset = 0;
             SCLogDebug("spayload_len %"PRIu32, spayload_len);
+#ifdef DEBUG
             BUG_ON(spayload_len > payload_len);
+#endif
 
             //PrintRawDataFp(stdout,ud->content,ud->content_len);
 
@@ -354,7 +358,10 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
         SCReturnInt(0);
     } else {
         /* we should never get here, but bail out just in case */
+        SCLogDebug("sm->type %u", sm->type);
+#ifdef DEBUG
         BUG_ON(1);
+#endif
     }
     SCReturnInt(0);
 
