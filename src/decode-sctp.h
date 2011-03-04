@@ -24,11 +24,12 @@
 #ifndef __DECODE_SCTP_H__
 #define __DECODE_SCTP_H__
 
-#define SCTP_HEADER_LEN                       24
+/** size of the packet header without any chunk headers */
+#define SCTP_HEADER_LEN                       12
 
 /* XXX RAW* needs to be really 'raw', so no ntohs there */
-#define SCTP_GET_RAW_SRC_PORT(sctph)           ntohs((sctph)->sh_sport)
-#define SCTP_GET_RAW_DST_PORT(sctph)           ntohs((sctph)->sh_dport)
+#define SCTP_GET_RAW_SRC_PORT(sctph)          ntohs((sctph)->sh_sport)
+#define SCTP_GET_RAW_DST_PORT(sctph)          ntohs((sctph)->sh_dport)
 
 #define SCTP_GET_SRC_PORT(p)                  SCTP_GET_RAW_SRC_PORT(p->sctph)
 #define SCTP_GET_DST_PORT(p)                  SCTP_GET_RAW_DST_PORT(p->sctph)
