@@ -79,10 +79,8 @@
 
 /** If message is informational */
 /** macro for icmpv6 "id" access */
-/* #define ICMPV6_GET_ID(p)        (p)->icmpv6h->icmpv6b.icmpv6i.id */
-#define ICMPV6_GET_ID(p)        (p)->icmpv6vars.id
+#define ICMPV6_GET_ID(p)        (ntohs((p)->icmpv6vars.id))
 /** macro for icmpv6 "seq" access */
-/* #define ICMPV6_GET_SEQ(p)       (p)->icmpv6h->icmpv6b.icmpv6i.seq */
 #define ICMPV6_GET_SEQ(p)       (ntohs((p)->icmpv6vars.seq))
 
 /** If message is Error */
