@@ -1995,7 +1995,6 @@ static int SCPerfTestCounterValues11()
 
     int result = 1;
     uint16_t id1, id2, id3, id4;
-    uint8_t *u8p;
 
     memset(&tv, 0, sizeof(ThreadVars));
 
@@ -2017,29 +2016,17 @@ static int SCPerfTestCounterValues11()
 
     SCPerfUpdateCounterArray(pca, &tv.sc_perf_pctx, 0);
 
-    u8p = (uint8_t *)tv.sc_perf_pctx.head->value->cvalue;
-    result &= (1 == *u8p);
-    result &= (0 == *(u8p + 1));
-    result &= (0 == *(u8p + 2));
-    result &= (0 == *(u8p + 3));
+    uint64_t *u64p = (uint64_t *)tv.sc_perf_pctx.head->value->cvalue;
+    result &= (1 == *u64p);
 
-    u8p = (uint8_t *)tv.sc_perf_pctx.head->next->value->cvalue;
-    result &= (0 == *u8p);
-    result &= (1 == *(u8p + 1));
-    result &= (0 == *(u8p + 2));
-    result &= (0 == *(u8p + 3));
+    u64p = (uint64_t *)tv.sc_perf_pctx.head->next->value->cvalue;
+    result &= (256 == *u64p);
 
-    u8p = (uint8_t *)tv.sc_perf_pctx.head->next->next->value->cvalue;
-    result &= (1 == *u8p);
-    result &= (1 == *(u8p + 1));
-    result &= (0 == *(u8p + 2));
-    result &= (0 == *(u8p + 3));
+    u64p = (uint64_t *)tv.sc_perf_pctx.head->next->next->value->cvalue;
+    result &= (257 == *u64p);
 
-    u8p = (uint8_t *)tv.sc_perf_pctx.head->next->next->next->value->cvalue;
-    result &= (16 == *u8p);
-    result &= (1 == *(u8p + 1));
-    result &= (1 == *(u8p + 2));
-    result &= (1 == *(u8p + 3));
+    u64p = (uint64_t *)tv.sc_perf_pctx.head->next->next->next->value->cvalue;
+    result &= (16843024 == *u64p);
 
     SCPerfReleasePerfCounterS(tv.sc_perf_pctx.head);
     SCPerfReleasePCA(pca);
