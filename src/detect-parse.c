@@ -1486,14 +1486,15 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
     if (sig == NULL)
         goto error;
 
-    /* XXX one day we will support this the way Snort does,
-     * through classifications.config */
-    sig->prio = 3;
     /* default gid to 1 */
     sig->gid = 1;
 
     if (SigParse(de_ctx, sig, sigstr, SIG_DIREC_NORMAL) < 0)
         goto error;
+
+    /* signature priority hasn't been overwritten.  Using default priority */
+    if (sig->prio == -1)
+        sig->prio = 3;
 
     /* assign an unique id in this de_ctx */
     sig->num = de_ctx->signum;
@@ -1558,12 +1559,15 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
         /* Allocate a copy of this signature with the addresses siwtched
            This copy will be installed at sig->next */
         sig->next = SigAlloc();
-        sig->next->prio = 3;
+        sig->next->prio = sig->prio;
+        sig->next->gid = sig->gid;
+
         if (sig->next == NULL)
             goto error;
 
         if (SigParse(de_ctx, sig->next, sigstr, SIG_DIREC_SWITCHED) < 0)
             goto error;
+
         /* assign an unique id in this de_ctx */
         sig->next->num = de_ctx->signum;
         de_ctx->signum++;
