@@ -41,7 +41,7 @@ dkms status
 
 #Now lets go through the steps to build a PF_RING aware driver.
 mkdir /usr/src/e1000e-pf_ring-1.0.15
-cp -Rf /usr/src/PF_RING_CURRENT_SVN/drivers/intel/e1000e-1.0.15/src/* /usr/src/e1000e-pf_ring-1.0.15/
+cp -Rf /usr/src/PF_RING_CURRENT_SVN/drivers/intel/e1000e/old/e1000e-1.0.15/src/* /usr/src/e1000e-pf_ring-1.0.15/
 
 #We copy this over so that DKMS can find it for driver rebuilds
 cp -f /usr/src/PF_RING_CURRENT_SVN/kernel/linux/pf_ring.h /usr/src/e1000e-pf_ring-1.0.15/
@@ -77,12 +77,14 @@ make &&  make install
 
 #Build and install the PF_RING enabled libpcap
 cd /usr/src/PF_RING_CURRENT_SVN/userland/libpcap-1.0.0-ring
+./configure
 sed -i -e 's/\.\.\/lib\/libpfring\.a/\/opt\/PF_RING\/lib\/libpfring\.a/' Makefile
 sed -i -e 's/\.\.\/lib\/libpfring\.a/\/opt\/PF_RING\/lib\/libpfring\.a/' Makefile.in
 ./configure --prefix=/opt/PF_RING && make && make install
 
 #Build and install tcpdump using the PF_RING enabled version of libpcap
 cd /usr/src/PF_RING_CURRENT_SVN/userland/tcpdump-4.0.0
+./configure
 sed -i -e 's/\.\.\/lib\/libpfring\.a/\/opt\/PF_RING\/lib\/libpfring\.a/' Makefile
 sed -i -e 's/\.\.\/lib\/libpfring\.a/\/opt\/PF_RING\/lib\/libpfring\.a/' Makefile.in
 sed -i -e 's/-I \.\.\/libpcap-1\.0\.0-ring/-I \/opt\/PF_RING\/include/' Makefile
