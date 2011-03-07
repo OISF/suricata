@@ -492,7 +492,9 @@ TmEcode VerdictNFQThreadDeinit(ThreadVars *tv, void *data) {
     NFQQueueVars *nq = NFQGetQueue(ntv->nfq_index);
 
     SCLogDebug("starting... will close queuenum %" PRIu32 "", nq->queue_num);
-    nfq_destroy_queue(nq->qh);
+    if (nq->qh) {
+        nfq_destroy_queue(nq->qh);
+    }
 
     return TM_ECODE_OK;
 }
