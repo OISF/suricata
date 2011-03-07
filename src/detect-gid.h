@@ -31,20 +31,6 @@
 #include "decode-tcp.h"
 
 /**
- * \struct DetectGidData_
- * DetectGidData_ is used to store gid: input value
- */
-
-/**
- * \typedef DetectGidData
- * A typedef for DetectGidData_
- */
-
-typedef struct DetectGidData_ {
-    uint32_t gid;  /**< Rule gid */
-} DetectGidData;
-
-/**
  * Registration function for gid: keyword
  */
 
