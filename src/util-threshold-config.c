@@ -195,54 +195,54 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
     if (de_ctx == NULL)
         return -1;
 
-    ret = pcre_exec(regex, regex_study, rawstr, strlen(rawstr), 0, 0, ov, 30);
+    ret = pcre_exec(regex, regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
 
     if (ret < 8) {
         /* Its not threshold/event_filter, so try rate_filter regexp */
-        ret = pcre_exec(rate_regex, rate_regex_study, rawstr, strlen(rawstr), 0, 0, ov, 30);
+        ret = pcre_exec(rate_regex, rate_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
         if (ret < 9) {
             SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
             goto error;
         } else {
         /* Start rate_filter parsing */
             /* retrieve the classtype name */
-            ret = pcre_get_substring((char *)rawstr, ov, 30, 2, &th_gid);
+            ret = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, &th_gid);
             if (ret < 0) {
                 SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
                 goto error;
             }
 
-            ret = pcre_get_substring((char *)rawstr, ov, 30, 3, &th_sid);
+            ret = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 3, &th_sid);
             if (ret < 0) {
                 SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
                 goto error;
             }
 
-            ret = pcre_get_substring((char *)rawstr, ov, 30, 4, &th_track);
+            ret = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 4, &th_track);
             if (ret < 0) {
                 SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
                 goto error;
             }
 
-            ret = pcre_get_substring((char *)rawstr, ov, 30, 5, &th_count);
+            ret = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 5, &th_count);
             if (ret < 0) {
                 SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
                 goto error;
             }
 
-            ret = pcre_get_substring((char *)rawstr, ov, 30, 6, &th_seconds);
+            ret = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 6, &th_seconds);
             if (ret < 0) {
                 SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
                 goto error;
             }
 
-            ret = pcre_get_substring((char *)rawstr, ov, 30, 7, &th_new_action);
+            ret = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 7, &th_new_action);
             if (ret < 0) {
                 SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
                 goto error;
             }
 
-            ret = pcre_get_substring((char *)rawstr, ov, 30, 8, &th_timeout);
+            ret = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 8, &th_timeout);
             if (ret < 0) {
                 SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
                 goto error;
