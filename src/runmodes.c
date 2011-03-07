@@ -3540,6 +3540,7 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx, char *iface) {
 }
 
 int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx, char *iface) {
+#ifdef HAVE_PFRING
     SCEnter();
     char tname[12];
     char qname[12];
@@ -3676,6 +3677,9 @@ int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx, char *iface) {
     }
 
     return 0;
+#else
+    return -1;
+#endif
 }
 
 int RunModeErfFileAuto(DetectEngineCtx *de_ctx, char *file)

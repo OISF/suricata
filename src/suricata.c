@@ -385,7 +385,9 @@ int main(int argc, char **argv)
     int opt;
     char *pcap_file = NULL;
     char pcap_dev[128];
+#ifdef HAVE_PFRING
     char *pfring_dev = NULL;
+#endif
     char *sig_file = NULL;
     char *nfq_id = NULL;
     char *conf_filename = NULL;
@@ -1185,6 +1187,7 @@ int main(int argc, char **argv)
         //RunModeFilePcapAutoFp(de_ctx, pcap_file);
         //RunModeFilePcapAuto2(de_ctx, pcap_file);
     }
+#ifdef HAVE_PFRING
     else if (run_mode == MODE_PFRING) {
         PfringLoadConfig();
         //RunModeIdsPfring3(de_ctx, pfring_dev);
@@ -1197,6 +1200,7 @@ int main(int argc, char **argv)
             RunModeIdsPfringAutoFp(de_ctx, pfring_dev);
         }
     }
+#endif /* HAVE_PFRING */
     else if (run_mode == MODE_NFQ) {
         //RunModeIpsNFQ(de_ctx, nfq_id);
         RunModeIpsNFQAuto(de_ctx, nfq_id);
