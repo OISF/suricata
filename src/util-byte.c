@@ -123,13 +123,13 @@ int ByteExtractString(uint64_t *res, int base, uint16_t len, const char *str)
     if (errno == ERANGE) {
         SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range");
         return -1;
-    } else if (endptr == str) {
-        SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "Invalid numeric value");
-        return -1;
-    /* If there is no numeric value in the given string then strtoull(), makes
-       endptr equals to ptr and return 0 as result */
+        /* If there is no numeric value in the given string then strtoull(), makes
+        endptr equals to ptr and return 0 as result */
     } else if (endptr == ptr && *res == 0) {
         SCLogDebug("No numeric value");
+        return -1;
+    } else if (endptr == ptr) {
+        SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "Invalid numeric value");
         return -1;
     }
     /* This will interfere with some rules that do not know the length
