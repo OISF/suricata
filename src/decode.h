@@ -771,6 +771,14 @@ void AddressDebugPrint(Address *);
 #define IPPROTO_DCCP 33
 #endif
 
+/* older libcs don't contain a def for IPPROTO_SCTP
+ * inside of <netinet/in.h>
+ * if it isn't defined let's define it here.
+ */
+#ifndef IPPROTO_SCTP
+#define IPPROTO_SCTP 132
+#endif
+
 /* pcap provides this, but we don't want to depend on libpcap */
 #ifndef DLT_EN10MB
 #define DLT_EN10MB 1
