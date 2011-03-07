@@ -907,7 +907,8 @@ static void HTPConfigure(void)
                     }
 
                 }
-            } else if (strcasecmp("request-body-limit", p->name) == 0) {
+            } else if (strcasecmp("request-body-limit", p->name) == 0 ||
+                       strcasecmp("request_body_limit", p->name) == 0) {
                 /* limit */
                 TAILQ_FOREACH(pval, &p->head, next) {
                     SCLogDebug("LIBHTP default: %s=%s",
@@ -923,7 +924,7 @@ static void HTPConfigure(void)
                     }
                     else {
                         SCLogWarning(SC_ERR_UNKNOWN_VALUE,
-                                "LIBHTP malformed request-body-limit "
+                                "LIBHTP malformed request_body_limit "
                                 "\"%s\", using default %u", pval->val,
                                 HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT);
                         cfglist.request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
