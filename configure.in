@@ -795,7 +795,7 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
         if test "$with_cuda_includes" != "no"; then
             CPPFLAGS="${CPPFLAGS} -I${with_cuda_includes}"
         else
-            CPPFLAGS="${CPPFLAGS} -I/usr/include/cuda"
+            CPPFLAGS="${CPPFLAGS} -I/usr/local/cuda/include"
         fi
 
         if test "$with_cuda_libraries" != "no"; then
@@ -819,24 +819,34 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
             exit 1
         fi
 
-        AC_PATH_PROG([NVCC], [nvcc], , [$PATH:$NVCC_DIR])
-        if test "$NVCC" = "no"; then
+        AC_PATH_PROG([NVCC], [nvcc], no, [$PATH:$NVCC_DIR])
+        if test "x$NVCC" = "xno"; then
             echo
             echo "   ERROR! CUDA nvcc compiler not found: use --with-cuda-nvcc=DIR"
             echo
             exit 1
         fi
 
-        AC_PATH_PROG([PYTHON], [python], no)
-        if test "$PYTHON" = "no"; then
+        AC_MSG_CHECKING(for nvcc version)
+        NVCCVER=`$NVCC --version | grep "release" | sed 's/.*release \(@<:@0-9@:>@\)\.\(@<:@0-9@:>@\).*/\1\2/'`
+        AC_MSG_RESULT($NVCCVER)
+        if test "$NVCCVER" -lt 31; then
             echo
-            echo "   ERROR! Compiling CUDA source requires python interpreter"
+            echo "   Warning! Your CUDA nvcc version might be outdated."
+            echo "   If compilation fails try the latest CUDA toolkit from"
+            echo "   www.nvidia.com/object/cuda_develop.html"
+            echo
+        fi
+
+        AM_PATH_PYTHON(,, no)
+        if test "x$PYTHON" = "xno"; then
+            echo
+            echo "   ERROR! Compiling CUDA kernels requires python."
             echo
             exit 1
         fi
     ])
-    AM_CONDITIONAL([BUILD_CUDA], [test "${NVCC}" != ""])
-
+    AM_CONDITIONAL([BUILD_CUDA], [test "x$enable_cuda" = "xyes"])
 
 # Check for libcap-ng
 

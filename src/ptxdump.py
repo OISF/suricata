@@ -29,9 +29,9 @@ out_h = sys.argv[1] + ".h"
 out = open(out_h, 'w')
 
 out.writelines(header)
-out.writelines("#ifdef __SC_CUDA_SUPPORT__ \n")
-out.writelines("#ifndef __ptxdump_h__ \n")
-out.writelines("#define __ptxdump_h__ \n\n")
+out.writelines("#ifdef __SC_CUDA_SUPPORT__\n")
+out.writelines("#ifndef __ptxdump_h__\n")
+out.writelines("#define __ptxdump_h__\n\n")
 
 # write char arrays
 for file in sys.argv[2:]:
@@ -49,7 +49,7 @@ for file in sys.argv[2:]:
         if newlinecnt == 16:
             newlinecnt = 0
             out.write("\n")
-    out.write("0x00\n};\n")
+    out.write("0x00\n};\n\n")
 
     print(sys.argv[0] + ": CUmodule " + varname + " packed successfully")
 
@@ -62,8 +62,8 @@ out.writelines('\tSCLogError(SC_ERR_FATAL, "Error in SCCudaPtxDumpGetModule, mod
 out.writelines("\texit(EXIT_FAILURE);\n")
 out.writelines("};\n")
 
-out.writelines("#endif // __ptxdump_h__ \n")
-out.writelines("#endif // __SC_CUDA_SUPPORT__\n")
+out.writelines("#endif /* __ptxdump_h__ */\n")
+out.writelines("#endif /* __SC_CUDA_SUPPORT__ */\n")
 
 print(sys.argv[0] + ": " + out_h + " written successfully")
 

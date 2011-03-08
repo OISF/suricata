@@ -276,27 +276,43 @@ suricata_SOURCES += cuda-ptxdump.h
 suricata_CUDA_KERNELS = \
 util-mpm-b2g-cuda-kernel.cu
 
-SMVERSIONS = 10 11 12 13 20
 NVCCFLAGS=-O2
 
-# FIXME
-PTXS =
-PTXS += $(suricata_CUDA_KERNELS:.cu=_sm_10.ptx)
-PTXS += $(suricata_CUDA_KERNELS:.cu=_sm_11.ptx)
-PTXS += $(suricata_CUDA_KERNELS:.cu=_sm_12.ptx)
-PTXS += $(suricata_CUDA_KERNELS:.cu=_sm_13.ptx)
-PTXS += $(suricata_CUDA_KERNELS:.cu=_sm_20.ptx)
+SUFFIXES = \
+.ptx_sm_10 \
+.ptx_sm_11 \
+.ptx_sm_12 \
+.ptx_sm_13 \
+.ptx_sm_20 \
+.ptx_sm_21
 
-# template to build for different compute capabilities
-define BUILDTEMPLATE
-# PTXS += $(patsubst %.cu, %_sm_$(1).ptx, $(suricata_CUDA_KERNELS))
-%_sm_$(1).ptx: %.cu
-	$(NVCC) $(NVCCFLAGS) -o $$@ -arch=sm_$(1) -ptx $$<
-endef
-$(foreach SMVER,$(SMVERSIONS),$(eval $(call BUILDTEMPLATE,$(SMVER))))
+PTXS =  $(suricata_CUDA_KERNELS:.cu=.ptx_sm_10)
+PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_11)
+PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_12)
+PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_13)
+PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_20)
+PTXS += $(suricata_CUDA_KERNELS:.cu=.ptx_sm_21)
+
+.cu.ptx_sm_10:
+	$(NVCC) $(NVCCFLAGS) -o $@ -arch=sm_10 -ptx $<
+
+.cu.ptx_sm_11:
+	$(NVCC) $(NVCCFLAGS) -o $@ -arch=sm_11 -ptx $<
+
+.cu.ptx_sm_12:
+	$(NVCC) $(NVCCFLAGS) -o $@ -arch=sm_12 -ptx $<
+
+.cu.ptx_sm_13:
+	$(NVCC) $(NVCCFLAGS) -o $@ -arch=sm_13 -ptx $<
+
+.cu.ptx_sm_20:
+	$(NVCC) $(NVCCFLAGS) -o $@ -arch=sm_20 -ptx $<
+
+.cu.ptx_sm_21:
+	$(NVCC) $(NVCCFLAGS) -o $@ -arch=sm_21 -ptx $<
 
 cuda-ptxdump.h: $(PTXS)
-	python ptxdump.py cuda-ptxdump $(PTXS)
+	$(PYTHON) ptxdump.py cuda-ptxdump $(PTXS)
 
 CLEANFILES = $(PTXS) cuda-ptxdump.h
 endif
