@@ -108,6 +108,7 @@ enum {
     GRE_VERSION0_RECUR,             /**< gre v0 recursion control */
     GRE_VERSION0_FLAGS,             /**< gre v0 flags */
     GRE_VERSION0_HDR_TOO_BIG,       /**< gre v0 header bigger than maximum size */
+    GRE_VERSION0_MALFORMED_SRE_HDR, /**< gre v0 malformed source route entry header */
     GRE_VERSION1_CHKSUM,            /**< gre v1 checksum */
     GRE_VERSION1_ROUTE,             /**< gre v1 routing */
     GRE_VERSION1_SSR,               /**< gre v1 strict source route */
