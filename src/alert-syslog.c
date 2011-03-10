@@ -150,7 +150,7 @@ OutputCtx *AlertSyslogInitCtx(ConfNode *conf)
     /* if null we just pass that to openlog, which will then
      * figure it out by itself. */
 
-    openlog(ident, LOG_NDELAY, facility);
+    openlog(ident, LOG_PID|LOG_NDELAY, facility);
 
     OutputCtx *output_ctx = SCMalloc(sizeof(OutputCtx));
     if (output_ctx == NULL) {
