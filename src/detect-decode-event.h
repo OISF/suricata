@@ -97,6 +97,7 @@ struct DetectDecodeEvents_ {
     { "gre.version0_recur", GRE_VERSION0_RECUR, },
     { "gre.version0_flags", GRE_VERSION0_FLAGS, },
     { "gre.version0_hdr_too_big", GRE_VERSION0_HDR_TOO_BIG, },
+    { "gre.version0_malformed_sre_hdr", GRE_VERSION0_MALFORMED_SRE_HDR, },
     { "gre.version1_chksum", GRE_VERSION1_CHKSUM, },
     { "gre.version1_route", GRE_VERSION1_ROUTE, },
     { "gre.version1_ssr", GRE_VERSION1_SSR, },
