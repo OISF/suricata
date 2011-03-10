@@ -146,7 +146,11 @@ OutputCtx *AlertSyslogInitCtx(ConfNode *conf)
         }
     }
 
-    openlog(NULL, LOG_NDELAY, facility);
+    const char *ident = ConfNodeLookupChildValue(conf, "identity");
+    /* if null we just pass that to openlog, which will then
+     * figure it out by itself. */
+
+    openlog(ident, LOG_NDELAY, facility);
 
     OutputCtx *output_ctx = SCMalloc(sizeof(OutputCtx));
     if (output_ctx == NULL) {

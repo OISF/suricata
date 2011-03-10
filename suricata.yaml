@@ -99,6 +99,9 @@ outputs:
   # a line based alerts log similar to fast.log into syslog
   - syslog:
       enabled: no
+      # reported identity to syslog. If ommited the program name (usually
+      # suricata) will be used.
+      #identity: "suricata"
       facility: local5
       #level: Info ## possible levels: Emergency, Alert, Critical,
                    ## Error, Warning, Notice, Info, Debug
