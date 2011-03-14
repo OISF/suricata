@@ -3471,6 +3471,13 @@ void StreamTcpExitPrintStats(ThreadVars *tv, void *data)
  *
  *  \param   ssn    TCP session to which the given packet belongs
  *  \param   p      Packet which has to be checked for its validity
+ *
+ *  \retval 0 unacceptable RST
+ *  \retval 1 acceptable RST
+ *
+ *  WebSense sends RST packets that are:
+ *  - RST flag, win 0, ack 0, seq = nextseq
+ *
  */
 
 static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
@@ -3479,8 +3486,9 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
     uint8_t os_policy;
 
     if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
-        if (!StreamTcpValidateTimestamp(ssn, p))
-            return -1;
+        if (!StreamTcpValidateTimestamp(ssn, p)) {
+            SCReturnInt(0);
+        }
     }
 
     /* Set up the os_policy to be used in validating the RST packets based on
@@ -3491,10 +3499,10 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
 
         os_policy = ssn->server.os_policy;
 
-        if (StreamTcpValidateAck(&ssn->server, p) == -1) {
+        if (TCP_GET_ACK(p) && StreamTcpValidateAck(&ssn->server, p) == -1) {
             SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
             StreamTcpSetEvent(p, STREAM_RST_INVALID_ACK);
-            SCReturnInt(-1);
+            SCReturnInt(0);
         }
 
     } else {
@@ -3503,10 +3511,10 @@ static int StreamTcpValidateRst(TcpSession *ssn, Packet *p)
 
         os_policy = ssn->client.os_policy;
 
-        if (StreamTcpValidateAck(&ssn->client, p) == -1) {
+        if (TCP_GET_ACK(p) && StreamTcpValidateAck(&ssn->client, p) == -1) {
             SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
             StreamTcpSetEvent(p, STREAM_RST_INVALID_ACK);
-            SCReturnInt(-1);
+            SCReturnInt(0);
         }
     }
 
