@@ -1933,6 +1933,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
                     ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
                     StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
+                    StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_SEQ(p));
 
                     if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
                         StreamTcpHandleTimestamp(ssn, p);
@@ -1943,7 +1944,10 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
                     SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                                "%" PRIu32 "", ssn, ssn->client.next_seq,
                                ssn->server.last_ack);
-                    StreamTcpSessionPktFree(p);
+
+                    /* don't return packets to pools here just yet, the pseudo
+                     * packet will take care, otherwise the normal session
+                     * cleanup. */
                 } else {
                     StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
                     SCLogDebug("ssn %p: Reset received and state changed to "
@@ -1957,6 +1961,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
                     ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
                     StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
+                    StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_SEQ(p));
 
                     if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
                         StreamTcpHandleTimestamp(ssn, p);
@@ -1968,7 +1973,9 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
                                "%" PRIu32 "", ssn, ssn->server.next_seq,
                                ssn->client.last_ack);
 
-                    StreamTcpSessionPktFree(p);
+                    /* don't return packets to pools here just yet, the pseudo
+                     * packet will take care, otherwise the normal session
+                     * cleanup. */
                 }
             } else {
                 /* invalid RST, error is given in StreamTcpValidateRst() */
@@ -3295,6 +3302,8 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                         &ssn->server, np, NULL);
             }
 
+            StreamTcpSessionPktFree(np);
+
             /* enqueue this packet so we inspect it in detect etc */
             PacketEnqueue(pq, np);
         }
@@ -4169,14 +4178,8 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(Packet *p, TcpSession *ssn, Pack
     }
 
     /* no need for a pseudo packet if there is nothing left to reassemble */
-    if (PKT_IS_TOSERVER(p)) {
-        if (ssn->server.seg_list == NULL) {
-            SCReturn;
-        }
-    } else if (PKT_IS_TOCLIENT(p)) {
-        if (ssn->client.seg_list == NULL) {
-            SCReturn;
-        }
+    if (ssn->server.seg_list == NULL && ssn->client.seg_list == NULL) {
+        SCReturn;
     }
 
     Packet *np = StreamTcpPseudoSetup(p, GET_PKT_DATA(p), GET_PKT_LEN(p));
