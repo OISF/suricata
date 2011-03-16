@@ -361,7 +361,8 @@ void usage(const char *progname)
     printf("\t--pcap-buffer-size           : size of the pcap buffer value from 0 - %i\n",INT_MAX);
 #endif /* HAVE_SET_PCAP_BUFF */
 #ifdef HAVE_PFRING
-    printf("\t--pfring-int <dev>           : run in pfring mode\n");
+    printf("\t--pfring                     : run in pfring mode, use interface from suricata.yaml\n");
+    printf("\t--pfring-int <dev>           : run in pfring mode, use interface <dev>\n");
     printf("\t--pfring-cluster-id <id>     : pfring cluster id \n");
     printf("\t--pfring-cluster-type <type> : pfring cluster type for PF_RING 4.1.2 and later cluster_round_robin|cluster_flow\n");
 #endif /* HAVE_PFRING */
@@ -459,9 +460,10 @@ int main(int argc, char **argv)
 
     struct option long_opts[] = {
         {"dump-config", 0, &dump_config, 1},
-        {"pfring-int",  required_argument, 0, 0},
-        {"pfring-cluster-id",  required_argument, 0, 0},
-        {"pfring-cluster-type",  required_argument, 0, 0},
+        {"pfring", optional_argument, 0, 0},
+        {"pfring-int", required_argument, 0, 0},
+        {"pfring-cluster-id", required_argument, 0, 0},
+        {"pfring-cluster-type", required_argument, 0, 0},
         {"pcap-buffer-size", required_argument, 0, 0},
         {"unittest-filter", required_argument, 0, 'U'},
         {"list-unittests", 0, &list_unittests, 1},
@@ -490,15 +492,19 @@ int main(int argc, char **argv)
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {
         case 0:
-            if(strcmp((long_opts[option_index]).name , "pfring-int") == 0){
+            if (strcmp((long_opts[option_index]).name , "pfring") == 0 ||
+                strcmp((long_opts[option_index]).name , "pfring-int") == 0) {
 #ifdef HAVE_PFRING
                 run_mode = MODE_PFRING;
-                if (ConfSet("pfring.interface", optarg, 0) != 1) {
-                    fprintf(stderr, "ERROR: Failed to set pfring interface.\n");
-                    exit(EXIT_FAILURE);
+                if (optarg != NULL) {
+                    if (ConfSet("pfring.interface", optarg, 0) != 1) {
+                        fprintf(stderr, "ERROR: Failed to set pfring interface.\n");
+                        exit(EXIT_FAILURE);
+                    }
                 }
 #else
-                SCLogError(SC_ERR_NO_PF_RING,"PF_RING not enabled. Make sure to pass --enable-pfring to configure when building.");
+                SCLogError(SC_ERR_NO_PF_RING,"PF_RING not enabled. Make sure "
+                        "to pass --enable-pfring to configure when building.");
                 exit(EXIT_FAILURE);
 #endif /* HAVE_PFRING */
             }
@@ -509,7 +515,8 @@ int main(int argc, char **argv)
                     exit(EXIT_FAILURE);
                 }
 #else
-                SCLogError(SC_ERR_NO_PF_RING,"PF_RING not enabled. Make sure to pass --enable-pfring to configure when building.");
+                SCLogError(SC_ERR_NO_PF_RING,"PF_RING not enabled. Make sure "
+                        "to pass --enable-pfring to configure when building.");
                 exit(EXIT_FAILURE);
 #endif /* HAVE_PFRING */
             }
@@ -520,7 +527,8 @@ int main(int argc, char **argv)
                     exit(EXIT_FAILURE);
                 }
 #else
-                SCLogError(SC_ERR_NO_PF_RING,"PF_RING not enabled. Make sure to pass --enable-pfring to configure when building.");
+                SCLogError(SC_ERR_NO_PF_RING,"PF_RING not enabled. Make sure "
+                        "to pass --enable-pfring to configure when building.");
                 exit(EXIT_FAILURE);
 #endif /* HAVE_PFRING */
             }

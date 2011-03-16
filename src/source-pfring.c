@@ -163,7 +163,7 @@ void PfringLoadConfig(void) {
     } else {
         if (threadsstr != NULL) {
             g_pfring_threads = (uint8_t)atoi(threadsstr);
-            SCLogInfo("Going to use %" PRId32 " PF_RING receive threads",
+            SCLogInfo("Going to use %" PRId32 " PF_RING receive thread(s)",
                     g_pfring_threads);
         }
     }
@@ -212,7 +212,6 @@ TmEcode ReceivePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
     PfringThreadVars *ptv = (PfringThreadVars *)data;
 
     struct pfring_pkthdr hdr;
-    int r;
 
     if (suricata_ctl_flags & SURICATA_STOP ||
             suricata_ctl_flags & SURICATA_KILL) {
@@ -220,7 +219,7 @@ TmEcode ReceivePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
     }
 
     /* Depending on what compile time options are used for pfring we either return 0 or -1 on error and always 1 for success */
-    r = pfring_recv(ptv->pd, (char *)p->pkt , (u_int)default_packet_size, &hdr, LIBPFRING_WAIT_FOR_INCOMING);
+    int r = pfring_recv(ptv->pd, (char *)p->pkt , (u_int)(default_packet_size - 1), &hdr, LIBPFRING_WAIT_FOR_INCOMING);
     if (r == 1) {
         //printf("RecievePfring src %" PRIu32 " sport %" PRIu32 " dst %" PRIu32 " dstport %" PRIu32 "\n",
         //        hdr.parsed_pkt.ipv4_src,hdr.parsed_pkt.l4_src_port, hdr.parsed_pkt.ipv4_dst,hdr.parsed_pkt.l4_dst_port);
@@ -249,7 +248,7 @@ TmEcode ReceivePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
  */
 TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
     int rc;
-    u_int32_t version;
+    u_int32_t version = 0;
     char *tmpclusterid;
     char *tmpctype;
 
@@ -275,7 +274,8 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     ptv->pd = pfring_open(ptv->interface, LIBPFRING_PROMISC, (uint32_t)default_packet_size, LIBPFRING_REENTRANT);
     if (ptv->pd == NULL) {
-        SCLogError(SC_ERR_PF_RING_OPEN,"pfring_open error");
+        SCLogError(SC_ERR_PF_RING_OPEN,"opening %s failed: pfring_open error",
+                ptv->interface);
         return TM_ECODE_FAILED;
     } else {
         pfring_set_application_name(ptv->pd, PROG_NAME);

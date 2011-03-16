@@ -3579,7 +3579,7 @@ int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx, char *iface) {
     int pfring_threads = PfringConfGetThreads();
     /* create the threads */
     for (thread = 0; thread < pfring_threads; thread++) {
-        snprintf(tname, sizeof(tname),"RecvPfring%"PRIu16, thread+1);
+        snprintf(tname, sizeof(tname),"RxPfring%"PRIu16, thread+1);
         char *thread_name = SCStrdup(tname);
 
         ThreadVars *tv_receive = TmThreadCreatePacketHandler(thread_name,"packetpool","packetpool",queues,"flow","varslot");
