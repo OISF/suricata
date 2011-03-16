@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2011 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -13,6 +13,13 @@
  * version 2 along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
  * 02110-1301, USA.
+ */
+
+/**
+ * \file
+ *
+ * \author Anoop Saldanha <poonaatsoc@gmail.com>
+ *
  */
 
 #include "suricata-common.h"
@@ -85,6 +92,10 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
 {
     uint8_t *initial_input = input;
     uint32_t parsed = 0;
+
+    if (input_len == 0) {
+        return 0;
+    }
 
     switch (ssl_state->handshake_type) {
         case SSLV3_HS_CLIENT_HELLO:
@@ -162,7 +173,10 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, uint8_t *input,
                                        uint32_t input_len)
 {
     uint8_t *initial_input = input;
-    int retval;
+
+    if (input_len == 0) {
+        return 0;
+    }
 
     switch (ssl_state->bytes_processed) {
         case 5:
@@ -198,7 +212,7 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, uint8_t *input,
     if (input_len == 0)
         return (input - initial_input);
 
-    retval = SSLv3ParseHandshakeType(ssl_state, input, input_len);
+    int retval = SSLv3ParseHandshakeType(ssl_state, input, input_len);
     if (retval == -1) {
         SCReturnInt(-1);
     } else {
@@ -211,6 +225,10 @@ static int SSLv3ParseRecord(uint8_t direction, SSLState *ssl_state,
                             uint8_t *input, uint32_t input_len)
 {
     uint8_t *initial_input = input;
+
+    if (input_len == 0) {
+        return 0;
+    }
 
     switch (ssl_state->bytes_processed) {
         case 0:
@@ -279,6 +297,10 @@ static int SSLv2ParseRecord(uint8_t direction, SSLState *ssl_state,
                             uint8_t *input, uint32_t input_len)
 {
     uint8_t *initial_input = input;
+
+    if (input_len == 0) {
+        return 0;
+    }
 
     if (ssl_state->record_lengths_length == 2) {
         switch (ssl_state->bytes_processed) {
@@ -575,7 +597,6 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
         uint32_t diff = ssl_state->record_length +
             ssl_state->record_lengths_length + - ssl_state->bytes_processed;
         input += diff;
-        input_len -= diff;
         SSLParserReset(ssl_state);
         return (input - initial_input);
 
@@ -662,7 +683,6 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
         /* looks like we have another record */
         uint32_t diff = ssl_state->record_length + SSLV3_RECORD_LEN - ssl_state->bytes_processed;
         parsed += diff;
-        input_len -= diff;
         SSLParserReset(ssl_state);
         return parsed;
 
@@ -675,10 +695,6 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
     }
 
 }
-
-int anoop_ssl_packet_count = 0;
-int anoop_inside_30_count = 0;
-int anoop_packet_count = 0;
 
 /**
  * \brief SSLv2, SSLv23, SSLv3, TLSv1.1, TLSv1.2, TLSv1.3 parser.
@@ -845,7 +861,7 @@ void RegisterSSLParsers(void)
     AppLayerRegisterStateFuncs(ALPROTO_TLS, SSLStateAlloc, SSLStateFree);
 
     /* Get the value of no reassembly option from the config file */
-    if(ConfGetBool("tls.no_reassemble", &tls.no_reassemble) != 1)
+    if (ConfGetBool("tls.no_reassemble", &tls.no_reassemble) != 1)
         tls.no_reassemble = 1;
 }
 

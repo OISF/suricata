@@ -15,6 +15,13 @@
  * 02110-1301, USA.
  */
 
+/**
+ * \file
+ *
+ * \author Anoop Saldanha <poonaatsoc@gmail.com>
+ *
+ */
+
 #ifndef __APP_LAYER_SSL_H__
 #define __APP_LAYER_SSL_H__
 
