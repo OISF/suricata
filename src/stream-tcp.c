@@ -4028,6 +4028,29 @@ void StreamTcpSetSessionNoReassemblyFlag (TcpSession *ssn, char direction)
                 (ssn->client.flags |= STREAMTCP_STREAM_FLAG_NOREASSEMBLY);
 }
 
+#define PSEUDO_PKT_SET_IPV4HDR(nipv4h,ipv4h) do { \
+        (nipv4h)->ip_src = IPV4_GET_RAW_IPDST(ipv4h); \
+        (nipv4h)->ip_dst = IPV4_GET_RAW_IPSRC(ipv4h); \
+    } while (0)
+
+#define PSEUDO_PKT_SET_IPV6HDR(nipv6h,ipv6h) do { \
+        (nipv6h)->ip6_src[0] = (ipv6h)->ip6_dst[0]; \
+        (nipv6h)->ip6_src[1] = (ipv6h)->ip6_dst[1]; \
+        (nipv6h)->ip6_src[2] = (ipv6h)->ip6_dst[2]; \
+        (nipv6h)->ip6_src[3] = (ipv6h)->ip6_dst[3]; \
+        (nipv6h)->ip6_dst[0] = (ipv6h)->ip6_src[0]; \
+        (nipv6h)->ip6_dst[1] = (ipv6h)->ip6_src[1]; \
+        (nipv6h)->ip6_dst[2] = (ipv6h)->ip6_src[2]; \
+        (nipv6h)->ip6_dst[3] = (ipv6h)->ip6_src[3]; \
+    } while (0)
+
+#define PSEUDO_PKT_SET_TCPHDR(ntcph,tcph) do { \
+        COPY_PORT((tcph)->th_dport, (ntcph)->th_sport); \
+        COPY_PORT((tcph)->th_sport, (ntcph)->th_dport); \
+        (ntcph)->th_seq = (tcph)->th_ack; \
+        (ntcph)->th_ack = (tcph)->th_seq; \
+    } while (0)
+
 /**
  * \brief   Function to fetch a packet from the packet allocation queue for
  *          creation of the pseudo packet from the reassembled stream.
@@ -4040,9 +4063,11 @@ void StreamTcpSetSessionNoReassemblyFlag (TcpSession *ssn, char direction)
  */
 Packet *StreamTcpPseudoSetup(Packet *parent, uint8_t *pkt, uint32_t len)
 {
+    SCEnter();
+
     Packet *p = PacketGetFromQueueOrAlloc();
     if (p == NULL || len == 0) {
-        return NULL;
+        SCReturnPtr(NULL, "Packet");
     }
 
     /* set the root ptr to the lowest layer */
@@ -4087,12 +4112,13 @@ void StreamTcpPseudoPacketSetupHeader(Packet *np, Packet *p)
 {
     /* Setup the IP header */
     if (PKT_IS_IPV4(p)) {
-        np->ip4h = (IPV4Hdr *)(GET_PKT_DATA(np) + (GET_PKT_LEN(np) - IPV4_GET_IPLEN(p)));
-        PSUEDO_PKT_SET_IPV4HDR(np->ip4h, p->ip4h);
+        np->ip4h = (IPV4Hdr *)((uint8_t *)GET_PKT_DATA(np) + (GET_PKT_LEN(np) - IPV4_GET_IPLEN(p)));
+        PSEUDO_PKT_SET_IPV4HDR(np->ip4h, p->ip4h);
 
         /* Similarly setup the TCP header with ports in opposite direction */
-        np->tcph = (TCPHdr *)(np->ip4h + IPV4_GET_HLEN(p));
-        PSUEDO_PKT_SET_TCPHDR(np->tcph, p->tcph);
+        np->tcph = (TCPHdr *)((uint8_t *)np->ip4h + IPV4_GET_HLEN(np));
+
+        PSEUDO_PKT_SET_TCPHDR(np->tcph, p->tcph);
 
         /* Setup the adress and port details */
         SET_IPV4_SRC_ADDR(np, &np->src);
@@ -4101,12 +4127,12 @@ void StreamTcpPseudoPacketSetupHeader(Packet *np, Packet *p)
         SET_TCP_DST_PORT(np, &np->dp);
 
     } else if (PKT_IS_IPV6(p)) {
-        np->ip6h = (IPV6Hdr *)(GET_PKT_DATA(np) + (GET_PKT_LEN(np) - IPV6_GET_PLEN(p) - IPV6_HEADER_LEN));
-        PSUEDO_PKT_SET_IPV6HDR(np->ip6h, p->ip6h);
+        np->ip6h = (IPV6Hdr *)((uint8_t *)GET_PKT_DATA(np) + (GET_PKT_LEN(np) - IPV6_GET_PLEN(p) - IPV6_HEADER_LEN));
+        PSEUDO_PKT_SET_IPV6HDR(np->ip6h, p->ip6h);
 
         /* Similarly setup the TCP header with ports in opposite direction */
-        np->tcph = (TCPHdr *)(np->ip6h + IPV6_HEADER_LEN);
-        PSUEDO_PKT_SET_TCPHDR(np->tcph, p->tcph);
+        np->tcph = (TCPHdr *)((uint8_t *)np->ip6h + IPV6_HEADER_LEN);
+        PSEUDO_PKT_SET_TCPHDR(np->tcph, p->tcph);
 
         /* Setup the adress and port details */
         SET_IPV6_SRC_ADDR(np, &np->src);
@@ -4115,9 +4141,8 @@ void StreamTcpPseudoPacketSetupHeader(Packet *np, Packet *p)
         SET_TCP_DST_PORT(np, &np->dp);
     }
 
-    /* Setup the payload pointer to the starting of payload location as in the
-       original packet, so that we don't overwrite the protocols headers */
-    np->payload = NULL; //= np->pkt + (np->pktlen - p->payload_len);
+    /* we don't need a payload (if any) */
+    np->payload = NULL;
     np->payload_len = 0;
 }
 
@@ -8289,6 +8314,123 @@ end:
     return ret;
 }
 
+static int StreamTcpTest40(void) {
+    uint8_t raw_vlan[] = {
+        0x00, 0x20, 0x08, 0x00, 0x45, 0x00, 0x00, 0x34,
+        0x3b, 0x36, 0x40, 0x00, 0x40, 0x06, 0xb7, 0xc9,
+        0x83, 0x97, 0x20, 0x81, 0x83, 0x97, 0x20, 0x15,
+        0x04, 0x8a, 0x17, 0x70, 0x4e, 0x14, 0xdf, 0x55,
+        0x4d, 0x3d, 0x5a, 0x61, 0x80, 0x10, 0x6b, 0x50,
+        0x3c, 0x4c, 0x00, 0x00, 0x01, 0x01, 0x08, 0x0a,
+        0x00, 0x04, 0xf0, 0xc8, 0x01, 0x99, 0xa3, 0xf3
+    };
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
+    p->pktlen = sizeof(raw_vlan);
+    memcpy(p->pkt, raw_vlan, sizeof(raw_vlan));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+
+    FlowInitConfig(FLOW_QUIET);
+
+    DecodeVLAN(&tv, &dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), NULL);
+
+    if(p->vlanh == NULL) {
+        SCFree(p);
+        return 0;
+    }
+
+    if(p->tcph == NULL) {
+        SCFree(p);
+        return 0;
+    }
+
+    Packet *np = StreamTcpPseudoSetup(p, GET_PKT_DATA(p), GET_PKT_LEN(p));
+    if (np == NULL) {
+        printf("the packet received from packet allocation is NULL: ");
+        return 0;
+    }
+
+    StreamTcpPseudoPacketSetupHeader(np,p);
+
+    if (((uint8_t *)p->tcph - (uint8_t *)p->ip4h) != ((uint8_t *)np->tcph - (uint8_t *)np->ip4h)) {
+        return 0;
+    }
+
+    FlowShutdown();
+
+    return 1;
+}
+
+static int StreamTcpTest41(void) {
+    /* IPV6/TCP/no eth header */
+    uint8_t raw_ip[] = {
+        0x60, 0x00, 0x00, 0x00, 0x00, 0x28, 0x06, 0x40,
+        0x20, 0x01, 0x06, 0x18, 0x04, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x51, 0x99, 0xcc, 0x70,
+        0x20, 0x01, 0x06, 0x18, 0x00, 0x01, 0x80, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05,
+        0x8c, 0x9b, 0x00, 0x50, 0x6a, 0xe7, 0x07, 0x36,
+        0x00, 0x00, 0x00, 0x00, 0xa0, 0x02, 0x16, 0x30,
+        0x29, 0x9c, 0x00, 0x00, 0x02, 0x04, 0x05, 0x8c,
+        0x04, 0x02, 0x08, 0x0a, 0x00, 0xdd, 0x1a, 0x39,
+        0x00, 0x00, 0x00, 0x00, 0x01, 0x03, 0x03, 0x02 };
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&tv,  0, sizeof(ThreadVars));
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
+
+    if (PacketCopyData(p, raw_ip, sizeof(raw_ip)) == -1) {
+        SCFree(p);
+        return 1;
+    }
+
+    FlowInitConfig(FLOW_QUIET);
+
+    DecodeRaw(&tv, &dtv, p, raw_ip, GET_PKT_LEN(p), NULL);
+
+    if (p->ip6h == NULL) {
+        printf("expected a valid ipv6 header but it was NULL: ");
+        FlowShutdown();
+        SCFree(p);
+        return 1;
+    }
+
+    if(p->tcph == NULL) {
+        SCFree(p);
+        return 0;
+    }
+
+    Packet *np = StreamTcpPseudoSetup(p, GET_PKT_DATA(p), GET_PKT_LEN(p));
+    if (np == NULL) {
+        printf("the packet received from packet allocation is NULL: ");
+        return 0;
+    }
+
+    StreamTcpPseudoPacketSetupHeader(np,p);
+
+    if (((uint8_t *)p->tcph - (uint8_t *)p->ip6h) != ((uint8_t *)np->tcph - (uint8_t *)np->ip6h)) {
+        return 0;
+    }
+
+    FlowShutdown();
+    SCFree(p);
+
+    return 1;
+}
+
 #endif /* UNITTESTS */
 
 void StreamTcpRegisterTests (void) {
@@ -8357,6 +8499,9 @@ void StreamTcpRegisterTests (void) {
 
     UtRegisterTest("StreamTcpTest38 -- validate ACK", StreamTcpTest38, 1);
     UtRegisterTest("StreamTcpTest39 -- update next_seq", StreamTcpTest39, 1);
+
+    UtRegisterTest("StreamTcpTest40 -- pseudo setup", StreamTcpTest40, 1);
+    UtRegisterTest("StreamTcpTest41 -- pseudo setup", StreamTcpTest41, 1);
 
     /* set up the reassembly tests as well */
     StreamTcpReassembleRegisterTests();
