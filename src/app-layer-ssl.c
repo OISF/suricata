@@ -577,7 +577,8 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
                     (ssl_state->flags & SSL_AL_FLAG_SSL_SERVER_SSN_ENCRYPTED)) {
                     pstate->flags |= APP_LAYER_PARSER_DONE;
                     pstate->flags |= APP_LAYER_PARSER_NO_INSPECTION;
-                    pstate->flags |= APP_LAYER_PARSER_NO_REASSEMBLY;
+                    if (tls.no_reassemble == 1)
+                        pstate->flags |= APP_LAYER_PARSER_NO_REASSEMBLY;
                     SCLogDebug("SSLv2 No reassembly & inspection has been set");
                 }
             }
@@ -697,6 +698,7 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
 }
 
 /**
+ * \internal
  * \brief SSLv2, SSLv23, SSLv3, TLSv1.1, TLSv1.2, TLSv1.3 parser.
  *
  *        On parsing error, this should be the only function that should reset
@@ -718,8 +720,6 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
 static int SSLDecode(uint8_t direction, void *alstate, AppLayerParserState *pstate,
                      uint8_t *input, uint32_t input_len)
 {
-    SCEnter();
-
     SSLState *ssl_state = (SSLState *)alstate;
     int retval = 0;
     uint8_t counter = 0;
@@ -808,7 +808,7 @@ static int SSLDecode(uint8_t direction, void *alstate, AppLayerParserState *psta
         } /* switch (ssl_state->bytes_processed) */
     } /* while (input_len) */
 
-    SCReturnInt(1);
+    return 1;
 }
 
 int SSLParseClientRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
@@ -846,9 +846,12 @@ void *SSLStateAlloc(void)
 void SSLStateFree(void *p)
 {
     SCFree(p);
+
+    return;
 }
 
-/** \brief Function to register the SSL protocol parser and other functions
+/**
+ * \brief Function to register the SSL protocol parser and other functions
  */
 void RegisterSSLParsers(void)
 {
@@ -863,6 +866,8 @@ void RegisterSSLParsers(void)
     /* Get the value of no reassembly option from the config file */
     if (ConfGetBool("tls.no_reassemble", &tls.no_reassemble) != 1)
         tls.no_reassemble = 1;
+
+    return;
 }
 
 /***************************************Unittests******************************/
@@ -1123,232 +1128,236 @@ end:
     return result;
 }
 
+#if 0
 /** \test   Test the setting up of no reassembly and no payload inspection flag
  *          after detection of the TLS handshake completion */
-//static int SSLParserTest05(void)
-//{
-//    int result = 1;
-//    Flow f;
-//    uint8_t tlsbuf[] = { 0x16, 0x03, 0x01, 0x00, 0x01 };
-//    uint32_t tlslen = sizeof(tlsbuf);
-//    TcpSession ssn;
-//
-//    memset(&f, 0, sizeof(f));
-//    memset(&ssn, 0, sizeof(ssn));
-//    f.protoctx = (void *)&ssn;
-//
-//    StreamTcpInitConfig(TRUE);
-//    FlowL7DataPtrInit(&f);
-//
-//    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
-//    if (r != 0) {
-//        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOCLIENT, tlsbuf, tlslen);
-//    if (r != 0) {
-//        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    tlsbuf[0] = 0x14;
-//
-//    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
-//    if (r != 0) {
-//        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    tlsbuf[0] = 0x14;
-//
-//    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOCLIENT, tlsbuf, tlslen);
-//    if (r != 0) {
-//        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    tlsbuf[0] = 0x17;
-//
-//    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
-//    if (r != 0) {
-//        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-//    if (ssl_state == NULL) {
-//        printf("no tls state: ");
-//        result = 0;
-//        goto end;
-//    }
-//
-//    if (ssl_state->client_content_type != 0x17) {
-//        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x17,
-//                ssl_state->client_content_type);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    if (ssl_state->client_version != TLS_VERSION_10) {
-//        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-//                TLS_VERSION_10, ssl_state->client_version);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    uint16_t app_layer_sid = AppLayerParserGetStorageId();
-//    AppLayerParserStateStore *parser_state_store = (AppLayerParserStateStore *)
-//                                                    f.aldata[app_layer_sid];
-//    AppLayerParserState *parser_state = &parser_state_store->to_server;
-//
-//    if (!(parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) &&
-//        !(ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) &&
-//        !(ssn.server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY))
-//    {
-//        printf("The flags should be set\n");
-//        result = 0;
-//        goto end;
-//    }
-//
-//    if (!(f.flags & FLOW_NOPAYLOAD_INSPECTION)) {
-//        printf("The flags should be set\n");
-//        result = 0;
-//        goto end;
-//    }
-//
-//end:
-//    FlowL7DataPtrFree(&f);
-//    StreamTcpFreeConfig(TRUE);
-//    return result;
-//}
+static int SSLParserTest05(void)
+{
+    int result = 1;
+    Flow f;
+    uint8_t tlsbuf[] = { 0x16, 0x03, 0x01, 0x00, 0x01 };
+    uint32_t tlslen = sizeof(tlsbuf);
+    TcpSession ssn;
 
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOCLIENT, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    tlsbuf[0] = 0x14;
+
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    tlsbuf[0] = 0x14;
+
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOCLIENT, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    tlsbuf[0] = 0x17;
+
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
+        printf("no tls state: ");
+        result = 0;
+        goto end;
+    }
+
+    if (ssl_state->client_content_type != 0x17) {
+        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x17,
+                ssl_state->client_content_type);
+        result = 0;
+        goto end;
+    }
+
+    if (ssl_state->client_version != TLS_VERSION_10) {
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
+                TLS_VERSION_10, ssl_state->client_version);
+        result = 0;
+        goto end;
+    }
+
+    uint16_t app_layer_sid = AppLayerParserGetStorageId();
+    AppLayerParserStateStore *parser_state_store = (AppLayerParserStateStore *)
+                                                    f.aldata[app_layer_sid];
+    AppLayerParserState *parser_state = &parser_state_store->to_server;
+
+    if (!(parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) &&
+        !(ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) &&
+        !(ssn.server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY))
+    {
+        printf("The flags should be set\n");
+        result = 0;
+        goto end;
+    }
+
+    if (!(f.flags & FLOW_NOPAYLOAD_INSPECTION)) {
+        printf("The flags should be set\n");
+        result = 0;
+        goto end;
+    }
+
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    return result;
+}
+#endif
+
+#if 0
 /** \test   Test the setting up of no reassembly and no payload inspection flag
  *          after detection of the valid TLS handshake completion, the rouge
  *          0x17 packet will not be considered in the detection process */
-//static int SSLParserTest06(void)
-//{
-//    int result = 1;
-//    Flow f;
-//    uint8_t tlsbuf[] = { 0x16, 0x03, 0x01, 0x00, 0x01 };
-//    uint32_t tlslen = sizeof(tlsbuf);
-//    TcpSession ssn;
-//
-//    memset(&f, 0, sizeof(f));
-//    memset(&ssn, 0, sizeof(ssn));
-//    f.protoctx = (void *)&ssn;
-//
-//    StreamTcpInitConfig(TRUE);
-//    FlowL7DataPtrInit(&f);
-//
-//    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
-//    if (r != 0) {
-//        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOCLIENT, tlsbuf, tlslen);
-//    if (r != 0) {
-//        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    tlsbuf[0] = 0x14;
-//
-//    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
-//    if (r != 0) {
-//        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    tlsbuf[0] = 0x17;
-//
-//    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
-//    if (r != 0) {
-//        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-//    if (ssl_state == NULL) {
-//        printf("no tls state: ");
-//        result = 0;
-//        goto end;
-//    }
-//
-//    if (ssl_state->client_content_type != 0x17) {
-//        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x17,
-//                ssl_state->client_content_type);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    if (ssl_state->client_version != TLS_VERSION_10) {
-//        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-//                TLS_VERSION_10, ssl_state->client_version);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    uint16_t app_layer_sid = AppLayerParserGetStorageId();
-//    AppLayerParserStateStore *parser_state_store = (AppLayerParserStateStore *)
-//                                                    f.aldata[app_layer_sid];
-//    AppLayerParserState *parser_state = &parser_state_store->to_server;
-//
-//    if ((parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) ||
-//            (ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ||
-//            (ssn.server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
-//        printf("The flags should not be set\n");
-//        result = 0;
-//        goto end;
-//    }
-//
-//    tlsbuf[0] = 0x14;
-//
-//    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOCLIENT, tlsbuf, tlslen);
-//    if (r != 0) {
-//        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    tlsbuf[0] = 0x17;
-//
-//    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
-//    if (r != 0) {
-//        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    if (!(parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) &&
-//            !(ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) &&
-//            !(ssn.server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
-//        printf("The flags should be set\n");
-//        result = 0;
-//        goto end;
-//    }
-//
-//    if (!(f.flags & FLOW_NOPAYLOAD_INSPECTION)) {
-//        printf("The flags should be set\n");
-//        result = 0;
-//        goto end;
-//    }
-//
-//end:
-//    FlowL7DataPtrFree(&f);
-//    StreamTcpFreeConfig(TRUE);
-//    return result;
-//}
+static int SSLParserTest06(void)
+{
+    int result = 1;
+    Flow f;
+    uint8_t tlsbuf[] = { 0x16, 0x03, 0x01, 0x00, 0x01 };
+    uint32_t tlslen = sizeof(tlsbuf);
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOCLIENT, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    tlsbuf[0] = 0x14;
+
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    tlsbuf[0] = 0x17;
+
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
+        printf("no tls state: ");
+        result = 0;
+        goto end;
+    }
+
+    if (ssl_state->client_content_type != 0x17) {
+        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x17,
+                ssl_state->client_content_type);
+        result = 0;
+        goto end;
+    }
+
+    if (ssl_state->client_version != TLS_VERSION_10) {
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
+                TLS_VERSION_10, ssl_state->client_version);
+        result = 0;
+        goto end;
+    }
+
+    uint16_t app_layer_sid = AppLayerParserGetStorageId();
+    AppLayerParserStateStore *parser_state_store = (AppLayerParserStateStore *)
+                                                    f.aldata[app_layer_sid];
+    AppLayerParserState *parser_state = &parser_state_store->to_server;
+
+    if ((parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) ||
+            (ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ||
+            (ssn.server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
+        printf("The flags should not be set\n");
+        result = 0;
+        goto end;
+    }
+
+    tlsbuf[0] = 0x14;
+
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOCLIENT, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    tlsbuf[0] = 0x17;
+
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    if (!(parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) &&
+            !(ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) &&
+            !(ssn.server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
+        printf("The flags should be set\n");
+        result = 0;
+        goto end;
+    }
+
+    if (!(f.flags & FLOW_NOPAYLOAD_INSPECTION)) {
+        printf("The flags should be set\n");
+        result = 0;
+        goto end;
+    }
+
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    return result;
+}
+#endif
 
 /** \test multimsg test */
 static int SSLParserMultimsgTest01(void)
@@ -1568,109 +1577,112 @@ end:
     return result;
 }
 
+#if 0
 /** \test   Test the setting up of no reassembly and no payload inspection flag
  *          after detection of the SSLv3 handshake completion */
-//static int SSLParserTest08(void)
-//{
-//    int result = 1;
-//    Flow f;
-//    uint8_t tlsbuf[] = { 0x16, 0x03, 0x00, 0x00, 0x01 };
-//    uint32_t tlslen = sizeof(tlsbuf);
-//    TcpSession ssn;
-//
-//    memset(&f, 0, sizeof(f));
-//    memset(&ssn, 0, sizeof(ssn));
-//    f.protoctx = (void *)&ssn;
-//
-//    StreamTcpInitConfig(TRUE);
-//    FlowL7DataPtrInit(&f);
-//
-//    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
-//    if (r != 0) {
-//        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOCLIENT, tlsbuf, tlslen);
-//    if (r != 0) {
-//        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    tlsbuf[0] = 0x14;
-//
-//    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
-//    if (r != 0) {
-//        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    tlsbuf[0] = 0x14;
-//
-//    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOCLIENT, tlsbuf, tlslen);
-//    if (r != 0) {
-//        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    tlsbuf[0] = 0x17;
-//
-//    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
-//    if (r != 0) {
-//        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
-//    if (ssl_state == NULL) {
-//        printf("no tls state: ");
-//        result = 0;
-//        goto end;
-//    }
-//
-//    if (ssl_state->client_content_type != 0x17) {
-//        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x17,
-//                ssl_state->client_content_type);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    if (ssl_state->client_version != SSL_VERSION_3) {
-//        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
-//                SSL_VERSION_3, ssl_state->client_version);
-//        result = 0;
-//        goto end;
-//    }
-//
-//    uint16_t app_layer_sid = AppLayerParserGetStorageId();
-//    AppLayerParserStateStore *parser_state_store = (AppLayerParserStateStore *)
-//                                                    f.aldata[app_layer_sid];
-//    AppLayerParserState *parser_state = &parser_state_store->to_server;
-//
-//    if (!(parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) &&
-//            !(ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) &&
-//            !(ssn.server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
-//        printf("The flags should be set\n");
-//        result = 0;
-//        goto end;
-//    }
-//
-//    if (!(f.flags & FLOW_NOPAYLOAD_INSPECTION)) {
-//        printf("The flags should be set\n");
-//        result = 0;
-//        goto end;
-//    }
-//
-//end:
-//    FlowL7DataPtrFree(&f);
-//    StreamTcpFreeConfig(TRUE);
-//    return result;
-//}
+static int SSLParserTest08(void)
+{
+    int result = 1;
+    Flow f;
+    uint8_t tlsbuf[] = { 0x16, 0x03, 0x00, 0x00, 0x01 };
+    uint32_t tlslen = sizeof(tlsbuf);
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOCLIENT, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    tlsbuf[0] = 0x14;
+
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    tlsbuf[0] = 0x14;
+
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOCLIENT, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    tlsbuf[0] = 0x17;
+
+    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, tlsbuf, tlslen);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    SSLState *ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    if (ssl_state == NULL) {
+        printf("no tls state: ");
+        result = 0;
+        goto end;
+    }
+
+    if (ssl_state->client_content_type != 0x17) {
+        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x17,
+                ssl_state->client_content_type);
+        result = 0;
+        goto end;
+    }
+
+    if (ssl_state->client_version != SSL_VERSION_3) {
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ",
+                SSL_VERSION_3, ssl_state->client_version);
+        result = 0;
+        goto end;
+    }
+
+    uint16_t app_layer_sid = AppLayerParserGetStorageId();
+    AppLayerParserStateStore *parser_state_store = (AppLayerParserStateStore *)
+                                                    f.aldata[app_layer_sid];
+    AppLayerParserState *parser_state = &parser_state_store->to_server;
+
+    if (!(parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) &&
+            !(ssn.client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) &&
+            !(ssn.server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY)) {
+        printf("The flags should be set\n");
+        result = 0;
+        goto end;
+    }
+
+    if (!(f.flags & FLOW_NOPAYLOAD_INSPECTION)) {
+        printf("The flags should be set\n");
+        result = 0;
+        goto end;
+    }
+
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    return result;
+}
+
+#endif
 
 /**
  * \test Tests the parser for handling fragmented records.
