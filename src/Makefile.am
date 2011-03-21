@@ -111,6 +111,7 @@ detect-flags.c detect-flags.h \
 detect-fragbits.c detect-fragbits.h \
 detect-fragoffset.c detect-fragoffset.h \
 detect-gid.c detect-gid.h \
+detect-mark.c detect-mark.h \
 detect-noalert.c detect-noalert.h \
 detect-csum.c detect-csum.h \
 detect-ttl.c detect-ttl.h \

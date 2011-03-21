@@ -3966,6 +3966,7 @@ void SigTableSetup(void) {
     DetectFragBitsRegister();
     DetectFragOffsetRegister();
     DetectGidRegister();
+    DetectMarkRegister();
     DetectCsumRegister();
     DetectStreamSizeRegister();
     DetectTtlRegister();

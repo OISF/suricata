@@ -40,6 +40,7 @@
 #include "util-radix-tree.h"
 
 #include "detect-threshold.h"
+#include "detect-mark.h"
 //#include "detect-engine-tag.h"
 
 #define COUNTER_DETECT_ALERTS 1
@@ -969,6 +970,7 @@ enum {
     DETECT_FRAGBITS,
     DETECT_FRAGOFFSET,
     DETECT_GID,
+    DETECT_MARK,
 
     DETECT_AL_TLS_VERSION,
     DETECT_AL_HTTP_COOKIE,
