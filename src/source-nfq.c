@@ -794,10 +794,36 @@ void NFQSetVerdict(Packet *p) {
         default:
         case NFQ_ACCEPT_MODE:
         case NFQ_ROUTE_MODE:
-            if (p->flags & PKT_STREAM_MODIFIED) {
-                ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, GET_PKT_LEN(p), GET_PKT_DATA(p));
+            if (p->flags & PKT_MARK_MODIFIED) {
+#ifdef HAVE_NFQ_SET_VERDICT2
+                if (p->flags & PKT_STREAM_MODIFIED) {
+                    ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
+                            p->nfq_v.mark,
+                            GET_PKT_LEN(p), GET_PKT_DATA(p));
+                } else {
+                    ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
+                            p->nfq_v.mark,
+                            0, NULL);
+                }
+#else /* fall back to old function */
+                if (p->flags & PKT_STREAM_MODIFIED) {
+                    ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
+                            htonl(p->nfq_v.mark),
+                            GET_PKT_LEN(p), GET_PKT_DATA(p));
+                } else {
+                    ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
+                            htonl(p->nfq_v.mark),
+                            0, NULL);
+                }
+#endif /* HAVE_NFQ_SET_VERDICT2 */
             } else {
-                ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, 0, NULL);
+                if (p->flags & PKT_STREAM_MODIFIED) {
+                    ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict,
+                            GET_PKT_LEN(p), GET_PKT_DATA(p));
+                } else {
+                    ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, 0, NULL);
+                }
+
             }
             break;
         case NFQ_REPEAT_MODE:
