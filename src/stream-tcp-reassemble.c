@@ -2706,19 +2706,6 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                 seg, seg->seq, seg->payload_len,
                 (uint32_t)(seg->seq + seg->payload_len));
 
-        /* if app layer protocol has been detected, then remove all the segments
-           which has been previously processed and reassembled */
-        if ((ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED) &&
-                (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
-                (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))
-        {
-            SCLogDebug("segment(%p) of length %"PRIu16" has been processed,"
-                    " so return it to pool", seg, seg->payload_len);
-            TcpSegment *next_seg = seg->next;
-            seg = next_seg;
-            continue;
-        }
-
         /* Remove the segments which are either completely before the
            ra_base_seq or if they are beyond ra_base_seq, but the segment offset
            from which we need to copy in to smsg is beyond the stream->last_ack.
@@ -2734,6 +2721,19 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
             TcpSegment *next_seg = seg->next;
             StreamTcpRemoveSegmentFromStream(stream, seg);
             StreamTcpSegmentReturntoPool(seg);
+            seg = next_seg;
+            continue;
+        }
+
+        /* if app layer protocol has been detected, then remove all the segments
+           which has been previously processed and reassembled */
+        if ((ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED) &&
+                (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
+                (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))
+        {
+            SCLogDebug("segment(%p) of length %"PRIu16" has been processed,"
+                    " so return it to pool", seg, seg->payload_len);
+            TcpSegment *next_seg = seg->next;
             seg = next_seg;
             continue;
         }
@@ -3114,22 +3114,6 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                 seg, seg->seq, seg->payload_len,
                 (uint32_t)(seg->seq + seg->payload_len));
 
-        /* if app layer protocol has been detected, then remove all the segments
-         * which has been previously processed and reassembled
-         *
-         * If the stream is in GAP state the app layer flag won't be set */
-        if ((ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED) &&
-                (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
-                (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED ||
-                 stream->flags & STREAMTCP_STREAM_FLAG_GAP))
-        {
-            SCLogDebug("segment(%p) of length %"PRIu16" has been processed,"
-                    " so return it to pool", seg, seg->payload_len);
-            TcpSegment *next_seg = seg->next;
-            seg = next_seg;
-            continue;
-        }
-
         /* Remove the segments which are either completely before the
            ra_base_seq or if they are beyond ra_base_seq, but the segment offset
            from which we need to copy in to smsg is beyond the stream->last_ack.
@@ -3143,6 +3127,22 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
             TcpSegment *next_seg = seg->next;
             StreamTcpRemoveSegmentFromStream(stream, seg);
             StreamTcpSegmentReturntoPool(seg);
+            seg = next_seg;
+            continue;
+        }
+
+        /* if app layer protocol has been detected, then remove all the segments
+         * which has been previously processed and reassembled
+         *
+         * If the stream is in GAP state the app layer flag won't be set */
+        if ((ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED) &&
+                (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
+                (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED ||
+                 stream->flags & STREAMTCP_STREAM_FLAG_GAP))
+        {
+            SCLogDebug("segment(%p) of length %"PRIu16" has been processed,"
+                    " so return it to pool", seg, seg->payload_len);
+            TcpSegment *next_seg = seg->next;
             seg = next_seg;
             continue;
         }
