@@ -463,8 +463,8 @@ void PrintList(TcpSegment *seg)
                         (seg->seq - next_seq));
         }
 
-        SCLogDebug("seg %10"PRIu32" len %" PRIu16 ", seg %p, prev %p, next %p",
-                    seg->seq, seg->payload_len, seg, seg->prev, seg->next);
+        SCLogDebug("seg %10"PRIu32" len %" PRIu16 ", seg %p, prev %p, next %p, flags 0x%02x",
+                    seg->seq, seg->payload_len, seg, seg->prev, seg->next, seg->flags);
 
         if (seg->prev != NULL && SEQ_LT(seg->seq,seg->prev->seq)) {
             /* check for SEQ_LT cornercase where a - b is exactly 2147483648,
@@ -2688,13 +2688,14 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
         }
     }
 
-    SCLogDebug("ra_base_seq %u", ra_base_seq);
-
     uint8_t data[4096];
     uint32_t data_len = 0;
     uint16_t payload_offset = 0;
     uint16_t payload_len = 0;
     uint32_t next_seq = ra_base_seq + 1;
+
+    SCLogDebug("ra_base_seq %"PRIu32", last_ack %"PRIu32", next_seq %"PRIu32,
+            ra_base_seq, stream->last_ack, next_seq);
 
     /* loop through the segments and fill one or more msgs */
     TcpSegment *seg = stream->seg_list;
@@ -2718,20 +2719,10 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
             continue;
         }
 
-        /* If packets are fully before ra_base_seq, skip them. We do this
-         * because we've reassembled up to the ra_base_seq point already,
-         * so we won't do anything with segments before it anyway. */
-        SCLogDebug("checking for pre ra_base_seq %"PRIu32" seg %p seq %"PRIu32""
-                   " len %"PRIu16", combined %"PRIu32" and stream->last_ack "
-                   "%"PRIu32"", ra_base_seq, seg, seg->seq,
-                   seg->payload_len, seg->seq+seg->payload_len, stream->last_ack);
-
         /* Remove the segments which are either completely before the
            ra_base_seq or if they are beyond ra_base_seq, but the segment offset
            from which we need to copy in to smsg is beyond the stream->last_ack.
            As we are copying until the stream->last_ack only */
-        /** \todo we should probably not even insert them into the seglist */
-
         if ((SEQ_LEQ((seg->seq + seg->payload_len), (ra_base_seq+1)) ||
                 SEQ_LEQ(stream->last_ack, (ra_base_seq + (ra_base_seq - seg->seq)))) &&
                 (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
@@ -3113,8 +3104,8 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
     TcpSegment *seg = stream->seg_list;
     uint32_t next_seq = ra_base_seq + 1;
 
-    if (SEQ_GEQ(seg->seq, stream->last_ack))
-        SCLogDebug("seg is %"PRIu32" and st %"PRIu32"",seg->seq, stream->last_ack);
+    SCLogDebug("ra_base_seq %"PRIu32", last_ack %"PRIu32", next_seq %"PRIu32,
+            ra_base_seq, stream->last_ack, next_seq);
 
     /* loop through the segments and fill one or more msgs */
     for (; seg != NULL && SEQ_LT(seg->seq, stream->last_ack);)
@@ -3138,14 +3129,6 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
             seg = next_seg;
             continue;
         }
-
-        /* If packets are fully before ra_base_seq, skip them. We do this
-         * because we've reassembled up to the ra_base_seq point already,
-         * so we won't do anything with segments before it anyway. */
-        SCLogDebug("checking for pre ra_base_seq %"PRIu32" seg %p seq %"PRIu32""
-                   " len %"PRIu16", combined %"PRIu32" and stream->last_ack "
-                   "%"PRIu32"", ra_base_seq, seg, seg->seq,
-                    seg->payload_len, seg->seq+seg->payload_len, stream->last_ack);
 
         /* Remove the segments which are either completely before the
            ra_base_seq or if they are beyond ra_base_seq, but the segment offset
@@ -3385,6 +3368,7 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
 
         /* done with this segment, return it to the pool */
         TcpSegment *next_seg = seg->next;
+        seg->flags |= SEGMENTTCP_FLAG_RAW_PROCESSED;
         next_seq = seg->seq + seg->payload_len;
         seg = next_seg;
     }
@@ -6464,11 +6448,24 @@ static int StreamTcpReassembleTest39 (void) {
 
     SCLogDebug("final check");
 
+    if (!(ssn.flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED)) {
+        printf("STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED flag should have been set (13): ");
+        goto end;
+    }
+
     /* check if the segment in the list is flagged or not */
-    if ((ssn.client.seg_list != NULL) &&
-            (ssn.flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED)) {
-        printf("the segments should have been removed and there should be "
-                "no more segments in the list as they have been sent to app layer (13): ");
+    if (ssn.client.seg_list == NULL) {
+        printf("segment list should not be empty (14): ");
+        goto end;
+    }
+
+    if (!(ssn.client.seg_list->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) {
+        printf("segment should have flags SEGMENTTCP_FLAG_APPLAYER_PROCESSED set (15): ");
+        goto end;
+    }
+
+    if (!(ssn.client.seg_list->flags & SEGMENTTCP_FLAG_RAW_PROCESSED)) {
+        printf("segment should have flags SEGMENTTCP_FLAG_RAW_PROCESSED set (16): ");
         goto end;
     }
 
@@ -6921,8 +6918,19 @@ static int StreamTcpReassembleTest41 (void) {
         goto end;
     }
 
-    if (ssn.client.seg_list != NULL) {
-        printf("seg_list should be null: ");
+    /* check if the segment in the list is flagged or not */
+    if (ssn.client.seg_list == NULL) {
+        printf("segment list should not be empty: ");
+        goto end;
+    }
+
+    if (!(ssn.client.seg_list->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) {
+        printf("segment should have flags SEGMENTTCP_FLAG_APPLAYER_PROCESSED set: ");
+        goto end;
+    }
+
+    if (!(ssn.client.seg_list->flags & SEGMENTTCP_FLAG_RAW_PROCESSED)) {
+        printf("segment should have flags SEGMENTTCP_FLAG_RAW_PROCESSED set: ");
         goto end;
     }
 
