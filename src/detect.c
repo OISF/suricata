@@ -9391,6 +9391,10 @@ static int SigTestWithinReal01 (int mpm_type) {
     DecodeThreadVars dtv;
     ThreadVars th_v;
     int result = 0;
+    Packet *p1 = NULL;
+    Packet *p2 = NULL;
+    Packet *p3 = NULL;
+    Packet *p4 = NULL;
 
     uint8_t rawpkt1[] = {
         0x00,0x04,0x76,0xd3,0xd8,0x6a,0x00,0x24,
@@ -9505,7 +9509,7 @@ static int SigTestWithinReal01 (int mpm_type) {
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* packet 1 */
-    Packet *p1 = SCMalloc(SIZE_OF_PACKET);
+    p1 = SCMalloc(SIZE_OF_PACKET);
     if (p1 == NULL)
         return 0;
     memset(p1, 0, SIZE_OF_PACKET);
@@ -9518,7 +9522,7 @@ static int SigTestWithinReal01 (int mpm_type) {
     }
 
     /* packet 2 */
-    Packet *p2 = SCMalloc(SIZE_OF_PACKET);
+    p2 = SCMalloc(SIZE_OF_PACKET);
     if (p2 == NULL)
         return 0;
     memset(p2, 0, SIZE_OF_PACKET);
@@ -9531,7 +9535,7 @@ static int SigTestWithinReal01 (int mpm_type) {
     }
 
     /* packet 3 */
-    Packet *p3 = SCMalloc(SIZE_OF_PACKET);
+    p3 = SCMalloc(SIZE_OF_PACKET);
     if (p3 == NULL)
         return 0;
     memset(p3, 0, SIZE_OF_PACKET);
@@ -9544,7 +9548,7 @@ static int SigTestWithinReal01 (int mpm_type) {
     }
 
     /* packet 4 */
-    Packet *p4 = SCMalloc(SIZE_OF_PACKET);
+    p4 = SCMalloc(SIZE_OF_PACKET);
     if (p4 == NULL)
         return 0;
     memset(p4, 0, SIZE_OF_PACKET);
@@ -9581,10 +9585,14 @@ end:
         DetectEngineCtxFree(de_ctx);
 
     FlowShutdown();
-    SCFree(p1);
-    SCFree(p2);
-    SCFree(p3);
-    SCFree(p4);
+    if (p1 != NULL)
+        SCFree(p1);
+    if (p2 != NULL)
+        SCFree(p2);
+    if (p3 != NULL)
+        SCFree(p3);
+    if (p4 != NULL)
+        SCFree(p4);
     return result;
 }
 

@@ -2642,6 +2642,7 @@ end:
 int SigTestBidirec04 (void) {
     int result = 0;
     Signature *sig = NULL;
+    Packet *p = NULL;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2737,7 +2738,7 @@ int SigTestBidirec04 (void) {
         0x6b,0x65,0x65,0x70,0x2d,0x61,0x6c,0x69,
         0x76,0x65,0x0d,0x0a,0x0d,0x0a }; /* end rawpkt1_ether */
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    p = SCMalloc(SIZE_OF_PACKET);
     if (p == NULL)
         return 0;
     DecodeThreadVars dtv;
@@ -2777,7 +2778,8 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
-    SCFree(p);
+    if (p != NULL)
+        SCFree(p);
     return result;
 }
 
