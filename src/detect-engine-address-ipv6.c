@@ -62,7 +62,7 @@ int AddressIPv6Lt(Address *a, Address *b)
     return 0;
 }
 
-static int AddressIPv6LtU32(uint32_t *a, uint32_t *b) {
+int AddressIPv6LtU32(uint32_t *a, uint32_t *b) {
     int i = 0;
 
     for (i = 0; i < 4; i++) {
@@ -135,7 +135,7 @@ int AddressIPv6Eq(Address *a, Address *b)
     return 1;
 }
 
-static int AddressIPv6EqU32(uint32_t *a, uint32_t *b)
+int AddressIPv6EqU32(uint32_t *a, uint32_t *b)
 {
     int i = 0;
 
@@ -168,7 +168,7 @@ int AddressIPv6Le(Address *a, Address *b)
     return 0;
 }
 
-static int AddressIPv6LeU32(uint32_t *a, uint32_t *b)
+int AddressIPv6LeU32(uint32_t *a, uint32_t *b)
 {
 
     if (AddressIPv6EqU32(a, b) == 1)
@@ -200,7 +200,7 @@ int AddressIPv6Ge(Address *a, Address *b)
     return 0;
 }
 
-static int AddressIPv6GeU32(uint32_t *a, uint32_t *b)
+int AddressIPv6GeU32(uint32_t *a, uint32_t *b)
 {
 
     if (AddressIPv6EqU32(a, b) == 1)
