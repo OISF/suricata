@@ -73,7 +73,6 @@ typedef struct HTPCfgRec_ {
 static SCRadixTree *cfgtree;
 /** List of HTP configurations. */
 static HTPCfgRec cfglist;
-static HTPCfgRec cfglist_backup;
 
 #ifdef DEBUG
 static SCMutex htp_state_mem_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -1104,24 +1103,6 @@ void AppLayerHtpPrintStats(void) {
 #endif
 }
 
-static void HtpConfigCreateBackup(void)
-{
-    cfglist_backup.cfg = cfglist.cfg;
-    cfglist_backup.next = cfglist.next;
-    cfglist_backup.request_body_limit = cfglist.request_body_limit;
-
-    return;
-}
-
-static void HtpConfigRestoreBackup(void)
-{
-    cfglist.cfg = cfglist_backup.cfg;
-    cfglist.next = cfglist_backup.next;
-    cfglist.request_body_limit = cfglist_backup.request_body_limit;
-
-    return;
-}
-
 /**
  *  \brief  Register the HTTP protocol and state handling functions to APP layer
  *          of the engine.
@@ -1161,6 +1142,25 @@ void AppLayerHtpRegisterExtraCallbacks(void) {
 
 
 #ifdef UNITTESTS
+static HTPCfgRec cfglist_backup;
+
+static void HtpConfigCreateBackup(void)
+{
+    cfglist_backup.cfg = cfglist.cfg;
+    cfglist_backup.next = cfglist.next;
+    cfglist_backup.request_body_limit = cfglist.request_body_limit;
+
+    return;
+}
+
+static void HtpConfigRestoreBackup(void)
+{
+    cfglist.cfg = cfglist_backup.cfg;
+    cfglist.next = cfglist_backup.next;
+    cfglist.request_body_limit = cfglist_backup.request_body_limit;
+
+    return;
+}
 
 /** \test Test case where chunks are sent in smaller chunks and check the
  *        response of the parser from HTP library. */
