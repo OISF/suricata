@@ -307,12 +307,9 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                 SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
             }
         } else {
-            int list_type;
+            int list_type = -1;
             if (pm->type == DETECT_PCRE || pm->type == DETECT_BYTEJUMP) {
                 list_type = SigMatchListSMBelongsTo(s, pm);
-                if (list_type == -1) {
-                    goto error;
-                }
             } else {
                 switch (pm->type) {
                     case DETECT_CONTENT:
@@ -338,6 +335,9 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                         break;
                 } /* switch */
             } /* else */
+            if (list_type == -1) {
+                goto error;
+            }
 
             SigMatchAppendSMToList(s, sm, list_type);
         } /* else - if (pm == NULL) */
