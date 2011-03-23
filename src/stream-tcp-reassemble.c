@@ -2707,13 +2707,10 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                 (uint32_t)(seg->seq + seg->payload_len));
 
         /* Remove the segments which are either completely before the
-           ra_base_seq or if they are beyond ra_base_seq, but the segment offset
-           from which we need to copy in to smsg is beyond the stream->last_ack.
-           As we are copying until the stream->last_ack only */
-        if ((SEQ_LEQ((seg->seq + seg->payload_len), (ra_base_seq+1)) ||
-                SEQ_LEQ(stream->last_ack, (ra_base_seq + (ra_base_seq - seg->seq)))) &&
-                (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
-                (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))
+           ra_base_seq and processed by both app layer and raw reassembly. */
+        if (SEQ_LEQ((seg->seq + seg->payload_len), (ra_base_seq+1)) &&
+                seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED &&
+                seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)
         {
             SCLogDebug("removing pre ra_base_seq %"PRIu32" seg %p seq %"PRIu32
                     " len %"PRIu16"", ra_base_seq, seg, seg->seq, seg->payload_len);
