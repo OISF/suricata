@@ -2617,7 +2617,13 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
     PrintList(stream->seg_list);
 #endif
 
-    if (stream->seg_list == NULL) {
+    /* if no segments are in the list or all are already processed,
+     * and state is beyond established, we send an empty msg */
+    TcpSegment *seg_tail = stream->seg_list_tail;
+    if (seg_tail == NULL ||
+            (seg_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED &&
+             seg_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))
+    {
         /* send an empty EOF msg if we have no segments but TCP state
          * is beyond ESTABLISHED */
         if (ssn->state > TCP_ESTABLISHED) {
@@ -2631,12 +2637,16 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
              * release reassembly for both directions. */
             ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
 
-        } else {
-            SCLogDebug("no segments in the list to reassemble");
+            SCReturnInt(0);
         }
+    }
 
+    /* no segments, nothing to do */
+    if (stream->seg_list == NULL) {
+        SCLogDebug("no segments in the list to reassemble");
         SCReturnInt(0);
     }
+
 
     /* check if reassembling has been paused for the moment or not */
     if (stream->flags & STREAMTCP_STREAM_FLAG_PAUSE_REASSEMBLY) {
