@@ -20,27 +20,9 @@
  *  \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __RUNMODES_H__
-#define __RUNMODES_H__
+#ifndef __RUNMODE_NFQ_H__
+#define __RUNMODE_NFQ_H__
 
-void RunModeInitialize(void);
-void RunModeInitializeOutputs(void);
-void SetupOutputs(ThreadVars *);
+int RunModeIpsNFQAuto(DetectEngineCtx *, char *);
 
-#include "runmode-pcap.h"
-#include "runmode-pcap-file.h"
-#include "runmode-pfring.h"
-#include "runmode-nfq.h"
-
-int RunModeIpsIPFW(DetectEngineCtx *);
-int RunModeIpsIPFWAuto(DetectEngineCtx *);
-
-int RunModeErfFileAuto(DetectEngineCtx *, char *);
-int RunModeErfDagAuto(DetectEngineCtx *, char *);
-
-void RunModeShutDown(void);
-
-int threading_set_cpu_affinity;
-extern float threading_detect_ratio;
-#endif /* __RUNMODES_H__ */
-
+#endif /* __RUNMODE_NFQ_H__ */
