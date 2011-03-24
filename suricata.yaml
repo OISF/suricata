@@ -73,9 +73,14 @@ outputs:
       filename: http.log
       append: yes
 
+  # Packet log... log packets in pcap format.
   - pcap-log:
       enabled:  no
       filename: log.pcap
+
+      # Limit in MB.
+      #limit: 32
+
   # a full alerts log containing much information for signature writers
   # or for investigating suspected false positives.
   - alert-debug:
