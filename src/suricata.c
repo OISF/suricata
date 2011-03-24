@@ -381,6 +381,101 @@ void usage(const char *progname)
             progname);
 }
 
+void SCPrintBuildInfo(void) {
+    char *bits = "<unknown>-bits";
+    char *endian = "<unknown>-endian";
+    char features[2048] = "";
+
+#ifdef DEBUG
+    strlcat(features, "DEBUG ", sizeof(features));
+#endif
+#ifdef DEBUG_VALIDATION
+    strlcat(features, "DEBUG_VALIDATION ", sizeof(features));
+#endif
+#ifdef UNITTESTS
+    strlcat(features, "UNITTESTS ", sizeof(features));
+#endif
+#ifdef NFQ
+    strlcat(features, "NFQ ", sizeof(features));
+#endif
+#ifdef IPFW
+    strlcat(features, "IPFW ", sizeof(features));
+#endif
+#ifdef HAVE_PCAP_SET_BUFF
+    strlcat(features, "PCAP_SET_BUFF ", sizeof(features));
+#endif
+#if LIBPCAP_VERSION_MAJOR == 1
+    strlcat(features, "LIBPCAP_VERSION_MAJOR=1 ", sizeof(features));
+#elif LIBPCAP_VERSION_MAJOR == 0
+    strlcat(features, "LIBPCAP_VERSION_MAJOR=0 ", sizeof(features));
+#endif
+#ifdef __SC_CUDA_SUPPORT__
+    strlcat(features, "CUDA ", sizeof(features));
+#endif
+#ifdef HAVE_PFRING
+    strlcat(features, "PF_RING ", sizeof(features));
+#endif
+#ifdef HAVE_DAG
+    strlcat(features, "DAG ", sizeof(features));
+#endif
+#ifdef HAVE_LIBCAP_NG
+    strlcat(features, "LIBCAP_NG ", sizeof(features));
+#endif
+#ifdef HAVE_LIBNET11
+    strlcat(features, "LIBNET1.1 ", sizeof(features));
+#endif
+    if (strlen(features) == 0) {
+        strlcat(features, "none", sizeof(features));
+    }
+
+    SCLogInfo("Features: %s", features);
+
+#if __WORDSIZE == 64
+    bits = "64-bits";
+#elif __WORDSIZE == 32
+    bits = "32-bits";
+#endif
+
+#if __BYTE_ORDER == __BIG_ENDIAN
+    endian = "Big-endian";
+#elif __BYTE_ORDER == __LITTLE_ENDIAN
+    endian = "Little-endian";
+#endif
+
+    SCLogInfo("%s, %s architecture", bits, endian);
+#ifdef __GNUC__
+    SCLogInfo("GCC version %s, C version %"PRIiMAX, __VERSION__, (intmax_t)__STDC_VERSION__);
+#else
+    SCLogInfo("C version %"PRIiMAX, (intmax_t)__STDC_VERSION__);
+#endif
+
+#ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_1
+    SCLogInfo("__GCC_HAVE_SYNC_COMPARE_AND_SWAP_1");
+#endif
+#ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_2
+    SCLogInfo("__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2");
+#endif
+#ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_4
+    SCLogInfo("__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4");
+#endif
+#ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_8
+    SCLogInfo("__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8");
+#endif
+#ifdef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_16
+    SCLogInfo("__GCC_HAVE_SYNC_COMPARE_AND_SWAP_16");
+#endif
+
+#if __SSP__ == 1
+    SCLogInfo("compiled with -fstack-protector");
+#endif
+#if __SSP_ALL__ == 2
+    SCLogInfo("compiled with -fstack-protector-all");
+#endif
+#ifdef _FORTIFY_SOURCE
+    SCLogInfo("compiled with _FORTIFY_SOURCE=%d", _FORTIFY_SOURCE);
+#endif
+}
+
 int main(int argc, char **argv)
 {
     int opt;
@@ -408,6 +503,7 @@ int main(int argc, char **argv)
     uint32_t groupid = 0;
     char *erf_file = NULL;
     char *dag_input = NULL;
+    int build_info = 0;
 
     char *log_dir;
     struct stat buf;
@@ -481,6 +577,7 @@ int main(int argc, char **argv)
         {"group", required_argument, 0, 0},
         {"erf-in", required_argument, 0, 0},
         {"dag", required_argument, 0, 0},
+        {"build-info", 0, &build_info, 1},
         {NULL, 0, NULL, 0}
     };
 
@@ -636,6 +733,10 @@ int main(int argc, char **argv)
                 SCLogError(SC_ERR_NO_PCAP_SET_BUFFER_SIZE, "The version of libpcap you have"
                         " doesn't support setting buffer size.");
 #endif /* HAVE_PCAP_SET_BUFF */
+            }
+            else if(strcmp((long_opts[option_index]).name, "build-info") == 0) {
+                SCPrintBuildInfo();
+                exit(EXIT_SUCCESS);
             }
             break;
         case 'c':
