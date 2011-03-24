@@ -1244,6 +1244,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     /* inspect the sigs against the packet */
     for (idx = 0; idx < det_ctx->match_array_cnt; idx++) {
+        StreamMsg *alert_msg = NULL;
         PROFILING_START;
 
         s = det_ctx->match_array[idx];
@@ -1345,6 +1346,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                              * rest of the pkts with no further inspection */
                             if (s->action == ACTION_DROP)
                                 alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
+
+                            /* store ptr to current smsg */
+                            if (alert_msg == NULL) {
+                                alert_msg = smsg_inspect;
+                                p->alerts.alert_msgs = smsg;
+                            }
+
                             break;
                         }
                     }
@@ -1378,6 +1386,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1) {
                         goto next;
                     }
+
                 } else {
                     if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
                         goto next;
@@ -1425,7 +1434,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
             fmatch = 1;
             if (!(s->flags & SIG_FLAG_NOALERT)) {
-                PacketAlertAppend(det_ctx, s, p, alert_flags);
+                PacketAlertAppend(det_ctx, s, p, alert_flags, NULL);
             }
         } else {
             if (s->flags & SIG_FLAG_RECURSIVE) {
@@ -1445,7 +1454,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                                 if (!(s->flags & SIG_FLAG_NOALERT)) {
                                     /* only add once */
                                     if (rmatch == 0) {
-                                        PacketAlertAppend(det_ctx, s, p, alert_flags);
+                                        PacketAlertAppend(det_ctx, s, p, alert_flags, alert_msg);
                                     }
                                 }
                                 rmatch = fmatch = 1;
@@ -1478,7 +1487,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                         if (sm == NULL) {
                             fmatch = 1;
                             if (!(s->flags & SIG_FLAG_NOALERT)) {
-                                PacketAlertAppend(det_ctx, s, p, alert_flags);
+                                PacketAlertAppend(det_ctx, s, p, alert_flags, alert_msg);
                             }
                         }
                     } else {
@@ -1546,16 +1555,13 @@ end:
             }
         }
 
-        /* if we have (a) smsg(s), return to the pool */
-        while (smsg != NULL) {
-            StreamMsg *smsg_next = smsg->next;
-            SCLogDebug("returning smsg %p to pool", smsg);
-            smsg->next = NULL;
-            smsg->prev = NULL;
-            smsg->flow = NULL;
-            StreamMsgReturnToPool(smsg);
-            smsg = smsg_next;
+        /* if we had no alerts that involved the smsgs,
+         * we can get rid of them now. */
+        if (p->alerts.alert_msgs == NULL) {
+            /* if we have (a) smsg(s), return to the pool */
+            StreamMsgReturnListToPool(smsg);
         }
+
         SCMutexUnlock(&p->flow->m);
 
         FlowDecrUsecnt(p->flow);

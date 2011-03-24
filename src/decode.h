@@ -226,6 +226,10 @@ typedef struct PacketAlert_ {
     char *class_msg;
     DetectReference *references;
     uint8_t flags;
+
+    /** Pointer to smsg this signature matched on, or
+     *  NULL if the sig didn't match on a smsg */
+    void *alert_msg;
 } PacketAlert;
 
 /* After processing an alert by the thresholding module, if at
@@ -238,6 +242,11 @@ typedef struct PacketAlert_ {
 typedef struct PacketAlerts_ {
     uint16_t cnt;
     PacketAlert alerts[PACKET_ALERT_MAX];
+
+    /** pointer to (list of) stream message(s)
+     *  that one or more of the signatures
+     *  matched on */
+    void *alert_msgs;
 } PacketAlerts;
 
 /** number of decoder events we support per packet. Power of 2 minus 1

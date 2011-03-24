@@ -37,6 +37,8 @@
 #include "threadvars.h"
 #include "flow.h"
 
+#include "stream.h"
+
 #include "tm-queuehandlers.h"
 
 #include "pkt-var.h"
@@ -126,6 +128,12 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     SCLogDebug("Packet %p, p->root %p, alloced %s", p, p->root, p->flags & PKT_ALLOC ? "true" : "false");
 
     char proot = 0;
+
+    /* final alerts cleanup... return smsgs to pool if needed */
+    if (p->alerts.alert_msgs != NULL) {
+        StreamMsgReturnListToPool(p->alerts.alert_msgs);
+        p->alerts.alert_msgs = NULL;
+    }
 
     if (IS_TUNNEL_PKT(p)) {
         SCLogDebug("Packet %p is a tunnel packet: %s",

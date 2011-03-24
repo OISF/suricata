@@ -223,3 +223,17 @@ uint16_t StreamMsgQueueGetMinChunkLen(uint8_t dir) {
     }
 }
 
+/** \brief Return a list of smsgs to the pool */
+void StreamMsgReturnListToPool(void *list) {
+    /* if we have (a) smsg(s), return to the pool */
+    StreamMsg *smsg = (StreamMsg *)list;
+    while (smsg != NULL) {
+        StreamMsg *smsg_next = smsg->next;
+        SCLogDebug("returning smsg %p to pool", smsg);
+        smsg->next = NULL;
+        smsg->prev = NULL;
+        smsg->flow = NULL;
+        StreamMsgReturnToPool(smsg);
+        smsg = smsg_next;
+    }
+}

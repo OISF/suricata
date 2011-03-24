@@ -87,5 +87,7 @@ void StreamMsgQueueSetMinChunkLen(uint8_t dir, uint16_t len);
 uint16_t StreamMsgQueueGetMinInitChunkLen(uint8_t);
 uint16_t StreamMsgQueueGetMinChunkLen(uint8_t);
 
+void StreamMsgReturnListToPool(void *);
+
 #endif /* __STREAM_H__ */
 

@@ -28,7 +28,7 @@
 #include "detect.h"
 
 void PacketAlertFinalize(DetectEngineCtx *, DetectEngineThreadCtx *, Packet *);
-int PacketAlertAppend(DetectEngineThreadCtx *, Signature *, Packet *, uint8_t);
+int PacketAlertAppend(DetectEngineThreadCtx *, Signature *, Packet *, uint8_t, /* (StreamMsg *) */void *);
 int PacketAlertAppendTag(Packet *, PacketAlert *);
 int PacketAlertCheck(Packet *, uint32_t);
 int PacketAlertRemove(Packet *, uint16_t);

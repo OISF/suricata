@@ -30,6 +30,7 @@
 #include "detect.h"
 #include "flow.h"
 #include "conf.h"
+#include "stream.h"
 
 #include "threads.h"
 #include "threadvars.h"
@@ -181,18 +182,6 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
     if (p->pcap_cnt > 0) {
         fprintf(aft->file_ctx->fp, "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt);
     }
-    fprintf(aft->file_ctx->fp, "ALERT CNT:         %" PRIu32 "\n", p->alerts.cnt);
-
-    for (i = 0; i < p->alerts.cnt; i++) {
-        PacketAlert *pa = &p->alerts.alerts[i];
-
-        fprintf(aft->file_ctx->fp, "ALERT MSG [%02d]:    %s\n", i, pa->msg);
-        fprintf(aft->file_ctx->fp, "ALERT GID [%02d]:    %" PRIu32 "\n", i, pa->gid);
-        fprintf(aft->file_ctx->fp, "ALERT SID [%02d]:    %" PRIu32 "\n", i, pa->sid);
-        fprintf(aft->file_ctx->fp, "ALERT REV [%02d]:    %" PRIu32 "\n", i, pa->rev);
-        fprintf(aft->file_ctx->fp, "ALERT CLASS [%02d]:  %s\n", i, pa->class_msg);
-        fprintf(aft->file_ctx->fp, "ALERT PRIO [%02d]:   %" PRIu32 "\n", i, pa->prio);
-    }
 
     char srcip[16], dstip[16];
     inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
@@ -223,17 +212,17 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
         fprintf(aft->file_ctx->fp, "FLOW PKTS TOSRC:   %"PRIu32"\n",p->flow->tosrcpktcnt);
         fprintf(aft->file_ctx->fp, "FLOW Total Bytes:  %"PRIu64"\n",p->flow->bytecnt);
         fprintf(aft->file_ctx->fp, "FLOW IPONLY SET:   TOSERVER: %s, TOCLIENT: %s\n",
-        p->flow->flags & FLOW_TOSERVER_IPONLY_SET ? "TRUE" : "FALSE",
-        p->flow->flags & FLOW_TOCLIENT_IPONLY_SET ? "TRUE" : "FALSE");
+                p->flow->flags & FLOW_TOSERVER_IPONLY_SET ? "TRUE" : "FALSE",
+                p->flow->flags & FLOW_TOCLIENT_IPONLY_SET ? "TRUE" : "FALSE");
         fprintf(aft->file_ctx->fp, "FLOW ACTION:       DROP: %s, PASS %s\n",
-        p->flow->flags & FLOW_ACTION_DROP ? "TRUE" : "FALSE",
-        p->flow->flags & FLOW_ACTION_PASS ? "TRUE" : "FALSE");
+                p->flow->flags & FLOW_ACTION_DROP ? "TRUE" : "FALSE",
+                p->flow->flags & FLOW_ACTION_PASS ? "TRUE" : "FALSE");
         fprintf(aft->file_ctx->fp, "FLOW NOINSPECTION: PACKET: %s, PAYLOAD: %s, APP_LAYER: %s\n",
-        p->flow->flags & FLOW_NOPACKET_INSPECTION ? "TRUE" : "FALSE",
-        p->flow->flags & FLOW_NOPAYLOAD_INSPECTION ? "TRUE" : "FALSE",
-        p->flow->alflags & FLOW_AL_NO_APPLAYER_INSPECTION ? "TRUE" : "FALSE");
+                p->flow->flags & FLOW_NOPACKET_INSPECTION ? "TRUE" : "FALSE",
+                p->flow->flags & FLOW_NOPAYLOAD_INSPECTION ? "TRUE" : "FALSE",
+                p->flow->alflags & FLOW_AL_NO_APPLAYER_INSPECTION ? "TRUE" : "FALSE");
         fprintf(aft->file_ctx->fp, "FLOW APP_LAYER:    DETECTED: %s, PROTO %"PRIu16"\n",
-        p->flow->alflags & FLOW_AL_PROTO_DETECT_DONE ? "TRUE" : "FALSE", p->flow->alproto);
+                p->flow->alflags & FLOW_AL_PROTO_DETECT_DONE ? "TRUE" : "FALSE", p->flow->alproto);
         AlertDebugLogFlowVars(aft, p);
         AlertDebugLogFlowBits(aft, p);
         SCMutexUnlock(&p->flow->m);
@@ -244,11 +233,35 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
 /* any stuff */
 /* Sig details? */
 
-    aft->file_ctx->alerts += p->alerts.cnt;
-
     fprintf(aft->file_ctx->fp, "PACKET LEN:        %" PRIu32 "\n", GET_PKT_LEN(p));
     fprintf(aft->file_ctx->fp, "PACKET:\n");
     PrintRawDataFp(aft->file_ctx->fp, GET_PKT_DATA(p), GET_PKT_LEN(p));
+
+    fprintf(aft->file_ctx->fp, "ALERT CNT:           %" PRIu32 "\n", p->alerts.cnt);
+
+    for (i = 0; i < p->alerts.cnt; i++) {
+        PacketAlert *pa = &p->alerts.alerts[i];
+
+        fprintf(aft->file_ctx->fp, "ALERT MSG [%02d]:      %s\n", i, pa->msg);
+        fprintf(aft->file_ctx->fp, "ALERT GID [%02d]:      %" PRIu32 "\n", i, pa->gid);
+        fprintf(aft->file_ctx->fp, "ALERT SID [%02d]:      %" PRIu32 "\n", i, pa->sid);
+        fprintf(aft->file_ctx->fp, "ALERT REV [%02d]:      %" PRIu32 "\n", i, pa->rev);
+        fprintf(aft->file_ctx->fp, "ALERT CLASS [%02d]:    %s\n", i, pa->class_msg ? pa->class_msg : "<none>");
+        fprintf(aft->file_ctx->fp, "ALERT PRIO [%02d]:     %" PRIu32 "\n", i, pa->prio);
+        fprintf(aft->file_ctx->fp, "ALERT FOUND IN [%02d]: %s\n", i, pa->alert_msg ? "STREAM" : "OTHER");
+        if (pa->alert_msg != NULL) {
+            fprintf(aft->file_ctx->fp, "ALERT STREAM LEN[%02d]:%"PRIu16"\n", i, ((StreamMsg *)pa->alert_msg)->data.data_len);
+            fprintf(aft->file_ctx->fp, "ALERT STREAM [%02d]:\n", i);
+            PrintRawDataFp(aft->file_ctx->fp, ((StreamMsg *)pa->alert_msg)->data.data,
+                    ((StreamMsg *)pa->alert_msg)->data.data_len);
+        } else if (p->payload_len > 0) {
+            fprintf(aft->file_ctx->fp, "PAYLOAD LEN:       %" PRIu32 "\n", p->payload_len);
+            fprintf(aft->file_ctx->fp, "PAYLOAD:\n");
+            PrintRawDataFp(aft->file_ctx->fp, p->payload, p->payload_len);
+        }
+    }
+
+    aft->file_ctx->alerts += p->alerts.cnt;
 
     fflush(aft->file_ctx->fp);
     SCMutexUnlock(&aft->file_ctx->fp_mutex);

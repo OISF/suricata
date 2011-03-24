@@ -29,8 +29,6 @@
 
 #define THRESHOLD_HASH_SIZE 0xffff
 
-int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *,
-                       Signature *sig, Packet *p, uint16_t);
 DetectThresholdData *SigGetThresholdType(Signature *, Packet *);
 int PacketAlertThreshold(DetectEngineCtx *, DetectEngineThreadCtx *,
                           DetectThresholdData *, Packet *, Signature *);

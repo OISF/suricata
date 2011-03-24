@@ -35,7 +35,7 @@
  * \param p Packet structure
  *
  */
-int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                        Signature *s, Packet *p, uint16_t pos)
 {
     SCEnter();
@@ -110,7 +110,15 @@ int PacketAlertRemove(Packet *p, uint16_t pos)
     return match;
 }
 
-int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p, uint8_t flags)
+/** \brief append a signature match to a packet
+ *
+ *  \param det_ctx thread detection engine ctx
+ *  \param s the signature that matched
+ *  \param p packet
+ *  \param flags alert flags
+ *  \param alert_msg ptr to StreamMsg object that the signature matched on
+ */
+int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p, uint8_t flags, void *alert_msg)
 {
     int i = 0;
 
@@ -139,6 +147,7 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p, u
         p->alerts.alerts[p->alerts.cnt].class_msg = s->class_msg;
         p->alerts.alerts[p->alerts.cnt].references = s->references;
         p->alerts.alerts[p->alerts.cnt].flags = flags;
+        p->alerts.alerts[p->alerts.cnt].alert_msg = alert_msg;
     } else {
         /* We need to make room for this s->num
          (a bit ugly with mamcpy but we are planning changes here)*/
@@ -164,6 +173,7 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p, u
         p->alerts.alerts[i].class_msg = s->class_msg;
         p->alerts.alerts[i].references = s->references;
         p->alerts.alerts[i].flags = flags;
+        p->alerts.alerts[i].alert_msg = alert_msg;
     }
 
     /* Update the count */
