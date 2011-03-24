@@ -238,8 +238,8 @@ void DetectMarkDataFree(void *ptr)
 
 int DetectMarkPacket(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
-    DetectMarkData *nf_data = (DetectMarkData *) m->ctx;
 #ifdef NFQ
+    DetectMarkData *nf_data = (DetectMarkData *) m->ctx;
     if (nf_data->mask) {
         p->nfq_v.mark = (nf_data->mark & nf_data->mask)
                         | (p->nfq_v.mark & ~(nf_data->mask));
