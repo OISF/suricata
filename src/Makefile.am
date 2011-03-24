@@ -11,6 +11,7 @@ runmode-pcap.c runmode-pcap.h \
 runmode-pcap-file.c runmode-pcap-file.h \
 runmode-pfring.c runmode-pfring.h \
 runmode-nfq.c runmode-nfq.h \
+runmode-ipfw.c runmode-ipfw.h \
 packet-queue.c packet-queue.h \
 data-queue.c data-queue.h \
 threads.c threads.h \
