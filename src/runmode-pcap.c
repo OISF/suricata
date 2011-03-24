@@ -19,6 +19,7 @@
 #include "tm-threads.h"
 #include "conf.h"
 #include "runmodes.h"
+#include "runmode-pcap.h"
 #include "log-httplog.h"
 #include "output.h"
 #include "cuda-packet-batcher.h"

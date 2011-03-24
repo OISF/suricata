@@ -28,14 +28,10 @@ void RunModeInitializeOutputs(void);
 void SetupOutputs(ThreadVars *);
 
 #include "runmode-pcap.h"
+#include "runmode-pcap-file.h"
 
 int RunModeIpsNFQ(DetectEngineCtx *, char *);
 int RunModeIpsNFQAuto(DetectEngineCtx *, char *);
-
-int RunModeFilePcap(DetectEngineCtx *, char *);
-int RunModeFilePcap2(DetectEngineCtx *, char *);
-int RunModeFilePcapAuto(DetectEngineCtx *, char *);
-int RunModeFilePcapAuto2(DetectEngineCtx *, char *);
 
 int RunModeIdsPfring(DetectEngineCtx *, char *);
 int RunModeIdsPfring2(DetectEngineCtx *, char *);
@@ -50,8 +46,6 @@ int RunModeErfFileAuto(DetectEngineCtx *, char *);
 int RunModeErfDagAuto(DetectEngineCtx *, char *);
 
 void RunModeShutDown(void);
-
-int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx, char *file);
 
 int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx, char *iface);
 
