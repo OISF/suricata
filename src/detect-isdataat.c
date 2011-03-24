@@ -333,6 +333,9 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                     case DETECT_AL_HTTP_COOKIE:
                         list_type = DETECT_SM_LIST_HCDMATCH;
                         break;
+                    default:
+                        /* would never happen */
+                        break;
                 } /* switch */
             } /* else */
             if (list_type == -1) {

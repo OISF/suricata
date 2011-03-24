@@ -20,29 +20,17 @@
  *  \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __RUNMODES_H__
-#define __RUNMODES_H__
+#ifndef __RUNMODE_PFRING_H__
+#define __RUNMODE_PFRING_H__
 
-void RunModeInitialize(void);
-void RunModeInitializeOutputs(void);
-void SetupOutputs(ThreadVars *);
+#include "suricata-common.h"
 
-#include "runmode-pcap.h"
-#include "runmode-pcap-file.h"
-#include "runmode-pfring.h"
+/* We include only if pfring is enabled */
+#ifdef HAVE_PFRING
 
-int RunModeIpsNFQ(DetectEngineCtx *, char *);
-int RunModeIpsNFQAuto(DetectEngineCtx *, char *);
+int RunModeIdsPfringAuto(DetectEngineCtx *, char *);
+int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx, char *iface);
 
-int RunModeIpsIPFW(DetectEngineCtx *);
-int RunModeIpsIPFWAuto(DetectEngineCtx *);
+#endif /* #ifdef HAVE_PFRING */
 
-int RunModeErfFileAuto(DetectEngineCtx *, char *);
-int RunModeErfDagAuto(DetectEngineCtx *, char *);
-
-void RunModeShutDown(void);
-
-int threading_set_cpu_affinity;
-extern float threading_detect_ratio;
-#endif /* __RUNMODES_H__ */
-
+#endif /* __RUNMODE_PFRING_H__ */
