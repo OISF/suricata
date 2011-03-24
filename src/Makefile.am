@@ -7,6 +7,7 @@ noinst_HEADERS = action-globals.h \
 bin_PROGRAMS = suricata
 suricata_SOURCES = suricata.c suricata.h \
 runmodes.c runmodes.h \
+runmode-pcap.c runmode-pcap.h \
 packet-queue.c packet-queue.h \
 data-queue.c data-queue.h \
 threads.c threads.h \

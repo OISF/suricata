@@ -23,12 +23,11 @@
 #ifndef __RUNMODES_H__
 #define __RUNMODES_H__
 
+void RunModeInitialize(void);
 void RunModeInitializeOutputs(void);
+void SetupOutputs(ThreadVars *);
 
-int RunModeIdsPcap(DetectEngineCtx *, char *);
-int RunModeIdsPcap2(DetectEngineCtx *, char *);
-int RunModeIdsPcap3(DetectEngineCtx *, char *);
-int RunModeIdsPcapAuto(DetectEngineCtx *, char *);
+#include "runmode-pcap.h"
 
 int RunModeIpsNFQ(DetectEngineCtx *, char *);
 int RunModeIpsNFQAuto(DetectEngineCtx *, char *);
@@ -57,5 +56,6 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx, char *file);
 int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx, char *iface);
 
 int threading_set_cpu_affinity;
+extern float threading_detect_ratio;
 #endif /* __RUNMODES_H__ */
 
