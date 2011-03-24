@@ -13,6 +13,7 @@ runmode-pfring.c runmode-pfring.h \
 runmode-nfq.c runmode-nfq.h \
 runmode-ipfw.c runmode-ipfw.h \
 runmode-erf-file.c runmode-erf-file.h \
+runmode-erf-dag.c runmode-erf-dag.h \
 packet-queue.c packet-queue.h \
 data-queue.c data-queue.h \
 threads.c threads.h \
