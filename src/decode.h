@@ -171,6 +171,8 @@ typedef struct Address_ {
 
 #define GET_PKT_LEN(p) ((p)->pktlen)
 #define GET_PKT_DATA(p) ((((p)->ext_pkt) == NULL ) ? (p)->pkt : (p)->ext_pkt)
+#define GET_PKT_DIRECT_DATA(p) (p)->pkt
+#define GET_PKT_DIRECT_MAX_SIZE(p) default_packet_size - 1
 
 #define SET_PKT_LEN(p, len) do { \
     (p)->pktlen = len; \
