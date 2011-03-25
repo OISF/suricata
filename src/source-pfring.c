@@ -219,7 +219,11 @@ TmEcode ReceivePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
     }
 
     /* Depending on what compile time options are used for pfring we either return 0 or -1 on error and always 1 for success */
-    int r = pfring_recv(ptv->pd, (char *)p->pkt , (u_int)(default_packet_size - 1), &hdr, LIBPFRING_WAIT_FOR_INCOMING);
+
+    int r = pfring_recv(ptv->pd, (char *)GET_PKT_DIRECT_DATA(p),
+                        (u_int)GET_PKT_DIRECT_MAX_SIZE(p),
+                        &hdr,
+                        LIBPFRING_WAIT_FOR_INCOMING);
     if (r == 1) {
         //printf("RecievePfring src %" PRIu32 " sport %" PRIu32 " dst %" PRIu32 " dstport %" PRIu32 "\n",
         //        hdr.parsed_pkt.ipv4_src,hdr.parsed_pkt.l4_src_port, hdr.parsed_pkt.ipv4_dst,hdr.parsed_pkt.l4_dst_port);
