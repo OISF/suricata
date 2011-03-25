@@ -116,6 +116,9 @@ DetectThresholdData *DetectDetectionFilterParse (char *rawstr) {
     int i = 0;
 
     copy_str = SCStrdup(rawstr);
+    if (copy_str == NULL) {
+        goto error;
+    }
 
     for(pos = 0, df_opt = strtok(copy_str,",");  pos < strlen(copy_str) &&  df_opt != NULL;  pos++, df_opt = strtok(NULL,",")) {
 
@@ -127,8 +130,10 @@ DetectThresholdData *DetectDetectionFilterParse (char *rawstr) {
             track_found++;
     }
 
-    if(copy_str)
+    if (copy_str) {
         SCFree(copy_str);
+        copy_str = NULL;
+    }
 
     if(count_found != 1 || seconds_found != 1 || track_found != 1)
         goto error;
@@ -185,16 +190,21 @@ DetectThresholdData *DetectDetectionFilterParse (char *rawstr) {
         goto error;
     }
 
-    for (i = 0; i < (ret - 1); i++){
-        if (args[i] != NULL) SCFree(args[i]);
+    for (i = 0; i < 6; i++){
+        if (args[i] != NULL)
+            SCFree(args[i]);
     }
     return df;
 
 error:
-    for (i = 0; i < (ret - 1); i++){
-        if (args[i] != NULL) SCFree(args[i]);
+    for (i = 0; i < 6; i++){
+        if (args[i] != NULL)
+            SCFree(args[i]);
     }
-    if (df) SCFree(df);
+    if (df != NULL)
+        SCFree(df);
+    if (copy_str != NULL)
+        SCFree(copy_str);
     return NULL;
 }
 

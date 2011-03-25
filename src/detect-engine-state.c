@@ -229,8 +229,6 @@ static void DeStateSignatureAppend(DetectEngineState *state, Signature *s,
                 state->tail->next = store;
                 state->tail = store;
             }
-        } else {
-            store = state->tail;
         }
     }
 

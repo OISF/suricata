@@ -135,6 +135,9 @@ void *TmqhOutputFlowSetupCtx(char *queue_str) {
     memset(ctx,0x00,sizeof(TmqhFlowCtx));
 
     char *str = SCStrdup(queue_str);
+    if (str == NULL) {
+        goto error;
+    }
     char *tstr = str;
 
     /* parse the comma separated string */
@@ -159,7 +162,8 @@ void *TmqhOutputFlowSetupCtx(char *queue_str) {
     return (void *)ctx;
 error:
     SCFree(ctx);
-    SCFree(str);
+    if (str != NULL)
+        SCFree(str);
     return NULL;
 }
 

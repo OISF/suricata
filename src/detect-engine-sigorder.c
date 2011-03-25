@@ -180,7 +180,7 @@ static inline int SCSigGetFlowvarType(Signature *sig)
     sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
     pd = NULL;
     while (sm != NULL) {
-        pd = (DetectPcreData *)sm->ctx;
+        //pd = (DetectPcreData *)sm->ctx;
         if (sm->type == DETECT_FLOWVAR) {
             type = DETECT_FLOWVAR_TYPE_READ;
             return type;
@@ -228,7 +228,7 @@ static inline int SCSigGetPktvarType(Signature *sig)
     sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
     pd = NULL;
     while (sm != NULL) {
-        pd = (DetectPcreData *)sm->ctx;
+        //pd = (DetectPcreData *)sm->ctx;
         if (sm->type == DETECT_PKTVAR) {
             type = DETECT_PKTVAR_TYPE_READ;
             return type;
@@ -344,17 +344,21 @@ static void SCSigOrderByAction(DetectEngineCtx *de_ctx,
     if (min == max && prev != sw) {
         if (sw->next != NULL) {
             sw->next->prev = sw->prev;
+        }
+        if (sw->prev != NULL) {
             sw->prev->next = sw->next;
         }
 
         if (min == NULL) {
-            prev->next = sw;
+            if (prev != NULL)
+               prev->next = sw;
             sw->prev = prev;
             sw->next = NULL;
         } else {
             sw->prev = min->prev;
             sw->next = min;
-            min->prev->next = sw;
+            if (min->prev != NULL)
+                min->prev->next = sw;
             min->prev = sw;
         }
     }
@@ -449,17 +453,21 @@ static void SCSigOrderByFlowbits(DetectEngineCtx *de_ctx,
     if (min == max && prev != sw) {
         if (sw->next != NULL) {
             sw->next->prev = sw->prev;
+        }
+        if (sw->prev != NULL) {
             sw->prev->next = sw->next;
         }
 
         if (min == NULL) {
-            prev->next = sw;
+            if (prev != NULL)
+                prev->next = sw;
             sw->prev = prev;
             sw->next = NULL;
         } else {
             sw->prev = min->prev;
             sw->next = min;
-            min->prev->next = sw;
+            if (min->prev != NULL)
+                min->prev->next = sw;
             min->prev = sw;
         }
     }
@@ -557,17 +565,21 @@ static void SCSigOrderByFlowvar(DetectEngineCtx *de_ctx,
     if (min == max && prev != sw) {
         if (sw->next != NULL) {
             sw->next->prev = sw->prev;
+        }
+        if (sw->prev != NULL) {
             sw->prev->next = sw->next;
         }
 
         if (min == NULL) {
-            prev->next = sw;
+            if (prev != NULL)
+                prev->next = sw;
             sw->prev = prev;
             sw->next = NULL;
         } else {
             sw->prev = min->prev;
             sw->next = min;
-            min->prev->next = sw;
+            if (min->prev != NULL)
+                min->prev->next = sw;
             min->prev = sw;
         }
     }
@@ -663,17 +675,21 @@ static void SCSigOrderByPktvar(DetectEngineCtx *de_ctx,
     if (min == max && prev != sw) {
         if (sw->next != NULL) {
             sw->next->prev = sw->prev;
+        }
+        if (sw->prev != NULL) {
             sw->prev->next = sw->next;
         }
 
         if (min == NULL) {
-            prev->next = sw;
+            if (prev != NULL)
+                prev->next = sw;
             sw->prev = prev;
             sw->next = NULL;
         } else {
             sw->prev = min->prev;
             sw->next = min;
-            min->prev->next = sw;
+            if (min->prev != NULL)
+                min->prev->next = sw;
             min->prev = sw;
         }
     }
@@ -770,17 +786,21 @@ static void SCSigOrderByPriority(DetectEngineCtx *de_ctx,
     if (min == max && prev != sw) {
         if (sw->next != NULL) {
             sw->next->prev = sw->prev;
+        }
+        if (sw->prev != NULL) {
             sw->prev->next = sw->next;
         }
 
         if (min == NULL) {
-            prev->next = sw;
+            if (prev != NULL)
+                prev->next = sw;
             sw->prev = prev;
             sw->next = NULL;
         } else {
             sw->prev = min->prev;
             sw->next = min;
-            min->prev->next = sw;
+            if (min->prev != NULL)
+                min->prev->next = sw;
             min->prev = sw;
         }
     }

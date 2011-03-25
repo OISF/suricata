@@ -353,10 +353,10 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
      * supports 9 substrings, sigh.
      */
     res = pcre_get_substring((char *)optstr, ov,
-                             MAX_SUBSTRINGS, i + 1, (const char **)&str_ptr);
+                             MAX_SUBSTRINGS, 1, (const char **)&str_ptr);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_get_substring failed "
-               "for arg %d", i + 1);
+               "for arg 1");
         goto error;
     }
 

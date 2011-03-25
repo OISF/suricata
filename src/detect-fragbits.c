@@ -248,16 +248,19 @@ static DetectFragBitsData *DetectFragBitsParse (char *rawstr)
     if(found == 0)
         goto error;
 
-    for (i = 0; i < (ret - 1); i++){
-        if (args[i] != NULL) SCFree(args[i]);
+    for (i = 0; i < 2; i++) {
+        if (args[i] != NULL)
+            SCFree(args[i]);
     }
     return de;
 
 error:
-    for (i = 0; i < (ret - 1); i++){
-        if (args[i] != NULL) SCFree(args[i]);
+    for (i = 0; i < 2; i++) {
+        if (args[i] != NULL)
+            SCFree(args[i]);
     }
-    if (de) SCFree(de);
+    if (de != NULL)
+        SCFree(de);
     return NULL;
 }
 

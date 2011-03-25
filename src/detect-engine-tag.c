@@ -270,11 +270,12 @@ int TagHashAddTag(DetectTagHostCtx *tag_ctx, DetectTagDataEntry *tde, Packet *p)
     entry = TagHashSearch(tag_ctx, &tdl, p);
     if (entry == NULL) {
         DetectTagDataEntryList *new = SCMalloc(sizeof(DetectTagDataEntryList));
-        if (new == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate a new session");
+        if (new != NULL) {
+            memcpy(new, &tdl, sizeof(DetectTagDataEntryList));
+            TagHashAdd(tag_ctx, new, p);
+        } else {
+            SCLogDebug("Failed to allocate a new session");
         }
-        memcpy(new, &tdl, sizeof(DetectTagDataEntryList));
-        TagHashAdd(tag_ctx, new, p);
     } else {
         /* Append the tag to the list of this host */
 

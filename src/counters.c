@@ -1108,12 +1108,14 @@ static int SCPerfOutputCounterFileIface()
                         break;
                 }
 
-                pc_heads[u] = pc_heads[u]->next;
+                if (pc_heads[u] != NULL)
+                    pc_heads[u] = pc_heads[u]->next;
 
                 if (pc_heads[u] == NULL ||
                     (pc_heads[0] != NULL &&
-                        strcmp(pctmi->tm_name, pc_heads[0]->name->tm_name)))
+                        strcmp(pctmi->tm_name, pc_heads[0]->name->tm_name))) {
                     flag = 0;
+                }
             }
 
             if (pc->disp == 0 || pc->value == NULL)
@@ -1839,6 +1841,10 @@ static int SCPerfTestGetCntArray05()
 
     id = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL,
                                &tv.sc_perf_pctx);
+    if (id != 1) {
+        printf("id %d: ", id);
+        return 0;
+    }
 
     tv.sc_perf_pca = SCPerfGetAllCountersArray(NULL);
 
@@ -1855,6 +1861,8 @@ static int SCPerfTestGetCntArray06()
 
     id = SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL,
                                &tv.sc_perf_pctx);
+    if (id != 1)
+        return 0;
 
     tv.sc_perf_pca = SCPerfGetAllCountersArray(&tv.sc_perf_pctx);
 
@@ -1874,7 +1882,7 @@ static int SCPerfTestCntArraySize07()
 
     memset(&tv, 0, sizeof(ThreadVars));
 
-    pca = (SCPerfCounterArray *)&tv.sc_perf_pca;
+    //pca = (SCPerfCounterArray *)&tv.sc_perf_pca;
 
     SCPerfRegisterCounter("t1", "c1", SC_PERF_TYPE_UINT64, NULL,
                           &tv.sc_perf_pctx);

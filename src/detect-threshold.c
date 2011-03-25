@@ -121,6 +121,9 @@ static DetectThresholdData *DetectThresholdParse (char *rawstr)
     int i = 0;
 
     copy_str = SCStrdup(rawstr);
+    if (copy_str == NULL) {
+        goto error;
+    }
 
     for(pos = 0, threshold_opt = strtok(copy_str,",");  pos < strlen(copy_str) &&  threshold_opt != NULL;  pos++, threshold_opt = strtok(NULL,",")) {
 
@@ -134,8 +137,10 @@ static DetectThresholdData *DetectThresholdParse (char *rawstr)
             track_found++;
     }
 
-    if(copy_str)
+    if (copy_str != NULL) {
         SCFree(copy_str);
+        copy_str = NULL;
+    }
 
     if(count_found != 1 || second_found != 1 || type_found != 1 || track_found != 1)
         goto error;
@@ -203,7 +208,10 @@ error:
     for (i = 0; i < (ret - 1); i++){
         if (args[i] != NULL) SCFree(args[i]);
     }
-    if (de) SCFree(de);
+    if (de != NULL)
+        SCFree(de);
+    if (copy_str != NULL)
+        SCFree(copy_str);
     return NULL;
 }
 

@@ -450,7 +450,6 @@ static void SCRadixReleasePrefix(SCRadixPrefix *prefix, SCRadixTree *tree)
             SCFree(prefix->stream);
 
         user_data_temp1 = prefix->user_data;
-        user_data_temp2 = user_data_temp1;
         if (tree->Free != NULL) {
             while (user_data_temp1 != NULL) {
                 user_data_temp2 = user_data_temp1;
@@ -1041,8 +1040,7 @@ SCRadixNode *SCRadixAddKeyIPV4String(const char *str, SCRadixTree *tree, void *u
     }
 
     /* Validate the IP */
-    int r;
-    if ((r = inet_pton(AF_INET, ip_str, &addr)) <= 0) {
+    if (inet_pton(AF_INET, ip_str, &addr) <= 0) {
         return NULL;
     }
     ip = addr.s_addr;
@@ -1132,7 +1130,6 @@ static void SCRadixTransferNetmasksBWNodes(SCRadixNode *dest, SCRadixNode *src)
 static void SCRadixRemoveNetblockEntry(SCRadixNode *node, uint8_t netmask)
 {
     SCRadixNode *parent = NULL;
-    SCRadixNode *local_node = node;
     int i = 0;
 
     if (node == NULL) {
@@ -1145,10 +1142,8 @@ static void SCRadixRemoveNetblockEntry(SCRadixNode *node, uint8_t netmask)
     if (netmask == 32 || netmask == 128)
         return;
 
-    local_node = node;
-    parent = local_node->parent;
+    parent = node->parent;
     while (parent != NULL && netmask < (parent->bit + 1)) {
-        local_node = parent;
         parent = parent->parent;
     }
 
