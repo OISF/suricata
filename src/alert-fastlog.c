@@ -202,18 +202,18 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         }
 
         if (SCProtoNameValid(IPV6_GET_L4PROTO(p)) == TRUE) {
-            fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%"
+            fprintf(aft->file_ctx->fp, "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%"
                     "" PRIu32 "] %s [**] [Classification: %s] [Priority: %"
-                    "" PRIu32 "] {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "",
-                    timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg,
+                    "" PRIu32 "] {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "", timebuf,
+                    action, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg,
                     pa->prio, known_proto[IPV6_GET_L4PROTO(p)], srcip, p->sp,
                     dstip, p->dp);
 
         } else {
-            fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%"
+            fprintf(aft->file_ctx->fp, "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%"
                     "" PRIu32 "] %s [**] [Classification: %s] [Priority: %"
                     "" PRIu32 "] {PROTO:%03" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "",
-                    timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg,
+                    timebuf, action, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg,
                     pa->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
         }
 
@@ -252,8 +252,10 @@ TmEcode AlertFastLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQu
             action = "[wDrop] ";
         }
 
-        fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: %" PRIu32 "] [**] [Raw pkt: ",
-                timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio);
+        fprintf(aft->file_ctx->fp, "%s  %s[**] [%" PRIu32 ":%" PRIu32
+                ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: "
+                "%" PRIu32 "] [**] [Raw pkt: ", timebuf, action, pa->gid,
+                pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio);
 
         PrintRawLineHexFp(aft->file_ctx->fp, GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
         if (p->pcap_cnt != 0) {
