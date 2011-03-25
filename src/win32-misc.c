@@ -32,7 +32,7 @@ int setenv(const char *name, const char *value, int overwrite)
 {
 	if (overwrite || NULL == getenv(name)) {
 		char *str = SCMalloc(strlen(name) + strlen(value) + 2);
-		sprintf(str, "%s=%s", name, value);
+		snprintf(str, strlen(name) + strlen(value) + 1, "%s=%s", name, value);
 		putenv(str);
 		SCFree(str);
 	}
@@ -41,7 +41,7 @@ int setenv(const char *name, const char *value, int overwrite)
 int unsetenv(const char *name)
 {
 	char *str = SCMalloc(strlen(name) + 2);
-	sprintf(str, "%s=", name);
+	snprintf(str, strlen(name) + 1, "%s=", name);
 	putenv(str);
 	SCFree(str);
 }
