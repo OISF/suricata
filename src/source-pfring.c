@@ -193,7 +193,7 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
      * so that is what we do here. */
     p->datalink = LINKTYPE_ETHERNET;
 
-    p->pktlen = h->caplen;
+    SET_PKT_LEN(p, h->caplen);
 }
 
 /**
@@ -375,19 +375,17 @@ TmEcode DecodePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pac
     SCPerfCounterIncr(dtv->counter_pkts, tv->sc_perf_pca);
     SCPerfCounterIncr(dtv->counter_pkts_per_sec, tv->sc_perf_pca);
 
-    SCPerfCounterAddUI64(dtv->counter_bytes, tv->sc_perf_pca, p->pktlen);
+    SCPerfCounterAddUI64(dtv->counter_bytes, tv->sc_perf_pca, GET_PKT_LEN(p));
 #if 0
     SCPerfCounterAddDouble(dtv->counter_bytes_per_sec, tv->sc_perf_pca, GET_PKT_LEN(p));
     SCPerfCounterAddDouble(dtv->counter_mbit_per_sec, tv->sc_perf_pca,
                            (GET_PKT_LEN(p) * 8)/1000000.0 );
 #endif
 
-    SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->sc_perf_pca, p->pktlen);
-    SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca, p->pktlen);
+    SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->sc_perf_pca, GET_PKT_LEN(p));
+    SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca, GET_PKT_LEN(p));
 
-    /* Bypassing the pkt buffer and size macro's as we know the size of
-     * our packet never to be bigger than default_packet_size */
-    DecodeEthernet(tv, dtv, p, p->pkt, p->pktlen, pq);
+    DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
 
     return TM_ECODE_OK;
 }

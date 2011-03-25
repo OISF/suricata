@@ -146,9 +146,9 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, PacketQu
 
     pl->h->ts.tv_sec = p->ts.tv_sec;
     pl->h->ts.tv_usec = p->ts.tv_usec;
-    pl->h->caplen = p->pktlen;
-    pl->h->len = p->pktlen;
-    len = sizeof(*pl->h) + p->pktlen;
+    pl->h->caplen = GET_PKT_LEN(p);
+    pl->h->len = GET_PKT_LEN(p);
+    len = sizeof(*pl->h) + GET_PKT_LEN(p);
 
     SCMutexLock(&pl->file_ctx->fp_mutex);
     if ((pl->size_current + len) > pl->file_ctx->size_limit) {
@@ -184,7 +184,7 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, PacketQu
         }
     }
 
-    pcap_dump((u_char *)pl->pcap_dumper, pl->h, p->pkt);
+    pcap_dump((u_char *)pl->pcap_dumper, pl->h, GET_PKT_DATA(p));
     pl->size_current += len;
     SCLogDebug("%u %u",pl->size_current,pl->file_ctx->size_limit);
 

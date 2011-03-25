@@ -8344,8 +8344,8 @@ static int StreamTcpTest40(void) {
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
-    p->pktlen = sizeof(raw_vlan);
-    memcpy(p->pkt, raw_vlan, sizeof(raw_vlan));
+    SET_PKT_LEN(p, sizeof(raw_vlan));
+    memcpy(GET_PKT_DATA(p), raw_vlan, sizeof(raw_vlan));
     memset(&dtv, 0, sizeof(DecodeThreadVars));
 
     FlowInitConfig(FLOW_QUIET);
