@@ -1647,6 +1647,7 @@ int AddressTestParse02(void)
             result = 0;
         }
 
+        printf("ip %"PRIu32", ip2 %"PRIu32"\n", dd->ip.addr_data32[0], dd->ip2.addr_data32[0]);
         DetectAddressFree(dd);
         return result;
     }
@@ -4027,6 +4028,8 @@ int AddressTestCutIPv410(void)
         goto error;
     if (b->ip.addr_data32[0] != ntohl(16909059) || b->ip2.addr_data32[0] != ntohl(16909065))
         goto error;
+
+    printf("ip %u ip2 %u ", htonl(a->ip.addr_data32[0]), htonl(a->ip2.addr_data32[0]));
 
     DetectAddressFree(a);
     DetectAddressFree(b);
