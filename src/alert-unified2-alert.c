@@ -508,7 +508,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
                 pa = &pa_tag;
             else
                 break;
-        pa = &p->alerts.alerts[i];
+
         /* fill the hdr structure with the alert data */
         phdr.generator_id = htonl(pa->gid);
         phdr.signature_id = htonl(pa->sid);
