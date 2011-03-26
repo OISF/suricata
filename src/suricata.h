@@ -38,19 +38,6 @@
 #define SURICATA_KILL    0x02   /**< shut down asap, discarding outstanding
                                      packets. */
 
-/* Run mode */
-enum {
-    MODE_UNKNOWN = 0,
-    MODE_PCAP_DEV,
-    MODE_PCAP_FILE,
-    MODE_PFRING,
-    MODE_NFQ,
-    MODE_IPFW,
-    MODE_UNITTEST,
-    MODE_ERF_FILE,
-    MODE_DAG,
-};
-
 /* Engine stage/status*/
 enum {
     SURICATA_INIT = 0,

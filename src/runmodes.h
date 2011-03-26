@@ -23,9 +23,23 @@
 #ifndef __RUNMODES_H__
 #define __RUNMODES_H__
 
+/* Run mode */
+enum {
+    RUNMODE_UNKNOWN = 0,
+    RUNMODE_PCAP_DEV,
+    RUNMODE_PCAP_FILE,
+    RUNMODE_PFRING,
+    RUNMODE_NFQ,
+    RUNMODE_IPFW,
+    RUNMODE_UNITTEST,
+    RUNMODE_ERF_FILE,
+    RUNMODE_DAG,
+};
+
 void RunModeInitialize(void);
 void RunModeInitializeOutputs(void);
 void SetupOutputs(ThreadVars *);
+void RunModeShutDown(void);
 
 #include "runmode-pcap.h"
 #include "runmode-pcap-file.h"
@@ -35,9 +49,8 @@ void SetupOutputs(ThreadVars *);
 #include "runmode-erf-file.h"
 #include "runmode-erf-dag.h"
 
-void RunModeShutDown(void);
-
 int threading_set_cpu_affinity;
 extern float threading_detect_ratio;
+
 #endif /* __RUNMODES_H__ */
 

@@ -25,6 +25,7 @@
 
 #include "suricata.h"
 #include "suricata-common.h"
+#include "runmodes.h"
 #include "util-daemon.h"
 #include "util-debug.h"
 
@@ -165,10 +166,10 @@ void Daemonize (void) {
 int CheckValidDaemonModes (int daemon, int mode) {
     if (daemon) {
         switch (mode) {
-            case MODE_PCAP_FILE:
+            case RUNMODE_PCAP_FILE:
                 SCLogError(SC_ERR_INVALID_RUNMODE, "ERROR: pcap offline mode cannot run as daemon");
                 return 0;
-            case MODE_UNITTEST:
+            case RUNMODE_UNITTEST:
                 SCLogError(SC_ERR_INVALID_RUNMODE, "ERROR: unittests cannot run as daemon");
                 return 0;
             default:

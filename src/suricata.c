@@ -178,7 +178,7 @@ SC_ATOMIC_DECLARE(unsigned int, engine_stage);
 uint8_t suricata_ctl_flags = 0;
 
 /** Run mode selected */
-int run_mode = MODE_UNKNOWN;
+int run_mode = RUNMODE_UNKNOWN;
 
 /** engine_analysis.  disabled(0) by default, unless enabled by the user by
   * running the engine with --engine-analysis */
@@ -195,7 +195,7 @@ intmax_t max_pending_packets;
 int sc_set_caps;
 
 int RunmodeIsUnittests(void) {
-    if (run_mode == MODE_UNITTEST)
+    if (run_mode == RUNMODE_UNITTEST)
         return 1;
 
     return 0;
@@ -592,7 +592,7 @@ int main(int argc, char **argv)
             if (strcmp((long_opts[option_index]).name , "pfring") == 0 ||
                 strcmp((long_opts[option_index]).name , "pfring-int") == 0) {
 #ifdef HAVE_PFRING
-                run_mode = MODE_PFRING;
+                run_mode = RUNMODE_PFRING;
                 if (optarg != NULL) {
                     if (ConfSet("pfring.interface", optarg, 0) != 1) {
                         fprintf(stderr, "ERROR: Failed to set pfring interface.\n");
@@ -638,7 +638,7 @@ int main(int argc, char **argv)
             else if(strcmp((long_opts[option_index]).name, "list-unittests") == 0) {
 #ifdef UNITTESTS
                 /* Set run_mode to unit tests. */
-                run_mode = MODE_UNITTEST;
+                run_mode = RUNMODE_UNITTEST;
 #else
                 fprintf(stderr, "ERROR: Unit tests not enabled. Make sure to pass --enable-unittests to configure when building.\n");
                 exit(EXIT_FAILURE);
@@ -710,12 +710,12 @@ int main(int argc, char **argv)
 #endif /* HAVE_LIBCAP_NG */
             }
             else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
-                run_mode = MODE_ERF_FILE;
+                run_mode = RUNMODE_ERF_FILE;
                 erf_file = optarg;
             }
 			else if (strcmp((long_opts[option_index]).name, "dag") == 0) {
 #ifdef HAVE_DAG
-				run_mode = MODE_DAG;
+				run_mode = RUNMODE_DAG;
 				dag_input = optarg;
 #else
 				SCLogError(SC_ERR_DAG_REQUIRED, "libdag and a DAG card are required"
@@ -752,10 +752,10 @@ int main(int argc, char **argv)
             exit(EXIT_SUCCESS);
             break;
         case 'i':
-            if (run_mode == MODE_UNKNOWN) {
-                run_mode = MODE_PCAP_DEV;
+            if (run_mode == RUNMODE_UNKNOWN) {
+                run_mode = RUNMODE_PCAP_DEV;
                 PcapLiveRegisterDevice(optarg);
-            } else if (run_mode == MODE_PCAP_DEV) {
+            } else if (run_mode == RUNMODE_PCAP_DEV) {
 #ifdef OS_WIN32
                 SCLogError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT, "pcap multi dev "
                         "support is not (yet) supported on Windows.");
@@ -788,12 +788,12 @@ int main(int argc, char **argv)
             break;
         case 'q':
 #ifdef NFQ
-            if (run_mode == MODE_UNKNOWN) {
-                run_mode = MODE_NFQ;
+            if (run_mode == RUNMODE_UNKNOWN) {
+                run_mode = RUNMODE_NFQ;
                 SET_ENGINE_MODE_IPS(engine_mode);
                 if (NFQRegisterQueue(optarg) == -1)
                     exit(EXIT_FAILURE);
-            } else if (run_mode == MODE_NFQ) {
+            } else if (run_mode == RUNMODE_NFQ) {
                 if (NFQRegisterQueue(optarg) == -1)
                     exit(EXIT_FAILURE);
             } else {
@@ -810,8 +810,8 @@ int main(int argc, char **argv)
             break;
         case 'd':
 #ifdef IPFW
-            if (run_mode == MODE_UNKNOWN) {
-                run_mode = MODE_IPFW;
+            if (run_mode == RUNMODE_UNKNOWN) {
+                run_mode = RUNMODE_IPFW;
                 SET_ENGINE_MODE_IPS(engine_mode);
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
@@ -829,8 +829,8 @@ int main(int argc, char **argv)
 #endif /* IPFW */
             break;
         case 'r':
-            if (run_mode == MODE_UNKNOWN) {
-                run_mode = MODE_PCAP_FILE;
+            if (run_mode == RUNMODE_UNKNOWN) {
+                run_mode = RUNMODE_PCAP_FILE;
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                                                      "has been specified");
@@ -844,8 +844,8 @@ int main(int argc, char **argv)
             break;
         case 'u':
 #ifdef UNITTESTS
-            if (run_mode == MODE_UNKNOWN) {
-                run_mode = MODE_UNITTEST;
+            if (run_mode == RUNMODE_UNKNOWN) {
+                run_mode = RUNMODE_UNITTEST;
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode has"
                                                      " been specified");
@@ -905,7 +905,7 @@ int main(int argc, char **argv)
             /* Error already displayed. */
             exit(EXIT_FAILURE);
         }
-    } else if (run_mode != MODE_UNITTEST){
+    } else if (run_mode != RUNMODE_UNITTEST){
         SCLogError(SC_ERR_OPENING_FILE, "Configuration file has not been provided");
         usage(argv[0]);
         exit(EXIT_FAILURE);
@@ -937,8 +937,8 @@ int main(int argc, char **argv)
      * back on a sane default. */
     if (ConfGetInt("default-packet-size", &default_packet_size) != 1) {
         switch (run_mode) {
-            case MODE_PCAP_DEV:
-            case MODE_PFRING:
+            case RUNMODE_PCAP_DEV:
+            case RUNMODE_PFRING:
                 /* find payload for interface and use it */
                 default_packet_size = GetIfaceMaxPayloadSize(pcap_dev);
                 if (default_packet_size)
@@ -950,7 +950,7 @@ int main(int argc, char **argv)
     SCLogDebug("Default packet size set to %"PRIiMAX, default_packet_size);
 
 #ifdef NFQ
-    if (run_mode == MODE_NFQ)
+    if (run_mode == RUNMODE_NFQ)
         NFQInitConfig(FALSE);
 #endif
 
@@ -967,7 +967,7 @@ int main(int argc, char **argv)
     SCHInfoLoadFromConfig();
     DefragInit();
 
-    if (run_mode == MODE_UNKNOWN) {
+    if (run_mode == RUNMODE_UNKNOWN) {
         if (!engine_analysis) {
             usage(argv[0]);
             exit(EXIT_FAILURE);
@@ -1068,7 +1068,7 @@ int main(int argc, char **argv)
 
 #ifdef UNITTESTS
 
-    if (run_mode == MODE_UNITTEST) {
+    if (run_mode == RUNMODE_UNITTEST) {
 #ifdef DBG_MEM_ALLOC
     SCLogInfo("Memory used at startup: %"PRIdMAX, (intmax_t)global_mem);
 #endif
@@ -1284,14 +1284,14 @@ int main(int argc, char **argv)
     RunModeInitializeOutputs();
 
     /* run the selected runmode */
-    if (run_mode == MODE_PCAP_DEV) {
+    if (run_mode == RUNMODE_PCAP_DEV) {
         //RunModeIdsPcap3(de_ctx, pcap_dev);
         //RunModeIdsPcap2(de_ctx, pcap_dev);
         //RunModeIdsPcap(de_ctx, pcap_dev);
         PcapTranslateIPToDevice(pcap_dev, sizeof(pcap_dev));
         RunModeIdsPcapAuto(de_ctx, pcap_dev);
     }
-    else if (run_mode == MODE_PCAP_FILE) {
+    else if (run_mode == RUNMODE_PCAP_FILE) {
         //RunModeFilePcap(de_ctx, pcap_file);
         //RunModeFilePcap2(de_ctx, pcap_file);
         RunModeFilePcapAuto(de_ctx, pcap_file);
@@ -1299,7 +1299,7 @@ int main(int argc, char **argv)
         //RunModeFilePcapAuto2(de_ctx, pcap_file);
     }
 #ifdef HAVE_PFRING
-    else if (run_mode == MODE_PFRING) {
+    else if (run_mode == RUNMODE_PFRING) {
         PfringLoadConfig();
         //RunModeIdsPfring3(de_ctx, pfring_dev);
         //RunModeIdsPfring2(de_ctx, pfring_dev);
@@ -1312,18 +1312,18 @@ int main(int argc, char **argv)
         }
     }
 #endif /* HAVE_PFRING */
-    else if (run_mode == MODE_NFQ) {
+    else if (run_mode == RUNMODE_NFQ) {
         //RunModeIpsNFQ(de_ctx, nfq_id);
         RunModeIpsNFQAuto(de_ctx, nfq_id);
     }
-    else if (run_mode == MODE_IPFW) {
+    else if (run_mode == RUNMODE_IPFW) {
         //RunModeIpsIPFW(de_ctx);
         RunModeIpsIPFWAuto(de_ctx);
     }
-    else if (run_mode == MODE_ERF_FILE) {
+    else if (run_mode == RUNMODE_ERF_FILE) {
         RunModeErfFileAuto(de_ctx, erf_file);
     }
-    else if (run_mode == MODE_DAG) {
+    else if (run_mode == RUNMODE_DAG) {
         RunModeErfDagAuto(de_ctx, dag_input);
     }
     else {

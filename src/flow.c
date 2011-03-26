@@ -33,6 +33,7 @@
 #include "threadvars.h"
 #include "tm-modules.h"
 #include "tm-threads.h"
+#include "runmodes.h"
 
 #include "util-random.h"
 #include "util-time.h"
@@ -1106,7 +1107,7 @@ void *FlowManagerThread(void *td)
             break;
         }
 
-        if (run_mode != MODE_PCAP_FILE) {
+        if (run_mode != RUNMODE_PCAP_FILE) {
             usleep(10);
             sleeping += 10;
         } else {

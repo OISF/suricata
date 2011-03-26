@@ -25,6 +25,7 @@
  */
 
 #include "suricata-common.h"
+#include "runmodes.h"
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"
@@ -901,7 +902,7 @@ int Unified2AlertOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
     memset(&ts, 0x00, sizeof(struct timeval));
 
     extern int run_mode;
-    if (run_mode == MODE_UNITTEST)
+    if (run_mode == RUNMODE_UNITTEST)
         TimeGet(&ts);
     else
         gettimeofday(&ts, NULL);
