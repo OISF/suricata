@@ -58,8 +58,11 @@ int RunModeErfFileAuto(DetectEngineCtx *de_ctx)
     TimeModeSetOffline();
 
     /* create the threads */
-    ThreadVars *tv_receiveerf = TmThreadCreatePacketHandler("ReceiveErfFile",
-        "packetpool","packetpool","pickup-queue","simple","1slot");
+    ThreadVars *tv_receiveerf =
+        TmThreadCreatePacketHandler("ReceiveErfFile",
+                                    "packetpool", "packetpool",
+                                    "pickup-queue", "simple",
+                                    "1slot");
     if (tv_receiveerf == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(EXIT_FAILURE);
@@ -82,8 +85,11 @@ int RunModeErfFileAuto(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
 
-    ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode & Stream",
-        "pickup-queue","simple","stream-queue1","simple","varslot");
+    ThreadVars *tv_decode1 =
+        TmThreadCreatePacketHandler("Decode & Stream",
+                                    "pickup-queue", "simple",
+                                    "stream-queue1", "simple",
+                                    "varslot");
     if (tv_decode1 == NULL) {
         printf("ERROR: TmThreadsCreate failed for Decode1\n");
         exit(EXIT_FAILURE);
@@ -93,14 +99,14 @@ int RunModeErfFileAuto(DetectEngineCtx *de_ctx)
         printf("ERROR: TmModuleGetByName DecodeErfFile failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv_decode1,tm_module,NULL);
+    TmVarSlotSetFuncAppend(tv_decode1, tm_module, NULL);
 
     tm_module = TmModuleGetByName("StreamTcp");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName StreamTcp failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv_decode1,tm_module,NULL);
+    TmVarSlotSetFuncAppend(tv_decode1, tm_module, NULL);
 
     if (threading_set_cpu_affinity) {
         TmThreadSetCPUAffinity(tv_decode1, 0);
@@ -127,14 +133,18 @@ int RunModeErfFileAuto(DetectEngineCtx *de_ctx)
 
     int thread;
     for (thread = 0; thread < thread_max; thread++) {
-        snprintf(tname, sizeof(tname),"Detect%"PRIu16, thread+1);
+        snprintf(tname, sizeof(tname), "Detect%"PRIu16, thread+1);
         if (tname == NULL)
             break;
 
         char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
 
-        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"stream-queue1","simple","alert-queue1","simple","1slot");
+        ThreadVars *tv_detect_ncpu =
+            TmThreadCreatePacketHandler(thread_name,
+                                        "stream-queue1", "simple",
+                                        "alert-queue1", "simple",
+                                        "1slot");
         if (tv_detect_ncpu == NULL) {
             printf("ERROR: TmThreadsCreate failed\n");
             exit(EXIT_FAILURE);
@@ -144,7 +154,7 @@ int RunModeErfFileAuto(DetectEngineCtx *de_ctx)
             printf("ERROR: TmModuleGetByName Detect failed\n");
             exit(EXIT_FAILURE);
         }
-        Tm1SlotSetFunc(tv_detect_ncpu,tm_module,(void *)de_ctx);
+        Tm1SlotSetFunc(tv_detect_ncpu, tm_module, (void *)de_ctx);
 
         if (threading_set_cpu_affinity) {
             TmThreadSetCPUAffinity(tv_detect_ncpu, (int)cpu);
@@ -177,8 +187,11 @@ int RunModeErfFileAuto(DetectEngineCtx *de_ctx)
             cpu++;
     }
 
-    ThreadVars *tv_outputs = TmThreadCreatePacketHandler("Outputs",
-        "alert-queue1", "simple", "packetpool", "packetpool", "varslot");
+    ThreadVars *tv_outputs =
+        TmThreadCreatePacketHandler("Outputs",
+                                    "alert-queue1", "simple",
+                                    "packetpool", "packetpool",
+                                    "varslot");
     SetupOutputs(tv_outputs);
 
     if (threading_set_cpu_affinity) {

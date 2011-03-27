@@ -49,13 +49,15 @@
  *        - Respond/Reject thread
  *        - Outputs thread
  *        By default the threads will use the first cpu available
- *        except the Detection threads if we have more than one cpu
+ *        except the Detection threads if we have more than one cpu.
  *
- * \param de_ctx pointer to the Detection Engine
- * \retval 0 if all goes well. (If any problem is detected the engine will
- *           exit())
+ * \param de_ctx Pointer to the Detection Engine.
+ *
+ * \retval 0 If all goes well. (If any problem is detected the engine will
+ *           exit()).
  */
-int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx) {
+int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx)
+{
     SCEnter();
     /* tname = Detect + cpuid, this is 11bytes length as max */
     char tname[16];
@@ -82,7 +84,11 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx) {
         char *pcap_devc = SCStrdup(pcap_dev);
 
         /* create the threads */
-        ThreadVars *tv_receivepcap = TmThreadCreatePacketHandler("ReceivePcap","packetpool","packetpool","pickup-queue","simple","1slot");
+        ThreadVars *tv_receivepcap =
+            TmThreadCreatePacketHandler("ReceivePcap",
+                                        "packetpool", "packetpool",
+                                        "pickup-queue", "simple",
+                                        "1slot");
         if (tv_receivepcap == NULL) {
             printf("ERROR: TmThreadsCreate failed\n");
             exit(EXIT_FAILURE);
@@ -92,7 +98,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx) {
             printf("ERROR: TmModuleGetByName failed for ReceivePcap\n");
             exit(EXIT_FAILURE);
         }
-        Tm1SlotSetFunc(tv_receivepcap,tm_module,(void *)pcap_devc);
+        Tm1SlotSetFunc(tv_receivepcap, tm_module, (void *)pcap_devc);
 
         TmThreadSetCPU(tv_receivepcap, RECEIVE_CPU_SET);
 
@@ -116,7 +122,11 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx) {
             char *pcap_devc = SCStrdup(pcap_dev);
 
             /* create the threads */
-            ThreadVars *tv_receivepcap = TmThreadCreatePacketHandler(tnamec,"packetpool","packetpool","pickup-queue","simple","1slot");
+            ThreadVars *tv_receivepcap =
+                TmThreadCreatePacketHandler(tnamec,
+                                            "packetpool", "packetpool",
+                                            "pickup-queue", "simple",
+                                            "1slot");
             if (tv_receivepcap == NULL) {
                 printf("ERROR: TmThreadsCreate failed\n");
                 exit(EXIT_FAILURE);
@@ -126,7 +136,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx) {
                 printf("ERROR: TmModuleGetByName failed for ReceivePcap\n");
                 exit(EXIT_FAILURE);
             }
-            Tm1SlotSetFunc(tv_receivepcap,tm_module,(void *)pcap_devc);
+            Tm1SlotSetFunc(tv_receivepcap, tm_module, (void *)pcap_devc);
 
             TmThreadSetCPU(tv_receivepcap, RECEIVE_CPU_SET);
 
@@ -139,10 +149,11 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx) {
 
 #if defined(__SC_CUDA_SUPPORT__)
     if (PatternMatchDefaultMatcher() == MPM_B2G_CUDA) {
-        ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode",
-                                                             "pickup-queue", "simple",
-                                                             "decode-queue1", "simple",
-                                                             "1slot");
+        ThreadVars *tv_decode1 =
+            TmThreadCreatePacketHandler("Decode",
+                                        "pickup-queue", "simple",
+                                        "decode-queue1", "simple",
+                                        "1slot");
         if (tv_decode1 == NULL) {
             printf("ERROR: TmThreadsCreate failed for Decode1\n");
             exit(EXIT_FAILURE);
@@ -161,10 +172,11 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx) {
             exit(EXIT_FAILURE);
         }
 
-        ThreadVars *tv_cuda_PB = TmThreadCreate("CUDA_PB",
-                                                "decode-queue1", "simple",
-                                                "cuda-pb-queue1", "simple",
-                                                "custom", SCCudaPBTmThreadsSlot1, 0);
+        ThreadVars *tv_cuda_PB =
+            TmThreadCreate("CUDA_PB",
+                           "decode-queue1", "simple",
+                           "cuda-pb-queue1", "simple",
+                           "custom", SCCudaPBTmThreadsSlot1, 0);
         if (tv_cuda_PB == NULL) {
             printf("ERROR: TmThreadsCreate failed for CUDA_PB\n");
             exit(EXIT_FAILURE);
@@ -178,7 +190,6 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx) {
         }
         Tm1SlotSetFunc(tv_cuda_PB, tm_module, (void *)de_ctx);
 
-
         TmThreadSetCPU(tv_cuda_PB, DETECT_CPU_SET);
 
         if (TmThreadSpawn(tv_cuda_PB) != TM_ECODE_OK) {
@@ -186,10 +197,11 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx) {
             exit(EXIT_FAILURE);
         }
 
-        ThreadVars *tv_stream1 = TmThreadCreatePacketHandler("Stream1",
-                                                             "cuda-pb-queue1", "simple",
-                                                             "stream-queue1", "simple",
-                                                             "1slot");
+        ThreadVars *tv_stream1 =
+            TmThreadCreatePacketHandler("Stream1",
+                                        "cuda-pb-queue1", "simple",
+                                        "stream-queue1", "simple",
+                                        "1slot");
         if (tv_stream1 == NULL) {
             printf("ERROR: TmThreadsCreate failed for Stream1\n");
             exit(EXIT_FAILURE);
@@ -199,7 +211,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx) {
             printf("ERROR: TmModuleGetByName StreamTcp failed\n");
             exit(EXIT_FAILURE);
         }
-        Tm1SlotSetFunc(tv_stream1,tm_module,NULL);
+        Tm1SlotSetFunc(tv_stream1, tm_module, NULL);
 
         TmThreadSetCPU(tv_stream1, STREAM_CPU_SET);
 
@@ -208,10 +220,11 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx) {
             exit(EXIT_FAILURE);
         }
     } else {
-        ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode & Stream",
-                                                             "pickup-queue", "simple",
-                                                             "stream-queue1", "simple",
-                                                             "varslot");
+        ThreadVars *tv_decode1 =
+            TmThreadCreatePacketHandler("Decode & Stream",
+                                        "pickup-queue", "simple",
+                                        "stream-queue1", "simple",
+                                        "varslot");
         if (tv_decode1 == NULL) {
             printf("ERROR: TmThreadsCreate failed for Decode1\n");
             exit(EXIT_FAILURE);
@@ -221,14 +234,14 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx) {
             printf("ERROR: TmModuleGetByName DecodePcap failed\n");
             exit(EXIT_FAILURE);
         }
-        TmVarSlotSetFuncAppend(tv_decode1,tm_module,NULL);
+        TmVarSlotSetFuncAppend(tv_decode1, tm_module, NULL);
 
         tm_module = TmModuleGetByName("StreamTcp");
         if (tm_module == NULL) {
             printf("ERROR: TmModuleGetByName StreamTcp failed\n");
             exit(EXIT_FAILURE);
         }
-        TmVarSlotSetFuncAppend(tv_decode1,tm_module,NULL);
+        TmVarSlotSetFuncAppend(tv_decode1, tm_module, NULL);
 
         TmThreadSetCPU(tv_decode1, DECODE_CPU_SET);
 
@@ -237,10 +250,13 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx) {
             exit(EXIT_FAILURE);
         }
     }
+
 #else
-//#if 0
-    //ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode & Stream","pickup-queue","simple","packetpool","packetpool","varslot");
-    ThreadVars *tv_decode1 = TmThreadCreatePacketHandler("Decode & Stream","pickup-queue","simple","stream-queue1","simple","varslot");
+    ThreadVars *tv_decode1 =
+        TmThreadCreatePacketHandler("Decode & Stream",
+                                    "pickup-queue", "simple",
+                                    "stream-queue1", "simple",
+                                    "varslot");
     if (tv_decode1 == NULL) {
         printf("ERROR: TmThreadsCreate failed for Decode1\n");
         exit(EXIT_FAILURE);
@@ -250,14 +266,14 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx) {
         printf("ERROR: TmModuleGetByName DecodePcap failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv_decode1,tm_module,NULL);
+    TmVarSlotSetFuncAppend(tv_decode1, tm_module, NULL);
 
     tm_module = TmModuleGetByName("StreamTcp");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName StreamTcp failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv_decode1,tm_module,NULL);
+    TmVarSlotSetFuncAppend(tv_decode1, tm_module, NULL);
 
     TmThreadSetCPU(tv_decode1, DECODE_CPU_SET);
 
@@ -266,6 +282,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx) {
         exit(EXIT_FAILURE);
     }
 #endif
+
     /* start with cpu 1 so that if we're creating an odd number of detect
      * threads we're not creating the most on CPU0. */
     if (ncpus > 0)
@@ -286,7 +303,11 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx) {
         char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
 
-        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,"stream-queue1","simple","verdict-queue","simple","1slot");
+        ThreadVars *tv_detect_ncpu =
+            TmThreadCreatePacketHandler(thread_name,
+                                        "stream-queue1", "simple",
+                                        "verdict-queue", "simple",
+                                        "1slot");
         if (tv_detect_ncpu == NULL) {
             printf("ERROR: TmThreadsCreate failed\n");
             exit(EXIT_FAILURE);
@@ -296,7 +317,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx) {
             printf("ERROR: TmModuleGetByName Detect failed\n");
             exit(EXIT_FAILURE);
         }
-        Tm1SlotSetFunc(tv_detect_ncpu,tm_module,(void *)de_ctx);
+        Tm1SlotSetFunc(tv_detect_ncpu, tm_module, (void *)de_ctx);
 
         TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
 
@@ -318,7 +339,11 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx) {
             cpu++;
     }
 
-    ThreadVars *tv_rreject = TmThreadCreatePacketHandler("RespondReject","verdict-queue","simple","alert-queue","simple","1slot");
+    ThreadVars *tv_rreject =
+        TmThreadCreatePacketHandler("RespondReject",
+                                    "verdict-queue", "simple",
+                                    "alert-queue", "simple",
+                                    "1slot");
     if (tv_rreject == NULL) {
         printf("ERROR: TmThreadsCreate failed\n");
         exit(EXIT_FAILURE);
@@ -328,7 +353,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx) {
         printf("ERROR: TmModuleGetByName for RespondReject failed\n");
         exit(EXIT_FAILURE);
     }
-    Tm1SlotSetFunc(tv_rreject,tm_module,NULL);
+    Tm1SlotSetFunc(tv_rreject, tm_module, NULL);
 
     TmThreadSetCPU(tv_rreject, REJECT_CPU_SET);
 
@@ -337,8 +362,11 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx) {
         exit(EXIT_FAILURE);
     }
 
-    ThreadVars *tv_outputs = TmThreadCreatePacketHandler("Outputs",
-        "alert-queue", "simple", "packetpool", "packetpool", "varslot");
+    ThreadVars *tv_outputs =
+        TmThreadCreatePacketHandler("Outputs",
+                                    "alert-queue", "simple",
+                                    "packetpool", "packetpool",
+                                    "varslot");
     SetupOutputs(tv_outputs);
 
     TmThreadSetCPU(tv_outputs, OUTPUT_CPU_SET);

@@ -110,14 +110,14 @@ int RunModeErfDagAuto(DetectEngineCtx *de_ctx)
         printf("ERROR: TmModuleGetByName DecodeErfDag failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv_decode1,tm_module,NULL);
+    TmVarSlotSetFuncAppend(tv_decode1, tm_module, NULL);
 
     tm_module = TmModuleGetByName("StreamTcp");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName StreamTcp failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv_decode1,tm_module,NULL);
+    TmVarSlotSetFuncAppend(tv_decode1, tm_module, NULL);
 
     if (threading_set_cpu_affinity) {
         TmThreadSetCPUAffinity(tv_decode1, 0);
@@ -144,7 +144,7 @@ int RunModeErfDagAuto(DetectEngineCtx *de_ctx)
 
     int thread;
     for (thread = 0; thread < thread_max; thread++) {
-        snprintf(tname, sizeof(tname),"Detect%"PRIu16, thread+1);
+        snprintf(tname, sizeof(tname), "Detect%"PRIu16, thread+1);
         if (tname == NULL)
             break;
 
@@ -165,7 +165,7 @@ int RunModeErfDagAuto(DetectEngineCtx *de_ctx)
             printf("ERROR: TmModuleGetByName Detect failed\n");
             exit(EXIT_FAILURE);
         }
-        Tm1SlotSetFunc(tv_detect_ncpu,tm_module,(void *)de_ctx);
+        Tm1SlotSetFunc(tv_detect_ncpu, tm_module, (void *)de_ctx);
 
         if (threading_set_cpu_affinity) {
             TmThreadSetCPUAffinity(tv_detect_ncpu, (int)cpu);

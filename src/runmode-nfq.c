@@ -49,14 +49,15 @@
  *        - Respond/Reject thread
  *        - Outputs thread
  *        By default the threads will use the first cpu available
- *        except the Detection threads if we have more than one cpu
+ *        except the Detection threads if we have more than one cpu.
  *
- * \param de_ctx pointer to the Detection Engine
- * \param nfqid pointer to the netfilter queue id
- * \retval 0 if all goes well. (If any problem is detected the engine will
- *           exit())
+ * \param de_ctx Pointer to the Detection Engine.
+ *
+ * \retval 0 If all goes well. (If any problem is detected the engine will
+ *           exit()).
  */
-int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx) {
+int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx)
+{
     SCEnter();
 #ifdef NFQ
     char tname[16];
@@ -79,15 +80,18 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx) {
             exit(EXIT_FAILURE);
         }
         memset(tname, 0, sizeof(tname));
-        snprintf(tname, sizeof(tname),"RecvNFQ-Q%"PRIu16, cur_queue);
+        snprintf(tname, sizeof(tname), "RecvNFQ-Q%"PRIu16, cur_queue);
         if (tname == NULL) {
             printf("ERROR: Unable to build thread name\n");
             exit(EXIT_FAILURE);
         }
 
         char *thread_name = SCStrdup(tname);
-        ThreadVars *tv_receivenfq = TmThreadCreatePacketHandler(thread_name,
-                "packetpool","packetpool","pickup-queue","simple","1slot_noinout");
+        ThreadVars *tv_receivenfq =
+            TmThreadCreatePacketHandler(thread_name,
+                                        "packetpool", "packetpool",
+                                        "pickup-queue", "simple",
+                                        "1slot_noinout");
         if (tv_receivenfq == NULL) {
             printf("ERROR: TmThreadsCreate failed\n");
             exit(EXIT_FAILURE);
@@ -98,7 +102,7 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx) {
             exit(EXIT_FAILURE);
         }
 
-        Tm1SlotSetFunc(tv_receivenfq,tm_module, (void *) NFQGetThread(i));
+        Tm1SlotSetFunc(tv_receivenfq, tm_module, (void *) NFQGetThread(i));
 
         TmThreadSetCPU(tv_receivenfq, RECEIVE_CPU_SET);
 
@@ -109,8 +113,11 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx) {
     }
 
     /* decode and stream */
-    ThreadVars *tv_decode = TmThreadCreatePacketHandler("Decode1",
-            "pickup-queue","simple","decode-queue","simple","varslot");
+    ThreadVars *tv_decode =
+        TmThreadCreatePacketHandler("Decode1",
+                                    "pickup-queue", "simple",
+                                    "decode-queue", "simple",
+                                    "varslot");
     if (tv_decode == NULL) {
         printf("ERROR: TmThreadsCreate failed for Decode1\n");
         exit(EXIT_FAILURE);
@@ -128,7 +135,7 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx) {
         printf("ERROR: TmModuleGetByName StreamTcp failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv_decode,tm_module,NULL);
+    TmVarSlotSetFuncAppend(tv_decode, tm_module, NULL);
 
     TmThreadSetCPU(tv_decode, DECODE_CPU_SET);
 
@@ -147,15 +154,18 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx) {
     int thread;
     for (thread = 0; thread < thread_max; thread++) {
         memset(tname, 0, sizeof(tname));
-        snprintf(tname, sizeof(tname),"Detect%"PRIu16, thread+1);
+        snprintf(tname, sizeof(tname), "Detect%"PRIu16, thread+1);
         if (tname == NULL)
             break;
 
         char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity", thread_name);
 
-        ThreadVars *tv_detect_ncpu = TmThreadCreatePacketHandler(thread_name,
-                "decode-queue","simple","verdict-queue","simple","1slot");
+        ThreadVars *tv_detect_ncpu =
+            TmThreadCreatePacketHandler(thread_name,
+                                        "decode-queue", "simple",
+                                        "verdict-queue", "simple",
+                                        "1slot");
         if (tv_detect_ncpu == NULL) {
             printf("ERROR: TmThreadsCreate failed\n");
             exit(EXIT_FAILURE);
@@ -165,7 +175,7 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx) {
             printf("ERROR: TmModuleGetByName Detect failed\n");
             exit(EXIT_FAILURE);
         }
-        Tm1SlotSetFunc(tv_detect_ncpu,tm_module,(void *)de_ctx);
+        Tm1SlotSetFunc(tv_detect_ncpu, tm_module, (void *)de_ctx);
 
         TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
 
@@ -185,15 +195,18 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx) {
     /* create the threads */
     for (int i = 0; i < nqueue; i++) {
         memset(tname, 0, sizeof(tname));
-        snprintf(tname, sizeof(tname),"VerdictNFQ%"PRIu16, i);
+        snprintf(tname, sizeof(tname), "VerdictNFQ%"PRIu16, i);
         if (tname == NULL) {
             printf("ERROR: Unable to build thread name\n");
             exit(EXIT_FAILURE);
         }
 
         char *thread_name = SCStrdup(tname);
-        ThreadVars *tv_verdict = TmThreadCreatePacketHandler(thread_name,
-                 "verdict-queue","simple","alert-queue","simple","varslot");
+        ThreadVars *tv_verdict =
+            TmThreadCreatePacketHandler(thread_name,
+                                        "verdict-queue", "simple",
+                                        "alert-queue", "simple",
+                                        "varslot");
         if (tv_verdict == NULL) {
             printf("ERROR: TmThreadsCreate failed\n");
             exit(EXIT_FAILURE);
@@ -203,14 +216,14 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx) {
             printf("ERROR: TmModuleGetByName VerdictNFQ failed\n");
             exit(EXIT_FAILURE);
         }
-        TmVarSlotSetFuncAppend(tv_verdict,tm_module, (void *)NFQGetThread(i));
+        TmVarSlotSetFuncAppend(tv_verdict, tm_module, (void *)NFQGetThread(i));
 
         tm_module = TmModuleGetByName("RespondReject");
         if (tm_module == NULL) {
             printf("ERROR: TmModuleGetByName for RespondReject failed\n");
             exit(EXIT_FAILURE);
         }
-        TmVarSlotSetFuncAppend(tv_verdict,tm_module,NULL);
+        TmVarSlotSetFuncAppend(tv_verdict, tm_module, NULL);
 
         TmThreadSetCPU(tv_verdict, VERDICT_CPU_SET);
 
@@ -220,8 +233,11 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx) {
         }
     };
 
-    ThreadVars *tv_outputs = TmThreadCreatePacketHandler("Outputs",
-        "alert-queue", "simple", "packetpool", "packetpool", "varslot");
+    ThreadVars *tv_outputs =
+        TmThreadCreatePacketHandler("Outputs",
+                                    "alert-queue", "simple",
+                                    "packetpool", "packetpool",
+                                    "varslot");
 
     TmThreadSetCPU(tv_outputs, OUTPUT_CPU_SET);
 
