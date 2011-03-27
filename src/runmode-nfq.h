@@ -23,6 +23,6 @@
 #ifndef __RUNMODE_NFQ_H__
 #define __RUNMODE_NFQ_H__
 
-int RunModeIpsNFQAuto(DetectEngineCtx *, char *);
+int RunModeIpsNFQAuto(DetectEngineCtx *);
 
 #endif /* __RUNMODE_NFQ_H__ */

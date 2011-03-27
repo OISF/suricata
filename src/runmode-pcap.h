@@ -23,6 +23,6 @@
 #ifndef __RUNMODE_PCAP_H__
 #define __RUNMODE_PCAP_H__
 
-int RunModeIdsPcapAuto(DetectEngineCtx *, char *);
+int RunModeIdsPcapAuto(DetectEngineCtx *);
 
 #endif /* __RUNMODE_PCAP_H__ */

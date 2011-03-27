@@ -23,6 +23,6 @@
 #ifndef __RUNMODE_ERF_FILE_H__
 #define __RUNMODE_ERF_FILE_H__
 
-int RunModeErfFileAuto(DetectEngineCtx *, char *);
+int RunModeErfFileAuto(DetectEngineCtx *);
 
 #endif /* __RUNMODE_ERF_FILE_H__ */

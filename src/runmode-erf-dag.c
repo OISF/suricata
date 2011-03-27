@@ -45,7 +45,7 @@
  * \param   file
  * \notes   Currently only supports a single interface.
  */
-int RunModeErfDagAuto(DetectEngineCtx *de_ctx, char *file)
+int RunModeErfDagAuto(DetectEngineCtx *de_ctx)
 {
     SCEnter();
     char tname[12];
@@ -56,7 +56,13 @@ int RunModeErfDagAuto(DetectEngineCtx *de_ctx, char *file)
 
     RunModeInitialize();
 
-    SCLogDebug("file %s", file);
+    char *iface = NULL;
+    if (ConfGet("runmode_erf_dag.iface", &iface) == 0) {
+        SCLogError(SC_ERR_RUNMODE, "Failed retrieving pcap_file from Conf");
+        exit(EXIT_FAILURE);
+    }
+    SCLogDebug("iface %s", iface);
+
     TimeModeSetOffline();
 
     /* @TODO/JNM: We need to create a separate processing pipeliine for each
@@ -77,7 +83,7 @@ int RunModeErfDagAuto(DetectEngineCtx *de_ctx, char *file)
         printf("ERROR: TmModuleGetByName failed for ReceiveErfDag\n");
         exit(EXIT_FAILURE);
     }
-    Tm1SlotSetFunc(tv_receiveerf, tm_module, file);
+    Tm1SlotSetFunc(tv_receiveerf, tm_module, iface);
 
     if (threading_set_cpu_affinity) {
         TmThreadSetCPUAffinity(tv_receiveerf, 0);

@@ -52,12 +52,10 @@
  *        except the Detection threads if we have more than one cpu
  *
  * \param de_ctx pointer to the Detection Engine
- * \param iface pointer to the name of the interface from which we will
- *              fetch the packets
  * \retval 0 if all goes well. (If any problem is detected the engine will
  *           exit())
  */
-int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
+int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx) {
     SCEnter();
     /* tname = Detect + cpuid, this is 11bytes length as max */
     char tname[16];
@@ -73,6 +71,16 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
     int npcap = PcapLiveGetDeviceCount();
 
     if (npcap == 1) {
+        char *pcap_dev = NULL;
+        if (ConfGet("runmode_pcap.single_pcap_dev", &pcap_dev) == 0) {
+            SCLogError(SC_ERR_RUNMODE, "Failed retrieving "
+                       "runmode_pcap.single_pcap_dev from Conf");
+            exit(EXIT_FAILURE);
+        }
+        SCLogDebug("pcap_dev %s", pcap_dev);
+
+        char *pcap_devc = SCStrdup(pcap_dev);
+
         /* create the threads */
         ThreadVars *tv_receivepcap = TmThreadCreatePacketHandler("ReceivePcap","packetpool","packetpool","pickup-queue","simple","1slot");
         if (tv_receivepcap == NULL) {
@@ -84,7 +92,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
             printf("ERROR: TmModuleGetByName failed for ReceivePcap\n");
             exit(EXIT_FAILURE);
         }
-        Tm1SlotSetFunc(tv_receivepcap,tm_module,(void *)iface);
+        Tm1SlotSetFunc(tv_receivepcap,tm_module,(void *)pcap_devc);
 
         TmThreadSetCPU(tv_receivepcap, RECEIVE_CPU_SET);
 

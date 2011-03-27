@@ -54,11 +54,10 @@
  *        except the Detection threads if we have more than one cpu
  *
  * \param de_ctx pointer to the Detection Engine
- * \param iface pointer to the name of the network interface to listen packets
  * \retval 0 if all goes well. (If any problem is detected the engine will
  *           exit())
  */
-int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx, char *iface) {
+int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx) {
     SCEnter();
     char tname[12];
     uint16_t cpu = 0;
@@ -81,7 +80,7 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx, char *iface) {
         printf("ERROR: TmModuleGetByName failed for ReceivePfring\n");
         exit(EXIT_FAILURE);
     }
-    Tm1SlotSetFunc(tv_receivepfring,tm_module,(void *)iface);
+    Tm1SlotSetFunc(tv_receivepfring,tm_module, NULL);
 
     if (threading_set_cpu_affinity) {
         TmThreadSetCPUAffinity(tv_receivepfring, 0);
@@ -245,7 +244,7 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx, char *iface) {
     return 0;
 }
 
-int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx, char *iface) {
+int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx) {
     SCEnter();
     char tname[12];
     char qname[12];
@@ -297,7 +296,7 @@ int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx, char *iface) {
             printf("ERROR: TmModuleGetByName failed for ReceivePfring\n");
             exit(EXIT_FAILURE);
         }
-        TmVarSlotSetFuncAppend(tv_receive,tm_module,iface);
+        TmVarSlotSetFuncAppend(tv_receive,tm_module, NULL);
 
         tm_module = TmModuleGetByName("DecodePfring");
         if (tm_module == NULL) {

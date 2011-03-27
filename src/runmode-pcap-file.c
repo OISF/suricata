@@ -40,8 +40,14 @@
 /**
  * \brief Single thread version of the Pcap file processing.
  */
-int RunModeFilePcap2(DetectEngineCtx *de_ctx, char *file) {
+int RunModeFilePcap2(DetectEngineCtx *de_ctx) {
+    char *file = NULL;
+    if (ConfGet("runmode_pcap_file.file", &file) == 0) {
+        SCLogError(SC_ERR_RUNMODE, "Failed retrieving pcap_file from Conf");
+        exit(EXIT_FAILURE);
+    }
     printf("RunModeFilePcap2: file %s\n", file);
+
     TimeModeSetOffline();
 
     /* create the threads */
@@ -107,7 +113,7 @@ int RunModeFilePcap2(DetectEngineCtx *de_ctx, char *file) {
  * \retval 0 if all goes well. (If any problem is detected the engine will
  *           exit())
  */
-int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
+int RunModeFilePcapAuto(DetectEngineCtx *de_ctx) {
     SCEnter();
     char tname[16];
     uint16_t cpu = 0;
@@ -117,7 +123,13 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
     /* Available cpus */
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
 
+    char *file = NULL;
+    if (ConfGet("runmode_pcap_file.file", &file) == 0) {
+        SCLogError(SC_ERR_RUNMODE, "Failed retrieving pcap_file from Conf");
+        exit(EXIT_FAILURE);
+    }
     SCLogDebug("file %s", file);
+
     TimeModeSetOffline();
 
     /* create the threads */
@@ -355,7 +367,7 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
  * \retval 0 if all goes well. (If any problem is detected the engine will
  *           exit())
  */
-int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx, char *file) {
+int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx) {
     SCEnter();
     char tname[12];
     char qname[12];
@@ -389,7 +401,13 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx, char *file) {
     }
     printf("queues %s\n", queues);
 
+    char *file = NULL;
+    if (ConfGet("runmode_pcap_file.file", &file) == 0) {
+        SCLogError(SC_ERR_RUNMODE, "Failed retrieving pcap_file from Conf");
+        exit(EXIT_FAILURE);
+    }
     SCLogDebug("file %s", file);
+
     TimeModeSetOffline();
 
     /* create the threads */

@@ -23,6 +23,6 @@
 #ifndef __RUNMODE_ERF_DAG_H__
 #define __RUNMODE_ERF_DAG_H__
 
-int RunModeErfDagAuto(DetectEngineCtx *, char *);
+int RunModeErfDagAuto(DetectEngineCtx *);
 
 #endif /* __RUNMODE_ERF_DAG_H__ */

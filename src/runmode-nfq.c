@@ -56,7 +56,7 @@
  * \retval 0 if all goes well. (If any problem is detected the engine will
  *           exit())
  */
-int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
+int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx) {
     SCEnter();
 #ifdef NFQ
     char tname[16];

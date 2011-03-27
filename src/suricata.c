@@ -479,13 +479,11 @@ void SCPrintBuildInfo(void) {
 int main(int argc, char **argv)
 {
     int opt;
-    char *pcap_file = NULL;
     char pcap_dev[128];
 #ifdef HAVE_PFRING
     char *pfring_dev = NULL;
 #endif
     char *sig_file = NULL;
-    char *nfq_id = NULL;
     char *conf_filename = NULL;
     char *pid_filename = NULL;
 #ifdef UNITTESTS
@@ -501,8 +499,6 @@ int main(int argc, char **argv)
     uint8_t do_setgid = FALSE;
     uint32_t userid = 0;
     uint32_t groupid = 0;
-    char *erf_file = NULL;
-    char *dag_input = NULL;
     int build_info = 0;
 
     char *log_dir;
@@ -594,8 +590,8 @@ int main(int argc, char **argv)
 #ifdef HAVE_PFRING
                 run_mode = RUNMODE_PFRING;
                 if (optarg != NULL) {
-                    if (ConfSet("pfring.interface", optarg, 0) != 1) {
-                        fprintf(stderr, "ERROR: Failed to set pfring interface.\n");
+                    if (ConfSet("runmode_pfring.interface", optarg, 0) != 1) {
+                        fprintf(stderr, "ERROR: Failed to set runmode_pfring.interface.\n");
                         exit(EXIT_FAILURE);
                     }
                 }
@@ -607,8 +603,8 @@ int main(int argc, char **argv)
             }
             else if(strcmp((long_opts[option_index]).name , "pfring-cluster-id") == 0){
 #ifdef HAVE_PFRING
-                if (ConfSet("pfring.cluster-id", optarg, 0) != 1) {
-                    fprintf(stderr, "ERROR: Failed to set pfring cluster-id.\n");
+                if (ConfSet("runmode_pfring.cluster_id", optarg, 0) != 1) {
+                    fprintf(stderr, "ERROR: Failed to set runmode_pfring.cluster_id.\n");
                     exit(EXIT_FAILURE);
                 }
 #else
@@ -619,8 +615,8 @@ int main(int argc, char **argv)
             }
             else if(strcmp((long_opts[option_index]).name , "pfring-cluster-type") == 0){
 #ifdef HAVE_PFRING
-                if (ConfSet("pfring.cluster-type", optarg, 0) != 1) {
-                    fprintf(stderr, "ERROR: Failed to set pfring cluster-type.\n");
+                if (ConfSet("runmode_pfring.cluster_type", optarg, 0) != 1) {
+                    fprintf(stderr, "ERROR: Failed to set runmode_pfring.cluster_type.\n");
                     exit(EXIT_FAILURE);
                 }
 #else
@@ -711,12 +707,18 @@ int main(int argc, char **argv)
             }
             else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
                 run_mode = RUNMODE_ERF_FILE;
-                erf_file = optarg;
+                if (ConfSet("runmode_erf_file.file", optarg, 0) != 1) {
+                    fprintf(stderr, "ERROR: Failed to set runmode_erf_file.file\n");
+                    exit(EXIT_FAILURE);
+                }
             }
 			else if (strcmp((long_opts[option_index]).name, "dag") == 0) {
 #ifdef HAVE_DAG
 				run_mode = RUNMODE_DAG;
-				dag_input = optarg;
+                if (ConfSet("runmode_erf_dag.iface", optarg, 0) != 1) {
+                    fprintf(stderr, "ERROR: Failed to set runmode_erf_dag.iface\n");
+                    exit(EXIT_FAILURE);
+                }
 #else
 				SCLogError(SC_ERR_DAG_REQUIRED, "libdag and a DAG card are required"
 						" to receieve packets using --dag.");
@@ -802,7 +804,6 @@ int main(int argc, char **argv)
                 usage(argv[0]);
                 exit(EXIT_FAILURE);
             }
-            nfq_id = optarg;
 #else
             SCLogError(SC_ERR_NFQ_NOSUPPORT,"NFQUEUE not enabled. Make sure to pass --enable-nfqueue to configure when building.");
             exit(EXIT_FAILURE);
@@ -819,7 +820,7 @@ int main(int argc, char **argv)
                 usage(argv[0]);
                 exit(EXIT_SUCCESS);
             }
-            if (ConfSet("ipfw-divert-port", optarg, 0) != 1) {
+            if (ConfSet("runmode_ipfw.ipfw_divert_port", optarg, 0) != 1) {
                 fprintf(stderr, "ERROR: Failed to set ipfw_divert_port\n");
                 exit(EXIT_FAILURE);
             }
@@ -837,7 +838,10 @@ int main(int argc, char **argv)
                 usage(argv[0]);
                 exit(EXIT_SUCCESS);
             }
-            pcap_file = optarg;
+            if (ConfSet("runmode_pcap_file.file", optarg, 0) != 1) {
+                fprintf(stderr, "ERROR: Failed to set runmode_pcap_file.file\n");
+                exit(EXIT_FAILURE);
+            }
             break;
         case 's':
             sig_file = optarg;
@@ -1289,12 +1293,16 @@ int main(int argc, char **argv)
         //RunModeIdsPcap2(de_ctx, pcap_dev);
         //RunModeIdsPcap(de_ctx, pcap_dev);
         PcapTranslateIPToDevice(pcap_dev, sizeof(pcap_dev));
-        RunModeIdsPcapAuto(de_ctx, pcap_dev);
+        if (ConfSet("runmode_pcap.single_pcap_dev", pcap_dev, 0) != 1) {
+            fprintf(stderr, "ERROR: Failed to set runmode_pcap.single_pcap_dev\n");
+            exit(EXIT_FAILURE);
+        }
+        RunModeIdsPcapAuto(de_ctx);
     }
     else if (run_mode == RUNMODE_PCAP_FILE) {
         //RunModeFilePcap(de_ctx, pcap_file);
         //RunModeFilePcap2(de_ctx, pcap_file);
-        RunModeFilePcapAuto(de_ctx, pcap_file);
+        RunModeFilePcapAuto(de_ctx);
         //RunModeFilePcapAutoFp(de_ctx, pcap_file);
         //RunModeFilePcapAuto2(de_ctx, pcap_file);
     }
@@ -1306,25 +1314,25 @@ int main(int argc, char **argv)
         //RunModeIdsPfring(de_ctx, pfring_dev);
         //RunModeIdsPfring4(de_ctx, pfring_dev);
         if (PfringConfGetThreads() == 1) {
-            RunModeIdsPfringAuto(de_ctx, pfring_dev);
+            RunModeIdsPfringAuto(de_ctx);
         } else {
-            RunModeIdsPfringAutoFp(de_ctx, pfring_dev);
+            RunModeIdsPfringAutoFp(de_ctx);
         }
     }
 #endif /* HAVE_PFRING */
     else if (run_mode == RUNMODE_NFQ) {
         //RunModeIpsNFQ(de_ctx, nfq_id);
-        RunModeIpsNFQAuto(de_ctx, nfq_id);
+        RunModeIpsNFQAuto(de_ctx);
     }
     else if (run_mode == RUNMODE_IPFW) {
         //RunModeIpsIPFW(de_ctx);
         RunModeIpsIPFWAuto(de_ctx);
     }
     else if (run_mode == RUNMODE_ERF_FILE) {
-        RunModeErfFileAuto(de_ctx, erf_file);
+        RunModeErfFileAuto(de_ctx);
     }
     else if (run_mode == RUNMODE_DAG) {
-        RunModeErfDagAuto(de_ctx, dag_input);
+        RunModeErfDagAuto(de_ctx);
     }
     else {
         SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");

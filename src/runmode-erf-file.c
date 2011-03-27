@@ -37,7 +37,7 @@
 #include "util-cpu.h"
 #include "util-affinity.h"
 
-int RunModeErfFileAuto(DetectEngineCtx *de_ctx, char *file)
+int RunModeErfFileAuto(DetectEngineCtx *de_ctx)
 {
     SCEnter();
     char tname[12];
@@ -48,6 +48,12 @@ int RunModeErfFileAuto(DetectEngineCtx *de_ctx, char *file)
 
     RunModeInitialize();
 
+    char *file = NULL;
+    if (ConfGet("runmode_erf_file.file", &file) == 0) {
+        SCLogError(SC_ERR_RUNMODE, "Failed retrieving runmode_erf_file.file "
+                   "from Conf");
+        exit(EXIT_FAILURE);
+    }
     SCLogDebug("file %s", file);
     TimeModeSetOffline();
 

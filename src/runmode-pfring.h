@@ -28,8 +28,8 @@
 /* We include only if pfring is enabled */
 #ifdef HAVE_PFRING
 
-int RunModeIdsPfringAuto(DetectEngineCtx *, char *);
-int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx, char *iface);
+int RunModeIdsPfringAuto(DetectEngineCtx *);
+int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx);
 
 #endif /* #ifdef HAVE_PFRING */
 
