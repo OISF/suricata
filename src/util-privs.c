@@ -39,6 +39,7 @@
 #include "threadvars.h"
 #include "util-cpu.h"
 #include "util-privs.h"
+#include "runmodes.h"
 
 /** flag indicating if we'll be using caps */
 extern int sc_set_caps;
@@ -68,12 +69,12 @@ void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
 
     capng_clear(CAPNG_SELECT_BOTH);
 
-    if (run_mode == MODE_PFRING || run_mode == MODE_NFQ) {
+    if (run_mode == RUNMODE_PFRING || run_mode == RUNMODE_NFQ) {
         capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
                       CAP_NET_RAW,            /* needed for pcap live mode */
                       CAP_NET_ADMIN,          /* needed for nfqueue inline mode */
                       -1);
-    } else if (run_mode == MODE_PCAP_DEV) {
+    } else if (run_mode == RUNMODE_PCAP_DEV) {
         capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
                       CAP_NET_RAW,            /* needed for pcap live mode */
                       -1);
