@@ -1383,11 +1383,9 @@ void TmThreadPauseThreads()
 static void TmThreadRestartThread(ThreadVars *tv)
 {
     if (tv->restarted >= THV_MAX_RESTARTS) {
-        printf("Warning: thread restarts exceeded threshhold limit for thread"
-               "\"%s\"\n", tv->name);
-        /* makes sense to reset the tv_aof to engine_exit?! */
-        // tv->aof = THV_ENGINE_EXIT;
-        return;
+        SCLogError(SC_ERR_TM_THREADS_ERROR,"thread restarts exceeded "
+                "threshold limit for thread \"%s\"", tv->name);
+        exit(EXIT_FAILURE);
     }
 
     TmThreadsUnsetFlag(tv, THV_CLOSED);
@@ -1399,8 +1397,7 @@ static void TmThreadRestartThread(ThreadVars *tv)
     }
 
     tv->restarted++;
-    SCLogInfo("thread \"%s\" restarted\n", tv->name);
-
+    SCLogInfo("thread \"%s\" restarted", tv->name);
     return;
 }
 
