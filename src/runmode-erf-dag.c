@@ -37,6 +37,23 @@
 #include "util-cpu.h"
 #include "util-affinity.h"
 
+static int default_mode;
+
+int RunModeErfDagGetDefaultMode(void)
+{
+    return default_mode;
+}
+
+void RunModeErfDagRegister(void)
+{
+    default_mode = RunModeRegisterNewRunMode(RUNMODE_DAG,
+                                             "erf_dag_auto",
+                                             "multi threaded Erf dag mode",
+                                             RunModeErfDagAuto);
+
+    return;
+}
+
 /**
  *
  * \brief   Sets up support for reading from a DAG card.

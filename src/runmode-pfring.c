@@ -20,6 +20,7 @@
 #include "conf.h"
 #include "runmodes.h"
 #include "runmode-pfring.h"
+#include "source-pfring.h"
 #include "log-httplog.h"
 #include "output.h"
 #include "cuda-packet-batcher.h"
@@ -37,8 +38,41 @@
 #include "util-cpu.h"
 #include "util-affinity.h"
 
-/* We include only if pfring is enabled */
+static int default_mode_auto;
+static int default_mode_autofp;
+
+int RunModeIdsPfringGetDefaultMode(void)
+{
 #ifdef HAVE_PFRING
+    if (PfringConfGetThreads() == 1) {
+        return default_mode_auto;
+    } else {
+        return default_mode_autofp;
+    }
+#else
+    return -2;
+#endif
+}
+
+void RunModeIdsPfringRegister(void)
+{
+    default_mode_auto =
+        RunModeRegisterNewRunMode(RUNMODE_PFRING,
+                                  "pfring_auto",
+                                  "multi threaded pfring mode",
+                                  RunModeIdsPfringAuto);
+    default_mode_autofp =
+        RunModeRegisterNewRunMode(RUNMODE_PFRING,
+                                  "pfring_autofp",
+                                  "multi threaded pfring mode.  Packets from "
+                                  "each flow are assigned to a single detect "
+                                  "thread, unlike \"pfring_auto\" where packets "
+                                  "from the same flow can be processed by any "
+                                  "detect thread",
+                                  RunModeIdsPfringAutoFp);
+
+    return;
+}
 
 /**
  * \brief RunModeIdsPfringAuto set up the following thread packet handlers:
@@ -61,6 +95,8 @@
 int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx)
 {
     SCEnter();
+/* We include only if pfring is enabled */
+#ifdef HAVE_PFRING
     char tname[12];
     uint16_t cpu = 0;
 
@@ -266,12 +302,17 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
 
+#endif /* HAVE_PFRING */
     return 0;
 }
 
 int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx)
 {
     SCEnter();
+
+/* We include only if pfring is enabled */
+#ifdef HAVE_PFRING
+
     char tname[12];
     char qname[12];
     uint16_t cpu = 0;
@@ -412,7 +453,7 @@ int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx)
             cpu++;
     }
 
+#endif /* HAVE_PFRING */
+
     return 0;
 }
-
-#endif /* HAVE_PFRING */

@@ -44,6 +44,7 @@ void UtInitialize(void);
 void UtCleanup(void);
 int UtRunSelftest (char *regex_arg);
 void UtListTests(char *regex_arg);
+void UtRunModeRegister(void);
 
 #endif /* __UTIL_UNITTEST_H__ */
 

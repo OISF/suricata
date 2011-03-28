@@ -25,12 +25,9 @@
 
 #include "suricata-common.h"
 
-/* We include only if pfring is enabled */
-#ifdef HAVE_PFRING
-
 int RunModeIdsPfringAuto(DetectEngineCtx *);
 int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx);
-
-#endif /* #ifdef HAVE_PFRING */
+void RunModeIdsPfringRegister(void);
+int RunModeIdsPfringGetDefaultMode(void);
 
 #endif /* __RUNMODE_PFRING_H__ */

@@ -37,6 +37,35 @@
 #include "util-cpu.h"
 #include "util-affinity.h"
 
+static int default_mode;
+
+int RunModeFilePcapGetDefaultMode(void)
+{
+    return default_mode;
+}
+
+void RunModeFilePcapRegister(void)
+{
+    RunModeRegisterNewRunMode(RUNMODE_PCAP_FILE,
+                              "pcap_file_single",
+                              "Single threaded pcap file mode",
+                              RunModeFilePcap2);
+    default_mode = RunModeRegisterNewRunMode(RUNMODE_PCAP_FILE,
+                                             "pcap_file_auto",
+                                             "multi threaded pcap file mode",
+                                             RunModeFilePcapAuto);
+    RunModeRegisterNewRunMode(RUNMODE_PCAP_FILE,
+                              "pcap_file_autofp",
+                              "multi threaded pcap file mode.  Packets from "
+                              "each flow are assigned to a single detect thread, "
+                              "unlike \"pcap_file_auto\" where packets from "
+                              "the same flow can be processed by any detect "
+                              "thread",
+                              RunModeFilePcapAutoFp);
+
+    return;
+}
+
 /**
  * \brief Single thread version of the Pcap file processing.
  */

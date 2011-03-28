@@ -31,11 +31,19 @@ enum {
     RUNMODE_PFRING,
     RUNMODE_NFQ,
     RUNMODE_IPFW,
-    RUNMODE_UNITTEST,
     RUNMODE_ERF_FILE,
     RUNMODE_DAG,
+    RUNMODE_UNITTEST,
+    RUNMODE_MAX,
 };
 
+int RunModeCustomIdValid(int);
+void RunModeListRunmodes(void);
+void RunModeDispatch(int, int, DetectEngineCtx *);
+void RunModeRegisterRunModes(void);
+int RunModeRegisterNewRunMode(uint8_t, const char *,
+                              const char *,
+                              int (*RunModeFunc)(DetectEngineCtx *));
 void RunModeInitialize(void);
 void RunModeInitializeOutputs(void);
 void SetupOutputs(ThreadVars *);
@@ -53,4 +61,3 @@ int threading_set_cpu_affinity;
 extern float threading_detect_ratio;
 
 #endif /* __RUNMODES_H__ */
-

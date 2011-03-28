@@ -15,6 +15,10 @@
 # pattern matcher scans many packets in parallel.
 #max-pending-packets: 50
 
+# Runmode custom id the engine should run in.  Please check --list-runmodes
+# to get the runmode ids that can be used here.
+#runmode: 0
+
 # Preallocated size for packet. Default is 1514 which is the classical
 # size for pcap on ethernet. You should adjust this value to the highest
 # packet size (MTU + hardware header) on your system.

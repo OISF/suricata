@@ -26,5 +26,7 @@
 int RunModeFilePcap2(DetectEngineCtx *);
 int RunModeFilePcapAuto(DetectEngineCtx *);
 int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx);
+void RunModeFilePcapRegister(void);
+int RunModeFilePcapGetDefaultMode(void);
 
 #endif /* __RUNMODE_PCAP_FILE_H__ */

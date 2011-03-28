@@ -37,6 +37,23 @@
 #include "util-cpu.h"
 #include "util-affinity.h"
 
+static int default_mode;
+
+int RunModeErfFileGetDefaultMode(void)
+{
+    return default_mode;
+}
+
+void RunModeErfFileRegister(void)
+{
+    default_mode = RunModeRegisterNewRunMode(RUNMODE_ERF_FILE,
+                                             "erf_file_auto",
+                                             "multi threaded Erf File mode",
+                                             RunModeErfFileAuto);
+
+    return;
+}
+
 int RunModeErfFileAuto(DetectEngineCtx *de_ctx)
 {
     SCEnter();

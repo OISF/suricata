@@ -37,6 +37,23 @@
 #include "util-cpu.h"
 #include "util-affinity.h"
 
+static int default_mode;
+
+int RunModeIpsNFQGetDefaultMode(void)
+{
+    return default_mode;
+}
+
+void RunModeIpsNFQRegister(void)
+{
+    default_mode = RunModeRegisterNewRunMode(RUNMODE_NFQ,
+                                             "nfq_auto",
+                                             "multi threaded NFQ IPS mode",
+                                             RunModeIpsNFQAuto);
+
+    return;
+}
+
 /**
  * \brief RunModeIpsNFQAuto set up the following thread packet handlers:
  *        - Receive thread (from NFQ)

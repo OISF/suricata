@@ -24,5 +24,7 @@
 #define __RUNMODE_ERF_DAG_H__
 
 int RunModeErfDagAuto(DetectEngineCtx *);
+void RunModeErfDagRegister(void);
+int RunModeErfDagGetDefaultMode(void);
 
 #endif /* __RUNMODE_ERF_DAG_H__ */

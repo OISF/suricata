@@ -24,5 +24,7 @@
 #define __RUNMODE_ERF_FILE_H__
 
 int RunModeErfFileAuto(DetectEngineCtx *);
+void RunModeErfFileRegister(void);
+int RunModeErfFileGetDefaultMode(void);
 
 #endif /* __RUNMODE_ERF_FILE_H__ */

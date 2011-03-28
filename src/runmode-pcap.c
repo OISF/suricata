@@ -37,6 +37,22 @@
 #include "util-cpu.h"
 #include "util-affinity.h"
 
+static int default_mode;
+
+int RunModeIdsGetDefaultMode(void)
+{
+    return default_mode;
+}
+
+void RunModeIdsPcapRegister(void)
+{
+    default_mode = RunModeRegisterNewRunMode(RUNMODE_PCAP_DEV,
+                                             "pcap_dev_auto",
+                                             "Multi threaded pcap live mode",
+                                             RunModeIdsPcapAuto);
+
+    return;
+}
 
 /**
  * \brief RunModeIdsPcapAuto set up the following thread packet handlers:

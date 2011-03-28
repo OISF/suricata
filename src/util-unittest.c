@@ -25,6 +25,7 @@
  */
 
 #include "suricata-common.h"
+#include "runmodes.h"
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "util-time.h"
@@ -245,6 +246,16 @@ void UtCleanup(void) {
     }
 
     ut_list = NULL;
+}
+
+void UtRunModeRegister(void)
+{
+    RunModeRegisterNewRunMode(RUNMODE_UNITTEST,
+                              "unittest",
+                              "Unittest mode",
+                              NULL);
+
+    return;
 }
 
 #ifdef UNITTESTS

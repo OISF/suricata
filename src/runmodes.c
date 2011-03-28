@@ -23,6 +23,7 @@
  */
 
 #include "suricata-common.h"
+#include "detect.h"
 #include "detect-engine.h"
 #include "detect-engine-mpm.h"
 #include "tm-threads.h"
@@ -34,6 +35,7 @@
 #include "conf.h"
 #include "queue.h"
 #include "runmodes.h"
+#include "util-unittest.h"
 
 #include "alert-fastlog.h"
 #include "alert-prelude.h"
@@ -51,6 +53,20 @@
 #include "source-pfring.h"
 
 /**
+ * \brief Holds description for a runmode.
+ */
+typedef struct RunMode_ {
+    /* unique custom id generated for this runmode */
+    int custom_id;
+    /* the runmode type */
+    int runmode;
+    const char *name;
+    const char *description;
+    /* runmode function */
+    int (*RunModeFunc)(DetectEngineCtx *);
+} RunMode;
+
+/**
  * A list of output modules that will be active for the run mode.
  */
 typedef struct RunModeOutput_ {
@@ -61,6 +77,218 @@ typedef struct RunModeOutput_ {
 } RunModeOutput;
 TAILQ_HEAD(, RunModeOutput_) RunModeOutputs =
     TAILQ_HEAD_INITIALIZER(RunModeOutputs);
+
+/* unique key used to generate runmode custom ids */
+static int runmode_id = 0;
+RunMode *runmodes = NULL;
+
+/**
+ * \internal
+ * \brief Check if a runmode custom id is valid.
+ *
+ * \param runmode_custom_id The id to be validated.
+ *
+ * \retval 1 If true.
+ * \retval 0 Otherwise.
+ */
+int RunModeCustomIdValid(int runmode_custom_id)
+{
+    if (runmode_custom_id < 0 || runmode_custom_id >= runmode_id) {
+        return 0;
+    }
+
+    return 1;
+}
+
+/**
+ * \brief Register all runmodes in the engine.
+ */
+void RunModeRegisterRunModes(void)
+{
+    RunModeIdsPcapRegister();
+    RunModeFilePcapRegister();
+    RunModeIdsPfringRegister();
+    RunModeIpsNFQRegister();
+    RunModeIpsIPFWRegister();
+    RunModeErfFileRegister();
+    RunModeErfDagRegister();
+    UtRunModeRegister();
+
+    return;
+}
+
+/**
+ * \internal
+ * \brief Translate a runmode mode to a printale string.
+ *
+ * \param runmode Runmode to be converted into a printable string.
+ *
+ * \retval string Printable string.
+ */
+static const char *RunModeTranslateModeToName(int runmode)
+{
+    switch (runmode) {
+        case RUNMODE_PCAP_DEV:
+            return "PCAP_DEV";
+            break;
+        case RUNMODE_PCAP_FILE:
+            return "PCAP_FILE";
+            break;
+        case RUNMODE_PFRING:
+#ifdef HAVE_PFRING
+            return "PFRING";
+#else
+            return "PFRING(DISABLED)";
+#endif
+            break;
+        case RUNMODE_NFQ:
+            return "NFQ";
+            break;
+        case RUNMODE_IPFW:
+            return "IPFW";
+            break;
+        case RUNMODE_ERF_FILE:
+            return "ERF_FILE";
+            break;
+        case RUNMODE_DAG:
+            return "ERF_DAG";
+            break;
+        case RUNMODE_UNITTEST:
+            return "UNITTEST";
+            break;
+        default:
+            SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");
+            exit(EXIT_FAILURE);
+    }
+}
+
+/**
+ * \brief Lists all registered runmodes.
+ */
+void RunModeListRunmodes(void)
+{
+    printf("------------------------------------------------------------------"
+           "-----------------------\n");
+    printf("--------------------------------------Runmodes--------------------"
+           "-----------------------\n");
+    printf("------------------------------------------------------------------"
+           "-----------------------\n");
+
+    printf("| %-2s | %-17s | %-17s | %-10s \n",
+           "Id", "    Mode", "  Name-", "Descripition");
+    printf("|-----------------------------------------------------------------"
+           "-----------------------\n");
+    int i;
+    for (i = 0; i < runmode_id; i++) {
+        printf("| %-2d | %-17s | %-17s | %-27s \n",
+               i,
+               RunModeTranslateModeToName(runmodes[i].runmode),
+               runmodes[i].name,
+               runmodes[i].description);
+    }
+    printf("|-----------------------------------------------------------------"
+           "-----------------------\n");
+
+    return;
+}
+
+/**
+ * \brief Dispatcher function for runmodes.  Calls the required runmode function
+ *        based on runmode + runmode_custom_id.
+ *
+ * \param runmode            The runmode type.
+ * \param runmode_customd_id The runmode custom id.
+ * \param de_ctx             Detection Engine Context.
+ */
+void RunModeDispatch(int runmode, int runmode_custom_id, DetectEngineCtx *de_ctx)
+{
+    if (runmode_custom_id != -1 &&
+        (runmode_custom_id < 0 || runmode_custom_id >= runmode_id)) {
+        SCLogError(SC_ERR_RUNMODE, "You have supplied wrong runmode type - "
+                   "%d", runmode_custom_id);
+        exit(EXIT_FAILURE);
+    }
+
+    if (runmode_custom_id != -1) {
+        if (runmode != runmodes[runmode_custom_id].runmode) {
+            SCLogError(SC_ERR_RUNMODE, "The runmode custom id's(%d) "
+                       "runmode - \"%s\" doesn't match the runmode type - \"%s\" "
+                       "being used.  Please use runmode id whose RunMode "
+                       "mode matches the mode you are running the "
+                       "engine in.",
+                       runmode_custom_id,
+                       RunModeTranslateModeToName(runmodes[runmode_custom_id].runmode),
+                       RunModeTranslateModeToName(runmode));
+            exit(EXIT_FAILURE);
+        }
+        runmodes[runmode_custom_id].RunModeFunc(de_ctx);
+        return;
+    }
+
+    switch (runmode) {
+        case RUNMODE_PCAP_DEV:
+            runmode_custom_id = RunModeIdsGetDefaultMode();
+            break;
+        case RUNMODE_PCAP_FILE:
+            runmode_custom_id = RunModeFilePcapGetDefaultMode();
+            break;
+#ifdef HAVE_PFRING
+        case RUNMODE_PFRING:
+            runmode_custom_id = RunModeIdsPfringGetDefaultMode();
+            break;
+#endif
+        case RUNMODE_NFQ:
+            runmode_custom_id = RunModeIpsNFQGetDefaultMode();
+            break;
+        case RUNMODE_IPFW:
+            runmode_custom_id = RunModeIpsIPFWGetDefaultMode();
+            break;
+        case RUNMODE_ERF_FILE:
+            runmode_custom_id = RunModeErfFileGetDefaultMode();
+            break;
+        case RUNMODE_DAG:
+            runmode_custom_id = RunModeErfDagGetDefaultMode();
+            break;
+        default:
+            SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");
+            exit(EXIT_FAILURE);
+    }
+
+    if (runmode_custom_id < 0 && runmode_custom_id >= runmode_id) {
+        SCLogError(SC_ERR_RUNMODE, "Wrong default custom id - %d, returned by "
+                   "runmode - %d", runmode_custom_id, runmode);
+    }
+
+    runmodes[runmode_custom_id].RunModeFunc(de_ctx);
+
+    return;
+}
+
+/**
+ * \brief Registers a new runmode.
+ *
+ * \param runmode     Runmode type.
+ * \param name        Simple name.  Need not be unique, although suggested.
+ * \param description Description for this runmode.
+ * \param RunModeFunc The function to be run for this runmode.
+ */
+int RunModeRegisterNewRunMode(uint8_t runmode, const char *name,
+                              const char *description,
+                              int (*RunModeFunc)(DetectEngineCtx *))
+{
+    runmodes = SCRealloc(runmodes, (runmode_id + 1) * sizeof(RunMode));
+    if (runmodes == NULL) {
+        exit(EXIT_FAILURE);
+    }
+    runmodes[runmode_id].custom_id = runmode_id;
+    runmodes[runmode_id].runmode = runmode;
+    runmodes[runmode_id].name = SCStrdup(name);
+    runmodes[runmode_id].description = SCStrdup(description);
+    runmodes[runmode_id].RunModeFunc = RunModeFunc;
+    runmode_id++;
+
+    return runmode_id - 1;
+}
 
 /**
  * Cleanup the run mode.

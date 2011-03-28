@@ -351,6 +351,10 @@ void usage(const char *progname)
 #ifdef __SC_CUDA_SUPPORT__
     printf("\t--list-cuda-cards            : list cuda supported cards\n");
 #endif
+    printf("\t--list-runmodes              : list supported runmodes\n");
+    printf("\t--runmode <runmode_id>       : specific runmode modification the engine should run.  The argument\n"
+           "\t                               supplied should be the id for the runmode obtained by running\n"
+           "\t                               --list-runmodes\n");
     printf("\t--engine-analysis            : print reports on analysis of different sections in the engine and exit.\n"
            "\t                               Please have a look at the conf parameter engine-analysis on what reports\n"
            "\t                               can be printed\n");
@@ -492,6 +496,8 @@ int main(int argc, char **argv)
     int dump_config = 0;
     int list_unittests = 0;
     int list_cuda_cards = 0;
+    int list_runmodes = 0;
+    int runmode_custom_id = -1;
     int daemon = 0;
     char *user_name = NULL;
     char *group_name = NULL;
@@ -510,6 +516,8 @@ int main(int argc, char **argv)
 
     /* initialize the logging subsys */
     SCLogInitLogModule(NULL);
+
+    RunModeRegisterRunModes();
 
     /* By default use IDS mode, but if nfq or ipfw
      * are specified, IPS mode will overwrite this */
@@ -560,6 +568,8 @@ int main(int argc, char **argv)
         {"unittest-filter", required_argument, 0, 'U'},
         {"list-unittests", 0, &list_unittests, 1},
         {"list-cuda-cards", 0, &list_cuda_cards, 1},
+        {"list-runmodes", 0, &list_runmodes, 1},
+        {"runmode", required_argument, NULL, 0},
         {"engine-analysis", 0, &engine_analysis, 1},
 #ifdef OS_WIN32
 		{"service-install", 0, 0, 0},
@@ -645,6 +655,17 @@ int main(int argc, char **argv)
                         "--enable-cuda to configure when building.\n");
                 exit(EXIT_FAILURE);
 #endif /* UNITTESTS */
+            } else if (strcmp((long_opts[option_index]).name, "list-runmodes") == 0) {
+                RunModeListRunmodes();
+                exit(EXIT_SUCCESS);
+            } else if (strcmp((long_opts[option_index]).name, "runmode") == 0) {
+                runmode_custom_id = atoi(optarg);
+                if (!RunModeCustomIdValid(runmode_custom_id)) {
+                    fprintf(stderr, "ERROR: Invalid runmode id - \"%d\" supplied.  "
+                            "Please pass valid runmode id from "
+                            "--list-runmodes.\n", runmode_custom_id);
+                    exit(EXIT_FAILURE);
+                }
             } else if(strcmp((long_opts[option_index]).name, "engine-analysis") == 0) {
                 // do nothing for now
             }
@@ -918,6 +939,24 @@ int main(int argc, char **argv)
     if (dump_config) {
         ConfDump();
         exit(EXIT_SUCCESS);
+    }
+
+    /* If runmode isn't supplied in the command line, retrieve it from the conf
+     * file.  If supplied in command line, the command line version overrides
+     * conf file */
+    if (runmode_custom_id == -1) {
+        intmax_t val;
+        if (ConfGetInt("runmode", &val) != 1) {
+            runmode_custom_id = -1;
+        } else {
+            runmode_custom_id = val;
+            if (!RunModeCustomIdValid(runmode_custom_id)) {
+                fprintf(stderr, "ERROR: Invalid runmode id - \"%d\" supplied "
+                        "in conf file.  Please pass valid runmode id from "
+                        "--list-runmodes.\n", runmode_custom_id);
+                exit(EXIT_FAILURE);
+            }
+        }
     }
 
     /* Check for the existance of the default logging directory which we pick
@@ -1289,55 +1328,14 @@ int main(int argc, char **argv)
 
     /* run the selected runmode */
     if (run_mode == RUNMODE_PCAP_DEV) {
-        //RunModeIdsPcap3(de_ctx, pcap_dev);
-        //RunModeIdsPcap2(de_ctx, pcap_dev);
-        //RunModeIdsPcap(de_ctx, pcap_dev);
         PcapTranslateIPToDevice(pcap_dev, sizeof(pcap_dev));
         if (ConfSet("runmode_pcap.single_pcap_dev", pcap_dev, 0) != 1) {
             fprintf(stderr, "ERROR: Failed to set runmode_pcap.single_pcap_dev\n");
             exit(EXIT_FAILURE);
         }
-        RunModeIdsPcapAuto(de_ctx);
     }
-    else if (run_mode == RUNMODE_PCAP_FILE) {
-        //RunModeFilePcap(de_ctx, pcap_file);
-        //RunModeFilePcap2(de_ctx, pcap_file);
-        RunModeFilePcapAuto(de_ctx);
-        //RunModeFilePcapAutoFp(de_ctx, pcap_file);
-        //RunModeFilePcapAuto2(de_ctx, pcap_file);
-    }
-#ifdef HAVE_PFRING
-    else if (run_mode == RUNMODE_PFRING) {
-        PfringLoadConfig();
-        //RunModeIdsPfring3(de_ctx, pfring_dev);
-        //RunModeIdsPfring2(de_ctx, pfring_dev);
-        //RunModeIdsPfring(de_ctx, pfring_dev);
-        //RunModeIdsPfring4(de_ctx, pfring_dev);
-        if (PfringConfGetThreads() == 1) {
-            RunModeIdsPfringAuto(de_ctx);
-        } else {
-            RunModeIdsPfringAutoFp(de_ctx);
-        }
-    }
-#endif /* HAVE_PFRING */
-    else if (run_mode == RUNMODE_NFQ) {
-        //RunModeIpsNFQ(de_ctx, nfq_id);
-        RunModeIpsNFQAuto(de_ctx);
-    }
-    else if (run_mode == RUNMODE_IPFW) {
-        //RunModeIpsIPFW(de_ctx);
-        RunModeIpsIPFWAuto(de_ctx);
-    }
-    else if (run_mode == RUNMODE_ERF_FILE) {
-        RunModeErfFileAuto(de_ctx);
-    }
-    else if (run_mode == RUNMODE_DAG) {
-        RunModeErfDagAuto(de_ctx);
-    }
-    else {
-        SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");
-        exit(EXIT_FAILURE);
-    }
+
+    RunModeDispatch(run_mode, runmode_custom_id, de_ctx);
 
 #ifdef __SC_CUDA_SUPPORT__
     if (PatternMatchDefaultMatcher() == MPM_B2G_CUDA) {
