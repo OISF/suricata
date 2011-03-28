@@ -57,6 +57,12 @@
 #define MIN_LIMIT 1
 #define DEFAULT_LIMIT 100
 
+#define LOGMODE_NORMAL  0
+#define LOGMODE_SGUIL   1
+
+static int g_logpcap_mode = LOGMODE_NORMAL;
+static char g_logpcap_sguil_base_dir[PATH_MAX] = "";
+
 /*prototypes*/
 TmEcode PcapLog (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode PcapLogThreadInit(ThreadVars *, void *, void **);
@@ -75,6 +81,8 @@ typedef struct PcapLogThread_ {
     pcap_t *pcap_dead_handle;   /**< pcap_dumper_t needs a handle */
     pcap_dumper_t *pcap_dumper; /**< actually writes the packets */
     struct pcap_pkthdr *h;      /**< pcap header struct */
+    int prev_day;               /**< last day, for finding out when
+                                     to rotate in sguil mode */
 } PcapLogThread;
 
 void TmModulePcapLogRegister (void) {
@@ -139,9 +147,14 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, PacketQu
 {
     size_t len;
     PcapLogThread *pl = (PcapLogThread *)data;
+    int rotate = 0;
 
     if (pl == NULL) {
         return TM_ECODE_FAILED;
+    }
+
+    if (p->flags & PKT_PSEUDO_STREAM_END || p->flags & PKT_STREAM_NOPCAPLOG) {
+        return TM_ECODE_OK;
     }
 
     pl->h->ts.tv_sec = p->ts.tv_sec;
@@ -150,8 +163,17 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, PacketQu
     pl->h->len = GET_PKT_LEN(p);
     len = sizeof(*pl->h) + GET_PKT_LEN(p);
 
+    if (g_logpcap_mode == LOGMODE_SGUIL) {
+        struct tm local_tm;
+        struct tm *tms = (struct tm *)localtime_r(&p->ts.tv_sec, &local_tm);
+        if (tms->tm_mday != pl->prev_day) {
+            rotate = 1;
+            pl->prev_day = tms->tm_mday;
+        }
+    }
+
     SCMutexLock(&pl->file_ctx->fp_mutex);
-    if ((pl->size_current + len) > pl->file_ctx->size_limit) {
+    if ((pl->size_current + len) > pl->file_ctx->size_limit || rotate) {
         if (PcapLogRotateFile(t,pl) < 0)
         {
             SCMutexUnlock(&pl->file_ctx->fp_mutex);
@@ -216,6 +238,13 @@ TmEcode PcapLogThreadInit(ThreadVars *t, void *initdata, void **data)
     pl->pcap_dead_handle = NULL;
     pl->pcap_dumper = NULL;
 
+    struct timeval ts;
+    memset(&ts, 0x00, sizeof(struct timeval));
+    TimeGet(&ts);
+    struct tm local_tm;
+    struct tm *tms = (struct tm *)localtime_r(&ts.tv_sec, &local_tm);
+    pl->prev_day = tms->tm_mday;
+
     *data = (void *)pl;
     return TM_ECODE_OK;
 }
@@ -275,9 +304,9 @@ OutputCtx *PcapLogInitCtx(ConfNode *conf)
 
     file_ctx->prefix = SCStrdup(filename);
 
-    const char *s_limit = NULL;
     uint32_t limit = DEFAULT_LIMIT;
     if (conf != NULL) {
+        const char *s_limit = NULL;
         s_limit = ConfNodeLookupChildValue(conf, "limit");
         if (s_limit != NULL) {
             if (ByteExtractStringUint32(&limit, 10, 0, s_limit) == -1) {
@@ -296,8 +325,34 @@ OutputCtx *PcapLogInitCtx(ConfNode *conf)
     }
     file_ctx->size_limit = limit * 1024 * 1024;
 
-    ret = PcapLogOpenFileCtx(file_ctx, filename);
+    if (conf != NULL) {
+        const char *s_mode = NULL;
+        s_mode = ConfNodeLookupChildValue(conf, "mode");
+        if (s_mode != NULL) {
+            if (strcasecmp(s_mode, "sguil") == 0) {
+                g_logpcap_mode = LOGMODE_SGUIL;
+            }
+        }
 
+        if (g_logpcap_mode == LOGMODE_SGUIL) {
+            const char *s_sguil_base = NULL;
+            s_sguil_base = ConfNodeLookupChildValue(conf, "sguil_base_dir");
+            if (s_sguil_base == NULL) {
+                SCLogError(SC_ERR_LOGPCAP_SGUIL_BASE_DIR_MISSING,
+                    "log-pcap \"sguil\" mode requires \"sguil_base_dir\" "
+                    "option to be set.");
+                exit(EXIT_FAILURE);
+            }
+
+            strlcpy(g_logpcap_sguil_base_dir,
+                    s_sguil_base, sizeof(g_logpcap_sguil_base_dir));
+        }
+    }
+
+    SCLogInfo("using %s logging", g_logpcap_mode == LOGMODE_SGUIL ?
+            "Sguil compatible" : "normal");
+
+    ret = PcapLogOpenFileCtx(file_ctx, filename);
     if (ret < 0)
         return NULL;
 
@@ -336,7 +391,7 @@ int PcapLogOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
 {
     char *filename = NULL;
 
-   if (file_ctx->filename != NULL)
+    if (file_ctx->filename != NULL)
         filename = file_ctx->filename;
     else {
         filename = file_ctx->filename = SCMalloc(PATH_MAX);
@@ -350,15 +405,33 @@ int PcapLogOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
     memset(&ts, 0x00, sizeof(struct timeval));
     TimeGet(&ts);
 
-    /* create the filename to use */
-    if (prefix[0] == '/') {
-        snprintf(filename, PATH_MAX, "%s.%" PRIu32, prefix, (uint32_t)ts.tv_sec);
-    } else {
-        char *log_dir;
-        if (ConfGet("default-log-dir", &log_dir) != 1)
-            log_dir = DEFAULT_LOG_DIR;
+    char *log_dir;
+    if (ConfGet("default-log-dir", &log_dir) != 1)
+        log_dir = DEFAULT_LOG_DIR;
 
-        snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, log_dir, prefix, (uint32_t)ts.tv_sec);
+    if (g_logpcap_mode == LOGMODE_SGUIL) {
+        struct tm local_tm;
+        struct tm *tms = (struct tm *)localtime_r(&ts.tv_sec, &local_tm);
+
+        char dirname[32], dirfull[PATH_MAX] = "";
+
+        snprintf(dirname, sizeof(dirname), "%04d-%02d-%02d",
+                tms->tm_year + 1900, tms->tm_mon + 1, tms->tm_mday);
+
+        /* create the filename to use */
+        snprintf(dirfull, PATH_MAX, "%s/%s", g_logpcap_sguil_base_dir, dirname);
+
+        /* if mkdir fails file open will fail, so deal with errors there */
+        (void)mkdir(dirfull, 0700);
+
+        snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, dirfull, prefix, (uint32_t)ts.tv_sec);
+    } else {
+        /* create the filename to use */
+        if (prefix[0] == '/') {
+            snprintf(filename, PATH_MAX, "%s.%" PRIu32, prefix, (uint32_t)ts.tv_sec);
+        } else {
+            snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, log_dir, prefix, (uint32_t)ts.tv_sec);
+        }
     }
 
     return 0;

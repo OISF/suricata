@@ -3320,6 +3320,23 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         StreamTcpInlineRecalcCsum(p);
     }
 
+    /* check for conditions that may make us not want to log this packet */
+    if (ssn != NULL) {
+        /* streams that hit depth */
+        if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED ||
+             ssn->server.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED))
+        {
+            p->flags |= PKT_STREAM_NOPCAPLOG;
+        }
+
+        /* encrypted packets */
+        if ((PKT_IS_TOSERVER(p) && ssn->client.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY) ||
+            (PKT_IS_TOCLIENT(p) && ssn->server.flags & STREAMTCP_STREAM_FLAG_NOREASSEMBLY))
+        {
+            p->flags |= PKT_STREAM_NOPCAPLOG;
+        }
+    }
+
     SCReturnInt(0);
 
 error:

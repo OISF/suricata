@@ -816,6 +816,7 @@ void AddressDebugPrint(Address *);
 #define PKT_PSEUDO_STREAM_END           0x0100    /**< Pseudo packet to end the stream */
 #define PKT_STREAM_MODIFIED             0x0200    /**< Packet is modified by the stream engine, we need to recalc the csum and reinject/replace */
 #define PKT_MARK_MODIFIED               0x0400    /**< Packet mark is modified */
+#define PKT_STREAM_NOPCAPLOG            0x0800    /**< Exclude packet from pcap logging as it's part of a stream that has reassembly depth reached. */
 
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) ((p)->flags & PKT_PSEUDO_STREAM_END)

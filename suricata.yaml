@@ -73,13 +73,29 @@ outputs:
       filename: http.log
       append: yes
 
-  # Packet log... log packets in pcap format.
+  # Packet log... log packets in pcap format. 2 modes of operation: "normal"
+  # and "sguil".
+  #
+  # In normal mode a pcap file "filename" is created in the default-log-dir,
+  # or if filename is an absolute path a that path. In Sguil mode "sguil_base_dir"
+  # indicates the base directory. In this base dir the pcaps are created in the
+  # directory structure Sguil expects:
+  #
+  # $sguil_base_dir/YYYY-MM-DD/$filename.<timestamp>
+  #
+  # By default all packets are logged except:
+  # - TCP streams beyond stream.reassembly.depth
+  # - encrypted streams after the key exchange
+  #
   - pcap-log:
       enabled:  no
       filename: log.pcap
 
       # Limit in MB.
       #limit: 32
+
+      #mode: sguil # "normal" (default) or sguil.
+      #sguil_base_dir: /nsm_data/
 
   # a full alerts log containing much information for signature writers
   # or for investigating suspected false positives.
