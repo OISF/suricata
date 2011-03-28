@@ -338,8 +338,12 @@ int PcapLogOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
 
    if (file_ctx->filename != NULL)
         filename = file_ctx->filename;
-    else
-        filename = file_ctx->filename = malloc(PATH_MAX); /* XXX some sane default? */
+    else {
+        filename = file_ctx->filename = SCMalloc(PATH_MAX);
+        if (filename == NULL) {
+            return -1;
+        }
+    }
 
     /** get the time so we can have a filename with seconds since epoch */
     struct timeval ts;
@@ -347,10 +351,15 @@ int PcapLogOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
     TimeGet(&ts);
 
     /* create the filename to use */
-    char *log_dir;
-    if (ConfGet("default-log-dir", &log_dir) != 1)
-        log_dir = DEFAULT_LOG_DIR;
+    if (prefix[0] == '/') {
+        snprintf(filename, PATH_MAX, "%s.%" PRIu32, prefix, (uint32_t)ts.tv_sec);
+    } else {
+        char *log_dir;
+        if (ConfGet("default-log-dir", &log_dir) != 1)
+            log_dir = DEFAULT_LOG_DIR;
 
-    snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, log_dir, prefix, (uint32_t)ts.tv_sec);
+        snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, log_dir, prefix, (uint32_t)ts.tv_sec);
+    }
+
     return 0;
 }
