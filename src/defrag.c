@@ -591,7 +591,7 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
     rp->ip4h->ip_off = 0;
     rp->ip4h->ip_csum = FixChecksum(rp->ip4h->ip_csum,
         old, rp->ip4h->ip_len + rp->ip4h->ip_off);
-    SET_PKT_LEN(p, ip_hdr_offset + hlen + fragmentable_len);
+    SET_PKT_LEN(rp, ip_hdr_offset + hlen + fragmentable_len);
     IPV4_CACHE_INIT(rp);
 
 remove_tracker:
