@@ -103,9 +103,14 @@ void TmModulePcapLogRegister (void) {
  */
 int PcapLogCloseFile(ThreadVars *t, PcapLogThread *pl) {
     if (pl != NULL) {
-        pcap_dump_close(pl->pcap_dumper);
+        if (pl->pcap_dumper != NULL)
+            pcap_dump_close(pl->pcap_dumper);
         pl->size_current = 0;
         pl->pcap_dumper = NULL;
+
+        if (pl->pcap_dead_handle != NULL)
+            pcap_close(pl->pcap_dead_handle);
+        pl->pcap_dead_handle = NULL;
     }
     return 0;
 }
