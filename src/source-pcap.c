@@ -219,6 +219,7 @@ static int PcapTryReopen(PcapThreadVars *ptv)
 static int PcapTryReopen(PcapThreadVars *ptv)
 {
     char errbuf[PCAP_ERRBUF_SIZE] = "";
+    char *tmpbpfstring;
 
     ptv->pcap_state = PCAP_STATE_DOWN;
     pcap_close(ptv->pcap_handle);
