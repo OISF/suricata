@@ -503,7 +503,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
         SCFree(ptv);
         SCReturnInt(TM_ECODE_FAILED);
     }
-    strncpy(ptv->iface, PCAP_IFACE_NAME_LENGTH, initdata);
+    strlcpy(ptv->iface, PCAP_IFACE_NAME_LENGTH, (char *)initdata);
 
     char errbuf[PCAP_ERRBUF_SIZE] = "";
     ptv->pcap_handle = pcap_open_live((char *)initdata, LIBPCAP_SNAPLEN,

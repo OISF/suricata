@@ -1,5 +1,5 @@
 @banned@
-identifier func ~= "^\(sprintf\|strcat\|strcpy\)$";
+identifier func ~= "^\(sprintf\|strcat\|strcpy\|strncpy\|strncat\)$";
 position p1;
 @@
 

@@ -69,7 +69,7 @@ int GetIfaceMTU(char *pcap_dev)
     struct ifreq ifr;
     int fd;
 
-    (void)strncpy(ifr.ifr_name, pcap_dev, sizeof(ifr.ifr_name));
+    (void)strlcpy(ifr.ifr_name, pcap_dev, sizeof(ifr.ifr_name));
     fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (fd == -1) {
         return -1;

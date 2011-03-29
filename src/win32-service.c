@@ -228,8 +228,8 @@ int SCServiceInstall(int argc, char **argv)
 			if ((strlen(argv[i]) <= strlen("--service-install")) && (strncmp("--service-install", argv[i], strlen(argv[i])) == 0)) {
 				continue;
 			}
-			strncat(path, " ", sizeof(path) - strlen(path) - 1);
-			strncat(path, argv[i], sizeof(path) - strlen(path) - 1);
+			strlcat(path, " ", sizeof(path) - strlen(path) - 1);
+			strlcat(path, argv[i], sizeof(path) - strlen(path) - 1);
 		}
 
 		if ((scm = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS)) == NULL) {
@@ -353,8 +353,8 @@ int SCServiceChangeParams(int argc, char **argv)
 			if ((strlen(argv[i]) <= strlen("--service-change-params")) && (strncmp("--service-change-params", argv[i], strlen(argv[i])) == 0)) {
 				continue;
 			}
-			strncat(path, " ", sizeof(path) - strlen(path) - 1);
-			strncat(path, argv[i], sizeof(path) - strlen(path) - 1);
+			strlcat(path, " ", sizeof(path) - strlen(path) - 1);
+			strlcat(path, argv[i], sizeof(path) - strlen(path) - 1);
 		}
 
 		if ((scm = OpenSCManager(NULL, NULL, SC_MANAGER_ALL_ACCESS)) == NULL) {
