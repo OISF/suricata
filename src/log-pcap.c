@@ -158,7 +158,9 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, PacketQu
         return TM_ECODE_FAILED;
     }
 
-    if (p->flags & PKT_PSEUDO_STREAM_END || p->flags & PKT_STREAM_NOPCAPLOG) {
+    if (p->flags & PKT_PSEUDO_STREAM_END || p->flags & PKT_STREAM_NOPCAPLOG ||
+            (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)))
+    {
         return TM_ECODE_OK;
     }
 
