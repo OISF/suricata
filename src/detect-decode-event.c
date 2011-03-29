@@ -40,7 +40,7 @@
 #include "detect-decode-event.h"
 #include "util-unittest.h"
 
-#define PARSE_REGEX "\\S[0-9A-z_]+[.][A-z+]+$"
+#define PARSE_REGEX "\\S[0-9A-z_]+[.][A-z0-9_+]+$"
 
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
@@ -128,7 +128,8 @@ DetectDecodeEventData *DetectDecodeEventParse (char *rawstr)
 
     ret = pcre_exec(parse_regex, parse_regex_study, rawstr, strlen(rawstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, rawstr);
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32
+                ", string %s", ret, rawstr);
         goto error;
     }
 
@@ -140,15 +141,18 @@ DetectDecodeEventData *DetectDecodeEventParse (char *rawstr)
         goto error;
     }
 
-    for(i = 0; DEvents[i].event_name != NULL; i++)  {
-        if((strncasecmp(DEvents[i].event_name,str_ptr,strlen(DEvents[i].event_name))) == 0) {
+    for (i = 0; DEvents[i].event_name != NULL; i++) {
+        if (strcasecmp(DEvents[i].event_name,str_ptr) == 0) {
             found = 1;
             break;
         }
     }
 
-    if(found == 0)
+    if (found == 0) {
+        SCLogError(SC_ERR_UNKNOWN_DECODE_EVENT, "unknown decode event \"%s\"",
+                str_ptr);
         goto error;
+    }
 
     de = SCMalloc(sizeof(DetectDecodeEventData));
     if (de == NULL)

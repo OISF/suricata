@@ -1772,46 +1772,37 @@ static int SignatureIsInspectingPayload(DetectEngineCtx *de_ctx, Signature *s) {
  *  \retval 1 DEOnly sig
  */
 static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, Signature *s) {
-    if (s->alproto != ALPROTO_UNKNOWN)
-        return 0;
+    if (s->alproto != ALPROTO_UNKNOWN) {
+        SCReturnInt(0);
+    }
 
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL)
-        return 0;
+    if (s->sm_lists[DETECT_SM_LIST_PMATCH]    != NULL ||
+        s->sm_lists[DETECT_SM_LIST_UMATCH]    != NULL ||
+        s->sm_lists[DETECT_SM_LIST_AMATCH]    != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HHDMATCH]  != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HMDMATCH]  != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HCDMATCH]  != NULL)
+    {
+        SCReturnInt(0);
+    }
 
-    if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL)
-        return 0;
-
-    if (s->sm_lists[DETECT_SM_LIST_HCDMATCH] != NULL)
-        return 0;
-
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
     /* check for conflicting keywords */
+    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
     for ( ;sm != NULL; sm = sm->next) {
         if ( !(sigmatch_table[sm->type].flags & SIGMATCH_DEONLY_COMPAT))
-            return 0;
+            SCReturnInt(0);
     }
 
     /* need at least one decode event keyword to be condered decode event. */
+    sm = s->sm_lists[DETECT_SM_LIST_MATCH];
     for ( ;sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_DECODE_EVENT)
             goto deonly;
     }
-    return 0;
+
+    SCReturnInt(0);
 
 deonly:
     if (!(de_ctx->flags & DE_QUIET)) {
@@ -1820,7 +1811,7 @@ deonly:
                    s->flags & SIG_FLAG_DST_ANY ? "ANY" : "SET");
     }
 
-    return 1;
+    SCReturnInt(1);
 }
 
 /* Create mask for this packet + it's flow if it has one

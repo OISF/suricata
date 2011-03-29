@@ -120,7 +120,8 @@ int DetectProtoParse(DetectProto *dp, char *str)
         proto = IPPROTO_SCTP;
         dp->proto[proto / 8] |= 1 << (proto % 8);
         SCLogDebug("SCTP protocol detected");
-    } else if (strcasecmp(str,"ip") == 0) {
+    } else if (strcasecmp(str,"ip") == 0 ||
+               strcasecmp(str,"pkthdr") == 0) {
         /* Proto "ip" is treated as an "any" */
         dp->flags |= DETECT_PROTO_ANY;
         memset(dp->proto, 0xff, sizeof(dp->proto));

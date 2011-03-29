@@ -107,8 +107,8 @@ struct DetectDecodeEvents_ {
     { "gre.version1_wrong_protocol", GRE_VERSION1_WRONG_PROTOCOL, },
     { "gre.version1_malformed_sre_hdr", GRE_VERSION1_MALFORMED_SRE_HDR, },
     { "gre.version1_hdr_too_big", GRE_VERSION1_HDR_TOO_BIG, },
-    { "ipraw.wrong_ip_version",IPRAW_INVALID_IPV, },
-    { "vlan.hlen_too_small",VLAN_HEADER_TOO_SMALL, },
+    { "ipraw.invalid_ip_version",IPRAW_INVALID_IPV, },
+    { "vlan.header_too_small",VLAN_HEADER_TOO_SMALL, },
     { "vlan.unknown_type",VLAN_UNKNOWN_TYPE, },
     { NULL, 0 },
 };
