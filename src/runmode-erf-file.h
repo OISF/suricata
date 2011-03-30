@@ -25,6 +25,6 @@
 
 int RunModeErfFileAuto(DetectEngineCtx *);
 void RunModeErfFileRegister(void);
-int RunModeErfFileGetDefaultMode(void);
+const char *RunModeErfFileGetDefaultMode(void);
 
 #endif /* __RUNMODE_ERF_FILE_H__ */

@@ -37,19 +37,19 @@
 #include "util-cpu.h"
 #include "util-affinity.h"
 
-static int default_mode;
+static const char *default_mode;
 
-int RunModeIpsNFQGetDefaultMode(void)
+const char *RunModeIpsNFQGetDefaultMode(void)
 {
     return default_mode;
 }
 
 void RunModeIpsNFQRegister(void)
 {
-    default_mode = RunModeRegisterNewRunMode(RUNMODE_NFQ,
-                                             "nfq_auto",
-                                             "multi threaded NFQ IPS mode",
-                                             RunModeIpsNFQAuto);
+    default_mode = "auto";
+    RunModeRegisterNewRunMode(RUNMODE_NFQ, "auto",
+                              "Multi threaded NFQ IPS mode",
+                              RunModeIpsNFQAuto);
 
     return;
 }

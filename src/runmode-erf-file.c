@@ -37,19 +37,19 @@
 #include "util-cpu.h"
 #include "util-affinity.h"
 
-static int default_mode;
+static const char *default_mode;
 
-int RunModeErfFileGetDefaultMode(void)
+const char *RunModeErfFileGetDefaultMode(void)
 {
     return default_mode;
 }
 
 void RunModeErfFileRegister(void)
 {
-    default_mode = RunModeRegisterNewRunMode(RUNMODE_ERF_FILE,
-                                             "erf_file_auto",
-                                             "multi threaded Erf File mode",
-                                             RunModeErfFileAuto);
+    default_mode = "auto";
+    RunModeRegisterNewRunMode(RUNMODE_ERF_FILE, "auto",
+                              "Multi threaded Erf File mode",
+                              RunModeErfFileAuto);
 
     return;
 }

@@ -37,19 +37,19 @@
 #include "util-cpu.h"
 #include "util-affinity.h"
 
-static int default_mode;
+static const char *default_mode = NULL;
 
-int RunModeIdsGetDefaultMode(void)
+const char *RunModeIdsGetDefaultMode(void)
 {
     return default_mode;
 }
 
 void RunModeIdsPcapRegister(void)
 {
-    default_mode = RunModeRegisterNewRunMode(RUNMODE_PCAP_DEV,
-                                             "pcap_dev_auto",
-                                             "Multi threaded pcap live mode",
-                                             RunModeIdsPcapAuto);
+    RunModeRegisterNewRunMode(RUNMODE_PCAP_DEV, "auto",
+                              "Multi threaded pcap live mode",
+                              RunModeIdsPcapAuto);
+    default_mode = "auto";
 
     return;
 }

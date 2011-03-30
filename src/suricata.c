@@ -497,7 +497,7 @@ int main(int argc, char **argv)
     int list_unittests = 0;
     int list_cuda_cards = 0;
     int list_runmodes = 0;
-    int runmode_custom_id = -1;
+    const char *runmode_custom_mode = NULL;
     int daemon = 0;
     char *user_name = NULL;
     char *group_name = NULL;
@@ -659,13 +659,7 @@ int main(int argc, char **argv)
                 RunModeListRunmodes();
                 exit(EXIT_SUCCESS);
             } else if (strcmp((long_opts[option_index]).name, "runmode") == 0) {
-                runmode_custom_id = atoi(optarg);
-                if (!RunModeCustomIdValid(runmode_custom_id)) {
-                    fprintf(stderr, "ERROR: Invalid runmode id - \"%d\" supplied.  "
-                            "Please pass valid runmode id from "
-                            "--list-runmodes.\n", runmode_custom_id);
-                    exit(EXIT_FAILURE);
-                }
+                runmode_custom_mode = optarg;
             } else if(strcmp((long_opts[option_index]).name, "engine-analysis") == 0) {
                 // do nothing for now
             }
@@ -939,24 +933,6 @@ int main(int argc, char **argv)
     if (dump_config) {
         ConfDump();
         exit(EXIT_SUCCESS);
-    }
-
-    /* If runmode isn't supplied in the command line, retrieve it from the conf
-     * file.  If supplied in command line, the command line version overrides
-     * conf file */
-    if (runmode_custom_id == -1) {
-        intmax_t val;
-        if (ConfGetInt("runmode", &val) != 1) {
-            runmode_custom_id = -1;
-        } else {
-            runmode_custom_id = val;
-            if (!RunModeCustomIdValid(runmode_custom_id)) {
-                fprintf(stderr, "ERROR: Invalid runmode id - \"%d\" supplied "
-                        "in conf file.  Please pass valid runmode id from "
-                        "--list-runmodes.\n", runmode_custom_id);
-                exit(EXIT_FAILURE);
-            }
-        }
     }
 
     /* Check for the existance of the default logging directory which we pick
@@ -1335,7 +1311,7 @@ int main(int argc, char **argv)
         }
     }
 
-    RunModeDispatch(run_mode, runmode_custom_id, de_ctx);
+    RunModeDispatch(run_mode, runmode_custom_mode, de_ctx);
 
 #ifdef __SC_CUDA_SUPPORT__
     if (PatternMatchDefaultMatcher() == MPM_B2G_CUDA) {

@@ -37,19 +37,19 @@
 #include "util-cpu.h"
 #include "util-affinity.h"
 
-static int default_mode;
+static const char *default_mode;
 
-int RunModeIpsIPFWGetDefaultMode(void)
+const char *RunModeIpsIPFWGetDefaultMode(void)
 {
     return default_mode;
 }
 
 void RunModeIpsIPFWRegister(void)
 {
-    default_mode = RunModeRegisterNewRunMode(RUNMODE_IPFW,
-                                             "pfring_ipfw_auto",
-                                             "multi threaded IPFW IPS mode",
-                                             RunModeIpsIPFWAuto);
+    default_mode = "auto";
+    RunModeRegisterNewRunMode(RUNMODE_IPFW, "auto",
+                              "Multi threaded IPFW IPS mode",
+                              RunModeIpsIPFWAuto);
 
     return;
 }

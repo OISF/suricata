@@ -37,13 +37,11 @@ enum {
     RUNMODE_MAX,
 };
 
-int RunModeCustomIdValid(int);
 void RunModeListRunmodes(void);
-void RunModeDispatch(int, int, DetectEngineCtx *);
+void RunModeDispatch(int, const char *, DetectEngineCtx *);
 void RunModeRegisterRunModes(void);
-int RunModeRegisterNewRunMode(uint8_t, const char *,
-                              const char *,
-                              int (*RunModeFunc)(DetectEngineCtx *));
+void RunModeRegisterNewRunMode(int, const char *, const char *,
+                               int (*RunModeFunc)(DetectEngineCtx *));
 void RunModeInitialize(void);
 void RunModeInitializeOutputs(void);
 void SetupOutputs(ThreadVars *);

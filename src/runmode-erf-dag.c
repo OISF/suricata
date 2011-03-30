@@ -37,19 +37,19 @@
 #include "util-cpu.h"
 #include "util-affinity.h"
 
-static int default_mode;
+static const char *default_mode;
 
-int RunModeErfDagGetDefaultMode(void)
+const char *RunModeErfDagGetDefaultMode(void)
 {
     return default_mode;
 }
 
 void RunModeErfDagRegister(void)
 {
-    default_mode = RunModeRegisterNewRunMode(RUNMODE_DAG,
-                                             "erf_dag_auto",
-                                             "multi threaded Erf dag mode",
-                                             RunModeErfDagAuto);
+    default_mode = "auto";
+    RunModeRegisterNewRunMode(RUNMODE_DAG, "auto",
+                              "Multi threaded Erf dag mode",
+                              RunModeErfDagAuto);
 
     return;
 }

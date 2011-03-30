@@ -37,26 +37,24 @@
 #include "util-cpu.h"
 #include "util-affinity.h"
 
-static int default_mode;
+static const char *default_mode = NULL;
 
-int RunModeFilePcapGetDefaultMode(void)
+const char *RunModeFilePcapGetDefaultMode(void)
 {
     return default_mode;
 }
 
 void RunModeFilePcapRegister(void)
 {
-    RunModeRegisterNewRunMode(RUNMODE_PCAP_FILE,
-                              "pcap_file_single",
+    RunModeRegisterNewRunMode(RUNMODE_PCAP_FILE, "single",
                               "Single threaded pcap file mode",
                               RunModeFilePcap2);
-    default_mode = RunModeRegisterNewRunMode(RUNMODE_PCAP_FILE,
-                                             "pcap_file_auto",
-                                             "multi threaded pcap file mode",
-                                             RunModeFilePcapAuto);
-    RunModeRegisterNewRunMode(RUNMODE_PCAP_FILE,
-                              "pcap_file_autofp",
-                              "multi threaded pcap file mode.  Packets from "
+    RunModeRegisterNewRunMode(RUNMODE_PCAP_FILE, "auto",
+                              "Multi threaded pcap file mode",
+                              RunModeFilePcapAuto);
+    default_mode = "auto";
+    RunModeRegisterNewRunMode(RUNMODE_PCAP_FILE, "autofp",
+                              "Multi threaded pcap file mode.  Packets from "
                               "each flow are assigned to a single detect thread, "
                               "unlike \"pcap_file_auto\" where packets from "
                               "the same flow can be processed by any detect "

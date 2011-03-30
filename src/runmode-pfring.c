@@ -38,10 +38,10 @@
 #include "util-cpu.h"
 #include "util-affinity.h"
 
-static int default_mode_auto;
-static int default_mode_autofp;
+static const char *default_mode_auto = NULL;
+static const char *default_mode_autofp = NULL;
 
-int RunModeIdsPfringGetDefaultMode(void)
+const char *RunModeIdsPfringGetDefaultMode(void)
 {
 #ifdef HAVE_PFRING
     if (PfringConfGetThreads() == 1) {
@@ -50,26 +50,24 @@ int RunModeIdsPfringGetDefaultMode(void)
         return default_mode_autofp;
     }
 #else
-    return -2;
+    return NULL;
 #endif
 }
 
 void RunModeIdsPfringRegister(void)
 {
-    default_mode_auto =
-        RunModeRegisterNewRunMode(RUNMODE_PFRING,
-                                  "pfring_auto",
-                                  "multi threaded pfring mode",
-                                  RunModeIdsPfringAuto);
-    default_mode_autofp =
-        RunModeRegisterNewRunMode(RUNMODE_PFRING,
-                                  "pfring_autofp",
-                                  "multi threaded pfring mode.  Packets from "
-                                  "each flow are assigned to a single detect "
-                                  "thread, unlike \"pfring_auto\" where packets "
-                                  "from the same flow can be processed by any "
-                                  "detect thread",
-                                  RunModeIdsPfringAutoFp);
+    default_mode_auto = "auto";
+    RunModeRegisterNewRunMode(RUNMODE_PFRING, "auto",
+                              "Multi threaded pfring mode",
+                              RunModeIdsPfringAuto);
+    default_mode_autofp = "autofp";
+    RunModeRegisterNewRunMode(RUNMODE_PFRING, "autofp",
+                              "Multi threaded pfring mode.  Packets from "
+                              "each flow are assigned to a single detect "
+                              "thread, unlike \"pfring_auto\" where packets "
+                              "from the same flow can be processed by any "
+                              "detect thread",
+                              RunModeIdsPfringAutoFp);
 
     return;
 }
