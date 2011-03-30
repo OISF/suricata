@@ -32,7 +32,9 @@
 #include "flow.h"
 
 #include "util-debug.h"
+#include "util-print.h"
 
+//#define PRINT
 extern uint8_t engine_mode;
 
 /** \brief Get the active app layer proto from the packet
@@ -101,8 +103,6 @@ void *AppLayerGetProtoStateFromFlow(Flow *f) {
 
 /** global app layer detection context */
 extern AlpProtoDetectCtx alp_proto_ctx;
-
-//#define PRINT
 
 /**
  *  \brief Handle a chunk of TCP data
@@ -310,6 +310,7 @@ int AppLayerHandleTCPMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
     SCReturnInt(0);
 }
 
+#if 0
 /**
  *  \brief Handle a app layer TCP message
  *
@@ -466,6 +467,7 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
 
     SCReturnInt(r);
 }
+#endif
 
 /**
  *  \brief Handle a app layer UDP message
