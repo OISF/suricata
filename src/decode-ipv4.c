@@ -32,6 +32,7 @@
 #include "defrag.h"
 #include "util-unittest.h"
 #include "util-debug.h"
+#include "pkt-var.h"
 
 /* Generic validation
  *
@@ -519,6 +520,17 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
         return;
     }
 
+    /* If a fragment, pass off for re-assembly. */
+    if (IPV4_GET_IPOFFSET(p) > 0 || IPV4_GET_MF(p) == 1) {
+        Packet *rp = Defrag(tv, dtv, NULL, p);
+        if (rp != NULL) {
+            /* Got re-assembled packet, re-run through decoder. */
+            DecodeIPV4(tv, dtv, rp, (void *)rp->ip4h, IPV4_GET_IPLEN(rp), pq);
+            PacketEnqueue(pq, rp);
+        }
+        return;
+    }
+
     /* do hdr test, process hdr rules */
 
 #ifdef DEBUG
@@ -577,16 +589,6 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
             DecodeGRE(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
                       IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p), pq);
             break;
-    }
-
-    /* If a fragment, pass off for re-assembly. */
-    if (IPV4_GET_IPOFFSET(p) > 0 || IPV4_GET_MF(p) == 1) {
-        Packet *rp = Defrag(tv, dtv, NULL, p);
-        if (rp != NULL) {
-            /* Got re-assembled packet, re-run through decoder. */
-            DecodeIPV4(tv, dtv, rp, rp->pkt, rp->pktlen, pq);
-            PacketEnqueue(pq, rp);
-        }
     }
 
     return;
@@ -1405,6 +1407,436 @@ static int IPV4CalculateInvalidChecksumtest02(void)
 
     return (csum == IPV4CalculateChecksum((uint16_t *)raw_ipv4, sizeof(raw_ipv4)));
 }
+
+/**
+ * \test IPV4 defrag and packet recursion level test
+ */
+int DecodeIPV4DefragTest01(void)
+{
+    uint8_t pkt1[] = {
+        0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
+        0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
+        0x00, 0x1c, 0xe9, 0xef, 0x20, 0x00, 0x40, 0x06,
+        0x9a, 0xc8, 0x0a, 0x00, 0xe1, 0x17, 0x0a, 0x00,
+        0xe1, 0x0c, 0x6e, 0x12, 0x01, 0xbd, 0x5b, 0xa3,
+        0x81, 0x5e
+    };
+    uint8_t pkt2[] = {
+        0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
+        0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
+        0x00, 0x1c, 0xe9, 0xef, 0x20, 0x01, 0x40, 0x06,
+        0x9a, 0xc7, 0x0a, 0x00, 0xe1, 0x17, 0x0a, 0x00,
+        0xe1, 0x0c, 0xac, 0xb0, 0xae, 0x8a, 0x50, 0x10,
+        0x80, 0x00
+    };
+    uint8_t pkt3[] = {
+        0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
+        0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
+        0x00, 0x18, 0xe9, 0xef, 0x00, 0x02, 0x40, 0x06,
+        0xba, 0xca, 0x0a, 0x00, 0xe1, 0x17, 0x0a, 0x00,
+        0xe1, 0x0c, 0xb1, 0xa3, 0x00, 0x00
+    };
+    uint8_t tunnel_pkt[] = {
+        0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
+        0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
+        0x00, 0x28, 0xe9, 0xef, 0x00, 0x00, 0x40, 0x06,
+        0xba, 0xbc, 0x0a, 0x00, 0xe1, 0x17, 0x0a, 0x00,
+        0xe1, 0x0c, 0x6e, 0x12, 0x01, 0xbd, 0x5b, 0xa3,
+        0x81, 0x5e, 0xac, 0xb0, 0xae, 0x8a, 0x50, 0x10,
+        0x80, 0x00, 0xb1, 0xa3, 0x00, 0x00
+    };
+
+    Packet *p = SCMalloc(sizeof(Packet));
+    if (p == NULL)
+        return 0;
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+    PacketQueue pq;
+    int result = 1;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&pq, 0, sizeof(PacketQueue));
+    memset(p, 0, sizeof(Packet));
+
+    FlowInitConfig(FLOW_QUIET);
+
+    memcpy(p->pkt, pkt1, sizeof(pkt1));
+    p->pktlen = sizeof(pkt1);
+    DecodeIPV4(&tv, &dtv, p, p->pkt + ETHERNET_HEADER_LEN,
+               sizeof(pkt1) - ETHERNET_HEADER_LEN, &pq);
+    if (p->tcph != NULL) {
+        printf("tcp header should be NULL for ip fragment, but it isn't\n");
+        result = 0;
+        goto end;
+    }
+    PACKET_DO_RECYCLE(p);
+
+    memcpy(p->pkt, pkt2, sizeof(pkt2));
+    p->pktlen = sizeof(pkt2);
+    DecodeIPV4(&tv, &dtv, p, p->pkt + ETHERNET_HEADER_LEN,
+               sizeof(pkt2) - ETHERNET_HEADER_LEN, &pq);
+    if (p->tcph != NULL) {
+        printf("tcp header should be NULL for ip fragment, but it isn't\n");
+        result = 0;
+        goto end;
+    }
+    PACKET_DO_RECYCLE(p);
+
+    memcpy(p->pkt, pkt3, sizeof(pkt3));
+    p->pktlen = sizeof(pkt3);
+    DecodeIPV4(&tv, &dtv, p, p->pkt + ETHERNET_HEADER_LEN,
+               sizeof(pkt3) - ETHERNET_HEADER_LEN, &pq);
+    if (p->tcph != NULL) {
+        printf("tcp header should be NULL for ip fragment, but it isn't\n");
+        result = 0;
+        goto end;
+    }
+    Packet *tp = PacketDequeue(&pq);
+    if (tp == NULL) {
+        printf("Failed to get defragged pseudo packet\n");
+        result = 0;
+        goto end;
+    }
+    if (tp->recursion_level != p->recursion_level) {
+        printf("defragged pseudo packet's and parent packet's recursion "
+               "level don't match\n %d != %d",
+               tp->recursion_level, p->recursion_level);
+        result = 0;
+        goto end;
+    }
+    if (tp->ip4h == NULL || tp->tcph == NULL) {
+        printf("pseudo packet's ip header and tcp header shouldn't be NULL, "
+               "but it is\n");
+        result = 0;
+        goto end;
+    }
+    if (tp->pktlen != sizeof(tunnel_pkt)) {
+        printf("defragged pseudo packet's and parent packet's pkt lens "
+               "don't match\n %u != %lu",
+               tp->pktlen, sizeof(tunnel_pkt));
+        result = 0;
+        goto end;
+    }
+    size_t i;
+    for (i = 0; i < sizeof(tunnel_pkt); i++) {
+        if (tunnel_pkt[i] != tp->pkt[i]) {
+            result = 0;
+            goto end;
+        }
+    }
+
+    SCFree(tp);
+
+ end:
+    FlowShutdown();
+    SCFree(p);
+    return result;
+}
+
+/**
+ * \test Don't send IPv4 fragments to the upper layer decoder and
+ *       and packet recursion level test.
+ */
+int DecodeIPV4DefragTest02(void)
+{
+    uint8_t pkt1[] = {
+        0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
+        0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
+        0x00, 0x24, 0xe9, 0xef, 0x20, 0x00, 0x40, 0x06,
+        0x9a, 0xc8, 0x0a, 0x00, 0xe1, 0x17, 0x0a, 0x00,
+        0xe1, 0x0c,
+        /* first frag */
+        0x6e, 0x12, 0x01, 0xbd, 0x5b, 0xa3,
+        0x81, 0x5e, 0xac, 0xb0, 0xae, 0x8a, 0x50, 0x10,
+        0x80, 0x00,
+    };
+    uint8_t pkt2[] = {
+        0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
+        0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
+        0x00, 0x2c, 0xe9, 0xef, 0x20, 0x02, 0x40, 0x06,
+        0xba, 0xca, 0x0a, 0x00, 0xe1, 0x17, 0x0a, 0x00,
+        0xe1, 0x0c,
+        /* second frag */
+        0xb1, 0xa3, 0x00, 0x10, 0x5b, 0xa3, 0x81, 0x5e,
+        0xac, 0xb0, 0xae, 0x8a, 0x50, 0x10, 0x80, 0x00,
+        0xb1, 0xa3, 0x00, 0x10, 0x01, 0x02, 0x03, 0x04
+    };
+    uint8_t pkt3[] = {
+        0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
+        0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
+        0x00, 0x16, 0xe9, 0xef, 0x00, 0x05, 0x40, 0x06,
+        0xba, 0xca, 0x0a, 0x00, 0xe1, 0x17, 0x0a, 0x00,
+        0xe1, 0x0c,
+        /* final frag */
+        0xb1, 0xa3,
+    };
+
+    uint8_t tunnel_pkt[] = {
+        0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
+        0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
+        0x00, 0x3e, 0xe9, 0xef, 0x00, 0x00, 0x40, 0x06,
+        0xba, 0xae, 0x0a, 0x00, 0xe1, 0x17, 0x0a, 0x00,
+        0xe1, 0x0c,
+        0x6e, 0x12, 0x01, 0xbd, 0x5b, 0xa3, 0x81, 0x5e,
+        0xac, 0xb0, 0xae, 0x8a, 0x50, 0x10, 0x80, 0x00,
+        0xb1, 0xa3, 0x00, 0x10, 0x5b, 0xa3, 0x81, 0x5e,
+        0xac, 0xb0, 0xae, 0x8a, 0x50, 0x10, 0x80, 0x00,
+        0xb1, 0xa3, 0x00, 0x10, 0x01, 0x02, 0x03, 0x04,
+        0xb1, 0xa3,
+    };
+
+    Packet *p = SCMalloc(sizeof(Packet));
+    if (p == NULL)
+        return 0;
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+    PacketQueue pq;
+    int result = 1;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&pq, 0, sizeof(PacketQueue));
+    memset(p, 0, sizeof(Packet));
+
+    FlowInitConfig(FLOW_QUIET);
+
+    memcpy(p->pkt, pkt1, sizeof(pkt1));
+    p->pktlen = sizeof(pkt1);
+    DecodeIPV4(&tv, &dtv, p, p->pkt + ETHERNET_HEADER_LEN,
+               sizeof(pkt1) - ETHERNET_HEADER_LEN, &pq);
+    if (p->tcph != NULL) {
+        printf("tcp header should be NULL for ip fragment, but it isn't\n");
+        result = 0;
+        goto end;
+    }
+    PACKET_DO_RECYCLE(p);
+
+    memcpy(p->pkt, pkt2, sizeof(pkt2));
+    p->pktlen = sizeof(pkt2);
+    DecodeIPV4(&tv, &dtv, p, p->pkt + ETHERNET_HEADER_LEN,
+               sizeof(pkt2) - ETHERNET_HEADER_LEN, &pq);
+    if (p->tcph != NULL) {
+        printf("tcp header should be NULL for ip fragment, but it isn't\n");
+        result = 0;
+        goto end;
+    }
+    PACKET_DO_RECYCLE(p);
+
+    p->recursion_level = 3;
+    memcpy(p->pkt, pkt3, sizeof(pkt3));
+    p->pktlen = sizeof(pkt3);
+    DecodeIPV4(&tv, &dtv, p, p->pkt + ETHERNET_HEADER_LEN,
+               sizeof(pkt3) - ETHERNET_HEADER_LEN, &pq);
+    if (p->tcph != NULL) {
+        printf("tcp header should be NULL for ip fragment, but it isn't\n");
+        result = 0;
+        goto end;
+    }
+    Packet *tp = PacketDequeue(&pq);
+    if (tp == NULL) {
+        printf("Failed to get defragged pseudo packet\n");
+        result = 0;
+        goto end;
+    }
+    if (tp->recursion_level != p->recursion_level) {
+        printf("defragged pseudo packet's and parent packet's recursion "
+               "level don't match\n %d != %d",
+               tp->recursion_level, p->recursion_level);
+        result = 0;
+        goto end;
+    }
+    if (tp->ip4h == NULL || tp->tcph == NULL) {
+        printf("pseudo packet's ip header and tcp header shouldn't be NULL, "
+               "but it is\n");
+        result = 0;
+        goto end;
+    }
+    if (tp->pktlen != sizeof(tunnel_pkt)) {
+        printf("defragged pseudo packet's and parent packet's pkt lens "
+               "don't match\n %u != %lu",
+               tp->pktlen, sizeof(tunnel_pkt));
+        result = 0;
+        goto end;
+    }
+    size_t i;
+    for (i = 0; i < sizeof(tunnel_pkt); i++) {
+        if (tunnel_pkt[i] != tp->pkt[i]) {
+            result = 0;
+            goto end;
+        }
+    }
+
+    SCFree(tp);
+
+ end:
+    FlowShutdown();
+    SCFree(p);
+    return result;
+}
+
+/**
+ * \test IPV4 defrag and flow retrieval test.
+ */
+int DecodeIPV4DefragTest03(void)
+{
+    uint8_t pkt[] = {
+        0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
+        0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
+        0x00, 0x28, 0xe9, 0xee, 0x00, 0x00, 0x40, 0x06,
+        0xba, 0xbd, 0x0a, 0x00, 0xe1, 0x17, 0x0a, 0x00,
+        0xe1, 0x0c, 0x6e, 0x12, 0x01, 0xbd, 0x5b, 0xa3,
+        0x81, 0x5d, 0x00, 0x00, 0x00, 0x00, 0x50, 0x02,
+        0x80, 0x00, 0x0c, 0xee, 0x00, 0x00
+    };
+    uint8_t pkt1[] = {
+        0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
+        0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
+        0x00, 0x1c, 0xe9, 0xef, 0x20, 0x00, 0x40, 0x06,
+        0x9a, 0xc8, 0x0a, 0x00, 0xe1, 0x17, 0x0a, 0x00,
+        0xe1, 0x0c, 0x6e, 0x12, 0x01, 0xbd, 0x5b, 0xa3,
+        0x81, 0x5e
+    };
+    uint8_t pkt2[] = {
+        0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
+        0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
+        0x00, 0x1c, 0xe9, 0xef, 0x20, 0x01, 0x40, 0x06,
+        0x9a, 0xc7, 0x0a, 0x00, 0xe1, 0x17, 0x0a, 0x00,
+        0xe1, 0x0c, 0xac, 0xb0, 0xae, 0x8a, 0x50, 0x10,
+        0x80, 0x00
+    };
+    uint8_t pkt3[] = {
+        0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
+        0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
+        0x00, 0x18, 0xe9, 0xef, 0x00, 0x02, 0x40, 0x06,
+        0xba, 0xca, 0x0a, 0x00, 0xe1, 0x17, 0x0a, 0x00,
+        0xe1, 0x0c, 0xb1, 0xa3, 0x00, 0x00
+    };
+    uint8_t tunnel_pkt[] = {
+        0x00, 0x50, 0x56, 0x00, 0x03, 0x05, 0xde, 0xad,
+        0x01, 0xa3, 0xa2, 0x2f, 0x08, 0x00, 0x45, 0x00,
+        0x00, 0x28, 0xe9, 0xef, 0x00, 0x00, 0x40, 0x06,
+        0xba, 0xbc, 0x0a, 0x00, 0xe1, 0x17, 0x0a, 0x00,
+        0xe1, 0x0c, 0x6e, 0x12, 0x01, 0xbd, 0x5b, 0xa3,
+        0x81, 0x5e, 0xac, 0xb0, 0xae, 0x8a, 0x50, 0x10,
+        0x80, 0x00, 0xb1, 0xa3, 0x00, 0x00
+    };
+
+    Flow *f = NULL;
+    Packet *p = SCMalloc(sizeof(Packet));
+    if (p == NULL)
+        return 0;
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+    PacketQueue pq;
+    int result = 1;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&pq, 0, sizeof(PacketQueue));
+    memset(p, 0, sizeof(Packet));
+
+    FlowInitConfig(FLOW_QUIET);
+
+    memcpy(p->pkt, pkt, sizeof(pkt));
+    p->pktlen = sizeof(pkt);
+    DecodeIPV4(&tv, &dtv, p, p->pkt + ETHERNET_HEADER_LEN,
+               sizeof(pkt) - ETHERNET_HEADER_LEN, &pq);
+    if (p->tcph == NULL) {
+        printf("tcp header shouldn't be NULL, but it is\n");
+        result = 0;
+        goto end;
+    }
+    if (p->flow == NULL) {
+        printf("packet flow shouldn't be NULL\n");
+        result = 0;
+        goto end;
+    }
+    f = p->flow;
+    PACKET_DO_RECYCLE(p);
+
+    memcpy(p->pkt, pkt1, sizeof(pkt1));
+    p->pktlen = sizeof(pkt1);
+    DecodeIPV4(&tv, &dtv, p, p->pkt + ETHERNET_HEADER_LEN,
+               sizeof(pkt1) - ETHERNET_HEADER_LEN, &pq);
+    if (p->tcph != NULL) {
+        printf("tcp header should be NULL for ip fragment, but it isn't\n");
+        result = 0;
+        goto end;
+    }
+    PACKET_DO_RECYCLE(p);
+
+    memcpy(p->pkt, pkt2, sizeof(pkt2));
+    p->pktlen = sizeof(pkt2);
+    DecodeIPV4(&tv, &dtv, p, p->pkt + ETHERNET_HEADER_LEN,
+               sizeof(pkt2) - ETHERNET_HEADER_LEN, &pq);
+    if (p->tcph != NULL) {
+        printf("tcp header should be NULL for ip fragment, but it isn't\n");
+        result = 0;
+        goto end;
+    }
+    PACKET_DO_RECYCLE(p);
+
+    memcpy(p->pkt, pkt3, sizeof(pkt3));
+    p->pktlen = sizeof(pkt3);
+    DecodeIPV4(&tv, &dtv, p, p->pkt + ETHERNET_HEADER_LEN,
+               sizeof(pkt3) - ETHERNET_HEADER_LEN, &pq);
+    if (p->tcph != NULL) {
+        printf("tcp header should be NULL for ip fragment, but it isn't\n");
+        result = 0;
+        goto end;
+    }
+
+    Packet *tp = PacketDequeue(&pq);
+    if (tp == NULL) {
+        printf("Failed to get defragged pseudo packet\n");
+        result = 0;
+        goto end;
+    }
+    if (tp->flow == NULL) {
+        result = 0;
+        goto end;
+    }
+    if (tp->flow != f) {
+        result = 0;
+        goto end;
+    }
+    if (tp->recursion_level != p->recursion_level) {
+        printf("defragged pseudo packet's and parent packet's recursion "
+               "level don't match\n %d != %d",
+               tp->recursion_level, p->recursion_level);
+        result = 0;
+        goto end;
+    }
+    if (tp->ip4h == NULL || tp->tcph == NULL) {
+        printf("pseudo packet's ip header and tcp header shouldn't be NULL, "
+               "but it is\n");
+        result = 0;
+        goto end;
+    }
+    if (tp->pktlen != sizeof(tunnel_pkt)) {
+        printf("defragged pseudo packet's and parent packet's pkt lens "
+               "don't match\n %u != %lu",
+               tp->pktlen, sizeof(tunnel_pkt));
+        result = 0;
+        goto end;
+    }
+    size_t i;
+    for (i = 0; i < sizeof(tunnel_pkt); i++) {
+        if (tunnel_pkt[i] != tp->pkt[i]) {
+            result = 0;
+            goto end;
+        }
+    }
+
+    SCFree(tp);
+
+ end:
+    FlowShutdown();
+    SCFree(p);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DecodeIPV4RegisterTests(void) {
@@ -1441,5 +1873,8 @@ void DecodeIPV4RegisterTests(void) {
                    IPV4CalculateValidChecksumtest01, 1);
     UtRegisterTest("IPV4CalculateInvalidChecksumtest02",
                    IPV4CalculateInvalidChecksumtest02, 0);
+    UtRegisterTest("DecodeIPV4DefragTest01", DecodeIPV4DefragTest01, 1);
+    UtRegisterTest("DecodeIPV4DefragTest02", DecodeIPV4DefragTest02, 1);
+    UtRegisterTest("DecodeIPV4DefragTest03", DecodeIPV4DefragTest03, 1);
 #endif /* UNITTESTS */
 }
