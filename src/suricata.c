@@ -965,6 +965,7 @@ int main(int argc, char **argv)
 
     /* Load the Host-OS lookup. */
     SCHInfoLoadFromConfig();
+    DefragInit();
 
     if (run_mode == MODE_UNKNOWN) {
         if (!engine_analysis) {
@@ -1342,7 +1343,6 @@ int main(int argc, char **argv)
     FlowManagerThreadSpawn();
 
     StreamTcpInitConfig(STREAM_VERBOSE);
-    DefragInit();
 
     /* Spawn the L7 App Detect thread */
     //AppLayerDetectProtoThreadSpawn();
