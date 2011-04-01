@@ -54,6 +54,9 @@ typedef struct TcpStreamCnf_ {
     uint32_t reassembly_memcap; /**< max memory usage for stream reassembly */
     uint32_t reassembly_depth;  /**< Depth until when we reassemble the stream */
 
+    uint16_t reassembly_toserver_chunk_size;
+    uint16_t reassembly_toclient_chunk_size;
+
     /** reassembly -- inline mode
      *
      *  sliding window size for raw stream reassembly

@@ -20,7 +20,7 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  *
- * Stream Handling API
+ * Stream Chunk Handling API
  */
 
 #include "suricata-common.h"

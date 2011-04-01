@@ -427,6 +427,10 @@ flow-timeouts:
 #   reassembly:
 #     memcap: 67108864          # 64mb tcp reassembly memcap
 #     depth: 1048576            # 1 MB reassembly depth
+#     toserver_chunk_size: 2560 # inspect raw stream in chunks of at least
+#                               # this size
+#     toclient_chunk_size: 2560 # inspect raw stream in chunks of at least
+#                               # this size
 stream:
   memcap: 33554432              # 32mb
   checksum_validation: yes      # reject wrong csums
@@ -434,6 +438,8 @@ stream:
   reassembly:
     memcap: 67108864            # 64mb for reassembly
     depth: 1048576              # reassemble 1mb into a stream
+    toserver_chunk_size: 2560
+    toclient_chunk_size: 2560
 
 # Logging configuration.  This is not about logging IDS alerts, but
 # IDS output about what its doing, errors, etc.

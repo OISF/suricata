@@ -66,6 +66,8 @@
 #define STREAMTCP_DEFAULT_MEMCAP                32 * 1024 * 1024 /* 32mb */
 #define STREAMTCP_DEFAULT_REASSEMBLY_MEMCAP     64 * 1024 * 1024 /* 64mb */
 #define STREAMTCP_DEFAULT_REASSEMBLY_WINDOW     3000
+#define STREAMTCP_DEFAULT_TOSERVER_CHUNK_SIZE   2560
+#define STREAMTCP_DEFAULT_TOCLIENT_CHUNK_SIZE   2560
 
 #define STREAMTCP_NEW_TIMEOUT                   60
 #define STREAMTCP_EST_TIMEOUT                   3600
@@ -419,6 +421,31 @@ void StreamTcpInitConfig(char quiet)
 
     if (!quiet) {
         SCLogInfo("stream.\"inline\": %s", stream_inline ? "enabled" : "disabled");
+    }
+
+    if ((ConfGetInt("stream.reassembly.toserver_chunk_size", &value)) == 1) {
+        stream_config.reassembly_toserver_chunk_size = (uint16_t)value;
+    } else {
+        stream_config.reassembly_toserver_chunk_size =
+            STREAMTCP_DEFAULT_TOSERVER_CHUNK_SIZE;
+    }
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER,
+            stream_config.reassembly_toserver_chunk_size);
+
+    if ((ConfGetInt("stream.reassembly.toclient_chunk_size", &value)) == 1) {
+        stream_config.reassembly_toclient_chunk_size = (uint16_t)value;
+    } else {
+        stream_config.reassembly_toclient_chunk_size =
+            STREAMTCP_DEFAULT_TOCLIENT_CHUNK_SIZE;
+    }
+    StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT,
+            stream_config.reassembly_toclient_chunk_size);
+
+    if (!quiet) {
+        SCLogInfo("stream.reassembly \"toserver_chunk_size\": %"PRIu16,
+            stream_config.reassembly_toserver_chunk_size);
+        SCLogInfo("stream.reassembly \"toclient_chunk_size\": %"PRIu16,
+            stream_config.reassembly_toclient_chunk_size);
     }
 
     /** \todo yaml part */
@@ -1181,13 +1208,11 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
                         StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
                         SCLogDebug("ssn %p: Reset received and state changed to "
                                 "TCP_CLOSED", ssn);
-                        StreamTcpSessionPktFree(p);
                     }
                 } else {
                     StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
                     SCLogDebug("ssn %p: Reset received and state changed to "
                             "TCP_CLOSED", ssn);
-                    StreamTcpSessionPktFree(p);
                 }
             } else
                 return -1;
@@ -1499,8 +1524,6 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
                     if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
                         StreamTcpHandleTimestamp(ssn, p);
                     }
-
-                    StreamTcpSessionPktFree(p);
                 }
             } else
                 return -1;
@@ -2366,7 +2389,13 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                     StreamTcpHandleTimestamp(ssn, p);
                 }
 
-                StreamTcpSessionPktFree(p);
+                if (PKT_IS_TOSERVER(p)) {
+                    StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
+                            &ssn->client, p, pq);
+                } else {
+                    StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
+                            &ssn->server, p, pq);
+                }
             }
             else
                 return -1;
@@ -2512,7 +2541,13 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                     StreamTcpHandleTimestamp(ssn, p);
                 }
 
-                StreamTcpSessionPktFree(p);
+                if (PKT_IS_TOSERVER(p)) {
+                    StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
+                            &ssn->client, p, pq);
+                } else {
+                    StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
+                            &ssn->server, p, pq);
+                }
             }
             else
                 return -1;
@@ -3030,8 +3065,6 @@ static int StreamTcpPakcetStateLastAck(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                            "%" PRIu32 "", ssn, ssn->client.next_seq,
                            ssn->server.last_ack);
-
-                StreamTcpSessionPktFree(p);
             }
             break;
         default:
@@ -3108,8 +3141,6 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                            "%" PRIu32 "", ssn, ssn->client.next_seq,
                            ssn->server.last_ack);
-
-                StreamTcpSessionPktFree(p);
             } else {
                 SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to client: SEQ "
                            "%" PRIu32 ", ACK %" PRIu32 "", ssn, p->payload_len,
@@ -3150,8 +3181,6 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                            "%" PRIu32 "", ssn, ssn->server.next_seq,
                            ssn->client.last_ack);
-
-                StreamTcpSessionPktFree(p);
             }
             break;
         default:
@@ -3301,8 +3330,6 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                 StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
                         &ssn->server, np, NULL);
             }
-
-            StreamTcpSessionPktFree(np);
 
             /* enqueue this packet so we inspect it in detect etc */
             PacketEnqueue(pq, np);
