@@ -47,6 +47,8 @@
 #include "alert-unified2-alert.h"
 #include "util-privs.h"
 
+#include "stream.h"
+
 #ifndef IPPROTO_SCTP
 #define IPPROTO_SCTP 132
 #endif
@@ -58,17 +60,6 @@
 
 /**< Minimum log file limit in MB. */
 #define MIN_LIMIT 1
-
-/*prototypes*/
-TmEcode Unified2Alert (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
-TmEcode Unified2AlertThreadInit(ThreadVars *, void *, void **);
-TmEcode Unified2AlertThreadDeinit(ThreadVars *, void *);
-int Unified2IPv4TypeAlert(ThreadVars *, Packet *, void *, PacketQueue *);
-int Unified2IPv6TypeAlert(ThreadVars *, Packet *, void *, PacketQueue *);
-int Unified2PacketTypeAlert(ThreadVars *, Packet *, void *);
-void Unified2RegisterTests();
-int Unified2AlertOpenFileCtx(LogFileCtx *, const char *);
-static void Unified2AlertDeInitCtx(OutputCtx *);
 
 /**
  * Unified2 thread vars
@@ -151,6 +142,19 @@ typedef struct AlertUnified2Packet_ {
     uint8_t packet_data[4];         /**< packet data */
 } Unified2Packet;
 
+#define UNIFIED2_PACKET_SIZE        (sizeof(Unified2Packet) - 4)
+
+/** prototypes */
+TmEcode Unified2Alert (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode Unified2AlertThreadInit(ThreadVars *, void *, void **);
+TmEcode Unified2AlertThreadDeinit(ThreadVars *, void *);
+int Unified2IPv4TypeAlert(ThreadVars *, Packet *, void *, PacketQueue *);
+int Unified2IPv6TypeAlert(ThreadVars *, Packet *, void *, PacketQueue *);
+int Unified2PacketTypeAlert(Unified2AlertThread *, Packet *, void *);
+void Unified2RegisterTests();
+int Unified2AlertOpenFileCtx(LogFileCtx *, const char *);
+static void Unified2AlertDeInitCtx(OutputCtx *);
+
 #define MODULE_NAME "Unified2Alert"
 
 void TmModuleUnified2AlertRegister (void) {
@@ -203,47 +207,140 @@ int Unified2AlertRotateFile(ThreadVars *t, Unified2AlertThread *aun) {
     return 0;
 }
 
+/**
+ *  \brief Unified2 main entry function
+ *
+ *  \retval TM_ECODE_OK all is good
+ *  \retval TM_ECODE_FAILED serious error
+ */
 TmEcode Unified2Alert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     int ret = 0;
 
-    if(PKT_IS_IPV4(p))  {
+    if (PKT_IS_IPV4(p)) {
         ret = Unified2IPv4TypeAlert (t, p, data, pq);
-    }else if(PKT_IS_IPV6(p))  {
+    } else if(PKT_IS_IPV6(p)) {
         ret = Unified2IPv6TypeAlert (t, p, data, pq);
     } else {
         /* we're only supporting IPv4 and IPv6 */
         return TM_ECODE_OK;
     }
 
-    if (ret)
-	return TM_ECODE_FAILED;
+    if (ret != 0) {
+        return TM_ECODE_FAILED;
+    }
 
     return TM_ECODE_OK;
 }
 
 /**
- *  \brief Function to fill unified2 packet format into the file.
- *         No need to lock here, since it's already locked
+ *  \brief Log the stream chunk that we alerted on. We construct a
+ *         fake ipv4 and tcp header to make sure the packet length
+ *         is correct.
  *
- *  \param t Thread Variable containing  input/output queue, cpu affinity etc.
- *  \param p Packet struct used to decide for ipv4 or ipv6
- *  \param data Unified2 thread data.
+ *  No need to lock here, since it's already locked
+ *
+ *  \param aun thread local data
+ *  \param p Packet
+ *  \param stream pointer to the stream msg to log
+ *
+ *  \retval 0 on succces
+ *  \retval -1 on failure
+ *
+ *  \todo We can consolidate the first 3 memcpy's into a single copy if
+ *        we create a struct containing the 3 separate structures we copy
+ *        into the buffer now.
+ *  \todo We could even have union of the headers with the write buffers
+ */
+static int Unified2StreamTypeAlertIPv4 (Unified2AlertThread *aun, Packet *p, void *stream)
+{
+    struct {
+        IPV4Hdr ip4h;
+        TCPHdr tcph;
+    } fakehdr;
+    Unified2Packet phdr;
+    Unified2AlertFileHeader hdr;
+    int ret;
+    int len = (sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE);
+    char write_buffer[sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet) + IPV4_MAXPACKET_LEN];
+
+    memset(&fakehdr, 0x00, sizeof(fakehdr));
+    memset(write_buffer, 0x00, sizeof(write_buffer));
+    memset(&hdr, 0, sizeof(Unified2AlertFileHeader));
+    memset(&phdr, 0, sizeof(Unified2Packet));
+
+    StreamMsg *stream_msg = (StreamMsg *)stream;
+
+    fakehdr.ip4h.ip_verhl = p->ip4h->ip_verhl;
+    fakehdr.ip4h.ip_proto = p->ip4h->ip_proto;
+    fakehdr.ip4h.ip_src.s_addr = p->ip4h->ip_src.s_addr;
+    fakehdr.ip4h.ip_dst.s_addr = p->ip4h->ip_dst.s_addr;
+    fakehdr.ip4h.ip_len = htons(sizeof(fakehdr) + stream_msg->data.data_len);
+
+    fakehdr.tcph.th_sport = p->tcph->th_sport;
+    fakehdr.tcph.th_dport = p->tcph->th_dport;
+    fakehdr.tcph.th_offx2 = 0x50; /* just the TCP header, no options */
+
+    len += (sizeof(fakehdr) + stream_msg->data.data_len);
+
+    hdr.type = htonl(UNIFIED2_PACKET_TYPE);
+    hdr.length = htonl(UNIFIED2_PACKET_SIZE + (sizeof(fakehdr) + stream_msg->data.data_len));
+
+    phdr.sensor_id = 0;
+    phdr.linktype = htonl(DLT_RAW);
+    phdr.event_id = 0;
+    phdr.event_second = phdr.packet_second = htonl(p->ts.tv_sec);
+    phdr.packet_microsecond = htonl(p->ts.tv_usec);
+    phdr.packet_length = fakehdr.ip4h.ip_len;
+
+    memcpy(write_buffer, &hdr, sizeof(Unified2AlertFileHeader));
+
+    memcpy(write_buffer + sizeof(Unified2AlertFileHeader),
+            &phdr, UNIFIED2_PACKET_SIZE);
+    memcpy(write_buffer + sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE,
+            &fakehdr, sizeof(fakehdr));
+    memcpy(write_buffer + sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE + sizeof(fakehdr),
+            stream_msg->data.data, stream_msg->data.data_len);
+
+    ret = fwrite(write_buffer, len, 1, aun->file_ctx->fp);
+    if (ret != 1) {
+        SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
+        return -1;
+    }
+    aun->file_ctx->size_current += len;
+
+    return 0;
+}
+
+/**
+ *  \brief Function to fill unified2 packet format into the file. If the alert
+ *         was generated based on a stream chunk we call the stream function
+ *         to generate the record.
+ *
+ *  No need to lock here, since it's already locked.
+ *
+ *  \param aun thread local data
+ *  \param p Packet
+ *  \param stream pointer to stream chunk
+ *
  *  \retval 0 on succces
  *  \retval -1 on failure
  */
-int Unified2PacketTypeAlert (ThreadVars *t, Packet *p, void *data)
+int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream)
 {
-    Unified2AlertThread *aun = (Unified2AlertThread *)data;
+    if (PKT_IS_TCP(p) && stream != NULL) {
+        if (PKT_IS_IPV4(p)) {
+            return Unified2StreamTypeAlertIPv4(aun, p, stream);
+        }
+    }
+
     Unified2Packet phdr;
     Unified2AlertFileHeader hdr;
-    int ret, len;
+    int ret;
+    int len = (sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE);
     char write_buffer[sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet) + IPV4_MAXPACKET_LEN];
 
-    if(GET_PKT_LEN(p) > 0)
-        len = (sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet)) - 4 + GET_PKT_LEN(p);
-    else
-        len = (sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet)) - 4;
+    len += GET_PKT_LEN(p);
 
     memset(write_buffer,0,sizeof(write_buffer));
 
@@ -251,7 +348,7 @@ int Unified2PacketTypeAlert (ThreadVars *t, Packet *p, void *data)
     memset(&phdr, 0, sizeof(Unified2Packet));
 
     hdr.type = htonl(UNIFIED2_PACKET_TYPE);
-    hdr.length = htonl(sizeof(Unified2Packet) -4 + GET_PKT_LEN(p));
+    hdr.length = htonl(UNIFIED2_PACKET_SIZE + GET_PKT_LEN(p));
 
     memcpy(write_buffer,&hdr,sizeof(Unified2AlertFileHeader));
 
@@ -262,8 +359,10 @@ int Unified2PacketTypeAlert (ThreadVars *t, Packet *p, void *data)
     phdr.packet_microsecond = htonl(p->ts.tv_usec);
     phdr.packet_length = htonl(GET_PKT_LEN(p));
 
-    memcpy(write_buffer+sizeof(Unified2AlertFileHeader),&phdr,sizeof(Unified2Packet) - 4);
-    memcpy(write_buffer + sizeof(Unified2AlertFileHeader) + sizeof(Unified2Packet) - 4 , GET_PKT_DATA(p), GET_PKT_LEN(p));
+    memcpy(write_buffer + sizeof(Unified2AlertFileHeader),
+            &phdr, UNIFIED2_PACKET_SIZE);
+    memcpy(write_buffer + sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE,
+            GET_PKT_DATA(p), GET_PKT_LEN(p));
 
     ret = fwrite(write_buffer,len, 1, aun->file_ctx->fp);
     if (ret != 1) {
@@ -293,7 +392,6 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
     Unified2AlertFileHeader hdr;
     PacketAlert pa_tag;
     PacketAlert *pa;
-    uint8_t ethh_offset = 0;
     int ret, len;
     char write_buffer[sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv6Unified2)];
 
@@ -311,12 +409,6 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
     hdr.length = htonl(sizeof(AlertIPv6Unified2));
 
     memcpy(write_buffer,&hdr,sizeof(Unified2AlertFileHeader));
-
-    /* if we have no ethernet header (e.g. when using nfq), we have to create
-     * one ourselves. */
-    if (p->ethh == NULL) {
-        ethh_offset = sizeof(EthernetHdr);
-    }
 
     /* fill the phdr structure with the data of the packet */
 
@@ -398,7 +490,6 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
         }
 
         ret = fwrite(write_buffer,len, 1, aun->file_ctx->fp);
-
         if (ret != 1) {
             SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
             SCMutexUnlock(&aun->file_ctx->fp_mutex);
@@ -411,7 +502,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
         aun->file_ctx->size_current += len;
         aun->file_ctx->alerts++;
 
-        Unified2PacketTypeAlert(t, p, data);
+        Unified2PacketTypeAlert(aun, p, NULL);
         SCMutexUnlock(&aun->file_ctx->fp_mutex);
     }
 
@@ -437,7 +528,6 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     Unified2AlertFileHeader hdr;
     PacketAlert *pa;
     PacketAlert pa_tag;
-    uint8_t ethh_offset = 0;
     int ret, len;
     char write_buffer[sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv4Unified2)];
 
@@ -454,15 +544,8 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     hdr.length = htonl(sizeof(AlertIPv4Unified2));
 
     memcpy(write_buffer,&hdr,sizeof(Unified2AlertFileHeader));
-    /* if we have no ethernet header (e.g. when using nfq), we have to create
-     * one ourselves. */
-    if (p->ethh == NULL) {
-        ethh_offset = sizeof(EthernetHdr);
-    }
-
 
     /* fill the hdr structure with the packet data */
-
     phdr.sensor_id = 0;
     phdr.event_id = 0;
     phdr.event_second =  htonl(p->ts.tv_sec);
@@ -543,7 +626,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
         /* Write the alert (it doesn't lock inside, since we
          * already locked here for rotation check)
          */
-        Unified2PacketTypeAlert(tv, p, data);
+        Unified2PacketTypeAlert(aun, p, pa->alert_msg);
 
         SCMutexUnlock(&aun->file_ctx->fp_mutex);
     }
