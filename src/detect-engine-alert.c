@@ -198,6 +198,7 @@ int PacketAlertAppendTag(Packet *p, PacketAlert *pa)
     pa->class = 0;
     pa->class_msg = NULL;
     pa->references = NULL;
+    pa->alert_msg = NULL;
 
     return 0;
 }
