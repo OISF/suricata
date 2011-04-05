@@ -4140,6 +4140,7 @@ Packet *StreamTcpPseudoSetup(Packet *parent, uint8_t *pkt, uint32_t len)
     /* copy packet and set lenght, proto */
     p->tunnel_proto = parent->proto;
     p->proto = parent->proto;
+    p->datalink = parent->datalink;
 
     PacketCopyData(p, pkt, len);
     p->recursion_level = parent->recursion_level + 1;
