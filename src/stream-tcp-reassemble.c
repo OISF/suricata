@@ -2274,9 +2274,13 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
     uint32_t next_seq = ra_base_seq + 1;
     int gap = 0;
 
+    uint16_t chunk_size = PKT_IS_TOSERVER(p) ?
+        stream_config.reassembly_toserver_chunk_size :
+        stream_config.reassembly_toclient_chunk_size;
+
     /* determine the left edge and right edge */
     uint32_t right_edge = TCP_GET_SEQ(p) + p->payload_len;
-    uint32_t left_edge = right_edge - stream_config.reassembly_inline_window;
+    uint32_t left_edge = right_edge - chunk_size;
 
     /* shift the window to the right if the left edge doesn't cover segments */
     if (SEQ_GT(seg->seq,left_edge)) {
@@ -2299,7 +2303,7 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
                     seg->payload_len, seg->seq+seg->payload_len, right_edge);
 
         /* Remove the segments which are completely before the ra_base_seq */
-        if (SEQ_LT((seg->seq + seg->payload_len), (ra_base_seq - stream_config.reassembly_inline_window)))
+        if (SEQ_LT((seg->seq + seg->payload_len), (ra_base_seq - chunk_size)))
         {
             SCLogDebug("removing pre ra_base_seq %"PRIu32" seg %p seq %"PRIu32""
                         " len %"PRIu16"", ra_base_seq, seg, seg->seq,
@@ -2513,7 +2517,7 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
         TcpSegment *next_seg = seg->next;
         next_seq = seg->seq + seg->payload_len;
 
-        if (SEQ_LT((seg->seq + seg->payload_len), (ra_base_seq - stream_config.reassembly_inline_window))) {
+        if (SEQ_LT((seg->seq + seg->payload_len), (ra_base_seq - chunk_size))) {
             if (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED) {
                 StreamTcpRemoveSegmentFromStream(stream, seg);
                 SCLogDebug("removing seg %p, seg->next %p", seg, seg->next);
@@ -2533,7 +2537,7 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
     }
 
     /* see if we can clean up some segments */
-    left_edge = (ra_base_seq + 1) - stream_config.reassembly_inline_window;
+    left_edge = (ra_base_seq + 1) - chunk_size;
     SCLogDebug("left_edge %"PRIu32", ra_base_seq %"PRIu32, left_edge, ra_base_seq);
 
     /* loop through the segments to remove unneeded segments */
@@ -7904,7 +7908,7 @@ static int StreamTcpReassembleInlineTest03(void) {
     StreamTcpUTSetupStream(&ssn.client, 1);
     FLOW_INITIALIZE(&f);
 
-    stream_config.reassembly_inline_window = 15;
+    stream_config.reassembly_toserver_chunk_size = 15;
 
     uint8_t stream_payload1[] = "AAAAABBBBBCCCCC";
     uint8_t stream_payload2[] = "BBBBBCCCCCDDDDD";
@@ -7916,6 +7920,7 @@ static int StreamTcpReassembleInlineTest03(void) {
     }
     p->tcph->th_seq = htonl(12);
     p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
 
     if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
         printf("failed to add segment 1: ");
@@ -8016,7 +8021,7 @@ static int StreamTcpReassembleInlineTest04(void) {
     StreamTcpUTSetupStream(&ssn.client, 1);
     FLOW_INITIALIZE(&f);
 
-    stream_config.reassembly_inline_window = 16;
+    stream_config.reassembly_toserver_chunk_size = 16;
 
     uint8_t stream_payload1[] = "AAAAABBBBBCCCCC";
     uint8_t stream_payload2[] = "ABBBBBCCCCCDDDDD";
@@ -8028,6 +8033,7 @@ static int StreamTcpReassembleInlineTest04(void) {
     }
     p->tcph->th_seq = htonl(12);
     p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
 
     if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
         printf("failed to add segment 1: ");
@@ -8342,7 +8348,7 @@ static int StreamTcpReassembleInlineTest07(void) {
     StreamTcpUTSetupStream(&ssn.client, 1);
     FLOW_INITIALIZE(&f);
 
-    stream_config.reassembly_inline_window = 16;
+    stream_config.reassembly_toserver_chunk_size = 16;
 
     uint8_t stream_payload1[] = "ABBBBB";
     uint8_t stream_payload2[] = "DDDDD";
@@ -8355,6 +8361,7 @@ static int StreamTcpReassembleInlineTest07(void) {
     }
     p->tcph->th_seq = htonl(12);
     p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
 
     if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
         printf("failed to add segment 1: ");
@@ -8473,7 +8480,7 @@ static int StreamTcpReassembleInlineTest08(void) {
     StreamTcpUTSetupStream(&ssn.client, 1);
     FLOW_INITIALIZE(&f);
 
-    stream_config.reassembly_inline_window = 15;
+    stream_config.reassembly_toserver_chunk_size = 15;
     ssn.client.flags |= STREAMTCP_STREAM_FLAG_GAP;
 
     uint8_t stream_payload1[] = "AAAAABBBBBCCCCC";
@@ -8486,6 +8493,7 @@ static int StreamTcpReassembleInlineTest08(void) {
     }
     p->tcph->th_seq = htonl(12);
     p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
 
     if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
         printf("failed to add segment 1: ");
@@ -8602,7 +8610,7 @@ static int StreamTcpReassembleInlineTest09(void) {
     StreamTcpUTSetupStream(&ssn.client, 1);
     FLOW_INITIALIZE(&f);
 
-    stream_config.reassembly_inline_window = 20;
+    stream_config.reassembly_toserver_chunk_size = 20;
     ssn.client.flags |= STREAMTCP_STREAM_FLAG_GAP;
 
     uint8_t stream_payload1[] = "AAAAABBBBBCCCCC";
@@ -8616,6 +8624,7 @@ static int StreamTcpReassembleInlineTest09(void) {
     }
     p->tcph->th_seq = htonl(17);
     p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
 
     if (StreamTcpUTAddSegmentWithByte(&tv, ra_ctx, &ssn.client,  2, 'A', 5) == -1) {
         printf("failed to add segment 1: ");

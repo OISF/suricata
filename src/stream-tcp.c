@@ -65,7 +65,6 @@
 #define STREAMTCP_DEFAULT_PREALLOC              32768
 #define STREAMTCP_DEFAULT_MEMCAP                32 * 1024 * 1024 /* 32mb */
 #define STREAMTCP_DEFAULT_REASSEMBLY_MEMCAP     64 * 1024 * 1024 /* 64mb */
-#define STREAMTCP_DEFAULT_REASSEMBLY_WINDOW     3000
 #define STREAMTCP_DEFAULT_TOSERVER_CHUNK_SIZE   2560
 #define STREAMTCP_DEFAULT_TOCLIENT_CHUNK_SIZE   2560
 
@@ -383,6 +382,33 @@ void StreamTcpInitConfig(char quiet)
         SCLogInfo("stream \"async_oneside\": %s", stream_config.async_oneside ? "enabled" : "disabled");
     }
 
+    char *csum = NULL;
+    if ((ConfGet("stream.checksum_validation", &csum)) == 1) {
+        if (strcmp(csum, "yes") == 0) {
+            stream_config.flags |= STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION;
+        }
+    /* Default is that we validate the checksum of all the packets */
+    } else {
+        stream_config.flags |= STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION;
+    }
+
+    if (!quiet) {
+        SCLogInfo("stream \"checksum_validation\": %s",
+                stream_config.flags & STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION ?
+                "enabled" : "disabled");
+    }
+
+    char *inl = NULL;
+    if ((ConfGet("stream.inline", &inl)) == 1) {
+        if (strcasecmp(inl, "yes") == 0) {
+            stream_inline = 1;
+        }
+    }
+
+    if (!quiet) {
+        SCLogInfo("stream.\"inline\": %s", stream_inline ? "enabled" : "disabled");
+    }
+
     if ((ConfGetInt("stream.reassembly.memcap", &value)) == 1) {
         stream_config.reassembly_memcap = (uint32_t)value;
     } else {
@@ -398,29 +424,8 @@ void StreamTcpInitConfig(char quiet)
         stream_config.reassembly_depth = 0;
     }
 
-    char *csum = NULL;
-    if ((ConfGet("stream.checksum_validation", &csum)) == 1) {
-        if (strncmp(csum, "yes", 3) == 0) {
-            stream_config.flags |= STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION;
-        }
-    /* Default is that we validate the checksum of all the packets */
-    } else {
-        stream_config.flags |= STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION;
-    }
-
     if (!quiet) {
         SCLogInfo("stream.reassembly \"depth\": %"PRIu32"", stream_config.reassembly_depth);
-    }
-
-    char *inl = NULL;
-    if ((ConfGet("stream.inline", &inl)) == 1) {
-        if (strcasecmp(inl, "yes") == 0) {
-            stream_inline = 1;
-        }
-    }
-
-    if (!quiet) {
-        SCLogInfo("stream.\"inline\": %s", stream_inline ? "enabled" : "disabled");
     }
 
     if ((ConfGetInt("stream.reassembly.toserver_chunk_size", &value)) == 1) {
@@ -447,9 +452,6 @@ void StreamTcpInitConfig(char quiet)
         SCLogInfo("stream.reassembly \"toclient_chunk_size\": %"PRIu16,
             stream_config.reassembly_toclient_chunk_size);
     }
-
-    /** \todo yaml part */
-    stream_config.reassembly_inline_window = STREAMTCP_DEFAULT_REASSEMBLY_WINDOW;
 
     /* init the memcap and it's lock */
     stream_memuse = 0;
