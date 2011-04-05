@@ -1660,8 +1660,8 @@ int DecodeIPV4DefragTest01(void)
     }
     if (GET_PKT_LEN(tp) != sizeof(tunnel_pkt)) {
         printf("defragged pseudo packet's and parent packet's pkt lens "
-               "don't match\n %u != %lu",
-               GET_PKT_LEN(tp), sizeof(tunnel_pkt));
+               "don't match\n %u != %"PRIuMAX,
+               GET_PKT_LEN(tp), (uintmax_t)sizeof(tunnel_pkt));
         result = 0;
         goto end;
     }
@@ -1801,8 +1801,8 @@ int DecodeIPV4DefragTest02(void)
     }
     if (GET_PKT_LEN(tp) != sizeof(tunnel_pkt)) {
         printf("defragged pseudo packet's and parent packet's pkt lens "
-               "don't match\n %u != %lu",
-               GET_PKT_LEN(tp), sizeof(tunnel_pkt));
+               "don't match\n %u != %"PRIuMAX,
+               GET_PKT_LEN(tp), (uintmax_t)sizeof(tunnel_pkt));
         result = 0;
         goto end;
     }
@@ -1963,8 +1963,8 @@ int DecodeIPV4DefragTest03(void)
     }
     if (GET_PKT_LEN(tp) != sizeof(tunnel_pkt)) {
         printf("defragged pseudo packet's and parent packet's pkt lens "
-               "don't match\n %u != %lu",
-               GET_PKT_LEN(tp), sizeof(tunnel_pkt));
+               "don't match\n %u != %"PRIuMAX,
+               GET_PKT_LEN(tp), (uintmax_t)sizeof(tunnel_pkt));
         result = 0;
         goto end;
     }
