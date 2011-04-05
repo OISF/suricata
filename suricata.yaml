@@ -100,7 +100,7 @@ outputs:
   # a full alerts log containing much information for signature writers
   # or for investigating suspected false positives.
   - alert-debug:
-      enabled: yes
+      enabled: no
       filename: alert-debug.log
       append: yes
 
