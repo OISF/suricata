@@ -62,6 +62,8 @@
         (f)->lnext = NULL; \
         (f)->lprev = NULL; \
         RESET_COUNTERS((f)); \
+        (f)->files = NULL; \
+        SCMutexInit(&(f)->files_m, NULL); \
     } while (0)
 
 /** \brief macro to recycle a flow before it goes into the spare queue for reuse.
@@ -92,6 +94,10 @@
         GenericVarFree((f)->flowvar); \
         (f)->flowvar = NULL; \
         RESET_COUNTERS((f)); \
+        SCMutexLock(&(f)->files_m); \
+        if ((f)->files != NULL) \
+            FlowFileContainerRecycle((f)->files); \
+        SCMutexUnlock(&(f)->files_m); \
     } while(0)
 
 #define FLOW_DESTROY(f) do { \
@@ -105,6 +111,14 @@
         DetectTagDataListFree((f)->tag_list); \
         GenericVarFree((f)->flowvar); \
         SCMutexDestroy(&(f)->de_state_m); \
+        (f)->tag_list = NULL; \
+        SCMutexLock(&(f)->files_m); \
+        if ((f)->files != NULL) {\
+            FlowFileContainerFree((f)->files); \
+            SCMutexDestroy(&(f)->files_m); \
+            (f)->files = NULL; \
+        } \
+        SCMutexUnlock(&(f)->files_m); \
     } while(0)
 
 Flow *FlowAlloc(void);

@@ -47,6 +47,7 @@ flow-manager.c flow-manager.h \
 flow-queue.c flow-queue.h \
 flow-hash.c flow-hash.h \
 flow-util.c flow-util.h \
+flow-file.c flow-file.h \
 util-mem.h \
 flow-var.c flow-var.h \
 flow-bit.c flow-bit.h \
@@ -149,6 +150,8 @@ detect-detection-filter.c detect-detection-filter.h \
 detect-http-client-body.c detect-http-client-body.h \
 detect-http-stat-msg.c detect-http-stat-msg.h \
 detect-asn1.c detect-asn1.h \
+detect-filename.c detect-filename.h \
+detect-fileext.c detect-fileext.h \
 detect-http-stat-code.c detect-http-stat-code.h \
 detect-ssl-version.c detect-ssl-version.h \
 detect-ssl-state.c detect-ssl-state.h \

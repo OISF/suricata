@@ -59,6 +59,7 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "flow-util.h"
+#include "flow-file.h"
 
 #include "detect-engine.h"
 #include "detect-engine-state.h"
@@ -87,6 +88,7 @@ static uint64_t htp_state_memcnt = 0;
 #endif
 
 static uint8_t need_htp_request_body = 0;
+static uint8_t need_htp_file_inspection = 0;
 
 #ifdef DEBUG
 /**
@@ -283,6 +285,19 @@ void AppLayerHtpEnableRequestBodyCallback(void)
     SCReturn;
 }
 
+/**
+ * \brief Sets a flag that informs the HTP app layer that some module in the
+ *        engine needs the http request body data.
+ * \initonly
+ */
+void AppLayerHtpNeedFileInspection(void)
+{
+    SCEnter();
+    need_htp_request_body = 1;
+    need_htp_file_inspection = 1;
+    SCReturn;
+}
+
 
 /**
  *  \brief  Function to handle the reassembled data from client and feed it to
@@ -310,6 +325,7 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
     //PrintRawDataFp(stdout, input, input_len);
 
     HtpState *hstate = (HtpState *)htp_state;
+    hstate->f = f;
 
     /* On the first invocation, create the connection parser structure to
      * be used by HTP library.  This is looked up via IP in the radix
@@ -462,6 +478,7 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
     int ret = 1;
 
     HtpState *hstate = (HtpState *)htp_state;
+    hstate->f = f;
     if (hstate->connp == NULL) {
         SCLogError(SC_ERR_ALPARSER, "HTP state has no connp");
         SCReturnInt(-1);
@@ -638,7 +655,7 @@ error:
  */
 void HtpBodyPrint(HtpBody *body)
 {
-    if (SCLogDebugEnabled()) {
+    if (SCLogDebugEnabled()||1) {
         SCEnter();
 
         if (body->nchunks == 0)
@@ -646,8 +663,11 @@ void HtpBodyPrint(HtpBody *body)
 
         HtpBodyChunk *cur = NULL;
         SCLogDebug("--- Start body chunks at %p ---", body);
+        printf("--- Start body chunks at %p ---\n", body);
         for (cur = body->first; cur != NULL; cur = cur->next) {
             SCLogDebug("Body %p; Chunk id: %"PRIu32", data %p, len %"PRIu32"\n",
+                        body, cur->id, cur->data, (uint32_t)cur->len);
+            printf("Body %p; Chunk id: %"PRIu32", data %p, len %"PRIu32"\n",
                         body, cur->id, cur->data, (uint32_t)cur->len);
             PrintRawDataFp(stdout, (uint8_t*)cur->data, cur->len);
         }
@@ -724,6 +744,9 @@ static int HTPCallbackRequestUriNormalize(htp_connp_t *c)
 int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 {
     SCEnter();
+    const char *GROUP_DELIM = ";\r\n";
+    const char *FIELD_DELIM = ":= ";
+
     HtpState *hstate = (HtpState *)d->tx->connp->user_data;
     SCLogDebug("New response body data available at %p -> %p -> %p, bodylen "
                "%"PRIu32"", hstate, d, d->data, (uint32_t)d->len);
@@ -741,6 +764,52 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
         htp_header_t *cl = table_getc(d->tx->request_headers, "content-length");
         if (cl != NULL)
             htud->content_len = htp_parse_content_length(cl->value);
+
+        htp_header_t *h = (htp_header_t *)table_getc(d->tx->request_headers,
+                                                     "Content-Type");
+        if (h != NULL && bstr_len(h->value) > 0) {
+            uint8_t *content_type = (uint8_t*) SCMalloc(bstr_len(h->value));
+            if (content_type == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Could not allocate memory for content type");
+                exit(EXIT_FAILURE);
+            }
+            memcpy(content_type, (uint8_t*) bstr_ptr(h->value), bstr_len(h->value));
+
+            char *tok = NULL;
+            char *ftok = NULL;
+            char *lctx1 = NULL;
+            char *lctx2 = NULL;
+
+            tok = strtok_r((char *) content_type, GROUP_DELIM, &lctx1);
+            if (tok == NULL) {
+                SCLogWarning(SC_ERR_INVALID_VALUE, "Malformed content-type field (null)");
+            } else {
+                htud->contenttype = SCStrdup(tok);
+                htud->contenttype_len = strlen(tok);
+
+                if (strcasecmp("multipart/form-data", tok) == 0) {
+                    /* We have a form, let's see the boundary */
+                    tok = strtok_r(NULL, GROUP_DELIM, &lctx1);
+                    while (tok != NULL) {
+                        ftok = strtok_r(tok, FIELD_DELIM, &lctx2);
+                        if (ftok == NULL) {
+                            continue;
+                        }
+                        if (strcasecmp("boundary", ftok) == 0) {
+                            ftok = strtok_r(NULL, FIELD_DELIM, &lctx2);
+                            if (ftok == NULL) {
+                                continue;
+                            }
+                            htud->boundary = SCStrdup(ftok);
+                            htud->boundary_len = strlen(ftok);
+                            htud->flags |= HTP_BOUNDARY_SET;
+                        }
+                        tok = strtok_r(NULL, GROUP_DELIM, &lctx1);
+                    }
+                }
+            }
+            SCFree(content_type);
+        }
 
         /* Set the user data for handling body chunks on this transaction */
         htp_tx_set_user_data(d->tx, htud);
@@ -776,11 +845,179 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
             htud->flags |= HTP_BODY_COMPLETE;
         }
 
+        if (htud->flags & HTP_BOUNDARY_SET) {
+            /* Checkout the boundaries */
+            if ( !(htud->flags & HTP_BOUNDARY_OPEN)) {
+                HtpBodyChunk *cur = htud->body.first;
+                uint8_t *chunks_buffer = NULL;
+                int32_t chunks_buffer_len = 0;
+                //TODO: Now that we are concatenating chunks here, free the list
+                //TODO: of chunks and append only 1 big chunk
+                while (cur != NULL) {
+                    chunks_buffer_len += cur->len;
+                    if ( (chunks_buffer = SCRealloc(chunks_buffer, chunks_buffer_len)) == NULL) {
+                        goto end;
+                    }
+
+                    memcpy(chunks_buffer + chunks_buffer_len - cur->len, cur->data, cur->len);
+                    cur = cur->next;
+                }
+                //PrintRawDataFp(stdout, chunks_buffer, chunks_buffer_len);
+                if (chunks_buffer != NULL) {
+                    char *expected_boundary = (char*)SCMalloc(htud->boundary_len + 4);
+                    if (expected_boundary == NULL) {
+                        goto end;
+                    }
+                    expected_boundary[0]='-';
+                    expected_boundary[1]='-';
+                    strncat(expected_boundary + 2, (char *)htud->boundary, htud->boundary_len + 4);
+
+                    char *expected_boundary_end = (char*)SCMalloc(htud->boundary_len + 6);
+                    if (expected_boundary_end == NULL) {
+                        goto end;
+                    }
+                    expected_boundary_end[0]='-';
+                    expected_boundary_end[1]='-';
+                    strncat(expected_boundary_end + 2, (char *)htud->boundary, htud->boundary_len + 4);
+                    strncat(expected_boundary_end, "--", htud->boundary_len + 6);
+
+                    uint8_t *filename = NULL;
+                    uint8_t *filetype = NULL;
+
+                    uint8_t *header_start = Bs2bmSearch(chunks_buffer, chunks_buffer_len, (uint8_t *) expected_boundary, strlen(expected_boundary));
+                    uint8_t *header_end = Bs2bmSearch(chunks_buffer, chunks_buffer_len, (uint8_t *)"\r\n\r\n", strlen("\r\n\r\n"));
+                    uint8_t *form_end = Bs2bmSearch(chunks_buffer, chunks_buffer_len, (uint8_t *) expected_boundary_end, strlen(expected_boundary_end));
+
+                    SCLogDebug("Expected boundary: %s", expected_boundary);
+                    SCLogDebug("Expected boundary_end: %s", expected_boundary_end);
+
+                    uint8_t *header = NULL;
+
+                    while (header_start != NULL && header_end != NULL &&
+                            (header_end != form_end) &&
+                             header_start < chunks_buffer + chunks_buffer_len &&
+                             header_end < chunks_buffer + chunks_buffer_len && header_start < header_end) {
+                        header = SCMalloc(sizeof(header_end - header_start) + 4);
+                        memcpy(header, header_start, header_end - header_start);
+                        header[header_end - header_start] = '\0';
+                        header[1 + header_end - header_start] = '\0';
+
+                        /*
+                            printf("HEADER START: \n");
+                            PrintRawDataFp(stdout, header, header_end - header_start);
+                            printf("HEADER END: \n");
+                        */
+
+                        char *ftok2 = NULL;
+                        char *tok2 = NULL;
+                        char *ctx1 = NULL;
+                        char *ctx2 = NULL;
+                        char *field = NULL;
+                        tok2 = strtok_r((char *) header, GROUP_DELIM, &ctx1);
+                        if (tok2 == NULL) {
+                            SCLogWarning(SC_ERR_INVALID_VALUE, "Expecting Boundary headers");
+                        } else {
+                            SCLogDebug("Token: %s", tok2);
+                            if (tok2 != NULL && strcasecmp(expected_boundary, tok2) == 0) {
+
+                                tok2 = strtok_r(NULL, GROUP_DELIM, &ctx1);
+                                /* We have the boundary! Extract filename, type, and so on */
+                                while (tok2 != NULL && strlen(tok2) > 0) {
+                                    SCLogDebug("TOKEN: %s", tok2);
+                                    field = SCStrdup(tok2);
+                                    ftok2 = strtok_r(field, FIELD_DELIM, &ctx2);
+                                    while (ftok2 != NULL && strlen(ftok2) > 0) {
+                                        if(strcasecmp("filename", ftok2) == 0) {
+                                            ftok2 = strtok_r(NULL, FIELD_DELIM, &ctx2);
+                                            if (ftok2 != NULL) {
+                                                filename = SCStrdup(ftok2);
+                                                SCLogDebug("got filename %s", filename);
+                                            }
+                                        } else if(strcasecmp("Content-Type", ftok2) == 0) {
+                                            ftok2 = strtok_r(NULL, FIELD_DELIM, &ctx2);
+                                            if (ftok2 != NULL) {
+                                                filetype = SCStrdup(ftok2);
+                                                SCLogDebug("got proto filetype %s", filetype);
+                                            }
+                                        } else {
+                                            SCLogDebug("-> ftok2 %s len %d", ftok2, (int)strlen(ftok2));
+                                        }
+                                        ftok2 = strtok_r(NULL, FIELD_DELIM, &ctx2);
+                                    }
+                                    //SCFree(field);
+                                    tok2 = strtok_r(NULL, GROUP_DELIM, &ctx1);
+                                }
+                            }
+                            //exit(EXIT_FAILURE);
+                        }
+                        if (filename != NULL) {
+                            int i = 0;
+                            SCMutexLock(&hstate->f->files_m);
+                            FlowFileContainer *ffc = NULL;
+                            /* We have to add/update the file */
+                            SCLogDebug("Adding file entry to flow: %s", filename);
+                            FlowFile *cur_file = NULL;
+                            if (hstate->f->files == NULL) {
+                                ffc = FlowFileContainerAlloc();
+                                if (ffc == NULL) {
+                                    SCMutexUnlock(&hstate->f->files_m);
+                                    goto end;
+                                }
+                                hstate->f->files = ffc;
+
+                            } else {
+                                /* TODO: else append chunk, update things...*/
+                                ffc = hstate->f->files;
+                            }
+                            cur_file = FlowFileContainerRetrieve(ffc, filename, ALPROTO_HTTP, filetype);
+                            if (cur_file == NULL) {
+                                cur_file = FlowFileAlloc();
+                                cur_file->name = filename;
+                                cur_file->name_len = strlen((char *)filename);
+                                for (i = strlen((char *)filename) - 1; i >= 0 && filename[i] != '.'; i--);
+                                if (filename[i] == '.') {
+                                    cur_file->ext = SCStrdup((char *)&filename[i]);
+                                    printf("File ext: %s\n", cur_file->ext);
+                                }
+
+                                if (filetype != NULL) {
+                                    cur_file->proto_type = filetype;
+                                    cur_file->proto_type_len = strlen((char *)filetype);
+                                }
+                                cur_file->alproto = ALPROTO_HTTP;
+                                SCLogDebug("Added");
+                                FlowFileContainerAdd(ffc, cur_file);
+                                /* cur_file->ext = get extension */
+                            }
+                            SCMutexUnlock(&hstate->f->files_m);
+                        } else if (filetype != NULL) {
+                            /* We got a filetype but not the name of file, so removing */
+                            SCFree(filetype);
+                        }
+                        filename = NULL;
+                        filetype = NULL;
+
+                        /* Search next boundary entry after the start of body */
+                        if ( (form_end == NULL && header_end + 4 < chunks_buffer + chunks_buffer_len) || (form_end != NULL && header_end != NULL && header_end + 4 < form_end)) {
+                            uint32_t cursizeread = header_end - chunks_buffer;
+                            header_start = Bs2bmSearch(header_end + 4, chunks_buffer_len - (cursizeread + 4), (uint8_t *) expected_boundary, strlen(expected_boundary));
+                            header_end = Bs2bmSearch(header_end + 4, chunks_buffer_len - (cursizeread + 4), (uint8_t *) "\r\n\r\n", strlen("\r\n\r\n"));
+                        }
+                    }
+                    if (header != NULL) {
+                        SCFree(header);
+                        header = NULL;
+                    }
+                }
+            }
+        }
+
+end:
         /* set the new chunk flag */
         hstate->flags |= HTP_FLAG_NEW_BODY_SET;
 
         //if (SCLogDebugEnabled()) {
-        //    HtpBodyPrint(&htud->body);
+        //HtpBodyPrint(&htud->body);
         //}
     }
 

@@ -90,6 +90,8 @@
 #include "detect-id.h"
 #include "detect-rpc.h"
 #include "detect-asn1.h"
+#include "detect-filename.h"
+#include "detect-fileext.h"
 #include "detect-dsize.h"
 #include "detect-flowvar.h"
 #include "detect-flowint.h"
@@ -4294,6 +4296,8 @@ void SigTableSetup(void) {
     DetectHttpStatCodeRegister();
     DetectSslVersionRegister();
     DetectByteExtractRegister();
+    DetectFilenameRegister();
+    DetectFileextRegister();
 
     uint8_t i = 0;
     for (i = 0; i < DETECT_TBLSIZE; i++) {

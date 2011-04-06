@@ -1023,6 +1023,9 @@ enum {
     DETECT_ENGINE_EVENT,
     DETECT_STREAM_EVENT,
 
+    DETECT_FILENAME,
+    DETECT_FILEEXT,
+
     /* make sure this stays last */
     DETECT_TBLSIZE,
 };

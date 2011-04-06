@@ -28,6 +28,7 @@
 #include "util-var.h"
 #include "util-atomic.h"
 #include "detect-tag.h"
+#include "flow-file.h"
 
 #define FLOW_QUIET      TRUE
 #define FLOW_VERBOSE    FALSE
@@ -311,6 +312,10 @@ typedef struct Flow_
     uint32_t tosrcpktcnt;
     uint64_t bytecnt;
 #endif
+
+    FlowFileContainer *files;
+    SCMutex            files_m;
+
 } Flow;
 
 enum {

@@ -34,7 +34,7 @@
 typedef struct BmCtx_ {
     int32_t bmBc[ALPHABET_SIZE];
     int32_t *bmGs; // = SCMalloc(sizeof(int32_t)*(needlelen + 1));
-}BmCtx;
+} BmCtx;
 
 /** Prepare and return a Boyer Moore context */
 BmCtx *BoyerMooreCtxInit(uint8_t *needle, uint32_t needle_len);

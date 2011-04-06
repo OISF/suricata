@@ -1262,6 +1262,8 @@ int main(int argc, char **argv)
     TmModuleDecodeErfDagRegister();
     TmModuleDebugList();
 
+    AppLayerHtpNeedFileInspection();
+
     /** \todo we need an api for these */
     AppLayerDetectProtoThreadInit();
     AppLayerParsersInitPostProcess();
@@ -1279,6 +1281,7 @@ int main(int argc, char **argv)
         }
 
         AppLayerHtpEnableRequestBodyCallback();
+        AppLayerHtpNeedFileInspection();
         AppLayerHtpRegisterExtraCallbacks();
 
         UtInitialize();

@@ -85,8 +85,11 @@ typedef struct HtpBody_ {
                               or a response */
 } HtpBody;
 
-#define HTP_BODY_COMPLETE   0x01    /* body is complete or limit is reached,
-                                       either way, this is it. */
+#define HTP_BODY_COMPLETE      0x01    /* body is complete or limit is reached,
+                                          either way, this is it. */
+#define HTP_CONTENTTYPE_SET    0x02    /* We have the content type */
+#define HTP_BOUNDARY_SET       0x04    /* We have a boundary string */
+#define HTP_BOUNDARY_OPEN      0x08    /* We have a boundary string */
 
 /** Now the Body Chunks will be stored per transaction, at
   * the tx user data */
@@ -97,6 +100,13 @@ typedef struct SCHtpTxUserData_ {
     uint32_t content_len;
     /* Holds the length of the htp request body seen so far */
     uint32_t content_len_so_far;
+    /* Holds the boundary identificator string if any (used on multipart/form-data only) */
+    uint8_t *boundary;
+    uint32_t boundary_len;
+    /* Holds the content-type */
+    uint8_t *contenttype;
+    uint32_t contenttype_len;
+
     uint8_t flags;
 } SCHtpTxUserData;
 
@@ -104,6 +114,7 @@ typedef struct HtpState_ {
 
     htp_connp_t *connp;     /**< Connection parser structure for
                                  each connection */
+    Flow *f;                /**< Needed to retrieve the original flow when usin HTPLib callbacks */
     uint8_t flags;
     uint16_t transaction_cnt;
     uint16_t transaction_done;
@@ -125,6 +136,7 @@ void AppLayerHtpRegisterExtraCallbacks(void);
 /* To free the state from unittests using app-layer-htp */
 void HTPStateFree(void *);
 void AppLayerHtpEnableRequestBodyCallback(void);
+void AppLayerHtpNeedFileInspection(void);
 void AppLayerHtpPrintStats(void);
 
 #endif	/* __APP_LAYER_HTP_H__ */
