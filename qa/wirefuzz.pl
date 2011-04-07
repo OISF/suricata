@@ -74,11 +74,13 @@ my $useltsuri;
 my $ltsuribin;
 my $core_dump;
 my $excluderegex;
+my %excludefuzz;
 my $timestamp;
 my $keeplogs;
+my $file_was_fuzzed = 0;
 
 Getopt::Long::Configure("prefix_pattern=(-|--)");
-GetOptions( \%config, qw(n=s r=s c=s e=s v=s p=s l=s s=s x=s k y z h help) );
+GetOptions( \%config, qw(n=s r=s c=s e=s v=s p=s l=s s=s x=s k y z=s h help) );
 
 &parseopts();
 
@@ -230,6 +232,21 @@ sub parseopts {
         $keeplogs = "no";
     }
 
+    #we want to process some files but not fuzz them add them to a hash and check it later
+    if ( $config{z} ) {
+        print "will process but not fuzz files that match regex of " . $config{z} . "\n";
+        $excluderegex = $config{z};
+
+        my $tmpfilepos = 0;
+        while ($tmpfilepos <= $#tmpfiles) {
+            if ($tmpfiles[$tmpfilepos] =~ m/$excluderegex/) {
+                print "adding  " . $tmpfiles[$tmpfilepos] . " to fuzz_exclude_hash because it matches our regex\n";
+                $excludefuzz{$tmpfiles[$tmpfilepos]} = 1;
+            }
+            $tmpfilepos++
+        }
+    }
+
     #maybe we want to exclude a file based on some regex so we can restart the fuzzer after an error
     #and not have to worry about hitting the same file.
     if ( $config{x} ) {
@@ -264,6 +281,7 @@ sub printhelp {
         -l=<(optional) log dir for output if not specified will use current directory.>
         -v=<(optional) (memcheck|drd|helgrind|callgrind) will run the command through one of the specified valgrind tools.>
         -x=<(optional) regex for excluding certian files incase something blows up but we want to continue fuzzing .>
+        -z=<(optional) regex for excluding certian files from fuzzing but still process them note: the original files will be processed and not removed.>
         -y <shuffle the array, this is useful if running multiple instances of this script.>
         -k <will keep alert-debug.log fast.log http.log and stats.log instead of removing them at the end of each run. Note unified logs are still removed>
         Example usage:
@@ -304,7 +322,7 @@ while ( $successcnt < $loopnum ) {
     }
 
     foreach my $file (@files) {
-
+        my $file_was_fuzzed = 0;
         #split out the path from the filename
         my $filedir  = dirname $file;
         my $filename = basename $file;
@@ -317,8 +335,8 @@ while ( $successcnt < $loopnum ) {
             localtime(time);
         $timestamp = sprintf "%4d-%02d-%02d-%02d-%02d-%02d", $year + 1900,
            $mon + 1, $mday, $hour, $min, $sec;
-
-        if ( defined $editeratio ) {
+        if ( defined $editeratio and !exists $excludefuzz{$file}) {
+            $file_was_fuzzed = 1;
             $fuzzedfile = $logdir . $filename . "-fuzz-" . $timestamp;
             $editcapcmd =
                 "editcap -E " . $editeratio . " " . $file . " " . $fuzzedfile;
@@ -446,7 +464,7 @@ while ( $successcnt < $loopnum ) {
                     $report = $logdir . $fuzzedfilename . "-OUT.txt";
                     &generate_report($report, $fullcmd, $out, $err, $exit, "none");
                 }
-                &clean_logs($fuzzedfilename);
+                &clean_logs($fuzzedfilename,$file_was_fuzzed);
             }
             else {
                 my $report = $logdir . $fuzzedfilename . "-ERR.txt";
@@ -472,7 +490,7 @@ while ( $successcnt < $loopnum ) {
             if( $keeplogs eq "yes" ) {
                 &keep_logs($fuzzedfilename);
             }
-            &clean_logs($fuzzedfilename);
+            &clean_logs($fuzzedfilename,$file_was_fuzzed);
             exit;
         }
         else {
@@ -495,7 +513,7 @@ while ( $successcnt < $loopnum ) {
                 $report = $logdir . $fuzzedfilename . "-OUT.txt";
                 &generate_report($report, $fullcmd, $out, $err, $exit, "none");
             }
-            &clean_logs($fuzzedfilename);
+            &clean_logs($fuzzedfilename,$file_was_fuzzed);
             print "******************Next Packet or Exit *******************\n";
         }
     }
@@ -539,9 +557,10 @@ sub process_core_dump {
 
 sub clean_logs {
     my $deleteme    = shift;
+    my $file_was_fuzzed = shift;
     my $deletemerge = $logdir . $deleteme;
     my $rmcmd;
-    if ( defined $editeratio ) {
+    if ( defined $editeratio and $file_was_fuzzed) {
         if ( unlink($deletemerge) == 1 ) {
             print "clean_logs: " . $deletemerge . " deleted successfully.\n";
         }
