@@ -44,7 +44,7 @@ static const char *default_mode_autofp = NULL;
 const char *RunModeIdsPfringGetDefaultMode(void)
 {
 #ifdef HAVE_PFRING
-    if (PfringConfGetThreads() == 1) {
+    if (PfringConfGetThreads() <= 1) {
         return default_mode_auto;
     } else {
         return default_mode_autofp;
@@ -346,6 +346,9 @@ int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx)
     SCLogDebug("queues %s", queues);
 
     int pfring_threads = PfringConfGetThreads();
+    if (pfring_threads == 0) {
+        pfring_threads = 1;
+    }
     /* create the threads */
     for (thread = 0; thread < pfring_threads; thread++) {
         snprintf(tname, sizeof(tname), "RxPfring%"PRIu16, thread+1);

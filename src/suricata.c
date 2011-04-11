@@ -485,9 +485,6 @@ int main(int argc, char **argv)
 {
     int opt;
     char pcap_dev[128];
-#ifdef HAVE_PFRING
-    char *pfring_dev = NULL;
-#endif
     char *sig_file = NULL;
     char *conf_filename = NULL;
     char *pid_filename = NULL;
@@ -1311,6 +1308,10 @@ int main(int argc, char **argv)
             fprintf(stderr, "ERROR: Failed to set runmode_pcap.single_pcap_dev\n");
             exit(EXIT_FAILURE);
         }
+#ifdef HAVE_PFRING
+    } else if (run_mode == RUNMODE_PFRING) {
+        PfringLoadConfig();
+#endif /* HAVE_PFRING */
     }
 
     RunModeDispatch(run_mode, runmode_custom_mode, de_ctx);

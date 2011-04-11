@@ -261,16 +261,16 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
         return TM_ECODE_FAILED;
     memset(ptv, 0, sizeof(PfringThreadVars));
 
-    if (ConfGet("runmode_pfring.cluster_id", &tmpclusterid) != 1) {
-        SCLogError(SC_ERR_PF_RING_GET_CLUSTERID_FAILED,"could not get runmode_pfring.cluster_id");
+    if (ConfGet("pfring.cluster-id", &tmpclusterid) != 1) {
+        SCLogError(SC_ERR_PF_RING_GET_CLUSTERID_FAILED,"could not get pfring.cluster-id");
         return TM_ECODE_FAILED;
     } else {
         ptv->cluster_id = (uint8_t)atoi(tmpclusterid);
         SCLogDebug("Going to use cluster-id %" PRId32, ptv->cluster_id);
     }
 
-    if (ConfGet("runmode_pfring.interface", &ptv->interface) != 1) {
-        SCLogError(SC_ERR_PF_RING_GET_INTERFACE_FAILED,"Could not get runmode_pfring.interface");
+    if (ConfGet("pfring.interface", &ptv->interface) != 1) {
+        SCLogError(SC_ERR_PF_RING_GET_INTERFACE_FAILED,"Could not get pfring.interface");
         return TM_ECODE_FAILED;
     } else {
         SCLogDebug("going to use interface %s",ptv->interface);
@@ -288,8 +288,8 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
     }
 
 #ifdef HAVE_PFRING_CLUSTER_TYPE
-    if (ConfGet("runmode_pfring.cluster_type", &tmpctype) != 1) {
-        SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,"Could not get runmode_pfring.cluster_type");
+    if (ConfGet("pfring.cluster-type", &tmpctype) != 1) {
+        SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,"Could not get pfring.cluster-type");
         return TM_ECODE_FAILED;
     } else if (strcmp(tmpctype, "cluster_round_robin") == 0 || strcmp(tmpctype, "cluster_flow") == 0) {
         ptv->ctype = (cluster_type)tmpctype;
