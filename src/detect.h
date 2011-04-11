@@ -83,6 +83,7 @@ struct SCSigSignatureWrapper_;
 enum {
     DETECT_SM_LIST_MATCH = 0,
     DETECT_SM_LIST_PMATCH,
+    /* list for http_uri keyword and the ones relative to it */
     DETECT_SM_LIST_UMATCH,
     DETECT_SM_LIST_AMATCH,
     DETECT_SM_LIST_DMATCH,
@@ -97,6 +98,8 @@ enum {
     DETECT_SM_LIST_HMDMATCH,
     /* list for http_cookie keyword and the ones relative to it */
     DETECT_SM_LIST_HCDMATCH,
+    /* list for http_raw_uri keyword and the ones relative to it */
+    DETECT_SM_LIST_HRUDMATCH,
     DETECT_SM_LIST_MAX,
 };
 
@@ -253,7 +256,10 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_MPM_HCDCONTENT                 0x08000000
 #define SIG_FLAG_MPM_HCDCONTENT_NEG             0x10000000
 
-#define SIG_FLAG_REQUIRE_FLOWVAR                0x20000000 /**< signature can only match if a flowbit, flowvar or flowint is available. */
+#define SIG_FLAG_MPM_HRUDCONTENT                0x20000000
+#define SIG_FLAG_MPM_HRUDCONTENT_NEG            0x40000000
+
+#define SIG_FLAG_REQUIRE_FLOWVAR                0x80000000 /**< signature can only match if a flowbit, flowvar or flowint is available. */
 
 /* signature init flags */
 #define SIG_FLAG_DEONLY         0x00000001  /**< decode event only signature */
@@ -661,6 +667,7 @@ typedef struct DetectEngineCtx_ {
     int32_t sgh_mpm_context_hrhd;
     int32_t sgh_mpm_context_hmd;
     int32_t sgh_mpm_context_hcd;
+    int32_t sgh_mpm_context_hrud;
     int32_t sgh_mpm_context_app_proto_detect;
 
     /** sgh for signatures that match against invalid packets. In those cases
@@ -819,19 +826,21 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HAVEHRHDCONTENT       0x00000020
 #define SIG_GROUP_HAVEHMDCONTENT        0x00000040
 #define SIG_GROUP_HAVEHCDCONTENT        0x00000080
-#define SIG_GROUP_HEAD_MPM_COPY         0x00000100
-#define SIG_GROUP_HEAD_MPM_URI_COPY     0x00000200
-#define SIG_GROUP_HEAD_MPM_STREAM_COPY  0x00000400
-#define SIG_GROUP_HEAD_FREE             0x00000800
-#define SIG_GROUP_HEAD_MPM_PACKET       0x00001000
-#define SIG_GROUP_HEAD_MPM_STREAM       0x00002000
-#define SIG_GROUP_HEAD_MPM_URI          0x00004000
-#define SIG_GROUP_HEAD_MPM_HCBD         0x00008000
-#define SIG_GROUP_HEAD_MPM_HHD          0x00010000
-#define SIG_GROUP_HEAD_MPM_HRHD         0x00020000
-#define SIG_GROUP_HEAD_MPM_HMD          0x00040000
-#define SIG_GROUP_HEAD_MPM_HCD          0x00080000
-#define SIG_GROUP_HEAD_REFERENCED       0x00100000 /**< sgh is being referenced by others, don't clear */
+#define SIG_GROUP_HAVEHRUDCONTENT       0x00000100
+#define SIG_GROUP_HEAD_MPM_COPY         0x00000200
+#define SIG_GROUP_HEAD_MPM_URI_COPY     0x00000400
+#define SIG_GROUP_HEAD_MPM_STREAM_COPY  0x00000800
+#define SIG_GROUP_HEAD_FREE             0x00001000
+#define SIG_GROUP_HEAD_MPM_PACKET       0x00002000
+#define SIG_GROUP_HEAD_MPM_STREAM       0x00004000
+#define SIG_GROUP_HEAD_MPM_URI          0x00008000
+#define SIG_GROUP_HEAD_MPM_HCBD         0x00010000
+#define SIG_GROUP_HEAD_MPM_HHD          0x00020000
+#define SIG_GROUP_HEAD_MPM_HRHD         0x00040000
+#define SIG_GROUP_HEAD_MPM_HMD          0x00080000
+#define SIG_GROUP_HEAD_MPM_HCD          0x00100000
+#define SIG_GROUP_HEAD_MPM_HRUD         0x00200000
+#define SIG_GROUP_HEAD_REFERENCED       0x00400000 /**< sgh is being referenced by others, don't clear */
 
 typedef struct SigGroupHeadInitData_ {
     /* list of content containers
@@ -877,6 +886,7 @@ typedef struct SigGroupHead_ {
     MpmCtx *mpm_hrhd_ctx;
     MpmCtx *mpm_hmd_ctx;
     MpmCtx *mpm_hcd_ctx;
+    MpmCtx *mpm_hrud_ctx;
 
     uint16_t mpm_streamcontent_maxlen;
     uint16_t mpm_uricontent_maxlen;
@@ -980,6 +990,7 @@ enum {
     DETECT_AL_HTTP_HEADER,
     DETECT_AL_HTTP_RAW_HEADER,
     DETECT_AL_HTTP_URI,
+    DETECT_AL_HTTP_RAW_URI,
     DETECT_AL_HTTP_STAT_MSG,
     DETECT_AL_HTTP_STAT_CODE,
     DETECT_AL_SSH_PROTOVERSION,

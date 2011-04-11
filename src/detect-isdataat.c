@@ -280,28 +280,30 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                                              DETECT_BYTEJUMP, sm->prev,
                                              DETECT_PCRE, sm->prev);
     } else {
-        pm = SigMatchGetLastSMFromLists(s, 30,
-                                        DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+        pm = SigMatchGetLastSMFromLists(s, 34,
+                                        DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH], /* 1 */
                                         DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                         DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
                                         DETECT_AL_HTTP_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
-                                        DETECT_AL_HTTP_RAW_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
+                                        DETECT_AL_HTTP_RAW_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH], /* 5 */
                                         DETECT_AL_HTTP_METHOD, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
                                         DETECT_AL_HTTP_COOKIE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
+                                        DETECT_AL_HTTP_RAW_URI, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
                                         DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH], /* 10 */
                                         DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
                                         DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                                         DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                                         DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
+                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH], /* 15 */
+                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
                                         DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
         if (pm == NULL) {
             if (idad->flags & ISDATAAT_RELATIVE) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "isdataat relative seen "
                            "without a previous content uricontent, "
                            "http_client_body, http_header, http_raw_header, "
-                           "http_method or http_cookie keyword");
+                           "http_method, http_cookie or http_raw_uri keyword");
                 goto error;
             } else {
                 SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
@@ -333,6 +335,9 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                     case DETECT_AL_HTTP_COOKIE:
                         list_type = DETECT_SM_LIST_HCDMATCH;
                         break;
+                    case DETECT_AL_HTTP_RAW_URI:
+                        list_type = DETECT_SM_LIST_HRUDMATCH;
+                        break;
                     default:
                         /* would never happen */
                         break;
@@ -360,7 +365,8 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
         } else {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "No preceding content, pcre, "
                        "uricontent, http_client_body, http_header, "
-                       "http_raw_header, http_method or http_cookie keyword");
+                       "http_raw_header, http_method, http_cookie or "
+                       "http_raw_uri keyword");
             goto error;
         }
     }
@@ -376,6 +382,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
         case DETECT_AL_HTTP_RAW_HEADER:
         case DETECT_AL_HTTP_METHOD:
         case DETECT_AL_HTTP_COOKIE:
+        case DETECT_AL_HTTP_RAW_URI:
             /* Set the relative next flag on the prev sigmatch */
             cd = (DetectContentData *)prev_pm->ctx;
             if (cd == NULL) {

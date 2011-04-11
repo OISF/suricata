@@ -85,9 +85,10 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
             break;
 
         default:
-            pm =  SigMatchGetLastSMFromLists(s, 14,
+            pm =  SigMatchGetLastSMFromLists(s, 16,
                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                              DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                             DETECT_AL_HTTP_RAW_URI, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
                                              DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
                                              DETECT_AL_HTTP_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                                              DETECT_AL_HTTP_RAW_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
@@ -96,8 +97,9 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
             if (pm == NULL) {
                 SCLogError(SC_ERR_DEPTH_MISSING_CONTENT, "depth needs "
                            "preceeding content, uricontent option, http_client_body, "
-                           "http_header option, http_raw_header option or "
-                           "http_method option or http_cookie option");
+                           "http_header option, http_raw_header option, "
+                           "http_method option, http_cookie or "
+                           "http_raw_uri option");
                 if (dubbed)
                     SCFree(str);
                 return -1;
@@ -106,6 +108,8 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
             break;
     }
 
+    /* i swear we will clean this up :).  Use a single version for all.  Using
+     * separate versions for all now, to avoiding breaking any code */
     switch (pm->type) {
         case DETECT_URICONTENT:
             ud = (DetectContentData *)pm->ctx;
@@ -289,6 +293,34 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
             break;
 
         case DETECT_AL_HTTP_COOKIE:
+            cd = (DetectContentData *)pm->ctx;
+            if (cd->flags & DETECT_CONTENT_NEGATED) {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "negated keyword set along with a fast_pattern");
+                    goto error;
+                }
+            } else {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "keyword set along with a fast_pattern:only;");
+                    goto error;
+                }
+            }
+
+            cd->depth = (uint32_t)atoi(str);
+            if (cd->depth < cd->content_len) {
+                cd->depth = cd->content_len;
+                SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
+                           cd->depth);
+            }
+            /* Now update the real limit, as depth is relative to the offset */
+            cd->depth += cd->offset;
+            cd->flags |= DETECT_CONTENT_DEPTH;
+
+            break;
+
+        case DETECT_AL_HTTP_RAW_URI:
             cd = (DetectContentData *)pm->ctx;
             if (cd->flags & DETECT_CONTENT_NEGATED) {
                 if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {

@@ -171,19 +171,20 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
             }
         }
     } else {
-        pm = SigMatchGetLastSMFromLists(s, 14,
+        pm = SigMatchGetLastSMFromLists(s, 16,
                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                         DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                         DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
                                         DETECT_AL_HTTP_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                                         DETECT_AL_HTTP_RAW_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                                         DETECT_AL_HTTP_METHOD, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-                                        DETECT_AL_HTTP_COOKIE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]);
+                                        DETECT_AL_HTTP_COOKIE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
+                                        DETECT_AL_HTTP_RAW_URI, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]);
         if (pm == NULL) {
             SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs"
                        "preceeding content, uricontent, http_client_body, "
-                       "http_header, http_raw_header, http_method or "
-                       "http_cookie option");
+                       "http_header, http_raw_header, http_method, "
+                       "http_cookie or http_raw_uri option");
             if (dubbed)
                 SCFree(str);
             return -1;
@@ -643,6 +644,60 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                                             DETECT_PCRE, pm->prev);
             if (pm == NULL) {
                 SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance for http_cookie "
+                           "needs preceeding http_cookie content");
+                goto error;
+            }
+
+            if (pm->type == DETECT_PCRE) {
+                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                tmp_pd->flags |=  DETECT_PCRE_RELATIVE_NEXT;
+            } else {
+                /* reassigning cd */
+                cd = (DetectContentData *)pm->ctx;
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Previous keyword "
+                               "has a fast_pattern:only; set.  You can't "
+                               "have relative keywords around a fast_pattern "
+                               "only content");
+                    goto error;
+                }
+                cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+            }
+
+            break;
+
+        case DETECT_AL_HTTP_RAW_URI:
+            cd = (DetectContentData *)pm->ctx;
+            if (cd->flags & DETECT_CONTENT_NEGATED) {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "negated keyword set along with a fast_pattern");
+                    goto error;
+                }
+            } else {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "keyword set along with a fast_pattern:only;");
+                    goto error;
+                }
+            }
+
+            cd->within = strtol(str, NULL, 10);
+            if (cd->within < (int32_t)cd->content_len) {
+                SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
+                           "less than the content length \"%"PRIu32"\" which is invalid, since "
+                           "this will never match.  Invalidating signature", cd->within,
+                           cd->content_len);
+                goto error;
+            }
+            cd->flags |= DETECT_CONTENT_WITHIN;
+
+            /* reassigning pm */
+            pm = SigMatchGetLastSMFromLists(s, 4,
+                                            DETECT_AL_HTTP_RAW_URI, pm->prev,
+                                            DETECT_PCRE, pm->prev);
+            if (pm == NULL) {
+                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance for http_raw_uri "
                            "needs preceeding http_cookie content");
                 goto error;
             }

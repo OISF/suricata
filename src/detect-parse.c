@@ -1441,6 +1441,8 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_HCDMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
+    if (sig->sm_lists[DETECT_SM_LIST_HRUDMATCH])
+        sig->flags |= SIG_FLAG_STATE_MATCH;
 
     SCLogDebug("sig %"PRIu32" SIG_FLAG_APPLAYER: %s, SIG_FLAG_PACKET: %s",
         sig->id, sig->flags & SIG_FLAG_APPLAYER ? "set" : "not set",

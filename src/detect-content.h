@@ -50,6 +50,7 @@
 #define DETECT_CONTENT_HRHD_MPM          0x00010000
 #define DETECT_CONTENT_HMD_MPM           0x00020000
 #define DETECT_CONTENT_HCD_MPM           0x00040000
+#define DETECT_CONTENT_HRUD_MPM          0x00080000
 
 #define DETECT_CONTENT_IS_SINGLE(c) (!((c)->flags & DETECT_CONTENT_DISTANCE || \
                                        (c)->flags & DETECT_CONTENT_WITHIN || \

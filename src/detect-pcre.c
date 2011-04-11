@@ -842,6 +842,9 @@ DetectPcreData *DetectPcreParse (char *regexstr)
                 case 'H': /* snort's option */
                     pd->flags |= DETECT_PCRE_HEADER;
                     break;
+                case 'I': /* snort's option */
+                    pd->flags |= DETECT_PCRE_HTTP_RAW_URI;
+                    break;
                 case 'D': /* snort's option */
                     pd->flags |= DETECT_PCRE_RAW_HEADER;
                     break;
@@ -1004,7 +1007,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
                  (pd->flags & DETECT_PCRE_HEADER) ||
                  (pd->flags & DETECT_PCRE_RAW_HEADER) ||
                  (pd->flags & DETECT_PCRE_COOKIE) ||
-                 (pd->flags & DETECT_PCRE_HTTP_BODY_AL) ) {
+                 (pd->flags & DETECT_PCRE_HTTP_BODY_AL) ||
+                 (pd->flags & DETECT_PCRE_HTTP_RAW_URI) ) {
                 SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option. "
                            "DCERPC rule has pcre keyword with http related modifier.");
                 goto error;
@@ -1068,6 +1072,16 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         s->alproto = ALPROTO_HTTP;
 
         SigMatchAppendUricontent(s, sm);
+    } else if (pd->flags & DETECT_PCRE_HTTP_RAW_URI) {
+        s->flags |= SIG_FLAG_APPLAYER;
+        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
+            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting"
+                       " keywords.");
+            goto error;
+        }
+        s->alproto = ALPROTO_HTTP;
+
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRUDMATCH);
     } else {
         if (s->alproto == ALPROTO_DCERPC && pd->flags & DETECT_PCRE_RELATIVE) {
             SigMatch *pm = NULL;
@@ -1100,12 +1114,13 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         SCReturnInt(0);
     }
 
-    prev_sm = SigMatchGetLastSMFromLists(s, 12,
+    prev_sm = SigMatchGetLastSMFromLists(s, 14,
                                          DETECT_CONTENT, sm->prev,
                                          DETECT_URICONTENT, sm->prev,
                                          DETECT_AL_HTTP_CLIENT_BODY, sm->prev,
                                          DETECT_AL_HTTP_HEADER, sm->prev,
                                          DETECT_AL_HTTP_RAW_HEADER, sm->prev,
+                                         DETECT_AL_HTTP_RAW_URI, sm->prev,
                                          DETECT_PCRE, sm->prev);
     if (prev_sm == NULL) {
         if (s->alproto == ALPROTO_DCERPC) {
@@ -1128,6 +1143,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         case DETECT_AL_HTTP_CLIENT_BODY:
         case DETECT_AL_HTTP_HEADER:
         case DETECT_AL_HTTP_RAW_HEADER:
+        case DETECT_AL_HTTP_RAW_URI:
             /* Set the relative next flag on the prev sigmatch */
             cd = (DetectContentData *)prev_sm->ctx;
             if (cd == NULL) {
