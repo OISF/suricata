@@ -215,6 +215,7 @@ typedef enum {
     SC_ERR_LOGPCAP_SGUIL_BASE_DIR_MISSING,
     SC_ERR_UNKNOWN_DECODE_EVENT,
     SC_ERR_RUNMODE,
+    SC_ERR_SHUTDOWN,
 } SCError;
 
 const char *SCErrorToString(SCError);

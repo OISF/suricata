@@ -204,6 +204,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_LOGPCAP_SGUIL_BASE_DIR_MISSING);
         CASE_CODE (SC_ERR_UNKNOWN_DECODE_EVENT);
         CASE_CODE (SC_ERR_RUNMODE);
+        CASE_CODE (SC_ERR_SHUTDOWN);
 
         default:
             return "UNKNOWN_ERROR";

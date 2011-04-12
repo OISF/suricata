@@ -1362,6 +1362,12 @@ int main(int argc, char **argv)
             SCLogInfo("signal received");
 
             if (suricata_ctl_flags & SURICATA_STOP)  {
+                struct timeval ts_start;
+                struct timeval ts_cur;
+
+                memset(&ts_start, 0x00, sizeof(ts_start));
+                gettimeofday(&ts_start, NULL);
+
                 SCLogInfo("EngineStop received");
 
                 /* Stop the engine so it quits after processing the pcap file
@@ -1378,6 +1384,20 @@ int main(int argc, char **argv)
                         done = 1;
 
                     if (done == 0) {
+                        memset(&ts_cur, 0x00, sizeof(ts_cur));
+                        gettimeofday(&ts_cur, NULL);
+
+                        if (ts_cur.tv_sec - ts_start.tv_sec >= 30) {
+                            SCLogError(SC_ERR_SHUTDOWN, "shutdown taking too "
+                                    "long, likely a bug! (%"PRIuMAX
+                                    " != %"PRIuMAX").", (uintmax_t)PacketPoolSize(),
+                                    (uintmax_t)max_pending_packets);
+#ifdef DEBUG
+                            BUG_ON(1);
+#endif
+                            break;
+                        }
+
                         usleep(100);
                     }
                 } while (done == 0);
