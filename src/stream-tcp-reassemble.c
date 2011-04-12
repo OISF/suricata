@@ -2155,6 +2155,7 @@ int StreamTcpReassembleHandleSegment(TcpReassemblyThreadCtx *ra_ctx,
  *  \param  len         Length up to which data is need to be replaced
  *
  *  \todo VJ We can remove the abort()s later.
+ *  \todo VJ Why not memcpy?
  */
 void StreamTcpSegmentDataReplace(TcpSegment *dst_seg, TcpSegment *src_seg,
                                  uint32_t start_point, uint16_t len)
@@ -2162,6 +2163,8 @@ void StreamTcpSegmentDataReplace(TcpSegment *dst_seg, TcpSegment *src_seg,
     uint32_t seq;
     uint16_t src_pos = 0;
     uint16_t dst_pos = 0;
+
+    SCLogDebug("start_point %u", start_point);
 
     if (SEQ_GT(start_point, dst_seg->seq)) {
         dst_pos = start_point - dst_seg->seq;
@@ -2204,18 +2207,26 @@ void StreamTcpSegmentDataReplace(TcpSegment *dst_seg, TcpSegment *src_seg,
 
 void StreamTcpSegmentDataCopy(TcpSegment *dst_seg, TcpSegment *src_seg)
 {
-    uint32_t i;
+    uint32_t u;
     uint16_t dst_pos = 0;
     uint16_t src_pos = 0;
+    uint32_t seq;
 
-    if (SEQ_GT(src_seg->seq, dst_seg->seq))
+    if (SEQ_GT(dst_seg->seq, src_seg->seq)) {
+        src_pos = dst_seg->seq - src_seg->seq;
+        seq = dst_seg->seq;
+    } else {
         dst_pos = src_seg->seq - dst_seg->seq;
-    else
-        dst_pos = dst_seg->seq - src_seg->seq;
+        seq = src_seg->seq;
+    }
 
-    SCLogDebug("Copying data from dst_pos %"PRIu16"", dst_pos);
-    for (i = src_seg->seq; SEQ_LT(i, (src_seg->seq + src_seg->payload_len)); i++)
+    SCLogDebug("Copying data from seq %"PRIu32"", seq);
+    for (u = seq;
+            (SEQ_LT(u, (src_seg->seq + src_seg->payload_len)) &&
+             SEQ_LT(u, (dst_seg->seq + dst_seg->payload_len))); u++)
     {
+        //SCLogDebug("u %"PRIu32, u);
+
         dst_seg->payload[dst_pos] = src_seg->payload[src_pos];
 
         dst_pos++;
