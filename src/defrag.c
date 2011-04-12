@@ -138,6 +138,10 @@ typedef struct Frag_ {
 
     int8_t skip; /**< Skip this fragment during re-assembly. */
 
+#ifdef DEBUG
+    uint64_t pcap_cnt;  /* pcap_cnt of original packet */
+#endif
+
     TAILQ_ENTRY(Frag_) next; /**< Pointer to next fragment for tailq. */
 } Frag;
 
@@ -539,6 +543,9 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
     int hlen = 0;
     int ip_hdr_offset = 0;
     TAILQ_FOREACH(frag, &tracker->frags, next) {
+        SCLogDebug("frag %p, data_len %u, offset %u, pcap_cnt %"PRIu64,
+                frag, frag->data_len, frag->offset, frag->pcap_cnt);
+
         if (frag->skip)
             continue;
         if (frag->data_len - frag->ltrim <= 0)
@@ -556,7 +563,6 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
             SCLogDebug("Packet rp %p, p %p, rp->root %p", rp, p, rp->root);
             rp->recursion_level = p->recursion_level;
 
-            rp->ip4h = (IPV4Hdr *)(GET_PKT_DATA(rp) + frag->ip_hdr_offset);
             hlen = frag->hlen;
             ip_hdr_offset = frag->ip_hdr_offset;
 
@@ -569,7 +575,8 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
         else {
             int pkt_end = fragmentable_offset + frag->offset + frag->data_len;
             if (pkt_end > (int)MAX_PAYLOAD_SIZE) {
-                SCLogWarning(SC_ERR_REASSEMBLY, "Failed re-assemble fragmented packet, exceeds size of packet buffer.");
+                SCLogWarning(SC_ERR_REASSEMBLY, "Failed re-assemble "
+                        "fragmented packet, exceeds size of packet buffer.");
                 goto remove_tracker;
             }
             if (PacketCopyDataOffset(rp, fragmentable_offset + frag->offset + frag->ltrim,
@@ -581,8 +588,11 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
                 fragmentable_len = frag->offset + frag->data_len;
         }
     }
-    BUG_ON(rp->ip4h == NULL);
 
+    SCLogDebug("ip_hdr_offset %u, hlen %u, fragmentable_len %u",
+            ip_hdr_offset, hlen, fragmentable_len);
+
+    rp->ip4h = (IPV4Hdr *)(GET_PKT_DATA(rp) + ip_hdr_offset);
     int old = rp->ip4h->ip_len + rp->ip4h->ip_off;
     rp->ip4h->ip_len = htons(fragmentable_len + hlen);
     rp->ip4h->ip_off = 0;
@@ -679,7 +689,6 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
                 frag->pkt + frag->frag_hdr_offset + sizeof(IPV6FragHdr),
                 frag->data_len) == -1)
                 goto remove_tracker;
-            rp->ip6h = (IPV6Hdr *)(GET_PKT_DATA(rp) + frag->ip_hdr_offset);
             ip_hdr_offset = frag->ip_hdr_offset;
 
             /* This is the start of the fragmentable portion of the
@@ -697,7 +706,8 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
                 fragmentable_len = frag->offset + frag->data_len;
         }
     }
-    BUG_ON(rp->ip6h == NULL);
+
+    rp->ip6h = (IPV6Hdr *)(GET_PKT_DATA(rp) + ip_hdr_offset);
     rp->ip6h->s_ip6_plen = htons(fragmentable_len);
     rp->ip6h->s_ip6_nxt = next_hdr;
     SET_PKT_LEN(rp, ip_hdr_offset + sizeof(IPV6Hdr) + fragmentable_len);
@@ -751,6 +761,10 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
 
     /* Offset in the packet to the IPv6 frag header. IPv6 only. */
     uint16_t frag_hdr_offset = 0;
+
+#ifdef DEBUG
+    uint64_t pcap_cnt = p->pcap_cnt;
+#endif
 
     if (tracker->af == AF_INET) {
         more_frags = IPV4_GET_MF(p);
@@ -911,6 +925,9 @@ insert:
     new->data_len = data_len - ltrim;
     new->ip_hdr_offset = ip_hdr_offset;
     new->frag_hdr_offset = frag_hdr_offset;
+#ifdef DEBUG
+    new->pcap_cnt = pcap_cnt;
+#endif
 
     Frag *frag;
     TAILQ_FOREACH(frag, &tracker->frags, next) {
