@@ -1357,6 +1357,7 @@ int main(int argc, char **argv)
 #endif
 #endif
 
+    int engine_retval = EXIT_SUCCESS;
     while(1) {
         if (suricata_ctl_flags != 0) {
             SCLogInfo("signal received");
@@ -1395,6 +1396,7 @@ int main(int argc, char **argv)
 #ifdef DEBUG
                             BUG_ON(1);
 #endif
+                            engine_retval = EXIT_FAILURE;
                             break;
                         }
 
@@ -1507,5 +1509,5 @@ int main(int argc, char **argv)
 #endif /* OS_WIN32 */
 
     SC_ATOMIC_DESTROY(engine_stage);
-    exit(EXIT_SUCCESS);
+    exit(engine_retval);
 }
