@@ -586,8 +586,7 @@ typedef struct DecodeThreadVars_
         (p)->payload_len = 0;                   \
         (p)->pktlen = 0;                        \
         (p)->alerts.cnt = 0;                    \
-        (p)->next = NULL;                       \
-        (p)->prev = NULL;                       \
+        (p)->pcap_cnt = 0;                      \
         (p)->rtv_cnt = 0;                       \
         (p)->tpr_cnt = 0;                       \
         SCMutexDestroy(&(p)->mutex_rtv_cnt);    \
@@ -596,6 +595,8 @@ typedef struct DecodeThreadVars_
         (p)->tunnel_pkt = 0;                    \
         (p)->tunnel_verdicted = 0;              \
         (p)->events.cnt = 0;                    \
+        (p)->next = NULL;                       \
+        (p)->prev = NULL;                       \
         (p)->root = NULL;                       \
         PACKET_RESET_CHECKSUMS((p));            \
     } while (0)
