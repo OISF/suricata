@@ -180,6 +180,9 @@ enum {
     /* SCTP EVENTS */
     SCTP_PKT_TOO_SMALL,              /**< sctp packet smaller than minimum size */
 
+    /* Fragmentation reasembly events. */
+    FRAG_PKT_TOO_LARGE,
+
     /* should always be last! */
     DECODE_EVENT_MAX,
 };

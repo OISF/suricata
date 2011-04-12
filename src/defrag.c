@@ -780,7 +780,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
         /* Ignore fragment if the end of packet extends past the
          * maximum size of a packet. */
         if (IPV4_HEADER_LEN + frag_offset + data_len > IPV4_MAXPACKET_LEN) {
-            /** \todo Perhaps log something? */
+            DECODER_SET_EVENT(p, FRAG_PKT_TOO_LARGE);
             return NULL;;
         }
     }
@@ -798,7 +798,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
         /* Ignore fragment if the end of packet extends past the
          * maximum size of a packet. */
         if (frag_offset + data_len > IPV6_MAXPACKET) {
-            /** \todo Perhaps log something? */
+            DECODER_SET_EVENT(p, FRAG_PKT_TOO_LARGE);
             return NULL;
         }
     }
@@ -2545,6 +2545,8 @@ DefragIPv4TooLargeTest(void)
 
     /* We do not expect a packet returned. */
     if (Defrag(NULL, NULL, dc, p) != NULL)
+        goto end;
+    if (!DECODER_ISSET_EVENT(p, FRAG_PKT_TOO_LARGE))
         goto end;
 
     /* The fragment should have been ignored so no fragments should have

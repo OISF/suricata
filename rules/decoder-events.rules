@@ -69,5 +69,6 @@ alert pkthdr any any -> any any (msg:"SURICATA GRE v1 header too big"; decode-ev
 alert pkthdr any any -> any any (msg:"SURICATA VLAN header too small "; decode-event:vlan.header_too_small; sid:22000065; rev:1;) 
 alert pkthdr any any -> any any (msg:"SURICATA VLAN unknown type"; decode-event:vlan.unknown_type; sid:22000066; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA IP raw invalid IP version "; decode-event:ipraw.invalid_ip_version; sid:22000067; rev:1;)
+alert pkthdr any any -> any any (msg:"SURICATA FRAG Packet size too large"; decode-event:frag.too_large; sid:22000067; rev:1;)
 
 

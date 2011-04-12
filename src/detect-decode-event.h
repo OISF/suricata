@@ -110,6 +110,7 @@ struct DetectDecodeEvents_ {
     { "ipraw.invalid_ip_version",IPRAW_INVALID_IPV, },
     { "vlan.header_too_small",VLAN_HEADER_TOO_SMALL, },
     { "vlan.unknown_type",VLAN_UNKNOWN_TYPE, },
+    { "frag.too_large", FRAG_PKT_TOO_LARGE, },
     { NULL, 0 },
 };
 #endif /* DETECT_EVENTS */
