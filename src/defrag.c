@@ -551,17 +551,19 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
         if (frag->data_len - frag->ltrim <= 0)
             continue;
         if (frag->offset == 0) {
-            /* Allocate a Packet for the reassembled packet.  On failure we
-             * SCFree all the resources held by this tracker. */
-            rp = PacketPseudoPktSetup(p, frag->pkt, frag->len,
-                                      IPV4_GET_IPPROTO(p));
             if (rp == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for "
-                           "fragmentation re-assembly, dumping fragments.");
-                goto remove_tracker;
+                /* Allocate a Packet for the reassembled packet.  On failure we
+                 * SCFree all the resources held by this tracker. */
+                rp = PacketPseudoPktSetup(p, frag->pkt, frag->len,
+                        IPV4_GET_IPPROTO(p));
+                if (rp == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for "
+                            "fragmentation re-assembly, dumping fragments.");
+                    goto remove_tracker;
+                }
+                SCLogDebug("Packet rp %p, p %p, rp->root %p", rp, p, rp->root);
+                rp->recursion_level = p->recursion_level;
             }
-            SCLogDebug("Packet rp %p, p %p, rp->root %p", rp, p, rp->root);
-            rp->recursion_level = p->recursion_level;
 
             hlen = frag->hlen;
             ip_hdr_offset = frag->ip_hdr_offset;
@@ -878,8 +880,9 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
                 if ((frag_offset >= prev->offset) &&
                     (frag_end <= prev->offset + prev->data_len))
                     goto done;
-                if (frag_offset < prev->offset)
+                if (frag_offset < prev->offset) {
                     goto insert;
+                }
                 if (frag_offset < prev->offset + prev->data_len) {
                     ltrim = prev->offset + prev->data_len - frag_offset;
                     goto insert;
@@ -887,8 +890,9 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
                 break;
             case DEFRAG_POLICY_LAST:
                 if (frag_offset <= prev->offset) {
-                    if (frag_end > prev->offset)
+                    if (frag_end > prev->offset) {
                         prev->ltrim = frag_end - prev->offset;
+                    }
                     goto insert;
                 }
                 break;

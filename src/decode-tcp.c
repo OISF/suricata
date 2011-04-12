@@ -164,6 +164,7 @@ void DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     SCPerfCounterIncr(dtv->counter_tcp, tv->sc_perf_pca);
 
     if (unlikely(DecodeTCPPacket(tv, p,pkt,len) < 0)) {
+        SCLogDebug("invalid TCP packet");
         p->tcph = NULL;
         return;
     }
