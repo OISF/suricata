@@ -544,21 +544,21 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
         if (frag->data_len - frag->ltrim <= 0)
             continue;
         if (frag->offset == 0) {
-            /* This is the first packet, we use this packets link and
-             * IPv4 header. We also copy in its data. */
-            /* Allocate a Packet for the reassembled packet.  On failure we
-             * SCFree all the resources held by this tracker. */
-            rp = PacketPseudoPktSetup(p, frag->pkt, frag->len,
-                                      IPV4_GET_IPPROTO(p));
             if (rp == NULL) {
-                SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for "
-                           "fragmentation re-assembly, dumping fragments.");
-                goto remove_tracker;
+                /* This is the first packet, we use this packets link and
+                 * IPv4 header. We also copy in its data. */
+                /* Allocate a Packet for the reassembled packet.  On failure we
+                 * SCFree all the resources held by this tracker. */
+                rp = PacketPseudoPktSetup(p, frag->pkt, frag->len,
+                        IPV4_GET_IPPROTO(p));
+                if (rp == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for "
+                            "fragmentation re-assembly, dumping fragments.");
+                    goto remove_tracker;
+                }
+                SCLogDebug("Packet rp %p, p %p, rp->root %p", rp, p, rp->root);
+                rp->recursion_level = p->recursion_level;
             }
-            SCLogDebug("Packet rp %p, p %p, rp->root %p", rp, p, rp->root);
-            rp->recursion_level = p->recursion_level;
-
-            rp->ip4h = (IPV4Hdr *)(rp->pkt + frag->ip_hdr_offset);
             hlen = frag->hlen;
             ip_hdr_offset = frag->ip_hdr_offset;
 
@@ -581,8 +581,8 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
                 fragmentable_len = frag->offset + frag->data_len;
         }
     }
-    BUG_ON(rp->ip4h == NULL);
 
+    rp->ip4h = (IPV4Hdr *)(rp->pkt + ip_hdr_offset);
     int old = rp->ip4h->ip_len + rp->ip4h->ip_off;
     rp->ip4h->ip_len = htons(fragmentable_len + hlen);
     rp->ip4h->ip_off = 0;
@@ -677,7 +677,6 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
             memcpy(rp->pkt + frag->frag_hdr_offset,
                 frag->pkt + frag->frag_hdr_offset + sizeof(IPV6FragHdr),
                 frag->data_len);
-            rp->ip6h = (IPV6Hdr *)(rp->pkt + frag->ip_hdr_offset);
             ip_hdr_offset = frag->ip_hdr_offset;
 
             /* This is the start of the fragmentable portion of the
@@ -694,7 +693,8 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
                 fragmentable_len = frag->offset + frag->data_len;
         }
     }
-    BUG_ON(rp->ip6h == NULL);
+
+    rp->ip6h = (IPV6Hdr *)(rp->pkt + ip_hdr_offset);
     rp->ip6h->s_ip6_plen = htons(fragmentable_len);
     rp->ip6h->s_ip6_nxt = next_hdr;
     rp->pktlen = ip_hdr_offset + sizeof(IPV6Hdr) + fragmentable_len;
