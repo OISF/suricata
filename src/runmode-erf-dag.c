@@ -74,7 +74,7 @@ int RunModeErfDagAuto(DetectEngineCtx *de_ctx)
     RunModeInitialize();
 
     char *iface = NULL;
-    if (ConfGet("runmode_erf_dag.iface", &iface) == 0) {
+    if (ConfGet("erf_dag.iface", &iface) == 0) {
         SCLogError(SC_ERR_RUNMODE, "Failed retrieving pcap_file from Conf");
         exit(EXIT_FAILURE);
     }

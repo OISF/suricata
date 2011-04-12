@@ -290,7 +290,7 @@ TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, void *initdata, void **data) {
     SCEnter();
 
     /* divert socket port to listen/send on */
-    if ( (ConfGet("runmode_ipfw.ipfw_divert_port", &tmpdivertport)) != 1 ) {
+    if ( (ConfGet("ipfw.ipfw_divert_port", &tmpdivertport)) != 1 ) {
         SCLogError(SC_ERR_IPFW_NOPORT,"Please supply an IPFW divert port");
         SCReturnInt(TM_ECODE_FAILED);
 

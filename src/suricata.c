@@ -598,8 +598,8 @@ int main(int argc, char **argv)
 #ifdef HAVE_PFRING
                 run_mode = RUNMODE_PFRING;
                 if (optarg != NULL) {
-                    if (ConfSet("runmode_pfring.interface", optarg, 0) != 1) {
-                        fprintf(stderr, "ERROR: Failed to set runmode_pfring.interface.\n");
+                    if (ConfSet("pfring.interface", optarg, 0) != 1) {
+                        fprintf(stderr, "ERROR: Failed to set pfring.interface.\n");
                         exit(EXIT_FAILURE);
                     }
                 }
@@ -611,8 +611,8 @@ int main(int argc, char **argv)
             }
             else if(strcmp((long_opts[option_index]).name , "pfring-cluster-id") == 0){
 #ifdef HAVE_PFRING
-                if (ConfSet("runmode_pfring.cluster_id", optarg, 0) != 1) {
-                    fprintf(stderr, "ERROR: Failed to set runmode_pfring.cluster_id.\n");
+                if (ConfSet("pfring.cluster-id", optarg, 0) != 1) {
+                    fprintf(stderr, "ERROR: Failed to set pfring.cluster-id.\n");
                     exit(EXIT_FAILURE);
                 }
 #else
@@ -623,8 +623,8 @@ int main(int argc, char **argv)
             }
             else if(strcmp((long_opts[option_index]).name , "pfring-cluster-type") == 0){
 #ifdef HAVE_PFRING
-                if (ConfSet("runmode_pfring.cluster_type", optarg, 0) != 1) {
-                    fprintf(stderr, "ERROR: Failed to set runmode_pfring.cluster_type.\n");
+                if (ConfSet("pfring.cluster-type", optarg, 0) != 1) {
+                    fprintf(stderr, "ERROR: Failed to set pfring.cluster-type.\n");
                     exit(EXIT_FAILURE);
                 }
 #else
@@ -720,16 +720,16 @@ int main(int argc, char **argv)
             }
             else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
                 run_mode = RUNMODE_ERF_FILE;
-                if (ConfSet("runmode_erf_file.file", optarg, 0) != 1) {
-                    fprintf(stderr, "ERROR: Failed to set runmode_erf_file.file\n");
+                if (ConfSet("erf_file.file", optarg, 0) != 1) {
+                    fprintf(stderr, "ERROR: Failed to set erf_file.file\n");
                     exit(EXIT_FAILURE);
                 }
             }
 			else if (strcmp((long_opts[option_index]).name, "dag") == 0) {
 #ifdef HAVE_DAG
 				run_mode = RUNMODE_DAG;
-                if (ConfSet("runmode_erf_dag.iface", optarg, 0) != 1) {
-                    fprintf(stderr, "ERROR: Failed to set runmode_erf_dag.iface\n");
+                if (ConfSet("erf_dag.iface", optarg, 0) != 1) {
+                    fprintf(stderr, "ERROR: Failed to set erf_dag.iface\n");
                     exit(EXIT_FAILURE);
                 }
 #else
@@ -833,7 +833,7 @@ int main(int argc, char **argv)
                 usage(argv[0]);
                 exit(EXIT_SUCCESS);
             }
-            if (ConfSet("runmode_ipfw.ipfw_divert_port", optarg, 0) != 1) {
+            if (ConfSet("ipfw.ipfw_divert_port", optarg, 0) != 1) {
                 fprintf(stderr, "ERROR: Failed to set ipfw_divert_port\n");
                 exit(EXIT_FAILURE);
             }
@@ -851,8 +851,8 @@ int main(int argc, char **argv)
                 usage(argv[0]);
                 exit(EXIT_SUCCESS);
             }
-            if (ConfSet("runmode_pcap_file.file", optarg, 0) != 1) {
-                fprintf(stderr, "ERROR: Failed to set runmode_pcap_file.file\n");
+            if (ConfSet("pcap_file.file", optarg, 0) != 1) {
+                fprintf(stderr, "ERROR: Failed to set pcap_file.file\n");
                 exit(EXIT_FAILURE);
             }
             break;
@@ -1304,8 +1304,8 @@ int main(int argc, char **argv)
     /* run the selected runmode */
     if (run_mode == RUNMODE_PCAP_DEV) {
         PcapTranslateIPToDevice(pcap_dev, sizeof(pcap_dev));
-        if (ConfSet("runmode_pcap.single_pcap_dev", pcap_dev, 0) != 1) {
-            fprintf(stderr, "ERROR: Failed to set runmode_pcap.single_pcap_dev\n");
+        if (ConfSet("pcap.single_pcap_dev", pcap_dev, 0) != 1) {
+            fprintf(stderr, "ERROR: Failed to set pcap.single_pcap_dev\n");
             exit(EXIT_FAILURE);
         }
 #ifdef HAVE_PFRING

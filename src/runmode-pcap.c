@@ -90,9 +90,9 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx)
 
     if (npcap == 1) {
         char *pcap_dev = NULL;
-        if (ConfGet("runmode_pcap.single_pcap_dev", &pcap_dev) == 0) {
+        if (ConfGet("pcap.single_pcap_dev", &pcap_dev) == 0) {
             SCLogError(SC_ERR_RUNMODE, "Failed retrieving "
-                       "runmode_pcap.single_pcap_dev from Conf");
+                       "pcap.single_pcap_dev from Conf");
             exit(EXIT_FAILURE);
         }
         SCLogDebug("pcap_dev %s", pcap_dev);
