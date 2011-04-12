@@ -93,10 +93,12 @@ Packet *PacketGetFromQueueOrAlloc(void) {
  */
 Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t proto)
 {
+    SCEnter();
+
     /* get us a packet */
     Packet *p = PacketGetFromQueueOrAlloc();
     if (p == NULL) {
-        return NULL;
+        SCReturnPtr(NULL, "Packet");
     }
 
     /* set the root ptr to the lowest layer */
@@ -126,7 +128,7 @@ Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
      * is the packet we will now run through the system separately. We do
      * check it against the ip/port/other header checks though */
     DecodeSetNoPayloadInspectionFlag(parent);
-    return p;
+    SCReturnPtr(p, "Packet");
 }
 
 void DecodeRegisterPerfCounters(DecodeThreadVars *dtv, ThreadVars *tv)
@@ -273,7 +275,7 @@ inline int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datale
                 return -1;
             }
             /* copy initial data */
-            memcpy(p->ext_pkt, &p->pkt, p->pktlen);
+            memcpy(p->ext_pkt, GET_PKT_DIRECT_DATA(p), GET_PKT_DIRECT_MAX_SIZE(p));
             /* copy data as asked */
             memcpy(p->ext_pkt + offset, data, datalen);
         }
