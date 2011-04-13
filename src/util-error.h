@@ -216,6 +216,7 @@ typedef enum {
     SC_ERR_UNKNOWN_DECODE_EVENT,
     SC_ERR_RUNMODE,
     SC_ERR_SHUTDOWN,
+    SC_ERR_INVALID_DIRECTION,
 } SCError;
 
 const char *SCErrorToString(SCError);

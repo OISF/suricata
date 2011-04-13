@@ -205,6 +205,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_UNKNOWN_DECODE_EVENT);
         CASE_CODE (SC_ERR_RUNMODE);
         CASE_CODE (SC_ERR_SHUTDOWN);
+        CASE_CODE (SC_ERR_INVALID_DIRECTION);
 
         default:
             return "UNKNOWN_ERROR";
