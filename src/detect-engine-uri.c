@@ -101,8 +101,8 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
         ud = (DetectContentData *)sm->ctx;
         SCLogDebug("inspecting content %"PRIu32" payload_len %"PRIu32, ud->id, payload_len);
 
-        if (ud->flags & DETECT_CONTENT_URI_MPM && !(ud->flags & DETECT_CONTENT_NEGATED))
-            goto match;
+        //if (ud->flags & DETECT_CONTENT_URI_MPM && !(ud->flags & DETECT_CONTENT_NEGATED))
+        //    goto match;
 
         /* rule parsers should take care of this */
 #ifdef DEBUG

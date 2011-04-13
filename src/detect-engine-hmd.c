@@ -98,8 +98,8 @@ static int DoInspectHttpMethod(DetectEngineCtx *de_ctx,
         SCLogDebug("inspecting http method %"PRIu32" payload_len %"PRIu32,
                    cd->id, payload_len);
 
-        if (cd->flags & DETECT_CONTENT_HMD_MPM && !(cd->flags & DETECT_CONTENT_NEGATED))
-            goto match;
+        //if (cd->flags & DETECT_CONTENT_HMD_MPM && !(cd->flags & DETECT_CONTENT_NEGATED))
+        //    goto match;
 
         /* rule parsers should take care of this */
 #ifdef DEBUG

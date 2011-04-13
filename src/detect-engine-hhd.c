@@ -98,8 +98,8 @@ static int DoInspectHttpHeader(DetectEngineCtx *de_ctx,
         SCLogDebug("inspecting http headers %"PRIu32" payload_len %"PRIu32,
                    cd->id, payload_len);
 
-        if (cd->flags & DETECT_CONTENT_HHD_MPM && !(cd->flags & DETECT_CONTENT_NEGATED))
-            goto match;
+        //if (cd->flags & DETECT_CONTENT_HHD_MPM && !(cd->flags & DETECT_CONTENT_NEGATED))
+        //    goto match;
 
         /* rule parsers should take care of this */
 #ifdef DEBUG
