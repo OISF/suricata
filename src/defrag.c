@@ -546,6 +546,17 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
         }
     }
 
+    /* Allocate a Packet for the reassembled packet.  On failure we
+     * SCFree all the resources held by this tracker. */
+    rp = PacketPseudoPktSetup(p, NULL, 0, IPV4_GET_IPPROTO(p));
+    if (rp == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for "
+                   "fragmentation re-assembly, dumping fragments.");
+        goto remove_tracker;
+    }
+    SCLogDebug("Packet rp %p, p %p, rp->root %p", rp, p, rp->root);
+    rp->recursion_level = p->recursion_level;
+
     int fragmentable_offset = 0;
     int fragmentable_len = 0;
     int hlen = 0;
@@ -559,19 +570,9 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
         if (frag->data_len - frag->ltrim <= 0)
             continue;
         if (frag->offset == 0) {
-            if (rp == NULL) {
-                /* Allocate a Packet for the reassembled packet.  On failure we
-                 * SCFree all the resources held by this tracker. */
-                rp = PacketPseudoPktSetup(p, frag->pkt, frag->len,
-                        IPV4_GET_IPPROTO(p));
-                if (rp == NULL) {
-                    SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for "
-                            "fragmentation re-assembly, dumping fragments.");
-                    goto remove_tracker;
-                }
-                SCLogDebug("Packet rp %p, p %p, rp->root %p", rp, p, rp->root);
-                rp->recursion_level = p->recursion_level;
-            }
+
+            if (PacketCopyData(rp, frag->pkt, frag->len) == -1)
+                goto remove_tracker;
 
             hlen = frag->hlen;
             ip_hdr_offset = frag->ip_hdr_offset;
