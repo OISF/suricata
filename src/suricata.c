@@ -1388,7 +1388,7 @@ int main(int argc, char **argv)
                         memset(&ts_cur, 0x00, sizeof(ts_cur));
                         gettimeofday(&ts_cur, NULL);
 
-                        if (ts_cur.tv_sec - ts_start.tv_sec >= 30) {
+                        if (ts_cur.tv_sec - ts_start.tv_sec >= 120) {
                             SCLogError(SC_ERR_SHUTDOWN, "shutdown taking too "
                                     "long, likely a bug! (%"PRIuMAX
                                     " != %"PRIuMAX").", (uintmax_t)PacketPoolSize(),
