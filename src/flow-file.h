@@ -41,14 +41,14 @@ typedef uint8_t FlowFileHash;
 
 typedef struct _FlowFileChunk {
     uint8_t                 *buf;
-    uint32_t                *len;
+    uint32_t                len;
     struct _FlowFileChunk   *next;
 } FlowFileChunk;
 
 typedef struct _FlowFile {
     uint8_t             *name;
     uint16_t            name_len;
-    uint8_t             *ext;
+    uint8_t             *ext;       /* ptr to extension portion in "name" */
     uint16_t            ext_len;
     uint8_t             *real_type;
     uint16_t            real_type_len;
@@ -84,7 +84,8 @@ FlowFile *FlowFileAlloc();
 void FlowFileFree(FlowFile *);
 
 void FlowFileContainerAdd(FlowFileContainer *, FlowFile *);
-FlowFile *FlowFileContainerRetrieve(FlowFileContainer *, uint8_t *, uint16_t, uint8_t *);
+//FlowFile *FlowFileContainerRetrieve(FlowFileContainer *, uint8_t *, uint16_t, uint8_t *);
+FlowFile *FlowFileContainerRetrieve(FlowFileContainer *, uint16_t, uint8_t *, uint16_t);
 FlowFile *FlowFileAppendChunk(FlowFile *, FlowFileChunk *);
 
 #endif /* __FLOW_FILE_H__ */

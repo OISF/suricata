@@ -29,9 +29,15 @@
 #include "flow-file.h"
 #include "util-hash.h"
 #include "util-debug.h"
+#include "util-memcmp.h"
 
-
-FlowFileContainer *FlowFileContainerAlloc() {
+/**
+ *  \brief allocate a FlowFileContainer
+ *
+ *  \retval new newly allocated FlowFileContainer
+ *  \retval NULL error
+ */
+FlowFileContainer *FlowFileContainerAlloc(void) {
     FlowFileContainer *new = SCMalloc(sizeof(FlowFileContainer));
     if (new == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating mem");
@@ -43,21 +49,35 @@ FlowFileContainer *FlowFileContainerAlloc() {
     return new;
 }
 
+/**
+ *  \brief Recycle a FlowFileContainer
+ *
+ *  \param ffc FlowFileContainer
+ */
 void FlowFileContainerRecycle(FlowFileContainer *ffc) {
-    FlowFile *ptr = ffc->start;
+    if (ffc == NULL)
+        return;
+
+    FlowFile *cur = ffc->start;
     FlowFile *next = NULL;
-    for (;ptr != NULL && ffc->cnt > 0; ptr = next) {
-        next = ptr->next;
-        FlowFileFree(ptr);
+    for (;cur != NULL && ffc->cnt > 0; cur = next) {
+        next = cur->next;
+        FlowFileFree(cur);
         ffc->cnt--;
     }
     ffc->start = ffc->end = NULL;
     ffc->cnt = 0;
 }
 
+/**
+ *  \brief Free a FlowFileContainer
+ *
+ *  \param ffc FlowFileContainer
+ */
 void FlowFileContainerFree(FlowFileContainer *ffc) {
     if (ffc == NULL)
         return;
+
     FlowFile *ptr = ffc->start;
     FlowFile *next = NULL;
     for (;ptr != NULL && ffc->cnt > 0; ptr = next) {
@@ -70,28 +90,33 @@ void FlowFileContainerFree(FlowFileContainer *ffc) {
     SCFree(ffc);
 }
 
-FlowFileChunk *FlowFileChunkAlloc() {
+FlowFileChunk *FlowFileChunkAlloc(void) {
     FlowFileChunk *new = SCMalloc(sizeof(FlowFileChunk));
     if (new == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating mem");
         return NULL;
     }
     memset(new, 0, sizeof(new));
+
     return new;
 }
 
 void FlowFileChunkFree(FlowFileChunk *ffc) {
+    if (ffc == NULL)
+        return;
+
     //TODO: To implement
     SCFree(ffc);
 }
 
-FlowFile *FlowFileAlloc() {
+FlowFile *FlowFileAlloc(void) {
     FlowFile *new = SCMalloc(sizeof(FlowFile));
     if (new == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating mem");
         return NULL;
     }
     memset(new, 0, sizeof(new));
+
     new->state = FLOWFILE_STATE_EMPTY;
     new->name = NULL;
     new->ext = NULL;
@@ -100,10 +125,11 @@ FlowFile *FlowFileAlloc() {
 }
 
 void FlowFileFree(FlowFile *ff) {
+    if (ff == NULL)
+        return;
+
     if (ff->name != NULL)
         SCFree(ff->name);
-    if (ff->ext != NULL)
-        SCFree(ff->ext);
     SCFree(ff);
 }
 
@@ -117,16 +143,24 @@ void FlowFileContainerAdd(FlowFileContainer *ffc, FlowFile *ff) {
     ffc->cnt += 1;
 }
 
-FlowFile *FlowFileContainerRetrieve(FlowFileContainer *ffc, uint8_t *name, uint16_t alproto, uint8_t *proto_type) {
+FlowFile *FlowFileContainerRetrieve(FlowFileContainer *ffc, uint16_t alproto,
+        uint8_t *name, uint16_t name_len) //, uint8_t *type, uint16_t type_len)
+{
     FlowFile *ptr = ffc->start;
+
     if (ffc->cnt > 0) {
         while (ptr != NULL) {
-            if ( (strcmp((char *)ptr->name, (char *)name) == 0) && ptr->alproto == alproto && (!proto_type || strcmp((char *)ptr->proto_type, (char *)proto_type) == 0)) {
+            if (ptr->alproto == alproto &&
+                    name_len == ptr->name_len &&
+                    SCMemcmp(ptr->name, name, name_len) == 0)
+            {
                 return ptr;
             }
+
             ptr = ptr->next;
         }
     }
+
     return NULL;
 }
 
