@@ -855,6 +855,32 @@ void SSLStateFree(void *p)
  */
 void RegisterSSLParsers(void)
 {
+    /** SSLv2  and SSLv23*/
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|01 00 02|", 5, 2, STREAM_TOSERVER);
+    /* subsection - SSLv2 style record by client, but informing the server the max
+     * version it supports */
+    /* Updated by Anoop Saldanha.  Disabled it for now.  We'll get back to it
+     * after some tests */
+    //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|01 03 00|", 5, 2, STREAM_TOSERVER);
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|00 02|", 7, 5, STREAM_TOCLIENT);
+
+    /** SSLv3 */
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|01 03 00|", 3, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|16 03 00|", 3, 0, STREAM_TOSERVER); /* client hello */
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|16 03 00|", 3, 0, STREAM_TOCLIENT); /* server hello */
+    /** TLSv1 */
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|01 03 01|", 3, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|16 03 01|", 3, 0, STREAM_TOSERVER); /* client hello */
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|16 03 01|", 3, 0, STREAM_TOCLIENT); /* server hello */
+    /** TLSv1.1 */
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|01 03 02|", 3, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|16 03 02|", 3, 0, STREAM_TOSERVER); /* client hello */
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|16 03 02|", 3, 0, STREAM_TOCLIENT); /* server hello */
+    /** TLSv1.2 */
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|01 03 03|", 3, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|16 03 03|", 3, 0, STREAM_TOSERVER); /* client hello */
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_TLS, "|16 03 03|", 3, 0, STREAM_TOCLIENT); /* server hello */
+
     AppLayerRegisterProto("tls", ALPROTO_TLS, STREAM_TOSERVER,
                           SSLParseClientRecord);
 
@@ -2583,7 +2609,7 @@ static int SSLParserTest22(void)
         0x2f, 0x34, 0x84, 0x20, 0xc5};
     uint32_t buf_len = sizeof(buf);
     TcpSession ssn;
-    AppLayerDetectProtoThreadInit();
+    //AppLayerDetectProtoThreadInit();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
@@ -2882,7 +2908,7 @@ static int SSLParserTest23(void)
     uint32_t toserver_app_data_buf_len = sizeof(toserver_app_data_buf);
 
     TcpSession ssn;
-    AppLayerDetectProtoThreadInit();
+    //AppLayerDetectProtoThreadInit();
 
     memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));

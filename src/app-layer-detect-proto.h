@@ -76,11 +76,14 @@ typedef struct AlpProtoDetectCtx_ {
     uint16_t sigs;              /**< number of sigs */
 } AlpProtoDetectCtx;
 
+extern AlpProtoDetectCtx alp_proto_ctx;
+
 void *AppLayerDetectProtoThread(void *td);
 
 void AppLayerDetectProtoThreadInit(void);
 
 uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *, AlpProtoDetectThreadCtx *, uint8_t *, uint16_t, uint8_t, uint8_t);
+void AlpProtoAdd(AlpProtoDetectCtx *, uint16_t, uint16_t, char *, uint16_t, uint16_t, uint8_t);
 
 void AppLayerDetectProtoThreadSpawn(void);
 void AlpDetectRegisterTests(void);

@@ -1073,14 +1073,6 @@ int main(int argc, char **argv)
 
     /** \todo we need an api for these */
     AppLayerDetectProtoThreadInit();
-    RegisterAppLayerParsers();
-    RegisterHTPParsers();
-    RegisterSSLParsers();
-    RegisterSMBParsers();
-    RegisterDCERPCParsers();
-    RegisterDCERPCUDPParsers();
-    RegisterFTPParsers();
-    RegisterSSHParsers();
     AppLayerParsersInitPostProcess();
 
 #ifdef UNITTESTS

@@ -6072,7 +6072,7 @@ static int StreamTcpReassembleTest38 (void) {
     FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    AppLayerDetectProtoThreadInit();
+    //AppLayerDetectProtoThreadInit();
 
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -6235,7 +6235,7 @@ static int StreamTcpReassembleTest39 (void) {
     FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    AppLayerDetectProtoThreadInit();
+    //AppLayerDetectProtoThreadInit();
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 7);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 7);
 
@@ -6464,7 +6464,7 @@ static int StreamTcpReassembleTest40 (void) {
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 130);
 
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    AppLayerDetectProtoThreadInit();
+    //AppLayerDetectProtoThreadInit();
 
     uint8_t httpbuf1[] = "P";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -6722,7 +6722,7 @@ static int StreamTcpReassembleTest41 (void) {
     FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    AppLayerDetectProtoThreadInit();
+    //AppLayerDetectProtoThreadInit();
 
     uint8_t httpbuf1[] = "GET / HTTP/1.0\r\nUser-Agent: Victor/1.0"
                          "W2dyb3VwMV0NCnBob25lMT1wMDB3ODgyMTMxMzAyMTINCmxvZ2lu"
@@ -6931,7 +6931,7 @@ static int StreamTcpReassembleTest42 (void) {
     FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    AppLayerDetectProtoThreadInit();
+    //AppLayerDetectProtoThreadInit();
 
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -7105,7 +7105,7 @@ static int StreamTcpReassembleTest43 (void) {
     FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    AppLayerDetectProtoThreadInit();
+    //AppLayerDetectProtoThreadInit();
 
     uint8_t httpbuf1[] = "/ HTTP/1.0\r\nUser-Agent: Victor/1.0";
 
@@ -7645,7 +7645,7 @@ static int StreamTcpReassembleTest47 (void) {
     FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    AppLayerDetectProtoThreadInit();
+    //AppLayerDetectProtoThreadInit();
 
     uint8_t httpbuf1[] = "GET /EVILSUFF HTTP/1.1\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */

@@ -261,6 +261,12 @@ static void FTPStateFree(void *s) {
 
 
 void RegisterFTPParsers(void) {
+    /** FTP */
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_FTP, "USER ", 5, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_FTP, "PASS ", 5, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_FTP, "PORT ", 5, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_FTP, "AUTH SSL", 8, 0, STREAM_TOCLIENT);
+
     AppLayerRegisterProto("ftp", ALPROTO_FTP, STREAM_TOSERVER,
                           FTPParseRequest);
     AppLayerRegisterProto("ftp", ALPROTO_FTP, STREAM_TOCLIENT,
