@@ -73,7 +73,6 @@
         SC_ATOMIC_RESET((f)->use_cnt); \
         if ((f)->de_state != NULL) { \
             DetectEngineStateReset((f)->de_state); \
-            (f)->de_state = NULL; \
         } \
         (f)->sgh_toserver = NULL; \
         (f)->sgh_toclient = NULL; \
