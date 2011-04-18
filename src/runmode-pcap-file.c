@@ -74,7 +74,6 @@ int RunModeFilePcap2(DetectEngineCtx *de_ctx)
         SCLogError(SC_ERR_RUNMODE, "Failed retrieving pcap_file from Conf");
         exit(EXIT_FAILURE);
     }
-    printf("RunModeFilePcap2: file %s\n", file);
 
     TimeModeSetOffline();
 
