@@ -21,22 +21,17 @@
  * \author Anoop Saldanha <poonaatsoc@gmail.com>
  */
 
-#include <stdio.h>
-#include "threads.h"
-#include <stdint.h>
-
-#include "util-enum.h"
-#include "util-error.h"
-#include "pcre.h"
-#include "util-debug-filters.h"
-#if defined __OpenBSD__
-//#include <sys/syslog.h>
-#else
-#include "syslog.h"
-#endif
-
 #ifndef __UTIL_DEBUG_H__
 #define __UTIL_DEBUG_H__
+
+#include <stdio.h>
+#include <stdint.h>
+#include <pcre.h>
+
+#include "threads.h"
+#include "util-enum.h"
+#include "util-error.h"
+#include "util-debug-filters.h"
 
 /**
  * \brief ENV vars that can be used to set the properties for the logging module
