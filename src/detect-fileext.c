@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2011 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,6 +18,7 @@
 /**
  * \file
  *
+ * \author Victor Julien <victor@inliniac.net>
  * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
  *
  */
@@ -52,7 +53,7 @@
 /**
  * \brief Regex for parsing the fileext string
  */
-#define PARSE_REGEX  "^\\s*\"\\s*(.+)\\s*\"\\s*$"
+#define PARSE_REGEX  "^\\s*\"?\\s*(.+)\\s*\"?\\s*$"
 
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
@@ -120,8 +121,7 @@ int DetectFileextMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, 
     if (f->files != NULL && f->files->cnt > 0) {
         FlowFile *file = f->files->start;
 
-        for (; file != NULL; file = file->next)
-        {
+        for (; file != NULL; file = file->next) {
             if (file->ext != NULL) {
                 //PrintRawDataFp(stdout, file->ext, file->ext_len);
 
@@ -131,6 +131,7 @@ int DetectFileextMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, 
                 {
                     ret = 1;
                     SCLogDebug("File ext found");
+
                     /* Stop searching */
                     break;
                 }
@@ -179,11 +180,13 @@ DetectFileextData *DetectFileextParse (char *str)
         memset(fileext, 0x00, sizeof(DetectFileextData));
 
         /* Remove quotes if any and copy the filename */
-        if (str_ptr[0] == '"') {
+        if (str_ptr[0] == '\"') {
             fileext->ext = (uint8_t *)SCStrdup((char*)str_ptr + 1);
-            fileext->ext[strlen(str_ptr - 1)] = '\0';
         } else {
             fileext->ext = (uint8_t *)SCStrdup((char*)str_ptr);
+        }
+        if (fileext->ext[strlen((char *)fileext->ext) - 1] == '\"') {
+            fileext->ext[strlen((char *)fileext->ext) - 1] = '\0';
         }
 
         if (fileext->ext == NULL) {
@@ -191,6 +194,9 @@ DetectFileextData *DetectFileextParse (char *str)
         }
         fileext->len = strlen((char *) fileext->ext);
         fileext->bm_ctx = BoyerMooreCtxInit(fileext->ext, fileext->len);
+        if (fileext->bm_ctx == NULL) {
+            goto error;
+        }
         BoyerMooreCtxToNocase(fileext->bm_ctx, fileext->ext, fileext->len);
 
         SCLogDebug("will look for fileext %s", fileext->ext);
@@ -207,7 +213,7 @@ error:
 
 /**
  * \brief this function is used to add the parsed "id" option
- * \brief into the current signature
+ *        into the current signature
  *
  * \param de_ctx pointer to the Detection Engine Context
  * \param s pointer to the Current Signature
@@ -260,9 +266,13 @@ error:
  * \param fileext pointer to DetectFileextData
  */
 void DetectFileextFree(void *ptr) {
-    DetectFileextData *fileext = (DetectFileextData *)ptr;
-    BoyerMooreCtxDeInit(fileext->bm_ctx);
-    SCFree(fileext);
+    if (ptr != NULL) {
+        DetectFileextData *fileext = (DetectFileextData *)ptr;
+        if (fileext->bm_ctx != NULL) {
+            BoyerMooreCtxDeInit(fileext->bm_ctx);
+        }
+        SCFree(fileext);
+    }
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
@@ -271,6 +281,11 @@ void DetectFileextFree(void *ptr) {
  * \test DetectFileextTestParse01
  */
 int DetectFileextTestParse01 (void) {
+    DetectFileextData *dfd = DetectFileextParse("doc");
+    if (dfd != NULL) {
+        DetectFileextFree(dfd);
+        return 1;
+    }
     return 0;
 }
 
@@ -278,6 +293,17 @@ int DetectFileextTestParse01 (void) {
  * \test DetectFileextTestParse02
  */
 int DetectFileextTestParse02 (void) {
+    int result = 0;
+
+    DetectFileextData *dfd = DetectFileextParse("\"tar.gz\"");
+    if (dfd != NULL) {
+        if (dfd->len == 6 && memcmp(dfd->ext, "tar.gz", 6) == 0) {
+            result = 1;
+        }
+
+        DetectFileextFree(dfd);
+        return result;
+    }
     return 0;
 }
 
@@ -285,11 +311,19 @@ int DetectFileextTestParse02 (void) {
  * \test DetectFileextTestParse03
  */
 int DetectFileextTestParse03 (void) {
-    return 1;
+    int result = 0;
+
+    DetectFileextData *dfd = DetectFileextParse("\"pdf\"");
+    if (dfd != NULL) {
+        if (dfd->len == 3 && memcmp(dfd->ext, "pdf", 3) == 0) {
+            result = 1;
+        }
+
+        DetectFileextFree(dfd);
+        return result;
+    }
+    return 0;
 }
-
-
-#include "stream-tcp-reassemble.h"
 
 #endif /* UNITTESTS */
 

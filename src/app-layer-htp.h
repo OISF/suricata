@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2011 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -38,7 +38,10 @@
 #include <htp/htp.h>
 
 /* default request body limit */
-#define HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT    4096U
+#define HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT       4096U
+
+/** a boundary should be smaller in size */
+#define HTP_BOUNDARY_MAX                            200U
 
 #define HTP_FLAG_STATE_OPEN         0x01    /**< Flag to indicate that HTTP
                                              connection is open */
@@ -72,8 +75,9 @@ enum {
 typedef struct HtpBodyChunk_ {
     uint8_t *data;              /**< Pointer to the data of the chunk */
     uint32_t len;               /**< Length of the chunk */
-    struct HtpBodyChunk_ *next; /**< Pointer to the next chunk */
     uint32_t id;                /**< number of chunk of the current body */
+    struct HtpBodyChunk_ *next; /**< Pointer to the next chunk */
+    uint64_t stream_offset;
 } HtpBodyChunk;
 
 /** Struct used to hold all the chunks of a body on a request */
@@ -83,29 +87,35 @@ typedef struct HtpBody_ {
     uint32_t nchunks;    /**< Number of chunks in the current operation */
     uint8_t operation;   /**< This flag indicate if it's a request
                               or a response */
+
+    /* pahole: padding: 3 */
 } HtpBody;
 
-#define HTP_BODY_COMPLETE      0x01    /* body is complete or limit is reached,
-                                          either way, this is it. */
-#define HTP_CONTENTTYPE_SET    0x02    /* We have the content type */
-#define HTP_BOUNDARY_SET       0x04    /* We have a boundary string */
-#define HTP_BOUNDARY_OPEN      0x08    /* We have a boundary string */
+#define HTP_BODY_COMPLETE       0x01    /**< body is complete or limit is reached,
+                                             either way, this is it. */
+#define HTP_CONTENTTYPE_SET     0x02    /**< We have the content type */
+#define HTP_BOUNDARY_SET        0x04    /**< We have a boundary string */
+#define HTP_BOUNDARY_OPEN       0x08    /**< We have a boundary string */
+#define HTP_FILENAME_SET        0x10    /**< filename is registered in the flow */
 
 /** Now the Body Chunks will be stored per transaction, at
   * the tx user data */
 typedef struct SCHtpTxUserData_ {
     /* Body of the request (if any) */
     HtpBody body;
+
     /* Holds the length of the htp request body */
-    uint32_t content_len;
+    uint64_t content_len;
     /* Holds the length of the htp request body seen so far */
-    uint32_t content_len_so_far;
-    /* Holds the boundary identificator string if any (used on multipart/form-data only) */
+    uint64_t content_len_so_far;
+
+    uint64_t body_parsed;
+
+    /** Holds the boundary identificator string if any (used on
+     *  multipart/form-data only)
+     */
     uint8_t *boundary;
-    uint32_t boundary_len;
-    /* Holds the content-type */
-    uint8_t *contenttype;
-    uint32_t contenttype_len;
+    uint8_t boundary_len;
 
     uint8_t flags;
 } SCHtpTxUserData;

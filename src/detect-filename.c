@@ -52,7 +52,7 @@
 /**
  * \brief Regex for parsing the protoversion string
  */
-#define PARSE_REGEX  "^\\s*\"\\s*(.+)\\s*\"\\s*$"
+#define PARSE_REGEX  "^\\s*\"?\\s*(.+)\\s*\"?\\s*$"
 
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
@@ -174,17 +174,25 @@ DetectFilenameData *DetectFilenameParse (char *str)
 
         memset(filename, 0x00, sizeof(DetectFilenameData));
 
-        if (str_ptr[0] == '"') {
+        /* Remove quotes if any and copy the filename */
+        if (str_ptr[0] == '\"') {
             filename->name = (uint8_t *)SCStrdup((char*)str_ptr + 1);
-            filename->name[strlen(str_ptr - 1)] = '\0';
         } else {
             filename->name = (uint8_t *)SCStrdup((char*)str_ptr);
         }
+        if (filename->name[strlen((char *)filename->name) - 1] == '\"') {
+            filename->name[strlen((char *)filename->name) - 1] = '\0';
+        }
+
         if (filename->name == NULL) {
             goto error;
         }
+
         filename->len = strlen((char *) filename->name);
         filename->bm_ctx = BoyerMooreCtxInit(filename->name, filename->len);
+        if (filename->bm_ctx == NULL) {
+            goto error;
+        }
         BoyerMooreCtxToNocase(filename->bm_ctx, filename->name, filename->len);
 
         SCLogDebug("will look for filename %s", filename->name);
@@ -254,9 +262,13 @@ error:
  * \param filename pointer to DetectFilenameData
  */
 void DetectFilenameFree(void *ptr) {
-    DetectFilenameData *filename = (DetectFilenameData *)ptr;
-    BoyerMooreCtxDeInit(filename->bm_ctx);
-    SCFree(filename);
+    if (ptr != NULL) {
+        DetectFilenameData *filename = (DetectFilenameData *)ptr;
+        if (filename->bm_ctx != NULL) {
+            BoyerMooreCtxDeInit(filename->bm_ctx);
+        }
+        SCFree(filename);
+    }
 }
 
 #ifdef UNITTESTS /* UNITTESTS */
@@ -265,6 +277,11 @@ void DetectFilenameFree(void *ptr) {
  * \test DetectFilenameTestParse01
  */
 int DetectFilenameTestParse01 (void) {
+    DetectFilenameData *dnd = DetectFilenameParse("secret.pdf");
+    if (dnd != NULL) {
+        DetectFilenameFree(dnd);
+        return 1;
+    }
     return 0;
 }
 
@@ -272,6 +289,17 @@ int DetectFilenameTestParse01 (void) {
  * \test DetectFilenameTestParse02
  */
 int DetectFilenameTestParse02 (void) {
+    int result = 0;
+
+    DetectFilenameData *dnd = DetectFilenameParse("\"backup.tar.gz\"");
+    if (dnd != NULL) {
+        if (dnd->len == 13 && memcmp(dnd->name, "backup.tar.gz", 13) == 0) {
+            result = 1;
+        }
+
+        DetectFilenameFree(dnd);
+        return result;
+    }
     return 0;
 }
 
@@ -279,11 +307,19 @@ int DetectFilenameTestParse02 (void) {
  * \test DetectFilenameTestParse03
  */
 int DetectFilenameTestParse03 (void) {
-    return 1;
+    int result = 0;
+
+    DetectFilenameData *dnd = DetectFilenameParse("cmd.exe");
+    if (dnd != NULL) {
+        if (dnd->len == 7 && memcmp(dnd->name, "cmd.exe", 7) == 0) {
+            result = 1;
+        }
+
+        DetectFilenameFree(dnd);
+        return result;
+    }
+    return 0;
 }
-
-
-#include "stream-tcp-reassemble.h"
 
 #endif /* UNITTESTS */
 
