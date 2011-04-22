@@ -117,12 +117,18 @@ int DetectFilenameMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
     DetectFilenameData *filename = m->ctx;
 
     SCMutexLock(&f->files_m);
-    if (f->files != NULL && f->files->cnt > 0) {
-        FlowFile *file = f->files->start;
+    if (f->files != NULL) {
+        FlowFile *file = f->files->head;
         for (; file != NULL; file = file->next) {
-            if (file != NULL && file->name != NULL &&
-                BoyerMooreNocase(filename->name, filename->len, file->name,
-                file->name_len, filename->bm_ctx->bmGs, filename->bm_ctx->bmBc) != NULL)
+            if (file->state == FLOWFILE_STATE_NONE)
+                continue;
+
+            if (file->name == NULL)
+                continue;
+
+            if (BoyerMooreNocase(filename->name, filename->len, file->name,
+                file->name_len, filename->bm_ctx->bmGs,
+                filename->bm_ctx->bmBc) != NULL)
             {
                 ret = 1;
                 SCLogDebug("File %s found", file->name);

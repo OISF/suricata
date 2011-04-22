@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2011 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,6 +18,7 @@
 /**
  * \file
  *
+ * \author Victor Julien <victor@inliniac.net>
  * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
  *
  */
@@ -30,6 +31,10 @@
 #include "util-hash.h"
 #include "util-debug.h"
 #include "util-memcmp.h"
+#include "util-print.h"
+
+/* prototypes */
+static void FlowFileFree(FlowFile *);
 
 /**
  *  \brief allocate a FlowFileContainer
@@ -43,9 +48,8 @@ FlowFileContainer *FlowFileContainerAlloc(void) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating mem");
         return NULL;
     }
-    memset(new, 0, sizeof(new));
-    new->start = new->end = NULL;
-    new->cnt = 0;
+    memset(new, 0, sizeof(FlowFileContainer));
+    new->head = new->tail = NULL;
     return new;
 }
 
@@ -58,15 +62,13 @@ void FlowFileContainerRecycle(FlowFileContainer *ffc) {
     if (ffc == NULL)
         return;
 
-    FlowFile *cur = ffc->start;
+    FlowFile *cur = ffc->head;
     FlowFile *next = NULL;
-    for (;cur != NULL && ffc->cnt > 0; cur = next) {
+    for (;cur != NULL; cur = next) {
         next = cur->next;
         FlowFileFree(cur);
-        ffc->cnt--;
     }
-    ffc->start = ffc->end = NULL;
-    ffc->cnt = 0;
+    ffc->head = ffc->tail = NULL;
 }
 
 /**
@@ -78,53 +80,116 @@ void FlowFileContainerFree(FlowFileContainer *ffc) {
     if (ffc == NULL)
         return;
 
-    FlowFile *ptr = ffc->start;
+    FlowFile *ptr = ffc->head;
     FlowFile *next = NULL;
-    for (;ptr != NULL && ffc->cnt > 0; ptr = next) {
+    for (;ptr != NULL; ptr = next) {
         next = ptr->next;
         FlowFileFree(ptr);
-        ffc->cnt--;
     }
-    ffc->start = ffc->end = NULL;
-    ffc->cnt = 0;
+    ffc->head = ffc->tail = NULL;
     SCFree(ffc);
 }
 
-FlowFileChunk *FlowFileChunkAlloc(void) {
-    FlowFileChunk *new = SCMalloc(sizeof(FlowFileChunk));
+/**
+ *  \internal
+ *
+ *  \brief allocate a FlowFileData chunk and set it up
+ *
+ *  \param data data chunk to store in the FlowFileData
+ *  \param data_len lenght of the data
+ *
+ *  \retval new FlowFileData object
+ */
+static FlowFileData *FlowFileDataAlloc(uint8_t *data, uint32_t data_len) {
+    FlowFileData *new = SCMalloc(sizeof(FlowFileData));
     if (new == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating mem");
         return NULL;
     }
-    memset(new, 0, sizeof(new));
+    memset(new, 0, sizeof(FlowFileData));
 
+    new->data = SCMalloc(data_len);
+    if (new->data == NULL) {
+        SCFree(new);
+        return NULL;
+    }
+
+    new->len = data_len;
+    memcpy(new->data, data, data_len);
+
+    new->next = NULL;
     return new;
 }
 
-void FlowFileChunkFree(FlowFileChunk *ffc) {
-    if (ffc == NULL)
+/**
+ *  \internal
+ *
+ *  \brief free a FlowFileData object
+ *
+ *  \param ffd the flow file data object to free
+ */
+static void FlowFileDataFree(FlowFileData *ffd) {
+    if (ffd == NULL)
         return;
 
-    //TODO: To implement
-    SCFree(ffc);
+    if (ffd->data != NULL) {
+        SCFree(ffd->data);
+    }
+
+    SCFree(ffd);
 }
 
-FlowFile *FlowFileAlloc(void) {
+static int FlowFileAppendFlowFileData(FlowFileContainer *ffc, FlowFileData *ffd) {
+    SCEnter();
+
+    if (ffc == NULL) {
+        SCReturnInt(-1);
+    }
+
+    FlowFile *ff = ffc->tail;
+    if (ff == NULL) {
+        SCReturnInt(-1);
+    }
+
+    if (ff->chunks_tail == NULL) {
+        ff->chunks_head = ffd;
+        ff->chunks_tail = ffd;
+    } else {
+        ff->chunks_tail->next = ffd;
+        ff->chunks_tail = ffd;
+    }
+
+    SCReturnInt(0);
+}
+
+/**
+ *  \brief Alloc a new FlowFile
+ *
+ *  \param name character array containing the name (not a string)
+ *  \param name_len length in bytes of the name
+ *
+ *  \retval new FlowFile object or NULL on error
+ */
+static FlowFile *FlowFileAlloc(uint8_t *name, uint16_t name_len) {
     FlowFile *new = SCMalloc(sizeof(FlowFile));
     if (new == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating mem");
         return NULL;
     }
-    memset(new, 0, sizeof(new));
+    memset(new, 0, sizeof(FlowFile));
 
-    new->state = FLOWFILE_STATE_EMPTY;
-    new->name = NULL;
-    new->ext = NULL;
-    new->next = NULL;
+    new->name = SCMalloc(name_len);
+    if (new->name == NULL) {
+        SCFree(new);
+        return NULL;
+    }
+
+    new->name_len = name_len;
+    memcpy(new->name, name, name_len);
+
     return new;
 }
 
-void FlowFileFree(FlowFile *ff) {
+static void FlowFileFree(FlowFile *ff) {
     if (ff == NULL)
         return;
 
@@ -134,37 +199,145 @@ void FlowFileFree(FlowFile *ff) {
 }
 
 void FlowFileContainerAdd(FlowFileContainer *ffc, FlowFile *ff) {
-    if (ffc->start == NULL) {
-        ffc->start = ffc->end = ff;
+    if (ffc->head == NULL) {
+        ffc->head = ffc->tail = ff;
     } else {
-        ffc->end->next = ff;
-        ffc->end = ff;
+        ffc->tail->next = ff;
+        ffc->tail = ff;
     }
-    ffc->cnt += 1;
 }
 
-FlowFile *FlowFileContainerRetrieve(FlowFileContainer *ffc, uint16_t alproto,
-        uint8_t *name, uint16_t name_len) //, uint8_t *type, uint16_t type_len)
+/**
+ *  \brief Open a new FlowFile
+ *
+ *  \param ffc flow container
+ *  \param name filename character array
+ *  \param name_len filename len
+ *  \param data initial data
+ *  \param data_len initial data len
+ *
+ *  \retval ff flowfile object
+ *
+ *  \note filename is not a string, so it's not nul terminated.
+ */
+FlowFile *FlowFileOpenFile(FlowFileContainer *ffc, uint8_t *name,
+        uint16_t name_len, uint8_t *data, uint32_t data_len)
 {
-    FlowFile *ptr = ffc->start;
+    SCEnter();
 
-    if (ffc->cnt > 0) {
-        while (ptr != NULL) {
-            if (ptr->alproto == alproto &&
-                    name_len == ptr->name_len &&
-                    SCMemcmp(ptr->name, name, name_len) == 0)
-            {
-                return ptr;
-            }
+    PrintRawDataFp(stdout, name, name_len);
 
-            ptr = ptr->next;
+    FlowFile *ff = FlowFileAlloc(name, name_len);
+    if (ff == NULL) {
+        SCReturnPtr(NULL, "FlowFile");
+    }
+
+    ff->state = FLOWFILE_STATE_OPENED;
+    SCLogDebug("flowfile state transitioned to FLOWFILE_STATE_OPENED");
+
+    if (data != NULL) {
+        PrintRawDataFp(stdout, data, data_len);
+
+        FlowFileData *ffd = FlowFileDataAlloc(data, data_len);
+        if (ffd == NULL) {
+            FlowFileFree(ff);
+            SCReturnPtr(NULL, "FlowFile");
+        }
+
+        /* append the data */
+        if (FlowFileAppendFlowFileData(ffc, ffd) < 0) {
+            FlowFileFree(ff);
+            FlowFileDataFree(ffd);
+            SCReturnPtr(NULL, "FlowFile");
         }
     }
 
-    return NULL;
+    FlowFileContainerAdd(ffc, ff);
+
+    SCReturnPtr(ff, "FlowFile");
 }
 
-FlowFile *FlowFileAppendChunk(FlowFile *ff, FlowFileChunk *ffc) {
-    //TODO: To implement
-    return NULL;
+/**
+ *  \brief Close a FlowFile
+ *
+ *  \param ffc the container
+ *  \param data final data if any
+ *  \param data_len data len if any
+ *  \param flags flags
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
+ */
+int FlowFileCloseFile(FlowFileContainer *ffc, uint8_t *data,
+        uint32_t data_len, uint8_t flags)
+{
+    SCEnter();
+
+    if (ffc == NULL || ffc->tail == NULL) {
+        SCReturnInt(-1);
+    }
+
+    if (ffc->tail->state != FLOWFILE_STATE_OPENED) {
+        SCReturnInt(-1);
+    }
+
+    if (data != NULL) {
+        PrintRawDataFp(stdout, data, data_len);
+
+        FlowFileData *ffd = FlowFileDataAlloc(data, data_len);
+        if (ffd == NULL) {
+            SCReturnInt(-1);
+        }
+
+        /* append the data */
+        if (FlowFileAppendFlowFileData(ffc, ffd) < 0) {
+            FlowFileDataFree(ffd);
+            SCReturnInt(-1);
+        }
+    }
+
+    if (flags & FLOW_FILE_TRUNCATED) {
+        ffc->tail->state = FLOWFILE_STATE_TRUNCATED;
+        SCLogDebug("flowfile state transitioned to FLOWFILE_STATE_TRUNCATED");
+    } else {
+        ffc->tail->state = FLOWFILE_STATE_CLOSED;
+        SCLogDebug("flowfile state transitioned to FLOWFILE_STATE_CLOSED");
+    }
+
+    SCReturnInt(0);
+}
+
+/**
+ *  \brief Store a chunk of file data in the flow. The open "flowfile"
+ *         will be used.
+ *
+ *  \param ffc the container
+ *  \param data data chunk
+ *  \param data_len data chunk len
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
+ */
+int FlowFileAppendData(FlowFileContainer *ffc, uint8_t *data, uint32_t data_len) {
+    SCEnter();
+
+    if (ffc == NULL || ffc->tail == NULL || data == NULL || data_len == 0) {
+        SCReturnInt(-1);
+    }
+
+    if (ffc->tail->state != FLOWFILE_STATE_OPENED) {
+        SCReturnInt(-1);
+    }
+
+    FlowFileData *ffd = FlowFileDataAlloc(data, data_len);
+    if (ffd == NULL) {
+        SCReturnInt(-1);
+    }
+
+    /* append the data */
+    if (FlowFileAppendFlowFileData(ffc, ffd) < 0) {
+        FlowFileDataFree(ffd);
+        SCReturnInt(-1);
+    }
+    SCReturnInt(0);
 }

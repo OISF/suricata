@@ -62,6 +62,128 @@
 
 #include "util-memcmp.h"
 
+/**
+ *  \brief Open the file with "filename" and pass the first chunk
+ *         of data if any.
+ *
+ *  \param f flow to store the file in
+ *  \param filename name of the file
+ *  \param filename_len length of the name
+ *  \param data data chunk (if any)
+ *  \param data_len length of the data portion
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
+ */
+int HTPFileOpen(Flow *f, uint8_t *filename, uint16_t filename_len,
+        uint8_t *data, uint32_t data_len)
+{
+    int retval = 0;
+
+    if (f == NULL) {
+        return -1;
+    }
+
+    SCMutexLock(&f->files_m);
+    {
+        if (f->files == NULL) {
+            f->files = FlowFileContainerAlloc();
+            if (f->files == NULL) {
+                retval = -1;
+                goto end;
+            }
+        }
+
+        if (FlowFileOpenFile(f->files, filename, filename_len,
+                    data, data_len) == NULL)
+        {
+            retval = -1;
+        }
+    }
+
+end:
+    SCMutexUnlock(&f->files_m);
+    return retval;
+}
+
+/**
+ *  \brief Store a chunk of data in the flow
+ *
+ *  \param f flow to store the file in
+ *  \param data data chunk (if any)
+ *  \param data_len length of the data portion
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
+ */
+int HTPFileStoreChunk(Flow *f, uint8_t *data, uint32_t data_len) {
+    SCEnter();
+
+    int retval = 0;
+
+    if (f == NULL) {
+        SCReturnInt(-1);
+    }
+
+    SCMutexLock(&f->files_m);
+    {
+        if (f->files == NULL) {
+            SCLogDebug("no files in flow");
+            retval = -1;
+            goto end;
+        }
+
+        if (FlowFileAppendData(f->files, data, data_len) == -1)
+        {
+            SCLogDebug("appending data failed");
+            retval = -1;
+        }
+    }
+
+end:
+    SCMutexUnlock(&f->files_m);
+    SCReturnInt(retval);
+}
+
+/**
+ *  \brief Close the file in the flow
+ *
+ *  \param f flow to store in
+ *  \param data data chunk if any
+ *  \param data_len length of the data portion
+ *  \param flags flags to indicate events
+ *
+ *  Currently on the FLOW_FILE_TRUNCATED flag is implemented, indicating
+ *  that the file isn't complete but we're stopping storing it.
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
+ */
+int HTPFileClose(Flow *f, uint8_t *data, uint32_t data_len, uint8_t flags) {
+    int retval = 0;
+
+    if (f == NULL) {
+        return -1;
+    }
+
+    SCMutexLock(&f->files_m);
+    {
+        if (f->files == NULL) {
+            retval = -1;
+            goto end;
+        }
+
+        if (FlowFileCloseFile(f->files, data, data_len, flags) == -1)
+        {
+            retval = -1;
+        }
+    }
+
+end:
+    SCMutexUnlock(&f->files_m);
+    return retval;
+}
+
 #ifdef UNITTESTS
 static int HTPFileParserTest01(void) {
     int result = 0;
@@ -456,7 +578,11 @@ static int HTPFileParserTest04(void) {
 
     if (tx->request_method == NULL || memcmp(bstr_tocstr(tx->request_method), "POST", 4) != 0)
     {
-        printf("expected method POST, got %s \n", bstr_tocstr(tx->request_method));
+        printf("expected method POST, got %s: ", bstr_tocstr(tx->request_method));
+        goto end;
+    }
+
+    if (f.files == NULL || f.files->tail == NULL || f.files->tail->state != FLOWFILE_STATE_CLOSED) {
         goto end;
     }
 

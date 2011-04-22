@@ -25,6 +25,10 @@
 #ifndef __APP_LAYER_HTP_FILE_H__
 #define __APP_LAYER_HTP_FILE_H__
 
+int HTPFileOpen(Flow *, uint8_t *, uint16_t, uint8_t *, uint32_t);
+int HTPFileStoreChunk(Flow *, uint8_t *, uint32_t);
+int HTPFileClose(Flow *, uint8_t *, uint32_t, uint8_t);
+
 void HTPFileParserRegisterTests(void);
 
 #endif /* __APP_LAYER_HTP_FILE_H__ */

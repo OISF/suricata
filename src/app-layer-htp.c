@@ -24,6 +24,7 @@
 /**
  * \file
  *
+ * \author Victor Julien <victor@inliniac.net>
  * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
  * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
  * \author Brian Rectanus <brectanu@gmail.com>
@@ -780,84 +781,6 @@ static int HTTPParseContentTypeHeader(uint8_t *name, size_t name_len,
     SCReturnInt(0);
 }
 
-static int HTTPStoreFileNameType(Flow *f, uint8_t *filename, size_t filename_len,
-        uint8_t *filetype, size_t filetype_len)
-{
-    if (filename == NULL) {
-        SCReturnInt(-1);
-    }
-
-    int i = 0;
-    FlowFileContainer *ffc = NULL;
-
-    SCMutexLock(&f->files_m);
-    {
-        /* We have to add/update the file */
-        SCLogDebug("Adding file entry to flow");
-
-        if (f->files == NULL) {
-            ffc = FlowFileContainerAlloc();
-            if (ffc == NULL) {
-                goto end;
-            }
-            f->files = ffc;
-        } else {
-            /* TODO: else append chunk, update things...*/
-            ffc = f->files;
-        }
-
-        FlowFile *cur_file = FlowFileContainerRetrieve(ffc, ALPROTO_HTTP, filename,
-                filename_len);
-        SCLogDebug("cur_file %p", cur_file);
-
-        if (cur_file == NULL) {
-            cur_file = FlowFileAlloc();
-            if (cur_file == NULL) {
-                goto end;
-            }
-
-            cur_file->name = SCMalloc(filename_len);
-            if (cur_file->name == NULL) {
-                /** \todo remove cur_file */
-                goto end;
-            }
-            memcpy(cur_file->name, filename, filename_len);
-            cur_file->name_len = filename_len;
-
-            /* find the ext portion */
-            for (i = filename_len - 2; i >= 0 && filename[i] != '.'; i--);
-            SCLogDebug("i %d", i);
-            if (filename[i] == '.') {
-                cur_file->ext = &cur_file->name[++i];
-                cur_file->ext_len = filename_len - i;
-#if 0
-                printf("EXT START: \n");
-                PrintRawDataFp(stdout, cur_file->ext, cur_file->ext_len);
-                printf("EXT END: \n");
-#endif
-            }
-
-            if (filetype != NULL) {
-                cur_file->proto_type = SCMalloc(filetype_len);
-                if (cur_file->proto_type == NULL) {
-                    goto end;
-                }
-
-                memcpy(cur_file->proto_type, filetype, filetype_len);
-                cur_file->proto_type_len = filetype_len;
-            }
-
-            cur_file->alproto = ALPROTO_HTTP;
-            SCLogDebug("Added");
-            FlowFileContainerAdd(ffc, cur_file);
-            /* cur_file->ext = get extension */
-        }
-    }
-end:
-    SCMutexUnlock(&f->files_m);
-    SCReturnInt(0);
-}
-
 #define C_D_HDR "content-disposition:"
 #define C_D_HDR_LEN 20
 #define C_T_HDR "content-type:"
@@ -1037,6 +960,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
                 uint8_t *filedata = chunks_buffer;
                 uint32_t filedata_len = 0;
+                uint8_t flags = 0;
 
                 if (header_start < form_end) {
                     filedata_len = header_start - filedata;
@@ -1046,11 +970,17 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                     filedata_len = form_end - filedata;
                 } else if (htud->flags & HTP_BODY_COMPLETE) {
                     filedata_len = chunks_buffer_len;
+                    flags = FLOW_FILE_TRUNCATED;
                 }
 
                 printf("FILEDATA (final chunk) START: \n");
                 PrintRawDataFp(stdout, filedata, filedata_len);
                 printf("FILEDATA (final chunk) END: \n");
+
+                if (HTPFileClose(hstate->f, filedata, filedata_len, flags) == -1)
+                {
+                    goto end;
+                }
 
                 htud->flags &=~ HTP_FILENAME_SET;
 
@@ -1065,6 +995,10 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                     printf("FILEDATA (part) START: \n");
                     PrintRawDataFp(stdout, filedata, filedata_len);
                     printf("FILEDATA (part) END: \n");
+
+                    if (HTPFileStoreChunk(hstate->f, filedata, filedata_len) == -1) {
+                        goto end;
+                    }
 
                     htud->body_parsed += filedata_len;
                 } else {
@@ -1135,16 +1069,17 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
             } /* while (header_len > 0) */
 
             if (filename != NULL) {
+                uint8_t *filedata = NULL;
+                uint32_t filedata_len = 0;
+
                 SCLogDebug("we have a filename");
 
-                HTTPStoreFileNameType(hstate->f, filename, filename_len,
-                        filetype, filetype_len);
                 htud->flags |= HTP_FILENAME_SET;
 
                 /* everything until the final boundary is the file */
                 if (form_end != NULL) {
-                    uint8_t *filedata = header_end + 4;
-                    uint32_t filedata_len = form_end - (header_end + 4 + 2);
+                    filedata = header_end + 4;
+                    filedata_len = form_end - (header_end + 4 + 2);
                     SCLogDebug("filedata_len %"PRIuMAX, (uintmax_t)filedata_len);
 
                     //#if 0
@@ -1158,6 +1093,11 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                     uint32_t offset = (header_end + 4) - chunks_buffer;
                     SCLogDebug("offset %u", offset);
                     htud->body_parsed = offset;
+                }
+
+                if (HTPFileOpen(hstate->f, filename, filename_len,
+                        filedata, filedata_len) == -1) {
+                    goto end;
                 }
             }
 

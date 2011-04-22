@@ -44,6 +44,7 @@
 #include "util-unittest-helper.h"
 #include "util-spm-bm.h"
 #include "util-print.h"
+#include "util-memcmp.h"
 
 #include "app-layer.h"
 
@@ -118,23 +119,29 @@ int DetectFileextMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, 
     DetectFileextData *fileext = (DetectFileextData *)m->ctx;
 
     SCMutexLock(&f->files_m);
-    if (f->files != NULL && f->files->cnt > 0) {
-        FlowFile *file = f->files->start;
+    if (f->files != NULL) {
+        FlowFile *file = f->files->head;
 
         for (; file != NULL; file = file->next) {
-            if (file->ext != NULL) {
-                //PrintRawDataFp(stdout, file->ext, file->ext_len);
+            if (file->state == FLOWFILE_STATE_NONE)
+                continue;
 
-                if (BoyerMooreNocase(fileext->ext, fileext->len, file->ext,
-                            file->ext_len, fileext->bm_ctx->bmGs,
-                            fileext->bm_ctx->bmBc) != NULL)
-                {
-                    ret = 1;
-                    SCLogDebug("File ext found");
+            if (file->name == NULL)
+                continue;
 
-                    /* Stop searching */
-                    break;
-                }
+            if (file->name_len <= fileext->len)
+                continue;
+
+            int offset = file->name_len - fileext->len;
+
+            if (file->name[offset - 1] == '.' &&
+                    SCMemcmp(file->name + offset, fileext->ext, fileext->len) == 0)
+            {
+                ret = 1;
+                SCLogDebug("File ext found");
+
+                /* Stop searching */
+                break;
             }
         }
     }

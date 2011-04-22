@@ -28,48 +28,39 @@
 #include "flow.h"
 #include "util-hash.h"
 
+#define FLOW_FILE_TRUNCATED 0x01
 
-typedef enum _FlowFileState {
-    FLOWFILE_STATE_EMPTY,
-    FLOWFILE_STATE_DATA,
-    FLOWFILE_STATE_COMPLETED,
-    FLOWFILE_STATE_STORING,
+typedef enum FlowFileState_ {
+    FLOWFILE_STATE_NONE = 0,    /**< no state */
+    FLOWFILE_STATE_OPENED,      /**< flow file is opened */
+    FLOWFILE_STATE_CLOSED,      /**< flow file is completed,
+                                     there will be no more data. */
+    FLOWFILE_STATE_TRUNCATED,   /**< flow file is not complete, but
+                                     there will be no more data. */
+    FLOWFILE_STATE_STORED,      /**< all fully written to disk */
     FLOWFILE_STATE_MAX
 } FlowFileState;
 
-typedef uint8_t FlowFileHash;
+typedef struct FlowFileData_ {
+    uint8_t *data;
+    uint32_t len;
+    int stored;     /* true if this chunk has been stored already
+                     * false otherwise */
+    struct FlowFileData_ *next;
+} FlowFileData;
 
-typedef struct _FlowFileChunk {
-    uint8_t                 *buf;
-    uint32_t                len;
-    struct _FlowFileChunk   *next;
-} FlowFileChunk;
-
-typedef struct _FlowFile {
-    uint8_t             *name;
-    uint16_t            name_len;
-    uint8_t             *ext;       /* ptr to extension portion in "name" */
-    uint16_t            ext_len;
-    uint8_t             *real_type;
-    uint16_t            real_type_len;
-    uint8_t             *proto_type; /* The content type set at Content-Type in the MIME header (of http or smtp..) */
-    uint16_t            proto_type_len;
-    uint16_t            alproto;
-    uint32_t            size;
-    uint8_t             flags;
-
-    FlowFileState       state;
-    FlowFileChunk       *chunks_start;
-    FlowFileChunk       *chunks_end;
-
-    uint32_t            chunk_cnt;
-    struct _FlowFile    *next;
+typedef struct FlowFile_ {
+    uint8_t *name;
+    uint16_t name_len;
+    FlowFileState state;
+    FlowFileData *chunks_head;
+    FlowFileData *chunks_tail;
+    struct FlowFile_ *next;
 } FlowFile;
 
-typedef struct _FlowFileContainer {
-    FlowFile    *start;
-    FlowFile    *end;
-    uint32_t    cnt;
+typedef struct FlowFileContainer_ {
+    FlowFile *head;
+    FlowFile *tail;
 } FlowFileContainer;
 
 FlowFileContainer *FlowFileContainerAlloc();
@@ -77,15 +68,47 @@ void FlowFileContainerFree(FlowFileContainer *);
 
 void FlowFileContainerRecycle(FlowFileContainer *);
 
-FlowFileChunk *FlowFileChunkAlloc();
-void FlowFileChunkFree(FlowFileChunk *);
-
-FlowFile *FlowFileAlloc();
-void FlowFileFree(FlowFile *);
-
 void FlowFileContainerAdd(FlowFileContainer *, FlowFile *);
-//FlowFile *FlowFileContainerRetrieve(FlowFileContainer *, uint8_t *, uint16_t, uint8_t *);
-FlowFile *FlowFileContainerRetrieve(FlowFileContainer *, uint16_t, uint8_t *, uint16_t);
-FlowFile *FlowFileAppendChunk(FlowFile *, FlowFileChunk *);
+
+/**
+ *  \brief Open a new FlowFile
+ *
+ *  \param ffc flow container
+ *  \param name filename character array
+ *  \param name_len filename len
+ *  \param data initial data
+ *  \param data_len initial data len
+ *
+ *  \retval ff flowfile object
+ *
+ *  \note filename is not a string, so it's not nul terminated.
+ */
+FlowFile *FlowFileOpenFile(FlowFileContainer *, uint8_t *name, uint16_t name_len,
+        uint8_t *data, uint32_t data_len);
+/**
+ *  \brief Close a FlowFile
+ *
+ *  \param ffc the container
+ *  \param data final data if any
+ *  \param data_len data len if any
+ *  \param flags flags
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
+ */
+int FlowFileCloseFile(FlowFileContainer *, uint8_t *data, uint32_t data_len, uint8_t flags);
+
+/**
+ *  \brief Store a chunk of file data in the flow. The open "flowfile"
+ *         will be used.
+ *
+ *  \param ffc the container
+ *  \param data data chunk
+ *  \param data_len data chunk len
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
+ */
+int FlowFileAppendData(FlowFileContainer *, uint8_t *data, uint32_t data_len);
 
 #endif /* __FLOW_FILE_H__ */
