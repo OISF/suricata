@@ -38,6 +38,7 @@ typedef enum FlowFileState_ {
     FLOWFILE_STATE_TRUNCATED,   /**< flow file is not complete, but
                                      there will be no more data. */
     FLOWFILE_STATE_STORED,      /**< all fully written to disk */
+    FLOWFILE_STATE_ERROR,       /**< file is in an error state */
     FLOWFILE_STATE_MAX
 } FlowFileState;
 

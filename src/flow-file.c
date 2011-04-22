@@ -225,7 +225,7 @@ FlowFile *FlowFileOpenFile(FlowFileContainer *ffc, uint8_t *name,
 {
     SCEnter();
 
-    PrintRawDataFp(stdout, name, name_len);
+    //PrintRawDataFp(stdout, name, name_len);
 
     FlowFile *ff = FlowFileAlloc(name, name_len);
     if (ff == NULL) {
@@ -235,24 +235,24 @@ FlowFile *FlowFileOpenFile(FlowFileContainer *ffc, uint8_t *name,
     ff->state = FLOWFILE_STATE_OPENED;
     SCLogDebug("flowfile state transitioned to FLOWFILE_STATE_OPENED");
 
+    FlowFileContainerAdd(ffc, ff);
+
     if (data != NULL) {
-        PrintRawDataFp(stdout, data, data_len);
+        //PrintRawDataFp(stdout, data, data_len);
 
         FlowFileData *ffd = FlowFileDataAlloc(data, data_len);
         if (ffd == NULL) {
-            FlowFileFree(ff);
+            ff->state = FLOWFILE_STATE_ERROR;
             SCReturnPtr(NULL, "FlowFile");
         }
 
         /* append the data */
         if (FlowFileAppendFlowFileData(ffc, ffd) < 0) {
-            FlowFileFree(ff);
+            ff->state = FLOWFILE_STATE_ERROR;
             FlowFileDataFree(ffd);
             SCReturnPtr(NULL, "FlowFile");
         }
     }
-
-    FlowFileContainerAdd(ffc, ff);
 
     SCReturnPtr(ff, "FlowFile");
 }
@@ -282,15 +282,17 @@ int FlowFileCloseFile(FlowFileContainer *ffc, uint8_t *data,
     }
 
     if (data != NULL) {
-        PrintRawDataFp(stdout, data, data_len);
+        //PrintRawDataFp(stdout, data, data_len);
 
         FlowFileData *ffd = FlowFileDataAlloc(data, data_len);
         if (ffd == NULL) {
+            ffc->tail->state = FLOWFILE_STATE_ERROR;
             SCReturnInt(-1);
         }
 
         /* append the data */
         if (FlowFileAppendFlowFileData(ffc, ffd) < 0) {
+            ffc->tail->state = FLOWFILE_STATE_ERROR;
             FlowFileDataFree(ffd);
             SCReturnInt(-1);
         }
@@ -331,11 +333,13 @@ int FlowFileAppendData(FlowFileContainer *ffc, uint8_t *data, uint32_t data_len)
 
     FlowFileData *ffd = FlowFileDataAlloc(data, data_len);
     if (ffd == NULL) {
+        ffc->tail->state = FLOWFILE_STATE_ERROR;
         SCReturnInt(-1);
     }
 
     /* append the data */
     if (FlowFileAppendFlowFileData(ffc, ffd) < 0) {
+        ffc->tail->state = FLOWFILE_STATE_ERROR;
         FlowFileDataFree(ffd);
         SCReturnInt(-1);
     }

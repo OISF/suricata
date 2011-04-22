@@ -346,6 +346,10 @@ static int HTPFileParserTest02(void) {
         goto end;
     }
 
+    if (f.files == NULL || f.files->tail == NULL || f.files->tail->state != FLOWFILE_STATE_CLOSED) {
+        goto end;
+    }
+
     result = 1;
 end:
     FlowL7DataPtrFree(&f);
@@ -461,6 +465,14 @@ static int HTPFileParserTest03(void) {
     if (tx->request_method == NULL || memcmp(bstr_tocstr(tx->request_method), "POST", 4) != 0)
     {
         printf("expected method POST, got %s \n", bstr_tocstr(tx->request_method));
+        goto end;
+    }
+
+    if (f.files == NULL || f.files->tail == NULL || f.files->tail->state != FLOWFILE_STATE_CLOSED) {
+        goto end;
+    }
+
+    if (f.files->head->chunks_head->len != 11) {
         goto end;
     }
 
@@ -594,6 +606,119 @@ end:
         HTPStateFree(http_state);
     return result;
 }
+
+static int HTPFileParserTest05(void) {
+    int result = 0;
+    Flow f;
+    uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
+                         "Host: www.server.lan\r\n"
+                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Length: 544\r\n"
+                         "\r\n"
+                         "-----------------------------277531038314945\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"somepicture1.jpg\"\r\n"
+                         "Content-Type: image/jpeg\r\n"
+                         "\r\n"
+                         "filecontent\r\n"
+                         "-----------------------------277531038314945\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    uint8_t httpbuf2[] = "Content-Disposition: form-data; name=\"uploadfile_1\"; filename=\"somepicture2.jpg\"\r\n"
+                         "Content-Type: image/jpeg\r\n"
+                         "\r\n"
+                         "FILECONTENT\r\n"
+        "-----------------------------277531038314945--";
+    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
+
+    TcpSession ssn;
+    HtpState *http_state = NULL;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    SCLogDebug("\n>>>> processing chunk 1 size %u <<<<\n", httplen1);
+    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    SCLogDebug("\n>>>> processing chunk 2 size %u <<<<\n", httplen2);
+    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
+    if (r != 0) {
+        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    htp_tx_t *tx = list_get(http_state->connp->conn->transactions, 0);
+    if (tx == NULL) {
+        goto end;
+    }
+
+    if (tx->request_method == NULL || memcmp(bstr_tocstr(tx->request_method), "POST", 4) != 0)
+    {
+        printf("expected method POST, got %s \n", bstr_tocstr(tx->request_method));
+        goto end;
+    }
+
+    if (f.files == NULL || f.files->tail == NULL || f.files->tail->state != FLOWFILE_STATE_CLOSED) {
+        goto end;
+    }
+
+    if (f.files->head == f.files->tail)
+        goto end;
+
+    if (f.files->head->next != f.files->tail)
+        goto end;
+
+    if (f.files->head->chunks_head->len != 11) {
+        printf("expected 11 but file is %u bytes instead\n",
+                f.files->head->chunks_head->len);
+        PrintRawDataFp(stdout, f.files->head->chunks_head->data,
+                f.files->head->chunks_head->len);
+        goto end;
+    }
+
+    if (memcmp("filecontent", f.files->head->chunks_head->data,
+                f.files->head->chunks_head->len) != 0) {
+        goto end;
+    }
+
+    if (f.files->tail->chunks_head->len != 11) {
+        printf("expected 11 but file is %u bytes instead\n",
+                f.files->tail->chunks_head->len);
+        PrintRawDataFp(stdout, f.files->tail->chunks_head->data,
+                f.files->tail->chunks_head->len);
+        goto end;
+    }
+
+    if (memcmp("FILECONTENT", f.files->tail->chunks_head->data,
+                f.files->tail->chunks_head->len) != 0) {
+        goto end;
+    }
+    result = 1;
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    if (http_state != NULL)
+        HTPStateFree(http_state);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void HTPFileParserRegisterTests(void) {
@@ -602,5 +727,6 @@ void HTPFileParserRegisterTests(void) {
     UtRegisterTest("HTPFileParserTest02", HTPFileParserTest02, 1);
     UtRegisterTest("HTPFileParserTest03", HTPFileParserTest03, 1);
     UtRegisterTest("HTPFileParserTest04", HTPFileParserTest04, 1);
+    UtRegisterTest("HTPFileParserTest05", HTPFileParserTest05, 1);
 #endif /* UNITTESTS */
 }

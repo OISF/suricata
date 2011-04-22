@@ -921,11 +921,11 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
             goto end;
         }
 
-        //#if 0
+#if 0
         printf("CHUNK START: \n");
         PrintRawDataFp(stdout, chunks_buffer, chunks_buffer_len);
         printf("CHUNK END: \n");
-        //#endif
+#endif
 
         uint8_t expected_boundary_len = htud->boundary_len + 2;
         expected_boundary = (uint8_t *)SCMalloc(expected_boundary_len);
@@ -963,20 +963,20 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                 uint8_t flags = 0;
 
                 if (header_start < form_end) {
-                    filedata_len = header_start - filedata;
+                    filedata_len = header_start - filedata - 2; /* 0d 0a */
                 } else if (form_end < header_start) {
                     filedata_len = form_end - filedata;
                 } else if (form_end != NULL && form_end == header_start) {
-                    filedata_len = form_end - filedata;
+                    filedata_len = form_end - filedata - 2; /* 0d 0a */
                 } else if (htud->flags & HTP_BODY_COMPLETE) {
                     filedata_len = chunks_buffer_len;
                     flags = FLOW_FILE_TRUNCATED;
                 }
-
+#if 0
                 printf("FILEDATA (final chunk) START: \n");
                 PrintRawDataFp(stdout, filedata, filedata_len);
                 printf("FILEDATA (final chunk) END: \n");
-
+#endif
                 if (HTPFileClose(hstate->f, filedata, filedata_len, flags) == -1)
                 {
                     goto end;
@@ -991,11 +991,11 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                 if (chunks_buffer_len > expected_boundary_end_len) {
                     uint8_t *filedata = chunks_buffer;
                     uint32_t filedata_len = chunks_buffer_len - expected_boundary_len;
-
+#if 0
                     printf("FILEDATA (part) START: \n");
                     PrintRawDataFp(stdout, filedata, filedata_len);
                     printf("FILEDATA (part) END: \n");
-
+#endif
                     if (HTPFileStoreChunk(hstate->f, filedata, filedata_len) == -1) {
                         goto end;
                     }
@@ -1025,11 +1025,11 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
             uint8_t *header = header_start + (expected_boundary_len + 2); // + for 0d 0a
             header_len -= (expected_boundary_len + 2);
-            //#if 0
+#if 0
             printf("HEADER START: \n");
             PrintRawDataFp(stdout, header, header_len);
             printf("HEADER END: \n");
-            //#endif
+#endif
             while (header_len > 0) {
                 uint8_t *next_line = Bs2bmSearch(header, header_len, (uint8_t *)"\r\n", 2);
                 uint8_t *line = header;
@@ -1082,23 +1082,32 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                     filedata_len = form_end - (header_end + 4 + 2);
                     SCLogDebug("filedata_len %"PRIuMAX, (uintmax_t)filedata_len);
 
-                    //#if 0
+#if 0
                     printf("FILEDATA START: \n");
                     PrintRawDataFp(stdout, filedata, filedata_len);
                     printf("FILEDATA END: \n");
-                    //#endif
+#endif
+
+                    if (HTPFileOpen(hstate->f, filename, filename_len,
+                                filedata, filedata_len) == -1) {
+                        goto end;
+                    }
+                    if (HTPFileClose(hstate->f, NULL, 0, 0) == -1) {
+                        goto end;
+                    }
                 } else {
                     SCLogDebug("more file data to come");
 
                     uint32_t offset = (header_end + 4) - chunks_buffer;
                     SCLogDebug("offset %u", offset);
                     htud->body_parsed = offset;
+
+                    if (HTPFileOpen(hstate->f, filename, filename_len,
+                                filedata, filedata_len) == -1) {
+                        goto end;
+                    }
                 }
 
-                if (HTPFileOpen(hstate->f, filename, filename_len,
-                        filedata, filedata_len) == -1) {
-                    goto end;
-                }
             }
 
             filename = NULL;
