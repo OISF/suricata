@@ -703,11 +703,13 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     SCLogDebug("hstate->request_body_limit %u", hstate->request_body_limit);
 
     /* within limits, add the body chunk to the state. */
-    if (htud->content_len_so_far < hstate->request_body_limit)
+    if (hstate->request_body_limit == 0 || htud->content_len_so_far < hstate->request_body_limit)
     {
         uint32_t len = (uint32_t)d->len;
 
-        if ((htud->content_len_so_far + len) > hstate->request_body_limit) {
+        if (hstate->request_body_limit > 0 &&
+                (htud->content_len_so_far + len) > hstate->request_body_limit)
+        {
             len = hstate->request_body_limit - htud->content_len_so_far;
             BUG_ON(len > (uint32_t)d->len);
         }
@@ -717,7 +719,9 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
         int r = HtpBodyAppendChunk(htud, &htud->body, (uint8_t*)d->data, len);
         if (r < 0) {
             htud->flags |= HTP_BODY_COMPLETE;
-        } else if (htud->content_len_so_far >= hstate->request_body_limit) {
+        } else if (hstate->request_body_limit > 0 &&
+            htud->content_len_so_far >= hstate->request_body_limit)
+        {
             htud->flags |= HTP_BODY_COMPLETE;
         } else if (htud->content_len_so_far == htud->content_len) {
             htud->flags |= HTP_BODY_COMPLETE;
@@ -908,29 +912,25 @@ static void HTPConfigure(void)
                 }
             } else if (strcasecmp("request-body-limit", p->name) == 0 ||
                        strcasecmp("request_body_limit", p->name) == 0) {
+
                 /* limit */
-                TAILQ_FOREACH(pval, &p->head, next) {
-                    SCLogDebug("LIBHTP default: %s=%s",
-                               p->name, pval->val);
+                int limit = atoi(p->val);
 
-                    int limit = atoi(pval->val);
+                if (limit >= 0) {
+                    SCLogDebug("LIBHTP default: %s=%s (%d)",
+                            p->name, p->val, limit);
 
-                    if (limit >= 0) {
-                        SCLogDebug("LIBHTP default: %s=%s (%d)",
-                                   p->name, pval->val, limit);
-
-                        cfglist.request_body_limit = (uint32_t)limit;
-                    }
-                    else {
-                        SCLogWarning(SC_ERR_UNKNOWN_VALUE,
-                                "LIBHTP malformed request_body_limit "
-                                "\"%s\", using default %u", pval->val,
-                                HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT);
-                        cfglist.request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
-                        continue;
-                    }
-
+                    cfglist.request_body_limit = (uint32_t)limit;
                 }
+                else {
+                    SCLogWarning(SC_ERR_UNKNOWN_VALUE,
+                            "LIBHTP malformed request_body_limit "
+                            "\"%s\", using default %u", p->val,
+                            HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT);
+                    cfglist.request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
+                    continue;
+                }
+
             } else {
                 SCLogWarning(SC_ERR_UNKNOWN_VALUE,
                         "LIBHTP Ignoring unknown default config: %s",
@@ -1061,27 +1061,24 @@ static void HTPConfigure(void)
                 } else if (strcasecmp("request-body-limit", p->name) == 0 ||
                            strcasecmp("request_body_limit", p->name) == 0) {
                     /* limit */
-                    TAILQ_FOREACH(pval, &p->head, next) {
-                        SCLogDebug("LIBHTP default: %s=%s",
-                                p->name, pval->val);
+                    SCLogDebug("LIBHTP default: %s=%s",
+                            p->name, p->val);
 
-                        int limit = atoi(pval->val);
+                    int limit = atoi(p->val);
 
-                        if (limit >= 0) {
-                            SCLogDebug("LIBHTP default: %s=%s (%d)",
-                                    p->name, pval->val, limit);
+                    if (limit >= 0) {
+                        SCLogDebug("LIBHTP default: %s=%s (%d)",
+                                p->name, p->val, limit);
 
-                            htprec->request_body_limit = (uint32_t)limit;
-                        }
-                        else {
-                            SCLogWarning(SC_ERR_UNKNOWN_VALUE,
-                                    "LIBHTP malformed request_body_limit "
-                                    "\"%s\", using default %u", pval->val,
-                                    HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT);
-                            htprec->request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
-                            continue;
-                        }
-
+                        htprec->request_body_limit = (uint32_t)limit;
+                    }
+                    else {
+                        SCLogWarning(SC_ERR_UNKNOWN_VALUE,
+                                "LIBHTP malformed request_body_limit "
+                                "\"%s\", using default %u", p->val,
+                                HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT);
+                        htprec->request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
+                        continue;
                     }
                 } else {
                     SCLogWarning(SC_ERR_UNKNOWN_VALUE,
