@@ -53,7 +53,8 @@ typedef struct FlowFileData_ {
 typedef struct FlowFile_ {
     uint8_t *name;
     uint16_t name_len;
-    FlowFileState state;
+    int16_t state;
+    int fd;                     /**< file discriptor for storing files */
     FlowFileData *chunks_head;
     FlowFileData *chunks_tail;
     struct FlowFile_ *next;

@@ -177,6 +177,8 @@ static FlowFile *FlowFileAlloc(uint8_t *name, uint16_t name_len) {
     }
     memset(new, 0, sizeof(FlowFile));
 
+    new->fd = -1;
+
     new->name = SCMalloc(name_len);
     if (new->name == NULL) {
         SCFree(new);
@@ -192,6 +194,9 @@ static FlowFile *FlowFileAlloc(uint8_t *name, uint16_t name_len) {
 static void FlowFileFree(FlowFile *ff) {
     if (ff == NULL)
         return;
+
+    if (ff->fd != -1)
+        close(ff->fd);
 
     if (ff->name != NULL)
         SCFree(ff->name);
