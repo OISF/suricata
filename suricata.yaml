@@ -139,6 +139,8 @@ outputs:
       filename: drop.log
       append: yes
 
+  - file:
+      enabled: no
 
 # When running in NFQ inline mode, it is possible to use a simulated
 # non-terminal NFQUEUE verdict.

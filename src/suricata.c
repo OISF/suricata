@@ -81,10 +81,12 @@
 #include "alert-prelude.h"
 #include "alert-syslog.h"
 #include "alert-pcapinfo.h"
-#include "log-droplog.h"
 
+#include "log-droplog.h"
+#include "log-droplog.h"
 #include "log-httplog.h"
 #include "log-pcap.h"
+#include "log-file.h"
 
 #include "stream-tcp.h"
 
@@ -1252,6 +1254,7 @@ int main(int argc, char **argv)
     TmModuleLogHttpLogIPv4Register();
     TmModuleLogHttpLogIPv6Register();
     TmModulePcapLogRegister();
+    TmModuleLogFileLogRegister();
 #ifdef __SC_CUDA_SUPPORT__
     TmModuleCudaMpmB2gRegister();
     TmModuleCudaPacketBatcherRegister();
