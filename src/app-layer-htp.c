@@ -1305,7 +1305,6 @@ static void HTPConfigure(void)
                 SCLogDebug("LIBHTP default: %s=%s",
                         p->name, p->val);
 
-
                 if (personality >= 0) {
                     SCLogDebug("LIBHTP default: %s=%s (%d)",
                             p->name, p->val,
@@ -1455,7 +1454,6 @@ static void HTPConfigure(void)
 
                     SCLogDebug("LIBHTP server %s: %s=%s",
                             s->name, p->name, p->val);
-
 
                     if (personality >= 0) {
                         SCLogDebug("LIBHTP %s: %s=%s (%d)",
