@@ -111,6 +111,7 @@ struct DetectDecodeEvents_ {
     { "vlan.header_too_small",VLAN_HEADER_TOO_SMALL, },
     { "vlan.unknown_type",VLAN_UNKNOWN_TYPE, },
     { "frag.too_large", FRAG_PKT_TOO_LARGE, },
+    { "frag.overlap", FRAG_OVERLAP, },
     { NULL, 0 },
 };
 #endif /* DETECT_EVENTS */

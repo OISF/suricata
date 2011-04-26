@@ -182,6 +182,7 @@ enum {
 
     /* Fragmentation reasembly events. */
     FRAG_PKT_TOO_LARGE,
+    FRAG_OVERLAP,
 
     /* should always be last! */
     DECODE_EVENT_MAX,

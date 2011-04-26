@@ -816,6 +816,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
     tracker->timeout.tv_sec += dc->timeout;
 
     Frag *prev = NULL, *next;
+    int overlap = 0;
     if (!TAILQ_EMPTY(&tracker->frags)) {
         TAILQ_FOREACH(prev, &tracker->frags, next) {
             ltrim = 0;
@@ -826,13 +827,16 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
                 if (frag_offset < prev->offset + prev->data_len) {
                     if (frag_offset >= prev->offset) {
                         ltrim = prev->offset + prev->data_len - frag_offset;
+                        overlap++;
                     }
                     if ((next != NULL) && (frag_end > next->offset)) {
                         next->ltrim = frag_end - next->offset;
+                        overlap++;
                     }
                     if ((frag_offset < prev->offset) &&
                         (frag_end >= prev->offset + prev->data_len)) {
                         prev->skip = 1;
+                        overlap++;
                     }
                     goto insert;
                 }
@@ -841,13 +845,16 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
                 if (frag_offset < prev->offset + prev->data_len) {
                     if (frag_offset > prev->offset) {
                         ltrim = prev->offset + prev->data_len - frag_offset;
+                        overlap++;
                     }
                     if ((next != NULL) && (frag_end > next->offset)) {
                         next->ltrim = frag_end - next->offset;
+                        overlap++;
                     }
                     if ((frag_offset < prev->offset) &&
                         (frag_end >= prev->offset + prev->data_len)) {
                         prev->skip = 1;
+                        overlap++;
                     }
                     goto insert;
                 }
@@ -856,10 +863,12 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
                 if (frag_offset < prev->offset + prev->data_len) {
                     if (frag_offset >= prev->offset) {
                         ltrim = prev->offset + prev->data_len - frag_offset;
+                        overlap++;
                     }
                     if ((frag_offset < prev->offset) &&
                         (frag_end > prev->offset + prev->data_len)) {
                         prev->skip = 1;
+                        overlap++;
                     }
                     goto insert;
                 }
@@ -868,23 +877,28 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
                 if (frag_offset < prev->offset + prev->data_len) {
                     if (frag_offset >= prev->offset) {
                         ltrim = prev->offset + prev->data_len - frag_offset;
+                        overlap++;
                     }
                     if ((frag_offset < prev->offset) &&
                         (frag_end >= prev->offset + prev->data_len)) {
                         prev->skip = 1;
+                        overlap++;
                     }
                     goto insert;
                 }
                 break;
             case DEFRAG_POLICY_FIRST:
                 if ((frag_offset >= prev->offset) &&
-                    (frag_end <= prev->offset + prev->data_len))
+                    (frag_end <= prev->offset + prev->data_len)) {
+                    overlap++;
                     goto done;
+                }
                 if (frag_offset < prev->offset) {
                     goto insert;
                 }
                 if (frag_offset < prev->offset + prev->data_len) {
                     ltrim = prev->offset + prev->data_len - frag_offset;
+                    overlap++;
                     goto insert;
                 }
                 break;
@@ -892,6 +906,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
                 if (frag_offset <= prev->offset) {
                     if (frag_end > prev->offset) {
                         prev->ltrim = frag_end - prev->offset;
+                        overlap++;
                     }
                     goto insert;
                 }
@@ -967,6 +982,9 @@ insert:
     }
 
 done:
+    if (overlap) {
+        DECODER_SET_EVENT(p, FRAG_OVERLAP);
+    }
     SCMutexUnlock(&tracker->lock);
     return r;
 }
@@ -1757,13 +1775,29 @@ DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
     default_policy = policy;
 
     /* Send all but the last. */
-    for (i = 0; i < 16; i++) {
+    for (i = 0; i < 9; i++) {
         Packet *tp = Defrag(NULL, NULL, dc, packets[i]);
         if (tp != NULL) {
             SCFree(tp);
             goto end;
         }
+        if (DECODER_ISSET_EVENT(packets[i], FRAG_OVERLAP)) {
+            goto end;
+        }
     }
+    int overlap = 0;
+    for (; i < 16; i++) {
+        Packet *tp = Defrag(NULL, NULL, dc, packets[i]);
+        if (tp != NULL) {
+            SCFree(tp);
+            goto end;
+        }
+        if (DECODER_ISSET_EVENT(packets[i], FRAG_OVERLAP)) {
+            overlap++;
+        }
+    }
+    if (!overlap)
+        goto end;
 
     /* And now the last one. */
     Packet *reassembled = Defrag(NULL, NULL, dc, packets[16]);
@@ -1880,87 +1914,29 @@ IPV6DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
     default_policy = policy;
 
     /* Send all but the last. */
-    Packet *tp;
-    tp = Defrag(NULL, NULL, dc, packets[0]);
-    if (tp != NULL) {
-        SCFree(tp);
-        goto end;
+    for (i = 0; i < 9; i++) {
+        Packet *tp = Defrag(NULL, NULL, dc, packets[i]);
+        if (tp != NULL) {
+            SCFree(tp);
+            goto end;
+        }
+        if (DECODER_ISSET_EVENT(packets[i], FRAG_OVERLAP)) {
+            goto end;
+        }
     }
-    tp = Defrag(NULL, NULL, dc, packets[1]);
-    if (tp != NULL) {
-        SCFree(tp);
-        goto end;
+    int overlap = 0;
+    for (; i < 16; i++) {
+        Packet *tp = Defrag(NULL, NULL, dc, packets[i]);
+        if (tp != NULL) {
+            SCFree(tp);
+            goto end;
+        }
+        if (DECODER_ISSET_EVENT(packets[i], FRAG_OVERLAP)) {
+            overlap++;
+        }
     }
-    tp = Defrag(NULL, NULL, dc, packets[2]);
-    if (tp != NULL) {
-        SCFree(tp);
+    if (!overlap)
         goto end;
-    }
-    tp = Defrag(NULL, NULL, dc, packets[3]);
-    if (tp != NULL) {
-        SCFree(tp);
-        goto end;
-    }
-    tp = Defrag(NULL, NULL, dc, packets[4]);
-    if (tp != NULL) {
-        SCFree(tp);
-        goto end;
-    }
-    tp = Defrag(NULL, NULL, dc, packets[5]);
-    if (tp != NULL) {
-        SCFree(tp);
-        goto end;
-    }
-    tp = Defrag(NULL, NULL, dc, packets[6]);
-    if (tp != NULL) {
-        SCFree(tp);
-        goto end;
-    }
-    tp = Defrag(NULL, NULL, dc, packets[7]);
-    if (tp != NULL) {
-        SCFree(tp);
-        goto end;
-    }
-    tp = Defrag(NULL, NULL, dc, packets[8]);
-    if (tp != NULL) {
-        SCFree(tp);
-        goto end;
-    }
-    tp = Defrag(NULL, NULL, dc, packets[9]);
-    if (tp != NULL) {
-        SCFree(tp);
-        goto end;
-    }
-    tp = Defrag(NULL, NULL, dc, packets[10]);
-    if (tp != NULL) {
-        SCFree(tp);
-        goto end;
-    }
-    tp = Defrag(NULL, NULL, dc, packets[11]);
-    if (tp != NULL) {
-        SCFree(tp);
-        goto end;
-    }
-    tp = Defrag(NULL, NULL, dc, packets[12]);
-    if (tp != NULL) {
-        SCFree(tp);
-        goto end;
-    }
-    tp = Defrag(NULL, NULL, dc, packets[13]);
-    if (tp != NULL) {
-        SCFree(tp);
-        goto end;
-    }
-    tp = Defrag(NULL, NULL, dc, packets[14]);
-    if (tp != NULL) {
-        SCFree(tp);
-        goto end;
-    }
-    tp = Defrag(NULL, NULL, dc, packets[15]);
-    if (tp != NULL) {
-        SCFree(tp);
-        goto end;
-    }
 
     /* And now the last one. */
     Packet *reassembled = Defrag(NULL, NULL, dc, packets[16]);
