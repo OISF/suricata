@@ -85,6 +85,8 @@ enum defrag_policies {
     DEFRAG_POLICY_DEFAULT = DEFRAG_POLICY_BSD,
 };
 
+static int default_policy = DEFRAG_POLICY_BSD;
+
 /**
  * A context for an instance of a fragmentation re-assembler, in case
  * we ever need more than one.
@@ -103,8 +105,6 @@ typedef struct DefragContext_ {
     SCMutex frag_pool_lock;
 
     time_t timeout; /**< Default timeout. */
-
-    uint8_t default_policy; /**< Default policy. */
 } DefragContext;
 
 /**
@@ -815,7 +815,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
     tracker->timeout = p->ts;
     tracker->timeout.tv_sec += dc->timeout;
 
-    Frag *prev = NULL, *next;;
+    Frag *prev = NULL, *next;
     if (!TAILQ_EMPTY(&tracker->frags)) {
         TAILQ_FOREACH(prev, &tracker->frags, next) {
             ltrim = 0;
@@ -1025,9 +1025,9 @@ DefragTimeoutTracker(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
  * \retval The defrag policy to use.
  */
 static uint8_t
-DefragGetOsPolicy(Packet *p, uint8_t default_policy)
+DefragGetOsPolicy(Packet *p)
 {
-    uint8_t policy;
+    int policy = -1;
 
     if (PKT_IS_IPV4(p)) {
         policy = SCHInfoGetIPv4HostOSFlavour((uint8_t *)GET_IPV4_DST_ADDR_PTR(p));
@@ -1035,8 +1035,10 @@ DefragGetOsPolicy(Packet *p, uint8_t default_policy)
     else if (PKT_IS_IPV6(p)) {
         policy = SCHInfoGetIPv6HostOSFlavour((uint8_t *)GET_IPV6_DST_ADDR(p));
     }
-    else
-        policy = default_policy;
+
+    if (policy == -1) {
+        return default_policy;
+    }
 
     /* Map the OS policies returned from the configured host info to
      * defrag specific policies. */
@@ -1110,7 +1112,7 @@ DefragGetTracker(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
         tracker->id = lookup_key->id;
         tracker->src_addr = lookup_key->src_addr;
         tracker->dst_addr = lookup_key->dst_addr;
-        tracker->policy = DefragGetOsPolicy(p, dc->default_policy);
+        tracker->policy = DefragGetOsPolicy(p);
 
         if (HashListTableAdd(dc->frag_table, tracker, sizeof(*tracker)) != 0) {
             /* Failed to add new tracker. */
@@ -1752,7 +1754,7 @@ DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
     dc = DefragContextNew();
     if (dc == NULL)
         goto end;
-    dc->default_policy = policy;
+    default_policy = policy;
 
     /* Send all but the last. */
     for (i = 0; i < 16; i++) {
@@ -1875,7 +1877,7 @@ IPV6DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
     dc = DefragContextNew();
     if (dc == NULL)
         goto end;
-    dc->default_policy = policy;
+    default_policy = policy;
 
     /* Send all but the last. */
     Packet *tp;
