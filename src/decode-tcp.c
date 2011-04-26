@@ -113,6 +113,21 @@ static int DecodeTCPOptions(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t le
                         }
                     }
                     break;
+                case TCP_OPT_SACK:
+                    SCLogDebug("SACK option, len %u", p->TCP_OPTS[p->TCP_OPTS_CNT].len);
+                    if (p->TCP_OPTS[p->TCP_OPTS_CNT].len < TCP_OPT_SACK_MIN_LEN ||
+                            p->TCP_OPTS[p->TCP_OPTS_CNT].len > TCP_OPT_SACK_MAX_LEN ||
+                            !((p->TCP_OPTS[p->TCP_OPTS_CNT].len - 2) % 8 == 0))
+                    {
+                        DECODER_SET_EVENT(p,TCP_OPT_INVALID_LEN);
+                    } else {
+                        if (p->tcpvars.sack != NULL) {
+                            DECODER_SET_EVENT(p,TCP_OPT_DUPLICATE);
+                        } else {
+                            p->tcpvars.sack = &p->TCP_OPTS[p->TCP_OPTS_CNT];
+                        }
+                    }
+                    break;
             }
 
             pkt += p->TCP_OPTS[p->TCP_OPTS_CNT].len;
@@ -411,6 +426,72 @@ end:
     SCFree(p);
     return retval;
 }
+
+static int TCPGetSackTest01(void)
+{
+    int retval = 0;
+    static uint8_t raw_tcp[] = {
+        0x00, 0x50, 0x06, 0xa6, 0xfa, 0x87, 0x0b, 0xf5,
+        0xf1, 0x59, 0x02, 0xe0, 0xa0, 0x10, 0x3e, 0xbc,
+        0x1d, 0xe7, 0x00, 0x00, 0x01, 0x01, 0x05, 0x12,
+        0xf1, 0x59, 0x13, 0xfc, 0xf1, 0x59, 0x1f, 0x64,
+        0xf1, 0x59, 0x08, 0x94, 0xf1, 0x59, 0x0e, 0x48 };
+    static uint8_t raw_tcp_sack[] = {
+        0xf1, 0x59, 0x13, 0xfc, 0xf1, 0x59, 0x1f, 0x64,
+        0xf1, 0x59, 0x08, 0x94, 0xf1, 0x59, 0x0e, 0x48 };
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
+    IPV4Hdr ip4h;
+    ThreadVars tv;
+    DecodeThreadVars dtv;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&ip4h, 0, sizeof(IPV4Hdr));
+
+    p->src.family = AF_INET;
+    p->dst.family = AF_INET;
+    p->ip4h = &ip4h;
+
+    FlowInitConfig(FLOW_QUIET);
+    DecodeTCP(&tv, &dtv, p, raw_tcp, sizeof(raw_tcp), NULL);
+    FlowShutdown();
+
+    if (p->tcph == NULL) {
+        printf("tcp packet decode failed: ");
+        goto end;
+    }
+
+    if (p->tcpvars.sack == NULL) {
+        printf("tcp packet sack not decoded: ");
+        goto end;
+    }
+
+    int sack = TCP_GET_SACK_CNT(p);
+    if (sack != 2) {
+        printf("expected 2 sack records, got %u: ", TCP_GET_SACK_CNT(p));
+        goto end;
+    }
+
+    uint8_t *sackptr = TCP_GET_SACK_PTR(p);
+    if (sackptr == NULL) {
+        printf("no sack data: ");
+        goto end;
+    }
+
+    if (memcmp(sackptr, raw_tcp_sack, 16) != 0) {
+        printf("malformed sack data: ");
+        goto end;
+    }
+
+    retval = 1;
+end:
+    SCFree(p);
+    return retval;
+}
 #endif /* UNITTESTS */
 
 void DecodeTCPRegisterTests(void)
@@ -427,5 +508,6 @@ void DecodeTCPRegisterTests(void)
     UtRegisterTest("TCPGetWscaleTest01", TCPGetWscaleTest01, 1);
     UtRegisterTest("TCPGetWscaleTest02", TCPGetWscaleTest02, 1);
     UtRegisterTest("TCPGetWscaleTest03", TCPGetWscaleTest03, 1);
+    UtRegisterTest("TCPGetSackTest01", TCPGetSackTest01, 1);
 #endif /* UNITTESTS */
 }

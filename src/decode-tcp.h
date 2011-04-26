@@ -56,6 +56,8 @@
 #define TCP_OPT_WS_LEN                       3
 #define TCP_OPT_TS_LEN                       10
 #define TCP_OPT_MSS_LEN                      4
+#define TCP_OPT_SACK_MIN_LEN                 10 /* hdr 2, 1 pair 8 = 10 */
+#define TCP_OPT_SACK_MAX_LEN                 34 /* hdr 2, 4 pair 32= 34 */
 
 /** Max valid wscale value. */
 #define TCP_WSCALE_MAX                       14
@@ -88,6 +90,9 @@
 
 /** macro for getting the wscale from the packet. */
 #define TCP_GET_WSCALE(p)                    ((p)->tcpvars.ws ? (((*(uint8_t *)(p)->tcpvars.ws->data) <= TCP_WSCALE_MAX) ? (*(uint8_t *)((p)->tcpvars.ws->data)) : 0) : 0)
+
+#define TCP_GET_SACK_PTR(p)                  (p)->tcpvars.sack ? (p)->tcpvars.sack->data : NULL
+#define TCP_GET_SACK_CNT(p)                  ((p)->tcpvars.sack ? (((p)->tcpvars.sack->len - 2) / 8) : 0)
 
 #define TCP_GET_OFFSET(p)                    TCP_GET_RAW_OFFSET(p->tcph)
 #define TCP_GET_HLEN(p)                      TCP_GET_OFFSET(p) << 2
@@ -131,11 +136,12 @@ typedef struct TCPVars_
     uint8_t hlen;
 
     uint8_t tcp_opt_len;
-    TCPOpt tcp_opts[TCP_OPTMAX];
     uint8_t tcp_opt_cnt;
+    TCPOpt tcp_opts[TCP_OPTMAX];
 
     /* ptrs to commonly used and needed opts */
     TCPOpt *sackok;
+    TCPOpt *sack;
     TCPOpt *ws;
     TCPOpt *ts;
     TCPOpt *mss;
@@ -152,8 +158,10 @@ typedef struct TCPCache_ {
 
 #define CLEAR_TCP_PACKET(p) { \
     (p)->tcph = NULL; \
+    (p)->tcpvars.tcp_opt_len = 0; \
     (p)->tcpvars.tcp_opt_cnt = 0; \
     (p)->tcpvars.sackok = NULL; \
+    (p)->tcpvars.sack = NULL; \
     (p)->tcpvars.ts = NULL; \
     (p)->tcpvars.ws = NULL; \
     (p)->tcpvars.mss = NULL; \
