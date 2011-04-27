@@ -149,7 +149,6 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
          * only run the proto detection once. */
         if (alproto == ALPROTO_UNKNOWN && flags & STREAM_GAP) {
             ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
-            f->alflags |= FLOW_AL_PROTO_DETECT_DONE;
             SCLogDebug("ALPROTO_UNKNOWN flow %p, due to GAP in stream start", f);
             StreamTcpSetSessionNoReassemblyFlag(ssn, 0);
         } else if (alproto == ALPROTO_UNKNOWN && flags & STREAM_START) {
@@ -170,22 +169,18 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
                 FlowL7DataPtrInit(f);
                 f->alproto = alproto;
                 ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
-                f->alflags |= FLOW_AL_PROTO_DETECT_DONE;
-
                 r = AppLayerParse(f, alproto, flags, data, data_len);
             } else {
                 if (flags & STREAM_TOSERVER) {
                     SCLogDebug("alp_proto_ctx.toserver.max_len %u", alp_proto_ctx.toserver.max_len);
                     if (data_len >= alp_proto_ctx.toserver.max_len) {
                         ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
-                        f->alflags |= FLOW_AL_PROTO_DETECT_DONE;
                         SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
                         StreamTcpSetSessionNoReassemblyFlag(ssn, 0);
                     }
                 } else if (flags & STREAM_TOCLIENT) {
                     if (data_len >= alp_proto_ctx.toclient.max_len) {
                         ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
-                        f->alflags |= FLOW_AL_PROTO_DETECT_DONE;
                         SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
                         StreamTcpSetSessionNoReassemblyFlag(ssn, 1);
                     }
@@ -353,7 +348,6 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
                     FlowL7DataPtrInit(smsg->flow);
                     smsg->flow->alproto = alproto;
                     ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
-                    smsg->flow->alflags |= FLOW_AL_PROTO_DETECT_DONE;
 
                     r = AppLayerParse(smsg->flow, alproto, smsg->flow->alflags,
                             smsg->data.data, smsg->data.data_len);
@@ -362,14 +356,14 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
                         if (smsg->data.data_len >= alp_proto_ctx.toserver.max_len) {
                             /* protocol detection has failed */
                             ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
-                            smsg->flow->alflags |= FLOW_AL_PROTO_DETECT_DONE|FLOW_AL_NO_APPLAYER_INSPECTION;
+                            smsg->flow->alflags |= FLOW_AL_NO_APPLAYER_INSPECTION;
                             SCLogDebug("ALPROTO_UNKNOWN flow %p", smsg->flow);
                         }
                     } else if (smsg->flags & STREAM_TOCLIENT) {
                         if (smsg->data.data_len >= alp_proto_ctx.toclient.max_len) {
                             /* protocol detection has failed */
                             ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
-                            smsg->flow->alflags |= FLOW_AL_PROTO_DETECT_DONE|FLOW_AL_NO_APPLAYER_INSPECTION;
+                            smsg->flow->alflags |= FLOW_AL_NO_APPLAYER_INSPECTION;
                             SCLogDebug("ALPROTO_UNKNOWN flow %p", smsg->flow);
                         }
                     }
@@ -492,7 +486,7 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
      * initializer message, we run proto detection.
      * We receive 2 stream init msgs (one for each direction) but we
      * only run the proto detection once. */
-    if (alproto == ALPROTO_UNKNOWN && !(f->alflags & FLOW_AL_PROTO_DETECT_DONE)) {
+    if (alproto == ALPROTO_UNKNOWN && !(f->flags & FLOW_ALPROTO_DETECT_DONE)) {
         SCLogDebug("Detecting AL proto on udp mesg (len %" PRIu32 ")",
                     p->payload_len);
 
@@ -506,12 +500,12 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
             /* store the proto and setup the L7 data array */
             FlowL7DataPtrInit(f);
             f->alproto = alproto;
-            f->alflags |= FLOW_AL_PROTO_DETECT_DONE;
+            f->flags |= FLOW_ALPROTO_DETECT_DONE;
 
             r = AppLayerParse(f, alproto, f->alflags,
                            p->payload, p->payload_len);
         } else {
-            f->alflags |= FLOW_AL_PROTO_DETECT_DONE;
+            f->flags |= FLOW_ALPROTO_DETECT_DONE;
             SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
         }
     } else {

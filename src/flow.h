@@ -73,6 +73,8 @@
 #define FLOW_TOSERVER_DROP_LOGGED   0x2000
 /** packet to client direction has been logged in drop file (only in IPS mode) */
 #define FLOW_TOCLIENT_DROP_LOGGED   0x4000
+/** alproto detect done.  Right now we need it only for udp */
+#define FLOW_ALPROTO_DETECT_DONE    0x8000
 
 /* pkt flow flags */
 #define FLOW_PKT_TOSERVER               0x01
@@ -213,7 +215,6 @@ typedef struct Flow_
 } Flow;
 
 /** Flow Application Level flags */
-#define FLOW_AL_PROTO_DETECT_DONE       0x02
 #define FLOW_AL_NO_APPLAYER_INSPECTION  0x04 /** \todo move to flow flags later */
 #define FLOW_AL_STREAM_TOSERVER         0x20
 #define FLOW_AL_STREAM_TOCLIENT         0x40

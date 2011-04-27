@@ -31,6 +31,7 @@
 #include "flow.h"
 #include "conf.h"
 #include "stream.h"
+#include "app-layer-protos.h"
 
 #include "threads.h"
 #include "threadvars.h"
@@ -222,7 +223,7 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
                 p->flow->flags & FLOW_NOPAYLOAD_INSPECTION ? "TRUE" : "FALSE",
                 p->flow->alflags & FLOW_AL_NO_APPLAYER_INSPECTION ? "TRUE" : "FALSE");
         fprintf(aft->file_ctx->fp, "FLOW APP_LAYER:    DETECTED: %s, PROTO %"PRIu16"\n",
-                p->flow->alflags & FLOW_AL_PROTO_DETECT_DONE ? "TRUE" : "FALSE", p->flow->alproto);
+                (p->flow->alproto != ALPROTO_UNKNOWN) ? "TRUE" : "FALSE", p->flow->alproto);
         AlertDebugLogFlowVars(aft, p);
         AlertDebugLogFlowBits(aft, p);
         SCMutexUnlock(&p->flow->m);
@@ -316,7 +317,7 @@ TmEcode AlertDebugLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
         p->flow->flags & FLOW_NOPAYLOAD_INSPECTION ? "TRUE" : "FALSE",
         p->flow->alflags & FLOW_AL_NO_APPLAYER_INSPECTION ? "TRUE" : "FALSE");
         fprintf(aft->file_ctx->fp, "FLOW APP_LAYER:    DETECTED: %s, PROTO %"PRIu16"\n",
-        p->flow->alflags & FLOW_AL_PROTO_DETECT_DONE ? "TRUE" : "FALSE", p->flow->alproto);
+                (p->flow->alproto != ALPROTO_UNKNOWN) ? "TRUE" : "FALSE", p->flow->alproto);
         AlertDebugLogFlowVars(aft, p);
         AlertDebugLogFlowBits(aft, p);
         SCMutexUnlock(&p->flow->m);
