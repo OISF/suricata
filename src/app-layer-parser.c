@@ -803,7 +803,7 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
     ssn = f->protoctx;
 
     /** Do this check before calling AppLayerParse */
-    if (flags & FLOW_AL_STREAM_GAP) {
+    if (flags & STREAM_GAP) {
         SCLogDebug("stream gap detected (missing packets), this is not yet supported.");
         goto error;
     }
@@ -831,7 +831,7 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
     }
 
     AppLayerParserState *parser_state = NULL;
-    if (flags & FLOW_AL_STREAM_TOSERVER) {
+    if (flags & STREAM_TOSERVER) {
         SCLogDebug("to_server msg (flow %p)", f);
 
         parser_state = &parser_state_store->to_server;
@@ -864,7 +864,7 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
         SCReturnInt(0);
     }
 
-    if (flags & FLOW_AL_STREAM_EOF)
+    if (flags & STREAM_EOF)
         parser_state->flags |= APP_LAYER_PARSER_EOF;
 
     /* See if we already have a 'app layer' state */
@@ -904,9 +904,9 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
         if (parser_state->flags & APP_LAYER_PARSER_NO_REASSEMBLY) {
             if (ssn != NULL) {
                 StreamTcpSetSessionNoReassemblyFlag(ssn,
-                        flags & FLOW_AL_STREAM_TOCLIENT ? 1 : 0);
+                        flags & STREAM_TOCLIENT ? 1 : 0);
                 StreamTcpSetSessionNoReassemblyFlag(ssn,
-                        flags & FLOW_AL_STREAM_TOSERVER ? 1 : 0);
+                        flags & STREAM_TOSERVER ? 1 : 0);
             }
         }
     }

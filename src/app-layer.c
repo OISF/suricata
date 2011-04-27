@@ -141,16 +141,6 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
         SCLogDebug("STREAM_TOCLIENT");
     }
 
-    if (flags & STREAM_GAP) {
-        f->alflags |= FLOW_AL_STREAM_GAP;
-        SCLogDebug("STREAM_GAP");
-    }
-
-    if (flags & STREAM_EOF) {
-        f->alflags |= FLOW_AL_STREAM_EOF;
-        SCLogDebug("STREAM_EOF");
-    }
-
     SCLogDebug("data_len %u flags %02X", data_len, flags);
     if (!(f->alflags & FLOW_AL_NO_APPLAYER_INSPECTION)) {
         /* if we don't know the proto yet and we have received a stream
@@ -182,7 +172,7 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
                 ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
                 f->alflags |= FLOW_AL_PROTO_DETECT_DONE;
 
-                r = AppLayerParse(f, alproto, f->alflags, data, data_len);
+                r = AppLayerParse(f, alproto, flags, data, data_len);
             } else {
                 if (flags & STREAM_TOSERVER) {
                     SCLogDebug("alp_proto_ctx.toserver.max_len %u", alp_proto_ctx.toserver.max_len);
@@ -342,10 +332,6 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
             smsg->flow->alflags |= FLOW_AL_STREAM_TOSERVER;
         if (smsg->flags & STREAM_TOCLIENT)
             smsg->flow->alflags |= FLOW_AL_STREAM_TOCLIENT;
-        if (smsg->flags & STREAM_GAP)
-            smsg->flow->alflags |= FLOW_AL_STREAM_GAP;
-        if (smsg->flags & STREAM_EOF)
-            smsg->flow->alflags |= FLOW_AL_STREAM_EOF;
 
         if (!(smsg->flow->alflags & FLOW_AL_NO_APPLAYER_INSPECTION)) {
             /* if we don't know the proto yet and we have received a stream

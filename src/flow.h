@@ -216,11 +216,8 @@ typedef struct Flow_
 #define FLOW_AL_PROTO_UNKNOWN           0x01
 #define FLOW_AL_PROTO_DETECT_DONE       0x02
 #define FLOW_AL_NO_APPLAYER_INSPECTION  0x04 /** \todo move to flow flags later */
-#define FLOW_AL_STREAM_START            0x08
-#define FLOW_AL_STREAM_EOF              0x10
 #define FLOW_AL_STREAM_TOSERVER         0x20
 #define FLOW_AL_STREAM_TOCLIENT         0x40
-#define FLOW_AL_STREAM_GAP              0x80
 
 enum {
     FLOW_STATE_NEW = 0,
