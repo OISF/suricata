@@ -506,7 +506,6 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
             /* store the proto and setup the L7 data array */
             FlowL7DataPtrInit(f);
             f->alproto = alproto;
-            f->alflags &= ~FLOW_AL_PROTO_UNKNOWN;
             f->alflags |= FLOW_AL_PROTO_DETECT_DONE;
 
             r = AppLayerParse(f, alproto, f->alflags,

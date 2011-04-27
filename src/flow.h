@@ -213,7 +213,6 @@ typedef struct Flow_
 } Flow;
 
 /** Flow Application Level flags */
-#define FLOW_AL_PROTO_UNKNOWN           0x01
 #define FLOW_AL_PROTO_DETECT_DONE       0x02
 #define FLOW_AL_NO_APPLAYER_INSPECTION  0x04 /** \todo move to flow flags later */
 #define FLOW_AL_STREAM_TOSERVER         0x20
