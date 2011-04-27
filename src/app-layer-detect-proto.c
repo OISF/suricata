@@ -360,7 +360,7 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
     AlpProtoDetectDirection *dir;
     AlpProtoDetectDirectionThread *tdir;
 
-    if (flags & FLOW_AL_STREAM_TOSERVER) {
+    if (flags & STREAM_TOSERVER) {
         dir = &ctx->toserver;
         tdir = &tctx->toserver;
     } else {

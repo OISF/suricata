@@ -216,8 +216,6 @@ typedef struct Flow_
 
 /** Flow Application Level flags */
 #define FLOW_AL_NO_APPLAYER_INSPECTION  0x04 /** \todo move to flow flags later */
-#define FLOW_AL_STREAM_TOSERVER         0x20
-#define FLOW_AL_STREAM_TOCLIENT         0x40
 
 enum {
     FLOW_STATE_NEW = 0,

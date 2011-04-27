@@ -132,15 +132,6 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
 
     alproto = f->alproto;
 
-    /* Copy some needed flags */
-    if (flags & STREAM_TOSERVER) {
-        f->alflags |= FLOW_AL_STREAM_TOSERVER;
-        SCLogDebug("STREAM_TOSERVER");
-    } else if (flags & STREAM_TOCLIENT) {
-        f->alflags |= FLOW_AL_STREAM_TOCLIENT;
-        SCLogDebug("STREAM_TOCLIENT");
-    }
-
     SCLogDebug("data_len %u flags %02X", data_len, flags);
     if (!(f->alflags & FLOW_AL_NO_APPLAYER_INSPECTION)) {
         /* if we don't know the proto yet and we have received a stream
@@ -163,7 +154,7 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
             }
 #endif
             alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx,
-                    data, data_len, f->alflags, IPPROTO_TCP);
+                    data, data_len, flags, IPPROTO_TCP);
             if (alproto != ALPROTO_UNKNOWN) {
                 /* store the proto and setup the L7 data array */
                 FlowL7DataPtrInit(f);
@@ -322,12 +313,6 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
     if (ssn != NULL) {
         alproto = smsg->flow->alproto;
 
-        /* Copy some needed flags */
-        if (smsg->flags & STREAM_TOSERVER)
-            smsg->flow->alflags |= FLOW_AL_STREAM_TOSERVER;
-        if (smsg->flags & STREAM_TOCLIENT)
-            smsg->flow->alflags |= FLOW_AL_STREAM_TOCLIENT;
-
         if (!(smsg->flow->alflags & FLOW_AL_NO_APPLAYER_INSPECTION)) {
             /* if we don't know the proto yet and we have received a stream
              * initializer message, we run proto detection.
@@ -476,10 +461,11 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
 
     alproto = f->alproto;
 
+    uint8_t flags = 0;
     if (p->flowflags & FLOW_PKT_TOSERVER) {
-        f->alflags |= FLOW_AL_STREAM_TOSERVER;
+        flags |= STREAM_TOSERVER;
     } else {
-        f->alflags |= FLOW_AL_STREAM_TOCLIENT;
+        flags |= STREAM_TOCLIENT;
     }
 
     /* if we don't know the proto yet and we have received a stream
@@ -495,7 +481,7 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
         //printf("=> Init Stream Data -- end\n");
 
         alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx,
-                        p->payload, p->payload_len, f->alflags, IPPROTO_UDP);
+                        p->payload, p->payload_len, flags, IPPROTO_UDP);
         if (alproto != ALPROTO_UNKNOWN) {
             /* store the proto and setup the L7 data array */
             FlowL7DataPtrInit(f);
