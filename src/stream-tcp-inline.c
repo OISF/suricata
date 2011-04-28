@@ -198,7 +198,7 @@ void StreamTcpInlineRecalcCsum(Packet *p) {
         /* TCP */
         p->tcph->th_sum = 0;
         p->tcph->th_sum = TCPCalculateChecksum((uint16_t *)&(p->ip4h->ip_src),
-                (uint16_t *)p->tcph, (p->payload_len + p->tcpvars.hlen));
+                (uint16_t *)p->tcph, (p->payload_len + TCP_GET_HLEN(p)));
         /* IPV4 */
         p->ip4h->ip_csum = 0;
         p->ip4h->ip_csum = IPV4CalculateChecksum((uint16_t *)p->ip4h,
@@ -207,7 +207,7 @@ void StreamTcpInlineRecalcCsum(Packet *p) {
         /* just TCP for IPV6 */
         p->tcph->th_sum = 0;
         p->tcph->th_sum = TCPV6CalculateChecksum((uint16_t *)&(p->ip6h->ip6_src),
-                (uint16_t *)p->tcph, (p->payload_len + p->tcpvars.hlen));
+                (uint16_t *)p->tcph, (p->payload_len + TCP_GET_HLEN(p)));
     }
 
     SCReturn;

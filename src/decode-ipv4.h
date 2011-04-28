@@ -195,7 +195,6 @@ typedef struct IPV4Cache_
 
 #define CLEAR_IPV4_PACKET(p) do { \
     (p)->ip4h = NULL; \
-    (p)->ip4vars.ip_opt_len = 0; \
     (p)->ip4vars.ip_opt_cnt = 0; \
     (p)->ip4vars.o_rr = NULL; \
     (p)->ip4vars.o_qs = NULL; \
@@ -228,7 +227,6 @@ typedef struct IPV4Cache_
 /* helper structure with parsed ipv4 info */
 typedef struct IPV4Vars_
 {
-    uint8_t ip_opt_len;
     IPV4Opt ip_opts[IPV4_OPTMAX];
     uint8_t ip_opt_cnt;
 

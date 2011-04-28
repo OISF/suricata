@@ -326,8 +326,7 @@ int DetectTCPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (p->tcpc.comp_csum == -1)
         p->tcpc.comp_csum = TCPCalculateChecksum((uint16_t *)&(p->ip4h->ip_src),
                                                  (uint16_t *)p->tcph,
-                                                 (p->payload_len +
-                                                  p->tcpvars.hlen) );
+                                                 (p->payload_len + TCP_GET_HLEN(p)));
 
     if (p->tcpc.comp_csum == p->tcph->th_sum && cd->valid == 1)
         return 1;
@@ -418,8 +417,7 @@ int DetectTCPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (p->tcpc.comp_csum == -1)
         p->tcpc.comp_csum = TCPV6CalculateChecksum((uint16_t *)&(p->ip6h->ip6_src),
                                                    (uint16_t *)p->tcph,
-                                                   (p->payload_len +
-                                                    p->tcpvars.hlen) );
+                                                   (p->payload_len + TCP_GET_HLEN(p)));
 
     if (p->tcpc.comp_csum == p->tcph->th_sum && cd->valid == 1)
         return 1;

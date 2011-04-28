@@ -32,7 +32,7 @@
 #include "util-optimize.h"
 #include "flow.h"
 
-static int DecodeTCPOptions(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len)
+static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t len)
 {
     uint16_t plen = len;
     while (plen)
@@ -147,29 +147,29 @@ static int DecodeTCPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len
 
     p->tcph = (TCPHdr *)pkt;
 
-    p->tcpvars.hlen = TCP_GET_HLEN(p);
-    if (unlikely(len < p->tcpvars.hlen)) {
+    uint8_t hlen = TCP_GET_HLEN(p);
+    if (unlikely(len < hlen)) {
         DECODER_SET_EVENT(p, TCP_HLEN_TOO_SMALL);
         return -1;
+    }
+
+    uint8_t tcp_opt_len = hlen - TCP_HEADER_LEN;
+    if (unlikely(tcp_opt_len > TCP_OPTLENMAX)) {
+        DECODER_SET_EVENT(p, TCP_INVALID_OPTLEN);
+        return -1;
+    }
+
+    if (likely(tcp_opt_len > 0)) {
+        DecodeTCPOptions(p, pkt + TCP_HEADER_LEN, tcp_opt_len);
     }
 
     SET_TCP_SRC_PORT(p,&p->sp);
     SET_TCP_DST_PORT(p,&p->dp);
 
-    p->tcpvars.tcp_opt_len = p->tcpvars.hlen - TCP_HEADER_LEN;
-    if (unlikely(p->tcpvars.tcp_opt_len > TCP_OPTLENMAX)) {
-        DECODER_SET_EVENT(p, TCP_INVALID_OPTLEN);
-        return -1;
-    }
-
-    if (p->tcpvars.tcp_opt_len > 0) {
-        DecodeTCPOptions(tv, p, pkt + TCP_HEADER_LEN, p->tcpvars.tcp_opt_len);
-    }
-
-    p->payload = pkt + p->tcpvars.hlen;
-    p->payload_len = len - p->tcpvars.hlen;
-
     p->proto = IPPROTO_TCP;
+
+    p->payload = pkt + hlen;
+    p->payload_len = len - hlen;
 
     return 0;
 }
@@ -185,11 +185,10 @@ void DecodeTCP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     }
 
 #ifdef DEBUG
-    SCLogDebug("TCP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 " %s%s%s%s",
-        GET_TCP_SRC_PORT(p), GET_TCP_DST_PORT(p), p->tcpvars.hlen, len,
-        p->tcpvars.sackok ? "SACKOK " : "",
-        p->tcpvars.ws ? "WS " : "",
-        p->tcpvars.ts ? "TS " : "",
+    SCLogDebug("TCP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 " %s%s%s%s%s",
+        GET_TCP_SRC_PORT(p), GET_TCP_DST_PORT(p), TCP_GET_HLEN(p), len,
+        p->tcpvars.sackok ? "SACKOK " : "", p->tcpvars.sack ? "SACK " : "",
+        p->tcpvars.ws ? "WS " : "", p->tcpvars.ts ? "TS " : "",
         p->tcpvars.mss ? "MSS " : "");
 #endif
 
