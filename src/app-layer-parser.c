@@ -1404,7 +1404,7 @@ static int AppLayerParserTest01 (void)
         goto end;
     }
 
-    if (!(f.alflags & FLOW_AL_NO_APPLAYER_INSPECTION))
+    if (!(f.flags & FLOW_NO_APPLAYER_INSPECTION))
     {
         printf("flag should have been set, but is not: ");
         goto end;

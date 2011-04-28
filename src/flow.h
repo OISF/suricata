@@ -38,43 +38,44 @@
 /* per flow flags */
 
 /** At least on packet from the source address was seen */
-#define FLOW_TO_SRC_SEEN            0x0001
+#define FLOW_TO_SRC_SEEN            0x00000001
 /** At least on packet from the destination address was seen */
-#define FLOW_TO_DST_SEEN            0x0002
+#define FLOW_TO_DST_SEEN            0x00000002
 
 /** Flow lives in the flow-state-NEW list */
-#define FLOW_NEW_LIST               0x0004
+#define FLOW_NEW_LIST               0x00000004
 /** Flow lives in the flow-state-EST (established) list */
-#define FLOW_EST_LIST               0x0008
+#define FLOW_EST_LIST               0x00000008
 /** Flow lives in the flow-state-CLOSED list */
-#define FLOW_CLOSED_LIST            0x0010
+#define FLOW_CLOSED_LIST            0x00000010
 
 /** Flow was inspected against IP-Only sigs in the toserver direction */
-#define FLOW_TOSERVER_IPONLY_SET    0x0020
+#define FLOW_TOSERVER_IPONLY_SET    0x00000020
 /** Flow was inspected against IP-Only sigs in the toclient direction */
-#define FLOW_TOCLIENT_IPONLY_SET    0x0040
+#define FLOW_TOCLIENT_IPONLY_SET    0x00000040
 
 /** Packet belonging to this flow should not be inspected at all */
-#define FLOW_NOPACKET_INSPECTION    0x0080
+#define FLOW_NOPACKET_INSPECTION    0x00000080
 /** Packet payloads belonging to this flow should not be inspected */
-#define FLOW_NOPAYLOAD_INSPECTION   0x0100
+#define FLOW_NOPAYLOAD_INSPECTION   0x00000100
 
 /** All packets in this flow should be dropped */
-#define FLOW_ACTION_DROP            0x0200
+#define FLOW_ACTION_DROP            0x00000200
 /** All packets in this flow should be accepted */
-#define FLOW_ACTION_PASS            0x0400
+#define FLOW_ACTION_PASS            0x00000400
 
 /** Sgh for toserver direction set (even if it's NULL) */
-#define FLOW_SGH_TOSERVER           0x0800
+#define FLOW_SGH_TOSERVER           0x00000800
 /** Sgh for toclient direction set (even if it's NULL) */
-#define FLOW_SGH_TOCLIENT           0x1000
+#define FLOW_SGH_TOCLIENT           0x00001000
 
 /** packet to server direction has been logged in drop file (only in IPS mode) */
-#define FLOW_TOSERVER_DROP_LOGGED   0x2000
+#define FLOW_TOSERVER_DROP_LOGGED   0x00002000
 /** packet to client direction has been logged in drop file (only in IPS mode) */
-#define FLOW_TOCLIENT_DROP_LOGGED   0x4000
+#define FLOW_TOCLIENT_DROP_LOGGED   0x00004000
 /** alproto detect done.  Right now we need it only for udp */
-#define FLOW_ALPROTO_DETECT_DONE    0x8000
+#define FLOW_ALPROTO_DETECT_DONE    0x00008000
+#define FLOW_NO_APPLAYER_INSPECTION 0x00010000
 
 /* pkt flow flags */
 #define FLOW_PKT_TOSERVER               0x01
@@ -151,7 +152,7 @@ typedef struct Flow_
 
     /* end of flow "header" */
 
-    uint16_t flags;
+    uint32_t flags;
 
     /* ts of flow init and last update */
     struct timeval lastts;
@@ -164,8 +165,8 @@ typedef struct Flow_
     /** mapping to Flow's protocol specific protocols for timeouts
         and state and free functions. */
     uint8_t protomap;
+    uint8_t pad0;
 
-    uint8_t alflags; /**< application level specific flags */
     uint16_t alproto; /**< application level protocol */
 
     /** how many pkts and stream msgs are using the flow *right now*. This
@@ -176,7 +177,7 @@ typedef struct Flow_
      */
     SC_ATOMIC_DECLARE(unsigned short, use_cnt);
 
-    uint16_t pad0;
+    uint16_t pad1;
 
     void **aldata; /**< application level storage ptrs */
 
@@ -213,9 +214,6 @@ typedef struct Flow_
     uint64_t bytecnt;
 
 } Flow;
-
-/** Flow Application Level flags */
-#define FLOW_AL_NO_APPLAYER_INSPECTION  0x04 /** \todo move to flow flags later */
 
 enum {
     FLOW_STATE_NEW = 0,
@@ -331,7 +329,7 @@ static inline void FlowSetNoPayloadInspectionFlag(Flow *f) {
  *  \param f *LOCKED* flow
  */
 static inline void FlowSetSessionNoApplayerInspectionFlag(Flow *f) {
-    f->alflags |= FLOW_AL_NO_APPLAYER_INSPECTION;
+    f->flags |= FLOW_NO_APPLAYER_INSPECTION;
 }
 
 

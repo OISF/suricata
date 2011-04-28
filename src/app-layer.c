@@ -133,7 +133,7 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
     alproto = f->alproto;
 
     SCLogDebug("data_len %u flags %02X", data_len, flags);
-    if (!(f->alflags & FLOW_AL_NO_APPLAYER_INSPECTION)) {
+    if (!(f->flags & FLOW_NO_APPLAYER_INSPECTION)) {
         /* if we don't know the proto yet and we have received a stream
          * initializer message, we run proto detection.
          * We receive 2 stream init msgs (one for each direction) but we
@@ -313,7 +313,7 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
     if (ssn != NULL) {
         alproto = smsg->flow->alproto;
 
-        if (!(smsg->flow->alflags & FLOW_AL_NO_APPLAYER_INSPECTION)) {
+        if (!(smsg->flow->flags & FLOW_NO_APPLAYER_INSPECTION)) {
             /* if we don't know the proto yet and we have received a stream
              * initializer message, we run proto detection.
              * We receive 2 stream init msgs (one for each direction) but we
@@ -488,7 +488,7 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
             f->alproto = alproto;
             f->flags |= FLOW_ALPROTO_DETECT_DONE;
 
-            r = AppLayerParse(f, alproto, f->alflags,
+            r = AppLayerParse(f, alproto, flags,
                            p->payload, p->payload_len);
         } else {
             f->flags |= FLOW_ALPROTO_DETECT_DONE;
@@ -505,7 +505,7 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
         /* if we don't have a data object here we are not getting it
          * a start msg should have gotten us one */
         if (alproto != ALPROTO_UNKNOWN) {
-            r = AppLayerParse(f, alproto, f->alflags,
+            r = AppLayerParse(f, alproto, flags,
                         p->payload, p->payload_len);
         } else {
             SCLogDebug(" udp session not start, but no l7 data? Weird");

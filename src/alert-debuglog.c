@@ -221,7 +221,7 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
         fprintf(aft->file_ctx->fp, "FLOW NOINSPECTION: PACKET: %s, PAYLOAD: %s, APP_LAYER: %s\n",
                 p->flow->flags & FLOW_NOPACKET_INSPECTION ? "TRUE" : "FALSE",
                 p->flow->flags & FLOW_NOPAYLOAD_INSPECTION ? "TRUE" : "FALSE",
-                p->flow->alflags & FLOW_AL_NO_APPLAYER_INSPECTION ? "TRUE" : "FALSE");
+                p->flow->flags & FLOW_NO_APPLAYER_INSPECTION ? "TRUE" : "FALSE");
         fprintf(aft->file_ctx->fp, "FLOW APP_LAYER:    DETECTED: %s, PROTO %"PRIu16"\n",
                 (p->flow->alproto != ALPROTO_UNKNOWN) ? "TRUE" : "FALSE", p->flow->alproto);
         AlertDebugLogFlowVars(aft, p);
@@ -315,7 +315,7 @@ TmEcode AlertDebugLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
         fprintf(aft->file_ctx->fp, "FLOW NOINSPECTION: PACKET: %s, PAYLOAD: %s, APP_LAYER: %s\n",
         p->flow->flags & FLOW_NOPACKET_INSPECTION ? "TRUE" : "FALSE",
         p->flow->flags & FLOW_NOPAYLOAD_INSPECTION ? "TRUE" : "FALSE",
-        p->flow->alflags & FLOW_AL_NO_APPLAYER_INSPECTION ? "TRUE" : "FALSE");
+        p->flow->flags & FLOW_NO_APPLAYER_INSPECTION ? "TRUE" : "FALSE");
         fprintf(aft->file_ctx->fp, "FLOW APP_LAYER:    DETECTED: %s, PROTO %"PRIu16"\n",
                 (p->flow->alproto != ALPROTO_UNKNOWN) ? "TRUE" : "FALSE", p->flow->alproto);
         AlertDebugLogFlowVars(aft, p);

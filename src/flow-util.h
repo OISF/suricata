@@ -50,7 +50,6 @@
         (f)->sgh_toserver = NULL; \
         (f)->sgh_toclient = NULL; \
         (f)->aldata = NULL; \
-        (f)->alflags = 0; \
         (f)->alproto = 0; \
         (f)->tag_list = NULL; \
     } while (0)
@@ -84,7 +83,6 @@
             SCFree((f)->aldata); \
             (f)->aldata = NULL; \
         } \
-        (f)->alflags = 0; \
         (f)->alproto = 0; \
         DetectTagDataListFree((f)->tag_list); \
         (f)->tag_list = NULL; \
@@ -107,7 +105,6 @@
             SCFree((f)->aldata); \
             (f)->aldata = NULL; \
         } \
-        (f)->alflags = 0; \
         (f)->alproto = 0; \
         DetectTagDataListFree((f)->tag_list); \
         (f)->tag_list = NULL; \
