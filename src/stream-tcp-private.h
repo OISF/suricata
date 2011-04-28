@@ -25,6 +25,13 @@
 #define __STREAM_TCP_PRIVATE_H__
 
 #include "decode.h"
+
+typedef struct StreamTcpSackRecord_ {
+    uint32_t le;    /**< left edge, host order */
+    uint32_t re;    /**< right edge, host order */
+    struct StreamTcpSackRecord_ *next;
+} StreamTcpSackRecord;
+
 typedef struct TcpSegment_ {
     uint8_t *payload;
     uint16_t payload_len;       /**< actual size of the payload */
@@ -59,6 +66,9 @@ typedef struct TcpStream_ {
     uint8_t os_policy; /**< target based OS policy used for reassembly and handling packets*/
     uint16_t flags;      /**< Flag specific to the stream e.g. Timestamp */
     TcpSegment *seg_list_tail;  /**< Last segment in the reassembled stream seg list*/
+
+    StreamTcpSackRecord *sack_head;
+    StreamTcpSackRecord *sack_tail;
 } TcpStream;
 
 /* from /usr/include/netinet/tcp.h */
@@ -107,7 +117,10 @@ enum
 #define STREAMTCP_FLAG_DETECTION_EVASION_ATTEMPT    0x0200
 /** Flag to indicate that this stream direction has reassembled chunks */
 #define STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED  0x0400
-
+/** Flag to indicate the client (SYN pkt) permits SACK */
+#define STREAMTCP_FLAG_CLIENT_SACKOK                0x0800
+/** Flag to indicate both sides of the session permit SACK (SYN + SYN/ACK) */
+#define STREAMTCP_FLAG_SACKOK                       0x1000
 
 /*
  * Per STREAM flags

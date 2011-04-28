@@ -2709,6 +2709,7 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
         {
             SCLogDebug("segment(%p) of length %"PRIu16" has been processed,"
                     " so return it to pool", seg, seg->payload_len);
+            next_seq = seg->seq + seg->payload_len;
             TcpSegment *next_seg = seg->next;
             seg = next_seg;
             continue;
@@ -2783,6 +2784,7 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                 data_len = 0;
 
                 /* set a GAP flag and make sure not bothering this stream anymore */
+                SCLogDebug("STREAMTCP_STREAM_FLAG_GAP set");
                 stream->flags |= STREAMTCP_STREAM_FLAG_GAP;
                 /* flag reassembly as started, so the to_client part can start */
                 ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;

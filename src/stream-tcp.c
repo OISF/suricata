@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2011 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -20,6 +20,8 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
+ *
+ * TCP stream tracking and reassembly engine.
  *
  * \todo - 4WHS: what if after the 2nd SYN we turn out to be normal 3WHS anyway?
  */
@@ -50,6 +52,7 @@
 #include "stream-tcp-reassemble.h"
 #include "stream-tcp.h"
 #include "stream-tcp-inline.h"
+#include "stream-tcp-sack.h"
 #include "stream-tcp-util.h"
 #include "stream.h"
 
@@ -171,7 +174,8 @@ int StreamTcpCheckMemcap(uint32_t size) {
     SCReturnInt(ret);
 }
 
-/** \brief Function to return the stream back to the pool. It returns the
+/**
+ *  \brief Function to return the stream back to the pool. It returns the
  *         segments in the stream to the segment pool.
  *
  *  This function is called when the flow is destroyed, so it should free
@@ -193,6 +197,9 @@ void StreamTcpSessionClear(void *ssnptr)
     StreamTcpReturnStreamSegments(&ssn->server);
 
     //AppLayerParserCleanupState(ssn);
+
+    StreamTcpSackFreeList(&ssn->client);
+    StreamTcpSackFreeList(&ssn->server);
 
     /* if we have (a) smsg(s), return to the pool */
     smsg = ssn->toserver_smsg_head;
@@ -230,7 +237,8 @@ void StreamTcpSessionClear(void *ssnptr)
     SCReturn;
 }
 
-/** \brief Function to return the stream segments back to the pool.
+/**
+ *  \brief Function to return the stream segments back to the pool.
  *
  *  We don't clear out the app layer storage here as that is under protection
  *  of the "use_cnt" reference counter in the flow. This function is called
@@ -598,6 +606,7 @@ void StreamTcpSetEvent(Packet *p, uint8_t e) {
     if (SEQ_GT((ack), (stream)->last_ack)) { \
         (stream)->last_ack = (ack); \
         SCLogDebug("ssn %p: last_ack set to %"PRIu32, (ssn), (stream)->last_ack); \
+        StreamTcpSackPruneList((stream)); \
     } \
 }
 
@@ -609,8 +618,9 @@ void StreamTcpSetEvent(Packet *p, uint8_t e) {
  *  \param win window value to test and set
  */
 #define StreamTcpUpdateNextWin(ssn, stream, win) { \
-    if (SEQ_GT((win), (stream)->next_win)) { \
-        (stream)->next_win = (win); \
+    uint32_t sacked_size__ = StreamTcpSackedSize((stream)); \
+    if (SEQ_GT(((win) + sacked_size__), (stream)->next_win)) { \
+        (stream)->next_win = ((win) + sacked_size__); \
         SCLogDebug("ssn %p: next_win set to %"PRIu32, (ssn), (stream)->next_win); \
     } \
 }
@@ -679,6 +689,11 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             if (p->tcpvars.ws != NULL) {
                 ssn->flags |= STREAMTCP_FLAG_SERVER_WSCALE;
                 ssn->server.wscale = TCP_GET_WSCALE(p);
+            }
+
+            if (TCP_GET_SACKOK(p) == 1) {
+                ssn->flags |= STREAMTCP_FLAG_CLIENT_SACKOK;
+                SCLogDebug("ssn %p: SACK permited on SYN packet", ssn);
             }
 
             SCLogDebug("ssn %p: ssn->client.isn %" PRIu32 ", "
@@ -759,6 +774,12 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             } else {
                 ssn->server.last_ts = 0;
                 ssn->client.last_ts = 0;
+            }
+
+            if (TCP_GET_SACKOK(p) == 1) {
+                ssn->flags |= STREAMTCP_FLAG_SACKOK;
+                SCLogDebug("ssn %p: SYN/ACK with SACK permitted, assuming "
+                        "SACK permitted for both sides", ssn);
             }
 
             break;
@@ -842,6 +863,8 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
 
             StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn, &ssn->client, p, pq);
 
+            ssn->flags |= STREAMTCP_FLAG_SACKOK;
+            SCLogDebug("ssn %p: assuming SACK permitted for both sides", ssn);
             break;
         case TH_RST:
         case TH_RST|TH_ACK:
@@ -938,6 +961,15 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
                 if (p->tcpvars.ws != NULL) {
                     ssn->flags |= STREAMTCP_FLAG_SERVER_WSCALE;
                     ssn->server.wscale = TCP_GET_WSCALE(p);
+                } else {
+                    ssn->flags &= ~STREAMTCP_FLAG_SERVER_WSCALE;
+                    ssn->server.wscale = 0;
+                }
+
+                if (TCP_GET_SACKOK(p) == 1) {
+                    ssn->flags |= STREAMTCP_FLAG_CLIENT_SACKOK;
+                } else {
+                    ssn->flags &= ~STREAMTCP_FLAG_CLIENT_SACKOK;
                 }
 
                 SCLogDebug("ssn %p: 4WHS ssn->server.isn %" PRIu32 ", "
@@ -1031,6 +1063,12 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
                     ssn->server.wscale = 0;
                 }
 
+                if ((ssn->flags & STREAMTCP_FLAG_CLIENT_SACKOK) &&
+                        TCP_GET_SACKOK(p) == 1) {
+                    ssn->flags |= STREAMTCP_FLAG_SACKOK;
+                    SCLogDebug("ssn %p: SACK permitted for 4WHS session", ssn);
+                }
+
                 ssn->client.next_win = ssn->client.last_ack + ssn->client.window;
                 ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
                 SCLogDebug("ssn %p: 4WHS ssn->client.next_win %" PRIu32 "", ssn,
@@ -1110,6 +1148,12 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
                 ssn->client.wscale = 0;
             }
 
+            if ((ssn->flags & STREAMTCP_FLAG_CLIENT_SACKOK) &&
+                TCP_GET_SACKOK(p) == 1) {
+                ssn->flags |= STREAMTCP_FLAG_SACKOK;
+                SCLogDebug("ssn %p: SACK permitted for session", ssn);
+            }
+
             ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
             ssn->client.next_win = ssn->client.last_ack + ssn->client.window;
             SCLogDebug("ssn %p: ssn->server.next_win %" PRIu32 "", ssn,
@@ -1182,8 +1226,8 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
             ssn->client.wscale = TCP_WSCALE_MAX;
             ssn->server.wscale = TCP_WSCALE_MAX;
 
-             /*Set the timestamp values used to validate the timestamp of received
-              packets.*/
+             /* Set the timestamp values used to validate the timestamp of
+              * received packets.*/
             if (p->tcpvars.ts != NULL &&
                     (ssn->client.flags & STREAMTCP_FLAG_TIMESTAMP))
             {
@@ -1196,6 +1240,9 @@ static int StreamTcpPacketStateSynSent(ThreadVars *tv, Packet *p,
                 ssn->client.flags &= ~STREAMTCP_FLAG_ZERO_TIMESTAMP;
             }
 
+            if (ssn->flags & STREAMTCP_FLAG_CLIENT_SACKOK) {
+                ssn->flags |= STREAMTCP_FLAG_SACKOK;
+            }
             break;
         case TH_RST:
         case TH_RST|TH_ACK:
@@ -1414,6 +1461,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
                      * other than assume that it's set to the max value: 14 */
                     ssn->server.wscale = TCP_WSCALE_MAX;
                     ssn->client.wscale = TCP_WSCALE_MAX;
+                    ssn->flags |= STREAMTCP_FLAG_SACKOK;
                 }
 
                 StreamTcpPacketSetState(p, ssn, TCP_ESTABLISHED);
@@ -1448,6 +1496,7 @@ static int StreamTcpPacketStateSynRecv(ThreadVars *tv, Packet *p,
                      * other than assume that it's set to the max value: 14 */
                     ssn->server.wscale = TCP_WSCALE_MAX;
                     ssn->client.wscale = TCP_WSCALE_MAX;
+                    ssn->flags |= STREAMTCP_FLAG_SACKOK;
                 }
 
                 SCLogDebug("ssn %p: synrecv => Asynchronous stream, packet SEQ"
@@ -1648,7 +1697,7 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
             (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) ||
             ssn->flags & STREAMTCP_FLAG_ASYNC)
     {
-        SCLogDebug("ssn %p: seq %"PRIu32" in window, ssn->client.next_win"
+        SCLogDebug("ssn %p: seq %"PRIu32" in window, ssn->client.next_win "
                    "%" PRIu32 "", ssn, TCP_GET_SEQ(p), ssn->client.next_win);
 
         ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
@@ -1667,6 +1716,8 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
         if (SEQ_LT(ssn->server.next_seq, TCP_GET_ACK(p)))
             ssn->server.next_seq = TCP_GET_ACK(p);
 
+        StreamTcpSackUpdatePacket(&ssn->server, p);
+
         /* update next_win */
         StreamTcpUpdateNextWin(ssn, &ssn->server, (ssn->server.last_ack + ssn->server.window));
 
@@ -1679,8 +1730,9 @@ static int HandleEstablishedPacketToServer(ThreadVars *tv, TcpSession *ssn, Pack
                 "%" PRIu32 "(%"PRIu32")", ssn, TCP_GET_SEQ(p),
                 p->payload_len, TCP_GET_SEQ(p) + p->payload_len,
                 ssn->client.last_ack, ssn->client.next_win,
-                TCP_GET_SEQ(p) + p->payload_len - ssn->client.next_win);
-
+                (TCP_GET_SEQ(p) + p->payload_len) - ssn->client.next_win);
+        SCLogDebug("ssn %p: window %u sacked %u", ssn, ssn->client.window,
+                StreamTcpSackedSize(&ssn->client));
         StreamTcpSetEvent(p, STREAM_EST_PACKET_OUT_OF_WINDOW);
         return -1;
     }
@@ -1721,8 +1773,8 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
         ssn->server.window = TCP_GET_WINDOW(p);
         ssn->server.next_win = ssn->server.last_ack + ssn->server.window;
         ssn->flags &= ~STREAMTCP_FLAG_MIDSTREAM_ESTABLISHED;
-        SCLogDebug("ssn %p: adjusted midstream ssn->server.next_win to"
-                " %" PRIu32 "", ssn, ssn->server.next_win);
+        SCLogDebug("ssn %p: adjusted midstream ssn->server.next_win to "
+                "%" PRIu32 "", ssn, ssn->server.next_win);
     }
 
     if (!(SEQ_GEQ((TCP_GET_SEQ(p)+p->payload_len), ssn->server.last_ack))) {
@@ -1756,8 +1808,8 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
     if (SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->server.next_win) ||
             (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) ||
             (ssn->flags & STREAMTCP_FLAG_ASYNC)) {
-        SCLogDebug("ssn %p: seq %"PRIu32" in window, ssn->server.next_win"
-                " %" PRIu32 "", ssn, TCP_GET_SEQ(p), ssn->server.next_win);
+        SCLogDebug("ssn %p: seq %"PRIu32" in window, ssn->server.next_win "
+                "%" PRIu32 "", ssn, TCP_GET_SEQ(p), ssn->server.next_win);
         ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
         SCLogDebug("ssn %p: ssn->client.window %"PRIu32"", ssn,
                     ssn->client.window);
@@ -1772,6 +1824,8 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
            and server has already received and acked it */
         if (SEQ_LT(ssn->client.next_seq, TCP_GET_ACK(p)))
             ssn->client.next_seq = TCP_GET_ACK(p);
+
+        StreamTcpSackUpdatePacket(&ssn->client, p);
 
         StreamTcpUpdateNextWin(ssn, &ssn->client, (ssn->client.last_ack + ssn->client.window));
 
@@ -3405,12 +3459,12 @@ int StreamTcpValidateChecksum(Packet *p)
             p->tcpc.comp_csum = TCPCalculateChecksum((uint16_t *)&(p->ip4h->ip_src),
                                                  (uint16_t *)p->tcph,
                                                  (p->payload_len +
-                                                  p->tcpvars.hlen) );
+                                                  TCP_GET_HLEN(p)));
         } else if (PKT_IS_IPV6(p)) {
             p->tcpc.comp_csum = TCPV6CalculateChecksum((uint16_t *)&(p->ip6h->ip6_src),
                                                    (uint16_t *)p->tcph,
                                                    (p->payload_len +
-                                                    p->tcpvars.hlen) );
+                                                    TCP_GET_HLEN(p)));
         }
     }
 
@@ -8536,6 +8590,7 @@ void StreamTcpRegisterTests (void) {
     /* set up the reassembly tests as well */
     StreamTcpReassembleRegisterTests();
 
+    StreamTcpSackRegisterTests ();
 #endif /* UNITTESTS */
 }
 

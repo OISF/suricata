@@ -91,17 +91,18 @@
 /** macro for getting the wscale from the packet. */
 #define TCP_GET_WSCALE(p)                    ((p)->tcpvars.ws ? (((*(uint8_t *)(p)->tcpvars.ws->data) <= TCP_WSCALE_MAX) ? (*(uint8_t *)((p)->tcpvars.ws->data)) : 0) : 0)
 
+#define TCP_GET_SACKOK(p)                    ((p)->tcpvars.sackok ? 1 : 0)
 #define TCP_GET_SACK_PTR(p)                  (p)->tcpvars.sack ? (p)->tcpvars.sack->data : NULL
 #define TCP_GET_SACK_CNT(p)                  ((p)->tcpvars.sack ? (((p)->tcpvars.sack->len - 2) / 8) : 0)
 
-#define TCP_GET_OFFSET(p)                    TCP_GET_RAW_OFFSET(p->tcph)
-#define TCP_GET_HLEN(p)                      TCP_GET_OFFSET(p) << 2
-#define TCP_GET_SRC_PORT(p)                  TCP_GET_RAW_SRC_PORT(p->tcph)
-#define TCP_GET_DST_PORT(p)                  TCP_GET_RAW_DST_PORT(p->tcph)
-#define TCP_GET_SEQ(p)                       TCP_GET_RAW_SEQ(p->tcph)
-#define TCP_GET_ACK(p)                       TCP_GET_RAW_ACK(p->tcph)
-#define TCP_GET_WINDOW(p)                    TCP_GET_RAW_WINDOW(p->tcph)
-#define TCP_GET_URG_POINTER(p)               TCP_GET_RAW_URG_POINTER(p->tcph)
+#define TCP_GET_OFFSET(p)                    TCP_GET_RAW_OFFSET((p)->tcph)
+#define TCP_GET_HLEN(p)                      (TCP_GET_OFFSET((p)) << 2)
+#define TCP_GET_SRC_PORT(p)                  TCP_GET_RAW_SRC_PORT((p)->tcph)
+#define TCP_GET_DST_PORT(p)                  TCP_GET_RAW_DST_PORT((p)->tcph)
+#define TCP_GET_SEQ(p)                       TCP_GET_RAW_SEQ((p)->tcph)
+#define TCP_GET_ACK(p)                       TCP_GET_RAW_ACK((p)->tcph)
+#define TCP_GET_WINDOW(p)                    TCP_GET_RAW_WINDOW((p)->tcph)
+#define TCP_GET_URG_POINTER(p)               TCP_GET_RAW_URG_POINTER((p)->tcph)
 
 #define TCP_ISSET_FLAG_FIN(p)                ((p)->tcph->th_flags & TH_FIN)
 #define TCP_ISSET_FLAG_SYN(p)                ((p)->tcph->th_flags & TH_SYN)
@@ -118,17 +119,22 @@ typedef struct TCPOpt_ {
     uint8_t *data;
 } TCPOpt;
 
+typedef struct TCPOptSackRecord_ {
+    uint32_t le;        /**< left edge, network order */
+    uint32_t re;        /**< right edge, network order */
+} TCPOptSackRecord;
+
 typedef struct TCPHdr_
 {
-    uint16_t th_sport;     /* source port */
-    uint16_t th_dport;     /* destination port */
-    uint32_t th_seq;       /* sequence number */
-    uint32_t th_ack;       /* acknowledgement number */
-    uint8_t th_offx2;      /* offset and reserved */
-    uint8_t th_flags;      /* pkt flags */
-    uint16_t th_win;       /* pkt window */
-    uint16_t th_sum;       /* checksum */
-    uint16_t th_urp;       /* urgent pointer */
+    uint16_t th_sport;  /**< source port */
+    uint16_t th_dport;  /**< destination port */
+    uint32_t th_seq;    /**< sequence number */
+    uint32_t th_ack;    /**< acknowledgement number */
+    uint8_t th_offx2;   /**< offset and reserved */
+    uint8_t th_flags;   /**< pkt flags */
+    uint16_t th_win;    /**< pkt window */
+    uint16_t th_sum;    /**< checksum */
+    uint16_t th_urp;    /**< urgent pointer */
 } TCPHdr;
 
 typedef struct TCPVars_
@@ -140,10 +146,10 @@ typedef struct TCPVars_
     TCPOpt tcp_opts[TCP_OPTMAX];
 
     /* ptrs to commonly used and needed opts */
-    TCPOpt *sackok;
-    TCPOpt *sack;
-    TCPOpt *ws;
     TCPOpt *ts;
+    TCPOpt *sack;
+    TCPOpt *sackok;
+    TCPOpt *ws;
     TCPOpt *mss;
 } TCPVars;
 
@@ -158,11 +164,10 @@ typedef struct TCPCache_ {
 
 #define CLEAR_TCP_PACKET(p) { \
     (p)->tcph = NULL; \
-    (p)->tcpvars.tcp_opt_len = 0; \
     (p)->tcpvars.tcp_opt_cnt = 0; \
-    (p)->tcpvars.sackok = NULL; \
-    (p)->tcpvars.sack = NULL; \
     (p)->tcpvars.ts = NULL; \
+    (p)->tcpvars.sack = NULL; \
+    (p)->tcpvars.sackok = NULL; \
     (p)->tcpvars.ws = NULL; \
     (p)->tcpvars.mss = NULL; \
     (p)->tcpc.comp_csum = -1; \

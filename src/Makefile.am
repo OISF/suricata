@@ -225,6 +225,7 @@ stream.c stream.h \
 stream-tcp.c stream-tcp.h stream-tcp-private.h \
 stream-tcp-reassemble.c stream-tcp-reassemble.h \
 stream-tcp-inline.c stream-tcp-inline.h \
+stream-tcp-sack.c stream-tcp-sack.h \
 stream-tcp-util.c stream-tcp-util.h \
 respond-reject.c respond-reject.h \
 respond-reject-libnet11.h respond-reject-libnet11.c \
