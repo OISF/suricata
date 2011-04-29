@@ -38,44 +38,57 @@
 /* per flow flags */
 
 /** At least on packet from the source address was seen */
-#define FLOW_TO_SRC_SEEN            0x00000001
+#define FLOW_TO_SRC_SEEN                  0x00000001
 /** At least on packet from the destination address was seen */
-#define FLOW_TO_DST_SEEN            0x00000002
+#define FLOW_TO_DST_SEEN                  0x00000002
 
 /** Flow lives in the flow-state-NEW list */
-#define FLOW_NEW_LIST               0x00000004
+#define FLOW_NEW_LIST                     0x00000004
 /** Flow lives in the flow-state-EST (established) list */
-#define FLOW_EST_LIST               0x00000008
+#define FLOW_EST_LIST                     0x00000008
 /** Flow lives in the flow-state-CLOSED list */
-#define FLOW_CLOSED_LIST            0x00000010
+#define FLOW_CLOSED_LIST                  0x00000010
 
 /** Flow was inspected against IP-Only sigs in the toserver direction */
-#define FLOW_TOSERVER_IPONLY_SET    0x00000020
+#define FLOW_TOSERVER_IPONLY_SET          0x00000020
 /** Flow was inspected against IP-Only sigs in the toclient direction */
-#define FLOW_TOCLIENT_IPONLY_SET    0x00000040
+#define FLOW_TOCLIENT_IPONLY_SET          0x00000040
 
 /** Packet belonging to this flow should not be inspected at all */
-#define FLOW_NOPACKET_INSPECTION    0x00000080
+#define FLOW_NOPACKET_INSPECTION          0x00000080
 /** Packet payloads belonging to this flow should not be inspected */
-#define FLOW_NOPAYLOAD_INSPECTION   0x00000100
+#define FLOW_NOPAYLOAD_INSPECTION         0x00000100
 
 /** All packets in this flow should be dropped */
-#define FLOW_ACTION_DROP            0x00000200
+#define FLOW_ACTION_DROP                  0x00000200
 /** All packets in this flow should be accepted */
-#define FLOW_ACTION_PASS            0x00000400
+#define FLOW_ACTION_PASS                  0x00000400
 
 /** Sgh for toserver direction set (even if it's NULL) */
-#define FLOW_SGH_TOSERVER           0x00000800
+#define FLOW_SGH_TOSERVER                 0x00000800
 /** Sgh for toclient direction set (even if it's NULL) */
-#define FLOW_SGH_TOCLIENT           0x00001000
+#define FLOW_SGH_TOCLIENT                 0x00001000
 
 /** packet to server direction has been logged in drop file (only in IPS mode) */
-#define FLOW_TOSERVER_DROP_LOGGED   0x00002000
+#define FLOW_TOSERVER_DROP_LOGGED         0x00002000
 /** packet to client direction has been logged in drop file (only in IPS mode) */
-#define FLOW_TOCLIENT_DROP_LOGGED   0x00004000
+#define FLOW_TOCLIENT_DROP_LOGGED         0x00004000
 /** alproto detect done.  Right now we need it only for udp */
-#define FLOW_ALPROTO_DETECT_DONE    0x00008000
-#define FLOW_NO_APPLAYER_INSPECTION 0x00010000
+#define FLOW_ALPROTO_DETECT_DONE          0x00008000
+#define FLOW_NO_APPLAYER_INSPECTION       0x00010000
+
+/* Pattern matcher alproto detection done */
+#define FLOW_TS_PM_ALPROTO_DETECT_DONE    0x00020000
+/* Probing parser alproto detection done */
+#define FLOW_TS_PP_ALPROTO_DETECT_DONE    0x00040000
+/* Both pattern matcher and probing parser alproto detection done */
+#define FLOW_TS_PM_PP_ALPROTO_DETECT_DONE 0x00080000
+/* Pattern matcher alproto detection done */
+#define FLOW_TC_PM_ALPROTO_DETECT_DONE    0x00100000
+/* Probing parser alproto detection done */
+#define FLOW_TC_PP_ALPROTO_DETECT_DONE    0x00200000
+/* Both pattern matcher and probing parser alproto detection done */
+#define FLOW_TC_PM_PP_ALPROTO_DETECT_DONE 0x00400000
 
 /* pkt flow flags */
 #define FLOW_PKT_TOSERVER               0x01

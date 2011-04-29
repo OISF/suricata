@@ -153,7 +153,8 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
                 printf("=> Init Stream Data -- end\n");
             }
 #endif
-            alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx,
+
+            alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx, f,
                     data, data_len, flags, IPPROTO_TCP);
             if (alproto != ALPROTO_UNKNOWN) {
                 /* store the proto and setup the L7 data array */
@@ -164,13 +165,13 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
             } else {
                 if (flags & STREAM_TOSERVER) {
                     SCLogDebug("alp_proto_ctx.toserver.max_len %u", alp_proto_ctx.toserver.max_len);
-                    if (data_len >= alp_proto_ctx.toserver.max_len) {
+                    if (f->flags & FLOW_TS_PM_PP_ALPROTO_DETECT_DONE) {
                         ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
                         SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
                         StreamTcpSetSessionNoReassemblyFlag(ssn, 0);
                     }
-                } else if (flags & STREAM_TOCLIENT) {
-                    if (data_len >= alp_proto_ctx.toclient.max_len) {
+                } else {
+                    if (f->flags & FLOW_TC_PM_PP_ALPROTO_DETECT_DONE) {
                         ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
                         SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
                         StreamTcpSetSessionNoReassemblyFlag(ssn, 1);
@@ -326,7 +327,7 @@ int AppLayerHandleMsg(AlpProtoDetectThreadCtx *dp_ctx, StreamMsg *smsg)
                 //PrintRawDataFp(stdout, smsg->init.data, smsg->init.data_len);
                 //printf("=> Init Stream Data -- end\n");
 
-                alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx,
+                alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx, f
                         smsg->data.data, smsg->data.data_len, smsg->flow->alflags, IPPROTO_TCP);
                 if (alproto != ALPROTO_UNKNOWN) {
                     /* store the proto and setup the L7 data array */
@@ -480,7 +481,7 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
         //PrintRawDataFp(stdout, smsg->init.data, smsg->init.data_len);
         //printf("=> Init Stream Data -- end\n");
 
-        alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx,
+        alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx, f,
                         p->payload, p->payload_len, flags, IPPROTO_UDP);
         if (alproto != ALPROTO_UNKNOWN) {
             /* store the proto and setup the L7 data array */

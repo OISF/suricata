@@ -132,6 +132,58 @@ typedef struct AppLayerParserTableElement_ {
                              to be a certain size */
 } AppLayerParserTableElement;
 
+typedef struct AppLayerProbingParserElement_ {
+    const char *al_proto_name;
+    uint16_t al_proto;
+    uint16_t port;
+    uint8_t priority;
+    uint8_t top;
+    /* the min length of data that has to be supplied to invoke the parser */
+    uint32_t min_depth;
+    /* the max length of data after which this parser won't be invoked */
+    uint32_t max_depth;
+    /* the probing parser function */
+    uint16_t (*ProbingParser)(uint8_t *input, uint32_t input_len);
+
+    struct AppLayerProbingParserElement_ *next;
+} AppLayerProbingParserElement;
+
+typedef struct AppLayerProbingParser_ {
+    /* the port no for which probing parser(s) are invoked */
+    uint16_t port;
+    /* the max depth for all the probing parsers registered for this port */
+    uint16_t toserver_max_depth;
+    uint16_t toclient_max_depth;
+
+    AppLayerProbingParserElement *toserver;
+    AppLayerProbingParserElement *toclient;
+
+    struct AppLayerProbingParser_ *next;
+} AppLayerProbingParser;
+
+#define APP_LAYER_PROBING_PARSER_PRIORITY_HIGH   1
+#define APP_LAYER_PROBING_PARSER_PRIORITY_MEDIUM 2
+#define APP_LAYER_PROBING_PARSER_PRIORITY_LOW    3
+
+extern AppLayerProbingParser *probing_parsers;
+
+static inline AppLayerProbingParser *AppLayerGetProbingParsers(uint16_t ip_proto,
+                                                               uint16_t port)
+{
+    if (probing_parsers == NULL)
+        return NULL;
+
+    AppLayerProbingParser *pp = probing_parsers;
+    while (pp != NULL) {
+        if (pp->port == port) {
+            break;
+        }
+        pp = pp->next;
+    }
+
+    return pp;
+}
+
 /* prototypes */
 void AppLayerParsersInitPostProcess(void);
 void RegisterAppLayerParsers(void);
