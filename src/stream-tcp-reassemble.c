@@ -6247,10 +6247,10 @@ static int StreamTcpReassembleTest39 (void) {
 
     ssn.server.ra_raw_base_seq = ssn.server.ra_app_base_seq = 9;
     ssn.server.isn = 9;
-    ssn.server.last_ack = 60;
+    ssn.server.last_ack = 160;
     ssn.client.ra_raw_base_seq = ssn.client.ra_app_base_seq= 9;
     ssn.client.isn = 9;
-    ssn.client.last_ack = 60;
+    ssn.client.last_ack = 160;
     f.alproto = ALPROTO_UNKNOWN;
 
     inet_pton(AF_INET, "1.2.3.4", &in);
@@ -6877,8 +6877,9 @@ static int StreamTcpReassembleTest41 (void) {
         goto end;
     }
 
-    if (!(ssn.client.seg_list->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) {
-        printf("segment should have flags SEGMENTTCP_FLAG_APPLAYER_PROCESSED set: ");
+    /* last_ack is in the middle of this segment */
+    if ((ssn.client.seg_list->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) {
+        printf("segment should not have flags SEGMENTTCP_FLAG_APPLAYER_PROCESSED set: ");
         goto end;
     }
 
