@@ -1305,6 +1305,9 @@ static void HTPConfigure(void)
                 SCLogDebug("LIBHTP default: %s=%s",
                         p->name, p->val);
 
+                SCLogDebug("LIBHTP default: %s=%s",
+                        p->name, p->val);
+
                 if (personality >= 0) {
                     SCLogDebug("LIBHTP default: %s=%s (%d)",
                             p->name, p->val,
@@ -1451,6 +1454,9 @@ static void HTPConfigure(void)
                 } else if (strcasecmp("personality", p->name) == 0) {
                     /* Personalitie */
                     int personality = HTPLookupPersonality(p->val);
+
+                    SCLogDebug("LIBHTP server %s: %s=%s",
+                            s->name, p->name, p->val);
 
                     SCLogDebug("LIBHTP server %s: %s=%s",
                             s->name, p->name, p->val);
