@@ -962,9 +962,9 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                 uint32_t filedata_len = 0;
                 uint8_t flags = 0;
 
-                if (header_start < form_end) {
+                if (header_start < form_end || (header_start != NULL && form_end == NULL)) {
                     filedata_len = header_start - filedata - 2; /* 0d 0a */
-                } else if (form_end < header_start) {
+                } else if (form_end != NULL && form_end < header_start) {
                     filedata_len = form_end - filedata;
                 } else if (form_end != NULL && form_end == header_start) {
                     filedata_len = form_end - filedata - 2; /* 0d 0a */
@@ -972,6 +972,8 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                     filedata_len = chunks_buffer_len;
                     flags = FLOW_FILE_TRUNCATED;
                 }
+
+                BUG_ON(filedata_len > chunks_buffer_len);
 #if 0
                 printf("FILEDATA (final chunk) START: \n");
                 PrintRawDataFp(stdout, filedata, filedata_len);
