@@ -110,8 +110,10 @@ struct DetectDecodeEvents_ {
     { "ipraw.invalid_ip_version",IPRAW_INVALID_IPV, },
     { "vlan.header_too_small",VLAN_HEADER_TOO_SMALL, },
     { "vlan.unknown_type",VLAN_UNKNOWN_TYPE, },
-    { "frag.too_large", FRAG_PKT_TOO_LARGE, },
-    { "frag.overlap", FRAG_OVERLAP, },
+    { "ipv4.frag.too_large", IPV4_FRAG_PKT_TOO_LARGE, },
+    { "ipv4.frag.overlap", IPV4_FRAG_OVERLAP, },
+    { "ipv6.frag.too_large", IPV6_FRAG_PKT_TOO_LARGE, },
+    { "ipv6.frag.overlap", IPV6_FRAG_OVERLAP, },
     { NULL, 0 },
 };
 #endif /* DETECT_EVENTS */

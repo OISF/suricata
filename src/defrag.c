@@ -780,7 +780,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
         /* Ignore fragment if the end of packet extends past the
          * maximum size of a packet. */
         if (IPV4_HEADER_LEN + frag_offset + data_len > IPV4_MAXPACKET_LEN) {
-            DECODER_SET_EVENT(p, FRAG_PKT_TOO_LARGE);
+            DECODER_SET_EVENT(p, IPV4_FRAG_PKT_TOO_LARGE);
             return NULL;;
         }
     }
@@ -798,7 +798,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
         /* Ignore fragment if the end of packet extends past the
          * maximum size of a packet. */
         if (frag_offset + data_len > IPV6_MAXPACKET) {
-            DECODER_SET_EVENT(p, FRAG_PKT_TOO_LARGE);
+            DECODER_SET_EVENT(p, IPV6_FRAG_PKT_TOO_LARGE);
             return NULL;
         }
     }
@@ -983,7 +983,12 @@ insert:
 
 done:
     if (overlap) {
-        DECODER_SET_EVENT(p, FRAG_OVERLAP);
+        if (tracker->af == AF_INET) {
+            DECODER_SET_EVENT(p, IPV4_FRAG_OVERLAP);
+        }
+        else {
+            DECODER_SET_EVENT(p, IPV6_FRAG_OVERLAP);
+        }
     }
     SCMutexUnlock(&tracker->lock);
     return r;
@@ -1781,7 +1786,7 @@ DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
             SCFree(tp);
             goto end;
         }
-        if (DECODER_ISSET_EVENT(packets[i], FRAG_OVERLAP)) {
+        if (DECODER_ISSET_EVENT(packets[i], IPV4_FRAG_OVERLAP)) {
             goto end;
         }
     }
@@ -1792,7 +1797,7 @@ DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
             SCFree(tp);
             goto end;
         }
-        if (DECODER_ISSET_EVENT(packets[i], FRAG_OVERLAP)) {
+        if (DECODER_ISSET_EVENT(packets[i], IPV4_FRAG_OVERLAP)) {
             overlap++;
         }
     }
@@ -1920,7 +1925,7 @@ IPV6DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
             SCFree(tp);
             goto end;
         }
-        if (DECODER_ISSET_EVENT(packets[i], FRAG_OVERLAP)) {
+        if (DECODER_ISSET_EVENT(packets[i], IPV6_FRAG_OVERLAP)) {
             goto end;
         }
     }
@@ -1931,7 +1936,7 @@ IPV6DefragDoSturgesNovakTest(int policy, u_char *expected, size_t expected_len)
             SCFree(tp);
             goto end;
         }
-        if (DECODER_ISSET_EVENT(packets[i], FRAG_OVERLAP)) {
+        if (DECODER_ISSET_EVENT(packets[i], IPV6_FRAG_OVERLAP)) {
             overlap++;
         }
     }
@@ -2524,7 +2529,7 @@ DefragIPv4TooLargeTest(void)
     /* We do not expect a packet returned. */
     if (Defrag(NULL, NULL, dc, p) != NULL)
         goto end;
-    if (!DECODER_ISSET_EVENT(p, FRAG_PKT_TOO_LARGE))
+    if (!DECODER_ISSET_EVENT(p, IPV4_FRAG_PKT_TOO_LARGE))
         goto end;
 
     /* The fragment should have been ignored so no fragments should have

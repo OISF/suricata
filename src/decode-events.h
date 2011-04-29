@@ -181,8 +181,10 @@ enum {
     SCTP_PKT_TOO_SMALL,              /**< sctp packet smaller than minimum size */
 
     /* Fragmentation reasembly events. */
-    FRAG_PKT_TOO_LARGE,
-    FRAG_OVERLAP,
+    IPV4_FRAG_PKT_TOO_LARGE,
+    IPV4_FRAG_OVERLAP,
+    IPV6_FRAG_PKT_TOO_LARGE,
+    IPV6_FRAG_OVERLAP,
 
     /* should always be last! */
     DECODE_EVENT_MAX,
