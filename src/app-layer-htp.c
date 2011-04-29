@@ -83,7 +83,6 @@ static uint64_t htp_state_memcnt = 0;
 static uint8_t need_htp_request_body = 0;
 
 
-#if 0 /* Not used yet */
 /**
  * \internal
  *
@@ -113,7 +112,6 @@ static const char *HTPLookupPersonalityString(int p)
 
     return NULL;
 }
-#endif /* Not used yet */
 
 /**
  * \internal
@@ -879,36 +877,36 @@ static void HTPConfigure(void)
 
         /* Default Parameters */
         TAILQ_FOREACH(p, &default_config->head, next) {
-            ConfNode *pval;
+            //ConfNode *pval;
 
             if (strcasecmp("personality", p->name) == 0) {
                 /* Personalities */
-                TAILQ_FOREACH(pval, &p->head, next) {
-                    int personality = HTPLookupPersonality(pval->val);
+                int personality = HTPLookupPersonality(p->val);
 
-                    SCLogDebug("LIBHTP default: %s=%s",
-                               p->name, pval->val);
+                SCLogDebug("LIBHTP default: %s=%s",
+                        p->name, p->val);
 
 
-                    if (personality >= 0) {
-                        SCLogDebug("LIBHTP default: %s=%s (%d)",
-                                   p->name, pval->val,
-                                   personality);
-                        if (htp_config_set_server_personality(cfglist.cfg,
+                if (personality >= 0) {
+                    SCLogDebug("LIBHTP default: %s=%s (%d)",
+                            p->name, p->val,
+                            personality);
+                    if (htp_config_set_server_personality(cfglist.cfg,
                                 personality) == HTP_ERROR)
-                        {
-                            SCLogWarning(SC_ERR_INVALID_VALUE,
-                                         "LIBHTP Failed adding personality "
-                                         "\"%s\", ignoring", pval->val);
-                        }
+                    {
+                        SCLogWarning(SC_ERR_INVALID_VALUE,
+                                "LIBHTP Failed adding personality "
+                                "\"%s\", ignoring", p->val);
+                    } else {
+                        SCLogDebug("LIBHTP personality set to %s",
+                                HTPLookupPersonalityString(personality));
                     }
-                    else {
-                        SCLogWarning(SC_ERR_UNKNOWN_VALUE,
-                                     "LIBHTP Unknown personality "
-                                     "\"%s\", ignoring", pval->val);
-                        continue;
-                    }
-
+                }
+                else {
+                    SCLogWarning(SC_ERR_UNKNOWN_VALUE,
+                            "LIBHTP Unknown personality "
+                            "\"%s\", ignoring", p->val);
+                    continue;
                 }
             } else if (strcasecmp("request-body-limit", p->name) == 0 ||
                        strcasecmp("request_body_limit", p->name) == 0) {
@@ -1028,34 +1026,35 @@ static void HTPConfigure(void)
                         }
                     }
                 } else if (strcasecmp("personality", p->name) == 0) {
-                    /* Personalities */
-                    TAILQ_FOREACH(pval, &p->head, next) {
-                        int personality = HTPLookupPersonality(pval->val);
+                    /* Personalitie */
+                    int personality = HTPLookupPersonality(p->val);
 
-                        SCLogDebug("LIBHTP server %s: %s=%s",
-                                   s->name, p->name, pval->val);
+                    SCLogDebug("LIBHTP server %s: %s=%s",
+                            s->name, p->name, p->val);
 
 
-                        if (personality >= 0) {
-                            SCLogDebug("LIBHTP %s: %s=%s (%d)",
-                                       s->name, p->name, pval->val,
-                                       personality);
-                            if (htp_config_set_server_personality(htp,
+                    if (personality >= 0) {
+                        SCLogDebug("LIBHTP %s: %s=%s (%d)",
+                                s->name, p->name, p->val,
+                                personality);
+                        if (htp_config_set_server_personality(htp,
                                     personality) == HTP_ERROR)
-                            {
-                                SCLogWarning(SC_ERR_INVALID_VALUE,
-                                             "LIBHTP Failed adding personality "
-                                             "\"%s\", ignoring", pval->val);
-                            }
+                        {
+                            SCLogWarning(SC_ERR_INVALID_VALUE,
+                                    "LIBHTP Failed adding personality "
+                                    "\"%s\", ignoring", p->val);
+                        } else {
+                            SCLogDebug("LIBHTP personality set to %s",
+                                    HTPLookupPersonalityString(personality));
                         }
-                        else {
-                            SCLogWarning(SC_ERR_UNKNOWN_VALUE,
-                                         "LIBHTP Unknown personality "
-                                         "\"%s\", ignoring", pval->val);
-                            continue;
-                        }
-
                     }
+                    else {
+                        SCLogWarning(SC_ERR_UNKNOWN_VALUE,
+                                "LIBHTP Unknown personality "
+                                "\"%s\", ignoring", p->val);
+                        continue;
+                    }
+
                 /* VJ the non underscore version was a typo but keeping it for
                  * compatibility with existing installs */
                 } else if (strcasecmp("request-body-limit", p->name) == 0 ||
