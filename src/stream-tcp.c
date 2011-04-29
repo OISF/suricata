@@ -3197,6 +3197,8 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                            "%" PRIu32 "", ssn, ssn->client.next_seq,
                            ssn->server.last_ack);
+
+                StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
             } else {
                 SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to client: SEQ "
                            "%" PRIu32 ", ACK %" PRIu32 "", ssn, p->payload_len,
@@ -3237,6 +3239,8 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                            "%" PRIu32 "", ssn, ssn->server.next_seq,
                            ssn->client.last_ack);
+
+                StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
             }
             break;
         default:
