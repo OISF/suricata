@@ -1168,7 +1168,7 @@ static int HandleSegmentStartsAtSameListSegment(ThreadVars *tv, TcpReassemblyThr
         end_before = TRUE;
         SCLogDebug("starts at list seq, ends before list end: seg->seq "
                    "%" PRIu32 ", list_seg->seq %" PRIu32 ", "
-                   "list_seg->payload_len %" PRIu32 " overlap is%" PRIu32 "",
+                   "list_seg->payload_len %" PRIu32 " overlap is %" PRIu32,
                    seg->seq, list_seg->seq, list_seg->payload_len, overlap);
 
     } else if (SEQ_EQ((seg->seq + seg->payload_len), (list_seg->seq +
@@ -2803,6 +2803,8 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
             }
         }
 
+        int partial = FALSE;
+
         /* if the segment ends beyond ra_base_seq we need to consider it */
         if (SEQ_GT((seg->seq + seg->payload_len), ra_base_seq+1)) {
             SCLogDebug("seg->seq %" PRIu32 ", seg->payload_len %" PRIu32 ", "
@@ -2811,16 +2813,21 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
 
             /* handle segments partly before ra_base_seq */
             if (SEQ_GT(ra_base_seq, seg->seq)) {
-                payload_offset = ra_base_seq - seg->seq;
+                payload_offset = (ra_base_seq + 1) - seg->seq;
+                SCLogDebug("payload_offset %u", payload_offset);
 
                 if (SEQ_LT(stream->last_ack, (seg->seq + seg->payload_len))) {
                     if (SEQ_LT(stream->last_ack, ra_base_seq)) {
                         payload_len = (stream->last_ack - seg->seq);
+                        SCLogDebug("payload_len %u", payload_len);
                     } else {
                         payload_len = (stream->last_ack - seg->seq) - payload_offset;
+                        SCLogDebug("payload_len %u", payload_len);
                     }
+                    partial = TRUE;
                 } else {
                     payload_len = seg->payload_len - payload_offset;
+                    SCLogDebug("payload_len %u", payload_len);
                 }
 
                 if (SCLogDebugEnabled()) {
@@ -2832,8 +2839,12 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
 
                 if (SEQ_LT(stream->last_ack, (seg->seq + seg->payload_len))) {
                     payload_len = stream->last_ack - seg->seq;
+                    SCLogDebug("payload_len %u", payload_len);
+
+                    partial = TRUE;
                 } else {
                     payload_len = seg->payload_len;
+                    SCLogDebug("payload_len %u", payload_len);
                 }
             }
             SCLogDebug("payload_offset is %"PRIu16", payload_len is %"PRIu16""
@@ -2978,7 +2989,12 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
         /* done with this segment, return it to the pool */
         TcpSegment *next_seg = seg->next;
         next_seq = seg->seq + seg->payload_len;
-        seg->flags |= SEGMENTTCP_FLAG_APPLAYER_PROCESSED;
+        if (partial == FALSE) {
+            SCLogDebug("fully done with segment in app layer reassembly");
+            seg->flags |= SEGMENTTCP_FLAG_APPLAYER_PROCESSED;
+        } else {
+            SCLogDebug("not yet fully done with segment in app layer reassembly");
+        }
         seg = next_seg;
     }
 
