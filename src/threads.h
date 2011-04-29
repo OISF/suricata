@@ -49,6 +49,7 @@ enum {
 
 #elif OS_WIN32
 
+#include <windows.h>
 enum {
     PRIO_LOW = THREAD_PRIORITY_LOWEST,
     PRIO_MEDIUM = THREAD_PRIORITY_NORMAL,
