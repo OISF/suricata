@@ -26,8 +26,6 @@
  *
  */
 
-#include <arpa/inet.h>
-
 #include "suricata-common.h"
 #include "suricata.h"
 #include "debug.h"
