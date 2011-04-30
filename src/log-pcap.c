@@ -429,7 +429,11 @@ int PcapLogOpenFileCtx(LogFileCtx *file_ctx, const char *prefix)
         snprintf(dirfull, PATH_MAX, "%s/%s", g_logpcap_sguil_base_dir, dirname);
 
         /* if mkdir fails file open will fail, so deal with errors there */
+#ifndef OS_WIN32
         (void)mkdir(dirfull, 0700);
+#else
+        (void)mkdir(dirfull);
+#endif
 
         snprintf(filename, PATH_MAX, "%s/%s.%" PRIu32, dirfull, prefix, (uint32_t)ts.tv_sec);
     } else {
