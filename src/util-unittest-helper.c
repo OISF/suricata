@@ -25,7 +25,6 @@
  */
 
 #include "suricata-common.h"
-#include <netinet/in.h>
 
 #include "decode.h"
 
