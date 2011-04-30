@@ -197,6 +197,10 @@ int AppLayerRegisterParser(char *name, uint16_t proto, uint16_t parser_id,
                            AppLayerParserState *parser_state, uint8_t *input,
                            uint32_t input_len, AppLayerParserResult *output),
                            char *dependency);
+void AppLayerRegisterProbingParser(uint16_t, uint16_t, const char *, uint16_t,
+                                   uint16_t, uint16_t, uint8_t, uint8_t,
+                                   uint8_t, uint16_t (*ProbingParser)
+                                   (uint8_t *, uint32_t));
 void AppLayerRegisterStateFuncs(uint16_t proto, void *(*StateAlloc)(void),
                                 void (*StateFree)(void *));
 void AppLayerRegisterTransactionIdFuncs(uint16_t proto,
