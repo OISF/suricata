@@ -145,31 +145,44 @@ typedef struct Frag_ {
     TAILQ_ENTRY(Frag_) next; /**< Pointer to next fragment for tailq. */
 } Frag;
 
+/** \brief Reset tracker fields except "dc" and "lock" */
+#define DEFRAG_TRACKER_RESET(t) { \
+    (t)->timeout = 0; \
+    (t)->id = 0; \
+    (t)->policy = 0; \
+    (t)->af = 0; \
+    (t)->seen_last = 0; \
+    CLEAR_ADDR(&(t)->src_addr); \
+    CLEAR_ADDR(&(t)->dst_addr); \
+    (t)->frags.tqh_first = NULL; \
+    (t)->frags.tqh_last = NULL; \
+}
+
 /**
  * A defragmentation tracker.  Used to track fragments that make up a
  * single packet.
  */
 typedef struct DefragTracker_ {
+    SCMutex lock; /**< Mutex for locking list operations on
+                           * this tracker. */
+
     DefragContext *dc; /**< The defragmentation context this tracker
                         * was allocated under. */
 
-    uint8_t policy; /**< Reassembly policy this tracker will use. */
-
-    struct timeval timeout; /**< When this tracker will timeout. */
-
-    uint8_t af; /**< Address family for this tracker, AF_INET or
-                 * AF_INET6. */
+    uint32_t timeout; /**< When this tracker will timeout. */
 
     uint32_t id; /**< IP ID for this tracker.  32 bits for IPv6, 16
                   * for IPv4. */
 
-    Address src_addr; /**< Source address for this tracker. */
-    Address dst_addr; /**< Destination address for this tracker. */
+    uint8_t policy; /**< Reassembly policy this tracker will use. */
+
+    uint8_t af; /**< Address family for this tracker, AF_INET or
+                 * AF_INET6. */
 
     uint8_t seen_last; /**< Has this tracker seen the last fragment? */
 
-    SCMutex lock; /**< Mutex for locking list operations on
-                           * this tracker. */
+    Address src_addr; /**< Source address for this tracker. */
+    Address dst_addr; /**< Destination address for this tracker. */
 
     TAILQ_HEAD(frag_tailq, Frag_) frags; /**< Head of list of fragments. */
 } DefragTracker;
@@ -341,13 +354,8 @@ DefragTrackerFreeFrags(DefragTracker *tracker)
 static void
 DefragTrackerReset(DefragTracker *tracker)
 {
-    DefragContext *saved_dc = tracker->dc;
-    SCMutex saved_lock = tracker->lock;
-
     DefragTrackerFreeFrags(tracker);
-    memset(tracker, 0, sizeof(*tracker));
-    tracker->dc = saved_dc;
-    tracker->lock = saved_lock;
+    DEFRAG_TRACKER_RESET(tracker);
     TAILQ_INIT(&tracker->frags);
 }
 
@@ -764,6 +772,9 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
     /* Offset in the packet to the IPv6 frag header. IPv6 only. */
     uint16_t frag_hdr_offset = 0;
 
+    /* Address family */
+    int af = tracker->af;
+
 #ifdef DEBUG
     uint64_t pcap_cnt = p->pcap_cnt;
 #endif
@@ -781,7 +792,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
          * maximum size of a packet. */
         if (IPV4_HEADER_LEN + frag_offset + data_len > IPV4_MAXPACKET_LEN) {
             DECODER_SET_EVENT(p, IPV4_FRAG_PKT_TOO_LARGE);
-            return NULL;;
+            return NULL;
         }
     }
     else if (tracker->af == AF_INET6) {
@@ -812,8 +823,7 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
     SCMutexLock(&tracker->lock);
 
     /* Update timeout. */
-    tracker->timeout = p->ts;
-    tracker->timeout.tv_sec += dc->timeout;
+    tracker->timeout = p->ts.tv_sec + dc->timeout;
 
     Frag *prev = NULL, *next;
     int overlap = 0;
@@ -916,8 +926,8 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
             }
         }
     }
-insert:
 
+insert:
     if (data_len - ltrim <= 0) {
         goto done;
     }
@@ -983,7 +993,7 @@ insert:
 
 done:
     if (overlap) {
-        if (tracker->af == AF_INET) {
+        if (af == AF_INET) {
             DECODER_SET_EVENT(p, IPV4_FRAG_OVERLAP);
         }
         else {
@@ -1010,14 +1020,12 @@ static void
 DefragTimeoutTracker(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
     Packet *p)
 {
-    struct timeval now = p->ts;
-
     HashListTableBucket *next = HashListTableGetListHead(dc->frag_table);
     DefragTracker *tracker;
     while (next != NULL) {
         tracker = HashListTableGetListData(next);
 
-        if (timercmp(&tracker->timeout, &now, <)) {
+        if (tracker->timeout < (uint)p->ts.tv_sec) {
             /* Tracker has timeout out. */
             HashListTableRemove(dc->frag_table, tracker, sizeof(tracker));
             DefragTrackerReset(tracker);
@@ -2425,7 +2433,7 @@ DefragTimeoutTest(void)
     if (p == NULL)
         goto end;
 
-    p->ts.tv_sec += dc->timeout;
+    p->ts.tv_sec += (dc->timeout + 1);
     Packet *tp = Defrag(NULL, NULL, dc, p);
 
     SCFree(p);
