@@ -75,6 +75,7 @@ static void AlertSyslogDeInitCtx(OutputCtx *);
 
 /** \brief   Function to register the AlertSyslog module */
 void TmModuleAlertSyslogRegister (void) {
+#ifndef OS_WIN32
     tmm_modules[TMM_ALERTSYSLOG].name = MODULE_NAME;
     tmm_modules[TMM_ALERTSYSLOG].ThreadInit = AlertSyslogThreadInit;
     tmm_modules[TMM_ALERTSYSLOG].Func = AlertSyslog;
@@ -84,28 +85,34 @@ void TmModuleAlertSyslogRegister (void) {
     tmm_modules[TMM_ALERTSYSLOG].cap_flags = 0;
 
     OutputRegisterModule(MODULE_NAME, "syslog", AlertSyslogInitCtx);
+#endif /* !OS_WIN32 */
 }
 
 /** \brief   Function to register the AlertSyslog module for IPv4 */
 void TmModuleAlertSyslogIPv4Register (void) {
+#ifndef OS_WIN32
     tmm_modules[TMM_ALERTSYSLOG4].name = "AlertSyslogIPv4";
     tmm_modules[TMM_ALERTSYSLOG4].ThreadInit = AlertSyslogThreadInit;
     tmm_modules[TMM_ALERTSYSLOG4].Func = AlertSyslogIPv4;
     tmm_modules[TMM_ALERTSYSLOG4].ThreadExitPrintStats = AlertSyslogExitPrintStats;
     tmm_modules[TMM_ALERTSYSLOG4].ThreadDeinit = AlertSyslogThreadDeinit;
     tmm_modules[TMM_ALERTSYSLOG4].RegisterTests = NULL;
+#endif /* !OS_WIN32 */
 }
 
 /** \brief   Function to register the AlertSyslog module for IPv6 */
 void TmModuleAlertSyslogIPv6Register (void) {
+#ifndef OS_WIN32
     tmm_modules[TMM_ALERTSYSLOG6].name = "AlertSyslogIPv6";
     tmm_modules[TMM_ALERTSYSLOG6].ThreadInit = AlertSyslogThreadInit;
     tmm_modules[TMM_ALERTSYSLOG6].Func = AlertSyslogIPv6;
     tmm_modules[TMM_ALERTSYSLOG6].ThreadExitPrintStats = AlertSyslogExitPrintStats;
     tmm_modules[TMM_ALERTSYSLOG6].ThreadDeinit = AlertSyslogThreadDeinit;
     tmm_modules[TMM_ALERTSYSLOG6].RegisterTests = NULL;
+#endif /* !OS_WIN32 */
 }
 
+#ifndef OS_WIN32
 /**
  * \brief Create a new LogFileCtx for "syslog" output style.
  *
@@ -465,4 +472,5 @@ void AlertSyslogExitPrintStats(ThreadVars *tv, void *data) {
 
     SCLogInfo("(%s) Alerts %" PRIu64 "", tv->name, ast->file_ctx->alerts);
 }
+#endif /* !OS_WIN32 */
 
