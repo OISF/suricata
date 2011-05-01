@@ -42,7 +42,7 @@
  *  Regex (by Brian Rectanus)
  *  flags: [!+*](SAPRFU120)[,SAPRFU12]
  */
-#define PARSE_REGEX "^\\s*(?:([\\+\\*!]))?\\s*([SAPRFU120\\+\\*!]+)(?:\\s*,\\s*([SAPRFU12]+))?\\s*$"
+#define PARSE_REGEX "^\\s*(?:([\\+\\*!]))?\\s*([SAPRFU120CE\\+\\*!]+)(?:\\s*,\\s*([SAPRFU12CE]+))?\\s*$"
 
 /**
  * Flags args[0] *(3) +(2) !(1)
@@ -259,6 +259,16 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
                     de->flags |= TH_ECN;
                     found++;
                     break;
+                case 'C':
+                case 'c':
+                    de->flags |= TH_CWR;
+                    found++;
+                    break;
+                case 'E':
+                case 'e':
+                    de->flags |= TH_ECN;
+                    found++;
+                    break;
                 case '0':
                     de->flags = 0;
                     found++;
@@ -320,6 +330,16 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
                 found++;
                 break;
             case '2':
+                de->flags |= TH_ECN;
+                found++;
+                break;
+            case 'C':
+            case 'c':
+                de->flags |= TH_CWR;
+                found++;
+                break;
+            case 'E':
+            case 'e':
                 de->flags |= TH_ECN;
                 found++;
                 break;
@@ -407,6 +427,16 @@ static DetectFlagsData *DetectFlagsParse (char *rawstr)
                     ignore++;
                     break;
                 case '2':
+                    de->ignored_flags &= ~TH_ECN;
+                    ignore++;
+                    break;
+                case 'C':
+                case 'c':
+                    de->ignored_flags &= ~TH_CWR;
+                    ignore++;
+                    break;
+                case 'E':
+                case 'e':
                     de->ignored_flags &= ~TH_ECN;
                     ignore++;
                     break;
@@ -1096,6 +1126,188 @@ static int FlagsTestParse13 (void) {
     return 1;
 }
 
+/**
+ * \test Parse 'C' and 'E' flags.
+ *
+ *  \retval 1 on success.
+ *  \retval 0 on failure.
+ */
+static int FlagsTestParse14(void)
+{
+    DetectFlagsData *de = DetectFlagsParse("CE");
+    if (de != NULL && (de->flags == (TH_CWR | TH_ECN)) ) {
+        DetectFlagsFree(de);
+        return 1;
+    }
+
+    return 0;
+}
+
+static int FlagsTestParse15(void)
+{
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
+    ThreadVars tv;
+    int ret = 0;
+    DetectFlagsData *de = NULL;
+    SigMatch *sm = NULL;
+    IPV4Hdr ipv4h;
+    TCPHdr tcph;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
+    memset(&ipv4h, 0, sizeof(IPV4Hdr));
+    memset(&tcph, 0, sizeof(TCPHdr));
+
+    p->ip4h = &ipv4h;
+    p->tcph = &tcph;
+    p->tcph->th_flags = TH_ECN | TH_CWR | TH_SYN | TH_RST;
+
+    de = DetectFlagsParse("EC+");
+
+    if (de == NULL || (de->flags != (TH_ECN | TH_CWR)) )
+        goto error;
+
+    sm = SigMatchAlloc();
+    if (sm == NULL)
+        goto error;
+
+    sm->type = DETECT_FLAGS;
+    sm->ctx = (void *)de;
+
+    ret = DetectFlagsMatch(&tv, NULL, p, NULL, sm);
+
+    if (ret) {
+        if (de)
+            SCFree(de);
+        if (sm)
+            SCFree(sm);
+        SCFree(p);
+        return 1;
+    }
+
+error:
+    if (de)
+        SCFree(de);
+    if (sm)
+        SCFree(sm);
+    SCFree(p);
+    return 0;
+}
+
+static int FlagsTestParse16(void)
+{
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
+    ThreadVars tv;
+    int ret = 0;
+    DetectFlagsData *de = NULL;
+    SigMatch *sm = NULL;
+    IPV4Hdr ipv4h;
+    TCPHdr tcph;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
+    memset(&ipv4h, 0, sizeof(IPV4Hdr));
+    memset(&tcph, 0, sizeof(TCPHdr));
+
+    p->ip4h = &ipv4h;
+    p->tcph = &tcph;
+    p->tcph->th_flags = TH_ECN | TH_SYN | TH_RST;
+
+    de = DetectFlagsParse("EC*");
+
+    if (de == NULL || (de->flags != (TH_ECN | TH_CWR)) )
+        goto error;
+
+    sm = SigMatchAlloc();
+    if (sm == NULL)
+        goto error;
+
+    sm->type = DETECT_FLAGS;
+    sm->ctx = (void *)de;
+
+    ret = DetectFlagsMatch(&tv, NULL, p, NULL, sm);
+
+    if (ret) {
+        if (de)
+            SCFree(de);
+        if (sm)
+            SCFree(sm);
+        SCFree(p);
+        return 1;
+    }
+
+error:
+    if (de)
+        SCFree(de);
+    if (sm)
+        SCFree(sm);
+    SCFree(p);
+    return 0;
+}
+
+/**
+ * \test Negative test.
+ */
+static int FlagsTestParse17(void)
+{
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
+    ThreadVars tv;
+    int ret = 0;
+    DetectFlagsData *de = NULL;
+    SigMatch *sm = NULL;
+    IPV4Hdr ipv4h;
+    TCPHdr tcph;
+
+    memset(&tv, 0, sizeof(ThreadVars));
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
+    memset(&ipv4h, 0, sizeof(IPV4Hdr));
+    memset(&tcph, 0, sizeof(TCPHdr));
+
+    p->ip4h = &ipv4h;
+    p->tcph = &tcph;
+    p->tcph->th_flags = TH_ECN | TH_SYN | TH_RST;
+
+    de = DetectFlagsParse("EC+");
+
+    if (de == NULL || (de->flags != (TH_ECN | TH_CWR)) )
+        goto error;
+
+    sm = SigMatchAlloc();
+    if (sm == NULL)
+        goto error;
+
+    sm->type = DETECT_FLAGS;
+    sm->ctx = (void *)de;
+
+    ret = DetectFlagsMatch(&tv, NULL, p, NULL, sm);
+
+    if (ret == 0) {
+        if (de)
+            SCFree(de);
+        if (sm)
+            SCFree(sm);
+        SCFree(p);
+        return 1;
+    }
+
+error:
+    if (de)
+        SCFree(de);
+    if (sm)
+        SCFree(sm);
+    SCFree(p);
+    return 0;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -1116,5 +1328,9 @@ void FlagsRegisterTests(void) {
     UtRegisterTest("FlagsTestParse11", FlagsTestParse11, 0);
     UtRegisterTest("FlagsTestParse12", FlagsTestParse12, 0);
     UtRegisterTest("FlagsTestParse13", FlagsTestParse13, 1);
+    UtRegisterTest("FlagsTestParse14", FlagsTestParse14, 1);
+    UtRegisterTest("FlagsTestParse15", FlagsTestParse15, 1);
+    UtRegisterTest("FlagsTestParse16", FlagsTestParse16, 1);
+    UtRegisterTest("FlagsTestParse17", FlagsTestParse17, 1);
 #endif /* UNITTESTS */
 }
