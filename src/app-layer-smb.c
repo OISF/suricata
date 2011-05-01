@@ -38,6 +38,7 @@
 #include "stream-tcp.h"
 #include "stream.h"
 
+#include "app-layer-detect-proto.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 
@@ -1026,14 +1027,24 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
     uint64_t retval = 0;
     uint64_t parsed = 0;
     int hdrretval = 0;
+    int counter = 0;
 
     if (pstate == NULL) {
         SCLogDebug("pstate == NULL");
         SCReturnInt(0);
     }
 
+    while (input_len) {
+        /* till we clear corner cases */
+        if (counter++ == 30) {
+            SCLogDebug("Somehow seem to be stuck inside the smb "
+                    "parser for quite sometime.  Let's get out of here.");
+            sstate->bytesprocessed = 0;
+            SCReturnInt(0);
+        }
+
     while (input_len && sstate->bytesprocessed < NBSS_HDR_LEN) {
-        retval = NBSSParseHeader(f, smb_state, pstate, input,
+        retval = NBSSParseHeader(f, smb_state, pstate, input + parsed,
                                  input_len, output);
         if (retval) {
             parsed += retval;
@@ -1181,6 +1192,30 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                 /* inside if */
                 sstate->bytesprocessed = 0;
                 sstate->transaction_id++;
+                input_len = 0;
+            }
+            break;
+
+        case NBSS_SESSION_REQUEST:
+        case NBSS_POSITIVE_SESSION_RESPONSE:
+        case NBSS_NEGATIVE_SESSION_RESPONSE:
+        case NBSS_RETARGET_SESSION_RESPONSE:
+        case NBSS_SESSION_KEEP_ALIVE:
+            if (sstate->bytesprocessed < (sstate->nbss.length + NBSS_HDR_LEN)) {
+                if (input_len >= (sstate->nbss.length + NBSS_HDR_LEN -
+                                  sstate->bytesprocessed)) {
+                    /* inside if */
+                    input_len -= (sstate->nbss.length + NBSS_HDR_LEN -
+                                  sstate->bytesprocessed);
+                    parsed += (sstate->nbss.length + NBSS_HDR_LEN -
+                               sstate->bytesprocessed);
+                    sstate->bytesprocessed = 0;
+                } else {
+                    sstate->bytesprocessed += input_len;
+                    input_len = 0;
+                }
+            } else {
+                sstate->bytesprocessed = 0;
             }
             break;
 
@@ -1188,6 +1223,8 @@ static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
             sstate->bytesprocessed = 0;
             break;
     }
+
+    } /* while (input_len) */
 
     pstate->parse_field = 0;
 
@@ -1284,6 +1321,41 @@ void SMBUpdateTransactionId(void *state, uint16_t *id) {
     SCReturn;
 }
 
+static uint16_t SMBProbingParser(uint8_t *input, uint32_t input_len)
+{
+    uint32_t len;
+
+    while (input_len > 0) {
+        switch (input[0]) {
+            case NBSS_SESSION_MESSAGE:
+                if (input[4] == 0xFF && input[5] == 'S' && input[6] == 'M' &&
+                    input[7] == 'B') {
+                    return ALPROTO_SMB;
+                }
+
+            case NBSS_SESSION_REQUEST:
+            case NBSS_POSITIVE_SESSION_RESPONSE:
+            case NBSS_NEGATIVE_SESSION_RESPONSE:
+            case NBSS_RETARGET_SESSION_RESPONSE:
+            case NBSS_SESSION_KEEP_ALIVE:
+                len = (input[1] & 0x01) << 16;
+                len = input[2] << 8;
+                len |= input[3];
+                break;
+        }
+
+        input_len -= 4;
+        if (len >= input_len) {
+            return ALPROTO_UNKNOWN;
+        }
+
+        input_len -= len;
+        input += 4 + len;
+    }
+
+    return ALPROTO_UNKNOWN;
+}
+
 void RegisterSMBParsers(void) {
     /** SMB */
     AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SMB, "|ff|SMB", 8, 4, STREAM_TOCLIENT);
@@ -1298,6 +1370,18 @@ void RegisterSMBParsers(void) {
     AppLayerRegisterStateFuncs(ALPROTO_SMB, SMBStateAlloc, SMBStateFree);
     AppLayerRegisterTransactionIdFuncs(ALPROTO_SMB,
             SMBUpdateTransactionId, NULL);
+
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  139,
+                                  IPPROTO_TCP,
+                                  "smb",
+                                  ALPROTO_SMB,
+                                  8, 0,
+                                  STREAM_TOSERVER,
+                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
+                                  SMBProbingParser);
+
+    return;
 }
 
 /* UNITTESTS */
@@ -1838,6 +1922,443 @@ end:
     return result;
 }
 
+int SMBParserTest05(void)
+{
+    uint8_t smbbuf1[] = {
+        /* session request */
+        0x81, 0x00, 0x00, 0x44, 0x20, 0x43, 0x4b, 0x46,
+        0x44, 0x45, 0x4e, 0x45, 0x43, 0x46, 0x44, 0x45,
+        0x46, 0x46, 0x43, 0x46, 0x47, 0x45, 0x46, 0x46,
+        0x43, 0x43, 0x41, 0x43, 0x41, 0x43, 0x41, 0x43,
+        0x41, 0x43, 0x41, 0x43, 0x41, 0x00, 0x20, 0x43,
+        0x41, 0x43, 0x41, 0x43, 0x41, 0x43, 0x41, 0x43,
+        0x41, 0x43, 0x41, 0x43, 0x41, 0x43, 0x41, 0x43,
+        0x41, 0x43, 0x41, 0x43, 0x41, 0x43, 0x41, 0x43,
+        0x41, 0x43, 0x41, 0x43, 0x41, 0x41, 0x41, 0x00
+    };
+    uint32_t smblen1 = sizeof(smbbuf1);
+    uint8_t smbbuf2[] = {
+        /* session request */
+        0x81, 0x00, 0x00, 0x44, 0x20, 0x43, 0x4b, 0x46,
+        0x44, 0x45, 0x4e, 0x45, 0x43, 0x46, 0x44, 0x45,
+        0x46, 0x46, 0x43, 0x46, 0x47, 0x45, 0x46, 0x46,
+        0x43, 0x43, 0x41, 0x43, 0x41, 0x43, 0x41, 0x43,
+        0x41, 0x43, 0x41, 0x43, 0x41, 0x00, 0x20, 0x43,
+        0x41, 0x43, 0x41, 0x43, 0x41, 0x43, 0x41, 0x43,
+        0x41, 0x43, 0x41, 0x43, 0x41, 0x43, 0x41, 0x43,
+        0x41, 0x43, 0x41, 0x43, 0x41, 0x43, 0x41, 0x43,
+        0x41, 0x43, 0x41, 0x43, 0x41, 0x41, 0x41, 0x00,
+        /* session message */
+        0x00, 0x00, 0x00, 0x60, 0xff, 0x53, 0x4d, 0x42,
+        0x72, 0x00, 0x00, 0x00, 0x00, 0x18, 0x01, 0x20,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x48, 0x2d,
+        0x00, 0x00, 0xdd, 0xca, 0x00, 0x3d, 0x00, 0x02,
+        0x4d, 0x45, 0x54, 0x41, 0x53, 0x50, 0x4c, 0x4f,
+        0x49, 0x54, 0x00, 0x02, 0x4c, 0x41, 0x4e, 0x4d,
+        0x41, 0x4e, 0x31, 0x2e, 0x30, 0x00, 0x02, 0x4c,
+        0x4d, 0x31, 0x2e, 0x32, 0x58, 0x30, 0x30, 0x32,
+        0x00, 0x02, 0x4e, 0x54, 0x20, 0x4c, 0x41, 0x4e,
+        0x4d, 0x41, 0x4e, 0x20, 0x31, 0x2e, 0x30, 0x00,
+        0x02, 0x4e, 0x54, 0x20, 0x4c, 0x4d, 0x20, 0x30,
+        0x2e, 0x31, 0x32, 0x00
+    };
+    uint32_t smblen2 = sizeof(smbbuf2);
+
+    int result = 0;
+    AlpProtoDetectCtx ctx;
+    AlpProtoDetectThreadCtx tctx;
+    AppLayerProbingParser *probing_parsers = NULL;
+    uint16_t alproto;
+    Flow f;
+    memset(&f, 0, sizeof(f));
+    f.dp = 139;
+
+    AlpProtoInit(&ctx);
+
+    /** SMB */
+    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB, "|ff|SMB", 8, 4, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB, "|ff|SMB", 8, 4, STREAM_TOSERVER);
+
+    /** SMB2 */
+    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOSERVER);
+
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  f.dp,
+                                  IPPROTO_TCP,
+                                  "smb",
+                                  ALPROTO_SMB,
+                                  8, 0,
+                                  STREAM_TOSERVER,
+                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
+                                  SMBProbingParser);
+
+
+    AlpProtoFinalizeGlobal(&ctx);
+    AlpProtoFinalizeThread(&ctx, &tctx);
+
+    alproto = AppLayerDetectGetProto(&alp_proto_ctx, &tctx, &f,
+                                     smbbuf1, smblen1,
+                                     STREAM_TOSERVER, IPPROTO_TCP);
+    if (alproto != ALPROTO_UNKNOWN) {
+        printf("alproto is %"PRIu16 ".  Should be ALPROTO_UNKNOWN\n",
+               alproto);
+        goto end;
+    }
+
+    alproto = AppLayerDetectGetProto(&alp_proto_ctx, &tctx, &f,
+                                     smbbuf2, smblen2,
+                                     STREAM_TOSERVER, IPPROTO_TCP);
+    if (alproto != ALPROTO_SMB) {
+        printf("alproto is %"PRIu16 ".  Should be ALPROTO_SMB\n",
+               alproto);
+        goto end;
+    }
+
+    result = 1;
+ end:
+    AlpProtoTestDestroy(&ctx);
+    AppLayerFreeProbingParsers(probing_parsers);
+    PmqFree(&tctx.toclient.pmq);
+    PmqFree(&tctx.toserver.pmq);
+    return result;
+}
+
+int SMBParserTest06(void)
+{
+    uint8_t smbbuf1[] = {
+        /* session request */
+        0x83, 0x00, 0x00, 0x01, 0x82
+    };
+    uint32_t smblen1 = sizeof(smbbuf1);
+    uint8_t smbbuf2[] = {
+        /* session request */
+        0x83, 0x00, 0x00, 0x01, 0x82,
+        /* session message */
+        0x00, 0x00, 0x00, 0x55, 0xff, 0x53, 0x4d, 0x42,
+        0x72, 0x00, 0x00, 0x00, 0x00, 0x98, 0x53, 0xc8,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xfe,
+        0x00, 0x00, 0x00, 0x00, 0x11, 0x05, 0x00, 0x03,
+        0x0a, 0x00, 0x01, 0x00, 0x04, 0x11, 0x00, 0x00,
+        0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0xfd, 0xe3, 0x00, 0x80, 0xb8, 0xcb, 0x22, 0x5f,
+        0xfd, 0xeb, 0xc3, 0x01, 0x68, 0x01, 0x00, 0x10,
+        0x00, 0x50, 0xb5, 0xc3, 0x62, 0x59, 0x02, 0xd1,
+        0x4d, 0x99, 0x6d, 0x85, 0x7d, 0xfa, 0x93, 0x2d,
+        0xbb
+    };
+    uint32_t smblen2 = sizeof(smbbuf2);
+
+    int result = 0;
+    AlpProtoDetectCtx ctx;
+    AlpProtoDetectThreadCtx tctx;
+    AppLayerProbingParser *probing_parsers = NULL;
+    uint16_t alproto;
+    Flow f;
+    memset(&f, 0, sizeof(f));
+    f.dp = 139;
+
+    AlpProtoInit(&ctx);
+
+    /** SMB */
+    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB, "|ff|SMB", 8, 4, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB, "|ff|SMB", 8, 4, STREAM_TOSERVER);
+
+    /** SMB2 */
+    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOSERVER);
+
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  f.dp,
+                                  IPPROTO_TCP,
+                                  "smb",
+                                  ALPROTO_SMB,
+                                  8, 0,
+                                  STREAM_TOSERVER,
+                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
+                                  SMBProbingParser);
+
+
+    AlpProtoFinalizeGlobal(&ctx);
+    AlpProtoFinalizeThread(&ctx, &tctx);
+
+    alproto = AppLayerDetectGetProto(&alp_proto_ctx, &tctx, &f,
+                                     smbbuf1, smblen1,
+                                     STREAM_TOSERVER, IPPROTO_TCP);
+    if (alproto != ALPROTO_UNKNOWN) {
+        printf("alproto is %"PRIu16 ".  Should be ALPROTO_UNKNOWN\n",
+               alproto);
+        goto end;
+    }
+
+    alproto = AppLayerDetectGetProto(&alp_proto_ctx, &tctx, &f,
+                                     smbbuf2, smblen2,
+                                     STREAM_TOSERVER, IPPROTO_TCP);
+    if (alproto != ALPROTO_SMB) {
+        printf("alproto is %"PRIu16 ".  Should be ALPROTO_SMB\n",
+               alproto);
+        goto end;
+    }
+
+    result = 1;
+ end:
+    AlpProtoTestDestroy(&ctx);
+    AppLayerFreeProbingParsers(probing_parsers);
+    PmqFree(&tctx.toclient.pmq);
+    PmqFree(&tctx.toserver.pmq);
+    return result;
+}
+
+int SMBParserTest07(void) {
+    int result = 0;
+    Flow f;
+    uint8_t smbbuf1[] = {
+        /* negative session response */
+        0x83, 0x00, 0x00, 0x01, 0x82
+    };
+    uint32_t smblen1 = sizeof(smbbuf1);
+    TcpSession ssn;
+    int r = 0;
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOCLIENT | STREAM_START, smbbuf1, smblen1);
+    if (r != 0) {
+        printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    SMBState *smb_state = f.aldata[AlpGetStateIdx(ALPROTO_SMB)];
+    if (smb_state == NULL) {
+        printf("no smb state: ");
+        goto end;
+    }
+
+    if (smb_state->smb.command != 0) {
+        printf("we shouldn't have any smb state as yet\n");
+        goto end;
+    }
+
+    if (smb_state->nbss.length != 1 ||
+        smb_state->nbss.type != NBSS_NEGATIVE_SESSION_RESPONSE) {
+        printf("something wrong with nbss parsing\n");
+        goto end;
+    }
+
+    if (smb_state->bytesprocessed != 0) {
+        printf("smb parser bytesprocessed should be 0, but it is not\n");
+        goto end;
+    }
+
+    result = 1;
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    return result;
+}
+
+int SMBParserTest08(void) {
+    int result = 0;
+    Flow f;
+    uint8_t smbbuf1[] = {
+        /* positive session response */
+        0x82, 0x00, 0x00, 0x00
+    };
+    uint8_t smbbuf2[] = {
+        /* negotiate protocol */
+        0x00, 0x00, 0x00, 0x55, 0xff, 0x53, 0x4d, 0x42,
+        0x72, 0x00, 0x00, 0x00, 0x00, 0x98, 0x53, 0xc8,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xfe,
+        0x00, 0x00, 0x00, 0x00, 0x11, 0x05, 0x00, 0x03,
+        0x0a, 0x00, 0x01, 0x00, 0x04, 0x11, 0x00, 0x00,
+        0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0xfd, 0xe3, 0x00, 0x80, 0x40, 0x8a, 0x57, 0x5c,
+        0xfd, 0xeb, 0xc3, 0x01, 0x68, 0x01, 0x00, 0x10,
+        0x00, 0x50, 0xb5, 0xc3, 0x62, 0x59, 0x02, 0xd1,
+        0x4d, 0x99, 0x6d, 0x85, 0x7d, 0xfa, 0x93, 0x2d,
+        0xbb
+    };
+    uint32_t smblen1 = sizeof(smbbuf1);
+    uint32_t smblen2 = sizeof(smbbuf2);
+    TcpSession ssn;
+    int r = 0;
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOCLIENT | STREAM_START, smbbuf1, smblen1);
+    if (r != 0) {
+        printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    SMBState *smb_state = f.aldata[AlpGetStateIdx(ALPROTO_SMB)];
+    if (smb_state == NULL) {
+        printf("no smb state: ");
+        goto end;
+    }
+
+    if (smb_state->smb.command != 0) {
+        printf("we shouldn't have any smb state as yet\n");
+        goto end;
+    }
+
+    if (smb_state->nbss.length != 0 ||
+        smb_state->nbss.type != NBSS_POSITIVE_SESSION_RESPONSE) {
+        printf("something wrong with nbss parsing\n");
+        goto end;
+    }
+
+    if (smb_state->bytesprocessed != 0) {
+        printf("smb parser bytesprocessed should be 0, but it is not\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOCLIENT, smbbuf2, smblen2);
+    if (r != 0) {
+        printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    if (smb_state->smb.command != SMB_COM_NEGOTIATE) {
+        printf("we should expect SMB command 0x%02x , got 0x%02x : ",
+               SMB_COM_NEGOTIATE, smb_state->smb.command);
+        goto end;
+    }
+
+    if (smb_state->nbss.length != 85 ||
+        smb_state->nbss.type != NBSS_SESSION_MESSAGE) {
+        printf("something wrong with nbss parsing\n");
+        goto end;
+    }
+
+    if (smb_state->bytesprocessed != 0) {
+        printf("smb parser bytesprocessed should be 0, but it is not\n");
+        goto end;
+    }
+
+    result = 1;
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    return result;
+}
+
+int SMBParserTest09(void) {
+    int result = 0;
+    Flow f;
+    uint8_t smbbuf1[] = {
+        /* session request */
+        0x81, 0x00, 0x00, 0x44, 0x20, 0x45, 0x44, 0x45,
+        0x4a, 0x46, 0x44, 0x45, 0x44, 0x45, 0x50, 0x43,
+        0x4e, 0x46, 0x48, 0x44, 0x43, 0x45, 0x4c, 0x43,
+        0x4e, 0x46, 0x43, 0x46, 0x45, 0x45, 0x4e, 0x43,
+        0x41, 0x43, 0x41, 0x43, 0x41, 0x00, 0x20, 0x45,
+        0x44, 0x45, 0x4a, 0x46, 0x44, 0x45, 0x44, 0x45,
+        0x50, 0x43, 0x4e, 0x46, 0x49, 0x46, 0x41, 0x43,
+        0x4e, 0x46, 0x43, 0x46, 0x45, 0x45, 0x4e, 0x43,
+        0x41, 0x43, 0x41, 0x43, 0x41, 0x41, 0x41, 0x00
+    };
+    uint8_t smbbuf2[] = {
+        /* session service - negotiate protocol */
+        0x00, 0x00, 0x00, 0x85, 0xff, 0x53, 0x4d, 0x42,
+        0x72, 0x00, 0x00, 0x00, 0x00, 0x18, 0x53, 0xc8,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xfe,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x62, 0x00, 0x02,
+        0x50, 0x43, 0x20, 0x4e, 0x45, 0x54, 0x57, 0x4f,
+        0x52, 0x4b, 0x20, 0x50, 0x52, 0x4f, 0x47, 0x52,
+        0x41, 0x4d, 0x20, 0x31, 0x2e, 0x30, 0x00, 0x02,
+        0x4c, 0x41, 0x4e, 0x4d, 0x41, 0x4e, 0x31, 0x2e,
+        0x30, 0x00, 0x02, 0x57, 0x69, 0x6e, 0x64, 0x6f,
+        0x77, 0x73, 0x20, 0x66, 0x6f, 0x72, 0x20, 0x57,
+        0x6f, 0x72, 0x6b, 0x67, 0x72, 0x6f, 0x75, 0x70,
+        0x73, 0x20, 0x33, 0x2e, 0x31, 0x61, 0x00, 0x02,
+        0x4c, 0x4d, 0x31, 0x2e, 0x32, 0x58, 0x30, 0x30,
+        0x32, 0x00, 0x02, 0x4c, 0x41, 0x4e, 0x4d, 0x41,
+        0x4e, 0x32, 0x2e, 0x31, 0x00, 0x02, 0x4e, 0x54,
+        0x20, 0x4c, 0x4d, 0x20, 0x30, 0x2e, 0x31, 0x32,
+        0x00
+    };
+    uint32_t smblen1 = sizeof(smbbuf1);
+    uint32_t smblen2 = sizeof(smbbuf2);
+    TcpSession ssn;
+    int r = 0;
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOSERVER | STREAM_START, smbbuf1, smblen1);
+    if (r != 0) {
+        printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    SMBState *smb_state = f.aldata[AlpGetStateIdx(ALPROTO_SMB)];
+    if (smb_state == NULL) {
+        printf("no smb state: ");
+        goto end;
+    }
+
+    if (smb_state->smb.command != 0) {
+        printf("we shouldn't have any smb state as yet\n");
+        goto end;
+    }
+
+    if (smb_state->nbss.length != 68 ||
+        smb_state->nbss.type != NBSS_SESSION_REQUEST) {
+        printf("something wrong with nbss parsing\n");
+        goto end;
+    }
+
+    if (smb_state->bytesprocessed != 0) {
+        printf("smb parser bytesprocessed should be 0, but it is not\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf2, smblen2);
+    if (r != 0) {
+        printf("smb header check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+
+    if (smb_state->smb.command != SMB_COM_NEGOTIATE) {
+        printf("we should expect SMB command 0x%02x , got 0x%02x : ",
+               SMB_COM_NEGOTIATE, smb_state->smb.command);
+        goto end;
+    }
+
+    if (smb_state->nbss.length != 133 ||
+        smb_state->nbss.type != NBSS_SESSION_MESSAGE) {
+        printf("something wrong with nbss parsing\n");
+        goto end;
+    }
+
+    if (smb_state->bytesprocessed != 0) {
+        printf("smb parser bytesprocessed should be 0, but it is not\n");
+        goto end;
+    }
+
+    result = 1;
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    return result;
+}
+
 #endif
 
 void SMBParserRegisterTests(void) {
@@ -1847,6 +2368,11 @@ void SMBParserRegisterTests(void) {
     UtRegisterTest("SMBParserTest02", SMBParserTest02, 1);
     UtRegisterTest("SMBParserTest03", SMBParserTest03, 1);
     UtRegisterTest("SMBParserTest04", SMBParserTest04, 1);
+    UtRegisterTest("SMBParserTest05", SMBParserTest05, 1);
+    UtRegisterTest("SMBParserTest06", SMBParserTest06, 1);
+    UtRegisterTest("SMBParserTest07", SMBParserTest07, 1);
+    UtRegisterTest("SMBParserTest08", SMBParserTest08, 1);
+    UtRegisterTest("SMBParserTest09", SMBParserTest09, 1);
 #endif
 }
 

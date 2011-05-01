@@ -1348,10 +1348,11 @@ AppLayerCreateAppLayerProbingParserElement(const char *al_proto_name,
     return pe;
 }
 
-static void AppLayerInsertNewProbingParserElement(AppLayerProbingParserElement *new_pe,
+static void AppLayerInsertNewProbingParserElement(AppLayerProbingParser **probing_parsers,
+                                                  AppLayerProbingParserElement *new_pe,
                                                   uint8_t flags)
 {
-    AppLayerProbingParser *pp = probing_parsers;
+    AppLayerProbingParser *pp = probing_parsers[0];
     while (pp != NULL) {
         if (pp->port == new_pe->port) {
             break;
@@ -1367,10 +1368,10 @@ static void AppLayerInsertNewProbingParserElement(AppLayerProbingParserElement *
 
         new_pp->port = new_pe->port;
 
-        if (probing_parsers == NULL) {
-            probing_parsers = new_pp;
+        if (probing_parsers[0] == NULL) {
+            probing_parsers[0] = new_pp;
         } else {
-            AppLayerProbingParser *pp = probing_parsers;
+            AppLayerProbingParser *pp = probing_parsers[0];
             while (pp->next != NULL) {
                 pp = pp->next;
             }
@@ -1450,9 +1451,8 @@ static void AppLayerInsertNewProbingParserElement(AppLayerProbingParserElement *
     return;
 }
 
-void AppLayerPrintProbingParsers(void)
+void AppLayerPrintProbingParsers(AppLayerProbingParser *pp)
 {
-    AppLayerProbingParser *pp = probing_parsers;
     AppLayerProbingParserElement *pe = NULL;
 
     printf("\n");
@@ -1516,7 +1516,8 @@ void AppLayerPrintProbingParsers(void)
     return;
 }
 
-void AppLayerRegisterProbingParser(uint16_t port,
+void AppLayerRegisterProbingParser(AppLayerProbingParser **probing_parsers,
+                                   uint16_t port,
                                    uint16_t ip_proto,
                                    const char *al_proto_name,
                                    uint16_t al_proto,
@@ -1529,7 +1530,8 @@ void AppLayerRegisterProbingParser(uint16_t port,
                                    (uint8_t *input, uint32_t input_len))
 {
     AppLayerProbingParserElement *pe = NULL;
-    AppLayerProbingParser *pp = AppLayerGetProbingParsers(ip_proto, port);
+    AppLayerProbingParser *pp = AppLayerGetProbingParsers(probing_parsers[0],
+                                                          ip_proto, port);
     if (pp != NULL) {
         if (flags & STREAM_TOSERVER) {
             pe = pp->toserver;
@@ -1562,11 +1564,11 @@ void AppLayerRegisterProbingParser(uint16_t port,
     if (new_pe == NULL)
         return;
 
-    AppLayerInsertNewProbingParserElement(new_pe, flags);
+    AppLayerInsertNewProbingParserElement(probing_parsers, new_pe, flags);
     return;
 }
 
-void AppLayerFreeProbingParsers(void)
+void AppLayerFreeProbingParsers(AppLayerProbingParser *probing_parsers)
 {
     while (probing_parsers != NULL) {
         AppLayerProbingParserElement *pe;
@@ -1753,9 +1755,11 @@ end:
 
 static int AppLayerProbingParserTest01(void)
 {
-    AppLayerFreeProbingParsers();
+    //AppLayerFreeProbingParsers();
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerProbingParser *probing_parsers = NULL;
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "http",
                                   ALPROTO_HTTP,
@@ -1766,7 +1770,7 @@ static int AppLayerProbingParserTest01(void)
     if (probing_parsers == NULL)
         return 0;
 
-    AppLayerFreeProbingParsers();
+    AppLayerFreeProbingParsers(probing_parsers);
     return 1;
 }
 
@@ -1776,9 +1780,10 @@ static int AppLayerProbingParserTest02(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    AppLayerFreeProbingParsers();
-
-    AppLayerRegisterProbingParser(80,
+    //AppLayerFreeProbingParsers();
+    AppLayerProbingParser *probing_parsers = NULL;
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "http",
                                   ALPROTO_HTTP,
@@ -1821,7 +1826,8 @@ static int AppLayerProbingParserTest02(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "smb",
                                   ALPROTO_SMB,
@@ -1882,7 +1888,8 @@ static int AppLayerProbingParserTest02(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "dcerpc",
                                   ALPROTO_DCERPC,
@@ -1964,7 +1971,7 @@ static int AppLayerProbingParserTest02(void)
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers();
+    AppLayerFreeProbingParsers(probing_parsers);
     return result;
 }
 
@@ -1974,9 +1981,10 @@ static int AppLayerProbingParserTest03(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    AppLayerFreeProbingParsers();
-
-    AppLayerRegisterProbingParser(80,
+    //AppLayerFreeProbingParsers();
+    AppLayerProbingParser *probing_parsers = NULL;
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "http",
                                   ALPROTO_HTTP,
@@ -2019,7 +2027,8 @@ static int AppLayerProbingParserTest03(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "smb",
                                   ALPROTO_SMB,
@@ -2080,7 +2089,8 @@ static int AppLayerProbingParserTest03(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "dcerpc",
                                   ALPROTO_DCERPC,
@@ -2162,7 +2172,7 @@ static int AppLayerProbingParserTest03(void)
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers();
+    AppLayerFreeProbingParsers(probing_parsers);
     return result;
 }
 
@@ -2172,9 +2182,11 @@ static int AppLayerProbingParserTest04(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    AppLayerFreeProbingParsers();
+    //AppLayerFreeProbingParsers();
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerProbingParser *probing_parsers = NULL;
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "http",
                                   ALPROTO_HTTP,
@@ -2217,7 +2229,8 @@ static int AppLayerProbingParserTest04(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "smb",
                                   ALPROTO_SMB,
@@ -2278,7 +2291,8 @@ static int AppLayerProbingParserTest04(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "dcerpc",
                                   ALPROTO_DCERPC,
@@ -2360,7 +2374,7 @@ static int AppLayerProbingParserTest04(void)
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers();
+    AppLayerFreeProbingParsers(probing_parsers);
     return result;
 }
 
@@ -2370,9 +2384,10 @@ static int AppLayerProbingParserTest05(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    AppLayerFreeProbingParsers();
-
-    AppLayerRegisterProbingParser(80,
+    //AppLayerFreeProbingParsers();
+    AppLayerProbingParser *probing_parsers = NULL;
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "http",
                                   ALPROTO_HTTP,
@@ -2415,7 +2430,8 @@ static int AppLayerProbingParserTest05(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "smb",
                                   ALPROTO_SMB,
@@ -2476,7 +2492,8 @@ static int AppLayerProbingParserTest05(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "dcerpc",
                                   ALPROTO_DCERPC,
@@ -2558,7 +2575,7 @@ static int AppLayerProbingParserTest05(void)
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers();
+    AppLayerFreeProbingParsers(probing_parsers);
     return result;
 }
 
@@ -2568,9 +2585,11 @@ static int AppLayerProbingParserTest06(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    AppLayerFreeProbingParsers();
+    //AppLayerFreeProbingParsers();
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerProbingParser *probing_parsers = NULL;
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "http",
                                   ALPROTO_HTTP,
@@ -2613,7 +2632,8 @@ static int AppLayerProbingParserTest06(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "smb",
                                   ALPROTO_SMB,
@@ -2674,7 +2694,8 @@ static int AppLayerProbingParserTest06(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "dcerpc",
                                   ALPROTO_DCERPC,
@@ -2756,7 +2777,7 @@ static int AppLayerProbingParserTest06(void)
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers();
+    AppLayerFreeProbingParsers(probing_parsers);
     return result;
 }
 
@@ -2766,9 +2787,11 @@ static int AppLayerProbingParserTest07(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    AppLayerFreeProbingParsers();
+    //AppLayerFreeProbingParsers();
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerProbingParser *probing_parsers = NULL;
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "http",
                                   ALPROTO_HTTP,
@@ -2811,7 +2834,8 @@ static int AppLayerProbingParserTest07(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "smb",
                                   ALPROTO_SMB,
@@ -2872,7 +2896,8 @@ static int AppLayerProbingParserTest07(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "dcerpc",
                                   ALPROTO_DCERPC,
@@ -2954,7 +2979,7 @@ static int AppLayerProbingParserTest07(void)
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers();
+    AppLayerFreeProbingParsers(probing_parsers);
     return result;
 }
 
@@ -2964,9 +2989,11 @@ static int AppLayerProbingParserTest08(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    AppLayerFreeProbingParsers();
+    //AppLayerFreeProbingParsers();
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerProbingParser *probing_parsers = NULL;
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "http",
                                   ALPROTO_HTTP,
@@ -3009,7 +3036,8 @@ static int AppLayerProbingParserTest08(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "smb",
                                   ALPROTO_SMB,
@@ -3070,7 +3098,8 @@ static int AppLayerProbingParserTest08(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "dcerpc",
                                   ALPROTO_DCERPC,
@@ -3152,7 +3181,7 @@ static int AppLayerProbingParserTest08(void)
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers();
+    AppLayerFreeProbingParsers(probing_parsers);
     return result;
 }
 
@@ -3162,9 +3191,11 @@ static int AppLayerProbingParserTest09(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    AppLayerFreeProbingParsers();
+    //AppLayerFreeProbingParsers();
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerProbingParser *probing_parsers = NULL;
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "http",
                                   ALPROTO_HTTP,
@@ -3207,7 +3238,8 @@ static int AppLayerProbingParserTest09(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "smb",
                                   ALPROTO_SMB,
@@ -3268,7 +3300,8 @@ static int AppLayerProbingParserTest09(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "dcerpc",
                                   ALPROTO_DCERPC,
@@ -3350,7 +3383,7 @@ static int AppLayerProbingParserTest09(void)
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers();
+    AppLayerFreeProbingParsers(probing_parsers);
     return result;
 }
 
@@ -3360,9 +3393,11 @@ static int AppLayerProbingParserTest10(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    AppLayerFreeProbingParsers();
+    //AppLayerFreeProbingParsers();
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerProbingParser *probing_parsers = NULL;
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "http",
                                   ALPROTO_HTTP,
@@ -3405,7 +3440,8 @@ static int AppLayerProbingParserTest10(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "smb",
                                   ALPROTO_SMB,
@@ -3466,7 +3502,8 @@ static int AppLayerProbingParserTest10(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "dcerpc",
                                   ALPROTO_DCERPC,
@@ -3548,7 +3585,7 @@ static int AppLayerProbingParserTest10(void)
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers();
+    AppLayerFreeProbingParsers(probing_parsers);
     return result;
 }
 
@@ -3558,9 +3595,11 @@ static int AppLayerProbingParserTest11(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    AppLayerFreeProbingParsers();
+    //AppLayerFreeProbingParsers();
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerProbingParser *probing_parsers = NULL;
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "http",
                                   ALPROTO_HTTP,
@@ -3603,7 +3642,8 @@ static int AppLayerProbingParserTest11(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "smb",
                                   ALPROTO_SMB,
@@ -3664,7 +3704,8 @@ static int AppLayerProbingParserTest11(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(81,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  81,
                                   IPPROTO_TCP,
                                   "dcerpc",
                                   ALPROTO_DCERPC,
@@ -3757,7 +3798,8 @@ static int AppLayerProbingParserTest11(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(81,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  81,
                                   IPPROTO_TCP,
                                   "ftp",
                                   ALPROTO_FTP,
@@ -3871,7 +3913,7 @@ static int AppLayerProbingParserTest11(void)
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers();
+    AppLayerFreeProbingParsers(probing_parsers);
     return result;
 }
 
@@ -3881,9 +3923,11 @@ static int AppLayerProbingParserTest12(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    AppLayerFreeProbingParsers();
+    //AppLayerFreeProbingParsers();
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerProbingParser *probing_parsers = NULL;
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "http",
                                   ALPROTO_HTTP,
@@ -3926,7 +3970,8 @@ static int AppLayerProbingParserTest12(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(81,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  81,
                                   IPPROTO_TCP,
                                   "dcerpc",
                                   ALPROTO_DCERPC,
@@ -4001,7 +4046,8 @@ static int AppLayerProbingParserTest12(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "smb",
                                   ALPROTO_SMB,
@@ -4093,7 +4139,8 @@ static int AppLayerProbingParserTest12(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(81,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  81,
                                   IPPROTO_TCP,
                                   "ftp",
                                   ALPROTO_FTP,
@@ -4207,7 +4254,7 @@ static int AppLayerProbingParserTest12(void)
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers();
+    AppLayerFreeProbingParsers(probing_parsers);
     return result;
 }
 
@@ -4217,9 +4264,11 @@ static int AppLayerProbingParserTest13(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    AppLayerFreeProbingParsers();
+    //AppLayerFreeProbingParsers();
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerProbingParser *probing_parsers = NULL;
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "http",
                                   ALPROTO_HTTP,
@@ -4262,7 +4311,8 @@ static int AppLayerProbingParserTest13(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(81,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  81,
                                   IPPROTO_TCP,
                                   "dcerpc",
                                   ALPROTO_DCERPC,
@@ -4337,7 +4387,8 @@ static int AppLayerProbingParserTest13(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(80,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  80,
                                   IPPROTO_TCP,
                                   "smb",
                                   ALPROTO_SMB,
@@ -4429,7 +4480,8 @@ static int AppLayerProbingParserTest13(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerRegisterProbingParser(81,
+    AppLayerRegisterProbingParser(&probing_parsers,
+                                  81,
                                   IPPROTO_TCP,
                                   "ftp",
                                   ALPROTO_FTP,
@@ -4540,12 +4592,12 @@ static int AppLayerProbingParserTest13(void)
     if (pe->ProbingParser != NULL)
         goto end;
 
-    AppLayerPrintProbingParsers();
+    AppLayerPrintProbingParsers(probing_parsers);
 
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers();
+    AppLayerFreeProbingParsers(probing_parsers);
     return result;
 }
 

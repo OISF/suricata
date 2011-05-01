@@ -167,8 +167,10 @@ typedef struct AppLayerProbingParser_ {
 
 extern AppLayerProbingParser *probing_parsers;
 
-static inline AppLayerProbingParser *AppLayerGetProbingParsers(uint16_t ip_proto,
-                                                               uint16_t port)
+static inline
+AppLayerProbingParser *AppLayerGetProbingParsers(AppLayerProbingParser *probing_parsers,
+                                                 uint16_t ip_proto,
+                                                 uint16_t port)
 {
     if (probing_parsers == NULL)
         return NULL;
@@ -197,7 +199,8 @@ int AppLayerRegisterParser(char *name, uint16_t proto, uint16_t parser_id,
                            AppLayerParserState *parser_state, uint8_t *input,
                            uint32_t input_len, AppLayerParserResult *output),
                            char *dependency);
-void AppLayerRegisterProbingParser(uint16_t, uint16_t, const char *, uint16_t,
+void AppLayerRegisterProbingParser(AppLayerProbingParser **, uint16_t, uint16_t,
+                                   const char *, uint16_t,
                                    uint16_t, uint16_t, uint8_t, uint8_t,
                                    uint8_t, uint16_t (*ProbingParser)
                                    (uint8_t *, uint32_t));
@@ -234,9 +237,9 @@ void AppLayerParserRegisterTests(void);
 
 void AppLayerParserCleanupState(Flow *);
 
-
 uint8_t AppLayerRegisterModule(void);
 uint8_t AppLayerGetStorageSize(void);
+void AppLayerFreeProbingParsers(AppLayerProbingParser *);
 
 
 #endif /* __APP_LAYER_PARSER_H__ */

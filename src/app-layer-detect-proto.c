@@ -243,7 +243,7 @@ void AlpProtoAdd(AlpProtoDetectCtx *ctx, uint16_t ip_proto, uint16_t al_proto, c
 }
 
 #ifdef UNITTESTS
-static void AlpProtoTestDestroy(AlpProtoDetectCtx *ctx) {
+void AlpProtoTestDestroy(AlpProtoDetectCtx *ctx) {
     mpm_table[ctx->toserver.mpm_ctx.mpm_type].DestroyCtx(&ctx->toserver.mpm_ctx);
     mpm_table[ctx->toclient.mpm_ctx.mpm_type].DestroyCtx(&ctx->toclient.mpm_ctx);
     AlpProtoFreeSignature(ctx->head);
@@ -515,7 +515,7 @@ uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *ctx, Flow *f,
     AppLayerProbingParser *pp = NULL;
 
     if (flags & STREAM_TOSERVER) {
-        pp = AppLayerGetProbingParsers(ipproto, f->dp);
+        pp = AppLayerGetProbingParsers(probing_parsers, ipproto, f->dp);
         if (pp == NULL) {
             SCLogDebug("toserver-No probing parser registered for port %"PRIu16,
                        f->dp);
@@ -536,7 +536,7 @@ uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *ctx, Flow *f,
         }
         pe = pp->toserver;
     } else {
-        pp = AppLayerGetProbingParsers(ipproto, f->sp);
+        pp = AppLayerGetProbingParsers(probing_parsers, ipproto, f->sp);
         if (pp == NULL) {
             SCLogDebug("toclient-No probing parser registered for port %"PRIu16,
                        f->sp);

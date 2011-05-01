@@ -78,6 +78,7 @@ typedef struct AlpProtoDetectCtx_ {
 
 extern AlpProtoDetectCtx alp_proto_ctx;
 
+void AlpProtoInit(AlpProtoDetectCtx *);
 void *AppLayerDetectProtoThread(void *td);
 
 void AppLayerDetectProtoThreadInit(void);
@@ -97,8 +98,11 @@ void AlpProtoAdd(AlpProtoDetectCtx *, uint16_t, uint16_t, char *, uint16_t, uint
 void AppLayerDetectProtoThreadSpawn(void);
 void AlpDetectRegisterTests(void);
 
+void AlpProtoFinalizeGlobal(AlpProtoDetectCtx *);
+void AlpProtoFinalizeThread(AlpProtoDetectCtx *, AlpProtoDetectThreadCtx *);
 void AlpProtoFinalize2Thread(AlpProtoDetectThreadCtx *);
 void AlpProtoDeFinalize2Thread (AlpProtoDetectThreadCtx *);
+void AlpProtoTestDestroy(AlpProtoDetectCtx *);
 void AlpProtoDestroy(void);
 
 #endif /* __APP_LAYER_DETECT_PROTO_H__ */
