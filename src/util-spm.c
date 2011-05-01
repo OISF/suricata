@@ -43,10 +43,6 @@
  *
  */
 
-#include <time.h>
-#include <limits.h>
-#include <string.h>
-
 #include "suricata-common.h"
 #include "suricata.h"
 #include "util-unittest.h"

@@ -32,12 +32,10 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
+
 #include "util-spm-bm.h"
 #include "util-debug.h"
 #include "util-error.h"
-#include <time.h>
-#include <limits.h>
-#include <string.h>
 
 /**
  * \brief Given a BmCtx structure, recreate the pre/suffixes for

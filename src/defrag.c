@@ -31,7 +31,7 @@
  * \todo log anomalies
  */
 
-#include <sys/time.h>
+#include "suricata-common.h"
 
 #include "queue.h"
 

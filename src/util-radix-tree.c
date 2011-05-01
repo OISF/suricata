@@ -23,20 +23,7 @@
  * Implementation of radix trees
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <string.h>
 #include "suricata-common.h"
-
-#include "suricata-common.h"
-#if defined OS_FREEBSD || defined __OpenBSD__
-#include <netinet/in.h>
-#endif /* OS_FREEBSD */
-#ifdef OS_DARWIN
-#include <netinet/in.h>
-#endif /* OS_FREEBSD */
-
 #include "util-radix-tree.h"
 #include "util-debug.h"
 #include "util-error.h"

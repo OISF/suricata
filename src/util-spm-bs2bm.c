@@ -26,12 +26,10 @@
  * making less checks
  */
 
-#include "util-spm-bs2bm.h"
 #include "suricata-common.h"
 #include "suricata.h"
-#include <time.h>
-#include <limits.h>
-#include <string.h>
+
+#include "util-spm-bs2bm.h"
 
 /**
  * \brief Array setup function for Bs2Bm of bad characters index (not found at the needle)

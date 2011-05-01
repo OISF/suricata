@@ -47,6 +47,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <fcntl.h>
+#include <time.h>
 
 #if HAVE_SYS_SYSCALL_H
 #include <sys/syscall.h>
@@ -75,6 +76,7 @@
 #include "win32-misc.h"
 #include "win32-service.h"
 #endif /* OS_WIN32 */
+
 #include <sys/time.h>
 
 #if HAVE_POLL_H

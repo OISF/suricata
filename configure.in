@@ -90,7 +90,7 @@ AC_INIT(configure.in)
 # Checks for libraries.
 
 # Checks for header files.
-    AC_CHECK_HEADERS([arpa/inet.h inttypes.h limits.h netdb.h netinet/in.h poll.h signal.h stdint.h stdlib.h string.h syslog.h sys/prctl.h sys/socket.h sys/syscall.h sys/time.h unistd.h windows.h winsock2.h ws2tcpip.h])
+    AC_CHECK_HEADERS([arpa/inet.h inttypes.h limits.h net/if.h netdb.h netinet/in.h poll.h signal.h stdint.h stdlib.h string.h syslog.h sys/ioctl.h sys/prctl.h sys/socket.h sys/syscall.h sys/time.h unistd.h windows.h winsock2.h ws2tcpip.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
     AC_C_INLINE
