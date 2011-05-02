@@ -1845,6 +1845,31 @@ static int HandleEstablishedPacketToClient(ThreadVars *tv, TcpSession *ssn, Pack
 }
 
 /**
+ *  \internal
+ *
+ *  \brief Find the highest sequence number needed to consider all segments as ACK'd
+ *
+ *  Used to treat all segments as ACK'd upon receiving a valid RST.
+ *
+ *  \param stream stream to inspect the segments from
+ *  \param seq sequence number to check against
+ *
+ *  \retval ack highest ack we need to set
+ */
+static inline uint32_t StreamTcpResetGetMaxAck(TcpStream *stream, uint32_t seq) {
+    uint32_t ack = seq;
+
+    if (stream->seg_list_tail != NULL) {
+        if (SEQ_GT((stream->seg_list_tail->seq + stream->seg_list_tail->payload_len), ack))
+        {
+            ack = stream->seg_list_tail->seq + stream->seg_list_tail->payload_len;
+        }
+    }
+
+    SCReturnUInt(ack);
+}
+
+/**
  *  \brief  Function to handle the TCP_ESTABLISHED state. The function handles
  *          ACK, FIN, RST packets and correspondingly changes the connection
  *          state. The function handles the data inside packets and call
@@ -2011,8 +2036,11 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
                                 ssn->server.next_seq);
                     ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
-                    StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_ACK(p));
-                    StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_SEQ(p));
+                    StreamTcpUpdateLastAck(ssn, &ssn->server,
+                            StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_ACK(p)));
+
+                    StreamTcpUpdateLastAck(ssn, &ssn->client,
+                            StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_SEQ(p)));
 
                     if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
                         StreamTcpHandleTimestamp(ssn, p);
@@ -2039,8 +2067,11 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
                                 ssn->server.next_seq);
                     ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
-                    StreamTcpUpdateLastAck(ssn, &ssn->client, TCP_GET_ACK(p));
-                    StreamTcpUpdateLastAck(ssn, &ssn->server, TCP_GET_SEQ(p));
+                    StreamTcpUpdateLastAck(ssn, &ssn->client,
+                            StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_ACK(p)));
+
+                    StreamTcpUpdateLastAck(ssn, &ssn->server,
+                            StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_SEQ(p)));
 
                     if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
                         StreamTcpHandleTimestamp(ssn, p);
@@ -2441,14 +2472,30 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
                             ssn);
 
-                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
-                    StreamTcpHandleTimestamp(ssn, p);
-                }
-
                 if (PKT_IS_TOSERVER(p)) {
+                    StreamTcpUpdateLastAck(ssn, &ssn->server,
+                            StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_ACK(p)));
+
+                    StreamTcpUpdateLastAck(ssn, &ssn->client,
+                            StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_SEQ(p)));
+
+                    if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                        StreamTcpHandleTimestamp(ssn, p);
+                    }
+
                     StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
                             &ssn->client, p, pq);
                 } else {
+                    StreamTcpUpdateLastAck(ssn, &ssn->client,
+                            StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_ACK(p)));
+
+                    StreamTcpUpdateLastAck(ssn, &ssn->server,
+                            StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_SEQ(p)));
+
+                    if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                        StreamTcpHandleTimestamp(ssn, p);
+                    }
+
                     StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
                             &ssn->server, p, pq);
                 }
@@ -2593,14 +2640,30 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
                             ssn);
 
-                if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
-                    StreamTcpHandleTimestamp(ssn, p);
-                }
-
                 if (PKT_IS_TOSERVER(p)) {
+                    StreamTcpUpdateLastAck(ssn, &ssn->server,
+                            StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_ACK(p)));
+
+                    StreamTcpUpdateLastAck(ssn, &ssn->client,
+                            StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_SEQ(p)));
+
+                    if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                        StreamTcpHandleTimestamp(ssn, p);
+                    }
+
                     StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
                             &ssn->client, p, pq);
                 } else {
+                    StreamTcpUpdateLastAck(ssn, &ssn->client,
+                            StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_ACK(p)));
+
+                    StreamTcpUpdateLastAck(ssn, &ssn->server,
+                            StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_SEQ(p)));
+
+                    if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                        StreamTcpHandleTimestamp(ssn, p);
+                    }
+
                     StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
                             &ssn->server, p, pq);
                 }
