@@ -118,14 +118,14 @@ int DetectFileextMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, 
                 }
             }
         }
+
+        if (ret == 0 && fileext->flags & DETECT_CONTENT_NEGATED) {
+            SCLogDebug("negated match");
+            ret = 1;
+        }
     }
+
     SCMutexUnlock(&f->files_m);
-
-    if (ret == 0 && fileext->flags & DETECT_CONTENT_NEGATED) {
-        SCLogDebug("negated match");
-        ret = 1;
-    }
-
     SCReturnInt(ret);
 }
 
