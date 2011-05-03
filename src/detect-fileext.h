@@ -23,14 +23,13 @@
 
 #ifndef __DETECT_FILEEXT_H__
 #define __DETECT_FILEEXT_H__
-#include "util-spm-bm.h"
 
+#include "util-spm-bm.h"
 
 typedef struct DetectFileextData_ {
     uint8_t *ext;  /** file extension to match */
     uint16_t len;  /** length of the file */
-    BmCtx *bm_ctx;
-    uint8_t flags;
+    uint32_t flags;
 } DetectFileextData;
 
 /* prototypes */

@@ -51,14 +51,6 @@
 #include "stream-tcp.h"
 #include "detect-fileext.h"
 
-/**
- * \brief Regex for parsing the fileext string
- */
-#define PARSE_REGEX  "^\\s*\"?\\s*(.+)\\s*\"?\\s*$"
-
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
-
 int DetectFileextMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
 static int DetectFileextSetup (DetectEngineCtx *, Signature *, char *);
 void DetectFileextRegisterTests(void);
@@ -76,27 +68,7 @@ void DetectFileextRegister(void) {
     sigmatch_table[DETECT_FILEEXT].Free  = DetectFileextFree;
     sigmatch_table[DETECT_FILEEXT].RegisterTests = DetectFileextRegisterTests;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
 	SCLogDebug("registering fileext rule option");
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if (parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",
-                    PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-    return;
-
-error:
     return;
 }
 
@@ -137,15 +109,22 @@ int DetectFileextMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, 
             if (file->name[offset - 1] == '.' &&
                     SCMemcmp(file->name + offset, fileext->ext, fileext->len) == 0)
             {
-                ret = 1;
-                SCLogDebug("File ext found");
+                if (!(fileext->flags & DETECT_CONTENT_NEGATED)) {
+                    ret = 1;
+                    SCLogDebug("File ext found");
 
-                /* Stop searching */
-                break;
+                    /* Stop searching */
+                    break;
+                }
             }
         }
     }
     SCMutexUnlock(&f->files_m);
+
+    if (ret == 0 && fileext->flags & DETECT_CONTENT_NEGATED) {
+        SCLogDebug("negated match");
+        ret = 1;
+    }
 
     SCReturnInt(ret);
 }
@@ -161,53 +140,31 @@ int DetectFileextMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, 
 DetectFileextData *DetectFileextParse (char *str)
 {
     DetectFileextData *fileext = NULL;
-	#define MAX_SUBSTRINGS 30
-    int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(parse_regex, parse_regex_study, str, strlen(str), 0, 0,
-                    ov, MAX_SUBSTRINGS);
+    /* We have a correct filename option */
+    fileext = SCMalloc(sizeof(DetectFileextData));
+    if (fileext == NULL)
+        goto error;
 
-    if (ret < 1 || ret > 3) {
-        SCLogError(SC_ERR_PCRE_MATCH, "invalid fileext option");
+    memset(fileext, 0x00, sizeof(DetectFileextData));
+
+    if (DetectParseContentString (str, &fileext->ext, &fileext->len, &fileext->flags) == -1) {
         goto error;
     }
 
-    if (ret > 1) {
-        const char *str_ptr;
-        res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-            goto error;
-        }
-        fileext = SCMalloc(sizeof(DetectFileextData));
-        if (fileext == NULL)
-            goto error;
-
-        memset(fileext, 0x00, sizeof(DetectFileextData));
-
-        /* Remove quotes if any and copy the filename */
-        if (str_ptr[0] == '\"') {
-            fileext->ext = (uint8_t *)SCStrdup((char*)str_ptr + 1);
-        } else {
-            fileext->ext = (uint8_t *)SCStrdup((char*)str_ptr);
-        }
-        if (fileext->ext[strlen((char *)fileext->ext) - 1] == '\"') {
-            fileext->ext[strlen((char *)fileext->ext) - 1] = '\0';
-        }
-
-        if (fileext->ext == NULL) {
-            goto error;
-        }
-        fileext->len = strlen((char *) fileext->ext);
-        fileext->bm_ctx = BoyerMooreCtxInit(fileext->ext, fileext->len);
-        if (fileext->bm_ctx == NULL) {
-            goto error;
-        }
-        BoyerMooreCtxToNocase(fileext->bm_ctx, fileext->ext, fileext->len);
-
-        SCLogDebug("will look for fileext %s", fileext->ext);
+    SCLogDebug("flags %02X", fileext->flags);
+    if (fileext->flags & DETECT_CONTENT_NEGATED) {
+        SCLogDebug("negated fileext");
     }
+
+#ifdef DEBUG
+    if (SCLogDebugEnabled()) {
+        char *ext = SCMalloc(fileext->len + 1);
+        memcpy(ext, fileext->ext, fileext->len);
+        ext[fileext->len] = '\0';
+        SCLogDebug("will look for fileext %s", ext);
+    }
+#endif
 
     return fileext;
 
@@ -275,9 +232,6 @@ error:
 void DetectFileextFree(void *ptr) {
     if (ptr != NULL) {
         DetectFileextData *fileext = (DetectFileextData *)ptr;
-        if (fileext->bm_ctx != NULL) {
-            BoyerMooreCtxDeInit(fileext->bm_ctx);
-        }
         SCFree(fileext);
     }
 }

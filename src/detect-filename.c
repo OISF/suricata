@@ -18,6 +18,7 @@
 /**
  * \file
  *
+ * \author Victor Julien <victor@inliniac.net>
  * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
  *
  */
@@ -49,14 +50,6 @@
 
 #include "detect-filename.h"
 
-/**
- * \brief Regex for parsing the protoversion string
- */
-#define PARSE_REGEX  "^\\s*\"?\\s*(.+)\\s*\"?\\s*$"
-
-static pcre *parse_regex;
-static pcre_extra *parse_regex_study;
-
 int DetectFilenameMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
 static int DetectFilenameSetup (DetectEngineCtx *, Signature *, char *);
 void DetectFilenameRegisterTests(void);
@@ -74,27 +67,7 @@ void DetectFilenameRegister(void) {
     sigmatch_table[DETECT_FILENAME].Free  = DetectFilenameFree;
     sigmatch_table[DETECT_FILENAME].RegisterTests = DetectFilenameRegisterTests;
 
-    const char *eb;
-    int eo;
-    int opts = 0;
-
 	SCLogDebug("registering filename rule option");
-
-    parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if (parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s",
-                    PARSE_REGEX, eo, eb);
-        goto error;
-    }
-
-    parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if (eb != NULL) {
-        SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
-        goto error;
-    }
-    return;
-
-error:
     return;
 }
 
@@ -130,22 +103,37 @@ int DetectFilenameMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
                 file->name_len, filename->bm_ctx->bmGs,
                 filename->bm_ctx->bmBc) != NULL)
             {
-                ret = 1;
-                SCLogDebug("File %s found", file->name);
-                /* Stop searching */
-                break;
+#ifdef DEBUG
+                if (SCLogDebugEnabled()) {
+                    char *name = SCMalloc(filename->len + 1);
+                    memcpy(name, filename->name, filename->len);
+                    name[filename->len] = '\0';
+                    SCLogDebug("will look for filename %s", name);
+                }
+#endif
+
+                if (!(filename->flags & DETECT_CONTENT_NEGATED)) {
+                    ret = 1;
+                    /* Stop searching */
+                    break;
+                }
             }
         }
     }
     SCMutexUnlock(&f->files_m);
 
+    if (ret == 0 && filename->flags & DETECT_CONTENT_NEGATED) {
+        SCLogDebug("negated match");
+        ret = 1;
+    }
+
     SCReturnInt(ret);
 }
 
 /**
- * \brief This function is used to parse IPV4 ip_id passed via keyword: "id"
+ * \brief Parse the filename keyword
  *
- * \param idstr Pointer to the user provided id option
+ * \param idstr Pointer to the user provided option
  *
  * \retval filename pointer to DetectFilenameData on success
  * \retval NULL on failure
@@ -153,56 +141,37 @@ int DetectFilenameMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
 DetectFilenameData *DetectFilenameParse (char *str)
 {
     DetectFilenameData *filename = NULL;
-	#define MAX_SUBSTRINGS 30
-    int ret = 0, res = 0;
-    int ov[MAX_SUBSTRINGS];
 
-    ret = pcre_exec(parse_regex, parse_regex_study, str, strlen(str), 0, 0,
-                    ov, MAX_SUBSTRINGS);
+    /* We have a correct filename option */
+    filename = SCMalloc(sizeof(DetectFilenameData));
+    if (filename == NULL)
+        goto error;
 
-    if (ret < 1 || ret > 3) {
-        SCLogError(SC_ERR_PCRE_MATCH, "invalid filename option");
+    memset(filename, 0x00, sizeof(DetectFilenameData));
+
+    if (DetectParseContentString (str, &filename->name, &filename->len, &filename->flags) == -1) {
         goto error;
     }
 
-    if (ret > 1) {
-        const char *str_ptr;
-        res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-            goto error;
-        }
-
-        /* We have a correct filename option */
-        filename = SCMalloc(sizeof(DetectFilenameData));
-        if (filename == NULL)
-            goto error;
-
-        memset(filename, 0x00, sizeof(DetectFilenameData));
-
-        /* Remove quotes if any and copy the filename */
-        if (str_ptr[0] == '\"') {
-            filename->name = (uint8_t *)SCStrdup((char*)str_ptr + 1);
-        } else {
-            filename->name = (uint8_t *)SCStrdup((char*)str_ptr);
-        }
-        if (filename->name[strlen((char *)filename->name) - 1] == '\"') {
-            filename->name[strlen((char *)filename->name) - 1] = '\0';
-        }
-
-        if (filename->name == NULL) {
-            goto error;
-        }
-
-        filename->len = strlen((char *) filename->name);
-        filename->bm_ctx = BoyerMooreCtxInit(filename->name, filename->len);
-        if (filename->bm_ctx == NULL) {
-            goto error;
-        }
-        BoyerMooreCtxToNocase(filename->bm_ctx, filename->name, filename->len);
-
-        SCLogDebug("will look for filename %s", filename->name);
+    filename->bm_ctx = BoyerMooreCtxInit(filename->name, filename->len);
+    if (filename->bm_ctx == NULL) {
+        goto error;
     }
+
+    SCLogDebug("flags %02X", filename->flags);
+    if (filename->flags & DETECT_CONTENT_NEGATED) {
+        SCLogDebug("negated filename");
+    }
+
+    BoyerMooreCtxToNocase(filename->bm_ctx, filename->name, filename->len);
+#ifdef DEBUG
+    if (SCLogDebugEnabled()) {
+        char *name = SCMalloc(filename->len + 1);
+        memcpy(name, filename->name, filename->len);
+        name[filename->len] = '\0';
+        SCLogDebug("will look for filename %s", name);
+    }
+#endif
 
     return filename;
 
@@ -210,7 +179,6 @@ error:
     if (filename != NULL)
         DetectFilenameFree(filename);
     return NULL;
-
 }
 
 /**
