@@ -328,7 +328,7 @@ void StreamTcpSackFreeList(TcpStream *stream) {
 
     while (rec != NULL) {
         next = rec->next;
-        SCFree(next);
+        SCFree(rec);
         rec = next;
     }
 
