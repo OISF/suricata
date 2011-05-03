@@ -139,8 +139,10 @@ outputs:
       filename: drop.log
       append: yes
 
+  # output module to store extracted files to disk
   - file:
-      enabled: no
+      enabled: no       # set to yes to enable
+      log-dir: files    # directory to store the files
 
 # When running in NFQ inline mode, it is possible to use a simulated
 # non-terminal NFQUEUE verdict.
