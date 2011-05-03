@@ -93,8 +93,12 @@ static uint64_t htp_state_memuse = 0;
 static uint64_t htp_state_memcnt = 0;
 #endif
 
+/** part of the engine needs the request body (e.g. http_client_body keyword) */
 static uint8_t need_htp_request_body = 0;
+/** part of the engine needs the request body multipart header (e.g. filename
+ *  and / or fileext keywords) */
 static uint8_t need_htp_request_multipart_hdr = 0;
+/** part of the engine needs the request file (e.g. log-file module) */
 static uint8_t need_htp_request_file = 0;
 
 #ifdef DEBUG
@@ -294,21 +298,30 @@ void AppLayerHtpEnableRequestBodyCallback(void)
 
 /**
  * \brief Sets a flag that informs the HTP app layer that some module in the
- *        engine needs the http request body data.
+ *        engine needs the http request multi part header.
+ *
+ * \initonly
+ */
+void AppLayerHtpNeedMultipartHeader(void) {
+    SCEnter();
+    AppLayerHtpEnableRequestBodyCallback();
+
+    need_htp_request_multipart_hdr = 1;
+    SCReturn;
+}
+
+/**
+ * \brief Sets a flag that informs the HTP app layer that some module in the
+ *        engine needs the http request file.
+ *
  * \initonly
  */
 void AppLayerHtpNeedFileInspection(void)
 {
     SCEnter();
-    need_htp_request_body = 1;
-    need_htp_request_file = 1;
-    SCReturn;
-}
+    AppLayerHtpNeedMultipartHeader();
 
-void AppLayerHtpNeedMultipartHeader(void) {
-    SCEnter();
-    need_htp_request_body = 1;
-    need_htp_request_multipart_hdr = 1;
+    need_htp_request_file = 1;
     SCReturn;
 }
 
@@ -791,6 +804,18 @@ static int HTTPParseContentTypeHeader(uint8_t *name, size_t name_len,
     SCReturnInt(0);
 }
 
+/**
+ *  \brief setup multipart parsing: extract boundary and store it
+ *
+ *  \param d HTTP transaction
+ *  \param htud transaction userdata
+ *
+ *  \retval 0 ok
+ *  \retval -1 error: problem with the boundary
+ *
+ *  If the request contains a multipart message, this function will
+ *  set the HTP_BOUNDARY_SET in the transaction.
+ */
 static int HtpRequestBodySetupMultipart(htp_tx_data_t *d, SCHtpTxUserData *htud) {
     htp_header_t *cl = table_getc(d->tx->request_headers, "content-length");
     if (cl != NULL)
@@ -829,6 +854,9 @@ static int HtpRequestBodySetupMultipart(htp_tx_data_t *d, SCHtpTxUserData *htud)
     return 0;
 }
 
+/**
+ *  \brief Setup boundary buffers
+ */
 static int HtpRequestBodySetupBoundary(SCHtpTxUserData *htud,
         uint8_t **expected_boundary, uint8_t *expected_boundary_len,
         uint8_t **expected_boundary_end, uint8_t *expected_boundary_end_len)
@@ -943,6 +971,13 @@ static void HtpRequestBodyMultipartParseHeader(uint8_t *header, uint32_t header_
     *filetype_len = ft_len;
 }
 
+/**
+ *  \brief Create a single buffer from the HtpBodyChunks in our list
+ *
+ *  \param htud transaction user data
+ *  \param chunks_buffers pointer to pass back the buffer to the caller
+ *  \param chunks_buffer_len pointer to pass back the buffer length to the caller
+ */
 static void HtpRequestBodyReassemble(SCHtpTxUserData *htud,
         uint8_t **chunks_buffer, uint32_t *chunks_buffer_len)
 {
@@ -1234,6 +1269,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     }
 
 end:
+    /* see if we can get rid of htp body chunks */
     HtpBodyPrune(htud);
 
     if (expected_boundary != NULL) {
