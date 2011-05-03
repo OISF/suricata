@@ -71,6 +71,8 @@
 
 #include "util-memcmp.h"
 
+//#define PRINT
+
 /** Need a linked list in order to keep track of these */
 typedef struct HTPCfgRec_ {
     htp_cfg_t           *cfg;
@@ -617,7 +619,7 @@ static int HTPCallbackRequestUriNormalize(htp_connp_t *c)
 static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
         uint8_t *data, size_t len, uint8_t **retptr, size_t *retlen)
 {
-#if 0
+#ifdef PRINT
     printf("DATA START: \n");
     PrintRawDataFp(stdout, data, len);
     printf("DATA END: \n");
@@ -636,7 +638,7 @@ static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
     uint8_t *line = data+x;
     size_t line_len = len-x;
     size_t offset = 0;
-#if 0
+#ifdef PRINT
     printf("LINE START: \n");
     PrintRawDataFp(stdout, line, line_len);
     printf("LINE END: \n");
@@ -661,7 +663,7 @@ static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
                     x++;
                     offset++;
                 }
-#if 0
+#ifdef PRINT
                 printf("TOKEN START: \n");
                 PrintRawDataFp(stdout, token, token_len);
                 printf("TOKEN END: \n");
@@ -678,7 +680,7 @@ static int HTTPParseContentDispositionHeader(uint8_t *name, size_t name_len,
                         if (value[value_len-1] == '\"') {
                             value_len--;
                         }
-#if 0
+#ifdef PRINT
                         printf("VALUE START: \n");
                         PrintRawDataFp(stdout, value, value_len);
                         printf("VALUE END: \n");
@@ -702,7 +704,7 @@ static int HTTPParseContentTypeHeader(uint8_t *name, size_t name_len,
         uint8_t *data, size_t len, uint8_t **retptr, size_t *retlen)
 {
     SCEnter();
-#if 0
+#ifdef PRINT
     printf("DATA START: \n");
     PrintRawDataFp(stdout, data, len);
     printf("DATA END: \n");
@@ -722,7 +724,7 @@ static int HTTPParseContentTypeHeader(uint8_t *name, size_t name_len,
     uint8_t *line = data+x;
     size_t line_len = len-x;
     size_t offset = 0;
-#if 0
+#ifdef PRINT
     printf("LINE START: \n");
     PrintRawDataFp(stdout, line, line_len);
     printf("LINE END: \n");
@@ -747,7 +749,7 @@ static int HTTPParseContentTypeHeader(uint8_t *name, size_t name_len,
                     x++;
                     offset++;
                 }
-#if 0
+#ifdef PRINT
                 printf("TOKEN START: \n");
                 PrintRawDataFp(stdout, token, token_len);
                 printf("TOKEN END: \n");
@@ -764,7 +766,7 @@ static int HTTPParseContentTypeHeader(uint8_t *name, size_t name_len,
                         if (value[value_len-1] == '\"') {
                             value_len--;
                         }
-#if 0
+#ifdef PRINT
                         printf("VALUE START: \n");
                         PrintRawDataFp(stdout, value, value_len);
                         printf("VALUE END: \n");
@@ -830,7 +832,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                     (uint8_t *) bstr_ptr(h->value), bstr_len(h->value),
                     &boundary, &boundary_len);
             if (r == 1) {
-#if 0
+#ifdef PRINT
                 printf("BOUNDARY START: \n");
                 PrintRawDataFp(stdout, boundary, boundary_len);
                 printf("BOUNDARY END: \n");
@@ -921,7 +923,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
             goto end;
         }
 
-#if 0
+#ifdef PRINT
         printf("CHUNK START: \n");
         PrintRawDataFp(stdout, chunks_buffer, chunks_buffer_len);
         printf("CHUNK END: \n");
@@ -974,7 +976,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                 }
 
                 BUG_ON(filedata_len > chunks_buffer_len);
-#if 0
+#ifdef PRINT
                 printf("FILEDATA (final chunk) START: \n");
                 PrintRawDataFp(stdout, filedata, filedata_len);
                 printf("FILEDATA (final chunk) END: \n");
@@ -993,7 +995,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                 if (chunks_buffer_len > expected_boundary_end_len) {
                     uint8_t *filedata = chunks_buffer;
                     uint32_t filedata_len = chunks_buffer_len - expected_boundary_len;
-#if 0
+#ifdef PRINT
                     printf("FILEDATA (part) START: \n");
                     PrintRawDataFp(stdout, filedata, filedata_len);
                     printf("FILEDATA (part) END: \n");
@@ -1027,7 +1029,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
             uint8_t *header = header_start + (expected_boundary_len + 2); // + for 0d 0a
             header_len -= (expected_boundary_len + 2);
-#if 0
+#ifdef PRINT
             printf("HEADER START: \n");
             PrintRawDataFp(stdout, header, header_len);
             printf("HEADER END: \n");
@@ -1043,6 +1045,11 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                     line_len = next_line - header;
                 }
 
+#ifdef PRINT
+                printf("LINE START: \n");
+                PrintRawDataFp(stdout, line, line_len);
+                printf("LINE END: \n");
+#endif
                 if (line_len >= C_D_HDR_LEN &&
                         SCMemcmpLowercase(C_D_HDR, line, C_D_HDR_LEN) == 0) {
                     uint8_t *value = line + C_D_HDR_LEN;
@@ -1070,7 +1077,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
                 header = next_line + 2;
             } /* while (header_len > 0) */
 
-            if (filename != NULL) {
+            if (filename != NULL && filename_len > 0) {
                 uint8_t *filedata = NULL;
                 uint32_t filedata_len = 0;
 
@@ -1078,13 +1085,24 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
                 htud->flags |= HTP_FILENAME_SET;
 
+                SCLogDebug("header_end %p", header_end);
+                SCLogDebug("form_end %p", form_end);
+
                 /* everything until the final boundary is the file */
                 if (form_end != NULL) {
                     filedata = header_end + 4;
                     filedata_len = form_end - (header_end + 4 + 2);
+
+                    /* or is it? */
+                    uint8_t *header_next = Bs2bmSearch(filedata, filedata_len,
+                            expected_boundary, expected_boundary_len);
+                    if (header_next != NULL) {
+                        filedata_len -= (form_end - header_next);
+                    }
+
                     SCLogDebug("filedata_len %"PRIuMAX, (uintmax_t)filedata_len);
 
-#if 0
+#ifdef PRINT
                     printf("FILEDATA START: \n");
                     PrintRawDataFp(stdout, filedata, filedata_len);
                     printf("FILEDATA END: \n");
