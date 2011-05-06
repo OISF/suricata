@@ -1321,11 +1321,13 @@ void SMBUpdateTransactionId(void *state, uint16_t *id) {
     SCReturn;
 }
 
+#define SMB_PROBING_PARSER_MIN_DEPTH 8
+
 static uint16_t SMBProbingParser(uint8_t *input, uint32_t input_len)
 {
     uint32_t len;
 
-    while (input_len > 0) {
+    while (input_len >= SMB_PROBING_PARSER_MIN_DEPTH) {
         switch (input[0]) {
             case NBSS_SESSION_MESSAGE:
                 if (input[4] == 0xFF && input[5] == 'S' && input[6] == 'M' &&
@@ -1342,6 +1344,8 @@ static uint16_t SMBProbingParser(uint8_t *input, uint32_t input_len)
                 len = input[2] << 8;
                 len |= input[3];
                 break;
+            default:
+                return ALPROTO_UNKNOWN;
         }
 
         input_len -= 4;
@@ -1376,7 +1380,7 @@ void RegisterSMBParsers(void) {
                                   IPPROTO_TCP,
                                   "smb",
                                   ALPROTO_SMB,
-                                  8, 0,
+                                  SMB_PROBING_PARSER_MIN_DEPTH, 0,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
                                   SMBProbingParser);
@@ -1989,7 +1993,7 @@ int SMBParserTest05(void)
                                   IPPROTO_TCP,
                                   "smb",
                                   ALPROTO_SMB,
-                                  8, 0,
+                                  SMB_PROBING_PARSER_MIN_DEPTH, 0,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
                                   SMBProbingParser);
@@ -2075,7 +2079,7 @@ int SMBParserTest06(void)
                                   IPPROTO_TCP,
                                   "smb",
                                   ALPROTO_SMB,
-                                  8, 0,
+                                  SMB_PROBING_PARSER_MIN_DEPTH, 0,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
                                   SMBProbingParser);

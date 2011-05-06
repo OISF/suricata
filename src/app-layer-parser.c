@@ -1345,6 +1345,15 @@ AppLayerCreateAppLayerProbingParserElement(const char *al_proto_name,
     pe->ProbingParser = AppLayerProbingParser;
     pe->next = NULL;
 
+    if (min_depth > max_depth ||
+        al_proto <= ALPROTO_UNKNOWN || al_proto >= ALPROTO_MAX ||
+        AppLayerProbingParser == NULL) {
+        SCLogError(SC_ERR_ALPARSER, "Invalid arguments sent to "
+                   "register the probing parser.  Please have min_depth, "
+                   "max_depth, al_proto, AppLayerProbingParser function "
+                   "checked");
+    }
+
     return pe;
 }
 
