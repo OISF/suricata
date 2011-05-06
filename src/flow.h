@@ -165,10 +165,18 @@ typedef struct Flow_
 
     /* end of flow "header" */
 
+    /** how many pkts and stream msgs are using the flow *right now*. This
+     *  variable is atomic so not protected by the Flow mutex "m".
+     *
+     *  On receiving a packet the counter is incremented while the flow
+     *  bucked is locked, which is also the case on timeout pruning.
+     */
+    SC_ATOMIC_DECLARE(unsigned short, use_cnt);
+
     uint32_t flags;
 
     /* ts of flow init and last update */
-    struct timeval lastts;
+    int32_t lastts_sec;
 
     SCMutex m;
 
@@ -181,16 +189,6 @@ typedef struct Flow_
     uint8_t pad0;
 
     uint16_t alproto; /**< application level protocol */
-
-    /** how many pkts and stream msgs are using the flow *right now*. This
-     *  variable is atomic so not protected by the Flow mutex "m".
-     *
-     *  On receiving a packet the counter is incremented while the flow
-     *  bucked is locked, which is also the case on timeout pruning.
-     */
-    SC_ATOMIC_DECLARE(unsigned short, use_cnt);
-
-    uint16_t pad1;
 
     void **aldata; /**< application level storage ptrs */
 
@@ -222,10 +220,11 @@ typedef struct Flow_
     struct Flow_ *lprev;
 
     struct timeval startts;
+#ifdef DEBUG
     uint32_t todstpktcnt;
     uint32_t tosrcpktcnt;
     uint64_t bytecnt;
-
+#endif
 } Flow;
 
 enum {

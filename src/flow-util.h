@@ -28,30 +28,37 @@
 
 #define COPY_TIMESTAMP(src,dst) ((dst)->tv_sec = (src)->tv_sec, (dst)->tv_usec = (src)->tv_usec)
 
-#define FLOW_INITIALIZE(f) do { \
-        SCMutexInit(&(f)->m, NULL); \
-        SCMutexInit(&(f)->de_state_m, NULL); \
-        (f)->lnext = NULL; \
-        (f)->lprev = NULL; \
-        (f)->hnext = NULL; \
-        (f)->hprev = NULL; \
-        (f)->sp = 0; \
-        (f)->dp = 0; \
-        (f)->flags = 0; \
+#ifdef DEBUG
+#define RESET_COUNTERS(f) do { \
         (f)->todstpktcnt = 0; \
         (f)->tosrcpktcnt = 0; \
         (f)->bytecnt = 0; \
-        (f)->lastts.tv_sec = 0; \
-        (f)->lastts.tv_usec = 0; \
-        (f)->flowvar = NULL; \
-        (f)->protoctx = NULL; \
+    } while (0)
+#else
+#define RESET_COUNTERS(f)
+#endif
+
+#define FLOW_INITIALIZE(f) do { \
+        (f)->sp = 0; \
+        (f)->dp = 0; \
         SC_ATOMIC_INIT((f)->use_cnt); \
+        (f)->flags = 0; \
+        (f)->lastts_sec = 0; \
+        SCMutexInit(&(f)->m, NULL); \
+        (f)->protoctx = NULL; \
+        (f)->alproto = 0; \
+        (f)->aldata = NULL; \
         (f)->de_state = NULL; \
         (f)->sgh_toserver = NULL; \
         (f)->sgh_toclient = NULL; \
-        (f)->aldata = NULL; \
-        (f)->alproto = 0; \
         (f)->tag_list = NULL; \
+        (f)->flowvar = NULL; \
+        SCMutexInit(&(f)->de_state_m, NULL); \
+        (f)->hnext = NULL; \
+        (f)->hprev = NULL; \
+        (f)->lnext = NULL; \
+        (f)->lprev = NULL; \
+        RESET_COUNTERS((f)); \
     } while (0)
 
 /** \brief macro to recycle a flow before it goes into the spare queue for reuse.
@@ -62,52 +69,36 @@
 #define FLOW_RECYCLE(f) do { \
         (f)->sp = 0; \
         (f)->dp = 0; \
-        (f)->flags = 0; \
-        (f)->todstpktcnt = 0; \
-        (f)->tosrcpktcnt = 0; \
-        (f)->bytecnt = 0; \
-        (f)->lastts.tv_sec = 0; \
-        (f)->lastts.tv_usec = 0; \
-        GenericVarFree((f)->flowvar); \
-        (f)->flowvar = NULL; \
-        (f)->protoctx = NULL; \
         SC_ATOMIC_RESET((f)->use_cnt); \
+        (f)->flags = 0; \
+        (f)->lastts_sec = 0; \
+        (f)->protoctx = NULL; \
+        FlowL7DataPtrFree(f); \
+        (f)->alproto = 0; \
         if ((f)->de_state != NULL) { \
             DetectEngineStateReset((f)->de_state); \
         } \
         (f)->sgh_toserver = NULL; \
         (f)->sgh_toclient = NULL; \
-        AppLayerParserCleanupState(f); \
-        FlowL7DataPtrFree(f); \
-        if ((f)->aldata != NULL) { \
-            SCFree((f)->aldata); \
-            (f)->aldata = NULL; \
-        } \
-        (f)->alproto = 0; \
         DetectTagDataListFree((f)->tag_list); \
         (f)->tag_list = NULL; \
+        GenericVarFree((f)->flowvar); \
+        (f)->flowvar = NULL; \
+        RESET_COUNTERS((f)); \
     } while(0)
 
 #define FLOW_DESTROY(f) do { \
-        SCMutexDestroy(&(f)->m); \
-        SCMutexDestroy(&(f)->de_state_m); \
-        GenericVarFree((f)->flowvar); \
-        (f)->flowvar = NULL; \
-        (f)->protoctx = NULL; \
         SC_ATOMIC_DESTROY((f)->use_cnt); \
+        \
+        SCMutexDestroy(&(f)->m); \
         if ((f)->de_state != NULL) { \
             DetectEngineStateFree((f)->de_state); \
         } \
-        (f)->de_state = NULL; \
-        AppLayerParserCleanupState(f); \
+        /* clear app layer related memory */ \
         FlowL7DataPtrFree(f); \
-        if ((f)->aldata != NULL) { \
-            SCFree((f)->aldata); \
-            (f)->aldata = NULL; \
-        } \
-        (f)->alproto = 0; \
         DetectTagDataListFree((f)->tag_list); \
-        (f)->tag_list = NULL; \
+        GenericVarFree((f)->flowvar); \
+        SCMutexDestroy(&(f)->de_state_m); \
     } while(0)
 
 Flow *FlowAlloc(void);

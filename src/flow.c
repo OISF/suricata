@@ -136,7 +136,7 @@ void FlowUpdateQueue(Flow *f)
     if (f->flags & FLOW_NEW_LIST) {
         /* in the new list -- we consider a flow no longer
          * new if we have seen at least 2 pkts in both ways. */
-        if (f->todstpktcnt && f->tosrcpktcnt) {
+        if (f->flags & FLOW_TO_DST_SEEN && f->flags & FLOW_TO_SRC_SEEN) {
             FlowRequeue(f, &flow_new_q[f->protomap], &flow_est_q[f->protomap], 1);
 
             f->flags |= FLOW_EST_LIST; /* transition */
@@ -151,7 +151,7 @@ void FlowUpdateQueue(Flow *f)
                 f->flags |= FLOW_CLOSED_LIST; /* transition */
                 f->flags &=~ FLOW_EST_LIST;
 
-                SCLogDebug("flow %p was put into closing queue ts %"PRIuMAX"", f, (uintmax_t)f->lastts.tv_sec);
+                SCLogDebug("flow %p was put into closing queue ts %"PRIuMAX"", f, (uintmax_t)f->lastts_sec);
                 FlowRequeue(f, &flow_est_q[f->protomap], &flow_close_q[f->protomap], 1);
             } else {
                 /* Pull and put back -- this way the flows on
@@ -287,11 +287,11 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
         }
     }
 
-    SCLogDebug("got lock, now check: %" PRIdMAX "+%" PRIu32 "=(%" PRIdMAX ") < %" PRIdMAX "", (intmax_t)f->lastts.tv_sec,
-        timeout, (intmax_t)f->lastts.tv_sec + timeout, (intmax_t)ts->tv_sec);
+    SCLogDebug("got lock, now check: %" PRIdMAX "+%" PRIu32 "=(%" PRIdMAX ") < %" PRIdMAX "", (intmax_t)f->lastts_sec,
+        timeout, (intmax_t)f->lastts_sec + timeout, (intmax_t)ts->tv_sec);
 
     /* do the timeout check */
-    if ((int32_t)(f->lastts.tv_sec + timeout) >= ts->tv_sec) {
+    if ((int32_t)(f->lastts_sec + timeout) >= ts->tv_sec) {
         SCSpinUnlock(&f->fb->s);
         SCMutexUnlock(&f->m);
         SCLogDebug("timeout check failed");
@@ -723,23 +723,29 @@ void FlowHandlePacket (ThreadVars *tv, Packet *p)
         return;
 
     /* update the last seen timestamp of this flow */
-    COPY_TIMESTAMP(&p->ts, &f->lastts);
+    f->lastts_sec = p->ts.tv_sec;
 
     /* update flags and counters */
     if (FlowGetPacketDirection(f,p) == TOSERVER) {
         if (FlowUpdateSeenFlag(p)) {
             f->flags |= FLOW_TO_DST_SEEN;
         }
+#ifdef DEBUG
         f->todstpktcnt++;
+#endif
         p->flowflags |= FLOW_PKT_TOSERVER;
     } else {
         if (FlowUpdateSeenFlag(p)) {
             f->flags |= FLOW_TO_SRC_SEEN;
         }
+#ifdef DEBUG
         f->tosrcpktcnt++;
+#endif
         p->flowflags |= FLOW_PKT_TOCLIENT;
     }
+#ifdef DEBUG
     f->bytecnt += GET_PKT_LEN(p);
+#endif
 
     if (f->flags & FLOW_TO_DST_SEEN && f->flags & FLOW_TO_SRC_SEEN) {
         SCLogDebug("pkt %p FLOW_PKT_ESTABLISHED", p);
@@ -1632,7 +1638,7 @@ static int FlowTest03 (void) {
     FLOW_INITIALIZE(&f);
 
     TimeGet(&ts);
-    f.lastts.tv_sec = ts.tv_sec - 5000;
+    f.lastts_sec = ts.tv_sec - 5000;
     f.protoctx = &ssn;
     f.fb = &fb;
 
@@ -1690,7 +1696,7 @@ static int FlowTest04 (void) {
     ssn.client = client;
     ssn.server = client;
     ssn.state = TCP_ESTABLISHED;
-    f.lastts.tv_sec = ts.tv_sec - 5000;
+    f.lastts_sec = ts.tv_sec - 5000;
     f.protoctx = &ssn;
     f.fb = &fb;
     f.proto = IPPROTO_TCP;
@@ -1734,7 +1740,7 @@ static int FlowTest05 (void) {
 
     TimeGet(&ts);
     ssn.state = TCP_SYN_SENT;
-    f.lastts.tv_sec = ts.tv_sec - 300;
+    f.lastts_sec = ts.tv_sec - 300;
     f.protoctx = &ssn;
     f.fb = &fb;
     f.proto = IPPROTO_TCP;
@@ -1791,7 +1797,7 @@ static int FlowTest06 (void) {
     ssn.client = client;
     ssn.server = client;
     ssn.state = TCP_ESTABLISHED;
-    f.lastts.tv_sec = ts.tv_sec - 5000;
+    f.lastts_sec = ts.tv_sec - 5000;
     f.protoctx = &ssn;
     f.fb = &fb;
     f.proto = IPPROTO_TCP;

@@ -209,9 +209,11 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
         SCMutexLock(&p->flow->m);
         CreateTimeString(&p->flow->startts, timebuf, sizeof(timebuf));
         fprintf(aft->file_ctx->fp, "FLOW Start TS:     %s\n",timebuf);
+#ifdef DEBUG
         fprintf(aft->file_ctx->fp, "FLOW PKTS TODST:   %"PRIu32"\n",p->flow->todstpktcnt);
         fprintf(aft->file_ctx->fp, "FLOW PKTS TOSRC:   %"PRIu32"\n",p->flow->tosrcpktcnt);
         fprintf(aft->file_ctx->fp, "FLOW Total Bytes:  %"PRIu64"\n",p->flow->bytecnt);
+#endif
         fprintf(aft->file_ctx->fp, "FLOW IPONLY SET:   TOSERVER: %s, TOCLIENT: %s\n",
                 p->flow->flags & FLOW_TOSERVER_IPONLY_SET ? "TRUE" : "FALSE",
                 p->flow->flags & FLOW_TOCLIENT_IPONLY_SET ? "TRUE" : "FALSE");
@@ -303,9 +305,11 @@ TmEcode AlertDebugLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
         SCMutexLock(&p->flow->m);
         CreateTimeString(&p->flow->startts, timebuf, sizeof(timebuf));
         fprintf(aft->file_ctx->fp, "FLOW Start TS:     %s\n",timebuf);
+#ifdef DEBUG
         fprintf(aft->file_ctx->fp, "FLOW PKTS TODST:   %"PRIu32"\n",p->flow->todstpktcnt);
         fprintf(aft->file_ctx->fp, "FLOW PKTS TOSRC:   %"PRIu32"\n",p->flow->tosrcpktcnt);
         fprintf(aft->file_ctx->fp, "FLOW Total Bytes:  %"PRIu64"\n",p->flow->bytecnt);
+#endif
         fprintf(aft->file_ctx->fp, "FLOW IPONLY SET:   TOSERVER: %s, TOCLIENT: %s\n",
         p->flow->flags & FLOW_TOSERVER_IPONLY_SET ? "TRUE" : "FALSE",
         p->flow->flags & FLOW_TOCLIENT_IPONLY_SET ? "TRUE" : "FALSE");
