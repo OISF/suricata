@@ -82,7 +82,7 @@ static uint64_t htp_state_memcnt = 0;
 
 static uint8_t need_htp_request_body = 0;
 
-
+#ifdef DEBUG
 /**
  * \internal
  *
@@ -112,6 +112,7 @@ static const char *HTPLookupPersonalityString(int p)
 
     return NULL;
 }
+#endif /* DEBUG */
 
 /**
  * \internal
