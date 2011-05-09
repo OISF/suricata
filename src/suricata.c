@@ -1486,7 +1486,7 @@ int main(int argc, char **argv)
 
 #ifdef PROFILING
     if (profiling_rules_enabled)
-        SCProfilingDump(stdout);
+        SCProfilingDump();
     SCProfilingDestroy();
 #endif
 

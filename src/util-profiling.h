@@ -56,7 +56,7 @@ void SCProfilingDestroy(void);
 void SCProfilingInitRuleCounters(DetectEngineCtx *);
 void SCProfilingCounterAddUI64(uint16_t, uint64_t);
 void SCProfilingRegisterTests(void);
-void SCProfilingDump(FILE *);
+void SCProfilingDump(void);
 void SCProfilingUpdateRuleCounter(uint16_t, uint64_t, int);
 
 #else

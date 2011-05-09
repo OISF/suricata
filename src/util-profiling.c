@@ -36,6 +36,8 @@
 #ifdef PROFILING
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
+#define DEFAULT_LOG_FILENAME "profile.log"
+#define DEFAULT_LOG_MODE_APPEND "yes"
 
 /**
  * Sort orders for dumping profiled rules.
@@ -46,6 +48,8 @@ enum {
     SC_PROFILING_RULES_SORT_BY_CHECKS,
     SC_PROFILING_RULES_SORT_BY_MATCHES,
     SC_PROFILING_RULES_SORT_BY_MAX_TICKS,
+    SC_PROFILING_RULES_SORT_BY_AVG_TICKS_MATCH,
+    SC_PROFILING_RULES_SORT_BY_AVG_TICKS_NO_MATCH,
 };
 static int profiling_rules_sort_order = SC_PROFILING_RULES_SORT_BY_TICKS;
 
@@ -63,6 +67,8 @@ static SCPerfCounterArray *rules_pca;
 typedef struct SCProfileData_ {
     uint64_t matches;
     uint64_t max;
+    uint64_t ticks_match;
+    uint64_t ticks_no_match;
 } SCProfileData;
 SCProfileData rules_profile_data[0xffff];
 
@@ -73,12 +79,19 @@ typedef struct SCProfileSummary_ {
     char *name;
     uint64_t ticks;
     double avgticks;
+    double avgticks_match;
+    double avgticks_no_match;
     uint64_t checks;
     uint64_t matches;
     uint64_t max;
+    uint64_t ticks_match;
+    uint64_t ticks_no_match;
 } SCProfileSummary;
 
 int profiling_rules_enabled = 0;
+int profiling_output_to_file = 0;
+char *profiling_file_name;
+const char *profiling_file_mode;
 
 /**
  * Used as a check so we don't double enter a profiling run.
@@ -119,6 +132,14 @@ SCProfilingInit(void)
                 profiling_rules_sort_order =
                     SC_PROFILING_RULES_SORT_BY_AVG_TICKS;
             }
+            else if (strcmp(val, "avgticks_match") == 0) {
+                profiling_rules_sort_order =
+                    SC_PROFILING_RULES_SORT_BY_AVG_TICKS_MATCH;
+            }
+            else if (strcmp(val, "avgticks_no_match") == 0) {
+                profiling_rules_sort_order =
+                    SC_PROFILING_RULES_SORT_BY_AVG_TICKS_NO_MATCH;
+            }
             else if (strcmp(val, "checks") == 0) {
                 profiling_rules_sort_order =
                     SC_PROFILING_RULES_SORT_BY_CHECKS;
@@ -146,6 +167,22 @@ SCProfilingInit(void)
                 exit(EXIT_FAILURE);
             }
         }
+        const char *filename = ConfNodeLookupChildValue(conf, "filename");
+        if (filename != NULL) {
+
+            char *log_dir;
+            if (ConfGet("default-log-dir", &log_dir) != 1)
+                log_dir = DEFAULT_LOG_DIR;
+
+            profiling_file_name = SCMalloc(PATH_MAX);
+            snprintf(profiling_file_name, PATH_MAX, "%s/%s", log_dir, filename);
+
+            profiling_file_mode = ConfNodeLookupChildValue(conf, "append");
+            if (profiling_file_mode == NULL)
+                profiling_file_mode = DEFAULT_LOG_MODE_APPEND;
+
+            profiling_output_to_file = 1;
+        }
     }
 }
 
@@ -170,6 +207,28 @@ SCProfileSummarySortByTicks(const void *a, const void *b)
     const SCProfileSummary *s0 = a;
     const SCProfileSummary *s1 = b;
     return s1->ticks - s0->ticks;
+}
+
+/**
+ * \brief Qsort comparison function to sort by average ticks per match.
+ */
+static int
+SCProfileSummarySortByAvgTicksMatch(const void *a, const void *b)
+{
+    const SCProfileSummary *s0 = a;
+    const SCProfileSummary *s1 = b;
+    return s1->avgticks_match - s0->avgticks_match;
+}
+
+/**
+ * \brief Qsort comparison function to sort by average ticks per non match.
+ */
+static int
+SCProfileSummarySortByAvgTicksNoMatch(const void *a, const void *b)
+{
+    const SCProfileSummary *s0 = a;
+    const SCProfileSummary *s1 = b;
+    return s1->avgticks_no_match - s0->avgticks_no_match;
 }
 
 /**
@@ -217,9 +276,28 @@ SCProfileSummarySortByMaxTicks(const void *a, const void *b)
 }
 
 void
-SCProfilingDump(FILE *output)
+SCProfilingDump(void)
 {
     uint32_t i;
+    FILE *fp;
+
+    struct timeval tval;
+    struct tm *tms;
+    if (profiling_output_to_file == 1) {
+        if (strcasecmp(profiling_file_mode, "yes") == 0) {
+            fp = fopen(profiling_file_name, "a");
+        } else {
+            fp = fopen(profiling_file_name, "w");
+        }
+
+        if (fp == NULL) {
+            SCLogError(SC_ERR_FOPEN, "failed to open %s: %s", profiling_file_name,
+                    strerror(errno));
+            return;
+        }
+    } else {
+       fp = stdout;
+    }
 
     if (rules_pca == NULL) {
         SCLogDebug("No rules specified to provide a profiling summary");
@@ -249,6 +327,17 @@ SCProfilingDump(FILE *output)
         summary[i - 1].checks = rules_pca->head[i].syncs;
         summary[i - 1].matches = rules_profile_data[i].matches;
         summary[i - 1].max = rules_profile_data[i].max;
+        summary[i - 1].ticks_match = rules_profile_data[i].ticks_match;
+        summary[i - 1].ticks_no_match = rules_profile_data[i].ticks_no_match;
+        if (rules_profile_data[i].ticks_match > 0) {
+            summary[i - 1].avgticks_match = (long double)rules_profile_data[i].ticks_match /
+                (long double)rules_profile_data[i].matches;
+        }
+
+        if (rules_profile_data[i].ticks_no_match > 0) {
+            summary[i - 1].avgticks_no_match = (long double)rules_profile_data[i].ticks_no_match /
+                ((long double)rules_pca->head[i].syncs - (long double)rules_profile_data[i].matches);
+        }
         total_ticks += summary[i - 1].ticks;
     }
 
@@ -273,16 +362,37 @@ SCProfilingDump(FILE *output)
         qsort(summary, count, sizeof(SCProfileSummary),
             SCProfileSummarySortByMaxTicks);
         break;
+    case SC_PROFILING_RULES_SORT_BY_AVG_TICKS_MATCH:
+        qsort(summary, count, sizeof(SCProfileSummary),
+            SCProfileSummarySortByAvgTicksMatch);
+        break;
+    case SC_PROFILING_RULES_SORT_BY_AVG_TICKS_NO_MATCH:
+        qsort(summary, count, sizeof(SCProfileSummary),
+            SCProfileSummarySortByAvgTicksNoMatch);
+        break;
     }
 
-    fprintf(output, "  %-12s %-12s %-6s %-8s %-8s %-11s %-11s\n", "Rule", "Ticks", "%", "Checks", "Matches", "Max Ticks", "Avg Ticks");
-    fprintf(output, "  ------------ "
+    gettimeofday(&tval, NULL);
+    struct tm local_tm;
+    tms = (struct tm *)localtime_r(&tval.tv_sec, &local_tm);
+
+    fprintf(fp, "  ----------------------------------------------"
+            "----------------------------\n");
+    fprintf(fp, "  Date: %" PRId32 "/%" PRId32 "/%04d -- "
+            "%02d:%02d:%02d\n", tms->tm_mon + 1, tms->tm_mday, tms->tm_year + 1900,
+            tms->tm_hour,tms->tm_min, tms->tm_sec);
+    fprintf(fp, "  ----------------------------------------------"
+            "----------------------------\n");
+    fprintf(fp, "  %-12s %-12s %-6s %-8s %-8s %-11s %-11s %-11s %-11s\n", "Rule", "Ticks", "%", "Checks", "Matches", "Max Ticks", "Avg Ticks", "Avg Match", "Avg No Match");
+    fprintf(fp, "  ------------ "
         "------------ "
         "------ "
         "-------- "
         "-------- "
         "----------- "
         "----------- "
+        "----------- "
+        "-------------- "
         "\n");
     for (i = 0; i < MIN(count, profiling_rules_limit); i++) {
 
@@ -294,17 +404,21 @@ SCProfilingDump(FILE *output)
 
         double percent = (long double)summary[i].ticks /
             (long double)total_ticks * 100;
-        fprintf(output,
-            "  %-12s %-12"PRIu64" %-6.2f %-8"PRIu64" %-8"PRIu64" %-11"PRIu64" %-8.2f\n",
+        fprintf(fp,
+            "  %-12s %-12"PRIu64" %-6.2f %-8"PRIu64" %-8"PRIu64" %-11"PRIu64" %-11.2f %-11.2f %-11.2f\n",
             summary[i].name,
             summary[i].ticks,
             percent,
             summary[i].checks,
             summary[i].matches,
             summary[i].max,
-            summary[i].avgticks);
+            summary[i].avgticks,
+            summary[i].avgticks_match,
+            summary[i].avgticks_no_match);
     }
 
+    fprintf(fp,"\n");
+    fclose(fp);
     SCLogInfo("Done dumping profiling data.");
 }
 
@@ -378,6 +492,11 @@ SCProfilingUpdateRuleCounter(uint16_t id, uint64_t ticks, int match)
     rules_profile_data[id].matches += match;
     if (ticks > rules_profile_data[id].max)
         rules_profile_data[id].max = ticks;
+    if (match == 1)
+        rules_profile_data[id].ticks_match += ticks;
+    else
+        rules_profile_data[id].ticks_no_match += ticks;
+
     SCMutexUnlock(&rules_ctx.m);
 }
 

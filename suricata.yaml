@@ -721,6 +721,8 @@ profiling:
     # Profiling can be disabled here, but it will still have a
     # performance impact if compiled in.
     enabled: yes
+    filename: perf.log
+    append: yes
 
     # Sort options: ticks, avgticks, checks, matches, maxticks
     sort: avgticks
