@@ -666,6 +666,23 @@ void HtpBodyFree(HtpBody *body)
     body->operation = HTP_BODY_NONE;
 }
 
+static int HTPCallbackRequestUriNormalize(htp_connp_t *c)
+{
+    SCEnter();
+
+    if (c == NULL || c->in_tx == NULL || c->in_tx->parsed_uri == NULL ||
+        c->in_tx->parsed_uri->query == NULL)
+    {
+        SCReturnInt(HOOK_OK);
+    }
+
+    /* uri normalize the query string as well */
+    htp_decode_path_inplace(c->cfg, c->in_tx,
+            c->in_tx->parsed_uri->query);
+
+    SCReturnInt(HOOK_OK);
+}
+
 /**
  * \brief Function callback to append chunks for Requests
  * \param d pointer to the htp_tx_data_t structure (a chunk from htp lib)
@@ -870,6 +887,7 @@ static void HTPConfigure(void)
     cfglist.request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
     htp_config_register_request(cfglist.cfg, HTPCallbackRequest);
     htp_config_register_response(cfglist.cfg, HTPCallbackResponse);
+    htp_config_register_request_uri_normalize(cfglist.cfg, HTPCallbackRequestUriNormalize);
     htp_config_set_generate_request_uri_normalized(cfglist.cfg, 1);
 
     default_config = ConfGetNode("libhtp.default-config");
@@ -1661,6 +1679,63 @@ end:
     return result;
 }
 
+/** \test
+ */
+int HTPParserTest07(void) {
+    int result = 1;
+    Flow f;
+    uint8_t httpbuf1[] = "GET /awstats.pl?/migratemigrate%20=%20| HTTP/1.0\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+
+    HtpState *htp_state =  NULL;
+    int r = 0;
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    uint32_t u;
+    for (u = 0; u < httplen1; u++) {
+        uint8_t flags = 0;
+
+        if (u == 0) flags = STREAM_TOSERVER|STREAM_START;
+        else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
+        else flags = STREAM_TOSERVER;
+
+        r = AppLayerParse(&f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        if (r != 0) {
+            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
+                    " 0: ", u, r);
+            result = 0;
+            goto end;
+        }
+    }
+
+    htp_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (htp_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    if (tx != NULL && tx->request_uri_normalized != NULL) {
+        printf("bstr_ptr(tx->request_uri_normalized) %s", bstr_ptr(tx->request_uri_normalized));
+    }
+
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    if (htp_state != NULL)
+        HTPStateFree(htp_state);
+    return result;
+}
+
 #include "conf-yaml-loader.h"
 
 /** \test Test basic config */
@@ -2068,6 +2143,7 @@ void HTPParserRegisterTests(void) {
     UtRegisterTest("HTPParserTest04", HTPParserTest04, 1);
     UtRegisterTest("HTPParserTest05", HTPParserTest05, 1);
     UtRegisterTest("HTPParserTest06", HTPParserTest06, 1);
+    UtRegisterTest("HTPParserTest07", HTPParserTest07, 1);
     UtRegisterTest("HTPParserConfigTest01", HTPParserConfigTest01, 1);
     UtRegisterTest("HTPParserConfigTest02", HTPParserConfigTest02, 1);
     UtRegisterTest("HTPParserConfigTest03", HTPParserConfigTest03, 1);
