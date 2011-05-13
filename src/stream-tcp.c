@@ -2881,6 +2881,53 @@ static int StreamTcpPacketStateClosing(ThreadVars *tv, Packet *p,
                            ssn->server.next_seq, ssn->client.last_ack);
             }
             break;
+
+        case TH_RST:
+        case TH_RST|TH_ACK:
+        case TH_RST|TH_ACK|TH_ECN:
+        case TH_RST|TH_ACK|TH_ECN|TH_CWR:
+
+            if (StreamTcpValidateRst(ssn, p)) {
+                /* force both streams to reassemble, if necessary */
+                StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
+                SCPerfCounterIncr(stt->counter_tcp_pseudo, tv->sc_perf_pca);
+
+                StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
+                SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
+                            ssn);
+
+                if (PKT_IS_TOSERVER(p)) {
+                    StreamTcpUpdateLastAck(ssn, &ssn->server,
+                            StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_ACK(p)));
+
+                    StreamTcpUpdateLastAck(ssn, &ssn->client,
+                            StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_SEQ(p)));
+
+                    if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                        StreamTcpHandleTimestamp(ssn, p);
+                    }
+
+                    StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
+                            &ssn->client, p, pq);
+                } else {
+                    StreamTcpUpdateLastAck(ssn, &ssn->client,
+                            StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_ACK(p)));
+
+                    StreamTcpUpdateLastAck(ssn, &ssn->server,
+                            StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_SEQ(p)));
+
+                    if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                        StreamTcpHandleTimestamp(ssn, p);
+                    }
+
+                    StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
+                            &ssn->server, p, pq);
+                }
+            }
+            else
+                return -1;
+            break;
+
         default:
             SCLogDebug("ssn %p: default case", ssn);
             break;
@@ -3110,6 +3157,53 @@ static int StreamTcpPacketStateCloseWait(ThreadVars *tv, Packet *p,
                            ssn->client.last_ack);
             }
             break;
+
+        case TH_RST:
+        case TH_RST|TH_ACK:
+        case TH_RST|TH_ACK|TH_ECN:
+        case TH_RST|TH_ACK|TH_ECN|TH_CWR:
+
+            if (StreamTcpValidateRst(ssn, p)) {
+                /* force both streams to reassemble, if necessary */
+                StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
+                SCPerfCounterIncr(stt->counter_tcp_pseudo, tv->sc_perf_pca);
+
+                StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
+                SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
+                            ssn);
+
+                if (PKT_IS_TOSERVER(p)) {
+                    StreamTcpUpdateLastAck(ssn, &ssn->server,
+                            StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_ACK(p)));
+
+                    StreamTcpUpdateLastAck(ssn, &ssn->client,
+                            StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_SEQ(p)));
+
+                    if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                        StreamTcpHandleTimestamp(ssn, p);
+                    }
+
+                    StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
+                            &ssn->client, p, pq);
+                } else {
+                    StreamTcpUpdateLastAck(ssn, &ssn->client,
+                            StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_ACK(p)));
+
+                    StreamTcpUpdateLastAck(ssn, &ssn->server,
+                            StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_SEQ(p)));
+
+                    if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                        StreamTcpHandleTimestamp(ssn, p);
+                    }
+
+                    StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
+                            &ssn->server, p, pq);
+                }
+            }
+            else
+                return -1;
+            break;
+
         default:
             SCLogDebug("ssn %p: default case", ssn);
             break;
@@ -3186,6 +3280,53 @@ static int StreamTcpPakcetStateLastAck(ThreadVars *tv, Packet *p,
                            ssn->server.last_ack);
             }
             break;
+
+        case TH_RST:
+        case TH_RST|TH_ACK:
+        case TH_RST|TH_ACK|TH_ECN:
+        case TH_RST|TH_ACK|TH_ECN|TH_CWR:
+
+            if (StreamTcpValidateRst(ssn, p)) {
+                /* force both streams to reassemble, if necessary */
+                StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
+                SCPerfCounterIncr(stt->counter_tcp_pseudo, tv->sc_perf_pca);
+
+                StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
+                SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
+                            ssn);
+
+                if (PKT_IS_TOSERVER(p)) {
+                    StreamTcpUpdateLastAck(ssn, &ssn->server,
+                            StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_ACK(p)));
+
+                    StreamTcpUpdateLastAck(ssn, &ssn->client,
+                            StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_SEQ(p)));
+
+                    if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                        StreamTcpHandleTimestamp(ssn, p);
+                    }
+
+                    StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
+                            &ssn->client, p, pq);
+                } else {
+                    StreamTcpUpdateLastAck(ssn, &ssn->client,
+                            StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_ACK(p)));
+
+                    StreamTcpUpdateLastAck(ssn, &ssn->server,
+                            StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_SEQ(p)));
+
+                    if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                        StreamTcpHandleTimestamp(ssn, p);
+                    }
+
+                    StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
+                            &ssn->server, p, pq);
+                }
+            }
+            else
+                return -1;
+            break;
+
         default:
             SCLogDebug("ssn %p: default case", ssn);
             break;
@@ -3306,6 +3447,53 @@ static int StreamTcpPacketStateTimeWait(ThreadVars *tv, Packet *p,
                 StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
             }
             break;
+
+        case TH_RST:
+        case TH_RST|TH_ACK:
+        case TH_RST|TH_ACK|TH_ECN:
+        case TH_RST|TH_ACK|TH_ECN|TH_CWR:
+
+            if (StreamTcpValidateRst(ssn, p)) {
+                /* force both streams to reassemble, if necessary */
+                StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
+                SCPerfCounterIncr(stt->counter_tcp_pseudo, tv->sc_perf_pca);
+
+                StreamTcpPacketSetState(p, ssn, TCP_CLOSED);
+                SCLogDebug("ssn %p: Reset received state changed to TCP_CLOSED",
+                            ssn);
+
+                if (PKT_IS_TOSERVER(p)) {
+                    StreamTcpUpdateLastAck(ssn, &ssn->server,
+                            StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_ACK(p)));
+
+                    StreamTcpUpdateLastAck(ssn, &ssn->client,
+                            StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_SEQ(p)));
+
+                    if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                        StreamTcpHandleTimestamp(ssn, p);
+                    }
+
+                    StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
+                            &ssn->client, p, pq);
+                } else {
+                    StreamTcpUpdateLastAck(ssn, &ssn->client,
+                            StreamTcpResetGetMaxAck(&ssn->client, TCP_GET_ACK(p)));
+
+                    StreamTcpUpdateLastAck(ssn, &ssn->server,
+                            StreamTcpResetGetMaxAck(&ssn->server, TCP_GET_SEQ(p)));
+
+                    if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
+                        StreamTcpHandleTimestamp(ssn, p);
+                    }
+
+                    StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
+                            &ssn->server, p, pq);
+                }
+            }
+            else
+                return -1;
+            break;
+
         default:
             SCLogDebug("ssn %p: default case", ssn);
             break;
