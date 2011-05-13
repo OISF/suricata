@@ -165,8 +165,6 @@ typedef struct AppLayerProbingParser_ {
 #define APP_LAYER_PROBING_PARSER_PRIORITY_MEDIUM 2
 #define APP_LAYER_PROBING_PARSER_PRIORITY_LOW    3
 
-extern AppLayerProbingParser *probing_parsers;
-
 static inline
 AppLayerProbingParser *AppLayerGetProbingParsers(AppLayerProbingParser *probing_parsers,
                                                  uint16_t ip_proto,
@@ -186,6 +184,8 @@ AppLayerProbingParser *AppLayerGetProbingParsers(AppLayerProbingParser *probing_
     return pp;
 }
 
+struct AlpProtoDetectCtx_;
+
 /* prototypes */
 void AppLayerParsersInitPostProcess(void);
 void RegisterAppLayerParsers(void);
@@ -199,7 +199,7 @@ int AppLayerRegisterParser(char *name, uint16_t proto, uint16_t parser_id,
                            AppLayerParserState *parser_state, uint8_t *input,
                            uint32_t input_len, AppLayerParserResult *output),
                            char *dependency);
-void AppLayerRegisterProbingParser(AppLayerProbingParser **, uint16_t, uint16_t,
+void AppLayerRegisterProbingParser(struct AlpProtoDetectCtx_ *, uint16_t, uint16_t,
                                    const char *, uint16_t,
                                    uint16_t, uint16_t, uint8_t, uint8_t,
                                    uint8_t, uint16_t (*ProbingParser)

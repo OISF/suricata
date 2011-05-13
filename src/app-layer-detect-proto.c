@@ -247,6 +247,7 @@ void AlpProtoTestDestroy(AlpProtoDetectCtx *ctx) {
     mpm_table[ctx->toserver.mpm_ctx.mpm_type].DestroyCtx(&ctx->toserver.mpm_ctx);
     mpm_table[ctx->toclient.mpm_ctx.mpm_type].DestroyCtx(&ctx->toclient.mpm_ctx);
     AlpProtoFreeSignature(ctx->head);
+    AppLayerFreeProbingParsers(ctx->probing_parsers);
 }
 #endif
 
@@ -255,6 +256,7 @@ void AlpProtoDestroy() {
     mpm_table[alp_proto_ctx.toserver.mpm_ctx.mpm_type].DestroyCtx(&alp_proto_ctx.toserver.mpm_ctx);
     mpm_table[alp_proto_ctx.toclient.mpm_ctx.mpm_type].DestroyCtx(&alp_proto_ctx.toclient.mpm_ctx);
     MpmPatternIdTableFreeHash(alp_proto_ctx.mpm_pattern_id_store);
+    AppLayerFreeProbingParsers(alp_proto_ctx.probing_parsers);
     SCReturn;
 }
 
@@ -512,6 +514,7 @@ uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *ctx, Flow *f,
                                              uint8_t flags, uint8_t ipproto)
 {
     AppLayerProbingParserElement *pe = NULL;
+    AppLayerProbingParser *probing_parsers = ctx->probing_parsers;
     AppLayerProbingParser *pp = NULL;
 
     if (flags & STREAM_TOSERVER) {

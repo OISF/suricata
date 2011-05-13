@@ -1317,7 +1317,7 @@ void AppLayerParsersInitPostProcess(void)
 
 /********************************Probing Parsers*******************************/
 
-AppLayerProbingParser *probing_parsers = NULL;
+//AppLayerProbingParser *probing_parsers = NULL;
 
 static AppLayerProbingParserElement *
 AppLayerCreateAppLayerProbingParserElement(const char *al_proto_name,
@@ -1345,16 +1345,26 @@ AppLayerCreateAppLayerProbingParserElement(const char *al_proto_name,
     pe->ProbingParser = AppLayerProbingParser;
     pe->next = NULL;
 
-    if (min_depth > max_depth ||
-        al_proto <= ALPROTO_UNKNOWN || al_proto >= ALPROTO_MAX ||
-        AppLayerProbingParser == NULL) {
+    if (max_depth != 0 && min_depth > max_depth) {
         SCLogError(SC_ERR_ALPARSER, "Invalid arguments sent to "
-                   "register the probing parser.  Please have min_depth, "
-                   "max_depth, al_proto, AppLayerProbingParser function "
-                   "checked");
+                   "register the probing parser.  min_depth > max_depth");
+        goto error;
+    }
+    if (al_proto <= ALPROTO_UNKNOWN || al_proto >= ALPROTO_MAX) {
+        SCLogError(SC_ERR_ALPARSER, "Invalid arguments sent to register "
+                   "the probing parser.  Invalid alproto - %d", al_proto);
+        goto error;
+    }
+    if (AppLayerProbingParser == NULL) {
+        SCLogError(SC_ERR_ALPARSER, "Invalid arguments sent to "
+                   "register the probing parser.  Probing parser func NULL");
+        goto error;
     }
 
     return pe;
+ error:
+    SCFree(pe);
+    return NULL;
 }
 
 static void AppLayerInsertNewProbingParserElement(AppLayerProbingParser **probing_parsers,
@@ -1525,7 +1535,7 @@ void AppLayerPrintProbingParsers(AppLayerProbingParser *pp)
     return;
 }
 
-void AppLayerRegisterProbingParser(AppLayerProbingParser **probing_parsers,
+void AppLayerRegisterProbingParser(AlpProtoDetectCtx *ctx,
                                    uint16_t port,
                                    uint16_t ip_proto,
                                    const char *al_proto_name,
@@ -1538,6 +1548,7 @@ void AppLayerRegisterProbingParser(AppLayerProbingParser **probing_parsers,
                                    uint16_t (*ProbingParser)
                                    (uint8_t *input, uint32_t input_len))
 {
+    AppLayerProbingParser **probing_parsers = &ctx->probing_parsers;
     AppLayerProbingParserElement *pe = NULL;
     AppLayerProbingParser *pp = AppLayerGetProbingParsers(probing_parsers[0],
                                                           ip_proto, port);
@@ -1762,12 +1773,16 @@ end:
     return result;
 }
 
+uint16_t ProbingParserDummyForTesting(uint8_t *input, uint32_t input_len)
+{
+    return 0;
+}
 static int AppLayerProbingParserTest01(void)
 {
-    //AppLayerFreeProbingParsers();
+    AlpProtoDetectCtx ctx;
+    AlpProtoInit(&ctx);
 
-    AppLayerProbingParser *probing_parsers = NULL;
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "http",
@@ -1775,11 +1790,11 @@ static int AppLayerProbingParserTest01(void)
                                   5, 5,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    if (probing_parsers == NULL)
+                                  ProbingParserDummyForTesting);
+    if (ctx.probing_parsers == NULL)
         return 0;
 
-    AppLayerFreeProbingParsers(probing_parsers);
+    AlpProtoTestDestroy(&ctx);
     return 1;
 }
 
@@ -1789,9 +1804,10 @@ static int AppLayerProbingParserTest02(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    //AppLayerFreeProbingParsers();
-    AppLayerProbingParser *probing_parsers = NULL;
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AlpProtoDetectCtx ctx;
+    AlpProtoInit(&ctx);
+
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "http",
@@ -1799,9 +1815,9 @@ static int AppLayerProbingParserTest02(void)
                                   5, 8,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -1832,10 +1848,10 @@ static int AppLayerProbingParserTest02(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "smb",
@@ -1843,9 +1859,9 @@ static int AppLayerProbingParserTest02(void)
                                   5, 5,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -1878,7 +1894,7 @@ static int AppLayerProbingParserTest02(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -1894,10 +1910,10 @@ static int AppLayerProbingParserTest02(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "dcerpc",
@@ -1905,9 +1921,9 @@ static int AppLayerProbingParserTest02(void)
                                   9, 10,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -1942,7 +1958,7 @@ static int AppLayerProbingParserTest02(void)
         goto end;
     if (pe->max_depth != 10)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -1958,7 +1974,7 @@ static int AppLayerProbingParserTest02(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* third one */
     pe = pp->toserver->next->next;
@@ -1974,13 +1990,13 @@ static int AppLayerProbingParserTest02(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers(probing_parsers);
+    AlpProtoTestDestroy(&ctx);
     return result;
 }
 
@@ -1990,9 +2006,10 @@ static int AppLayerProbingParserTest03(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    //AppLayerFreeProbingParsers();
-    AppLayerProbingParser *probing_parsers = NULL;
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AlpProtoDetectCtx ctx;
+    AlpProtoInit(&ctx);
+
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "http",
@@ -2000,9 +2017,9 @@ static int AppLayerProbingParserTest03(void)
                                   5, 8,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 0,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -2033,10 +2050,10 @@ static int AppLayerProbingParserTest03(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "smb",
@@ -2044,9 +2061,9 @@ static int AppLayerProbingParserTest03(void)
                                   5, 5,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 0,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -2079,7 +2096,7 @@ static int AppLayerProbingParserTest03(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -2095,10 +2112,10 @@ static int AppLayerProbingParserTest03(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "dcerpc",
@@ -2106,9 +2123,9 @@ static int AppLayerProbingParserTest03(void)
                                   9, 10,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 0,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -2143,7 +2160,7 @@ static int AppLayerProbingParserTest03(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -2159,7 +2176,7 @@ static int AppLayerProbingParserTest03(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* third one */
     pe = pp->toserver->next->next;
@@ -2175,13 +2192,13 @@ static int AppLayerProbingParserTest03(void)
         goto end;
     if (pe->max_depth != 10)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers(probing_parsers);
+    AlpProtoTestDestroy(&ctx);
     return result;
 }
 
@@ -2191,10 +2208,10 @@ static int AppLayerProbingParserTest04(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    //AppLayerFreeProbingParsers();
+    AlpProtoDetectCtx ctx;
+    AlpProtoInit(&ctx);
 
-    AppLayerProbingParser *probing_parsers = NULL;
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "http",
@@ -2202,9 +2219,9 @@ static int AppLayerProbingParserTest04(void)
                                   5, 8,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -2235,10 +2252,10 @@ static int AppLayerProbingParserTest04(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "smb",
@@ -2246,9 +2263,9 @@ static int AppLayerProbingParserTest04(void)
                                   5, 5,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -2281,7 +2298,7 @@ static int AppLayerProbingParserTest04(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -2297,10 +2314,10 @@ static int AppLayerProbingParserTest04(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "dcerpc",
@@ -2308,9 +2325,9 @@ static int AppLayerProbingParserTest04(void)
                                   9, 10,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 0,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -2345,7 +2362,7 @@ static int AppLayerProbingParserTest04(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -2361,7 +2378,7 @@ static int AppLayerProbingParserTest04(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* third one */
     pe = pp->toserver->next->next;
@@ -2377,13 +2394,13 @@ static int AppLayerProbingParserTest04(void)
         goto end;
     if (pe->max_depth != 10)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers(probing_parsers);
+    AlpProtoTestDestroy(&ctx);
     return result;
 }
 
@@ -2393,9 +2410,10 @@ static int AppLayerProbingParserTest05(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    //AppLayerFreeProbingParsers();
-    AppLayerProbingParser *probing_parsers = NULL;
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AlpProtoDetectCtx ctx;
+    AlpProtoInit(&ctx);
+
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "http",
@@ -2403,9 +2421,9 @@ static int AppLayerProbingParserTest05(void)
                                   5, 8,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -2436,10 +2454,10 @@ static int AppLayerProbingParserTest05(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "smb",
@@ -2447,9 +2465,9 @@ static int AppLayerProbingParserTest05(void)
                                   5, 5,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -2482,7 +2500,7 @@ static int AppLayerProbingParserTest05(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -2498,10 +2516,10 @@ static int AppLayerProbingParserTest05(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "dcerpc",
@@ -2509,9 +2527,9 @@ static int AppLayerProbingParserTest05(void)
                                   9, 10,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -2546,7 +2564,7 @@ static int AppLayerProbingParserTest05(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -2562,7 +2580,7 @@ static int AppLayerProbingParserTest05(void)
         goto end;
     if (pe->max_depth != 10)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* third one */
     pe = pp->toserver->next->next;
@@ -2578,13 +2596,13 @@ static int AppLayerProbingParserTest05(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers(probing_parsers);
+    AlpProtoTestDestroy(&ctx);
     return result;
 }
 
@@ -2594,10 +2612,10 @@ static int AppLayerProbingParserTest06(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    //AppLayerFreeProbingParsers();
+    AlpProtoDetectCtx ctx;
+    AlpProtoInit(&ctx);
 
-    AppLayerProbingParser *probing_parsers = NULL;
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "http",
@@ -2605,9 +2623,9 @@ static int AppLayerProbingParserTest06(void)
                                   5, 8,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -2638,10 +2656,10 @@ static int AppLayerProbingParserTest06(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "smb",
@@ -2649,9 +2667,9 @@ static int AppLayerProbingParserTest06(void)
                                   5, 5,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -2684,7 +2702,7 @@ static int AppLayerProbingParserTest06(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -2700,10 +2718,10 @@ static int AppLayerProbingParserTest06(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "dcerpc",
@@ -2711,9 +2729,9 @@ static int AppLayerProbingParserTest06(void)
                                   9, 10,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 0,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -2748,7 +2766,7 @@ static int AppLayerProbingParserTest06(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -2764,7 +2782,7 @@ static int AppLayerProbingParserTest06(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* third one */
     pe = pp->toserver->next->next;
@@ -2780,13 +2798,13 @@ static int AppLayerProbingParserTest06(void)
         goto end;
     if (pe->max_depth != 10)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers(probing_parsers);
+    AlpProtoTestDestroy(&ctx);
     return result;
 }
 
@@ -2796,10 +2814,10 @@ static int AppLayerProbingParserTest07(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    //AppLayerFreeProbingParsers();
+    AlpProtoDetectCtx ctx;
+    AlpProtoInit(&ctx);
 
-    AppLayerProbingParser *probing_parsers = NULL;
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "http",
@@ -2807,9 +2825,9 @@ static int AppLayerProbingParserTest07(void)
                                   5, 8,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -2840,10 +2858,10 @@ static int AppLayerProbingParserTest07(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "smb",
@@ -2851,9 +2869,9 @@ static int AppLayerProbingParserTest07(void)
                                   5, 5,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -2886,7 +2904,7 @@ static int AppLayerProbingParserTest07(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -2902,10 +2920,10 @@ static int AppLayerProbingParserTest07(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "dcerpc",
@@ -2913,9 +2931,9 @@ static int AppLayerProbingParserTest07(void)
                                   9, 10,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -2950,7 +2968,7 @@ static int AppLayerProbingParserTest07(void)
         goto end;
     if (pe->max_depth != 10)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -2966,7 +2984,7 @@ static int AppLayerProbingParserTest07(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* third one */
     pe = pp->toserver->next->next;
@@ -2982,13 +3000,13 @@ static int AppLayerProbingParserTest07(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers(probing_parsers);
+    AlpProtoTestDestroy(&ctx);
     return result;
 }
 
@@ -2998,10 +3016,10 @@ static int AppLayerProbingParserTest08(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    //AppLayerFreeProbingParsers();
+    AlpProtoDetectCtx ctx;
+    AlpProtoInit(&ctx);
 
-    AppLayerProbingParser *probing_parsers = NULL;
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "http",
@@ -3009,9 +3027,9 @@ static int AppLayerProbingParserTest08(void)
                                   5, 8,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -3042,10 +3060,10 @@ static int AppLayerProbingParserTest08(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "smb",
@@ -3053,9 +3071,9 @@ static int AppLayerProbingParserTest08(void)
                                   5, 5,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -3088,7 +3106,7 @@ static int AppLayerProbingParserTest08(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -3104,10 +3122,10 @@ static int AppLayerProbingParserTest08(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "dcerpc",
@@ -3115,9 +3133,9 @@ static int AppLayerProbingParserTest08(void)
                                   9, 10,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 0,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -3152,7 +3170,7 @@ static int AppLayerProbingParserTest08(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -3168,7 +3186,7 @@ static int AppLayerProbingParserTest08(void)
         goto end;
     if (pe->max_depth != 10)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* third one */
     pe = pp->toserver->next->next;
@@ -3184,13 +3202,13 @@ static int AppLayerProbingParserTest08(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers(probing_parsers);
+    AlpProtoTestDestroy(&ctx);
     return result;
 }
 
@@ -3200,10 +3218,10 @@ static int AppLayerProbingParserTest09(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    //AppLayerFreeProbingParsers();
+    AlpProtoDetectCtx ctx;
+    AlpProtoInit(&ctx);
 
-    AppLayerProbingParser *probing_parsers = NULL;
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "http",
@@ -3211,9 +3229,9 @@ static int AppLayerProbingParserTest09(void)
                                   5, 8,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -3244,10 +3262,10 @@ static int AppLayerProbingParserTest09(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "smb",
@@ -3255,9 +3273,9 @@ static int AppLayerProbingParserTest09(void)
                                   5, 5,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -3290,7 +3308,7 @@ static int AppLayerProbingParserTest09(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -3306,10 +3324,10 @@ static int AppLayerProbingParserTest09(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "dcerpc",
@@ -3317,9 +3335,9 @@ static int AppLayerProbingParserTest09(void)
                                   9, 10,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -3354,7 +3372,7 @@ static int AppLayerProbingParserTest09(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -3370,7 +3388,7 @@ static int AppLayerProbingParserTest09(void)
         goto end;
     if (pe->max_depth != 10)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* third one */
     pe = pp->toserver->next->next;
@@ -3386,13 +3404,13 @@ static int AppLayerProbingParserTest09(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers(probing_parsers);
+    AlpProtoTestDestroy(&ctx);
     return result;
 }
 
@@ -3402,10 +3420,10 @@ static int AppLayerProbingParserTest10(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    //AppLayerFreeProbingParsers();
+    AlpProtoDetectCtx ctx;
+    AlpProtoInit(&ctx);
 
-    AppLayerProbingParser *probing_parsers = NULL;
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "http",
@@ -3413,9 +3431,9 @@ static int AppLayerProbingParserTest10(void)
                                   5, 8,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -3446,10 +3464,10 @@ static int AppLayerProbingParserTest10(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "smb",
@@ -3457,9 +3475,9 @@ static int AppLayerProbingParserTest10(void)
                                   5, 5,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -3492,7 +3510,7 @@ static int AppLayerProbingParserTest10(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -3508,10 +3526,10 @@ static int AppLayerProbingParserTest10(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "dcerpc",
@@ -3519,9 +3537,9 @@ static int AppLayerProbingParserTest10(void)
                                   9, 10,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 0,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -3556,7 +3574,7 @@ static int AppLayerProbingParserTest10(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -3572,7 +3590,7 @@ static int AppLayerProbingParserTest10(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* third one */
     pe = pp->toserver->next->next;
@@ -3588,13 +3606,13 @@ static int AppLayerProbingParserTest10(void)
         goto end;
     if (pe->max_depth != 10)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers(probing_parsers);
+    AlpProtoTestDestroy(&ctx);
     return result;
 }
 
@@ -3604,10 +3622,10 @@ static int AppLayerProbingParserTest11(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    //AppLayerFreeProbingParsers();
+    AlpProtoDetectCtx ctx;
+    AlpProtoInit(&ctx);
 
-    AppLayerProbingParser *probing_parsers = NULL;
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "http",
@@ -3615,9 +3633,9 @@ static int AppLayerProbingParserTest11(void)
                                   5, 8,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -3648,10 +3666,10 @@ static int AppLayerProbingParserTest11(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "smb",
@@ -3659,9 +3677,9 @@ static int AppLayerProbingParserTest11(void)
                                   5, 5,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -3694,7 +3712,7 @@ static int AppLayerProbingParserTest11(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -3710,10 +3728,10 @@ static int AppLayerProbingParserTest11(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   81,
                                   IPPROTO_TCP,
                                   "dcerpc",
@@ -3721,9 +3739,9 @@ static int AppLayerProbingParserTest11(void)
                                   9, 10,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     /* first pp */
@@ -3757,7 +3775,7 @@ static int AppLayerProbingParserTest11(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -3773,7 +3791,7 @@ static int AppLayerProbingParserTest11(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second pp */
     if (pp->next->next != NULL)
@@ -3804,10 +3822,10 @@ static int AppLayerProbingParserTest11(void)
         goto end;
     if (pe->max_depth != 10)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   81,
                                   IPPROTO_TCP,
                                   "ftp",
@@ -3815,9 +3833,9 @@ static int AppLayerProbingParserTest11(void)
                                   7, 15,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     /* first pp */
@@ -3851,7 +3869,7 @@ static int AppLayerProbingParserTest11(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -3867,7 +3885,7 @@ static int AppLayerProbingParserTest11(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second pp */
     if (pp->next->next != NULL)
@@ -3900,7 +3918,7 @@ static int AppLayerProbingParserTest11(void)
         goto end;
     if (pe->max_depth != 15)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second pp - second one */
     pe = pp->next->toserver->next;
@@ -3916,13 +3934,13 @@ static int AppLayerProbingParserTest11(void)
         goto end;
     if (pe->max_depth != 10)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers(probing_parsers);
+    AlpProtoTestDestroy(&ctx);
     return result;
 }
 
@@ -3932,10 +3950,10 @@ static int AppLayerProbingParserTest12(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    //AppLayerFreeProbingParsers();
+    AlpProtoDetectCtx ctx;
+    AlpProtoInit(&ctx);
 
-    AppLayerProbingParser *probing_parsers = NULL;
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "http",
@@ -3943,9 +3961,9 @@ static int AppLayerProbingParserTest12(void)
                                   5, 8,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -3976,10 +3994,10 @@ static int AppLayerProbingParserTest12(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   81,
                                   IPPROTO_TCP,
                                   "dcerpc",
@@ -3987,9 +4005,9 @@ static int AppLayerProbingParserTest12(void)
                                   9, 10,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     /* first pp */
@@ -4021,7 +4039,7 @@ static int AppLayerProbingParserTest12(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second pp */
     if (pp->next->next != NULL)
@@ -4052,10 +4070,10 @@ static int AppLayerProbingParserTest12(void)
         goto end;
     if (pe->max_depth != 10)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "smb",
@@ -4063,9 +4081,9 @@ static int AppLayerProbingParserTest12(void)
                                   5, 5,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -4098,7 +4116,7 @@ static int AppLayerProbingParserTest12(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -4114,7 +4132,7 @@ static int AppLayerProbingParserTest12(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second pp */
     if (pp->next->next != NULL)
@@ -4145,10 +4163,10 @@ static int AppLayerProbingParserTest12(void)
         goto end;
     if (pe->max_depth != 10)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   81,
                                   IPPROTO_TCP,
                                   "ftp",
@@ -4156,9 +4174,9 @@ static int AppLayerProbingParserTest12(void)
                                   7, 15,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     /* first pp */
@@ -4192,7 +4210,7 @@ static int AppLayerProbingParserTest12(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -4208,7 +4226,7 @@ static int AppLayerProbingParserTest12(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second pp */
     if (pp->next->next != NULL)
@@ -4241,7 +4259,7 @@ static int AppLayerProbingParserTest12(void)
         goto end;
     if (pe->max_depth != 15)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second pp - second one */
     pe = pp->next->toserver->next;
@@ -4257,13 +4275,13 @@ static int AppLayerProbingParserTest12(void)
         goto end;
     if (pe->max_depth != 10)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers(probing_parsers);
+    AlpProtoTestDestroy(&ctx);
     return result;
 }
 
@@ -4273,10 +4291,10 @@ static int AppLayerProbingParserTest13(void)
     AppLayerProbingParser *pp;
     AppLayerProbingParserElement *pe;
 
-    //AppLayerFreeProbingParsers();
+    AlpProtoDetectCtx ctx;
+    AlpProtoInit(&ctx);
 
-    AppLayerProbingParser *probing_parsers = NULL;
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "http",
@@ -4284,9 +4302,9 @@ static int AppLayerProbingParserTest13(void)
                                   5, 8,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -4317,10 +4335,10 @@ static int AppLayerProbingParserTest13(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   81,
                                   IPPROTO_TCP,
                                   "dcerpc",
@@ -4328,9 +4346,9 @@ static int AppLayerProbingParserTest13(void)
                                   9, 10,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_LOW, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     /* first pp */
@@ -4362,7 +4380,7 @@ static int AppLayerProbingParserTest13(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second pp */
     if (pp->next->next != NULL)
@@ -4393,10 +4411,10 @@ static int AppLayerProbingParserTest13(void)
         goto end;
     if (pe->max_depth != 10)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   80,
                                   IPPROTO_TCP,
                                   "smb",
@@ -4404,9 +4422,9 @@ static int AppLayerProbingParserTest13(void)
                                   5, 5,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 0,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     if (pp->toclient != NULL)
@@ -4439,7 +4457,7 @@ static int AppLayerProbingParserTest13(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -4455,7 +4473,7 @@ static int AppLayerProbingParserTest13(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second pp */
     if (pp->next->next != NULL)
@@ -4486,10 +4504,10 @@ static int AppLayerProbingParserTest13(void)
         goto end;
     if (pe->max_depth != 10)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   81,
                                   IPPROTO_TCP,
                                   "ftp",
@@ -4497,9 +4515,9 @@ static int AppLayerProbingParserTest13(void)
                                   7, 15,
                                   STREAM_TOSERVER,
                                   APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
-                                  NULL);
-    pp = probing_parsers;
-    if (probing_parsers == NULL) {
+                                  ProbingParserDummyForTesting);
+    pp = ctx.probing_parsers;
+    if (ctx.probing_parsers == NULL) {
         goto end;
     }
     /* first pp */
@@ -4533,7 +4551,7 @@ static int AppLayerProbingParserTest13(void)
         goto end;
     if (pe->max_depth != 8)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second one */
     pe = pp->toserver->next;
@@ -4549,7 +4567,7 @@ static int AppLayerProbingParserTest13(void)
         goto end;
     if (pe->max_depth != 5)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second pp */
     if (pp->next->next != NULL)
@@ -4582,7 +4600,7 @@ static int AppLayerProbingParserTest13(void)
         goto end;
     if (pe->max_depth != 15)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
     /* second pp - second one */
     pe = pp->next->toserver->next;
@@ -4598,15 +4616,15 @@ static int AppLayerProbingParserTest13(void)
         goto end;
     if (pe->max_depth != 10)
         goto end;
-    if (pe->ProbingParser != NULL)
+    if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
 
-    AppLayerPrintProbingParsers(probing_parsers);
+    AppLayerPrintProbingParsers(ctx.probing_parsers);
 
     result = 1;
 
  end:
-    AppLayerFreeProbingParsers(probing_parsers);
+    AlpProtoTestDestroy(&ctx);
     return result;
 }
 

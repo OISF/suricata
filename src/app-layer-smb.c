@@ -1375,7 +1375,7 @@ void RegisterSMBParsers(void) {
     AppLayerRegisterTransactionIdFuncs(ALPROTO_SMB,
             SMBUpdateTransactionId, NULL);
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&alp_proto_ctx,
                                   139,
                                   IPPROTO_TCP,
                                   "smb",
@@ -1972,7 +1972,6 @@ int SMBParserTest05(void)
     int result = 0;
     AlpProtoDetectCtx ctx;
     AlpProtoDetectThreadCtx tctx;
-    AppLayerProbingParser *probing_parsers = NULL;
     uint16_t alproto;
     Flow f;
     memset(&f, 0, sizeof(f));
@@ -1988,7 +1987,7 @@ int SMBParserTest05(void)
     AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOCLIENT);
     AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOSERVER);
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   f.dp,
                                   IPPROTO_TCP,
                                   "smb",
@@ -2002,7 +2001,7 @@ int SMBParserTest05(void)
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    alproto = AppLayerDetectGetProto(&alp_proto_ctx, &tctx, &f,
+    alproto = AppLayerDetectGetProto(&ctx, &tctx, &f,
                                      smbbuf1, smblen1,
                                      STREAM_TOSERVER, IPPROTO_TCP);
     if (alproto != ALPROTO_UNKNOWN) {
@@ -2011,7 +2010,7 @@ int SMBParserTest05(void)
         goto end;
     }
 
-    alproto = AppLayerDetectGetProto(&alp_proto_ctx, &tctx, &f,
+    alproto = AppLayerDetectGetProto(&ctx, &tctx, &f,
                                      smbbuf2, smblen2,
                                      STREAM_TOSERVER, IPPROTO_TCP);
     if (alproto != ALPROTO_SMB) {
@@ -2023,7 +2022,6 @@ int SMBParserTest05(void)
     result = 1;
  end:
     AlpProtoTestDestroy(&ctx);
-    AppLayerFreeProbingParsers(probing_parsers);
     PmqFree(&tctx.toclient.pmq);
     PmqFree(&tctx.toserver.pmq);
     return result;
@@ -2058,7 +2056,6 @@ int SMBParserTest06(void)
     int result = 0;
     AlpProtoDetectCtx ctx;
     AlpProtoDetectThreadCtx tctx;
-    AppLayerProbingParser *probing_parsers = NULL;
     uint16_t alproto;
     Flow f;
     memset(&f, 0, sizeof(f));
@@ -2074,7 +2071,7 @@ int SMBParserTest06(void)
     AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOCLIENT);
     AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOSERVER);
 
-    AppLayerRegisterProbingParser(&probing_parsers,
+    AppLayerRegisterProbingParser(&ctx,
                                   f.dp,
                                   IPPROTO_TCP,
                                   "smb",
@@ -2088,7 +2085,7 @@ int SMBParserTest06(void)
     AlpProtoFinalizeGlobal(&ctx);
     AlpProtoFinalizeThread(&ctx, &tctx);
 
-    alproto = AppLayerDetectGetProto(&alp_proto_ctx, &tctx, &f,
+    alproto = AppLayerDetectGetProto(&ctx, &tctx, &f,
                                      smbbuf1, smblen1,
                                      STREAM_TOSERVER, IPPROTO_TCP);
     if (alproto != ALPROTO_UNKNOWN) {
@@ -2097,7 +2094,7 @@ int SMBParserTest06(void)
         goto end;
     }
 
-    alproto = AppLayerDetectGetProto(&alp_proto_ctx, &tctx, &f,
+    alproto = AppLayerDetectGetProto(&ctx, &tctx, &f,
                                      smbbuf2, smblen2,
                                      STREAM_TOSERVER, IPPROTO_TCP);
     if (alproto != ALPROTO_SMB) {
@@ -2109,7 +2106,6 @@ int SMBParserTest06(void)
     result = 1;
  end:
     AlpProtoTestDestroy(&ctx);
-    AppLayerFreeProbingParsers(probing_parsers);
     PmqFree(&tctx.toclient.pmq);
     PmqFree(&tctx.toserver.pmq);
     return result;

@@ -26,7 +26,7 @@
 
 #include "stream.h"
 #include "detect-content.h"
-
+#include "app-layer-parser.h"
 
 /** \brief Signature for proto detection
  *  \todo we might just use SigMatch here
@@ -73,6 +73,7 @@ typedef struct AlpProtoDetectCtx_ {
     AlpProtoSignature **map;
 
     AlpProtoSignature *head;    /**< list of sigs */
+    AppLayerProbingParser *probing_parsers;
     uint16_t sigs;              /**< number of sigs */
 } AlpProtoDetectCtx;
 
