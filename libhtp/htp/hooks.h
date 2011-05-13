@@ -35,7 +35,7 @@ struct htp_hook_t {
 };
 
 struct htp_callback_t {
-    int (*fn)();
+    int (*fn)();        
 };
 
  int hook_register(htp_hook_t **hook, int (*callback_fn)());

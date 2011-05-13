@@ -198,7 +198,7 @@ int htp_is_line_empty(unsigned char *data, size_t len) {
 
 /**
  * Does line consist entirely of whitespace characters?
- *
+ * 
  * @param data
  * @param len
  * @return 0 or 1
@@ -241,7 +241,7 @@ int htp_parse_chunked_length(unsigned char *data, size_t len) {
 /**
  * A forgiving parser for a positive integer in a given base.
  * White space is allowed before and after the number.
- *
+ * 
  * @param data
  * @param len
  * @param base
@@ -271,7 +271,7 @@ int htp_parse_positive_integer_whitespace(unsigned char *data, size_t len, int b
 
 /**
  * Prints one log message to stderr.
- *
+ * 
  * @param log
  */
 void htp_print_log(FILE *stream, htp_log_t *log) {
@@ -286,7 +286,7 @@ void htp_print_log(FILE *stream, htp_log_t *log) {
 
 /**
  * Records one log message.
- *
+ * 
  * @param connp
  * @param file
  * @param line
@@ -428,7 +428,7 @@ int htp_parse_authority(htp_connp_t *connp, bstr *authority, htp_uri_t **uri) {
             // Failed to parse port
             htp_log(connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0, "Invalid server port information in request");
         } else if ((port > 0) && (port < 65536)) {
-            // Valid port
+            // Valid port            
             (*uri)->port_number = port;
         } else {
             htp_log(connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0, "Invalid authority port");
@@ -440,7 +440,7 @@ int htp_parse_authority(htp_connp_t *connp, bstr *authority, htp_uri_t **uri) {
 
 /**
  * Parses request URI, making no attempt to validate the contents.
- *
+ * 
  * @param input
  * @param uri
  * @return HTP_ERROR on memory allocation failure, HTP_OK otherwise
@@ -467,7 +467,7 @@ int htp_parse_uri(bstr *input, htp_uri_t **uri) {
     // Scheme test: if it doesn't start with a forward slash character (which it must
     // for the contents to be a path or an authority, then it must be the scheme part
     if (data[0] != '/') {
-        // Parse scheme
+        // Parse scheme        
 
         // Find the colon, which marks the end of the scheme part
         start = pos;
@@ -1722,7 +1722,7 @@ char *htp_tx_progress_as_string(htp_tx_t *tx) {
 bstr *htp_unparse_uri_noencode(htp_uri_t *uri) {
     if (uri == NULL) {
         return NULL;
-    }
+    }   
 
     // On the first pass determine the length of the final string
     size_t len = 0;
@@ -1744,11 +1744,11 @@ bstr *htp_unparse_uri_noencode(htp_uri_t *uri) {
         }
 
         len += 1; // "@"
-    }
+    }   
 
     if (uri->hostname != NULL) {
         len += bstr_len(uri->hostname);
-    }
+    }   
 
     if (uri->port != NULL) {
         len += 1; // ":"
@@ -1767,18 +1767,18 @@ bstr *htp_unparse_uri_noencode(htp_uri_t *uri) {
     if (uri->fragment != NULL) {
         len += 1; // "#"
         len += bstr_len(uri->fragment);
-    }
+    }    
 
     // On the second pass construct the string
     bstr *r = bstr_alloc(len);
     if (r == NULL) {
         return NULL;
-    }
+    }   
 
     if (uri->scheme != NULL) {
         bstr_add_str_noex(r, uri->scheme);
         bstr_add_cstr_noex(r, "://");
-    }
+    }   
 
     if ((uri->username != NULL) || (uri->password != NULL)) {
         if (uri->username != NULL) {
@@ -1792,20 +1792,20 @@ bstr *htp_unparse_uri_noencode(htp_uri_t *uri) {
         }
 
         bstr_add_cstr_noex(r, "@");
-    }
+    }   
 
     if (uri->hostname != NULL) {
         bstr_add_str_noex(r, uri->hostname);
-    }
+    }   
 
     if (uri->port != NULL) {
         bstr_add_cstr(r, ":");
         bstr_add_str_noex(r, uri->port);
-    }
+    }   
 
     if (uri->path != NULL) {
         bstr_add_str_noex(r, uri->path);
-    }
+    }  
 
     if (uri->query != NULL) {
         bstr *query = bstr_strdup(uri->query);
@@ -1813,13 +1813,13 @@ bstr *htp_unparse_uri_noencode(htp_uri_t *uri) {
         bstr_add_cstr_noex(r, "?");
         bstr_add_str_noex(r, query);
         bstr_free(query);
-    }
+    }     
 
     if (uri->fragment != NULL) {
         bstr_add_cstr_noex(r, "#");
         bstr_add_str_noex(r, uri->fragment);
     }
-
+   
     return r;
 }
 

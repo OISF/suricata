@@ -41,7 +41,7 @@ struct htp_decompressor_gzip_t {
     uint8_t header_len;
     z_stream stream;
     unsigned char *buffer;
-    unsigned long crc;
+    unsigned long crc;    
 };
 
 htp_decompressor_t * htp_gzip_decompressor_create(htp_connp_t *connp);

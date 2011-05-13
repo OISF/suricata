@@ -178,6 +178,14 @@ htp_cfg_t *htp_config_copy(htp_cfg_t *cfg) {
         }
     }
 
+    if (cfg->hook_request_uri_normalize != NULL) {
+        copy->hook_request_uri_normalize = hook_copy(cfg->hook_request_uri_normalize);
+        if (copy->hook_request_uri_normalize == NULL) {
+            free(copy);
+            return NULL;
+        }
+    }
+
     if (cfg->hook_request_headers != NULL) {
         copy->hook_request_headers = hook_copy(cfg->hook_request_headers);
         if (copy->hook_request_headers == NULL) {
@@ -209,7 +217,7 @@ htp_cfg_t *htp_config_copy(htp_cfg_t *cfg) {
             return NULL;
         }
     }
-
+    
     if (cfg->hook_response_line != NULL) {
         copy->hook_response_line = hook_copy(cfg->hook_response_line);
         if (copy->hook_response_line == NULL) {
@@ -263,13 +271,14 @@ htp_cfg_t *htp_config_copy(htp_cfg_t *cfg) {
 
 /**
  * Destroy a configuration structure.
- *
+ * 
  * @param cfg
  */
 void htp_config_destroy(htp_cfg_t *cfg) {
     // Destroy the hooks
     hook_destroy(cfg->hook_transaction_start);
     hook_destroy(cfg->hook_request_line);
+    hook_destroy(cfg->hook_request_uri_normalize);
     hook_destroy(cfg->hook_request_headers);
     hook_destroy(cfg->hook_request_body_data);
     hook_destroy(cfg->hook_request_trailer);
@@ -287,9 +296,9 @@ void htp_config_destroy(htp_cfg_t *cfg) {
 
 /**
  * Registers a transaction_start callback.
- *
+ * 
  * @param cfg
- * @param callback_fn
+ * @param callback_fn 
  */
 void htp_config_register_transaction_start(htp_cfg_t *cfg, int (*callback_fn)(htp_connp_t *)) {
     hook_register(&cfg->hook_transaction_start, callback_fn);
@@ -299,17 +308,27 @@ void htp_config_register_transaction_start(htp_cfg_t *cfg, int (*callback_fn)(ht
  * Registers a request_line callback.
  *
  * @param cfg
- * @param callback_fn
+ * @param callback_fn 
  */
 void htp_config_register_request_line(htp_cfg_t *cfg, int (*callback_fn)(htp_connp_t *)) {
     hook_register(&cfg->hook_request_line, callback_fn);
 }
 
 /**
+ * Registers a request_uri_normalize callback.
+ *
+ * @param cfg
+ * @param callback_fn 
+ */
+void htp_config_register_request_uri_normalize(htp_cfg_t *cfg, int (*callback_fn)(htp_connp_t *)) {
+    hook_register(&cfg->hook_request_uri_normalize, callback_fn);
+}
+
+/**
  * Registers a request_headers callback.
  *
  * @param cfg
- * @param callback_fn
+ * @param callback_fn 
  */
 void htp_config_register_request_headers(htp_cfg_t *cfg, int (*callback_fn)(htp_connp_t *)) {
     hook_register(&cfg->hook_request_headers, callback_fn);
@@ -319,7 +338,7 @@ void htp_config_register_request_headers(htp_cfg_t *cfg, int (*callback_fn)(htp_
  * Registers a request_trailer callback.
  *
  * @param cfg
- * @param callback_fn
+ * @param callback_fn 
  */
 void htp_config_register_request_trailer(htp_cfg_t *cfg, int (*callback_fn)(htp_connp_t *)) {
     hook_register(&cfg->hook_request_trailer, callback_fn);
@@ -329,7 +348,7 @@ void htp_config_register_request_trailer(htp_cfg_t *cfg, int (*callback_fn)(htp_
  * Registers a request_body_data callback.
  *
  * @param cfg
- * @param callback_fn
+ * @param callback_fn 
  */
 void htp_config_register_request_body_data(htp_cfg_t *cfg, int (*callback_fn)(htp_tx_data_t *)) {
     hook_register(&cfg->hook_request_body_data, callback_fn);
@@ -339,7 +358,7 @@ void htp_config_register_request_body_data(htp_cfg_t *cfg, int (*callback_fn)(ht
  * Registers a request callback.
  *
  * @param cfg
- * @param callback_fn
+ * @param callback_fn 
  */
 void htp_config_register_request(htp_cfg_t *cfg, int (*callback_fn)(htp_connp_t *)) {
     hook_register(&cfg->hook_request, callback_fn);
@@ -349,7 +368,7 @@ void htp_config_register_request(htp_cfg_t *cfg, int (*callback_fn)(htp_connp_t 
  * Registers a request_line callback.
  *
  * @param cfg
- * @param callback_fn
+ * @param callback_fn 
  */
 void htp_config_register_response_line(htp_cfg_t *cfg, int (*callback_fn)(htp_connp_t *)) {
     hook_register(&cfg->hook_response_line, callback_fn);
@@ -359,7 +378,7 @@ void htp_config_register_response_line(htp_cfg_t *cfg, int (*callback_fn)(htp_co
  * Registers a request_headers callback.
  *
  * @param cfg
- * @param callback_fn
+ * @param callback_fn 
  */
 void htp_config_register_response_headers(htp_cfg_t *cfg, int (*callback_fn)(htp_connp_t *)) {
     hook_register(&cfg->hook_response_headers, callback_fn);
@@ -369,7 +388,7 @@ void htp_config_register_response_headers(htp_cfg_t *cfg, int (*callback_fn)(htp
  * Registers a request_trailer callback.
  *
  * @param cfg
- * @param callback_fn
+ * @param callback_fn 
  */
 void htp_config_register_response_trailer(htp_cfg_t *cfg, int (*callback_fn)(htp_connp_t *)) {
     hook_register(&cfg->hook_response_trailer, callback_fn);
@@ -379,7 +398,7 @@ void htp_config_register_response_trailer(htp_cfg_t *cfg, int (*callback_fn)(htp
  * Registers a request_body_data callback.
  *
  * @param cfg
- * @param callback_fn
+ * @param callback_fn 
  */
 void htp_config_register_response_body_data(htp_cfg_t *cfg, int (*callback_fn)(htp_tx_data_t *)) {
     hook_register(&cfg->hook_response_body_data, callback_fn);
@@ -389,7 +408,7 @@ void htp_config_register_response_body_data(htp_cfg_t *cfg, int (*callback_fn)(h
  * Registers a request callback.
  *
  * @param cfg
- * @param callback_fn
+ * @param callback_fn 
  */
 void htp_config_register_response(htp_cfg_t *cfg, int (*callback_fn)(htp_connp_t *)) {
     hook_register(&cfg->hook_response, callback_fn);
@@ -509,7 +528,7 @@ void htp_config_set_path_decode_separators(htp_cfg_t *cfg, int decode_separators
 
 /**
  * Configures whether %u-encoded sequences in path will be decoded. Such sequences
- * will be treated as invalid URL encoding if decoding is not desireable.
+ * will be treated as invalid URL encoding if decoding is not desireable. 
  *
  * @param cfg
  * @param decode_u_encoding
@@ -653,11 +672,11 @@ int htp_config_set_server_personality(htp_cfg_t *cfg, int personality) {
             cfg->process_request_header = htp_process_request_header_apache_2_2;
             cfg->parse_response_line = htp_parse_response_line_generic;
             cfg->process_response_header = htp_process_response_header_generic;
-
+            
             cfg->path_backslash_separators = NO;
             cfg->path_decode_separators = NO;
             cfg->path_compress_separators = YES;
-            cfg->path_invalid_encoding_handling = URL_DECODER_STATUS_400;
+            cfg->path_invalid_encoding_handling = URL_DECODER_STATUS_400;            
             cfg->path_control_char_handling = NONE;
             break;
 
@@ -704,13 +723,13 @@ int htp_config_set_server_personality(htp_cfg_t *cfg, int personality) {
             cfg->path_invalid_encoding_handling = URL_DECODER_STATUS_400;
             cfg->path_control_char_handling = STATUS_400;
             break;
-
+            
         default:
             return HTP_ERROR;
     }
 
     // Remember the personality
-    cfg->spersonality = personality;
+    cfg->spersonality = personality;   
 
     return HTP_OK;
 }

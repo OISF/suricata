@@ -29,29 +29,29 @@ following conditions are met:
 
   1. You obey the GPLv2 in all respects for the Program and the Derivative
      Work, except for identifiable sections of the Derivative Work which are
-
+     
      1. not derived from the Program, and
-
+     
      2. are not designed to interact with the Program, and
-
+     
      3. which can reasonably be considered independent and separate works in
         themselves.
-
+        
   2. All such identifiable sections of the Derivative Work are
-
+  
      1. distributed subject to one of the FLOSS licenses listed below, and
-
+     
      2. the object code or executable form of those sections are accompanied
         by the complete corresponding machine-readable source code for those
         sections on the same medium and under the same FLOSS license as the
         corresponding object code or executable forms of those sections.
-
+        
   3. Any works which are aggregated with the Program or with a Derivative Work
      on a volume of a storage or distribution medium in accordance with the
      GPLv2, can reasonably be considered independent and separate works in
      themselves which are not derivatives of either the Program, a Derivative
      Work or a FLOSS Work, and are not designed to interact with the Program.
-
+     
 If the above conditions are not met, then the Program may only be copied,
 modified, distributed or used under the terms and conditions of the GPLv2
 or another valid licensing option from Ivan Ristic.
@@ -99,7 +99,7 @@ Definitions
 
 1. Terms used, but not defined, herein shall have the meaning provided in the
    version 2 of the GPL.
-
+   
 2. Derivative Work means a derivative work under copyright law.
 
 

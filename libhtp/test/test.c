@@ -314,7 +314,7 @@ int test_run(const char *testsdir, const char *testname, htp_cfg_t *cfg, htp_con
                 in_data_other = 1;
                 in_data = test.chunk;
                 in_data_len = test.chunk_len;
-                in_data_offset = htp_connp_req_data_consumed(*connp);
+                in_data_offset = htp_connp_req_data_consumed(*connp);                
             }
         } else {
             if (out_data_other) {

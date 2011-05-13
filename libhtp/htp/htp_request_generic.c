@@ -108,7 +108,7 @@ int htp_process_request_header_generic(htp_connp_t *connp) {
         free(h->value);
         free(h);
 
-        // Keep track of same-name headers
+        // Keep track of same-name headers        
         h_existing->flags |= HTP_FIELD_REPEATED;
     } else {
         // Add as a new header
@@ -135,15 +135,15 @@ int htp_parse_request_header_generic(htp_connp_t *connp, htp_header_t *h, unsign
     size_t name_start, name_end;
     size_t value_start, value_end;
 
-    htp_chomp(data, &len);
+    htp_chomp(data, &len);   
 
     name_start = 0;
 
     // Look for the colon
     size_t colon_pos = 0;
-
+    
     while ((colon_pos < len) && (data[colon_pos] != ':')) colon_pos++;
-
+    
     if (colon_pos == len) {
         // Missing colon
         h->flags |= HTP_FIELD_UNPARSEABLE;
@@ -200,7 +200,7 @@ int htp_parse_request_header_generic(htp_connp_t *connp, htp_header_t *h, unsign
 
     // Look for the end of field-content
     value_end = value_start;
-
+    
     while (value_end < len) value_end++;
 
     // Ignore LWS after field-content

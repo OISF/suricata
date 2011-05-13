@@ -53,7 +53,7 @@ htp_conn_t *htp_conn_create(htp_connp_t *connp) {
  */
 void htp_conn_destroy(htp_conn_t *conn) {
     if (conn == NULL) return;
-
+    
     // Destroy individual transactions. Do note that iterating
     // using the iterator does not work here because some of the
     // list element may be NULL (and with the iterator it is impossible
@@ -65,7 +65,7 @@ void htp_conn_destroy(htp_conn_t *conn) {
             htp_tx_destroy(tx);
         }
     }
-
+    
     list_destroy(conn->transactions);
 
     // Destroy individual messages
@@ -85,7 +85,7 @@ void htp_conn_destroy(htp_conn_t *conn) {
     if (conn->remote_addr != NULL) {
         free(conn->remote_addr);
     }
-
+   
     // Finally, destroy the connection
     // structure itself.
     free(conn);

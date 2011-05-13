@@ -16,7 +16,7 @@
 #define	_UTF8_DECODER_H
 
 /* HTP changes:
- *
+ * 
  *     - Changed the name of the function from "decode" to "utf8_decode"
  *     - Created a separate header file
  *     - Copied the licence from the web page

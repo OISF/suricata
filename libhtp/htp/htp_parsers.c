@@ -18,7 +18,7 @@
  * Determines protocol number from a textual representation (i.e., "HTTP/1.1"). This
  * function will only understand a properly formatted protocol information. It does
  * not try to be flexible.
- *
+ * 
  * @param protocol
  * @return Protocol version or PROTOCOL_UKNOWN.
  */

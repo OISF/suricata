@@ -102,7 +102,7 @@ int htp_process_request_header_apache_2_2(htp_connp_t *connp) {
         free(h->value);
         free(h);
 
-        // Keep track of same-name headers
+        // Keep track of same-name headers        
         h_existing->flags |= HTP_FIELD_REPEATED;
     } else {
         // Add as a new header

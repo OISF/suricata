@@ -76,15 +76,15 @@ bstr *bstr_add_cstr(bstr *destination, char *source) {
  * @param len
  * @return destination, at a potentially different memory location
  */
-bstr *bstr_add_mem(bstr *destination, char *data, size_t len) {
-    if (bstr_size(destination) < bstr_len(destination) + len) {
+bstr *bstr_add_mem(bstr *destination, char *data, size_t len) {    
+    if (bstr_size(destination) < bstr_len(destination) + len) {        
         destination = bstr_expand(destination, bstr_len(destination) + len);
-        if (destination == NULL) return NULL;
-    }
+        if (destination == NULL) return NULL;        
+    }    
 
     bstr_t *b = (bstr_t *) destination;
     memcpy(bstr_ptr(destination) + b->len, data, len);
-    b->len = b->len + len;
+    b->len = b->len + len;   
 
     return destination;
 }
@@ -526,7 +526,7 @@ int bstr_indexofmem(bstr *haystack, char *data2, size_t len2) {
 
     // TODO Is an optimisation here justified?
     //      http://en.wikipedia.org/wiki/Knuth-Morris-Pratt_algorithm
-
+    
     for (i = 0; i < len; i++) {
         size_t k = i;
 

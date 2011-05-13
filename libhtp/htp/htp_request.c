@@ -339,7 +339,7 @@ int htp_connp_REQ_BODY_DETERMINE(htp_connp_t *connp) {
         connp->in_tx->progress = TX_PROGRESS_WAIT;
     }
 
-    // Host resolution
+    // Host resolution    
     htp_header_t *h = table_getc(connp->in_tx->request_headers, "host");
     if (h == NULL) {
         // No host information in the headers
@@ -430,7 +430,7 @@ int htp_connp_REQ_HEADERS(htp_connp_t *connp) {
                 // Cleanup
                 free(connp->in_header_line);
                 connp->in_line_len = 0;
-                connp->in_header_line = NULL;
+                connp->in_header_line = NULL;                
 
                 // We've seen all request headers
                 if (connp->in_chunk_count != connp->in_chunk_request_index) {
@@ -495,7 +495,7 @@ int htp_connp_REQ_HEADERS(htp_connp_t *connp) {
             if (connp->in_header_line->line == NULL) {
                 return HTP_ERROR;
             }
-
+            
             list_add(connp->in_tx->request_header_lines, connp->in_header_line);
             connp->in_header_line = NULL;
 
@@ -598,32 +598,40 @@ int htp_connp_REQ_LINE(htp_connp_t *connp) {
                 if (htp_parse_uri(connp->in_tx->request_uri, &(connp->in_tx->parsed_uri_incomplete)) != HTP_OK) {
                     // Note: downstream responsible for error logging
                     return HTP_ERROR;
-                }
+                }               
 
                 // Keep the original URI components, but
                 // create a copy which we can normalize and use internally
                 if (htp_normalize_parsed_uri(connp, connp->in_tx->parsed_uri_incomplete, connp->in_tx->parsed_uri)) {
                     // Note: downstream responsible for error logging
                     return HTP_ERROR;
+                }               
+
+                // Run hook REQUEST_URI_NORMALIZE
+                int rc = hook_run_all(connp->cfg->hook_request_uri_normalize, connp);
+                if (rc != HOOK_OK) {
+                    htp_log(connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0,
+                            "Request URI normalize callback returned error (%d)", rc);
+                    return HTP_ERROR;
                 }
 
                 // Now is a good time to generate request_uri_normalized, before we finalize
                 // parsed_uri (and lose the information which parts were provided in the request and
                 // which parts we added).
-                if (connp->cfg->generate_request_uri_normalized) {
-                    connp->in_tx->request_uri_normalized = htp_unparse_uri_noencode(connp->in_tx->parsed_uri);
+                if (connp->cfg->generate_request_uri_normalized) {                 
+                    connp->in_tx->request_uri_normalized = htp_unparse_uri_noencode(connp->in_tx->parsed_uri);                   
 
                     if (connp->in_tx->request_uri_normalized == NULL) {
                         // There's no sense in logging anything on a memory allocation failure
                         return HTP_ERROR;
-                    }
+                    }                   
 
                     #ifdef HTP_DEBUG
                     fprint_raw_data(stderr, "request_uri_normalized",
                         (unsigned char *) bstr_ptr(connp->in_tx->request_uri_normalized),
                         bstr_len(connp->in_tx->request_uri_normalized));
                     #endif
-                }
+                }               
 
                 // Finalize parsed_uri
 
@@ -665,7 +673,7 @@ int htp_connp_REQ_LINE(htp_connp_t *connp) {
                     if (connp->in_tx->parsed_uri->path == NULL) {
                         return HTP_ERROR;
                     }
-                }
+                }               
             }
 
             // Run hook REQUEST_LINE
@@ -759,7 +767,7 @@ size_t htp_connp_req_data_consumed(htp_connp_t *connp) {
 
 /**
  * Process a chunk of inbound (client or request) data.
- *
+ * 
  * @param connp
  * @param timestamp
  * @param data

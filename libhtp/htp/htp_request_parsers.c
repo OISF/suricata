@@ -99,7 +99,7 @@ htp_header_t *htp_connp_header_parse(htp_connp_t *reqp, unsigned char *data, siz
     htp_header_t *h = calloc(1, sizeof (htp_header_t));
     if (h == NULL) return NULL;
 
-    // Parse the header line
+    // Parse the header line    
     if (reqp->impl_header_parse(data, len, h) < 0) {
         // Invalid header line
         h->is_parsed = 0;

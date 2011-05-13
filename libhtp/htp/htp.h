@@ -41,7 +41,7 @@ typedef struct htp_urldecoder_t htp_urldecoder_t;
 
 // -- Defines -------------------------------------------------------------------------------------
 
-#define HTP_BASE_VERSION_TEXT	"0.2.3"
+#define HTP_BASE_VERSION_TEXT	"0.2.5"
 
 #define HTP_ERROR              -1
 #define HTP_OK                  0
@@ -290,16 +290,16 @@ struct htp_cfg_t {
      *  a header can end up being longer than the line limit.
      */
     size_t field_limit_hard;
-
+    
     /** Soft field limit length. If this limit is reached the parser will issue
      *  a warning but continue to run.
      */
-    size_t field_limit_soft;
+    size_t field_limit_soft;              
 
     /** Log level, which will be used when deciding whether to store or
      *  ignore the messages issued by the parser.
      */
-    int log_level;
+    int log_level;   
 
     /**
      * Server personality ID.
@@ -318,12 +318,12 @@ struct htp_cfg_t {
     /** The function used for response header parsing. Depends on the personality. */
     int (*process_response_header)(htp_connp_t *connp);
 
-
+    
     // Path handling
 
     /** Should we treat backslash characters as path segment separators? */
     int path_backslash_separators;
-
+    
     /** Should we treat paths as case insensitive? */
     int path_case_insensitive;
 
@@ -365,7 +365,7 @@ struct htp_cfg_t {
     unsigned char path_replacement_char;
 
     /** How will the server handle UCS-2 characters? */
-    int path_unicode_mapping;
+    int path_unicode_mapping;      
 
     /** XXX Unused */
     int path_utf8_overlong_handling;
@@ -386,6 +386,9 @@ struct htp_cfg_t {
 
     /** Request line hook, invoked after a request line has been parsed. */
     htp_hook_t *hook_request_line;
+
+    /** Request URI normalization hook, for overriding default normalization of URI. */
+    htp_hook_t *hook_request_uri_normalize;
 
     /** Request headers hook, invoked after all request headers are seen. */
     htp_hook_t *hook_request_headers;
@@ -458,17 +461,17 @@ struct htp_conn_t {
     list_t *transactions;
 
     /** Log messages associated with this connection. */
-    list_t *messages;
+    list_t *messages;   
 
     /** Parsing flags: PIPELINED_CONNECTION. */
-    unsigned int flags;
+    unsigned int flags;   
 
     /** When was this connection opened? */
     htp_time_t open_timestamp;
 
     /** When was this connection closed? */
     htp_time_t close_timestamp;
-
+    
     /** Inbound data counter. */
     size_t in_data_counter;
 
@@ -484,7 +487,7 @@ struct htp_conn_t {
 
 struct htp_connp_t {
     // General fields
-
+    
     /** Current parser configuration structure. */
     htp_cfg_t *cfg;
 
@@ -498,7 +501,7 @@ struct htp_connp_t {
     htp_conn_t *conn;
 
     /** Opaque user data associated with this parser. */
-    void *user_data;
+    void *user_data;   
 
     /** On parser failure, this field will contain the error information. Do note, however,
      *  that the value in this field will only be valid immediately after an error condition,
@@ -545,10 +548,10 @@ struct htp_connp_t {
     size_t in_line_size;
 
     /** Lenght of the current request line. */
-    size_t in_line_len;
+    size_t in_line_len;    
 
     /** Ongoing inbound transaction. */
-    htp_tx_t *in_tx;
+    htp_tx_t *in_tx;   
 
     /** The request header line currently being processed. */
     htp_header_line_t *in_header_line;
@@ -616,8 +619,8 @@ struct htp_connp_t {
     size_t out_line_size;
 
     /** Lenght of the current response line. */
-    size_t out_line_len;
-
+    size_t out_line_len;       
+        
     /** Ongoing outbound transaction */
     htp_tx_t *out_tx;
 
@@ -701,7 +704,7 @@ struct htp_header_line_t {
 
     /** Parsing flags: HTP_FIELD_INVALID_NOT_FATAL, HTP_FIELD_INVALID_FATAL, HTP_FIELD_LONG */
     unsigned int flags;
-
+    
     /** Header that uses this line. */
     htp_header_t *header;
 };
@@ -711,7 +714,7 @@ struct htp_header_t {
     bstr *name;
 
     /** Header value. */
-    bstr *value;
+    bstr *value;   
 
     /** Parsing flags: HTP_FIELD_INVALID_NOT_FATAL, HTP_FIELD_FOLDED, HTP_FIELD_REPEATED */
     unsigned int flags;
@@ -735,7 +738,7 @@ struct htp_tx_t {
 
     /** The user data associated with this transaction. */
     void *user_data;
-
+    
     // Request
     unsigned int request_ignored_lines;
 
@@ -773,7 +776,7 @@ struct htp_tx_t {
     int request_protocol_number;
 
     /** Is this request using a short-style HTTP/0.9 request? */
-    int protocol_is_simple;
+    int protocol_is_simple;   
 
     /** This structure holds a parsed request_uri, with the missing information
      *  added (e.g., adding port number from the TCP information) and the fields
@@ -817,7 +820,7 @@ struct htp_tx_t {
      *  request that uses PUT (in which case this field will be equal to the
      *  entity length field). This field will be zero in all other cases.
      */
-    size_t request_filedata_len;
+    size_t request_filedata_len;        
 
     /** Original request header lines. This list stores instances of htp_header_line_t. */
     list_t *request_header_lines;
@@ -873,7 +876,7 @@ struct htp_tx_t {
     bstr *response_message;
 
     /** Have we seen the server respond with a 100 response? */
-    int seen_100continue;
+    int seen_100continue;   
 
     /** Original response header lines. */
     list_t *response_header_lines;
@@ -899,8 +902,8 @@ struct htp_tx_t {
     int response_transfer_coding;
 
     /** Compression; currently COMPRESSION_NONE or COMPRESSION_GZIP. */
-    int response_content_encoding;
-
+    int response_content_encoding;   
+    
     // Common
 
     /** Parsing flags: HTP_INVALID_CHUNKING, HTP_INVALID_FOLDING,
@@ -963,10 +966,11 @@ const char *htp_get_version();
 
 htp_cfg_t *htp_config_copy(htp_cfg_t *cfg);
 htp_cfg_t *htp_config_create();
-      void htp_config_destroy(htp_cfg_t *cfg);
+      void htp_config_destroy(htp_cfg_t *cfg); 
 
 void htp_config_register_transaction_start(htp_cfg_t *cfg, int (*callback_fn)(htp_connp_t *));
 void htp_config_register_request_line(htp_cfg_t *cfg, int (*callback_fn)(htp_connp_t *));
+void htp_config_register_request_uri_normalize(htp_cfg_t *cfg, int (*callback_fn)(htp_connp_t *));
 void htp_config_register_request_headers(htp_cfg_t *cfg, int (*callback_fn)(htp_connp_t *));
 void htp_config_register_request_body_data(htp_cfg_t *cfg, int (*callback_fn)(htp_tx_data_t *));
 void htp_config_register_request_trailer(htp_cfg_t *cfg, int (*callback_fn)(htp_connp_t *));

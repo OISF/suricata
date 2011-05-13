@@ -16,7 +16,7 @@
 
 /**
  * Generic response line parser.
- *
+ * 
  * @param connp
  * @return HTP status
  */
@@ -77,13 +77,13 @@ int htp_parse_response_line_generic(htp_connp_t *connp) {
 #ifdef HTP_DEBUG
     fprint_raw_data(stderr, __FUNCTION__, (unsigned char *)bstr_ptr(tx->response_message), bstr_len(tx->response_message));
 #endif
-
+    
     return HTP_OK;
 }
 
 /**
  * Generic response header parser.
- *
+ * 
  * @param connp
  * @param h
  * @param data
@@ -198,7 +198,7 @@ int htp_parse_response_header_generic(htp_connp_t *connp, htp_header_t *h, char 
 /**
  * Generic response header line(s) processor, which assembles folded lines
  * into a single buffer before invoking the parsing function.
- *
+ * 
  * @param connp
  * @return HTP status
  */
@@ -209,7 +209,7 @@ int htp_process_response_header_generic(htp_connp_t *connp) {
 
     // Parse header
     htp_header_t *h = calloc(1, sizeof (htp_header_t));
-    if (h == NULL) return HTP_ERROR;
+    if (h == NULL) return HTP_ERROR;    
 
     // Ensure we have the necessary header data in a single buffer
     if (connp->out_header_line_index + 1 == connp->out_header_line_counter) {

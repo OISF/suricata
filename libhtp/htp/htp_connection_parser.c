@@ -203,7 +203,7 @@ void htp_connp_destroy_all(htp_connp_t *connp) {
 
 /**
  * Retrieve the user data associated with this connection parser.
- *
+ * 
  * @param connp
  * @return User data, or NULL if there isn't any.
  */

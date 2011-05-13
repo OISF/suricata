@@ -96,7 +96,7 @@ void htp_tx_destroy(htp_tx_t *tx) {
 
     list_destroy(tx->request_header_lines);
 
-    // Destroy request_headers
+    // Destroy request_headers    
     htp_header_t *h = NULL;
     table_iterator_reset(tx->request_headers);
     while (table_iterator_next(tx->request_headers, (void **) & h) != NULL) {
@@ -127,7 +127,7 @@ void htp_tx_destroy(htp_tx_t *tx) {
     }
     list_destroy(tx->response_header_lines);
 
-    // Destroy response headers
+    // Destroy response headers    
     h = NULL;
     table_iterator_reset(tx->response_headers);
     while (table_iterator_next(tx->response_headers, (void **) & h) != NULL) {
@@ -154,7 +154,7 @@ void htp_tx_destroy(htp_tx_t *tx) {
 }
 
 /**
- * Returns the user data associated with this transaction.
+ * Returns the user data associated with this transaction. 
  *
  * @param tx
  * @return A pointer to user data or NULL
@@ -182,5 +182,5 @@ void htp_tx_set_config(htp_tx_t *tx, htp_cfg_t *cfg, int is_cfg_shared) {
  * @param user_data
  */
 void htp_tx_set_user_data(htp_tx_t *tx, void *user_data) {
-    tx->user_data = user_data;
+    tx->user_data = user_data;    
 }

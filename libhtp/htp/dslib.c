@@ -148,7 +148,7 @@ static int list_array_push(list_t *_q, void *element) {
     if (q->current_size >= q->max_size) {
         int new_size = q->max_size * 2;
         void *newblock = NULL;
-
+        
         if (q->first == 0) {
             // The simple case of expansion is when the first
             // element in the list resides in the first slot. In
@@ -167,10 +167,10 @@ static int list_array_push(list_t *_q, void *element) {
             memcpy(newblock, (char *)q->elements + q->first * sizeof (void *), (q->max_size - q->first) * sizeof (void *));
             // Append the second part of the list to the end
             memcpy((char *)newblock + (q->max_size - q->first) * sizeof (void *), q->elements, q->first * sizeof (void *));
-
+            
             free(q->elements);
         }
-
+        
         q->first = 0;
         q->last = q->current_size;
         q->max_size = new_size;
@@ -179,7 +179,7 @@ static int list_array_push(list_t *_q, void *element) {
 
     q->elements[q->last] = element;
     q->current_size++;
-
+    
     q->last++;
     if (q->last == q->max_size) {
         q->last = 0;
@@ -260,7 +260,7 @@ static void *list_array_get(list_t *_l, size_t idx) {
  * @return 1 if the element was replaced, or 0 if the list is too small
  */
 static int list_array_replace(list_t *_l, size_t idx, void *element) {
-    list_array_t *l = (list_array_t *) _l;
+    list_array_t *l = (list_array_t *) _l;    
 
     if (idx + 1 > l->current_size) return 0;
 
@@ -368,7 +368,7 @@ table_t *table_create(size_t size) {
         free(t);
         return NULL;
     }
-
+    
     return t;
 }
 
@@ -411,7 +411,7 @@ int table_add(table_t *table, bstr *key, void *element) {
     bstr *lkey = bstr_dup_lower(key);
     if (lkey == NULL) {
         return -1;
-    }
+    }   
 
     // Add key
     if (list_add(table->list, lkey) != 1) {
@@ -526,18 +526,18 @@ size_t table_size(table_t *table) {
  *
  * @param table
  */
-void table_clear(table_t *table) {
+void table_clear(table_t *table) {    
     // TODO Clear table by removing the existing elements
-
+    
     size_t size = list_size(table->list);
 
     list_destroy(table->list);
-
+    
     // Use a list behind the scenes
     table->list = list_array_create(size == 0 ? 10 : size);
     if (table->list == NULL) {
-        free(table);
-    }
+        free(table);        
+    }    
 }
 
 #if 0

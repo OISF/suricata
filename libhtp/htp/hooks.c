@@ -27,7 +27,7 @@ htp_hook_t *hook_create() {
     if (hook->callbacks == NULL) {
         free(hook);
         return NULL;
-    }
+    }   
 
     return hook;
 }
@@ -75,7 +75,7 @@ void hook_destroy(htp_hook_t *hook) {
     }
 
     list_destroy(hook->callbacks);
-
+    
     free(hook);
 }
 
@@ -104,12 +104,12 @@ int hook_register(htp_hook_t **hook, int (*callback_fn)()) {
         hook_created = 1;
     }
 
-    // Add callback
+    // Add callback 
     if (list_add((*hook)->callbacks, callback) < 0) {
         if (hook_created) {
             free(*hook);
         }
-
+        
         free(callback);
         return -1;
     }
@@ -119,7 +119,7 @@ int hook_register(htp_hook_t **hook, int (*callback_fn)()) {
 
 /**
  * Runs all the callbacks associated with a given hook. Only stops if
- * one of the callbacks returns an error (HOOK_ERROR).
+ * one of the callbacks returns an error (HOOK_ERROR). 
  *
  * @param hook
  * @param data

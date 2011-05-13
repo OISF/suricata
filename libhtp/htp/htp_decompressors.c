@@ -132,7 +132,7 @@ static int htp_gzip_decompressor_decompress(htp_decompressor_gzip_t *drec, htp_t
             d2.tx = d->tx;
             d2.data = drec->buffer;
             d2.len = len;
-
+            
             // Send decompressed data to callback
             if (drec->super.callback(&d2) < 0) {
                 inflateEnd(&drec->stream);
@@ -140,7 +140,7 @@ static int htp_gzip_decompressor_decompress(htp_decompressor_gzip_t *drec, htp_t
                 return -1;
             }
 
-            // TODO Handle trailer
+            // TODO Handle trailer           
 
             return 1;
         }
