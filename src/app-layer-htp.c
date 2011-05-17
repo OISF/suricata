@@ -1773,9 +1773,12 @@ int HTPParserTest01(void) {
     for (u = 0; u < httplen1; u++) {
         uint8_t flags = 0;
 
-        if (u == 0) flags = STREAM_TOSERVER|STREAM_START;
-        else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
-        else flags = STREAM_TOSERVER;
+        if (u == 0)
+            flags = STREAM_TOSERVER|STREAM_START;
+        else if (u == (httplen1 - 1))
+            flags = STREAM_TOSERVER|STREAM_EOF;
+        else
+            flags = STREAM_TOSERVER;
 
         r = AppLayerParse(NULL, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
         if (r != 0) {
