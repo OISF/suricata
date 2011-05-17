@@ -1697,7 +1697,7 @@ end:
 /** \test
  */
 int HTPParserTest07(void) {
-    int result = 1;
+    int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "GET /awstats.pl?/migratemigrate%20=%20| HTTP/1.0\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -1718,9 +1718,12 @@ int HTPParserTest07(void) {
     for (u = 0; u < httplen1; u++) {
         uint8_t flags = 0;
 
-        if (u == 0) flags = STREAM_TOSERVER|STREAM_START;
-        else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
-        else flags = STREAM_TOSERVER;
+        if (u == 0)
+            flags = STREAM_TOSERVER|STREAM_START;
+        else if (u == (httplen1 - 1))
+            flags = STREAM_TOSERVER|STREAM_EOF;
+        else
+            flags = STREAM_TOSERVER;
 
         r = AppLayerParse(&f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
         if (r != 0) {
@@ -1738,11 +1741,23 @@ int HTPParserTest07(void) {
         goto end;
     }
 
+    uint8_t ref[] = "/awstats.pl?/migratemigrate = |";
+    size_t reflen = sizeof(ref) - 1;
+
     htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
     if (tx != NULL && tx->request_uri_normalized != NULL) {
-        printf("bstr_ptr(tx->request_uri_normalized) %s", bstr_ptr(tx->request_uri_normalized));
+        if (reflen != bstr_size(tx->request_uri_normalized)) {
+            goto end;
+        }
+
+        if (memcmp(bstr_ptr(tx->request_uri_normalized), ref,
+                    bstr_size(tx->request_uri_normalized)) != 0)
+        {
+            goto end;
+        }
     }
 
+    result = 1;
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);

@@ -734,10 +734,13 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
         AC_CHECK_LIB([htp], [htp_config_register_request_uri_normalize],AC_DEFINE_UNQUOTED([HAVE_HTP_URI_NORMALIZE_HOOK],[1],[Found htp_config_register_request_uri_normalize function in libhtp]) ,,[-lhtp])
     ])
 
-   #even if we are using an installed htp lib we still need to gen Makefiles inside of htp
-   AC_CONFIG_SUBDIRS([libhtp])
-   AM_CONDITIONAL([BUILD_LIBHTP], [test "x$enable_non_bundled_htp" = "xno"])
-   AM_CONDITIONAL([HAVE_HTP_URI_NORMALIZE_HOOK], [test "x$enable_non_bundled_htp" = "xno"])
+    #even if we are using an installed htp lib we still need to gen Makefiles inside of htp
+    AC_CONFIG_SUBDIRS([libhtp])
+    AM_CONDITIONAL([BUILD_LIBHTP], [test "x$enable_non_bundled_htp" = "xno"])
+    AS_IF([test "x$enable_non_bundled_htp" = "xno"], [
+        AC_DEFINE_UNQUOTED([HAVE_HTP_URI_NORMALIZE_HOOK],[1],[Assuming htp_config_register_request_uri_normalize function in bundled libhtp])
+    ])
+
 
 # enable CUDA output
     AC_ARG_ENABLE(cuda,

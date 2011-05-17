@@ -429,6 +429,9 @@ void SCPrintBuildInfo(void) {
 #ifdef HAVE_LIBNET11
     strlcat(features, "LIBNET1.1 ", sizeof(features));
 #endif
+#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
+    strlcat(features, "HAVE_HTP_URI_NORMALIZE_HOOK ", sizeof(features));
+#endif
     if (strlen(features) == 0) {
         strlcat(features, "none", sizeof(features));
     }
