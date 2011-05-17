@@ -666,6 +666,17 @@ void HtpBodyFree(HtpBody *body)
     body->operation = HTP_BODY_NONE;
 }
 
+#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
+/**
+ *  \brief Normalize the query part of the URI as if it's part of the URI.
+ *
+ *  \param c HTP connection pointer
+ *
+ *  \retval HOOK_OK we won't fail
+ *
+ *  This functionality requires the uri normalize hook introduced in libhtp
+ *  version 0.2.5.
+ */
 static int HTPCallbackRequestUriNormalize(htp_connp_t *c)
 {
     SCEnter();
@@ -682,6 +693,7 @@ static int HTPCallbackRequestUriNormalize(htp_connp_t *c)
 
     SCReturnInt(HOOK_OK);
 }
+#endif
 
 /**
  * \brief Function callback to append chunks for Requests
@@ -887,7 +899,10 @@ static void HTPConfigure(void)
     cfglist.request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
     htp_config_register_request(cfglist.cfg, HTPCallbackRequest);
     htp_config_register_response(cfglist.cfg, HTPCallbackResponse);
-    htp_config_register_request_uri_normalize(cfglist.cfg, HTPCallbackRequestUriNormalize);
+#ifdef HAVE_HTP_URI_NORMALIZE_HOOK
+    htp_config_register_request_uri_normalize(cfglist.cfg,
+            HTPCallbackRequestUriNormalize);
+#endif
     htp_config_set_generate_request_uri_normalized(cfglist.cfg, 1);
 
     default_config = ConfGetNode("libhtp.default-config");
