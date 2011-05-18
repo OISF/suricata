@@ -454,6 +454,8 @@ typedef struct Signature_ {
     /* used to hold flags that are predominantly used during init */
     uint32_t init_flags;
 
+    SigMatch *dsize_sm;
+
     /** ptr to the next sig in the list */
     struct Signature_ *next;
 } Signature;

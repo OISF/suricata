@@ -2628,6 +2628,60 @@ static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
     return;
 }
 
+static int SigParseGetMaxDsize(Signature *s) {
+    if (s->flags & SIG_FLAG_DSIZE && s->dsize_sm != NULL) {
+        DetectDsizeData *dd = (DetectDsizeData *)s->dsize_sm->ctx;
+
+        switch (dd->mode) {
+            case DETECTDSIZE_LT:
+            case DETECTDSIZE_EQ:
+                return dd->dsize;
+            case DETECTDSIZE_RA:
+                return dd->dsize2;
+            case DETECTDSIZE_GT:
+            default:
+                SCReturnInt(-2);
+        }
+    }
+    SCReturnInt(-1);
+}
+
+/**
+ *  \brief Apply dsize as depth to content matches in the rule
+ */
+static int SigParseApplyDsizeToContent(Signature *s) {
+    SCEnter();
+
+    if (s->flags & SIG_FLAG_DSIZE) {
+        int dsize = SigParseGetMaxDsize(s);
+
+        if (dsize < 0) {
+            /* nothing to do */
+            return 0;
+        }
+
+        SigMatch *sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+        for ( ; sm != NULL;  sm = sm->next) {
+            if (sm->type != DETECT_CONTENT) {
+                continue;
+            }
+
+            DetectContentData *cd = (DetectContentData *)sm->ctx;
+            if (cd == NULL) {
+                continue;
+            }
+
+            if (cd->depth == 0 || cd->depth >= dsize) {
+                cd->depth = (uint16_t)dsize;
+                SCLogDebug("updated %u, content %u to have depth %u "
+                        "because of dsize.", s->id, cd->id, cd->depth);
+            }
+        }
+    }
+
+    SCReturnInt(0);
+}
+
 /**
  * \brief Add all signatures to their own source address group
  *
@@ -2749,6 +2803,8 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
             }
             cnt++;
         }
+
+        SigParseApplyDsizeToContent(tmp_s);
 
         de_ctx->sig_cnt++;
     }

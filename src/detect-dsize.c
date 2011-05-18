@@ -306,6 +306,11 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr
             dd->dsize, dd->dsize2, dd->mode);
     /* tell the sig it has a dsize to speed up engine init */
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
+    s->flags |= SIG_FLAG_DSIZE;
+
+    if (s->dsize_sm == NULL) {
+        s->dsize_sm = sm;
+    }
 
     return 0;
 
