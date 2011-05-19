@@ -418,7 +418,8 @@ SCProfilingDump(void)
     }
 
     fprintf(fp,"\n");
-    fclose(fp);
+    if (fp != stdout)
+        fclose(fp);
     SCLogInfo("Done dumping profiling data.");
 }
 
@@ -531,7 +532,7 @@ ProfilingTest01(void)
     if (rules_pca->head[counter1].wrapped_syncs != 0)
         return 0;
 
-    SCProfilingDump(stdout);
+    SCProfilingDump();
 
     SCProfilingDestroy();
 
