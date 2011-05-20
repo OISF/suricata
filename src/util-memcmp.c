@@ -166,6 +166,162 @@ static int MemcmpTest13 (void) {
     return 1;
 }
 
+#include "util-cpu.h"
+
+#define TEST_RUNS 1000000
+
+static int MemcmpTest14 (void) {
+#ifdef PROFILING
+    uint64_t ticks_start = 0;
+    uint64_t ticks_end = 0;
+    char *a[] = { "0123456789012345", "abc", "abcdefghij", "suricata", "test", "xyz", "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "abcdefghijklmnopqrstuvwxyz", NULL };
+    char *b[] = { "1234567890123456", "abc", "abcdefghik", "suricatb", "test", "xyz", "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "abcdefghijklmnopqrstuvwxyz", NULL };
+
+    int t = 0;
+    int i, j;
+    int r1 = 0;
+
+    printf("\n");
+
+    ticks_start = UtilCpuGetTicks();
+    for (t = 0; t < TEST_RUNS; t++) {
+        for (i = 0; a[i] != NULL; i++) {
+            // printf("a[%d] = %s\n", i, a[i]);
+            size_t alen = strlen(a[i]) - 1;
+
+            for (j = 0; b[j] != NULL; j++) {
+                // printf("b[%d] = %s\n", j, b[j]);
+                size_t blen = strlen(b[j]) - 1;
+
+                r1 += (memcmp((uint8_t *)a[i], (uint8_t *)b[j], (alen < blen) ? alen : blen) ? 1 : 0);
+            }
+        }
+    }
+    ticks_end = UtilCpuGetTicks();
+    printf("memcmp(%d) \t\t\t%"PRIu64"\n", TEST_RUNS, ((uint64_t)(ticks_end - ticks_start))/TEST_RUNS);
+    SCLogInfo("ticks passed %"PRIu64, ticks_end - ticks_start);
+
+    printf("r1 %d\n", r1);
+    if (r1 != (51 * TEST_RUNS))
+        return 0;
+#endif
+    return 1;
+}
+
+static int MemcmpTest15 (void) {
+#ifdef PROFILING
+    uint64_t ticks_start = 0;
+    uint64_t ticks_end = 0;
+    char *a[] = { "0123456789012345", "abc", "abcdefghij", "suricata", "test", "xyz", "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "abcdefghijklmnopqrstuvwxyz", NULL };
+    char *b[] = { "1234567890123456", "abc", "abcdefghik", "suricatb", "test", "xyz", "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "abcdefghijklmnopqrstuvwxyz", NULL };
+
+    int t = 0;
+    int i, j;
+    int r2 = 0;
+
+    printf("\n");
+
+    ticks_start = UtilCpuGetTicks();
+    for (t = 0; t < TEST_RUNS; t++) {
+        for (i = 0; a[i] != NULL; i++) {
+            // printf("a[%d] = %s\n", i, a[i]);
+            size_t alen = strlen(a[i]) - 1;
+
+            for (j = 0; b[j] != NULL; j++) {
+                // printf("b[%d] = %s\n", j, b[j]);
+                size_t blen = strlen(b[j]) - 1;
+
+                r2 += MemcmpLowercase((uint8_t *)a[i], (uint8_t *)b[j], (alen < blen) ? alen : blen);
+            }
+        }
+    }
+    ticks_end = UtilCpuGetTicks();
+    printf("MemcmpLowercase(%d) \t\t%"PRIu64"\n", TEST_RUNS, ((uint64_t)(ticks_end - ticks_start))/TEST_RUNS);
+    SCLogInfo("ticks passed %"PRIu64, ticks_end - ticks_start);
+
+    printf("r2 %d\n", r2);
+    if (r2 != (51 * TEST_RUNS))
+        return 0;
+#endif
+    return 1;
+}
+
+static int MemcmpTest16 (void) {
+#ifdef PROFILING
+    uint64_t ticks_start = 0;
+    uint64_t ticks_end = 0;
+    char *a[] = { "0123456789012345", "abc", "abcdefghij", "suricata", "test", "xyz", "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "abcdefghijklmnopqrstuvwxyz", NULL };
+    char *b[] = { "1234567890123456", "abc", "abcdefghik", "suricatb", "test", "xyz", "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "abcdefghijklmnopqrstuvwxyz", NULL };
+
+    int t = 0;
+    int i, j;
+    int r3 = 0;
+
+    printf("\n");
+
+    ticks_start = UtilCpuGetTicks();
+    for (t = 0; t < TEST_RUNS; t++) {
+        for (i = 0; a[i] != NULL; i++) {
+            // printf("a[%d] = %s\n", i, a[i]);
+            size_t alen = strlen(a[i]) - 1;
+
+            for (j = 0; b[j] != NULL; j++) {
+                // printf("b[%d] = %s\n", j, b[j]);
+                size_t blen = strlen(b[j]) - 1;
+
+                r3 += SCMemcmp((uint8_t *)a[i], (uint8_t *)b[j], (alen < blen) ? alen : blen);
+            }
+        }
+    }
+    ticks_end = UtilCpuGetTicks();
+    printf("SCMemcmp(%d) \t\t\t%"PRIu64"\n", TEST_RUNS, ((uint64_t)(ticks_end - ticks_start))/TEST_RUNS);
+    SCLogInfo("ticks passed %"PRIu64, ticks_end - ticks_start);
+
+    printf("r3 %d\n", r3);
+    if (r3 != (51 * TEST_RUNS))
+        return 0;
+#endif
+    return 1;
+}
+
+static int MemcmpTest17 (void) {
+#ifdef PROFILING
+    uint64_t ticks_start = 0;
+    uint64_t ticks_end = 0;
+    char *a[] = { "0123456789012345", "abc", "abcdefghij", "suricata", "test", "xyz", "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "abcdefghijklmnopqrstuvwxyz", NULL };
+    char *b[] = { "1234567890123456", "abc", "abcdefghik", "suricatb", "test", "xyz", "rrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrrr", "abcdefghijklmnopqrstuvwxyz", NULL };
+
+    int t = 0;
+    int i, j;
+    int r4 = 0;
+
+    printf("\n");
+
+    ticks_start = UtilCpuGetTicks();
+    for (t = 0; t < TEST_RUNS; t++) {
+        for (i = 0; a[i] != NULL; i++) {
+            // printf("a[%d] = %s\n", i, a[i]);
+            size_t alen = strlen(a[i]) - 1;
+
+            for (j = 0; b[j] != NULL; j++) {
+                // printf("b[%d] = %s\n", j, b[j]);
+                size_t blen = strlen(b[j]) - 1;
+
+                r4 += SCMemcmpLowercase((uint8_t *)a[i], (uint8_t *)b[j], (alen < blen) ? alen : blen);
+            }
+        }
+    }
+    ticks_end = UtilCpuGetTicks();
+    printf("SCMemcmpLowercase(%d) \t\t%"PRIu64"\n", TEST_RUNS, ((uint64_t)(ticks_end - ticks_start))/TEST_RUNS);
+    SCLogInfo("ticks passed %"PRIu64, ticks_end - ticks_start);
+
+    printf("r4 %d\n", r4);
+    if (r4 != (51 * TEST_RUNS))
+        return 0;
+#endif
+    return 1;
+}
+
 #endif /* UNITTESTS */
 
 void MemcmpRegisterTests(void) {
@@ -183,6 +339,10 @@ void MemcmpRegisterTests(void) {
     UtRegisterTest("MemcmpTest11", MemcmpTest11, 1);
     UtRegisterTest("MemcmpTest12", MemcmpTest12, 1);
     UtRegisterTest("MemcmpTest13", MemcmpTest13, 1);
+    UtRegisterTest("MemcmpTest14", MemcmpTest14, 1);
+    UtRegisterTest("MemcmpTest15", MemcmpTest15, 1);
+    UtRegisterTest("MemcmpTest16", MemcmpTest16, 1);
+    UtRegisterTest("MemcmpTest17", MemcmpTest17, 1);
 #endif /* UNITTESTS */
 }
 

@@ -29,12 +29,29 @@
 #ifndef __UTIL_MEMCMP_H__
 #define __UTIL_MEMCMP_H__
 
+#include "util-optimize.h"
+
 /** \brief compare two patterns, converting the 2nd to lowercase
  *  \warning *ONLY* the 2nd pattern is converted to lowercase
  */
 static inline int SCMemcmpLowercase(void *, void *, size_t);
 
 void MemcmpRegisterTests(void);
+
+static inline int
+MemcmpLowercase(void *s1, void *s2, size_t n) {
+    size_t i;
+
+    /* check backwards because we already tested the first
+     * 2 to 4 chars. This way we are more likely to detect
+     * a miss and thus speed up a little... */
+    for (i = n - 1; i; i--) {
+        if (((uint8_t *)s1)[i] != u8_tolower(*(((uint8_t *)s2)+i)))
+            return 1;
+    }
+
+    return 0;
+}
 
 #if defined(__SSE4_2__)
 
@@ -121,6 +138,12 @@ static inline int SCMemcmp(void *s1, void *s2, size_t len) {
     __m128i b1, b2, c;
 
     do {
+        /* apparently we can't just read 16 bytes even though
+         * it almost always works fine :) */
+        if (likely(len + offset < 16)) {
+            return memcmp(s1, s2, len - offset) ? 1 : 0;
+        }
+
         /* do unaligned loads using _mm_loadu_si128. On my Core2 E6600 using
          * _mm_lddqu_si128 was about 2% slower even though it's supposed to
          * be faster. */
@@ -163,6 +186,12 @@ static inline int SCMemcmpLowercase(void *s1, void *s2, size_t len) {
     uplow = _mm_set1_epi8(0x20);
 
     do {
+        /* apparently we can't just read 16 bytes even though
+         * it almost always works fine :) */
+        if (likely(len + offset < 16)) {
+            return MemcmpLowercase(s1, s2, len - offset);
+        }
+
         /* unaligned loading of the bytes to compare */
         b1 = _mm_loadu_si128((const __m128i *) s1);
         b2 = _mm_loadu_si128((const __m128i *) s2);
@@ -217,6 +246,12 @@ static inline int SCMemcmp(void *s1, void *s2, size_t len) {
     __m128i b1, b2, c;
 
     do {
+        /* apparently we can't just read 16 bytes even though
+         * it almost always works fine :) */
+        if (likely(len + offset < 16)) {
+            return memcmp(s1, s2, len - offset) ? 1 : 0;
+        }
+
         /* do unaligned loads using _mm_loadu_si128. On my Core2 E6600 using
          * _mm_lddqu_si128 was about 2% slower even though it's supposed to
          * be faster. */
@@ -259,6 +294,12 @@ static inline int SCMemcmpLowercase(void *s1, void *s2, size_t len) {
     delta  = _mm_set1_epi8(UPPER_DELTA);
 
     do {
+        /* apparently we can't just read 16 bytes even though
+         * it almost always works fine :) */
+        if (likely(len + offset < 16)) {
+            return MemcmpLowercase(s1, s2, len - offset);
+        }
+
         /* unaligned loading of the bytes to compare */
         b1 = _mm_loadu_si128((const __m128i *) s1);
         b2 = _mm_loadu_si128((const __m128i *) s2);
@@ -310,19 +351,8 @@ static inline int SCMemcmpLowercase(void *s1, void *s2, size_t len) {
     memcmp((a), (b), (c)) ? 1 : 0; \
 })
 
-static inline int
-SCMemcmpLowercase(void *s1, void *s2, size_t n) {
-    size_t i;
-
-    /* check backwards because we already tested the first
-     * 2 to 4 chars. This way we are more likely to detect
-     * a miss and thus speed up a little... */
-    for (i = n - 1; i; i--) {
-        if (((uint8_t *)s1)[i] != u8_tolower(*(((uint8_t *)s2)+i)))
-            return 1;
-    }
-
-    return 0;
+static inline int SCMemcmpLowercase(void *s1, void *s2, size_t len) {
+    return MemcmpLowercase(s1, s2, len);
 }
 
 #endif /* SIMD */
