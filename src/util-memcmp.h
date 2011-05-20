@@ -140,7 +140,7 @@ static inline int SCMemcmp(void *s1, void *s2, size_t len) {
     do {
         /* apparently we can't just read 16 bytes even though
          * it almost always works fine :) */
-        if (likely(len + offset < 16)) {
+        if (likely(len - offset < 16)) {
             return memcmp(s1, s2, len - offset) ? 1 : 0;
         }
 
@@ -188,7 +188,7 @@ static inline int SCMemcmpLowercase(void *s1, void *s2, size_t len) {
     do {
         /* apparently we can't just read 16 bytes even though
          * it almost always works fine :) */
-        if (likely(len + offset < 16)) {
+        if (likely(len - offset < 16)) {
             return MemcmpLowercase(s1, s2, len - offset);
         }
 
@@ -248,7 +248,7 @@ static inline int SCMemcmp(void *s1, void *s2, size_t len) {
     do {
         /* apparently we can't just read 16 bytes even though
          * it almost always works fine :) */
-        if (likely(len + offset < 16)) {
+        if (likely(len - offset < 16)) {
             return memcmp(s1, s2, len - offset) ? 1 : 0;
         }
 
@@ -296,7 +296,7 @@ static inline int SCMemcmpLowercase(void *s1, void *s2, size_t len) {
     do {
         /* apparently we can't just read 16 bytes even though
          * it almost always works fine :) */
-        if (likely(len + offset < 16)) {
+        if (likely(len - offset < 16)) {
             return MemcmpLowercase(s1, s2, len - offset);
         }
 
