@@ -129,6 +129,14 @@ typedef struct IPV6Vars_
     (p)->ip6c.hlim = 0; \
     (p)->ip6vars.ip_opts_len = 0; \
     (p)->ip6vars.l4proto = 0; \
+    (p)->ip6eh.ip6fh = NULL; \
+    (p)->ip6eh.fh_offset = 0; \
+    (p)->ip6eh.ip6rh = NULL; \
+    (p)->ip6eh.ip6eh = NULL; \
+    (p)->ip6eh.ip6dh1 = NULL; \
+    (p)->ip6eh.ip6dh2 = NULL; \
+    (p)->ip6eh.ip6hh = NULL; \
+    (p)->ip6eh.ip6_exthdrs_cnt = 0; \
 } while (0)
 
 /* Fragment header */
