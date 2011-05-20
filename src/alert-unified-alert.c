@@ -48,6 +48,7 @@
 #include "output.h"
 #include "alert-unified-alert.h"
 #include "util-privs.h"
+#include "util-optimize.h"
 
 #define DEFAULT_LOG_FILENAME "unified.alert"
 
@@ -214,12 +215,16 @@ TmEcode AlertUnifiedAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     for (; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
 
+        if (unlikely(pa->s == NULL)) {
+            continue;
+        }
+
         /* fill the rest of the hdr structure with the data of the alert */
-        hdr.sig_gen = pa->gid;
-        hdr.sig_sid = pa->sid;
-        hdr.sig_rev = pa->rev;
-        hdr.sig_class = pa->class;
-        hdr.sig_prio = pa->prio;
+        hdr.sig_gen = pa->s->gid;
+        hdr.sig_sid = pa->s->id;
+        hdr.sig_rev = pa->s->rev;
+        hdr.sig_class = pa->s->class;
+        hdr.sig_prio = pa->s->prio;
 
         SCMutexLock(&aun->file_ctx->fp_mutex);
         /** check and enforce the filesize limit, thread safe */

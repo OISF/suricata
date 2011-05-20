@@ -48,6 +48,7 @@
 #include "util-print.h"
 #include "util-proto-name.h"
 #include "util-syslog.h"
+#include "util-optimize.h"
 
 #define DEFAULT_ALERT_SYSLOG_FACILITY_STR       "local0"
 #define DEFAULT_ALERT_SYSLOG_FACILITY           LOG_LOCAL0
@@ -261,6 +262,9 @@ TmEcode AlertSyslogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
 
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
+        if (unlikely(pa->s == NULL)) {
+            continue;
+        }
 
         char srcip[16], dstip[16];
 
@@ -276,15 +280,15 @@ TmEcode AlertSyslogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         if (SCProtoNameValid(IPV4_GET_IPPROTO(p)) == TRUE) {
             syslog(alert_syslog_level, "%s[%" PRIu32 ":%" PRIu32 ":%"
                     PRIu32 "] %s [Classification: %s] [Priority: %"PRIu32"]"
-                    " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "", action, pa->gid,
-                    pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio,
+                    " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "", action, pa->s->gid,
+                    pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio,
                     known_proto[IPV4_GET_IPPROTO(p)], srcip, p->sp, dstip, p->dp);
         } else {
             syslog(alert_syslog_level, "%s[%" PRIu32 ":%" PRIu32 ":%"
                     PRIu32 "] %s [Classification: %s] [Priority: %"PRIu32"]"
                     " {PROTO:%03" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "",
-                    action, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg,
-                    pa->prio, IPV4_GET_IPPROTO(p), srcip, p->sp, dstip, p->dp);
+                    action, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg,
+                    pa->s->prio, IPV4_GET_IPPROTO(p), srcip, p->sp, dstip, p->dp);
         }
     }
     SCMutexUnlock(&ast->file_ctx->fp_mutex);
@@ -319,6 +323,10 @@ TmEcode AlertSyslogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
 
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
+        if (unlikely(pa->s == NULL)) {
+            continue;
+        }
+
         char srcip[46], dstip[46];
 
         inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
@@ -334,16 +342,16 @@ TmEcode AlertSyslogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
             syslog(alert_syslog_level, "%s[%" PRIu32 ":%" PRIu32 ":%"
                     "" PRIu32 "] %s [Classification: %s] [Priority: %"
                     "" PRIu32 "] {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "",
-                    action, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg,
-                    pa->prio, known_proto[IPV6_GET_L4PROTO(p)], srcip, p->sp,
+                    action, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg,
+                    pa->s->prio, known_proto[IPV6_GET_L4PROTO(p)], srcip, p->sp,
                     dstip, p->dp);
 
         } else {
             syslog(alert_syslog_level, "%s[%" PRIu32 ":%" PRIu32 ":%"
                     "" PRIu32 "] %s [Classification: %s] [Priority: %"
                     "" PRIu32 "] {PROTO:%03" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "",
-                    action, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg,
-                    pa->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
+                    action, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg,
+                    pa->s->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
         }
 
     }
@@ -383,6 +391,9 @@ TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, Packet *p, void *data,
 
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
+        if (unlikely(pa->s == NULL)) {
+            continue;
+        }
 
         if (pa->action == ACTION_DROP && IS_ENGINE_MODE_IPS(engine_mode)) {
             action = "[Drop] ";
@@ -392,8 +403,8 @@ TmEcode AlertSyslogDecoderEvent(ThreadVars *tv, Packet *p, void *data,
 
         snprintf(temp_buf_hdr, sizeof(temp_buf_hdr), "%s[%" PRIu32 ":%" PRIu32
                 ":%" PRIu32 "] %s [Classification: %s] [Priority: %" PRIu32
-                "] [**] [Raw pkt: ", action, pa->gid, pa->sid, pa->rev, pa->msg,
-                pa->class_msg, pa->prio);
+                "] [**] [Raw pkt: ", action, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg,
+                pa->s->class_msg, pa->s->prio);
         strlcpy(alert, temp_buf_hdr, sizeof(alert));
 
         PrintRawLineHexBuf(temp_buf_pkt, sizeof(temp_buf_pkt), GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);

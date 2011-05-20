@@ -57,6 +57,7 @@
 #include "util-privs.h"
 #include "util-print.h"
 #include "util-proto-name.h"
+#include "util-optimize.h"
 
 #define DEFAULT_LOG_FILENAME "fast.log"
 
@@ -136,6 +137,9 @@ TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
 
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
+        if (unlikely(pa->s == NULL)) {
+            continue;
+        }
 
         char srcip[16], dstip[16];
 
@@ -152,13 +156,13 @@ TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
             fprintf(aft->file_ctx->fp, "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%"
                     PRIu32 "] %s [**] [Classification: %s] [Priority: %"PRIu32"]"
                     " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "", timebuf, action,
-                    pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio,
+                    pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio,
                     known_proto[IPV4_GET_IPPROTO(p)], srcip, p->sp, dstip, p->dp);
         } else {
             fprintf(aft->file_ctx->fp, "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%"
                     PRIu32 "] %s [**] [Classification: %s] [Priority: %"PRIu32"]"
                     " {PROTO:%03" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "", timebuf,
-                    action, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio,
+                    action, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio,
                     IPV4_GET_IPPROTO(p), srcip, p->sp, dstip, p->dp);
         }
 
@@ -190,6 +194,10 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
 
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
+        if (unlikely(pa->s == NULL)) {
+            continue;
+        }
+
         char srcip[46], dstip[46];
 
         inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
@@ -205,16 +213,16 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
             fprintf(aft->file_ctx->fp, "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%"
                     "" PRIu32 "] %s [**] [Classification: %s] [Priority: %"
                     "" PRIu32 "] {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "", timebuf,
-                    action, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg,
-                    pa->prio, known_proto[IPV6_GET_L4PROTO(p)], srcip, p->sp,
+                    action, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg,
+                    pa->s->prio, known_proto[IPV6_GET_L4PROTO(p)], srcip, p->sp,
                     dstip, p->dp);
 
         } else {
             fprintf(aft->file_ctx->fp, "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%"
                     "" PRIu32 "] %s [**] [Classification: %s] [Priority: %"
                     "" PRIu32 "] {PROTO:%03" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "",
-                    timebuf, action, pa->gid, pa->sid, pa->rev, pa->msg, pa->class_msg,
-                    pa->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
+                    timebuf, action, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg,
+                    pa->s->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
         }
 
         fprintf(aft->file_ctx->fp,"\n");
@@ -245,6 +253,9 @@ TmEcode AlertFastLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQu
 
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
+        if (unlikely(pa->s == NULL)) {
+            continue;
+        }
 
         if (pa->action == ACTION_DROP && IS_ENGINE_MODE_IPS(engine_mode)) {
             action = "[Drop] ";
@@ -254,8 +265,8 @@ TmEcode AlertFastLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQu
 
         fprintf(aft->file_ctx->fp, "%s  %s[**] [%" PRIu32 ":%" PRIu32
                 ":%" PRIu32 "] %s [**] [Classification: %s] [Priority: "
-                "%" PRIu32 "] [**] [Raw pkt: ", timebuf, action, pa->gid,
-                pa->sid, pa->rev, pa->msg, pa->class_msg, pa->prio);
+                "%" PRIu32 "] [**] [Raw pkt: ", timebuf, action, pa->s->gid,
+                pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio);
 
         PrintRawLineHexFp(aft->file_ctx->fp, GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
         if (p->pcap_cnt != 0) {
@@ -441,7 +452,7 @@ int AlertFastLogTest01()
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (p->alerts.cnt == 1)
-        result = (strcmp(p->alerts.alerts[0].class_msg, "Unknown are we") == 0);
+        result = (strcmp(p->alerts.alerts[0].s->class_msg, "Unknown are we") == 0);
     else
         result = 0;
 
@@ -499,14 +510,14 @@ int AlertFastLogTest02()
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (p->alerts.cnt == 1) {
-        result = (strcmp(p->alerts.alerts[0].class_msg, "Unknown Traffic") != 0);
+        result = (strcmp(p->alerts.alerts[0].s->class_msg, "Unknown Traffic") != 0);
         if (result == 0)
-            printf("p->alerts.alerts[0].class_msg %s: ", p->alerts.alerts[0].class_msg);
+            printf("p->alerts.alerts[0].class_msg %s: ", p->alerts.alerts[0].s->class_msg);
 
-        result = (strcmp(p->alerts.alerts[0].class_msg,
+        result = (strcmp(p->alerts.alerts[0].s->class_msg,
                     "Unknown are we") == 0);
         if (result == 0)
-            printf("p->alerts.alerts[0].class_msg %s: ", p->alerts.alerts[0].class_msg);
+            printf("p->alerts.alerts[0].class_msg %s: ", p->alerts.alerts[0].s->class_msg);
     } else {
         result = 0;
     }

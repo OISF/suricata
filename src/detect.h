@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2011 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -41,7 +41,6 @@
 
 #include "detect-threshold.h"
 #include "detect-mark.h"
-//#include "detect-engine-tag.h"
 
 #define COUNTER_DETECT_ALERTS 1
 
@@ -433,6 +432,8 @@ typedef struct Signature_ {
     /** inline -- action */
     uint8_t action;
 
+    uint32_t id;  /**< sid, set by the 'sid' rule keyword */
+    uint32_t gid; /**< generator id */
     uint8_t rev;
 
     /** classification id **/
@@ -443,8 +444,6 @@ typedef struct Signature_ {
 
     int prio;
 
-    uint32_t gid; /**< generator id */
-    uint32_t id;  /**< sid, set by the 'sid' rule keyword */
     char *msg;
 
     /** classification message */
@@ -1032,5 +1031,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx,
 
 int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s);
 SigGroupHead *SigMatchSignaturesGetSgh(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p);
+
+Signature *DetectGetTagSignature(void);
+
 #endif /* __DETECT_H__ */
 

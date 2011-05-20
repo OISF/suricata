@@ -49,6 +49,7 @@
 #include "util-privs.h"
 
 #include "stream.h"
+#include "util-optimize.h"
 
 #ifndef IPPROTO_SCTP
 #define IPPROTO_SCTP 132
@@ -493,7 +494,6 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
     AlertIPv6Unified2 phdr;
     Unified2AlertFileHeader hdr;
-    PacketAlert pa_tag;
     PacketAlert *pa;
     int ret, len;
     char write_buffer[sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv6Unified2)];
@@ -559,25 +559,26 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
             break;
     }
 
-    if (p->flags & PKT_HAS_TAG)
-        PacketAlertAppendTag(p, &pa_tag);
-
     uint16_t i = 0;
     for (; i < p->alerts.cnt + 1; i++) {
         if (i < p->alerts.cnt)
             pa = &p->alerts.alerts[i];
         else
             if (p->flags & PKT_HAS_TAG)
-                pa = &pa_tag;
+                pa = PacketAlertGetTag();
             else
                 break;
 
+        if (unlikely(pa->s == NULL)) {
+            continue;
+        }
+
         /* fill the header structure with the data of the alert */
-        phdr.generator_id = htonl(pa->gid);
-        phdr.signature_id = htonl(pa->sid);
-        phdr.signature_revision = htonl(pa->rev);
-        phdr.classification_id = htonl(pa->class);
-        phdr.priority_id = htonl(pa->prio);
+        phdr.generator_id = htonl(pa->s->gid);
+        phdr.signature_id = htonl(pa->s->id);
+        phdr.signature_revision = htonl(pa->s->rev);
+        phdr.classification_id = htonl(pa->s->class);
+        phdr.priority_id = htonl(pa->s->prio);
 
         memcpy(write_buffer+sizeof(Unified2AlertFileHeader),&phdr,sizeof(AlertIPv6Unified2));
 
@@ -629,7 +630,6 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     AlertIPv4Unified2 phdr;
     Unified2AlertFileHeader hdr;
     PacketAlert *pa;
-    PacketAlert pa_tag;
     int ret, len;
     char write_buffer[sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv4Unified2)];
 
@@ -681,25 +681,26 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
             break;
     }
 
-    if (p->flags & PKT_HAS_TAG)
-        PacketAlertAppendTag(p, &pa_tag);
-
     uint16_t i = 0;
     for (; i < p->alerts.cnt + 1; i++) {
         if (i < p->alerts.cnt)
             pa = &p->alerts.alerts[i];
         else
             if (p->flags & PKT_HAS_TAG)
-                pa = &pa_tag;
+                pa = PacketAlertGetTag();
             else
                 break;
 
+        if (unlikely(pa->s == NULL)) {
+            continue;
+        }
+
         /* fill the hdr structure with the alert data */
-        phdr.generator_id = htonl(pa->gid);
-        phdr.signature_id = htonl(pa->sid);
-        phdr.signature_revision = htonl(pa->rev);
-        phdr.classification_id = htonl(pa->class);
-        phdr.priority_id = htonl(pa->prio);
+        phdr.generator_id = htonl(pa->s->gid);
+        phdr.signature_id = htonl(pa->s->id);
+        phdr.signature_revision = htonl(pa->s->rev);
+        phdr.classification_id = htonl(pa->s->class);
+        phdr.priority_id = htonl(pa->s->prio);
 
         memcpy(write_buffer+sizeof(Unified2AlertFileHeader),&phdr,sizeof(AlertIPv4Unified2));
 
@@ -941,6 +942,7 @@ static int Unified2Test01 (void)   {
     void *data = NULL;
     OutputCtx *oc;
     LogFileCtx *lf;
+    Signature s;
 
     uint8_t raw_ipv4_tcp[] = {
         0x00, 0x14, 0xbf, 0xe8, 0xcb, 0x26, 0xaa, 0x00,
@@ -963,11 +965,13 @@ static int Unified2Test01 (void)   {
     memset(&pq, 0, sizeof(PacketQueue));
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
+    memset(&s, 0, sizeof(Signature));
 
     p->alerts.cnt++;
-    p->alerts.alerts[p->alerts.cnt-1].sid = 1;
-    p->alerts.alerts[p->alerts.cnt-1].gid = 1;
-    p->alerts.alerts[p->alerts.cnt-1].rev = 1;
+    p->alerts.alerts[p->alerts.cnt-1].s = &s;
+    p->alerts.alerts[p->alerts.cnt-1].s->id = 1;
+    p->alerts.alerts[p->alerts.cnt-1].s->gid = 1;
+    p->alerts.alerts[p->alerts.cnt-1].s->rev = 1;
     SET_PKT_LEN(p, sizeof(raw_ipv4_tcp));
 
     FlowInitConfig(FLOW_QUIET);
@@ -1022,6 +1026,7 @@ static int Unified2Test02 (void)   {
     void *data = NULL;
     OutputCtx *oc;
     LogFileCtx *lf;
+    Signature s;
 
     uint8_t raw_ipv6_tcp[] = {
         0x00, 0x11, 0x25, 0x82, 0x95, 0xb5, 0x00, 0xd0,
@@ -1046,11 +1051,13 @@ static int Unified2Test02 (void)   {
     memset(&pq, 0, sizeof(PacketQueue));
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
+    memset(&s, 0, sizeof(Signature));
 
     p->alerts.cnt++;
-    p->alerts.alerts[p->alerts.cnt-1].sid = 1;
-    p->alerts.alerts[p->alerts.cnt-1].gid = 1;
-    p->alerts.alerts[p->alerts.cnt-1].rev = 1;
+    p->alerts.alerts[p->alerts.cnt-1].s = &s;
+    p->alerts.alerts[p->alerts.cnt-1].s->id = 1;
+    p->alerts.alerts[p->alerts.cnt-1].s->gid = 1;
+    p->alerts.alerts[p->alerts.cnt-1].s->rev = 1;
     SET_PKT_LEN(p, sizeof(raw_ipv6_tcp));
 
     FlowInitConfig(FLOW_QUIET);
@@ -1106,6 +1113,7 @@ static int Unified2Test03 (void) {
     void *data = NULL;
     OutputCtx *oc;
     LogFileCtx *lf;
+    Signature s;
 
     uint8_t raw_gre[] = {
         0x00, 0x0e, 0x50, 0x06, 0x42, 0x96, 0xaa, 0x00,
@@ -1135,11 +1143,13 @@ static int Unified2Test03 (void) {
     memset(&pq, 0, sizeof(PacketQueue));
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
+    memset(&s, 0, sizeof(Signature));
 
     p->alerts.cnt++;
-    p->alerts.alerts[p->alerts.cnt-1].sid = 1;
-    p->alerts.alerts[p->alerts.cnt-1].gid = 1;
-    p->alerts.alerts[p->alerts.cnt-1].rev = 1;
+    p->alerts.alerts[p->alerts.cnt-1].s = &s;
+    p->alerts.alerts[p->alerts.cnt-1].s->id = 1;
+    p->alerts.alerts[p->alerts.cnt-1].s->gid = 1;
+    p->alerts.alerts[p->alerts.cnt-1].s->rev = 1;
     SET_PKT_LEN(p, sizeof(raw_gre));
 
     FlowInitConfig(FLOW_QUIET);
@@ -1200,6 +1210,7 @@ static int Unified2Test04 (void)   {
     void *data = NULL;
     OutputCtx *oc;
     LogFileCtx *lf;
+    Signature s;
 
     uint8_t raw_ppp[] = {
         0xff, 0x03, 0x00, 0x21, 0x45, 0xc0, 0x00, 0x2c,
@@ -1218,11 +1229,13 @@ static int Unified2Test04 (void)   {
     memset(&pq, 0, sizeof(PacketQueue));
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
+    memset(&s, 0, sizeof(Signature));
 
     p->alerts.cnt++;
-    p->alerts.alerts[p->alerts.cnt-1].sid = 1;
-    p->alerts.alerts[p->alerts.cnt-1].gid = 1;
-    p->alerts.alerts[p->alerts.cnt-1].rev = 1;
+    p->alerts.alerts[p->alerts.cnt-1].s = &s;
+    p->alerts.alerts[p->alerts.cnt-1].s->id = 1;
+    p->alerts.alerts[p->alerts.cnt-1].s->gid = 1;
+    p->alerts.alerts[p->alerts.cnt-1].s->rev = 1;
     SET_PKT_LEN(p, sizeof(raw_ppp));
 
     FlowInitConfig(FLOW_QUIET);
@@ -1277,6 +1290,7 @@ static int Unified2Test05 (void)   {
     void *data = NULL;
     OutputCtx *oc;
     LogFileCtx *lf;
+    Signature s;
 
     uint8_t raw_ipv4_tcp[] = {
         0x00, 0x14, 0xbf, 0xe8, 0xcb, 0x26, 0xaa, 0x00,
@@ -1299,11 +1313,13 @@ static int Unified2Test05 (void)   {
     memset(&pq, 0, sizeof(PacketQueue));
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
+    memset(&s, 0, sizeof(Signature));
 
     p->alerts.cnt++;
-    p->alerts.alerts[p->alerts.cnt-1].sid = 1;
-    p->alerts.alerts[p->alerts.cnt-1].gid = 1;
-    p->alerts.alerts[p->alerts.cnt-1].rev = 1;
+    p->alerts.alerts[p->alerts.cnt-1].s = &s;
+    p->alerts.alerts[p->alerts.cnt-1].s->id = 1;
+    p->alerts.alerts[p->alerts.cnt-1].s->gid = 1;
+    p->alerts.alerts[p->alerts.cnt-1].s->rev = 1;
     SET_PKT_LEN(p, sizeof(raw_ipv4_tcp));
 
     FlowInitConfig(FLOW_QUIET);

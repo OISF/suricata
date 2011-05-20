@@ -51,6 +51,7 @@
 #include "flow-var.h"
 #include "flow-bit.h"
 #include "util-var-name.h"
+#include "util-optimize.h"
 
 #define DEFAULT_LOG_FILENAME "alert-debug.log"
 
@@ -244,13 +245,16 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
 
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
+        if (unlikely(pa->s == NULL)) {
+            continue;
+        }
 
-        fprintf(aft->file_ctx->fp, "ALERT MSG [%02d]:      %s\n", i, pa->msg);
-        fprintf(aft->file_ctx->fp, "ALERT GID [%02d]:      %" PRIu32 "\n", i, pa->gid);
-        fprintf(aft->file_ctx->fp, "ALERT SID [%02d]:      %" PRIu32 "\n", i, pa->sid);
-        fprintf(aft->file_ctx->fp, "ALERT REV [%02d]:      %" PRIu32 "\n", i, pa->rev);
-        fprintf(aft->file_ctx->fp, "ALERT CLASS [%02d]:    %s\n", i, pa->class_msg ? pa->class_msg : "<none>");
-        fprintf(aft->file_ctx->fp, "ALERT PRIO [%02d]:     %" PRIu32 "\n", i, pa->prio);
+        fprintf(aft->file_ctx->fp, "ALERT MSG [%02d]:      %s\n", i, pa->s->msg);
+        fprintf(aft->file_ctx->fp, "ALERT GID [%02d]:      %" PRIu32 "\n", i, pa->s->gid);
+        fprintf(aft->file_ctx->fp, "ALERT SID [%02d]:      %" PRIu32 "\n", i, pa->s->id);
+        fprintf(aft->file_ctx->fp, "ALERT REV [%02d]:      %" PRIu32 "\n", i, pa->s->rev);
+        fprintf(aft->file_ctx->fp, "ALERT CLASS [%02d]:    %s\n", i, pa->s->class_msg ? pa->s->class_msg : "<none>");
+        fprintf(aft->file_ctx->fp, "ALERT PRIO [%02d]:     %" PRIu32 "\n", i, pa->s->prio);
         fprintf(aft->file_ctx->fp, "ALERT FOUND IN [%02d]: %s\n", i, pa->alert_msg ? "STREAM" : "OTHER");
         if (pa->alert_msg != NULL) {
             fprintf(aft->file_ctx->fp, "ALERT STREAM LEN[%02d]:%"PRIu16"\n", i, ((StreamMsg *)pa->alert_msg)->data.data_len);
@@ -288,13 +292,17 @@ TmEcode AlertDebugLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
     SCMutexLock(&aft->file_ctx->fp_mutex);
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
+        if (unlikely(pa->s == NULL)) {
+            continue;
+        }
+
         char srcip[46], dstip[46];
 
         inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
         inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
 
         fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: fixme] [Priority: %" PRIu32 "] {%" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
-            timebuf, pa->gid, pa->sid, pa->rev, pa->msg, pa->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
+            timebuf, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
     }
 
     fprintf(aft->file_ctx->fp, "FLOW:              to_server: %s, to_client: %s\n",
@@ -361,13 +369,16 @@ TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQ
 
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
+        if (unlikely(pa->s == NULL)) {
+            continue;
+        }
 
-        fprintf(aft->file_ctx->fp, "ALERT MSG [%02d]:    %s\n", i, pa->msg);
-        fprintf(aft->file_ctx->fp, "ALERT GID [%02d]:    %" PRIu32 "\n", i, pa->gid);
-        fprintf(aft->file_ctx->fp, "ALERT SID [%02d]:    %" PRIu32 "\n", i, pa->sid);
-        fprintf(aft->file_ctx->fp, "ALERT REV [%02d]:    %" PRIu32 "\n", i, pa->rev);
-        fprintf(aft->file_ctx->fp, "ALERT CLASS [%02d]:  %s\n", i, pa->class_msg);
-        fprintf(aft->file_ctx->fp, "ALERT PRIO [%02d]:   %" PRIu32 "\n", i, pa->prio);
+        fprintf(aft->file_ctx->fp, "ALERT MSG [%02d]:    %s\n", i, pa->s->msg);
+        fprintf(aft->file_ctx->fp, "ALERT GID [%02d]:    %" PRIu32 "\n", i, pa->s->gid);
+        fprintf(aft->file_ctx->fp, "ALERT SID [%02d]:    %" PRIu32 "\n", i, pa->s->id);
+        fprintf(aft->file_ctx->fp, "ALERT REV [%02d]:    %" PRIu32 "\n", i, pa->s->rev);
+        fprintf(aft->file_ctx->fp, "ALERT CLASS [%02d]:  %s\n", i, pa->s->class_msg);
+        fprintf(aft->file_ctx->fp, "ALERT PRIO [%02d]:   %" PRIu32 "\n", i, pa->s->prio);
     }
 
     aft->file_ctx->alerts += p->alerts.cnt;

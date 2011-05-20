@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2011 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -23,14 +23,16 @@
 
 #ifndef __DETECT_ENGINE_ALERT_H__
 #define __DETECT_ENGINE_ALERT_H__
+
 #include "suricata-common.h"
 #include "decode.h"
 #include "detect.h"
 
 void PacketAlertFinalize(DetectEngineCtx *, DetectEngineThreadCtx *, Packet *);
 int PacketAlertAppend(DetectEngineThreadCtx *, Signature *, Packet *, uint8_t, /* (StreamMsg *) */void *);
-int PacketAlertAppendTag(Packet *, PacketAlert *);
 int PacketAlertCheck(Packet *, uint32_t);
 int PacketAlertRemove(Packet *, uint16_t);
+void PacketAlertTagInit(void);
+PacketAlert *PacketAlertGetTag(void);
 
 #endif /* __DETECT_ENGINE_ALERT_H__ */

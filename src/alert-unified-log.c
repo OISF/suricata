@@ -48,6 +48,7 @@
 #include "output.h"
 #include "alert-unified-log.h"
 #include "util-privs.h"
+#include "util-optimize.h"
 
 #define DEFAULT_LOG_FILENAME "unified.log"
 
@@ -185,7 +186,6 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
 {
     AlertUnifiedLogThread *aun = (AlertUnifiedLogThread *)data;
     AlertUnifiedLogPacketHeader hdr;
-    PacketAlert pa_tag;
     PacketAlert *pa;
     int ret;
     uint8_t ethh_offset = 0;
@@ -199,7 +199,6 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
 
     /* initialize the pa_tag structure if we have tags */
     if (p->flags & PKT_HAS_TAG) {
-        PacketAlertAppendTag(p, &pa_tag);
         /* one extra "alert" to process */
         alert_cnt++;
     }
@@ -225,17 +224,21 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
             pa = &p->alerts.alerts[i];
         } else {
             if (p->flags & PKT_HAS_TAG)
-                pa = &pa_tag;
+                pa = PacketAlertGetTag();
             else
                 break;
         }
 
+        if (unlikely(pa->s == NULL)) {
+            continue;
+        }
+
         /* fill the hdr structure with the data of the alert */
-        hdr.sig_gen = pa->gid;
-        hdr.sig_sid = pa->sid;
-        hdr.sig_rev = pa->rev;
-        hdr.sig_class = pa->class;
-        hdr.sig_prio = pa->prio;
+        hdr.sig_gen = pa->s->gid;
+        hdr.sig_sid = pa->s->id;
+        hdr.sig_rev = pa->s->rev;
+        hdr.sig_class = pa->s->class;
+        hdr.sig_prio = pa->s->prio;
 
         memcpy(buf,&hdr,sizeof(hdr));
         buflen = sizeof(hdr);

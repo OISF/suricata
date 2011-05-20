@@ -217,19 +217,13 @@ typedef struct PacketAlert_ {
     SigIntId num; /* Internal num, used for sorting */
     SigIntId order_id; /* Internal num, used for sorting */
     uint8_t action; /* Internal num, used for sorting */
-    uint8_t rev;
-    uint8_t class;
-    uint8_t prio;
-    uint32_t gid;
-    uint32_t sid;
-    char *msg;
-    char *class_msg;
-    DetectReference *references;
     uint8_t flags;
 
     /** Pointer to smsg this signature matched on, or
      *  NULL if the sig didn't match on a smsg */
     void *alert_msg;
+
+    struct Signature_ *s;
 } PacketAlert;
 
 /* After processing an alert by the thresholding module, if at
@@ -237,7 +231,7 @@ typedef struct PacketAlert_ {
  * the flow on IPS mode */
 #define PACKET_ALERT_FLAG_DROP_FLOW 0x01
 
-#define PACKET_ALERT_MAX 256
+#define PACKET_ALERT_MAX 15
 
 typedef struct PacketAlerts_ {
     uint16_t cnt;

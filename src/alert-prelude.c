@@ -53,6 +53,7 @@
 
 #include "output.h"
 #include "util-privs.h"
+#include "util-optimize.h"
 
 #ifndef PRELUDE
 /** Handle the case where no PRELUDE support is compiled in.
@@ -220,13 +221,13 @@ static int EventToImpact(PacketAlert *pa, Packet *p, idmef_alert_t *alert)
     if ( ret < 0 )
         SCReturnInt(ret);
 
-    if ( pa->prio < mid_priority )
+    if ( (uint)pa->s->prio < mid_priority )
         severity = IDMEF_IMPACT_SEVERITY_HIGH;
 
-    else if ( pa->prio < low_priority )
+    else if ( (uint)pa->s->prio < low_priority )
         severity = IDMEF_IMPACT_SEVERITY_MEDIUM;
 
-    else if ( pa->prio < info_priority )
+    else if ( (uint)pa->s->prio < info_priority )
         severity = IDMEF_IMPACT_SEVERITY_LOW;
 
     else
@@ -249,7 +250,7 @@ static int EventToImpact(PacketAlert *pa, Packet *p, idmef_alert_t *alert)
     if ( ret < 0 )
         SCReturnInt(ret);
 
-    prelude_string_set_ref(str, pa->class_msg);
+    prelude_string_set_ref(str, pa->s->class_msg);
 
     SCReturnInt(0);
 }
@@ -489,8 +490,8 @@ static int PacketToData(Packet *p, PacketAlert *pa, idmef_alert_t *alert, AlertP
     if ( ! p )
         SCReturnInt(0);
 
-    AddIntData(alert, "snort_rule_sid", pa->sid);
-    AddIntData(alert, "snort_rule_rev", pa->rev);
+    AddIntData(alert, "snort_rule_sid", pa->s->id);
+    AddIntData(alert, "snort_rule_rev", pa->s->rev);
 
     if (ctx->log_packet_header) {
         if ( PKT_IS_IPV4(p) )
@@ -606,14 +607,14 @@ static int EventToReference(PacketAlert *pa, Packet *p, idmef_classification_t *
     if ( ret < 0 )
         SCReturnInt(ret);
 
-    if ( pa->gid == 0 )
-        ret = prelude_string_sprintf(str, "%u", pa->sid);
+    if ( pa->s->gid == 0 )
+        ret = prelude_string_sprintf(str, "%u", pa->s->id);
     else
-        ret = prelude_string_sprintf(str, "%u:%u", pa->gid, pa->sid);
+        ret = prelude_string_sprintf(str, "%u:%u", pa->s->gid, pa->s->id);
     if ( ret < 0 )
         SCReturnInt(ret);
 
-    ret = AddSnortReference(class, pa->gid, pa->sid);
+    ret = AddSnortReference(class, pa->s->gid, pa->s->id);
     if ( ret < 0 )
         SCReturnInt(ret);
 
@@ -670,6 +671,8 @@ TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
     /* XXX which one to add to this alert? Lets see how Snort solves this.
      * For now just take last alert. */
     pa = &p->alerts.alerts[p->alerts.cnt-1];
+    if (pa->s == NULL)
+        goto err;
 
     ret = idmef_message_new(&idmef);
     if ( ret < 0 )
@@ -687,7 +690,7 @@ TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
     if ( ret < 0 )
         goto err;
 
-    prelude_string_set_ref(str, pa->msg);
+    prelude_string_set_ref(str, pa->s->msg);
 
     ret = EventToImpact(pa, p, alert);
     if ( ret < 0 )

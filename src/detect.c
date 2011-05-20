@@ -188,6 +188,8 @@ void TmModuleDetectRegister (void) {
     tmm_modules[TMM_DETECT].ThreadDeinit = DetectThreadDeinit;
     tmm_modules[TMM_DETECT].RegisterTests = SigRegisterTests;
     tmm_modules[TMM_DETECT].cap_flags = 0;
+
+    PacketAlertTagInit();
 }
 
 void DetectExitPrintStats(ThreadVars *tv, void *data) {

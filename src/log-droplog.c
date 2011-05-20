@@ -442,7 +442,7 @@ int LogDropLogTest01()
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (p->alerts.cnt == 1 && (p->action & ACTION_DROP))
-        result = (strcmp(p->alerts.alerts[0].class_msg, "Unknown are we") == 0);
+        result = (strcmp(p->alerts.alerts[0].s->class_msg, "Unknown are we") == 0);
     else
         result = 0;
 
@@ -510,7 +510,7 @@ int LogDropLogTest02()
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     if (p->alerts.cnt == 1 && p->alerts.alerts[0].action != ACTION_DROP)
-        result = (strcmp(p->alerts.alerts[0].class_msg, "Unknown are we") == 0);
+        result = (strcmp(p->alerts.alerts[0].s->class_msg, "Unknown are we") == 0);
     else
         result = 0;
 
