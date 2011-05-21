@@ -200,7 +200,8 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                     Packet *tp = PacketPseudoPktSetup(p, pkt + header_len,
                             len - header_len, IPPROTO_IP);
                     if (tp != NULL) {
-                        DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp), GET_PKT_LEN(tp), pq);
+                        DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
+                                GET_PKT_LEN(tp), pq, IPPROTO_IP);
                         PacketEnqueue(pq,tp);
                     }
                 }
@@ -213,7 +214,8 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                     Packet *tp = PacketPseudoPktSetup(p, pkt + header_len,
                             len - header_len, PPP_OVER_GRE);
                     if (tp != NULL) {
-                        DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp), GET_PKT_LEN(tp), pq);
+                        DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
+                                GET_PKT_LEN(tp), pq, PPP_OVER_GRE);
                         PacketEnqueue(pq,tp);
                     }
                 }
@@ -226,7 +228,8 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                     Packet *tp = PacketPseudoPktSetup(p, pkt + header_len,
                             len - header_len, IPPROTO_IPV6);
                     if (tp != NULL) {
-                        DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp), GET_PKT_LEN(tp), pq);
+                        DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
+                                GET_PKT_LEN(tp), pq, IPPROTO_IPV6);
                         PacketEnqueue(pq,tp);
                     }
                 }
@@ -239,7 +242,8 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                     Packet *tp = PacketPseudoPktSetup(p, pkt + header_len,
                             len - header_len, VLAN_OVER_GRE);
                     if (tp != NULL) {
-                        DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp), GET_PKT_LEN(tp), pq);
+                        DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
+                                GET_PKT_LEN(tp), pq, VLAN_OVER_GRE);
                         PacketEnqueue(pq,tp);
                     }
                 }

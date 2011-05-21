@@ -575,7 +575,8 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
                             IPV4_GET_IPPROTO(p));
                     if (tp != NULL) {
                         /* send that to the Tunnel decoder */
-                        DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp), GET_PKT_LEN(tp), pq);
+                        DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
+                                GET_PKT_LEN(tp), pq, IPV4_GET_IPPROTO(p));
 
                         /* add the tp to the packet queue. */
                         PacketEnqueue(pq,tp);

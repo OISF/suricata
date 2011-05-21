@@ -33,9 +33,10 @@
 #include "util-error.h"
 #include "tmqh-packetpool.h"
 
-void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
+void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
+        uint8_t *pkt, uint16_t len, PacketQueue *pq, uint8_t proto)
 {
-    switch (p->tunnel_proto) {
+    switch (proto) {
         case PPP_OVER_GRE:
             return DecodePPP(tv, dtv, p, pkt, len, pq);
         case IPPROTO_IP:
@@ -45,7 +46,7 @@ void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
        case VLAN_OVER_GRE:
             return DecodeVLAN(tv, dtv, p, pkt, len, pq);
         default:
-            SCLogInfo("FIXME: DecodeTunnel: protocol %" PRIu32 " not supported.", p->tunnel_proto);
+            SCLogInfo("FIXME: DecodeTunnel: protocol %" PRIu32 " not supported.", proto);
             break;
     }
 }
@@ -108,7 +109,6 @@ Packet *PacketPseudoPktSetup(Packet *parent, uint8_t *pkt, uint16_t len, uint8_t
         p->root = parent;
 
     /* copy packet and set lenght, proto */
-    p->tunnel_proto = proto;
     PacketCopyData(p, pkt, len);
     p->recursion_level = parent->recursion_level + 1;
     p->ts.tv_sec = parent->ts.tv_sec;

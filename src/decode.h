@@ -386,8 +386,6 @@ typedef struct Packet_
     /* tunnel packet ref count */
     uint8_t tpr_cnt;
     SCMutex mutex_rtv_cnt;
-    /* tunnel stuff */
-    uint8_t tunnel_proto;
 
     /* decoder events */
     PacketDecoderEvents events;
@@ -582,7 +580,6 @@ typedef struct DecodeThreadVars_
         (p)->tpr_cnt = 0;                       \
         SCMutexDestroy(&(p)->mutex_rtv_cnt);    \
         SCMutexInit(&(p)->mutex_rtv_cnt, NULL); \
-        (p)->tunnel_proto = 0;                  \
         (p)->events.cnt = 0;                    \
         (p)->next = NULL;                       \
         (p)->prev = NULL;                       \
@@ -718,7 +715,7 @@ void DecodeSll(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, 
 void DecodePPP(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 void DecodePPPOESession(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 void DecodePPPOEDiscovery(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
-void DecodeTunnel(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
+void DecodeTunnel(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *, uint8_t);
 void DecodeRaw(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 void DecodeIPV4(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
 void DecodeIPV6(ThreadVars *, DecodeThreadVars *, Packet *, uint8_t *, uint16_t, PacketQueue *);
