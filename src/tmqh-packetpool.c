@@ -157,7 +157,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
                  * packets, don't add this. It's still referenced
                  * by the tunnel packets, and we will enqueue it
                  * when we handle them */
-                p->tunnel_verdicted = 1;
+                SET_TUNNEL_PKT_VERDICTED(p);
                 SCMutexUnlock(m);
                 SCReturn;
             }
@@ -169,7 +169,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
              * p->root == NULL. So when we are here p->root can only be
              * non-NULL, right? CLANG thinks differently. May be a FP, but
              * better safe than sorry. VJ */
-            if (p->root != NULL && p->root->tunnel_verdicted == 1 &&
+            if (p->root != NULL && IS_TUNNEL_PKT_VERDICTED(p->root) &&
                     TUNNEL_PKT_TPR(p) == 1)
             {
                 SCLogDebug("p->root->tunnel_verdicted == 1 && TUNNEL_PKT_TPR(p) == 1");

@@ -388,9 +388,6 @@ typedef struct Packet_
     SCMutex mutex_rtv_cnt;
     /* tunnel stuff */
     uint8_t tunnel_proto;
-    /* tunnel XXX convert to bitfield*/
-    char tunnel_pkt;
-    char tunnel_verdicted;
 
     /* decoder events */
     PacketDecoderEvents events;
@@ -586,8 +583,6 @@ typedef struct DecodeThreadVars_
         SCMutexDestroy(&(p)->mutex_rtv_cnt);    \
         SCMutexInit(&(p)->mutex_rtv_cnt, NULL); \
         (p)->tunnel_proto = 0;                  \
-        (p)->tunnel_pkt = 0;                    \
-        (p)->tunnel_verdicted = 0;              \
         (p)->events.cnt = 0;                    \
         (p)->next = NULL;                       \
         (p)->prev = NULL;                       \
@@ -700,9 +695,13 @@ typedef struct DecodeThreadVars_
 #define TUNNEL_PKT_RTV(p)             ((p)->root ? (p)->root->rtv_cnt : (p)->rtv_cnt)
 #define TUNNEL_PKT_TPR(p)             ((p)->root ? (p)->root->tpr_cnt : (p)->tpr_cnt)
 
-#define IS_TUNNEL_ROOT_PKT(p)  (((p)->root == NULL && (p)->tunnel_pkt == 1))
-#define IS_TUNNEL_PKT(p)       (((p)->tunnel_pkt == 1))
-#define SET_TUNNEL_PKT(p)      ((p)->tunnel_pkt = 1)
+//#define IS_TUNNEL_ROOT_PKT(p)  (((p)->root == NULL && (p)->tunnel_pkt == 1))
+#define IS_TUNNEL_PKT(p)            (((p)->flags & PKT_TUNNEL))
+#define SET_TUNNEL_PKT(p)           ((p)->flags |= PKT_TUNNEL)
+#define IS_TUNNEL_ROOT_PKT(p)       (IS_TUNNEL_PKT(p) && (p)->root == NULL)
+
+#define IS_TUNNEL_PKT_VERDICTED(p)  (((p)->flags & PKT_TUNNEL_VERDICTED))
+#define SET_TUNNEL_PKT_VERDICTED(p) ((p)->flags |= PKT_TUNNEL_VERDICTED)
 
 
 void DecodeRegisterPerfCounters(DecodeThreadVars *, ThreadVars *);
@@ -821,6 +820,9 @@ void AddressDebugPrint(Address *);
 #define PKT_STREAM_MODIFIED             0x0200    /**< Packet is modified by the stream engine, we need to recalc the csum and reinject/replace */
 #define PKT_MARK_MODIFIED               0x0400    /**< Packet mark is modified */
 #define PKT_STREAM_NOPCAPLOG            0x0800    /**< Exclude packet from pcap logging as it's part of a stream that has reassembly depth reached. */
+
+#define PKT_TUNNEL                      0x1000
+#define PKT_TUNNEL_VERDICTED            0x2000
 
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) ((p)->flags & PKT_PSEUDO_STREAM_END)
