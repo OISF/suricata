@@ -382,10 +382,8 @@ typedef struct Packet_
     uint64_t pcap_cnt;
 
     /* ready to set verdict counter, only set in root */
-    uint8_t rtv_cnt;
-    /* tunnel packet ref count */
-    uint8_t tpr_cnt;
-    SCMutex mutex_rtv_cnt;
+    SC_ATOMIC_DECLARE(unsigned short, tunnel_rtv_cnt);
+    SC_ATOMIC_DECLARE(unsigned short, tunnel_tpr_cnt);
 
     /* decoder events */
     PacketDecoderEvents events;
@@ -506,14 +504,16 @@ typedef struct DecodeThreadVars_
 #ifndef __SC_CUDA_SUPPORT__
 #define PACKET_INITIALIZE(p) { \
     memset((p), 0x00, SIZE_OF_PACKET); \
-    SCMutexInit(&(p)->mutex_rtv_cnt, NULL); \
+    SC_ATOMIC_INIT(p->tunnel_rtv_cnt); \
+    SC_ATOMIC_INIT(p->tunnel_tpr_cnt); \
     PACKET_RESET_CHECKSUMS((p)); \
     (p)->pkt = ((uint8_t *)(p)) + sizeof(Packet); \
 }
 #else
 #define PACKET_INITIALIZE(p) { \
     memset((p), 0x00, SIZE_OF_PACKET); \
-    SCMutexInit(&(p)->mutex_rtv_cnt, NULL); \
+    SC_ATOMIC_INIT(p->tunnel_rtv_cnt); \
+    SC_ATOMIC_INIT(p->tunnel_tpr_cnt); \
     PACKET_RESET_CHECKSUMS((p)); \
     SCMutexInit(&(p)->cuda_mutex, NULL); \
     SCCondInit(&(p)->cuda_cond, NULL); \
@@ -576,10 +576,8 @@ typedef struct DecodeThreadVars_
         (p)->pktlen = 0;                        \
         (p)->alerts.cnt = 0;                    \
         (p)->pcap_cnt = 0;                      \
-        (p)->rtv_cnt = 0;                       \
-        (p)->tpr_cnt = 0;                       \
-        SCMutexDestroy(&(p)->mutex_rtv_cnt);    \
-        SCMutexInit(&(p)->mutex_rtv_cnt, NULL); \
+        SC_ATOMIC_RESET((p)->tunnel_rtv_cnt);   \
+        SC_ATOMIC_RESET((p)->tunnel_tpr_cnt);   \
         (p)->events.cnt = 0;                    \
         (p)->next = NULL;                       \
         (p)->prev = NULL;                       \
@@ -608,14 +606,16 @@ typedef struct DecodeThreadVars_
         if ((p)->pktvar != NULL) {              \
             PktVarFree((p)->pktvar);            \
         }                                       \
-        SCMutexDestroy(&(p)->mutex_rtv_cnt);    \
+        SC_ATOMIC_DESTROY((p)->tunnel_rtv_cnt); \
+        SC_ATOMIC_DESTROY((p)->tunnel_tpr_cnt); \
     } while (0)
 #else
 #define PACKET_CLEANUP(p) do {                  \
     if ((p)->pktvar != NULL) {                  \
         PktVarFree((p)->pktvar);                \
     }                                           \
-    SCMutexDestroy(&(p)->mutex_rtv_cnt);        \
+    SC_ATOMIC_DESTROY((p)->tunnel_rtv_cnt);     \
+    SC_ATOMIC_DESTROY((p)->tunnel_tpr_cnt);     \
     SCMutexDestroy(&(p)->cuda_mutex);           \
     SCCondDestroy(&(p)->cuda_cond);             \
 } while(0)
@@ -668,31 +668,27 @@ typedef struct DecodeThreadVars_
 } while (0)
 
 #define TUNNEL_INCR_PKT_RTV(p) do {                                                 \
-        SCMutexLock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt);   \
-        ((p)->root ? (p)->root->rtv_cnt++ : (p)->rtv_cnt++);                        \
-        SCMutexUnlock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt); \
+        ((p)->root ? SC_ATOMIC_ADD((p)->root->tunnel_rtv_cnt, 1) :                  \
+                     SC_ATOMIC_ADD((p)->tunnel_rtv_cnt, 1));                        \
     } while (0)
 
 #define TUNNEL_INCR_PKT_TPR(p) do {                                                 \
-        SCMutexLock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt);   \
-        ((p)->root ? (p)->root->tpr_cnt++ : (p)->tpr_cnt++);                        \
-        SCMutexUnlock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt); \
+        ((p)->root ? SC_ATOMIC_ADD((p)->root->tunnel_tpr_cnt, 1) :                  \
+                     SC_ATOMIC_ADD((p)->tunnel_tpr_cnt, 1));                        \
     } while (0)
 
 #define TUNNEL_DECR_PKT_TPR(p) do {                                                 \
-        SCMutexLock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt);   \
-        ((p)->root ? (p)->root->tpr_cnt-- : (p)->tpr_cnt--);                        \
-        SCMutexUnlock((p)->root ? &(p)->root->mutex_rtv_cnt : &(p)->mutex_rtv_cnt); \
+        ((p)->root ? SC_ATOMIC_SUB((p)->root->tunnel_tpr_cnt, 1) :                  \
+                     SC_ATOMIC_SUB((p)->tunnel_tpr_cnt, 1));                        \
     } while (0)
 
-#define TUNNEL_DECR_PKT_TPR_NOLOCK(p) do {                   \
-        ((p)->root ? (p)->root->tpr_cnt-- : (p)->tpr_cnt--); \
-    } while (0)
+#define TUNNEL_PKT_RTV(p)           ((p)->root ?                                    \
+        SC_ATOMIC_GET((p)->root->tunnel_rtv_cnt) :                                  \
+        SC_ATOMIC_GET((p)->tunnel_rtv_cnt))
+#define TUNNEL_PKT_TPR(p)           ((p)->root ?                                    \
+        SC_ATOMIC_GET((p)->root->tunnel_tpr_cnt) :                                  \
+        SC_ATOMIC_GET((p)->tunnel_tpr_cnt))
 
-#define TUNNEL_PKT_RTV(p)             ((p)->root ? (p)->root->rtv_cnt : (p)->rtv_cnt)
-#define TUNNEL_PKT_TPR(p)             ((p)->root ? (p)->root->tpr_cnt : (p)->tpr_cnt)
-
-//#define IS_TUNNEL_ROOT_PKT(p)  (((p)->root == NULL && (p)->tunnel_pkt == 1))
 #define IS_TUNNEL_PKT(p)            (((p)->flags & PKT_TUNNEL))
 #define SET_TUNNEL_PKT(p)           ((p)->flags |= PKT_TUNNEL)
 #define IS_TUNNEL_ROOT_PKT(p)       (IS_TUNNEL_PKT(p) && (p)->root == NULL)

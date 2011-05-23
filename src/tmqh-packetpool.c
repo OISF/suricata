@@ -139,10 +139,6 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         SCLogDebug("Packet %p is a tunnel packet: %s",
             p,p->root ? "upper layer" : "tunnel root");
 
-        /* get a lock */
-        SCMutex *m = p->root ? &p->root->mutex_rtv_cnt : &p->mutex_rtv_cnt;
-        SCMutexLock(m);
-
         if (IS_TUNNEL_ROOT_PKT(p)) {
             SCLogDebug("IS_TUNNEL_ROOT_PKT == TRUE");
             if (TUNNEL_PKT_TPR(p) == 0) {
@@ -158,7 +154,6 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
                  * by the tunnel packets, and we will enqueue it
                  * when we handle them */
                 SET_TUNNEL_PKT_VERDICTED(p);
-                SCMutexUnlock(m);
                 SCReturn;
             }
         } else {
@@ -175,7 +170,7 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
                 SCLogDebug("p->root->tunnel_verdicted == 1 && TUNNEL_PKT_TPR(p) == 1");
                 /* the root is ready and we are the last tunnel packet,
                  * lets enqueue them both. */
-                TUNNEL_DECR_PKT_TPR_NOLOCK(p);
+                TUNNEL_DECR_PKT_TPR(p);
 
                 /* handle the root */
                 SCLogDebug("calling PacketEnqueue for root pkt, p->root %p (tunnel packet %p)", p->root, p);
@@ -186,12 +181,11 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
                 /* root not ready yet, so get rid of the tunnel pkt only */
 
                 SCLogDebug("NOT p->root->tunnel_verdicted == 1 && TUNNEL_PKT_TPR(p) == 1 (%" PRIu32 ")", TUNNEL_PKT_TPR(p));
-                TUNNEL_DECR_PKT_TPR_NOLOCK(p);
+                TUNNEL_DECR_PKT_TPR(p);
 
                  /* fall through */
             }
         }
-        SCMutexUnlock(m);
         SCLogDebug("tunnel stuff done, move on (proot %d)", proot);
     }
 

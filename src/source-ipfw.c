@@ -549,16 +549,15 @@ TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
     if (IS_TUNNEL_PKT(p)) {
         char verdict = 1;
 
-        pthread_mutex_t *m = p->root ? &p->root->mutex_rtv_cnt : &p->mutex_rtv_cnt;
-        SCMutexLock(m);
         /* if there are more tunnel packets than ready to verdict packets,
          * we won't verdict this one
          */
         if (TUNNEL_PKT_TPR(p) > TUNNEL_PKT_RTV(p)) {
-            SCLogDebug("VerdictIPFW: not ready to verdict yet: TUNNEL_PKT_TPR(p) > TUNNEL_PKT_RTV(p) = %" PRId32 " > %" PRId32 "", TUNNEL_PKT_TPR(p), TUNNEL_PKT_RTV(p));
+            SCLogDebug("VerdictIPFW: not ready to verdict yet: "
+                    "TUNNEL_PKT_TPR(p) > TUNNEL_PKT_RTV(p) = %" PRId32
+                    " > %" PRId32 "", TUNNEL_PKT_TPR(p), TUNNEL_PKT_RTV(p));
             verdict = 0;
         }
-        SCMutexUnlock(m);
 
         /* don't verdict if we are not ready */
         if (verdict == 1) {
