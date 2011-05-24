@@ -1751,6 +1751,148 @@ end:
 
 #include "conf-yaml-loader.h"
 
+/** \test Abort
+ */
+int HTPParserTest08(void) {
+    int result = 0;
+    Flow f;
+    uint8_t httpbuf1[] = "GET /secondhouse/image/js/\%ce\%de\%ce\%fd_RentCity.js?v=2011.05.02 HTTP/1.0\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+    personality: IDS\n\
+";
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(input, strlen(input));
+    HTPConfigure();
+
+    HtpState *htp_state =  NULL;
+    int r = 0;
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    uint8_t flags = 0;
+    flags = STREAM_TOSERVER|STREAM_START|STREAM_EOF;
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, flags, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk returned %" PRId32 ", expected"
+                " 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    htp_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (htp_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    if (tx != NULL && tx->request_uri_normalized != NULL) {
+        //printf("uri %s\n", bstr_tocstr(tx->request_uri_normalized));
+        PrintRawDataFp(stdout, (uint8_t *)bstr_ptr(tx->request_uri_normalized),
+                bstr_len(tx->request_uri_normalized));
+    }
+
+    result = 1;
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    if (htp_state != NULL)
+        HTPStateFree(htp_state);
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    return result;
+}
+
+/** \test Abort
+ */
+int HTPParserTest09(void) {
+    int result = 0;
+    Flow f;
+    uint8_t httpbuf1[] = "GET /secondhouse/image/js/\%ce\%de\%ce\%fd_RentCity.js?v=2011.05.02 HTTP/1.0\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+
+    char input[] = "\
+%YAML 1.1\n\
+---\n\
+libhtp:\n\
+\n\
+  default-config:\n\
+    personality: Apache_2_2\n\
+";
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(input, strlen(input));
+    HTPConfigure();
+
+    HtpState *htp_state =  NULL;
+    int r = 0;
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+    f.protoctx = (void *)&ssn;
+    f.src.family = AF_INET;
+    f.dst.family = AF_INET;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    uint8_t flags = 0;
+    flags = STREAM_TOSERVER|STREAM_START|STREAM_EOF;
+
+    r = AppLayerParse(&f, ALPROTO_HTTP, flags, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk returned %" PRId32 ", expected"
+                " 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    htp_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (htp_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    if (tx != NULL && tx->request_uri_normalized != NULL) {
+        //printf("uri %s\n", bstr_tocstr(tx->request_uri_normalized));
+        PrintRawDataFp(stdout, (uint8_t *)bstr_ptr(tx->request_uri_normalized),
+                bstr_len(tx->request_uri_normalized));
+    }
+
+    result = 1;
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    if (htp_state != NULL)
+        HTPStateFree(htp_state);
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+    return result;
+}
+
 /** \test Test basic config */
 int HTPParserConfigTest01(void)
 {
@@ -2157,6 +2299,8 @@ void HTPParserRegisterTests(void) {
     UtRegisterTest("HTPParserTest05", HTPParserTest05, 1);
     UtRegisterTest("HTPParserTest06", HTPParserTest06, 1);
     UtRegisterTest("HTPParserTest07", HTPParserTest07, 1);
+    UtRegisterTest("HTPParserTest08", HTPParserTest08, 1);
+    UtRegisterTest("HTPParserTest09", HTPParserTest09, 1);
     UtRegisterTest("HTPParserConfigTest01", HTPParserConfigTest01, 1);
     UtRegisterTest("HTPParserConfigTest02", HTPParserConfigTest02, 1);
     UtRegisterTest("HTPParserConfigTest03", HTPParserConfigTest03, 1);
