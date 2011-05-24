@@ -128,8 +128,8 @@ static int DoInspectHttpClientBody(DetectEngineCtx *de_ctx,
                 }
 
                 if (cd->flags & DETECT_CONTENT_WITHIN) {
-                    if ((int32_t)depth > (int32_t)(prev_payload_offset + cd->within)) {
-                        depth = prev_payload_offset + cd->within;
+                    if ((int32_t)depth > (int32_t)(prev_payload_offset + cd->within + cd->distance)) {
+                        depth = prev_payload_offset + cd->within + cd->distance;
                     }
                 }
 

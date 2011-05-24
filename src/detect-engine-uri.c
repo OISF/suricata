@@ -136,8 +136,8 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
                 }
 
                 if (ud->flags & DETECT_CONTENT_WITHIN) {
-                    if ((int32_t)depth > (int32_t)(prev_payload_offset + ud->within)) {
-                        depth = prev_payload_offset + ud->within;
+                    if ((int32_t)depth > (int32_t)(prev_payload_offset + ud->within + ud->distance)) {
+                        depth = prev_payload_offset + ud->within + ud->distance;
                     }
 
                     SCLogDebug("ud->within %"PRIi32", prev_payload_offset %"PRIu32", depth %"PRIu32,

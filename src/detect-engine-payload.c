@@ -142,8 +142,8 @@ static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
                     }
 
                     if (cd->flags & DETECT_CONTENT_WITHIN) {
-                        if ((int32_t)depth > (int32_t)(prev_payload_offset + cd->within)) {
-                            depth = prev_payload_offset + cd->within;
+                        if ((int32_t)depth > (int32_t)(prev_payload_offset + cd->within + cd->distance)) {
+                            depth = prev_payload_offset + cd->within + cd->distance;
                         }
 
                         SCLogDebug("cd->within %"PRIi32", det_ctx->payload_offset %"PRIu32", depth %"PRIu32,
@@ -916,6 +916,30 @@ end:
     return result;
 }
 
+static int PayloadTestSig17(void)
+{
+    uint8_t buf[] = { 0xEB, 0x29, 0x25, 0x38, 0x78, 0x25, 0x38, 0x78, 0x25 };
+    uint16_t buflen = 9;
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
+        "content:\"%\"; depth:4; offset:0; "
+        "content:\"%\"; within:2; distance:1; sid:1;)";
+
+    if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
+        result = 0;
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void PayloadRegisterTests(void) {
@@ -936,6 +960,7 @@ void PayloadRegisterTests(void) {
     UtRegisterTest("PayloadTestSig14", PayloadTestSig14, 1);
     UtRegisterTest("PayloadTestSig15", PayloadTestSig15, 1);
     UtRegisterTest("PayloadTestSig16", PayloadTestSig16, 1);
+    UtRegisterTest("PayloadTestSig17", PayloadTestSig17, 1);
 #endif /* UNITTESTS */
 
     return;
