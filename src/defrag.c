@@ -582,6 +582,9 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
         }
     }
 
+    if (rp == NULL)
+        goto done;
+
     rp->ip4h = (IPV4Hdr *)(rp->pkt + ip_hdr_offset);
     int old = rp->ip4h->ip_len + rp->ip4h->ip_off;
     rp->ip4h->ip_len = htons(fragmentable_len + hlen);
