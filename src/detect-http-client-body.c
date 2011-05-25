@@ -144,7 +144,7 @@ int DetectHttpClientBodyMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
             while (cur != NULL) {
                 total_chunks_len += cur->len;
                 if ( (chunks_buffer = SCRealloc(chunks_buffer, total_chunks_len)) == NULL) {
-                    return 0;
+                    goto end;
                 }
                 memcpy(chunks_buffer + total_chunks_len - cur->len, cur->data, cur->len);
                 cur = cur->next;
