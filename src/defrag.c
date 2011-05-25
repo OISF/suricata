@@ -597,7 +597,7 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
 remove_tracker:
     /* Remove the frag tracker. */
     SCMutexLock(&dc->frag_table_lock);
-    HashListTableRemove(dc->frag_table, tracker, sizeof(tracker));
+    HashListTableRemove(dc->frag_table, tracker, sizeof(*tracker));
     SCMutexUnlock(&dc->frag_table_lock);
     DefragTrackerReset(tracker);
     SCMutexLock(&dc->tracker_pool_lock);
@@ -706,7 +706,7 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
 remove_tracker:
     /* Remove the frag tracker. */
     SCMutexLock(&dc->frag_table_lock);
-    HashListTableRemove(dc->frag_table, tracker, sizeof(tracker));
+    HashListTableRemove(dc->frag_table, tracker, sizeof(*tracker));
     SCMutexUnlock(&dc->frag_table_lock);
     DefragTrackerReset(tracker);
     SCMutexLock(&dc->tracker_pool_lock);
