@@ -316,6 +316,64 @@ static void SetBpfString(int optind, char *argv[]) {
         }
     }
 }
+static void SetBpfStringFromFile(char *filename) {
+    char *bpf_filter = NULL;
+    char *bpf_comment_tmp = NULL;
+    char *bpf_comment_start =  NULL;
+    uint32_t bpf_len = 0;
+    struct stat st;
+    FILE *fp = NULL;
+
+    if(stat(filename, &st) != 0) {
+        SCLogError(SC_ERR_FOPEN, "Failed to stat file %s", filename);
+        exit(EXIT_FAILURE);
+    }
+    bpf_len=st.st_size + 1;
+
+    bpf_filter = SCMalloc(bpf_len*sizeof(char));
+    if(bpf_filter == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC,
+        "Failed to allocate buffer for bpf filter in file %s", filename);
+        exit(EXIT_FAILURE);
+    }
+    memset(bpf_filter, 0x00, bpf_len);
+
+    fp = fopen(filename,"r");
+    if(fp == NULL) {
+        SCLogError(SC_ERR_FOPEN, "Failed to open file %s", filename);
+        SCFree(bpf_filter);
+        exit(EXIT_FAILURE);
+    }else {
+        fread(bpf_filter, bpf_len, 1, fp);
+        fclose(fp);
+    }
+
+    if(strlen(bpf_filter) > 0) {
+        /*replace comments with space*/
+        bpf_comment_start = bpf_filter;
+        while((bpf_comment_tmp = strchr(bpf_comment_start, '#')) != NULL) {
+            while((*bpf_comment_tmp !='\0') &&
+                (*bpf_comment_tmp != '\r') && (*bpf_comment_tmp != '\n'))
+            {
+                *bpf_comment_tmp++ = ' ';
+            }
+            bpf_comment_start = bpf_comment_tmp;
+        }
+        /*remove remaining '\r' and '\n' */
+        while((bpf_comment_tmp = strchr(bpf_filter, '\r')) != NULL) {
+            *bpf_comment_tmp = ' ';
+        }
+        while((bpf_comment_tmp = strchr(bpf_filter, '\n')) != NULL) {
+            *bpf_comment_tmp = ' ';
+        }
+        if(ConfSet("bpf-filter", bpf_filter, 0) != 1) {
+            SCLogError(SC_ERR_FOPEN, "ERROR: Failed to set bpf filter!");
+            SCFree(bpf_filter);
+            exit(EXIT_FAILURE);
+        }
+    }
+    SCFree(bpf_filter);
+}
 
 void usage(const char *progname)
 {
@@ -327,6 +385,7 @@ void usage(const char *progname)
     printf("USAGE: %s\n\n", progname);
     printf("\t-c <path>                    : path to configuration file\n");
     printf("\t-i <dev or ip>               : run in pcap live mode\n");
+    printf("\t-F <bpf filter file>         : bpf filter file\n");
     printf("\t-r <path>                    : run in pcap file/offline mode\n");
 #ifdef NFQ
     printf("\t-q <qid>                     : run in inline nfqueue mode\n");
@@ -594,7 +653,7 @@ int main(int argc, char **argv)
     /* getopt_long stores the option index here. */
     int option_index = 0;
 
-    char short_opts[] = "c:Dhi:l:q:d:r:us:U:V";
+    char short_opts[] = "c:Dhi:l:q:d:r:us:U:VF:";
 
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {
@@ -895,6 +954,9 @@ int main(int argc, char **argv)
             printf("\nThis is %s version %s\n\n", PROG_NAME, PROG_VER);
 #endif
             exit(EXIT_SUCCESS);
+        case 'F':
+            SetBpfStringFromFile(optarg);
+            break;
         default:
             usage(argv[0]);
             exit(EXIT_FAILURE);
