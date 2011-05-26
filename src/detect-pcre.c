@@ -590,7 +590,7 @@ int DetectPcreALDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *
         } else {
             pcreret = 0;
             int wspace[255];
-            int flags = PCRE_PARTIAL;
+            int pcre_flags = PCRE_PARTIAL;
 
             if (cur == NULL) {
                 SCLogDebug("No body chunks to inspect");
@@ -605,7 +605,7 @@ int DetectPcreALDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *
                     printf("\n");
                 }
                 pcreret = pcre_dfa_exec(pe->re, NULL, (char*)cur->data, cur->len, 0,
-                                        flags|PCRE_DFA_SHORTEST, ov, MAX_SUBSTRINGS,
+                                        pcre_flags|PCRE_DFA_SHORTEST, ov, MAX_SUBSTRINGS,
                                         wspace, MAX_SUBSTRINGS);
                 cur = cur->next;
 
@@ -616,12 +616,12 @@ int DetectPcreALDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *
                          * match, (match over multiple chunks)
                          */
                         SCLogDebug("partial match");
-                        flags |= PCRE_DFA_RESTART;
+                        pcre_flags |= PCRE_DFA_RESTART;
                         htud->body.pcre_flags |= HTP_PCRE_HAS_MATCH;
                     break;
                     case PCRE_ERROR_NOMATCH:
                         SCLogDebug("no match");
-                        flags = PCRE_PARTIAL;
+                        pcre_flags = PCRE_PARTIAL;
                     break;
                     case 0:
                         SCLogDebug("Perfect Match!");
