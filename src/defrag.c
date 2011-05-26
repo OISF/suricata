@@ -610,7 +610,6 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
     rp->ip4h->ip_csum = FixChecksum(rp->ip4h->ip_csum,
         old, rp->ip4h->ip_len + rp->ip4h->ip_off);
     SET_PKT_LEN(rp, ip_hdr_offset + hlen + fragmentable_len);
-    IPV4_CACHE_INIT(rp);
 
 remove_tracker:
     /* Remove the frag tracker. */
@@ -722,7 +721,6 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
     rp->ip6h->s_ip6_plen = htons(fragmentable_len);
     rp->ip6h->s_ip6_nxt = next_hdr;
     SET_PKT_LEN(rp, ip_hdr_offset + sizeof(IPV6Hdr) + fragmentable_len);
-    IPV6_CACHE_INIT(rp);
 
 remove_tracker:
     /* Remove the frag tracker. */
@@ -1310,7 +1308,6 @@ BuildTestPacket(uint16_t id, uint16_t off, int mf, const char content,
     p->ip4h->ip_csum = IPV4CalculateChecksum((uint16_t *)GET_PKT_DATA(p), hlen);
 
     /* Self test. */
-    IPV4_CACHE_INIT(p);
     if (IPV4_GET_VER(p) != 4)
         goto error;
     if (IPV4_GET_HLEN(p) != hlen)
@@ -1387,7 +1384,6 @@ IPV6BuildTestPacket(uint32_t id, uint16_t off, int mf, const char content,
     SET_IPV6_DST_ADDR(p, &p->dst);
 
     /* Self test. */
-    IPV6_CACHE_INIT(p);
     if (IPV6_GET_VER(p) != 6)
         goto error;
     if (IPV6_GET_NH(p) != 44)

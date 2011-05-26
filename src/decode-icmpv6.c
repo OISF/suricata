@@ -180,8 +180,6 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             if (ICMPV6_GET_CODE(p) > ICMP6_DST_UNREACH_REJECTROUTE) {
                 DECODER_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
-                p->icmpv6vars.type = ICMPV6_GET_TYPE(p);
-                p->icmpv6vars.code = ICMPV6_GET_CODE(p);
                 DecodePartialIPV6(p, (uint8_t*) (pkt + ICMPV6_HEADER_LEN),
                                   len - ICMPV6_HEADER_LEN );
             }
@@ -193,8 +191,6 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             if (ICMPV6_GET_CODE(p) != 0) {
                 DECODER_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
-                p->icmpv6vars.type = ICMPV6_GET_TYPE(p);
-                p->icmpv6vars.code = ICMPV6_GET_CODE(p);
                 p->icmpv6vars.mtu = ICMPV6_GET_MTU(p);
                 DecodePartialIPV6(p, (uint8_t*) (pkt + ICMPV6_HEADER_LEN),
                                   len - ICMPV6_HEADER_LEN );
@@ -207,8 +203,6 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             if (ICMPV6_GET_CODE(p) > ICMP6_TIME_EXCEED_REASSEMBLY) {
                 DECODER_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
-                p->icmpv6vars.type = ICMPV6_GET_TYPE(p);
-                p->icmpv6vars.code= ICMPV6_GET_CODE(p);
                 DecodePartialIPV6(p, (uint8_t*) (pkt + ICMPV6_HEADER_LEN),
                                   len - ICMPV6_HEADER_LEN );
             }
@@ -220,8 +214,6 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             if (ICMPV6_GET_CODE(p) > ICMP6_PARAMPROB_OPTION) {
                 DECODER_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
-                p->icmpv6vars.type = ICMPV6_GET_TYPE(p);
-                p->icmpv6vars.code= ICMPV6_GET_CODE(p);
                 p->icmpv6vars.error_ptr= ICMPV6_GET_ERROR_PTR(p);
                 DecodePartialIPV6(p, (uint8_t*) (pkt + ICMPV6_HEADER_LEN),
                                   len - ICMPV6_HEADER_LEN );
@@ -235,8 +227,6 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             if (ICMPV6_GET_CODE(p) != 0) {
                 DECODER_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
-                p->icmpv6vars.type = ICMPV6_GET_TYPE(p);
-                p->icmpv6vars.code= ICMPV6_GET_CODE(p);
                 p->icmpv6vars.id = p->icmpv6h->icmpv6b.icmpv6i.id;
                 p->icmpv6vars.seq = p->icmpv6h->icmpv6b.icmpv6i.seq;
             }
@@ -249,8 +239,6 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             if (p->icmpv6h->code != 0) {
                 DECODER_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
-                p->icmpv6vars.type = ICMPV6_GET_TYPE(p);
-                p->icmpv6vars.code= ICMPV6_GET_CODE(p);
                 p->icmpv6vars.id = p->icmpv6h->icmpv6b.icmpv6i.id;
                 p->icmpv6vars.seq = p->icmpv6h->icmpv6b.icmpv6i.seq;
             }

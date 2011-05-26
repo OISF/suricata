@@ -53,6 +53,10 @@
 #define MODIFIER_PLUS 2
 #define MODIFIER_ANY  3
 
+#define FRAGBITS_HAVE_MF    0x01
+#define FRAGBITS_HAVE_DF    0x02
+#define FRAGBITS_HAVE_RF    0x04
+
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
@@ -117,11 +121,11 @@ static int DetectFragBitsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, P
         return ret;
 
     if(IPV4_GET_MF(p))
-        fragbits |= IPV4_CACHE_MF;
+        fragbits |= FRAGBITS_HAVE_MF;
     if(IPV4_GET_DF(p))
-        fragbits |= IPV4_CACHE_DF;
+        fragbits |= FRAGBITS_HAVE_DF;
     if(IPV4_GET_RF(p))
-        fragbits |= IPV4_CACHE_RF;
+        fragbits |= FRAGBITS_HAVE_RF;
 
     switch(de->modifier)    {
         case MODIFIER_ANY:
@@ -225,17 +229,17 @@ static DetectFragBitsData *DetectFragBitsParse (char *rawstr)
         switch (*ptr) {
             case 'M':
             case 'm':
-                de->fragbits |= IPV4_CACHE_MF;
+                de->fragbits |= FRAGBITS_HAVE_MF;
                 found++;
                 break;
             case 'D':
             case 'd':
-                de->fragbits |= IPV4_CACHE_DF;
+                de->fragbits |= FRAGBITS_HAVE_DF;
                 found++;
                 break;
             case 'R':
             case 'r':
-                de->fragbits |= IPV4_CACHE_RF;
+                de->fragbits |= FRAGBITS_HAVE_RF;
                 found++;
                 break;
             default:
@@ -326,7 +330,7 @@ static void DetectFragBitsFree(void *de_ptr) {
 static int FragBitsTestParse01 (void) {
     DetectFragBitsData *de = NULL;
     de = DetectFragBitsParse("M");
-    if (de && (de->fragbits == IPV4_CACHE_MF) ) {
+    if (de && (de->fragbits == FRAGBITS_HAVE_MF) ) {
         DetectFragBitsFree(de);
         return 1;
     }
@@ -421,7 +425,7 @@ static int FragBitsTestParse03 (void) {
 
     de = DetectFragBitsParse("D");
 
-    if (de == NULL || (de->fragbits != IPV4_CACHE_DF))
+    if (de == NULL || (de->fragbits != FRAGBITS_HAVE_DF))
         goto error;
 
     sm = SigMatchAlloc();
@@ -520,7 +524,7 @@ static int FragBitsTestParse04 (void) {
 
     de = DetectFragBitsParse("!D");
 
-    if (de == NULL || (de->fragbits != IPV4_CACHE_DF) || (de->modifier != MODIFIER_NOT))
+    if (de == NULL || (de->fragbits != FRAGBITS_HAVE_DF) || (de->modifier != MODIFIER_NOT))
         goto error;
 
     sm = SigMatchAlloc();

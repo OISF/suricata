@@ -416,8 +416,6 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
 
     SCPerfCounterIncr(dtv->counter_ipv6, tv->sc_perf_pca);
 
-    IPV6_CACHE_INIT(p);
-
     /* do the actual decoding */
     ret = DecodeIPV6Packet (tv, dtv, p, pkt, len);
     if (ret < 0) {

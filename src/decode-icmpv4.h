@@ -177,11 +177,9 @@ typedef struct ICMPV4ExtHdr_
 /* ICMPv4 vars */
 typedef struct ICMPV4Vars_
 {
-    uint8_t  type;
-    uint8_t  code;
+    /* checksum computed over the icmpv4 packet */
+    int32_t comp_csum;
 
-    /* checksum of the icmpv4 packet */
-    uint16_t  csum;
     uint16_t  id;
     uint16_t  seq;
     uint32_t  mtu;
@@ -205,9 +203,7 @@ typedef struct ICMPV4Vars_
 } ICMPV4Vars;
 
 #define CLEAR_ICMPV4_PACKET(p) do { \
-    (p)->icmpv4vars.type = 0; \
-    (p)->icmpv4vars.code = 0; \
-    (p)->icmpv4vars.csum = -1; \
+    (p)->icmpv4vars.comp_csum = -1; \
     (p)->icmpv4vars.id = 0; \
     (p)->icmpv4vars.seq = 0; \
     (p)->icmpv4vars.mtu = 0; \
@@ -288,8 +284,6 @@ typedef struct ICMPV4Vars_
         ICMPV4_GET_TYPE((p)) == ICMP_PARAMETERPROB)
 
 typedef struct ICMPV4Cache_ {
-    /* checksum computed over the icmpv4 packet */
-    int32_t comp_csum;
 } ICMPV4Cache;
 
 void DecodeICMPV4RegisterTests(void);
