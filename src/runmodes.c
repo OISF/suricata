@@ -2265,8 +2265,6 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx, char *iface) {
     int thread;
     for (thread = 0; thread < thread_max; thread++) {
         snprintf(tname, sizeof(tname),"Detect%"PRIu16, thread+1);
-        if (tname == NULL)
-            break;
 
         char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
@@ -2573,8 +2571,6 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx, char *file) {
     int thread;
     for (thread = 0; thread < thread_max; thread++) {
         snprintf(tname, sizeof(tname),"Detect%"PRIu16, thread+1);
-        if (tname == NULL)
-            break;
 
         char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
@@ -2865,8 +2861,6 @@ int RunModeFilePcapAuto2(DetectEngineCtx *de_ctx, char *file) {
     int thread;
     for (thread = 0; thread < thread_max; thread++) {
         snprintf(tname, sizeof(tname),"Detect%"PRIu16, thread+1);
-        if (tname == NULL)
-            break;
 
         char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
@@ -3042,8 +3036,6 @@ int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx) {
     int thread;
     for (thread = 0; thread < thread_max; thread++) {
         snprintf(tname, sizeof(tname),"Detect%"PRIu16, thread+1);
-        if (tname == NULL)
-            break;
 
         char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
@@ -3268,8 +3260,6 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx, char *nfq_id) {
     int thread;
     for (thread = 0; thread < thread_max; thread++) {
         snprintf(tname, sizeof(tname),"Detect%"PRIu16, thread+1);
-        if (tname == NULL)
-            break;
 
         char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
@@ -3493,8 +3483,6 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx, char *iface) {
     int thread;
     for (thread = 0; thread < thread_max; thread++) {
         snprintf(tname, sizeof(tname),"Detect%"PRIu16, thread+1);
-        if (tname == NULL)
-            break;
 
         char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
@@ -3666,8 +3654,6 @@ int RunModeErfFileAuto(DetectEngineCtx *de_ctx, char *file)
     int thread;
     for (thread = 0; thread < thread_max; thread++) {
         snprintf(tname, sizeof(tname),"Detect%"PRIu16, thread+1);
-        if (tname == NULL)
-            break;
 
         char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
@@ -3833,8 +3819,6 @@ int RunModeErfDagAuto(DetectEngineCtx *de_ctx, char *file)
     int thread;
     for (thread = 0; thread < thread_max; thread++) {
         snprintf(tname, sizeof(tname),"Detect%"PRIu16, thread+1);
-        if (tname == NULL)
-            break;
 
         char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
