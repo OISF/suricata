@@ -28,6 +28,31 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 
+void PoolFree(Pool *p) {
+    if (p == NULL)
+        return;
+
+    while (p->alloc_list != NULL) {
+        PoolBucket *pb = p->alloc_list;
+        p->alloc_list = pb->next;
+        p->Free(pb->data);
+        pb->data = NULL;
+        SCFree(pb);
+    }
+
+    while (p->empty_list != NULL) {
+        PoolBucket *pb = p->empty_list;
+        p->empty_list = pb->next;
+	if (pb->data!= NULL) {
+            p->Free(pb->data);
+            pb->data = NULL;
+        }
+        SCFree(pb);
+    }
+
+    SCFree(p);
+}
+
 Pool *PoolInit(uint32_t size, uint32_t prealloc_size, void *(*Alloc)(void *), void *AllocData, void (*Free)(void *))
 {
     Pool *p = NULL;
@@ -101,33 +126,10 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, void *(*Alloc)(void *), vo
     return p;
 
 error:
-    /* XXX */
+    if (p != NULL) {
+        PoolFree(p);
+    }
     return NULL;
-}
-
-void PoolFree(Pool *p) {
-    if (p == NULL)
-        return;
-
-    while (p->alloc_list != NULL) {
-        PoolBucket *pb = p->alloc_list;
-        p->alloc_list = pb->next;
-        p->Free(pb->data);
-        pb->data = NULL;
-        SCFree(pb);
-    }
-
-    while (p->empty_list != NULL) {
-        PoolBucket *pb = p->empty_list;
-        p->empty_list = pb->next;
-	if (pb->data!= NULL) {
-            p->Free(pb->data);
-            pb->data = NULL;
-        }
-        SCFree(pb);
-    }
-
-    SCFree(p);
 }
 
 void PoolPrint(Pool *p) {
