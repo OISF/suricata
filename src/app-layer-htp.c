@@ -555,6 +555,8 @@ void HtpBodyAppendChunk(HtpBody *body, uint8_t *data, uint32_t len)
         bd->len = len;
         bd->data = SCMalloc(len);
         if (bd->data == NULL) {
+            SCFree(bd);
+
             SCLogError(SC_ERR_MEM_ALLOC, "malloc failed: %s", strerror(errno));
             goto error;
         }
@@ -588,6 +590,8 @@ void HtpBodyAppendChunk(HtpBody *body, uint8_t *data, uint32_t len)
             bd->len = len;
             bd->data = SCMalloc(len);
             if (bd->data == NULL) {
+                SCFree(bd);
+
                 SCLogError(SC_ERR_MEM_ALLOC, "malloc failed: %s", strerror(errno));
                 goto error;
             }
