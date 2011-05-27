@@ -178,12 +178,15 @@ void HTPStateFree(void *state)
     SCEnter();
 
     HtpState *s = (HtpState *)state;
+    if (s == NULL) {
+        SCReturn;
+    }
 
     /* Unset the body inspection */
     s->flags &=~ HTP_FLAG_NEW_BODY_SET;
 
     /* free the connection parser memory used by HTP library */
-    if (s != NULL && s->connp != NULL) {
+    if (s->connp != NULL) {
         size_t i;
         /* free the list of body chunks */
         if (s->connp->conn != NULL) {
