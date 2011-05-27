@@ -236,6 +236,9 @@ int SCClassConfAddClasstype(char *rawstr, uint8_t index, DetectEngineCtx *de_ctx
         SCLogInfo("pcre_get_substring() failed");
         goto error;
     }
+    if (ct_priority_str == NULL) {
+        goto error;
+    }
 
     ct_priority = atoi(ct_priority_str);
 

@@ -449,6 +449,10 @@ static int ReassembleInsertSegment(TcpStream *stream, TcpSegment *seg, Packet *p
     int ret_value = 0;
     char return_seg = FALSE;
 
+    if (seg == NULL) {
+        goto end;
+    }
+
     if (list_seg == NULL) {
         SCLogDebug("empty list, inserting seg %p seq %" PRIu32 ", "
                    "len %" PRIu32 "", seg, seg->seq, seg->payload_len);
