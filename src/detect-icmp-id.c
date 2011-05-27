@@ -185,7 +185,11 @@ DetectIcmpIdData *DetectIcmpIdParse (char *icmpidstr) {
 
     /** \todo can ByteExtractStringUint16 do this? */
     uint16_t id = 0;
-    ByteExtractStringUint16(&id, 10, 0, substr[1]);
+    if (ByteExtractStringUint16(&id, 10, 0, substr[1]) < 0) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp id %s is not "
+                                        "valid", substr[1]);
+        goto error;
+    }
     iid->id = htons(id);
 
     for (i = 0; i < 3; i++) {

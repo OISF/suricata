@@ -185,7 +185,11 @@ DetectIcmpSeqData *DetectIcmpSeqParse (char *icmpseqstr) {
     }
 
     uint16_t seq = 0;
-    ByteExtractStringUint16(&seq, 10, 0, substr[1]);
+    if (ByteExtractStringUint16(&seq, 10, 0, substr[1]) < 0) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp seq %s is not "
+                                        "valid", substr[1]);
+        goto error;
+    }
     iseq->seq = htons(seq);
 
     for (i = 0; i < 3; i++) {

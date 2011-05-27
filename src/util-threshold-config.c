@@ -68,9 +68,11 @@ static pcre_extra *rate_regex_study = NULL;
  */
 char *SCThresholdConfGetConfFilename(void)
 {
-    char *log_filename = (char *)THRESHOLD_CONF_DEF_CONF_FILEPATH;
+    char *log_filename = NULL;
 
-    ConfGet("threshold-file", &log_filename);
+    if (ConfGet("threshold-file", &log_filename) != 1) {
+        log_filename = (char *)THRESHOLD_CONF_DEF_CONF_FILEPATH;
+    }
 
     return log_filename;
 }
