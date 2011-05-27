@@ -934,7 +934,7 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_
     s->sig_str = sigstr;
 
     int ret = SigParseBasics(s, sigstr, &basics, addrs_direction);
-    if (ret < 0) {
+    if (ret < 0 || basics == NULL) {
         SCLogDebug("SigParseBasics failed");
         SCReturnInt(-1);
     }
@@ -955,14 +955,12 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_
     }
 
     /* cleanup */
-    if (basics != NULL) {
-        int i = 0;
-        while (basics[i] != NULL) {
-            SCFree(basics[i]);
-            i++;
-        }
-        SCFree(basics);
+    int i = 0;
+    while (basics[i] != NULL) {
+        SCFree(basics[i]);
+        i++;
     }
+    SCFree(basics);
 
     s->sig_str = NULL;
 
@@ -1462,9 +1460,9 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
         /* Allocate a copy of this signature with the addresses siwtched
            This copy will be installed at sig->next */
         sig->next = SigAlloc();
-        sig->next->prio = 3;
         if (sig->next == NULL)
             goto error;
+        sig->next->prio = 3;
 
         if (SigParse(de_ctx, sig->next, sigstr, SIG_DIREC_SWITCHED) < 0)
             goto error;
