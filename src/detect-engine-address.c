@@ -389,13 +389,15 @@ int DetectAddressInsert(DetectEngineCtx *de_ctx, DetectAddressHead *gh,
                         DetectAddress *new)
 {
     DetectAddress *head = NULL;
-    DetectPort *port = new->port;
+    DetectPort *port = NULL;
     DetectAddress *cur = NULL;
     DetectAddress *c = NULL;
     int r = 0;
 
     if (new == NULL)
         return 0;
+
+    port = new->port;
 
     BUG_ON(new->ip.family == 0 && !(new->flags & ADDRESS_FLAG_ANY));
 
