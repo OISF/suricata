@@ -73,14 +73,16 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
     p->payload_len = payload_len;
     p->proto = ipproto;
 
-    inet_pton(AF_INET6, src, &in);
+    if (inet_pton(AF_INET6, src, &in) <= 0)
+        goto error;
     p->src.addr_data32[0] = in[0];
     p->src.addr_data32[1] = in[1];
     p->src.addr_data32[2] = in[2];
     p->src.addr_data32[3] = in[3];
     p->sp = sport;
 
-    inet_pton(AF_INET6, dst, &in);
+    if (inet_pton(AF_INET6, dst, &in) <= 0)
+        goto error;
     p->dst.addr_data32[0] = in[0];
     p->dst.addr_data32[1] = in[1];
     p->dst.addr_data32[2] = in[2];
@@ -89,19 +91,32 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
 
     p->ip6h = SCMalloc(sizeof(IPV6Hdr));
     if (p->ip6h == NULL)
-        return NULL;
+        goto error;
     memset(p->ip6h, 0, sizeof(IPV6Hdr));
     p->ip6h->s_ip6_nxt = ipproto;
 
     p->tcph = SCMalloc(sizeof(TCPHdr));
     if (p->tcph == NULL)
-        return NULL;
+        goto error;
     memset(p->tcph, 0, sizeof(TCPHdr));
     p->tcph->th_sport = sport;
     p->tcph->th_dport = dport;
 
     p->pktlen = sizeof(IPV6Hdr) + sizeof(TCPHdr) + payload_len;
     return p;
+
+error:
+    if (p != NULL) {
+        if (p->ip6h != NULL) {
+            SCFree(p->ip6h);
+        }
+        if (p->tcph != NULL) {
+            SCFree(p->tcph);
+        }
+
+        SCFree(p);
+    }
+    return NULL;
 }
 
 /**
@@ -138,17 +153,19 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
     p->payload_len = payload_len;
     p->proto = ipproto;
 
-    inet_pton(AF_INET, src, &in);
+    if (inet_pton(AF_INET, src, &in) <= 0)
+        goto error;
     p->src.addr_data32[0] = in.s_addr;
     p->sp = sport;
 
-    inet_pton(AF_INET, dst, &in);
+    if (inet_pton(AF_INET, dst, &in) <= 0)
+        goto error;
     p->dst.addr_data32[0] = in.s_addr;
     p->dp = dport;
 
     p->ip4h = SCMalloc(sizeof(IPV4Hdr));
     if (p->ip4h == NULL)
-        return NULL;
+        goto error;
     memset(p->ip4h, 0, sizeof(IPV4Hdr));
 
     p->ip4h->ip_src.s_addr = p->src.addr_data32[0];
@@ -160,7 +177,7 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
         case IPPROTO_UDP:
             p->udph = SCMalloc(sizeof(UDPHdr));
             if (p->udph == NULL)
-                return NULL;
+                goto error;
             memset(p->udph, 0, sizeof(UDPHdr));
             p->udph->uh_sport = sport;
             p->udph->uh_dport = dport;
@@ -169,7 +186,7 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
         case IPPROTO_TCP:
             p->tcph = SCMalloc(sizeof(TCPHdr));
             if (p->tcph == NULL)
-                return NULL;
+                goto error;
             memset(p->tcph, 0, sizeof(TCPHdr));
             p->tcph->th_sport = sport;
             p->tcph->th_dport = dport;
@@ -178,7 +195,7 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
         case IPPROTO_ICMP:
             p->icmpv4h = SCMalloc(sizeof(ICMPV4Hdr));
             if (p->icmpv4h == NULL)
-                return NULL;
+                goto error;
             memset(p->icmpv4h, 0, sizeof(ICMPV4Hdr));
             p->pktlen = sizeof(IPV4Hdr) + sizeof(ICMPV4Hdr) + payload_len;
             break;
@@ -187,6 +204,25 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
         /* TODO: Add more protocols */
     }
     return p;
+
+error:
+    if (p != NULL) {
+        if (p->ip4h != NULL) {
+            SCFree(p->ip4h);
+        }
+        if (p->tcph != NULL) {
+            SCFree(p->tcph);
+        }
+        if (p->udph != NULL) {
+            SCFree(p->udph);
+        }
+        if (p->icmpv4h != NULL) {
+            SCFree(p->icmpv4h);
+        }
+
+        SCFree(p);
+    }
+    return NULL;
 }
 
 /**
