@@ -116,6 +116,8 @@ DetectThresholdData *DetectDetectionFilterParse (char *rawstr) {
     int i = 0;
 
     copy_str = SCStrdup(rawstr);
+    if (copy_str == NULL)
+        goto error;
 
     for(pos = 0, df_opt = strtok(copy_str,",");  pos < strlen(copy_str) &&  df_opt != NULL;  pos++, df_opt = strtok(NULL,",")) {
 
@@ -126,9 +128,7 @@ DetectThresholdData *DetectDetectionFilterParse (char *rawstr) {
         if(strstr(df_opt,"track"))
             track_found++;
     }
-
-    if(copy_str)
-        SCFree(copy_str);
+    SCFree(copy_str);
 
     if(count_found != 1 || seconds_found != 1 || track_found != 1)
         goto error;
