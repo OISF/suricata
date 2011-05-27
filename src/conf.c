@@ -292,21 +292,40 @@ int
 ConfGetBool(char *name, int *val)
 {
     char *strval;
-    char *trues[] = {"1", "yes", "true", "on"};
-    size_t u;
 
     *val = 0;
     if (ConfGet(name, &strval) != 1)
         return 0;
 
+    *val = ConfValIsTrue(strval);
+
+    return 1;
+}
+
+/**
+ * \brief Check if a value is true.
+ *
+ * The value of considered true if it is a string with the value of 1,
+ * yes, true or on.  The test is not case sensitive, any other value
+ * is false.
+ *
+ * \param val The string to test for a true value.
+ *
+ * \retval 1 If the value is true, 0 if not.
+ */
+int
+ConfValIsTrue(const char *val)
+{
+    char *trues[] = {"1", "yes", "true", "on"};
+    size_t u;
+
     for (u = 0; u < sizeof(trues) / sizeof(trues[0]); u++) {
-        if (strcasecmp(strval, trues[u]) == 0) {
-            *val = 1;
-            break;
+        if (strcasecmp(val, trues[u]) == 0) {
+            return 1;
         }
     }
 
-    return 1;
+    return 0;
 }
 
 /**
@@ -556,11 +575,8 @@ ConfNodeChildValueIsTrue(ConfNode *node, const char *key)
     const char *val;
 
     val = ConfNodeLookupChildValue(node, key);
-    if (val != NULL) {
-        if ((strcasecmp(val, "yes") == 0) || (strcasecmp(val, "true") == 0))
-            return 1;
-    }
-    return 0;
+
+    return val != NULL ? ConfValIsTrue(val) : 0;
 }
 
 #ifdef UNITTESTS

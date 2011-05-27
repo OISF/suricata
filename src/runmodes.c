@@ -346,7 +346,7 @@ void RunModeInitializeOutputs(void)
         }
 
         enabled = ConfNodeLookupChildValue(output_config, "enabled");
-        if (enabled != NULL && strcasecmp(enabled, "yes") == 0) {
+        if (enabled != NULL && ConfValIsTrue(enabled)) {
             OutputCtx *output_ctx = NULL;
             if (module->InitFunc != NULL) {
                 output_ctx = module->InitFunc(output_config);
