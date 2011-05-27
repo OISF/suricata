@@ -1366,6 +1366,7 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, Signature *s) {
             return 0;
     }
 
+    sm = s->match;
     /* need at least one decode event keyword to be condered decode event. */
     for ( ;sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_DECODE_EVENT)
