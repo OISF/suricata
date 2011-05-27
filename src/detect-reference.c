@@ -248,10 +248,6 @@ static int DetectReferenceSetup (DetectEngineCtx *de_ctx, Signature *s, char *ra
     SCReturnInt(0);
 
 error:
-    if (ref != NULL) {
-        DetectReferenceFree(ref);
-    }
-
     SCReturnInt(-1);
 }
 
