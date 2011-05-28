@@ -277,43 +277,34 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
     /* no of characters_written(cw) by snprintf */
     int cw = 0;
 
-    char *temp_fmt = strdup(sc_log_config->log_format);
-    char *temp_fmt_h = temp_fmt;
-    char *substr = temp_fmt;
-
-    if (temp_fmt == NULL) {
-        goto error;
-    }
-
     if (sc_log_module_initialized != 1) {
 #ifdef DEBUG
         printf("Logging module not initialized.  Call SCLogInitLogModule(), "
                "before using the logging API\n");
 #endif
-        if (temp_fmt != NULL)
-            free(temp_fmt);
         return SC_ERR_LOG_MODULE_NOT_INIT;
     }
 
     if (sc_log_fg_filters_present == 1) {
         if (SCLogMatchFGFilterWL(file, function, line) != 1) {
-            if (temp_fmt != NULL)
-                free(temp_fmt);
             return SC_ERR_LOG_FG_FILTER_MATCH;
         }
 
         if (SCLogMatchFGFilterBL(file, function, line) != 1) {
-            if (temp_fmt != NULL)
-                free(temp_fmt);
             return SC_ERR_LOG_FG_FILTER_MATCH;
         }
     }
 
     if (sc_log_fd_filters_present == 1 && SCLogMatchFDFilter(function) != 1) {
-        if (temp_fmt != NULL)
-            free(temp_fmt);
         return SC_ERR_LOG_FG_FILTER_MATCH;
     }
+
+    char *temp_fmt = SCStrdup(sc_log_config->log_format);
+    if (temp_fmt == NULL) {
+        return SC_ERR_MEM_ALLOC;
+    }
+    char *temp_fmt_h = temp_fmt;
+    char *substr = temp_fmt;
 
 	while ( (temp_fmt = index(temp_fmt, SC_LOG_FMT_PREFIX)) ) {
         if ((temp - *msg) > SC_LOG_MAX_LOG_MSG_LEN) {
@@ -438,11 +429,28 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
         }
         temp_fmt++;
 	}
+    if ((temp - *msg) > SC_LOG_MAX_LOG_MSG_LEN) {
+        printf("Warning: Log message exceeded message length limit of %d\n",
+               SC_LOG_MAX_LOG_MSG_LEN);
+        *msg = *msg + SC_LOG_MAX_LOG_MSG_LEN;
+        if (temp_fmt_h != NULL)
+            free(temp_fmt_h);
+        return SC_OK;
+    }
     cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg), "%s", substr);
     if (cw < 0)
         goto error;
+    temp += cw;
+    if ((temp - *msg) > SC_LOG_MAX_LOG_MSG_LEN) {
+        printf("Warning: Log message exceeded message length limit of %d\n",
+               SC_LOG_MAX_LOG_MSG_LEN);
+        *msg = *msg + SC_LOG_MAX_LOG_MSG_LEN;
+        if (temp_fmt_h != NULL)
+            free(temp_fmt_h);
+        return SC_OK;
+    }
 
-    *msg = temp + cw;
+    *msg = temp;
 
     free(temp_fmt_h);
 
