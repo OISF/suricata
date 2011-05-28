@@ -230,11 +230,12 @@ extern int sc_log_module_cleaned;
                                                  SC_LOG_MAX_LOG_MSG_LEN); \
                                           _sc_log_err_temp = _sc_log_err_msg + \
                                               SC_LOG_MAX_LOG_MSG_LEN;    \
-                                      }                                  \
-                                      snprintf(_sc_log_err_temp,         \
-                                               (SC_LOG_MAX_LOG_MSG_LEN - \
-                                                (_sc_log_err_temp - _sc_log_err_msg)), \
-                                               __VA_ARGS__);             \
+                                      } else {                          \
+                                          snprintf(_sc_log_err_temp,    \
+                                                   (SC_LOG_MAX_LOG_MSG_LEN - \
+                                                    (_sc_log_err_temp - _sc_log_err_msg)), \
+                                                   __VA_ARGS__);        \
+                                      }                                 \
                                       SCLogOutputBuffer(x, _sc_log_err_msg); \
                                   }                                      \
                               } while(0)
