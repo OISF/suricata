@@ -788,18 +788,18 @@ static inline SCSigSignatureWrapper *SCSigAllocSignatureWrapper(Signature *sig)
     int i = 0;
 
     if ( (sw = SCMalloc(sizeof(SCSigSignatureWrapper))) == NULL)
-        return NULL;
+        goto end;
     memset(sw, 0, sizeof(SCSigSignatureWrapper));
 
     sw->sig = sig;
 
     if ( (sw->user = SCMalloc(SC_RADIX_USER_DATA_MAX * sizeof(int *))) == NULL)
-        return NULL;
+        goto end;
     memset(sw->user, 0, SC_RADIX_USER_DATA_MAX * sizeof(int *));
 
     for (i = 0; i < SC_RADIX_USER_DATA_MAX; i++) {
         if ( (sw->user[i] = SCMalloc(sizeof(int))) == NULL)
-            return NULL;
+            goto end;
         memset(sw->user[i], 0, sizeof(int));
     }
 
@@ -810,6 +810,19 @@ static inline SCSigSignatureWrapper *SCSigAllocSignatureWrapper(Signature *sig)
     SCSigProcessUserDataForPktvar(sw);
 
     return sw;
+ end:
+    if (sw != NULL) {
+        if (sw->user != NULL) {
+            for (i = 0; i < SC_RADIX_USER_DATA_MAX; i++) {
+                if (sw->user[i] != NULL) {
+                    SCFree(sw->user[i]);
+                }
+            }
+            SCFree(sw->user);
+        }
+        SCFree(sw);
+    }
+    return NULL;
 }
 
 /**
@@ -832,6 +845,8 @@ void SCSigOrderSignatures(DetectEngineCtx *de_ctx)
     while (sig != NULL) {
         i++;
         sigw = SCSigAllocSignatureWrapper(sig);
+        if (sigw == NULL)
+            return;
         funcs = de_ctx->sc_sig_order_funcs;
         while (funcs != NULL) {
             funcs->FuncPtr(de_ctx, sigw);
