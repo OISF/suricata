@@ -321,8 +321,6 @@ static void SCSigOrderByAction(DetectEngineCtx *de_ctx,
     }
 
     /* set the min signature for this keyword, for the next ordering function */
-    if (sw == NULL)
-        return;
     min = sw;
     while (min != NULL && min != sw->min) {
         if (min->sig->action != sw->sig->action)
@@ -333,8 +331,6 @@ static void SCSigOrderByAction(DetectEngineCtx *de_ctx,
     sw->min = min;
 
     /* set the max signature for this keyword + 1, for the next ordering func */
-    if (sw == NULL)
-        return;
     max = sw;
     while (max != NULL && max != sw->max) {
         if (max->sig->action != sw->sig->action)
@@ -426,8 +422,6 @@ static void SCSigOrderByFlowbits(DetectEngineCtx *de_ctx,
     }
 
     /* set the min signature for this keyword, for the next ordering function */
-    if (sw == NULL)
-        return;
     min = sw;
     while (min != NULL && min != sw->min) {
         if ( *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWBITS])) !=
@@ -439,8 +433,6 @@ static void SCSigOrderByFlowbits(DetectEngineCtx *de_ctx,
     sw->min = min;
 
     /* set the max signature for this keyword + 1, for the next ordering func */
-    if (sw == NULL)
-        return;
     max = sw;
     while (max!= NULL && max != sw->max) {
         if ( *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWBITS])) !=
@@ -534,8 +526,6 @@ static void SCSigOrderByFlowvar(DetectEngineCtx *de_ctx,
     }
 
     /* set the min signature for this keyword, for the next ordering function */
-    if (sw == NULL)
-        return;
     min = sw;
     while (min != NULL && min != sw->min) {
         if ( *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWVAR])) !=
@@ -547,8 +537,6 @@ static void SCSigOrderByFlowvar(DetectEngineCtx *de_ctx,
     sw->min = min;
 
     /* set the max signature for this keyword + 1, for the next ordering func */
-    if (sw == NULL)
-        return;
     max = sw;
     while (max != NULL && max != sw->max) {
         if ( *((int *)(sw->user[SC_RADIX_USER_DATA_FLOWVAR])) !=
@@ -640,9 +628,6 @@ static void SCSigOrderByPktvar(DetectEngineCtx *de_ctx,
     }
 
     /* set the min signature for this keyword, for the next ordering function */
-    if (sw == NULL)
-        return;
-
     min = sw;
     while (min != NULL && min != sw->min) {
         if ( *((int *)(sw->user[SC_RADIX_USER_DATA_PKTVAR])) !=
@@ -654,8 +639,6 @@ static void SCSigOrderByPktvar(DetectEngineCtx *de_ctx,
     sw->min = min;
 
     /* set the max signature for this keyword + 1, for the next ordering func */
-    if (sw == NULL)
-        return;
     max = sw;
     while (max != NULL && max != sw->max) {
         if ( *((int *)(sw->user[SC_RADIX_USER_DATA_PKTVAR])) !=
@@ -747,9 +730,6 @@ static void SCSigOrderByPriority(DetectEngineCtx *de_ctx,
     }
 
     /* set the min signature for this keyword, for the next ordering function */
-    if (sw == NULL)
-        return;
-
     min = sw;
     while (min != NULL && min != sw->min) {
         if (min->sig->prio != sw->sig->prio)
@@ -760,9 +740,6 @@ static void SCSigOrderByPriority(DetectEngineCtx *de_ctx,
     sw->min = min;
 
     /* set the max signature for this keyword + 1, for the next ordering func */
-    if (sw == NULL)
-        return;
-
     max = sw;
     while (max != NULL && max != sw->max) {
         if (max->sig->prio != sw->sig->prio)
