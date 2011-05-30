@@ -323,6 +323,7 @@ static void SetBpfStringFromFile(char *filename) {
     uint32_t bpf_len = 0;
     struct stat st;
     FILE *fp = NULL;
+    size_t nm = 0;
 
     if(stat(filename, &st) != 0) {
         SCLogError(SC_ERR_FOPEN, "Failed to stat file %s", filename);
@@ -344,7 +345,10 @@ static void SetBpfStringFromFile(char *filename) {
         SCFree(bpf_filter);
         exit(EXIT_FAILURE);
     }else {
-        fread(bpf_filter, bpf_len, 1, fp);
+        nm = fread(bpf_filter, bpf_len - 1, 1, fp);
+        if((ferror(fp) != 0)||( nm != 1)) {
+           *bpf_filter='\0';
+        }
         fclose(fp);
     }
 
