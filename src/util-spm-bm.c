@@ -298,7 +298,7 @@ uint8_t *BoyerMoore(uint8_t *x, int32_t m, uint8_t *y, int32_t n, int32_t *bmGs,
 
       if (i < 0) {
          return y + j;
-         j += bmGs[0];
+         //j += bmGs[0];
       } else {
  //        printf("%c", y[i+j]);
          j += (m1 = bmGs[i]) > (m2 = bmBc[y[i + j]] - m + 1 + i)? m1: m2;
