@@ -108,6 +108,7 @@ static SCMutex nfq_init_lock;
 
 TmEcode ReceiveNFQ(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode ReceiveNFQThreadInit(ThreadVars *, void *, void **);
+TmEcode ReceiveNFQThreadDeinit(ThreadVars *, void *);
 void ReceiveNFQThreadExitStats(ThreadVars *, void *);
 
 TmEcode VerdictNFQ(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
@@ -128,7 +129,7 @@ void TmModuleReceiveNFQRegister (void) {
     tmm_modules[TMM_RECEIVENFQ].ThreadInit = ReceiveNFQThreadInit;
     tmm_modules[TMM_RECEIVENFQ].Func = ReceiveNFQ;
     tmm_modules[TMM_RECEIVENFQ].ThreadExitPrintStats = ReceiveNFQThreadExitStats;
-    tmm_modules[TMM_RECEIVENFQ].ThreadDeinit = NULL;
+    tmm_modules[TMM_RECEIVENFQ].ThreadDeinit = ReceiveNFQThreadDeinit;
     tmm_modules[TMM_RECEIVENFQ].RegisterTests = NULL;
 }
 
@@ -343,6 +344,11 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
      * as we will need it in our callback function */
     ntv->tv = tv;
 
+    ntv->data = SCMalloc(70000);
+    if (ntv->data == NULL)
+        return TM_ECODE_FAILED;
+    ntv->datalen = 70000;
+
     /* Extract the queue number from the specified command line argument */
     uint16_t queue_num = 0;
     if ((ByteExtractStringUint16(&queue_num, 10, strlen((char *)initdata),
@@ -366,6 +372,20 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
     SCMutexUnlock(&nfq_init_lock);
     return TM_ECODE_OK;
 }
+
+TmEcode ReceiveNFQThreadDeinit(ThreadVars *tv, void *data)
+{
+    NFQThreadVars * ntv = (NFQThreadVars *) data;
+    /* free memory allocated for read buffer */
+    if (ntv->data != NULL) {
+        SCFree(ntv->data);
+        ntv->data = NULL;
+    }
+    ntv->datalen = 0;
+
+    return TM_ECODE_OK;
+}
+
 
 TmEcode VerdictNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
     SCMutexLock(&nfq_init_lock);
@@ -398,10 +418,9 @@ TmEcode VerdictNFQThreadDeinit(ThreadVars *tv, void *data) {
 #ifndef OS_WIN32
 void NFQRecvPkt(NFQThreadVars *t) {
     int rv, ret;
-    char buf[70000];
 
     /* XXX what happens on rv == 0? */
-    rv = recv(t->fd, buf, sizeof(buf), 0);
+    rv = recv(t->fd, t->data, t->datalen, 0);
 
     if (rv < 0) {
         if (errno == EINTR || errno == EWOULDBLOCK) {
@@ -422,7 +441,7 @@ void NFQRecvPkt(NFQThreadVars *t) {
         //printf("NFQRecvPkt: t %p, rv = %" PRId32 "\n", t, rv);
 
         SCMutexLock(&t->mutex_qh);
-        ret = nfq_handle_packet(t->h, buf, rv);
+        ret = nfq_handle_packet(t->h, t->data, rv);
         SCMutexUnlock(&t->mutex_qh);
 
         if (ret != 0) {
@@ -433,7 +452,6 @@ void NFQRecvPkt(NFQThreadVars *t) {
 #else /* WIN32 version of NFQRecvPkt */
 void NFQRecvPkt(NFQThreadVars *t) {
     int rv, ret;
-    char buf[70000];
     static int timeouted = 0;
 
     if (timeouted) {
@@ -447,7 +465,7 @@ void NFQRecvPkt(NFQThreadVars *t) {
 
 read_packet_again:
 
-    if (!ReadFile(t->fd, buf, sizeof(buf), (DWORD*)&rv, &t->ovr)) {
+    if (!ReadFile(t->fd, t->data, t->datalen, (DWORD*)&rv, &t->ovr)) {
         if (GetLastError() != ERROR_IO_PENDING) {
             rv = -1;
             errno = EIO;
@@ -485,7 +503,7 @@ process_rv:
         //printf("NFQRecvPkt: t %p, rv = %" PRId32 "\n", t, rv);
 
         SCMutexLock(&t->mutex_qh);
-        ret = nfq_handle_packet(t->h, buf, rv);
+        ret = nfq_handle_packet(t->h, t->data, rv);
         SCMutexUnlock(&t->mutex_qh);
 
         if (ret != 0) {

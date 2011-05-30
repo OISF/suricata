@@ -76,6 +76,9 @@ typedef struct NFQThreadVars_
     uint32_t accepted;
     uint32_t dropped;
 
+    char *data; /** Per function and thread data */
+    int datalen; /** Length of per function and thread data */
+
     ThreadVars *tv;
 } NFQThreadVars;
 
