@@ -79,6 +79,8 @@ void TmModuleAlertUnifiedAlertRegister (void) {
 typedef struct AlertUnifiedAlertThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     LogFileCtx* file_ctx;
+    uint8_t *data; /** Per function and thread data */
+    int datalen; /** Length of per function and thread data */
 } AlertUnifiedAlertThread;
 
 #define ALERTUNIFIEDALERT_ALERTMAGIC 0xDEAD4137 /* taken from Snort */
@@ -282,6 +284,12 @@ TmEcode AlertUnifiedAlertThreadDeinit(ThreadVars *t, void *data)
         /* Do not print it for each thread */
         aun->file_ctx->flags |= LOGFILE_ALERTS_PRINTED;
     }
+
+    if (aun->data != NULL) {
+        SCFree(aun->data);
+        aun->data = NULL;
+    }
+    aun->datalen = 0;
     /* clear memory */
     memset(aun, 0, sizeof(AlertUnifiedAlertThread));
     SCFree(aun);
