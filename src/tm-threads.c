@@ -151,7 +151,8 @@ void *TmThreadsSlot1NoIn(void *td) {
         if (r == TM_ECODE_FAILED) {
             TmqhReleasePacketsToPacketPool(&s->s.slot_pre_pq);
             TmqhReleasePacketsToPacketPool(&s->s.slot_post_pq);
-            TmqhOutputPacketpool(tv, p);
+            if (p != NULL)
+                TmqhOutputPacketpool(tv, p);
             TmThreadsSetFlag(tv, THV_FAILED);
             break;
         }
@@ -164,7 +165,8 @@ void *TmThreadsSlot1NoIn(void *td) {
             }
         }
 
-        tv->tmqh_out(tv, p);
+        if (p != NULL)
+            tv->tmqh_out(tv, p);
 
         /* handle post queue */
         while (s->s.slot_post_pq.top != NULL) {
