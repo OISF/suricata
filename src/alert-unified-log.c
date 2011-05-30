@@ -87,6 +87,8 @@ void TmModuleAlertUnifiedLogRegister (void) {
 typedef struct AlertUnifiedLogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     LogFileCtx* file_ctx;
+    uint8_t *data; /** Per function and thread data */
+    int datalen; /** Length of per function and thread data */
 } AlertUnifiedLogThread;
 
 #define ALERTUNIFIEDLOG_LOGMAGIC 0xDEAD1080 /* taken from Snort */
@@ -189,7 +191,6 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     PacketAlert *pa;
     int ret;
     uint8_t ethh_offset = 0;
-    uint8_t buf[80000];
     uint32_t buflen = 0;
     uint16_t alert_cnt = p->alerts.cnt;
 
@@ -240,7 +241,7 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         hdr.sig_class = pa->s->class;
         hdr.sig_prio = pa->s->prio;
 
-        memcpy(buf,&hdr,sizeof(hdr));
+        memcpy(aun->data,&hdr,sizeof(hdr));
         buflen = sizeof(hdr);
 
         if (p->ethh == NULL) {
@@ -248,11 +249,11 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
             memset(&ethh, 0, sizeof(EthernetHdr));
             ethh.eth_type = htons(ETHERNET_TYPE_IP);
 
-            memcpy(buf+buflen,&ethh,sizeof(ethh));
+            memcpy(aun->data+buflen,&ethh,sizeof(ethh));
             buflen += sizeof(ethh);
         }
 
-        memcpy(buf+buflen, GET_PKT_DATA(p),GET_PKT_LEN(p));
+        memcpy(aun->data+buflen, GET_PKT_DATA(p),GET_PKT_LEN(p));
         buflen += GET_PKT_LEN(p);
 
         /** Wait for the mutex. We dont want all the threads rotating the file
@@ -266,7 +267,7 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
             }
         }
 
-        ret = fwrite(buf, buflen, 1, aun->file_ctx->fp);
+        ret = fwrite(aun->data, buflen, 1, aun->file_ctx->fp);
         if (ret != 1) {
             SCLogError(SC_ERR_FWRITE, "fwrite failed: %s", strerror(errno));
             aun->file_ctx->alerts += i;
@@ -290,7 +291,7 @@ TmEcode AlertUnifiedLogThreadInit(ThreadVars *t, void *initdata, void **data)
     AlertUnifiedLogThread *aun = SCMalloc(sizeof(AlertUnifiedLogThread));
     if (aun == NULL)
         return TM_ECODE_FAILED;
-    memset(aun, 0, sizeof(AlertUnifiedLogThread));
+    memset((void *)aun, 0, sizeof(AlertUnifiedLogThread));
 
     if (initdata == NULL) {
         SCLogDebug("Error getting context for UnifiedLog. \"initdata\" argument NULL");
@@ -307,6 +308,16 @@ TmEcode AlertUnifiedLogThreadInit(ThreadVars *t, void *initdata, void **data)
     }
 
     *data = (void *)aun;
+
+#define T_DATA_SIZE 80000
+    aun->data = SCMalloc(T_DATA_SIZE);
+    if (aun->data == NULL) {
+        SCFree(aun);
+        return TM_ECODE_FAILED;
+    }
+    aun->datalen = T_DATA_SIZE;
+#undef T_DATA_SIZE
+
     return TM_ECODE_OK;
 }
 
@@ -325,6 +336,11 @@ TmEcode AlertUnifiedLogThreadDeinit(ThreadVars *t, void *data)
         aun->file_ctx->flags |= LOGFILE_ALERTS_PRINTED;
     }
 
+    if (aun->data != NULL) {
+        SCFree(aun->data);
+        aun->data = NULL;
+    }
+    aun->datalen = 0;
     /* clear memory */
     memset(aun, 0, sizeof(AlertUnifiedLogThread));
     SCFree(aun);

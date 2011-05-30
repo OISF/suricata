@@ -288,6 +288,7 @@ TmEcode AlertUnifiedAlertThreadDeinit(ThreadVars *t, void *data)
         /* Do not print it for each thread */
         aun->file_ctx->flags |= LOGFILE_ALERTS_PRINTED;
     }
+
     /* clear memory */
     memset(aun, 0, sizeof(AlertUnifiedAlertThread));
     SCFree(aun);
