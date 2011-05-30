@@ -580,11 +580,11 @@ static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file,
         goto error;
     }
 
-    if ((iface_ctx->file = strdup(file)) == NULL) {
+    if ((iface_ctx->file = SCStrdup(file)) == NULL) {
         goto error;
     }
 
-    if ((iface_ctx->log_format = strdup(log_format)) == NULL) {
+    if ((iface_ctx->log_format = SCStrdup(log_format)) == NULL) {
         goto error;
     }
 
@@ -593,17 +593,20 @@ static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file,
     return iface_ctx;
 
 error:
-    if (iface_ctx->file != NULL) {
-        free((char *)iface_ctx->file);
-        iface_ctx->file = NULL;
-    }
-    if (iface_ctx->log_format != NULL) {
-        free((char *)iface_ctx->log_format);
-        iface_ctx->log_format = NULL;
-    }
-    if (iface_ctx->file_d != NULL) {
-        fclose(iface_ctx->file_d);
-        iface_ctx->file_d = NULL;
+    if (iface_ctx != NULL) {
+        if (iface_ctx->file != NULL) {
+            SCFree((char *)iface_ctx->file);
+            iface_ctx->file = NULL;
+        }
+        if (iface_ctx->log_format != NULL) {
+            SCFree((char *)iface_ctx->log_format);
+            iface_ctx->log_format = NULL;
+        }
+        if (iface_ctx->file_d != NULL) {
+            fclose(iface_ctx->file_d);
+            iface_ctx->file_d = NULL;
+        }
+        SCFree(iface_ctx);
     }
     return NULL;
 }

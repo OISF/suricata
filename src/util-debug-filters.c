@@ -486,14 +486,14 @@ int SCLogPrintFGFilters()
  */
 int SCLogMatchFDFilter(const char *function)
 {
+#ifndef DEBUG
+    return 1;
+#else
+
     SCLogFDFilterThreadList *thread_list = NULL;
 
 //    pid_t self = syscall(SYS_gettid);
     pthread_t self = pthread_self();
-
-#ifndef DEBUG
-    return 1;
-#endif
 
     if (sc_log_module_initialized != 1) {
         printf("Logging module not initialized.  Call SCLogInitLogModule() "
@@ -527,6 +527,8 @@ int SCLogMatchFDFilter(const char *function)
     SCMutexUnlock(&sc_log_fd_filters_tl_m);
 
     return 0;
+
+#endif /* #else - #ifndef DEBUG */
 }
 
 /**
@@ -591,8 +593,10 @@ int SCLogCheckFDFilterEntry(const char *function)
         return 1;
     }
 
-    if ( (thread_list_temp = SCMalloc(sizeof(SCLogFDFilterThreadList))) == NULL)
+    if ( (thread_list_temp = SCMalloc(sizeof(SCLogFDFilterThreadList))) == NULL) {
+        SCMutexUnlock(&sc_log_fd_filters_tl_m);
         return 0;
+    }
     memset(thread_list_temp, 0, sizeof(SCLogFDFilterThreadList));
 
     thread_list_temp->t = self;
@@ -705,8 +709,10 @@ int SCLogAddFDFilter(const char *function)
         curr = curr->next;
     }
 
-    if ( (temp = SCMalloc(sizeof(SCLogFDFilter))) == NULL)
+    if ( (temp = SCMalloc(sizeof(SCLogFDFilter))) == NULL) {
+        SCMutexUnlock(&sc_log_fd_filters_m);
         return -1;
+    }
     memset(temp, 0, sizeof(SCLogFDFilter));
 
     if ( (temp->func = SCStrdup(function)) == NULL) {
