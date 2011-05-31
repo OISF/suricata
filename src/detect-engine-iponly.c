@@ -523,8 +523,11 @@ int IPOnlyCIDRListParse(IPOnlyCIDRItem **gh, char *str)
 {
     SCLogDebug("gh %p, str %s", gh, str);
 
+    if (gh == NULL)
+        goto error;
+
     *gh = IPOnlyCIDRListParse2(str, 0);
-    if (gh == NULL) {
+    if (*gh == NULL) {
         SCLogDebug("DetectAddressParse2 returned null");
         goto error;
     }
