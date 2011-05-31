@@ -178,6 +178,14 @@ htp_cfg_t *htp_config_copy(htp_cfg_t *cfg) {
         }
     }
 
+    if (cfg->hook_request_uri_normalize != NULL) {
+        copy->hook_request_uri_normalize = hook_copy(cfg->hook_request_uri_normalize);
+        if (copy->hook_request_uri_normalize == NULL) {
+            free(copy);
+            return NULL;
+        }
+    }
+
     if (cfg->hook_request_headers != NULL) {
         copy->hook_request_headers = hook_copy(cfg->hook_request_headers);
         if (copy->hook_request_headers == NULL) {
@@ -270,6 +278,7 @@ void htp_config_destroy(htp_cfg_t *cfg) {
     // Destroy the hooks
     hook_destroy(cfg->hook_transaction_start);
     hook_destroy(cfg->hook_request_line);
+    hook_destroy(cfg->hook_request_uri_normalize);
     hook_destroy(cfg->hook_request_headers);
     hook_destroy(cfg->hook_request_body_data);
     hook_destroy(cfg->hook_request_trailer);
@@ -303,6 +312,16 @@ void htp_config_register_transaction_start(htp_cfg_t *cfg, int (*callback_fn)(ht
  */
 void htp_config_register_request_line(htp_cfg_t *cfg, int (*callback_fn)(htp_connp_t *)) {
     hook_register(&cfg->hook_request_line, callback_fn);
+}
+
+/**
+ * Registers a request_uri_normalize callback.
+ *
+ * @param cfg
+ * @param callback_fn
+ */
+void htp_config_register_request_uri_normalize(htp_cfg_t *cfg, int (*callback_fn)(htp_connp_t *)) {
+    hook_register(&cfg->hook_request_uri_normalize, callback_fn);
 }
 
 /**

@@ -307,6 +307,8 @@ void htp_log(htp_connp_t *connp, const char *file, int line, int level, int code
 
     int r = vsnprintf(buf, 1023, fmt, args);
 
+    va_end(args);
+
     if (r < 0) {
         // TODO Will vsnprintf ever return an error?
         snprintf(buf, 1024, "[vnsprintf returned error %d]", r);
@@ -336,8 +338,6 @@ void htp_log(htp_connp_t *connp, const char *file, int line, int level, int code
     }
 
     hook_run_all(connp->cfg->hook_log, log);
-
-    va_end(args);
 }
 
 /**
@@ -661,7 +661,7 @@ void htp_utf8_decode_path_inplace(htp_cfg_t *cfg, htp_tx_t *tx, bstr *path) {
     size_t rpos = 0;
     size_t wpos = 0;
     size_t charpos = 0;
-    uint32_t codepoint;
+    uint32_t codepoint = 0;
     uint32_t state = UTF8_ACCEPT;
     uint32_t counter = 0;
     uint8_t seen_valid = 0;
@@ -690,6 +690,7 @@ void htp_utf8_decode_path_inplace(htp_cfg_t *cfg, htp_tx_t *tx, bstr *path) {
                             if (codepoint < 0x800) {
                                 tx->flags |= HTP_PATH_UTF8_OVERLONG;
                             }
+                            break;
                         case 4:
                             if (codepoint < 0x10000) {
                                 tx->flags |= HTP_PATH_UTF8_OVERLONG;
@@ -733,12 +734,8 @@ void htp_utf8_decode_path_inplace(htp_cfg_t *cfg, htp_tx_t *tx, bstr *path) {
                     data[wpos++] = data[charpos++];
                 }
 
-                // If this is the first invalid byte we will
-                // want to skip over it. Otherwise we will want
-                // to attempt to interpret it.
-                if (counter == 1) {
-                    rpos++;
-                }
+                // Advance over the consumed byte
+                rpos++;
 
                 // Prepare for the next character
                 counter = 0;
@@ -774,7 +771,7 @@ void htp_utf8_validate_path(htp_tx_t *tx, bstr *path) {
     unsigned char *data = (unsigned char *) bstr_ptr(path);
     size_t len = bstr_len(path);
     size_t rpos = 0;
-    uint32_t codepoint;
+    uint32_t codepoint = 0;
     uint32_t state = UTF8_ACCEPT;
     uint32_t counter = 0;
     uint8_t seen_valid = 0;
@@ -802,6 +799,7 @@ void htp_utf8_validate_path(htp_tx_t *tx, bstr *path) {
                             if (codepoint < 0x800) {
                                 tx->flags |= HTP_PATH_UTF8_OVERLONG;
                             }
+                            break;
                         case 4:
                             if (codepoint < 0x10000) {
                                 tx->flags |= HTP_PATH_UTF8_OVERLONG;
@@ -831,12 +829,8 @@ void htp_utf8_validate_path(htp_tx_t *tx, bstr *path) {
                 // we want to ignore invalid characters
                 state = UTF8_ACCEPT;
 
-                // If this is the first invalid byte we will
-                // want to skip over it. Otherwise we will want
-                // to attempt to interpret it.
-                if (counter == 1) {
-                    rpos++;
-                }
+                // Advance over the consumed byte
+                rpos++;
 
                 // Prepare for the next character
                 counter = 0;

@@ -607,6 +607,14 @@ int htp_connp_REQ_LINE(htp_connp_t *connp) {
                     return HTP_ERROR;
                 }
 
+                // Run hook REQUEST_URI_NORMALIZE
+                int rc = hook_run_all(connp->cfg->hook_request_uri_normalize, connp);
+                if (rc != HOOK_OK) {
+                    htp_log(connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0,
+                            "Request URI normalize callback returned error (%d)", rc);
+                    return HTP_ERROR;
+                }
+
                 // Now is a good time to generate request_uri_normalized, before we finalize
                 // parsed_uri (and lose the information which parts were provided in the request and
                 // which parts we added).

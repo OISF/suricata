@@ -15,7 +15,7 @@ GENERIC_LIBRARY_NAME=htp
 
 GENERIC_MAJOR_VERSION=0
 GENERIC_MINOR_VERSION=2
-GENERIC_MICRO_VERSION=X
+GENERIC_MICRO_VERSION=6
 
 # API version (often = GENERIC_MAJOR_VERSION.GENERIC_MINOR_VERSION)
 GENERIC_API_VERSION=1.0
@@ -56,7 +56,7 @@ AM_INIT_AUTOMAKE($PACKAGE, $VERSION, no-define)
 
 AC_CONFIG_MACRO_DIR([m4])
 
-AC_ARG_ENABLE(htp-debug, [ --enable-htp-debug  Enable debug output], [ enable_debug=yes ])
+AC_ARG_ENABLE(debug, [ --enable-debug  Enable debug output], [ enable_debug=yes ])
 if test "$enable_debug" = "yes"; then
     CFLAGS="${CFLAGS} -DHTP_DEBUG"
     echo "Debug mode enabled"

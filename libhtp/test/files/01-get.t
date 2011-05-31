@@ -1,5 +1,5 @@
 >>>
-GET / HTTP/1.0
+GET /?p=%20 HTTP/1.0
 User-Agent: Mozilla
 
 
