@@ -56,8 +56,8 @@ AM_INIT_AUTOMAKE($PACKAGE, $VERSION, no-define)
 
 AC_CONFIG_MACRO_DIR([m4])
 
-AC_ARG_ENABLE(debug, [ --enable-debug  Enable debug output], [ enable_debug=yes ])
-if test "$enable_debug" = "yes"; then
+AC_ARG_ENABLE(htp-debug, [ --enable-htp-debug  Enable debug output], [ enable_htp_debug=yes ])
+if test "$enable_htp_debug" = "yes"; then
     CFLAGS="${CFLAGS} -DHTP_DEBUG"
     echo "Debug mode enabled"
 fi
