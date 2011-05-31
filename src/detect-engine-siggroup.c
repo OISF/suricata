@@ -888,6 +888,9 @@ static void SigGroupHeadFreeSigArraysHash2(DetectEngineCtx *de_ctx,
          htb = HashListTableGetListNext(htb))
     {
         sgh = (SigGroupHead *)HashListTableGetListData(htb);
+        if (sgh == NULL) {
+            continue;
+        }
 
         if (sgh->init->sig_array != NULL) {
             detect_siggroup_sigarray_free_cnt++;
