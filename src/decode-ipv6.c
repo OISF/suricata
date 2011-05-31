@@ -253,9 +253,9 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                         //    addr_buf,sizeof(addr_buf));
                         //printf("home addr %s\n", addr_buf);
                     }
-                    uint16_t len = (*(ptr + 1) + 2);
-                    ptr += len; /* +2 for opt type and opt len fields */
-                    offset += len;
+                    uint16_t optlen = (*(ptr + 1) + 2);
+                    ptr += optlen; /* +2 for opt type and opt len fields */
+                    offset += optlen;
                 }
 
                 nh = *pkt;
