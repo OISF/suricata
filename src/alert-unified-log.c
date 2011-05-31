@@ -304,6 +304,7 @@ TmEcode AlertUnifiedLogThreadInit(ThreadVars *t, void *initdata, void **data)
     if (aun->file_ctx->fp == NULL) {
         SCLogError (SC_ERR_OPENING_FILE, "Target file has not been opened, check"
                 " the write permission");
+        SCFree(aun);
         return TM_ECODE_FAILED;
     }
 
