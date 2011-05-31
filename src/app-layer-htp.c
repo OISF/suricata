@@ -1771,6 +1771,8 @@ libhtp:\n\
 
     ConfCreateContextBackup();
     ConfInit();
+    HtpConfigCreateBackup();
+
     ConfYamlLoadString(input, strlen(input));
     HTPConfigure();
 
@@ -1817,8 +1819,10 @@ end:
     if (htp_state != NULL)
         HTPStateFree(htp_state);
 
+    HTPFreeConfig();
     ConfDeInit();
     ConfRestoreContextBackup();
+    HtpConfigRestoreBackup();
     return result;
 }
 
@@ -1842,6 +1846,8 @@ libhtp:\n\
 
     ConfCreateContextBackup();
     ConfInit();
+    HtpConfigCreateBackup();
+
     ConfYamlLoadString(input, strlen(input));
     HTPConfigure();
 
@@ -1888,8 +1894,10 @@ end:
     if (htp_state != NULL)
         HTPStateFree(htp_state);
 
+    HTPFreeConfig();
     ConfDeInit();
     ConfRestoreContextBackup();
+    HtpConfigRestoreBackup();
     return result;
 }
 
