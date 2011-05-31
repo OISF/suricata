@@ -1004,7 +1004,7 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_
     s->sig_str = sigstr;
 
     int ret = SigParseBasics(s, sigstr, &basics, addrs_direction);
-    if (ret < 0) {
+    if (ret < 0 || basics == NULL) {
         SCLogDebug("SigParseBasics failed");
         SCReturnInt(-1);
     }
@@ -1025,14 +1025,12 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_
     }
 
     /* cleanup */
-    if (basics != NULL) {
-        int i = 0;
-        while (basics[i] != NULL) {
-            SCFree(basics[i]);
-            i++;
-        }
-        SCFree(basics);
+    int i = 0;
+    while (basics[i] != NULL) {
+        SCFree(basics[i]);
+        i++;
     }
+    SCFree(basics);
 
     s->sig_str = NULL;
 
