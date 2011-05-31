@@ -719,8 +719,10 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
         exit(EXIT_FAILURE);
     }
 
-    if ( (pc->type_q = SCMalloc(sizeof(SCPerfCounterTypeQ))) == NULL)
+    if ( (pc->type_q = SCMalloc(sizeof(SCPerfCounterTypeQ))) == NULL) {
+        SCPerfReleaseCounter(pc);
         return 0;
+    }
     memset(pc->type_q, 0, sizeof(SCPerfCounterTypeQ));
 
     pc->type_q->type = type_q;
@@ -748,8 +750,10 @@ static uint16_t SCPerfRegisterQualifiedCounter(char *cname, char *tm_name,
             break;
     }
 
-    if ( (pc->value->cvalue = SCMalloc(pc->value->size)) == NULL)
+    if ( (pc->value->cvalue = SCMalloc(pc->value->size)) == NULL) {
+        SCPerfReleaseCounter(pc);
         return 0;
+    }
     memset(pc->value->cvalue, 0, pc->value->size);
 
     /* display flag which specifies if the counter should be displayed or not */
@@ -1380,14 +1384,19 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
 
     /* get me the bugger who wrote this junk of a code :P */
     if (pctmi == NULL) {
-        if ( (temp = SCMalloc(sizeof(SCPerfClubTMInst))) == NULL)
+        if ( (temp = SCMalloc(sizeof(SCPerfClubTMInst))) == NULL) {
+            SCMutexUnlock(&sc_perf_op_ctx->pctmi_lock);
             return 0;
+        }
         memset(temp, 0, sizeof(SCPerfClubTMInst));
 
         temp->size = 1;
         temp->head = SCMalloc(sizeof(SCPerfContext **));
-        if (temp->head == NULL)
+        if (temp->head == NULL) {
+            SCFree(temp);
+            SCMutexUnlock(&sc_perf_op_ctx->pctmi_lock);
             return 0;
+        }
         temp->head[0] = pctx;
         temp->tm_name = SCStrdup(tm_name);
 
@@ -1411,9 +1420,11 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
     }
 
     pctmi->head = SCRealloc(pctmi->head,
-                          (pctmi->size + 1) * sizeof(SCPerfContext **));
-    if (pctmi->head == NULL)
+                          (pctmi->size + 1) * sizeof(SCPerfContext *));
+    if (pctmi->head == NULL) {
+        SCMutexUnlock(&sc_perf_op_ctx->pctmi_lock);
         return 0;
+    }
     hpctx = pctmi->head;
 
     hpctx[pctmi->size] = pctx;
@@ -1467,8 +1478,10 @@ SCPerfCounterArray *SCPerfGetCounterArrayRange(uint16_t s_id, uint16_t e_id,
         return NULL;
     memset(pca, 0, sizeof(SCPerfCounterArray));
 
-    if ( (pca->head = SCMalloc(sizeof(SCPCAElem) * (e_id - s_id  + 2))) == NULL)
+    if ( (pca->head = SCMalloc(sizeof(SCPCAElem) * (e_id - s_id  + 2))) == NULL) {
+        SCFree(pca);
         return NULL;
+    }
     memset(pca->head, 0, sizeof(SCPCAElem) * (e_id - s_id  + 2));
 
     pc = pctx->head;
