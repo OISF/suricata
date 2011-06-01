@@ -278,9 +278,11 @@ int StreamTcpReassembleInit(char quiet)
     StreamMsgQueuesInit();
 
     /* init the memcap and it's lock */
+    SCSpinInit(&stream_reassembly_memuse_spinlock, PTHREAD_PROCESS_PRIVATE);
+    SCSpinLock(&stream_reassembly_memuse_spinlock);
     stream_reassembly_memuse = 0;
     stream_reassembly_memuse_max = 0;
-    SCSpinInit(&stream_reassembly_memuse_spinlock, PTHREAD_PROCESS_PRIVATE);
+    SCSpinUnlock(&stream_reassembly_memuse_spinlock);
 
 #ifdef DEBUG
     SCMutexInit(&segment_pool_memuse_mutex, NULL);
@@ -345,9 +347,11 @@ void StreamTcpReassembleFree(char quiet)
     StreamMsgQueuesDeinit(quiet);
 
     if (!quiet) {
+        SCSpinLock(&stream_reassembly_memuse_spinlock);
         SCLogInfo("Max memuse of the stream reassembly engine %"PRIu32" (in use"
                 " %"PRIu32")", stream_reassembly_memuse_max,
                 stream_reassembly_memuse);
+        SCSpinUnlock(&stream_reassembly_memuse_spinlock);
     }
 
     SCSpinDestroy(&stream_reassembly_memuse_spinlock);

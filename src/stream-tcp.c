@@ -462,9 +462,11 @@ void StreamTcpInitConfig(char quiet)
     }
 
     /* init the memcap and it's lock */
+    SCSpinInit(&stream_memuse_spinlock, PTHREAD_PROCESS_PRIVATE);
+    SCSpinLock(&stream_memuse_spinlock);
     stream_memuse = 0;
     stream_memuse_max = 0;
-    SCSpinInit(&stream_memuse_spinlock, PTHREAD_PROCESS_PRIVATE);
+    SCSpinUnlock(&stream_memuse_spinlock);
 
     ssn_pool = PoolInit(stream_config.max_sessions,
                         stream_config.prealloc_sessions,
@@ -499,8 +501,10 @@ void StreamTcpFreeConfig(char quiet)
     SCLogDebug("ssn_pool_cnt %"PRIu64"", ssn_pool_cnt);
 
     if (!quiet) {
+        SCSpinLock(&stream_memuse_spinlock);
         SCLogInfo("Max memuse of stream engine %"PRIu32" (in use %"PRIu32")",
             stream_memuse_max, stream_memuse);
+        SCSpinUnlock(&stream_memuse_spinlock);
     }
     SCMutexDestroy(&ssn_pool_mutex);
 
