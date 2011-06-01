@@ -206,8 +206,9 @@ int DetectTagMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Si
 
             } else {
                 SCLogError(SC_ERR_INVALID_VALUE, "Error on direction of a tag keyword (not src nor dst)");
+                SCFree(tde);
             }
-        break;
+            break;
         case DETECT_TAG_TYPE_SESSION:
             if (p->flow != NULL) {
                 /* If it already exists it will be updated */
@@ -217,11 +218,13 @@ int DetectTagMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Si
                     SC_ATOMIC_ADD(num_tags, 1);
             } else {
                 SCLogDebug("No flow to append the session tag");
+                SCFree(tde);
             }
-        break;
+            break;
         default:
             SCLogError(SC_ERR_INVALID_VALUE, "Error on type of a tag keyword (not session nor host)");
-        break;
+            SCFree(tde);
+            break;
     }
 
     return 1;
