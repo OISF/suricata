@@ -701,6 +701,7 @@ static void TagTimeoutRemove(DetectTagHostCtx *tag_ctx, struct timeval *tv)
             while (tmp != NULL) {
 
                 if ((tv->tv_sec - tmp->last_ts.tv_sec) <= TAG_MAX_LAST_TIME_SEEN) {
+                    prev = tmp;
                     tmp = tmp->next;
                     continue;
                 }
@@ -741,6 +742,7 @@ static void TagTimeoutRemove(DetectTagHostCtx *tag_ctx, struct timeval *tv)
             while (tmp != NULL) {
 
                 if ((tv->tv_sec - tmp->last_ts.tv_sec) <= TAG_MAX_LAST_TIME_SEEN) {
+                    prev = tmp;
                     tmp = tmp->next;
                     continue;
                 }
