@@ -315,6 +315,7 @@ static void SetBpfString(int optind, char *argv[]) {
             exit(EXIT_FAILURE);
         }
     }
+    SCFree(bpf_filter);
 }
 static void SetBpfStringFromFile(char *filename) {
     char *bpf_filter = NULL;
