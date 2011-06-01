@@ -174,15 +174,27 @@ DetectICodeData *DetectICodeParse(char *icodestr) {
             goto error;
         }
         /* we have only a comparison ("<", ">") */
-        ByteExtractStringUint8(&icd->code1, 10, 0, args[1]);
+        if (ByteExtractStringUint8(&icd->code1, 10, 0, args[1]) < 0) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp code %s is not "
+                                        "valid", args[1]);
+            goto error;
+        }
         if ((strcmp(args[0], ">")) == 0) icd->mode = DETECT_ICODE_GT;
         else icd->mode = DETECT_ICODE_LT;
     } else { /* no "<", ">" */
         /* we have a range ("<>") */
         if (args[2] != NULL) {
             icd->mode = (uint8_t) DETECT_ICODE_RN;
-            ByteExtractStringUint8(&icd->code1, 10, 0, args[1]);
-            ByteExtractStringUint8(&icd->code2, 10, 0, args[2]);
+            if (ByteExtractStringUint8(&icd->code1, 10, 0, args[1]) < 0) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp code %s is not "
+                                            "valid", args[1]);
+                goto error;
+            }
+            if (ByteExtractStringUint8(&icd->code2, 10, 0, args[2]) < 0) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp code %s is not "
+                                            "valid", args[2]);
+                goto error;
+            }
             /* we check that the first given value in the range is less than
                the second, otherwise we swap them */
             if (icd->code1 > icd->code2) {
@@ -192,7 +204,11 @@ DetectICodeData *DetectICodeParse(char *icodestr) {
             }
         } else { /* we have an equality */
             icd->mode = DETECT_ICODE_EQ;
-            ByteExtractStringUint8(&icd->code1, 10, 0, args[1]);
+            if (ByteExtractStringUint8(&icd->code1, 10, 0, args[1]) < 0) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp code %s is not "
+                                                    "valid", args[1]);
+                goto error;
+            }
         }
     }
 

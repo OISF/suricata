@@ -174,15 +174,27 @@ DetectITypeData *DetectITypeParse(char *itypestr) {
             goto error;
         }
         /* we have only a comparison ("<", ">") */
-        ByteExtractStringUint8(&itd->type1, 10, 0, args[1]);
+        if (ByteExtractStringUint8(&itd->type1, 10, 0, args[1]) < 0) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp type %s is not "
+                                                "valid", args[1]);
+            goto error;
+        }
         if ((strcmp(args[0], ">")) == 0) itd->mode = DETECT_ITYPE_GT;
         else itd->mode = DETECT_ITYPE_LT;
     } else { /* no "<", ">" */
         /* we have a range ("<>") */
         if (args[2] != NULL) {
             itd->mode = (uint8_t) DETECT_ITYPE_RN;
-            ByteExtractStringUint8(&itd->type1, 10, 0, args[1]);
-            ByteExtractStringUint8(&itd->type2, 10, 0, args[2]);
+            if (ByteExtractStringUint8(&itd->type1, 10, 0, args[1]) < 0) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp type %s is not "
+                                                    "valid", args[1]);
+                goto error;
+            }
+            if (ByteExtractStringUint8(&itd->type2, 10, 0, args[2]) < 0) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp type %s is not "
+                                                    "valid", args[2]);
+                goto error;
+            }
             /* we check that the first given value in the range is less than
                the second, otherwise we swap them */
             if (itd->type1 > itd->type2) {
@@ -192,7 +204,11 @@ DetectITypeData *DetectITypeParse(char *itypestr) {
             }
         } else { /* we have an equality */
             itd->mode = DETECT_ITYPE_EQ;
-            ByteExtractStringUint8(&itd->type1, 10, 0, args[1]);
+            if (ByteExtractStringUint8(&itd->type1, 10, 0, args[1]) < 0) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp type %s is not "
+                                                    "valid", args[1]);
+                goto error;
+            }
         }
     }
 

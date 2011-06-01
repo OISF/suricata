@@ -140,9 +140,11 @@ int SCClassConfInitContext(DetectEngineCtx *de_ctx)
  */
 static char *SCClassConfGetConfFilename(void)
 {
-    char *log_filename = (char *)default_file_path;
+    char *log_filename = NULL;
 
-    ConfGet("classification-file", &log_filename);
+    if (ConfGet("classification-file", &log_filename) != 1) {
+        log_filename = (char *)default_file_path;
+    }
 
     return log_filename;
 }

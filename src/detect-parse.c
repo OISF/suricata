@@ -662,7 +662,9 @@ static int SigParseOptions(DetectEngineCtx *de_ctx, Signature *s, char *optstr) 
 
     /* extract the substrings */
     for (i = 1; i <= ret-1; i++) {
-        pcre_get_substring(optstr, ov, MAX_SUBSTRINGS, i, &arr[i-1]);
+        if (pcre_get_substring(optstr, ov, MAX_SUBSTRINGS, i, &arr[i-1]) < 0) {
+            goto error;
+        }
         //printf("SigParseOptions: arr[%" PRId32 "] = \"%s\"\n", i-1, arr[i-1]);
     }
     arr[i-1]=NULL;
