@@ -1325,6 +1325,11 @@ int main(int argc, char **argv)
     FlowInitConfig(FLOW_VERBOSE);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        SCLogError(SC_ERR_INITIALIZATION, "initializing detection engine "
+            "context failed.");
+        exit(EXIT_FAILURE);
+    }
 
     SCClassConfLoadClassficationConfigFile(de_ctx);
     SCRConfLoadReferenceConfigFile(de_ctx);
