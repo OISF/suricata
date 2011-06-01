@@ -55,7 +55,8 @@ typedef struct NFQThreadVars_
     uint16_t nfq_index;
     ThreadVars *tv;
 
-    char buf[70000];
+    char *data; /** Per function and thread data */
+    int datalen; /** Length of per function and thread data */
 
 } NFQThreadVars;
 

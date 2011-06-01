@@ -119,6 +119,7 @@ static SCMutex nfq_init_lock;
 
 TmEcode ReceiveNFQ(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode ReceiveNFQThreadInit(ThreadVars *, void *, void **);
+TmEcode ReceiveNFQThreadDeinit(ThreadVars *, void *);
 void ReceiveNFQThreadExitStats(ThreadVars *, void *);
 
 TmEcode VerdictNFQ(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
@@ -152,7 +153,7 @@ void TmModuleReceiveNFQRegister (void) {
     tmm_modules[TMM_RECEIVENFQ].ThreadInit = ReceiveNFQThreadInit;
     tmm_modules[TMM_RECEIVENFQ].Func = ReceiveNFQ;
     tmm_modules[TMM_RECEIVENFQ].ThreadExitPrintStats = ReceiveNFQThreadExitStats;
-    tmm_modules[TMM_RECEIVENFQ].ThreadDeinit = NULL;
+    tmm_modules[TMM_RECEIVENFQ].ThreadDeinit = ReceiveNFQThreadDeinit;
     tmm_modules[TMM_RECEIVENFQ].RegisterTests = NULL;
 }
 
@@ -475,10 +476,34 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
         exit(EXIT_FAILURE);
     }
 
+#define T_DATA_SIZE 70000
+    ntv->data = SCMalloc(T_DATA_SIZE);
+    if (ntv->data == NULL) {
+        SCMutexUnlock(&nfq_init_lock);
+        return TM_ECODE_FAILED;
+    }
+    ntv->datalen = T_DATA_SIZE;
+#undef T_DATA_SIZE
+
     *data = (void *)ntv;
     SCMutexUnlock(&nfq_init_lock);
     return TM_ECODE_OK;
 }
+
+
+TmEcode ReceiveNFQThreadDeinit(ThreadVars *t, void *data)
+{
+    NFQThreadVars *ntv = (NFQThreadVars *)data;
+
+    if (ntv->data != NULL) {
+        SCFree(ntv->data);
+        ntv->data = NULL;
+    }
+    ntv->datalen = 0;
+
+    return TM_ECODE_OK;
+}
+
 
 TmEcode VerdictNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
@@ -609,7 +634,7 @@ void NFQRecvPkt(NFQQueueVars *t, NFQThreadVars *tv) {
     int rv, ret;
 
     /* XXX what happens on rv == 0? */
-    rv = recv(t->fd, tv->buf, sizeof(tv->buf), 0);
+    rv = recv(t->fd, tv->data, tv->datalen, 0);
 
     if (rv < 0) {
         if (errno == EINTR || errno == EWOULDBLOCK) {
@@ -632,7 +657,7 @@ void NFQRecvPkt(NFQQueueVars *t, NFQThreadVars *tv) {
         //printf("NFQRecvPkt: t %p, rv = %" PRId32 "\n", t, rv);
 
         SCMutexLock(&t->mutex_qh);
-        ret = nfq_handle_packet(t->h, tv->buf, rv);
+        ret = nfq_handle_packet(t->h, tv->data, rv);
         SCMutexUnlock(&t->mutex_qh);
 
         if (ret != 0) {
