@@ -256,6 +256,11 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx)
                                     "packetpool", "packetpool",
                                     "varslot");
 
+    if (tv_outputs == NULL) {
+        printf("ERROR: TmThreadCreatePacketHandler for Outputs failed\n");
+        exit(EXIT_FAILURE);
+    }
+
     TmThreadSetCPU(tv_outputs, OUTPUT_CPU_SET);
 
     SetupOutputs(tv_outputs);

@@ -383,6 +383,11 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx)
                                     "alert-queue", "simple",
                                     "packetpool", "packetpool",
                                     "varslot");
+    if (tv_outputs == NULL) {
+        printf("ERROR: TmThreadCreatePacketHandler for Outputs failed\n");
+        exit(EXIT_FAILURE);
+    }
+
     SetupOutputs(tv_outputs);
 
     TmThreadSetCPU(tv_outputs, OUTPUT_CPU_SET);
