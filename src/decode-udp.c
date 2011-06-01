@@ -54,7 +54,6 @@ static int DecodeUDPPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
     SET_UDP_SRC_PORT(p,&p->sp);
     SET_UDP_DST_PORT(p,&p->dp);
 
-    p->udpvars.hlen = UDP_HEADER_LEN;
     p->payload = pkt + UDP_HEADER_LEN;
     p->payload_len = len - UDP_HEADER_LEN;
 

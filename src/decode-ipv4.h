@@ -104,97 +104,45 @@ typedef struct IPV4Hdr_
 #define IPV4_SET_RAW_IPLEN(ip4h, value)   ((ip4h)->ip_len = value)
 #define IPV4_SET_RAW_IPPROTO(ip4h, value) ((ip4h)->ip_proto = value)
 
-/* this is enough since noone will access the cache without first
- * checking the flags */
-#define IPV4_CACHE_INIT(p)                (p)->ip4c.flags = 0
-
 /* ONLY call these functions after making sure that:
  * 1. p->ip4h is set
  * 2. p->ip4h is valid (len is correct)
- * 3. cache is initialized
  */
 #define IPV4_GET_VER(p) \
-    ((p)->ip4c.flags & IPV4_CACHE_VER ? \
-    (p)->ip4c.ver : ((p)->ip4c.flags |= IPV4_CACHE_VER, (p)->ip4c.ver = IPV4_GET_RAW_VER((p)->ip4h)))
+    IPV4_GET_RAW_VER((p)->ip4h)
 #define IPV4_GET_HLEN(p) \
-    ((p)->ip4c.flags & IPV4_CACHE_HLEN ? \
-    (p)->ip4c.hl : ((p)->ip4c.flags |= IPV4_CACHE_HLEN, (p)->ip4c.hl = IPV4_GET_RAW_HLEN((p)->ip4h) << 2))
+    (IPV4_GET_RAW_HLEN((p)->ip4h) << 2)
 #define IPV4_GET_IPTOS(p) \
-     IPV4_GET_RAW_IPTOS(p)
+    IPV4_GET_RAW_IPTOS((p)->ip4h)
 #define IPV4_GET_IPLEN(p) \
-    ((p)->ip4c.flags & IPV4_CACHE_IPLEN ? \
-    (p)->ip4c.ip_len : ((p)->ip4c.flags |= IPV4_CACHE_IPLEN, (p)->ip4c.ip_len = ntohs(IPV4_GET_RAW_IPLEN((p)->ip4h))))
+    (ntohs(IPV4_GET_RAW_IPLEN((p)->ip4h)))
 #define IPV4_GET_IPID(p) \
-    ((p)->ip4c.flags & IPV4_CACHE_IPID ? \
-    (p)->ip4c.ip_id : ((p)->ip4c.flags |= IPV4_CACHE_IPID, (p)->ip4c.ip_id = ntohs(IPV4_GET_RAW_IPID((p)->ip4h))))
+    (ntohs(IPV4_GET_RAW_IPID((p)->ip4h)))
 /* _IPV4_GET_IPOFFSET: get the content of the offset header field in host order */
 #define _IPV4_GET_IPOFFSET(p) \
-    ((p)->ip4c.flags & IPV4_CACHE__IPOFF ? \
-    (p)->ip4c._ip_off : ((p)->ip4c.flags |= IPV4_CACHE__IPOFF, (p)->ip4c._ip_off = ntohs(IPV4_GET_RAW_IPOFFSET((p)->ip4h))))
+    (ntohs(IPV4_GET_RAW_IPOFFSET((p)->ip4h)))
 /* IPV4_GET_IPOFFSET: get the final offset */
 #define IPV4_GET_IPOFFSET(p) \
-    ((p)->ip4c.flags & IPV4_CACHE_IPOFF ? \
-    (p)->ip4c.ip_off : ((p)->ip4c.flags |= IPV4_CACHE_IPOFF, (p)->ip4c.ip_off = _IPV4_GET_IPOFFSET(p) & 0x1fff))
+    (_IPV4_GET_IPOFFSET(p) & 0x1fff)
 /* IPV4_GET_RF: get the RF flag. Use _IPV4_GET_IPOFFSET to save a ntohs call. */
 #define IPV4_GET_RF(p) \
-    ((p)->ip4c.flags & IPV4_CACHE_RF ? \
-    (p)->ip4c.rf : ((p)->ip4c.flags |= IPV4_CACHE_RF, (p)->ip4c.rf = (uint8_t)((_IPV4_GET_IPOFFSET((p)) & 0x8000) >> 15)))
+    (uint8_t)((_IPV4_GET_IPOFFSET((p)) & 0x8000) >> 15)
 /* IPV4_GET_DF: get the DF flag. Use _IPV4_GET_IPOFFSET to save a ntohs call. */
 #define IPV4_GET_DF(p) \
-    ((p)->ip4c.flags & IPV4_CACHE_DF ? \
-    (p)->ip4c.df : ((p)->ip4c.flags |= IPV4_CACHE_DF, (p)->ip4c.df = (uint8_t)((_IPV4_GET_IPOFFSET((p)) & 0x4000) >> 14)))
+    (uint8_t)((_IPV4_GET_IPOFFSET((p)) & 0x4000) >> 14)
 /* IPV4_GET_MF: get the MF flag. Use _IPV4_GET_IPOFFSET to save a ntohs call. */
 #define IPV4_GET_MF(p) \
-    ((p)->ip4c.flags & IPV4_CACHE_MF ? \
-    (p)->ip4c.mf : ((p)->ip4c.flags |= IPV4_CACHE_MF, (p)->ip4c.mf = (uint8_t)((_IPV4_GET_IPOFFSET((p)) & 0x2000) >> 13)))
+    (uint8_t)((_IPV4_GET_IPOFFSET((p)) & 0x2000) >> 13)
 #define IPV4_GET_IPTTL(p) \
-     IPV4_GET_RAW_IPTTL(p->ip4h)
+    IPV4_GET_RAW_IPTTL(p->ip4h)
 #define IPV4_GET_IPPROTO(p) \
-    ((p)->ip4c.flags & IPV4_CACHE_IPPROTO ? \
-    (p)->ip4c.ip_proto : ((p)->ip4c.flags |= IPV4_CACHE_IPPROTO, (p)->ip4c.ip_proto = IPV4_GET_RAW_IPPROTO((p)->ip4h)))
-
-#define IPV4_CACHE_VER                    0x0001 /* 1 */
-#define IPV4_CACHE_HLEN                   0x0002 /* 2 */
-#define IPV4_CACHE_IPTOS                  0x0004 /* 4 */
-#define IPV4_CACHE_IPLEN                  0x0008 /* 8 */
-#define IPV4_CACHE_IPID                   0x0010 /* 16 */
-#define IPV4_CACHE_IPOFF                  0x0020 /* 32 */
-#define IPV4_CACHE__IPOFF                 0x0040 /* 64 */
-#define IPV4_CACHE_RF                     0x0080 /* 128*/
-#define IPV4_CACHE_DF                     0x0100 /* 256 */
-#define IPV4_CACHE_MF                     0x0200 /* 512 */
-#define IPV4_CACHE_IPTTL                  0x0400 /* 1024*/
-#define IPV4_CACHE_IPPROTO                0x0800 /* 2048 */
-
-/**
- * IPv4 decoder cache
- *
- * Used for storing parsed values.
- */
-typedef struct IPV4Cache_
-{
-    uint16_t flags;
-    uint8_t ver;
-    uint8_t hl;
-    uint8_t ip_tos;        /* type of service */
-    uint16_t ip_len;       /* datagram length */
-    uint16_t ip_id;        /* identification  */
-    uint16_t ip_off;       /* fragment offset */
-    uint16_t _ip_off;      /* fragment offset - full field value, host order*/
-    uint8_t rf;
-    uint8_t df;
-    uint8_t mf;
-    uint8_t ip_ttl;        /* time to live field */
-    uint8_t ip_proto;      /* datagram protocol */
-    uint16_t ip_csum;      /* checksum */
-    int32_t comp_csum;     /* checksum computed over the ipv4 packet */
-    uint32_t ip_src_u32;   /* source IP */
-    uint32_t ip_dst_u32;   /* dest IP */
-
-} IPV4Cache;
+    IPV4_GET_RAW_IPPROTO((p)->ip4h)
 
 #define CLEAR_IPV4_PACKET(p) do { \
     (p)->ip4h = NULL; \
+    (p)->ip4vars.comp_csum = 0; \
+    (p)->ip4vars.ip_src_u32 = 0; \
+    (p)->ip4vars.ip_dst_u32 = 0; \
     (p)->ip4vars.ip_opt_len = 0; \
     (p)->ip4vars.ip_opt_cnt = 0; \
     (p)->ip4vars.o_rr = NULL; \
@@ -206,28 +154,15 @@ typedef struct IPV4Cache_
     (p)->ip4vars.o_sid = NULL; \
     (p)->ip4vars.o_ssrr = NULL; \
     (p)->ip4vars.o_rtralt = NULL; \
-    (p)->ip4c.flags = 0; \
-    (p)->ip4c.ver = 0; \
-    (p)->ip4c.hl = 0; \
-    (p)->ip4c.ip_tos = 0; \
-    (p)->ip4c.ip_len = 0; \
-    (p)->ip4c.ip_id = 0; \
-    (p)->ip4c.ip_off = 0; \
-    (p)->ip4c._ip_off = 0; \
-    (p)->ip4c.rf = 0; \
-    (p)->ip4c.df = 0; \
-    (p)->ip4c.mf = 0; \
-    (p)->ip4c.ip_ttl = 0; \
-    (p)->ip4c.ip_proto = 0; \
-    (p)->ip4c.ip_csum = 0; \
-    (p)->ip4c.comp_csum = 0; \
-    (p)->ip4c.ip_src_u32 = 0; \
-    (p)->ip4c.ip_dst_u32 = 0; \
 } while (0)
 
 /* helper structure with parsed ipv4 info */
 typedef struct IPV4Vars_
 {
+    int32_t comp_csum;     /* checksum computed over the ipv4 packet */
+    uint32_t ip_src_u32;   /* source IP */
+    uint32_t ip_dst_u32;   /* dest IP */
+
     uint8_t ip_opt_len;
     IPV4Opt ip_opts[IPV4_OPTMAX];
     uint8_t ip_opt_cnt;

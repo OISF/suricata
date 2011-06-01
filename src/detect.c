@@ -5132,8 +5132,8 @@ int SigTest24IPV4Keyword(void)
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(&p1, 0, sizeof(Packet));
     memset(&p2, 0, sizeof(Packet));
-    p1.ip4c.comp_csum = -1;
-    p2.ip4c.comp_csum = -1;
+    p1.ip4vars.comp_csum = -1;
+    p2.ip4vars.comp_csum = -1;
 
     p1.ip4h = (IPV4Hdr *)valid_raw_ipv4;
 
@@ -5227,8 +5227,8 @@ int SigTest25NegativeIPV4Keyword(void)
     memset(&th_v, 0, sizeof(ThreadVars));
     memset(&p1, 0, sizeof(Packet));
     memset(&p2, 0, sizeof(Packet));
-    p1.ip4c.comp_csum = -1;
-    p2.ip4c.comp_csum = -1;
+    p1.ip4vars.comp_csum = -1;
+    p2.ip4vars.comp_csum = -1;
 
     p1.ip4h = (IPV4Hdr *)valid_raw_ipv4;
 
@@ -5330,7 +5330,7 @@ int SigTest26TCPV4Keyword(void)
     memset(&p1, 0, sizeof(Packet));
     memset(&p2, 0, sizeof(Packet));
 
-    p1.tcpc.comp_csum = -1;
+    p1.tcpvars.comp_csum = -1;
     p1.ip4h = (IPV4Hdr *)raw_ipv4;
     p1.tcph = (TCPHdr *)valid_raw_tcp;
     p1.tcpvars.hlen = 0;
@@ -5340,7 +5340,7 @@ int SigTest26TCPV4Keyword(void)
     p1.payload_len = buflen;
     p1.proto = IPPROTO_TCP;
 
-    p2.tcpc.comp_csum = -1;
+    p2.tcpvars.comp_csum = -1;
     p2.ip4h = (IPV4Hdr *)raw_ipv4;
     p2.tcph = (TCPHdr *)invalid_raw_tcp;
     p2.tcpvars.hlen = 0;
@@ -5434,7 +5434,7 @@ int SigTest27NegativeTCPV4Keyword(void)
     memset(&p1, 0, sizeof(Packet));
     memset(&p2, 0, sizeof(Packet));
 
-    p1.tcpc.comp_csum = -1;
+    p1.tcpvars.comp_csum = -1;
     p1.ip4h = (IPV4Hdr *)raw_ipv4;
     p1.tcph = (TCPHdr *)valid_raw_tcp;
     //p1.tcpvars.hlen = TCP_GET_HLEN((&p));
@@ -5445,7 +5445,7 @@ int SigTest27NegativeTCPV4Keyword(void)
     p1.payload_len = buflen;
     p1.proto = IPPROTO_TCP;
 
-    p2.tcpc.comp_csum = -1;
+    p2.tcpvars.comp_csum = -1;
     p2.ip4h = (IPV4Hdr *)raw_ipv4;
     p2.tcph = (TCPHdr *)invalid_raw_tcp;
     //p2.tcpvars.hlen = TCP_GET_HLEN((&p));
@@ -5548,7 +5548,7 @@ int SigTest28TCPV6Keyword(void)
     memset(&p1, 0, sizeof(Packet));
     memset(&p2, 0, sizeof(Packet));
 
-    p1.tcpc.comp_csum = -1;
+    p1.tcpvars.comp_csum = -1;
     p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
     p1.tcph = (TCPHdr *) (valid_raw_ipv6 + 54);
     p1.src.family = AF_INET;
@@ -5559,7 +5559,7 @@ int SigTest28TCPV6Keyword(void)
     p1.tcpvars.hlen = 0;
     p1.proto = IPPROTO_TCP;
 
-    p2.tcpc.comp_csum = -1;
+    p2.tcpvars.comp_csum = -1;
     p2.ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
     p2.tcph = (TCPHdr *) (invalid_raw_ipv6 + 54);
     p2.src.family = AF_INET;
@@ -5661,7 +5661,7 @@ int SigTest29NegativeTCPV6Keyword(void)
     memset(&p1, 0, sizeof(Packet));
     memset(&p2, 0, sizeof(Packet));
 
-    p1.tcpc.comp_csum = -1;
+    p1.tcpvars.comp_csum = -1;
     p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
     p1.tcph = (TCPHdr *) (valid_raw_ipv6 + 54);
     p1.src.family = AF_INET;
@@ -5672,7 +5672,7 @@ int SigTest29NegativeTCPV6Keyword(void)
     p1.tcpvars.hlen = 0;
     p1.proto = IPPROTO_TCP;
 
-    p2.tcpc.comp_csum = -1;
+    p2.tcpvars.comp_csum = -1;
     p2.ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
     p2.tcph = (TCPHdr *) (invalid_raw_ipv6 + 54);
     p2.src.family = AF_INET;
@@ -5780,24 +5780,22 @@ int SigTest30UDPV4Keyword(void)
     memset(&p1, 0, sizeof(Packet));
     memset(&p2, 0, sizeof(Packet));
 
-    p1.udpc.comp_csum = -1;
+    p1.udpvars.comp_csum = -1;
     p1.ip4h = (IPV4Hdr *)raw_ipv4;
     p1.udph = (UDPHdr *)valid_raw_udp;
-    p1.udpvars.hlen = UDP_HEADER_LEN;
     p1.src.family = AF_INET;
     p1.dst.family = AF_INET;
     p1.payload = buf;
-    p1.payload_len = sizeof(valid_raw_udp) - p1.udpvars.hlen;
+    p1.payload_len = sizeof(valid_raw_udp) - UDP_HEADER_LEN;
     p1.proto = IPPROTO_UDP;
 
-    p2.udpc.comp_csum = -1;
+    p2.udpvars.comp_csum = -1;
     p2.ip4h = (IPV4Hdr *)raw_ipv4;
     p2.udph = (UDPHdr *)invalid_raw_udp;
-    p2.udpvars.hlen = UDP_HEADER_LEN;
     p2.src.family = AF_INET;
     p2.dst.family = AF_INET;
     p2.payload = buf;
-    p2.payload_len = sizeof(invalid_raw_udp) - p2.udpvars.hlen;
+    p2.payload_len = sizeof(invalid_raw_udp) - UDP_HEADER_LEN;
     p2.proto = IPPROTO_UDP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -5897,24 +5895,22 @@ int SigTest31NegativeUDPV4Keyword(void)
     memset(&p1, 0, sizeof(Packet));
     memset(&p2, 0, sizeof(Packet));
 
-    p1.udpc.comp_csum = -1;
+    p1.udpvars.comp_csum = -1;
     p1.ip4h = (IPV4Hdr *)raw_ipv4;
     p1.udph = (UDPHdr *)valid_raw_udp;
-    p1.udpvars.hlen = UDP_HEADER_LEN;
     p1.src.family = AF_INET;
     p1.dst.family = AF_INET;
     p1.payload = buf;
-    p1.payload_len = sizeof(valid_raw_udp) - p1.udpvars.hlen;
+    p1.payload_len = sizeof(valid_raw_udp) - UDP_HEADER_LEN;
     p1.proto = IPPROTO_UDP;
 
-    p2.udpc.comp_csum = -1;
+    p2.udpvars.comp_csum = -1;
     p2.ip4h = (IPV4Hdr *)raw_ipv4;
     p2.udph = (UDPHdr *)invalid_raw_udp;
-    p2.udpvars.hlen = UDP_HEADER_LEN;
     p2.src.family = AF_INET;
     p2.dst.family = AF_INET;
     p2.payload = buf;
-    p2.payload_len = sizeof(invalid_raw_udp) - p2.udpvars.hlen;
+    p2.payload_len = sizeof(invalid_raw_udp) - UDP_HEADER_LEN;
     p2.proto = IPPROTO_UDP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -6008,24 +6004,22 @@ int SigTest32UDPV6Keyword(void)
     memset(&p1, 0, sizeof(Packet));
     memset(&p2, 0, sizeof(Packet));
 
-    p1.udpc.comp_csum = -1;
+    p1.udpvars.comp_csum = -1;
     p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
     p1.udph = (UDPHdr *) (valid_raw_ipv6 + 54);
     p1.src.family = AF_INET;
     p1.dst.family = AF_INET;
-    p1.udpvars.hlen = UDP_HEADER_LEN;
     p1.payload = buf;
-    p1.payload_len = IPV6_GET_PLEN((&p1)) - p1.udpvars.hlen;
+    p1.payload_len = IPV6_GET_PLEN((&p1)) - UDP_HEADER_LEN;
     p1.proto = IPPROTO_UDP;
 
-    p2.udpc.comp_csum = -1;
+    p2.udpvars.comp_csum = -1;
     p2.ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
     p2.udph = (UDPHdr *) (invalid_raw_ipv6 + 54);
     p2.src.family = AF_INET;
     p2.dst.family = AF_INET;
-    p2.udpvars.hlen = UDP_HEADER_LEN;
     p2.payload = buf;
-    p2.payload_len = IPV6_GET_PLEN((&p2)) - p2.udpvars.hlen;
+    p2.payload_len = IPV6_GET_PLEN((&p2)) - UDP_HEADER_LEN;
     p2.proto = IPPROTO_UDP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -6117,24 +6111,22 @@ int SigTest33NegativeUDPV6Keyword(void)
     memset(&p1, 0, sizeof(Packet));
     memset(&p2, 0, sizeof(Packet));
 
-    p1.udpc.comp_csum = -1;
+    p1.udpvars.comp_csum = -1;
     p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
     p1.udph = (UDPHdr *) (valid_raw_ipv6 + 54);
     p1.src.family = AF_INET;
     p1.dst.family = AF_INET;
-    p1.udpvars.hlen = UDP_HEADER_LEN;
     p1.payload = buf;
-    p1.payload_len = IPV6_GET_PLEN((&p1)) - p1.udpvars.hlen;
+    p1.payload_len = IPV6_GET_PLEN((&p1)) - UDP_HEADER_LEN;
     p1.proto = IPPROTO_UDP;
 
-    p2.udpc.comp_csum = -1;
+    p2.udpvars.comp_csum = -1;
     p2.ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
     p2.udph = (UDPHdr *) (invalid_raw_ipv6 + 54);
     p2.src.family = AF_INET;
     p2.dst.family = AF_INET;
-    p2.udpvars.hlen = UDP_HEADER_LEN;
     p2.payload = buf;
-    p2.payload_len = IPV6_GET_PLEN((&p2)) - p2.udpvars.hlen;
+    p2.payload_len = IPV6_GET_PLEN((&p2)) - UDP_HEADER_LEN;
     p2.proto = IPPROTO_UDP;
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -6229,7 +6221,7 @@ int SigTest34ICMPV4Keyword(void)
     memset(&p1, 0, sizeof(Packet));
     memset(&p2, 0, sizeof(Packet));
 
-    p1.icmpv4c.comp_csum = -1;
+    p1.icmpv4vars.comp_csum = -1;
     p1.ip4h = (IPV4Hdr *)(valid_raw_ipv4);
     p1.ip4h->ip_verhl = 69;
     p1.icmpv4h = (ICMPV4Hdr *) (valid_raw_ipv4 + IPV4_GET_RAW_HLEN(p1.ip4h) * 4);
@@ -6239,7 +6231,7 @@ int SigTest34ICMPV4Keyword(void)
     p1.payload_len = buflen;
     p1.proto = IPPROTO_ICMP;
 
-    p2.icmpv4c.comp_csum = -1;
+    p2.icmpv4vars.comp_csum = -1;
     p2.ip4h = (IPV4Hdr *)(invalid_raw_ipv4);
     p2.ip4h->ip_verhl = 69;
     p2.icmpv4h = (ICMPV4Hdr *) (invalid_raw_ipv4 + IPV4_GET_RAW_HLEN(p2.ip4h) * 4);
@@ -6339,7 +6331,7 @@ int SigTest35NegativeICMPV4Keyword(void)
     memset(&p1, 0, sizeof(Packet));
     memset(&p2, 0, sizeof(Packet));
 
-    p1.icmpv4c.comp_csum = -1;
+    p1.icmpv4vars.comp_csum = -1;
     p1.ip4h = (IPV4Hdr *)(valid_raw_ipv4);
     p1.ip4h->ip_verhl = 69;
     p1.icmpv4h = (ICMPV4Hdr *) (valid_raw_ipv4 + IPV4_GET_RAW_HLEN(p1.ip4h) * 4);
@@ -6349,7 +6341,7 @@ int SigTest35NegativeICMPV4Keyword(void)
     p1.payload_len = buflen;
     p1.proto = IPPROTO_ICMP;
 
-    p2.icmpv4c.comp_csum = -1;
+    p2.icmpv4vars.comp_csum = -1;
     p2.ip4h = (IPV4Hdr *)(invalid_raw_ipv4);
     p2.ip4h->ip_verhl = 69;
     p2.icmpv4h = (ICMPV4Hdr *) (invalid_raw_ipv4 + IPV4_GET_RAW_HLEN(p2.ip4h) * 4);
@@ -6462,20 +6454,18 @@ int SigTest36ICMPV6Keyword(void)
     memset(&p1, 0, sizeof(Packet));
     memset(&p2, 0, sizeof(Packet));
 
-    p1.icmpv6c.comp_csum = -1;
+    p1.icmpv6vars.comp_csum = -1;
     p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
     p1.icmpv6h = (ICMPV6Hdr *) (valid_raw_ipv6 + 54);
-    p1.ip6c.plen = IPV6_GET_PLEN(&(p1));
     p1.src.family = AF_INET;
     p1.dst.family = AF_INET;
     p1.payload = buf;
     p1.payload_len = buflen;
     p1.proto = IPPROTO_ICMPV6;
 
-    p2.icmpv6c.comp_csum = -1;
+    p2.icmpv6vars.comp_csum = -1;
     p2.ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
     p2.icmpv6h = (ICMPV6Hdr *) (invalid_raw_ipv6 + 54);
-    p2.ip6c.plen = IPV6_GET_PLEN(&(p2));
     p2.src.family = AF_INET;
     p2.dst.family = AF_INET;
     p2.payload = buf;
@@ -6584,20 +6574,18 @@ int SigTest37NegativeICMPV6Keyword(void)
     memset(&p1, 0, sizeof(Packet));
     memset(&p2, 0, sizeof(Packet));
 
-    p1.icmpv6c.comp_csum = -1;
+    p1.icmpv6vars.comp_csum = -1;
     p1.ip6h = (IPV6Hdr *)(valid_raw_ipv6 + 14);
     p1.icmpv6h = (ICMPV6Hdr *) (valid_raw_ipv6 + 54);
-    p1.ip6c.plen = IPV6_GET_PLEN(&(p1));
     p1.src.family = AF_INET;
     p1.dst.family = AF_INET;
     p1.payload = buf;
     p1.payload_len = buflen;
     p1.proto = IPPROTO_ICMPV6;
 
-    p2.icmpv6c.comp_csum = -1;
+    p2.icmpv6vars.comp_csum = -1;
     p2.ip6h = (IPV6Hdr *)(invalid_raw_ipv6 + 14);
     p2.icmpv6h = (ICMPV6Hdr *) (invalid_raw_ipv6 + 54);
-    p2.ip6c.plen = IPV6_GET_PLEN(&(p2));
     p2.src.family = AF_INET;
     p2.dst.family = AF_INET;
     p2.payload = buf;
@@ -6705,7 +6693,7 @@ int SigTest38Real(int mpm_type)
     memcpy(p1.pkt + ethlen + ipv4len + tcplen, buf, buflen);
     p1.pktlen = ethlen + ipv4len + tcplen + buflen;
 
-    p1.tcpc.comp_csum = -1;
+    p1.tcpvars.comp_csum = -1;
     p1.ethh = (EthernetHdr *)raw_eth;
     p1.ip4h = (IPV4Hdr *)raw_ipv4;
     p1.tcph = (TCPHdr *)raw_tcp;
@@ -6832,7 +6820,7 @@ int SigTest39Real(int mpm_type)
     memcpy(p1.pkt + ethlen + ipv4len + tcplen, buf, buflen);
     p1.pktlen = ethlen + ipv4len + tcplen + buflen;
 
-    p1.tcpc.comp_csum = -1;
+    p1.tcpvars.comp_csum = -1;
     p1.ethh = (EthernetHdr *)raw_eth;
     p1.ip4h = (IPV4Hdr *)raw_ipv4;
     p1.tcph = (TCPHdr *)raw_tcp;

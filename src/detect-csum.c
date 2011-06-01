@@ -223,13 +223,13 @@ int DetectIPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (p->ip4h == NULL)
         return 0;
 
-    if (p->ip4c.comp_csum == -1)
-        p->ip4c.comp_csum = IPV4CalculateChecksum((uint16_t *)p->ip4h,
+    if (p->ip4vars.comp_csum == -1)
+        p->ip4vars.comp_csum = IPV4CalculateChecksum((uint16_t *)p->ip4h,
                                                   IPV4_GET_RAW_HLEN(p->ip4h));
 
-    if (p->ip4c.comp_csum == p->ip4h->ip_csum && cd->valid == 1)
+    if (p->ip4vars.comp_csum == p->ip4h->ip_csum && cd->valid == 1)
         return 1;
-    else if (p->ip4c.comp_csum != p->ip4h->ip_csum && cd->valid == 0)
+    else if (p->ip4vars.comp_csum != p->ip4h->ip_csum && cd->valid == 0)
         return 1;
     else
         return 0;
@@ -313,15 +313,15 @@ int DetectTCPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (p->ip4h == NULL || p->proto != IPPROTO_TCP)
         return 0;
 
-    if (p->tcpc.comp_csum == -1)
-        p->tcpc.comp_csum = TCPCalculateChecksum((uint16_t *)&(p->ip4h->ip_src),
+    if (p->tcpvars.comp_csum == -1)
+        p->tcpvars.comp_csum = TCPCalculateChecksum((uint16_t *)&(p->ip4h->ip_src),
                                                  (uint16_t *)p->tcph,
                                                  (p->payload_len +
                                                   p->tcpvars.hlen) );
 
-    if (p->tcpc.comp_csum == p->tcph->th_sum && cd->valid == 1)
+    if (p->tcpvars.comp_csum == p->tcph->th_sum && cd->valid == 1)
         return 1;
-    else if (p->tcpc.comp_csum != p->tcph->th_sum && cd->valid == 0)
+    else if (p->tcpvars.comp_csum != p->tcph->th_sum && cd->valid == 0)
         return 1;
     else
         return 0;
@@ -405,15 +405,15 @@ int DetectTCPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (p->ip6h == NULL || p->proto != IPPROTO_TCP)
         return 0;
 
-    if (p->tcpc.comp_csum == -1)
-        p->tcpc.comp_csum = TCPV6CalculateChecksum((uint16_t *)&(p->ip6h->ip6_src),
+    if (p->tcpvars.comp_csum == -1)
+        p->tcpvars.comp_csum = TCPV6CalculateChecksum((uint16_t *)&(p->ip6h->ip6_src),
                                                    (uint16_t *)p->tcph,
                                                    (p->payload_len +
                                                     p->tcpvars.hlen) );
 
-    if (p->tcpc.comp_csum == p->tcph->th_sum && cd->valid == 1)
+    if (p->tcpvars.comp_csum == p->tcph->th_sum && cd->valid == 1)
         return 1;
-    else if (p->tcpc.comp_csum != p->tcph->th_sum && cd->valid == 0)
+    else if (p->tcpvars.comp_csum != p->tcph->th_sum && cd->valid == 0)
         return 1;
     else
         return 0;
@@ -497,15 +497,15 @@ int DetectUDPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (p->ip4h == NULL || p->proto != IPPROTO_UDP)
         return 0;
 
-    if (p->udpc.comp_csum == -1)
-        p->udpc.comp_csum = UDPV4CalculateChecksum((uint16_t *)&(p->ip4h->ip_src),
+    if (p->udpvars.comp_csum == -1)
+        p->udpvars.comp_csum = UDPV4CalculateChecksum((uint16_t *)&(p->ip4h->ip_src),
                                                    (uint16_t *)p->udph,
                                                    (p->payload_len +
-                                                    p->udpvars.hlen) );
+                                                    UDP_HEADER_LEN) );
 
-    if (p->udpc.comp_csum == p->udph->uh_sum && cd->valid == 1)
+    if (p->udpvars.comp_csum == p->udph->uh_sum && cd->valid == 1)
         return 1;
-    else if (p->udpc.comp_csum != p->udph->uh_sum && cd->valid == 0)
+    else if (p->udpvars.comp_csum != p->udph->uh_sum && cd->valid == 0)
         return 1;
     else
         return 0;
@@ -589,15 +589,15 @@ int DetectUDPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (p->ip6h == NULL || p->proto != IPPROTO_UDP)
         return 0;
 
-    if (p->udpc.comp_csum == -1)
-        p->udpc.comp_csum = UDPV6CalculateChecksum((uint16_t *)&(p->ip6h->ip6_src),
+    if (p->udpvars.comp_csum == -1)
+        p->udpvars.comp_csum = UDPV6CalculateChecksum((uint16_t *)&(p->ip6h->ip6_src),
                                                    (uint16_t *)p->udph,
                                                    (p->payload_len +
-                                                    p->udpvars.hlen) );
+                                                    UDP_HEADER_LEN) );
 
-    if (p->udpc.comp_csum == p->udph->uh_sum && cd->valid == 1)
+    if (p->udpvars.comp_csum == p->udph->uh_sum && cd->valid == 1)
         return 1;
-    else if (p->udpc.comp_csum != p->udph->uh_sum && cd->valid == 0)
+    else if (p->udpvars.comp_csum != p->udph->uh_sum && cd->valid == 0)
         return 1;
     else
         return 0;
@@ -681,14 +681,14 @@ int DetectICMPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (p->ip4h == NULL || p->proto != IPPROTO_ICMP)
         return 0;
 
-    if (p->icmpv4c.comp_csum == -1)
-        p->icmpv4c.comp_csum = ICMPV4CalculateChecksum((uint16_t *)p->icmpv4h,
+    if (p->icmpv4vars.comp_csum == -1)
+        p->icmpv4vars.comp_csum = ICMPV4CalculateChecksum((uint16_t *)p->icmpv4h,
                                                        ntohs(IPV4_GET_RAW_IPLEN(p->ip4h)) -
                                                        IPV4_GET_RAW_HLEN(p->ip4h) * 4);
 
-    if (p->icmpv4c.comp_csum == p->icmpv4h->checksum && cd->valid == 1)
+    if (p->icmpv4vars.comp_csum == p->icmpv4h->checksum && cd->valid == 1)
         return 1;
-    else if (p->icmpv4c.comp_csum != p->icmpv4h->checksum && cd->valid == 0)
+    else if (p->icmpv4vars.comp_csum != p->icmpv4h->checksum && cd->valid == 0)
         return 1;
     else
         return 0;
@@ -772,14 +772,14 @@ int DetectICMPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (p->ip6h == NULL || p->proto != IPPROTO_ICMPV6)
         return 0;
 
-    if (p->icmpv6c.comp_csum == -1)
-        p->icmpv6c.comp_csum = ICMPV6CalculateChecksum((uint16_t *)&(p->ip6h->ip6_src),
+    if (p->icmpv6vars.comp_csum == -1)
+        p->icmpv6vars.comp_csum = ICMPV6CalculateChecksum((uint16_t *)&(p->ip6h->ip6_src),
                                                        (uint16_t *)p->icmpv6h,
                                                        IPV6_GET_PLEN(p));
 
-    if (p->icmpv6c.comp_csum == p->icmpv6h->csum && cd->valid == 1)
+    if (p->icmpv6vars.comp_csum == p->icmpv6h->csum && cd->valid == 1)
         return 1;
-    else if (p->icmpv6c.comp_csum != p->icmpv6h->csum && cd->valid == 0)
+    else if (p->icmpv6vars.comp_csum != p->icmpv6h->csum && cd->valid == 0)
         return 1;
     else
         return 0;

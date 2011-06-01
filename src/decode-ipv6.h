@@ -61,53 +61,25 @@ typedef struct IPV6Hdr_
 
 #define IPV6_SET_L4PROTO(p,proto)         (p)->ip6vars.l4proto = proto
 
-/* this is enough since noone will access the cache without first
- * checking the flags */
-#define IPV6_CACHE_INIT(p)                (p)->ip6c.flags = 0
-
 /* ONLY call these functions after making sure that:
  * 1. p->ip6h is set
  * 2. p->ip6h is valid (len is correct)
- * 3. cache is initialized
  */
 #define IPV6_GET_VER(p) \
-    ((p)->ip6c.flags & IPV6_CACHE_VER ? \
-    (p)->ip6c.ver : ((p)->ip6c.flags |= IPV6_CACHE_VER, (p)->ip6c.ver = IPV6_GET_RAW_VER((p)->ip6h)))
+    IPV6_GET_RAW_VER((p)->ip6h)
 #define IPV6_GET_CLASS(p) \
-    ((p)->ip6c.flags & IPV6_CACHE_CLASS ? \
-    (p)->ip6c.cl : ((p)->ip6c.flags |= IPV6_CACHE_CLASS, (p)->ip6c.cl = IPV6_GET_RAW_CLASS((p)->ip6h)))
+    IPV6_GET_RAW_CLASS((p)->ip6h)
 #define IPV6_GET_FLOW(p) \
-    ((p)->ip6c.flags & IPV6_CACHE_FLOW ? \
-    (p)->ip6c.flow : ((p)->ip6c.flags |= IPV6_CACHE_FLOW, (p)->ip6c.flow = IPV6_GET_RAW_FLOW((p)->ip6h)))
+    IPV6_GET_RAW_FLOW((p)->ip6h)
 #define IPV6_GET_NH(p) \
     (IPV6_GET_RAW_NH((p)->ip6h))
 #define IPV6_GET_PLEN(p) \
-    ((p)->ip6c.flags & IPV6_CACHE_PLEN ? \
-    (p)->ip6c.plen : ((p)->ip6c.flags |= IPV6_CACHE_PLEN, (p)->ip6c.plen = IPV6_GET_RAW_PLEN((p)->ip6h)))
+    IPV6_GET_RAW_PLEN((p)->ip6h)
 #define IPV6_GET_HLIM(p) \
     (IPV6_GET_RAW_HLIM((p)->ip6h))
 /* XXX */
 #define IPV6_GET_L4PROTO(p) \
     ((p)->ip6vars.l4proto)
-
-#define IPV6_CACHE_VER                    0x0001 /* 1 */
-#define IPV6_CACHE_CLASS                  0x0002 /* 2 */
-#define IPV6_CACHE_FLOW                   0x0004 /* 4 */
-#define IPV6_CACHE_NH                     0x0008 /* 8 */
-#define IPV6_CACHE_PLEN                   0x0010 /* 16 */
-#define IPV6_CACHE_HLIM                   0x0020 /* 32 */
-
-/* decoder cache */
-typedef struct IPV6Cache_
-{
-    uint16_t flags;
-    uint8_t ver;
-    uint8_t cl;
-    uint8_t flow;
-    uint8_t nh;
-    uint16_t plen;
-    uint8_t hlim;
-} IPV6Cache;
 
 /* helper structure with parsed ipv6 info */
 typedef struct IPV6Vars_
@@ -120,15 +92,9 @@ typedef struct IPV6Vars_
 
 #define CLEAR_IPV6_PACKET(p) do { \
     (p)->ip6h = NULL; \
-    (p)->ip6c.flags = 0; \
-    (p)->ip6c.ver = 0; \
-    (p)->ip6c.cl = 0; \
-    (p)->ip6c.flow = 0; \
-    (p)->ip6c.nh = 0; \
-    (p)->ip6c.plen = 0; \
-    (p)->ip6c.hlim = 0; \
     (p)->ip6vars.ip_opts_len = 0; \
     (p)->ip6vars.l4proto = 0; \
+    (p)->ip6eh.ip6fh = NULL; \
 } while (0)
 
 /* Fragment header */

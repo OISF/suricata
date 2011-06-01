@@ -78,12 +78,13 @@
 
 /** macro for getting the first timestamp from the packet. Timestamp is in host
  *  order and either returned from the cache or from the packet directly. */
-#define TCP_GET_TSVAL(p)                       ((p)->tcpc.ts1 != 0 ? \
-                                             (p)->tcpc.ts1 : (p)->tcpvars.ts ? ((p)->tcpc.ts1 = (uint32_t)ntohl((*(uint32_t *)(p)->tcpvars.ts->data))) : 0)
+#define TCP_GET_TSVAL(p) \
+    (uint32_t)ntohl((*(uint32_t *)(p)->tcpvars.ts->data))
+
 /** macro for getting the second timestamp from the packet. Timestamp is in
  *  host order and either returned from the cache or from the packet directly. */
-#define TCP_GET_TSECR(p)                       ((p)->tcpc.ts2 != 0 ? \
-                                             (p)->tcpc.ts2 : (p)->tcpvars.ts ? ((p)->tcpc.ts2 = (uint32_t)ntohl((*(uint32_t *)((p)->tcpvars.ts->data+4)))) : 0)
+#define TCP_GET_TSECR(p) \
+    (uint32_t)ntohl((*(uint32_t *)((p)->tcpvars.ts->data+4)))
 
 /** macro for getting the wscale from the packet. */
 #define TCP_GET_WSCALE(p)                    ((p)->tcpvars.ws ? (((*(uint8_t *)(p)->tcpvars.ws->data) <= TCP_WSCALE_MAX) ? (*(uint8_t *)((p)->tcpvars.ws->data)) : 0) : 0)
@@ -126,6 +127,9 @@ typedef struct TCPHdr_
 
 typedef struct TCPVars_
 {
+    /* checksum computed over the tcp(for both ipv4 and ipv6) packet */
+    int32_t comp_csum;
+
     uint8_t hlen;
 
     uint8_t tcp_opt_len;
@@ -139,25 +143,14 @@ typedef struct TCPVars_
     TCPOpt *mss;
 } TCPVars;
 
-/** cache to store parsed/calculated results of the decoder */
-typedef struct TCPCache_ {
-    /* checksum computed over the tcp(for both ipv4 and ipv6) packet */
-    int32_t comp_csum;
-
-    uint32_t ts1; /**< host order version of the first ts */
-    uint32_t ts2; /**< host order version of the second ts */
-} TCPCache;
-
 #define CLEAR_TCP_PACKET(p) { \
     (p)->tcph = NULL; \
+    (p)->tcpvars.comp_csum = -1; \
     (p)->tcpvars.tcp_opt_cnt = 0; \
     (p)->tcpvars.sackok = NULL; \
     (p)->tcpvars.ts = NULL; \
     (p)->tcpvars.ws = NULL; \
     (p)->tcpvars.mss = NULL; \
-    (p)->tcpc.comp_csum = -1; \
-    (p)->tcpc.ts1 = 0; \
-    (p)->tcpc.ts2 = 0; \
 }
 
 void DecodeTCPRegisterTests(void);

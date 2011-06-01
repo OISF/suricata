@@ -109,17 +109,13 @@ typedef struct ICMPV6Info_
     uint16_t  seq;
 } ICMPV6Info;
 
-typedef struct ICMPV6Cache_ {
-    /* checksum computed over the icmpv6 packet */
-    int32_t comp_csum;
-} ICMPV6Cache;
-
 /** ICMPv6 header structure */
 typedef struct ICMPV6Hdr_
 {
     uint8_t  type;
     uint8_t  code;
     uint16_t csum;
+
     union{
         ICMPV6Info icmpv6i; /** Informational message */
         union
@@ -127,17 +123,16 @@ typedef struct ICMPV6Hdr_
             uint32_t  unused; /** for types 1 and 3, should be zero */
             uint32_t  error_ptr; /** for type 4, pointer to the octet that originate the error */
             uint32_t  mtu; /** for type 2, the Maximum Transmission Unit of the next-hop link */
-        }icmpv6e;   /** Error Message */
-    }icmpv6b;
+        } icmpv6e;   /** Error Message */
+    } icmpv6b;
 } ICMPV6Hdr;
 
 /** Data available from the decoded packet */
 typedef struct ICMPV6Vars_ {
-    uint8_t  type;
-    uint8_t  code;
+    /* checksum computed over the icmpv6 packet */
+    int32_t comp_csum;
 
     /* checksum of the icmpv6 packet */
-    uint16_t csum;
     uint16_t  id;
     uint16_t  seq;
     uint32_t  mtu;
@@ -161,9 +156,7 @@ typedef struct ICMPV6Vars_ {
 } ICMPV6Vars;
 
 #define CLEAR_ICMPV6_PACKET(p) do { \
-    (p)->icmpv6vars.type = 0; \
-    (p)->icmpv6vars.code = 0; \
-    (p)->icmpv6vars.csum = -1; \
+    (p)->icmpv6vars.comp_csum = -1; \
     (p)->icmpv6vars.id = 0; \
     (p)->icmpv6vars.seq = 0; \
     (p)->icmpv6vars.mtu = 0; \
@@ -181,6 +174,7 @@ typedef struct ICMPV6Vars_ {
     (p)->icmpv6vars.emb_dport = 0; \
     (p)->icmpv6h = NULL; \
 } while(0)
+
 void DecodeICMPV6RegisterTests(void);
 
 /** -------- Inline functions --------- */

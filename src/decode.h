@@ -311,27 +311,21 @@ typedef struct Packet_
 
     IPV4Hdr *ip4h;
     IPV4Vars ip4vars;
-    IPV4Cache ip4c;
 
     IPV6Hdr *ip6h;
     IPV6Vars ip6vars;
-    IPV6Cache ip6c;
     IPV6ExtHdrs ip6eh;
 
     TCPHdr *tcph;
     TCPVars tcpvars;
-    TCPCache tcpc;
 
     UDPHdr *udph;
     UDPVars udpvars;
-    UDPCache udpc;
 
     ICMPV4Hdr *icmpv4h;
-    ICMPV4Cache icmpv4c;
     ICMPV4Vars icmpv4vars;
 
     ICMPV6Hdr *icmpv6h;
-    ICMPV6Cache icmpv6c;
     ICMPV6Vars icmpv6vars;
 
     PPPHdr *ppph;
@@ -466,11 +460,11 @@ typedef struct DecodeThreadVars_
  *  \brief reset these to -1(indicates that the packet is fresh from the queue)
  */
 #define PACKET_RESET_CHECKSUMS(p) do { \
-        (p)->ip4c.comp_csum = -1;      \
-        (p)->tcpc.comp_csum = -1;      \
-        (p)->udpc.comp_csum = -1;      \
-        (p)->icmpv4c.comp_csum = -1;   \
-        (p)->icmpv6c.comp_csum = -1;   \
+        (p)->ip4vars.comp_csum = -1;   \
+        (p)->tcpvars.comp_csum = -1;      \
+        (p)->udpvars.comp_csum = -1;      \
+        (p)->icmpv4vars.comp_csum = -1;   \
+        (p)->icmpv6vars.comp_csum = -1;   \
     } while (0)
 
 /**

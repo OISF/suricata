@@ -507,9 +507,6 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
 
     SCPerfCounterIncr(dtv->counter_ipv4, tv->sc_perf_pca);
 
-    /* reset the decoder cache flags */
-    IPV4_CACHE_INIT(p);
-
     SCLogDebug("pkt %p len %"PRIu16"", pkt, len);
 
     /* do the actual decoding */
