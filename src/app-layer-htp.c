@@ -271,24 +271,6 @@ void AppLayerHtpEnableRequestBodyCallback(void)
     SCReturn;
 }
 
-
-/**
- *  \brief  Function to convert the IP addresses in to the string
- *
- *  \param  f               pointer to the flow which contains the IP addresses
- *  \param  remote_addr     pointer the string which will contain the remote address
- *  \param  local_addr     pointer the string which will contain the local address
- */
-void HTPGetIPAddr(Flow *f, int family, char *remote_addr, char *local_addr)
-{
-    SCEnter();
-    inet_ntop(family, (const void *)&f->src.addr_data32[0], remote_addr,
-            sizeof (remote_addr));
-    inet_ntop(family, (const void *)&f->dst.addr_data32[0], local_addr,
-            sizeof (local_addr));
-    SCReturn;
-}
-
 /**
  *  \brief  Function to handle the reassembled data from client and feed it to
  *          the HTP library to process it.
