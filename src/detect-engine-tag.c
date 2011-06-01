@@ -329,6 +329,8 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
     DetectTagDataEntry *prev = NULL;
     DetectTagDataEntry *iter = NULL;
     DetectTagDataEntryList tdl;
+    DetectTagDataEntryList *tde_src = NULL;
+    DetectTagDataEntryList *tde_dst = NULL;
 
     unsigned int current_tags = SC_ATOMIC_GET(num_tags);
     /* If there's no tag, get out of here */
@@ -380,7 +382,7 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                                 p->flags |= PKT_HAS_TAG;
                                 flag_added++;
                             }
-                        break;
+                            break;
                         case DETECT_TAG_METRIC_BYTES:
                             if (iter->bytes > iter->td->count) {
                                 /* tag expired */
@@ -405,7 +407,7 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                                 p->flags |= PKT_HAS_TAG;
                                 flag_added++;
                             }
-                        break;
+                            break;
                         case DETECT_TAG_METRIC_SECONDS:
                             /* last_ts handles this metric, but also a generic time based
                              * expiration to prevent dead sessions/hosts */
@@ -432,7 +434,7 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                                 p->flags |= PKT_HAS_TAG;
                                 flag_added++;
                             }
-                        break;
+                            break;
                     }
 
                 }
@@ -440,6 +442,8 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                 prev = iter;
                 iter = iter->next;
             }
+
+            iter = NULL;
         }
         SCMutexUnlock(&p->flow->m);
     }
@@ -452,9 +456,6 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         TagTimeoutRemove(tag_ctx, &ts);
         tag_ctx->last_ts.tv_sec = ts.tv_sec;
     }
-
-    DetectTagDataEntryList *tde_src = NULL;
-    DetectTagDataEntryList *tde_dst = NULL;
 
     if (PKT_IS_IPV4(p)) {
         tdl.ipv = 4;
@@ -476,196 +477,197 @@ void TagHandlePacket(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
         tde_dst = TagHashSearch(tag_ctx, &tdl, p);
     }
 
-    if (tde_src != NULL)
+    if (tde_src != NULL) {
         iter = tde_src->header_entry;
-    prev = NULL;
-    while (iter != NULL) {
-        /* update counters */
-        iter->last_ts.tv_sec = ts.tv_sec;
-        iter->packets++;
-        iter->bytes += p->pktlen;
+        prev = NULL;
+        while (iter != NULL) {
+            /* update counters */
+            iter->last_ts.tv_sec = ts.tv_sec;
+            iter->packets++;
+            iter->bytes += p->pktlen;
 
-        /* If this packet triggered the rule with tag, we dont need
-         * to log it (the alert will log it) */
-        if (iter->first_time++ > 0 && iter->td != NULL) {
-            /* Update metrics; remove if tag expired; and set alerts */
-            switch (iter->td->metric) {
-                case DETECT_TAG_METRIC_PACKET:
-                    if (iter->packets > iter->td->count) {
-                        /* tag expired */
-                        if (prev != NULL) {
-                            tde = iter;
-                            prev->next = iter->next;
-                            iter = iter->next;
-                            DetectTagDataEntryFree(tde);
-                            continue;
-                        } else {
-                            tde = iter;
-                            iter = iter->next;
-                            SCFree(tde);
-                            SC_ATOMIC_SUB(num_tags, 1);
-                            tde_src->header_entry = NULL;
-                            continue;
-                        }
-                    } else if (flag_added == 0) {
+            /* If this packet triggered the rule with tag, we dont need
+             * to log it (the alert will log it) */
+            if (iter->first_time++ > 0 && iter->td != NULL) {
+                /* Update metrics; remove if tag expired; and set alerts */
+                switch (iter->td->metric) {
+                    case DETECT_TAG_METRIC_PACKET:
+                        if (iter->packets > iter->td->count) {
+                            /* tag expired */
+                            if (prev != NULL) {
+                                tde = iter;
+                                prev->next = iter->next;
+                                iter = iter->next;
+                                DetectTagDataEntryFree(tde);
+                                continue;
+                            } else {
+                                tde = iter;
+                                iter = iter->next;
+                                SCFree(tde);
+                                SC_ATOMIC_SUB(num_tags, 1);
+                                tde_src->header_entry = NULL;
+                                continue;
+                            }
+                        } else if (flag_added == 0) {
                             /* It's matching the tag. Add it to be logged and
                              * update "flag_added" to add the packet once. */
                             p->flags |= PKT_HAS_TAG;
                             flag_added++;
-                    }
-                break;
-                case DETECT_TAG_METRIC_BYTES:
-                    if (iter->bytes > iter->td->count) {
-                        /* tag expired */
-                        if (prev != NULL) {
-                            tde = iter;
-                            prev->next = iter->next;
-                            iter = iter->next;
-                            DetectTagDataEntryFree(tde);
-                            continue;
-                        } else {
-                            tde = iter;
-                            iter = iter->next;
-                            SCFree(tde);
-                            SC_ATOMIC_SUB(num_tags, 1);
-                            tde_src->header_entry = NULL;
-                            continue;
                         }
-                    } else if (flag_added == 0) {
+                        break;
+                    case DETECT_TAG_METRIC_BYTES:
+                        if (iter->bytes > iter->td->count) {
+                            /* tag expired */
+                            if (prev != NULL) {
+                                tde = iter;
+                                prev->next = iter->next;
+                                iter = iter->next;
+                                DetectTagDataEntryFree(tde);
+                                continue;
+                            } else {
+                                tde = iter;
+                                iter = iter->next;
+                                SCFree(tde);
+                                SC_ATOMIC_SUB(num_tags, 1);
+                                tde_src->header_entry = NULL;
+                                continue;
+                            }
+                        } else if (flag_added == 0) {
                             /* It's matching the tag. Add it to be logged and
                              * update "flag_added" to add the packet once. */
                             p->flags |= PKT_HAS_TAG;
                             flag_added++;
-                    }
-                break;
-                case DETECT_TAG_METRIC_SECONDS:
-                    /* last_ts handles this metric, but also a generic time based
-                     * expiration to prevent dead sessions/hosts */
-                    if (iter->last_ts.tv_sec - iter->first_ts.tv_sec > (int)iter->td->count) {
-                        /* tag expired */
-                        if (prev != NULL) {
-                            tde = iter;
-                            prev->next = iter->next;
-                            iter = iter->next;
-                            DetectTagDataEntryFree(tde);
-                            continue;
-                        } else {
-                            tde = iter;
-                            iter = iter->next;
-                            SCFree(tde);
-                            SC_ATOMIC_SUB(num_tags, 1);
-                            tde_src->header_entry = NULL;
-                            continue;
                         }
-                    } else if (flag_added == 0) {
+                        break;
+                    case DETECT_TAG_METRIC_SECONDS:
+                        /* last_ts handles this metric, but also a generic time based
+                         * expiration to prevent dead sessions/hosts */
+                        if (iter->last_ts.tv_sec - iter->first_ts.tv_sec > (int)iter->td->count) {
+                            /* tag expired */
+                            if (prev != NULL) {
+                                tde = iter;
+                                prev->next = iter->next;
+                                iter = iter->next;
+                                DetectTagDataEntryFree(tde);
+                                continue;
+                            } else {
+                                tde = iter;
+                                iter = iter->next;
+                                SCFree(tde);
+                                SC_ATOMIC_SUB(num_tags, 1);
+                                tde_src->header_entry = NULL;
+                                continue;
+                            }
+                        } else if (flag_added == 0) {
                             /* It's matching the tag. Add it to be logged and
                              * update "flag_added" to add the packet once. */
                             p->flags |= PKT_HAS_TAG;
                             flag_added++;
-                    }
-                break;
+                        }
+                        break;
+                }
+
             }
-
+            prev = iter;
+            iter = iter->next;
         }
-        prev = iter;
-        iter = iter->next;
     }
 
-    if (tde_dst != NULL)
+    if (tde_dst != NULL) {
         iter = tde_dst->header_entry;
-    prev = NULL;
-    while (iter != NULL) {
-        /* update counters */
-        iter->last_ts.tv_sec = ts.tv_sec;
-        iter->packets++;
-        iter->bytes += p->pktlen;
+        prev = NULL;
+        while (iter != NULL) {
+            /* update counters */
+            iter->last_ts.tv_sec = ts.tv_sec;
+            iter->packets++;
+            iter->bytes += p->pktlen;
 
-        /* If this packet triggered the rule with tag, we dont need
-         * to log it (the alert will log it) */
-        if (iter->first_time++ > 0 && iter->td != NULL) {
-            /* Update metrics; remove if tag expired; and set alerts */
-            switch (iter->td->metric) {
-                case DETECT_TAG_METRIC_PACKET:
-                    if (iter->packets > iter->td->count) {
-                        /* tag expired */
-                        if (prev != NULL) {
-                            tde = iter;
-                            prev->next = iter->next;
-                            iter = iter->next;
-                            DetectTagDataEntryFree(tde);
-                            continue;
-                        } else {
-                            tde = iter;
-                            iter = iter->next;
-                            SCFree(tde);
-                            SC_ATOMIC_SUB(num_tags, 1);
-                            tde_dst->header_entry = NULL;
-                            continue;
+            /* If this packet triggered the rule with tag, we dont need
+             * to log it (the alert will log it) */
+            if (iter->first_time++ > 0 && iter->td != NULL) {
+                /* Update metrics; remove if tag expired; and set alerts */
+                switch (iter->td->metric) {
+                    case DETECT_TAG_METRIC_PACKET:
+                        if (iter->packets > iter->td->count) {
+                            /* tag expired */
+                            if (prev != NULL) {
+                                tde = iter;
+                                prev->next = iter->next;
+                                iter = iter->next;
+                                DetectTagDataEntryFree(tde);
+                                continue;
+                            } else {
+                                tde = iter;
+                                iter = iter->next;
+                                SCFree(tde);
+                                SC_ATOMIC_SUB(num_tags, 1);
+                                tde_dst->header_entry = NULL;
+                                continue;
+                            }
+                        } else if (flag_added == 0) {
+                            /* It's matching the tag. Add it to be logged and
+                             * update "flag_added" to add the packet once. */
+                            p->flags |= PKT_HAS_TAG;
+                            flag_added++;
                         }
-                    } else if (flag_added == 0) {
-                        /* It's matching the tag. Add it to be logged and
-                         * update "flag_added" to add the packet once. */
-                        p->flags |= PKT_HAS_TAG;
-                        flag_added++;
-                    }
-                break;
-                case DETECT_TAG_METRIC_BYTES:
-                    if (iter->bytes > iter->td->count) {
-                        /* tag expired */
-                        if (prev != NULL) {
-                            tde = iter;
-                            prev->next = iter->next;
-                            iter = iter->next;
-                            DetectTagDataEntryFree(tde);
-                            continue;
-                        } else {
-                            tde = iter;
-                            iter = iter->next;
-                            SCFree(tde);
-                            SC_ATOMIC_SUB(num_tags, 1);
-                            tde_dst->header_entry = NULL;
-                            continue;
+                        break;
+                    case DETECT_TAG_METRIC_BYTES:
+                        if (iter->bytes > iter->td->count) {
+                            /* tag expired */
+                            if (prev != NULL) {
+                                tde = iter;
+                                prev->next = iter->next;
+                                iter = iter->next;
+                                DetectTagDataEntryFree(tde);
+                                continue;
+                            } else {
+                                tde = iter;
+                                iter = iter->next;
+                                SCFree(tde);
+                                SC_ATOMIC_SUB(num_tags, 1);
+                                tde_dst->header_entry = NULL;
+                                continue;
+                            }
+                        }  else if (flag_added == 0) {
+                            /* It's matching the tag. Add it to be logged and
+                             * update "flag_added" to add the packet once. */
+                            p->flags |= PKT_HAS_TAG;
+                            flag_added++;
                         }
-                    }  else if (flag_added == 0) {
-                        /* It's matching the tag. Add it to be logged and
-                         * update "flag_added" to add the packet once. */
-                        p->flags |= PKT_HAS_TAG;
-                        flag_added++;
-                    }
-                break;
-                case DETECT_TAG_METRIC_SECONDS:
-                    /* last_ts handles this metric, but also a generic time based
-                     * expiration to prevent dead sessions/hosts */
-                    if (iter->last_ts.tv_sec - iter->first_ts.tv_sec > (int)iter->td->count) {
-                        /* tag expired */
-                        if (prev != NULL) {
-                            tde = iter;
-                            prev->next = iter->next;
-                            iter = iter->next;
-                            DetectTagDataEntryFree(tde);
-                            continue;
-                        } else {
-                            tde = iter;
-                            iter = iter->next;
-                            SCFree(tde);
-                            SC_ATOMIC_SUB(num_tags, 1);
-                            tde_dst->header_entry = NULL;
-                            continue;
+                        break;
+                    case DETECT_TAG_METRIC_SECONDS:
+                        /* last_ts handles this metric, but also a generic time based
+                         * expiration to prevent dead sessions/hosts */
+                        if (iter->last_ts.tv_sec - iter->first_ts.tv_sec > (int)iter->td->count) {
+                            /* tag expired */
+                            if (prev != NULL) {
+                                tde = iter;
+                                prev->next = iter->next;
+                                iter = iter->next;
+                                DetectTagDataEntryFree(tde);
+                                continue;
+                            } else {
+                                tde = iter;
+                                iter = iter->next;
+                                SCFree(tde);
+                                SC_ATOMIC_SUB(num_tags, 1);
+                                tde_dst->header_entry = NULL;
+                                continue;
+                            }
+                        } else if (flag_added == 0) {
+                            /* It's matching the tag. Add it to be logged and
+                             * update "flag_added" to add the packet once. */
+                            p->flags |= PKT_HAS_TAG;
+                            flag_added++;
                         }
-                    } else if (flag_added == 0) {
-                        /* It's matching the tag. Add it to be logged and
-                         * update "flag_added" to add the packet once. */
-                        p->flags |= PKT_HAS_TAG;
-                        flag_added++;
-                    }
-                break;
+                        break;
+                }
             }
+
+            prev = iter;
+            iter = iter->next;
         }
-
-        prev = iter;
-        iter = iter->next;
     }
-
     SCMutexUnlock(&tag_ctx->lock);
 }
 
