@@ -217,6 +217,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
         case DETECT_FLOWBITS_CMD_SET:
         case DETECT_FLOWBITS_CMD_UNSET:
         case DETECT_FLOWBITS_CMD_TOGGLE:
+        default:
             if(fb_name == NULL)
                 goto error;
             break;
@@ -226,11 +227,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     if (cd == NULL)
         goto error;
 
-    if (fb_name != NULL) {
-        cd->idx = VariableNameGetIdx(fb_name,DETECT_FLOWBITS);
-    } else {
-        cd->idx = 0;
-    }
+    cd->idx = VariableNameGetIdx(fb_name,DETECT_FLOWBITS);
     cd->cmd = fb_cmd;
 
     SCLogDebug("idx %" PRIu32 ", cmd %s, name %s",
