@@ -561,6 +561,10 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
             "ra_app_base_seq %"PRIu32, TCP_GET_SEQ(p), (TCP_GET_SEQ(p)+p->payload_len),
             stream->last_ack, stream->ra_app_base_seq);
 
+    if (seg == NULL) {
+        goto end;
+    }
+
     /* fast track */
     if (list_seg == NULL) {
         SCLogDebug("empty list, inserting seg %p seq %" PRIu32 ", "
