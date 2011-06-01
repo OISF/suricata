@@ -606,12 +606,15 @@ int SCThresholdConfLineIsMultiline(char *line)
  * \retval int of the line length
  */
 int SCThresholdConfLineLength(FILE *fd) {
-    int pos = ftell(fd);
+    long pos = ftell(fd);
     int len = 0;
     char c;
 
     while ( (c = fgetc(fd)) && c != '\n' && !feof(fd))
         len++;
+
+    if (pos < 0)
+        pos = 0;
 
     fseek(fd, pos, SEEK_SET);
     return len;
