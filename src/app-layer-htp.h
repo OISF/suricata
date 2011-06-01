@@ -60,6 +60,8 @@ enum {
                                              operation */
     HTP_BODY_REQUEST,                   /**< Flag to indicate that the
                                              current operation is a request */
+    HTP_BODY_REQUEST_MULTIPART,
+    HTP_BODY_REQUEST_PUT,
     HTP_BODY_RESPONSE                   /**< Flag to indicate that the current
                                           * operation is a response */
 };
