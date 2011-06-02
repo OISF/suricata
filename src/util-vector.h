@@ -24,7 +24,7 @@
 #ifndef __UTIL_VECTOR_H__
 #define __UTIL_VECTOR_H__
 
-#ifdef defined(__SSE3__)
+#if defined(__SSE3__)
 
 #include <pmmintrin.h>
 

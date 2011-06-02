@@ -871,10 +871,16 @@ typedef struct SigGroupHead_ {
 
     uint16_t mpm_content_maxlen;
 
+    SignatureMask *mask_array;
     /** chunk of memory containing the "header" part of each
      *  signature ordered as an array. Used to pre-filter the
      *  signatures to be inspected in a cache efficient way. */
     SignatureHeader *head_array;
+
+    /** chunk of memory containing the "header" part of each
+     *  signature ordered as an array. Used to pre-filter the
+     *  signatures to be inspected in a cache efficient way. */
+    //SignatureHeader *head_array;
 
     /* pattern matcher instances */
     MpmCtx *mpm_ctx;
