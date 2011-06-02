@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2011 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -161,6 +161,7 @@
 #include "util-profiling.h"
 #include "util-validate.h"
 #include "util-optimize.h"
+#include "util-vector.h"
 
 extern uint8_t engine_mode;
 
@@ -672,18 +673,8 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file)
     SCReturnInt(ret);
 }
 
-#include "util-vector.h"
-
 /**
- *  \brief build an array of signatures that will be inspected
- *
- *  All signatures that can be filtered out on forehand are not added to it.
- *
- *  \param de_ctx detection engine ctx
- *  \param det_ctx detection engine thread ctx -- array is stored here
- *  \param p packet
- *  \param mask Packets mask
- *  \param alproto application layer protocol
+ *  \brief See if we can prefilter a signature on inexpensive checks
  *
  *  Order of SignatureHeader access:
  *  1. mask
@@ -694,27 +685,169 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file)
  *  5. mpm_stream_pattern_id_div8
  *  5. mpm_stream_pattern_id_mod8
  *  6. num
+ *
+ *  \retval 0 can't match, don't inspect
+ *  \retval 1 might match, further inspection required
  */
-static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, Packet *p, SignatureMask mask,
-        uint16_t alproto)
+static inline int SigMatchSignaturesBuildMatchArrayAddSignature(DetectEngineThreadCtx *det_ctx,
+        Packet *p, SignatureHeader *s, uint16_t alproto)
+{
+    /* if the sig has alproto and the session as well they should match */
+    if (s->flags & SIG_FLAG_APPLAYER && s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
+        if (s->alproto == ALPROTO_DCERPC) {
+            if (alproto != ALPROTO_SMB && alproto != ALPROTO_SMB2) {
+                SCLogDebug("DCERPC sig, alproto not SMB or SMB2");
+                return 0;
+            }
+        } else {
+            SCLogDebug("alproto mismatch");
+            return 0;
+        }
+    }
+
+    /* check for a pattern match of the one pattern in this sig. */
+    if (s->flags & SIG_FLAG_MPM_PACKET) {
+        /* filter out sigs that want pattern matches, but
+         * have no matches */
+        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] & s->mpm_pattern_id_mod_8)) {
+            //if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8)))) {
+            //SCLogDebug("mpm sig without matches (pat id %"PRIu32" check in content).", s->mpm_pattern_id);
+
+            if (!(s->flags & SIG_FLAG_MPM_PACKET_NEG)) {
+                /* pattern didn't match. There is one case where we will inspect
+                 * the signature anyway: if the packet payload was added to the
+                 * stream it is not scanned itself: the stream data is inspected.
+                 * Inspecting both would result in duplicated alerts. There is
+                 * one case where we are going to inspect the packet payload
+                 * anyway: if a signature has the dsize option. */
+                if (!((p->flags & PKT_STREAM_ADD) && (s->flags & SIG_FLAG_DSIZE))) {
+                    return 0;
+                }
+            } else {
+                SCLogDebug("but thats okay, we are looking for neg-content");
+            }
+        }
+    }
+    if (s->flags & SIG_FLAG_MPM_STREAM) {
+        /* filter out sigs that want pattern matches, but
+         * have no matches */
+        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_stream_pattern_id_div_8)] & s->mpm_stream_pattern_id_mod_8)) {
+            //SCLogDebug("mpm stream sig without matches (pat id %"PRIu32" check in content).", s->mpm_stream_pattern_id);
+
+            if (!(s->flags & SIG_FLAG_MPM_STREAM_NEG)) {
+                /* pattern didn't match. There is one case where we will inspect
+                 * the signature anyway: if the packet payload was added to the
+                 * stream it is not scanned itself: the stream data is inspected.
+                 * Inspecting both would result in duplicated alerts. There is
+                 * one case where we are going to inspect the packet payload
+                 * anyway: if a signature has the dsize option. */
+                if (!((p->flags & PKT_STREAM_ADD) && (s->flags & SIG_FLAG_DSIZE))) {
+                    return 0;
+                }
+            } else {
+                SCLogDebug("but thats okay, we are looking for neg-content");
+            }
+        }
+    }
+
+    if (s->full_sig->flags & SIG_FLAG_MPM_URICONTENT) {
+        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
+                    (1 << (s->mpm_http_pattern_id % 8)))) {
+            if (!(s->full_sig->flags & SIG_FLAG_MPM_URICONTENT_NEG)) {
+                return 0;
+            }
+        }
+    }
+
+    if (s->flags & SIG_FLAG_MPM_HCBDCONTENT) {
+        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
+                    (1 << (s->mpm_http_pattern_id % 8)))) {
+            if (!(s->flags & SIG_FLAG_MPM_HCBDCONTENT_NEG)) {
+                return 0;
+            }
+        }
+    }
+
+    if (s->flags & SIG_FLAG_MPM_HHDCONTENT) {
+        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
+                    (1 << (s->mpm_http_pattern_id % 8)))) {
+            if (!(s->flags & SIG_FLAG_MPM_HHDCONTENT_NEG)) {
+                return 0;
+            }
+        }
+    }
+
+    if (s->flags & SIG_FLAG_MPM_HRHDCONTENT) {
+        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
+                    (1 << (s->mpm_http_pattern_id % 8)))) {
+            if (!(s->flags & SIG_FLAG_MPM_HRHDCONTENT_NEG)) {
+                return 0;
+            }
+        }
+    }
+
+    if (s->flags & SIG_FLAG_MPM_HMDCONTENT) {
+        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
+                    (1 << (s->mpm_http_pattern_id % 8)))) {
+            if (!(s->flags & SIG_FLAG_MPM_HMDCONTENT_NEG)) {
+                return 0;
+            }
+        }
+    }
+
+    if (s->flags & SIG_FLAG_MPM_HCDCONTENT) {
+        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
+                    (1 << (s->mpm_http_pattern_id % 8)))) {
+            if (!(s->flags & SIG_FLAG_MPM_HCDCONTENT_NEG)) {
+                return 0;
+            }
+        }
+    }
+
+    if (s->flags & SIG_FLAG_MPM_HRUDCONTENT) {
+        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
+                    (1 << (s->mpm_http_pattern_id % 8)))) {
+            if (!(s->flags & SIG_FLAG_MPM_HRUDCONTENT_NEG)) {
+                return 0;
+            }
+        }
+    }
+
+    /* de_state check, filter out all signatures that already had a match before
+     * or just partially match */
+    if (s->flags & SIG_FLAG_STATE_MATCH) {
+        /* we run after DeStateDetectContinueDetection, so we might have
+         * state NEW here. In that case we'd want to continue detection
+         * for this sig. If we have NOSTATE, stateful detection didn't
+         * start yet for this sig, so we will inspect it.
+         */
+        if (det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NEW &&
+                det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NOSTATE) {
+            SCLogDebug("de state not NEW or NOSTATE, ignoring");
+            return 0;
+        }
+    }
+
+    return 1;
+}
+
+#if defined(__SSE3__)
+static inline void SigMatchSignaturesBuildMatchArraySIMD(DetectEngineThreadCtx *det_ctx,
+        Packet *p, SignatureMask mask, uint16_t alproto)
 {
     uint32_t u;
     uint32_t bm; /* bit mask, 16 bits used */
+    SigIntId x;
+    int bitno = 0;
 
-#if defined(__SSE3__)
     Vector pm, sm, r1, r2;
     /* load the packet mask into each byte of the vector */
     pm.v = _mm_set1_epi8(mask);
-#endif
 
     /* reset previous run */
     det_ctx->match_array_cnt = 0;
 
     for (u = 0; u < det_ctx->sgh->sig_cnt; u += 16) {
-        SigIntId x;
-        int bitno = 0;
-#if defined(__SSE3__)
         /* load a batch of masks */
         sm.v = _mm_load_si128((const __m128i *)&det_ctx->sgh->mask_array[u]);
         /* logical AND them with the packet's mask */
@@ -723,14 +856,7 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
         r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
         /* convert into a bitarray */
         bm = _mm_movemask_epi8(r2.v);
-#else
-        bm = 0;
-        for (x = u; x < det_ctx->sgh->sig_cnt && bitno < 16; x++, bitno++) {
-            int r = ((mask & det_ctx->sgh->mask_array[x]) == det_ctx->sgh->mask_array[x]);
-            bm |= (r << bitno);
-        }
-        SCLogDebug("bm %04X", bm);
-#endif
+
         if (bm == 0) {
             continue;
         }
@@ -742,147 +868,55 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineCtx *de_ctx,
             }
             SignatureHeader *s = &det_ctx->sgh->head_array[x];
 
-            /* if the sig has alproto and the session as well they should match */
-            if (s->flags & SIG_FLAG_APPLAYER && s->alproto != ALPROTO_UNKNOWN && s->alproto != alproto) {
-                if (s->alproto == ALPROTO_DCERPC) {
-                    if (alproto != ALPROTO_SMB && alproto != ALPROTO_SMB2) {
-                        SCLogDebug("DCERPC sig, alproto not SMB or SMB2");
-                        continue;
-                    }
-                } else {
-                    SCLogDebug("alproto mismatch");
-                    continue;
-                }
-            }
-
-            /* check for a pattern match of the one pattern in this sig. */
-            if (s->flags & SIG_FLAG_MPM_PACKET) {
-                /* filter out sigs that want pattern matches, but
-                 * have no matches */
-                if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] & s->mpm_pattern_id_mod_8)) {
-                    //if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8)))) {
-                    //SCLogDebug("mpm sig without matches (pat id %"PRIu32" check in content).", s->mpm_pattern_id);
-
-                    if (!(s->flags & SIG_FLAG_MPM_PACKET_NEG)) {
-                        /* pattern didn't match. There is one case where we will inspect
-                         * the signature anyway: if the packet payload was added to the
-                         * stream it is not scanned itself: the stream data is inspected.
-                         * Inspecting both would result in duplicated alerts. There is
-                         * one case where we are going to inspect the packet payload
-                         * anyway: if a signature has the dsize option. */
-                        if (!((p->flags & PKT_STREAM_ADD) && (s->flags & SIG_FLAG_DSIZE))) {
-                            continue;
-                        }
-                    } else {
-                        SCLogDebug("but thats okay, we are looking for neg-content");
-                    }
-                }
-                }
-                if (s->flags & SIG_FLAG_MPM_STREAM) {
-                    /* filter out sigs that want pattern matches, but
-                     * have no matches */
-                    if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_stream_pattern_id_div_8)] & s->mpm_stream_pattern_id_mod_8)) {
-                        //SCLogDebug("mpm stream sig without matches (pat id %"PRIu32" check in content).", s->mpm_stream_pattern_id);
-
-                        if (!(s->flags & SIG_FLAG_MPM_STREAM_NEG)) {
-                            /* pattern didn't match. There is one case where we will inspect
-                             * the signature anyway: if the packet payload was added to the
-                             * stream it is not scanned itself: the stream data is inspected.
-                             * Inspecting both would result in duplicated alerts. There is
-                             * one case where we are going to inspect the packet payload
-                             * anyway: if a signature has the dsize option. */
-                            if (!((p->flags & PKT_STREAM_ADD) && (s->flags & SIG_FLAG_DSIZE))) {
-                                continue;
-                            }
-                        } else {
-                            SCLogDebug("but thats okay, we are looking for neg-content");
-                        }
-                    }
-                }
-
-                if (s->full_sig->flags & SIG_FLAG_MPM_URICONTENT) {
-                    if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
-                                (1 << (s->mpm_http_pattern_id % 8)))) {
-                        if (!(s->full_sig->flags & SIG_FLAG_MPM_URICONTENT_NEG)) {
-                            continue;
-                        }
-                    }
-                }
-
-                if (s->flags & SIG_FLAG_MPM_HCBDCONTENT) {
-                    if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
-                                (1 << (s->mpm_http_pattern_id % 8)))) {
-                        if (!(s->flags & SIG_FLAG_MPM_HCBDCONTENT_NEG)) {
-                            continue;
-                        }
-                    }
-                }
-
-                if (s->flags & SIG_FLAG_MPM_HHDCONTENT) {
-                    if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
-                                (1 << (s->mpm_http_pattern_id % 8)))) {
-                        if (!(s->flags & SIG_FLAG_MPM_HHDCONTENT_NEG)) {
-                            continue;
-                        }
-                    }
-                }
-
-                if (s->flags & SIG_FLAG_MPM_HRHDCONTENT) {
-                    if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
-                                (1 << (s->mpm_http_pattern_id % 8)))) {
-                        if (!(s->flags & SIG_FLAG_MPM_HRHDCONTENT_NEG)) {
-                            continue;
-                        }
-                    }
-                }
-
-                if (s->flags & SIG_FLAG_MPM_HMDCONTENT) {
-                    if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
-                                (1 << (s->mpm_http_pattern_id % 8)))) {
-                        if (!(s->flags & SIG_FLAG_MPM_HMDCONTENT_NEG)) {
-                            continue;
-                        }
-                    }
-                }
-
-                if (s->flags & SIG_FLAG_MPM_HCDCONTENT) {
-                    if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
-                                (1 << (s->mpm_http_pattern_id % 8)))) {
-                        if (!(s->flags & SIG_FLAG_MPM_HCDCONTENT_NEG)) {
-                            continue;
-                        }
-                    }
-                }
-
-                if (s->flags & SIG_FLAG_MPM_HRUDCONTENT) {
-                    if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
-                                (1 << (s->mpm_http_pattern_id % 8)))) {
-                        if (!(s->flags & SIG_FLAG_MPM_HRUDCONTENT_NEG)) {
-                            continue;
-                        }
-                    }
-                }
-
-                /* de_state check, filter out all signatures that already had a match before
-                 * or just partially match */
-                if (s->flags & SIG_FLAG_STATE_MATCH) {
-                    /* we run after DeStateDetectContinueDetection, so we might have
-                     * state NEW here. In that case we'd want to continue detection
-                     * for this sig. If we have NOSTATE, stateful detection didn't
-                     * start yet for this sig, so we will inspect it.
-                     */
-                    if (det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NEW &&
-                            det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NOSTATE) {
-                        SCLogDebug("de state not NEW or NOSTATE, ignoring");
-                        continue;
-                    }
-                }
-
+            if (SigMatchSignaturesBuildMatchArrayAddSignature(det_ctx, p, s, alproto) == 1) {
                 /* okay, store it */
                 det_ctx->match_array[det_ctx->match_array_cnt] = s->full_sig;
                 det_ctx->match_array_cnt++;
             }
+        }
     }
+}
+#endif /* defined(__SSE3__) */
+
+static inline void SigMatchSignaturesBuildMatchArrayNoSIMD(DetectEngineThreadCtx *det_ctx,
+        Packet *p, SignatureMask mask, uint16_t alproto)
+{
+    uint32_t u;
+
+    /* reset previous run */
+    det_ctx->match_array_cnt = 0;
+
+    for (u = 0; u < det_ctx->sgh->sig_cnt; u++) {
+        SignatureHeader *s = &det_ctx->sgh->head_array[u];
+        if ((mask & s->mask) == s->mask) {
+            if (SigMatchSignaturesBuildMatchArrayAddSignature(det_ctx, p, s, alproto) == 1) {
+                /* okay, store it */
+                det_ctx->match_array[det_ctx->match_array_cnt] = s->full_sig;
+                det_ctx->match_array_cnt++;
+            }
+        }
+    }
+}
+
+/**
+ *  \brief build an array of signatures that will be inspected
+ *
+ *  All signatures that can be filtered out on forehand are not added to it.
+ *
+ *  \param de_ctx detection engine ctx
+ *  \param det_ctx detection engine thread ctx -- array is stored here
+ *  \param p packet
+ *  \param mask Packets mask
+ *  \param alproto application layer protocol
+ */
+static void SigMatchSignaturesBuildMatchArray(DetectEngineThreadCtx *det_ctx,
+        Packet *p, SignatureMask mask, uint16_t alproto)
+{
+#if defined(__SSE3__)
+    SigMatchSignaturesBuildMatchArraySIMD(det_ctx, p, mask, alproto);
+#else
+    SigMatchSignaturesBuildMatchArrayNoSIMD(det_ctx, p, mask, alproto);
+#endif
 }
 
 /**
@@ -1249,10 +1283,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
     }
 
-    /* create our prefilter mask */
-    SignatureMask mask = 0;
-    PacketCreateMask(p, &mask, alproto, alstate, smsg);
-
     /* if we didn't get a sig group head, we
      * have nothing to do.... */
     if (det_ctx->sgh == NULL) {
@@ -1276,8 +1306,12 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         }
     }
 
+    /* create our prefilter mask */
+    SignatureMask mask = 0;
+    PacketCreateMask(p, &mask, alproto, alstate, smsg);
+
     /* build the match array */
-    SigMatchSignaturesBuildMatchArray(de_ctx, det_ctx, p, mask, alproto);
+    SigMatchSignaturesBuildMatchArray(det_ctx, p, mask, alproto);
 
     /* inspect the sigs against the packet */
     for (idx = 0; idx < det_ctx->match_array_cnt; idx++) {
