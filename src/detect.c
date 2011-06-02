@@ -847,7 +847,7 @@ static inline void SigMatchSignaturesBuildMatchArraySIMD(DetectEngineThreadCtx *
     /* reset previous run */
     det_ctx->match_array_cnt = 0;
 
-    for (u = 0; u < det_ctx->sgh->sig_cnt; u += 16) {
+    for (u = 0; u < det_ctx->sgh->sig_cnt; u += 32) {
         /* load a batch of masks */
         sm.v = _mm_load_si128((const __m128i *)&det_ctx->sgh->mask_array[u]);
         /* logical AND them with the packet's mask */
@@ -855,23 +855,39 @@ static inline void SigMatchSignaturesBuildMatchArraySIMD(DetectEngineThreadCtx *
         /* compare the result with the original mask */
         r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
         /* convert into a bitarray */
-        bm = _mm_movemask_epi8(r2.v);
+        bm = ((uint32_t) _mm_movemask_epi8(r2.v)) << 16;
+
+        SCLogDebug("bm1 %08x", bm);
+
+        /* load a batch of masks */
+        sm.v = _mm_load_si128((const __m128i *)&det_ctx->sgh->mask_array[u+16]);
+        /* logical AND them with the packet's mask */
+        r1.v = _mm_and_si128(pm.v, sm.v);
+        /* compare the result with the original mask */
+        r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
+        /* convert into a bitarray */
+        bm |= ((uint32_t) _mm_movemask_epi8(r2.v));
+
+        SCLogDebug("bm2 %08x", bm);
 
         if (bm == 0) {
             continue;
         }
 
+        /* Check each bit in the bit map. Little endian is assumed (SSE is x86 or
+         * x86-64), so the bits are in memory backwards, 0 is on the right edge,
+         * 31 on the left edge. This is why above we store the output of the
+         * _mm_movemask_epi8 in this order as well */
         bitno = 0;
-        for (x = u; x < det_ctx->sgh->sig_cnt && bitno < 16; x++, bitno++) {
-            if (!(bm & (1 << bitno))) {
-                continue;
-            }
-            SignatureHeader *s = &det_ctx->sgh->head_array[x];
+        for (x = u; x < det_ctx->sgh->sig_cnt && bitno < 32; x++, bitno++) {
+            if (bm & (1 << bitno)) {
+                SignatureHeader *s = &det_ctx->sgh->head_array[x];
 
-            if (SigMatchSignaturesBuildMatchArrayAddSignature(det_ctx, p, s, alproto) == 1) {
-                /* okay, store it */
-                det_ctx->match_array[det_ctx->match_array_cnt] = s->full_sig;
-                det_ctx->match_array_cnt++;
+                if (SigMatchSignaturesBuildMatchArrayAddSignature(det_ctx, p, s, alproto) == 1) {
+                    /* okay, store it */
+                    det_ctx->match_array[det_ctx->match_array_cnt] = s->full_sig;
+                    det_ctx->match_array_cnt++;
+                }
             }
         }
     }

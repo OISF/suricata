@@ -1599,10 +1599,10 @@ int SigGroupHeadBuildHeadArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
     BUG_ON(sgh->mask_array != NULL);
 
     /* mask array is 16 byte aligned for SIMD checking, also we always
-     * alloc a multiple of 16 bytes */
+     * alloc a multiple of 32 bytes */
     int cnt = sgh->sig_cnt;
-    if (cnt % 16 != 0) {
-        cnt += (16 - (cnt % 16));
+    if (cnt % 32 != 0) {
+        cnt += (32 - (cnt % 32));
     }
 
     sgh->mask_array = SCMallocAligned((cnt * sizeof(SignatureMask)), 16);
