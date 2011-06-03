@@ -101,7 +101,9 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, void *(*Alloc)(void *), vo
     return p;
 
 error:
-    /* XXX */
+    if (p != NULL) {
+        PoolFree(p);
+    }
     return NULL;
 }
 
