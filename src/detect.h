@@ -269,16 +269,14 @@ typedef struct DetectPort_ {
 
 
 /* signature mask flags */
-#define SIG_MASK_REQUIRE_PAYLOAD    0x01
-#define SIG_MASK_REQUIRE_FLOW       0x02
-//#define SIG_MASK_REQUIRE_PKTVAR     0x04
-
-//#define SIG_MASK_REQUIRE_FLOWBIT    0x08 // VJ: can't prefilter as it's dynamic
-//#define SIG_MASK_REQUIRE_FLOWVAR    0x10
-//#define SIG_MASK_REQUIRE_FLOWINT    0x20
-
-#define SIG_MASK_REQUIRE_HTTP_STATE 0x40
-#define SIG_MASK_REQUIRE_DCE_STATE  0x80
+#define SIG_MASK_REQUIRE_PAYLOAD            0x01
+#define SIG_MASK_REQUIRE_FLOW               0x02
+#define SIG_MASK_REQUIRE_FLAGS_INITDEINIT   0x04    /* SYN, FIN, RST */
+#define SIG_MASK_REQUIRE_FLAGS_UNUSUAL      0x08    /* URG, ECN, CWR */
+#define SIG_MASK_REQUIRE_NO_PAYLOAD         0x10
+//
+#define SIG_MASK_REQUIRE_HTTP_STATE         0x40
+#define SIG_MASK_REQUIRE_DCE_STATE          0x80
 
 /* for now a uint8_t is enough */
 #define SignatureMask uint8_t

@@ -1998,6 +1998,9 @@ deonly:
     SCReturnInt(1);
 }
 
+#define MASK_TCP_INITDEINIT_FLAGS   (TH_SYN|TH_RST|TH_FIN)
+#define MASK_TCP_UNUSUAL_FLAGS      (TH_URG|TH_ECN|TH_CWR)
+
 /* Create mask for this packet + it's flow if it has one
  *
  * Sets SIG_MASK_REQUIRE_PAYLOAD, SIG_MASK_REQUIRE_FLOW,
@@ -2008,6 +2011,18 @@ PacketCreateMask(Packet *p, SignatureMask *mask, uint16_t alproto, void *alstate
     if (!(p->flags & PKT_NOPAYLOAD_INSPECTION) && (p->payload_len > 0 || smsg != NULL)) {
         SCLogDebug("packet has payload");
         (*mask) |= SIG_MASK_REQUIRE_PAYLOAD;
+    } else {
+        SCLogDebug("packet has no payload");
+        (*mask) |= SIG_MASK_REQUIRE_NO_PAYLOAD;
+    }
+
+    if (PKT_IS_TCP(p)) {
+        if ((p->tcph->th_flags & MASK_TCP_INITDEINIT_FLAGS) != 0) {
+            (*mask) |= SIG_MASK_REQUIRE_FLAGS_INITDEINIT;
+        }
+        if ((p->tcph->th_flags & MASK_TCP_UNUSUAL_FLAGS) != 0) {
+            (*mask) |= SIG_MASK_REQUIRE_FLAGS_UNUSUAL;
+        }
     }
 
     if (p->flags & PKT_HAS_FLOW) {
@@ -2123,8 +2138,60 @@ static int SignatureCreateMask(Signature *s) {
                 s->mask |= SIG_MASK_REQUIRE_FLOW;
                 SCLogDebug("sig requires flow to be able to manipulate "
                         "flowbit(s)");
+                break;
             }
-            break;
+            case DETECT_FLAGS:
+            {
+                DetectFlagsData *fl = (DetectFlagsData *)sm->ctx;
+
+                if (fl->flags & TH_SYN) {
+                    s->mask |= SIG_MASK_REQUIRE_FLAGS_INITDEINIT;
+                    SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_INITDEINIT");
+                }
+                if (fl->flags & TH_RST) {
+                    s->mask |= SIG_MASK_REQUIRE_FLAGS_INITDEINIT;
+                    SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_INITDEINIT");
+                }
+                if (fl->flags & TH_FIN) {
+                    s->mask |= SIG_MASK_REQUIRE_FLAGS_INITDEINIT;
+                    SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_INITDEINIT");
+                }
+                if (fl->flags & TH_URG) {
+                    s->mask |= SIG_MASK_REQUIRE_FLAGS_UNUSUAL;
+                    SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_UNUSUAL");
+                }
+                if (fl->flags & TH_ECN) {
+                    s->mask |= SIG_MASK_REQUIRE_FLAGS_UNUSUAL;
+                    SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_UNUSUAL");
+                }
+                if (fl->flags & TH_CWR) {
+                    s->mask |= SIG_MASK_REQUIRE_FLAGS_UNUSUAL;
+                    SCLogDebug("sig requires SIG_MASK_REQUIRE_FLAGS_UNUSUAL");
+                }
+                break;
+            }
+            case DETECT_DSIZE:
+            {
+                DetectDsizeData *ds = (DetectDsizeData *)sm->ctx;
+                switch (ds->mode) {
+                    case DETECTDSIZE_RA:
+                    case DETECTDSIZE_LT:
+                    case DETECTDSIZE_GT:
+                        s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
+                        SCLogDebug("sig requires payload");
+                        break;
+                    case DETECTDSIZE_EQ:
+                        if (ds->dsize > 0) {
+                            s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
+                            SCLogDebug("sig requires payload");
+                        } else if (ds->dsize == 0) {
+                            s->mask |= SIG_MASK_REQUIRE_NO_PAYLOAD;
+                            SCLogDebug("sig requires no payload");
+                        }
+                        break;
+                }
+                break;
+            }
         }
     }
 
