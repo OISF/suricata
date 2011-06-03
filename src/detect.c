@@ -832,13 +832,25 @@ static inline int SigMatchSignaturesBuildMatchArrayAddSignature(DetectEngineThre
 }
 
 #if defined(__SSE3__)
+
+/**
+ *  \brief SIMD implementation of mask prefiltering.
+ *
+ *  Mass mask matching is done creating a bitmap of signatures that need
+ *  futher inspection.
+ *
+ *  On 32 bit systems we inspect in 32 sig batches, creating a u32 with flags.
+ *  On 64 bit systems we inspect in 64 sig batches, creating a u64 with flags.
+ *  The size of a register is leading here.
+ */
 static inline void SigMatchSignaturesBuildMatchArraySIMD(DetectEngineThreadCtx *det_ctx,
         Packet *p, SignatureMask mask, uint16_t alproto)
 {
     uint32_t u;
-    uint32_t bm; /* bit mask, 16 bits used */
     SigIntId x;
     int bitno = 0;
+#if __WORDSIZE == 32
+    register uint32_t bm; /* bit mask, 32 bits used */
 
     Vector pm, sm, r1, r2;
     /* load the packet mask into each byte of the vector */
@@ -874,8 +886,8 @@ static inline void SigMatchSignaturesBuildMatchArraySIMD(DetectEngineThreadCtx *
             continue;
         }
 
-        /* Check each bit in the bit map. Little endian is assumed (SSE is x86 or
-         * x86-64), so the bits are in memory backwards, 0 is on the right edge,
+        /* Check each bit in the bit map. Little endian is assumed (SSE is x86),
+         * so the bits are in memory backwards, 0 is on the right edge,
          * 31 on the left edge. This is why above we store the output of the
          * _mm_movemask_epi8 in this order as well */
         bitno = 0;
@@ -891,6 +903,81 @@ static inline void SigMatchSignaturesBuildMatchArraySIMD(DetectEngineThreadCtx *
             }
         }
     }
+#elif __WORDSIZE == 64
+    register uint64_t bm; /* bit mask, 64 bits used */
+
+    Vector pm, sm, r1, r2;
+    /* load the packet mask into each byte of the vector */
+    pm.v = _mm_set1_epi8(mask);
+
+    /* reset previous run */
+    det_ctx->match_array_cnt = 0;
+
+    for (u = 0; u < det_ctx->sgh->sig_cnt; u += 64) {
+        /* load a batch of masks */
+        sm.v = _mm_load_si128((const __m128i *)&det_ctx->sgh->mask_array[u]);
+        /* logical AND them with the packet's mask */
+        r1.v = _mm_and_si128(pm.v, sm.v);
+        /* compare the result with the original mask */
+        r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
+        /* convert into a bitarray */
+        bm = ((uint64_t) _mm_movemask_epi8(r2.v)) << 48;
+
+        SCLogDebug("bm1 %08x", bm);
+
+        /* load a batch of masks */
+        sm.v = _mm_load_si128((const __m128i *)&det_ctx->sgh->mask_array[u+16]);
+        /* logical AND them with the packet's mask */
+        r1.v = _mm_and_si128(pm.v, sm.v);
+        /* compare the result with the original mask */
+        r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
+        /* convert into a bitarray */
+        bm |= ((uint64_t) _mm_movemask_epi8(r2.v)) << 32;
+
+        /* load a batch of masks */
+        sm.v = _mm_load_si128((const __m128i *)&det_ctx->sgh->mask_array[u+32]);
+        /* logical AND them with the packet's mask */
+        r1.v = _mm_and_si128(pm.v, sm.v);
+        /* compare the result with the original mask */
+        r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
+        /* convert into a bitarray */
+        bm |= ((uint64_t) _mm_movemask_epi8(r2.v)) << 16;
+
+        /* load a batch of masks */
+        sm.v = _mm_load_si128((const __m128i *)&det_ctx->sgh->mask_array[u+48]);
+        /* logical AND them with the packet's mask */
+        r1.v = _mm_and_si128(pm.v, sm.v);
+        /* compare the result with the original mask */
+        r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
+        /* convert into a bitarray */
+        bm |= ((uint64_t) _mm_movemask_epi8(r2.v));
+
+        SCLogDebug("bm2 %08x", bm);
+
+        if (bm == 0) {
+            continue;
+        }
+
+        /* Check each bit in the bit map. Little endian is assumed (SSE is x86-64),
+         * so the bits are in memory backwards, 0 is on the right edge,
+         * 63 on the left edge. This is why above we store the output of the
+         * _mm_movemask_epi8 in this order as well */
+        bitno = 0;
+        for (x = u; x < det_ctx->sgh->sig_cnt && bitno < 64; x++, bitno++) {
+            if (bm & (1 << bitno)) {
+                SignatureHeader *s = &det_ctx->sgh->head_array[x];
+
+                if (SigMatchSignaturesBuildMatchArrayAddSignature(det_ctx, p, s, alproto) == 1) {
+                    /* okay, store it */
+                    det_ctx->match_array[det_ctx->match_array_cnt] = s->full_sig;
+                    det_ctx->match_array_cnt++;
+                }
+            }
+        }
+    }
+#else
+#error Wordsize (__WORDSIZE) neither 32 or 64.
+#endif
 }
 #endif /* defined(__SSE3__) */
 

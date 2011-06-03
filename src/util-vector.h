@@ -26,7 +26,7 @@
 
 #if defined(__SSE3__)
 
-#include <pmmintrin.h>
+#include <immintrin.h>
 
 typedef struct Vector_ {
     union {
