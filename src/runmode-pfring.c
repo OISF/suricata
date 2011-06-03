@@ -202,8 +202,6 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx)
     int thread;
     for (thread = 0; thread < thread_max; thread++) {
         snprintf(tname, sizeof(tname), "Detect%"PRIu16, thread+1);
-        if (tname == NULL)
-            break;
 
         char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);

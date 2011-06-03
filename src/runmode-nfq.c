@@ -172,8 +172,6 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx)
     for (thread = 0; thread < thread_max; thread++) {
         memset(tname, 0, sizeof(tname));
         snprintf(tname, sizeof(tname), "Detect%"PRIu16, thread+1);
-        if (tname == NULL)
-            break;
 
         char *thread_name = SCStrdup(tname);
         SCLogDebug("Assigning %s affinity", thread_name);
