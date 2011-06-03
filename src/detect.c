@@ -1278,14 +1278,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     SCLogDebug("pcap_cnt %"PRIu64, p->pcap_cnt);
 
+    p->alerts.cnt = 0;
+    det_ctx->pkts++;
+
     /* No need to perform any detection on this packet, if the the given flag is set.*/
     if (p->flags & PKT_NOPACKET_INSPECTION) {
         SCReturnInt(0);
     }
-
-    p->alerts.cnt = 0;
-
-    det_ctx->pkts++;
 
     /* grab the protocol state we will detect on */
     if (p->flags & PKT_HAS_FLOW) {
