@@ -118,6 +118,7 @@
 #include "app-layer-ftp.h"
 #include "app-layer-ssl.h"
 #include "app-layer-ssh.h"
+#include "app-layer-smtp.h"
 
 #include "util-radix-tree.h"
 #include "util-host-os-info.h"
@@ -1234,6 +1235,7 @@ int main(int argc, char **argv)
         DetectEngineHttpRawUriRegisterTests();
         DetectEngineRegisterTests();
         SCLogRegisterTests();
+        SMTPParserRegisterTests();
         if (list_unittests) {
             UtListTests(regex_arg);
         }

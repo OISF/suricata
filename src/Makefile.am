@@ -246,6 +246,7 @@ app-layer-dcerpc-udp.c app-layer-dcerpc-udp.h \
 app-layer-ftp.c app-layer-ftp.h \
 app-layer-ssl.c app-layer-ssl.h \
 app-layer-ssh.c app-layer-ssh.h \
+app-layer-smtp.c app-layer-smtp.h \
 defrag.c defrag.h \
 output.c output.h \
 win32-misc.c win32-misc.h \

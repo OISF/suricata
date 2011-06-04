@@ -50,6 +50,7 @@
 #include "app-layer-ftp.h"
 #include "app-layer-ssl.h"
 #include "app-layer-ssh.h"
+#include "app-layer-smtp.h"
 
 #include "util-spm.h"
 
@@ -1203,16 +1204,11 @@ void RegisterAppLayerParsers(void)
     RegisterDCERPCUDPParsers();
     RegisterFTPParsers();
     RegisterSSHParsers();
+    RegisterSMTPParsers();
 
     /** IMAP */
     AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_IMAP, "|2A 20|OK|20|", 5, 0, STREAM_TOCLIENT);
     AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_IMAP, "1|20|capability", 12, 0, STREAM_TOSERVER);
-
-    /** SMTP */
-    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SMTP, "EHLO ", 5, 0, STREAM_TOCLIENT);
-    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SMTP, "HELO ", 5, 0, STREAM_TOCLIENT);
-    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SMTP, "ESMTP ", 64, 4, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SMTP, "SMTP ", 64, 4, STREAM_TOSERVER);
 
     /** MSN Messenger */
     AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_MSN, "MSNP", 10, 6, STREAM_TOCLIENT);
