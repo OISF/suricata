@@ -229,6 +229,9 @@ threading:
     - detect_cpu_set:
         cpu: [ "all" ]
         mode: "exclusive" # run detect threads in these cpus
+        # Use explicitely 3 threads and don't compute number by using
+        # detect_thread_ratio variable:
+        # threads: 3
         prio:
           low: [ 0 ]
           medium: [ "1-2" ]
