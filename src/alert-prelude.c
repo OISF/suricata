@@ -329,7 +329,7 @@ static int EventToSourceTarget(Packet *p, idmef_alert_t *alert)
         SCReturnInt(ret);
 
     ret = idmef_target_new_service(target, &service);
-    if ( ! ret < 0 )
+    if ( ret < 0 )
         SCReturnInt(ret);
 
     if ( p->tcph || p->udph )
