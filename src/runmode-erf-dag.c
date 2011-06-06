@@ -207,7 +207,7 @@ int RunModeErfDagAuto(DetectEngineCtx *de_ctx)
                                     "alert-queue1", "simple",
                                     "packetpool", "packetpool",
                                     "varslot");
-    if (tv_outputs = NULL) {
+    if (tv_outputs == NULL) {
         printf("ERROR: TmThreadCreatePacketHandler for Outputs failed\n");
         exit(EXIT_FAILURE);
     }
