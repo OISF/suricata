@@ -867,7 +867,7 @@ static inline void SigMatchSignaturesBuildMatchArraySIMD(DetectEngineThreadCtx *
         /* compare the result with the original mask */
         r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
         /* convert into a bitarray */
-        bm = ((uint32_t) _mm_movemask_epi8(r2.v)) << 16;
+        bm = ((uint32_t) _mm_movemask_epi8(r2.v));
 
         SCLogDebug("bm1 %08x", bm);
 
@@ -878,7 +878,7 @@ static inline void SigMatchSignaturesBuildMatchArraySIMD(DetectEngineThreadCtx *
         /* compare the result with the original mask */
         r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
         /* convert into a bitarray */
-        bm |= ((uint32_t) _mm_movemask_epi8(r2.v));
+        bm |= ((uint32_t) _mm_movemask_epi8(r2.v) << 16);
 
         SCLogDebug("bm2 %08x", bm);
 
@@ -921,7 +921,7 @@ static inline void SigMatchSignaturesBuildMatchArraySIMD(DetectEngineThreadCtx *
         /* compare the result with the original mask */
         r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
         /* convert into a bitarray */
-        bm = ((uint64_t) _mm_movemask_epi8(r2.v)) << 48;
+        bm = ((uint64_t) _mm_movemask_epi8(r2.v));
 
         SCLogDebug("bm1 %08x", bm);
 
@@ -932,7 +932,7 @@ static inline void SigMatchSignaturesBuildMatchArraySIMD(DetectEngineThreadCtx *
         /* compare the result with the original mask */
         r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
         /* convert into a bitarray */
-        bm |= ((uint64_t) _mm_movemask_epi8(r2.v)) << 32;
+        bm |= ((uint64_t) _mm_movemask_epi8(r2.v)) << 16;
 
         /* load a batch of masks */
         sm.v = _mm_load_si128((const __m128i *)&det_ctx->sgh->mask_array[u+32]);
@@ -941,7 +941,7 @@ static inline void SigMatchSignaturesBuildMatchArraySIMD(DetectEngineThreadCtx *
         /* compare the result with the original mask */
         r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
         /* convert into a bitarray */
-        bm |= ((uint64_t) _mm_movemask_epi8(r2.v)) << 16;
+        bm |= ((uint64_t) _mm_movemask_epi8(r2.v)) << 32;
 
         /* load a batch of masks */
         sm.v = _mm_load_si128((const __m128i *)&det_ctx->sgh->mask_array[u+48]);
@@ -950,7 +950,7 @@ static inline void SigMatchSignaturesBuildMatchArraySIMD(DetectEngineThreadCtx *
         /* compare the result with the original mask */
         r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
         /* convert into a bitarray */
-        bm |= ((uint64_t) _mm_movemask_epi8(r2.v));
+        bm |= ((uint64_t) _mm_movemask_epi8(r2.v)) << 48;
 
         SCLogDebug("bm2 %08x", bm);
 
@@ -10488,6 +10488,130 @@ end:
     return result;
 }
 
+///   SCLogInfo("%s %u %u %u %u", #v, (v).dw[0], (v).dw[1], (v).dw[2], (v).dw[3]);
+#define VECTOR_SCLogInfo(v) { \
+   SCLogInfo("%s %08X %08X %08X %08X", #v, (v).dw[0], (v).dw[1], (v).dw[2], (v).dw[3]); \
+}
+
+int SigTestSIMDMask01(void) {
+#if defined (__SSE3__)
+    Vector pm, sm, r1, r2;
+    uint32_t bm = 0;
+
+    uint8_t *mask = SCMallocAligned(32, 16);
+    memset(mask, 0xEF, 32);
+    mask[31] = 0xFF;
+    printf("\n");
+    pm.v = _mm_set1_epi8(0xEF);
+    VECTOR_SCLogInfo(pm);
+
+    /* load a batch of masks */
+    sm.v = _mm_load_si128((const __m128i *)&mask[0]);
+    VECTOR_SCLogInfo(sm);
+
+    /* logical AND them with the packet's mask */
+    r1.v = _mm_and_si128(pm.v, sm.v);
+    VECTOR_SCLogInfo(r1);
+    /* compare the result with the original mask */
+    r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
+    VECTOR_SCLogInfo(r2);
+    /* convert into a bitarray */
+    bm = ((uint32_t) _mm_movemask_epi8(r2.v));
+
+    SCLogInfo("bm %08x", bm);
+
+    /* load a batch of masks */
+    sm.v = _mm_load_si128((const __m128i *)&mask[16]);
+    VECTOR_SCLogInfo(sm);
+    /* logical AND them with the packet's mask */
+    r1.v = _mm_and_si128(pm.v, sm.v);
+    VECTOR_SCLogInfo(r1);
+    /* compare the result with the original mask */
+    r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
+    VECTOR_SCLogInfo(r2);
+    /* convert into a bitarray */
+    bm |= ((uint32_t) _mm_movemask_epi8(r2.v)) << 16;
+
+    SCLogInfo("bm %08x", bm);
+
+    int b = 0;
+    for ( ; b < 32; b++){
+        if (bm & (1 << b)) {
+            SCLogInfo("b %02d, set", b);
+        } else {
+            SCLogInfo("b %02d, not set", b);
+
+        }
+    }
+
+    if (!(bm & (1 << 31))) {
+        return 1;
+    }
+    return 0;
+#else
+    return 1;
+#endif
+}
+
+int SigTestSIMDMask02(void) {
+#if defined (__SSE3__)
+    Vector pm, sm, r1, r2;
+    uint32_t bm = 0;
+
+    uint8_t *mask = SCMallocAligned(32, 16);
+    memset(mask, 0x01, 32);
+    mask[31] = 0;
+    pm.v = _mm_set1_epi8(0x02);
+    VECTOR_SCLogInfo(pm);
+
+    /* load a batch of masks */
+    sm.v = _mm_load_si128((const __m128i *)&mask[0]);
+    VECTOR_SCLogInfo(sm);
+
+    /* logical AND them with the packet's mask */
+    r1.v = _mm_and_si128(pm.v, sm.v);
+    VECTOR_SCLogInfo(r1);
+    /* compare the result with the original mask */
+    r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
+    VECTOR_SCLogInfo(r2);
+    /* convert into a bitarray */
+    bm = ((uint32_t) _mm_movemask_epi8(r2.v));
+
+    SCLogInfo("bm %08x", bm);
+
+    /* load a batch of masks */
+    sm.v = _mm_load_si128((const __m128i *)&mask[16]);
+    VECTOR_SCLogInfo(sm);
+    /* logical AND them with the packet's mask */
+    r1.v = _mm_and_si128(pm.v, sm.v);
+    VECTOR_SCLogInfo(r1);
+    /* compare the result with the original mask */
+    r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
+    VECTOR_SCLogInfo(r2);
+    /* convert into a bitarray */
+    bm |= ((uint32_t) _mm_movemask_epi8(r2.v)) << 16;
+
+    SCLogInfo("bm %08x", bm);
+
+    int b = 0;
+    for ( ; b < 32; b++){
+        if (bm & (1 << b)) {
+            SCLogInfo("b %02d, set", b);
+        } else {
+            SCLogInfo("b %02d, not set", b);
+
+        }
+    }
+
+    if (bm & (1 << 31)) {
+        return 1;
+    }
+    return 0;
+#else
+    return 1;
+#endif
+}
+
 #endif /* UNITTESTS */
 
 void SigRegisterTests(void) {
@@ -10694,6 +10818,9 @@ void SigRegisterTests(void) {
     UtRegisterTest("SigTestDropFlow02", SigTestDropFlow02, 1);
     UtRegisterTest("SigTestDropFlow03", SigTestDropFlow03, 1);
     UtRegisterTest("SigTestDropFlow04", SigTestDropFlow04, 1);
+
+    UtRegisterTest("SigTestSIMDMask01", SigTestSIMDMask01, 1);
+    UtRegisterTest("SigTestSIMDMask02", SigTestSIMDMask02, 1);
 
 #endif /* UNITTESTS */
 }
