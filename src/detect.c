@@ -964,7 +964,7 @@ static inline void SigMatchSignaturesBuildMatchArraySIMD(DetectEngineThreadCtx *
          * _mm_movemask_epi8 in this order as well */
         bitno = 0;
         for (x = u; x < det_ctx->sgh->sig_cnt && bitno < 64; x++, bitno++) {
-            if (bm & (1 << bitno)) {
+            if (bm & ((uint64_t)1 << bitno)) {
                 SignatureHeader *s = &det_ctx->sgh->head_array[x];
 
                 if (SigMatchSignaturesBuildMatchArrayAddSignature(det_ctx, p, s, alproto) == 1) {
@@ -10493,6 +10493,9 @@ end:
    SCLogInfo("%s %08X %08X %08X %08X", #v, (v).dw[0], (v).dw[1], (v).dw[2], (v).dw[3]); \
 }
 
+/**
+ *  \test Test 32 bit SIMD code.
+ */
 int SigTestSIMDMask01(void) {
 #if defined (__SSE3__)
     Vector pm, sm, r1, r2;
@@ -10553,6 +10556,9 @@ int SigTestSIMDMask01(void) {
 #endif
 }
 
+/**
+ *  \test Test 32 bit SIMD code.
+ */
 int SigTestSIMDMask02(void) {
 #if defined (__SSE3__)
     Vector pm, sm, r1, r2;
@@ -10604,6 +10610,186 @@ int SigTestSIMDMask02(void) {
     }
 
     if (bm & (1 << 31)) {
+        return 1;
+    }
+    return 0;
+#else
+    return 1;
+#endif
+}
+
+/**
+ *  \test Test 64 bit SIMD code.
+ */
+int SigTestSIMDMask03(void) {
+#if defined (__SSE3__)
+    Vector pm, sm, r1, r2;
+    uint64_t bm = 0;
+    uint8_t *mask = SCMallocAligned(64, 16);
+    memset(mask, 0xEF, 64);
+    mask[31] = 0xFF;
+    mask[62] = 0xFF;
+    printf("\n");
+    pm.v = _mm_set1_epi8(0xEF);
+    VECTOR_SCLogInfo(pm);
+
+    /* load a batch of masks */
+    sm.v = _mm_load_si128((const __m128i *)&mask[0]);
+    VECTOR_SCLogInfo(sm);
+    /* logical AND them with the packet's mask */
+    r1.v = _mm_and_si128(pm.v, sm.v);
+    VECTOR_SCLogInfo(r1);
+    /* compare the result with the original mask */
+    r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
+    VECTOR_SCLogInfo(r2);
+    /* convert into a bitarray */
+    bm = ((uint64_t) _mm_movemask_epi8(r2.v));
+
+    SCLogInfo("bm1 %"PRIxMAX, (uintmax_t)bm);
+
+    /* load a batch of masks */
+    sm.v = _mm_load_si128((const __m128i *)&mask[16]);
+    VECTOR_SCLogInfo(sm);
+    /* logical AND them with the packet's mask */
+    r1.v = _mm_and_si128(pm.v, sm.v);
+    VECTOR_SCLogInfo(r1);
+    /* compare the result with the original mask */
+    r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
+    VECTOR_SCLogInfo(r2);
+    /* convert into a bitarray */
+    bm |= ((uint64_t) _mm_movemask_epi8(r2.v)) << 16;
+
+    SCLogInfo("bm2 %"PRIxMAX, (uintmax_t)bm);
+
+    /* load a batch of masks */
+    sm.v = _mm_load_si128((const __m128i *)&mask[32]);
+    VECTOR_SCLogInfo(sm);
+    /* logical AND them with the packet's mask */
+    r1.v = _mm_and_si128(pm.v, sm.v);
+    VECTOR_SCLogInfo(r1);
+    /* compare the result with the original mask */
+    r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
+    VECTOR_SCLogInfo(r2);
+    /* convert into a bitarray */
+    bm |= ((uint64_t) _mm_movemask_epi8(r2.v)) << 32;
+
+    SCLogInfo("bm3 %"PRIxMAX, (uintmax_t)bm);
+
+    /* load a batch of masks */
+    sm.v = _mm_load_si128((const __m128i *)&mask[48]);
+    VECTOR_SCLogInfo(sm);
+    /* logical AND them with the packet's mask */
+    r1.v = _mm_and_si128(pm.v, sm.v);
+    VECTOR_SCLogInfo(r1);
+    /* compare the result with the original mask */
+    r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
+    VECTOR_SCLogInfo(r2);
+    /* convert into a bitarray */
+    bm |= ((uint64_t) _mm_movemask_epi8(r2.v)) << 48;
+
+    SCLogInfo("bm4 %"PRIxMAX, (uintmax_t)bm);
+
+    int b = 0;
+    for ( ; b < 64; b++){
+        if (bm & ((uint64_t)1 << b)) {
+            SCLogInfo("b %02d, set", b);
+        } else {
+            SCLogInfo("b %02d, not set", b);
+
+        }
+    }
+
+    if (!(bm & ((uint64_t)1 << 31)) && !(bm & ((uint64_t)1 << 62))) {
+        return 1;
+    }
+    return 0;
+#else
+    return 1;
+#endif
+}
+
+/**
+ *  \test Test 64 bit SIMD code.
+ */
+int SigTestSIMDMask04(void) {
+#if defined (__SSE3__)
+    Vector pm, sm, r1, r2;
+    uint64_t bm = 0;
+
+    uint8_t *mask = SCMallocAligned(64, 16);
+    memset(mask, 0x01, 64);
+    mask[31] = 0;
+    mask[62] = 0;
+    pm.v = _mm_set1_epi8(0x02);
+    VECTOR_SCLogInfo(pm);
+
+    /* load a batch of masks */
+    sm.v = _mm_load_si128((const __m128i *)&mask[0]);
+    VECTOR_SCLogInfo(sm);
+    /* logical AND them with the packet's mask */
+    r1.v = _mm_and_si128(pm.v, sm.v);
+    VECTOR_SCLogInfo(r1);
+    /* compare the result with the original mask */
+    r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
+    VECTOR_SCLogInfo(r2);
+    /* convert into a bitarray */
+    bm = ((uint64_t) _mm_movemask_epi8(r2.v));
+
+    SCLogInfo("bm1 %"PRIxMAX, (uintmax_t)bm);
+
+    /* load a batch of masks */
+    sm.v = _mm_load_si128((const __m128i *)&mask[16]);
+    VECTOR_SCLogInfo(sm);
+    /* logical AND them with the packet's mask */
+    r1.v = _mm_and_si128(pm.v, sm.v);
+    VECTOR_SCLogInfo(r1);
+    /* compare the result with the original mask */
+    r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
+    VECTOR_SCLogInfo(r2);
+    /* convert into a bitarray */
+    bm |= ((uint64_t) _mm_movemask_epi8(r2.v)) << 16;
+
+    SCLogInfo("bm2 %"PRIxMAX, (uintmax_t)bm);
+
+    /* load a batch of masks */
+    sm.v = _mm_load_si128((const __m128i *)&mask[32]);
+    VECTOR_SCLogInfo(sm);
+    /* logical AND them with the packet's mask */
+    r1.v = _mm_and_si128(pm.v, sm.v);
+    VECTOR_SCLogInfo(r1);
+    /* compare the result with the original mask */
+    r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
+    VECTOR_SCLogInfo(r2);
+    /* convert into a bitarray */
+    bm |= ((uint64_t) _mm_movemask_epi8(r2.v)) << 32;
+
+    SCLogInfo("bm3 %"PRIxMAX, (uintmax_t)bm);
+
+    /* load a batch of masks */
+    sm.v = _mm_load_si128((const __m128i *)&mask[48]);
+    VECTOR_SCLogInfo(sm);
+    /* logical AND them with the packet's mask */
+    r1.v = _mm_and_si128(pm.v, sm.v);
+    VECTOR_SCLogInfo(r1);
+    /* compare the result with the original mask */
+    r2.v = _mm_cmpeq_epi8(sm.v, r1.v);
+    VECTOR_SCLogInfo(r2);
+    /* convert into a bitarray */
+    bm |= (((uint64_t) _mm_movemask_epi8(r2.v)) << 48);
+
+    SCLogInfo("bm4-total %"PRIxMAX, (uintmax_t)bm);
+
+    int b = 0;
+    for ( ; b < 64; b++){
+        if (bm & ((uint64_t)1 << b)) {
+            SCLogInfo("b %02d, set", b);
+        } else {
+            SCLogInfo("b %02d, not set", b);
+
+        }
+    }
+
+    if ((bm & ((uint64_t)1 << 31)) && (bm & ((uint64_t)1 << 62))) {
         return 1;
     }
     return 0;
@@ -10821,6 +11007,8 @@ void SigRegisterTests(void) {
 
     UtRegisterTest("SigTestSIMDMask01", SigTestSIMDMask01, 1);
     UtRegisterTest("SigTestSIMDMask02", SigTestSIMDMask02, 1);
+    UtRegisterTest("SigTestSIMDMask03", SigTestSIMDMask03, 1);
+    UtRegisterTest("SigTestSIMDMask04", SigTestSIMDMask04, 1);
 
 #endif /* UNITTESTS */
 }
