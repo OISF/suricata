@@ -229,28 +229,53 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
         switch (dcerpc->dcerpcbindbindack.ctxbytesprocessed) {
             case 0:
                 if (input_len >= 44) {
-                    dcerpc->dcerpcbindbindack.ctxid = *(p);
-                    dcerpc->dcerpcbindbindack.ctxid |= *(p + 1) << 8;
-                    dcerpc->dcerpcbindbindack.uuid[3] = *(p + 4);
-                    dcerpc->dcerpcbindbindack.uuid[2] = *(p + 5);
-                    dcerpc->dcerpcbindbindack.uuid[1] = *(p + 6);
-                    dcerpc->dcerpcbindbindack.uuid[0] = *(p + 7);
-                    dcerpc->dcerpcbindbindack.uuid[5] = *(p + 8);
-                    dcerpc->dcerpcbindbindack.uuid[4] = *(p + 9);
-                    dcerpc->dcerpcbindbindack.uuid[7] = *(p + 10);
-                    dcerpc->dcerpcbindbindack.uuid[6] = *(p + 11);
-                    dcerpc->dcerpcbindbindack.uuid[8] = *(p + 12);
-                    dcerpc->dcerpcbindbindack.uuid[9] = *(p + 13);
-                    dcerpc->dcerpcbindbindack.uuid[10] = *(p + 14);
-                    dcerpc->dcerpcbindbindack.uuid[11] = *(p + 15);
-                    dcerpc->dcerpcbindbindack.uuid[12] = *(p + 16);
-                    dcerpc->dcerpcbindbindack.uuid[13] = *(p + 17);
-                    dcerpc->dcerpcbindbindack.uuid[14] = *(p + 18);
-                    dcerpc->dcerpcbindbindack.uuid[15] = *(p + 19);
-                    dcerpc->dcerpcbindbindack.version = *(p + 20);
-                    dcerpc->dcerpcbindbindack.version |= *(p + 21) << 8;
-                    dcerpc->dcerpcbindbindack.versionminor = *(p + 22);
-                    dcerpc->dcerpcbindbindack.versionminor |= *(p + 23) << 8;
+			if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+						dcerpc->dcerpcbindbindack.ctxid = *(p);
+						dcerpc->dcerpcbindbindack.ctxid |= *(p + 1) << 8;
+						dcerpc->dcerpcbindbindack.uuid[3] = *(p + 4);
+						dcerpc->dcerpcbindbindack.uuid[2] = *(p + 5);
+						dcerpc->dcerpcbindbindack.uuid[1] = *(p + 6);
+						dcerpc->dcerpcbindbindack.uuid[0] = *(p + 7);
+						dcerpc->dcerpcbindbindack.uuid[5] = *(p + 8);
+						dcerpc->dcerpcbindbindack.uuid[4] = *(p + 9);
+						dcerpc->dcerpcbindbindack.uuid[7] = *(p + 10);
+						dcerpc->dcerpcbindbindack.uuid[6] = *(p + 11);
+						dcerpc->dcerpcbindbindack.uuid[8] = *(p + 12);
+						dcerpc->dcerpcbindbindack.uuid[9] = *(p + 13);
+						dcerpc->dcerpcbindbindack.uuid[10] = *(p + 14);
+						dcerpc->dcerpcbindbindack.uuid[11] = *(p + 15);
+						dcerpc->dcerpcbindbindack.uuid[12] = *(p + 16);
+						dcerpc->dcerpcbindbindack.uuid[13] = *(p + 17);
+						dcerpc->dcerpcbindbindack.uuid[14] = *(p + 18);
+						dcerpc->dcerpcbindbindack.uuid[15] = *(p + 19);
+						dcerpc->dcerpcbindbindack.version = *(p + 20);
+						dcerpc->dcerpcbindbindack.version |= *(p + 21) << 8;
+						dcerpc->dcerpcbindbindack.versionminor = *(p + 22);
+						dcerpc->dcerpcbindbindack.versionminor |= *(p + 23) << 8;
+			} else { /* Big Endian */
+				dcerpc->dcerpcbindbindack.ctxid = *(p) << 8;
+				dcerpc->dcerpcbindbindack.ctxid |= *(p + 1);
+				dcerpc->dcerpcbindbindack.uuid[0] = *(p + 4);
+				dcerpc->dcerpcbindbindack.uuid[1] = *(p + 5);
+				dcerpc->dcerpcbindbindack.uuid[2] = *(p + 6);
+				dcerpc->dcerpcbindbindack.uuid[3] = *(p + 7);
+				dcerpc->dcerpcbindbindack.uuid[4] = *(p + 8);
+				dcerpc->dcerpcbindbindack.uuid[5] = *(p + 9);
+				dcerpc->dcerpcbindbindack.uuid[6] = *(p + 10);
+				dcerpc->dcerpcbindbindack.uuid[7] = *(p + 11);
+				dcerpc->dcerpcbindbindack.uuid[8] = *(p + 12);
+				dcerpc->dcerpcbindbindack.uuid[9] = *(p + 13);
+				dcerpc->dcerpcbindbindack.uuid[10] = *(p + 14);
+				dcerpc->dcerpcbindbindack.uuid[11] = *(p + 15);
+				dcerpc->dcerpcbindbindack.uuid[12] = *(p + 16);
+				dcerpc->dcerpcbindbindack.uuid[13] = *(p + 17);
+				dcerpc->dcerpcbindbindack.uuid[14] = *(p + 18);
+				dcerpc->dcerpcbindbindack.uuid[15] = *(p + 19);
+				dcerpc->dcerpcbindbindack.version = *(p + 20) << 8;
+				dcerpc->dcerpcbindbindack.version |= *(p + 21);
+				dcerpc->dcerpcbindbindack.versionminor = *(p + 22) << 8;
+				dcerpc->dcerpcbindbindack.versionminor |= *(p + 23);
+			}
                     //if (dcerpc->dcerpcbindbindack.ctxid == dcerpc->dcerpcbindbindack.numctxitems
                     //        - dcerpc->dcerpcbindbindack.numctxitemsleft) {
 
@@ -279,6 +304,7 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                     TAILQ_INSERT_HEAD(&dcerpc->dcerpcbindbindack.uuid_list,
                             dcerpc->dcerpcbindbindack.uuid_entry,
                             next);
+
 #ifdef UNITTESTS
                     if (RunmodeIsUnittests()) {
                         printUUID("BIND", dcerpc->dcerpcbindbindack.uuid_entry);
@@ -295,12 +321,20 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                     //    SCReturnUInt(0);
                     //}
                 } else {
-                    dcerpc->dcerpcbindbindack.ctxid = *(p++);
+			if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+				dcerpc->dcerpcbindbindack.ctxid = *(p++);
+			} else {
+				dcerpc->dcerpcbindbindack.ctxid = *(p++) << 8;
+			}
                     if (!(--input_len))
                         break;
                 }
             case 1:
-                dcerpc->dcerpcbindbindack.ctxid |= *(p++) << 8;
+		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+			dcerpc->dcerpcbindbindack.ctxid |= *(p++) << 8;
+		} else {
+			dcerpc->dcerpcbindbindack.ctxid |= *(p++);
+		}
                 if (!(--input_len))
                     break;
             case 2:
@@ -314,39 +348,72 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                 if (!(--input_len))
                     break;
             case 4:
-                dcerpc->dcerpcbindbindack.uuid[3] = *(p++);
+		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+			dcerpc->dcerpcbindbindack.uuid[3] = *(p++);
+		} else {
+			dcerpc->dcerpcbindbindack.uuid[0] = *(p++);
+		}
                 if (!(--input_len))
                     break;
             case 5:
-                dcerpc->dcerpcbindbindack.uuid[2] = *(p++);
+		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+			dcerpc->dcerpcbindbindack.uuid[2] = *(p++);
+		} else {
+			dcerpc->dcerpcbindbindack.uuid[1] = *(p++);
+		}
                 if (!(--input_len))
                     break;
             case 6:
-                dcerpc->dcerpcbindbindack.uuid[1] = *(p++);
+		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+			dcerpc->dcerpcbindbindack.uuid[1] = *(p++);
+		} else {
+			dcerpc->dcerpcbindbindack.uuid[2] = *(p++);
+		}
                 if (!(--input_len))
                     break;
             case 7:
-                dcerpc->dcerpcbindbindack.uuid[0] = *(p++);
+		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+			dcerpc->dcerpcbindbindack.uuid[0] = *(p++);
+		} else {
+			dcerpc->dcerpcbindbindack.uuid[3] = *(p++);
+		}
                 if (!(--input_len))
                     break;
             case 8:
-                dcerpc->dcerpcbindbindack.uuid[5] = *(p++);
+		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+			dcerpc->dcerpcbindbindack.uuid[5] = *(p++);
+		} else {
+			dcerpc->dcerpcbindbindack.uuid[4] = *(p++);
+		}
                 if (!(--input_len))
                     break;
             case 9:
-                dcerpc->dcerpcbindbindack.uuid[4] = *(p++);
+		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+			dcerpc->dcerpcbindbindack.uuid[4] = *(p++);
+		} else {
+			dcerpc->dcerpcbindbindack.uuid[5] = *(p++);
+		}
                 if (!(--input_len))
                     break;
             case 10:
-                dcerpc->dcerpcbindbindack.uuid[7] = *(p++);
+		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+			dcerpc->dcerpcbindbindack.uuid[7] = *(p++);
+		} else {
+			dcerpc->dcerpcbindbindack.uuid[6] = *(p++);
+		}
                 if (!(--input_len))
                     break;
             case 11:
-                dcerpc->dcerpcbindbindack.uuid[6] = *(p++);
+		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+			dcerpc->dcerpcbindbindack.uuid[6] = *(p++);
+		} else {
+			dcerpc->dcerpcbindbindack.uuid[7] = *(p++);
+		}
                 if (!(--input_len))
                     break;
             case 12:
-                dcerpc->dcerpcbindbindack.uuid[8] = *(p++);
+		/* The following bytes are in the same order for both big and little endian */
+		dcerpc->dcerpcbindbindack.uuid[8] = *(p++);
                 if (!(--input_len))
                     break;
             case 13:
@@ -378,19 +445,35 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                 if (!(--input_len))
                     break;
             case 20:
-                dcerpc->dcerpcbindbindack.version = *(p++);
+		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+			dcerpc->dcerpcbindbindack.version = *(p++);
+		} else {
+			dcerpc->dcerpcbindbindack.version = *(p++) << 8;
+		}
                 if (!(--input_len))
                     break;
             case 21:
-                dcerpc->dcerpcbindbindack.version |= *(p++);
+		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+			dcerpc->dcerpcbindbindack.version |= *(p++) << 8;
+		} else {
+			dcerpc->dcerpcbindbindack.version |= *(p++);
+		}
                 if (!(--input_len))
                     break;
             case 22:
-                dcerpc->dcerpcbindbindack.versionminor = *(p++);
+		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+			dcerpc->dcerpcbindbindack.versionminor = *(p++);
+		} else {
+			dcerpc->dcerpcbindbindack.versionminor = *(p++) << 8;
+		}
                 if (!(--input_len))
                     break;
             case 23:
-                dcerpc->dcerpcbindbindack.versionminor |= *(p++);
+		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+			dcerpc->dcerpcbindbindack.versionminor |= *(p++) << 8;
+		} else {
+			dcerpc->dcerpcbindbindack.versionminor |= *(p++);
+		}
                 if (!(--input_len))
                     break;
             case 24:
@@ -535,8 +618,13 @@ static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, uint8_t *input, uint32
         switch (dcerpc->dcerpcbindbindack.ctxbytesprocessed) {
             case 0:
                 if (input_len >= 24) {
-                    dcerpc->dcerpcbindbindack.result = *p;
-                    dcerpc->dcerpcbindbindack.result |= *(p + 1) << 8;
+			if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+				dcerpc->dcerpcbindbindack.result = *p;
+				dcerpc->dcerpcbindbindack.result |= *(p + 1) << 8;
+			} else {
+				dcerpc->dcerpcbindbindack.result = *p << 8;
+				dcerpc->dcerpcbindbindack.result |= *(p + 1);
+			}
                     TAILQ_FOREACH(uuid_entry, &dcerpc->dcerpcbindbindack.uuid_list, next) {
                         if (uuid_entry->internal_id == dcerpc->dcerpcbindbindack.uuid_internal_id) {
                             uuid_entry->result = dcerpc->dcerpcbindbindack.result;
@@ -570,12 +658,20 @@ static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, uint8_t *input, uint32
                     dcerpc->dcerpcbindbindack.ctxbytesprocessed += (24);
                     SCReturnUInt(24U);
                 } else {
-                    dcerpc->dcerpcbindbindack.result = *(p++);
+			if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+				dcerpc->dcerpcbindbindack.result = *(p++);
+			} else {
+				dcerpc->dcerpcbindbindack.result = *(p++) << 8;
+			}
                     if (!(--input_len))
                         break;
                 }
             case 1:
-                dcerpc->dcerpcbindbindack.result |= *(p++) << 8;
+		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+			dcerpc->dcerpcbindbindack.result |= *(p++) << 8;
+		} else {
+			dcerpc->dcerpcbindbindack.result |= *(p++);
+		}
                 if (!(--input_len))
                     break;
             case 2:
@@ -945,13 +1041,13 @@ static uint32_t DCERPCParseREQUEST(DCERPC *dcerpc, uint8_t *input, uint32_t inpu
                 break;
         case 20:
             /* context id 1 */
-            dcerpc->dcerpcrequest.ctxid = *(p++) << 8;
+            dcerpc->dcerpcrequest.ctxid = *(p++);
             if (!(--input_len))
                 break;
         case 21:
             /* context id 2 */
-            dcerpc->dcerpcrequest.ctxid |= *(p++);
-            if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+            dcerpc->dcerpcrequest.ctxid |= *(p++) << 8;
+            if (dcerpc->dcerpchdr.packed_drep[0] == 0x00) {
                 dcerpc->dcerpcrequest.ctxid = SCByteSwap16(dcerpc->dcerpcrequest.ctxid);
             }
             dcerpc->dcerpcrequest.first_request_seen = 1;
@@ -959,7 +1055,7 @@ static uint32_t DCERPCParseREQUEST(DCERPC *dcerpc, uint8_t *input, uint32_t inpu
                 break;
         case 22:
             if (dcerpc->dcerpchdr.type == REQUEST) {
-                dcerpc->dcerpcrequest.opnum = *(p++) << 8;
+                dcerpc->dcerpcrequest.opnum = *(p++);
             } else {
                 p++;
             }
@@ -967,8 +1063,8 @@ static uint32_t DCERPCParseREQUEST(DCERPC *dcerpc, uint8_t *input, uint32_t inpu
                 break;
         case 23:
             if (dcerpc->dcerpchdr.type == REQUEST) {
-                dcerpc->dcerpcrequest.opnum |= *(p++);
-                if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+                dcerpc->dcerpcrequest.opnum |= *(p++) << 8;
+                if (dcerpc->dcerpchdr.packed_drep[0] == 0x00) {
                     dcerpc->dcerpcrequest.opnum = SCByteSwap16(dcerpc->dcerpcrequest.opnum);
                 }
             } else {
@@ -1163,36 +1259,36 @@ static int DCERPCParseHeader(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                 if (!(--input_len))
                     break;
             case 8:
-                dcerpc->dcerpchdr.frag_length = *(p++) << 8;
+		dcerpc->dcerpchdr.frag_length = *(p++);
                 if (!(--input_len))
                     break;
             case 9:
-                dcerpc->dcerpchdr.frag_length |= *(p++);
+		dcerpc->dcerpchdr.frag_length |= *(p++) << 8;
                 if (!(--input_len))
                     break;
             case 10:
-                dcerpc->dcerpchdr.auth_length = *(p++) << 8;
+		dcerpc->dcerpchdr.auth_length = *(p++);
                 if (!(--input_len))
                     break;
             case 11:
-                dcerpc->dcerpchdr.auth_length |= *(p++);
+			dcerpc->dcerpchdr.auth_length |= *(p++) << 8;
                 if (!(--input_len))
                     break;
             case 12:
-                dcerpc->dcerpchdr.call_id = *(p++) << 24;
+			dcerpc->dcerpchdr.call_id = *(p++);
                 if (!(--input_len))
                     break;
             case 13:
-                dcerpc->dcerpchdr.call_id |= *(p++) << 16;
+			dcerpc->dcerpchdr.call_id |= *(p++) << 8;
                 if (!(--input_len))
                     break;
             case 14:
-                dcerpc->dcerpchdr.call_id |= *(p++) << 8;
+			dcerpc->dcerpchdr.call_id |= *(p++) << 16;
                 if (!(--input_len))
                     break;
             case 15:
-                dcerpc->dcerpchdr.call_id |= *(p++);
-                if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+			dcerpc->dcerpchdr.call_id |= *(p++) << 24;
+                if (dcerpc->dcerpchdr.packed_drep[0] == 0x00) {
                     dcerpc->dcerpchdr.frag_length = SCByteSwap16(dcerpc->dcerpchdr.frag_length);
                     dcerpc->dcerpchdr.auth_length = SCByteSwap16(dcerpc->dcerpchdr.auth_length);
                     dcerpc->dcerpchdr.call_id = SCByteSwap32(dcerpc->dcerpchdr.call_id);
@@ -1328,7 +1424,6 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
             }
             SCReturnInt(parsed);
         }
-
         switch (dcerpc->dcerpchdr.type) {
             case BIND:
             case ALTER_CONTEXT:
