@@ -55,6 +55,16 @@
 #define DE_STATE_FLAG_HRUD_MATCH    0x0100 /**< hrud payload inspection part matched */
 #define DE_STATE_FLAG_FULL_MATCH    0x0200 /**< sig already fully matched */
 
+#define DE_STATE_FLAG_URI_INSPECT   DE_STATE_FLAG_URI_MATCH     /**< uri part of the sig inspected */
+#define DE_STATE_FLAG_DCE_INSPECT   DE_STATE_FLAG_DCE_MATCH     /**< dce payload inspection part inspected */
+#define DE_STATE_FLAG_HCBD_INSPECT  DE_STATE_FLAG_HCBD_MATCH    /**< hcbd payload inspection part inspected */
+#define DE_STATE_FLAG_HHD_INSPECT   DE_STATE_FLAG_HHD_MATCH     /**< hhd payload inspection part inspected */
+#define DE_STATE_FLAG_HRHD_INSPECT  DE_STATE_FLAG_HRHD_MATCH    /**< hrhd payload inspection part inspected */
+#define DE_STATE_FLAG_HMD_INSPECT   DE_STATE_FLAG_HMD_MATCH     /**< hmd payload inspection part inspected */
+#define DE_STATE_FLAG_HCD_INSPECT   DE_STATE_FLAG_HCD_MATCH     /**< hcd payload inspection part inspected */
+#define DE_STATE_FLAG_HRUD_INSPECT  DE_STATE_FLAG_HRUD_MATCH    /**< hrud payload inspection part inspected */
+
+
 /** per signature detection engine state */
 typedef enum {
     DE_STATE_MATCH_NOSTATE = 0, /**< no state for this sig*/
