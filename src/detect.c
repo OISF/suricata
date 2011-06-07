@@ -1273,6 +1273,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     StreamMsg *smsg = NULL;
     Signature *s = NULL;
     SigMatch *sm = NULL;
+    uint16_t alversion = 0;
 
     SCEnter();
 
@@ -1328,6 +1329,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             {
                 alstate = AppLayerGetProtoStateFromPacket(p);
                 alproto = AppLayerGetProtoFromPacket(p);
+                alversion = AppLayerGetStateVersion(p->flow);
                 SCLogDebug("alstate %p, alproto %u", alstate, alproto);
             } else {
                 SCLogDebug("packet doesn't have established flag set (proto %d)", IP_GET_IPPROTO(p));
@@ -1402,9 +1404,12 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         memset(det_ctx->de_state_sig_array, 0x00, det_ctx->de_state_sig_array_len);
 
         /* if applicable, continue stateful detection */
-        if (DeStateFlowHasState(p->flow)) {
+        int state = DeStateFlowHasState(p->flow, flags, alversion);
+        if (state == 1) {
             DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p->flow,
-                    flags, alstate, alproto);
+                    flags, alstate, alproto, alversion);
+        } else if (state == 2) {
+            alstate = NULL;
         }
     }
 
@@ -1580,7 +1585,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             if (det_ctx->de_state_sig_array[s->num] == DE_STATE_MATCH_NOSTATE) {
                 SCLogDebug("stateful app layer match inspection starting");
                 if (DeStateDetectStartDetection(th_v, de_ctx, det_ctx, s,
-                            p->flow, flags, alstate, alproto) != 1) {
+                            p->flow, flags, alstate, alproto, alversion) != 1) {
                     goto next;
                 } else {
                     if (s->action == ACTION_DROP)

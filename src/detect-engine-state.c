@@ -267,18 +267,46 @@ static void DeStateSignatureAppend(DetectEngineState *state, Signature *s,
             uricontent + app layer sm
 */
 
-/** \brief Check if a flow already contains a flow detect state
+uint16_t DeStateGetStateVersion(DetectEngineState *de_state, uint8_t direction) {
+    if (direction & STREAM_TOSERVER) {
+        SCReturnUInt(de_state->toserver_version);
+    } else {
+        SCReturnUInt(de_state->toclient_version);
+    }
+}
+
+void DeStateStoreStateVersion(DetectEngineState *de_state, uint8_t direction,
+        uint16_t alversion)
+{
+    if (direction & STREAM_TOSERVER) {
+        SCLogDebug("STREAM_TOSERVER updated to %"PRIu16, alversion);
+        de_state->toserver_version = alversion;
+    } else {
+        SCLogDebug("STREAM_TOCLIENT updated to %"PRIu16, alversion);
+        de_state->toclient_version = alversion;
+    }
+}
+
+/**
+ *  \brief Check if a flow already contains a flow detect state
+ *
+ *  \retval 2 has state, but it's not updated
  *  \retval 1 has state
  *  \retval 0 has no state
  */
-int DeStateFlowHasState(Flow *f) {
+int DeStateFlowHasState(Flow *f, uint8_t flags, uint16_t alversion) {
     SCEnter();
+
     int r = 0;
     SCMutexLock(&f->de_state_m);
+
     if (f->de_state == NULL || f->de_state->cnt == 0)
         r = 0;
+    else if (DeStateGetStateVersion(f->de_state, flags) == alversion)
+        r = 2;
     else
         r = 1;
+
     SCMutexUnlock(&f->de_state_m);
     SCReturnInt(r);
 }
@@ -290,7 +318,7 @@ int DeStateFlowHasState(Flow *f) {
  */
 int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Signature *s, Flow *f, uint8_t flags,
-        void *alstate, uint16_t alproto)
+        void *alstate, uint16_t alproto, uint16_t alversion)
 {
     SCEnter();
 
@@ -451,6 +479,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     if (f->de_state != NULL) {
         /* \todo shift to an array to transfer these match values*/
         DeStateSignatureAppend(f->de_state, s, sm, match_flags);
+        DeStateStoreStateVersion(f->de_state, flags, alversion);
     }
     SCMutexUnlock(&f->de_state_m);
 
@@ -462,7 +491,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
  *  \retval 0 all is good
  */
 int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        Flow *f, uint8_t flags, void *alstate, uint16_t alproto)
+        Flow *f, uint8_t flags, void *alstate, uint16_t alproto, uint16_t alversion)
 {
     SCEnter();
     SigIntId cnt = 0;
@@ -480,6 +509,10 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
 
     if (f->de_state == NULL || f->de_state->cnt == 0)
         goto end;
+
+    if (DeStateGetStateVersion(f->de_state, flags) == alversion) {
+        goto end;
+    }
 
     /* loop through the stores */
     for (store = f->de_state->head; store != NULL; store = store->next)
@@ -701,6 +734,7 @@ next_sig:
         }
     }
 
+    DeStateStoreStateVersion(f->de_state, flags, alversion);
 end:
     SCMutexUnlock(&f->de_state_m);
     SCReturnInt(0);
@@ -723,30 +757,6 @@ int DeStateRestartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
     SCMutexUnlock(&f->de_state_m);
 
     SCReturnInt(0);
-}
-
-/**
- *  \retval 1 match
- *  \retval 0 no match
- */
-int DeStateDetectSignature(ThreadVars *tv, DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p, uint8_t flags,
-        void *alstate, uint16_t alproto)
-{
-    SCEnter();
-    int r = 0;
-
-    if (p->flow == NULL) {
-        SCReturnInt(0);
-    }
-
-    /* if there is already a state, continue the inspection of this
-     * signature using that state.
-     */
-    r = DeStateDetectStartDetection(tv, de_ctx, det_ctx, s, p->flow, flags,
-            alstate, alproto);
-
-    SCReturnInt(r);
 }
 
 #ifdef UNITTESTS

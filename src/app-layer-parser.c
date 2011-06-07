@@ -830,6 +830,10 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
         SCReturnInt(-1);
     }
 
+    parser_state_store->version++;
+    SCLogDebug("app layer state version incremented to %"PRIu16,
+            parser_state_store->version);
+
     AppLayerParserState *parser_state = NULL;
     if (flags & STREAM_TOSERVER) {
         SCLogDebug("to_server msg (flow %p)", f);
@@ -1095,6 +1099,28 @@ int AppLayerTransactionGetLoggedId(Flow *f) {
 
 error:
     SCReturnInt(-1);
+}
+
+/**
+ *  \brief get the version of the state in a direction
+ *
+ *  \param f LOCKED flow
+ *  \param direction STREAM_TOSERVER or STREAM_TOCLIENT
+ */
+uint16_t AppLayerGetStateVersion(Flow *f) {
+    SCEnter();
+    uint16_t version = 0;
+    AppLayerParserStateStore *parser_state_store = NULL;
+
+    /* Get the parser state (if any) */
+    if (f->aldata != NULL) {
+        parser_state_store = (AppLayerParserStateStore *)f->aldata[app_layer_sid];
+        if (parser_state_store != NULL) {
+            version = parser_state_store->version;
+        }
+    }
+
+    SCReturnUInt(version);
 }
 
 /**

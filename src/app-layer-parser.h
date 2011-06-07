@@ -117,6 +117,9 @@ typedef struct AppLayerParserStateStore_ {
      *  state. As transactions may be cleaned up before the entire state is
      *  freed, id's may "disappear". */
     uint16_t base_id;
+
+    uint16_t version;       /**< state version, incremented for each update,
+                             *   can wrap around */
 } AppLayerParserStateStore;
 
 typedef struct AppLayerParserTableElement_ {
@@ -241,6 +244,7 @@ uint8_t AppLayerRegisterModule(void);
 uint8_t AppLayerGetStorageSize(void);
 void AppLayerFreeProbingParsers(AppLayerProbingParser *);
 
+uint16_t AppLayerGetStateVersion(Flow *f);
 
 #endif /* __APP_LAYER_PARSER_H__ */
 
