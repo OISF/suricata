@@ -662,18 +662,27 @@ typedef struct DecodeThreadVars_
 } while (0)
 
 #define TUNNEL_INCR_PKT_RTV(p) do {                                                 \
-        ((p)->root ? SC_ATOMIC_ADD((p)->root->tunnel_rtv_cnt, 1) :                  \
-                     SC_ATOMIC_ADD((p)->tunnel_rtv_cnt, 1));                        \
+        if ((p)->root != NULL) {                                                    \
+            SC_ATOMIC_ADD((p)->root->tunnel_rtv_cnt, 1);                            \
+        } else {                                                                    \
+            SC_ATOMIC_ADD((p)->tunnel_rtv_cnt, 1);                                  \
+        }                                                                           \
     } while (0)
 
 #define TUNNEL_INCR_PKT_TPR(p) do {                                                 \
-        ((p)->root ? SC_ATOMIC_ADD((p)->root->tunnel_tpr_cnt, 1) :                  \
-                     SC_ATOMIC_ADD((p)->tunnel_tpr_cnt, 1));                        \
+        if ((p)->root != NULL) {                                                    \
+            SC_ATOMIC_ADD((p)->root->tunnel_tpr_cnt, 1);                            \
+        } else {                                                                    \
+            SC_ATOMIC_ADD((p)->tunnel_tpr_cnt, 1);                                  \
+        }                                                                           \
     } while (0)
 
 #define TUNNEL_DECR_PKT_TPR(p) do {                                                 \
-        ((p)->root ? SC_ATOMIC_SUB((p)->root->tunnel_tpr_cnt, 1) :                  \
-                     SC_ATOMIC_SUB((p)->tunnel_tpr_cnt, 1));                        \
+        if ((p)->root != NULL) {                                                    \
+            SC_ATOMIC_SUB((p)->root->tunnel_tpr_cnt, 1);                            \
+        } else {                                                                    \
+            SC_ATOMIC_SUB((p)->tunnel_tpr_cnt, 1);                                  \
+        }                                                                           \
     } while (0)
 
 #define TUNNEL_PKT_RTV(p)           ((p)->root ?                                    \
