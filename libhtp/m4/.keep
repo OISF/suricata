@@ -1,0 +1,2 @@
+libhtp/m4 dir won't be created on CentOS 5.3 by autogen.sh, so work around that by having it in git
+
