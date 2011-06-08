@@ -831,11 +831,15 @@ static int DeStateTest02(void) {
         goto end;
     }
 
-    if (state->head->store[15].sid != 155) {
+    if (state->head->store[14].sid != 144) {
         goto end;
     }
 
-    if (state->head->next->store[0].sid != 166) {
+    if (state->head->next->store[0].sid != 155) {
+        goto end;
+    }
+
+    if (state->head->next->store[1].sid != 166) {
         goto end;
     }
 
