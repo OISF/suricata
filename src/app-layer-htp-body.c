@@ -138,7 +138,7 @@ error:
         if (bd->data != NULL) {
             SCFree(bd->data);
         }
-        SCFree(bd->data);
+        SCFree(bd);
     }
     SCReturnInt(-1);
 }
