@@ -850,9 +850,6 @@ static void HTPConfigure(void)
     ConfNode *default_config;
     ConfNode *server_config;
 
-    AppLayerRegisterStateFuncs(ALPROTO_HTTP, HTPStateAlloc, HTPStateFree);
-    AppLayerRegisterTransactionIdFuncs(ALPROTO_HTTP, HTPStateUpdateTransactionId, HTPStateTransactionFree);
-
     cfglist.next = NULL;
 
     cfgtree = SCRadixCreateRadixTree(NULL, NULL);
@@ -1145,6 +1142,7 @@ void RegisterHTPParsers(void)
     //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_HTTP, "HTTP/", 5, 0, STREAM_TOCLIENT);
 
     AppLayerRegisterStateFuncs(ALPROTO_HTTP, HTPStateAlloc, HTPStateFree);
+    AppLayerRegisterTransactionIdFuncs(ALPROTO_HTTP, HTPStateUpdateTransactionId, HTPStateTransactionFree);
 
     AppLayerRegisterProto("http", ALPROTO_HTTP, STREAM_TOSERVER,
                           HTPHandleRequestData);
