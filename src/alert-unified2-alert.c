@@ -513,26 +513,21 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
     Unified2AlertFileHeader hdr;
     PacketAlert *pa;
     int ret, len;
+    char head_buf[sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv6Unified2)];
 
     if (p->alerts.cnt == 0)
         return 0;
 
     len = (sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv6Unified2));
 
-    if (len > aun->datalen) {
-        SCLogError(SC_ERR_INVALID_VALUE, "len is too big for thread data: %d vs %d",
-                   len, aun->datalen);
-        return -1;
-    }
-    memset(aun->data,0,aun->datalen);
-
     memset(&hdr, 0, sizeof(Unified2AlertFileHeader));
     memset(&phdr, 0, sizeof(AlertIPv6Unified2));
+    memset(head_buf, 0, sizeof(head_buf));
 
     hdr.type = htonl(UNIFIED2_IDS_EVENT_IPV6_TYPE);
     hdr.length = htonl(sizeof(AlertIPv6Unified2));
 
-    memcpy(aun->data,&hdr,sizeof(Unified2AlertFileHeader));
+    memcpy(head_buf, &hdr,sizeof(Unified2AlertFileHeader));
 
     /* fill the phdr structure with the data of the packet */
 
@@ -601,7 +596,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
         phdr.classification_id = htonl(pa->s->class);
         phdr.priority_id = htonl(pa->s->prio);
 
-        memcpy(aun->data+sizeof(Unified2AlertFileHeader),&phdr,sizeof(AlertIPv6Unified2));
+        memcpy(head_buf + sizeof(Unified2AlertFileHeader),&phdr,sizeof(AlertIPv6Unified2));
 
         SCMutexLock(&aun->file_ctx->fp_mutex);
 
@@ -613,7 +608,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
             }
         }
 
-        ret = fwrite(aun->data,len, 1, aun->file_ctx->fp);
+        ret = fwrite(head_buf,len, 1, aun->file_ctx->fp);
         if (ret != 1) {
             SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
             SCMutexUnlock(&aun->file_ctx->fp_mutex);
@@ -652,26 +647,21 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     Unified2AlertFileHeader hdr;
     PacketAlert *pa;
     int ret, len;
+    char head_buf[sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv4Unified2)];
 
     if (p->alerts.cnt == 0)
         return 0;
 
     len = (sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv4Unified2));
 
-    if (len > aun->datalen) {
-        SCLogError(SC_ERR_INVALID_VALUE, "len is too big for thread data: %d vs %d",
-                   len, aun->datalen);
-        return -1;
-    }
-    memset(aun->data,0,aun->datalen);
-
     memset(&hdr, 0, sizeof(Unified2AlertFileHeader));
     memset(&phdr, 0, sizeof(AlertIPv4Unified2));
+    memset(head_buf, 0, sizeof(head_buf));
 
     hdr.type = htonl(UNIFIED2_IDS_EVENT_TYPE);
     hdr.length = htonl(sizeof(AlertIPv4Unified2));
 
-    memcpy(aun->data,&hdr,sizeof(Unified2AlertFileHeader));
+    memcpy(head_buf,&hdr,sizeof(Unified2AlertFileHeader));
 
     /* fill the hdr structure with the packet data */
     phdr.sensor_id = 0;
@@ -728,7 +718,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
         phdr.classification_id = htonl(pa->s->class);
         phdr.priority_id = htonl(pa->s->prio);
 
-        memcpy(aun->data+sizeof(Unified2AlertFileHeader),&phdr,sizeof(AlertIPv4Unified2));
+        memcpy(head_buf + sizeof(Unified2AlertFileHeader),&phdr,sizeof(AlertIPv4Unified2));
 
         /* check and enforce the filesize limit */
         SCMutexLock(&aun->file_ctx->fp_mutex);
@@ -741,7 +731,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
             }
         }
 
-        ret = fwrite(aun->data,len, 1, aun->file_ctx->fp);
+        ret = fwrite(head_buf,len, 1, aun->file_ctx->fp);
         if (ret != 1) {
             SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
             SCMutexUnlock(&aun->file_ctx->fp_mutex);
