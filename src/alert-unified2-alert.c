@@ -267,12 +267,6 @@ static int Unified2StreamTypeAlertIPv4 (Unified2AlertThread *aun, Packet *p, voi
     int ret;
     int len = (sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE);
 
-    if (len > aun->datalen) {
-        SCLogError(SC_ERR_INVALID_VALUE, "len is too big for thread data: %d vs %d",
-                   len, aun->datalen);
-        return -1;
-    }
-
     memset(&fakehdr, 0x00, sizeof(fakehdr));
     memset(aun->data,0x00,aun->datalen);
     memset(&hdr, 0, sizeof(Unified2AlertFileHeader));
@@ -291,6 +285,12 @@ static int Unified2StreamTypeAlertIPv4 (Unified2AlertThread *aun, Packet *p, voi
     fakehdr.tcph.th_offx2 = 0x50; /* just the TCP header, no options */
 
     len += (sizeof(fakehdr) + stream_msg->data.data_len);
+
+    if (len > aun->datalen) {
+        SCLogError(SC_ERR_INVALID_VALUE, "len is too big for thread data: %d vs %d",
+                   len, aun->datalen);
+        return -1;
+    }
 
     hdr.type = htonl(UNIFIED2_PACKET_TYPE);
     hdr.length = htonl(UNIFIED2_PACKET_SIZE + (sizeof(fakehdr) + stream_msg->data.data_len));
@@ -356,12 +356,6 @@ static int Unified2StreamTypeAlertIPv6 (Unified2AlertThread *aun, Packet *p, voi
     int ret;
     int len = (sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE);
 
-    if (len > aun->datalen) {
-        SCLogError(SC_ERR_INVALID_VALUE, "len is too big for thread data: %d vs %d",
-                   len, aun->datalen);
-        return -1;
-    }
-
     memset(&fakehdr, 0x00, sizeof(fakehdr));
     memset(aun->data,0x00,aun->datalen);
     memset(&hdr, 0, sizeof(Unified2AlertFileHeader));
@@ -382,6 +376,12 @@ static int Unified2StreamTypeAlertIPv6 (Unified2AlertThread *aun, Packet *p, voi
     fakehdr.tcph.th_offx2 = 0x50; /* just the TCP header, no options */
 
     len += (sizeof(fakehdr) + stream_msg->data.data_len);
+
+    if (len > aun->datalen) {
+        SCLogError(SC_ERR_INVALID_VALUE, "len is too big for thread data: %d vs %d",
+                   len, aun->datalen);
+        return -1;
+    }
 
     hdr.type = htonl(UNIFIED2_PACKET_TYPE);
     hdr.length = htonl(UNIFIED2_PACKET_SIZE + (sizeof(fakehdr) + stream_msg->data.data_len));
