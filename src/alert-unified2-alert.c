@@ -302,6 +302,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
     PacketAlert *pa;
     uint8_t ethh_offset = 0;
     int ret, len;
+    char head_buf[sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv6Unified2)];
 
     if (p->alerts.cnt == 0)
         return 0;
@@ -318,11 +319,12 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
 
     memset(&hdr, 0, sizeof(Unified2AlertFileHeader));
     memset(&phdr, 0, sizeof(AlertIPv6Unified2));
+    memset(head_buf, 0, sizeof(head_buf));
 
     hdr.type = htonl(UNIFIED2_IDS_EVENT_IPV6_TYPE);
     hdr.length = htonl(sizeof(AlertIPv6Unified2));
 
-    memcpy(aun->data,&hdr,sizeof(Unified2AlertFileHeader));
+    memcpy(head_buf, &hdr,sizeof(Unified2AlertFileHeader));
 
     /* if we have no ethernet header (e.g. when using nfq), we have to create
      * one ourselves. */
@@ -397,7 +399,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
         phdr.classification_id = htonl(pa->class);
         phdr.priority_id = htonl(pa->prio);
 
-        memcpy(aun->data+sizeof(Unified2AlertFileHeader),&phdr,sizeof(AlertIPv6Unified2));
+        memcpy(head_buf + sizeof(Unified2AlertFileHeader),&phdr,sizeof(AlertIPv6Unified2));
 
         SCMutexLock(&aun->file_ctx->fp_mutex);
 
@@ -409,8 +411,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
             }
         }
 
-        ret = fwrite(aun->data,len, 1, aun->file_ctx->fp);
-
+        ret = fwrite(head_buf,len, 1, aun->file_ctx->fp);
         if (ret != 1) {
             SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
             SCMutexUnlock(&aun->file_ctx->fp_mutex);
@@ -451,6 +452,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     PacketAlert pa_tag;
     uint8_t ethh_offset = 0;
     int ret, len;
+    char head_buf[sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv4Unified2)];
 
     if (p->alerts.cnt == 0)
         return 0;
@@ -465,17 +467,12 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     memset(aun->data,0,aun->datalen);
     memset(&hdr, 0, sizeof(Unified2AlertFileHeader));
     memset(&phdr, 0, sizeof(AlertIPv4Unified2));
+    memset(head_buf, 0, sizeof(head_buf));
 
     hdr.type = htonl(UNIFIED2_IDS_EVENT_TYPE);
     hdr.length = htonl(sizeof(AlertIPv4Unified2));
 
-    memcpy(aun->data,&hdr,sizeof(Unified2AlertFileHeader));
-    /* if we have no ethernet header (e.g. when using nfq), we have to create
-     * one ourselves. */
-    if (p->ethh == NULL) {
-        ethh_offset = sizeof(EthernetHdr);
-    }
-
+    memcpy(head_buf,&hdr,sizeof(Unified2AlertFileHeader));
 
     /* fill the hdr structure with the packet data */
 
@@ -532,7 +529,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
         phdr.classification_id = htonl(pa->class);
         phdr.priority_id = htonl(pa->prio);
 
-        memcpy(aun->data+sizeof(Unified2AlertFileHeader),&phdr,sizeof(AlertIPv4Unified2));
+        memcpy(head_buf + sizeof(Unified2AlertFileHeader),&phdr,sizeof(AlertIPv4Unified2));
 
         /* check and enforce the filesize limit */
         SCMutexLock(&aun->file_ctx->fp_mutex);
@@ -545,7 +542,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
             }
         }
 
-        ret = fwrite(aun->data,len, 1, aun->file_ctx->fp);
+        ret = fwrite(head_buf,len, 1, aun->file_ctx->fp);
         if (ret != 1) {
             SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
             SCMutexUnlock(&aun->file_ctx->fp_mutex);
