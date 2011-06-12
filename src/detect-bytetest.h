@@ -46,6 +46,8 @@
 #define DETECT_BYTETEST_STRING   0x08 /**< "string" value */
 #define DETECT_BYTETEST_RELATIVE 0x10 /**< "relative" offset */
 #define DETECT_BYTETEST_DCE      0x20 /**< dce enabled */
+#define DETECT_BYTETEST_VALUE_BE  0x40 /**< byte extract value enabled */
+#define DETECT_BYTETEST_OFFSET_BE 0x80 /**< byte extract value enabled */
 
 typedef struct DetectBytetestData_ {
     uint8_t nbytes;                   /**< Number of bytes to compare */
@@ -93,11 +95,16 @@ void DetectBytetestFree(void *ptr);
  * flags: "big", "little", "relative", "string", "oct", "dec", "hex"
  *
  * \param optstr Pointer to the user provided byte_test options
+ * \param value Used to pass the value back, if byte_test uses a byte_extract
+ *              var.
+ * \param offset Used to pass the offset back, if byte_test uses a byte_extract
+ *               var.
  *
  * \retval data pointer to DetectBytetestData on success
  * \retval NULL on failure
  */
-DetectBytetestData *DetectBytetestParse(char *optstr);
+DetectBytetestData *DetectBytetestParse(char *optstr, char **value,
+                                        char **offset);
 
 /**
  * This function is used to match byte_test
@@ -115,7 +122,7 @@ DetectBytetestData *DetectBytetestParse(char *optstr);
  */
 int DetectBytetestMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                         Packet *p, Signature *s, SigMatch *m);
-int DetectBytetestDoMatch(DetectEngineThreadCtx *, Signature *, SigMatch *, uint8_t *, uint32_t);
+int DetectBytetestDoMatch(DetectEngineThreadCtx *, Signature *, SigMatch *, uint8_t *, uint32_t,
+                          uint8_t, int32_t, uint64_t);
 
 #endif /* __DETECT_BYTETEST_H__ */
-

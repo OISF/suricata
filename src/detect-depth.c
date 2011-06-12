@@ -32,6 +32,7 @@
 #include "detect-parse.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
+#include "detect-byte-extract.h"
 #include "detect-parse.h"
 
 #include "flow-var.h"
@@ -134,14 +135,28 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                 }
             }
 
-            ud->depth = (uint32_t)atoi(str);
-            if (ud->depth < ud->content_len) {
-                ud->depth = ud->content_len;
-                SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
-                           ud->depth);
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in depth - %s\n", str);
+                    goto error;
+                }
+                ud->depth = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                ud->flags |= DETECT_CONTENT_DEPTH_BE;
+            } else {
+                ud->depth = (uint32_t)atoi(str);
+                if (ud->depth < ud->content_len) {
+                    ud->depth = ud->content_len;
+                    SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
+                               ud->depth);
+                }
+                /* Now update the real limit, as depth is relative to the offset */
+                ud->depth += ud->offset;
             }
-            /* Now update the real limit, as depth is relative to the offset */
-            ud->depth += ud->offset;
+
             ud->flags |= DETECT_CONTENT_DEPTH;
 
             break;
@@ -168,14 +183,28 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                 }
             }
 
-            cd->depth = (uint32_t)atoi(str);
-            if (cd->depth < cd->content_len) {
-                cd->depth = cd->content_len;
-                SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
-                           cd->depth);
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in depth - %s\n", str);
+                    goto error;
+                }
+                cd->depth = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_DEPTH_BE;
+            } else {
+                cd->depth = (uint32_t)atoi(str);
+                if (cd->depth < cd->content_len) {
+                    cd->depth = cd->content_len;
+                    SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
+                               cd->depth);
+                }
+                /* Now update the real limit, as depth is relative to the offset */
+                cd->depth += cd->offset;
             }
-            /* Now update the real limit, as depth is relative to the offset */
-            cd->depth += cd->offset;
+
             cd->flags |= DETECT_CONTENT_DEPTH;
 
             break;
@@ -196,14 +225,28 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                 }
             }
 
-            cd->depth = (uint32_t)atoi(str);
-            if (cd->depth < cd->content_len) {
-                cd->depth = cd->content_len;
-                SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
-                           cd->depth);
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in depth - %s\n", str);
+                    goto error;
+                }
+                cd->depth = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_DEPTH_BE;
+            } else {
+                cd->depth = (uint32_t)atoi(str);
+                if (cd->depth < cd->content_len) {
+                    cd->depth = cd->content_len;
+                    SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
+                               cd->depth);
+                }
+                /* Now update the real limit, as depth is relative to the offset */
+                cd->depth += cd->offset;
             }
-            /* Now update the real limit, as depth is relative to the offset */
-            cd->depth += cd->offset;
+
             cd->flags |= DETECT_CONTENT_DEPTH;
 
             break;
@@ -224,14 +267,28 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                 }
             }
 
-            cd->depth = (uint32_t)atoi(str);
-            if (cd->depth < cd->content_len) {
-                cd->depth = cd->content_len;
-                SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
-                           cd->depth);
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in depth - %s\n", str);
+                    goto error;
+                }
+                cd->depth = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_DEPTH_BE;
+            } else {
+                cd->depth = (uint32_t)atoi(str);
+                if (cd->depth < cd->content_len) {
+                    cd->depth = cd->content_len;
+                    SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
+                               cd->depth);
+                }
+                /* Now update the real limit, as depth is relative to the offset */
+                cd->depth += cd->offset;
             }
-            /* Now update the real limit, as depth is relative to the offset */
-            cd->depth += cd->offset;
+
             cd->flags |= DETECT_CONTENT_DEPTH;
 
             break;
@@ -252,14 +309,28 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                 }
             }
 
-            cd->depth = (uint32_t)atoi(str);
-            if (cd->depth < cd->content_len) {
-                cd->depth = cd->content_len;
-                SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
-                           cd->depth);
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in depth - %s\n", str);
+                    goto error;
+                }
+                cd->depth = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_DEPTH_BE;
+            } else {
+                cd->depth = (uint32_t)atoi(str);
+                if (cd->depth < cd->content_len) {
+                    cd->depth = cd->content_len;
+                    SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
+                               cd->depth);
+                }
+                /* Now update the real limit, as depth is relative to the offset */
+                cd->depth += cd->offset;
             }
-            /* Now update the real limit, as depth is relative to the offset */
-            cd->depth += cd->offset;
+
             cd->flags |= DETECT_CONTENT_DEPTH;
 
             break;
@@ -280,14 +351,28 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                 }
             }
 
-            cd->depth = (uint32_t)atoi(str);
-            if (cd->depth < cd->content_len) {
-                cd->depth = cd->content_len;
-                SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
-                           cd->depth);
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in depth - %s\n", str);
+                    goto error;
+                }
+                cd->depth = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_DEPTH_BE;
+            } else {
+                cd->depth = (uint32_t)atoi(str);
+                if (cd->depth < cd->content_len) {
+                    cd->depth = cd->content_len;
+                    SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
+                               cd->depth);
+                }
+                /* Now update the real limit, as depth is relative to the offset */
+                cd->depth += cd->offset;
             }
-            /* Now update the real limit, as depth is relative to the offset */
-            cd->depth += cd->offset;
+
             cd->flags |= DETECT_CONTENT_DEPTH;
 
             break;
@@ -308,14 +393,28 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                 }
             }
 
-            cd->depth = (uint32_t)atoi(str);
-            if (cd->depth < cd->content_len) {
-                cd->depth = cd->content_len;
-                SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
-                           cd->depth);
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in depth - %s\n", str);
+                    goto error;
+                }
+                cd->depth = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_DEPTH_BE;
+            } else {
+                cd->depth = (uint32_t)atoi(str);
+                if (cd->depth < cd->content_len) {
+                    cd->depth = cd->content_len;
+                    SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
+                               cd->depth);
+                }
+                /* Now update the real limit, as depth is relative to the offset */
+                cd->depth += cd->offset;
             }
-            /* Now update the real limit, as depth is relative to the offset */
-            cd->depth += cd->offset;
+
             cd->flags |= DETECT_CONTENT_DEPTH;
 
             break;
@@ -336,15 +435,28 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                 }
             }
 
-            cd->depth = (uint32_t)atoi(str);
-            if (cd->depth < cd->content_len) {
-                cd->depth = cd->content_len;
-                SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
-                           cd->depth);
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in depth - %s\n", str);
+                    goto error;
+                }
+                cd->depth = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_DEPTH_BE;
+            } else {
+                cd->depth = (uint32_t)atoi(str);
+                if (cd->depth < cd->content_len) {
+                    cd->depth = cd->content_len;
+                    SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
+                               cd->depth);
+                }
+                /* Now update the real limit, as depth is relative to the offset */
+                cd->depth += cd->offset;
+                cd->flags |= DETECT_CONTENT_DEPTH;
             }
-            /* Now update the real limit, as depth is relative to the offset */
-            cd->depth += cd->offset;
-            cd->flags |= DETECT_CONTENT_DEPTH;
 
             break;
 

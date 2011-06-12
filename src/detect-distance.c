@@ -37,6 +37,7 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-pcre.h"
+#include "detect-byte-extract.h"
 
 #include "flow-var.h"
 
@@ -215,10 +216,23 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 }
             }
 
-            ud->distance = strtol(str, NULL, 10);
-            if (ud->flags & DETECT_CONTENT_WITHIN) {
-                if ((ud->distance + ud->content_len) > ud->within) {
-                    ud->within = ud->distance + ud->content_len;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in distance - %s\n", str);
+                    goto error;
+                }
+                ud->distance = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                ud->flags |= DETECT_CONTENT_DISTANCE_BE;
+            } else {
+                ud->distance = strtol(str, NULL, 10);
+                if (ud->flags & DETECT_CONTENT_WITHIN) {
+                    if ((ud->distance + ud->content_len) > ud->within) {
+                        ud->within = ud->distance + ud->content_len;
+                    }
                 }
             }
 
@@ -303,13 +317,27 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 }
             }
 
-            cd->distance = strtol(str, NULL, 10);
-            cd->flags |= DETECT_CONTENT_DISTANCE;
-            if (cd->flags & DETECT_CONTENT_WITHIN) {
-                if ((cd->distance + cd->content_len) > cd->within) {
-                    cd->within = cd->distance + cd->content_len;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in distance - %s\n", str);
+                    goto error;
+                }
+                cd->distance = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_DISTANCE_BE;
+            } else {
+                cd->distance = strtol(str, NULL, 10);
+                if (cd->flags & DETECT_CONTENT_WITHIN) {
+                    if ((cd->distance + cd->content_len) > cd->within) {
+                        cd->within = cd->distance + cd->content_len;
+                    }
                 }
             }
+
+            cd->flags |= DETECT_CONTENT_DISTANCE;
 
             pm = SigMatchGetLastSMFromLists(s, 6,
                                             DETECT_CONTENT, pm->prev,
@@ -377,10 +405,24 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
 
         case DETECT_AL_HTTP_CLIENT_BODY:
             cd = (DetectContentData *)pm->ctx;
-            cd->distance = strtol(str, NULL, 10);
-            if (cd->flags & DETECT_CONTENT_WITHIN) {
-                if ((cd->distance + cd->content_len) > cd->within) {
-                    cd->within = cd->distance + cd->content_len;
+
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in distance - %s\n", str);
+                    goto error;
+                }
+                cd->distance = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_DISTANCE_BE;
+            } else {
+                cd->distance = strtol(str, NULL, 10);
+                if (cd->flags & DETECT_CONTENT_WITHIN) {
+                    if ((cd->distance + cd->content_len) > cd->within) {
+                        cd->within = cd->distance + cd->content_len;
+                    }
                 }
             }
 
@@ -444,12 +486,26 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 }
             }
 
-            cd->distance = strtol(str, NULL, 10);
-            if (cd->flags & DETECT_CONTENT_WITHIN) {
-                if ((cd->distance + cd->content_len) > cd->within) {
-                    cd->within = cd->distance + cd->content_len;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in distance - %s\n", str);
+                    goto error;
+                }
+                cd->distance = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_DISTANCE_BE;
+            } else {
+                cd->distance = strtol(str, NULL, 10);
+                if (cd->flags & DETECT_CONTENT_WITHIN) {
+                    if ((cd->distance + cd->content_len) > cd->within) {
+                        cd->within = cd->distance + cd->content_len;
+                    }
                 }
             }
+
             cd->flags |= DETECT_CONTENT_DISTANCE;
 
             /* reassigning pm */
@@ -496,12 +552,26 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 }
             }
 
-            cd->distance = strtol(str, NULL, 10);
-            if (cd->flags & DETECT_CONTENT_WITHIN) {
-                if ((cd->distance + cd->content_len) > cd->within) {
-                    cd->within = cd->distance + cd->content_len;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in distance - %s\n", str);
+                    goto error;
+                }
+                cd->distance = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_DISTANCE_BE;
+            } else {
+                cd->distance = strtol(str, NULL, 10);
+                if (cd->flags & DETECT_CONTENT_WITHIN) {
+                    if ((cd->distance + cd->content_len) > cd->within) {
+                        cd->within = cd->distance + cd->content_len;
+                    }
                 }
             }
+
             cd->flags |= DETECT_CONTENT_DISTANCE;
 
             /* reassigning pm */
@@ -549,12 +619,26 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 }
             }
 
-            cd->distance = strtol(str, NULL, 10);
-            if (cd->flags & DETECT_CONTENT_WITHIN) {
-                if ((cd->distance + cd->content_len) > cd->within) {
-                    cd->within = cd->distance + cd->content_len;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in distance - %s\n", str);
+                    goto error;
+                }
+                cd->distance = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_DISTANCE_BE;
+            } else {
+                cd->distance = strtol(str, NULL, 10);
+                if (cd->flags & DETECT_CONTENT_WITHIN) {
+                    if ((cd->distance + cd->content_len) > cd->within) {
+                        cd->within = cd->distance + cd->content_len;
+                    }
                 }
             }
+
             cd->flags |= DETECT_CONTENT_DISTANCE;
 
             /* reassigning pm */
@@ -602,12 +686,26 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 }
             }
 
-            cd->distance = strtol(str, NULL, 10);
-            if (cd->flags & DETECT_CONTENT_WITHIN) {
-                if ((cd->distance + cd->content_len) > cd->within) {
-                    cd->within = cd->distance + cd->content_len;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in distance - %s\n", str);
+                    goto error;
+                }
+                cd->distance = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_DISTANCE_BE;
+            } else {
+                cd->distance = strtol(str, NULL, 10);
+                if (cd->flags & DETECT_CONTENT_WITHIN) {
+                    if ((cd->distance + cd->content_len) > cd->within) {
+                        cd->within = cd->distance + cd->content_len;
+                    }
                 }
             }
+
             cd->flags |= DETECT_CONTENT_DISTANCE;
 
             /* reassigning pm */
@@ -655,12 +753,26 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 }
             }
 
-            cd->distance = strtol(str, NULL, 10);
-            if (cd->flags & DETECT_CONTENT_WITHIN) {
-                if ((cd->distance + cd->content_len) > cd->within) {
-                    cd->within = cd->distance + cd->content_len;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in distance - %s\n", str);
+                    goto error;
+                }
+                cd->distance = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_DISTANCE_BE;
+            } else {
+                cd->distance = strtol(str, NULL, 10);
+                if (cd->flags & DETECT_CONTENT_WITHIN) {
+                    if ((cd->distance + cd->content_len) > cd->within) {
+                        cd->within = cd->distance + cd->content_len;
+                    }
                 }
             }
+
             cd->flags |= DETECT_CONTENT_DISTANCE;
 
             /* reassigning pm */

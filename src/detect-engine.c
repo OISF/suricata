@@ -41,6 +41,7 @@
 
 #include "detect-engine.h"
 
+#include "detect-byte-extract.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-engine-threshold.h"
@@ -441,6 +442,11 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
     /* this detection engine context belongs to this thread instance */
     det_ctx->tv = tv;
 
+    det_ctx->bj_values = SCMalloc(sizeof(*det_ctx->bj_values) * byte_extract_max_local_id);
+    if (det_ctx->bj_values == NULL) {
+        return TM_ECODE_FAILED;
+    }
+
     *data = (void *)det_ctx;
 
     return TM_ECODE_OK;
@@ -468,6 +474,9 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data) {
 
     if (det_ctx->de_state_sig_array != NULL)
         SCFree(det_ctx->de_state_sig_array);
+
+    if (det_ctx->bj_values != NULL)
+        SCFree(det_ctx->bj_values);
 
     SCFree(det_ctx);
 

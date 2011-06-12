@@ -38,6 +38,7 @@
 #define DETECT_BYTEJUMP_RELATIVE 0x10 /**< "relative" offset */
 #define DETECT_BYTEJUMP_ALIGN    0x20 /**< "align" offset */
 #define DETECT_BYTEJUMP_DCE      0x40 /**< "dce" enabled */
+#define DETECT_BYTEJUMP_OFFSET_BE 0x80 /**< "byte extract" enabled */
 
 typedef struct DetectBytejumpData_ {
     uint8_t nbytes;                   /**< Number of bytes to compare */
@@ -86,11 +87,13 @@ void DetectBytejumpFree(void *ptr);
  *        "align", "from beginning", "multiplier N", "post_offset N"
  *
  * \param optstr Pointer to the user provided byte_jump options
+ * \param offset Used to pass the offset back, if byte_jump uses a byte_extract
+ *               var.
  *
  * \retval data pointer to DetectBytejumpData on success
  * \retval NULL on failure
  */
-DetectBytejumpData *DetectBytejumpParse(char *optstr);
+DetectBytejumpData *DetectBytejumpParse(char *optstr, char **offset);
 
 /**
  * This function is used to match byte_jump
@@ -111,7 +114,8 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr);
  */
 int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                         Packet *p, Signature *s, SigMatch *m);
-int DetectBytejumpDoMatch(DetectEngineThreadCtx *, Signature *, SigMatch *, uint8_t *, uint32_t);
+int DetectBytejumpDoMatch(DetectEngineThreadCtx *, Signature *, SigMatch *,
+                          uint8_t *, uint32_t, uint8_t, int32_t);
 
 #endif /* __DETECT_BYTEJUMP_H__ */
 

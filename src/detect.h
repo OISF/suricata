@@ -787,6 +787,9 @@ typedef struct DetectionEngineThreadCtx_ {
     /** ip only rules ctx */
     DetectEngineIPOnlyThreadCtx io_ctx;
 
+    /* byte jump values */
+    uint64_t *bj_values;
+
     DetectEngineCtx *de_ctx;
 #ifdef __SC_CUDA_SUPPORT__
     /* each detection thread would have it's own queue where the cuda dispatcher
@@ -999,6 +1002,7 @@ enum {
     DETECT_AL_SSH_SOFTWAREVERSION,
     DETECT_AL_SSL_VERSION,
     DETECT_AL_SSL_STATE,
+    DETECT_BYTE_EXTRACT,
 
     DETECT_DCE_IFACE,
     DETECT_DCE_OPNUM,

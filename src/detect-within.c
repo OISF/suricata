@@ -33,6 +33,7 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-bytejump.h"
+#include "detect-byte-extract.h"
 #include "app-layer.h"
 #include "detect-parse.h"
 
@@ -217,13 +218,26 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 }
             }
 
-            ud->within = strtol(str, NULL, 10);
-            if (ud->within < (int32_t)ud->content_len) {
-                SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
-                           "less than the content length \"%"PRIu32"\" which is invalid, since "
-                           "this will never match.  Invalidating signature", ud->within,
-                           ud->content_len);
-                goto error;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in within - %s\n", str);
+                    goto error;
+                }
+                ud->within = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                ud->flags |= DETECT_CONTENT_WITHIN_BE;
+            } else {
+                ud->within = strtol(str, NULL, 10);
+                if (ud->within < (int32_t)ud->content_len) {
+                    SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
+                               "less than the content length \"%"PRIu32"\" which is invalid, since "
+                               "this will never match.  Invalidating signature", ud->within,
+                               ud->content_len);
+                    goto error;
+                }
             }
 
             ud->flags |= DETECT_CONTENT_WITHIN;
@@ -314,13 +328,26 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 }
             }
 
-            cd->within = strtol(str, NULL, 10);
-            if (cd->within < (int32_t)cd->content_len) {
-                SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
-                        "less than the content length \"%"PRIu32"\" which is invalid, since "
-                        "this will never match.  Invalidating signature", cd->within,
-                        cd->content_len);
-                goto error;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in within - %s\n", str);
+                    goto error;
+                }
+                cd->within = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_WITHIN_BE;
+            } else {
+                cd->within = strtol(str, NULL, 10);
+                if (cd->within < (int32_t)cd->content_len) {
+                    SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
+                               "less than the content length \"%"PRIu32"\" which is invalid, since "
+                               "this will never match.  Invalidating signature", cd->within,
+                               cd->content_len);
+                    goto error;
+                }
             }
 
             cd->flags |= DETECT_CONTENT_WITHIN;
@@ -397,13 +424,27 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
 
         case DETECT_AL_HTTP_CLIENT_BODY:
             cd = (DetectContentData *)pm->ctx;
-            cd->within = strtol(str, NULL, 10);
-            if (cd->within < (int32_t)cd->content_len) {
-                SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
-                           "less than the content length \"%"PRIu32"\" which is invalid, since "
-                           "this will never match.  Invalidating signature", cd->within,
-                           cd->content_len);
-                goto error;
+
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in within - %s\n", str);
+                    goto error;
+                }
+                cd->within = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_WITHIN_BE;
+            } else {
+                cd->within = strtol(str, NULL, 10);
+                if (cd->within < (int32_t)cd->content_len) {
+                    SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
+                               "less than the content length \"%"PRIu32"\" which is invalid, since "
+                               "this will never match.  Invalidating signature", cd->within,
+                               cd->content_len);
+                    goto error;
+                }
             }
 
             if (cd->flags & DETECT_CONTENT_NEGATED) {
@@ -466,14 +507,28 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 }
             }
 
-            cd->within = strtol(str, NULL, 10);
-            if (cd->within < (int32_t)cd->content_len) {
-                SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
-                           "less than the content length \"%"PRIu32"\" which is invalid, since "
-                           "this will never match.  Invalidating signature", cd->within,
-                           cd->content_len);
-                goto error;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in within - %s\n", str);
+                    goto error;
+                }
+                cd->within = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_WITHIN_BE;
+            } else {
+                cd->within = strtol(str, NULL, 10);
+                if (cd->within < (int32_t)cd->content_len) {
+                    SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
+                               "less than the content length \"%"PRIu32"\" which is invalid, since "
+                               "this will never match.  Invalidating signature", cd->within,
+                               cd->content_len);
+                    goto error;
+                }
             }
+
             cd->flags |= DETECT_CONTENT_WITHIN;
 
             /* reassigning pm */
@@ -520,14 +575,28 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 }
             }
 
-            cd->within = strtol(str, NULL, 10);
-            if (cd->within < (int32_t)cd->content_len) {
-                SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
-                           "less than the content length \"%"PRIu32"\" which is invalid, since "
-                           "this will never match.  Invalidating signature", cd->within,
-                           cd->content_len);
-                goto error;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in within - %s\n", str);
+                    goto error;
+                }
+                cd->within = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_WITHIN_BE;
+            } else {
+                cd->within = strtol(str, NULL, 10);
+                if (cd->within < (int32_t)cd->content_len) {
+                    SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
+                               "less than the content length \"%"PRIu32"\" which is invalid, since "
+                               "this will never match.  Invalidating signature", cd->within,
+                               cd->content_len);
+                    goto error;
+                }
             }
+
             cd->flags |= DETECT_CONTENT_WITHIN;
 
             /* reassigning pm */
@@ -574,14 +643,28 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 }
             }
 
-            cd->within = strtol(str, NULL, 10);
-            if (cd->within < (int32_t)cd->content_len) {
-                SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
-                           "less than the content length \"%"PRIu32"\" which is invalid, since "
-                           "this will never match.  Invalidating signature", cd->within,
-                           cd->content_len);
-                goto error;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in within - %s\n", str);
+                    goto error;
+                }
+                cd->within = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_WITHIN_BE;
+            } else {
+                cd->within = strtol(str, NULL, 10);
+                if (cd->within < (int32_t)cd->content_len) {
+                    SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
+                               "less than the content length \"%"PRIu32"\" which is invalid, since "
+                               "this will never match.  Invalidating signature", cd->within,
+                               cd->content_len);
+                    goto error;
+                }
             }
+
             cd->flags |= DETECT_CONTENT_WITHIN;
 
             /* reassigning pm */
@@ -628,14 +711,28 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 }
             }
 
-            cd->within = strtol(str, NULL, 10);
-            if (cd->within < (int32_t)cd->content_len) {
-                SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
-                           "less than the content length \"%"PRIu32"\" which is invalid, since "
-                           "this will never match.  Invalidating signature", cd->within,
-                           cd->content_len);
-                goto error;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in within - %s\n", str);
+                    goto error;
+                }
+                cd->within = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_WITHIN_BE;
+            } else {
+                cd->within = strtol(str, NULL, 10);
+                if (cd->within < (int32_t)cd->content_len) {
+                    SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
+                               "less than the content length \"%"PRIu32"\" which is invalid, since "
+                               "this will never match.  Invalidating signature", cd->within,
+                               cd->content_len);
+                    goto error;
+                }
             }
+
             cd->flags |= DETECT_CONTENT_WITHIN;
 
             /* reassigning pm */
@@ -682,14 +779,28 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 }
             }
 
-            cd->within = strtol(str, NULL, 10);
-            if (cd->within < (int32_t)cd->content_len) {
-                SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
-                           "less than the content length \"%"PRIu32"\" which is invalid, since "
-                           "this will never match.  Invalidating signature", cd->within,
-                           cd->content_len);
-                goto error;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in within - %s\n", str);
+                    goto error;
+                }
+                cd->within = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_WITHIN_BE;
+            } else {
+                cd->within = strtol(str, NULL, 10);
+                if (cd->within < (int32_t)cd->content_len) {
+                    SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
+                               "less than the content length \"%"PRIu32"\" which is invalid, since "
+                               "this will never match.  Invalidating signature", cd->within,
+                               cd->content_len);
+                    goto error;
+                }
             }
+
             cd->flags |= DETECT_CONTENT_WITHIN;
 
             /* reassigning pm */

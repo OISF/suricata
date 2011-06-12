@@ -32,6 +32,7 @@
 #include "detect-parse.h"
 #include "detect-content.h"
 #include "detect-uricontent.h"
+#include "detect-byte-extract.h"
 #include "app-layer.h"
 
 #include "flow-var.h"
@@ -131,15 +132,28 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                 }
             }
 
-            ud->offset = (uint32_t)atoi(str);
-            if (ud->depth != 0) {
-                if (ud->depth < ud->content_len) {
-                    SCLogDebug("depth increased to %"PRIu32" to match pattern len",
-                               ud->content_len);
-                    ud->depth = ud->content_len;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in offset - %s\n", str);
+                    goto error;
                 }
-                /* Updating the depth as is relative to the offset */
-                ud->depth += ud->offset;
+                ud->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                ud->flags |= DETECT_CONTENT_OFFSET_BE;
+            } else {
+                ud->offset = (uint32_t)atoi(str);
+                if (ud->depth != 0) {
+                    if (ud->depth < ud->content_len) {
+                        SCLogDebug("depth increased to %"PRIu32" to match pattern len",
+                                   ud->content_len);
+                        ud->depth = ud->content_len;
+                    }
+                    /* Updating the depth as is relative to the offset */
+                    ud->depth += ud->offset;
+                }
             }
 
             ud->flags |= DETECT_CONTENT_OFFSET;
@@ -169,15 +183,28 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                 }
             }
 
-            cd->offset = (uint32_t)atoi(str);
-            if (cd->depth != 0) {
-                if (cd->depth < cd->content_len) {
-                    SCLogDebug("depth increased to %"PRIu32" to match pattern len",
-                               cd->content_len);
-                    cd->depth = cd->content_len;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in offset - %s\n", str);
+                    goto error;
                 }
-                /* Updating the depth as is relative to the offset */
-                cd->depth += cd->offset;
+                cd->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_OFFSET_BE;
+            } else {
+                cd->offset = (uint32_t)atoi(str);
+                if (cd->depth != 0) {
+                    if (cd->depth < cd->content_len) {
+                        SCLogDebug("depth increased to %"PRIu32" to match pattern len",
+                                   cd->content_len);
+                        cd->depth = cd->content_len;
+                    }
+                    /* Updating the depth as is relative to the offset */
+                    cd->depth += cd->offset;
+                }
             }
 
             cd->flags |= DETECT_CONTENT_OFFSET;
@@ -200,15 +227,28 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                 }
             }
 
-            cd->offset = (uint32_t)atoi(str);
-            if (cd->depth != 0) {
-                if (cd->depth < cd->content_len) {
-                    SCLogDebug("depth increased to %"PRIu32" to match pattern len",
-                               cd->content_len);
-                    cd->depth = cd->content_len;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in offset - %s\n", str);
+                    goto error;
                 }
-                /* Updating the depth as is relative to the offset */
-                cd->depth += cd->offset;
+                cd->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_OFFSET_BE;
+            } else {
+                cd->offset = (uint32_t)atoi(str);
+                if (cd->depth != 0) {
+                    if (cd->depth < cd->content_len) {
+                        SCLogDebug("depth increased to %"PRIu32" to match pattern len",
+                                   cd->content_len);
+                        cd->depth = cd->content_len;
+                    }
+                    /* Updating the depth as is relative to the offset */
+                    cd->depth += cd->offset;
+                }
             }
 
             cd->flags |= DETECT_CONTENT_OFFSET;
@@ -231,15 +271,28 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                 }
             }
 
-            cd->offset = (uint32_t)atoi(str);
-            if (cd->depth != 0) {
-                if (cd->depth < cd->content_len) {
-                    SCLogDebug("depth increased to %"PRIu32" to match pattern len",
-                               cd->content_len);
-                    cd->depth = cd->content_len;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in offset - %s\n", str);
+                    goto error;
                 }
-                /* Updating the depth as is relative to the offset */
-                cd->depth += cd->offset;
+                cd->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_OFFSET_BE;
+            } else {
+                cd->offset = (uint32_t)atoi(str);
+                if (cd->depth != 0) {
+                    if (cd->depth < cd->content_len) {
+                        SCLogDebug("depth increased to %"PRIu32" to match pattern len",
+                                   cd->content_len);
+                        cd->depth = cd->content_len;
+                    }
+                    /* Updating the depth as is relative to the offset */
+                    cd->depth += cd->offset;
+                }
             }
 
             cd->flags |= DETECT_CONTENT_OFFSET;
@@ -262,15 +315,28 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                 }
             }
 
-            cd->offset = (uint32_t)atoi(str);
-            if (cd->depth != 0) {
-                if (cd->depth < cd->content_len) {
-                    SCLogDebug("depth increased to %"PRIu32" to match pattern len",
-                               cd->content_len);
-                    cd->depth = cd->content_len;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in offset - %s\n", str);
+                    goto error;
                 }
-                /* Updating the depth as is relative to the offset */
-                cd->depth += cd->offset;
+                cd->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_OFFSET_BE;
+            } else {
+                cd->offset = (uint32_t)atoi(str);
+                if (cd->depth != 0) {
+                    if (cd->depth < cd->content_len) {
+                        SCLogDebug("depth increased to %"PRIu32" to match pattern len",
+                                   cd->content_len);
+                        cd->depth = cd->content_len;
+                    }
+                    /* Updating the depth as is relative to the offset */
+                    cd->depth += cd->offset;
+                }
             }
 
             cd->flags |= DETECT_CONTENT_OFFSET;
@@ -293,15 +359,28 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                 }
             }
 
-            cd->offset = (uint32_t)atoi(str);
-            if (cd->depth != 0) {
-                if (cd->depth < cd->content_len) {
-                    SCLogDebug("depth increased to %"PRIu32" to match pattern len",
-                               cd->content_len);
-                    cd->depth = cd->content_len;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in offset - %s\n", str);
+                    goto error;
                 }
-                /* Updating the depth as is relative to the offset */
-                cd->depth += cd->offset;
+                cd->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_OFFSET_BE;
+            } else {
+                cd->offset = (uint32_t)atoi(str);
+                if (cd->depth != 0) {
+                    if (cd->depth < cd->content_len) {
+                        SCLogDebug("depth increased to %"PRIu32" to match pattern len",
+                                   cd->content_len);
+                        cd->depth = cd->content_len;
+                    }
+                    /* Updating the depth as is relative to the offset */
+                    cd->depth += cd->offset;
+                }
             }
 
             cd->flags |= DETECT_CONTENT_OFFSET;
@@ -324,15 +403,28 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                 }
             }
 
-            cd->offset = (uint32_t)atoi(str);
-            if (cd->depth != 0) {
-                if (cd->depth < cd->content_len) {
-                    SCLogDebug("depth increased to %"PRIu32" to match pattern len",
-                               cd->content_len);
-                    cd->depth = cd->content_len;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in offset - %s\n", str);
+                    goto error;
                 }
-                /* Updating the depth as is relative to the offset */
-                cd->depth += cd->offset;
+                cd->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_OFFSET_BE;
+            } else {
+                cd->offset = (uint32_t)atoi(str);
+                if (cd->depth != 0) {
+                    if (cd->depth < cd->content_len) {
+                        SCLogDebug("depth increased to %"PRIu32" to match pattern len",
+                                   cd->content_len);
+                        cd->depth = cd->content_len;
+                    }
+                    /* Updating the depth as is relative to the offset */
+                    cd->depth += cd->offset;
+                }
             }
 
             cd->flags |= DETECT_CONTENT_OFFSET;
@@ -355,15 +447,28 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                 }
             }
 
-            cd->offset = (uint32_t)atoi(str);
-            if (cd->depth != 0) {
-                if (cd->depth < cd->content_len) {
-                    SCLogDebug("depth increased to %"PRIu32" to match pattern len",
-                               cd->content_len);
-                    cd->depth = cd->content_len;
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in offset - %s\n", str);
+                    goto error;
                 }
-                /* Updating the depth as is relative to the offset */
-                cd->depth += cd->offset;
+                cd->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_OFFSET_BE;
+            } else {
+                cd->offset = (uint32_t)atoi(str);
+                if (cd->depth != 0) {
+                    if (cd->depth < cd->content_len) {
+                        SCLogDebug("depth increased to %"PRIu32" to match pattern len",
+                                   cd->content_len);
+                        cd->depth = cd->content_len;
+                    }
+                    /* Updating the depth as is relative to the offset */
+                    cd->depth += cd->offset;
+                }
             }
 
             cd->flags |= DETECT_CONTENT_OFFSET;

@@ -34,6 +34,7 @@
 #include "detect-isdataat.h"
 #include "detect-bytetest.h"
 #include "detect-bytejump.h"
+#include "detect-byte-extract.h"
 
 #include "util-spm.h"
 #include "util-spm-bm.h"
@@ -124,50 +125,77 @@ static int DoInspectDcePayload(DetectEngineCtx *de_ctx,
                     offset = prev_payload_offset;
                     depth = stub_len;
 
+                    int distance = cd->distance;
                     if (cd->flags & DETECT_CONTENT_DISTANCE) {
-                        if (cd->distance < 0 && (uint32_t)(abs(cd->distance)) > offset) {
-                            offset = 0;
-                        } else {
-                            offset += cd->distance;
+                        if (cd->flags & DETECT_CONTENT_DISTANCE_BE) {
+                            distance = det_ctx->bj_values[cd->distance];
                         }
+                        if (distance < 0 && (uint32_t)(abs(distance)) > offset)
+                            offset = 0;
+                        else
+                            offset += distance;
 
                         SCLogDebug("cd->distance %"PRIi32", offset %"PRIu32", depth %"PRIu32,
                                    cd->distance, offset, depth);
                     }
 
                     if (cd->flags & DETECT_CONTENT_WITHIN) {
-                        if ((int32_t)depth > (int32_t)(prev_payload_offset + cd->within + cd->distance)) {
-                            depth = prev_payload_offset + cd->within + cd->distance;
-                        }
+                        if (cd->flags & DETECT_CONTENT_WITHIN_BE) {
+                            if ((int32_t)depth > (int32_t)(prev_payload_offset + det_ctx->bj_values[cd->within] + distance)) {
+                                depth = prev_payload_offset + det_ctx->bj_values[cd->within] + distance;
+                            }
+                        } else {
+                            if ((int32_t)depth > (int32_t)(prev_payload_offset + cd->within + distance)) {
+                                depth = prev_payload_offset + cd->within + distance;
+                            }
 
-                        SCLogDebug("cd->within %"PRIi32", prev_payload_offset "
-                                   "%"PRIu32", depth %"PRIu32, cd->within,
-                                   prev_payload_offset, depth);
+                            SCLogDebug("cd->within %"PRIi32", prev_payload_offset "
+                                       "%"PRIu32", depth %"PRIu32, cd->within,
+                                       prev_payload_offset, depth);
+                        }
                     }
 
-                    if (cd->depth != 0) {
-                        if ((cd->depth + prev_payload_offset) < depth) {
-                            depth = prev_payload_offset + cd->depth;
-                        }
+                    if (cd->flags & DETECT_CONTENT_DEPTH_BE) {
+                        if ((det_ctx->bj_values[cd->depth] + prev_payload_offset) < depth) {
+                            depth = prev_payload_offset + det_ctx->bj_values[cd->depth];
+                         }
+                    } else {
+                        if (cd->depth != 0) {
+                            if ((cd->depth + prev_payload_offset) < depth) {
+                                depth = prev_payload_offset + cd->depth;
+                            }
 
-                        SCLogDebug("cd->depth %"PRIu32", depth %"PRIu32,
-                                   cd->depth, depth);
+                            SCLogDebug("cd->depth %"PRIu32", depth %"PRIu32,
+                                       cd->depth, depth);
+                        }
                     }
 
-                    if (cd->offset > offset) {
-                        offset = cd->offset;
-                        SCLogDebug("setting offset %"PRIu32, offset);
+                    if (cd->flags & DETECT_CONTENT_OFFSET_BE) {
+                        if (det_ctx->bj_values[cd->offset] > offset)
+                            offset = det_ctx->bj_values[cd->offset];
+                    } else {
+                        if (cd->offset > offset) {
+                            offset = cd->offset;
+                            SCLogDebug("setting offset %"PRIu32, offset);
+                        }
                     }
 
                 /* implied no relative matches */
                 } else {
                     /* set depth */
-                    if (cd->depth != 0) {
-                        depth = cd->depth;
+                    if (cd->flags & DETECT_CONTENT_DEPTH_BE) {
+                        depth = det_ctx->bj_values[cd->depth];
+                    } else {
+                        if (cd->depth != 0) {
+                            depth = cd->depth;
+                        }
                     }
 
                     /* set offset */
-                    offset = cd->offset;
+                    if (cd->flags & DETECT_CONTENT_OFFSET_BE)
+                        offset = det_ctx->bj_values[cd->offset];
+                    else
+                        offset = cd->offset;
                     prev_payload_offset = 0;
                 }
 
@@ -340,23 +368,28 @@ static int DoInspectDcePayload(DetectEngineCtx *de_ctx,
         case DETECT_BYTETEST:
         {
             DetectBytetestData *data = (DetectBytetestData *)sm->ctx;
-            uint32_t temp_flags = data->flags;
+            uint8_t flags = data->flags;
+            int32_t offset = data->offset;;
+            uint64_t value = data->value;
+            if (flags & DETECT_BYTETEST_OFFSET_BE) {
+                offset = det_ctx->bj_values[offset];
+            }
+            if (flags & DETECT_BYTETEST_VALUE_BE) {
+                value = det_ctx->bj_values[value];
+            }
 
             /* if we have dce enabled we will have to use the endianness
              * specified by the dce header */
-            if (data->flags & DETECT_BYTETEST_DCE) {
+            if (flags & DETECT_BYTETEST_DCE) {
                 /* enable the endianness flag temporarily.  once we are done
                  * processing we reset the flags to the original value*/
-                data->flags |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] == 0x10) ?
-                                DETECT_BYTETEST_LITTLE: 0);
+                flags |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] == 0x10) ?
+                          DETECT_BYTETEST_LITTLE: 0);
             }
 
-            if (DetectBytetestDoMatch(det_ctx, s, sm, stub, stub_len) != 1) {
+            if (DetectBytetestDoMatch(det_ctx, s, sm, stub, stub_len, flags, offset, value) != 1) {
                 SCReturnInt(0);
             }
-
-            /* reset the flags */
-            data->flags = temp_flags;
 
             goto match;
         }
@@ -364,23 +397,47 @@ static int DoInspectDcePayload(DetectEngineCtx *de_ctx,
         case DETECT_BYTEJUMP:
         {
             DetectBytejumpData *data = (DetectBytejumpData *)sm->ctx;
-            uint32_t temp_flags = data->flags;
+            uint8_t flags = data->flags;
+            int32_t offset = data->offset;;
+            if (flags & DETECT_BYTEJUMP_OFFSET_BE) {
+                offset = det_ctx->bj_values[offset];
+            }
 
             /* if we have dce enabled we will have to use the endianness
              * specified by the dce header */
-            if (data->flags & DETECT_BYTEJUMP_DCE) {
+            if (flags & DETECT_BYTEJUMP_DCE) {
                 /* enable the endianness flag temporarily.  once we are done
                  * processing we reset the flags to the original value*/
-                data->flags |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] == 0x10) ?
-                                DETECT_BYTEJUMP_LITTLE : 0);
+                flags |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] == 0x10) ?
+                          DETECT_BYTEJUMP_LITTLE : 0);
             }
 
-            if (DetectBytejumpDoMatch(det_ctx, s, sm, stub, stub_len) != 1) {
+            if (DetectBytejumpDoMatch(det_ctx, s, sm, stub, stub_len, flags, offset) != 1) {
                 SCReturnInt(0);
             }
 
-            /* reset the flags */
-            data->flags = temp_flags;
+            goto match;
+        }
+
+        case DETECT_BYTE_EXTRACT:
+        {
+            DetectByteExtractData *bed = (DetectByteExtractData *)sm->ctx;
+            uint8_t endian = bed->endian;
+
+            /* if we have dce enabled we will have to use the endianness
+             * specified by the dce header */
+            if (bed->flags & DETECT_BYTE_EXTRACT_FLAG_ENDIAN &&
+                endian == DETECT_BYTE_EXTRACT_ENDIAN_DCE) {
+
+                /* enable the endianness flag temporarily.  once we are done
+                 * processing we reset the flags to the original value*/
+                endian |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] == 0x10) ?
+                           DETECT_BYTE_EXTRACT_ENDIAN_LITTLE : DETECT_BYTE_EXTRACT_ENDIAN_BIG);
+            }
+            if (DetectByteExtractDoMatch(det_ctx, sm, s, stub, stub_len,
+                                         &det_ctx->bj_values[bed->local_id], endian) != 1) {
+                SCReturnInt(0);
+            }
 
             goto match;
         }

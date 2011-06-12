@@ -52,6 +52,12 @@
 #define DETECT_CONTENT_HCD_MPM           0x00040000
 #define DETECT_CONTENT_HRUD_MPM          0x00080000
 
+/* BE - byte extract */
+#define DETECT_CONTENT_OFFSET_BE         0x00100000
+#define DETECT_CONTENT_DEPTH_BE          0x00200000
+#define DETECT_CONTENT_DISTANCE_BE       0x00400000
+#define DETECT_CONTENT_WITHIN_BE         0x00800000
+
 #define DETECT_CONTENT_IS_SINGLE(c) (!((c)->flags & DETECT_CONTENT_DISTANCE || \
                                        (c)->flags & DETECT_CONTENT_WITHIN || \
                                        (c)->flags & DETECT_CONTENT_RELATIVE_NEXT || \

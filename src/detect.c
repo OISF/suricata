@@ -122,6 +122,7 @@
 #include "detect-engine-hmd.h"
 #include "detect-engine-hcd.h"
 #include "detect-engine-hrud.h"
+#include "detect-byte-extract.h"
 
 #include "util-rule-vars.h"
 
@@ -4256,6 +4257,7 @@ void SigTableSetup(void) {
     DetectSshSoftwareVersionRegister();
     DetectHttpStatCodeRegister();
     DetectSslVersionRegister();
+    DetectByteExtractRegister();
 
     uint8_t i = 0;
     for (i = 0; i < DETECT_TBLSIZE; i++) {
