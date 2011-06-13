@@ -35,6 +35,7 @@
 #include "detect-bytejump.h"
 #include "detect-bytetest.h"
 #include "detect-byte-extract.h"
+#include "detect-isdataat.h"
 
 #include "app-layer-protos.h"
 
@@ -605,13 +606,22 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     } else {
         if (data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
             SigMatch *pm =
-                SigMatchGetLastSMFromLists(s, 12,
+                SigMatchGetLastSMFromLists(s, 30,
                                            DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                            DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                            DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                           DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                           DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                                            DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                           DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+                                           DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                           DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                           DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                           DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
+                                           DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
+                                           DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
+                                           DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
+                                           DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
             if (pm == NULL) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "No preceding content "
                            "or uricontent or pcre option");
@@ -4330,6 +4340,564 @@ int DetectByteExtractTest57(void)
     return result;
 }
 
+int DetectByteExtractTest58(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+    Signature *s = NULL;
+    SigMatch *sm = NULL;
+    DetectContentData *cd = NULL;
+    DetectByteExtractData *bed1 = NULL;
+    DetectByteExtractData *bed2 = NULL;
+    DetectBytejumpData *bjd = NULL;
+    DetectIsdataatData *isdd = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                   "(msg:\"Testing bytejump_body\"; "
+                                   "content:one; "
+                                   "byte_extract:4,0,two,string,hex; "
+                                   "byte_extract:4,0,three,string,hex; "
+                                   "byte_jump: 2,two; "
+                                   "byte_jump: 3,three; "
+                                   "isdataat: three; "
+                                   "sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    if (sm->type != DETECT_CONTENT) {
+        result = 0;
+        goto end;
+    }
+    cd = (DetectContentData *)sm->ctx;
+    if (cd->flags & DETECT_CONTENT_RAWBYTES ||
+        strncmp((char *)cd->content, "one", cd->content_len) != 0 ||
+        cd->flags & DETECT_CONTENT_NOCASE ||
+        cd->flags & DETECT_CONTENT_WITHIN ||
+        cd->flags & DETECT_CONTENT_DISTANCE ||
+        cd->flags & DETECT_CONTENT_FAST_PATTERN ||
+        cd->flags & DETECT_CONTENT_RELATIVE_NEXT ||
+        cd->flags & DETECT_CONTENT_NEGATED ) {
+        printf("one failed\n");
+        result = 0;
+        goto end;
+    }
+
+    sm = sm->next;
+    if (sm->type != DETECT_BYTE_EXTRACT) {
+        result = 0;
+        goto end;
+    }
+    bed1 = (DetectByteExtractData *)sm->ctx;
+    if (bed1->nbytes != 4 ||
+        bed1->offset != 0 ||
+        strcmp(bed1->name, "two") != 0 ||
+        bed1->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
+        bed1->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
+        bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
+        bed1->align_value != 0 ||
+        bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+        goto end;
+    }
+    if (bed1->local_id != 0) {
+        result = 0;
+        goto end;
+    }
+
+    sm = sm->next;
+    if (sm->type != DETECT_BYTE_EXTRACT) {
+        result = 0;
+        goto end;
+    }
+    bed2 = (DetectByteExtractData *)sm->ctx;
+
+    sm = sm->next;
+    if (sm->type != DETECT_BYTEJUMP) {
+        result = 0;
+        goto end;
+    }
+    bjd = (DetectBytejumpData *)sm->ctx;
+    if (bjd->flags != DETECT_BYTEJUMP_OFFSET_BE ||
+        bjd->offset != 0) {
+        printf("three failed\n");
+        result = 0;
+        goto end;
+    }
+
+    sm = sm->next;
+    if (sm->type != DETECT_BYTEJUMP) {
+        result = 0;
+        goto end;
+    }
+    bjd = (DetectBytejumpData *)sm->ctx;
+    if (bjd->flags != DETECT_BYTEJUMP_OFFSET_BE ||
+        bjd->offset != 1) {
+        printf("four failed\n");
+        result = 0;
+        goto end;
+    }
+
+    sm = sm->next;
+    if (sm->type != DETECT_ISDATAAT) {
+        result = 0;
+        goto end;
+    }
+    isdd = (DetectIsdataatData *)sm->ctx;
+    if (isdd->flags != ISDATAAT_OFFSET_BE ||
+        isdd->dataat != 1) {
+        printf("isdataat failed\n");
+        result = 0;
+        goto end;
+    }
+
+    if (sm->next != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+int DetectByteExtractTest59(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+    Signature *s = NULL;
+    SigMatch *sm = NULL;
+    DetectContentData *cd = NULL;
+    DetectByteExtractData *bed1 = NULL;
+    DetectByteExtractData *bed2 = NULL;
+    DetectBytejumpData *bjd = NULL;
+    DetectIsdataatData *isdd = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                   "(msg:\"Testing bytejump_body\"; "
+                                   "content:one; "
+                                   "byte_extract:4,0,two,string,hex; "
+                                   "byte_extract:4,0,three,string,hex; "
+                                   "byte_jump: 2,two; "
+                                   "byte_jump: 3,three; "
+                                   "isdataat: three,relative; "
+                                   "sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    if (sm->type != DETECT_CONTENT) {
+        result = 0;
+        goto end;
+    }
+    cd = (DetectContentData *)sm->ctx;
+    if (cd->flags & DETECT_CONTENT_RAWBYTES ||
+        strncmp((char *)cd->content, "one", cd->content_len) != 0 ||
+        cd->flags & DETECT_CONTENT_NOCASE ||
+        cd->flags & DETECT_CONTENT_WITHIN ||
+        cd->flags & DETECT_CONTENT_DISTANCE ||
+        cd->flags & DETECT_CONTENT_FAST_PATTERN ||
+        cd->flags & DETECT_CONTENT_RELATIVE_NEXT ||
+        cd->flags & DETECT_CONTENT_NEGATED ) {
+        printf("one failed\n");
+        result = 0;
+        goto end;
+    }
+
+    sm = sm->next;
+    if (sm->type != DETECT_BYTE_EXTRACT) {
+        result = 0;
+        goto end;
+    }
+    bed1 = (DetectByteExtractData *)sm->ctx;
+    if (bed1->nbytes != 4 ||
+        bed1->offset != 0 ||
+        strcmp(bed1->name, "two") != 0 ||
+        bed1->flags != DETECT_BYTE_EXTRACT_FLAG_STRING ||
+        bed1->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
+        bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
+        bed1->align_value != 0 ||
+        bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+        goto end;
+    }
+    if (bed1->local_id != 0) {
+        result = 0;
+        goto end;
+    }
+
+    sm = sm->next;
+    if (sm->type != DETECT_BYTE_EXTRACT) {
+        result = 0;
+        goto end;
+    }
+    bed2 = (DetectByteExtractData *)sm->ctx;
+
+    sm = sm->next;
+    if (sm->type != DETECT_BYTEJUMP) {
+        result = 0;
+        goto end;
+    }
+    bjd = (DetectBytejumpData *)sm->ctx;
+    if (bjd->flags != DETECT_BYTEJUMP_OFFSET_BE ||
+        bjd->offset != 0) {
+        printf("three failed\n");
+        result = 0;
+        goto end;
+    }
+
+    sm = sm->next;
+    if (sm->type != DETECT_BYTEJUMP) {
+        result = 0;
+        goto end;
+    }
+    bjd = (DetectBytejumpData *)sm->ctx;
+    if (bjd->flags != DETECT_BYTEJUMP_OFFSET_BE ||
+        bjd->offset != 1) {
+        printf("four failed\n");
+        result = 0;
+        goto end;
+    }
+
+    sm = sm->next;
+    if (sm->type != DETECT_ISDATAAT) {
+        result = 0;
+        goto end;
+    }
+    isdd = (DetectIsdataatData *)sm->ctx;
+    if (isdd->flags != (ISDATAAT_OFFSET_BE |
+                        ISDATAAT_RELATIVE) ||
+        isdd->dataat != 1) {
+        printf("isdataat failed\n");
+        result = 0;
+        goto end;
+    }
+
+    if (sm->next != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+int DetectByteExtractTest60(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+    Signature *s = NULL;
+    SigMatch *sm = NULL;
+    DetectContentData *cd = NULL;
+    DetectByteExtractData *bed1 = NULL;
+    DetectIsdataatData *isdd = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                   "(msg:\"Testing bytejump_body\"; "
+                                   "content:one; "
+                                   "byte_extract:4,0,two,string,hex,relative; "
+                                   "uricontent: three; "
+                                   "byte_extract:4,0,four,string,hex,relative; "
+                                   "isdataat: two; "
+                                   "sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    if (sm->type != DETECT_CONTENT) {
+        result = 0;
+        goto end;
+    }
+    cd = (DetectContentData *)sm->ctx;
+    if (cd->flags & DETECT_CONTENT_RAWBYTES ||
+        strncmp((char *)cd->content, "one", cd->content_len) != 0 ||
+        cd->flags & DETECT_CONTENT_NOCASE ||
+        cd->flags & DETECT_CONTENT_WITHIN ||
+        cd->flags & DETECT_CONTENT_DISTANCE ||
+        cd->flags & DETECT_CONTENT_FAST_PATTERN ||
+        !(cd->flags & DETECT_CONTENT_RELATIVE_NEXT) ||
+        cd->flags & DETECT_CONTENT_NEGATED ) {
+        printf("one failed\n");
+        result = 0;
+        goto end;
+    }
+
+    sm = sm->next;
+    if (sm->type != DETECT_BYTE_EXTRACT) {
+        result = 0;
+        goto end;
+    }
+    bed1 = (DetectByteExtractData *)sm->ctx;
+    if (bed1->nbytes != 4 ||
+        bed1->offset != 0 ||
+        strcmp(bed1->name, "two") != 0 ||
+        bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING |
+                        DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
+        bed1->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
+        bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
+        bed1->align_value != 0 ||
+        bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+        goto end;
+    }
+    if (bed1->local_id != 0) {
+        result = 0;
+        goto end;
+    }
+
+    sm = sm->next;
+    if (sm->type != DETECT_ISDATAAT) {
+        result = 0;
+        goto end;
+    }
+    isdd = (DetectIsdataatData *)sm->ctx;
+    if (isdd->flags != (ISDATAAT_OFFSET_BE) ||
+        isdd->dataat != bed1->local_id) {
+        printf("isdataat failed\n");
+        result = 0;
+        goto end;
+    }
+
+    if (sm->next != NULL)
+        goto end;
+
+    if (s->sm_lists_tail[DETECT_SM_LIST_UMATCH] == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
+    if (sm->type != DETECT_URICONTENT) {
+        result = 0;
+        goto end;
+    }
+    cd = (DetectContentData *)sm->ctx;
+    if (cd->flags != DETECT_CONTENT_RELATIVE_NEXT ||
+        strncmp((char *)cd->content, "three", cd->content_len) != 0) {
+        printf("one failed\n");
+        result = 0;
+        goto end;
+    }
+
+    sm = sm->next;
+    if (sm->type != DETECT_BYTE_EXTRACT) {
+        result = 0;
+        goto end;
+    }
+    bed1 = (DetectByteExtractData *)sm->ctx;
+    if (bed1->nbytes != 4 ||
+        bed1->offset != 0 ||
+        strcmp(bed1->name, "four") != 0 ||
+        bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING |
+                        DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
+        bed1->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
+        bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
+        bed1->align_value != 0 ||
+        bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+        goto end;
+    }
+    if (bed1->local_id != 1) {
+        result = 0;
+        goto end;
+    }
+
+    if (sm->next != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+int DetectByteExtractTest61(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+    Signature *s = NULL;
+    SigMatch *sm = NULL;
+    DetectContentData *cd = NULL;
+    DetectByteExtractData *bed1 = NULL;
+    DetectIsdataatData *isdd = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                   "(msg:\"Testing bytejump_body\"; "
+                                   "content:one; "
+                                   "byte_extract:4,0,two,string,hex,relative; "
+                                   "uricontent: three; "
+                                   "byte_extract:4,0,four,string,hex,relative; "
+                                   "isdataat: four, relative; "
+                                   "sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    if (sm->type != DETECT_CONTENT) {
+        result = 0;
+        goto end;
+    }
+    cd = (DetectContentData *)sm->ctx;
+    if (cd->flags & DETECT_CONTENT_RAWBYTES ||
+        strncmp((char *)cd->content, "one", cd->content_len) != 0 ||
+        cd->flags & DETECT_CONTENT_NOCASE ||
+        cd->flags & DETECT_CONTENT_WITHIN ||
+        cd->flags & DETECT_CONTENT_DISTANCE ||
+        cd->flags & DETECT_CONTENT_FAST_PATTERN ||
+        !(cd->flags & DETECT_CONTENT_RELATIVE_NEXT) ||
+        cd->flags & DETECT_CONTENT_NEGATED ) {
+        printf("one failed\n");
+        result = 0;
+        goto end;
+    }
+
+    sm = sm->next;
+    if (sm->type != DETECT_BYTE_EXTRACT) {
+        result = 0;
+        goto end;
+    }
+    bed1 = (DetectByteExtractData *)sm->ctx;
+    if (bed1->nbytes != 4 ||
+        bed1->offset != 0 ||
+        strcmp(bed1->name, "two") != 0 ||
+        bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING |
+                        DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
+        bed1->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
+        bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
+        bed1->align_value != 0 ||
+        bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+        goto end;
+    }
+    if (bed1->local_id != 0) {
+        result = 0;
+        goto end;
+    }
+
+    if (sm->next != NULL)
+        goto end;
+
+    if (s->sm_lists_tail[DETECT_SM_LIST_UMATCH] == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
+    if (sm->type != DETECT_URICONTENT) {
+        result = 0;
+        goto end;
+    }
+    cd = (DetectContentData *)sm->ctx;
+    if (cd->flags != DETECT_CONTENT_RELATIVE_NEXT ||
+        strncmp((char *)cd->content, "three", cd->content_len) != 0) {
+        printf("one failed\n");
+        result = 0;
+        goto end;
+    }
+
+    sm = sm->next;
+    if (sm->type != DETECT_BYTE_EXTRACT) {
+        result = 0;
+        goto end;
+    }
+    bed1 = (DetectByteExtractData *)sm->ctx;
+    if (bed1->nbytes != 4 ||
+        bed1->offset != 0 ||
+        strcmp(bed1->name, "four") != 0 ||
+        bed1->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING |
+                        DETECT_BYTE_EXTRACT_FLAG_RELATIVE) ||
+        bed1->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
+        bed1->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
+        bed1->align_value != 0 ||
+        bed1->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+        goto end;
+    }
+    if (bed1->local_id != 1) {
+        result = 0;
+        goto end;
+    }
+
+    sm = sm->next;
+    if (sm->type != DETECT_ISDATAAT) {
+        result = 0;
+        goto end;
+    }
+    isdd = (DetectIsdataatData *)sm->ctx;
+    if (isdd->flags != (ISDATAAT_OFFSET_BE |
+                        ISDATAAT_RELATIVE) ||
+        isdd->dataat != bed1->local_id) {
+        printf("isdataat failed\n");
+        result = 0;
+        goto end;
+    }
+
+    if (sm->next != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
 void DetectByteExtractRegisterTests(void)
 {
 #ifdef UNITTESTS
@@ -4397,6 +4965,11 @@ void DetectByteExtractRegisterTests(void)
     UtRegisterTest("DetectByteExtractTest55", DetectByteExtractTest55, 1);
     UtRegisterTest("DetectByteExtractTest56", DetectByteExtractTest56, 1);
     UtRegisterTest("DetectByteExtractTest57", DetectByteExtractTest57, 1);
+
+    UtRegisterTest("DetectByteExtractTest58", DetectByteExtractTest58, 1);
+    UtRegisterTest("DetectByteExtractTest59", DetectByteExtractTest59, 1);
+    UtRegisterTest("DetectByteExtractTest60", DetectByteExtractTest60, 1);
+    UtRegisterTest("DetectByteExtractTest61", DetectByteExtractTest61, 1);
 #endif /* UNITTESTS */
 
     return;

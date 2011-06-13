@@ -45,11 +45,12 @@
 #include "util-byte.h"
 #include "detect-pcre.h"
 #include "detect-bytejump.h"
+#include "detect-byte-extract.h"
 
 /**
  * \brief Regex for parsing our isdataat options
  */
-#define PARSE_REGEX  "^\\s*!?([0-9]{1,5})\\s*(,\\s*relative)?\\s*(,\\s*rawbytes\\s*)?\\s*$"
+#define PARSE_REGEX  "^\\s*!?([^\\s,]+)\\s*(,\\s*relative)?\\s*(,\\s*rawbytes\\s*)?\\s*$"
 
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
@@ -132,7 +133,7 @@ int DetectIsdataatMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *
  * \retval idad pointer to DetectIsdataatData on success
  * \retval NULL on failure
  */
-DetectIsdataatData *DetectIsdataatParse (char *isdataatstr)
+DetectIsdataatData *DetectIsdataatParse (char *isdataatstr, char **offset)
 {
     DetectIsdataatData *idad = NULL;
     char *args[3] = {NULL,NULL,NULL};
@@ -181,16 +182,24 @@ DetectIsdataatData *DetectIsdataatParse (char *isdataatstr)
         idad->flags = 0;
         idad->dataat = 0;
 
-        if (args[0] != NULL) {
+        if (args[0][0] != '-' && isalpha(args[0][0])) {
+            if (offset == NULL) {
+                SCLogError(SC_ERR_INVALID_ARGUMENT, "isdataat supplied with "
+                           "var name for offset.  \"offset\" argument supplied to "
+                           "this function has to be non-NULL");
+                goto error;
+            }
+            *offset = SCStrdup(args[0]);
+            if (*offset == NULL)
+                goto error;
+        } else {
             if (ByteExtractStringUint16(&idad->dataat, 10,
-                strlen(args[0]), args[0]) < 0 ) {
+                                        strlen(args[0]), args[0]) < 0 ) {
                 SCLogError(SC_ERR_INVALID_VALUE, "isdataat out of range");
                 SCFree(idad);
                 idad = NULL;
                 goto error;
             }
-        } else {
-            goto error;
         }
 
         if (args[1] !=NULL) {
@@ -242,8 +251,9 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
     SigMatch *dm = NULL;
     SigMatch *pm = NULL;
     SigMatch *prev_pm = NULL;
+    char *offset = NULL;
 
-    idad = DetectIsdataatParse(isdataatstr);
+    idad = DetectIsdataatParse(isdataatstr, &offset);
     if (idad == NULL)
         goto error;
 
@@ -279,8 +289,36 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                                              DETECT_CONTENT, sm->prev,
                                              DETECT_BYTEJUMP, sm->prev,
                                              DETECT_PCRE, sm->prev);
+        if (prev_pm == NULL) {
+            SCLogDebug("No preceding content or pcre keyword.  Possible "
+                       "since this is a dce alproto sig.");
+            if (offset != NULL) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                           "seen in isdataat - %s\n", offset);
+                goto error;
+            }
+            return 0;
+        }
     } else {
-        pm = SigMatchGetLastSMFromLists(s, 34,
+        if (!(idad->flags & ISDATAAT_RELATIVE)) {
+            SigMatchAppendPayload(s, sm);
+            if (offset != NULL) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(offset, s,
+                                                   SigMatchListSMBelongsTo(s, sm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in isdataat - %s\n", offset);
+                    goto error;
+                }
+                DetectIsdataatData *isdd = sm->ctx;
+                isdd->dataat = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                isdd->flags |= ISDATAAT_OFFSET_BE;
+                SCFree(offset);
+            }
+            return 0;
+        }
+        pm = SigMatchGetLastSMFromLists(s, 40,
                                         DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH], /* 1 */
                                         DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                         DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
@@ -297,50 +335,54 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                                         DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
                                         DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH], /* 15 */
                                         DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
-                                        DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+                                        DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                        DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                        DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
+                                        DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                        DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                        DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
+                                        DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_UMATCH]);
         if (pm == NULL) {
-            if (idad->flags & ISDATAAT_RELATIVE) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "isdataat relative seen "
-                           "without a previous content uricontent, "
-                           "http_client_body, http_header, http_raw_header, "
-                           "http_method, http_cookie or http_raw_uri keyword");
-                goto error;
-            } else {
-                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
-            }
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "isdataat relative seen "
+                       "without a previous content uricontent, "
+                       "http_client_body, http_header, http_raw_header, "
+                       "http_method, http_cookie, http_raw_uri, "
+                       "byte_test, byte_extract, byte_jump keyword");
+            goto error;
         } else {
             int list_type = -1;
-            if (pm->type == DETECT_PCRE || pm->type == DETECT_BYTEJUMP) {
+            if (pm->type == DETECT_PCRE || pm->type == DETECT_BYTEJUMP ||
+                pm->type == DETECT_BYTE_EXTRACT || pm->type == DETECT_BYTETEST) {
                 list_type = SigMatchListSMBelongsTo(s, pm);
             } else {
                 switch (pm->type) {
-                    case DETECT_CONTENT:
-                        list_type = DETECT_SM_LIST_PMATCH;
-                        break;
-                    case DETECT_URICONTENT:
-                        list_type = DETECT_SM_LIST_UMATCH;
-                        break;
-                    case DETECT_AL_HTTP_CLIENT_BODY:
-                        list_type = DETECT_SM_LIST_HCBDMATCH;
-                        break;
-                    case DETECT_AL_HTTP_RAW_HEADER:
-                        list_type = DETECT_SM_LIST_HRHDMATCH;
-                        break;
-                    case DETECT_AL_HTTP_HEADER:
-                        list_type = DETECT_SM_LIST_HHDMATCH;
-                        break;
-                    case DETECT_AL_HTTP_METHOD:
-                        list_type = DETECT_SM_LIST_HMDMATCH;
-                        break;
-                    case DETECT_AL_HTTP_COOKIE:
-                        list_type = DETECT_SM_LIST_HCDMATCH;
-                        break;
-                    case DETECT_AL_HTTP_RAW_URI:
-                        list_type = DETECT_SM_LIST_HRUDMATCH;
-                        break;
-                    default:
-                        /* would never happen */
-                        break;
+                case DETECT_CONTENT:
+                    list_type = DETECT_SM_LIST_PMATCH;
+                    break;
+                case DETECT_URICONTENT:
+                    list_type = DETECT_SM_LIST_UMATCH;
+                    break;
+                case DETECT_AL_HTTP_CLIENT_BODY:
+                    list_type = DETECT_SM_LIST_HCBDMATCH;
+                    break;
+                case DETECT_AL_HTTP_RAW_HEADER:
+                    list_type = DETECT_SM_LIST_HRHDMATCH;
+                    break;
+                case DETECT_AL_HTTP_HEADER:
+                    list_type = DETECT_SM_LIST_HHDMATCH;
+                    break;
+                case DETECT_AL_HTTP_METHOD:
+                    list_type = DETECT_SM_LIST_HMDMATCH;
+                    break;
+                case DETECT_AL_HTTP_COOKIE:
+                    list_type = DETECT_SM_LIST_HCDMATCH;
+                    break;
+                case DETECT_AL_HTTP_RAW_URI:
+                    list_type = DETECT_SM_LIST_HRUDMATCH;
+                    break;
+                default:
+                    /* would never happen */
+                    break;
                 } /* switch */
             } /* else */
             if (list_type == -1) {
@@ -353,22 +395,19 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
         prev_pm = pm;
     }
 
-    if (!(idad->flags & ISDATAAT_RELATIVE)) {
-        return 0;
-    }
-
-    if (prev_pm == NULL) {
-        if (s->alproto == ALPROTO_DCERPC) {
-            SCLogDebug("No preceding content or pcre keyword.  Possible "
-                       "since this is a dce alproto sig.");
-            return 0;
-        } else {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "No preceding content, pcre, "
-                       "uricontent, http_client_body, http_header, "
-                       "http_raw_header, http_method, http_cookie or "
-                       "http_raw_uri keyword");
+    if (offset != NULL) {
+        SigMatch *bed_sm =
+            DetectByteExtractRetrieveSMVar(offset, s,
+                                           SigMatchListSMBelongsTo(s, sm));
+        if (bed_sm == NULL) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                       "seen in isdataat - %s\n", offset);
             goto error;
         }
+        DetectIsdataatData *isdd = sm->ctx;
+        isdd->dataat = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+        isdd->flags |= ISDATAAT_OFFSET_BE;
+        SCFree(offset);
     }
 
     DetectContentData *cd = NULL;
@@ -406,7 +445,9 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
             break;
 
         case DETECT_BYTEJUMP:
-            SCLogDebug("Do nothing for bytejump");
+        case DETECT_BYTETEST:
+        case DETECT_BYTE_EXTRACT:
+            SCLogDebug("Do nothing for byte_jump, byte_test, byte_extract");
             break;
 
         default:
@@ -446,7 +487,7 @@ void DetectIsdataatFree(void *ptr) {
 int DetectIsdataatTestParse01 (void) {
     int result = 0;
     DetectIsdataatData *idad = NULL;
-    idad = DetectIsdataatParse("30 ");
+    idad = DetectIsdataatParse("30 ", NULL);
     if (idad != NULL) {
         DetectIsdataatFree(idad);
         result = 1;
@@ -462,7 +503,7 @@ int DetectIsdataatTestParse01 (void) {
 int DetectIsdataatTestParse02 (void) {
     int result = 0;
     DetectIsdataatData *idad = NULL;
-    idad = DetectIsdataatParse("30 , relative");
+    idad = DetectIsdataatParse("30 , relative", NULL);
     if (idad != NULL && idad->flags & ISDATAAT_RELATIVE && !(idad->flags & ISDATAAT_RAWBYTES)) {
         DetectIsdataatFree(idad);
         result = 1;
@@ -478,7 +519,7 @@ int DetectIsdataatTestParse02 (void) {
 int DetectIsdataatTestParse03 (void) {
     int result = 0;
     DetectIsdataatData *idad = NULL;
-    idad = DetectIsdataatParse("30,relative, rawbytes ");
+    idad = DetectIsdataatParse("30,relative, rawbytes ", NULL);
     if (idad != NULL && idad->flags & ISDATAAT_RELATIVE && idad->flags & ISDATAAT_RAWBYTES) {
         DetectIsdataatFree(idad);
         result = 1;
