@@ -300,7 +300,6 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
     Unified2AlertFileHeader hdr;
     PacketAlert pa_tag;
     PacketAlert *pa;
-    uint8_t ethh_offset = 0;
     int ret, len;
     char head_buf[sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv6Unified2)];
 
@@ -325,12 +324,6 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
     hdr.length = htonl(sizeof(AlertIPv6Unified2));
 
     memcpy(head_buf, &hdr,sizeof(Unified2AlertFileHeader));
-
-    /* if we have no ethernet header (e.g. when using nfq), we have to create
-     * one ourselves. */
-    if (p->ethh == NULL) {
-        ethh_offset = sizeof(EthernetHdr);
-    }
 
     /* fill the phdr structure with the data of the packet */
 
@@ -390,7 +383,6 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
                 pa = &pa_tag;
             else
                 break;
-        pa = &p->alerts.alerts[i];
 
         /* fill the header structure with the data of the alert */
         phdr.generator_id = htonl(pa->gid);
@@ -450,7 +442,6 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     Unified2AlertFileHeader hdr;
     PacketAlert *pa;
     PacketAlert pa_tag;
-    uint8_t ethh_offset = 0;
     int ret, len;
     char head_buf[sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv4Unified2)];
 
@@ -521,7 +512,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
                 pa = &pa_tag;
             else
                 break;
-        pa = &p->alerts.alerts[i];
+
         /* fill the hdr structure with the alert data */
         phdr.generator_id = htonl(pa->gid);
         phdr.signature_id = htonl(pa->sid);
