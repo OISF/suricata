@@ -383,7 +383,7 @@ static int DoInspectDcePayload(DetectEngineCtx *de_ctx,
             if (flags & DETECT_BYTETEST_DCE) {
                 /* enable the endianness flag temporarily.  once we are done
                  * processing we reset the flags to the original value*/
-                flags |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] == 0x10) ?
+                flags |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] & 0x10) ?
                           DETECT_BYTETEST_LITTLE: 0);
             }
 
@@ -408,7 +408,7 @@ static int DoInspectDcePayload(DetectEngineCtx *de_ctx,
             if (flags & DETECT_BYTEJUMP_DCE) {
                 /* enable the endianness flag temporarily.  once we are done
                  * processing we reset the flags to the original value*/
-                flags |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] == 0x10) ?
+                flags |= ((dcerpc_state->dcerpc.dcerpchdr.packed_drep[0] & 0x10) ?
                           DETECT_BYTEJUMP_LITTLE : 0);
             }
 
