@@ -176,7 +176,7 @@ static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_AL_HTTP_COOKIE);
     sm->type = DETECT_AL_HTTP_COOKIE;
 
-    /* transfer the sm from the pmatch list to hmdmatch list */
+    /* transfer the sm from the pmatch list to hcdmatch list */
     SigMatchTransferSigMatchAcrossLists(sm,
                                         &s->sm_lists[DETECT_SM_LIST_PMATCH],
                                         &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],

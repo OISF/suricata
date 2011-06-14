@@ -335,70 +335,111 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     SCLogDebug("s->id %"PRIu32, s->id);
 
     /* Check the uricontent, http client body, http header keywords here */
-    if (alproto == ALPROTO_HTTP && (flags & STREAM_TOSERVER)) {
-        if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
-            inspect_flags |= DE_STATE_FLAG_URI_INSPECT;
+    if (alproto == ALPROTO_HTTP) {
+        if (flags & STREAM_TOSERVER) {
+            if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
+                inspect_flags |= DE_STATE_FLAG_URI_INSPECT;
 
-            SCLogDebug("inspecting uri");
+                SCLogDebug("inspecting uri");
 
-            if (DetectEngineInspectPacketUris(de_ctx, det_ctx, s, f,
-                        flags, alstate) == 1)
-            {
-                SCLogDebug("uri matched");
-                match_flags |= DE_STATE_FLAG_URI_MATCH;
-            } else {
-                SCLogDebug("uri inspected but no match");
+                if (DetectEngineInspectPacketUris(de_ctx, det_ctx, s, f,
+                            flags, alstate) == 1)
+                {
+                    SCLogDebug("uri matched");
+                    match_flags |= DE_STATE_FLAG_URI_MATCH;
+                } else {
+                    SCLogDebug("uri inspected but no match");
+                }
+            }
+            if (s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL) {
+                inspect_flags |= DE_STATE_FLAG_HCBD_INSPECT;
+                if (DetectEngineInspectHttpClientBody(de_ctx, det_ctx, s, f,
+                            flags, alstate) == 1) {
+                    match_flags |= DE_STATE_FLAG_HCBD_MATCH;
+                }
+                SCLogDebug("inspecting http client body");
+            }
+            if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL) {
+                inspect_flags |= DE_STATE_FLAG_HHD_INSPECT;
+                if (DetectEngineInspectHttpHeader(de_ctx, det_ctx, s, f,
+                            flags, alstate) == 1) {
+                    match_flags |= DE_STATE_FLAG_HHD_MATCH;
+                }
+                SCLogDebug("inspecting http header");
+            }
+            if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL) {
+                inspect_flags |= DE_STATE_FLAG_HRHD_INSPECT;
+                if (DetectEngineInspectHttpRawHeader(de_ctx, det_ctx, s, f,
+                            flags, alstate) == 1) {
+                    match_flags |= DE_STATE_FLAG_HRHD_MATCH;
+                }
+                SCLogDebug("inspecting http raw header");
+            }
+            if (s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL) {
+                inspect_flags |= DE_STATE_FLAG_HMD_INSPECT;
+                if (DetectEngineInspectHttpMethod(de_ctx, det_ctx, s, f,
+                            flags, alstate) == 1) {
+                    match_flags |= DE_STATE_FLAG_HMD_MATCH;
+                }
+                SCLogDebug("inspecting http method");
+            }
+            if (s->sm_lists[DETECT_SM_LIST_HCDMATCH] != NULL) {
+                inspect_flags |= DE_STATE_FLAG_HCD_INSPECT;
+                if (DetectEngineInspectHttpCookie(de_ctx, det_ctx, s, f,
+                            flags, alstate) == 1) {
+                    match_flags |= DE_STATE_FLAG_HCD_MATCH;
+                }
+                SCLogDebug("inspecting http cookie");
+            }
+            if (s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL) {
+                inspect_flags |= DE_STATE_FLAG_HRUD_INSPECT;
+                if (DetectEngineInspectHttpRawUri(de_ctx, det_ctx, s, f,
+                            flags, alstate) == 1) {
+                    match_flags |= DE_STATE_FLAG_HRUD_MATCH;
+                }
+                SCLogDebug("inspecting http raw uri");
+            }
+        } else if (flags & STREAM_TOCLIENT) {
+            /* For to client set the flags in inspect so it can't match
+             * if the sig requires something only the request has. The rest
+             * will be inspected in the opposite direction. */
+            if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
+                inspect_flags |= DE_STATE_FLAG_URI_INSPECT;
+            }
+            if (s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL) {
+                inspect_flags |= DE_STATE_FLAG_HCBD_INSPECT;
+            }
+            if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL) {
+                inspect_flags |= DE_STATE_FLAG_HHD_INSPECT;
+                if (DetectEngineInspectHttpHeader(de_ctx, det_ctx, s, f,
+                            flags, alstate) == 1) {
+                    match_flags |= DE_STATE_FLAG_HHD_MATCH;
+                }
+                SCLogDebug("inspecting http header");
+            }
+            if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL) {
+                inspect_flags |= DE_STATE_FLAG_HRHD_INSPECT;
+                if (DetectEngineInspectHttpRawHeader(de_ctx, det_ctx, s, f,
+                            flags, alstate) == 1) {
+                    match_flags |= DE_STATE_FLAG_HRHD_MATCH;
+                }
+                SCLogDebug("inspecting http raw header");
+            }
+            if (s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL) {
+                inspect_flags |= DE_STATE_FLAG_HMD_INSPECT;
+            }
+            if (s->sm_lists[DETECT_SM_LIST_HCDMATCH] != NULL) {
+                inspect_flags |= DE_STATE_FLAG_HCD_INSPECT;
+                if (DetectEngineInspectHttpCookie(de_ctx, det_ctx, s, f,
+                            flags, alstate) == 1) {
+                    match_flags |= DE_STATE_FLAG_HCD_MATCH;
+                }
+                SCLogDebug("inspecting http cookie");
+            }
+            if (s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL) {
+                inspect_flags |= DE_STATE_FLAG_HRUD_INSPECT;
             }
         }
-        if (s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL) {
-            inspect_flags |= DE_STATE_FLAG_HCBD_INSPECT;
-            if (DetectEngineInspectHttpClientBody(de_ctx, det_ctx, s, f,
-                                                  flags, alstate) == 1) {
-                match_flags |= DE_STATE_FLAG_HCBD_MATCH;
-            }
-            SCLogDebug("inspecting http client body");
-        }
-        if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL) {
-            inspect_flags |= DE_STATE_FLAG_HHD_INSPECT;
-            if (DetectEngineInspectHttpHeader(de_ctx, det_ctx, s, f,
-                                              flags, alstate) == 1) {
-                match_flags |= DE_STATE_FLAG_HHD_MATCH;
-            }
-            SCLogDebug("inspecting http header");
-        }
-        if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL) {
-            inspect_flags |= DE_STATE_FLAG_HRHD_INSPECT;
-            if (DetectEngineInspectHttpRawHeader(de_ctx, det_ctx, s, f,
-                                                 flags, alstate) == 1) {
-                match_flags |= DE_STATE_FLAG_HRHD_MATCH;
-            }
-            SCLogDebug("inspecting http raw header");
-        }
-        if (s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL) {
-            inspect_flags |= DE_STATE_FLAG_HMD_INSPECT;
-            if (DetectEngineInspectHttpMethod(de_ctx, det_ctx, s, f,
-                                              flags, alstate) == 1) {
-                match_flags |= DE_STATE_FLAG_HMD_MATCH;
-            }
-            SCLogDebug("inspecting http method");
-        }
-        if (s->sm_lists[DETECT_SM_LIST_HCDMATCH] != NULL) {
-            inspect_flags |= DE_STATE_FLAG_HCD_INSPECT;
-            if (DetectEngineInspectHttpCookie(de_ctx, det_ctx, s, f,
-                                              flags, alstate) == 1) {
-                match_flags |= DE_STATE_FLAG_HCD_MATCH;
-            }
-            SCLogDebug("inspecting http cookie");
-        }
-        if (s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL) {
-            inspect_flags |= DE_STATE_FLAG_HRUD_INSPECT;
-            if (DetectEngineInspectHttpRawUri(de_ctx, det_ctx, s, f,
-                                              flags, alstate) == 1) {
-                match_flags |= DE_STATE_FLAG_HRUD_MATCH;
-            }
-            SCLogDebug("inspecting http raw uri");
-        }
-
     } else if (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
         if (s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL) {
             inspect_flags |= DE_STATE_FLAG_DCE_INSPECT;
@@ -467,7 +508,8 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         }
     }
 
-    SCLogDebug("detection done, store results: sm %p, match_flags %04X", sm, match_flags);
+    SCLogDebug("detection done, store results: sm %p, inspect_flags %04X, "
+            "match_flags %04X", sm, inspect_flags, match_flags);
 
     SCMutexLock(&f->de_state_m);
     /* match or no match, we store the state anyway

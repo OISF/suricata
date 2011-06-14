@@ -1573,8 +1573,14 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
 
-        SCLogDebug("s->sm_lists[DETECT_SM_LIST_AMATCH] %p, s->sm_lists[DETECT_SM_LIST_UMATCH] %p, s->sm_lists[DETECT_SM_LIST_DMATCH] %p",
-                s->sm_lists[DETECT_SM_LIST_AMATCH], s->sm_lists[DETECT_SM_LIST_UMATCH], s->sm_lists[DETECT_SM_LIST_DMATCH]);
+        SCLogDebug("s->sm_lists[DETECT_SM_LIST_AMATCH] %p, "
+                "s->sm_lists[DETECT_SM_LIST_UMATCH] %p, "
+                "s->sm_lists[DETECT_SM_LIST_DMATCH] %p, "
+                "s->sm_lists[DETECT_SM_LIST_HCDMATCH] %p",
+                s->sm_lists[DETECT_SM_LIST_AMATCH],
+                s->sm_lists[DETECT_SM_LIST_UMATCH],
+                s->sm_lists[DETECT_SM_LIST_DMATCH],
+                s->sm_lists[DETECT_SM_LIST_HCDMATCH]);
 
         /* consider stateful sig matches */
         if (s->flags & SIG_FLAG_STATE_MATCH) {
