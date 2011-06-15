@@ -654,6 +654,7 @@ void MpmCudaConfCleanup(MpmCudaConf *conf)
 
 /************************************Unittests*********************************/
 
+#ifdef UNITTESTS
 #ifdef __SC_CUDA_SUPPORT__
 
 static int MpmInitYamlConf(char *conf)
@@ -1217,6 +1218,7 @@ static int MpmTest11(void)
 }
 
 #endif /* __SC_CUDA_SUPPORT__ */
+#endif /* UNITTESTS */
 
 void MpmRegisterTests(void) {
 #ifdef UNITTESTS

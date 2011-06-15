@@ -24,6 +24,7 @@
 #include "output.h"
 #include "cuda-packet-batcher.h"
 #include "source-pfring.h"
+#include "detect-engine-mpm.h"
 
 #include "alert-fastlog.h"
 #include "alert-prelude.h"

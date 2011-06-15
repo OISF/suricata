@@ -2369,6 +2369,7 @@ void B2gCudaKillDispatcherThreadRC(void)
 
 static int B2gCudaTest01(void)
 {
+    Packet *p = NULL;
     MpmCtx mpm_ctx;
     MpmThreadCtx mpm_thread_ctx;
     B2gCudaCtx *ctx = NULL;
@@ -2427,7 +2428,7 @@ static int B2gCudaTest01(void)
     pb->packets_offset_buffer[0] = 0;
     pb->packets_payload_offset_buffer[0] = 0;
 
-    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    p = SCMalloc(SIZE_OF_PACKET);
     if (p == NULL)
         goto end;
     memset(p, 0, SIZE_OF_PACKET);
