@@ -46,6 +46,9 @@ static int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     /* strip "'s */
     if (rawstr[0] == '\"' && rawstr[strlen(rawstr)-1] == '\"') {
         str = SCStrdup(rawstr+1);
+        if (str == NULL) {
+            return -1;
+        }
         str[strlen(rawstr)-2] = '\0';
         dubbed = 1;
     }

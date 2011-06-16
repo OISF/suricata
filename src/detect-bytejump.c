@@ -111,7 +111,7 @@ int DetectBytejumpDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
 
     DetectBytejumpData *data = (DetectBytejumpData *)m->ctx;
     uint8_t *ptr = NULL;
-    uint8_t *jumpptr = ptr;
+    uint8_t *jumpptr = NULL;
     int32_t len = 0;
     uint64_t val = 0;
     int extbytes;
@@ -219,7 +219,7 @@ int DetectBytejumpMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 {
     DetectBytejumpData *data = (DetectBytejumpData *)m->ctx;
     uint8_t *ptr = NULL;
-    uint8_t *jumpptr = ptr;
+    uint8_t *jumpptr = NULL;
     uint16_t len = 0;
     uint64_t val = 0;
     int extbytes;
@@ -353,7 +353,7 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
      * supports 9 substrings, sigh.
      */
     res = pcre_get_substring((char *)optstr, ov,
-                             MAX_SUBSTRINGS, i + 1, (const char **)&str_ptr);
+                             MAX_SUBSTRINGS, 1, (const char **)&str_ptr);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_get_substring failed "
                "for arg %d", i + 1);
@@ -376,7 +376,7 @@ DetectBytejumpData *DetectBytejumpParse(char *optstr)
     end_ptr = str_ptr;
     while (!(isspace(*end_ptr) || (*end_ptr == ',')) && (*end_ptr != '\0'))
         end_ptr++;
-    *(end_ptr++) = '\0';
+    *end_ptr = '\0';
     args[1] = str_ptr;
     numargs++;
 

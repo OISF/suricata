@@ -140,6 +140,8 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *raws
 
     if (varcontent[0] == '\"' && varcontent[strlen(varcontent)-1] == '\"') {
         str = SCStrdup(varcontent+1);
+        if (str == NULL)
+            goto error;
         str[strlen(varcontent)-2] = '\0';
         dubbed = 1;
     }

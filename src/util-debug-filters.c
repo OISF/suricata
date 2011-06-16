@@ -577,9 +577,7 @@ int SCLogCheckFDFilterEntry(const char *function)
     SCMutexLock(&sc_log_fd_filters_tl_m);
 
     thread_list = sc_log_fd_filters_tl;
-    thread_list_temp = thread_list;
     while (thread_list != NULL) {
-        thread_list_temp = thread_list;
 
         if (pthread_equal(self, thread_list->t))
             break;
@@ -722,7 +720,10 @@ int SCLogAddFDFilter(const char *function)
 
     if (sc_log_fd_filters == NULL)
         sc_log_fd_filters = temp;
-    else
+    /* clang thinks prev can be NULL, but it can't be unless
+     * sc_log_fd_filters is also NULL which is handled here.
+     * Doing this "fix" to shut clang up. */
+    else if (prev != NULL)
         prev->next = temp;
 
     SCMutexUnlock(&sc_log_fd_filters_m);
@@ -827,7 +828,6 @@ int SCLogPrintFDFilters(void)
 {
     SCLogFDFilter *fdf = NULL;
     int count = 0;
-    int r = 0;
 
     if (sc_log_module_initialized != 1) {
         printf("Logging module not initialized.  Call SCLogInitLogModule() "
@@ -839,7 +839,7 @@ int SCLogPrintFDFilters(void)
     printf("FD filters:\n");
 #endif
 
-    r = SCMutexLock(&sc_log_fd_filters_m);
+    SCMutexLock(&sc_log_fd_filters_m);
 
     fdf = sc_log_fd_filters;
     while (fdf != NULL) {
@@ -850,7 +850,7 @@ int SCLogPrintFDFilters(void)
         count++;
     }
 
-    r = SCMutexUnlock(&sc_log_fd_filters_m);
+    SCMutexUnlock(&sc_log_fd_filters_m);
 
     return count;
 }

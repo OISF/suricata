@@ -255,35 +255,13 @@ DetectStreamSizeData *DetectStreamSizeParse (char *streamstr) {
 
     /* inspect our options and set the flags */
     if (strcmp(arg, "server") == 0) {
-        if (sd->flags & STREAM_SIZE_SERVER) {
-            SCLogDebug("DetectStreamSizeParse error STREAM_SIZE_SERVER flag is already set ");
-            goto error;
-        }
         sd->flags |= STREAM_SIZE_SERVER;
-
     } else if (strcmp(arg, "client") == 0) {
-
-        if (sd->flags & STREAM_SIZE_CLIENT) {
-            SCLogDebug("DetectStreamSizeParse error STREAM_SIZE_CLIENT flag is already set ");
-            goto error;
-        }
         sd->flags |= STREAM_SIZE_CLIENT;
-
     } else if ((strcmp(arg, "both") == 0)) {
-
-        if (sd->flags & STREAM_SIZE_SERVER || sd->flags & STREAM_SIZE_CLIENT) {
-            SCLogDebug("DetectStreamSizeParse error STREAM_SIZE_SERVER or STREAM_SIZE_CLIENT flag is already set ");
-            goto error;
-        }
         sd->flags |= STREAM_SIZE_BOTH;
     } else if (strcmp(arg, "either") == 0) {
-
-        if (sd->flags & STREAM_SIZE_SERVER || sd->flags & STREAM_SIZE_CLIENT) {
-            SCLogDebug("DetectStreamSizeParse error STREAM_SIZE_SERVER or STREAM_SIZE_CLIENT flag is already set ");
-            goto error;
-        }
         sd->flags |= STREAM_SIZE_EITHER;
-
     } else {
         goto error;
     }

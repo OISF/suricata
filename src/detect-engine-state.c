@@ -218,8 +218,6 @@ static void DeStateSignatureAppend(DetectEngineState *state, Signature *s, SigMa
                 state->tail->next = store;
                 state->tail = store;
             }
-        } else {
-            store = state->tail;
         }
     }
 
@@ -454,8 +452,6 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
             uinspect = 0;
             dmatch = 0;
             dinspect = 0;
-            appinspect = 0;
-            appmatch = 0;
             match = 0;
 
             SCLogDebug("internal id of signature to inspect: %"PRIuMAX,

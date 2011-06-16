@@ -391,8 +391,7 @@ Asn1Node *SCAsn1CtxNewFrame(Asn1Ctx *ac, uint16_t node) {
 
     if (ac->asn1_stack[node] == NULL)
         ac->asn1_stack[node] = SCMalloc(sizeof(Asn1Node));
-
-    if (&ac->asn1_stack[node] == NULL)
+    if (ac->asn1_stack[node] == NULL)
         return NULL;
 
     memset(ac->asn1_stack[node], 0, sizeof(Asn1Node));

@@ -349,7 +349,6 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
         void *alstate)
 {
     SCEnter();
-    SigMatch *sm = NULL;
     int r = 0;
     HtpState *htp_state = NULL;
 
@@ -409,11 +408,12 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
         }
     }
 
-    sm = s->umatch;
-
 #ifdef DEBUG
-    DetectUricontentData *co = (DetectUricontentData *)sm->ctx;
-    SCLogDebug("co->id %"PRIu32, co->id);
+    SigMatch *sm = s->umatch;
+    if (sm != NULL) {
+        DetectUricontentData *co = (DetectUricontentData *)sm->ctx;
+        SCLogDebug("co->id %"PRIu32, co->id);
+    }
 #endif
 
     size_t idx = AppLayerTransactionGetInspectId(f);

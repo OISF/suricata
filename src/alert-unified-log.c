@@ -193,10 +193,12 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     int ret;
     uint8_t ethh_offset = 0;
     uint32_t buflen = 0;
+    int pkt_has_tag = 0;
 
-
-    if (p->flags & PKT_HAS_TAG)
+    if (p->flags & PKT_HAS_TAG) {
         PacketAlertAppendTag(p, &pa_tag);
+        pkt_has_tag = 1;
+    }
 
     /* the unified1 format only supports IPv4. */
     if (p->alerts.cnt == 0 || !PKT_IS_IPV4(p))
@@ -222,7 +224,7 @@ TmEcode AlertUnifiedLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         if (i < p->alerts.cnt)
             pa = &p->alerts.alerts[i];
         else
-            if (p->flags & PKT_HAS_TAG)
+            if (pkt_has_tag == 1)
                 pa = &pa_tag;
             else
                 break;

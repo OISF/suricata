@@ -305,17 +305,21 @@ static void SCSigOrderByAction(DetectEngineCtx *de_ctx,
     if (min == max && prev != sw) {
         if (sw->next != NULL) {
             sw->next->prev = sw->prev;
+        }
+        if (sw->prev != NULL) {
             sw->prev->next = sw->next;
         }
 
         if (min == NULL) {
-            prev->next = sw;
+            if (prev != NULL)
+                prev->next = sw;
             sw->prev = prev;
             sw->next = NULL;
         } else {
             sw->prev = min->prev;
             sw->next = min;
-            min->prev->next = sw;
+            if (min->prev)
+                min->prev->next = sw;
             min->prev = sw;
         }
     }
@@ -406,17 +410,21 @@ static void SCSigOrderByFlowbits(DetectEngineCtx *de_ctx,
     if (min == max && prev != sw) {
         if (sw->next != NULL) {
             sw->next->prev = sw->prev;
+        }
+        if (sw->prev != NULL) {
             sw->prev->next = sw->next;
         }
 
         if (min == NULL) {
-            prev->next = sw;
+            if (prev != NULL)
+                prev->next = sw;
             sw->prev = prev;
             sw->next = NULL;
         } else {
             sw->prev = min->prev;
             sw->next = min;
-            min->prev->next = sw;
+            if (min->prev != NULL)
+                min->prev->next = sw;
             min->prev = sw;
         }
     }
@@ -510,17 +518,22 @@ static void SCSigOrderByFlowvar(DetectEngineCtx *de_ctx,
     if (min == max && prev != sw) {
         if (sw->next != NULL) {
             sw->next->prev = sw->prev;
+        }
+        if (sw->prev != NULL) {
             sw->prev->next = sw->next;
         }
 
         if (min == NULL) {
-            prev->next = sw;
+            if (prev != NULL)
+                prev->next = sw;
             sw->prev = prev;
             sw->next = NULL;
         } else {
             sw->prev = min->prev;
             sw->next = min;
-            min->prev->next = sw;
+            if (min->prev != NULL) {
+                min->prev->next = sw;
+            }
             min->prev = sw;
         }
     }
@@ -612,17 +625,21 @@ static void SCSigOrderByPktvar(DetectEngineCtx *de_ctx,
     if (min == max && prev != sw) {
         if (sw->next != NULL) {
             sw->next->prev = sw->prev;
+        }
+        if (sw->prev != NULL) {
             sw->prev->next = sw->next;
         }
 
         if (min == NULL) {
-            prev->next = sw;
+            if (prev != NULL)
+                prev->next = sw;
             sw->prev = prev;
             sw->next = NULL;
         } else {
             sw->prev = min->prev;
             sw->next = min;
-            min->prev->next = sw;
+            if (min->prev != NULL)
+                min->prev->next = sw;
             min->prev = sw;
         }
     }
@@ -714,17 +731,21 @@ static void SCSigOrderByPriority(DetectEngineCtx *de_ctx,
     if (min == max && prev != sw) {
         if (sw->next != NULL) {
             sw->next->prev = sw->prev;
+        }
+        if (sw->prev != NULL) {
             sw->prev->next = sw->next;
         }
 
         if (min == NULL) {
-            prev->next = sw;
+            if (prev != NULL)
+                prev->next = sw;
             sw->prev = prev;
             sw->next = NULL;
         } else {
             sw->prev = min->prev;
             sw->next = min;
-            min->prev->next = sw;
+            if (min->prev != NULL)
+                min->prev->next = sw;
             min->prev = sw;
         }
     }

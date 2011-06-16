@@ -227,11 +227,11 @@ static inline DetectDceOpnumData *DetectDceOpnumArgParse(const char *arg)
         goto error;
 
     if (prev_dor == NULL) {
-        prev_dor = dor;
+        //prev_dor = dor;
         dod->range = dor;
     } else {
         prev_dor->next = dor;
-        prev_dor = dor;
+        //prev_dor = dor;
     }
 
     if (dup_str_head != NULL)
@@ -342,7 +342,6 @@ void DetectDceOpnumFree(void *ptr)
 
     if (dod != NULL) {
         dor = dod->range;
-        dor_temp = dod->range;
         while (dor != NULL) {
             dor_temp = dor;
             dor = dor->next;

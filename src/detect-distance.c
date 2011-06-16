@@ -67,6 +67,8 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
     /* strip "'s */
     if (distancestr[0] == '\"' && distancestr[strlen(distancestr)-1] == '\"') {
         str = SCStrdup(distancestr+1);
+        if (str == NULL)
+            goto error;
         str[strlen(distancestr)-2] = '\0';
         dubbed = 1;
     }
@@ -77,9 +79,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
         SigMatch *dcem = NULL;
         SigMatch *dm = NULL;
         SigMatch *pm1 = NULL;
-        SigMatch *pm2 = NULL;
 
-        SigMatch *dm_ots = NULL;
         SigMatch *pm1_ots = NULL;
         SigMatch *pm2_ots = NULL;
 
@@ -88,10 +88,6 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                                           DETECT_DCE_OPNUM, s->amatch_tail,
                                           DETECT_DCE_STUB_DATA, s->amatch_tail);
 
-        dm_ots = SigMatchGetLastSMFromLists(s, 6,
-                                            DETECT_CONTENT, s->dmatch_tail,
-                                            DETECT_PCRE, s->dmatch_tail,
-                                            DETECT_BYTEJUMP, s->dmatch_tail);
         pm1_ots = SigMatchGetLastSMFromLists(s, 6,
                                              DETECT_CONTENT, s->pmatch_tail,
                                              DETECT_PCRE, s->pmatch_tail,
@@ -105,9 +101,6 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
 
         dm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->dmatch_tail);
         pm1 = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->pmatch_tail);
-        if (pm1 != NULL && pm1->prev != NULL) {
-            pm2 = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, pm1->prev);
-        }
 
         if (dm == NULL && pm1 == NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid signature.  within "

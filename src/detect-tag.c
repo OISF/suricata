@@ -124,6 +124,8 @@ int DetectTagFlowAdd(Packet *p, DetectTagDataEntry *tde) {
 
     if (p->flow->tag_list == NULL) {
         p->flow->tag_list = SCMalloc(sizeof(DetectTagDataEntryList));
+        if (p->flow->tag_list == NULL)
+            goto end;
         memset(p->flow->tag_list, 0, sizeof(DetectTagDataEntryList));
     } else {
         iter = p->flow->tag_list->header_entry;
@@ -156,7 +158,7 @@ int DetectTagFlowAdd(Packet *p, DetectTagDataEntry *tde) {
     }
 
     SCMutexUnlock(&p->flow->m);
-
+end:
     return updated;
 }
 

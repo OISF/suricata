@@ -1095,7 +1095,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     }
 
 end:
-    if (alstate != NULL) {
+    if (p->flow != NULL && alstate != NULL) {
         SCLogDebug("getting de_state_status");
         int de_state_status = DeStateUpdateInspectTransactionId(p->flow,
                 (flags & STREAM_TOSERVER) ? STREAM_TOSERVER : STREAM_TOCLIENT);
@@ -4931,7 +4931,7 @@ end:
         }
     }
     DetectEngineCtxFree(de_ctx);
-end:
+
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
     FLOW_DESTROY(&f);

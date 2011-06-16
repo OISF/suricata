@@ -283,7 +283,6 @@ int DetectPcreALDoMatchMethod(DetectEngineThreadCtx *det_ctx, Signature *s,
             if (pe->negate == 1) {
                 /* regex matched but we're negated, so not
                  * considering it a match */
-                ret = 0;
             } else {
                 /* regex matched and we're not negated,
                  * considering it a match */
@@ -293,7 +292,6 @@ int DetectPcreALDoMatchMethod(DetectEngineThreadCtx *det_ctx, Signature *s,
             }
         } else {
             SCLogDebug("pcre had matching error");
-            ret = 0;
         }
     }
 
@@ -400,7 +398,6 @@ int DetectPcreALDoMatchHeader(DetectEngineThreadCtx *det_ctx, Signature *s,
             if (pe->negate == 1) {
                 /* regex matched but we're negated, so not
                  * considering it a match */
-                ret = 0;
             } else {
                 /* regex matched and we're not negated,
                  * considering it a match */
@@ -410,7 +407,6 @@ int DetectPcreALDoMatchHeader(DetectEngineThreadCtx *det_ctx, Signature *s,
             }
         } else {
             SCLogDebug("pcre had matching error");
-            ret = 0;
         }
     }
 
@@ -519,7 +515,6 @@ int DetectPcreALDoMatchCookie(DetectEngineThreadCtx *det_ctx, Signature *s,
             if (pe->negate == 1) {
                 /* regex matched but we're negated, so not
                  * considering it a match */
-                ret = 0;
             } else {
                 /* regex matched and we're not negated,
                  * considering it a match */
@@ -588,7 +583,6 @@ int DetectPcreALDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *
             SCLogDebug("No body data to inspect");
             goto unlock;
         } else {
-            pcreret = 0;
             int wspace[255];
             int pcre_flags = PCRE_PARTIAL;
 

@@ -70,6 +70,9 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
     /* strip "'s */
     if (withinstr[0] == '\"' && withinstr[strlen(withinstr)-1] == '\"') {
         str = SCStrdup(withinstr+1);
+        if (str == NULL) {
+            goto error;
+        }
         str[strlen(withinstr)-2] = '\0';
         dubbed = 1;
     }
@@ -80,9 +83,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
         SigMatch *dcem = NULL;
         SigMatch *dm = NULL;
         SigMatch *pm1 = NULL;
-        SigMatch *pm2 = NULL;
 
-        SigMatch *dm_ots = NULL;
         SigMatch *pm1_ots = NULL;
         SigMatch *pm2_ots = NULL;
 
@@ -91,10 +92,6 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                                           DETECT_DCE_OPNUM, s->amatch_tail,
                                           DETECT_DCE_STUB_DATA, s->amatch_tail);
 
-        dm_ots = SigMatchGetLastSMFromLists(s, 6,
-                                            DETECT_CONTENT, s->dmatch_tail,
-                                            DETECT_PCRE, s->dmatch_tail,
-                                            DETECT_BYTEJUMP, s->dmatch_tail);
         pm1_ots = SigMatchGetLastSMFromLists(s, 6,
                                              DETECT_CONTENT, s->pmatch_tail,
                                              DETECT_PCRE, s->pmatch_tail,
@@ -108,9 +105,6 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
 
         dm = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->dmatch_tail);
         pm1 = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->pmatch_tail);
-        if (pm1 != NULL && pm1->prev != NULL) {
-            pm2 = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, pm1->prev);
-        }
 
         if (dm == NULL && pm1 == NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid signature.  within "

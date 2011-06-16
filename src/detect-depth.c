@@ -59,6 +59,8 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
     /* strip "'s */
     if (depthstr[0] == '\"' && depthstr[strlen(depthstr)-1] == '\"') {
         str = SCStrdup(depthstr+1);
+        if (str == NULL)
+            goto error;
         str[strlen(depthstr)-2] = '\0';
         dubbed = 1;
     }
@@ -141,6 +143,9 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
         break;
     }
 
-    if (dubbed) SCFree(str);
+    if (dubbed)
+        SCFree(str);
     return 0;
+error:
+    return -1;
 }
