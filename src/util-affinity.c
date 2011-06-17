@@ -281,14 +281,20 @@ void AffinitySetupLoadFromConfig()
 int AffinityGetNextCPU(ThreadsAffinityType *taf)
 {
     int ncpu = 0;
+    int iter = 0;
 
 #if !defined OS_WIN32 && !defined __OpenBSD__
     SCMutexLock(&taf->taf_mutex);
     ncpu = taf->lcpu;
-    while (!CPU_ISSET(ncpu, &taf->cpu_set)) {
+    while (!CPU_ISSET(ncpu, &taf->cpu_set) && iter < 2) {
         ncpu++;
-        if (ncpu >= UtilCpuGetNumProcessorsOnline())
+        if (ncpu >= UtilCpuGetNumProcessorsOnline()) {
             ncpu = 0;
+            iter++;
+        }
+    }
+    if (iter == 2) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "cpu_set does not contains available cpus, cpu afinity conf is invalid");
     }
     taf->lcpu = ncpu + 1;
     if (taf->lcpu >= UtilCpuGetNumProcessorsOnline())
