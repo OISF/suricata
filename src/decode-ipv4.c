@@ -1545,6 +1545,7 @@ int DecodeIPV4DefragTest01(void)
     memset(&pq, 0, sizeof(PacketQueue));
     memset(p, 0, sizeof(Packet));
 
+    PACKET_INITIALIZE(p);
     FlowInitConfig(FLOW_QUIET);
 
     p->pkt = pkt1;
@@ -1612,10 +1613,12 @@ int DecodeIPV4DefragTest01(void)
         }
     }
 
+    PACKET_CLEANUP(p);
     SCFree(tp);
 
- end:
+end:
     FlowShutdown();
+    PACKET_CLEANUP(p);
     SCFree(p);
     return result;
 }
@@ -1685,6 +1688,7 @@ int DecodeIPV4DefragTest02(void)
     memset(&pq, 0, sizeof(PacketQueue));
     memset(p, 0, sizeof(Packet));
 
+    PACKET_INITIALIZE(p);
     FlowInitConfig(FLOW_QUIET);
 
     p->pkt = pkt1;
@@ -1753,10 +1757,12 @@ int DecodeIPV4DefragTest02(void)
         }
     }
 
+    PACKET_CLEANUP(p);
     SCFree(tp);
 
- end:
+end:
     FlowShutdown();
+    PACKET_CLEANUP(p);
     SCFree(p);
     return result;
 }
@@ -1822,6 +1828,7 @@ int DecodeIPV4DefragTest03(void)
     memset(&pq, 0, sizeof(PacketQueue));
     memset(p, 0, sizeof(Packet));
 
+    PACKET_INITIALIZE(p);
     FlowInitConfig(FLOW_QUIET);
 
     p->pkt = pkt;
@@ -1915,10 +1922,12 @@ int DecodeIPV4DefragTest03(void)
         }
     }
 
+    PACKET_CLEANUP(p);
     SCFree(tp);
 
- end:
+end:
     FlowShutdown();
+    PACKET_CLEANUP(p);
     SCFree(p);
     return result;
 }

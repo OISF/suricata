@@ -56,6 +56,8 @@
 #include "stream-tcp-util.h"
 #include "stream.h"
 
+#include "pkt-var.h"
+
 #include "app-layer-parser.h"
 #include "app-layer-protos.h"
 
@@ -8670,6 +8672,8 @@ static int StreamTcpTest40(void) {
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(p, 0, SIZE_OF_PACKET);
+    PACKET_INITIALIZE(p);
+
     p->pkt = (uint8_t *)(p + 1);
     SET_PKT_LEN(p, sizeof(raw_vlan));
     memcpy(GET_PKT_DATA(p), raw_vlan, sizeof(raw_vlan));
@@ -8702,6 +8706,7 @@ static int StreamTcpTest40(void) {
     }
 
     FlowShutdown();
+    PACKET_CLEANUP(p);
 
     return 1;
 }
@@ -8735,6 +8740,7 @@ static int StreamTcpTest41(void) {
         return 1;
     }
 
+    PACKET_INITIALIZE(p);
     FlowInitConfig(FLOW_QUIET);
 
     DecodeRaw(&tv, &dtv, p, raw_ip, GET_PKT_LEN(p), NULL);
@@ -8764,6 +8770,7 @@ static int StreamTcpTest41(void) {
     }
 
     FlowShutdown();
+    PACKET_CLEANUP(p);
     SCFree(p);
 
     return 1;

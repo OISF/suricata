@@ -30,7 +30,7 @@
 #include "detect.h"
 #include "flow.h"
 #include "conf.h"
-
+#include "pkt-var.h"
 #include "threads.h"
 #include "threadvars.h"
 #include "tm-modules.h"
@@ -997,6 +997,8 @@ static int Unified2Test01 (void)   {
     p->pkt = (uint8_t *)(p + 1);
     memset(&s, 0, sizeof(Signature));
 
+    PACKET_INITIALIZE(p);
+
     p->alerts.cnt++;
     p->alerts.alerts[p->alerts.cnt-1].s = &s;
     p->alerts.alerts[p->alerts.cnt-1].s->id = 1;
@@ -1038,6 +1040,7 @@ static int Unified2Test01 (void)   {
 
     Unified2AlertDeInitCtx(oc);
 
+    PACKET_CLEANUP(p);
     SCFree(p);
     return 1;
 }
@@ -1083,6 +1086,8 @@ static int Unified2Test02 (void)   {
     p->pkt = (uint8_t *)(p + 1);
     memset(&s, 0, sizeof(Signature));
 
+    PACKET_INITIALIZE(p);
+
     p->alerts.cnt++;
     p->alerts.alerts[p->alerts.cnt-1].s = &s;
     p->alerts.alerts[p->alerts.cnt-1].s->id = 1;
@@ -1124,6 +1129,7 @@ static int Unified2Test02 (void)   {
 
     Unified2AlertDeInitCtx(oc);
 
+    PACKET_CLEANUP(p);
     SCFree(p);
     return 1;
 }
@@ -1175,6 +1181,8 @@ static int Unified2Test03 (void) {
     p->pkt = (uint8_t *)(p + 1);
     memset(&s, 0, sizeof(Signature));
 
+    PACKET_INITIALIZE(p);
+
     p->alerts.cnt++;
     p->alerts.alerts[p->alerts.cnt-1].s = &s;
     p->alerts.alerts[p->alerts.cnt-1].s->id = 1;
@@ -1222,6 +1230,7 @@ static int Unified2Test03 (void) {
         pkt = PacketDequeue(&pq);
     }
 
+    PACKET_CLEANUP(p);
     SCFree(p);
     return 1;
 }
@@ -1260,6 +1269,8 @@ static int Unified2Test04 (void)   {
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
     memset(&s, 0, sizeof(Signature));
+
+    PACKET_INITIALIZE(p);
 
     p->alerts.cnt++;
     p->alerts.alerts[p->alerts.cnt-1].s = &s;
@@ -1302,6 +1313,7 @@ static int Unified2Test04 (void)   {
 
     Unified2AlertDeInitCtx(oc);
 
+    PACKET_CLEANUP(p);
     SCFree(p);
     return 1;
 }
@@ -1344,6 +1356,8 @@ static int Unified2Test05 (void)   {
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
     memset(&s, 0, sizeof(Signature));
+
+    PACKET_INITIALIZE(p);
 
     p->alerts.cnt++;
     p->alerts.alerts[p->alerts.cnt-1].s = &s;
@@ -1388,6 +1402,7 @@ static int Unified2Test05 (void)   {
 
     Unified2AlertDeInitCtx(oc);
 
+    PACKET_CLEANUP(p);
     SCFree(p);
     return 1;
 }
