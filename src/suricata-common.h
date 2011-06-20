@@ -144,6 +144,22 @@
 /** same for pattern id's */
 #define PatIntId uint16_t
 
+/** FreeBSD does not define __WORDSIZE, but it uses __LONG_BIT */
+#ifndef __WORDSIZE
+    #ifdef __LONG_BIT
+        #define __WORDSIZE __LONG_BIT
+    #else
+        #ifdef LONG_BIT
+            #define __WORDSIZE LONG_BIT
+        #endif
+    #endif
+
+    #ifndef __WORDSIZE
+        #warning Defaulting to __WORDSIZE 32
+        #define __WORDSIZE 32
+    #endif
+#endif
+
 #include <htp/htp.h>
 #include "threads.h"
 #include "util-debug.h"
