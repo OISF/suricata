@@ -56,14 +56,18 @@
                                              has parsed a new body (for
                                              pcre) */
 enum {
-    HTP_BODY_NONE,                      /**< Flag to indicate the current
+    HTP_BODY_NONE = 0,                  /**< Flag to indicate the current
                                              operation */
     HTP_BODY_REQUEST,                   /**< Flag to indicate that the
                                              current operation is a request */
-    HTP_BODY_REQUEST_MULTIPART,
-    HTP_BODY_REQUEST_PUT,
     HTP_BODY_RESPONSE                   /**< Flag to indicate that the current
                                           * operation is a response */
+};
+
+enum {
+    HTP_BODY_REQUEST_NONE = 0,
+    HTP_BODY_REQUEST_MULTIPART,
+    HTP_BODY_REQUEST_PUT,
 };
 
 #define HTP_PCRE_NONE           0x00    /**< No pcre executed yet */
@@ -89,6 +93,7 @@ typedef struct HtpBody_ {
     uint32_t nchunks;    /**< Number of chunks in the current operation */
     uint8_t operation;   /**< This flag indicate if it's a request
                               or a response */
+    uint8_t type;
 
     /* pahole: padding: 3 */
 } HtpBody;
@@ -99,6 +104,17 @@ typedef struct HtpBody_ {
 #define HTP_BOUNDARY_SET        0x04    /**< We have a boundary string */
 #define HTP_BOUNDARY_OPEN       0x08    /**< We have a boundary string */
 #define HTP_FILENAME_SET        0x10    /**< filename is registered in the flow */
+#define HTP_DONTSTORE           0x20    /**< not storing this file */
+
+#define HTP_TX_HAS_FILE             0x01
+#define HTP_TX_HAS_FILENAME         0x02    /**< filename is known at this time */
+#define HTP_TX_HAS_TYPE             0x04
+#define HTP_TX_HAS_FILECONTENT      0x08    /**< file has content so we can do type detect */
+
+#define HTP_RULE_NEED_FILE          HTP_TX_HAS_FILE
+#define HTP_RULE_NEED_FILENAME      HTP_TX_HAS_FILENAME
+#define HTP_RULE_NEED_TYPE          HTP_TX_HAS_TYPE
+#define HTP_RULE_NEED_FILECONTENT   HTP_TX_HAS_FILECONTENT
 
 /** Now the Body Chunks will be stored per transaction, at
   * the tx user data */

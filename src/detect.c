@@ -92,6 +92,7 @@
 #include "detect-asn1.h"
 #include "detect-filename.h"
 #include "detect-fileext.h"
+#include "detect-filestore.h"
 #include "detect-dsize.h"
 #include "detect-flowvar.h"
 #include "detect-flowint.h"
@@ -1772,6 +1773,17 @@ end:
                 p->flow->sgh_toclient = det_ctx->sgh;
                 p->flow->flags |= FLOW_SGH_TOCLIENT;
             }
+
+            /* if we know both sides of the flow have had their sgh check
+             * and both are null, we will never decide to store. So disable
+             * storage completely. */
+            if (p->flow->flags & FLOW_SGH_TOCLIENT &&
+                p->flow->flags & FLOW_SGH_TOSERVER &&
+                (p->flow->sgh_toserver == NULL || p->flow->sgh_toserver->filestore_cnt == 0) &&
+                (p->flow->sgh_toclient == NULL || p->flow->sgh_toclient->filestore_cnt == 0))
+            {
+                FlowFileDisableStoring(p->flow);
+            }
         }
 
         /* if we had no alerts that involved the smsgs,
@@ -1884,6 +1896,24 @@ Signature *SigFindSignatureBySidGid(DetectEngineCtx *de_ctx, uint32_t sid, uint3
 
 int SignatureIsAppLayer(DetectEngineCtx *de_ctx, Signature *s) {
     if (s->alproto != 0)
+        return 1;
+
+    return 0;
+}
+
+/**
+ *  \brief Check if a signature contains the filestore keyword.
+ *
+ *  \param s signature
+ *
+ *  \retval 0 no
+ *  \retval 1 yes
+ */
+int SignatureIsFilestoring(Signature *s) {
+    if (s == NULL)
+        return 0;
+
+    if (s->init_flags & SIG_FLAG_FILESTORE)
         return 1;
 
     return 0;
@@ -3734,10 +3764,14 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx) {
             continue;
 
         SigGroupHeadBuildHeadArray(de_ctx, sgh);
+        SigGroupHeadSetFilestoreCount(de_ctx, sgh);
+        SCLogInfo("filestore count %u", sgh->filestore_cnt);
     }
 
     if (de_ctx->decoder_event_sgh != NULL) {
         SigGroupHeadBuildHeadArray(de_ctx, de_ctx->decoder_event_sgh);
+        /* no need to set filestore count here as that would make a
+         * signature not decode event only. */
     }
 
     SCFree(de_ctx->sgh_array);
@@ -4298,6 +4332,7 @@ void SigTableSetup(void) {
     DetectByteExtractRegister();
     DetectFilenameRegister();
     DetectFileextRegister();
+    DetectFilestoreRegister();
 
     uint8_t i = 0;
     for (i = 0; i < DETECT_TBLSIZE; i++) {

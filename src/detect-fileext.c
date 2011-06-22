@@ -89,43 +89,36 @@ int DetectFileextMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, 
     int ret = 0;
 
     DetectFileextData *fileext = (DetectFileextData *)m->ctx;
+    FlowFile *file = (FlowFile *)state;
 
-    SCMutexLock(&f->files_m);
-    if (f->files != NULL) {
-        FlowFile *file = f->files->head;
+    if (file->name == NULL)
+        SCReturnInt(0);
 
-        for (; file != NULL; file = file->next) {
-            if (file->state == FLOWFILE_STATE_NONE)
-                continue;
+    if (file->txid < det_ctx->tx_id)
+        SCReturnInt(0);
 
-            if (file->name == NULL)
-                continue;
+    if (file->txid > det_ctx->tx_id)
+        SCReturnInt(0);
 
-            if (file->name_len <= fileext->len)
-                continue;
+    if (file->name_len <= fileext->len)
+        SCReturnInt(0);
 
-            int offset = file->name_len - fileext->len;
+    int offset = file->name_len - fileext->len;
 
-            if (file->name[offset - 1] == '.' &&
-                    SCMemcmp(file->name + offset, fileext->ext, fileext->len) == 0)
-            {
-                if (!(fileext->flags & DETECT_CONTENT_NEGATED)) {
-                    ret = 1;
-                    SCLogDebug("File ext found");
-
-                    /* Stop searching */
-                    break;
-                }
-            }
-        }
-
-        if (ret == 0 && fileext->flags & DETECT_CONTENT_NEGATED) {
-            SCLogDebug("negated match");
+    if (file->name[offset - 1] == '.' &&
+        SCMemcmp(file->name + offset, fileext->ext, fileext->len) == 0)
+    {
+        if (!(fileext->flags & DETECT_CONTENT_NEGATED)) {
             ret = 1;
+            SCLogDebug("File ext found");
         }
     }
 
-    SCMutexUnlock(&f->files_m);
+    if (ret == 0 && fileext->flags & DETECT_CONTENT_NEGATED) {
+        SCLogDebug("negated match");
+        ret = 1;
+    }
+
     SCReturnInt(ret);
 }
 
@@ -204,7 +197,8 @@ static int DetectFileextSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
     sm->type = DETECT_FILEEXT;
     sm->ctx = (void *)fileext;
 
-    SigMatchAppendAppLayer(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEMATCH);
+
 
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
@@ -213,6 +207,7 @@ static int DetectFileextSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 
     AppLayerHtpNeedFileInspection();
     s->alproto = ALPROTO_HTTP;
+    s->file_flags |= (FILE_SIG_NEED_FILE|FILE_SIG_NEED_FILENAME);
     return 0;
 
 error:

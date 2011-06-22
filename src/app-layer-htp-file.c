@@ -72,17 +72,25 @@
  *  \param data data chunk (if any)
  *  \param data_len length of the data portion
  *
- *  \retval 0 ok
+ *  \retval  0 ok
  *  \retval -1 error
+ *  \retval -2 not handling files on this flow
  */
 int HTPFileOpen(Flow *f, uint8_t *filename, uint16_t filename_len,
         uint8_t *data, uint32_t data_len)
 {
     int retval = 0;
+    uint16_t txid;
 
     if (f == NULL) {
-        return -1;
+        SCReturnInt(-1);
     }
+
+    if (f->flags & FLOW_FILE_NO_HANDLING) {
+        SCReturnInt(-2);
+    }
+
+    txid = AppLayerTransactionGetAvailId(f) - 1;
 
     SCMutexLock(&f->files_m);
     {
@@ -99,11 +107,13 @@ int HTPFileOpen(Flow *f, uint8_t *filename, uint16_t filename_len,
         {
             retval = -1;
         }
+
+        FlowFileSetTx(f->files->tail, txid);
     }
 
 end:
     SCMutexUnlock(&f->files_m);
-    return retval;
+    SCReturnInt(retval);
 }
 
 /**
@@ -115,14 +125,20 @@ end:
  *
  *  \retval 0 ok
  *  \retval -1 error
+ *  \retval -2 file doesn't need storing
  */
 int HTPFileStoreChunk(Flow *f, uint8_t *data, uint32_t data_len) {
     SCEnter();
 
     int retval = 0;
+    int result = 0;
 
     if (f == NULL) {
         SCReturnInt(-1);
+    }
+
+    if (f->flags & FLOW_FILE_NO_HANDLING) {
+        SCReturnInt(-2);
     }
 
     SCMutexLock(&f->files_m);
@@ -133,10 +149,12 @@ int HTPFileStoreChunk(Flow *f, uint8_t *data, uint32_t data_len) {
             goto end;
         }
 
-        if (FlowFileAppendData(f->files, data, data_len) == -1)
-        {
+        result = FlowFileAppendData(f->files, data, data_len);
+        if (result == -1) {
             SCLogDebug("appending data failed");
             retval = -1;
+        } else if (result == -2) {
+            retval = -2;
         }
     }
 
@@ -158,12 +176,14 @@ end:
  *
  *  \retval 0 ok
  *  \retval -1 error
+ *  \retval -2 not storing files on this flow/tx
  */
 int HTPFileClose(Flow *f, uint8_t *data, uint32_t data_len, uint8_t flags) {
     int retval = 0;
+    int result = 0;
 
     if (f == NULL) {
-        return -1;
+        SCReturnInt(-1);
     }
 
     SCMutexLock(&f->files_m);
@@ -173,15 +193,17 @@ int HTPFileClose(Flow *f, uint8_t *data, uint32_t data_len, uint8_t flags) {
             goto end;
         }
 
-        if (FlowFileCloseFile(f->files, data, data_len, flags) == -1)
-        {
+        result = FlowFileCloseFile(f->files, data, data_len, flags);
+        if (result == -1) {
             retval = -1;
+        } else if (result == -2) {
+            retval = -2;
         }
     }
 
 end:
     SCMutexUnlock(&f->files_m);
-    return retval;
+    SCReturnInt(retval);
 }
 
 #ifdef UNITTESTS

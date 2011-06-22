@@ -98,6 +98,8 @@ enum {
     DETECT_SM_LIST_HCDMATCH,
     /* list for http_raw_uri keyword and the ones relative to it */
     DETECT_SM_LIST_HRUDMATCH,
+
+    DETECT_SM_LIST_FILEMATCH,
     DETECT_SM_LIST_MAX,
 };
 
@@ -268,6 +270,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_FLOW           (1<<2)  /**< signature has a flow setting */
 #define SIG_FLAG_BIDIREC        (1<<3)  /**< signature has bidirectional operator */
 #define SIG_FLAG_PAYLOAD        (1<<4)  /**< signature is inspecting the packet payload */
+#define SIG_FLAG_FILESTORE      (1<<5)  /**< signature has filestore keyword */
 
 /* signature mask flags */
 #define SIG_MASK_REQUIRE_PAYLOAD            1
@@ -285,6 +288,10 @@ typedef struct DetectPort_ {
 #define DETECT_ENGINE_THREAD_CTX_INSPECTING_PACKET 0x0001
 #define DETECT_ENGINE_THREAD_CTX_INSPECTING_STREAM 0x0002
 
+#define FILE_SIG_NEED_FILE          0x01
+#define FILE_SIG_NEED_FILENAME      0x02
+#define FILE_SIG_NEED_TYPE          0x04
+#define FILE_SIG_NEED_FILECONTENT   0x08
 
 /* Detection Engine flags */
 #define DE_QUIET           0x01     /**< DE is quiet (esp for unittests) */
@@ -461,6 +468,8 @@ typedef struct Signature_ {
     struct SigMatch_ *sm_lists[DETECT_SM_LIST_MAX];
     /* holds all sm lists' tails */
     struct SigMatch_ *sm_lists_tail[DETECT_SM_LIST_MAX];
+
+    uint8_t file_flags;
 
     /** address settings for this signature */
     DetectAddressHead src, dst;
@@ -774,6 +783,9 @@ typedef struct DetectionEngineThreadCtx_ {
     PatternMatcherQueue pmq;
     PatternMatcherQueue smsg_pmq[256];
 
+    /** ID of the transaction currently being inspected. */
+    uint16_t tx_id;
+
     /* counters */
     uint32_t pkts;
     uint32_t pkts_searched;
@@ -903,6 +915,10 @@ typedef struct SigGroupHead_ {
 
     uint16_t mpm_streamcontent_maxlen;
     uint16_t mpm_uricontent_maxlen;
+
+    /** the number of signatures in this sgh that have the filestore keyword
+     *  set. */
+    uint16_t filestore_cnt;
 #if __WORDSIZE == 64
     uint32_t pad2;
 #endif
@@ -1025,6 +1041,7 @@ enum {
 
     DETECT_FILENAME,
     DETECT_FILEEXT,
+    DETECT_FILESTORE,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,
@@ -1056,6 +1073,8 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s);
 SigGroupHead *SigMatchSignaturesGetSgh(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p);
 
 Signature *DetectGetTagSignature(void);
+
+int SignatureIsFilestoring(Signature *);
 
 #endif /* __DETECT_H__ */
 

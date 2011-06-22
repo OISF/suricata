@@ -54,6 +54,9 @@ void LogFileLogExitPrintStats(ThreadVars *, void *);
 int LogFileLogOpenFileCtx(LogFileCtx* , const char *, const char *);
 static void LogFileLogDeInitCtx(OutputCtx *);
 
+SC_ATOMIC_DECLARE(unsigned int, file_id);
+static char g_logfile_base_dir[PATH_MAX] = "/tmp";
+
 void TmModuleLogFileLogRegister (void) {
     tmm_modules[TMM_FILELOG].name = MODULE_NAME;
     tmm_modules[TMM_FILELOG].ThreadInit = LogFileLogThreadInit;
@@ -66,6 +69,8 @@ void TmModuleLogFileLogRegister (void) {
     OutputRegisterModule(MODULE_NAME, "file", LogFileLogInitCtx);
 
     SCLogDebug("registered");
+
+    SC_ATOMIC_INIT(file_id);
 }
 
 typedef struct LogFileLogThread_ {
@@ -73,9 +78,6 @@ typedef struct LogFileLogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     uint32_t file_cnt;
 } LogFileLogThread;
-
-SC_ATOMIC_DECL_AND_INIT(unsigned int, file_id);
-static char g_logfile_base_dir[PATH_MAX] = "/tmp";
 
 
 static void CreateTimeString (const struct timeval *ts, char *str, size_t size) {
@@ -106,6 +108,10 @@ TmEcode LogFileLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
         for (ff = ffc->head; ff != NULL; ff = ff->next) {
             if (ff->state == FLOWFILE_STATE_STORED)
                 continue;
+
+            if (ff->store != 1) {
+                continue;
+            }
 
             FlowFileData *ffd;
             for (ffd = ff->chunks_head; ffd != NULL; ffd = ffd->next) {

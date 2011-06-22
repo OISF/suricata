@@ -267,9 +267,11 @@ int AppLayerTransactionGetLoggableId(Flow *f);
 int AppLayerTransactionGetLoggedId(Flow *f);
 int AppLayerTransactionGetBaseId(Flow *f);
 int AppLayerTransactionGetInspectId(Flow *f);
-void AppLayerSetEOF(Flow *);
+uint16_t AppLayerTransactionGetAvailId(Flow *f);
 
 uint16_t AppLayerGetStateVersion(Flow *f);
+
+void AppLayerSetEOF(Flow *);
 
 /* cleanup */
 void AppLayerParserCleanupState(Flow *);

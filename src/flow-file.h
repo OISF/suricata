@@ -29,6 +29,7 @@
 #include "util-hash.h"
 
 #define FLOW_FILE_TRUNCATED 0x01
+#define FLOW_FILE_NOSTORE   0x02
 
 typedef enum FlowFileState_ {
     FLOWFILE_STATE_NONE = 0,    /**< no state */
@@ -51,10 +52,12 @@ typedef struct FlowFileData_ {
 } FlowFileData;
 
 typedef struct FlowFile_ {
+    int16_t store;                  /**< need storing? 0: no, 1: yes, -1: won't */
+    uint16_t txid;                  /**< tx this file is part of */
     uint8_t *name;
     uint16_t name_len;
     int16_t state;
-    int fd;                     /**< file discriptor for storing files */
+    int fd;                         /**< file discriptor for storing files */
     FlowFileData *chunks_head;
     FlowFileData *chunks_tail;
     struct FlowFile_ *next;
@@ -112,5 +115,35 @@ int FlowFileCloseFile(FlowFileContainer *, uint8_t *data, uint32_t data_len, uin
  *  \retval -1 error
  */
 int FlowFileAppendData(FlowFileContainer *, uint8_t *data, uint32_t data_len);
+
+/**
+ *  \brief Tag a file for storing
+ *
+ *  \param ff The file to store
+ */
+int FlowFileStore(FlowFile *);
+
+/**
+ *  \brief Set the TX id for a file
+ *
+ *  \param ff The file to store
+ *  \param txid the tx id
+ */
+int FlowFileSetTx(FlowFile *, uint16_t txid);
+
+/**
+ *  \brief disable file storage for a flow
+ *
+ *  \param f *LOCKED* flow
+ */
+void FlowFileDisableStoring(struct Flow_ *);
+
+/**
+ *  \brief disable file storing for a transaction
+ *
+ *  \param f flow
+ *  \param tx_id transaction id
+ */
+void FlowFileDisableStoringForTransaction(struct Flow_ *, uint16_t);
 
 #endif /* __FLOW_FILE_H__ */

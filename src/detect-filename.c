@@ -88,45 +88,40 @@ int DetectFilenameMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
     int ret = 0;
 
     DetectFilenameData *filename = m->ctx;
+    FlowFile *file = (FlowFile *)state;
 
-    SCMutexLock(&f->files_m);
-    if (f->files != NULL) {
-        FlowFile *file = f->files->head;
-        for (; file != NULL; file = file->next) {
-            if (file->state == FLOWFILE_STATE_NONE)
-                continue;
+    if (file->name == NULL)
+        SCReturnInt(0);
 
-            if (file->name == NULL)
-                continue;
+    if (file->txid < det_ctx->tx_id)
+        SCReturnInt(0);
 
-            if (BoyerMooreNocase(filename->name, filename->len, file->name,
+    if (file->txid > det_ctx->tx_id)
+        SCReturnInt(0);
+
+    if (BoyerMooreNocase(filename->name, filename->len, file->name,
                 file->name_len, filename->bm_ctx->bmGs,
                 filename->bm_ctx->bmBc) != NULL)
-            {
+    {
 #ifdef DEBUG
-                if (SCLogDebugEnabled()) {
-                    char *name = SCMalloc(filename->len + 1);
-                    memcpy(name, filename->name, filename->len);
-                    name[filename->len] = '\0';
-                    SCLogDebug("will look for filename %s", name);
-                }
+        if (SCLogDebugEnabled()) {
+            char *name = SCMalloc(filename->len + 1);
+            memcpy(name, filename->name, filename->len);
+            name[filename->len] = '\0';
+            SCLogDebug("will look for filename %s", name);
+        }
 #endif
 
-                if (!(filename->flags & DETECT_CONTENT_NEGATED)) {
-                    ret = 1;
-                    /* Stop searching */
-                    break;
-                }
-            }
-        }
-
-        if (ret == 0 && filename->flags & DETECT_CONTENT_NEGATED) {
-            SCLogDebug("negated match");
+        if (!(filename->flags & DETECT_CONTENT_NEGATED)) {
             ret = 1;
         }
     }
 
-    SCMutexUnlock(&f->files_m);
+    if (ret == 0 && filename->flags & DETECT_CONTENT_NEGATED) {
+        SCLogDebug("negated match");
+        ret = 1;
+    }
+
     SCReturnInt(ret);
 }
 
@@ -210,7 +205,7 @@ static int DetectFilenameSetup (DetectEngineCtx *de_ctx, Signature *s, char *str
     sm->type = DETECT_FILENAME;
     sm->ctx = (void *)filename;
 
-    SigMatchAppendAppLayer(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_FILEMATCH);
 
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
         SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
@@ -220,6 +215,8 @@ static int DetectFilenameSetup (DetectEngineCtx *de_ctx, Signature *s, char *str
     AppLayerHtpNeedFileInspection();
 
     s->alproto = ALPROTO_HTTP;
+
+    s->file_flags |= (FILE_SIG_NEED_FILE|FILE_SIG_NEED_FILENAME);
     return 0;
 
 error:

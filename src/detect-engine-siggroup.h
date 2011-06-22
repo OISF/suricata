@@ -84,5 +84,8 @@ void SigGroupHeadRegisterTests(void);
 void SigGroupHeadPrintSigs(DetectEngineCtx *de_ctx, SigGroupHead *sgh);
 
 void SigGroupHeadStore(DetectEngineCtx *, SigGroupHead *);
+
 int SigGroupHeadBuildHeadArray(DetectEngineCtx *, SigGroupHead *);
+void SigGroupHeadSetFilestoreCount(DetectEngineCtx *, SigGroupHead *);
+
 #endif /* __DETECT_ENGINE_SIGGROUP_H__ */

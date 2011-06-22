@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2011 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -64,6 +64,7 @@
 #include "detect-engine-hcd.h"
 #include "detect-engine-hrud.h"
 #include "detect-engine-dcepayload.h"
+#include "detect-engine-file.h"
 
 #include "stream-tcp.h"
 #include "stream-tcp-private.h"
@@ -83,6 +84,22 @@
 /** convert enum to string */
 #define CASE_CODE(E)  case E: return #E
 
+int DeStateStoreFilestoreSigsCantMatch(SigGroupHead *sgh,
+        DetectEngineState *de_state, uint8_t direction)
+{
+    if (direction & STREAM_TOSERVER) {
+        if (de_state->toserver_filestore_cnt == sgh->filestore_cnt) {
+            SCReturnInt(1);
+        }
+    } else if (direction & STREAM_TOCLIENT) {
+        if (de_state->toclient_filestore_cnt == sgh->filestore_cnt) {
+            SCReturnInt(1);
+        }
+    }
+
+    SCReturnInt(0);
+}
+
 /** \brief get string for match enum */
 const char *DeStateMatchResultToString(DeStateMatchResult res)
 {
@@ -91,6 +108,7 @@ const char *DeStateMatchResultToString(DeStateMatchResult res)
         CASE_CODE (DE_STATE_MATCH_FULL);
         CASE_CODE (DE_STATE_MATCH_PARTIAL);
         CASE_CODE (DE_STATE_MATCH_NEW);
+        CASE_CODE (DE_STATE_MATCH_NOMATCH);
     }
 
     return NULL;
@@ -314,6 +332,26 @@ void DeStateStoreStateVersion(DetectEngineState *de_state, uint8_t direction,
 }
 
 /**
+ *  \brief Increment de_state filestore_cnt in the proper direction.
+ *
+ *  \param de_state flow's locked de_state
+ *  \param direction flags containing direction
+ *  \param file_no_match number of sigs that are identified as "can't match"
+ *                       with filestore.
+ */
+void DeStateStoreFileNoMatch(DetectEngineState *de_state, uint8_t direction,
+        uint16_t file_no_match)
+{
+    if (direction & STREAM_TOSERVER) {
+        SCLogDebug("STREAM_TOSERVER added %"PRIu16, file_no_match);
+        de_state->toserver_filestore_cnt += file_no_match;
+    } else {
+        SCLogDebug("STREAM_TOCLIENT added %"PRIu16, file_no_match);
+        de_state->toclient_filestore_cnt += file_no_match;
+    }
+}
+
+/**
  *  \brief Check if a flow already contains a flow detect state
  *
  *  \retval 2 has state, but it's not updated
@@ -326,9 +364,9 @@ int DeStateFlowHasState(Flow *f, uint8_t flags, uint16_t alversion) {
     int r = 0;
     SCMutexLock(&f->de_state_m);
 
-    if (f->de_state == NULL || f->de_state->cnt == 0)
+    if (f->de_state == NULL || f->de_state->cnt == 0) {
         r = 0;
-    else if (DeStateGetStateVersion(f->de_state, flags) == alversion)
+    } else if (DeStateGetStateVersion(f->de_state, flags) == alversion)
         r = 2;
     else
         r = 1;
@@ -353,6 +391,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     int r = 0;
     uint16_t inspect_flags = 0;
     uint16_t match_flags = 0;
+    uint16_t file_no_match = 0;
 
     if (alstate == NULL) {
         SCReturnInt(0);
@@ -425,6 +464,19 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 }
                 SCLogDebug("inspecting http raw uri");
             }
+            if (s->sm_lists[DETECT_SM_LIST_FILEMATCH] != NULL) {
+                inspect_flags |= DE_STATE_FLAG_FILE_INSPECT;
+
+                match = DetectFileInspectHttp(tv, det_ctx, f, s, alstate);
+                if (match == 1) {
+                    match_flags |= DE_STATE_FLAG_FILE_MATCH;
+                } else if (match == 2) {
+                    match_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
+                } else if (match == 3) {
+                    match_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
+                    file_no_match++;
+                }
+            }
         } else if (flags & STREAM_TOCLIENT) {
             /* For to client set the flags in inspect so it can't match
              * if the sig requires something only the request has. The rest
@@ -464,6 +516,9 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             }
             if (s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL) {
                 inspect_flags |= DE_STATE_FLAG_HRUD_INSPECT;
+            }
+            if (s->sm_lists[DETECT_SM_LIST_FILEMATCH] != NULL) {
+                inspect_flags |= DE_STATE_FLAG_FILE_INSPECT;
             }
         }
     } else if (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
@@ -548,6 +603,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         /* \todo shift to an array to transfer these match values*/
         DeStateSignatureAppend(f->de_state, s, sm, match_flags);
         DeStateStoreStateVersion(f->de_state, flags, alversion);
+        DeStateStoreFileNoMatch(f->de_state, flags, file_no_match);
     }
     SCMutexUnlock(&f->de_state_m);
 
@@ -568,6 +624,7 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
     uint16_t inspect_flags = 0;
     uint16_t match_flags = 0;
     int match = 0;
+    uint16_t file_no_match = 0;
 
     if (f == NULL || alstate == NULL || alproto == ALPROTO_UNKNOWN) {
         return 0;
@@ -577,10 +634,6 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
 
     if (f->de_state == NULL || f->de_state->cnt == 0)
         goto end;
-
-    if (DeStateGetStateVersion(f->de_state, flags) == alversion) {
-        goto end;
-    }
 
     /* loop through the stores */
     for (store = f->de_state->head; store != NULL; store = store->next)
@@ -608,6 +661,12 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
             /* if we already fully matched previously, detect that here */
             if (item->flags & DE_STATE_FLAG_FULL_MATCH) {
                 det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_FULL;
+                goto next_sig;
+            }
+
+            /* if we know for sure we can't ever match, detect that here */
+            if (item->flags & DE_STATE_FLAG_SIG_CANT_MATCH) {
+                det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NOMATCH;
                 goto next_sig;
             }
 
@@ -701,6 +760,22 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                                                           flags, alstate) == 1) {
                             SCLogDebug("http raw uri matched");
                             match_flags |= DE_STATE_FLAG_HRUD_MATCH;
+                        }
+                    }
+                }
+
+                if (s->sm_lists[DETECT_SM_LIST_FILEMATCH] != NULL) {
+                    if (!(item->flags & DE_STATE_FLAG_FILE_MATCH)) {
+                        inspect_flags |= DE_STATE_FLAG_FILE_INSPECT;
+
+                        match = DetectFileInspectHttp(tv, det_ctx, f, s, alstate);
+                        if (match == 1) {
+                            match_flags |= DE_STATE_FLAG_FILE_MATCH;
+                        } else if (match == 2) {
+                            match_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
+                        } else if (match == 3) {
+                            match_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
+                            file_no_match++;
                         }
                     }
                 }
@@ -803,6 +878,16 @@ next_sig:
     }
 
     DeStateStoreStateVersion(f->de_state, flags, alversion);
+    DeStateStoreFileNoMatch(f->de_state, flags, file_no_match);
+
+    if (!(f->de_state->flags & DE_STATE_FILE_STORE_DISABLED)) {
+        if (DeStateStoreFilestoreSigsCantMatch(det_ctx->sgh, f->de_state, flags) == 1) {
+            SCLogDebug("disabling file storage for transaction");
+            FlowFileDisableStoringForTransaction(f, det_ctx->tx_id);
+            f->de_state->flags |= DE_STATE_FILE_STORE_DISABLED;
+        }
+    }
+
 end:
     SCMutexUnlock(&f->de_state_m);
     SCReturnInt(0);

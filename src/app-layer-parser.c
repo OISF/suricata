@@ -1016,6 +1016,26 @@ error:
     SCReturnInt(-1);
 }
 
+uint16_t AppLayerTransactionGetAvailId(Flow *f) {
+    SCEnter();
+
+    /* Get the parser state (if any) */
+    if (f->aldata == NULL) {
+        SCLogDebug("no aldata");
+        SCReturnUInt(0);
+    }
+
+    AppLayerParserStateStore *parser_state_store =
+        (AppLayerParserStateStore *)f->aldata[app_layer_sid];
+
+    if (parser_state_store == NULL) {
+        SCLogDebug("no state store");
+        SCReturnUInt(0);
+    }
+
+    SCReturnUInt(parser_state_store->avail_id);
+}
+
 /** \brief get the highest loggable transaction id */
 int AppLayerTransactionGetLoggableId(Flow *f) {
     SCEnter();

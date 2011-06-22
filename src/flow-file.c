@@ -138,14 +138,9 @@ static void FlowFileDataFree(FlowFileData *ffd) {
     SCFree(ffd);
 }
 
-static int FlowFileAppendFlowFileData(FlowFileContainer *ffc, FlowFileData *ffd) {
+static int FlowFileAppendFlowFileDataFilePtr(FlowFile *ff, FlowFileData *ffd) {
     SCEnter();
 
-    if (ffc == NULL) {
-        SCReturnInt(-1);
-    }
-
-    FlowFile *ff = ffc->tail;
     if (ff == NULL) {
         SCReturnInt(-1);
     }
@@ -156,6 +151,21 @@ static int FlowFileAppendFlowFileData(FlowFileContainer *ffc, FlowFileData *ffd)
     } else {
         ff->chunks_tail->next = ffd;
         ff->chunks_tail = ffd;
+    }
+
+    SCReturnInt(0);
+}
+
+static int FlowFileAppendFlowFileData(FlowFileContainer *ffc, FlowFileData *ffd) {
+    SCEnter();
+
+    if (ffc == NULL) {
+        SCReturnInt(-1);
+    }
+
+    if (FlowFileAppendFlowFileDataFilePtr(ffc->tail, ffd) == -1)
+    {
+        SCReturnInt(-1);
     }
 
     SCReturnInt(0);
@@ -262,6 +272,51 @@ FlowFile *FlowFileOpenFile(FlowFileContainer *ffc, uint8_t *name,
     SCReturnPtr(ff, "FlowFile");
 }
 
+static int FlowFileCloseFilePtr(FlowFile *ff, uint8_t *data,
+        uint32_t data_len, uint8_t flags)
+{
+    SCEnter();
+
+    if (ff == NULL) {
+        SCReturnInt(-1);
+    }
+
+    if (ff->state != FLOWFILE_STATE_OPENED) {
+        SCReturnInt(-1);
+    }
+
+    if (data != NULL) {
+        //PrintRawDataFp(stdout, data, data_len);
+
+        FlowFileData *ffd = FlowFileDataAlloc(data, data_len);
+        if (ffd == NULL) {
+            ff->state = FLOWFILE_STATE_ERROR;
+            SCReturnInt(-1);
+        }
+
+        /* append the data */
+        if (FlowFileAppendFlowFileDataFilePtr(ff, ffd) < 0) {
+            ff->state = FLOWFILE_STATE_ERROR;
+            FlowFileDataFree(ffd);
+            SCReturnInt(-1);
+        }
+    }
+
+    if (flags & FLOW_FILE_TRUNCATED) {
+        ff->state = FLOWFILE_STATE_TRUNCATED;
+        SCLogDebug("flowfile state transitioned to FLOWFILE_STATE_TRUNCATED");
+
+        if (flags & FLOW_FILE_NOSTORE) {
+            ff->store = -1;
+        }
+    } else {
+        ff->state = FLOWFILE_STATE_CLOSED;
+        SCLogDebug("flowfile state transitioned to FLOWFILE_STATE_CLOSED");
+    }
+
+    SCReturnInt(0);
+}
+
 /**
  *  \brief Close a FlowFile
  *
@@ -282,33 +337,8 @@ int FlowFileCloseFile(FlowFileContainer *ffc, uint8_t *data,
         SCReturnInt(-1);
     }
 
-    if (ffc->tail->state != FLOWFILE_STATE_OPENED) {
+    if (FlowFileCloseFilePtr(ffc->tail, data, data_len, flags) == -1) {
         SCReturnInt(-1);
-    }
-
-    if (data != NULL) {
-        //PrintRawDataFp(stdout, data, data_len);
-
-        FlowFileData *ffd = FlowFileDataAlloc(data, data_len);
-        if (ffd == NULL) {
-            ffc->tail->state = FLOWFILE_STATE_ERROR;
-            SCReturnInt(-1);
-        }
-
-        /* append the data */
-        if (FlowFileAppendFlowFileData(ffc, ffd) < 0) {
-            ffc->tail->state = FLOWFILE_STATE_ERROR;
-            FlowFileDataFree(ffd);
-            SCReturnInt(-1);
-        }
-    }
-
-    if (flags & FLOW_FILE_TRUNCATED) {
-        ffc->tail->state = FLOWFILE_STATE_TRUNCATED;
-        SCLogDebug("flowfile state transitioned to FLOWFILE_STATE_TRUNCATED");
-    } else {
-        ffc->tail->state = FLOWFILE_STATE_CLOSED;
-        SCLogDebug("flowfile state transitioned to FLOWFILE_STATE_CLOSED");
     }
 
     SCReturnInt(0);
@@ -322,8 +352,9 @@ int FlowFileCloseFile(FlowFileContainer *ffc, uint8_t *data,
  *  \param data data chunk
  *  \param data_len data chunk len
  *
- *  \retval 0 ok
+ *  \retval  0 ok
  *  \retval -1 error
+ *  \retval -2 no store for this file
  */
 int FlowFileAppendData(FlowFileContainer *ffc, uint8_t *data, uint32_t data_len) {
     SCEnter();
@@ -333,8 +364,13 @@ int FlowFileAppendData(FlowFileContainer *ffc, uint8_t *data, uint32_t data_len)
     }
 
     if (ffc->tail->state != FLOWFILE_STATE_OPENED) {
+        if (ffc->tail->store == -1) {
+            SCReturnInt(-2);
+        }
         SCReturnInt(-1);
     }
+
+    SCLogDebug("appending %"PRIu32" bytes", data_len);
 
     FlowFileData *ffd = FlowFileDataAlloc(data, data_len);
     if (ffd == NULL) {
@@ -349,4 +385,80 @@ int FlowFileAppendData(FlowFileContainer *ffc, uint8_t *data, uint32_t data_len)
         SCReturnInt(-1);
     }
     SCReturnInt(0);
+}
+
+/**
+ *  \brief Tag a file for storing
+ *
+ *  \param ff The file to store
+ */
+int FlowFileStore(FlowFile *ff) {
+    ff->store = 1;
+    SCReturnInt(0);
+}
+
+/**
+ *  \brief Set the TX id for a file
+ *
+ *  \param ff The file to store
+ *  \param txid the tx id
+ */
+int FlowFileSetTx(FlowFile *ff, uint16_t txid) {
+    ff->txid = txid;
+    SCReturnInt(0);
+}
+
+/**
+ *  \brief disable file storage for a flow
+ *
+ *  \param f *LOCKED* flow
+ */
+void FlowFileDisableStoring(Flow *f) {
+    FlowFile *ptr = NULL;
+
+    SCEnter();
+
+    f->flags |= FLOW_FILE_NO_HANDLING;
+
+    SCMutexLock(&f->files_m);
+    if (f->files != NULL) {
+        for (ptr = f->files->head; ptr != NULL; ptr = ptr->next) {
+            if (ptr->state == FLOWFILE_STATE_OPENED) {
+                ptr->state = FLOWFILE_STATE_CLOSED;
+                SCLogDebug("flowfile state transitioned to FLOWFILE_STATE_CLOSED");
+            }
+        }
+    }
+    SCMutexUnlock(&f->files_m);
+    SCReturn;
+}
+
+/**
+ *  \brief disable file storing for files in a transaction
+ *
+ *  \param f flow
+ *  \param tx_id transaction id
+ */
+void FlowFileDisableStoringForTransaction(struct Flow_ *f, uint16_t tx_id) {
+    FlowFile *ptr = NULL;
+
+    SCEnter();
+
+    SCMutexLock(&f->files_m);
+    if (f->files != NULL) {
+        for (ptr = f->files->head; ptr != NULL; ptr = ptr->next) {
+            if (ptr->state == FLOWFILE_STATE_OPENED && ptr->txid == tx_id) {
+                if (ptr->store == 1) {
+                    /* weird, already storing -- let it continue*/
+                    SCLogDebug("file is already being stored");
+                } else {
+                    (void)FlowFileCloseFilePtr(ptr, NULL, 0,
+                            (FLOW_FILE_TRUNCATED|FLOW_FILE_NOSTORE));
+                }
+            }
+        }
+    }
+    SCMutexUnlock(&f->files_m);
+
+    SCReturn;
 }
