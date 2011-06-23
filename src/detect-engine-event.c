@@ -45,20 +45,26 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int DetectDecodeEventMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
-static int DetectDecodeEventSetup (DetectEngineCtx *, Signature *, char *);
-void DecodeEventRegisterTests(void);
+int DetectEngineEventMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
+static int DetectEngineEventSetup (DetectEngineCtx *, Signature *, char *);
+void EngineEventRegisterTests(void);
 
 
 /**
  * \brief Registration function for decode-event: keyword
  */
-void DetectDecodeEventRegister (void) {
+void DetectEngineEventRegister (void) {
+    sigmatch_table[DETECT_ENGINE_EVENT].name = "engine-event";
+    sigmatch_table[DETECT_ENGINE_EVENT].Match = DetectEngineEventMatch;
+    sigmatch_table[DETECT_ENGINE_EVENT].Setup = DetectEngineEventSetup;
+    sigmatch_table[DETECT_ENGINE_EVENT].Free  = NULL;
+    sigmatch_table[DETECT_ENGINE_EVENT].RegisterTests = EngineEventRegisterTests;
+    sigmatch_table[DETECT_ENGINE_EVENT].flags |= SIGMATCH_DEONLY_COMPAT;
+
     sigmatch_table[DETECT_DECODE_EVENT].name = "decode-event";
-    sigmatch_table[DETECT_DECODE_EVENT].Match = DetectDecodeEventMatch;
-    sigmatch_table[DETECT_DECODE_EVENT].Setup = DetectDecodeEventSetup;
+    sigmatch_table[DETECT_DECODE_EVENT].Match = DetectEngineEventMatch;
+    sigmatch_table[DETECT_DECODE_EVENT].Setup = DetectEngineEventSetup;
     sigmatch_table[DETECT_DECODE_EVENT].Free  = NULL;
-    sigmatch_table[DETECT_DECODE_EVENT].RegisterTests = DecodeEventRegisterTests;
     sigmatch_table[DETECT_DECODE_EVENT].flags |= SIGMATCH_DEONLY_COMPAT;
 
     const char *eb;
@@ -97,11 +103,11 @@ error:
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectDecodeEventMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
+int DetectEngineEventMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
     SCEnter();
 
-    DetectDecodeEventData *de = (DetectDecodeEventData *)m->ctx;
+    DetectEngineEventData *de = (DetectEngineEventData *)m->ctx;
 
     if (DECODER_ISSET_EVENT(p, de->event)) {
         SCReturnInt(1);
@@ -118,10 +124,10 @@ int DetectDecodeEventMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packe
  * \retval de pointer to DetectFlowData on success
  * \retval NULL on failure
  */
-DetectDecodeEventData *DetectDecodeEventParse (char *rawstr)
+DetectEngineEventData *DetectEngineEventParse (char *rawstr)
 {
     int i;
-    DetectDecodeEventData *de = NULL;
+    DetectEngineEventData *de = NULL;
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0, found = 0;
     int ov[MAX_SUBSTRINGS];
@@ -154,7 +160,7 @@ DetectDecodeEventData *DetectDecodeEventParse (char *rawstr)
         goto error;
     }
 
-    de = SCMalloc(sizeof(DetectDecodeEventData));
+    de = SCMalloc(sizeof(DetectEngineEventData));
     if (de == NULL)
         goto error;
 
@@ -176,12 +182,12 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectDecodeEventSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+static int DetectEngineEventSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
 {
-    DetectDecodeEventData *de = NULL;
+    DetectEngineEventData *de = NULL;
     SigMatch *sm = NULL;
 
-    de = DetectDecodeEventParse(rawstr);
+    de = DetectEngineEventParse(rawstr);
     if (de == NULL)
         goto error;
 
@@ -189,7 +195,7 @@ static int DetectDecodeEventSetup (DetectEngineCtx *de_ctx, Signature *s, char *
     if (sm == NULL)
         goto error;
 
-    sm->type = DETECT_DECODE_EVENT;
+    sm->type = DETECT_ENGINE_EVENT;
     sm->ctx = (void *)de;
 
     SigMatchAppendPacket(s, sm);
@@ -202,11 +208,11 @@ error:
 }
 
 /**
- * \brief this function will free memory associated with DetectDecodeEventData
+ * \brief this function will free memory associated with DetectEngineEventData
  *
- * \param de pointer to DetectDecodeEventData
+ * \param de pointer to DetectEngineEventData
  */
-void DetectDecodeEventFree(DetectDecodeEventData *de) {
+void DetectEngineEventFree(DetectEngineEventData *de) {
     if(de) SCFree(de);
 }
 
@@ -216,13 +222,13 @@ void DetectDecodeEventFree(DetectDecodeEventData *de) {
 #ifdef UNITTESTS
 
 /**
- * \test DecodeEventTestParse01 is a test for a  valid decode-event value
+ * \test EngineEventTestParse01 is a test for a  valid decode-event value
  */
-int DecodeEventTestParse01 (void) {
-    DetectDecodeEventData *de = NULL;
-    de = DetectDecodeEventParse("ipv4.pkt_too_small");
+int EngineEventTestParse01 (void) {
+    DetectEngineEventData *de = NULL;
+    de = DetectEngineEventParse("ipv4.pkt_too_small");
     if (de) {
-        DetectDecodeEventFree(de);
+        DetectEngineEventFree(de);
         return 1;
     }
 
@@ -231,13 +237,13 @@ int DecodeEventTestParse01 (void) {
 
 
 /**
- * \test DecodeEventTestParse02 is a test for a  valid upper + lower case decode-event value
+ * \test EngineEventTestParse02 is a test for a  valid upper + lower case decode-event value
  */
-int DecodeEventTestParse02 (void) {
-    DetectDecodeEventData *de = NULL;
-    de = DetectDecodeEventParse("PPP.pkt_too_small");
+int EngineEventTestParse02 (void) {
+    DetectEngineEventData *de = NULL;
+    de = DetectEngineEventParse("PPP.pkt_too_small");
     if (de) {
-        DetectDecodeEventFree(de);
+        DetectEngineEventFree(de);
         return 1;
     }
 
@@ -245,13 +251,13 @@ int DecodeEventTestParse02 (void) {
 }
 
 /**
- * \test DecodeEventTestParse03 is a test for a  valid upper case decode-event value
+ * \test EngineEventTestParse03 is a test for a  valid upper case decode-event value
  */
-int DecodeEventTestParse03 (void) {
-    DetectDecodeEventData *de = NULL;
-    de = DetectDecodeEventParse("IPV6.PKT_TOO_SMALL");
+int EngineEventTestParse03 (void) {
+    DetectEngineEventData *de = NULL;
+    de = DetectEngineEventParse("IPV6.PKT_TOO_SMALL");
     if (de) {
-        DetectDecodeEventFree(de);
+        DetectEngineEventFree(de);
         return 1;
     }
 
@@ -259,13 +265,13 @@ int DecodeEventTestParse03 (void) {
 }
 
 /**
- * \test DecodeEventTestParse04 is a test for an  invalid upper case decode-event value
+ * \test EngineEventTestParse04 is a test for an  invalid upper case decode-event value
  */
-int DecodeEventTestParse04 (void) {
-    DetectDecodeEventData *de = NULL;
-    de = DetectDecodeEventParse("IPV6.INVALID_EVENT");
+int EngineEventTestParse04 (void) {
+    DetectEngineEventData *de = NULL;
+    de = DetectEngineEventParse("IPV6.INVALID_EVENT");
     if (de) {
-        DetectDecodeEventFree(de);
+        DetectEngineEventFree(de);
         return 1;
     }
 
@@ -273,13 +279,13 @@ int DecodeEventTestParse04 (void) {
 }
 
 /**
- * \test DecodeEventTestParse05 is a test for an  invalid char into the decode-event value
+ * \test EngineEventTestParse05 is a test for an  invalid char into the decode-event value
  */
-int DecodeEventTestParse05 (void) {
-    DetectDecodeEventData *de = NULL;
-    de = DetectDecodeEventParse("IPV-6,INVALID_CHAR");
+int EngineEventTestParse05 (void) {
+    DetectEngineEventData *de = NULL;
+    de = DetectEngineEventParse("IPV-6,INVALID_CHAR");
     if (de) {
-        DetectDecodeEventFree(de);
+        DetectEngineEventFree(de);
         return 1;
     }
 
@@ -287,15 +293,15 @@ int DecodeEventTestParse05 (void) {
 }
 
 /**
- * \test DecodeEventTestParse06 is a test for match function with valid decode-event value
+ * \test EngineEventTestParse06 is a test for match function with valid decode-event value
  */
-int DecodeEventTestParse06 (void) {
+int EngineEventTestParse06 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (p == NULL)
         return 0;
     ThreadVars tv;
     int ret = 0;
-    DetectDecodeEventData *de = NULL;
+    DetectEngineEventData *de = NULL;
     SigMatch *sm = NULL;
 
 
@@ -305,7 +311,7 @@ int DecodeEventTestParse06 (void) {
 
     DECODER_SET_EVENT(p,PPP_PKT_TOO_SMALL);
 
-    de = DetectDecodeEventParse("ppp.pkt_too_small");
+    de = DetectEngineEventParse("ppp.pkt_too_small");
     if (de == NULL)
         goto error;
 
@@ -318,7 +324,7 @@ int DecodeEventTestParse06 (void) {
     sm->type = DETECT_DECODE_EVENT;
     sm->ctx = (void *)de;
 
-    ret = DetectDecodeEventMatch(&tv,NULL,p,NULL,sm);
+    ret = DetectEngineEventMatch(&tv,NULL,p,NULL,sm);
 
     if(ret) {
         SCFree(p);
@@ -334,15 +340,15 @@ error:
 #endif /* UNITTESTS */
 
 /**
- * \brief this function registers unit tests for DecodeEvent
+ * \brief this function registers unit tests for EngineEvent
  */
-void DecodeEventRegisterTests(void) {
+void EngineEventRegisterTests(void) {
 #ifdef UNITTESTS
-    UtRegisterTest("DecodeEventTestParse01", DecodeEventTestParse01, 1);
-    UtRegisterTest("DecodeEventTestParse02", DecodeEventTestParse02, 1);
-    UtRegisterTest("DecodeEventTestParse03", DecodeEventTestParse03, 1);
-    UtRegisterTest("DecodeEventTestParse04", DecodeEventTestParse04, 0);
-    UtRegisterTest("DecodeEventTestParse05", DecodeEventTestParse05, 0);
-    UtRegisterTest("DecodeEventTestParse06", DecodeEventTestParse06, 1);
+    UtRegisterTest("EngineEventTestParse01", EngineEventTestParse01, 1);
+    UtRegisterTest("EngineEventTestParse02", EngineEventTestParse02, 1);
+    UtRegisterTest("EngineEventTestParse03", EngineEventTestParse03, 1);
+    UtRegisterTest("EngineEventTestParse04", EngineEventTestParse04, 0);
+    UtRegisterTest("EngineEventTestParse05", EngineEventTestParse05, 0);
+    UtRegisterTest("EngineEventTestParse06", EngineEventTestParse06, 1);
 #endif /* UNITTESTS */
 }

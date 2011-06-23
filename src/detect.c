@@ -4235,7 +4235,7 @@ void SigTableSetup(void) {
     DetectPktvarRegister();
     DetectNoalertRegister();
     DetectFlowbitsRegister();
-    DetectDecodeEventRegister();
+    DetectEngineEventRegister();
     DetectIpOptsRegister();
     DetectFlagsRegister();
     DetectFragBitsRegister();

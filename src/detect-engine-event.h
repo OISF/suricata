@@ -26,17 +26,17 @@
 
 #include "decode-events.h"
 
-typedef struct DetectDecodeEventData_ {
+typedef struct DetectEngineEventData_ {
     uint8_t event;
-} DetectDecodeEventData;
+} DetectEngineEventData;
 
 /* prototypes */
-void DetectDecodeEventRegister (void);
+void DetectEngineEventRegister (void);
 
 /* supported decoder events */
 
 #ifdef DETECT_EVENTS
-struct DetectDecodeEvents_ {
+struct DetectEngineEvents_ {
     char *event_name;
     uint8_t code;
 } DEvents[] = {
