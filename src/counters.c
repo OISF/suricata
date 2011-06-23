@@ -383,7 +383,7 @@ static void *SCPerfMgmtThread(void *arg)
     struct timespec cond_time;
 
     /* Set the thread name */
-    (void)SCSetThreadName(tv_local->name);
+    SCSetThreadName(tv_local->name);
 
     /* Set the threads capability */
     tv_local->cap_flags = 0;
@@ -435,7 +435,7 @@ static void *SCPerfWakeupThread(void *arg)
     struct timespec cond_time;
 
     /* Set the thread name */
-    (void)SCSetThreadName(tv_local->name);
+    SCSetThreadName(tv_local->name);
 
     /* Set the threads capability */
     tv_local->cap_flags = 0;
