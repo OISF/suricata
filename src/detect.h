@@ -1013,6 +1013,7 @@ enum {
     DETECT_ASN1,
 
     DETECT_ENGINE_EVENT,
+    DETECT_STREAM_EVENT,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,
