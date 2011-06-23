@@ -2814,8 +2814,8 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
         /* if the segment ends beyond ra_base_seq we need to consider it */
         if (SEQ_GT((seg->seq + seg->payload_len), ra_base_seq+1)) {
             SCLogDebug("seg->seq %" PRIu32 ", seg->payload_len %" PRIu32 ", "
-                    "ra_base_seq %" PRIu32 "", seg->seq,
-                    seg->payload_len, ra_base_seq);
+                    "ra_base_seq %" PRIu32 ", last_ack %"PRIu32, seg->seq,
+                    seg->payload_len, ra_base_seq, stream->last_ack);
 
             /* handle segments partly before ra_base_seq */
             if (SEQ_GT(ra_base_seq, seg->seq)) {
@@ -2823,7 +2823,7 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                 SCLogDebug("payload_offset %u", payload_offset);
 
                 if (SEQ_LT(stream->last_ack, (seg->seq + seg->payload_len))) {
-                    if (SEQ_LT(stream->last_ack, ra_base_seq)) {
+                    if (SEQ_LT(stream->last_ack, (ra_base_seq + 1))) {
                         payload_len = (stream->last_ack - seg->seq);
                         SCLogDebug("payload_len %u", payload_len);
                     } else {
