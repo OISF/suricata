@@ -759,6 +759,8 @@ SigMatch *DetectByteExtractRetrieveSMVar(const char *arg, Signature *s, int list
 
 /*************************************Unittests********************************/
 
+#ifdef UNITTESTS
+
 int DetectByteExtractTest01(void)
 {
     int result = 0;
@@ -4897,6 +4899,7 @@ int DetectByteExtractTest61(void)
 
     return result;
 }
+#endif /* UNITTESTS */
 
 void DetectByteExtractRegisterTests(void)
 {
