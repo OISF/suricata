@@ -115,7 +115,7 @@ detect-id.c detect-id.h \
 detect-flow.c detect-flow.h \
 detect-dsize.c detect-dsize.h \
 detect-stream_size.c detect-stream_size.h \
-detect-decode-event.c detect-decode-event.h \
+detect-engine-event.c detect-engine-event.h \
 detect-ipopts.c detect-ipopts.h \
 detect-flags.c detect-flags.h \
 detect-fragbits.c detect-fragbits.h \

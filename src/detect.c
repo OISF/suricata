@@ -50,7 +50,7 @@
 #include "detect-http-cookie.h"
 #include "detect-http-method.h"
 
-#include "detect-decode-event.h"
+#include "detect-engine-event.h"
 #include "decode.h"
 
 #include "detect-ipopts.h"

@@ -21,8 +21,8 @@
  * \author Breno Silva <breno.silva@gmail.com>
  */
 
-#ifndef __DETECT_DECODE_EVENT_H__
-#define __DETECT_DECODE_EVENT_H__
+#ifndef __DETECT_ENGINE_EVENT_H__
+#define __DETECT_ENGINE_EVENT_H__
 
 #include "decode-events.h"
 
@@ -118,5 +118,5 @@ struct DetectDecodeEvents_ {
 };
 #endif /* DETECT_EVENTS */
 
-#endif /*__DETECT_DECODE_EVENT_H__ */
+#endif /*__DETECT_ENGINE_EVENT_H__ */
 
