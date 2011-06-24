@@ -1,0 +1,6 @@
+1.0.4 -- 2011-06-24
+
+- LibHTP updated to 0.2.6
+- Large number of (potential) issues fixed after a source code scan with Coverity generously contributed by RedHat.
+- Large number of (potential) issues fixed after source code scans with the Clang static analizer.
+

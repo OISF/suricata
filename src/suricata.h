@@ -30,7 +30,7 @@
 
 /* the name of our binary */
 #define PROG_NAME "Suricata"
-#define PROG_VER "1.0.3"
+#define PROG_VER "1.0.4"
 
 /* runtime engine control flags */
 #define SURICATA_STOP    0x01   /**< gracefully stop the engine: process all
