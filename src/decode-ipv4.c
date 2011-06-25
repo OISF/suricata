@@ -51,33 +51,33 @@ static int IPV4OptValidateGeneric(Packet *p, const IPV4Opt *o) {
         /* See: RFC 4782 */
         case IPV4_OPT_QS:
             if (p->IPV4_OPTS[p->IPV4_OPTS_CNT].len < IPV4_OPT_QS_MIN) {
-                DECODER_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
+                ENGINE_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
                 return -1;
             }
             break;
         /* See: RFC 1108 */
         case IPV4_OPT_SEC:
             if (p->IPV4_OPTS[p->IPV4_OPTS_CNT].len != IPV4_OPT_SEC_LEN) {
-                DECODER_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
+                ENGINE_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
                 return -1;
             }
             break;
         case IPV4_OPT_SID:
             if (p->IPV4_OPTS[p->IPV4_OPTS_CNT].len != IPV4_OPT_SID_LEN) {
-                DECODER_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
+                ENGINE_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
                 return -1;
             }
             break;
         /* See: RFC 2113 */
         case IPV4_OPT_RTRALT:
             if (p->IPV4_OPTS[p->IPV4_OPTS_CNT].len != IPV4_OPT_RTRALT_LEN) {
-                DECODER_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
+                ENGINE_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
                 return -1;
             }
             break;
         default:
             /* Should never get here unless there is a coding error */
-            DECODER_SET_EVENT(p,IPV4_OPT_UNKNOWN);
+            ENGINE_SET_EVENT(p,IPV4_OPT_UNKNOWN);
             return -1;
     }
 
@@ -95,13 +95,13 @@ static int IPV4OptValidateRoute(Packet *p, const IPV4Opt *o) {
 
     /* Check length */
     if (o->len < IPV4_OPT_ROUTE_MIN) {
-        DECODER_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
+        ENGINE_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
         return -1;
     }
 
     /* Data is required */
     if (o->data == NULL) {
-        DECODER_SET_EVENT(p,IPV4_OPT_MALFORMED);
+        ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
         return -1;
     }
     ptr = *o->data;
@@ -111,7 +111,7 @@ static int IPV4OptValidateRoute(Packet *p, const IPV4Opt *o) {
      * past option length.
      */
     if ((ptr < 4) || (ptr % 4) || (ptr > o->len + 1)) {
-        DECODER_SET_EVENT(p,IPV4_OPT_MALFORMED);
+        ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
         return -1;
     }
 
@@ -132,20 +132,20 @@ static int IPV4OptValidateTimestamp(Packet *p, const IPV4Opt *o) {
 
     /* Check length */
     if (o->len < IPV4_OPT_TS_MIN) {
-        DECODER_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
+        ENGINE_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
         return -1;
     }
 
     /* Data is required */
     if (o->data == NULL) {
-        DECODER_SET_EVENT(p,IPV4_OPT_MALFORMED);
+        ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
         return -1;
     }
     ptr = *o->data;
 
     /* We need the flag to determine what is in the option payload */
     if (ptr < 5) {
-        DECODER_SET_EVENT(p,IPV4_OPT_MALFORMED);
+        ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
         return -1;
     }
     flag = *(o->data + 3) & 0x00ff;
@@ -158,7 +158,7 @@ static int IPV4OptValidateTimestamp(Packet *p, const IPV4Opt *o) {
      * and cannot extend past option length.
      */
     if (((ptr - 5) % rec_size) || (ptr > o->len + 1)) {
-        DECODER_SET_EVENT(p,IPV4_OPT_MALFORMED);
+        ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
         return -1;
     }
 
@@ -179,13 +179,13 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o) {
 
     /* Check length */
     if (o->len < IPV4_OPT_CIPSO_MIN) {
-        DECODER_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
+        ENGINE_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
         return -1;
     }
 
     /* Data is required */
     if (o->data == NULL) {
-        DECODER_SET_EVENT(p,IPV4_OPT_MALFORMED);
+        ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
         return -1;
     }
     doi = *o->data;
@@ -197,7 +197,7 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o) {
     /** \todo Aparently a DOI of zero is fine in practice - verify. */
     if (doi == 0) {
 #if 0
-        DECODER_SET_EVENT(p,IPV4_OPT_MALFORMED);
+        ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
         return -1;
 #endif
     }
@@ -214,7 +214,7 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o) {
         /* Tag header must fit within option length */
         if (len < 2) {
             //printf("CIPSO tag header too large %" PRIu16 " < 2\n", len);
-            DECODER_SET_EVENT(p,IPV4_OPT_MALFORMED);
+            ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
             return -1;
         }
 
@@ -225,7 +225,7 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o) {
         /* Tag length must fit within the option length */
         if (tlen > len) {
             //printf("CIPSO tag len too large %" PRIu8 " > %" PRIu16 "\n", tlen, len);
-            DECODER_SET_EVENT(p,IPV4_OPT_MALFORMED);
+            ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
             return -1;
         }
 
@@ -233,7 +233,7 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o) {
             case 0:
                 /* Tag type 0 is reserved and thus invalid */
                 /** \todo Wireshark marks this a padding, but spec says reserved. */
-                DECODER_SET_EVENT(p,IPV4_OPT_MALFORMED);
+                ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
                 return -1;
             case 1:
             case 2:
@@ -243,7 +243,7 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o) {
                 /* Tag is at least 4 and at most the remainder of option len */
                 if ((tlen < 4) || (tlen > len)) {
                     //printf("CIPSO tag %" PRIu8 " bad tlen=%" PRIu8 " len=%" PRIu8 "\n", ttype, tlen, len);
-                    DECODER_SET_EVENT(p,IPV4_OPT_MALFORMED);
+                    ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
                     return -1;
                 }
 
@@ -252,7 +252,7 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o) {
                  */
                 if ((ttype != 7) && (*tag != 0)) {
                     //printf("CIPSO tag %" PRIu8 " ao=%" PRIu8 "\n", ttype, tlen);
-                    DECODER_SET_EVENT(p,IPV4_OPT_MALFORMED);
+                    ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
                     return -1;
                 }
 
@@ -263,7 +263,7 @@ static int IPV4OptValidateCIPSO(Packet *p, const IPV4Opt *o) {
                 continue;
             default:
                 //printf("CIPSO tag %" PRIu8 " unknown tag\n", ttype);
-                DECODER_SET_EVENT(p,IPV4_OPT_MALFORMED);
+                ENGINE_SET_EVENT(p,IPV4_OPT_MALFORMED);
                 /** \todo May not want to return error here on unknown tag type (at least not for 3|4) */
                 return -1;
         }
@@ -296,7 +296,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len)
 
     /* Options length must be padded to 8byte boundary */
     if (plen % 8) {
-        DECODER_SET_EVENT(p,IPV4_OPT_PAD_REQUIRED);
+        ENGINE_SET_EVENT(p,IPV4_OPT_PAD_REQUIRED);
         /* Warn - we can keep going */
     }
 
@@ -319,13 +319,13 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len)
             if (plen < 2) {
                 /** \todo What if padding is non-zero (possible covert channel or data leakage)? */
                 /** \todo Spec seems to indicate EOL required if there is padding */
-                DECODER_SET_EVENT(p,IPV4_OPT_EOL_REQUIRED);
+                ENGINE_SET_EVENT(p,IPV4_OPT_EOL_REQUIRED);
                 break;
             }
 
             /* Option length is too big for packet */
             if (*(pkt+1) > plen) {
-                DECODER_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
+                ENGINE_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
                 return -1;
             }
 
@@ -345,7 +345,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len)
              * Also check for invalid lengths 0 and 1. */
             if (p->IPV4_OPTS[p->IPV4_OPTS_CNT].len > plen ||
                 p->IPV4_OPTS[p->IPV4_OPTS_CNT].len < 2) {
-                DECODER_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
+                ENGINE_SET_EVENT(p,IPV4_OPT_INVALID_LEN);
                 return -1;
             }
 
@@ -356,7 +356,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len)
             switch (p->IPV4_OPTS[p->IPV4_OPTS_CNT].type) {
                 case IPV4_OPT_TS:
                     if (p->ip4vars.o_ts != NULL) {
-                        DECODER_SET_EVENT(p,IPV4_OPT_DUPLICATE);
+                        ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
                         break;
                     } else if (IPV4OptValidateTimestamp(p,&p->IPV4_OPTS[p->IPV4_OPTS_CNT])) {
@@ -366,7 +366,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len)
                     break;
                 case IPV4_OPT_RR:
                     if (p->ip4vars.o_rr != NULL) {
-                        DECODER_SET_EVENT(p,IPV4_OPT_DUPLICATE);
+                        ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
                         break;
                     } else if (IPV4OptValidateRoute(p,&p->IPV4_OPTS[p->IPV4_OPTS_CNT]) != 0) {
@@ -376,7 +376,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len)
                     break;
                 case IPV4_OPT_QS:
                     if (p->ip4vars.o_qs != NULL) {
-                        DECODER_SET_EVENT(p,IPV4_OPT_DUPLICATE);
+                        ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
                         break;
                     } else if (IPV4OptValidateGeneric(p, &p->IPV4_OPTS[p->IPV4_OPTS_CNT])) {
@@ -386,7 +386,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len)
                     break;
                 case IPV4_OPT_SEC:
                     if (p->ip4vars.o_sec != NULL) {
-                        DECODER_SET_EVENT(p,IPV4_OPT_DUPLICATE);
+                        ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
                         break;
                     } else if (IPV4OptValidateGeneric(p, &p->IPV4_OPTS[p->IPV4_OPTS_CNT])) {
@@ -396,7 +396,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len)
                     break;
                 case IPV4_OPT_LSRR:
                     if (p->ip4vars.o_lsrr != NULL) {
-                        DECODER_SET_EVENT(p,IPV4_OPT_DUPLICATE);
+                        ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
                         break;
                     } else if (IPV4OptValidateRoute(p,&p->IPV4_OPTS[p->IPV4_OPTS_CNT]) != 0) {
@@ -406,7 +406,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len)
                     break;
                 case IPV4_OPT_CIPSO:
                     if (p->ip4vars.o_cipso != NULL) {
-                        DECODER_SET_EVENT(p,IPV4_OPT_DUPLICATE);
+                        ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
                         break;
                     } else if (IPV4OptValidateCIPSO(p,&p->IPV4_OPTS[p->IPV4_OPTS_CNT]) != 0) {
@@ -416,7 +416,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len)
                     break;
                 case IPV4_OPT_SID:
                     if (p->ip4vars.o_sid != NULL) {
-                        DECODER_SET_EVENT(p,IPV4_OPT_DUPLICATE);
+                        ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
                         break;
                     } else if (IPV4OptValidateGeneric(p, &p->IPV4_OPTS[p->IPV4_OPTS_CNT])) {
@@ -426,7 +426,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len)
                     break;
                 case IPV4_OPT_SSRR:
                     if (p->ip4vars.o_ssrr != NULL) {
-                        DECODER_SET_EVENT(p,IPV4_OPT_DUPLICATE);
+                        ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
                         break;
                     } else if (IPV4OptValidateRoute(p,&p->IPV4_OPTS[p->IPV4_OPTS_CNT]) != 0) {
@@ -436,7 +436,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len)
                     break;
                 case IPV4_OPT_RTRALT:
                     if (p->ip4vars.o_rtralt != NULL) {
-                        DECODER_SET_EVENT(p,IPV4_OPT_DUPLICATE);
+                        ENGINE_SET_EVENT(p,IPV4_OPT_DUPLICATE);
                         /* Warn - we can keep going */
                         break;
                     } else if (IPV4OptValidateGeneric(p, &p->IPV4_OPTS[p->IPV4_OPTS_CNT])) {
@@ -448,7 +448,7 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len)
                     SCLogDebug("IPV4OPT <unknown> (%" PRIu8 ") len %" PRIu8 "",
                            p->IPV4_OPTS[p->IPV4_OPTS_CNT].type,
                            p->IPV4_OPTS[p->IPV4_OPTS_CNT].len);
-                    DECODER_SET_EVENT(p,IPV4_OPT_INVALID);
+                    ENGINE_SET_EVENT(p,IPV4_OPT_INVALID);
                     /* Warn - we can keep going */
                     break;
             }
@@ -465,30 +465,30 @@ static int DecodeIPV4Options(Packet *p, uint8_t *pkt, uint16_t len)
 static int DecodeIPV4Packet(Packet *p, uint8_t *pkt, uint16_t len)
 {
     if (unlikely(len < IPV4_HEADER_LEN)) {
-        DECODER_SET_EVENT(p,IPV4_PKT_TOO_SMALL);
+        ENGINE_SET_EVENT(p,IPV4_PKT_TOO_SMALL);
         return -1;
     }
 
     if (unlikely(IP_GET_RAW_VER(pkt) != 4)) {
         SCLogDebug("wrong ip version %" PRIu8 "",IP_GET_RAW_VER(pkt));
-        DECODER_SET_EVENT(p,IPV4_WRONG_IP_VER);
+        ENGINE_SET_EVENT(p,IPV4_WRONG_IP_VER);
         return -1;
     }
 
     p->ip4h = (IPV4Hdr *)pkt;
 
     if (unlikely(IPV4_GET_HLEN(p) < IPV4_HEADER_LEN)) {
-        DECODER_SET_EVENT(p,IPV4_HLEN_TOO_SMALL);
+        ENGINE_SET_EVENT(p,IPV4_HLEN_TOO_SMALL);
         return -1;
     }
 
     if (unlikely(IPV4_GET_IPLEN(p) < IPV4_GET_HLEN(p))) {
-        DECODER_SET_EVENT(p,IPV4_IPLEN_SMALLER_THAN_HLEN);
+        ENGINE_SET_EVENT(p,IPV4_IPLEN_SMALLER_THAN_HLEN);
         return -1;
     }
 
     if (unlikely(len < IPV4_GET_IPLEN(p))) {
-        DECODER_SET_EVENT(p,IPV4_TRUNC_PKT);
+        ENGINE_SET_EVENT(p,IPV4_TRUNC_PKT);
         return -1;
     }
 

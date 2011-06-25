@@ -38,7 +38,7 @@ void DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     SCPerfCounterIncr(dtv->counter_ppp, tv->sc_perf_pca);
 
     if(len < PPP_HEADER_LEN)    {
-        DECODER_SET_EVENT(p,PPP_PKT_TOO_SMALL);
+        ENGINE_SET_EVENT(p,PPP_PKT_TOO_SMALL);
         return;
     }
 
@@ -79,13 +79,13 @@ void DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
         case PPP_PAP:
         case PPP_LQM:
         case PPP_CHAP:
-            DECODER_SET_EVENT(p,PPP_UNSUP_PROTO);
+            ENGINE_SET_EVENT(p,PPP_UNSUP_PROTO);
             break;
 
         case PPP_VJ_UCOMP:
 
             if(len < (PPP_HEADER_LEN + IPV4_HEADER_LEN))    {
-                DECODER_SET_EVENT(p,PPPVJU_PKT_TOO_SMALL);
+                ENGINE_SET_EVENT(p,PPPVJU_PKT_TOO_SMALL);
                 return;
             }
 
@@ -96,7 +96,7 @@ void DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
         case PPP_IP:
             if(len < (PPP_HEADER_LEN + IPV4_HEADER_LEN))    {
-                DECODER_SET_EVENT(p,PPPIPV4_PKT_TOO_SMALL);
+                ENGINE_SET_EVENT(p,PPPIPV4_PKT_TOO_SMALL);
                 return;
             }
 
@@ -106,7 +106,7 @@ void DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
             /* PPP IPv6 was not tested */
         case PPP_IPV6:
             if(len < (PPP_HEADER_LEN + IPV6_HEADER_LEN))    {
-                DECODER_SET_EVENT(p,PPPIPV6_PKT_TOO_SMALL);
+                ENGINE_SET_EVENT(p,PPPIPV6_PKT_TOO_SMALL);
                 return;
             }
 
@@ -115,7 +115,7 @@ void DecodePPP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
         default:
             SCLogDebug("unknown PPP protocol: %" PRIx32 "",ntohs(p->ppph->protocol));
-            DECODER_SET_EVENT(p,PPP_WRONG_TYPE);
+            ENGINE_SET_EVENT(p,PPP_WRONG_TYPE);
             return;
     }
 
@@ -146,7 +146,7 @@ static int DecodePPPtest01 (void)   {
 
     /* Function my returns here with expected value */
 
-    if(DECODER_ISSET_EVENT(p,PPPIPV4_PKT_TOO_SMALL))  {
+    if(ENGINE_ISSET_EVENT(p,PPPIPV4_PKT_TOO_SMALL))  {
         SCFree(p);
         return 1;
     }
@@ -180,7 +180,7 @@ static int DecodePPPtest02 (void)   {
 
     /* Function must returns here */
 
-    if(DECODER_ISSET_EVENT(p,PPP_WRONG_TYPE))  {
+    if(ENGINE_ISSET_EVENT(p,PPP_WRONG_TYPE))  {
         SCFree(p);
         return 1;
     }
@@ -223,22 +223,22 @@ static int DecodePPPtest03 (void)   {
         return 0;
     }
 
-    if(DECODER_ISSET_EVENT(p,PPP_PKT_TOO_SMALL))  {
+    if(ENGINE_ISSET_EVENT(p,PPP_PKT_TOO_SMALL))  {
         SCFree(p);
         return 0;
     }
 
-    if(DECODER_ISSET_EVENT(p,PPPIPV4_PKT_TOO_SMALL))  {
+    if(ENGINE_ISSET_EVENT(p,PPPIPV4_PKT_TOO_SMALL))  {
         SCFree(p);
         return 0;
     }
 
-    if(DECODER_ISSET_EVENT(p,PPP_WRONG_TYPE))  {
+    if(ENGINE_ISSET_EVENT(p,PPP_WRONG_TYPE))  {
         SCFree(p);
         return 0;
     }
 
-    if (!(DECODER_ISSET_EVENT(p,IPV4_TRUNC_PKT))) {
+    if (!(ENGINE_ISSET_EVENT(p,IPV4_TRUNC_PKT))) {
         SCFree(p);
         return 0;
     }
@@ -282,7 +282,7 @@ static int DecodePPPtest04 (void)   {
         return 0;
     }
 
-    if (!(DECODER_ISSET_EVENT(p,IPV4_TRUNC_PKT))) {
+    if (!(ENGINE_ISSET_EVENT(p,IPV4_TRUNC_PKT))) {
         SCFree(p);
         return 0;
     }

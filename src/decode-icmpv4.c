@@ -45,7 +45,7 @@ void DecodePartialIPV4( Packet* p, uint8_t* partial_packet, uint16_t len )
     /** Check the sizes, the header must fit at least */
     if (len < IPV4_HEADER_LEN) {
         SCLogDebug("DecodePartialIPV4: ICMPV4_IPV4_TRUNC_PKT");
-        DECODER_SET_EVENT(p, ICMPV4_IPV4_TRUNC_PKT);
+        ENGINE_SET_EVENT(p, ICMPV4_IPV4_TRUNC_PKT);
         return;
     }
 
@@ -56,7 +56,7 @@ void DecodePartialIPV4( Packet* p, uint8_t* partial_packet, uint16_t len )
         /** Check the embedded version */
         SCLogDebug("DecodePartialIPV4: ICMPv4 contains Unknown IPV4 version "
                    "ICMPV4_IPV4_UNKNOWN_VER");
-        DECODER_SET_EVENT(p, ICMPV4_IPV4_UNKNOWN_VER);
+        ENGINE_SET_EVENT(p, ICMPV4_IPV4_UNKNOWN_VER);
         return;
     }
 
@@ -149,7 +149,7 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
     SCPerfCounterIncr(dtv->counter_icmpv4, tv->sc_perf_pca);
 
     if (len < ICMPV4_HEADER_LEN) {
-        DECODER_SET_EVENT(p,ICMPV4_PKT_TOO_SMALL);
+        ENGINE_SET_EVENT(p,ICMPV4_PKT_TOO_SMALL);
         return;
     }
 
@@ -171,13 +171,13 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
             p->icmpv4vars.id=icmp4eh->id;
             p->icmpv4vars.seq=icmp4eh->seq;
             if (p->icmpv4h->code!=0) {
-                DECODER_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             }
             break;
 
         case ICMP_DEST_UNREACH:
             if (p->icmpv4h->code > NR_ICMP_UNREACH) {
-                DECODER_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 /* parse IP header plus 64 bytes */
                 if (len >= ICMPV4_HEADER_PKT_OFFSET) {
@@ -195,7 +195,7 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
 
         case ICMP_SOURCE_QUENCH:
             if (p->icmpv4h->code!=0) {
-                DECODER_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
                 if (len >= ICMPV4_HEADER_PKT_OFFSET)
@@ -205,7 +205,7 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
 
         case ICMP_REDIRECT:
             if (p->icmpv4h->code>ICMP_REDIR_HOSTTOS) {
-                DECODER_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
                 if (len >= ICMPV4_HEADER_PKT_OFFSET)
@@ -217,13 +217,13 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
             p->icmpv4vars.id=icmp4eh->id;
             p->icmpv4vars.seq=icmp4eh->seq;
             if (p->icmpv4h->code!=0) {
-                DECODER_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             }
             break;
 
         case ICMP_TIME_EXCEEDED:
             if (p->icmpv4h->code>ICMP_EXC_FRAGTIME) {
-                DECODER_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
                 if (len >= ICMPV4_HEADER_PKT_OFFSET)
@@ -233,7 +233,7 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
 
         case ICMP_PARAMETERPROB:
             if (p->icmpv4h->code!=0) {
-                DECODER_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
                 if (len >= ICMPV4_HEADER_PKT_OFFSET)
@@ -245,7 +245,7 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
             p->icmpv4vars.id=icmp4eh->id;
             p->icmpv4vars.seq=icmp4eh->seq;
             if (p->icmpv4h->code!=0) {
-                DECODER_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             }
             break;
 
@@ -253,7 +253,7 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
             p->icmpv4vars.id=icmp4eh->id;
             p->icmpv4vars.seq=icmp4eh->seq;
             if (p->icmpv4h->code!=0) {
-                DECODER_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             }
             break;
 
@@ -261,7 +261,7 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
             p->icmpv4vars.id=icmp4eh->id;
             p->icmpv4vars.seq=icmp4eh->seq;
             if (p->icmpv4h->code!=0) {
-                DECODER_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             }
             break;
 
@@ -269,7 +269,7 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
             p->icmpv4vars.id=icmp4eh->id;
             p->icmpv4vars.seq=icmp4eh->seq;
             if (p->icmpv4h->code!=0) {
-                DECODER_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             }
             break;
 
@@ -277,7 +277,7 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
             p->icmpv4vars.id=icmp4eh->id;
             p->icmpv4vars.seq=icmp4eh->seq;
             if (p->icmpv4h->code!=0) {
-                DECODER_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             }
             break;
 
@@ -285,12 +285,12 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
             p->icmpv4vars.id=icmp4eh->id;
             p->icmpv4vars.seq=icmp4eh->seq;
             if (p->icmpv4h->code!=0) {
-                DECODER_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             }
             break;
 
         default:
-            DECODER_SET_EVENT(p,ICMPV4_UNKNOWN_TYPE);
+            ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_TYPE);
 
     }
 
@@ -695,7 +695,7 @@ static int ICMPV4InvalidType07(void) {
 
     DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
 
-    if(DECODER_ISSET_EVENT(p,ICMPV4_UNKNOWN_TYPE)) {
+    if(ENGINE_ISSET_EVENT(p,ICMPV4_UNKNOWN_TYPE)) {
         ret = 1;
     }
 

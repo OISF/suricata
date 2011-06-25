@@ -86,7 +86,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 SCLogDebug("hdrextlen %"PRIu8, hdrextlen);
 
                 if (hdrextlen > plen) {
-                    DECODER_SET_EVENT(p, IPV6_TRUNC_EXTHDR);
+                    ENGINE_SET_EVENT(p, IPV6_TRUNC_EXTHDR);
                     SCReturn;
                 }
 
@@ -100,7 +100,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 }
 
                 if (IPV6_EXTHDR_ISSET_RH(p)) {
-                    DECODER_SET_EVENT(p, IPV6_EXTHDR_DUPL_RH);
+                    ENGINE_SET_EVENT(p, IPV6_EXTHDR_DUPL_RH);
                     /* skip past this extension so we can continue parsing the rest
                      * of the packet */
                     nh = *pkt;
@@ -143,7 +143,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
 
                 hdrextlen =  (*(pkt+1) + 1) << 3;
                 if (hdrextlen > plen) {
-                    DECODER_SET_EVENT(p, IPV6_TRUNC_EXTHDR);
+                    ENGINE_SET_EVENT(p, IPV6_TRUNC_EXTHDR);
                     SCReturn;
                 }
 
@@ -162,7 +162,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                  * in Packet. */
                 if (nh == IPPROTO_HOPOPTS) {
                     if (IPV6_EXTHDR_ISSET_HH(p)) {
-                        DECODER_SET_EVENT(p, IPV6_EXTHDR_DUPL_HH);
+                        ENGINE_SET_EVENT(p, IPV6_EXTHDR_DUPL_HH);
                         /* skip past this extension so we can continue parsing the rest
                          * of the packet */
                         nh = *pkt;
@@ -195,7 +195,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                         optslen = ((IPV6_EXTHDR_DH2(p)->ip6dh_len+1)<<3)-2;
                         dstopts = 2;
                     } else {
-                        DECODER_SET_EVENT(p, IPV6_EXTHDR_DUPL_DH);
+                        ENGINE_SET_EVENT(p, IPV6_EXTHDR_DUPL_DH);
                         /* skip past this extension so we can continue parsing the rest
                          * of the packet */
                         nh = *pkt;
@@ -208,7 +208,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 if (optslen > plen) {
                     /* since the packet is long enough (we checked
                      * plen against hdrlen, the optlen must be malformed. */
-                    DECODER_SET_EVENT(p, IPV6_EXTHDR_INVALID_OPTLEN);
+                    ENGINE_SET_EVENT(p, IPV6_EXTHDR_INVALID_OPTLEN);
                     /* skip past this extension so we can continue parsing the rest
                      * of the packet */
                     nh = *pkt;
@@ -276,7 +276,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
 
                 hdrextlen = sizeof(IPV6FragHdr);
                 if (hdrextlen > plen) {
-                    DECODER_SET_EVENT(p, IPV6_TRUNC_EXTHDR);
+                    ENGINE_SET_EVENT(p, IPV6_TRUNC_EXTHDR);
                     SCReturn;
                 }
 
@@ -290,7 +290,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 }
 
                 if (IPV6_EXTHDR_ISSET_FH(p)) {
-                    DECODER_SET_EVENT(p, IPV6_EXTHDR_DUPL_FH);
+                    ENGINE_SET_EVENT(p, IPV6_EXTHDR_DUPL_FH);
                     nh = *pkt;
                     pkt += hdrextlen;
                     plen -= hdrextlen;
@@ -309,7 +309,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
             {
                 hdrextlen = sizeof(IPV6EspHdr);
                 if (hdrextlen > plen) {
-                    DECODER_SET_EVENT(p, IPV6_TRUNC_EXTHDR);
+                    ENGINE_SET_EVENT(p, IPV6_TRUNC_EXTHDR);
                     SCReturn;
                 }
 
@@ -323,7 +323,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 }
 
                 if (IPV6_EXTHDR_ISSET_EH(p)) {
-                    DECODER_SET_EVENT(p, IPV6_EXTHDR_DUPL_EH);
+                    ENGINE_SET_EVENT(p, IPV6_EXTHDR_DUPL_EH);
                     SCReturn;
                 }
 
@@ -344,7 +344,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 SCLogDebug("hdrextlen %"PRIu8, hdrextlen);
 
                 if (hdrextlen > plen) {
-                    DECODER_SET_EVENT(p, IPV6_TRUNC_EXTHDR);
+                    ENGINE_SET_EVENT(p, IPV6_TRUNC_EXTHDR);
                     SCReturn;
                 }
 
@@ -358,7 +358,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 }
 
                 if (IPV6_EXTHDR_ISSET_AH(p)) {
-                    DECODER_SET_EVENT(p, IPV6_EXTHDR_DUPL_AH);
+                    ENGINE_SET_EVENT(p, IPV6_EXTHDR_DUPL_AH);
                     nh = *pkt;
                     pkt += hdrextlen;
                     plen -= hdrextlen;
@@ -393,7 +393,7 @@ static int DecodeIPV6Packet (ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
 
     if (IP_GET_RAW_VER(pkt) != 6) {
         SCLogDebug("wrong ip version %" PRIu8 "",IP_GET_RAW_VER(pkt));
-        DECODER_SET_EVENT(p,IPV6_WRONG_IP_VER);
+        ENGINE_SET_EVENT(p,IPV6_WRONG_IP_VER);
         return -1;
     }
 
@@ -401,7 +401,7 @@ static int DecodeIPV6Packet (ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
 
     if (len < (IPV6_HEADER_LEN + IPV6_GET_PLEN(p)))
     {
-        DECODER_SET_EVENT(p,IPV6_TRUNC_PKT);
+        ENGINE_SET_EVENT(p,IPV6_TRUNC_PKT);
         return -1;
     }
 

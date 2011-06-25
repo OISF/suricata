@@ -249,13 +249,13 @@ typedef struct PacketAlerts_ {
 
 /** number of decoder events we support per packet. Power of 2 minus 1
  *  for memory layout */
-#define PACKET_DECODER_EVENT_MAX 15
+#define PACKET_ENGINE_EVENT_MAX 15
 
 /** data structure to store decoder, defrag and stream events */
-typedef struct PacketDecoderEvents_ {
+typedef struct PacketEngineEvents_ {
     uint8_t cnt;                                /**< number of events */
-    uint8_t events[PACKET_DECODER_EVENT_MAX];   /**< array of events */
-} PacketDecoderEvents;
+    uint8_t events[PACKET_ENGINE_EVENT_MAX];   /**< array of events */
+} PacketEngineEvents;
 
 typedef struct PktVar_ {
     char *name;
@@ -406,8 +406,8 @@ typedef struct Packet_
     SC_ATOMIC_DECLARE(unsigned short, tunnel_rtv_cnt);
     SC_ATOMIC_DECLARE(unsigned short, tunnel_tpr_cnt);
 
-    /* decoder events */
-    PacketDecoderEvents events;
+    /* engine events */
+    PacketEngineEvents events;
 
     /* double linked list ptrs */
     struct Packet_ *next;
@@ -784,14 +784,14 @@ void AddressDebugPrint(Address *);
     } while (0)
 
 
-#define DECODER_SET_EVENT(p, e) do { \
-    if ((p)->events.cnt < PACKET_DECODER_EVENT_MAX) { \
+#define ENGINE_SET_EVENT(p, e) do { \
+    if ((p)->events.cnt < PACKET_ENGINE_EVENT_MAX) { \
         (p)->events.events[(p)->events.cnt] = e; \
         (p)->events.cnt++; \
     } \
 } while(0)
 
-#define DECODER_ISSET_EVENT(p, e) ({ \
+#define ENGINE_ISSET_EVENT(p, e) ({ \
     int r = 0; \
     uint8_t u; \
     for (u = 0; u < (p)->events.cnt; u++) { \

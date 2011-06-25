@@ -54,7 +54,7 @@ static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t len)
              * so here the len of the specific option must be bad.
              * Also check for invalid lengths 0 and 1. */
             if (*(pkt+1) > plen || *(pkt+1) < 2) {
-                DECODER_SET_EVENT(p,TCP_OPT_INVALID_LEN);
+                ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
                 return -1;
             }
 
@@ -71,10 +71,10 @@ static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t len)
             switch (p->TCP_OPTS[p->TCP_OPTS_CNT].type) {
                 case TCP_OPT_WS:
                     if (p->TCP_OPTS[p->TCP_OPTS_CNT].len != TCP_OPT_WS_LEN) {
-                        DECODER_SET_EVENT(p,TCP_OPT_INVALID_LEN);
+                        ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
                     } else {
                         if (p->tcpvars.ws != NULL) {
-                            DECODER_SET_EVENT(p,TCP_OPT_DUPLICATE);
+                            ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
                         } else {
                             p->tcpvars.ws = &p->TCP_OPTS[p->TCP_OPTS_CNT];
                         }
@@ -82,10 +82,10 @@ static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t len)
                     break;
                 case TCP_OPT_MSS:
                     if (p->TCP_OPTS[p->TCP_OPTS_CNT].len != TCP_OPT_MSS_LEN) {
-                        DECODER_SET_EVENT(p,TCP_OPT_INVALID_LEN);
+                        ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
                     } else {
                         if (p->tcpvars.mss != NULL) {
-                            DECODER_SET_EVENT(p,TCP_OPT_DUPLICATE);
+                            ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
                         } else {
                             p->tcpvars.mss = &p->TCP_OPTS[p->TCP_OPTS_CNT];
                         }
@@ -93,10 +93,10 @@ static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t len)
                     break;
                 case TCP_OPT_SACKOK:
                     if (p->TCP_OPTS[p->TCP_OPTS_CNT].len != TCP_OPT_SACKOK_LEN) {
-                        DECODER_SET_EVENT(p,TCP_OPT_INVALID_LEN);
+                        ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
                     } else {
                         if (p->tcpvars.sackok != NULL) {
-                            DECODER_SET_EVENT(p,TCP_OPT_DUPLICATE);
+                            ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
                         } else {
                             p->tcpvars.sackok = &p->TCP_OPTS[p->TCP_OPTS_CNT];
                         }
@@ -104,10 +104,10 @@ static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t len)
                     break;
                 case TCP_OPT_TS:
                     if (p->TCP_OPTS[p->TCP_OPTS_CNT].len != TCP_OPT_TS_LEN) {
-                        DECODER_SET_EVENT(p,TCP_OPT_INVALID_LEN);
+                        ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
                     } else {
                         if (p->tcpvars.ts != NULL) {
-                            DECODER_SET_EVENT(p,TCP_OPT_DUPLICATE);
+                            ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
                         } else {
                             p->tcpvars.ts = &p->TCP_OPTS[p->TCP_OPTS_CNT];
                         }
@@ -119,10 +119,10 @@ static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t len)
                             p->TCP_OPTS[p->TCP_OPTS_CNT].len > TCP_OPT_SACK_MAX_LEN ||
                             !((p->TCP_OPTS[p->TCP_OPTS_CNT].len - 2) % 8 == 0))
                     {
-                        DECODER_SET_EVENT(p,TCP_OPT_INVALID_LEN);
+                        ENGINE_SET_EVENT(p,TCP_OPT_INVALID_LEN);
                     } else {
                         if (p->tcpvars.sack != NULL) {
-                            DECODER_SET_EVENT(p,TCP_OPT_DUPLICATE);
+                            ENGINE_SET_EVENT(p,TCP_OPT_DUPLICATE);
                         } else {
                             p->tcpvars.sack = &p->TCP_OPTS[p->TCP_OPTS_CNT];
                         }
@@ -141,7 +141,7 @@ static int DecodeTCPOptions(Packet *p, uint8_t *pkt, uint16_t len)
 static int DecodeTCPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len)
 {
     if (unlikely(len < TCP_HEADER_LEN)) {
-        DECODER_SET_EVENT(p, TCP_PKT_TOO_SMALL);
+        ENGINE_SET_EVENT(p, TCP_PKT_TOO_SMALL);
         return -1;
     }
 
@@ -149,13 +149,13 @@ static int DecodeTCPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len
 
     uint8_t hlen = TCP_GET_HLEN(p);
     if (unlikely(len < hlen)) {
-        DECODER_SET_EVENT(p, TCP_HLEN_TOO_SMALL);
+        ENGINE_SET_EVENT(p, TCP_HLEN_TOO_SMALL);
         return -1;
     }
 
     uint8_t tcp_opt_len = hlen - TCP_HEADER_LEN;
     if (unlikely(tcp_opt_len > TCP_OPTLENMAX)) {
-        DECODER_SET_EVENT(p, TCP_INVALID_OPTLEN);
+        ENGINE_SET_EVENT(p, TCP_INVALID_OPTLEN);
         return -1;
     }
 

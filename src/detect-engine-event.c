@@ -115,7 +115,7 @@ int DetectEngineEventMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packe
 
     DetectEngineEventData *de = (DetectEngineEventData *)m->ctx;
 
-    if (DECODER_ISSET_EVENT(p, de->event)) {
+    if (ENGINE_ISSET_EVENT(p, de->event)) {
         SCReturnInt(1);
     }
 
@@ -343,7 +343,7 @@ int EngineEventTestParse06 (void) {
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
 
-    DECODER_SET_EVENT(p,PPP_PKT_TOO_SMALL);
+    ENGINE_SET_EVENT(p,PPP_PKT_TOO_SMALL);
 
     de = DetectEngineEventParse("ppp.pkt_too_small");
     if (de == NULL)

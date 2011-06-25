@@ -599,7 +599,7 @@ void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
 }
 
 void StreamTcpSetEvent(Packet *p, uint8_t e) {
-    DECODER_SET_EVENT(p, e);
+    ENGINE_SET_EVENT(p, e);
 }
 
 /**

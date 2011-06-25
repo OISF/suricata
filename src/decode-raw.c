@@ -37,7 +37,7 @@ void DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
     /* If it is ipv4 or ipv6 it should at least be the size of ipv4 */
     if (len < IPV4_HEADER_LEN) {
-        DECODER_SET_EVENT(p,IPV4_PKT_TOO_SMALL);
+        ENGINE_SET_EVENT(p,IPV4_PKT_TOO_SMALL);
         return;
     }
 
@@ -49,7 +49,7 @@ void DecodeRaw(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
         DecodeIPV6(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
     } else {
         SCLogDebug("Unknown ip version %" PRIu8 "", IP_GET_RAW_VER(pkt));
-        DECODER_SET_EVENT(p,IPRAW_INVALID_IPV);
+        ENGINE_SET_EVENT(p,IPRAW_INVALID_IPV);
     }
     return;
 }
@@ -187,7 +187,7 @@ static int DecodeRawTest03 (void)   {
     FlowInitConfig(FLOW_QUIET);
 
     DecodeRaw(&tv, &dtv, p, raw_ip, GET_PKT_LEN(p), NULL);
-    if (DECODER_ISSET_EVENT(p,IPRAW_INVALID_IPV)) {
+    if (ENGINE_ISSET_EVENT(p,IPRAW_INVALID_IPV)) {
         FlowShutdown();
         SCFree(p);
         return 0;

@@ -34,7 +34,7 @@ void DecodeSll(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
     SCPerfCounterIncr(dtv->counter_sll, tv->sc_perf_pca);
 
     if (len < SLL_HEADER_LEN) {
-        DECODER_SET_EVENT(p,SLL_PKT_TOO_SMALL);
+        ENGINE_SET_EVENT(p,SLL_PKT_TOO_SMALL);
         return;
     }
 

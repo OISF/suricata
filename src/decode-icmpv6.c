@@ -50,7 +50,7 @@ void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
     /** Check the sizes, the header must fit at least */
     if (len < IPV6_HEADER_LEN) {
         SCLogDebug("ICMPV6_IPV6_TRUNC_PKT");
-        DECODER_SET_EVENT(p, ICMPV6_IPV6_TRUNC_PKT);
+        ENGINE_SET_EVENT(p, ICMPV6_IPV6_TRUNC_PKT);
         return;
     }
 
@@ -61,7 +61,7 @@ void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
     {
         SCLogDebug("ICMPv6 contains Unknown IPV6 version "
                 "ICMPV6_IPV6_UNKNOWN_VER");
-        DECODER_SET_EVENT(p, ICMPV6_IPV6_UNKNOWN_VER);
+        ENGINE_SET_EVENT(p, ICMPV6_IPV6_UNKNOWN_VER);
         return;
     }
 
@@ -160,7 +160,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 
     if (len < ICMPV6_HEADER_LEN) {
         SCLogDebug("ICMPV6_PKT_TOO_SMALL");
-        DECODER_SET_EVENT(p, ICMPV6_PKT_TOO_SMALL);
+        ENGINE_SET_EVENT(p, ICMPV6_PKT_TOO_SMALL);
         return;
     }
 
@@ -179,7 +179,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             SCLogDebug("ICMP6_DST_UNREACH");
 
             if (ICMPV6_GET_CODE(p) > ICMP6_DST_UNREACH_REJECTROUTE) {
-                DECODER_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
                 DecodePartialIPV6(p, (uint8_t*) (pkt + ICMPV6_HEADER_LEN),
                                   len - ICMPV6_HEADER_LEN );
@@ -190,7 +190,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             SCLogDebug("ICMP6_PACKET_TOO_BIG");
 
             if (ICMPV6_GET_CODE(p) != 0) {
-                DECODER_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
                 p->icmpv6vars.mtu = ICMPV6_GET_MTU(p);
                 DecodePartialIPV6(p, (uint8_t*) (pkt + ICMPV6_HEADER_LEN),
@@ -202,7 +202,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             SCLogDebug("ICMP6_TIME_EXCEEDED");
 
             if (ICMPV6_GET_CODE(p) > ICMP6_TIME_EXCEED_REASSEMBLY) {
-                DECODER_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
                 DecodePartialIPV6(p, (uint8_t*) (pkt + ICMPV6_HEADER_LEN),
                                   len - ICMPV6_HEADER_LEN );
@@ -213,7 +213,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             SCLogDebug("ICMP6_PARAM_PROB");
 
             if (ICMPV6_GET_CODE(p) > ICMP6_PARAMPROB_OPTION) {
-                DECODER_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
                 p->icmpv6vars.error_ptr= ICMPV6_GET_ERROR_PTR(p);
                 DecodePartialIPV6(p, (uint8_t*) (pkt + ICMPV6_HEADER_LEN),
@@ -226,7 +226,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                        p->icmpv6h->icmpv6b.icmpv6i.id, p->icmpv6h->icmpv6b.icmpv6i.seq);
 
             if (ICMPV6_GET_CODE(p) != 0) {
-                DECODER_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
                 p->icmpv6vars.id = p->icmpv6h->icmpv6b.icmpv6i.id;
                 p->icmpv6vars.seq = p->icmpv6h->icmpv6b.icmpv6i.seq;
@@ -238,7 +238,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                        p->icmpv6h->icmpv6b.icmpv6i.id, p->icmpv6h->icmpv6b.icmpv6i.seq);
 
             if (p->icmpv6h->code != 0) {
-                DECODER_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
+                ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_CODE);
             } else {
                 p->icmpv6vars.id = p->icmpv6h->icmpv6b.icmpv6i.id;
                 p->icmpv6vars.seq = p->icmpv6h->icmpv6b.icmpv6i.seq;
@@ -248,14 +248,14 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         default:
             SCLogDebug("ICMPV6 Message type %" PRIu8 " not "
                        "implemented yet", ICMPV6_GET_TYPE(p));
-            DECODER_SET_EVENT(p, ICMPV6_UNKNOWN_TYPE);
+            ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_TYPE);
     }
 
 
-    if (DECODER_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE))
+    if (ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE))
         SCLogDebug("Unknown Code, ICMPV6_UNKNOWN_CODE");
 
-    if (DECODER_ISSET_EVENT(p, ICMPV6_UNKNOWN_TYPE))
+    if (ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_TYPE))
         SCLogDebug("Unknown Type, ICMPV6_UNKNOWN_TYPE");
 
     /* Flow is an integral part of us */
@@ -774,7 +774,7 @@ static int ICMPV6ParamProbTest02(void)
         goto end;
     }
 
-    if (!DECODER_ISSET_EVENT(p, ICMPV6_IPV6_UNKNOWN_VER)) {
+    if (!ENGINE_ISSET_EVENT(p, ICMPV6_IPV6_UNKNOWN_VER)) {
         SCLogDebug("ICMPv6 Error: Unknown embedded ipv6 version event not set");
         retval = 0;
         goto end;
@@ -829,7 +829,7 @@ static int ICMPV6PktTooBigTest02(void)
         goto end;
     }
 
-    if (!DECODER_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE)) {
+    if (!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE)) {
         SCLogDebug("ICMPv6 Error: Unknown code event not set");
         retval = 0;
         goto end;
@@ -875,7 +875,7 @@ static int ICMPV6TimeExceedTest02(void)
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6), NULL);
     FlowShutdown();
 
-    if (!DECODER_ISSET_EVENT(p, ICMPV6_PKT_TOO_SMALL)) {
+    if (!ENGINE_ISSET_EVENT(p, ICMPV6_PKT_TOO_SMALL)) {
         SCLogDebug("ICMPv6 Error: event packet too small not set");
         retval = 0;
         goto end;
@@ -924,7 +924,7 @@ static int ICMPV6DestUnreachTest02(void)
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6), NULL);
     FlowShutdown();
 
-    if (!DECODER_ISSET_EVENT(p, ICMPV6_IPV6_TRUNC_PKT)) {
+    if (!ENGINE_ISSET_EVENT(p, ICMPV6_IPV6_TRUNC_PKT)) {
         SCLogDebug("ICMPv6 Error: embedded ipv6 truncated packet event not set");
         retval = 0;
         goto end;
@@ -969,7 +969,7 @@ static int ICMPV6EchoReqTest02(void)
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6), NULL);
     FlowShutdown();
 
-    if (!DECODER_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE)) {
+    if (!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE)) {
         SCLogDebug("ICMPv6 Error: Unknown code event not set");
         retval = 0;
         goto end;
@@ -1014,7 +1014,7 @@ static int ICMPV6EchoRepTest02(void)
     DecodeIPV6(&tv, &dtv, p, raw_ipv6, sizeof(raw_ipv6), NULL);
     FlowShutdown();
 
-    if (!DECODER_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE)) {
+    if (!ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE)) {
         SCLogDebug("ICMPv6 Error: Unknown code event not set");
         retval = 0;
         goto end;

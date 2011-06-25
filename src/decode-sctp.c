@@ -35,7 +35,7 @@
 static int DecodeSCTPPacket(ThreadVars *tv, Packet *p, uint8_t *pkt, uint16_t len)
 {
     if (unlikely(len < SCTP_HEADER_LEN)) {
-        DECODER_SET_EVENT(p, SCTP_PKT_TOO_SMALL);
+        ENGINE_SET_EVENT(p, SCTP_PKT_TOO_SMALL);
         return -1;
     }
 
