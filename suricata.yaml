@@ -642,6 +642,8 @@ rule-files:
  - emerging-web_specific_apps.rules
  - emerging-user_agents.rules
  - emerging-current_events.rules
+ - decoder-events.rules #available in suricata sources under rules dir
+ - stream-events.rules #available in suricata sources under rules dir
 
 classification-file: /etc/suricata/classification.config
 reference-config-file: /etc/suricata/reference.config
