@@ -47,6 +47,7 @@ static pcre_extra *parse_regex_study;
 
 int DetectEngineEventMatch (ThreadVars *, DetectEngineThreadCtx *, Packet *, Signature *, SigMatch *);
 static int DetectEngineEventSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectDecodeEventSetup (DetectEngineCtx *, Signature *, char *);
 static int DetectStreamEventSetup (DetectEngineCtx *, Signature *, char *);
 void EngineEventRegisterTests(void);
 
@@ -60,11 +61,10 @@ void DetectEngineEventRegister (void) {
     sigmatch_table[DETECT_ENGINE_EVENT].Setup = DetectEngineEventSetup;
     sigmatch_table[DETECT_ENGINE_EVENT].Free  = NULL;
     sigmatch_table[DETECT_ENGINE_EVENT].RegisterTests = EngineEventRegisterTests;
-    sigmatch_table[DETECT_ENGINE_EVENT].flags |= SIGMATCH_DEONLY_COMPAT;
 
     sigmatch_table[DETECT_DECODE_EVENT].name = "decode-event";
     sigmatch_table[DETECT_DECODE_EVENT].Match = DetectEngineEventMatch;
-    sigmatch_table[DETECT_DECODE_EVENT].Setup = DetectEngineEventSetup;
+    sigmatch_table[DETECT_DECODE_EVENT].Setup = DetectDecodeEventSetup;
     sigmatch_table[DETECT_DECODE_EVENT].Free  = NULL;
     sigmatch_table[DETECT_DECODE_EVENT].flags |= SIGMATCH_DEONLY_COMPAT;
 
@@ -72,8 +72,6 @@ void DetectEngineEventRegister (void) {
     sigmatch_table[DETECT_STREAM_EVENT].Match = DetectEngineEventMatch;
     sigmatch_table[DETECT_STREAM_EVENT].Setup = DetectStreamEventSetup;
     sigmatch_table[DETECT_STREAM_EVENT].Free  = NULL;
-    sigmatch_table[DETECT_STREAM_EVENT].flags |= SIGMATCH_DEONLY_COMPAT;
-
 
     const char *eb;
     int eo;
@@ -190,7 +188,7 @@ error:
  * \retval 0 on Success
  * \retval -1 on Failure
  */
-static int DetectEngineEventSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+static int _DetectEngineEventSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr, int smtype)
 {
     DetectEngineEventData *de = NULL;
     SigMatch *sm = NULL;
@@ -203,7 +201,7 @@ static int DetectEngineEventSetup (DetectEngineCtx *de_ctx, Signature *s, char *
     if (sm == NULL)
         goto error;
 
-    sm->type = DETECT_ENGINE_EVENT;
+    sm->type = smtype;
     sm->ctx = (void *)de;
 
     SigMatchAppendPacket(s, sm);
@@ -216,6 +214,10 @@ error:
 }
 
 
+static int DetectEngineEventSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+{
+    return _DetectEngineEventSetup (de_ctx, s, rawstr, DETECT_ENGINE_EVENT);
+}
 /**
  * \brief this function will free memory associated with DetectEngineEventData
  *
@@ -223,6 +225,16 @@ error:
  */
 void DetectEngineEventFree(DetectEngineEventData *de) {
     if(de) SCFree(de);
+}
+
+
+/**
+ * \brief this function Setup the 'decode-event' keyword by setting the correct
+ * signature type
+*/
+static int DetectDecodeEventSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
+{
+    return _DetectEngineEventSetup(de_ctx, s, rawstr, DETECT_DECODE_EVENT);
 }
 
 /**
@@ -235,7 +247,7 @@ static int DetectStreamEventSetup (DetectEngineCtx *de_ctx, Signature *s, char *
     /* stream:$EVENT alias command develop as decode-event:stream.$EVENT */
     strncat(srawstr, rawstr, 2 * MAX_SUBSTRINGS - strlen("stream.") - 1);
 
-    return DetectEngineEventSetup (de_ctx, s, srawstr);
+    return DetectEngineEventSetup(de_ctx, s, srawstr);
 }
 
 /*
