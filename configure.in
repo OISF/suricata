@@ -1018,6 +1018,35 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
         fi
     fi
 
+#libmagic
+    AC_ARG_WITH(libmagic_includes,
+            [  --with-libmagic-includes=DIR  libmagic include directory],
+            [with_libmagic_includes="$withval"],[with_libmagic_includes=no])
+    AC_ARG_WITH(libmagic_libraries,
+            [  --with-libmagic-libraries=DIR    libmagic library directory],
+            [with_libmagic_libraries="$withval"],[with_libmagic_libraries="no"])
+
+    if test "$with_libmagic_includes" != "no"; then
+        CPPFLAGS="${CPPFLAGS} -I${with_libmagic_includes}"
+    fi
+
+    AC_CHECK_HEADER(magic.h,,[AC_ERROR(magic.h not found ...)])
+
+    if test "$with_libmagic_libraries" != "no"; then
+        LDFLAGS="${LDFLAGS}  -L${with_libmagic_libraries}"
+    fi
+
+    MAGIC=""
+    AC_CHECK_LIB(magic, magic_open,, MAGIC="no")
+
+    if test "$MAGIC" = "no"; then
+        echo
+        echo "   ERROR!  magic library not found, go get it"
+        echo "   from http://www.darwinsys.com/file/."
+        echo
+        exit 1
+    fi
+
 # get revision
     if test -f ./revision; then
         REVISION=`cat ./revision`

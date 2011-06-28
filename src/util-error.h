@@ -223,6 +223,8 @@ typedef enum {
     SC_ERR_NO_AF_PACKET,
     SC_ERR_PCAP_FILE_DELETE_FAILED,
     SC_ERR_CMD_LINE,
+    SC_ERR_MAGIC_OPEN,
+    SC_ERR_MAGIC_LOAD,
 } SCError;
 
 const char *SCErrorToString(SCError);

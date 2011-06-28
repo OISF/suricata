@@ -137,6 +137,7 @@
 #include "util-threshold-config.h"
 #include "util-reference-config.h"
 #include "util-profiling.h"
+#include "util-magic.h"
 
 #include "defrag.h"
 
@@ -1359,6 +1360,8 @@ int main(int argc, char **argv)
         DetectEngineRegisterTests();
         SCLogRegisterTests();
         SMTPParserRegisterTests();
+        MagicRegisterTests();
+
         if (list_unittests) {
             UtListTests(regex_arg);
         }
@@ -1466,6 +1469,9 @@ int main(int argc, char **argv)
     SCRConfLoadReferenceConfigFile(de_ctx);
 
     ActionInitConfig();
+
+    if (MagicInit() != 0)
+        exit(EXIT_FAILURE);
 
     if (SigLoadSignatures(de_ctx, sig_file, sig_file_exclusive) < 0) {
         if (sig_file == NULL) {
@@ -1724,6 +1730,7 @@ int main(int argc, char **argv)
     SCProtoNameDeInit();
     DefragDestroy();
     TmqhPacketpoolDestroy();
+    MagicDeinit();
 
 #ifdef PROFILING
     if (profiling_rules_enabled)
