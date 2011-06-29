@@ -104,6 +104,12 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flo
                 break;
             }
 
+            if (s->file_flags & FILE_SIG_NEED_FILECONTENT && file->chunks_head == NULL) {
+                SCLogDebug("sig needs file content, but we don't have any");
+                r = 0;
+                break;
+            }
+
             /* run the file match functions. */
             for (sm = s->sm_lists[DETECT_SM_LIST_FILEMATCH]; sm != NULL; sm = sm->next) {
                 SCLogDebug("sm %p, sm->next %p", sm, sm->next);

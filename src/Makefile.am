@@ -154,6 +154,7 @@ detect-asn1.c detect-asn1.h \
 detect-filename.c detect-filename.h \
 detect-fileext.c detect-fileext.h \
 detect-filestore.c detect-filestore.h \
+detect-filemagic.c detect-filemagic.h \
 detect-http-stat-code.c detect-http-stat-code.h \
 detect-ssl-version.c detect-ssl-version.h \
 detect-ssl-state.c detect-ssl-state.h \

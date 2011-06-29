@@ -93,6 +93,7 @@
 #include "detect-filename.h"
 #include "detect-fileext.h"
 #include "detect-filestore.h"
+#include "detect-filemagic.h"
 #include "detect-dsize.h"
 #include "detect-flowvar.h"
 #include "detect-flowint.h"
@@ -4333,6 +4334,7 @@ void SigTableSetup(void) {
     DetectFilenameRegister();
     DetectFileextRegister();
     DetectFilestoreRegister();
+    DetectFilemagicRegister();
 
     uint8_t i = 0;
     for (i = 0; i < DETECT_TBLSIZE; i++) {

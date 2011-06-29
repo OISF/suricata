@@ -1042,6 +1042,7 @@ enum {
     DETECT_FILENAME,
     DETECT_FILEEXT,
     DETECT_FILESTORE,
+    DETECT_FILEMAGIC,
 
     /* make sure this stays last */
     DETECT_TBLSIZE,
