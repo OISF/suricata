@@ -65,6 +65,8 @@ static SCPerfCounterArray *rules_pca;
  * Extra data for rule profiling.
  */
 typedef struct SCProfileData_ {
+    uint32_t gid;
+    uint8_t rev;
     uint64_t matches;
     uint64_t max;
     uint64_t ticks_match;
@@ -77,6 +79,8 @@ SCProfileData rules_profile_data[0xffff];
  */
 typedef struct SCProfileSummary_ {
     char *name;
+    uint32_t gid;
+    uint8_t rev;
     uint64_t ticks;
     double avgticks;
     double avgticks_match;
@@ -319,6 +323,8 @@ SCProfilingDump(void)
     memset(summary, 0, summary_size);
     for (i = 1; i < count + 1; i++) {
         summary[i - 1].name = rules_pca->head[i].pc->name->cname;
+        summary[i - 1].rev = rules_profile_data[i].rev;
+        summary[i - 1].gid = rules_profile_data[i].gid;
         summary[i - 1].ticks =  rules_pca->head[i].ui64_cnt;
         if (rules_pca->head[i].ui64_cnt) {
             summary[i - 1].avgticks = (long double)rules_pca->head[i].ui64_cnt /
@@ -383,8 +389,11 @@ SCProfilingDump(void)
             tms->tm_hour,tms->tm_min, tms->tm_sec);
     fprintf(fp, "  ----------------------------------------------"
             "----------------------------\n");
-    fprintf(fp, "  %-12s %-12s %-6s %-8s %-8s %-11s %-11s %-11s %-11s\n", "Rule", "Ticks", "%", "Checks", "Matches", "Max Ticks", "Avg Ticks", "Avg Match", "Avg No Match");
-    fprintf(fp, "  ------------ "
+    fprintf(fp, "   %-8s %-12s %-8s %-8s %-12s %-6s %-8s %-8s %-11s %-11s %-11s %-11s\n", "Num", "Rule", "Gid", "Rev", "Ticks", "%", "Checks", "Matches", "Max Ticks", "Avg Ticks", "Avg Match", "Avg No Match");
+    fprintf(fp, "  -------- "
+        "------------ "
+        "-------- "
+        "-------- "
         "------------ "
         "------ "
         "-------- "
@@ -405,8 +414,11 @@ SCProfilingDump(void)
         double percent = (long double)summary[i].ticks /
             (long double)total_ticks * 100;
         fprintf(fp,
-            "  %-12s %-12"PRIu64" %-6.2f %-8"PRIu64" %-8"PRIu64" %-11"PRIu64" %-11.2f %-11.2f %-11.2f\n",
+            "  %-8"PRIu32" %-12s %-8"PRIu32" %-8"PRIu32" %-12"PRIu64" %-6.2f %-8"PRIu64" %-8"PRIu64" %-11"PRIu64" %-11.2f %-11.2f %-11.2f\n",
+            i + 1,
             summary[i].name,
+            summary[i].gid,
+            summary[i].rev,
             summary[i].ticks,
             percent,
             summary[i].checks,
@@ -458,6 +470,8 @@ SCProfilingInitRuleCounters(DetectEngineCtx *de_ctx)
     uint32_t count = 0;
     while (sig != NULL) {
         sig->profiling_id = SCProfilingRegisterRuleCounter(sig);
+        rules_profile_data[sig->profiling_id].rev = sig->rev;
+        rules_profile_data[sig->profiling_id].gid = sig->gid;
         sig = sig->next;
         count++;
     }
