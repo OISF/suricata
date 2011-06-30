@@ -50,15 +50,6 @@
 
 #include "conf.h"
 
-/**
- * \todo We would need separate SMTPGetLine() for toclient and toserver
- *       direction, for some specific cases where the lines are fragmented.
- *       One can send a fragmented toserver line, and before we see the
- *       remaining chunk of toserver line, we see a toclient reply.
- *       Stray cases, but needed.  Low priority, since we would anyways
- *       set a decoder event for fragmented lines.
- */
-
 #define SMTP_MAX_REQUEST_AND_REPLY_LINE_LENGTH 510
 
 #define SMTP_COMMAND_BUFFER_STEPS 5
@@ -116,90 +107,191 @@
  */
 static int SMTPGetLine(SMTPState *state)
 {
-    if (state->input_len == 0)
+    /* we have run out of input */
+    if (state->input_len <= 0)
         return -1;
 
-    if (state->current_line_lf_seen == 1) {
-        /* we have seen the lf for the previous line.  Clear the parser
-         * details to parse new line */
-        state->current_line_lf_seen = 0;
-        if (state->current_line_buffer_dynamic == 1) {
-            state->current_line_buffer_dynamic = 0;
-            SCFree(state->current_line);
-            state->current_line = NULL;
+    /* toserver */
+    if (state->direction == 0) {
+        if (state->ts_current_line_lf_seen == 1) {
+            /* we have seen the lf for the previous line.  Clear the parser
+             * details to parse new line */
+            state->ts_current_line_lf_seen = 0;
+            if (state->ts_current_line_db == 1) {
+                state->ts_current_line_db = 0;
+                SCFree(state->ts_db);
+                state->ts_db = NULL;
+                state->current_line = NULL;
+            }
         }
+
+        uint8_t *lf_idx = memchr(state->input, 0x0a, state->input_len);
+
+        if (lf_idx == NULL) {
+            /* set decoder event */
+            if (state->ts_current_line_db == 0) {
+                state->ts_current_line_db = 1;
+                state->ts_db = SCMalloc(state->input_len);
+                if (state->ts_db == NULL) {
+                    return -1;
+                }
+                memcpy(state->ts_db, state->input, state->input_len);
+                state->ts_db_len = state->input_len;
+            } else {
+                state->ts_db = SCRealloc(state->ts_db, (state->ts_db_len +
+                                                        state->input_len));
+                if (state->ts_db == NULL) {
+                    return -1;
+                }
+                memcpy(state->ts_db + state->ts_db_len,
+                       state->input, state->input_len);
+                state->ts_db_len += state->input_len;
+            } /* else */
+            state->input += state->input_len;
+            state->input_len = 0;
+
+            return -1;
+        } else {
+            state->ts_current_line_lf_seen = 1;
+
+            /* We have CR-LF as the line delimiter */
+            if (*(lf_idx - 1) == 0x0d) {
+                if (state->ts_current_line_db == 1) {
+                    state->ts_db = SCRealloc(state->ts_db,
+                                             (state->ts_db_len +
+                                              (lf_idx - state->input - 1)));
+                    if (state->ts_db == NULL) {
+                        return -1;
+                    }
+                    memcpy(state->ts_db + state->ts_db_len,
+                           state->input, (lf_idx - state->input - 1));
+                    state->ts_db_len += (lf_idx - state->input - 1);
+
+                    state->current_line = state->ts_db;
+                    state->current_line_len = state->ts_db_len;
+                } else {
+                    state->current_line = state->input;
+                    state->current_line_len = (lf_idx - state->input - 1);
+                }
+
+                /* We have just LF as the line delimiter */
+            } else {
+                if (state->ts_current_line_db == 1) {
+                    state->ts_db = SCRealloc(state->ts_db,
+                                             (state->ts_db_len +
+                                              (lf_idx - state->input)));
+                    if (state->ts_db == NULL) {
+                        return -1;
+                    }
+                    memcpy(state->ts_db + state->ts_db_len,
+                           state->input, (lf_idx - state->input));
+                    state->ts_db_len += (lf_idx - state->input);
+
+                    state->current_line = state->ts_db;
+                    state->current_line_len = state->ts_db_len;
+                } else {
+                    state->current_line = state->input;
+                    state->current_line_len = (lf_idx - state->input);
+                }
+            } /* else */
+
+            state->input_len -= (lf_idx - state->input) + 1;
+            state->input = lf_idx + 1;
+
+            return 0;
+        } /* else - if (lf_idx == NULL) */
+
+        /* toclient */
+    } else {
+        if (state->tc_current_line_lf_seen == 1) {
+            /* we have seen the lf for the previous line.  Clear the parser
+             * details to parse new line */
+            state->tc_current_line_lf_seen = 0;
+            if (state->tc_current_line_db == 1) {
+                state->tc_current_line_db = 0;
+                SCFree(state->tc_db);
+                state->tc_db = NULL;
+                state->current_line = NULL;
+            }
+        }
+
+        uint8_t *lf_idx = memchr(state->input, 0x0a, state->input_len);
+
+        if (lf_idx == NULL) {
+            /* set decoder event */
+            if (state->tc_current_line_db == 0) {
+                state->tc_current_line_db = 1;
+                state->tc_db = SCMalloc(state->input_len);
+                if (state->tc_db == NULL) {
+                    return -1;
+                }
+                memcpy(state->tc_db, state->input, state->input_len);
+                state->tc_db_len = state->input_len;
+            } else {
+                state->tc_db = SCRealloc(state->tc_db, (state->tc_db_len +
+                                                        state->input_len));
+                if (state->tc_db == NULL) {
+                    return -1;
+                }
+                memcpy(state->tc_db + state->tc_db_len,
+                       state->input, state->input_len);
+                state->tc_db_len += state->input_len;
+            } /* else */
+            state->input += state->input_len;
+            state->input_len = 0;
+
+            return -1;
+        } else {
+            state->tc_current_line_lf_seen = 1;
+
+            /* We have CR-LF as the line delimiter */
+            if (*(lf_idx - 1) == 0x0d) {
+                if (state->tc_current_line_db == 1) {
+                    state->tc_db = SCRealloc(state->tc_db,
+                                             (state->tc_db_len +
+                                              (lf_idx - state->input - 1)));
+                    if (state->tc_db == NULL) {
+                        return -1;
+                    }
+                    memcpy(state->tc_db + state->tc_db_len,
+                           state->input, (lf_idx - state->input - 1));
+                    state->tc_db_len += (lf_idx - state->input - 1);
+
+                    state->current_line = state->tc_db;
+                    state->current_line_len = state->tc_db_len;
+                } else {
+                    state->current_line = state->input;
+                    state->current_line_len = (lf_idx - state->input - 1);
+                }
+
+                /* We have just LF as the line delimiter */
+            } else {
+                if (state->tc_current_line_db == 1) {
+                    state->tc_db = SCRealloc(state->tc_db,
+                                             (state->tc_db_len +
+                                              (lf_idx - state->input)));
+                    if (state->tc_db == NULL) {
+                        return -1;
+                    }
+                    memcpy(state->tc_db + state->tc_db_len,
+                           state->input, (lf_idx - state->input));
+                    state->tc_db_len += (lf_idx - state->input);
+
+                    state->current_line = state->tc_db;
+                    state->current_line_len = state->tc_db_len;
+                } else {
+                    state->current_line = state->input;
+                    state->current_line_len = (lf_idx - state->input);
+                }
+            } /* else */
+
+            state->input_len -= (lf_idx - state->input) + 1;
+            state->input = lf_idx + 1;
+
+            return 0;
+        } /* else - if (lf_idx == NULL) */
     }
 
-    uint8_t *lf_idx = memchr(state->input, 0x0a, state->input_len);
-
-    if (lf_idx == NULL) {
-        /* set decoder event */
-        if (state->current_line_buffer_dynamic == 0) {
-            state->current_line_buffer_dynamic = 1;
-            state->current_line = SCMalloc(state->input_len);
-            if (state->current_line == NULL) {
-                return -1;
-            }
-            memcpy(state->current_line, state->input, state->input_len);
-            state->current_line_len = state->input_len;
-        } else {
-            state->current_line = SCRealloc(state->current_line,
-                                            (state->current_line_len +
-                                             state->input_len));
-            if (state->current_line == NULL) {
-                return -1;
-            }
-            memcpy(state->current_line + state->current_line_len,
-                   state->input, state->input_len);
-            state->current_line_len += state->input_len;
-        } /* else */
-        state->input += state->input_len;
-        state->input_len = 0;
-
-        return -1;
-    } else {
-        state->current_line_lf_seen = 1;
-
-        /* We have CR-LF as the line delimiter */
-        if (*(lf_idx - 1) == 0x0d) {
-            if (state->current_line_buffer_dynamic == 1) {
-                state->current_line = SCRealloc(state->current_line,
-                                                (state->current_line_len +
-                                                 (lf_idx - state->input - 1)));
-                if (state->current_line == NULL) {
-                    return -1;
-                }
-                memcpy(state->current_line + state->current_line_len,
-                       state->input, (lf_idx - state->input - 1));
-                state->current_line_len += (lf_idx - state->input - 1);
-            } else {
-                state->current_line = state->input;
-                state->current_line_len = (lf_idx - state->input - 1);
-            }
-
-            /* We have just LF as the line delimiter */
-        } else {
-            if (state->current_line_buffer_dynamic == 1) {
-                state->current_line = SCRealloc(state->current_line,
-                                                  (state->current_line_len +
-                                                   (lf_idx - state->input)));
-                if (state->current_line == NULL) {
-                    return -1;
-                }
-                memcpy(state->current_line + state->current_line_len,
-                       state->input, (lf_idx - state->input));
-                state->current_line_len += (lf_idx - state->input);
-            } else {
-                state->current_line = state->input;
-                state->current_line_len = (lf_idx - state->input);
-            }
-        } /* else */
-
-        state->input_len -= (lf_idx - state->input) + 1;
-        state->input = lf_idx + 1;
-
-        return 0;
-    } /* else - if (lf_idx == NULL) */
 }
 
 static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state)
@@ -381,21 +473,35 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
     }
 }
 
+static int SMTPParse(int direction, Flow *f, SMTPState *state,
+                     AppLayerParserState *pstate, uint8_t *input,
+                     uint32_t input_len, AppLayerParserResult *output)
+{
+    state->input = input;
+    state->input_len = input_len;
+    state->direction = direction;
+
+    while (SMTPGetLine(state) >= 0) {
+        /* toserver */
+        if (direction == 0) {
+            SMTPProcessRequest(state, f, pstate);
+
+            /* toclient */
+        } else {
+            SMTPProcessReply(state, f, pstate);
+        }
+    }
+
+    return 0;
+}
+
 static int SMTPParseClientRecord(Flow *f, void *alstate,
                                  AppLayerParserState *pstate,
                                  uint8_t *input, uint32_t input_len,
                                  AppLayerParserResult *output)
 {
-    SMTPState *state = (SMTPState *)alstate;
-
-    state->input = input;
-    state->input_len = input_len;
-
-    while (SMTPGetLine(state) >= 0) {
-        SMTPProcessRequest(state, f, pstate);
-    }
-
-    return 0;
+    /* first arg 0 is toserver */
+    return SMTPParse(0, f, alstate, pstate, input, input_len, output);
 }
 
 static int SMTPParseServerRecord(Flow *f, void *alstate,
@@ -403,14 +509,8 @@ static int SMTPParseServerRecord(Flow *f, void *alstate,
                                  uint8_t *input, uint32_t input_len,
                                  AppLayerParserResult *output)
 {
-    SMTPState *state = (SMTPState *)alstate;
-
-    state->input = input;
-    state->input_len = input_len;
-
-    while (SMTPGetLine(state) >= 0) {
-        SMTPProcessReply(state, f, pstate);
-    }
+    /* first arg 1 is toclient */
+    return SMTPParse(1, f, alstate, pstate, input, input_len, output);
 
     return 0;
 }
@@ -447,6 +547,12 @@ static void SMTPStateFree(void *p)
 
     if (smtp_state->cmds != NULL) {
         SCFree(smtp_state->cmds);
+    }
+    if (smtp_state->ts_current_line_db) {
+        SCFree(smtp_state->ts_db);
+    }
+    if (smtp_state->tc_current_line_db) {
+        SCFree(smtp_state->tc_db);
     }
 
     SCFree(smtp_state);
@@ -567,7 +673,6 @@ int SMTPParserTest01(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
@@ -583,7 +688,6 @@ int SMTPParserTest01(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
@@ -599,7 +703,6 @@ int SMTPParserTest01(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
@@ -614,7 +717,6 @@ int SMTPParserTest01(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_STARTTLS ||
@@ -630,7 +732,6 @@ int SMTPParserTest01(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
@@ -914,7 +1015,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
@@ -930,7 +1030,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
@@ -946,7 +1045,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
@@ -961,7 +1059,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
@@ -977,7 +1074,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
@@ -992,7 +1088,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
@@ -1008,7 +1103,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
@@ -1023,7 +1117,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_DATA ||
@@ -1039,7 +1132,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
@@ -1055,7 +1147,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
@@ -1072,7 +1163,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
@@ -1089,7 +1179,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
@@ -1106,7 +1195,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
@@ -1123,7 +1211,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_DATA_MODE ||
@@ -1139,7 +1226,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
@@ -1154,7 +1240,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
@@ -1170,7 +1255,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
@@ -1185,7 +1269,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
@@ -1201,7 +1284,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
@@ -1216,7 +1298,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_DATA ||
@@ -1232,7 +1313,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
@@ -1248,7 +1328,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
@@ -1265,7 +1344,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
@@ -1282,7 +1360,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
@@ -1299,7 +1376,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
@@ -1316,7 +1392,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_DATA_MODE ||
@@ -1332,7 +1407,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
@@ -1347,7 +1421,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
@@ -1363,7 +1436,6 @@ int SMTPParserTest02(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
@@ -1489,7 +1561,6 @@ int SMTPParserTest03(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
@@ -1505,7 +1576,6 @@ int SMTPParserTest03(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
@@ -1521,7 +1591,6 @@ int SMTPParserTest03(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
@@ -1536,7 +1605,6 @@ int SMTPParserTest03(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 3 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
@@ -1554,7 +1622,6 @@ int SMTPParserTest03(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
@@ -1625,7 +1692,6 @@ int SMTPParserTest04(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
@@ -1641,7 +1707,6 @@ int SMTPParserTest04(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
@@ -1767,7 +1832,6 @@ int SMTPParserTest05(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
@@ -1783,7 +1847,6 @@ int SMTPParserTest05(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
@@ -1799,7 +1862,6 @@ int SMTPParserTest05(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
@@ -1814,7 +1876,6 @@ int SMTPParserTest05(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_STARTTLS ||
@@ -1830,7 +1891,6 @@ int SMTPParserTest05(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
@@ -1852,7 +1912,6 @@ int SMTPParserTest05(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 1 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
@@ -1868,7 +1927,6 @@ int SMTPParserTest05(void)
         goto end;
     }
     if (smtp_state->input_len != 0 ||
-        smtp_state->current_line_lf_seen != 1 ||
         smtp_state->cmds_cnt != 0 ||
         smtp_state->cmds_idx != 0 ||
         smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {

@@ -27,18 +27,31 @@
 typedef struct SMTPState_ {
     /* current input that is being parsed */
     uint8_t *input;
-    uint32_t input_len;
+    int32_t input_len;
+    uint8_t direction;
 
     /* --parser details-- */
     /* current line extracted by the parser from the call to SMTPGetline() */
     uint8_t *current_line;
     /* length of the line in current_line.  Doesn't include the delimiter */
-    uint32_t current_line_len;
+    int32_t current_line_len;
+
     /* used to indicate if the current_line buffer is a malloced buffer.  We
      * use a malloced buffer, if a line is fragmented */
-    uint8_t current_line_buffer_dynamic;
+    uint8_t *tc_db;
+    int32_t tc_db_len;
+    uint8_t tc_current_line_db;
     /* we have see LF for the currently parsed line */
-    uint8_t current_line_lf_seen;
+    uint8_t tc_current_line_lf_seen;
+
+    /* used to indicate if the current_line buffer is a malloced buffer.  We
+     * use a malloced buffer, if a line is fragmented */
+    uint8_t *ts_db;
+    int32_t ts_db_len;
+    uint8_t ts_current_line_db;
+    /* we have see LF for the currently parsed line */
+    uint8_t ts_current_line_lf_seen;
+
     /* var to indicate parser state */
     uint8_t parser_state;
     /* current command in progress */
@@ -55,8 +68,6 @@ typedef struct SMTPState_ {
     /* index of the command in the buffer, currently in inspection by reply
      * handler */
     uint8_t cmds_idx;
-    /* padding - you can replace this if you want to. */
-    uint8_t pad;
 } SMTPState;
 
 void RegisterSMTPParsers(void);
