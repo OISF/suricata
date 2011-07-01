@@ -535,13 +535,11 @@ void HtpBodyAppendChunk(HtpBody *body, uint8_t *data, uint32_t len)
         /* New chunk */
         bd = (HtpBodyChunk *)SCMalloc(sizeof(HtpBodyChunk));
         if (bd == NULL)
-            return;
+            goto error;
 
         bd->len = len;
         bd->data = SCMalloc(len);
         if (bd->data == NULL) {
-            SCFree(bd);
-
             SCLogError(SC_ERR_MEM_ALLOC, "malloc failed: %s", strerror(errno));
             goto error;
         }
@@ -570,13 +568,11 @@ void HtpBodyAppendChunk(HtpBody *body, uint8_t *data, uint32_t len)
         } else {
             bd = (HtpBodyChunk *)SCMalloc(sizeof(HtpBodyChunk));
             if (bd == NULL)
-                return;
+                goto error;
 
             bd->len = len;
             bd->data = SCMalloc(len);
             if (bd->data == NULL) {
-                SCFree(bd);
-
                 SCLogError(SC_ERR_MEM_ALLOC, "malloc failed: %s", strerror(errno));
                 goto error;
             }
@@ -599,7 +595,7 @@ error:
         if (bd->data != NULL) {
             SCFree(bd->data);
         }
-        SCFree(bd->data);
+        SCFree(bd);
     }
     SCReturn;
 }
