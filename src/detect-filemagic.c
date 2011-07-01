@@ -273,7 +273,7 @@ static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, char *st
 
     s->alproto = ALPROTO_HTTP;
 
-    s->file_flags |= (FILE_SIG_NEED_FILE|FILE_SIG_NEED_FILECONTENT);
+    s->file_flags |= (FILE_SIG_NEED_FILE|FILE_SIG_NEED_MAGIC);
     return 0;
 
 error:

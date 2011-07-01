@@ -1591,6 +1591,33 @@ int SigGroupHeadBuildMatchArray(DetectEngineCtx *de_ctx, SigGroupHead *sgh,
  *  \param de_ctx detection engine ctx for the signatures
  *  \param sgh sig group head to set the counter in
  */
+void SigGroupHeadSetFilemagicFlag(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
+    Signature *s = NULL;
+    uint32_t sig = 0;
+
+    if (sgh == NULL)
+        return;
+
+    for (sig = 0; sig < sgh->sig_cnt; sig++) {
+        s = sgh->match_array[sig];
+        if (s == NULL)
+            continue;
+
+        if (SignatureIsFilemagicInspecting(s)) {
+            sgh->flags |= SIG_GROUP_HEAD_HAVEFILEMAGIC;
+            break;
+        }
+    }
+
+    return;
+}
+
+/**
+ *  \brief Set the filestore_cnt in the sgh.
+ *
+ *  \param de_ctx detection engine ctx for the signatures
+ *  \param sgh sig group head to set the counter in
+ */
 void SigGroupHeadSetFilestoreCount(DetectEngineCtx *de_ctx, SigGroupHead *sgh) {
     Signature *s = NULL;
     uint32_t sig = 0;

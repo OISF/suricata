@@ -1778,10 +1778,12 @@ end:
             /* if we know both sides of the flow have had their sgh check
              * and both are null, we will never decide to store. So disable
              * storage completely. */
-            if (p->flow->flags & FLOW_SGH_TOCLIENT &&
-                p->flow->flags & FLOW_SGH_TOSERVER &&
-                (p->flow->sgh_toserver == NULL || p->flow->sgh_toserver->filestore_cnt == 0) &&
-                (p->flow->sgh_toclient == NULL || p->flow->sgh_toclient->filestore_cnt == 0))
+            if (p->flow->flags & FLOW_SGH_TOCLIENT && p->flow->flags & FLOW_SGH_TOSERVER &&
+                    (p->flow->sgh_toserver == NULL ||
+                     p->flow->sgh_toserver->filestore_cnt == 0)
+                    &&
+                    (p->flow->sgh_toclient == NULL ||
+                     p->flow->sgh_toclient->filestore_cnt == 0))
             {
                 FlowFileDisableStoring(p->flow);
             }
@@ -1915,6 +1917,24 @@ int SignatureIsFilestoring(Signature *s) {
         return 0;
 
     if (s->init_flags & SIG_FLAG_FILESTORE)
+        return 1;
+
+    return 0;
+}
+
+/**
+ *  \brief Check if a signature contains the filemagic keyword.
+ *
+ *  \param s signature
+ *
+ *  \retval 0 no
+ *  \retval 1 yes
+ */
+int SignatureIsFilemagicInspecting(Signature *s) {
+    if (s == NULL)
+        return 0;
+
+    if (s->file_flags & FILE_SIG_NEED_MAGIC)
         return 1;
 
     return 0;
@@ -3765,6 +3785,7 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx) {
             continue;
 
         SigGroupHeadBuildHeadArray(de_ctx, sgh);
+        SigGroupHeadSetFilemagicFlag(de_ctx, sgh);
         SigGroupHeadSetFilestoreCount(de_ctx, sgh);
         SCLogInfo("filestore count %u", sgh->filestore_cnt);
     }

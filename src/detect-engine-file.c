@@ -104,6 +104,12 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flo
                 break;
             }
 
+            if (s->file_flags & FILE_SIG_NEED_MAGIC && file->chunks_head == NULL) {
+                SCLogDebug("sig needs file content, but we don't have any");
+                r = 0;
+                break;
+            }
+
             if (s->file_flags & FILE_SIG_NEED_FILECONTENT && file->chunks_head == NULL) {
                 SCLogDebug("sig needs file content, but we don't have any");
                 r = 0;

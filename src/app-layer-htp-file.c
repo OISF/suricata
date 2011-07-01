@@ -81,13 +81,10 @@ int HTPFileOpen(Flow *f, uint8_t *filename, uint16_t filename_len,
 {
     int retval = 0;
     uint16_t txid;
+    uint8_t flags = 0;
 
     if (f == NULL) {
         SCReturnInt(-1);
-    }
-
-    if (f->flags & FLOW_FILE_NO_HANDLING) {
-        SCReturnInt(-2);
     }
 
     txid = AppLayerTransactionGetAvailId(f) - 1;
@@ -102,8 +99,12 @@ int HTPFileOpen(Flow *f, uint8_t *filename, uint16_t filename_len,
             }
         }
 
+        if (f->flags & FLOW_FILE_NO_HANDLING) {
+            flags |= FLOW_FILE_NOSTORE;
+        }
+
         if (FlowFileOpenFile(f->files, filename, filename_len,
-                    data, data_len) == NULL)
+                    data, data_len, flags) == NULL)
         {
             retval = -1;
         }
@@ -135,10 +136,6 @@ int HTPFileStoreChunk(Flow *f, uint8_t *data, uint32_t data_len) {
 
     if (f == NULL) {
         SCReturnInt(-1);
-    }
-
-    if (f->flags & FLOW_FILE_NO_HANDLING) {
-        SCReturnInt(-2);
     }
 
     SCMutexLock(&f->files_m);

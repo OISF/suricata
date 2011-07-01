@@ -36,6 +36,37 @@
 /* prototypes */
 static void FlowFileFree(FlowFile *);
 
+int FlowFileMagicSize(void) {
+    return 512;
+}
+
+/**
+ *  \brief check if we have stored enough
+ *
+ *  \param ff file
+ *
+ *  \retval 0 limit not reached yet
+ *  \retval 1 limit reached
+ */
+static int FlowFileStoreNoStoreCheck(FlowFile *ff) {
+    SCEnter();
+
+    if (ff == NULL) {
+        SCReturnInt(0);
+    }
+
+
+    if (ff->store == -1) {
+        if (ff->state == FLOWFILE_STATE_OPENED &&
+                ff->size >= (uint64_t)FlowFileMagicSize())
+        {
+            SCReturnInt(1);
+        }
+    }
+
+    SCReturnInt(0);
+}
+
 /**
  *  \brief allocate a FlowFileContainer
  *
@@ -153,6 +184,9 @@ static int FlowFileAppendFlowFileDataFilePtr(FlowFile *ff, FlowFileData *ffd) {
         ff->chunks_tail = ffd;
     }
 
+    ff->size += ffd->len;
+    SCLogDebug("file size %"PRIu64, ff->size);
+
     SCReturnInt(0);
 }
 
@@ -230,13 +264,14 @@ void FlowFileContainerAdd(FlowFileContainer *ffc, FlowFile *ff) {
  *  \param name_len filename len
  *  \param data initial data
  *  \param data_len initial data len
+ *  \param flags open flags
  *
  *  \retval ff flowfile object
  *
  *  \note filename is not a string, so it's not nul terminated.
  */
 FlowFile *FlowFileOpenFile(FlowFileContainer *ffc, uint8_t *name,
-        uint16_t name_len, uint8_t *data, uint32_t data_len)
+        uint16_t name_len, uint8_t *data, uint32_t data_len, uint8_t flags)
 {
     SCEnter();
 
@@ -245,6 +280,10 @@ FlowFile *FlowFileOpenFile(FlowFileContainer *ffc, uint8_t *name,
     FlowFile *ff = FlowFileAlloc(name, name_len);
     if (ff == NULL) {
         SCReturnPtr(NULL, "FlowFile");
+    }
+
+    if (flags & FLOW_FILE_NOSTORE) {
+        ff->store = -1;
     }
 
     ff->state = FLOWFILE_STATE_OPENED;
@@ -370,6 +409,12 @@ int FlowFileAppendData(FlowFileContainer *ffc, uint8_t *data, uint32_t data_len)
         SCReturnInt(-1);
     }
 
+    if (FlowFileStoreNoStoreCheck(ffc->tail) == 1) {
+        ffc->tail->state = FLOWFILE_STATE_CLOSED;
+        SCLogDebug("flowfile state transitioned to FLOWFILE_STATE_CLOSED");
+        SCReturnInt(-2);
+    }
+
     SCLogDebug("appending %"PRIu32" bytes", data_len);
 
     FlowFileData *ffd = FlowFileDataAlloc(data, data_len);
@@ -424,13 +469,37 @@ void FlowFileDisableStoring(Flow *f) {
     if (f->files != NULL) {
         for (ptr = f->files->head; ptr != NULL; ptr = ptr->next) {
             if (ptr->state == FLOWFILE_STATE_OPENED) {
-                ptr->state = FLOWFILE_STATE_CLOSED;
-                SCLogDebug("flowfile state transitioned to FLOWFILE_STATE_CLOSED");
+
+                if (ptr->store == 0) {
+                    ptr->store = -1;
+                }
+//                ptr->state = FLOWFILE_STATE_CLOSED;
+//                SCLogDebug("flowfile state transitioned to FLOWFILE_STATE_CLOSED");
             }
         }
     }
     SCMutexUnlock(&f->files_m);
     SCReturn;
+}
+
+/**
+ *  \brief set no store flag, close file if needed
+ *
+ *  \param ff file
+ */
+static void FlowFileDisableStoringForFile(FlowFile *ff) {
+    SCEnter();
+
+    if (ff == NULL) {
+        SCReturn;
+    }
+
+    ff->store = -1;
+
+    if (ff->state == FLOWFILE_STATE_OPENED && ff->size >= (uint64_t)FlowFileMagicSize()) {
+        (void)FlowFileCloseFilePtr(ff, NULL, 0,
+                (FLOW_FILE_TRUNCATED|FLOW_FILE_NOSTORE));
+    }
 }
 
 /**
@@ -452,8 +521,7 @@ void FlowFileDisableStoringForTransaction(struct Flow_ *f, uint16_t tx_id) {
                     /* weird, already storing -- let it continue*/
                     SCLogDebug("file is already being stored");
                 } else {
-                    (void)FlowFileCloseFilePtr(ptr, NULL, 0,
-                            (FLOW_FILE_TRUNCATED|FLOW_FILE_NOSTORE));
+                    FlowFileDisableStoringForFile(ptr);
                 }
             }
         }

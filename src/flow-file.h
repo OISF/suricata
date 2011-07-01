@@ -58,6 +58,7 @@ typedef struct FlowFile_ {
     uint16_t name_len;
     int16_t state;
     int fd;                         /**< file discriptor for storing files */
+    uint64_t size;                  /**< size tracked so far */
     const char *magic;
     FlowFileData *chunks_head;
     FlowFileData *chunks_tail;
@@ -84,13 +85,14 @@ void FlowFileContainerAdd(FlowFileContainer *, FlowFile *);
  *  \param name_len filename len
  *  \param data initial data
  *  \param data_len initial data len
+ *  \param flags open flags
  *
  *  \retval ff flowfile object
  *
  *  \note filename is not a string, so it's not nul terminated.
  */
 FlowFile *FlowFileOpenFile(FlowFileContainer *, uint8_t *name, uint16_t name_len,
-        uint8_t *data, uint32_t data_len);
+        uint8_t *data, uint32_t data_len, uint8_t flags);
 /**
  *  \brief Close a FlowFile
  *
