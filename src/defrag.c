@@ -503,6 +503,14 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
     Packet *p)
 {
     Packet *rp = NULL;
+    int old = 0;
+    int fragmentable_offset = 0;
+    int fragmentable_len = 0;
+    int hlen = 0;
+    int ip_hdr_offset = 0;
+    Frag *frag;
+    int len = 0;
+    int pkt_end = 0;
 
     /* Should not be here unless we have seen the last fragment. */
     if (!tracker->seen_last)
@@ -510,8 +518,6 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
 
     /* Check that we have all the data. Relies on the fact that
      * fragments are inserted if frag_offset order. */
-    Frag *frag;
-    int len = 0;
     TAILQ_FOREACH(frag, &tracker->frags, next) {
         if (frag->skip)
             continue;
@@ -534,10 +540,6 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
         }
     }
 
-    int fragmentable_offset = 0;
-    int fragmentable_len = 0;
-    int hlen = 0;
-    int ip_hdr_offset = 0;
     TAILQ_FOREACH(frag, &tracker->frags, next) {
         if (frag->skip)
             continue;
@@ -569,7 +571,7 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
             fragmentable_len = frag->data_len;
         }
         else {
-            int pkt_end = fragmentable_offset + frag->offset + frag->data_len;
+            pkt_end = fragmentable_offset + frag->offset + frag->data_len;
             if (pkt_end > (int)sizeof(rp->pkt)) {
                 SCLogWarning(SC_ERR_REASSEMBLY, "Failed re-assemble fragmented packet, exceeds size of packet buffer.");
                 goto remove_tracker;
@@ -586,7 +588,7 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
         goto done;
 
     rp->ip4h = (IPV4Hdr *)(rp->pkt + ip_hdr_offset);
-    int old = rp->ip4h->ip_len + rp->ip4h->ip_off;
+    old = rp->ip4h->ip_len + rp->ip4h->ip_off;
     rp->ip4h->ip_len = htons(fragmentable_len + hlen);
     rp->ip4h->ip_off = 0;
     rp->ip4h->ip_csum = FixChecksum(rp->ip4h->ip_csum,
@@ -617,6 +619,12 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
     Packet *p)
 {
     Packet *rp = NULL;
+    Frag *frag;
+    int len = 0;
+    int fragmentable_offset = 0;
+    int fragmentable_len = 0;
+    int ip_hdr_offset = 0;
+    uint8_t next_hdr = 0;
 
     /* Should not be here unless we have seen the last fragment. */
     if (!tracker->seen_last)
@@ -624,8 +632,6 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
 
     /* Check that we have all the data. Relies on the fact that
      * fragments are inserted if frag_offset order. */
-    Frag *frag;
-    int len = 0;
     TAILQ_FOREACH(frag, &tracker->frags, next) {
         if (frag->skip)
             continue;
@@ -658,10 +664,6 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
         goto remove_tracker;
     }
 
-    int fragmentable_offset = 0;
-    int fragmentable_len = 0;
-    int ip_hdr_offset = 0;
-    uint8_t next_hdr = 0;
     TAILQ_FOREACH(frag, &tracker->frags, next) {
         if (frag->skip)
             continue;
@@ -724,6 +726,8 @@ static Packet *
 DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
     DefragTracker *tracker, Packet *p)
 {
+    Frag *new = NULL;
+
     Packet *r = NULL;
     int ltrim = 0;
 
@@ -889,7 +893,7 @@ insert:
 
     /* Allocate fragment and insert. */
     SCMutexLock(&dc->frag_pool_lock);
-    Frag *new = PoolGet(dc->frag_pool);
+    new = PoolGet(dc->frag_pool);
     SCMutexUnlock(&dc->frag_pool_lock);
     if (new == NULL) {
         goto done;
@@ -973,7 +977,7 @@ DefragTimeoutTracker(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
 
         if (timercmp(&tracker->timeout, &now, <)) {
             /* Tracker has timeout out. */
-            HashListTableRemove(dc->frag_table, tracker, sizeof(tracker));
+            HashListTableRemove(dc->frag_table, tracker, sizeof(*tracker));
             DefragTrackerReset(tracker);
             PoolReturn(dc->tracker_pool, tracker);
             if (tv != NULL && dtv != NULL) {
