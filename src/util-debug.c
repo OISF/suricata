@@ -895,8 +895,6 @@ static inline void SCLogSetOPIface(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
 
                 op_ifaces_ctx = SCLogInitSyslogOPIface(SCMapEnumNameToValue(s, sc_syslog_facility_map), NULL, -1);
                 break;
-            default:
-                break;
         }
         sc_lc->op_ifaces = op_ifaces_ctx;
         sc_lc->op_ifaces_cnt++;
