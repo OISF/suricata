@@ -116,7 +116,6 @@ void TmThreadsUnsetFlag(ThreadVars *tv, uint8_t flag) {
 void *TmThreadsSlot1NoIn(void *td) {
     ThreadVars *tv = (ThreadVars *)td;
     Tm1Slot *s = (Tm1Slot *)tv->tm_slots;
-    Packet *p = NULL;
     char run = 1;
     TmEcode r = TM_ECODE_OK;
 
@@ -146,13 +145,11 @@ void *TmThreadsSlot1NoIn(void *td) {
     while(run) {
         TmThreadTestThreadUnPaused(tv);
 
-        r = s->s.SlotFunc(tv, p, s->s.slot_data, &s->s.slot_pre_pq, &s->s.slot_post_pq);
+        r = s->s.SlotFunc(tv, NULL, s->s.slot_data, &s->s.slot_pre_pq, &s->s.slot_post_pq);
         /* handle error */
         if (r == TM_ECODE_FAILED) {
             TmqhReleasePacketsToPacketPool(&s->s.slot_pre_pq);
             TmqhReleasePacketsToPacketPool(&s->s.slot_post_pq);
-            if (p != NULL)
-                TmqhOutputPacketpool(tv, p);
             TmThreadsSetFlag(tv, THV_FAILED);
             break;
         }
@@ -164,9 +161,6 @@ void *TmThreadsSlot1NoIn(void *td) {
                 tv->tmqh_out(tv, extra_p);
             }
         }
-
-        if (p != NULL)
-            tv->tmqh_out(tv, p);
 
         /* handle post queue */
         while (s->s.slot_post_pq.top != NULL) {
