@@ -345,8 +345,10 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
     ntv->tv = tv;
 
     ntv->data = SCMalloc(70000);
-    if (ntv->data == NULL)
+    if (ntv->data == NULL) {
+        SCMutexUnlock(&nfq_init_lock);
         return TM_ECODE_FAILED;
+    }
     ntv->datalen = 70000;
 
     /* Extract the queue number from the specified command line argument */
