@@ -491,6 +491,10 @@ int RunModeIdsPcap2(DetectEngineCtx *de_ctx, char *iface) {
 
     ThreadVars *tv_outputs1 = TmThreadCreatePacketHandler("Outputs1",
         "alert-queue1", "simple", "packetpool", "packetpool", "varslot");
+    if (tv_outputs1 == NULL) {
+        printf("ERROR: TmThreadCreatePacketHandler for Outputs failed\n");
+        exit(EXIT_FAILURE);
+    }
     SetupOutputs(tv_outputs1);
     if (TmThreadSpawn(tv_outputs1) != TM_ECODE_OK) {
         printf("ERROR: TmThreadSpawn failed\n");
