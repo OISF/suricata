@@ -157,8 +157,8 @@ int DetectTagFlowAdd(Packet *p, DetectTagDataEntry *tde) {
         SCLogDebug("Max tags for sessions reached (%"PRIu16")", num_tags);
     }
 
-    SCMutexUnlock(&p->flow->m);
 end:
+    SCMutexUnlock(&p->flow->m);
     return updated;
 }
 
