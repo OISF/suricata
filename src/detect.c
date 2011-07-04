@@ -1705,9 +1705,9 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddress *srchead,
             tmplist = newtmp;
         } else {
             /* look for the place to insert */
-            for ( ; tmpgr != NULL&&!insert; tmpgr = tmpgr->next) {
+            for ( ; tmpgr != NULL && !insert; tmpgr = tmpgr->next) {
                 if (CompareFunc(gr, tmpgr)) {
-                    if (tmpgr == tmplist) {
+                    if (prevtmpgr == NULL) {
                         newtmp->next = tmplist;
                         tmplist = newtmp;
                     } else {
@@ -1871,9 +1871,9 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, Dete
             tmplist = newtmp;
         } else {
             /* look for the place to insert */
-            for ( ; tmpgr != NULL&&!insert; tmpgr = tmpgr->next) {
+            for ( ; tmpgr != NULL && !insert; tmpgr = tmpgr->next) {
                 if (CompareFunc(gr, tmpgr)) {
-                    if (tmpgr == tmplist) {
+                    if (prevtmpgr == NULL) {
                         newtmp->next = tmplist;
                         tmplist = newtmp;
                     } else {
