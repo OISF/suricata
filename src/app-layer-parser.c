@@ -784,6 +784,10 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
     uint16_t parser_idx = 0;
     AppLayerProto *p = &al_proto_table[proto];
     TcpSession *ssn = NULL;
+    void *app_layer_state = NULL;
+    int r = 0;
+    AppLayerParserStateStore *parser_state_store = NULL;
+    AppLayerParserState *parser_state = NULL;
 
     /* Used only if it's TCP */
     ssn = f->protoctx;
@@ -795,8 +799,6 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
     }
 
     /* Get the parser state (if any) */
-    AppLayerParserStateStore *parser_state_store = NULL;
-
     if (f->aldata != NULL) {
         parser_state_store = (AppLayerParserStateStore *)
                                                     f->aldata[app_layer_sid];
@@ -816,7 +818,6 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
         SCReturnInt(-1);
     }
 
-    AppLayerParserState *parser_state = NULL;
     if (flags & FLOW_AL_STREAM_TOSERVER) {
         SCLogDebug("to_server msg (flow %p)", f);
 
@@ -854,7 +855,6 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
         parser_state->flags |= APP_LAYER_PARSER_EOF;
 
     /* See if we already have a 'app layer' state */
-    void *app_layer_state = NULL;
     app_layer_state = f->aldata[p->storage_id];
 
     if (app_layer_state == NULL) {
@@ -875,7 +875,7 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
 
     /* invoke the recursive parser, but only on data. We may get empty msgs on EOF */
     if (input_len > 0) {
-        int r = AppLayerDoParse(f, app_layer_state, parser_state, input, input_len,
+        r = AppLayerDoParse(f, app_layer_state, parser_state, input, input_len,
                 parser_idx, proto);
         if (r < 0)
             goto error;
@@ -999,6 +999,9 @@ error:
 
 /** \brief get the highest loggable transaction id */
 int AppLayerTransactionGetLoggableId(Flow *f) {
+    int id = 0;
+    AppLayerParserStateStore *parser_state_store = NULL;
+
     SCEnter();
 
     /* Get the parser state (if any) */
@@ -1007,15 +1010,11 @@ int AppLayerTransactionGetLoggableId(Flow *f) {
         goto error;
     }
 
-    AppLayerParserStateStore *parser_state_store =
-        (AppLayerParserStateStore *)f->aldata[app_layer_sid];
-
+    parser_state_store = (AppLayerParserStateStore *)f->aldata[app_layer_sid];
     if (parser_state_store == NULL) {
         SCLogDebug("no state store");
         goto error;
     }
-
-    int id = 0;
 
     if (parser_state_store->id_flags & APP_LAYER_TRANSACTION_EOF) {
         SCLogDebug("eof, return current transaction as well");
@@ -1032,6 +1031,8 @@ error:
 
 /** \brief get the highest loggable transaction id */
 void AppLayerTransactionUpdateLoggedId(Flow *f) {
+    AppLayerParserStateStore *parser_state_store = NULL;
+
     SCEnter();
 
     /* Get the parser state (if any) */
@@ -1040,9 +1041,7 @@ void AppLayerTransactionUpdateLoggedId(Flow *f) {
         goto error;
     }
 
-    AppLayerParserStateStore *parser_state_store =
-        (AppLayerParserStateStore *)f->aldata[app_layer_sid];
-
+    parser_state_store = (AppLayerParserStateStore *)f->aldata[app_layer_sid];
     if (parser_state_store == NULL) {
         SCLogDebug("no state store");
         goto error;
@@ -1056,6 +1055,8 @@ error:
 }
 /** \brief get the highest loggable transaction id */
 int AppLayerTransactionGetLoggedId(Flow *f) {
+    AppLayerParserStateStore *parser_state_store = NULL;
+
     SCEnter();
 
     /* Get the parser state (if any) */
@@ -1064,9 +1065,7 @@ int AppLayerTransactionGetLoggedId(Flow *f) {
         goto error;
     }
 
-    AppLayerParserStateStore *parser_state_store =
-        (AppLayerParserStateStore *)f->aldata[app_layer_sid];
-
+    parser_state_store = (AppLayerParserStateStore *)f->aldata[app_layer_sid];
     if (parser_state_store == NULL) {
         SCLogDebug("no state store");
         goto error;
@@ -1088,13 +1087,12 @@ error:
  */
 int AppLayerTransactionUpdateInspectId(Flow *f, char direction)
 {
-    SCEnter();
-
     int r = 0;
-
-    /* Get the parser state (if any) */
     AppLayerParserStateStore *parser_state_store = NULL;
 
+    SCEnter();
+
+    /* Get the parser state (if any) */
     if (f->aldata != NULL) {
         parser_state_store = (AppLayerParserStateStore *)f->aldata[app_layer_sid];
         if (parser_state_store != NULL) {

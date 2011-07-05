@@ -94,6 +94,12 @@ int DetectHttpClientBodyMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     int result = 0;
     DetectHttpClientBodyData *hcbd = (DetectHttpClientBodyData *)m->ctx;
     HtpState *htp_state = (HtpState *)state;
+    htp_tx_t *tx = NULL;
+    size_t idx = 0;
+    SCHtpTxUserData *htud = NULL;
+    HtpBodyChunk *cur = NULL;
+    uint8_t *chunks_buffer = NULL;
+    uint32_t total_chunks_len = 0;
 
     SCMutexLock(&f->m);
 
@@ -102,9 +108,6 @@ int DetectHttpClientBodyMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         goto end;
     }
 
-    htp_tx_t *tx = NULL;
-    size_t idx = 0;
-
     for (idx = 0;//hs->new_in_tx_index;
          idx < list_size(htp_state->connp->conn->transactions); idx++)
     {
@@ -112,11 +115,11 @@ int DetectHttpClientBodyMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         if (tx == NULL)
             continue;
 
-        SCHtpTxUserData *htud = (SCHtpTxUserData *) htp_tx_get_user_data(tx);
+        htud = (SCHtpTxUserData *) htp_tx_get_user_data(tx);
         if (htud == NULL)
             continue;
 
-        HtpBodyChunk *cur = htud->body.first;
+        cur = htud->body.first;
 
         if (htud->body.nchunks == 0) {
             SCLogDebug("No http chunks to inspect");
@@ -138,8 +141,6 @@ int DetectHttpClientBodyMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
              * the previous chunk that was matched, and continue right from where
              * we left off.  We need to devise a scheme to do that, not just for
              * this keyword, but other keywords need it as well */
-            uint8_t *chunks_buffer = NULL;
-            uint32_t total_chunks_len = 0;
             /* club all the chunks into one whole buffer and call the SPM on the buffer */
             while (cur != NULL) {
                 total_chunks_len += cur->len;
@@ -161,6 +162,8 @@ int DetectHttpClientBodyMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                                            hcbd->bm_ctx->bmBc) != NULL);
             }
             SCFree(chunks_buffer);
+            chunks_buffer = NULL;
+            total_chunks_len = 0;
         }
     }
 

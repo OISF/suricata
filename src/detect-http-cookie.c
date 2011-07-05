@@ -97,13 +97,17 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
     int ret = 0;
     size_t idx;
+    htp_tx_t *tx = NULL;
+    htp_header_t *h = NULL;
+    DetectHttpCookieData *co = NULL;
+    HtpState *htp_state = NULL;
 
     SCMutexLock(&f->m);
     SCLogDebug("got lock %p", &f->m);
 
-    DetectHttpCookieData *co = (DetectHttpCookieData *)sm->ctx;
+    co = (DetectHttpCookieData *)sm->ctx;
 
-    HtpState *htp_state = (HtpState *)state;
+    htp_state = (HtpState *)state;
     if (htp_state == NULL) {
         SCLogDebug("no HTTP layer state has been received, so no match");
         goto end;
@@ -123,8 +127,6 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         goto end;
     }
 
-    htp_tx_t *tx = NULL;
-
     for (idx = 0;//htp_state->new_in_tx_index;
          idx < list_size(htp_state->connp->conn->transactions); idx++)
     {
@@ -132,7 +134,6 @@ int DetectHttpCookieMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         if (tx == NULL)
             continue;
 
-        htp_header_t *h = NULL;
         h = (htp_header_t *) table_getc(tx->request_headers, "Cookie");
         if (h == NULL) {
             SCLogDebug("no HTTP Cookie header in the received request");

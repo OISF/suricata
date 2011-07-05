@@ -249,7 +249,7 @@ DetectRpcData *DetectRpcParse (char *rpcstr)
     return rd;
 
 error:
-    for (i = 0; i < (ret -1) && i < 4; i++){
+    for (i = 0; i < (ret - 1) && i < 3; i++){
         if (args[i] != NULL)
             SCFree(args[i]);
     }

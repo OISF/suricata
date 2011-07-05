@@ -531,6 +531,10 @@ int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
 {
     DetectBytetestData *data = NULL;
     SigMatch *sm = NULL;
+    SigMatch *prev_sm = NULL;
+    DetectContentData *cd = NULL;
+    DetectUricontentData *ud = NULL;
+    DetectPcreData *pe = NULL;
 
     data = DetectBytetestParse(optstr);
     if (data == NULL)
@@ -594,7 +598,6 @@ int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
         return 0;
     }
 
-    SigMatch *prev_sm = NULL;
     prev_sm = SigMatchGetLastSMFromLists(s, 8,
                                          DETECT_CONTENT, sm->prev,
                                          DETECT_URICONTENT, sm->prev,
@@ -611,10 +614,6 @@ int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
             return -1;
         }
     }
-
-    DetectContentData *cd = NULL;
-    DetectUricontentData *ud = NULL;
-    DetectPcreData *pe = NULL;
 
     switch (prev_sm->type) {
         case DETECT_CONTENT:

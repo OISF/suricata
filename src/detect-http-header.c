@@ -97,6 +97,9 @@ int DetectHttpHeaderMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     int result = 0;
     DetectHttpHeaderData *hcbd = (DetectHttpHeaderData *)m->ctx;
     HtpState *htp_state = (HtpState *)state;
+    htp_tx_t *tx = NULL;
+    bstr *headers = NULL;
+    size_t idx = 0;
 
     SCMutexLock(&f->m);
 
@@ -105,10 +108,6 @@ int DetectHttpHeaderMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         SCLogDebug("No htp state, no match at http header data");
         goto end;
     }
-
-    htp_tx_t *tx = NULL;
-    bstr *headers = NULL;
-    size_t idx = 0;
 
     for (idx = 0;//htp_state->new_in_tx_index;
          idx < list_size(htp_state->connp->conn->transactions); idx++)

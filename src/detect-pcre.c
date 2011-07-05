@@ -215,7 +215,7 @@ int DetectPcreALDoMatchMethod(DetectEngineThreadCtx *det_ctx, Signature *s,
     int ret = 0;
     int toret = 0;
     size_t idx;
-
+    htp_tx_t *tx = NULL;
 #define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
     uint8_t *ptr = NULL;
@@ -246,8 +246,6 @@ int DetectPcreALDoMatchMethod(DetectEngineThreadCtx *det_ctx, Signature *s,
         SCLogDebug("HTTP connection structure is NULL");
         goto end;
     }
-
-    htp_tx_t *tx = NULL;
 
     for (idx = 0;//htp_state->new_in_tx_index;
          idx < list_size(htp_state->connp->conn->transactions); idx++)
@@ -323,7 +321,8 @@ int DetectPcreALDoMatchHeader(DetectEngineThreadCtx *det_ctx, Signature *s,
     int ret = 0;
     int toret = 0;
     size_t idx;
-
+    htp_tx_t *tx = NULL;
+    bstr *headers = NULL;
 #define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
     uint8_t *ptr = NULL;
@@ -354,9 +353,6 @@ int DetectPcreALDoMatchHeader(DetectEngineThreadCtx *det_ctx, Signature *s,
         SCLogDebug("HTTP connection structure is NULL");
         goto end;
     }
-
-    htp_tx_t *tx = NULL;
-    bstr *headers = NULL;
 
     for (idx = 0;//htp_state->new_in_tx_index;
          idx < list_size(htp_state->connp->conn->transactions); idx++)
@@ -438,7 +434,7 @@ int DetectPcreALDoMatchCookie(DetectEngineThreadCtx *det_ctx, Signature *s,
     int ret = 0;
     int toret = 0;
     size_t idx;
-
+    htp_tx_t *tx = NULL;
 #define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
     uint8_t *ptr = NULL;
@@ -469,8 +465,6 @@ int DetectPcreALDoMatchCookie(DetectEngineThreadCtx *det_ctx, Signature *s,
         SCLogDebug("HTTP connection structure is NULL");
         goto end;
     }
-
-    htp_tx_t *tx = NULL;
 
     for (idx = 0;//htp_state->new_in_tx_index;
          idx < list_size(htp_state->connp->conn->transactions); idx++)
@@ -548,6 +542,8 @@ int DetectPcreALDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *
     int ret = 0;
     int pcreret = 0;
     int ov[MAX_SUBSTRINGS];
+    htp_tx_t *tx = NULL;
+    size_t idx = 0;
 
     DetectPcreData *pe = (DetectPcreData *)m->ctx;
     if ( !(pe->flags & DETECT_PCRE_HTTP_BODY_AL))
@@ -563,9 +559,6 @@ int DetectPcreALDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s, SigMatch *
         SCLogDebug("No htp state, no match at http body data");
         goto unlock;
     }
-
-    htp_tx_t *tx = NULL;
-    size_t idx = 0;
 
     for (idx = 0;//hs->new_in_tx_index;
          idx < list_size(htp_state->connp->conn->transactions); idx++)
@@ -1257,6 +1250,9 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     DetectPcreData *pd = NULL;
     SigMatch *sm = NULL;
     SigMatch *prev_sm = NULL;
+    DetectContentData *cd = NULL;
+    DetectUricontentData *ud = NULL;
+    DetectPcreData *pe = NULL;
 
     pd = DetectPcreParse(regexstr);
     if (pd == NULL)
@@ -1383,10 +1379,6 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
             SCReturnInt(-1);
         }
     }
-
-    DetectContentData *cd = NULL;
-    DetectUricontentData *ud = NULL;
-    DetectPcreData *pe = NULL;
 
     switch (prev_sm->type) {
         case DETECT_CONTENT:

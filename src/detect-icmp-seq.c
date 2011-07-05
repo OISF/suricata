@@ -150,6 +150,7 @@ DetectIcmpSeqData *DetectIcmpSeqParse (char *icmpseqstr) {
     int ov[MAX_SUBSTRINGS];
     int i;
     const char *str_ptr;
+    uint16_t seq = 0;
 
     ret = pcre_exec(parse_regex, parse_regex_study, icmpseqstr, strlen(icmpseqstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
@@ -184,7 +185,6 @@ DetectIcmpSeqData *DetectIcmpSeqParse (char *icmpseqstr) {
         }
     }
 
-    uint16_t seq = 0;
     if (ByteExtractStringUint16(&seq, 10, 0, substr[1]) < 0) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp seq %s is not "
                                         "valid", substr[1]);

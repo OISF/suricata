@@ -822,7 +822,8 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
         tmq = TmqGetQueueByName(inq_name);
         if (tmq == NULL) {
             tmq = TmqCreateQueue(inq_name);
-            if (tmq == NULL) goto error;
+            if (tmq == NULL)
+                goto error;
         }
         SCLogDebug("tmq %p", tmq);
 
@@ -834,7 +835,8 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
         SCLogDebug("inqh_name \"%s\"", inqh_name);
 
         tmqh = TmqhGetQueueHandlerByName(inqh_name);
-        if (tmqh == NULL) goto error;
+        if (tmqh == NULL)
+            goto error;
 
         tv->tmqh_in = tmqh->InHandler;
         tv->InShutdownHandler = tmqh->InShutdownHandler;
@@ -846,7 +848,8 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
         SCLogDebug("outqh_name \"%s\"", outqh_name);
 
         tmqh = TmqhGetQueueHandlerByName(outqh_name);
-        if (tmqh == NULL) goto error;
+        if (tmqh == NULL)
+            goto error;
 
         tv->tmqh_out = tmqh->OutHandler;
 
@@ -860,7 +863,8 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
                 tmq = TmqGetQueueByName(outq_name);
                 if (tmq == NULL) {
                     tmq = TmqCreateQueue(outq_name);
-                    if (tmq == NULL) goto error;
+                    if (tmq == NULL)
+                        goto error;
                 }
                 SCLogDebug("tmq %p", tmq);
 
@@ -881,6 +885,10 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
     return tv;
 error:
     printf("ERROR: failed to setup a thread.\n");
+
+    if (tv != NULL) {
+        SCFree(tv);
+    }
     return NULL;
 }
 

@@ -230,6 +230,8 @@ char HashTableDefaultCompare(void *data1, uint16_t len1, void *data2, uint16_t l
  * ONLY TESTS BELOW THIS COMMENT
  */
 
+#ifdef UNITTESTS
+
 static int HashTableTestInit01 (void) {
     HashTable *ht = HashTableInit(1024, HashTableGenericHash, NULL, NULL);
     if (ht == NULL)
@@ -309,11 +311,13 @@ static int HashTableTestInit06 (void) {
 
 static int HashTableTestAdd01 (void) {
     int result = 0;
+    int r = 0;
+
     HashTable *ht = HashTableInit(32, HashTableGenericHash, NULL, NULL);
     if (ht == NULL)
         goto end;
 
-    int r = HashTableAdd(ht, "test", 0);
+    r = HashTableAdd(ht, "test", 0);
     if (r != 0)
         goto end;
 
@@ -326,11 +330,13 @@ end:
 
 static int HashTableTestAdd02 (void) {
     int result = 0;
+    int r = 0;
+
     HashTable *ht = HashTableInit(32, HashTableGenericHash, NULL, NULL);
     if (ht == NULL)
         goto end;
 
-    int r = HashTableAdd(ht, NULL, 4);
+    r = HashTableAdd(ht, NULL, 4);
     if (r == 0)
         goto end;
 
@@ -343,15 +349,18 @@ end:
 
 static int HashTableTestFull01 (void) {
     int result = 0;
+    int r = 0;
+    char *rp = NULL;
+
     HashTable *ht = HashTableInit(32, HashTableGenericHash, NULL, NULL);
     if (ht == NULL)
         goto end;
 
-    int r = HashTableAdd(ht, "test", 4);
+    r = HashTableAdd(ht, "test", 4);
     if (r != 0)
         goto end;
 
-    char *rp = HashTableLookup(ht, "test", 4);
+    rp = HashTableLookup(ht, "test", 4);
     if (rp == NULL)
         goto end;
 
@@ -368,15 +377,18 @@ end:
 
 static int HashTableTestFull02 (void) {
     int result = 0;
+    int r = 0;
+    char *rp = NULL;
+
     HashTable *ht = HashTableInit(32, HashTableGenericHash, NULL, NULL);
     if (ht == NULL)
         goto end;
 
-    int r = HashTableAdd(ht, "test", 4);
+    r = HashTableAdd(ht, "test", 4);
     if (r != 0)
         goto end;
 
-    char *rp = HashTableLookup(ht, "test", 4);
+    rp = HashTableLookup(ht, "test", 4);
     if (rp == NULL)
         goto end;
 
@@ -391,7 +403,10 @@ end:
     return result;
 }
 
+#endif
+
 void HashTableRegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("HashTableTestInit01", HashTableTestInit01, 1);
     UtRegisterTest("HashTableTestInit02", HashTableTestInit02, 1);
     UtRegisterTest("HashTableTestInit03", HashTableTestInit03, 1);
@@ -404,5 +419,6 @@ void HashTableRegisterTests(void) {
 
     UtRegisterTest("HashTableTestFull01", HashTableTestFull01, 1);
     UtRegisterTest("HashTableTestFull02", HashTableTestFull02, 1);
+#endif
 }
 

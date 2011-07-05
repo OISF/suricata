@@ -590,6 +590,8 @@ int B2gBuildMatchArray(MpmCtx *mpm_ctx) {
 
 int B2gPreparePatterns(MpmCtx *mpm_ctx) {
     B2gCtx *ctx = (B2gCtx *)mpm_ctx->ctx;
+    uint32_t u = 0;
+    uint32_t p = 0;
 
     /* alloc the pattern array */
     ctx->parray = (B2gPattern **)SCMalloc(mpm_ctx->pattern_cnt * sizeof(B2gPattern *));
@@ -601,9 +603,8 @@ int B2gPreparePatterns(MpmCtx *mpm_ctx) {
     mpm_ctx->memory_size += (mpm_ctx->pattern_cnt * sizeof(B2gPattern *));
 
     /* populate it with the patterns in the hash */
-    uint32_t i = 0, p = 0;
-    for (i = 0; i < INIT_HASH_SIZE; i++) {
-        B2gPattern *node = ctx->init_hash[i], *nnode = NULL;
+    for (u = 0; u < INIT_HASH_SIZE; u++) {
+        B2gPattern *node = ctx->init_hash[u], *nnode = NULL;
         for ( ; node != NULL; ) {
             nnode = node->next;
             node->next = NULL;
@@ -896,6 +897,7 @@ uint32_t B2gSearchBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
 #endif
     uint32_t pos = ctx->m - B2G_Q + 1, matches = 0;
     B2G_TYPE d;
+    B2gPattern *hi;
 
     //printf("\n");
     //PrintRawDataFp(stdout, buf, buflen);
@@ -946,33 +948,32 @@ uint32_t B2gSearchBNDMq(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMa
                             }
                         }
 
-                        B2gPattern *hi = ctx->hash[h], *thi;
-                        for (thi = hi; thi != NULL; thi = thi->next) {
+                        for (hi = ctx->hash[h]; hi != NULL; hi = hi->next) {
                             COUNT(tctx->stat_d0_hashloop++);
-                            if ((buflen - j) < thi->len) {
+                            if ((buflen - j) < hi->len) {
                                 continue;
                             }
 
-                            if (thi->flags & MPM_PATTERN_FLAG_NOCASE) {
+                            if (hi->flags & MPM_PATTERN_FLAG_NOCASE) {
 
-                                if (memcmp_lowercase(thi->ci, buf+j, thi->len) == 0) {
+                                if (memcmp_lowercase(hi->ci, buf+j, hi->len) == 0) {
 #ifdef PRINTMATCH
                                     printf("CI Exact match: "); prt(p->ci, p->len); printf("\n");
 #endif
                                     COUNT(tctx->stat_loop_match++);
 
-                                    matches += MpmVerifyMatch(mpm_thread_ctx, pmq, thi->id);
+                                    matches += MpmVerifyMatch(mpm_thread_ctx, pmq, hi->id);
                                 } else {
                                     COUNT(tctx->stat_loop_no_match++);
                                 }
                             } else {
-                                if (memcmp(thi->cs, buf+j, thi->len) == 0) {
+                                if (memcmp(hi->cs, buf+j, hi->len) == 0) {
 #ifdef PRINTMATCH
                                     printf("CS Exact match: "); prt(p->cs, p->len); printf("\n");
 #endif
                                     COUNT(tctx->stat_loop_match++);
 
-                                    matches += MpmVerifyMatch(mpm_thread_ctx, pmq, thi->id);
+                                    matches += MpmVerifyMatch(mpm_thread_ctx, pmq, hi->id);
                                 } else {
                                     COUNT(tctx->stat_loop_no_match++);
                                 }
@@ -1012,6 +1013,7 @@ uint32_t B2gSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcher
     uint32_t pos = 0, matches = 0;
     B2G_TYPE d;
     uint32_t j;
+    B2gPattern *hi;
 
     COUNT(tctx->stat_calls++);
     COUNT(tctx->stat_m_total+=ctx->m);
@@ -1055,28 +1057,26 @@ uint32_t B2gSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatcher
                 }
             }
 
-            B2gPattern *hi = ctx->hash[h], *thi;
-            for (thi = hi; thi != NULL; thi = thi->next) {
+            for (hi = ctx->hash[h]; hi != NULL; hi = hi->next) {
                 COUNT(tctx->stat_d0_hashloop++);
-                //B2gPattern *p = ctx->parray[thi->idx];
 
-                if (buflen - pos < thi->len)
+                if (buflen - pos < hi->len)
                     continue;
 
-                if (thi->flags & MPM_PATTERN_FLAG_NOCASE) {
+                if (hi->flags & MPM_PATTERN_FLAG_NOCASE) {
 
-                    if (memcmp_lowercase(thi->ci, buf+pos, thi->len) == 0) {
+                    if (memcmp_lowercase(hi->ci, buf+pos, hi->len) == 0) {
                         COUNT(tctx->stat_loop_match++);
 
-                        matches += MpmVerifyMatch(mpm_thread_ctx, pmq, thi->id);
+                        matches += MpmVerifyMatch(mpm_thread_ctx, pmq, hi->id);
                     } else {
                         COUNT(tctx->stat_loop_no_match++);
                     }
                 } else {
-                    if (memcmp(thi->cs, buf+pos, thi->len) == 0) {
+                    if (memcmp(hi->cs, buf+pos, hi->len) == 0) {
                         COUNT(tctx->stat_loop_match++);
 
-                        matches += MpmVerifyMatch(mpm_thread_ctx, pmq, thi->id);
+                        matches += MpmVerifyMatch(mpm_thread_ctx, pmq, hi->id);
                     } else {
                         COUNT(tctx->stat_loop_no_match++);
                     }

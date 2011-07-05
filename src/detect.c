@@ -335,6 +335,8 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     int cntf = 0;
     int sigtotal = 0;
     char *sfile = NULL;
+    Signature *s = NULL;
+    SigIntId sig_id = 0;
 
     /* ok, let's load signature files from the general config */
     rule_files = ConfGetNode("rule-files");
@@ -400,11 +402,10 @@ int SigLoadSignatures (DetectEngineCtx *de_ctx, char *sig_file)
     SCSigOrderSignatures(de_ctx);
     SCSigSignatureOrderingModuleCleanup(de_ctx);
 
-    Signature *s = de_ctx->sig_list;
+    s = de_ctx->sig_list;
 
     /* Assign the unique order id of signatures after sorting,
      * so the IP Only engine process them in order too */
-    SigIntId sig_id = 0;
     while (s != NULL) {
         s->order_id = sig_id++;
         s = s->next;
@@ -1167,26 +1168,30 @@ end:
  */
 TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+    int r = 0;
+
     DEBUG_VALIDATE_PACKET(p);
 
     /* No need to perform any detection on this packet, if the the given flag is set.*/
     if (p->flags & PKT_NOPACKET_INSPECTION)
         return 0;
 
-    DetectEngineThreadCtx *det_ctx = (DetectEngineThreadCtx *)data;
+    det_ctx = (DetectEngineThreadCtx *)data;
     if (det_ctx == NULL) {
         printf("ERROR: Detect has no thread ctx\n");
         goto error;
     }
 
-    DetectEngineCtx *de_ctx = det_ctx->de_ctx;
+    de_ctx = det_ctx->de_ctx;
     if (de_ctx == NULL) {
         printf("ERROR: Detect has no detection engine ctx\n");
         goto error;
     }
 
     /* see if the packet matches one or more of the sigs */
-    int r = SigMatchSignatures(tv,de_ctx,det_ctx,p);
+    r = SigMatchSignatures(tv,de_ctx,det_ctx,p);
     if (r >= 0) {
         return TM_ECODE_OK;
     }
@@ -1674,6 +1679,7 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddress *srchead,
     char insert = 0;
     DetectAddress *gr, *next_gr;
     uint32_t groups = 0;
+    uint32_t u = 0;
 
     /* insert the addresses into the tmplist, where it will
      * be sorted descending on 'cnt'. */
@@ -1726,13 +1732,14 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddress *srchead,
         }
     }
 
-    uint32_t i = unique_groups;
-    if (i == 0) i = groups;
+    u = unique_groups;
+    if (u == 0)
+        u = groups;
 
     for (gr = tmplist; gr != NULL; ) {
         BUG_ON(gr->ip.family == 0 && !(gr->flags & ADDRESS_FLAG_ANY));
 
-        if (i == 0) {
+        if (u == 0) {
             if (joingr == NULL) {
                 joingr = DetectAddressCopy(gr);
                 if (joingr == NULL) {
@@ -1770,7 +1777,8 @@ int CreateGroupedAddrList(DetectEngineCtx *de_ctx, DetectAddress *srchead,
                 tmplist2 = newtmp;
             }
         }
-        if (i)i--;
+        if (u)
+            u--;
 
         next_gr = gr->next;
         DetectAddressFree(gr);
@@ -1842,6 +1850,7 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, Dete
     char insert = 0;
     DetectPort *gr, *next_gr;
     uint32_t groups = 0;
+    uint32_t u = 0;
 
     HashListTableBucket *htb = HashListTableGetListHead(port_hash);
 
@@ -1892,8 +1901,9 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, Dete
         }
     }
 
-    uint32_t i = unique_groups;
-    if (i == 0) i = groups;
+    u = unique_groups;
+    if (u == 0)
+        u = groups;
 
     if (unique_groups > g_groupportlist_maxgroups)
         g_groupportlist_maxgroups = unique_groups;
@@ -1904,7 +1914,7 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, Dete
         SCLogDebug("temp list gr %p", gr);
         DetectPortPrint(gr);
 
-        if (i == 0) {
+        if (u == 0) {
             if (joingr == NULL) {
                 joingr = DetectPortCopySingle(de_ctx,gr);
                 if (joingr == NULL) {
@@ -1926,7 +1936,8 @@ int CreateGroupedPortList(DetectEngineCtx *de_ctx,HashListTable *port_hash, Dete
                 tmplist2 = newtmp;
             }
         }
-        if (i)i--;
+        if (u)
+            u--;
 
         next_gr = gr->next;
         gr->next = NULL;
@@ -1994,6 +2005,10 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     Signature *tmp_s = NULL;
     DetectAddress *gr = NULL;
     uint32_t sigs = 0;
+    int f, proto;
+    uint32_t cnt_any = 0;
+    uint32_t cnt_ipv4 = 0;
+    uint32_t cnt_ipv6 = 0;
 
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogInfo("building signature grouping structure, stage 2: "
@@ -2002,7 +2017,6 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
 
     IPOnlyInit(de_ctx, &de_ctx->io_ctx);
 
-    int f, proto;
     for (f = 0; f < FLOW_STATES; f++) {
         for (proto = 0; proto < 256; proto++) {
             de_ctx->flow_gh[f].src_gh[proto] = DetectAddressHeadInit();
@@ -2070,7 +2084,6 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
     }
 
     /* TCP */
-    uint32_t cnt_any = 0, cnt_ipv4 = 0, cnt_ipv6 = 0;
     for (f = 0; f < FLOW_STATES; f++) {
         for (gr = de_ctx->flow_gh[f].src_gh[6]->any_head; gr != NULL; gr = gr->next) {
             cnt_any++;

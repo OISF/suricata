@@ -273,7 +273,7 @@ DetectFlowData *DetectFlowParse (char *flowstr)
 
 error:
     /* ret can be higher than 3 */
-    for (i = 0; i < (ret - 1) && i < 4; i++){
+    for (i = 0; i < (ret - 1) && i < 3; i++){
         if (args[i] != NULL)
             SCFree(args[i]);
     }

@@ -132,6 +132,7 @@ void VariableNameFreeHash() {
  */
 uint16_t VariableNameGetIdx(char *name, uint8_t type) {
     uint16_t idx = 0;
+    VariableName *lookup_fn = NULL;
 
     VariableName *fn = SCMalloc(sizeof(VariableName));
     if (fn == NULL)
@@ -144,7 +145,7 @@ uint16_t VariableNameGetIdx(char *name, uint8_t type) {
     if (fn->name == NULL)
         goto error;
 
-    VariableName *lookup_fn = (VariableName *)HashListTableLookup(variable_names, (void *)fn, 0);
+    lookup_fn = (VariableName *)HashListTableLookup(variable_names, (void *)fn, 0);
     if (lookup_fn == NULL) {
         variable_names_idx++;
 
@@ -170,6 +171,8 @@ error:
  */
 char *VariableIdxGetName(uint16_t idx, uint8_t type)
 {
+    VariableName *lookup_fn = NULL;
+
     VariableName *fn = SCMalloc(sizeof(VariableName));
     if (fn == NULL)
         goto error;
@@ -180,7 +183,7 @@ char *VariableIdxGetName(uint16_t idx, uint8_t type)
     fn->type = type;
     fn->idx = idx;
 
-    VariableName *lookup_fn = (VariableName *)HashListTableLookup(variable_idxs, (void *)fn, 0);
+    lookup_fn = (VariableName *)HashListTableLookup(variable_idxs, (void *)fn, 0);
     if (lookup_fn != NULL) {
         name = SCStrdup(lookup_fn->name);
         if (name == NULL)

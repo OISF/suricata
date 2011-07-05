@@ -56,6 +56,7 @@ void PoolFree(Pool *p) {
 Pool *PoolInit(uint32_t size, uint32_t prealloc_size, void *(*Alloc)(void *), void *AllocData, void (*Free)(void *))
 {
     Pool *p = NULL;
+    uint32_t u32 = 0;
 
     if (Alloc == NULL) {
         //printf("ERROR: PoolInit no Hash function\n");
@@ -78,7 +79,6 @@ Pool *PoolInit(uint32_t size, uint32_t prealloc_size, void *(*Alloc)(void *), vo
     p->Free  = Free;
 
     /* alloc the buckets and place them in the empty list */
-    uint32_t u32 = 0;
     for (u32 = 0; u32 < size; u32++) {
         /* populate pool */
         PoolBucket *pb = SCMalloc(sizeof(PoolBucket));

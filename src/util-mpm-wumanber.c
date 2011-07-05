@@ -640,6 +640,7 @@ static void WmSearchPrepareShiftTable(MpmCtx *mpm_ctx)
 
 int WmPreparePatterns(MpmCtx *mpm_ctx) {
     WmCtx *ctx = (WmCtx *)mpm_ctx->ctx;
+    uint32_t u = 0, p = 0;
 
     /* alloc the pattern array */
     ctx->parray = (WmPattern **)SCMalloc(mpm_ctx->pattern_cnt * sizeof(WmPattern *));
@@ -651,9 +652,8 @@ int WmPreparePatterns(MpmCtx *mpm_ctx) {
     mpm_ctx->memory_size += (mpm_ctx->pattern_cnt * sizeof(WmPattern *));
 
     /* populate it with the patterns in the hash */
-    uint32_t i = 0, p = 0;
-    for (i = 0; i < INIT_HASH_SIZE; i++) {
-        WmPattern *node = ctx->init_hash[i], *nnode = NULL;
+    for (u = 0; u < INIT_HASH_SIZE; u++) {
+        WmPattern *node = ctx->init_hash[u], *nnode = NULL;
         for ( ; node != NULL; ) {
             nnode = node->next;
             node->next = NULL;

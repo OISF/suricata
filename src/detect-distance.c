@@ -63,6 +63,9 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
     char *str = distancestr;
     char dubbed = 0;
     SigMatch *pm = NULL;
+    DetectUricontentData *ud = NULL;
+    DetectContentData *cd = NULL;
+    DetectPcreData *pe = NULL;
 
     /* strip "'s */
     if (distancestr[0] == '\"' && distancestr[strlen(distancestr)-1] == '\"') {
@@ -163,10 +166,6 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
             return -1;
         }
     }
-
-    DetectUricontentData *ud = NULL;
-    DetectContentData *cd = NULL;
-    DetectPcreData *pe = NULL;
 
     switch (pm->type) {
         case DETECT_URICONTENT:

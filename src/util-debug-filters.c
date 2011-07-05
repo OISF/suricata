@@ -725,6 +725,9 @@ int SCLogAddFDFilter(const char *function)
      * Doing this "fix" to shut clang up. */
     else if (prev != NULL)
         prev->next = temp;
+    else {
+        sc_log_fd_filters = temp;
+    }
 
     SCMutexUnlock(&sc_log_fd_filters_m);
     sc_log_fd_filters_present = 1;

@@ -126,10 +126,9 @@ DetectWindowData *DetectWindowParse(char *windowstr) {
     DetectWindowData *wd = NULL;
     char *args[3] = {NULL,NULL,NULL}; /* PR: Why PCRE MAX_SUBSTRING must be multiple of 3? */
 	#define MAX_SUBSTRINGS 30
-
+	int i = 0;
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
-
 
     ret = pcre_exec(parse_regex, parse_regex_study, windowstr, strlen(windowstr), 0, 0, ov, MAX_SUBSTRINGS);
 
@@ -170,7 +169,6 @@ DetectWindowData *DetectWindowParse(char *windowstr) {
         }
     }
 
-	int i = 0;
     for (i = 0; i < (ret -1); i++){
         if (args[i] != NULL)
             SCFree(args[i]);
@@ -178,7 +176,7 @@ DetectWindowData *DetectWindowParse(char *windowstr) {
     return wd;
 
 error:
-    for (i = 0; i < (ret -1) && i < 4; i++){
+    for (i = 0; i < (ret - 1) && i < 3; i++){
         if (args[i] != NULL)
             SCFree(args[i]);
     }

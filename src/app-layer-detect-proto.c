@@ -162,6 +162,9 @@ static uint16_t AlpProtoMatchSignature(AlpProtoSignature *s, uint8_t *buf,
 {
     SCEnter();
     uint16_t proto = ALPROTO_UNKNOWN;
+    uint8_t *sbuf = NULL;
+    uint16_t sbuflen = 0;
+    uint8_t *found = NULL;
 
     if (s->ip_proto != ip_proto) {
         goto end;
@@ -179,12 +182,12 @@ static uint16_t AlpProtoMatchSignature(AlpProtoSignature *s, uint8_t *buf,
         goto end;
     }
 
-    uint8_t *sbuf = buf + s->co->offset;
-    uint16_t sbuflen = s->co->depth - s->co->offset;
+    sbuf = buf + s->co->offset;
+    sbuflen = s->co->depth - s->co->offset;
     SCLogDebug("s->co->offset (%"PRIu16") s->co->depth (%"PRIu16")",
                 s->co->offset, s->co->depth);
 
-    uint8_t *found = SpmSearch(sbuf, sbuflen, s->co->content, s->co->content_len);
+    found = SpmSearch(sbuf, sbuflen, s->co->content, s->co->content_len);
     if (found != NULL) {
         proto = s->proto;
     }
@@ -494,6 +497,9 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
     SCMutexUnlock(&p->cuda_mutex_q);
     cnt = p->cuda_matches;
 #endif
+    uint16_t patid = 0;
+    uint8_t s_cnt = 0;
+
     SCLogDebug("search cnt %" PRIu32 "", cnt);
     if (cnt == 0) {
         proto = ALPROTO_UNKNOWN;
@@ -501,7 +507,7 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
     }
 
     /* We just work with the first match */
-    uint16_t patid = tdir->pmq.pattern_id_array[0];
+    patid = tdir->pmq.pattern_id_array[0];
     SCLogDebug("array count is %"PRIu32" patid %"PRIu16"",
             tdir->pmq.pattern_id_array_cnt, patid);
 
@@ -509,7 +515,7 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx 
     if (s == NULL) {
         goto end;
     }
-    uint8_t s_cnt = 1;
+    s_cnt = 1;
 
     while (proto == ALPROTO_UNKNOWN && s != NULL) {
         proto = AlpProtoMatchSignature(s, buf, buflen, ipproto);

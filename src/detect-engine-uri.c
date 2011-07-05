@@ -351,6 +351,8 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
     SCEnter();
     int r = 0;
     HtpState *htp_state = NULL;
+    htp_tx_t *tx = NULL;
+    size_t idx = 0;
 
     htp_state = (HtpState *)alstate;
     if (htp_state == NULL) {
@@ -416,9 +418,7 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
     }
 #endif
 
-    size_t idx = AppLayerTransactionGetInspectId(f);
-    htp_tx_t *tx = NULL;
-
+    idx = AppLayerTransactionGetInspectId(f);
     for ( ; idx < list_size(htp_state->connp->conn->transactions); idx++)
     {
         tx = list_get(htp_state->connp->conn->transactions, idx);

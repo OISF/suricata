@@ -237,9 +237,11 @@ int DetectTagMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Si
 DetectTagData *DetectTagParse (char *tagstr)
 {
     DetectTagData td;
+    DetectTagData *real_td = NULL;
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
+    const char *str_ptr;
 
     ret = pcre_exec(parse_regex, parse_regex_study, tagstr, strlen(tagstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1) {
@@ -247,7 +249,6 @@ DetectTagData *DetectTagParse (char *tagstr)
         goto error;
     }
 
-    const char *str_ptr;
     res = pcre_get_substring((char *)tagstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
@@ -328,7 +329,7 @@ DetectTagData *DetectTagParse (char *tagstr)
         }
     }
 
-    DetectTagData *real_td = SCMalloc(sizeof(DetectTagData));
+    real_td = SCMalloc(sizeof(DetectTagData));
     if (real_td == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto error;

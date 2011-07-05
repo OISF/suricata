@@ -430,12 +430,14 @@ void UTHFreePacket(Packet *p) {
 int UTHGenericTest(Packet **pkt, int numpkts, char *sigs[], uint32_t sids[], uint32_t *results, int numsigs) {
 
     int result = 0;
+    DetectEngineCtx *de_ctx = NULL;
+
     if (pkt == NULL || sigs == NULL || numpkts == 0
         || sids == NULL || results == NULL || numsigs == 0) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "Arguments invalid, that the pointer/arrays are not NULL, and the number of signatures and packets is > 0");
         goto end;
     }
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         goto end;
     }
@@ -538,6 +540,10 @@ int UTHAppendSigs(DetectEngineCtx *de_ctx, char *sigs[], int numsigs) {
  */
 int UTHMatchPacketsWithResults(DetectEngineCtx *de_ctx, Packet **p, int num_packets, uint32_t sids[], uint32_t *results, int numsigs) {
     int result = 0;
+    int i = 0;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DecodeThreadVars dtv;
+    ThreadVars th_v;
 
     if (de_ctx == NULL || p == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "packet or de_ctx was null");
@@ -545,9 +551,6 @@ int UTHMatchPacketsWithResults(DetectEngineCtx *de_ctx, Packet **p, int num_pack
         goto end;
     }
 
-    DecodeThreadVars dtv;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 
@@ -556,7 +559,6 @@ int UTHMatchPacketsWithResults(DetectEngineCtx *de_ctx, Packet **p, int num_pack
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int i = 0;
     for (; i < num_packets; i++) {
         SigMatchSignatures(&th_v, de_ctx, det_ctx, p[i]);
         if (UTHCheckPacketMatchResults(p[i], sids, &results[(i * numsigs)], numsigs) == 0)
@@ -587,6 +589,10 @@ end:
  */
 int UTHMatchPackets(DetectEngineCtx *de_ctx, Packet **p, int num_packets) {
     int result = 1;
+    int i = 0;
+    DecodeThreadVars dtv;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
 
     if (de_ctx == NULL || p == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "packet or de_ctx was null");
@@ -594,9 +600,6 @@ int UTHMatchPackets(DetectEngineCtx *de_ctx, Packet **p, int num_packets) {
         goto end;
     }
 
-    DecodeThreadVars dtv;
-    ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx = NULL;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
 
@@ -605,7 +608,6 @@ int UTHMatchPackets(DetectEngineCtx *de_ctx, Packet **p, int num_packets) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int i = 0;
     for (; i < num_packets; i++)
         SigMatchSignatures(&th_v, de_ctx, det_ctx, p[i]);
 

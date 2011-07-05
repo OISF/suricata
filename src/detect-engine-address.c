@@ -1151,7 +1151,7 @@ int DetectAddressMergeNot(DetectAddressHead *gh, DetectAddressHead *ghn)
             r = DetectAddressCmp(ag, ag2);
             /* XXX more ??? */
             if (r == ADDRESS_EQ || r == ADDRESS_EB) {
-                if (ag2->prev == NULL)
+                if (ag2->prev == NULL || ag2 == gh->ipv4_head)
                     gh->ipv4_head = ag2->next;
                 else
                     ag2->prev->next = ag2->next;
@@ -1173,7 +1173,7 @@ int DetectAddressMergeNot(DetectAddressHead *gh, DetectAddressHead *ghn)
         for (ag2 = gh->ipv6_head; ag2 != NULL; ) {
             r = DetectAddressCmp(ag, ag2);
             if (r == ADDRESS_EQ || r == ADDRESS_EB) { /* XXX more ??? */
-                if (ag2->prev == NULL)
+                if (ag2->prev == NULL || ag2 == gh->ipv6_head)
                     gh->ipv6_head = ag2->next;
                 else
                     ag2->prev->next = ag2->next;

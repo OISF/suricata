@@ -193,6 +193,7 @@ DetectUricontentData *DoDetectUricontentSetup (char * contentstr)
     uint16_t len = 0;
     uint16_t pos = 0;
     uint16_t slen = 0;
+    char converted = 0;
 
     if ((temp = SCStrdup(contentstr)) == NULL)
         goto error;
@@ -232,7 +233,6 @@ DetectUricontentData *DoDetectUricontentSetup (char * contentstr)
     len = strlen(str);
 
     SCLogDebug("\"%s\", len %" PRIu32 "", str, len);
-    char converted = 0;
 
     {
         uint8_t escape = 0;

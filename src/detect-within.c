@@ -66,6 +66,9 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
     char *str = withinstr;
     char dubbed = 0;
     SigMatch *pm = NULL;
+    DetectUricontentData *ud = NULL;
+    DetectContentData *cd = NULL;
+    DetectPcreData *pe = NULL;
 
     /* strip "'s */
     if (withinstr[0] == '\"' && withinstr[strlen(withinstr)-1] == '\"') {
@@ -167,10 +170,6 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
             return -1;
         }
     }
-
-    DetectUricontentData *ud = NULL;
-    DetectContentData *cd = NULL;
-    DetectPcreData *pe = NULL;
 
     switch (pm->type) {
         case DETECT_URICONTENT:

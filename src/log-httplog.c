@@ -113,6 +113,12 @@ TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     LogHttpLogThread *aft = (LogHttpLogThread *)data;
     char timebuf[64];
     size_t idx = 0;
+    int r;
+    size_t logged;
+    size_t loggable;
+    htp_tx_t *tx = NULL;
+    HtpState *htp_state = NULL;
+    uint16_t proto = 0;
 
     /* no flow, no htp state */
     if (p->flow == NULL) {
@@ -121,23 +127,23 @@ TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
 
     /* check if we have HTTP state or not */
     SCMutexLock(&p->flow->m);
-    uint16_t proto = AppLayerGetProtoFromPacket(p);
+    proto = AppLayerGetProtoFromPacket(p);
     if (proto != ALPROTO_HTTP)
         goto end;
 
-    int r = AppLayerTransactionGetLoggedId(p->flow);
+    r = AppLayerTransactionGetLoggedId(p->flow);
     if (r < 0) {
         goto end;
     }
-    size_t logged = (size_t)r;
+    logged = (size_t)r;
 
     r = AppLayerTransactionGetLoggableId(p->flow);
     if (r < 0) {
         goto end;
     }
-    size_t loggable = (size_t)r;
+    loggable = (size_t)r;
 
-    HtpState *htp_state = (HtpState *)AppLayerGetProtoStateFromPacket(p);
+    htp_state = (HtpState *)AppLayerGetProtoStateFromPacket(p);
     if (htp_state == NULL) {
         SCLogDebug("no http state, so no request logging");
         goto end;
@@ -145,8 +151,6 @@ TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
 
     if (htp_state->connp == NULL)
         goto end;
-
-    htp_tx_t *tx = NULL;
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
@@ -224,6 +228,12 @@ TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     LogHttpLogThread *aft = (LogHttpLogThread *)data;
     char timebuf[64];
     size_t idx = 0;
+    uint16_t proto = 0;
+    int r = 0;
+    size_t logged = 0;
+    size_t loggable = 0;
+    HtpState *htp_state = NULL;
+    htp_tx_t *tx = NULL;
 
     /* no flow, no htp state */
     if (p->flow == NULL) {
@@ -232,23 +242,23 @@ TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
 
     /* check if we have HTTP state or not */
     SCMutexLock(&p->flow->m);
-    uint16_t proto = AppLayerGetProtoFromPacket(p);
+    proto = AppLayerGetProtoFromPacket(p);
     if (proto != ALPROTO_HTTP)
         goto end;
 
-    int r = AppLayerTransactionGetLoggedId(p->flow);
+    r = AppLayerTransactionGetLoggedId(p->flow);
     if (r < 0) {
         goto end;
     }
-    size_t logged = (size_t)r;
+    logged = (size_t)r;
 
     r = AppLayerTransactionGetLoggableId(p->flow);
     if (r < 0) {
         goto end;
     }
-    size_t loggable = (size_t)r;
+    loggable = (size_t)r;
 
-    HtpState *htp_state = (HtpState *)AppLayerGetProtoStateFromPacket(p);
+    htp_state = (HtpState *)AppLayerGetProtoStateFromPacket(p);
     if (htp_state == NULL) {
         SCLogDebug("no http state, so no request logging");
         goto end;
@@ -256,8 +266,6 @@ TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
 
     if (htp_state->connp == NULL)
         goto end;
-
-    htp_tx_t *tx = NULL;
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 

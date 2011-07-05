@@ -148,6 +148,9 @@ DetectIcmpIdData *DetectIcmpIdParse (char *icmpidstr) {
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
+    uint16_t id = 0;
+    int i;
+    const char *str_ptr;
 
     ret = pcre_exec(parse_regex, parse_regex_study, icmpidstr, strlen(icmpidstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1 || ret > 4) {
@@ -155,8 +158,6 @@ DetectIcmpIdData *DetectIcmpIdParse (char *icmpidstr) {
         goto error;
     }
 
-    int i;
-    const char *str_ptr;
     for (i = 1; i < ret; i++) {
         res = pcre_get_substring((char *)icmpidstr, ov, MAX_SUBSTRINGS, i, &str_ptr);
         if (res < 0) {
@@ -184,7 +185,6 @@ DetectIcmpIdData *DetectIcmpIdParse (char *icmpidstr) {
     }
 
     /** \todo can ByteExtractStringUint16 do this? */
-    uint16_t id = 0;
     if (ByteExtractStringUint16(&id, 10, 0, substr[1]) < 0) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "specified icmp id %s is not "
                                         "valid", substr[1]);

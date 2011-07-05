@@ -295,7 +295,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
 {
     char *temp = *msg;
     const char *s = NULL;
-
+    ThreadVars *tv = NULL;
     struct timeval tval;
     struct tm *tms = NULL;
 
@@ -387,7 +387,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
 
             case SC_LOG_FMT_TM:
                 temp_fmt[0] = '\0';
-                ThreadVars *tv = TmThreadsGetCallingThread();
+                tv = TmThreadsGetCallingThread();
                 cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg),
                               "%s%s", substr, ((tv != NULL)? tv->name: "UNKNOWN TM"));
                 if (cw < 0)

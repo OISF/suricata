@@ -1237,7 +1237,7 @@ int DetectPortParseMergeNotPorts(DetectPort **head, DetectPort **nhead) {
 
             r = DetectPortCmp(ag, ag2);
             if (r == PORT_EQ || r == PORT_EB) { /* XXX more ??? */
-                if (ag2->prev == NULL) {
+                if (ag2->prev == NULL || ag2 == *head) {
                     *head = ag2->next;
                 } else {
                     ag2->prev->next = ag2->next;
@@ -1318,21 +1318,25 @@ error:
  * \retval NULL on error
  */
 DetectPort *PortParse(char *str) {
-    char *portdup = SCStrdup(str);
+    char *portdup = NULL;
     char *port2 = NULL;
     DetectPort *dp = NULL;
+    char *port = NULL;
+
+    if (str == NULL || strlen(str) == 0)
+        return NULL;
+
+    portdup = SCStrdup(str);
+    if (portdup == NULL) {
+        goto error;
+    }
 
     dp = DetectPortInit();
     if (dp == NULL)
         goto error;
 
-    /* XXX better input validation */
-
     /* we dup so we can put a nul-termination in it later */
-    char *port = portdup;
-    if (port == NULL) {
-        goto error;
-    }
+    port = portdup;
 
     /* handle the negation case */
     if (port[0] == '!') {
@@ -1381,7 +1385,8 @@ error:
     if (dp != NULL)
         DetectPortCleanupList(dp);
 
-    if (portdup) SCFree(portdup);
+    if (portdup)
+        SCFree(portdup);
     return NULL;
 }
 

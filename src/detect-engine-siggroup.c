@@ -892,16 +892,16 @@ static void SigGroupHeadFreeSigArraysHash2(DetectEngineCtx *de_ctx,
             continue;
         }
 
-        if (sgh->init->sig_array != NULL) {
-            detect_siggroup_sigarray_free_cnt++;
-            detect_siggroup_sigarray_memory -= sgh->init->sig_size;
-
-            SCFree(sgh->init->sig_array);
-            sgh->init->sig_array = NULL;
-            sgh->init->sig_size = 0;
-        }
-
         if (sgh->init != NULL) {
+            if (sgh->init->sig_array != NULL) {
+                detect_siggroup_sigarray_free_cnt++;
+                detect_siggroup_sigarray_memory -= sgh->init->sig_size;
+
+                SCFree(sgh->init->sig_array);
+                sgh->init->sig_array = NULL;
+                sgh->init->sig_size = 0;
+            }
+
             SigGroupHeadInitDataFree(sgh->init);
             sgh->init = NULL;
         }

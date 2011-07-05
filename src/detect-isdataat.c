@@ -211,7 +211,7 @@ DetectIsdataatData *DetectIsdataatParse (char *isdataatstr)
 
 error:
 
-    for (i = 0; i < (ret -1) && i < 4; i++){
+    for (i = 0; i < (ret - 1) && i < 3; i++){
         if (args[i] != NULL)
             SCFree(args[i]);
     }
@@ -236,6 +236,10 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
 {
     DetectIsdataatData *idad = NULL;
     SigMatch *sm = NULL;
+    SigMatch *prev_sm = NULL;
+    DetectContentData *cd = NULL;
+    DetectUricontentData *ud = NULL;
+    DetectPcreData *pe = NULL;
 
     idad = DetectIsdataatParse(isdataatstr);
     if (idad == NULL)
@@ -279,7 +283,6 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
         return 0;
     }
 
-    SigMatch *prev_sm = NULL;
     prev_sm = SigMatchGetLastSMFromLists(s, 8,
                                          DETECT_CONTENT, sm->prev,
                                          DETECT_URICONTENT, sm->prev,
@@ -296,10 +299,6 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
             return -1;
         }
     }
-
-    DetectContentData *cd = NULL;
-    DetectUricontentData *ud = NULL;
-    DetectPcreData *pe = NULL;
 
     switch (prev_sm->type) {
         case DETECT_CONTENT:

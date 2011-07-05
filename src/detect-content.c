@@ -76,6 +76,7 @@ DetectContentData *DetectContentParse (char *contentstr)
     uint16_t len;
     uint16_t pos = 0;
     uint16_t slen = 0;
+    char converted = 0;
 
     if ((temp = SCStrdup(contentstr)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory. Exiting...");
@@ -150,8 +151,6 @@ DetectContentData *DetectContentParse (char *contentstr)
         goto error;
 
     //SCLogDebug("DetectContentParse: \"%s\", len %" PRIu32 "", str, len);
-    char converted = 0;
-
     {
         uint16_t i, x;
         uint8_t bin = 0;
