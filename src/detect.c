@@ -1324,16 +1324,16 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
             /* Retrieve the app layer state and protocol and the tcp reassembled
              * stream chunks. */
-            if ((IP_GET_IPPROTO(p) == IPPROTO_TCP && p->flags & PKT_STREAM_EST) ||
-                (IP_GET_IPPROTO(p) == IPPROTO_UDP && p->flowflags & FLOW_PKT_ESTABLISHED) ||
-                (IP_GET_IPPROTO(p) == IPPROTO_SCTP && p->flowflags & FLOW_PKT_ESTABLISHED))
+            if ((p->proto == IPPROTO_TCP && p->flags & PKT_STREAM_EST) ||
+                (p->proto == IPPROTO_UDP && p->flowflags & FLOW_PKT_ESTABLISHED) ||
+                (p->proto == IPPROTO_SCTP && p->flowflags & FLOW_PKT_ESTABLISHED))
             {
                 alstate = AppLayerGetProtoStateFromPacket(p);
                 alproto = AppLayerGetProtoFromPacket(p);
                 alversion = AppLayerGetStateVersion(p->flow);
                 SCLogDebug("alstate %p, alproto %u", alstate, alproto);
             } else {
-                SCLogDebug("packet doesn't have established flag set (proto %d)", IP_GET_IPPROTO(p));
+                SCLogDebug("packet doesn't have established flag set (proto %d)", p->proto);
             }
         }
         SCMutexUnlock(&p->flow->m);
