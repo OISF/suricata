@@ -2679,6 +2679,13 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
             break;
 
         case TH_FIN:
+        case TH_FIN|TH_ACK:
+        case TH_FIN|TH_ACK|TH_ECN:
+        case TH_FIN|TH_ACK|TH_ECN|TH_CWR:
+        case TH_FIN|TH_ACK|TH_PUSH:
+        case TH_FIN|TH_ACK|TH_PUSH|TH_ECN:
+        case TH_FIN|TH_ACK|TH_PUSH|TH_ECN|TH_CWR:
+
             if (ssn->flags & STREAMTCP_FLAG_TIMESTAMP) {
                 if (!StreamTcpValidateTimestamp(ssn, p))
                     return -1;
@@ -2689,8 +2696,8 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                            "%" PRIu32 ", ACK %" PRIu32 "", ssn, p->payload_len,
                             TCP_GET_SEQ(p), TCP_GET_ACK(p));
 
-                if (SEQ_LT(TCP_GET_SEQ(p), ssn->client.next_seq ||
-                    SEQ_GT(TCP_GET_SEQ(p), (ssn->client.last_ack + ssn->client.window))))
+                if (SEQ_LT(TCP_GET_SEQ(p), ssn->client.next_seq) ||
+                    SEQ_GT(TCP_GET_SEQ(p), (ssn->client.last_ack + ssn->client.window)))
                 {
                     SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ "
                                "%" PRIu32 " != %" PRIu32 " from stream", ssn,
@@ -2727,6 +2734,8 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                            "%" PRIu32 "", ssn, ssn->client.next_seq,
                             ssn->server.last_ack);
+
+                StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
             } else { /* implied to client */
                 SCLogDebug("ssn %p: pkt (%" PRIu32 ") is to client: SEQ "
                            "%" PRIu32 ", ACK %" PRIu32 "", ssn, p->payload_len,
@@ -2769,6 +2778,8 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                 SCLogDebug("ssn %p: =+ next SEQ %" PRIu32 ", last ACK "
                            "%" PRIu32 "", ssn, ssn->server.next_seq,
                             ssn->client.last_ack);
+
+                StreamTcpPseudoPacketCreateStreamEndPacket(p, ssn, pq);
             }
             break;
         default:
