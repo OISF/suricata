@@ -266,6 +266,7 @@ static int Unified2StreamTypeAlertIPv4 (Unified2AlertThread *aun, Packet *p, voi
     Unified2AlertFileHeader hdr;
     int ret;
     int len = (sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE);
+    uint32_t pkt_len;
 
     memset(&fakehdr, 0x00, sizeof(fakehdr));
     memset(aun->data,0x00,aun->datalen);
@@ -274,17 +275,24 @@ static int Unified2StreamTypeAlertIPv4 (Unified2AlertThread *aun, Packet *p, voi
 
     StreamMsg *stream_msg = (StreamMsg *)stream;
 
+    pkt_len = sizeof(fakehdr) + stream_msg->data.data_len;
+    if (pkt_len > USHRT_MAX) {
+        SCLogError(SC_ERR_INVALID_VALUE, "fake pkt is too big for IP data: "
+                "%"PRIu32" vs %"PRIu16, pkt_len, USHRT_MAX);
+        return -1;
+    }
+
     fakehdr.ip4h.ip_verhl = p->ip4h->ip_verhl;
     fakehdr.ip4h.ip_proto = p->ip4h->ip_proto;
     fakehdr.ip4h.ip_src.s_addr = p->ip4h->ip_src.s_addr;
     fakehdr.ip4h.ip_dst.s_addr = p->ip4h->ip_dst.s_addr;
-    fakehdr.ip4h.ip_len = htons(sizeof(fakehdr) + stream_msg->data.data_len);
+    fakehdr.ip4h.ip_len = htons((uint16_t)pkt_len);
 
     fakehdr.tcph.th_sport = p->tcph->th_sport;
     fakehdr.tcph.th_dport = p->tcph->th_dport;
     fakehdr.tcph.th_offx2 = 0x50; /* just the TCP header, no options */
 
-    len += (sizeof(fakehdr) + stream_msg->data.data_len);
+    len += (int)pkt_len;
 
     if (len > aun->datalen) {
         SCLogError(SC_ERR_INVALID_VALUE, "len is too big for thread data: %d vs %d",
@@ -293,14 +301,14 @@ static int Unified2StreamTypeAlertIPv4 (Unified2AlertThread *aun, Packet *p, voi
     }
 
     hdr.type = htonl(UNIFIED2_PACKET_TYPE);
-    hdr.length = htonl(UNIFIED2_PACKET_SIZE + (sizeof(fakehdr) + stream_msg->data.data_len));
+    hdr.length = htonl(UNIFIED2_PACKET_SIZE + pkt_len);
 
     phdr.sensor_id = 0;
     phdr.linktype = htonl(DLT_RAW);
     phdr.event_id = 0;
     phdr.event_second = phdr.packet_second = htonl(p->ts.tv_sec);
     phdr.packet_microsecond = htonl(p->ts.tv_usec);
-    phdr.packet_length = fakehdr.ip4h.ip_len;
+    phdr.packet_length = htonl(pkt_len);
 
     memcpy(aun->data, &hdr, sizeof(Unified2AlertFileHeader));
 
