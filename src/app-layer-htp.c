@@ -1713,7 +1713,6 @@ int HTPParserTest07(void) {
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
-            result = 0;
             goto end;
         }
     }
@@ -1721,7 +1720,6 @@ int HTPParserTest07(void) {
     htp_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (htp_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -1731,12 +1729,20 @@ int HTPParserTest07(void) {
     htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
     if (tx != NULL && tx->request_uri_normalized != NULL) {
         if (reflen != bstr_size(tx->request_uri_normalized)) {
+            printf("normalized uri len should be %"PRIuMAX", is %"PRIuMAX,
+                (uintmax_t)reflen,
+                (uintmax_t)bstr_size(tx->request_uri_normalized));
             goto end;
         }
 
         if (memcmp(bstr_ptr(tx->request_uri_normalized), ref,
                     bstr_size(tx->request_uri_normalized)) != 0)
         {
+            printf("normalized uri \"");
+            PrintRawUriFp(stdout, (uint8_t *)bstr_ptr(tx->request_uri_normalized), bstr_size(tx->request_uri_normalized));
+            printf("\" != \"");
+            PrintRawUriFp(stdout, ref, reflen);
+            printf("\": ");
             goto end;
         }
     }
