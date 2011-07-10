@@ -7222,8 +7222,8 @@ static int StreamTcpReassembleTest43 (void) {
         goto end;
     }
 #endif
-    if (ssn.flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED) {
-        printf("app layer detected flag is set, it shouldn't be (8): ");
+    if (!(ssn.flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED)) {
+        printf("app layer detected flag isn't set, it should be (8): ");
         goto end;
     }
 
