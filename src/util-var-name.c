@@ -121,6 +121,8 @@ void VariableNameFreeHash() {
     if (variable_names != NULL) {
         HashListTableFree(variable_names);
         HashListTableFree(variable_idxs);
+        variable_names = NULL;
+        variable_idxs = NULL;
     }
 }
 

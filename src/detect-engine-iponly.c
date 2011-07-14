@@ -48,6 +48,7 @@
 #include "util-classification-config.h"
 #include "util-rule-vars.h"
 
+#include "flow-util.h"
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -919,6 +920,31 @@ void DetectEngineIPOnlyThreadDeinit(DetectEngineIPOnlyThreadCtx *io_tctx) {
     SCFree(io_tctx->sig_match_array);
 }
 
+static inline
+int IPOnlyMatchCompatSMs(ThreadVars *tv,
+                         DetectEngineThreadCtx *det_ctx,
+                         Signature *s, Packet *p)
+{
+    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+    int match;
+
+    while (sm != NULL) {
+        if (sm->type != DETECT_FLOWBITS) {
+            sm = sm->next;
+            continue;
+        }
+
+        match = sigmatch_table[sm->type].Match(tv, det_ctx, p, s, sm);
+        if (match > 0) {
+            sm = sm->next;
+            continue;
+        }
+        return 0;
+    }
+
+    return 1;
+}
+
 /**
  * \brief Match a packet against the IP Only detection engine contexts
  *
@@ -927,7 +953,8 @@ void DetectEngineIPOnlyThreadDeinit(DetectEngineIPOnlyThreadCtx *io_tctx) {
  * \param io_ctx Pointer to the current ip only thread detection engine
  * \param p Pointer to the Packet to match against
  */
-void IPOnlyMatchPacket(DetectEngineCtx *de_ctx,
+void IPOnlyMatchPacket(ThreadVars *tv,
+                       DetectEngineCtx *de_ctx,
                        DetectEngineThreadCtx *det_ctx,
                        DetectEngineIPOnlyCtx *io_ctx,
                        DetectEngineIPOnlyThreadCtx *io_tctx, Packet *p)
@@ -1001,6 +1028,10 @@ void IPOnlyMatchPacket(DetectEngineCtx *de_ctx,
                     /* Need to check the protocol first */
                     if (!(s->proto.proto[(IP_GET_IPPROTO(p)/8)] & (1 << (IP_GET_IPPROTO(p) % 8))))
                         continue;
+
+                    if (!IPOnlyMatchCompatSMs(tv, det_ctx, s, p)) {
+                        continue;
+                    }
 
                     SCLogDebug("Signum %"PRIu16" match (sid: %"PRIu16", msg: %s)",
                                u * 8 + i, s->id, s->msg);
@@ -1998,6 +2029,107 @@ int IPOnlyTestSig12(void) {
     return result;
 }
 
+static int IPOnlyTestSig13(void)
+{
+    int result = 0;
+    DetectEngineCtx de_ctx;
+
+    memset(&de_ctx, 0, sizeof(DetectEngineCtx));
+
+    de_ctx.flags |= DE_QUIET;
+
+    Signature *s = SigInit(&de_ctx,
+                           "alert tcp any any -> any any (msg:\"Test flowbits ip only\"; "
+                           "flowbits:set,myflow1; sid:1; rev:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+    if (SignatureIsIPOnly(&de_ctx, s))
+        result = 1;
+    else
+        printf("expected a IPOnly signature: ");
+
+    SigFree(s);
+end:
+    return result;
+}
+
+static int IPOnlyTestSig14(void)
+{
+    int result = 0;
+    DetectEngineCtx de_ctx;
+
+    memset(&de_ctx, 0, sizeof(DetectEngineCtx));
+
+    de_ctx.flags |= DE_QUIET;
+
+    Signature *s = SigInit(&de_ctx,
+                           "alert tcp any any -> any any (msg:\"Test flowbits ip only\"; "
+                           "flowbits:set,myflow1; flowbits:isset,myflow2; sid:1; rev:1;)");
+    if (s == NULL) {
+        goto end;
+    }
+    if (SignatureIsIPOnly(&de_ctx, s))
+        printf("expected a IPOnly signature: ");
+    else
+        result = 1;
+
+    SigFree(s);
+end:
+    return result;
+}
+
+int IPOnlyTestSig15(void)
+{
+    int result = 0;
+    uint8_t *buf = (uint8_t *)"Hi all!";
+    uint16_t buflen = strlen((char *)buf);
+
+    uint8_t numpkts = 1;
+    uint8_t numsigs = 7;
+
+    Packet *p[1];
+    Flow f;
+    GenericVar flowvar;
+    memset(&f, 0, sizeof(Flow));
+    memset(&flowvar, 0, sizeof(GenericVar));
+    FLOW_INITIALIZE(&f);
+
+    p[0] = UTHBuildPacket((uint8_t *)buf, buflen, IPPROTO_TCP);
+
+    p[0]->flow = &f;
+    p[0]->flow->flowvar = &flowvar;
+    p[0]->flags |= PKT_HAS_FLOW;
+    p[0]->flowflags |= FLOW_PKT_TOSERVER;
+
+    char *sigs[numsigs];
+    sigs[0]= "alert tcp 192.168.1.5 any -> any any (msg:\"Testing src ip (sid 1)\"; "
+        "flowbits:set,one; sid:1;)";
+    sigs[1]= "alert tcp any any -> 192.168.1.1 any (msg:\"Testing dst ip (sid 2)\"; "
+        "flowbits:set,two; sid:2;)";
+    sigs[2]= "alert tcp 192.168.1.5 any -> 192.168.1.1 any (msg:\"Testing src/dst ip (sid 3)\"; "
+        "flowbits:set,three; sid:3;)";
+    sigs[3]= "alert tcp 192.168.1.5 any -> 192.168.1.1 any (msg:\"Testing src/dst ip (sid 4)\"; "
+        "flowbits:set,four; sid:4;)";
+    sigs[4]= "alert tcp 192.168.1.0/24 any -> any any (msg:\"Testing src/dst ip (sid 5)\"; "
+        "flowbits:set,five; sid:5;)";
+    sigs[5]= "alert tcp any any -> 192.168.0.0/16 any (msg:\"Testing src/dst ip (sid 6)\"; "
+        "flowbits:set,six; sid:6;)";
+    sigs[6]= "alert tcp 192.168.1.0/24 any -> 192.168.0.0/16 any (msg:\"Testing src/dst ip (sid 7)\"; "
+        "flowbits:set,seven; content:\"Hi all\"; sid:7;)";
+
+    /* Sid numbers (we could extract them from the sig) */
+    uint32_t sid[7] = { 1, 2, 3, 4, 5, 6, 7};
+    uint32_t results[7] = { 1, 1, 1, 1, 1, 1, 1};
+
+    result = UTHGenericTest(p, numpkts, sigs, sid, (uint32_t *) results, numsigs);
+
+    UTHFreePackets(p, numpkts);
+
+    FLOW_DESTROY(&f);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void IPOnlyRegisterTests(void) {
@@ -2016,6 +2148,11 @@ void IPOnlyRegisterTests(void) {
     UtRegisterTest("IPOnlyTestSig10", IPOnlyTestSig10, 1);
     UtRegisterTest("IPOnlyTestSig11", IPOnlyTestSig11, 1);
     UtRegisterTest("IPOnlyTestSig12", IPOnlyTestSig12, 1);
+    UtRegisterTest("IPOnlyTestSig13", IPOnlyTestSig13, 1);
+    UtRegisterTest("IPOnlyTestSig14", IPOnlyTestSig14, 1);
+    UtRegisterTest("IPOnlyTestSig15", IPOnlyTestSig15, 1);
 #endif
+
+    return;
 }
 

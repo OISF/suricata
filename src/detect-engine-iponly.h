@@ -51,9 +51,9 @@ int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, char *str);
 int IPOnlyCIDRItemSetup(IPOnlyCIDRItem *gh, char *s);
 
 void IPOnlyCIDRListPrint(IPOnlyCIDRItem *);
-void IPOnlyMatchPacket(DetectEngineCtx *, DetectEngineThreadCtx *,
-                       DetectEngineIPOnlyCtx *, DetectEngineIPOnlyThreadCtx *,
-                       Packet *);
+void IPOnlyMatchPacket(ThreadVars *tv, DetectEngineCtx *,
+                       DetectEngineThreadCtx *, DetectEngineIPOnlyCtx *,
+                       DetectEngineIPOnlyThreadCtx *, Packet *);
 void IPOnlyInit(DetectEngineCtx *, DetectEngineIPOnlyCtx *);
 void IPOnlyPrint(DetectEngineCtx *, DetectEngineIPOnlyCtx *);
 void IPOnlyDeinit(DetectEngineCtx *, DetectEngineIPOnlyCtx *);

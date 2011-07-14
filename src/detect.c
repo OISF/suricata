@@ -1352,7 +1352,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         {
             SCLogDebug("testing against \"ip-only\" signatures");
 
-            IPOnlyMatchPacket(de_ctx, det_ctx, &de_ctx->io_ctx, &det_ctx->io_ctx, p);
+            IPOnlyMatchPacket(th_v, de_ctx, det_ctx, &de_ctx->io_ctx, &det_ctx->io_ctx, p);
             /* save in the flow that we scanned this direction... locking is
              * done in the FlowSetIPOnlyFlag function. */
             FlowSetIPOnlyFlag(p->flow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
@@ -1383,7 +1383,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     } else {
         /* no flow */
         /* Even without flow we should match the packet src/dst */
-        IPOnlyMatchPacket(de_ctx, det_ctx, &de_ctx->io_ctx, &det_ctx->io_ctx, p);
+        IPOnlyMatchPacket(th_v, de_ctx, det_ctx, &de_ctx->io_ctx,
+                          &det_ctx->io_ctx, p);
 
         det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
     }
@@ -1914,9 +1915,15 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
     if (sm == NULL)
         goto iponly;
 
-    for ( ;sm != NULL; sm = sm->next) {
+    for ( ; sm != NULL; sm = sm->next) {
         if ( !(sigmatch_table[sm->type].flags & SIGMATCH_IPONLY_COMPAT))
             return 0;
+        /* we have enabled flowbits to be compatible with ip only sigs, as long
+         * as the sig only has a "set" flowbits */
+        if (sm->type == DETECT_FLOWBITS &&
+            (((DetectFlowbitsData *)sm->ctx)->cmd != DETECT_FLOWBITS_CMD_SET) ) {
+            return 0;
+        }
     }
 
 iponly:

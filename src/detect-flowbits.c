@@ -61,6 +61,8 @@ void DetectFlowbitsRegister (void) {
     sigmatch_table[DETECT_FLOWBITS].Setup = DetectFlowbitSetup;
     sigmatch_table[DETECT_FLOWBITS].Free  = DetectFlowbitFree;
     sigmatch_table[DETECT_FLOWBITS].RegisterTests = FlowBitsRegisterTests;
+    /* this is compatible to ip-only signatures */
+    sigmatch_table[DETECT_FLOWBITS].flags |= SIGMATCH_IPONLY_COMPAT;
 
     const char *eb;
     int eo;
@@ -750,6 +752,7 @@ static int FlowBitsTestSig06(void) {
     p->payload_len = buflen;
     p->proto = IPPROTO_TCP;
     p->flags |= PKT_HAS_FLOW;
+    p->flowflags |= FLOW_PKT_TOSERVER;
 
     de_ctx = DetectEngineCtxInit();
 
