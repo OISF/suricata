@@ -114,6 +114,8 @@ static const char *RunModeTranslateModeToName(int runmode)
             return "ERF_DAG";
         case RUNMODE_UNITTEST:
             return "UNITTEST";
+        case RUNMODE_AFP_DEV:
+            return "AF_PACKET_DEV";
         default:
             SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");
             exit(EXIT_FAILURE);
@@ -155,6 +157,7 @@ void RunModeRegisterRunModes(void)
     RunModeIpsIPFWRegister();
     RunModeErfFileRegister();
     RunModeErfDagRegister();
+    RunModeIdsAFPRegister();
     UtRunModeRegister();
 
     return;
@@ -237,6 +240,9 @@ void RunModeDispatch(int runmode, const char *custom_mode, DetectEngineCtx *de_c
                 break;
             case RUNMODE_DAG:
                 custom_mode = RunModeErfDagGetDefaultMode();
+                break;
+            case RUNMODE_AFP_DEV:
+                custom_mode = RunModeAFPGetDefaultMode();
                 break;
             default:
                 SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");

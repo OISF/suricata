@@ -154,6 +154,26 @@ nfq:
 #  repeat_mask: 1
 #  route_queue: 2
 
+# af-packet support
+# Set threads to > 1 to use PACKET_FANOUT support
+af-packet:
+  # Number of receive threads (>1 will enable experimental flow pinned
+  # runmode)
+  threads: 1
+
+  # Default interface we will listen on.
+  interface: eth0
+
+  # Default clusterid.  AF_PACKET will load balance packets based on flow.
+  # All threads/processes that will participate need to have the same
+  # clusterid.
+  cluster-id: 99
+
+  # Default AF_PACKET cluster type. AF_PACKET can load balance per flow or per hash.
+  # This is only supported for Linux kernel > 3.1
+  # possible value are: "cluster_round_robin" and "cluster_flow"
+  cluster-type: cluster_round_robin
+
 defrag:
   max-frags: 65535
   prealloc: yes

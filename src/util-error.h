@@ -217,6 +217,9 @@ typedef enum {
     SC_ERR_RUNMODE,
     SC_ERR_SHUTDOWN,
     SC_ERR_INVALID_DIRECTION,
+    SC_ERR_AFP_CREATE,
+    SC_ERR_AFP_READ,
+    SC_ERR_AFP_DISPATCH,
 } SCError;
 
 const char *SCErrorToString(SCError);

@@ -100,6 +100,8 @@
 #include "source-erf-file.h"
 #include "source-erf-dag.h"
 
+#include "source-af-packet.h"
+
 #include "respond-reject.h"
 
 #include "flow.h"
@@ -390,6 +392,8 @@ void usage(const char *progname)
     printf("USAGE: %s\n\n", progname);
     printf("\t-c <path>                    : path to configuration file\n");
     printf("\t-i <dev or ip>               : run in pcap live mode\n");
+/* TODO add condition ifdef for af_packet */
+    printf("\t-a <dev>                     : run in af-packet mode\n");
     printf("\t-F <bpf filter file>         : bpf filter file\n");
     printf("\t-r <path>                    : run in pcap file/offline mode\n");
 #ifdef NFQ
@@ -658,7 +662,7 @@ int main(int argc, char **argv)
     /* getopt_long stores the option index here. */
     int option_index = 0;
 
-    char short_opts[] = "c:Dhi:l:q:d:r:us:U:VF:";
+    char short_opts[] = "c:Dhi:l:q:d:r:us:U:VF:a:";
 
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {
@@ -859,6 +863,30 @@ int main(int argc, char **argv)
 			memset(pcap_dev, 0, sizeof(pcap_dev));
             strlcpy(pcap_dev, optarg, ((strlen(optarg) < sizeof(pcap_dev)) ? (strlen(optarg)+1) : (sizeof(pcap_dev))));
             break;
+        case 'a':
+            /* TODO fix parasiting of pcap mode */
+            if (run_mode == RUNMODE_UNKNOWN) {
+                run_mode = RUNMODE_AFP_DEV;
+                PcapLiveRegisterDevice(optarg);
+            } else if (run_mode == RUNMODE_AFP_DEV) {
+#ifdef OS_WIN32
+                SCLogError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT, "pcap multi dev "
+                        "support is not (yet) supported on Windows.");
+                exit(EXIT_FAILURE);
+#else
+                SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
+                        "multiple pcap devices to get packets is experimental.");
+                PcapLiveRegisterDevice(optarg);
+#endif
+            } else {
+                SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                                                     "has been specified");
+                usage(argv[0]);
+                exit(EXIT_FAILURE);
+            }
+			memset(pcap_dev, 0, sizeof(pcap_dev));
+            strlcpy(pcap_dev, optarg, ((strlen(optarg) < sizeof(pcap_dev)) ? (strlen(optarg)+1) : (sizeof(pcap_dev))));
+            break;
         case 'l':
             if (ConfSet("default-log-dir", optarg, 0) != 1) {
                 fprintf(stderr, "ERROR: Failed to set log directory.\n");
@@ -1028,6 +1056,7 @@ int main(int argc, char **argv)
     if (ConfGetInt("default-packet-size", &default_packet_size) != 1) {
         switch (run_mode) {
             case RUNMODE_PCAP_DEV:
+            case RUNMODE_AFP_DEV:
             case RUNMODE_PFRING:
                 /* find payload for interface and use it */
                 default_packet_size = GetIfaceMaxPayloadSize(pcap_dev);
@@ -1111,6 +1140,8 @@ int main(int argc, char **argv)
     TmModuleDecodeIPFWRegister();
     TmModuleReceivePcapRegister();
     TmModuleDecodePcapRegister();
+    TmModuleReceiveAFPRegister();
+    TmModuleDecodeAFPRegister();
     TmModuleReceivePfringRegister();
     TmModuleDecodePfringRegister();
     TmModuleReceivePcapFileRegister();
@@ -1383,6 +1414,13 @@ int main(int argc, char **argv)
     } else if (run_mode == RUNMODE_PFRING) {
         PfringLoadConfig();
 #endif /* HAVE_PFRING */
+    } else if (run_mode == RUNMODE_AFP_DEV) {
+        /* TODO fix parasiting */
+        PcapTranslateIPToDevice(pcap_dev, sizeof(pcap_dev));
+        if (ConfSet("pcap.single_pcap_dev", pcap_dev, 0) != 1) {
+            fprintf(stderr, "ERROR: Failed to set pcap.single_pcap_dev\n");
+            exit(EXIT_FAILURE);
+        }
     }
 
     RunModeDispatch(run_mode, runmode_custom_mode, de_ctx);
