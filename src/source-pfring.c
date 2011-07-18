@@ -219,11 +219,18 @@ TmEcode ReceivePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
     }
 
     /* Depending on what compile time options are used for pfring we either return 0 or -1 on error and always 1 for success */
-
+#ifdef HAVE_PFRING_RECV_UCHAR
+    int r = pfring_recv(ptv->pd, (u_char**)&GET_PKT_DIRECT_DATA(p),
+                        (u_int)GET_PKT_DIRECT_MAX_SIZE(p),
+                        &hdr,
+                        LIBPFRING_WAIT_FOR_INCOMING);
+#else
     int r = pfring_recv(ptv->pd, (char *)GET_PKT_DIRECT_DATA(p),
                         (u_int)GET_PKT_DIRECT_MAX_SIZE(p),
                         &hdr,
                         LIBPFRING_WAIT_FOR_INCOMING);
+#endif /* HAVE_PFRING_RECV_UCHAR */
+
     if (r == 1) {
         //printf("RecievePfring src %" PRIu32 " sport %" PRIu32 " dst %" PRIu32 " dstport %" PRIu32 "\n",
         //        hdr.parsed_pkt.ipv4_src,hdr.parsed_pkt.l4_src_port, hdr.parsed_pkt.ipv4_dst,hdr.parsed_pkt.l4_dst_port);
@@ -307,6 +314,16 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
                 "returned %d for cluster-id: %d", rc, ptv->cluster_id);
         return TM_ECODE_FAILED;
     }
+
+/* It seems that as of 4.7.1 this is required */
+#ifdef HAVE_PFRING_ENABLE
+    rc = pfring_enable_ring(ptv->pd);
+
+    if (rc != 0) {
+        SCLogError(SC_ERR_PF_RING_OPEN, "pfring_enable failed returned %d ", rc);
+        return TM_ECODE_FAILED;
+    }
+#endif /* HAVE_PFRING_ENABLE */
 
     SCLogInfo("(%s) Using PF_RING v.%d.%d.%d, interface %s, cluster-id %d",
             tv->name, (version & 0xFFFF0000) >> 16, (version & 0x0000FF00) >> 8,

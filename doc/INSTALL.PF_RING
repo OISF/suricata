@@ -39,30 +39,56 @@ dkms install -m pf_ring -v 4
 #if you issue the following command you can see that pf_ring should now be installed as DKMS module
 dkms status
 
-#Now lets go through the steps to build a PF_RING aware driver.
-mkdir /usr/src/e1000e-pf_ring-1.0.15
-cp -Rf /usr/src/PF_RING_CURRENT_SVN/drivers/intel/e1000e/old/e1000e-1.0.15/src/* /usr/src/e1000e-pf_ring-1.0.15/
+#Now lets go through the steps to build a e1000e PF_RING aware driver.
+mkdir /usr/src/e1000e-pf_ring-1.3.10a
+cd /usr/src/PF_RING_CURRENT_SVN/drivers/intel/e1000e/e1000e-1.3.10a/src/
 
 #We copy this over so that DKMS can find it for driver rebuilds
-cp -f /usr/src/PF_RING_CURRENT_SVN/kernel/linux/pf_ring.h /usr/src/e1000e-pf_ring-1.0.15/
-cd /usr/src/e1000e-pf_ring-1.0.15/
+cp -Rf /usr/src/PF_RING_CURRENT_SVN/drivers/intel/e1000e/e1000e-1.3.10a/src/* /usr/src/e1000e-pf_ring-1.3.10a/
+cp -f /usr/src/PF_RING_CURRENT_SVN/kernel/linux/pf_ring.h /usr/src/e1000e-pf_ring-1.3.10a/
 
 #Fix the path to pf_ring.h
-sed -i -e 's/\.\.\/\.\.\/\.\.\/\.\.\/kernel\/linux\/pf\_ring\.h/pf\_ring\.h/' netdev.c
+cd /usr/src/e1000e-pf_ring-1.3.10a/
+sed -i -e 's/\.\.\/\.\.\/\.\.\/\.\.\/\.\.\/kernel\/linux\/pf\_ring\.h/pf\_ring\.h/' netdev.c
 
 #Create a file called dkms.conf and place the following into the file.
 nano dkms.conf
 
 PACKAGE_NAME="e1000e-pf_ring"
-PACKAGE_VERSION="1.0.15"
+PACKAGE_VERSION="1.3.10a"
 BUILT_MODULE_NAME[0]="e1000e"
 DEST_MODULE_LOCATION[0]="/kernel/drivers/net/e1000e/"
 AUTOINSTALL="yes"
 
 #Build and install the module we don't build a deb as currently this appears to be broken in Ubuntu-10.04
-dkms add -m e1000e-pf_ring -v 1.0.15
-dkms build -m e1000e-pf_ring -v 1.0.15
-dkms install -m e1000e-pf_ring -v 1.0.15
+dkms add -m e1000e-pf_ring -v 1.3.10a
+dkms build -m e1000e-pf_ring -v 1.3.10a
+dkms install -m e1000e-pf_ring -v 1.3.10a
+
+#Now lets go through the steps to build a e1000 PF_RING aware driver.
+mkdir /usr/src/e1000-pf_ring-8.0.30
+cd /usr/src/PF_RING_CURRENT_SVN/drivers/intel/e1000/e1000-8.0.30/src/
+
+#We copy this over so that DKMS can find it for driver rebuilds
+cp -Rf /usr/src/PF_RING_CURRENT_SVN/drivers/intel/e1000/e1000-8.0.30/src/* /usr/src/e1000-pf_ring-8.0.30
+cp -f /usr/src/PF_RING_CURRENT_SVN/kernel/linux/pf_ring.h /usr/src/e1000-pf_ring-8.0.30
+
+#Fix the path to pf_ring.h
+cd /usr/src/e1000-pf_ring-8.0.30
+sed -i -e 's/\.\.\/\.\.\/\.\.\/\.\.\/\.\.\/kernel\/linux\/pf\_ring\.h/pf\_ring\.h/' e1000_main.c
+
+#Create a file called dkms.conf and place the following into the file.
+nano dkms.conf
+
+PACKAGE_NAME="e1000-pf_ring"
+PACKAGE_VERSION="8.0.30"
+BUILT_MODULE_NAME[0]="e1000"
+DEST_MODULE_LOCATION[0]="/kernel/drivers/net/e1000/"
+AUTOINSTALL="yes"
+
+dkms add -m e1000-pf_ring -v 8.0.30
+dkms build -m e1000-pf_ring -v 8.0.30
+dkms install -m e1000-pf_ring -v 8.0.30
 
 #Make the dir structure to hold are PF_RING enabled userland Apps.
 mkdir -p /opt/PF_RING/{bin,lib,include/linux,sbin}
@@ -76,21 +102,15 @@ cp -f pfring_e1000e_dna.h /opt/PF_RING/include
 make &&  make install
 
 #Build and install the PF_RING enabled libpcap
-cd /usr/src/PF_RING_CURRENT_SVN/userland/libpcap-1.0.0-ring
+#PF_RING enabled libpcap
+cd /usr/src/PF_RING_CURRENT_SVN/userland/libpcap-1.1.1-ring
 ./configure
 sed -i -e 's/\.\.\/lib\/libpfring\.a/\/opt\/PF_RING\/lib\/libpfring\.a/' Makefile
 sed -i -e 's/\.\.\/lib\/libpfring\.a/\/opt\/PF_RING\/lib\/libpfring\.a/' Makefile.in
 ./configure --prefix=/opt/PF_RING && make && make install
 
 #Build and install tcpdump using the PF_RING enabled version of libpcap
-cd /usr/src/PF_RING_CURRENT_SVN/userland/tcpdump-4.0.0
-./configure
-sed -i -e 's/\.\.\/lib\/libpfring\.a/\/opt\/PF_RING\/lib\/libpfring\.a/' Makefile
-sed -i -e 's/\.\.\/lib\/libpfring\.a/\/opt\/PF_RING\/lib\/libpfring\.a/' Makefile.in
-sed -i -e 's/-I \.\.\/libpcap-1\.0\.0-ring/-I \/opt\/PF_RING\/include/' Makefile
-sed -i -e 's/-I \.\.\/libpcap-1\.0\.0-ring/-I \/opt\/PF_RING\/include/' Makefile.in
-sed -i -e 's/-L \.\.\/libpcap-1\.0\.0-ring\/-L /\/opt\/PF_RING\/lib\//' Makefile
-sed -i -e 's/-L \.\.\/libpcap-1\.0\.0-ring\/-L /\/opt\/PF_RING\/lib\//' Makefile.in
+cd /usr/src/PF_RING_CURRENT_SVN/userland/tcpdump-4.1.1
 ./configure LD_RUN_PATH="/opt/PF_RING/lib:/usr/lib:/usr/local/lib" --prefix=/opt/PF_RING/ --enable-ipv6 && make && make install
 
 #Pull down the latest version of suricata from the git repo and build with PF_RING support.
@@ -121,5 +141,6 @@ echo "options pf_ring transparent_mode=0 num_slots=32768 enable_tx_capture=0" > 
 modinfo pf_ring && cat /proc/net/pf_ring/info
 
 #If you need to uninstall PF_RING or rollback your PF_RING aware drivers to their previous state you can do so with the following commands.
-dkms remove -m e1000e-pf_ring -v 1.0.15 --all
+dkms remove -m e1000e-pf_ring -v 1.3.10a --all
+dkms remove -m e1000 -v 8.0.30 --all
 dkms remove -m pf_ring -v 4 --all
