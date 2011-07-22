@@ -151,42 +151,54 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
     mode = (char *)str_ptr;
     SCLogDebug("mode \"%s\"", mode);
 
-    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_get_substring failed");
-        goto error;
-    }
-    value1 = (char *)str_ptr;
-    SCLogDebug("value1 \"%s\"", value1);
+    if (ret >= 3) {
+        res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+        if (res < 0) {
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_get_substring failed");
+            goto error;
+        }
+        value1 = (char *)str_ptr;
+        SCLogDebug("value1 \"%s\"", value1);
 
-    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_get_substring failed");
-        goto error;
-    }
-    range = (char *)str_ptr;
-    SCLogDebug("range \"%s\"", range);
+        if (ret >= 4) {
+            res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
+            if (res < 0) {
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_get_substring failed");
+                goto error;
+            }
+            range = (char *)str_ptr;
+            SCLogDebug("range \"%s\"", range);
 
-    res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 4, &str_ptr);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_get_substring failed");
-        goto error;
+            if (ret >= 5) {
+                res = pcre_get_substring((char *)rawstr, ov, MAX_SUBSTRINGS, 4, &str_ptr);
+                if (res < 0) {
+                    SCLogError(SC_ERR_PCRE_GET_SUBSTRING,"pcre_get_substring failed");
+                    goto error;
+                }
+                value2 = (char *)str_ptr;
+                SCLogDebug("value2 \"%s\"", value2);
+            }
+        }
     }
-    value2 = (char *)str_ptr;
-    SCLogDebug("value2 \"%s\"", value2);
 
     dd = SCMalloc(sizeof(DetectDsizeData));
     if (dd == NULL)
         goto error;
     dd->dsize = 0;
     dd->dsize2 = 0;
+    dd->mode = DETECTDSIZE_EQ; // default
 
-    if (mode[0] == '<') dd->mode = DETECTDSIZE_LT;
-    else if (mode[0] == '>') dd->mode = DETECTDSIZE_GT;
-    else dd->mode = DETECTDSIZE_EQ;
+    if (mode != NULL) {
+        if (mode[0] == '<')
+            dd->mode = DETECTDSIZE_LT;
+        else if (mode[0] == '>')
+            dd->mode = DETECTDSIZE_GT;
+        else
+            dd->mode = DETECTDSIZE_EQ;
+    }
 
-    if (strcmp("<>", range) == 0) {
-        if (strlen(mode) != 0) {
+    if (range != NULL && strcmp("<>", range) == 0) {
+        if (mode != NULL && strlen(mode) != 0) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,"Range specified but mode also set");
             goto error;
         }
@@ -194,24 +206,24 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
     }
 
     /** set the first dsize value */
-    if(ByteExtractStringUint16(&dd->dsize,10,strlen(value1),value1) <= 0){
-        SCLogError(SC_ERR_INVALID_ARGUMENT,"Invalid size value1:\"%s\"",value1);
+    if (ByteExtractStringUint16(&dd->dsize,10,strlen(value1),value1) <= 0) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid size value1:\"%s\"", value1);
         goto error;
     }
 
     /** set the second dsize value if specified */
-    if (strlen(value2) > 0) {
+    if (value2 != NULL && strlen(value2) > 0) {
         if (dd->mode != DETECTDSIZE_RA) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,"Multiple dsize values specified but mode is not range");
             goto error;
         }
 
-        if(ByteExtractStringUint16(&dd->dsize2,10,strlen(value2),value2) <= 0){
+        if (ByteExtractStringUint16(&dd->dsize2,10,strlen(value2),value2) <= 0) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,"Invalid size value2:\"%s\"",value2);
             goto error;
         }
 
-        if (dd->dsize2 <= dd->dsize){
+        if (dd->dsize2 <= dd->dsize) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,"dsize2:%"PRIu16" <= dsize:%"PRIu16"",dd->dsize2,dd->dsize);
             goto error;
         }
@@ -219,18 +231,27 @@ DetectDsizeData *DetectDsizeParse (char *rawstr)
 
     SCLogDebug("dsize parsed succesfully dsize: %"PRIu16" dsize2: %"PRIu16"",dd->dsize,dd->dsize2);
 
-    SCFree(value1);
-    SCFree(value2);
-    SCFree(mode);
-    SCFree(range);
+    if (value1)
+        SCFree(value1);
+    if (value2)
+        SCFree(value2);
+    if (mode)
+        SCFree(mode);
+    if (range)
+        SCFree(range);
     return dd;
 
 error:
-    if (dd) SCFree(dd);
-    if (value1) SCFree(value1);
-    if (value2) SCFree(value2);
-    if (mode) SCFree(mode);
-    if (range) SCFree(range);
+    if (dd)
+        SCFree(dd);
+    if (value1)
+        SCFree(value1);
+    if (value2)
+        SCFree(value2);
+    if (mode)
+        SCFree(mode);
+    if (range)
+        SCFree(range);
     return NULL;
 }
 

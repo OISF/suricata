@@ -153,21 +153,25 @@ DetectTtlData *DetectTtlParse (char *ttlstr) {
     arg1 = (char *) str_ptr;
     SCLogDebug("Arg1 \"%s\"", arg1);
 
-    res = pcre_get_substring((char *) ttlstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-        goto error;
-    }
-    arg2 = (char *) str_ptr;
-    SCLogDebug("Arg2 \"%s\"", arg2);
+    if (ret >= 3) {
+        res = pcre_get_substring((char *) ttlstr, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+        if (res < 0) {
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            goto error;
+        }
+        arg2 = (char *) str_ptr;
+        SCLogDebug("Arg2 \"%s\"", arg2);
 
-    res = pcre_get_substring((char *) ttlstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-        goto error;
+        if (ret >= 4) {
+            res = pcre_get_substring((char *) ttlstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
+            if (res < 0) {
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+                goto error;
+            }
+            arg3 = (char *) str_ptr;
+            SCLogDebug("Arg3 \"%s\"", arg3);
+        }
     }
-    arg3 = (char *) str_ptr;
-    SCLogDebug("Arg3 \"%s\"", arg3);
 
     ttld = SCMalloc(sizeof (DetectTtlData));
     if (ttld == NULL)
@@ -175,47 +179,64 @@ DetectTtlData *DetectTtlParse (char *ttlstr) {
     ttld->ttl1 = 0;
     ttld->ttl2 = 0;
 
-    /*set the values*/
-    switch(arg2[0]) {
-        case '<':
-            ttld->mode = DETECT_TTL_LT;
-            ttld->ttl1 = (uint8_t) atoi(arg3);
+    if (arg2 != NULL) {
+        /*set the values*/
+        switch(arg2[0]) {
+            case '<':
+                if (arg3 == NULL)
+                    goto error;
 
-            SCLogDebug("ttl is %"PRIu8"",ttld->ttl1);
-            if (strlen(arg1) > 0)
-                goto error;
+                ttld->mode = DETECT_TTL_LT;
+                ttld->ttl1 = (uint8_t) atoi(arg3);
 
-            break;
-        case '>':
-            ttld->mode = DETECT_TTL_GT;
-            ttld->ttl1 = (uint8_t) atoi(arg3);
+                SCLogDebug("ttl is %"PRIu8"",ttld->ttl1);
+                if (strlen(arg1) > 0)
+                    goto error;
 
-            SCLogDebug("ttl is %"PRIu8"",ttld->ttl1);
-            if (strlen(arg1) > 0)
-                goto error;
+                break;
+            case '>':
+                if (arg3 == NULL)
+                    goto error;
 
-            break;
-        case '-':
-            if (strlen(arg1)== 0)
-                goto error;
+                ttld->mode = DETECT_TTL_GT;
+                ttld->ttl1 = (uint8_t) atoi(arg3);
 
-            ttld->mode = DETECT_TTL_RA;
-            ttld->ttl1 = (uint8_t) atoi(arg1);
-            if (strlen(arg3) == 0)
-                goto error;
+                SCLogDebug("ttl is %"PRIu8"",ttld->ttl1);
+                if (strlen(arg1) > 0)
+                    goto error;
 
-            ttld->ttl2 = (uint8_t) atoi(arg3);
-            SCLogDebug("ttl is %"PRIu8" and %"PRIu8"",ttld->ttl1, ttld->ttl2);
+                break;
+            case '-':
+                if (arg1 == NULL || strlen(arg1)== 0)
+                    goto error;
+                if (arg3 == NULL || strlen(arg3)== 0)
+                    goto error;
 
-            break;
-        default:
-            ttld->mode = DETECT_TTL_EQ;
+                ttld->mode = DETECT_TTL_RA;
+                ttld->ttl1 = (uint8_t) atoi(arg1);
 
-            if (strlen(arg2) > 0 || strlen(arg3) > 0 || strlen(arg1) == 0)
-                goto error;
+                ttld->ttl2 = (uint8_t) atoi(arg3);
+                SCLogDebug("ttl is %"PRIu8" and %"PRIu8"",ttld->ttl1, ttld->ttl2);
 
-            ttld->ttl1 = (uint8_t) atoi(arg1);
-            break;
+                break;
+            default:
+                ttld->mode = DETECT_TTL_EQ;
+
+                if ((arg2 != NULL && strlen(arg2) > 0) || (arg3 != NULL && strlen(arg3) > 0) || (arg1 == NULL ||strlen(arg1) == 0))
+                    goto error;
+
+                ttld->ttl1 = (uint8_t) atoi(arg1);
+                break;
+        }
+    } else {
+        ttld->mode = DETECT_TTL_EQ;
+
+        if ((arg2 != NULL && strlen(arg2) > 0) ||
+                (arg3 != NULL && strlen(arg3) > 0) ||
+                (arg1 == NULL ||strlen(arg1) == 0))
+            goto error;
+
+        ttld->ttl1 = (uint8_t) atoi(arg1);
     }
 
     SCFree(arg1);
