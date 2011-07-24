@@ -23,7 +23,7 @@
 #ifndef __RUNMODE_PCAP_FILE_H__
 #define __RUNMODE_PCAP_FILE_H__
 
-int RunModeFilePcap2(DetectEngineCtx *);
+int RunModeFilePcapSingle(DetectEngineCtx *);
 int RunModeFilePcapAuto(DetectEngineCtx *);
 int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx);
 void RunModeFilePcapRegister(void);

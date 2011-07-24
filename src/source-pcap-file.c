@@ -44,11 +44,13 @@
 #include "util-error.h"
 #include "util-privs.h"
 #include "tmqh-packetpool.h"
+#include "tm-threads.h"
+#include "util-optimize.h"
 
 extern uint8_t suricata_ctl_flags;
 extern int max_pending_packets;
 
-static int pcap_max_read_packets = 0;
+//static int pcap_max_read_packets = 0;
 
 typedef struct PcapFileGlobalVars_ {
     pcap_t *pcap_handle;
@@ -59,28 +61,25 @@ typedef struct PcapFileGlobalVars_ {
 } PcapFileGlobalVars;
 
 /** max packets < 65536 */
-#define PCAP_FILE_MAX_PKTS 256
+//#define PCAP_FILE_MAX_PKTS 256
 
 typedef struct PcapFileThreadVars_
 {
     /* counters */
     uint32_t pkts;
     uint64_t bytes;
-    uint32_t errs;
 
     ThreadVars *tv;
-
-    Packet *in_p;
-
-    Packet *array[PCAP_FILE_MAX_PKTS];
-    uint16_t array_idx;
+    TmSlot *slot;
 
     uint8_t done;
+    uint32_t errs;
 } PcapFileThreadVars;
 
 static PcapFileGlobalVars pcap_g;
 
-TmEcode ReceivePcapFile(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode ReceivePcapFileLoop(ThreadVars *, void *, void *);
+
 TmEcode ReceivePcapFileThreadInit(ThreadVars *, void *, void **);
 void ReceivePcapFileThreadExitStats(ThreadVars *, void *);
 TmEcode ReceivePcapFileThreadDeinit(ThreadVars *, void *);
@@ -93,7 +92,8 @@ void TmModuleReceivePcapFileRegister (void) {
 
     tmm_modules[TMM_RECEIVEPCAPFILE].name = "ReceivePcapFile";
     tmm_modules[TMM_RECEIVEPCAPFILE].ThreadInit = ReceivePcapFileThreadInit;
-    tmm_modules[TMM_RECEIVEPCAPFILE].Func = ReceivePcapFile;
+    tmm_modules[TMM_RECEIVEPCAPFILE].Func = NULL;
+    tmm_modules[TMM_RECEIVEPCAPFILE].PktAcqLoop = ReceivePcapFileLoop;
     tmm_modules[TMM_RECEIVEPCAPFILE].ThreadExitPrintStats = ReceivePcapFileThreadExitStats;
     tmm_modules[TMM_RECEIVEPCAPFILE].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVEPCAPFILE].RegisterTests = NULL;
@@ -110,19 +110,13 @@ void TmModuleDecodePcapFileRegister (void) {
     tmm_modules[TMM_DECODEPCAPFILE].cap_flags = 0;
 }
 
-void PcapFileCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
+void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     SCEnter();
 
     PcapFileThreadVars *ptv = (PcapFileThreadVars *)user;
+    Packet *p = PacketGetFromQueueOrAlloc();
 
-    Packet *p = NULL;
-    if (ptv->array_idx == 0) {
-        p = ptv->in_p;
-    } else {
-        p = PacketGetFromQueueOrAlloc();
-    }
-
-    if (p == NULL) {
+    if (unlikely(p == NULL)) {
         SCReturn;
     }
 
@@ -134,77 +128,57 @@ void PcapFileCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     ptv->pkts++;
     ptv->bytes += h->caplen;
 
-    if (PacketCopyData(p, pkt, h->caplen))
+    if (unlikely(PacketCopyData(p, pkt, h->caplen)))
         SCReturn;
-    //printf("PcapFileCallback: p->pktlen: %" PRIu32 " (pkt %02x, p->pkt %02x)\n", GET_PKT_LEN(p), *pkt, *GET_PKT_DATA(p));
 
-    /* store the packet in our array */
-    ptv->array[ptv->array_idx] = p;
-    ptv->array_idx++;
+    TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p);
 
     SCReturn;
 }
 
 /**
- *  \brief Main PCAP file reading function
+ *  \brief Main PCAP file reading Loop function
  */
-TmEcode ReceivePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
-    SCEnter();
+TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot) {
     uint16_t packet_q_len = 0;
-
     PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
+    TmSlot *s = (TmSlot *)slot;
+    ptv->slot = s->slot_next;
+    int r;
 
-    if (ptv->done == 1 || suricata_ctl_flags & SURICATA_STOP ||
-            suricata_ctl_flags & SURICATA_KILL) {
-        SCReturnInt(TM_ECODE_FAILED);
-    }
+    SCEnter();
 
-    if (postpq == NULL) {
-        pcap_max_read_packets = 1;
-    }
-
-    ptv->array_idx = 0;
-    ptv->in_p = p;
-
-    /* make sure we have at least one packet in the packet pool, to prevent
-     * us from alloc'ing packets at line rate */
-    do {
-        packet_q_len = PacketPoolSize();
-        if (packet_q_len == 0) {
-            PacketPoolWait();
+    while (1) {
+        if (suricata_ctl_flags & SURICATA_STOP ||
+            suricata_ctl_flags & SURICATA_KILL)
+        {
+            SCReturnInt(TM_ECODE_FAILED);
         }
-    } while (packet_q_len == 0);
 
-    /* Right now we just support reading packets one at a time. */
-    int r = pcap_dispatch(pcap_g.pcap_handle, (pcap_max_read_packets < packet_q_len) ? pcap_max_read_packets : packet_q_len,
-            (pcap_handler)PcapFileCallback, (u_char *)ptv);
-    if (r < 0) {
-        SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s",
-                r, pcap_geterr(pcap_g.pcap_handle));
+        /* make sure we have at least one packet in the packet pool, to prevent
+         * us from alloc'ing packets at line rate */
+        do {
+            packet_q_len = PacketPoolSize();
+            if (unlikely(packet_q_len == 0)) {
+                PacketPoolWait();
+            }
+        } while (packet_q_len == 0);
 
-        /* in the error state we just kill the engine */
-        EngineKill();
-        SCReturnInt(TM_ECODE_FAILED);
-    } else if (r == 0) {
-        SCLogInfo("pcap file end of file reached (pcap err code %" PRId32 ")", r);
+        /* Right now we just support reading packets one at a time. */
+        r = pcap_dispatch(pcap_g.pcap_handle, (int)packet_q_len,
+                (pcap_handler)PcapFileCallbackLoop, (u_char *)ptv);
+        if (unlikely(r < 0)) {
+            SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s",
+                    r, pcap_geterr(pcap_g.pcap_handle));
 
-        EngineStop();
-        ptv->done = 1;
+            /* in the error state we just kill the engine */
+            EngineKill();
+            SCReturnInt(TM_ECODE_FAILED);
+        } else if (unlikely(r == 0)) {
+            SCLogInfo("pcap file end of file reached (pcap err code %" PRId32 ")", r);
 
-        /* fall through */
-    }
-
-    uint16_t cnt = 0;
-    for (cnt = 0; cnt < ptv->array_idx; cnt++) {
-        Packet *pp = ptv->array[cnt];
-
-        pcap_g.cnt++;
-
-        if (cnt > 0) {
-            pp->pcap_cnt = pcap_g.cnt;
-            PacketEnqueue(postpq, pp);
-        } else {
-            pp->pcap_cnt = pcap_g.cnt;
+            EngineStop();
+            break;
         }
     }
 
@@ -218,11 +192,6 @@ TmEcode ReceivePcapFileThreadInit(ThreadVars *tv, void *initdata, void **data) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "error: initdata == NULL");
         SCReturnInt(TM_ECODE_FAILED);
     }
-
-    /* use max_pending_packets as pcap read size unless it's bigger than
-     * our size limit */
-    pcap_max_read_packets = (PCAP_FILE_MAX_PKTS < max_pending_packets) ?
-        PCAP_FILE_MAX_PKTS : max_pending_packets;
 
     SCLogInfo("reading pcap file %s", (char *)initdata);
 

@@ -39,6 +39,8 @@ typedef struct TmSlot_ {
     TmEcode (*SlotFunc)(ThreadVars *, Packet *, void *, PacketQueue *,
                         PacketQueue *);
 
+    TmEcode (*PktAcqLoop)(ThreadVars *, void *, void *);
+
     TmEcode (*SlotThreadInit)(ThreadVars *, void *, void **);
     void (*SlotThreadExitPrintStats)(ThreadVars *, void *);
     TmEcode (*SlotThreadDeinit)(ThreadVars *, void *);
@@ -82,6 +84,8 @@ void TmThreadKillThread(ThreadVars *);
 void TmThreadKillThreads(void);
 void TmThreadAppend(ThreadVars *, int);
 void TmThreadRemove(ThreadVars *, int);
+
+TmEcode TmThreadsSlotProcessPkt(ThreadVars *, TmSlot *, Packet *);
 
 TmEcode TmThreadSetCPUAffinity(ThreadVars *, uint16_t);
 TmEcode TmThreadSetThreadPriority(ThreadVars *, int);

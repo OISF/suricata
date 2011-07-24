@@ -43,6 +43,8 @@ typedef struct TmModule_ {
     /** the packet processing function */
     TmEcode (*Func)(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 
+    TmEcode (*PktAcqLoop)(ThreadVars *, void *, void *);
+
     void (*RegisterTests)(void);
 
     uint8_t cap_flags;   /**< Flags to indicate the capability requierment of

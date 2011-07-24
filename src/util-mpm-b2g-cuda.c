@@ -2332,7 +2332,7 @@ int B2gCudaStartDispatcherThreadRC(const char *name)
                    "ERROR: TmModuleGetByName failed for Cuda_Mpm_B2g_RC");
         exit(EXIT_FAILURE);
     }
-    Tm1SlotSetFunc(tv_CMB2_RC, tm_module, data);
+    TmSlotSetFuncAppend(tv_CMB2_RC, tm_module, data);
 
     if (TmThreadSpawn(tv_CMB2_RC) != TM_ECODE_OK) {
         SCLogError(SC_ERR_TM_THREADS_ERROR, "ERROR: TmThreadSpawn failed");

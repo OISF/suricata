@@ -41,6 +41,7 @@
 #include <unistd.h>
 #include "util-privs.h"
 #include "util-cpu.h"
+#include "util-optimize.h"
 
 #ifdef OS_FREEBSD
 #include <sched.h>
@@ -464,6 +465,129 @@ static inline TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
     return TM_ECODE_OK;
 }
 
+/*
+
+    pcap/nfq
+
+    pkt read
+        callback
+            process_pkt
+
+    pfring
+
+    pkt read
+        process_pkt
+
+    slot:
+        setup
+
+        pkt_ack_loop(tv, slot_data)
+
+        deinit
+
+    process_pkt:
+        while(s)
+            run s;
+        queue;
+
+ */
+
+
+/**
+ *  \brief Process the rest of the functions (if any) and queue.
+ */
+TmEcode TmThreadsSlotProcessPkt(ThreadVars *tv, TmSlot *s, Packet *p) {
+    TmEcode r;
+
+    if (likely(p != NULL)) {
+        if (s != NULL ) {
+            /* run the thread module(s) */
+            r = TmThreadsSlotVarRun(tv, p, s);
+            if (unlikely(r == TM_ECODE_FAILED)) {
+                TmqhOutputPacketpool(tv, p);
+                TmThreadsSetFlag(tv, THV_FAILED);
+                return TM_ECODE_FAILED;
+            }
+        }
+
+        /* output the packet */
+        tv->tmqh_out(tv, p);
+    }
+
+    return TM_ECODE_OK;
+}
+
+void *TmThreadsSlotPktAcqLoop(void *td) {
+    ThreadVars *tv = (ThreadVars *)td;
+    TmSlot *s = tv->tm_slots;
+    char run = 1;
+    TmEcode r = TM_ECODE_OK;
+    TmSlot *slot = NULL;
+
+    /* Set the thread name */
+    SCSetThreadName(tv->name);
+
+    /* Drop the capabilities for this thread */
+    SCDropCaps(tv);
+
+    if (tv->thread_setup_flags != 0)
+        TmThreadSetupOptions(tv);
+
+    /* check if we are setup properly */
+    if (s == NULL || tv->tmqh_in == NULL || tv->tmqh_out == NULL) {
+        EngineKill();
+
+        TmThreadsSetFlag(tv, THV_CLOSED);
+        pthread_exit((void *) -1);
+    }
+
+    for (slot = s; slot != NULL; slot = slot->slot_next) {
+        if (slot->SlotThreadInit != NULL) {
+            r = slot->SlotThreadInit(tv, slot->slot_initdata, &slot->slot_data);
+            if (r != TM_ECODE_OK) {
+                EngineKill();
+
+                TmThreadsSetFlag(tv, THV_CLOSED);
+                pthread_exit((void *) -1);
+            }
+        }
+        memset(&slot->slot_pre_pq, 0, sizeof(PacketQueue));
+        memset(&slot->slot_post_pq, 0, sizeof(PacketQueue));
+    }
+
+    TmThreadsSetFlag(tv, THV_INIT_DONE);
+
+    while(run) {
+        TmThreadTestThreadUnPaused(tv);
+
+        r = s->PktAcqLoop(tv, s->slot_data, s);
+
+        if (r == TM_ECODE_FAILED || TmThreadsCheckFlag(tv, THV_KILL)) {
+            run = 0;
+        }
+    }
+    SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
+
+    for (slot = s; slot != NULL; slot = slot->slot_next) {
+        if (slot->SlotThreadExitPrintStats != NULL) {
+            slot->SlotThreadExitPrintStats(tv, slot->slot_data);
+        }
+
+        if (slot->SlotThreadDeinit != NULL) {
+            r = slot->SlotThreadDeinit(tv, slot->slot_data);
+            if (r != TM_ECODE_OK) {
+                TmThreadsSetFlag(tv, THV_CLOSED);
+                pthread_exit((void *) -1);
+            }
+        }
+    }
+
+    SCLogDebug("%s ending", tv->name);
+    TmThreadsSetFlag(tv, THV_CLOSED);
+    pthread_exit((void *) 0);
+}
+
+
 /**
  * \todo Only the first "slot" currently makes the "post_pq" available
  *       to the thread module.
@@ -608,6 +732,8 @@ TmEcode TmThreadSetSlots(ThreadVars *tv, char *name, void *(*fn_p)(void *))
         tv->tm_func = TmThreadsSlot1NoInOut;
     } else if (strcmp(name, "varslot") == 0) {
         tv->tm_func = TmThreadsSlotVar;
+    } else if (strcmp(name, "pktacqloop") == 0) {
+        tv->tm_func = TmThreadsSlotPktAcqLoop;
     } else if (strcmp(name, "custom") == 0) {
         if (fn_p == NULL)
             goto error;
@@ -641,6 +767,7 @@ void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data)
     slot->SlotThreadInit = tm->ThreadInit;
     slot->slot_initdata = data;
     slot->SlotFunc = tm->Func;
+    slot->PktAcqLoop = tm->PktAcqLoop;
     slot->SlotThreadExitPrintStats = tm->ThreadExitPrintStats;
     slot->SlotThreadDeinit = tm->ThreadDeinit;
 
