@@ -832,6 +832,9 @@ static int SMBParseHeader(Flow *f, void *smb_state,
 
     if (input_len > 0) {
         switch (sstate->bytesprocessed) {
+            // fallthrough
+            /* above statement to prevent coverity FPs from the switch
+             * fall through */
             case 4:
                 if (input_len >= SMB_HDR_LEN) {
                     if (memcmp(p, "\xff\x53\x4d\x42", 4) != 0) {
@@ -874,6 +877,8 @@ static int SMBParseHeader(Flow *f, void *smb_state,
                     }
                     if (!(--input_len))
                         break;
+                    /* We fall through to the next case if we still have input.
+                     * Same applies for other cases as well */
                 }
             case 5:
                 if (*(p++) != 'S') {

@@ -118,6 +118,9 @@ static int DCERPCUDPParseHeader(Flow *f, void *dcerpcudp_state,
 	if (input_len) {
 		switch (sstate->bytesprocessed) {
 		case 0:
+            // fallthrough
+            /* above statement to prevent coverity FPs from the switch
+             * fall through */
 			if (input_len >= DCERPC_UDP_HDR_LEN) {
 				sstate->dcerpc.dcerpchdrudp.rpc_vers = *p;
 				if (sstate->dcerpc.dcerpchdrudp.rpc_vers != 4) {
@@ -257,6 +260,8 @@ static int DCERPCUDPParseHeader(Flow *f, void *dcerpcudp_state,
 				}
 				if (!(--input_len))
 					break;
+                /* We fall through to the next case if we still have input.
+                 * Same applies for other cases as well */
 			}
 		case 1:
 			sstate->dcerpc.dcerpchdrudp.type = *(p++);

@@ -100,6 +100,9 @@ static uint32_t SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
     if (input_len) {
         switch (sstate->bytesprocessed) {
             case 4:
+                // fallthrough
+                /* above statement to prevent coverity FPs from the switch
+                 * fall through */
                 if (input_len >= SMB2_HDR_LEN) {
                     if (memcmp(p, "\xfe\x53\x4d\x42", 4) != 0) {
                         //printf("SMB2 Header did not validate\n");
@@ -172,7 +175,10 @@ static uint32_t SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
                     //sstate->smb2.protocol[0] = *(p++);
                     if (*(p++) != 0xfe)
                         return 0;
-                    if (!(--input_len)) break;
+                    if (!(--input_len))
+                        break;
+                    /* We fall through to the next case if we still have input.
+                     * Same applies for other cases as well */
                 }
             case 5:
                 //sstate->smb2.protocol[1] = *(p++);
