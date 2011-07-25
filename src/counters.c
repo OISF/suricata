@@ -964,8 +964,8 @@ static int SCPerfOutputCounterFileIface()
     if (sc_perf_op_ctx->club_tm == 0) {
         for (u = 0; u < TVT_MAX; u++) {
             tv = tv_root[u];
-            if (pc_heads == NULL || pc_heads[u] == NULL)
-                continue;
+            //if (pc_heads == NULL || pc_heads[u] == NULL)
+            //continue;
 
             while (tv != NULL) {
                 SCMutexLock(&tv->sc_perf_pctx.m);
@@ -979,14 +979,14 @@ static int SCPerfOutputCounterFileIface()
 
                     switch (pc->value->type) {
                         case SC_PERF_TYPE_UINT64:
-                            SCPerfOutputCalculateCounterValue(pc_heads[u],
+                            SCPerfOutputCalculateCounterValue(pc,
                                     &ui64_temp);
                             fprintf(sc_perf_op_ctx->fp, "%-25s | %-25s | "
                                     "%-" PRIu64 "\n", pc->name->cname,
                                     pc->name->tm_name, ui64_temp);
                             break;
                         case SC_PERF_TYPE_DOUBLE:
-                            SCPerfOutputCalculateCounterValue(pc_heads[u],
+                            SCPerfOutputCalculateCounterValue(pc,
                                     &double_temp);
                             fprintf(sc_perf_op_ctx->fp, "%-25s | %-25s |"
                                     " %-lf\n", pc->name->cname,
