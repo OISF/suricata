@@ -108,4 +108,24 @@ int TmThreadsCheckFlag(ThreadVars *, uint8_t);
 void TmThreadsSetFlag(ThreadVars *, uint8_t);
 void TmThreadsUnsetFlag(ThreadVars *, uint8_t);
 
+TmEcode TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *slot);
+
+/**
+ *  \brief Process the rest of the functions (if any) and queue.
+ */
+#define TmThreadsSlotProcessPkt(tv, s, p) ({                                    \
+    TmEcode r = TM_ECODE_OK;                                                    \
+                                                                                \
+    if ((s) != NULL &&                                                          \
+            TmThreadsSlotVarRun((tv), (p), (s)) == TM_ECODE_FAILED) {           \
+        TmqhOutputPacketpool((tv), (p));                                        \
+        TmThreadsSetFlag((tv), THV_FAILED);                                     \
+        r = TM_ECODE_FAILED;                                                    \
+    } else {                                                                    \
+        tv->tmqh_out(tv, p);                                                    \
+    }                                                                           \
+                                                                                \
+    r;                                                                          \
+})
+
 #endif /* __TM_THREADS_H__ */

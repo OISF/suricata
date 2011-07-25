@@ -417,20 +417,21 @@ void *TmThreadsSlot1(void *td)
  *
  * \todo Deal with post_pq for slots beyond the first.
  */
-static inline TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
+TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
                                           TmSlot *slot)
 {
-    TmEcode r = TM_ECODE_OK;
-    TmSlot *s = NULL;
+    TmEcode r;
+    TmSlot *s;
+    Packet *extra_p;
 
     for (s = slot; s != NULL; s = s->slot_next) {
-        if (s->id == 0) {
+        if (unlikely(s->id == 0)) {
             r = s->SlotFunc(tv, p, s->slot_data, &s->slot_pre_pq, &s->slot_post_pq);
         } else {
             r = s->SlotFunc(tv, p, s->slot_data, &s->slot_pre_pq, NULL);
         }
         /* handle error */
-        if (r == TM_ECODE_FAILED) {
+        if (unlikely(r == TM_ECODE_FAILED)) {
             /* Encountered error.  Return packets to packetpool and return */
             TmqhReleasePacketsToPacketPool(&s->slot_pre_pq);
             TmqhReleasePacketsToPacketPool(&s->slot_post_pq);
@@ -440,15 +441,14 @@ static inline TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
 
         /* handle new packets */
         while (s->slot_pre_pq.top != NULL) {
-            Packet *extra_p = PacketDequeue(&s->slot_pre_pq);
-            if (extra_p == NULL)
+            extra_p = PacketDequeue(&s->slot_pre_pq);
+            if (unlikely(extra_p == NULL))
                 continue;
 
             /* see if we need to process the packet */
             if (s->slot_next != NULL) {
                 r = TmThreadsSlotVarRun(tv, extra_p, s->slot_next);
-                /* \todo XXX handle error */
-                if (r == TM_ECODE_FAILED) {
+                if (unlikely(r == TM_ECODE_FAILED)) {
                     TmqhReleasePacketsToPacketPool(&s->slot_pre_pq);
                     TmqhReleasePacketsToPacketPool(&s->slot_post_pq);
                     TmqhOutputPacketpool(tv, extra_p);
@@ -492,7 +492,7 @@ static inline TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
 
  */
 
-
+#if 0
 /**
  *  \brief Process the rest of the functions (if any) and queue.
  */
@@ -516,6 +516,7 @@ TmEcode TmThreadsSlotProcessPkt(ThreadVars *tv, TmSlot *s, Packet *p) {
 
     return TM_ECODE_OK;
 }
+#endif
 
 void *TmThreadsSlotPktAcqLoop(void *td) {
     ThreadVars *tv = (ThreadVars *)td;
