@@ -1,3 +1,8 @@
+1.0.5 -- 2011-07-25
+
+- Fix stream reassembly bug #300. Thanks to Rmkml for the report.
+- Fix several (potential) issues fixed after a source code scan with Coverity generously contributed by RedHat.
+
 1.0.4 -- 2011-06-24
 
 - LibHTP updated to 0.2.6
