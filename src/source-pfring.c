@@ -268,14 +268,6 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
         return TM_ECODE_FAILED;
     memset(ptv, 0, sizeof(PfringThreadVars));
 
-    if (ConfGet("pfring.cluster-id", &tmpclusterid) != 1) {
-        SCLogError(SC_ERR_PF_RING_GET_CLUSTERID_FAILED,"could not get pfring.cluster-id");
-        return TM_ECODE_FAILED;
-    } else {
-        ptv->cluster_id = (uint8_t)atoi(tmpclusterid);
-        SCLogDebug("Going to use cluster-id %" PRId32, ptv->cluster_id);
-    }
-
     if (ConfGet("pfring.interface", &ptv->interface) != 1) {
         SCLogError(SC_ERR_PF_RING_GET_INTERFACE_FAILED,"Could not get pfring.interface");
         return TM_ECODE_FAILED;
@@ -294,25 +286,44 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     }
 
+    /* We only set cluster info if the number of pfring threads is greater than 1 */
+    if (PfringConfGetThreads() > 1) {
+        if (ConfGet("pfring.cluster-id", &tmpclusterid) != 1) {
+            SCLogError(SC_ERR_PF_RING_GET_CLUSTERID_FAILED,"could not get pfring.cluster-id");
+            return TM_ECODE_FAILED;
+        } else {
+            ptv->cluster_id = (uint8_t)atoi(tmpclusterid);
+            SCLogDebug("Going to use cluster-id %" PRId32, ptv->cluster_id);
+        }
+
 #ifdef HAVE_PFRING_CLUSTER_TYPE
-    if (ConfGet("pfring.cluster-type", &tmpctype) != 1) {
-        SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,"Could not get pfring.cluster-type");
-        return TM_ECODE_FAILED;
-    } else if (strcmp(tmpctype, "cluster_round_robin") == 0 || strcmp(tmpctype, "cluster_flow") == 0) {
-        ptv->ctype = (cluster_type)tmpctype;
-        rc = pfring_set_cluster(ptv->pd, ptv->cluster_id, ptv->ctype);
-    } else {
-        SCLogError(SC_ERR_INVALID_CLUSTER_TYPE,"invalid cluster-type %s",tmpctype);
-        return TM_ECODE_FAILED;
-    }
+        if (ConfGet("pfring.cluster-type", &tmpctype) != 1) {
+            SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,"Could not get pfring.cluster-type");
+            return TM_ECODE_FAILED;
+        } else if (strcmp(tmpctype, "cluster_round_robin") == 0 || strcmp(tmpctype, "cluster_flow") == 0) {
+            ptv->ctype = (cluster_type)tmpctype;
+            rc = pfring_set_cluster(ptv->pd, ptv->cluster_id, ptv->ctype);
+        } else {
+            SCLogError(SC_ERR_INVALID_CLUSTER_TYPE,"invalid cluster-type %s",tmpctype);
+            return TM_ECODE_FAILED;
+        }
 #else
-    rc = pfring_set_cluster(ptv->pd, ptv->cluster_id);
+        rc = pfring_set_cluster(ptv->pd, ptv->cluster_id);
 #endif /* HAVE_PFRING_CLUSTER_TYPE */
 
-    if (rc != 0) {
-        SCLogError(SC_ERR_PF_RING_SET_CLUSTER_FAILED, "pfring_set_cluster "
-                "returned %d for cluster-id: %d", rc, ptv->cluster_id);
-        return TM_ECODE_FAILED;
+        if (rc != 0) {
+            SCLogError(SC_ERR_PF_RING_SET_CLUSTER_FAILED, "pfring_set_cluster "
+                    "returned %d for cluster-id: %d", rc, ptv->cluster_id);
+            return TM_ECODE_FAILED;
+        }
+        SCLogInfo("(%s) Using PF_RING v.%d.%d.%d, interface %s, cluster-id %d",
+                tv->name, (version & 0xFFFF0000) >> 16, (version & 0x0000FF00) >> 8,
+                version & 0x000000FF, ptv->interface, ptv->cluster_id);
+
+    } else {
+        SCLogInfo("(%s) Using PF_RING v.%d.%d.%d, interface %s, single-pfring-thread",
+                tv->name, (version & 0xFFFF0000) >> 16, (version & 0x0000FF00) >> 8,
+                version & 0x000000FF, ptv->interface);
     }
 
 /* It seems that as of 4.7.1 this is required */
@@ -325,9 +336,6 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
     }
 #endif /* HAVE_PFRING_ENABLE */
 
-    SCLogInfo("(%s) Using PF_RING v.%d.%d.%d, interface %s, cluster-id %d",
-            tv->name, (version & 0xFFFF0000) >> 16, (version & 0x0000FF00) >> 8,
-            version & 0x000000FF, ptv->interface, ptv->cluster_id);
 
     *data = (void *)ptv;
     return TM_ECODE_OK;
