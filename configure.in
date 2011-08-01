@@ -606,84 +606,84 @@ esac
            AS_HELP_STRING([--enable-pfring], [Enable Native PF_RING support]),,[enable_pfring=no])
     AS_IF([test "x$enable_pfring" = "xyes"], [
         CFLAGS="$CFLAGS -DHAVE_PFRING"
-    ])
 
 #We have to set CFLAGS for AC_TRY_COMPILE as it doesn't pay attention to CPPFLAGS
-    AC_ARG_WITH(libpfring_includes,
-            [  --with-libpfring-includes=DIR  libpfring include directory],
-            [with_libpfring_includes="$withval"],[with_libpfring_includes=no])
-    AC_ARG_WITH(libpfring_libraries,
-            [  --with-libpfring-libraries=DIR    libpfring library directory],
-            [with_libpfring_libraries="$withval"],[with_libpfring_libraries="no"])
+        AC_ARG_WITH(libpfring_includes,
+                [  --with-libpfring-includes=DIR  libpfring include directory],
+                [with_libpfring_includes="$withval"],[with_libpfring_includes=no])
+        AC_ARG_WITH(libpfring_libraries,
+                [  --with-libpfring-libraries=DIR    libpfring library directory],
+                [with_libpfring_libraries="$withval"],[with_libpfring_libraries="no"])
 
-    if test "$with_libpfring_includes" != "no"; then
-    CPPFLAGS="${CPPFLAGS} -I${with_libpfring_includes}"
-    fi
-
-    if test "$with_libpfring_libraries" != "no"; then
-    LDFLAGS="${LDFLAGS}  -L${with_libpfring_libraries}"
-    fi
-
-    LIBPFRING=""
-    AC_CHECK_LIB(pfring, pfring_set_cluster,, LIBPFRING="no")
-    if test "$LIBPFRING" = "no"; then
-        if test "x$enable_pfring" = "xyes"; then
-        echo
-        echo "   ERROR! --enable-pfring was passed but the library was not found or version is >4, go get it"
-        echo "   from http://www.ntop.org/PF_RING.html"
-        echo
-        exit 1
+        if test "$with_libpfring_includes" != "no"; then
+        CPPFLAGS="${CPPFLAGS} -I${with_libpfring_includes}"
         fi
-    fi
 
-    LIBPFRING_ENABLE_RING=""
-    AC_CHECK_LIB(pfring, pfring_enable_ring,, LIBPFRING_ENABLE_RING="no")
-    if test "$LIBPFRING_ENABLE_RING" != "no"; then
-        AC_DEFINE([HAVE_PFRING_ENABLE],[1],[PF_RING pfring_enable_ring is available])
-    fi
+        if test "$with_libpfring_libraries" != "no"; then
+        LDFLAGS="${LDFLAGS}  -L${with_libpfring_libraries}"
+        fi
 
-    AC_MSG_CHECKING([if pfring_set_cluster is available])
-    AC_TRY_COMPILE([
-                #include <pfring.h>
-            ],
-            [
-                pfring *pd;
-                pd = pfring_open("eth1", 1,  1515, 1);
-                pfring_set_cluster(pd, 99, cluster_round_robin);
-            ],
-            [ pfring_cluster_type_available=yes ], [:])
+        LIBPFRING=""
+        AC_CHECK_LIB(pfring, pfring_set_cluster,, LIBPFRING="no")
+        if test "$LIBPFRING" = "no"; then
+            if test "x$enable_pfring" = "xyes"; then
+            echo
+            echo "   ERROR! --enable-pfring was passed but the library was not found or version is >4, go get it"
+            echo "   from http://www.ntop.org/PF_RING.html"
+            echo
+            exit 1
+            fi
+        fi
 
-    if test "$pfring_cluster_type_available" = "yes"; then
-        AC_DEFINE([HAVE_PFRING_CLUSTER_TYPE],[1],[PF_RING pfring_set_cluster is available])
-        AC_MSG_RESULT(yes)
-    else
-        AC_MSG_RESULT(no)
-    fi
+        LIBPFRING_ENABLE_RING=""
+        AC_CHECK_LIB(pfring, pfring_enable_ring,, LIBPFRING_ENABLE_RING="no")
+        if test "$LIBPFRING_ENABLE_RING" != "no"; then
+            AC_DEFINE([HAVE_PFRING_ENABLE],[1],[PF_RING pfring_enable_ring is available])
+        fi
 
-    STORE_CFLAGS="${CFLAGS}"
-    CFLAGS="${CFLAGS} -Werror"
-    AC_MSG_CHECKING([if pfring_recv expects u_char**])
-    AC_TRY_COMPILE([
-                #include <pfring.h>
-            ],
-            [
-                u_char *buffer;
-                struct pfring_pkthdr hdr;
-                pfring *pd; memset(&hdr, 0, sizeof(hdr));
-                pd = pfring_open("eth1", 1,  1515, 1);
-                pfring_recv(pd, &buffer, 0, &hdr, 1);
-            ],
-            [ pfring_recv_uchar_buff=yes ], [:])
+        AC_MSG_CHECKING([if pfring_set_cluster is available])
+        AC_TRY_COMPILE([
+                    #include <pfring.h>
+                ],
+                [
+                    pfring *pd;
+                    pd = pfring_open("eth1", 1,  1515, 1);
+                    pfring_set_cluster(pd, 99, cluster_round_robin);
+                ],
+                [ pfring_cluster_type_available=yes ], [:])
 
-    CFLAGS="${STORE_CFLAGS}"
+        if test "$pfring_cluster_type_available" = "yes"; then
+            AC_DEFINE([HAVE_PFRING_CLUSTER_TYPE],[1],[PF_RING pfring_set_cluster is available])
+            AC_MSG_RESULT(yes)
+        else
+            AC_MSG_RESULT(no)
+        fi
+
+        STORE_CFLAGS="${CFLAGS}"
+        CFLAGS="${CFLAGS} -Werror"
+        AC_MSG_CHECKING([if pfring_recv expects u_char**])
+        AC_TRY_COMPILE([
+                    #include <pfring.h>
+                ],
+                [
+                    u_char *buffer;
+                    struct pfring_pkthdr hdr;
+                    pfring *pd; memset(&hdr, 0, sizeof(hdr));
+                    pd = pfring_open("eth1", 1,  1515, 1);
+                    pfring_recv(pd, &buffer, 0, &hdr, 1);
+                ],
+                [ pfring_recv_uchar_buff=yes ], [:])
+
+        CFLAGS="${STORE_CFLAGS}"
 
 
-    if test "$pfring_recv_uchar_buff" = "yes"; then
-        AC_DEFINE([HAVE_PFRING_RECV_UCHAR],[1],[PF_RING pfring_recv buffer is u_char**])
-        AC_MSG_RESULT(yes)
-    else
-        AC_MSG_RESULT(no)
-    fi
+        if test "$pfring_recv_uchar_buff" = "yes"; then
+            AC_DEFINE([HAVE_PFRING_RECV_UCHAR],[1],[PF_RING pfring_recv buffer is u_char**])
+            AC_MSG_RESULT(yes)
+        else
+            AC_MSG_RESULT(no)
+        fi
+    ])
 
 # libpcap
     AC_ARG_WITH(libpcap_includes,
