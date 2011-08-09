@@ -37,6 +37,7 @@
 #include "util-time.h"
 #include "util-cpu.h"
 #include "util-affinity.h"
+#include "util-device.h"
 
 static const char *default_mode = NULL;
 
@@ -87,7 +88,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx)
 
     /* Available cpus */
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
-    int npcap = PcapLiveGetDeviceCount();
+    int npcap = LiveGetDeviceCount();
 
     if (npcap == 1) {
         char *pcap_dev = NULL;
@@ -127,7 +128,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx)
         SCLogInfo("Using %d pcap device(s).", npcap);
 
         for (thread = 0; thread < npcap; thread++) {
-            char *pcap_dev = PcapLiveGetDevice(thread);
+            char *pcap_dev = LiveGetDevice(thread);
             if (pcap_dev == NULL) {
                 printf("Failed to lookup pcap dev %d\n", thread);
                 exit(EXIT_FAILURE);

@@ -206,6 +206,7 @@ util-memcmp.c util-memcmp.h \
 util-proto-name.c util-proto-name.h \
 util-syslog.c util-syslog.h \
 util-vector.h \
+util-device.c util-device.h \
 tm-modules.c tm-modules.h \
 tm-queues.c tm-queues.h \
 tm-queuehandlers.c tm-queuehandlers.h \

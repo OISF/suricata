@@ -46,6 +46,7 @@
 #include "util-action.h"
 #include "util-pidfile.h"
 #include "util-ioctl.h"
+#include "util-device.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
@@ -843,7 +844,7 @@ int main(int argc, char **argv)
         case 'i':
             if (run_mode == RUNMODE_UNKNOWN) {
                 run_mode = RUNMODE_PCAP_DEV;
-                PcapLiveRegisterDevice(optarg);
+                LiveRegisterDevice(optarg);
             } else if (run_mode == RUNMODE_PCAP_DEV) {
 #ifdef OS_WIN32
                 SCLogError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT, "pcap multi dev "
@@ -852,7 +853,7 @@ int main(int argc, char **argv)
 #else
                 SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
                         "multiple pcap devices to get packets is experimental.");
-                PcapLiveRegisterDevice(optarg);
+                LiveRegisterDevice(optarg);
 #endif
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
@@ -864,10 +865,10 @@ int main(int argc, char **argv)
             strlcpy(pcap_dev, optarg, ((strlen(optarg) < sizeof(pcap_dev)) ? (strlen(optarg)+1) : (sizeof(pcap_dev))));
             break;
         case 'a':
-            /* TODO fix parasiting of pcap mode */
+            /** \todo TODO fix parasiting of pcap mode */
             if (run_mode == RUNMODE_UNKNOWN) {
                 run_mode = RUNMODE_AFP_DEV;
-                PcapLiveRegisterDevice(optarg);
+                LiveRegisterDevice(optarg);
             } else if (run_mode == RUNMODE_AFP_DEV) {
 #ifdef OS_WIN32
                 SCLogError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT, "pcap multi dev "
@@ -876,7 +877,7 @@ int main(int argc, char **argv)
 #else
                 SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
                         "multiple pcap devices to get packets is experimental.");
-                PcapLiveRegisterDevice(optarg);
+                LiveRegisterDevice(optarg);
 #endif
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
@@ -1415,10 +1416,8 @@ int main(int argc, char **argv)
         PfringLoadConfig();
 #endif /* HAVE_PFRING */
     } else if (run_mode == RUNMODE_AFP_DEV) {
-        /* TODO fix parasiting */
-        PcapTranslateIPToDevice(pcap_dev, sizeof(pcap_dev));
-        if (ConfSet("pcap.single_pcap_dev", pcap_dev, 0) != 1) {
-            fprintf(stderr, "ERROR: Failed to set pcap.single_pcap_dev\n");
+        if (ConfSet("af-packet.interface", pcap_dev, 0) != 1) {
+            fprintf(stderr, "ERROR: Failed to set af-packet.interface\n");
             exit(EXIT_FAILURE);
         }
     }
