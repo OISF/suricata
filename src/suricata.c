@@ -22,6 +22,7 @@
  */
 
 #include "suricata-common.h"
+#include "config.h"
 
 #include <getopt.h>
 #include <signal.h>
@@ -393,8 +394,9 @@ void usage(const char *progname)
     printf("USAGE: %s\n\n", progname);
     printf("\t-c <path>                    : path to configuration file\n");
     printf("\t-i <dev or ip>               : run in pcap live mode\n");
-/* TODO add condition ifdef for af_packet */
+#ifdef HAVE_AF_PACKET
     printf("\t-a <dev>                     : run in af-packet mode\n");
+#endif
     printf("\t-F <bpf filter file>         : bpf filter file\n");
     printf("\t-r <path>                    : run in pcap file/offline mode\n");
 #ifdef NFQ
@@ -488,6 +490,9 @@ void SCPrintBuildInfo(void) {
 #endif
 #ifdef HAVE_PFRING
     strlcat(features, "PF_RING ", sizeof(features));
+#endif
+#ifdef HAVE_AF_PACKET
+    strlcat(features, "AF_PACKET ", sizeof(features));
 #endif
 #ifdef HAVE_DAG
     strlcat(features, "DAG ", sizeof(features));
@@ -865,28 +870,30 @@ int main(int argc, char **argv)
             strlcpy(pcap_dev, optarg, ((strlen(optarg) < sizeof(pcap_dev)) ? (strlen(optarg)+1) : (sizeof(pcap_dev))));
             break;
         case 'a':
-            /** \todo TODO fix parasiting of pcap mode */
+#ifdef HAVE_AF_PACKET
             if (run_mode == RUNMODE_UNKNOWN) {
                 run_mode = RUNMODE_AFP_DEV;
                 LiveRegisterDevice(optarg);
             } else if (run_mode == RUNMODE_AFP_DEV) {
-#ifdef OS_WIN32
-                SCLogError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT, "pcap multi dev "
-                        "support is not (yet) supported on Windows.");
-                exit(EXIT_FAILURE);
-#else
                 SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
-                        "multiple pcap devices to get packets is experimental.");
+                             "multiple devices to get packets is experimental.");
                 LiveRegisterDevice(optarg);
-#endif
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
-                                                     "has been specified");
+                           "has been specified");
                 usage(argv[0]);
                 exit(EXIT_FAILURE);
             }
 			memset(pcap_dev, 0, sizeof(pcap_dev));
-            strlcpy(pcap_dev, optarg, ((strlen(optarg) < sizeof(pcap_dev)) ? (strlen(optarg)+1) : (sizeof(pcap_dev))));
+            strlcpy(pcap_dev, optarg,
+                    ((strlen(optarg) < sizeof(pcap_dev)) ?
+                     (strlen(optarg) + 1) : sizeof(pcap_dev)));
+#else
+            SCLogError(SC_ERR_NO_AF_PACKET,"AF_PACKET not enabled. On Linux "
+                       "host, make sure to pass --enable-af-packet to "
+                       "configure when building.");
+            exit(EXIT_FAILURE);
+#endif
             break;
         case 'l':
             if (ConfSet("default-log-dir", optarg, 0) != 1) {
@@ -894,8 +901,8 @@ int main(int argc, char **argv)
                 exit(EXIT_FAILURE);
             }
             if (stat(optarg, &buf) != 0) {
-                SCLogError(SC_ERR_LOGDIR_CMDLINE, "The logging directory \"%s\" "
-                        "supplied at the commandline (-l %s) doesn't "
+                SCLogError(SC_ERR_LOGDIR_CMDLINE, "The logging directory \"%s\""
+                        " supplied at the commandline (-l %s) doesn't "
                         "exist. Shutting down the engine.", optarg, optarg);
                 exit(EXIT_FAILURE);
             }

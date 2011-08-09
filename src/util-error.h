@@ -220,6 +220,7 @@ typedef enum {
     SC_ERR_AFP_CREATE,
     SC_ERR_AFP_READ,
     SC_ERR_AFP_DISPATCH,
+    SC_ERR_NO_AF_PACKET,
 } SCError;
 
 const char *SCErrorToString(SCError);

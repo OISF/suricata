@@ -748,10 +748,21 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
     AM_CONDITIONAL([BUILD_UNITTESTS], [test "x$enable_unittests" = "xyes"])
 
 # AF_PACKET support
-    AC_CHECK_DECL([PACKET_FANOUT],
-        AC_DEFINE([HAVE_PACKET_FANOUT],[1],[Packet fanout support is available]),
-        [],
-        [[#include <linux/if_packet.h>]])
+    AC_ARG_ENABLE(af-packet,
+           AS_HELP_STRING([--enable-af-packet], [Enable AF_PACKET support]),
+                        ,[enable_af_packet=no])
+    AS_IF([test "x$enable_af_packet" = "xyes"], [
+        AC_CHECK_DECL([AF_PACKET],
+            AC_DEFINE([HAVE_AF_PACKET],[1],[AF_PACKET support is available]),
+            [enable_af_packet=no],
+            [[#include <sys/socket.h>]])
+        AC_CHECK_DECL([PACKET_FANOUT],
+            AC_DEFINE([HAVE_PACKET_FANOUT],[1],[Packet fanout support is available]),
+            [],
+            [[#include <linux/if_packet.h>]])
+        CFLAGS="${CFLAGS} -DUNITTESTS"
+    ])
+
 
 # enable native timeval for unified alert output
     AC_ARG_ENABLE(unified-native-timeval,
@@ -1001,6 +1012,7 @@ Suricata Configuration:
   NFQueue support:          ${enable_nfqueue}
   IPFW support:             ${enable_ipfw}
   PF_RING support:          ${enable_pfring}
+  AF_PACKET support:        ${enable_af_packet}
   Prelude support:          ${enable_prelude}
   Unit tests enabled:       ${enable_unittests}
   Debug output enabled:     ${enable_debug}

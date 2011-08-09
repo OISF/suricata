@@ -206,6 +206,9 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_RUNMODE);
         CASE_CODE (SC_ERR_SHUTDOWN);
         CASE_CODE (SC_ERR_INVALID_DIRECTION);
+        CASE_CODE (SC_ERR_AFP_CREATE);
+        CASE_CODE (SC_ERR_AFP_READ);
+        CASE_CODE (SC_ERR_AFP_DISPATCH);
 
         default:
             return "UNKNOWN_ERROR";

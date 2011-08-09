@@ -20,11 +20,13 @@
  *  \author Eric Leblond <eric@regit.org>
  */
 
-#ifndef __RUNMODE_AFP_H__
-#define __RUNMODE_AFP_H__
+#ifndef __RUNMODE_AF_PACKET_H__
+#define __RUNMODE_AF_PACKET_H__
 
 int RunModeIdsAFPAuto(DetectEngineCtx *);
+int RunModeIdsAFPSingle(DetectEngineCtx *);
+int RunModeIdsAFPAutoFp(DetectEngineCtx *);
 void RunModeIdsAFPRegister(void);
 const char *RunModeAFPGetDefaultMode(void);
 
-#endif /* __RUNMODE_AFP_H__ */
+#endif /* __RUNMODE_AF_PACKET_H__ */

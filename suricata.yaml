@@ -160,19 +160,24 @@ af-packet:
   # Number of receive threads (>1 will enable experimental flow pinned
   # runmode)
   threads: 1
-
-  # Default interface we will listen on.
+  # default network interface
   interface: eth0
-
   # Default clusterid.  AF_PACKET will load balance packets based on flow.
   # All threads/processes that will participate need to have the same
   # clusterid.
   cluster-id: 99
-
   # Default AF_PACKET cluster type. AF_PACKET can load balance per flow or per hash.
   # This is only supported for Linux kernel > 3.1
-  # possible value are: "cluster_round_robin" and "cluster_flow"
+  # possible value are:
+  #  * cluster_round_robin: round robin load balancing
+  #  * cluster_flow: all packets of a given flow are send to the same socket
+  #  * cluster_cpu: all packets treated in kernel by a CPU are send to the same socket
   cluster-type: cluster_round_robin
+  # In some fragmentation case, the hash can not be computed. If "defrag" is set
+  # to yes, the kernel will do the needed defragmentation before sending the packets.
+  defrag: yes
+  # recv buffer size, increase value could improve performance
+  # buffer-size: 32768
 
 defrag:
   max-frags: 65535

@@ -81,5 +81,6 @@ char *LiveGetDevice(int number) {
 
         i++;
     }
+
     return NULL;
 }

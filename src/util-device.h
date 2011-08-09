@@ -15,8 +15,8 @@
  * 02110-1301, USA.
  */
 
-#ifndef _UTIL_DEVICE_H
-#define _UTIL_DEVICE_H 1
+#ifndef __UTIL_DEVICE_H__
+#define __UTIL_DEVICE_H__
 
 #include "queue.h"
 
@@ -31,4 +31,4 @@ int LiveRegisterDevice(char *dev);
 int LiveGetDeviceCount(void);
 char *LiveGetDevice(int number);
 
-#endif /* _UTIL_DEVICE_H */
+#endif /* __UTIL_DEVICE_H__ */
