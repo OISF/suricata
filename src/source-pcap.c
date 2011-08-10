@@ -560,13 +560,16 @@ void ReceivePcapThreadExitStats(ThreadVars *tv, void *data) {
     } else {
         SCLogInfo("(%s) Packets %" PRIu32 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
 
-        /* these numbers are not entirely accurate as ps_recv contains packets that are still waiting to be processed at exit.
-         * ps_drop only contains packets dropped by the driver and not any packets dropped by the interface.
-         * Additionally see http://tracker.icir.org/bro/ticket/18 */
-
+       /* these numbers are not entirely accurate as ps_recv contains packets that are still waiting to be processed at exit.
+        * ps_drop only contains packets dropped by the driver and not any packets dropped by the interface.
+        * Additionally see http://tracker.icir.org/bro/ticket/18
+        *
+        * Note: ps_recv includes dropped packets and should be considered total.
+        * Unless we start to look at ps_ifdrop which isn't supported everywhere.
+        */
         SCLogInfo("(%s) Pcap Total:%" PRIu64 " Recv:%" PRIu64 " Drop:%" PRIu64 " (%02.1f%%).", tv->name,
-        (uint64_t)pcap_s.ps_recv + (uint64_t)pcap_s.ps_drop, (uint64_t)pcap_s.ps_recv,
-        (uint64_t)pcap_s.ps_drop, ((float)pcap_s.ps_drop/(float)(pcap_s.ps_drop + pcap_s.ps_recv))*100);
+        (uint64_t)pcap_s.ps_recv, (uint64_t)pcap_s.ps_recv - (uint64_t)pcap_s.ps_drop, (uint64_t)pcap_s.ps_drop,
+        (((float)(uint64_t)pcap_s.ps_drop)/(float)(uint64_t)pcap_s.ps_recv)*100);
 
         return;
     }
