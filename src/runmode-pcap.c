@@ -115,7 +115,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx)
             printf("ERROR: TmModuleGetByName failed for ReceivePcap\n");
             exit(EXIT_FAILURE);
         }
-        Tm1SlotSetFunc(tv_receivepcap, tm_module, (void *)pcap_devc);
+        TmSlotSetFuncAppend(tv_receivepcap, tm_module, (void *)pcap_devc);
 
         TmThreadSetCPU(tv_receivepcap, RECEIVE_CPU_SET);
 
@@ -153,7 +153,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx)
                 printf("ERROR: TmModuleGetByName failed for ReceivePcap\n");
                 exit(EXIT_FAILURE);
             }
-            Tm1SlotSetFunc(tv_receivepcap, tm_module, (void *)pcap_devc);
+            TmSlotSetFuncAppend(tv_receivepcap, tm_module, (void *)pcap_devc);
 
             TmThreadSetCPU(tv_receivepcap, RECEIVE_CPU_SET);
 
@@ -180,7 +180,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx)
             printf("ERROR: TmModuleGetByName DecodePcap failed\n");
             exit(EXIT_FAILURE);
         }
-        Tm1SlotSetFunc(tv_decode1, tm_module, NULL);
+        TmSlotSetFuncAppend(tv_decode1, tm_module, NULL);
 
         TmThreadSetCPU(tv_decode1, DECODE_CPU_SET);
 
@@ -205,7 +205,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx)
             printf("ERROR: TmModuleGetByName CudaPacketBatcher failed\n");
             exit(EXIT_FAILURE);
         }
-        Tm1SlotSetFunc(tv_cuda_PB, tm_module, (void *)de_ctx);
+        TmSlotSetFuncAppend(tv_cuda_PB, tm_module, (void *)de_ctx);
 
         TmThreadSetCPU(tv_cuda_PB, DETECT_CPU_SET);
 
@@ -228,7 +228,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx)
             printf("ERROR: TmModuleGetByName StreamTcp failed\n");
             exit(EXIT_FAILURE);
         }
-        Tm1SlotSetFunc(tv_stream1, tm_module, NULL);
+        TmSlotSetFuncAppend(tv_stream1, tm_module, NULL);
 
         TmThreadSetCPU(tv_stream1, STREAM_CPU_SET);
 
@@ -251,14 +251,14 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx)
             printf("ERROR: TmModuleGetByName DecodePcap failed\n");
             exit(EXIT_FAILURE);
         }
-        TmVarSlotSetFuncAppend(tv_decode1, tm_module, NULL);
+        TmSlotSetFuncAppend(tv_decode1, tm_module, NULL);
 
         tm_module = TmModuleGetByName("StreamTcp");
         if (tm_module == NULL) {
             printf("ERROR: TmModuleGetByName StreamTcp failed\n");
             exit(EXIT_FAILURE);
         }
-        TmVarSlotSetFuncAppend(tv_decode1, tm_module, NULL);
+        TmSlotSetFuncAppend(tv_decode1, tm_module, NULL);
 
         TmThreadSetCPU(tv_decode1, DECODE_CPU_SET);
 
@@ -283,14 +283,14 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx)
         printf("ERROR: TmModuleGetByName DecodePcap failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv_decode1, tm_module, NULL);
+    TmSlotSetFuncAppend(tv_decode1, tm_module, NULL);
 
     tm_module = TmModuleGetByName("StreamTcp");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName StreamTcp failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv_decode1, tm_module, NULL);
+    TmSlotSetFuncAppend(tv_decode1, tm_module, NULL);
 
     TmThreadSetCPU(tv_decode1, DECODE_CPU_SET);
 
@@ -332,7 +332,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx)
             printf("ERROR: TmModuleGetByName Detect failed\n");
             exit(EXIT_FAILURE);
         }
-        Tm1SlotSetFunc(tv_detect_ncpu, tm_module, (void *)de_ctx);
+        TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
 
         TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
 
@@ -368,7 +368,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx)
         printf("ERROR: TmModuleGetByName for RespondReject failed\n");
         exit(EXIT_FAILURE);
     }
-    Tm1SlotSetFunc(tv_rreject, tm_module, NULL);
+    TmSlotSetFuncAppend(tv_rreject, tm_module, NULL);
 
     TmThreadSetCPU(tv_rreject, REJECT_CPU_SET);
 

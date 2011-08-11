@@ -101,7 +101,7 @@ int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx)
         printf("ERROR: TmModuleGetByName failed for ReceiveIPFW\n");
         exit(EXIT_FAILURE);
     }
-    Tm1SlotSetFunc(tv_receiveipfw, tm_module, NULL);
+    TmSlotSetFuncAppend(tv_receiveipfw, tm_module, NULL);
 
     if (threading_set_cpu_affinity) {
         TmThreadSetCPUAffinity(tv_receiveipfw, 0);
@@ -128,7 +128,7 @@ int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx)
         printf("ERROR: TmModuleGetByName DecodeIPFW failed\n");
         exit(EXIT_FAILURE);
     }
-    Tm1SlotSetFunc(tv_decode1, tm_module, NULL);
+    TmSlotSetFuncAppend(tv_decode1, tm_module, NULL);
 
     if (threading_set_cpu_affinity) {
         TmThreadSetCPUAffinity(tv_decode1, 0);
@@ -155,7 +155,7 @@ int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx)
         printf("ERROR: TmModuleGetByName StreamTcp failed\n");
         exit(EXIT_FAILURE);
     }
-    Tm1SlotSetFunc(tv_stream1, tm_module, NULL);
+    TmSlotSetFuncAppend(tv_stream1, tm_module, NULL);
 
     if (threading_set_cpu_affinity) {
         TmThreadSetCPUAffinity(tv_stream1, 0);
@@ -201,7 +201,7 @@ int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx)
             printf("ERROR: TmModuleGetByName Detect failed\n");
             exit(EXIT_FAILURE);
         }
-        Tm1SlotSetFunc(tv_detect_ncpu, tm_module, (void *)de_ctx);
+        TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
 
         if (threading_set_cpu_affinity) {
             TmThreadSetCPUAffinity(tv_detect_ncpu, (int)cpu);
@@ -248,7 +248,7 @@ int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx)
         printf("ERROR: TmModuleGetByName VerdictIPFW failed\n");
         exit(EXIT_FAILURE);
     }
-    Tm1SlotSetFunc(tv_verdict, tm_module, NULL);
+    TmSlotSetFuncAppend(tv_verdict, tm_module, NULL);
 
     if (threading_set_cpu_affinity) {
         TmThreadSetCPUAffinity(tv_verdict, 0);
@@ -275,7 +275,7 @@ int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx)
         printf("ERROR: TmModuleGetByName for RespondReject failed\n");
         exit(EXIT_FAILURE);
     }
-    Tm1SlotSetFunc(tv_rreject, tm_module, NULL);
+    TmSlotSetFuncAppend(tv_rreject, tm_module, NULL);
 
     if (threading_set_cpu_affinity) {
         TmThreadSetCPUAffinity(tv_rreject, 0);

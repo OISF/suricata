@@ -308,7 +308,7 @@ static void SCCudaPBQueueBuffer(SCCudaPBThreadCtx *tctx)
 void *SCCudaPBTmThreadsSlot1(void *td)
 {
     ThreadVars *tv = (ThreadVars *)td;
-    Tm1Slot *s = (Tm1Slot *)tv->tm_slots;
+    TmSlot *s = (TmSlot *)tv->tm_slots;
     Packet *p = NULL;
     char run = 1;
     TmEcode r = TM_ECODE_OK;
@@ -322,8 +322,8 @@ void *SCCudaPBTmThreadsSlot1(void *td)
 
     SCLogDebug("%s starting", tv->name);
 
-    if (s->s.SlotThreadInit != NULL) {
-        r = s->s.SlotThreadInit(tv, s->s.slot_initdata, &s->s.slot_data);
+    if (s->SlotThreadInit != NULL) {
+        r = s->SlotThreadInit(tv, s->slot_initdata, &s->slot_data);
         if (r != TM_ECODE_OK) {
             EngineKill();
 
@@ -331,8 +331,8 @@ void *SCCudaPBTmThreadsSlot1(void *td)
             pthread_exit((void *) -1);
         }
     }
-    memset(&s->s.slot_pre_pq, 0, sizeof(PacketQueue));
-    memset(&s->s.slot_post_pq, 0, sizeof(PacketQueue));
+    memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
+    memset(&s->slot_post_pq, 0, sizeof(PacketQueue));
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
     while(run) {
@@ -352,9 +352,9 @@ void *SCCudaPBTmThreadsSlot1(void *td)
              * the Batcher TM(which is waiting on a cond from the previous
              * feeder TM).  Please handle the NULL packet case in the
              * function that you now call */
-            r = s->s.SlotFunc(tv, p, s->s.slot_data, NULL, NULL);
+            r = s->SlotFunc(tv, p, s->slot_data, NULL, NULL);
         } else {
-            r = s->s.SlotFunc(tv, p, s->s.slot_data, NULL, NULL);
+            r = s->SlotFunc(tv, p, s->slot_data, NULL, NULL);
             /* handle error */
             if (r == TM_ECODE_FAILED) {
                 TmqhOutputPacketpool(tv, p);
@@ -372,12 +372,12 @@ void *SCCudaPBTmThreadsSlot1(void *td)
         }
     }
 
-    if (s->s.SlotThreadExitPrintStats != NULL) {
-        s->s.SlotThreadExitPrintStats(tv, s->s.slot_data);
+    if (s->SlotThreadExitPrintStats != NULL) {
+        s->SlotThreadExitPrintStats(tv, s->slot_data);
     }
 
-    if (s->s.SlotThreadDeinit != NULL) {
-        r = s->s.SlotThreadDeinit(tv, s->s.slot_data);
+    if (s->SlotThreadDeinit != NULL) {
+        r = s->SlotThreadDeinit(tv, s->slot_data);
         if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED);
             pthread_exit((void *) -1);

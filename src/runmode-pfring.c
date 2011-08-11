@@ -120,7 +120,7 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx)
         printf("ERROR: TmModuleGetByName failed for ReceivePfring\n");
         exit(EXIT_FAILURE);
     }
-    Tm1SlotSetFunc(tv_receivepfring, tm_module, NULL);
+    TmSlotSetFuncAppend(tv_receivepfring, tm_module, NULL);
 
     if (threading_set_cpu_affinity) {
         TmThreadSetCPUAffinity(tv_receivepfring, 0);
@@ -147,7 +147,7 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx)
         printf("ERROR: TmModuleGetByName DecodePfring failed\n");
         exit(EXIT_FAILURE);
     }
-    Tm1SlotSetFunc(tv_decode1, tm_module, NULL);
+    TmSlotSetFuncAppend(tv_decode1, tm_module, NULL);
 
     if (threading_set_cpu_affinity) {
         TmThreadSetCPUAffinity(tv_decode1, 0);
@@ -174,7 +174,7 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx)
         printf("ERROR: TmModuleGetByName StreamTcp failed\n");
         exit(EXIT_FAILURE);
     }
-    Tm1SlotSetFunc(tv_stream1, tm_module, NULL);
+    TmSlotSetFuncAppend(tv_stream1, tm_module, NULL);
 
     if (threading_set_cpu_affinity) {
         TmThreadSetCPUAffinity(tv_stream1, 0);
@@ -220,7 +220,7 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx)
             printf("ERROR: TmModuleGetByName Detect failed\n");
             exit(EXIT_FAILURE);
         }
-        Tm1SlotSetFunc(tv_detect_ncpu, tm_module, (void *)de_ctx);
+        TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
 
         if (threading_set_cpu_affinity) {
             TmThreadSetCPUAffinity(tv_detect_ncpu, (int)cpu);
@@ -267,7 +267,7 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx)
         printf("ERROR: TmModuleGetByName for RespondReject failed\n");
         exit(EXIT_FAILURE);
     }
-    Tm1SlotSetFunc(tv_rreject, tm_module, NULL);
+    TmSlotSetFuncAppend(tv_rreject, tm_module, NULL);
 
     if (threading_set_cpu_affinity) {
         TmThreadSetCPUAffinity(tv_rreject, 0);
@@ -370,14 +370,14 @@ int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx)
             printf("ERROR: TmModuleGetByName failed for ReceivePfring\n");
             exit(EXIT_FAILURE);
         }
-        TmVarSlotSetFuncAppend(tv_receive, tm_module, NULL);
+        TmSlotSetFuncAppend(tv_receive, tm_module, NULL);
 
         tm_module = TmModuleGetByName("DecodePfring");
         if (tm_module == NULL) {
             printf("ERROR: TmModuleGetByName DecodePfring failed\n");
             exit(EXIT_FAILURE);
         }
-        TmVarSlotSetFuncAppend(tv_receive, tm_module, NULL);
+        TmSlotSetFuncAppend(tv_receive, tm_module, NULL);
 
         if (threading_set_cpu_affinity) {
             TmThreadSetCPUAffinity(tv_receive, 0);
@@ -414,14 +414,14 @@ int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx)
             printf("ERROR: TmModuleGetByName StreamTcp failed\n");
             exit(EXIT_FAILURE);
         }
-        TmVarSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
+        TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
 
         tm_module = TmModuleGetByName("Detect");
         if (tm_module == NULL) {
             printf("ERROR: TmModuleGetByName Detect failed\n");
             exit(EXIT_FAILURE);
         }
-        TmVarSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
+        TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
 
         if (threading_set_cpu_affinity) {
             TmThreadSetCPUAffinity(tv_detect_ncpu, (int)cpu);

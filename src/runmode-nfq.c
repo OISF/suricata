@@ -119,7 +119,7 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx)
             exit(EXIT_FAILURE);
         }
 
-        Tm1SlotSetFunc(tv_receivenfq, tm_module, (void *) NFQGetThread(i));
+        TmSlotSetFuncAppend(tv_receivenfq, tm_module, (void *) NFQGetThread(i));
 
         TmThreadSetCPU(tv_receivenfq, RECEIVE_CPU_SET);
 
@@ -145,14 +145,14 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx)
         printf("ERROR: TmModuleGetByName DecodeNFQ failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv_decode,tm_module,NULL);
+    TmSlotSetFuncAppend(tv_decode,tm_module,NULL);
 
     tm_module = TmModuleGetByName("StreamTcp");
     if (tm_module == NULL) {
         printf("ERROR: TmModuleGetByName StreamTcp failed\n");
         exit(EXIT_FAILURE);
     }
-    TmVarSlotSetFuncAppend(tv_decode, tm_module, NULL);
+    TmSlotSetFuncAppend(tv_decode, tm_module, NULL);
 
     TmThreadSetCPU(tv_decode, DECODE_CPU_SET);
 
@@ -190,7 +190,7 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx)
             printf("ERROR: TmModuleGetByName Detect failed\n");
             exit(EXIT_FAILURE);
         }
-        Tm1SlotSetFunc(tv_detect_ncpu, tm_module, (void *)de_ctx);
+        TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
 
         TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
 
@@ -231,14 +231,14 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx)
             printf("ERROR: TmModuleGetByName VerdictNFQ failed\n");
             exit(EXIT_FAILURE);
         }
-        TmVarSlotSetFuncAppend(tv_verdict, tm_module, (void *)NFQGetThread(i));
+        TmSlotSetFuncAppend(tv_verdict, tm_module, (void *)NFQGetThread(i));
 
         tm_module = TmModuleGetByName("RespondReject");
         if (tm_module == NULL) {
             printf("ERROR: TmModuleGetByName for RespondReject failed\n");
             exit(EXIT_FAILURE);
         }
-        TmVarSlotSetFuncAppend(tv_verdict, tm_module, NULL);
+        TmSlotSetFuncAppend(tv_verdict, tm_module, NULL);
 
         TmThreadSetCPU(tv_verdict, VERDICT_CPU_SET);
 

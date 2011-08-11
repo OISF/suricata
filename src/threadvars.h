@@ -30,6 +30,8 @@
 #include "counters.h"
 #include "threads.h"
 
+struct TmSlot_;
+
 /** Thread flags set and read by threads to control the threads */
 #define THV_USE       0x01 /** thread is in use */
 #define THV_INIT_DONE 0x02 /** thread initialization done */
@@ -76,7 +78,7 @@ typedef struct ThreadVars_ {
 
     /** slot functions */
     void *(*tm_func)(void *);
-    void *tm_slots;
+    struct TmSlot_ *tm_slots;
 
     uint8_t thread_setup_flags;
     uint16_t cpu_affinity; /** cpu or core number to set affinity to */

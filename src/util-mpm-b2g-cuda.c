@@ -2202,7 +2202,7 @@ void TmModuleCudaMpmB2gRegister(void)
 void *CudaMpmB2gThreadsSlot1(void *td)
 {
     ThreadVars *tv = (ThreadVars *)td;
-    Tm1Slot *s = (Tm1Slot *)tv->tm_slots;
+    TmSlot *s = (TmSlot *)tv->tm_slots;
     SCCudaPBPacketsBuffer *data = NULL;
     B2gCudaMpmThreadCtxData *tctx = NULL;
     char run = 1;
@@ -2216,8 +2216,8 @@ void *CudaMpmB2gThreadsSlot1(void *td)
 
     SCLogDebug("%s starting", tv->name);
 
-    if (s->s.SlotThreadInit != NULL) {
-        r = s->s.SlotThreadInit(tv, s->s.slot_initdata, &s->s.slot_data);
+    if (s->SlotThreadInit != NULL) {
+        r = s->SlotThreadInit(tv, s->slot_initdata, &s->slot_data);
         if (r != TM_ECODE_OK) {
             EngineKill();
 
@@ -2225,10 +2225,10 @@ void *CudaMpmB2gThreadsSlot1(void *td)
             pthread_exit((void *) -1);
         }
     }
-    memset(&s->s.slot_pre_pq, 0, sizeof(PacketQueue));
-    memset(&s->s.slot_post_pq, 0, sizeof(PacketQueue));
+    memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
+    memset(&s->slot_post_pq, 0, sizeof(PacketQueue));
 
-    tctx = (B2gCudaMpmThreadCtxData *)s->s.slot_data;
+    tctx = (B2gCudaMpmThreadCtxData *)s->slot_data;
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
     while(run) {
@@ -2245,7 +2245,7 @@ void *CudaMpmB2gThreadsSlot1(void *td)
              * If the MPM is configured to use multiple CUstreams, buffer (1) and buffer (2) are
              * processed in parallel using multiple streams; In this case
              * data_queues[tctx->tmq_streamq->id] will contain the results of packet buffer (2). */
-            r = s->s.SlotFunc(tv,
+            r = s->SlotFunc(tv,
                               (Packet *)data,
                               (void *)tctx,
                               (PacketQueue *)&data_queues[tv->inq->id],
@@ -2270,12 +2270,12 @@ void *CudaMpmB2gThreadsSlot1(void *td)
         }
     }
 
-    if (s->s.SlotThreadExitPrintStats != NULL) {
-        s->s.SlotThreadExitPrintStats(tv, s->s.slot_data);
+    if (s->SlotThreadExitPrintStats != NULL) {
+        s->SlotThreadExitPrintStats(tv, s->slot_data);
     }
 
-    if (s->s.SlotThreadDeinit != NULL) {
-        r = s->s.SlotThreadDeinit(tv, s->s.slot_data);
+    if (s->SlotThreadDeinit != NULL) {
+        r = s->SlotThreadDeinit(tv, s->slot_data);
         if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED);
             pthread_exit((void *) -1);
