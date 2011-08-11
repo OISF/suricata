@@ -503,12 +503,21 @@ TmEcode ReceiveNFQThreadInit(ThreadVars *tv, void *initdata, void **data) {
 TmEcode ReceiveNFQThreadDeinit(ThreadVars *t, void *data)
 {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
+    NFQQueueVars *nq = NFQGetQueue(ntv->nfq_index);
 
     if (ntv->data != NULL) {
         SCFree(ntv->data);
         ntv->data = NULL;
     }
     ntv->datalen = 0;
+
+    SCMutexLock(&nfq_init_lock);
+    SCLogDebug("starting... will close queuenum %" PRIu32 "", nq->queue_num);
+    if (nq->qh) {
+        nfq_destroy_queue(nq->qh);
+        nq->qh = NULL;
+    }
+    SCMutexUnlock(&nfq_init_lock);
 
     return TM_ECODE_OK;
 }
@@ -526,9 +535,12 @@ TmEcode VerdictNFQThreadDeinit(ThreadVars *tv, void *data) {
     NFQQueueVars *nq = NFQGetQueue(ntv->nfq_index);
 
     SCLogDebug("starting... will close queuenum %" PRIu32 "", nq->queue_num);
+    SCMutexLock(&nfq_init_lock);
     if (nq->qh) {
         nfq_destroy_queue(nq->qh);
+        nq->qh = NULL;
     }
+    SCMutexUnlock(&nfq_init_lock);
 
     return TM_ECODE_OK;
 }
