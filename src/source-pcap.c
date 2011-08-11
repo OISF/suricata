@@ -43,6 +43,7 @@
 #include "util-error.h"
 #include "util-privs.h"
 #include "util-device.h"
+#include "util-optimize.h"
 #include "tmqh-packetpool.h"
 
 extern uint8_t suricata_ctl_flags;
@@ -87,6 +88,7 @@ typedef struct PcapThreadVars_
     int pcap_buffer_size;
 
     ThreadVars *tv;
+    TmSlot *slot;
 
     Packet *in_p;
 
@@ -98,6 +100,7 @@ TmEcode ReceivePcap(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *
 TmEcode ReceivePcapThreadInit(ThreadVars *, void *, void **);
 void ReceivePcapThreadExitStats(ThreadVars *, void *);
 TmEcode ReceivePcapThreadDeinit(ThreadVars *, void *);
+TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot);
 
 TmEcode DecodePcapThreadInit(ThreadVars *, void *, void **);
 TmEcode DecodePcap(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
@@ -110,6 +113,7 @@ void TmModuleReceivePcapRegister (void) {
     tmm_modules[TMM_RECEIVEPCAP].name = "ReceivePcap";
     tmm_modules[TMM_RECEIVEPCAP].ThreadInit = ReceivePcapThreadInit;
     tmm_modules[TMM_RECEIVEPCAP].Func = ReceivePcap;
+    tmm_modules[TMM_RECEIVEPCAP].PktAcqLoop = ReceivePcapLoop;
     tmm_modules[TMM_RECEIVEPCAP].ThreadExitPrintStats = ReceivePcapThreadExitStats;
     tmm_modules[TMM_RECEIVEPCAP].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVEPCAP].RegisterTests = NULL;
@@ -244,6 +248,88 @@ static int PcapTryReopen(PcapThreadVars *ptv)
 }
 
 #endif
+
+void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt) {
+    SCEnter();
+
+    PcapThreadVars *ptv = (PcapThreadVars *)user;
+    Packet *p = PacketGetFromQueueOrAlloc();
+
+    if (unlikely(p == NULL)) {
+        SCReturn;
+    }
+
+    p->ts.tv_sec = h->ts.tv_sec;
+    p->ts.tv_usec = h->ts.tv_usec;
+    SCLogDebug("p->ts.tv_sec %"PRIuMAX"", (uintmax_t)p->ts.tv_sec);
+    p->datalink = ptv->datalink;
+
+    ptv->pkts++;
+    ptv->bytes += h->caplen;
+
+    if (unlikely(PacketCopyData(p, pkt, h->caplen))) {
+        TmqhOutputPacketpool(ptv->tv, p);
+        SCReturn;
+    }
+
+    TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p);
+
+    SCReturn;
+}
+
+/**
+ *  \brief Main PCAP reading Loop function
+ */
+TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
+{
+    uint16_t packet_q_len = 0;
+    PcapThreadVars *ptv = (PcapThreadVars *)data;
+    TmSlot *s = (TmSlot *)slot;
+    ptv->slot = s->slot_next;
+    int r;
+
+    SCEnter();
+
+    while (1) {
+        if (suricata_ctl_flags & SURICATA_STOP ||
+            suricata_ctl_flags & SURICATA_KILL)
+        {
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+
+        /* make sure we have at least one packet in the packet pool, to prevent
+         * us from alloc'ing packets at line rate */
+        do {
+            packet_q_len = PacketPoolSize();
+            if (unlikely(packet_q_len == 0)) {
+                PacketPoolWait();
+            }
+        } while (packet_q_len == 0);
+
+        /* Right now we just support reading packets one at a time. */
+        r = pcap_dispatch(ptv->pcap_handle, (int)packet_q_len,
+                (pcap_handler)PcapCallbackLoop, (u_char *)ptv);
+        if (unlikely(r < 0)) {
+            int dbreak = 0;
+            SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s",
+                    r, pcap_geterr(ptv->pcap_handle));
+            do {
+                usleep(PCAP_RECONNECT_TIMEOUT);
+                if (suricata_ctl_flags != 0) {
+                    dbreak = 1;
+                    break;
+                }
+                r = PcapTryReopen(ptv);
+            } while (r < 0);
+            if (dbreak) {
+                r = 0;
+                break;
+            }
+        }
+    }
+
+    SCReturnInt(TM_ECODE_OK);
+}
 
 /**
  * \brief Recieves packets from an interface via libpcap.

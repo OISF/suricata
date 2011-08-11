@@ -48,6 +48,9 @@ const char *RunModeIdsGetDefaultMode(void)
 
 void RunModeIdsPcapRegister(void)
 {
+    RunModeRegisterNewRunMode(RUNMODE_PCAP_DEV, "single",
+                              "Single threaded pcap live mode",
+                              RunModeIdsPcapSingle);
     RunModeRegisterNewRunMode(RUNMODE_PCAP_DEV, "auto",
                               "Multi threaded pcap live mode",
                               RunModeIdsPcapAuto);
@@ -55,6 +58,82 @@ void RunModeIdsPcapRegister(void)
 
     return;
 }
+
+/**
+ * \brief Single thread version of the Pcap live processing.
+ */
+int RunModeIdsPcapSingle(DetectEngineCtx *de_ctx)
+{
+    int npcap = LiveGetDeviceCount();
+    char *pcap_dev = NULL;
+    char *pcap_devc = NULL;
+
+    if (npcap > 1) {
+        SCLogError(SC_ERR_RUNMODE,
+                   "Can't use single runmode with multiple device");
+        exit(EXIT_FAILURE);
+    }
+
+    RunModeInitialize();
+    TimeModeSetLive();
+
+    if (ConfGet("pcap.single_pcap_dev", &pcap_dev) == 0) {
+        SCLogError(SC_ERR_RUNMODE, "Failed retrieving "
+                "pcap.single_pcap_dev from Conf");
+        exit(EXIT_FAILURE);
+    }
+
+    SCLogDebug("pcap_dev %s", pcap_dev);
+    pcap_devc = SCStrdup(pcap_dev);
+
+    /* create the threads */
+    ThreadVars *tv = TmThreadCreatePacketHandler("PcapLive",
+                                                 "packetpool", "packetpool",
+                                                 "packetpool", "packetpool",
+                                                 "pktacqloop");
+    if (tv == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    TmModule *tm_module = TmModuleGetByName("ReceivePcap");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed for ReceivePcap\n");
+        exit(EXIT_FAILURE);
+    }
+    TmSlotSetFuncAppend(tv, tm_module, pcap_devc);
+
+    tm_module = TmModuleGetByName("DecodePcap");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName DecodePcap failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmSlotSetFuncAppend(tv, tm_module, NULL);
+
+    tm_module = TmModuleGetByName("StreamTcp");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmSlotSetFuncAppend(tv, tm_module, NULL);
+
+    tm_module = TmModuleGetByName("Detect");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName Detect failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmSlotSetFuncAppend(tv, tm_module, (void *)de_ctx);
+
+    SetupOutputs(tv);
+
+    if (TmThreadSpawn(tv) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    return 0;
+}
+
 
 /**
  * \brief RunModeIdsPcapAuto set up the following thread packet handlers:

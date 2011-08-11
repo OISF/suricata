@@ -24,6 +24,7 @@
 #define __RUNMODE_PCAP_H__
 
 int RunModeIdsPcapAuto(DetectEngineCtx *);
+int RunModeIdsPcapSingle(DetectEngineCtx *);
 void RunModeIdsPcapRegister(void);
 const char *RunModeIdsGetDefaultMode(void);
 
