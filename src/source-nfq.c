@@ -781,7 +781,7 @@ void ReceiveNFQThreadExitStats(ThreadVars *tv, void *data) {
 /**
  * \brief NFQ verdict function
  */
-void NFQSetVerdict(Packet *p) {
+TmEcode NFQSetVerdict(Packet *p) {
     int iter = 0;
     int ret = 0;
     uint32_t verdict = NF_ACCEPT;
@@ -789,7 +789,7 @@ void NFQSetVerdict(Packet *p) {
 
     /* can't verdict a "fake" packet */
     if (p->flags & PKT_PSEUDO_STREAM_END) {
-        return;
+        return TM_ECODE_OK;
     }
 
     //printf("%p verdicting on queue %" PRIu32 "\n", t, t->queue_num);
@@ -892,13 +892,16 @@ void NFQSetVerdict(Packet *p) {
 
     if (ret < 0) {
         SCLogWarning(SC_ERR_NFQ_SET_VERDICT, "nfq_set_verdict of %p failed %" PRId32 "", p, ret);
+        return TM_ECODE_FAILED;
     }
+    return TM_ECODE_OK;
 }
 
 /**
  * \brief NFQ verdict module packet entry function
  */
 TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
+    int ret;
     /* if this is a tunnel packet we check if we are ready to verdict
      * already. */
     if (IS_TUNNEL_PKT(p)) {
@@ -917,13 +920,17 @@ TmEcode VerdictNFQ(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
         /* don't verdict if we are not ready */
         if (verdict == 1) {
             //printf("VerdictNFQ: setting verdict\n");
-            NFQSetVerdict(p->root ? p->root : p);
+            ret = NFQSetVerdict(p->root ? p->root : p);
+            if (ret != TM_ECODE_OK)
+                return ret;
         } else {
             TUNNEL_INCR_PKT_RTV(p);
         }
     } else {
         /* no tunnel, verdict normally */
-        NFQSetVerdict(p);
+        ret = NFQSetVerdict(p);
+        if (ret != TM_ECODE_OK)
+            return ret;
     }
     return TM_ECODE_OK;
 }
