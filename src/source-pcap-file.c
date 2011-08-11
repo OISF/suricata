@@ -128,8 +128,10 @@ void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     ptv->pkts++;
     ptv->bytes += h->caplen;
 
-    if (unlikely(PacketCopyData(p, pkt, h->caplen)))
+    if (unlikely(PacketCopyData(p, pkt, h->caplen))) {
+        TmqhOutputPacketpool(ptv->tv, p);
         SCReturn;
+    }
 
     TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p);
 
