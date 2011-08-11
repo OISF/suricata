@@ -98,6 +98,7 @@ TmEcode NoNFQSupportExit(ThreadVars *tv, void *initdata, void **data)
 extern int max_pending_packets;
 
 #define MAX_ALREADY_TREATED 5
+#define NFQ_VERDICT_RETRY_TIME 3
 int already_seen_warning;
 
 #define NFQ_BURST_FACTOR 4
@@ -251,10 +252,18 @@ int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
     if (nfq_config.mode == NFQ_REPEAT_MODE) {
         if ((nfq_config.mark & nfq_config.mask) ==
                 (p->nfq_v.mark & nfq_config.mask)) {
+            int iter = 0;
             if (already_seen_warning < MAX_ALREADY_TREATED)
                 SCLogInfo("Packet seems already treated by suricata");
             already_seen_warning++;
-            ret = nfq_set_verdict(qh, p->nfq_v.id, NF_ACCEPT, 0, NULL);
+            do {
+                ret = nfq_set_verdict(qh, p->nfq_v.id, NF_ACCEPT, 0, NULL);
+            } while ((ret < 0) && (iter++ < NFQ_VERDICT_RETRY_TIME));
+            if (ret < 0) {
+                SCLogWarning(SC_ERR_NFQ_SET_VERDICT,
+                             "nfq_set_verdict of %p failed %" PRId32 "",
+                             p, ret);
+            }
             return -1 ;
         }
     }
@@ -773,14 +782,15 @@ void ReceiveNFQThreadExitStats(ThreadVars *tv, void *data) {
  * \brief NFQ verdict function
  */
 void NFQSetVerdict(Packet *p) {
+    int iter = 0;
+    int ret = 0;
+    uint32_t verdict = NF_ACCEPT;
+    NFQQueueVars *t = nfq_q + p->nfq_v.nfq_index;
+
     /* can't verdict a "fake" packet */
     if (p->flags & PKT_PSEUDO_STREAM_END) {
         return;
     }
-
-    int ret = 0;
-    uint32_t verdict = NF_ACCEPT;
-    NFQQueueVars *t = nfq_q + p->nfq_v.nfq_index;
 
     //printf("%p verdicting on queue %" PRIu32 "\n", t, t->queue_num);
     SCMutexLock(&t->mutex_qh);
@@ -815,66 +825,69 @@ void NFQSetVerdict(Packet *p) {
 #endif /* COUNTERS */
     }
 
-    switch (nfq_config.mode) {
-        default:
-        case NFQ_ACCEPT_MODE:
-        case NFQ_ROUTE_MODE:
-            if (p->flags & PKT_MARK_MODIFIED) {
+    do {
+        switch (nfq_config.mode) {
+            default:
+            case NFQ_ACCEPT_MODE:
+            case NFQ_ROUTE_MODE:
+                if (p->flags & PKT_MARK_MODIFIED) {
 #ifdef HAVE_NFQ_SET_VERDICT2
-                if (p->flags & PKT_STREAM_MODIFIED) {
-                    ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
-                            p->nfq_v.mark,
-                            GET_PKT_LEN(p), GET_PKT_DATA(p));
-                } else {
-                    ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
-                            p->nfq_v.mark,
-                            0, NULL);
-                }
+                    if (p->flags & PKT_STREAM_MODIFIED) {
+                        ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
+                                p->nfq_v.mark,
+                                GET_PKT_LEN(p), GET_PKT_DATA(p));
+                    } else {
+                        ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
+                                p->nfq_v.mark,
+                                0, NULL);
+                    }
 #else /* fall back to old function */
-                if (p->flags & PKT_STREAM_MODIFIED) {
-                    ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
-                            htonl(p->nfq_v.mark),
-                            GET_PKT_LEN(p), GET_PKT_DATA(p));
-                } else {
-                    ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
-                            htonl(p->nfq_v.mark),
-                            0, NULL);
-                }
+                    if (p->flags & PKT_STREAM_MODIFIED) {
+                        ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
+                                htonl(p->nfq_v.mark),
+                                GET_PKT_LEN(p), GET_PKT_DATA(p));
+                    } else {
+                        ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
+                                htonl(p->nfq_v.mark),
+                                0, NULL);
+                    }
 #endif /* HAVE_NFQ_SET_VERDICT2 */
-            } else {
-                if (p->flags & PKT_STREAM_MODIFIED) {
-                    ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict,
-                            GET_PKT_LEN(p), GET_PKT_DATA(p));
                 } else {
-                    ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, 0, NULL);
-                }
+                    if (p->flags & PKT_STREAM_MODIFIED) {
+                        ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict,
+                                GET_PKT_LEN(p), GET_PKT_DATA(p));
+                    } else {
+                        ret = nfq_set_verdict(t->qh, p->nfq_v.id, verdict, 0, NULL);
+                    }
 
-            }
-            break;
-        case NFQ_REPEAT_MODE:
+                }
+                break;
+            case NFQ_REPEAT_MODE:
 #ifdef HAVE_NFQ_SET_VERDICT2
-            if (p->flags & PKT_STREAM_MODIFIED) {
-                ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
-                        (nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask),
-                        GET_PKT_LEN(p), GET_PKT_DATA(p));
-            } else {
-                ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
-                        (nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask),
-                        0, NULL);
-            }
+                if (p->flags & PKT_STREAM_MODIFIED) {
+                    ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
+                            (nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask),
+                            GET_PKT_LEN(p), GET_PKT_DATA(p));
+                } else {
+                    ret = nfq_set_verdict2(t->qh, p->nfq_v.id, verdict,
+                            (nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask),
+                            0, NULL);
+                }
 #else /* fall back to old function */
-            if (p->flags & PKT_STREAM_MODIFIED) {
-                ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
-                        htonl((nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask)),
-                        GET_PKT_LEN(p), GET_PKT_DATA(p));
-            } else {
-                ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
-                        htonl((nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask)),
-                        0, NULL);
-            }
+                if (p->flags & PKT_STREAM_MODIFIED) {
+                    ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
+                            htonl((nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask)),
+                            GET_PKT_LEN(p), GET_PKT_DATA(p));
+                } else {
+                    ret = nfq_set_verdict_mark(t->qh, p->nfq_v.id, verdict,
+                            htonl((nfq_config.mark & nfq_config.mask) | (p->nfq_v.mark & ~nfq_config.mask)),
+                            0, NULL);
+                }
 #endif /* HAVE_NFQ_SET_VERDICT2 */
-            break;
-    }
+                break;
+        }
+    } while ((ret < 0) && (iter++ < NFQ_VERDICT_RETRY_TIME));
+
     SCMutexUnlock(&t->mutex_qh);
 
     if (ret < 0) {
