@@ -906,8 +906,9 @@ void TmThreadSetPrio(ThreadVars *tv)
  * \brief Set the thread options (cpu affinity).
  *
  * \param tv pointer to the ThreadVars to setup the affinity.
+ * \param cpu cpu on which affinity is set.
  *
- * \retval TM_ECODE_OK.
+ * \retval TM_ECODE_OK
  */
 TmEcode TmThreadSetCPUAffinity(ThreadVars *tv, uint16_t cpu)
 {
