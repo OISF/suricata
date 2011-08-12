@@ -16,6 +16,17 @@
  */
 
 /**
+ * \defgroup threshold Thresholding
+ *
+ * This feature is used to reduce the number of logged alerts for noisy rules.
+ * This can be tuned to significantly reduce false alarms, and it can also be
+ * used to write a newer breed of rules. Thresholding commands limit the number
+ * of times a particular event is logged during a specified time interval.
+ *
+ * @{
+ */
+
+/**
  * \file
  *
  *  \author Breno Silva <breno.silva@gmail.com>
@@ -658,3 +669,6 @@ void ThresholdContextDestroy(DetectEngineCtx *de_ctx)
         SCFree(de_ctx->ths_ctx.th_entry);
 }
 
+/**
+ * @}
+ */

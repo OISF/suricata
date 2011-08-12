@@ -16,6 +16,11 @@
  */
 
 /**
+ * \ingroup threshold
+ * @{
+ */
+
+/**
  * \file
  *
  * \author Breno Silva Pinto <breno.silva@gmail.com>
@@ -1707,3 +1712,6 @@ void SCThresholdConfRegisterTests(void)
 #endif /* UNITTESTS */
 }
 
+/**
+ * @}
+ */

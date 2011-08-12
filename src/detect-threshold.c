@@ -16,11 +16,19 @@
  */
 
 /**
+ * \ingroup threshold
+ * @{
+ */
+
+/**
  * \file
  *
  * \author Breno Silva <breno.silva@gmail.com>
  *
- * Implements the threshold keyword
+ * Implements the threshold keyword.
+ *
+ * The feature depends on what is provided
+ * by detect-engine-threshold.c and util-threshold-config.c
  */
 
 #include "suricata-common.h"
@@ -878,3 +886,7 @@ void ThresholdRegisterTests(void) {
     UtRegisterTest("DetectThresholdTestSig6Ticks", DetectThresholdTestSig6Ticks, 1);
 #endif /* UNITTESTS */
 }
+
+/**
+ * @}
+ */
