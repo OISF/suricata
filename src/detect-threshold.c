@@ -187,7 +187,7 @@ static DetectThresholdData *DetectThresholdParse (char *rawstr)
             de->track = TRACK_DST;
         if (strncasecmp(args[i],"by_src",strlen("by_src")) == 0)
             de->track = TRACK_SRC;
-        if (strncasecmp(args[i],"count",strlen("seconds")) == 0)
+        if (strncasecmp(args[i],"count",strlen("count")) == 0)
             count_pos = i+1;
         if (strncasecmp(args[i],"seconds",strlen("seconds")) == 0)
             second_pos = i+1;
