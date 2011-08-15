@@ -532,6 +532,26 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
             }
             break;
         }
+        case TYPE_SUPPRESS:
+        {
+            DetectAddress *res = NULL;
+            switch (td->track) {
+                case TRACK_DST:
+                    res = DetectAddressLookupInHead(&td->addr, &p->dst);
+                    break;
+                case TRACK_SRC:
+                    res = DetectAddressLookupInHead(&td->addr, &p->src);
+                    break;
+                case TRACK_RULE:
+                default:
+                    SCLogError(SC_ERR_INVALID_VALUE,
+                               "track mode %d is not supported", td->track);
+                    break;
+            }
+            if (res == NULL)
+                ret = 1;
+            break;
+        }
     }
 
     /* handle timing out entries */

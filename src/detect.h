@@ -39,7 +39,6 @@
 #include "util-error.h"
 #include "util-radix-tree.h"
 
-#include "detect-threshold.h"
 #include "detect-mark.h"
 
 #define COUNTER_DETECT_ALERTS 1
@@ -160,6 +159,9 @@ typedef struct DetectAddressHead_ {
     DetectAddress *ipv4_head;
     DetectAddress *ipv6_head;
 } DetectAddressHead;
+
+
+#include "detect-threshold.h"
 
 typedef struct DetectMatchAddressIPv4_ {
     uint32_t ip;    /**< address in host order, start of range */

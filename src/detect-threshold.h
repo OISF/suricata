@@ -33,6 +33,7 @@
 #define TYPE_THRESHOLD 3
 #define TYPE_DETECTION 4
 #define TYPE_RATE      5
+#define TYPE_SUPPRESS  6
 
 #define TRACK_DST      1
 #define TRACK_SRC      2
@@ -60,6 +61,9 @@ typedef struct DetectThresholdData_ {
     uint8_t track;      /**< Track type: by_src, by_dst */
     uint8_t new_action; /**< new_action alert|drop|pass|log|sdrop|reject */
     uint32_t timeout;   /**< timeout */
+    uint32_t flags;     /**< flags used to set option */
+    /* TODO take care of free of allocated */
+    DetectAddressHead addr; /**< address group used by suppress keyword */
 } DetectThresholdData;
 
 typedef struct DetectThresholdEntry_ {
