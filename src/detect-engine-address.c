@@ -1223,6 +1223,11 @@ int DetectAddressParse(DetectAddressHead *gh, char *str)
 
     SCLogDebug("gh %p, str %s", gh, str);
 
+    if (str == NULL) {
+        SCLogDebug("DetectAddressParse can not be run with NULL address");
+        goto error;
+    }
+
     DetectAddressHead *ghn = DetectAddressHeadInit();
     if (ghn == NULL) {
         SCLogDebug("DetectAddressHeadInit for ghn failed");
