@@ -552,6 +552,8 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                 ret = 1;
             break;
         }
+        default:
+            SCLogError(SC_ERR_INVALID_VALUE, "type %d is not supported", td->type);
     }
 
     /* handle timing out entries */
