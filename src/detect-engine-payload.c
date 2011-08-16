@@ -37,6 +37,7 @@
 #include "detect-bytetest.h"
 #include "detect-bytejump.h"
 #include "detect-byte-extract.h"
+#include "detect-replace.h"
 
 #include "util-spm.h"
 #include "util-spm-bm.h"
@@ -91,6 +92,7 @@ static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
     switch(sm->type) {
         case DETECT_CONTENT:
         {
+
             DetectContentData *cd = (DetectContentData *)sm->ctx;
             SCLogDebug("inspecting content %"PRIu32" payload_len %"PRIu32, cd->id, payload_len);
 
@@ -262,6 +264,14 @@ static int DoInspectPacketPayload(DetectEngineCtx *de_ctx,
                     SCLogDebug("content %"PRIu32" matched at offset %"PRIu32"", cd->id, match_offset);
                     det_ctx->payload_offset = match_offset;
 
+                    /* Match branch, add replace to the list if needed */
+                    if (cd->flags & DETECT_CONTENT_REPLACE) {
+                        if (p) {
+                            /* we will need to replace content if match is confirmed */
+                            det_ctx->replist = DetectReplaceAddToList(det_ctx->replist, found, cd);
+                        } else
+                            SCLogWarning(SC_ERR_INVALID_VALUE, "Can't modify payload without packet");
+                    }
                     if (!(cd->flags & DETECT_CONTENT_RELATIVE_NEXT)) {
                         SCLogDebug("no relative match coming up, so this is a match");
                         goto match;
@@ -465,6 +475,7 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
     det_ctx->payload_offset = 0;
     det_ctx->discontinue_matching = 0;
     det_ctx->inspection_recursion_counter = 0;
+    det_ctx->replist = NULL;
     //det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_INSPECTING_PACKET;
 
     r = DoInspectPacketPayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_PMATCH], p, f, p->payload, p->payload_len);
@@ -472,7 +483,6 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
     if (r == 1) {
         SCReturnInt(1);
     }
-
     SCReturnInt(0);
 }
 

@@ -58,6 +58,9 @@
 #define DETECT_CONTENT_DISTANCE_BE       0x00400000
 #define DETECT_CONTENT_WITHIN_BE         0x00800000
 
+/* replace data */
+#define DETECT_CONTENT_REPLACE           0x01000000
+
 #define DETECT_CONTENT_IS_SINGLE(c) (!((c)->flags & DETECT_CONTENT_DISTANCE || \
                                        (c)->flags & DETECT_CONTENT_WITHIN || \
                                        (c)->flags & DETECT_CONTENT_RELATIVE_NEXT || \
@@ -84,12 +87,16 @@ typedef struct DetectContentData_ {
     uint16_t fp_chop_offset;
     /* for chopped fast pattern, the length */
     uint16_t fp_chop_len;
+    /* pointer to replacement data */
+    uint8_t *replace;
+    uint8_t replace_len;
 } DetectContentData;
 
 /* prototypes */
 void DetectContentRegister (void);
 uint32_t DetectContentMaxId(DetectEngineCtx *);
 DetectContentData *DetectContentParse (char *contentstr);
+int DetectContentDataParse(char *contentstr, char** pstr, uint16_t *plen, int *flags);
 
 void DetectContentPrint(DetectContentData *);
 

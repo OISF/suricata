@@ -474,6 +474,12 @@ typedef struct Signature_ {
     struct Signature_ *next;
 } Signature;
 
+typedef struct DetectReplaceList_ {
+    struct DetectContentData_ *cd;
+    uint8_t *found;
+    struct DetectReplaceList_ *next;
+} DetectReplaceList;
+
 typedef struct DetectEngineIPOnlyThreadCtx_ {
     uint8_t *sig_match_array; /* bit array of sig nums */
     uint32_t sig_match_size;  /* size in bytes of the array */
@@ -791,6 +797,9 @@ typedef struct DetectionEngineThreadCtx_ {
     /* byte jump values */
     uint64_t *bj_values;
 
+    /* string to replace */
+    DetectReplaceList *replist;
+
     DetectEngineCtx *de_ctx;
 #ifdef __SC_CUDA_SUPPORT__
     /* each detection thread would have it's own queue where the cuda dispatcher
@@ -941,6 +950,7 @@ enum {
     DETECT_DISTANCE,
     DETECT_WITHIN,
     DETECT_OFFSET,
+    DETECT_REPLACE,
     DETECT_NOCASE,
     DETECT_FAST_PATTERN,
     DETECT_RECURSIVE,

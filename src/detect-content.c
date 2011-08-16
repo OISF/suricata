@@ -64,13 +64,8 @@ uint32_t DetectContentMaxId(DetectEngineCtx *de_ctx) {
     return MpmPatternIdStoreGetMaxId(de_ctx->mpm_pattern_id_store);
 }
 
-/**
- * \brief DetectContentParse
- * \initonly
- */
-DetectContentData *DetectContentParse (char *contentstr)
+int DetectContentDataParse(char *contentstr, char** pstr, uint16_t *plen, int *flags)
 {
-    DetectContentData *cd = NULL;
     char *str = NULL;
     char *temp = NULL;
     uint16_t len;
@@ -84,15 +79,8 @@ DetectContentData *DetectContentParse (char *contentstr)
 
     if (strlen(temp) == 0) {
         SCFree(temp);
-        return NULL;
+        return -1;
     }
-
-    cd = SCMalloc(sizeof(DetectContentData));
-    if (cd == NULL) {
-        exit(EXIT_FAILURE);
-    }
-
-    memset(cd, 0, sizeof(DetectContentData));
 
     /* skip the first spaces */
     slen = strlen(temp);
@@ -108,8 +96,9 @@ DetectContentData *DetectContentParse (char *contentstr)
         }
 
         pos = 0;
-        cd->flags |= DETECT_CONTENT_NEGATED;
-    }
+        *flags = DETECT_CONTENT_NEGATED;
+    } else
+        *flags = 0;
 
     if (temp[pos] == '\"' && strlen(temp + pos) == 1)
         goto error;
@@ -226,8 +215,48 @@ DetectContentData *DetectContentParse (char *contentstr)
         }
     }
 
+    *plen = len;
+    *pstr = str;
+    return 0;
+
+error:
+    SCFree(str);
+    SCFree(temp);
+    return -1;
+}
+/**
+ * \brief DetectContentParse
+ * \initonly
+ */
+DetectContentData *DetectContentParse (char *contentstr)
+{
+    DetectContentData *cd = NULL;
+    char *str = NULL;
+    uint16_t len;
+    int flags;
+    int ret;
+
+    ret = DetectContentDataParse(contentstr, &str, &len, &flags);
+
+    if (ret == -1) {
+        return NULL;
+    }
+
+    cd = SCMalloc(sizeof(DetectContentData));
+    if (cd == NULL) {
+        SCFree(str);
+        exit(EXIT_FAILURE);
+    }
+
+    memset(cd, 0, sizeof(DetectContentData));
+
+    if (flags == DETECT_CONTENT_NEGATED)
+        cd->flags |= DETECT_CONTENT_NEGATED;
+
     cd->content = SCMalloc(len);
     if (cd->content == NULL) {
+        SCFree(str);
+        SCFree(cd);
         exit(EXIT_FAILURE);
     }
 
@@ -244,15 +273,6 @@ DetectContentData *DetectContentParse (char *contentstr)
     SCFree(str);
     return cd;
 
-error:
-    SCFree(str);
-    SCFree(temp);
-    if (cd != NULL) {
-        if (cd->content != NULL)
-            SCFree(cd->content);
-        SCFree(cd);
-    }
-    return NULL;
 }
 
 /**
@@ -292,6 +312,25 @@ void DetectContentPrint(DetectContentData *cd)
     SCLogDebug("flags: %u ", cd->flags);
     SCLogDebug("negated: %s ", cd->flags & DETECT_CONTENT_NEGATED ? "true" : "false");
     SCLogDebug("relative match next: %s ", cd->flags & DETECT_CONTENT_RELATIVE_NEXT ? "true" : "false");
+    if (cd->replace && cd->replace_len) {
+        char *tmpstr=SCMalloc(sizeof(char) * cd->replace_len + 1);
+
+        if (tmpstr != NULL) {
+            for (i = 0; i < cd->replace_len; i++) {
+                if (isprint(cd->replace[i]))
+                    tmpstr[i] = cd->replace[i];
+                else
+                    tmpstr[i] = '.';
+            }
+            tmpstr[i] = '\0';
+            SCLogDebug("Replace: \"%s\"", tmpstr);
+            SCFree(tmpstr);
+        } else {
+            SCLogDebug("Replace: ");
+            for (i = 0; i < cd->replace_len; i++)
+                SCLogDebug("%c", cd->replace[i]);
+        }
+    }
     SCLogDebug("-----------");
 }
 

@@ -123,6 +123,7 @@
 #include "detect-engine-hcd.h"
 #include "detect-engine-hrud.h"
 #include "detect-byte-extract.h"
+#include "detect-replace.h"
 
 #include "util-rule-vars.h"
 
@@ -1540,7 +1541,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
             /* if we have stream msgs, inspect against those first,
              * but not for a "dsize" signature */
-            if (!(s->flags & SIG_FLAG_DSIZE) && smsg != NULL) {
+            if (!(s->flags & SIG_FLAG_DSIZE) && !(s->flags & SIG_FLAG_REQUIRE_PACKET) && smsg != NULL) {
                 char pmatch = 0;
                 uint8_t pmq_idx = 0;
                 StreamMsg *smsg_inspect = smsg;
@@ -1664,6 +1665,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             SCLogDebug("signature matched without sigmatches");
 
             fmatch = 1;
+
+            DetectReplaceExecute(p, det_ctx->replist);
+            det_ctx->replist = NULL;
             if (!(s->flags & SIG_FLAG_NOALERT)) {
                 PacketAlertAppend(det_ctx, s, p, alert_flags, NULL);
             }
@@ -1682,6 +1686,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
                             /* only if the last matched as well, we have a hit */
                             if (sm == NULL) {
+
+                                DetectReplaceExecute(p, det_ctx->replist);
+                                det_ctx->replist = NULL;
                                 if (!(s->flags & SIG_FLAG_NOALERT)) {
                                     /* only add once */
                                     if (rmatch == 0) {
@@ -1695,6 +1702,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                             /* done with this sig */
                             sm = NULL;
                             rmatch = 0;
+
+                            DetectReplaceFree(det_ctx->replist);
+                            det_ctx->replist = NULL;
                         }
                     }
 
@@ -1717,11 +1727,16 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                         /* only if the last matched as well, we have a hit */
                         if (sm == NULL) {
                             fmatch = 1;
+                            DetectReplaceExecute(p, det_ctx->replist);
+                            det_ctx->replist = NULL;
+
                             if (!(s->flags & SIG_FLAG_NOALERT)) {
                                 PacketAlertAppend(det_ctx, s, p, alert_flags, alert_msg);
                             }
                         }
                     } else {
+                        DetectReplaceFree(det_ctx->replist);
+                        det_ctx->replist = NULL;
                         /* done with this sig */
                         sm = NULL;
                     }
@@ -4260,6 +4275,7 @@ void SigTableSetup(void) {
     DetectWithinRegister();
     DetectDistanceRegister();
     DetectOffsetRegister();
+    DetectReplaceRegister();
     DetectFlowRegister();
     DetectWindowRegister();
     DetectRpcRegister();

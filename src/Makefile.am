@@ -152,6 +152,7 @@ detect-http-stat-code.c detect-http-stat-code.h \
 detect-ssl-version.c detect-ssl-version.h \
 detect-ssl-state.c detect-ssl-state.h \
 detect-byte-extract.c detect-byte-extract.h \
+detect-replace.c detect-replace.h \
 util-atomic.h \
 util-print.c util-print.h \
 util-fmemopen.c util-fmemopen.h \
