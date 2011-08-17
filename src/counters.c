@@ -468,11 +468,11 @@ static void *SCPerfMgmtThread(void *arg)
         SCPerfOutputCounters();
 
         if (TmThreadsCheckFlag(tv_local, THV_KILL)) {
-            TmThreadsSetFlag(tv_local, THV_CLOSED);
             run = 0;
         }
     }
 
+    TmThreadsSetFlag(tv_local, THV_CLOSED);
     return NULL;
 }
 

@@ -41,7 +41,7 @@ struct TmSlot_;
 #define THV_CLOSED    0x20 /** thread done, should be joinable */
 
 /** Thread flags set and read by threads, to control the threads, when they
-    encounter certain conditions like failure */
+ *  encounter certain conditions like failure */
 #define THV_RESTART_THREAD 0x01 /** restart the thread */
 #define THV_ENGINE_EXIT 0x02 /** shut the engine down gracefully */
 

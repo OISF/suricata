@@ -1156,6 +1156,7 @@ void *FlowManagerThread(void *td)
     SCLogInfo("prune_usecnt %"PRIu64, prune_usecnt);
 #endif
 
+    TmThreadsSetFlag(th_v, THV_CLOSED);
     pthread_exit((void *) 0);
 }
 

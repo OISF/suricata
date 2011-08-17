@@ -66,6 +66,8 @@ SCDQDataQueue data_queues[256];
 /* memset to zeros, and mutex init! */
 void GlobalInits();
 
+extern uint8_t suricata_ctl_flags;
+
 /* uppercase to lowercase conversion lookup table */
 uint8_t g_u8_lowercasetable[256];
 
