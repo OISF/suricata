@@ -216,69 +216,68 @@ typedef struct DetectPort_ {
 } DetectPort;
 
 /* Signature flags */
-#define SIG_FLAG_RECURSIVE      0x00000001  /**< recursive capturing enabled */
-#define SIG_FLAG_SRC_ANY        0x00000002  /**< source is any */
-#define SIG_FLAG_DST_ANY        0x00000004  /**< destination is any */
-#define SIG_FLAG_SP_ANY         0x00000008  /**< source port is any */
+#define SIG_FLAG_RECURSIVE      (1)  /**< recursive capturing enabled */
+#define SIG_FLAG_SRC_ANY        (1<<1) /**< source is any */
+#define SIG_FLAG_DST_ANY        (1<<2)  /**< destination is any */
+#define SIG_FLAG_SP_ANY         (1<<3) /**< source port is any */
 
-#define SIG_FLAG_DP_ANY         0x00000010  /**< destination port is any */
-#define SIG_FLAG_NOALERT        0x00000020  /**< no alert flag is set */
+#define SIG_FLAG_DP_ANY         (1<<4)    /**< destination port is any */
+#define SIG_FLAG_NOALERT        (1<<5)  /**< no alert flag is set */
 
-#define SIG_FLAG_MPM            0x00000040  /**< sig has mpm portion (content) */
-#define SIG_FLAG_MPM_URI        0x00000080  /**< sig has mpm portion (uricontent) */
-#define SIG_FLAG_DSIZE          0x00000100  /**< signature has a dsize setting */
+#define SIG_FLAG_MPM            (1<<6)  /**< sig has mpm portion (content) */
+#define SIG_FLAG_MPM_URI        (1<<7) /**< sig has mpm portion (uricontent) */
+#define SIG_FLAG_DSIZE          (1<<8)  /**< signature has a dsize setting */
 
-#define SIG_FLAG_APPLAYER       0x00000200  /**< signature applies to app layer instead of packets */
-#define SIG_FLAG_IPONLY         0x00000400  /**< ip only signature */
+#define SIG_FLAG_APPLAYER       (1<<9)   /**< signature applies to app layer instead of packets */
+#define SIG_FLAG_IPONLY         (1<<10) /**< ip only signature */
 
-#define SIG_FLAG_STATE_MATCH                    0x00000800  /**< signature has matches that require stateful inspection */
-#define SIG_FLAG_HAS_NO_PKT_AND_STREAM_CONTENT  0x00001000
-#define SIG_FLAG_MPM_PACKET                     0x00002000
-#define SIG_FLAG_MPM_PACKET_NEG                 0x00004000
+#define SIG_FLAG_STATE_MATCH                    (1<<11)  /**< signature has matches that require stateful inspection */
+#define SIG_FLAG_REQUIRE_PACKET  		(1<<12)  /**< signature is requiring packet match */
+#define SIG_FLAG_MPM_PACKET                     (1<<13)
+#define SIG_FLAG_MPM_PACKET_NEG                 (1<<14)
 
-#define SIG_FLAG_MPM_STREAM                     0x00008000
-#define SIG_FLAG_MPM_STREAM_NEG                 0x00010000
+#define SIG_FLAG_MPM_STREAM                     (1<<15)
+#define SIG_FLAG_MPM_STREAM_NEG                 (1<<16)
 
-#define SIG_FLAG_MPM_URICONTENT                 0x00020000
-#define SIG_FLAG_MPM_URICONTENT_NEG             0x00040000
+#define SIG_FLAG_MPM_URICONTENT                 (1<<17)
+#define SIG_FLAG_MPM_URICONTENT_NEG             (1<<18)
 
-#define SIG_FLAG_MPM_HHDCONTENT                 0x00080000
-#define SIG_FLAG_MPM_HHDCONTENT_NEG             0x00100000
+#define SIG_FLAG_MPM_HHDCONTENT                 (1<<19)
+#define SIG_FLAG_MPM_HHDCONTENT_NEG             (1<<20)
 
-#define SIG_FLAG_MPM_HRHDCONTENT                0x00200000
-#define SIG_FLAG_MPM_HRHDCONTENT_NEG            0x00400000
+#define SIG_FLAG_MPM_HRHDCONTENT                (1<<21)
+#define SIG_FLAG_MPM_HRHDCONTENT_NEG            (1<<22)
 
-#define SIG_FLAG_MPM_HCBDCONTENT                0x00800000
-#define SIG_FLAG_MPM_HCBDCONTENT_NEG            0x01000000
+#define SIG_FLAG_MPM_HCBDCONTENT                (1<<23)
+#define SIG_FLAG_MPM_HCBDCONTENT_NEG            (1<<24)
 
-#define SIG_FLAG_MPM_HMDCONTENT                 0x02000000
-#define SIG_FLAG_MPM_HMDCONTENT_NEG             0x04000000
+#define SIG_FLAG_MPM_HMDCONTENT                 (1<<25)
+#define SIG_FLAG_MPM_HMDCONTENT_NEG             (1<<26)
 
-#define SIG_FLAG_MPM_HCDCONTENT                 0x08000000
-#define SIG_FLAG_MPM_HCDCONTENT_NEG             0x10000000
+#define SIG_FLAG_MPM_HCDCONTENT                 (1<<27)
+#define SIG_FLAG_MPM_HCDCONTENT_NEG             (1<<28)
 
-#define SIG_FLAG_MPM_HRUDCONTENT                0x20000000
-#define SIG_FLAG_MPM_HRUDCONTENT_NEG            0x40000000
+#define SIG_FLAG_MPM_HRUDCONTENT                (1<<29)
+#define SIG_FLAG_MPM_HRUDCONTENT_NEG            (1<<30)
 
-#define SIG_FLAG_REQUIRE_FLOWVAR                0x80000000 /**< signature can only match if a flowbit, flowvar or flowint is available. */
+#define SIG_FLAG_REQUIRE_FLOWVAR                (1<<31) /**< signature can only match if a flowbit, flowvar or flowint is available. */
 
 /* signature init flags */
-#define SIG_FLAG_DEONLY         0x00000001  /**< decode event only signature */
-#define SIG_FLAG_PACKET         0x00000002  /**< signature has matches against a packet (as opposed to app layer) */
-#define SIG_FLAG_FLOW           0x00000004  /**< signature has a flow setting */
-#define SIG_FLAG_BIDIREC        0x00000008  /**< signature has bidirectional operator */
-#define SIG_FLAG_PAYLOAD        0x00000010  /**< signature is inspecting the packet payload */
-
+#define SIG_FLAG_DEONLY         1  /**< decode event only signature */
+#define SIG_FLAG_PACKET         (1<<1)  /**< signature has matches against a packet (as opposed to app layer) */
+#define SIG_FLAG_FLOW           (1<<2)  /**< signature has a flow setting */
+#define SIG_FLAG_BIDIREC        (1<<3)  /**< signature has bidirectional operator */
+#define SIG_FLAG_PAYLOAD        (1<<4)  /**< signature is inspecting the packet payload */
 
 /* signature mask flags */
-#define SIG_MASK_REQUIRE_PAYLOAD            0x01
-#define SIG_MASK_REQUIRE_FLOW               0x02
-#define SIG_MASK_REQUIRE_FLAGS_INITDEINIT   0x04    /* SYN, FIN, RST */
-#define SIG_MASK_REQUIRE_FLAGS_UNUSUAL      0x08    /* URG, ECN, CWR */
-#define SIG_MASK_REQUIRE_NO_PAYLOAD         0x10
+#define SIG_MASK_REQUIRE_PAYLOAD            1
+#define SIG_MASK_REQUIRE_FLOW               (1<<1)
+#define SIG_MASK_REQUIRE_FLAGS_INITDEINIT   (1<<2)    /* SYN, FIN, RST */
+#define SIG_MASK_REQUIRE_FLAGS_UNUSUAL      (1<<3)    /* URG, ECN, CWR */
+#define SIG_MASK_REQUIRE_NO_PAYLOAD         (1<<4)
 //
-#define SIG_MASK_REQUIRE_HTTP_STATE         0x40
-#define SIG_MASK_REQUIRE_DCE_STATE          0x80
+#define SIG_MASK_REQUIRE_HTTP_STATE         (1<<5)
+#define SIG_MASK_REQUIRE_DCE_STATE          (1<<6)
 
 /* for now a uint8_t is enough */
 #define SignatureMask uint8_t

@@ -1358,11 +1358,6 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
             continue;
         }
 
-        if (!(s->flags & SIG_FLAG_HAS_NO_PKT_AND_STREAM_CONTENT) &&
-            !SignatureHasPacketContent(s) && !SignatureHasStreamContent(s)) {
-            s->flags |= SIG_FLAG_HAS_NO_PKT_AND_STREAM_CONTENT;
-        }
-
         int list_id = 0;
         for ( ; list_id < DETECT_SM_LIST_MAX; list_id++) {
             /* we have no keywords that support fp in this Signature sm list */
