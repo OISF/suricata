@@ -1485,12 +1485,6 @@ int main(int argc, char **argv)
 
             SCLogInfo("time elapsed %" PRIuMAX "s", (uintmax_t)(end_time.tv_sec - start_time.tv_sec));
 
-#ifdef __SC_CUDA_SUPPORT__
-            SCCudaPBKillBatchingPackets();
-#endif
-
-            TmThreadKillThreads();
-            SCPerfReleaseResources();
             break;
         }
 
@@ -1503,6 +1497,12 @@ int main(int argc, char **argv)
     SC_ATOMIC_CAS(&engine_stage, SURICATA_RUNTIME, SURICATA_DEINIT);
 
 
+#ifdef __SC_CUDA_SUPPORT__
+    SCCudaPBKillBatchingPackets();
+#endif
+
+    TmThreadKillThreads();
+    SCPerfReleaseResources();
     FlowShutdown();
     FlowPrintQueueInfo();
     StreamTcpFreeConfig(STREAM_VERBOSE);
