@@ -168,6 +168,11 @@ engine-analysis:
   # enables printing reports for fast-pattern for every rule.
   rules-fast-pattern: yes
 
+#recursion and match limits for PCRE where supported
+pcre:
+  match-limit: 3500
+  match-limit-recursion: 1500
+
 # You can specify a threshold config file by setting "threshold-file"
 # to the path of the threshold config file:
 # threshold-file: /etc/suricata/threshold.config

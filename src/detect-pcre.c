@@ -67,7 +67,8 @@
 #define DEFAULT_MATCH_LIMIT 10000000
 #define DEFAULT_MATCH_LIMIT_RECURSION 10000000
 
-#define MATCH_LIMIT_DEFAULT 1500
+#define SC_MATCH_LIMIT_DEFAULT 1500
+#define SC_MATCH_LIMIT_RECURSION_DEFAULT 1500
 
 static int pcre_match_limit = 0;
 static int pcre_match_limit_recursion = 0;
@@ -119,20 +120,22 @@ void DetectPcreRegister (void) {
     intmax_t val = 0;
 
     if (!ConfGetInt("pcre.match-limit", &val)) {
-        pcre_match_limit = DEFAULT_MATCH_LIMIT;
+        pcre_match_limit = SC_MATCH_LIMIT_DEFAULT;
     }
     else    {
         pcre_match_limit = val;
     }
+    SCLogInfo("Using PCRE match-limit setting of: %i", pcre_match_limit);
 
     val = 0;
 
     if (!ConfGetInt("pcre.match-limit-recursion", &val)) {
-        pcre_match_limit_recursion = DEFAULT_MATCH_LIMIT_RECURSION;
+        pcre_match_limit_recursion = SC_MATCH_LIMIT_RECURSION_DEFAULT;
     }
     else    {
         pcre_match_limit_recursion = val;
     }
+    SCLogInfo("Using PCRE match-limit-recursion setting of: %i", pcre_match_limit_recursion);
 
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if(parse_regex == NULL)
@@ -913,10 +916,10 @@ DetectPcreData *DetectPcreParse (char *regexstr)
         }
         else    {
 
-            pd->sd->match_limit = MATCH_LIMIT_DEFAULT;
+            pd->sd->match_limit = SC_MATCH_LIMIT_DEFAULT;
             pd->sd->flags |= PCRE_EXTRA_MATCH_LIMIT;
 #ifndef NO_PCRE_MATCH_RLIMIT
-            pd->sd->match_limit_recursion = MATCH_LIMIT_DEFAULT;
+            pd->sd->match_limit_recursion = SC_MATCH_LIMIT_RECURSION_DEFAULT;
             pd->sd->flags |= PCRE_EXTRA_MATCH_LIMIT_RECURSION;
 #endif /* NO_PCRE_MATCH_RLIMIT */
         }
