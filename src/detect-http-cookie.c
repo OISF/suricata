@@ -397,7 +397,7 @@ int DetectHttpCookieTest07(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:one; content:one; http_cookie; sid:1;)");
+                               "(content:\"one\"; content:\"one\"; http_cookie; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -436,7 +436,7 @@ int DetectHttpCookieTest08(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:one; http_cookie; content:one; sid:1;)");
+                               "(content:\"one\"; http_cookie; content:\"one\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -475,7 +475,7 @@ int DetectHttpCookieTest09(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:one; content:one; content:one; http_cookie; content:one; sid:1;)");
+                               "(content:\"one\"; content:\"one\"; content:\"one\"; http_cookie; content:\"one\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -514,7 +514,7 @@ int DetectHttpCookieTest10(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:one; http_cookie; content:one; content:one; content:one; sid:1;)");
+                               "(content:\"one\"; http_cookie; content:\"one\"; content:\"one\"; content:\"one\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -553,8 +553,8 @@ int DetectHttpCookieTest11(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:one; http_cookie; "
-                               "content:one; content:one; http_cookie; content:one; sid:1;)");
+                               "(content:\"one\"; http_cookie; "
+                               "content:\"one\"; content:\"one\"; http_cookie; content:\"one\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -594,8 +594,8 @@ int DetectHttpCookieTest12(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:one; http_cookie; "
-                               "content:one; content:one; http_cookie; content:two; sid:1;)");
+                               "(content:\"one\"; http_cookie; "
+                               "content:\"one\"; content:\"one\"; http_cookie; content:\"two\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -856,7 +856,7 @@ static int DetectHttpCookieSigTest03(void) {
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP cookie\"; content:boo; "
+                                   "\"HTTP cookie\"; content:\"boo\"; "
                                    "http_cookie; sid:1;)");
     if (s == NULL) {
         goto end;
@@ -945,7 +945,7 @@ static int DetectHttpCookieSigTest04(void) {
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP cookie\"; content:!boo; "
+                                   "\"HTTP cookie\"; content:!\"boo\"; "
                                    "http_cookie; sid:1;)");
     if (s == NULL) {
         goto end;
@@ -1034,7 +1034,7 @@ static int DetectHttpCookieSigTest05(void) {
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP cookie\"; content:dummy; nocase; "
+                                   "\"HTTP cookie\"; content:\"dummy\"; nocase; "
                                    "http_cookie; sid:1;)");
     if (s == NULL) {
         goto end;
@@ -1211,7 +1211,7 @@ static int DetectHttpCookieSigTest07(void) {
     de_ctx->flags |= DE_QUIET;
 
     s = de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any (msg:"
-                                   "\"HTTP cookie\"; content:!dummy; "
+                                   "\"HTTP cookie\"; content:!\"dummy\"; "
                                    "http_cookie; sid:1;)");
     if (s == NULL) {
         goto end;

@@ -1503,7 +1503,7 @@ int DetectPcreParseTest11(void)
 
     s->next = SigInit(de_ctx, "alert tcp any any -> any any "
                       "(msg:\"Testing bytejump_body\"; "
-                      "content:one; pcre:/bamboo/; sid:1;)");
+                      "content:\"one\"; pcre:/bamboo/; sid:1;)");
     if (s->next == NULL) {
         result = 0;
         goto end;

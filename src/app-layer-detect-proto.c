@@ -204,7 +204,7 @@ end:
  *  \param flags Set STREAM_TOCLIENT or STREAM_TOSERVER for the direction in which to try to match the content.
  */
 void AlpProtoAdd(AlpProtoDetectCtx *ctx, uint16_t ip_proto, uint16_t al_proto, char *content, uint16_t depth, uint16_t offset, uint8_t flags) {
-    DetectContentData *cd = DetectContentParse(content);
+    DetectContentData *cd = DetectContentParseEncloseQuotes(content);
     if (cd == NULL) {
         return;
     }

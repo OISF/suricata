@@ -907,7 +907,7 @@ int DetectBytejumpTestParse10(void)
                                "(msg:\"Testing bytejump_body\"; "
                                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                                "dce_stub_data; "
-                               "content:one; distance:0; "
+                               "content:\"one\"; distance:0; "
                                "byte_jump:4,0,align,multiplier 2, "
                                "post_offset -16,relative,dce; sid:1;)");
     if (de_ctx->sig_list == NULL) {
@@ -934,7 +934,7 @@ int DetectBytejumpTestParse10(void)
                       "(msg:\"Testing bytejump_body\"; "
                       "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                       "dce_stub_data; "
-                      "content:one; distance:0; "
+                      "content:\"one\"; distance:0; "
                       "byte_jump:4,0,align,multiplier 2, "
                       "post_offset -16,relative,dce; sid:1;)");
     if (s->next == NULL) {
@@ -961,7 +961,7 @@ int DetectBytejumpTestParse10(void)
                       "(msg:\"Testing bytejump_body\"; "
                       "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                       "dce_stub_data; "
-                      "content:one; distance:0; "
+                      "content:\"one\"; distance:0; "
                       "byte_jump:4,0,align,multiplier 2, "
                       "post_offset -16,relative; sid:1;)");
     if (s->next == NULL) {
@@ -1010,7 +1010,7 @@ int DetectBytejumpTestParse11(void)
                 "(msg:\"Testing bytejump_body\"; "
                 "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                 "dce_stub_data; "
-                "content:one; byte_jump:4,0,align,multiplier 2, "
+                "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
                 "post_offset -16,string,dce; sid:1;)");
     if (s != NULL) {
         result = 0;
@@ -1021,7 +1021,7 @@ int DetectBytejumpTestParse11(void)
                 "(msg:\"Testing bytejump_body\"; "
                 "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                 "dce_sub_data; "
-                "content:one; byte_jump:4,0,align,multiplier 2, "
+                "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
                 "post_offset -16,big,dce; sid:1;)");
     if (s != NULL) {
         result = 0;
@@ -1032,7 +1032,7 @@ int DetectBytejumpTestParse11(void)
                 "(msg:\"Testing bytejump_body\"; "
                 "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                 "dce_stub_data; "
-                "content:one; byte_jump:4,0,align,multiplier 2, "
+                "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
                 "post_offset -16,little,dce; sid:1;)");
     if (s != NULL) {
         result = 0;
@@ -1043,7 +1043,7 @@ int DetectBytejumpTestParse11(void)
                 "(msg:\"Testing bytejump_body\"; "
                 "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                 "dce_stub_data; "
-                "content:one; byte_jump:4,0,align,multiplier 2, "
+                "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
                 "post_offset -16,string,hex,dce; sid:1;)");
     if (s != NULL) {
         result = 0;
@@ -1054,7 +1054,7 @@ int DetectBytejumpTestParse11(void)
                 "(msg:\"Testing bytejump_body\"; "
                 "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                 "dce_stub_data; "
-                "content:one; byte_jump:4,0,align,multiplier 2, "
+                "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
                 "post_offset -16,string,dec,dce; sid:1;)");
     if (s != NULL) {
         result = 0;
@@ -1065,7 +1065,7 @@ int DetectBytejumpTestParse11(void)
                 "(msg:\"Testing bytejump_body\"; "
                 "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                 "dce_stub_data; "
-                "content:one; byte_jump:4,0,align,multiplier 2, "
+                "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
                 "post_offset -16,string,oct,dce; sid:1;)");
     if (s != NULL) {
         result = 0;
@@ -1076,7 +1076,7 @@ int DetectBytejumpTestParse11(void)
                 "(msg:\"Testing bytejump_body\"; "
                 "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                 "dce_stub_data; "
-                "content:one; byte_jump:4,0,align,multiplier 2, "
+                "content:\"one\"; byte_jump:4,0,align,multiplier 2, "
                 "post_offset -16,from_beginning,dce; sid:1;)");
     if (s != NULL) {
         result = 0;

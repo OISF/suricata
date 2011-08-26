@@ -2591,7 +2591,7 @@ static int B2gCudaTest02(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                               "content:test; sid:1;)");
+                               "content:\"test\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -2810,7 +2810,7 @@ static int B2gCudaTest03(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                               "content:test; sid:0;)");
+                               "content:\"test\"; sid:0;)");
     if (de_ctx->sig_list == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -2818,7 +2818,7 @@ static int B2gCudaTest03(void)
     sig = de_ctx->sig_list;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:one; sid:1;)");
+                        "content:\"one\"; sid:1;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -2826,7 +2826,7 @@ static int B2gCudaTest03(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:two; sid:2;)");
+                        "content:\"two\"; sid:2;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -2834,7 +2834,7 @@ static int B2gCudaTest03(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:three; sid:3;)");
+                        "content:\"three\"; sid:3;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -2842,7 +2842,7 @@ static int B2gCudaTest03(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:four; sid:4;)");
+                        "content:\"four\"; sid:4;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -2850,7 +2850,7 @@ static int B2gCudaTest03(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:five; sid:5;)");
+                        "content:\"five\"; sid:5;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -2858,7 +2858,7 @@ static int B2gCudaTest03(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:six; sid:6;)");
+                        "content:\"six\"; sid:6;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -2866,7 +2866,7 @@ static int B2gCudaTest03(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:seven; sid:7;)");
+                        "content:\"seven\"; sid:7;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -2874,7 +2874,7 @@ static int B2gCudaTest03(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:eight; sid:8;)");
+                        "content:\"eight\"; sid:8;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -2882,7 +2882,7 @@ static int B2gCudaTest03(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:nine; sid:9;)");
+                        "content:\"nine\"; sid:9;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -2890,7 +2890,7 @@ static int B2gCudaTest03(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:ten; sid:10;)");
+                        "content:\"ten\"; sid:10;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3133,7 +3133,7 @@ static int B2gCudaTest04(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                               "content:test; sid:0;)");
+                               "content:\"test\"; sid:0;)");
     if (de_ctx->sig_list == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3141,7 +3141,7 @@ static int B2gCudaTest04(void)
     sig = de_ctx->sig_list;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:one; sid:1;)");
+                        "content:\"one\"; sid:1;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3149,7 +3149,7 @@ static int B2gCudaTest04(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:two; sid:2;)");
+                        "content:\"two\"; sid:2;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3157,7 +3157,7 @@ static int B2gCudaTest04(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:three; sid:3;)");
+                        "content:\"three\"; sid:3;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3165,7 +3165,7 @@ static int B2gCudaTest04(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:four; sid:4;)");
+                        "content:\"four\"; sid:4;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3173,7 +3173,7 @@ static int B2gCudaTest04(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:five; sid:5;)");
+                        "content:\"five\"; sid:5;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3181,7 +3181,7 @@ static int B2gCudaTest04(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:six; sid:6;)");
+                        "content:\"six\"; sid:6;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3189,7 +3189,7 @@ static int B2gCudaTest04(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:seven; sid:7;)");
+                        "content:\"seven\"; sid:7;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3197,7 +3197,7 @@ static int B2gCudaTest04(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:eight; sid:8;)");
+                        "content:\"eight\"; sid:8;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3205,7 +3205,7 @@ static int B2gCudaTest04(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:nine; sid:9;)");
+                        "content:\"nine\"; sid:9;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3213,7 +3213,7 @@ static int B2gCudaTest04(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:ten; sid:10;)");
+                        "content:\"ten\"; sid:10;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3477,7 +3477,7 @@ static int B2gCudaTest05(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                               "content:test; sid:0;)");
+                               "content:\"test\"; sid:0;)");
     if (de_ctx->sig_list == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3485,7 +3485,7 @@ static int B2gCudaTest05(void)
     sig = de_ctx->sig_list;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:one; sid:1;)");
+                        "content:\"one\"; sid:1;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3493,7 +3493,7 @@ static int B2gCudaTest05(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:two; sid:2;)");
+                        "content:\"two\"; sid:2;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3501,7 +3501,7 @@ static int B2gCudaTest05(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:three; sid:3;)");
+                        "content:\"three\"; sid:3;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3509,7 +3509,7 @@ static int B2gCudaTest05(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:four; sid:4;)");
+                        "content:\"four\"; sid:4;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3517,7 +3517,7 @@ static int B2gCudaTest05(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:five; sid:5;)");
+                        "content:\"five\"; sid:5;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3525,7 +3525,7 @@ static int B2gCudaTest05(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:six; sid:6;)");
+                        "content:\"six\"; sid:6;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3533,7 +3533,7 @@ static int B2gCudaTest05(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:seven; sid:7;)");
+                        "content:\"seven\"; sid:7;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3541,7 +3541,7 @@ static int B2gCudaTest05(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:eight; sid:8;)");
+                        "content:\"eight\"; sid:8;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3549,7 +3549,7 @@ static int B2gCudaTest05(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:nine; sid:9;)");
+                        "content:\"nine\"; sid:9;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -3557,7 +3557,7 @@ static int B2gCudaTest05(void)
     sig = sig->next;
 
     sig->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                        "content:ten; sid:10;)");
+                        "content:\"ten\"; sid:10;)");
     if (sig->next == NULL) {
         printf("signature parsing failed\n");
         goto end;

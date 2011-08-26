@@ -94,10 +94,21 @@ static int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, char *raw
         return -1;
     }
 
+    long prio = 0;
+    char *endptr = NULL;
+    prio = strtol(rawstr, &endptr, 10);
+    if (endptr == NULL || *endptr != '\0') {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Saw an invalid character as arg "
+                   "to priority keyword");
+        goto error;
+    }
+    s->prio = prio;
     /* if we have reached here, we have had a valid priority.  Assign it */
-    s->prio = atoi(prio_str);
+    //s->prio = atoi(prio_str);
 
     return 0;
+ error:
+    return -1;
 }
 
 /*------------------------------Unittests-------------------------------------*/

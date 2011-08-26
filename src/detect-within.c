@@ -893,7 +893,7 @@ int DetectWithinTestPacket02 (void) {
         goto end;
 
     char sig[] = "alert tcp any any -> any any (msg:\"pcre with within "
-                 "modifier\"; content:Five; content:Ten; within:3; distance:1; sid:1;)";
+                 "modifier\"; content:\"Five\"; content:\"Ten\"; within:3; distance:1; sid:1;)";
 
     result = UTHPacketMatchSig(p, sig);
 

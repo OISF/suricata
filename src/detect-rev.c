@@ -53,10 +53,24 @@ static int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
         dubbed = 1;
     }
 
-    s->rev = (uint8_t)atoi(str);
+    long rev = 0;
+    char *endptr = NULL;
+    rev = strtol(rawstr, &endptr, 10);
+    if (endptr == NULL || *endptr != '\0') {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Saw an invalid character as arg "
+                   "to rev keyword");
+        goto error;
+    }
+    s->rev = rev;
+    //s->rev = (uint8_t)atoi(str);
 
     if (dubbed)
         SCFree(str);
     return 0;
+
+ error:
+    if (dubbed)
+        SCFree(str);
+    return -1;
 }
 

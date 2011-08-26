@@ -649,7 +649,7 @@ static int DetectEngineHttpCookieTest03(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:!ECT; depth:4; http_cookie; "
+                               "content:!\"ECT\"; depth:4; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -743,7 +743,7 @@ static int DetectEngineHttpCookieTest04(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:ECT; depth:4; http_cookie; "
+                               "content:\"ECT\"; depth:4; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -837,7 +837,7 @@ static int DetectEngineHttpCookieTest05(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:!CON; depth:4; http_cookie; "
+                               "content:!\"CON\"; depth:4; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1025,7 +1025,7 @@ static int DetectEngineHttpCookieTest07(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:!CO; offset:3; http_cookie; "
+                               "content:!\"CO\"; offset:3; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1119,7 +1119,7 @@ static int DetectEngineHttpCookieTest08(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:!ECT; offset:3; http_cookie; "
+                               "content:!\"ECT\"; offset:3; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1213,7 +1213,7 @@ static int DetectEngineHttpCookieTest09(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:CON; offset:3; http_cookie; "
+                               "content:\"CON\"; offset:3; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1307,8 +1307,8 @@ static int DetectEngineHttpCookieTest10(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:CO; http_cookie; "
-                               "content:EC; within:4; http_cookie; "
+                               "content:\"CO\"; http_cookie; "
+                               "content:\"EC\"; within:4; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1402,8 +1402,8 @@ static int DetectEngineHttpCookieTest11(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:CO; http_cookie; "
-                               "content:!EC; within:3; http_cookie; "
+                               "content:\"CO\"; http_cookie; "
+                               "content:!\"EC\"; within:3; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1497,8 +1497,8 @@ static int DetectEngineHttpCookieTest12(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:CO; http_cookie; "
-                               "content:EC; within:3; http_cookie; "
+                               "content:\"CO\"; http_cookie; "
+                               "content:\"EC\"; within:3; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1592,8 +1592,8 @@ static int DetectEngineHttpCookieTest13(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:CO; http_cookie; "
-                               "content:!EC; within:4; http_cookie; "
+                               "content:\"CO\"; http_cookie; "
+                               "content:!\"EC\"; within:4; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1687,8 +1687,8 @@ static int DetectEngineHttpCookieTest14(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:CO; http_cookie; "
-                               "content:EC; distance:2; http_cookie; "
+                               "content:\"CO\"; http_cookie; "
+                               "content:\"EC\"; distance:2; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1782,8 +1782,8 @@ static int DetectEngineHttpCookieTest15(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:CO; http_cookie; "
-                               "content:!EC; distance:3; http_cookie; "
+                               "content:\"CO\"; http_cookie; "
+                               "content:!\"EC\"; distance:3; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1877,8 +1877,8 @@ static int DetectEngineHttpCookieTest16(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:CO; http_cookie; "
-                               "content:EC; distance:3; http_cookie; "
+                               "content:\"CO\"; http_cookie; "
+                               "content:\"EC\"; distance:3; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1972,8 +1972,8 @@ static int DetectEngineHttpCookieTest17(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:CO; http_cookie; "
-                               "content:!EC; distance:2; http_cookie; "
+                               "content:\"CO\"; http_cookie; "
+                               "content:!\"EC\"; distance:2; http_cookie; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;

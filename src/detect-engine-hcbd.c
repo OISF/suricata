@@ -592,7 +592,7 @@ static int DetectEngineHttpClientBodyTest01(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
-                               "content:body1This; http_client_body; "
+                               "content:\"body1This\"; http_client_body; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -709,7 +709,7 @@ static int DetectEngineHttpClientBodyTest02(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
-                               "content:body1; http_client_body; offset:5; "
+                               "content:\"body1\"; http_client_body; offset:5; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -814,7 +814,7 @@ static int DetectEngineHttpClientBodyTest03(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
-                               "content:body1; http_client_body; offset:16; "
+                               "content:\"body1\"; http_client_body; offset:16; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -934,7 +934,7 @@ static int DetectEngineHttpClientBodyTest04(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
-                               "content:!body1; http_client_body; offset:16; "
+                               "content:!\"body1\"; http_client_body; offset:16; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1053,7 +1053,7 @@ static int DetectEngineHttpClientBodyTest05(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
-                               "content:body1; http_client_body; depth:25; "
+                               "content:\"body1\"; http_client_body; depth:25; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1172,7 +1172,7 @@ static int DetectEngineHttpClientBodyTest06(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
-                               "content:!body1; http_client_body; depth:25; "
+                               "content:!\"body1\"; http_client_body; depth:25; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1291,7 +1291,7 @@ static int DetectEngineHttpClientBodyTest07(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
-                               "content:!body1; http_client_body; depth:15; "
+                               "content:!\"body1\"; http_client_body; depth:15; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1410,7 +1410,7 @@ static int DetectEngineHttpClientBodyTest08(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
-                               "content:!body1; http_client_body; depth:25; "
+                               "content:!\"body1\"; http_client_body; depth:25; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1529,8 +1529,8 @@ static int DetectEngineHttpClientBodyTest09(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
-                               "content:body1; http_client_body; "
-                               "content:This; http_client_body; within:5; "
+                               "content:\"body1\"; http_client_body; "
+                               "content:\"This\"; http_client_body; within:5; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1649,8 +1649,8 @@ static int DetectEngineHttpClientBodyTest10(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
-                               "content:body1; http_client_body; "
-                               "content:!boom; http_client_body; within:5; "
+                               "content:\"body1\"; http_client_body; "
+                               "content:!\"boom\"; http_client_body; within:5; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1769,8 +1769,8 @@ static int DetectEngineHttpClientBodyTest11(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
-                               "content:body1; http_client_body; "
-                               "content:boom; http_client_body; within:5; "
+                               "content:\"body1\"; http_client_body; "
+                               "content:\"boom\"; http_client_body; within:5; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1889,8 +1889,8 @@ static int DetectEngineHttpClientBodyTest12(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
-                               "content:body1; http_client_body; "
-                               "content:!This; http_client_body; within:5; "
+                               "content:\"body1\"; http_client_body; "
+                               "content:!\"This\"; http_client_body; within:5; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2009,8 +2009,8 @@ static int DetectEngineHttpClientBodyTest13(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
-                               "content:body1; http_client_body; "
-                               "content:dummy; http_client_body; distance:5; "
+                               "content:\"body1\"; http_client_body; "
+                               "content:\"dummy\"; http_client_body; distance:5; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2129,8 +2129,8 @@ static int DetectEngineHttpClientBodyTest14(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
-                               "content:body1; http_client_body; "
-                               "content:!dummy; http_client_body; distance:10; "
+                               "content:\"body1\"; http_client_body; "
+                               "content:!\"dummy\"; http_client_body; distance:10; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2249,8 +2249,8 @@ static int DetectEngineHttpClientBodyTest15(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
-                               "content:body1; http_client_body; "
-                               "content:dummy; http_client_body; distance:10; "
+                               "content:\"body1\"; http_client_body; "
+                               "content:\"dummy\"; http_client_body; distance:10; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2369,8 +2369,8 @@ static int DetectEngineHttpClientBodyTest16(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
-                               "content:body1; http_client_body; "
-                               "content:!dummy; http_client_body; distance:5; "
+                               "content:\"body1\"; http_client_body; "
+                               "content:!\"dummy\"; http_client_body; distance:5; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2473,8 +2473,8 @@ static int DetectEngineHttpClientBodyTest17(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
-                               "content:body1; http_client_body; "
-                               "content:bambu; http_client_body; "
+                               "content:\"body1\"; http_client_body; "
+                               "content:\"bambu\"; http_client_body; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2547,8 +2547,8 @@ static int DetectEngineHttpClientBodyTest18(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
-                               "content:body1; http_client_body; "
-                               "content:bambu; http_client_body; fast_pattern; "
+                               "content:\"body1\"; http_client_body; "
+                               "content:\"bambu\"; http_client_body; fast_pattern; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2621,8 +2621,8 @@ static int DetectEngineHttpClientBodyTest19(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
-                               "content:bambu; http_client_body; "
-                               "content:is; http_client_body; "
+                               "content:\"bambu\"; http_client_body; "
+                               "content:\"is\"; http_client_body; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2695,8 +2695,8 @@ static int DetectEngineHttpClientBodyTest20(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
-                               "content:bambu; http_client_body; "
-                               "content:is; http_client_body; fast_pattern; "
+                               "content:\"bambu\"; http_client_body; "
+                               "content:\"is\"; http_client_body; fast_pattern; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2786,7 +2786,7 @@ static int DetectEngineHttpClientBodyTest21(void)
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
                                "pcre:/body1/P; "
-                               "content:!dummy; http_client_body; within:7; "
+                               "content:!\"dummy\"; http_client_body; within:7; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2906,7 +2906,7 @@ static int DetectEngineHttpClientBodyTest22(void)
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
                                "pcre:/body1/P; "
-                               "content:!dummy; within:7; http_client_body; "
+                               "content:!\"dummy\"; within:7; http_client_body; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -3026,7 +3026,7 @@ static int DetectEngineHttpClientBodyTest23(void)
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
                                "pcre:/body1/P; "
-                               "content:!dummy; distance:3; http_client_body; "
+                               "content:!\"dummy\"; distance:3; http_client_body; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -3146,7 +3146,7 @@ static int DetectEngineHttpClientBodyTest24(void)
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
                                "pcre:/body1/P; "
-                               "content:!dummy; distance:13; http_client_body; "
+                               "content:!\"dummy\"; distance:13; http_client_body; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -3266,7 +3266,7 @@ static int DetectEngineHttpClientBodyTest25(void)
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
                                "pcre:/body1/P; "
-                               "content:dummy; within:15; http_client_body; "
+                               "content:\"dummy\"; within:15; http_client_body; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -3386,7 +3386,7 @@ static int DetectEngineHttpClientBodyTest26(void)
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
                                "pcre:/body1/P; "
-                               "content:dummy; within:10; http_client_body; "
+                               "content:\"dummy\"; within:10; http_client_body; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -3506,7 +3506,7 @@ static int DetectEngineHttpClientBodyTest27(void)
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
                                "pcre:/body1/P; "
-                               "content:dummy; distance:8; http_client_body; "
+                               "content:\"dummy\"; distance:8; http_client_body; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -3626,7 +3626,7 @@ static int DetectEngineHttpClientBodyTest28(void)
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http client body test\"; "
                                "pcre:/body1/P; "
-                               "content:dummy; distance:14; http_client_body; "
+                               "content:\"dummy\"; distance:14; http_client_body; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;

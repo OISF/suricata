@@ -346,7 +346,7 @@ int DetectHttpMethodTest06(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:one; content:one; http_method; sid:1;)");
+                               "(content:\"one\"; content:\"one\"; http_method; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -385,7 +385,7 @@ int DetectHttpMethodTest07(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:one; http_method; content:one; sid:1;)");
+                               "(content:\"one\"; http_method; content:\"one\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -424,7 +424,7 @@ int DetectHttpMethodTest08(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:one; content:one; content:one; http_method; content:one; sid:1;)");
+                               "(content:\"one\"; content:\"one\"; content:\"one\"; http_method; content:\"one\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -463,7 +463,7 @@ int DetectHttpMethodTest09(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:one; http_method; content:one; content:one; content:one; sid:1;)");
+                               "(content:\"one\"; http_method; content:\"one\"; content:\"one\"; content:\"one\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -502,8 +502,8 @@ int DetectHttpMethodTest10(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:one; http_method; "
-                               "content:one; content:one; http_method; content:one; sid:1;)");
+                               "(content:\"one\"; http_method; "
+                               "content:\"one\"; content:\"one\"; http_method; content:\"one\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -543,8 +543,8 @@ int DetectHttpMethodTest11(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:one; http_method; "
-                               "content:one; content:one; http_method; content:two; sid:1;)");
+                               "(content:\"one\"; http_method; "
+                               "content:\"one\"; content:\"one\"; http_method; content:\"two\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -586,12 +586,12 @@ static int DetectHttpMethodTest12(void)
     de_ctx->flags |= DE_QUIET;
 
     if (DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(content:one; http_method; nocase; sid:1;)") == NULL) {
+                               "(content:\"one\"; http_method; nocase; sid:1;)") == NULL) {
         printf("DetectEngineAppend == NULL: ");
         goto end;
     }
     if (DetectEngineAppendSig(de_ctx, "alert http any any -> any any "
-                               "(content:one; nocase; http_method; sid:2;)") == NULL) {
+                               "(content:\"one\"; nocase; http_method; sid:2;)") == NULL) {
         printf("DetectEngineAppend == NULL: ");
         goto end;
     }

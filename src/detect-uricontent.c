@@ -225,16 +225,21 @@ DetectContentData *DoDetectUricontentSetup (char * contentstr)
         if ((str = SCStrdup(temp + pos + 1)) == NULL)
             goto error;
         str[strlen(temp) - pos - 2] = '\0';
-    } else if (temp[pos] == '\"' || temp[pos + strlen(temp + pos) - 1] == '\"') {
-        goto error;
     } else {
-        if ((str = SCStrdup(temp + pos)) == NULL)
-            goto error;
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "uricontent keywords's argument "
+                   "should be always enclosed in double quotes.  Invalid "
+                   "content keyword passed in this rule - \"%s\"",
+                   contentstr);
+        goto error;
     }
+    str[strlen(temp) - pos - 2] = '\0';
 
     SCFree(temp);
     temp = NULL;
+
     len = strlen(str);
+    if (len == 0)
+        goto error;
 
     SCLogDebug("\"%s\", len %" PRIu32 "", str, len);
     char converted = 0;
@@ -1655,7 +1660,7 @@ int DetectUriSigTest08(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:""; sid:238012;)");
+                               "(msg:\"test\"; uricontent:\"\"; sid:238012;)");
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1811,7 +1816,7 @@ int DetectUriContentParseTest13(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:|; sid:1;)");
+                               "(msg:\"test\"; uricontent:\"|\"; sid:1;)");
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1840,7 +1845,7 @@ int DetectUriContentParseTest14(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:|af; sid:1;)");
+                               "(msg:\"test\"; uricontent:\"|af\"; sid:1;)");
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1869,7 +1874,7 @@ int DetectUriContentParseTest15(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:af|; sid:1;)");
+                               "(msg:\"test\"; uricontent:\"af|\"; sid:1;)");
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1898,7 +1903,7 @@ int DetectUriContentParseTest16(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:|af|; sid:1;)");
+                               "(msg:\"test\"; uricontent:\"|af|\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -1927,7 +1932,7 @@ int DetectUriContentParseTest17(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:aast|; sid:1;)");
+                               "(msg:\"test\"; uricontent:\"aast|\"; sid:1;)");
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1956,7 +1961,7 @@ int DetectUriContentParseTest18(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:aast|af; sid:1;)");
+                               "(msg:\"test\"; uricontent:\"aast|af\"; sid:1;)");
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -1985,7 +1990,7 @@ int DetectUriContentParseTest19(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:aast|af|; sid:1;)");
+                               "(msg:\"test\"; uricontent:\"aast|af|\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -2014,7 +2019,7 @@ int DetectUriContentParseTest20(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:|af|asdf; sid:1;)");
+                               "(msg:\"test\"; uricontent:\"|af|asdf\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -2043,7 +2048,7 @@ int DetectUriContentParseTest21(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:|af|af|; sid:1;)");
+                               "(msg:\"test\"; uricontent:\"|af|af|\"; sid:1;)");
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -2072,7 +2077,7 @@ int DetectUriContentParseTest22(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:|af|af|af; sid:1;)");
+                               "(msg:\"test\"; uricontent:\"|af|af|af\"; sid:1;)");
     if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
@@ -2101,7 +2106,7 @@ int DetectUriContentParseTest23(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert udp any any -> any any "
-                               "(msg:\"test\"; uricontent:|af|af|af|; sid:1;)");
+                               "(msg:\"test\"; uricontent:\"|af|af|af|\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -2125,7 +2130,7 @@ int DetectUricontentSigTest08(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:one; content:one; http_uri; sid:1;)");
+                               "(content:\"one\"; content:\"one\"; http_uri; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2164,7 +2169,7 @@ int DetectUricontentSigTest09(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(uricontent:one; content:one; sid:1;)");
+                               "(uricontent:\"one\"; content:\"one\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2203,8 +2208,8 @@ int DetectUricontentSigTest10(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(uricontent:one; content:one; content:one; http_uri; "
-                               "content:two; content:one; sid:1;)");
+                               "(uricontent:\"one\"; content:\"one\"; content:\"one\"; http_uri; "
+                               "content:\"two\"; content:\"one\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2246,8 +2251,8 @@ int DetectUricontentSigTest11(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:one; http_uri; content:one; uricontent:one; "
-                               "content:two; content:one; sid:1;)");
+                               "(content:\"one\"; http_uri; content:\"one\"; uricontent:\"one\"; "
+                               "content:\"two\"; content:\"one\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2289,10 +2294,10 @@ int DetectUricontentSigTest12(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:one; http_uri; content:one; uricontent:one; "
-                               "content:two; content:one; http_uri; content:one; "
-                               "uricontent:one; uricontent: two; "
-                               "content:one; content:three; sid:1;)");
+                               "(content:\"one\"; http_uri; content:\"one\"; uricontent:\"one\"; "
+                               "content:\"two\"; content:\"one\"; http_uri; content:\"one\"; "
+                               "uricontent:\"one\"; uricontent: \"two\"; "
+                               "content:\"one\"; content:\"three\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;

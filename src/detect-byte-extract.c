@@ -1489,7 +1489,7 @@ int DetectByteExtractTest34(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; "
+                                   "content:\"one\"; "
                                    "byte_extract:4,2,two,relative,string,hex; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
@@ -1566,7 +1566,7 @@ int DetectByteExtractTest35(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; pcre:/asf/; "
+                                   "content:\"one\"; pcre:/asf/; "
                                    "byte_extract:4,0,two,relative,string,hex; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
@@ -1654,7 +1654,7 @@ int DetectByteExtractTest36(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; byte_jump:1,13; "
+                                   "content:\"one\"; byte_jump:1,13; "
                                    "byte_extract:4,0,two,relative,string,hex; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
@@ -1742,7 +1742,7 @@ int DetectByteExtractTest37(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; uricontent:two; "
+                                   "content:\"one\"; uricontent:\"two\"; "
                                    "byte_extract:4,0,two,relative,string,hex; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
@@ -1843,7 +1843,7 @@ int DetectByteExtractTest38(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; uricontent:two; "
+                                   "content:\"one\"; uricontent:\"two\"; "
                                    "byte_extract:4,0,two,string,hex; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
@@ -1943,7 +1943,7 @@ int DetectByteExtractTest39(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; content:two; http_uri; "
+                                   "content:\"one\"; content:\"two\"; http_uri; "
                                    "byte_extract:4,0,two,relative,string,hex; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
@@ -2044,7 +2044,7 @@ int DetectByteExtractTest40(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; content:two; http_uri; "
+                                   "content:\"one\"; content:\"two\"; http_uri; "
                                    "byte_extract:4,0,two,string,hex; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
@@ -2143,7 +2143,7 @@ int DetectByteExtractTest41(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; "
+                                   "content:\"one\"; "
                                    "byte_extract:4,0,two,string,hex; "
                                    "byte_extract:4,0,three,string,hex; "
                                    "sid:1;)");
@@ -2245,9 +2245,9 @@ int DetectByteExtractTest42(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; "
+                                   "content:\"one\"; "
                                    "byte_extract:4,0,two,string,hex; "
-                                   "uricontent: three; "
+                                   "uricontent: \"three\"; "
                                    "byte_extract:4,0,four,string,hex,relative; "
                                    "byte_extract:4,0,five,string,hex; "
                                    "sid:1;)");
@@ -2421,9 +2421,9 @@ int DetectByteExtractTest43(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; "
+                                   "content:\"one\"; "
                                    "byte_extract:4,0,two,string,hex; "
-                                   "content: three; offset:two; "
+                                   "content: \"three\"; offset:two; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
@@ -2520,11 +2520,11 @@ int DetectByteExtractTest44(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; "
+                                   "content:\"one\"; "
                                    "byte_extract:4,0,two,string,hex; "
                                    "byte_extract:4,0,three,string,hex; "
-                                   "content: four; offset:two; "
-                                   "content: five; offset:three; "
+                                   "content: \"four\"; offset:two; "
+                                   "content: \"five\"; offset:three; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
@@ -2671,9 +2671,9 @@ int DetectByteExtractTest45(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; "
+                                   "content:\"one\"; "
                                    "byte_extract:4,0,two,string,hex; "
-                                   "content: three; depth:two; "
+                                   "content: \"three\"; depth:two; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
@@ -2771,11 +2771,11 @@ int DetectByteExtractTest46(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; "
+                                   "content:\"one\"; "
                                    "byte_extract:4,0,two,string,hex; "
                                    "byte_extract:4,0,three,string,hex; "
-                                   "content: four; depth:two; "
-                                   "content: five; depth:three; "
+                                   "content: \"four\"; depth:two; "
+                                   "content: \"five\"; depth:three; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
@@ -2919,9 +2919,9 @@ int DetectByteExtractTest47(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; "
+                                   "content:\"one\"; "
                                    "byte_extract:4,0,two,string,hex; "
-                                   "content: three; distance:two; "
+                                   "content: \"three\"; distance:two; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
@@ -3020,11 +3020,11 @@ int DetectByteExtractTest48(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; "
+                                   "content:\"one\"; "
                                    "byte_extract:4,0,two,string,hex; "
                                    "byte_extract:4,0,three,string,hex; "
-                                   "content: four; distance:two; "
-                                   "content: five; distance:three; "
+                                   "content: \"four\"; distance:two; "
+                                   "content: \"five\"; distance:three; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
@@ -3173,9 +3173,9 @@ int DetectByteExtractTest49(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; "
+                                   "content:\"one\"; "
                                    "byte_extract:4,0,two,string,hex; "
-                                   "content: three; within:two; "
+                                   "content: \"three\"; within:two; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
@@ -3275,11 +3275,11 @@ int DetectByteExtractTest50(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; "
+                                   "content:\"one\"; "
                                    "byte_extract:4,0,two,string,hex; "
                                    "byte_extract:4,0,three,string,hex; "
-                                   "content: four; within:two; "
-                                   "content: five; within:three; "
+                                   "content: \"four\"; within:two; "
+                                   "content: \"five\"; within:three; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
@@ -3438,7 +3438,7 @@ int DetectByteExtractTest51(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; "
+                                   "content:\"one\"; "
                                    "byte_extract:4,0,two,string,hex; "
                                    "byte_test: 2,=,10, two; "
                                    "sid:1;)");
@@ -3537,7 +3537,7 @@ int DetectByteExtractTest52(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; "
+                                   "content:\"one\"; "
                                    "byte_extract:4,0,two,string,hex; "
                                    "byte_extract:4,0,three,string,hex; "
                                    "byte_test: 2,=,two,three; "
@@ -3678,7 +3678,7 @@ int DetectByteExtractTest53(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; "
+                                   "content:\"one\"; "
                                    "byte_extract:4,0,two,string,hex; "
                                    "byte_jump: 2,two; "
                                    "sid:1;)");
@@ -3776,7 +3776,7 @@ int DetectByteExtractTest54(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; "
+                                   "content:\"one\"; "
                                    "byte_extract:4,0,two,string,hex; "
                                    "byte_extract:4,0,three,string,hex; "
                                    "byte_jump: 2,two; "
@@ -3897,12 +3897,12 @@ int DetectByteExtractTest55(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; "
+                                   "content:\"one\"; "
                                    "byte_extract:4,0,two,string,hex; "
                                    "byte_extract:4,0,three,string,hex; "
                                    "byte_extract:4,0,four,string,hex; "
                                    "byte_extract:4,0,five,string,hex; "
-                                   "content: four; within:two; distance:three; offset:four; depth:five; "
+                                   "content: \"four\"; within:two; distance:three; offset:four; depth:five; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
@@ -4032,13 +4032,13 @@ int DetectByteExtractTest56(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "uricontent:urione; "
-                                   "content:one; "
+                                   "uricontent:\"urione\"; "
+                                   "content:\"one\"; "
                                    "byte_extract:4,0,two,string,hex; "
                                    "byte_extract:4,0,three,string,hex; "
                                    "byte_extract:4,0,four,string,hex; "
                                    "byte_extract:4,0,five,string,hex; "
-                                   "content: four; within:two; distance:three; offset:four; depth:five; "
+                                   "content: \"four\"; within:two; distance:three; offset:four; depth:five; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
@@ -4190,13 +4190,13 @@ int DetectByteExtractTest57(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; "
-                                   "uricontent: urione; "
+                                   "content:\"one\"; "
+                                   "uricontent: \"urione\"; "
                                    "byte_extract:4,0,two,string,hex,relative; "
                                    "byte_extract:4,0,three,string,hex,relative; "
                                    "byte_extract:4,0,four,string,hex,relative; "
                                    "byte_extract:4,0,five,string,hex,relative; "
-                                   "uricontent: four; within:two; distance:three; offset:four; depth:five; "
+                                   "uricontent: \"four\"; within:two; distance:three; offset:four; depth:five; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
@@ -4361,7 +4361,7 @@ int DetectByteExtractTest58(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; "
+                                   "content:\"one\"; "
                                    "byte_extract:4,0,two,string,hex; "
                                    "byte_extract:4,0,three,string,hex; "
                                    "byte_jump: 2,two; "
@@ -4496,7 +4496,7 @@ int DetectByteExtractTest59(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; "
+                                   "content:\"one\"; "
                                    "byte_extract:4,0,two,string,hex; "
                                    "byte_extract:4,0,three,string,hex; "
                                    "byte_jump: 2,two; "
@@ -4630,9 +4630,9 @@ int DetectByteExtractTest60(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; "
+                                   "content:\"one\"; "
                                    "byte_extract:4,0,two,string,hex,relative; "
-                                   "uricontent: three; "
+                                   "uricontent: \"three\"; "
                                    "byte_extract:4,0,four,string,hex,relative; "
                                    "isdataat: two; "
                                    "sid:1;)");
@@ -4773,9 +4773,9 @@ int DetectByteExtractTest61(void)
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                    "(msg:\"Testing bytejump_body\"; "
-                                   "content:one; "
+                                   "content:\"one\"; "
                                    "byte_extract:4,0,two,string,hex,relative; "
-                                   "uricontent: three; "
+                                   "uricontent: \"three\"; "
                                    "byte_extract:4,0,four,string,hex,relative; "
                                    "isdataat: four, relative; "
                                    "sid:1;)");

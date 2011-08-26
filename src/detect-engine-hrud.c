@@ -506,7 +506,7 @@ static int DetectEngineHttpRawUriTest01(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
-                               "content:../c/./d; http_raw_uri; "
+                               "content:\"../c/./d\"; http_raw_uri; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -623,7 +623,7 @@ static int DetectEngineHttpRawUriTest02(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
-                               "content:/c/./d; http_raw_uri; offset:5; "
+                               "content:\"/c/./d\"; http_raw_uri; offset:5; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -729,7 +729,7 @@ static int DetectEngineHttpRawUriTest03(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
-                               "content:/a/b; http_raw_uri; offset:10; "
+                               "content:\"/a/b\"; http_raw_uri; offset:10; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -850,7 +850,7 @@ static int DetectEngineHttpRawUriTest04(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
-                               "content:!/a/b; http_raw_uri; offset:10; "
+                               "content:!\"/a/b\"; http_raw_uri; offset:10; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -970,7 +970,7 @@ static int DetectEngineHttpRawUriTest05(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
-                               "content:a/b; http_raw_uri; depth:10; "
+                               "content:\"a/b\"; http_raw_uri; depth:10; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1090,7 +1090,7 @@ static int DetectEngineHttpRawUriTest06(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
-                               "content:!/a/b; http_raw_uri; depth:25; "
+                               "content:!\"/a/b\"; http_raw_uri; depth:25; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1210,7 +1210,7 @@ static int DetectEngineHttpRawUriTest07(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
-                               "content:!/c/./d; http_raw_uri; depth:12; "
+                               "content:!\"/c/./d\"; http_raw_uri; depth:12; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1330,7 +1330,7 @@ static int DetectEngineHttpRawUriTest08(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
-                               "content:!/c/./d; http_raw_uri; depth:18; "
+                               "content:!\"/c/./d\"; http_raw_uri; depth:18; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1450,8 +1450,8 @@ static int DetectEngineHttpRawUriTest09(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
-                               "content:/a; http_raw_uri; "
-                               "content:./c/.; http_raw_uri; within:9; "
+                               "content:\"/a\"; http_raw_uri; "
+                               "content:\"./c/.\"; http_raw_uri; within:9; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1571,8 +1571,8 @@ static int DetectEngineHttpRawUriTest10(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
-                               "content:/a; http_raw_uri; "
-                               "content:!boom; http_raw_uri; within:5; "
+                               "content:\"/a\"; http_raw_uri; "
+                               "content:!\"boom\"; http_raw_uri; within:5; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1692,8 +1692,8 @@ static int DetectEngineHttpRawUriTest11(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
-                               "content:./a; http_raw_uri; "
-                               "content:boom; http_raw_uri; within:5; "
+                               "content:\"./a\"; http_raw_uri; "
+                               "content:\"boom\"; http_raw_uri; within:5; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1813,8 +1813,8 @@ static int DetectEngineHttpRawUriTest12(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
-                               "content:./a; http_raw_uri; "
-                               "content:!/b/..; http_raw_uri; within:5; "
+                               "content:\"./a\"; http_raw_uri; "
+                               "content:!\"/b/..\"; http_raw_uri; within:5; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1934,8 +1934,8 @@ static int DetectEngineHttpRawUriTest13(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
-                               "content:./a; http_raw_uri; "
-                               "content:/c/.; http_raw_uri; distance:5; "
+                               "content:\"./a\"; http_raw_uri; "
+                               "content:\"/c/.\"; http_raw_uri; distance:5; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2055,8 +2055,8 @@ static int DetectEngineHttpRawUriTest14(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
-                               "content:./a; http_raw_uri; "
-                               "content:!b/..; http_raw_uri; distance:5; "
+                               "content:\"./a\"; http_raw_uri; "
+                               "content:!\"b/..\"; http_raw_uri; distance:5; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2176,8 +2176,8 @@ static int DetectEngineHttpRawUriTest15(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
-                               "content:./a; http_raw_uri; "
-                               "content:/c/; http_raw_uri; distance:7; "
+                               "content:\"./a\"; http_raw_uri; "
+                               "content:\"/c/\"; http_raw_uri; distance:7; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2297,8 +2297,8 @@ static int DetectEngineHttpRawUriTest16(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
-                               "content:./a; http_raw_uri; "
-                               "content:!/c/; http_raw_uri; distance:4; "
+                               "content:\"./a\"; http_raw_uri; "
+                               "content:!\"/c/\"; http_raw_uri; distance:4; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2401,8 +2401,8 @@ static int DetectEngineHttpRawUriTest17(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
-                               "content:body1; http_raw_uri; "
-                               "content:bambu; http_raw_uri; "
+                               "content:\"body1\"; http_raw_uri; "
+                               "content:\"bambu\"; http_raw_uri; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2475,8 +2475,8 @@ static int DetectEngineHttpRawUriTest18(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
-                               "content:body1; http_raw_uri; "
-                               "content:bambu; http_raw_uri; fast_pattern; "
+                               "content:\"body1\"; http_raw_uri; "
+                               "content:\"bambu\"; http_raw_uri; fast_pattern; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2549,8 +2549,8 @@ static int DetectEngineHttpRawUriTest19(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
-                               "content:bambu; http_raw_uri; "
-                               "content:is; http_raw_uri; "
+                               "content:\"bambu\"; http_raw_uri; "
+                               "content:\"is\"; http_raw_uri; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2623,8 +2623,8 @@ static int DetectEngineHttpRawUriTest20(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
-                               "content:bambu; http_raw_uri; "
-                               "content:is; http_raw_uri; fast_pattern; "
+                               "content:\"bambu\"; http_raw_uri; "
+                               "content:\"is\"; http_raw_uri; fast_pattern; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2715,7 +2715,7 @@ static int DetectEngineHttpRawUriTest21(void)
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
                                "pcre:/\\.\\/a/I; "
-                               "content:!/c/; http_raw_uri; within:5; "
+                               "content:!\"/c/\"; http_raw_uri; within:5; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2836,7 +2836,7 @@ static int DetectEngineHttpRawUriTest22(void)
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
                                "pcre:/\\.\\/a/I; "
-                               "content:!/c/; within:5; http_raw_uri; "
+                               "content:!\"/c/\"; within:5; http_raw_uri; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -2957,7 +2957,7 @@ static int DetectEngineHttpRawUriTest23(void)
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
                                "pcre:/\\.\\/a/I; "
-                               "content:!/c/; distance:3; http_raw_uri; "
+                               "content:!\"/c/\"; distance:3; http_raw_uri; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -3078,7 +3078,7 @@ static int DetectEngineHttpRawUriTest24(void)
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
                                "pcre:/\\.\\/a/I; "
-                               "content:!/c/; distance:10; http_raw_uri; "
+                               "content:!\"/c/\"; distance:10; http_raw_uri; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -3199,7 +3199,7 @@ static int DetectEngineHttpRawUriTest25(void)
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
                                "pcre:/\\.\\/a/I; "
-                               "content:/c/; within:10; http_raw_uri; "
+                               "content:\"/c/\"; within:10; http_raw_uri; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -3320,7 +3320,7 @@ static int DetectEngineHttpRawUriTest26(void)
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
                                "pcre:/\\.\\/a/I; "
-                               "content:/c/; within:5; http_raw_uri; "
+                               "content:\"/c/\"; within:5; http_raw_uri; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -3441,7 +3441,7 @@ static int DetectEngineHttpRawUriTest27(void)
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
                                "pcre:/\\.\\/a/I; "
-                               "content:/c/; distance:5; http_raw_uri; "
+                               "content:\"/c/\"; distance:5; http_raw_uri; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -3562,7 +3562,7 @@ static int DetectEngineHttpRawUriTest28(void)
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http raw uri test\"; "
                                "pcre:/\\.\\/a/I; "
-                               "content:/c/; distance:10; http_raw_uri; "
+                               "content:\"/c/\"; distance:10; http_raw_uri; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -3670,7 +3670,7 @@ static int DetectEngineHttpRawUriTest29(void)
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"test multiple relative raw uri contents\"; "
-                               "content:/c/; http_raw_uri; "
+                               "content:\"/c/\"; http_raw_uri; "
                                "isdataat:4,relative; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
@@ -3760,7 +3760,7 @@ static int DetectEngineHttpRawUriTest30(void)
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"test multiple relative raw uri contents\"; "
-                               "uricontent:/c/; isdataat:!10,relative; sid:1;)");
+                               "uricontent:\"/c/\"; isdataat:!10,relative; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }

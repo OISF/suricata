@@ -53,10 +53,24 @@ static int DetectSidSetup (DetectEngineCtx *de_ctx, Signature *s, char *sidstr)
         dubbed = 1;
     }
 
-    s->id = (uint32_t)atoi(str);
+    long id = 0;
+    char *endptr = NULL;
+    id = strtol(sidstr, &endptr, 10);
+    if (endptr == NULL || *endptr != '\0') {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Saw an invalid character as arg "
+                   "to sid keyword");
+        goto error;
+    }
+    s->id = id;
+    //s->id = (uint32_t)atoi(str);
 
     if (dubbed)
         SCFree(str);
     return 0;
+
+ error:
+    if (dubbed)
+        SCFree(str);
+    return -1;
 }
 

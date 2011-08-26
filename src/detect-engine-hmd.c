@@ -633,7 +633,7 @@ static int DetectEngineHttpMethodTest03(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:!ECT; depth:4; http_method; "
+                               "content:!\"ECT\"; depth:4; http_method; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -726,7 +726,7 @@ static int DetectEngineHttpMethodTest04(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:ECT; depth:4; http_method; "
+                               "content:\"ECT\"; depth:4; http_method; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -819,7 +819,7 @@ static int DetectEngineHttpMethodTest05(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:!CON; depth:4; http_method; "
+                               "content:!\"CON\"; depth:4; http_method; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1005,7 +1005,7 @@ static int DetectEngineHttpMethodTest07(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:!CO; offset:3; http_method; "
+                               "content:!\"CO\"; offset:3; http_method; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1098,7 +1098,7 @@ static int DetectEngineHttpMethodTest08(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:!ECT; offset:3; http_method; "
+                               "content:!\"ECT\"; offset:3; http_method; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1191,7 +1191,7 @@ static int DetectEngineHttpMethodTest09(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:CON; offset:3; http_method; "
+                               "content:\"CON\"; offset:3; http_method; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1284,8 +1284,8 @@ static int DetectEngineHttpMethodTest10(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:CO; http_method; "
-                               "content:EC; within:4; http_method; "
+                               "content:\"CO\"; http_method; "
+                               "content:\"EC\"; within:4; http_method; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1378,8 +1378,8 @@ static int DetectEngineHttpMethodTest11(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:CO; http_method; "
-                               "content:!EC; within:3; http_method; "
+                               "content:\"CO\"; http_method; "
+                               "content:!\"EC\"; within:3; http_method; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1472,8 +1472,8 @@ static int DetectEngineHttpMethodTest12(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:CO; http_method; "
-                               "content:EC; within:3; http_method; "
+                               "content:\"CO\"; http_method; "
+                               "content:\"EC\"; within:3; http_method; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1566,8 +1566,8 @@ static int DetectEngineHttpMethodTest13(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:CO; http_method; "
-                               "content:!EC; within:4; http_method; "
+                               "content:\"CO\"; http_method; "
+                               "content:!\"EC\"; within:4; http_method; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1660,8 +1660,8 @@ static int DetectEngineHttpMethodTest14(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:CO; http_method; "
-                               "content:EC; distance:2; http_method; "
+                               "content:\"CO\"; http_method; "
+                               "content:\"EC\"; distance:2; http_method; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1754,8 +1754,8 @@ static int DetectEngineHttpMethodTest15(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:CO; http_method; "
-                               "content:!EC; distance:3; http_method; "
+                               "content:\"CO\"; http_method; "
+                               "content:!\"EC\"; distance:3; http_method; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1848,8 +1848,8 @@ static int DetectEngineHttpMethodTest16(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:CO; http_method; "
-                               "content:EC; distance:3; http_method; "
+                               "content:\"CO\"; http_method; "
+                               "content:\"EC\"; distance:3; http_method; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
@@ -1942,8 +1942,8 @@ static int DetectEngineHttpMethodTest17(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http header test\"; "
-                               "content:CO; http_method; "
-                               "content:!EC; distance:2; http_method; "
+                               "content:\"CO\"; http_method; "
+                               "content:!\"EC\"; distance:2; http_method; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;

@@ -572,7 +572,7 @@ int DetectIsdataatTestParse05(void)
                                "(msg:\"Testing bytejump_body\"; "
                                "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                                "dce_stub_data; "
-                               "content:one; distance:0; "
+                               "content:\"one\"; distance:0; "
                                "isdataat:4,relative; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
@@ -595,7 +595,7 @@ int DetectIsdataatTestParse05(void)
                       "(msg:\"Testing bytejump_body\"; "
                       "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                       "dce_stub_data; "
-                      "content:one; distance:0; "
+                      "content:\"one\"; distance:0; "
                       "isdataat:4,relative; sid:1;)");
     if (s->next == NULL) {
         result = 0;
@@ -618,7 +618,7 @@ int DetectIsdataatTestParse05(void)
                       "(msg:\"Testing bytejump_body\"; "
                       "dce_iface:3919286a-b10c-11d0-9ba8-00c04fd92ef5; "
                       "dce_stub_data; "
-                      "content:one; distance:0; "
+                      "content:\"one\"; distance:0; "
                       "isdataat:4,relative,rawbytes; sid:1;)");
     if (s->next == NULL) {
         result = 0;
@@ -639,7 +639,7 @@ int DetectIsdataatTestParse05(void)
 
     s->next = SigInit(de_ctx, "alert tcp any any -> any any "
                       "(msg:\"Testing bytejump_body\"; "
-                      "content:one; isdataat:4,relative,rawbytes; sid:1;)");
+                      "content:\"one\"; isdataat:4,relative,rawbytes; sid:1;)");
     if (s->next == NULL) {
         result = 0;
         goto end;
@@ -672,7 +672,7 @@ int DetectIsdataatTestParse06(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing bytejump_body\"; "
-                               "content:one; "
+                               "content:\"one\"; "
                                "isdataat:!4,relative; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
@@ -716,7 +716,7 @@ int DetectIsdataatTestParse07(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing bytejump_body\"; "
-                               "uricontent:one; "
+                               "uricontent:\"one\"; "
                                "isdataat:!4,relative; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
@@ -760,7 +760,7 @@ int DetectIsdataatTestParse08(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing bytejump_body\"; "
-                               "content:one; http_uri; "
+                               "content:\"one\"; http_uri; "
                                "isdataat:!4,relative; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
@@ -804,7 +804,7 @@ int DetectIsdataatTestParse09(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing bytejump_body\"; "
-                               "content:one; http_client_body; "
+                               "content:\"one\"; http_client_body; "
                                "isdataat:!4,relative; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
@@ -848,7 +848,7 @@ int DetectIsdataatTestParse10(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing bytejump_body\"; "
-                               "content:one; http_header; "
+                               "content:\"one\"; http_header; "
                                "isdataat:!4,relative; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
@@ -892,7 +892,7 @@ int DetectIsdataatTestParse11(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing bytejump_body\"; "
-                               "content:one; http_raw_header; "
+                               "content:\"one\"; http_raw_header; "
                                "isdataat:!4,relative; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
@@ -936,7 +936,7 @@ int DetectIsdataatTestParse12(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing bytejump_body\"; "
-                               "content:one; http_method; "
+                               "content:\"one\"; http_method; "
                                "isdataat:!4,relative; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
@@ -980,7 +980,7 @@ int DetectIsdataatTestParse13(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing bytejump_body\"; "
-                               "content:one; http_cookie; "
+                               "content:\"one\"; http_cookie; "
                                "isdataat:!4,relative; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;

@@ -1193,7 +1193,7 @@ int SCCudaPBTest01(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Bamboo\"; "
-                               "content:test; sid:1;)");
+                               "content:\"test\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("signature parsing failed\n");
         goto end;
@@ -1425,7 +1425,7 @@ int SCCudaPBTest02(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any 5555 -> any any (msg:\"Bamboo\"; "
-                               "content:test; sid:1;)");
+                               "content:\"test\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("signature parsing failed\n");
         goto end;
