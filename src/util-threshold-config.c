@@ -47,12 +47,12 @@
 #include "util-debug.h"
 #include "util-fmemopen.h"
 
-typedef enum _rule_type_t {
+typedef enum ThresholdRuleType {
     THRESHOLD_TYPE_EVENT_FILTER,
     THRESHOLD_TYPE_THRESHOLD,
     THRESHOLD_TYPE_RATE,
     THRESHOLD_TYPE_SUPPRESS,
-} rule_type_t;
+} ThresholdRuleType;
 
 /* File descriptor for unittests */
 
@@ -249,7 +249,7 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
     int ret = 0;
     int ov[MAX_SUBSTRINGS];
     uint32_t id = 0, gid = 0;
-    int rule_type;
+    ThresholdRuleType rule_type;
     int fret = -1;
 
     if (de_ctx == NULL)
