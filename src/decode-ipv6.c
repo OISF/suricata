@@ -31,6 +31,7 @@
 #include "decode-events.h"
 #include "defrag.h"
 #include "util-debug.h"
+#include "util-print.h"
 
 #define IPV6_EXTHDRS     ip6eh.ip6_exthdrs
 #define IPV6_EH_CNT      ip6eh.ip6_exthdrs_cnt
@@ -249,7 +250,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                         //printf("HAO option: type %" PRIu32 " len %" PRIu32 " ",
                         //    hao->ip6hao_type, hao->ip6hao_len);
                         //char addr_buf[46];
-                        //inet_ntop(AF_INET6, (char *)&(hao->ip6hao_hoa),
+                        //PrintInet(AF_INET6, (char *)&(hao->ip6hao_hoa),
                         //    addr_buf,sizeof(addr_buf));
                         //printf("home addr %s\n", addr_buf);
                     }
@@ -427,8 +428,8 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
     if (SCLogDebugEnabled()) { /* only convert the addresses if debug is really enabled */
         /* debug print */
         char s[46], d[46];
-        inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), s, sizeof(s));
-        inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), d, sizeof(d));
+        PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), s, sizeof(s));
+        PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), d, sizeof(d));
         SCLogDebug("IPV6 %s->%s - CLASS: %" PRIu32 " FLOW: %" PRIu32 " NH: %" PRIu32 " PLEN: %" PRIu32 " HLIM: %" PRIu32 "", s,d,
                 IPV6_GET_CLASS(p), IPV6_GET_FLOW(p), IPV6_GET_NH(p), IPV6_GET_PLEN(p),
                 IPV6_GET_HLIM(p));

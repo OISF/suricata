@@ -273,16 +273,16 @@ TmEcode LogDropLogNetFilter (ThreadVars *tv, Packet *p, void *data, PacketQueue 
     char dstip[46] = "";
 
     if (PKT_IS_IPV4(p)) {
-        inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, 16);
-        inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, 16);
+        PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, 16);
+        PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, 16);
         fprintf(dlt->file_ctx->fp, "%s: IN= OUT= SRC=%s DST=%s LEN=%"PRIu16" "
                 "TOS=0x%02"PRIu8" TTL=%"PRIu8" ID=%"PRIu16"", timebuf,
                 srcip, dstip, IPV4_GET_IPLEN(p), IPV4_GET_IPTOS(p),
                 IPV4_GET_IPTTL(p), IPV4_GET_IPID(p));
         proto = IPV4_GET_IPPROTO(p);
     } else if (PKT_IS_IPV6(p)) {
-        inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
-        inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+        PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
+        PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
         fprintf(dlt->file_ctx->fp, "%s: IN= OUT= SRC=%s DST=%s LEN=%"PRIu16""
                 " TC=%"PRIu32" HOPLIMIT=%"PRIu8" FLOWLBL=%"PRIu32"", timebuf,
                 srcip, dstip, IPV6_GET_PLEN(p), IPV6_GET_CLASS(p),

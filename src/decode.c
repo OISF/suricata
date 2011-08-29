@@ -31,6 +31,7 @@
 #include "app-layer-detect-proto.h"
 #include "tm-modules.h"
 #include "util-error.h"
+#include "util-print.h"
 #include "tmqh-packetpool.h"
 
 void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
@@ -224,7 +225,7 @@ void AddressDebugPrint(Address *a) {
         case AF_INET:
         {
             char s[16];
-            inet_ntop(AF_INET, (const void *)&a->addr_data32[0], s, sizeof(s));
+            PrintInet(AF_INET, (const void *)&a->addr_data32[0], s, sizeof(s));
             SCLogDebug("%s", s);
             break;
         }

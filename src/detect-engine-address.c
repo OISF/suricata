@@ -42,6 +42,7 @@
 #include "detect-engine-port.h"
 
 #include "util-debug.h"
+#include "util-print.h"
 
 void DetectAddressTests(void);
 
@@ -1558,9 +1559,9 @@ void DetectAddressPrint(DetectAddress *gr)
         char ip[16], mask[16];
 
         memcpy(&in, &gr->ip.addr_data32[0], sizeof(in));
-        inet_ntop(AF_INET, &in, ip, sizeof(ip));
+        PrintInet(AF_INET, &in, ip, sizeof(ip));
         memcpy(&in, &gr->ip2.addr_data32[0], sizeof(in));
-        inet_ntop(AF_INET, &in, mask, sizeof(mask));
+        PrintInet(AF_INET, &in, mask, sizeof(mask));
 
         SCLogDebug("%s/%s", ip, mask);
 //        printf("%s/%s", ip, mask);
@@ -1569,9 +1570,9 @@ void DetectAddressPrint(DetectAddress *gr)
         char ip[66], mask[66];
 
         memcpy(&in6, &gr->ip, sizeof(in6));
-        inet_ntop(AF_INET6, &in6, ip, sizeof(ip));
+        PrintInet(AF_INET6, &in6, ip, sizeof(ip));
         memcpy(&in6, &gr->ip2, sizeof(in6));
-        inet_ntop(AF_INET6, &in6, mask, sizeof(mask));
+        PrintInet(AF_INET6, &in6, mask, sizeof(mask));
 
         SCLogDebug("%s/%s", ip, mask);
 //        printf("%s/%s", ip, mask);

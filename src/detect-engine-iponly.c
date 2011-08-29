@@ -52,6 +52,7 @@
 #include "util-debug.h"
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
+#include "util-print.h"
 
 #ifdef OS_WIN32
 #include <winsock.h>
@@ -1149,7 +1150,7 @@ void IPOnlyPrepare(DetectEngineCtx *de_ctx) {
 
                     if (node == NULL) {
                         char tmpstr[64];
-                        inet_ntop(src->family, &src->ip[0], tmpstr, sizeof(tmpstr));
+                        PrintInet(src->family, &src->ip[0], tmpstr, sizeof(tmpstr));
                         SCLogError(SC_ERR_IPONLY_RADIX, "Error inserting in the"
                                    " src ipv4 radix tree ip %s netmask %"PRIu8, tmpstr, src->netmask);
                         //SCRadixPrintTree((de_ctx->io_ctx).tree_ipv4src);

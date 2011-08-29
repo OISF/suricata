@@ -286,13 +286,13 @@ static int EventToSourceTarget(Packet *p, idmef_alert_t *alert)
     if (PKT_IS_IPV4(p)) {
         ip_vers = 4;
         ip_proto = IPV4_GET_RAW_IPPROTO(p->ip4h);
-        inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), saddr, sizeof(saddr));
-        inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), daddr, sizeof(daddr));
+        PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), saddr, sizeof(saddr));
+        PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), daddr, sizeof(daddr));
     } else if (PKT_IS_IPV6(p)) {
         ip_vers = 6;
         ip_proto = IPV6_GET_L4PROTO(p);
-        inet_ntop(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), saddr, sizeof(saddr));
-        inet_ntop(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), daddr, sizeof(daddr));
+        PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), saddr, sizeof(saddr));
+        PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), daddr, sizeof(daddr));
     } else
         SCReturnInt(0);
 

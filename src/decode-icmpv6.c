@@ -33,6 +33,7 @@
 #include "util-unittest.h"
 #include "flow.h"
 #include "util-debug.h"
+#include "util-print.h"
 
 
 /**
@@ -129,8 +130,8 @@ void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
     /* debug print */
 #ifdef DEBUG
     char s[46], d[46];
-    inet_ntop(AF_INET6, (const void *)p->icmpv6vars.emb_ip6_src, s, sizeof(s));
-    inet_ntop(AF_INET6, (const void *)p->icmpv6vars.emb_ip6_dst, d, sizeof(d));
+    PrintInet(AF_INET6, (const void *)p->icmpv6vars.emb_ip6_src, s, sizeof(s));
+    PrintInet(AF_INET6, (const void *)p->icmpv6vars.emb_ip6_dst, d, sizeof(d));
     SCLogDebug("ICMPv6 embedding IPV6 %s->%s - CLASS: %" PRIu32 " FLOW: "
                "%" PRIu32 " NH: %" PRIu32 " PLEN: %" PRIu32 " HLIM: %" PRIu32,
                s, d, IPV6_GET_RAW_CLASS(icmp6_ip6h), IPV6_GET_RAW_FLOW(icmp6_ip6h),

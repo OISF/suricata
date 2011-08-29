@@ -943,9 +943,9 @@ error:
         if (f->src.family == AF_INET) {
             char src[16];
             char dst[16];
-            inet_ntop(AF_INET, (const void*)&f->src.addr_data32[0], src,
+            PrintInet(AF_INET, (const void*)&f->src.addr_data32[0], src,
                       sizeof (src));
-            inet_ntop(AF_INET, (const void*)&f->dst.addr_data32[0], dst,
+            PrintInet(AF_INET, (const void*)&f->dst.addr_data32[0], dst,
                       sizeof (dst));
 
             SCLogError(SC_ERR_ALPARSER, "Error occured in parsing \"%s\" app layer "
@@ -957,9 +957,9 @@ error:
             char dst6[46];
             char src6[46];
 
-            inet_ntop(AF_INET6, (const void*)&f->src.addr_data32, src6,
+            PrintInet(AF_INET6, (const void*)&f->src.addr_data32, src6,
                       sizeof (src6));
-            inet_ntop(AF_INET6, (const void*)&f->dst.addr_data32, dst6,
+            PrintInet(AF_INET6, (const void*)&f->dst.addr_data32, dst6,
                       sizeof (dst6));
 
             SCLogError(SC_ERR_ALPARSER, "Error occured in parsing \"%s\" app layer "
