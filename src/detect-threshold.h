@@ -62,8 +62,7 @@ typedef struct DetectThresholdData_ {
     uint8_t new_action; /**< new_action alert|drop|pass|log|sdrop|reject */
     uint32_t timeout;   /**< timeout */
     uint32_t flags;     /**< flags used to set option */
-    /* TODO take care of free of allocated */
-    DetectAddressHead addr; /**< address group used by suppress keyword */
+    DetectAddress* addr; /**< address group used by suppress keyword */
 } DetectThresholdData;
 
 typedef struct DetectThresholdEntry_ {

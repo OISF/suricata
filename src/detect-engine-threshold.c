@@ -534,13 +534,13 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
         }
         case TYPE_SUPPRESS:
         {
-            DetectAddress *res = NULL;
+            int res = 0;
             switch (td->track) {
                 case TRACK_DST:
-                    res = DetectAddressLookupInHead(&td->addr, &p->dst);
+                    res = DetectAddressMatch(td->addr, &p->dst);
                     break;
                 case TRACK_SRC:
-                    res = DetectAddressLookupInHead(&td->addr, &p->src);
+                    res = DetectAddressMatch(td->addr, &p->src);
                     break;
                 case TRACK_RULE:
                 default:
@@ -548,7 +548,7 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                                "track mode %d is not supported", td->track);
                     break;
             }
-            if (res == NULL)
+            if (res == 0)
                 ret = 1;
             break;
         }

@@ -44,6 +44,7 @@
 
 #include "detect-threshold.h"
 #include "detect-parse.h"
+#include "detect-engine-address.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -276,7 +277,10 @@ error:
  */
 static void DetectThresholdFree(void *de_ptr) {
     DetectThresholdData *de = (DetectThresholdData *)de_ptr;
-    if (de) SCFree(de);
+    if (de) {
+        DetectAddressFree(de->addr);
+        SCFree(de);
+    }
 }
 
 /*

@@ -535,9 +535,15 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
             de->seconds = parsed_seconds;
             de->new_action = parsed_new_action;
             de->timeout = parsed_timeout;
+            de->addr = NULL;
 
             if ((parsed_type == TYPE_SUPPRESS) && (parsed_track != TRACK_RULE)) {
-                if (DetectAddressParse(&de->addr, (char *)th_ip) < 0) {
+                de->addr = DetectAddressInit();
+                if (de->addr == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Can't init DetectAddress");
+                    goto error;
+                }
+                if (DetectAddressParseString(de->addr, (char *)th_ip) < 0) {
                     SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Can't add %s to address group", th_ip);
                     goto error;
                 }
@@ -598,9 +604,15 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
                 de->seconds = parsed_seconds;
                 de->new_action = parsed_new_action;
                 de->timeout = parsed_timeout;
+                de->addr = NULL;
 
                 if ((parsed_type == TYPE_SUPPRESS) && (parsed_track != TRACK_RULE)) {
-                    if (DetectAddressParse(&de->addr, (char *)th_ip) < 0) {
+                    de->addr = DetectAddressInit();
+                    if (de->addr == NULL) {
+                        SCLogError(SC_ERR_MEM_ALLOC, "Can't init DetectAddress");
+                        goto error;
+                    }
+                    if (DetectAddressParseString(de->addr, (char *)th_ip) < 0) {
                         SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Can't add %s to address group", th_ip);
                         goto error;
                     }
@@ -663,9 +675,15 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
             de->seconds = parsed_seconds;
             de->new_action = parsed_new_action;
             de->timeout = parsed_timeout;
+            de->addr = NULL;
 
             if ((parsed_type == TYPE_SUPPRESS) && (parsed_track != TRACK_RULE)) {
-                if (DetectAddressParse(&de->addr, (char *)th_ip) < 0) {
+                de->addr = DetectAddressInit();
+                if (de->addr == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Can't init DetectAddress");
+                    goto error;
+                }
+                if (DetectAddressParseString(de->addr, (char *)th_ip) < 0) {
                     SCLogError(SC_ERR_INVALID_IP_NETBLOCK, "Can't add %s to address group", th_ip);
                     goto error;
                 }
@@ -703,7 +721,10 @@ end:
     fret = 0;
 error:
     if (fret == -1) {
-        if(de != NULL) SCFree(de);
+        if (de != NULL) {
+            if (de->addr != NULL) DetectAddressFree(de->addr);
+            SCFree(de);
+        }
     }
     if(th_rule_type != NULL) SCFree((char *)th_rule_type);
     if(th_sid != NULL) SCFree((char *)th_sid);
