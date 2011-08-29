@@ -604,7 +604,7 @@ static void DetectAddressParseIPv6CIDR(int cidr, struct in6_addr *in6)
  * \retval  0 On successfully parsing the address string.
  * \retval -1 On failure.
  */
-static int DetectAddressParseString(DetectAddress *dd, char *str)
+int DetectAddressParseString(DetectAddress *dd, char *str)
 {
     char *ipdup = SCStrdup(str);
     char *ip = NULL;

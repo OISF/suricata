@@ -32,6 +32,7 @@ DetectAddressHead *DetectAddressHeadInit(void);
 void DetectAddressHeadFree(DetectAddressHead *);
 void DetectAddressHeadCleanup(DetectAddressHead *);
 
+int DetectAddressParseString(DetectAddress *, char *);
 int DetectAddressParse(DetectAddressHead *, char *);
 
 DetectAddress *DetectAddressInit(void);
@@ -46,6 +47,7 @@ int DetectAddressJoin(DetectEngineCtx *, DetectAddress *, DetectAddress *);
 
 DetectAddress *DetectAddressLookupInHead(DetectAddressHead *, Address *);
 DetectAddress *DetectAddressLookupInList(DetectAddress *, DetectAddress *);
+int DetectAddressMatch(DetectAddress *, Address *);
 
 DetectAddress *DetectAddressCopy(DetectAddress *);
 void DetectAddressPrint(DetectAddress *);
