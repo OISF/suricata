@@ -208,7 +208,8 @@ DetectSslVersionData *DetectSslVersionParse(char *str)
         if (ssl == NULL)
             goto error;
 
-        for (int i = 1; i <= 5; i++) {
+        int i;
+        for (i = 1; i < ret; i++) {
             res = pcre_get_substring((char *) str, ov, MAX_SUBSTRINGS, i, &str_ptr[i]);
             if (res < 0) {
                 SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
@@ -264,7 +265,7 @@ DetectSslVersionData *DetectSslVersionParse(char *str)
                 SCLogError(SC_ERR_INVALID_VALUE, "Invalid value");
                 neg = 0;
                 SCFree(orig);
-                continue;
+                goto error;
             }
 
             found = 1;
