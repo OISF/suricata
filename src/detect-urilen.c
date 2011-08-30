@@ -42,7 +42,7 @@
 /**
  * \brief Regex for parsing our urilen
  */
-#define PARSE_REGEX  "^\\s*(<|>)?\\s*([0-9]{1,5})\\s*(?:(<>)\\s*([0-9]{1,5}))?\\s*$"
+#define PARSE_REGEX  "^(?:\\s*)(<|>)?(?:\\s*)([0-9]{1,5})(?:\\s*)(?:(<>)(?:\\s*)([0-9]{1,5}))?(?:\\s*)$"
 
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
@@ -183,6 +183,8 @@ DetectUrilenData *DetectUrilenParse (char *urilenstr)
     }
     const char *str_ptr;
 
+    SCLogDebug("ret %d", ret);
+
     res = pcre_get_substring((char *)urilenstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
@@ -199,21 +201,25 @@ DetectUrilenData *DetectUrilenParse (char *urilenstr)
     arg2 = (char *) str_ptr;
     SCLogDebug("Arg2 \"%s\"", arg2);
 
-    res = pcre_get_substring((char *)urilenstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-        goto error;
-    }
-    arg3 = (char *) str_ptr;
-    SCLogDebug("Arg3 \"%s\"", arg3);
+    if (ret > 3) {
+        res = pcre_get_substring((char *)urilenstr, ov, MAX_SUBSTRINGS, 3, &str_ptr);
+        if (res < 0) {
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            goto error;
+        }
+        arg3 = (char *) str_ptr;
+        SCLogDebug("Arg3 \"%s\"", arg3);
 
-    res = pcre_get_substring((char *)urilenstr, ov, MAX_SUBSTRINGS, 4, &str_ptr);
-    if (res < 0) {
-        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-        goto error;
+        if (ret > 4) {
+            res = pcre_get_substring((char *)urilenstr, ov, MAX_SUBSTRINGS, 4, &str_ptr);
+            if (res < 0) {
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+                goto error;
+            }
+            arg4 = (char *) str_ptr;
+            SCLogDebug("Arg4 \"%s\"", arg4);
+        }
     }
-    arg4 = (char *) str_ptr;
-    SCLogDebug("Arg4 \"%s\"", arg4);
 
     urilend = SCMalloc(sizeof (DetectUrilenData));
     if (urilend == NULL)
@@ -221,11 +227,14 @@ DetectUrilenData *DetectUrilenParse (char *urilenstr)
     urilend->urilen1 = 0;
     urilend->urilen2 = 0;
 
-    if (arg1[0] == '<') urilend->mode = DETECT_URILEN_LT;
-    else if (arg1[0] == '>') urilend->mode = DETECT_URILEN_GT;
-    else urilend->mode = DETECT_URILEN_EQ;
+    if (arg1[0] == '<')
+        urilend->mode = DETECT_URILEN_LT;
+    else if (arg1[0] == '>')
+        urilend->mode = DETECT_URILEN_GT;
+    else
+        urilend->mode = DETECT_URILEN_EQ;
 
-    if (strcmp("<>", arg3) == 0) {
+    if (arg3 != NULL && strcmp("<>", arg3) == 0) {
         if (strlen(arg1) != 0) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,"Range specified but mode also set");
             goto error;
@@ -234,13 +243,13 @@ DetectUrilenData *DetectUrilenParse (char *urilenstr)
     }
 
     /** set the first urilen value */
-    if(ByteExtractStringUint16(&urilend->urilen1,10,strlen(arg2),arg2) <= 0){
+    if (ByteExtractStringUint16(&urilend->urilen1,10,strlen(arg2),arg2) <= 0){
         SCLogError(SC_ERR_INVALID_ARGUMENT,"Invalid size :\"%s\"",arg2);
         goto error;
     }
 
     /** set the second urilen value if specified */
-    if (strlen(arg4) > 0) {
+    if (arg4 != NULL && strlen(arg4) > 0) {
         if (urilend->mode != DETECT_URILEN_RA) {
             SCLogError(SC_ERR_INVALID_ARGUMENT,"Multiple urilen values specified"
                                            " but mode is not range");
@@ -260,18 +269,27 @@ DetectUrilenData *DetectUrilenParse (char *urilenstr)
         }
     }
 
-    SCFree(arg1);
-    SCFree(arg2);
-    SCFree(arg3);
-    SCFree(arg4);
+    if (arg1 != NULL)
+        SCFree(arg1);
+    if (arg2 != NULL)
+        SCFree(arg2);
+    if (arg3 != NULL)
+        SCFree(arg3);
+    if (arg4 != NULL)
+        SCFree(arg4);
     return urilend;
 
 error:
-    if (urilend) SCFree(urilend);
-    if (arg1) SCFree(arg1);
-    if (arg2) SCFree(arg2);
-    if (arg3) SCFree(arg3);
-    if (arg4) SCFree(arg4);
+    if (urilend)
+        SCFree(urilend);
+    if (arg1 != NULL)
+        SCFree(arg1);
+    if (arg2 != NULL)
+        SCFree(arg2);
+    if (arg3 != NULL)
+        SCFree(arg3);
+    if (arg4 != NULL)
+        SCFree(arg4);
     return NULL;
 }
 
