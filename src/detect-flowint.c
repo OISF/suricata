@@ -287,6 +287,9 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
 
     /* If we need another arg, check it out(isset doesn't need another arg) */
     if (modifier != FLOWINT_MODIFIER_ISSET && modifier != FLOWINT_MODIFIER_NOTSET) {
+        if (ret < 4)
+            goto error;
+
         res = pcre_get_substring((char *) rawstr, ov, MAX_SUBSTRINGS, 3,
                                    &str_ptr);
         varval =(char *) str_ptr;
@@ -330,8 +333,8 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
 
     return sfd;
 error:
-    if (sfd != NULL) SCFree(sfd);
-    SCFree(str);
+    if (sfd != NULL)
+        SCFree(sfd);
     return NULL;
 }
 
