@@ -157,6 +157,8 @@ typedef struct AFPThreadVars_
     int cluster_id;
     int cluster_type;
 
+    int threads;
+
     ThreadVars *tv;
     TmSlot *slot;
 
@@ -208,24 +210,6 @@ void TmModuleDecodeAFPRegister (void) {
 }
 
 static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose);
-
-int AFPConfGetThreads()
-{
-    int afp_threads = 1;
-    char *threadsstr = NULL;
-
-    if (ConfGet("af-packet.threads", &threadsstr) != 1) {
-        afp_threads = 1;
-    } else {
-        if (threadsstr != NULL) {
-            afp_threads = (uint8_t)atoi(threadsstr);
-        }
-    }
-    if (afp_threads == 0) {
-        afp_threads = 1;
-    }
-    return afp_threads;
-}
 
 
 /**
@@ -697,7 +681,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
 
 #ifdef HAVE_PACKET_FANOUT
     /* add binded socket to fanout group */
-    if (AFPConfGetThreads() > 1) {
+    if (ptv->threads > 1) {
         uint32_t option = 0;
         uint16_t mode = ptv->cluster_type;
         uint16_t id = ptv->cluster_id;
@@ -730,11 +714,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
 TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
     SCEnter();
     int r;
-    intmax_t value;
-#ifdef HAVE_PACKET_FANOUT
-    char *tmpclusterid;
-    char *tmpctype;
-#endif
+    AFPIfaceConfig *afpconfig = initdata;
 
     /* use max_pending_packets as AFP read size unless it's bigger than
      * our size limit */
@@ -754,60 +734,24 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
     ptv->tv = tv;
     ptv->cooked = 0;
 
-    strlcpy(ptv->iface, initdata, AFP_IFACE_NAME_LENGTH);
+    strlcpy(ptv->iface, afpconfig->iface, AFP_IFACE_NAME_LENGTH);
     ptv->iface[AFP_IFACE_NAME_LENGTH - 1]= '\0';
 
-    if ((ConfGetInt("af-packet.buffer-size", &value)) == 1) {
-        ptv->buffer_size = value;
-    } else {
-        ptv->buffer_size = 0;
-    }
+    ptv->buffer_size = afpconfig->buffer_size;
 
+    ptv->threads = 1;
 #ifdef HAVE_PACKET_FANOUT
     ptv->cluster_type = PACKET_FANOUT_LB;
     ptv->cluster_id = 1;
     /* We only set cluster info if the number of reader threads is greater than 1 */
-    if (AFPConfGetThreads() > 1) {
-        if (ConfGet("af-packet.cluster-id", &tmpclusterid) != 1) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,"could not get af-packet.cluster-id");
-            return TM_ECODE_FAILED;
-        } else {
-            ptv->cluster_id = (uint16_t)atoi(tmpclusterid);
-            SCLogDebug("Going to use cluster-id %" PRId32, ptv->cluster_id);
-        }
-
-        if (ConfGet("af-packet.cluster-type", &tmpctype) != 1) {
-            SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,"Could not get af-packet.cluster-type");
-            return TM_ECODE_FAILED;
-        } else if (strcmp(tmpctype, "cluster_round_robin") == 0) {
-            SCLogInfo("Using round-robin cluster mode for AF_PACKET (thread %s)",
-                      ptv->tv->name);
-            ptv->cluster_type = PACKET_FANOUT_LB;
-        } else if (strcmp(tmpctype, "cluster_flow") == 0) {
-            /* In hash mode, we also ask for defragmentation needed to
-             * compute the hash */
-            uint16_t defrag = 0;
-            SCLogInfo("Using flow cluster mode for AF_PACKET (thread %s)",
-                      ptv->tv->name);
-            ConfGetBool("af-packet.defrag", (int *)&defrag);
-            if (defrag) {
-                SCLogInfo("Using defrag kernel functionnality for AF_PACKET (thread %s)",
-                          ptv->tv->name);
-                defrag = PACKET_FANOUT_FLAG_DEFRAG;
-            }
-            ptv->cluster_type = PACKET_FANOUT_HASH | defrag;
-        } else if (strcmp(tmpctype, "cluster_cpu") == 0) {
-            SCLogInfo("Using cpu cluster mode for AF_PACKET (thread %s)",
-                      ptv->tv->name);
-            ptv->cluster_type = PACKET_FANOUT_CPU;
-        } else {
-            SCLogError(SC_ERR_INVALID_CLUSTER_TYPE,"invalid cluster-type %s",tmpctype);
-            return TM_ECODE_FAILED;
-        }
+    if (afpconfig->threads > 1) {
+            ptv->cluster_id = afpconfig->cluster_id;
+            ptv->cluster_type = afpconfig->cluster_type;
+            ptv->threads = afpconfig->threads;
     }
 #endif
 
-    r = AFPCreateSocket(ptv, initdata, 1);
+    r = AFPCreateSocket(ptv, ptv->iface, 1);
     if (r < 0) {
         SCLogError(SC_ERR_AFP_CREATE, "Couldn't init AF_PACKET socket");
         SCFree(ptv);
@@ -831,6 +775,9 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
 
     *data = (void *)ptv;
+
+    /* we've received a single use structure, we can free it */
+    SCFree(initdata);
     SCReturnInt(TM_ECODE_OK);
 }
 

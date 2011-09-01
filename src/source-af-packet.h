@@ -36,6 +36,21 @@
 
 #endif /* HAVE_PACKET_FANOUT */
 
+#define AFP_FILE_MAX_PKTS 256
+#define AFP_IFACE_NAME_LENGTH 48
+
+typedef struct AFPIfaceConfig_
+{
+    char iface[AFP_IFACE_NAME_LENGTH];
+    /* number of threads */
+    int threads;
+    /* socket buffer size */
+    int buffer_size;
+    /* cluster param */
+    int cluster_id;
+    int cluster_type;
+} AFPIfaceConfig;
+
 void TmModuleReceiveAFPRegister (void);
 void TmModuleDecodeAFPRegister (void);
 int AFPConfGetThreads();

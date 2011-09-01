@@ -624,12 +624,10 @@ ConfNode *ConfNodeLookupKeyValue(ConfNode *base, const char *key, const char *va
     ConfNode *child;
 
     TAILQ_FOREACH(child, &base->head, next) {
-        SCLogWarning(SC_ERR_MEM_ALLOC,"conf:found one child %s:%s", child->name, child->val);
         if (!strncmp(child->val, key, sizeof(child->val))) {
             ConfNode *subchild;
             TAILQ_FOREACH(subchild, &child->head, next) {
                 if ((!strcmp(subchild->name, key)) && (!strcmp(subchild->val, value))) {
-                    SCLogWarning(SC_ERR_MEM_ALLOC,"was looking for %s:%s", subchild->name, subchild->val);
                     return child;
                 }
             }

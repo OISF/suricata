@@ -56,19 +56,7 @@ static const char *default_mode_autofp = NULL;
 
 const char *RunModeAFPGetDefaultMode(void)
 {
-#ifdef HAVE_AF_PACKET
-#ifdef HAVE_PACKET_FANOUT
-    if (AFPConfGetThreads() <= 1) {
-        return default_mode_auto;
-    } else {
-        return default_mode_autofp;
-    }
-#else
-    return default_mode_auto;
-#endif
-#else
-    return NULL;
-#endif
+    return default_mode_autofp;
 }
 
 void RunModeIdsAFPRegister(void)
@@ -88,6 +76,105 @@ void RunModeIdsAFPRegister(void)
                               RunModeIdsAFPAutoFp);
     return;
 }
+
+/**
+ * \brief extract information from config file
+ *
+ * The returned structure will be freed by the thread init function.
+ * This is thus necessary to or copy the structure before giving it
+ * to thread or to reparse the file for each thread (and thus have
+ * new structure.
+ *
+ * \return a AFPIfaceConfig corresponding to the interface name
+ */
+AFPIfaceConfig *ParseAFPConfig(char *iface)
+{
+    char *threadsstr = NULL;
+    ConfNode *if_root;
+    ConfNode *af_packet_node;
+    AFPIfaceConfig *aconf = SCMalloc(sizeof(*aconf));
+    char *tmpclusterid;
+    char *tmpctype;
+    intmax_t value;
+
+    if (aconf == NULL) {
+        return NULL;
+    }
+    strlcpy(aconf->iface, iface, sizeof(aconf->iface));
+    aconf->threads = 1;
+    aconf->buffer_size = 0;
+    aconf->cluster_id = 1;
+    aconf->cluster_type = PACKET_FANOUT_HASH;
+
+    /* Find initial node */
+    af_packet_node = ConfGetNode("af-packet");
+    if (af_packet_node == NULL) {
+        SCLogInfo("Unable to find af-packet config using default value");
+        return aconf;
+    }
+
+    if_root = ConfNodeLookupKeyValue(af_packet_node, "interface", iface);
+    if (if_root == NULL) {
+        SCLogInfo("Unable to find af-packet config for "
+                  "interface %s, using default value",
+                  iface);
+        return aconf;
+    }
+
+    if (ConfGetChildValue(if_root, "threads", &threadsstr) != 1) {
+        aconf->threads = 1;
+    } else {
+        if (threadsstr != NULL) {
+            aconf->threads = (uint8_t)atoi(threadsstr);
+        }
+    }
+    if (aconf->threads == 0) {
+        aconf->threads = 1;
+    }
+    if (ConfGetChildValue(if_root, "cluster-id", &tmpclusterid) != 1) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT,"Could not get cluster-id from config");
+    } else {
+        aconf->cluster_id = (uint16_t)atoi(tmpclusterid);
+        SCLogDebug("Going to use cluster-id %" PRId32, aconf->cluster_id);
+    }
+
+    if (ConfGetChildValue(if_root, "cluster-type", &tmpctype) != 1) {
+        SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,"Could not get cluster-type fron config");
+    } else if (strcmp(tmpctype, "cluster_round_robin") == 0) {
+        SCLogInfo("Using round-robin cluster mode for AF_PACKET (iface %s)",
+                aconf->iface);
+        aconf->cluster_type = PACKET_FANOUT_LB;
+    } else if (strcmp(tmpctype, "cluster_flow") == 0) {
+        /* In hash mode, we also ask for defragmentation needed to
+         * compute the hash */
+        uint16_t defrag = 0;
+        SCLogInfo("Using flow cluster mode for AF_PACKET (iface %s)",
+                aconf->iface);
+        ConfGetChildValueBool(if_root, "defrag", (int *)&defrag);
+        if (defrag) {
+            SCLogInfo("Using defrag kernel functionnality for AF_PACKET (iface %s)",
+                    aconf->iface);
+            defrag = PACKET_FANOUT_FLAG_DEFRAG;
+        }
+        aconf->cluster_type = PACKET_FANOUT_HASH | defrag;
+    } else if (strcmp(tmpctype, "cluster_cpu") == 0) {
+        SCLogInfo("Using cpu cluster mode for AF_PACKET (iface %s)",
+                aconf->iface);
+        aconf->cluster_type = PACKET_FANOUT_CPU;
+    } else {
+        SCLogError(SC_ERR_INVALID_CLUSTER_TYPE,"invalid cluster-type %s",tmpctype);
+        return NULL;
+    }
+
+    if ((ConfGetChildValueInt(if_root, "buffer-size", &value)) == 1) {
+        aconf->buffer_size = value;
+    } else {
+        aconf->buffer_size = 0;
+    }
+
+    return aconf;
+}
+
 
 /**
  * \brief RunModeIdsAFPAuto set up the following thread packet handlers:
@@ -127,15 +214,26 @@ int RunModeIdsAFPAuto(DetectEngineCtx *de_ctx)
 
     if (nlive == 1) {
         char *live_dev = NULL;
-        char *live_devc = NULL;
-        if (ConfGet("af-packet.interface", &live_dev) == 0) {
+        AFPIfaceConfig *aconf;
+        /* TODO be clever than that */
+        if (ConfGet("af-packet.live-interface", &live_dev) == 0) {
             SCLogError(SC_ERR_RUNMODE, "Failed retrieving "
-                       "af-packet.interface from Conf");
+                       "interface from command line");
             exit(EXIT_FAILURE);
         }
         SCLogDebug("live_dev %s", live_dev);
 
-        live_devc = SCStrdup(live_dev);
+        if (live_dev == NULL) {
+            printf("Failed to lookup live dev\n");
+            exit(EXIT_FAILURE);
+        }
+        SCLogDebug("live_dev %s", live_dev);
+
+        aconf = ParseAFPConfig(live_dev);
+        if (aconf == NULL) {
+            printf("Failed to allocate config\n");
+            exit(EXIT_FAILURE);
+        }
 
         /* create the threads */
         ThreadVars *tv_receiveafp =
@@ -152,7 +250,7 @@ int RunModeIdsAFPAuto(DetectEngineCtx *de_ctx)
             printf("ERROR: TmModuleGetByName failed for ReceiveAFP\n");
             exit(EXIT_FAILURE);
         }
-        TmSlotSetFuncAppend(tv_receiveafp, tm_module, (void *)live_devc);
+        TmSlotSetFuncAppend(tv_receiveafp, tm_module, (void *)aconf);
 
         TmThreadSetCPU(tv_receiveafp, RECEIVE_CPU_SET);
 
@@ -166,16 +264,22 @@ int RunModeIdsAFPAuto(DetectEngineCtx *de_ctx)
         for (thread = 0; thread < nlive; thread++) {
             char *live_dev = LiveGetDevice(thread);
             char *tnamec = NULL;
-            char *live_devc = NULL;
+            AFPIfaceConfig *aconf;
+
             if (live_dev == NULL) {
                 printf("Failed to lookup live dev %d\n", thread);
                 exit(EXIT_FAILURE);
             }
             SCLogDebug("live_dev %s", live_dev);
 
+            aconf = ParseAFPConfig(live_dev);
+            if (aconf == NULL) {
+                printf("Failed to allocate config %d\n", thread);
+                exit(EXIT_FAILURE);
+            }
+
             snprintf(tname, sizeof(tname),"RecvAFP-%s", live_dev);
             tnamec = SCStrdup(tname);
-            live_devc = SCStrdup(live_dev);
 
             /* create the threads */
             ThreadVars *tv_receiveafp =
@@ -192,7 +296,7 @@ int RunModeIdsAFPAuto(DetectEngineCtx *de_ctx)
                 printf("ERROR: TmModuleGetByName failed for ReceiveAFP\n");
                 exit(EXIT_FAILURE);
             }
-            TmSlotSetFuncAppend(tv_receiveafp, tm_module, (void *)live_devc);
+            TmSlotSetFuncAppend(tv_receiveafp, tm_module, (void *)aconf);
 
             TmThreadSetCPU(tv_receiveafp, RECEIVE_CPU_SET);
 
@@ -449,25 +553,22 @@ int RunModeIdsAFPAutoFp(DetectEngineCtx *de_ctx)
     char tname[12];
     char qname[12];
     char queues[2048] = "";
-    int afp_threads;
+    int thread;
     char *live_dev = NULL;
-    char *live_devc = NULL;
-
-    RunModeInitialize();
-
-    TimeModeSetLive();
-
     /* Available cpus */
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
-
-    /* always create at least one thread */
+    int nlive = LiveGetDeviceCount();
     int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
+    /* always create at least one thread */
     if (thread_max == 0)
         thread_max = ncpus * threading_detect_ratio;
     if (thread_max < 1)
         thread_max = 1;
 
-    int thread;
+    RunModeInitialize();
+
+    TimeModeSetLive();
+
     for (thread = 0; thread < thread_max; thread++) {
         if (strlen(queues) > 0)
             strlcat(queues, ",", sizeof(queues));
@@ -477,50 +578,112 @@ int RunModeIdsAFPAutoFp(DetectEngineCtx *de_ctx)
     }
     SCLogDebug("queues %s", queues);
 
-    if (ConfGet("af-packet.interface", &live_dev) == 0) {
-        SCLogError(SC_ERR_RUNMODE, "Failed retrieving "
-                "af-packet.interface from Conf");
-        exit(EXIT_FAILURE);
-    }
-    SCLogDebug("live_dev %s", live_dev);
+    if (nlive == 1) {
+        AFPIfaceConfig *aconf;
+        int afp_thread;
 
-
-    afp_threads = AFPConfGetThreads();
-    SCLogInfo("Going to use %" PRId32 " AF_PACKET receive thread(s)",
-              afp_threads);
-    /* create the threads */
-    for (thread = 0; thread < afp_threads; thread++) {
-        snprintf(tname, sizeof(tname), "RxAFP%"PRIu16, thread+1);
-        char *thread_name = SCStrdup(tname);
-
-        ThreadVars *tv_receive =
-            TmThreadCreatePacketHandler(thread_name,
-                                        "packetpool", "packetpool",
-                                        queues, "flow", "varslot");
-        if (tv_receive == NULL) {
-            printf("ERROR: TmThreadsCreate failed\n");
+        if (ConfGet("af-packet.live-interface", &live_dev) == 0) {
+            SCLogError(SC_ERR_RUNMODE, "Failed retrieving "
+                    "interface from command line");
             exit(EXIT_FAILURE);
         }
-        TmModule *tm_module = TmModuleGetByName("ReceiveAFP");
-        if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName failed for ReceiveAFP\n");
+        SCLogDebug("live_dev %s", live_dev);
+
+        aconf = ParseAFPConfig(live_dev);
+        if (aconf == NULL) {
+            printf("Failed to allocate config %d\n", thread);
             exit(EXIT_FAILURE);
         }
-        live_devc = SCStrdup(live_dev);
-        TmSlotSetFuncAppend(tv_receive, tm_module, live_devc);
 
-        tm_module = TmModuleGetByName("DecodeAFP");
-        if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName DecodeAFP failed\n");
-            exit(EXIT_FAILURE);
+        SCLogInfo("Going to use %" PRId32 " AF_PACKET receive thread(s)",
+                aconf->threads);
+        /* create the threads */
+        for (afp_thread = 0; afp_thread < aconf->threads; afp_thread++) {
+            snprintf(tname, sizeof(tname), "RxAFP%"PRIu16, afp_thread+1);
+            char *thread_name = SCStrdup(tname);
+
+            ThreadVars *tv_receive =
+                TmThreadCreatePacketHandler(thread_name,
+                        "packetpool", "packetpool",
+                        queues, "flow", "varslot");
+            if (tv_receive == NULL) {
+                printf("ERROR: TmThreadsCreate failed\n");
+                exit(EXIT_FAILURE);
+            }
+            TmModule *tm_module = TmModuleGetByName("ReceiveAFP");
+            if (tm_module == NULL) {
+                printf("ERROR: TmModuleGetByName failed for ReceiveAFP\n");
+                exit(EXIT_FAILURE);
+            }
+            TmSlotSetFuncAppend(tv_receive, tm_module, aconf);
+
+            tm_module = TmModuleGetByName("DecodeAFP");
+            if (tm_module == NULL) {
+                printf("ERROR: TmModuleGetByName DecodeAFP failed\n");
+                exit(EXIT_FAILURE);
+            }
+            TmSlotSetFuncAppend(tv_receive, tm_module, NULL);
+
+            TmThreadSetCPU(tv_receive, RECEIVE_CPU_SET);
+
+            if (TmThreadSpawn(tv_receive) != TM_ECODE_OK) {
+                printf("ERROR: TmThreadSpawn failed\n");
+                exit(EXIT_FAILURE);
+            }
         }
-        TmSlotSetFuncAppend(tv_receive, tm_module, NULL);
+    } else { /* Multiple input device */
+        SCLogInfo("Using %d live device(s).", nlive);
+        int lthread;
 
-        TmThreadSetCPU(tv_receive, RECEIVE_CPU_SET);
+        for (lthread = 0; lthread < nlive; lthread++) {
+            char *live_dev = LiveGetDevice(lthread);
+            AFPIfaceConfig *aconf;
 
-        if (TmThreadSpawn(tv_receive) != TM_ECODE_OK) {
-            printf("ERROR: TmThreadSpawn failed\n");
-            exit(EXIT_FAILURE);
+            if (live_dev == NULL) {
+                printf("Failed to lookup live dev %d\n", lthread);
+                exit(EXIT_FAILURE);
+            }
+            SCLogDebug("live_dev %s", live_dev);
+
+            aconf = ParseAFPConfig(live_dev);
+            if (aconf == NULL) {
+                printf("Failed to allocate config %d\n", lthread);
+                exit(EXIT_FAILURE);
+            }
+
+            for (thread = 0; thread < aconf->threads; thread++) {
+                snprintf(tname, sizeof(tname), "RxAFP%s%"PRIu16, live_dev, thread+1);
+                char *thread_name = SCStrdup(tname);
+
+                ThreadVars *tv_receive =
+                    TmThreadCreatePacketHandler(thread_name,
+                            "packetpool", "packetpool",
+                            queues, "flow", "varslot");
+                if (tv_receive == NULL) {
+                    printf("ERROR: TmThreadsCreate failed\n");
+                    exit(EXIT_FAILURE);
+                }
+                TmModule *tm_module = TmModuleGetByName("ReceiveAFP");
+                if (tm_module == NULL) {
+                    printf("ERROR: TmModuleGetByName failed for ReceiveAFP\n");
+                    exit(EXIT_FAILURE);
+                }
+                TmSlotSetFuncAppend(tv_receive, tm_module, aconf);
+
+                tm_module = TmModuleGetByName("DecodeAFP");
+                if (tm_module == NULL) {
+                    printf("ERROR: TmModuleGetByName DecodeAFP failed\n");
+                    exit(EXIT_FAILURE);
+                }
+                TmSlotSetFuncAppend(tv_receive, tm_module, NULL);
+
+                TmThreadSetCPU(tv_receive, RECEIVE_CPU_SET);
+
+                if (TmThreadSpawn(tv_receive) != TM_ECODE_OK) {
+                    printf("ERROR: TmThreadSpawn failed\n");
+                    exit(EXIT_FAILURE);
+                }
+            }
         }
     }
 
@@ -599,9 +762,9 @@ int RunModeIdsAFPSingle(DetectEngineCtx *de_ctx)
     RunModeInitialize();
     TimeModeSetLive();
 
-    if (ConfGet("af-packet.interface", &afp_dev) == 0) {
+    if (ConfGet("af-packet.live-interface", &afp_dev) == 0) {
         SCLogError(SC_ERR_RUNMODE, "Failed retrieving "
-                "af-packet.interface from Conf");
+                "interface from command line");
         exit(EXIT_FAILURE);
     }
 

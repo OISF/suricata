@@ -1423,7 +1423,7 @@ int main(int argc, char **argv)
         PfringLoadConfig();
 #endif /* HAVE_PFRING */
     } else if (run_mode == RUNMODE_AFP_DEV) {
-        if (ConfSet("af-packet.interface", pcap_dev, 0) != 1) {
+        if (ConfSet("af-packet.live-interface", pcap_dev, 0) != 1) {
             fprintf(stderr, "ERROR: Failed to set af-packet.interface\n");
             exit(EXIT_FAILURE);
         }
