@@ -247,6 +247,20 @@ ConfGet(char *name, char **vptr)
     }
 }
 
+int ConfGetChildValue(ConfNode *base, char *name, char **vptr)
+{
+    ConfNode *node = ConfNodeLookupChild(base, name);
+
+    if (node == NULL) {
+        SCLogDebug("failed to lookup configuration parameter '%s'", name);
+        return 0;
+    }
+    else {
+        *vptr = node->val;
+        return 1;
+    }
+}
+
 /**
  * \brief Retrieve a configuration value as an integer.
  *
@@ -278,6 +292,28 @@ ConfGetInt(char *name, intmax_t *val)
     return 1;
 }
 
+int ConfGetChildValueInt(ConfNode *base, char *name, intmax_t *val)
+{
+    char *strval;
+    intmax_t tmpint;
+    char *endptr;
+
+    if (ConfGetChildValue(base, name, &strval) == 0)
+        return 0;
+    errno = 0;
+    tmpint = strtoimax(strval, &endptr, 0);
+    if (strval[0] == '\0' || *endptr != '\0')
+        return 0;
+    if (errno == ERANGE && (tmpint == INTMAX_MAX || tmpint == INTMAX_MIN))
+        return 0;
+
+    *val = tmpint;
+    return 1;
+
+}
+
+
+
 /**
  * \brief Retrieve a configuration value as an boolen.
  *
@@ -296,6 +332,23 @@ ConfGetBool(char *name, int *val)
     *val = 0;
     if (ConfGet(name, &strval) != 1)
         return 0;
+
+    *val = ConfValIsTrue(strval);
+
+    return 1;
+}
+
+int ConfGetChildValueBool(ConfNode *base, char *name, int *val)
+{
+    char *strval;
+
+    *val = 0;
+    if (ConfGetChildValue(base, name, &strval) == 0)
+        return 0;
+
+    *val = ConfValIsTrue(strval);
+
+
 
     *val = ConfValIsTrue(strval);
 
@@ -556,6 +609,32 @@ ConfNodeLookupChildValue(ConfNode *node, const char *name)
     child = ConfNodeLookupChild(node, name);
     if (child != NULL)
         return child->val;
+
+    return NULL;
+}
+
+/**
+ * \brief Lookup for a key value under a specific node
+ *
+ * \return the ConfNode matching or NULL
+ */
+
+ConfNode *ConfNodeLookupKeyValue(ConfNode *base, const char *key, const char *value)
+{
+    ConfNode *child;
+
+    TAILQ_FOREACH(child, &base->head, next) {
+        SCLogWarning(SC_ERR_MEM_ALLOC,"conf:found one child %s:%s", child->name, child->val);
+        if (!strncmp(child->val, key, sizeof(child->val))) {
+            ConfNode *subchild;
+            TAILQ_FOREACH(subchild, &child->head, next) {
+                if ((!strcmp(subchild->name, key)) && (!strcmp(subchild->val, value))) {
+                    SCLogWarning(SC_ERR_MEM_ALLOC,"was looking for %s:%s", subchild->name, subchild->val);
+                    return child;
+                }
+            }
+        }
+    }
 
     return NULL;
 }
