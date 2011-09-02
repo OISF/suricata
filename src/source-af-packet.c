@@ -153,6 +153,7 @@ typedef struct AFPThreadVars_
 
     /* socket buffer size */
     int buffer_size;
+    int promisc;
 
     int cluster_id;
     int cluster_type;
@@ -647,18 +648,20 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         close(ptv->socket);
         return -1;
     }
-    /* Force promiscuous mode */
-    memset(&sock_params, 0, sizeof(sock_params));
-    sock_params.mr_type = PACKET_MR_PROMISC;
-    sock_params.mr_ifindex = bind_address.sll_ifindex;
-    r = setsockopt(ptv->socket, SOL_PACKET, PACKET_ADD_MEMBERSHIP,(void *)&sock_params, sizeof(sock_params));
-    if (r < 0) {
-        SCLogError(SC_ERR_AFP_CREATE,
-                   "Couldn't switch iface %s to promiscuous, error %s",
-                   devname,
-                   strerror(errno));
-        close(ptv->socket);
-        return -1;
+    if (ptv->promisc != 0) {
+        /* Force promiscuous mode */
+        memset(&sock_params, 0, sizeof(sock_params));
+        sock_params.mr_type = PACKET_MR_PROMISC;
+        sock_params.mr_ifindex = bind_address.sll_ifindex;
+        r = setsockopt(ptv->socket, SOL_PACKET, PACKET_ADD_MEMBERSHIP,(void *)&sock_params, sizeof(sock_params));
+        if (r < 0) {
+            SCLogError(SC_ERR_AFP_CREATE,
+                    "Couldn't switch iface %s to promiscuous, error %s",
+                    devname,
+                    strerror(errno));
+            close(ptv->socket);
+            return -1;
+        }
     }
     /* set socket recv buffer size */
     if (ptv->buffer_size != 0) {
@@ -738,6 +741,8 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
     ptv->iface[AFP_IFACE_NAME_LENGTH - 1]= '\0';
 
     ptv->buffer_size = afpconfig->buffer_size;
+
+    ptv->promisc = afpconfig->promisc;
 
     ptv->threads = 1;
 #ifdef HAVE_PACKET_FANOUT

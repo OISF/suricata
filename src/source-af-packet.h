@@ -49,6 +49,8 @@ typedef struct AFPIfaceConfig_
     /* cluster param */
     int cluster_id;
     int cluster_type;
+    /* promisc mode */
+    int promisc;
 } AFPIfaceConfig;
 
 void TmModuleReceiveAFPRegister (void);

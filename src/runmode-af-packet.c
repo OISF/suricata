@@ -96,6 +96,7 @@ AFPIfaceConfig *ParseAFPConfig(char *iface)
     char *tmpclusterid;
     char *tmpctype;
     intmax_t value;
+    int dispromisc;
 
     if (aconf == NULL) {
         return NULL;
@@ -105,6 +106,7 @@ AFPIfaceConfig *ParseAFPConfig(char *iface)
     aconf->buffer_size = 0;
     aconf->cluster_id = 1;
     aconf->cluster_type = PACKET_FANOUT_HASH;
+    aconf->promisc = 1;
 
     /* Find initial node */
     af_packet_node = ConfGetNode("af-packet");
@@ -170,6 +172,13 @@ AFPIfaceConfig *ParseAFPConfig(char *iface)
         aconf->buffer_size = value;
     } else {
         aconf->buffer_size = 0;
+    }
+
+    ConfGetChildValueBool(if_root, "disable-promisc", (int *)&dispromisc);
+    if (dispromisc) {
+        SCLogInfo("Disabling promiscuous mode on iface %s",
+                aconf->iface);
+        aconf->promisc = 0;
     }
 
     return aconf;
