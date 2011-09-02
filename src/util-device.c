@@ -84,3 +84,31 @@ char *LiveGetDevice(int number) {
 
     return NULL;
 }
+
+
+
+int LiveBuildIfaceList(char * runmode)
+{
+    ConfNode *base = ConfGetNode(runmode);
+    ConfNode *child;
+    int i = 0;
+
+    if (base == NULL)
+        return 0;
+
+    TAILQ_FOREACH(child, &base->head, next) {
+        if (!strncmp(child->val, "interface", sizeof(child->val))) {
+            ConfNode *subchild;
+            TAILQ_FOREACH(subchild, &child->head, next) {
+                if ((!strcmp(subchild->name, "interface"))) {
+                    SCLogInfo("Adding interface %s from config file",
+                              subchild->val);
+                    LiveRegisterDevice(subchild->val);
+                    i++;
+                }
+            }
+        }
+    }
+
+    return i;
+}

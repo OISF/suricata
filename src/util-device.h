@@ -30,5 +30,6 @@ typedef struct LiveDevice_ {
 int LiveRegisterDevice(char *dev);
 int LiveGetDeviceCount(void);
 char *LiveGetDevice(int number);
+int LiveBuildIfaceList(char * base);
 
 #endif /* __UTIL_DEVICE_H__ */
