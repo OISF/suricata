@@ -394,9 +394,6 @@ void usage(const char *progname)
     printf("USAGE: %s\n\n", progname);
     printf("\t-c <path>                    : path to configuration file\n");
     printf("\t-i <dev or ip>               : run in pcap live mode\n");
-#ifdef HAVE_AF_PACKET
-    printf("\t-a <dev>                     : run in af-packet mode\n");
-#endif
     printf("\t-F <bpf filter file>         : bpf filter file\n");
     printf("\t-r <path>                    : run in pcap file/offline mode\n");
 #ifdef NFQ
@@ -436,6 +433,9 @@ void usage(const char *progname)
 #ifdef HAVE_PCAP_SET_BUFF
     printf("\t--pcap-buffer-size           : size of the pcap buffer value from 0 - %i\n",INT_MAX);
 #endif /* HAVE_SET_PCAP_BUFF */
+#ifdef HAVE_AF_PACKET
+    printf("\t--af-packet=<dev>            : run in af-packet mode\n");
+#endif
 #ifdef HAVE_PFRING
     printf("\t--pfring                     : run in pfring mode, use interface from suricata.yaml\n");
     printf("\t--pfring-int <dev>           : run in pfring mode, use interface <dev>\n");
@@ -601,6 +601,8 @@ int main(int argc, char **argv)
      * are specified, IPS mode will overwrite this */
     SET_ENGINE_MODE_IDS(engine_mode);
 
+    memset(pcap_dev, 0, sizeof(pcap_dev));
+
 #ifdef OS_WIN32
 	/* service initialization */
 	if (SCRunningAsService()) {
@@ -642,6 +644,7 @@ int main(int argc, char **argv)
         {"pfring-int", required_argument, 0, 0},
         {"pfring-cluster-id", required_argument, 0, 0},
         {"pfring-cluster-type", required_argument, 0, 0},
+        {"af-packet", optional_argument, 0, 0},
         {"pcap-buffer-size", required_argument, 0, 0},
         {"unittest-filter", required_argument, 0, 'U'},
         {"list-unittests", 0, &list_unittests, 1},
@@ -668,7 +671,7 @@ int main(int argc, char **argv)
     /* getopt_long stores the option index here. */
     int option_index = 0;
 
-    char short_opts[] = "c:Dhi:l:q:d:r:us:U:VF:a:";
+    char short_opts[] = "c:Dhi:l:q:d:r:us:U:VF:";
 
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {
@@ -712,6 +715,39 @@ int main(int argc, char **argv)
                         "to pass --enable-pfring to configure when building.");
                 exit(EXIT_FAILURE);
 #endif /* HAVE_PFRING */
+            }
+            else if (strcmp((long_opts[option_index]).name , "af-packet") == 0){
+#ifdef HAVE_AF_PACKET
+                if (run_mode == RUNMODE_UNKNOWN) {
+                    run_mode = RUNMODE_AFP_DEV;
+                    if (optarg) {
+                        LiveRegisterDevice(optarg);
+                        memset(pcap_dev, 0, sizeof(pcap_dev));
+                        strlcpy(pcap_dev, optarg,
+                                ((strlen(optarg) < sizeof(pcap_dev)) ?
+                                 (strlen(optarg) + 1) : sizeof(pcap_dev)));
+                    }
+                } else if (run_mode == RUNMODE_AFP_DEV) {
+                    SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
+                            "multiple devices to get packets is experimental.");
+                    if (optarg) {
+                        LiveRegisterDevice(optarg);
+                    } else {
+                        SCLogInfo("Multiple af-packet option without interface on each is useless");
+                        break;
+                    }
+                } else {
+                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                            "has been specified");
+                    usage(argv[0]);
+                    exit(EXIT_FAILURE);
+                }
+#else
+                SCLogError(SC_ERR_NO_AF_PACKET,"AF_PACKET not enabled. On Linux "
+                        "host, make sure to pass --enable-af-packet to "
+                        "configure when building.");
+                exit(EXIT_FAILURE);
+#endif
             }
             else if(strcmp((long_opts[option_index]).name, "init-errors-fatal") == 0) {
                 if (ConfSet("engine.init_failure_fatal", "1", 0) != 1) {
@@ -866,34 +902,8 @@ int main(int argc, char **argv)
                 usage(argv[0]);
                 exit(EXIT_FAILURE);
             }
-			memset(pcap_dev, 0, sizeof(pcap_dev));
+            memset(pcap_dev, 0, sizeof(pcap_dev));
             strlcpy(pcap_dev, optarg, ((strlen(optarg) < sizeof(pcap_dev)) ? (strlen(optarg)+1) : (sizeof(pcap_dev))));
-            break;
-        case 'a':
-#ifdef HAVE_AF_PACKET
-            if (run_mode == RUNMODE_UNKNOWN) {
-                run_mode = RUNMODE_AFP_DEV;
-                LiveRegisterDevice(optarg);
-            } else if (run_mode == RUNMODE_AFP_DEV) {
-                SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
-                             "multiple devices to get packets is experimental.");
-                LiveRegisterDevice(optarg);
-            } else {
-                SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
-                           "has been specified");
-                usage(argv[0]);
-                exit(EXIT_FAILURE);
-            }
-			memset(pcap_dev, 0, sizeof(pcap_dev));
-            strlcpy(pcap_dev, optarg,
-                    ((strlen(optarg) < sizeof(pcap_dev)) ?
-                     (strlen(optarg) + 1) : sizeof(pcap_dev)));
-#else
-            SCLogError(SC_ERR_NO_AF_PACKET,"AF_PACKET not enabled. On Linux "
-                       "host, make sure to pass --enable-af-packet to "
-                       "configure when building.");
-            exit(EXIT_FAILURE);
-#endif
             break;
         case 'l':
             if (ConfSet("default-log-dir", optarg, 0) != 1) {
@@ -1423,9 +1433,18 @@ int main(int argc, char **argv)
         PfringLoadConfig();
 #endif /* HAVE_PFRING */
     } else if (run_mode == RUNMODE_AFP_DEV) {
-        if (ConfSet("af-packet.live-interface", pcap_dev, 0) != 1) {
-            fprintf(stderr, "ERROR: Failed to set af-packet.interface\n");
-            exit(EXIT_FAILURE);
+        /* iface has been set on command line */
+        if (strlen(pcap_dev)) {
+            if (ConfSet("af-packet.live-interface", pcap_dev, 0) != 1) {
+                fprintf(stderr, "ERROR: Failed to set af-packet.live-interface\n");
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            int ret = LiveBuildIfaceList("af-packet");
+            if (ret == 0) {
+                fprintf(stderr, "ERROR: No interface found in config for af-packet\n");
+                exit(EXIT_FAILURE);
+            }
         }
     }
 
