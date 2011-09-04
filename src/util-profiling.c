@@ -100,7 +100,7 @@ const char *profiling_file_mode;
 /**
  * Used as a check so we don't double enter a profiling run.
  */
-__thread int profiling_entered = 0;
+__thread int profiling_rules_entered = 0;
 
 /**
  * \brief Initialize profiling.
