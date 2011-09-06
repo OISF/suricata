@@ -25,7 +25,7 @@
 
 #include "suricata-common.h"
 #include "packet-queue.h"
-#include "tm-modules.h"
+#include "tm-threads.h"
 #include "util-debug.h"
 #include "threads.h"
 
@@ -133,3 +133,59 @@ void TmModuleRegisterTests(void) {
 #endif /* UNITTESTS */
 }
 
+#define CASE_CODE(E)  case E: return #E
+
+/**
+ * \brief Maps the TmmId, to its string equivalent
+ *
+ * \param id tmm id
+ *
+ * \retval string equivalent for the tmm id
+ */
+const char * TmModuleTmmIdToString(TmmId id)
+{
+    switch (id) {
+        CASE_CODE (TMM_DECODENFQ);
+        CASE_CODE (TMM_VERDICTNFQ);
+        CASE_CODE (TMM_RECEIVENFQ);
+        CASE_CODE (TMM_RECEIVEPCAP);
+        CASE_CODE (TMM_RECEIVEPCAPFILE);
+        CASE_CODE (TMM_DECODEPCAP);
+        CASE_CODE (TMM_DECODEPCAPFILE);
+        CASE_CODE (TMM_RECEIVEPFRING);
+        CASE_CODE (TMM_DECODEPFRING);
+        CASE_CODE (TMM_DETECT);
+        CASE_CODE (TMM_ALERTFASTLOG);
+        CASE_CODE (TMM_ALERTFASTLOG4);
+        CASE_CODE (TMM_ALERTFASTLOG6);
+        CASE_CODE (TMM_ALERTUNIFIEDLOG);
+        CASE_CODE (TMM_ALERTUNIFIEDALERT);
+        CASE_CODE (TMM_ALERTUNIFIED2ALERT);
+        CASE_CODE (TMM_ALERTPRELUDE);
+        CASE_CODE (TMM_ALERTDEBUGLOG);
+        CASE_CODE (TMM_ALERTSYSLOG);
+        CASE_CODE (TMM_LOGDROPLOG);
+        CASE_CODE (TMM_ALERTSYSLOG4);
+        CASE_CODE (TMM_ALERTSYSLOG6);
+        CASE_CODE (TMM_RESPONDREJECT);
+        CASE_CODE (TMM_LOGHTTPLOG);
+        CASE_CODE (TMM_LOGHTTPLOG4);
+        CASE_CODE (TMM_LOGHTTPLOG6);
+        CASE_CODE (TMM_PCAPLOG);
+        CASE_CODE (TMM_STREAMTCP);
+        CASE_CODE (TMM_DECODEIPFW);
+        CASE_CODE (TMM_VERDICTIPFW);
+        CASE_CODE (TMM_RECEIVEIPFW);
+#ifdef __SC_CUDA_SUPPORT__
+        CASE_CODE (TMM_CUDA_MPM_B2G);
+        CASE_CODE (TMM_CUDA_PACKET_BATCHER);
+#endif
+        CASE_CODE (TMM_RECEIVEERFFILE);
+        CASE_CODE (TMM_DECODEERFFILE);
+        CASE_CODE (TMM_RECEIVEERFDAG);
+        CASE_CODE (TMM_DECODEERFDAG);
+
+        default:
+            return "UNKNOWN";
+    }
+}

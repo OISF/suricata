@@ -21,7 +21,6 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#include "tm-modules.h"
 #ifndef __ALERT_FASTLOG_H__
 #define __ALERT_FASTLOG_H__
 

@@ -24,6 +24,8 @@
 #ifndef __RESPOND_REJECT_H__
 #define __RESPOND_REJECT_H__
 
+#include "tm-threads.h"
+
 #define REJECT_DIR_SRC 0
 #define REJECT_DIR_DST 1
 

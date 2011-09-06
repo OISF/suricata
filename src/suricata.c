@@ -66,7 +66,6 @@
 
 #include "tm-queuehandlers.h"
 #include "tm-queues.h"
-#include "tm-modules.h"
 #include "tm-threads.h"
 
 #include "tmqh-flow.h"

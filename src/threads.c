@@ -28,7 +28,6 @@
 #include "util-unittest.h"
 #include "debug.h"
 #include "util-debug.h"
-#include "util-unittest.h"
 #include "threads.h"
 
 #ifdef UNITTESTS /* UNIT TESTS */

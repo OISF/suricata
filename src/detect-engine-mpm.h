@@ -24,7 +24,7 @@
 #ifndef __DETECT_ENGINE_MPM_H__
 #define __DETECT_ENGINE_MPM_H__
 
-#include "tm-modules.h"
+#include "tm-threads.h"
 
 #include "detect-content.h"
 #include "detect-uricontent.h"

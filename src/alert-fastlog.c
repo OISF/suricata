@@ -36,7 +36,6 @@
 #include "threads.h"
 #include "tm-threads.h"
 #include "threadvars.h"
-#include "tm-modules.h"
 #include "util-debug.h"
 
 #include "util-unittest.h"

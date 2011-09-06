@@ -26,7 +26,7 @@
 #include "suricata-common.h"
 #include "flow.h"
 #include "conf.h"
-#include "tm-modules.h"
+#include "tm-threads.h"
 #include "util-error.h"
 #include "util-debug.h"
 #include "output.h"

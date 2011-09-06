@@ -23,16 +23,17 @@
  * Implements http logging portion of the engine.
  */
 
+#include <htp/dslib.h>
+
 #include "suricata-common.h"
 #include "debug.h"
 #include "detect.h"
 #include "pkt-var.h"
 #include "conf.h"
 
-#include "threadvars.h"
-#include "tm-modules.h"
-
 #include "threads.h"
+#include "threadvars.h"
+#include "tm-threads.h"
 
 #include "util-print.h"
 #include "util-unittest.h"
@@ -42,7 +43,6 @@
 #include "output.h"
 #include "log-httplog.h"
 #include "app-layer-htp.h"
-#include <htp/dslib.h>
 #include "app-layer.h"
 #include "util-privs.h"
 

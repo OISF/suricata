@@ -207,7 +207,7 @@ util-vector.h \
 tm-modules.c tm-modules.h \
 tm-queues.c tm-queues.h \
 tm-queuehandlers.c tm-queuehandlers.h \
-tm-threads.c tm-threads.h \
+tm-threads.c tm-threads.h tm-threads-common.h \
 tmqh-simple.c tmqh-simple.h \
 tmqh-nfq.c tmqh-nfq.h \
 tmqh-packetpool.c tmqh-packetpool.h \

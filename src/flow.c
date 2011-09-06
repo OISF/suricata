@@ -31,7 +31,6 @@
 #include "decode.h"
 #include "conf.h"
 #include "threadvars.h"
-#include "tm-modules.h"
 #include "tm-threads.h"
 #include "runmodes.h"
 
@@ -220,6 +219,7 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
 #endif
         return 0;
     }
+
     if (SCMutexTrylock(&f->m) != 0) {
         SCLogDebug("cant lock 1");
         SCMutexUnlock(&q->mutex_q);

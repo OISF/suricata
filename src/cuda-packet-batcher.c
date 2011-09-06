@@ -51,7 +51,7 @@
 #include "threads.h"
 #include "threadvars.h"
 #include "tm-queuehandlers.h"
-#include "tm-modules.h"
+#include "tm-threads.h"
 
 #include "cuda-packet-batcher.h"
 #include "conf.h"

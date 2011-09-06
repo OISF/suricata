@@ -32,7 +32,6 @@
 #include "threadvars.h"
 #include "tm-queues.h"
 #include "tm-queuehandlers.h"
-#include "tm-modules.h"
 #include "tm-threads.h"
 #include "tmqh-packetpool.h"
 #include "threads.h"
@@ -42,6 +41,7 @@
 #include "util-privs.h"
 #include "util-cpu.h"
 #include "util-optimize.h"
+#include "util-profiling.h"
 
 #ifdef OS_FREEBSD
 #include <sched.h>
@@ -425,11 +425,16 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
     Packet *extra_p;
 
     for (s = slot; s != NULL; s = s->slot_next) {
+        PACKET_PROFILING_TMM_START(p, s->tm_module_id);
+
         if (unlikely(s->id == 0)) {
             r = s->SlotFunc(tv, p, s->slot_data, &s->slot_pre_pq, &s->slot_post_pq);
         } else {
             r = s->SlotFunc(tv, p, s->slot_data, &s->slot_pre_pq, NULL);
         }
+
+        PACKET_PROFILING_TMM_END(p, s->tm_module_id);
+
         /* handle error */
         if (unlikely(r == TM_ECODE_FAILED)) {
             /* Encountered error.  Return packets to packetpool and return */
@@ -791,6 +796,19 @@ void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data)
         }
     }
 
+#ifdef PROFILING
+    TmModule *prof_tm;
+    int prof_tm_id = 0;
+
+    for (prof_tm_id = 0; prof_tm_id < TMM_SIZE; prof_tm_id++) {
+        prof_tm = &tmm_modules[prof_tm_id];
+
+        if (prof_tm == tm) {
+            slot->tm_module_id = prof_tm_id;
+            break;
+        }
+    }
+#endif
     return;
 }
 

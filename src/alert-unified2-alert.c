@@ -33,7 +33,7 @@
 #include "pkt-var.h"
 #include "threads.h"
 #include "threadvars.h"
-#include "tm-modules.h"
+#include "tm-threads.h"
 
 #include "util-unittest.h"
 #include "alert-unified2-alert.h"

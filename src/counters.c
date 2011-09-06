@@ -27,7 +27,6 @@
 #include "suricata.h"
 #include "counters.h"
 #include "threadvars.h"
-#include "tm-modules.h"
 #include "tm-threads.h"
 #include "conf.h"
 #include "util-time.h"

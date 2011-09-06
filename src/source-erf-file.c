@@ -27,7 +27,7 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "tm-modules.h"
+#include "tm-threads.h"
 
 #define DAG_TYPE_ETH 2
 

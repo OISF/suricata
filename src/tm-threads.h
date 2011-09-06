@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2011 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,14 +25,8 @@
 #ifndef __TM_THREADS_H__
 #define __TM_THREADS_H__
 
+#include "tm-threads-common.h"
 #include "tm-modules.h"
-
-/* ThreadVars type */
-enum {
-    TVT_PPT,
-    TVT_MGMT,
-    TVT_MAX,
-};
 
 typedef struct TmSlot_ {
     /* function pointers */
@@ -64,6 +58,10 @@ typedef struct TmSlot_ {
 
     /* linked list, only used when you have multiple slots(used by TmVarSlot) */
     struct TmSlot_ *slot_next;
+
+#ifdef PROFILING
+    int tm_module_id;
+#endif
 } TmSlot;
 
 extern ThreadVars *tv_root[TVT_MAX];

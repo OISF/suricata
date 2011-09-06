@@ -162,6 +162,7 @@
 
 #include <htp/htp.h>
 #include "threads.h"
+#include "tm-threads-common.h"
 #include "util-debug.h"
 #include "util-error.h"
 #include "util-mem.h"

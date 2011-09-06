@@ -137,7 +137,7 @@
 #include "detect-ssl-state.h"
 
 #include "action-globals.h"
-#include "tm-modules.h"
+#include "tm-threads.h"
 
 #include "pkt-var.h"
 

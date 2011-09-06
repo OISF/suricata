@@ -36,7 +36,6 @@
 #include "threads.h"
 #include "threadvars.h"
 #include "tm-queuehandlers.h"
-#include "tm-modules.h"
 #include "tm-threads.h"
 #include "source-pcap.h"
 #include "conf.h"

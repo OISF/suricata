@@ -39,7 +39,6 @@
 #include "threads.h"
 #include "threadvars.h"
 #include "tm-queuehandlers.h"
-#include "tm-modules.h"
 #include "tm-threads.h"
 #include "source-pfring.h"
 #include "util-debug.h"

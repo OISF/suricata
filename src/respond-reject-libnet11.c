@@ -43,7 +43,7 @@
 #include "threads.h"
 #include "threadvars.h"
 #include "tm-queuehandlers.h"
-#include "tm-modules.h"
+#include "tm-threads.h"
 #include "action-globals.h"
 #include "respond-reject.h"
 #include "respond-reject-libnet11.h"

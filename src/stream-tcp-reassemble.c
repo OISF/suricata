@@ -36,7 +36,7 @@
 #include "flow-util.h"
 
 #include "threadvars.h"
-#include "tm-modules.h"
+#include "tm-threads.h"
 
 #include "util-pool.h"
 #include "util-unittest.h"

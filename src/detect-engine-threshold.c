@@ -61,7 +61,7 @@
 #include "util-debug.h"
 
 #include "util-var-name.h"
-#include "tm-modules.h"
+#include "tm-threads.h"
 
 /**
  * \brief Check if a certain signature has threshold option

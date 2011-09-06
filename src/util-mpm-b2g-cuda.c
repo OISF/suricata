@@ -33,7 +33,6 @@
 #include "util-print.h"
 
 #include "threadvars.h"
-#include "tm-modules.h"
 
 #include "util-error.h"
 #include "util-debug.h"

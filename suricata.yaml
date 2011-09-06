@@ -719,17 +719,18 @@ libhtp:
          personality: IIS_7_0
          request_body_limit: 4096
 
-# rule profiling settings. Only effective if Suricata has been built with the
+# Profiling settings. Only effective if Suricata has been built with the
 # the --enable-profiling configure flag.
 #
 profiling:
 
+  # rule profiling
   rules:
 
     # Profiling can be disabled here, but it will still have a
     # performance impact if compiled in.
     enabled: yes
-    filename: perf.log
+    filename: rule_perf.log
     append: yes
 
     # Sort options: ticks, avgticks, checks, matches, maxticks
@@ -738,3 +739,20 @@ profiling:
     # Limit the number of items printed at exit.
     limit: 100
 
+  # packet profiling
+  packets:
+
+    # Profiling can be disabled here, but it will still have a
+    # performance impact if compiled in.
+    enabled: yes
+    filename: packet_stats.log
+    append: yes
+
+    # per packet csv output
+    csv:
+
+      # Output can be disabled here, but it will still have a
+      # performance impact if compiled in.
+      enabled: no
+      filename: packet_stats.csv
+ 

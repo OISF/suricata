@@ -25,7 +25,7 @@
 #define __DETECT_ENGINE_H__
 
 #include "detect.h"
-#include "tm-modules.h"
+#include "tm-threads.h"
 
 /* prototypes */
 DetectEngineCtx *DetectEngineCtxInit(void);

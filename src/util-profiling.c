@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2011 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,6 +19,7 @@
  * \file
  *
  * \author Endace Technology Limited.
+ * \author Victor Julien <victor@inliniac.net>
  *
  * An API for profiling operations.
  *
@@ -26,9 +27,13 @@
  */
 
 #include "suricata-common.h"
+
 #include "detect.h"
 #include "counters.h"
 #include "conf.h"
+
+#include "tm-threads.h"
+
 #include "util-unittest.h"
 #include "util-byte.h"
 #include "util-profiling.h"
@@ -61,6 +66,9 @@ static uint32_t profiling_rules_limit = UINT32_MAX;
 static SCPerfContext rules_ctx;
 static SCPerfCounterArray *rules_pca;
 
+static SCMutex packet_profile_lock;
+static FILE *packet_profile_csv_fp = NULL;
+
 /**
  * Extra data for rule profiling.
  */
@@ -73,6 +81,19 @@ typedef struct SCProfileData_ {
     uint64_t ticks_no_match;
 } SCProfileData;
 SCProfileData rules_profile_data[0xffff];
+
+typedef struct SCProfilePacketData_ {
+    uint32_t min;
+    uint32_t max;
+    uint64_t tot;
+    uint32_t cnt;
+} SCProfilePacketData;
+SCProfilePacketData packet_profile_data4[257]; /**< all proto's + tunnel */
+SCProfilePacketData packet_profile_data6[257]; /**< all proto's + tunnel */
+
+/* each module, each proto */
+SCProfilePacketData packet_profile_tmm_data4[TMM_SIZE][257];
+SCProfilePacketData packet_profile_tmm_data6[TMM_SIZE][257];
 
 /**
  * Used for generating the summary data to print.
@@ -93,14 +114,23 @@ typedef struct SCProfileSummary_ {
 } SCProfileSummary;
 
 int profiling_rules_enabled = 0;
+int profiling_packets_enabled = 0;
+int profiling_packets_csv_enabled = 0;
+
 int profiling_output_to_file = 0;
+int profiling_packets_output_to_file = 0;
 char *profiling_file_name;
+char *profiling_packets_file_name;
+char *profiling_csv_file_name;
 const char *profiling_file_mode;
+const char *profiling_packets_file_mode;
 
 /**
  * Used as a check so we don't double enter a profiling run.
  */
 __thread int profiling_rules_entered = 0;
+
+void SCProfilingDumpPacketStats(void);
 
 /**
  * \brief Initialize profiling.
@@ -112,80 +142,148 @@ SCProfilingInit(void)
     const char *val;
 
     conf = ConfGetNode("profiling.rules");
-    if (conf == NULL) {
-        return;
+    if (conf != NULL) {
+        if (ConfNodeChildValueIsTrue(conf, "enabled")) {
+            memset(rules_profile_data, 0, sizeof(rules_profile_data));
+            memset(&rules_ctx, 0, sizeof(rules_ctx));
+            rules_pca = SCPerfGetAllCountersArray(NULL);
+            if (SCMutexInit(&rules_ctx.m, NULL) != 0) {
+                SCLogError(SC_ERR_MUTEX,
+                        "Failed to initialize hash table mutex.");
+                exit(EXIT_FAILURE);
+            }
+            profiling_rules_enabled = 1;
+
+            val = ConfNodeLookupChildValue(conf, "sort");
+            if (val != NULL) {
+                if (strcmp(val, "ticks") == 0) {
+                    profiling_rules_sort_order =
+                        SC_PROFILING_RULES_SORT_BY_TICKS;
+                }
+                else if (strcmp(val, "avgticks") == 0) {
+                    profiling_rules_sort_order =
+                        SC_PROFILING_RULES_SORT_BY_AVG_TICKS;
+                }
+                else if (strcmp(val, "avgticks_match") == 0) {
+                    profiling_rules_sort_order =
+                        SC_PROFILING_RULES_SORT_BY_AVG_TICKS_MATCH;
+                }
+                else if (strcmp(val, "avgticks_no_match") == 0) {
+                    profiling_rules_sort_order =
+                        SC_PROFILING_RULES_SORT_BY_AVG_TICKS_NO_MATCH;
+                }
+                else if (strcmp(val, "checks") == 0) {
+                    profiling_rules_sort_order =
+                        SC_PROFILING_RULES_SORT_BY_CHECKS;
+                }
+                else if (strcmp(val, "matches") == 0) {
+                    profiling_rules_sort_order =
+                        SC_PROFILING_RULES_SORT_BY_MATCHES;
+                }
+                else if (strcmp(val, "maxticks") == 0) {
+                    profiling_rules_sort_order =
+                        SC_PROFILING_RULES_SORT_BY_MAX_TICKS;
+                }
+                else {
+                    SCLogError(SC_ERR_INVALID_ARGUMENT,
+                            "Invalid profiling sort order: %s", val);
+                    exit(EXIT_FAILURE);
+                }
+            }
+
+            val = ConfNodeLookupChildValue(conf, "limit");
+            if (val != NULL) {
+                if (ByteExtractStringUint32(&profiling_rules_limit, 10,
+                            (uint16_t)strlen(val), val) <= 0) {
+                    SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid limit: %s", val);
+                    exit(EXIT_FAILURE);
+                }
+            }
+            const char *filename = ConfNodeLookupChildValue(conf, "filename");
+            if (filename != NULL) {
+
+                char *log_dir;
+                if (ConfGet("default-log-dir", &log_dir) != 1)
+                    log_dir = DEFAULT_LOG_DIR;
+
+                profiling_file_name = SCMalloc(PATH_MAX);
+                snprintf(profiling_file_name, PATH_MAX, "%s/%s", log_dir, filename);
+
+                profiling_file_mode = ConfNodeLookupChildValue(conf, "append");
+                if (profiling_file_mode == NULL)
+                    profiling_file_mode = DEFAULT_LOG_MODE_APPEND;
+
+                profiling_output_to_file = 1;
+            }
+        }
     }
-    if (ConfNodeChildValueIsTrue(conf, "enabled")) {
-        memset(rules_profile_data, 0, sizeof(rules_profile_data));
-        memset(&rules_ctx, 0, sizeof(rules_ctx));
-        rules_pca = SCPerfGetAllCountersArray(NULL);
-        if (SCMutexInit(&rules_ctx.m, NULL) != 0) {
-            SCLogError(SC_ERR_MEM_ALLOC,
-                "Failed to initialize hash table mutex.");
-            exit(EXIT_FAILURE);
-        }
-        profiling_rules_enabled = 1;
 
-        val = ConfNodeLookupChildValue(conf, "sort");
-        if (val != NULL) {
-            if (strcmp(val, "ticks") == 0) {
-                profiling_rules_sort_order =
-                    SC_PROFILING_RULES_SORT_BY_TICKS;
-            }
-            else if (strcmp(val, "avgticks") == 0) {
-                profiling_rules_sort_order =
-                    SC_PROFILING_RULES_SORT_BY_AVG_TICKS;
-            }
-            else if (strcmp(val, "avgticks_match") == 0) {
-                profiling_rules_sort_order =
-                    SC_PROFILING_RULES_SORT_BY_AVG_TICKS_MATCH;
-            }
-            else if (strcmp(val, "avgticks_no_match") == 0) {
-                profiling_rules_sort_order =
-                    SC_PROFILING_RULES_SORT_BY_AVG_TICKS_NO_MATCH;
-            }
-            else if (strcmp(val, "checks") == 0) {
-                profiling_rules_sort_order =
-                    SC_PROFILING_RULES_SORT_BY_CHECKS;
-            }
-            else if (strcmp(val, "matches") == 0) {
-                profiling_rules_sort_order =
-                    SC_PROFILING_RULES_SORT_BY_MATCHES;
-            }
-            else if (strcmp(val, "maxticks") == 0) {
-                profiling_rules_sort_order =
-                    SC_PROFILING_RULES_SORT_BY_MAX_TICKS;
-            }
-            else {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "Invalid profiling sort order: %s", val);
+    conf = ConfGetNode("profiling.packets");
+    if (conf != NULL) {
+        if (ConfNodeChildValueIsTrue(conf, "enabled")) {
+            profiling_packets_enabled = 1;
+
+            if (SCMutexInit(&packet_profile_lock, NULL) != 0) {
+                SCLogError(SC_ERR_MUTEX,
+                        "Failed to initialize packet profiling mutex.");
                 exit(EXIT_FAILURE);
             }
-        }
+            memset(&packet_profile_data4, 0, sizeof(packet_profile_data4));
+            memset(&packet_profile_data6, 0, sizeof(packet_profile_data6));
+            memset(&packet_profile_tmm_data4, 0, sizeof(packet_profile_tmm_data4));
+            memset(&packet_profile_tmm_data6, 0, sizeof(packet_profile_tmm_data6));
 
-        val = ConfNodeLookupChildValue(conf, "limit");
-        if (val != NULL) {
-            if (ByteExtractStringUint32(&profiling_rules_limit, 10,
-                    (uint16_t)strlen(val), val) <= 0) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid limit: %s", val);
-                exit(EXIT_FAILURE);
+            const char *filename = ConfNodeLookupChildValue(conf, "filename");
+            if (filename != NULL) {
+
+                char *log_dir;
+                if (ConfGet("default-log-dir", &log_dir) != 1)
+                    log_dir = DEFAULT_LOG_DIR;
+
+                profiling_packets_file_name = SCMalloc(PATH_MAX);
+                snprintf(profiling_packets_file_name, PATH_MAX, "%s/%s", log_dir, filename);
+
+                profiling_packets_file_mode = ConfNodeLookupChildValue(conf, "append");
+                if (profiling_packets_file_mode == NULL)
+                    profiling_packets_file_mode = DEFAULT_LOG_MODE_APPEND;
+
+                profiling_packets_output_to_file = 1;
             }
         }
-        const char *filename = ConfNodeLookupChildValue(conf, "filename");
-        if (filename != NULL) {
 
-            char *log_dir;
-            if (ConfGet("default-log-dir", &log_dir) != 1)
-                log_dir = DEFAULT_LOG_DIR;
+        conf = ConfGetNode("profiling.packets.csv");
+        if (conf != NULL) {
+            if (ConfNodeChildValueIsTrue(conf, "enabled")) {
 
-            profiling_file_name = SCMalloc(PATH_MAX);
-            snprintf(profiling_file_name, PATH_MAX, "%s/%s", log_dir, filename);
+                const char *filename = ConfNodeLookupChildValue(conf, "filename");
+                if (filename == NULL) {
+                    filename = "packet_profile.csv";
+                }
 
-            profiling_file_mode = ConfNodeLookupChildValue(conf, "append");
-            if (profiling_file_mode == NULL)
-                profiling_file_mode = DEFAULT_LOG_MODE_APPEND;
+                char *log_dir;
+                if (ConfGet("default-log-dir", &log_dir) != 1)
+                    log_dir = DEFAULT_LOG_DIR;
 
-            profiling_output_to_file = 1;
+                profiling_csv_file_name = SCMalloc(PATH_MAX);
+                if (profiling_csv_file_name == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "out of memory");
+                    exit(EXIT_FAILURE);
+                }
+                snprintf(profiling_csv_file_name, PATH_MAX, "%s/%s", log_dir, filename);
+
+                packet_profile_csv_fp = fopen(profiling_csv_file_name, "w");
+                if (packet_profile_csv_fp == NULL) {
+                    return;
+                }
+                fprintf(packet_profile_csv_fp, "pcap_cnt,ipver,ipproto,total,");
+                int i;
+                for (i = 0; i < TMM_SIZE; i++) {
+                    fprintf(packet_profile_csv_fp, "%s,", TmModuleTmmIdToString(i));
+                }
+                fprintf(packet_profile_csv_fp, "threading\n");
+
+                profiling_packets_csv_enabled = 1;
+            }
         }
     }
 }
@@ -199,7 +297,23 @@ SCProfilingDestroy(void)
     if (profiling_rules_enabled) {
         SCPerfReleasePerfCounterS(rules_ctx.head);
         SCPerfReleasePCA(rules_pca);
+        SCMutexDestroy(&rules_ctx.m);
     }
+
+    if (profiling_packets_enabled) {
+        SCMutexDestroy(&packet_profile_lock);
+    }
+
+    if (profiling_packets_csv_enabled) {
+        if (packet_profile_csv_fp != NULL)
+            fclose(packet_profile_csv_fp);
+    }
+
+    if (profiling_csv_file_name != NULL)
+        SCFree(profiling_csv_file_name);
+
+    if (profiling_file_name != NULL)
+        SCFree(profiling_file_name);
 }
 
 /**
@@ -284,6 +398,8 @@ SCProfilingDump(void)
 {
     uint32_t i;
     FILE *fp;
+
+    SCProfilingDumpPacketStats();
 
     struct timeval tval;
     struct tm *tms;
@@ -513,6 +629,229 @@ SCProfilingUpdateRuleCounter(uint16_t id, uint64_t ticks, int match)
         rules_profile_data[id].ticks_no_match += ticks;
 
     SCMutexUnlock(&rules_ctx.m);
+}
+
+void SCProfilingDumpPacketStats(void) {
+    int i;
+    FILE *fp;
+
+    if (profiling_packets_enabled == 0)
+        return;
+
+    if (profiling_packets_output_to_file == 1) {
+        if (strcasecmp(profiling_packets_file_mode, "yes") == 0) {
+            fp = fopen(profiling_packets_file_name, "a");
+        } else {
+            fp = fopen(profiling_packets_file_name, "w");
+        }
+
+        if (fp == NULL) {
+            SCLogError(SC_ERR_FOPEN, "failed to open %s: %s",
+                    profiling_packets_file_name, strerror(errno));
+            return;
+        }
+    } else {
+       fp = stdout;
+    }
+
+    fprintf(fp, "\n\nPacket profile dump:\n");
+
+    fprintf(fp, "\n%-6s   %-5s   %-8s   %-6s   %-10s   %-8s\n",
+            "IP ver", "Proto", "cnt", "min", "max", "avg");
+    fprintf(fp, "%-6s   %-5s   %-8s   %-6s   %-10s   %-8s\n",
+            "------", "-----", "------", "------", "----------", "-------");
+
+    for (i = 0; i < 257; i++) {
+        SCProfilePacketData *pd = &packet_profile_data4[i];
+
+        if (pd->cnt == 0) {
+            continue;
+        }
+
+        fprintf(fp, " IPv4     %3d  %8u     %6u   %10u  %8"PRIu64"\n", i, pd->cnt,
+            pd->min, pd->max, pd->tot / pd->cnt);
+    }
+
+    for (i = 0; i < 257; i++) {
+        SCProfilePacketData *pd = &packet_profile_data6[i];
+
+        if (pd->cnt == 0) {
+            continue;
+        }
+
+        fprintf(fp, " IPv6     %3d  %8u     %6u   %10u  %8"PRIu64"\n", i, pd->cnt,
+            pd->min, pd->max, pd->tot / pd->cnt);
+    }
+
+    fprintf(fp, "\nPer Thread module stats:\n");
+
+    fprintf(fp, "\n%-24s   %-6s   %-5s   %-8s   %-6s   %-10s   %-8s\n",
+            "Thread Module", "IP ver", "Proto", "cnt", "min", "max", "avg");
+    fprintf(fp, "%-24s   %-6s   %-5s   %-8s   %-6s   %-10s   %-8s\n",
+            "------------------------", "------", "-----", "------", "------", "----------", "-------");
+    int m;
+    for (m = 0; m < TMM_SIZE; m++) {
+        int p;
+        for (p = 0; p < 257; p++) {
+            SCProfilePacketData *pd = &packet_profile_tmm_data4[m][p];
+
+            if (pd->cnt == 0) {
+                continue;
+            }
+
+            fprintf(fp, "%-24s    IPv4     %3d  %8u     %6u   %10u  %8"PRIu64"\n",
+                    TmModuleTmmIdToString(m), p, pd->cnt, pd->min, pd->max, pd->tot / pd->cnt);
+        }
+    }
+
+    for (m = 0; m < TMM_SIZE; m++) {
+        int p;
+        for (p = 0; p < 257; p++) {
+            SCProfilePacketData *pd = &packet_profile_tmm_data6[m][p];
+
+            if (pd->cnt == 0) {
+                continue;
+            }
+
+            fprintf(fp, "%3d    IPv6     %3d  %8u     %6u   %10u  %8"PRIu64"\n",
+                    m, p, pd->cnt, pd->min, pd->max, pd->tot / pd->cnt);
+        }
+    }
+
+    fclose(fp);
+}
+
+void SCProfilingPrintPacketProfile(Packet *p) {
+    if (profiling_packets_csv_enabled == 0 || p == NULL || packet_profile_csv_fp == NULL) {
+        return;
+    }
+
+    uint32_t delta = (uint32_t)(p->profile.ticks_end - p->profile.ticks_start);
+
+    fprintf(packet_profile_csv_fp, "%"PRIu64",%c,%"PRIu8",%"PRIu32",",
+            p->pcap_cnt, PKT_IS_IPV4(p) ? '4' : (PKT_IS_IPV6(p) ? '6' : '?'), p->proto,
+            delta);
+
+    int i;
+    uint32_t tmm_total = 0;
+    for (i = 0; i < TMM_SIZE; i++) {
+        PktProfilingTmmData *pdt = &p->profile.tmm[i];
+
+        uint32_t tmm_delta = (uint32_t)(pdt->ticks_end - pdt->ticks_start);
+        fprintf(packet_profile_csv_fp, "%u,", tmm_delta);
+        tmm_total += tmm_delta;
+    }
+
+    fprintf(packet_profile_csv_fp, "%u\n", delta - tmm_total);
+}
+
+void SCProfilingUpdatePacketTmmRecord(int module, uint8_t proto, PktProfilingTmmData *pdt, int ipver) {
+    if (pdt == NULL) {
+        return;
+    }
+
+    SCProfilePacketData *pd;
+    if (ipver == 4)
+        pd = &packet_profile_tmm_data4[module][proto];
+    else
+        pd = &packet_profile_tmm_data6[module][proto];
+
+    uint32_t delta = (uint32_t)pdt->ticks_end - pdt->ticks_start;
+    if (pd->min == 0 || delta < pd->min) {
+        pd->min = delta;
+    }
+    if (pd->max < delta) {
+        pd->max = delta;
+    }
+
+    pd->tot += (uint64_t)delta;
+    pd->cnt ++;
+}
+
+void SCProfilingUpdatePacketTmmRecords(Packet *p) {
+    int i;
+    for (i = 0; i < TMM_SIZE; i++) {
+        PktProfilingTmmData *pdt = &p->profile.tmm[i];
+
+        if (pdt->ticks_start == 0) {
+            continue;
+        }
+
+        if (PKT_IS_IPV4(p)) {
+            SCProfilingUpdatePacketTmmRecord(i, p->proto, pdt, 4);
+        } else {
+            SCProfilingUpdatePacketTmmRecord(i, p->proto, pdt, 6);
+        }
+    }
+}
+
+void SCProfilingAddPacket(Packet *p) {
+    SCMutexLock(&packet_profile_lock);
+    {
+        if (profiling_packets_csv_enabled)
+            SCProfilingPrintPacketProfile(p);
+
+        if (PKT_IS_IPV4(p)) {
+            SCProfilePacketData *pd = &packet_profile_data4[p->proto];
+
+            uint32_t delta = (uint32_t)p->profile.ticks_end - p->profile.ticks_start;
+            if (pd->min == 0 || delta < pd->min) {
+                pd->min = delta;
+            }
+            if (pd->max < delta) {
+                pd->max = delta;
+            }
+
+            pd->tot += (uint64_t)delta;
+            pd->cnt ++;
+
+            if (IS_TUNNEL_PKT(p)) {
+                pd = &packet_profile_data4[256];
+
+                if (pd->min == 0 || delta < pd->min) {
+                    pd->min = delta;
+                }
+                if (pd->max < delta) {
+                    pd->max = delta;
+                }
+
+                pd->tot += (uint64_t)delta;
+                pd->cnt ++;
+            }
+
+            SCProfilingUpdatePacketTmmRecords(p);
+        } else if (PKT_IS_IPV6(p)) {
+            SCProfilePacketData *pd = &packet_profile_data6[p->proto];
+
+            uint32_t delta = (uint32_t)p->profile.ticks_end - p->profile.ticks_start;
+            if (pd->min == 0 || delta < pd->min) {
+                pd->min = delta;
+            }
+            if (pd->max < delta) {
+                pd->max = delta;
+            }
+
+            pd->tot += (uint64_t)delta;
+            pd->cnt ++;
+
+            if (IS_TUNNEL_PKT(p)) {
+                pd = &packet_profile_data6[256];
+
+                if (pd->min == 0 || delta < pd->min) {
+                    pd->min = delta;
+                }
+                if (pd->max < delta) {
+                    pd->max = delta;
+                }
+
+                pd->tot += (uint64_t)delta;
+                pd->cnt ++;
+            }
+
+            SCProfilingUpdatePacketTmmRecords(p);
+        }
+    }
+    SCMutexUnlock(&packet_profile_lock);
 }
 
 #ifdef UNITTESTS

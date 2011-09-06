@@ -27,6 +27,8 @@
 //#define DBG_THREADS
 #define COUNTERS
 
+#include "suricata-common.h"
+
 #include "threadvars.h"
 
 #include "source-nfq.h"
@@ -262,6 +264,24 @@ typedef struct PktVar_ {
     uint16_t value_len;
 } PktVar;
 
+#ifdef PROFILING
+
+/** \brief Per TMM stats storage */
+typedef struct PktProfilingTmmData_ {
+    uint64_t ticks_start;
+    uint64_t ticks_end;
+} PktProfilingTmmData;
+
+/** \brief Per pkt stats storage */
+typedef struct PktProfiling_ {
+    uint64_t ticks_start;
+    uint64_t ticks_end;
+
+    PktProfilingTmmData tmm[TMM_SIZE];
+} PktProfiling;
+
+#endif /* PROFILING */
+
 /* forward declartion since Packet struct definition requires this */
 struct PacketQueue_;
 
@@ -411,6 +431,10 @@ typedef struct Packet_
     SCCondT cuda_cond;
     /* the extra 1 in the 1481, is to hold the no_of_matches from the mpm run */
     uint16_t mpm_offsets[CUDA_MAX_PAYLOAD_SIZE + 1];
+#endif
+
+#ifdef PROFILING
+    PktProfiling profile;
 #endif
 } Packet;
 
@@ -577,6 +601,7 @@ typedef struct DecodeThreadVars_
         (p)->prev = NULL;                       \
         (p)->root = NULL;                       \
         PACKET_RESET_CHECKSUMS((p));            \
+        PACKET_PROFILING_RESET((p));            \
     } while (0)
 
 #ifndef __SC_CUDA_SUPPORT__

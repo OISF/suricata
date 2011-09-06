@@ -31,13 +31,16 @@
 #include "suricata.h"
 #include "decode.h"
 #include "packet-queue.h"
+
 #include "threads.h"
+#include "threadvars.h"
+#include "tm-threads.h"
+#include "tm-queuehandlers.h"
+#include "tmqh-packetpool.h"
+
 #include "conf.h"
 #include "config.h"
 #include "conf-yaml-loader.h"
-#include "threadvars.h"
-#include "tm-queuehandlers.h"
-#include "tm-modules.h"
 #include "source-nfq.h"
 #include "source-nfq-prototypes.h"
 #include "action-globals.h"
@@ -46,7 +49,6 @@
 #include "util-error.h"
 #include "util-byte.h"
 #include "util-privs.h"
-#include "tmqh-packetpool.h"
 
 #ifndef NFQ
 /** Handle the case where no NFQ support is compiled in.

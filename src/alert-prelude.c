@@ -44,7 +44,7 @@
 
 #include "threads.h"
 #include "threadvars.h"
-#include "tm-modules.h"
+#include "tm-threads.h"
 
 #include "util-unittest.h"
 #include "util-time.h"

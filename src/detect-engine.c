@@ -54,7 +54,8 @@
 #include "util-unittest.h"
 
 #include "util-var-name.h"
-#include "tm-modules.h"
+
+#include "tm-threads.h"
 
 #define DETECT_ENGINE_DEFAULT_INSPECTION_RECURSION_LIMIT 3000
 

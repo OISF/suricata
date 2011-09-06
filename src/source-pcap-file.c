@@ -36,7 +36,6 @@
 #include "threads.h"
 #include "threadvars.h"
 #include "tm-queuehandlers.h"
-#include "tm-modules.h"
 #include "source-pcap-file.h"
 #include "util-time.h"
 #include "util-debug.h"
@@ -124,6 +123,7 @@ void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt) {
     p->ts.tv_usec = h->ts.tv_usec;
     SCLogDebug("p->ts.tv_sec %"PRIuMAX"", (uintmax_t)p->ts.tv_sec);
     p->datalink = pcap_g.datalink;
+    p->pcap_cnt = ++pcap_g.cnt;
 
     ptv->pkts++;
     ptv->bytes += h->caplen;

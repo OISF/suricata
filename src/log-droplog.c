@@ -33,7 +33,6 @@
 #include "threads.h"
 #include "tm-threads.h"
 #include "threadvars.h"
-#include "tm-modules.h"
 #include "util-debug.h"
 
 #include "decode-ipv4.h"

@@ -24,13 +24,8 @@
 #ifndef __TM_MODULES_H__
 #define __TM_MODULES_H__
 
+#include "tm-threads-common.h"
 #include "threadvars.h"
-
-/*Error codes for the thread modules*/
-typedef enum {
-    TM_ECODE_OK = 0,    /**< Thread module exits OK*/
-    TM_ECODE_FAILED,    /**< Thread module exits due to failure*/
-}TmEcode;
 
 typedef struct TmModule_ {
     char *name;
@@ -50,49 +45,6 @@ typedef struct TmModule_ {
     uint8_t cap_flags;   /**< Flags to indicate the capability requierment of
                              the given TmModule */
 } TmModule;
-
-enum {
-    TMM_DECODENFQ,
-    TMM_VERDICTNFQ,
-    TMM_RECEIVENFQ,
-    TMM_RECEIVEPCAP,
-    TMM_RECEIVEPCAPFILE,
-    TMM_DECODEPCAP,
-    TMM_DECODEPCAPFILE,
-    TMM_RECEIVEPFRING,
-    TMM_DECODEPFRING,
-    TMM_DETECT,
-    TMM_ALERTFASTLOG,
-    TMM_ALERTFASTLOG4,
-    TMM_ALERTFASTLOG6,
-    TMM_ALERTUNIFIEDLOG,
-    TMM_ALERTUNIFIEDALERT,
-    TMM_ALERTUNIFIED2ALERT,
-    TMM_ALERTPRELUDE,
-    TMM_ALERTDEBUGLOG,
-    TMM_ALERTSYSLOG,
-    TMM_LOGDROPLOG,
-    TMM_ALERTSYSLOG4,
-    TMM_ALERTSYSLOG6,
-    TMM_RESPONDREJECT,
-    TMM_LOGHTTPLOG,
-    TMM_LOGHTTPLOG4,
-    TMM_LOGHTTPLOG6,
-    TMM_PCAPLOG,
-    TMM_STREAMTCP,
-    TMM_DECODEIPFW,
-    TMM_VERDICTIPFW,
-    TMM_RECEIVEIPFW,
-#ifdef __SC_CUDA_SUPPORT__
-    TMM_CUDA_MPM_B2G,
-    TMM_CUDA_PACKET_BATCHER,
-#endif
-    TMM_RECEIVEERFFILE,
-    TMM_DECODEERFFILE,
-    TMM_RECEIVEERFDAG,
-    TMM_DECODEERFDAG,
-    TMM_SIZE,
-};
 
 TmModule tmm_modules[TMM_SIZE];
 
@@ -144,6 +96,7 @@ TmModule *TmModuleGetByName(char *name);
 TmEcode TmModuleRegister(char *name, int (*module_func)(ThreadVars *, Packet *, void *));
 void TmModuleDebugList(void);
 void TmModuleRegisterTests(void);
+const char * TmModuleTmmIdToString(TmmId id);
 
 #endif /* __TM_MODULES_H__ */
 

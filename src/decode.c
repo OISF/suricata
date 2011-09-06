@@ -29,10 +29,11 @@
 #include "util-debug.h"
 #include "util-mem.h"
 #include "app-layer-detect-proto.h"
-#include "tm-modules.h"
+#include "tm-threads.h"
 #include "util-error.h"
 #include "util-print.h"
 #include "tmqh-packetpool.h"
+#include "util-profiling.h"
 
 void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
         uint8_t *pkt, uint16_t len, PacketQueue *pq, uint8_t proto)
@@ -80,6 +81,7 @@ Packet *PacketGetFromQueueOrAlloc(void) {
         SCLogDebug("allocated a new packet...");
     }
 
+    PACKET_PROFILING_START(p);
     return p;
 }
 

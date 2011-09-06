@@ -48,6 +48,7 @@
 #include "util-ringbuffer.h"
 #include "util-debug.h"
 #include "util-error.h"
+#include "util-profiling.h"
 
 static RingBuffer16 *ringbuffer = NULL;
 /**
@@ -154,6 +155,8 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
                  * by the tunnel packets, and we will enqueue it
                  * when we handle them */
                 SET_TUNNEL_PKT_VERDICTED(p);
+
+                PACKET_PROFILING_END(p);
                 SCReturn;
             }
         } else {
@@ -216,6 +219,8 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         SCFree(p->ext_pkt);
         p->ext_pkt = NULL;
     }
+
+    PACKET_PROFILING_END(p);
 
     SCLogDebug("getting rid of tunnel pkt... alloc'd %s (root %p)", p->flags & PKT_ALLOC ? "true" : "false", p->root);
     if (p->flags & PKT_ALLOC) {

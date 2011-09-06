@@ -28,7 +28,7 @@
 
 #include "suricata-common.h"
 #include "suricata.h"
-#include "tm-modules.h"
+#include "tm-threads.h"
 
 #include "util-privs.h"
 #include "tmqh-packetpool.h"
