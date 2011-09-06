@@ -208,7 +208,7 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         if (SCProtoNameValid(IPV6_GET_L4PROTO(p)) == TRUE) {
             fprintf(aft->file_ctx->fp, "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%"
                     "" PRIu32 "] %s [**] [Classification: %s] [Priority: %"
-                    "" PRIu32 "] {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "", timebuf,
+                    "" PRIu32 "] {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "\n", timebuf,
                     action, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg,
                     pa->s->prio, known_proto[IPV6_GET_L4PROTO(p)], srcip, p->sp,
                     dstip, p->dp);
@@ -216,12 +216,10 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         } else {
             fprintf(aft->file_ctx->fp, "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%"
                     "" PRIu32 "] %s [**] [Classification: %s] [Priority: %"
-                    "" PRIu32 "] {PROTO:%03" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "",
+                    "" PRIu32 "] {PROTO:%03" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
                     timebuf, action, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg,
                     pa->s->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
         }
-
-        fprintf(aft->file_ctx->fp,"\n");
 
         fflush(aft->file_ctx->fp);
     }
