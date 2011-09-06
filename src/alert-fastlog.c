@@ -154,19 +154,16 @@ TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         if (SCProtoNameValid(IPV4_GET_IPPROTO(p)) == TRUE) {
             fprintf(aft->file_ctx->fp, "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%"
                     PRIu32 "] %s [**] [Classification: %s] [Priority: %"PRIu32"]"
-                    " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "", timebuf, action,
+                    " {%s} %s:%" PRIu32 " -> %s:%" PRIu32 "\n", timebuf, action,
                     pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio,
                     known_proto[IPV4_GET_IPPROTO(p)], srcip, p->sp, dstip, p->dp);
         } else {
             fprintf(aft->file_ctx->fp, "%s  %s[**] [%" PRIu32 ":%" PRIu32 ":%"
                     PRIu32 "] %s [**] [Classification: %s] [Priority: %"PRIu32"]"
-                    " {PROTO:%03" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "", timebuf,
+                    " {PROTO:%03" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "\n", timebuf,
                     action, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->class_msg, pa->s->prio,
                     IPV4_GET_IPPROTO(p), srcip, p->sp, dstip, p->dp);
         }
-
-        fprintf(aft->file_ctx->fp,"\n");
-
         fflush(aft->file_ctx->fp);
     }
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
