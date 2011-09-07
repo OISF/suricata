@@ -184,6 +184,8 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_DECODEERFFILE);
         CASE_CODE (TMM_RECEIVEERFDAG);
         CASE_CODE (TMM_DECODEERFDAG);
+        CASE_CODE (TMM_RECEIVEAFP);
+        CASE_CODE (TMM_DECODEAFP);
 
         default:
             return "UNKNOWN";
