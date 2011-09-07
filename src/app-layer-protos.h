@@ -45,10 +45,5 @@ enum {
     ALPROTO_MAX,
 };
 
-typedef struct TlsConfig_ {
-    int no_reassemble;
-}TlsConfig;
-
-TlsConfig tls;
 #endif /* __APP_LAYER_PROTOS_H__ */
 

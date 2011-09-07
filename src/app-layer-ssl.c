@@ -49,6 +49,12 @@
 
 #include "util-byte.h"
 
+typedef struct SslConfig_ {
+    int no_reassemble;
+} SslConfig;
+
+SslConfig ssl_config;
+
 /* SSLv3 record types */
 #define SSLV3_CHANGE_CIPHER_SPEC      20
 #define SSLV3_ALERT_PROTOCOL          21
@@ -577,7 +583,7 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
                     (ssl_state->flags & SSL_AL_FLAG_SSL_SERVER_SSN_ENCRYPTED)) {
                     pstate->flags |= APP_LAYER_PARSER_DONE;
                     pstate->flags |= APP_LAYER_PARSER_NO_INSPECTION;
-                    if (tls.no_reassemble == 1)
+                    if (ssl_config.no_reassemble == 1)
                         pstate->flags |= APP_LAYER_PARSER_NO_REASSEMBLY;
                     SCLogDebug("SSLv2 No reassembly & inspection has been set");
                 }
@@ -652,7 +658,7 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
                 /* set flags */
                 pstate->flags |= APP_LAYER_PARSER_DONE;
                 pstate->flags |= APP_LAYER_PARSER_NO_INSPECTION;
-                if (tls.no_reassemble == 1)
+                if (ssl_config.no_reassemble == 1)
                     pstate->flags |= APP_LAYER_PARSER_NO_REASSEMBLY;
             }
 
@@ -890,8 +896,8 @@ void RegisterSSLParsers(void)
     AppLayerRegisterStateFuncs(ALPROTO_TLS, SSLStateAlloc, SSLStateFree);
 
     /* Get the value of no reassembly option from the config file */
-    if (ConfGetBool("tls.no_reassemble", &tls.no_reassemble) != 1)
-        tls.no_reassemble = 1;
+    if (ConfGetBool("tls.no_reassemble", &ssl_config.no_reassemble) != 1)
+        ssl_config.no_reassemble = 1;
 
     return;
 }
