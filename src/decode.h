@@ -53,6 +53,8 @@
 
 #include "detect-reference.h"
 
+#include "app-layer-protos.h"
+
 #ifdef __SC_CUDA_SUPPORT__
 #define CUDA_MAX_PAYLOAD_SIZE 1500
 #endif
@@ -272,12 +274,17 @@ typedef struct PktProfilingTmmData_ {
     uint64_t ticks_end;
 } PktProfilingTmmData;
 
+typedef struct PktProfilingAppData_ {
+    uint64_t ticks_spent;
+} PktProfilingAppData;
+
 /** \brief Per pkt stats storage */
 typedef struct PktProfiling_ {
     uint64_t ticks_start;
     uint64_t ticks_end;
 
     PktProfilingTmmData tmm[TMM_SIZE];
+    PktProfilingAppData app[ALPROTO_MAX];
 } PktProfiling;
 
 #endif /* PROFILING */
@@ -465,6 +472,13 @@ typedef struct AlpProtoDetectDirectionThread_ {
 typedef struct AlpProtoDetectThreadCtx_ {
     AlpProtoDetectDirectionThread toserver;
     AlpProtoDetectDirectionThread toclient;
+
+#ifdef PROFILING
+    uint64_t ticks_start;
+    uint64_t ticks_end;
+    uint32_t ticks_spent;
+    uint16_t alproto;
+#endif
 } AlpProtoDetectThreadCtx;
 
 /** \brief Structure to hold thread specific data for all decode modules */

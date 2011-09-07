@@ -45,5 +45,7 @@ enum {
     ALPROTO_MAX,
 };
 
+const char *TmModuleAlprotoToString(int proto);
+
 #endif /* __APP_LAYER_PROTOS_H__ */
 

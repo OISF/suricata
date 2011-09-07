@@ -33,6 +33,7 @@
 
 #include "util-debug.h"
 #include "util-print.h"
+#include "util-profiling.h"
 
 //#define PRINT
 extern uint8_t engine_mode;
@@ -161,7 +162,10 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
                 FlowL7DataPtrInit(f);
                 f->alproto = alproto;
                 ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
+
+                PACKET_PROFILING_APP_START(dp_ctx, alproto);
                 r = AppLayerParse(f, alproto, flags, data, data_len);
+                PACKET_PROFILING_APP_END(dp_ctx, alproto);
             } else {
                 if (flags & STREAM_TOSERVER) {
                     SCLogDebug("alp_proto_ctx.toserver.max_len %u", alp_proto_ctx.toserver.max_len);
@@ -193,7 +197,9 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
             /* if we don't have a data object here we are not getting it
              * a start msg should have gotten us one */
             if (alproto != ALPROTO_UNKNOWN) {
+                PACKET_PROFILING_APP_START(dp_ctx, alproto);
                 r = AppLayerParse(f, alproto, flags, data, data_len);
+                PACKET_PROFILING_APP_END(dp_ctx, alproto);
             } else {
                 SCLogDebug(" smsg not start, but no l7 data? Weird");
             }

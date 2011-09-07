@@ -58,6 +58,8 @@
 
 #include "detect-engine-state.h"
 
+#include "util-profiling.h"
+
 #define PSEUDO_PACKET_PAYLOAD_SIZE  65416 /* 64 Kb minus max IP and TCP header */
 
 #ifdef DEBUG
@@ -1853,6 +1855,7 @@ static int StreamTcpReassembleInlineAppLayer (TcpReassemblyThreadCtx *ra_ctx,
             STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
             AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                     NULL, 0, flags|STREAM_EOF);
+            PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
 
             /* even if app layer detection failed, we will now move on to
              * release reassembly for both directions. */
@@ -1950,12 +1953,14 @@ static int StreamTcpReassembleInlineAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                     BUG_ON(data_len > sizeof(data));
                     AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                             data, data_len, flags);
+                    PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
 
                     stream->tmp_ra_app_base_seq = ra_base_seq;
                 } else {
                     /* process what we have so far */
                     AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                             data, data_len, flags);
+                    PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
 
                     stream->ra_app_base_seq = ra_base_seq;
                 }
@@ -1998,6 +2003,7 @@ static int StreamTcpReassembleInlineAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                 STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
                 AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                         NULL, 0, flags|STREAM_GAP);
+                PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
                 data_len = 0;
 
                 /* set a GAP flag and make sure not bothering this stream anymore */
@@ -2075,6 +2081,7 @@ static int StreamTcpReassembleInlineAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                     BUG_ON(data_len > sizeof(data));
                     AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                             data, data_len, flags);
+                    PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
                     data_sent += data_len;
                     data_len = 0;
 
@@ -2085,6 +2092,7 @@ static int StreamTcpReassembleInlineAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                     BUG_ON(data_len > sizeof(data));
                     AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                             data, data_len, flags);
+                    PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
                     data_sent += data_len;
                     data_len = 0;
 
@@ -2147,6 +2155,7 @@ static int StreamTcpReassembleInlineAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                             BUG_ON(data_len > sizeof(data));
                             AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                                     data, data_len, flags);
+                            PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
                             data_sent += data_len;
                             data_len = 0;
 
@@ -2157,6 +2166,7 @@ static int StreamTcpReassembleInlineAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                             BUG_ON(data_len > sizeof(data));
                             AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                                     data, data_len, flags);
+                            PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
                             data_sent += data_len;
                             data_len = 0;
 
@@ -2198,6 +2208,7 @@ static int StreamTcpReassembleInlineAppLayer (TcpReassemblyThreadCtx *ra_ctx,
             BUG_ON(data_len > sizeof(data));
             AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                     data, data_len, flags);
+            PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
             data_sent += data_len;
             stream->tmp_ra_app_base_seq = ra_base_seq;
         } else {
@@ -2206,6 +2217,7 @@ static int StreamTcpReassembleInlineAppLayer (TcpReassemblyThreadCtx *ra_ctx,
             BUG_ON(data_len > sizeof(data));
             AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                     data, data_len, flags);
+            PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
             data_sent += data_len;
             stream->ra_app_base_seq = ra_base_seq;
         }
@@ -2225,6 +2237,7 @@ static int StreamTcpReassembleInlineAppLayer (TcpReassemblyThreadCtx *ra_ctx,
         STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
         AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                 NULL, 0, flags|STREAM_EOF);
+        PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
 
         /* even if app layer detection failed, we will now move on to
          * release reassembly for both directions. */
@@ -2607,6 +2620,7 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
             STREAM_SET_FLAGS(ssn, stream, p, flags);
             AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                     NULL, 0, flags|STREAM_EOF);
+            PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
 
             /* even if app layer detection failed, we will now move on to
              * release reassembly for both directions. */
@@ -2740,12 +2754,14 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                     BUG_ON(data_len > sizeof(data));
                     AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                             data, data_len, flags);
+                    PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
 
                     stream->tmp_ra_app_base_seq = ra_base_seq;
                 } else {
                     /* process what we have so far */
                     AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                             data, data_len, flags);
+                    PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
 
                     stream->ra_app_base_seq = ra_base_seq;
                 }
@@ -2787,6 +2803,7 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                 STREAM_SET_FLAGS(ssn, stream, p, flags);
                 AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                         NULL, 0, flags|STREAM_GAP);
+                PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
                 data_len = 0;
 
                 /* set a GAP flag and make sure not bothering this stream anymore */
@@ -2889,6 +2906,7 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                     BUG_ON(data_len > sizeof(data));
                     AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                             data, data_len, flags);
+                    PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
                     data_len = 0;
 
                     stream->tmp_ra_app_base_seq = ra_base_seq;
@@ -2898,6 +2916,7 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                     BUG_ON(data_len > sizeof(data));
                     AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                             data, data_len, flags);
+                    PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
                     data_len = 0;
 
                     stream->ra_app_base_seq = ra_base_seq;
@@ -2959,6 +2978,7 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                             BUG_ON(data_len > sizeof(data));
                             AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                                     data, data_len, flags);
+                            PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
                             data_len = 0;
 
                             stream->tmp_ra_app_base_seq = ra_base_seq;
@@ -2968,6 +2988,7 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                             BUG_ON(data_len > sizeof(data));
                             AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                                     data, data_len, flags);
+                            PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
                             data_len = 0;
 
                             stream->ra_app_base_seq = ra_base_seq;
@@ -3013,6 +3034,7 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                     BUG_ON(data_len > sizeof(data));
             AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                     data, data_len, flags);
+            PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
             stream->tmp_ra_app_base_seq = ra_base_seq;
         } else {
             /* process what we have so far */
@@ -3020,6 +3042,7 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                     BUG_ON(data_len > sizeof(data));
             AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                     data, data_len, flags);
+            PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
 
             stream->ra_app_base_seq = ra_base_seq;
         }

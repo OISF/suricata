@@ -86,6 +86,35 @@ void SCProfilingAddPacket(Packet *);
         memset(&(p)->profile, 0x00, sizeof(PktProfiling));          \
     }
 
+#define PACKET_PROFILING_APP_START(dp, id)                          \
+    if (profiling_packets_enabled) {                                \
+        (dp)->ticks_start = UtilCpuGetTicks();                      \
+        (dp)->alproto = (id);                                       \
+    }
+
+#define PACKET_PROFILING_APP_END(dp, id)                            \
+    if (profiling_packets_enabled) {                                \
+        BUG_ON((id) != (dp)->alproto);                              \
+        (dp)->ticks_end = UtilCpuGetTicks();                        \
+        (dp)->ticks_spent = ((dp)->ticks_end - (dp)->ticks_start);  \
+    }
+
+#define PACKET_PROFILING_APP_RESET(dp)                              \
+    if (profiling_packets_enabled) {                                \
+        (dp)->ticks_start = 0;                                      \
+        (dp)->ticks_end = 0;                                        \
+        (dp)->ticks_spent = 0;                                      \
+        (dp)->alproto = 0;                                          \
+    }
+
+#define PACKET_PROFILING_APP_STORE(dp, p)                           \
+    if (profiling_packets_enabled) {                                \
+        if ((dp)->alproto < ALPROTO_MAX) {                          \
+            (p)->profile.app[(dp)->alproto].ticks_spent += (dp)->ticks_spent;   \
+        }                                                           \
+    }
+
+
 void SCProfilingInit(void);
 void SCProfilingDestroy(void);
 void SCProfilingInitRuleCounters(DetectEngineCtx *);
@@ -106,6 +135,11 @@ void SCProfilingUpdateRuleCounter(uint16_t, uint64_t, int);
 #define PACKET_PROFILING_TMM_END(p, id)
 
 #define PACKET_PROFILING_RESET(p)
+
+#define PACKET_PROFILING_APP_START(dp, id)
+#define PACKET_PROFILING_APP_END(dp, id)
+#define PACKET_PROFILING_APP_RESET(dp)
+#define PACKET_PROFILING_APP_STORE(dp, p)
 
 #endif /* PROFILING */
 

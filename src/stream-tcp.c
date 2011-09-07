@@ -63,6 +63,7 @@
 
 #include "util-host-os-info.h"
 #include "util-privs.h"
+#include "util-profiling.h"
 
 //#define DEBUG
 
@@ -3764,6 +3765,8 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
     {
         return TM_ECODE_OK;
     }
+
+    PACKET_PROFILING_APP_RESET(&stt->ra_ctx->dp_ctx);
 
     SCMutexLock(&p->flow->m);
     ret = StreamTcpPacket(tv, p, stt, pq);
