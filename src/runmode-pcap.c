@@ -192,7 +192,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx)
             TmThreadCreatePacketHandler("ReceivePcap",
                                         "packetpool", "packetpool",
                                         "pickup-queue", "simple",
-                                        "1slot");
+                                        "pktacqloop");
         if (tv_receivepcap == NULL) {
             printf("ERROR: TmThreadsCreate failed\n");
             exit(EXIT_FAILURE);
@@ -230,7 +230,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx)
                 TmThreadCreatePacketHandler(tnamec,
                                             "packetpool", "packetpool",
                                             "pickup-queue", "simple",
-                                            "1slot");
+                                            "pktacqloop");
             if (tv_receivepcap == NULL) {
                 printf("ERROR: TmThreadsCreate failed\n");
                 exit(EXIT_FAILURE);

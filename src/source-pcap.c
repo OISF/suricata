@@ -47,13 +47,7 @@
 #include "tmqh-packetpool.h"
 
 extern uint8_t suricata_ctl_flags;
-extern int max_pending_packets;
 
-/** control how many packet libpcap may read in one go */
-static int pcap_max_read_packets = 0;
-
-/** max packets < 65536 */
-#define PCAP_FILE_MAX_PKTS 256
 #define PCAP_IFACE_NAME_LENGTH 48
 
 #define PCAP_STATE_DOWN 0
@@ -70,9 +64,6 @@ typedef struct PcapThreadVars_
     pcap_t *pcap_handle;
     /* handle state */
     unsigned char pcap_state;
-#if LIBPCAP_VERSION_MAJOR == 0
-    char iface[PCAP_IFACE_NAME_LENGTH];
-#endif
     /* thread specific bpf */
     struct bpf_program filter;
 
@@ -84,19 +75,17 @@ typedef struct PcapThreadVars_
     uint64_t bytes;
     uint32_t errs;
 
-    /* pcap buffer size */
-    int pcap_buffer_size;
-
     ThreadVars *tv;
     TmSlot *slot;
 
-    Packet *in_p;
+    /* pcap buffer size */
+    int pcap_buffer_size;
 
-    Packet *array[PCAP_FILE_MAX_PKTS];
-    uint16_t array_idx;
+#if LIBPCAP_VERSION_MAJOR == 0
+    char iface[PCAP_IFACE_NAME_LENGTH];
+#endif
 } PcapThreadVars;
 
-TmEcode ReceivePcap(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode ReceivePcapThreadInit(ThreadVars *, void *, void **);
 void ReceivePcapThreadExitStats(ThreadVars *, void *);
 TmEcode ReceivePcapThreadDeinit(ThreadVars *, void *);
@@ -112,7 +101,7 @@ TmEcode DecodePcap(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *)
 void TmModuleReceivePcapRegister (void) {
     tmm_modules[TMM_RECEIVEPCAP].name = "ReceivePcap";
     tmm_modules[TMM_RECEIVEPCAP].ThreadInit = ReceivePcapThreadInit;
-    tmm_modules[TMM_RECEIVEPCAP].Func = ReceivePcap;
+    tmm_modules[TMM_RECEIVEPCAP].Func = NULL;
     tmm_modules[TMM_RECEIVEPCAP].PktAcqLoop = ReceivePcapLoop;
     tmm_modules[TMM_RECEIVEPCAP].ThreadExitPrintStats = ReceivePcapThreadExitStats;
     tmm_modules[TMM_RECEIVEPCAP].ThreadDeinit = NULL;
@@ -132,49 +121,6 @@ void TmModuleDecodePcapRegister (void) {
     tmm_modules[TMM_DECODEPCAP].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODEPCAP].RegisterTests = NULL;
     tmm_modules[TMM_DECODEPCAP].cap_flags = 0;
-}
-
-/**
- * \brief Pcap callback function.
- *
- * This function fills in our packet structure from libpcap.
- * From here the packets are picked up by the  DecodePcap thread.
- *
- * \param user pointer to PcapThreadVars passed from pcap_dispatch
- * \param h pointer to pcap packet header
- * \param pkt pointer to raw packet data
- */
-void PcapCallback(char *user, struct pcap_pkthdr *h, u_char *pkt) {
-    SCLogDebug("user %p, h %p, pkt %p", user, h, pkt);
-    PcapThreadVars *ptv = (PcapThreadVars *)user;
-
-    Packet *p = NULL;
-    if (ptv->array_idx == 0) {
-        p = ptv->in_p;
-    } else {
-        p = PacketGetFromQueueOrAlloc();
-    }
-
-    if (p == NULL) {
-        SCReturn;
-    }
-
-    p->ts.tv_sec = h->ts.tv_sec;
-    p->ts.tv_usec = h->ts.tv_usec;
-
-    ptv->pkts++;
-    ptv->bytes += h->caplen;
-
-    p->datalink = ptv->datalink;
-    SET_PKT_LEN(p, h->caplen);
-    if (PacketCopyData(p, pkt, GET_PKT_LEN(p)) == -1)
-        SCReturn;
-    SCLogDebug("pktlen: %" PRIu32 " (pkt %02x, pkt data %02x)",
-               GET_PKT_LEN(p), *pkt, *GET_PKT_DATA(p));
-
-    /* store the packet in our array */
-    ptv->array[ptv->array_idx] = p;
-    ptv->array_idx++;
 }
 
 #if LIBPCAP_VERSION_MAJOR == 1
@@ -332,100 +278,6 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
 }
 
 /**
- * \brief Recieves packets from an interface via libpcap.
- *
- *  This function recieves packets from an interface and passes
- *  the packet on to the pcap callback function.
- *
- * \param tv pointer to ThreadVars
- * \param data pointer that gets cast into PcapThreadVars for ptv
- * \param pq pointer to the PacketQueue (not used here but part of the api)
- * \retval TM_ECODE_FAILED on failure and TM_ECODE_OK on success
- */
-TmEcode ReceivePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
-    SCEnter();
-    uint16_t packet_q_len = 0;
-
-    PcapThreadVars *ptv = (PcapThreadVars *)data;
-
-    /* test pcap handle */
-    if (ptv->pcap_state == PCAP_STATE_DOWN) {
-        int r;
-        do {
-            usleep(PCAP_RECONNECT_TIMEOUT);
-            if (suricata_ctl_flags != 0) {
-                break;
-            }
-            r = PcapTryReopen(ptv);
-        } while (r < 0);
-    }
-    /* make sure we have at least one packet in the packet pool, to prevent
-     * us from alloc'ing packets at line rate */
-    while (packet_q_len == 0) {
-        packet_q_len = PacketPoolSize();
-        if (packet_q_len == 0) {
-            PacketPoolWait();
-        }
-    }
-
-    if (postpq == NULL)
-        pcap_max_read_packets = 1;
-
-    ptv->array_idx = 0;
-    ptv->in_p = p;
-
-    int r = 0;
-    while (r == 0) {
-        r = pcap_dispatch(ptv->pcap_handle, (pcap_max_read_packets < packet_q_len) ? pcap_max_read_packets : packet_q_len,
-            (pcap_handler)PcapCallback, (u_char *)ptv);
-        if (suricata_ctl_flags != 0) {
-            break;
-        }
-        if (r < 0) {
-            int dbreak = 0;
-            SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s",
-                    r, pcap_geterr(ptv->pcap_handle));
-            do {
-                usleep(PCAP_RECONNECT_TIMEOUT);
-                if (suricata_ctl_flags != 0) {
-                    dbreak = 1;
-                    break;
-                }
-                r = PcapTryReopen(ptv);
-            } while (r < 0);
-            if (dbreak) {
-                r = 0;
-                break;
-            }
-        }
-    }
-
-    uint16_t cnt = 0;
-    for (cnt = 0; cnt < ptv->array_idx; cnt++) {
-        Packet *pp = ptv->array[cnt];
-
-        /* enqueue all but the first in the postpq, the first
-         * pkt is handled by the tv "out handler" */
-        if (cnt > 0) {
-            PacketEnqueue(postpq, pp);
-        }
-    }
-
-    if (r < 0) {
-        SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s",
-                r, pcap_geterr(ptv->pcap_handle));
-
-        SCReturnInt(TM_ECODE_OK);
-    }
-
-    if (suricata_ctl_flags != 0) {
-        SCReturnInt(TM_ECODE_FAILED);
-    }
-
-    SCReturnInt(TM_ECODE_OK);
-}
-
-/**
  * \brief Init function for ReceivePcap.
  *
  * This is a setup function for recieving packets
@@ -444,11 +296,6 @@ TmEcode ReceivePcap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
 TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     SCEnter();
     char *tmpbpfstring;
-
-    /* use max_pending_packets as pcap read size unless it's bigger than
-     * our size limit */
-    pcap_max_read_packets = (PCAP_FILE_MAX_PKTS < max_pending_packets) ?
-        PCAP_FILE_MAX_PKTS : max_pending_packets;
 
     if (initdata == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "initdata == NULL");
@@ -557,11 +404,6 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     SCEnter();
 
     char *tmpbpfstring;
-
-    /* use max_pending_packets as pcap read size unless it's bigger than
-     * our size limit */
-    pcap_max_read_packets = (PCAP_FILE_MAX_PKTS < max_pending_packets) ?
-        PCAP_FILE_MAX_PKTS : max_pending_packets;
 
     if (initdata == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "initdata == NULL");
