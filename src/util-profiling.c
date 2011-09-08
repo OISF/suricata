@@ -101,6 +101,9 @@ SCProfilePacketData packet_profile_app_data6[TMM_SIZE][257];
 SCProfilePacketData packet_profile_app_pd_data4[257];
 SCProfilePacketData packet_profile_app_pd_data6[257];
 
+SCProfilePacketData packet_profile_detect_data4[PROF_DETECT_SIZE][257];
+SCProfilePacketData packet_profile_detect_data6[PROF_DETECT_SIZE][257];
+
 /**
  * Used for generating the summary data to print.
  */
@@ -137,6 +140,7 @@ const char *profiling_packets_file_mode;
 __thread int profiling_rules_entered = 0;
 
 void SCProfilingDumpPacketStats(void);
+const char * PacketProfileDetectIdToString(PacketProfileDetectId id);
 
 /**
  * \brief Initialize profiling.
@@ -242,6 +246,8 @@ SCProfilingInit(void)
             memset(&packet_profile_app_data6, 0, sizeof(packet_profile_app_data6));
             memset(&packet_profile_app_pd_data4, 0, sizeof(packet_profile_app_pd_data4));
             memset(&packet_profile_app_pd_data6, 0, sizeof(packet_profile_app_pd_data6));
+            memset(&packet_profile_detect_data4, 0, sizeof(packet_profile_detect_data4));
+            memset(&packet_profile_detect_data6, 0, sizeof(packet_profile_detect_data6));
 
             const char *filename = ConfNodeLookupChildValue(conf, "filename");
             if (filename != NULL) {
@@ -294,7 +300,11 @@ SCProfilingInit(void)
                 for (i = 0; i < ALPROTO_MAX; i++) {
                     fprintf(packet_profile_csv_fp, "%s,", TmModuleAlprotoToString(i));
                 }
-                fprintf(packet_profile_csv_fp, "STREAM (no app),proto detect,\n");
+                fprintf(packet_profile_csv_fp, "STREAM (no app),proto detect,");
+                for (i = 0; i < PROF_DETECT_SIZE; i++) {
+                    fprintf(packet_profile_csv_fp, "%s,", PacketProfileDetectIdToString(i));
+                }
+                fprintf(packet_profile_csv_fp, "\n");
 
                 profiling_packets_csv_enabled = 1;
             }
@@ -794,6 +804,38 @@ void SCProfilingDumpPacketStats(void) {
         }
     }
 
+    fprintf(fp, "\nGeneral detection engine stats:\n");
+
+    fprintf(fp, "\n%-24s   %-6s   %-5s   %-8s   %-6s   %-10s   %-8s\n",
+            "Detection phase", "IP ver", "Proto", "cnt", "min", "max", "avg");
+    fprintf(fp, "%-24s   %-6s   %-5s   %-8s   %-6s   %-10s   %-8s\n",
+            "-------------------------", "------", "-----", "------", "------", "----------", "-------");
+    for (m = 0; m < PROF_DETECT_SIZE; m++) {
+        int p;
+        for (p = 0; p < 257; p++) {
+            SCProfilePacketData *pd = &packet_profile_detect_data4[m][p];
+
+            if (pd->cnt == 0) {
+                continue;
+            }
+
+            fprintf(fp, "%-24s    IPv4     %3d  %8u     %6u   %10u  %8"PRIu64"\n",
+                    PacketProfileDetectIdToString(m), p, pd->cnt, pd->min, pd->max, pd->tot / pd->cnt);
+        }
+    }
+    for (m = 0; m < PROF_DETECT_SIZE; m++) {
+        int p;
+        for (p = 0; p < 257; p++) {
+            SCProfilePacketData *pd = &packet_profile_detect_data6[m][p];
+
+            if (pd->cnt == 0) {
+                continue;
+            }
+
+            fprintf(fp, "%-24s    IPv6     %3d  %8u     %6u   %10u  %8"PRIu64"\n",
+                    PacketProfileDetectIdToString(m), p, pd->cnt, pd->min, pd->max, pd->tot / pd->cnt);
+        }
+    }
     fclose(fp);
 }
 
@@ -843,7 +885,50 @@ void SCProfilingPrintPacketProfile(Packet *p) {
     fprintf(packet_profile_csv_fp, "%"PRIu32",", real_tcp);
 
     fprintf(packet_profile_csv_fp, "%"PRIu32",", p->profile.proto_detect);
+
+    for (i = 0; i < PROF_DETECT_SIZE; i++) {
+        PktProfilingDetectData *pdt = &p->profile.detect[i];
+
+        fprintf(packet_profile_csv_fp,"%"PRIu32",", pdt->ticks_spent);
+    }
     fprintf(packet_profile_csv_fp,"\n");
+}
+
+void SCProfilingUpdatePacketDetectRecord(PacketProfileDetectId id, uint8_t ipproto, PktProfilingDetectData *pdt, int ipver) {
+    if (pdt == NULL) {
+        return;
+    }
+
+    SCProfilePacketData *pd;
+    if (ipver == 4)
+        pd = &packet_profile_detect_data4[id][ipproto];
+    else
+        pd = &packet_profile_detect_data6[id][ipproto];
+
+    if (pd->min == 0 || pdt->ticks_spent < pd->min) {
+        pd->min = pdt->ticks_spent;
+    }
+    if (pd->max < pdt->ticks_spent) {
+        pd->max = pdt->ticks_spent;
+    }
+
+    pd->tot += pdt->ticks_spent;
+    pd->cnt ++;
+}
+
+void SCProfilingUpdatePacketDetectRecords(Packet *p) {
+    PacketProfileDetectId i;
+    for (i = 0; i < PROF_DETECT_SIZE; i++) {
+        PktProfilingDetectData *pdt = &p->profile.detect[i];
+
+        if (pdt->ticks_spent > 0) {
+            if (PKT_IS_IPV4(p)) {
+                SCProfilingUpdatePacketDetectRecord(i, p->proto, pdt, 4);
+            } else {
+                SCProfilingUpdatePacketDetectRecord(i, p->proto, pdt, 6);
+            }
+        }
+    }
 }
 
 void SCProfilingUpdatePacketAppPdRecord(uint8_t ipproto, uint32_t ticks_spent, int ipver) {
@@ -985,6 +1070,7 @@ void SCProfilingAddPacket(Packet *p) {
 
             SCProfilingUpdatePacketTmmRecords(p);
             SCProfilingUpdatePacketAppRecords(p);
+            SCProfilingUpdatePacketDetectRecords(p);
 
         } else if (PKT_IS_IPV6(p)) {
             SCProfilePacketData *pd = &packet_profile_data6[p->proto];
@@ -1016,11 +1102,39 @@ void SCProfilingAddPacket(Packet *p) {
 
             SCProfilingUpdatePacketTmmRecords(p);
             SCProfilingUpdatePacketAppRecords(p);
+            SCProfilingUpdatePacketDetectRecords(p);
         }
     }
     SCMutexUnlock(&packet_profile_lock);
 }
 
+#define CASE_CODE(E)  case E: return #E
+
+/**
+ * \brief Maps the PacketProfileDetectId, to its string equivalent
+ *
+ * \param id PacketProfileDetectId id
+ *
+ * \retval string equivalent for the PacketProfileDetectId id
+ */
+const char * PacketProfileDetectIdToString(PacketProfileDetectId id)
+{
+    switch (id) {
+        CASE_CODE (PROF_DETECT_MPM);
+        CASE_CODE (PROF_DETECT_MPM_PACKET);
+        CASE_CODE (PROF_DETECT_MPM_STREAM);
+        CASE_CODE (PROF_DETECT_IPONLY);
+        CASE_CODE (PROF_DETECT_RULES);
+        CASE_CODE (PROF_DETECT_PREFILTER);
+        CASE_CODE (PROF_DETECT_STATEFUL);
+        CASE_CODE (PROF_DETECT_ALERT);
+        CASE_CODE (PROF_DETECT_CLEANUP);
+        CASE_CODE (PROF_DETECT_GETSGH);
+
+        default:
+            return "UNKNOWN";
+    }
+}
 #ifdef UNITTESTS
 
 static int

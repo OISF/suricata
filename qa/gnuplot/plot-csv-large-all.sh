@@ -14,7 +14,8 @@ set title "$1 ticks"
 set key autotitle columnhead
 set yrange [:]
 set xrange [:]
-#set logscale y
+set logscale y
+#set pointsize 4
 plot "$1" using $2 with $4, for [i in $3] '' using i with $4
 EOF
 RESULT=$?

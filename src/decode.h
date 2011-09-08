@@ -274,6 +274,12 @@ typedef struct PktProfilingTmmData_ {
     uint64_t ticks_end;
 } PktProfilingTmmData;
 
+typedef struct PktProfilingDetectData_ {
+    uint64_t ticks_start;
+    uint64_t ticks_end;
+    uint32_t ticks_spent;
+} PktProfilingDetectData;
+
 typedef struct PktProfilingAppData_ {
     uint64_t ticks_spent;
 } PktProfilingAppData;
@@ -285,6 +291,7 @@ typedef struct PktProfiling_ {
 
     PktProfilingTmmData tmm[TMM_SIZE];
     PktProfilingAppData app[ALPROTO_MAX];
+    PktProfilingDetectData detect[PROF_DETECT_SIZE];
     uint32_t proto_detect;
 } PktProfiling;
 

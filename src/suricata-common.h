@@ -160,6 +160,21 @@
     #endif
 #endif
 
+typedef enum PacketProfileDetectId_ {
+    PROF_DETECT_MPM,
+    PROF_DETECT_MPM_PACKET,
+    PROF_DETECT_MPM_STREAM,
+    PROF_DETECT_IPONLY,
+    PROF_DETECT_RULES,
+    PROF_DETECT_STATEFUL,
+    PROF_DETECT_PREFILTER,
+    PROF_DETECT_ALERT,
+    PROF_DETECT_CLEANUP,
+    PROF_DETECT_GETSGH,
+
+    PROF_DETECT_SIZE,
+} PacketProfileDetectId;
+
 #include <htp/htp.h>
 #include "threads.h"
 #include "tm-threads-common.h"

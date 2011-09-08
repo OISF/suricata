@@ -130,6 +130,21 @@ void SCProfilingAddPacket(Packet *);
         }                                                           \
     }
 
+#define PACKET_PROFILING_DETECT_START(p, id)                        \
+    if (profiling_packets_enabled) {                                \
+        if ((id) < PROF_DETECT_SIZE) {                              \
+            (p)->profile.detect[(id)].ticks_start = UtilCpuGetTicks(); \
+        }                                                           \
+    }
+
+#define PACKET_PROFILING_DETECT_END(p, id)                          \
+    if (profiling_packets_enabled) {                                \
+        if ((id) < TMM_SIZE) {                                      \
+            (p)->profile.detect[(id)].ticks_end = UtilCpuGetTicks();\
+            (p)->profile.detect[(id)].ticks_spent +=                \
+                ((p)->profile.detect[(id)].ticks_end - (p)->profile.detect[(id)].ticks_start);  \
+        }                                                           \
+    }
 
 void SCProfilingInit(void);
 void SCProfilingDestroy(void);
@@ -156,6 +171,12 @@ void SCProfilingUpdateRuleCounter(uint16_t, uint64_t, int);
 #define PACKET_PROFILING_APP_END(dp, id)
 #define PACKET_PROFILING_APP_RESET(dp)
 #define PACKET_PROFILING_APP_STORE(dp, p)
+
+#define PACKET_PROFILING_APP_PD_START(dp)
+#define PACKET_PROFILING_APP_PD_END(dp)
+
+#define PACKET_PROFILING_DETECT_START(p, id)
+#define PACKET_PROFILING_DETECT_END(p, id)
 
 #endif /* PROFILING */
 
