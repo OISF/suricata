@@ -471,8 +471,6 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
             }
             tv->tmqh_out(tv, extra_p);
         }
-
-        /** \todo XXX post pq */
     }
 
     return TM_ECODE_OK;
@@ -668,24 +666,25 @@ void *TmThreadsSlotVar(void *td)
             tv->tmqh_out(tv, p);
 
             /* now handle the post_pq packets */
-            while (s->slot_post_pq.top != NULL) {
-                Packet *extra_p = PacketDequeue(&s->slot_post_pq);
-                if (extra_p == NULL)
-                    continue;
-
-                if (s->slot_next != NULL) {
-                    r = TmThreadsSlotVarRun(tv, extra_p, s->slot_next);
-                    if (r == TM_ECODE_FAILED) {
-                        TmqhOutputPacketpool(tv, extra_p);
-                        TmThreadsSetFlag(tv, THV_FAILED);
+            for (s = slot; s != NULL; s = s->slot_next) {
+                while (s->slot_post_pq.top != NULL) {
+                    Packet *extra_p = PacketDequeue(&s->slot_post_pq);
+                    if (extra_p == NULL)
                         break;
-                    }
-                }
 
-                /* output the packet */
-                tv->tmqh_out(tv, extra_p);
-            }
-        }
+                    if (s->slot_next != NULL) {
+                        r = TmThreadsSlotVarRun(tv, extra_p, s->slot_next);
+                        if (r == TM_ECODE_FAILED) {
+                            TmqhOutputPacketpool(tv, extra_p);
+                            TmThreadsSetFlag(tv, THV_FAILED);
+                            break;
+                        }
+                    }
+                    /* output the packet */
+                    tv->tmqh_out(tv, extra_p);
+                } /* while (s->slot_post_pq.top != NULL) */
+            } /* for (s = slot; s != NULL; s = s->slot_next) */
+        } /* if (p != NULL) */
 
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
             run = 0;
