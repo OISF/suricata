@@ -214,7 +214,7 @@ TmEcode ReceivePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
 
     if (suricata_ctl_flags & SURICATA_STOP ||
             suricata_ctl_flags & SURICATA_KILL) {
-        SCReturnInt(TM_ECODE_FAILED);
+        SCReturnInt(TM_ECODE_OK);
     }
 
     /* Depending on what compile time options are used for pfring we either return 0 or -1 on error and always 1 for success */

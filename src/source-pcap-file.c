@@ -154,7 +154,7 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot) {
         if (suricata_ctl_flags & SURICATA_STOP ||
             suricata_ctl_flags & SURICATA_KILL)
         {
-            SCReturnInt(TM_ECODE_FAILED);
+            SCReturnInt(TM_ECODE_OK);
         }
 
         /* make sure we have at least one packet in the packet pool, to prevent
