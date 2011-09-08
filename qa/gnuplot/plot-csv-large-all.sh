@@ -14,8 +14,8 @@ set title "$1 ticks"
 set key autotitle columnhead
 set yrange [:]
 set xrange [:]
-set logscale y
-plot "$1" using 4, for [i in $2] '' using i with $3
+#set logscale y
+plot "$1" using $2 with $4, for [i in $3] '' using i with $4
 EOF
 RESULT=$?
 if [ "$RESULT" = "0" ]; then
