@@ -249,7 +249,7 @@ int RunModeIdsAFPAuto(DetectEngineCtx *de_ctx)
             TmThreadCreatePacketHandler("ReceiveAFP",
                                         "packetpool", "packetpool",
                                         "pickup-queue", "simple",
-                                        "1slot");
+                                        "pktacqloop");
         if (tv_receiveafp == NULL) {
             printf("ERROR: TmThreadsCreate failed\n");
             exit(EXIT_FAILURE);
@@ -295,7 +295,7 @@ int RunModeIdsAFPAuto(DetectEngineCtx *de_ctx)
                 TmThreadCreatePacketHandler(tnamec,
                                             "packetpool", "packetpool",
                                             "pickup-queue", "simple",
-                                            "1slot");
+                                            "pktacqloop");
             if (tv_receiveafp == NULL) {
                 printf("ERROR: TmThreadsCreate failed\n");
                 exit(EXIT_FAILURE);
@@ -614,7 +614,7 @@ int RunModeIdsAFPAutoFp(DetectEngineCtx *de_ctx)
             ThreadVars *tv_receive =
                 TmThreadCreatePacketHandler(thread_name,
                         "packetpool", "packetpool",
-                        queues, "flow", "varslot");
+                        queues, "flow", "pktacqloop");
             if (tv_receive == NULL) {
                 printf("ERROR: TmThreadsCreate failed\n");
                 exit(EXIT_FAILURE);
@@ -667,7 +667,7 @@ int RunModeIdsAFPAutoFp(DetectEngineCtx *de_ctx)
                 ThreadVars *tv_receive =
                     TmThreadCreatePacketHandler(thread_name,
                             "packetpool", "packetpool",
-                            queues, "flow", "varslot");
+                            queues, "flow", "pktacqloop");
                 if (tv_receive == NULL) {
                     printf("ERROR: TmThreadsCreate failed\n");
                     exit(EXIT_FAILURE);
