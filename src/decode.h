@@ -285,6 +285,7 @@ typedef struct PktProfiling_ {
 
     PktProfilingTmmData tmm[TMM_SIZE];
     PktProfilingAppData app[ALPROTO_MAX];
+    uint32_t proto_detect;
 } PktProfiling;
 
 #endif /* PROFILING */
@@ -478,6 +479,9 @@ typedef struct AlpProtoDetectThreadCtx_ {
     uint64_t ticks_end;
     uint32_t ticks_spent;
     uint16_t alproto;
+    uint64_t proto_detect_ticks_start;
+    uint64_t proto_detect_ticks_end;
+    uint32_t proto_detect_ticks_spent;
 #endif
 } AlpProtoDetectThreadCtx;
 

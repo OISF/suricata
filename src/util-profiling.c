@@ -98,6 +98,9 @@ SCProfilePacketData packet_profile_tmm_data6[TMM_SIZE][257];
 SCProfilePacketData packet_profile_app_data4[TMM_SIZE][257];
 SCProfilePacketData packet_profile_app_data6[TMM_SIZE][257];
 
+SCProfilePacketData packet_profile_app_pd_data4[257];
+SCProfilePacketData packet_profile_app_pd_data6[257];
+
 /**
  * Used for generating the summary data to print.
  */
@@ -237,6 +240,8 @@ SCProfilingInit(void)
             memset(&packet_profile_tmm_data6, 0, sizeof(packet_profile_tmm_data6));
             memset(&packet_profile_app_data4, 0, sizeof(packet_profile_app_data4));
             memset(&packet_profile_app_data6, 0, sizeof(packet_profile_app_data6));
+            memset(&packet_profile_app_pd_data4, 0, sizeof(packet_profile_app_pd_data4));
+            memset(&packet_profile_app_pd_data6, 0, sizeof(packet_profile_app_pd_data6));
 
             const char *filename = ConfNodeLookupChildValue(conf, "filename");
             if (filename != NULL) {
@@ -289,7 +294,7 @@ SCProfilingInit(void)
                 for (i = 0; i < ALPROTO_MAX; i++) {
                     fprintf(packet_profile_csv_fp, "%s,", TmModuleAlprotoToString(i));
                 }
-                fprintf(packet_profile_csv_fp, "STREAM (no app)\n");
+                fprintf(packet_profile_csv_fp, "STREAM (no app),proto detect,\n");
 
                 profiling_packets_csv_enabled = 1;
             }
@@ -763,6 +768,32 @@ void SCProfilingDumpPacketStats(void) {
         }
     }
 
+    /* proto detect output */
+    {
+        int p;
+        for (p = 0; p < 257; p++) {
+            SCProfilePacketData *pd = &packet_profile_app_pd_data4[p];
+
+            if (pd->cnt == 0) {
+                continue;
+            }
+
+            fprintf(fp, "%-20s    IPv4     %3d  %8u     %6u   %10u  %8"PRIu64"\n",
+                    "Proto detect", p, pd->cnt, pd->min, pd->max, pd->tot / pd->cnt);
+        }
+
+        for (p = 0; p < 257; p++) {
+            SCProfilePacketData *pd = &packet_profile_app_pd_data6[p];
+
+            if (pd->cnt == 0) {
+                continue;
+            }
+
+            fprintf(fp, "%-20s    IPv6     %3d  %8u     %6u   %10u  %8"PRIu64"\n",
+                    "Proto detect", p, pd->cnt, pd->min, pd->max, pd->tot / pd->cnt);
+        }
+    }
+
     fclose(fp);
 }
 
@@ -810,7 +841,27 @@ void SCProfilingPrintPacketProfile(Packet *p) {
     if (tmm_streamtcp_tcp > app_total)
         real_tcp = tmm_streamtcp_tcp - app_total;
     fprintf(packet_profile_csv_fp, "%"PRIu32",", real_tcp);
+
+    fprintf(packet_profile_csv_fp, "%"PRIu32",", p->profile.proto_detect);
     fprintf(packet_profile_csv_fp,"\n");
+}
+
+void SCProfilingUpdatePacketAppPdRecord(uint8_t ipproto, uint32_t ticks_spent, int ipver) {
+    SCProfilePacketData *pd;
+    if (ipver == 4)
+        pd = &packet_profile_app_pd_data4[ipproto];
+    else
+        pd = &packet_profile_app_pd_data6[ipproto];
+
+    if (pd->min == 0 || ticks_spent < pd->min) {
+        pd->min = ticks_spent;
+    }
+    if (pd->max < ticks_spent) {
+        pd->max = ticks_spent;
+    }
+
+    pd->tot += ticks_spent;
+    pd->cnt ++;
 }
 
 void SCProfilingUpdatePacketAppRecord(int alproto, uint8_t ipproto, PktProfilingAppData *pdt, int ipver) {
@@ -840,14 +891,20 @@ void SCProfilingUpdatePacketAppRecords(Packet *p) {
     for (i = 0; i < ALPROTO_MAX; i++) {
         PktProfilingAppData *pdt = &p->profile.app[i];
 
-        if (pdt->ticks_spent == 0) {
-            continue;
+        if (pdt->ticks_spent > 0) {
+            if (PKT_IS_IPV4(p)) {
+                SCProfilingUpdatePacketAppRecord(i, p->proto, pdt, 4);
+            } else {
+                SCProfilingUpdatePacketAppRecord(i, p->proto, pdt, 6);
+            }
         }
+    }
 
+    if (p->profile.proto_detect > 0) {
         if (PKT_IS_IPV4(p)) {
-            SCProfilingUpdatePacketAppRecord(i, p->proto, pdt, 4);
+            SCProfilingUpdatePacketAppPdRecord(p->proto, p->profile.proto_detect, 4);
         } else {
-            SCProfilingUpdatePacketAppRecord(i, p->proto, pdt, 6);
+            SCProfilingUpdatePacketAppPdRecord(p->proto, p->profile.proto_detect, 6);
         }
     }
 }

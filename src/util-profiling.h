@@ -99,18 +99,34 @@ void SCProfilingAddPacket(Packet *);
         (dp)->ticks_spent = ((dp)->ticks_end - (dp)->ticks_start);  \
     }
 
+#define PACKET_PROFILING_APP_PD_START(dp)                           \
+    if (profiling_packets_enabled) {                                \
+        (dp)->proto_detect_ticks_start = UtilCpuGetTicks();         \
+    }
+
+#define PACKET_PROFILING_APP_PD_END(dp)                             \
+    if (profiling_packets_enabled) {                                \
+        (dp)->proto_detect_ticks_end = UtilCpuGetTicks();           \
+        (dp)->proto_detect_ticks_spent =                            \
+            ((dp)->proto_detect_ticks_end - (dp)->proto_detect_ticks_start);  \
+    }
+
 #define PACKET_PROFILING_APP_RESET(dp)                              \
     if (profiling_packets_enabled) {                                \
         (dp)->ticks_start = 0;                                      \
         (dp)->ticks_end = 0;                                        \
         (dp)->ticks_spent = 0;                                      \
         (dp)->alproto = 0;                                          \
+        (dp)->proto_detect_ticks_start = 0;                         \
+        (dp)->proto_detect_ticks_end = 0;                           \
+        (dp)->proto_detect_ticks_spent = 0;                         \
     }
 
 #define PACKET_PROFILING_APP_STORE(dp, p)                           \
     if (profiling_packets_enabled) {                                \
         if ((dp)->alproto < ALPROTO_MAX) {                          \
             (p)->profile.app[(dp)->alproto].ticks_spent += (dp)->ticks_spent;   \
+            (p)->profile.proto_detect += (dp)->proto_detect_ticks_spent;        \
         }                                                           \
     }
 

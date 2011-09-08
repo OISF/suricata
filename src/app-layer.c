@@ -155,8 +155,11 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
             }
 #endif
 
+            PACKET_PROFILING_APP_PD_START(dp_ctx);
             alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx, f,
                     data, data_len, flags, IPPROTO_TCP);
+            PACKET_PROFILING_APP_PD_END(dp_ctx);
+
             if (alproto != ALPROTO_UNKNOWN) {
                 /* store the proto and setup the L7 data array */
                 FlowL7DataPtrInit(f);
