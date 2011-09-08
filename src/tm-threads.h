@@ -25,6 +25,7 @@
 #ifndef __TM_THREADS_H__
 #define __TM_THREADS_H__
 
+#include "tmqh-packetpool.h"
 #include "tm-threads-common.h"
 #include "tm-modules.h"
 
@@ -83,8 +84,6 @@ void TmThreadKillThreads(void);
 void TmThreadAppend(ThreadVars *, int);
 void TmThreadRemove(ThreadVars *, int);
 
-TmEcode TmThreadsSlotProcessPkt(ThreadVars *, TmSlot *, Packet *);
-
 TmEcode TmThreadSetCPUAffinity(ThreadVars *, uint16_t);
 TmEcode TmThreadSetThreadPriority(ThreadVars *, int);
 TmEcode TmThreadSetCPU(ThreadVars *, uint8_t);
@@ -107,6 +106,8 @@ void TmThreadsSetFlag(ThreadVars *, uint8_t);
 void TmThreadsUnsetFlag(ThreadVars *, uint8_t);
 
 TmEcode TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *slot);
+
+#if 0
 
 /**
  *  \brief Process the rest of the functions (if any) and queue.
@@ -156,5 +157,56 @@ TmEcode TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *slot);
   TmThreadsSlotProcessPkt_End:                                          \
         r;                                                              \
     })
+
+#endif /* #if 0 */
+
+/**
+ *  \brief Process the rest of the functions (if any) and queue.
+ */
+static inline TmEcode TmThreadsSlotProcessPkt(ThreadVars *tv, TmSlot *s, Packet *p)
+{
+    TmEcode r = TM_ECODE_OK;
+
+    if (s == NULL) {
+        tv->tmqh_out(tv, p);
+        return r;
+    }
+
+    if (TmThreadsSlotVarRun(tv, p, s) == TM_ECODE_FAILED) {
+        TmqhOutputPacketpool(tv, p);
+        TmSlot *slot = s;
+        while (slot != NULL) {
+            TmqhReleasePacketsToPacketPool(&slot->slot_post_pq);
+            slot = slot->slot_next;
+        }
+        TmThreadsSetFlag(tv, THV_FAILED);
+        r = TM_ECODE_FAILED;
+
+    } else {
+        tv->tmqh_out(tv, p);
+        /* post process pq */
+        TmSlot *slot = s;
+        while (slot != NULL) {
+            while (slot->slot_post_pq.top != NULL) {
+                Packet *extra_p = PacketDequeue(&slot->slot_post_pq);
+                if (extra_p != NULL) {
+                    if (slot->slot_next != NULL) {
+                        r = TmThreadsSlotVarRun(tv, extra_p, slot->slot_next);
+                        if (r == TM_ECODE_FAILED) {
+                            TmqhReleasePacketsToPacketPool(&slot->slot_post_pq);
+                            TmqhOutputPacketpool(tv, extra_p);
+                            TmThreadsSetFlag(tv, THV_FAILED);
+                            break;
+                        }
+                    }
+                    tv->tmqh_out(tv, extra_p);
+                }
+            }
+            slot = slot->slot_next;
+        }
+    }
+
+    return r;
+}
 
 #endif /* __TM_THREADS_H__ */

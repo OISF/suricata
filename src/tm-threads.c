@@ -503,32 +503,6 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
 
  */
 
-#if 0
-/**
- *  \brief Process the rest of the functions (if any) and queue.
- */
-TmEcode TmThreadsSlotProcessPkt(ThreadVars *tv, TmSlot *s, Packet *p) {
-    TmEcode r;
-
-    if (likely(p != NULL)) {
-        if (s != NULL ) {
-            /* run the thread module(s) */
-            r = TmThreadsSlotVarRun(tv, p, s);
-            if (unlikely(r == TM_ECODE_FAILED)) {
-                TmqhOutputPacketpool(tv, p);
-                TmThreadsSetFlag(tv, THV_FAILED);
-                return TM_ECODE_FAILED;
-            }
-        }
-
-        /* output the packet */
-        tv->tmqh_out(tv, p);
-    }
-
-    return TM_ECODE_OK;
-}
-#endif
-
 void *TmThreadsSlotPktAcqLoop(void *td) {
     ThreadVars *tv = (ThreadVars *)td;
     TmSlot *s = tv->tm_slots;
