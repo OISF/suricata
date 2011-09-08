@@ -124,6 +124,11 @@ void PrintRawDataFp(FILE *fp, uint8_t *buf, uint32_t buflen) {
         fprintf(fp, "\n");
 }
 
+
+#ifndef s6_addr16
+# define s6_addr16 __u6_addr.__u6_addr16
+#endif
+
 static const char *PrintInetIPv6(const void *src, char *dst, socklen_t size)
 {
     struct in6_addr * insrc = (struct in6_addr *) src;
