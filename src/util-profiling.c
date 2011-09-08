@@ -806,7 +806,10 @@ void SCProfilingPrintPacketProfile(Packet *p) {
         }
     }
 
-    fprintf(packet_profile_csv_fp, "%"PRIu32",", tmm_streamtcp_tcp - app_total);
+    uint32_t real_tcp = 0;
+    if (tmm_streamtcp_tcp > app_total)
+        real_tcp = tmm_streamtcp_tcp - app_total;
+    fprintf(packet_profile_csv_fp, "%"PRIu32",", real_tcp);
     fprintf(packet_profile_csv_fp,"\n");
 }
 
