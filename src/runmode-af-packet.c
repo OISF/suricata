@@ -48,6 +48,7 @@
 #include "util-cpu.h"
 #include "util-affinity.h"
 #include "util-device.h"
+#include "util-runmodes.h"
 
 #include "source-af-packet.h"
 
@@ -87,7 +88,7 @@ void RunModeIdsAFPRegister(void)
  *
  * \return a AFPIfaceConfig corresponding to the interface name
  */
-AFPIfaceConfig *ParseAFPConfig(char *iface)
+void *ParseAFPConfig(const char *iface)
 {
     char *threadsstr = NULL;
     ConfNode *if_root;
@@ -97,6 +98,10 @@ AFPIfaceConfig *ParseAFPConfig(char *iface)
     char *tmpctype;
     intmax_t value;
     int dispromisc;
+
+    if (iface == NULL) {
+        return NULL;
+    }
 
     if (aconf == NULL) {
         return NULL;
@@ -184,6 +189,11 @@ AFPIfaceConfig *ParseAFPConfig(char *iface)
     return aconf;
 }
 
+int AFPConfigGeThreadsCount(void *conf)
+{
+    AFPIfaceConfig *afp = (AFPIfaceConfig *)conf;
+    return afp->threads;
+}
 
 /**
  * \brief RunModeIdsAFPAuto set up the following thread packet handlers:
@@ -208,346 +218,30 @@ int RunModeIdsAFPAuto(DetectEngineCtx *de_ctx)
     SCEnter();
 
 #ifdef HAVE_AF_PACKET
-    /* tname = Detect + cpuid, this is 11bytes length as max */
-    char tname[16];
-    uint16_t cpu = 0;
-    TmModule *tm_module;
-    uint16_t thread;
+    int ret;
+    char *live_dev = NULL;
 
     RunModeInitialize();
+
     TimeModeSetLive();
 
-    /* Available cpus */
-    uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
-    int nlive = LiveGetDeviceCount();
+    ConfGet("af-packet.live-interface", &live_dev);
 
-    if (nlive == 1) {
-        char *live_dev = NULL;
-        AFPIfaceConfig *aconf;
-        /* TODO be clever than that */
-        if (ConfGet("af-packet.live-interface", &live_dev) == 0) {
-            SCLogError(SC_ERR_RUNMODE, "Failed retrieving "
-                       "interface from command line");
-            exit(EXIT_FAILURE);
-        }
-        SCLogDebug("live_dev %s", live_dev);
-
-        if (live_dev == NULL) {
-            printf("Failed to lookup live dev\n");
-            exit(EXIT_FAILURE);
-        }
-        SCLogDebug("live_dev %s", live_dev);
-
-        aconf = ParseAFPConfig(live_dev);
-        if (aconf == NULL) {
-            printf("Failed to allocate config\n");
-            exit(EXIT_FAILURE);
-        }
-
-        /* create the threads */
-        ThreadVars *tv_receiveafp =
-            TmThreadCreatePacketHandler("ReceiveAFP",
-                                        "packetpool", "packetpool",
-                                        "pickup-queue", "simple",
-                                        "pktacqloop");
-        if (tv_receiveafp == NULL) {
-            printf("ERROR: TmThreadsCreate failed\n");
-            exit(EXIT_FAILURE);
-        }
-        tm_module = TmModuleGetByName("ReceiveAFP");
-        if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName failed for ReceiveAFP\n");
-            exit(EXIT_FAILURE);
-        }
-        TmSlotSetFuncAppend(tv_receiveafp, tm_module, (void *)aconf);
-
-        TmThreadSetCPU(tv_receiveafp, RECEIVE_CPU_SET);
-
-        if (TmThreadSpawn(tv_receiveafp) != TM_ECODE_OK) {
-            printf("ERROR: TmThreadSpawn failed\n");
-            exit(EXIT_FAILURE);
-        }
-    } else {
-        SCLogInfo("Using %d live device(s).", nlive);
-
-        for (thread = 0; thread < nlive; thread++) {
-            char *live_dev = LiveGetDevice(thread);
-            char *tnamec = NULL;
-            AFPIfaceConfig *aconf;
-
-            if (live_dev == NULL) {
-                printf("Failed to lookup live dev %d\n", thread);
-                exit(EXIT_FAILURE);
-            }
-            SCLogDebug("live_dev %s", live_dev);
-
-            aconf = ParseAFPConfig(live_dev);
-            if (aconf == NULL) {
-                printf("Failed to allocate config %d\n", thread);
-                exit(EXIT_FAILURE);
-            }
-
-            snprintf(tname, sizeof(tname),"RecvAFP-%s", live_dev);
-            tnamec = SCStrdup(tname);
-
-            /* create the threads */
-            ThreadVars *tv_receiveafp =
-                TmThreadCreatePacketHandler(tnamec,
-                                            "packetpool", "packetpool",
-                                            "pickup-queue", "simple",
-                                            "pktacqloop");
-            if (tv_receiveafp == NULL) {
-                printf("ERROR: TmThreadsCreate failed\n");
-                exit(EXIT_FAILURE);
-            }
-            tm_module = TmModuleGetByName("ReceiveAFP");
-            if (tm_module == NULL) {
-                printf("ERROR: TmModuleGetByName failed for ReceiveAFP\n");
-                exit(EXIT_FAILURE);
-            }
-            TmSlotSetFuncAppend(tv_receiveafp, tm_module, (void *)aconf);
-
-            TmThreadSetCPU(tv_receiveafp, RECEIVE_CPU_SET);
-
-            if (TmThreadSpawn(tv_receiveafp) != TM_ECODE_OK) {
-                printf("ERROR: TmThreadSpawn failed\n");
-                exit(EXIT_FAILURE);
-            }
-        }
-    }
-
-#if defined(__SC_CUDA_SUPPORT__)
-    if (PatternMatchDefaultMatcher() == MPM_B2G_CUDA) {
-        ThreadVars *tv_decode1 =
-            TmThreadCreatePacketHandler("Decode",
-                                        "pickup-queue", "simple",
-                                        "decode-queue1", "simple",
-                                        "1slot");
-        if (tv_decode1 == NULL) {
-            printf("ERROR: TmThreadsCreate failed for Decode1\n");
-            exit(EXIT_FAILURE);
-        }
-        tm_module = TmModuleGetByName("DecodeAFP");
-        if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName DecodeAFP failed\n");
-            exit(EXIT_FAILURE);
-        }
-        Tm1SlotSetFunc(tv_decode1, tm_module, NULL);
-
-        TmThreadSetCPU(tv_decode1, DECODE_CPU_SET);
-
-        if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
-            printf("ERROR: TmThreadSpawn failed\n");
-            exit(EXIT_FAILURE);
-        }
-
-        ThreadVars *tv_cuda_PB =
-            TmThreadCreate("CUDA_PB",
-                           "decode-queue1", "simple",
-                           "cuda-pb-queue1", "simple",
-                           "custom", SCCudaPBTmThreadsSlot1, 0);
-        if (tv_cuda_PB == NULL) {
-            printf("ERROR: TmThreadsCreate failed for CUDA_PB\n");
-            exit(EXIT_FAILURE);
-        }
-        tv_cuda_PB->type = TVT_PPT;
-
-        tm_module = TmModuleGetByName("CudaPacketBatcher");
-        if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName CudaPacketBatcher failed\n");
-            exit(EXIT_FAILURE);
-        }
-        Tm1SlotSetFunc(tv_cuda_PB, tm_module, (void *)de_ctx);
-
-        TmThreadSetCPU(tv_cuda_PB, DETECT_CPU_SET);
-
-        if (TmThreadSpawn(tv_cuda_PB) != TM_ECODE_OK) {
-            printf("ERROR: TmThreadSpawn failed\n");
-            exit(EXIT_FAILURE);
-        }
-
-        ThreadVars *tv_stream1 =
-            TmThreadCreatePacketHandler("Stream1",
-                                        "cuda-pb-queue1", "simple",
-                                        "stream-queue1", "simple",
-                                        "1slot");
-        if (tv_stream1 == NULL) {
-            printf("ERROR: TmThreadsCreate failed for Stream1\n");
-            exit(EXIT_FAILURE);
-        }
-        tm_module = TmModuleGetByName("StreamTcp");
-        if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName StreamTcp failed\n");
-            exit(EXIT_FAILURE);
-        }
-        Tm1SlotSetFunc(tv_stream1, tm_module, NULL);
-
-        TmThreadSetCPU(tv_stream1, STREAM_CPU_SET);
-
-        if (TmThreadSpawn(tv_stream1) != TM_ECODE_OK) {
-            printf("ERROR: TmThreadSpawn failed\n");
-            exit(EXIT_FAILURE);
-        }
-    } else {
-        ThreadVars *tv_decode1 =
-            TmThreadCreatePacketHandler("Decode & Stream",
-                                        "pickup-queue", "simple",
-                                        "stream-queue1", "simple",
-                                        "varslot");
-        if (tv_decode1 == NULL) {
-            printf("ERROR: TmThreadsCreate failed for Decode1\n");
-            exit(EXIT_FAILURE);
-        }
-        tm_module = TmModuleGetByName("DecodeAFP");
-        if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName DecodeAFP failed\n");
-            exit(EXIT_FAILURE);
-        }
-        TmVarSlotSetFuncAppend(tv_decode1, tm_module, NULL);
-
-        tm_module = TmModuleGetByName("StreamTcp");
-        if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName StreamTcp failed\n");
-            exit(EXIT_FAILURE);
-        }
-        TmVarSlotSetFuncAppend(tv_decode1, tm_module, NULL);
-
-        TmThreadSetCPU(tv_decode1, DECODE_CPU_SET);
-
-        if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
-            printf("ERROR: TmThreadSpawn failed\n");
-            exit(EXIT_FAILURE);
-        }
-    }
-
-#else
-    ThreadVars *tv_decode1 =
-        TmThreadCreatePacketHandler("Decode & Stream",
-                                    "pickup-queue", "simple",
-                                    "stream-queue1", "simple",
-                                    "varslot");
-    if (tv_decode1 == NULL) {
-        printf("ERROR: TmThreadsCreate failed for Decode1\n");
-        exit(EXIT_FAILURE);
-    }
-    tm_module = TmModuleGetByName("DecodeAFP");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName DecodeAFP failed\n");
-        exit(EXIT_FAILURE);
-    }
-    TmSlotSetFuncAppend(tv_decode1, tm_module, NULL);
-
-    tm_module = TmModuleGetByName("StreamTcp");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
-        exit(EXIT_FAILURE);
-    }
-    TmSlotSetFuncAppend(tv_decode1, tm_module, NULL);
-
-    TmThreadSetCPU(tv_decode1, DECODE_CPU_SET);
-
-    if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(EXIT_FAILURE);
-    }
-#endif
-
-    /* start with cpu 1 so that if we're creating an odd number of detect
-     * threads we're not creating the most on CPU0. */
-    if (ncpus > 0)
-        cpu = 1;
-
-    /* always create at least one thread */
-    int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
-    if (thread_max == 0)
-        thread_max = ncpus * threading_detect_ratio;
-    if (thread_max < 1)
-        thread_max = 1;
-
-    for (thread = 0; thread < thread_max; thread++) {
-        snprintf(tname, sizeof(tname),"Detect%"PRIu16, thread+1);
-
-        char *thread_name = SCStrdup(tname);
-        SCLogDebug("Assigning %s affinity to cpu %u", thread_name, cpu);
-
-        ThreadVars *tv_detect_ncpu =
-            TmThreadCreatePacketHandler(thread_name,
-                                        "stream-queue1", "simple",
-                                        "verdict-queue", "simple",
-                                        "1slot");
-        if (tv_detect_ncpu == NULL) {
-            printf("ERROR: TmThreadsCreate failed\n");
-            exit(EXIT_FAILURE);
-        }
-        tm_module = TmModuleGetByName("Detect");
-        if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName Detect failed\n");
-            exit(EXIT_FAILURE);
-        }
-        TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
-
-        TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
-
-        char *thread_group_name = SCStrdup("Detect");
-        if (thread_group_name == NULL) {
-            printf("Error allocating memory\n");
-            exit(EXIT_FAILURE);
-        }
-        tv_detect_ncpu->thread_group_name = thread_group_name;
-
-        if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
-            printf("ERROR: TmThreadSpawn failed\n");
-            exit(EXIT_FAILURE);
-        }
-
-        if ((cpu + 1) == ncpus)
-            cpu = 0;
-        else
-            cpu++;
-    }
-
-    ThreadVars *tv_rreject =
-        TmThreadCreatePacketHandler("RespondReject",
-                                    "verdict-queue", "simple",
-                                    "alert-queue", "simple",
-                                    "1slot");
-    if (tv_rreject == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(EXIT_FAILURE);
-    }
-    tm_module = TmModuleGetByName("RespondReject");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName for RespondReject failed\n");
-        exit(EXIT_FAILURE);
-    }
-    TmSlotSetFuncAppend(tv_rreject, tm_module, NULL);
-
-    TmThreadSetCPU(tv_rreject, REJECT_CPU_SET);
-
-    if (TmThreadSpawn(tv_rreject) != TM_ECODE_OK) {
-        printf("ERROR: TmThreadSpawn failed\n");
+    ret = RunModeSetLiveCaptureAuto(de_ctx,
+                                    ParseAFPConfig, "ReceiveAFP",
+                                    "DecodeAFP", "RecvAFP",
+                                    live_dev);
+    if (ret != 0) {
+        printf("ERROR: Unable to start runmode\n");
+        if (live_dev)
+            SCFree(live_dev);
         exit(EXIT_FAILURE);
     }
 
-    ThreadVars *tv_outputs =
-        TmThreadCreatePacketHandler("Outputs",
-                                    "alert-queue", "simple",
-                                    "packetpool", "packetpool",
-                                    "varslot");
-    if (tv_outputs == NULL) {
-        printf("ERROR: TmThreadCreatePacketHandler for Outputs failed\n");
-        exit(EXIT_FAILURE);
-    }
+    if (live_dev)
+        SCFree(live_dev);
 
-    SetupOutputs(tv_outputs);
-
-    TmThreadSetCPU(tv_outputs, OUTPUT_CPU_SET);
-
-    if (TmThreadSpawn(tv_outputs) != TM_ECODE_OK) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(EXIT_FAILURE);
-    }
-
+    SCLogInfo("RunModeIdsAFPAuto initialised");
 #endif
     SCReturnInt(0);
 }
@@ -558,192 +252,34 @@ int RunModeIdsAFPAutoFp(DetectEngineCtx *de_ctx)
 
 /* We include only if AF_PACKET is enabled */
 #ifdef HAVE_AF_PACKET
-
-    char tname[12];
-    char qname[12];
-    char queues[2048] = "";
-    int thread;
+    int ret;
     char *live_dev = NULL;
-    /* Available cpus */
-    uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
-    int nlive = LiveGetDeviceCount();
-    int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
-    /* always create at least one thread */
-    if (thread_max == 0)
-        thread_max = ncpus * threading_detect_ratio;
-    if (thread_max < 1)
-        thread_max = 1;
 
     RunModeInitialize();
 
     TimeModeSetLive();
 
-    for (thread = 0; thread < thread_max; thread++) {
-        if (strlen(queues) > 0)
-            strlcat(queues, ",", sizeof(queues));
+    ConfGet("af-packet.live-interface", &live_dev);
 
-        snprintf(qname, sizeof(qname),"pickup%"PRIu16, thread+1);
-        strlcat(queues, qname, sizeof(queues));
-    }
-    SCLogDebug("queues %s", queues);
+    SCLogDebug("live_dev %s", live_dev);
 
-    if (nlive == 1) {
-        AFPIfaceConfig *aconf;
-        int afp_thread;
-
-        if (ConfGet("af-packet.live-interface", &live_dev) == 0) {
-            SCLogError(SC_ERR_RUNMODE, "Failed retrieving "
-                    "interface from command line");
-            exit(EXIT_FAILURE);
-        }
-        SCLogDebug("live_dev %s", live_dev);
-
-        aconf = ParseAFPConfig(live_dev);
-        if (aconf == NULL) {
-            printf("Failed to allocate config %d\n", thread);
-            exit(EXIT_FAILURE);
-        }
-
-        SCLogInfo("Going to use %" PRId32 " AF_PACKET receive thread(s)",
-                aconf->threads);
-        /* create the threads */
-        for (afp_thread = 0; afp_thread < aconf->threads; afp_thread++) {
-            snprintf(tname, sizeof(tname), "RxAFP%"PRIu16, afp_thread+1);
-            char *thread_name = SCStrdup(tname);
-
-            ThreadVars *tv_receive =
-                TmThreadCreatePacketHandler(thread_name,
-                        "packetpool", "packetpool",
-                        queues, "flow", "pktacqloop");
-            if (tv_receive == NULL) {
-                printf("ERROR: TmThreadsCreate failed\n");
-                exit(EXIT_FAILURE);
-            }
-            TmModule *tm_module = TmModuleGetByName("ReceiveAFP");
-            if (tm_module == NULL) {
-                printf("ERROR: TmModuleGetByName failed for ReceiveAFP\n");
-                exit(EXIT_FAILURE);
-            }
-            TmSlotSetFuncAppend(tv_receive, tm_module, aconf);
-
-            tm_module = TmModuleGetByName("DecodeAFP");
-            if (tm_module == NULL) {
-                printf("ERROR: TmModuleGetByName DecodeAFP failed\n");
-                exit(EXIT_FAILURE);
-            }
-            TmSlotSetFuncAppend(tv_receive, tm_module, NULL);
-
-            TmThreadSetCPU(tv_receive, RECEIVE_CPU_SET);
-
-            if (TmThreadSpawn(tv_receive) != TM_ECODE_OK) {
-                printf("ERROR: TmThreadSpawn failed\n");
-                exit(EXIT_FAILURE);
-            }
-        }
-    } else { /* Multiple input device */
-        SCLogInfo("Using %d live device(s).", nlive);
-        int lthread;
-
-        for (lthread = 0; lthread < nlive; lthread++) {
-            char *live_dev = LiveGetDevice(lthread);
-            AFPIfaceConfig *aconf;
-
-            if (live_dev == NULL) {
-                printf("Failed to lookup live dev %d\n", lthread);
-                exit(EXIT_FAILURE);
-            }
-            SCLogDebug("live_dev %s", live_dev);
-
-            aconf = ParseAFPConfig(live_dev);
-            if (aconf == NULL) {
-                printf("Failed to allocate config %d\n", lthread);
-                exit(EXIT_FAILURE);
-            }
-
-            for (thread = 0; thread < aconf->threads; thread++) {
-                snprintf(tname, sizeof(tname), "RxAFP%s%"PRIu16, live_dev, thread+1);
-                char *thread_name = SCStrdup(tname);
-
-                ThreadVars *tv_receive =
-                    TmThreadCreatePacketHandler(thread_name,
-                            "packetpool", "packetpool",
-                            queues, "flow", "pktacqloop");
-                if (tv_receive == NULL) {
-                    printf("ERROR: TmThreadsCreate failed\n");
-                    exit(EXIT_FAILURE);
-                }
-                TmModule *tm_module = TmModuleGetByName("ReceiveAFP");
-                if (tm_module == NULL) {
-                    printf("ERROR: TmModuleGetByName failed for ReceiveAFP\n");
-                    exit(EXIT_FAILURE);
-                }
-                TmSlotSetFuncAppend(tv_receive, tm_module, aconf);
-
-                tm_module = TmModuleGetByName("DecodeAFP");
-                if (tm_module == NULL) {
-                    printf("ERROR: TmModuleGetByName DecodeAFP failed\n");
-                    exit(EXIT_FAILURE);
-                }
-                TmSlotSetFuncAppend(tv_receive, tm_module, NULL);
-
-                TmThreadSetCPU(tv_receive, RECEIVE_CPU_SET);
-
-                if (TmThreadSpawn(tv_receive) != TM_ECODE_OK) {
-                    printf("ERROR: TmThreadSpawn failed\n");
-                    exit(EXIT_FAILURE);
-                }
-            }
-        }
+    ret = RunModeSetLiveCaptureAutoFp(de_ctx,
+                              ParseAFPConfig,
+                              AFPConfigGeThreadsCount,
+                              "ReceiveAFP",
+                              "DecodeAFP", "RxAFP",
+                              live_dev);
+    if (ret != 0) {
+        printf("ERROR: Unable to start runmode\n");
+        if (live_dev)
+            SCFree(live_dev);
+        exit(EXIT_FAILURE);
     }
 
-    for (thread = 0; thread < thread_max; thread++) {
-        snprintf(tname, sizeof(tname), "Detect%"PRIu16, thread+1);
-        snprintf(qname, sizeof(qname), "pickup%"PRIu16, thread+1);
+    if (live_dev)
+        SCFree(live_dev);
 
-        SCLogDebug("tname %s, qname %s", tname, qname);
-
-        char *thread_name = SCStrdup(tname);
-
-        ThreadVars *tv_detect_ncpu =
-            TmThreadCreatePacketHandler(thread_name,
-                                        qname, "flow",
-                                        "packetpool", "packetpool",
-                                        "varslot");
-        if (tv_detect_ncpu == NULL) {
-            printf("ERROR: TmThreadsCreate failed\n");
-            exit(EXIT_FAILURE);
-        }
-        TmModule *tm_module = TmModuleGetByName("StreamTcp");
-        if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName StreamTcp failed\n");
-            exit(EXIT_FAILURE);
-        }
-        TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
-
-        tm_module = TmModuleGetByName("Detect");
-        if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName Detect failed\n");
-            exit(EXIT_FAILURE);
-        }
-        TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
-
-        TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
-
-        char *thread_group_name = SCStrdup("Detect");
-        if (thread_group_name == NULL) {
-            printf("Error allocating memory\n");
-            exit(EXIT_FAILURE);
-        }
-        tv_detect_ncpu->thread_group_name = thread_group_name;
-
-        /* add outputs as well */
-        SetupOutputs(tv_detect_ncpu);
-
-        if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
-            printf("ERROR: TmThreadSpawn failed\n");
-            exit(EXIT_FAILURE);
-        }
-    }
+    SCLogInfo("RunModeIdsAFPAutoFp initialised");
 
 #endif /* HAVE_AF_PACKET */
 
