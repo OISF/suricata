@@ -60,6 +60,9 @@ typedef struct ThreadVarsMSSyncPt_ {
 
     int slave_hit;
     int master_go;
+    /* indicates whether this syn point has been disabled or not.  If disabled,
+     * the slave won't be able to use it anymore */
+    int disabled;
 
     struct ThreadVarsMSSyncPt_ *next;
 } ThreadVarsMSSyncPt;

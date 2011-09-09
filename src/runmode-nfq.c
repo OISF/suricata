@@ -118,8 +118,8 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx)
             printf("ERROR: TmModuleGetByName failed for ReceiveNFQ\n");
             exit(EXIT_FAILURE);
         }
-
         TmSlotSetFuncAppend(tv_receivenfq, tm_module, (void *) NFQGetThread(i));
+        TmThreadMSRegisterSyncPt(tv_receivenfq, "ReceiveTMBeforeDeInit");
 
         TmThreadSetCPU(tv_receivenfq, RECEIVE_CPU_SET);
 

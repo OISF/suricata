@@ -63,6 +63,48 @@ TmModule *TmModuleGetByName(char *name) {
     return NULL;
 }
 
+/**
+ * \brief Returns a TM Module by its id.
+ *
+ * \param id Id of the TM Module to return.
+ *
+ * \retval Pointer of the module to be returned if available;
+ *         NULL if unavailable.
+ */
+TmModule *TmModuleGetById(int id)
+{
+
+    if (id < 0 || id >= TMM_SIZE) {
+        SCLogError(SC_ERR_TM_MODULES_ERROR, "Threading module with the id "
+                   "\"%d\" doesn't exist", id);
+        return NULL;
+    }
+
+    return &tmm_modules[id];
+}
+
+/**
+ * \brief Given a TM Module, returns its id.
+ *
+ * \param tm Pointer to the TM Module.
+ *
+ * \retval id of the TM Module if available; -1 if unavailable.
+ */
+int TmModuleGetIDForTM(TmModule *tm)
+{
+    TmModule *t;
+    int i;
+
+    for (i = 0; i < TMM_SIZE; i++) {
+        t = &tmm_modules[i];
+
+        if (strcmp(t->name, tm->name) == 0)
+            return i;
+    }
+
+    return -1;
+}
+
 /** \brief LogFileNewCtx() Get a new LogFileCtx
  *  \retval LogFileCtx * pointer if succesful, NULL if error
  *  */

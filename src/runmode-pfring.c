@@ -121,6 +121,7 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
     TmSlotSetFuncAppend(tv_receivepfring, tm_module, NULL);
+    TmThreadMSRegisterSyncPt(tv_receivepfring, "ReceiveTMBeforeDeInit");
 
     if (threading_set_cpu_affinity) {
         TmThreadSetCPUAffinity(tv_receivepfring, 0);
@@ -371,6 +372,7 @@ int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx)
             exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend(tv_receive, tm_module, NULL);
+        TmThreadMSRegisterSyncPt(tv_receive, "ReceiveTMBeforeDeInit");
 
         tm_module = TmModuleGetByName("DecodePfring");
         if (tm_module == NULL) {

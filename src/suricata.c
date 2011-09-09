@@ -1563,6 +1563,9 @@ int main(int argc, char **argv)
     SCCudaPBKillBatchingPackets();
 #endif
 
+    /* Disable packet acquire thread first */
+    TmThreadDisableReceiveThreads();
+
     TmThreadKillThreads();
     SCPerfReleaseResources();
     FlowShutdown();

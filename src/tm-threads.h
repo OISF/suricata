@@ -54,6 +54,9 @@ typedef struct TmSlot_ {
      * locks in the queue are NOT used */
     PacketQueue slot_post_pq;
 
+    /* store the thread module id */
+    int tm_id;
+
     /* slot id, only used my TmVarSlot to know what the first slot is */
     int id;
 
@@ -70,6 +73,7 @@ extern ThreadVars *tv_root[TVT_MAX];
 extern SCMutex tv_root_lock;
 
 void TmSlotSetFuncAppend(ThreadVars *, TmModule *, void *);
+TmSlot *TmSlotGetSlotForTM(int);
 
 ThreadVars *TmThreadCreate(char *, char *, char *, char *, char *, char *,
                            void *(fn_p)(void *), int);
@@ -113,6 +117,8 @@ void TmThreadsMSMasterReleaseSlaveAtSyncPt(ThreadVars *, const char *);
 void TmThreadsMSMasterDisableSlaveSyncPt(ThreadVars *, const char *);
 void TmThreadsMSMasterReleaseSlaveAllSyncPts(ThreadVars *);
 void TmThreadsMSMasterDisableSlaveAllSyncPts(ThreadVars *tv);
+
+void TmThreadDisableReceiveThreads(void);
 
 #if 0
 

@@ -173,6 +173,10 @@ void *TmThreadsSlot1NoIn(void *td)
         }
     } /* while (run) */
 
+    /* wait for synchronization from master, if this TV has a synchronization
+     * point set by this name */
+    TmThreadsMSSlaveHitSyncPt(tv, "ReceiveTMBeforeDeInit");
+
     if (s->SlotThreadExitPrintStats != NULL) {
         s->SlotThreadExitPrintStats(tv, s->slot_data);
     }
@@ -243,6 +247,10 @@ void *TmThreadsSlot1NoOut(void *td)
         }
     } /* while (run) */
 
+    /* wait for synchronization from master, if this TV has a synchronization
+     * point set by this name */
+    TmThreadsMSSlaveHitSyncPt(tv, "ReceiveTMBeforeDeInit");
+
     if (s->SlotThreadExitPrintStats != NULL) {
         s->SlotThreadExitPrintStats(tv, s->slot_data);
     }
@@ -307,6 +315,10 @@ void *TmThreadsSlot1NoInOut(void *td)
             run = 0;
         }
     } /* while (run) */
+
+    /* wait for synchronization from master, if this TV has a synchronization
+     * point set by this name */
+    TmThreadsMSSlaveHitSyncPt(tv, "ReceiveTMBeforeDeInit");
 
     if (s->SlotThreadExitPrintStats != NULL) {
         s->SlotThreadExitPrintStats(tv, s->slot_data);
@@ -402,6 +414,10 @@ void *TmThreadsSlot1(void *td)
             run = 0;
         }
     } /* while (run) */
+
+    /* wait for synchronization from master, if this TV has a synchronization
+     * point set by this name */
+    TmThreadsMSSlaveHitSyncPt(tv, "ReceiveTMBeforeDeInit");
 
     if (s->SlotThreadExitPrintStats != NULL) {
         s->SlotThreadExitPrintStats(tv, s->slot_data);
@@ -554,6 +570,10 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
     }
     SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
 
+    /* wait for synchronization from master, if this TV has a synchronization
+     * point set by this name */
+    TmThreadsMSSlaveHitSyncPt(tv, "ReceiveTMBeforeDeInit");
+
     for (slot = s; slot != NULL; slot = slot->slot_next) {
         if (slot->SlotThreadExitPrintStats != NULL) {
             slot->SlotThreadExitPrintStats(tv, slot->slot_data);
@@ -667,6 +687,10 @@ void *TmThreadsSlotVar(void *td)
     } /* while (run) */
     SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
 
+    /* wait for synchronization from master, if this TV has a synchronization
+     * point set by this name */
+    TmThreadsMSSlaveHitSyncPt(tv, "ReceiveTMBeforeDeInit");
+
     s = (TmSlot *)tv->tm_slots;
 
     for ( ; s != NULL; s = s->slot_next) {
@@ -758,6 +782,9 @@ void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data)
     slot->PktAcqLoop = tm->PktAcqLoop;
     slot->SlotThreadExitPrintStats = tm->ThreadExitPrintStats;
     slot->SlotThreadDeinit = tm->ThreadDeinit;
+    /* we don't have to check for the return value "-1".  We wouldn't have
+     * received a TM as arg, if it didn't exist */
+    slot->tm_id = TmModuleGetIDForTM(tm);
 
     tv->cap_flags |= tm->cap_flags;
 
@@ -792,6 +819,41 @@ void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data)
     }
 #endif
     return;
+}
+
+/**
+ * \brief Returns the slot holding a TM with the particular tm_id.
+ *
+ * \param tm_id TM id of the TM whose slot has to be returned.
+ *
+ * \retval slots Pointer to the slot.
+ */
+TmSlot *TmSlotGetSlotForTM(int tm_id)
+{
+    ThreadVars *tv = NULL;
+    TmSlot *slots;
+    int i;
+
+    SCMutexLock(&tv_root_lock);
+
+    for (i = 0; i < TVT_MAX; i++) {
+        tv = tv_root[i];
+        while (tv) {
+            slots = tv->tm_slots;
+            while (slots != NULL) {
+                if (slots->tm_id == tm_id) {
+                    SCMutexUnlock(&tv_root_lock);
+                    return slots;
+                }
+                slots = slots->slot_next;
+            }
+            tv = tv->next;
+        }
+    }
+
+    SCMutexUnlock(&tv_root_lock);
+
+    return NULL;
 }
 
 #if !defined OS_WIN32 && !defined __OpenBSD__
@@ -1296,6 +1358,45 @@ void TmThreadKillThread(ThreadVars *tv)
     return;
 }
 
+/**
+ * \brief Disable receive threads.
+ */
+void TmThreadDisableReceiveThreads(void)
+{
+    ThreadVars *tv = NULL;
+
+    SCMutexLock(&tv_root_lock);
+
+    /* all receive threads are part of packet processing threads */
+    tv = tv_root[TVT_PPT];
+
+    /* we do have to keep in mind that TVs are arranged in the order
+     * right from receive to log.  The moment we fail to find a
+     * receive TM amongst the slots in a tv, it indicates we are done
+     * with all receive threads */
+    while (tv) {
+        /* obtain the slots for this TV */
+        TmSlot *slots = tv->tm_slots;
+        TmModule *tm = TmModuleGetById(slots->tm_id);
+
+        /* Kind of a hack.  All packet_acquire/receive TMs in our engine
+         * have the string "receive" as a substring in their name */
+        char *found = strcasestr(tm->name, "receive");
+        if (found == NULL)
+            break;
+
+        /* we found our receive TV.  Send it a KILL signal.  This is all
+         * we need to do to kill receive threads */
+        TmThreadsSetFlag(tv, THV_KILL);
+
+        tv = tv->next;
+    }
+
+    SCMutexUnlock(&tv_root_lock);
+
+    return;
+}
+
 void TmThreadKillThreads(void) {
     ThreadVars *tv = NULL;
     int i = 0;
@@ -1306,6 +1407,8 @@ void TmThreadKillThreads(void) {
         while (tv) {
             TmThreadsSetFlag(tv, THV_KILL);
             SCLogDebug("told thread %s to stop", tv->name);
+
+            TmThreadsMSMasterDisableSlaveAllSyncPts(tv);
 
             if (tv->inq != NULL) {
                 int i;
@@ -1452,16 +1555,19 @@ void TmThreadsMSSlaveHitSyncPt(ThreadVars *tv, const char *sync_pt_name)
 
     SCMutexLock(&ms_sync_pts->m);
     {
-        ms_sync_pts->slave_hit = 1;
-        while (1) {
-            SCCondWait(&ms_sync_pts->cond, &ms_sync_pts->m);
+        if (!ms_sync_pts->disabled) {
+            ms_sync_pts->slave_hit = 1;
+            while (1) {
+                SCCondWait(&ms_sync_pts->cond, &ms_sync_pts->m);
 
-            if (!ms_sync_pts->master_go)
-                continue;
+                if (!ms_sync_pts->master_go)
+                    continue;
 
-            /* reset them */
-            ms_sync_pts->slave_hit = 0;
-            ms_sync_pts->master_go = 0;
+                /* reset them */
+                ms_sync_pts->slave_hit = 0;
+                ms_sync_pts->master_go = 0;
+                break;
+            }
         }
     }
     SCMutexUnlock(&ms_sync_pts->m);
