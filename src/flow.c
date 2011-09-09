@@ -485,10 +485,11 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
  * \retval 0 on error, failed block, nothing to prune
  * \retval 1 on successfully pruned one
  */
-static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts)
+static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts, int try_cnt)
 {
     SCEnter();
     int cnt = 0;
+    int try_cnt_temp = 0;
     Flow *qnext_f = NULL;
 
     int mr = SCMutexTrylock(&q->mutex_q);
@@ -512,6 +513,12 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts)
         SCMutexUnlock(&q->mutex_q);
         return cnt;
     }
+    if (try_cnt != 0 && try_cnt_temp == try_cnt) {
+        SCMutexUnlock(&q->mutex_q);
+        return cnt;
+    }
+    try_cnt_temp++;
+
     if (f == NULL) {
         SCMutexUnlock(&q->mutex_q);
         SCLogDebug("top is null");
@@ -677,12 +684,28 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts)
 
     cnt++;
     FlowClearMemory (f, f->protomap);
-
     /* move to spare list */
-    FlowRequeue(f, q, &flow_spare_q, 1);
-
+    mr = SCMutexTrylock(&q->mutex_q);
+    if (mr != 0) {
+        SCLogDebug("trylock failed");
+        if (mr == EBUSY)
+            SCLogDebug("was locked");
+        if (mr == EINVAL)
+            SCLogDebug("bad mutex value");
+#ifdef FLOW_PRUNE_DEBUG
+        prune_queue_lock++;
+#endif
+        FlowRequeue(f, q, &flow_spare_q, 0);
+        SCMutexUnlock(&f->m);
+        return cnt;
+    }
+    Flow *next_flow = f->lnext;
+    /* move to spare list */
+    FlowRequeue(f, q, &flow_spare_q, 0);
     SCMutexUnlock(&f->m);
-    return cnt;
+    f = next_flow;
+
+    goto FlowPrune_Prune_Next;
 }
 
 /** \brief Time out flows.
@@ -694,11 +717,7 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts)
 static uint32_t FlowPruneFlowQueue(ThreadVars *tv, FlowQueue *q, struct timeval *ts)
 {
     SCEnter();
-    uint32_t cnt = 0;
-    while(FlowPrune(tv, q, ts)) {
-        cnt++;
-    }
-    return cnt;
+    return FlowPrune(tv, q, ts, 0);
 }
 
 /** \brief Time out flows on new/estabhlished/close queues for each proto until
@@ -907,11 +926,7 @@ uint32_t FlowKillFlowsCnt(int cnt)
 static uint32_t FlowPruneFlowQueueCnt(FlowQueue *q, struct timeval *ts, int try_cnt)
 {
     SCEnter();
-    uint32_t cnt = 0;
-    while (try_cnt--) {
-        cnt += FlowPrune(NULL, q, ts);
-    }
-    return cnt;
+    return FlowPrune(NULL, q, ts, try_cnt);
 }
 
 /** \brief Make sure we have enough spare flows. 
@@ -2372,7 +2387,7 @@ static int FlowTestPrune(Flow *f, struct timeval *ts) {
     }
 
     SCLogDebug("calling FlowPrune");
-    FlowPrune(NULL, q, ts);
+    FlowPrune(NULL, q, ts, 0);
     if (q->len != 0) {
         printf("Failed in prunning the flow: ");
         goto error;
