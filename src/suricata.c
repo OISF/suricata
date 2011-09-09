@@ -1541,12 +1541,6 @@ int main(int argc, char **argv)
                 SCLogInfo("all packets processed by threads, stopping engine");
             }
 
-            struct timeval end_time;
-            memset(&end_time, 0, sizeof(end_time));
-            gettimeofday(&end_time, NULL);
-
-            SCLogInfo("time elapsed %" PRIuMAX "s", (uintmax_t)(end_time.tv_sec - start_time.tv_sec));
-
             break;
         }
 
@@ -1567,6 +1561,11 @@ int main(int argc, char **argv)
     TmThreadDisableReceiveThreads();
 
     FlowForceReassembly();
+
+    struct timeval end_time;
+    memset(&end_time, 0, sizeof(end_time));
+    gettimeofday(&end_time, NULL);
+    SCLogInfo("time elapsed %" PRIuMAX "s", (uintmax_t)(end_time.tv_sec - start_time.tv_sec));
 
     TmThreadKillThreads();
     SCPerfReleaseResources();
