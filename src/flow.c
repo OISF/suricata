@@ -1093,17 +1093,39 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
             p->payload = NULL;
             p->payload_len = 0;
 
-            /* set the ip header */
-            p->ip4h = (IPV4Hdr *)p->pkt;
-            /* version 4 and length 20 bytes for the tcp header */
-            p->ip4h->ip_verhl = 0x45;
-            p->ip4h->ip_len = htons(40);
-            p->ip4h->ip_proto = IPPROTO_TCP;
-            p->ip4h->ip_src.s_addr = f->src.addr_data32[0];
-            p->ip4h->ip_dst.s_addr = f->dst.addr_data32[0];
+            if (f->src.family == AF_INET) {
+                /* set the ip header */
+                p->ip4h = (IPV4Hdr *)p->pkt;
+                /* version 4 and length 20 bytes for the tcp header */
+                p->ip4h->ip_verhl = 0x45;
+                p->ip4h->ip_len = htons(40);
+                p->ip4h->ip_proto = IPPROTO_TCP;
+                p->ip4h->ip_src.s_addr = f->src.addr_data32[0];
+                p->ip4h->ip_dst.s_addr = f->dst.addr_data32[0];
 
-            /* set the tcp header */
-            p->tcph = (TCPHdr *)((uint8_t *)p->pkt + 20);
+                /* set the tcp header */
+                p->tcph = (TCPHdr *)((uint8_t *)p->pkt + 20);
+
+            } else {
+                /* set the ip header */
+                p->ip6h = (IPV6Hdr *)p->pkt;
+                /* version 6 */
+                p->ip6h->s_ip6_vfc = 0x60;
+                p->ip6h->s_ip6_plen = htons(20);
+                p->ip6h->s_ip6_nxt = IPPROTO_TCP;
+                p->ip6h->ip6_src[0] = f->src.addr_data32[0];
+                p->ip6h->ip6_src[1] = f->src.addr_data32[0];
+                p->ip6h->ip6_src[2] = f->src.addr_data32[0];
+                p->ip6h->ip6_src[3] = f->src.addr_data32[0];
+                p->ip6h->ip6_dst[0] = f->dst.addr_data32[0];
+                p->ip6h->ip6_dst[1] = f->dst.addr_data32[0];
+                p->ip6h->ip6_dst[2] = f->dst.addr_data32[0];
+                p->ip6h->ip6_dst[3] = f->dst.addr_data32[0];
+
+                /* set the tcp header */
+                p->tcph = (TCPHdr *)((uint8_t *)p->pkt + 40);
+            }
+
             p->tcph->th_sport = htons(f->sp);
             p->tcph->th_dport = htons(f->dp);
 
@@ -1145,17 +1167,38 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
             p->payload = NULL;
             p->payload_len = 0;
 
-            /* set the ip header */
-            p->ip4h = (IPV4Hdr *)p->pkt;
-            /* version 4 and length 20 bytes for the tcp header */
-            p->ip4h->ip_verhl = 0x45;
-            p->ip4h->ip_len = htons(40);
-            p->ip4h->ip_proto = IPPROTO_TCP;
-            p->ip4h->ip_src.s_addr = f->dst.addr_data32[0];
-            p->ip4h->ip_dst.s_addr = f->src.addr_data32[0];
+            if (f->src.family == AF_INET) {
+                /* set the ip header */
+                p->ip4h = (IPV4Hdr *)p->pkt;
+                /* version 4 and length 20 bytes for the tcp header */
+                p->ip4h->ip_verhl = 0x45;
+                p->ip4h->ip_len = htons(40);
+                p->ip4h->ip_proto = IPPROTO_TCP;
+                p->ip4h->ip_src.s_addr = f->dst.addr_data32[0];
+                p->ip4h->ip_dst.s_addr = f->src.addr_data32[0];
 
-            /* set the tcp header */
-            p->tcph = (TCPHdr *)((uint8_t *)p->pkt + 20);
+                /* set the tcp header */
+                p->tcph = (TCPHdr *)((uint8_t *)p->pkt + 20);
+
+            } else {
+                /* set the ip header */
+                p->ip6h = (IPV6Hdr *)p->pkt;
+                /* version 6 */
+                p->ip6h->s_ip6_vfc = 0x60;
+                p->ip6h->s_ip6_plen = htons(20);
+                p->ip6h->s_ip6_nxt = IPPROTO_TCP;
+                p->ip6h->ip6_dst[0] = f->src.addr_data32[0];
+                p->ip6h->ip6_dst[1] = f->src.addr_data32[0];
+                p->ip6h->ip6_dst[2] = f->src.addr_data32[0];
+                p->ip6h->ip6_dst[3] = f->src.addr_data32[0];
+                p->ip6h->ip6_src[0] = f->dst.addr_data32[0];
+                p->ip6h->ip6_src[1] = f->dst.addr_data32[0];
+                p->ip6h->ip6_src[2] = f->dst.addr_data32[0];
+                p->ip6h->ip6_src[3] = f->dst.addr_data32[0];
+
+                /* set the tcp header */
+                p->tcph = (TCPHdr *)((uint8_t *)p->pkt + 40);
+            }
             p->tcph->th_sport = htons(f->dp);
             p->tcph->th_dport = htons(f->sp);
 
