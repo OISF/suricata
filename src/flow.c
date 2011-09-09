@@ -612,14 +612,30 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts)
      *  we are currently processing in one of the threads */
     if (SC_ATOMIC_GET(f->use_cnt) > 0) {
         SCLogDebug("timed out but use_cnt > 0: %"PRIu16", %p, proto %"PRIu8"", SC_ATOMIC_GET(f->use_cnt), f, f->proto);
-        SCSpinUnlock(&f->fb->s);
-        SCMutexUnlock(&f->m);
         SCLogDebug("it is in one of the threads");
 
 #ifdef FLOW_PRUNE_DEBUG
         prune_usecnt++;
 #endif
-        return cnt;
+        int mr = SCMutexTrylock(&q->mutex_q);
+        if (mr != 0) {
+            SCLogDebug("trylock failed");
+            if (mr == EBUSY)
+                SCLogDebug("was locked");
+            if (mr == EINVAL)
+                SCLogDebug("bad mutex value");
+#ifdef FLOW_PRUNE_DEBUG
+            prune_queue_lock++;
+#endif
+            SCSpinUnlock(&f->fb->s);
+            SCMutexUnlock(&f->m);
+            return cnt;
+        }
+        Flow *prev_f = f;
+        f = f->lnext;
+        SCSpinUnlock(&prev_f->fb->s);
+        SCMutexUnlock(&prev_f->m);
+        goto FlowPrune_Prune_Next;
     }
 
     if (FlowForceReassemblyForFlowV2(tv, f) == 1) {
