@@ -89,6 +89,7 @@
 #define FLOW_TC_PP_ALPROTO_DETECT_DONE    0x00200000
 /* Both pattern matcher and probing parser alproto detection done */
 #define FLOW_TC_PM_PP_ALPROTO_DETECT_DONE 0x00400000
+#define FLOW_TIMEOUT_REASSEMBLY_DONE      0x00800000
 
 /* pkt flow flags */
 #define FLOW_PKT_TOSERVER               0x01

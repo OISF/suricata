@@ -162,7 +162,9 @@ void *TmThreadsSlot1NoIn(void *td)
 
         /* handle post queue */
         while (s->slot_post_pq.top != NULL) {
+            SCMutexLock(&s->slot_post_pq.mutex_q);
             Packet *extra_p = PacketDequeue(&s->slot_post_pq);
+            SCMutexUnlock(&s->slot_post_pq.mutex_q);
             if (extra_p != NULL)
                 tv->tmqh_out(tv, extra_p);
         }
@@ -402,7 +404,9 @@ void *TmThreadsSlot1(void *td)
 
             while (s->slot_post_pq.top != NULL) {
                 /* handle new packets from this func */
+                SCMutexLock(&s->slot_post_pq.mutex_q);
                 Packet *extra_p = PacketDequeue(&s->slot_post_pq);
+                SCMutexUnlock(&s->slot_post_pq.mutex_q);
                 if (extra_p != NULL) {
                     tv->tmqh_out(tv, extra_p);
                 }
@@ -663,7 +667,9 @@ void *TmThreadsSlotVar(void *td)
             TmSlot *slot;
             for (slot = s; slot != NULL; slot = slot->slot_next) {
                 while (slot->slot_post_pq.top != NULL) {
+                    SCMutexLock(&slot->slot_post_pq.mutex_q);
                     Packet *extra_p = PacketDequeue(&slot->slot_post_pq);
+                    SCMutexUnlock(&slot->slot_post_pq.mutex_q);
                     if (extra_p == NULL)
                         break;
 
@@ -1437,6 +1443,37 @@ void TmThreadDisableReceiveThreads(void)
     SCMutexUnlock(&tv_root_lock);
 
     return;
+}
+
+TmSlot *TmThreadGetFirstTmSlotForPartialPattern(const char *tm_name)
+{
+    ThreadVars *tv = NULL;
+    TmSlot *slots = NULL;
+
+    SCMutexLock(&tv_root_lock);
+
+    /* all receive threads are part of packet processing threads */
+    tv = tv_root[TVT_PPT];
+
+    while (tv) {
+        slots = tv->tm_slots;
+
+        while (slots != NULL) {
+            TmModule *tm = TmModuleGetById(slots->tm_id);
+
+            char *found = strcasestr(tm->name, tm_name);
+            if (found != NULL)
+                goto end;
+
+            slots = slots->slot_next;
+        }
+
+        tv = tv->next;
+    }
+
+ end:
+    SCMutexUnlock(&tv_root_lock);
+    return slots;
 }
 
 void TmThreadKillThreads(void) {

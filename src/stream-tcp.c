@@ -529,7 +529,7 @@ TcpSession *StreamTcpNewSession (Packet *p)
 static void StreamTcpPacketSetState(Packet *p, TcpSession *ssn,
                                            uint8_t state)
 {
-    if (state == ssn->state)
+    if (state == ssn->state || PKT_IS_PSEUDOPKT(p))
         return;
 
     ssn->state = state;

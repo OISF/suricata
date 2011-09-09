@@ -123,6 +123,7 @@ void TmThreadsMSMasterDisableSlaveAllSyncPts(ThreadVars *tv);
 
 ThreadVars *TmThreadsGetTVContainingSlot(TmSlot *);
 void TmThreadDisableReceiveThreads(void);
+TmSlot *TmThreadGetFirstTmSlotForPartialPattern(const char *);
 
 #if 0
 
@@ -153,7 +154,9 @@ void TmThreadDisableReceiveThreads(void);
             TmSlot *slot = (s);                                         \
             while (slot != NULL) {                                      \
                 while (slot->slot_post_pq.top != NULL) {                \
+                    SCMutexLock(&slot->slot_post_pq.mutex_q);           \
                     Packet *extra_p = PacketDequeue(&slot->slot_post_pq);\
+                    SCMutexUnlock(&slot->slot_post_pq.mutex_q);         \
                     if (extra_p != NULL) {                              \
                         if (slot->slot_next != NULL) {                  \
                             r = TmThreadsSlotVarRun(tv, extra_p, slot->slot_next); \
@@ -205,7 +208,9 @@ static inline TmEcode TmThreadsSlotProcessPkt(ThreadVars *tv, TmSlot *s, Packet 
         TmSlot *slot = s;
         while (slot != NULL) {
             while (slot->slot_post_pq.top != NULL) {
+                SCMutexLock(&slot->slot_post_pq.mutex_q);
                 Packet *extra_p = PacketDequeue(&slot->slot_post_pq);
+                SCMutexUnlock(&slot->slot_post_pq.mutex_q);
                 if (extra_p != NULL) {
                     if (slot->slot_next != NULL) {
                         r = TmThreadsSlotVarRun(tv, extra_p, slot->slot_next);
