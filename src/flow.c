@@ -1018,6 +1018,8 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
 {
     Flow *f;
     TcpSession *ssn;
+    int client_ok = 0;
+    int server_ok = 0;
 
     /* no locks needed, since the engine is virtually dead.
      * We are the kings here */
@@ -1045,7 +1047,12 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
         }
 
         /* ah ah!  We have some unattended toserver segments */
-        if (ssn->client.seg_list != NULL) {
+        if (!(ssn->client.seg_list == NULL ||
+              (ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED &&
+               ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED &&
+               ssn->toserver_smsg_head == NULL))) {
+            client_ok = 1;
+
             StreamTcpThread *stt = stream_pseudo_pkt_stream_tm_slot->slot_data;
 
             ssn->client.last_ack = (ssn->client.seg_list_tail->seq +
@@ -1058,7 +1065,11 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
             StreamTcpReassembleProcessAppLayer(stt->ra_ctx);
         }
         /* oh oh!  We have some unattended toclient segments */
-        if (ssn->server.seg_list != NULL) {
+        if (!(ssn->server.seg_list == NULL ||
+              (ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED &&
+               ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED &&
+               ssn->toclient_smsg_head == NULL))) {
+            server_ok = 1;
             StreamTcpThread *stt = stream_pseudo_pkt_stream_tm_slot->slot_data;
 
             ssn->server.last_ack = (ssn->server.seg_list_tail->seq +
@@ -1072,7 +1083,7 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
         }
 
         /* insert a pseudo packet in the toserver direction */
-        if (ssn->client.seg_list != NULL) {
+        if (client_ok == 1) {
             Packet *p = PacketGetFromQueueOrAlloc();
             if (p == NULL) {
                 printf("packet is NULL\n");
@@ -1146,7 +1157,7 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
                 }
             }
         } /* if (ssn->client.seg_list != NULL) */
-        if (ssn->server.seg_list != NULL) {
+        if (server_ok == 1) {
             Packet *p = PacketGetFromQueueOrAlloc();
             if (p == NULL) {
                 printf("packet is NULL\n");
