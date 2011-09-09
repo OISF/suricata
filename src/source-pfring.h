@@ -24,6 +24,27 @@
 #ifndef __SOURCE_PFRING_H__
 #define __SOURCE_PFRING_H__
 
+#define PFRING_IFACE_NAME_LENGTH 48
+
+#include <config.h>
+#ifdef HAVE_PFRING
+#include <pfring.h>
+#endif
+
+typedef struct PfringIfaceConfig_
+{
+    /* cluster param */
+    int cluster_id;
+#ifdef HAVE_PFRING_CLUSTER_TYPE
+    cluster_type ctype;
+#endif /* HAVE_PFRING_CLUSTER_TYPE */
+    char iface[PFRING_IFACE_NAME_LENGTH];
+    /* number of threads */
+    int threads;
+} PfringIfaceConfig;
+
+
+
 void TmModuleReceivePfringRegister (void);
 void TmModuleDecodePfringRegister (void);
 

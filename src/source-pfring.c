@@ -44,7 +44,7 @@
 #include "util-debug.h"
 #include "util-privs.h"
 
-TmEcode ReceivePfring(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot);
 TmEcode ReceivePfringThreadInit(ThreadVars *, void *, void **);
 void ReceivePfringThreadExitStats(ThreadVars *, void *);
 TmEcode ReceivePfringThreadDeinit(ThreadVars *, void *);
@@ -103,9 +103,6 @@ TmEcode NoPfringSupportExit(ThreadVars *tv, void *initdata, void **data)
 #define LIBPFRING_REENTRANT   0
 #define LIBPFRING_WAIT_FOR_INCOMING 1
 
-
-int g_pfring_threads;
-
 /**
  * \brief Structure to hold thread specific variables.
  */
@@ -117,6 +114,12 @@ typedef struct PfringThreadVars_
     /* counters */
     uint64_t bytes;
     uint32_t pkts;
+
+    ThreadVars *tv;
+    TmSlot *slot;
+    
+    /* threads count */
+    int threads;
 
 #ifdef HAVE_PFRING_CLUSTER_TYPE
     cluster_type ctype;
@@ -132,7 +135,8 @@ typedef struct PfringThreadVars_
 void TmModuleReceivePfringRegister (void) {
     tmm_modules[TMM_RECEIVEPFRING].name = "ReceivePfring";
     tmm_modules[TMM_RECEIVEPFRING].ThreadInit = ReceivePfringThreadInit;
-    tmm_modules[TMM_RECEIVEPFRING].Func = ReceivePfring;
+    tmm_modules[TMM_RECEIVEPFRING].Func = NULL;
+    tmm_modules[TMM_RECEIVEPFRING].PktAcqLoop = ReceivePfringLoop;
     tmm_modules[TMM_RECEIVEPFRING].ThreadExitPrintStats = ReceivePfringThreadExitStats;
     tmm_modules[TMM_RECEIVEPFRING].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVEPFRING].RegisterTests = NULL;
@@ -149,24 +153,6 @@ void TmModuleDecodePfringRegister (void) {
     tmm_modules[TMM_DECODEPFRING].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEPFRING].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODEPFRING].RegisterTests = NULL;
-}
-
-int PfringConfGetThreads(void) {
-    return g_pfring_threads;
-}
-
-void PfringLoadConfig(void) {
-    char *threadsstr = NULL;
-
-    if (ConfGet("pfring.threads", &threadsstr) != 1) {
-        g_pfring_threads = 1;
-    } else {
-        if (threadsstr != NULL) {
-            g_pfring_threads = (uint8_t)atoi(threadsstr);
-            SCLogInfo("Going to use %" PRId32 " PF_RING receive thread(s)",
-                    g_pfring_threads);
-        }
-    }
 }
 
 /**
@@ -204,40 +190,65 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
  *
  * \param tv pointer to ThreadVars
  * \param data pointer that gets cast into PfringThreadVars for ptv
- * \param pq pointer to the PacketQueue (not used here but part of the api)
+ * \param slot slot containing task information
  * \retval TM_ECODE_OK on success
  * \retval TM_ECODE_FAILED on failure
  */
-TmEcode ReceivePfring(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
+TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
+{
+    uint16_t packet_q_len = 0;
     PfringThreadVars *ptv = (PfringThreadVars *)data;
+    TmSlot *s = (TmSlot *)slot;
+    ptv->slot = s->slot_next;
+    Packet *p = NULL;
 
     struct pfring_pkthdr hdr;
 
-    if (suricata_ctl_flags & SURICATA_STOP ||
-            suricata_ctl_flags & SURICATA_KILL) {
-        SCReturnInt(TM_ECODE_OK);
-    }
+    SCEnter();
 
-    /* Depending on what compile time options are used for pfring we either return 0 or -1 on error and always 1 for success */
+    while(1) {
+        if (suricata_ctl_flags & SURICATA_STOP ||
+                suricata_ctl_flags & SURICATA_KILL) {
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+
+        /* make sure we have at least one packet in the packet pool, to prevent
+         * us from alloc'ing packets at line rate */
+        do {
+            packet_q_len = PacketPoolSize();
+            if (unlikely(packet_q_len == 0)) {
+                PacketPoolWait();
+            }
+        } while (packet_q_len == 0);
+
+        p = PacketGetFromQueueOrAlloc();
+        if (p == NULL) {
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+
+        /* Depending on what compile time options are used for pfring we either return 0 or -1 on error and always 1 for success */
 #ifdef HAVE_PFRING_RECV_UCHAR
-    int r = pfring_recv(ptv->pd, (u_char**)&GET_PKT_DIRECT_DATA(p),
-                        (u_int)GET_PKT_DIRECT_MAX_SIZE(p),
-                        &hdr,
-                        LIBPFRING_WAIT_FOR_INCOMING);
+        int r = pfring_recv(ptv->pd, (u_char**)&GET_PKT_DIRECT_DATA(p),
+                (u_int)GET_PKT_DIRECT_MAX_SIZE(p),
+                &hdr,
+                LIBPFRING_WAIT_FOR_INCOMING);
 #else
-    int r = pfring_recv(ptv->pd, (char *)GET_PKT_DIRECT_DATA(p),
-                        (u_int)GET_PKT_DIRECT_MAX_SIZE(p),
-                        &hdr,
-                        LIBPFRING_WAIT_FOR_INCOMING);
+        int r = pfring_recv(ptv->pd, (char *)GET_PKT_DIRECT_DATA(p),
+                (u_int)GET_PKT_DIRECT_MAX_SIZE(p),
+                &hdr,
+                LIBPFRING_WAIT_FOR_INCOMING);
 #endif /* HAVE_PFRING_RECV_UCHAR */
 
-    if (r == 1) {
-        //printf("RecievePfring src %" PRIu32 " sport %" PRIu32 " dst %" PRIu32 " dstport %" PRIu32 "\n",
-        //        hdr.parsed_pkt.ipv4_src,hdr.parsed_pkt.l4_src_port, hdr.parsed_pkt.ipv4_dst,hdr.parsed_pkt.l4_dst_port);
-        PfringProcessPacket(ptv, &hdr, p);
-    } else {
-        SCLogError(SC_ERR_PF_RING_RECV,"pfring_recv error  %" PRId32 "", r);
-        return TM_ECODE_FAILED;
+        if (r == 1) {
+            //printf("RecievePfring src %" PRIu32 " sport %" PRIu32 " dst %" PRIu32 " dstport %" PRIu32 "\n",
+            //        hdr.parsed_pkt.ipv4_src,hdr.parsed_pkt.l4_src_port, hdr.parsed_pkt.ipv4_dst,hdr.parsed_pkt.l4_dst_port);
+            PfringProcessPacket(ptv, &hdr, p);
+            TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p);
+        } else {
+            SCLogError(SC_ERR_PF_RING_RECV,"pfring_recv error  %" PRId32 "", r);
+            TmqhOutputPacketpool(ptv->tv, p);
+            return TM_ECODE_FAILED;
+        }
     }
 
     return TM_ECODE_OK;
@@ -262,18 +273,17 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
     u_int32_t version = 0;
     char *tmpclusterid;
     char *tmpctype;
+    PfringIfaceConfig *pfconf = (PfringIfaceConfig *) initdata;
 
     PfringThreadVars *ptv = SCMalloc(sizeof(PfringThreadVars));
     if (ptv == NULL)
         return TM_ECODE_FAILED;
     memset(ptv, 0, sizeof(PfringThreadVars));
 
-    if (ConfGet("pfring.interface", &ptv->interface) != 1) {
-        SCLogError(SC_ERR_PF_RING_GET_INTERFACE_FAILED,"Could not get pfring.interface");
-        return TM_ECODE_FAILED;
-    } else {
-        SCLogDebug("going to use interface %s",ptv->interface);
-    }
+    ptv->tv = tv;
+    ptv->threads = 1;
+
+    ptv->interface = strdup(pfconf->iface);
 
     ptv->pd = pfring_open(ptv->interface, LIBPFRING_PROMISC, (uint32_t)default_packet_size, LIBPFRING_REENTRANT);
     if (ptv->pd == NULL) {
@@ -283,30 +293,17 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
     } else {
         pfring_set_application_name(ptv->pd, PROG_NAME);
         pfring_version(ptv->pd, &version);
-
     }
 
     /* We only set cluster info if the number of pfring threads is greater than 1 */
-    if (PfringConfGetThreads() > 1) {
-        if (ConfGet("pfring.cluster-id", &tmpclusterid) != 1) {
-            SCLogError(SC_ERR_PF_RING_GET_CLUSTERID_FAILED,"could not get pfring.cluster-id");
-            return TM_ECODE_FAILED;
-        } else {
-            ptv->cluster_id = (uint8_t)atoi(tmpclusterid);
-            SCLogDebug("Going to use cluster-id %" PRId32, ptv->cluster_id);
-        }
+    ptv->threads = pfconf->threads;
+
+    if (ptv->threads > 1) {
+        ptv->cluster_id = pfconf->cluster_id;
 
 #ifdef HAVE_PFRING_CLUSTER_TYPE
-        if (ConfGet("pfring.cluster-type", &tmpctype) != 1) {
-            SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,"Could not get pfring.cluster-type");
-            return TM_ECODE_FAILED;
-        } else if (strcmp(tmpctype, "cluster_round_robin") == 0 || strcmp(tmpctype, "cluster_flow") == 0) {
-            ptv->ctype = (cluster_type)tmpctype;
-            rc = pfring_set_cluster(ptv->pd, ptv->cluster_id, ptv->ctype);
-        } else {
-            SCLogError(SC_ERR_INVALID_CLUSTER_TYPE,"invalid cluster-type %s",tmpctype);
-            return TM_ECODE_FAILED;
-        }
+        ptv->ctype = (cluster_type)strdup((char *)pfconf->ctype);
+        rc = pfring_set_cluster(ptv->pd, ptv->cluster_id, ptv->ctype);
 #else
         rc = pfring_set_cluster(ptv->pd, ptv->cluster_id);
 #endif /* HAVE_PFRING_CLUSTER_TYPE */
@@ -370,6 +367,12 @@ void ReceivePfringThreadExitStats(ThreadVars *tv, void *data) {
  */
 TmEcode ReceivePfringThreadDeinit(ThreadVars *tv, void *data) {
     PfringThreadVars *ptv = (PfringThreadVars *)data;
+    if (ptv->interface)
+        SCFree(ptv->interface);
+#ifdef HAVE_PFRING_CLUSTER_TYPE
+    if (ptv->ctype)
+        SCFree((char *)ptv->ctype);
+#endif
     pfring_remove_from_cluster(ptv->pd);
     pfring_close(ptv->pd);
     return TM_ECODE_OK;

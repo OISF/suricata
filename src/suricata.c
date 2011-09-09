@@ -683,10 +683,11 @@ int main(int argc, char **argv)
 #ifdef HAVE_PFRING
                 run_mode = RUNMODE_PFRING;
                 if (optarg != NULL) {
-                    if (ConfSet("pfring.interface", optarg, 0) != 1) {
-                        fprintf(stderr, "ERROR: Failed to set pfring.interface.\n");
-                        exit(EXIT_FAILURE);
-                    }
+                    memset(pcap_dev, 0, sizeof(pcap_dev));
+                    strlcpy(pcap_dev, optarg,
+                            ((strlen(optarg) < sizeof(pcap_dev)) ?
+                             (strlen(optarg) + 1) : sizeof(pcap_dev)));
+                    LiveRegisterDevice(optarg);
                 }
 #else
                 SCLogError(SC_ERR_NO_PF_RING,"PF_RING not enabled. Make sure "
@@ -1078,6 +1079,7 @@ int main(int argc, char **argv)
             case RUNMODE_PCAP_DEV:
             case RUNMODE_AFP_DEV:
             case RUNMODE_PFRING:
+                /* FIXME this don't work effficiently in multiinterface */
                 /* find payload for interface and use it */
                 default_packet_size = GetIfaceMaxPayloadSize(pcap_dev);
                 if (default_packet_size)
@@ -1432,7 +1434,20 @@ int main(int argc, char **argv)
         }
 #ifdef HAVE_PFRING
     } else if (run_mode == RUNMODE_PFRING) {
-        PfringLoadConfig();
+        /* FIXME add backward compat support */
+        /* iface has been set on command line */
+        if (strlen(pcap_dev)) {
+            if (ConfSet("pfring.live-interface", pcap_dev, 0) != 1) {
+                fprintf(stderr, "ERROR: Failed to set pfring.live-interface\n");
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            int ret = LiveBuildIfaceList("pfring");
+            if (ret == 0) {
+                fprintf(stderr, "ERROR: No interface found in config for pfring\n");
+                exit(EXIT_FAILURE);
+            }
+        }
 #endif /* HAVE_PFRING */
     } else if (run_mode == RUNMODE_AFP_DEV) {
         /* iface has been set on command line */
