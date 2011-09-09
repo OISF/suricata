@@ -107,6 +107,13 @@ void TmThreadsUnsetFlag(ThreadVars *, uint8_t);
 
 TmEcode TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *slot);
 
+int TmThreadMSRegisterSyncPt(ThreadVars *, const char *);
+void TmThreadsMSSlaveHitSyncPt(ThreadVars *, const char *);
+void TmThreadsMSMasterReleaseSlaveAtSyncPt(ThreadVars *, const char *);
+void TmThreadsMSMasterDisableSlaveSyncPt(ThreadVars *, const char *);
+void TmThreadsMSMasterReleaseSlaveAllSyncPts(ThreadVars *);
+void TmThreadsMSMasterDisableSlaveAllSyncPts(ThreadVars *tv);
+
 #if 0
 
 /**
