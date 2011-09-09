@@ -365,6 +365,12 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
     SCSpinUnlock(&f->fb->s);
 
     if (suricata_ctl_flags != 0) {
+        if (client_ok == 1) {
+            FlowDecrUsecnt(f);
+        }
+        if (server_ok == 1) {
+            FlowDecrUsecnt(f);
+        }
         return 1;
     }
 
@@ -482,6 +488,9 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
 static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts)
 {
     SCEnter();
+    int cnt = 0;
+    Flow *qnext_f = NULL;
+
     int mr = SCMutexTrylock(&q->mutex_q);
     if (mr != 0) {
         SCLogDebug("trylock failed");
@@ -497,6 +506,12 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts)
     }
 
     Flow *f = q->top;
+    /* label */
+ FlowPrune_Prune_Next:
+    if (suricata_ctl_flags != 0) {
+        SCMutexUnlock(&q->mutex_q);
+        return cnt;
+    }
     if (f == NULL) {
         SCMutexUnlock(&q->mutex_q);
         SCLogDebug("top is null");
@@ -504,17 +519,18 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts)
 #ifdef FLOW_PRUNE_DEBUG
         prune_queue_empty++;
 #endif
-        return 0;
+        return cnt;
     }
+    qnext_f = f->lnext;
 
     if (SCMutexTrylock(&f->m) != 0) {
         SCLogDebug("cant lock 1");
-        SCMutexUnlock(&q->mutex_q);
 
 #ifdef FLOW_PRUNE_DEBUG
         prune_flow_lock++;
 #endif
-        return 0;
+        f = f->lnext;
+        goto FlowPrune_Prune_Next;
     }
 
     /* unlock list */
@@ -527,7 +543,7 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts)
 #ifdef FLOW_PRUNE_DEBUG
         prune_bucket_lock++;
 #endif
-        return 0;
+        return cnt;
     }
 
     /*set the timeout value according to the flow operating mode, flow's state
@@ -588,7 +604,7 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts)
 #ifdef FLOW_PRUNE_DEBUG
         prune_no_timeout++;
 #endif
-        return 0;
+        return cnt;
     }
 
     /** never prune a flow that is used by a packet or stream msg
@@ -602,11 +618,11 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts)
 #ifdef FLOW_PRUNE_DEBUG
         prune_usecnt++;
 #endif
-        return 0;
+        return cnt;
     }
 
     if (FlowForceReassemblyForFlowV2(tv, f) == 1) {
-        return 0;
+        return cnt;
     }
 
     /* this should not be possible */
@@ -626,13 +642,14 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts)
     SCSpinUnlock(&f->fb->s);
     f->fb = NULL;
 
+    cnt++;
     FlowClearMemory (f, f->protomap);
 
     /* move to spare list */
     FlowRequeue(f, q, &flow_spare_q, 1);
 
     SCMutexUnlock(&f->m);
-    return 1;
+    return cnt;
 }
 
 /** \brief Time out flows.
