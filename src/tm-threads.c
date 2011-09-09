@@ -1313,6 +1313,19 @@ void TmThreadKillThread(ThreadVars *tv)
     if (tv == NULL)
         return;
 
+    if (tv->inq != NULL) {
+        /* we wait till we dry out all the inq packets, before we
+         * kill this thread.  Do note that you should have disabled
+         * packet acquire by now using TmThreadDisableReceiveThreads()*/
+        if (!(strlen(tv->inq->name) == strlen("packetpool") &&
+              strcasecmp(tv->inq->name, "packetpool") == 0)) {
+            PacketQueue *q = &trans_q[tv->inq->id];
+            while (q->len != 0) {
+                usleep(1000);
+            }
+        }
+    }
+
     /* set the thread flag informing the thread that it needs to be
      * terminated */
     TmThreadsSetFlag(tv, THV_KILL);
