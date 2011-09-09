@@ -30,6 +30,9 @@
 #include "tm-modules.h"
 
 typedef struct TmSlot_ {
+    /* the TV holding this slot */
+    ThreadVars *tv;
+
     /* function pointers */
     TmEcode (*SlotFunc)(ThreadVars *, Packet *, void *, PacketQueue *,
                         PacketQueue *);

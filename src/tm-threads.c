@@ -804,6 +804,7 @@ void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data)
     if (slot == NULL)
         return;
     memset(slot, 0, sizeof(TmSlot));
+    slot->tv = tv;
     slot->SlotThreadInit = tm->ThreadInit;
     slot->slot_initdata = data;
     slot->SlotFunc = tm->Func;
