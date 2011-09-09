@@ -124,11 +124,10 @@ Packet *TmqhInputPacketpool(ThreadVars *t)
 
 void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
 {
+    int proot = 0;
+
     SCEnter();
-
     SCLogDebug("Packet %p, p->root %p, alloced %s", p, p->root, p->flags & PKT_ALLOC ? "true" : "false");
-
-    char proot = 0;
 
     /* final alerts cleanup... return smsgs to pool if needed */
     if (p->alerts.alert_msgs != NULL) {
@@ -140,21 +139,30 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
         SCLogDebug("Packet %p is a tunnel packet: %s",
             p,p->root ? "upper layer" : "tunnel root");
 
+        /* get a lock to access root packet fields */
+        SCMutex *m = p->root ? &p->root->tunnel_mutex : &p->tunnel_mutex;
+        SCMutexLock(m);
+
         if (IS_TUNNEL_ROOT_PKT(p)) {
             SCLogDebug("IS_TUNNEL_ROOT_PKT == TRUE");
             if (TUNNEL_PKT_TPR(p) == 0) {
-                SCLogDebug("TUNNEL_PKT_TPR(p) == 0, no more tunnel packet depending on this root");
+                SCLogDebug("TUNNEL_PKT_TPR(p) == 0, no more tunnel packet "
+                        "depending on this root");
                 /* if this packet is the root and there are no
-                 * more tunnel packets, enqueue it */
+                 * more tunnel packets, return it to the pool */
 
                 /* fall through */
             } else {
-                SCLogDebug("tunnel root Packet %p: TUNNEL_PKT_TPR(p) > 0, packets are still depending on this root, setting p->tunnel_verdicted == 1", p);
+                SCLogDebug("tunnel root Packet %p: TUNNEL_PKT_TPR(p) > 0, so "
+                        "packets are still depending on this root, setting "
+                        "p->tunnel_verdicted == 1", p);
                 /* if this is the root and there are more tunnel
-                 * packets, don't add this. It's still referenced
-                 * by the tunnel packets, and we will enqueue it
+                 * packets, return this to the pool. It's still referenced
+                 * by the tunnel packets, and we will return it
                  * when we handle them */
                 SET_TUNNEL_PKT_VERDICTED(p);
+
+                SCMutexUnlock(m);
 
                 PACKET_PROFILING_END(p);
                 SCReturn;
@@ -173,22 +181,27 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
                 SCLogDebug("p->root->tunnel_verdicted == 1 && TUNNEL_PKT_TPR(p) == 1");
                 /* the root is ready and we are the last tunnel packet,
                  * lets enqueue them both. */
-                TUNNEL_DECR_PKT_TPR(p);
+                TUNNEL_DECR_PKT_TPR_NOLOCK(p);
 
                 /* handle the root */
-                SCLogDebug("calling PacketEnqueue for root pkt, p->root %p (tunnel packet %p)", p->root, p);
+                SCLogDebug("setting proot = 1 for root pkt, p->root %p "
+                        "(tunnel packet %p)", p->root, p);
                 proot = 1;
 
                 /* fall through */
             } else {
                 /* root not ready yet, so get rid of the tunnel pkt only */
 
-                SCLogDebug("NOT p->root->tunnel_verdicted == 1 && TUNNEL_PKT_TPR(p) == 1 (%" PRIu32 ")", TUNNEL_PKT_TPR(p));
-                TUNNEL_DECR_PKT_TPR(p);
+                SCLogDebug("NOT p->root->tunnel_verdicted == 1 && "
+                        "TUNNEL_PKT_TPR(p) == 1 (%" PRIu32 ")", TUNNEL_PKT_TPR(p));
+
+                TUNNEL_DECR_PKT_TPR_NOLOCK(p);
 
                  /* fall through */
             }
         }
+        SCMutexUnlock(m);
+
         SCLogDebug("tunnel stuff done, move on (proot %d)", proot);
     }
 

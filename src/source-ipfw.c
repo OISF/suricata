@@ -548,6 +548,9 @@ TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
     if (IS_TUNNEL_PKT(p)) {
         char verdict = 1;
 
+        SCMutex *m = p->root ? &p->root->tunnel_mutex : &p->tunnel_mutex;
+        SCMutexLock(m);
+
         /* if there are more tunnel packets than ready to verdict packets,
          * we won't verdict this one
          */
@@ -557,6 +560,8 @@ TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
                     " > %" PRId32 "", TUNNEL_PKT_TPR(p), TUNNEL_PKT_RTV(p));
             verdict = 0;
         }
+
+        SCMutexUnlock(m);
 
         /* don't verdict if we are not ready */
         if (verdict == 1) {
