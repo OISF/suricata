@@ -1405,6 +1405,19 @@ void TmThreadKillThreads(void) {
         tv = tv_root[i];
 
         while (tv) {
+            if (tv->inq != NULL) {
+                /* we wait till we dry out all the inq packets, before we
+                 * kill this thread.  Do note that you should have disabled
+                 * packet acquire by now using TmThreadDisableReceiveThreads()*/
+                if (!(strlen(tv->inq->name) == strlen("packetpool") &&
+                      strcasecmp(tv->inq->name, "packetpool") == 0)) {
+                    PacketQueue *q = &trans_q[tv->inq->id];
+                    while (q->len != 0) {
+                        usleep(1000);
+                    }
+                }
+            }
+
             TmThreadsSetFlag(tv, THV_KILL);
             SCLogDebug("told thread %s to stop", tv->name);
 
