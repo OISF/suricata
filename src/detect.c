@@ -2054,6 +2054,10 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, Signature *s) {
     for ( ;sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_DECODE_EVENT)
             goto deonly;
+        if (sm->type == DETECT_ENGINE_EVENT)
+            goto deonly;
+        if (sm->type == DETECT_STREAM_EVENT)
+            goto deonly;
     }
 
     SCReturnInt(0);
@@ -2450,7 +2454,7 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
     if (!(de_ctx->flags & DE_QUIET)) {
         SCLogInfo("%" PRIu32 " signatures processed. %" PRIu32 " are IP-only "
                 "rules, %" PRIu32 " are inspecting packet payload, %"PRIu32
-                " inspect application layer, %"PRIu32" are decoder event only",
+                " inspect application layer, %"PRIu32" are decoder/engine/stream event only",
                 de_ctx->sig_cnt, cnt_iponly, cnt_payload, cnt_applayer,
                 cnt_deonly);
 
