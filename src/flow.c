@@ -639,7 +639,23 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts)
     }
 
     if (FlowForceReassemblyForFlowV2(tv, f) == 1) {
-        return cnt;
+        int mr = SCMutexTrylock(&q->mutex_q);
+        if (mr != 0) {
+            SCLogDebug("trylock failed");
+            if (mr == EBUSY)
+                SCLogDebug("was locked");
+            if (mr == EINVAL)
+                SCLogDebug("bad mutex value");
+            return cnt;
+        }
+        /* this ain't perfect.  There is no guaranted that both f and qnext_f
+         * are in q.  For all we know they might both be transferred to some
+         * other queue in the same order.  We need to fix this. */
+        if (f->lnext == qnext_f)
+            f = qnext_f;
+        else
+            f = q->top;
+        goto FlowPrune_Prune_Next;
     }
 
     /* this should not be possible */
