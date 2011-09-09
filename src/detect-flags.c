@@ -114,7 +114,7 @@ static int DetectFlagsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
     uint8_t flags = 0;
     DetectFlagsData *de = (DetectFlagsData *)m->ctx;
 
-    if(!(PKT_IS_TCP(p))) {
+    if (!(PKT_IS_TCP(p)) || PKT_IS_PSEUDOPKT(p)) {
         SCReturnInt(0);
     }
 

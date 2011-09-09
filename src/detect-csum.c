@@ -230,7 +230,7 @@ int DetectIPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 {
     DetectCsumData *cd = (DetectCsumData *)m->ctx;
 
-    if (p->ip4h == NULL)
+    if (p->ip4h == NULL || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->ip4vars.comp_csum == -1)

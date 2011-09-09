@@ -95,6 +95,9 @@ int DetectFragOffsetMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet
     uint16_t frag = 0;
     DetectFragOffsetData *fragoff = (DetectFragOffsetData *)m->ctx;
 
+    if (PKT_IS_PSEUDOPKT(p))
+        return 0;
+
     if (PKT_IS_IPV4(p)) {
         frag = IPV4_GET_IPOFFSET(p);
     } else if (PKT_IS_IPV6(p)) {

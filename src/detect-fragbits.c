@@ -117,7 +117,7 @@ static int DetectFragBitsMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, P
     uint16_t fragbits = 0;
     DetectFragBitsData *de = (DetectFragBitsData *)m->ctx;
 
-    if(!de || !PKT_IS_IPV4(p) || !p)
+    if (!de || !PKT_IS_IPV4(p) || !p || PKT_IS_PSEUDOPKT(p))
         return ret;
 
     if(IPV4_GET_MF(p))

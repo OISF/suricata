@@ -100,6 +100,9 @@ int DetectITypeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, 
     uint8_t pitype;
     DetectITypeData *itd = (DetectITypeData *)m->ctx;
 
+    if (PKT_IS_PSEUDOPKT(p))
+        return 0;
+
     if (PKT_IS_ICMPV4(p)) {
         pitype = ICMPV4_GET_TYPE(p);
     } else if (PKT_IS_ICMPV6(p)) {

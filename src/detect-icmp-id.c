@@ -93,6 +93,9 @@ int DetectIcmpIdMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
     uint16_t pid;
     DetectIcmpIdData *iid = (DetectIcmpIdData *)m->ctx;
 
+    if (PKT_IS_PSEUDOPKT(p))
+        return 0;
+
     if (PKT_IS_ICMPV4(p)) {
         SCLogDebug("ICMPV4_GET_ID(p) %"PRIu16" (network byte order), "
                 "%"PRIu16" (host byte order)", ICMPV4_GET_ID(p),
