@@ -55,6 +55,5 @@ typedef struct AFPIfaceConfig_
 
 void TmModuleReceiveAFPRegister (void);
 void TmModuleDecodeAFPRegister (void);
-int AFPConfGetThreads();
 
 #endif /* __SOURCE_AFP_H__ */
