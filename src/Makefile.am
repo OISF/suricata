@@ -211,6 +211,7 @@ util-syslog.c util-syslog.h \
 util-vector.h \
 util-device.c util-device.h \
 util-checksum.c util-checksum.h \
+util-runmodes.c util-runmodes.h \
 tm-modules.c tm-modules.h \
 tm-queues.c tm-queues.h \
 tm-queuehandlers.c tm-queuehandlers.h \
