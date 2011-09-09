@@ -761,6 +761,34 @@ error:
     return TM_ECODE_FAILED;
 }
 
+ThreadVars *TmThreadsGetTVContainingSlot(TmSlot *tm_slot)
+{
+    ThreadVars *tv;
+    int i;
+
+    SCMutexLock(&tv_root_lock);
+
+    for (i = 0; i < TVT_MAX; i++) {
+        tv = tv_root[i];
+
+        while (tv) {
+            TmSlot *slots = tv->tm_slots;
+            while (slots != NULL) {
+                if (slots == tm_slot) {
+                    SCMutexUnlock(&tv_root_lock);
+                    return tv;
+                }
+                slots = slots->slot_next;
+            }
+            tv = tv->next;
+        }
+    }
+
+    SCMutexUnlock(&tv_root_lock);
+
+    return NULL;
+}
+
 /**
  * \brief Appends a new entry to the slots.
  *

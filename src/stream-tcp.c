@@ -82,23 +82,6 @@
 #define STREAMTCP_EMERG_EST_TIMEOUT             300
 #define STREAMTCP_EMERG_CLOSED_TIMEOUT          20
 
-typedef struct StreamTcpThread_ {
-    uint64_t pkts;
-
-    /** queue for pseudo packet(s) that were created in the stream
-     *  process and need further handling. Currently only used when
-     *  receiving (valid) RST packets */
-    PacketQueue pseudo_queue;
-
-    uint16_t counter_tcp_sessions;
-    /** sessions not picked up because memcap was reached */
-    uint16_t counter_tcp_ssn_memcap;
-    /** pseudo packets processed */
-    uint16_t counter_tcp_pseudo;
-
-    TcpReassemblyThreadCtx *ra_ctx;         /**< tcp reassembly thread data */
-} StreamTcpThread;
-
 TmEcode StreamTcp (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode StreamTcpThreadInit(ThreadVars *, void *, void **);
 TmEcode StreamTcpThreadDeinit(ThreadVars *, void *);

@@ -118,6 +118,7 @@ void TmThreadsMSMasterDisableSlaveSyncPt(ThreadVars *, const char *);
 void TmThreadsMSMasterReleaseSlaveAllSyncPts(ThreadVars *);
 void TmThreadsMSMasterDisableSlaveAllSyncPts(ThreadVars *tv);
 
+ThreadVars *TmThreadsGetTVContainingSlot(TmSlot *);
 void TmThreadDisableReceiveThreads(void);
 
 #if 0

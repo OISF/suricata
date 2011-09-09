@@ -1566,6 +1566,8 @@ int main(int argc, char **argv)
     /* Disable packet acquire thread first */
     TmThreadDisableReceiveThreads();
 
+    FlowForceReassembly();
+
     TmThreadKillThreads();
     SCPerfReleaseResources();
     FlowShutdown();
