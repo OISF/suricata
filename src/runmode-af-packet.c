@@ -755,12 +755,11 @@ int RunModeIdsAFPAutoFp(DetectEngineCtx *de_ctx)
  */
 int RunModeIdsAFPSingle(DetectEngineCtx *de_ctx)
 {
+    SCEnter();
+#ifdef HAVE_AF_PACKET
     int nafp = LiveGetDeviceCount();
     char *afp_dev = NULL;
     char *afp_devc = NULL;
-
-    SCEnter();
-#ifdef HAVE_AF_PACKET
 
     if (nafp > 1) {
         SCLogError(SC_ERR_RUNMODE,
