@@ -533,9 +533,6 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts)
         goto FlowPrune_Prune_Next;
     }
 
-    /* unlock list */
-    SCMutexUnlock(&q->mutex_q);
-
     if (SCSpinTrylock(&f->fb->s) != 0) {
         SCMutexUnlock(&f->m);
         SCLogDebug("cant lock 2");
@@ -543,8 +540,12 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts)
 #ifdef FLOW_PRUNE_DEBUG
         prune_bucket_lock++;
 #endif
-        return cnt;
+        f = f->lnext;
+        goto FlowPrune_Prune_Next;
     }
+
+    /* unlock list */
+    SCMutexUnlock(&q->mutex_q);
 
     /*set the timeout value according to the flow operating mode, flow's state
       and protocol.*/
