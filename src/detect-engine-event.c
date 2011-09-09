@@ -61,6 +61,7 @@ void DetectEngineEventRegister (void) {
     sigmatch_table[DETECT_ENGINE_EVENT].Setup = DetectEngineEventSetup;
     sigmatch_table[DETECT_ENGINE_EVENT].Free  = NULL;
     sigmatch_table[DETECT_ENGINE_EVENT].RegisterTests = EngineEventRegisterTests;
+    sigmatch_table[DETECT_ENGINE_EVENT].flags |= SIGMATCH_DEONLY_COMPAT;
 
     sigmatch_table[DETECT_DECODE_EVENT].name = "decode-event";
     sigmatch_table[DETECT_DECODE_EVENT].Match = DetectEngineEventMatch;
@@ -72,6 +73,7 @@ void DetectEngineEventRegister (void) {
     sigmatch_table[DETECT_STREAM_EVENT].Match = DetectEngineEventMatch;
     sigmatch_table[DETECT_STREAM_EVENT].Setup = DetectStreamEventSetup;
     sigmatch_table[DETECT_STREAM_EVENT].Free  = NULL;
+    sigmatch_table[DETECT_STREAM_EVENT].flags |= SIGMATCH_DEONLY_COMPAT;
 
     const char *eb;
     int eo;
