@@ -349,7 +349,7 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
      * to-be pruned flows */
     if (!(tv != NULL && tv == flow_manager_TV)) {
         SCSpinUnlock(&f->fb->s);
-        SCMutexUnlock(&f->m);
+        //SCMutexUnlock(&f->m);
         return 1;
     }
 
@@ -359,7 +359,7 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
     SCSpinUnlock(&f->fb->s);
 
     if (suricata_ctl_flags != 0) {
-        SCMutexUnlock(&f->m);
+        //SCMutexUnlock(&f->m);
         return 1;
     }
 
@@ -448,7 +448,7 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
                                                 (uint16_t *)p2->tcph, 20);
     }
     f->flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
-    SCMutexUnlock(&f->m);
+    //SCMutexUnlock(&f->m);
 
     SCMutexLock(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq.mutex_q);
     PacketEnqueue(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq, p1);
@@ -638,24 +638,21 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts, int try_c
     }
 
     if (FlowForceReassemblyForFlowV2(tv, f) == 1) {
-        //int mr = SCMutexTrylock(&q->mutex_q);
-        //if (mr != 0) {
-        //    SCLogDebug("trylock failed");
-        //    if (mr == EBUSY)
-        //        SCLogDebug("was locked");
-        //    if (mr == EINVAL)
-        //        SCLogDebug("bad mutex value");
-        //    return cnt;
-        //}
-        ///* this ain't perfect.  There is no guaranted that both f and qnext_f
-        // * are in q.  For all we know they might both be transferred to some
-        // * other queue in the same order.  We need to fix this. */
-        //if (f->lnext == qnext_f)
-        //    f = qnext_f;
-        //else
-        //    f = q->top;
-        //goto FlowPrune_Prune_Next;
-        return cnt;
+        int mr = SCMutexTrylock(&q->mutex_q);
+        if (mr != 0) {
+            SCLogDebug("trylock failed");
+            if (mr == EBUSY)
+                SCLogDebug("was locked");
+            if (mr == EINVAL)
+                SCLogDebug("bad mutex value");
+            SCMutexUnlock(&f->m);
+            return cnt;
+        }
+        Flow *prev_f = f;
+        f = f->lnext;
+        SCMutexUnlock(&prev_f->m);
+        goto FlowPrune_Prune_Next;
+        //return cnt;
     }
 
     /* this should not be possible */
