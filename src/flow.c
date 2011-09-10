@@ -461,6 +461,9 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
     if (p3 != NULL)
         PacketEnqueue(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq, p3);
     SCMutexUnlock(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq.mutex_q);
+    if (stream_pseudo_pkt_decode_TV->inq != NULL) {
+        SCCondSignal(&trans_q[stream_pseudo_pkt_decode_TV->inq->id].cond_q);
+    }
 
     return 1;
 }
@@ -1760,6 +1763,14 @@ void *FlowManagerThread(void *td)
         /* yes, this is fatal! */
         SCLogError(SC_ERR_TM_MODULES_ERROR, "Looks like we have failed to "
                    "retrieve the slot for DECODE TM");
+        exit(EXIT_FAILURE);
+    }
+    stream_pseudo_pkt_decode_TV =
+        TmThreadsGetTVContainingSlot(stream_pseudo_pkt_decode_tm_slot);
+    if (stream_pseudo_pkt_decode_TV == NULL) {
+        /* yes, this is fatal! */
+        SCLogError(SC_ERR_TM_MODULES_ERROR, "Looks like we have failed to "
+                   "retrieve the TV containing the Decode TM slot");
         exit(EXIT_FAILURE);
     }
 
