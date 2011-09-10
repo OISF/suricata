@@ -693,7 +693,7 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts, int try_c
 #ifdef FLOW_PRUNE_DEBUG
         prune_queue_lock++;
 #endif
-        FlowRequeue(f, q, &flow_spare_q, 0);
+        FlowRequeue(f, q, &flow_spare_q, 1);
         SCMutexUnlock(&f->m);
         return cnt;
     }
@@ -1404,7 +1404,7 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
     /* get the topmost flow from the QUEUE */
     f = q->top;
     /* looks like we have no flows in this queue */
-    if (f == NULL) {
+    if (f == NULL || f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) {
         return;
     }
 
