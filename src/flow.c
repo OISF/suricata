@@ -203,7 +203,7 @@ static uint64_t prune_usecnt = 0;
 
 static inline Packet *FFRPseudoPacketSetup(int direction, Flow *f)
 {
-    Packet *p = PacketGetFromQueueOrAlloc();
+    Packet *p = PacketGetFromAlloc();
     if (p == NULL)
         return NULL;
 
@@ -359,12 +359,7 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
     SCSpinUnlock(&f->fb->s);
 
     if (suricata_ctl_flags != 0) {
-        if (client_ok == 1) {
-            FlowDecrUsecnt(f);
-        }
-        if (server_ok == 1) {
-            FlowDecrUsecnt(f);
-        }
+        SCMutexUnlock(&f->m);
         return 1;
     }
 

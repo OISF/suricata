@@ -86,6 +86,27 @@ Packet *PacketGetFromQueueOrAlloc(void) {
 }
 
 /**
+ * \brief Get a malloced packet.
+ *
+ * \retval p packet, NULL on error
+ */
+Packet *PacketGetFromAlloc(void)
+{
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL) {
+        return NULL;
+    }
+
+    PACKET_INITIALIZE(p);
+    p->flags |= PKT_ALLOC;
+
+    SCLogDebug("allocated a new packet only using alloc...");
+
+    PACKET_PROFILING_START(p);
+    return p;
+}
+
+/**
  *  \brief Setup a pseudo packet (tunnel or reassembled frags)
  *
  *  \param parent parent packet for this pseudo pkt
