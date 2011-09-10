@@ -93,6 +93,7 @@ static ThreadVars *stream_pseudo_pkt_detect_TV = NULL;
 static ThreadVars *stream_pseudo_pkt_detect_prev_TV = NULL;
 
 static TmSlot *stream_pseudo_pkt_decode_tm_slot = NULL;
+static ThreadVars *stream_pseudo_pkt_decode_TV = NULL;
 
 static ThreadVars *flow_manager_TV = NULL;
 
@@ -374,8 +375,8 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
         p1 = FFRPseudoPacketSetup(1, f);
         if (p1 == NULL)
             exit(0);
-        p1->tcph->th_seq = htons(ssn->server.next_seq);
-        p1->tcph->th_ack = htons(ssn->client.seg_list_tail->seq +
+        p1->tcph->th_seq = htonl(ssn->server.next_seq);
+        p1->tcph->th_ack = htonl(ssn->client.seg_list_tail->seq +
                                  ssn->client.seg_list_tail->payload_len);
         p1->tcph->th_offx2 = 0x50;
         p1->tcph->th_flags |= TH_ACK;
@@ -390,8 +391,8 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
         }
 
         if (server_ok == 1) {
-            p2->tcph->th_seq = htons(ssn->client.next_seq);
-            p2->tcph->th_ack = htons(ssn->server.seg_list_tail->seq +
+            p2->tcph->th_seq = htonl(ssn->client.next_seq);
+            p2->tcph->th_ack = htonl(ssn->server.seg_list_tail->seq +
                                      ssn->server.seg_list_tail->payload_len);
             p2->tcph->th_offx2 = 0x50;
             p2->tcph->th_flags |= TH_ACK;
@@ -404,8 +405,8 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
             if (p3 == NULL) {
                 exit(0);
             }
-            p3->tcph->th_seq = htons(ssn->server.next_seq);
-            p3->tcph->th_ack = htons(ssn->client.seg_list_tail->seq +
+            p3->tcph->th_seq = htonl(ssn->server.next_seq);
+            p3->tcph->th_ack = htonl(ssn->client.seg_list_tail->seq +
                                      ssn->client.seg_list_tail->payload_len);
             p3->tcph->th_offx2 = 0x50;
             p3->tcph->th_flags |= TH_ACK;
@@ -414,8 +415,8 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
             p3->tcph->th_sum = TCPCalculateChecksum((uint16_t *)&(p3->ip4h->ip_src),
                                                     (uint16_t *)p3->tcph, 20);
         } else {
-            p2->tcph->th_seq = htons(ssn->client.next_seq);
-            p2->tcph->th_ack = htons(ssn->server.last_ack);
+            p2->tcph->th_seq = htonl(ssn->client.next_seq);
+            p2->tcph->th_ack = htonl(ssn->server.last_ack);
             p2->tcph->th_offx2 = 0x50;
             p2->tcph->th_flags |= TH_ACK;
             p2->tcph->th_win = 10;
@@ -428,8 +429,8 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
         if (p1 == NULL) {
             exit(0);
         }
-        p1->tcph->th_seq = htons(ssn->client.next_seq);
-        p1->tcph->th_ack = htons(ssn->server.seg_list_tail->seq +
+        p1->tcph->th_seq = htonl(ssn->client.next_seq);
+        p1->tcph->th_ack = htonl(ssn->server.seg_list_tail->seq +
                                  ssn->server.seg_list_tail->payload_len);
         p1->tcph->th_offx2 = 0x50;
         p1->tcph->th_flags |= TH_ACK;
@@ -442,8 +443,8 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
         if (p2 == NULL) {
             exit(0);
         }
-        p2->tcph->th_seq = htons(ssn->server.next_seq);
-        p2->tcph->th_ack = htons(ssn->client.last_ack);
+        p2->tcph->th_seq = htonl(ssn->server.next_seq);
+        p2->tcph->th_ack = htonl(ssn->client.last_ack);
         p2->tcph->th_offx2 = 0x50;
         p2->tcph->th_flags |= TH_ACK;
         p2->tcph->th_win = 10;
