@@ -125,61 +125,6 @@ ThreadVars *TmThreadsGetTVContainingSlot(TmSlot *);
 void TmThreadDisableReceiveThreads(void);
 TmSlot *TmThreadGetFirstTmSlotForPartialPattern(const char *);
 
-#if 0
-
-/**
- *  \brief Process the rest of the functions (if any) and queue.
- */
-#define TmThreadsSlotProcessPkt(tv, s, p)                               \
-    ({                                                                  \
-        TmEcode r = TM_ECODE_OK;                                        \
-                                                                        \
-        if ((s) == NULL) {                                              \
-            tv->tmqh_out((tv), (p));                                    \
-            goto TmThreadsSlotProcessPkt_End;                           \
-        }                                                               \
-                                                                        \
-        if (TmThreadsSlotVarRun((tv), (p), (s)) == TM_ECODE_FAILED) {   \
-            TmqhOutputPacketpool((tv), (p));                            \
-            TmSlot *slot = (s);                                         \
-            while (slot != NULL) {                                      \
-                TmqhReleasePacketsToPacketPool(&slot->slot_post_pq);    \
-                slot = slot->slot_next;                                 \
-            }                                                           \
-            TmThreadsSetFlag((tv), THV_FAILED);                         \
-            r = TM_ECODE_FAILED;                                        \
-        } else {                                                        \
-            tv->tmqh_out(tv, (p));                                      \
-            /* post process pq */                                       \
-            TmSlot *slot = (s);                                         \
-            while (slot != NULL) {                                      \
-                while (slot->slot_post_pq.top != NULL) {                \
-                    SCMutexLock(&slot->slot_post_pq.mutex_q);           \
-                    Packet *extra_p = PacketDequeue(&slot->slot_post_pq);\
-                    SCMutexUnlock(&slot->slot_post_pq.mutex_q);         \
-                    if (extra_p != NULL) {                              \
-                        if (slot->slot_next != NULL) {                  \
-                            r = TmThreadsSlotVarRun(tv, extra_p, slot->slot_next); \
-                            if (r == TM_ECODE_FAILED) {                 \
-                                TmqhReleasePacketsToPacketPool(&slot->slot_post_pq); \
-                                TmqhOutputPacketpool((tv), extra_p);    \
-                                TmThreadsSetFlag((tv), THV_FAILED);     \
-                                break;                                  \
-                            }                                           \
-                        }                                               \
-                        tv->tmqh_out((tv), extra_p);                    \
-                    }                                                   \
-                }                                                       \
-                slot = slot->slot_next;                                 \
-            }                                                           \
-        }                                                               \
-                                                                        \
-  TmThreadsSlotProcessPkt_End:                                          \
-        r;                                                              \
-    })
-
-#endif /* #if 0 */
-
 /**
  *  \brief Process the rest of the functions (if any) and queue.
  */
