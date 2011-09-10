@@ -208,6 +208,7 @@ static inline Packet *FFRPseudoPacketSetup(int direction, Flow *f)
 
     p->proto = IPPROTO_TCP;
     p->flow = f;
+    FlowIncrUsecnt(f);
     p->flags |= PKT_STREAM_EST;
     p->flags |= PKT_STREAM_EOF;
     p->flags |= PKT_HAS_FLOW;
@@ -352,14 +353,6 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
     }
 
     f->flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
-
-    /* we need to incr use counts before we unlock the flow */
-    if (client_ok == 1) {
-        FlowIncrUsecnt(f);
-    }
-    if (server_ok == 1) {
-        FlowIncrUsecnt(f);
-    }
 
     /* move this unlock after the strream reassemble call */
     SCSpinUnlock(&f->fb->s);
@@ -646,23 +639,24 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts, int try_c
     }
 
     if (FlowForceReassemblyForFlowV2(tv, f) == 1) {
-        int mr = SCMutexTrylock(&q->mutex_q);
-        if (mr != 0) {
-            SCLogDebug("trylock failed");
-            if (mr == EBUSY)
-                SCLogDebug("was locked");
-            if (mr == EINVAL)
-                SCLogDebug("bad mutex value");
-            return cnt;
-        }
-        /* this ain't perfect.  There is no guaranted that both f and qnext_f
-         * are in q.  For all we know they might both be transferred to some
-         * other queue in the same order.  We need to fix this. */
-        if (f->lnext == qnext_f)
-            f = qnext_f;
-        else
-            f = q->top;
-        goto FlowPrune_Prune_Next;
+        //int mr = SCMutexTrylock(&q->mutex_q);
+        //if (mr != 0) {
+        //    SCLogDebug("trylock failed");
+        //    if (mr == EBUSY)
+        //        SCLogDebug("was locked");
+        //    if (mr == EINVAL)
+        //        SCLogDebug("bad mutex value");
+        //    return cnt;
+        //}
+        ///* this ain't perfect.  There is no guaranted that both f and qnext_f
+        // * are in q.  For all we know they might both be transferred to some
+        // * other queue in the same order.  We need to fix this. */
+        //if (f->lnext == qnext_f)
+        //    f = qnext_f;
+        //else
+        //    f = q->top;
+        //goto FlowPrune_Prune_Next;
+        return cnt;
     }
 
     /* this should not be possible */
