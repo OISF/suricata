@@ -1387,8 +1387,8 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
 {
     Flow *f;
     TcpSession *ssn;
-    int client_ok = 0;
-    int server_ok = 0;
+    int client_ok;
+    int server_ok;
 
     /* no locks needed, since the engine is virtually dead.
      * We are the kings here */
@@ -1405,6 +1405,9 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
         /* We use this packet just for reassembly purpose */
         Packet reassemble_p;
         memset(&reassemble_p, 0, sizeof(Packet));
+
+        client_ok = 0;
+        server_ok = 0;
 
         /* Get the tcp session for the flow */
         ssn = (TcpSession *)f->protoctx;
@@ -1428,6 +1431,7 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
                                     ssn->client.seg_list_tail->payload_len);
             reassemble_p.flow = f;
             reassemble_p.flags |= PKT_PSEUDO_STREAM_END;
+            reassemble_p.flowflags = FLOW_PKT_TOCLIENT;
             StreamTcpReassembleHandleSegment(stream_pseudo_pkt_detect_TV,
                                              stt->ra_ctx, ssn, &ssn->server,
                                              &reassemble_p, NULL);
@@ -1445,6 +1449,7 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
                                     ssn->server.seg_list_tail->payload_len);
             reassemble_p.flow = f;
             reassemble_p.flags |= PKT_PSEUDO_STREAM_END;
+            reassemble_p.flowflags = FLOW_PKT_TOSERVER;
             StreamTcpReassembleHandleSegment(stream_pseudo_pkt_detect_TV,
                                              stt->ra_ctx, ssn, &ssn->client,
                                              &reassemble_p, NULL);
