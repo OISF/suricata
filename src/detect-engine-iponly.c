@@ -1026,9 +1026,28 @@ void IPOnlyMatchPacket(ThreadVars *tv,
                 if (bitarray & 0x01) {
                     Signature *s = de_ctx->sig_array[u * 8 + i];
 
-                    /* Need to check the protocol first */
-                    if (!(s->proto.proto[(IP_GET_IPPROTO(p)/8)] & (1 << (IP_GET_IPPROTO(p) % 8))))
+                    if (DetectProtoContainsProto(&s->proto, IP_GET_IPPROTO(p)) == 0) {
+                        SCLogDebug("proto didn't match");
                         continue;
+                    }
+
+                    /* check the source & dst port in the sig */
+                    if (p->proto == IPPROTO_TCP || p->proto == IPPROTO_UDP || p->proto == IPPROTO_SCTP) {
+                        if (!(s->flags & SIG_FLAG_DP_ANY)) {
+                            DetectPort *dport = DetectPortLookupGroup(s->dp,p->dp);
+                            if (dport == NULL) {
+                                SCLogDebug("dport didn't match.");
+                                continue;
+                            }
+                        }
+                        if (!(s->flags & SIG_FLAG_SP_ANY)) {
+                            DetectPort *sport = DetectPortLookupGroup(s->sp,p->sp);
+                            if (sport == NULL) {
+                                SCLogDebug("sport didn't match.");
+                                continue;
+                            }
+                        }
+                    }
 
                     if (!IPOnlyMatchCompatSMs(tv, det_ctx, s, p)) {
                         continue;
@@ -1534,10 +1553,10 @@ static int IPOnlyTestSig02 (void) {
     if (s == NULL) {
         goto end;
     }
-    if(!(SignatureIsIPOnly(&de_ctx, s)))
-        result=1;
+    if ((SignatureIsIPOnly(&de_ctx, s)))
+        result = 1;
     else
-        printf("got a IPOnly signature: ");
+        printf("got a non-IPOnly signature: ");
 
     SigFree(s);
 

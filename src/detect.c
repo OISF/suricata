@@ -1917,25 +1917,6 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
     if (s->alproto != ALPROTO_UNKNOWN)
         return 0;
 
-    /* for tcp/udp, only consider sigs that don't have ports set, as ip-only */
-    if (!(s->proto.flags & DETECT_PROTO_ANY)) {
-        if (s->proto.proto[IPPROTO_TCP / 8] & (1 << (IPPROTO_TCP % 8)) ||
-            s->proto.proto[IPPROTO_UDP / 8] & (1 << (IPPROTO_UDP % 8)) ||
-            s->proto.proto[IPPROTO_SCTP / 8] & (1 << (IPPROTO_SCTP % 8))) {
-            if (!(s->flags & SIG_FLAG_SP_ANY))
-                return 0;
-
-            if (!(s->flags & SIG_FLAG_DP_ANY))
-                return 0;
-/*
-        } else if ((s->proto.proto[IPPROTO_ICMP / 8] & (1 << (IPPROTO_ICMP % 8))) ||
-                   (s->proto.proto[IPPROTO_ICMPV6 / 8] & (1 << (IPPROTO_ICMPV6 % 8)))) {
-            SCLogDebug("ICMP sigs are not IP-Only until we support ICMP in flow.");
-            return 0;
-*/
-        }
-    }
-
     if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL)
         return 0;
 
