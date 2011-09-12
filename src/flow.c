@@ -482,7 +482,6 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts, int try_c
     SCEnter();
     int cnt = 0;
     int try_cnt_temp = 0;
-    Flow *qnext_f = NULL;
 
     int mr = SCMutexTrylock(&q->mutex_q);
     if (mr != 0) {
@@ -520,7 +519,6 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts, int try_c
 #endif
         return cnt;
     }
-    qnext_f = f->lnext;
 
     if (SCMutexTrylock(&f->m) != 0) {
         SCLogDebug("cant lock 1");
@@ -544,7 +542,7 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts, int try_c
     }
 
     /* unlock list */
-    SCMutexUnlock(&q->mutex_q);
+    //SCMutexUnlock(&q->mutex_q);
 
     /*set the timeout value according to the flow operating mode, flow's state
       and protocol.*/
@@ -599,6 +597,7 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts, int try_c
     if ((int32_t)(f->lastts_sec + timeout) >= ts->tv_sec) {
         SCSpinUnlock(&f->fb->s);
         SCMutexUnlock(&f->m);
+        SCMutexUnlock(&q->mutex_q);
         SCLogDebug("timeout check failed");
 
 #ifdef FLOW_PRUNE_DEBUG
@@ -616,20 +615,6 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts, int try_c
 #ifdef FLOW_PRUNE_DEBUG
         prune_usecnt++;
 #endif
-        int mr = SCMutexTrylock(&q->mutex_q);
-        if (mr != 0) {
-            SCLogDebug("trylock failed");
-            if (mr == EBUSY)
-                SCLogDebug("was locked");
-            if (mr == EINVAL)
-                SCLogDebug("bad mutex value");
-#ifdef FLOW_PRUNE_DEBUG
-            prune_queue_lock++;
-#endif
-            SCSpinUnlock(&f->fb->s);
-            SCMutexUnlock(&f->m);
-            return cnt;
-        }
         Flow *prev_f = f;
         f = f->lnext;
         SCSpinUnlock(&prev_f->fb->s);
@@ -638,16 +623,6 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts, int try_c
     }
 
     if (FlowForceReassemblyForFlowV2(tv, f) == 1) {
-        int mr = SCMutexTrylock(&q->mutex_q);
-        if (mr != 0) {
-            SCLogDebug("trylock failed");
-            if (mr == EBUSY)
-                SCLogDebug("was locked");
-            if (mr == EINVAL)
-                SCLogDebug("bad mutex value");
-            SCMutexUnlock(&f->m);
-            return cnt;
-        }
         Flow *prev_f = f;
         f = f->lnext;
         SCMutexUnlock(&prev_f->m);
@@ -675,20 +650,6 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts, int try_c
     cnt++;
     FlowClearMemory (f, f->protomap);
     /* move to spare list */
-    mr = SCMutexTrylock(&q->mutex_q);
-    if (mr != 0) {
-        SCLogDebug("trylock failed");
-        if (mr == EBUSY)
-            SCLogDebug("was locked");
-        if (mr == EINVAL)
-            SCLogDebug("bad mutex value");
-#ifdef FLOW_PRUNE_DEBUG
-        prune_queue_lock++;
-#endif
-        FlowRequeue(f, q, &flow_spare_q, 1);
-        SCMutexUnlock(&f->m);
-        return cnt;
-    }
     Flow *next_flow = f->lnext;
     /* move to spare list */
     FlowRequeue(f, q, &flow_spare_q, 0);

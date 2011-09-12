@@ -367,7 +367,9 @@ void *TmThreadsSlot1(void *td)
         }
     }
     memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
+    SCMutexInit(&s->slot_pre_pq.mutex_q, NULL);
     memset(&s->slot_post_pq, 0, sizeof(PacketQueue));
+    SCMutexInit(&s->slot_post_pq.mutex_q, NULL);
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
     while (run) {
@@ -557,7 +559,9 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
             }
         }
         memset(&slot->slot_pre_pq, 0, sizeof(PacketQueue));
+        SCMutexInit(&slot->slot_pre_pq.mutex_q, NULL);
         memset(&slot->slot_post_pq, 0, sizeof(PacketQueue));
+        SCMutexInit(&slot->slot_post_pq.mutex_q, NULL);
     }
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
@@ -637,7 +641,9 @@ void *TmThreadsSlotVar(void *td)
             }
         }
         memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
+        SCMutexInit(&s->slot_pre_pq.mutex_q, NULL);
         memset(&s->slot_post_pq, 0, sizeof(PacketQueue));
+        SCMutexInit(&s->slot_post_pq.mutex_q, NULL);
     }
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
