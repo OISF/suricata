@@ -1442,11 +1442,8 @@ int main(int argc, char **argv)
                 exit(EXIT_FAILURE);
             }
         } else {
-            int ret = LiveBuildIfaceList("pfring");
-            if (ret == 0) {
-                fprintf(stderr, "ERROR: No interface found in config for pfring\n");
-                exit(EXIT_FAILURE);
-            }
+            /* not an error condition if we have a 1.0 config */
+            LiveBuildIfaceList("pfring");
         }
 #endif /* HAVE_PFRING */
     } else if (run_mode == RUNMODE_AFP_DEV) {
