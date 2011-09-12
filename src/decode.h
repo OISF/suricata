@@ -468,7 +468,7 @@ intmax_t default_packet_size;
 typedef struct PacketQueue_ {
     Packet *top;
     Packet *bot;
-    uint16_t len;
+    uint32_t len;
 #ifdef DBG_PERF
     uint16_t dbg_maxlen;
 #endif /* DBG_PERF */

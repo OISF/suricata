@@ -353,8 +353,6 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
         return 1;
     }
 
-    f->flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
-
     /* move this unlock after the strream reassemble call */
     SCSpinUnlock(&f->fb->s);
 
