@@ -514,13 +514,13 @@ TmEcode ReceiveNFQThreadDeinit(ThreadVars *t, void *data)
     }
     ntv->datalen = 0;
 
-    SCMutexLock(&nfq_init_lock);
+    SCMutexLock(&nq->mutex_qh);
     SCLogDebug("starting... will close queuenum %" PRIu32 "", nq->queue_num);
     if (nq->qh) {
         nfq_destroy_queue(nq->qh);
         nq->qh = NULL;
     }
-    SCMutexUnlock(&nfq_init_lock);
+    SCMutexUnlock(&nq->mutex_qh);
 
     return TM_ECODE_OK;
 }
@@ -538,12 +538,12 @@ TmEcode VerdictNFQThreadDeinit(ThreadVars *tv, void *data) {
     NFQQueueVars *nq = NFQGetQueue(ntv->nfq_index);
 
     SCLogDebug("starting... will close queuenum %" PRIu32 "", nq->queue_num);
-    SCMutexLock(&nfq_init_lock);
+    SCMutexLock(&nq->mutex_qh);
     if (nq->qh) {
         nfq_destroy_queue(nq->qh);
         nq->qh = NULL;
     }
-    SCMutexUnlock(&nfq_init_lock);
+    SCMutexUnlock(&nq->mutex_qh);
 
     return TM_ECODE_OK;
 }
@@ -681,7 +681,12 @@ void NFQRecvPkt(NFQQueueVars *t, NFQThreadVars *tv) {
         //printf("NFQRecvPkt: t %p, rv = %" PRId32 "\n", t, rv);
 
         SCMutexLock(&t->mutex_qh);
-        ret = nfq_handle_packet(t->h, tv->data, rv);
+        if (t->qh != NULL) {
+            ret = nfq_handle_packet(t->h, tv->data, rv);
+        } else {
+            SCLogWarning(SC_ERR_NFQ_HANDLE_PKT, "NFQ handle has been destroyed");
+            ret = -1;
+        }
         SCMutexUnlock(&t->mutex_qh);
 
         if (ret != 0) {
@@ -743,7 +748,12 @@ process_rv:
         //printf("NFQRecvPkt: t %p, rv = %" PRId32 "\n", t, rv);
 
         SCMutexLock(&t->mutex_qh);
-        ret = nfq_handle_packet(t->h, buf, rv);
+        if (t->qh) {
+            ret = nfq_handle_packet(t->h, buf, rv);
+        } else {
+            SCLogWarning(SC_ERR_NFQ_HANDLE_PKT, "NFQ handle has been destroyed");
+            ret = -1;
+        }
         SCMutexUnlock(&t->mutex_qh);
 
         if (ret != 0) {
@@ -809,6 +819,12 @@ TmEcode NFQSetVerdict(Packet *p) {
 
     //printf("%p verdicting on queue %" PRIu32 "\n", t, t->queue_num);
     SCMutexLock(&t->mutex_qh);
+
+    if (t->qh == NULL) {
+        /* Somebody has started a clean-up, we leave */
+        SCMutexUnlock(&t->mutex_qh);
+        return TM_ECODE_OK;
+    }
 
     if (p->action & ACTION_DROP) {
         verdict = NF_DROP;
