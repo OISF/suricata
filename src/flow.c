@@ -201,7 +201,8 @@ static uint64_t prune_no_timeout = 0;
 static uint64_t prune_usecnt = 0;
 #endif
 
-static inline Packet *FFRPseudoPacketSetup(int direction, Flow *f)
+static inline Packet *FFRPseudoPacketSetup(int direction, Flow *f,
+                                           TcpSession *ssn, int dummy)
 {
     Packet *p = PacketGetFromAlloc();
     if (p == NULL)
@@ -287,12 +288,47 @@ static inline Packet *FFRPseudoPacketSetup(int direction, Flow *f)
         /* set the tcp header */
         p->tcph = (TCPHdr *)((uint8_t *)p->pkt + 40);
     }
+
+    p->tcph->th_offx2 = 0x50;
+    p->tcph->th_flags |= TH_ACK;
+    p->tcph->th_win = 10;
+    p->tcph->th_urp = 0;
+
+    /* to server */
     if (direction == 0) {
         p->tcph->th_sport = htons(f->sp);
         p->tcph->th_dport = htons(f->dp);
+
+        if (dummy) {
+            p->tcph->th_seq = htonl(ssn->client.next_seq);
+            p->tcph->th_ack = htonl(ssn->server.last_ack);
+        } else {
+            p->tcph->th_seq = htonl(ssn->client.next_seq);
+            p->tcph->th_ack = htonl(ssn->server.seg_list_tail->seq +
+                                    ssn->server.seg_list_tail->payload_len);
+        }
+
+        /* to client */
     } else {
         p->tcph->th_sport = htons(f->dp);
         p->tcph->th_dport = htons(f->sp);
+
+        if (dummy) {
+            p->tcph->th_seq = htonl(ssn->server.next_seq);
+            p->tcph->th_ack = htonl(ssn->client.last_ack);
+        } else {
+            p->tcph->th_seq = htonl(ssn->server.next_seq);
+            p->tcph->th_ack = htonl(ssn->client.seg_list_tail->seq +
+                                    ssn->client.seg_list_tail->payload_len);
+        }
+    }
+
+    if (f->src.family == AF_INET) {
+        p->tcph->th_sum = TCPCalculateChecksum((uint16_t *)&(p->ip4h->ip_src),
+                                               (uint16_t *)p->tcph, 20);
+    } else {
+        p->tcph->th_sum = TCPCalculateChecksum((uint16_t *)&(p->ip6h->ip6_src),
+                                               (uint16_t *)p->tcph, 20);
     }
 
     return p;
@@ -349,7 +385,6 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
      * to-be pruned flows */
     if (!(tv != NULL && tv == flow_manager_TV)) {
         SCSpinUnlock(&f->fb->s);
-        //SCMutexUnlock(&f->m);
         return 1;
     }
 
@@ -357,7 +392,6 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
     SCSpinUnlock(&f->fb->s);
 
     if (suricata_ctl_flags != 0) {
-        //SCMutexUnlock(&f->m);
         return 1;
     }
 
@@ -365,88 +399,44 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
 
     /* insert a pseudo packet in the toserver direction */
     if (client_ok == 1) {
-        p1 = FFRPseudoPacketSetup(1, f);
-        if (p1 == NULL)
-            exit(0);
-        p1->tcph->th_seq = htonl(ssn->server.next_seq);
-        p1->tcph->th_ack = htonl(ssn->client.seg_list_tail->seq +
-                                 ssn->client.seg_list_tail->payload_len);
-        p1->tcph->th_offx2 = 0x50;
-        p1->tcph->th_flags |= TH_ACK;
-        p1->tcph->th_win = 10;
-        p1->tcph->th_urp = 0;
-        p1->tcph->th_sum = TCPCalculateChecksum((uint16_t *)&(p1->ip4h->ip_src),
-                                                (uint16_t *)p1->tcph, 20);
-
-        p2 = FFRPseudoPacketSetup(0, f);
-        if (p2 == NULL) {
-            exit(0);
+        p1 = FFRPseudoPacketSetup(1, f, ssn, 0);
+        if (p1 == NULL) {
+            return 1;
         }
 
         if (server_ok == 1) {
-            p2->tcph->th_seq = htonl(ssn->client.next_seq);
-            p2->tcph->th_ack = htonl(ssn->server.seg_list_tail->seq +
-                                     ssn->server.seg_list_tail->payload_len);
-            p2->tcph->th_offx2 = 0x50;
-            p2->tcph->th_flags |= TH_ACK;
-            p2->tcph->th_win = 10;
-            p2->tcph->th_urp = 0;
-            p2->tcph->th_sum = TCPCalculateChecksum((uint16_t *)&(p2->ip4h->ip_src),
-                                                    (uint16_t *)p2->tcph, 20);
-
-            p3 = FFRPseudoPacketSetup(1, f);
-            if (p3 == NULL) {
-                exit(0);
+            p2 = FFRPseudoPacketSetup(0, f, ssn, 0);
+            if (p2 == NULL) {
+                TmqhOutputPacketpool(NULL,p1);
+                return 1;
             }
-            p3->tcph->th_seq = htonl(ssn->server.next_seq);
-            p3->tcph->th_ack = htonl(ssn->client.seg_list_tail->seq +
-                                     ssn->client.seg_list_tail->payload_len);
-            p3->tcph->th_offx2 = 0x50;
-            p3->tcph->th_flags |= TH_ACK;
-            p3->tcph->th_win = 10;
-            p3->tcph->th_urp = 0;
-            p3->tcph->th_sum = TCPCalculateChecksum((uint16_t *)&(p3->ip4h->ip_src),
-                                                    (uint16_t *)p3->tcph, 20);
+
+            p3 = FFRPseudoPacketSetup(1, f, ssn, 0);
+            if (p3 == NULL) {
+                TmqhOutputPacketpool(NULL, p1);
+                TmqhOutputPacketpool(NULL, p2);
+                return 1;
+            }
         } else {
-            p2->tcph->th_seq = htonl(ssn->client.next_seq);
-            p2->tcph->th_ack = htonl(ssn->server.last_ack);
-            p2->tcph->th_offx2 = 0x50;
-            p2->tcph->th_flags |= TH_ACK;
-            p2->tcph->th_win = 10;
-            p2->tcph->th_urp = 0;
-            p2->tcph->th_sum = TCPCalculateChecksum((uint16_t *)&(p2->ip4h->ip_src),
-                                                    (uint16_t *)p2->tcph, 20);
+            p2 = FFRPseudoPacketSetup(0, f, ssn, 1);
+            if (p2 == NULL) {
+                TmqhOutputPacketpool(NULL, p1);
+                return 1;
+            }
         }
     } else {
-        p1 = FFRPseudoPacketSetup(0, f);
+        p1 = FFRPseudoPacketSetup(0, f, ssn, 0);
         if (p1 == NULL) {
-            exit(0);
+            return 1;
         }
-        p1->tcph->th_seq = htonl(ssn->client.next_seq);
-        p1->tcph->th_ack = htonl(ssn->server.seg_list_tail->seq +
-                                 ssn->server.seg_list_tail->payload_len);
-        p1->tcph->th_offx2 = 0x50;
-        p1->tcph->th_flags |= TH_ACK;
-        p1->tcph->th_win = 10;
-        p1->tcph->th_urp = 0;
-        p1->tcph->th_sum = TCPCalculateChecksum((uint16_t *)&(p1->ip4h->ip_src),
-                                                (uint16_t *)p1->tcph, 20);
 
-        p2 = FFRPseudoPacketSetup(1, f);
+        p2 = FFRPseudoPacketSetup(1, f, ssn, 1);
         if (p2 == NULL) {
-            exit(0);
+            TmqhOutputPacketpool(NULL, p1);
+            return 1;
         }
-        p2->tcph->th_seq = htonl(ssn->server.next_seq);
-        p2->tcph->th_ack = htonl(ssn->client.last_ack);
-        p2->tcph->th_offx2 = 0x50;
-        p2->tcph->th_flags |= TH_ACK;
-        p2->tcph->th_win = 10;
-        p2->tcph->th_urp = 0;
-        p2->tcph->th_sum = TCPCalculateChecksum((uint16_t *)&(p2->ip4h->ip_src),
-                                                (uint16_t *)p2->tcph, 20);
     }
     f->flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
-    //SCMutexUnlock(&f->m);
 
     SCMutexLock(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq.mutex_q);
     PacketEnqueue(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq, p1);
@@ -539,9 +529,6 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts, int try_c
         goto FlowPrune_Prune_Next;
     }
 
-    /* unlock list */
-    //SCMutexUnlock(&q->mutex_q);
-
     /*set the timeout value according to the flow operating mode, flow's state
       and protocol.*/
     uint32_t timeout = 0;
@@ -625,7 +612,6 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts, int try_c
         f = f->lnext;
         SCMutexUnlock(&prev_f->m);
         goto FlowPrune_Prune_Next;
-        //return cnt;
     }
 
     /* this should not be possible */
@@ -647,7 +633,6 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts, int try_c
 
     cnt++;
     FlowClearMemory (f, f->protomap);
-    /* move to spare list */
     Flow *next_flow = f->lnext;
     /* move to spare list */
     FlowRequeue(f, q, &flow_spare_q, 0);
@@ -1354,13 +1339,14 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
 
     /* get the topmost flow from the QUEUE */
     f = q->top;
-    /* looks like we have no flows in this queue */
-    if (f == NULL || f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) {
-        return;
-    }
 
     /* we need to loop through all the flows in the queue */
     while (f != NULL) {
+        if (f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) {
+            f = f->lnext;
+            continue;
+        }
+
         /* We use this packet just for reassembly purpose */
         Packet reassemble_p;
         memset(&reassemble_p, 0, sizeof(Packet));
@@ -1417,61 +1403,10 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
 
         /* insert a pseudo packet in the toserver direction */
         if (client_ok == 1) {
-            Packet *p = PacketGetFromQueueOrAlloc();
+            Packet *p = FFRPseudoPacketSetup(0, f, ssn, 1);
             if (p == NULL) {
-                printf("packet is NULL\n");
-                exit(0);
+                return;
             }
-            p->proto = IPPROTO_TCP;
-            p->flow = f;
-            p->flags |= PKT_STREAM_EST;
-            p->flags |= PKT_STREAM_EOF;
-            p->flags |= PKT_HAS_FLOW;
-            p->flags |= PKT_PSEUDO_STREAM_END;
-            p->flowflags |= FLOW_PKT_TOSERVER;
-            p->flowflags |= FLOW_PKT_ESTABLISHED;
-            COPY_ADDRESS(&f->src, &p->src);
-            COPY_ADDRESS(&f->dst, &p->dst);
-            p->sp = f->sp;
-            p->dp = f->dp;
-            p->payload = NULL;
-            p->payload_len = 0;
-
-            if (f->src.family == AF_INET) {
-                /* set the ip header */
-                p->ip4h = (IPV4Hdr *)p->pkt;
-                /* version 4 and length 20 bytes for the tcp header */
-                p->ip4h->ip_verhl = 0x45;
-                p->ip4h->ip_len = htons(40);
-                p->ip4h->ip_proto = IPPROTO_TCP;
-                p->ip4h->ip_src.s_addr = f->src.addr_data32[0];
-                p->ip4h->ip_dst.s_addr = f->dst.addr_data32[0];
-
-                /* set the tcp header */
-                p->tcph = (TCPHdr *)((uint8_t *)p->pkt + 20);
-
-            } else {
-                /* set the ip header */
-                p->ip6h = (IPV6Hdr *)p->pkt;
-                /* version 6 */
-                p->ip6h->s_ip6_vfc = 0x60;
-                p->ip6h->s_ip6_plen = htons(20);
-                p->ip6h->s_ip6_nxt = IPPROTO_TCP;
-                p->ip6h->ip6_src[0] = f->src.addr_data32[0];
-                p->ip6h->ip6_src[1] = f->src.addr_data32[0];
-                p->ip6h->ip6_src[2] = f->src.addr_data32[0];
-                p->ip6h->ip6_src[3] = f->src.addr_data32[0];
-                p->ip6h->ip6_dst[0] = f->dst.addr_data32[0];
-                p->ip6h->ip6_dst[1] = f->dst.addr_data32[0];
-                p->ip6h->ip6_dst[2] = f->dst.addr_data32[0];
-                p->ip6h->ip6_dst[3] = f->dst.addr_data32[0];
-
-                /* set the tcp header */
-                p->tcph = (TCPHdr *)((uint8_t *)p->pkt + 40);
-            }
-
-            p->tcph->th_sport = htons(f->sp);
-            p->tcph->th_dport = htons(f->dp);
 
             if (stream_pseudo_pkt_detect_prev_TV != NULL) {
                 stream_pseudo_pkt_detect_prev_TV->
@@ -1491,60 +1426,10 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
             }
         } /* if (ssn->client.seg_list != NULL) */
         if (server_ok == 1) {
-            Packet *p = PacketGetFromQueueOrAlloc();
+            Packet *p = FFRPseudoPacketSetup(1, f, ssn, 1);
             if (p == NULL) {
-                printf("packet is NULL\n");
-                exit(0);
+                return;
             }
-            p->proto = IPPROTO_TCP;
-            p->flow = f;
-            p->flags |= PKT_STREAM_EST;
-            p->flags |= PKT_STREAM_EOF;
-            p->flags |= PKT_HAS_FLOW;
-            p->flags |= PKT_PSEUDO_STREAM_END;
-            p->flowflags |= FLOW_PKT_TOCLIENT;
-            p->flowflags |= FLOW_PKT_ESTABLISHED;
-            COPY_ADDRESS(&f->dst, &p->src);
-            COPY_ADDRESS(&f->src, &p->dst);
-            p->dp = f->sp;
-            p->sp = f->dp;
-            p->payload = NULL;
-            p->payload_len = 0;
-
-            if (f->src.family == AF_INET) {
-                /* set the ip header */
-                p->ip4h = (IPV4Hdr *)p->pkt;
-                /* version 4 and length 20 bytes for the tcp header */
-                p->ip4h->ip_verhl = 0x45;
-                p->ip4h->ip_len = htons(40);
-                p->ip4h->ip_proto = IPPROTO_TCP;
-                p->ip4h->ip_src.s_addr = f->dst.addr_data32[0];
-                p->ip4h->ip_dst.s_addr = f->src.addr_data32[0];
-
-                /* set the tcp header */
-                p->tcph = (TCPHdr *)((uint8_t *)p->pkt + 20);
-
-            } else {
-                /* set the ip header */
-                p->ip6h = (IPV6Hdr *)p->pkt;
-                /* version 6 */
-                p->ip6h->s_ip6_vfc = 0x60;
-                p->ip6h->s_ip6_plen = htons(20);
-                p->ip6h->s_ip6_nxt = IPPROTO_TCP;
-                p->ip6h->ip6_dst[0] = f->src.addr_data32[0];
-                p->ip6h->ip6_dst[1] = f->src.addr_data32[0];
-                p->ip6h->ip6_dst[2] = f->src.addr_data32[0];
-                p->ip6h->ip6_dst[3] = f->src.addr_data32[0];
-                p->ip6h->ip6_src[0] = f->dst.addr_data32[0];
-                p->ip6h->ip6_src[1] = f->dst.addr_data32[0];
-                p->ip6h->ip6_src[2] = f->dst.addr_data32[0];
-                p->ip6h->ip6_src[3] = f->dst.addr_data32[0];
-
-                /* set the tcp header */
-                p->tcph = (TCPHdr *)((uint8_t *)p->pkt + 40);
-            }
-            p->tcph->th_sport = htons(f->dp);
-            p->tcph->th_dport = htons(f->sp);
 
             if (stream_pseudo_pkt_detect_prev_TV != NULL) {
                 stream_pseudo_pkt_detect_prev_TV->
