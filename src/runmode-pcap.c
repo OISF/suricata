@@ -228,8 +228,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx)
     RunModeInitialize();
     TimeModeSetLive();
 
-    /* TODO handle compat with pcap.single_pcap_dev */
-    ConfGet("pcap.live-interface", &live_dev);
+    ConfGet("pcap.single_pcap_dev", &live_dev);
 
     ret = RunModeSetLiveCaptureAuto(de_ctx,
                                     ParsePcapConfig, "ReceivePcap",
@@ -276,8 +275,7 @@ int RunModeIdsPcapAutoFp(DetectEngineCtx *de_ctx)
     RunModeInitialize();
     TimeModeSetLive();
 
-    /* TODO handle compat with pcap.single_pcap_dev */
-    ConfGet("pcap.live-interface", &live_dev);
+    ConfGet("pcap.single_pcap_dev", &live_dev);
 
     ret = RunModeSetLiveCaptureAutoFp(de_ctx,
                               ParsePcapConfig,
