@@ -84,12 +84,22 @@ void *ParsePcapConfig(const char *iface)
         return NULL;
     }
     strlcpy(aconf->iface, iface, sizeof(aconf->iface));
+
     aconf->buffer_size = 0;
+    /* If set command line option has precedence over config */
+    if ((ConfGetInt("pcap.buffer_size", &value)) == 1) {
+        aconf->buffer_size = value;
+    }
+
+    aconf->bpf_filter = NULL;
+    if ((ConfGet("bpf-filter", &tmpbpf)) == 1) {
+        aconf->bpf_filter = tmpbpf;
+    }
 
     /* Find initial node */
     pcap_node = ConfGetNode("pcap");
     if (pcap_node == NULL) {
-        SCLogInfo("Unable to find af-packet config using default value");
+        SCLogInfo("Unable to find pcap config using default value");
         return aconf;
     }
 
@@ -101,18 +111,22 @@ void *ParsePcapConfig(const char *iface)
         return aconf;
     }
 
-    if ((ConfGetChildValueInt(if_root, "buffer-size", &value)) == 1) {
-        aconf->buffer_size = value;
-    } else {
-        aconf->buffer_size = 0;
+    if (aconf->buffer_size == 0) {
+        if ((ConfGetChildValueInt(if_root, "buffer-size", &value)) == 1) {
+            aconf->buffer_size = value;
+        }
     }
 
-    /* set bpf filter if we have one */
-    if (ConfGetChildValue(if_root, "bpf-filter", &tmpbpf) != 1) {
-        SCLogDebug("could not get bpf or none specified");
+    if (aconf->bpf_filter == NULL) {
+        /* set bpf filter if we have one */
+        if (ConfGetChildValue(if_root, "bpf-filter", &tmpbpf) != 1) {
+            SCLogDebug("could not get bpf or none specified");
+        } else {
+            /* TODO free this */
+            aconf->bpf_filter = strdup(tmpbpf);
+        }
     } else {
-        /* TODO free this */
-        aconf->bpf_filter = strdup(tmpbpf);
+        SCLogInfo("BPF filter set from command line or via old 'bpf-filter' option.");
     }
 
     return aconf;
