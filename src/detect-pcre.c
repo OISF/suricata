@@ -879,14 +879,17 @@ DetectPcreData *DetectPcreParse (char *regexstr)
         SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", regexstr, eo, eb);
         goto error;
     }
-#ifdef PCRE_HAVE_SLJIT
+#ifdef PCRE_HAVE_JIT
     pd->sd = pcre_study(pd->re, PCRE_STUDY_JIT_COMPILE, &eb);
     if(eb != NULL)  {
         SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed : %s", eb);
         goto error;
     }
-    if (!(pd->sd->flags & PCRE_EXTRA_EXECUTABLE_FUNC)) {
-        SCLogWarning(SC_ERR_PCRE_STUDY, "JIT compiler does not support: %s", regexstr);
+
+    int jit = 0;
+    ret = pcre_fullinfo(pd->re, pd->sd, PCRE_INFO_JIT, &jit);
+    if (ret != 0 || jit != 1) {
+        SCLogWarning(SC_ERR_PCRE_STUDY, "PCRE JIT compiler does not support: %s", regexstr);
     }
 #else
     pd->sd = pcre_study(pd->re, 0, &eb);

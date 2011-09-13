@@ -506,8 +506,8 @@ void SCPrintBuildInfo(void) {
 #ifdef HAVE_HTP_URI_NORMALIZE_HOOK
     strlcat(features, "HAVE_HTP_URI_NORMALIZE_HOOK ", sizeof(features));
 #endif
-#ifdef PCRE_HAVE_SLJIT
-    strlcat(features, "PCRE_SLJIT ", sizeof(features));
+#ifdef PCRE_HAVE_JIT
+    strlcat(features, "PCRE_JIT ", sizeof(features));
 #endif
     if (strlen(features) == 0) {
         strlcat(features, "none", sizeof(features));

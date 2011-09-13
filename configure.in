@@ -296,40 +296,64 @@ AC_INIT(configure.in)
     echo
    fi
 
-    #enable suppot for PCRE-sljit http://sljit.sourceforge.net/pcre.html
-    AC_ARG_ENABLE(pcre-sljit,
-           AS_HELP_STRING([--enable-pcre-sljit], [Enable experimental support for PCRE-sljit]),,[enable_pcre_sljit=no])
-    AS_IF([test "x$enable_pcre_sljit" = "xyes"], [
-        AC_MSG_CHECKING(for PCRE sljit support)
+    #enable support for PCRE-jit available since pcre-8.20
+    AC_ARG_ENABLE(pcre-jit,
+           AS_HELP_STRING([--enable-pcre-jit], [Enable experimental support for PCRE-jit]),,[enable_pcre_jit=no])
+    AS_IF([test "x$enable_pcre_jit" = "xyes"], [
+        AC_MSG_CHECKING(for PCRE JIT support)
         AC_TRY_COMPILE([ #include <pcre.h> ],
-            [ const char* regexstr = "(a|b|c|d)";
-              pcre *re;
-              const char *error;
-              pcre_extra *extra;
-              int err_offset;
-              re = pcre_compile(regexstr,0, &error, &err_offset,NULL);
-              extra = pcre_study(re, PCRE_STUDY_JIT_COMPILE, &error);
-              if (!(extra->flags & PCRE_EXTRA_EXECUTABLE_FUNC)) {
-                  printf("\nJIT compiler does not support: %s\n", regexstr);
-              }
-              return 0;],
-            [ pcre_sljit_available=yes ], [:]
+            [
+            int jit = 0;
+            pcre_config(PCRE_CONFIG_JIT, &jit);
+            ],
+            [ pcre_jit_available=yes ], [:]
             )
 
-           if test "x$pcre_sljit_available" = "xyes"; then
-               AC_MSG_RESULT(yes)
-               AC_DEFINE([PCRE_HAVE_SLJIT], [1], [Pcre with JIT compiler support enabled])
-           else
-               AC_MSG_RESULT(no)
-               echo
-               echo "   Error! --enable-pcre-sljit set but PCRE_STUDY_JIT_COMPILE not found"
-               echo "   Make sure you use pcre found here "
-               echo "   http://sljit.sourceforge.net/pcre.html"
-               echo
-               exit 1
-           fi
+        if test "x$pcre_jit_available" = "xyes"; then
+            AC_MSG_RESULT(yes)
+            AC_DEFINE([PCRE_HAVE_JIT], [1], [Pcre with JIT compiler support enabled])
 
+            AC_MSG_CHECKING(for PCRE JIT support usability)
+            AC_TRY_COMPILE([ #include <pcre.h> ],
+                [
+                const char* regexstr = "(a|b|c|d)";
+                pcre *re;
+                const char *error;
+                pcre_extra *extra;
+                int err_offset;
+                re = pcre_compile(regexstr,0, &error, &err_offset,NULL);
+                extra = pcre_study(re, PCRE_STUDY_JIT_COMPILE, &error);
+                if (extra == NULL)
+                    exit(EXIT_FAILURE);
+                int jit = 0;
+                int ret = pcre_fullinfo(re, extra, PCRE_INFO_JIT, &jit);
+                if (ret != 0 || jit != 1)
+                    exit(EXIT_FAILURE);
+                exit(EXIT_SUCCESS);
+                ],
+                [ pcre_jit_works=yes ], [:]
+            )
+            if test "x$pcre_jit_works" != "xyes"; then
+                AC_MSG_RESULT(no)
+                echo
+                echo "   PCRE JIT support detection worked but testing it failed"
+                echo "   something odd is going on, please file a bug report."
+                echo
+                exit 1
+            else
+                AC_MSG_RESULT(yes)
+            fi
+        else
+            AC_MSG_RESULT(no)
+            echo
+            echo "   Error! --enable-pcre-jit set but PCRE_CONFIG_JIT not found"
+            echo "   Make sure your PCRE supports JIT. Version 8.20+ with"
+            echo "   --enable-jit passed to it's configure script."
+            echo
+            exit 1
+        fi
     ])
+
 #libyaml
     AC_ARG_WITH(libyaml_includes,
             [  --with-libyaml-includes=DIR  libyaml include directory],
@@ -1031,5 +1055,5 @@ Suricata Configuration:
   GCC Profile enabled:      ${enable_gccprofile}
   Unified native time:      ${enable_unified_native_timeval}
   Non-bundled htp:          ${enable_non_bundled_htp}
-  PCRE sljit:               ${enable_pcre_sljit}
+  PCRE jit:                 ${enable_pcre_jit}
 "
