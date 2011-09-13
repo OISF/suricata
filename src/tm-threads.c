@@ -161,12 +161,14 @@ void *TmThreadsSlot1NoIn(void *td)
             tv->tmqh_out(tv, p);
 
         /* handle post queue */
-        while (s->slot_post_pq.top != NULL) {
+        if (s->slot_post_pq.top != NULL) {
             SCMutexLock(&s->slot_post_pq.mutex_q);
-            Packet *extra_p = PacketDequeue(&s->slot_post_pq);
+            while (s->slot_post_pq.top != NULL) {
+                Packet *extra_p = PacketDequeue(&s->slot_post_pq);
+                if (extra_p != NULL)
+                    tv->tmqh_out(tv, extra_p);
+            }
             SCMutexUnlock(&s->slot_post_pq.mutex_q);
-            if (extra_p != NULL)
-                tv->tmqh_out(tv, extra_p);
         }
 
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
@@ -404,14 +406,16 @@ void *TmThreadsSlot1(void *td)
             /* output the packet */
             tv->tmqh_out(tv, p);
         }
-        while (s->slot_post_pq.top != NULL) {
-            /* handle new packets from this func */
+        if (s->slot_post_pq.top != NULL) {
             SCMutexLock(&s->slot_post_pq.mutex_q);
-            Packet *extra_p = PacketDequeue(&s->slot_post_pq);
-            SCMutexUnlock(&s->slot_post_pq.mutex_q);
-            if (extra_p != NULL) {
-                tv->tmqh_out(tv, extra_p);
+            while (s->slot_post_pq.top != NULL) {
+                /* handle new packets from this func */
+                Packet *extra_p = PacketDequeue(&s->slot_post_pq);
+                if (extra_p != NULL) {
+                    tv->tmqh_out(tv, extra_p);
+                }
             }
+            SCMutexUnlock(&s->slot_post_pq.mutex_q);
         }
 
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
@@ -672,25 +676,28 @@ void *TmThreadsSlotVar(void *td)
         /* now handle the post_pq packets */
         TmSlot *slot;
         for (slot = s; slot != NULL; slot = slot->slot_next) {
-            while (slot->slot_post_pq.top != NULL) {
+            if (slot->slot_post_pq.top != NULL) {
                 SCMutexLock(&slot->slot_post_pq.mutex_q);
-                Packet *extra_p = PacketDequeue(&slot->slot_post_pq);
-                SCMutexUnlock(&slot->slot_post_pq.mutex_q);
-                if (extra_p == NULL)
-                    break;
-
-                if (slot->slot_next != NULL) {
-                    r = TmThreadsSlotVarRun(tv, extra_p, slot->slot_next);
-                    if (r == TM_ECODE_FAILED) {
-                        TmqhOutputPacketpool(tv, extra_p);
-                        TmThreadsSetFlag(tv, THV_FAILED);
+                while (slot->slot_post_pq.top != NULL) {
+                    Packet *extra_p = PacketDequeue(&slot->slot_post_pq);
+                    if (extra_p == NULL)
                         break;
+
+                    if (slot->slot_next != NULL) {
+                        r = TmThreadsSlotVarRun(tv, extra_p, slot->slot_next);
+                        if (r == TM_ECODE_FAILED) {
+                            TmqhReleasePacketsToPacketPool(&slot->slot_post_pq);
+                            TmqhOutputPacketpool(tv, extra_p);
+                            TmThreadsSetFlag(tv, THV_FAILED);
+                            break;
+                        }
                     }
-                }
-                /* output the packet */
-                tv->tmqh_out(tv, extra_p);
-            } /* while (slot->slot_post_pq.top != NULL) */
-        } /* for (slot = s; slot != NULL; slot = slot->slot_next) */
+                    /* output the packet */
+                    tv->tmqh_out(tv, extra_p);
+                } /* while */
+                SCMutexUnlock(&slot->slot_post_pq.mutex_q);
+            } /* if */
+        } /* for */
 
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
             run = 0;

@@ -152,25 +152,27 @@ static inline TmEcode TmThreadsSlotProcessPkt(ThreadVars *tv, TmSlot *s, Packet 
         /* post process pq */
         TmSlot *slot = s;
         while (slot != NULL) {
-            while (slot->slot_post_pq.top != NULL) {
+            if (slot->slot_post_pq.top != NULL) {
                 SCMutexLock(&slot->slot_post_pq.mutex_q);
-                Packet *extra_p = PacketDequeue(&slot->slot_post_pq);
-                SCMutexUnlock(&slot->slot_post_pq.mutex_q);
-                if (extra_p != NULL) {
-                    if (slot->slot_next != NULL) {
-                        r = TmThreadsSlotVarRun(tv, extra_p, slot->slot_next);
-                        if (r == TM_ECODE_FAILED) {
-                            TmqhReleasePacketsToPacketPool(&slot->slot_post_pq);
-                            TmqhOutputPacketpool(tv, extra_p);
-                            TmThreadsSetFlag(tv, THV_FAILED);
-                            break;
+                while (slot->slot_post_pq.top != NULL) {
+                    Packet *extra_p = PacketDequeue(&slot->slot_post_pq);
+                    if (extra_p != NULL) {
+                        if (slot->slot_next != NULL) {
+                            r = TmThreadsSlotVarRun(tv, extra_p, slot->slot_next);
+                            if (r == TM_ECODE_FAILED) {
+                                TmqhReleasePacketsToPacketPool(&slot->slot_post_pq);
+                                TmqhOutputPacketpool(tv, extra_p);
+                                TmThreadsSetFlag(tv, THV_FAILED);
+                                break;
+                            }
                         }
+                        tv->tmqh_out(tv, extra_p);
                     }
-                    tv->tmqh_out(tv, extra_p);
-                }
-            }
+                } /* while (slot->slot_post_pq.top != NULL) */
+                SCMutexUnlock(&slot->slot_post_pq.mutex_q);
+            } /* if (slot->slot_post_pq.top != NULL) */
             slot = slot->slot_next;
-        }
+        } /* while (slot != NULL) */
     }
 
     return r;
