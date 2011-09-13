@@ -501,6 +501,7 @@ OutputCtx *AlertDebugLogInitCtx(ConfNode *conf)
     output_ctx->data = file_ctx;
     output_ctx->DeInit = AlertDebugLogDeInitCtx;
 
+    SCLogInfo("Alert debug log output initialized, filename: %s", filename);
     return output_ctx;
 
 error:
@@ -514,6 +515,7 @@ error:
 /** \brief Read the config set the file pointer, open the file
  *  \param file_ctx pointer to a created LogFileCtx using LogFileNewCtx()
  *  \param filename name of log file
+ *  \param mode append mode (bool)
  *  \return -1 if failure, 0 if succesful
  * */
 int AlertDebugLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename, const
@@ -527,7 +529,7 @@ int AlertDebugLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename, const
 
     snprintf(log_path, PATH_MAX, "%s/%s", log_dir, filename);
 
-    if (strcasecmp(mode, "yes") == 0) {
+    if (ConfValIsTrue(mode)) {
         file_ctx->fp = fopen(log_path, "a");
     } else {
         file_ctx->fp = fopen(log_path, "w");

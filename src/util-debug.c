@@ -1154,7 +1154,7 @@ void SCLogLoadConfig(void)
 
         /* By default an output is enabled. */
         const char *enabled = ConfNodeLookupChildValue(output, "enabled");
-        if (enabled != NULL && strcmp(enabled, "no") == 0)
+        if (enabled != NULL && ConfValIsFalse(enabled))
             continue;
 
         /* if available use the log format setting for this output,

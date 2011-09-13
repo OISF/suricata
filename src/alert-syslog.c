@@ -120,12 +120,6 @@ void TmModuleAlertSyslogIPv6Register (void) {
  */
 OutputCtx *AlertSyslogInitCtx(ConfNode *conf)
 {
-    const char *enabled = ConfNodeLookupChildValue(conf, "enabled");
-    if (enabled != NULL && strcasecmp(enabled, "no") == 0) {
-        SCLogDebug("alert-syslog module has been disabled");
-        return NULL;
-    }
-
     const char *facility_s = ConfNodeLookupChildValue(conf, "facility");
     if (facility_s == NULL) {
         facility_s = DEFAULT_ALERT_SYSLOG_FACILITY_STR;

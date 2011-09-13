@@ -411,6 +411,7 @@ void LogHttpLogExitPrintStats(ThreadVars *tv, void *data) {
 OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
 {
     int ret=0;
+
     LogFileCtx* file_ctx=LogFileNewCtx();
 
     if(file_ctx == NULL)
@@ -439,6 +440,8 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
     output_ctx->data = file_ctx;
     output_ctx->DeInit = LogHttpLogDeInitCtx;
 
+    SCLogInfo("HTTP log output initialized, filename: %s", filename);
+
     return output_ctx;
 }
 
@@ -451,7 +454,8 @@ static void LogHttpLogDeInitCtx(OutputCtx *output_ctx)
 
 /** \brief Read the config set the file pointer, open the file
  *  \param file_ctx pointer to a created LogFileCtx using LogFileNewCtx()
- *  \param config_file for loading separate configs
+ *  \param filename name of log file
+ *  \param mode append mode (bool)
  *  \return -1 if failure, 0 if succesful
  * */
 int LogHttpLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename, const
@@ -465,7 +469,7 @@ int LogHttpLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename, const
 
     snprintf(log_path, PATH_MAX, "%s/%s", log_dir, filename);
 
-    if (strcasecmp(mode, "yes") == 0) {
+    if (ConfValIsTrue(mode)) {
         file_ctx->fp = fopen(log_path, "a");
     } else {
         file_ctx->fp = fopen(log_path, "w");

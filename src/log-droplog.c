@@ -146,11 +146,6 @@ TmEcode LogDropLogThreadDeinit(ThreadVars *t, void *data)
  */
 OutputCtx *LogDropLogInitCtx(ConfNode *conf)
 {
-    const char *enable = ConfNodeLookupChildValue(conf, "enabled");
-    if (enable == NULL || strcasecmp (enable, "no") == 0) {
-        return NULL;
-    }
-
     LogFileCtx *logfile_ctx = LogFileNewCtx();
     if (logfile_ctx == NULL) {
         SCLogDebug("LogDropLogInitCtx: Could not create new LogFileCtx");
@@ -202,6 +197,7 @@ static void LogDropLogDeInitCtx(OutputCtx *output_ctx)
 /** \brief Read the config set the file pointer, open the file
  *  \param file_ctx pointer to a created LogFileCtx using LogFileNewCtx()
  *  \param filename name of log file
+ *  \param mode append mode (bool)
  *  \return -1 if failure, 0 if succesful
  * */
 static int LogDropLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename,
@@ -215,7 +211,7 @@ static int LogDropLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename,
 
     snprintf(log_path, PATH_MAX, "%s/%s", log_dir, filename);
 
-    if (strcasecmp(mode, "yes") == 0) {
+    if (ConfValIsTrue(mode)) {
         file_ctx->fp = fopen(log_path, "a");
     } else {
         file_ctx->fp = fopen(log_path, "w");

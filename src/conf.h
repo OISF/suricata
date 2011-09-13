@@ -69,6 +69,7 @@ void ConfNodeRemove(ConfNode *);
 void ConfRegisterTests();
 int ConfNodeChildValueIsTrue(ConfNode *node, const char *key);
 int ConfValIsTrue(const char *val);
+int ConfValIsFalse(const char *val);
 
 
 ConfNode *ConfNodeLookupKeyValue(ConfNode *base, const char *key, const char *value);

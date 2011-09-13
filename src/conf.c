@@ -358,7 +358,7 @@ int ConfGetChildValueBool(ConfNode *base, char *name, int *val)
 /**
  * \brief Check if a value is true.
  *
- * The value of considered true if it is a string with the value of 1,
+ * The value is considered true if it is a string with the value of 1,
  * yes, true or on.  The test is not case sensitive, any other value
  * is false.
  *
@@ -374,6 +374,32 @@ ConfValIsTrue(const char *val)
 
     for (u = 0; u < sizeof(trues) / sizeof(trues[0]); u++) {
         if (strcasecmp(val, trues[u]) == 0) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ * \brief Check if a value is false.
+ *
+ * The value is considered false if it is a string with the value of 0,
+ * no, false or off.  The test is not case sensitive, any other value
+ * is not false.
+ *
+ * \param val The string to test for a false value.
+ *
+ * \retval 1 If the value is false, 0 if not.
+ */
+int
+ConfValIsFalse(const char *val)
+{
+    char *falses[] = {"0", "no", "false", "off"};
+    size_t u;
+
+    for (u = 0; u < sizeof(falses) / sizeof(falses[0]); u++) {
+        if (strcasecmp(val, falses[u]) == 0) {
             return 1;
         }
     }

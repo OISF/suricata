@@ -428,7 +428,7 @@ SCProfilingDump(void)
     struct timeval tval;
     struct tm *tms;
     if (profiling_output_to_file == 1) {
-        if (strcasecmp(profiling_file_mode, "yes") == 0) {
+        if (ConfValIsTrue(profiling_file_mode)) {
             fp = fopen(profiling_file_name, "a");
         } else {
             fp = fopen(profiling_file_name, "w");

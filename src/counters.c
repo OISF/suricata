@@ -323,7 +323,7 @@ static void SCPerfInitOPCtx(void)
     /* Check if the stats module is enabled or not */
     if (stats != NULL) {
         const char *enabled = ConfNodeLookupChildValue(stats, "enabled");
-        if (strcasecmp(enabled, "no") == 0) {
+        if (enabled != NULL && ConfValIsFalse(enabled)) {
             sc_counter_enabled = FALSE;
             SCLogDebug("Stats module has been disabled");
             SCReturn;
@@ -334,7 +334,7 @@ static void SCPerfInitOPCtx(void)
 
         const char *append = ConfNodeLookupChildValue(stats, "append");
         if (append != NULL)
-            sc_counter_append = (strcasecmp(append,"yes") == 0);
+            sc_counter_append = ConfValIsTrue(append);
     }
 
     /* Store the engine start time */

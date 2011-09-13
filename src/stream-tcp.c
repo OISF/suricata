@@ -378,26 +378,24 @@ void StreamTcpInitConfig(char quiet)
         SCLogInfo("stream \"memcap\": %"PRIu32"", stream_config.memcap);
     }
 
-    if ((ConfGetBool("stream.midstream", &stream_config.midstream)) == 0) {
-        stream_config.midstream = FALSE;
-    }
+    ConfGetBool("stream.midstream", &stream_config.midstream);
+
     if (!quiet) {
         SCLogInfo("stream \"midstream\" session pickups: %s", stream_config.midstream ? "enabled" : "disabled");
     }
 
-    if ((ConfGetBool("stream.async_oneside", &stream_config.async_oneside)) == 0)
-    {
-        stream_config.async_oneside = FALSE;
-    }
+    ConfGetBool("stream.async_oneside", &stream_config.async_oneside);
+
     if (!quiet) {
         SCLogInfo("stream \"async_oneside\": %s", stream_config.async_oneside ? "enabled" : "disabled");
     }
 
-    char *csum = NULL;
-    if ((ConfGet("stream.checksum_validation", &csum)) == 1) {
-        if (strcmp(csum, "yes") == 0) {
+    int csum = 0;
+
+    if ((ConfGetBool("stream.checksum_validation", &csum)) == 1) {
+        if (csum == 1) {
             stream_config.flags |= STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION;
-        }
+	}
     /* Default is that we validate the checksum of all the packets */
     } else {
         stream_config.flags |= STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION;
@@ -409,11 +407,10 @@ void StreamTcpInitConfig(char quiet)
                 "enabled" : "disabled");
     }
 
-    char *inl = NULL;
-    if ((ConfGet("stream.inline", &inl)) == 1) {
-        if (strcasecmp(inl, "yes") == 0) {
-            stream_inline = 1;
-        }
+    int inl = 0;
+
+    if (ConfGetBool("stream.inline", &inl) == 1) {
+            stream_inline = inl;
     }
 
     if (!quiet) {

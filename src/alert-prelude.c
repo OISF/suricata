@@ -852,9 +852,9 @@ OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
     ctx->client = client;
     ctx->log_packet_content = 0;
     ctx->log_packet_header = 1;
-    if (log_packet_content && strcmp(log_packet_content,"yes")==0)
+    if (log_packet_content && ConfValIsTrue(log_packet_content))
         ctx->log_packet_content = 1;
-    if (log_packet_header && strcmp(log_packet_header,"yes")!=0)
+    if (log_packet_header && ConfValIsFalse(log_packet_header))
         ctx->log_packet_header = 0;
 
     output_ctx = SCMalloc(sizeof(OutputCtx));
