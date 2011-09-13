@@ -170,7 +170,9 @@ void *ParsePfringConfig(const char *iface)
     char *tmpclusterid;
 #ifdef HAVE_PFRING_CLUSTER_TYPE
     char *tmpctype = NULL;
+    /* TODO free me */
     char * default_ctype = strdup("cluster_round_robin");
+    int getctype = 0;
 #endif
 
     if (iface == NULL) {
@@ -215,28 +217,52 @@ void *ParsePfringConfig(const char *iface)
     if (pfconf->threads == 0) {
         pfconf->threads = 1;
     }
-    if (ConfGetChildValue(if_root, "cluster-id", &tmpclusterid) != 1) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,"Could not get cluster-id from config");
-    } else {
+
+    /* command line value has precedence */
+    if (ConfGet("pfring.cluster-id", &tmpclusterid) == 1) {
         pfconf->cluster_id = (uint16_t)atoi(tmpclusterid);
-        SCLogDebug("Going to use cluster-id %" PRId32, pfconf->cluster_id);
+        SCLogDebug("Going to use command-line provided cluster-id %" PRId32,
+                   pfconf->cluster_id);
+    } else {
+        if (ConfGetChildValue(if_root, "cluster-id", &tmpclusterid) != 1) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT,
+                       "Could not get cluster-id from config");
+        } else {
+            pfconf->cluster_id = (uint16_t)atoi(tmpclusterid);
+            SCLogDebug("Going to use cluster-id %" PRId32, pfconf->cluster_id);
+        }
     }
 
 #ifdef HAVE_PFRING_CLUSTER_TYPE
-    if (ConfGetChildValue(if_root, "cluster-type", &tmpctype) != 1) {
-        SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,"Could not get cluster-type fron config");
-    } else if (strcmp(tmpctype, "cluster_round_robin") == 0) {
-        SCLogInfo("Using round-robin cluster mode for PF_RING (iface %s)",
-                pfconf->iface);
-        pfconf->ctype = (cluster_type)tmpctype;
-    } else if (strcmp(tmpctype, "cluster_flow") == 0) {
-        SCLogInfo("Using flow cluster mode for PF_RING (iface %s)",
-                pfconf->iface);
-        pfconf->ctype = (cluster_type)tmpctype;
+    if (ConfGet("pfring.cluster-type", &tmpctype) == 1) {
+        SCLogDebug("Going to use command-line provided cluster-type");
+        getctype = 1;
     } else {
-        SCLogError(SC_ERR_INVALID_CLUSTER_TYPE,"invalid cluster-type %s",tmpctype);
-        return NULL;
+        if (ConfGetChildValue(if_root, "cluster-type", &tmpctype) != 1) {
+            SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,
+                       "Could not get cluster-type fron config");
+        } else {
+            getctype = 1;
+        }
     }
+
+    if (getctype) {
+        if (strcmp(tmpctype, "cluster_round_robin") == 0) {
+            SCLogInfo("Using round-robin cluster mode for PF_RING (iface %s)",
+                    pfconf->iface);
+            pfconf->ctype = (cluster_type)tmpctype;
+        } else if (strcmp(tmpctype, "cluster_flow") == 0) {
+            SCLogInfo("Using flow cluster mode for PF_RING (iface %s)",
+                    pfconf->iface);
+            pfconf->ctype = (cluster_type)tmpctype;
+        } else {
+            SCLogError(SC_ERR_INVALID_CLUSTER_TYPE,
+                       "invalid cluster-type %s",
+                       tmpctype);
+            return NULL;
+        }
+    }
+
 #endif
 
     return pfconf;
