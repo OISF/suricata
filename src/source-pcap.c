@@ -48,8 +48,6 @@
 
 extern uint8_t suricata_ctl_flags;
 
-#define PCAP_IFACE_NAME_LENGTH 48
-
 #define PCAP_STATE_DOWN 0
 #define PCAP_STATE_UP 1
 
@@ -66,6 +64,7 @@ typedef struct PcapThreadVars_
     unsigned char pcap_state;
     /* thread specific bpf */
     struct bpf_program filter;
+    char *bpf_filter;
 
     /* data link type for the thread */
     int datalink;
@@ -128,7 +127,6 @@ void TmModuleDecodePcapRegister (void) {
 static int PcapTryReopen(PcapThreadVars *ptv)
 {
     int pcap_activate_r;
-    char *tmpbpfstring;
 
     ptv->pcap_state = PCAP_STATE_DOWN;
     pcap_activate_r = pcap_activate(ptv->pcap_handle);
@@ -136,12 +134,8 @@ static int PcapTryReopen(PcapThreadVars *ptv)
         return pcap_activate_r;
     }
     /* set bpf filter if we have one */
-    if (ConfGet("bpf-filter", &tmpbpfstring) != 1) {
-        SCLogDebug("could not get bpf or none specified");
-    } else {
-        SCLogInfo("using bpf-filter \"%s\"", tmpbpfstring);
-
-        if(pcap_compile(ptv->pcap_handle,&ptv->filter,tmpbpfstring,1,0) < 0) {
+    if (ptv->bpf_filter != NULL) {
+        if(pcap_compile(ptv->pcap_handle,&ptv->filter,ptv->bpf_filter,1,0) < 0) {
             SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(ptv->pcap_handle));
             return -1;
         }
@@ -160,7 +154,6 @@ static int PcapTryReopen(PcapThreadVars *ptv)
 static int PcapTryReopen(PcapThreadVars *ptv)
 {
     char errbuf[PCAP_ERRBUF_SIZE] = "";
-    char *tmpbpfstring;
 
     ptv->pcap_state = PCAP_STATE_DOWN;
     pcap_close(ptv->pcap_handle);
@@ -173,12 +166,10 @@ static int PcapTryReopen(PcapThreadVars *ptv)
     }
 
     /* set bpf filter if we have one */
-    if (ConfGet("bpf-filter", &tmpbpfstring) != 1) {
-        SCLogDebug("could not get bpf or none specified");
-    } else {
-        SCLogInfo("using bpf-filter \"%s\"", tmpbpfstring);
+    if (ptv->bpf_filter != NULL) {
+        SCLogInfo("using bpf-filter \"%s\"", ptv->bpf_filter);
 
-        if(pcap_compile(ptv->pcap_handle,&ptv->filter,tmpbpfstring,1,0) < 0) {
+        if(pcap_compile(ptv->pcap_handle,&ptv->filter,ptv->bpf_filter,1,0) < 0) {
             SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(ptv->pcap_handle));
             return -1;
         }
@@ -296,7 +287,7 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
 #if LIBPCAP_VERSION_MAJOR == 1
 TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     SCEnter();
-    char *tmpbpfstring;
+    PcapIfaceConfig *pcapconfig = initdata;
 
     if (initdata == NULL) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "initdata == NULL");
@@ -310,10 +301,10 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     ptv->tv = tv;
 
-    SCLogInfo("using interface %s", (char *)initdata);
+    SCLogInfo("using interface %s", (char *)pcapconfig->iface);
     /* XXX create a general pcap setup function */
     char errbuf[PCAP_ERRBUF_SIZE];
-    ptv->pcap_handle = pcap_create((char *)initdata, errbuf);
+    ptv->pcap_handle = pcap_create((char *)pcapconfig->iface, errbuf);
     if (ptv->pcap_handle == NULL) {
         SCLogError(SC_ERR_PCAP_CREATE, "Coudn't create a new pcap handler, error %s", pcap_geterr(ptv->pcap_handle));
         SCFree(ptv);
@@ -345,21 +336,16 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
         SCReturnInt(TM_ECODE_FAILED);
     }
 #ifdef HAVE_PCAP_SET_BUFF
-    char *tmppcapbuffsize;
-    /* set pcap buffer size if specified and supported. Must be done prior to activating the handle */
-    if (ConfGet("pcap.buffer-size", &tmppcapbuffsize) == 1){
-        if (atoi(tmppcapbuffsize) >= 0 && atoi(tmppcapbuffsize) <= INT_MAX) {
-            ptv->pcap_buffer_size = (int)atoi(tmppcapbuffsize);
-            SCLogInfo("Going to use pcap buffer size of %" PRId32 "", ptv->pcap_buffer_size);
+    ptv->pcap_buffer_size = pcapconfig->buffer_size;
+    if (ptv->pcap_buffer_size >= 0 && ptv->pcap_buffer_size <= INT_MAX) {
+        SCLogInfo("Going to use pcap buffer size of %" PRId32 "", ptv->pcap_buffer_size);
 
-            int pcap_set_buffer_size_r = pcap_set_buffer_size(ptv->pcap_handle,ptv->pcap_buffer_size);
-            //printf("ReceivePcapThreadInit: pcap_set_timeout(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_set_buffer_size_r);
-            if (pcap_set_buffer_size_r != 0) {
-                SCLogError(SC_ERR_PCAP_SET_BUFF_SIZE, "Problems setting pcap buffer size, error %s", pcap_geterr(ptv->pcap_handle));
-                SCFree(ptv);
-                SCReturnInt(TM_ECODE_FAILED);
-            }
-
+        int pcap_set_buffer_size_r = pcap_set_buffer_size(ptv->pcap_handle,ptv->pcap_buffer_size);
+        //printf("ReceivePcapThreadInit: pcap_set_timeout(%p) returned %" PRId32 "\n", ptv->pcap_handle, pcap_set_buffer_size_r);
+        if (pcap_set_buffer_size_r != 0) {
+            SCLogError(SC_ERR_PCAP_SET_BUFF_SIZE, "Problems setting pcap buffer size, error %s", pcap_geterr(ptv->pcap_handle));
+            SCFree(ptv);
+            SCReturnInt(TM_ECODE_FAILED);
         }
     }
 #endif /* HAVE_PCAP_SET_BUFF */
@@ -377,12 +363,9 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     }
 
     /* set bpf filter if we have one */
-    if (ConfGet("bpf-filter", &tmpbpfstring) != 1) {
-        SCLogDebug("could not get bpf or none specified");
-    } else {
-        SCLogInfo("using bpf-filter \"%s\"", tmpbpfstring);
-
-        if(pcap_compile(ptv->pcap_handle,&ptv->filter,tmpbpfstring,1,0) < 0) {
+    if (pcapconfig->bpf_filter) {
+        ptv->bpf_filter = strdup(pcapconfig->bpf_filter);
+        if(pcap_compile(ptv->pcap_handle,&ptv->filter,ptv->bpf_filter,1,0) < 0) {
             SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(ptv->pcap_handle));
             SCFree(ptv);
             return TM_ECODE_FAILED;
@@ -435,12 +418,11 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     }
 
     /* set bpf filter if we have one */
-    if (ConfGet("bpf-filter", &tmpbpfstring) != 1) {
-        SCLogDebug("could not get bpf or none specified");
-    } else {
-        SCLogInfo("using bpf-filter \"%s\"", tmpbpfstring);
+    if (pcapconfig->bpf_filter) {
+        ptv->bpf_filter = strdup(pcapconfig->bpf_filter);
+        SCLogInfo("using bpf-filter \"%s\"", ptv->bpf_filter);
 
-        if(pcap_compile(ptv->pcap_handle,&ptv->filter,tmpbpfstring,1,0) < 0) {
+        if(pcap_compile(ptv->pcap_handle,&ptv->filter, ptv->bpf_filter,1,0) < 0) {
             SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(ptv->pcap_handle));
             SCFree(ptv);
             return TM_ECODE_FAILED;
@@ -502,6 +484,10 @@ void ReceivePcapThreadExitStats(ThreadVars *tv, void *data) {
 TmEcode ReceivePcapThreadDeinit(ThreadVars *tv, void *data) {
     PcapThreadVars *ptv = (PcapThreadVars *)data;
 
+    if (ptv->bpf_filter) {
+        SCFree(ptv->bpf_filter);
+        ptv->bpf_filter = NULL;
+    }
     pcap_close(ptv->pcap_handle);
     SCReturnInt(TM_ECODE_OK);
 }

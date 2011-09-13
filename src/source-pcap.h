@@ -42,5 +42,18 @@ typedef struct PcapPacketVars_
 {
 } PcapPacketVars;
 
+#define PCAP_IFACE_NAME_LENGTH 48
+
+typedef struct PcapIfaceConfig_
+{
+    char iface[PCAP_IFACE_NAME_LENGTH];
+    /* socket buffer size */
+    int buffer_size;
+    /* BPF filter */
+    char *bpf_filter;
+} PcapIfaceConfig;
+
+
+
 #endif /* __SOURCE_PCAP_H__ */
 
