@@ -388,13 +388,8 @@ int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx)
                               live_dev);
     if (ret != 0) {
         printf("ERROR: Unable to start runmode\n");
-        if (live_dev)
-            SCFree(live_dev);
         exit(EXIT_FAILURE);
     }
-
-    if (live_dev)
-        SCFree(live_dev);
 
     SCLogInfo("RunModeIdsPfringAutoFp initialised");
 #endif /* HAVE_PFRING */
@@ -443,13 +438,8 @@ int RunModeIdsPfringSingle(DetectEngineCtx *de_ctx)
                               live_dev);
     if (ret != 0) {
         printf("ERROR: Unable to start runmode\n");
-        if (live_dev)
-            SCFree(live_dev);
         exit(EXIT_FAILURE);
     }
-
-    if (live_dev)
-        SCFree(live_dev);
 
     SCLogInfo("RunModeIdsPfringSingle initialised");
 #endif /* HAVE_PFRING */
