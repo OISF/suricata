@@ -1446,6 +1446,46 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
 }
 
 /**
+ * \brief Used to kill flow manager thread(s).
+ *
+ * \todo Kinda hackish since it uses the tv name to identify flow manager
+ *       thread.  We need an all weather identification scheme.
+ */
+static inline void FlowKillFlowManagerThread(void)
+{
+    ThreadVars *tv = NULL;
+    int cnt = 0;
+
+    SCMutexLock(&tv_root_lock);
+
+    /* flow manager thread(s) is/are a part of mgmt threads */
+    tv = tv_root[TVT_MGMT];
+
+    while (tv != NULL) {
+        if (strcasecmp(tv->name, "FlowManagerThread") == 0) {
+            TmThreadsSetFlag(tv, THV_KILL);
+            TmThreadsSetFlag(tv, THV_DEINIT);
+
+            /* be sure it has shut down */
+            while (!TmThreadsCheckFlag(tv, THV_CLOSED)) {
+                usleep(100);
+            }
+            cnt++;
+        }
+        tv = tv->next;
+    }
+
+    /* not possible, unless someone decides to rename FlowManagerThread */
+    if (cnt == 0) {
+        SCMutexUnlock(&tv_root_lock);
+        abort();
+    }
+
+    SCMutexUnlock(&tv_root_lock);
+    return;
+}
+
+/**
  * \brief Force reassembly for all the flows that have unprocessed segments.
  */
 void FlowForceReassembly(void)
@@ -1454,36 +1494,7 @@ void FlowForceReassembly(void)
 
     /** ----- Part 1 ----- **/
     /* First we need to kill the flow manager thread */
-
-    ThreadVars *tv = NULL;
-
-    SCMutexLock(&tv_root_lock);
-
-    /* flow manager thread(s) is/are a part of mgmt threads */
-    tv = tv_root[TVT_MGMT];
-
-    while (tv != NULL) {
-        if (strcasecmp(tv->name, "FlowManagerThread") == 0)
-            break;
-        tv = tv->next;
-    }
-
-    /* not possible, unless someone decides to rename FlowManagerThread */
-    if (tv == NULL) {
-        SCMutexUnlock(&tv_root_lock);
-        abort();
-    }
-
-    TmThreadsSetFlag(tv, THV_KILL);
-    TmThreadsSetFlag(tv, THV_DEINIT);
-
-    /* be sure it has shut down */
-    while (!TmThreadsCheckFlag(tv, THV_CLOSED)) {
-        usleep(100);
-    }
-
-    SCMutexUnlock(&tv_root_lock);
-
+    FlowKillFlowManagerThread();
 
     /** ----- Part 2 ----- **/
     /* Check if all threads are idle.  We need this so that we have all
@@ -1492,7 +1503,7 @@ void FlowForceReassembly(void)
     SCMutexLock(&tv_root_lock);
 
     /* all receive threads are part of packet processing threads */
-    tv = tv_root[TVT_PPT];
+    ThreadVars *tv = tv_root[TVT_PPT];
 
     /* we are doing this in order receive -> decode -> ... -> log */
     while (tv != NULL) {
@@ -1519,7 +1530,7 @@ void FlowForceReassembly(void)
     FlowForceReassemblyForQ(&flow_est_q[FLOW_PROTO_TCP]);
     FlowForceReassemblyForQ(&flow_close_q[FLOW_PROTO_TCP]);
 
-    //exit(EXIT_FAILURE);
+    return;
 }
 
 /** \brief Thread that manages the various queue's and removes timed out flows.
