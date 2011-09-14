@@ -177,9 +177,7 @@ void *TmThreadsSlot1NoIn(void *td)
         }
     } /* while (run) */
 
-    while (!TmThreadsCheckFlag(tv, THV_DEINIT)) {
-        usleep(100);
-    }
+    TmThreadWaitForFlag(tv, THV_DEINIT);
 
     if (s->SlotThreadExitPrintStats != NULL) {
         s->SlotThreadExitPrintStats(tv, s->slot_data);
@@ -251,9 +249,7 @@ void *TmThreadsSlot1NoOut(void *td)
         }
     } /* while (run) */
 
-    while (!TmThreadsCheckFlag(tv, THV_DEINIT)) {
-        usleep(100);
-    }
+    TmThreadWaitForFlag(tv, THV_DEINIT);
 
     if (s->SlotThreadExitPrintStats != NULL) {
         s->SlotThreadExitPrintStats(tv, s->slot_data);
@@ -320,9 +316,7 @@ void *TmThreadsSlot1NoInOut(void *td)
         }
     } /* while (run) */
 
-    while (!TmThreadsCheckFlag(tv, THV_DEINIT)) {
-        usleep(100);
-    }
+    TmThreadWaitForFlag(tv, THV_DEINIT);
 
     if (s->SlotThreadExitPrintStats != NULL) {
         s->SlotThreadExitPrintStats(tv, s->slot_data);
@@ -424,9 +418,7 @@ void *TmThreadsSlot1(void *td)
         }
     } /* while (run) */
 
-    while (!TmThreadsCheckFlag(tv, THV_DEINIT)) {
-        usleep(100);
-    }
+    TmThreadWaitForFlag(tv, THV_DEINIT);
 
     if (s->SlotThreadExitPrintStats != NULL) {
         s->SlotThreadExitPrintStats(tv, s->slot_data);
@@ -581,9 +573,7 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
     }
     SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
 
-    while (!TmThreadsCheckFlag(tv, THV_DEINIT)) {
-        usleep(100);
-    }
+    TmThreadWaitForFlag(tv, THV_DEINIT);
 
     for (slot = s; slot != NULL; slot = slot->slot_next) {
         if (slot->SlotThreadExitPrintStats != NULL) {
@@ -705,9 +695,7 @@ void *TmThreadsSlotVar(void *td)
     } /* while (run) */
     SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
 
-    while (!TmThreadsCheckFlag(tv, THV_DEINIT)) {
-        usleep(100);
-    }
+    TmThreadWaitForFlag(tv, THV_DEINIT);
 
     s = (TmSlot *)tv->tm_slots;
 
@@ -1691,6 +1679,21 @@ void TmThreadTestThreadUnPaused(ThreadVars *tv)
 
         if (TmThreadsCheckFlag(tv, THV_KILL))
             break;
+    }
+
+    return;
+}
+
+/**
+ * \brief Waits till the specified flag(s) is(are) set.  We don't bother if
+ *        the kill flag has been set or not on the thread.
+ *
+ * \param tv Pointer to the TV instance.
+ */
+void TmThreadWaitForFlag(ThreadVars *tv, uint8_t flags)
+{
+    while (!TmThreadsCheckFlag(tv, flags)) {
+        usleep(100);
     }
 
     return;

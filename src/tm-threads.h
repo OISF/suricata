@@ -111,6 +111,7 @@ ThreadVars *TmThreadsGetCallingThread(void);
 int TmThreadsCheckFlag(ThreadVars *, uint8_t);
 void TmThreadsSetFlag(ThreadVars *, uint8_t);
 void TmThreadsUnsetFlag(ThreadVars *, uint8_t);
+void TmThreadWaitForFlag(ThreadVars *, uint8_t);
 
 TmEcode TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *slot);
 

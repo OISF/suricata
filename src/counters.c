@@ -471,9 +471,7 @@ static void *SCPerfMgmtThread(void *arg)
         }
     }
 
-    while (!TmThreadsCheckFlag(tv_local, THV_DEINIT)) {
-        usleep(100);
-    }
+    TmThreadWaitForFlag(tv_local, THV_DEINIT);
 
     TmThreadsSetFlag(tv_local, THV_CLOSED);
     return NULL;
@@ -543,9 +541,7 @@ static void *SCPerfWakeupThread(void *arg)
         }
     }
 
-    while (!TmThreadsCheckFlag(tv_local, THV_DEINIT)) {
-        usleep(100);
-    }
+    TmThreadWaitForFlag(tv_local, THV_DEINIT);
 
     TmThreadsSetFlag(tv_local, THV_CLOSED);
     return NULL;

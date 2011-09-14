@@ -1738,9 +1738,7 @@ void *FlowManagerThread(void *td)
         }
     }
 
-    while (!TmThreadsCheckFlag(th_v, THV_DEINIT)) {
-        usleep(100);
-    }
+    TmThreadWaitForFlag(th_v, THV_DEINIT);
 
     FlowHashDebugDeinit();
 
