@@ -153,7 +153,9 @@ int RunModeIdsPcapSingle(DetectEngineCtx *de_ctx)
     ConfGet("pcap.single_pcap_dev", &live_dev);
 
     ret = RunModeSetLiveCaptureSingle(de_ctx,
-                                    ParsePcapConfig, "ReceivePcap",
+                                    ParsePcapConfig,
+                                    PcapConfigGeThreadsCount,
+                                    "ReceivePcap",
                                     "DecodePcap", "PcapLive",
                                     live_dev);
     if (ret != 0) {

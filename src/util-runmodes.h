@@ -40,7 +40,9 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
                               const char *live_dev);
 
 int RunModeSetLiveCaptureSingle(DetectEngineCtx *de_ctx,
-                              ConfigIfaceParserFunc configparser, char *recv_mod_name,
+                              ConfigIfaceParserFunc configparser,
+                              ConfigIfaceThreadsCountFunc mod_threads_count,
+                              char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
                               const char *live_dev);
 

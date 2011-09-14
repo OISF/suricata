@@ -294,7 +294,9 @@ int RunModeIdsAFPSingle(DetectEngineCtx *de_ctx)
     ConfGet("af-packet.live-interface", &live_dev);
 
     ret = RunModeSetLiveCaptureSingle(de_ctx,
-                                    ParseAFPConfig, "ReceiveAFP",
+                                    ParseAFPConfig,
+                                    AFPConfigGeThreadsCount,
+                                    "ReceiveAFP",
                                     "DecodeAFP", "AFPacket",
                                     live_dev);
     if (ret != 0) {
