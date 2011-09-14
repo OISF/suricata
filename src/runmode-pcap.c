@@ -204,13 +204,8 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx)
                                     live_dev);
     if (ret != 0) {
         printf("ERROR: Unable to start runmode\n");
-        if (live_dev)
-            SCFree(live_dev);
         exit(EXIT_FAILURE);
     }
-
-    if (live_dev)
-        SCFree(live_dev);
 
     SCLogInfo("RunModeIdsPcapAuto initialised");
 
@@ -253,13 +248,8 @@ int RunModeIdsPcapAutoFp(DetectEngineCtx *de_ctx)
                               live_dev);
     if (ret != 0) {
         printf("ERROR: Unable to start runmode\n");
-        if (live_dev)
-            SCFree(live_dev);
         exit(EXIT_FAILURE);
     }
-
-    if (live_dev)
-        SCFree(live_dev);
 
     SCLogInfo("RunModeIdsPcapAutoFp initialised");
 
