@@ -39,6 +39,9 @@ struct TmSlot_;
 #define THV_KILL      0x08 /** thread has been asked to cleanup and exit */
 #define THV_FAILED    0x10 /** thread has encountered an error and failed */
 #define THV_CLOSED    0x20 /** thread done, should be joinable */
+/* used to indicate the thread is going through de-init.  Introduced as more
+ * of a hack for solving stream-timeout-shutdown.  Is set by the main thread. */
+#define THV_DEINIT    0x40
 
 /** Thread flags set and read by threads, to control the threads, when they
  *  encounter certain conditions like failure */

@@ -471,6 +471,10 @@ static void *SCPerfMgmtThread(void *arg)
         }
     }
 
+    while (!TmThreadsCheckFlag(tv_local, THV_DEINIT)) {
+        usleep(100);
+    }
+
     TmThreadsSetFlag(tv_local, THV_CLOSED);
     return NULL;
 }
@@ -535,11 +539,15 @@ static void *SCPerfWakeupThread(void *arg)
         }
 
         if (TmThreadsCheckFlag(tv_local, THV_KILL)) {
-            TmThreadsSetFlag(tv_local, THV_CLOSED);
             run = 0;
         }
     }
 
+    while (!TmThreadsCheckFlag(tv_local, THV_DEINIT)) {
+        usleep(100);
+    }
+
+    TmThreadsSetFlag(tv_local, THV_CLOSED);
     return NULL;
 }
 

@@ -177,9 +177,13 @@ void *TmThreadsSlot1NoIn(void *td)
         }
     } /* while (run) */
 
+    while (!TmThreadsCheckFlag(tv, THV_DEINIT)) {
+        usleep(100);
+    }
+
     /* wait for synchronization from master, if this TV has a synchronization
      * point set by this name */
-    TmThreadsMSSlaveHitSyncPt(tv, "ReceiveTMBeforeDeInit");
+    //TmThreadsMSSlaveHitSyncPt(tv, "ReceiveTMBeforeDeInit");
 
     if (s->SlotThreadExitPrintStats != NULL) {
         s->SlotThreadExitPrintStats(tv, s->slot_data);
@@ -251,9 +255,13 @@ void *TmThreadsSlot1NoOut(void *td)
         }
     } /* while (run) */
 
+    while (!TmThreadsCheckFlag(tv, THV_DEINIT)) {
+        usleep(100);
+    }
+
     /* wait for synchronization from master, if this TV has a synchronization
      * point set by this name */
-    TmThreadsMSSlaveHitSyncPt(tv, "ReceiveTMBeforeDeInit");
+    //TmThreadsMSSlaveHitSyncPt(tv, "ReceiveTMBeforeDeInit");
 
     if (s->SlotThreadExitPrintStats != NULL) {
         s->SlotThreadExitPrintStats(tv, s->slot_data);
@@ -320,9 +328,13 @@ void *TmThreadsSlot1NoInOut(void *td)
         }
     } /* while (run) */
 
+    while (!TmThreadsCheckFlag(tv, THV_DEINIT)) {
+        usleep(100);
+    }
+
     /* wait for synchronization from master, if this TV has a synchronization
      * point set by this name */
-    TmThreadsMSSlaveHitSyncPt(tv, "ReceiveTMBeforeDeInit");
+    //TmThreadsMSSlaveHitSyncPt(tv, "ReceiveTMBeforeDeInit");
 
     if (s->SlotThreadExitPrintStats != NULL) {
         s->SlotThreadExitPrintStats(tv, s->slot_data);
@@ -424,9 +436,13 @@ void *TmThreadsSlot1(void *td)
         }
     } /* while (run) */
 
+    while (!TmThreadsCheckFlag(tv, THV_DEINIT)) {
+        usleep(100);
+    }
+
     /* wait for synchronization from master, if this TV has a synchronization
      * point set by this name */
-    TmThreadsMSSlaveHitSyncPt(tv, "ReceiveTMBeforeDeInit");
+    //TmThreadsMSSlaveHitSyncPt(tv, "ReceiveTMBeforeDeInit");
 
     if (s->SlotThreadExitPrintStats != NULL) {
         s->SlotThreadExitPrintStats(tv, s->slot_data);
@@ -581,9 +597,13 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
     }
     SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
 
+    while (!TmThreadsCheckFlag(tv, THV_DEINIT)) {
+        usleep(100);
+    }
+
     /* wait for synchronization from master, if this TV has a synchronization
      * point set by this name */
-    TmThreadsMSSlaveHitSyncPt(tv, "ReceiveTMBeforeDeInit");
+    //TmThreadsMSSlaveHitSyncPt(tv, "ReceiveTMBeforeDeInit");
 
     for (slot = s; slot != NULL; slot = slot->slot_next) {
         if (slot->SlotThreadExitPrintStats != NULL) {
@@ -705,9 +725,13 @@ void *TmThreadsSlotVar(void *td)
     } /* while (run) */
     SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
 
+    while (!TmThreadsCheckFlag(tv, THV_DEINIT)) {
+        usleep(100);
+    }
+
     /* wait for synchronization from master, if this TV has a synchronization
      * point set by this name */
-    TmThreadsMSSlaveHitSyncPt(tv, "ReceiveTMBeforeDeInit");
+    //TmThreadsMSSlaveHitSyncPt(tv, "ReceiveTMBeforeDeInit");
 
     s = (TmSlot *)tv->tm_slots;
 
@@ -1376,6 +1400,7 @@ void TmThreadKillThread(ThreadVars *tv)
     /* set the thread flag informing the thread that it needs to be
      * terminated */
     TmThreadsSetFlag(tv, THV_KILL);
+    TmThreadsSetFlag(tv, THV_DEINIT);
 
     if (tv->inq != NULL) {
         /* signal the queue for the number of users */
@@ -1510,9 +1535,10 @@ void TmThreadKillThreads(void) {
             }
 
             TmThreadsSetFlag(tv, THV_KILL);
+            TmThreadsSetFlag(tv, THV_DEINIT);
             SCLogDebug("told thread %s to stop", tv->name);
 
-            TmThreadsMSMasterDisableSlaveAllSyncPts(tv);
+            //TmThreadsMSMasterDisableSlaveAllSyncPts(tv);
 
             if (tv->inq != NULL) {
                 int i;

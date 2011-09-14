@@ -1486,6 +1486,7 @@ void FlowForceReassembly(void)
     }
 
     TmThreadsSetFlag(tv, THV_KILL);
+    TmThreadsSetFlag(tv, THV_DEINIT);
 
     /* be sure it has shut down */
     while (!TmThreadsCheckFlag(tv, THV_CLOSED)) {
@@ -1735,6 +1736,10 @@ void *FlowManagerThread(void *td)
                 usleep(1);
             }
         }
+    }
+
+    while (!TmThreadsCheckFlag(th_v, THV_DEINIT)) {
+        usleep(100);
     }
 
     FlowHashDebugDeinit();

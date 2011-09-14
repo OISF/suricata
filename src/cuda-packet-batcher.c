@@ -372,6 +372,10 @@ void *SCCudaPBTmThreadsSlot1(void *td)
         }
     }
 
+    while (!TmThreadsCheckFlag(tv, THV_DEINIT)) {
+        usleep(100);
+    }
+
     if (s->SlotThreadExitPrintStats != NULL) {
         s->SlotThreadExitPrintStats(tv, s->slot_data);
     }
