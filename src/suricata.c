@@ -647,6 +647,7 @@ int main(int argc, char **argv)
         {"pfring-cluster-id", required_argument, 0, 0},
         {"pfring-cluster-type", required_argument, 0, 0},
         {"af-packet", optional_argument, 0, 0},
+        {"pcap", optional_argument, 0, 0},
         {"pcap-buffer-size", required_argument, 0, 0},
         {"unittest-filter", required_argument, 0, 'U'},
         {"list-unittests", 0, &list_unittests, 1},
@@ -751,8 +752,33 @@ int main(int argc, char **argv)
                         "configure when building.");
                 exit(EXIT_FAILURE);
 #endif
-            }
-            else if(strcmp((long_opts[option_index]).name, "init-errors-fatal") == 0) {
+            } else if (strcmp((long_opts[option_index]).name , "pcap") == 0) {
+                if (run_mode == RUNMODE_UNKNOWN) {
+                    run_mode = RUNMODE_PCAP_DEV;
+                    if (optarg) {
+                        LiveRegisterDevice(optarg);
+                        memset(pcap_dev, 0, sizeof(pcap_dev));
+                        strlcpy(pcap_dev, optarg,
+                                ((strlen(optarg) < sizeof(pcap_dev)) ?
+                                 (strlen(optarg) + 1) : sizeof(pcap_dev)));
+                    }
+                } else if (run_mode == RUNMODE_PCAP_DEV) {
+#ifdef OS_WIN32
+                    SCLogError(SC_ERR_PCAP_MULTI_DEV_NO_SUPPORT, "pcap multi dev "
+                            "support is not (yet) supported on Windows.");
+                    exit(EXIT_FAILURE);
+#else
+                    SCLogWarning(SC_WARN_PCAP_MULTI_DEV_EXPERIMENTAL, "using "
+                            "multiple pcap devices to get packets is experimental.");
+                    LiveRegisterDevice(optarg);
+#endif
+                } else {
+                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
+                            "has been specified");
+                    usage(argv[0]);
+                    exit(EXIT_FAILURE);
+                }
+            } else if(strcmp((long_opts[option_index]).name, "init-errors-fatal") == 0) {
                 if (ConfSet("engine.init_failure_fatal", "1", 0) != 1) {
                     fprintf(stderr, "ERROR: Failed to set engine init_failure_fatal.\n");
                     exit(EXIT_FAILURE);
@@ -1427,10 +1453,18 @@ int main(int argc, char **argv)
 
     /* run the selected runmode */
     if (run_mode == RUNMODE_PCAP_DEV) {
-        PcapTranslateIPToDevice(pcap_dev, sizeof(pcap_dev));
-        if (ConfSet("pcap.single_pcap_dev", pcap_dev, 0) != 1) {
-            fprintf(stderr, "ERROR: Failed to set pcap.single_pcap_dev\n");
-            exit(EXIT_FAILURE);
+        if (strlen(pcap_dev)) {
+            PcapTranslateIPToDevice(pcap_dev, sizeof(pcap_dev));
+            if (ConfSet("pcap.single_pcap_dev", pcap_dev, 0) != 1) {
+                fprintf(stderr, "ERROR: Failed to set pcap.single_pcap_dev\n");
+                exit(EXIT_FAILURE);
+            }
+        } else {
+            int ret = LiveBuildIfaceList("pcap");
+            if (ret == 0) {
+                fprintf(stderr, "ERROR: No interface found in config for pcap\n");
+                exit(EXIT_FAILURE);
+            }
         }
 #ifdef HAVE_PFRING
     } else if (run_mode == RUNMODE_PFRING) {
