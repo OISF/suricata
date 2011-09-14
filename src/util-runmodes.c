@@ -566,3 +566,71 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
 
     return 0;
 }
+
+int RunModeSetLiveCaptureSingle(DetectEngineCtx *de_ctx,
+                              ConfigIfaceParserFunc configparser, char *recv_mod_name,
+                              char *decode_mod_name, char *thread_name,
+                              const char *live_dev)
+{
+    int nlive = LiveGetDeviceCount();
+    void *aconf;
+
+    if (nlive > 1) {
+        SCLogError(SC_ERR_RUNMODE,
+                   "Can't use single runmode with multiple device");
+        exit(EXIT_FAILURE);
+    }
+
+    if (live_dev != NULL) {
+        aconf = configparser(live_dev);
+    } else {
+        char *live_dev_c = LiveGetDevice(0);
+        aconf = configparser(live_dev_c);
+    }
+    /* create the threads */
+    ThreadVars *tv = TmThreadCreatePacketHandler(thread_name,
+                                                 "packetpool", "packetpool",
+                                                 "packetpool", "packetpool",
+                                                 "pktacqloop");
+    if (tv == NULL) {
+        printf("ERROR: TmThreadsCreate failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    TmModule *tm_module = TmModuleGetByName(recv_mod_name);
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName failed for %s\n", recv_mod_name);
+        exit(EXIT_FAILURE);
+    }
+    TmSlotSetFuncAppend(tv, tm_module, aconf);
+
+    tm_module = TmModuleGetByName(decode_mod_name);
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName %s failed\n", decode_mod_name);
+        exit(EXIT_FAILURE);
+    }
+    TmSlotSetFuncAppend(tv, tm_module, NULL);
+
+    tm_module = TmModuleGetByName("StreamTcp");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmSlotSetFuncAppend(tv, tm_module, NULL);
+
+    tm_module = TmModuleGetByName("Detect");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName Detect failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmSlotSetFuncAppend(tv, tm_module, (void *)de_ctx);
+
+    SetupOutputs(tv);
+
+    if (TmThreadSpawn(tv) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    return 0;
+}
