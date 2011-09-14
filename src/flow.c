@@ -95,8 +95,6 @@ static ThreadVars *stream_pseudo_pkt_detect_prev_TV = NULL;
 static TmSlot *stream_pseudo_pkt_decode_tm_slot = NULL;
 static ThreadVars *stream_pseudo_pkt_decode_TV = NULL;
 
-static ThreadVars *flow_manager_TV = NULL;
-
 /** \brief Initialize the l7data ptr in the Flow session used by the L7 Modules
  *         for data storage.
  *
@@ -358,7 +356,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(int direction,
  *
  * \retval 0 This flow doesn't need any reassembly processing; 1 otherwise.
  */
-static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
+static inline int FlowForceReassemblyForFlowV2(Flow *f)
 {
     TcpSession *ssn;
 
@@ -387,13 +385,6 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
     /* nothing to do */
     if (client_ok == 0 && server_ok == 0) {
         return 0;
-    }
-
-    /* Only the flow manager thread has the ability to force reassembly on
-     * to-be pruned flows */
-    if (!(tv != NULL && tv == flow_manager_TV)) {
-        SCSpinUnlock(&f->fb->s);
-        return 1;
     }
 
     /* move this unlock after the strream reassemble call */
@@ -473,7 +464,7 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
  * \retval 0 on error, failed block, nothing to prune
  * \retval 1 on successfully pruned one
  */
-static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts, int try_cnt)
+static int FlowPrune(FlowQueue *q, struct timeval *ts, int try_cnt)
 {
     SCEnter();
     int cnt = 0;
@@ -615,7 +606,7 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts, int try_c
         goto FlowPrune_Prune_Next;
     }
 
-    if (FlowForceReassemblyForFlowV2(tv, f) == 1) {
+    if (FlowForceReassemblyForFlowV2(f) == 1) {
         Flow *prev_f = f;
         f = f->lnext;
         SCMutexUnlock(&prev_f->m);
@@ -656,10 +647,10 @@ static int FlowPrune(ThreadVars *tv, FlowQueue *q, struct timeval *ts, int try_c
  *  \param timeout timeout to consider
  *  \retval cnt number of flows that are timed out
  */
-static uint32_t FlowPruneFlowQueue(ThreadVars *tv, FlowQueue *q, struct timeval *ts)
+static uint32_t FlowPruneFlowQueue(FlowQueue *q, struct timeval *ts)
 {
     SCEnter();
-    return FlowPrune(tv, q, ts, 0);
+    return FlowPrune(q, ts, 0);
 }
 
 /** \brief Time out flows on new/estabhlished/close queues for each proto until
@@ -868,7 +859,7 @@ uint32_t FlowKillFlowsCnt(int cnt)
 static uint32_t FlowPruneFlowQueueCnt(FlowQueue *q, struct timeval *ts, int try_cnt)
 {
     SCEnter();
-    return FlowPrune(NULL, q, ts, try_cnt);
+    return FlowPrune(q, ts, try_cnt);
 }
 
 /** \brief Make sure we have enough spare flows. 
@@ -1560,8 +1551,6 @@ void *FlowManagerThread(void *td)
 
     memset(&ts, 0, sizeof(ts));
 
-    flow_manager_TV = th_v;
-
     /* get StreamTCP TM's slot and TV containing this slot */
     stream_pseudo_pkt_stream_tm_slot = TmSlotGetSlotForTM(TMM_STREAMTCP);
     if (stream_pseudo_pkt_stream_tm_slot == NULL) {
@@ -1656,21 +1645,21 @@ void *FlowManagerThread(void *td)
             int i;
             for (i = 0; i < FLOW_PROTO_MAX; i++) {
                 /* prune closing list */
-                nowcnt = FlowPruneFlowQueue(th_v, &flow_close_q[i], &ts);
+                nowcnt = FlowPruneFlowQueue(&flow_close_q[i], &ts);
                 if (nowcnt) {
                     SCLogDebug("Pruned %" PRIu32 " closing flows...", nowcnt);
                     closing_cnt += nowcnt;
                 }
 
                 /* prune new list */
-                nowcnt = FlowPruneFlowQueue(th_v, &flow_new_q[i], &ts);
+                nowcnt = FlowPruneFlowQueue(&flow_new_q[i], &ts);
                 if (nowcnt) {
                     SCLogDebug("Pruned %" PRIu32 " new flows...", nowcnt);
                     new_cnt += nowcnt;
                 }
 
                 /* prune established list */
-                nowcnt = FlowPruneFlowQueue(th_v, &flow_est_q[i], &ts);
+                nowcnt = FlowPruneFlowQueue(&flow_est_q[i], &ts);
                 if (nowcnt) {
                     SCLogDebug("Pruned %" PRIu32 " established flows...", nowcnt);
                     established_cnt += nowcnt;
@@ -2239,7 +2228,7 @@ static int FlowTestPrune(Flow *f, struct timeval *ts) {
     }
 
     SCLogDebug("calling FlowPrune");
-    FlowPrune(NULL, q, ts, 0);
+    FlowPrune(q, ts, 0);
     if (q->len != 0) {
         printf("Failed in prunning the flow: ");
         goto error;
