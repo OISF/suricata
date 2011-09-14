@@ -65,10 +65,6 @@ typedef struct TmSlot_ {
 
     /* linked list, only used when you have multiple slots(used by TmVarSlot) */
     struct TmSlot_ *slot_next;
-
-#ifdef PROFILING
-    int tm_module_id;
-#endif
 } TmSlot;
 
 extern ThreadVars *tv_root[TVT_MAX];

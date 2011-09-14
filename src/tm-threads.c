@@ -450,7 +450,7 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
     Packet *extra_p;
 
     for (s = slot; s != NULL; s = s->slot_next) {
-        PACKET_PROFILING_TMM_START(p, s->tm_module_id);
+        PACKET_PROFILING_TMM_START(p, s->tm_id);
 
         if (unlikely(s->id == 0)) {
             r = s->SlotFunc(tv, p, s->slot_data, &s->slot_pre_pq, &s->slot_post_pq);
@@ -458,7 +458,7 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
             r = s->SlotFunc(tv, p, s->slot_data, &s->slot_pre_pq, NULL);
         }
 
-        PACKET_PROFILING_TMM_END(p, s->tm_module_id);
+        PACKET_PROFILING_TMM_END(p, s->tm_id);
 
         /* handle error */
         if (unlikely(r == TM_ECODE_FAILED)) {
@@ -848,7 +848,7 @@ void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data)
         prof_tm = &tmm_modules[prof_tm_id];
 
         if (prof_tm == tm) {
-            slot->tm_module_id = prof_tm_id;
+            slot->tm_id = prof_tm_id;
             break;
         }
     }
@@ -1372,37 +1372,53 @@ void TmThreadKillThread(ThreadVars *tv)
             tv->InShutdownHandler(tv);
         }
         for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
-            SCCondSignal(&trans_q[tv->inq->id].cond_q);
+            if (tv->inq->q_type == 0)
+                SCCondSignal(&trans_q[tv->inq->id].cond_q);
+            else
+                SCCondSignal(&data_queues[tv->inq->id].cond_q);
         }
 
         /* to be sure, signal more */
+        int cnt = 0;
         while (1) {
             if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
+                SCLogDebug("signalled the thread %" PRId32 " times", cnt);
                 break;
             }
+
+            cnt++;
 
             if (tv->InShutdownHandler != NULL) {
                 tv->InShutdownHandler(tv);
             }
             for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
-                SCCondSignal(&trans_q[tv->inq->id].cond_q);
+                if (tv->inq->q_type == 0)
+                    SCCondSignal(&trans_q[tv->inq->id].cond_q);
+                else
+                    SCCondSignal(&data_queues[tv->inq->id].cond_q);
             }
-
             usleep(100);
         }
+        SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
     }
 
     if (tv->cond != NULL ) {
+        int cnt = 0;
         while (1) {
             if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
+                SCLogDebug("signalled the thread %" PRId32 " times", cnt);
                 break;
             }
 
+            cnt++;
             pthread_cond_broadcast(tv->cond);
-
             usleep(100);
         }
     }
+
+    /* join it */
+    pthread_join(tv->t, NULL);
+    SCLogDebug("thread %s stopped", tv->name);
 
     return;
 }
@@ -1477,7 +1493,8 @@ TmSlot *TmThreadGetFirstTmSlotForPartialPattern(const char *tm_name)
     return slots;
 }
 
-void TmThreadKillThreads(void) {
+void TmThreadKillThreads(void)
+{
     ThreadVars *tv = NULL;
     int i = 0;
 
@@ -1485,86 +1502,7 @@ void TmThreadKillThreads(void) {
         tv = tv_root[i];
 
         while (tv) {
-            if (tv->inq != NULL) {
-                /* we wait till we dry out all the inq packets, before we
-                 * kill this thread.  Do note that you should have disabled
-                 * packet acquire by now using TmThreadDisableReceiveThreads()*/
-                if (!(strlen(tv->inq->name) == strlen("packetpool") &&
-                      strcasecmp(tv->inq->name, "packetpool") == 0)) {
-                    PacketQueue *q = &trans_q[tv->inq->id];
-                    while (q->len != 0) {
-                        usleep(1000);
-                    }
-                }
-            }
-
-            TmThreadsSetFlag(tv, THV_KILL);
-            TmThreadsSetFlag(tv, THV_DEINIT);
-            SCLogDebug("told thread %s to stop", tv->name);
-
-            if (tv->inq != NULL) {
-                int i;
-
-                /* make sure our packet pending counter doesn't block */
-
-                /* signal the queue for the number of users */
-
-                if (tv->InShutdownHandler != NULL) {
-                    tv->InShutdownHandler(tv);
-                }
-
-                for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
-                    if (tv->inq->q_type == 0)
-                        SCCondSignal(&trans_q[tv->inq->id].cond_q);
-                    else
-                        SCCondSignal(&data_queues[tv->inq->id].cond_q);
-                }
-
-                /* to be sure, signal more */
-                int cnt = 0;
-                while (1) {
-                    if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
-                        SCLogDebug("signalled the thread %" PRId32 " times", cnt);
-                        break;
-                    }
-
-                    cnt++;
-
-                    if (tv->InShutdownHandler != NULL) {
-                        tv->InShutdownHandler(tv);
-                    }
-
-                    for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
-                        if (tv->inq->q_type == 0)
-                            SCCondSignal(&trans_q[tv->inq->id].cond_q);
-                        else
-                            SCCondSignal(&data_queues[tv->inq->id].cond_q);
-                    }
-                    usleep(100);
-                }
-
-                SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
-            }
-
-            if (tv->cond != NULL ) {
-                int cnt = 0;
-                while (1) {
-                    if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
-                        SCLogDebug("signalled the thread %" PRId32 " times", cnt);
-                        break;
-                    }
-
-                    cnt++;
-
-                    pthread_cond_broadcast(tv->cond);
-
-                    usleep(100);
-                }
-            }
-
-            /* join it */
-            pthread_join(tv->t, NULL);
-            SCLogDebug("thread %s stopped", tv->name);
+            TmThreadKillThread(tv);
 
             tv = tv->next;
         }

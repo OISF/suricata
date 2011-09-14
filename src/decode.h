@@ -470,7 +470,7 @@ typedef struct PacketQueue_ {
     Packet *bot;
     uint32_t len;
 #ifdef DBG_PERF
-    uint16_t dbg_maxlen;
+    uint32_t dbg_maxlen;
 #endif /* DBG_PERF */
     SCMutex mutex_q;
     SCCondT cond_q;

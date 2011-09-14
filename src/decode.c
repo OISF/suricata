@@ -54,38 +54,6 @@ void DecodeTunnel(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
 }
 
 /**
- *  \brief Get a packet. We try to get a packet from the packetpool first, but
- *         if that is empty we alloc a packet that is free'd again after
- *         processing.
- *
- *  \retval p packet, NULL on error
- */
-Packet *PacketGetFromQueueOrAlloc(void) {
-    Packet *p = NULL;
-
-    /* try the pool first */
-    if (PacketPoolSize() > 0) {
-        p = PacketPoolGetPacket();
-    }
-
-    if (p == NULL) {
-        /* non fatal, we're just not processing a packet then */
-        p = SCMalloc(SIZE_OF_PACKET);
-        if (p == NULL) {
-            return NULL;
-        }
-
-        PACKET_INITIALIZE(p);
-        p->flags |= PKT_ALLOC;
-
-        SCLogDebug("allocated a new packet...");
-    }
-
-    PACKET_PROFILING_START(p);
-    return p;
-}
-
-/**
  * \brief Get a malloced packet.
  *
  * \retval p packet, NULL on error
@@ -103,6 +71,32 @@ Packet *PacketGetFromAlloc(void)
     SCLogDebug("allocated a new packet only using alloc...");
 
     PACKET_PROFILING_START(p);
+    return p;
+}
+
+/**
+ *  \brief Get a packet. We try to get a packet from the packetpool first, but
+ *         if that is empty we alloc a packet that is free'd again after
+ *         processing.
+ *
+ *  \retval p packet, NULL on error
+ */
+Packet *PacketGetFromQueueOrAlloc(void)
+{
+    Packet *p = NULL;
+
+    /* try the pool first */
+    if (PacketPoolSize() > 0) {
+        p = PacketPoolGetPacket();
+    }
+
+    if (p == NULL) {
+        /* non fatal, we're just not processing a packet then */
+        p = PacketGetFromAlloc();
+    } else {
+        PACKET_PROFILING_START(p);
+    }
+
     return p;
 }
 

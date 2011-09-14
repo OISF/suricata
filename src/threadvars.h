@@ -51,25 +51,6 @@ struct TmSlot_;
 /** Maximum no of times a thread can be restarted */
 #define THV_MAX_RESTARTS 50
 
-/**
- * \brief Feature to enable ThreadVars implement a master-slave
- *        synchronization feature.
- */
-typedef struct ThreadVarsMSSyncPt_ {
-    const char *name;
-
-    SCMutex m;
-    SCCondT cond;
-
-    int slave_hit;
-    int master_go;
-    /* indicates whether this syn point has been disabled or not.  If disabled,
-     * the slave won't be able to use it anymore */
-    int disabled;
-
-    struct ThreadVarsMSSyncPt_ *next;
-} ThreadVarsMSSyncPt;
-
 /** \brief Per thread variable structure */
 typedef struct ThreadVars_ {
     pthread_t t;
@@ -112,8 +93,6 @@ typedef struct ThreadVars_ {
 
     SCMutex *m;
     SCCondT *cond;
-
-    ThreadVarsMSSyncPt *ms_sync_pts;
 
     uint8_t cap_flags; /**< Flags to indicate the capabilities of all the
                             TmModules resgitered under this thread */

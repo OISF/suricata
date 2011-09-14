@@ -1533,31 +1533,8 @@ void FlowForceReassembly(void)
     return;
 }
 
-/** \brief Thread that manages the various queue's and removes timed out flows.
- *  \param td ThreadVars casted to void ptr
- *
- * IDEAS/TODO
- * Create a 'emergency mode' in which flow handling threads can indicate
- * we are/seem to be under attack..... maybe this thread should check
- * key indicators for that like:
- * - number of flows created in the last x time
- * - avg number of pkts per flow (how?)
- * - avg flow age
- *
- * Keep an eye on the spare list, alloc flows if needed...
- */
-void *FlowManagerThread(void *td)
+void FlowForceReassemblySetup(void)
 {
-    ThreadVars *th_v = (ThreadVars *)td;
-    struct timeval ts;
-    struct timeval tsdiff;
-    uint32_t established_cnt = 0, new_cnt = 0, closing_cnt = 0, nowcnt;
-    uint32_t sleeping = 0;
-    uint8_t emerg = FALSE;
-    uint32_t last_sec = 0;
-
-    memset(&ts, 0, sizeof(ts));
-
     /* get StreamTCP TM's slot and TV containing this slot */
     stream_pseudo_pkt_stream_tm_slot = TmSlotGetSlotForTM(TMM_STREAMTCP);
     if (stream_pseudo_pkt_stream_tm_slot == NULL) {
@@ -1613,6 +1590,36 @@ void *FlowManagerThread(void *td)
                    "retrieve the TV containing the Decode TM slot");
         exit(EXIT_FAILURE);
     }
+
+    return;
+}
+
+/** \brief Thread that manages the various queue's and removes timed out flows.
+ *  \param td ThreadVars casted to void ptr
+ *
+ * IDEAS/TODO
+ * Create a 'emergency mode' in which flow handling threads can indicate
+ * we are/seem to be under attack..... maybe this thread should check
+ * key indicators for that like:
+ * - number of flows created in the last x time
+ * - avg number of pkts per flow (how?)
+ * - avg flow age
+ *
+ * Keep an eye on the spare list, alloc flows if needed...
+ */
+void *FlowManagerThread(void *td)
+{
+    ThreadVars *th_v = (ThreadVars *)td;
+    struct timeval ts;
+    struct timeval tsdiff;
+    uint32_t established_cnt = 0, new_cnt = 0, closing_cnt = 0, nowcnt;
+    uint32_t sleeping = 0;
+    uint8_t emerg = FALSE;
+    uint32_t last_sec = 0;
+
+    memset(&ts, 0, sizeof(ts));
+
+    FlowForceReassemblySetup();
 
     /* set the thread name */
     SCSetThreadName(th_v->name);
