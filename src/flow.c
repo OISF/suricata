@@ -481,52 +481,53 @@ static int FlowPrune(FlowQueue *q, struct timeval *ts, int try_cnt)
     }
 
     Flow *f = q->top;
+
     /* label */
     while (f != NULL) {
-    if (try_cnt != 0 && try_cnt_temp == try_cnt) {
-        SCMutexUnlock(&q->mutex_q);
-        return cnt;
-    }
-    try_cnt_temp++;
+        if (try_cnt != 0 && try_cnt_temp == try_cnt) {
+            SCMutexUnlock(&q->mutex_q);
+            return cnt;
+        }
+        try_cnt_temp++;
 
-    if (f == NULL) {
-        SCMutexUnlock(&q->mutex_q);
-        SCLogDebug("top is null");
-
-#ifdef FLOW_PRUNE_DEBUG
-        prune_queue_empty++;
-#endif
-        return cnt;
-    }
-
-    if (SCMutexTrylock(&f->m) != 0) {
-        SCLogDebug("cant lock 1");
+        if (f == NULL) {
+            SCMutexUnlock(&q->mutex_q);
+            SCLogDebug("top is null");
 
 #ifdef FLOW_PRUNE_DEBUG
-        prune_flow_lock++;
+            prune_queue_empty++;
 #endif
-        f = f->lnext;
-        continue;
-    }
+            return cnt;
+        }
 
-    if (SCSpinTrylock(&f->fb->s) != 0) {
-        SCMutexUnlock(&f->m);
-        SCLogDebug("cant lock 2");
+        if (SCMutexTrylock(&f->m) != 0) {
+            SCLogDebug("cant lock 1");
 
 #ifdef FLOW_PRUNE_DEBUG
-        prune_bucket_lock++;
+            prune_flow_lock++;
 #endif
-        f = f->lnext;
-        continue;
-    }
+            f = f->lnext;
+            continue;
+        }
 
-    /*set the timeout value according to the flow operating mode, flow's state
-      and protocol.*/
-    uint32_t timeout = 0;
+        if (SCSpinTrylock(&f->fb->s) != 0) {
+            SCMutexUnlock(&f->m);
+            SCLogDebug("cant lock 2");
 
-    if (flow_flags & FLOW_EMERGENCY) {
-        if (flow_proto[f->protomap].GetProtoState != NULL) {
-            switch(flow_proto[f->protomap].GetProtoState(f->protoctx)) {
+#ifdef FLOW_PRUNE_DEBUG
+            prune_bucket_lock++;
+#endif
+            f = f->lnext;
+            continue;
+        }
+
+        /*set the timeout value according to the flow operating mode, flow's state
+          and protocol.*/
+        uint32_t timeout = 0;
+
+        if (flow_flags & FLOW_EMERGENCY) {
+            if (flow_proto[f->protomap].GetProtoState != NULL) {
+                switch(flow_proto[f->protomap].GetProtoState(f->protoctx)) {
                 case FLOW_STATE_NEW:
                     timeout = flow_proto[f->protomap].emerg_new_timeout;
                     break;
@@ -536,16 +537,16 @@ static int FlowPrune(FlowQueue *q, struct timeval *ts, int try_cnt)
                 case FLOW_STATE_CLOSED:
                     timeout = flow_proto[f->protomap].emerg_closed_timeout;
                     break;
+                }
+            } else {
+                if (f->flags & FLOW_EST_LIST)
+                    timeout = flow_proto[f->protomap].emerg_est_timeout;
+                else
+                    timeout = flow_proto[f->protomap].emerg_new_timeout;
             }
-        } else {
-            if (f->flags & FLOW_EST_LIST)
-                timeout = flow_proto[f->protomap].emerg_est_timeout;
-            else
-                timeout = flow_proto[f->protomap].emerg_new_timeout;
-        }
-    } else { /* implies no emergency */
-        if (flow_proto[f->protomap].GetProtoState != NULL) {
-            switch(flow_proto[f->protomap].GetProtoState(f->protoctx)) {
+        } else { /* implies no emergency */
+            if (flow_proto[f->protomap].GetProtoState != NULL) {
+                switch(flow_proto[f->protomap].GetProtoState(f->protoctx)) {
                 case FLOW_STATE_NEW:
                     timeout = flow_proto[f->protomap].new_timeout;
                     break;
@@ -555,80 +556,80 @@ static int FlowPrune(FlowQueue *q, struct timeval *ts, int try_cnt)
                 case FLOW_STATE_CLOSED:
                     timeout = flow_proto[f->protomap].closed_timeout;
                     break;
+                }
+            } else {
+                if (f->flags & FLOW_EST_LIST)
+                    timeout = flow_proto[f->protomap].est_timeout;
+                else
+                    timeout = flow_proto[f->protomap].new_timeout;
             }
-        } else {
-            if (f->flags & FLOW_EST_LIST)
-                timeout = flow_proto[f->protomap].est_timeout;
-            else
-                timeout = flow_proto[f->protomap].new_timeout;
         }
-    }
 
-    SCLogDebug("got lock, now check: %" PRIdMAX "+%" PRIu32 "=(%" PRIdMAX ") < "
-               "%" PRIdMAX "", (intmax_t)f->lastts_sec,
-               timeout, (intmax_t)f->lastts_sec + timeout,
-               (intmax_t)ts->tv_sec);
+        SCLogDebug("got lock, now check: %" PRIdMAX "+%" PRIu32 "=(%" PRIdMAX ") < "
+                   "%" PRIdMAX "", (intmax_t)f->lastts_sec,
+                   timeout, (intmax_t)f->lastts_sec + timeout,
+                   (intmax_t)ts->tv_sec);
 
-    /* do the timeout check */
-    if ((int32_t)(f->lastts_sec + timeout) >= ts->tv_sec) {
+        /* do the timeout check */
+        if ((int32_t)(f->lastts_sec + timeout) >= ts->tv_sec) {
+            SCSpinUnlock(&f->fb->s);
+            SCMutexUnlock(&f->m);
+            SCMutexUnlock(&q->mutex_q);
+            SCLogDebug("timeout check failed");
+
+#ifdef FLOW_PRUNE_DEBUG
+            prune_no_timeout++;
+#endif
+            return cnt;
+        }
+
+        /** never prune a flow that is used by a packet or stream msg
+         *  we are currently processing in one of the threads */
+        if (SC_ATOMIC_GET(f->use_cnt) > 0) {
+            SCLogDebug("timed out but use_cnt > 0: %"PRIu16", %p, proto %"PRIu8"", SC_ATOMIC_GET(f->use_cnt), f, f->proto);
+            SCLogDebug("it is in one of the threads");
+
+#ifdef FLOW_PRUNE_DEBUG
+            prune_usecnt++;
+#endif
+            Flow *prev_f = f;
+            f = f->lnext;
+            SCSpinUnlock(&prev_f->fb->s);
+            SCMutexUnlock(&prev_f->m);
+            continue;
+        }
+
+        if (FlowForceReassemblyForFlowV2(f) == 1) {
+            Flow *prev_f = f;
+            f = f->lnext;
+            SCMutexUnlock(&prev_f->m);
+            continue;
+        }
+
+        /* this should not be possible */
+        BUG_ON(SC_ATOMIC_GET(f->use_cnt) > 0);
+
+        /* remove from the hash */
+        if (f->hprev)
+            f->hprev->hnext = f->hnext;
+        if (f->hnext)
+            f->hnext->hprev = f->hprev;
+        if (f->fb->f == f)
+            f->fb->f = f->hnext;
+
+        f->hnext = NULL;
+        f->hprev = NULL;
+
         SCSpinUnlock(&f->fb->s);
+        f->fb = NULL;
+
+        cnt++;
+        FlowClearMemory (f, f->protomap);
+        Flow *next_flow = f->lnext;
+        /* move to spare list */
+        FlowRequeue(f, q, &flow_spare_q, 0);
         SCMutexUnlock(&f->m);
-        SCMutexUnlock(&q->mutex_q);
-        SCLogDebug("timeout check failed");
-
-#ifdef FLOW_PRUNE_DEBUG
-        prune_no_timeout++;
-#endif
-        return cnt;
-    }
-
-    /** never prune a flow that is used by a packet or stream msg
-     *  we are currently processing in one of the threads */
-    if (SC_ATOMIC_GET(f->use_cnt) > 0) {
-        SCLogDebug("timed out but use_cnt > 0: %"PRIu16", %p, proto %"PRIu8"", SC_ATOMIC_GET(f->use_cnt), f, f->proto);
-        SCLogDebug("it is in one of the threads");
-
-#ifdef FLOW_PRUNE_DEBUG
-        prune_usecnt++;
-#endif
-        Flow *prev_f = f;
-        f = f->lnext;
-        SCSpinUnlock(&prev_f->fb->s);
-        SCMutexUnlock(&prev_f->m);
-        continue;
-    }
-
-    if (FlowForceReassemblyForFlowV2(f) == 1) {
-        Flow *prev_f = f;
-        f = f->lnext;
-        SCMutexUnlock(&prev_f->m);
-        continue;
-    }
-
-    /* this should not be possible */
-    BUG_ON(SC_ATOMIC_GET(f->use_cnt) > 0);
-
-    /* remove from the hash */
-    if (f->hprev)
-        f->hprev->hnext = f->hnext;
-    if (f->hnext)
-        f->hnext->hprev = f->hprev;
-    if (f->fb->f == f)
-        f->fb->f = f->hnext;
-
-    f->hnext = NULL;
-    f->hprev = NULL;
-
-    SCSpinUnlock(&f->fb->s);
-    f->fb = NULL;
-
-    cnt++;
-    FlowClearMemory (f, f->protomap);
-    Flow *next_flow = f->lnext;
-    /* move to spare list */
-    FlowRequeue(f, q, &flow_spare_q, 0);
-    SCMutexUnlock(&f->m);
-    f = next_flow;
+        f = next_flow;
 
     }
 
