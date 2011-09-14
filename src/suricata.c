@@ -432,14 +432,15 @@ void usage(const char *progname)
     printf("\t--pidfile <file>             : write pid to this file (only for daemon mode)\n");
     printf("\t--init-errors-fatal          : enable fatal failure on signature init error\n");
     printf("\t--dump-config                : show the running configuration\n");
+    printf("\t--pcap[=<dev>]               : run in pcap mode, no value select interfaces from suricata.yaml\n");
 #ifdef HAVE_PCAP_SET_BUFF
     printf("\t--pcap-buffer-size           : size of the pcap buffer value from 0 - %i\n",INT_MAX);
 #endif /* HAVE_SET_PCAP_BUFF */
 #ifdef HAVE_AF_PACKET
-    printf("\t--af-packet=<dev>            : run in af-packet mode\n");
+    printf("\t--af-packet[=<dev>]          : run in af-packet mode, no value select interfaces from suricata.yaml\n");
 #endif
 #ifdef HAVE_PFRING
-    printf("\t--pfring                     : run in pfring mode, use interface from suricata.yaml\n");
+    printf("\t--pfring[=dev]               : run in pfring mode, use interfaces from suricata.yaml\n");
     printf("\t--pfring-int <dev>           : run in pfring mode, use interface <dev>\n");
     printf("\t--pfring-cluster-id <id>     : pfring cluster id \n");
     printf("\t--pfring-cluster-type <type> : pfring cluster type for PF_RING 4.1.2 and later cluster_round_robin|cluster_flow\n");
