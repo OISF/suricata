@@ -27,6 +27,7 @@
 
 int RunModeIdsPfringAuto(DetectEngineCtx *);
 int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx);
+int RunModeIdsPfringSingle(DetectEngineCtx *de_ctx);
 void RunModeIdsPfringRegister(void);
 const char *RunModeIdsPfringGetDefaultMode(void);
 

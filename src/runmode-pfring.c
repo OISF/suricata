@@ -69,7 +69,9 @@ void RunModeIdsPfringRegister(void)
                               "from the same flow can be processed by any "
                               "detect thread",
                               RunModeIdsPfringAutoFp);
-
+    RunModeRegisterNewRunMode(RUNMODE_PFRING, "single",
+                              "Single threaded pfringt mode",
+                              RunModeIdsPfringSingle);
     return;
 }
 
@@ -395,6 +397,61 @@ int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx)
         SCFree(live_dev);
 
     SCLogInfo("RunModeIdsPfringAutoFp initialised");
+#endif /* HAVE_PFRING */
+
+    return 0;
+}
+
+int RunModeIdsPfringSingle(DetectEngineCtx *de_ctx)
+{
+    SCEnter();
+
+/* We include only if pfring is enabled */
+#ifdef HAVE_PFRING
+    int ret;
+    char *live_dev = NULL;
+    ConfigIfaceParserFunc tparser;
+
+    RunModeInitialize();
+
+    TimeModeSetLive();
+
+    ConfGet("pfring.live-interface", &live_dev);
+
+    SCLogDebug("live_dev %s", live_dev);
+
+    /* determine which config type we have */
+    if (PfringConfLevel() > PFRING_CONF_V1) {
+        tparser = ParsePfringConfig;
+    } else {
+        tparser = OldParsePfringConfig;
+        /* In v1: try to get interface name from config */
+        if (live_dev == NULL) {
+            if (ConfGet("pfring.interface", &live_dev) == 1) {
+                SCLogInfo("Using interface %s", live_dev);
+            } else {
+                live_dev = NULL;
+            }
+        }
+    }
+
+    ret = RunModeSetLiveCaptureSingle(de_ctx,
+                              tparser,
+                              PfringConfigGeThreadsCount,
+                              "ReceivePfring",
+                              "DecodePfring", "RxPFR",
+                              live_dev);
+    if (ret != 0) {
+        printf("ERROR: Unable to start runmode\n");
+        if (live_dev)
+            SCFree(live_dev);
+        exit(EXIT_FAILURE);
+    }
+
+    if (live_dev)
+        SCFree(live_dev);
+
+    SCLogInfo("RunModeIdsPfringSingle initialised");
 #endif /* HAVE_PFRING */
 
     return 0;
