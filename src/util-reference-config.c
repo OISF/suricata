@@ -459,7 +459,7 @@ void SCRConfReferenceHashFree(void *data)
 int SCRConfLoadReferenceConfigFile(DetectEngineCtx *de_ctx)
 {
     if (SCRConfInitContext(de_ctx) == -1) {
-        printf("\nPlease check the \"reference-file\" option in your suricata.yaml file.\n");
+        printf("\nPlease check the \"reference-config-file\" option in your suricata.yaml file.\n");
         exit(EXIT_FAILURE);
         return -1;
     }
