@@ -390,10 +390,6 @@ static inline int FlowForceReassemblyForFlowV2(Flow *f)
     /* move this unlock after the strream reassemble call */
     SCSpinUnlock(&f->fb->s);
 
-    if (suricata_ctl_flags != 0) {
-        return 1;
-    }
-
     Packet *p1 = NULL, *p2 = NULL, *p3 = NULL;
 
     /* insert a pseudo packet in the toserver direction */
@@ -487,10 +483,6 @@ static int FlowPrune(FlowQueue *q, struct timeval *ts, int try_cnt)
     Flow *f = q->top;
     /* label */
  FlowPrune_Prune_Next:
-    if (suricata_ctl_flags != 0) {
-        SCMutexUnlock(&q->mutex_q);
-        return cnt;
-    }
     if (try_cnt != 0 && try_cnt_temp == try_cnt) {
         SCMutexUnlock(&q->mutex_q);
         return cnt;
