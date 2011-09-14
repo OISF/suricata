@@ -289,6 +289,28 @@ int PfringConfLevel()
     return PFRING_CONF_V2;
 }
 
+static int GetDevAndParser(char **live_dev, ConfigIfaceParserFunc *parser)
+{
+     ConfGet("pfring.live-interface", live_dev);
+
+    /* determine which config type we have */
+    if (PfringConfLevel() > PFRING_CONF_V1) {
+        *parser = ParsePfringConfig;
+    } else {
+        *parser = OldParsePfringConfig;
+        /* In v1: try to get interface name from config */
+        if (live_dev == NULL) {
+            if (ConfGet("pfring.interface", live_dev) == 1) {
+                SCLogInfo("Using interface %s", *live_dev);
+            } else {
+                *live_dev = NULL;
+            }
+        }
+    }
+
+    return 0;
+}
+
 /**
  * \brief RunModeIdsPfringAuto set up the following thread packet handlers:
  *        - Receive thread (from pfring)
@@ -320,21 +342,10 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx)
 
     TimeModeSetLive();
 
-    ConfGet("pfring.live-interface", &live_dev);
-
-    /* determine which config type we have */
-    if (PfringConfLevel() > PFRING_CONF_V1) {
-        tparser = ParsePfringConfig;
-    } else {
-        tparser = OldParsePfringConfig;
-        /* In v1: try to get interface name from config */
-        if (live_dev == NULL) {
-            if (ConfGet("pfring.interface", &live_dev) == 1) {
-                SCLogInfo("Using interface %s", live_dev);
-            } else {
-                live_dev = NULL;
-            }
-        }
+    ret = GetDevAndParser(&live_dev, &tparser);
+    if (ret != 0) {
+        printf("ERROR: Unabme to get parser and interface params\n");
+        exit(EXIT_FAILURE);
     }
 
     ret = RunModeSetLiveCaptureAuto(de_ctx, tparser, "ReceivePfring", "DecodePfring",
@@ -361,23 +372,10 @@ int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx)
 
     TimeModeSetLive();
 
-    ConfGet("pfring.live-interface", &live_dev);
-
-    SCLogDebug("live_dev %s", live_dev);
-
-    /* determine which config type we have */
-    if (PfringConfLevel() > PFRING_CONF_V1) {
-        tparser = ParsePfringConfig;
-    } else {
-        tparser = OldParsePfringConfig;
-        /* In v1: try to get interface name from config */
-        if (live_dev == NULL) {
-            if (ConfGet("pfring.interface", &live_dev) == 1) {
-                SCLogInfo("Using interface %s", live_dev);
-            } else {
-                live_dev = NULL;
-            }
-        }
+    ret = GetDevAndParser(&live_dev, &tparser);
+    if (ret != 0) {
+        printf("ERROR: Unabme to get parser and interface params\n");
+        exit(EXIT_FAILURE);
     }
 
     ret = RunModeSetLiveCaptureAutoFp(de_ctx,
@@ -411,23 +409,10 @@ int RunModeIdsPfringSingle(DetectEngineCtx *de_ctx)
 
     TimeModeSetLive();
 
-    ConfGet("pfring.live-interface", &live_dev);
-
-    SCLogDebug("live_dev %s", live_dev);
-
-    /* determine which config type we have */
-    if (PfringConfLevel() > PFRING_CONF_V1) {
-        tparser = ParsePfringConfig;
-    } else {
-        tparser = OldParsePfringConfig;
-        /* In v1: try to get interface name from config */
-        if (live_dev == NULL) {
-            if (ConfGet("pfring.interface", &live_dev) == 1) {
-                SCLogInfo("Using interface %s", live_dev);
-            } else {
-                live_dev = NULL;
-            }
-        }
+    ret = GetDevAndParser(&live_dev, &tparser);
+    if (ret != 0) {
+        printf("ERROR: Unabme to get parser and interface params\n");
+        exit(EXIT_FAILURE);
     }
 
     ret = RunModeSetLiveCaptureSingle(de_ctx,
