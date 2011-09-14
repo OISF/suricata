@@ -201,8 +201,22 @@ static uint64_t prune_no_timeout = 0;
 static uint64_t prune_usecnt = 0;
 #endif
 
-static inline Packet *FFRPseudoPacketSetup(int direction, Flow *f,
-                                           TcpSession *ssn, int dummy)
+/**
+ * \internal
+ * \brief Pseudo packet setup for flow forced reassembly.
+ *
+ * \param direction Direction of the packet.  0 indicates toserver and 1
+ *                  indicates toclient.
+ * \param f         Pointer to the flow.
+ * \param ssn       Pointer to the tcp session.
+ * \param dummy     Indicates to create a dummy pseudo packet.  Not all pseudo
+ *                  packets need to force reassembly, in which case we just
+ *                  set dummy ack/seq values.
+ */
+static inline Packet *FlowForceReassemblyPseudoPacketSetup(int direction,
+                                                           Flow *f,
+                                                           TcpSession *ssn,
+                                                           int dummy)
 {
     Packet *p = PacketGetFromAlloc();
     if (p == NULL)
@@ -363,16 +377,10 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
         return 0;
     }
 
-    if (ssn->client.seg_list == NULL ||
-        (ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED &&
-         ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED &&
-         ssn->toserver_smsg_head == NULL)) {
+    if (!StreamHasUnprocessedSegments(ssn, 0)) {
         client_ok = 0;
     }
-    if (ssn->server.seg_list == NULL ||
-        (ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED &&
-         ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED &&
-         ssn->toclient_smsg_head == NULL)) {
+    if (!StreamHasUnprocessedSegments(ssn, 1)) {
         server_ok = 0;
     }
 
@@ -399,38 +407,38 @@ static inline int FlowForceReassemblyForFlowV2(ThreadVars *tv, Flow *f)
 
     /* insert a pseudo packet in the toserver direction */
     if (client_ok == 1) {
-        p1 = FFRPseudoPacketSetup(1, f, ssn, 0);
+        p1 = FlowForceReassemblyPseudoPacketSetup(1, f, ssn, 0);
         if (p1 == NULL) {
             return 1;
         }
 
         if (server_ok == 1) {
-            p2 = FFRPseudoPacketSetup(0, f, ssn, 0);
+            p2 = FlowForceReassemblyPseudoPacketSetup(0, f, ssn, 0);
             if (p2 == NULL) {
                 TmqhOutputPacketpool(NULL,p1);
                 return 1;
             }
 
-            p3 = FFRPseudoPacketSetup(1, f, ssn, 0);
+            p3 = FlowForceReassemblyPseudoPacketSetup(1, f, ssn, 0);
             if (p3 == NULL) {
                 TmqhOutputPacketpool(NULL, p1);
                 TmqhOutputPacketpool(NULL, p2);
                 return 1;
             }
         } else {
-            p2 = FFRPseudoPacketSetup(0, f, ssn, 1);
+            p2 = FlowForceReassemblyPseudoPacketSetup(0, f, ssn, 1);
             if (p2 == NULL) {
                 TmqhOutputPacketpool(NULL, p1);
                 return 1;
             }
         }
     } else {
-        p1 = FFRPseudoPacketSetup(0, f, ssn, 0);
+        p1 = FlowForceReassemblyPseudoPacketSetup(0, f, ssn, 0);
         if (p1 == NULL) {
             return 1;
         }
 
-        p2 = FFRPseudoPacketSetup(1, f, ssn, 1);
+        p2 = FlowForceReassemblyPseudoPacketSetup(1, f, ssn, 1);
         if (p2 == NULL) {
             TmqhOutputPacketpool(NULL, p1);
             return 1;
@@ -1364,10 +1372,7 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
         }
 
         /* ah ah!  We have some unattended toserver segments */
-        if (!(ssn->client.seg_list == NULL ||
-              (ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED &&
-               ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED &&
-               ssn->toserver_smsg_head == NULL))) {
+        if (StreamHasUnprocessedSegments(ssn, 0)) {
             client_ok = 1;
 
             StreamTcpThread *stt = stream_pseudo_pkt_stream_tm_slot->slot_data;
@@ -1383,10 +1388,7 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
             StreamTcpReassembleProcessAppLayer(stt->ra_ctx);
         }
         /* oh oh!  We have some unattended toclient segments */
-        if (!(ssn->server.seg_list == NULL ||
-              (ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED &&
-               ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED &&
-               ssn->toclient_smsg_head == NULL))) {
+        if (StreamHasUnprocessedSegments(ssn, 1)) {
             server_ok = 1;
             StreamTcpThread *stt = stream_pseudo_pkt_stream_tm_slot->slot_data;
 
@@ -1403,7 +1405,7 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
 
         /* insert a pseudo packet in the toserver direction */
         if (client_ok == 1) {
-            Packet *p = FFRPseudoPacketSetup(0, f, ssn, 1);
+            Packet *p = FlowForceReassemblyPseudoPacketSetup(0, f, ssn, 1);
             if (p == NULL) {
                 return;
             }
@@ -1426,7 +1428,7 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
             }
         } /* if (ssn->client.seg_list != NULL) */
         if (server_ok == 1) {
-            Packet *p = FFRPseudoPacketSetup(1, f, ssn, 1);
+            Packet *p = FlowForceReassemblyPseudoPacketSetup(1, f, ssn, 1);
             if (p == NULL) {
                 return;
             }
