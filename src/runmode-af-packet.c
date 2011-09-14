@@ -291,74 +291,28 @@ int RunModeIdsAFPAutoFp(DetectEngineCtx *de_ctx)
  */
 int RunModeIdsAFPSingle(DetectEngineCtx *de_ctx)
 {
+#ifdef HAVE_AF_PACKET
+    int ret;
+    char *live_dev = NULL;
+#endif
     SCEnter();
 #ifdef HAVE_AF_PACKET
-    int nafp = LiveGetDeviceCount();
-    char *afp_dev = NULL;
-    char *afp_devc = NULL;
-
-    if (nafp > 1) {
-        SCLogError(SC_ERR_RUNMODE,
-                   "Can't use single runmode with multiple device");
-        exit(EXIT_FAILURE);
-    }
 
     RunModeInitialize();
     TimeModeSetLive();
 
-    if (ConfGet("af-packet.live-interface", &afp_dev) == 0) {
-        SCLogError(SC_ERR_RUNMODE, "Failed retrieving "
-                "interface from command line");
+    ConfGet("af-packet.live-interface", &live_dev);
+
+    ret = RunModeSetLiveCaptureSingle(de_ctx,
+                                    ParseAFPConfig, "ReceiveAFP",
+                                    "DecodeAFP", "AFPacket",
+                                    live_dev);
+    if (ret != 0) {
+        printf("ERROR: Unable to start runmode\n");
         exit(EXIT_FAILURE);
     }
 
-    SCLogDebug("afp_dev %s", afp_dev);
-    afp_devc = SCStrdup(afp_dev);
-
-    /* create the threads */
-    ThreadVars *tv = TmThreadCreatePacketHandler("AFPacket",
-                                                 "packetpool", "packetpool",
-                                                 "packetpool", "packetpool",
-                                                 "pktacqloop");
-    if (tv == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
-        exit(EXIT_FAILURE);
-    }
-
-    TmModule *tm_module = TmModuleGetByName("ReceiveAFP");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName failed for ReceiveAFP\n");
-        exit(EXIT_FAILURE);
-    }
-    TmSlotSetFuncAppend(tv, tm_module, afp_devc);
-
-    tm_module = TmModuleGetByName("DecodeAFP");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName DecodeAFP failed\n");
-        exit(EXIT_FAILURE);
-    }
-    TmSlotSetFuncAppend(tv, tm_module, NULL);
-
-    tm_module = TmModuleGetByName("StreamTcp");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
-        exit(EXIT_FAILURE);
-    }
-    TmSlotSetFuncAppend(tv, tm_module, NULL);
-
-    tm_module = TmModuleGetByName("Detect");
-    if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName Detect failed\n");
-        exit(EXIT_FAILURE);
-    }
-    TmSlotSetFuncAppend(tv, tm_module, (void *)de_ctx);
-
-    SetupOutputs(tv);
-
-    if (TmThreadSpawn(tv) != TM_ECODE_OK) {
-        printf("ERROR: TmThreadSpawn failed\n");
-        exit(EXIT_FAILURE);
-    }
+    SCLogInfo("RunModeIdsAFPSingle initialised");
 
 #endif /* HAVE_AF_PACKET */
     SCReturnInt(0);
