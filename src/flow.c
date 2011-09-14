@@ -482,7 +482,7 @@ static int FlowPrune(FlowQueue *q, struct timeval *ts, int try_cnt)
 
     Flow *f = q->top;
     /* label */
- FlowPrune_Prune_Next:
+    while (f != NULL) {
     if (try_cnt != 0 && try_cnt_temp == try_cnt) {
         SCMutexUnlock(&q->mutex_q);
         return cnt;
@@ -506,7 +506,7 @@ static int FlowPrune(FlowQueue *q, struct timeval *ts, int try_cnt)
         prune_flow_lock++;
 #endif
         f = f->lnext;
-        goto FlowPrune_Prune_Next;
+        continue;
     }
 
     if (SCSpinTrylock(&f->fb->s) != 0) {
@@ -517,7 +517,7 @@ static int FlowPrune(FlowQueue *q, struct timeval *ts, int try_cnt)
         prune_bucket_lock++;
 #endif
         f = f->lnext;
-        goto FlowPrune_Prune_Next;
+        continue;
     }
 
     /*set the timeout value according to the flow operating mode, flow's state
@@ -595,14 +595,14 @@ static int FlowPrune(FlowQueue *q, struct timeval *ts, int try_cnt)
         f = f->lnext;
         SCSpinUnlock(&prev_f->fb->s);
         SCMutexUnlock(&prev_f->m);
-        goto FlowPrune_Prune_Next;
+        continue;
     }
 
     if (FlowForceReassemblyForFlowV2(f) == 1) {
         Flow *prev_f = f;
         f = f->lnext;
         SCMutexUnlock(&prev_f->m);
-        goto FlowPrune_Prune_Next;
+        continue;
     }
 
     /* this should not be possible */
@@ -630,7 +630,10 @@ static int FlowPrune(FlowQueue *q, struct timeval *ts, int try_cnt)
     SCMutexUnlock(&f->m);
     f = next_flow;
 
-    goto FlowPrune_Prune_Next;
+    }
+
+    SCMutexUnlock(&q->mutex_q);
+    return cnt;
 }
 
 /** \brief Time out flows.
