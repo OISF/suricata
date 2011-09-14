@@ -94,7 +94,6 @@ int RunModeFilePcapSingle(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
     TmSlotSetFuncAppend(tv, tm_module, file);
-    TmThreadMSRegisterSyncPt(tv, "ReceiveTMBeforeDeInit");
 
     tm_module = TmModuleGetByName("DecodePcapFile");
     if (tm_module == NULL) {
@@ -188,7 +187,6 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx)
             exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend(tv_receivepcap, tm_module, file);
-        TmThreadMSRegisterSyncPt(tv_receivepcap, "ReceiveTMBeforeDeInit");
 
         TmThreadSetCPU(tv_receivepcap, RECEIVE_CPU_SET);
 
@@ -230,7 +228,6 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx)
             exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend(tv_receivepcap, tm_module, file);
-        TmThreadMSRegisterSyncPt(tv_receivepcap, "ReceiveTMBeforeDeInit");
 
         TmThreadSetCPU(tv_receivepcap, RECEIVE_CPU_SET);
 
@@ -436,7 +433,6 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
     TmSlotSetFuncAppend(tv_receivepcap, tm_module, file);
-    TmThreadMSRegisterSyncPt(tv_receivepcap, "ReceiveTMBeforeDeInit");
 
     tm_module = TmModuleGetByName("DecodePcapFile");
     if (tm_module == NULL) {

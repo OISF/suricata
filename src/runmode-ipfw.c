@@ -102,7 +102,6 @@ int RunModeIpsIPFWAuto(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
     TmSlotSetFuncAppend(tv_receiveipfw, tm_module, NULL);
-    TmThreadMSRegisterSyncPt(tv_receiveipfw, "ReceiveTMBeforeDeInit");
 
     if (threading_set_cpu_affinity) {
         TmThreadSetCPUAffinity(tv_receiveipfw, 0);

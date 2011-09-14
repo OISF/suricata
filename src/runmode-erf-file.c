@@ -90,7 +90,6 @@ int RunModeErfFileAuto(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
     TmSlotSetFuncAppend(tv_receiveerf, tm_module, file);
-    TmThreadMSRegisterSyncPt(tv_receiveerf, "ReceiveTMBeforeDeInit");
 
     if (threading_set_cpu_affinity) {
         TmThreadSetCPUAffinity(tv_receiveerf, 0);
