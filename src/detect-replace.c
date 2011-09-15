@@ -45,6 +45,9 @@ extern int run_mode;
 #include "detect-engine-mpm.h"
 #include "detect-engine.h"
 #include "detect-engine-state.h"
+
+#include "util-checksum.h"
+
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
@@ -176,33 +179,7 @@ void DetectReplaceExecute(Packet *p, DetectReplaceList *replist)
         memcpy(replist->found, replist->cd->replace, replist->cd->replace_len);
         SCLogDebug("replace: injecting '%s'", replist->cd->replace);
         p->flags |= PKT_STREAM_MODIFIED;
-        if (PKT_IS_IPV4(p)) {
-            if (PKT_IS_TCP(p)) {
-                /* TCP */
-                p->tcph->th_sum = 0;
-                p->tcph->th_sum = TCPCalculateChecksum((uint16_t *)&(p->ip4h->ip_src),
-                        (uint16_t *)p->tcph, (p->payload_len + TCP_GET_HLEN(p)));
-            } else if (PKT_IS_UDP(p)) {
-                p->udph->uh_sum = 0;
-                p->udph->uh_sum = UDPV4CalculateChecksum((uint16_t *)&(p->ip4h->ip_src),
-                        (uint16_t *)p->udph, (p->payload_len + UDP_HEADER_LEN));
-            }
-            /* IPV4 */
-            p->ip4h->ip_csum = 0;
-            p->ip4h->ip_csum = IPV4CalculateChecksum((uint16_t *)p->ip4h,
-                    IPV4_GET_RAW_HLEN(p->ip4h));
-        } else if (PKT_IS_IPV6(p)) {
-            /* just TCP for IPV6 */
-            if (PKT_IS_TCP(p)) {
-                p->tcph->th_sum = 0;
-                p->tcph->th_sum = TCPV6CalculateChecksum((uint16_t *)&(p->ip6h->ip6_src),
-                        (uint16_t *)p->tcph, (p->payload_len + TCP_GET_HLEN(p)));
-            } else if (PKT_IS_UDP(p)) {
-                p->udph->uh_sum = 0;
-                p->udph->uh_sum = UDPV6CalculateChecksum((uint16_t *)&(p->ip6h->ip6_src),
-                        (uint16_t *)p->udph, (p->payload_len + UDP_HEADER_LEN));
-            }
-        }
+        ReCalculateChecksum(p);
         tlist = replist;
         replist = replist->next;
         SCFree(tlist);

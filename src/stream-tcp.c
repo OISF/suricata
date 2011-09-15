@@ -44,6 +44,7 @@
 #include "tm-threads.h"
 
 #include "util-pool.h"
+#include "util-checksum.h"
 #include "util-unittest.h"
 #include "util-print.h"
 #include "util-debug.h"
@@ -3653,7 +3654,7 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
 
     /* recalc the csum on the packet if it was modified */
     if (p->flags & PKT_STREAM_MODIFIED) {
-        StreamTcpInlineRecalcCsum(p);
+        ReCalculateChecksum(p);
     }
 
     /* check for conditions that may make us not want to log this packet */
@@ -3686,7 +3687,7 @@ error:
 
     /* recalc the csum on the packet if it was modified */
     if (p->flags & PKT_STREAM_MODIFIED) {
-        StreamTcpInlineRecalcCsum(p);
+        ReCalculateChecksum(p);
     }
 
     if (StreamTcpInlineMode()) {

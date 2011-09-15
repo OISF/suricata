@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2011 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -18,19 +18,13 @@
 /**
  * \file
  *
- * \author Victor Julien <victor@inliniac.net>
+ * \author Eric Leblond <eric@regit.org>
  */
 
-#ifndef __STREAM_TCP_INLINE_H__
-#define __STREAM_TCP_INLINE_H__
+#ifndef __UTIL_CHECKSUM_H__
+#define __UTIL_CHECKSUM_H__
 
-#include "stream-tcp-private.h"
 
-int StreamTcpInlineMode(void);
-int StreamTcpInlineSegmentCompare(TcpSegment *, TcpSegment *);
-void StreamTcpInlineSegmentReplacePacket(Packet *, TcpSegment *);
+int ReCalculateChecksum(Packet *p);
 
-void StreamTcpInlineRegisterTests(void);
-
-#endif /* __STREAM_TCP_INLINE_H__ */
-
+#endif
