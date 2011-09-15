@@ -399,11 +399,11 @@ typedef struct Packet_
 typedef struct PacketQueue_ {
     Packet *top;
     Packet *bot;
-    uint16_t len;
+    uint32_t len;
     SCMutex mutex_q;
     SCCondT cond_q;
 #ifdef DBG_PERF
-    uint16_t dbg_maxlen;
+    uint32_t dbg_maxlen;
 #endif /* DBG_PERF */
 } PacketQueue;
 
