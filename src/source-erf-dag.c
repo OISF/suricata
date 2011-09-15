@@ -45,6 +45,7 @@ void TmModuleReceiveErfDagRegister (void) {
     tmm_modules[TMM_RECEIVEERFDAG].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVEERFDAG].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVEERFDAG].cap_flags = SC_CAP_NET_ADMIN;
+    tmm_modules[TMM_RECEIVEERFDAG].flags = TM_FLAG_RECEIVE_TM;
 }
 
 void TmModuleDecodeErfDagRegister (void) {

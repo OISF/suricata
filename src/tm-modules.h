@@ -27,6 +27,9 @@
 #include "tm-threads-common.h"
 #include "threadvars.h"
 
+/* thread flags */
+#define TM_FLAG_RECEIVE_TM      0x01
+
 typedef struct TmModule_ {
     char *name;
 
@@ -44,6 +47,8 @@ typedef struct TmModule_ {
 
     uint8_t cap_flags;   /**< Flags to indicate the capability requierment of
                              the given TmModule */
+    /* Other flags used by the module */
+    uint8_t flags;
 } TmModule;
 
 TmModule tmm_modules[TMM_SIZE];

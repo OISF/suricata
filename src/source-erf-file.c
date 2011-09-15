@@ -81,6 +81,7 @@ TmModuleReceiveErfFileRegister(void)
     tmm_modules[TMM_RECEIVEERFFILE].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVEERFFILE].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVEERFFILE].cap_flags = 0;
+    tmm_modules[TMM_RECEIVEERFFILE].flags = TM_FLAG_RECEIVE_TM;
 }
 
 /**

@@ -1444,11 +1444,10 @@ void TmThreadDisableReceiveThreads(void)
         TmSlot *slots = tv->tm_slots;
         TmModule *tm = TmModuleGetById(slots->tm_id);
 
-        /* Kind of a hack.  All packet_acquire/receive TMs in our engine
-         * have the string "receive" as a substring in their name */
-        char *found = strcasestr(tm->name, "receive");
-        if (found == NULL)
-            break;
+        if (!tm->flags & TM_FLAG_RECEIVE_TM) {
+            tv = tv->next;
+            continue;
+        }
 
         /* we found our receive TV.  Send it a KILL signal.  This is all
          * we need to do to kill receive threads */

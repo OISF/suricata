@@ -69,6 +69,7 @@ void TmModuleReceivePfringRegister (void) {
     tmm_modules[TMM_RECEIVEPFRING].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVEPFRING].cap_flags = SC_CAP_NET_ADMIN | SC_CAP_NET_RAW |
         SC_CAP_NET_BIND_SERVICE | SC_CAP_NET_BROADCAST;
+    tmm_modules[TMM_RECEIVEPFRING].flags = TM_FLAG_RECEIVE_TM;
 }
 
 void TmModuleDecodePfringRegister (void) {
