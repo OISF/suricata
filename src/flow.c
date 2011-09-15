@@ -599,16 +599,12 @@ static int FlowPrune(FlowQueue *q, struct timeval *ts, int try_cnt)
             continue;
         }
 
-#ifdef UNITTESTS
-        if (run_mode != RUNMODE_UNITTEST) {
-            if (FlowForceReassemblyForFlowV2(f) == 1) {
-                Flow *prev_f = f;
-                f = f->lnext;
-                SCMutexUnlock(&prev_f->m);
-                continue;
-            }
+        if (FlowForceReassemblyForFlowV2(f) == 1) {
+            Flow *prev_f = f;
+            f = f->lnext;
+            SCMutexUnlock(&prev_f->m);
+            continue;
         }
-#endif
 
         /* this should not be possible */
         BUG_ON(SC_ATOMIC_GET(f->use_cnt) > 0);
@@ -2285,6 +2281,7 @@ static int FlowTest03 (void) {
     SCSpinInit(&fb.s, 0);
 
     FLOW_INITIALIZE(&f);
+    f.flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
 
     TimeGet(&ts);
     f.lastts_sec = ts.tv_sec - 5000;
@@ -2335,6 +2332,7 @@ static int FlowTest04 (void) {
 
     SCSpinInit(&fb.s, 0);
     FLOW_INITIALIZE(&f);
+    f.flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
 
     TimeGet(&ts);
     seg.payload = payload;
@@ -2386,6 +2384,7 @@ static int FlowTest05 (void) {
 
     SCSpinInit(&fb.s, 0);
     FLOW_INITIALIZE(&f);
+    f.flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
 
     TimeGet(&ts);
     ssn.state = TCP_SYN_SENT;
@@ -2393,7 +2392,7 @@ static int FlowTest05 (void) {
     f.protoctx = &ssn;
     f.fb = &fb;
     f.proto = IPPROTO_TCP;
-    f.flags = FLOW_EMERGENCY;
+    f.flags |= FLOW_EMERGENCY;
 
     if (FlowTestPrune(&f, &ts) != 1) {
         SCSpinDestroy(&fb.s);
@@ -2436,6 +2435,7 @@ static int FlowTest06 (void) {
 
     SCSpinInit(&fb.s, 0);
     FLOW_INITIALIZE(&f);
+    f.flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
 
     TimeGet(&ts);
     seg.payload = payload;
@@ -2450,7 +2450,7 @@ static int FlowTest06 (void) {
     f.protoctx = &ssn;
     f.fb = &fb;
     f.proto = IPPROTO_TCP;
-    f.flags = FLOW_EMERGENCY;
+    f.flags |= FLOW_EMERGENCY;
 
     if (FlowTestPrune(&f, &ts) != 1) {
         SCSpinDestroy(&fb.s);
