@@ -1337,11 +1337,6 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
 
     /* we need to loop through all the flows in the queue */
     while (f != NULL) {
-        if (f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) {
-            f = f->lnext;
-            continue;
-        }
-
         /* We use this packet just for reassembly purpose */
         Packet reassemble_p;
         memset(&reassemble_p, 0, sizeof(Packet));
