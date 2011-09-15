@@ -209,11 +209,9 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
         return 0;
     }
 
-    /* unlock list */
-    SCMutexUnlock(&q->mutex_q);
-
     if (SCSpinTrylock(&f->fb->s) != 0) {
         SCMutexUnlock(&f->m);
+        SCMutexUnlock(&q->mutex_q);
         SCLogDebug("cant lock 2");
         return 0;
     }
@@ -269,6 +267,7 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
     if ((int32_t)(f->lastts.tv_sec + timeout) >= ts->tv_sec) {
         SCSpinUnlock(&f->fb->s);
         SCMutexUnlock(&f->m);
+        SCMutexUnlock(&q->mutex_q);
         SCLogDebug("timeout check failed");
         return 0;
     }
@@ -279,6 +278,7 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
         SCLogDebug("timed out but use_cnt > 0: %"PRIu16", %p, proto %"PRIu8"", SC_ATOMIC_GET(f->use_cnt), f, f->proto);
         SCSpinUnlock(&f->fb->s);
         SCMutexUnlock(&f->m);
+        SCMutexUnlock(&q->mutex_q);
         SCLogDebug("it is in one of the threads");
         return 0;
     }
@@ -303,9 +303,10 @@ static int FlowPrune (FlowQueue *q, struct timeval *ts)
     FlowClearMemory (f, f->protomap);
 
     /* move to spare list */
-    FlowRequeue(f, q, &flow_spare_q, 1);
+    FlowRequeue(f, q, &flow_spare_q, 0);
 
     SCMutexUnlock(&f->m);
+    SCMutexUnlock(&q->mutex_q);
     return 1;
 }
 
