@@ -599,12 +599,14 @@ static int FlowPrune(FlowQueue *q, struct timeval *ts, int try_cnt)
             continue;
         }
 
+#ifndef UNITTESTS
         if (FlowForceReassemblyForFlowV2(f) == 1) {
             Flow *prev_f = f;
             f = f->lnext;
             SCMutexUnlock(&prev_f->m);
             continue;
         }
+#endif
 
         /* this should not be possible */
         BUG_ON(SC_ATOMIC_GET(f->use_cnt) > 0);
