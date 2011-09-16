@@ -258,9 +258,6 @@ void FlowDecrUsecnt(Flow *);
 uint32_t FlowPruneFlowsCnt(struct timeval *, int);
 uint32_t FlowKillFlowsCnt(int);
 
-void *FlowManagerThread(void *td);
-
-void FlowManagerThreadSpawn(void);
 void FlowRegisterTests (void);
 int FlowSetProtoTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
 int FlowSetProtoEmergencyTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
@@ -268,7 +265,10 @@ int FlowSetProtoFreeFunc (uint8_t , void (*Free)(void *));
 int FlowSetFlowStateFunc (uint8_t , int (*GetProtoState)(void *));
 void FlowUpdateQueue(Flow *);
 
-void FlowForceReassembly(void);
+struct FlowQueue_;
+
+int FlowUpdateSpareFlows(void);
+uint32_t FlowPruneFlowQueue(struct FlowQueue_ *, struct timeval *);
 
 static inline void FlowLockSetNoPacketInspectionFlag(Flow *);
 static inline void FlowSetNoPacketInspectionFlag(Flow *);

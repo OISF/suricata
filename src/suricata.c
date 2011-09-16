@@ -107,6 +107,8 @@
 #include "respond-reject.h"
 
 #include "flow.h"
+#include "flow-timeout.h"
+#include "flow-manager.h"
 #include "flow-var.h"
 #include "flow-bit.h"
 #include "flow-alert-sid.h"

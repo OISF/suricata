@@ -38,6 +38,7 @@
 #include "flow-util.h"
 #include "flow-var.h"
 #include "flow-private.h"
+#include "flow-manager.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -65,46 +66,6 @@ static ThreadVars *stream_pseudo_pkt_detect_prev_TV = NULL;
 
 static TmSlot *stream_pseudo_pkt_decode_tm_slot = NULL;
 static ThreadVars *stream_pseudo_pkt_decode_TV = NULL;
-
-/**
- * \brief Used to kill flow manager thread(s).
- *
- * \todo Kinda hackish since it uses the tv name to identify flow manager
- *       thread.  We need an all weather identification scheme.
- */
-static inline void FlowKillFlowManagerThread(void)
-{
-    ThreadVars *tv = NULL;
-    int cnt = 0;
-
-    SCMutexLock(&tv_root_lock);
-
-    /* flow manager thread(s) is/are a part of mgmt threads */
-    tv = tv_root[TVT_MGMT];
-
-    while (tv != NULL) {
-        if (strcasecmp(tv->name, "FlowManagerThread") == 0) {
-            TmThreadsSetFlag(tv, THV_KILL);
-            TmThreadsSetFlag(tv, THV_DEINIT);
-
-            /* be sure it has shut down */
-            while (!TmThreadsCheckFlag(tv, THV_CLOSED)) {
-                usleep(100);
-            }
-            cnt++;
-        }
-        tv = tv->next;
-    }
-
-    /* not possible, unless someone decides to rename FlowManagerThread */
-    if (cnt == 0) {
-        SCMutexUnlock(&tv_root_lock);
-        abort();
-    }
-
-    SCMutexUnlock(&tv_root_lock);
-    return;
-}
 
 /**
  * \internal
