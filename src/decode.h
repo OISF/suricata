@@ -277,7 +277,7 @@ typedef struct PktProfilingTmmData_ {
 typedef struct PktProfilingDetectData_ {
     uint64_t ticks_start;
     uint64_t ticks_end;
-    uint32_t ticks_spent;
+    uint64_t ticks_spent;
 } PktProfilingDetectData;
 
 typedef struct PktProfilingAppData_ {
@@ -292,7 +292,7 @@ typedef struct PktProfiling_ {
     PktProfilingTmmData tmm[TMM_SIZE];
     PktProfilingAppData app[ALPROTO_MAX];
     PktProfilingDetectData detect[PROF_DETECT_SIZE];
-    uint32_t proto_detect;
+    uint64_t proto_detect;
 } PktProfiling;
 
 #endif /* PROFILING */
@@ -490,11 +490,11 @@ typedef struct AlpProtoDetectThreadCtx_ {
 #ifdef PROFILING
     uint64_t ticks_start;
     uint64_t ticks_end;
-    uint32_t ticks_spent;
+    uint64_t ticks_spent;
     uint16_t alproto;
     uint64_t proto_detect_ticks_start;
     uint64_t proto_detect_ticks_end;
-    uint32_t proto_detect_ticks_spent;
+    uint64_t proto_detect_ticks_spent;
 #endif
 } AlpProtoDetectThreadCtx;
 

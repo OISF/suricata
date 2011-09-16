@@ -96,7 +96,9 @@ void SCProfilingAddPacket(Packet *);
     if (profiling_packets_enabled) {                                \
         BUG_ON((id) != (dp)->alproto);                              \
         (dp)->ticks_end = UtilCpuGetTicks();                        \
-        (dp)->ticks_spent = ((dp)->ticks_end - (dp)->ticks_start);  \
+        if ((dp)->ticks_start != 0 && (dp)->ticks_start < ((dp)->ticks_end)) {  \
+            (dp)->ticks_spent = ((dp)->ticks_end - (dp)->ticks_start);  \
+        }                                                           \
     }
 
 #define PACKET_PROFILING_APP_PD_START(dp)                           \
@@ -107,8 +109,10 @@ void SCProfilingAddPacket(Packet *);
 #define PACKET_PROFILING_APP_PD_END(dp)                             \
     if (profiling_packets_enabled) {                                \
         (dp)->proto_detect_ticks_end = UtilCpuGetTicks();           \
-        (dp)->proto_detect_ticks_spent =                            \
-            ((dp)->proto_detect_ticks_end - (dp)->proto_detect_ticks_start);  \
+        if ((dp)->proto_detect_ticks_start != 0 && (dp)->proto_detect_ticks_start < ((dp)->proto_detect_ticks_end)) {  \
+            (dp)->proto_detect_ticks_spent =                        \
+                ((dp)->proto_detect_ticks_end - (dp)->proto_detect_ticks_start);  \
+        }                                                           \
     }
 
 #define PACKET_PROFILING_APP_RESET(dp)                              \
@@ -141,8 +145,11 @@ void SCProfilingAddPacket(Packet *);
     if (profiling_packets_enabled) {                                \
         if ((id) < TMM_SIZE) {                                      \
             (p)->profile.detect[(id)].ticks_end = UtilCpuGetTicks();\
-            (p)->profile.detect[(id)].ticks_spent +=                \
+            if ((p)->profile.detect[(id)].ticks_start != 0 &&       \
+                    (p)->profile.detect[(id)].ticks_start < (p)->profile.detect[(id)].ticks_end) {  \
+                (p)->profile.detect[(id)].ticks_spent +=            \
                 ((p)->profile.detect[(id)].ticks_end - (p)->profile.detect[(id)].ticks_start);  \
+            }                                                       \
         }                                                           \
     }
 

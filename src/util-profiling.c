@@ -83,10 +83,10 @@ typedef struct SCProfileData_ {
 SCProfileData rules_profile_data[0xffff];
 
 typedef struct SCProfilePacketData_ {
-    uint32_t min;
-    uint32_t max;
+    uint64_t min;
+    uint64_t max;
     uint64_t tot;
-    uint32_t cnt;
+    uint64_t cnt;
 } SCProfilePacketData;
 SCProfilePacketData packet_profile_data4[257]; /**< all proto's + tunnel */
 SCProfilePacketData packet_profile_data6[257]; /**< all proto's + tunnel */
@@ -680,10 +680,10 @@ void SCProfilingDumpPacketStats(void) {
 
     fprintf(fp, "\n\nPacket profile dump:\n");
 
-    fprintf(fp, "\n%-6s   %-5s   %-8s   %-6s   %-10s   %-8s\n",
+    fprintf(fp, "\n%-6s   %-5s   %-12s   %-12s   %-12s   %-12s\n",
             "IP ver", "Proto", "cnt", "min", "max", "avg");
-    fprintf(fp, "%-6s   %-5s   %-8s   %-6s   %-10s   %-8s\n",
-            "------", "-----", "------", "------", "----------", "-------");
+    fprintf(fp, "%-6s   %-5s   %-12s   %-12s   %-12s   %-12s\n",
+            "------", "-----", "----------", "------------", "------------", "-----------");
 
     for (i = 0; i < 257; i++) {
         SCProfilePacketData *pd = &packet_profile_data4[i];
@@ -692,8 +692,8 @@ void SCProfilingDumpPacketStats(void) {
             continue;
         }
 
-        fprintf(fp, " IPv4     %3d  %8u     %6u   %10u  %8"PRIu64"\n", i, pd->cnt,
-            pd->min, pd->max, pd->tot / pd->cnt);
+        fprintf(fp, " IPv4     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"\n", i, pd->cnt,
+            pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt));
     }
 
     for (i = 0; i < 257; i++) {
@@ -703,17 +703,17 @@ void SCProfilingDumpPacketStats(void) {
             continue;
         }
 
-        fprintf(fp, " IPv6     %3d  %8u     %6u   %10u  %8"PRIu64"\n", i, pd->cnt,
-            pd->min, pd->max, pd->tot / pd->cnt);
+        fprintf(fp, " IPv6     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"\n", i, pd->cnt,
+            pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt));
     }
     fprintf(fp, "Note: Protocol 256 tracks pseudo/tunnel packets.\n");
 
     fprintf(fp, "\nPer Thread module stats:\n");
 
-    fprintf(fp, "\n%-24s   %-6s   %-5s   %-8s   %-6s   %-10s   %-8s\n",
+    fprintf(fp, "\n%-24s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s\n",
             "Thread Module", "IP ver", "Proto", "cnt", "min", "max", "avg");
-    fprintf(fp, "%-24s   %-6s   %-5s   %-8s   %-6s   %-10s   %-8s\n",
-            "------------------------", "------", "-----", "------", "------", "----------", "-------");
+    fprintf(fp, "%-24s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s\n",
+            "------------------------", "------", "-----", "----------", "------------", "------------", "-----------");
     int m;
     for (m = 0; m < TMM_SIZE; m++) {
         int p;
@@ -724,8 +724,8 @@ void SCProfilingDumpPacketStats(void) {
                 continue;
             }
 
-            fprintf(fp, "%-24s    IPv4     %3d  %8u     %6u   %10u  %8"PRIu64"\n",
-                    TmModuleTmmIdToString(m), p, pd->cnt, pd->min, pd->max, pd->tot / pd->cnt);
+            fprintf(fp, "%-24s    IPv4     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"\n",
+                    TmModuleTmmIdToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt));
         }
     }
 
@@ -738,18 +738,18 @@ void SCProfilingDumpPacketStats(void) {
                 continue;
             }
 
-            fprintf(fp, "%-24s    IPv6     %3d  %8u     %6u   %10u  %8"PRIu64"\n",
-                    TmModuleTmmIdToString(m), p, pd->cnt, pd->min, pd->max, pd->tot / pd->cnt);
+            fprintf(fp, "%-24s    IPv6     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"\n",
+                    TmModuleTmmIdToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt));
         }
     }
     fprintf(fp, "Note: TMM_STREAMTCP includes TCP app layer parsers, see below.\n");
 
     fprintf(fp, "\nPer App layer parser stats:\n");
 
-    fprintf(fp, "\n%-20s   %-6s   %-5s   %-8s   %-6s   %-10s   %-8s\n",
+    fprintf(fp, "\n%-20s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s\n",
             "App Layer", "IP ver", "Proto", "cnt", "min", "max", "avg");
-    fprintf(fp, "%-20s   %-6s   %-5s   %-8s   %-6s   %-10s   %-8s\n",
-            "--------------------", "------", "-----", "------", "------", "----------", "-------");
+    fprintf(fp, "%-20s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s\n",
+            "--------------------", "------", "-----", "----------", "------------", "------------", "-----------");
     for (m = 0; m < ALPROTO_MAX; m++) {
         int p;
         for (p = 0; p < 257; p++) {
@@ -759,8 +759,8 @@ void SCProfilingDumpPacketStats(void) {
                 continue;
             }
 
-            fprintf(fp, "%-20s    IPv4     %3d  %8u     %6u   %10u  %8"PRIu64"\n",
-                    TmModuleAlprotoToString(m), p, pd->cnt, pd->min, pd->max, pd->tot / pd->cnt);
+            fprintf(fp, "%-20s    IPv4     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"\n",
+                    TmModuleAlprotoToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt));
         }
     }
 
@@ -773,8 +773,8 @@ void SCProfilingDumpPacketStats(void) {
                 continue;
             }
 
-            fprintf(fp, "%-20s    IPv6     %3d  %8u     %6u   %10u  %8"PRIu64"\n",
-                    TmModuleAlprotoToString(m), p, pd->cnt, pd->min, pd->max, pd->tot / pd->cnt);
+            fprintf(fp, "%-20s    IPv6     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"\n",
+                    TmModuleAlprotoToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt));
         }
     }
 
@@ -788,8 +788,8 @@ void SCProfilingDumpPacketStats(void) {
                 continue;
             }
 
-            fprintf(fp, "%-20s    IPv4     %3d  %8u     %6u   %10u  %8"PRIu64"\n",
-                    "Proto detect", p, pd->cnt, pd->min, pd->max, pd->tot / pd->cnt);
+            fprintf(fp, "%-20s    IPv4     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"\n",
+                    "Proto detect", p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt));
         }
 
         for (p = 0; p < 257; p++) {
@@ -799,17 +799,17 @@ void SCProfilingDumpPacketStats(void) {
                 continue;
             }
 
-            fprintf(fp, "%-20s    IPv6     %3d  %8u     %6u   %10u  %8"PRIu64"\n",
-                    "Proto detect", p, pd->cnt, pd->min, pd->max, pd->tot / pd->cnt);
+            fprintf(fp, "%-20s    IPv6     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"\n",
+                    "Proto detect", p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt));
         }
     }
 
     fprintf(fp, "\nGeneral detection engine stats:\n");
 
-    fprintf(fp, "\n%-24s   %-6s   %-5s   %-8s   %-6s   %-10s   %-8s\n",
+    fprintf(fp, "\n%-24s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s\n",
             "Detection phase", "IP ver", "Proto", "cnt", "min", "max", "avg");
-    fprintf(fp, "%-24s   %-6s   %-5s   %-8s   %-6s   %-10s   %-8s\n",
-            "-------------------------", "------", "-----", "------", "------", "----------", "-------");
+    fprintf(fp, "%-24s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s\n",
+            "------------------------", "------", "-----", "----------", "------------", "------------", "-----------");
     for (m = 0; m < PROF_DETECT_SIZE; m++) {
         int p;
         for (p = 0; p < 257; p++) {
@@ -819,8 +819,8 @@ void SCProfilingDumpPacketStats(void) {
                 continue;
             }
 
-            fprintf(fp, "%-24s    IPv4     %3d  %8u     %6u   %10u  %8"PRIu64"\n",
-                    PacketProfileDetectIdToString(m), p, pd->cnt, pd->min, pd->max, pd->tot / pd->cnt);
+            fprintf(fp, "%-24s    IPv4     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"\n",
+                    PacketProfileDetectIdToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt));
         }
     }
     for (m = 0; m < PROF_DETECT_SIZE; m++) {
@@ -832,8 +832,8 @@ void SCProfilingDumpPacketStats(void) {
                 continue;
             }
 
-            fprintf(fp, "%-24s    IPv6     %3d  %8u     %6u   %10u  %8"PRIu64"\n",
-                    PacketProfileDetectIdToString(m), p, pd->cnt, pd->min, pd->max, pd->tot / pd->cnt);
+            fprintf(fp, "%-24s    IPv6     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"\n",
+                    PacketProfileDetectIdToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt));
         }
     }
     fclose(fp);
@@ -844,21 +844,21 @@ void SCProfilingPrintPacketProfile(Packet *p) {
         return;
     }
 
-    uint32_t delta = (uint32_t)(p->profile.ticks_end - p->profile.ticks_start);
+    uint64_t delta = p->profile.ticks_end - p->profile.ticks_start;
 
-    fprintf(packet_profile_csv_fp, "%"PRIu64",%c,%"PRIu8",%"PRIu32",",
+    fprintf(packet_profile_csv_fp, "%"PRIu64",%c,%"PRIu8",%"PRIu64",",
             p->pcap_cnt, PKT_IS_IPV4(p) ? '4' : (PKT_IS_IPV6(p) ? '6' : '?'), p->proto,
             delta);
 
     int i;
-    uint32_t tmm_total = 0;
-    uint32_t tmm_streamtcp_tcp = 0;
+    uint64_t tmm_total = 0;
+    uint64_t tmm_streamtcp_tcp = 0;
 
     for (i = 0; i < TMM_SIZE; i++) {
         PktProfilingTmmData *pdt = &p->profile.tmm[i];
 
-        uint32_t tmm_delta = (uint32_t)(pdt->ticks_end - pdt->ticks_start);
-        fprintf(packet_profile_csv_fp, "%u,", tmm_delta);
+        uint64_t tmm_delta = pdt->ticks_end - pdt->ticks_start;
+        fprintf(packet_profile_csv_fp, "%"PRIu64",", tmm_delta);
         tmm_total += tmm_delta;
 
         if (p->proto == IPPROTO_TCP && i == TMM_STREAMTCP) {
@@ -866,9 +866,9 @@ void SCProfilingPrintPacketProfile(Packet *p) {
         }
     }
 
-    fprintf(packet_profile_csv_fp, "%u,", delta - tmm_total);
+    fprintf(packet_profile_csv_fp, "%"PRIu64",", delta - tmm_total);
 
-    uint32_t app_total = 0;
+    uint64_t app_total = 0;
     for (i = 0; i < ALPROTO_MAX; i++) {
         PktProfilingAppData *pdt = &p->profile.app[i];
 
@@ -879,22 +879,22 @@ void SCProfilingPrintPacketProfile(Packet *p) {
         }
     }
 
-    uint32_t real_tcp = 0;
+    uint64_t real_tcp = 0;
     if (tmm_streamtcp_tcp > app_total)
         real_tcp = tmm_streamtcp_tcp - app_total;
-    fprintf(packet_profile_csv_fp, "%"PRIu32",", real_tcp);
+    fprintf(packet_profile_csv_fp, "%"PRIu64",", real_tcp);
 
-    fprintf(packet_profile_csv_fp, "%"PRIu32",", p->profile.proto_detect);
+    fprintf(packet_profile_csv_fp, "%"PRIu64",", p->profile.proto_detect);
 
     for (i = 0; i < PROF_DETECT_SIZE; i++) {
         PktProfilingDetectData *pdt = &p->profile.detect[i];
 
-        fprintf(packet_profile_csv_fp,"%"PRIu32",", pdt->ticks_spent);
+        fprintf(packet_profile_csv_fp,"%"PRIu64",", pdt->ticks_spent);
     }
     fprintf(packet_profile_csv_fp,"\n");
 }
 
-void SCProfilingUpdatePacketDetectRecord(PacketProfileDetectId id, uint8_t ipproto, PktProfilingDetectData *pdt, int ipver) {
+static void SCProfilingUpdatePacketDetectRecord(PacketProfileDetectId id, uint8_t ipproto, PktProfilingDetectData *pdt, int ipver) {
     if (pdt == NULL) {
         return;
     }
@@ -931,7 +931,7 @@ void SCProfilingUpdatePacketDetectRecords(Packet *p) {
     }
 }
 
-void SCProfilingUpdatePacketAppPdRecord(uint8_t ipproto, uint32_t ticks_spent, int ipver) {
+static void SCProfilingUpdatePacketAppPdRecord(uint8_t ipproto, uint32_t ticks_spent, int ipver) {
     SCProfilePacketData *pd;
     if (ipver == 4)
         pd = &packet_profile_app_pd_data4[ipproto];
@@ -949,7 +949,7 @@ void SCProfilingUpdatePacketAppPdRecord(uint8_t ipproto, uint32_t ticks_spent, i
     pd->cnt ++;
 }
 
-void SCProfilingUpdatePacketAppRecord(int alproto, uint8_t ipproto, PktProfilingAppData *pdt, int ipver) {
+static void SCProfilingUpdatePacketAppRecord(int alproto, uint8_t ipproto, PktProfilingAppData *pdt, int ipver) {
     if (pdt == NULL) {
         return;
     }
@@ -1022,7 +1022,7 @@ void SCProfilingUpdatePacketTmmRecords(Packet *p) {
     for (i = 0; i < TMM_SIZE; i++) {
         PktProfilingTmmData *pdt = &p->profile.tmm[i];
 
-        if (pdt->ticks_start == 0) {
+        if (pdt->ticks_start == 0 || pdt->ticks_end == 0 || pdt->ticks_start > pdt->ticks_end) {
             continue;
         }
 
@@ -1035,15 +1035,19 @@ void SCProfilingUpdatePacketTmmRecords(Packet *p) {
 }
 
 void SCProfilingAddPacket(Packet *p) {
+    if (p->profile.ticks_start == 0 || p->profile.ticks_end == 0 || p->profile.ticks_start > p->profile.ticks_end)
+        return;
+
     SCMutexLock(&packet_profile_lock);
     {
+
         if (profiling_packets_csv_enabled)
             SCProfilingPrintPacketProfile(p);
 
         if (PKT_IS_IPV4(p)) {
             SCProfilePacketData *pd = &packet_profile_data4[p->proto];
 
-            uint32_t delta = (uint32_t)p->profile.ticks_end - p->profile.ticks_start;
+            uint64_t delta = p->profile.ticks_end - p->profile.ticks_start;
             if (pd->min == 0 || delta < pd->min) {
                 pd->min = delta;
             }
@@ -1051,7 +1055,7 @@ void SCProfilingAddPacket(Packet *p) {
                 pd->max = delta;
             }
 
-            pd->tot += (uint64_t)delta;
+            pd->tot += delta;
             pd->cnt ++;
 
             if (IS_TUNNEL_PKT(p)) {
@@ -1064,7 +1068,7 @@ void SCProfilingAddPacket(Packet *p) {
                     pd->max = delta;
                 }
 
-                pd->tot += (uint64_t)delta;
+                pd->tot += delta;
                 pd->cnt ++;
             }
 
@@ -1075,7 +1079,7 @@ void SCProfilingAddPacket(Packet *p) {
         } else if (PKT_IS_IPV6(p)) {
             SCProfilePacketData *pd = &packet_profile_data6[p->proto];
 
-            uint32_t delta = (uint32_t)p->profile.ticks_end - p->profile.ticks_start;
+            uint64_t delta = p->profile.ticks_end - p->profile.ticks_start;
             if (pd->min == 0 || delta < pd->min) {
                 pd->min = delta;
             }
@@ -1083,7 +1087,7 @@ void SCProfilingAddPacket(Packet *p) {
                 pd->max = delta;
             }
 
-            pd->tot += (uint64_t)delta;
+            pd->tot += delta;
             pd->cnt ++;
 
             if (IS_TUNNEL_PKT(p)) {
@@ -1096,7 +1100,7 @@ void SCProfilingAddPacket(Packet *p) {
                     pd->max = delta;
                 }
 
-                pd->tot += (uint64_t)delta;
+                pd->tot += delta;
                 pd->cnt ++;
             }
 
