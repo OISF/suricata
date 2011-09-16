@@ -42,6 +42,7 @@ decode-tcp.c decode-tcp.h \
 decode-udp.c decode-udp.h \
 decode-sctp.c decode-sctp.h \
 flow.c flow.h \
+flow-timeout.c flow-timeout.h \
 flow-queue.c flow-queue.h \
 flow-hash.c flow-hash.h \
 flow-util.c flow-util.h \

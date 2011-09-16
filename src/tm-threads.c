@@ -840,19 +840,6 @@ void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data)
         }
     }
 
-#ifdef PROFILING
-    TmModule *prof_tm;
-    int prof_tm_id = 0;
-
-    for (prof_tm_id = 0; prof_tm_id < TMM_SIZE; prof_tm_id++) {
-        prof_tm = &tmm_modules[prof_tm_id];
-
-        if (prof_tm == tm) {
-            slot->tm_id = prof_tm_id;
-            break;
-        }
-    }
-#endif
     return;
 }
 
