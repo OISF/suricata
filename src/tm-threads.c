@@ -135,9 +135,9 @@ void *TmThreadsSlot1NoIn(void *td)
     while (run) {
         TmThreadTestThreadUnPaused(tv);
 
-        PACKET_PROFILING_TMM_START(p, s->tm_module_id);
+        PACKET_PROFILING_TMM_START(p, s->tm_id);
         r = s->SlotFunc(tv, p, s->slot_data, &s->slot_pre_pq, &s->slot_post_pq);
-        PACKET_PROFILING_TMM_END(p, s->tm_module_id);
+        PACKET_PROFILING_TMM_END(p, s->tm_id);
 
         /* handle error */
         if (r == TM_ECODE_FAILED) {
@@ -231,10 +231,10 @@ void *TmThreadsSlot1NoOut(void *td)
 
         p = tv->tmqh_in(tv);
 
-        PACKET_PROFILING_TMM_START(p, s->tm_module_id);
+        PACKET_PROFILING_TMM_START(p, s->tm_id);
         r = s->SlotFunc(tv, p, s->slot_data, /* no outqh no pq */ NULL,
                         /* no outqh no pq */ NULL);
-        PACKET_PROFILING_TMM_END(p, s->tm_module_id);
+        PACKET_PROFILING_TMM_END(p, s->tm_id);
 
         /* handle error */
         if (r == TM_ECODE_FAILED) {
@@ -375,10 +375,10 @@ void *TmThreadsSlot1(void *td)
         p = tv->tmqh_in(tv);
 
         if (p != NULL) {
-            PACKET_PROFILING_TMM_START(p, s->tm_module_id);
+            PACKET_PROFILING_TMM_START(p, s->tm_id);
             r = s->SlotFunc(tv, p, s->slot_data, &s->slot_pre_pq,
                             &s->slot_post_pq);
-            PACKET_PROFILING_TMM_END(p, s->tm_module_id);
+            PACKET_PROFILING_TMM_END(p, s->tm_id);
 
             /* handle error */
             if (r == TM_ECODE_FAILED) {
