@@ -46,10 +46,6 @@
 #define HTP_FLAG_NEW_BODY_SET       0x10    /**< Flag to indicate that HTTP
                                              has parsed a new body (for
                                              pcre) */
-#define HTP_FLAG_NEW_REQUEST        0x20    /**< Flag to indicate that we have
-                                                 a new HTTP requesta and we
-                                                 need to log it */
-
 enum {
     HTP_BODY_NONE,                      /**< Flag to indicate the current
                                              operation */

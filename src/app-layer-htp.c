@@ -303,18 +303,6 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
 
     HtpState *hstate = (HtpState *)htp_state;
 
-    /* if the previous run set the new request flag, we unset it here. As
-     * we're here after a new request completed, we know it's a new
-     * transaction. So we set the new transaction flag. */
-    if (hstate->flags & HTP_FLAG_NEW_REQUEST) {
-        hstate->flags &=~ HTP_FLAG_NEW_REQUEST;
-
-        /* new transaction */
-        hstate->transaction_cnt++;
-        SCLogDebug("transaction_cnt %"PRIu16", list_size %"PRIuMAX, hstate->transaction_cnt,
-                (uintmax_t)list_size(hstate->connp->conn->transactions));
-    }
-
     /* On the first invocation, create the connection parser structure to
      * be used by HTP library.  This is looked up via IP in the radix
      * tree.  Failing that, the default HTP config is used.
@@ -799,7 +787,10 @@ static int HTPCallbackRequest(htp_connp_t *connp) {
         SCReturnInt(HOOK_ERROR);
     }
 
-    hstate->flags |= HTP_FLAG_NEW_REQUEST;
+    hstate->transaction_cnt++;
+    SCLogDebug("transaction_cnt %"PRIu16", list_size %"PRIuMAX,
+               hstate->transaction_cnt,
+               (uintmax_t)list_size(hstate->connp->conn->transactions));
 
     SCLogDebug("HTTP request completed");
 
