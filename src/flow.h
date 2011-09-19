@@ -174,6 +174,9 @@ typedef struct Flow_
      */
     SC_ATOMIC_DECLARE(unsigned short, use_cnt);
 
+    uint16_t probing_parser_toserver_al_proto_masks;
+    uint16_t probing_parser_toclient_al_proto_masks;
+
     uint32_t flags;
 
     /* ts of flow init and last update */

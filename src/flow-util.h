@@ -47,6 +47,8 @@
         SCMutexInit(&(f)->m, NULL); \
         (f)->protoctx = NULL; \
         (f)->alproto = 0; \
+        (f)->probing_parser_toserver_al_proto_masks = 0; \
+        (f)->probing_parser_toclient_al_proto_masks = 0; \
         (f)->aldata = NULL; \
         (f)->de_state = NULL; \
         (f)->sgh_toserver = NULL; \
@@ -75,6 +77,8 @@
         (f)->protoctx = NULL; \
         FlowL7DataPtrFree(f); \
         (f)->alproto = 0; \
+        (f)->probing_parser_toserver_al_proto_masks = 0; \
+        (f)->probing_parser_toclient_al_proto_masks = 0; \
         if ((f)->de_state != NULL) { \
             DetectEngineStateReset((f)->de_state); \
         } \

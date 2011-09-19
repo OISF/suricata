@@ -1328,9 +1328,9 @@ void SMBUpdateTransactionId(void *state, uint16_t *id) {
 
 #define SMB_PROBING_PARSER_MIN_DEPTH 8
 
-static uint16_t SMBProbingParser(uint8_t *input, uint32_t input_len)
+static int16_t SMBProbingParser(uint8_t *input, int32_t input_len)
 {
-    uint32_t len;
+    int32_t len;
 
     while (input_len >= SMB_PROBING_PARSER_MIN_DEPTH) {
         switch (input[0]) {
@@ -1350,7 +1350,10 @@ static uint16_t SMBProbingParser(uint8_t *input, uint32_t input_len)
                 len |= input[3];
                 break;
             default:
-                return ALPROTO_UNKNOWN;
+                /* -1 indicates a stream where the probing parser would be
+                 * unable to find nbss, even if it exists.  This should
+                 * prevent the probing parser from beig invoked henceforth */
+                return -1;
         }
 
         input_len -= 4;

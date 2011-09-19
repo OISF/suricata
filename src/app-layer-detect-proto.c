@@ -247,6 +247,9 @@ void AlpProtoTestDestroy(AlpProtoDetectCtx *ctx) {
     mpm_table[ctx->toclient.mpm_ctx.mpm_type].DestroyCtx(&ctx->toclient.mpm_ctx);
     AlpProtoFreeSignature(ctx->head);
     AppLayerFreeProbingParsers(ctx->probing_parsers);
+    ctx->probing_parsers = NULL;
+    AppLayerFreeProbingParsersInfo(ctx->probing_parsers_info);
+    ctx->probing_parsers_info = NULL;
 }
 #endif
 
@@ -256,6 +259,9 @@ void AlpProtoDestroy() {
     mpm_table[alp_proto_ctx.toclient.mpm_ctx.mpm_type].DestroyCtx(&alp_proto_ctx.toclient.mpm_ctx);
     MpmPatternIdTableFreeHash(alp_proto_ctx.mpm_pattern_id_store);
     AppLayerFreeProbingParsers(alp_proto_ctx.probing_parsers);
+    alp_proto_ctx.probing_parsers = NULL;
+    AppLayerFreeProbingParsersInfo(alp_proto_ctx.probing_parsers_info);
+    alp_proto_ctx.probing_parsers_info = NULL;
     SCReturn;
 }
 
@@ -515,9 +521,11 @@ uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *ctx, Flow *f,
     AppLayerProbingParserElement *pe = NULL;
     AppLayerProbingParser *probing_parsers = ctx->probing_parsers;
     AppLayerProbingParser *pp = NULL;
+    uint16_t *al_proto_masks;
 
     if (flags & STREAM_TOSERVER) {
         pp = AppLayerGetProbingParsers(probing_parsers, ipproto, f->dp);
+        al_proto_masks = &f->probing_parser_toserver_al_proto_masks;
         if (pp == NULL) {
             SCLogDebug("toserver-No probing parser registered for port %"PRIu16,
                        f->dp);
@@ -528,17 +536,10 @@ uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *ctx, Flow *f,
             f->flags |= FLOW_TS_PP_ALPROTO_DETECT_DONE;
             return ALPROTO_UNKNOWN;
         }
-        if (pp->toserver_max_depth != 0 && buflen > pp->toserver_max_depth) {
-            if (f->flags & FLOW_TS_PM_ALPROTO_DETECT_DONE) {
-                f->flags |= FLOW_TS_PM_PP_ALPROTO_DETECT_DONE;
-                return ALPROTO_UNKNOWN;
-            }
-            f->flags |= FLOW_TS_PP_ALPROTO_DETECT_DONE;
-            return ALPROTO_UNKNOWN;
-        }
         pe = pp->toserver;
     } else {
         pp = AppLayerGetProbingParsers(probing_parsers, ipproto, f->sp);
+        al_proto_masks = &f->probing_parser_toclient_al_proto_masks;
         if (pp == NULL) {
             SCLogDebug("toclient-No probing parser registered for port %"PRIu16,
                        f->sp);
@@ -549,7 +550,37 @@ uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *ctx, Flow *f,
             f->flags |= FLOW_TC_PP_ALPROTO_DETECT_DONE;
             return ALPROTO_UNKNOWN;
         }
-        if (pp->toclient_max_depth != 0 && buflen > pp->toclient_max_depth) {
+        pe = pp->toclient;
+    }
+
+
+    while (pe != NULL) {
+        if ((buflen < pe->min_depth)  ||
+            al_proto_masks[0] & pe->al_proto_mask) {
+            pe = pe->next;
+            continue;
+        }
+
+        int alproto = pe->ProbingParser(buf, buflen);
+        if (alproto > ALPROTO_UNKNOWN)
+            return alproto;
+        if (alproto == -1 || (pe->max_depth != 0 && buflen > pe->max_depth)) {
+            al_proto_masks[0] |= pe->al_proto_mask;
+        }
+        pe = pe->next;
+    }
+
+    if (flags & STREAM_TOSERVER) {
+        if (al_proto_masks[0] == pp->toserver_al_proto_mask) {
+            if (f->flags & FLOW_TS_PM_ALPROTO_DETECT_DONE) {
+                f->flags |= FLOW_TS_PM_PP_ALPROTO_DETECT_DONE;
+                return ALPROTO_UNKNOWN;
+            }
+            f->flags |= FLOW_TS_PP_ALPROTO_DETECT_DONE;
+            return ALPROTO_UNKNOWN;
+        }
+    } else {
+        if (al_proto_masks[0] == pp->toclient_al_proto_mask) {
             if (f->flags & FLOW_TC_PM_ALPROTO_DETECT_DONE) {
                 f->flags |= FLOW_TC_PM_PP_ALPROTO_DETECT_DONE;
                 return ALPROTO_UNKNOWN;
@@ -557,21 +588,6 @@ uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *ctx, Flow *f,
             f->flags |= FLOW_TC_PP_ALPROTO_DETECT_DONE;
             return ALPROTO_UNKNOWN;
         }
-        pe = pp->toclient;
-    }
-
-    while (pe != NULL) {
-        if (buflen < pe->min_depth  ||
-            (pe->max_depth != 0 && buflen > pe->max_depth)) {
-            pe = pe->next;
-            continue;
-        }
-
-        uint16_t alproto = pe->ProbingParser(buf, buflen);
-        if (alproto != ALPROTO_UNKNOWN)
-            return alproto;
-
-        pe = pe->next;
     }
 
     return ALPROTO_UNKNOWN;

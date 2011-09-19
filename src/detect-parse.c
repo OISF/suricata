@@ -786,6 +786,16 @@ int SigParseProto(Signature *s, const char *protostr) {
             }
             SCReturnInt(0);
         }
+        AppLayerProbingParserInfo *ppi =
+            AppLayerGetProbingParserInfo(alp_proto_ctx.probing_parsers_info,
+                                         protostr);
+        if (ppi != NULL) {
+            /* indicate that the signature is app-layer */
+            s->flags |= SIG_FLAG_APPLAYER;
+            s->alproto = ppi->al_proto;
+            s->proto.proto[ppi->ip_proto / 8] |= 1 << (ppi->ip_proto % 8);
+            SCReturnInt(0);
+        }
 
         SCLogError(SC_ERR_UNKNOWN_PROTOCOL, "protocol \"%s\" cannot be used "
                 "in a signature", protostr);

@@ -74,6 +74,7 @@ typedef struct AlpProtoDetectCtx_ {
 
     AlpProtoSignature *head;    /**< list of sigs */
     AppLayerProbingParser *probing_parsers;
+    AppLayerProbingParserInfo *probing_parsers_info;
     uint16_t sigs;              /**< number of sigs */
 } AlpProtoDetectCtx;
 
