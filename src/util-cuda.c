@@ -4718,8 +4718,9 @@ static const char *sc_cuda_test_kernel_32_bit =
 
 int SCCudaTest02(void)
 {
-#define ALIGN_UP(offset, alignment) \
-    (offset) = ((offset) + (alignment) - 1) & ~((alignment) - 1)
+#define ALIGN_UP(offset, alignment) do { \
+            (offset) = ((offset) + (alignment) - 1) & ~((alignment) - 1); \
+        } while (0)
 #define N 256
     CUcontext context;
     CUmodule module;

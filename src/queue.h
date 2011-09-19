@@ -83,7 +83,7 @@
  */
 
 #if defined(QUEUE_MACRO_DEBUG) || (defined(_KERNEL) && defined(DIAGNOSTIC))
-#define _Q_INVALIDATE(a) (a) = ((void *)-1)
+#define _Q_INVALIDATE(a) ((a) = ((void *)-1))
 #else
 #define _Q_INVALIDATE(a)
 #endif

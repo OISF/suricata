@@ -134,31 +134,31 @@ typedef struct Address_ {
 
 /* Set the TCP ports into the Ports of the Packet.
  * Make sure p->tcph is initialized and validated. */
-#define SET_TCP_SRC_PORT(pkt, prt) do {          \
-        SET_PORT(TCP_GET_SRC_PORT((pkt)), *prt); \
+#define SET_TCP_SRC_PORT(pkt, prt) do {            \
+        SET_PORT(TCP_GET_SRC_PORT((pkt)), *(prt)); \
     } while (0)
 
-#define SET_TCP_DST_PORT(pkt, prt) do {          \
-        SET_PORT(TCP_GET_DST_PORT((pkt)), *prt); \
+#define SET_TCP_DST_PORT(pkt, prt) do {            \
+        SET_PORT(TCP_GET_DST_PORT((pkt)), *(prt)); \
     } while (0)
 
 /* Set the UDP ports into the Ports of the Packet.
  * Make sure p->udph is initialized and validated. */
-#define SET_UDP_SRC_PORT(pkt, prt) do {          \
-        SET_PORT(UDP_GET_SRC_PORT((pkt)), *prt); \
+#define SET_UDP_SRC_PORT(pkt, prt) do {            \
+        SET_PORT(UDP_GET_SRC_PORT((pkt)), *(prt)); \
     } while (0)
-#define SET_UDP_DST_PORT(pkt, prt) do {          \
-        SET_PORT(UDP_GET_DST_PORT((pkt)), *prt); \
+#define SET_UDP_DST_PORT(pkt, prt) do {            \
+        SET_PORT(UDP_GET_DST_PORT((pkt)), *(prt)); \
     } while (0)
 
 /* Set the SCTP ports into the Ports of the Packet.
  * Make sure p->sctph is initialized and validated. */
-#define SET_SCTP_SRC_PORT(pkt, prt) do {          \
-        SET_PORT(SCTP_GET_SRC_PORT((pkt)), *prt); \
+#define SET_SCTP_SRC_PORT(pkt, prt) do {            \
+        SET_PORT(SCTP_GET_SRC_PORT((pkt)), *(prt)); \
     } while (0)
 
-#define SET_SCTP_DST_PORT(pkt, prt) do {          \
-        SET_PORT(SCTP_GET_DST_PORT((pkt)), *prt); \
+#define SET_SCTP_DST_PORT(pkt, prt) do {            \
+        SET_PORT(SCTP_GET_DST_PORT((pkt)), *(prt)); \
     } while (0)
 
 
@@ -175,18 +175,18 @@ typedef struct Address_ {
 
 #define GET_PKT_LEN(p) ((p)->pktlen)
 #define GET_PKT_DATA(p) ((((p)->ext_pkt) == NULL ) ? (p)->pkt : (p)->ext_pkt)
-#define GET_PKT_DIRECT_DATA(p) (p)->pkt
-#define GET_PKT_DIRECT_MAX_SIZE(p) default_packet_size
+#define GET_PKT_DIRECT_DATA(p) ((p)->pkt)
+#define GET_PKT_DIRECT_MAX_SIZE(p) (default_packet_size)
 
 #define SET_PKT_LEN(p, len) do { \
-    (p)->pktlen = len; \
+    (p)->pktlen = (len); \
     } while (0)
 
 
 /* Port is just a uint16_t */
 typedef uint16_t Port;
 #define SET_PORT(v, p) ((p) = (v))
-#define COPY_PORT(a,b) (b) = (a)
+#define COPY_PORT(a,b) ((b) = (a))
 
 #define CMP_ADDR(a1, a2) \
     (((a1)->addr_data32[3] == (a2)->addr_data32[3] && \
@@ -194,11 +194,11 @@ typedef uint16_t Port;
       (a1)->addr_data32[1] == (a2)->addr_data32[1] && \
       (a1)->addr_data32[0] == (a2)->addr_data32[0]))
 #define CMP_PORT(p1, p2) \
-    ((p1 == p2))
+    ((p1) == (p2))
 
 /*Given a packet pkt offset to the start of the ip header in a packet
  *We determine the ip version. */
-#define IP_GET_RAW_VER(pkt) (((pkt[0] & 0xf0) >> 4))
+#define IP_GET_RAW_VER(pkt) ((((pkt)[0] & 0xf0) >> 4))
 
 #define PKT_IS_IPV4(p)      (((p)->ip4h != NULL))
 #define PKT_IS_IPV6(p)      (((p)->ip6h != NULL))
@@ -213,7 +213,7 @@ typedef uint16_t Port;
 
 /* Retrieve proto regardless of IP version */
 #define IP_GET_IPPROTO(p) \
-    (PKT_IS_IPV4(p)? IPV4_GET_IPPROTO(p) : (PKT_IS_IPV6(p)? IPV6_GET_NH(p) : 0))
+    (PKT_IS_IPV4((p))? IPV4_GET_IPPROTO((p)) : (PKT_IS_IPV6((p))? IPV6_GET_NH((p)) : 0))
 
 /* structure to store the sids/gids/etc the detection engine
  * found in this packet */
@@ -459,11 +459,11 @@ typedef struct Packet_
 #endif
 } Packet;
 
-#define DEFAULT_PACKET_SIZE 1500 + ETHERNET_HEADER_LEN
+#define DEFAULT_PACKET_SIZE (1500 + ETHERNET_HEADER_LEN)
 /* storage: maximum ip packet size + link header */
-#define MAX_PAYLOAD_SIZE IPV6_HEADER_LEN + 65536 + 28
+#define MAX_PAYLOAD_SIZE (IPV6_HEADER_LEN + 65536 + 28)
 intmax_t default_packet_size;
-#define SIZE_OF_PACKET default_packet_size + sizeof(Packet)
+#define SIZE_OF_PACKET (default_packet_size + sizeof(Packet))
 
 typedef struct PacketQueue_ {
     Packet *top;

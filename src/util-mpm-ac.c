@@ -72,7 +72,7 @@ void SCACPrintSearchStats(MpmThreadCtx *mpm_thread_ctx);
 void SCACRegisterTests(void);
 
 /* a placeholder to denote a failure transition in the goto table */
-#define SC_AC_FAIL -1
+#define SC_AC_FAIL (-1)
 /* size of the hash table used to speed up pattern insertions initially */
 #define INIT_HASH_SIZE 65536
 

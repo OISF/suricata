@@ -1451,7 +1451,9 @@ static int B2gCudaMpmStreamDataInit(B2gCudaMpmThreadCtxData *tctx, MpmCudaConf *
             goto error;
         }
 
-#define ALIGN_UP(offset, alignment) (offset) = ((offset) + (alignment) - 1) & ~((alignment) - 1)
+#define ALIGN_UP(offset, alignment) do { \
+                (offset) = ((offset) + (alignment) - 1) & ~((alignment) - 1); \
+        } while (0)
 
         int offset = 0;
 

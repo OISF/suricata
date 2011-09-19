@@ -55,9 +55,9 @@
 #include <mach/mach_init.h>
 #include <mach/thread_policy.h>
 #define cpu_set_t thread_affinity_policy_data_t
-#define CPU_SET(cpu_id, new_mask) (*(new_mask)).affinity_tag = (cpu_id + 1)
-#define CPU_ISSET(cpu_id, new_mask) ((*(new_mask)).affinity_tag == (cpu_id + 1))
-#define CPU_ZERO(new_mask) (*(new_mask)).affinity_tag = THREAD_AFFINITY_TAG_NULL
+#define CPU_SET(cpu_id, new_mask) ((*(new_mask)).affinity_tag = ((cpu_id) + 1))
+#define CPU_ISSET(cpu_id, new_mask) (((*(new_mask)).affinity_tag == ((cpu_id) + 1)))
+#define CPU_ZERO(new_mask) ((*(new_mask)).affinity_tag = THREAD_AFFINITY_TAG_NULL)
 #endif /* OS_FREEBSD */
 
 /* prototypes */

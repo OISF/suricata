@@ -65,7 +65,7 @@
 /**
  * Maximum allowed timeout, 24 hours.
  */
-#define TIMEOUT_MAX 60 * 60 * 24
+#define TIMEOUT_MAX (60 * 60 * 24)
 
 /**
  * Minimum allowed timeout, 1 second.
