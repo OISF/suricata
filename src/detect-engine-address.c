@@ -1220,6 +1220,7 @@ error:
 int DetectAddressParse(DetectAddressHead *gh, char *str)
 {
     int r;
+    DetectAddressHead *ghn = NULL;
 
     SCLogDebug("gh %p, str %s", gh, str);
 
@@ -1228,7 +1229,7 @@ int DetectAddressParse(DetectAddressHead *gh, char *str)
         goto error;
     }
 
-    DetectAddressHead *ghn = DetectAddressHeadInit();
+    ghn = DetectAddressHeadInit();
     if (ghn == NULL) {
         SCLogDebug("DetectAddressHeadInit for ghn failed");
         goto error;
@@ -1254,7 +1255,8 @@ int DetectAddressParse(DetectAddressHead *gh, char *str)
     return 0;
 
 error:
-    DetectAddressHeadFree(ghn);
+    if (ghn != NULL)
+        DetectAddressHeadFree(ghn);
     return -1;
 }
 
