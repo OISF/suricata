@@ -637,19 +637,9 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx,
                 return alproto;
         }
         /* If we have reached here, the PM parser has failed to detect the
-         * alproto.
-         *
-         * Check if the probing parser has already finished its duties.  If it
-         * has, set flag to indicate both parsers have done all they could have
-         * to detect the alproto and failed.  If it isn't through as yet, run
-         * the probing parser */
-        if (flags & FLOW_TS_PP_ALPROTO_DETECT_DONE) {
-            f->flags |= FLOW_TS_PM_PP_ALPROTO_DETECT_DONE;
-            return ALPROTO_UNKNOWN;
-        } else {
-            return AppLayerDetectGetProtoProbingParser(ctx, f, buf, buflen,
-                                                       flags, ipproto);
-        }
+         * alproto */
+        return AppLayerDetectGetProtoProbingParser(ctx, f, buf, buflen,
+                                                   flags, ipproto);
 
         /* STREAM_TOCLIENT */
     } else {
@@ -673,13 +663,8 @@ uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *ctx,
             if (alproto != ALPROTO_UNKNOWN)
                 return alproto;
         }
-        if (flags & FLOW_TC_PP_ALPROTO_DETECT_DONE) {
-            f->flags |= FLOW_TC_PM_PP_ALPROTO_DETECT_DONE;
-            return ALPROTO_UNKNOWN;
-        } else {
-            return AppLayerDetectGetProtoProbingParser(ctx, f, buf, buflen,
+        return AppLayerDetectGetProtoProbingParser(ctx, f, buf, buflen,
                                                        flags, ipproto);
-        }
     }
 }
 
