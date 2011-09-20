@@ -1190,7 +1190,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
 {
     uint32_t cnt = 0;
 
-    if (p->payload_len > 0 && det_ctx->sgh->mpm_ctx != NULL &&
+    if (p->payload_len > 0 && det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_PACKET &&
         (!(p->flags & PKT_NOPAYLOAD_INSPECTION) && !(p->flags & PKT_STREAM_ADD))) {
 
         /* run the multi packet matcher against the payload of the packet */
@@ -1213,7 +1213,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
     /* have a look at the reassembled stream (if any) */
     if (p->flowflags & FLOW_PKT_ESTABLISHED) {
         SCLogDebug("p->flowflags & FLOW_PKT_ESTABLISHED");
-        if (smsg != NULL && det_ctx->sgh->mpm_stream_ctx != NULL) {
+        if (smsg != NULL && det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_STREAM) {
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_STREAM);
             cnt = StreamPatternSearch(det_ctx, p, smsg, flags);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_STREAM);
