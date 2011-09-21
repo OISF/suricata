@@ -121,7 +121,7 @@ AC_INIT(configure.in)
     AC_MSG_CHECKING([host os])
 
     # If no host os was detected, try with uname
-	if test -z "$host" ; then
+    if test -z "$host" ; then
 	    host="`uname`"
     fi
     echo -n "installation for $host OS... \c"
@@ -148,6 +148,10 @@ AC_INIT(configure.in)
            *-*-mingw32*)
                     CFLAGS="${CFLAGS} -DOS_WIN32"
                     LDFLAGS="${LDFLAGS} -lws2_32"
+		    WINDOWS_PATH="yes"
+                    ;;
+           *-*-cygwin)
+		    WINDOWS_PATH="yes"
                     ;;
 	   *)
 		AC_MSG_WARN([unsupported OS this may or may not work])
@@ -1166,7 +1170,45 @@ AC_SUBST(CFLAGS)
 AC_SUBST(LDFLAGS)
 AC_SUBST(CPPFLAGS)
 
-AC_OUTPUT(Makefile src/Makefile qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile)
+define([EXPAND_VARIABLE],
+[$2=[$]$1
+if test $prefix = 'NONE'; then
+	prefix="/usr/local"
+fi
+while true; do
+  case "[$]$2" in
+    *\[$]* ) eval "$2=[$]$2" ;;
+    *) break ;;
+  esac
+done
+eval "$2=[$]$2$3"
+])dnl EXPAND_VARIABLE
+
+# suricata log dir
+if test "$WINDOWS_PATH" = "yes"; then
+  systemtype="`systeminfo | grep \"System Type\"`"
+  case $systemtype in
+    *x64*)
+      e_logdir="C:\\Program Files (x86)\\Suricata\\log\\"
+      e_sysconfdir="C:\\Program Files (x86)\\Suricata\\"
+      e_magic_file="C:\\Program Files (x86)\\Suricata\\magic.mgc"
+      ;;
+    *)
+      e_logdir="C:\\Program Files\\Suricata\\log\\"
+      e_sysconfdir="C:\\Program Files\\Suricata\\"
+      e_magic_file="C:\\Program Files\\Suricata\\magic.mgc"
+      ;;
+  esac
+else
+  EXPAND_VARIABLE(localstatedir, e_logdir, "/log/suricata")
+  EXPAND_VARIABLE(sysconfdir, e_sysconfdir, "/")
+  e_magic_file="/usr/share/file/magic"
+fi
+AC_SUBST(e_logdir)
+AC_SUBST(e_sysconfdir)
+AC_SUBST(e_magic_file)
+
+AC_OUTPUT(Makefile src/Makefile qa/Makefile qa/coccinelle/Makefile rules/Makefile doc/Makefile suricata.yaml)
 
 echo "
 Suricata Configuration:
@@ -1187,5 +1229,9 @@ Suricata Configuration:
   GCC Profile enabled:      ${enable_gccprofile}
   Old barnyard2 support:    ${enable_old_barnyard2}
   Non-bundled htp:          ${enable_non_bundled_htp}
-  PCRE jit:                 ${pcre_jit_available}
-"
+  PCRE jit:                 ${pcre_jit_available}"
+
+echo "
+To build and install run 'make' and 'make install'.
+You can run 'make install-conf' if you want to install initial configuration files.
+Running 'make install-full' will install configuration and rules and provide you a ready-to-run suricata."

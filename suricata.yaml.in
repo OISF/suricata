@@ -40,7 +40,7 @@ action-order:
 # The default logging directory.  Any log or output file will be
 # placed here if its not specified with a full path name.  This can be
 # overridden with the -l command line parameter.
-default-log-dir: /var/log/suricata
+default-log-dir: @e_logdir@
 
 # Configure the type of alert (and other) logging you would like.
 outputs:
@@ -164,6 +164,7 @@ outputs:
 
 # Magic file. The extension .mgc is added to the value here.
 #magic-file: /usr/share/file/magic
+magic-file: @e_magic_file@
 
 # When running in NFQ inline mode, it is possible to use a simulated
 # non-terminal NFQUEUE verdict.
@@ -651,85 +652,61 @@ ipfw:
 
 # Set the default rule path here to search for the files.
 # if not set, it will look at the current working dir
-default-rule-path: /etc/suricata/rules/
+default-rule-path: @e_sysconfdir@rules
 rule-files:
- - attack-responses.rules
- - backdoor.rules
- - bad-traffic.rules
- - chat.rules
- - ddos.rules
- - deleted.rules
- - dns.rules
- - dos.rules
- - experimental.rules
- - exploit.rules
- - finger.rules
- - ftp.rules
- - icmp-info.rules
- - icmp.rules
- - imap.rules
- - info.rules
- - local.rules
- - misc.rules
- - multimedia.rules
- - mysql.rules
- - netbios.rules
- - nntp.rules
- - oracle.rules
- - other-ids.rules
- - p2p.rules
- - policy.rules
- - pop2.rules
- - pop3.rules
- - porn.rules
- - rpc.rules
- - rservices.rules
- - scada.rules
- - scan.rules
- - shellcode.rules
- - smtp.rules
- - snmp.rules
- - specific-threats.rules
- - spyware-put.rules
- - sql.rules
- - telnet.rules
- - tftp.rules
- - virus.rules
- - voip.rules
- - web-activex.rules
- - web-attacks.rules
- - web-cgi.rules
- - web-client.rules
- - web-coldfusion.rules
- - web-frontpage.rules
- - web-iis.rules
- - web-misc.rules
- - web-php.rules
- - x11.rules
+ - botcc.rules
+ - ciarmy.rules
+ - compromised.rules
+ - drop.rules
+ - dshield.rules
+ - emerging-activex.rules
  - emerging-attack_response.rules
+ - emerging-chat.rules
+ - emerging-current_events.rules
+ - emerging-deleted.rules
+ - emerging-dns.rules
  - emerging-dos.rules
  - emerging-exploit.rules
- - emerging-game.rules
+ - emerging-ftp.rules
+ - emerging-games.rules
+ - emerging-icmp_info.rules
+ - emerging-icmp.rules
+ - emerging-imap.rules
  - emerging-inappropriate.rules
  - emerging-malware.rules
+ - emerging-misc.rules
+ - emerging-mobile_malware.rules
+ - emerging-netbios.rules
  - emerging-p2p.rules
  - emerging-policy.rules
+ - emerging-pop3.rules
+ - emerging-rpc.rules
+ - emerging-scada.rules
  - emerging-scan.rules
+ - emerging-shellcode.rules
+ - emerging-smtp.rules
+ - emerging-snmp.rules
+ - emerging-sql.rules
+ - emerging-telnet.rules
+ - emerging-tftp.rules
+ - emerging-trojan.rules
+ - emerging-user_agents.rules
  - emerging-virus.rules
  - emerging-voip.rules
- - emerging-web.rules
  - emerging-web_client.rules
  - emerging-web_server.rules
  - emerging-web_specific_apps.rules
- - emerging-user_agents.rules
- - emerging-current_events.rules
+ - emerging-worm.rules
+ - rbn-malvertisers.rules
+ - rbn.rules
+ - tor.rules
  - decoder-events.rules # available in suricata sources under rules dir
  - stream-events.rules  # available in suricata sources under rules dir
  - http-events.rules    # available in suricata sources under rules dir
  - smtp-events.rules    # available in suricata sources under rules dir
 
-classification-file: /etc/suricata/classification.config
-reference-config-file: /etc/suricata/reference.config
+classification-file: @e_sysconfdir@classification.config
+reference-config-file: @e_sysconfdir@reference.config
 
 # Holds variables that would be used by the engine.
 vars:
