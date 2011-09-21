@@ -746,6 +746,7 @@ int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
 
 DetectPcreData *DetectPcreParse (char *regexstr)
 {
+    int ec;
     const char *eb;
     int eo;
     int opts = 0;
@@ -874,7 +875,16 @@ DetectPcreData *DetectPcreParse (char *regexstr)
 
     //printf("DetectPcreParse: \"%s\"\n", re);
 
-    pd->re = pcre_compile(re, opts, &eb, &eo, NULL);
+    /* Try to compile as if all (...) groups had been meant as (?:...),
+     * which is the common case in most rules.
+     * If we fail because a capture group is later referenced (e.g., \1),
+     * PCRE will let us know.
+     */
+    pd->re = pcre_compile2(re, opts | PCRE_NO_AUTO_CAPTURE, &ec, &eb, &eo, NULL);
+    if (pd->re == NULL && ec == 15) { // reference to non-existent subpattern
+      pd->re = pcre_compile(re, opts, &eb, &eo, NULL);
+    }
+
     if(pd->re == NULL)  {
         SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", regexstr, eo, eb);
         goto error;
