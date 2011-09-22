@@ -427,7 +427,7 @@ static void AlertUnifiedLogDeInitCtx(OutputCtx *output_ctx)
         if (logfile_ctx != NULL) {
             LogFileFreeCtx(logfile_ctx);
         }
-        free(output_ctx);
+        SCFree(output_ctx);
     }
 }
 
@@ -514,7 +514,7 @@ static int AlertUnifiedLogTestRotate01(void)
     if (ret == TM_ECODE_FAILED) {
         LogFileFreeCtx(lf);
         if (filename != NULL)
-            free(filename);
+            SCFree(filename);
         return 0;
     }
 
@@ -532,7 +532,8 @@ static int AlertUnifiedLogTestRotate01(void)
 error:
     AlertUnifiedLogThreadDeinit(&tv, data);
     if (oc != NULL) AlertUnifiedLogDeInitCtx(oc);
-    if (filename != NULL) free(filename);
+    if (filename != NULL)
+        SCFree(filename);
     return r;
 }
 #endif /* UNITTESTS */

@@ -348,7 +348,7 @@ int DetectSslStateTest01(void)
         return 0;
     }
     if (ssd->flags == DETECT_SSL_STATE_CLIENT_HELLO) {
-        free(ssd);
+        SCFree(ssd);
         return 1;
     }
 
@@ -364,7 +364,7 @@ int DetectSslStateTest02(void)
     }
     if (ssd->flags == (DETECT_SSL_STATE_SERVER_HELLO |
                        DETECT_SSL_STATE_CLIENT_HELLO)) {
-        free(ssd);
+        SCFree(ssd);
         return 1;
     }
 
@@ -382,7 +382,7 @@ int DetectSslStateTest03(void)
     if (ssd->flags == (DETECT_SSL_STATE_SERVER_HELLO |
                        DETECT_SSL_STATE_CLIENT_KEYX |
                        DETECT_SSL_STATE_CLIENT_HELLO)) {
-        free(ssd);
+        SCFree(ssd);
         return 1;
     }
 
@@ -403,7 +403,7 @@ int DetectSslStateTest04(void)
                        DETECT_SSL_STATE_CLIENT_HELLO |
                        DETECT_SSL_STATE_SERVER_KEYX |
                        DETECT_SSL_STATE_UNKNOWN)) {
-        free(ssd);
+        SCFree(ssd);
         return 1;
     }
 
@@ -418,7 +418,7 @@ int DetectSslStateTest05(void)
 
     if (ssd != NULL) {
         printf("ssd != NULL - failure\n");
-        free(ssd);
+        SCFree(ssd);
         return 0;
     }
 
@@ -432,7 +432,7 @@ int DetectSslStateTest06(void)
                                                   "unknown | ");
     if (ssd != NULL) {
         printf("ssd != NULL - failure\n");
-        free(ssd);
+        SCFree(ssd);
         return 0;
     }
 

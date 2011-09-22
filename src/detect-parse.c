@@ -1709,7 +1709,7 @@ error:
 void DetectParseDupSigFreeFunc(void *data)
 {
     if (data != NULL)
-        free(data);
+        SCFree(data);
 
     return;
 }
@@ -1803,7 +1803,7 @@ error:
 void DetectParseDupSigHashFree(DetectEngineCtx *de_ctx)
 {
     if (de_ctx->dup_sig_hash_table != NULL)
-        free(de_ctx->dup_sig_hash_table);
+        SCFree(de_ctx->dup_sig_hash_table);
 
     de_ctx->dup_sig_hash_table = NULL;
 
@@ -1929,7 +1929,7 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
     /* this is duplicate, but a duplicate that replaced the existing sig entry */
     ret = 2;
 
-    free(sw);
+    SCFree(sw);
 
 end:
     return ret;

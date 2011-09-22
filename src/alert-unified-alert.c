@@ -371,7 +371,7 @@ static void AlertUnifiedAlertDeInitCtx(OutputCtx *output_ctx)
         if (logfile_ctx != NULL) {
             LogFileFreeCtx(logfile_ctx);
         }
-        free(output_ctx);
+        SCFree(output_ctx);
     }
 }
 
@@ -460,7 +460,7 @@ static int AlertUnifiedAlertTestRotate01(void)
     if (ret == TM_ECODE_FAILED) {
         LogFileFreeCtx(lf);
         if (filename != NULL)
-            free(filename);
+            SCFree(filename);
         return 0;
     }
 
@@ -478,7 +478,8 @@ static int AlertUnifiedAlertTestRotate01(void)
 error:
     AlertUnifiedAlertThreadDeinit(&tv, data);
     if (oc != NULL) AlertUnifiedAlertDeInitCtx(oc);
-    if (filename != NULL) free(filename);
+    if (filename != NULL)
+        SCFree(filename);
     return r;
 }
 #endif /* UNITTESTS */

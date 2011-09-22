@@ -905,7 +905,7 @@ static inline void SCACGfbsPrepareStateTable(MpmCtx *mpm_ctx)
     SCACGfbsInsertCaseSensitiveEntriesForPatterns(mpm_ctx);
 
     /* we don't need this anymore */
-    free(ctx->goto_table);
+    SCFree(ctx->goto_table);
     ctx->goto_table = NULL;
 
     return;

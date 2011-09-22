@@ -1201,10 +1201,10 @@ ProfilingGenericTicksTest01(void) {
 
     ticks_start = UtilCpuGetTicks();
     for (i = 0; i < TEST_RUNS; i++) {
-        free(ptr[i]);
+        SCFree(ptr[i]);
     }
     ticks_end = UtilCpuGetTicks();
-    printf("free(1024) %"PRIu64"\n", (ticks_end - ticks_start)/TEST_RUNS);
+    printf("SCFree(1024) %"PRIu64"\n", (ticks_end - ticks_start)/TEST_RUNS);
 
     SCMutex m[TEST_RUNS];
 

@@ -931,9 +931,9 @@ static inline void SCACPrepareStateTable(MpmCtx *mpm_ctx)
 #endif
 
     /* we don't need these anymore */
-    free(ctx->goto_table);
+    SCFree(ctx->goto_table);
     ctx->goto_table = NULL;
-    free(ctx->failure_table);
+    SCFree(ctx->failure_table);
     ctx->failure_table = NULL;
 
     return;

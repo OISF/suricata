@@ -274,14 +274,14 @@ TmEcode PcapLogThreadDeinit(ThreadVars *t, void *data)
 
     /* clear memory */
     memset(pl, 0, sizeof(PcapLogThread));
-    free(pl);
+    SCFree(pl);
     return TM_ECODE_OK;
 
 error:
     /* clear memory */
     if (pl != NULL) {
         memset(pl, 0, sizeof(PcapLogThread));
-        free(pl);
+        SCFree(pl);
     }
     return TM_ECODE_FAILED;
 }
@@ -381,7 +381,7 @@ static void PcapLogFileDeInitCtx(OutputCtx *output_ctx)
         if (logfile_ctx != NULL) {
             LogFileFreeCtx(logfile_ctx);
         }
-        free(output_ctx);
+        SCFree(output_ctx);
     }
 }
 

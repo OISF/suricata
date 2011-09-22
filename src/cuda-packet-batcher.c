@@ -420,9 +420,9 @@ void SCCudaPBDeAllocSCCudaPBPacketsBuffer(SCCudaPBPacketsBuffer *pb)
         }
     }
     if (pb->packets_address_buffer != NULL)
-        free(pb->packets_address_buffer);
+        SCFree(pb->packets_address_buffer);
 
-    free(pb);
+    SCFree(pb);
 
     return;
 }
@@ -844,7 +844,7 @@ TmEcode SCCudaPBThreadDeInit(ThreadVars *tv, void *data)
                 SCLogError(SC_ERR_CUDA_HANDLER_ERROR, "Failed to deregister module");
             }
         }
-        free(tctx);
+        SCFree(tctx);
     }
 
     return TM_ECODE_OK;
@@ -949,7 +949,7 @@ void SCCudaPBCleanUpQueuesAndBuffers(void)
                                "packets_buffer");
                 }
             } else {
-                free(pb->packets_buffer);
+                SCFree(pb->packets_buffer);
             }
         }
         if (pb->packets_offset_buffer != NULL) {
@@ -959,7 +959,7 @@ void SCCudaPBCleanUpQueuesAndBuffers(void)
                                "packets_offset_buffer");
                 }
             } else {
-                free(pb->packets_offset_buffer);
+                SCFree(pb->packets_offset_buffer);
             }
         }
         if (pb->packets_payload_offset_buffer != NULL) {
@@ -969,11 +969,11 @@ void SCCudaPBCleanUpQueuesAndBuffers(void)
                                "packets_payload_offset_buffer");
                 }
             } else {
-                free(pb->packets_payload_offset_buffer);
+                SCFree(pb->packets_payload_offset_buffer);
             }
         }
 
-        free(pb);
+        SCFree(pb);
     }
     SCMutexUnlock(&dq->mutex_q);
     SCCondSignal(&dq->cond_q);
@@ -1001,7 +1001,7 @@ void SCCudaPBCleanUpQueuesAndBuffers(void)
             }
         }
 
-        free(pb);
+        SCFree(pb);
     }
     if (SCCudaCtxPopCurrent(NULL) == -1){
         SCLogError(SC_ERR_CUDA_ERROR, "Could not pop cuda context");

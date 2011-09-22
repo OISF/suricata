@@ -692,20 +692,20 @@ static void DCERPCUDPStateFree(void *s) {
 	while ((item = TAILQ_FIRST(&sstate->uuid_list))) {
 		//printUUID("Free", item);
 		TAILQ_REMOVE(&sstate->uuid_list, item, next);
-		free(item);
+		SCFree(item);
 	}
     if (sstate->dcerpc.dcerpcrequest.stub_data_buffer != NULL) {
-        free(sstate->dcerpc.dcerpcrequest.stub_data_buffer);
+        SCFree(sstate->dcerpc.dcerpcrequest.stub_data_buffer);
         sstate->dcerpc.dcerpcrequest.stub_data_buffer = NULL;
         sstate->dcerpc.dcerpcrequest.stub_data_buffer_len = 0;
     }
     if (sstate->dcerpc.dcerpcresponse.stub_data_buffer != NULL) {
-        free(sstate->dcerpc.dcerpcresponse.stub_data_buffer);
+        SCFree(sstate->dcerpc.dcerpcresponse.stub_data_buffer);
         sstate->dcerpc.dcerpcresponse.stub_data_buffer = NULL;
         sstate->dcerpc.dcerpcresponse.stub_data_buffer_len = 0;
     }
 	if (s) {
-		free(s);
+		SCFree(s);
 		s = NULL;
 	}
 }

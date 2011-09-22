@@ -1182,7 +1182,7 @@ int DetectByteJumpTestPacket03(void)
 
 end:
     if (buf != NULL)
-        free(buf);
+        SCFree(buf);
     return result;
 }
 

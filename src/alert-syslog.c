@@ -181,7 +181,7 @@ static void AlertSyslogDeInitCtx(OutputCtx *output_ctx)
         if (logfile_ctx != NULL) {
             LogFileFreeCtx(logfile_ctx);
         }
-        free(output_ctx);
+        SCFree(output_ctx);
     }
     closelog();
 }

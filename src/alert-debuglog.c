@@ -458,7 +458,7 @@ static void AlertDebugLogDeInitCtx(OutputCtx *output_ctx)
         if (logfile_ctx != NULL) {
             LogFileFreeCtx(logfile_ctx);
         }
-        free(output_ctx);
+        SCFree(output_ctx);
     }
 }
 

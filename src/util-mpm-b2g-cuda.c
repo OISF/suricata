@@ -1631,7 +1631,7 @@ static int B2gCudaMpmStreamDataDeInit(B2gCudaMpmThreadCtxData *tctx, MpmCudaConf
                 goto error;
             }
         } else {
-            free(sd->results_buffer);
+            SCFree(sd->results_buffer);
         }
         SCCudaHlFreeCudaDevicePtr("MPM_B2G_RESULTS",
                                   tctx->b2g_cuda_module_handle,
@@ -1650,7 +1650,7 @@ static int B2gCudaMpmStreamDataDeInit(B2gCudaMpmThreadCtxData *tctx, MpmCudaConf
                                   sd->b2g_cuda_cumodule_handle);
     }
 
-    free(tctx->stream_data);
+    SCFree(tctx->stream_data);
 
     return 0;
 
@@ -1801,7 +1801,7 @@ TmEcode B2gCudaMpmDispThreadDeInit(ThreadVars *tv, void *data)
         goto error;
     }
 
-    free(tctx);
+    SCFree(tctx);
 
     if (SCCudaCtxPopCurrent(NULL) == -1) {
         SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error popping cuda context");
@@ -2669,7 +2669,7 @@ static int B2gCudaTest02(void)
 
  end:
     for (i = 0; i < no_of_pkts; i++) {
-        free(p[i]);
+        SCFree(p[i]);
     }
     SCCudaPBCleanUpQueuesAndBuffers();
     if (de_ctx != NULL) {
@@ -2989,7 +2989,7 @@ static int B2gCudaTest03(void)
 
  end:
     for (i = 0; i < no_of_pkts; i++) {
-        free(p[i]);
+        SCFree(p[i]);
     }
     SCCudaPBCleanUpQueuesAndBuffers();
     if (de_ctx) {
@@ -3331,7 +3331,7 @@ static int B2gCudaTest04(void)
 
  end:
     for (i = 0; i < no_of_pkts; i++) {
-        free(p[i]);
+        SCFree(p[i]);
     }
     SCCudaPBCleanUpQueuesAndBuffers();
     if (de_ctx) {
@@ -3703,7 +3703,7 @@ static int B2gCudaTest05(void)
 
  end:
     for (i = 0; i < no_of_pkts; i++) {
-        free(p[i]);
+        SCFree(p[i]);
     }
     SCCudaPBCleanUpQueuesAndBuffers();
     if (de_ctx) {

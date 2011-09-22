@@ -311,7 +311,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
                    SC_LOG_MAX_LOG_MSG_LEN);
             *msg = *msg + SC_LOG_MAX_LOG_MSG_LEN;
             if (temp_fmt_h != NULL)
-                free(temp_fmt_h);
+                SCFree(temp_fmt_h);
             return SC_OK;
         }
         switch(temp_fmt[1]) {
@@ -433,7 +433,7 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
                SC_LOG_MAX_LOG_MSG_LEN);
         *msg = *msg + SC_LOG_MAX_LOG_MSG_LEN;
         if (temp_fmt_h != NULL)
-            free(temp_fmt_h);
+            SCFree(temp_fmt_h);
         return SC_OK;
     }
     cw = snprintf(temp, SC_LOG_MAX_LOG_MSG_LEN - (temp - *msg), "%s", substr);
@@ -445,19 +445,19 @@ SCError SCLogMessage(SCLogLevel log_level, char **msg, const char *file,
                SC_LOG_MAX_LOG_MSG_LEN);
         *msg = *msg + SC_LOG_MAX_LOG_MSG_LEN;
         if (temp_fmt_h != NULL)
-            free(temp_fmt_h);
+            SCFree(temp_fmt_h);
         return SC_OK;
     }
 
     *msg = temp;
 
-    free(temp_fmt_h);
+    SCFree(temp_fmt_h);
 
     return SC_OK;
 
  error:
     if (temp_fmt != NULL)
-        free(temp_fmt_h);
+        SCFree(temp_fmt_h);
     return SC_ERR_SPRINTF;
 }
 
@@ -577,11 +577,11 @@ static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file,
 
 error:
     if (iface_ctx->file != NULL) {
-        free((char *)iface_ctx->file);
+        SCFree((char *)iface_ctx->file);
         iface_ctx->file = NULL;
     }
     if (iface_ctx->log_format != NULL) {
-        free((char *)iface_ctx->log_format);
+        SCFree((char *)iface_ctx->log_format);
         iface_ctx->log_format = NULL;
     }
     if (iface_ctx->file_d != NULL) {
@@ -701,10 +701,10 @@ static inline void SCLogFreeLogOPIfaceCtx(SCLogOPIfaceCtx *iface_ctx)
             fclose(iface_ctx->file_d);
 
         if (iface_ctx->file != NULL)
-            free((void *)iface_ctx->file);
+            SCFree((void *)iface_ctx->file);
 
         if (iface_ctx->log_format != NULL)
-            free((void *)iface_ctx->log_format);
+            SCFree((void *)iface_ctx->log_format);
 
         if (iface_ctx->iface == SC_LOG_OP_IFACE_SYSLOG) {
             closelog();
@@ -712,7 +712,7 @@ static inline void SCLogFreeLogOPIfaceCtx(SCLogOPIfaceCtx *iface_ctx)
 
         iface_ctx = iface_ctx->next;
 
-        free(temp);
+        SCFree(temp);
     }
 
     return;
@@ -952,11 +952,11 @@ void SCLogFreeLogInitData(SCLogInitData *sc_lid)
 {
     if (sc_lid != NULL) {
         if (sc_lid->startup_message != NULL)
-            free(sc_lid->startup_message);
+            SCFree(sc_lid->startup_message);
         if (sc_lid->global_log_format != NULL)
-            free(sc_lid->global_log_format);
+            SCFree(sc_lid->global_log_format);
         if (sc_lid->op_filter != NULL)
-            free(sc_lid->op_filter);
+            SCFree(sc_lid->op_filter);
 
         SCLogFreeLogOPIfaceCtx(sc_lid->op_ifaces);
     }
@@ -971,12 +971,12 @@ static inline void SCLogFreeLogConfig(SCLogConfig *sc_lc)
 {
     if (sc_lc != NULL) {
         if (sc_lc->startup_message != NULL)
-            free(sc_lc->startup_message);
+            SCFree(sc_lc->startup_message);
         if (sc_lc->log_format != NULL)
-            free(sc_lc->log_format);
+            SCFree(sc_lc->log_format);
 
         SCLogFreeLogOPIfaceCtx(sc_lc->op_ifaces);
-        free(sc_lc);
+        SCFree(sc_lc);
     }
 
     return;
@@ -1215,7 +1215,7 @@ void SCLogLoadConfig(void)
     //exit(1);
     /* \todo Can we free sc_lid now? */
     if (sc_lid != NULL)
-        free(sc_lid);
+        SCFree(sc_lid);
 }
 
 /**

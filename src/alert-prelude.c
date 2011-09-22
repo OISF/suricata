@@ -877,7 +877,7 @@ static void AlertPreludeDeinitCtx(OutputCtx *output_ctx)
     AlertPreludeCtx *ctx = (AlertPreludeCtx *)output_ctx->data;
 
     prelude_client_destroy(ctx->client, PRELUDE_CLIENT_EXIT_STATUS_SUCCESS);
-    free(output_ctx);
+    SCFree(output_ctx);
 }
 
 void AlertPreludeRegisterTests (void) {

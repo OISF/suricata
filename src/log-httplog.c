@@ -449,7 +449,7 @@ static void LogHttpLogDeInitCtx(OutputCtx *output_ctx)
 {
     LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
     LogFileFreeCtx(logfile_ctx);
-    free(output_ctx);
+    SCFree(output_ctx);
 }
 
 /** \brief Read the config set the file pointer, open the file

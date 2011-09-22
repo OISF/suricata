@@ -181,7 +181,7 @@ void SCCudaHlCleanProfiles(void)
                 MpmCudaConfCleanup(profile->data);
             }
         }
-        free(profile);
+        SCFree(profile);
         profile = profile_next;
     }
     cuda_profiles = NULL;
@@ -495,7 +495,7 @@ int SCCudaHlGetCudaModule(CUmodule *p_module, const char *ptx_image, int handle)
     SCLogDebug("Loading kernel module: %s\n",image);
     if (SCCudaModuleLoadData(p_module, (void *)SCCudaPtxDumpGetModule(image)) == -1)
         goto error;
-    free(image);
+    SCFree(image);
 
     new_module_cumodule->cuda_module = p_module[0];
     new_module_cumodule->cuda_module_handle = SCCudaHlGetUniqueHandle();
@@ -514,7 +514,7 @@ int SCCudaHlGetCudaModule(CUmodule *p_module, const char *ptx_image, int handle)
     return new_module_cumodule->cuda_module_handle;
 
  error:
-    free(image);
+    SCFree(image);
     return -1;
 }
 
@@ -733,8 +733,8 @@ int SCCudaHlFreeCudaDevicePtr(const char *name, int handle, int cumodule_handle)
         }
         temp_module_device_ptr->next = temp_module_device_ptr->next->next;
     }
-    free(module_device_ptr->name);
-    free(module_device_ptr);
+    SCFree(module_device_ptr->name);
+    SCFree(module_device_ptr);
 
     return 0;
 
