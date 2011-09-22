@@ -468,8 +468,8 @@ static void SCACGfbsSetOutputState(int32_t state, uint32_t pid, MpmCtx *mpm_ctx)
     SCACGfbsOutputTable *output_state = &ctx->output_table[state];
 
     output_state->no_of_entries++;
-    output_state->pids = realloc(output_state->pids,
-                                 output_state->no_of_entries * sizeof(uint32_t));
+    output_state->pids = SCRealloc(output_state->pids,
+                                   output_state->no_of_entries * sizeof(uint32_t));
     if (output_state->pids == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
@@ -658,9 +658,9 @@ static inline void SCACGfbsClubOutputStates(int32_t dst_state, int32_t src_state
         if (j == output_dst_state->no_of_entries) {
             output_dst_state->no_of_entries++;
 
-            output_dst_state->pids = realloc(output_dst_state->pids,
-                                             (output_dst_state->no_of_entries *
-                                              sizeof(uint32_t)) );
+            output_dst_state->pids = SCRealloc(output_dst_state->pids,
+                                               (output_dst_state->no_of_entries *
+                                                sizeof(uint32_t)) );
             if (output_dst_state->pids == NULL) {
                 SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
                 exit(EXIT_FAILURE);

@@ -118,8 +118,8 @@ int32_t MpmFactoryRegisterMpmCtxProfile(const char *name, uint8_t flags)
         }
 
         /* let's make the new entry */
-        items = realloc(items,
-                        (mpm_ctx_factory_container->no_of_items + 1) * sizeof(MpmCtxFactoryItem));
+        items = SCRealloc(items,
+                          (mpm_ctx_factory_container->no_of_items + 1) * sizeof(MpmCtxFactoryItem));
         if (items == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             exit(EXIT_FAILURE);

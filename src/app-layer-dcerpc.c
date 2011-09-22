@@ -1133,7 +1133,7 @@ static uint32_t StubDataParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_le
         dcerpc->pdu_fragged = 1;
     }
 
-    *stub_data_buffer = realloc(*stub_data_buffer, *stub_data_buffer_len + stub_len);
+    *stub_data_buffer = SCRealloc(*stub_data_buffer, *stub_data_buffer_len + stub_len);
     if (*stub_data_buffer == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto end;

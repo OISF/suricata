@@ -76,7 +76,7 @@ static uint32_t FragmentDataParser(Flow *f, void *dcerpcudp_state,
         *stub_data_buffer_len = 0;
     }
 
-    *stub_data_buffer = realloc(*stub_data_buffer, *stub_data_buffer_len + stub_len);
+    *stub_data_buffer = SCRealloc(*stub_data_buffer, *stub_data_buffer_len + stub_len);
     if (*stub_data_buffer == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         goto end;
