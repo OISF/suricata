@@ -117,7 +117,7 @@ void SCCudaHlGetYamlConf(void)
     SCCudaHlCudaProfile *profile = NULL;
 
     /* "mpm" profile, found under "cuda.mpm" in the conf file */
-    profile = malloc(sizeof(SCCudaHlCudaProfile));
+    profile = SCMalloc(sizeof(SCCudaHlCudaProfile));
     if (profile == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
@@ -469,7 +469,7 @@ int SCCudaHlGetCudaModule(CUmodule *p_module, const char *ptx_image, int handle)
 
     /* select the ptx image based on the compute capability supported by all
      * devices (i.e. the lowest) */
-    char* image = malloc(strlen(ptx_image)+15);
+    char* image = SCMalloc(strlen(ptx_image)+15);
     memset(image, 0x0, sizeof(image));
 
     int major = INT_MAX;

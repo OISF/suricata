@@ -1446,7 +1446,7 @@ int DetectByteTestTestPacket03(void)
     int result = 0;
     uint8_t *buf = NULL;
     uint16_t buflen = 0;
-    buf = malloc(4);
+    buf = SCMalloc(4);
     if (buf == NULL) {
         printf("malloc failed\n");
         exit(EXIT_FAILURE);

@@ -1496,9 +1496,9 @@ static int B2gCudaMpmStreamDataInit(B2gCudaMpmThreadCtxData *tctx, MpmCudaConf *
                 exit(EXIT_FAILURE);
             }
         } else {
-            sd->results_buffer = malloc(sizeof(uint16_t) *
-                                        (profile->packet_size_limit + 1) *
-                                        profile->packet_buffer_limit);
+            sd->results_buffer = SCMalloc(sizeof(uint16_t) *
+                                          (profile->packet_size_limit + 1) *
+                                          profile->packet_buffer_limit);
             if (sd->results_buffer == NULL) {
                 SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
                 exit(EXIT_FAILURE);
@@ -1680,7 +1680,7 @@ TmEcode B2gCudaMpmDispThreadInit(ThreadVars *tv, void *initdata, void **data)
         SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error pushing cuda context");
     }
 
-    B2gCudaMpmThreadCtxData *tctx = malloc(sizeof(B2gCudaMpmThreadCtxData));
+    B2gCudaMpmThreadCtxData *tctx = SCMalloc(sizeof(B2gCudaMpmThreadCtxData));
     if (tctx == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
@@ -1720,7 +1720,7 @@ TmEcode B2gCudaMpmDispThreadInit(ThreadVars *tv, void *initdata, void **data)
     }
 
     /* Initialize resources for the streams */
-    tctx->stream_data = malloc(tctx->no_of_streams * sizeof(B2gCudaMpmStreamData));
+    tctx->stream_data = SCMalloc(tctx->no_of_streams * sizeof(B2gCudaMpmStreamData));
     if (tctx->stream_data == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory.");
         exit(EXIT_FAILURE);
@@ -2572,7 +2572,7 @@ static int B2gCudaTest02(void)
 
     memset(p, 0, sizeof(p));
     for (i = 0; i < no_of_pkts; i++) {
-        p[i] = malloc(SIZE_OF_PACKET);
+        p[i] = SCMalloc(SIZE_OF_PACKET);
         if (p[i] == NULL) {
             printf("error allocating memory\n");
             exit(EXIT_FAILURE);
@@ -2792,7 +2792,7 @@ static int B2gCudaTest03(void)
 
     FlowInitConfig(FLOW_QUIET);
     for (i = 0; i < no_of_pkts; i++) {
-        p[i] = malloc(SIZE_OF_PACKET);
+        p[i] = SCMalloc(SIZE_OF_PACKET);
         if (p[i] == NULL) {
             printf("error allocating memory\n");
             exit(EXIT_FAILURE);
@@ -3115,7 +3115,7 @@ static int B2gCudaTest04(void)
 
     FlowInitConfig(FLOW_QUIET);
     for (i = 0; i < no_of_pkts; i++) {
-        p[i] = malloc(sizeof(Packet));
+        p[i] = SCMalloc(sizeof(Packet));
         if (p[i] == NULL) {
             printf("error allocating memory\n");
             exit(EXIT_FAILURE);
@@ -3459,7 +3459,7 @@ static int B2gCudaTest05(void)
 
     FlowInitConfig(FLOW_QUIET);
     for (i = 0; i < no_of_pkts; i++) {
-        p[i] = malloc(sizeof(Packet));
+        p[i] = SCMalloc(sizeof(Packet));
         if (p[i] == NULL) {
             printf("error allocating memory\n");
             exit(EXIT_FAILURE);

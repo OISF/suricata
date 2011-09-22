@@ -492,7 +492,7 @@ SCLogOPBuffer *SCLogAllocLogOPBuffer(void)
     SCLogOPIfaceCtx *op_iface_ctx = NULL;
     int i = 0;
 
-    if ( (buffer = malloc(sc_log_config->op_ifaces_cnt *
+    if ( (buffer = SCMalloc(sc_log_config->op_ifaces_cnt *
                           sizeof(SCLogOPBuffer))) == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogAllocLogOPBuffer. Exiting...");
         exit(EXIT_FAILURE);
@@ -521,7 +521,7 @@ static inline SCLogOPIfaceCtx *SCLogAllocLogOPIfaceCtx()
 {
     SCLogOPIfaceCtx *iface_ctx = NULL;
 
-    if ( (iface_ctx = malloc(sizeof(SCLogOPIfaceCtx))) == NULL) {
+    if ( (iface_ctx = SCMalloc(sizeof(SCLogOPIfaceCtx))) == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogallocLogOPIfaceCtx. Exiting...");
         exit(EXIT_FAILURE);
     }
@@ -935,7 +935,7 @@ SCLogInitData *SCLogAllocLogInitData(void)
     SCLogInitData *sc_lid = NULL;
 
     /* not using SCMalloc here because if it fails we can't log */
-    if ( (sc_lid = malloc(sizeof(SCLogInitData))) == NULL)
+    if ( (sc_lid = SCMalloc(sizeof(SCLogInitData))) == NULL)
         return NULL;
 
     memset(sc_lid, 0, sizeof(SCLogInitData));
@@ -1086,7 +1086,7 @@ void SCLogInitLogModule(SCLogInitData *sc_lid)
 #endif /* OS_WIN32 */
 
     /* sc_log_config is a global variable */
-    if ( (sc_log_config = malloc(sizeof(SCLogConfig))) == NULL) {
+    if ( (sc_log_config = SCMalloc(sizeof(SCLogConfig))) == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in SCLogInitLogModule. Exiting...");
         exit(EXIT_FAILURE);
     }
@@ -1237,7 +1237,7 @@ void SCLogInitLogModuleIfEnvSet(void)
     SCLogLevel log_level = SC_LOG_NOTSET;
 
     /* sc_log_config is a global variable */
-    if ( (sc_log_config = malloc(sizeof(SCLogConfig))) == NULL)
+    if ( (sc_log_config = SCMalloc(sizeof(SCLogConfig))) == NULL)
         return;
     memset(sc_log_config, 0, sizeof(SCLogConfig));
     sc_lc = sc_log_config;
@@ -1363,7 +1363,7 @@ static char *SCLogGetLogFilename(char *filearg)
     if (ConfGet("default-log-dir", &log_dir) != 1)
         log_dir = DEFAULT_LOG_DIR;
 
-    log_filename = malloc(PATH_MAX);
+    log_filename = SCMalloc(PATH_MAX);
     if (log_filename == NULL)
         return NULL;
     snprintf(log_filename, PATH_MAX, "%s/%s", log_dir, filearg);

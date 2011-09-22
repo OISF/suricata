@@ -692,7 +692,7 @@ static inline void SCACGfbsCreateFailureTable(MpmCtx *mpm_ctx)
 
     /* allot space for the failure table.  A failure entry in the table for
      * every state(SCACGfbsCtx->state_count) */
-    ctx->failure_table = malloc(ctx->state_count * sizeof(int32_t));
+    ctx->failure_table = SCMalloc(ctx->state_count * sizeof(int32_t));
     if (ctx->failure_table == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
@@ -748,7 +748,7 @@ static inline void SCACGfbsCreateModGotoTable(MpmCtx *mpm_ctx)
          * but by avoiding it, we save a lot of time on handling alignment */
         int size = (ctx->state_count * sizeof(SC_AC_GFBS_STATE_TYPE_U16) * 3 +
                     256 * sizeof(SC_AC_GFBS_STATE_TYPE_U16) * 2);
-        ctx->goto_table_mod = malloc(size);
+        ctx->goto_table_mod = SCMalloc(size);
         if (ctx->goto_table_mod == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             exit(EXIT_FAILURE);
@@ -760,7 +760,7 @@ static inline void SCACGfbsCreateModGotoTable(MpmCtx *mpm_ctx)
 
         /* buffer to hold pointers in the buffer, so that a state can use it
          * directly to access its state data */
-        ctx->goto_table_mod_pointers = malloc(ctx->state_count * sizeof(uint8_t *));
+        ctx->goto_table_mod_pointers = SCMalloc(ctx->state_count * sizeof(uint8_t *));
         if (ctx->goto_table_mod_pointers == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             exit(EXIT_FAILURE);
@@ -804,7 +804,7 @@ static inline void SCACGfbsCreateModGotoTable(MpmCtx *mpm_ctx)
          * but by avoiding it, we save a lot of time on handling alignment */
         int size = (ctx->state_count * (sizeof(SC_AC_GFBS_STATE_TYPE_U32) * 3) +
                     256 * (sizeof(SC_AC_GFBS_STATE_TYPE_U32) * 2));
-        ctx->goto_table_mod = malloc(size);
+        ctx->goto_table_mod = SCMalloc(size);
         if (ctx->goto_table_mod == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             exit(EXIT_FAILURE);
@@ -816,7 +816,7 @@ static inline void SCACGfbsCreateModGotoTable(MpmCtx *mpm_ctx)
 
         /* buffer to hold pointers in the buffer, so that a state can use it
          * directly to access its state data */
-        ctx->goto_table_mod_pointers = malloc(ctx->state_count * sizeof(uint8_t *));
+        ctx->goto_table_mod_pointers = SCMalloc(ctx->state_count * sizeof(uint8_t *));
         if (ctx->goto_table_mod_pointers == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             exit(EXIT_FAILURE);
@@ -954,7 +954,7 @@ int SCACGfbsPreparePatterns(MpmCtx *mpm_ctx)
     //ctx->single_state_size = sizeof(int32_t) * 256;
 
     /* handle no case patterns */
-    ctx->pid_pat_list = malloc((ctx->max_pat_id + 1)* sizeof(SCACGfbsPatternList));
+    ctx->pid_pat_list = SCMalloc((ctx->max_pat_id + 1)* sizeof(SCACGfbsPatternList));
     if (ctx->pid_pat_list == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
@@ -967,7 +967,7 @@ int SCACGfbsPreparePatterns(MpmCtx *mpm_ctx)
         } else {
             if (memcmp(ctx->parray[i]->original_pat, ctx->parray[i]->ci,
                        ctx->parray[i]->len) != 0) {
-                ctx->pid_pat_list[ctx->parray[i]->id].cs = malloc(ctx->parray[i]->len);
+                ctx->pid_pat_list[ctx->parray[i]->id].cs = SCMalloc(ctx->parray[i]->len);
                 if (ctx->pid_pat_list[ctx->parray[i]->id].cs == NULL) {
                     SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
                     exit(EXIT_FAILURE);

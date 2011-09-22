@@ -68,7 +68,7 @@ static void SupportFastPatternForSigMatchList(int list_id)
         }
     }
 
-    SCFPSupportSMList *new_smlist_fp = malloc(sizeof(SCFPSupportSMList));
+    SCFPSupportSMList *new_smlist_fp = SCMalloc(sizeof(SCFPSupportSMList));
     if (new_smlist_fp == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
@@ -100,7 +100,7 @@ static void SupportFastPatternForSigMatchType(uint8_t sm_type)
         }
     }
 
-    SCFPSupportSMType *new_smtype_fp = malloc(sizeof(SCFPSupportSMType));
+    SCFPSupportSMType *new_smtype_fp = SCMalloc(sizeof(SCFPSupportSMType));
     if (new_smtype_fp == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
         exit(EXIT_FAILURE);
