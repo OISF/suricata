@@ -57,9 +57,9 @@ void SCProtoNameInit()
 
             char *cname = strtok_r(NULL, " \t", &ptr);
             if (cname != NULL) {
-                known_proto[proto] = strdup(cname);
+                known_proto[proto] = SCStrdup(cname);
             } else {
-                known_proto[proto] = strdup(name);
+                known_proto[proto] = SCStrdup(name);
             }
         }
         fclose(fp);

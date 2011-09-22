@@ -563,11 +563,11 @@ static inline SCLogOPIfaceCtx *SCLogInitFileOPIface(const char *file,
         goto error;
     }
 
-    if ((iface_ctx->file = strdup(file)) == NULL) {
+    if ((iface_ctx->file = SCStrdup(file)) == NULL) {
         goto error;
     }
 
-    if ((iface_ctx->log_format = strdup(log_format)) == NULL) {
+    if ((iface_ctx->log_format = SCStrdup(log_format)) == NULL) {
         goto error;
     }
 
@@ -624,7 +624,7 @@ static inline SCLogOPIfaceCtx *SCLogInitConsoleOPIface(const char *log_format,
     }
 
     if (tmp_log_format != NULL &&
-        (iface_ctx->log_format = strdup(tmp_log_format)) == NULL) {
+        (iface_ctx->log_format = SCStrdup(tmp_log_format)) == NULL) {
         printf("Error allocating memory\n");
         exit(EXIT_FAILURE);
     }
@@ -673,7 +673,7 @@ static inline SCLogOPIfaceCtx *SCLogInitSyslogOPIface(int facility,
     iface_ctx->facility = facility;
 
     if (log_format != NULL &&
-        (iface_ctx->log_format = strdup(log_format)) == NULL) {
+        (iface_ctx->log_format = SCStrdup(log_format)) == NULL) {
         printf("Error allocating memory\n");
         exit(EXIT_FAILURE);
     }
@@ -794,7 +794,7 @@ static inline void SCLogSetLogFormat(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
 #endif
     }
 
-    if (format != NULL && (sc_lc->log_format = strdup(format)) == NULL) {
+    if (format != NULL && (sc_lc->log_format = SCStrdup(format)) == NULL) {
         printf("Error allocating memory\n");
         exit(EXIT_FAILURE);
     }
@@ -1316,7 +1316,7 @@ void SCLogInitLogModuleIfEnvSet(void)
     }
 
     if (format != NULL &&
-        (sc_lc->log_format = strdup(format)) == NULL) {
+        (sc_lc->log_format = SCStrdup(format)) == NULL) {
         printf("Error allocating memory\n");
         exit(EXIT_FAILURE);
     }

@@ -72,7 +72,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(const char *name, uint8_t flags)
             exit(EXIT_FAILURE);
         }
 
-        item[0].name = strdup(name);
+        item[0].name = SCStrdup(name);
         if (item[0].name == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             exit(EXIT_FAILURE);
@@ -128,7 +128,7 @@ int32_t MpmFactoryRegisterMpmCtxProfile(const char *name, uint8_t flags)
         mpm_ctx_factory_container->items = items;
 
         MpmCtxFactoryItem *new_item = &items[mpm_ctx_factory_container->no_of_items];
-        new_item[0].name = strdup(name);
+        new_item[0].name = SCStrdup(name);
         if (new_item[0].name == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
             exit(EXIT_FAILURE);
