@@ -102,9 +102,8 @@ static int DetectPrioritySetup (DetectEngineCtx *de_ctx, Signature *s, char *raw
                    "to priority keyword");
         goto error;
     }
-    s->prio = prio;
     /* if we have reached here, we have had a valid priority.  Assign it */
-    //s->prio = atoi(prio_str);
+    s->prio = prio;
 
     return 0;
  error:

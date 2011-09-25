@@ -433,7 +433,7 @@ typedef struct Signature_ {
 
     uint32_t id;  /**< sid, set by the 'sid' rule keyword */
     uint32_t gid; /**< generator id */
-    uint8_t rev;
+    uint32_t rev;
 
     /** classification id **/
     uint8_t class;
