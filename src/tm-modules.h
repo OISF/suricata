@@ -69,8 +69,8 @@ typedef struct LogFileCtx_ {
 
     /** Generic size_limit and size_current
      * They must be common to the threads accesing the same file */
-    uint32_t size_limit;    /**< file size limit */
-    uint32_t size_current;  /**< file current size */
+    uint64_t size_limit;    /**< file size limit */
+    uint64_t size_current;  /**< file current size */
 
     /* Alerts on the module (not on the file) */
     uint64_t alerts;

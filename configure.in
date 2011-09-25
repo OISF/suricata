@@ -114,6 +114,9 @@ AC_INIT(configure.in)
     AC_FUNC_REALLOC
     AC_CHECK_FUNCS([gettimeofday memset strcasecmp strchr strdup strerror strncasecmp strtol strtoul])
 
+# Add large file support
+    AC_SYS_LARGEFILE
+
 #check for os
     AC_MSG_CHECKING([host os])
 

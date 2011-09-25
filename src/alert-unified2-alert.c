@@ -863,11 +863,11 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
     file_ctx->prefix = SCStrdup(filename);
 
     const char *s_limit = NULL;
-    uint32_t limit = DEFAULT_LIMIT;
+    uint64_t limit = DEFAULT_LIMIT;
     if (conf != NULL) {
         s_limit = ConfNodeLookupChildValue(conf, "limit");
         if (s_limit != NULL) {
-            if (ByteExtractStringUint32(&limit, 10, 0, s_limit) == -1) {
+            if (ByteExtractStringUint64(&limit, 10, 0, s_limit) == -1) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                     "Failed to initialize unified2 output, invalid limit: %s",
                     s_limit);
@@ -893,7 +893,7 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
     output_ctx->data = file_ctx;
     output_ctx->DeInit = Unified2AlertDeInitCtx;
 
-    SCLogInfo("Unified2-alert initialized: filename %s, limit %"PRIu32" MB",
+    SCLogInfo("Unified2-alert initialized: filename %s, limit %"PRIu64" MB",
        filename, limit);
 
     return output_ctx;

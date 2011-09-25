@@ -81,9 +81,8 @@ outputs:
   # and "sguil".
   #
   # In normal mode a pcap file "filename" is created in the default-log-dir,
-  # or if filename is an absolute path a that path. In Sguil mode "sguil_base_dir"
-  # indicates the base directory. In this base dir the pcaps are created in the
-  # directory structure Sguil expects:
+  # or are as specified by "dir". In Sguil mode "dir" indicates the base directory.
+  # In this base dir the pcaps are created in th directory structure Sguil expects:
   #
   # $sguil_base_dir/YYYY-MM-DD/$filename.<timestamp>
   #
@@ -96,10 +95,15 @@ outputs:
       filename: log.pcap
 
       # Limit in MB.
-      #limit: 32
+      limit: 1000
 
-      #mode: sguil # "normal" (default) or sguil.
-      #sguil_base_dir: /nsm_data/
+      # If set to a value will enable ring buffer mode. Will keep Maximum of "max_files" of size "limit"
+      max_files: 2000
+
+      mode: normal # normal or sguil.
+      #dir: /nsm_data/
+      #ts_format: usec # sec or usec second format (default) is filename.sec usec is filename.sec.usec
+      use_stream_depth: no #If set to "yes" packets seen after reaching stream inspection depth are ignored. "no" logs all packets
 
   # a full alerts log containing much information for signature writers
   # or for investigating suspected false positives.
