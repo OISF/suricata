@@ -1047,6 +1047,13 @@ void IPOnlyMatchPacket(ThreadVars *tv,
                                 continue;
                             }
                         }
+                    } else {
+                        if (!(s->flags & SIG_FLAG_DP_ANY)) {
+                            continue;
+                        }
+                        if (!(s->flags & SIG_FLAG_SP_ANY)) {
+                            continue;
+                        }
                     }
 
                     if (!IPOnlyMatchCompatSMs(tv, det_ctx, s, p)) {
