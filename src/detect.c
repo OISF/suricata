@@ -1785,7 +1785,7 @@ end:
                     (p->flow->sgh_toclient == NULL ||
                      p->flow->sgh_toclient->filestore_cnt == 0))
             {
-                FlowFileDisableStoring(p->flow);
+                FileDisableStoring(p->flow);
             }
         }
 
@@ -3787,7 +3787,7 @@ int SigAddressPrepareStage4(DetectEngineCtx *de_ctx) {
         SigGroupHeadBuildHeadArray(de_ctx, sgh);
         SigGroupHeadSetFilemagicFlag(de_ctx, sgh);
         SigGroupHeadSetFilestoreCount(de_ctx, sgh);
-        SCLogInfo("filestore count %u", sgh->filestore_cnt);
+        SCLogDebug("filestore count %u", sgh->filestore_cnt);
     }
 
     if (de_ctx->decoder_event_sgh != NULL) {

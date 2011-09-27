@@ -883,7 +883,7 @@ next_sig:
     if (!(f->de_state->flags & DE_STATE_FILE_STORE_DISABLED)) {
         if (DeStateStoreFilestoreSigsCantMatch(det_ctx->sgh, f->de_state, flags) == 1) {
             SCLogDebug("disabling file storage for transaction");
-            FlowFileDisableStoringForTransaction(f, det_ctx->tx_id);
+            FileDisableStoringForTransaction(f, det_ctx->tx_id);
             f->de_state->flags |= DE_STATE_FILE_STORE_DISABLED;
         }
     }

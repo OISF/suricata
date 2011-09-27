@@ -82,7 +82,7 @@ void DetectFilemagicRegister(void) {
  *  \retval -1 error
  *  \retval 0 ok
  */
-static int FilemagicLookup(FlowFile *file) {
+static int FilemagicLookup(File *file) {
     if (file == NULL || file->chunks_head == NULL) {
         SCReturnInt(-1);
     }
@@ -94,7 +94,7 @@ static int FilemagicLookup(FlowFile *file) {
         uint32_t size = 0;
 
         if (buf != NULL) {
-            FlowFileData *ffd = file->chunks_head;
+            FileData *ffd = file->chunks_head;
 
             for ( ; ffd != NULL; ffd = ffd->next) {
                 uint32_t copy_len = ffd->len;
@@ -110,7 +110,7 @@ static int FilemagicLookup(FlowFile *file) {
                 }
 
                 /* file is done but smaller than FILEMAGIC_MIN_SIZE */
-                if (ffd->next == NULL && file->state >= FLOWFILE_STATE_CLOSED) {
+                if (ffd->next == NULL && file->state >= FILE_STATE_CLOSED) {
                     file->magic = MagicLookup(buf, size);
                     break;
                 }
@@ -140,7 +140,7 @@ int DetectFilemagicMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f
     int ret = 0;
 
     DetectFilemagicData *filemagic = m->ctx;
-    FlowFile *file = (FlowFile *)state;
+    File *file = (File *)state;
 
     if (file->txid < det_ctx->tx_id)
         SCReturnInt(0);

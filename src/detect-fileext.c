@@ -89,7 +89,7 @@ int DetectFileextMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, 
     int ret = 0;
 
     DetectFileextData *fileext = (DetectFileextData *)m->ctx;
-    FlowFile *file = (FlowFile *)state;
+    File *file = (File *)state;
 
     if (file->name == NULL)
         SCReturnInt(0);

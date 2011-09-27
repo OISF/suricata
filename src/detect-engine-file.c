@@ -70,21 +70,20 @@
  *
  *  \note flow is not locked at this time
  */
-static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flow *f, Signature *s) {
+static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flow *f, Signature *s, FileContainer *ffc) {
     SigMatch *sm = NULL;
     int r = 0;
     int match = 0;
 
     SCLogDebug("file inspection...");
 
-    SCMutexLock(&f->files_m);
-    if (f->files != NULL) {
-        FlowFile *file = f->files->head;
+    if (ffc != NULL) {
+        File *file = ffc->head;
         for (; file != NULL; file = file->next) {
             SCLogDebug("file");
 
-            if (file->state == FLOWFILE_STATE_NONE) {
-                SCLogDebug("file state FLOWFILE_STATE_NONE");
+            if (file->state == FILE_STATE_NONE) {
+                SCLogDebug("file state FILE_STATE_NONE");
                 continue;
             }
 
@@ -143,7 +142,6 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flo
         }
     }
 
-    SCMutexUnlock(&f->files_m);
     SCReturnInt(r);
 }
 
@@ -178,7 +176,7 @@ int DetectFileInspectHttp(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flow *
         /* inspect files for this transaction */
         det_ctx->tx_id = (uint16_t)idx;
 
-        match = DetectFileInspect(tv, det_ctx, f, s);
+        match = DetectFileInspect(tv, det_ctx, f, s, htp_state->files);
         if (match == 1) {
             r = 1;
         } else if (match == 2) {

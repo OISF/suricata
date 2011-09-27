@@ -41,6 +41,7 @@
 #include "util-print.h"
 #include "util-pool.h"
 #include "util-radix-tree.h"
+#include "util-file.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -61,7 +62,6 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "flow-util.h"
-#include "flow-file.h"
 
 #include "detect-engine.h"
 #include "detect-engine-state.h"
@@ -229,6 +229,7 @@ void HTPStateFree(void *state)
         htp_connp_destroy_all(s->connp);
     }
 
+    FileContainerFree(s->files);
     SCFree(s);
 
 #ifdef DEBUG
@@ -1065,7 +1066,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, SCHtpTxUserData *htud,
                 filedata_len = form_end - filedata - 2; /* 0d 0a */
             } else if (htud->flags & HTP_BODY_COMPLETE) {
                 filedata_len = chunks_buffer_len;
-                flags = FLOW_FILE_TRUNCATED;
+                flags = FILE_TRUNCATED;
             }
 
             BUG_ON(filedata_len > chunks_buffer_len);
@@ -1075,7 +1076,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, SCHtpTxUserData *htud,
             printf("FILEDATA (final chunk) END: \n");
 #endif
             if (!(htud->flags & HTP_DONTSTORE)) {
-                if (HTPFileClose(hstate->f, filedata, filedata_len, flags) == -1)
+                if (HTPFileClose(hstate, filedata, filedata_len, flags) == -1)
                 {
                     goto end;
                 }
@@ -1097,7 +1098,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, SCHtpTxUserData *htud,
 #endif
 
                 if (!(htud->flags & HTP_DONTSTORE)) {
-                    result = HTPFileStoreChunk(hstate->f, filedata, filedata_len);
+                    result = HTPFileStoreChunk(hstate, filedata, filedata_len);
                     if (result == -1) {
                         goto end;
                     } else if (result == -2) {
@@ -1167,14 +1168,14 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, SCHtpTxUserData *htud,
                 printf("FILEDATA END: \n");
 #endif
 
-                result = HTPFileOpen(hstate->f, filename, filename_len,
+                result = HTPFileOpen(hstate, filename, filename_len,
                             filedata, filedata_len);
                 if (result == -1) {
                     goto end;
                 } else if (result == -2) {
                     htud->flags |= HTP_DONTSTORE;
                 } else {
-                    if (HTPFileClose(hstate->f, NULL, 0, 0) == -1) {
+                    if (HTPFileClose(hstate, NULL, 0, 0) == -1) {
                         goto end;
                     }
                 }
@@ -1185,7 +1186,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, SCHtpTxUserData *htud,
                 SCLogDebug("offset %u", offset);
                 htud->body_parsed = offset;
 
-                result = HTPFileOpen(hstate->f, filename, filename_len,
+                result = HTPFileOpen(hstate, filename, filename_len,
                             filedata, filedata_len);
                 if (result == -1) {
                     goto end;
@@ -1249,7 +1250,7 @@ int HtpRequestBodyHandlePUT(HtpState *hstate, SCHtpTxUserData *htud,
             filename_len = bstr_len(tx->parsed_uri->path);
         }
 
-        result = HTPFileOpen(hstate->f, filename, filename_len,
+        result = HTPFileOpen(hstate, filename, filename_len,
                     data, data_len);
         if (result == -1) {
             goto end;
@@ -1265,7 +1266,7 @@ int HtpRequestBodyHandlePUT(HtpState *hstate, SCHtpTxUserData *htud,
         /* otherwise, just store the data */
 
         if (!(htud->flags & HTP_DONTSTORE)) {
-            result = HTPFileStoreChunk(hstate->f, data, data_len);
+            result = HTPFileStoreChunk(hstate, data, data_len);
             if (result == -1) {
                 goto end;
             } else if (result == -2) {
@@ -1440,7 +1441,7 @@ static int HTPCallbackRequest(htp_connp_t *connp) {
         if (htud != NULL) {
             if (htud->flags & HTP_FILENAME_SET) {
                 SCLogDebug("closing file that was being stored");
-                (void)HTPFileClose(hstate->f, NULL, 0, 0);
+                (void)HTPFileClose(hstate, NULL, 0, 0);
                 htud->flags &= ~HTP_FILENAME_SET;
             }
         }
@@ -1776,6 +1777,14 @@ void AppLayerHtpPrintStats(void) {
 #endif
 }
 
+static FileContainer *HTPStateGetFiles(void *state) {
+    if (state == NULL)
+        return NULL;
+
+    HtpState *http_state = (HtpState *)state;
+    SCReturnPtr(http_state->files, "FileContainer");
+}
+
 /**
  *  \brief  Register the HTTP protocol and state handling functions to APP layer
  *          of the engine.
@@ -1802,6 +1811,7 @@ void RegisterHTPParsers(void)
 
     AppLayerRegisterStateFuncs(ALPROTO_HTTP, HTPStateAlloc, HTPStateFree);
     AppLayerRegisterTransactionIdFuncs(ALPROTO_HTTP, HTPStateUpdateTransactionId, HTPStateTransactionFree);
+    AppLayerRegisterGetFilesFunc(ALPROTO_HTTP, HTPStateGetFiles);
 
     AppLayerRegisterProto("http", ALPROTO_HTTP, STREAM_TOSERVER,
                           HTPHandleRequestData);

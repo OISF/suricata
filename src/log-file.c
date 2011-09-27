@@ -33,6 +33,8 @@
 
 #include "threads.h"
 
+#include "app-layer-parser.h"
+
 #include "util-print.h"
 #include "util-unittest.h"
 #include "util-privs.h"
@@ -100,20 +102,20 @@ TmEcode LogFileLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
         SCReturnInt(TM_ECODE_OK);
     }
 
-    SCMutexLock(&p->flow->files_m);
+    SCMutexLock(&p->flow->m);
 
-    FlowFileContainer *ffc = p->flow->files;
+    FileContainer *ffc = AppLayerGetFilesFromFlow(p->flow);
     if (ffc != NULL) {
-        FlowFile *ff;
+        File *ff;
         for (ff = ffc->head; ff != NULL; ff = ff->next) {
-            if (ff->state == FLOWFILE_STATE_STORED)
+            if (ff->state == FILE_STATE_STORED)
                 continue;
 
             if (ff->store != 1) {
                 continue;
             }
 
-            FlowFileData *ffd;
+            FileData *ffd;
             for (ffd = ff->chunks_head; ffd != NULL; ffd = ffd->next) {
                 if (ffd->stored == 1)
                     continue;
@@ -176,12 +178,12 @@ TmEcode LogFileLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
                     continue;
                 }
 
-                if (ff->state == FLOWFILE_STATE_CLOSED ||
-                        ff->state == FLOWFILE_STATE_TRUNCATED ||
-                        ff->state == FLOWFILE_STATE_ERROR)
+                if (ff->state == FILE_STATE_CLOSED ||
+                        ff->state == FILE_STATE_TRUNCATED ||
+                        ff->state == FILE_STATE_ERROR)
                 {
                     if (ffd->next == NULL) {
-                        ff->state = FLOWFILE_STATE_STORED;
+                        ff->state = FILE_STATE_STORED;
                         close(ff->fd);
                         ff->fd = -1;
                     }
@@ -191,7 +193,7 @@ TmEcode LogFileLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
             }
         }
     }
-    SCMutexUnlock(&p->flow->files_m);
+    SCMutexUnlock(&p->flow->m);
     SCReturnInt(TM_ECODE_OK);
 }
 

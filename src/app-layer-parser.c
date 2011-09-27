@@ -41,6 +41,7 @@
 #include "stream.h"
 #include "stream-tcp-reassemble.h"
 
+#include "app-layer.h"
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-smb.h"
@@ -71,6 +72,21 @@ static SCMutex al_result_pool_mutex = PTHREAD_MUTEX_INITIALIZER;
 static uint32_t al_result_pool_elmts = 0;
 #endif /* DEBUG */
 
+/** \brief Get the file container flow
+ *  \param f flow pointer to a LOCKED flow
+ *  \retval files void pointer to the state
+ *  \retval NULL in case we have no state */
+FileContainer *AppLayerGetFilesFromFlow(Flow *f) {
+    uint16_t alproto = f->alproto;
+
+    if (alproto == ALPROTO_UNKNOWN)
+        return NULL;
+
+    if (al_proto_table[alproto].StateGetFiles != NULL)
+        return al_proto_table[alproto].StateGetFiles(AppLayerGetProtoStateFromFlow(f));
+    else
+        return NULL;
+}
 
 /** \brief Alloc a AppLayerParserResultElmt func for the pool */
 static void *AlpResultElmtPoolAlloc(void *null)
@@ -616,6 +632,12 @@ void *AppLayerGetProtocolParserLocalStorage(uint16_t proto)
     }
 
     return NULL;
+}
+
+void AppLayerRegisterGetFilesFunc(uint16_t proto,
+        FileContainer *(*StateGetFiles)(void *state))
+{
+    al_proto_table[proto].StateGetFiles = StateGetFiles;
 }
 
 /** \brief Indicate to the app layer parser that a logger is active

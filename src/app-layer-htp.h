@@ -34,6 +34,7 @@
 #define __APP_LAYER_HTP_H__
 
 #include "util-radix-tree.h"
+#include "util-file.h"
 
 #include <htp/htp.h>
 
@@ -147,6 +148,7 @@ typedef struct HtpState_ {
     uint16_t transaction_cnt;
     uint16_t transaction_done;
     uint32_t request_body_limit;
+    FileContainer *files;
 } HtpState;
 
 void RegisterHTPParsers(void);

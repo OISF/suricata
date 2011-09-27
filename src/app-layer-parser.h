@@ -24,6 +24,8 @@
 #ifndef __APP_LAYER_PARSER_H__
 #define __APP_LAYER_PARSER_H__
 
+#include "util-file.h"
+
 /** Mapping between local parser id's (e.g. HTTP_FIELD_REQUEST_URI) and
   * the dynamically assigned (at registration) global parser id. */
 typedef struct AppLayerLocalMap_ {
@@ -50,6 +52,7 @@ typedef struct AppLayerProto_ {
     void (*StateTransactionFree)(void *, uint16_t);
     void *(*LocalStorageAlloc)(void);
     void (*LocalStorageFree)(void *);
+    FileContainer *(*StateGetFiles)(void *);
 
 } AppLayerProto;
 
@@ -245,6 +248,8 @@ void AppLayerRegisterLocalStorageFunc(uint16_t proto,
                                       void *(*LocalStorageAlloc)(void),
                                       void (*LocalStorageFree)(void *));
 void *AppLayerGetProtocolParserLocalStorage(uint16_t);
+void AppLayerRegisterGetFilesFunc(uint16_t proto,
+        FileContainer *(*StateGetFile)(void *));
 void AppLayerRegisterLogger(uint16_t proto);
 uint16_t AppLayerGetProtoByName(const char *);
 
@@ -269,8 +274,6 @@ int AppLayerTransactionGetBaseId(Flow *f);
 int AppLayerTransactionGetInspectId(Flow *f);
 uint16_t AppLayerTransactionGetAvailId(Flow *f);
 
-uint16_t AppLayerGetStateVersion(Flow *f);
-
 void AppLayerSetEOF(Flow *);
 
 /* cleanup */
@@ -278,5 +281,8 @@ void AppLayerParserCleanupState(Flow *);
 void AppLayerFreeProbingParsers(AppLayerProbingParser *);
 void AppLayerFreeProbingParsersInfo(AppLayerProbingParserInfo *);
 void AppLayerPrintProbingParsers(AppLayerProbingParser *);
+
+uint16_t AppLayerGetStateVersion(Flow *f);
+FileContainer *AppLayerGetFilesFromFlow(Flow *);
 
 #endif /* __APP_LAYER_PARSER_H__ */

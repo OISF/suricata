@@ -83,8 +83,8 @@ int DetectFilestoreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f
         uint8_t flags, void *state, Signature *s, SigMatch *m)
 {
     SCEnter();
-    FlowFile *file = (FlowFile *)state;
-    FlowFileStore(file);
+    File *file = (File *)state;
+    FileStore(file);
     SCReturnInt(1);
 }
 

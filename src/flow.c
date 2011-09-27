@@ -41,7 +41,6 @@
 #include "flow-queue.h"
 #include "flow-hash.h"
 #include "flow-util.h"
-#include "flow-file.h"
 #include "flow-var.h"
 #include "flow-private.h"
 #include "flow-timeout.h"

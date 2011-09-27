@@ -47,7 +47,6 @@ flow-manager.c flow-manager.h \
 flow-queue.c flow-queue.h \
 flow-hash.c flow-hash.h \
 flow-util.c flow-util.h \
-flow-file.c flow-file.h \
 util-mem.h \
 flow-var.c flow-var.h \
 flow-bit.c flow-bit.h \
@@ -220,6 +219,7 @@ util-vector.h \
 util-device.c util-device.h \
 util-checksum.c util-checksum.h \
 util-runmodes.c util-runmodes.h \
+util-file.c util-file.h \
 tm-modules.c tm-modules.h \
 tm-queues.c tm-queues.h \
 tm-queuehandlers.c tm-queuehandlers.h \

@@ -88,7 +88,7 @@ int DetectFilenameMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
     int ret = 0;
 
     DetectFilenameData *filename = m->ctx;
-    FlowFile *file = (FlowFile *)state;
+    File *file = (File *)state;
 
     if (file->name == NULL)
         SCReturnInt(0);

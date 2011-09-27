@@ -52,7 +52,6 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "flow-util.h"
-#include "flow-file.h"
 
 #include "detect-engine.h"
 #include "detect-engine-state.h"
@@ -76,44 +75,40 @@
  *  \retval -1 error
  *  \retval -2 not handling files on this flow
  */
-int HTPFileOpen(Flow *f, uint8_t *filename, uint16_t filename_len,
+int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
         uint8_t *data, uint32_t data_len)
 {
     int retval = 0;
     uint16_t txid;
     uint8_t flags = 0;
 
-    if (f == NULL) {
+    if (s == NULL) {
         SCReturnInt(-1);
     }
 
-    txid = AppLayerTransactionGetAvailId(f) - 1;
+    txid = AppLayerTransactionGetAvailId(s->f) - 1;
 
-    SCMutexLock(&f->files_m);
-    {
-        if (f->files == NULL) {
-            f->files = FlowFileContainerAlloc();
-            if (f->files == NULL) {
-                retval = -1;
-                goto end;
-            }
-        }
-
-        if (f->flags & FLOW_FILE_NO_HANDLING) {
-            flags |= FLOW_FILE_NOSTORE;
-        }
-
-        if (FlowFileOpenFile(f->files, filename, filename_len,
-                    data, data_len, flags) == NULL)
-        {
+    if (s->files == NULL) {
+        s->files = FileContainerAlloc();
+        if (s->files == NULL) {
             retval = -1;
+            goto end;
         }
-
-        FlowFileSetTx(f->files->tail, txid);
     }
 
+    if (s->f->flags & FLOW_FILE_NO_HANDLING) {
+        flags |= FILE_NOSTORE;
+    }
+
+    if (FileOpenFile(s->files, filename, filename_len,
+                data, data_len, flags) == NULL)
+    {
+        retval = -1;
+    }
+
+    FileSetTx(s->files->tail, txid);
+
 end:
-    SCMutexUnlock(&f->files_m);
     SCReturnInt(retval);
 }
 
@@ -128,35 +123,31 @@ end:
  *  \retval -1 error
  *  \retval -2 file doesn't need storing
  */
-int HTPFileStoreChunk(Flow *f, uint8_t *data, uint32_t data_len) {
+int HTPFileStoreChunk(HtpState *s, uint8_t *data, uint32_t data_len) {
     SCEnter();
 
     int retval = 0;
     int result = 0;
 
-    if (f == NULL) {
+    if (s == NULL) {
         SCReturnInt(-1);
     }
 
-    SCMutexLock(&f->files_m);
-    {
-        if (f->files == NULL) {
-            SCLogDebug("no files in flow");
-            retval = -1;
-            goto end;
-        }
+    if (s->files == NULL) {
+        SCLogDebug("no files in state");
+        retval = -1;
+        goto end;
+    }
 
-        result = FlowFileAppendData(f->files, data, data_len);
-        if (result == -1) {
-            SCLogDebug("appending data failed");
-            retval = -1;
-        } else if (result == -2) {
-            retval = -2;
-        }
+    result = FileAppendData(s->files, data, data_len);
+    if (result == -1) {
+        SCLogDebug("appending data failed");
+        retval = -1;
+    } else if (result == -2) {
+        retval = -2;
     }
 
 end:
-    SCMutexUnlock(&f->files_m);
     SCReturnInt(retval);
 }
 
@@ -175,31 +166,27 @@ end:
  *  \retval -1 error
  *  \retval -2 not storing files on this flow/tx
  */
-int HTPFileClose(Flow *f, uint8_t *data, uint32_t data_len, uint8_t flags) {
+int HTPFileClose(HtpState *s, uint8_t *data, uint32_t data_len, uint8_t flags) {
     int retval = 0;
     int result = 0;
 
-    if (f == NULL) {
+    if (s == NULL) {
         SCReturnInt(-1);
     }
 
-    SCMutexLock(&f->files_m);
-    {
-        if (f->files == NULL) {
-            retval = -1;
-            goto end;
-        }
+    if (s->files == NULL) {
+        retval = -1;
+        goto end;
+    }
 
-        result = FlowFileCloseFile(f->files, data, data_len, flags);
-        if (result == -1) {
-            retval = -1;
-        } else if (result == -2) {
-            retval = -2;
-        }
+    result = FileCloseFile(s->files, data, data_len, flags);
+    if (result == -1) {
+        retval = -1;
+    } else if (result == -2) {
+        retval = -2;
     }
 
 end:
-    SCMutexUnlock(&f->files_m);
     SCReturnInt(retval);
 }
 
@@ -365,7 +352,7 @@ static int HTPFileParserTest02(void) {
         goto end;
     }
 
-    if (f.files == NULL || f.files->tail == NULL || f.files->tail->state != FLOWFILE_STATE_CLOSED) {
+    if (http_state->files == NULL || http_state->files->tail == NULL || http_state->files->tail->state != FILE_STATE_CLOSED) {
         goto end;
     }
 
@@ -487,11 +474,11 @@ static int HTPFileParserTest03(void) {
         goto end;
     }
 
-    if (f.files == NULL || f.files->tail == NULL || f.files->tail->state != FLOWFILE_STATE_CLOSED) {
+    if (http_state->files == NULL || http_state->files->tail == NULL || http_state->files->tail->state != FILE_STATE_CLOSED) {
         goto end;
     }
 
-    if (f.files->head->chunks_head->len != 11) {
+    if (http_state->files->head->chunks_head->len != 11) {
         goto end;
     }
 
@@ -613,7 +600,7 @@ static int HTPFileParserTest04(void) {
         goto end;
     }
 
-    if (f.files == NULL || f.files->tail == NULL || f.files->tail->state != FLOWFILE_STATE_CLOSED) {
+    if (http_state->files == NULL || http_state->files->tail == NULL || http_state->files->tail->state != FILE_STATE_CLOSED) {
         goto end;
     }
 
@@ -694,39 +681,39 @@ static int HTPFileParserTest05(void) {
         goto end;
     }
 
-    if (f.files == NULL || f.files->tail == NULL || f.files->tail->state != FLOWFILE_STATE_CLOSED) {
+    if (http_state->files == NULL || http_state->files->tail == NULL || http_state->files->tail->state != FILE_STATE_CLOSED) {
         goto end;
     }
 
-    if (f.files->head == f.files->tail)
+    if (http_state->files->head == http_state->files->tail)
         goto end;
 
-    if (f.files->head->next != f.files->tail)
+    if (http_state->files->head->next != http_state->files->tail)
         goto end;
 
-    if (f.files->head->chunks_head->len != 11) {
+    if (http_state->files->head->chunks_head->len != 11) {
         printf("expected 11 but file is %u bytes instead\n",
-                f.files->head->chunks_head->len);
-        PrintRawDataFp(stdout, f.files->head->chunks_head->data,
-                f.files->head->chunks_head->len);
+                http_state->files->head->chunks_head->len);
+        PrintRawDataFp(stdout, http_state->files->head->chunks_head->data,
+                http_state->files->head->chunks_head->len);
         goto end;
     }
 
-    if (memcmp("filecontent", f.files->head->chunks_head->data,
-                f.files->head->chunks_head->len) != 0) {
+    if (memcmp("filecontent", http_state->files->head->chunks_head->data,
+                http_state->files->head->chunks_head->len) != 0) {
         goto end;
     }
 
-    if (f.files->tail->chunks_head->len != 11) {
+    if (http_state->files->tail->chunks_head->len != 11) {
         printf("expected 11 but file is %u bytes instead\n",
-                f.files->tail->chunks_head->len);
-        PrintRawDataFp(stdout, f.files->tail->chunks_head->data,
-                f.files->tail->chunks_head->len);
+                http_state->files->tail->chunks_head->len);
+        PrintRawDataFp(stdout, http_state->files->tail->chunks_head->data,
+                http_state->files->tail->chunks_head->len);
         goto end;
     }
 
-    if (memcmp("FILECONTENT", f.files->tail->chunks_head->data,
-                f.files->tail->chunks_head->len) != 0) {
+    if (memcmp("FILECONTENT", http_state->files->tail->chunks_head->data,
+                http_state->files->tail->chunks_head->len) != 0) {
         goto end;
     }
     result = 1;
