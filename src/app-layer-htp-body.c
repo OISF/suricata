@@ -74,7 +74,7 @@
  * \retval 0 ok
  * \retval -1 error
  */
-int HtpBodyAppendChunk(SCHtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32_t len)
+int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32_t len)
 {
     SCEnter();
 
@@ -204,15 +204,15 @@ void HtpBodyFree(HtpBody *body)
 /**
  * \brief Free request body chunks that are already fully parsed.
  *
- * \param htud pointer to the SCHtpTxUserData holding the body
+ * \param htud pointer to the HtpTxUserData holding the body
  *
  * \retval none
  */
-void HtpBodyPrune(SCHtpTxUserData *htud)
+void HtpBodyPrune(HtpTxUserData *htud)
 {
     SCEnter();
 
-    HtpBody *body = &htud->body;
+    HtpBody *body = &htud->request_body;
 
     if (body->nchunks == 0) {
         SCReturn;

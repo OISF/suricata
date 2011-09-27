@@ -28,9 +28,9 @@
 #ifndef __APP_LAYER_HTP_BODY_H__
 #define __APP_LAYER_HTP_BODY_H__
 
-int HtpBodyAppendChunk(SCHtpTxUserData *, HtpBody *, uint8_t *, uint32_t);
+int HtpBodyAppendChunk(HtpTxUserData *, HtpBody *, uint8_t *, uint32_t);
 void HtpBodyPrint(HtpBody *);
 void HtpBodyFree(HtpBody *);
-void HtpBodyPrune(SCHtpTxUserData *);
+void HtpBodyPrune(HtpTxUserData *);
 
 #endif /* __APP_LAYER_HTP_BODY_H__ */

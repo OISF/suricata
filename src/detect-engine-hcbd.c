@@ -372,13 +372,13 @@ static void DetectEngineBufferHttpClientBodies(DetectEngineCtx *de_ctx,
         if (tx == NULL)
             continue;
 
-        SCHtpTxUserData *htud = (SCHtpTxUserData *)htp_tx_get_user_data(tx);
+        HtpTxUserData *htud = (HtpTxUserData *)htp_tx_get_user_data(tx);
         if (htud == NULL)
             continue;
 
-        HtpBodyChunk *cur = htud->body.first;
+        HtpBodyChunk *cur = htud->request_body.first;
 
-        if (htud->body.nchunks == 0) {
+        if (htud->request_body.nchunks == 0) {
             SCLogDebug("No http chunks to inspect for this transacation");
             continue;
         } else {
@@ -389,7 +389,7 @@ static void DetectEngineBufferHttpClientBodies(DetectEngineCtx *de_ctx,
             }
 
             /* this applies only for the client request body like the keyword name says */
-            if (htud->body.operation != HTP_BODY_REQUEST) {
+            if (htud->request_body.operation != HTP_BODY_REQUEST) {
                 SCLogDebug("htp chunk not a request chunk");
                 continue;
             }

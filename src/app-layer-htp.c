@@ -217,9 +217,9 @@ void HTPStateFree(void *state)
             for (i = 0; i < list_size(s->connp->conn->transactions); i++) {
                 htp_tx_t *tx = (htp_tx_t *)list_get(s->connp->conn->transactions, i);
                 if (tx != NULL) {
-                    SCHtpTxUserData *htud = (SCHtpTxUserData *) htp_tx_get_user_data(tx);
+                    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
                     if (htud != NULL) {
-                        HtpBodyFree(&htud->body);
+                        HtpBodyFree(&htud->request_body);
                         SCFree(htud);
                     }
                     htp_tx_set_user_data(tx, NULL);
@@ -817,7 +817,7 @@ static int HTTPParseContentTypeHeader(uint8_t *name, size_t name_len,
  *  If the request contains a multipart message, this function will
  *  set the HTP_BOUNDARY_SET in the transaction.
  */
-static int HtpRequestBodySetupMultipart(htp_tx_data_t *d, SCHtpTxUserData *htud) {
+static int HtpRequestBodySetupMultipart(htp_tx_data_t *d, HtpTxUserData *htud) {
     htp_header_t *cl = table_getc(d->tx->request_headers, "content-length");
     if (cl != NULL)
         htud->content_len = htp_parse_content_length(cl->value);
@@ -858,7 +858,7 @@ static int HtpRequestBodySetupMultipart(htp_tx_data_t *d, SCHtpTxUserData *htud)
 /**
  *  \brief Setup boundary buffers
  */
-static int HtpRequestBodySetupBoundary(SCHtpTxUserData *htud,
+static int HtpRequestBodySetupBoundary(HtpTxUserData *htud,
         uint8_t **expected_boundary, uint8_t *expected_boundary_len,
         uint8_t **expected_boundary_end, uint8_t *expected_boundary_end_len)
 {
@@ -979,12 +979,12 @@ static void HtpRequestBodyMultipartParseHeader(uint8_t *header, uint32_t header_
  *  \param chunks_buffers pointer to pass back the buffer to the caller
  *  \param chunks_buffer_len pointer to pass back the buffer length to the caller
  */
-static void HtpRequestBodyReassemble(SCHtpTxUserData *htud,
+static void HtpRequestBodyReassemble(HtpTxUserData *htud,
         uint8_t **chunks_buffer, uint32_t *chunks_buffer_len)
 {
     uint8_t *buf = NULL;
     uint32_t buf_len = 0;
-    HtpBodyChunk *cur = htud->body.first;
+    HtpBodyChunk *cur = htud->request_body.first;
 
     for ( ; cur != NULL; cur = cur->next) {
         /* skip body chunks entirely before what we parsed already */
@@ -1018,7 +1018,7 @@ static void HtpRequestBodyReassemble(SCHtpTxUserData *htud,
     *chunks_buffer_len = buf_len;
 }
 
-int HtpRequestBodyHandleMultipart(HtpState *hstate, SCHtpTxUserData *htud,
+int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
         uint8_t *chunks_buffer, uint32_t chunks_buffer_len)
 {
     int result = 0;
@@ -1223,7 +1223,7 @@ end:
 
 /** \brief setup things for put request
  *  \todo really needed? */
-int HtpRequestBodySetupPUT(htp_tx_data_t *d, SCHtpTxUserData *htud) {
+int HtpRequestBodySetupPUT(htp_tx_data_t *d, HtpTxUserData *htud) {
 //    if (d->tx->parsed_uri == NULL || d->tx->parsed_uri->path == NULL) {
 //        return -1;
 //    }
@@ -1233,7 +1233,7 @@ int HtpRequestBodySetupPUT(htp_tx_data_t *d, SCHtpTxUserData *htud) {
     return 0;
 }
 
-int HtpRequestBodyHandlePUT(HtpState *hstate, SCHtpTxUserData *htud,
+int HtpRequestBodyHandlePUT(HtpState *hstate, HtpTxUserData *htud,
         htp_tx_t *tx, uint8_t *data, uint32_t data_len)
 {
     int result = 0;
@@ -1298,22 +1298,22 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
     SCLogDebug("New request body data available at %p -> %p -> %p, bodylen "
                "%"PRIu32"", hstate, d, d->data, (uint32_t)d->len);
 
-    SCHtpTxUserData *htud = (SCHtpTxUserData *) htp_tx_get_user_data(d->tx);
+    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(d->tx);
     if (htud == NULL) {
-        htud = SCMalloc(sizeof(SCHtpTxUserData));
+        htud = SCMalloc(sizeof(HtpTxUserData));
         if (htud == NULL) {
             SCReturnInt(HOOK_OK);
         }
-        memset(htud, 0, sizeof(SCHtpTxUserData));
-        htud->body.operation = HTP_BODY_REQUEST;
+        memset(htud, 0, sizeof(HtpTxUserData));
+        htud->request_body.operation = HTP_BODY_REQUEST;
 
         if (d->tx->request_method_number == M_POST) {
             if (HtpRequestBodySetupMultipart(d, htud) == 0) {
-                htud->body.type = HTP_BODY_REQUEST_MULTIPART;
+                htud->request_body.type = HTP_BODY_REQUEST_MULTIPART;
             }
         } else if (d->tx->request_method_number == M_PUT) {
             if (HtpRequestBodySetupPUT(d, htud) == 0) {
-                htud->body.type = HTP_BODY_REQUEST_PUT;
+                htud->request_body.type = HTP_BODY_REQUEST_PUT;
             }
         }
 
@@ -1337,7 +1337,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
         }
         SCLogDebug("len %u", len);
 
-        int r = HtpBodyAppendChunk(htud, &htud->body, (uint8_t *)d->data, len);
+        int r = HtpBodyAppendChunk(htud, &htud->request_body, (uint8_t *)d->data, len);
         if (r < 0) {
             htud->flags |= HTP_BODY_COMPLETE;
         } else if (hstate->request_body_limit > 0 &&
@@ -1351,7 +1351,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
         uint8_t *chunks_buffer = NULL;
         uint32_t chunks_buffer_len = 0;
 
-        if (htud->body.type == HTP_BODY_REQUEST_MULTIPART) {
+        if (htud->request_body.type == HTP_BODY_REQUEST_MULTIPART) {
             /* multi-part body handling starts here */
             if (!(htud->flags & HTP_BOUNDARY_SET)) {
                 goto end;
@@ -1367,7 +1367,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
             if (chunks_buffer != NULL) {
                 SCFree(chunks_buffer);
             }
-        } else if (htud->body.type == HTP_BODY_REQUEST_PUT) {
+        } else if (htud->request_body.type == HTP_BODY_REQUEST_PUT) {
             HtpRequestBodyHandlePUT(hstate, htud, d->tx, (uint8_t *)d->data, (uint32_t)d->len);
         }
 
@@ -1437,7 +1437,7 @@ static int HTPCallbackRequest(htp_connp_t *connp) {
     SCLogDebug("HTTP request completed");
 
     if (connp->in_tx != NULL) {
-        SCHtpTxUserData *htud = (SCHtpTxUserData *) htp_tx_get_user_data(connp->in_tx);
+        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(connp->in_tx);
         if (htud != NULL) {
             if (htud->flags & HTP_FILENAME_SET) {
                 SCLogDebug("closing file that was being stored");
@@ -1478,9 +1478,9 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
             continue;
 
         /* This will remove obsolete body chunks */
-        SCHtpTxUserData *htud = (SCHtpTxUserData *) htp_tx_get_user_data(tx);
+        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
         if (htud != NULL) {
-            HtpBodyFree(&htud->body);
+            HtpBodyFree(&htud->request_body);
             htp_tx_set_user_data(tx, NULL);
             SCFree(htud);
         }

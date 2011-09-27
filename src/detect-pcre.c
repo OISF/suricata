@@ -2701,14 +2701,14 @@ static int DetectPcreTxBodyChunksTest01(void) {
     htp_tx_t *t1 = list_get(htp_state->connp->conn->transactions, 0);
     htp_tx_t *t2 = list_get(htp_state->connp->conn->transactions, 1);
 
-    SCHtpTxUserData *htud = (SCHtpTxUserData *) htp_tx_get_user_data(t1);
+    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(t1);
     if (htud == NULL) {
         printf("No body data in t1 (it should be removed only when the tx is destroyed): ");
         goto end;
     }
 
-    HtpBodyChunk *cur = htud->body.first;
-    if (htud->body.nchunks == 0) {
+    HtpBodyChunk *cur = htud->request_body.first;
+    if (htud->request_body.nchunks == 0) {
         SCLogDebug("No body data in t1 (it should be removed only when the tx is destroyed): ");
         goto end;
     }
@@ -2718,10 +2718,10 @@ static int DetectPcreTxBodyChunksTest01(void) {
         goto end;
     }
 
-    htud = (SCHtpTxUserData *) htp_tx_get_user_data(t2);
+    htud = (HtpTxUserData *) htp_tx_get_user_data(t2);
 
-    cur = htud->body.first;
-    if (htud->body.nchunks == 0) {
+    cur = htud->request_body.first;
+    if (htud->request_body.nchunks == 0) {
         SCLogDebug("No body data in t1 (it should be removed only when the tx is destroyed): ");
         goto end;
     }
@@ -2922,10 +2922,10 @@ static int DetectPcreTxBodyChunksTest02(void) {
     htp_tx_t *t1 = list_get(htp_state->connp->conn->transactions, 0);
     htp_tx_t *t2 = list_get(htp_state->connp->conn->transactions, 1);
 
-    SCHtpTxUserData *htud = (SCHtpTxUserData *) htp_tx_get_user_data(t1);
+    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(t1);
 
-    HtpBodyChunk *cur = htud->body.first;
-    if (htud->body.nchunks == 0) {
+    HtpBodyChunk *cur = htud->request_body.first;
+    if (htud->request_body.nchunks == 0) {
         SCLogDebug("No body data in t1 (it should be removed only when the tx is destroyed): ");
         goto end;
     }
@@ -2935,10 +2935,10 @@ static int DetectPcreTxBodyChunksTest02(void) {
         goto end;
     }
 
-    htud = (SCHtpTxUserData *) htp_tx_get_user_data(t2);
+    htud = (HtpTxUserData *) htp_tx_get_user_data(t2);
 
-    cur = htud->body.first;
-    if (htud->body.nchunks == 0) {
+    cur = htud->request_body.first;
+    if (htud->request_body.nchunks == 0) {
         SCLogDebug("No body data in t1 (it should be removed only when the tx is destroyed): ");
         goto end;
     }
