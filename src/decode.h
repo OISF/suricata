@@ -50,6 +50,7 @@
 #include "decode-sctp.h"
 #include "decode-raw.h"
 #include "decode-vlan.h"
+#include "util-profiling.h"
 
 #include "detect-reference.h"
 
