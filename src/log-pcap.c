@@ -54,23 +54,23 @@
 
 #include "queue.h"
 
-#define DEFAULT_LOG_FILENAME "pcaplog"
-#define MODULE_NAME "PcapLog"
-#define MIN_LIMIT 1
-#define DEFAULT_LIMIT 100
-#define DEFAULT_FILE_LIMIT 0
+#define DEFAULT_LOG_FILENAME            "pcaplog"
+#define MODULE_NAME                     "PcapLog"
+#define MIN_LIMIT                       1
+#define DEFAULT_LIMIT                   100
+#define DEFAULT_FILE_LIMIT              0
 
-#define LOGMODE_NORMAL  0
-#define LOGMODE_SGUIL   1
+#define LOGMODE_NORMAL                  0
+#define LOGMODE_SGUIL                   1
 
-#define RING_BUFFER_MODE_DISABLED 0
-#define RING_BUFFER_MODE_ENABLED 1
+#define RING_BUFFER_MODE_DISABLED       0
+#define RING_BUFFER_MODE_ENABLED        1
 
-#define TS_FORMAT_SEC 0
-#define TS_FORMAT_USEC 1
+#define TS_FORMAT_SEC                   0
+#define TS_FORMAT_USEC                  1
 
-#define USE_STREAM_DEPTH_DISABLED 0
-#define USE_STREAM_DEPTH_ENABLED 1
+#define USE_STREAM_DEPTH_DISABLED       0
+#define USE_STREAM_DEPTH_ENABLED        1
 
 /*prototypes*/
 TmEcode PcapLog (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
@@ -90,21 +90,20 @@ typedef struct PcapLogData_ {
     char *filename;             /**< current filename */
     uint32_t file_cnt;          /**< count of pcap files we currently have */
     uint32_t max_files;         /**< maximum files to use in ring buffer mode */
-    uint64_t pkt_cnt;		/**< total number of packets */
+    uint64_t pkt_cnt;		    /**< total number of packets */
     int prev_day;               /**< last day, for finding out when */
     pcap_t *pcap_dead_handle;   /**< pcap_dumper_t needs a handle */
     pcap_dumper_t *pcap_dumper; /**< actually writes the packets */
     char *prefix;               /**< filename prefix */
     int mode;                   /**< normal or sguil */
     int use_ringbuffer;         /**< ring buffer mode enabled or disabled */
-    int timestamp_format;      /**< timestamp format sec or usec */
+    int timestamp_format;       /**< timestamp format sec or usec */
     int use_stream_depth;       /**< use stream depth i.e. ignore packets that reach limit */
     char dir[PATH_MAX];         /**< pcap log directory */
 } PcapLogData;
 
-static PcapLogData *pl; /*pcap_dumper is not thread safe*/
+static PcapLogData *pl;         /**< pcap_dumper is not thread safe */
 int PcapLogOpenFileCtx(PcapLogData *);
-
 static SCMutex plog_lock;
 
 typedef struct PcapFileName_ {
@@ -192,11 +191,11 @@ int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl) {
 
     if (pl->use_ringbuffer == RING_BUFFER_MODE_ENABLED && pl->file_cnt >= pl->max_files) {
          pf = TAILQ_FIRST(&pcap_file_list);
-         SCLogDebug("Removing pcap file %s\n", pf->filename);
+         SCLogDebug("Removing pcap file %s", pf->filename);
 
          if (remove(pf->filename) != 0) {
              SCLogError(SC_ERR_PCAP_FILE_DELETE_FAILED,
-                 "failed to remove log file %s: %s\n",
+                 "failed to remove log file %s: %s",
                  pf->filename, strerror( errno ));
              TAILQ_REMOVE(&pcap_file_list, pf, next);
              if (pf != NULL)
@@ -205,7 +204,7 @@ int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl) {
              return -1;
          }
          else {
-             SCLogDebug("success! removed log file %s\n", pf->filename);
+             SCLogDebug("success! removed log file %s", pf->filename);
 
              /* Remove directory if Sguil mode and no files left in sguil dir */
              if (pl->mode == LOGMODE_SGUIL) {
@@ -214,16 +213,16 @@ int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl) {
 
                   if (strcmp(pf->dirname, pfnext->dirname) == 0) {
                       SCLogDebug("Current entry dir %s and next entry %s "
-                          "are equal: not removing dir\n",
+                          "are equal: not removing dir",
                           pf->dirname, pfnext->dirname);
                   } else {
                       SCLogDebug("current entry %s and %s are "
-                          "not equal: removing dir\n",
+                          "not equal: removing dir",
                           pf->dirname, pfnext->dirname);
 
                       if (remove(pf->dirname) != 0) {
                           SCLogError(SC_ERR_PCAP_FILE_DELETE_FAILED,
-                              "failed to remove sguil log %s: %s\n",
+                              "failed to remove sguil log %s: %s",
                               pf->dirname, strerror( errno ));
                           TAILQ_REMOVE(&pcap_file_list, pf, next);
                           if (pf != NULL)
@@ -276,6 +275,7 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, PacketQu
     }
 
     SCMutexLock(&plog_lock);
+
     pl->pkt_cnt++;
     pl->h->ts.tv_sec = p->ts.tv_sec;
     pl->h->ts.tv_usec = p->ts.tv_usec;
@@ -284,9 +284,10 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, PacketQu
     len = sizeof(*pl->h) + GET_PKT_LEN(p);
 
     if (pl->filename == NULL) {
-        SCLogDebug("Opening PCAP log file %s", filename);
+        SCLogDebug("Opening PCAP log file %s", pl->filename);
         ret = PcapLogOpenFileCtx(pl);
         if (ret < 0) {
+            SCMutexUnlock(&plog_lock);
             return TM_ECODE_FAILED;
         }
     }
@@ -318,6 +319,8 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, PacketQu
                         LIBPCAP_SNAPLEN)) == NULL)
         {
             SCLogDebug("Error opening dead pcap handle");
+
+            SCMutexUnlock(&plog_lock);
             return TM_ECODE_FAILED;
         }
     }
@@ -328,27 +331,30 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, PacketQu
                         pl->filename)) == NULL)
         {
             SCLogInfo("Error opening dump file %s", pcap_geterr(pl->pcap_dead_handle));
+
+            SCMutexUnlock(&plog_lock);
             return TM_ECODE_FAILED;
         }
     }
 
     pcap_dump((u_char *)pl->pcap_dumper, pl->h, GET_PKT_DATA(p));
     pl->size_current += len;
-    SCLogDebug("%u %u",pl->size_current, pl->size_limit);
-    SCMutexUnlock(&plog_lock);
+    SCLogDebug("pl->size_current %"PRIu64",  pl->size_limit %"PRIu64, pl->size_current, pl->size_limit);
 
+    SCMutexUnlock(&plog_lock);
     return TM_ECODE_OK;
 }
 
 TmEcode PcapLogDataInit(ThreadVars *t, void *initdata, void **data)
 {
-    if(initdata == NULL)
+    if (initdata == NULL)
     {
-        SCLogDebug("Error getting context for PcapLog.  \"initdata\" argument NULL");
+        SCLogDebug("Error getting context for PcapLog. \"initdata\" argument NULL");
         return TM_ECODE_FAILED;
     }
 
     SCMutexLock(&plog_lock);
+
     /** Use the Ouptut Context (file pointer and mutex) */
     pl->pkt_cnt = 0;
     pl->pcap_dead_handle = NULL;
@@ -363,8 +369,8 @@ TmEcode PcapLogDataInit(ThreadVars *t, void *initdata, void **data)
     pl->prev_day = tms->tm_mday;
 
     *data = (void *)pl;
-    SCMutexUnlock(&plog_lock);
 
+    SCMutexUnlock(&plog_lock);
     return TM_ECODE_OK;
 }
 
@@ -456,6 +462,9 @@ OutputCtx *PcapLogInitCtx(ConfNode *conf)
         const char *s_dir = NULL;
         s_dir = ConfNodeLookupChildValue(conf, "dir");
         if (s_dir == NULL) {
+            s_dir = ConfNodeLookupChildValue(conf, "sguil_base_dir");
+        }
+        if (s_dir == NULL) {
             if (pl->mode == LOGMODE_SGUIL) {
                 SCLogError(SC_ERR_LOGPCAP_SGUIL_BASE_DIR_MISSING,
                     "log-pcap \"sguil\" mode requires \"dir\" "
@@ -483,7 +492,7 @@ OutputCtx *PcapLogInitCtx(ConfNode *conf)
     uint32_t max_file_limit = DEFAULT_FILE_LIMIT;
     if (conf != NULL) {
         const char *max_number_of_files_s = NULL;
-        max_number_of_files_s = ConfNodeLookupChildValue(conf, "max_files");
+        max_number_of_files_s = ConfNodeLookupChildValue(conf, "max-files");
         if (max_number_of_files_s != NULL) {
             if (ByteExtractStringUint32(&max_file_limit, 10, 0, max_number_of_files_s) == -1) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
@@ -505,7 +514,7 @@ OutputCtx *PcapLogInitCtx(ConfNode *conf)
 
     const char *ts_format = NULL;
     if (conf != NULL) { /* To faciliate unit tests. */
-        ts_format = ConfNodeLookupChildValue(conf, "ts_format");
+        ts_format = ConfNodeLookupChildValue(conf, "ts-format");
     }
     if (ts_format != NULL) {
         if (strcasecmp(ts_format, "usec") == 0) {
@@ -520,7 +529,7 @@ OutputCtx *PcapLogInitCtx(ConfNode *conf)
 
     const char *use_stream_depth = NULL;
     if (conf != NULL) { /* To faciliate unit tests. */
-        use_stream_depth = ConfNodeLookupChildValue(conf, "use_stream_depth");
+        use_stream_depth = ConfNodeLookupChildValue(conf, "use-stream-depth");
     }
     if (use_stream_depth != NULL) {
         if (ConfValIsFalse(use_stream_depth)) {
