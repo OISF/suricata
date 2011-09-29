@@ -209,6 +209,9 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
                                                (uint16_t *)p->tcph, 20);
     }
 
+    memset(&p->ts, 0, sizeof(struct timeval));
+    TimeGet(&p->ts);
+
     return p;
 }
 
