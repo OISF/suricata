@@ -86,12 +86,6 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
                                                            TcpSession *ssn,
                                                            int dummy)
 {
-    if (p == NULL) {
-        p = PacketGetFromAlloc();
-        if (p == NULL)
-            return NULL;
-    }
-
     p->proto = IPPROTO_TCP;
     p->flow = f;
     FlowIncrUsecnt(f);
@@ -151,22 +145,22 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
         p->ip6h->s_ip6_hlim = 64;
         if (direction == 0) {
             p->ip6h->ip6_src[0] = f->src.addr_data32[0];
-            p->ip6h->ip6_src[1] = f->src.addr_data32[0];
-            p->ip6h->ip6_src[2] = f->src.addr_data32[0];
-            p->ip6h->ip6_src[3] = f->src.addr_data32[0];
+            p->ip6h->ip6_src[1] = f->src.addr_data32[1];
+            p->ip6h->ip6_src[2] = f->src.addr_data32[2];
+            p->ip6h->ip6_src[3] = f->src.addr_data32[3];
             p->ip6h->ip6_dst[0] = f->dst.addr_data32[0];
-            p->ip6h->ip6_dst[1] = f->dst.addr_data32[0];
-            p->ip6h->ip6_dst[2] = f->dst.addr_data32[0];
-            p->ip6h->ip6_dst[3] = f->dst.addr_data32[0];
+            p->ip6h->ip6_dst[1] = f->dst.addr_data32[1];
+            p->ip6h->ip6_dst[2] = f->dst.addr_data32[2];
+            p->ip6h->ip6_dst[3] = f->dst.addr_data32[3];
         } else {
             p->ip6h->ip6_src[0] = f->dst.addr_data32[0];
-            p->ip6h->ip6_src[1] = f->dst.addr_data32[0];
-            p->ip6h->ip6_src[2] = f->dst.addr_data32[0];
-            p->ip6h->ip6_src[3] = f->dst.addr_data32[0];
+            p->ip6h->ip6_src[1] = f->dst.addr_data32[1];
+            p->ip6h->ip6_src[2] = f->dst.addr_data32[2];
+            p->ip6h->ip6_src[3] = f->dst.addr_data32[3];
             p->ip6h->ip6_dst[0] = f->src.addr_data32[0];
-            p->ip6h->ip6_dst[1] = f->src.addr_data32[0];
-            p->ip6h->ip6_dst[2] = f->src.addr_data32[0];
-            p->ip6h->ip6_dst[3] = f->src.addr_data32[0];
+            p->ip6h->ip6_dst[1] = f->src.addr_data32[1];
+            p->ip6h->ip6_dst[2] = f->src.addr_data32[2];
+            p->ip6h->ip6_dst[3] = f->src.addr_data32[3];
         }
 
         /* set the tcp header */
@@ -217,6 +211,21 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
 
     return p;
 }
+
+static inline Packet *FlowForceReassemblyPseudoPacketGet(int direction,
+                                                         Flow *f,
+                                                         TcpSession *ssn,
+                                                         int dummy)
+{
+    Packet *p;
+
+    p = PacketGetFromAlloc();
+    if (p == NULL)
+        return NULL;
+
+    return FlowForceReassemblyPseudoPacketSetup(p, direction, f, ssn, dummy);
+}
+
 
 /**
  * \internal
@@ -274,38 +283,38 @@ int FlowForceReassemblyForFlowV2(Flow *f)
 
     /* insert a pseudo packet in the toserver direction */
     if (client_ok == 1) {
-        p1 = FlowForceReassemblyPseudoPacketSetup(NULL, 1, f, ssn, 0);
+        p1 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 0);
         if (p1 == NULL) {
             return 1;
         }
 
         if (server_ok == 1) {
-            p2 = FlowForceReassemblyPseudoPacketSetup(NULL, 0, f, ssn, 0);
+            p2 = FlowForceReassemblyPseudoPacketGet( 0, f, ssn, 0);
             if (p2 == NULL) {
                 TmqhOutputPacketpool(NULL,p1);
                 return 1;
             }
 
-            p3 = FlowForceReassemblyPseudoPacketSetup(NULL, 1, f, ssn, 0);
+            p3 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 0);
             if (p3 == NULL) {
                 TmqhOutputPacketpool(NULL, p1);
                 TmqhOutputPacketpool(NULL, p2);
                 return 1;
             }
         } else {
-            p2 = FlowForceReassemblyPseudoPacketSetup(NULL, 0, f, ssn, 1);
+            p2 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
             if (p2 == NULL) {
                 TmqhOutputPacketpool(NULL, p1);
                 return 1;
             }
         }
     } else {
-        p1 = FlowForceReassemblyPseudoPacketSetup(NULL, 0, f, ssn, 0);
+        p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 0);
         if (p1 == NULL) {
             return 1;
         }
 
-        p2 = FlowForceReassemblyPseudoPacketSetup(NULL, 1, f, ssn, 1);
+        p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
         if (p2 == NULL) {
             TmqhOutputPacketpool(NULL, p1);
             return 1;
@@ -399,8 +408,9 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
 
         /* insert a pseudo packet in the toserver direction */
         if (client_ok == 1) {
-            Packet *p = FlowForceReassemblyPseudoPacketSetup(NULL, 0, f, ssn, 1);
+            Packet *p = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
             if (p == NULL) {
+                TmqhOutputPacketpool(NULL, reassemble_p);
                 return;
             }
 
@@ -422,8 +432,9 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
             }
         } /* if (ssn->client.seg_list != NULL) */
         if (server_ok == 1) {
-            Packet *p = FlowForceReassemblyPseudoPacketSetup(NULL, 1, f, ssn, 1);
+            Packet *p = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p == NULL) {
+                TmqhOutputPacketpool(NULL, reassemble_p);
                 return;
             }
 
