@@ -72,6 +72,7 @@ typedef enum {
     TMM_DECODEERFDAG,
     TMM_RECEIVEAFP,
     TMM_DECODEAFP,
+    TMM_ALERTPCAPINFO,
     TMM_SIZE,
 } TmmId;
 

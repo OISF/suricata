@@ -228,6 +228,7 @@ alert-unified-log.c alert-unified-log.h \
 alert-unified-alert.c alert-unified-alert.h \
 alert-unified2-alert.c alert-unified2-alert.h \
 alert-syslog.c alert-syslog.h \
+alert-pcapinfo.c alert-pcapinfo.h \
 log-droplog.c log-droplog.h \
 log-httplog.c log-httplog.h \
 log-pcap.c log-pcap.h \

@@ -82,6 +82,7 @@
 #include "alert-debuglog.h"
 #include "alert-prelude.h"
 #include "alert-syslog.h"
+#include "alert-pcapinfo.h"
 #include "log-droplog.h"
 
 #include "log-httplog.h"
@@ -1208,6 +1209,7 @@ int main(int argc, char **argv)
     TmModuleAlertUnifiedAlertRegister();
     TmModuleUnified2AlertRegister();
     TmModuleAlertSyslogRegister();
+    TmModuleAlertPcapInfoRegister();
     TmModuleLogDropLogRegister();
     TmModuleStreamTcpRegister();
     TmModuleLogHttpLogRegister();
