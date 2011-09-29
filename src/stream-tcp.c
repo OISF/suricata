@@ -109,8 +109,8 @@ static uint64_t ssn_pool_cnt = 0; /** counts ssns, protected by ssn_pool_mutex *
 extern uint8_t engine_mode;
 
 static SCSpinlock stream_memuse_spinlock;
-static uint32_t stream_memuse;
-static uint32_t stream_memuse_max;
+static uint64_t stream_memuse = 0;
+static uint64_t stream_memuse_max = 0;
 
 /* stream engine running in "inline" mode. */
 int stream_inline = 0;
@@ -126,18 +126,18 @@ void TmModuleStreamTcpRegister (void)
     tmm_modules[TMM_STREAMTCP].cap_flags = 0;
 }
 
-void StreamTcpIncrMemuse(uint32_t size) {
+void StreamTcpIncrMemuse(uint64_t size) {
     SCSpinLock(&stream_memuse_spinlock);
-    stream_memuse += size;
+    stream_memuse += (uint64_t)size;
     if (stream_memuse > stream_memuse_max)
         stream_memuse_max = stream_memuse;
     SCSpinUnlock(&stream_memuse_spinlock);
 }
 
-void StreamTcpDecrMemuse(uint32_t size) {
+void StreamTcpDecrMemuse(uint64_t size) {
     SCSpinLock(&stream_memuse_spinlock);
-    if (size <= stream_memuse)
-        stream_memuse -= size;
+    if ((uint64_t)size <= stream_memuse)
+        stream_memuse -= (uint64_t)size;
     else
         stream_memuse = 0;
     SCSpinUnlock(&stream_memuse_spinlock);
@@ -149,12 +149,12 @@ void StreamTcpDecrMemuse(uint32_t size) {
  *  \retval 1 if in bounds
  *  \retval 0 if not in bounds
  */
-int StreamTcpCheckMemcap(uint32_t size) {
+int StreamTcpCheckMemcap(uint64_t size) {
     SCEnter();
 
     int ret = 0;
     SCSpinLock(&stream_memuse_spinlock);
-    if (size + stream_memuse <= stream_config.memcap)
+    if (stream_config.memcap == 0 || (size + stream_memuse) <= stream_config.memcap)
         ret = 1;
     SCSpinUnlock(&stream_memuse_spinlock);
 
@@ -263,7 +263,7 @@ void *StreamTcpSessionPoolAlloc(void *null)
 
     memset(ptr, 0, sizeof(TcpSession));
 
-    StreamTcpIncrMemuse((uint32_t)sizeof(TcpSession));
+    StreamTcpIncrMemuse((uint64_t)sizeof(TcpSession));
 
     return ptr;
 }
@@ -309,7 +309,7 @@ void StreamTcpSessionPoolFree(void *s)
 
     SCFree(ssn);
 
-    StreamTcpDecrMemuse((uint32_t)sizeof(TcpSession));
+    StreamTcpDecrMemuse((uint64_t)sizeof(TcpSession));
 
 }
 
@@ -353,13 +353,13 @@ void StreamTcpInitConfig(char quiet)
     }
 
     if ((ConfGetInt("stream.memcap", &value)) == 1) {
-        stream_config.memcap = (uint32_t)value;
+        stream_config.memcap = (uint64_t)value;
     } else {
         stream_config.memcap = STREAMTCP_DEFAULT_MEMCAP;
     }
 
     if (!quiet) {
-        SCLogInfo("stream \"memcap\": %"PRIu32"", stream_config.memcap);
+        SCLogInfo("stream \"memcap\": %"PRIu64, stream_config.memcap);
     }
 
     ConfGetBool("stream.midstream", &stream_config.midstream);
@@ -402,12 +402,12 @@ void StreamTcpInitConfig(char quiet)
     }
 
     if ((ConfGetInt("stream.reassembly.memcap", &value)) == 1) {
-        stream_config.reassembly_memcap = (uint32_t)value;
+        stream_config.reassembly_memcap = (uint64_t)value;
     } else {
         stream_config.reassembly_memcap = STREAMTCP_DEFAULT_REASSEMBLY_MEMCAP;
     }
     if (!quiet) {
-        SCLogInfo("stream.reassembly \"memcap\": %"PRIu32"", stream_config.reassembly_memcap);
+        SCLogInfo("stream.reassembly \"memcap\": %"PRIu64"", stream_config.reassembly_memcap);
     }
 
     if ((ConfGetInt("stream.reassembly.depth", &value)) == 1) {
@@ -486,7 +486,7 @@ void StreamTcpFreeConfig(char quiet)
 
     if (!quiet) {
         SCSpinLock(&stream_memuse_spinlock);
-        SCLogInfo("Max memuse of stream engine %"PRIu32" (in use %"PRIu32")",
+        SCLogInfo("Max memuse of stream engine %"PRIu64" (in use %"PRIu64")",
             stream_memuse_max, stream_memuse);
         SCSpinUnlock(&stream_memuse_spinlock);
     }
@@ -7019,7 +7019,7 @@ end:
     if (stream_memuse == 0) {
         result &= 1;
     } else {
-        printf("stream_memuse %"PRIu32"\n", stream_memuse);
+        printf("stream_memuse %"PRIu64"\n", stream_memuse);
     }
     SCFree(p);
     return result;
@@ -7107,7 +7107,7 @@ end:
     if (stream_memuse == 0) {
         result &= 1;
     } else {
-        printf("stream_memuse %"PRIu32"\n", stream_memuse);
+        printf("stream_memuse %"PRIu64"\n", stream_memuse);
     }
     SCFree(p);
     return result;

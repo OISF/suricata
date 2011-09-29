@@ -45,13 +45,13 @@ typedef struct TcpStreamCnf_ {
      *
      * max stream mem usage
      */
-    uint32_t memcap;
+    uint64_t memcap;
+    uint64_t reassembly_memcap; /**< max memory usage for stream reassembly */
 
     uint32_t max_sessions;
     uint32_t prealloc_sessions;
     int midstream;
     int async_oneside;
-    uint32_t reassembly_memcap; /**< max memory usage for stream reassembly */
     uint32_t reassembly_depth;  /**< Depth until when we reassemble the stream */
 
     uint16_t reassembly_toserver_chunk_size;
@@ -91,9 +91,9 @@ void StreamTcpRegisterTests (void);
 
 void StreamTcpSessionPktFree (Packet *);
 
-void StreamTcpIncrMemuse(uint32_t);
-void StreamTcpDecrMemuse(uint32_t);
-int StreamTcpCheckMemcap(uint32_t);
+void StreamTcpIncrMemuse(uint64_t);
+void StreamTcpDecrMemuse(uint64_t);
+int StreamTcpCheckMemcap(uint64_t);
 
 void StreamTcpPseudoPacketSetupHeader(Packet *, Packet *);
 Packet *StreamTcpPseudoSetup(Packet *, uint8_t *, uint32_t);

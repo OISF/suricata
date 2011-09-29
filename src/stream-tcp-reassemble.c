@@ -95,8 +95,8 @@ static uint16_t segment_pool_idx[65536]; /* O(1) lookups of the pool */
 
 /* Memory use counters */
 static SCSpinlock stream_reassembly_memuse_spinlock;
-static uint32_t stream_reassembly_memuse;
-static uint32_t stream_reassembly_memuse_max;
+static uint64_t stream_reassembly_memuse;
+static uint64_t stream_reassembly_memuse_max;
 
 /* prototypes */
 static int HandleSegmentStartsBeforeListSegment(ThreadVars *, TcpReassemblyThreadCtx *,
@@ -117,7 +117,7 @@ void StreamTcpReassemblePseudoPacketCreate(TcpStream *, Packet *, PacketQueue *)
  *
  *  \param  size Size of the TCP segment and its payload length memory allocated
  */
-void StreamTcpReassembleIncrMemuse(uint32_t size) {
+void StreamTcpReassembleIncrMemuse(uint64_t size) {
 
     SCSpinLock(&stream_reassembly_memuse_spinlock);
     stream_reassembly_memuse += size;
@@ -134,7 +134,7 @@ void StreamTcpReassembleIncrMemuse(uint32_t size) {
  *
  *  \param  size Size of the TCP segment and its payload length memory allocated
  */
-void StreamTcpReassembleDecrMemuse(uint32_t size) {
+void StreamTcpReassembleDecrMemuse(uint64_t size) {
     SCSpinLock(&stream_reassembly_memuse_spinlock);
 
     if (size <= stream_reassembly_memuse) {
@@ -161,7 +161,7 @@ int StreamTcpReassembleCheckMemcap(uint32_t size) {
 
     int ret = 0;
     SCSpinLock(&stream_reassembly_memuse_spinlock);
-    if (size + stream_reassembly_memuse <= stream_config.reassembly_memcap)
+    if (stream_config.reassembly_memcap == 0 || size + stream_reassembly_memuse <= stream_config.reassembly_memcap)
         ret = 1;
     SCSpinUnlock(&stream_reassembly_memuse_spinlock);
 
@@ -350,8 +350,8 @@ void StreamTcpReassembleFree(char quiet)
 
     if (!quiet) {
         SCSpinLock(&stream_reassembly_memuse_spinlock);
-        SCLogInfo("Max memuse of the stream reassembly engine %"PRIu32" (in use"
-                " %"PRIu32")", stream_reassembly_memuse_max,
+        SCLogInfo("Max memuse of the stream reassembly engine %"PRIu64" (in use"
+                " %"PRIu64")", stream_reassembly_memuse_max,
                 stream_reassembly_memuse);
         SCSpinUnlock(&stream_reassembly_memuse_spinlock);
     }
