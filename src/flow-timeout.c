@@ -58,6 +58,8 @@
 
 #include "app-layer-parser.h"
 
+#include "util-profiling.h"
+
 static TmSlot *stream_pseudo_pkt_stream_tm_slot = NULL;
 static ThreadVars *stream_pseudo_pkt_stream_TV = NULL;
 
