@@ -310,6 +310,7 @@ int PfringConfLevel()
     return PFRING_CONF_V2;
 }
 
+#ifdef HAVE_PFRING
 static int GetDevAndParser(char **live_dev, ConfigIfaceParserFunc *parser)
 {
      ConfGet("pfring.live-interface", live_dev);
@@ -331,6 +332,7 @@ static int GetDevAndParser(char **live_dev, ConfigIfaceParserFunc *parser)
 
     return 0;
 }
+#endif
 
 /**
  * \brief RunModeIdsPfringAuto set up the following thread packet handlers:
