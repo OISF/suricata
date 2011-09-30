@@ -327,12 +327,7 @@ void EngineAnalysisFastPattern(Signature *s)
 {
     SigMatch *mpm_sm = NULL;
     uint32_t fast_pattern = 0;
-    int sig_has_no_pkt_and_stream_content = 0;
     int list_id = 0;
-
-    if (!SignatureHasPacketContent(s) && !SignatureHasStreamContent(s)) {
-        sig_has_no_pkt_and_stream_content = 1;
-    }
 
     for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
         /* we have no keywords that support fp in this Signature sm list */
