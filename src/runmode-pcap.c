@@ -39,6 +39,7 @@
 #include "util-affinity.h"
 #include "util-device.h"
 #include "util-runmodes.h"
+#include "util-atomic.h"
 
 static const char *default_mode = NULL;
 
@@ -65,6 +66,18 @@ void RunModeIdsPcapRegister(void)
                               RunModeIdsPcapAutoFp);
 
     return;
+}
+
+void PcapDerefConfig(void *conf)
+{
+    PcapIfaceConfig *pfp = (PcapIfaceConfig *)conf;
+    /* Pcap config is used only once but cost of this low. */
+    if (SC_ATOMIC_SUB(pfp->ref, 1) == 0) {
+        if (pfp->bpf_filter) {
+            SCFree(pfp->bpf_filter);
+        }
+        SCFree(pfp);
+    }
 }
 
 
@@ -95,6 +108,10 @@ void *ParsePcapConfig(const char *iface)
     if ((ConfGet("bpf-filter", &tmpbpf)) == 1) {
         aconf->bpf_filter = tmpbpf;
     }
+
+    SC_ATOMIC_INIT(aconf->ref);
+    SC_ATOMIC_ADD(aconf->ref, 1);
+    aconf->DerefFunc = PcapDerefConfig;
 
     /* Find initial node */
     pcap_node = ConfGetNode("pcap");

@@ -51,6 +51,8 @@ typedef struct AFPIfaceConfig_
     int cluster_type;
     /* promisc mode */
     int promisc;
+    SC_ATOMIC_DECLARE(unsigned int, ref);
+    void (*DerefFunc)(void *);
 } AFPIfaceConfig;
 
 void TmModuleReceiveAFPRegister (void);

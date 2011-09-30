@@ -78,6 +78,15 @@ void RunModeIdsAFPRegister(void)
     return;
 }
 
+void AFPDerefConfig(void *conf)
+{
+    AFPIfaceConfig *pfp = (AFPIfaceConfig *)conf;
+    /* Pcap config is used only once but cost of this low. */
+    if (SC_ATOMIC_SUB(pfp->ref, 1) == 0) {
+        SCFree(pfp);
+    }
+}
+
 /**
  * \brief extract information from config file
  *
@@ -108,10 +117,13 @@ void *ParseAFPConfig(const char *iface)
     }
     strlcpy(aconf->iface, iface, sizeof(aconf->iface));
     aconf->threads = 1;
+    SC_ATOMIC_INIT(aconf->ref);
+    SC_ATOMIC_ADD(aconf->ref, 1);
     aconf->buffer_size = 0;
     aconf->cluster_id = 1;
     aconf->cluster_type = PACKET_FANOUT_HASH;
     aconf->promisc = 1;
+    aconf->DerefFunc = AFPDerefConfig;
 
     /* Find initial node */
     af_packet_node = ConfGetNode("af-packet");
@@ -138,6 +150,10 @@ void *ParseAFPConfig(const char *iface)
     if (aconf->threads == 0) {
         aconf->threads = 1;
     }
+
+    SC_ATOMIC_RESET(aconf->ref);
+    SC_ATOMIC_ADD(aconf->ref, aconf->threads);
+
     if (ConfGetChildValue(if_root, "cluster-id", &tmpclusterid) != 1) {
         SCLogError(SC_ERR_INVALID_ARGUMENT,"Could not get cluster-id from config");
     } else {

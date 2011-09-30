@@ -275,9 +275,15 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
     char *tmpctype;
     PfringIfaceConfig *pfconf = (PfringIfaceConfig *) initdata;
 
-    PfringThreadVars *ptv = SCMalloc(sizeof(PfringThreadVars));
-    if (ptv == NULL)
+
+    if (pfconf == NULL)
         return TM_ECODE_FAILED;
+
+    PfringThreadVars *ptv = SCMalloc(sizeof(PfringThreadVars));
+    if (ptv == NULL) {
+        pfconf->DerefFunc(pfconf);
+        return TM_ECODE_FAILED;
+    }
     memset(ptv, 0, sizeof(PfringThreadVars));
 
     ptv->tv = tv;
@@ -289,6 +295,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (ptv->pd == NULL) {
         SCLogError(SC_ERR_PF_RING_OPEN,"opening %s failed: pfring_open error",
                 ptv->interface);
+        pfconf->DerefFunc(pfconf);
         return TM_ECODE_FAILED;
     } else {
         pfring_set_application_name(ptv->pd, PROG_NAME);
@@ -311,6 +318,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
         if (rc != 0) {
             SCLogError(SC_ERR_PF_RING_SET_CLUSTER_FAILED, "pfring_set_cluster "
                     "returned %d for cluster-id: %d", rc, ptv->cluster_id);
+            pfconf->DerefFunc(pfconf);
             return TM_ECODE_FAILED;
         }
         SCLogInfo("(%s) Using PF_RING v.%d.%d.%d, interface %s, cluster-id %d",
@@ -329,12 +337,14 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     if (rc != 0) {
         SCLogError(SC_ERR_PF_RING_OPEN, "pfring_enable failed returned %d ", rc);
+        pfconf->DerefFunc(pfconf);
         return TM_ECODE_FAILED;
     }
 #endif /* HAVE_PFRING_ENABLE */
 
 
     *data = (void *)ptv;
+    pfconf->DerefFunc(pfconf);
     return TM_ECODE_OK;
 }
 

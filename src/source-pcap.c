@@ -295,8 +295,10 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     }
 
     PcapThreadVars *ptv = SCMalloc(sizeof(PcapThreadVars));
-    if (ptv == NULL)
+    if (ptv == NULL) {
+        pcapconfig->DerefFunc(pcapconfig);
         SCReturnInt(TM_ECODE_FAILED);
+    }
     memset(ptv, 0, sizeof(PcapThreadVars));
 
     ptv->tv = tv;
@@ -308,6 +310,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (ptv->pcap_handle == NULL) {
         SCLogError(SC_ERR_PCAP_CREATE, "Coudn't create a new pcap handler, error %s", pcap_geterr(ptv->pcap_handle));
         SCFree(ptv);
+        pcapconfig->DerefFunc(pcapconfig);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -317,6 +320,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (pcap_set_snaplen_r != 0) {
         SCLogError(SC_ERR_PCAP_SET_SNAPLEN, "Couldn't set snaplen, error: %s", pcap_geterr(ptv->pcap_handle));
         SCFree(ptv);
+        pcapconfig->DerefFunc(pcapconfig);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -325,6 +329,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (pcap_set_promisc_r != 0) {
         SCLogError(SC_ERR_PCAP_SET_PROMISC, "Couldn't set promisc mode, error %s", pcap_geterr(ptv->pcap_handle));
         SCFree(ptv);
+        pcapconfig->DerefFunc(pcapconfig);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -333,6 +338,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (pcap_set_timeout_r != 0) {
         SCLogError(SC_ERR_PCAP_SET_TIMEOUT, "Problems setting timeout, error %s", pcap_geterr(ptv->pcap_handle));
         SCFree(ptv);
+        pcapconfig->DerefFunc(pcapconfig);
         SCReturnInt(TM_ECODE_FAILED);
     }
 #ifdef HAVE_PCAP_SET_BUFF
@@ -345,6 +351,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
         if (pcap_set_buffer_size_r != 0) {
             SCLogError(SC_ERR_PCAP_SET_BUFF_SIZE, "Problems setting pcap buffer size, error %s", pcap_geterr(ptv->pcap_handle));
             SCFree(ptv);
+            pcapconfig->DerefFunc(pcapconfig);
             SCReturnInt(TM_ECODE_FAILED);
         }
     }
@@ -356,6 +363,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (pcap_activate_r != 0) {
         SCLogError(SC_ERR_PCAP_ACTIVATE_HANDLE, "Couldn't activate the pcap handler, error %s", pcap_geterr(ptv->pcap_handle));
         SCFree(ptv);
+        pcapconfig->DerefFunc(pcapconfig);
         SCReturnInt(TM_ECODE_FAILED);
         ptv->pcap_state = PCAP_STATE_DOWN;
     } else {
@@ -365,20 +373,26 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     /* set bpf filter if we have one */
     if (pcapconfig->bpf_filter) {
         ptv->bpf_filter = SCStrdup(pcapconfig->bpf_filter);
+        /* free bpf as we are using a copy */
+        SCFree(pcapconfig->bpf_filter);
         if(pcap_compile(ptv->pcap_handle,&ptv->filter,ptv->bpf_filter,1,0) < 0) {
             SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(ptv->pcap_handle));
             SCFree(ptv);
+            pcapconfig->DerefFunc(pcapconfig);
             return TM_ECODE_FAILED;
         }
 
         if(pcap_setfilter(ptv->pcap_handle,&ptv->filter) < 0) {
             SCLogError(SC_ERR_BPF,"could not set bpf filter %s",pcap_geterr(ptv->pcap_handle));
             SCFree(ptv);
+            pcapconfig->DerefFunc(pcapconfig);
             return TM_ECODE_FAILED;
         }
     }
 
     ptv->datalink = pcap_datalink(ptv->pcap_handle);
+
+    pcapconfig->DerefFunc(pcapconfig);
 
     *data = (void *)ptv;
     SCReturnInt(TM_ECODE_OK);
@@ -386,7 +400,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 #else /* implied LIBPCAP_VERSION_MAJOR == 0 */
 TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     SCEnter();
-
+    PcapIfaceConfig *pcapconfig = initdata;
     char *tmpbpfstring;
 
     if (initdata == NULL) {
@@ -395,8 +409,11 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     }
 
     PcapThreadVars *ptv = SCMalloc(sizeof(PcapThreadVars));
-    if (ptv == NULL)
+    if (ptv == NULL) {
+        /* Dereference config */
+        pcapconfig->DerefFunc(pcapconfig);
         SCReturnInt(TM_ECODE_FAILED);
+    }
     memset(ptv, 0, sizeof(PcapThreadVars));
 
     ptv->tv = tv;
@@ -404,6 +421,8 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     SCLogInfo("using interface %s", (char *)initdata);
     if(strlen(initdata)>PCAP_IFACE_NAME_LENGTH) {
         SCFree(ptv);
+        /* Dereference config */
+        pcapconfig->DerefFunc(pcapconfig);
         SCReturnInt(TM_ECODE_FAILED);
     }
     strlcpy(ptv->iface, (char *)initdata, PCAP_IFACE_NAME_LENGTH);
@@ -414,6 +433,8 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (ptv->pcap_handle == NULL) {
         SCLogError(SC_ERR_PCAP_OPEN_LIVE, "Problem creating pcap handler for live mode, error %s", errbuf);
         SCFree(ptv);
+        /* Dereference config */
+        pcapconfig->DerefFunc(pcapconfig);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -425,20 +446,25 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
         if(pcap_compile(ptv->pcap_handle,&ptv->filter, ptv->bpf_filter,1,0) < 0) {
             SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(ptv->pcap_handle));
             SCFree(ptv);
+            /* Dereference config */
+            pcapconfig->DerefFunc(pcapconfig);
             return TM_ECODE_FAILED;
         }
 
         if(pcap_setfilter(ptv->pcap_handle,&ptv->filter) < 0) {
             SCLogError(SC_ERR_BPF,"could not set bpf filter %s",pcap_geterr(ptv->pcap_handle));
             SCFree(ptv);
+            /* Dereference config */
+            pcapconfig->DerefFunc(pcapconfig);
             return TM_ECODE_FAILED;
         }
     }
 
-
     ptv->datalink = pcap_datalink(ptv->pcap_handle);
 
     *data = (void *)ptv;
+    /* Dereference config */
+    pcapconfig->DerefFunc(pcapconfig);
     SCReturnInt(TM_ECODE_OK);
 }
 #endif /* LIBPCAP_VERSION_MAJOR */

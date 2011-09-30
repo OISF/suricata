@@ -556,8 +556,10 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
     }
 
     AFPThreadVars *ptv = SCMalloc(sizeof(AFPThreadVars));
-    if (ptv == NULL)
+    if (ptv == NULL) {
+        afpconfig->DerefFunc(afpconfig);
         SCReturnInt(TM_ECODE_FAILED);
+    }
     memset(ptv, 0, sizeof(AFPThreadVars));
 
     ptv->tv = tv;
@@ -586,6 +588,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (r < 0) {
         SCLogError(SC_ERR_AFP_CREATE, "Couldn't init AF_PACKET socket");
         SCFree(ptv);
+        afpconfig->DerefFunc(afpconfig);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
@@ -599,6 +602,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
 #define T_DATA_SIZE 70000
     ptv->data = SCMalloc(T_DATA_SIZE);
     if (ptv->data == NULL) {
+        afpconfig->DerefFunc(afpconfig);
         SCReturnInt(TM_ECODE_FAILED);
     }
     ptv->datalen = T_DATA_SIZE;
@@ -607,8 +611,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     *data = (void *)ptv;
 
-    /* we've received a single use structure, we can free it */
-    SCFree(initdata);
+    afpconfig->DerefFunc(afpconfig);
     SCReturnInt(TM_ECODE_OK);
 }
 

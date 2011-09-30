@@ -41,6 +41,8 @@ typedef struct PfringIfaceConfig_
     char iface[PFRING_IFACE_NAME_LENGTH];
     /* number of threads */
     int threads;
+    SC_ATOMIC_DECLARE(unsigned int, ref);
+    void (*DerefFunc)(void *);
 } PfringIfaceConfig;
 
 

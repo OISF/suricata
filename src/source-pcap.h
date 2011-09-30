@@ -51,6 +51,8 @@ typedef struct PcapIfaceConfig_
     int buffer_size;
     /* BPF filter */
     char *bpf_filter;
+    SC_ATOMIC_DECLARE(unsigned int, ref);
+    void (*DerefFunc)(void *);
 } PcapIfaceConfig;
 
 
