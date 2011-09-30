@@ -283,7 +283,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
     ptv->tv = tv;
     ptv->threads = 1;
 
-    ptv->interface = strdup(pfconf->iface);
+    ptv->interface = SCStrdup(pfconf->iface);
 
     ptv->pd = pfring_open(ptv->interface, LIBPFRING_PROMISC, (uint32_t)default_packet_size, LIBPFRING_REENTRANT);
     if (ptv->pd == NULL) {
@@ -302,7 +302,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
         ptv->cluster_id = pfconf->cluster_id;
 
 #ifdef HAVE_PFRING_CLUSTER_TYPE
-        ptv->ctype = (cluster_type)strdup((char *)pfconf->ctype);
+        ptv->ctype = (cluster_type)SCStrdup((char *)pfconf->ctype);
         rc = pfring_set_cluster(ptv->pd, ptv->cluster_id, ptv->ctype);
 #else
         rc = pfring_set_cluster(ptv->pd, ptv->cluster_id);

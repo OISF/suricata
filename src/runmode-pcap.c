@@ -123,7 +123,7 @@ void *ParsePcapConfig(const char *iface)
             SCLogDebug("could not get bpf or none specified");
         } else {
             /* TODO free this */
-            aconf->bpf_filter = strdup(tmpbpf);
+            aconf->bpf_filter = SCStrdup(tmpbpf);
         }
     } else {
         SCLogInfo("BPF filter set from command line or via old 'bpf-filter' option.");

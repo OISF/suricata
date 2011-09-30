@@ -52,7 +52,7 @@
 #include "util-runmodes.h"
 
 int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
-                              ConfigIfaceParserFunc configparser, char *recv_mod_name,
+                              ConfigIfaceParserFunc ConfigParser, char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
                               const char *live_dev)
 {
@@ -71,7 +71,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
         }
         SCLogDebug("live_dev %s", live_dev);
 
-        aconf = configparser(live_dev);
+        aconf = ConfigParser(live_dev);
         if (aconf == NULL) {
             printf("Single dev: Failed to allocate config\n");
             exit(EXIT_FAILURE);
@@ -114,7 +114,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
             }
             SCLogDebug("live_dev %s", live_dev);
 
-            aconf = configparser(live_dev);
+            aconf = ConfigParser(live_dev);
             if (aconf == NULL) {
                 printf("Failed to allocate config for %s (%d)\n",
                        live_dev, thread);
@@ -375,7 +375,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
 }
 
 int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
-                              ConfigIfaceParserFunc configparser,
+                              ConfigIfaceParserFunc ConfigParser,
                               ConfigIfaceThreadsCountFunc mod_threads_count,
                               char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
@@ -410,7 +410,7 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
 
         SCLogDebug("live_dev %s", live_dev);
 
-        aconf = configparser(live_dev);
+        aconf = ConfigParser(live_dev);
         if (aconf == NULL) {
             printf("Failed to allocate config for %s (%d)\n",
                    live_dev, thread);
@@ -470,7 +470,7 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
             }
             SCLogDebug("live_dev %s", live_dev);
 
-            aconf = configparser(live_dev);
+            aconf = ConfigParser(live_dev);
             if (aconf == NULL) {
                 printf("Multidev: Failed to allocate config for %s (%d)\n",
                        live_dev, lthread);
@@ -568,7 +568,7 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
 }
 
 int RunModeSetLiveCaptureSingle(DetectEngineCtx *de_ctx,
-                              ConfigIfaceParserFunc configparser,
+                              ConfigIfaceParserFunc ConfigParser,
                               ConfigIfaceThreadsCountFunc mod_threads_count,
                               char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
@@ -586,10 +586,10 @@ int RunModeSetLiveCaptureSingle(DetectEngineCtx *de_ctx,
     }
 
     if (live_dev != NULL) {
-        aconf = configparser(live_dev);
+        aconf = ConfigParser(live_dev);
     } else {
         char *live_dev_c = LiveGetDevice(0);
-        aconf = configparser(live_dev_c);
+        aconf = ConfigParser(live_dev_c);
     }
 
     threads_count = mod_threads_count(aconf);

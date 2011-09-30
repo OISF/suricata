@@ -95,7 +95,7 @@ void *OldParsePfringConfig(const char *iface)
     char *tmpclusterid;
 #ifdef HAVE_PFRING_CLUSTER_TYPE
     char *tmpctype = NULL;
-    char * default_ctype = strdup("cluster_round_robin");
+    char * default_ctype = SCStrdup("cluster_round_robin");
 #endif
 
     if (iface == NULL) {
@@ -173,7 +173,7 @@ void *ParsePfringConfig(const char *iface)
 #ifdef HAVE_PFRING_CLUSTER_TYPE
     char *tmpctype = NULL;
     /* TODO free me */
-    char * default_ctype = strdup("cluster_round_robin");
+    char * default_ctype = SCStrdup("cluster_round_robin");
     int getctype = 0;
 #endif
 

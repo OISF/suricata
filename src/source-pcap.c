@@ -364,7 +364,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     /* set bpf filter if we have one */
     if (pcapconfig->bpf_filter) {
-        ptv->bpf_filter = strdup(pcapconfig->bpf_filter);
+        ptv->bpf_filter = SCStrdup(pcapconfig->bpf_filter);
         if(pcap_compile(ptv->pcap_handle,&ptv->filter,ptv->bpf_filter,1,0) < 0) {
             SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(ptv->pcap_handle));
             SCFree(ptv);
@@ -419,7 +419,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     /* set bpf filter if we have one */
     if (pcapconfig->bpf_filter) {
-        ptv->bpf_filter = strdup(pcapconfig->bpf_filter);
+        ptv->bpf_filter = SCStrdup(pcapconfig->bpf_filter);
         SCLogInfo("using bpf-filter \"%s\"", ptv->bpf_filter);
 
         if(pcap_compile(ptv->pcap_handle,&ptv->filter, ptv->bpf_filter,1,0) < 0) {
