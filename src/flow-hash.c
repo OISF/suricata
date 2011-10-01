@@ -306,7 +306,7 @@ static Flow *FlowGetNew(Packet *p) {
          * 2- by emergency mode timeouts
          * 3- by last time seen
          */
-        if (SC_ATOMIC_GET(flow_memuse) + sizeof(Flow) > flow_config.memcap) {
+        if ((SC_ATOMIC_GET(flow_memuse) + sizeof(Flow)) > flow_config.memcap) {
             uint32_t not_released = 0;
 
             SCLogDebug("We need to prune some flows(1)");

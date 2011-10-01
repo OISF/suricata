@@ -883,13 +883,14 @@ void FlowInitConfig(char quiet)
     /* Check if we have memcap and hash_size defined at config */
     char *conf_val;
     uint32_t configval = 0;
+    uint64_t configval64 = 0;
 
     /** set config values for memcap, prealloc and hash_size */
     if ((ConfGet("flow.memcap", &conf_val)) == 1)
     {
-        if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
+        if (ByteExtractStringUint64(&configval64, 10, strlen(conf_val),
                                     conf_val) > 0) {
-            flow_config.memcap = configval;
+            flow_config.memcap = configval64;
         }
     }
     if ((ConfGet("flow.hash_size", &conf_val)) == 1)
@@ -906,7 +907,7 @@ void FlowInitConfig(char quiet)
             flow_config.prealloc = configval;
         }
     }
-    SCLogDebug("Flow config from suricata.yaml: memcap: %"PRIu32", hash_size: "
+    SCLogDebug("Flow config from suricata.yaml: memcap: %"PRIu64", hash_size: "
                "%"PRIu32", prealloc: %"PRIu32, flow_config.memcap,
                flow_config.hash_size, flow_config.prealloc);
 
@@ -925,7 +926,7 @@ void FlowInitConfig(char quiet)
     SC_ATOMIC_ADD(flow_memuse, (flow_config.hash_size * sizeof(FlowBucket)));
 
     if (quiet == FALSE) {
-        SCLogInfo("allocated %" PRIu32 " bytes of memory for the flow hash... "
+        SCLogInfo("allocated %" PRIu64 " bytes of memory for the flow hash... "
                   "%" PRIu32 " buckets of size %" PRIuMAX "",
                   SC_ATOMIC_GET(flow_memuse), flow_config.hash_size,
                   (uintmax_t)sizeof(FlowBucket));
@@ -933,7 +934,7 @@ void FlowInitConfig(char quiet)
 
     /* pre allocate flows */
     for (i = 0; i < flow_config.prealloc; i++) {
-        if (SC_ATOMIC_GET(flow_memuse) + sizeof(Flow) > flow_config.memcap) {
+        if ((SC_ATOMIC_GET(flow_memuse) + sizeof(Flow)) > flow_config.memcap) {
             printf("ERROR: FlowAlloc failed (max flow memcap reached): %s\n", strerror(errno));
             exit(1);
         }
@@ -949,7 +950,7 @@ void FlowInitConfig(char quiet)
     if (quiet == FALSE) {
         SCLogInfo("preallocated %" PRIu32 " flows of size %" PRIuMAX "",
                 flow_spare_q.len, (uintmax_t)sizeof(Flow));
-        SCLogInfo("flow memory usage: %" PRIu32 " bytes, maximum: %" PRIu32 "",
+        SCLogInfo("flow memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
                 SC_ATOMIC_GET(flow_memuse), flow_config.memcap);
     }
 

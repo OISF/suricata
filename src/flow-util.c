@@ -49,7 +49,7 @@ Flow *FlowAlloc(void)
 {
     Flow *f;
 
-    if (SC_ATOMIC_GET(flow_memuse) + sizeof(Flow) > flow_config.memcap) {
+    if ((SC_ATOMIC_GET(flow_memuse) + sizeof(Flow)) > flow_config.memcap) {
         return NULL;
     }
 
@@ -61,12 +61,7 @@ Flow *FlowAlloc(void)
         return NULL;
     }
 
-
     FLOW_INITIALIZE(f);
-
-    f->alproto = 0;
-    f->aldata = NULL;
-
     return f;
 }
 

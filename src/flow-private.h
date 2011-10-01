@@ -99,12 +99,12 @@ FlowConfig flow_config;
 uint8_t flow_flags;
 
 /** flow memuse counter (atomic), for enforcing memcap limit */
-SC_ATOMIC_DECLARE(unsigned int, flow_memuse);
+SC_ATOMIC_DECLARE(long long unsigned int, flow_memuse);
 
 //#define FLOWBITS_STATS
 #ifdef FLOWBITS_STATS
-uint32_t flowbits_memuse;
-uint32_t flowbits_memuse_max;
+uint64_t flowbits_memuse;
+uint64_t flowbits_memuse_max;
 uint32_t flowbits_added;
 uint32_t flowbits_removed;
 SCMutex flowbits_mutex;

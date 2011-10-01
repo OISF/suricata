@@ -106,8 +106,8 @@ typedef struct FlowCnf_
 {
     uint32_t hash_rand;
     uint32_t hash_size;
+    uint64_t memcap;
     uint32_t max_flows;
-    uint32_t memcap;
     uint32_t prealloc;
 
     uint32_t timeout_new;
