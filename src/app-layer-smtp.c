@@ -297,14 +297,19 @@ static int SMTPGetLine(SMTPState *state)
 static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state)
 {
     if (state->cmds_cnt >= state->cmds_buffer_len) {
+        int increment = SMTP_COMMAND_BUFFER_STEPS;
+        if ((int)(state->cmds_buffer_len + SMTP_COMMAND_BUFFER_STEPS) > (int)USHRT_MAX) {
+            increment = USHRT_MAX - state->cmds_buffer_len;
+        }
+
         state->cmds = SCRealloc(state->cmds,
                                 sizeof(uint8_t) *
                                 (state->cmds_buffer_len +
-                                 SMTP_COMMAND_BUFFER_STEPS));
+                                 increment));
         if (state->cmds == NULL) {
             return -1;
         }
-        state->cmds_buffer_len += SMTP_COMMAND_BUFFER_STEPS;
+        state->cmds_buffer_len += increment;
     }
     if (state->cmds_cnt >= 1 &&
         ((state->cmds[state->cmds_cnt - 1] == SMTP_COMMAND_STARTTLS) ||
@@ -313,6 +318,11 @@ static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state)
         /* we have to have EHLO, DATA, VRFY, EXPN, TURN, QUIT, NOOP,
          * STARTTLS as the last command in pipelined mode */
     }
+
+    /** \todo decoder event */
+    if ((int)(state->cmds_cnt + 1) > (int)USHRT_MAX)
+        return -1;
+
     state->cmds[state->cmds_cnt] = command;
     state->cmds_cnt++;
 

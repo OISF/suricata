@@ -59,15 +59,15 @@ typedef struct SMTPState_ {
 
     /* the request commands are store here and the reply handler uses these
      * stored command in the buffer to match the reply(ies) with the command */
-    /* the command buffer */
+    /** the command buffer */
     uint8_t *cmds;
-    /* the buffer length */
-    uint8_t cmds_buffer_len;
-    /* no of commands stored in the above buffer */
-    uint8_t cmds_cnt;
-    /* index of the command in the buffer, currently in inspection by reply
-     * handler */
-    uint8_t cmds_idx;
+    /** the buffer length */
+    uint16_t cmds_buffer_len;
+    /** no of commands stored in the above buffer */
+    uint16_t cmds_cnt;
+    /** index of the command in the buffer, currently in inspection by reply
+     *  handler */
+    uint16_t cmds_idx;
 } SMTPState;
 
 void RegisterSMTPParsers(void);
