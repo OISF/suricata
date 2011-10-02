@@ -926,7 +926,7 @@ void FlowInitConfig(char quiet)
     SC_ATOMIC_ADD(flow_memuse, (flow_config.hash_size * sizeof(FlowBucket)));
 
     if (quiet == FALSE) {
-        SCLogInfo("allocated %" PRIu64 " bytes of memory for the flow hash... "
+        SCLogInfo("allocated %llu bytes of memory for the flow hash... "
                   "%" PRIu32 " buckets of size %" PRIuMAX "",
                   SC_ATOMIC_GET(flow_memuse), flow_config.hash_size,
                   (uintmax_t)sizeof(FlowBucket));
@@ -950,7 +950,7 @@ void FlowInitConfig(char quiet)
     if (quiet == FALSE) {
         SCLogInfo("preallocated %" PRIu32 " flows of size %" PRIuMAX "",
                 flow_spare_q.len, (uintmax_t)sizeof(Flow));
-        SCLogInfo("flow memory usage: %"PRIu64" bytes, maximum: %"PRIu64,
+        SCLogInfo("flow memory usage: %llu bytes, maximum: %"PRIu64,
                 SC_ATOMIC_GET(flow_memuse), flow_config.memcap);
     }
 
