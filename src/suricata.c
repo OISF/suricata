@@ -440,7 +440,7 @@ void usage(const char *progname)
     printf("\t--af-packet[=<dev>]          : run in af-packet mode, no value select interfaces from suricata.yaml\n");
 #endif
 #ifdef HAVE_PFRING
-    printf("\t--pfring[=dev]               : run in pfring mode, use interfaces from suricata.yaml\n");
+    printf("\t--pfring[=<dev>]               : run in pfring mode, use interfaces from suricata.yaml\n");
     printf("\t--pfring-int <dev>           : run in pfring mode, use interface <dev>\n");
     printf("\t--pfring-cluster-id <id>     : pfring cluster id \n");
     printf("\t--pfring-cluster-type <type> : pfring cluster type for PF_RING 4.1.2 and later cluster_round_robin|cluster_flow\n");
