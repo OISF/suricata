@@ -18,6 +18,9 @@
 /** \file
  *
  * \author Anoop Saldanha <poonaatsoc@gmail.com>
+ *
+ * \brief Handle HTTP header match
+ *
  */
 
 #include "suricata-common.h"

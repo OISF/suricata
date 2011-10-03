@@ -18,6 +18,8 @@
 /** \file
  *
  * \author Anoop Saldanha <poonaatsoc@gmail.com>
+ *
+ * \brief Handle HTTP raw uri match
  */
 
 #include "suricata-common.h"
