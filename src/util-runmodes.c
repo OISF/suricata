@@ -567,41 +567,37 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
     return 0;
 }
 
-int RunModeSetLiveCaptureSingle(DetectEngineCtx *de_ctx,
+static int RunModeSetLiveCaptureWorkersForDevice(DetectEngineCtx *de_ctx,
                               ConfigIfaceParserFunc ConfigParser,
                               ConfigIfaceThreadsCountFunc mod_threads_count,
                               char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
-                              const char *live_dev)
+                              const char *live_dev, void *aconf,
+                              unsigned char single_mode)
 {
-    int nlive = LiveGetDeviceCount();
-    void *aconf;
-    int threads_count;
     int thread;
+    int threads_count;
 
-    if (nlive > 1) {
-        SCLogError(SC_ERR_RUNMODE,
-                   "Can't use single runmode with multiple device");
-        exit(EXIT_FAILURE);
-    }
-
-    if (live_dev != NULL) {
-        aconf = ConfigParser(live_dev);
+    if (single_mode) {
+        threads_count = 1;
     } else {
-        char *live_dev_c = LiveGetDevice(0);
-        aconf = ConfigParser(live_dev_c);
+        threads_count = mod_threads_count(aconf);
+        SCLogInfo("Going to use %" PRId32 " thread(s)", threads_count);
     }
 
-    threads_count = mod_threads_count(aconf);
-    SCLogInfo("Going to use %" PRId32 " thread(s)", threads_count);
     /* create the threads */
     for (thread = 0; thread < threads_count; thread++) {
-        char tname[12];
+        char tname[20];
         char *n_thread_name = NULL;
         ThreadVars *tv = NULL;
         TmModule *tm_module = NULL;
 
-        snprintf(tname, sizeof(tname), "%s%"PRIu16, thread_name, thread+1);
+        if (single_mode) {
+            snprintf(tname, sizeof(tname), "%s", thread_name);
+        } else {
+            snprintf(tname, sizeof(tname), "%s%s%"PRIu16,
+                     thread_name, live_dev, thread+1);
+        }
         n_thread_name = SCStrdup(tname);
         tv = TmThreadCreatePacketHandler(n_thread_name,
                 "packetpool", "packetpool",
@@ -649,4 +645,74 @@ int RunModeSetLiveCaptureSingle(DetectEngineCtx *de_ctx,
     }
 
     return 0;
+}
+
+int RunModeSetLiveCaptureWorkers(DetectEngineCtx *de_ctx,
+                              ConfigIfaceParserFunc ConfigParser,
+                              ConfigIfaceThreadsCountFunc mod_threads_count,
+                              char *recv_mod_name,
+                              char *decode_mod_name, char *thread_name,
+                              const char *live_dev)
+{
+    int nlive = LiveGetDeviceCount();
+    void *aconf;
+    int ldev;
+
+    for (ldev = 0; ldev < nlive; ldev++) {
+        char *live_dev_c = NULL;
+        aconf = ConfigParser(live_dev_c);
+        if (live_dev != NULL) {
+            aconf = ConfigParser(live_dev);
+            live_dev_c = SCStrdup(live_dev);
+        } else {
+            live_dev_c = LiveGetDevice(ldev);
+            aconf = ConfigParser(live_dev_c);
+        }
+        RunModeSetLiveCaptureWorkersForDevice(de_ctx,
+                ConfigParser,
+                mod_threads_count,
+                recv_mod_name,
+                decode_mod_name,
+                thread_name,
+                live_dev_c,
+                aconf,
+                0);
+    }
+
+    return 0;
+}
+
+int RunModeSetLiveCaptureSingle(DetectEngineCtx *de_ctx,
+                              ConfigIfaceParserFunc ConfigParser,
+                              ConfigIfaceThreadsCountFunc mod_threads_count,
+                              char *recv_mod_name,
+                              char *decode_mod_name, char *thread_name,
+                              const char *live_dev)
+{
+    int nlive = LiveGetDeviceCount();
+    void *aconf;
+
+    if (nlive > 1) {
+        SCLogError(SC_ERR_RUNMODE,
+                "Can't use single runmode with multiple device");
+        exit(EXIT_FAILURE);
+    }
+
+    if (live_dev != NULL) {
+        aconf = ConfigParser(live_dev);
+    } else {
+        char *live_dev_c = LiveGetDevice(0);
+        aconf = ConfigParser(live_dev_c);
+        /* \todo Set threads number in config to 1 */
+    }
+
+    return RunModeSetLiveCaptureWorkersForDevice(de_ctx,
+                                 ConfigParser,
+                                 mod_threads_count,
+                                 recv_mod_name,
+                                 decode_mod_name,
+                                 thread_name,
+                                 live_dev,
+                                 aconf,
+                                 1);
 }

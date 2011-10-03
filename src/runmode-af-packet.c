@@ -69,6 +69,10 @@ void RunModeIdsAFPRegister(void)
     RunModeRegisterNewRunMode(RUNMODE_AFP_DEV, "single",
                               "Single threaded af-packet mode",
                               RunModeIdsAFPSingle);
+    RunModeRegisterNewRunMode(RUNMODE_AFP_DEV, "workers",
+                              "Workers af-packet mode, each thread does all"
+                              " tasks from acquisition to logging",
+                              RunModeIdsAFPWorkers);
     default_mode_autofp = "autofp";
     RunModeRegisterNewRunMode(RUNMODE_AFP_DEV, "autofp",
                               "Multi socket AF_PACKET mode.  Packets from "
@@ -310,6 +314,43 @@ int RunModeIdsAFPSingle(DetectEngineCtx *de_ctx)
     ConfGet("af-packet.live-interface", &live_dev);
 
     ret = RunModeSetLiveCaptureSingle(de_ctx,
+                                    ParseAFPConfig,
+                                    AFPConfigGeThreadsCount,
+                                    "ReceiveAFP",
+                                    "DecodeAFP", "AFPacket",
+                                    live_dev);
+    if (ret != 0) {
+        printf("ERROR: Unable to start runmode\n");
+        exit(EXIT_FAILURE);
+    }
+
+    SCLogInfo("RunModeIdsAFPSingle initialised");
+
+#endif /* HAVE_AF_PACKET */
+    SCReturnInt(0);
+}
+
+/**
+ * \brief Workers version of the AF_PACKET processing.
+ *
+ * Start N threads with each thread doing all the work.
+ *
+ */
+int RunModeIdsAFPWorkers(DetectEngineCtx *de_ctx)
+{
+#ifdef HAVE_AF_PACKET
+    int ret;
+    char *live_dev = NULL;
+#endif
+    SCEnter();
+#ifdef HAVE_AF_PACKET
+
+    RunModeInitialize();
+    TimeModeSetLive();
+
+    ConfGet("af-packet.live-interface", &live_dev);
+
+    ret = RunModeSetLiveCaptureWorkers(de_ctx,
                                     ParseAFPConfig,
                                     AFPConfigGeThreadsCount,
                                     "ReceiveAFP",

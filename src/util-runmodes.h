@@ -46,4 +46,12 @@ int RunModeSetLiveCaptureSingle(DetectEngineCtx *de_ctx,
                               char *decode_mod_name, char *thread_name,
                               const char *live_dev);
 
+int RunModeSetLiveCaptureWorkers(DetectEngineCtx *de_ctx,
+                              ConfigIfaceParserFunc configparser,
+                              ConfigIfaceThreadsCountFunc mod_threads_count,
+                              char *recv_mod_name,
+                              char *decode_mod_name, char *thread_name,
+                              const char *live_dev);
+
+
 #endif /* __UTIL_RUNMODES_H__ */

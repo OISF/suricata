@@ -70,8 +70,12 @@ void RunModeIdsPfringRegister(void)
                               "detect thread",
                               RunModeIdsPfringAutoFp);
     RunModeRegisterNewRunMode(RUNMODE_PFRING, "single",
-                              "Single threaded pfringt mode",
+                              "Single threaded pfring mode",
                               RunModeIdsPfringSingle);
+    RunModeRegisterNewRunMode(RUNMODE_PFRING, "workers",
+                              "Workers pfring mode, each thread does all"
+                              " tasks from acquisition to logging",
+                              RunModeIdsPfringWorkers);
     return;
 }
 
@@ -439,6 +443,43 @@ int RunModeIdsPfringSingle(DetectEngineCtx *de_ctx)
     }
 
     ret = RunModeSetLiveCaptureSingle(de_ctx,
+                              tparser,
+                              PfringConfigGeThreadsCount,
+                              "ReceivePfring",
+                              "DecodePfring", "RxPFR",
+                              live_dev);
+    if (ret != 0) {
+        printf("ERROR: Unable to start runmode\n");
+        exit(EXIT_FAILURE);
+    }
+
+    SCLogInfo("RunModeIdsPfringSingle initialised");
+#endif /* HAVE_PFRING */
+
+    return 0;
+}
+
+int RunModeIdsPfringWorkers(DetectEngineCtx *de_ctx)
+{
+    SCEnter();
+
+/* We include only if pfring is enabled */
+#ifdef HAVE_PFRING
+    int ret;
+    char *live_dev = NULL;
+    ConfigIfaceParserFunc tparser;
+
+    RunModeInitialize();
+
+    TimeModeSetLive();
+
+    ret = GetDevAndParser(&live_dev, &tparser);
+    if (ret != 0) {
+        printf("ERROR: Unabme to get parser and interface params\n");
+        exit(EXIT_FAILURE);
+    }
+
+    ret = RunModeSetLiveCaptureWorkers(de_ctx,
                               tparser,
                               PfringConfigGeThreadsCount,
                               "ReceivePfring",

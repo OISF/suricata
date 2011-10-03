@@ -26,6 +26,7 @@
 int RunModeIdsAFPAuto(DetectEngineCtx *);
 int RunModeIdsAFPSingle(DetectEngineCtx *);
 int RunModeIdsAFPAutoFp(DetectEngineCtx *);
+int RunModeIdsAFPWorkers(DetectEngineCtx *);
 void RunModeIdsAFPRegister(void);
 const char *RunModeAFPGetDefaultMode(void);
 
