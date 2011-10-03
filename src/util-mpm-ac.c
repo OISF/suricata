@@ -1502,7 +1502,7 @@ static int SCACTest07(void)
     /* 1 */
     SCACAddPatternCS(&mpm_ctx, (uint8_t *)"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
                      30, 0, 0, 5, 0, 0);
-    PmqSetup(&pmq, 0, 5);
+    PmqSetup(&pmq, 0, 6);
     /* total matches: 135 */
 
     SCACPreparePatterns(&mpm_ctx);
