@@ -49,9 +49,6 @@
 #include "detect-uricontent.h"
 #include "stream-tcp.h"
 
-int DetectHttpUriMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
-                           Flow *f, uint8_t flags, void *state, Signature *s,
-                           SigMatch *m);
 static int DetectHttpUriSetup (DetectEngineCtx *, Signature *, char *);
 void DetectHttpUriRegisterTests(void);
 
