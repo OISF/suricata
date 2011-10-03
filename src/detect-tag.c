@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2011 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -49,9 +49,7 @@
 #include "util-debug.h"
 #include "threads.h"
 
-extern SCSpinlock num_tags_sc_lock__;
-extern unsigned int num_tags_sc_atomic__;
-
+SC_ATOMIC_EXTERN(unsigned int, num_tags);
 extern DetectTagHostCtx *tag_ctx;
 
 /* format: tag: <type>, <count>, <metric>, [direction]; */
@@ -99,6 +97,24 @@ error:
     return;
 }
 
+DetectTagDataEntry *DetectTagDataCopy(DetectTagDataEntry *dtd) {
+    DetectTagDataEntry *tde = SCMalloc(sizeof(DetectTagDataEntry));
+    if (tde == NULL) {
+        return NULL;
+    }
+    memset(tde, 0, sizeof(DetectTagDataEntry));
+
+    tde->sid = dtd->sid;
+    tde->gid = dtd->gid;
+
+    tde->td = dtd->td;
+    tde->first_ts.tv_sec = dtd->first_ts.tv_sec;
+    tde->first_ts.tv_usec = dtd->first_ts.tv_usec;
+    tde->last_ts.tv_sec = dtd->last_ts.tv_sec;
+    tde->last_ts.tv_usec = dtd->last_ts.tv_usec;
+    return tde;
+}
+
 /**
  * \brief This function is used to add a tag to a session (type session)
  *        or update it if it's already installed. The number of times to
@@ -130,36 +146,41 @@ int DetectTagFlowAdd(Packet *p, DetectTagDataEntry *tde) {
         memset(p->flow->tag_list, 0, sizeof(DetectTagDataEntryList));
     } else {
         iter = p->flow->tag_list->header_entry;
-    }
 
-    /* First iterate installed entries searching a duplicated sid/gid */
-    for (; iter != NULL; iter = iter->next) {
-        num_tags++;
-        if (iter->sid == tde->sid && iter->gid == tde->gid) {
-            iter->cnt_match++;
-            /* If so, update data, unless the maximum MATCH limit is
-             * reached. This prevents possible DOS attacks */
-            if (iter->cnt_match < DETECT_TAG_MATCH_LIMIT) {
-                /* Reset time and counters */
-                iter->first_ts.tv_sec = iter->last_ts.tv_sec = tde->first_ts.tv_sec;
-                iter->packets = 0;
-                iter->bytes = 0;
+        /* First iterate installed entries searching a duplicated sid/gid */
+        for (; iter != NULL; iter = iter->next) {
+            num_tags++;
+
+            if (iter->sid == tde->sid && iter->gid == tde->gid) {
+                iter->cnt_match++;
+
+                /* If so, update data, unless the maximum MATCH limit is
+                 * reached. This prevents possible DOS attacks */
+                if (iter->cnt_match < DETECT_TAG_MATCH_LIMIT) {
+                    /* Reset time and counters */
+                    iter->first_ts.tv_sec = iter->last_ts.tv_sec = tde->first_ts.tv_sec;
+                    iter->packets = 0;
+                    iter->bytes = 0;
+                }
+                updated = 1;
+                break;
             }
-            updated = 1;
-            break;
         }
     }
 
     /* If there was no entry of this rule, prepend the new tde */
     if (updated == 0 && num_tags < DETECT_TAG_MAX_TAGS) {
-        tde->next = p->flow->tag_list->header_entry;
-        p->flow->tag_list->header_entry = tde;
+        DetectTagDataEntry *new_tde = DetectTagDataCopy(tde);
+        if (new_tde != NULL) {
+            new_tde->next = p->flow->tag_list->header_entry;
+            p->flow->tag_list->header_entry = new_tde;
+            SC_ATOMIC_ADD(num_tags, 1);
+        }
     } else if (num_tags == DETECT_TAG_MAX_TAGS) {
         SCLogDebug("Max tags for sessions reached (%"PRIu16")", num_tags);
     }
 
     SCMutexUnlock(&p->flow->m);
-
     return updated;
 
 error:
@@ -181,50 +202,35 @@ error:
 int DetectTagMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
     DetectTagData *td = (DetectTagData *) m->ctx;
-    DetectTagDataEntry *tde = NULL;
-    tde = SCMalloc(sizeof(DetectTagDataEntry));
-    if (tde == NULL) {
-        return 1;
-    }
-    memset(tde, 0, sizeof(DetectTagDataEntry));
-
-    tde->sid = s->id;
-    tde->gid = s->gid;
-
-    tde->td = td;
-    TimeGet(&tde->first_ts);
-    tde->last_ts.tv_sec = tde->first_ts.tv_sec;
+    DetectTagDataEntry tde;
+    memset(&tde, 0, sizeof(DetectTagDataEntry));
+    tde.sid = s->id;
+    tde.gid = s->gid;
+    tde.td = td;
+    tde.last_ts.tv_sec = tde.first_ts.tv_sec = p->ts.tv_usec;
 
     switch (td->type) {
         case DETECT_TAG_TYPE_HOST:
-            if (td->direction == DETECT_TAG_DIR_SRC || td->direction == DETECT_TAG_DIR_DST) {
-                SCLogDebug("Tagging Host with sid %"PRIu32":%"PRIu32"", s->id, s->gid);
-                if (TagHashAddTag(tag_ctx, tde, p) == 1)
-                    SCFree(tde);
-                else
-                    SC_ATOMIC_ADD(num_tags, 1);
-
-            } else {
-                SCLogError(SC_ERR_INVALID_VALUE, "Error on direction of a tag keyword (not src nor dst)");
-                SCFree(tde);
-            }
+#ifdef DEBUG
+            BUG_ON(!(td->direction == DETECT_TAG_DIR_SRC || td->direction == DETECT_TAG_DIR_DST));
+#endif
+            SCLogDebug("Tagging Host with sid %"PRIu32":%"PRIu32"", s->id, s->gid);
+            TagHashAddTag(tag_ctx, &tde, p);
             break;
         case DETECT_TAG_TYPE_SESSION:
             if (p->flow != NULL) {
                 /* If it already exists it will be updated */
-                if (DetectTagFlowAdd(p, tde) == 1)
-                    SCFree(tde);
-                else
-                    SC_ATOMIC_ADD(num_tags, 1);
+                DetectTagFlowAdd(p, &tde);
             } else {
                 SCLogDebug("No flow to append the session tag");
-                SCFree(tde);
             }
             break;
+#ifdef DEBUG
         default:
-            SCLogError(SC_ERR_INVALID_VALUE, "Error on type of a tag keyword (not session nor host)");
-            SCFree(tde);
+            SCLogDebug("unknown type of a tag keyword (not session nor host)");
+            BUG_ON(1);
             break;
+#endif
     }
 
     return 1;
@@ -392,8 +398,15 @@ error:
 void DetectTagDataListFree(void *ptr) {
     if (ptr != NULL) {
         DetectTagDataEntryList *list = (DetectTagDataEntryList *)ptr;
-        DetectTagDataEntryFree(list->header_entry);
-        SCFree(ptr);
+        DetectTagDataEntry *entry = list->header_entry;
+
+        while (entry != NULL) {
+            DetectTagDataEntry *next_entry = entry->next;
+            DetectTagDataEntryFree(entry);
+            SC_ATOMIC_SUB(num_tags, 1);
+            entry = next_entry;
+        }
+        SCFree(list);
     }
 }
 /**
@@ -405,9 +418,6 @@ void DetectTagDataListFree(void *ptr) {
 void DetectTagDataEntryFree(void *ptr) {
     if (ptr != NULL) {
         DetectTagDataEntry *dte = (DetectTagDataEntry *)ptr;
-        if (dte->next != NULL)
-            DetectTagDataEntryFree(dte->next);
-        dte->next = NULL;
         SCFree(dte);
     }
 }

@@ -64,9 +64,9 @@ enum {
 /** This will be the rule options/parameters */
 typedef struct DetectTagData_ {
     uint8_t type;          /**< tag type */
+    uint8_t direction;     /**< host direction */
     uint32_t count;        /**< count */
     uint32_t metric;       /**< metric */
-    uint8_t direction;     /**< host direction */
 } DetectTagData;
 
 /** This is the installed data at the session/global or host table */
@@ -81,7 +81,7 @@ typedef struct DetectTagDataEntry_ {
     struct DetectTagDataEntry_ *next;   /**< Pointer to the next tag of this
                                          * session/src_host/dst_host (if any from other rule) */
     uint16_t cnt_match;                 /**< number of times this tag was reset/updated */
-    uint8_t first_time;                 /**< Used at unified output. The first packet write the
+    uint8_t skipped_first;              /**< Used for output. The first packet write the
                                              header with the data of the sig. The next packets use
                                              gid/sid/rev of the tagging engine */
 } DetectTagDataEntry;
@@ -90,14 +90,14 @@ typedef struct DetectTagDataEntryList_ {
     DetectTagDataEntry *header_entry;
     Address addr;                       /**< Var used to store dst or src addr */
     uint8_t ipv;                        /**< IP Version */
-    SCMutex lock;
-}DetectTagDataEntryList;
+} DetectTagDataEntryList;
 
 /* prototypes */
 void DetectTagRegister (void);
 void DetectTagDataFree(void *ptr);
 void DetectTagDataEntryFree(void *ptr);
 void DetectTagDataListFree(void *ptr);
+DetectTagDataEntry *DetectTagDataCopy(DetectTagDataEntry *dtd);
 
 #endif /* __DETECT_TAG_H__ */
 
