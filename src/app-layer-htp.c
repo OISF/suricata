@@ -282,6 +282,7 @@ void AppLayerHtpEnableRequestBodyCallback(void)
  *  \brief  Function to handle the reassembled data from client and feed it to
  *          the HTP library to process it.
  *
+ *  \param  flow        Pointer to the flow the data belong to
  *  \param  htp_state   Pointer the state in which the parsed value to be stored
  *  \param  pstate      Application layer parser state for this session
  *  \param  input       Pointer the received HTTP client data
@@ -434,6 +435,7 @@ error:
  *  \brief  Function to handle the reassembled data from server and feed it to
  *          the HTP library to process it.
  *
+ *  \param  flow        Pointer to the flow the data belong to
  *  \param  htp_state   Pointer the state in which the parsed value to be stored
  *  \param  pstate      Application layer parser state for this session
  *  \param  input       Pointer the received HTTP server data
