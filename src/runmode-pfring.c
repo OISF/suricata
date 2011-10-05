@@ -371,14 +371,15 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx)
 
     ret = GetDevAndParser(&live_dev, &tparser);
     if (ret != 0) {
-        printf("ERROR: Unabme to get parser and interface params\n");
+        SCLogError(SC_ERR_MISSING_CONFIG_PARAM,
+                "Unable to get parser and interface params");
         exit(EXIT_FAILURE);
     }
 
     ret = RunModeSetLiveCaptureAuto(de_ctx, tparser, "ReceivePfring", "DecodePfring",
                                     "RxPFR", live_dev);
     if (ret != 0) {
-        printf("ERROR: TmThreadSpawn failed\n");
+        SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
         exit(EXIT_FAILURE);
     }
 #endif /* HAVE_PFRING */
@@ -401,7 +402,8 @@ int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx)
 
     ret = GetDevAndParser(&live_dev, &tparser);
     if (ret != 0) {
-        printf("ERROR: Unabme to get parser and interface params\n");
+        SCLogError(SC_ERR_MISSING_CONFIG_PARAM,
+                "Unable to get parser and interface params");
         exit(EXIT_FAILURE);
     }
 
@@ -412,7 +414,7 @@ int RunModeIdsPfringAutoFp(DetectEngineCtx *de_ctx)
                               "DecodePfring", "RxPFR",
                               live_dev);
     if (ret != 0) {
-        printf("ERROR: Unable to start runmode\n");
+        SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
         exit(EXIT_FAILURE);
     }
 
@@ -438,7 +440,8 @@ int RunModeIdsPfringSingle(DetectEngineCtx *de_ctx)
 
     ret = GetDevAndParser(&live_dev, &tparser);
     if (ret != 0) {
-        printf("ERROR: Unabme to get parser and interface params\n");
+        SCLogError(SC_ERR_MISSING_CONFIG_PARAM,
+                "Unable to get parser and interface params");
         exit(EXIT_FAILURE);
     }
 
@@ -449,7 +452,7 @@ int RunModeIdsPfringSingle(DetectEngineCtx *de_ctx)
                               "DecodePfring", "RxPFR",
                               live_dev);
     if (ret != 0) {
-        printf("ERROR: Unable to start runmode\n");
+        SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
         exit(EXIT_FAILURE);
     }
 
@@ -475,7 +478,8 @@ int RunModeIdsPfringWorkers(DetectEngineCtx *de_ctx)
 
     ret = GetDevAndParser(&live_dev, &tparser);
     if (ret != 0) {
-        printf("ERROR: Unabme to get parser and interface params\n");
+        SCLogError(SC_ERR_MISSING_CONFIG_PARAM,
+                "Unable to get parser and interface params");
         exit(EXIT_FAILURE);
     }
 
@@ -486,7 +490,7 @@ int RunModeIdsPfringWorkers(DetectEngineCtx *de_ctx)
                               "DecodePfring", "RxPFR",
                               live_dev);
     if (ret != 0) {
-        printf("ERROR: Unable to start runmode\n");
+        SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
         exit(EXIT_FAILURE);
     }
 

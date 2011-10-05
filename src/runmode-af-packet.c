@@ -252,7 +252,7 @@ int RunModeIdsAFPAuto(DetectEngineCtx *de_ctx)
                                     "DecodeAFP", "RecvAFP",
                                     live_dev);
     if (ret != 0) {
-        printf("ERROR: Unable to start runmode\n");
+        SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
         exit(EXIT_FAILURE);
     }
 
@@ -285,7 +285,7 @@ int RunModeIdsAFPAutoFp(DetectEngineCtx *de_ctx)
                               "DecodeAFP", "RxAFP",
                               live_dev);
     if (ret != 0) {
-        printf("ERROR: Unable to start runmode\n");
+        SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
         exit(EXIT_FAILURE);
     }
 
@@ -320,7 +320,7 @@ int RunModeIdsAFPSingle(DetectEngineCtx *de_ctx)
                                     "DecodeAFP", "AFPacket",
                                     live_dev);
     if (ret != 0) {
-        printf("ERROR: Unable to start runmode\n");
+        SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
         exit(EXIT_FAILURE);
     }
 
@@ -357,7 +357,7 @@ int RunModeIdsAFPWorkers(DetectEngineCtx *de_ctx)
                                     "DecodeAFP", "AFPacket",
                                     live_dev);
     if (ret != 0) {
-        printf("ERROR: Unable to start runmode\n");
+        SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
         exit(EXIT_FAILURE);
     }
 

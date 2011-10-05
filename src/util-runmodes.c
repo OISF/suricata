@@ -65,15 +65,11 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
 
     if ((nlive <= 1) && (live_dev != NULL)) {
         void *aconf;
-        if (live_dev == NULL) {
-            printf("Failed to lookup live dev\n");
-            exit(EXIT_FAILURE);
-        }
         SCLogDebug("live_dev %s", live_dev);
 
         aconf = ConfigParser(live_dev);
         if (aconf == NULL) {
-            printf("Single dev: Failed to allocate config\n");
+            SCLogError(SC_ERR_MEM_ALLOC, "Single dev: Failed to allocate config");
             exit(EXIT_FAILURE);
         }
 
@@ -84,12 +80,12 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
                     "pickup-queue", "simple",
                     "pktacqloop");
         if (tv_receive == NULL) {
-            printf("ERROR: TmThreadsCreate failed\n");
+            SCLogError(SC_ERR_THREAD_CREATE, "TmThreadsCreate failed");
             exit(EXIT_FAILURE);
         }
         tm_module = TmModuleGetByName(recv_mod_name);
         if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName failed for %s\n", recv_mod_name);
+            SCLogError(SC_ERR_INVALID_VALUE, "TmModuleGetByName failed for %s", recv_mod_name);
             exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend(tv_receive, tm_module, aconf);
@@ -97,7 +93,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
         TmThreadSetCPU(tv_receive, RECEIVE_CPU_SET);
 
         if (TmThreadSpawn(tv_receive) != TM_ECODE_OK) {
-            printf("ERROR: TmThreadSpawn failed\n");
+            SCLogError(SC_ERR_THREAD_SPAWN, "TmThreadSpawn failed");
             exit(EXIT_FAILURE);
         }
     } else {
@@ -109,14 +105,14 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
             void *aconf;
 
             if (live_dev == NULL) {
-                printf("Multidev: Failed to lookup live dev %d\n", thread);
+                SCLogError(SC_ERR_INVALID_VALUE, "Multidev: Failed to lookup live dev %d", thread);
                 exit(EXIT_FAILURE);
             }
             SCLogDebug("live_dev %s", live_dev);
 
             aconf = ConfigParser(live_dev);
             if (aconf == NULL) {
-                printf("Failed to allocate config for %s (%d)\n",
+                SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate config for %s (%d)",
                        live_dev, thread);
                 exit(EXIT_FAILURE);
             }
@@ -135,12 +131,12 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
                         "pickup-queue", "simple",
                         "pktacqloop");
             if (tv_receive == NULL) {
-                printf("ERROR: TmThreadsCreate failed\n");
+                SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
                 exit(EXIT_FAILURE);
             }
             tm_module = TmModuleGetByName(recv_mod_name);
             if (tm_module == NULL) {
-                printf("ERROR: TmModuleGetByName failed for %s\n", recv_mod_name);
+                SCLogError(SC_ERR_INVALID_VALUE, "TmModuleGetByName failed for %s", recv_mod_name);
                 exit(EXIT_FAILURE);
             }
             TmSlotSetFuncAppend(tv_receive, tm_module, (void *)aconf);
@@ -148,7 +144,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
             TmThreadSetCPU(tv_receive, RECEIVE_CPU_SET);
 
             if (TmThreadSpawn(tv_receive) != TM_ECODE_OK) {
-                printf("ERROR: TmThreadSpawn failed\n");
+                SCLogError(SC_ERR_INVALID_VALUE, "TmThreadSpawn failed");
                 exit(EXIT_FAILURE);
             }
         }
@@ -162,12 +158,12 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
                     "decode-queue1", "simple",
                     "1slot");
         if (tv_decode1 == NULL) {
-            printf("ERROR: TmThreadsCreate failed for Decode1\n");
+            SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed for Decode1");
             exit(EXIT_FAILURE);
         }
         tm_module = TmModuleGetByName(decode_mod_name);
         if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName %s failed\n", decode_mod_name);
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName %s failed", decode_mod_name);
             exit(EXIT_FAILURE);
         }
         Tm1SlotSetFunc(tv_decode1, tm_module, NULL);
@@ -175,7 +171,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
         TmThreadSetCPU(tv_decode1, DECODE_CPU_SET);
 
         if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
-            printf("ERROR: TmThreadSpawn failed\n");
+            SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
             exit(EXIT_FAILURE);
         }
 
@@ -185,14 +181,14 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
                     "cuda-pb-queue1", "simple",
                     "custom", SCCudaPBTmThreadsSlot1, 0);
         if (tv_cuda_PB == NULL) {
-            printf("ERROR: TmThreadsCreate failed for CUDA_PB\n");
+            SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed for CUDA_PB");
             exit(EXIT_FAILURE);
         }
         tv_cuda_PB->type = TVT_PPT;
 
         tm_module = TmModuleGetByName("CudaPacketBatcher");
         if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName CudaPacketBatcher failed\n");
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName CudaPacketBatcher failed");
             exit(EXIT_FAILURE);
         }
         Tm1SlotSetFunc(tv_cuda_PB, tm_module, (void *)de_ctx);
@@ -200,7 +196,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
         TmThreadSetCPU(tv_cuda_PB, DETECT_CPU_SET);
 
         if (TmThreadSpawn(tv_cuda_PB) != TM_ECODE_OK) {
-            printf("ERROR: TmThreadSpawn failed\n");
+            SCLogError(SC_ERR_THREAD_SPAWN, "TmThreadSpawn failed");
             exit(EXIT_FAILURE);
         }
 
@@ -210,12 +206,12 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
                     "stream-queue1", "simple",
                     "1slot");
         if (tv_stream1 == NULL) {
-            printf("ERROR: TmThreadsCreate failed for Stream1\n");
+            SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed for Stream1");
             exit(EXIT_FAILURE);
         }
         tm_module = TmModuleGetByName("StreamTcp");
         if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName StreamTcp failed");
             exit(EXIT_FAILURE);
         }
         Tm1SlotSetFunc(tv_stream1, tm_module, NULL);
@@ -223,7 +219,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
         TmThreadSetCPU(tv_stream1, STREAM_CPU_SET);
 
         if (TmThreadSpawn(tv_stream1) != TM_ECODE_OK) {
-            printf("ERROR: TmThreadSpawn failed\n");
+            SCLogError(SC_ERR_THREAD_SPAWN, "TmThreadSpawn failed");
             exit(EXIT_FAILURE);
         }
     } else {
@@ -233,19 +229,19 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
                     "stream-queue1", "simple",
                     "varslot");
         if (tv_decode1 == NULL) {
-            printf("ERROR: TmThreadsCreate failed for Decode1\n");
+            SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed for Decode1");
             exit(EXIT_FAILURE);
         }
         tm_module = TmModuleGetByName(decode_mod_name);
         if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName %s failed\n", decode_mod_name);
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName %s failed", decode_mod_name);
             exit(EXIT_FAILURE);
         }
         TmVarSlotSetFuncAppend(tv_decode1, tm_module, NULL);
 
         tm_module = TmModuleGetByName("StreamTcp");
         if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName StreamTcp failed");
             exit(EXIT_FAILURE);
         }
         TmVarSlotSetFuncAppend(tv_decode1, tm_module, NULL);
@@ -253,7 +249,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
         TmThreadSetCPU(tv_decode1, DECODE_CPU_SET);
 
         if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
-            printf("ERROR: TmThreadSpawn failed\n");
+            SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
             exit(EXIT_FAILURE);
         }
     }
@@ -265,19 +261,19 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
                 "stream-queue1", "simple",
                 "varslot");
     if (tv_decode1 == NULL) {
-        printf("ERROR: TmThreadsCreate failed for Decode1\n");
+        SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed for Decode1");
         exit(EXIT_FAILURE);
     }
     tm_module = TmModuleGetByName(decode_mod_name);
     if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName %s failed\n", decode_mod_name);
+        SCLogError(SC_ERR_INVALID_VALUE, "TmModuleGetByName %s failed", decode_mod_name);
         exit(EXIT_FAILURE);
     }
     TmSlotSetFuncAppend(tv_decode1, tm_module, NULL);
 
     tm_module = TmModuleGetByName("StreamTcp");
     if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+        SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName StreamTcp failed");
         exit(EXIT_FAILURE);
     }
     TmSlotSetFuncAppend(tv_decode1, tm_module, NULL);
@@ -285,7 +281,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
     TmThreadSetCPU(tv_decode1, DECODE_CPU_SET);
 
     if (TmThreadSpawn(tv_decode1) != TM_ECODE_OK) {
-        printf("ERROR: TmThreadSpawn failed\n");
+        SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
         exit(EXIT_FAILURE);
     }
 #endif
@@ -313,12 +309,12 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
                     "verdict-queue", "simple",
                     "1slot");
         if (tv_detect_ncpu == NULL) {
-            printf("ERROR: TmThreadsCreate failed\n");
+            SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
             exit(EXIT_FAILURE);
         }
         tm_module = TmModuleGetByName("Detect");
         if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName Detect failed\n");
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
             exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
@@ -327,13 +323,13 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
 
         char *thread_group_name = SCStrdup("Detect");
         if (thread_group_name == NULL) {
-            printf("Error allocating memory\n");
+            SCLogError(SC_ERR_RUNMODE, "Error allocating memory");
             exit(EXIT_FAILURE);
         }
         tv_detect_ncpu->thread_group_name = thread_group_name;
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
-            printf("ERROR: TmThreadSpawn failed\n");
+            SCLogError(SC_ERR_THREAD_SPAWN, "TmThreadSpawn failed");
             exit(EXIT_FAILURE);
         }
     }
@@ -344,12 +340,12 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
                 "alert-queue", "simple",
                 "1slot");
     if (tv_rreject == NULL) {
-        printf("ERROR: TmThreadsCreate failed\n");
+        SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
         exit(EXIT_FAILURE);
     }
     tm_module = TmModuleGetByName("RespondReject");
     if (tm_module == NULL) {
-        printf("ERROR: TmModuleGetByName for RespondReject failed\n");
+        SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName for RespondReject failed");
         exit(EXIT_FAILURE);
     }
     TmSlotSetFuncAppend(tv_rreject, tm_module, NULL);
@@ -357,7 +353,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
     TmThreadSetCPU(tv_rreject, REJECT_CPU_SET);
 
     if (TmThreadSpawn(tv_rreject) != TM_ECODE_OK) {
-        printf("ERROR: TmThreadSpawn failed\n");
+        SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
         exit(EXIT_FAILURE);
     }
 
@@ -367,7 +363,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
                 "packetpool", "packetpool",
                 "varslot");
     if (tv_outputs == NULL) {
-        printf("ERROR: TmThreadCreatePacketHandler for Outputs failed\n");
+        SCLogError(SC_ERR_RUNMODE, "TmThreadCreatePacketHandler for Outputs failed");
         exit(EXIT_FAILURE);
     }
 
@@ -376,7 +372,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
     TmThreadSetCPU(tv_outputs, OUTPUT_CPU_SET);
 
     if (TmThreadSpawn(tv_outputs) != TM_ECODE_OK) {
-        printf("ERROR: TmThreadSpawn failed\n");
+        SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
         exit(EXIT_FAILURE);
     }
 
@@ -421,7 +417,7 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
 
         aconf = ConfigParser(live_dev);
         if (aconf == NULL) {
-            printf("Failed to allocate config for %s (%d)\n",
+            SCLogError(SC_ERR_RUNMODE, "Failed to allocate config for %s (%d)",
                    live_dev, thread);
             exit(EXIT_FAILURE);
         }
@@ -443,19 +439,22 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
                         "packetpool", "packetpool",
                         queues, "flow", "pktacqloop");
             if (tv_receive == NULL) {
-                printf("ERROR: TmThreadsCreate failed\n");
+                SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
                 exit(EXIT_FAILURE);
             }
             TmModule *tm_module = TmModuleGetByName(recv_mod_name);
             if (tm_module == NULL) {
-                printf("ERROR: TmModuleGetByName failed for ReceiveAFP\n");
+                SCLogError(SC_ERR_RUNMODE,
+                    "TmModuleGetByName failed for %s",
+                    recv_mod_name);
                 exit(EXIT_FAILURE);
             }
             TmSlotSetFuncAppend(tv_receive, tm_module, aconf);
 
             tm_module = TmModuleGetByName(decode_mod_name);
             if (tm_module == NULL) {
-                printf("ERROR: TmModuleGetByName DecodeAFP failed\n");
+                SCLogError(SC_ERR_RUNMODE,
+                        "TmModuleGetByName %s failed", decode_mod_name);
                 exit(EXIT_FAILURE);
             }
             TmSlotSetFuncAppend(tv_receive, tm_module, NULL);
@@ -463,7 +462,7 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
             TmThreadSetCPU(tv_receive, RECEIVE_CPU_SET);
 
             if (TmThreadSpawn(tv_receive) != TM_ECODE_OK) {
-                printf("ERROR: TmThreadSpawn failed\n");
+                SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
                 exit(EXIT_FAILURE);
             }
         }
@@ -477,14 +476,14 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
             int threads_count;
 
             if (live_dev == NULL) {
-                printf("Failed to lookup live dev %d\n", lthread);
+                SCLogError(SC_ERR_RUNMODE, "Failed to lookup live dev %d", lthread);
                 exit(EXIT_FAILURE);
             }
             SCLogDebug("live_dev %s", live_dev);
 
             aconf = ConfigParser(live_dev);
             if (aconf == NULL) {
-                printf("Multidev: Failed to allocate config for %s (%d)\n",
+                SCLogError(SC_ERR_RUNMODE, "Multidev: Failed to allocate config for %s (%d)",
                        live_dev, lthread);
                 exit(EXIT_FAILURE);
             }
@@ -503,19 +502,19 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
                             "packetpool", "packetpool",
                             queues, "flow", "pktacqloop");
                 if (tv_receive == NULL) {
-                    printf("ERROR: TmThreadsCreate failed\n");
+                    SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
                     exit(EXIT_FAILURE);
                 }
                 TmModule *tm_module = TmModuleGetByName(recv_mod_name);
                 if (tm_module == NULL) {
-                    printf("ERROR: TmModuleGetByName failed for %s\n", recv_mod_name);
+                    SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName failed for %s", recv_mod_name);
                     exit(EXIT_FAILURE);
                 }
                 TmSlotSetFuncAppend(tv_receive, tm_module, aconf);
 
                 tm_module = TmModuleGetByName(decode_mod_name);
                 if (tm_module == NULL) {
-                    printf("ERROR: TmModuleGetByName %s failed\n", decode_mod_name);
+                    SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName %s failed", decode_mod_name);
                     exit(EXIT_FAILURE);
                 }
                 TmSlotSetFuncAppend(tv_receive, tm_module, NULL);
@@ -523,7 +522,7 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
                 TmThreadSetCPU(tv_receive, RECEIVE_CPU_SET);
 
                 if (TmThreadSpawn(tv_receive) != TM_ECODE_OK) {
-                    printf("ERROR: TmThreadSpawn failed\n");
+                    SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
                     exit(EXIT_FAILURE);
                 }
             }
@@ -547,19 +546,19 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
                                         "packetpool", "packetpool",
                                         "varslot");
         if (tv_detect_ncpu == NULL) {
-            printf("ERROR: TmThreadsCreate failed\n");
+            SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
             exit(EXIT_FAILURE);
         }
         TmModule *tm_module = TmModuleGetByName("StreamTcp");
         if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName StreamTcp failed");
             exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
 
         tm_module = TmModuleGetByName("Detect");
         if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName Detect failed\n");
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
             exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
@@ -568,7 +567,7 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
 
         char *thread_group_name = SCStrdup("Detect");
         if (thread_group_name == NULL) {
-            printf("Error allocating memory\n");
+            SCLogError(SC_ERR_RUNMODE, "Error allocating memory");
             exit(EXIT_FAILURE);
         }
         tv_detect_ncpu->thread_group_name = thread_group_name;
@@ -577,7 +576,7 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
         SetupOutputs(tv_detect_ncpu);
 
         if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
-            printf("ERROR: TmThreadSpawn failed\n");
+            SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
             exit(EXIT_FAILURE);
         }
     }
@@ -626,34 +625,34 @@ static int RunModeSetLiveCaptureWorkersForDevice(DetectEngineCtx *de_ctx,
                 "packetpool", "packetpool",
                 "pktacqloop");
         if (tv == NULL) {
-            printf("ERROR: TmThreadsCreate failed\n");
+            SCLogError(SC_ERR_THREAD_CREATE, "TmThreadsCreate failed");
             exit(EXIT_FAILURE);
         }
 
         tm_module = TmModuleGetByName(recv_mod_name);
         if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName failed for %s\n", recv_mod_name);
+            SCLogError(SC_ERR_INVALID_VALUE, "TmModuleGetByName failed for %s", recv_mod_name);
             exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend(tv, tm_module, aconf);
 
         tm_module = TmModuleGetByName(decode_mod_name);
         if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName %s failed\n", decode_mod_name);
+            SCLogError(SC_ERR_INVALID_VALUE, "TmModuleGetByName %s failed", decode_mod_name);
             exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend(tv, tm_module, NULL);
 
         tm_module = TmModuleGetByName("StreamTcp");
         if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName StreamTcp failed");
             exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend(tv, tm_module, NULL);
 
         tm_module = TmModuleGetByName("Detect");
         if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName Detect failed\n");
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
             exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend(tv, tm_module, (void *)de_ctx);
@@ -661,7 +660,7 @@ static int RunModeSetLiveCaptureWorkersForDevice(DetectEngineCtx *de_ctx,
         SetupOutputs(tv);
 
         if (TmThreadSpawn(tv) != TM_ECODE_OK) {
-            printf("ERROR: TmThreadSpawn failed\n");
+            SCLogError(SC_ERR_THREAD_SPAWN, "TmThreadSpawn failed");
             exit(EXIT_FAILURE);
         }
     }

@@ -176,7 +176,7 @@ int RunModeIdsPcapSingle(DetectEngineCtx *de_ctx)
                                     "DecodePcap", "PcapLive",
                                     live_dev);
     if (ret != 0) {
-        printf("ERROR: Unable to start runmode\n");
+        SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
         exit(EXIT_FAILURE);
     }
 
@@ -222,7 +222,7 @@ int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx)
                                     "DecodePcap", "RecvPcap",
                                     live_dev);
     if (ret != 0) {
-        printf("ERROR: Unable to start runmode\n");
+        SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
         exit(EXIT_FAILURE);
     }
 
@@ -266,7 +266,7 @@ int RunModeIdsPcapAutoFp(DetectEngineCtx *de_ctx)
                               "DecodePcap", "RxPcap",
                               live_dev);
     if (ret != 0) {
-        printf("ERROR: Unable to start runmode\n");
+        SCLogError(SC_ERR_RUNMODE, "Runmode start failed");
         exit(EXIT_FAILURE);
     }
 
