@@ -123,6 +123,10 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
 
             snprintf(tname, sizeof(tname),"%s-%s", thread_name, live_dev);
             tnamec = SCStrdup(tname);
+            if (tnamec == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
+                exit(EXIT_FAILURE);
+            }
 
             /* create the threads */
             ThreadVars *tv_receive =
@@ -298,6 +302,11 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
 
         char *thread_name = SCStrdup(tname);
 
+        if (thread_name == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
+            exit(EXIT_FAILURE);
+        }
+
         ThreadVars *tv_detect_ncpu =
             TmThreadCreatePacketHandler(thread_name,
                     "stream-queue1", "simple",
@@ -425,7 +434,10 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
         for (thread = 0; thread < threads_count; thread++) {
             snprintf(tname, sizeof(tname), "%s%"PRIu16, thread_name, thread+1);
             char *thread_name = SCStrdup(tname);
-
+            if (thread_name == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
+                exit(EXIT_FAILURE);
+            }
             ThreadVars *tv_receive =
                 TmThreadCreatePacketHandler(thread_name,
                         "packetpool", "packetpool",
@@ -482,7 +494,10 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
                 snprintf(tname, sizeof(tname), "%s%s%"PRIu16, thread_name,
                          live_dev, thread+1);
                 char *thread_name = SCStrdup(tname);
-
+                if (thread_name == NULL) {
+                    SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
+                    exit(EXIT_FAILURE);
+                }
                 ThreadVars *tv_receive =
                     TmThreadCreatePacketHandler(thread_name,
                             "packetpool", "packetpool",
@@ -522,7 +537,10 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
         SCLogDebug("tname %s, qname %s", tname, qname);
 
         char *thread_name = SCStrdup(tname);
-
+        if (thread_name == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
+            exit(EXIT_FAILURE);
+        }
         ThreadVars *tv_detect_ncpu =
             TmThreadCreatePacketHandler(thread_name,
                                         qname, "flow",
@@ -599,6 +617,10 @@ static int RunModeSetLiveCaptureWorkersForDevice(DetectEngineCtx *de_ctx,
                      thread_name, live_dev, thread+1);
         }
         n_thread_name = SCStrdup(tname);
+        if (n_thread_name == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
+            exit(EXIT_FAILURE);
+        }
         tv = TmThreadCreatePacketHandler(n_thread_name,
                 "packetpool", "packetpool",
                 "packetpool", "packetpool",
@@ -664,6 +686,10 @@ int RunModeSetLiveCaptureWorkers(DetectEngineCtx *de_ctx,
         if (live_dev != NULL) {
             aconf = ConfigParser(live_dev);
             live_dev_c = SCStrdup(live_dev);
+            if (live_dev_c == NULL) {
+                SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate interface name");
+                exit(EXIT_FAILURE);
+            }
         } else {
             live_dev_c = LiveGetDevice(ldev);
             aconf = ConfigParser(live_dev_c);
