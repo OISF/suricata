@@ -1678,7 +1678,7 @@ int HTPParserTest06(void) {
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_START, httpbuf2,
                       httplen2);
     if (r != 0) {
-        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        printf("toclient chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
