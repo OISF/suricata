@@ -381,7 +381,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
 
 int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
                               ConfigIfaceParserFunc ConfigParser,
-                              ConfigIfaceThreadsCountFunc mod_threads_count,
+                              ConfigIfaceThreadsCountFunc ModThreadsCount,
                               char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
                               const char *live_dev)
@@ -422,7 +422,7 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
             exit(EXIT_FAILURE);
         }
 
-        threads_count = mod_threads_count(aconf);
+        threads_count = ModThreadsCount(aconf);
         SCLogInfo("Going to use %" PRId32 " %s receive thread(s)",
                   threads_count, recv_mod_name);
 
@@ -488,7 +488,7 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
                 exit(EXIT_FAILURE);
             }
 
-            threads_count = mod_threads_count(aconf);
+            threads_count = ModThreadsCount(aconf);
             for (thread = 0; thread < threads_count; thread++) {
                 snprintf(tname, sizeof(tname), "%s%s%"PRIu16, thread_name,
                          live_dev, thread+1);
@@ -586,7 +586,7 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
 
 static int RunModeSetLiveCaptureWorkersForDevice(DetectEngineCtx *de_ctx,
                               ConfigIfaceParserFunc ConfigParser,
-                              ConfigIfaceThreadsCountFunc mod_threads_count,
+                              ConfigIfaceThreadsCountFunc ModThreadsCount,
                               char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
                               const char *live_dev, void *aconf,
@@ -598,7 +598,7 @@ static int RunModeSetLiveCaptureWorkersForDevice(DetectEngineCtx *de_ctx,
     if (single_mode) {
         threads_count = 1;
     } else {
-        threads_count = mod_threads_count(aconf);
+        threads_count = ModThreadsCount(aconf);
         SCLogInfo("Going to use %" PRId32 " thread(s)", threads_count);
     }
 
@@ -670,7 +670,7 @@ static int RunModeSetLiveCaptureWorkersForDevice(DetectEngineCtx *de_ctx,
 
 int RunModeSetLiveCaptureWorkers(DetectEngineCtx *de_ctx,
                               ConfigIfaceParserFunc ConfigParser,
-                              ConfigIfaceThreadsCountFunc mod_threads_count,
+                              ConfigIfaceThreadsCountFunc ModThreadsCount,
                               char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
                               const char *live_dev)
@@ -695,7 +695,7 @@ int RunModeSetLiveCaptureWorkers(DetectEngineCtx *de_ctx,
         }
         RunModeSetLiveCaptureWorkersForDevice(de_ctx,
                 ConfigParser,
-                mod_threads_count,
+                ModThreadsCount,
                 recv_mod_name,
                 decode_mod_name,
                 thread_name,
@@ -709,7 +709,7 @@ int RunModeSetLiveCaptureWorkers(DetectEngineCtx *de_ctx,
 
 int RunModeSetLiveCaptureSingle(DetectEngineCtx *de_ctx,
                               ConfigIfaceParserFunc ConfigParser,
-                              ConfigIfaceThreadsCountFunc mod_threads_count,
+                              ConfigIfaceThreadsCountFunc ModThreadsCount,
                               char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
                               const char *live_dev)
@@ -733,7 +733,7 @@ int RunModeSetLiveCaptureSingle(DetectEngineCtx *de_ctx,
 
     return RunModeSetLiveCaptureWorkersForDevice(de_ctx,
                                  ConfigParser,
-                                 mod_threads_count,
+                                 ModThreadsCount,
                                  recv_mod_name,
                                  decode_mod_name,
                                  thread_name,

@@ -34,21 +34,21 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
 
 int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
                               ConfigIfaceParserFunc configparser,
-                              ConfigIfaceThreadsCountFunc mod_threads_count,
+                              ConfigIfaceThreadsCountFunc ModThreadsCount,
                               char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
                               const char *live_dev);
 
 int RunModeSetLiveCaptureSingle(DetectEngineCtx *de_ctx,
                               ConfigIfaceParserFunc configparser,
-                              ConfigIfaceThreadsCountFunc mod_threads_count,
+                              ConfigIfaceThreadsCountFunc ModThreadsCount,
                               char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
                               const char *live_dev);
 
 int RunModeSetLiveCaptureWorkers(DetectEngineCtx *de_ctx,
                               ConfigIfaceParserFunc configparser,
-                              ConfigIfaceThreadsCountFunc mod_threads_count,
+                              ConfigIfaceThreadsCountFunc ModThreadsCount,
                               char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
                               const char *live_dev);
