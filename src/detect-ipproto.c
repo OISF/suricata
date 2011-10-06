@@ -202,7 +202,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
             s->proto.proto[data->proto/8] |= 1 << (data->proto%8);
             break;
         case DETECT_IPPROTO_OP_GT:
-            s->proto.proto[data->proto/8] |= 0xff << (data->proto%8);
+            s->proto.proto[data->proto/8] |= 0xfe << (data->proto%8);
             for (i = (data->proto/8) + 1; i < (256/8); i++) {
                 s->proto.proto[i] = 0xff;
             }
@@ -214,7 +214,13 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
             s->proto.proto[data->proto/8] |= ~(0xff << (data->proto%8));
             break;
         case DETECT_IPPROTO_OP_NOT:
-            s->proto.proto[data->proto/8] &= ~(1 << (data->proto%8));
+            for (i = 0; i < (data->proto / 8); i++) {
+                s->proto.proto[i] = 0xff;
+            }
+            s->proto.proto[data->proto / 8] |= ~(1 << (data->proto % 8));
+            for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
+                s->proto.proto[i] = 0xff;
+            }
             break;
     }
 #if DEBUG
