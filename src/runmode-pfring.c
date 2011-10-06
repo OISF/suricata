@@ -38,6 +38,7 @@
 #include "util-cpu.h"
 #include "util-affinity.h"
 #include "util-runmodes.h"
+#include "util-device.h"
 
 static const char *default_mode_auto = NULL;
 static const char *default_mode_autofp = NULL;
@@ -308,7 +309,6 @@ int PfringConfLevel()
     if (ConfGet("pfring.interface", &def_dev) != 1) {
         return PFRING_CONF_V2;
     } else {
-        SCLogInfo("Using 1.0 style configuration for pfring");
         return PFRING_CONF_V1;
     }
     return PFRING_CONF_V2;
@@ -323,12 +323,15 @@ static int GetDevAndParser(char **live_dev, ConfigIfaceParserFunc *parser)
     if (PfringConfLevel() > PFRING_CONF_V1) {
         *parser = ParsePfringConfig;
     } else {
+        SCLogInfo("Using 1.0 style configuration for pfring");
         *parser = OldParsePfringConfig;
         /* In v1: try to get interface name from config */
-        if (live_dev == NULL) {
+        if (*live_dev == NULL) {
             if (ConfGet("pfring.interface", live_dev) == 1) {
                 SCLogInfo("Using interface %s", *live_dev);
+                LiveRegisterDevice(*live_dev);
             } else {
+                SCLogInfo("No interface found, problem incoming");
                 *live_dev = NULL;
             }
         }
@@ -494,7 +497,7 @@ int RunModeIdsPfringWorkers(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
 
-    SCLogInfo("RunModeIdsPfringSingle initialised");
+    SCLogInfo("RunModeIdsPfringWorkers initialised");
 #endif /* HAVE_PFRING */
 
     return 0;
