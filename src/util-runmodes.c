@@ -585,7 +585,6 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
 }
 
 static int RunModeSetLiveCaptureWorkersForDevice(DetectEngineCtx *de_ctx,
-                              ConfigIfaceParserFunc ConfigParser,
                               ConfigIfaceThreadsCountFunc ModThreadsCount,
                               char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
@@ -681,7 +680,6 @@ int RunModeSetLiveCaptureWorkers(DetectEngineCtx *de_ctx,
 
     for (ldev = 0; ldev < nlive; ldev++) {
         char *live_dev_c = NULL;
-        aconf = ConfigParser(live_dev_c);
         if (live_dev != NULL) {
             aconf = ConfigParser(live_dev);
             live_dev_c = SCStrdup(live_dev);
@@ -694,7 +692,6 @@ int RunModeSetLiveCaptureWorkers(DetectEngineCtx *de_ctx,
             aconf = ConfigParser(live_dev_c);
         }
         RunModeSetLiveCaptureWorkersForDevice(de_ctx,
-                ConfigParser,
                 ModThreadsCount,
                 recv_mod_name,
                 decode_mod_name,
@@ -732,7 +729,6 @@ int RunModeSetLiveCaptureSingle(DetectEngineCtx *de_ctx,
     }
 
     return RunModeSetLiveCaptureWorkersForDevice(de_ctx,
-                                 ConfigParser,
                                  ModThreadsCount,
                                  recv_mod_name,
                                  decode_mod_name,
