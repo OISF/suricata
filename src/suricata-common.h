@@ -189,6 +189,7 @@ typedef enum PacketProfileDetectId_ {
 #include "util-error.h"
 #include "util-mem.h"
 #include "detect-engine-alert.h"
+#include "util-optimize.h"
 
 size_t strlcat(char *, const char *src, size_t siz);
 size_t strlcpy(char *dst, const char *src, size_t siz);
