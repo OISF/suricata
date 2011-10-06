@@ -55,10 +55,11 @@ static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
 static int DetectIPProtoSetup(DetectEngineCtx *, Signature *, char *);
-static DetectIPProtoData *DetectIPProtoParse(const char *optstr);
+static DetectIPProtoData *DetectIPProtoParse(const char *);
 static void DetectIPProtoRegisterTests(void);
 
-void DetectIPProtoRegister (void) {
+void DetectIPProtoRegister(void)
+{
     const char *eb;
     int eo;
     int opts = 0;
@@ -70,18 +71,18 @@ void DetectIPProtoRegister (void) {
     sigmatch_table[DETECT_IPPROTO].RegisterTests = DetectIPProtoRegisterTests;
 
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
-    if(parse_regex == NULL)
-    {
-        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
+    if (parse_regex == NULL) {
+        SCLogError(SC_ERR_PCRE_COMPILE, "pcre compile of \"%s\" failed at "
+                   "offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
-    if(eb != NULL)
-    {
+    if (eb != NULL) {
         SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
         goto error;
     }
+
     return;
 
 error:
@@ -111,7 +112,8 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
     ret = pcre_exec(parse_regex, parse_regex_study, optstr,
                     strlen(optstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret != 3) {
-        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret %" PRId32 ", string %s", ret, optstr);
+        SCLogError(SC_ERR_PCRE_MATCH, "pcre_exec parse error, ret"
+                   "%" PRId32 ", string %s", ret, optstr);
         goto error;
     }
 
@@ -141,14 +143,16 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
     if (!isdigit(*(args[1]))) {
         struct protoent *pent = getprotobyname(args[1]);
         if (pent == NULL) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Malformed protocol name: %s", str_ptr);
+            SCLogError(SC_ERR_INVALID_VALUE, "Malformed protocol name: %s",
+                       str_ptr);
             goto error;
         }
         data->proto = (uint8_t)pent->p_proto;
     }
     else {
         if (ByteExtractStringUint8(&data->proto, 10, 0, args[1]) <= 0) {
-            SCLogError(SC_ERR_INVALID_VALUE, "Malformed protocol number: %s", str_ptr);
+            SCLogError(SC_ERR_INVALID_VALUE, "Malformed protocol number: %s",
+                       str_ptr);
             goto error;
         }
     }
@@ -157,6 +161,7 @@ static DetectIPProtoData *DetectIPProtoParse(const char *optstr)
         if (args[i] != NULL)
             SCFree(args[i]);
     }
+
     return data;
 
 error:
@@ -166,6 +171,7 @@ error:
     }
     if (data != NULL)
         SCFree(data);
+
     return NULL;
 }
 
@@ -185,8 +191,6 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
     int ret = 0;
     int i;
 
-    //printf("DetectIPProtoSetup: \'%s\'\n", optstr);
-
     data = DetectIPProtoParse((const char *)optstr);
     if (data == NULL) {
         ret = -1;
@@ -199,19 +203,19 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
 
     switch (data->op) {
         case DETECT_IPPROTO_OP_EQ:
-            s->proto.proto[data->proto/8] |= 1 << (data->proto%8);
+            s->proto.proto[data->proto / 8] |= 1 << (data->proto % 8);
             break;
         case DETECT_IPPROTO_OP_GT:
-            s->proto.proto[data->proto/8] |= 0xfe << (data->proto%8);
-            for (i = (data->proto/8) + 1; i < (256/8); i++) {
+            s->proto.proto[data->proto / 8] |= 0xfe << (data->proto % 8);
+            for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
                 s->proto.proto[i] = 0xff;
             }
             break;
         case DETECT_IPPROTO_OP_LT:
-            for (i = 0; i < (data->proto/8); i++) {
+            for (i = 0; i < (data->proto / 8); i++) {
                 s->proto.proto[i] = 0xff;
             }
-            s->proto.proto[data->proto/8] |= ~(0xff << (data->proto%8));
+            s->proto.proto[data->proto / 8] |= ~(0xff << (data->proto % 8));
             break;
         case DETECT_IPPROTO_OP_NOT:
             for (i = 0; i < (data->proto / 8); i++) {
@@ -236,7 +240,8 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
     ret = 0;
 
 cleanup:
-    if (data != NULL) SCFree(data);
+    if (data != NULL)
+        SCFree(data);
 
     return ret;
 }
@@ -248,14 +253,17 @@ cleanup:
 #include "detect-engine.h"
 #include "detect-parse.h"
 
-static int DetectIPProtoInitTest(DetectEngineCtx **de_ctx, Signature **sig, DetectIPProtoData **data, const char *str) {
+static int DetectIPProtoInitTest(DetectEngineCtx **de_ctx, Signature **sig,
+                                 DetectIPProtoData **data, const char *str)
+{
     char fullstr[1024];
     int result = 0;
 
     *de_ctx = NULL;
     *sig = NULL;
 
-    if (snprintf(fullstr, 1024, "alert ip any any -> any any (msg:\"IPProto test\"; ip_proto:%s; sid:1;)", str) >= 1024) {
+    if (snprintf(fullstr, 1024, "alert ip any any -> any any (msg:\"IPProto test\"; "
+                 "ip_proto:%s; sid:1;)", str) >= 1024) {
         goto end;
     }
 
@@ -287,7 +295,8 @@ end:
 /**
  * \test DetectIPProtoTestParse01 is a test for an invalid proto number
  */
-static int DetectIPProtoTestParse01(void) {
+static int DetectIPProtoTestParse01(void)
+{
     int result = 0;
     DetectIPProtoData *data = NULL;
     data = DetectIPProtoParse("999");
@@ -303,7 +312,8 @@ static int DetectIPProtoTestParse01(void) {
 /**
  * \test DetectIPProtoTestParse02 is a test for an invalid proto name
  */
-static int DetectIPProtoTestParse02(void) {
+static int DetectIPProtoTestParse02(void)
+{
     int result = 0;
     DetectIPProtoData *data = NULL;
     data = DetectIPProtoParse("foobarbooeek");
@@ -319,7 +329,8 @@ static int DetectIPProtoTestParse02(void) {
 /**
  * \test DetectIPProtoTestSetup01 is a test for a protocol number
  */
-static int DetectIPProtoTestSetup01(void) {
+static int DetectIPProtoTestSetup01(void)
+{
     DetectIPProtoData *data = NULL;
     Signature *sig = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -337,9 +348,7 @@ static int DetectIPProtoTestSetup01(void) {
         goto cleanup;
     }
 
-    if (   (data->op != DETECT_IPPROTO_OP_EQ)
-        || (data->proto != 14))
-    {
+    if ((data->op != DETECT_IPPROTO_OP_EQ) || (data->proto != 14)) {
         goto cleanup;
     }
 
@@ -356,7 +365,8 @@ static int DetectIPProtoTestSetup01(void) {
     result = 1;
 
 cleanup:
-    if (data) SCFree(data);
+    if (data)
+        SCFree(data);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -367,7 +377,8 @@ end:
 /**
  * \test DetectIPProtoTestSetup02 is a test for a protocol name
  */
-static int DetectIPProtoTestSetup02(void) {
+static int DetectIPProtoTestSetup02(void)
+{
     DetectIPProtoData *data = NULL;
     Signature *sig = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -384,9 +395,7 @@ static int DetectIPProtoTestSetup02(void) {
         goto cleanup;
     }
 
-    if (   (data->op != DETECT_IPPROTO_OP_EQ)
-        || (data->proto != 6))
-    {
+    if ((data->op != DETECT_IPPROTO_OP_EQ) || (data->proto != 6)) {
         goto cleanup;
     }
 
@@ -398,7 +407,8 @@ static int DetectIPProtoTestSetup02(void) {
     result = 1;
 
 cleanup:
-    if (data) SCFree(data);
+    if (data)
+        SCFree(data);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -409,7 +419,8 @@ end:
 /**
  * \test DetectIPProtoTestSetup03 is a test for a < operator
  */
-static int DetectIPProtoTestSetup03(void) {
+static int DetectIPProtoTestSetup03(void)
+{
     DetectIPProtoData *data = NULL;
     Signature *sig = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -426,22 +437,19 @@ static int DetectIPProtoTestSetup03(void) {
         goto cleanup;
     }
 
-    if (   (data->op != DETECT_IPPROTO_OP_LT)
-        || (data->proto != 14))
-    {
+    if ((data->op != DETECT_IPPROTO_OP_LT) || (data->proto != 14)) {
         goto cleanup;
     }
 
-    if (   (sig->proto.proto[0] != 0xff)
-        || (sig->proto.proto[1] != 0x3f))
-    {
+    if ( (sig->proto.proto[0] != 0xff) || (sig->proto.proto[1] != 0x3f)) {
         goto cleanup;
     }
 
     result = 1;
 
 cleanup:
-    if (data) SCFree(data);
+    if (data)
+        SCFree(data);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -452,7 +460,8 @@ end:
 /**
  * \test DetectIPProtoTestSetup04 is a test for a > operator
  */
-static int DetectIPProtoTestSetup04(void) {
+static int DetectIPProtoTestSetup04(void)
+{
     DetectIPProtoData *data = NULL;
     Signature *sig = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -470,9 +479,7 @@ static int DetectIPProtoTestSetup04(void) {
         goto cleanup;
     }
 
-    if (   (data->op != DETECT_IPPROTO_OP_GT)
-        || (data->proto != 14))
-    {
+    if ((data->op != DETECT_IPPROTO_OP_GT) || (data->proto != 14)) {
         goto cleanup;
     }
 
@@ -488,7 +495,8 @@ static int DetectIPProtoTestSetup04(void) {
     result = 1;
 
 cleanup:
-    if (data) SCFree(data);
+    if (data)
+        SCFree(data);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -499,7 +507,8 @@ end:
 /**
  * \test DetectIPProtoTestSetup05 is a test for a ! operator
  */
-static int DetectIPProtoTestSetup05(void) {
+static int DetectIPProtoTestSetup05(void)
+{
     DetectIPProtoData *data = NULL;
     Signature *sig = NULL;
     DetectEngineCtx *de_ctx = NULL;
@@ -517,9 +526,7 @@ static int DetectIPProtoTestSetup05(void) {
         goto cleanup;
     }
 
-    if (   (data->op != DETECT_IPPROTO_OP_NOT)
-        || (data->proto != 14))
-    {
+    if ((data->op != DETECT_IPPROTO_OP_NOT) || (data->proto != 14)) {
         goto cleanup;
     }
 
@@ -532,7 +539,8 @@ static int DetectIPProtoTestSetup05(void) {
     result = 1;
 
 cleanup:
-    if (data) SCFree(data);
+    if (data)
+        SCFree(data);
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -540,7 +548,8 @@ end:
     return result;
 }
 
-static int DetectIPProtoTestSig1(void) {
+static int DetectIPProtoTestSig1(void)
+{
     int result = 0;
     uint8_t *buf = (uint8_t *)
                     "GET /one/ HTTP/1.1\r\n"
@@ -552,10 +561,14 @@ static int DetectIPProtoTestSig1(void) {
         goto end;
 
     char *sigs[4];
-    sigs[0] = "alert ip any any -> any any (msg:\"Not tcp\"; ip_proto:!tcp; content:\"GET \"; sid:1;)";
-    sigs[1] = "alert ip any any -> any any (msg:\"Less than 7\"; content:\"GET \"; ip_proto:<7; sid:2;)";
-    sigs[2] = "alert ip any any -> any any (msg:\"Greater than 5\"; content:\"GET \"; ip_proto:>5; sid:3;)";
-    sigs[3] = "alert ip any any -> any any (msg:\"Equals tcp\"; content:\"GET \"; ip_proto:tcp; sid:4;)";
+    sigs[0] = "alert ip any any -> any any "
+        "(msg:\"Not tcp\"; ip_proto:!tcp; content:\"GET \"; sid:1;)";
+    sigs[1] = "alert ip any any -> any any "
+        "(msg:\"Less than 7\"; content:\"GET \"; ip_proto:<7; sid:2;)";
+    sigs[2] = "alert ip any any -> any any "
+        "(msg:\"Greater than 5\"; content:\"GET \"; ip_proto:>5; sid:3;)";
+    sigs[3] = "alert ip any any -> any any "
+        "(msg:\"Equals tcp\"; content:\"GET \"; ip_proto:tcp; sid:4;)";
 
     /* sids to match */
     uint32_t sid[4] = {1, 2, 3, 4};
@@ -584,7 +597,8 @@ end:
  * \internal
  * \brief Register ip_proto tests.
  */
-static void DetectIPProtoRegisterTests(void) {
+static void DetectIPProtoRegisterTests(void)
+{
 #ifdef UNITTESTS
     UtRegisterTest("DetectIPProtoTestParse01", DetectIPProtoTestParse01, 1);
     UtRegisterTest("DetectIPProtoTestParse02", DetectIPProtoTestParse02, 1);
@@ -596,4 +610,3 @@ static void DetectIPProtoRegisterTests(void) {
     UtRegisterTest("DetectIPProtoTestSig1", DetectIPProtoTestSig1, 1);
 #endif /* UNITTESTS */
 }
-
