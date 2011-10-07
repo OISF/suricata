@@ -253,45 +253,6 @@ cleanup:
 #include "detect-engine.h"
 #include "detect-parse.h"
 
-static int DetectIPProtoInitTest(DetectEngineCtx **de_ctx, Signature **sig,
-                                 DetectIPProtoData **data, const char *str)
-{
-    char fullstr[1024];
-    int result = 0;
-
-    *de_ctx = NULL;
-    *sig = NULL;
-
-    if (snprintf(fullstr, 1024, "alert ip any any -> any any (msg:\"IPProto test\"; "
-                 "ip_proto:%s; sid:1;)", str) >= 1024) {
-        goto end;
-    }
-
-    *de_ctx = DetectEngineCtxInit();
-    if (*de_ctx == NULL) {
-        goto end;
-    }
-
-    (*de_ctx)->flags |= DE_QUIET;
-
-    (*de_ctx)->sig_list = SigInit(*de_ctx, fullstr);
-    if ((*de_ctx)->sig_list == NULL) {
-        goto end;
-    }
-
-    *sig = (*de_ctx)->sig_list;
-    if ((*sig)->proto.flags & DETECT_PROTO_ANY) {
-        goto end;
-    }
-
-    *data = DetectIPProtoParse(str);
-
-    result = 1;
-
-end:
-    return result;
-}
-
 /**
  * \test DetectIPProtoTestParse01 is a test for an invalid proto number
  */
@@ -304,7 +265,8 @@ static int DetectIPProtoTestParse01(void)
         result = 1;
     }
 
-    if (data) SCFree(data);
+    if (data)
+        SCFree(data);
 
     return result;
 }
@@ -321,7 +283,8 @@ static int DetectIPProtoTestParse02(void)
         result = 1;
     }
 
-    if (data) SCFree(data);
+    if (data)
+        SCFree(data);
 
     return result;
 }
@@ -331,45 +294,30 @@ static int DetectIPProtoTestParse02(void)
  */
 static int DetectIPProtoTestSetup01(void)
 {
-    DetectIPProtoData *data = NULL;
-    Signature *sig = NULL;
-    DetectEngineCtx *de_ctx = NULL;
     int result = 0;
+    Signature sig;
+    memset(&sig, 0, sizeof(Signature));
+    char *value_str = "14";
+    int value = atoi(value_str);
     int i;
 
-    result = DetectIPProtoInitTest(&de_ctx, &sig, &data, "14");
-    if (result == 0) {
-        goto end;
-    }
-
-    result = 0;
-
-    if (data == NULL) {
-        goto cleanup;
-    }
-
-    if ((data->op != DETECT_IPPROTO_OP_EQ) || (data->proto != 14)) {
-        goto cleanup;
-    }
-
-    /* The 6th bit is the only one that should be set */
-    if (sig->proto.proto[1] != 0x40) {
-        goto cleanup;
-    }
-    for (i = 2; i < 256/8; i++) {
-        if (sig->proto.proto[i] != 0) {
-            goto cleanup;
+    DetectIPProtoSetup(NULL, &sig, value_str);
+    for (i = 0; i < 256 / 8; i++) {
+        for (i = 0; i < (value / 8); i++) {
+            if (sig.proto.proto[i] != 0)
+                goto end;
+        }
+        if (sig.proto.proto[value / 8] != 0x40) {
+            goto end;
+        }
+        for (i = (value / 8) + 1; i < (256 / 8); i++) {
+            if (sig.proto.proto[i] != 0)
+                goto end;
         }
     }
 
     result = 1;
 
-cleanup:
-    if (data)
-        SCFree(data);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
 end:
     return result;
 }
@@ -379,40 +327,35 @@ end:
  */
 static int DetectIPProtoTestSetup02(void)
 {
-    DetectIPProtoData *data = NULL;
-    Signature *sig = NULL;
-    DetectEngineCtx *de_ctx = NULL;
     int result = 0;
-
-    result = DetectIPProtoInitTest(&de_ctx, &sig, &data, "tcp");
-    if (result == 0) {
+    Signature sig;
+    memset(&sig, 0, sizeof(Signature));
+    char *value_str = "tcp";
+    struct protoent *pent = getprotobyname(value_str);
+    if (pent == NULL) {
         goto end;
     }
+    uint8_t value = (uint8_t)pent->p_proto;
+    int i;
 
-    result = 0;
-
-    if (data == NULL) {
-        goto cleanup;
-    }
-
-    if ((data->op != DETECT_IPPROTO_OP_EQ) || (data->proto != 6)) {
-        goto cleanup;
-    }
-
-    /* The 6th bit is the only one that should be set */
-    if (sig->proto.proto[0] != 0x40) {
-        goto cleanup;
+    DetectIPProtoSetup(NULL, &sig, value_str);
+    for (i = 0; i < 256 / 8; i++) {
+        for (i = 0; i < (value / 8); i++) {
+            if (sig.proto.proto[i] != 0)
+                goto end;
+        }
+        if (sig.proto.proto[value / 8] != 0x40) {
+            goto end;
+        }
+        for (i = (value / 8) + 1; i < (256 / 8); i++) {
+            if (sig.proto.proto[i] != 0)
+                goto end;
+        }
     }
 
     result = 1;
 
-cleanup:
-    if (data)
-        SCFree(data);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-end:
+ end:
     return result;
 }
 
@@ -421,39 +364,31 @@ end:
  */
 static int DetectIPProtoTestSetup03(void)
 {
-    DetectIPProtoData *data = NULL;
-    Signature *sig = NULL;
-    DetectEngineCtx *de_ctx = NULL;
     int result = 0;
+    Signature sig;
+    memset(&sig, 0, sizeof(Signature));
+    char *value_str = "<14";
+    int value = 14;
+    int i;
 
-    result = DetectIPProtoInitTest(&de_ctx, &sig, &data, "<14");
-    if (result == 0) {
-        goto end;
-    }
-
-    result = 0;
-
-    if (data == NULL) {
-        goto cleanup;
-    }
-
-    if ((data->op != DETECT_IPPROTO_OP_LT) || (data->proto != 14)) {
-        goto cleanup;
-    }
-
-    if ( (sig->proto.proto[0] != 0xff) || (sig->proto.proto[1] != 0x3f)) {
-        goto cleanup;
+    DetectIPProtoSetup(NULL, &sig, value_str);
+    for (i = 0; i < 256 / 8; i++) {
+        for (i = 0; i < (value / 8); i++) {
+            if (sig.proto.proto[i] != 0xFF)
+                goto end;
+        }
+        if (sig.proto.proto[value / 8] != 0x3F) {
+            goto end;
+        }
+        for (i = (value / 8) + 1; i < (256 / 8); i++) {
+            if (sig.proto.proto[i] != 0)
+                goto end;
+        }
     }
 
     result = 1;
 
-cleanup:
-    if (data)
-        SCFree(data);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-end:
+ end:
     return result;
 }
 
@@ -462,45 +397,31 @@ end:
  */
 static int DetectIPProtoTestSetup04(void)
 {
-    DetectIPProtoData *data = NULL;
-    Signature *sig = NULL;
-    DetectEngineCtx *de_ctx = NULL;
     int result = 0;
+    Signature sig;
+    memset(&sig, 0, sizeof(Signature));
+    char *value_str = ">14";
+    int value = 14;
     int i;
 
-    result = DetectIPProtoInitTest(&de_ctx, &sig, &data, ">14");
-    if (result == 0) {
-        goto end;
-    }
-
-    result = 0;
-
-    if (data == NULL) {
-        goto cleanup;
-    }
-
-    if ((data->op != DETECT_IPPROTO_OP_GT) || (data->proto != 14)) {
-        goto cleanup;
-    }
-
-    if (sig->proto.proto[1] != 0xc0) {
-        goto cleanup;
-    }
-    for (i = 2; i < 256/8; i++) {
-        if (sig->proto.proto[i] != 0xff) {
-            goto cleanup;
+    DetectIPProtoSetup(NULL, &sig, value_str);
+    for (i = 0; i < 256 / 8; i++) {
+        for (i = 0; i < (value / 8); i++) {
+            if (sig.proto.proto[i] != 0)
+                goto end;
+        }
+        if (sig.proto.proto[value / 8] != 0x80) {
+            goto end;
+        }
+        for (i = (value / 8) + 1; i < (256 / 8); i++) {
+            if (sig.proto.proto[i] != 0xFF)
+                goto end;
         }
     }
 
     result = 1;
 
-cleanup:
-    if (data)
-        SCFree(data);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-end:
+ end:
     return result;
 }
 
@@ -509,42 +430,31 @@ end:
  */
 static int DetectIPProtoTestSetup05(void)
 {
-    DetectIPProtoData *data = NULL;
-    Signature *sig = NULL;
-    DetectEngineCtx *de_ctx = NULL;
     int result = 0;
+    Signature sig;
+    memset(&sig, 0, sizeof(Signature));
+    char *value_str = "!14";
+    int value = 14;
     int i;
 
-    result = DetectIPProtoInitTest(&de_ctx, &sig, &data, "!14");
-    if (result == 0) {
-        goto end;
-    }
-
-    result = 0;
-
-    if (data == NULL) {
-        goto cleanup;
-    }
-
-    if ((data->op != DETECT_IPPROTO_OP_NOT) || (data->proto != 14)) {
-        goto cleanup;
-    }
-
-    for (i = 1; i < 256/8; i++) {
-        if (sig->proto.proto[i] != 0) {
-            goto cleanup;
+    DetectIPProtoSetup(NULL, &sig, value_str);
+    for (i = 0; i < 256 / 8; i++) {
+        for (i = 0; i < (value / 8); i++) {
+            if (sig.proto.proto[i] != 0xFF)
+                goto end;
+        }
+        if (sig.proto.proto[value / 8] != 0xBF) {
+            goto end;
+        }
+        for (i = (value / 8) + 1; i < (256 / 8); i++) {
+            if (sig.proto.proto[i] != 0xFF)
+                goto end;
         }
     }
 
     result = 1;
 
-cleanup:
-    if (data)
-        SCFree(data);
-    SigGroupCleanup(de_ctx);
-    SigCleanSignatures(de_ctx);
-    DetectEngineCtxFree(de_ctx);
-end:
+ end:
     return result;
 }
 
