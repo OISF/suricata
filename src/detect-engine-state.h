@@ -16,6 +16,12 @@
  */
 
 /**
+ * \ingroup sigstate
+ *
+ * @{
+ */
+
+/**
  * \file
  *
  * \brief Data structures and function prototypes for keeping
@@ -122,3 +128,6 @@ int DeStateUpdateInspectTransactionId(Flow *, char);
 
 #endif /* __DETECT_ENGINE_STATE_H__ */
 
+/**
+ * @}
+ */

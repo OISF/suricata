@@ -16,9 +16,35 @@
  */
 
 /**
+ * \defgroup sigstate State support
+ *
+ * It is possible to do matching on reconstructed applicative flow.
+ * This is done by this code. It uses the ::Flow structure to store
+ * the list of signatures to match on the reconstructed stream.
+ *
+ * The Flow::de_state is a ::DetectEngineState structure. This is
+ * basically a containter for storage item of type ::DeStateStore.
+ * They contains an array of ::DeStateStoreItem which store the
+ * state of match for an individual signature identified by
+ * DeStateStoreItem::sid.
+ *
+ * The state is constructed by DeStateDetectStartDetection() which
+ * also starts the matching. Work is continued by
+ * DeStateDetectContinueDetection().
+ *
+ * Once a transaction has been analysed DeStateRestartDetection()
+ * is used to reset the structures.
+ *
+ * @{
+ */
+
+/**
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
+ *
+ * \brief State based signature handling
+ *
  */
 
 #include "suricata-common.h"
@@ -1253,3 +1279,6 @@ void DeStateRegisterTests(void) {
 #endif
 }
 
+/**
+ * @}
+ */
