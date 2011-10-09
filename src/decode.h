@@ -223,7 +223,7 @@ typedef struct PacketAlert_ {
     uint8_t action; /* Internal num, used for sorting */
     uint8_t flags;
 
-    /** Pointer to smsg this signature matched on, or
+    /** Pointer to stream message this signature matched on, or
      *  NULL if the sig didn't match on a smsg */
     void *alert_msg;
 

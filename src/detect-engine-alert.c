@@ -167,7 +167,7 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p, u
         p->alerts.alerts[p->alerts.cnt].s = s;
     } else {
         /* We need to make room for this s->num
-         (a bit ugly with mamcpy but we are planning changes here)*/
+         (a bit ugly with memcpy but we are planning changes here)*/
         for (i = p->alerts.cnt - 1; i >= 0 && p->alerts.alerts[i].order_id > s->order_id; i--) {
             memcpy(&p->alerts.alerts[i + 1], &p->alerts.alerts[i], sizeof(PacketAlert));
         }

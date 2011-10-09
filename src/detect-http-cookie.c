@@ -16,6 +16,13 @@
  */
 
 /**
+ * \ingroup httplayer
+ *
+ * @{
+ */
+
+
+/**
  * \file
  *
  * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
@@ -1287,3 +1294,6 @@ void DetectHttpCookieRegisterTests (void)
 #endif /* UNITTESTS */
 
 }
+/**
+ * @}
+ */

@@ -16,6 +16,13 @@
  */
 
 /**
+ * \ingroup httplayer
+ *
+ * @{
+ */
+
+
+/**
  * \file
  *
  * \author Gerardo Iglesias  <iglesiasg@gmail.com>
@@ -848,3 +855,6 @@ void DetectHttpUriRegisterTests (void)
 #endif /* UNITTESTS */
 
 }
+/**
+ * @}
+ */

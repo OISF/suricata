@@ -16,6 +16,13 @@
  */
 
 /**
+ * \ingroup httplayer
+ *
+ * @{
+ */
+
+
+/**
  * \file
  *
  * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
@@ -712,3 +719,6 @@ void DetectHttpStatMsgRegisterTests (void)
 
 #endif /* UNITTESTS */
 }
+/**
+ * @}
+ */

@@ -16,6 +16,13 @@
  */
 
 /**
+ * \ingroup httplayer
+ *
+ * @{
+ */
+
+
+/**
  * \file
  *
  * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
@@ -1835,3 +1842,6 @@ void DetectHttpHeaderRegisterTests(void)
 
     return;
 }
+/**
+ * @}
+ */

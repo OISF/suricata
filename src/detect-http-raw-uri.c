@@ -16,6 +16,13 @@
  */
 
 /**
+ * \ingroup httplayer
+ *
+ * @{
+ */
+
+
+/**
  * \file
  *
  * \author Anoop Saldanha <poonaatsoc@gmail.com>
@@ -903,3 +910,6 @@ static void DetectHttpRawUriRegisterTests (void)
 
     return;
 }
+/**
+ * @}
+ */

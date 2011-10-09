@@ -16,6 +16,12 @@
  */
 
 /**
+ * \ingroup httplayer
+ *
+ * @{
+ */
+
+/**
  * \file
  *
  * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
@@ -2369,3 +2375,6 @@ void HTPParserRegisterTests(void) {
 #endif /* UNITTESTS */
 }
 
+/**
+ * @}
+ */

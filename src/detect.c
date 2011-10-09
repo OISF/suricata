@@ -1404,7 +1404,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_GETSGH);
         }
-    } else {
+    } else { /* p->flags & PKT_HAS_FLOW */
         /* no flow */
 
         /* Even without flow we should match the packet src/dst */
@@ -1558,7 +1558,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                         if (DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, p->flow, smsg_inspect->data.data, smsg_inspect->data.data_len) == 1) {
                             SCLogDebug("match in smsg %p", smsg);
                             pmatch = 1;
-                            /* Tell the enigne that this reassembled stream can drop the
+                            /* Tell the engine that this reassembled stream can drop the
                              * rest of the pkts with no further inspection */
                             if (s->action == ACTION_DROP)
                                 alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;

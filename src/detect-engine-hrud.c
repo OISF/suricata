@@ -15,6 +15,13 @@
  * 02110-1301, USA.
  */
 
+/**
+ * \ingroup httplayer
+ *
+ * @{
+ */
+
+
 /** \file
  *
  * \author Anoop Saldanha <poonaatsoc@gmail.com>
@@ -3875,3 +3882,6 @@ void DetectEngineHttpRawUriRegisterTests(void)
 
     return;
 }
+/**
+ * @}
+ */

@@ -16,6 +16,13 @@
  */
 
 /**
+ * \ingroup httplayer
+ *
+ * @{
+ */
+
+
+/**
  * \file
  *
  * \author Brian Rectanus <brectanu@gmail.com>
@@ -1041,3 +1048,6 @@ void DetectHttpMethodRegisterTests(void) {
 #endif /* UNITTESTS */
 }
 
+/**
+ * @}
+ */

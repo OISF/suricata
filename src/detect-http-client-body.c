@@ -16,6 +16,13 @@
  */
 
 /**
+ * \ingroup httplayer
+ *
+ * @{
+ */
+
+
+/**
  * \file
  *
  * \author Anoop Saldanha <poonaatsoc@gmail.com>
@@ -2632,3 +2639,6 @@ void DetectHttpClientBodyRegisterTests(void)
 
     return;
 }
+/**
+ * @}
+ */

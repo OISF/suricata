@@ -16,6 +16,12 @@
  */
 
 /**
+ * \defgroup httplayer HTTP layer support
+ *
+ * @{
+ */
+
+/**
  * \file
  *
  * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
@@ -123,3 +129,6 @@ void AppLayerHtpPrintStats(void);
 
 #endif	/* __APP_LAYER_HTP_H__ */
 
+/**
+ * @}
+ */
