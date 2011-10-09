@@ -31,30 +31,30 @@ typedef struct SMTPState_ {
     uint8_t direction;
 
     /* --parser details-- */
-    /* current line extracted by the parser from the call to SMTPGetline() */
+    /** current line extracted by the parser from the call to SMTPGetline() */
     uint8_t *current_line;
-    /* length of the line in current_line.  Doesn't include the delimiter */
+    /** length of the line in current_line.  Doesn't include the delimiter */
     int32_t current_line_len;
 
-    /* used to indicate if the current_line buffer is a malloced buffer.  We
+    /** used to indicate if the current_line buffer is a malloced buffer.  We
      * use a malloced buffer, if a line is fragmented */
     uint8_t *tc_db;
     int32_t tc_db_len;
     uint8_t tc_current_line_db;
-    /* we have see LF for the currently parsed line */
+    /** we have see LF for the currently parsed line */
     uint8_t tc_current_line_lf_seen;
 
-    /* used to indicate if the current_line buffer is a malloced buffer.  We
+    /** used to indicate if the current_line buffer is a malloced buffer.  We
      * use a malloced buffer, if a line is fragmented */
     uint8_t *ts_db;
     int32_t ts_db_len;
     uint8_t ts_current_line_db;
-    /* we have see LF for the currently parsed line */
+    /** we have see LF for the currently parsed line */
     uint8_t ts_current_line_lf_seen;
 
-    /* var to indicate parser state */
+    /** var to indicate parser state */
     uint8_t parser_state;
-    /* current command in progress */
+    /** current command in progress */
     uint8_t current_command;
 
     /* the request commands are store here and the reply handler uses these
