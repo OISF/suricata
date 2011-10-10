@@ -303,13 +303,14 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                         s->proto.proto[i] = 0xff;
                     }
                     temp_sm = s->sm_lists[DETECT_SM_LIST_MATCH];
-                    uint8_t *not_protos;
+                    uint8_t *not_protos = NULL;
                     int not_protos_len = 0;
                     while (temp_sm != NULL) {
                         if (temp_sm->type == DETECT_IPPROTO &&
                             ((DetectIPProtoData *)temp_sm->ctx)->op == DETECT_IPPROTO_OP_NOT) {
                             DetectIPProtoData *data_temp = temp_sm->ctx;
-                            not_protos = SCMalloc((not_protos_len + 1) * sizeof(uint8_t));
+                            not_protos = SCRealloc(not_protos,
+                                                   (not_protos_len + 1) * sizeof(uint8_t));
                             if (not_protos == NULL)
                                 goto error;
                             not_protos[not_protos_len] = data_temp->proto;
@@ -326,7 +327,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                         } else {
                             s->proto.proto[not_protos[j] / 8] &= ~(1 << (not_protos[j] % 8));
                         }
-                        break;
+                        j++;
                     }
                 } else {
                     for (i = 0; i < (data->proto / 8); i++) {
@@ -400,13 +401,14 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                     }
                     s->proto.proto[data->proto / 8] |= ~(0xff << (data->proto % 8));
                     temp_sm = s->sm_lists[DETECT_SM_LIST_MATCH];
-                    uint8_t *not_protos;
+                    uint8_t *not_protos = NULL;
                     int not_protos_len = 0;
                     while (temp_sm != NULL) {
                         if (temp_sm->type == DETECT_IPPROTO &&
                             ((DetectIPProtoData *)temp_sm->ctx)->op == DETECT_IPPROTO_OP_NOT) {
                             DetectIPProtoData *data_temp = temp_sm->ctx;
-                            not_protos = SCMalloc((not_protos_len + 1) * sizeof(uint8_t));
+                            not_protos = SCRealloc(not_protos,
+                                                   (not_protos_len + 1) * sizeof(uint8_t));
                             if (not_protos == NULL)
                                 goto error;
                             not_protos[not_protos_len] = data_temp->proto;
@@ -423,7 +425,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                         } else {
                             ;
                         }
-                        break;
+                        j++;
                     }
                 } else {
                     for (i = 0; i < (data->proto / 8); i++) {
@@ -4001,7 +4003,7 @@ static int DetectIPProtoTestSetup85(void)
     char *value1_str = "<10";
     int value1 = 10;
     char *value2_str = "!35";
-    int value2 = 13;
+    int value2 = 35;
     int i;
 
     if ((sig = SigAlloc()) == NULL)
@@ -4037,7 +4039,7 @@ static int DetectIPProtoTestSetup86(void)
     char *value1_str = "<10";
     int value1 = 10;
     char *value2_str = "!35";
-    int value2 = 13;
+    int value2 = 35;
     int i;
 
     if ((sig = SigAlloc()) == NULL)
@@ -4055,6 +4057,2801 @@ static int DetectIPProtoTestSetup86(void)
         goto end;
     }
     for (i = (value2 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup87(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!4";
+    int value1 = 4;
+    char *value2_str = "<10";
+    int value2 = 10;
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (sig->proto.proto[value1 / 8] != 0xEF) {
+        goto end;
+    }
+    if (sig->proto.proto[value2 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value2 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup88(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!4";
+    int value1 = 4;
+    char *value2_str = "<10";
+    int value2 = 10;
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (sig->proto.proto[value1 / 8] != 0xEF) {
+        goto end;
+    }
+    if (sig->proto.proto[value2 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value2 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup89(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!4";
+    int value1 = 4;
+    char *value2_str = "<10";
+    int value2 = 10;
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (sig->proto.proto[value1 / 8] != 0xEF) {
+        goto end;
+    }
+    if (sig->proto.proto[value2 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value2 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup90(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!4";
+    int value1 = 4;
+    char *value2_str = "<10";
+    int value2 = 10;
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (sig->proto.proto[value1 / 8] != 0xEF) {
+        goto end;
+    }
+    if (sig->proto.proto[value2 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value2 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup91(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!4";
+    int value1 = 4;
+    char *value2_str = "<10";
+    int value2 = 10;
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (sig->proto.proto[value1 / 8] != 0xEF) {
+        goto end;
+    }
+    if (sig->proto.proto[value2 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value2 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup92(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!4";
+    int value1 = 4;
+    char *value2_str = "<10";
+    int value2 = 10;
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (sig->proto.proto[value1 / 8] != 0xEF) {
+        goto end;
+    }
+    if (sig->proto.proto[value2 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value2 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup93(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!9";
+    int value1 = 9;
+    char *value2_str = "<12";
+    int value2 = 12;
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x0D) {
+        goto end;
+    }
+    for (i = (value2 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup94(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!9";
+    int value1 = 9;
+    char *value2_str = "<12";
+    int value2 = 12;
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x0D) {
+        goto end;
+    }
+    for (i = (value2 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup95(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!9";
+    int value1 = 9;
+    char *value2_str = "<12";
+    int value2 = 12;
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x0D) {
+        goto end;
+    }
+    for (i = (value2 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup96(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!9";
+    int value1 = 9;
+    char *value2_str = "<12";
+    int value2 = 12;
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x0D) {
+        goto end;
+    }
+    for (i = (value2 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup97(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!9";
+    int value1 = 9;
+    char *value2_str = "<12";
+    int value2 = 12;
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x0D) {
+        goto end;
+    }
+    for (i = (value2 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup98(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!9";
+    int value1 = 9;
+    char *value2_str = "<12";
+    int value2 = 12;
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x0D) {
+        goto end;
+    }
+    for (i = (value2 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup99(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = "!13";
+    int value2 = 13;
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value2 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup100(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = "!13";
+    int value2 = 13;
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value2 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup101(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = "!13";
+    int value2 = 13;
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value2 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup102(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = "!13";
+    int value2 = 13;
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value2 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup103(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = "!13";
+    int value2 = 13;
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value2 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup104(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = "!13";
+    int value2 = 13;
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value2 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup105(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = "!18";
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup106(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = "!18";
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup107(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = "!18";
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup108(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = "!18";
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup109(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = "!18";
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup110(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = "!18";
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup111(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = "!33";
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup112(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = "!33";
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup113(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = "!33";
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup114(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = "!33";
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup115(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = "!33";
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup116(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = "!33";
+    char *value3_str = ">35";
+    int value3 = 35;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup117(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = ">34";
+    int value2 = 34;
+    char *value3_str = "!38";
+    int value3 = 38;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    if (sig->proto.proto[value2 / 8] != 0xB8) {
+        goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup118(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = ">34";
+    int value2 = 34;
+    char *value3_str = "!38";
+    int value3 = 38;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    if (sig->proto.proto[value2 / 8] != 0xB8) {
+        goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup119(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = ">34";
+    int value2 = 34;
+    char *value3_str = "!38";
+    int value3 = 38;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    if (sig->proto.proto[value2 / 8] != 0xB8) {
+        goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup120(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = ">34";
+    int value2 = 34;
+    char *value3_str = "!38";
+    int value3 = 38;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    if (sig->proto.proto[value2 / 8] != 0xB8) {
+        goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup121(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = ">34";
+    int value2 = 34;
+    char *value3_str = "!38";
+    int value3 = 38;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    if (sig->proto.proto[value2 / 8] != 0xB8) {
+        goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup122(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = ">34";
+    int value2 = 34;
+    char *value3_str = "!38";
+    int value3 = 38;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value3 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    if (sig->proto.proto[value2 / 8] != 0xB8) {
+        goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup123(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = ">34";
+    int value2 = 34;
+    char *value3_str = "!45";
+    int value3 = 45;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value2 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    if (sig->proto.proto[value2 / 8] != 0xF8) {
+        goto end;
+    }
+    if (sig->proto.proto[value3 / 8] != 0xDF) {
+        goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup124(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = ">34";
+    int value2 = 34;
+    char *value3_str = "!45";
+    int value3 = 45;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value2 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    if (sig->proto.proto[value2 / 8] != 0xF8) {
+        goto end;
+    }
+    if (sig->proto.proto[value3 / 8] != 0xDF) {
+        goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup125(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = ">34";
+    int value2 = 34;
+    char *value3_str = "!45";
+    int value3 = 45;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value2 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    if (sig->proto.proto[value2 / 8] != 0xF8) {
+        goto end;
+    }
+    if (sig->proto.proto[value3 / 8] != 0xDF) {
+        goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup126(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = ">34";
+    int value2 = 34;
+    char *value3_str = "!45";
+    int value3 = 45;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value2 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    if (sig->proto.proto[value2 / 8] != 0xF8) {
+        goto end;
+    }
+    if (sig->proto.proto[value3 / 8] != 0xDF) {
+        goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup127(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = ">34";
+    int value2 = 34;
+    char *value3_str = "!45";
+    int value3 = 45;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value2 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    if (sig->proto.proto[value2 / 8] != 0xF8) {
+        goto end;
+    }
+    if (sig->proto.proto[value3 / 8] != 0xDF) {
+        goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup128(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = ">34";
+    int value2 = 34;
+    char *value3_str = "!45";
+    int value3 = 45;
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < (value2 / 8); i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+    if (sig->proto.proto[value2 / 8] != 0xF8) {
+        goto end;
+    }
+    if (sig->proto.proto[value3 / 8] != 0xDF) {
+        goto end;
+    }
+    for (i = (value3 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup129(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = ">10";
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0xFB) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup130(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = ">10";
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0xFB) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup131(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = "!10";
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0x0)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup132(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "<10";
+    int value1 = 10;
+    char *value2_str = "!10";
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0x03) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0x0)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup133(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = ">10";
+    int value1 = 10;
+    char *value2_str = "!10";
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0x0)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0xF8) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+
+static int DetectIPProtoTestSetup134(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = ">10";
+    int value1 = 10;
+    char *value2_str = "!10";
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    for (i = 0; i < (value1 / 8); i++) {
+        if (sig->proto.proto[i] != 0x0)
+            goto end;
+    }
+    if (sig->proto.proto[value1 / 8] != 0xF8) {
+        goto end;
+    }
+    for (i = (value1 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup135(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!4";
+    char *value2_str = "!8";
+    char *value3_str = "!27";
+    char *value4_str = "!29";
+    char *value5_str = "<30";
+    char *value6_str = ">34";
+    char *value7_str = "!36";
+    char *value8_str = "!38";
+    int value8 = 38;
+
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value4_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value5_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value6_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value7_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value8_str) != 0)
+        goto end;
+    if (sig->proto.proto[0] != 0xEF) {
+        goto end;
+    }
+    if (sig->proto.proto[1] != 0xFE) {
+        goto end;
+    }
+    if (sig->proto.proto[2] != 0xFF) {
+        goto end;
+    }
+    if (sig->proto.proto[3] != 0x17) {
+        goto end;
+    }
+    if (sig->proto.proto[4] != 0xA8) {
+        goto end;
+    }
+    for (i = (value8 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup136(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!4";
+    char *value2_str = "!8";
+    char *value3_str = "!27";
+    char *value4_str = "!29";
+    char *value5_str = "<30";
+    char *value6_str = ">34";
+    char *value7_str = "!36";
+    char *value8_str = "!38";
+    int value8 = 38;
+
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value8_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value7_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value6_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value5_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value4_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (sig->proto.proto[0] != 0xEF) {
+        goto end;
+    }
+    if (sig->proto.proto[1] != 0xFE) {
+        goto end;
+    }
+    if (sig->proto.proto[2] != 0xFF) {
+        goto end;
+    }
+    if (sig->proto.proto[3] != 0x17) {
+        goto end;
+    }
+    if (sig->proto.proto[4] != 0xA8) {
+        goto end;
+    }
+    for (i = (value8 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup137(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!4";
+    char *value2_str = "!8";
+    char *value3_str = "!27";
+    char *value4_str = "!29";
+    char *value5_str = "<30";
+    char *value6_str = ">34";
+    char *value7_str = "!36";
+    char *value8_str = "!38";
+    int value8 = 38;
+
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value5_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value7_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value8_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value4_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value6_str) != 0)
+        goto end;
+    if (sig->proto.proto[0] != 0xEF) {
+        goto end;
+    }
+    if (sig->proto.proto[1] != 0xFE) {
+        goto end;
+    }
+    if (sig->proto.proto[2] != 0xFF) {
+        goto end;
+    }
+    if (sig->proto.proto[3] != 0x17) {
+        goto end;
+    }
+    if (sig->proto.proto[4] != 0xA8) {
+        goto end;
+    }
+    for (i = (value8 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup138(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!4";
+    char *value2_str = "!8";
+    char *value3_str = "!27";
+    char *value4_str = "!29";
+    char *value5_str = "<30";
+    char *value6_str = ">34";
+    char *value7_str = "!36";
+    char *value8_str = "!38";
+    int value8 = 38;
+
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value7_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value4_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value8_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value6_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value5_str) != 0)
+        goto end;
+    if (sig->proto.proto[0] != 0xEF) {
+        goto end;
+    }
+    if (sig->proto.proto[1] != 0xFE) {
+        goto end;
+    }
+    if (sig->proto.proto[2] != 0xFF) {
+        goto end;
+    }
+    if (sig->proto.proto[3] != 0x17) {
+        goto end;
+    }
+    if (sig->proto.proto[4] != 0xA8) {
+        goto end;
+    }
+    for (i = (value8 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup139(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!4";
+    char *value2_str = "!8";
+    char *value3_str = "!27";
+    char *value4_str = "!29";
+    char *value5_str = "<30";
+    char *value6_str = ">34";
+    char *value7_str = "!36";
+    char *value8_str = "!38";
+    int value8 = 38;
+
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value7_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value5_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value8_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value6_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value4_str) != 0)
+        goto end;
+    if (sig->proto.proto[0] != 0xEF) {
+        goto end;
+    }
+    if (sig->proto.proto[1] != 0xFE) {
+        goto end;
+    }
+    if (sig->proto.proto[2] != 0xFF) {
+        goto end;
+    }
+    if (sig->proto.proto[3] != 0x17) {
+        goto end;
+    }
+    if (sig->proto.proto[4] != 0xA8) {
+        goto end;
+    }
+    for (i = (value8 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup140(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!4";
+    char *value2_str = "!8";
+    char *value3_str = "!27";
+    char *value4_str = "!29";
+    char *value5_str = "<30";
+    char *value6_str = ">34";
+    char *value7_str = "!36";
+    char *value8_str = "!38";
+    int value8 = 38;
+
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value4_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value8_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value6_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value7_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value5_str) != 0)
+        goto end;
+    if (sig->proto.proto[0] != 0xEF) {
+        goto end;
+    }
+    if (sig->proto.proto[1] != 0xFE) {
+        goto end;
+    }
+    if (sig->proto.proto[2] != 0xFF) {
+        goto end;
+    }
+    if (sig->proto.proto[3] != 0x17) {
+        goto end;
+    }
+    if (sig->proto.proto[4] != 0xA8) {
+        goto end;
+    }
+    for (i = (value8 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup141(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!4";
+    char *value2_str = "!8";
+    char *value3_str = "!27";
+    char *value4_str = "!29";
+    char *value5_str = "<30";
+    char *value6_str = ">34";
+    char *value7_str = "!36";
+    char *value8_str = "!38";
+    int value8 = 38;
+
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value6_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value8_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value7_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value4_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value5_str) != 0)
+        goto end;
+    if (sig->proto.proto[0] != 0xEF) {
+        goto end;
+    }
+    if (sig->proto.proto[1] != 0xFE) {
+        goto end;
+    }
+    if (sig->proto.proto[2] != 0xFF) {
+        goto end;
+    }
+    if (sig->proto.proto[3] != 0x17) {
+        goto end;
+    }
+    if (sig->proto.proto[4] != 0xA8) {
+        goto end;
+    }
+    for (i = (value8 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup142(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!4";
+    char *value2_str = "!8";
+    char *value3_str = "!27";
+    char *value4_str = "!29";
+    char *value5_str = "<30";
+    char *value6_str = ">34";
+    char *value7_str = "!36";
+    char *value8_str = "!38";
+    int value8 = 38;
+
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value4_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value8_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value5_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value6_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value7_str) != 0)
+        goto end;
+    if (sig->proto.proto[0] != 0xEF) {
+        goto end;
+    }
+    if (sig->proto.proto[1] != 0xFE) {
+        goto end;
+    }
+    if (sig->proto.proto[2] != 0xFF) {
+        goto end;
+    }
+    if (sig->proto.proto[3] != 0x17) {
+        goto end;
+    }
+    if (sig->proto.proto[4] != 0xA8) {
+        goto end;
+    }
+    for (i = (value8 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0xFF)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup143(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!4";
+    char *value2_str = ">8";
+    char *value3_str = "!10";
+    char *value4_str = "!14";
+    char *value5_str = "!27";
+    char *value6_str = "!29";
+    char *value7_str = "!30";
+    char *value8_str = "!34";
+    char *value9_str = "<36";
+    char *value10_str = "!38";
+    int value10 = 38;
+
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value4_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value5_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value6_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value7_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value8_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value9_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value10_str) != 0)
+        goto end;
+    if (sig->proto.proto[0] != 0) {
+        goto end;
+    }
+    if (sig->proto.proto[1] != 0xBA) {
+        goto end;
+    }
+    if (sig->proto.proto[2] != 0xFF) {
+        goto end;
+    }
+    if (sig->proto.proto[3] != 0x97) {
+        goto end;
+    }
+    if (sig->proto.proto[4] != 0x0B) {
+        goto end;
+    }
+    for (i = (value10 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup144(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!4";
+    char *value2_str = ">8";
+    char *value3_str = "!10";
+    char *value4_str = "!14";
+    char *value5_str = "!27";
+    char *value6_str = "!29";
+    char *value7_str = "!30";
+    char *value8_str = "!34";
+    char *value9_str = "<36";
+    char *value10_str = "!38";
+    int value10 = 38;
+
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value10_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value9_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value8_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value7_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value6_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value5_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value4_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (sig->proto.proto[0] != 0) {
+        goto end;
+    }
+    if (sig->proto.proto[1] != 0xBA) {
+        goto end;
+    }
+    if (sig->proto.proto[2] != 0xFF) {
+        goto end;
+    }
+    if (sig->proto.proto[3] != 0x97) {
+        goto end;
+    }
+    if (sig->proto.proto[4] != 0x0B) {
+        goto end;
+    }
+    for (i = (value10 / 8) + 1; i < 256 / 8; i++) {
+        if (sig->proto.proto[i] != 0)
+            goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigFree(sig);
+    return result;
+}
+
+static int DetectIPProtoTestSetup145(void)
+{
+    int result = 0;
+    Signature *sig;
+    char *value1_str = "!4";
+    char *value2_str = ">8";
+    char *value3_str = "!10";
+    char *value4_str = "!14";
+    char *value5_str = "!27";
+    char *value6_str = "!29";
+    char *value7_str = "!30";
+    char *value8_str = "!34";
+    char *value9_str = "<36";
+    char *value10_str = "!38";
+    int value10 = 38;
+
+    int i;
+
+    if ((sig = SigAlloc()) == NULL)
+        goto end;
+
+    if (DetectIPProtoSetup(NULL, sig, value5_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value8_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value2_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value10_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value1_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value6_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value9_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value4_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value3_str) != 0)
+        goto end;
+    if (DetectIPProtoSetup(NULL, sig, value7_str) != 0)
+        goto end;
+    if (sig->proto.proto[0] != 0) {
+        goto end;
+    }
+    if (sig->proto.proto[1] != 0xBA) {
+        goto end;
+    }
+    if (sig->proto.proto[2] != 0xFF) {
+        goto end;
+    }
+    if (sig->proto.proto[3] != 0x97) {
+        goto end;
+    }
+    if (sig->proto.proto[4] != 0x0B) {
+        goto end;
+    }
+    for (i = (value10 / 8) + 1; i < 256 / 8; i++) {
         if (sig->proto.proto[i] != 0)
             goto end;
     }
@@ -4206,6 +7003,65 @@ static void DetectIPProtoRegisterTests(void)
     UtRegisterTest("DetectIPProtoTestSetup84", DetectIPProtoTestSetup84, 1);
     UtRegisterTest("DetectIPProtoTestSetup85", DetectIPProtoTestSetup85, 1);
     UtRegisterTest("DetectIPProtoTestSetup86", DetectIPProtoTestSetup86, 1);
+    UtRegisterTest("DetectIPProtoTestSetup87", DetectIPProtoTestSetup87, 1);
+    UtRegisterTest("DetectIPProtoTestSetup88", DetectIPProtoTestSetup88, 1);
+    UtRegisterTest("DetectIPProtoTestSetup89", DetectIPProtoTestSetup89, 1);
+    UtRegisterTest("DetectIPProtoTestSetup90", DetectIPProtoTestSetup90, 1);
+    UtRegisterTest("DetectIPProtoTestSetup91", DetectIPProtoTestSetup91, 1);
+    UtRegisterTest("DetectIPProtoTestSetup92", DetectIPProtoTestSetup92, 1);
+    UtRegisterTest("DetectIPProtoTestSetup93", DetectIPProtoTestSetup93, 1);
+    UtRegisterTest("DetectIPProtoTestSetup94", DetectIPProtoTestSetup94, 1);
+    UtRegisterTest("DetectIPProtoTestSetup95", DetectIPProtoTestSetup95, 1);
+    UtRegisterTest("DetectIPProtoTestSetup96", DetectIPProtoTestSetup96, 1);
+    UtRegisterTest("DetectIPProtoTestSetup97", DetectIPProtoTestSetup97, 1);
+    UtRegisterTest("DetectIPProtoTestSetup98", DetectIPProtoTestSetup98, 1);
+    UtRegisterTest("DetectIPProtoTestSetup99", DetectIPProtoTestSetup99, 1);
+    UtRegisterTest("DetectIPProtoTestSetup100", DetectIPProtoTestSetup100, 1);
+    UtRegisterTest("DetectIPProtoTestSetup101", DetectIPProtoTestSetup101, 1);
+    UtRegisterTest("DetectIPProtoTestSetup102", DetectIPProtoTestSetup102, 1);
+    UtRegisterTest("DetectIPProtoTestSetup103", DetectIPProtoTestSetup103, 1);
+    UtRegisterTest("DetectIPProtoTestSetup104", DetectIPProtoTestSetup104, 1);
+    UtRegisterTest("DetectIPProtoTestSetup105", DetectIPProtoTestSetup105, 1);
+    UtRegisterTest("DetectIPProtoTestSetup106", DetectIPProtoTestSetup106, 1);
+    UtRegisterTest("DetectIPProtoTestSetup107", DetectIPProtoTestSetup107, 1);
+    UtRegisterTest("DetectIPProtoTestSetup108", DetectIPProtoTestSetup108, 1);
+    UtRegisterTest("DetectIPProtoTestSetup109", DetectIPProtoTestSetup109, 1);
+    UtRegisterTest("DetectIPProtoTestSetup110", DetectIPProtoTestSetup110, 1);
+    UtRegisterTest("DetectIPProtoTestSetup111", DetectIPProtoTestSetup111, 1);
+    UtRegisterTest("DetectIPProtoTestSetup112", DetectIPProtoTestSetup112, 1);
+    UtRegisterTest("DetectIPProtoTestSetup113", DetectIPProtoTestSetup113, 1);
+    UtRegisterTest("DetectIPProtoTestSetup114", DetectIPProtoTestSetup114, 1);
+    UtRegisterTest("DetectIPProtoTestSetup115", DetectIPProtoTestSetup115, 1);
+    UtRegisterTest("DetectIPProtoTestSetup116", DetectIPProtoTestSetup116, 1);
+    UtRegisterTest("DetectIPProtoTestSetup117", DetectIPProtoTestSetup117, 1);
+    UtRegisterTest("DetectIPProtoTestSetup118", DetectIPProtoTestSetup118, 1);
+    UtRegisterTest("DetectIPProtoTestSetup119", DetectIPProtoTestSetup119, 1);
+    UtRegisterTest("DetectIPProtoTestSetup120", DetectIPProtoTestSetup120, 1);
+    UtRegisterTest("DetectIPProtoTestSetup121", DetectIPProtoTestSetup121, 1);
+    UtRegisterTest("DetectIPProtoTestSetup122", DetectIPProtoTestSetup122, 1);
+    UtRegisterTest("DetectIPProtoTestSetup123", DetectIPProtoTestSetup123, 1);
+    UtRegisterTest("DetectIPProtoTestSetup124", DetectIPProtoTestSetup124, 1);
+    UtRegisterTest("DetectIPProtoTestSetup125", DetectIPProtoTestSetup125, 1);
+    UtRegisterTest("DetectIPProtoTestSetup126", DetectIPProtoTestSetup126, 1);
+    UtRegisterTest("DetectIPProtoTestSetup127", DetectIPProtoTestSetup127, 1);
+    UtRegisterTest("DetectIPProtoTestSetup128", DetectIPProtoTestSetup128, 1);
+    UtRegisterTest("DetectIPProtoTestSetup129", DetectIPProtoTestSetup129, 1);
+    UtRegisterTest("DetectIPProtoTestSetup130", DetectIPProtoTestSetup130, 1);
+    UtRegisterTest("DetectIPProtoTestSetup131", DetectIPProtoTestSetup131, 1);
+    UtRegisterTest("DetectIPProtoTestSetup132", DetectIPProtoTestSetup132, 1);
+    UtRegisterTest("DetectIPProtoTestSetup133", DetectIPProtoTestSetup133, 1);
+    UtRegisterTest("DetectIPProtoTestSetup134", DetectIPProtoTestSetup134, 1);
+    UtRegisterTest("DetectIPProtoTestSetup135", DetectIPProtoTestSetup135, 1);
+    UtRegisterTest("DetectIPProtoTestSetup136", DetectIPProtoTestSetup136, 1);
+    UtRegisterTest("DetectIPProtoTestSetup137", DetectIPProtoTestSetup137, 1);
+    UtRegisterTest("DetectIPProtoTestSetup138", DetectIPProtoTestSetup138, 1);
+    UtRegisterTest("DetectIPProtoTestSetup139", DetectIPProtoTestSetup139, 1);
+    UtRegisterTest("DetectIPProtoTestSetup140", DetectIPProtoTestSetup140, 1);
+    UtRegisterTest("DetectIPProtoTestSetup141", DetectIPProtoTestSetup141, 1);
+    UtRegisterTest("DetectIPProtoTestSetup142", DetectIPProtoTestSetup142, 1);
+    UtRegisterTest("DetectIPProtoTestSetup143", DetectIPProtoTestSetup143, 1);
+    UtRegisterTest("DetectIPProtoTestSetup144", DetectIPProtoTestSetup144, 1);
+    UtRegisterTest("DetectIPProtoTestSetup145", DetectIPProtoTestSetup145, 1);
 
     UtRegisterTest("DetectIPProtoTestSig1", DetectIPProtoTestSig1, 1);
 #endif /* UNITTESTS */
