@@ -64,6 +64,7 @@ void SigMatchAppendUricontent(Signature *, SigMatch *);
 void SigMatchAppendAppLayer(Signature *, SigMatch *);
 void SigMatchAppendTag(Signature *, SigMatch *);
 void SigMatchAppendSMToList(Signature *, SigMatch *, int);
+void SigMatchRemoveSMFromList(Signature *, SigMatch *, int);
 int SigMatchListSMBelongsTo(Signature *, SigMatch *);
 
 int DetectParseDupSigHashInit(DetectEngineCtx *);
