@@ -215,7 +215,6 @@ typedef struct SCPerfOPIfaceContext_ {
     SCMutex pctmi_lock;
 } SCPerfOPIfaceContext;
 
-
 /* the initialization functions */
 void SCPerfInitCounterApi(void);
 void SCPerfSpawnThreads(void);
@@ -259,5 +258,15 @@ void SCPerfRegisterTests(void);
 /* functions used to update local counter values */
 void SCPerfCounterAddUI64(uint16_t, SCPerfCounterArray *, uint64_t);
 void SCPerfCounterAddDouble(uint16_t, SCPerfCounterArray *, double);
+
+#define SCPerfSyncCounters(tv, reset_lc) \
+    SCPerfUpdateCounterArray((tv)->sc_perf_pca, &(tv)->sc_perf_pctx, (reset_lc)); \
+
+#define SCPerfSyncCountersIfSignalled(tv, reset_lc)                        \
+    do {                                                        \
+        if ((tv)->sc_perf_pctx.perf_flag == 1) {                            \
+            SCPerfUpdateCounterArray((tv)->sc_perf_pca, &(tv)->sc_perf_pctx, (reset_lc)); \
+        }                                                               \
+    } while (0)
 
 #endif /* __COUNTERS_H__ */

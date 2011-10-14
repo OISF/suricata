@@ -94,8 +94,7 @@ Packet *TmqhInputRingBufferMrSw(ThreadVars *t)
 
     Packet *p = (Packet *)RingBufferMrSw8Get(rb);
 
-    if (t->sc_perf_pctx.perf_flag == 1)
-        SCPerfUpdateCounterArray(t->sc_perf_pca, &t->sc_perf_pctx, 0);
+    SCPerfSyncCountersIfSignalled(t, 0);
 
     return p;
 }
@@ -112,8 +111,7 @@ Packet *TmqhInputRingBufferSrSw(ThreadVars *t)
 
     Packet *p = (Packet *)RingBufferSrSw8Get(rb);
 
-    if (t->sc_perf_pctx.perf_flag == 1)
-        SCPerfUpdateCounterArray(t->sc_perf_pca, &t->sc_perf_pctx, 0);
+    SCPerfSyncCountersIfSignalled(t, 0);
 
     return p;
 }
@@ -130,8 +128,7 @@ Packet *TmqhInputRingBufferSrMw(ThreadVars *t)
 
     Packet *p = (Packet *)RingBufferSrMw8Get(rb);
 
-    if (t->sc_perf_pctx.perf_flag == 1)
-        SCPerfUpdateCounterArray(t->sc_perf_pca, &t->sc_perf_pctx, 0);
+    SCPerfSyncCountersIfSignalled(t, 0);
 
     return p;
 }

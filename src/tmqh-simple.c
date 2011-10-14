@@ -53,8 +53,7 @@ Packet *TmqhInputSimple(ThreadVars *t)
         SCCondWait(&q->cond_q, &q->mutex_q);
     }
 
-    if (t->sc_perf_pctx.perf_flag == 1)
-        SCPerfUpdateCounterArray(t->sc_perf_pca, &t->sc_perf_pctx, 0);
+    SCPerfSyncCountersIfSignalled(t, 0);
 
     if (q->len > 0) {
         Packet *p = PacketDequeue(q);

@@ -172,7 +172,7 @@ void *TmThreadsSlot1NoIn(void *td)
         }
 
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
-            SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
+            SCPerfSyncCounters(tv, 0);
             run = 0;
         }
     } /* while (run) */
@@ -244,7 +244,7 @@ void *TmThreadsSlot1NoOut(void *td)
         }
 
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
-            SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
+            SCPerfSyncCounters(tv, 0);
             run = 0;
         }
     } /* while (run) */
@@ -311,7 +311,7 @@ void *TmThreadsSlot1NoInOut(void *td)
         }
 
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
-            SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
+            SCPerfSyncCounters(tv, 0);
             run = 0;
         }
     } /* while (run) */
@@ -413,7 +413,7 @@ void *TmThreadsSlot1(void *td)
         }
 
         if (TmThreadsCheckFlag(tv, THV_KILL)) {
-            SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
+            SCPerfSyncCounters(tv, 0);
             run = 0;
         }
     } /* while (run) */
@@ -571,7 +571,7 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
             run = 0;
         }
     }
-    SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
+    SCPerfSyncCounters(tv, 0);
 
     TmThreadWaitForFlag(tv, THV_DEINIT);
 
@@ -693,7 +693,7 @@ void *TmThreadsSlotVar(void *td)
             run = 0;
         }
     } /* while (run) */
-    SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
+    SCPerfSyncCounters(tv, 0);
 
     TmThreadWaitForFlag(tv, THV_DEINIT);
 

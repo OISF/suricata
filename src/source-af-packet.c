@@ -390,10 +390,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
             ptv->afp_state = AFP_STATE_DOWN;
             continue;
         }
-
-        if (tv->sc_perf_pctx.perf_flag == 1) {
-            SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
-        }
+        SCPerfSyncCountersIfSignalled(tv, 0);
     }
 
     if (suricata_ctl_flags & SURICATA_STOP ||
