@@ -249,6 +249,10 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
             TmqhOutputPacketpool(ptv->tv, p);
             return TM_ECODE_FAILED;
         }
+
+        if (tv->sc_perf_pctx.perf_flag == 1) {
+            SCPerfUpdateCounterArray(tv->sc_perf_pca, &tv->sc_perf_pctx, 0);
+        }
     }
 
     return TM_ECODE_OK;

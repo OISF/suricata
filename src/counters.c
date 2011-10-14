@@ -520,18 +520,19 @@ static void *SCPerfWakeupThread(void *arg)
 
         tv = tv_root[TVT_PPT];
         while (tv != NULL) {
-            if (tv->inq == NULL || tv->sc_perf_pctx.head == NULL) {
+            if (tv->sc_perf_pctx.head == NULL) {
                 tv = tv->next;
                 continue;
             }
-
-            q = &trans_q[tv->inq->id];
 
             /* assuming the assignment of an int to be atomic, and even if it's
              * not, it should be okay */
             tv->sc_perf_pctx.perf_flag = 1;
 
-            SCCondSignal(&q->cond_q);
+            if (tv->inq != NULL) {
+                q = &trans_q[tv->inq->id];
+                SCCondSignal(&q->cond_q);
+            }
 
             tv = tv->next;
         }
