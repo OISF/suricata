@@ -787,7 +787,6 @@ static int HTPCallbackRequest(htp_connp_t *connp) {
         SCReturnInt(HOOK_ERROR);
     }
 
-    hstate->transaction_cnt++;
     SCLogDebug("transaction_cnt %"PRIu16", list_size %"PRIuMAX,
                hstate->transaction_cnt,
                (uintmax_t)list_size(hstate->connp->conn->transactions));
@@ -810,6 +809,9 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
     if (hstate == NULL) {
         SCReturnInt(HOOK_ERROR);
     }
+
+    /* we have one whole transaction now */
+    hstate->transaction_cnt++;
 
     /* Unset the body inspection (if any) */
     hstate->flags &=~ HTP_FLAG_NEW_BODY_SET;

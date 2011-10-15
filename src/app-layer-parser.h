@@ -211,6 +211,7 @@ AppLayerProbingParserInfo *AppLayerGetProbingParserInfo(AppLayerProbingParserInf
 
     return NULL;
 }
+extern uint16_t app_layer_sid;
 
 struct AlpProtoDetectCtx_;
 
