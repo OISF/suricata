@@ -168,6 +168,20 @@ static void AlertDebugLogPktVars(AlertDebugLogThread *aft, Packet *p)
     }
 }
 
+/** \todo doc
+ * assume we have aft lock */
+static int AlertDebugPrintStreamSegmentCallback(Packet *p, void *data, uint8_t *buf, uint32_t buflen)
+{
+    AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
+
+    fprintf(aft->file_ctx->fp, "STREAM DATA:\n");
+    PrintRawDataFp(aft->file_ctx->fp, buf, buflen);
+
+    return 1;
+}
+
+
+
 TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
@@ -267,6 +281,26 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
             fprintf(aft->file_ctx->fp, "PAYLOAD LEN:       %" PRIu32 "\n", p->payload_len);
             fprintf(aft->file_ctx->fp, "PAYLOAD:\n");
             PrintRawDataFp(aft->file_ctx->fp, p->payload, p->payload_len);
+        } else { /* This is an app layer alert */
+            int ret;
+            uint8_t flag;
+            if ((! PKT_IS_TCP(p)) || p->flow == NULL ||
+                    p->flow->protoctx == NULL) {
+                return TM_ECODE_OK;
+            }
+            /* IDS mode reverse the data */
+            /** \todo improve the order selection policy */
+            if (p->flowflags & FLOW_PKT_TOSERVER) {
+                flag = FLOW_PKT_TOCLIENT;
+            } else {
+                flag = FLOW_PKT_TOSERVER;
+            }
+            ret = StreamSegmentForEach(p, flag,
+                                 AlertDebugPrintStreamSegmentCallback,
+                                 (void *)aft);
+            if (ret != 1) {
+                return TM_ECODE_FAILED;
+            }
         }
     }
 
