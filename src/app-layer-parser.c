@@ -1402,8 +1402,8 @@ AppLayerCreateAppLayerProbingParserElement(const char *al_proto_name,
                                            uint16_t port,
                                            uint8_t priority,
                                            uint8_t top,
-                                           int16_t (*AppLayerProbingParser)
-                                           (uint8_t *input, int32_t input_len))
+                                           uint16_t (*AppLayerProbingParser)
+                                           (uint8_t *input, uint32_t input_len))
 {
     AppLayerProbingParserElement *pe = SCMalloc(sizeof(AppLayerProbingParserElement));
     if (pe == NULL) {
@@ -1723,8 +1723,8 @@ int AppLayerProbingParserInfoAdd(AlpProtoDetectCtx *ctx,
                                  const char *al_proto_name,
                                  uint16_t ip_proto,
                                  uint16_t al_proto,
-                                 int16_t (*ProbingParser)
-                                 (uint8_t *input, int32_t input_len))
+                                 uint16_t (*ProbingParser)
+                                 (uint8_t *input, uint32_t input_len))
 {
     AppLayerProbingParserInfo *new_ppi = NULL;
 
@@ -1793,8 +1793,8 @@ void AppLayerRegisterProbingParser(AlpProtoDetectCtx *ctx,
                                    uint8_t flags,
                                    uint8_t priority,
                                    uint8_t top,
-                                   int16_t (*ProbingParser)
-                                   (uint8_t *input, int32_t input_len))
+                                   uint16_t (*ProbingParser)
+                                   (uint8_t *input, uint32_t input_len))
 {
     AppLayerProbingParser **probing_parsers = &ctx->probing_parsers;
     AppLayerProbingParserElement *pe = NULL;
@@ -2051,7 +2051,7 @@ end:
     return result;
 }
 
-int16_t ProbingParserDummyForTesting(uint8_t *input, int32_t input_len)
+uint16_t ProbingParserDummyForTesting(uint8_t *input, uint32_t input_len)
 {
     return 0;
 }

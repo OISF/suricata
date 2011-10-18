@@ -515,7 +515,7 @@ end:
  * \brief Call the probing parser if it exists for this src or dst port.
  */
 uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *ctx, Flow *f,
-                                             uint8_t *buf, uint16_t buflen,
+                                             uint8_t *buf, uint32_t buflen,
                                              uint8_t flags, uint8_t ipproto)
 {
     AppLayerProbingParserElement *pe = NULL;
@@ -562,9 +562,10 @@ uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *ctx, Flow *f,
         }
 
         int alproto = pe->ProbingParser(buf, buflen);
-        if (alproto > ALPROTO_UNKNOWN)
+        if (alproto != ALPROTO_UNKNOWN && alproto != ALPROTO_FAILED)
             return alproto;
-        if (alproto == -1 || (pe->max_depth != 0 && buflen > pe->max_depth)) {
+        if (alproto == ALPROTO_FAILED ||
+            (pe->max_depth != 0 && buflen > pe->max_depth)) {
             al_proto_masks[0] |= pe->al_proto_mask;
         }
         pe = pe->next;

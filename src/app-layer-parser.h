@@ -148,7 +148,7 @@ typedef struct AppLayerProbingParserElement_ {
     /* the max length of data after which this parser won't be invoked */
     uint32_t max_depth;
     /* the probing parser function */
-    int16_t (*ProbingParser)(uint8_t *input, int32_t input_len);
+    uint16_t (*ProbingParser)(uint8_t *input, uint32_t input_len);
 
     struct AppLayerProbingParserElement_ *next;
 } AppLayerProbingParserElement;
@@ -172,7 +172,7 @@ typedef struct AppLayerProbingParserInfo_ {
     const char *al_proto_name;
     uint16_t ip_proto;
     uint16_t al_proto;
-    int16_t (*ProbingParser)(uint8_t *input, int32_t input_len);
+    uint16_t (*ProbingParser)(uint8_t *input, uint32_t input_len);
     struct AppLayerProbingParserInfo_ *next;
 } AppLayerProbingParserInfo;
 
@@ -231,7 +231,7 @@ void AppLayerRegisterProbingParser(struct AlpProtoDetectCtx_ *, uint16_t, uint16
                                    const char *, uint16_t,
                                    uint16_t, uint16_t, uint8_t, uint8_t,
                                    uint8_t,
-                                   int16_t (*ProbingParser)(uint8_t *, int32_t));
+                                   uint16_t (*ProbingParser)(uint8_t *, uint32_t));
 void AppLayerRegisterStateFuncs(uint16_t proto, void *(*StateAlloc)(void),
                                 void (*StateFree)(void *));
 void AppLayerRegisterTransactionIdFuncs(uint16_t proto,

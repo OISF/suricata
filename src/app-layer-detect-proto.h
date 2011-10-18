@@ -90,7 +90,7 @@ uint16_t AppLayerDetectGetProtoPMParser(AlpProtoDetectCtx *,
                                         uint8_t *, uint16_t,
                                         uint8_t, uint8_t);
 uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *, Flow *,
-                                             uint8_t *, uint16_t,
+                                             uint8_t *, uint32_t,
                                              uint8_t, uint8_t);
 uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *, AlpProtoDetectThreadCtx *,
                                 Flow *, uint8_t *, uint32_t,
