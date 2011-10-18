@@ -3758,7 +3758,7 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
       //  return TM_ECODE_FAILED;
 
     stt->pkts++;
-    return TM_ECODE_OK;
+    return ret;
 }
 
 TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
@@ -4579,6 +4579,49 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(Packet *p, TcpSession *ssn, Pack
     PacketEnqueue(pq, np);
 
     SCReturn;
+}
+
+/**
+ * \brief Run callback function on each TCP segment
+ *
+ * This function is used by StreamMsgForEach() which
+ * should be used directly.
+ *
+ * \return 1 in case of success
+ *
+ */
+int StreamTcpSegmentForEach(Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data)
+{
+    TcpSession *ssn = NULL;
+    TcpStream *stream = NULL;
+    int ret = 0;
+
+    if (p->flow == NULL)
+        return 1;
+
+    SCMutexLock(&p->flow->m);
+    ssn = (TcpSession *)p->flow->protoctx;
+
+    if (ssn == NULL)
+        return 1;
+
+    if (flag & FLOW_PKT_TOSERVER) {
+        stream = &(ssn->server);
+    } else {
+        stream = &(ssn->client);
+    }
+    TcpSegment *seg = stream->seg_list;
+    for (; seg != NULL && SEQ_LT(seg->seq, stream->last_ack);) {
+        ret = CallbackFunc(p, data, seg->payload, seg->payload_len);
+        if (ret != 1) {
+            SCLogInfo("Callback function has failed");
+            SCMutexUnlock(&p->flow->m);
+            return ret;
+        }
+        seg = seg->next;
+    }
+    SCMutexUnlock(&p->flow->m);
+    return 1;
 }
 
 #ifdef UNITTESTS

@@ -102,6 +102,10 @@ Packet *StreamTcpPseudoSetup(Packet *, uint8_t *, uint32_t);
 
 void StreamTcpSetEvent(Packet *p, uint8_t e);
 
+int StreamTcpSegmentForEach(Packet *p, uint8_t flag,
+                        StreamSegmentCallback CallbackFunc,
+                        void *data);
+
 /** ------- Inline functions: ------ */
 
 /**

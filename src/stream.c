@@ -29,6 +29,7 @@
 #include "stream.h"
 #include "util-pool.h"
 #include "util-debug.h"
+#include "stream-tcp.h"
 
 static SCMutex stream_pool_memuse_mutex;
 static uint64_t stream_pool_memuse = 0;
@@ -218,4 +219,24 @@ void StreamMsgReturnListToPool(void *list) {
         StreamMsgReturnToPool(smsg);
         smsg = smsg_next;
     }
+}
+
+/** \brief Run callback for all segments
+ *
+ * \return 1 in case of success
+ */
+int StreamSegmentForEach(Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data)
+{
+    switch(p->proto) {
+        case IPPROTO_TCP:
+            return StreamTcpSegmentForEach(p, flag, CallbackFunc, data);
+            break;
+        case IPPROTO_UDP:
+            SCLogWarning(SC_ERR_UNKNOWN_PROTOCOL, "UDP is currently unsupported");
+            break;
+        default:
+            SCLogWarning(SC_ERR_UNKNOWN_PROTOCOL, "This protocol is currently unsupported");
+            break;
+    }
+    return 0;
 }
