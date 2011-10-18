@@ -56,7 +56,7 @@
 
 #include "util-debug.h"
 
-uint16_t app_layer_sid = 0;
+static uint16_t app_layer_sid = 0;
 static AppLayerProto al_proto_table[ALPROTO_MAX];   /**< Application layer protocol
                                                        table mapped to their
                                                        corresponding parsers */
@@ -172,6 +172,17 @@ static int AlpStoreField(AppLayerParserResult *output, uint16_t idx,
     AlpAppendResultElmt(output, e);
 
     SCReturnInt(0);
+}
+
+void AppLayerSetEOF(Flow *f)
+{
+    AppLayerParserStateStore *parser_state_store =
+        (AppLayerParserStateStore *)f->aldata[app_layer_sid];
+    if (parser_state_store != NULL) {
+        parser_state_store->id_flags |= APP_LAYER_TRANSACTION_EOF;
+        parser_state_store->to_client.flags |= APP_LAYER_PARSER_EOF;
+        parser_state_store->to_server.flags |= APP_LAYER_PARSER_EOF;
+    }
 }
 
 /** \brief Parse a field up to we reach the size limit

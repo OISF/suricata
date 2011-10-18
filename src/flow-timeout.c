@@ -214,11 +214,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
     memset(&p->ts, 0, sizeof(struct timeval));
     TimeGet(&p->ts);
 
-    AppLayerParserStateStore *parser_state_store =
-        (AppLayerParserStateStore *)f->aldata[app_layer_sid];
-    if (parser_state_store != NULL) {
-        parser_state_store->id_flags |= APP_LAYER_TRANSACTION_EOF;
-    }
+    AppLayerSetEOF(f);
 
     return p;
 }

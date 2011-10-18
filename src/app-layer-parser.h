@@ -251,6 +251,7 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *, AppLayerParserState *,
                              uint16_t, const uint8_t *, uint8_t, uint8_t *,
                              uint32_t, uint32_t *);
 uint16_t AlpGetStateIdx(uint16_t);
+void AppLayerSetEOF(Flow *);
 
 uint16_t AppLayerGetProtoByName(const char *);
 
