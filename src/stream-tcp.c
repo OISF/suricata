@@ -3704,7 +3704,7 @@ error:
  *  \param  p       Packet of which checksum has to be validated
  *  \retval  1 if the checksum is valid, otherwise 0
  */
-int StreamTcpValidateChecksum(Packet *p)
+static inline int StreamTcpValidateChecksum(Packet *p)
 {
     int ret = 1;
 
@@ -3744,6 +3744,7 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
     if ((stream_config.flags & STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION) &&
             (StreamTcpValidateChecksum(p) == 0))
     {
+        SCPerfCounterIncr(stt->counter_tcp_invalid_checksum, tv->sc_perf_pca);
         return TM_ECODE_OK;
     }
 
@@ -3777,6 +3778,9 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
                                                         SC_PERF_TYPE_UINT64,
                                                         "NULL");
     stt->counter_tcp_pseudo = SCPerfTVRegisterCounter("tcp.pseudo", tv,
+                                                        SC_PERF_TYPE_UINT64,
+                                                        "NULL");
+    stt->counter_tcp_invalid_checksum = SCPerfTVRegisterCounter("tcp.invalid_checksum", tv,
                                                         SC_PERF_TYPE_UINT64,
                                                         "NULL");
 
