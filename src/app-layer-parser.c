@@ -1344,48 +1344,11 @@ void AppLayerParsersInitPostProcess(void)
 /********************************Probing Parsers*******************************/
 
 
-#define ALPROTO_PROBING_PARSER_MASK_HTTP        0x0001
-#define ALPROTO_PROBING_PARSER_MASK_FTP         0x0002
-#define ALPROTO_PROBING_PARSER_MASK_SMTP        0x0004
-#define ALPROTO_PROBING_PARSER_MASK_TLS         0x0008
-#define ALPROTO_PROBING_PARSER_MASK_SSH         0x0010
-#define ALPROTO_PROBING_PARSER_MASK_IMAP        0x0020
-#define ALPROTO_PROBING_PARSER_MASK_MSN         0x0040
-#define ALPROTO_PROBING_PARSER_MASK_JABBER      0x0080
-#define ALPROTO_PROBING_PARSER_MASK_SMB         0x0100
-#define ALPROTO_PROBING_PARSER_MASK_SMB2        0x0200
-#define ALPROTO_PROBING_PARSER_MASK_DCERPC      0x0400
-#define ALPROTO_PROBING_PARSER_MASK_DCERPC_UDP  0x0800
-#define ALPROTO_PROBING_PARSER_MASK_IRC         0x1000
-
-static uint16_t AppLayerProbingParserGetMask(uint16_t al_proto)
+static uint32_t AppLayerProbingParserGetMask(uint16_t al_proto)
 {
-    if (al_proto == ALPROTO_HTTP) {
-        return ALPROTO_PROBING_PARSER_MASK_HTTP;
-    } else if (al_proto == ALPROTO_FTP) {
-        return ALPROTO_PROBING_PARSER_MASK_FTP;
-    } else if (al_proto == ALPROTO_SMTP) {
-        return ALPROTO_PROBING_PARSER_MASK_SMTP;
-    } else if (al_proto == ALPROTO_TLS) {
-        return ALPROTO_PROBING_PARSER_MASK_TLS;
-    } else if (al_proto == ALPROTO_SSH) {
-        return ALPROTO_PROBING_PARSER_MASK_SSH;
-    } else if (al_proto == ALPROTO_IMAP) {
-        return ALPROTO_PROBING_PARSER_MASK_IMAP;
-    } else if (al_proto == ALPROTO_MSN) {
-        return ALPROTO_PROBING_PARSER_MASK_MSN;
-    } else if (al_proto == ALPROTO_JABBER) {
-        return ALPROTO_PROBING_PARSER_MASK_JABBER;
-    } else if (al_proto == ALPROTO_SMB) {
-        return ALPROTO_PROBING_PARSER_MASK_SMB;
-    } else if (al_proto == ALPROTO_SMB2) {
-        return ALPROTO_PROBING_PARSER_MASK_SMB2;
-    } else if (al_proto == ALPROTO_DCERPC) {
-        return ALPROTO_PROBING_PARSER_MASK_DCERPC;
-    } else if (al_proto == ALPROTO_DCERPC_UDP) {
-        return ALPROTO_PROBING_PARSER_MASK_DCERPC_UDP;
-    } else if (al_proto == ALPROTO_IRC) {
-        return ALPROTO_PROBING_PARSER_MASK_IRC;
+    if (al_proto > ALPROTO_UNKNOWN &&
+        al_proto < ALPROTO_FAILED) {
+        return (1 << al_proto);
     } else {
         SCLogError(SC_ERR_ALPARSER, "Unknown protocol detected - %"PRIu16,
                    al_proto);
@@ -1658,7 +1621,7 @@ void AppLayerPrintProbingParsers(AppLayerProbingParser *pp)
     while (pp != NULL) {
         printf("Port: %"PRIu16 "\n", pp->port);
         printf("    to_server: max-depth: %"PRIu16 ", "
-               "mask - %"PRIu16"\n", pp->toserver_max_depth,
+               "mask - %"PRIu32"\n", pp->toserver_max_depth,
                pp->toserver_al_proto_mask);
         pe = pp->toserver;
         while (pe != NULL) {
@@ -1708,7 +1671,7 @@ void AppLayerPrintProbingParsers(AppLayerProbingParser *pp)
 
             printf("        min_depth: %"PRIu32 "\n", pe->min_depth);
             printf("        max_depth: %"PRIu32 "\n", pe->max_depth);
-            printf("        mask: %"PRIu16 "\n", pe->al_proto_mask);
+            printf("        mask: %"PRIu32 "\n", pe->al_proto_mask);
 
             printf("\n");
             pe = pe->next;
@@ -2112,7 +2075,7 @@ static int AppLayerProbingParserTest02(void)
         goto end;
     if (pp->toserver->next != NULL)
         goto end;
-    if (pp->toserver_al_proto_mask != ALPROTO_PROBING_PARSER_MASK_HTTP)
+    if (pp->toserver_al_proto_mask != 1 << ALPROTO_HTTP)
         goto end;
     /* first one */
     pe = pp->toserver;
@@ -2130,7 +2093,7 @@ static int AppLayerProbingParserTest02(void)
         goto end;
     if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
-    if (pe->al_proto_mask != ALPROTO_PROBING_PARSER_MASK_HTTP)
+    if (pe->al_proto_mask != 1 << ALPROTO_HTTP)
         goto end;
 
     AppLayerRegisterProbingParser(&ctx,
@@ -2162,8 +2125,8 @@ static int AppLayerProbingParserTest02(void)
         goto end;
     if (pp->toserver->next->next != NULL)
         goto end;
-    if (pp->toserver_al_proto_mask != (ALPROTO_PROBING_PARSER_MASK_HTTP |
-                                       ALPROTO_PROBING_PARSER_MASK_SMB)) {
+    if (pp->toserver_al_proto_mask != (1 << ALPROTO_HTTP |
+                                       1 << ALPROTO_SMB)) {
         goto end;
     }
     /* first one */
@@ -2182,7 +2145,7 @@ static int AppLayerProbingParserTest02(void)
         goto end;
     if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
-    if (pe->al_proto_mask != ALPROTO_PROBING_PARSER_MASK_SMB) {
+    if (pe->al_proto_mask != 1 << ALPROTO_SMB) {
         goto end;
     }
     /* second one */
@@ -2201,7 +2164,7 @@ static int AppLayerProbingParserTest02(void)
         goto end;
     if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
-    if (pe->al_proto_mask != ALPROTO_PROBING_PARSER_MASK_HTTP) {
+    if (pe->al_proto_mask != 1 << ALPROTO_HTTP) {
         goto end;
     }
 
@@ -2236,9 +2199,9 @@ static int AppLayerProbingParserTest02(void)
         goto end;
     if (pp->toserver->next->next->next != NULL)
         goto end;
-    if (pp->toserver_al_proto_mask != (ALPROTO_PROBING_PARSER_MASK_HTTP |
-                                       ALPROTO_PROBING_PARSER_MASK_SMB |
-                                       ALPROTO_PROBING_PARSER_MASK_DCERPC)) {
+    if (pp->toserver_al_proto_mask != (1 << ALPROTO_HTTP |
+                                       1 << ALPROTO_SMB |
+                                       1 << ALPROTO_DCERPC)) {
         goto end;
     }
 
@@ -2258,7 +2221,7 @@ static int AppLayerProbingParserTest02(void)
         goto end;
     if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
-    if (pe->al_proto_mask != ALPROTO_PROBING_PARSER_MASK_DCERPC) {
+    if (pe->al_proto_mask != 1 << ALPROTO_DCERPC) {
         goto end;
     }
     /* second one */
@@ -2277,7 +2240,7 @@ static int AppLayerProbingParserTest02(void)
         goto end;
     if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
-    if (pe->al_proto_mask != ALPROTO_PROBING_PARSER_MASK_SMB) {
+    if (pe->al_proto_mask != 1 << ALPROTO_SMB) {
         goto end;
     }
     /* third one */
@@ -2296,7 +2259,7 @@ static int AppLayerProbingParserTest02(void)
         goto end;
     if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
-    if (pe->al_proto_mask != ALPROTO_PROBING_PARSER_MASK_HTTP) {
+    if (pe->al_proto_mask != 1 << ALPROTO_HTTP) {
         goto end;
     }
 
@@ -2343,7 +2306,7 @@ static int AppLayerProbingParserTest03(void)
         goto end;
     if (pp->toserver->next != NULL)
         goto end;
-    if (pp->toserver_al_proto_mask != (ALPROTO_PROBING_PARSER_MASK_HTTP)) {
+    if (pp->toserver_al_proto_mask != (1 << ALPROTO_HTTP)) {
         goto end;
     }
     /* first one */
@@ -2362,7 +2325,7 @@ static int AppLayerProbingParserTest03(void)
         goto end;
     if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
-    if (pe->al_proto_mask != ALPROTO_PROBING_PARSER_MASK_HTTP) {
+    if (pe->al_proto_mask != 1 << ALPROTO_HTTP) {
         goto end;
     }
 
@@ -2395,8 +2358,8 @@ static int AppLayerProbingParserTest03(void)
         goto end;
     if (pp->toserver->next->next != NULL)
         goto end;
-    if (pp->toserver_al_proto_mask != (ALPROTO_PROBING_PARSER_MASK_HTTP |
-                                       ALPROTO_PROBING_PARSER_MASK_SMB)) {
+    if (pp->toserver_al_proto_mask != (1 << ALPROTO_HTTP |
+                                       1 << ALPROTO_SMB)) {
         goto end;
     }
     /* first one */
@@ -2415,7 +2378,7 @@ static int AppLayerProbingParserTest03(void)
         goto end;
     if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
-    if (pe->al_proto_mask != ALPROTO_PROBING_PARSER_MASK_HTTP) {
+    if (pe->al_proto_mask != 1 << ALPROTO_HTTP) {
         goto end;
     }
     /* second one */
@@ -2434,7 +2397,7 @@ static int AppLayerProbingParserTest03(void)
         goto end;
     if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
-    if (pe->al_proto_mask != ALPROTO_PROBING_PARSER_MASK_SMB) {
+    if (pe->al_proto_mask != 1 << ALPROTO_SMB) {
         goto end;
     }
 
@@ -2469,9 +2432,9 @@ static int AppLayerProbingParserTest03(void)
         goto end;
     if (pp->toserver->next->next->next != NULL)
         goto end;
-    if (pp->toserver_al_proto_mask != (ALPROTO_PROBING_PARSER_MASK_HTTP |
-                                       ALPROTO_PROBING_PARSER_MASK_DCERPC |
-                                       ALPROTO_PROBING_PARSER_MASK_SMB)) {
+    if (pp->toserver_al_proto_mask != (1 << ALPROTO_HTTP |
+                                       1 << ALPROTO_DCERPC |
+                                       1 << ALPROTO_SMB)) {
         goto end;
     }
     /* first one */
@@ -2490,7 +2453,7 @@ static int AppLayerProbingParserTest03(void)
         goto end;
     if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
-    if (pe->al_proto_mask != ALPROTO_PROBING_PARSER_MASK_HTTP) {
+    if (pe->al_proto_mask != 1 << ALPROTO_HTTP) {
         goto end;
     }
     /* second one */
@@ -2509,7 +2472,7 @@ static int AppLayerProbingParserTest03(void)
         goto end;
     if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
-    if (pe->al_proto_mask != ALPROTO_PROBING_PARSER_MASK_SMB) {
+    if (pe->al_proto_mask != 1 << ALPROTO_SMB) {
         goto end;
     }
     /* third one */
@@ -2528,7 +2491,7 @@ static int AppLayerProbingParserTest03(void)
         goto end;
     if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
-    if (pe->al_proto_mask != ALPROTO_PROBING_PARSER_MASK_DCERPC) {
+    if (pe->al_proto_mask != 1 << ALPROTO_DCERPC) {
         goto end;
     }
 
@@ -2575,7 +2538,7 @@ static int AppLayerProbingParserTest04(void)
         goto end;
     if (pp->toserver->next != NULL)
         goto end;
-    if (pp->toserver_al_proto_mask != (ALPROTO_PROBING_PARSER_MASK_HTTP)) {
+    if (pp->toserver_al_proto_mask != (1 << ALPROTO_HTTP)) {
         goto end;
     }
     /* first one */
@@ -2594,7 +2557,7 @@ static int AppLayerProbingParserTest04(void)
         goto end;
     if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
-    if (pe->al_proto_mask != ALPROTO_PROBING_PARSER_MASK_HTTP) {
+    if (pe->al_proto_mask != 1 << ALPROTO_HTTP) {
         goto end;
     }
 
@@ -2627,8 +2590,8 @@ static int AppLayerProbingParserTest04(void)
         goto end;
     if (pp->toserver->next->next != NULL)
         goto end;
-    if (pp->toserver_al_proto_mask != (ALPROTO_PROBING_PARSER_MASK_HTTP |
-                                       ALPROTO_PROBING_PARSER_MASK_SMB)) {
+    if (pp->toserver_al_proto_mask != (1 << ALPROTO_HTTP |
+                                       1 << ALPROTO_SMB)) {
         goto end;
     }
     /* first one */
@@ -2647,7 +2610,7 @@ static int AppLayerProbingParserTest04(void)
         goto end;
     if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
-    if (pe->al_proto_mask != ALPROTO_PROBING_PARSER_MASK_SMB) {
+    if (pe->al_proto_mask != 1 << ALPROTO_SMB) {
         goto end;
     }
     /* second one */
@@ -2666,7 +2629,7 @@ static int AppLayerProbingParserTest04(void)
         goto end;
     if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
-    if (pe->al_proto_mask != ALPROTO_PROBING_PARSER_MASK_HTTP) {
+    if (pe->al_proto_mask != 1 << ALPROTO_HTTP) {
         goto end;
     }
 
@@ -2701,9 +2664,9 @@ static int AppLayerProbingParserTest04(void)
         goto end;
     if (pp->toserver->next->next->next != NULL)
         goto end;
-    if (pp->toserver_al_proto_mask != (ALPROTO_PROBING_PARSER_MASK_HTTP |
-                                       ALPROTO_PROBING_PARSER_MASK_DCERPC |
-                                       ALPROTO_PROBING_PARSER_MASK_SMB)) {
+    if (pp->toserver_al_proto_mask != (1 << ALPROTO_HTTP |
+                                       1 << ALPROTO_DCERPC |
+                                       1 << ALPROTO_SMB)) {
         goto end;
     }
     /* first one */
@@ -2722,7 +2685,7 @@ static int AppLayerProbingParserTest04(void)
         goto end;
     if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
-    if (pe->al_proto_mask != ALPROTO_PROBING_PARSER_MASK_SMB) {
+    if (pe->al_proto_mask != 1 << ALPROTO_SMB) {
         goto end;
     }
     /* second one */
@@ -2741,7 +2704,7 @@ static int AppLayerProbingParserTest04(void)
         goto end;
     if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
-    if (pe->al_proto_mask != ALPROTO_PROBING_PARSER_MASK_HTTP) {
+    if (pe->al_proto_mask != 1 << ALPROTO_HTTP) {
         goto end;
     }
     /* third one */
@@ -2760,7 +2723,7 @@ static int AppLayerProbingParserTest04(void)
         goto end;
     if (pe->ProbingParser != ProbingParserDummyForTesting)
         goto end;
-    if (pe->al_proto_mask != ALPROTO_PROBING_PARSER_MASK_DCERPC) {
+    if (pe->al_proto_mask != 1 << ALPROTO_DCERPC) {
         goto end;
     }
 

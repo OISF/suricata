@@ -142,7 +142,7 @@ typedef struct AppLayerProbingParserElement_ {
     uint16_t ip_proto;
     uint8_t priority;
     uint8_t top;
-    uint16_t al_proto_mask;
+    uint32_t al_proto_mask;
     /* the min length of data that has to be supplied to invoke the parser */
     uint32_t min_depth;
     /* the max length of data after which this parser won't be invoked */
@@ -156,8 +156,8 @@ typedef struct AppLayerProbingParserElement_ {
 typedef struct AppLayerProbingParser_ {
     /* the port no for which probing parser(s) are invoked */
     uint16_t port;
-    uint16_t toserver_al_proto_mask;
-    uint16_t toclient_al_proto_mask;
+    uint32_t toserver_al_proto_mask;
+    uint32_t toclient_al_proto_mask;
     /* the max depth for all the probing parsers registered for this port */
     uint16_t toserver_max_depth;
     uint16_t toclient_max_depth;

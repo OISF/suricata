@@ -521,7 +521,7 @@ uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *ctx, Flow *f,
     AppLayerProbingParserElement *pe = NULL;
     AppLayerProbingParser *probing_parsers = ctx->probing_parsers;
     AppLayerProbingParser *pp = NULL;
-    uint16_t *al_proto_masks;
+    uint32_t *al_proto_masks;
 
     if (flags & STREAM_TOSERVER) {
         pp = AppLayerGetProbingParsers(probing_parsers, ipproto, f->dp);
