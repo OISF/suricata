@@ -1729,6 +1729,7 @@ void TmThreadCheckThreadState(void)
 
         while (tv) {
             if (TmThreadsCheckFlag(tv, THV_FAILED)) {
+                TmThreadsSetFlag(tv, THV_DEINIT);
                 pthread_join(tv->t, NULL);
                 if (tv_aof & THV_ENGINE_EXIT || tv->aof & THV_ENGINE_EXIT) {
                     EngineKill();
