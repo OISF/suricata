@@ -223,7 +223,7 @@ void StreamMsgReturnListToPool(void *list) {
 
 /** \brief Run callback for all segments
  *
- * \return 1 in case of success
+ * \return -1 in case of error, the number of segment in case of success
  */
 int StreamSegmentForEach(Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data)
 {

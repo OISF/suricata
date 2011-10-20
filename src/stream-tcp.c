@@ -4587,7 +4587,7 @@ void StreamTcpPseudoPacketCreateStreamEndPacket(Packet *p, TcpSession *ssn, Pack
  * This function is used by StreamMsgForEach() which
  * should be used directly.
  *
- * \return 1 in case of success
+ * \return -1 in case of error, the number of segment in case of success
  *
  */
 int StreamTcpSegmentForEach(Packet *p, uint8_t flag, StreamSegmentCallback CallbackFunc, void *data)
@@ -4595,9 +4595,10 @@ int StreamTcpSegmentForEach(Packet *p, uint8_t flag, StreamSegmentCallback Callb
     TcpSession *ssn = NULL;
     TcpStream *stream = NULL;
     int ret = 0;
+    int cnt = 0;
 
     if (p->flow == NULL)
-        return 1;
+        return 0;
 
     SCMutexLock(&p->flow->m);
     ssn = (TcpSession *)p->flow->protoctx;
@@ -4616,12 +4617,13 @@ int StreamTcpSegmentForEach(Packet *p, uint8_t flag, StreamSegmentCallback Callb
         if (ret != 1) {
             SCLogInfo("Callback function has failed");
             SCMutexUnlock(&p->flow->m);
-            return ret;
+            return -1;
         }
         seg = seg->next;
+        cnt++;
     }
     SCMutexUnlock(&p->flow->m);
-    return 1;
+    return cnt;
 }
 
 #ifdef UNITTESTS
