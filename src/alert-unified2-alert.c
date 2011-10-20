@@ -605,20 +605,12 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
 
     Unified2AlertFileHeader *hdr = (Unified2AlertFileHeader*)(aun->data + aun->offset);
     Unified2Packet *phdr = (Unified2Packet *)(hdr + 1);
-    int ret;
+    int ret = 0;
     int len = aun->offset + (sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE);
     int ethh_offset = 0;
     int datalink = p->datalink;
     EthernetHdr ethhdr = { {0,0,0,0,0,0}, {0,0,0,0,0,0}, htons(ETHERNET_TYPE_IPV6) };
 
-    /* Fake this */
-    ethh_offset = 14;
-    datalink = DLT_EN10MB;
-    if (PKT_IS_IPV6(p)) {
-        ethhdr.eth_type = htons(ETHERNET_TYPE_IPV6);
-    } else {
-        ethhdr.eth_type = htons(ETHERNET_TYPE_IP);
-    }
 
     memset(hdr, 0, sizeof(Unified2AlertFileHeader));
     memset(phdr, 0, sizeof(Unified2Packet));
@@ -632,32 +624,23 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
     phdr->event_second = phdr->packet_second = htonl(p->ts.tv_sec);
     phdr->packet_microsecond = htonl(p->ts.tv_usec);
     aun->phdr = phdr;
+    if ((p->payload_len == 0) && PKT_IS_TCP(p) && (p->flow != NULL) && (p->flow->protoctx != NULL)) {
+        uint8_t flag;
 
-    if (ethh_offset > 0) {
+        /* Fake this */
+        ethh_offset = 14;
+        datalink = DLT_EN10MB;
+        phdr->linktype = htonl(datalink);
+        if (PKT_IS_IPV6(p)) {
+            ethhdr.eth_type = htons(ETHERNET_TYPE_IPV6);
+        } else {
+            ethhdr.eth_type = htons(ETHERNET_TYPE_IP);
+        }
+
         memcpy(aun->data + aun->offset + sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE,
                 &ethhdr, 14);
-        len += ethh_offset;
-    }
+        aun->length = len + ethh_offset;
 
-    if (p->payload_len) {
-        len += GET_PKT_LEN(p);
-        if (len > aun->datalen) {
-            SCLogError(SC_ERR_INVALID_VALUE, "len is too big for thread data: %d vs %d",
-                    len, aun->datalen - aun->offset);
-            return -1;
-        }
-        hdr->length = htonl(UNIFIED2_PACKET_SIZE + GET_PKT_LEN(p) + ethh_offset);
-        phdr->packet_length = htonl(GET_PKT_LEN(p) + ethh_offset);
-        memcpy(aun->data + aun->offset + sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE + ethh_offset,
-               GET_PKT_DATA(p), GET_PKT_LEN(p));
-
-        ret = Unified2Write(aun);
-    } else {
-        uint8_t flag;
-        if ((! PKT_IS_TCP(p)) || p->flow == NULL ||
-                p->flow->protoctx == NULL) {
-            return 1;
-        }
         /* IDS mode reverse the data */
         /** \todo improve the order selection policy */
         if (p->flowflags & FLOW_PKT_TOSERVER) {
@@ -665,7 +648,6 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
         } else {
             flag = FLOW_PKT_TOSERVER;
         }
-        aun->length = len;
         if (aun->length > aun->datalen) {
             SCLogError(SC_ERR_INVALID_VALUE, "len is too big for thread data: %d vs %d",
                     aun->length, aun->datalen);
@@ -700,7 +682,26 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
         ret = StreamSegmentForEach(p, flag, Unified2PrintStreamSegmentCallback, (void *)aun);
     }
 
-    if (ret != 1) {
+    /* or no segment could been logged or no segment have been logged */
+    if (ret == 0) {
+        /* we need to reset offset and length which could
+         * have been modified by the segment logging */
+        aun->offset = len;
+        len += GET_PKT_LEN(p);
+        aun->length = len;
+        if (len > aun->datalen) {
+            SCLogError(SC_ERR_INVALID_VALUE, "len is too big for thread data: %d vs %d",
+                    len, aun->datalen - aun->offset);
+            return -1;
+        }
+        hdr->length = htonl(UNIFIED2_PACKET_SIZE + GET_PKT_LEN(p));
+        phdr->packet_length = htonl(GET_PKT_LEN(p));
+        memcpy(aun->data + aun->offset, GET_PKT_DATA(p), GET_PKT_LEN(p));
+
+        ret = Unified2Write(aun);
+    }
+
+    if (ret < 1) {
         SCLogInfo("Failed to write alert");
         return -1;
     }
@@ -741,7 +742,6 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
     /* fill the phdr structure with the data of the packet */
 
     phdr->sensor_id = 0;
-    phdr->event_id = htonl(SC_ATOMIC_ADD(unified2_event_id, 1));
     phdr->event_second =  htonl(p->ts.tv_sec);
     phdr->event_microsecond = htonl(p->ts.tv_usec);
     phdr->src_ip = *(struct in6_addr*)GET_IPV6_SRC_ADDR(p);
@@ -799,6 +799,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
         }
 
         /* fill the header structure with the data of the alert */
+        phdr->event_id = htonl(SC_ATOMIC_ADD(unified2_event_id, 1));
         phdr->generator_id = htonl(pa->s->gid);
         phdr->signature_id = htonl(pa->s->id);
         phdr->signature_revision = htonl(pa->s->rev);
