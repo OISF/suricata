@@ -56,7 +56,7 @@
 
 #include "util-debug.h"
 
-static uint16_t app_layer_sid = 0;
+uint16_t app_layer_sid = 0;
 static AppLayerProto al_proto_table[ALPROTO_MAX];   /**< Application layer protocol
                                                        table mapped to their
                                                        corresponding parsers */

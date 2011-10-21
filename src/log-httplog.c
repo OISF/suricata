@@ -129,7 +129,7 @@ TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     }
     size_t logged = (size_t)r;
 
-    r = AppLayerTransactionGetLoggableId(p->flow);
+    r = HtpTransactionGetLoggableId(p->flow);
     if (r < 0) {
         goto end;
     }
@@ -245,7 +245,7 @@ TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     }
     size_t logged = (size_t)r;
 
-    r = AppLayerTransactionGetLoggableId(p->flow);
+    r = HtpTransactionGetLoggableId(p->flow);
     if (r < 0) {
         goto end;
     }

@@ -215,6 +215,8 @@ extern uint16_t app_layer_sid;
 
 struct AlpProtoDetectCtx_;
 
+extern uint16_t app_layer_sid;
+
 /* prototypes */
 void AppLayerParsersInitPostProcess(void);
 void RegisterAppLayerParsers(void);

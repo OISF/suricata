@@ -585,6 +585,48 @@ error:
 }
 
 /**
+ * \brief get the highest loggable transaction id
+ */
+int HtpTransactionGetLoggableId(Flow *f)
+{
+    SCEnter();
+
+    /* Get the parser state (if any) */
+    if (f->aldata == NULL) {
+        SCLogDebug("no aldata");
+        goto error;
+    }
+
+    AppLayerParserStateStore *parser_state_store =
+        (AppLayerParserStateStore *)f->aldata[app_layer_sid];
+
+    if (parser_state_store == NULL) {
+        SCLogDebug("no state store");
+        goto error;
+    }
+
+    int id = 0;
+
+    HtpState *http_state = f->aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    if (http_state == NULL) {
+        SCLogDebug("no http state");
+        goto error;
+    }
+
+    if (parser_state_store->id_flags & APP_LAYER_TRANSACTION_EOF) {
+        SCLogDebug("eof, return current transaction as well");
+        id = (int)(list_size(http_state->connp->conn->transactions));
+    } else {
+        id = (int)(parser_state_store->avail_id - 1);
+    }
+
+    SCReturnInt(id);
+
+error:
+    SCReturnInt(-1);
+}
+
+/**
  * \brief Print the information and chunks of a Body
  * \param body pointer to the HtpBody holding the list
  * \retval none

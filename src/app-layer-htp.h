@@ -112,6 +112,7 @@ void HTPFreeConfig(void);
 htp_tx_t *HTPTransactionMain(const HtpState *);
 
 int HTPCallbackRequestBodyData(htp_tx_data_t *);
+int HtpTransactionGetLoggableId(Flow *);
 void HtpBodyPrint(HtpBody *);
 void HtpBodyFree(HtpBody *);
 void AppLayerHtpRegisterExtraCallbacks(void);
