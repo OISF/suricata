@@ -1177,7 +1177,7 @@ int AppLayerTransactionUpdateInspectId(Flow *f, char direction)
                 parser_state_store->id_flags &=~ APP_LAYER_TRANSACTION_TOCLIENT;
                 parser_state_store->id_flags &=~ APP_LAYER_TRANSACTION_TOSERVER;
 
-                parser_state_store->inspect_id++;
+                parser_state_store->inspect_id = parser_state_store->avail_id - 1;
                 if (parser_state_store->inspect_id < parser_state_store->avail_id) {
                     /* done and more transactions available */
                     r = 2;
