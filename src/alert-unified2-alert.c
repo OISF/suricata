@@ -830,6 +830,11 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
             }
         }
 
+        Unified2Write(aun);
+        memset(aun->data, 0, aun->length);
+        aun->length = 0;
+        aun->offset = 0;
+
         ret = Unified2PacketTypeAlert(aun, p, pa->alert_msg, phdr->event_id);
         if (ret != 1) {
             SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
@@ -866,6 +871,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     PacketAlert *pa;
     int offset, length;
     int ret;
+    unsigned int event_id;
 
     if (p->alerts.cnt == 0)
         return 0;
@@ -880,7 +886,8 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
 
     /* fill the hdr structure with the packet data */
     phdr->sensor_id = 0;
-    phdr->event_id = htonl(SC_ATOMIC_ADD(unified2_event_id, 1));
+    event_id = htonl(SC_ATOMIC_ADD(unified2_event_id, 1));
+    phdr->event_id = event_id;
     phdr->event_second =  htonl(p->ts.tv_sec);
     phdr->event_microsecond = htonl(p->ts.tv_usec);
     phdr->src_ip = p->ip4h->ip_src.s_addr;
@@ -950,10 +957,18 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
                 return -1;
             }
         }
+
+        Unified2Write(aun);
+        memset(aun->data, 0, aun->length);
+        aun->length = 0;
+        aun->offset = 0;
+        offset = 0;
+        length = 0;
+
         /* Write the alert (it doesn't lock inside, since we
          * already locked here for rotation check)
          */
-        ret = Unified2PacketTypeAlert(aun, p, pa->alert_msg, phdr->event_id);
+        ret = Unified2PacketTypeAlert(aun, p, pa->alert_msg, event_id);
         if (ret != 1) {
             SCLogError(SC_ERR_FWRITE, "Error: PacketTypeAlert writing failed");
             SCMutexUnlock(&aun->file_ctx->fp_mutex);
