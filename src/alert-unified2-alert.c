@@ -689,6 +689,28 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
         aun->offset = len;
         len += GET_PKT_LEN(p);
         aun->length = len;
+
+#ifdef HAVE_OLD_BARNYARD2
+        /* Fake datalink to avoid bug with old barnyard2 */
+        if (PKT_IS_IPV6(p) && (!p->ethh)) {
+            /* Fake this */
+            ethh_offset = 14;
+            datalink = DLT_EN10MB;
+            phdr->linktype = htonl(datalink);
+            aun->length += ethh_offset;
+            if (aun->length > aun->datalen) {
+                SCLogError(SC_ERR_INVALID_VALUE, "len is too big for thread data: %d vs %d",
+                        len, aun->datalen - aun->offset);
+                return -1;
+            }
+            ethhdr.eth_type = htons(ETHERNET_TYPE_IPV6);
+            ethhdr.eth_type = htons(ETHERNET_TYPE_IP);
+
+            memcpy(aun->data + aun->offset, &ethhdr, 14);
+            aun->offset += ethh_offset;
+        }
+#endif
+
         if (len > aun->datalen) {
             SCLogError(SC_ERR_INVALID_VALUE, "len is too big for thread data: %d vs %d",
                     len, aun->datalen - aun->offset);
