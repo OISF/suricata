@@ -913,6 +913,7 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
 
     /* set the packets to no inspection and reassembly if required */
     if (parser_state->flags & APP_LAYER_PARSER_NO_INSPECTION) {
+        AppLayerSetEOF(f);
         FlowSetNoPayloadInspectionFlag(f);
         FlowSetSessionNoApplayerInspectionFlag(f);
 
@@ -950,6 +951,7 @@ error:
         /* Set the no app layer inspection flag for both
          * the stream in this Flow */
         FlowSetSessionNoApplayerInspectionFlag(f);
+        AppLayerSetEOF(f);
 
         if (f->src.family == AF_INET) {
             char src[16];
