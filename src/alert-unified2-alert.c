@@ -523,7 +523,6 @@ static int Unified2PrintStreamSegmentCallback(Packet *p, void *data, uint8_t *bu
 {
     int ret = 1;
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
-    int ethh_offset = 14;
     uint32_t hdr_length = 0;
     uint32_t orig_length = aun->length;
     if (PKT_IS_IPV6(p)) {
@@ -538,8 +537,8 @@ static int Unified2PrintStreamSegmentCallback(Packet *p, void *data, uint8_t *bu
     }
 
     aun->hdr->length = htonl(UNIFIED2_PACKET_SIZE +
-                             buflen + ethh_offset + hdr_length);
-    aun->phdr->packet_length = htonl(buflen + ethh_offset + hdr_length);
+                             buflen + hdr_length);
+    aun->phdr->packet_length = htonl(buflen + hdr_length);
 
     aun->length += buflen;
     if (aun->length > aun->datalen) {
@@ -607,9 +606,11 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
     Unified2Packet *phdr = (Unified2Packet *)(hdr + 1);
     int ret = 0;
     int len = aun->offset + (sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE);
-    int ethh_offset = 0;
     int datalink = p->datalink;
+#ifdef HAVE_OLD_BARNYARD2
+    int ethh_offset = 0;
     EthernetHdr ethhdr = { {0,0,0,0,0,0}, {0,0,0,0,0,0}, htons(ETHERNET_TYPE_IPV6) };
+#endif
 
 
     memset(hdr, 0, sizeof(Unified2AlertFileHeader));
@@ -627,19 +628,9 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
     if ((p->payload_len == 0) && PKT_IS_TCP(p) && (p->flow != NULL) && (p->flow->protoctx != NULL)) {
         uint8_t flag;
 
-        /* Fake this */
-        ethh_offset = 14;
-        datalink = DLT_EN10MB;
-        phdr->linktype = htonl(datalink);
-        if (PKT_IS_IPV6(p)) {
-            ethhdr.eth_type = htons(ETHERNET_TYPE_IPV6);
-        } else {
-            ethhdr.eth_type = htons(ETHERNET_TYPE_IP);
-        }
-
-        memcpy(aun->data + aun->offset + sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE,
-                &ethhdr, 14);
-        aun->length = len + ethh_offset;
+        /* We have raw data here */
+        phdr->linktype = htonl(DLT_RAW);
+        aun->length = len;
 
         /* IDS mode reverse the data */
         /** \todo improve the order selection policy */
@@ -653,7 +644,7 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
                     aun->length, aun->datalen);
             return -1;
         }
-        aun->offset += sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE + ethh_offset;
+        aun->offset += sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE;
         /* Include Packet header */
         if (PKT_IS_IPV4(p)) {
             FakeIPv4Hdr fakehdr;
