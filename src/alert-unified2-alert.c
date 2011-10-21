@@ -697,7 +697,6 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
                 return -1;
             }
             ethhdr.eth_type = htons(ETHERNET_TYPE_IPV6);
-            ethhdr.eth_type = htons(ETHERNET_TYPE_IP);
 
             memcpy(aun->data + aun->offset, &ethhdr, 14);
             aun->offset += ethh_offset;
@@ -741,13 +740,14 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
     Unified2AlertFileHeader *hdr = (Unified2AlertFileHeader *)aun->data;
     AlertIPv6Unified2 *phdr = (AlertIPv6Unified2 *)(hdr + 1);
     PacketAlert *pa;
+    int offset, length;
     int ret;
 
     if (p->alerts.cnt == 0)
         return 0;
 
-    aun->length = (sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv6Unified2));
-    aun->offset = aun->length;
+    length = (sizeof(Unified2AlertFileHeader) + sizeof(AlertIPv6Unified2));
+    offset = length;
 
     memset(aun->data, 0, aun->datalen);
 
@@ -801,6 +801,11 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
 
     uint16_t i = 0;
     for (; i < p->alerts.cnt + 1; i++) {
+        /* reset length and offset */
+        aun->offset = offset;
+        aun->length = length;
+        memset(aun->data + aun->offset, 0, aun->datalen - aun->offset);
+
         if (i < p->alerts.cnt)
             pa = &p->alerts.alerts[i];
         else
@@ -843,10 +848,9 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
             return -1;
         }
         fflush(aun->file_ctx->fp);
-        aun->length = 0;
-        aun->offset = 0;
         SCMutexUnlock(&aun->file_ctx->fp_mutex);
     }
+    aun->file_ctx->alerts += p->alerts.cnt;
 
 
     return 0;
