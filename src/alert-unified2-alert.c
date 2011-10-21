@@ -167,7 +167,7 @@ TmEcode Unified2AlertThreadInit(ThreadVars *, void *, void **);
 TmEcode Unified2AlertThreadDeinit(ThreadVars *, void *);
 int Unified2IPv4TypeAlert(ThreadVars *, Packet *, void *, PacketQueue *);
 int Unified2IPv6TypeAlert(ThreadVars *, Packet *, void *, PacketQueue *);
-int Unified2PacketTypeAlert(Unified2AlertThread *, Packet *, void *, uint32_t);
+int Unified2PacketTypeAlert(Unified2AlertThread *, Packet *, void *, uint32_t, int);
 void Unified2RegisterTests();
 int Unified2AlertOpenFileCtx(LogFileCtx *, const char *);
 static void Unified2AlertDeInitCtx(OutputCtx *);
@@ -592,9 +592,11 @@ static int Unified2PrintStreamSegmentCallback(Packet *p, void *data, uint8_t *bu
  *  \retval 0 on succces
  *  \retval -1 on failure
  */
-int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, uint32_t event_id)
+int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, uint32_t event_id, int state)
 {
     if (PKT_IS_TCP(p) && stream != NULL) {
+        SCLogDebug("reassembled stream logging");
+
         if (PKT_IS_IPV4(p)) {
             return Unified2StreamTypeAlertIPv4(aun, p, stream, event_id);
         } else if (PKT_IS_IPV6(p)) {
@@ -612,7 +614,6 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
     EthernetHdr ethhdr = { {0,0,0,0,0,0}, {0,0,0,0,0,0}, htons(ETHERNET_TYPE_IPV6) };
 #endif
 
-
     memset(hdr, 0, sizeof(Unified2AlertFileHeader));
     memset(phdr, 0, sizeof(Unified2Packet));
 
@@ -625,7 +626,9 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
     phdr->event_second = phdr->packet_second = htonl(p->ts.tv_sec);
     phdr->packet_microsecond = htonl(p->ts.tv_usec);
     aun->phdr = phdr;
-    if ((p->payload_len == 0) && PKT_IS_TCP(p) && (p->flow != NULL) && (p->flow->protoctx != NULL)) {
+
+    if (state) {
+        SCLogDebug("logging the state");
         uint8_t flag;
 
         /* We have raw data here */
@@ -675,6 +678,8 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
 
     /* or no segment could been logged or no segment have been logged */
     if (ret == 0) {
+        SCLogDebug("no stream, no state: falling back to payload logging");
+
         /* we need to reset offset and length which could
          * have been modified by the segment logging */
         aun->offset = len;
@@ -848,8 +853,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
         aun->length = 0;
         aun->offset = 0;
 
-        ret = Unified2PacketTypeAlert(aun, p, pa->alert_msg, event_id);
-
+        ret = Unified2PacketTypeAlert(aun, p, pa->alert_msg, phdr->event_id, pa->flags & PACKET_ALERT_FLAG_STATE_MATCH ? 1 : 0);
         if (ret != 1) {
             SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
             SCMutexUnlock(&aun->file_ctx->fp_mutex);
@@ -986,7 +990,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
         /* Write the alert (it doesn't lock inside, since we
          * already locked here for rotation check)
          */
-        ret = Unified2PacketTypeAlert(aun, p, pa->alert_msg, event_id);
+        ret = Unified2PacketTypeAlert(aun, p, pa->alert_msg, event_id, pa->flags & PACKET_ALERT_FLAG_STATE_MATCH ? 1 : 0);
         if (ret != 1) {
             SCLogError(SC_ERR_FWRITE, "Error: PacketTypeAlert writing failed");
             SCMutexUnlock(&aun->file_ctx->fp_mutex);

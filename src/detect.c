@@ -1636,9 +1636,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
                 if (de_r != 1) {
                     goto next;
-                } else {
-                    if (s->action == ACTION_DROP)
-                        alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
                 }
             } else {
                 SCLogDebug("already having a destate");
@@ -1647,11 +1644,14 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                         s->id, (uintmax_t)s->num, DeStateMatchResultToString(det_ctx->de_state_sig_array[s->num]));
                 if (det_ctx->de_state_sig_array[s->num] != DE_STATE_MATCH_NEW) {
                     goto next;
-                } else {
-                    if (s->action == ACTION_DROP)
-                        alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
                 }
             }
+
+            /* match */
+            if (s->action == ACTION_DROP)
+                alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
+
+            alert_flags |= PACKET_ALERT_FLAG_STATE_MATCH;
         }
 
         /* if we get here but have no sigmatches to match against,

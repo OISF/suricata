@@ -230,10 +230,13 @@ typedef struct PacketAlert_ {
     struct Signature_ *s;
 } PacketAlert;
 
-/* After processing an alert by the thresholding module, if at
- * last it gets triggered, we might want to stick the drop action to
- * the flow on IPS mode */
+/** After processing an alert by the thresholding module, if at
+ *  last it gets triggered, we might want to stick the drop action to
+ *  the flow on IPS mode */
 #define PACKET_ALERT_FLAG_DROP_FLOW 0x01
+/** Signature matched (partly) in the state. Used in unified logger to
+ *  know if it needs to log the stream or the packet. */
+#define PACKET_ALERT_FLAG_STATE_MATCH 0x02
 
 #define PACKET_ALERT_MAX 15
 
