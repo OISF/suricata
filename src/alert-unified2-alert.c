@@ -690,6 +690,8 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
         len += GET_PKT_LEN(p);
         aun->length = len;
 
+        /* Unified 2 packet header is the one of the packet. */
+        phdr->linktype = htonl(p->datalink);
 #ifdef HAVE_OLD_BARNYARD2
         /* Fake datalink to avoid bug with old barnyard2 */
         if (PKT_IS_IPV6(p) && (!p->ethh)) {
