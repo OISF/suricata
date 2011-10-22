@@ -286,6 +286,7 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
             uint8_t flag;
             if ((! PKT_IS_TCP(p)) || p->flow == NULL ||
                     p->flow->protoctx == NULL) {
+                SCMutexUnlock(&aft->file_ctx->fp_mutex);
                 return TM_ECODE_OK;
             }
             /* IDS mode reverse the data */
@@ -299,6 +300,7 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
                                  AlertDebugPrintStreamSegmentCallback,
                                  (void *)aft);
             if (ret != 1) {
+                SCMutexUnlock(&aft->file_ctx->fp_mutex);
                 return TM_ECODE_FAILED;
             }
         }
