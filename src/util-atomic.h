@@ -42,7 +42,8 @@
 #define __UTIL_ATOMIC_H__
 
 /* test if we have atomic operations support */
-#ifndef __GCC_HAVE_SYNC_COMPARE_AND_SWAP_2
+#if !defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_8) || !defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_4) || \
+    !defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_2) || !defined(__GCC_HAVE_SYNC_COMPARE_AND_SWAP_1)
 
 /**
  *  \brief wrapper to declare an atomic variable including a (spin) lock
