@@ -744,6 +744,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
     PacketAlert *pa;
     int offset, length;
     int ret;
+    unsigned int event_id;
 
     if (p->alerts.cnt == 0)
         return 0;
@@ -825,7 +826,8 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
         memcpy(aun->data, &hdr, sizeof(hdr));
         memcpy(phdr, &gphdr, sizeof(gphdr));
         /* fill the header structure with the data of the alert */
-        phdr->event_id = htonl(SC_ATOMIC_ADD(unified2_event_id, 1));
+        event_id = htonl(SC_ATOMIC_ADD(unified2_event_id, 1));
+        phdr->event_id = event_id;
         phdr->generator_id = htonl(pa->s->gid);
         phdr->signature_id = htonl(pa->s->id);
         phdr->signature_revision = htonl(pa->s->rev);
@@ -846,7 +848,8 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
         aun->length = 0;
         aun->offset = 0;
 
-        ret = Unified2PacketTypeAlert(aun, p, pa->alert_msg, phdr->event_id);
+        ret = Unified2PacketTypeAlert(aun, p, pa->alert_msg, event_id);
+
         if (ret != 1) {
             SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
             SCMutexUnlock(&aun->file_ctx->fp_mutex);
@@ -899,8 +902,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     /* fill the gphdr structure with the data of the packet */
     memset(&gphdr, 0, sizeof(gphdr));
     gphdr.sensor_id = 0;
-    event_id = htonl(SC_ATOMIC_ADD(unified2_event_id, 1));
-    gphdr.event_id = event_id;
+    gphdr.event_id = 0;
     gphdr.event_second =  htonl(p->ts.tv_sec);
     gphdr.event_microsecond = htonl(p->ts.tv_usec);
     gphdr.src_ip = p->ip4h->ip_src.s_addr;
@@ -957,6 +959,8 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
         memcpy(aun->data, &hdr, sizeof(hdr));
         memcpy(phdr, &gphdr, sizeof(gphdr));
         /* fill the hdr structure with the alert data */
+        event_id = htonl(SC_ATOMIC_ADD(unified2_event_id, 1));
+        phdr->event_id = event_id;
         phdr->generator_id = htonl(pa->s->gid);
         phdr->signature_id = htonl(pa->s->id);
         phdr->signature_revision = htonl(pa->s->rev);
