@@ -737,8 +737,10 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
 int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq)
 {
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
-    Unified2AlertFileHeader *hdr = (Unified2AlertFileHeader *)aun->data;
-    AlertIPv6Unified2 *phdr = (AlertIPv6Unified2 *)(hdr + 1);
+    Unified2AlertFileHeader hdr;
+    AlertIPv6Unified2 *phdr = (AlertIPv6Unified2 *)(aun->data +
+                                sizeof(Unified2AlertFileHeader));
+    AlertIPv6Unified2 gphdr;
     PacketAlert *pa;
     int offset, length;
     int ret;
@@ -751,51 +753,52 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
 
     memset(aun->data, 0, aun->datalen);
 
-    hdr->type = htonl(UNIFIED2_IDS_EVENT_IPV6_TYPE);
-    hdr->length = htonl(sizeof(AlertIPv6Unified2));
+    hdr.type = htonl(UNIFIED2_IDS_EVENT_IPV6_TYPE);
+    hdr.length = htonl(sizeof(AlertIPv6Unified2));
 
-    /* fill the phdr structure with the data of the packet */
-
-    phdr->sensor_id = 0;
-    phdr->event_second =  htonl(p->ts.tv_sec);
-    phdr->event_microsecond = htonl(p->ts.tv_usec);
-    phdr->src_ip = *(struct in6_addr*)GET_IPV6_SRC_ADDR(p);
-    phdr->dst_ip = *(struct in6_addr*)GET_IPV6_DST_ADDR(p);
-    phdr->protocol = p->proto;
+    /* fill the gphdr structure with the data of the packet */
+    memset(&gphdr, 0, sizeof(gphdr));
+    /* FIXME this need to be copied for each alert */
+    gphdr.sensor_id = 0;
+    gphdr.event_second =  htonl(p->ts.tv_sec);
+    gphdr.event_microsecond = htonl(p->ts.tv_usec);
+    gphdr.src_ip = *(struct in6_addr*)GET_IPV6_SRC_ADDR(p);
+    gphdr.dst_ip = *(struct in6_addr*)GET_IPV6_DST_ADDR(p);
+    gphdr.protocol = p->proto;
 
     if(p->action & ACTION_DROP)
-        phdr->packet_action = UNIFIED2_BLOCKED_FLAG;
+        gphdr.packet_action = UNIFIED2_BLOCKED_FLAG;
     else
-        phdr->packet_action = 0;
+        gphdr.packet_action = 0;
 
-    switch(phdr->protocol)  {
+    switch(gphdr.protocol)  {
         case IPPROTO_ICMPV6:
             if(p->icmpv6h)  {
-                phdr->sp = htons(p->icmpv6h->type);
-                phdr->dp = htons(p->icmpv6h->code);
+                gphdr.sp = htons(p->icmpv6h->type);
+                gphdr.dp = htons(p->icmpv6h->code);
             } else {
-                phdr->sp = 0;
-                phdr->dp = 0;
+                gphdr.sp = 0;
+                gphdr.dp = 0;
             }
             break;
         case IPPROTO_ICMP:
             if(p->icmpv4h)  {
-                phdr->sp = htons(p->icmpv4h->type);
-                phdr->dp = htons(p->icmpv4h->code);
+                gphdr.sp = htons(p->icmpv4h->type);
+                gphdr.dp = htons(p->icmpv4h->code);
             } else {
-                phdr->sp = 0;
-                phdr->dp = 0;
+                gphdr.sp = 0;
+                gphdr.dp = 0;
             }
             break;
         case IPPROTO_UDP:
         case IPPROTO_TCP:
         case IPPROTO_SCTP:
-            phdr->sp = htons(p->sp);
-            phdr->dp = htons(p->dp);
+            gphdr.sp = htons(p->sp);
+            gphdr.dp = htons(p->dp);
             break;
         default:
-            phdr->sp = 0;
-            phdr->dp = 0;
+            gphdr.sp = 0;
+            gphdr.dp = 0;
             break;
     }
 
@@ -818,6 +821,9 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
             continue;
         }
 
+        /* copy the part common to all alerts */
+        memcpy(aun->data, &hdr, sizeof(hdr));
+        memcpy(phdr, &gphdr, sizeof(gphdr));
         /* fill the header structure with the data of the alert */
         phdr->event_id = htonl(SC_ATOMIC_ADD(unified2_event_id, 1));
         phdr->generator_id = htonl(pa->s->gid);
@@ -827,7 +833,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
         phdr->priority_id = htonl(pa->s->prio);
 
         SCMutexLock(&aun->file_ctx->fp_mutex);
-        if ((aun->file_ctx->size_current +(sizeof(hdr) + sizeof(phdr))) > aun->file_ctx->size_limit) {
+        if ((aun->file_ctx->size_current +(sizeof(hdr) + sizeof(*phdr))) > aun->file_ctx->size_limit) {
             if (Unified2AlertRotateFile(t,aun) < 0) {
                 SCMutexUnlock(&aun->file_ctx->fp_mutex);
                 aun->file_ctx->alerts += i;
@@ -870,8 +876,10 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
 int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq)
 {
     Unified2AlertThread *aun = (Unified2AlertThread *)data;
-    Unified2AlertFileHeader *hdr = (Unified2AlertFileHeader *)aun->data;
-    AlertIPv4Unified2 *phdr = (AlertIPv4Unified2 *)(hdr + 1);
+    Unified2AlertFileHeader hdr;
+    AlertIPv4Unified2 *phdr = (AlertIPv4Unified2 *)(aun->data +
+                                sizeof(Unified2AlertFileHeader));
+    AlertIPv4Unified2 gphdr;
     PacketAlert *pa;
     int offset, length;
     int ret;
@@ -885,43 +893,44 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
 
     memset(aun->data, 0, aun->datalen);
 
-    hdr->type = htonl(UNIFIED2_IDS_EVENT_TYPE);
-    hdr->length = htonl(sizeof(AlertIPv4Unified2));
+    hdr.type = htonl(UNIFIED2_IDS_EVENT_TYPE);
+    hdr.length = htonl(sizeof(AlertIPv4Unified2));
 
-    /* fill the hdr structure with the packet data */
-    phdr->sensor_id = 0;
+    /* fill the gphdr structure with the data of the packet */
+    memset(&gphdr, 0, sizeof(gphdr));
+    gphdr.sensor_id = 0;
     event_id = htonl(SC_ATOMIC_ADD(unified2_event_id, 1));
-    phdr->event_id = event_id;
-    phdr->event_second =  htonl(p->ts.tv_sec);
-    phdr->event_microsecond = htonl(p->ts.tv_usec);
-    phdr->src_ip = p->ip4h->ip_src.s_addr;
-    phdr->dst_ip = p->ip4h->ip_dst.s_addr;
-    phdr->protocol = IPV4_GET_RAW_IPPROTO(p->ip4h);
+    gphdr.event_id = event_id;
+    gphdr.event_second =  htonl(p->ts.tv_sec);
+    gphdr.event_microsecond = htonl(p->ts.tv_usec);
+    gphdr.src_ip = p->ip4h->ip_src.s_addr;
+    gphdr.dst_ip = p->ip4h->ip_dst.s_addr;
+    gphdr.protocol = IPV4_GET_RAW_IPPROTO(p->ip4h);
 
 
     if(p->action & ACTION_DROP)
-        phdr->packet_action = UNIFIED2_BLOCKED_FLAG;
+        gphdr.packet_action = UNIFIED2_BLOCKED_FLAG;
     else
-        phdr->packet_action = 0;
+        gphdr.packet_action = 0;
 
     /* TODO inverse order if needed, this should be done on a
      * alert basis */
-    switch(phdr->protocol)  {
+    switch(gphdr.protocol)  {
         case IPPROTO_ICMP:
             if(p->icmpv4h)  {
-                phdr->sp = htons(p->icmpv4h->type);
-                phdr->dp = htons(p->icmpv4h->code);
+                gphdr.sp = htons(p->icmpv4h->type);
+                gphdr.dp = htons(p->icmpv4h->code);
             }
             break;
         case IPPROTO_UDP:
         case IPPROTO_TCP:
         case IPPROTO_SCTP:
-            phdr->sp = htons(p->sp);
-            phdr->dp = htons(p->dp);
+            gphdr.sp = htons(p->sp);
+            gphdr.dp = htons(p->dp);
             break;
         default:
-            phdr->sp = 0;
-            phdr->dp = 0;
+            gphdr.sp = 0;
+            gphdr.dp = 0;
             break;
     }
 
@@ -944,6 +953,9 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
             continue;
         }
 
+        /* copy the part common to all alerts */
+        memcpy(aun->data, &hdr, sizeof(hdr));
+        memcpy(phdr, &gphdr, sizeof(gphdr));
         /* fill the hdr structure with the alert data */
         phdr->generator_id = htonl(pa->s->gid);
         phdr->signature_id = htonl(pa->s->id);
@@ -954,7 +966,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
         /* check and enforce the filesize limit */
         SCMutexLock(&aun->file_ctx->fp_mutex);
 
-        if ((aun->file_ctx->size_current +(sizeof(*hdr) +  sizeof(*phdr))) > aun->file_ctx->size_limit) {
+        if ((aun->file_ctx->size_current +(sizeof(hdr) +  sizeof(*phdr))) > aun->file_ctx->size_limit) {
             if (Unified2AlertRotateFile(tv,aun) < 0) {
                 SCMutexUnlock(&aun->file_ctx->fp_mutex);
                 aun->file_ctx->alerts += i;
@@ -966,8 +978,6 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
         memset(aun->data, 0, aun->length);
         aun->length = 0;
         aun->offset = 0;
-        offset = 0;
-        length = 0;
 
         /* Write the alert (it doesn't lock inside, since we
          * already locked here for rotation check)
