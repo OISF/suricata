@@ -15,6 +15,31 @@
  * 02110-1301, USA.
  */
 
+/** \mainpage Doxygen documentation
+ *
+ * \section intro_sec Introduction
+ *
+ * The Suricata Engine is an Open Source Next Generation Intrusion Detection
+ * and Prevention Engine. This engine is not intended to just replace or
+ * emulate the existing tools in the industry, but will bring new ideas and
+ * technologies to the field.
+ *
+ * \section dev_doc Developer documentation
+ *
+ * You've reach the automically generated documentation of Suricata. This
+ * document contains information about architecture and code structure. It
+ * is attended for developers wanting to understand or contribute to Suricata.
+ *
+ * \subsection modules Modules
+ *
+ * Documentation is generate from comments placed in all parts of the code.
+ * But you will also find some groups describing specific functional parts:
+ *  - \ref httplayer
+ *  - \ref sigstate
+ *  - \ref threshold
+ *
+ */
+
 /**
  * \file
  *
