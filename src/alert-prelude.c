@@ -56,6 +56,8 @@
 #include "util-privs.h"
 #include "util-optimize.h"
 
+#include "stream.h"
+
 #ifndef PRELUDE
 /** Handle the case where no PRELUDE support is compiled in.
  *
@@ -622,6 +624,17 @@ static int EventToReference(PacketAlert *pa, Packet *p, idmef_classification_t *
     SCReturnInt(0);
 }
 
+static int PreludePrintStreamSegmentCallback(Packet *p, void *data, uint8_t *buf, uint32_t buflen)
+{
+    int ret;
+
+    ret = AddByteData((idmef_alert_t *)data, "stream-segment", buf, buflen);
+    if (ret == 0)
+        return 1;
+    else
+        return -1;
+}
+
 
 /**
  * \brief Handle Suricata alert: convert it to and IDMEF alert (see RFC 4765)
@@ -707,6 +720,20 @@ TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
 
     ret = PacketToData(p, pa, alert, apn->ctx);
     if ( ret < 0 )
+        goto err;
+
+    if (pa->flags & PACKET_ALERT_FLAG_STATE_MATCH) {
+        uint8_t flag;
+        if (p->flowflags & FLOW_PKT_TOSERVER) {
+            flag = FLOW_PKT_TOCLIENT;
+        } else {
+            flag = FLOW_PKT_TOSERVER;
+        }
+        ret = StreamSegmentForEach(p, flag,
+                                   PreludePrintStreamSegmentCallback,
+                                   (void *)alert);
+    }
+    if (ret < 0)
         goto err;
 
     ret = idmef_alert_new_detect_time(alert, &time);
