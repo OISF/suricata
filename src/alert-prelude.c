@@ -50,6 +50,7 @@
 #include "util-time.h"
 #include "util-debug.h"
 #include "util-error.h"
+#include "util-print.h"
 
 #include "output.h"
 #include "util-privs.h"
