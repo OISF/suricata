@@ -970,6 +970,13 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                                                         SC_RULE_VARS_ADDRESS_GROUPS);
                 if (rule_var_address == NULL)
                     goto error;
+                if (strlen(rule_var_address) == 0) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "variable %s resolved "
+                            "to nothing. This is likely a misconfiguration. "
+                            "Note that a negated address needs to be quoted, "
+                            "\"!$HOME_NET\" instead of !$HOME_NET. See issue #295.", s);
+                    goto error;
+                }
                 temp_rule_var_address = rule_var_address;
                 if ((negate + n_set) % 2) {
                     temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
@@ -1012,6 +1019,13 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                                                         SC_RULE_VARS_ADDRESS_GROUPS);
                 if (rule_var_address == NULL)
                     goto error;
+                if (strlen(rule_var_address) == 0) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "variable %s resolved "
+                            "to nothing. This is likely a misconfiguration. "
+                            "Note that a negated address needs to be quoted, "
+                            "\"!$HOME_NET\" instead of !$HOME_NET. See issue #295.", s);
+                    goto error;
+                }
                 temp_rule_var_address = rule_var_address;
                 if ((negate + n_set) % 2) {
                     temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
@@ -1036,6 +1050,18 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
             }
             n_set = 0;
         }
+    }
+
+    if (depth > 0) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "not every address block was "
+                "properly closed in \"%s\", %d missing closing brackets (]). "
+                "Note: problem might be in a variable.", s, depth);
+        goto error;
+    } else if (depth < 0) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "not every address block was "
+                "properly opened in \"%s\", %d missing opening brackets ([). "
+                "Note: problem might be in a variable.", s, depth*-1);
+        goto error;
     }
 
     return 0;

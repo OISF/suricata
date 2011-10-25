@@ -1059,6 +1059,13 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                                                      SC_RULE_VARS_PORT_GROUPS);
                 if (rule_var_port == NULL)
                     goto error;
+                if (strlen(rule_var_port) == 0) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "variable %s resolved "
+                            "to nothing. This is likely a misconfiguration. "
+                            "Note that a negated port needs to be quoted, "
+                            "\"!$HTTP_PORTS\" instead of !$HTTP_PORTS. See issue #295.", s);
+                    goto error;
+                }
                 temp_rule_var_port = rule_var_port;
                 if (negate == 1 || n_set == 1) {
                     temp_rule_var_port = SCMalloc(strlen(rule_var_port) + 3);
@@ -1108,6 +1115,13 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                                                      SC_RULE_VARS_PORT_GROUPS);
                 if (rule_var_port == NULL)
                     goto error;
+                if (strlen(rule_var_port) == 0) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "variable %s resolved "
+                            "to nothing. This is likely a misconfiguration. "
+                            "Note that a negated port needs to be quoted, "
+                            "\"!$HTTP_PORTS\" instead of !$HTTP_PORTS. See issue #295.", s);
+                    goto error;
+                }
                 temp_rule_var_port = rule_var_port;
                 if ((negate + n_set) % 2) {
                     temp_rule_var_port = SCMalloc(strlen(rule_var_port) + 3);
@@ -1137,8 +1151,20 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
         }
     }
 
+    if (depth > 0) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "not every port block was "
+                "properly closed in \"%s\", %d missing closing brackets (]). "
+                "Note: problem might be in a variable.", s, depth);
+        goto error;
+    } else if (depth < 0) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "not every port block was "
+                "properly opened in \"%s\", %d missing opening brackets ([). "
+                "Note: problem might be in a variable.", s, depth*-1);
+        goto error;
+    }
+
     return 0;
- error:
+error:
     return -1;
 }
 
