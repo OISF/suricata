@@ -655,7 +655,6 @@ static int PreludePrintStreamSegmentCallback(Packet *p, void *data, uint8_t *buf
 TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertPreludeThread *apn = (AlertPreludeThread *)data;
-    uint8_t ethh_offset = 0;
     int ret;
     idmef_time_t *time;
     idmef_alert_t *alert;
@@ -675,12 +674,6 @@ TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
 
     if ( !IPH_IS_VALID(p) )
         SCReturnInt(TM_ECODE_OK);
-
-    /* if we have no ethernet header (e.g. when using nfq), we have to create
-     * one ourselves. */
-    if (p->ethh == NULL) {
-        ethh_offset = sizeof(EthernetHdr);
-    }
 
     /* XXX which one to add to this alert? Lets see how Snort solves this.
      * For now just take last alert. */
