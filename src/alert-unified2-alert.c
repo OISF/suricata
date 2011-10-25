@@ -49,6 +49,8 @@
 #include "util-privs.h"
 
 #include "stream.h"
+#include "stream-tcp-inline.h"
+
 #include "util-optimize.h"
 
 #ifndef IPPROTO_SCTP
@@ -637,10 +639,18 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
 
         /* IDS mode reverse the data */
         /** \todo improve the order selection policy */
-        if (p->flowflags & FLOW_PKT_TOSERVER) {
-            flag = FLOW_PKT_TOCLIENT;
+        if (!StreamTcpInlineMode()) {
+            if (p->flowflags & FLOW_PKT_TOSERVER) {
+                flag = FLOW_PKT_TOCLIENT;
+            } else {
+                flag = FLOW_PKT_TOSERVER;
+            }
         } else {
-            flag = FLOW_PKT_TOSERVER;
+            if (p->flowflags & FLOW_PKT_TOSERVER) {
+                flag = FLOW_PKT_TOSERVER;
+            } else {
+                flag = FLOW_PKT_TOCLIENT;
+            }
         }
         if (aun->length > aun->datalen) {
             SCLogError(SC_ERR_INVALID_VALUE, "len is too big for thread data: %d vs %d",
