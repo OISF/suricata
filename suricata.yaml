@@ -679,7 +679,7 @@ vars:
 
     HOME_NET: "[192.168.0.0/16,10.0.0.0/8,172.16.0.0/12]"
 
-    EXTERNAL_NET: any
+    EXTERNAL_NET: "!$HOME_NET"
 
     HTTP_SERVERS: "$HOME_NET"
 
@@ -691,7 +691,7 @@ vars:
 
     TELNET_SERVERS: "$HOME_NET"
 
-    AIM_SERVERS: any
+    AIM_SERVERS: "$EXTERNAL_NET"
 
   # Holds the port group vars that would be passed in a Signature.
   # These would be retrieved during the Signature port parsing stage.
