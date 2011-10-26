@@ -71,6 +71,9 @@ typedef struct PcapFileThreadVars_
     ThreadVars *tv;
     TmSlot *slot;
 
+    /** callback result -- set if one of the thread module failed. */
+    int cb_result;
+
     uint8_t done;
     uint32_t errs;
 } PcapFileThreadVars;
@@ -134,7 +137,10 @@ void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt) {
         SCReturn;
     }
 
-    TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p);
+    if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
+        pcap_breakloop(pcap_g.pcap_handle);
+        ptv->cb_result = TM_ECODE_FAILED;
+    }
 
     SCReturn;
 }
@@ -147,6 +153,7 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot) {
     PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
     TmSlot *s = (TmSlot *)slot;
     ptv->slot = s->slot_next;
+    ptv->cb_result = TM_ECODE_OK;
     int r;
 
     SCEnter();
@@ -170,7 +177,7 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot) {
         /* Right now we just support reading packets one at a time. */
         r = pcap_dispatch(pcap_g.pcap_handle, (int)packet_q_len,
                 (pcap_handler)PcapFileCallbackLoop, (u_char *)ptv);
-        if (unlikely(r < 0)) {
+        if (unlikely(r == -1)) {
             SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s",
                     r, pcap_geterr(pcap_g.pcap_handle));
 
@@ -182,6 +189,10 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot) {
 
             EngineStop();
             break;
+        } else if (ptv->cb_result == TM_ECODE_FAILED) {
+            SCLogError(SC_ERR_PCAP_DISPATCH, "Pcap callback PcapFileCallbackLoop failed");
+            EngineKill();
+            SCReturnInt(TM_ECODE_FAILED);
         }
         SCPerfSyncCountersIfSignalled(tv, 0);
     }
