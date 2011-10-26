@@ -4603,8 +4603,10 @@ int StreamTcpSegmentForEach(Packet *p, uint8_t flag, StreamSegmentCallback Callb
     SCMutexLock(&p->flow->m);
     ssn = (TcpSession *)p->flow->protoctx;
 
-    if (ssn == NULL)
-        return 1;
+    if (ssn == NULL) {
+        SCMutexUnlock(&p->flow->m);
+        return 0;
+    }
 
     if (flag & FLOW_PKT_TOSERVER) {
         stream = &(ssn->server);
