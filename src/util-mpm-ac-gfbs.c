@@ -1158,6 +1158,8 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
     uint8_t buf_local;
     int j = 0;
 
+    SCACGfbsPatternList *pid_pat_list = ctx->pid_pat_list;
+
     /* really hate the extra cmp here, but can't help it */
     if (ctx->state_count < 65536) {
         /* \todo Change it for stateful MPM.  Supply the state using mpm_thread_ctx */
@@ -1239,8 +1241,8 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 for (k = 0; k < no_of_pid_entries; k++) {
                     if (pids[k] & 0xFFFF0000) {
                         int ibuf = i;
-                        for (j = ctx->pid_pat_list[pids[k] & 0x0000FFFF].patlen - 1; j >= 0; j--, ibuf--) {
-                            if (buf[ibuf] != ctx->pid_pat_list[pids[k] & 0x0000FFFF].cs[j])
+                        for (j = pid_pat_list[pids[k] & 0x0000FFFF].patlen - 1; j >= 0; j--, ibuf--) {
+                            if (buf[ibuf] != pid_pat_list[pids[k] & 0x0000FFFF].cs[j])
                                 goto loop;
                         }
                         matches += MpmVerifyMatch(mpm_thread_ctx, pmq, pids[k] & 0x0000FFFF);
@@ -1359,8 +1361,8 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 for (k = 0; k < no_of_pid_entries; k++) {
                     if (pids[k] & 0xFFFF0000) {
                         int ibuf = i;
-                        for (j = ctx->pid_pat_list[pids[k] & 0x0000FFFF].patlen - 1; j >= 0; j--, ibuf--) {
-                            if (buf[ibuf] != ctx->pid_pat_list[pids[k] & 0x0000FFFF].cs[j])
+                        for (j = pid_pat_list[pids[k] & 0x0000FFFF].patlen - 1; j >= 0; j--, ibuf--) {
+                            if (buf[ibuf] != pid_pat_list[pids[k] & 0x0000FFFF].cs[j])
                                 goto loop1;
                         }
                         matches += MpmVerifyMatch(mpm_thread_ctx, pmq, pids[k] & 0x0000FFFF);
