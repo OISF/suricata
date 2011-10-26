@@ -486,7 +486,8 @@ int SCCudaHlGetCudaModule(CUmodule *p_module, const char *ptx_image, int handle)
             minor = devices->devices[i]->minor_rev;
         }
     }
-    sprintf(image, "%s_sm_%u%u", ptx_image, major, minor);
+    snprintf(image, strlen(ptx_image) + 15, "%s_sm_%u%u",
+             ptx_image, major, minor);
 
     /* we don't have a cuda module associated with this module.  Create a
      * cuda module, update the module with this cuda module reference and
