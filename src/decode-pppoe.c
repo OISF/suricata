@@ -16,6 +16,13 @@
  */
 
 /**
+ * \ingroup decode
+ *
+ * @{
+ */
+
+
+/**
  * \file
  *
  * \author James Riden <jamesr@europe.com>
@@ -449,3 +456,6 @@ void DecodePPPOERegisterTests(void) {
 #endif /* UNITTESTS */
 }
 
+/**
+ * @}
+ */

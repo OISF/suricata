@@ -16,6 +16,13 @@
  */
 
 /**
+ * \ingroup decode
+ *
+ * @{
+ */
+
+
+/**
  * \file
  *
  * \author Breno Silva <breno.silva@gmail.com>
@@ -385,3 +392,6 @@ void DecodeGRERegisterTests(void) {
     UtRegisterTest("DecodeGREtest03", DecodeGREtest03, 1);
 #endif /* UNITTESTS */
 }
+/**
+ * @}
+ */

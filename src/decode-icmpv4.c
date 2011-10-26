@@ -16,6 +16,13 @@
  */
 
 /**
+ * \ingroup decode
+ *
+ * @{
+ */
+
+
+/**
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
@@ -769,3 +776,6 @@ void DecodeICMPV4RegisterTests(void) {
     UtRegisterTest("DecodeICMPV4test08", DecodeICMPV4test08, 1);
 #endif /* UNITTESTS */
 }
+/**
+ * @}
+ */

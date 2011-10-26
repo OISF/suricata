@@ -16,6 +16,30 @@
  */
 
 /**
+ * \defgroup decode Packet decoding
+ *
+ * \brief Code in charge of protocol decoding
+ *
+ * The task of decoding packets is made in different files and
+ * as Suricata is supporting encapsulation there is a potential
+ * recursivity in the call.
+ *
+ * For each protocol a DecodePROTO function is provided. For
+ * example we have DecodeIPV4() for IPv4 and DecodePPP() for
+ * PPP.
+ *
+ * These functions have all a pkt and and a len argument which
+ * are respectively a pointer to the protocol data and the length
+ * of this protocol data.
+ *
+ * \attention The pkt parameter must point to the effective data because
+ * it will be used later to set per protocol pointer like Packet::tcph
+ *
+ * @{
+ */
+
+
+/**
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
@@ -321,3 +345,6 @@ inline int PacketCopyData(Packet *p, uint8_t *pktdata, int pktlen)
     SET_PKT_LEN(p, (size_t)pktlen);
     return PacketCopyDataOffset(p, 0, pktdata, pktlen);
 }
+/**
+ * @}
+ */

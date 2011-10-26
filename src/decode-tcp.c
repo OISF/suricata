@@ -16,6 +16,13 @@
  */
 
 /**
+ * \ingroup decode
+ *
+ * @{
+ */
+
+
+/**
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
@@ -510,3 +517,6 @@ void DecodeTCPRegisterTests(void)
     UtRegisterTest("TCPGetSackTest01", TCPGetSackTest01, 1);
 #endif /* UNITTESTS */
 }
+/**
+ * @}
+ */

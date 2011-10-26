@@ -16,6 +16,13 @@
  */
 
 /**
+ * \ingroup decode
+ *
+ * @{
+ */
+
+
+/**
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
@@ -198,3 +205,6 @@ void DecodeUDPV4RegisterTests(void)
                    UDPV6CalculateInvalidChecksumtest04, 0);
 #endif /* UNITTESTS */
 }
+/**
+ * @}
+ */

@@ -34,6 +34,7 @@
  *
  * Documentation is generate from comments placed in all parts of the code.
  * But you will also find some groups describing specific functional parts:
+ *  - \ref decode
  *  - \ref httplayer
  *  - \ref sigstate
  *  - \ref threshold

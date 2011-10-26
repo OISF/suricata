@@ -16,6 +16,13 @@
  */
 
 /**
+ * \ingroup decode
+ *
+ * @{
+ */
+
+
+/**
  * \file
  *
  * \author William Metcalf <william.metcalf@gmail.com>
@@ -212,3 +219,6 @@ void DecodeRawRegisterTests(void) {
     UtRegisterTest("DecodeRawTest03", DecodeRawTest03, 0);
 #endif /* UNITTESTS */
 }
+/**
+ * @}
+ */

@@ -16,6 +16,13 @@
  */
 
 /**
+ * \ingroup decode
+ *
+ * @{
+ */
+
+
+/**
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
@@ -133,3 +140,6 @@ void DecodeEthernetRegisterTests(void) {
     UtRegisterTest("DecodeEthernetTest01", DecodeEthernetTest01, 0);
 #endif /* UNITTESTS */
 }
+/**
+ * @}
+ */
