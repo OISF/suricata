@@ -299,7 +299,7 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
             ret = StreamSegmentForEach(p, flag,
                                  AlertDebugPrintStreamSegmentCallback,
                                  (void *)aft);
-            if (ret != 1) {
+            if (ret < 0) {
                 SCMutexUnlock(&aft->file_ctx->fp_mutex);
                 return TM_ECODE_FAILED;
             }
