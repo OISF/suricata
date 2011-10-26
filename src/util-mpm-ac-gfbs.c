@@ -46,6 +46,7 @@
 #include "util-mpm-ac-gfbs.h"
 
 #include "conf.h"
+#include "util-memcmp.h"
 #include "util-debug.h"
 #include "util-unittest.h"
 
@@ -1360,18 +1361,24 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 uint32_t k = 0;
                 for (k = 0; k < no_of_pid_entries; k++) {
                     if (pids[k] & 0xFFFF0000) {
-                        int ibuf = i;
-                        for (j = pid_pat_list[pids[k] & 0x0000FFFF].patlen - 1; j >= 0; j--, ibuf--) {
-                            if (buf[ibuf] != pid_pat_list[pids[k] & 0x0000FFFF].cs[j])
-                                goto loop1;
-                        }
-                        matches += MpmVerifyMatch(mpm_thread_ctx, pmq, pids[k] & 0x0000FFFF);
-                    } else {
-                        if (pmq == NULL) {
-                            matches++;
+                        if (SCMemcmp(pid_pat_list[pids[k] & 0x0000FFFF].cs,
+                                     buf + i - pid_pat_list[pids[k] & 0x0000FFFF].patlen + 1,
+                                     pid_pat_list[pids[k] & 0x0000FFFF].patlen) != 0) {
+                            /* inside loop */
+                            //if (pid_pat_list[pids[k] & 0x0000FFFF].case_state != 3) {
+                            //continue;
+                            //}
                             continue;
                         }
 
+                        if (pmq->pattern_id_bitarray[(pids[k] & 0x0000FFFF) / 8] & (1 << ((pids[k] & 0x0000FFFF) % 8))) {
+                            ;
+                        } else {
+                            pmq->pattern_id_bitarray[(pids[k] & 0x0000FFFF) / 8] |= (1 << ((pids[k] & 0x0000FFFF) % 8));
+                            pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = (pids[k] & 0x0000FFFF);
+                        }
+                        matches++;
+                    } else {
                         if (pmq->pattern_id_bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
                             ;
                         } else {
@@ -1380,8 +1387,8 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         }
                         matches++;
                     }
-                loop1:
-                    ;
+                    //loop1:
+                    //;
                 }
             } /* if (ctx->output_table[state].no_of_entries != 0) */
         } /* for (i = 0; i < buflen; i++) */
