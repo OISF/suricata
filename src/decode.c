@@ -268,6 +268,12 @@ DecodeThreadVars *DecodeThreadVarsAlloc() {
 /**
  *  \brief Copy data to Packet payload at given offset
  *
+ * This function copies data/payload to a Packet. It uses the
+ * space allocated at Packet creation (pointed by Packet::pkt)
+ * or allocate some memory (pointed by Packet::ext_pkt) if the
+ * data size is to big to fit in initial space (of size
+ * default_packet_size).
+ *
  *  \param Pointer to the Packet to modify
  *  \param Offset of the copy relatively to payload of Packet
  *  \param Pointer to the data to copy
@@ -280,13 +286,13 @@ inline int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datale
         return -1;
     }
 
+    /* Do we have already an packet with allocated data */
     if (! p->ext_pkt) {
         if (offset + datalen <= default_packet_size) {
+            /* data will fit in memory allocated with packet */
             memcpy(p->pkt + offset, data, datalen);
         } else {
-            /* here we need a dynamic allocation. This case should rarely
-             * occur as there is a high probability the first frag has
-             * reveal the packet size*/
+            /* here we need a dynamic allocation */
             p->ext_pkt = SCMalloc(MAX_PAYLOAD_SIZE);
             if (p->ext_pkt == NULL) {
                 SET_PKT_LEN(p, 0);
