@@ -1287,14 +1287,14 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                     ascii_codes = (uint32_t *)goto_table_mod_pointers[state] + 1;
                     buf_local = u8_tolower(buf[i]);
                     if (buf_local == ascii_codes[0])
-                        temp_state = ((SC_AC_GFBS_STATE_TYPE_U32 *)(ascii_codes + no_of_entries))[0];
+                        temp_state = ((ascii_codes + no_of_entries))[0];
                     else
                         temp_state = SC_AC_GFBS_FAIL;
                 } else {
                     ascii_codes = (uint32_t *)goto_table_mod_pointers[state] + 1;
                     buf_local = u8_tolower(buf[i]);
                     if (state == 0) {
-                        temp_state =  ((SC_AC_GFBS_STATE_TYPE_U32 *)(ascii_codes + no_of_entries))[buf_local];
+                        temp_state =  ((ascii_codes + no_of_entries))[buf_local];
                     } else {
                         int low = 0;
                         int high = no_of_entries;
@@ -1303,7 +1303,7 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         while (low <= high) {
                             mid = (low + high) / 2;
                             if (ascii_codes[mid] == buf_local) {
-                                temp_state = ((SC_AC_GFBS_STATE_TYPE_U32 *)(ascii_codes + no_of_entries))[mid];
+                                temp_state = ((ascii_codes + no_of_entries))[mid];
                                 break;
                             } else if (ascii_codes[mid] < buf_local) {
                                 low = mid + 1;
@@ -1326,14 +1326,14 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         ascii_codes = (uint32_t *)goto_table_mod_pointers[state] + 1;
                         buf_local = u8_tolower(buf[i]);
                         if (buf_local == ascii_codes[0])
-                            temp_state = ((SC_AC_GFBS_STATE_TYPE_U32 *)(ascii_codes + no_of_entries))[0];
+                            temp_state = ((ascii_codes + no_of_entries))[0];
                         else
                             temp_state = SC_AC_GFBS_FAIL;
                     } else {
                         ascii_codes = (uint32_t *)goto_table_mod_pointers[state] + 1;
                         buf_local = u8_tolower(buf[i]);
                         if (state == 0) {
-                            temp_state = ((SC_AC_GFBS_STATE_TYPE_U32 *)(ascii_codes + no_of_entries))[buf_local];
+                            temp_state = ((ascii_codes + no_of_entries))[buf_local];
                         } else {
                             int low = 0;
                             int high = no_of_entries;
@@ -1342,7 +1342,7 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                             while (low <= high) {
                                 mid = (low + high) / 2;
                                 if (ascii_codes[mid] == buf_local) {
-                                    temp_state = ((SC_AC_GFBS_STATE_TYPE_U32 *)(ascii_codes + no_of_entries))[mid];
+                                    temp_state = ((ascii_codes + no_of_entries))[mid];
                                     break;
                                 } else if (ascii_codes[mid] < buf_local) {
                                     low = mid + 1;
