@@ -245,7 +245,7 @@ static int DetectStreamEventSetup (DetectEngineCtx *de_ctx, Signature *s, char *
     char srawstr[MAX_SUBSTRINGS * 2] = "stream.";
 
     /* stream:$EVENT alias command develop as decode-event:stream.$EVENT */
-    strncat(srawstr, rawstr, 2 * MAX_SUBSTRINGS - strlen("stream.") - 1);
+    strlcat(srawstr, rawstr, 2 * MAX_SUBSTRINGS - strlen("stream.") - 1);
 
     return DetectEngineEventSetup(de_ctx, s, srawstr);
 }
