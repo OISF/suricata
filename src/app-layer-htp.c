@@ -231,14 +231,14 @@ void HTPStateUpdateTransactionId(void *state, uint16_t *id) {
 
     HtpState *s = (HtpState *)state;
 
-    SCLogDebug("original id %"PRIu16", s->transaction_cnt+1 %"PRIu16,
-            *id, (s->transaction_cnt+1));
+    SCLogDebug("original id %"PRIu16", s->transaction_cnt %"PRIu16,
+            *id, (s->transaction_cnt));
 
-    if ((s->transaction_cnt+1) > (*id)) {
-        SCLogDebug("original id %"PRIu16", updating with s->transaction_cnt+1 %"PRIu16,
-                *id, (s->transaction_cnt+1));
+    if ((s->transaction_cnt) > (*id)) {
+        SCLogDebug("original id %"PRIu16", updating with s->transaction_cnt %"PRIu16,
+                *id, (s->transaction_cnt));
 
-        (*id) = (s->transaction_cnt+1);
+        (*id) = (s->transaction_cnt);
 
         SCLogDebug("updated id %"PRIu16, *id);
     }
