@@ -115,7 +115,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
     p->payload_len = 0;
     if (f->src.family == AF_INET) {
         /* set the ip header */
-        p->ip4h = (IPV4Hdr *)p->pkt;
+        p->ip4h = (IPV4Hdr *)GET_PKT_DATA(p);
         /* version 4 and length 20 bytes for the tcp header */
         p->ip4h->ip_verhl = 0x45;
         p->ip4h->ip_tos = 0;
@@ -134,11 +134,11 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
         }
 
         /* set the tcp header */
-        p->tcph = (TCPHdr *)((uint8_t *)p->pkt + 20);
+        p->tcph = (TCPHdr *)((uint8_t *)GET_PKT_DATA(p) + 20);
 
     } else {
         /* set the ip header */
-        p->ip6h = (IPV6Hdr *)p->pkt;
+        p->ip6h = (IPV6Hdr *)GET_PKT_DATA(p);
         /* version 6 */
         p->ip6h->s_ip6_vfc = 0x60;
         p->ip6h->s_ip6_flow = 0;
@@ -166,7 +166,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
         }
 
         /* set the tcp header */
-        p->tcph = (TCPHdr *)((uint8_t *)p->pkt + 40);
+        p->tcph = (TCPHdr *)((uint8_t *)GET_PACKET_DATA(p) + 40);
     }
 
     p->tcph->th_offx2 = 0x50;

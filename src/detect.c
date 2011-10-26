@@ -6322,31 +6322,27 @@ int SigTest26TCPV4Keyword(void)
     memset(p2, 0, SIZE_OF_PACKET);
     p2->pkt = (uint8_t *)(p2 + 1);
 
-    memcpy(p1->pkt, raw_ipv4, sizeof(raw_ipv4));
-    p1->pktlen = sizeof(raw_ipv4);
-    memcpy(p1->pkt + p1->pktlen, valid_raw_tcp, sizeof(valid_raw_tcp));
-    p1->pktlen += sizeof(valid_raw_tcp);
+    PacketCopyData(p1, raw_ipv4, sizeof(raw_ipv4));
+    PacketCopyDataOffset(p1, GET_PKT_LEN(p1), valid_raw_tcp, sizeof(valid_raw_tcp));
 
-    memcpy(p2->pkt, raw_ipv4, sizeof(raw_ipv4));
-    p2->pktlen = sizeof(raw_ipv4);
-    memcpy(p2->pkt + p2->pktlen, invalid_raw_tcp, sizeof(invalid_raw_tcp));
-    p2->pktlen += sizeof(invalid_raw_tcp);
+    PacketCopyData(p2, raw_ipv4, sizeof(raw_ipv4));
+    PacketCopyDataOffset(p2, GET_PKT_LEN(p2), invalid_raw_tcp, sizeof(invalid_raw_tcp));
 
     p1->tcpvars.comp_csum = -1;
-    p1->ip4h = (IPV4Hdr *)p1->pkt;
-    p1->tcph = (TCPHdr *)(p1->pkt + sizeof(raw_ipv4));
+    p1->ip4h = (IPV4Hdr *)GET_PKT_DATA(p1);
+    p1->tcph = (TCPHdr *)(GET_PKT_DATA(p1) + sizeof(raw_ipv4));
     p1->src.family = AF_INET;
     p1->dst.family = AF_INET;
-    p1->payload = (uint8_t *)p1->pkt + sizeof(raw_ipv4) + 20;
+    p1->payload = (uint8_t *)GET_PKT_DATA(p1) + sizeof(raw_ipv4) + 20;
     p1->payload_len = 20;
     p1->proto = IPPROTO_TCP;
 
     p2->tcpvars.comp_csum = -1;
-    p2->ip4h = (IPV4Hdr *)p2->pkt;
-    p2->tcph = (TCPHdr *)(p2->pkt + sizeof(raw_ipv4));
+    p2->ip4h = (IPV4Hdr *)GET_PKT_DATA(p2);
+    p2->tcph = (TCPHdr *)(GET_PKT_DATA(p2) + sizeof(raw_ipv4));
     p2->src.family = AF_INET;
     p2->dst.family = AF_INET;
-    p2->payload = (uint8_t *)p2->pkt + sizeof(raw_ipv4) + 20;
+    p2->payload = (uint8_t *)GET_PKT_DATA(p2) + sizeof(raw_ipv4) + 20;
     p2->payload_len = 20;
     p2->proto = IPPROTO_TCP;
 
@@ -6438,31 +6434,27 @@ int SigTest27NegativeTCPV4Keyword(void)
     memset(p2, 0, SIZE_OF_PACKET);
     p2->pkt = (uint8_t *)(p2 + 1);
 
-    memcpy(p1->pkt, raw_ipv4, sizeof(raw_ipv4));
-    p1->pktlen = sizeof(raw_ipv4);
-    memcpy(p1->pkt + p1->pktlen, valid_raw_tcp, sizeof(valid_raw_tcp));
-    p1->pktlen += sizeof(valid_raw_tcp);
+    PacketCopyData(p1, raw_ipv4, sizeof(raw_ipv4));
+    PacketCopyDataOffset(p1, GET_PKT_LEN(p1), valid_raw_tcp, sizeof(valid_raw_tcp));
 
-    memcpy(p2->pkt, raw_ipv4, sizeof(raw_ipv4));
-    p2->pktlen = sizeof(raw_ipv4);
-    memcpy(p2->pkt + p2->pktlen, invalid_raw_tcp, sizeof(invalid_raw_tcp));
-    p2->pktlen += sizeof(invalid_raw_tcp);
+    PacketCopyData(p2, raw_ipv4, sizeof(raw_ipv4));
+    PacketCopyDataOffset(p2, GET_PKT_LEN(p2), invalid_raw_tcp, sizeof(invalid_raw_tcp));
 
     p1->tcpvars.comp_csum = -1;
-    p1->ip4h = (IPV4Hdr *)p1->pkt;
-    p1->tcph = (TCPHdr *)(p1->pkt + sizeof(raw_ipv4));
+    p1->ip4h = (IPV4Hdr *)GET_PKT_DATA(p1);
+    p1->tcph = (TCPHdr *)(GET_PKT_DATA(p1) + sizeof(raw_ipv4));
     p1->src.family = AF_INET;
     p1->dst.family = AF_INET;
-    p1->payload = (uint8_t *)p1->pkt + sizeof(raw_ipv4) + 20;
+    p1->payload = (uint8_t *)GET_PKT_DATA(p1) + sizeof(raw_ipv4) + 20;
     p1->payload_len = 20;
     p1->proto = IPPROTO_TCP;
 
     p2->tcpvars.comp_csum = -1;
-    p2->ip4h = (IPV4Hdr *)p2->pkt;
-    p2->tcph = (TCPHdr *)(p2->pkt + sizeof(raw_ipv4));
+    p2->ip4h = (IPV4Hdr *)GET_PKT_DATA(p2);
+    p2->tcph = (TCPHdr *)(GET_PKT_DATA(p2) + sizeof(raw_ipv4));
     p2->src.family = AF_INET;
     p2->dst.family = AF_INET;
-    p2->payload = (uint8_t *)p2->pkt + sizeof(raw_ipv4) + 20;
+    p2->payload = (uint8_t *)GET_PKT_DATA(p2) + sizeof(raw_ipv4) + 20;
     p2->payload_len = 20;
     p2->proto = IPPROTO_TCP;
 
