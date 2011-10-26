@@ -281,7 +281,9 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
             fprintf(aft->file_ctx->fp, "PAYLOAD LEN:       %" PRIu32 "\n", p->payload_len);
             fprintf(aft->file_ctx->fp, "PAYLOAD:\n");
             PrintRawDataFp(aft->file_ctx->fp, p->payload, p->payload_len);
-        } else { /* This is an app layer alert */
+        }
+        if (pa->flags & PACKET_ALERT_FLAG_STATE_MATCH) {
+            /* This is an app layer alert */
             int ret;
             uint8_t flag;
             if ((! PKT_IS_TCP(p)) || p->flow == NULL ||
