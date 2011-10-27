@@ -243,7 +243,10 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
             //printf("RecievePfring src %" PRIu32 " sport %" PRIu32 " dst %" PRIu32 " dstport %" PRIu32 "\n",
             //        hdr.parsed_pkt.ipv4_src,hdr.parsed_pkt.l4_src_port, hdr.parsed_pkt.ipv4_dst,hdr.parsed_pkt.l4_dst_port);
             PfringProcessPacket(ptv, &hdr, p);
-            TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p);
+            if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
+                TmqhOutputPacketpool(ptv->tv, p);
+                SCReturnInt(TM_ECODE_FAILED);
+            }
         } else {
             SCLogError(SC_ERR_PF_RING_RECV,"pfring_recv error  %" PRId32 "", r);
             TmqhOutputPacketpool(ptv->tv, p);
