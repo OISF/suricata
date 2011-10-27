@@ -287,7 +287,10 @@ TmEcode AFPRead(AFPThreadVars *ptv)
     SCLogDebug("pktlen: %" PRIu32 " (pkt %p, pkt data %p)",
                GET_PKT_LEN(p), p, GET_PKT_DATA(p));
 
-    TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p);
+    if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
+        TmqhOutputPacketpool(ptv->tv, p);
+        SCReturnInt(TM_ECODE_FAILED);
+    }
     SCReturnInt(TM_ECODE_OK);
 }
 
