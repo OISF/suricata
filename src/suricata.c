@@ -76,8 +76,6 @@
 #include "conf-yaml-loader.h"
 
 #include "alert-fastlog.h"
-#include "alert-unified-log.h"
-#include "alert-unified-alert.h"
 #include "alert-unified2-alert.h"
 #include "alert-debuglog.h"
 #include "alert-prelude.h"
@@ -1205,8 +1203,6 @@ int main(int argc, char **argv)
     TmModuleAlertFastLogIPv6Register();
     TmModuleAlertSyslogIPv4Register();
     TmModuleAlertSyslogIPv6Register();
-    TmModuleAlertUnifiedLogRegister();
-    TmModuleAlertUnifiedAlertRegister();
     TmModuleUnified2AlertRegister();
     TmModuleAlertSyslogRegister();
     TmModuleAlertPcapInfoRegister();

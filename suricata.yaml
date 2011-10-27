@@ -47,22 +47,6 @@ outputs:
       filename: fast.log
       append: yes
 
-  # log output for use with Barnyard
-  - unified-log:
-      enabled: no
-      filename: unified.log
-
-      # Limit in MB.
-      #limit: 32
-
-  # alert output for use with Barnyard
-  - unified-alert:
-      enabled: no
-      filename: unified.alert
-
-      # Limit in MB.
-      #limit: 32
-
   # alert output for use with Barnyard2
   - unified2-alert:
       enabled: yes

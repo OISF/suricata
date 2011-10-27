@@ -797,13 +797,6 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
     ])
 
 
-# enable native timeval for unified alert output
-    AC_ARG_ENABLE(unified-native-timeval,
-           AS_HELP_STRING([--enable-unified-native-timeval], [Use native timeval for unified outputs]),,[enable_unified_native_timeval=no])
-    AS_IF([test "x$enable_unified_native_timeval" = "xyes"], [
-        CFLAGS="${CFLAGS} -DUNIFIED_NATIVE_TIMEVAL"
-    ])
-
 # enable workaround for old barnyard2 for unified alert output
     AC_ARG_ENABLE(old-barnyard2,
            AS_HELP_STRING([--enable-old-barnyard2], [Use workaround for old barnyard2 in unified2 output]),,[enable_old_barnyard2=no])
@@ -1063,7 +1056,6 @@ Suricata Configuration:
   GCC Protect enabled:      ${enable_gccprotect}
   GCC march native enabled: ${enable_gccmarch_native}
   GCC Profile enabled:      ${enable_gccprofile}
-  Unified native time:      ${enable_unified_native_timeval}
   Old barnyard2 support:    ${enable_old_barnyard2}
   Non-bundled htp:          ${enable_non_bundled_htp}
   PCRE jit:                 ${enable_pcre_jit}
