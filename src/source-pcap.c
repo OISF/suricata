@@ -77,6 +77,9 @@ typedef struct PcapThreadVars_
     ThreadVars *tv;
     TmSlot *slot;
 
+    /** callback result -- set if one of the thread module failed. */
+    int cb_result;
+
     /* pcap buffer size */
     int pcap_buffer_size;
 
@@ -210,7 +213,10 @@ void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt) {
         SCReturn;
     }
 
-    TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p);
+    if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
+        pcap_breakloop(ptv->pcap_handle);
+        ptv->cb_result = TM_ECODE_FAILED;
+    }
 
     SCReturn;
 }
@@ -224,6 +230,7 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
     PcapThreadVars *ptv = (PcapThreadVars *)data;
     TmSlot *s = (TmSlot *)slot;
     ptv->slot = s->slot_next;
+    ptv->cb_result = TM_ECODE_OK;
     int r;
 
     SCEnter();
@@ -263,7 +270,11 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
                 r = 0;
                 break;
             }
+        } else if (ptv->cb_result == TM_ECODE_FAILED) {
+            SCLogError(SC_ERR_PCAP_DISPATCH, "Pcap callback PcapCallbackLoop failed");
+            SCReturnInt(TM_ECODE_FAILED);
         }
+
         SCPerfSyncCountersIfSignalled(tv, 0);
     }
 
