@@ -45,6 +45,7 @@ typedef struct SCACGfbsPattern_ {
 typedef struct SCACGfbsPatternList_ {
     uint8_t *cs;
     uint16_t patlen;
+    uint16_t case_state;
 } SCACGfbsPatternList;
 
 typedef struct SCACGfbsOutputTable_ {
