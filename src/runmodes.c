@@ -334,14 +334,7 @@ void RunModeInitializeOutputs(void)
         if (strcmp(output->val, "stats") == 0)
             continue;
 
-        OutputModule *module = OutputGetModuleByConfName(output->val);
-        if (module == NULL) {
-            SCLogWarning(SC_ERR_INVALID_ARGUMENT,
-                "No output module named %s, ignoring", output->val);
-            continue;
-        }
-
-        output_config = ConfNodeLookupChild(output, module->conf_name);
+        output_config = ConfNodeLookupChild(output, output->val);
         if (output_config == NULL) {
             /* Shouldn't happen. */
             SCLogError(SC_ERR_INVALID_ARGUMENT,
@@ -350,29 +343,47 @@ void RunModeInitializeOutputs(void)
         }
 
         enabled = ConfNodeLookupChildValue(output_config, "enabled");
-        if (enabled != NULL && ConfValIsTrue(enabled)) {
-            OutputCtx *output_ctx = NULL;
-            if (module->InitFunc != NULL) {
-                output_ctx = module->InitFunc(output_config);
-                if (output_ctx == NULL) {
-                    /* In most cases the init function will have logged the
-                     * error. Maybe we should exit on init errors? */
-                    continue;
-                }
-            }
-            tm_module = TmModuleGetByName(module->name);
-            if (tm_module == NULL) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT,
-                    "TmModuleGetByName for %s failed", module->name);
-                exit(EXIT_FAILURE);
-            }
-            RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
-            if (runmode_output == NULL)
-                return;
-            runmode_output->tm_module = tm_module;
-            runmode_output->output_ctx = output_ctx;
-            TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
+        if (enabled == NULL || !ConfValIsTrue(enabled)) {
+            continue;
         }
+
+        if (strncmp(output->val, "unified-", sizeof("unified-") - 1) == 0) {
+            SCLogWarning(SC_ERR_INVALID_ARGUMENT,
+                    "Unified1 is no longer supported,"
+                    " use Unified2 instead "
+                    "(see https://redmine.openinfosecfoundation.org/issues/353"
+                    " for an explanation)");
+            continue;
+        }
+
+        OutputModule *module = OutputGetModuleByConfName(output->val);
+        if (module == NULL) {
+            SCLogWarning(SC_ERR_INVALID_ARGUMENT,
+                "No output module named %s, ignoring", output->val);
+            continue;
+        }
+
+        OutputCtx *output_ctx = NULL;
+        if (module->InitFunc != NULL) {
+            output_ctx = module->InitFunc(output_config);
+            if (output_ctx == NULL) {
+                /* In most cases the init function will have logged the
+                 * error. Maybe we should exit on init errors? */
+                continue;
+            }
+        }
+        tm_module = TmModuleGetByName(module->name);
+        if (tm_module == NULL) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT,
+                    "TmModuleGetByName for %s failed", module->name);
+            exit(EXIT_FAILURE);
+        }
+        RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
+        if (runmode_output == NULL)
+            return;
+        runmode_output->tm_module = tm_module;
+        runmode_output->output_ctx = output_ctx;
+        TAILQ_INSERT_TAIL(&RunModeOutputs, runmode_output, entries);
     }
 }
 
