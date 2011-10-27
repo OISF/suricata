@@ -308,7 +308,7 @@ int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
 }
 
 static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
-	      struct nfq_data *nfa, void *data)
+                       struct nfq_data *nfa, void *data)
 {
     NFQThreadVars *ntv = (NFQThreadVars *)data;
     ThreadVars *tv = ntv->tv;
@@ -750,7 +750,7 @@ process_rv:
         SCMutexLock(&t->mutex_qh);
         if (t->qh) {
             ret = nfq_handle_packet(t->h, buf, rv);
-        } else {
+        } else {
             SCLogWarning(SC_ERR_NFQ_HANDLE_PKT, "NFQ handle has been destroyed");
             ret = -1;
         }
