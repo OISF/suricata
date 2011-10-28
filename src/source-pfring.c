@@ -126,6 +126,9 @@ typedef struct PfringThreadVars_
 #endif /* HAVE_PFRING_CLUSTER_TYPE */
     uint8_t cluster_id;
     char *interface;
+#ifdef HAVE_PFRING_SET_BPF_FILTER
+    char *bpf_filter;
+#endif /* HAVE_PFRING_SET_BPF_FILTER */
 } PfringThreadVars;
 
 /**
@@ -334,6 +337,16 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
                 version & 0x000000FF, ptv->interface);
     }
 
+#ifdef HAVE_PFRING_SET_BPF_FILTER
+    if (pfconf->bpf_filter) {
+        ptv->bpf_filter = SCStrdup(pfconf->bpf_filter);
+        rc= pfring_set_bpf_filter(ptv->pd, ptv->bpf_filter);
+        if (rc < 0) {
+            SCLogInfo("Set PF_RING bpf filter \"%s\" failed.", ptv->bpf_filter);
+        }
+    }
+#endif /* HAVE_PFRING_SET_BPF_FILTER */
+
 /* It seems that as of 4.7.1 this is required */
 #ifdef HAVE_PFRING_ENABLE
     rc = pfring_enable_ring(ptv->pd);
@@ -383,6 +396,12 @@ TmEcode ReceivePfringThreadDeinit(ThreadVars *tv, void *data) {
     if (ptv->interface)
         SCFree(ptv->interface);
     pfring_remove_from_cluster(ptv->pd);
+#ifdef HAVE_PFRING_SET_BPF_FILTER
+    if (ptv->bpf_filter) {
+        pfring_remove_bpf_filter(ptv->pd);
+        SCFree(ptv->bpf_filter);
+    }
+#endif /* HAVE_PFRING_SET_BPF_FILTER */
     pfring_close(ptv->pd);
     return TM_ECODE_OK;
 }

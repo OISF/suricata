@@ -82,6 +82,9 @@ void PfringDerefConfig(void *conf)
 {
     PfringIfaceConfig *pfp = (PfringIfaceConfig *)conf;
     if (SC_ATOMIC_SUB(pfp->ref, 1) == 0) {
+        if (pfp->bpf_filter) {
+            SCFree(pfp->bpf_filter);
+        }
         SCFree(pfp);
     }
 }
@@ -193,6 +196,9 @@ void *ParsePfringConfig(const char *iface)
     cluster_type default_ctype = CLUSTER_ROUND_ROBIN;
     int getctype = 0;
 #endif
+#ifdef HAVE_PFRING_SET_BPF_FILTER
+    char *bpf_filter = NULL;
+#endif /* HAVE_PFRING_SET_BPF_FILTER */
 
     if (iface == NULL) {
         return NULL;
@@ -201,6 +207,7 @@ void *ParsePfringConfig(const char *iface)
     if (pfconf == NULL) {
         return NULL;
     }
+    memset(pfconf, 0, sizeof(PfringIfaceConfig));
     strlcpy(pfconf->iface, iface, sizeof(pfconf->iface));
     pfconf->threads = 1;
     pfconf->cluster_id = 1;
@@ -257,6 +264,24 @@ void *ParsePfringConfig(const char *iface)
             SCLogDebug("Going to use cluster-id %" PRId32, pfconf->cluster_id);
         }
     }
+#ifdef HAVE_PFRING_SET_BPF_FILTER
+    /*load pfring bpf filter*/
+    /* command line value has precedence */
+    if (ConfGet("bpf-filter", &bpf_filter) == 1) {
+        if (strlen(bpf_filter) > 0) {
+            pfconf->bpf_filter = SCStrdup(bpf_filter);
+            SCLogDebug("Going to use command-line provided bpf filter %s",
+                       pfconf->bpf_filter);
+        }
+    } else {
+        if (ConfGetChildValue(if_root, "bpf-filter", &bpf_filter) == 1) {
+            if (strlen(bpf_filter) > 0) {
+                pfconf->bpf_filter = SCStrdup(bpf_filter);
+                SCLogDebug("Going to use bpf filter %s", pfconf->bpf_filter);
+            }
+        }
+    }
+#endif /* HAVE_PFRING_SET_BPF_FILTER */
 
 #ifdef HAVE_PFRING_CLUSTER_TYPE
     if (ConfGet("pfring.cluster-type", &tmpctype) == 1) {

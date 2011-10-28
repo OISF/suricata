@@ -538,6 +538,8 @@ pfring:
     # Default PF_RING cluster type. PF_RING can load balance per flow or per hash.
     # This is only supported in versions of PF_RING > 4.1.1.
     cluster-type: cluster_round_robin
+    # bpf filter for this interface
+    #bpf-filter: tcp
   # Second interface
   #- interface: eth1
   #  threads: 3

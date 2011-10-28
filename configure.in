@@ -692,6 +692,24 @@ esac
             AC_MSG_RESULT(no)
         fi
 
+        AC_MSG_CHECKING([if pfring_set_bpf_filter is available])
+        AC_TRY_COMPILE([
+                    #include <pfring.h>
+                ],
+                [
+                    pfring *pd;
+                    pd = pfring_open("eth1", 1,  1515, 1);
+                    pfring_set_bpf_filter(pd, "tcp");
+                ],
+                [ pfring_set_bpf_filter_available=yes ], [:])
+
+        if test "$pfring_set_bpf_filter_available" = "yes"; then
+            AC_DEFINE([HAVE_PFRING_SET_BPF_FILTER],[1],[PF_RING pfring_set_bpf_filter is available])
+            AC_MSG_RESULT(yes)
+        else
+            AC_MSG_RESULT(no)
+        fi
+
         STORE_CFLAGS="${CFLAGS}"
         CFLAGS="${CFLAGS} -Werror"
         AC_MSG_CHECKING([if pfring_recv expects u_char**])

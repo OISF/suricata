@@ -41,6 +41,9 @@ typedef struct PfringIfaceConfig_
     char iface[PFRING_IFACE_NAME_LENGTH];
     /* number of threads */
     int threads;
+#ifdef HAVE_PFRING_SET_BPF_FILTER
+    char *bpf_filter;
+#endif /* HAVE_PFRING_SET_BPF_FILTER */
     SC_ATOMIC_DECLARE(unsigned int, ref);
     void (*DerefFunc)(void *);
 } PfringIfaceConfig;
