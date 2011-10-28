@@ -135,12 +135,19 @@ int SignatureHasStreamContent(Signature *s) {
         SCReturnInt(0);
     }
 
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+    for ( ; sm != NULL; sm = sm->next) {
+        if (sm->type == DETECT_FLAGS) {
+            SCReturnInt(0);
+        }
+    }
+
+    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
     if (sm == NULL) {
         SCReturnInt(0);
     }
 
-    for ( ;sm != NULL; sm = sm->next) {
+    for ( ; sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_CONTENT) {
             SCReturnInt(1);
         }
