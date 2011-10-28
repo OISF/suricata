@@ -627,6 +627,19 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
 void ReceiveAFPThreadExitStats(ThreadVars *tv, void *data) {
     SCEnter();
     AFPThreadVars *ptv = (AFPThreadVars *)data;
+#ifdef PACKET_STATISTICS
+    struct tpacket_stats kstats;
+    socklen_t len = sizeof (struct tpacket_stats);
+#endif
+
+#ifdef PACKET_STATISTICS
+    if (getsockopt(ptv->socket, SOL_PACKET, PACKET_STATISTICS,
+                &kstats, &len) > -1) {
+        SCLogInfo("(%s) Kernel: Packets %" PRIu32 ", dropped %" PRIu32 "",
+                tv->name,
+                kstats.tp_packets, kstats.tp_drops);
+    }
+#endif
 
     SCLogInfo("(%s) Packets %" PRIu32 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
 }
