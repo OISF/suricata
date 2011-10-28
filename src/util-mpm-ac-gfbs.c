@@ -869,6 +869,35 @@ static inline void SCACGfbsCreateModGotoTable(MpmCtx *mpm_ctx)
     return;
 }
 
+static inline void SCACGfbsClubOutputStatePresenceWithModGotoTable(MpmCtx *mpm_ctx)
+{
+    SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
+
+    int state = 0;
+    int no_of_entries;
+    uint32_t *states;
+    int i;
+    for (state = 0; state < ctx->state_count; state++) {
+        no_of_entries = *((uint32_t *)ctx->goto_table_mod_pointers[state]);
+        if (no_of_entries == 0)
+            continue;
+
+        if (*((uint32_t *)ctx->goto_table_mod_pointers[state] + 1) != 0) {
+            *((uint32_t *)ctx->goto_table_mod_pointers[state] + 1) |= (1 << 24);
+        }
+
+        states = ((uint32_t *)ctx->goto_table_mod_pointers[state] + 2 + no_of_entries);
+        for (i = 0; i < no_of_entries; i++) {
+            if (states[i] == 0)
+                continue;
+
+            states[i] |= (1 << 24);
+        }
+    }
+
+    return;
+}
+
 static inline void SCACGfbsInsertCaseSensitiveEntriesForPatterns(MpmCtx *mpm_ctx)
 {
     SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
@@ -909,7 +938,7 @@ static inline void SCACGfbsPrepareStateTable(MpmCtx *mpm_ctx)
     /* create the final state(delta) table */
     SCACGfbsCreateModGotoTable(mpm_ctx);
     /* club the output state presence with transition entries */
-    //SCACGfbsClubOutputStatePresenceWithModGotoTable(mpm_ctx);
+    SCACGfbsClubOutputStatePresenceWithModGotoTable(mpm_ctx);
 
     /* club nocase entries */
     SCACGfbsInsertCaseSensitiveEntriesForPatterns(mpm_ctx);
@@ -1177,7 +1206,6 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
     SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
     int matches = 0;
     uint8_t buf_local;
-    int j = 0;
 
     SCACGfbsPatternList *pid_pat_list = ctx->pid_pat_list;
 
@@ -1304,23 +1332,24 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         register int32_t state = 0;
         for (i = 0; i < buflen; i++) {
             /* get the goto state transition */
-            no_of_entries = *((uint32_t *)goto_table_mod_pointers[state]);
+            no_of_entries = *((uint32_t *)goto_table_mod_pointers[state & 0x00FFFFFF]);
             if (no_of_entries == 0) {
                 temp_state = SC_AC_GFBS_FAIL;
             } else {
                 if (no_of_entries == 1) {
-                    ascii_codes = (uint32_t *)goto_table_mod_pointers[state] + 2;
+                    ascii_codes = (uint32_t *)goto_table_mod_pointers[state & 0x00FFFFFF] + 2;
                     buf_local = u8_tolower(buf[i]);
                     if (buf_local == ascii_codes[0])
                         temp_state = ((ascii_codes + no_of_entries))[0];
                     else
                         temp_state = SC_AC_GFBS_FAIL;
                 } else {
-                    ascii_codes = (uint32_t *)goto_table_mod_pointers[state] + 2;
                     buf_local = u8_tolower(buf[i]);
                     if (state == 0) {
+                        ascii_codes = (uint32_t *)goto_table_mod_pointers[state] + 2;
                         temp_state =  ((ascii_codes + no_of_entries))[buf_local];
                     } else {
+                        ascii_codes = (uint32_t *)goto_table_mod_pointers[state & 0x00FFFFFF] + 2;
                         int low = 0;
                         int high = no_of_entries;
                         int mid;
@@ -1340,22 +1369,22 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 }
             }
             while (temp_state == SC_AC_GFBS_FAIL) {
-                state = *((uint32_t *)goto_table_mod_pointers[state] + 1);
+                state = *((uint32_t *)goto_table_mod_pointers[state & 0x00FFFFFF] + 1);
 
                 /* get the goto state transition */
-                no_of_entries = *((uint32_t *)goto_table_mod_pointers[state]);
+                no_of_entries = *((uint32_t *)goto_table_mod_pointers[state & 0x00FFFFFF]);
                 if (no_of_entries == 0) {
                     temp_state = SC_AC_GFBS_FAIL;
                 } else {
                     if (no_of_entries == 1) {
-                        ascii_codes = (uint32_t *)goto_table_mod_pointers[state] + 2;
+                        ascii_codes = (uint32_t *)goto_table_mod_pointers[state & 0x00FFFFFF] + 2;
                         buf_local = u8_tolower(buf[i]);
                         if (buf_local == ascii_codes[0])
                             temp_state = ((ascii_codes + no_of_entries))[0];
                         else
                             temp_state = SC_AC_GFBS_FAIL;
                     } else {
-                        ascii_codes = (uint32_t *)goto_table_mod_pointers[state] + 2;
+                        ascii_codes = (uint32_t *)goto_table_mod_pointers[state & 0x00FFFFFF] + 2;
                         buf_local = u8_tolower(buf[i]);
                         if (state == 0) {
                             temp_state = ((ascii_codes + no_of_entries))[buf_local];
@@ -1380,9 +1409,9 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 } /* else - if (no_of_entries[0] == 0) */
             } /* while (temp_state == SC_AC_GFBS_FAIL) */
             state = temp_state;
-            if (ctx->output_table[state].no_of_entries != 0) {
-                uint32_t no_of_pid_entries = ctx->output_table[state].no_of_entries;
-                uint32_t *pids = ctx->output_table[state].pids;
+            if (state & 0x01000000) {
+                uint32_t no_of_pid_entries = ctx->output_table[state & 0x00FFFFFF].no_of_entries;
+                uint32_t *pids = ctx->output_table[state & 0x00FFFFFF].pids;
                 uint32_t k = 0;
                 for (k = 0; k < no_of_pid_entries; k++) {
                     if (pids[k] & 0xFFFF0000) {
