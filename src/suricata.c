@@ -1530,7 +1530,7 @@ int main(int argc, char **argv)
                 exit(EXIT_FAILURE);
             }
         } else {
-            int ret = LiveBuildIfaceList("pcap");
+            int ret = LiveBuildDeviceList("pcap");
             if (ret == 0) {
                 fprintf(stderr, "ERROR: No interface found in config for pcap\n");
                 exit(EXIT_FAILURE);
@@ -1547,7 +1547,7 @@ int main(int argc, char **argv)
             }
         } else {
             /* not an error condition if we have a 1.0 config */
-            LiveBuildIfaceList("pfring");
+            LiveBuildDeviceList("pfring");
         }
 #endif /* HAVE_PFRING */
     } else if (run_mode == RUNMODE_AFP_DEV) {
@@ -1558,7 +1558,7 @@ int main(int argc, char **argv)
                 exit(EXIT_FAILURE);
             }
         } else {
-            int ret = LiveBuildIfaceList("af-packet");
+            int ret = LiveBuildDeviceList("af-packet");
             if (ret == 0) {
                 fprintf(stderr, "ERROR: No interface found in config for af-packet\n");
                 exit(EXIT_FAILURE);

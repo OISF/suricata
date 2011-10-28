@@ -19,6 +19,14 @@
 #include "conf.h"
 #include "util-device.h"
 
+/**
+ * \file
+ *
+ * \author Eric Leblond <eric@regit.org>
+ *
+ *  \brief Utility functions to handle device list
+ */
+
 /** private device list */
 static TAILQ_HEAD(, LiveDevice_) live_devices =
     TAILQ_HEAD_INITIALIZER(live_devices);
@@ -87,7 +95,7 @@ char *LiveGetDevice(int number) {
 
 
 
-int LiveBuildIfaceList(char * runmode)
+int LiveBuildDeviceList(char * runmode)
 {
     ConfNode *base = ConfGetNode(runmode);
     ConfNode *child;
