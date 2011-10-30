@@ -237,22 +237,32 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
         case DETECT_AL_HTTP_HEADER:
             dhhd =(DetectContentData *) pm->ctx;
             dhhd->flags |= DETECT_CONTENT_NOCASE;
+            /* Recreate the context with nocase chars */
+            BoyerMooreCtxToNocase(dhhd->bm_ctx, dhhd->content, dhhd->content_len);
             break;
         case DETECT_AL_HTTP_RAW_HEADER:
             dhrhd =(DetectContentData *) pm->ctx;
             dhrhd->flags |= DETECT_CONTENT_NOCASE;
+            /* Recreate the context with nocase chars */
+            BoyerMooreCtxToNocase(dhrhd->bm_ctx, dhrhd->content, dhrhd->content_len);
             break;
         case DETECT_AL_HTTP_METHOD:
             dhmd =(DetectContentData *) pm->ctx;
             dhmd->flags |= DETECT_CONTENT_NOCASE;
+            /* Recreate the context with nocase chars */
+            BoyerMooreCtxToNocase(dhmd->bm_ctx, dhmd->content, dhmd->content_len);
             break;
         case DETECT_AL_HTTP_COOKIE:
             dhcd = (DetectContentData *) pm->ctx;
             dhcd->flags |= DETECT_CONTENT_NOCASE;
+            /* Recreate the context with nocase chars */
+            BoyerMooreCtxToNocase(dhcd->bm_ctx, dhcd->content, dhcd->content_len);
             break;
         case DETECT_AL_HTTP_RAW_URI:
             dhrud = (DetectContentData *) pm->ctx;
             dhrud->flags |= DETECT_CONTENT_NOCASE;
+            /* Recreate the context with nocase chars */
+            BoyerMooreCtxToNocase(dhrud->bm_ctx, dhrud->content, dhrud->content_len);
             break;
             /* should never happen */
         default:
