@@ -166,7 +166,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
         }
 
         /* set the tcp header */
-        p->tcph = (TCPHdr *)((uint8_t *)GET_PACKET_DATA(p) + 40);
+        p->tcph = (TCPHdr *)((uint8_t *)GET_PKT_DATA(p) + 40);
     }
 
     p->tcph->th_offx2 = 0x50;
