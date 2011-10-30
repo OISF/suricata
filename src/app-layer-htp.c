@@ -953,6 +953,11 @@ static void HTPConfigure(void)
                         SCLogDebug("LIBHTP personality set to %s",
                                 HTPLookupPersonalityString(personality));
                     }
+
+                    /* The IDS personality by default converts the path (and due to
+                     * our query string callback also the query string) to lowercase.
+                     * Signatures do not expect this, so override it. */
+                    htp_config_set_path_case_insensitive(cfglist.cfg, 0);
                 }
                 else {
                     SCLogWarning(SC_ERR_UNKNOWN_VALUE,
@@ -1099,6 +1104,11 @@ static void HTPConfigure(void)
                             SCLogDebug("LIBHTP personality set to %s",
                                     HTPLookupPersonalityString(personality));
                         }
+
+                        /* The IDS personality by default converts the path (and due to
+                         * our query string callback also the query string) to lowercase.
+                         * Signatures do not expect this, so override it. */
+                        htp_config_set_path_case_insensitive(htp, 0);
                     }
                     else {
                         SCLogWarning(SC_ERR_UNKNOWN_VALUE,
