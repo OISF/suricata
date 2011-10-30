@@ -74,7 +74,7 @@ void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
                       CAP_NET_RAW,            /* needed for pcap live mode */
                       CAP_NET_ADMIN,          /* needed for nfqueue inline mode */
                       -1);
-    } else if (run_mode == RUNMODE_PCAP_DEV) {
+    } else if (run_mode == RUNMODE_PCAP_DEV || run_mode == RUNMODE_AFP_DEV) {
         capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
                       CAP_NET_RAW,            /* needed for pcap live mode */
                       -1);
