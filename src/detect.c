@@ -2239,8 +2239,12 @@ static int SignatureCreateMask(Signature *s) {
             {
                 DetectDsizeData *ds = (DetectDsizeData *)sm->ctx;
                 switch (ds->mode) {
-                    case DETECTDSIZE_RA:
                     case DETECTDSIZE_LT:
+                        /* LT will include 0, so no payload.
+                         * if GT is used in the same rule the
+                         * flag will be set anyway. */
+                        break;
+                    case DETECTDSIZE_RA:
                     case DETECTDSIZE_GT:
                         s->mask |= SIG_MASK_REQUIRE_PAYLOAD;
                         SCLogDebug("sig requires payload");
