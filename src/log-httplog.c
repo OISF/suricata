@@ -166,9 +166,11 @@ static void LogHttpLogExtended(LogHttpFileCtx * hlog, htp_tx_t *tx)
     fprintf(hlog->file_ctx->fp, "%lu bytes", tx->response_message_len);
 }
 
-TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
+                            PacketQueue *postpq, int ipproto)
 {
     SCEnter();
+
     LogHttpLogThread *aft = (LogHttpLogThread *)data;
     LogHttpFileCtx *hlog = aft->httplog_ctx;
     char timebuf[64];
@@ -210,16 +212,16 @@ TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
-    char srcip[16], dstip[16];
+    char srcip[46], dstip[46];
     Port sp, dp;
     if ((PKT_IS_TOSERVER(p))) {
-        PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
-        PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
+        PrintInet(ipproto, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
+        PrintInet(ipproto, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
         sp = p->sp;
         dp = p->dp;
     } else {
-        PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), srcip, sizeof(srcip));
-        PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), dstip, sizeof(dstip));
+        PrintInet(ipproto, (const void *)GET_IPV4_DST_ADDR_PTR(p), srcip, sizeof(srcip));
+        PrintInet(ipproto, (const void *)GET_IPV4_SRC_ADDR_PTR(p), dstip, sizeof(dstip));
         sp = p->dp;
         dp = p->sp;
     }
@@ -284,126 +286,17 @@ TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
 end:
     SCMutexUnlock(&p->flow->m);
     SCReturnInt(TM_ECODE_OK);
+
+}
+
+TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+{
+    return LogHttpLogIPWrapper(tv, p, data, pq, postpq, AF_INET);
 }
 
 TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
-    SCEnter();
-    LogHttpLogThread *aft = (LogHttpLogThread *)data;
-    LogHttpFileCtx *hlog = aft->httplog_ctx;
-    char timebuf[64];
-    size_t idx = 0;
-
-    /* no flow, no htp state */
-    if (p->flow == NULL) {
-        SCReturnInt(TM_ECODE_OK);
-    }
-
-    /* check if we have HTTP state or not */
-    SCMutexLock(&p->flow->m);
-    uint16_t proto = AppLayerGetProtoFromPacket(p);
-    if (proto != ALPROTO_HTTP)
-        goto end;
-
-    int r = AppLayerTransactionGetLoggedId(p->flow);
-    if (r < 0) {
-        goto end;
-    }
-    size_t logged = (size_t)r;
-
-    r = HtpTransactionGetLoggableId(p->flow);
-    if (r < 0) {
-        goto end;
-    }
-    size_t loggable = (size_t)r;
-
-    HtpState *htp_state = (HtpState *)AppLayerGetProtoStateFromPacket(p);
-    if (htp_state == NULL) {
-        SCLogDebug("no http state, so no request logging");
-        goto end;
-    }
-
-    if (htp_state->connp == NULL)
-        goto end;
-
-    htp_tx_t *tx = NULL;
-
-    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
-
-    char srcip[46], dstip[46];
-    Port sp, dp;
-    if ((PKT_IS_TOSERVER(p))) {
-        PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
-        PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
-        sp = p->sp;
-        dp = p->dp;
-    } else {
-        PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
-        PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
-        sp = p->dp;
-        dp = p->sp;
-    }
-    SCMutexLock(&hlog->file_ctx->fp_mutex);
-    for (idx = logged; idx < loggable; idx++)
-    {
-        tx = list_get(htp_state->connp->conn->transactions, idx);
-        if (tx == NULL) {
-            SCLogDebug("tx is NULL not logging !!");
-            continue;
-        }
-
-        SCLogDebug("got a HTTP request and now logging !!");
-        /* time */
-        fprintf(hlog->file_ctx->fp, "%s ", timebuf);
-
-        /* hostname */
-        if (tx->parsed_uri != NULL &&
-                tx->parsed_uri->hostname != NULL)
-        {
-            PrintRawUriFp(hlog->file_ctx->fp,
-                    (uint8_t *)bstr_ptr(tx->parsed_uri->hostname),
-                    bstr_len(tx->parsed_uri->hostname));
-        } else {
-            fprintf(hlog->file_ctx->fp, "<hostname unknown>");
-        }
-        fprintf(hlog->file_ctx->fp, " [**] ");
-
-        /* uri */
-        if (tx->request_uri != NULL) {
-            PrintRawUriFp(hlog->file_ctx->fp,
-                            (uint8_t *)bstr_ptr(tx->request_uri),
-                            bstr_len(tx->request_uri));
-        }
-        fprintf(hlog->file_ctx->fp, " [**] ");
-
-        /* user agent */
-        htp_header_t *h_user_agent = table_getc(tx->request_headers, "user-agent");
-        if (h_user_agent != NULL) {
-            PrintRawUriFp(hlog->file_ctx->fp,
-                            (uint8_t *)bstr_ptr(h_user_agent->value),
-                            bstr_len(h_user_agent->value));
-        } else {
-            fprintf(hlog->file_ctx->fp, "<useragent unknown>");
-        }
-
-        if (hlog->flags & LOG_HTTP_EXTENDED) {
-            LogHttpLogExtended(hlog, tx);
-        }
-
-        /* ip/tcp header info */
-        fprintf(hlog->file_ctx->fp, " [**] %s:%" PRIu16 " -> %s:%" PRIu16 "\n",
-                srcip, sp, dstip, dp);
-
-        aft->uri_cnt++;
-
-        AppLayerTransactionUpdateLoggedId(p->flow);
-    }
-    fflush(hlog->file_ctx->fp);
-    SCMutexUnlock(&hlog->file_ctx->fp_mutex);
-
-end:
-    SCMutexUnlock(&p->flow->m);
-    SCReturnInt(TM_ECODE_OK);
+    return LogHttpLogIPWrapper(tv, p, data, pq, postpq, AF_INET6);
 }
 
 TmEcode LogHttpLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
