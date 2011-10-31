@@ -1526,11 +1526,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
 
-        if (s->flags & SIG_FLAG_DSIZE && s->dsize_sm != NULL) {
-            if (sigmatch_table[DETECT_DSIZE].Match(th_v, det_ctx, p, s, s->dsize_sm) == 0)
-                goto next;
-        }
-
         /* Check the payload keywords. If we are a MPM sig and we've made
          * to here, we've had at least one of the patterns match */
         if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {

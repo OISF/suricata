@@ -416,8 +416,6 @@ typedef struct Signature_ {
     /** netblocks and hosts specified at the sid, in CIDR format */
     IPOnlyCIDRItem *CidrSrc, *CidrDst;
 
-    struct SigMatch_ *dsize_sm;
-
     /* helper for init phase */
     uint16_t mpm_content_maxlen;
     uint16_t mpm_uricontent_maxlen;
