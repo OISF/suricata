@@ -113,6 +113,59 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
             t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
 }
 
+static void LogHttpLogExtended(LogHttpFileCtx * hlog, htp_tx_t *tx)
+{
+    fprintf(hlog->file_ctx->fp, " [**] ");
+
+    /* referer */
+    htp_header_t *h_referer = table_getc(tx->request_headers, "referer");
+    if (h_referer != NULL) {
+        PrintRawUriFp(hlog->file_ctx->fp,
+                (uint8_t *)bstr_ptr(h_referer->value),
+                bstr_len(h_referer->value));
+    } else {
+        fprintf(hlog->file_ctx->fp, "<no referer>");
+    }
+    fprintf(hlog->file_ctx->fp, " [**] ");
+
+    /* method */
+    if (tx->request_method != NULL) {
+        PrintRawUriFp(hlog->file_ctx->fp,
+                (uint8_t *)bstr_ptr(tx->request_method),
+                bstr_len(tx->request_method));
+    }
+    fprintf(hlog->file_ctx->fp, " [**] ");
+
+    /* protocol */
+    if (tx->request_protocol != NULL) {
+        PrintRawUriFp(hlog->file_ctx->fp,
+                (uint8_t *)bstr_ptr(tx->request_protocol),
+                bstr_len(tx->request_protocol));
+    }
+    fprintf(hlog->file_ctx->fp, " [**] ");
+
+    /* response status */
+    if (tx->response_status != NULL) {
+        PrintRawUriFp(hlog->file_ctx->fp,
+                (uint8_t *)bstr_ptr(tx->response_status),
+                bstr_len(tx->response_status));
+        /* Redirect? */
+        if ((tx->response_status_number > 300) && ((tx->response_status_number) < 303)) {
+            htp_header_t *h_location = table_getc(tx->response_headers, "location");
+            if (h_location != NULL) {
+                fprintf(hlog->file_ctx->fp, " => ");
+                PrintRawUriFp(hlog->file_ctx->fp,
+                        (uint8_t *)bstr_ptr(h_location->value),
+                        bstr_len(h_location->value));
+            }
+        }
+    }
+    fprintf(hlog->file_ctx->fp, " [**] ");
+
+    /* length */
+    fprintf(hlog->file_ctx->fp, "%lu bytes", tx->response_message_len);
+}
+
 TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     SCEnter();
@@ -214,55 +267,7 @@ TmEcode LogHttpLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
             fprintf(hlog->file_ctx->fp, "<useragent unknown>");
         }
         if (hlog->flags & LOG_HTTP_EXTENDED) {
-            fprintf(hlog->file_ctx->fp, " [**] ");
-
-            /* referer */
-            htp_header_t *h_referer = table_getc(tx->request_headers, "referer");
-            if (h_referer != NULL) {
-                PrintRawUriFp(hlog->file_ctx->fp,
-                        (uint8_t *)bstr_ptr(h_referer->value),
-                        bstr_len(h_referer->value));
-            } else {
-                fprintf(hlog->file_ctx->fp, "<no referer>");
-            }
-            fprintf(hlog->file_ctx->fp, " [**] ");
-
-            /* method */
-            if (tx->request_method != NULL) {
-                PrintRawUriFp(hlog->file_ctx->fp,
-                        (uint8_t *)bstr_ptr(tx->request_method),
-                        bstr_len(tx->request_method));
-            }
-            fprintf(hlog->file_ctx->fp, " [**] ");
-
-            /* protocol */
-            if (tx->request_protocol != NULL) {
-                PrintRawUriFp(hlog->file_ctx->fp,
-                        (uint8_t *)bstr_ptr(tx->request_protocol),
-                        bstr_len(tx->request_protocol));
-            }
-            fprintf(hlog->file_ctx->fp, " [**] ");
-
-            /* response status */
-            if (tx->response_status != NULL) {
-                PrintRawUriFp(hlog->file_ctx->fp,
-                        (uint8_t *)bstr_ptr(tx->response_status),
-                        bstr_len(tx->response_status));
-                /* Redirect? */
-                if ((tx->response_status_number > 300) && ((tx->response_status_number) < 303)) {
-                    htp_header_t *h_location = table_getc(tx->response_headers, "location");
-                    if (h_location != NULL) {
-                        fprintf(hlog->file_ctx->fp, " => ");
-                        PrintRawUriFp(hlog->file_ctx->fp,
-                                (uint8_t *)bstr_ptr(h_location->value),
-                                bstr_len(h_location->value));
-                    }
-                }
-            }
-            fprintf(hlog->file_ctx->fp, " [**] ");
-
-            /* length */
-            fprintf(hlog->file_ctx->fp, "%lu bytes", tx->response_message_len);
+            LogHttpLogExtended(hlog, tx);
         }
 
         /* ip/tcp header info */
@@ -382,54 +387,7 @@ TmEcode LogHttpLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
         }
 
         if (hlog->flags & LOG_HTTP_EXTENDED) {
-            fprintf(hlog->file_ctx->fp, " [**] ");
-
-            /* referer */
-            htp_header_t *h_referer = table_getc(tx->request_headers, "referer");
-            if (h_referer != NULL) {
-                PrintRawUriFp(hlog->file_ctx->fp,
-                        (uint8_t *)bstr_ptr(h_referer->value),
-                        bstr_len(h_referer->value));
-            } else {
-                fprintf(hlog->file_ctx->fp, "<no referer>");
-            }
-            fprintf(hlog->file_ctx->fp, " [**] ");
-
-            /* method */
-            if (tx->request_method != NULL) {
-                PrintRawUriFp(hlog->file_ctx->fp,
-                        (uint8_t *)bstr_ptr(tx->request_method),
-                        bstr_len(tx->request_method));
-            }
-            fprintf(hlog->file_ctx->fp, " [**] ");
-
-            /* protocol */
-            if (tx->request_protocol != NULL) {
-                PrintRawUriFp(hlog->file_ctx->fp,
-                        (uint8_t *)bstr_ptr(tx->request_protocol),
-                        bstr_len(tx->request_protocol));
-            }
-
-            /* response status */
-            if (tx->response_status != NULL) {
-                PrintRawUriFp(hlog->file_ctx->fp,
-                        (uint8_t *)bstr_ptr(tx->response_status),
-                        bstr_len(tx->response_status));
-                /* Redirect? */
-                if ((tx->response_status_number > 300) && ((tx->response_status_number) < 303)) {
-                    htp_header_t *h_location = table_getc(tx->response_headers, "location");
-                    if (h_location != NULL) {
-                        fprintf(hlog->file_ctx->fp, " => ");
-                        PrintRawUriFp(hlog->file_ctx->fp,
-                                (uint8_t *)bstr_ptr(h_location->value),
-                                bstr_len(h_location->value));
-                    }
-                }
-            }
-            fprintf(hlog->file_ctx->fp, " [**] ");
-
-            /* length */
-            fprintf(hlog->file_ctx->fp, "%lu bytes", tx->response_message_len);
+            LogHttpLogExtended(hlog, tx);
         }
 
         /* ip/tcp header info */
