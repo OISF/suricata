@@ -275,6 +275,13 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr
     DetectDsizeData *dd = NULL;
     SigMatch *sm = NULL;
 
+    if (SigMatchGetLastSM(s->sm_lists_tail[DETECT_SM_LIST_MATCH],
+                          DETECT_DSIZE) != NULL) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use 2 or more dsizes in "
+                   "the same sig.  Invalidating signature.");
+        goto error;
+    }
+
     SCLogDebug("\'%s\'", rawstr);
 
     dd = DetectDsizeParse(rawstr);
@@ -288,6 +295,7 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr
     sm = SigMatchAlloc();
     if (sm == NULL){
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for SigMatch");
+        SCFree(dd);
         goto error;
     }
 
@@ -304,8 +312,6 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr
     return 0;
 
 error:
-    if (dd) SCFree(dd);
-    if (sm) SCFree(sm);
     return -1;
 }
 
