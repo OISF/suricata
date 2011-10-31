@@ -60,6 +60,7 @@ outputs:
       enabled: yes
       filename: http.log
       append: yes
+      #extended: yes # enable this for extended logging information
 
   # a line based log to used with pcap file study.
   # this module is dedicated to offline pcap parsing (empty output
