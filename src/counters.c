@@ -537,6 +537,21 @@ static void *SCPerfWakeupThread(void *arg)
             tv = tv->next;
         }
 
+        /* mgt threads for flow manager */
+        tv = tv_root[TVT_MGMT];
+        while (tv != NULL) {
+            if (tv->sc_perf_pctx.head == NULL) {
+                tv = tv->next;
+                continue;
+            }
+
+            /* assuming the assignment of an int to be atomic, and even if it's
+             * not, it should be okay */
+            tv->sc_perf_pctx.perf_flag = 1;
+
+            tv = tv->next;
+        }
+
         if (TmThreadsCheckFlag(tv_local, THV_KILL)) {
             run = 0;
         }

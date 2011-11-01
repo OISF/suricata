@@ -122,8 +122,28 @@ void *FlowManagerThread(void *td)
     struct timeval tsdiff;
     uint32_t established_cnt = 0, new_cnt = 0, closing_cnt = 0, nowcnt;
     uint32_t sleeping = 0;
-    uint8_t emerg = FALSE;
+    int emerg = FALSE;
+    int prev_emerg = FALSE;
     uint32_t last_sec = 0;
+
+    uint16_t flow_mgr_closing_cnt = SCPerfTVRegisterCounter("flow_mgr.closed_pruned", th_v,
+            SC_PERF_TYPE_UINT64,
+            "NULL");
+    uint16_t flow_mgr_new_cnt = SCPerfTVRegisterCounter("flow_mgr.new_pruned", th_v,
+            SC_PERF_TYPE_UINT64,
+            "NULL");
+    uint16_t flow_mgr_established_cnt = SCPerfTVRegisterCounter("flow_mgr.est_pruned", th_v,
+            SC_PERF_TYPE_UINT64,
+            "NULL");
+    uint16_t flow_mgr_memuse = SCPerfTVRegisterCounter("flow.memuse", th_v,
+            SC_PERF_TYPE_Q_NORMAL,
+            "NULL");
+    uint16_t flow_emerg_mode_enter = SCPerfTVRegisterCounter("flow.emerg_mode_entered", th_v,
+            SC_PERF_TYPE_UINT64,
+            "NULL");
+    uint16_t flow_emerg_mode_over = SCPerfTVRegisterCounter("flow.emerg_mode_over", th_v,
+            SC_PERF_TYPE_UINT64,
+            "NULL");
 
     memset(&ts, 0, sizeof(ts));
 
@@ -132,6 +152,9 @@ void *FlowManagerThread(void *td)
     /* set the thread name */
     SCSetThreadName(th_v->name);
     SCLogDebug("%s started...", th_v->name);
+
+    th_v->sc_perf_pca = SCPerfGetAllCountersArray(&th_v->sc_perf_pctx);
+    SCPerfAddToClubbedTMTable(th_v->name, &th_v->sc_perf_pctx);
 
     /* Set the threads capability */
     th_v->cap_flags = 0;
@@ -148,7 +171,14 @@ void *FlowManagerThread(void *td)
         {
             if (flow_flags & FLOW_EMERGENCY) {
                 emerg = TRUE;
-                SCLogDebug("Flow emergency mode entered...");
+
+                if (emerg == TRUE && prev_emerg == FALSE) {
+                    prev_emerg = TRUE;
+
+                    SCLogDebug("Flow emergency mode entered...");
+
+                    SCPerfCounterIncr(flow_emerg_mode_enter, th_v->sc_perf_pca);
+                }
             }
 
             /* Get the time */
@@ -165,6 +195,9 @@ void *FlowManagerThread(void *td)
             FlowUpdateSpareFlows();
 
             int i;
+            closing_cnt = 0;
+            new_cnt = 0;
+            established_cnt = 0;
             for (i = 0; i < FLOW_PROTO_MAX; i++) {
                 /* prune closing list */
                 nowcnt = FlowPruneFlowQueue(&flow_close_q[i], &ts);
@@ -187,6 +220,11 @@ void *FlowManagerThread(void *td)
                     established_cnt += nowcnt;
                 }
             }
+            SCPerfCounterAddUI64(flow_mgr_closing_cnt, th_v->sc_perf_pca, (uint64_t)closing_cnt);
+            SCPerfCounterAddUI64(flow_mgr_new_cnt, th_v->sc_perf_pca, (uint64_t)new_cnt);
+            SCPerfCounterAddUI64(flow_mgr_established_cnt, th_v->sc_perf_pca, (uint64_t)established_cnt);
+            long long unsigned int flow_memuse = SC_ATOMIC_GET(flow_memuse);
+            SCPerfCounterSetUI64(flow_mgr_memuse, th_v->sc_perf_pca, (uint64_t)flow_memuse);
 
             sleeping = 0;
 
@@ -209,11 +247,14 @@ void *FlowManagerThread(void *td)
                 if (len * 100 / flow_config.prealloc > flow_config.emergency_recovery) {
                     flow_flags &= ~FLOW_EMERGENCY;
                     emerg = FALSE;
+                    prev_emerg = FALSE;
                     SCLogInfo("Flow emergency mode over, back to normal... unsetting"
                               " FLOW_EMERGENCY bit (ts.tv_sec: %"PRIuMAX", "
                               "ts.tv_usec:%"PRIuMAX") flow_spare_q status(): %"PRIu32
                               "%% flows at the queue", (uintmax_t)ts.tv_sec,
                               (uintmax_t)ts.tv_usec, len * 100 / flow_config.prealloc);
+
+                    SCPerfCounterIncr(flow_emerg_mode_over, th_v->sc_perf_pca);
                 }
             }
         }
@@ -249,6 +290,8 @@ void *FlowManagerThread(void *td)
                 usleep(1);
             }
         }
+
+        SCPerfSyncCountersIfSignalled(th_v, 0);
     }
 
     TmThreadWaitForFlag(th_v, THV_DEINIT);
