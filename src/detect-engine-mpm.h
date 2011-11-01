@@ -34,6 +34,7 @@
 uint16_t PatternMatchDefaultMatcher(void);
 
 uint32_t PatternStrength(uint8_t *, uint16_t);
+uint32_t PacketPatternSearchWithStreamCtx(DetectEngineThreadCtx *, Packet *);
 uint32_t PacketPatternSearch(DetectEngineThreadCtx *, Packet *);
 uint32_t UriPatternSearch(DetectEngineThreadCtx *, uint8_t *, uint16_t);
 uint32_t StreamPatternSearch(DetectEngineThreadCtx *, Packet *, StreamMsg *, uint8_t);

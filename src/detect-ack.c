@@ -113,6 +113,7 @@ static int DetectAckSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
     sm->ctx = data;
 
     SigMatchAppendPacket(s, sm);
+    s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
 

@@ -1491,13 +1491,13 @@ int SigGroupHeadLoadStreamContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         if (s == NULL)
             continue;
 
-        if (!(s->flags & SIG_FLAG_MPM)) {
-            SCLogDebug("no mpm");
+        if (SignatureHasPacketContent(s)) {
+            SCLogDebug("Sig has packet content");
             continue;
         }
 
-        if (s->flags & SIG_FLAG_DSIZE) {
-            SCLogDebug("dsize");
+        if (!(s->flags & SIG_FLAG_MPM)) {
+            SCLogDebug("no mpm");
             continue;
         }
 

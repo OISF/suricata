@@ -256,6 +256,7 @@ static int DetectITypeSetup(DetectEngineCtx *de_ctx, Signature *s, char *itypest
     sm->ctx = (void *)itd;
 
     SigMatchAppendPacket(s, sm);
+    s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
 

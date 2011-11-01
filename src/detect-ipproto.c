@@ -520,6 +520,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
     sm->type = DETECT_IPPROTO;
     sm->ctx = (void *)data;
     SigMatchAppendPacket(s, sm);
+    s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
 

@@ -233,6 +233,7 @@ int DetectIdSetup (DetectEngineCtx *de_ctx, Signature *s, char *idstr)
     sm->ctx = (void *)id_d;
 
     SigMatchAppendPacket(s, sm);
+    s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
 

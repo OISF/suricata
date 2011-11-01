@@ -89,23 +89,11 @@ int SignatureHasPacketContent(Signature *s) {
         SCReturnInt(0);
     }
 
-    if (s->alproto != ALPROTO_UNKNOWN) {
-        SCLogDebug("inspecting app layer");
+    if (!(s->flags & SIG_FLAG_REQUIRE_PACKET)) {
         SCReturnInt(0);
     }
 
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
-    if (sm == NULL) {
-        SCReturnInt(0);
-    }
-
-    for ( ;sm != NULL; sm = sm->next) {
-        if (sm->type == DETECT_CONTENT) {
-            SCReturnInt(1);
-        }
-    }
-
-    SCReturnInt(0);
+    SCReturnInt(1);
 }
 
 /**
@@ -125,35 +113,16 @@ int SignatureHasStreamContent(Signature *s) {
         SCReturnInt(0);
     }
 
+    if (SignatureHasPacketContent(s)) {
+        SCReturnInt(0);
+    }
+
     if (!(s->flags & SIG_FLAG_MPM)) {
         SCLogDebug("no mpm");
         SCReturnInt(0);
     }
 
-    if (s->flags & SIG_FLAG_DSIZE) {
-        SCLogDebug("dsize");
-        SCReturnInt(0);
-    }
-
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
-    for ( ; sm != NULL; sm = sm->next) {
-        if (sm->type == DETECT_FLAGS) {
-            SCReturnInt(0);
-        }
-    }
-
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
-    if (sm == NULL) {
-        SCReturnInt(0);
-    }
-
-    for ( ; sm != NULL; sm = sm->next) {
-        if (sm->type == DETECT_CONTENT) {
-            SCReturnInt(1);
-        }
-    }
-
-    SCReturnInt(0);
+    SCReturnInt(1);
 }
 
 
@@ -189,6 +158,42 @@ uint16_t PatternMatchDefaultMatcher(void) {
     }
 
     return mpm_algo_val;
+}
+
+uint32_t PacketPatternSearchWithStreamCtx(DetectEngineThreadCtx *det_ctx,
+                                         Packet *p)
+{
+    SCEnter();
+
+    uint32_t ret;
+
+#ifndef __SC_CUDA_SUPPORT__
+    ret = mpm_table[det_ctx->sgh->mpm_stream_ctx->mpm_type].
+        Search(det_ctx->sgh->mpm_stream_ctx, &det_ctx->mtc, &det_ctx->pmq,
+               p->payload, p->payload_len);
+#else
+    /* if the user has enabled cuda support, but is not using the cuda mpm
+     * algo, then we shouldn't take the path of the dispatcher.  Call the mpm
+     * directly */
+    if (det_ctx->sgh->mpm_stream_ctx->mpm_type != MPM_B2G_CUDA) {
+        ret = mpm_table[det_ctx->sgh->mpm_stream_ctx->mpm_type].
+            Search(det_ctx->sgh->mpm_stream_ctx, &det_ctx->mtc, &det_ctx->pmq,
+                   p->payload, p->payload_len);
+        SCReturnInt(ret);
+    }
+
+    if (p->cuda_mpm_enabled) {
+        ret = B2gCudaResultsPostProcessing(p, det_ctx->sgh->mpm_stream_ctx,
+                                           &det_ctx->mtc, &det_ctx->pmq);
+    } else {
+        ret = mpm_table[det_ctx->sgh->mpm_stream_ctx->mpm_type].
+            Search(det_ctx->sgh->mpm_stream_ctx, &det_ctx->mtc, &det_ctx->pmq,
+                   p->payload, p->payload_len);
+    }
+
+#endif
+
+    SCReturnInt(ret);
 }
 
 /** \brief Pattern match -- searches for only one pattern per signature.

@@ -297,6 +297,8 @@ static int DetectFragBitsSetup (DetectEngineCtx *de_ctx, Signature *s, char *raw
     sm->ctx = (void *)de;
 
     SigMatchAppendPacket(s, sm);
+    s->flags |= SIG_FLAG_REQUIRE_PACKET;
+
     return 0;
 
 error:

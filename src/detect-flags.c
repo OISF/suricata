@@ -499,6 +499,8 @@ static int DetectFlagsSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr
     sm->ctx = (void *)de;
 
     SigMatchAppendPacket(s, sm);
+    s->flags |= SIG_FLAG_REQUIRE_PACKET;
+
     return 0;
 
 error:

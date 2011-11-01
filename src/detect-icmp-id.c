@@ -233,6 +233,7 @@ static int DetectIcmpIdSetup (DetectEngineCtx *de_ctx, Signature *s, char *icmpi
     sm->ctx = (void *)iid;
 
     SigMatchAppendPacket(s, sm);
+    s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
 

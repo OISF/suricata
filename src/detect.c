@@ -711,15 +711,7 @@ static inline int SigMatchSignaturesBuildMatchArrayAddSignature(DetectEngineThre
             //SCLogDebug("mpm sig without matches (pat id %"PRIu32" check in content).", s->mpm_pattern_id);
 
             if (!(s->flags & SIG_FLAG_MPM_PACKET_NEG)) {
-                /* pattern didn't match. There is one case where we will inspect
-                 * the signature anyway: if the packet payload was added to the
-                 * stream it is not scanned itself: the stream data is inspected.
-                 * Inspecting both would result in duplicated alerts. There is
-                 * one case where we are going to inspect the packet payload
-                 * anyway: if a signature has the dsize option. */
-                if (!((p->flags & PKT_STREAM_ADD) && (s->flags & SIG_FLAG_DSIZE))) {
-                    return 0;
-                }
+                return 0;
             } else {
                 SCLogDebug("but thats okay, we are looking for neg-content");
             }
@@ -732,15 +724,7 @@ static inline int SigMatchSignaturesBuildMatchArrayAddSignature(DetectEngineThre
             //SCLogDebug("mpm stream sig without matches (pat id %"PRIu32" check in content).", s->mpm_stream_pattern_id);
 
             if (!(s->flags & SIG_FLAG_MPM_STREAM_NEG)) {
-                /* pattern didn't match. There is one case where we will inspect
-                 * the signature anyway: if the packet payload was added to the
-                 * stream it is not scanned itself: the stream data is inspected.
-                 * Inspecting both would result in duplicated alerts. There is
-                 * one case where we are going to inspect the packet payload
-                 * anyway: if a signature has the dsize option. */
-                if (!((p->flags & PKT_STREAM_ADD) && (s->flags & SIG_FLAG_DSIZE))) {
-                    return 0;
-                }
+                return 0;
             } else {
                 SCLogDebug("but thats okay, we are looking for neg-content");
             }
@@ -1187,7 +1171,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
     uint32_t cnt = 0;
 
     if (p->payload_len > 0 && det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_PACKET &&
-        (!(p->flags & PKT_NOPAYLOAD_INSPECTION) && !(p->flags & PKT_STREAM_ADD))) {
+        (!(p->flags & PKT_NOPAYLOAD_INSPECTION))) {
 
         /* run the multi packet matcher against the payload of the packet */
         if (det_ctx->sgh->mpm_content_maxlen > p->payload_len) {
@@ -1203,6 +1187,11 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
 
             SCLogDebug("post search: cnt %" PRIu32, cnt);
             *sms_runflags |= SMS_USED_PM;
+        }
+
+        if (!(p->flags & PKT_STREAM_ADD) && det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_STREAM) {
+            *sms_runflags |= SMS_USED_PM;
+            PacketPatternSearchWithStreamCtx(det_ctx, p);
         }
     }
 
@@ -1531,7 +1520,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
             /* if we have stream msgs, inspect against those first,
              * but not for a "dsize" signature */
-            if (!(s->flags & SIG_FLAG_DSIZE) && !(s->flags & SIG_FLAG_REQUIRE_PACKET) && smsg != NULL) {
+            if (!(s->flags & SIG_FLAG_REQUIRE_PACKET) && smsg != NULL) {
                 char pmatch = 0;
                 uint8_t pmq_idx = 0;
                 StreamMsg *smsg_inspect = smsg;

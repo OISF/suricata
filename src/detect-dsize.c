@@ -307,7 +307,7 @@ static int DetectDsizeSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr
     SCLogDebug("dd->dsize %"PRIu16", dd->dsize2 %"PRIu16", dd->mode %"PRIu8"",
             dd->dsize, dd->dsize2, dd->mode);
     /* tell the sig it has a dsize to speed up engine init */
-    s->flags |= SIG_FLAG_DSIZE;
+    s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
 

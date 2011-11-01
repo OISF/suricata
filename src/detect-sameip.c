@@ -97,6 +97,7 @@ static int DetectSameipSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr
     sm->ctx = NULL;
 
     SigMatchAppendPacket(s, sm);
+    s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
 

@@ -256,6 +256,7 @@ static int DetectICodeSetup(DetectEngineCtx *de_ctx, Signature *s, char *icodest
     sm->ctx = (void *)icd;
 
     SigMatchAppendPacket(s, sm);
+    s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;
 
