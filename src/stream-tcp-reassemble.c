@@ -147,6 +147,11 @@ void StreamTcpReassembleDecrMemuse(uint64_t size) {
     SCSpinUnlock(&stream_reassembly_memuse_spinlock);
 }
 
+void StreamTcpReassembleMemuseCounter(ThreadVars *tv, TcpReassemblyThreadCtx *rtv) {
+    SCSpinLock(&stream_reassembly_memuse_spinlock);
+    SCPerfCounterSetUI64(rtv->counter_tcp_reass_memuse, tv->sc_perf_pca, stream_reassembly_memuse);
+    SCSpinUnlock(&stream_reassembly_memuse_spinlock);
+}
 
 /**
  * \brief  Function to Check the reassembly memory usage counter against the
@@ -3526,6 +3531,7 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
         }
     }
 
+    StreamTcpReassembleMemuseCounter(tv, ra_ctx);
     SCReturnInt(0);
 }
 

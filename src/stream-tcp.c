@@ -143,6 +143,12 @@ void StreamTcpDecrMemuse(uint64_t size) {
     SCSpinUnlock(&stream_memuse_spinlock);
 }
 
+void StreamTcpMemuseCounter(ThreadVars *tv, StreamTcpThread *stt) {
+    SCSpinLock(&stream_memuse_spinlock);
+    SCPerfCounterSetUI64(stt->counter_tcp_memuse, tv->sc_perf_pca, stream_memuse);
+    SCSpinUnlock(&stream_memuse_spinlock);
+}
+
 /**
  *  \brief Check if alloc'ing "size" would mean we're over memcap
  *
@@ -3604,6 +3610,8 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                     if (StreamTcpPacketStateNone(tv,p,stt,ssn, &stt->pseudo_queue)) {
                         goto error;
                     }
+
+                    SCPerfCounterIncr(stt->counter_tcp_reused_ssn, tv->sc_perf_pca);
                 } else {
                     SCLogDebug("packet received on closed state");
                 }
@@ -3674,6 +3682,7 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
         }
     }
 
+    StreamTcpMemuseCounter(tv, stt);
     SCReturnInt(0);
 
 error:
@@ -3738,8 +3747,10 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
     if (!(PKT_IS_TCP(p)))
         return TM_ECODE_OK;
 
-    if (p->flow == NULL)
+    if (p->flow == NULL) {
+        SCPerfCounterIncr(stt->counter_tcp_no_flow, tv->sc_perf_pca);
         return TM_ECODE_OK;
+    }
 
     if ((stream_config.flags & STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION) &&
             (StreamTcpValidateChecksum(p) == 0))
@@ -3783,6 +3794,15 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
     stt->counter_tcp_invalid_checksum = SCPerfTVRegisterCounter("tcp.invalid_checksum", tv,
                                                         SC_PERF_TYPE_UINT64,
                                                         "NULL");
+    stt->counter_tcp_no_flow = SCPerfTVRegisterCounter("tcp.no_flow", tv,
+                                                        SC_PERF_TYPE_UINT64,
+                                                        "NULL");
+    stt->counter_tcp_reused_ssn = SCPerfTVRegisterCounter("tcp.reused_ssn", tv,
+                                                        SC_PERF_TYPE_UINT64,
+                                                        "NULL");
+    stt->counter_tcp_memuse = SCPerfTVRegisterCounter("tcp.memuse", tv,
+                                                        SC_PERF_TYPE_Q_NORMAL,
+                                                        "NULL");
 
     /* init reassembly ctx */
     stt->ra_ctx = StreamTcpReassembleInitThreadCtx();
@@ -3794,6 +3814,9 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
                                                         "NULL");
     stt->ra_ctx->counter_tcp_stream_depth = SCPerfTVRegisterCounter("tcp.stream_depth_reached", tv,
                                                         SC_PERF_TYPE_UINT64,
+                                                        "NULL");
+    stt->ra_ctx->counter_tcp_reass_memuse = SCPerfTVRegisterCounter("tcp.reassembly_memuse", tv,
+                                                        SC_PERF_TYPE_Q_NORMAL,
                                                         "NULL");
 
     tv->sc_perf_pca = SCPerfGetAllCountersArray(&tv->sc_perf_pctx);

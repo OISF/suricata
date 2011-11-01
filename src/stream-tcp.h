@@ -80,6 +80,12 @@ typedef struct StreamTcpThread_ {
     uint16_t counter_tcp_pseudo;
     /** packets rejected because their csum is invalid */
     uint16_t counter_tcp_invalid_checksum;
+    /** TCP packets with no associated flow */
+    uint16_t counter_tcp_no_flow;
+    /** sessions reused */
+    uint16_t counter_tcp_reused_ssn;
+    /** sessions reused */
+    uint16_t counter_tcp_memuse;
 
     /** tcp reassembly thread data */
     TcpReassemblyThreadCtx *ra_ctx;

@@ -58,6 +58,8 @@ typedef struct TcpReassemblyThreadCtx_ {
     uint16_t counter_tcp_segment_memcap;
     /** number of streams that stop reassembly because their depth is reached */
     uint16_t counter_tcp_stream_depth;
+    /** ams that stop reassembly because their depth is reached */
+    uint16_t counter_tcp_reass_memuse;
 } TcpReassemblyThreadCtx;
 
 #define OS_POLICY_DEFAULT   OS_POLICY_BSD
