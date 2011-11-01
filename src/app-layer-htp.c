@@ -616,8 +616,9 @@ int HtpTransactionGetLoggableId(Flow *f)
     int id = 0;
 
     HtpState *http_state = f->aldata[AlpGetStateIdx(ALPROTO_HTTP)];
-    if (http_state == NULL) {
-        SCLogDebug("no http state");
+    if (http_state == NULL || http_state->connp == NULL ||
+            http_state->connp->conn == NULL) {
+        SCLogDebug("no (void) http state");
         goto error;
     }
 

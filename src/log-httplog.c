@@ -118,7 +118,10 @@ static void LogHttpLogExtended(LogHttpFileCtx * hlog, htp_tx_t *tx)
     fprintf(hlog->file_ctx->fp, " [**] ");
 
     /* referer */
-    htp_header_t *h_referer = table_getc(tx->request_headers, "referer");
+    htp_header_t *h_referer = NULL;
+    if (tx->request_headers != NULL) {
+        h_referer = table_getc(tx->request_headers, "referer");
+    }
     if (h_referer != NULL) {
         PrintRawUriFp(hlog->file_ctx->fp,
                 (uint8_t *)bstr_ptr(h_referer->value),
@@ -141,6 +144,8 @@ static void LogHttpLogExtended(LogHttpFileCtx * hlog, htp_tx_t *tx)
         PrintRawUriFp(hlog->file_ctx->fp,
                 (uint8_t *)bstr_ptr(tx->request_protocol),
                 bstr_len(tx->request_protocol));
+    } else {
+        fprintf(hlog->file_ctx->fp, "<no protocol>");
     }
     fprintf(hlog->file_ctx->fp, " [**] ");
 
@@ -159,6 +164,8 @@ static void LogHttpLogExtended(LogHttpFileCtx * hlog, htp_tx_t *tx)
                         bstr_len(h_location->value));
             }
         }
+    } else {
+        fprintf(hlog->file_ctx->fp, "<no status>");
     }
 
     /* length */
@@ -204,7 +211,7 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
         goto end;
     }
 
-    if (htp_state->connp == NULL)
+    if (htp_state->connp == NULL || htp_state->connp->conn == NULL)
         goto end;
 
     htp_tx_t *tx = NULL;
@@ -279,7 +286,10 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
         fprintf(hlog->file_ctx->fp, " [**] ");
 
         /* user agent */
-        htp_header_t *h_user_agent = table_getc(tx->request_headers, "user-agent");
+        htp_header_t *h_user_agent = NULL;
+        if (tx->request_headers != NULL) {
+            h_user_agent = table_getc(tx->request_headers, "user-agent");
+        }
         if (h_user_agent != NULL) {
             PrintRawUriFp(hlog->file_ctx->fp,
                             (uint8_t *)bstr_ptr(h_user_agent->value),
