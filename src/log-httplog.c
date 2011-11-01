@@ -160,10 +160,9 @@ static void LogHttpLogExtended(LogHttpFileCtx * hlog, htp_tx_t *tx)
             }
         }
     }
-    fprintf(hlog->file_ctx->fp, " [**] ");
 
     /* length */
-    fprintf(hlog->file_ctx->fp, "%lu bytes", tx->response_message_len);
+    fprintf(hlog->file_ctx->fp, " [**] %"PRIuMAX" bytes", (uintmax_t)tx->response_message_len);
 }
 
 static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
@@ -215,13 +214,33 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
     char srcip[46], dstip[46];
     Port sp, dp;
     if ((PKT_IS_TOSERVER(p))) {
-        PrintInet(ipproto, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
-        PrintInet(ipproto, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
+        switch (ipproto) {
+            case AF_INET:
+                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
+                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
+                break;
+            case AF_INET6:
+                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
+                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+                break;
+            default:
+                goto end;
+        }
         sp = p->sp;
         dp = p->dp;
     } else {
-        PrintInet(ipproto, (const void *)GET_IPV4_DST_ADDR_PTR(p), srcip, sizeof(srcip));
-        PrintInet(ipproto, (const void *)GET_IPV4_SRC_ADDR_PTR(p), dstip, sizeof(dstip));
+        switch (ipproto) {
+            case AF_INET:
+                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), srcip, sizeof(srcip));
+                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), dstip, sizeof(dstip));
+                break;
+            case AF_INET6:
+                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), srcip, sizeof(srcip));
+                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), dstip, sizeof(dstip));
+                break;
+            default:
+                goto end;
+        }
         sp = p->dp;
         dp = p->sp;
     }
