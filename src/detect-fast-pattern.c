@@ -543,7 +543,7 @@ int DetectFastPatternTest05(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    if (PacketPatternSearch(det_ctx, p) != 0)
+    if (PacketPatternSearchWithStreamCtx(det_ctx, p) != 0)
         result = 1;
 
     SigGroupCleanup(de_ctx);
@@ -593,7 +593,7 @@ int DetectFastPatternTest06(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    if (PacketPatternSearch(det_ctx, p) != 0)
+    if (PacketPatternSearchWithStreamCtx(det_ctx, p) != 0)
         result = 1;
 
     SigGroupCleanup(de_ctx);
@@ -644,7 +644,7 @@ int DetectFastPatternTest07(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    if (PacketPatternSearch(det_ctx, p) == 0)
+    if (PacketPatternSearchWithStreamCtx(det_ctx, p) == 0)
         result = 1;
 
     SigGroupCleanup(de_ctx);
@@ -699,7 +699,7 @@ int DetectFastPatternTest08(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    uint32_t r = PacketPatternSearch(det_ctx, p);
+    uint32_t r = PacketPatternSearchWithStreamCtx(det_ctx, p);
     if (r != 1) {
         printf("expected 1, got %"PRIu32": ", r);
         goto end;
@@ -751,7 +751,7 @@ int DetectFastPatternTest09(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    if (PacketPatternSearch(det_ctx, p) == 0)
+    if (PacketPatternSearchWithStreamCtx(det_ctx, p) == 0)
         result = 1;
 
     SigGroupCleanup(de_ctx);
@@ -807,7 +807,7 @@ int DetectFastPatternTest10(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    uint32_t r = PacketPatternSearch(det_ctx, p);
+    uint32_t r = PacketPatternSearchWithStreamCtx(det_ctx, p);
     if (r != 1) {
         printf("expected 1, got %"PRIu32": ", r);
         goto end;
@@ -861,7 +861,7 @@ int DetectFastPatternTest11(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    if (PacketPatternSearch(det_ctx, p) == 0)
+    if (PacketPatternSearchWithStreamCtx(det_ctx, p) == 0)
         result = 1;
 
 
@@ -913,7 +913,7 @@ int DetectFastPatternTest12(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    if (PacketPatternSearch(det_ctx, p) == 0)
+    if (PacketPatternSearchWithStreamCtx(det_ctx, p) == 0)
         result = 1;
 
     SigGroupCleanup(de_ctx);
@@ -970,7 +970,7 @@ int DetectFastPatternTest13(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    uint32_t r = PacketPatternSearch(det_ctx, p);
+    uint32_t r = PacketPatternSearchWithStreamCtx(det_ctx, p);
     if (r != 1) {
         printf("expected 1 result, got %"PRIu32": ", r);
         goto end;
