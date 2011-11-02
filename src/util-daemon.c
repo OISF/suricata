@@ -79,18 +79,23 @@ static void WaitForChild (pid_t pid) {
  * \brief Close stdin, stdout, stderr.Redirect logging info to syslog
  *
  */
-static void SetupLogging () {
-    int fd0, fd1, fd2;
-
+static void SetupLogging (void) {
     /* Close stdin, stdout, stderr */
     close(0);
     close(1);
     close(2);
 
     /* Redirect stdin, stdout, stderr to /dev/null  */
-    fd0 = open("/dev/null", O_RDWR);
-    fd1 = dup(0);
-    fd2 = dup(0);
+    int fd = open("/dev/null", O_RDWR);
+    if (fd < 0)
+        return;
+    if (dup2(fd, 0) < 0)
+        return;
+    if (dup2(fd, 1) < 0)
+        return;
+    if (dup2(fd, 2) < 0)
+        return;
+    close(fd);
 }
 
 /**
