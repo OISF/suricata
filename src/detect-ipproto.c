@@ -354,14 +354,14 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                             j++;
                         }
 #endif
-                    }
-                } else {
-                    for (i = 0; i < (data->proto / 8); i++) {
-                        s->proto.proto[i] = 0;
-                    }
-                    s->proto.proto[data->proto / 8] &= 0xfe << (data->proto % 8);
-                    for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
-                        s->proto.proto[i] &= 0xff;
+                    } else {
+                        for (i = 0; i < (data->proto / 8); i++) {
+                            s->proto.proto[i] = 0;
+                        }
+                        s->proto.proto[data->proto / 8] &= 0xfe << (data->proto % 8);
+                        for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
+                            s->proto.proto[i] &= 0xff;
+                        }
                     }
                 }
             }
@@ -474,14 +474,14 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                             j++;
                         }
 #endif
-                    }
-                } else {
-                    for (i = 0; i < (data->proto / 8); i++) {
-                        s->proto.proto[i] &= 0xFF;
-                    }
-                    s->proto.proto[data->proto / 8] &= ~(0xff << (data->proto % 8));
-                    for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
-                        s->proto.proto[i] = 0;
+                    } else {
+                        for (i = 0; i < (data->proto / 8); i++) {
+                            s->proto.proto[i] &= 0xFF;
+                        }
+                        s->proto.proto[data->proto / 8] &= ~(0xff << (data->proto % 8));
+                        for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
+                            s->proto.proto[i] = 0;
+                        }
                     }
                 }
             }
