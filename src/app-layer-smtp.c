@@ -75,13 +75,14 @@
  * commands would be introduced as and when needed */
 #define SMTP_COMMAND_STARTTLS  1
 #define SMTP_COMMAND_DATA      2
+#define SMTP_COMMAND_BDAT      3
 /* not an actual command per se, but the mode where we accept the mail after
  * DATA has it's own reply code for completion, from the server.  We give this
  * stage a pseudo command of it's own, so that we can add this to the command
  * buffer to match with the reply */
-#define SMTP_COMMAND_DATA_MODE 3
+#define SMTP_COMMAND_DATA_MODE 4
 /* All other commands are represented by this var */
-#define SMTP_COMMAND_OTHER_CMD 4
+#define SMTP_COMMAND_OTHER_CMD 5
 
 /* Different EHLO extensions.  Not used now. */
 #define SMTP_EHLO_EXTENSION_PIPELINING
@@ -174,6 +175,7 @@ static int SMTPGetLine(SMTPState *state)
                     state->current_line_len = (lf_idx - state->input - 1);
                 }
 
+                state->current_line_delimiter_len = 2;
                 /* We have just LF as the line delimiter */
             } else {
                 if (state->ts_current_line_db == 1) {
@@ -193,6 +195,8 @@ static int SMTPGetLine(SMTPState *state)
                     state->current_line = state->input;
                     state->current_line_len = (lf_idx - state->input);
                 }
+
+                state->current_line_delimiter_len = 1;
             } /* else */
 
             state->input_len -= (lf_idx - state->input) + 1;
@@ -264,6 +268,7 @@ static int SMTPGetLine(SMTPState *state)
                     state->current_line_len = (lf_idx - state->input - 1);
                 }
 
+                state->current_line_delimiter_len = 2;
                 /* We have just LF as the line delimiter */
             } else {
                 if (state->tc_current_line_db == 1) {
@@ -283,6 +288,8 @@ static int SMTPGetLine(SMTPState *state)
                     state->current_line = state->input;
                     state->current_line_len = (lf_idx - state->input);
                 }
+
+                state->current_line_delimiter_len = 1;
             } /* else */
 
             state->input_len -= (lf_idx - state->input) + 1;
@@ -325,6 +332,22 @@ static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state)
 
     state->cmds[state->cmds_cnt] = command;
     state->cmds_cnt++;
+
+    return 0;
+}
+
+static int SMTPProcessCommandBDAT(SMTPState *state, Flow *f,
+                                  AppLayerParserState *pstate)
+{
+    state->bdat_chunk_idx += (state->current_line_len +
+                              state->current_line_delimiter_len);
+    if (state->bdat_chunk_idx > state->bdat_chunk_len) {
+        state->parser_state &= ~SMTP_PARSER_STATE_COMMAND_DATA_MODE;
+        /* decoder event */
+        return -1;
+    } else if (state->bdat_chunk_idx == state->bdat_chunk_len) {
+        state->parser_state &= ~SMTP_PARSER_STATE_COMMAND_DATA_MODE;
+    }
 
     return 0;
 }
@@ -445,18 +468,55 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
     return 0;
 }
 
+static int SMTPParseCommandBDAT(SMTPState *state)
+{
+    int i = 4;
+    while (i < state->current_line_len) {
+        if (state->current_line[i] != ' ') {
+            break;
+        }
+        i++;
+    }
+    if (i == 4) {
+        /* decoder event */
+        return -1;
+    }
+    if (i == state->current_line_len) {
+        /* decoder event */
+        return -1;
+    }
+    uint8_t *endptr = NULL;
+    state->bdat_chunk_len = strtoul((const char *)state->current_line + i,
+                                    (char **)&endptr, 10);
+    if (endptr == state->current_line + i) {
+        /* decoder event */
+        return -1;
+    }
+
+    return 0;
+}
+
 static int SMTPProcessRequest(SMTPState *state, Flow *f,
                               AppLayerParserState *pstate)
 {
     /* there are 2 commands that can push it into this COMMAND_DATA mode -
      * STARTTLS and DATA */
     if (!(state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
+        int r = 0;
+
         if (state->current_line_len >= 8 &&
             SCMemcmpLowercase("starttls", state->current_line, 8) == 0) {
             state->current_command = SMTP_COMMAND_STARTTLS;
         } else if (state->current_line_len >= 4 &&
                    SCMemcmpLowercase("data", state->current_line, 4) == 0) {
             state->current_command = SMTP_COMMAND_DATA;
+        } else if (state->current_line_len >= 4 &&
+                   SCMemcmpLowercase("bdat", state->current_line, 4) == 0) {
+            r = SMTPParseCommandBDAT(state);
+            if (r == -1)
+                return -1;
+            state->current_command = SMTP_COMMAND_BDAT;
+            state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
         } else {
             state->current_command = SMTP_COMMAND_OTHER_CMD;
         }
@@ -467,6 +527,8 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
                                                state) == -1) {
             return -1;
         }
+
+        return r;
     }
 
     switch (state->current_command) {
@@ -475,6 +537,9 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
 
         case SMTP_COMMAND_DATA:
             return SMTPProcessCommandDATA(state, f, pstate);
+
+        case SMTP_COMMAND_BDAT:
+            return SMTPProcessCommandBDAT(state, f, pstate);
 
         default:
             /* we have nothing to do with any other command at this instant.
@@ -494,11 +559,13 @@ static int SMTPParse(int direction, Flow *f, SMTPState *state,
     while (SMTPGetLine(state) >= 0) {
         /* toserver */
         if (direction == 0) {
-            SMTPProcessRequest(state, f, pstate);
+            if (SMTPProcessRequest(state, f, pstate) == -1)
+                return -1;
 
             /* toclient */
         } else {
-            SMTPProcessReply(state, f, pstate);
+            if (SMTPProcessReply(state, f, pstate) == -1)
+                return -1;
         }
     }
 
@@ -1952,6 +2019,324 @@ end:
     return result;
 }
 
+/**
+ * \test Test multiple DATA commands(full mail transactions).
+ */
+int SMTPParserTest06(void)
+{
+    int result = 0;
+    Flow f;
+    int r = 0;
+
+    uint8_t welcome_reply[] = {
+        0x32, 0x32, 0x30, 0x20, 0x62, 0x61, 0x79, 0x30,
+        0x2d, 0x6d, 0x63, 0x36, 0x2d, 0x66, 0x31, 0x30,
+        0x2e, 0x62, 0x61, 0x79, 0x30, 0x2e, 0x68, 0x6f,
+        0x74, 0x6d, 0x61, 0x69, 0x6c, 0x2e, 0x63, 0x6f,
+        0x6d, 0x20, 0x53, 0x65, 0x6e, 0x64, 0x69, 0x6e,
+        0x67, 0x20, 0x75, 0x6e, 0x73, 0x6f, 0x6c, 0x69,
+        0x63, 0x69, 0x74, 0x65, 0x64, 0x20, 0x63, 0x6f,
+        0x6d, 0x6d, 0x65, 0x72, 0x63, 0x69, 0x61, 0x6c,
+        0x20, 0x6f, 0x72, 0x20, 0x62, 0x75, 0x6c, 0x6b,
+        0x20, 0x65, 0x2d, 0x6d, 0x61, 0x69, 0x6c, 0x20,
+        0x74, 0x6f, 0x20, 0x4d, 0x69, 0x63, 0x72, 0x6f,
+        0x73, 0x6f, 0x66, 0x74, 0x27, 0x73, 0x20, 0x63,
+        0x6f, 0x6d, 0x70, 0x75, 0x74, 0x65, 0x72, 0x20,
+        0x6e, 0x65, 0x74, 0x77, 0x6f, 0x72, 0x6b, 0x20,
+        0x69, 0x73, 0x20, 0x70, 0x72, 0x6f, 0x68, 0x69,
+        0x62, 0x69, 0x74, 0x65, 0x64, 0x2e, 0x20, 0x4f,
+        0x74, 0x68, 0x65, 0x72, 0x20, 0x72, 0x65, 0x73,
+        0x74, 0x72, 0x69, 0x63, 0x74, 0x69, 0x6f, 0x6e,
+        0x73, 0x20, 0x61, 0x72, 0x65, 0x20, 0x66, 0x6f,
+        0x75, 0x6e, 0x64, 0x20, 0x61, 0x74, 0x20, 0x68,
+        0x74, 0x74, 0x70, 0x3a, 0x2f, 0x2f, 0x70, 0x72,
+        0x69, 0x76, 0x61, 0x63, 0x79, 0x2e, 0x6d, 0x73,
+        0x6e, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x41, 0x6e,
+        0x74, 0x69, 0x2d, 0x73, 0x70, 0x61, 0x6d, 0x2f,
+        0x2e, 0x20, 0x56, 0x69, 0x6f, 0x6c, 0x61, 0x74,
+        0x69, 0x6f, 0x6e, 0x73, 0x20, 0x77, 0x69, 0x6c,
+        0x6c, 0x20, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74,
+        0x20, 0x69, 0x6e, 0x20, 0x75, 0x73, 0x65, 0x20,
+        0x6f, 0x66, 0x20, 0x65, 0x71, 0x75, 0x69, 0x70,
+        0x6d, 0x65, 0x6e, 0x74, 0x20, 0x6c, 0x6f, 0x63,
+        0x61, 0x74, 0x65, 0x64, 0x20, 0x69, 0x6e, 0x20,
+        0x43, 0x61, 0x6c, 0x69, 0x66, 0x6f, 0x72, 0x6e,
+        0x69, 0x61, 0x20, 0x61, 0x6e, 0x64, 0x20, 0x6f,
+        0x74, 0x68, 0x65, 0x72, 0x20, 0x73, 0x74, 0x61,
+        0x74, 0x65, 0x73, 0x2e, 0x20, 0x46, 0x72, 0x69,
+        0x2c, 0x20, 0x31, 0x36, 0x20, 0x46, 0x65, 0x62,
+        0x20, 0x32, 0x30, 0x30, 0x37, 0x20, 0x30, 0x35,
+        0x3a, 0x30, 0x33, 0x3a, 0x32, 0x33, 0x20, 0x2d,
+        0x30, 0x38, 0x30, 0x30, 0x20, 0x0d, 0x0a
+    };
+    uint32_t welcome_reply_len = sizeof(welcome_reply);
+
+    uint8_t request1[] = {
+        0x45, 0x48, 0x4c, 0x4f, 0x20, 0x45, 0x58, 0x43,
+        0x48, 0x41, 0x4e, 0x47, 0x45, 0x32, 0x2e, 0x63,
+        0x67, 0x63, 0x65, 0x6e, 0x74, 0x2e, 0x6d, 0x69,
+        0x61, 0x6d, 0x69, 0x2e, 0x65, 0x64, 0x75, 0x0d,
+        0x0a
+    };
+    uint32_t request1_len = sizeof(request1);
+
+    uint8_t reply1[] = {
+        0x32, 0x35, 0x30, 0x2d, 0x62, 0x61, 0x79, 0x30,
+        0x2d, 0x6d, 0x63, 0x36, 0x2d, 0x66, 0x31, 0x30,
+        0x2e, 0x62, 0x61, 0x79, 0x30, 0x2e, 0x68, 0x6f,
+        0x74, 0x6d, 0x61, 0x69, 0x6c, 0x2e, 0x63, 0x6f,
+        0x6d, 0x20, 0x28, 0x33, 0x2e, 0x33, 0x2e, 0x31,
+        0x2e, 0x34, 0x29, 0x20, 0x48, 0x65, 0x6c, 0x6c,
+        0x6f, 0x20, 0x5b, 0x31, 0x32, 0x39, 0x2e, 0x31,
+        0x37, 0x31, 0x2e, 0x33, 0x32, 0x2e, 0x35, 0x39,
+        0x5d, 0x0d, 0x0a, 0x32, 0x35, 0x30, 0x2d, 0x53,
+        0x49, 0x5a, 0x45, 0x20, 0x32, 0x39, 0x36, 0x39,
+        0x36, 0x30, 0x30, 0x30, 0x0d, 0x0a, 0x32, 0x35,
+        0x30, 0x2d, 0x50, 0x49, 0x50, 0x45, 0x4c, 0x49,
+        0x4e, 0x49, 0x4e, 0x47, 0x0d, 0x0a, 0x32, 0x35,
+        0x30, 0x2d, 0x38, 0x62, 0x69, 0x74, 0x6d, 0x69,
+        0x6d, 0x65, 0x0d, 0x0a, 0x32, 0x35, 0x30, 0x2d,
+        0x42, 0x49, 0x4e, 0x41, 0x52, 0x59, 0x4d, 0x49,
+        0x4d, 0x45, 0x0d, 0x0a, 0x32, 0x35, 0x30, 0x2d,
+        0x43, 0x48, 0x55, 0x4e, 0x4b, 0x49, 0x4e, 0x47,
+        0x0d, 0x0a, 0x32, 0x35, 0x30, 0x2d, 0x41, 0x55,
+        0x54, 0x48, 0x20, 0x4c, 0x4f, 0x47, 0x49, 0x4e,
+        0x0d, 0x0a, 0x32, 0x35, 0x30, 0x2d, 0x41, 0x55,
+        0x54, 0x48, 0x3d, 0x4c, 0x4f, 0x47, 0x49, 0x4e,
+        0x0d, 0x0a, 0x32, 0x35, 0x30, 0x20, 0x4f, 0x4b,
+        0x0d, 0x0a
+    };
+    uint32_t reply1_len = sizeof(reply1);
+
+    /* MAIL FROM:asdff@asdf.com<CR><LF> */
+    uint8_t request2[] = {
+        0x4d, 0x41, 0x49, 0x4c, 0x20, 0x46, 0x52, 0x4f,
+        0x4d, 0x3a, 0x61, 0x73, 0x64, 0x66, 0x66, 0x40,
+        0x61, 0x73, 0x64, 0x66, 0x2e, 0x63, 0x6f, 0x6d,
+        0x0d, 0x0a
+    };
+    uint32_t request2_len = sizeof(request2);
+    /* 250 2.1.0 Ok<CR><LF> */
+    uint8_t reply2[] = {
+        0x32, 0x35, 0x30, 0x20, 0x32, 0x2e, 0x31, 0x2e,
+        0x30, 0x20, 0x4f, 0x6b, 0x0d, 0x0a
+    };
+    uint32_t reply2_len = sizeof(reply2);
+
+    /* RCPT TO:bimbs@gmail.com<CR><LF> */
+    uint8_t request3[] = {
+        0x52, 0x43, 0x50, 0x54, 0x20, 0x54, 0x4f, 0x3a,
+        0x62, 0x69, 0x6d, 0x62, 0x73, 0x40, 0x67, 0x6d,
+        0x61, 0x69, 0x6c, 0x2e, 0x63, 0x6f, 0x6d, 0x0d,
+        0x0a
+    };
+    uint32_t request3_len = sizeof(request3);
+    /* 250 2.1.5 Ok<CR><LF> */
+    uint8_t reply3[] = {
+        0x32, 0x35, 0x30, 0x20, 0x32, 0x2e, 0x31, 0x2e,
+        0x35, 0x20, 0x4f, 0x6b, 0x0d, 0x0a
+    };
+    uint32_t reply3_len = sizeof(reply3);
+
+    /* BDAT 51<CR><LF> */
+    uint8_t request4[] = {
+        0x42, 0x44, 0x41, 0x54, 0x20, 0x35, 0x31, 0x0d,
+        0x0a,
+    };
+    uint32_t request4_len = sizeof(request4);
+
+    uint8_t request5[] = {
+        0x46, 0x52, 0x4f, 0x4d, 0x3a, 0x61, 0x73, 0x64,
+        0x66, 0x66, 0x40, 0x61, 0x73, 0x64, 0x66, 0x2e,
+        0x66, 0x66, 0x40, 0x61, 0x73, 0x64, 0x66, 0x2e,
+        0x66, 0x66, 0x40, 0x61, 0x73, 0x64, 0x0d, 0x0a,
+    };
+    uint32_t request5_len = sizeof(request5);
+
+    uint8_t request6[] = {
+        0x46, 0x52, 0x4f, 0x4d, 0x3a, 0x61, 0x73, 0x64,
+        0x66, 0x66, 0x40, 0x61, 0x73, 0x64, 0x66, 0x2e,
+        0x66, 0x0d, 0x0a,
+    };
+    uint32_t request6_len = sizeof(request5);
+
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
+                      request1, request1_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    SMTPState *smtp_state = f.aldata[AlpGetStateIdx(ALPROTO_SMTP)];
+    if (smtp_state == NULL) {
+        printf("no smtp state: ");
+        goto end;
+    }
+    if (smtp_state->input_len != 0 ||
+        smtp_state->cmds_cnt != 1 ||
+        smtp_state->cmds_idx != 0 ||
+        smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
+        smtp_state->parser_state != 0) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOCLIENT,
+                      welcome_reply, welcome_reply_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    if (smtp_state->input_len != 0 ||
+        smtp_state->cmds_cnt != 1 ||
+        smtp_state->cmds_idx != 0 ||
+        smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
+        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOCLIENT,
+                      reply1, reply1_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    if (smtp_state->input_len != 0 ||
+        smtp_state->cmds_cnt != 0 ||
+        smtp_state->cmds_idx != 0 ||
+        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
+                      request2, request2_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    if (smtp_state->input_len != 0 ||
+        smtp_state->cmds_cnt != 1 ||
+        smtp_state->cmds_idx != 0 ||
+        smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
+        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOCLIENT,
+                      reply2, reply2_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    if (smtp_state->input_len != 0 ||
+        smtp_state->cmds_cnt != 0 ||
+        smtp_state->cmds_idx != 0 ||
+        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
+                      request3, request3_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    if (smtp_state->input_len != 0 ||
+        smtp_state->cmds_cnt != 1 ||
+        smtp_state->cmds_idx != 0 ||
+        smtp_state->cmds[0] != SMTP_COMMAND_OTHER_CMD ||
+        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOCLIENT,
+                      reply3, reply3_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    if (smtp_state->input_len != 0 ||
+        smtp_state->cmds_cnt != 0 ||
+        smtp_state->cmds_idx != 0 ||
+        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
+                      request4, request4_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    if (smtp_state->input_len != 0 ||
+        smtp_state->cmds_cnt != 1 ||
+        smtp_state->cmds_idx != 0 ||
+        smtp_state->cmds[0] != SMTP_COMMAND_BDAT ||
+        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
+                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE) ||
+        smtp_state->bdat_chunk_len != 51 ||
+        smtp_state->bdat_chunk_idx != 0) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
+                      request5, request5_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    if (smtp_state->input_len != 0 ||
+        smtp_state->cmds_cnt != 1 ||
+        smtp_state->cmds_idx != 0 ||
+        smtp_state->parser_state != (SMTP_PARSER_STATE_FIRST_REPLY_SEEN |
+                                     SMTP_PARSER_STATE_COMMAND_DATA_MODE) ||
+        smtp_state->bdat_chunk_len != 51 ||
+        smtp_state->bdat_chunk_idx != 32) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
+                      request6, request6_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    if (smtp_state->input_len != 0 ||
+        smtp_state->cmds_cnt != 1 ||
+        smtp_state->cmds_idx != 0 ||
+        smtp_state->parser_state != SMTP_PARSER_STATE_FIRST_REPLY_SEEN ||
+        smtp_state->bdat_chunk_len != 51 ||
+        smtp_state->bdat_chunk_idx != 51) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    result = 1;
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
 void SMTPParserRegisterTests(void)
 {
     UtRegisterTest("SMTPParserTest01", SMTPParserTest01, 1);
@@ -1959,5 +2344,6 @@ void SMTPParserRegisterTests(void)
     UtRegisterTest("SMTPParserTest03", SMTPParserTest03, 1);
     UtRegisterTest("SMTPParserTest04", SMTPParserTest04, 1);
     UtRegisterTest("SMTPParserTest05", SMTPParserTest05, 1);
+    UtRegisterTest("SMTPParserTest06", SMTPParserTest06, 1);
     return;
 }

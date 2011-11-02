@@ -35,6 +35,7 @@ typedef struct SMTPState_ {
     uint8_t *current_line;
     /** length of the line in current_line.  Doesn't include the delimiter */
     int32_t current_line_len;
+    uint8_t current_line_delimiter_len;
 
     /** used to indicate if the current_line buffer is a malloced buffer.  We
      * use a malloced buffer, if a line is fragmented */
@@ -56,6 +57,10 @@ typedef struct SMTPState_ {
     uint8_t parser_state;
     /** current command in progress */
     uint8_t current_command;
+    /** bdat chunk len */
+    uint32_t bdat_chunk_len;
+    /** bdat chunk idx */
+    uint32_t bdat_chunk_idx;
 
     /* the request commands are store here and the reply handler uses these
      * stored command in the buffer to match the reply(ies) with the command */
