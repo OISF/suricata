@@ -101,6 +101,7 @@ DetectThresholdData *SigGetThresholdTypeIter(Signature *sig, Packet *p, SigMatch
 
         sm = sm->prev;
     }
+    *psm = NULL;
 
     return NULL;
 }
@@ -115,7 +116,8 @@ DetectThresholdData *SigGetThresholdTypeIter(Signature *sig, Packet *p, SigMatch
  */
 DetectThresholdData *SigGetThresholdType(Signature *sig, Packet *p)
 {
-    return SigGetThresholdTypeIter(sig, p, NULL);
+    SigMatch *psm = NULL;
+    return SigGetThresholdTypeIter(sig, p, &psm);
 }
 
 /**
