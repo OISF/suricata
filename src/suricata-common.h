@@ -162,8 +162,9 @@
 
 typedef enum PacketProfileDetectId_ {
     PROF_DETECT_MPM,
-    PROF_DETECT_MPM_PACKET,
-    PROF_DETECT_MPM_STREAM,
+    PROF_DETECT_MPM_PACKET,         /* PKT MPM */
+    PROF_DETECT_MPM_PKT_STREAM,     /* PKT inspected with stream MPM */
+    PROF_DETECT_MPM_STREAM,         /* STREAM MPM */
     PROF_DETECT_MPM_URI,
     PROF_DETECT_MPM_HCBD,
     PROF_DETECT_MPM_HHD,

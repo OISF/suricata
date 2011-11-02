@@ -1352,6 +1352,28 @@ static int SigValidate(Signature *s) {
     }
 
     if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
+        if (s->alproto != ALPROTO_UNKNOWN) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature combines packet "
+                    "specific matches (like dsize, flags, ttl) with stream / "
+                    "state matching by matching on app layer proto (like http).");
+            SCReturnInt(0);
+        }
+
+        if (s->sm_lists_tail[DETECT_SM_LIST_UMATCH] ||
+                s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH] ||
+                s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH] ||
+                s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]  ||
+                s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH] ||
+                s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]  ||
+                s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH])
+        {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature combines packet "
+                    "specific matches (like dsize, flags, ttl) with stream / "
+                    "state matching by matching on app layer proto (like using "
+                    "http_* keywords).");
+            SCReturnInt(0);
+        }
+
         SigMatch *pm =  SigMatchGetLastSMFromLists(s, 14,
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
@@ -1362,9 +1384,9 @@ static int SigValidate(Signature *s) {
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]);
         if (pm != NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature has"
-                " replace keyword linked with a modified content"
-                " keyword (http_*, dce_*). It only supports content on"
-                " raw payload");
+                    " replace keyword linked with a modified content"
+                    " keyword (http_*, dce_*). It only supports content on"
+                    " raw payload");
             SCReturnInt(0);
         }
     }

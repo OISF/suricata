@@ -1191,7 +1191,9 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
 
         if (!(p->flags & PKT_STREAM_ADD) && det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_STREAM) {
             *sms_runflags |= SMS_USED_PM;
+            PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_PKT_STREAM);
             PacketPatternSearchWithStreamCtx(det_ctx, p);
+            PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_PKT_STREAM);
         }
     }
 
