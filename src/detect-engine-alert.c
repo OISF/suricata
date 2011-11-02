@@ -66,23 +66,20 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
     SCEnter();
     int ret = 0;
     DetectThresholdData *td = NULL;
+    SigMatch *sm = NULL;
 
-    /* retrieve the sig match data */
-    if (PKT_IS_IPV4(p) || PKT_IS_IPV6(p)) {
-        td = SigGetThresholdType(s,p);
+    if (!(PKT_IS_IPV4(p) || PKT_IS_IPV6(p))) {
+        SCReturnInt(1);
     }
 
-    SCLogDebug("td %p", td);
-
-    /* if have none just alert, otherwise handle thresholding */
-    if (td == NULL) {
-        /* Already inserted so get out */
-        ret = 1;
-    } else {
+    while ((td = SigGetThresholdTypeIter(s, p, &sm))) {
+        SCLogDebug("td %p", td);
         ret = PacketAlertThreshold(de_ctx, det_ctx, td, p, s);
         if (ret == 0) {
             /* It doesn't match threshold, remove it */
             PacketAlertRemove(p, pos);
+            /* no need to iterate */
+            break;
         }
     }
 
