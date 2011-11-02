@@ -657,7 +657,7 @@ esac
         fi
 
         LIBPFRING=""
-        AC_CHECK_LIB(pfring, pfring_set_cluster,, LIBPFRING="no")
+        AC_CHECK_LIB(pfring, pfring_open,, LIBPFRING="no")
         if test "$LIBPFRING" = "no"; then
             if test "x$enable_pfring" = "xyes"; then
             echo
@@ -674,40 +674,18 @@ esac
             AC_DEFINE([HAVE_PFRING_ENABLE],[1],[PF_RING pfring_enable_ring is available])
         fi
 
-        AC_MSG_CHECKING([if pfring_set_cluster is available])
-        AC_TRY_COMPILE([
-                    #include <pfring.h>
-                ],
-                [
-                    pfring *pd;
-                    pd = pfring_open("eth1", 1,  1515, 1);
-                    pfring_set_cluster(pd, 99, cluster_round_robin);
-                ],
-                [ pfring_cluster_type_available=yes ], [:])
-
-        if test "$pfring_cluster_type_available" = "yes"; then
+        LIBPFRING_CLUSTER_TYPE=""
+        AC_CHECK_LIB(pfring, pfring_set_cluster,
+                        , LIBPFRING_CLUSTER_TYPE="no")
+        if test "$LIBPFRING_CLUSTER_TYPE" != "no"; then
             AC_DEFINE([HAVE_PFRING_CLUSTER_TYPE],[1],[PF_RING pfring_set_cluster is available])
-            AC_MSG_RESULT(yes)
-        else
-            AC_MSG_RESULT(no)
         fi
 
-        AC_MSG_CHECKING([if pfring_set_bpf_filter is available])
-        AC_TRY_COMPILE([
-                    #include <pfring.h>
-                ],
-                [
-                    pfring *pd;
-                    pd = pfring_open("eth1", 1,  1515, 1);
-                    pfring_set_bpf_filter(pd, "tcp");
-                ],
-                [ pfring_set_bpf_filter_available=yes ], [:])
-
-        if test "$pfring_set_bpf_filter_available" = "yes"; then
+        LIBPFRING_BPF_FILTER=""
+        AC_CHECK_LIB(pfring, pfring_set_bpf_filter,
+                        , LIBPFRING_BPF_FILTER="no")
+        if test "$LIBPFRING_BPF_FILTER" != "no"; then
             AC_DEFINE([HAVE_PFRING_SET_BPF_FILTER],[1],[PF_RING pfring_set_bpf_filter is available])
-            AC_MSG_RESULT(yes)
-        else
-            AC_MSG_RESULT(no)
         fi
 
         STORE_CFLAGS="${CFLAGS}"

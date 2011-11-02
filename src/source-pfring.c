@@ -340,7 +340,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
 #ifdef HAVE_PFRING_SET_BPF_FILTER
     if (pfconf->bpf_filter) {
         ptv->bpf_filter = SCStrdup(pfconf->bpf_filter);
-        rc= pfring_set_bpf_filter(ptv->pd, ptv->bpf_filter);
+        rc = pfring_set_bpf_filter(ptv->pd, ptv->bpf_filter);
         if (rc < 0) {
             SCLogInfo("Set PF_RING bpf filter \"%s\" failed.", ptv->bpf_filter);
         }
