@@ -486,7 +486,7 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
            break;
         case THRESHOLD_TYPE_SUPPRESS:
             /* need to get IP if extension is provided */
-            if (strlen(rule_extend)) {
+            if (th_track != NULL) {
                 if (strcasecmp(th_track,"by_dst") == 0)
                     parsed_track = TRACK_DST;
                 else if (strcasecmp(th_track,"by_src") == 0)
