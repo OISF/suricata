@@ -628,7 +628,7 @@ end:
 static int DetectIPProtoTestSetup02(void)
 {
     int result = 0;
-    Signature *sig;
+    Signature *sig = NULL;
     char *value_str = "tcp";
     struct protoent *pent = getprotobyname(value_str);
     if (pent == NULL) {
@@ -656,7 +656,8 @@ static int DetectIPProtoTestSetup02(void)
     result = 1;
 
  end:
-    SigFree(sig);
+    if (sig != NULL)
+        SigFree(sig);
     return result;
 }
 
