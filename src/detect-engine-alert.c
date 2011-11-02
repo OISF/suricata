@@ -59,12 +59,14 @@ PacketAlert *PacketAlertGetTag(void) {
  * \param sig Signature pointer
  * \param p Packet structure
  *
+ * \retval 1 alert is not suppressed
+ * \retval 0 alert is suppressed
  */
 static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                        Signature *s, Packet *p, uint16_t pos)
 {
     SCEnter();
-    int ret = 0;
+    int ret = 1;
     DetectThresholdData *td = NULL;
     SigMatch *sm = NULL;
 
