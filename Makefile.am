@@ -6,7 +6,8 @@ EXTRA_DIST = ChangeLog COPYING LICENSE suricata.yaml \
              doc/AUTHORS doc/GITGUIDE doc/INSTALL doc/NEWS \
              doc/README doc/TODO doc/INSTALL.PF_RING \
              doc/INSTALL.WINDOWS classification.config \
-             reference.config rules/decoder-events.rules
+             reference.config rules/decoder-events.rules \
+             rules/stream-events.rules
 if BUILD_LIBHTP
  HTP_DIR = libhtp
 endif
