@@ -148,9 +148,12 @@ void StreamTcpReassembleDecrMemuse(uint64_t size) {
 }
 
 void StreamTcpReassembleMemuseCounter(ThreadVars *tv, TcpReassemblyThreadCtx *rtv) {
-    SCSpinLock(&stream_reassembly_memuse_spinlock);
-    SCPerfCounterSetUI64(rtv->counter_tcp_reass_memuse, tv->sc_perf_pca, stream_reassembly_memuse);
-    SCSpinUnlock(&stream_reassembly_memuse_spinlock);
+    if (tv != NULL && rtv != NULL) {
+        SCSpinLock(&stream_reassembly_memuse_spinlock);
+        SCPerfCounterSetUI64(rtv->counter_tcp_reass_memuse, tv->sc_perf_pca,
+                stream_reassembly_memuse);
+        SCSpinUnlock(&stream_reassembly_memuse_spinlock);
+    }
 }
 
 /**
