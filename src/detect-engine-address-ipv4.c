@@ -1256,6 +1256,7 @@ static int DetectAddressIPv4IsCompleteIPSpace04(void)
 static int DetectAddressIPv4CutNot05(void)
 {
     DetectAddress *a = NULL;
+    DetectAddress *b = NULL;
     struct in_addr in;
     int result = 1;
 
@@ -1271,16 +1272,21 @@ static int DetectAddressIPv4CutNot05(void)
     result &= (DetectAddressCutNotIPv4(a, &b) == -1);
 
     DetectAddressFree(a);
+    if (b != NULL)
+        DetectAddressFree(b);
     return result;
 
  error:
     DetectAddressFree(a);
+    if (b != NULL)
+        DetectAddressFree(b);
     return 0;
 }
 
 static int DetectAddressIPv4CutNot06(void)
 {
     DetectAddress *a = NULL;
+    DetectAddress *b = NULL;
     struct in_addr in;
     int result = 1;
 
@@ -1303,16 +1309,21 @@ static int DetectAddressIPv4CutNot06(void)
     result &= (a->ip2.addr_data32[0] = in.s_addr);
 
     DetectAddressFree(a);
+    if (b != NULL)
+        DetectAddressFree(b);
     return result;
 
  error:
     DetectAddressFree(a);
+    if (b != NULL)
+        DetectAddressFree(b);
     return 0;
 }
 
 static int DetectAddressIPv4CutNot07(void)
 {
     DetectAddress *a = NULL;
+    DetectAddress *b = NULL;
     struct in_addr in;
     int result = 1;
 
@@ -1335,10 +1346,14 @@ static int DetectAddressIPv4CutNot07(void)
     result &= (a->ip2.addr_data32[0] = in.s_addr);
 
     DetectAddressFree(a);
+    if (b != NULL)
+        DetectAddressFree(b);
     return result;
 
  error:
     DetectAddressFree(a);
+    if (b != NULL)
+        DetectAddressFree(b);
     return 0;
 }
 
