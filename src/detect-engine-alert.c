@@ -74,16 +74,18 @@ static int PacketAlertHandle(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det
         SCReturnInt(1);
     }
 
-    while ((td = SigGetThresholdTypeIter(s, p, &sm))) {
-        SCLogDebug("td %p", td);
-        ret = PacketAlertThreshold(de_ctx, det_ctx, td, p, s);
-        if (ret == 0) {
-            /* It doesn't match threshold, remove it */
-            PacketAlertRemove(p, pos);
-            /* no need to iterate */
-            break;
+    do {
+        td = SigGetThresholdTypeIter(s, p, &sm);
+        if (td != NULL) {
+            SCLogDebug("td %p", td);
+            ret = PacketAlertThreshold(de_ctx, det_ctx, td, p, s);
+            if (ret == 0) {
+                /* It doesn't match threshold, remove it */
+                PacketAlertRemove(p, pos);
+                break;
+            }
         }
-    }
+    } while (sm != NULL);
 
     SCReturnInt(ret);
 }
