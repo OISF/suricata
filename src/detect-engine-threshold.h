@@ -30,6 +30,7 @@
 #define THRESHOLD_HASH_SIZE 0xffff
 
 DetectThresholdData *SigGetThresholdType(Signature *, Packet *);
+DetectThresholdData *SigGetThresholdTypeIter(Signature *sig, Packet *p, SigMatch **psm);
 int PacketAlertThreshold(DetectEngineCtx *, DetectEngineThreadCtx *,
                           DetectThresholdData *, Packet *, Signature *);
 void ThresholdFreeFunc(void *data);

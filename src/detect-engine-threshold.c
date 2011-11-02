@@ -64,6 +64,48 @@
 #include "tm-threads.h"
 
 /**
+ * \brief Return next DetectThresholdData for signature
+ *
+ * \param sig Signature pointer
+ * \param p Packet structure
+ * \param sm Pointer to a Signature Match pointer
+ *
+ * \retval tsh Return the threshold data from signature or NULL if not found
+ *
+ *
+ */
+DetectThresholdData *SigGetThresholdTypeIter(Signature *sig, Packet *p, SigMatch **psm)
+{
+    SigMatch *sm = NULL;
+    DetectThresholdData *tsh = NULL;
+
+    if (sig == NULL)
+        return NULL;
+
+    if (*psm == NULL) {
+        sm = sig->sm_lists_tail[DETECT_SM_LIST_MATCH];
+    } else {
+        /* Iteration in progress, using provided value */
+        sm = *psm;
+    }
+
+    if (p == NULL)
+        return NULL;
+
+    while (sm != NULL) {
+        if (sm->type == DETECT_THRESHOLD || sm->type == DETECT_DETECTION_FILTER) {
+            tsh = (DetectThresholdData *)sm->ctx;
+            *psm = sm->prev;
+            return tsh;
+        }
+
+        sm = sm->prev;
+    }
+
+    return NULL;
+}
+
+/**
  * \brief Check if a certain signature has threshold option
  *
  * \param sig Signature pointer
@@ -73,22 +115,7 @@
  */
 DetectThresholdData *SigGetThresholdType(Signature *sig, Packet *p)
 {
-    SigMatch *sm = sig->sm_lists_tail[DETECT_SM_LIST_MATCH];
-    DetectThresholdData *tsh = NULL;
-
-    if (p == NULL)
-        return NULL;
-
-    while (sm != NULL) {
-        if (sm->type == DETECT_THRESHOLD || sm->type == DETECT_DETECTION_FILTER) {
-            tsh = (DetectThresholdData *)sm->ctx;
-            return tsh;
-        }
-
-        sm = sm->prev;
-    }
-
-    return NULL;
+    return SigGetThresholdTypeIter(sig, p, NULL);
 }
 
 /**
