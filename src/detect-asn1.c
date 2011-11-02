@@ -165,7 +165,7 @@ int DetectAsn1Match(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
 
     /* Ok, now we have all the data. Let's check the nodes */
 
-    if (ac->cur_frame > 0 || ac->asn1_stack[0]->id.ptr != NULL) {
+    if (ac->cur_frame > 0 || (ac->asn1_stack[0] != NULL && ac->asn1_stack[0]->id.ptr != NULL)) {
         /* We spect at least one node */
         uint16_t n_iter = 0;
         ret = 0;
