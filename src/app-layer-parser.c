@@ -1774,6 +1774,7 @@ void AppLayerRegisterProbingParser(AlpProtoDetectCtx *ctx,
 {
     AppLayerProbingParser **probing_parsers = &ctx->probing_parsers;
     AppLayerProbingParserElement *pe = NULL;
+    AppLayerProbingParserElement *new_pe = NULL;
     AppLayerProbingParser *pp = NULL;
 
     /* Add info about this probing parser to our database.  Also detects any
@@ -1786,8 +1787,7 @@ void AppLayerRegisterProbingParser(AlpProtoDetectCtx *ctx,
     /* \todo introduce parsing port range here */
 
     /* Get a new parser element */
-    AppLayerProbingParserElement *new_pe =
-        AppLayerCreateAppLayerProbingParserElement(al_proto_name, ip_proto,
+    new_pe = AppLayerCreateAppLayerProbingParserElement(al_proto_name, ip_proto,
                                                    al_proto, min_depth,
                                                    max_depth, port,
                                                    priority, top,

@@ -268,27 +268,29 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                     }
                     temp_sm = temp_sm->next;
                 }
-                DetectIPProtoData *data_temp = temp_sm->ctx;
-                if (data_temp->proto <= data->proto) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "We can't use a have "
-                               "both gt and lt ipprotos, with the lt being "
-                               "lower than gt value");
-                    goto error;
-                    /* Updated by AS.  Please do not remove this unused code.  Need it
-                     * as we redo this code once we solve ipproto multiple uses */
+                if (temp_sm != NULL) {
+                    DetectIPProtoData *data_temp = temp_sm->ctx;
+                    if (data_temp->proto <= data->proto) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "We can't use a have "
+                                "both gt and lt ipprotos, with the lt being "
+                                "lower than gt value");
+                        goto error;
+                        /* Updated by AS.  Please do not remove this unused code.  Need it
+                         * as we redo this code once we solve ipproto multiple uses */
 #if 0
-                    s->proto.proto[data->proto / 8] |= 0xfe << (data->proto % 8);
-                    for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
-                        s->proto.proto[i] = 0xff;
-                    }
+                        s->proto.proto[data->proto / 8] |= 0xfe << (data->proto % 8);
+                        for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
+                            s->proto.proto[i] = 0xff;
+                        }
 #endif
-                } else {
-                    for (i = 0; i < (data->proto / 8); i++) {
-                        s->proto.proto[i] = 0;
-                    }
-                    s->proto.proto[data->proto / 8] &= 0xfe << (data->proto % 8);
-                    for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
-                        s->proto.proto[i] &= 0xff;
+                    } else {
+                        for (i = 0; i < (data->proto / 8); i++) {
+                            s->proto.proto[i] = 0;
+                        }
+                        s->proto.proto[data->proto / 8] &= 0xfe << (data->proto % 8);
+                        for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
+                            s->proto.proto[i] &= 0xff;
+                        }
                     }
                 }
             } else if (!lt_set && not_set) {
@@ -309,48 +311,50 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                     }
                     temp_sm = temp_sm->next;
                 }
-                data_temp = temp_sm->ctx;
-                if (data_temp->proto <= data->proto) {
-                    /* Updated by AS.  Please do not remove this unused code.
-                     * Need it as we redo this code once we solve ipproto
-                     * multiple uses */
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "We can't use a have "
-                               "both gt and lt ipprotos, with the lt being "
-                               "lower than gt value");
-                    goto error;
+                if (temp_sm != NULL) {
+                    data_temp = temp_sm->ctx;
+                    if (data_temp->proto <= data->proto) {
+                        /* Updated by AS.  Please do not remove this unused code.
+                         * Need it as we redo this code once we solve ipproto
+                         * multiple uses */
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "We can't use a have "
+                                "both gt and lt ipprotos, with the lt being "
+                                "lower than gt value");
+                        goto error;
 #if 0
-                    s->proto.proto[data->proto / 8] |= 0xfe << (data->proto % 8);
-                    for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
-                        s->proto.proto[i] = 0xff;
-                    }
-                    temp_sm = s->sm_lists[DETECT_SM_LIST_MATCH];
-                    uint8_t *not_protos = NULL;
-                    int not_protos_len = 0;
-                    while (temp_sm != NULL) {
-                        if (temp_sm->type == DETECT_IPPROTO &&
-                            ((DetectIPProtoData *)temp_sm->ctx)->op == DETECT_IPPROTO_OP_NOT) {
-                            DetectIPProtoData *data_temp = temp_sm->ctx;
-                            not_protos = SCRealloc(not_protos,
-                                                   (not_protos_len + 1) * sizeof(uint8_t));
-                            if (not_protos == NULL)
-                                goto error;
-                            not_protos[not_protos_len] = data_temp->proto;
-                            not_protos_len++;
+                        s->proto.proto[data->proto / 8] |= 0xfe << (data->proto % 8);
+                        for (i = (data->proto / 8) + 1; i < (256 / 8); i++) {
+                            s->proto.proto[i] = 0xff;
                         }
-                        temp_sm = temp_sm->next;
-                    }
-                    qsort(not_protos, not_protos_len, sizeof(uint8_t),
-                          DetectIPProtoQSortCompare);
-                    int j = 0;
-                    while (j < not_protos_len) {
-                        if (not_protos[j] < data->proto) {
-                            ;
-                        } else {
-                            s->proto.proto[not_protos[j] / 8] &= ~(1 << (not_protos[j] % 8));
+                        temp_sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+                        uint8_t *not_protos = NULL;
+                        int not_protos_len = 0;
+                        while (temp_sm != NULL) {
+                            if (temp_sm->type == DETECT_IPPROTO &&
+                                    ((DetectIPProtoData *)temp_sm->ctx)->op == DETECT_IPPROTO_OP_NOT) {
+                                DetectIPProtoData *data_temp = temp_sm->ctx;
+                                not_protos = SCRealloc(not_protos,
+                                        (not_protos_len + 1) * sizeof(uint8_t));
+                                if (not_protos == NULL)
+                                    goto error;
+                                not_protos[not_protos_len] = data_temp->proto;
+                                not_protos_len++;
+                            }
+                            temp_sm = temp_sm->next;
                         }
-                        j++;
-                    }
+                        qsort(not_protos, not_protos_len, sizeof(uint8_t),
+                                DetectIPProtoQSortCompare);
+                        int j = 0;
+                        while (j < not_protos_len) {
+                            if (not_protos[j] < data->proto) {
+                                ;
+                            } else {
+                                s->proto.proto[not_protos[j] / 8] &= ~(1 << (not_protos[j] % 8));
+                            }
+                            j++;
+                        }
 #endif
+                    }
                 } else {
                     for (i = 0; i < (data->proto / 8); i++) {
                         s->proto.proto[i] = 0;
@@ -383,28 +387,30 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                     }
                     temp_sm = temp_sm->next;
                 }
-                DetectIPProtoData *data_temp = temp_sm->ctx;
-                if (data_temp->proto >= data->proto) {
-                    /* Updated by AS.  Please do not remove this unused code.
-                     * Need it as we redo this code once we solve ipproto
-                     * multiple uses */
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "We can't use a have "
-                               "both gt and lt ipprotos, with the lt being "
-                               "lower than gt value");
-                    goto error;
+                if (temp_sm != NULL) {
+                    DetectIPProtoData *data_temp = temp_sm->ctx;
+                    if (data_temp->proto >= data->proto) {
+                        /* Updated by AS.  Please do not remove this unused code.
+                         * Need it as we redo this code once we solve ipproto
+                         * multiple uses */
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "We can't use a have "
+                                "both gt and lt ipprotos, with the lt being "
+                                "lower than gt value");
+                        goto error;
 #if 0
-                    for (i = 0; i < (data->proto / 8); i++) {
-                        s->proto.proto[i] = 0xff;
-                    }
-                    s->proto.proto[data->proto / 8] |= ~(0xff << (data->proto % 8));;
+                        for (i = 0; i < (data->proto / 8); i++) {
+                            s->proto.proto[i] = 0xff;
+                        }
+                        s->proto.proto[data->proto / 8] |= ~(0xff << (data->proto % 8));;
 #endif
-                } else {
-                    for (i = 0; i < (data->proto / 8); i++) {
-                        s->proto.proto[i] &= 0xff;
-                    }
-                    s->proto.proto[data->proto / 8] &= ~(0xff << (data->proto % 8));
-                    for (i = (data->proto / 8) + 1; i < 256 / 8; i++) {
-                        s->proto.proto[i] = 0;
+                    } else {
+                        for (i = 0; i < (data->proto / 8); i++) {
+                            s->proto.proto[i] &= 0xff;
+                        }
+                        s->proto.proto[data->proto / 8] &= ~(0xff << (data->proto % 8));
+                        for (i = (data->proto / 8) + 1; i < 256 / 8; i++) {
+                            s->proto.proto[i] = 0;
+                        }
                     }
                 }
             } else if (!gt_set && not_set) {
@@ -425,48 +431,50 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                     }
                     temp_sm = temp_sm->next;
                 }
-                data_temp = temp_sm->ctx;
-                if (data_temp->proto >= data->proto) {
-                    /* Updated by AS.  Please do not remove this unused code.
-                     * Need it as we redo this code once we solve ipproto
-                     * multiple uses */
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "We can't use a have "
-                               "both gt and lt ipprotos, with the lt being "
-                               "lower than gt value");
-                    goto error;
+                if (temp_sm != NULL) {
+                    data_temp = temp_sm->ctx;
+                    if (data_temp->proto >= data->proto) {
+                        /* Updated by AS.  Please do not remove this unused code.
+                         * Need it as we redo this code once we solve ipproto
+                         * multiple uses */
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "We can't use a have "
+                                "both gt and lt ipprotos, with the lt being "
+                                "lower than gt value");
+                        goto error;
 #if 0
-                    for (i = 0; i < (data->proto / 8); i++) {
-                        s->proto.proto[i] = 0xff;
-                    }
-                    s->proto.proto[data->proto / 8] |= ~(0xff << (data->proto % 8));
-                    temp_sm = s->sm_lists[DETECT_SM_LIST_MATCH];
-                    uint8_t *not_protos = NULL;
-                    int not_protos_len = 0;
-                    while (temp_sm != NULL) {
-                        if (temp_sm->type == DETECT_IPPROTO &&
-                            ((DetectIPProtoData *)temp_sm->ctx)->op == DETECT_IPPROTO_OP_NOT) {
-                            DetectIPProtoData *data_temp = temp_sm->ctx;
-                            not_protos = SCRealloc(not_protos,
-                                                   (not_protos_len + 1) * sizeof(uint8_t));
-                            if (not_protos == NULL)
-                                goto error;
-                            not_protos[not_protos_len] = data_temp->proto;
-                            not_protos_len++;
+                        for (i = 0; i < (data->proto / 8); i++) {
+                            s->proto.proto[i] = 0xff;
                         }
-                        temp_sm = temp_sm->next;
-                    }
-                    qsort(not_protos, not_protos_len, sizeof(uint8_t),
-                          DetectIPProtoQSortCompare);
-                    int j = 0;
-                    while (j < not_protos_len) {
-                        if (not_protos[j] < data->proto) {
-                            s->proto.proto[not_protos[j] / 8] &= ~(1 << (not_protos[j] % 8));
-                        } else {
-                            ;
+                        s->proto.proto[data->proto / 8] |= ~(0xff << (data->proto % 8));
+                        temp_sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+                        uint8_t *not_protos = NULL;
+                        int not_protos_len = 0;
+                        while (temp_sm != NULL) {
+                            if (temp_sm->type == DETECT_IPPROTO &&
+                                    ((DetectIPProtoData *)temp_sm->ctx)->op == DETECT_IPPROTO_OP_NOT) {
+                                DetectIPProtoData *data_temp = temp_sm->ctx;
+                                not_protos = SCRealloc(not_protos,
+                                        (not_protos_len + 1) * sizeof(uint8_t));
+                                if (not_protos == NULL)
+                                    goto error;
+                                not_protos[not_protos_len] = data_temp->proto;
+                                not_protos_len++;
+                            }
+                            temp_sm = temp_sm->next;
                         }
-                        j++;
-                    }
+                        qsort(not_protos, not_protos_len, sizeof(uint8_t),
+                                DetectIPProtoQSortCompare);
+                        int j = 0;
+                        while (j < not_protos_len) {
+                            if (not_protos[j] < data->proto) {
+                                s->proto.proto[not_protos[j] / 8] &= ~(1 << (not_protos[j] % 8));
+                            } else {
+                                ;
+                            }
+                            j++;
+                        }
 #endif
+                    }
                 } else {
                     for (i = 0; i < (data->proto / 8); i++) {
                         s->proto.proto[i] &= 0xFF;

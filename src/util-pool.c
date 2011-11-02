@@ -215,7 +215,8 @@ void PoolPrintSaturation(Pool *p) {
  */
 
 void *PoolTestAlloc(void *allocdata) {
-    return SCMalloc(10);
+    void *ptr = SCMalloc(10);
+    return ptr;
 }
 void *PoolTestAllocArg(void *allocdata) {
     size_t len = strlen((char *)allocdata) + 1;

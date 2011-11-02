@@ -659,7 +659,7 @@ TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
     idmef_time_t *time;
     idmef_alert_t *alert;
     prelude_string_t *str;
-    idmef_message_t *idmef;
+    idmef_message_t *idmef = NULL;
     idmef_classification_t *class;
     PacketAlert *pa;
 
@@ -748,7 +748,8 @@ TmEcode AlertPrelude (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pa
     SCReturnInt(TM_ECODE_OK);
 
 err:
-    idmef_message_destroy(idmef);
+    if (idmef != NULL)
+        idmef_message_destroy(idmef);
     SCReturnInt(TM_ECODE_FAILED);
 }
 

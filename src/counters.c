@@ -400,27 +400,25 @@ static void SCPerfReleaseOPCtx()
     SCPerfClubTMInst *temp = NULL;
     pctmi = sc_perf_op_ctx->pctmi;
 
-    if (sc_perf_op_ctx != NULL) {
-        if (sc_perf_op_ctx->fp != NULL)
-            fclose(sc_perf_op_ctx->fp);
+    if (sc_perf_op_ctx->fp != NULL)
+        fclose(sc_perf_op_ctx->fp);
 
-        if (sc_perf_op_ctx->file != NULL)
-            SCFree(sc_perf_op_ctx->file);
+    if (sc_perf_op_ctx->file != NULL)
+        SCFree(sc_perf_op_ctx->file);
 
-        while (pctmi != NULL) {
-            if (pctmi->tm_name != NULL)
-                SCFree(pctmi->tm_name);
+    while (pctmi != NULL) {
+        if (pctmi->tm_name != NULL)
+            SCFree(pctmi->tm_name);
 
-            if (pctmi->head != NULL)
-                SCFree(pctmi->head);
+        if (pctmi->head != NULL)
+            SCFree(pctmi->head);
 
-            temp = pctmi->next;
-            SCFree(pctmi);
-            pctmi = temp;
-        }
-
-        SCFree(sc_perf_op_ctx);
+        temp = pctmi->next;
+        SCFree(pctmi);
+        pctmi = temp;
     }
+
+    SCFree(sc_perf_op_ctx);
 
     return;
 }

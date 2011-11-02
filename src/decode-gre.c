@@ -103,10 +103,6 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
             if (GRE_FLAG_ISSET_ROUTE(p->greh))
             {
-                gsre = (GRESreHdr *)(pkt + header_len);
-                if (gsre == NULL)
-                    return;
-
                 while (1)
                 {
                     if ((header_len + GRE_SRE_HDR_LEN) > len) {
@@ -114,9 +110,11 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                         return;
                     }
 
+                    gsre = (GRESreHdr *)(pkt + header_len);
+
                     header_len += GRE_SRE_HDR_LEN;
 
-                    if (gsre != NULL && (ntohs(gsre->af) == 0) && (gsre->sre_length == 0))
+                    if ((ntohs(gsre->af) == 0) && (gsre->sre_length == 0))
                         break;
 
                     header_len += gsre->sre_length;
@@ -124,10 +122,6 @@ void DecodeGRE(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
                         ENGINE_SET_EVENT(p, GRE_VERSION0_MALFORMED_SRE_HDR);
                         return;
                     }
-
-                    gsre = (GRESreHdr *)(pkt + header_len);
-                    if (gsre == NULL)
-                        return;
                 }
             }
             break;
