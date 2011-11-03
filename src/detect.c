@@ -1170,14 +1170,9 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
 {
     uint32_t cnt = 0;
 
-    if (p->payload_len > 0 && det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_PACKET &&
-        (!(p->flags & PKT_NOPAYLOAD_INSPECTION))) {
-
-        /* run the multi packet matcher against the payload of the packet */
-        if (det_ctx->sgh->mpm_content_maxlen > p->payload_len) {
-            SCLogDebug("not mpm-inspecting as pkt payload is smaller than "
-                       "the largest content length we need to match");
-        } else {
+    if (p->payload_len > 0 && (!(p->flags & PKT_NOPAYLOAD_INSPECTION))) {
+        if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_PACKET) {
+            /* run the multi packet matcher against the payload of the packet */
             SCLogDebug("search: (%p, maxlen %" PRIu32 ", sgh->sig_cnt %" PRIu32 ")",
                 det_ctx->sgh, det_ctx->sgh->mpm_content_maxlen, det_ctx->sgh->sig_cnt);
 
@@ -1188,7 +1183,6 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
             SCLogDebug("post search: cnt %" PRIu32, cnt);
             *sms_runflags |= SMS_USED_PM;
         }
-
         if (!(p->flags & PKT_STREAM_ADD) && det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_STREAM) {
             *sms_runflags |= SMS_USED_PM;
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_PKT_STREAM);
