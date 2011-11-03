@@ -2158,7 +2158,7 @@ int SMTPParserTest06(void)
         0x66, 0x66, 0x40, 0x61, 0x73, 0x64, 0x66, 0x2e,
         0x66, 0x0d, 0x0a,
     };
-    uint32_t request6_len = sizeof(request5);
+    uint32_t request6_len = sizeof(request6);
 
     TcpSession ssn;
 
