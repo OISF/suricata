@@ -378,9 +378,9 @@ int DetectReplaceLongPatternMatchTestUDPWrp(char *sig, uint32_t sid, char *sig_r
 int DetectReplaceMatchTest01()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
-                " content:\"big\"; replace:\"pig\"; dsize:>1; sid:1;)";
+                " content:\"big\"; replace:\"pig\"; sid:1;)";
     char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
-                " content:\"this is a pig test\"; dsize:>1; sid:2;)";
+                " content:\"this is a pig test\"; sid:2;)";
     return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
 
@@ -390,9 +390,9 @@ int DetectReplaceMatchTest01()
 int DetectReplaceMatchTest02()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
-                " content:\"th\"; offset: 4; replace:\"TH\"; dsize:>1; sid:1;)";
+                " content:\"th\"; offset: 4; replace:\"TH\"; sid:1;)";
     char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
-                " content:\"THis\"; offset:4; dsize:>1; sid:2;)";
+                " content:\"THis\"; offset:4; sid:2;)";
     return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
 
@@ -402,9 +402,9 @@ int DetectReplaceMatchTest02()
 int DetectReplaceMatchTest03()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
-                " content:\"th\"; replace:\"TH\"; offset: 4; dsize:>1; sid:1;)";
+                " content:\"th\"; replace:\"TH\"; offset: 4; sid:1;)";
     char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
-                " content:\"THis\"; offset:4; dsize:>1; sid:2;)";
+                " content:\"THis\"; offset:4; sid:2;)";
     return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
 
@@ -414,9 +414,9 @@ int DetectReplaceMatchTest03()
 int DetectReplaceMatchTest04()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
-                " content:\"th\"; replace:\"TH\"; content:\"patter\"; replace:\"matter\"; dsize:>1; sid:1;)";
+                " content:\"th\"; replace:\"TH\"; content:\"patter\"; replace:\"matter\"; sid:1;)";
     char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
-                " content:\"THis\"; content:\"matterns\"; dsize:>1; sid:2;)";
+                " content:\"THis\"; content:\"matterns\"; sid:2;)";
     return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
 
@@ -451,9 +451,9 @@ int DetectReplaceMatchTest06()
 int DetectReplaceMatchTest07()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
-                " content:\"BiG\"; nocase; replace:\"pig\"; dsize:>1; sid:1;)";
+                " content:\"BiG\"; nocase; replace:\"pig\"; sid:1;)";
     char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
-                " content:\"this is a pig test\"; dsize:>1; sid:2;)";
+                " content:\"this is a pig test\"; sid:2;)";
     return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
 
@@ -463,9 +463,9 @@ int DetectReplaceMatchTest07()
 int DetectReplaceMatchTest08()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
-                " content:\"big\"; depth:17; replace:\"pig\"; dsize:>1; sid:1;)";
+                " content:\"big\"; depth:17; replace:\"pig\"; sid:1;)";
     char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
-                " content:\"this is a pig test\"; dsize:>1; sid:2;)";
+                " content:\"this is a pig test\"; sid:2;)";
     return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
 
@@ -487,9 +487,9 @@ int DetectReplaceMatchTest09()
 int DetectReplaceMatchTest10()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
-                " content:\"big\"; depth:17; replace:\"pig\"; offset: 14; dsize:>1; sid:1;)";
+                " content:\"big\"; depth:17; replace:\"pig\"; offset: 14; sid:1;)";
     char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
-                " content:\"pig\"; depth:17; offset:14; dsize:>1; sid:2;)";
+                " content:\"pig\"; depth:17; offset:14; sid:2;)";
     return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
 
@@ -499,9 +499,9 @@ int DetectReplaceMatchTest10()
 int DetectReplaceMatchTest11()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
-                " content:\"big\"; replace:\"pig\"; content:\"to\"; within: 11; dsize:>1; sid:1;)";
+                " content:\"big\"; replace:\"pig\"; content:\"to\"; within: 11; sid:1;)";
     char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
-                " content:\"pig\"; depth:17; offset:14; dsize:>1; sid:2;)";
+                " content:\"pig\"; depth:17; offset:14; sid:2;)";
     return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
 
@@ -523,9 +523,9 @@ int DetectReplaceMatchTest12()
 int DetectReplaceMatchTest13()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
-                " content:\"big\"; replace:\"pig\"; content:\"test\"; distance: 1; dsize:>1; sid:1;)";
+                " content:\"big\"; replace:\"pig\"; content:\"test\"; distance: 1; sid:1;)";
     char *sig_rep = "alert tcp any any -> any any (msg:\"replace worked\";"
-                " content:\"pig\"; depth:17; offset:14; dsize:>1; sid:2;)";
+                " content:\"pig\"; depth:17; offset:14; sid:2;)";
     return DetectReplaceLongPatternMatchTestWrp(sig, 1, sig_rep, 2);
 }
 
@@ -547,9 +547,9 @@ int DetectReplaceMatchTest14()
 int DetectReplaceMatchTest15()
 {
     char *sig = "alert udp any any -> any any (msg:\"Nothing..\";"
-                " content:\"com\"; replace:\"org\"; dsize:>1; sid:1;)";
+                " content:\"com\"; replace:\"org\"; sid:1;)";
     char *sig_rep = "alert udp any any -> any any (msg:\"replace worked\";"
-                " content:\"twimg|03|org\"; dsize:>1; sid:2;)";
+                " content:\"twimg|03|org\"; sid:2;)";
     return DetectReplaceLongPatternMatchTestUDPWrp(sig, 1, sig_rep, 2);
 }
 
@@ -599,7 +599,7 @@ int DetectReplaceParseTest02(void)
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert http any any -> any any "
                                "(msg:\"test\"; content:\"doh\"; replace:\"bon\"; sid:238012;)");
-    if (de_ctx->sig_list == NULL) {
+    if (de_ctx->sig_list != NULL) {
         result = 0;
         goto end;
     }
@@ -786,11 +786,11 @@ void DetectReplaceRegisterTests(void)
     UtRegisterTest("DetectReplaceMatchTest15", DetectReplaceMatchTest15, 1);
 /* parsing */
     UtRegisterTest("DetectReplaceParseTest01", DetectReplaceParseTest01, 1);
-    UtRegisterTest("DetectReplaceParseTest02", DetectReplaceParseTest02, 1);
-    UtRegisterTest("DetectReplaceParseTest03", DetectReplaceParseTest03, 1);
+    UtRegisterTest("DetectReplaceParseTest02", DetectReplaceParseTest02, 0);
+    UtRegisterTest("DetectReplaceParseTest03", DetectReplaceParseTest03, 0);
     UtRegisterTest("DetectReplaceParseTest04", DetectReplaceParseTest04, 1);
     UtRegisterTest("DetectReplaceParseTest05", DetectReplaceParseTest05, 1);
     UtRegisterTest("DetectReplaceParseTest06", DetectReplaceParseTest06, 1);
-    UtRegisterTest("DetectReplaceParseTest07", DetectReplaceParseTest07, 1);
+    UtRegisterTest("DetectReplaceParseTest07", DetectReplaceParseTest07, 0);
 #endif /* UNITTESTS */
 }

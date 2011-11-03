@@ -1059,12 +1059,12 @@ int DetectAsn1TestReal01(void) {
     char *sigs[3];
     sigs[0]= "alert ip any any -> any any (msg:\"Testing id 1\"; "
              "content:\"Pablo\"; asn1:absolute_offset 0, "
-             "oversize_length 130; dsize:>1; sid:1;)";
+             "oversize_length 130; sid:1;)";
     sigs[1]= "alert ip any any -> any any (msg:\"Testing id 2\"; "
              "content:\"AA\"; asn1:relative_offset 2, "
-             "oversize_length 130; dsize:>1; sid:2;)";
+             "oversize_length 130; sid:2;)";
     sigs[2]= "alert ip any any -> any any (msg:\"Testing id 3\"; "
-             "content:\"lalala\"; asn1: oversize_length 2000; dsize:>1; sid:3;)";
+             "content:\"lalala\"; asn1: oversize_length 2000; sid:3;)";
 
     uint32_t sid[3] = {1, 2, 3};
 

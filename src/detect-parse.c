@@ -1369,14 +1369,12 @@ static int SigValidate(Signature *s) {
         }
 
         if (s->sm_lists_tail[DETECT_SM_LIST_UMATCH] ||
-            s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH] ||
-            s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH] ||
-            s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]  ||
-            s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH] ||
-            s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]  ||
-            s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH] ||
-            s->sm_lists_tail[DETECT_SM_LIST_DMATCH] ||
-            s->sm_lists_tail[DETECT_SM_LIST_AMATCH])
+                s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH] ||
+                s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH] ||
+                s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]  ||
+                s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH] ||
+                s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]  ||
+                s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH])
         {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature combines packet "
                     "specific matches (like dsize, flags, ttl) with stream / "

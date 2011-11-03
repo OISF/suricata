@@ -438,7 +438,7 @@ int AlertFastLogTest01()
     SCClassConfDeleteDummyClassificationConfigFD();
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-            "(msg:\"FastLog test\"; content:\"GET\"; dsize:>1; "
+            "(msg:\"FastLog test\"; content:\"GET\"; "
             "Classtype:unknown; sid:1;)");
     result = (de_ctx->sig_list != NULL);
 
@@ -494,7 +494,7 @@ int AlertFastLogTest02()
     SCClassConfDeleteDummyClassificationConfigFD();
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-            "(msg:\"FastLog test\"; content:\"GET\"; dsize:>1; "
+            "(msg:\"FastLog test\"; content:\"GET\"; "
             "Classtype:unknown; sid:1;)");
     result = (de_ctx->sig_list != NULL);
     if (result == 0)

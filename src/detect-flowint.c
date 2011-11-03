@@ -1391,11 +1391,11 @@ int DetectFlowintTestPacket01Real()
     de_ctx->flags |= DE_QUIET;
 
     /* Now that we have the array of packets for the flow, prepare the signatures */
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Setting a flowint counter\"; content:\"GET\"; flowint:myvar,=,1; flowint:maxvar,=,6; dsize:>1; sid:101;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Setting a flowint counter\"; content:\"GET\"; flowint:myvar,=,1; flowint:maxvar,=,6; sid:101;)");
 
-    de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Adding to flowint counter\"; content:\"Unauthorized\"; flowint: myvar,+,2; dsize:>1; sid:102;)");
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Adding to flowint counter\"; content:\"Unauthorized\"; flowint: myvar,+,2; sid:102;)");
 
-    de_ctx->sig_list->next->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"if the flowint counter is 3 create a new counter\"; content:\"Unauthorized\"; flowint: myvar,==,3; flowint: cntpackets, =, 0; dsize:>1; sid:103;)");
+    de_ctx->sig_list->next->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"if the flowint counter is 3 create a new counter\"; content:\"Unauthorized\"; flowint: myvar,==,3; flowint: cntpackets, =, 0; sid:103;)");
 
     de_ctx->sig_list->next->next->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"and count the rest of the packets received without generating alerts!!!\"; flowint: myvar,==,3; flowint: cntpackets, +, 1; noalert;sid:104;)");
 
@@ -1736,7 +1736,7 @@ int DetectFlowintTestPacket02Real()
 
     de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Adding to flowint counter\"; content:\"Unauthorized\"; flowint:myvar,isset; flowint: myvar,+,2; sid:102;)");
 
-    de_ctx->sig_list->next->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"if the flowint counter is 3 create a new counter\"; content:\"Unauthorized\"; flowint: myvar, isset; flowint: myvar,==,3; flowint:cntpackets,notset; flowint: cntpackets, =, 0; dsize:>1; sid:103;)");
+    de_ctx->sig_list->next->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"if the flowint counter is 3 create a new counter\"; content:\"Unauthorized\"; flowint: myvar, isset; flowint: myvar,==,3; flowint:cntpackets,notset; flowint: cntpackets, =, 0; sid:103;)");
 
     de_ctx->sig_list->next->next->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"and count the rest of the packets received without generating alerts!!!\"; flowint: cntpackets,isset; flowint: cntpackets, +, 1; noalert;sid:104;)");
 
@@ -2076,11 +2076,11 @@ int DetectFlowintTestPacket03Real()
     de_ctx->flags |= DE_QUIET;
 
     /* Now that we have the array of packets for the flow, prepare the signatures */
-    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"check notset\"; content:\"GET\"; flowint: myvar, notset; flowint: myvar,=,0; flowint: other,=,10; dsize:>1; sid:101;)");
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"check notset\"; content:\"GET\"; flowint: myvar, notset; flowint: myvar,=,0; flowint: other,=,10; sid:101;)");
 
-    de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"check isset\"; content:\"Unauthorized\"; flowint:myvar,isset; flowint: other,isset; dsize:>1; sid:102;)");
+    de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"check isset\"; content:\"Unauthorized\"; flowint:myvar,isset; flowint: other,isset; sid:102;)");
 
-    de_ctx->sig_list->next->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"check notset\"; content:\"Unauthorized\"; flowint:lala,isset; dsize:>1; sid:103;)");
+    de_ctx->sig_list->next->next = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"check notset\"; content:\"Unauthorized\"; flowint:lala,isset; sid:103;)");
 
     de_ctx->sig_list->next->next->next = NULL;
 

@@ -1015,12 +1015,12 @@ int DetectFastPatternTest14(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                               "(msg:\"fast_pattern test\"; content:\"strings_string5\"; content:\"knight\"; fast_pattern; dsize:>1; sid:1;)");
+                               "(msg:\"fast_pattern test\"; content:\"strings_string5\"; content:\"knight\"; fast_pattern; sid:1;)");
     if (de_ctx->sig_list == NULL)
         goto end;
 
     de_ctx->sig_list->next = SigInit(de_ctx, "alert tcp any any -> any any "
-                                     "(msg:\"test different content\"; content:\"Dummy is our name\"; dsize:>1; sid:2;)");
+                                     "(msg:\"test different content\"; content:\"Dummy is our name\"; sid:2;)");
     if (de_ctx->sig_list->next == NULL)
         goto end;
 

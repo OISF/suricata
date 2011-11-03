@@ -839,7 +839,7 @@ int DetectContentLongPatternMatchTestWrp(char *sig, uint32_t sid) {
 int DetectContentLongPatternMatchTest01()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
-                " content:\"Hi, this is a big test\"; dsize:>1; sid:1;)";
+                " content:\"Hi, this is a big test\"; sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
 
@@ -850,7 +850,7 @@ int DetectContentLongPatternMatchTest02()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"Hi, this is a big test to check content matches of"
-                " splitted patterns between multiple chunks!\"; dsize:>1; sid:1;)";
+                " splitted patterns between multiple chunks!\"; sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
 
@@ -863,7 +863,7 @@ int DetectContentLongPatternMatchTest03()
     /** The last chunk of the content should not match */
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\";"
                 " content:\"Hi, this is a big test to check content matches of"
-                " splitted patterns between multiple splitted chunks!\"; dsize:>1; sid:1;)";
+                " splitted patterns between multiple splitted chunks!\"; sid:1;)";
     return (DetectContentLongPatternMatchTestWrp(sig, 1) == 0) ? 1: 0;
 }
 
@@ -876,7 +876,7 @@ int DetectContentLongPatternMatchTest04()
                 " content:\"Hi, this is\"; depth:15 ;content:\"a big test\"; "
                 " within:15; content:\"to check content matches of\"; "
                 " within:30; content:\"splitted patterns\"; distance:1; "
-                " within:30; depth:400; dsize:>1; "
+                " within:30; depth:400;"
                 " sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
@@ -896,7 +896,7 @@ int DetectContentLongPatternMatchTest05()
                 " content:\"of splitted\"; within:37; distance:15; "
                 " depth:60; isdataat:20,relative; offset: 48; "
                 " content:\"patterns\"; within:9; distance:1; depth:69; "
-                " isdataat:10, relative; offset:60; dsize:>1; "
+                " isdataat:10, relative; offset:60; "
                 " sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
@@ -914,7 +914,7 @@ int DetectContentLongPatternMatchTest06()
                 " content:\"of splitted patterns between multiple\"; "
                 " within:38; distance:1; offset:47; depth:85; "
                 " content:\"chunks!\"; within: 8; distance:1; "
-                " depth:94; offset: 50; dsize:>1; "
+                " depth:94; offset: 50; "
                 " sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
@@ -929,7 +929,7 @@ int DetectContentLongPatternMatchTest07()
                 " content:\"chunks!\"; "
                 " content:\"content matches\"; offset:32; depth:47; "
                 " content:\"of splitted patterns between multiple\"; "
-                " content:\"Hi, this is a big\"; offset:0; depth:17; dsize:>1; "
+                " content:\"Hi, this is a big\"; offset:0; depth:17; "
                 " sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
@@ -946,7 +946,7 @@ int DetectContentLongPatternMatchTest08()
                 " within:38; distance:1; offset:47; depth:85; "
                 " content:\"chunks!\"; within: 8; distance:1; "
                 " depth:94; offset: 50; "
-                " content:\"Hi, this is a big test to check cont\"; depth:36; dsize:>1; "
+                " content:\"Hi, this is a big test to check cont\"; depth:36;"
                 " sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
@@ -964,7 +964,7 @@ int DetectContentLongPatternMatchTest09()
                 " content:\"chunks!\"; within: 8; distance:1; "
                 " depth:94; offset: 50; "
                 " content:\"Hi, this is a big test to chec\"; depth:36;"
-                " content:\"k cont\"; distance:0; within:6; dsize:>1; "
+                " content:\"k cont\"; distance:0; within:6;"
                 " sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
@@ -976,7 +976,7 @@ int DetectContentLongPatternMatchTest10()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
                 " content:\"Hi, this is a big test to check \"; "
-                " content:\"con\"; dsize:>1; "
+                " content:\"con\"; "
                 " sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
@@ -988,7 +988,7 @@ int DetectContentLongPatternMatchTest11()
 {
     char *sig = "alert tcp any any -> any any (msg:\"Nothing..\"; "
                 " content:\"H\"; "
-                " content:\"i\"; dsize:>1; "
+                " content:\"i\"; "
                 " sid:1;)";
     return DetectContentLongPatternMatchTestWrp(sig, 1);
 }
@@ -2091,7 +2091,7 @@ static int SigTest47TestNegatedContent(void)
  */
 static int SigTest48TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET\"; content:!\"GES\"; within:26; dsize:>1; sid:1;)", (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET\"; content:!\"GES\"; within:26; sid:1;)", (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
 }
 
 /**
@@ -2109,7 +2109,7 @@ static int SigTest49TestNegatedContent(void)
  */
 static int SigTest50TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET\"; content:!\"GES\"; distance:25; dsize:>1; sid:1;)", (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET\"; content:!\"GES\"; distance:25; sid:1;)", (uint8_t *)"GET /one/ HTTP/1.1\r\n Host: one.example.org\r\n\r\n\r\nGET /two/ HTTP/1.1\r\nHost: two.example.org\r\n\r\n\r\n");
 }
 
 /**
@@ -2166,7 +2166,7 @@ static int SigTest55TestNegatedContent(void)
  */
 static int SigTest56TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"one\"; content:\"fourty\"; within:56; dsize:>1; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"one\"; content:\"fourty\"; within:56; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
 }
 
 /**
@@ -2252,7 +2252,7 @@ static int SigTest67TestNegatedContent(void)
 
 static int SigTest68TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (content:\"one\"; depth:10; content:\"nine\"; offset:8; content:!\"fourty\"; within:28; content:\"fiftysix\"; dsize:>1; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
+    return SigTestPositiveTestContent("alert tcp any any -> any any (content:\"one\"; depth:10; content:\"nine\"; offset:8; content:!\"fourty\"; within:28; content:\"fiftysix\"; sid:1;)", (uint8_t *)"one four nine fourteen twentythree thirtyfive fourtysix fiftysix");
 }
 
 static int SigTest69TestNegatedContent(void)
@@ -2283,12 +2283,12 @@ static int SigTest73TestNegatedContent(void)
 
 static int SigTest74TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"USER\"; content:!\"PASS\"; dsize:>1; sid:1;)",  (uint8_t *)"USER apple");
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"USER\"; content:!\"PASS\"; sid:1;)",  (uint8_t *)"USER apple");
 }
 
 static int SigTest75TestNegatedContent(void)
 {
-    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"USER\"; content:\"!PASS\"; dsize:>1; sid:1;)",  (uint8_t *)"USER !PASS");
+    return SigTestPositiveTestContent("alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"USER\"; content:\"!PASS\"; sid:1;)",  (uint8_t *)"USER !PASS");
 }
 
 static int SigTest76TestBug134(void)
@@ -2310,7 +2310,7 @@ static int SigTest76TestBug134(void)
 
     char sig[] = "alert tcp any any -> any 515 "
             "(msg:\"detect IFS\"; flow:to_server,established; content:\"${IFS}\";"
-            " depth:50; offset:0; dsize:>1; sid:900091; rev:1;)";
+            " depth:50; offset:0; sid:900091; rev:1;)";
     if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
         result = 0;
         goto end;
@@ -2336,7 +2336,7 @@ static int SigTest77TestBug139(void)
 
     p->dp = 53;
     char sig[] = "alert udp any any -> any 53 (msg:\"dns testing\";"
-                    " content:\"|00 00|\"; depth:5; offset:13; dsize:>1; sid:9436601;"
+                    " content:\"|00 00|\"; depth:5; offset:13; sid:9436601;"
                     " rev:1;)";
     if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
         result = 0;

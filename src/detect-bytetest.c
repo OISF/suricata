@@ -1491,7 +1491,7 @@ int DetectByteTestTestPacket04(void)
 
     char sig[] = "alert tcp any any -> any any (msg:\"content + byte_test +"
                     "relative\"; content:\"GET \"; depth:4; content:\"HTTP/1.\"; "
-    "byte_test:1,<=,0,0,relative,string,dec; dsize:>1; sid:124; rev:1;)";
+    "byte_test:1,<=,0,0,relative,string,dec; sid:124; rev:1;)";
 
     result = UTHPacketMatchSig(p, sig);
 
@@ -1521,7 +1521,7 @@ int DetectByteTestTestPacket05(void)
 
     char sig[] = "alert tcp any any -> any any (msg:\"content + byte_test +"
                     "relative\"; content:\"GET \"; depth:4; content:\"HTTP/1.\"; "
-    "byte_test:1,>=,0,0,relative,string,dec; dsize:>1; sid:125; rev:1;)";
+    "byte_test:1,>=,0,0,relative,string,dec; sid:125; rev:1;)";
 
     result = UTHPacketMatchSig(p, sig);
 
