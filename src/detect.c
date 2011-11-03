@@ -1686,7 +1686,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     /* Limit the number of times we do this recursive thing.
                      * XXX is this a sane limit? Should it be configurable? */
                     if (recursion_cnt == 10)
-                        goto done;
+                        goto next;
                 } while (rmatch);
 
             } else {
@@ -1723,9 +1723,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     next:
         RULE_PROFILING_END(s, match);
         continue;
-    done:
-        RULE_PROFILING_END(s, match);
-        break;
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_RULES);
 
