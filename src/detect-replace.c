@@ -599,7 +599,7 @@ int DetectReplaceParseTest02(void)
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert http any any -> any any "
                                "(msg:\"test\"; content:\"doh\"; replace:\"bon\"; sid:238012;)");
-    if (de_ctx->sig_list != NULL) {
+    if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
@@ -786,11 +786,11 @@ void DetectReplaceRegisterTests(void)
     UtRegisterTest("DetectReplaceMatchTest15", DetectReplaceMatchTest15, 1);
 /* parsing */
     UtRegisterTest("DetectReplaceParseTest01", DetectReplaceParseTest01, 1);
-    UtRegisterTest("DetectReplaceParseTest02", DetectReplaceParseTest02, 0);
-    UtRegisterTest("DetectReplaceParseTest03", DetectReplaceParseTest03, 0);
+    UtRegisterTest("DetectReplaceParseTest02", DetectReplaceParseTest02, 1);
+    UtRegisterTest("DetectReplaceParseTest03", DetectReplaceParseTest03, 1);
     UtRegisterTest("DetectReplaceParseTest04", DetectReplaceParseTest04, 1);
     UtRegisterTest("DetectReplaceParseTest05", DetectReplaceParseTest05, 1);
     UtRegisterTest("DetectReplaceParseTest06", DetectReplaceParseTest06, 1);
-    UtRegisterTest("DetectReplaceParseTest07", DetectReplaceParseTest07, 0);
+    UtRegisterTest("DetectReplaceParseTest07", DetectReplaceParseTest07, 1);
 #endif /* UNITTESTS */
 }

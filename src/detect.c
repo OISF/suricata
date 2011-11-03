@@ -9296,12 +9296,17 @@ static int SigTestSgh05 (void) {
         goto end;
     }
 
-    if (sgh->mpm_ctx == NULL) {
-        printf("sgh->mpm_type == NULL: ");
+    if (sgh->mpm_ctx != NULL) {
+        printf("sgh->mpm_ctx != NULL: ");
         goto end;
     }
 
-    if (sgh->mpm_ctx->mpm_type != MPM_WUMANBER) {
+    if (sgh->mpm_stream_ctx == NULL) {
+        printf("sgh->mpm_stream_ctx == NULL: ");
+        goto end;
+    }
+
+    if (sgh->mpm_stream_ctx->mpm_type != MPM_WUMANBER) {
         printf("sgh->mpm_type != MPM_WUMANBER, expected %d, got %d: ", MPM_WUMANBER, sgh->mpm_ctx->mpm_type);
         goto end;
     }
