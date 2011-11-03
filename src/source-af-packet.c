@@ -64,8 +64,8 @@
 #include "tmqh-packetpool.h"
 #include "source-af-packet.h"
 
-#include <sys/ioctl.h>
 #ifdef HAVE_AF_PACKET
+#include <sys/ioctl.h>
 #include <linux/if_ether.h>
 #include <linux/if_packet.h>
 #include <linux/if_arp.h>
