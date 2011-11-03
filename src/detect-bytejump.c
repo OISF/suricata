@@ -1113,7 +1113,7 @@ int DetectByteJumpTestPacket01 (void) {
 
     char sig[] = "alert tcp any any -> any any (msg:\"pcre + byte_test + "
     "relative\"; pcre:\"/AllWorkAndNoPlayMakesWillADullBoy/\"; byte_jump:1,6,"
-    "relative,string,dec; content:\"0\"; sid:134; rev:1;)";
+    "relative,string,dec; content:\"0\"; dsize:>1; sid:134; rev:1;)";
 
     result = UTHPacketMatchSig(p, sig);
 
@@ -1145,7 +1145,7 @@ int DetectByteJumpTestPacket02 (void) {
 
     char sig[] = "alert tcp any any -> any any (msg:\"byte_jump with byte_jump"
                  " + relative\"; byte_jump:1,13; byte_jump:4,0,relative; "
-                 "content:\"|48 00 00|\"; within:3; sid:144; rev:1;)";
+                 "content:\"|48 00 00|\"; within:3; dsize:>1; sid:144; rev:1;)";
 
     result = UTHPacketMatchSig(p, sig);
 

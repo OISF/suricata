@@ -893,7 +893,7 @@ int DetectDistanceTestPacket01 (void) {
 
     char sig[] = "alert tcp any any -> any any (msg:\"suricata test\"; "
                     "byte_jump:1,2; content:\"|00|\"; "
-                    "within:1; distance:2; sid:98711212; rev:1;)";
+                    "within:1; distance:2; dsize:>1; sid:98711212; rev:1;)";
 
     p->flowflags = FLOW_PKT_ESTABLISHED | FLOW_PKT_TOCLIENT;
     result = UTHPacketMatchSig(p, sig);

@@ -1789,7 +1789,7 @@ int IPOnlyTestSig05(void) {
     sigs[3]= "alert tcp 192.168.1.5 any -> 192.168.1.1 any (msg:\"Testing src/dst ip (sid 4)\"; sid:4;)";
     sigs[4]= "alert tcp 192.168.1.0/24 any -> any any (msg:\"Testing src/dst ip (sid 5)\"; sid:5;)";
     sigs[5]= "alert tcp any any -> 192.168.0.0/16 any (msg:\"Testing src/dst ip (sid 6)\"; sid:6;)";
-    sigs[6]= "alert tcp 192.168.1.0/24 any -> 192.168.0.0/16 any (msg:\"Testing src/dst ip (sid 7)\"; content:\"Hi all\";sid:7;)";
+    sigs[6]= "alert tcp 192.168.1.0/24 any -> 192.168.0.0/16 any (msg:\"Testing src/dst ip (sid 7)\"; content:\"Hi all\"; dsize:>1; sid:7;)";
 
     /* Sid numbers (we could extract them from the sig) */
     uint32_t sid[7] = { 1, 2, 3, 4, 5, 6, 7};
@@ -1825,7 +1825,7 @@ int IPOnlyTestSig06(void) {
     sigs[3]= "alert tcp 192.168.1.5 any -> 192.168.1.1 any (msg:\"Testing src/dst ip (sid 4)\"; sid:4;)";
     sigs[4]= "alert tcp 192.168.1.0/24 any -> any any (msg:\"Testing src/dst ip (sid 5)\"; sid:5;)";
     sigs[5]= "alert tcp any any -> 192.168.0.0/16 any (msg:\"Testing src/dst ip (sid 6)\"; sid:6;)";
-    sigs[6]= "alert tcp 192.168.1.0/24 any -> 192.168.0.0/16 any (msg:\"Testing src/dst ip (sid 7)\"; content:\"Hi all\";sid:7;)";
+    sigs[6]= "alert tcp 192.168.1.0/24 any -> 192.168.0.0/16 any (msg:\"Testing src/dst ip (sid 7)\"; content:\"Hi all\"; dsize:>1; sid:7;)";
 
     /* Sid numbers (we could extract them from the sig) */
     uint32_t sid[7] = { 1, 2, 3, 4, 5, 6, 7};
@@ -1933,7 +1933,7 @@ int IPOnlyTestSig09(void) {
     sigs[3]= "alert tcp 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565 any -> 3FFE:FFFF:7654:FEDA:1245:BA98:3210:0/96 any (msg:\"Testing src/dst ip (sid 4)\"; sid:4;)";
     sigs[4]= "alert tcp 3FFE:FFFF:7654:FEDA:0:0:0:0/64 any -> any any (msg:\"Testing src/dst ip (sid 5)\"; sid:5;)";
     sigs[5]= "alert tcp any any -> 3FFE:FFFF:7654:FEDA:0:0:0:0/64 any (msg:\"Testing src/dst ip (sid 6)\"; sid:6;)";
-    sigs[6]= "alert tcp 3FFE:FFFF:7654:FEDA:0:0:0:0/64 any -> 3FFE:FFFF:7654:FEDA:0:0:0:0/64 any (msg:\"Testing src/dst ip (sid 7)\"; content:\"Hi all\";sid:7;)";
+    sigs[6]= "alert tcp 3FFE:FFFF:7654:FEDA:0:0:0:0/64 any -> 3FFE:FFFF:7654:FEDA:0:0:0:0/64 any (msg:\"Testing src/dst ip (sid 7)\"; content:\"Hi all\"; dsize:>1; sid:7;)";
 
     /* Sid numbers (we could extract them from the sig) */
     uint32_t sid[7] = { 1, 2, 3, 4, 5, 6, 7};
@@ -1969,7 +1969,7 @@ int IPOnlyTestSig10(void) {
     sigs[3]= "alert tcp 3FFE:FFFF:7654:FEDA:1245:BA98:3210:4565 any -> !3FFE:FFFF:7654:FEDA:1245:BA98:3210:4562/96 any (msg:\"Testing src/dst ip (sid 4)\"; sid:4;)";
     sigs[4]= "alert tcp !3FFE:FFFF:7654:FEDA:0:0:0:0/64 any -> any any (msg:\"Testing src/dst ip (sid 5)\"; sid:5;)";
     sigs[5]= "alert tcp any any -> !3FFE:FFFF:7654:FEDA:0:0:0:0/64 any (msg:\"Testing src/dst ip (sid 6)\"; sid:6;)";
-    sigs[6]= "alert tcp 3FFE:FFFF:7654:FEDA:0:0:0:0/64 any -> 3FFE:FFFF:7654:FEDB:0:0:0:0/64 any (msg:\"Testing src/dst ip (sid 7)\"; content:\"Hi all\";sid:7;)";
+    sigs[6]= "alert tcp 3FFE:FFFF:7654:FEDA:0:0:0:0/64 any -> 3FFE:FFFF:7654:FEDB:0:0:0:0/64 any (msg:\"Testing src/dst ip (sid 7)\"; content:\"Hi all\"; dsize:>1; sid:7;)";
 
     /* Sid numbers (we could extract them from the sig) */
     uint32_t sid[7] = { 1, 2, 3, 4, 5, 6, 7};
@@ -2143,7 +2143,7 @@ int IPOnlyTestSig15(void)
     sigs[5]= "alert tcp any any -> 192.168.0.0/16 any (msg:\"Testing src/dst ip (sid 6)\"; "
         "flowbits:set,six; sid:6;)";
     sigs[6]= "alert tcp 192.168.1.0/24 any -> 192.168.0.0/16 any (msg:\"Testing src/dst ip (sid 7)\"; "
-        "flowbits:set,seven; content:\"Hi all\"; sid:7;)";
+        "flowbits:set,seven; content:\"Hi all\"; dsize:>1; sid:7;)";
 
     /* Sid numbers (we could extract them from the sig) */
     uint32_t sid[7] = { 1, 2, 3, 4, 5, 6, 7};

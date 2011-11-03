@@ -428,7 +428,7 @@ int LogDropLogTest01()
     SCClassConfDeleteDummyClassificationConfigFD();
 
     de_ctx->sig_list = SigInit(de_ctx, "drop tcp any any -> any any "
-            "(msg:\"LogDropLog test\"; content:\"GET\"; Classtype:unknown; sid:1;)");
+            "(msg:\"LogDropLog test\"; content:\"GET\"; dsize:>1; Classtype:unknown; sid:1;)");
 
     result = (de_ctx->sig_list != NULL);
 
@@ -496,7 +496,7 @@ int LogDropLogTest02()
     SCClassConfDeleteDummyClassificationConfigFD();
 
     de_ctx->sig_list = SigInit(de_ctx, "alert udp any any -> any any "
-            "(msg:\"LogDropLog test\"; content:\"GET\"; Classtype:unknown; sid:1;)");
+            "(msg:\"LogDropLog test\"; content:\"GET\"; dsize:>1; Classtype:unknown; sid:1;)");
 
     result = (de_ctx->sig_list != NULL);
 

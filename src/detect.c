@@ -1692,7 +1692,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     /* Limit the number of times we do this recursive thing.
                      * XXX is this a sane limit? Should it be configurable? */
                     if (recursion_cnt == 10)
-                        goto done;
+                        goto next;
                 } while (rmatch);
 
             } else {
@@ -1729,9 +1729,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     next:
         RULE_PROFILING_END(s, match);
         continue;
-    done:
-        RULE_PROFILING_END(s, match);
-        break;
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_RULES);
 
@@ -4416,7 +4413,7 @@ static int SigTest01Real (int mpm_type) {
     Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
     int result = 0;
 
-    char sig[] = "alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)";
+    char sig[] = "alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; dsize:>1; sid:1;)";
     if (UTHPacketMatchSigMpm(p, sig, mpm_type) == 0) {
         result = 0;
         goto end;
@@ -4461,7 +4458,7 @@ static int SigTest02Real (int mpm_type) {
                     "\r\n\r\n";
     uint16_t buflen = strlen((char *)buf);
     Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
-    char sig[] = "alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:41; sid:1;)";
+    char sig[] = "alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:41; dsize:>1; sid:1;)";
     int ret = UTHPacketMatchSigMpm(p, sig, mpm_type);
     UTHFreePacket(p);
     return ret;
@@ -4504,7 +4501,7 @@ static int SigTest03Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:39; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host: one.example.org\"; offset:20; depth:39; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -4566,7 +4563,7 @@ static int SigTest04Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:42; within:47; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:42; within:47; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -4625,7 +4622,7 @@ static int SigTest05Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:48; within:52; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP TEST\"; content:\"Host:\"; offset:20; depth:25; content:\"Host:\"; distance:48; within:52; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("sig parse failed: ");
         goto end;
@@ -4704,7 +4701,7 @@ static int SigTest06Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; dsize:>1; recursive; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -4800,7 +4797,7 @@ static int SigTest07Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/\\d\\.\\d\\r\\n/G\"; recursive; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -4896,7 +4893,7 @@ static int SigTest08Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -4992,7 +4989,7 @@ static int SigTest09Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"HTTP URI cap\"; content:\"GET \"; depth:4; pcre:\"/GET (?P<pkt_http_uri>.*) HTTP\\/1\\.0\\r\\n/G\"; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -5080,12 +5077,12 @@ static int SigTest10Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Long content test (1)\"; content:\"ABCD\"; depth:4; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Long content test (1)\"; content:\"ABCD\"; depth:4; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Long content test (2)\"; content:\"VWXYZ\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Long content test (2)\"; content:\"VWXYZ\"; dsize:>1; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
@@ -5167,11 +5164,11 @@ static int SigTest11Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (content:\"VWXYZabcde\"; content:\"5678\"; content:\"89\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (content:\"VWXYZabcde\"; content:\"5678\"; content:\"89\"; dsize:>1; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         goto end;
     }
@@ -5232,7 +5229,7 @@ static int SigTest12Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"klmnop\"; content:\"1234\"; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -5297,7 +5294,7 @@ static int SigTest13Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -5353,7 +5350,7 @@ static int SigTest14Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; distance:0; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Content order test\"; content:\"ABCDEFGHIJ\"; content:\"1234\"; content:\"klmnop\"; distance:0; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -5421,7 +5418,7 @@ static int SigTest15Real (int mpm_type) {
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; sid:2008284; rev:2;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; sid:2008284; dsize:>1; rev:2;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -5484,7 +5481,7 @@ static int SigTest16Real (int mpm_type) {
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; sid:2008284; rev:2;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any !$HTTP_PORTS (msg:\"ET POLICY Inbound HTTP CONNECT Attempt on Off-Port\"; content:\"CONNECT \"; nocase; depth:8; content:\" HTTP/1.\"; nocase; within:1000; dsize:>1; sid:2008284; rev:2;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -5548,7 +5545,7 @@ static int SigTest17Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any $HTTP_PORTS (msg:\"HTTP host cap\"; content:\"Host:\"; pcre:\"/^Host: (?P<pkt_http_host>.*)\\r\\n/m\"; noalert; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -5626,7 +5623,7 @@ static int SigTest18Real (int mpm_type) {
 
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; sid:2003055; rev:4;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any !21:902 -> any any (msg:\"ET MALWARE Suspicious 220 Banner on Local Port\"; content:\"220\"; offset:0; depth:4; pcre:\"/220[- ]/\"; dsize:>1; sid:2003055; rev:4;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -5842,12 +5839,12 @@ static int SigTest21Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.one; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.one; dsize:>1; sid:2;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -5932,12 +5929,12 @@ static int SigTest22Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:set,TEST.one; flowbits:noalert; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.abc; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.abc; dsize:>1; sid:2;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -6018,12 +6015,12 @@ static int SigTest23Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:toggle,TEST.one; flowbits:noalert; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT SET\"; content:\"/one/\"; flowbits:toggle,TEST.one; flowbits:noalert; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.one; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"FLOWBIT TEST\"; content:\"/two/\"; flowbits:isset,TEST.one; dsize:>1; sid:2;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -6123,7 +6120,7 @@ int SigTest24IPV4Keyword(void)
 
     de_ctx->sig_list = SigInit(de_ctx,
             "alert ip any any -> any any "
-            "(content:\"/one/\"; ipv4-csum:valid; "
+            "(content:\"/one/\"; ipv4-csum:valid; dsize:>1; "
             "msg:\"ipv4-csum keyword check(1)\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("sig 1 parse: ");
@@ -6132,7 +6129,7 @@ int SigTest24IPV4Keyword(void)
 
     de_ctx->sig_list->next = SigInit(de_ctx,
             "alert ip any any -> any any "
-            "(content:\"/one/\"; ipv4-csum:invalid; "
+            "(content:\"/one/\"; ipv4-csum:invalid; dsize:>1; "
             "msg:\"ipv4-csum keyword check(1)\"; "
             "sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
@@ -6227,7 +6224,7 @@ int SigTest25NegativeIPV4Keyword(void)
 
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert ip any any -> any any "
-                               "(content:\"/one/\"; ipv4-csum:invalid; "
+                               "(content:\"/one/\"; ipv4-csum:invalid; dsize:>1; "
                                "msg:\"ipv4-csum keyword check(1)\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result &= 0;
@@ -6236,7 +6233,7 @@ int SigTest25NegativeIPV4Keyword(void)
 
     de_ctx->sig_list->next = SigInit(de_ctx,
                                      "alert ip any any -> any any "
-                                     "(content:\"/one/\"; ipv4-csum:valid; "
+                                     "(content:\"/one/\"; ipv4-csum:valid; dsize:>1; "
                                      "msg:\"ipv4-csum keyword check(1)\"; "
                                      "sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
@@ -6349,7 +6346,7 @@ int SigTest26TCPV4Keyword(void)
 
     de_ctx->sig_list->next = SigInit(de_ctx,
                                      "alert ip any any -> any any "
-                                     "(content:\"|DE 01 03|\"; tcpv4-csum:invalid; "
+                                     "(content:\"|DE 01 03|\"; tcpv4-csum:invalid; dsize:>1; "
                                      "msg:\"tcpv4-csum keyword check(1)\"; "
                                      "sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
@@ -6820,7 +6817,7 @@ int SigTest30UDPV4Keyword(void)
 
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert udp any any -> any any "
-                               "(content:\"/one/\"; udpv4-csum:valid; "
+                               "(content:\"/one/\"; udpv4-csum:valid; dsize:>1; "
                                "msg:\"udpv4-csum keyword check(1)\"; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL) {
@@ -6830,7 +6827,7 @@ int SigTest30UDPV4Keyword(void)
 
     de_ctx->sig_list->next = SigInit(de_ctx,
                                      "alert udp any any -> any any "
-                                     "(content:\"/one/\"; udpv4-csum:invalid; "
+                                     "(content:\"/one/\"; udpv4-csum:invalid; dsize:>1; "
                                      "msg:\"udpv4-csum keyword check(1)\"; "
                                      "sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
@@ -7062,7 +7059,7 @@ int SigTest32UDPV6Keyword(void)
 
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert udp any any -> any any "
-                               "(content:\"/one/\"; udpv6-csum:valid; "
+                               "(content:\"/one/\"; udpv6-csum:valid; dsize:>1; "
                                "msg:\"udpv6-csum keyword check(1)\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result &= 0;
@@ -7071,7 +7068,7 @@ int SigTest32UDPV6Keyword(void)
 
     de_ctx->sig_list->next = SigInit(de_ctx,
                                      "alert udp any any -> any any "
-                                     "(content:\"/one/\"; udpv6-csum:invalid; "
+                                     "(content:\"/one/\"; udpv6-csum:invalid; dsize:>1; "
                                      "msg:\"udpv6-csum keyword check(1)\"; "
                                      "sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
@@ -7300,7 +7297,7 @@ int SigTest34ICMPV4Keyword(void)
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert icmp any any -> any any "
                                "(content:\"/one/\"; icmpv4-csum:valid; "
-                               "msg:\"icmpv4-csum keyword check(1)\"; sid:1;)");
+                               "msg:\"icmpv4-csum keyword check(1)\"; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result &= 0;
         goto end;
@@ -7309,7 +7306,7 @@ int SigTest34ICMPV4Keyword(void)
     de_ctx->sig_list->next = SigInit(de_ctx,
                                      "alert icmp any any -> any any "
                                      "(content:\"/one/\"; icmpv4-csum:invalid; "
-                                     "msg:\"icmpv4-csum keyword check(1)\"; "
+                                     "msg:\"icmpv4-csum keyword check(1)\"; dsize:>1; "
                                      "sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
@@ -7807,7 +7804,7 @@ int SigTest38Real(int mpm_type)
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert tcp any any -> any any "
                                "(content:\"LEN1|20|\"; "
-                               "byte_test:4,=,8,0; "
+                               "byte_test:4,=,8,0; dsize:>1; "
                                "msg:\"byte_test keyword check(1)\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result &= 0;
@@ -7816,7 +7813,7 @@ int SigTest38Real(int mpm_type)
     de_ctx->sig_list->next = SigInit(de_ctx,
                                "alert tcp any any -> any any "
                                "(content:\"LEN1|20|\"; "
-                               "byte_test:4,=,8,5,relative,string,dec; "
+                               "byte_test:4,=,8,5,relative,string,dec; dsize:>1; "
                                "msg:\"byte_test keyword check(2)\"; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         result &= 0;
@@ -7951,7 +7948,7 @@ int SigTest39Real(int mpm_type)
                                "(content:\"LEN1|20|\"; "
                                "byte_test:4,=,8,0; "
                                "byte_jump:4,0; "
-                               "byte_test:6,=,0x4c454e312038,0,relative; "
+                               "byte_test:6,=,0x4c454e312038,0,relative; dsize:>1; "
                                "msg:\"byte_jump keyword check(1)\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result &= 0;
@@ -7963,7 +7960,7 @@ int SigTest39Real(int mpm_type)
                                "(content:\"LEN1|20|\"; "
                                "byte_test:4,=,8,4,relative,string,dec; "
                                "byte_jump:4,4,relative,string,dec,post_offset 2; "
-                               "byte_test:4,=,0x4c454e32,0,relative; "
+                               "byte_test:4,=,0x4c454e32,0,relative; dsize:>1; "
                                "msg:\"byte_jump keyword check(2)\"; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         result &= 0;
@@ -8079,7 +8076,7 @@ int SigTest36ContentAndIsdataatKeywords01Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest36ContentAndIsdataatKeywords01 \"; content:\"HTTP\"; isdataat:404, relative; sid:101;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"SigTest36ContentAndIsdataatKeywords01 \"; content:\"HTTP\"; isdataat:404, relative; dsize:>1; sid:101;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -9290,7 +9287,7 @@ static int SigTestSgh05 (void) {
     de_ctx->flags |= DE_QUIET;
     de_ctx->mpm_matcher = MPM_WUMANBER;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> 1.2.3.4-1.2.3.6 any (msg:\"1\"; content:\"one\"; content:\"1\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> 1.2.3.4-1.2.3.6 any (msg:\"1\"; content:\"one\"; content:\"1\"; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -9345,7 +9342,7 @@ static int SigTestContent01Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -9398,13 +9395,13 @@ static int SigTestContent02Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
 
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 31\"; content:\"0123456789012345678901234567890\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 31\"; content:\"0123456789012345678901234567890\"; dsize:>1; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
@@ -9461,7 +9458,7 @@ static int SigTestContent03Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -9515,7 +9512,7 @@ static int SigTestContent04Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -9570,12 +9567,12 @@ static int SigTestContent05Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("sig1 parse failed: ");
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:1; within:32; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"Test 32\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:1; within:32; dsize:>1; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         printf("sig2 parse failed: ");
         goto end;
@@ -9639,12 +9636,12 @@ static int SigTestContent06Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Test 32 sig1\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Test 32 sig1\"; content:\"01234567890123456789012345678901\"; content:\"abcdefghijklmnopqrstuvwxyzABCDEF\"; distance:0; within:32; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
     }
-    de_ctx->sig_list->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Test 32 sig2\"; content:\"01234567890123456789012345678901\"; content:\"abcdefg\"; sid:2;)");
+    de_ctx->sig_list->next = SigInit(de_ctx,"alert ip any any -> any any (msg:\"Test 32 sig2\"; content:\"01234567890123456789012345678901\"; content:\"abcdefg\"; dsize:>1; sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         result = 0;
         goto end;
@@ -9799,7 +9796,7 @@ static int SigTestWithinReal01 (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"within test\"; content:\"Hi, this is a big test to check \"; content:\"content matches\"; distance:0; within:15; sid:556;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"within test\"; content:\"Hi, this is a big test to check \"; content:\"content matches\"; distance:0; within:15; dsize:>1; sid:556;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -9926,7 +9923,7 @@ static int SigTestDepthOffset01Real (int mpm_type) {
     de_ctx->mpm_matcher = mpm_type;
     de_ctx->flags |= DE_QUIET;
 
-    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"depth offset\"; content:\"456\"; offset:4; depth:3; sid:1;)");
+    de_ctx->sig_list = SigInit(de_ctx,"alert tcp any any -> any any (msg:\"depth offset\"; content:\"456\"; offset:4; depth:3; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
         goto end;
@@ -9976,7 +9973,7 @@ static int SigTestDetectAlertCounter(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any (msg:\"Test counter\"; "
-                               "content:\"boo\"; sid:1;)");
+                               "content:\"boo\"; dsize:>1; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }

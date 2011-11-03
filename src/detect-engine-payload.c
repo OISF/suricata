@@ -539,7 +539,7 @@ static int PayloadTestSig01 (void) {
     Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
     int result = 0;
 
-    char sig[] = "alert tcp any any -> any any (content:\"abc\"; content:\"d\"; distance:0; within:1; sid:1;)";
+    char sig[] = "alert tcp any any -> any any (content:\"abc\"; content:\"d\"; distance:0; within:1; dsize:>1; sid:1;)";
     if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
         result = 0;
         goto end;
@@ -560,7 +560,7 @@ static int PayloadTestSig02 (void) {
     Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
     int result = 0;
 
-    char sig[] = "alert tcp any any -> any any (content:\"abc\"; nocase; content:\"d\"; distance:0; within:1; sid:1;)";
+    char sig[] = "alert tcp any any -> any any (content:\"abc\"; nocase; content:\"d\"; distance:0; within:1; dsize:>1; sid:1;)";
     if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
         result = 0;
         goto end;
@@ -581,7 +581,7 @@ static int PayloadTestSig03 (void) {
     Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
     int result = 0;
 
-    char sig[] = "alert tcp any any -> any any (content:\"aBc\"; nocase; content:\"abca\"; distance:-10; within:4; sid:1;)";
+    char sig[] = "alert tcp any any -> any any (content:\"aBc\"; nocase; content:\"abca\"; distance:-10; within:4; dsize:>1; sid:1;)";
     if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
         result = 0;
         goto end;
@@ -606,7 +606,7 @@ static int PayloadTestSig04(void)
 
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"this\"; content:\"is\"; within:6; content:\"big\"; within:8; "
-        "content:\"string\"; within:8; sid:1;)";
+        "content:\"string\"; within:8; dsize:>1; sid:1;)";
     if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
         result = 0;
         goto end;
@@ -631,7 +631,7 @@ static int PayloadTestSig05(void)
 
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"this\"; content:\"is\"; within:9; content:\"big\"; within:12; "
-        "content:\"string\"; within:8; sid:1;)";
+        "content:\"string\"; within:8; dsize:>1; sid:1;)";
     if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
         result = 0;
         goto end;
@@ -656,7 +656,7 @@ static int PayloadTestSig06(void)
 
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"now\"; content:\"this\"; content:\"is\"; within:12; content:\"big\"; within:8; "
-        "content:\"string\"; within:8; sid:1;)";
+        "content:\"string\"; within:8; dsize:>1; sid:1;)";
     if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
         result = 0;
         goto end;
@@ -680,7 +680,7 @@ static int PayloadTestSig07(void)
     int result = 0;
 
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
-        "content:\"thus\"; offset:8; content:\"is\"; within:6; content:\"big\"; within:8; sid:1;)";
+        "content:\"thus\"; offset:8; content:\"is\"; within:6; content:\"big\"; within:8; dsize:>1; sid:1;)";
 
     if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
         result = 0;
@@ -706,7 +706,7 @@ static int PayloadTestSig08(void)
     int result = 0;
 
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
-        "content:\"fix\"; content:\"this\"; within:6; content:!\"and\"; distance:0; sid:1;)";
+        "content:\"fix\"; content:\"this\"; within:6; content:!\"and\"; distance:0; dsize:>1; sid:1;)";
 
     if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 1) {
         goto end;
@@ -730,7 +730,7 @@ static int PayloadTestSig09(void)
     int result = 0;
 
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
-        "pcre:/super/; content:\"nova\"; within:7; sid:1;)";
+        "pcre:/super/; content:\"nova\"; within:7; dsize:>1; sid:1;)";
 
     if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
         result = 0;
@@ -851,7 +851,7 @@ static int PayloadTestSig13(void)
 
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"aa\"; content:\"aa\"; distance:0; content:\"aa\"; distance:0; "
-        "byte_test:1,>,200,0,relative; sid:1;)";
+        "byte_test:1,>,200,0,relative; dsize:>1; sid:1;)";
 
 #include <sys/time.h>
     struct timeval tv_start, tv_end, tv_diff;
@@ -926,7 +926,7 @@ static int PayloadTestSig14(void)
     Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
     int result = 0;
 
-    char sig[] = "alert tcp any any -> any any (content:\"User-Agent|3A| Mozilla/5.0 |28|Macintosh|3B| \"; content:\"Firefox/3.\"; distance:0; content:!\"Firefox/3.6.12\"; distance:-10; content:!\"Mozilla/5.0 |28|Macintosh|3B| U|3B| Intel Mac OS X 10.5|3B| en-US|3B| rv|3A|1.9.1b4|29| Gecko/20090423 Firefox/3.6 GTB5\"; sid:1; rev:1;)";
+    char sig[] = "alert tcp any any -> any any (content:\"User-Agent|3A| Mozilla/5.0 |28|Macintosh|3B| \"; content:\"Firefox/3.\"; distance:0; content:!\"Firefox/3.6.12\"; distance:-10; content:!\"Mozilla/5.0 |28|Macintosh|3B| U|3B| Intel Mac OS X 10.5|3B| en-US|3B| rv|3A|1.9.1b4|29| Gecko/20090423 Firefox/3.6 GTB5\"; dsize:>1; sid:1; rev:1;)";
 
     //char sig[] = "alert tcp any any -> any any (content:\"User-Agent: Mozilla/5.0 (Macintosh; \"; content:\"Firefox/3.\"; distance:0; content:!\"Firefox/3.6.12\"; distance:-10; content:!\"Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9.1b4) Gecko/20090423 Firefox/3.6 GTB5\"; sid:1; rev:1;)";
 
@@ -949,7 +949,7 @@ static int PayloadTestSig15(void)
     int result = 0;
 
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
-        "content:\"nova\"; isdataat:18,relative; sid:1;)";
+        "content:\"nova\"; isdataat:18,relative; dsize:>1; sid:1;)";
 
     if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
         result = 0;
@@ -972,7 +972,7 @@ static int PayloadTestSig16(void)
     int result = 0;
 
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
-        "content:\"nova\"; isdataat:!20,relative; sid:1;)";
+        "content:\"nova\"; isdataat:!20,relative; dsize:>1; sid:1;)";
 
     if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
         result = 0;
@@ -996,7 +996,7 @@ static int PayloadTestSig17(void)
 
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"%\"; depth:4; offset:0; "
-        "content:\"%\"; within:2; distance:1; sid:1;)";
+        "content:\"%\"; within:2; distance:1; dsize:>1; sid:1;)";
 
     if (UTHPacketMatchSigMpm(p, sig, MPM_B2G) == 0) {
         result = 0;
@@ -1025,7 +1025,7 @@ static int PayloadTestSig18(void)
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"|01 02 03 04|\"; "
         "byte_extract:1,2,one,string,dec,relative; "
-        "content:\"|0C 0D 0E 0F|\"; distance:one; sid:1;)";
+        "content:\"|0C 0D 0E 0F|\"; distance:one; dsize:>1; sid:1;)";
 
     if (UTHPacketMatchSigMpm(p, sig, MPM_AC) == 0) {
         result = 0;
@@ -1054,7 +1054,7 @@ static int PayloadTestSig19(void)
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"|01 02 03 04|\"; "
         "byte_extract:1,2,one,string,hex,relative; "
-        "content:\"|0C 0D 0E 0F|\"; distance:one; sid:1;)";
+        "content:\"|0C 0D 0E 0F|\"; distance:one; dsize:>1; sid:1;)";
 
     if (UTHPacketMatchSigMpm(p, sig, MPM_AC) == 0) {
         result = 0;
@@ -1083,7 +1083,7 @@ static int PayloadTestSig20(void)
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"|01 02 03 04|\"; "
         "byte_extract:1,2,one,string,dec,relative; "
-        "content:\"|06 35 07 08|\"; offset:one; sid:1;)";
+        "content:\"|06 35 07 08|\"; offset:one; dsize:>1; sid:1;)";
 
     if (UTHPacketMatchSigMpm(p, sig, MPM_AC) == 0) {
         result = 0;
@@ -1112,7 +1112,7 @@ static int PayloadTestSig21(void)
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"|01 02 03 04|\"; "
         "byte_extract:1,2,one,string,dec,relative; "
-        "content:\"|03 04 05 06|\"; depth:one; sid:1;)";
+        "content:\"|03 04 05 06|\"; depth:one; dsize:>1; sid:1;)";
 
     if (UTHPacketMatchSigMpm(p, sig, MPM_AC) == 0) {
         result = 0;
@@ -1141,7 +1141,7 @@ static int PayloadTestSig22(void)
     char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
         "content:\"|01 02 03 04|\"; "
         "byte_extract:1,2,one,string,dec,relative; "
-        "content:\"|09 0A 0B 0C|\"; within:one; sid:1;)";
+        "content:\"|09 0A 0B 0C|\"; within:one; dsize:>1; sid:1;)";
 
     if (UTHPacketMatchSigMpm(p, sig, MPM_AC) == 0) {
         result = 0;
@@ -1171,7 +1171,7 @@ static int PayloadTestSig23(void)
         "content:\"|01 02 03 04|\"; "
         "byte_extract:1,2,one,string,dec,relative; "
         "byte_extract:1,3,two,string,dec,relative; "
-        "byte_test:1,=,one,two,string,dec,relative; sid:1;)";
+        "byte_test:1,=,one,two,string,dec,relative; dsize:>1; sid:1;)";
 
     if (UTHPacketMatchSigMpm(p, sig, MPM_AC) == 0) {
         result = 0;
@@ -1201,7 +1201,7 @@ static int PayloadTestSig24(void)
         "content:\"|01 02 03 04|\"; "
         "byte_extract:1,2,one,string,dec,relative; "
         "byte_jump:1,one,string,dec,relative; "
-        "content:\"|0D 0E 0F|\"; distance:0; sid:1;)";
+        "content:\"|0D 0E 0F|\"; distance:0; dsize:>1; sid:1;)";
 
     if (UTHPacketMatchSigMpm(p, sig, MPM_AC) == 0) {
         result = 0;

@@ -602,9 +602,9 @@ int UtilActionTest10(void)
         goto end;
 
     char *sigs[3];
-    sigs[0]= "alert ip any any -> any any (msg:\"sig 1\"; content:\"Hi all\"; sid:1;)";
-    sigs[1]= "pass ip any any -> any any (msg:\"sig 2\"; content:\"wo\"; sid:2;)";
-    sigs[2]= "alert ip any any -> any any (msg:\"sig 3\"; content:\"Hi all\"; sid:3;)";
+    sigs[0]= "alert ip any any -> any any (msg:\"sig 1\"; content:\"Hi all\"; dsize:>1; sid:1;)";
+    sigs[1]= "pass ip any any -> any any (msg:\"sig 2\"; content:\"wo\"; dsize:>1; sid:2;)";
+    sigs[2]= "alert ip any any -> any any (msg:\"sig 3\"; content:\"Hi all\"; dsize:>1; sid:3;)";
 
     uint32_t sid[3] = {1, 2, 3};
 
@@ -686,9 +686,9 @@ int UtilActionTest11(void)
         goto end;
 
     char *sigs[3];
-    sigs[0]= "alert tcp any any -> any any (msg:\"sig 1\"; content:\"Hi all\"; sid:1;)";
-    sigs[1]= "pass tcp any any -> any any (msg:\"sig 2\"; content:\"wo\"; sid:2;)";
-    sigs[2]= "drop tcp any any -> any any (msg:\"sig 3\"; content:\"Hi all\"; sid:3;)";
+    sigs[0]= "alert tcp any any -> any any (msg:\"sig 1\"; content:\"Hi all\"; dsize:>1; sid:1;)";
+    sigs[1]= "pass tcp any any -> any any (msg:\"sig 2\"; content:\"wo\"; dsize:>1; sid:2;)";
+    sigs[2]= "drop tcp any any -> any any (msg:\"sig 3\"; content:\"Hi all\"; dsize:>1; sid:3;)";
 
     uint32_t sid[3] = {1, 2, 3};
 
@@ -847,9 +847,9 @@ int UtilActionTest13(void)
         goto end;
 
     char *sigs[3];
-    sigs[0]= "alert tcp any any -> any any (msg:\"sig 1\"; content:\"Hi all\"; sid:1;)";
-    sigs[1]= "pass tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
-    sigs[2]= "drop tcp any any -> any any (msg:\"sig 3\"; content:\"Hi all\"; sid:3;)";
+    sigs[0]= "alert tcp any any -> any any (msg:\"sig 1\"; content:\"Hi all\"; dsize:>1; sid:1;)";
+    sigs[1]= "pass tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; dsize:>1; sid:2;)";
+    sigs[2]= "drop tcp any any -> any any (msg:\"sig 3\"; content:\"Hi all\"; dsize:>1; sid:3;)";
 
     uint32_t sid[3] = {1, 2, 3};
 
@@ -933,9 +933,9 @@ int UtilActionTest14(void)
         goto end;
 
     char *sigs[3];
-    sigs[0]= "alert tcp any any -> any any (msg:\"sig 1\"; content:\"Hi all\"; sid:1;)";
-    sigs[1]= "pass tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
-    sigs[2]= "drop tcp any any -> any any (msg:\"sig 3\"; content:\"Hi all\"; sid:3;)";
+    sigs[0]= "alert tcp any any -> any any (msg:\"sig 1\"; content:\"Hi all\"; dsize:>1; sid:1;)";
+    sigs[1]= "pass tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; dsize:>1; sid:2;)";
+    sigs[2]= "drop tcp any any -> any any (msg:\"sig 3\"; content:\"Hi all\"; dsize:>1; sid:3;)";
 
     uint32_t sid[3] = {1, 2, 3};
 
@@ -1014,7 +1014,7 @@ int UtilActionTest15(void)
 
     char *sigs[3];
     sigs[0]= "alert tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
-    sigs[1]= "pass tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
+    sigs[1]= "pass tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; dsize:>1; sid:2;)";
     sigs[2]= "drop tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
 
     uint32_t sid[3] = {1, 2, 3};
@@ -1089,7 +1089,7 @@ int UtilActionTest16(void)
 
     char *sigs[3];
     sigs[0]= "drop tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
-    sigs[1]= "alert tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
+    sigs[1]= "alert tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; dsize:>1; sid:2;)";
     sigs[2]= "pass tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
 
     uint32_t sid[3] = {1, 2, 3};
@@ -1164,7 +1164,7 @@ int UtilActionTest17(void)
 
     char *sigs[3];
     sigs[0]= "pass tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
-    sigs[1]= "drop tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
+    sigs[1]= "drop tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; dsize:>1; sid:2;)";
     sigs[2]= "alert tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
 
     uint32_t sid[3] = {1, 2, 3};
@@ -1244,7 +1244,7 @@ int UtilActionTest18(void)
 
     char *sigs[3];
     sigs[0]= "alert tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
-    sigs[1]= "pass tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
+    sigs[1]= "pass tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; dsize:>1; sid:2;)";
     sigs[2]= "drop tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
 
     uint32_t sid[3] = {1, 2, 3};
@@ -1330,7 +1330,7 @@ int UtilActionTest19(void)
 
     char *sigs[3];
     sigs[0]= "drop tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
-    sigs[1]= "alert tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
+    sigs[1]= "alert tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; dsize:>1; sid:2;)";
     sigs[2]= "pass tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
 
     uint32_t sid[3] = {1, 2, 3};
@@ -1416,7 +1416,7 @@ int UtilActionTest20(void)
 
     char *sigs[3];
     sigs[0]= "pass tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
-    sigs[1]= "drop tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
+    sigs[1]= "drop tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; dsize:>1; sid:2;)";
     sigs[2]= "alert tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
 
     uint32_t sid[3] = {1, 2, 3};
@@ -1496,7 +1496,7 @@ int UtilActionTest21(void)
 
     char *sigs[3];
     sigs[0]= "alert tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
-    sigs[1]= "pass tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
+    sigs[1]= "pass tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; dsize:>1; sid:2;)";
     sigs[2]= "drop tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
 
     uint32_t sid[3] = {1, 2, 3};
@@ -1582,7 +1582,7 @@ int UtilActionTest22(void)
 
     char *sigs[3];
     sigs[0]= "drop tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
-    sigs[1]= "alert tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
+    sigs[1]= "alert tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; dsize:>1; sid:2;)";
     sigs[2]= "pass tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
 
     uint32_t sid[3] = {1, 2, 3};
@@ -1668,7 +1668,7 @@ int UtilActionTest23(void)
 
     char *sigs[3];
     sigs[0]= "pass tcp any any -> any any (msg:\"sig 1\"; sid:1;)";
-    sigs[1]= "drop tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; sid:2;)";
+    sigs[1]= "drop tcp any any -> any any (msg:\"sig 2\"; content:\"Hi all\"; dsize:>1; sid:2;)";
     sigs[2]= "alert tcp any any -> any any (msg:\"sig 3\"; sid:3;)";
 
     uint32_t sid[3] = {1, 2, 3};

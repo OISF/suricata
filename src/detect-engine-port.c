@@ -2286,7 +2286,7 @@ int PortTestMatchRealWrp(char *sig, uint32_t sid) {
 int PortTestMatchReal01()
 {
     /* tcp.sport=47370 tcp.dport=80 */
-    char *sig = "alert tcp any any -> any 80 (msg:\"Nothing..\"; content:\"GET\"; sid:1;)";
+    char *sig = "alert tcp any any -> any 80 (msg:\"Nothing..\"; content:\"GET\"; dsize:>1; sid:1;)";
     return PortTestMatchRealWrp(sig, 1);
 }
 
@@ -2296,7 +2296,7 @@ int PortTestMatchReal01()
 int PortTestMatchReal02()
 {
     char *sig = "alert tcp any 47370 -> any any (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                " content:\"GET\"; dsize:>1; sid:1;)";
     return PortTestMatchRealWrp(sig, 1);
 }
 
@@ -2306,7 +2306,7 @@ int PortTestMatchReal02()
 int PortTestMatchReal03()
 {
     char *sig = "alert tcp any 47370 -> any 80 (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                " content:\"GET\"; dsize:>1; sid:1;)";
     return PortTestMatchRealWrp(sig, 1);
 }
 
@@ -2316,7 +2316,7 @@ int PortTestMatchReal03()
 int PortTestMatchReal04()
 {
     char *sig = "alert tcp any any -> any !80 (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                " content:\"GET\"; dsize:>1; sid:1;)";
     return (PortTestMatchRealWrp(sig, 1) == 0)? 1 : 0;
 }
 
@@ -2326,7 +2326,7 @@ int PortTestMatchReal04()
 int PortTestMatchReal05()
 {
     char *sig = "alert tcp any !47370 -> any any (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                " content:\"GET\"; dsize:>1; sid:1;)";
     return (PortTestMatchRealWrp(sig, 1) == 0)? 1 : 0;
 }
 
@@ -2336,7 +2336,7 @@ int PortTestMatchReal05()
 int PortTestMatchReal06()
 {
     char *sig = "alert tcp any !47370 -> any !80 (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                " content:\"GET\"; dsize:>1; sid:1;)";
     return (PortTestMatchRealWrp(sig, 1) == 0)? 1 : 0;
 }
 
@@ -2346,7 +2346,7 @@ int PortTestMatchReal06()
 int PortTestMatchReal07()
 {
     char *sig = "alert tcp any any -> any 70:100 (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                " content:\"GET\"; dsize:>1; sid:1;)";
     return PortTestMatchRealWrp(sig, 1);
 }
 
@@ -2356,7 +2356,7 @@ int PortTestMatchReal07()
 int PortTestMatchReal08()
 {
     char *sig = "alert tcp any 47000:50000 -> any any (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                " content:\"GET\"; dsize:>1; sid:1;)";
     return PortTestMatchRealWrp(sig, 1);
 }
 
@@ -2366,7 +2366,7 @@ int PortTestMatchReal08()
 int PortTestMatchReal09()
 {
     char *sig = "alert tcp any 47000:50000 -> any 70:100 (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                " content:\"GET\"; dsize:>1; sid:1;)";
     return PortTestMatchRealWrp(sig, 1);
 }
 
@@ -2376,7 +2376,7 @@ int PortTestMatchReal09()
 int PortTestMatchReal10()
 {
     char *sig = "alert tcp any any -> any !70:100 (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                " content:\"GET\"; dsize:>1; sid:1;)";
     return (PortTestMatchRealWrp(sig, 1) == 0)? 1 : 0;
 }
 
@@ -2386,7 +2386,7 @@ int PortTestMatchReal10()
 int PortTestMatchReal11()
 {
     char *sig = "alert tcp any !47000:50000 -> any any (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                " content:\"GET\"; dsize:>1; sid:1;)";
     return (PortTestMatchRealWrp(sig, 1) == 0)? 1 : 0;
 }
 
@@ -2396,7 +2396,7 @@ int PortTestMatchReal11()
 int PortTestMatchReal12()
 {
     char *sig = "alert tcp any !47000:50000 -> any !70:100 (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                " content:\"GET\"; dsize:>1; sid:1;)";
     return (PortTestMatchRealWrp(sig, 1) == 0)? 1 : 0;
 }
 
@@ -2406,7 +2406,7 @@ int PortTestMatchReal12()
 int PortTestMatchReal13()
 {
     char *sig = "alert tcp any 47000:50000 -> any !81: (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                " content:\"GET\"; dsize:>1; sid:1;)";
     return PortTestMatchRealWrp(sig, 1);
 }
 
@@ -2416,7 +2416,7 @@ int PortTestMatchReal13()
 int PortTestMatchReal14()
 {
     char *sig = "alert tcp any !48000:50000 -> any :100 (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                " content:\"GET\"; dsize:>1; sid:1;)";
     return PortTestMatchRealWrp(sig, 1);
 }
 
@@ -2426,7 +2426,7 @@ int PortTestMatchReal14()
 int PortTestMatchReal15()
 {
     char *sig = "alert tcp any :50000 -> any 81:100 (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                " content:\"GET\"; dsize:>1; sid:1;)";
     return (PortTestMatchRealWrp(sig, 1) == 0)? 1 : 0;
 }
 
@@ -2436,7 +2436,7 @@ int PortTestMatchReal15()
 int PortTestMatchReal16()
 {
     char *sig = "alert tcp any 100: -> any ![0:79,81:65535] (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                " content:\"GET\"; dsize:>1; sid:1;)";
     return PortTestMatchRealWrp(sig, 1);
 }
 
@@ -2446,7 +2446,7 @@ int PortTestMatchReal16()
 int PortTestMatchReal17()
 {
     char *sig = "alert tcp any ![0:39999,48000:50000] -> any ![0:80,82:65535] "
-                "(msg:\"Nothing..\"; content:\"GET\"; sid:1;)";
+                "(msg:\"Nothing..\"; content:\"GET\"; dsize:>1; sid:1;)";
     return (PortTestMatchRealWrp(sig, 1) == 0)? 1 : 0;
 }
 
@@ -2456,7 +2456,7 @@ int PortTestMatchReal17()
 int PortTestMatchReal18()
 {
     char *sig = "alert tcp any ![0:39999,48000:50000] -> any 80 (msg:\"Nothing"
-                " at all\"; content:\"GET\"; sid:1;)";
+                " at all\"; content:\"GET\"; dsize:>1; sid:1;)";
     return PortTestMatchRealWrp(sig, 1);
 }
 
@@ -2466,7 +2466,7 @@ int PortTestMatchReal18()
 int PortTestMatchReal19()
 {
     char *sig = "alert tcp any any -> any 80 (msg:\"Nothing..\";"
-                " content:\"GET\"; sid:1;)";
+                " content:\"GET\"; dsize:>1; sid:1;)";
     return PortTestMatchRealWrp(sig, 1);
 }
 
