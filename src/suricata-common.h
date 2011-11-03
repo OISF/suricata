@@ -154,6 +154,15 @@
         #endif
     #endif
 
+/** Windows does not define __WORDSIZE, but it uses __X86__ */
+	#if defined(__X86__) || defined(_X86_)
+		#define __WORDSIZE 32
+	#else
+		#if defined(__X86_64__) || defined(_X86_64_)
+			#define __WORDSIZE 64
+		#endif
+	#endif
+
     #ifndef __WORDSIZE
         #warning Defaulting to __WORDSIZE 32
         #define __WORDSIZE 32

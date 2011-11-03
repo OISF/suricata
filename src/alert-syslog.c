@@ -55,7 +55,9 @@
 #define MODULE_NAME                             "AlertSyslog"
 
 extern uint8_t engine_mode;
+#ifndef OS_WIN32
 static int alert_syslog_level = DEFAULT_ALERT_SYSLOG_LEVEL;
+#endif /* OS_WIN32 */
 
 typedef struct AlertSyslogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
@@ -70,7 +72,9 @@ TmEcode AlertSyslogThreadDeinit(ThreadVars *, void *);
 void AlertSyslogExitPrintStats(ThreadVars *, void *);
 void AlertSyslogRegisterTests(void);
 OutputCtx *AlertSyslogInitCtx(ConfNode *);
+#ifndef OS_WIN32
 static void AlertSyslogDeInitCtx(OutputCtx *);
+#endif /* OS_WIN32 */
 
 /** \brief   Function to register the AlertSyslog module */
 void TmModuleAlertSyslogRegister (void) {

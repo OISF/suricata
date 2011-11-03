@@ -121,18 +121,29 @@ ConfNode *
 ConfGetNode(char *key)
 {
     ConfNode *node = root;
+#if !defined(__WIN32) && !defined(_WIN32)
     char *saveptr = NULL;
+#endif /* __WIN32 */
     char *token;
 
     /* Need to dup the key for tokenization... */
     char *tokstr = SCStrdup(key);
 
+#if defined(__WIN32) || defined(_WIN32)
+    token = strtok(tokstr, ".");
+#else
     token = strtok_r(tokstr, ".", &saveptr);
+#endif /* __WIN32 */
     for (;;) {
         node = ConfNodeLookupChild(node, token);
         if (node == NULL)
             break;
+
+#if defined(__WIN32) || defined(_WIN32)
+        token = strtok(NULL, ".");
+#else
         token = strtok_r(NULL, ".", &saveptr);
+#endif /* __WIN32 */
         if (token == NULL)
             break;
     }
@@ -164,8 +175,9 @@ ConfSet(char *name, char *val, int allow_override)
     ConfNode *parent = root;
     ConfNode *node;
     char *token;
+#if !defined(__WIN32) && !defined(_WIN32)
     char *saveptr = NULL;
-
+#endif /* __WIN32 */
     /* First check if the node already exists. */
     node = ConfGetNode(name);
     if (node != NULL) {
@@ -182,7 +194,11 @@ ConfSet(char *name, char *val, int allow_override)
     }
     else {
         char *tokstr = SCStrdup(name);
+#if defined(__WIN32) || defined(_WIN32)
+        token = strtok(tokstr, ".");
+#else
         token = strtok_r(tokstr, ".", &saveptr);
+#endif /* __WIN32 */
         node = ConfNodeLookupChild(parent, token);
         for (;;) {
             if (node == NULL) {
@@ -195,7 +211,11 @@ ConfSet(char *name, char *val, int allow_override)
             else {
                 parent = node;
             }
+#if defined(__WIN32) || defined(_WIN32)
+            token = strtok(NULL, ".");
+#else
             token = strtok_r(NULL, ".", &saveptr);
+#endif /* __WIN32 */
             if (token == NULL) {
                 if (!node->allow_override)
                     break;

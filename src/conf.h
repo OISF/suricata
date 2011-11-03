@@ -45,7 +45,11 @@ typedef struct ConfNode_ {
 /**
  * The default log directory.
  */
+#ifdef OS_WIN32
+#define DEFAULT_LOG_DIR "C:\\WINDOWS\\Temp"
+#else
 #define DEFAULT_LOG_DIR "/var/log/suricata"
+#endif /* OS_WIN32 */
 
 void ConfInit(void);
 void ConfDeInit(void);

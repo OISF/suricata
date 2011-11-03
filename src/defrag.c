@@ -1024,7 +1024,7 @@ DefragTimeoutTracker(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
     while (next != NULL) {
         tracker = HashListTableGetListData(next);
 
-        if (tracker->timeout < (uint)p->ts.tv_sec) {
+        if (tracker->timeout < (unsigned int)p->ts.tv_sec) {
             /* Tracker has timeout out. */
             HashListTableRemove(dc->frag_table, tracker, sizeof(tracker));
             DefragTrackerReset(tracker);

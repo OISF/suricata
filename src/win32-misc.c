@@ -27,8 +27,9 @@
 
 #include "suricata-common.h"
 #include "win32-misc.h"
+#include "direct.h"
 
-int setenv(const char *name, const char *value, int overwrite)
+void setenv(const char *name, const char *value, int overwrite)
 {
 	if (overwrite || NULL == getenv(name)) {
 		char *str = SCMalloc(strlen(name) + strlen(value) + 2);
@@ -38,7 +39,7 @@ int setenv(const char *name, const char *value, int overwrite)
 	}
 }
 
-int unsetenv(const char *name)
+void unsetenv(const char *name)
 {
 	char *str = SCMalloc(strlen(name) + 2);
 	snprintf(str, strlen(name) + 1, "%s=", name);

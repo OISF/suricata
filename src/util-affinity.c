@@ -292,9 +292,9 @@ void AffinitySetupLoadFromConfig()
 int AffinityGetNextCPU(ThreadsAffinityType *taf)
 {
     int ncpu = 0;
-    int iter = 0;
 
 #if !defined OS_WIN32 && !defined __OpenBSD__
+    int iter = 0;
     SCMutexLock(&taf->taf_mutex);
     ncpu = taf->lcpu;
     while (!CPU_ISSET(ncpu, &taf->cpu_set) && iter < 2) {

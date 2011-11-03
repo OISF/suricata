@@ -327,11 +327,19 @@ static void SetBpfStringFromFile(char *filename) {
     char *bpf_comment_tmp = NULL;
     char *bpf_comment_start =  NULL;
     uint32_t bpf_len = 0;
+#ifdef OS_WIN32
+    struct _stat st;
+#else
     struct stat st;
+#endif /* OS_WIN32 */
     FILE *fp = NULL;
     size_t nm = 0;
 
+#ifdef OS_WIN32
+    if(_stat(filename, &st) != 0) {
+#else
     if(stat(filename, &st) != 0) {
+#endif /* OS_WIN32 */
         SCLogError(SC_ERR_FOPEN, "Failed to stat file %s", filename);
         exit(EXIT_FAILURE);
     }
@@ -579,16 +587,22 @@ int main(int argc, char **argv)
     int list_runmodes = 0;
     const char *runmode_custom_mode = NULL;
     int daemon = 0;
+#ifndef OS_WIN32
     char *user_name = NULL;
     char *group_name = NULL;
     uint8_t do_setuid = FALSE;
     uint8_t do_setgid = FALSE;
     uint32_t userid = 0;
     uint32_t groupid = 0;
+#endif /* OS_WIN32 */
     int build_info = 0;
 
     char *log_dir;
+#ifdef OS_WIN32
+    struct _stat buf;
+#else
     struct stat buf;
+#endif /* OS_WIN32 */
 
     sc_set_caps = FALSE;
 
@@ -1083,9 +1097,21 @@ int main(int argc, char **argv)
 
     /* Check for the existance of the default logging directory which we pick
      * from suricata.yaml.  If not found, shut the engine down */
-    if (ConfGet("default-log-dir", &log_dir) != 1)
+    if (ConfGet("default-log-dir", &log_dir) != 1) {
+#ifdef OS_WIN32
+        log_dir = _getcwd(NULL, 0);
+        if (log_dir == NULL) {
+            log_dir = DEFAULT_LOG_DIR;
+        }
+#else
         log_dir = DEFAULT_LOG_DIR;
+#endif /* OS_WIN32 */
+    }
+#ifdef OS_WIN32
+    if (_stat(log_dir, &buf) != 0) {
+#else
     if (stat(log_dir, &buf) != 0) {
+#endif /* OS_WIN32 */
         SCLogError(SC_ERR_LOGDIR_CONFIG, "The logging directory \"%s\" "
                     "supplied by %s (default-log-dir) doesn't exist. "
                     "Shutting down the engine", log_dir, conf_filename);

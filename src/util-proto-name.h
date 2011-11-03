@@ -24,7 +24,11 @@
 #ifndef __UTIL_PROTO_NAME_H__
 #define	__UTIL_PROTO_NAME_H__
 
-#define PROTO_FILE  "/etc/protocols"
+#ifndef OS_WIN32
+#define PROTO_FILE    "/etc/protocols"
+#else
+#define PROTO_FILE    "C:\\Windows\\system32\\drivers\\etc\\protocol"
+#endif /* OS_WIN32 */
 
 /** Lookup array to hold the information related to known protocol
  *  in /etc/protocols */

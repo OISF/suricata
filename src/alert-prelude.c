@@ -224,13 +224,13 @@ static int EventToImpact(PacketAlert *pa, Packet *p, idmef_alert_t *alert)
     if ( ret < 0 )
         SCReturnInt(ret);
 
-    if ( (uint)pa->s->prio < mid_priority )
+    if ( (unsigned int)pa->s->prio < mid_priority )
         severity = IDMEF_IMPACT_SEVERITY_HIGH;
 
-    else if ( (uint)pa->s->prio < low_priority )
+    else if ( (unsigned int)pa->s->prio < low_priority )
         severity = IDMEF_IMPACT_SEVERITY_MEDIUM;
 
-    else if ( (uint)pa->s->prio < info_priority )
+    else if ( (unsigned int)pa->s->prio < info_priority )
         severity = IDMEF_IMPACT_SEVERITY_LOW;
 
     else
