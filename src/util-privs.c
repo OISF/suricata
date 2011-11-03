@@ -69,15 +69,23 @@ void SCDropMainThreadCaps(uint32_t userid, uint32_t groupid)
 
     capng_clear(CAPNG_SELECT_BOTH);
 
-    if (run_mode == RUNMODE_PFRING || run_mode == RUNMODE_NFQ) {
-        capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
-                      CAP_NET_RAW,            /* needed for pcap live mode */
-                      CAP_NET_ADMIN,          /* needed for nfqueue inline mode */
-                      -1);
-    } else if (run_mode == RUNMODE_PCAP_DEV || run_mode == RUNMODE_AFP_DEV) {
-        capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
-                      CAP_NET_RAW,            /* needed for pcap live mode */
-                      -1);
+    switch (run_mode) {
+        case RUNMODE_PCAP_DEV:
+        case RUNMODE_AFP_DEV:
+            capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
+                    CAP_NET_RAW,            /* needed for pcap live mode */
+                    -1);
+            break;
+        case RUNMODE_PFRING:
+            capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
+                    CAP_NET_ADMIN,
+                    -1);
+            break;
+        case RUNMODE_NFQ:
+            capng_updatev(CAPNG_ADD, CAPNG_EFFECTIVE|CAPNG_PERMITTED,
+                    CAP_NET_ADMIN,          /* needed for nfqueue inline mode */
+                    -1);
+            break;
     }
 
     if (capng_change_id(userid, groupid, CAPNG_DROP_SUPP_GRP |
