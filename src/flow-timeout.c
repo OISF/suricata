@@ -562,7 +562,7 @@ void FlowForceReassemblySetup(void)
         stream_pseudo_pkt_detect_TV = NULL;
     }
 
-    stream_pseudo_pkt_decode_tm_slot = TmThreadGetFirstTmSlotForPartialPattern("decode");
+    stream_pseudo_pkt_decode_tm_slot = TmThreadGetFirstTmSlotForPartialPattern("Decode");
     if (stream_pseudo_pkt_decode_tm_slot == NULL) {
         /* yes, this is fatal! */
         SCLogError(SC_ERR_TM_MODULES_ERROR, "Looks like we have failed to "

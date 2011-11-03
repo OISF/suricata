@@ -1464,7 +1464,7 @@ TmSlot *TmThreadGetFirstTmSlotForPartialPattern(const char *tm_name)
         while (slots != NULL) {
             TmModule *tm = TmModuleGetById(slots->tm_id);
 
-            char *found = strcasestr(tm->name, tm_name);
+            char *found = strstr(tm->name, tm_name);
             if (found != NULL)
                 goto end;
 
