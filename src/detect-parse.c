@@ -1352,6 +1352,22 @@ static int SigValidate(Signature *s) {
     }
 
     if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
+        SigMatch *pm =  SigMatchGetLastSMFromLists(s, 14,
+                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
+                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
+                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
+                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
+                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]);
+        if (pm != NULL) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature has"
+                " replace keyword linked with a modified content"
+                " keyword (http_*, dce_*). It only supports content on"
+                " raw payload");
+            SCReturnInt(0);
+        }
+
         if (s->sm_lists_tail[DETECT_SM_LIST_UMATCH] ||
             s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH] ||
             s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH] ||
