@@ -66,13 +66,13 @@ enum {
 
 typedef struct ThreadsAffinityType_ {
     char *name;
-#if !defined OS_WIN32 && !defined __OpenBSD__
+#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__
     cpu_set_t cpu_set;
 #endif
     uint8_t mode_flag;
     int prio;
     int nb_threads;
-#if !defined OS_WIN32 && !defined __OpenBSD__
+#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__
     cpu_set_t lowprio_cpu;
     cpu_set_t medprio_cpu;
     cpu_set_t hiprio_cpu;

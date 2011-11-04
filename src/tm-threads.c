@@ -878,9 +878,9 @@ TmSlot *TmSlotGetSlotForTM(int tm_id)
     return NULL;
 }
 
-#if !defined OS_WIN32 && !defined __OpenBSD__
+#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__
 static int SetCPUAffinitySet(cpu_set_t *cs) {
-#if  defined OS_FREEBSD
+#if defined OS_FREEBSD
     int r = cpuset_setaffinity(CPU_LEVEL_WHICH, CPU_WHICH_TID,
                                SCGetThreadIdLong(), sizeof(cpu_set_t),cs);
 #elif OS_DARWIN
@@ -911,6 +911,7 @@ static int SetCPUAffinitySet(cpu_set_t *cs) {
  */
 static int SetCPUAffinity(uint16_t cpuid)
 {
+#ifndef __CYGWIN__
 #if !defined __OpenBSD__
     int cpu = (int)cpuid;
 #endif
@@ -940,6 +941,7 @@ static int SetCPUAffinity(uint16_t cpuid)
 #elif !defined __OpenBSD__
     return SetCPUAffinitySet(&cs);
 #endif /* OS_WIN32 */
+#endif
 }
 
 
@@ -964,6 +966,7 @@ TmEcode TmThreadSetThreadPriority(ThreadVars *tv, int prio)
 void TmThreadSetPrio(ThreadVars *tv)
 {
     SCEnter();
+#ifndef __CYGWIN__
 #ifdef OS_WIN32
 	if (0 == SetThreadPriority(GetCurrentThread(), tv->thread_priority)) {
         SCLogError(SC_ERR_THREAD_NICE_PRIO, "Error setting priority for "
@@ -982,6 +985,7 @@ void TmThreadSetPrio(ThreadVars *tv)
                    tv->thread_priority, tv->name);
     }
 #endif /* OS_WIN32 */
+#endif
     SCReturn;
 }
 
@@ -1044,7 +1048,7 @@ TmEcode TmThreadSetupOptions(ThreadVars *tv)
         SetCPUAffinity(tv->cpu_affinity);
     }
 
-#if !defined OS_WIN32 && !defined __OpenBSD__
+#if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__
     if (tv->thread_setup_flags & THREAD_SET_PRIORITY)
         TmThreadSetPrio(tv);
     if (tv->thread_setup_flags & THREAD_SET_AFFTYPE) {

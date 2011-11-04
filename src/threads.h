@@ -109,6 +109,11 @@ enum {
     u_long tid = (u_long)tpid; \
     tid; \
 })
+#elif __CYGWIN__
+#define SCGetThreadIdLong(...) ({ \
+    u_long tid = (u_long)GetCurrentThreadId(); \
+	tid; \
+})
 #elif OS_WIN32
 #define SCGetThreadIdLong(...) ({ \
     u_long tid = (u_long)GetCurrentThreadId(); \
