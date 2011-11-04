@@ -224,6 +224,8 @@ util-cuda-handlers.c util-cuda-handlers.h \
 util-optimize.h \
 util-privs.c util-privs.h \
 util-decode-asn1.c util-decode-asn1.h \
+util-decode-der.c util-decode-der.h \
+util-decode-der-get.c util-decode-der-get.h \
 util-ringbuffer.c util-ringbuffer.h \
 util-validate.h util-affinity.h util-affinity.c \
 util-memcmp.c util-memcmp.h \
