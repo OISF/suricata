@@ -101,7 +101,6 @@ extern int max_pending_packets;
  */
 typedef struct IPFWThreadVars_
 {
-
     /* data link type for the thread, probably not needed */
     int datalink;
 
@@ -111,7 +110,6 @@ typedef struct IPFWThreadVars_
     uint32_t errs;
     uint32_t accepted;
     uint32_t dropped;
-
 } IPFWThreadVars;
 
 /* Global socket handler for the divert socket */
@@ -187,7 +185,8 @@ void TmModuleDecodeIPFWRegister (void) {
  * \param pq pointer to the PacketQueue (not used here but part of the api)
  * \retval TM_ECODE_FAILED on failure and TM_ECODE_OK on success
  */
-TmEcode ReceiveIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
+TmEcode ReceiveIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+{
     IPFWThreadVars *ptv = (IPFWThreadVars *)data;
     char pkt[IP_MAXPACKET];
     int pktlen=0;
@@ -213,7 +212,7 @@ TmEcode ReceiveIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
         /* Poll the socket for status */
         if ( (poll(&IPFWpoll,1,IPFW_SOCKET_POLL_MSEC)) > 0) {
             if ( IPFWpoll.revents & (POLLRDNORM | POLLERR) )
-		r++;
+                r++;
         }
 
     } /* end while */
@@ -276,8 +275,8 @@ TmEcode ReceiveIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
  * \param data pointer gets populated with IPFWThreadVars
  *
  */
-TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, void *initdata, void **data) {
-
+TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, void *initdata, void **data)
+{
     struct timeval timev;
 
     uint16_t divert_port=0;
@@ -290,13 +289,12 @@ TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, void *initdata, void **data) {
     SCEnter();
 
     /* divert socket port to listen/send on */
-    if ( (ConfGet("ipfw.ipfw_divert_port", &tmpdivertport)) != 1 ) {
+    if ((ConfGet("ipfw.ipfw_divert_port", &tmpdivertport)) != 1) {
         SCLogError(SC_ERR_IPFW_NOPORT,"Please supply an IPFW divert port");
         SCReturnInt(TM_ECODE_FAILED);
 
     } else {
-
-	if (atoi(tmpdivertport) > 0 && atoi(tmpdivertport) <= 65535) {
+        if (atoi(tmpdivertport) > 0 && atoi(tmpdivertport) <= 65535) {
             divert_port = (uint16_t)atoi(tmpdivertport);
             SCLogInfo("Using IPFW divert port %u",divert_port);
 
@@ -324,7 +322,7 @@ TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, void *initdata, void **data) {
     timev.tv_sec = 1;
     timev.tv_usec = 0;
 
-    if(setsockopt(ipfw_sock, SOL_SOCKET, SO_RCVTIMEO, &timev, sizeof(timev)) == -1) {
+    if (setsockopt(ipfw_sock, SOL_SOCKET, SO_RCVTIMEO, &timev, sizeof(timev)) == -1) {
         SCLogWarning(SC_WARN_IPFW_SETSOCKOPT,"Can't set IPFW divert socket timeout: %s", strerror(errno));
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -354,7 +352,8 @@ TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, void *initdata, void **data) {
  * \param tv pointer to ThreadVars
  * \param data pointer that gets cast into IPFWThreadVars for ptv
  */
-void ReceiveIPFWThreadExitStats(ThreadVars *tv, void *data) {
+void ReceiveIPFWThreadExitStats(ThreadVars *tv, void *data)
+{
     IPFWThreadVars *ptv = (IPFWThreadVars *)data;
 
     SCEnter();
@@ -370,13 +369,14 @@ void ReceiveIPFWThreadExitStats(ThreadVars *tv, void *data) {
  * \param tv pointer to ThreadVars
  * \param data pointer that gets cast into IPFWThreadVars for ptv
  */
-TmEcode ReceiveIPFWThreadDeinit(ThreadVars *tv, void *data) {
+TmEcode ReceiveIPFWThreadDeinit(ThreadVars *tv, void *data)
+{
     IPFWThreadVars *ptv = (IPFWThreadVars *)data;
 
     SCEnter();
 
     /* Attempt to shut the socket down...close instead? */
-    if ( (shutdown(ipfw_sock,SHUT_RD)) < 0 ) {
+    if (shutdown(ipfw_sock,SHUT_RD) < 0) {
         SCLogWarning(SC_WARN_IPFW_UNBIND,"Unable to disable ipfw socket: %s",strerror(errno));
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -460,7 +460,8 @@ TmEcode DecodeIPFWThreadInit(ThreadVars *tv, void *initdata, void **data)
  * \param tv pointer to ThreadVars
  * \param p pointer to the Packet
  */
-TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p) {
+TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
+{
     uint32_t verdict;
     struct pollfd IPFWpoll;
 
@@ -487,7 +488,6 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p) {
 
 
         while ( (poll(&IPFWpoll,1,IPFW_SOCKET_POLL_MSEC)) < 1) {
-
             /* Did we receive a signal to shutdown */
             if (TmThreadsCheckFlag(tv, THV_KILL) || TmThreadsCheckFlag(tv, THV_PAUSE)) {
                 SCLogInfo("Received ThreadShutdown: IPFW divert socket writing interrupted");
@@ -513,7 +513,7 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p) {
         SCLogDebug("IPFW SetVerdict is to DROP");
         ptv->dropped++;
 
-        /* For divert sockets, dropping means not writing the packet back to the socket.
+        /** \todo For divert sockets, dropping means not writing the packet back to the socket.
          * Need to see if there is some better way to free the packet from the queue */
 
     } /* end IPFW_DROP */
@@ -532,7 +532,8 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p) {
  * \param data pointer that gets cast into IPFWThreadVars for ptv
  * \param pq pointer for the Packet Queue access (Not used)
  */
-TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
+TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+{
     IPFWThreadVars *ptv = (IPFWThreadVars *)data;
     TmEcode retval = TM_ECODE_OK;
 
@@ -569,14 +570,13 @@ TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
             SCLogDebug("Setting verdict on tunnel");
             retval=IPFWSetVerdict(tv, ptv, p->root ? p->root : p);
 
-        } else
+        } else {
             TUNNEL_INCR_PKT_RTV(p);
-
+        }
     } else {
         /* no tunnel, verdict normally */
         SCLogDebug("Setting verdict on non-tunnel");
         retval=IPFWSetVerdict(tv, ptv, p);
-
     } /* IS_TUNNEL_PKT end */
 
     SCReturnInt(retval);
@@ -590,7 +590,8 @@ TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
  * \param initdata pointer for passing in args
  * \param data pointer that gets cast into IPFWThreadVars for ptv
  */
-TmEcode VerdictIPFWThreadInit(ThreadVars *tv, void *initdata, void **data) {
+TmEcode VerdictIPFWThreadInit(ThreadVars *tv, void *initdata, void **data)
+{
 
     IPFWThreadVars *ptv = NULL;
 
@@ -614,7 +615,8 @@ TmEcode VerdictIPFWThreadInit(ThreadVars *tv, void *initdata, void **data) {
  * \param tv pointer to ThreadVars
  * \param data pointer that gets cast into IPFWThreadVars for ptv
  */
-TmEcode VerdictIPFWThreadDeinit(ThreadVars *tv, void *data) {
+TmEcode VerdictIPFWThreadDeinit(ThreadVars *tv, void *data)
+{
 
     SCEnter();
 
@@ -631,7 +633,8 @@ TmEcode VerdictIPFWThreadDeinit(ThreadVars *tv, void *data) {
  * \param tv pointer to ThreadVars
  * \param data pointer that gets cast into IPFWThreadVars for ptv
  */
-void VerdictIPFWThreadExitStats(ThreadVars *tv, void *data) {
+void VerdictIPFWThreadExitStats(ThreadVars *tv, void *data)
+{
     IPFWThreadVars *ptv = (IPFWThreadVars *)data;
     SCLogInfo("IPFW Processing: - (%s) Pkts accepted %" PRIu32 ", dropped %" PRIu32 "", tv->name, ptv->accepted, ptv->dropped);
 }
