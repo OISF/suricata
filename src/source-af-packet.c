@@ -413,11 +413,6 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
         SCPerfSyncCountersIfSignalled(tv, 0);
     }
 
-    if (suricata_ctl_flags & SURICATA_STOP ||
-            suricata_ctl_flags & SURICATA_KILL) {
-        SCReturnInt(TM_ECODE_OK);
-    }
-
     SCReturnInt(TM_ECODE_OK);
 }
 
