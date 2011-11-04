@@ -42,7 +42,9 @@ typedef struct PcapPacketVars_
 {
 } PcapPacketVars;
 
-#define PCAP_IFACE_NAME_LENGTH 48
+/** needs to be able to contain Windows adapter id's, so
+ *  must be quite long. */
+#define PCAP_IFACE_NAME_LENGTH 128
 
 typedef struct PcapIfaceConfig_
 {
