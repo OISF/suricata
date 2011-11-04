@@ -98,7 +98,8 @@ void *ParsePcapConfig(const char *iface)
 
     aconf->buffer_size = 0;
     /* If set command line option has precedence over config */
-    if ((ConfGetInt("pcap.buffer_size", &value)) == 1) {
+    if ((ConfGetInt("pcap.buffer-size", &value)) == 1) {
+        SCLogInfo("Pcap will use %d buffer size");
         aconf->buffer_size = value;
     }
 
@@ -129,6 +130,7 @@ void *ParsePcapConfig(const char *iface)
     if (aconf->buffer_size == 0) {
         if ((ConfGetChildValueInt(if_root, "buffer-size", &value)) == 1) {
             aconf->buffer_size = value;
+            SCLogInfo("Pcap will use %d buffer size (config file provided value)");
         }
     }
 
