@@ -25,6 +25,7 @@
 
 int RunModeIpsNFQAuto(DetectEngineCtx *);
 int RunModeIpsNFQAutoFp(DetectEngineCtx *);
+int RunModeIpsNFQWorker(DetectEngineCtx *);
 void RunModeIpsNFQRegister(void);
 const char *RunModeIpsNFQGetDefaultMode(void);
 
