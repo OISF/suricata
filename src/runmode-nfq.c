@@ -50,6 +50,9 @@ void RunModeIpsNFQRegister(void)
                               "Multi threaded NFQ IPS mode",
                               RunModeIpsNFQAuto);
 
+    RunModeRegisterNewRunMode(RUNMODE_NFQ, "autofp",
+                              "Multi threaded NFQ IPS mode with respect to flow",
+                              RunModeIpsNFQAutoFp);
     return;
 }
 
@@ -83,6 +86,26 @@ int RunModeIpsNFQAuto(DetectEngineCtx *de_ctx)
     TimeModeSetLive();
 
     ret = RunModeSetIPSAuto(de_ctx,
+            NFQGetThread,
+            "ReceiveNFQ",
+            "VerdictNFQ",
+            "DecodeNFQ");
+#endif /* NFQ */
+    return ret;
+}
+
+
+int RunModeIpsNFQAutoFp(DetectEngineCtx *de_ctx)
+{
+    SCEnter();
+    int ret = 0;
+#ifdef NFQ
+
+    RunModeInitialize();
+
+    TimeModeSetLive();
+
+    ret = RunModeSetIPSAutoFp(de_ctx,
             NFQGetThread,
             "ReceiveNFQ",
             "VerdictNFQ",

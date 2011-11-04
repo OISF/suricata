@@ -41,7 +41,6 @@
 #include "conf.h"
 #include "config.h"
 #include "conf-yaml-loader.h"
-#include "source-nfq.h"
 #include "source-nfq-prototypes.h"
 #include "action-globals.h"
 
@@ -50,6 +49,8 @@
 #include "util-byte.h"
 #include "util-privs.h"
 #include "util-device.h"
+
+#include "source-nfq.h"
 
 #ifndef NFQ
 /** Handle the case where no NFQ support is compiled in.
@@ -114,6 +115,16 @@ int already_seen_warning;
 //#define NFQ_DFT_QUEUE_LEN NFQ_BURST_FACTOR * MAX_PENDING
 //#define NFQ_NF_BUFSIZE 1500 * NFQ_DFT_QUEUE_LEN
 
+typedef struct NFQThreadVars_
+{
+    uint16_t nfq_index;
+    ThreadVars *tv;
+    TmSlot *slot;
+
+    char *data; /** Per function and thread data */
+    int datalen; /** Length of per function and thread data */
+
+} NFQThreadVars;
 /* shared vars for all for nfq queues and threads */
 static NFQGlobalVars nfq_g;
 
@@ -123,6 +134,7 @@ static uint16_t receive_queue_num = 0;
 static SCMutex nfq_init_lock;
 
 TmEcode ReceiveNFQ(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode ReceiveNFQLoop(ThreadVars *tv, void *data, void *slot);
 TmEcode ReceiveNFQThreadInit(ThreadVars *, void *, void **);
 TmEcode ReceiveNFQThreadDeinit(ThreadVars *, void *);
 void ReceiveNFQThreadExitStats(ThreadVars *, void *);
@@ -157,6 +169,7 @@ void TmModuleReceiveNFQRegister (void) {
     tmm_modules[TMM_RECEIVENFQ].name = "ReceiveNFQ";
     tmm_modules[TMM_RECEIVENFQ].ThreadInit = ReceiveNFQThreadInit;
     tmm_modules[TMM_RECEIVENFQ].Func = ReceiveNFQ;
+    tmm_modules[TMM_RECEIVENFQ].PktAcqLoop = ReceiveNFQLoop;
     tmm_modules[TMM_RECEIVENFQ].ThreadExitPrintStats = ReceiveNFQThreadExitStats;
     tmm_modules[TMM_RECEIVENFQ].ThreadDeinit = ReceiveNFQThreadDeinit;
     tmm_modules[TMM_RECEIVENFQ].RegisterTests = NULL;
@@ -341,8 +354,15 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
     nfq_q->bytes += GET_PKT_LEN(p);
 #endif /* COUNTERS */
 
-    /* pass on... */
-    tv->tmqh_out(tv, p);
+    if (ntv->slot) {
+        if (TmThreadsSlotProcessPkt(tv, ntv->slot, p) != TM_ECODE_OK) {
+            TmqhOutputPacketpool(ntv->tv, p);
+            return -1;
+        }
+    } else {
+        /* pass on... */
+        tv->tmqh_out(tv, p);
+    }
 
     return 0;
 }
@@ -764,6 +784,28 @@ process_rv:
     }
 }
 #endif /* OS_WIN32 */
+
+/**
+ *  \brief Main NFQ reading Loop function
+ */
+TmEcode ReceiveNFQLoop(ThreadVars *tv, void *data, void *slot)
+{
+    SCEnter();
+    NFQThreadVars *ntv = (NFQThreadVars *)data;
+    NFQQueueVars *nq = NFQGetQueue(ntv->nfq_index);
+
+    ntv->slot = ((TmSlot *) slot)->slot_next;
+
+    while(1) {
+        if (suricata_ctl_flags != 0) {
+            break;
+        }
+        NFQRecvPkt(nq, ntv);
+
+        SCPerfSyncCountersIfSignalled(tv, 0);
+    }
+    SCReturnInt(TM_ECODE_OK);
+}
 
 /**
  * \brief NFQ receive module main entry function: receive a packet from NFQ

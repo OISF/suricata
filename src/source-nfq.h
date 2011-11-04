@@ -50,16 +50,6 @@ typedef struct NFQPacketVars_
     uint16_t hw_protocol;
 } NFQPacketVars;
 
-typedef struct NFQThreadVars_
-{
-    uint16_t nfq_index;
-    ThreadVars *tv;
-
-    char *data; /** Per function and thread data */
-    int datalen; /** Length of per function and thread data */
-
-} NFQThreadVars;
-
 typedef struct NFQQueueVars_
 {
     struct nfq_handle *h;
