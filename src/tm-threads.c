@@ -537,7 +537,11 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
         TmThreadSetupOptions(tv);
 
     /* check if we are setup properly */
-    if (s == NULL || tv->tmqh_in == NULL || tv->tmqh_out == NULL) {
+    if (s == NULL || s->PktAcqLoop == NULL || tv->tmqh_in == NULL || tv->tmqh_out == NULL) {
+        SCLogError(SC_ERR_FATAL, "TmSlot or ThreadVars badly setup: s=%p,"
+                                 " PktAcqLoop=%p, tmqh_in=%p,"
+                                 " tmqh_out=%p",
+                   s, s->PktAcqLoop, tv->tmqh_in, tv->tmqh_out);
         EngineKill();
 
         TmThreadsSetFlag(tv, THV_CLOSED);
