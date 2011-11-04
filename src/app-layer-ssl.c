@@ -128,17 +128,10 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
         case SSLV3_HS_SERVER_HELLO:
             ssl_state->flags |= SSL_AL_FLAG_STATE_SERVER_HELLO;
 
-            switch (ssl_state->bytes_processed) {
-                case 9:
-                    ssl_state->bytes_processed++;
-                    ssl_state->handshake_server_hello_ssl_version = *(input++) << 8;
-                    if (--input_len == 0)
-                        break;
-                case 10:
-                    ssl_state->bytes_processed++;
-                    ssl_state->handshake_server_hello_ssl_version |= *(input++);
-                    if (--input_len == 0)
-                        break;
+            rc = DecodeTLSHandshakeServerHello(ssl_state, input, input_len);
+            if (rc >= 0) {
+                ssl_state->bytes_processed += rc;
+                input += rc;
             }
             break;
 

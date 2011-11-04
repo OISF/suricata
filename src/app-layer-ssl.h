@@ -93,6 +93,10 @@ typedef struct SSLState_ {
     /* sslv2 client hello session id length */
     uint16_t session_id_length;
 
+    /* the ciphersuite, chosen by the server */
+    uint16_t ciphersuite;
+    uint8_t compressionmethod;
+
     char *cert0_subject;
 
     /* buffer for the tls record.

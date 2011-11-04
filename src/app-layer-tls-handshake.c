@@ -49,6 +49,45 @@
 
 #define SSLV3_RECORD_LEN 5
 
+int DecodeTLSHandshakeServerHello(SSLState *ssl_state, uint8_t *input, uint32_t input_len)
+{
+    uint32_t version, length, ciphersuite;
+    uint8_t compressionmethod;
+
+    if (input_len < 40)
+        return -1;
+
+    version = input[0]<<8 | input[1];
+    ssl_state->handshake_server_hello_ssl_version = version;
+
+    input += 2;
+    input_len -= 2;
+
+    /* skip the random field */
+    input += 32;
+
+    /* skip the session ID */
+    length = input[0];
+    input += 1 + length;
+
+    ciphersuite = input[0]<<8 | input[1];
+    ssl_state->ciphersuite = ciphersuite;
+
+    input += 2;
+
+    compressionmethod = input[0];
+    ssl_state->compressionmethod = compressionmethod;
+
+    input += 1;
+
+    /* extensions (like renegotiation) */
+
+    SCLogDebug("TLS Handshake Version %.4x Cipher %d Compression %d\n", version, ciphersuite, compressionmethod);
+
+    /* return the message length (TLS record - (handshake type + length)) */
+    return ssl_state->record_length-4;
+}
+
 int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uint32_t input_len)
 {
     uint32_t certificates_length, cur_cert_length;
