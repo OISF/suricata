@@ -59,8 +59,6 @@ void TmModuleReceiveIPFWRegister (void) {
     tmm_modules[TMM_RECEIVEIPFW].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_RECEIVEIPFW].ThreadDeinit = NULL;
     tmm_modules[TMM_RECEIVEIPFW].RegisterTests = NULL;
-    tmm_modules[TMM_RECEIVEIPFW].cap_flags = SC_CAP_NET_ADMIN | SC_CAP_NET_RAW |
-        SC_CAP_NET_BIND_SERVICE | SC_CAP_NET_BROADCAST; /** \todo untested */
     tmm_modules[TMM_RECEIVEIPFW].flags = TM_FLAG_RECEIVE_TM;
 }
 
@@ -71,8 +69,6 @@ void TmModuleVerdictIPFWRegister (void) {
     tmm_modules[TMM_VERDICTIPFW].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_VERDICTIPFW].ThreadDeinit = NULL;
     tmm_modules[TMM_VERDICTIPFW].RegisterTests = NULL;
-    tmm_modules[TMM_VERDICTIPFW].cap_flags = SC_CAP_NET_ADMIN | SC_CAP_NET_RAW |
-        SC_CAP_NET_BIND_SERVICE; /** \todo untested */
 }
 
 void TmModuleDecodeIPFWRegister (void) {
@@ -143,6 +139,9 @@ void TmModuleReceiveIPFWRegister (void) {
     tmm_modules[TMM_RECEIVEIPFW].Func = ReceiveIPFW;
     tmm_modules[TMM_RECEIVEIPFW].ThreadExitPrintStats = ReceiveIPFWThreadExitStats;
     tmm_modules[TMM_RECEIVEIPFW].ThreadDeinit = ReceiveIPFWThreadDeinit;
+    tmm_modules[TMM_RECEIVEIPFW].cap_flags = SC_CAP_NET_ADMIN | SC_CAP_NET_RAW |
+                                             SC_CAP_NET_BIND_SERVICE |
+                                             SC_CAP_NET_BROADCAST; /** \todo untested */
     tmm_modules[TMM_RECEIVEIPFW].RegisterTests = NULL;
 }
 
@@ -156,6 +155,8 @@ void TmModuleVerdictIPFWRegister (void) {
     tmm_modules[TMM_VERDICTIPFW].Func = VerdictIPFW;
     tmm_modules[TMM_VERDICTIPFW].ThreadExitPrintStats = VerdictIPFWThreadExitStats;
     tmm_modules[TMM_VERDICTIPFW].ThreadDeinit = VerdictIPFWThreadDeinit;
+    tmm_modules[TMM_VERDICTIPFW].cap_flags = SC_CAP_NET_ADMIN | SC_CAP_NET_RAW |
+                                             SC_CAP_NET_BIND_SERVICE; /** \todo untested */
     tmm_modules[TMM_VERDICTIPFW].RegisterTests = NULL;
 }
 
