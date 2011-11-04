@@ -19,6 +19,7 @@
  * \file
  *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
+ * \author Pierre Chifflier <pierre.chifflier@ssi.gouv.fr>
  *
  */
 
@@ -38,6 +39,8 @@
 #include "app-layer-protos.h"
 #include "app-layer-parser.h"
 #include "app-layer-ssl.h"
+
+#include "app-layer-tls-handshake.h"
 
 #include "conf.h"
 
@@ -98,6 +101,7 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
 {
     uint8_t *initial_input = input;
     uint32_t parsed = 0;
+    int rc;
 
     if (input_len == 0) {
         return 0;
@@ -146,8 +150,37 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
             ssl_state->flags |= SSL_AL_FLAG_STATE_CLIENT_KEYX;
             break;
 
-        case SSLV3_HS_HELLO_REQUEST:
         case SSLV3_HS_CERTIFICATE:
+            if (ssl_state->trec == NULL) {
+                ssl_state->trec_len = 2 * ssl_state->record_length + SSLV3_RECORD_LEN + 1;
+                ssl_state->trec = SCMalloc( ssl_state->trec_len );
+            }
+            if (ssl_state->trec_pos + input_len >= ssl_state->trec_len) {
+                ssl_state->trec_len = ssl_state->trec_len + 2 * input_len + 1;
+                ssl_state->trec = SCRealloc( ssl_state->trec, ssl_state->trec_len );
+            }
+            if (ssl_state->trec == NULL) {
+                ssl_state->trec_len = 0;
+                /* error, skip packet */
+                parsed += input_len;
+                ssl_state->bytes_processed += input_len;
+                break;
+            }
+            memcpy(ssl_state->trec + ssl_state->trec_pos, initial_input, input_len);
+            ssl_state->trec_pos += input_len;
+
+            rc = DecodeTLSHandshakeServerCertificate(ssl_state, ssl_state->trec, ssl_state->trec_pos);
+            if (rc > 0) {
+                /* packet is incomplete - do not mark as parsed */
+            }
+            if (rc < 0) {
+                /* error, skip packet */
+                parsed += input_len;
+                ssl_state->bytes_processed += input_len;
+                return parsed;
+            }
+            break;
+        case SSLV3_HS_HELLO_REQUEST:
         case SSLV3_HS_CERTIFICATE_REQUEST:
         case SSLV3_HS_CERTIFICATE_VERIFY:
         case SSLV3_HS_FINISHED:
@@ -188,6 +221,7 @@ static int SSLv3ParseHandshakeProtocol(SSLState *ssl_state, uint8_t *input,
         case 5:
             if (input_len >= 4) {
                 ssl_state->handshake_type = *(input++);
+                // XXX we should *not* skip the next 3 bytes, they contain the Message length
                 input += 3;
                 input_len -= 4;
                 ssl_state->bytes_processed += 4;
@@ -431,7 +465,7 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
 
     switch (ssl_state->cur_content_type) {
         case SSLV2_MT_ERROR:
-            SCLogWarning(SC_ERR_ALPARSER, "SSLV2_MT_ERROR msg_type recived.  "
+            SCLogWarning(SC_ERR_ALPARSER, "SSLV2_MT_ERROR msg_type received.  "
                          "Error encountered in establishing the sslv2 "
                          "session, may be version");
 
@@ -851,7 +885,12 @@ void *SSLStateAlloc(void)
  */
 void SSLStateFree(void *p)
 {
-    SCFree(p);
+    SSLState *ssl_state = (SSLState *)p;
+
+    if (ssl_state->trec)
+        SCFree(ssl_state->trec);
+    SCFree(ssl_state->cert0_subject);
+    SCFree(ssl_state);
 
     return;
 }

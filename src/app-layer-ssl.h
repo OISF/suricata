@@ -92,6 +92,14 @@ typedef struct SSLState_ {
 
     /* sslv2 client hello session id length */
     uint16_t session_id_length;
+
+    char *cert0_subject;
+
+    /* buffer for the tls record.
+     * We use a malloced buffer, if the record is fragmented */
+    uint8_t *trec;
+    uint16_t trec_len;
+    uint16_t trec_pos;
 } SSLState;
 
 void RegisterSSLParsers(void);
