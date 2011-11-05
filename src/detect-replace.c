@@ -366,7 +366,7 @@ int DetectReplaceLongPatternMatchTestUDPWrp(char *sig, uint32_t sid, char *sig_r
     if (ret != 1) {
         return ret;
     } else {
-        SCLogDebug("replace: test1 phase1 ok: %d vs %d",sizeof(raw_eth_pkt),psize);
+        SCLogDebug("replace: test1 phase1 ok: %" PRIuMAX" vs %d",(uintmax_t)sizeof(raw_eth_pkt),psize);
         ret = DetectReplaceLongPatternMatchTest(p, psize, sig_rep, sid_rep, NULL, NULL);
         return ret;
     }
