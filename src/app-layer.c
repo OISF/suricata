@@ -173,16 +173,20 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
                 if (flags & STREAM_TOSERVER) {
                     SCLogDebug("alp_proto_ctx.toserver.max_len %u", alp_proto_ctx.toserver.max_len);
                     if (f->flags & FLOW_TS_PM_PP_ALPROTO_DETECT_DONE) {
-                        ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
+                        //ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
                         SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
                         StreamTcpSetSessionNoReassemblyFlag(ssn, 0);
                     }
                 } else {
                     if (f->flags & FLOW_TC_PM_PP_ALPROTO_DETECT_DONE) {
-                        ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
+                        //ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
                         SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
                         StreamTcpSetSessionNoReassemblyFlag(ssn, 1);
                     }
+                }
+                if (f->flags & FLOW_TS_PM_PP_ALPROTO_DETECT_DONE &&
+                    f->flags & FLOW_TC_PM_PP_ALPROTO_DETECT_DONE) {
+                    ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
                 }
             }
         } else {
