@@ -138,7 +138,7 @@ void TmModuleReceivePfringRegister (void) {
     tmm_modules[TMM_RECEIVEPFRING].Func = NULL;
     tmm_modules[TMM_RECEIVEPFRING].PktAcqLoop = ReceivePfringLoop;
     tmm_modules[TMM_RECEIVEPFRING].ThreadExitPrintStats = ReceivePfringThreadExitStats;
-    tmm_modules[TMM_RECEIVEPFRING].ThreadDeinit = NULL;
+    tmm_modules[TMM_RECEIVEPFRING].ThreadDeinit = ReceivePfringThreadDeinit;
     tmm_modules[TMM_RECEIVEPFRING].RegisterTests = NULL;
 }
 
