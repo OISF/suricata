@@ -82,9 +82,11 @@ void PfringDerefConfig(void *conf)
 {
     PfringIfaceConfig *pfp = (PfringIfaceConfig *)conf;
     if (SC_ATOMIC_SUB(pfp->ref, 1) == 0) {
+#ifdef HAVE_PFRING_SET_BPF_FILTER
         if (pfp->bpf_filter) {
             SCFree(pfp->bpf_filter);
         }
+#endif
         SCFree(pfp);
     }
 }
