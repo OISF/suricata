@@ -1295,10 +1295,9 @@ int HTPParserTest01(void) {
 
     htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
 
-    bstr *key = NULL;
     htp_header_t *h = NULL;
     table_iterator_reset(tx->request_headers);
-    key = table_iterator_next(tx->request_headers, (void **) & h);
+    table_iterator_next(tx->request_headers, (void **) & h);
 
     if (htp_state->connp == NULL || strcmp(bstr_tocstr(h->value), "Victor/1.0")
             || tx->request_method_number != M_POST ||
@@ -1356,10 +1355,9 @@ int HTPParserTest02(void) {
 
     htp_tx_t *tx = list_get(http_state->connp->conn->transactions, 0);
 
-    bstr *key = NULL;
     htp_header_t *h = NULL;
     table_iterator_reset(tx->request_headers);
-    key = table_iterator_next(tx->request_headers, (void **) & h);
+    table_iterator_next(tx->request_headers, (void **) & h);
 
     if ((tx->request_method) != NULL || h != NULL)
     {
@@ -1421,10 +1419,9 @@ int HTPParserTest03(void) {
 
     htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
 
-    bstr *key = NULL;
     htp_header_t *h = NULL;
     table_iterator_reset(tx->request_headers);
-    key = table_iterator_next(tx->request_headers, (void **) & h);
+    table_iterator_next(tx->request_headers, (void **) & h);
 
     if (htp_state->connp == NULL || tx->request_method_number != M_UNKNOWN ||
              h != NULL || tx->request_protocol_number != HTTP_1_0)
@@ -1465,6 +1462,9 @@ int HTPParserTest04(void) {
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
                           STREAM_EOF, httpbuf1, httplen1);
+    if (r != 0) {
+        goto end;
+    }
 
     htp_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (htp_state == NULL) {
@@ -1475,10 +1475,9 @@ int HTPParserTest04(void) {
 
     htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
 
-    bstr *key = NULL;
     htp_header_t *h = NULL;
     table_iterator_reset(tx->request_headers);
-    key = table_iterator_next(tx->request_headers, (void **) & h);
+    table_iterator_next(tx->request_headers, (void **) & h);
 
     if (htp_state->connp == NULL || tx->request_method_number != M_UNKNOWN ||
             h != NULL || tx->request_protocol_number != PROTOCOL_UNKNOWN)
@@ -1583,10 +1582,9 @@ int HTPParserTest05(void) {
 
     htp_tx_t *tx = list_get(http_state->connp->conn->transactions, 0);
 
-    bstr *key = NULL;
     htp_header_t *h = NULL;
     table_iterator_reset(tx->request_headers);
-    key = table_iterator_next(tx->request_headers, (void **) & h);
+    table_iterator_next(tx->request_headers, (void **) & h);
 
     if (http_state->connp == NULL || tx->request_method_number != M_POST ||
             h == NULL || tx->request_protocol_number != HTTP_1_0)
@@ -1699,10 +1697,9 @@ int HTPParserTest06(void) {
 
     htp_tx_t *tx = list_get(http_state->connp->conn->transactions, 0);
 
-    bstr *key = NULL;
     htp_header_t *h = NULL;
     table_iterator_reset(tx->request_headers);
-    key = table_iterator_next(tx->request_headers, (void **) & h);
+    table_iterator_next(tx->request_headers, (void **) & h);
 
     if (http_state->connp == NULL || tx->request_method_number != M_GET ||
             h == NULL || tx->request_protocol_number != HTTP_1_1)

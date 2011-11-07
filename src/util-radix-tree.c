@@ -4199,12 +4199,15 @@ this_end:
  * \test SC_RADIX_NODE_USERDATA macro
  */
 static int SCRadixTestUserdataMacro01(void) {
-    SCRadixNode node;
     int result = 0;
+    SCRadixNode *node = SCMalloc(sizeof(SCRadixNode));
+    if (node == NULL) {
+        goto end;
+    }
 
-    memset(&node, 0x00, sizeof(node));
+    memset(node, 0x00, sizeof(node));
 
-    void *ptr = SC_RADIX_NODE_USERDATA(&node, void);
+    void *ptr = SC_RADIX_NODE_USERDATA(node, void);
     if (ptr != NULL) {
         printf("ptr %p, expected NULL: ", ptr);
         goto end;
@@ -4212,6 +4215,8 @@ static int SCRadixTestUserdataMacro01(void) {
 
     result = 1;
 end:
+    if (node != NULL)
+        SCFree(node);
     return result;
 }
 
@@ -4219,16 +4224,19 @@ end:
  * \test SC_RADIX_NODE_USERDATA macro
  */
 static int SCRadixTestUserdataMacro02(void) {
-    SCRadixNode node;
     SCRadixPrefix prefix;
     int result = 0;
+    SCRadixNode *node = SCMalloc(sizeof(SCRadixNode));
+    if (node == NULL) {
+        goto end;
+    }
 
-    memset(&node, 0x00, sizeof(node));
+    memset(node, 0x00, sizeof(node));
     memset(&prefix, 0x00, sizeof(prefix));
 
-    node.prefix = &prefix;
+    node->prefix = &prefix;
 
-    void *ptr = SC_RADIX_NODE_USERDATA(&node, void);
+    void *ptr = SC_RADIX_NODE_USERDATA(node, void);
     if (ptr != NULL) {
         printf("ptr %p, expected NULL: ", ptr);
         goto end;
@@ -4236,6 +4244,8 @@ static int SCRadixTestUserdataMacro02(void) {
 
     result = 1;
 end:
+    if (node != NULL)
+        SCFree(node);
     return result;
 }
 
@@ -4243,18 +4253,21 @@ end:
  * \test SC_RADIX_NODE_USERDATA macro
  */
 static int SCRadixTestUserdataMacro03(void) {
-    SCRadixNode node;
     SCRadixPrefix prefix;
     int result = 0;
     void *somep = &result;
+    SCRadixNode *node = SCMalloc(sizeof(SCRadixNode));
+    if (node == NULL) {
+        goto end;
+    }
 
-    memset(&node, 0x00, sizeof(node));
+    memset(node, 0x00, sizeof(node));
     memset(&prefix, 0x00, sizeof(prefix));
 
-    node.prefix = &prefix;
+    node->prefix = &prefix;
     prefix.user_data_result = somep;
 
-    void *ptr = SC_RADIX_NODE_USERDATA(&node, void);
+    void *ptr = SC_RADIX_NODE_USERDATA(node, void);
     if (ptr != somep) {
         printf("ptr %p, expected %p: ", ptr, somep);
         goto end;
@@ -4262,6 +4275,8 @@ static int SCRadixTestUserdataMacro03(void) {
 
     result = 1;
 end:
+    if (node != NULL)
+        SCFree(node);
     return result;
 }
 

@@ -400,7 +400,6 @@ int DetectEngineInspectHttpRawUri(DetectEngineCtx *de_ctx,
 {
     SCEnter();
 
-    SigMatch *sm = NULL;
     int r = 0;
 
     HtpState *htp_state = (HtpState *)alstate;
@@ -417,9 +416,8 @@ int DetectEngineInspectHttpRawUri(DetectEngineCtx *de_ctx,
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_HRUDMATCH];
-
 #ifdef DEBUG
+    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_HRUDMATCH];
     DetectContentData *co = (DetectContentData *)sm->ctx;
     SCLogDebug("co->id %"PRIu32, co->id);
 #endif

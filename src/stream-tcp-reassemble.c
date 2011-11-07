@@ -5531,7 +5531,6 @@ static int StreamTcpReassembleTest31 (void) {
     uint32_t seq;
     uint32_t ack;
     uint8_t th_flag;
-    uint8_t th_flags;
     uint8_t flowflags;
     uint8_t check_contents[5] = {0x41, 0x41, 0x42, 0x42, 0x42};
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
@@ -5540,7 +5539,6 @@ static int StreamTcpReassembleTest31 (void) {
 
     flowflags = FLOW_PKT_TOSERVER;
     th_flag = TH_ACK|TH_PUSH;
-    th_flags = TH_ACK;
 
     ssn.server.ra_raw_base_seq = 9;
     ssn.server.isn = 9;

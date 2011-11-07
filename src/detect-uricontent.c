@@ -510,7 +510,7 @@ uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f, Htp
 /** \test Test case where path traversal has been sent as a path string in the
  *        HTTP URL and normalized path string is checked */
 static int HTTPUriTest01(void) {
-    int result = 1;
+    int result = 0;
     Flow f;
     uint8_t httpbuf1[] = "GET /../../images.gif HTTP/1.1\r\nHost: www.ExA"
                          "mPlE.cOM\r\n\r\n";
@@ -530,10 +530,14 @@ static int HTTPUriTest01(void) {
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
                           STREAM_EOF, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("AppLayerParse failed: r(%d) != 0: ", r);
+        goto end;
+    }
+
     HtpState *htp_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (htp_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -545,7 +549,6 @@ static int HTTPUriTest01(void) {
         printf("expected method GET and got %s: , expected protocol "
                 "HTTP/1.1 and got %s \n", bstr_tocstr(tx->request_method),
                 bstr_tocstr(tx->request_protocol));
-        result = 0;
         goto end;
     }
 
@@ -554,7 +557,6 @@ static int HTTPUriTest01(void) {
     {
         printf("expected www.example.com as hostname, but got: %s \n",
                 bstr_tocstr(tx->parsed_uri->hostname));
-        result = 0;
         goto end;
     }
 
@@ -563,10 +565,10 @@ static int HTTPUriTest01(void) {
     {
         printf("expected /images.gif as path, but got: %s \n",
                 bstr_tocstr(tx->parsed_uri->path));
-        result = 0;
         goto end;
     }
 
+    result = 1;
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
@@ -577,7 +579,7 @@ end:
 /** \test Test case where path traversal has been sent in special characters in
  *        HEX encoding in the HTTP URL and normalized path string is checked */
 static int HTTPUriTest02(void) {
-    int result = 1;
+    int result = 0;
     Flow f;
     HtpState *htp_state = NULL;
     uint8_t httpbuf1[] = "GET /%2e%2e/images.gif HTTP/1.1\r\nHost: www.ExA"
@@ -598,11 +600,14 @@ static int HTTPUriTest02(void) {
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
                           STREAM_EOF, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("AppLayerParse failed: r(%d) != 0: ", r);
+        goto end;
+    }
 
     htp_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (htp_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -614,7 +619,6 @@ static int HTTPUriTest02(void) {
         printf("expected method GET and got %s: , expected protocol "
                 "HTTP/1.1 and got %s \n", bstr_tocstr(tx->request_method),
                 bstr_tocstr(tx->request_protocol));
-        result = 0;
         goto end;
     }
 
@@ -623,7 +627,6 @@ static int HTTPUriTest02(void) {
     {
         printf("expected www.example.com as hostname, but got: %s \n",
                 bstr_tocstr(tx->parsed_uri->hostname));
-        result = 0;
         goto end;
     }
 
@@ -632,15 +635,15 @@ static int HTTPUriTest02(void) {
     {
         printf("expected /images.gif as path, but got: %s \n",
                 bstr_tocstr(tx->parsed_uri->path));
-        result = 0;
         goto end;
     }
 
-
+    result = 1;
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL) HTPStateFree(htp_state);
+    if (htp_state != NULL)
+        HTPStateFree(htp_state);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -648,8 +651,9 @@ end:
 /** \test Test case where NULL character has been sent in HEX encoding in the
  *        HTTP URL and normalized path string is checked */
 static int HTTPUriTest03(void) {
-    int result = 1;
+    int result = 0;
     Flow f;
+    HtpState *htp_state = NULL;
     uint8_t httpbuf1[] = "GET%00 /images.gif HTTP/1.1\r\nHost: www.ExA"
                          "mPlE.cOM\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -668,11 +672,14 @@ static int HTTPUriTest03(void) {
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
                           STREAM_EOF, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("AppLayerParse failed: r(%d) != 0: ", r);
+        goto end;
+    }
 
-    HtpState *htp_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    htp_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (htp_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -684,7 +691,6 @@ static int HTTPUriTest03(void) {
         printf("expected method GET and got %s: , expected protocol "
                 "HTTP/1.1 and got %s \n", bstr_tocstr(tx->request_method),
                 bstr_tocstr(tx->request_protocol));
-        result = 0;
         goto end;
     }
 
@@ -693,7 +699,6 @@ static int HTTPUriTest03(void) {
     {
         printf("expected www.example.com as hostname, but got: %s \n",
                 bstr_tocstr(tx->parsed_uri->hostname));
-        result = 0;
         goto end;
     }
 
@@ -702,14 +707,15 @@ static int HTTPUriTest03(void) {
     {
         printf("expected /images.gif as path, but got: %s \n",
                 bstr_tocstr(tx->parsed_uri->path));
-        result = 0;
         goto end;
     }
 
+    result = 1;
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL) HTPStateFree(htp_state);
+    if (htp_state != NULL)
+        HTPStateFree(htp_state);
     FLOW_DESTROY(&f);
     return result;
 }
@@ -718,8 +724,9 @@ end:
 /** \test Test case where self referencing directories request has been sent
  *        in the HTTP URL and normalized path string is checked */
 static int HTTPUriTest04(void) {
-    int result = 1;
+    int result = 0;
     Flow f;
+    HtpState *htp_state = NULL;
     uint8_t httpbuf1[] = "GET /./././images.gif HTTP/1.1\r\nHost: www.ExA"
                          "mPlE.cOM\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -738,8 +745,12 @@ static int HTTPUriTest04(void) {
 
     r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
                           STREAM_EOF, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("AppLayerParse failed: r(%d) != 0: ", r);
+        goto end;
+    }
 
-    HtpState *htp_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    htp_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -776,11 +787,12 @@ static int HTTPUriTest04(void) {
         goto end;
     }
 
-
+    result = 1;
 end:
     FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
-    if (htp_state != NULL) HTPStateFree(htp_state);
+    if (htp_state != NULL)
+        HTPStateFree(htp_state);
     FLOW_DESTROY(&f);
     return result;
 }

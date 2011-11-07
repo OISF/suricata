@@ -1408,14 +1408,8 @@ int DetectFlowintTestPacket01Real()
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v,(void *) de_ctx,(void *) &det_ctx);
 
-    /* Get the idx of the vars we are going to track */
-    uint16_t idx1, idx2;
-    idx1 = VariableNameGetIdx("myvar", DETECT_FLOWINT);
-    idx2 = VariableNameGetIdx("cntpackets", DETECT_FLOWINT);
-
-    int i;
-
     /* Decode the packets, and test the matches*/
+    int i;
     for (i = 0;i < 11;i++) {
         memset(p, 0, SIZE_OF_PACKET);
         p->pkt = (uint8_t *)(p + 1);
@@ -1747,13 +1741,7 @@ int DetectFlowintTestPacket02Real()
     de_ctx->sig_list->next->next->next->next->next = NULL;
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v,(void *) de_ctx,(void *) &det_ctx);
-
-    /* Get the idx of the vars we are going to track */
-    uint16_t idx1, idx2;
-    idx1 = VariableNameGetIdx("myvar", DETECT_FLOWINT);
-    idx2 = VariableNameGetIdx("cntpackets", DETECT_FLOWINT);
 
     int i;
 
@@ -2085,13 +2073,7 @@ int DetectFlowintTestPacket03Real()
     de_ctx->sig_list->next->next->next = NULL;
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v,(void *) de_ctx,(void *) &det_ctx);
-
-    /* Get the idx of the vars we are going to track */
-    uint16_t idx1, idx2;
-    idx1 = VariableNameGetIdx("myvar", DETECT_FLOWINT);
-    idx2 = VariableNameGetIdx("cntpackets", DETECT_FLOWINT);
 
     int i;
 

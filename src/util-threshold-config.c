@@ -828,7 +828,6 @@ void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
 {
     char *line = NULL;
     int len = 0;
-    int c;
     int rule_num = 0;
 
     /* position of "\", on multiline rules */
@@ -855,7 +854,7 @@ void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
                 break;
 
             /* Skip EOL to inspect the next line (or read EOF) */
-            c = fgetc(fd);
+            (void)fgetc(fd);
 
             if (SCThresholdConfIsLineBlankOrComment(line)) {
                 continue;
@@ -869,7 +868,7 @@ void SCThresholdConfParseFile(DetectEngineCtx *de_ctx, FILE *fd)
             }
         } else {
             /* Skip EOL to inspect the next line (or read EOF) */
-            c = fgetc(fd);
+            (void)fgetc(fd);
             if (feof(fd))
                 break;
         }

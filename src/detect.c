@@ -1168,8 +1168,6 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, StreamMsg *smsg, Packet *p,
         uint8_t flags, uint16_t alproto, void *alstate, uint8_t *sms_runflags)
 {
-    uint32_t cnt = 0;
-
     if (p->payload_len > 0 && (!(p->flags & PKT_NOPAYLOAD_INSPECTION))) {
         if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_PACKET) {
             /* run the multi packet matcher against the payload of the packet */
@@ -1177,10 +1175,9 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                 det_ctx->sgh, det_ctx->sgh->mpm_content_maxlen, det_ctx->sgh->sig_cnt);
 
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_PACKET);
-            cnt = PacketPatternSearch(det_ctx, p);
+            PacketPatternSearch(det_ctx, p);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_PACKET);
 
-            SCLogDebug("post search: cnt %" PRIu32, cnt);
             *sms_runflags |= SMS_USED_PM;
         }
         if (!(p->flags & PKT_STREAM_ADD) && det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_STREAM) {
@@ -1196,10 +1193,9 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
         SCLogDebug("p->flowflags & FLOW_PKT_ESTABLISHED");
         if (smsg != NULL && det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_STREAM) {
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_STREAM);
-            cnt = StreamPatternSearch(det_ctx, p, smsg, flags);
+            StreamPatternSearch(det_ctx, p, smsg, flags);
             PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_STREAM);
 
-            SCLogDebug("Stream Mpm cnt %u", cnt);
             *sms_runflags |= SMS_USED_STREAM_PM;
         } else {
             SCLogDebug("smsg NULL (%p) or det_ctx->sgh->mpm_stream_ctx "
@@ -1210,45 +1206,38 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
         if (alproto == ALPROTO_HTTP && alstate != NULL) {
             if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_URI) {
                 PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_URI);
-                cnt = DetectUricontentInspectMpm(det_ctx, p->flow, alstate);
+                DetectUricontentInspectMpm(det_ctx, p->flow, alstate);
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_URI);
-                SCLogDebug("uri search: cnt %" PRIu32, cnt);
             }
             if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HCBD) {
                 PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HCBD);
-                cnt = DetectEngineRunHttpClientBodyMpm(de_ctx, det_ctx, p->flow, alstate);
+                DetectEngineRunHttpClientBodyMpm(de_ctx, det_ctx, p->flow, alstate);
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HCBD);
-                SCLogDebug("hcbd search: cnt %" PRIu32, cnt);
             }
             if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HHD) {
                 PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HHD);
-                cnt = DetectEngineRunHttpHeaderMpm(det_ctx, p->flow, alstate);
+                DetectEngineRunHttpHeaderMpm(det_ctx, p->flow, alstate);
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HHD);
-                SCLogDebug("hhd search: cnt %" PRIu32, cnt);
             }
             if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HRHD) {
                 PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HRHD);
-                cnt = DetectEngineRunHttpRawHeaderMpm(det_ctx, p->flow, alstate);
+                DetectEngineRunHttpRawHeaderMpm(det_ctx, p->flow, alstate);
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HRHD);
-                SCLogDebug("hrhd search: cnt %" PRIu32, cnt);
             }
             if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HMD) {
                 PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HMD);
-                cnt = DetectEngineRunHttpMethodMpm(det_ctx, p->flow, alstate);
+                DetectEngineRunHttpMethodMpm(det_ctx, p->flow, alstate);
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HMD);
-                SCLogDebug("hmd search: cnt %" PRIu32, cnt);
             }
             if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HCD) {
                 PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HCD);
-                cnt = DetectEngineRunHttpCookieMpm(det_ctx, p->flow, alstate);
+                DetectEngineRunHttpCookieMpm(det_ctx, p->flow, alstate);
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HCD);
-                SCLogDebug("hcd search: cnt %" PRIu32, cnt);
             }
             if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HRUD) {
                 PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HRUD);
-                cnt = DetectEngineRunHttpRawUriMpm(det_ctx, p->flow, alstate);
+                DetectEngineRunHttpRawUriMpm(det_ctx, p->flow, alstate);
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HRUD);
-                SCLogDebug("hrud search: cnt %" PRIu32, cnt);
             }
         }
     } else {

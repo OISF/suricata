@@ -825,7 +825,6 @@ int SCLogPrintFDFilters(void)
 {
     SCLogFDFilter *fdf = NULL;
     int count = 0;
-    int r = 0;
 
     if (sc_log_module_initialized != 1) {
         printf("Logging module not initialized.  Call SCLogInitLogModule() "
@@ -837,7 +836,7 @@ int SCLogPrintFDFilters(void)
     printf("FD filters:\n");
 #endif
 
-    r = SCMutexLock(&sc_log_fd_filters_m);
+    SCMutexLock(&sc_log_fd_filters_m);
 
     fdf = sc_log_fd_filters;
     while (fdf != NULL) {
@@ -848,7 +847,7 @@ int SCLogPrintFDFilters(void)
         count++;
     }
 
-    r = SCMutexUnlock(&sc_log_fd_filters_m);
+    SCMutexUnlock(&sc_log_fd_filters_m);
 
     return count;
 }

@@ -3527,7 +3527,6 @@ int DetectByteExtractTest52(void)
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
     DetectByteExtractData *bed1 = NULL;
-    DetectByteExtractData *bed2 = NULL;
     DetectBytetestData *btd = NULL;
 
     de_ctx = DetectEngineCtxInit();
@@ -3598,7 +3597,6 @@ int DetectByteExtractTest52(void)
         result = 0;
         goto end;
     }
-    bed2 = (DetectByteExtractData *)sm->ctx;
 
     sm = sm->next;
     if (sm->type != DETECT_BYTETEST) {
@@ -3766,7 +3764,6 @@ int DetectByteExtractTest54(void)
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
     DetectByteExtractData *bed1 = NULL;
-    DetectByteExtractData *bed2 = NULL;
     DetectBytejumpData *bjd = NULL;
 
     de_ctx = DetectEngineCtxInit();
@@ -3837,7 +3834,6 @@ int DetectByteExtractTest54(void)
         result = 0;
         goto end;
     }
-    bed2 = (DetectByteExtractData *)sm->ctx;
 
     sm = sm->next;
     if (sm->type != DETECT_BYTEJUMP) {
@@ -4350,7 +4346,6 @@ int DetectByteExtractTest58(void)
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
     DetectByteExtractData *bed1 = NULL;
-    DetectByteExtractData *bed2 = NULL;
     DetectBytejumpData *bjd = NULL;
     DetectIsdataatData *isdd = NULL;
 
@@ -4423,7 +4418,6 @@ int DetectByteExtractTest58(void)
         result = 0;
         goto end;
     }
-    bed2 = (DetectByteExtractData *)sm->ctx;
 
     sm = sm->next;
     if (sm->type != DETECT_BYTEJUMP) {
@@ -4485,7 +4479,6 @@ int DetectByteExtractTest59(void)
     SigMatch *sm = NULL;
     DetectContentData *cd = NULL;
     DetectByteExtractData *bed1 = NULL;
-    DetectByteExtractData *bed2 = NULL;
     DetectBytejumpData *bjd = NULL;
     DetectIsdataatData *isdd = NULL;
 
@@ -4558,7 +4551,6 @@ int DetectByteExtractTest59(void)
         result = 0;
         goto end;
     }
-    bed2 = (DetectByteExtractData *)sm->ctx;
 
     sm = sm->next;
     if (sm->type != DETECT_BYTEJUMP) {

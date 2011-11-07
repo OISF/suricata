@@ -434,7 +434,6 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
         void *alstate)
 {
     SCEnter();
-    SigMatch *sm = NULL;
     int r = 0;
     HtpState *htp_state = NULL;
 
@@ -452,9 +451,8 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
         goto end;
     }
 
-    sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
-
 #ifdef DEBUG
+    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
     DetectContentData *co = (DetectContentData *)sm->ctx;
     SCLogDebug("co->id %"PRIu32, co->id);
 #endif
