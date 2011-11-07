@@ -53,4 +53,8 @@ void TmModuleDecodePfringRegister (void);
 int PfringConfGetThreads(void);
 void PfringLoadConfig(void);
 
+/* We don't have to use an enum that sucks in our code */
+#define CLUSTER_FLOW 0
+#define CLUSTER_ROUND_ROBIN 1
+
 #endif /* __SOURCE_PFRING_H__ */

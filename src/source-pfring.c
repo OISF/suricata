@@ -276,7 +276,6 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
     int rc;
     u_int32_t version = 0;
     char *tmpclusterid;
-    char *tmpctype;
     PfringIfaceConfig *pfconf = (PfringIfaceConfig *) initdata;
 
 
@@ -313,7 +312,7 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
         ptv->cluster_id = pfconf->cluster_id;
 
 #ifdef HAVE_PFRING_CLUSTER_TYPE
-        ptv->ctype = (cluster_type)SCStrdup((char *)pfconf->ctype);
+        ptv->ctype = pfconf->ctype;
         rc = pfring_set_cluster(ptv->pd, ptv->cluster_id, ptv->ctype);
 #else
         rc = pfring_set_cluster(ptv->pd, ptv->cluster_id);
@@ -383,10 +382,6 @@ TmEcode ReceivePfringThreadDeinit(ThreadVars *tv, void *data) {
     PfringThreadVars *ptv = (PfringThreadVars *)data;
     if (ptv->interface)
         SCFree(ptv->interface);
-#ifdef HAVE_PFRING_CLUSTER_TYPE
-    if (ptv->ctype)
-        SCFree((char *)ptv->ctype);
-#endif
     pfring_remove_from_cluster(ptv->pd);
     pfring_close(ptv->pd);
     return TM_ECODE_OK;
