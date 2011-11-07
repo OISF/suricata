@@ -184,8 +184,14 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
             p->tcph->th_ack = htonl(ssn->server.last_ack);
         } else {
             p->tcph->th_seq = htonl(ssn->client.next_seq);
-            p->tcph->th_ack = htonl(ssn->server.seg_list_tail->seq +
-                                    ssn->server.seg_list_tail->payload_len);
+            //p->tcph->th_ack = htonl(ssn->server.seg_list_tail->seq +
+            //                        ssn->server.seg_list_tail->payload_len);
+            if (ssn->server.seg_list_tail != NULL) {
+                p->tcph->th_ack = htonl(ssn->server.seg_list_tail->seq +
+                                        ssn->server.seg_list_tail->payload_len);
+            } else {
+                p->tcph->th_ack = htonl(ssn->server.last_ack);
+            }
         }
 
         /* to client */
@@ -198,8 +204,14 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
             p->tcph->th_ack = htonl(ssn->client.last_ack);
         } else {
             p->tcph->th_seq = htonl(ssn->server.next_seq);
-            p->tcph->th_ack = htonl(ssn->client.seg_list_tail->seq +
-                                    ssn->client.seg_list_tail->payload_len);
+            //p->tcph->th_ack = htonl(ssn->client.seg_list_tail->seq +
+            //                        ssn->client.seg_list_tail->payload_len);
+            if (ssn->client.seg_list_tail != NULL) {
+                p->tcph->th_ack = htonl(ssn->client.seg_list_tail->seq +
+                                        ssn->client.seg_list_tail->payload_len);
+            } else {
+                p->tcph->th_ack = htonl(ssn->client.last_ack);
+            }
         }
     }
 
@@ -391,8 +403,10 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
 
             StreamTcpThread *stt = stream_pseudo_pkt_stream_tm_slot->slot_data;
 
-            ssn->client.last_ack = (ssn->client.seg_list_tail->seq +
-                                    ssn->client.seg_list_tail->payload_len);
+            if (ssn->client.seg_list_tail != NULL) {
+                ssn->client.last_ack = (ssn->client.seg_list_tail->seq +
+                                        ssn->client.seg_list_tail->payload_len);
+            }
             FlowForceReassemblyPseudoPacketSetup(reassemble_p, 1, f, ssn, 1);
             StreamTcpReassembleHandleSegment(stream_pseudo_pkt_detect_TV,
                                              stt->ra_ctx, ssn, &ssn->server,
@@ -404,8 +418,10 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
             server_ok = 1;
             StreamTcpThread *stt = stream_pseudo_pkt_stream_tm_slot->slot_data;
 
-            ssn->server.last_ack = (ssn->server.seg_list_tail->seq +
-                                    ssn->server.seg_list_tail->payload_len);
+            if (ssn->server.seg_list_tail != NULL) {
+                ssn->server.last_ack = (ssn->server.seg_list_tail->seq +
+                                        ssn->server.seg_list_tail->payload_len);
+            }
             FlowForceReassemblyPseudoPacketSetup(reassemble_p, 0, f, ssn, 1);
             StreamTcpReassembleHandleSegment(stream_pseudo_pkt_detect_TV,
                                              stt->ra_ctx, ssn, &ssn->client,

@@ -161,15 +161,23 @@ static inline int StreamHasUnprocessedSegments(TcpSession *ssn, int direction)
 {
     /* server tcp state */
     if (direction) {
-        return (ssn->server.seg_list == NULL ||
-                (ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED &&
-                 ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED &&
-                 ssn->toclient_smsg_head == NULL)) ? 0 : 1;
+        return (ssn->toclient_smsg_head != NULL ||
+                (ssn->server.seg_list != NULL &&
+                 (!(ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) ||
+                  !(ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))) );
+//        return (ssn->server.seg_list == NULL ||
+//                (ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED &&
+//                 ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED &&
+//                 ssn->toclient_smsg_head == NULL)) ? 0 : 1;
     } else {
-        return (ssn->client.seg_list == NULL ||
-                (ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED &&
-                 ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED &&
-                 ssn->toserver_smsg_head == NULL)) ? 0 : 1;
+        return (ssn->toserver_smsg_head != NULL ||
+                (ssn->client.seg_list != NULL &&
+                 (!(ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) ||
+                  !(ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))) );
+//        return (ssn->client.seg_list == NULL ||
+//                (ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED &&
+//                 ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED &&
+//                 ssn->toserver_smsg_head == NULL)) ? 0 : 1;
     }
 }
 
