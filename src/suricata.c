@@ -411,7 +411,8 @@ void usage(const char *progname)
 #ifdef IPFW
     printf("\t-d <divert port>             : run in inline ipfw divert mode\n");
 #endif /* IPFW */
-    printf("\t-s <path>                    : path to signature file (optional)\n");
+    printf("\t-s <path>                    : path to signature file loaded in addition to suricata.yaml settings (optional)\n");
+    printf("\t-S <path>                    : path to signature file loaded exclusively (optional)\n");
     printf("\t-l <dir>                     : default log directory\n");
 #ifndef OS_WIN32
     printf("\t-D                           : run as daemon\n");
@@ -576,6 +577,7 @@ int main(int argc, char **argv)
     int opt;
     char pcap_dev[128];
     char *sig_file = NULL;
+    int sig_file_exclusive = FALSE;
     char *conf_filename = NULL;
     char *pid_filename = NULL;
 #ifdef UNITTESTS
@@ -688,7 +690,7 @@ int main(int argc, char **argv)
     /* getopt_long stores the option index here. */
     int option_index = 0;
 
-    char short_opts[] = "c:Dhi:l:q:d:r:us:U:VF:";
+    char short_opts[] = "c:Dhi:l:q:d:r:us:S:U:VF:";
 
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {
@@ -1016,7 +1018,19 @@ int main(int argc, char **argv)
             }
             break;
         case 's':
+            if (sig_file != NULL) {
+                SCLogError(SC_ERR_CMD_LINE, "can't have multiple -s options or mix -s and -S.");
+                exit(EXIT_FAILURE);
+            }
             sig_file = optarg;
+            break;
+        case 'S':
+            if (sig_file != NULL) {
+                SCLogError(SC_ERR_CMD_LINE, "can't have multiple -S options or mix -s and -S.");
+                exit(EXIT_FAILURE);
+            }
+            sig_file = optarg;
+            sig_file_exclusive = TRUE;
             break;
         case 'u':
 #ifdef UNITTESTS
@@ -1442,7 +1456,7 @@ int main(int argc, char **argv)
 
     ActionInitConfig();
 
-    if (SigLoadSignatures(de_ctx, sig_file) < 0) {
+    if (SigLoadSignatures(de_ctx, sig_file, sig_file_exclusive) < 0) {
         if (sig_file == NULL) {
             SCLogError(SC_ERR_OPENING_FILE, "Signature file has not been provided");
         } else {

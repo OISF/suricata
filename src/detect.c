@@ -513,9 +513,10 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
  *  \brief Load signatures
  *  \param de_ctx Pointer to the detection engine context
  *  \param sig_file Filename holding signatures
+ *  \param sig_file_exclusive File passed in 'sig_file' should be loaded exclusively.
  *  \retval -1 on error
  */
-int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file)
+int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_exclusive)
 {
     SCEnter();
 
@@ -571,27 +572,29 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file)
     }
 
     /* ok, let's load signature files from the general config */
-    rule_files = ConfGetNode("rule-files");
-    if (rule_files != NULL) {
-        TAILQ_FOREACH(file, &rule_files->head, next) {
-            sfile = DetectLoadCompleteSigPath(file->val);
-            SCLogDebug("Loading rule file: %s", sfile);
+    if (!(sig_file != NULL && sig_file_exclusive == TRUE)) {
+        rule_files = ConfGetNode("rule-files");
+        if (rule_files != NULL) {
+            TAILQ_FOREACH(file, &rule_files->head, next) {
+                sfile = DetectLoadCompleteSigPath(file->val);
+                SCLogDebug("Loading rule file: %s", sfile);
 
-            r = DetectLoadSigFile(de_ctx, sfile, &sigtotal);
-            cntf++;
-            if (r > 0) {
-                cnt += r;
-            } else if (r == 0){
-                SCLogWarning(SC_ERR_NO_RULES, "No rules loaded from %s", sfile);
-                if (de_ctx->failure_fatal == 1) {
-                    exit(EXIT_FAILURE);
+                r = DetectLoadSigFile(de_ctx, sfile, &sigtotal);
+                cntf++;
+                if (r > 0) {
+                    cnt += r;
+                } else if (r == 0){
+                    SCLogWarning(SC_ERR_NO_RULES, "No rules loaded from %s", sfile);
+                    if (de_ctx->failure_fatal == 1) {
+                        exit(EXIT_FAILURE);
+                    }
+                } else if (r < 0){
+                    if (de_ctx->failure_fatal == 1) {
+                        exit(EXIT_FAILURE);
+                    }
                 }
-            } else if (r < 0){
-                if (de_ctx->failure_fatal == 1) {
-                    exit(EXIT_FAILURE);
-                }
+                SCFree(sfile);
             }
-            SCFree(sfile);
         }
     }
 
