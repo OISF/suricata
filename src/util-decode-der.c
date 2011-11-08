@@ -234,8 +234,16 @@ static Asn1Generic * DecodeAsn1DerInteger(const unsigned char *buffer, uint32_t 
     d_ptr += 2;
 
     value = 0;
-    for (i=0; i<numbytes; i++) {
-        value = value<<8 | d_ptr[i];
+    /* Here we need to ensure that numbytes is less than 4
+       so integer affectation is possible. We set the value
+       to 0xffffffff which is by convention the unknown value.
+       In this case, the hexadecimal value must be used. */
+    if (numbytes > 4) {
+        value = 0xffffffff;
+    } else {
+        for (i=0; i<numbytes; i++) {
+            value = value<<8 | d_ptr[i];
+        }
     }
 
     a = Asn1GenericNew();
@@ -258,23 +266,37 @@ static Asn1Generic * DecodeAsn1DerInteger(const unsigned char *buffer, uint32_t 
     return a;
 }
 
+static int DecodeAsn1BuildValue(const unsigned char **d_ptr, uint32_t *val, uint8_t numbytes)
+{
+    int i;
+    uint32_t value = 0;
+    if (numbytes > 4) {
+        SCLogDebug("Invalid ASN.1 num bytes: %d", numbytes);
+        /* too big won't fit: set it to 0xffffffff by convention */
+        value = 0xffffffff;
+    } else {
+        for (i=0; i<numbytes; i++) {
+            value = value<<8 | (*d_ptr)[0];
+            (*d_ptr)++;
+        }
+    }
+    *val = value;
+    return 0;
+}
+
 static Asn1Generic * DecodeAsn1DerBoolean(const unsigned char *buffer, uint32_t size, uint8_t depth)
 {
     const unsigned char *d_ptr = buffer;
     uint8_t numbytes;
     uint32_t value;
-    uint32_t i;
     Asn1Generic *a;
 
     numbytes = d_ptr[1];
     d_ptr += 2;
 
-    value = 0;
-    for (i=0; i<numbytes; i++) {
-        value = value<<8 | d_ptr[0];
-        d_ptr++;
+    if (DecodeAsn1BuildValue(&d_ptr, &value, numbytes) == -1) {
+        return NULL;
     }
-
     a = Asn1GenericNew();
     if (a == NULL)
         return NULL;
@@ -290,18 +312,13 @@ static Asn1Generic * DecodeAsn1DerNull(const unsigned char *buffer, uint32_t siz
     const unsigned char *d_ptr = buffer;
     uint8_t numbytes;
     uint32_t value;
-    uint32_t i;
     Asn1Generic *a;
 
     numbytes = d_ptr[1];
     d_ptr += 2;
-
-    value = 0;
-    for (i=0; i<numbytes; i++) {
-        value = value<<8 | d_ptr[0];
-        d_ptr++;
+    if (DecodeAsn1BuildValue(&d_ptr, &value, numbytes) == -1) {
+        return NULL;
     }
-
     a = Asn1GenericNew();
     a->type = ASN1_NULL;
     a->length = (d_ptr - buffer);
@@ -316,7 +333,6 @@ static Asn1Generic * DecodeAsn1DerBitstring(const unsigned char *buffer, uint32_
     uint32_t length;
     uint8_t numbytes, c;
     Asn1Generic *a;
-    uint32_t i;
 
     d_ptr++;
 
@@ -327,11 +343,9 @@ static Asn1Generic * DecodeAsn1DerBitstring(const unsigned char *buffer, uint32_
         d_ptr++;
     } else { /* long form 8.1.3.5 */
         numbytes = c & 0x7f;
-        length = 0;
         d_ptr++;
-        for (i=0; i<numbytes; i++) {
-            length = length<<8 | d_ptr[0];
-            d_ptr++;
+        if (DecodeAsn1BuildValue(&d_ptr, &length, numbytes) == -1) {
+            return NULL;
         }
     }
     if (length > max_size)
@@ -372,11 +386,9 @@ static Asn1Generic * DecodeAsn1DerOid(const unsigned char *buffer, uint32_t max_
         d_ptr++;
     } else { /* long form 8.1.3.5 */
         numbytes = c & 0x7f;
-        oid_length = 0;
         d_ptr++;
-        for (i=0; i<numbytes; i++) {
-            oid_length = oid_length<<8 | d_ptr[0];
-            d_ptr++;
+        if (DecodeAsn1BuildValue(&d_ptr, &oid_length, numbytes) == -1) {
+            return NULL;
         }
     }
     if (oid_length > max_size)
@@ -396,6 +408,8 @@ static Asn1Generic * DecodeAsn1DerOid(const unsigned char *buffer, uint32_t max_
     snprintf(a->str, MAX_OID_LENGTH, "%d.%d", (d_ptr[0]/40), (d_ptr[0]%40));
     d_ptr++;
 
+    /* sub-identifiers are multi valued, coded and 7 bits, first bit of the 8bits is used
+       to indicate, if a new value is starting */
     for (i=1; i<oid_length; ) {
         int s = strlen(a->str);
         c = d_ptr[0];
@@ -420,7 +434,6 @@ static Asn1Generic * DecodeAsn1DerIA5String(const unsigned char *buffer, uint32_
 {
     const unsigned char *d_ptr = buffer;
     uint32_t length, numbytes;
-    uint32_t i;
     Asn1Generic *a;
     unsigned char c;
 
@@ -433,11 +446,9 @@ static Asn1Generic * DecodeAsn1DerIA5String(const unsigned char *buffer, uint32_
         d_ptr++;
     } else { /* long form 8.1.3.5 */
         numbytes = c & 0x7f;
-        length = 0;
         d_ptr++;
-        for (i=0; i<numbytes; i++) {
-            length = length<<8 | d_ptr[0];
-            d_ptr++;
+        if (DecodeAsn1BuildValue(&d_ptr, &length, numbytes) == -1) {
+            return NULL;
         }
     }
     if (length > max_size)
@@ -465,7 +476,6 @@ static Asn1Generic * DecodeAsn1DerOctetString(const unsigned char *buffer, uint3
 {
     const unsigned char *d_ptr = buffer;
     uint32_t length, numbytes;
-    uint32_t i;
     Asn1Generic *a;
     unsigned char c;
 
@@ -478,11 +488,9 @@ static Asn1Generic * DecodeAsn1DerOctetString(const unsigned char *buffer, uint3
         d_ptr++;
     } else { /* long form 8.1.3.5 */
         numbytes = c & 0x7f;
-        length = 0;
         d_ptr++;
-        for (i=0; i<numbytes; i++) {
-            length = length<<8 | d_ptr[0];
-            d_ptr++;
+        if (DecodeAsn1BuildValue(&d_ptr, &length, numbytes) == -1) {
+            return NULL;
         }
     }
     if (length > max_size)
@@ -510,7 +518,6 @@ static Asn1Generic * DecodeAsn1DerPrintableString(const unsigned char *buffer, u
 {
     const unsigned char *d_ptr = buffer;
     uint32_t length, numbytes;
-    uint32_t i;
     Asn1Generic *a;
     unsigned char c;
 
@@ -523,11 +530,9 @@ static Asn1Generic * DecodeAsn1DerPrintableString(const unsigned char *buffer, u
         d_ptr++;
     } else { /* long form 8.1.3.5 */
         numbytes = c & 0x7f;
-        length = 0;
         d_ptr++;
-        for (i=0; i<numbytes; i++) {
-            length = length<<8 | d_ptr[0];
-            d_ptr++;
+        if (DecodeAsn1BuildValue(&d_ptr, &length, numbytes) == -1) {
+            return NULL;
         }
     }
     if (length > max_size)
@@ -557,7 +562,7 @@ static Asn1Generic * DecodeAsn1DerSequence(const unsigned char *buffer, uint32_t
     const unsigned char *d_ptr = buffer;
     uint32_t d_length, parsed_bytes, numbytes, el_max_size;
     uint8_t c;
-    uint32_t i, seq_index;
+    uint32_t seq_index;
     Asn1Generic *node;
     Asn1Generic *child;
 
@@ -575,11 +580,9 @@ static Asn1Generic * DecodeAsn1DerSequence(const unsigned char *buffer, uint32_t
         d_ptr++;
     } else { /* long form 8.1.3.5 */
         numbytes = c & 0x7f;
-        d_length = 0;
         d_ptr++;
-        for (i=0; i<numbytes; i++) {
-            d_length = d_length<<8 | d_ptr[0];
-            d_ptr++;
+        if (DecodeAsn1BuildValue(&d_ptr, &d_length, numbytes) == -1) {
+            return NULL;
         }
     }
     node->length = d_length + (d_ptr - buffer);
@@ -613,7 +616,7 @@ static Asn1Generic * DecodeAsn1DerSet(const unsigned char *buffer, uint32_t max_
     const unsigned char *d_ptr = buffer;
     uint32_t d_length, numbytes, el_max_size;
     uint8_t c;
-    uint32_t i, seq_index;
+    uint32_t seq_index;
     Asn1Generic *node;
     Asn1Generic *child;
 
@@ -632,11 +635,9 @@ static Asn1Generic * DecodeAsn1DerSet(const unsigned char *buffer, uint32_t max_
         d_ptr++;
     } else { /* long form 8.1.3.5 */
         numbytes = c & 0x7f;
-        d_length = 0;
         d_ptr++;
-        for (i=0; i<numbytes; i++) {
-            d_length = d_length<<8 | d_ptr[0];
-            d_ptr++;
+        if (DecodeAsn1BuildValue(&d_ptr, &d_length, numbytes) == -1) {
+            return NULL;
         }
     }
     node->length = d_length + (d_ptr - buffer);
@@ -679,7 +680,6 @@ Asn1Generic * DecodeDer(const unsigned char *buffer, uint32_t size)
     uint32_t d_length, numbytes;
     Asn1Generic *cert;
     uint8_t c;
-    uint32_t i;
 
     /* Check that buffer is an ASN.1 structure (basic checks) */
     if (d_ptr[0] != 0x30 && d_ptr[1] != 0x82) /* Sequence */
@@ -690,11 +690,9 @@ Asn1Generic * DecodeDer(const unsigned char *buffer, uint32_t size)
         return NULL;
 
     numbytes = c & 0x7f;
-    d_length = 0;
     d_ptr += 2;
-    for (i=0; i<numbytes; i++) {
-        d_length = d_length<<8 | d_ptr[0];
-        d_ptr++;
+    if (DecodeAsn1BuildValue(&d_ptr, &d_length, numbytes) == -1) {
+        return NULL;
     }
     if (d_length+(d_ptr-buffer) != size)
         return NULL;

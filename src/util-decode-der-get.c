@@ -166,7 +166,10 @@ int Asn1DerGetIssuerDN(const Asn1Generic *cert, char *buffer, uint32_t length)
             goto issuer_dn_error;
         node = node->next;
         node_str = node->data;
-        if (node_str == NULL || !(node_str->type == ASN1_PRINTSTRING || node_str->type == ASN1_IA5STRING || node_str->type == ASN1_T61STRING))
+        if (node_str == NULL
+            || !(node_str->type == ASN1_PRINTSTRING
+                 || node_str->type == ASN1_IA5STRING
+                 || node_str->type == ASN1_T61STRING))
             goto issuer_dn_error;
 
         strlcat(buffer, shortname, length);
@@ -221,7 +224,10 @@ int Asn1DerGetSubjectDN(const Asn1Generic *cert, char *buffer, uint32_t length)
             goto subject_dn_error;
         node = node->next;
         node_str = node->data;
-        if (node_str == NULL || !(node_str->type == ASN1_PRINTSTRING || node_str->type == ASN1_IA5STRING || node_str->type == ASN1_T61STRING))
+        if (node_str == NULL
+            || !(node_str->type == ASN1_PRINTSTRING
+                 || node_str->type == ASN1_IA5STRING
+                 || node_str->type == ASN1_T61STRING))
             goto subject_dn_error;
 
         strlcat(buffer, shortname, length);
