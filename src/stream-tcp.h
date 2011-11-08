@@ -161,23 +161,25 @@ static inline int StreamHasUnprocessedSegments(TcpSession *ssn, int direction)
 {
     /* server tcp state */
     if (direction) {
-        return (ssn->toclient_smsg_head != NULL ||
-                (ssn->server.seg_list != NULL &&
-                 (!(ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) ||
-                  !(ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))) );
-//        return (ssn->server.seg_list == NULL ||
-//                (ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED &&
-//                 ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED &&
-//                 ssn->toclient_smsg_head == NULL)) ? 0 : 1;
+        if (ssn->server.seg_list != NULL &&
+            (!(ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) ||
+             !(ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) ) {
+            return 1;
+        } else if (ssn->toclient_smsg_head != NULL) {
+            return 2;
+        } else {
+            return 0;
+        }
     } else {
-        return (ssn->toserver_smsg_head != NULL ||
-                (ssn->client.seg_list != NULL &&
-                 (!(ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) ||
-                  !(ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))) );
-//        return (ssn->client.seg_list == NULL ||
-//                (ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED &&
-//                 ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED &&
-//                 ssn->toserver_smsg_head == NULL)) ? 0 : 1;
+        if (ssn->client.seg_list != NULL &&
+            (!(ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) ||
+             !(ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) ) {
+            return 1;
+        } else if (ssn->toserver_smsg_head != NULL) {
+            return 2;
+        } else {
+            return 0;
+        }
     }
 }
 

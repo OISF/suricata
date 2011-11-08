@@ -184,14 +184,8 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
             p->tcph->th_ack = htonl(ssn->server.last_ack);
         } else {
             p->tcph->th_seq = htonl(ssn->client.next_seq);
-            //p->tcph->th_ack = htonl(ssn->server.seg_list_tail->seq +
-            //                        ssn->server.seg_list_tail->payload_len);
-            if (ssn->server.seg_list_tail != NULL) {
-                p->tcph->th_ack = htonl(ssn->server.seg_list_tail->seq +
-                                        ssn->server.seg_list_tail->payload_len);
-            } else {
-                p->tcph->th_ack = htonl(ssn->server.last_ack);
-            }
+            p->tcph->th_ack = htonl(ssn->server.seg_list_tail->seq +
+                                    ssn->server.seg_list_tail->payload_len);
         }
 
         /* to client */
@@ -204,14 +198,8 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
             p->tcph->th_ack = htonl(ssn->client.last_ack);
         } else {
             p->tcph->th_seq = htonl(ssn->server.next_seq);
-            //p->tcph->th_ack = htonl(ssn->client.seg_list_tail->seq +
-            //                        ssn->client.seg_list_tail->payload_len);
-            if (ssn->client.seg_list_tail != NULL) {
-                p->tcph->th_ack = htonl(ssn->client.seg_list_tail->seq +
-                                        ssn->client.seg_list_tail->payload_len);
-            } else {
-                p->tcph->th_ack = htonl(ssn->client.last_ack);
-            }
+            p->tcph->th_ack = htonl(ssn->client.seg_list_tail->seq +
+                                    ssn->client.seg_list_tail->payload_len);
         }
     }
 
@@ -260,8 +248,8 @@ int FlowForceReassemblyForFlowV2(Flow *f)
 {
     TcpSession *ssn;
 
-    int client_ok = 1;
-    int server_ok = 1;
+    int client_ok = 0;
+    int server_ok = 0;
 
     /* looks like we have no flows in this queue */
     if (f == NULL || f->flags & FLOW_TIMEOUT_REASSEMBLY_DONE) {
@@ -275,12 +263,8 @@ int FlowForceReassemblyForFlowV2(Flow *f)
         return 0;
     }
 
-    if (!StreamHasUnprocessedSegments(ssn, 0)) {
-        client_ok = 0;
-    }
-    if (!StreamHasUnprocessedSegments(ssn, 1)) {
-        server_ok = 0;
-    }
+    client_ok = StreamHasUnprocessedSegments(ssn, 0);
+    server_ok = StreamHasUnprocessedSegments(ssn, 1);
 
     /* nothing to do */
     if (client_ok == 0 && server_ok == 0) {
@@ -308,13 +292,13 @@ int FlowForceReassemblyForFlowV2(Flow *f)
         }
 
         if (server_ok == 1) {
-            p2 = FlowForceReassemblyPseudoPacketGet( 0, f, ssn, 0);
+            p2 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 0);
             if (p2 == NULL) {
                 TmqhOutputPacketpool(NULL,p1);
                 return 1;
             }
 
-            p3 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 0);
+            p3 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p3 == NULL) {
                 TmqhOutputPacketpool(NULL, p1);
                 TmqhOutputPacketpool(NULL, p2);
@@ -327,23 +311,64 @@ int FlowForceReassemblyForFlowV2(Flow *f)
                 return 1;
             }
         }
-    } else {
-        p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 0);
-        if (p1 == NULL) {
-            return 1;
+
+    } else if (client_ok == 2) {
+        if (server_ok == 1) {
+            p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 0);
+            if (p1 == NULL) {
+                return 1;
+            }
+
+            p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
+            if (p2 == NULL) {
+                TmqhOutputPacketpool(NULL, p1);
+                return 1;
+            }
+        } else {
+            p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
+            if (p1 == NULL) {
+                return 1;
+            }
+
+            if (server_ok == 2) {
+                p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
+                if (p2 == NULL) {
+                    TmqhOutputPacketpool(NULL, p1);
+                    return 1;
+                }
+            }
         }
 
-        p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
-        if (p2 == NULL) {
-            TmqhOutputPacketpool(NULL, p1);
-            return 1;
+    } else {
+        if (server_ok == 1) {
+            p1 = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 0);
+            if (p1 == NULL) {
+                return 1;
+            }
+
+            p2 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
+            if (p2 == NULL) {
+                TmqhOutputPacketpool(NULL, p1);
+                return 1;
+            }
+        } else if (server_ok == 2) {
+            p1 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
+            if (p1 == NULL) {
+                TmqhOutputPacketpool(NULL, p1);
+                return 1;
+            }
+        } else {
+            /* impossible */
+            BUG_ON(1);
         }
     }
+
     f->flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
 
     SCMutexLock(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq.mutex_q);
     PacketEnqueue(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq, p1);
-    PacketEnqueue(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq, p2);
+    if (p2 != NULL)
+        PacketEnqueue(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq, p2);
     if (p3 != NULL)
         PacketEnqueue(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq, p3);
     SCMutexUnlock(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq.mutex_q);
@@ -398,15 +423,12 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
         }
 
         /* ah ah!  We have some unattended toserver segments */
-        if (StreamHasUnprocessedSegments(ssn, 0)) {
-            client_ok = 1;
-
+        if ((client_ok = StreamHasUnprocessedSegments(ssn, 0)) == 1) {
             StreamTcpThread *stt = stream_pseudo_pkt_stream_tm_slot->slot_data;
 
-            if (ssn->client.seg_list_tail != NULL) {
-                ssn->client.last_ack = (ssn->client.seg_list_tail->seq +
-                                        ssn->client.seg_list_tail->payload_len);
-            }
+            ssn->client.last_ack = (ssn->client.seg_list_tail->seq +
+                                    ssn->client.seg_list_tail->payload_len);
+
             FlowForceReassemblyPseudoPacketSetup(reassemble_p, 1, f, ssn, 1);
             StreamTcpReassembleHandleSegment(stream_pseudo_pkt_detect_TV,
                                              stt->ra_ctx, ssn, &ssn->server,
@@ -414,14 +436,12 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
             StreamTcpReassembleProcessAppLayer(stt->ra_ctx);
         }
         /* oh oh!  We have some unattended toclient segments */
-        if (StreamHasUnprocessedSegments(ssn, 1)) {
-            server_ok = 1;
+        if ((server_ok = StreamHasUnprocessedSegments(ssn, 1)) == 1) {
             StreamTcpThread *stt = stream_pseudo_pkt_stream_tm_slot->slot_data;
 
-            if (ssn->server.seg_list_tail != NULL) {
-                ssn->server.last_ack = (ssn->server.seg_list_tail->seq +
-                                        ssn->server.seg_list_tail->payload_len);
-            }
+            ssn->server.last_ack = (ssn->server.seg_list_tail->seq +
+                                    ssn->server.seg_list_tail->payload_len);
+
             FlowForceReassemblyPseudoPacketSetup(reassemble_p, 0, f, ssn, 1);
             StreamTcpReassembleHandleSegment(stream_pseudo_pkt_detect_TV,
                                              stt->ra_ctx, ssn, &ssn->client,
@@ -430,7 +450,7 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
         }
 
         /* insert a pseudo packet in the toserver direction */
-        if (client_ok == 1) {
+        if (client_ok) {
             Packet *p = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
             if (p == NULL) {
                 TmqhOutputPacketpool(NULL, reassemble_p);
@@ -454,7 +474,7 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
                 }
             }
         } /* if (ssn->client.seg_list != NULL) */
-        if (server_ok == 1) {
+        if (server_ok) {
             Packet *p = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p == NULL) {
                 TmqhOutputPacketpool(NULL, reassemble_p);
