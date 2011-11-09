@@ -71,9 +71,6 @@ void PcapDerefConfig(void *conf)
     PcapIfaceConfig *pfp = (PcapIfaceConfig *)conf;
     /* Pcap config is used only once but cost of this low. */
     if (SC_ATOMIC_SUB(pfp->ref, 1) == 0) {
-        if (pfp->bpf_filter) {
-            SCFree(pfp->bpf_filter);
-        }
         SCFree(pfp);
     }
 }
@@ -140,8 +137,7 @@ void *ParsePcapConfig(const char *iface)
         if (ConfGetChildValue(if_root, "bpf-filter", &tmpbpf) != 1) {
             SCLogDebug("could not get bpf or none specified");
         } else {
-            /* TODO free this */
-            aconf->bpf_filter = SCStrdup(tmpbpf);
+            aconf->bpf_filter = tmpbpf;
         }
     } else {
         SCLogInfo("BPF filter set from command line or via old 'bpf-filter' option.");
