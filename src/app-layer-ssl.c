@@ -882,7 +882,10 @@ void SSLStateFree(void *p)
 
     if (ssl_state->trec)
         SCFree(ssl_state->trec);
-    SCFree(ssl_state->cert0_subject);
+    if (ssl_state->cert0_subject)
+        SCFree(ssl_state->cert0_subject);
+    if (ssl_state->cert0_issuerdn)
+        SCFree(ssl_state->cert0_issuerdn);
     SCFree(ssl_state);
 
     return;
