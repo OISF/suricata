@@ -455,7 +455,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         SCLogError(SC_ERR_AFP_CREATE, "Couldn't create a AF_PACKET socket, error %s", strerror(errno));
         return -1;
     }
-    SCLogInfo("using interface %s", (char *)devname);
+    SCLogDebug("using interface %s", (char *)devname);
     /* bind socket */
     memset(&bind_address, 0, sizeof(bind_address));
     bind_address.sll_family = AF_PACKET;
