@@ -164,7 +164,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
             SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName %s failed", decode_mod_name);
             exit(EXIT_FAILURE);
         }
-        Tm1SlotSetFunc(tv_decode1, tm_module, NULL);
+        TmSlotSetFuncAppend(tv_decode1, tm_module, NULL);
 
         TmThreadSetCPU(tv_decode1, DECODE_CPU_SET);
 
@@ -189,7 +189,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
             SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName CudaPacketBatcher failed");
             exit(EXIT_FAILURE);
         }
-        Tm1SlotSetFunc(tv_cuda_PB, tm_module, (void *)de_ctx);
+        TmSlotSetFuncAppend(tv_cuda_PB, tm_module, (void *)de_ctx);
 
         TmThreadSetCPU(tv_cuda_PB, DETECT_CPU_SET);
 
@@ -212,7 +212,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
             SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName StreamTcp failed");
             exit(EXIT_FAILURE);
         }
-        Tm1SlotSetFunc(tv_stream1, tm_module, NULL);
+        TmSlotSetFuncAppend(tv_stream1, tm_module, NULL);
 
         TmThreadSetCPU(tv_stream1, STREAM_CPU_SET);
 
@@ -235,14 +235,14 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
             SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName %s failed", decode_mod_name);
             exit(EXIT_FAILURE);
         }
-        TmVarSlotSetFuncAppend(tv_decode1, tm_module, NULL);
+        TmSlotSetFuncAppend(tv_decode1, tm_module, NULL);
 
         tm_module = TmModuleGetByName("StreamTcp");
         if (tm_module == NULL) {
             SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName StreamTcp failed");
             exit(EXIT_FAILURE);
         }
-        TmVarSlotSetFuncAppend(tv_decode1, tm_module, NULL);
+        TmSlotSetFuncAppend(tv_decode1, tm_module, NULL);
 
         TmThreadSetCPU(tv_decode1, DECODE_CPU_SET);
 
