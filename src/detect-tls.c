@@ -63,7 +63,7 @@
 /**
  * \brief Regex for parsing "id" option, matching number or "number"
  */
-#define PARSE_REGEX  "^\\s*([A-z0-9\\.]+|\"[A-z0-9\\.]+\")\\s*$"
+#define PARSE_REGEX  "^\\s*(\\!*)\\s*([A-z0-9\\.=\\*] +|\"[A-z0-9\\.\\*= ]+\")\\s*$"
 
 static pcre *subject_parse_regex;
 static pcre_extra *subject_parse_regex_study;
@@ -163,11 +163,20 @@ static int DetectTlsSubjectMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     int ret = 0;
     SCMutexLock(&f->m);
 
+    if (tls_data->flags & DETECT_CONTENT_NEGATED) {
+        ret = 1;
+    } else {
+        ret = 0;
+    }
     if (ssl_state->cert0_subject != NULL) {
         SCLogDebug("TLS: Subject is [%s], looking for [%s]\n", ssl_state->cert0_subject, tls_data->subject);
 
         if (strstr(ssl_state->cert0_subject, tls_data->subject) != NULL) {
-            ret = 1;
+            if (tls_data->flags & DETECT_CONTENT_NEGATED) {
+                ret = 0;
+            } else {
+                ret = 1;
+            }
         }
     }
 
@@ -199,11 +208,21 @@ static DetectTlsData *DetectTlsSubjectParse (char *str)
         goto error;
     }
 
-    if (ret > 1) {
+    if (ret == 3) {
         const char *str_ptr;
         char *orig;
         char *tmp_str;
+        uint32_t flag = 0;
+
         res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+        if (res < 0) {
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            goto error;
+        }
+        if (str_ptr[0] == '!')
+            flag = DETECT_CONTENT_NEGATED;
+
+        res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 2, &str_ptr);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
@@ -214,6 +233,7 @@ static DetectTlsData *DetectTlsSubjectParse (char *str)
         if (tls == NULL)
             goto error;
         tls->subject = NULL;
+        tls->flags = flag;
 
         orig = SCStrdup((char*)str_ptr);
         tmp_str=orig;
@@ -337,11 +357,20 @@ static int DetectTlsIssuerDNMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx
     int ret = 0;
     SCMutexLock(&f->m);
 
+    if (tls_data->flags & DETECT_CONTENT_NEGATED) {
+        ret = 1;
+    } else {
+        ret = 0;
+    }
     if (ssl_state->cert0_issuerdn != NULL) {
         SCLogDebug("TLS: IssuerDN is [%s], looking for [%s]\n", ssl_state->cert0_issuerdn, tls_data->issuerdn);
 
         if (strstr(ssl_state->cert0_issuerdn, tls_data->issuerdn) != NULL) {
-            ret = 1;
+            if (tls_data->flags & DETECT_CONTENT_NEGATED) {
+                ret = 0;
+            } else {
+                ret = 1;
+            }
         }
     }
 
@@ -368,16 +397,26 @@ static DetectTlsData *DetectTlsIssuerDNParse(char *str)
     ret = pcre_exec(issuerdn_parse_regex, issuerdn_parse_regex_study, str, strlen(str), 0, 0,
                     ov, MAX_SUBSTRINGS);
 
-    if (ret < 1 || ret > 3) {
+    if (ret != 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.issuerdn option");
         goto error;
     }
 
-    if (ret > 1) {
+    if (ret == 3) {
         const char *str_ptr;
         char *orig;
         char *tmp_str;
+        uint32_t flag = 0;
+
         res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+        if (res < 0) {
+            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            goto error;
+        }
+        if (str_ptr[0] == '!')
+            flag = DETECT_CONTENT_NEGATED;
+
+        res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 2, &str_ptr);
         if (res < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
             goto error;
@@ -388,6 +427,7 @@ static DetectTlsData *DetectTlsIssuerDNParse(char *str)
         if (tls == NULL)
             goto error;
         tls->issuerdn = NULL;
+        tls->flags = flag;
 
         orig = SCStrdup((char*)str_ptr);
         tmp_str=orig;

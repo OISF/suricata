@@ -38,6 +38,7 @@ typedef struct DetectTlsData_ {
     uint16_t ver; /** tls version to match */
     char * subject; /** tls certificate subject substring to match */
     char * issuerdn; /** tls certificate issuerDN substring to match */
+    uint32_t flags; /** flags containing match variant (Negation for example) */
 } DetectTlsData;
 
 /* prototypes */
