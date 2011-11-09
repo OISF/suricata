@@ -93,7 +93,7 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
     uint32_t certificates_length, cur_cert_length;
     int i;
     Asn1Generic *cert;
-    char subject[256];
+    char buffer[256];
     int rc;
 
     if (input_len < 3)
@@ -118,13 +118,22 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
             SCLogWarning(SC_ERR_ALPARSER, "decoding ASN.1 structure for X509 certificate failed\n");
         }
         if (cert != NULL) {
-            rc = Asn1DerGetSubjectDN(cert, subject, sizeof(subject));
+            rc = Asn1DerGetSubjectDN(cert, buffer, sizeof(buffer));
             if (rc != 0) {
                 SCLogWarning(SC_ERR_ALPARSER, "X509: could not get subject\n");
             } else {
-                //SCLogInfo("TLS Cert %d: %s\n", i, subject);
+                //SCLogInfo("TLS Cert %d: %s\n", i, buffer);
                 if (i==0) {
-                    ssl_state->cert0_subject = SCStrdup(subject);
+                    ssl_state->cert0_subject = SCStrdup(buffer);
+                }
+            }
+            rc = Asn1DerGetIssuerDN(cert, buffer, sizeof(buffer));
+            if (rc != 0) {
+                SCLogWarning(SC_ERR_ALPARSER, "X509: could not get issuerdn\n");
+            } else {
+                //SCLogInfo("TLS IssuerDN %d: %s\n", i, buffer);
+                if (i==0) {
+                    ssl_state->cert0_issuerdn = SCStrdup(buffer);
                 }
             }
             DerFree(cert);

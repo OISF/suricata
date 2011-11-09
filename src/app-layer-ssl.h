@@ -98,6 +98,7 @@ typedef struct SSLState_ {
     uint8_t compressionmethod;
 
     char *cert0_subject;
+    char *cert0_issuerdn;
 
     /* buffer for the tls record.
      * We use a malloced buffer, if the record is fragmented */
