@@ -872,8 +872,6 @@ static inline void SCACInsertCaseSensitiveEntriesForPatterns(MpmCtx *mpm_ctx)
     uint32_t state = 0;
     uint32_t k = 0;
 
-    printf("total state - %d\n", ctx->state_count);
-
     for (state = 0; state < ctx->state_count; state++) {
         if (ctx->output_table[state].no_of_entries == 0)
             continue;
