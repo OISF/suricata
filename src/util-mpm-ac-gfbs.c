@@ -1243,7 +1243,7 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         int32_t temp_state;
         uint16_t no_of_entries;
         uint16_t *ascii_codes;
-        uint8_t **goto_table_mod_pointers = ctx->goto_table_mod_pointers;
+        uint16_t **goto_table_mod_pointers = (uint16_t **)ctx->goto_table_mod_pointers;
         //int32_t *failure_table = ctx->failure_table;
         int i;
         /* \todo tried loop unrolling with register var, with no perf increase.  Need
@@ -1252,12 +1252,12 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         register int32_t state = 0;
         for (i = 0; i < buflen; i++) {
             /* get the goto state transition */
-            no_of_entries = *((uint16_t *)goto_table_mod_pointers[state & 0x7FFF]);
+            no_of_entries = *(goto_table_mod_pointers[state & 0x7FFF]);
             if (no_of_entries == 0) {
                 temp_state = SC_AC_GFBS_FAIL;
             } else {
                 if (no_of_entries == 1) {
-                    ascii_codes = (uint16_t *)goto_table_mod_pointers[state & 0x7FFF] + 2;
+                    ascii_codes = goto_table_mod_pointers[state & 0x7FFF] + 2;
                     buf_local = u8_tolower(buf[i]);
                     if (buf_local == ascii_codes[0])
                         temp_state = ((ascii_codes + no_of_entries))[0];
@@ -1266,10 +1266,10 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 } else {
                     buf_local = u8_tolower(buf[i]);
                     if (state == 0) {
-                        ascii_codes = (uint16_t *)goto_table_mod_pointers[state] + 2;
+                        ascii_codes = goto_table_mod_pointers[state] + 2;
                         temp_state = ((ascii_codes + no_of_entries))[buf_local];
                     } else {
-                        ascii_codes = (uint16_t *)goto_table_mod_pointers[state & 0x7FFF] + 2;
+                        ascii_codes = goto_table_mod_pointers[state & 0x7FFF] + 2;
                         int low = 0;
                         int high = no_of_entries;
                         int mid;
@@ -1289,22 +1289,22 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 }
             }
             while (temp_state == SC_AC_GFBS_FAIL) {
-                state = *((uint16_t *)goto_table_mod_pointers[state & 0x7FFF] + 1);
+                state = *(goto_table_mod_pointers[state & 0x7FFF] + 1);
 
                 /* get the goto state transition */
-                no_of_entries = *((uint16_t *)goto_table_mod_pointers[state & 0x7FFF]);
+                no_of_entries = *(goto_table_mod_pointers[state & 0x7FFF]);
                 if (no_of_entries == 0) {
                     temp_state = SC_AC_GFBS_FAIL;
                 } else {
                     if (no_of_entries == 1) {
-                        ascii_codes = (uint16_t *)goto_table_mod_pointers[state & 0x7FFF] + 2;
+                        ascii_codes = goto_table_mod_pointers[state & 0x7FFF] + 2;
                         buf_local = u8_tolower(buf[i]);
                         if (buf_local == ascii_codes[0])
                             temp_state = ((ascii_codes + no_of_entries))[0];
                         else
                             temp_state = SC_AC_GFBS_FAIL;
                     } else {
-                        ascii_codes = (uint16_t *)goto_table_mod_pointers[state & 0x7FFF] + 2;
+                        ascii_codes = goto_table_mod_pointers[state & 0x7FFF] + 2;
                         buf_local = u8_tolower(buf[i]);
                         if (state == 0) {
                             temp_state = ((ascii_codes + no_of_entries))[buf_local];
@@ -1370,7 +1370,7 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         int32_t temp_state = 0;
         uint32_t no_of_entries;
         uint32_t *ascii_codes = NULL;
-        uint8_t **goto_table_mod_pointers = ctx->goto_table_mod_pointers;
+        uint32_t **goto_table_mod_pointers = (uint32_t **)ctx->goto_table_mod_pointers;
         //int32_t *failure_table = ctx->failure_table;
         int i = 0;
         /* \todo tried loop unrolling with register var, with no perf increase.  Need
@@ -1378,12 +1378,12 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         register int32_t state = 0;
         for (i = 0; i < buflen; i++) {
             /* get the goto state transition */
-            no_of_entries = *((uint32_t *)goto_table_mod_pointers[state & 0x00FFFFFF]);
+            no_of_entries = *(goto_table_mod_pointers[state & 0x00FFFFFF]);
             if (no_of_entries == 0) {
                 temp_state = SC_AC_GFBS_FAIL;
             } else {
                 if (no_of_entries == 1) {
-                    ascii_codes = (uint32_t *)goto_table_mod_pointers[state & 0x00FFFFFF] + 2;
+                    ascii_codes = goto_table_mod_pointers[state & 0x00FFFFFF] + 2;
                     buf_local = u8_tolower(buf[i]);
                     if (buf_local == ascii_codes[0])
                         temp_state = ((ascii_codes + no_of_entries))[0];
@@ -1392,10 +1392,10 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 } else {
                     buf_local = u8_tolower(buf[i]);
                     if (state == 0) {
-                        ascii_codes = (uint32_t *)goto_table_mod_pointers[state] + 2;
+                        ascii_codes = goto_table_mod_pointers[state] + 2;
                         temp_state =  ((ascii_codes + no_of_entries))[buf_local];
                     } else {
-                        ascii_codes = (uint32_t *)goto_table_mod_pointers[state & 0x00FFFFFF] + 2;
+                        ascii_codes = goto_table_mod_pointers[state & 0x00FFFFFF] + 2;
                         int low = 0;
                         int high = no_of_entries;
                         int mid;
@@ -1415,22 +1415,22 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 }
             }
             while (temp_state == SC_AC_GFBS_FAIL) {
-                state = *((uint32_t *)goto_table_mod_pointers[state & 0x00FFFFFF] + 1);
+                state = *(goto_table_mod_pointers[state & 0x00FFFFFF] + 1);
 
                 /* get the goto state transition */
-                no_of_entries = *((uint32_t *)goto_table_mod_pointers[state & 0x00FFFFFF]);
+                no_of_entries = *(goto_table_mod_pointers[state & 0x00FFFFFF]);
                 if (no_of_entries == 0) {
                     temp_state = SC_AC_GFBS_FAIL;
                 } else {
                     if (no_of_entries == 1) {
-                        ascii_codes = (uint32_t *)goto_table_mod_pointers[state & 0x00FFFFFF] + 2;
+                        ascii_codes = goto_table_mod_pointers[state & 0x00FFFFFF] + 2;
                         buf_local = u8_tolower(buf[i]);
                         if (buf_local == ascii_codes[0])
                             temp_state = ((ascii_codes + no_of_entries))[0];
                         else
                             temp_state = SC_AC_GFBS_FAIL;
                     } else {
-                        ascii_codes = (uint32_t *)goto_table_mod_pointers[state & 0x00FFFFFF] + 2;
+                        ascii_codes = goto_table_mod_pointers[state & 0x00FFFFFF] + 2;
                         buf_local = u8_tolower(buf[i]);
                         if (state == 0) {
                             temp_state = ((ascii_codes + no_of_entries))[buf_local];
