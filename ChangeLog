@@ -1,0 +1,94 @@
+1.1 -- 2011-11-10
+
+- CUDA build fixed
+- minor pcap, AF_PACKET and PF_RING fixes (#368)
+- bpf handling fix
+- Windows CYGWIN build
+- more cleanups
+
+1.1rc1 -- 2011-11-03
+
+- extended HTTP request logging for use with (among other things) http_agent for Sguil (#38)
+- AF_PACKET report drop stats on shutdown (#325)
+- new counters in stats.log for flow and stream engines (#348)
+- SMTP parsing code support for BDAT command (#347)
+- HTTP URI normalization no longer converts to lowercase (#362)
+- AF_PACKET works with privileges dropping now (#361)
+- Prelude output for state matches (#264, #355)
+- update of the pattern matching code that should improve accuracy
+- rule parser was made more strict (#295, #312)
+- multiple event suppressions for the same SID was fixed (#366)
+- several accuracy fixes
+- removal of the unified1 output plugins (#353)
+
+1.1beta3 -- 2011-10-25
+
+- af-packet support for high speed packet capture
+- "replace" keyword support (#303)
+- new "workers" runmode for multi-dev and/or clustered PF_RING, AF_PACKET, pcap
+- added "stream-event" keyword to match on TCP session anomalies
+- support for suppress keyword was added (#274)
+- byte_extract keyword support was added
+- improved handling of timed out TCP sessions in the detection engine
+- unified2 payload logging if detection was in the HTTP state (#264)
+- improved accuracy of the HTTP transaction logging
+- support for larger (64 bit) Flow/Stream memcaps (#332)
+- major speed improvements for PCRE, including support for PCRE JIT
+- support setting flowbits in ip-only rules (#292)
+- performance increases on SSE3+ CPU's
+- overhaul of the packet acquisition subsystem
+- packet based performance profiling subsystem was added
+- TCP SACK support was added to the stream engine
+- updated included libhtp to 0.2.6 which fixes several issues
+
+1.1beta2 -- 2011-04-13
+
+- New keyword support: http_raw_uri (including /I for pcre), ssl_state, ssl_version (#258, #259, #260, #262).
+- Inline mode for the stream engine (#230, #248).
+- New keyword support: nfq_set_mark
+- Included an example decoder-events.rules file
+- api for adding and selecting runmodes was added
+- pcap logging / recording output was added
+- basic SCTP protocol parsing was added
+- more fine grained CPU affinity setting support was added
+- stream engine inspects stream in larger chunks
+- fast_pattern support for http_method content modifier (#255)
+- negation support for isdataat keyword (#257)
+- configurable interval for stats.log updates (#247)
+- new pf_ring runmode was added that scales better
+- pcap live mode now handles the monitor interface going up and down
+- several QA additions to "make check"
+- NFQ (linux inline) mode was improved
+- Alerts classification fix (#275)
+- compiles and runs on big-endian systems (#63)
+- unified2 output works around barnyard2 issues with DLT_RAW + IPv6
+
+1.1beta1 -- 2010-12-21
+
+- New keyword support: http_raw_header, http_stat_msg, http_stat_code.
+- A new default pattern matcher, Aho-Corasick based, that uses much less memory.
+- reference.config support as supplied by ET/ETpro and VRT.
+- Much improved fast_pattern support, including for http_uri, http_client_body, http_header, http_raw_header.
+- Improved parsers, especially the DCERPC parser.
+- Much improved performance & accuracy.
+
+1.0.5 -- 2011-07-25
+
+- Fix stream reassembly bug #300. Thanks to Rmkml for the report.
+- Fix several (potential) issues fixed after a source code scan with Coverity generously contributed by RedHat.
+
+1.0.4 -- 2011-06-24
+
+- LibHTP updated to 0.2.6
+- Large number of (potential) issues fixed after a source code scan with Coverity generously contributed by RedHat.
+- Large number of (potential) issues fixed after source code scans with the Clang static analizer.
+
+1.0.3 -- 2011-04-13
+
+- Fix broken checksum calculation for TCP/UDP in some cases
+- Fix errors in the byte_test, byte_jump, http_method and http_header keywords
+- Fix a ASN1 parsing issue
+- Improve LibHTP memory handling
+- Fix a defrag issue
+- Fix several stream engine issues
+

@@ -1,3 +1,13 @@
+Before you start
+================
+
+An up to date version of this document can be found online:
+https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Windows
+
+Alternatively, an installation document for using CYGWIN instead of MinGW can
+be found here:
+https://redmine.openinfosecfoundation.org/attachments/download/676/SurWinInstallGuide.pdf
+
 This file describes how to build and run Suricata on Windows. Currently
 Windows XP and above are supported.
 

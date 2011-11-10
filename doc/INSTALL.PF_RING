@@ -1,3 +1,6 @@
+An up to date version of this document is available online at:
+https://redmine.openinfosecfoundation.org/projects/suricata/wiki/Installation_with_PF_RING
+
 #Install DKMS
 apt-get install dkms
 
