@@ -754,6 +754,45 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
     int ascii_code = 0;
     int32_t r_state = 0;
 
+    if (ctx->state_count < 32767) {
+        ctx->state_table_u16 = SCMalloc(ctx->state_count *
+                                        sizeof(SC_AC_STATE_TYPE_U16) * 256);
+        if (ctx->state_table_u16 == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+        memset(ctx->state_table_u16, 0,
+               ctx->state_count * sizeof(SC_AC_STATE_TYPE_U16) * 256);
+
+        mpm_ctx->memory_cnt++;
+        mpm_ctx->memory_size += (ctx->state_count *
+                                 sizeof(SC_AC_STATE_TYPE_U16) * 256);
+
+        StateQueue q;
+        memset(&q, 0, sizeof(StateQueue));
+
+        for (ascii_code = 0; ascii_code < 256; ascii_code++) {
+            SC_AC_STATE_TYPE_U16 temp_state = ctx->goto_table[0][ascii_code];
+            ctx->state_table_u16[0][ascii_code] = temp_state;
+            if (temp_state != 0)
+                SCACEnqueue(&q, temp_state);
+        }
+
+        while (!SCACStateQueueIsEmpty(&q)) {
+            r_state = SCACDequeue(&q);
+
+            for (ascii_code = 0; ascii_code < 256; ascii_code++) {
+                int32_t temp_state = ctx->goto_table[r_state][ascii_code];
+                if (temp_state != SC_AC_FAIL) {
+                    SCACEnqueue(&q, temp_state);
+                    ctx->state_table_u16[r_state][ascii_code] = temp_state;
+                } else {
+                    ctx->state_table_u16[r_state][ascii_code] =
+                        ctx->state_table_u16[ctx->failure_table[r_state]][ascii_code];
+                }
+            }
+        }
+    } else {
     /* create space for the state table.  We could have used the existing goto
      * table, but since we have it set to hold 32 bit state values, we will create
      * a new state table here of type SC_AC_STATE_TYPE(current set to uint16_t) */
@@ -794,6 +833,7 @@ static inline void SCACCreateDeltaTable(MpmCtx *mpm_ctx)
             }
         }
     }
+    }
 
     return;
 }
@@ -805,12 +845,22 @@ static inline void SCACClubOutputStatePresenceWithDeltaTable(MpmCtx *mpm_ctx)
     uint32_t state = 0;
     uint32_t temp_state = 0;
 
+    if (ctx->state_count < 32767) {
+        for (state = 0; state < ctx->state_count; state++) {
+            for (ascii_code = 0; ascii_code < 256; ascii_code++) {
+                temp_state = ctx->state_table_u16[state & 0x7FFF][ascii_code];
+                if (ctx->output_table[temp_state & 0x7FFF].no_of_entries != 0)
+                    ctx->state_table_u16[state & 0x7FFF][ascii_code] |= (1 << 15);
+            }
+        }
+    } else {
     for (state = 0; state < ctx->state_count; state++) {
         for (ascii_code = 0; ascii_code < 256; ascii_code++) {
             temp_state = ctx->state_table_u32[state & 0x00FFFFFF][ascii_code];
             if (ctx->output_table[temp_state & 0x00FFFFFF].no_of_entries != 0)
                 ctx->state_table_u32[state & 0x00FFFFFF][ascii_code] |= (1 << 24);
         }
+    }
     }
 
     return;
@@ -821,6 +871,8 @@ static inline void SCACInsertCaseSensitiveEntriesForPatterns(MpmCtx *mpm_ctx)
     SCACCtx *ctx = (SCACCtx *)mpm_ctx->ctx;
     uint32_t state = 0;
     uint32_t k = 0;
+
+    printf("total state - %d\n", ctx->state_count);
 
     for (state = 0; state < ctx->state_count; state++) {
         if (ctx->output_table[state].no_of_entries == 0)
@@ -1104,7 +1156,14 @@ void SCACDestroyCtx(MpmCtx *mpm_ctx)
         mpm_ctx->memory_size -= (mpm_ctx->pattern_cnt * sizeof(SCACPattern *));
     }
 
-    if (ctx->state_table_u32 != NULL) {
+    if (ctx->state_table_u16 != NULL) {
+        SCFree(ctx->state_table_u16);
+        ctx->state_table_u16 = NULL;
+
+        mpm_ctx->memory_cnt++;
+        mpm_ctx->memory_size -= (ctx->state_count *
+                                 sizeof(SC_AC_STATE_TYPE_U16) * 256);
+    } else if (ctx->state_table_u32 != NULL) {
         SCFree(ctx->state_table_u32);
         ctx->state_table_u32 = NULL;
 
@@ -1142,9 +1201,52 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
     /* \todo tried loop unrolling with register var, with no perf increase.  Need
      * to dig deeper */
     /* \todo Change it for stateful MPM.  Supply the state using mpm_thread_ctx */
-    SC_AC_STATE_TYPE_U32 (*state_table_u32)[256] = ctx->state_table_u32;
     SCACPatternList *pid_pat_list = ctx->pid_pat_list;
+
+    if (ctx->state_count < 32767) {
+        register SC_AC_STATE_TYPE_U16 state = 0;
+        SC_AC_STATE_TYPE_U16 (*state_table_u16)[256] = ctx->state_table_u16;
+        for (i = 0; i < buflen; i++) {
+            state = state_table_u16[state & 0x7FFF][u8_tolower(buf[i])];
+            if (state & 0x8000) {
+                uint32_t no_of_entries = ctx->output_table[state & 0x7FFF].no_of_entries;
+                uint32_t *pids = ctx->output_table[state & 0x7FFF].pids;
+                uint32_t k;
+                for (k = 0; k < no_of_entries; k++) {
+                    if (pids[k] & 0xFFFF0000) {
+                        if (SCMemcmp(pid_pat_list[pids[k] & 0x0000FFFF].cs,
+                                     buf + i - pid_pat_list[pids[k] & 0x0000FFFF].patlen + 1,
+                                     pid_pat_list[pids[k] & 0x0000FFFF].patlen) != 0) {
+                            /* inside loop */
+                            if (pid_pat_list[pids[k] & 0x0000FFFF].case_state != 3) {
+                                continue;
+                            }
+                        }
+                        if (pmq->pattern_id_bitarray[(pids[k] & 0x0000FFFF) / 8] & (1 << ((pids[k] & 0x0000FFFF) % 8))) {
+                            ;
+                        } else {
+                            pmq->pattern_id_bitarray[(pids[k] & 0x0000FFFF) / 8] |= (1 << ((pids[k] & 0x0000FFFF) % 8));
+                            pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = pids[k] & 0x0000FFFF;
+                        }
+                        matches++;
+                    } else {
+                        if (pmq->pattern_id_bitarray[pids[k] / 8] & (1 << (pids[k] % 8))) {
+                            ;
+                        } else {
+                            pmq->pattern_id_bitarray[pids[k] / 8] |= (1 << (pids[k] % 8));
+                            pmq->pattern_id_array[pmq->pattern_id_array_cnt++] = pids[k];
+                        }
+                        matches++;
+                    }
+                    //loop1:
+                    //;
+                }
+            }
+        } /* for (i = 0; i < buflen; i++) */
+
+    } else {
     register SC_AC_STATE_TYPE_U32 state = 0;
+    SC_AC_STATE_TYPE_U32 (*state_table_u32)[256] = ctx->state_table_u32;
     for (i = 0; i < buflen; i++) {
         state = state_table_u32[state & 0x00FFFFFF][u8_tolower(buf[i])];
         if (state & 0xFF000000) {
@@ -1182,6 +1284,7 @@ uint32_t SCACSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
             }
         }
     } /* for (i = 0; i < buflen; i++) */
+    }
 
     return matches;
 }
