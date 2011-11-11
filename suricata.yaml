@@ -756,6 +756,7 @@ libhtp:
    default-config:
      personality: IDS
      request_body_limit: 3072
+     response_body_limit: 3072
 
    server-config:
 
@@ -763,6 +764,7 @@ libhtp:
          address: [192.168.1.0/24, 127.0.0.0/8, "::1"]
          personality: Apache_2_2
          request_body_limit: 4096
+         response_body_limit: 4096
 
      - iis7:
          address:
@@ -770,6 +772,7 @@ libhtp:
            - 192.168.10.0/24
          personality: IIS_7_0
          request_body_limit: 4096
+         response_body_limit: 4096
 
 # Profiling settings. Only effective if Suricata has been built with the
 # the --enable-profiling configure flag.

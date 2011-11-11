@@ -76,17 +76,14 @@
  *  \retval -2 not handling files on this flow
  */
 int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
-        uint8_t *data, uint32_t data_len)
+        uint8_t *data, uint32_t data_len, uint16_t txid)
 {
     int retval = 0;
-    uint16_t txid;
     uint8_t flags = 0;
 
     if (s == NULL) {
         SCReturnInt(-1);
     }
-
-    txid = AppLayerTransactionGetAvailId(s->f) - 1;
 
     if (s->files == NULL) {
         s->files = FileContainerAlloc();

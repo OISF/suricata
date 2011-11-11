@@ -41,6 +41,7 @@
 #include "util-debug.h"
 #include "util-spm-bm.h"
 #include "util-magic.h"
+#include "util-print.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -82,7 +83,7 @@ void DetectFilemagicRegister(void) {
  *  \retval -1 error
  *  \retval 0 ok
  */
-static int FilemagicLookup(File *file) {
+int FilemagicLookup(File *file) {
     if (file == NULL || file->chunks_head == NULL) {
         SCReturnInt(-1);
     }
@@ -108,7 +109,6 @@ static int FilemagicLookup(File *file) {
                     file->magic = MagicLookup(buf, size);
                     break;
                 }
-
                 /* file is done but smaller than FILEMAGIC_MIN_SIZE */
                 if (ffd->next == NULL && file->state >= FILE_STATE_CLOSED) {
                     file->magic = MagicLookup(buf, size);
@@ -138,8 +138,8 @@ int DetectFilemagicMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f
 {
     SCEnter();
     int ret = 0;
+    DetectFilemagicData *filemagic = (DetectFilemagicData *)m->ctx;
 
-    DetectFilemagicData *filemagic = m->ctx;
     File *file = (File *)state;
 
     if (file->txid < det_ctx->tx_id)

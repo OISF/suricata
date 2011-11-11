@@ -25,7 +25,7 @@
 #ifndef __APP_LAYER_HTP_FILE_H__
 #define __APP_LAYER_HTP_FILE_H__
 
-int HTPFileOpen(HtpState *, uint8_t *, uint16_t, uint8_t *, uint32_t);
+int HTPFileOpen(HtpState *, uint8_t *, uint16_t, uint8_t *, uint32_t, uint16_t);
 int HTPFileStoreChunk(HtpState *, uint8_t *, uint32_t);
 int HTPFileClose(HtpState *, uint8_t *, uint32_t, uint8_t);
 

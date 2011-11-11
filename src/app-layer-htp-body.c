@@ -104,14 +104,14 @@ int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32
         body->first = body->last = bd;
         body->nchunks++;
 
-        htud->content_len_so_far = len;
+        body->content_len_so_far = len;
     } else {
         bd = (HtpBodyChunk *)SCMalloc(sizeof(HtpBodyChunk));
         if (bd == NULL)
             goto error;
 
         bd->len = len;
-        bd->stream_offset = htud->content_len_so_far;
+        bd->stream_offset = body->content_len_so_far;
         bd->next = NULL;
         bd->id = body->nchunks + 1;
 
@@ -125,7 +125,7 @@ int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32
         body->last = bd;
         body->nchunks++;
 
-        htud->content_len_so_far += len;
+        body->content_len_so_far += len;
     }
     SCLogDebug("Body %p; Chunk id: %"PRIu32", data %p, len %"PRIu32"", body,
                 bd->id, bd->data, (uint32_t)bd->len);
@@ -198,7 +198,6 @@ void HtpBodyFree(HtpBody *body)
         prev = cur;
     }
     body->first = body->last = NULL;
-    body->operation = HTP_BODY_NONE;
 }
 
 /**
@@ -208,17 +207,15 @@ void HtpBodyFree(HtpBody *body)
  *
  * \retval none
  */
-void HtpBodyPrune(HtpTxUserData *htud)
+void HtpBodyPrune(HtpBody *body)
 {
     SCEnter();
 
-    HtpBody *body = &htud->request_body;
-
-    if (body->nchunks == 0) {
+    if (body == NULL || body->nchunks == 0) {
         SCReturn;
     }
 
-    if (htud->body_parsed == 0) {
+    if (body->body_parsed == 0) {
         SCReturn;
     }
 
@@ -226,18 +223,15 @@ void HtpBodyPrune(HtpTxUserData *htud)
                " len %"PRIu32, body, body->last->id, body->last->data,
                 (uint32_t)body->last->len);
 
-    HtpBodyChunk *cur = NULL;
-
-    cur = body->first;
-
+    HtpBodyChunk *cur = body->first;
     while (cur != NULL) {
         HtpBodyChunk *next = cur->next;
 
         SCLogDebug("cur->stream_offset %"PRIu64" + cur->len %u = %"PRIu64", "
-                "htud->body_parsed %"PRIu64, cur->stream_offset, cur->len,
-                cur->stream_offset + cur->len, htud->body_parsed);
+                "body->body_parsed %"PRIu64, cur->stream_offset, cur->len,
+                cur->stream_offset + cur->len, body->body_parsed);
 
-        if ((cur->stream_offset + cur->len) >= htud->body_parsed) {
+        if ((cur->stream_offset + cur->len) >= body->body_parsed) {
             break;
         }
 

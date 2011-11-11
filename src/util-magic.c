@@ -21,6 +21,10 @@
  * \author Victor Julien <victor@inliniac.net>
  *
  * Wrappers and tests for libmagic usage.
+ *
+ * Libmagic's API is not thread safe. The data the pointer returned by
+ * magic_buffer is overwritten by the next magic_buffer call. This is
+ * why we need to lock calls and copy the returned string.
  */
 
 #include "suricata-common.h"
@@ -31,40 +35,45 @@
 #include <magic.h>
 
 static magic_t g_magic_ctx = NULL;
+static SCMutex g_magic_lock;
 
 /**
  *  \brief Initialize the "magic" context.
  */
 int MagicInit(void) {
-    char *filename = NULL;
-    FILE *fd = NULL;
+    BUG_ON(g_magic_ctx != NULL);
 
     SCEnter();
 
+    char *filename = NULL;
+    FILE *fd = NULL;
+
+    SCMutexInit(&g_magic_lock, NULL);
+    SCMutexLock(&g_magic_lock);
+
+    g_magic_ctx = magic_open(0);
     if (g_magic_ctx == NULL) {
-        g_magic_ctx = magic_open(0);
-        if (g_magic_ctx == NULL) {
-            SCLogError(SC_ERR_MAGIC_OPEN, "magic_open failed: %s", magic_error(g_magic_ctx));
-            goto error;
-        }
-
-        ConfGet("magic-file", &filename);
-        if (filename != NULL) {
-            SCLogInfo("using magic-file %s", filename);
-
-            if ( (fd = fopen(filename, "r")) == NULL) {
-                SCLogWarning(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
-                goto error;
-            }
-            fclose(fd);
-        }
-
-        if (magic_load(g_magic_ctx, filename) != 0) {
-            SCLogError(SC_ERR_MAGIC_LOAD, "magic_load failed: %s", magic_error(g_magic_ctx));
-            goto error;
-        }
+        SCLogError(SC_ERR_MAGIC_OPEN, "magic_open failed: %s", magic_error(g_magic_ctx));
+        goto error;
     }
 
+    ConfGet("magic-file", &filename);
+    if (filename != NULL) {
+        SCLogInfo("using magic-file %s", filename);
+
+        if ( (fd = fopen(filename, "r")) == NULL) {
+            SCLogWarning(SC_ERR_FOPEN, "Error opening file: \"%s\": %s", filename, strerror(errno));
+            goto error;
+        }
+        fclose(fd);
+    }
+
+    if (magic_load(g_magic_ctx, filename) != 0) {
+        SCLogError(SC_ERR_MAGIC_LOAD, "magic_load failed: %s", magic_error(g_magic_ctx));
+        goto error;
+    }
+
+    SCMutexUnlock(&g_magic_lock);
     SCReturnInt(0);
 
 error:
@@ -73,6 +82,7 @@ error:
         g_magic_ctx = NULL;
     }
 
+    SCMutexUnlock(&g_magic_lock);
     SCReturnInt(-1);
 }
 
@@ -82,16 +92,23 @@ error:
  *  \param buf the buffer
  *  \param buflen length of the buffer
  *
- *  \retval result pointer to const string
+ *  \retval result pointer to null terminated string
  */
-const char *MagicLookup(uint8_t *buf, uint32_t buflen) {
+char *MagicLookup(uint8_t *buf, uint32_t buflen) {
     const char *result = NULL;
+    char *magic = NULL;
+
+    SCMutexLock(&g_magic_lock);
 
     if (buf != NULL && buflen > 0) {
         result = magic_buffer(g_magic_ctx, (void *)buf, (size_t)buflen);
+        if (result != NULL) {
+            magic = SCStrdup(result);
+        }
     }
 
-    SCReturnPtr(result, "const char");
+    SCMutexUnlock(&g_magic_lock);
+    SCReturnPtr(magic, "const char");
 }
 
 void MagicDeinit(void) {

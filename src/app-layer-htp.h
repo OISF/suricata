@@ -40,6 +40,7 @@
 
 /* default request body limit */
 #define HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT       4096U
+#define HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT      4096U
 
 /** a boundary should be smaller in size */
 #define HTP_BOUNDARY_MAX                            200U
@@ -92,9 +93,14 @@ typedef struct HtpBody_ {
     HtpBodyChunk *first; /**< Pointer to the first chunk */
     HtpBodyChunk *last;  /**< Pointer to the last chunk */
     uint32_t nchunks;    /**< Number of chunks in the current operation */
-    uint8_t operation;   /**< This flag indicate if it's a request
-                              or a response */
     uint8_t type;
+
+    /* Holds the length of the htp request body */
+    uint64_t content_len;
+    /* Holds the length of the htp request body seen so far */
+    uint64_t content_len_so_far;
+
+    uint64_t body_parsed;
 
     /* pahole: padding: 3 */
 } HtpBody;
@@ -122,14 +128,7 @@ typedef struct HtpBody_ {
 typedef struct HtpTxUserData_ {
     /* Body of the request (if any) */
     HtpBody request_body;
-    //HtpBody response_body;
-
-    /* Holds the length of the htp request body */
-    uint64_t content_len;
-    /* Holds the length of the htp request body seen so far */
-    uint64_t content_len_so_far;
-
-    uint64_t body_parsed;
+    HtpBody response_body;
 
     /** Holds the boundary identificator string if any (used on
      *  multipart/form-data only)
@@ -138,6 +137,8 @@ typedef struct HtpTxUserData_ {
     uint8_t boundary_len;
 
     uint8_t flags;
+
+    int16_t operation;
 } HtpTxUserData;
 
 typedef struct HtpState_ {
@@ -149,6 +150,7 @@ typedef struct HtpState_ {
     uint16_t transaction_cnt;
     uint16_t transaction_done;
     uint32_t request_body_limit;
+    uint32_t response_body_limit;
     FileContainer *files;
 } HtpState;
 
@@ -167,6 +169,7 @@ void AppLayerHtpRegisterExtraCallbacks(void);
 /* To free the state from unittests using app-layer-htp */
 void HTPStateFree(void *);
 void AppLayerHtpEnableRequestBodyCallback(void);
+void AppLayerHtpEnableResponseBodyCallback(void);
 void AppLayerHtpNeedFileInspection(void);
 void AppLayerHtpPrintStats(void);
 

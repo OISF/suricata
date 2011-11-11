@@ -26,9 +26,7 @@
 
 int MagicInit(void);
 void MagicDeinit(void);
-
-const char *MagicLookup(uint8_t *, uint32_t);
-
+char *MagicLookup(uint8_t *, uint32_t);
 void MagicRegisterTests(void);
 
 #endif /* __UTIL_MAGIC_H__ */

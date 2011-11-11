@@ -75,7 +75,7 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flo
     int r = 0;
     int match = 0;
 
-    SCLogDebug("file inspection...");
+    SCLogDebug("file inspection... %p", ffc);
 
     if (ffc != NULL) {
         File *file = ffc->head;
@@ -139,13 +139,33 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flo
              * return 3 so we can distinguish */
             if (s->init_flags & SIG_FLAG_FILESTORE && r == 2)
                 r = 3;
+
+            /* continue, this file may (or may not) be unable to match
+             * maybe we have more that can :) */
         }
     }
 
     SCReturnInt(r);
 }
 
-int DetectFileInspectHttp(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flow *f, Signature *s, void *alstate) {
+/**
+ *  \brief Inspect the file inspecting keywords against the HTTP transactions.
+ *
+ *  \param tv thread vars
+ *  \param det_ctx detection engine thread ctx
+ *  \param f flow
+ *  \param s signature to inspect
+ *  \param alstate state
+ *  \param flags direction flag
+ *
+ *  \retval 0 no match
+ *  \retval 1 match
+ *  \retval 2 can't match
+ *  \retval 3 can't match filestore signature
+ *
+ *  \note flow is not locked at this time
+ */
+int DetectFileInspectHttp(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flow *f, Signature *s, void *alstate, uint8_t flags) {
     SCEnter();
 
     int r = 0;
@@ -155,21 +175,24 @@ int DetectFileInspectHttp(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flow *
     size_t end_tx = 0;
     int match = 0;
 
+    /* locking the flow, we will inspect the htp state */
+    SCMutexLock(&f->m);
+
     htp_state = (HtpState *)alstate;
     if (htp_state == NULL) {
         SCLogDebug("no HTTP state");
-        SCReturnInt(0);
+        goto end;
     }
 
-    /* locking the flow, we will inspect the htp state */
-    SCMutexLock(&f->m);
     if (htp_state->connp != NULL && htp_state->connp->conn != NULL)
     {
         start_tx = AppLayerTransactionGetInspectId(f);
+        /* tx cnt is incremented after request finishes, so we need to inspect
+         * response one before the lowest. */
+        if (flags & STREAM_TOCLIENT && start_tx)
+            start_tx--;
         end_tx = list_size(htp_state->connp->conn->transactions);
-
     }
-    SCMutexUnlock(&f->m);
 
     for (idx = start_tx ; idx < end_tx; idx++)
     {
@@ -192,5 +215,7 @@ int DetectFileInspectHttp(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flow *
         }
     }
 
+end:
+    SCMutexUnlock(&f->m);
     SCReturnInt(r);
 }

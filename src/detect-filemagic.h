@@ -35,5 +35,6 @@ typedef struct DetectFilemagicData {
 
 /* prototypes */
 void DetectFilemagicRegister (void);
+int FilemagicLookup(File *file);
 
 #endif /* __DETECT_FILEMAGIC_H__ */

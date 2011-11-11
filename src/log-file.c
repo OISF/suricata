@@ -35,11 +35,14 @@
 
 #include "app-layer-parser.h"
 
+#include "detect-filemagic.h"
+
 #include "util-print.h"
 #include "util-unittest.h"
 #include "util-privs.h"
 #include "util-debug.h"
 #include "util-atomic.h"
+#include "util-file.h"
 
 #include "output.h"
 
@@ -58,6 +61,7 @@ static void LogFileLogDeInitCtx(OutputCtx *);
 
 SC_ATOMIC_DECLARE(unsigned int, file_id);
 static char g_logfile_base_dir[PATH_MAX] = "/tmp";
+static int g_logfile_force_magic = 0;
 
 void TmModuleLogFileLogRegister (void) {
     tmm_modules[TMM_FILELOG].name = MODULE_NAME;
@@ -92,6 +96,70 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
             t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
 }
 
+static void LogFileLogCreateMetaFile(Packet *p, File *ff, char *filename) {
+    char metafilename[PATH_MAX] = "";
+    snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
+    FILE *fp = fopen(metafilename, "w+");
+    if (fp != NULL) {
+        char timebuf[64];
+
+        CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+
+        fprintf(fp, "TIME:              %s\n", timebuf);
+        if (p->pcap_cnt > 0) {
+            fprintf(fp, "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt);
+        }
+
+        char srcip[16], dstip[16];
+        inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
+        inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
+
+        fprintf(fp, "SRC IP:            %s\n", srcip);
+        fprintf(fp, "DST IP:            %s\n", dstip);
+        fprintf(fp, "PROTO:             %" PRIu32 "\n", IPV4_GET_IPPROTO(p));
+        if (PKT_IS_TCP(p) || PKT_IS_UDP(p)) {
+            fprintf(fp, "SRC PORT:          %" PRIu16 "\n", p->sp);
+            fprintf(fp, "DST PORT:          %" PRIu16 "\n", p->dp);
+        }
+        fprintf(fp, "FILENAME:          ");
+        PrintRawUriFp(fp, ff->name, ff->name_len);
+        fprintf(fp, "\n");
+
+        fclose(fp);
+    }
+}
+
+static void LogFileLogCloseMetaFile(File *ff) {
+    char filename[PATH_MAX] = "";
+    snprintf(filename, sizeof(filename), "%s/file.%u",
+            g_logfile_base_dir, ff->file_id);
+    char metafilename[PATH_MAX] = "";
+    snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
+    FILE *fp = fopen(metafilename, "a");
+
+    if (g_logfile_force_magic || ff->magic != NULL) {
+        if (g_logfile_force_magic && ff->magic == NULL) {
+            FilemagicLookup(ff);
+        }
+        fprintf(fp, "MAGIC:             %s\n", ff->magic ? ff->magic : "<unknown>");
+    }
+
+    switch (ff->state) {
+        case FILE_STATE_CLOSED:
+            fprintf(fp, "STATE:             CLOSED\n");
+            break;
+        case FILE_STATE_TRUNCATED:
+            fprintf(fp, "STATE:             TRUNCATED\n");
+            break;
+        case FILE_STATE_ERROR:
+            fprintf(fp, "STATE:             ERROR\n");
+            break;
+    }
+    fprintf(fp, "SIZE:              %"PRIu64"\n", ff->size);
+
+    fclose(fp);
+}
+
 TmEcode LogFileLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     SCEnter();
@@ -105,18 +173,24 @@ TmEcode LogFileLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     SCMutexLock(&p->flow->m);
 
     FileContainer *ffc = AppLayerGetFilesFromFlow(p->flow);
+    SCLogDebug("ffc %p", ffc);
     if (ffc != NULL) {
         File *ff;
         for (ff = ffc->head; ff != NULL; ff = ff->next) {
-            if (ff->state == FILE_STATE_STORED)
+            SCLogDebug("ff %p", ff);
+            if (ff->state == FILE_STATE_STORED) {
+                SCLogDebug("ff->state == FILE_STATE_STORED");
                 continue;
+            }
 
             if (ff->store != 1) {
+                SCLogDebug("ff->store %d, so not 1", ff->store);
                 continue;
             }
 
             FileData *ffd;
             for (ffd = ff->chunks_head; ffd != NULL; ffd = ffd->next) {
+                SCLogDebug("ffd %p", ffd);
                 if (ffd->stored == 1)
                     continue;
 
@@ -127,7 +201,7 @@ TmEcode LogFileLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
                     char filename[PATH_MAX] = "";
                     snprintf(filename, sizeof(filename), "%s/file.%u",
                             g_logfile_base_dir, SC_ATOMIC_GET(file_id));
-                    SC_ATOMIC_ADD(file_id, 1);
+                    ff->file_id = SC_ATOMIC_ADD(file_id, 1);
 
                     ff->fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
                     if (ff->fd == -1) {
@@ -136,36 +210,7 @@ TmEcode LogFileLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
                     }
 
                     /* create a .meta file that contains time, src/dst/sp/dp/proto */
-                    char metafilename[PATH_MAX] = "";
-                    snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
-                    FILE *fp = fopen(metafilename, "w+");
-                    if (fp != NULL) {
-                        char timebuf[64];
-
-                        CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
-
-                        fprintf(fp, "TIME:              %s\n", timebuf);
-                        if (p->pcap_cnt > 0) {
-                            fprintf(fp, "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt);
-                        }
-
-                        char srcip[16], dstip[16];
-                        inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
-                        inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
-
-                        fprintf(fp, "SRC IP:            %s\n", srcip);
-                        fprintf(fp, "DST IP:            %s\n", dstip);
-                        fprintf(fp, "PROTO:             %" PRIu32 "\n", IPV4_GET_IPPROTO(p));
-                        if (PKT_IS_TCP(p) || PKT_IS_UDP(p)) {
-                            fprintf(fp, "SRC PORT:          %" PRIu32 "\n", p->sp);
-                            fprintf(fp, "DST PORT:          %" PRIu32 "\n", p->dp);
-                        }
-                        fprintf(fp, "FILENAME:          ");
-                        PrintRawUriFp(fp, ff->name, ff->name_len);
-                        fprintf(fp, "\n");
-
-                        fclose(fp);
-                    }
+                    LogFileLogCreateMetaFile(p, ff, filename);
 
                     aft->file_cnt++;
                 } else {
@@ -183,6 +228,8 @@ TmEcode LogFileLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
                         ff->state == FILE_STATE_ERROR)
                 {
                     if (ffd->next == NULL) {
+                        LogFileLogCloseMetaFile(ff);
+
                         ff->state = FILE_STATE_STORED;
                         close(ff->fd);
                         ff->fd = -1;
@@ -248,8 +295,6 @@ TmEcode LogFileLogThreadInit(ThreadVars *t, void *initdata, void **data)
 
     /* Use the Ouptut Context (file pointer and mutex) */
     aft->file_ctx = ((OutputCtx *)initdata)->data;
-
-    SCLogInfo("storing files in %s", g_logfile_base_dir);
 
     struct stat stat_buf;
     if (stat(g_logfile_base_dir, &stat_buf) != 0) {
@@ -317,6 +362,14 @@ OutputCtx *LogFileLogInitCtx(ConfNode *conf)
                     "%s/%s", s_default_log_dir, s_base_dir);
         }
     }
+
+    const char *force_magic = ConfNodeLookupChildValue(conf, "force-magic");
+    if (force_magic != NULL && ConfValIsTrue(force_magic)) {
+        g_logfile_force_magic = 1;
+        SCLogInfo("forcing magic lookup for stored files");
+    }
+
+    SCLogInfo("storing files in %s", g_logfile_base_dir);
 
     SCReturnPtr(output_ctx, "OutputCtx");
 }

@@ -388,12 +388,6 @@ static void DetectEngineBufferHttpClientBodies(DetectEngineCtx *de_ctx,
                 continue;
             }
 
-            /* this applies only for the client request body like the keyword name says */
-            if (htud->request_body.operation != HTP_BODY_REQUEST) {
-                SCLogDebug("htp chunk not a request chunk");
-                continue;
-            }
-
             /* in case of chunked transfer encoding, we don't have the length
              * of the request body until we see a chunk with length 0.  This
              * doesn't let us use the request body callback function to
@@ -407,8 +401,8 @@ static void DetectEngineBufferHttpClientBodies(DetectEngineCtx *de_ctx,
              * and running content validation on this buffer type of architecture
              * to a stateful inspection, where we can inspect body chunks as and
              * when they come */
-            if (htud->content_len == 0) {
-                if ((htud->content_len_so_far > 0) &&
+            if (htud->request_body.content_len == 0) {
+                if ((htud->request_body.content_len_so_far > 0) &&
                     tx->progress != TX_PROGRESS_REQ_BODY) {
                     /* final length of the body */
                     htud->flags |= HTP_BODY_COMPLETE;

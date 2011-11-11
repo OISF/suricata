@@ -80,6 +80,7 @@ typedef struct HTPCfgRec_ {
 
     /** max size of the client body we inspect */
     uint32_t            request_body_limit;
+    uint32_t            response_body_limit;
 } HTPCfgRec;
 
 /** Fast lookup tree (radix) for the various HTP configurations */
@@ -100,6 +101,8 @@ static uint8_t need_htp_request_body = 0;
 static uint8_t need_htp_request_multipart_hdr = 0;
 /** part of the engine needs the request file (e.g. log-file module) */
 static uint8_t need_htp_request_file = 0;
+/** part of the engine needs the request body (e.g. file_data keyword) */
+static uint8_t need_htp_response_body = 0;
 
 #ifdef DEBUG
 /**
@@ -220,9 +223,10 @@ void HTPStateFree(void *state)
                     HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
                     if (htud != NULL) {
                         HtpBodyFree(&htud->request_body);
+                        HtpBodyFree(&htud->response_body);
                         SCFree(htud);
+                        htp_tx_set_user_data(tx, NULL);
                     }
-                    htp_tx_set_user_data(tx, NULL);
                 }
             }
         }
@@ -299,6 +303,18 @@ void AppLayerHtpEnableRequestBodyCallback(void)
 
 /**
  * \brief Sets a flag that informs the HTP app layer that some module in the
+ *        engine needs the http request body data.
+ * \initonly
+ */
+void AppLayerHtpEnableResponseBodyCallback(void)
+{
+    SCEnter();
+    need_htp_response_body = 1;
+    SCReturn;
+}
+
+/**
+ * \brief Sets a flag that informs the HTP app layer that some module in the
  *        engine needs the http request multi part header.
  *
  * \initonly
@@ -321,6 +337,8 @@ void AppLayerHtpNeedFileInspection(void)
 {
     SCEnter();
     AppLayerHtpNeedMultipartHeader();
+    AppLayerHtpEnableRequestBodyCallback();
+    AppLayerHtpEnableResponseBodyCallback();
 
     need_htp_request_file = 1;
     SCReturn;
@@ -383,11 +401,13 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
                 SCLogDebug("LIBHTP using config: %p", htp);
 
                 hstate->request_body_limit = htp_cfg_rec->request_body_limit;
+                hstate->response_body_limit = htp_cfg_rec->response_body_limit;
             }
         } else {
             SCLogDebug("Using default HTP config: %p", htp);
 
             hstate->request_body_limit = cfglist.request_body_limit;
+            hstate->response_body_limit = cfglist.response_body_limit;
         }
 
         if (NULL == htp) {
@@ -820,7 +840,7 @@ static int HTTPParseContentTypeHeader(uint8_t *name, size_t name_len,
 static int HtpRequestBodySetupMultipart(htp_tx_data_t *d, HtpTxUserData *htud) {
     htp_header_t *cl = table_getc(d->tx->request_headers, "content-length");
     if (cl != NULL)
-        htud->content_len = htp_parse_content_length(cl->value);
+        htud->request_body.content_len = htp_parse_content_length(cl->value);
 
     htp_header_t *h = (htp_header_t *)table_getc(d->tx->request_headers,
             "Content-Type");
@@ -988,14 +1008,14 @@ static void HtpRequestBodyReassemble(HtpTxUserData *htud,
 
     for ( ; cur != NULL; cur = cur->next) {
         /* skip body chunks entirely before what we parsed already */
-        if (cur->stream_offset + cur->len <= htud->body_parsed)
+        if (cur->stream_offset + cur->len <= htud->request_body.body_parsed)
             continue;
 
-        if (cur->stream_offset < htud->body_parsed &&
-                cur->stream_offset + cur->len >= htud->body_parsed) {
+        if (cur->stream_offset < htud->request_body.body_parsed &&
+                cur->stream_offset + cur->len >= htud->request_body.body_parsed) {
 
-            uint32_t toff = htud->body_parsed - cur->stream_offset;
-            uint32_t tlen = (cur->stream_offset + cur->len) - htud->body_parsed;
+            uint32_t toff = htud->request_body.body_parsed - cur->stream_offset;
+            uint32_t tlen = (cur->stream_offset + cur->len) - htud->request_body.body_parsed;
 
             buf_len += tlen;
             if ((buf = SCRealloc(buf, buf_len)) == NULL) {
@@ -1107,7 +1127,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                     }
                 }
 
-                htud->body_parsed += filedata_len;
+                htud->request_body.body_parsed += filedata_len;
             } else {
                 SCLogDebug("chunk too small to already process in part");
             }
@@ -1169,7 +1189,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
 #endif
 
                 result = HTPFileOpen(hstate, filename, filename_len,
-                            filedata, filedata_len);
+                            filedata, filedata_len, hstate->transaction_cnt);
                 if (result == -1) {
                     goto end;
                 } else if (result == -2) {
@@ -1184,10 +1204,10 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
 
                 uint32_t offset = (header_end + 4) - chunks_buffer;
                 SCLogDebug("offset %u", offset);
-                htud->body_parsed = offset;
+                htud->request_body.body_parsed = offset;
 
                 result = HTPFileOpen(hstate, filename, filename_len,
-                            filedata, filedata_len);
+                            filedata, filedata_len, hstate->transaction_cnt);
                 if (result == -1) {
                     goto end;
                 } else if (result == -2) {
@@ -1251,7 +1271,7 @@ int HtpRequestBodyHandlePUT(HtpState *hstate, HtpTxUserData *htud,
         }
 
         result = HTPFileOpen(hstate, filename, filename_len,
-                    data, data_len);
+                    data, data_len, hstate->transaction_cnt);
         if (result == -1) {
             goto end;
         } else if (result == -2) {
@@ -1267,6 +1287,60 @@ int HtpRequestBodyHandlePUT(HtpState *hstate, HtpTxUserData *htud,
 
         if (!(htud->flags & HTP_DONTSTORE)) {
             result = HTPFileStoreChunk(hstate, data, data_len);
+            if (result == -1) {
+                goto end;
+            } else if (result == -2) {
+                /* we know for sure we're not storing the file */
+                htud->flags |= HTP_DONTSTORE;
+            }
+        }
+    }
+
+    return 0;
+end:
+    return -1;
+}
+
+int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
+        htp_tx_t *tx, uint8_t *data, uint32_t data_len)
+{
+    SCEnter();
+
+    int result = 0;
+
+    /* see if we need to open the file */
+    if (!(htud->flags & HTP_FILENAME_SET))
+    {
+        SCLogDebug("setting up file name");
+
+        uint8_t *filename = NULL;
+        uint32_t filename_len = 0;
+
+        /* get the name */
+        if (tx->parsed_uri != NULL && tx->parsed_uri->path != NULL) {
+            filename = (uint8_t *)bstr_ptr(tx->parsed_uri->path);
+            filename_len = bstr_len(tx->parsed_uri->path);
+        }
+
+        result = HTPFileOpen(hstate, filename, filename_len,
+                    data, data_len, hstate->transaction_cnt - 1);
+        SCLogDebug("result %d", result);
+        if (result == -1) {
+            goto end;
+        } else if (result == -2) {
+            htud->flags |= HTP_DONTSTORE;
+        } else {
+            htud->flags |= HTP_FILENAME_SET;
+            htud->flags &= ~HTP_DONTSTORE;
+        }
+    }
+    else
+    {
+        /* otherwise, just store the data */
+
+        if (!(htud->flags & HTP_DONTSTORE)) {
+            result = HTPFileStoreChunk(hstate, data, data_len);
+            SCLogDebug("result %d", result);
             if (result == -1) {
                 goto end;
             } else if (result == -2) {
@@ -1305,7 +1379,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
             SCReturnInt(HOOK_OK);
         }
         memset(htud, 0, sizeof(HtpTxUserData));
-        htud->request_body.operation = HTP_BODY_REQUEST;
+        htud->operation = HTP_BODY_REQUEST;
 
         if (d->tx->request_method_number == M_POST) {
             if (HtpRequestBodySetupMultipart(d, htud) == 0) {
@@ -1321,18 +1395,18 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
         htp_tx_set_user_data(d->tx, htud);
     }
 
-    SCLogDebug("htud->content_len_so_far %"PRIu64, htud->content_len_so_far);
+    SCLogDebug("htud->request_body.content_len_so_far %"PRIu64, htud->request_body.content_len_so_far);
     SCLogDebug("hstate->request_body_limit %u", hstate->request_body_limit);
 
     /* within limits, add the body chunk to the state. */
-    if (hstate->request_body_limit == 0 || htud->content_len_so_far < hstate->request_body_limit)
+    if (hstate->request_body_limit == 0 || htud->request_body.content_len_so_far < hstate->request_body_limit)
     {
         uint32_t len = (uint32_t)d->len;
 
         if (hstate->request_body_limit > 0 &&
-                (htud->content_len_so_far + len) > hstate->request_body_limit)
+                (htud->request_body.content_len_so_far + len) > hstate->request_body_limit)
         {
-            len = hstate->request_body_limit - htud->content_len_so_far;
+            len = hstate->request_body_limit - htud->request_body.content_len_so_far;
             BUG_ON(len > (uint32_t)d->len);
         }
         SCLogDebug("len %u", len);
@@ -1341,10 +1415,10 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
         if (r < 0) {
             htud->flags |= HTP_BODY_COMPLETE;
         } else if (hstate->request_body_limit > 0 &&
-            htud->content_len_so_far >= hstate->request_body_limit)
+            htud->request_body.content_len_so_far >= hstate->request_body_limit)
         {
             htud->flags |= HTP_BODY_COMPLETE;
-        } else if (htud->content_len_so_far == htud->content_len) {
+        } else if (htud->request_body.content_len_so_far == htud->request_body.content_len) {
             htud->flags |= HTP_BODY_COMPLETE;
         }
 
@@ -1375,7 +1449,76 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
 end:
     /* see if we can get rid of htp body chunks */
-    HtpBodyPrune(htud);
+    HtpBodyPrune(&htud->request_body);
+
+    /* set the new chunk flag */
+    hstate->flags |= HTP_FLAG_NEW_BODY_SET;
+
+    SCReturnInt(HOOK_OK);
+}
+
+/**
+ * \brief Function callback to append chunks for Responses
+ * \param d pointer to the htp_tx_data_t structure (a chunk from htp lib)
+ * \retval int HOOK_OK if all goes well
+ */
+int HTPCallbackResponseBodyData(htp_tx_data_t *d)
+{
+    SCEnter();
+
+    HtpState *hstate = (HtpState *)d->tx->connp->user_data;
+    if (hstate == NULL) {
+        SCReturnInt(HOOK_ERROR);
+    }
+
+    SCLogDebug("New response body data available at %p -> %p -> %p, bodylen "
+               "%"PRIu32"", hstate, d, d->data, (uint32_t)d->len);
+
+    HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(d->tx);
+    if (htud == NULL) {
+        htud = SCMalloc(sizeof(HtpTxUserData));
+        if (htud == NULL) {
+            SCReturnInt(HOOK_OK);
+        }
+        memset(htud, 0, sizeof(HtpTxUserData));
+        htud->operation = HTP_BODY_RESPONSE;
+
+        /* Set the user data for handling body chunks on this transaction */
+        htp_tx_set_user_data(d->tx, htud);
+    }
+
+    SCLogDebug("htud->response_body.content_len_so_far %"PRIu64, htud->response_body.content_len_so_far);
+    SCLogDebug("hstate->response_body_limit %u", hstate->response_body_limit);
+
+    /* within limits, add the body chunk to the state. */
+    if (hstate->response_body_limit == 0 || htud->response_body.content_len_so_far < hstate->response_body_limit)
+    {
+        uint32_t len = (uint32_t)d->len;
+
+        if (hstate->response_body_limit > 0 &&
+                (htud->response_body.content_len_so_far + len) > hstate->response_body_limit)
+        {
+            len = hstate->response_body_limit - htud->response_body.content_len_so_far;
+            BUG_ON(len > (uint32_t)d->len);
+        }
+        SCLogDebug("len %u", len);
+
+        int r = HtpBodyAppendChunk(htud, &htud->response_body, (uint8_t *)d->data, len);
+        if (r < 0) {
+            htud->flags |= HTP_BODY_COMPLETE;
+        } else if (hstate->response_body_limit > 0 &&
+            htud->response_body.content_len_so_far >= hstate->response_body_limit)
+        {
+            htud->flags |= HTP_BODY_COMPLETE;
+        } else if (htud->response_body.content_len_so_far == htud->response_body.content_len) {
+            htud->flags |= HTP_BODY_COMPLETE;
+        }
+
+        HtpResponseBodyHandle(hstate, htud, d->tx, (uint8_t *)d->data, (uint32_t)d->len);
+    }
+
+    /* see if we can get rid of htp body chunks */
+    HtpBodyPrune(&htud->response_body);
 
     /* set the new chunk flag */
     hstate->flags |= HTP_FLAG_NEW_BODY_SET;
@@ -1470,9 +1613,22 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
     /* Unset the body inspection (if any) */
     hstate->flags &=~ HTP_FLAG_NEW_BODY_SET;
 
+    if (connp->out_tx != NULL) {
+        HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(connp->out_tx);
+        if (htud != NULL) {
+            if (htud->flags & HTP_FILENAME_SET) {
+                SCLogDebug("closing file that was being stored");
+                (void)HTPFileClose(hstate, NULL, 0, 0);
+                htud->flags &= ~HTP_FILENAME_SET;
+            }
+        }
+    }
+
     /* remove obsolete transactions */
     size_t idx;
     for (idx = 0; idx < hstate->transaction_done; idx++) {
+        SCLogDebug("idx %"PRIuMAX, (uintmax_t)idx);
+
         htp_tx_t *tx = list_get(hstate->connp->conn->transactions, idx);
         if (tx == NULL)
             continue;
@@ -1481,8 +1637,9 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(tx);
         if (htud != NULL) {
             HtpBodyFree(&htud->request_body);
-            htp_tx_set_user_data(tx, NULL);
+            HtpBodyFree(&htud->response_body);
             SCFree(htud);
+            htp_tx_set_user_data(tx, NULL);
         }
 
         htp_tx_destroy(tx);
@@ -1527,6 +1684,7 @@ static void HTPConfigure(void)
     SCLogDebug("LIBHTP default config: %p", cfglist.cfg);
 
     cfglist.request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
+    cfglist.response_body_limit = HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT;
     htp_config_register_request(cfglist.cfg, HTPCallbackRequest);
     htp_config_register_response(cfglist.cfg, HTPCallbackResponse);
 #ifdef HAVE_HTP_URI_NORMALIZE_HOOK
@@ -1593,10 +1751,29 @@ static void HTPConfigure(void)
                 }
                 else {
                     SCLogWarning(SC_ERR_UNKNOWN_VALUE,
-                            "LIBHTP malformed request_body_limit "
+                            "LIBHTP malformed request-body-limit "
                             "\"%s\", using default %u", p->val,
                             HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT);
                     cfglist.request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
+                    continue;
+                }
+            } else if (strcasecmp("response-body-limit", p->name) == 0) {
+
+                /* limit */
+                int limit = atoi(p->val);
+
+                if (limit >= 0) {
+                    SCLogDebug("LIBHTP default: %s=%s (%d)",
+                            p->name, p->val, limit);
+
+                    cfglist.response_body_limit = (uint32_t)limit;
+                }
+                else {
+                    SCLogWarning(SC_ERR_UNKNOWN_VALUE,
+                            "LIBHTP malformed response-body-limit "
+                            "\"%s\", using default %u", p->val,
+                            HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT);
+                    cfglist.response_body_limit = HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT;
                     continue;
                 }
 
@@ -1757,6 +1934,25 @@ static void HTPConfigure(void)
                         htprec->request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
                         continue;
                     }
+                } else if (strcasecmp("response-body-limit", p->name) == 0) {
+
+                    /* limit */
+                    int limit = atoi(p->val);
+
+                    if (limit >= 0) {
+                        SCLogDebug("LIBHTP default: %s=%s (%d)",
+                                p->name, p->val, limit);
+
+                        htprec->response_body_limit = (uint32_t)limit;
+                    }
+                    else {
+                        SCLogWarning(SC_ERR_UNKNOWN_VALUE,
+                                "LIBHTP malformed response-body-limit "
+                                "\"%s\", using default %u", p->val,
+                                HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT);
+                        htprec->response_body_limit = HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT;
+                        continue;
+                    }
                 } else {
                     SCLogWarning(SC_ERR_UNKNOWN_VALUE,
                                  "LIBHTP Ignoring unknown server config: %s",
@@ -1835,8 +2031,11 @@ void AppLayerHtpRegisterExtraCallbacks(void) {
         SCLogDebug("Registering callback htp_config_register_request_body_data on htp");
         htp_config_register_request_body_data(cfglist.cfg,
                                               HTPCallbackRequestBodyData);
-    } else {
-        SCLogDebug("No htp extra callback needed");
+    }
+    if (need_htp_response_body == 1) {
+        SCLogDebug("Registering callback htp_config_register_response_body_data on htp");
+        htp_config_register_response_body_data(cfglist.cfg,
+                                              HTPCallbackResponseBodyData);
     }
     SCReturn;
 }
