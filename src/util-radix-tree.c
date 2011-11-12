@@ -4204,8 +4204,7 @@ static int SCRadixTestUserdataMacro01(void) {
     if (node == NULL) {
         goto end;
     }
-
-    memset(node, 0x00, sizeof(node));
+    memset(node, 0x00, sizeof(*node));
 
     void *ptr = SC_RADIX_NODE_USERDATA(node, void);
     if (ptr != NULL) {
@@ -4230,8 +4229,7 @@ static int SCRadixTestUserdataMacro02(void) {
     if (node == NULL) {
         goto end;
     }
-
-    memset(node, 0x00, sizeof(node));
+    memset(node, 0x00, sizeof(*node));
     memset(&prefix, 0x00, sizeof(prefix));
 
     node->prefix = &prefix;
@@ -4260,8 +4258,7 @@ static int SCRadixTestUserdataMacro03(void) {
     if (node == NULL) {
         goto end;
     }
-
-    memset(node, 0x00, sizeof(node));
+    memset(node, 0x00, sizeof(*node));
     memset(&prefix, 0x00, sizeof(prefix));
 
     node->prefix = &prefix;
