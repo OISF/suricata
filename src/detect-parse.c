@@ -1793,27 +1793,14 @@ char DetectParseDupSigCompareFunc(void *data1, uint16_t len1, void *data2,
     SigDuplWrapper *sw1 = (SigDuplWrapper *)data1;
     SigDuplWrapper *sw2 = (SigDuplWrapper *)data2;
 
-    if (sw1 == NULL || sw2 == NULL)
+    if (sw1 == NULL || sw2 == NULL ||
+        sw1->s == NULL || sw2->s == NULL)
         return 0;
 
-    if (sw1->s->id != sw2->s->id)
-        return 0;
+    /* sid and gid match required */
+    if (sw1->s->id == sw2->s->id && sw1->s->gid == sw2->s->gid) return 1;
 
-    /* be careful all you non-related signatures with the same sid and no msg.
-     * We treat you all as the same signature */
-    if ((sw1->s->msg == NULL) && (sw2->s->msg == NULL))
-        return 1;
-
-    if ((sw1->s->msg == NULL) || (sw2->s->msg == NULL))
-        return 0;
-
-    if (strlen(sw1->s->msg) != strlen(sw2->s->msg))
-        return 0;
-
-    if (strcmp(sw1->s->msg, sw2->s->msg) != 0)
-        return 0;
-
-    return 1;
+    return 0;
 }
 
 /**
@@ -1831,12 +1818,9 @@ int DetectParseDupSigHashInit(DetectEngineCtx *de_ctx)
                                                    DetectParseDupSigCompareFunc,
                                                    DetectParseDupSigFreeFunc);
     if (de_ctx->dup_sig_hash_table == NULL)
-        goto error;
+        return -1;
 
     return 0;
-
-error:
-    return -1;
 }
 
 /**
