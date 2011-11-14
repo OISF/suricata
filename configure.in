@@ -684,7 +684,10 @@ esac
         LIBPFRING_BPF_FILTER=""
         AC_CHECK_LIB(pfring, pfring_set_bpf_filter,
                         , LIBPFRING_BPF_FILTER="no", [-lpcap])
-        if test "$LIBPFRING_BPF_FILTER" != "no"; then
+        LIBPFRING_REMOVE_BPF_FILTER=""
+        AC_CHECK_LIB(pfring, pfring_remove_bpf_filter,
+                        , LIBPFRING_REMOVE_BPF_FILTER="no", [-lpcap])
+        if test "$LIBPFRING_BPF_FILTER" != "no" -a "$LIBPFRING_REMOVE_BPF_FILTER" != "no"; then
             AC_DEFINE([HAVE_PFRING_SET_BPF_FILTER],[1],[PF_RING pfring_set_bpf_filter is available])
         fi
 
