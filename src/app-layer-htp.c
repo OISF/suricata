@@ -1206,6 +1206,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                 SCLogDebug("offset %u", offset);
                 htud->request_body.body_parsed = offset;
 
+
                 result = HTPFileOpen(hstate, filename, filename_len,
                             filedata, filedata_len, hstate->transaction_cnt);
                 if (result == -1) {
@@ -1323,7 +1324,7 @@ int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
         }
 
         result = HTPFileOpen(hstate, filename, filename_len,
-                    data, data_len, hstate->transaction_cnt - 1);
+                    data, data_len, hstate->transaction_cnt);
         SCLogDebug("result %d", result);
         if (result == -1) {
             goto end;

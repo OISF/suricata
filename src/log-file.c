@@ -96,7 +96,7 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
             t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
 }
 
-static void LogFileLogCreateMetaFile(Packet *p, File *ff, char *filename) {
+static void LogFileLogCreateMetaFile(Packet *p, File *ff, char *filename, int ipver) {
     char metafilename[PATH_MAX] = "";
     snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
     FILE *fp = fopen(metafilename, "w+");
@@ -110,16 +110,31 @@ static void LogFileLogCreateMetaFile(Packet *p, File *ff, char *filename) {
             fprintf(fp, "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt);
         }
 
-        char srcip[16], dstip[16];
-        inet_ntop(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
-        inet_ntop(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
+        char srcip[46], dstip[46];
+        Port sp, dp;
+        switch (ipver) {
+            case AF_INET:
+                PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
+                PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
+                break;
+            case AF_INET6:
+                PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
+                PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+                break;
+            default:
+                strlcpy(srcip, "<unknown>", sizeof(srcip));
+                strlcpy(dstip, "<unknown>", sizeof(dstip));
+                break;
+        }
+        sp = p->sp;
+        dp = p->dp;
 
         fprintf(fp, "SRC IP:            %s\n", srcip);
         fprintf(fp, "DST IP:            %s\n", dstip);
-        fprintf(fp, "PROTO:             %" PRIu32 "\n", IPV4_GET_IPPROTO(p));
+        fprintf(fp, "PROTO:             %" PRIu32 "\n", p->proto);
         if (PKT_IS_TCP(p) || PKT_IS_UDP(p)) {
-            fprintf(fp, "SRC PORT:          %" PRIu16 "\n", p->sp);
-            fprintf(fp, "DST PORT:          %" PRIu16 "\n", p->dp);
+            fprintf(fp, "SRC PORT:          %" PRIu16 "\n", sp);
+            fprintf(fp, "DST PORT:          %" PRIu16 "\n", dp);
         }
         fprintf(fp, "FILENAME:          ");
         PrintRawUriFp(fp, ff->name, ff->name_len);
@@ -154,13 +169,16 @@ static void LogFileLogCloseMetaFile(File *ff) {
         case FILE_STATE_ERROR:
             fprintf(fp, "STATE:             ERROR\n");
             break;
+        default:
+            fprintf(fp, "STATE:             UNKNOWN\n");
+            break;
     }
     fprintf(fp, "SIZE:              %"PRIu64"\n", ff->size);
 
     fclose(fp);
 }
 
-TmEcode LogFileLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+static TmEcode LogFileLogWrap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq, int ipver)
 {
     SCEnter();
     LogFileLogThread *aft = (LogFileLogThread *)data;
@@ -170,6 +188,8 @@ TmEcode LogFileLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
         SCReturnInt(TM_ECODE_OK);
     }
 
+    int file_close = (p->flags & PKT_PSEUDO_STREAM_END) ? 1 : 0;
+
     SCMutexLock(&p->flow->m);
 
     FileContainer *ffc = AppLayerGetFilesFromFlow(p->flow);
@@ -177,6 +197,9 @@ TmEcode LogFileLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     if (ffc != NULL) {
         File *ff;
         for (ff = ffc->head; ff != NULL; ff = ff->next) {
+            int file_open = 0;
+            int file_fd = -1;
+
             SCLogDebug("ff %p", ff);
             if (ff->state == FILE_STATE_STORED) {
                 SCLogDebug("ff->state == FILE_STATE_STORED");
@@ -191,33 +214,41 @@ TmEcode LogFileLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
             FileData *ffd;
             for (ffd = ff->chunks_head; ffd != NULL; ffd = ffd->next) {
                 SCLogDebug("ffd %p", ffd);
-                if (ffd->stored == 1)
-                    continue;
-
-                /* store */
-                if (ff->fd == -1) {
-                    SCLogDebug("trying to open file");
-
-                    char filename[PATH_MAX] = "";
-                    snprintf(filename, sizeof(filename), "%s/file.%u",
-                            g_logfile_base_dir, SC_ATOMIC_GET(file_id));
-                    ff->file_id = SC_ATOMIC_ADD(file_id, 1);
-
-                    ff->fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
-                    if (ff->fd == -1) {
-                        SCLogDebug("failed to open file");
-                        continue;
+                if (ffd->stored == 1) {
+                    if (file_close == 1) {
+                        LogFileLogCloseMetaFile(ff);
+                        ff->state = FILE_STATE_STORED;
                     }
-
-                    /* create a .meta file that contains time, src/dst/sp/dp/proto */
-                    LogFileLogCreateMetaFile(p, ff, filename);
-
-                    aft->file_cnt++;
-                } else {
-                    SCLogDebug("already open file %d", ff->fd);
+                    continue;
                 }
 
-                ssize_t r = write(ff->fd, (const void *)ffd->data, (size_t)ffd->len);
+                /* store */
+                SCLogDebug("trying to open file");
+
+                if (ff->file_id == 0) {
+                    ff->file_id = SC_ATOMIC_ADD(file_id, 1);
+                    file_open = 1;
+                }
+
+                char filename[PATH_MAX] = "";
+                snprintf(filename, sizeof(filename), "%s/file.%u",
+                        g_logfile_base_dir, ff->file_id);
+
+                file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
+                if (file_fd == -1) {
+                    SCLogDebug("failed to open file");
+                    continue;
+                }
+
+                if (file_open == 1) {
+                    /* create a .meta file that contains time, src/dst/sp/dp/proto */
+                    LogFileLogCreateMetaFile(p, ff, filename, ipver);
+                    aft->file_cnt++;
+                } else {
+                    SCLogDebug("already open file");
+                }
+
+                ssize_t r = write(file_fd, (const void *)ffd->data, (size_t)ffd->len);
                 if (r == -1) {
                     SCLogDebug("write failed: %s", strerror(errno));
                     continue;
@@ -225,14 +256,18 @@ TmEcode LogFileLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
 
                 if (ff->state == FILE_STATE_CLOSED ||
                         ff->state == FILE_STATE_TRUNCATED ||
-                        ff->state == FILE_STATE_ERROR)
+                        ff->state == FILE_STATE_ERROR ||
+                        file_close == 1)
                 {
                     if (ffd->next == NULL) {
                         LogFileLogCloseMetaFile(ff);
 
                         ff->state = FILE_STATE_STORED;
-                        close(ff->fd);
-                        ff->fd = -1;
+
+                        if (file_fd != -1) {
+                            close(file_fd);
+                            file_fd = -1;
+                        }
                     }
                 }
 
@@ -244,17 +279,12 @@ TmEcode LogFileLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     SCReturnInt(TM_ECODE_OK);
 }
 
-TmEcode LogFileLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
-{
-    SCEnter();
-    //LogFileLogThread *aft = (LogFileLogThread *)data;
+TmEcode LogFileLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
+    return LogFileLogWrap(tv, p, data, NULL, NULL, AF_INET);
+}
 
-    /* no flow, no htp state */
-    if (p->flow == NULL) {
-        SCReturnInt(TM_ECODE_OK);
-    }
-
-    SCReturnInt(TM_ECODE_OK);
+TmEcode LogFileLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq) {
+    return LogFileLogWrap(tv, p, data, NULL, NULL, AF_INET6);
 }
 
 TmEcode LogFileLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
