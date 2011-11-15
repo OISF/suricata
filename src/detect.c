@@ -461,7 +461,7 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
         size_t len = strlen(line);
 
         /* ignore comments and empty lines */
-        if (line[0] == '\n' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
+        if (line[0] == '\n' || line [0] == '\r' || line[0] == ' ' || line[0] == '#' || line[0] == '\t')
             continue;
 
         /* Check for multiline rules. */
@@ -479,7 +479,7 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
 
         /* Check if we have a trailing newline, and remove it */
         len = strlen(line);
-        if (len > 0 && line[len - 1] == '\n') {
+        if (len > 0 && (line[len - 1] == '\n' || line[len - 1] == '\r')) {
             line[len - 1] = '\0';
         }
 
