@@ -35,6 +35,7 @@
 #include "detect-content.h"
 #include "detect-uricontent.h"
 #include "detect-reference.h"
+#include "detect-ipproto.h"
 #include "detect-flow.h"
 
 #include "flow.h"
@@ -254,6 +255,23 @@ void SigMatchAppendTag(Signature *s, SigMatch *new) {
 
     new->idx = s->sm_cnt;
     s->sm_cnt++;
+
+    return;
+}
+
+void SigMatchRemoveSMFromList(Signature *s, SigMatch *sm,
+                              SigMatch **list, SigMatch **list_tail)
+{
+    if (sm == *list) {
+        *list = sm->next;
+    }
+    if (sm == *list_tail) {
+        *list_tail = sm->prev;
+    }
+    if (sm->prev != NULL)
+        sm->prev->next = sm->next;
+    if (sm->next != NULL)
+        sm->next->prev = sm->prev;
 
     return;
 }
@@ -966,6 +984,8 @@ int SigParse(DetectEngineCtx *de_ctx, Signature *s, char *sigstr, uint8_t addrs_
     SCFree(basics);
 
     s->sig_str = NULL;
+
+    DetectIPProtoRemoveAllSMs(s);
 
     SCReturnInt(ret);
 }

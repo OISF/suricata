@@ -42,6 +42,7 @@ typedef struct DetectIPProtoData_ {
  * \brief Registration function for ip_proto keyword.
  */
 void DetectIPProtoRegister (void);
+void DetectIPProtoRemoveAllSMs(Signature *);
 
 #endif /* __DETECT_IPPROTO_H__ */
 
