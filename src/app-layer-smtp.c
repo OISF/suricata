@@ -122,7 +122,9 @@ static int SMTPGetLine(SMTPState *state)
                 state->ts_current_line_db = 0;
                 SCFree(state->ts_db);
                 state->ts_db = NULL;
+                state->ts_db_len = 0;
                 state->current_line = NULL;
+                state->current_line_len = 0;
             }
         }
 
@@ -131,11 +133,11 @@ static int SMTPGetLine(SMTPState *state)
         if (lf_idx == NULL) {
             /* set decoder event */
             if (state->ts_current_line_db == 0) {
-                state->ts_current_line_db = 1;
                 state->ts_db = SCMalloc(state->input_len);
                 if (state->ts_db == NULL) {
                     return -1;
                 }
+                state->ts_current_line_db = 1;
                 memcpy(state->ts_db, state->input, state->input_len);
                 state->ts_db_len = state->input_len;
             } else {
@@ -152,58 +154,51 @@ static int SMTPGetLine(SMTPState *state)
             state->input_len = 0;
 
             return -1;
+
         } else {
             state->ts_current_line_lf_seen = 1;
 
-            /* We have CR-LF as the line delimiter */
-            if (*(lf_idx - 1) == 0x0d) {
-                if (state->ts_current_line_db == 1) {
-                    state->ts_db = SCRealloc(state->ts_db,
-                                             (state->ts_db_len +
-                                              (lf_idx - state->input - 1)));
-                    if (state->ts_db == NULL) {
-                        return -1;
-                    }
-                    memcpy(state->ts_db + state->ts_db_len,
-                           state->input, (lf_idx - state->input - 1));
-                    state->ts_db_len += (lf_idx - state->input - 1);
+            if (state->ts_current_line_db == 1) {
+                state->ts_db = SCRealloc(state->ts_db,
+                                         (state->ts_db_len +
+                                          (lf_idx + 1 - state->input)));
+                if (state->ts_db == NULL) {
+                    return -1;
+                }
+                memcpy(state->ts_db + state->ts_db_len,
+                       state->input, (lf_idx + 1 - state->input));
+                state->ts_db_len += (lf_idx + 1 - state->input);
 
-                    state->current_line = state->ts_db;
-                    state->current_line_len = state->ts_db_len;
+                if (state->ts_db_len > 1 &&
+                    state->ts_db[state->ts_db_len - 2] == 0x0D) {
+                    state->ts_db_len -= 2;
+                    state->current_line_delimiter_len = 2;
                 } else {
-                    state->current_line = state->input;
-                    state->current_line_len = (lf_idx - state->input - 1);
+                    state->ts_db_len -= 1;
+                    state->current_line_delimiter_len = 1;
                 }
 
-                state->current_line_delimiter_len = 2;
-                /* We have just LF as the line delimiter */
+                state->current_line = state->ts_db;
+                state->current_line_len = state->ts_db_len;
+
             } else {
-                if (state->ts_current_line_db == 1) {
-                    state->ts_db = SCRealloc(state->ts_db,
-                                             (state->ts_db_len +
-                                              (lf_idx - state->input)));
-                    if (state->ts_db == NULL) {
-                        return -1;
-                    }
-                    memcpy(state->ts_db + state->ts_db_len,
-                           state->input, (lf_idx - state->input));
-                    state->ts_db_len += (lf_idx - state->input);
+                state->current_line = state->input;
+                state->current_line_len = lf_idx - state->input;
 
-                    state->current_line = state->ts_db;
-                    state->current_line_len = state->ts_db_len;
+                if (state->input != lf_idx &&
+                    *(lf_idx - 1) == 0x0D) {
+                    state->current_line_len--;
+                    state->current_line_delimiter_len = 2;
                 } else {
-                    state->current_line = state->input;
-                    state->current_line_len = (lf_idx - state->input);
+                    state->current_line_delimiter_len = 1;
                 }
-
-                state->current_line_delimiter_len = 1;
-            } /* else */
+            }
 
             state->input_len -= (lf_idx - state->input) + 1;
-            state->input = lf_idx + 1;
+            state->input = (lf_idx + 1);
 
             return 0;
-        } /* else - if (lf_idx == NULL) */
+        }
 
         /* toclient */
     } else {
@@ -215,7 +210,9 @@ static int SMTPGetLine(SMTPState *state)
                 state->tc_current_line_db = 0;
                 SCFree(state->tc_db);
                 state->tc_db = NULL;
+                state->tc_db_len = 0;
                 state->current_line = NULL;
+                state->current_line_len = 0;
             }
         }
 
@@ -224,11 +221,11 @@ static int SMTPGetLine(SMTPState *state)
         if (lf_idx == NULL) {
             /* set decoder event */
             if (state->tc_current_line_db == 0) {
-                state->tc_current_line_db = 1;
                 state->tc_db = SCMalloc(state->input_len);
                 if (state->tc_db == NULL) {
                     return -1;
                 }
+                state->tc_current_line_db = 1;
                 memcpy(state->tc_db, state->input, state->input_len);
                 state->tc_db_len = state->input_len;
             } else {
@@ -245,55 +242,48 @@ static int SMTPGetLine(SMTPState *state)
             state->input_len = 0;
 
             return -1;
+
         } else {
             state->tc_current_line_lf_seen = 1;
 
-            /* We have CR-LF as the line delimiter */
-            if (*(lf_idx - 1) == 0x0d) {
-                if (state->tc_current_line_db == 1) {
-                    state->tc_db = SCRealloc(state->tc_db,
-                                             (state->tc_db_len +
-                                              (lf_idx - state->input - 1)));
-                    if (state->tc_db == NULL) {
-                        return -1;
-                    }
-                    memcpy(state->tc_db + state->tc_db_len,
-                           state->input, (lf_idx - state->input - 1));
-                    state->tc_db_len += (lf_idx - state->input - 1);
+            if (state->tc_current_line_db == 1) {
+                state->tc_db = SCRealloc(state->tc_db,
+                                         (state->tc_db_len +
+                                          (lf_idx + 1 - state->input)));
+                if (state->tc_db == NULL) {
+                    return -1;
+                }
+                memcpy(state->tc_db + state->tc_db_len,
+                       state->input, (lf_idx + 1 - state->input));
+                state->tc_db_len += (lf_idx + 1 - state->input);
 
-                    state->current_line = state->tc_db;
-                    state->current_line_len = state->tc_db_len;
+                if (state->tc_db_len > 1 &&
+                    state->tc_db[state->tc_db_len - 2] == 0x0D) {
+                    state->tc_db_len -= 2;
+                    state->current_line_delimiter_len = 2;
                 } else {
-                    state->current_line = state->input;
-                    state->current_line_len = (lf_idx - state->input - 1);
+                    state->tc_db_len -= 1;
+                    state->current_line_delimiter_len = 1;
                 }
 
-                state->current_line_delimiter_len = 2;
-                /* We have just LF as the line delimiter */
+                state->current_line = state->tc_db;
+                state->current_line_len = state->tc_db_len;
+
             } else {
-                if (state->tc_current_line_db == 1) {
-                    state->tc_db = SCRealloc(state->tc_db,
-                                             (state->tc_db_len +
-                                              (lf_idx - state->input)));
-                    if (state->tc_db == NULL) {
-                        return -1;
-                    }
-                    memcpy(state->tc_db + state->tc_db_len,
-                           state->input, (lf_idx - state->input));
-                    state->tc_db_len += (lf_idx - state->input);
+                state->current_line = state->input;
+                state->current_line_len = lf_idx - state->input;
 
-                    state->current_line = state->tc_db;
-                    state->current_line_len = state->tc_db_len;
+                if (state->input != lf_idx &&
+                    *(lf_idx - 1) == 0x0D) {
+                    state->current_line_len--;
+                    state->current_line_delimiter_len = 2;
                 } else {
-                    state->current_line = state->input;
-                    state->current_line_len = (lf_idx - state->input);
+                    state->current_line_delimiter_len = 1;
                 }
-
-                state->current_line_delimiter_len = 1;
-            } /* else */
+            }
 
             state->input_len -= (lf_idx - state->input) + 1;
-            state->input = lf_idx + 1;
+            state->input = (lf_idx + 1);
 
             return 0;
         } /* else - if (lf_idx == NULL) */
@@ -2325,6 +2315,494 @@ end:
     return result;
 }
 
+/*
+ * \test Test retrieving lines when frag'ed.
+ */
+int SMTPParserTest07(void)
+{
+    int result = 0;
+    Flow f;
+    int r = 0;
+
+    const char *request1_str = "EHLO boo.com";
+    /* EHLO boo.com<CR> */
+    uint8_t request1_1[] = {
+        0x45, 0x48, 0x4c, 0x4f, 0x20, 0x62, 0x6f, 0x6f,
+        0x2e, 0x63, 0x6f, 0x6d, 0x0d,
+    };
+    int32_t request1_1_len = sizeof(request1_1);
+
+    /* <LF> */
+    uint8_t request1_2[] = {
+        0x0a
+    };
+    int32_t request1_2_len = sizeof(request1_2);
+
+    /* EHLO boo.com<CR><LF> */
+    uint8_t request2[] = {
+        0x45, 0x48, 0x4c, 0x4f, 0x20, 0x62, 0x6f, 0x6f,
+        0x2e, 0x63, 0x6f, 0x6d, 0x0d, 0x0a,
+    };
+    int32_t request2_len = sizeof(request2);
+
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
+                      request1_1, request1_1_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    SMTPState *smtp_state = f.aldata[AlpGetStateIdx(ALPROTO_SMTP)];
+    if (smtp_state == NULL) {
+        printf("no smtp state: ");
+        goto end;
+    }
+    if (smtp_state->current_line != NULL ||
+        smtp_state->current_line_len != 0 ||
+        smtp_state->ts_current_line_db != 1 ||
+        smtp_state->ts_db == NULL ||
+        smtp_state->ts_db_len != request1_1_len ||
+        memcmp(smtp_state->ts_db, request1_1, request1_1_len) != 0) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
+                      request1_2, request1_2_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    if (smtp_state->ts_current_line_db != 1 ||
+        smtp_state->ts_db == NULL ||
+        smtp_state->ts_db_len != (int32_t)strlen(request1_str) ||
+        memcmp(smtp_state->ts_db, request1_str, strlen(request1_str)) != 0 ||
+        smtp_state->current_line != smtp_state->ts_db ||
+        smtp_state->current_line_len != smtp_state->ts_db_len) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
+                      request2, request2_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    if (smtp_state->ts_current_line_db != 0 ||
+        smtp_state->ts_db != NULL ||
+        smtp_state->ts_db_len != 0 ||
+        smtp_state->current_line == NULL ||
+        smtp_state->current_line_len != (int32_t)strlen(request1_str) ||
+        memcmp(smtp_state->current_line, request1_str, strlen(request1_str)) != 0) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    result = 1;
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
+/*
+ * \test Test retrieving lines when frag'ed.
+ */
+int SMTPParserTest08(void)
+{
+    int result = 0;
+    Flow f;
+    int r = 0;
+
+    const char *request1_str = "EHLO boo.com";
+    /* EHLO boo.com */
+    uint8_t request1_1[] = {
+        0x45, 0x48, 0x4c, 0x4f, 0x20, 0x62, 0x6f, 0x6f,
+        0x2e, 0x63, 0x6f, 0x6d,
+    };
+    int32_t request1_1_len = sizeof(request1_1);
+
+    /* <CR><LF> */
+    uint8_t request1_2[] = {
+        0x0d, 0x0a
+    };
+    int32_t request1_2_len = sizeof(request1_2);
+
+    /* EHLO boo.com<CR><LF> */
+    uint8_t request2[] = {
+        0x45, 0x48, 0x4c, 0x4f, 0x20, 0x62, 0x6f, 0x6f,
+        0x2e, 0x63, 0x6f, 0x6d, 0x0d, 0x0a,
+    };
+    int32_t request2_len = sizeof(request2);
+
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
+                      request1_1, request1_1_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    SMTPState *smtp_state = f.aldata[AlpGetStateIdx(ALPROTO_SMTP)];
+    if (smtp_state == NULL) {
+        printf("no smtp state: ");
+        goto end;
+    }
+    if (smtp_state->current_line != NULL ||
+        smtp_state->current_line_len != 0 ||
+        smtp_state->ts_current_line_db != 1 ||
+        smtp_state->ts_db == NULL ||
+        smtp_state->ts_db_len != request1_1_len ||
+        memcmp(smtp_state->ts_db, request1_1, request1_1_len) != 0) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
+                      request1_2, request1_2_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    if (smtp_state->ts_current_line_db != 1 ||
+        smtp_state->ts_db == NULL ||
+        smtp_state->ts_db_len != (int32_t)strlen(request1_str) ||
+        memcmp(smtp_state->ts_db, request1_str, strlen(request1_str)) != 0 ||
+        smtp_state->current_line != smtp_state->ts_db ||
+        smtp_state->current_line_len != smtp_state->ts_db_len) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
+                      request2, request2_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    if (smtp_state->ts_current_line_db != 0 ||
+        smtp_state->ts_db != NULL ||
+        smtp_state->ts_db_len != 0 ||
+        smtp_state->current_line == NULL ||
+        smtp_state->current_line_len != (int32_t)strlen(request1_str) ||
+        memcmp(smtp_state->current_line, request1_str, strlen(request1_str)) != 0) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    result = 1;
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
+/*
+ * \test Test retrieving lines when frag'ed.
+ */
+int SMTPParserTest09(void)
+{
+    int result = 0;
+    Flow f;
+    int r = 0;
+
+    const char *request1_str = "EHLO boo.com";
+    /* EHLO boo. */
+    uint8_t request1_1[] = {
+        0x45, 0x48, 0x4c, 0x4f, 0x20, 0x62, 0x6f, 0x6f,
+        0x2e,
+    };
+    int32_t request1_1_len = sizeof(request1_1);
+
+    /* com<CR><LF> */
+    uint8_t request1_2[] = {
+        0x63, 0x6f, 0x6d, 0x0d, 0x0a
+    };
+    int32_t request1_2_len = sizeof(request1_2);
+
+    /* EHLO boo.com<CR><LF> */
+    uint8_t request2[] = {
+        0x45, 0x48, 0x4c, 0x4f, 0x20, 0x62, 0x6f, 0x6f,
+        0x2e, 0x63, 0x6f, 0x6d, 0x0d, 0x0a,
+    };
+    int32_t request2_len = sizeof(request2);
+
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
+                      request1_1, request1_1_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    SMTPState *smtp_state = f.aldata[AlpGetStateIdx(ALPROTO_SMTP)];
+    if (smtp_state == NULL) {
+        printf("no smtp state: ");
+        goto end;
+    }
+    if (smtp_state->current_line != NULL ||
+        smtp_state->current_line_len != 0 ||
+        smtp_state->ts_current_line_db != 1 ||
+        smtp_state->ts_db == NULL ||
+        smtp_state->ts_db_len != request1_1_len ||
+        memcmp(smtp_state->ts_db, request1_1, request1_1_len) != 0) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
+                      request1_2, request1_2_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    if (smtp_state->ts_current_line_db != 1 ||
+        smtp_state->ts_db == NULL ||
+        smtp_state->ts_db_len != (int32_t)strlen(request1_str) ||
+        memcmp(smtp_state->ts_db, request1_str, strlen(request1_str)) != 0 ||
+        smtp_state->current_line != smtp_state->ts_db ||
+        smtp_state->current_line_len != smtp_state->ts_db_len) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
+                      request2, request2_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    if (smtp_state->ts_current_line_db != 0 ||
+        smtp_state->ts_db != NULL ||
+        smtp_state->ts_db_len != 0 ||
+        smtp_state->current_line == NULL ||
+        smtp_state->current_line_len != (int32_t)strlen(request1_str) ||
+        memcmp(smtp_state->current_line, request1_str, strlen(request1_str)) != 0) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    result = 1;
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
+/*
+ * \test Test retrieving lines when frag'ed.
+ */
+int SMTPParserTest10(void)
+{
+    int result = 0;
+    Flow f;
+    int r = 0;
+
+    const char *request1_str = "";
+    /* EHLO boo. */
+    uint8_t request1_1[] = {
+        0x0d,
+    };
+    int32_t request1_1_len = sizeof(request1_1);
+
+    /* com<CR><LF> */
+    uint8_t request1_2[] = {
+        0x0a,
+    };
+    int32_t request1_2_len = sizeof(request1_2);
+
+    const char *request2_str = "EHLO boo.com";
+    /* EHLO boo.com<CR><LF> */
+    uint8_t request2[] = {
+        0x45, 0x48, 0x4c, 0x4f, 0x20, 0x62, 0x6f, 0x6f,
+        0x2e, 0x63, 0x6f, 0x6d, 0x0d, 0x0a,
+    };
+    int32_t request2_len = sizeof(request2);
+
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
+                      request1_1, request1_1_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    SMTPState *smtp_state = f.aldata[AlpGetStateIdx(ALPROTO_SMTP)];
+    if (smtp_state == NULL) {
+        printf("no smtp state: ");
+        goto end;
+    }
+    if (smtp_state->current_line != NULL ||
+        smtp_state->current_line_len != 0 ||
+        smtp_state->ts_current_line_db != 1 ||
+        smtp_state->ts_db == NULL ||
+        smtp_state->ts_db_len != request1_1_len ||
+        memcmp(smtp_state->ts_db, request1_1, request1_1_len) != 0) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
+                      request1_2, request1_2_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    if (smtp_state->ts_current_line_db != 1 ||
+        smtp_state->ts_db == NULL ||
+        smtp_state->ts_db_len != (int32_t)strlen(request1_str) ||
+        memcmp(smtp_state->ts_db, request1_str, strlen(request1_str)) != 0 ||
+        smtp_state->current_line != smtp_state->ts_db ||
+        smtp_state->current_line_len != smtp_state->ts_db_len) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
+                      request2, request2_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    if (smtp_state->ts_current_line_db != 0 ||
+        smtp_state->ts_db != NULL ||
+        smtp_state->ts_db_len != 0 ||
+        smtp_state->current_line == NULL ||
+        smtp_state->current_line_len != (int32_t)strlen(request2_str) ||
+        memcmp(smtp_state->current_line, request2_str, strlen(request2_str)) != 0) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    result = 1;
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
+/*
+ * \test Test retrieving lines when frag'ed.
+ */
+int SMTPParserTest11(void)
+{
+    int result = 0;
+    Flow f;
+    int r = 0;
+
+    const char *request1_str = "";
+    /* EHLO boo. */
+    uint8_t request1[] = {
+        0x0a,
+    };
+    int32_t request1_len = sizeof(request1);
+
+    const char *request2_str = "EHLO boo.com";
+    /* EHLO boo.com<CR><LF> */
+    uint8_t request2[] = {
+        0x45, 0x48, 0x4c, 0x4f, 0x20, 0x62, 0x6f, 0x6f,
+        0x2e, 0x63, 0x6f, 0x6d, 0x0d, 0x0a,
+    };
+    int32_t request2_len = sizeof(request2);
+
+    TcpSession ssn;
+
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+
+    StreamTcpInitConfig(TRUE);
+    FlowL7DataPtrInit(&f);
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
+                      request1, request1_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    SMTPState *smtp_state = f.aldata[AlpGetStateIdx(ALPROTO_SMTP)];
+    if (smtp_state == NULL) {
+        printf("no smtp state: ");
+        goto end;
+    }
+    if (smtp_state->current_line == NULL ||
+        smtp_state->current_line_len != 0 ||
+        smtp_state->ts_current_line_db == 1 ||
+        smtp_state->ts_db != NULL ||
+        smtp_state->ts_db_len != 0 ||
+        memcmp(smtp_state->current_line, request1_str, strlen(request1_str)) != 0) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
+                      request2, request2_len);
+    if (r != 0) {
+        printf("smtp check returned %" PRId32 ", expected 0: ", r);
+        goto end;
+    }
+    if (smtp_state->ts_current_line_db != 0 ||
+        smtp_state->ts_db != NULL ||
+        smtp_state->ts_db_len != 0 ||
+        smtp_state->current_line == NULL ||
+        smtp_state->current_line_len != (int32_t)strlen(request2_str) ||
+        memcmp(smtp_state->current_line, request2_str, strlen(request2_str)) != 0) {
+        printf("smtp parser in inconsistent state\n");
+        goto end;
+    }
+
+    result = 1;
+end:
+    FlowL7DataPtrFree(&f);
+    StreamTcpFreeConfig(TRUE);
+    FLOW_DESTROY(&f);
+    return result;
+}
+
 void SMTPParserRegisterTests(void)
 {
     UtRegisterTest("SMTPParserTest01", SMTPParserTest01, 1);
@@ -2333,5 +2811,11 @@ void SMTPParserRegisterTests(void)
     UtRegisterTest("SMTPParserTest04", SMTPParserTest04, 1);
     UtRegisterTest("SMTPParserTest05", SMTPParserTest05, 1);
     UtRegisterTest("SMTPParserTest06", SMTPParserTest06, 1);
+    UtRegisterTest("SMTPParserTest07", SMTPParserTest07, 1);
+    UtRegisterTest("SMTPParserTest08", SMTPParserTest08, 1);
+    UtRegisterTest("SMTPParserTest09", SMTPParserTest09, 1);
+    UtRegisterTest("SMTPParserTest10", SMTPParserTest10, 1);
+    UtRegisterTest("SMTPParserTest11", SMTPParserTest11, 1);
+
     return;
 }
