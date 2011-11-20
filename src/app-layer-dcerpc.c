@@ -1825,7 +1825,6 @@ void DCERPCUpdateTransactionId(void *state, uint16_t *id) {
 
 void RegisterDCERPCParsers(void) {
     /** DCERPC */
-    //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_DCERPC, "|05 00|", 2, 0, STREAM_TOCLIENT);
     AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_DCERPC, "|05 00|", 2, 0, STREAM_TOSERVER);
 
     AppLayerRegisterProto("dcerpc", ALPROTO_DCERPC, STREAM_TOSERVER,

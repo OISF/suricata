@@ -2600,15 +2600,6 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
 
     uint8_t flags = 0;
 
-    /* check if toserver reassembly has started before reassembling toclient. */
-    //if (PKT_IS_TOSERVER(p) &&
-    //    !(ssn->flags & STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED))
-    //{
-    //    SCLogDebug("toserver reassembling is not done yet, so "
-    //            "skipping reassembling at the moment for to_client");
-    //    SCReturnInt(0);
-    //}
-
     SCLogDebug("stream->seg_list %p", stream->seg_list);
 #ifdef DEBUG
     PrintList(stream->seg_list);
@@ -2663,14 +2654,6 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
        toserver side already to the app layer */
     if (ssn->state <= TCP_ESTABLISHED) {
         if (!(ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED)) {
-            /* Do not perform reassembling of data from server, until the app layer
-               proto has been detected and we have sent atleast one smsg from client
-               data to app layer */
-            //if (PKT_IS_TOSERVER(p)) {
-            //    SCLogDebug("we didn't detected the app layer protocol till "
-            //            "yet, so not doing toclient reassembling");
-            //    SCReturnInt(0);
-            //}
             /* initialize the tmp_ra_base_seq for each new run */
             stream->tmp_ra_app_base_seq = stream->ra_app_base_seq;
             ra_base_seq = stream->tmp_ra_app_base_seq;

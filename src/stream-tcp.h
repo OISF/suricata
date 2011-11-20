@@ -157,6 +157,16 @@ static inline void StreamTcpPacketSwitchDir(TcpSession *ssn, Packet *p)
     }
 }
 
+enum {
+    /* stream has no segments for forced reassembly, nor for detection */
+    STREAM_HAS_UNPROCESSED_SEGMENTS_NONE = 0,
+    /* stream seems to have segments that need to be forced reassembled */
+    STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY = 1,
+    /* stream has no segments for forced reassembly, but only segments that
+     * have been sent for detection, but are stuck in the detection queues */
+    STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION = 2,
+};
+
 static inline int StreamHasUnprocessedSegments(TcpSession *ssn, int direction)
 {
     /* server tcp state */
@@ -164,21 +174,21 @@ static inline int StreamHasUnprocessedSegments(TcpSession *ssn, int direction)
         if (ssn->server.seg_list != NULL &&
             (!(ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) ||
              !(ssn->server.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) ) {
-            return 1;
+            return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY;
         } else if (ssn->toclient_smsg_head != NULL) {
-            return 2;
+            return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
         } else {
-            return 0;
+            return STREAM_HAS_UNPROCESSED_SEGMENTS_NONE;
         }
     } else {
         if (ssn->client.seg_list != NULL &&
             (!(ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) ||
              !(ssn->client.seg_list_tail->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) ) {
-            return 1;
+            return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_REASSEMBLY;
         } else if (ssn->toserver_smsg_head != NULL) {
-            return 2;
+            return STREAM_HAS_UNPROCESSED_SEGMENTS_NEED_ONLY_DETECTION;
         } else {
-            return 0;
+            return STREAM_HAS_UNPROCESSED_SEGMENTS_NONE;
         }
     }
 }
