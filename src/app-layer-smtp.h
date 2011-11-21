@@ -73,6 +73,9 @@ typedef struct SMTPState_ {
     /** index of the command in the buffer, currently in inspection by reply
      *  handler */
     uint16_t cmds_idx;
+
+    /* needed by the mpm */
+    PatternMatcherQueue *pmq;
 } SMTPState;
 
 void RegisterSMTPParsers(void);

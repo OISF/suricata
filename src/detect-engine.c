@@ -425,12 +425,16 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
         if (det_ctx->de_state_sig_array == NULL) {
             return TM_ECODE_FAILED;
         }
+        memset(det_ctx->de_state_sig_array, 0,
+               det_ctx->de_state_sig_array_len * sizeof(uint8_t));
 
         det_ctx->match_array_len = de_ctx->sig_array_len;
         det_ctx->match_array = SCMalloc(det_ctx->match_array_len * sizeof(Signature *));
         if (det_ctx->match_array == NULL) {
             return TM_ECODE_FAILED;
         }
+        memset(det_ctx->match_array, 0,
+               det_ctx->match_array_len * sizeof(Signature *));
     }
 
     /** alert counter setup */

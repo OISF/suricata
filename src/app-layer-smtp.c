@@ -91,6 +91,74 @@
 #define SMTP_EHLO_EXTENSION_STARTTLS
 #define SMTP_EHLO_EXTENSION_8BITMIME
 
+
+#define SMTP_MPM MPM_AC
+
+static MpmCtx *smtp_mpm_ctx = NULL;
+MpmThreadCtx *smtp_mpm_thread_ctx;
+
+/* smtp reply codes.  If an entry is made here, please make a simultaneous
+ * entry in smtp_reply_map */
+enum {
+    SMTP_REPLY_211,
+    SMTP_REPLY_214,
+    SMTP_REPLY_220,
+    SMTP_REPLY_221,
+    SMTP_REPLY_250,
+    SMTP_REPLY_251,
+    SMTP_REPLY_252,
+
+    SMTP_REPLY_354,
+
+    SMTP_REPLY_421,
+    SMTP_REPLY_450,
+    SMTP_REPLY_451,
+    SMTP_REPLY_452,
+    SMTP_REPLY_455,
+
+    SMTP_REPLY_500,
+    SMTP_REPLY_501,
+    SMTP_REPLY_502,
+    SMTP_REPLY_503,
+    SMTP_REPLY_504,
+    SMTP_REPLY_550,
+    SMTP_REPLY_551,
+    SMTP_REPLY_552,
+    SMTP_REPLY_553,
+    SMTP_REPLY_554,
+    SMTP_REPLY_555,
+};
+
+SCEnumCharMap smtp_reply_map[ ] = {
+    { "211", SMTP_REPLY_211 },
+    { "214", SMTP_REPLY_214 },
+    { "220", SMTP_REPLY_220 },
+    { "221", SMTP_REPLY_221 },
+    { "250", SMTP_REPLY_250 },
+    { "251", SMTP_REPLY_251 },
+    { "252", SMTP_REPLY_252 },
+
+    { "354", SMTP_REPLY_354 },
+
+    { "421", SMTP_REPLY_421 },
+    { "450", SMTP_REPLY_450 },
+    { "451", SMTP_REPLY_451 },
+    { "452", SMTP_REPLY_452 },
+    { "455", SMTP_REPLY_455 },
+
+    { "500", SMTP_REPLY_500 },
+    { "501", SMTP_REPLY_501 },
+    { "502", SMTP_REPLY_502 },
+    { "503", SMTP_REPLY_503 },
+    { "504", SMTP_REPLY_504 },
+    { "550", SMTP_REPLY_550 },
+    { "551", SMTP_REPLY_551 },
+    { "552", SMTP_REPLY_552 },
+    { "553", SMTP_REPLY_553 },
+    { "554", SMTP_REPLY_554 },
+    { "555", SMTP_REPLY_555 },
+    {  NULL,  -1 },
+};
 //static void SMTPParserReset(void)
 //{
 //    return;
@@ -131,7 +199,7 @@ static int SMTPGetLine(SMTPState *state)
         uint8_t *lf_idx = memchr(state->input, 0x0a, state->input_len);
 
         if (lf_idx == NULL) {
-            /* set decoder event */
+            /* Fragmented line - set decoder event */
             if (state->ts_current_line_db == 0) {
                 state->ts_db = SCMalloc(state->input_len);
                 if (state->ts_db == NULL) {
@@ -190,6 +258,7 @@ static int SMTPGetLine(SMTPState *state)
                     state->current_line_len--;
                     state->current_line_delimiter_len = 2;
                 } else {
+                    /* set decoder event for just LF delimiter */
                     state->current_line_delimiter_len = 1;
                 }
             }
@@ -219,7 +288,7 @@ static int SMTPGetLine(SMTPState *state)
         uint8_t *lf_idx = memchr(state->input, 0x0a, state->input_len);
 
         if (lf_idx == NULL) {
-            /* set decoder event */
+            /* Fragmented line - set decoder event */
             if (state->tc_current_line_db == 0) {
                 state->tc_db = SCMalloc(state->input_len);
                 if (state->tc_db == NULL) {
@@ -278,6 +347,7 @@ static int SMTPGetLine(SMTPState *state)
                     state->current_line_len--;
                     state->current_line_delimiter_len = 2;
                 } else {
+                    /* set decoder event for just LF delimiter */
                     state->current_line_delimiter_len = 1;
                 }
             }
@@ -373,11 +443,6 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
 {
     uint64_t reply_code = 0;
 
-    if (state->cmds_idx == state->cmds_cnt) {
-        /* decoder event - unable to match reply with request */
-        return -1;
-    }
-
     /* the reply code has to contain at least 3 bytes, to hold the 3 digit
      * reply code */
     if (state->current_line_len < 3) {
@@ -401,9 +466,20 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
         }
     }
 
-    if (ByteExtractString(&reply_code, 10, 3,
-                          (const char *)state->current_line) < 3) {
-        /* decoder event */
+    /* I don't like this pmq reset here.  We'll devise a method later, that
+     * should make the use of the mpm very efficient */
+    PmqReset(state->pmq);
+    int mpm_cnt = mpm_table[SMTP_MPM].Search(smtp_mpm_ctx, smtp_mpm_thread_ctx,
+                                             state->pmq, state->current_line,
+                                             3);
+    if (mpm_cnt == 0) {
+        /* set decoder event - reply code invalid */
+        return -1;
+    }
+    reply_code = smtp_reply_map[state->pmq->pattern_id_array[0]].enum_value;
+
+    if (state->cmds_idx == state->cmds_cnt) {
+        /* decoder event - unable to match reply with request */
         return -1;
     }
 
@@ -416,13 +492,15 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
      * leave without matching it against any buffered command */
     if (!(state->parser_state & SMTP_PARSER_STATE_FIRST_REPLY_SEEN)) {
         state->parser_state |= SMTP_PARSER_STATE_FIRST_REPLY_SEEN;
-        if (reply_code == 220) {
+        if (reply_code == SMTP_REPLY_220) {
             return 0;
+        } else {
+            /* set decoder event - first reply from server not a welcome message */
         }
     }
 
     if (state->cmds[state->cmds_idx] == SMTP_COMMAND_STARTTLS) {
-        if (reply_code == 220) {
+        if (reply_code == SMTP_REPLY_220) {
             /* we are entering STARRTTLS data mode */
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
             pstate->flags |= APP_LAYER_PARSER_DONE;
@@ -432,17 +510,19 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
             /* decoder event */
         }
     } else if (state->cmds[state->cmds_idx] == SMTP_COMMAND_DATA) {
-        if (reply_code == 354) {
+        if (reply_code == SMTP_REPLY_354) {
             /* Next comes the mail for the DATA command in toserver direction */
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
         } else {
             /* decoder event */
         }
     } else {
-        /* we don't care for any other command */
+        /* we don't care for any other command for now */
+        /* check if reply falls in the valid list of replies for SMTP.  If not
+         * decoder event */
     }
 
-    /* if it is a multiline reply, we need to move the index only once for all
+    /* if it is a multi-line reply, we need to move the index only once for all
      * the line of the reply.  We unset the multiline flag on the last
      * line of the multiline reply, following which we increment the index */
     if (!(state->parser_state & SMTP_PARSER_STATE_PARSING_MULTILINE_REPLY)) {
@@ -601,6 +681,14 @@ static void *SMTPStateAlloc(void)
     }
     smtp_state->cmds_buffer_len = SMTP_COMMAND_BUFFER_STEPS;
 
+    smtp_state->pmq = SCMalloc(sizeof(PatternMatcherQueue));
+    if (smtp_state->pmq == NULL) {
+        /* we need to exit here, since it is load time */
+        exit(EXIT_FAILURE);
+    }
+    PmqSetup(smtp_state->pmq, 0,
+             sizeof(smtp_reply_map)/sizeof(SCEnumCharMap) - 2);
+
     return smtp_state;
 }
 
@@ -612,6 +700,10 @@ static void SMTPStateFree(void *p)
 {
     SMTPState *smtp_state = (SMTPState *)p;
 
+    if (smtp_state->pmq != NULL) {
+        PmqFree(smtp_state->pmq);
+        SCFree(smtp_state->pmq);
+    }
     if (smtp_state->cmds != NULL) {
         SCFree(smtp_state->cmds);
     }
@@ -625,6 +717,41 @@ static void SMTPStateFree(void *p)
     SCFree(smtp_state);
 
     return;
+}
+
+static void SMTPSetMpmState(void)
+{
+    smtp_mpm_ctx = SCMalloc(sizeof(MpmCtx));
+    if (smtp_mpm_ctx == NULL) {
+        /* we need to exit here, since it is load time */
+        exit(EXIT_FAILURE);
+    }
+    memset(smtp_mpm_ctx, 0, sizeof(MpmCtx));
+
+    smtp_mpm_thread_ctx = SCMalloc(sizeof(MpmThreadCtx));
+    if (smtp_mpm_thread_ctx == NULL) {
+        /* we need to exit here, since it is load time */
+        exit(EXIT_FAILURE);
+    }
+    memset(smtp_mpm_thread_ctx, 0, sizeof(MpmThreadCtx));
+
+    mpm_table[SMTP_MPM].InitCtx(smtp_mpm_ctx, -1);
+    mpm_table[SMTP_MPM].InitThreadCtx(smtp_mpm_ctx, smtp_mpm_thread_ctx, 0);
+
+    uint32_t i = 0;
+    for (i = 0; i < sizeof(smtp_reply_map)/sizeof(SCEnumCharMap) - 1; i++) {
+        SCEnumCharMap *map = &smtp_reply_map[i];
+        mpm_table[SMTP_MPM].AddPatternNocase(smtp_mpm_ctx,
+                                             (uint8_t *)map->enum_name,
+                                             3 /* reply codes always 3 bytes */,
+                                             0 /* now defunct option */,
+                                             0 /* now defunct option */,
+                                             i /* pattern id */,
+                                             0 /* no sid */,
+                                             0 /* no flags */);
+    }
+
+    mpm_table[SMTP_MPM].Prepare(smtp_mpm_ctx);
 }
 
 /**
@@ -643,6 +770,8 @@ void RegisterSMTPParsers(void)
                           SMTPParseClientRecord);
     AppLayerRegisterProto("smtp", ALPROTO_SMTP, STREAM_TOCLIENT,
                           SMTPParseServerRecord);
+
+    SMTPSetMpmState();
 
     return;
 }
