@@ -500,7 +500,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             SCLogDebug("sm %p, sm->next %p", sm, sm->next);
 
             if (sigmatch_table[sm->type].AppLayerMatch != NULL &&
-                (alproto == sigmatch_table[sm->type].alproto ||
+                (alproto == s->alproto ||
                  alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) )
             {
                 if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
