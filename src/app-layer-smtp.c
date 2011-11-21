@@ -626,14 +626,16 @@ static int SMTPParse(int direction, Flow *f, SMTPState *state,
     state->input_len = input_len;
     state->direction = direction;
 
-    while (SMTPGetLine(state) >= 0) {
-        /* toserver */
-        if (direction == 0) {
+    /* toserver */
+    if (direction == 0) {
+        while (SMTPGetLine(state) >= 0) {
             if (SMTPProcessRequest(state, f, pstate) == -1)
                 return -1;
+        }
 
-            /* toclient */
-        } else {
+        /* toclient */
+    } else {
+        while (SMTPGetLine(state) >= 0) {
             if (SMTPProcessReply(state, f, pstate) == -1)
                 return -1;
         }
@@ -777,6 +779,8 @@ void RegisterSMTPParsers(void)
 }
 
 /***************************************Unittests******************************/
+
+#ifdef UNITTESTS
 
 /*
  * \test Test STARTTLS.
@@ -2932,8 +2936,11 @@ end:
     return result;
 }
 
+#endif /* UNITTESTS */
+
 void SMTPParserRegisterTests(void)
 {
+#ifdef UNITTESTS
     UtRegisterTest("SMTPParserTest01", SMTPParserTest01, 1);
     UtRegisterTest("SMTPParserTest02", SMTPParserTest02, 1);
     UtRegisterTest("SMTPParserTest03", SMTPParserTest03, 1);
@@ -2945,6 +2952,7 @@ void SMTPParserRegisterTests(void)
     UtRegisterTest("SMTPParserTest09", SMTPParserTest09, 1);
     UtRegisterTest("SMTPParserTest10", SMTPParserTest10, 1);
     UtRegisterTest("SMTPParserTest11", SMTPParserTest11, 1);
+#endif /* UNITTESTS */
 
     return;
 }
