@@ -616,14 +616,7 @@ int NFQRegisterQueue(char *queue)
     return 0;
 }
 
-/**
- *  \brief Get the number of registered queues
- *
- *  \retval cnt the number of registered queues
- */
-int NFQGetQueueCount(void) {
-    return receive_queue_num;
-}
+
 
 /**
  *  \brief Get a pointer to the NFQ queue at index
@@ -638,21 +631,6 @@ void *NFQGetQueue(int number) {
         return NULL;
 
     return (void *)&nfq_q[number];
-}
-
-/**
- *  \brief Get queue number to the NFQ at index
- *
- *  \param number idx of the queue in our array
- *
- *  \retval ptr pointer to the NFQThreadVars at index
- *  \retval -1 on error
- */
-int NFQGetQueueNum(int number) {
-    if (number > receive_queue_num)
-        return -1;
-
-    return nfq_q[number].queue_num;
 }
 
 /**
