@@ -559,11 +559,11 @@ int StreamTcpReassembleInsertSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
 
     /* before our ra_app_base_seq we don't insert it in our list,
      * or ra_raw_base_seq if in stream gap state */
-    if (SEQ_LEQ((TCP_GET_SEQ(p)+p->payload_len),(StreamTcpReassembleGetRaBaseSeq(stream)+1)))
+    if (SEQ_LT((TCP_GET_SEQ(p)+p->payload_len),(StreamTcpReassembleGetRaBaseSeq(stream)+1)))
     {
         SCLogDebug("not inserting: SEQ+payload %"PRIu32", last_ack %"PRIu32", "
                 "ra_(app|raw)_base_seq %"PRIu32, (TCP_GET_SEQ(p)+p->payload_len),
-                stream->last_ack, StreamTcpReassembleGetRaBaseSeq(stream));
+                stream->last_ack, StreamTcpReassembleGetRaBaseSeq(stream)+1);
         return_seg = TRUE;
         ret_value = -1;
 

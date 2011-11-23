@@ -586,6 +586,7 @@ void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
 }
 
 void StreamTcpSetEvent(Packet *p, uint8_t e) {
+    SCLogDebug("setting event %"PRIu8" on pkt %p (%"PRIu64")", e, p, p->pcap_cnt);
     ENGINE_SET_EVENT(p, e);
 }
 
