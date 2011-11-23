@@ -2696,12 +2696,25 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                 seg, seg->seq, seg->payload_len,
                 (uint32_t)(seg->seq + seg->payload_len));
 
-        /* Remove the segments which are either completely before the
-           ra_base_seq and processed by both app layer and raw reassembly. */
-        if (SEQ_LEQ((seg->seq + seg->payload_len), (ra_base_seq+1)) &&
-                seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED &&
-                seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)
-        {
+        if (p->flow->flags & FLOW_NO_APPLAYER_INSPECTION) {
+            if (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) {
+                SCLogDebug("removing seg %p seq %"PRIu32
+                           " len %"PRIu16"", seg, seg->seq, seg->payload_len);
+
+                TcpSegment *next_seg = seg->next;
+                StreamTcpRemoveSegmentFromStream(stream, seg);
+                StreamTcpSegmentReturntoPool(seg);
+                seg = next_seg;
+                continue;
+            } else {
+                break;
+            }
+
+            /* Remove the segments which are either completely before the
+             * ra_base_seq and processed by both app layer and raw reassembly. */
+        } else if (SEQ_LEQ((seg->seq + seg->payload_len), (ra_base_seq+1)) &&
+                   seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED &&
+                   seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED) {
             SCLogDebug("removing pre ra_base_seq %"PRIu32" seg %p seq %"PRIu32
                     " len %"PRIu16"", ra_base_seq, seg, seg->seq, seg->payload_len);
 
