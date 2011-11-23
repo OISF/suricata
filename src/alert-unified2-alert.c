@@ -611,10 +611,8 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
     int ret = 0;
     int len = aun->offset + (sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE);
     int datalink = p->datalink;
-#ifdef HAVE_OLD_BARNYARD2
     int ethh_offset = 0;
     EthernetHdr ethhdr = { {0,0,0,0,0,0}, {0,0,0,0,0,0}, htons(ETHERNET_TYPE_IPV6) };
-#endif
 
     memset(hdr, 0, sizeof(Unified2AlertFileHeader));
     memset(phdr, 0, sizeof(Unified2Packet));
@@ -662,6 +660,24 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
         if (PKT_IS_IPV4(p)) {
             FakeIPv4Hdr fakehdr;
             uint32_t hdr_length = sizeof(FakeIPv4Hdr);
+
+            if (p->datalink == DLT_EN10MB) {
+                /* Fake this */
+                ethh_offset = 14;
+                datalink = DLT_EN10MB;
+                phdr->linktype = htonl(datalink);
+                aun->length += ethh_offset;
+                if (aun->length > aun->datalen) {
+                    SCLogError(SC_ERR_INVALID_VALUE, "len is too big for thread data: %d vs %d",
+                            len, aun->datalen - aun->offset);
+                    return -1;
+                }
+                ethhdr.eth_type = htons(ETHERNET_TYPE_IPV6);
+
+                memcpy(aun->data + aun->offset, &ethhdr, 14);
+                aun->offset += ethh_offset;
+            }
+
             memset(&fakehdr, 0, hdr_length);
             Unified2ForgeFakeIPv4Header(&fakehdr, p, hdr_length, 0);
             memcpy(aun->data + aun->offset, &fakehdr, hdr_length);
@@ -671,6 +687,24 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
         } else {
             FakeIPv6Hdr fakehdr;
             uint32_t hdr_length = sizeof(FakeIPv6Hdr);
+
+            if (p->datalink == DLT_EN10MB) {
+                /* Fake this */
+                ethh_offset = 14;
+                datalink = DLT_EN10MB;
+                phdr->linktype = htonl(datalink);
+                aun->length += ethh_offset;
+                if (aun->length > aun->datalen) {
+                    SCLogError(SC_ERR_INVALID_VALUE, "len is too big for thread data: %d vs %d",
+                            len, aun->datalen - aun->offset);
+                    return -1;
+                }
+                ethhdr.eth_type = htons(ETHERNET_TYPE_IP);
+
+                memcpy(aun->data + aun->offset, &ethhdr, 14);
+                aun->offset += ethh_offset;
+            }
+
             memset(&fakehdr, 0, hdr_length);
             Unified2ForgeFakeIPv6Header(&fakehdr, p, hdr_length, 1);
             aun->length += hdr_length;
