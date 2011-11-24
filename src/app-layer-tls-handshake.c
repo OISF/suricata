@@ -95,6 +95,7 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
     Asn1Generic *cert;
     char buffer[256];
     int rc;
+    int parsed;
 
     if (input_len < 3)
         return 1;
@@ -102,16 +103,16 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
     certificates_length = input[0]<<16 | input[1]<<8 | input[2];
     /* check if the message is complete */
     if (input_len < certificates_length + 3)
-        return 1;
+        return 0;
 
     input += 3;
-    ssl_state->bytes_processed += 3;
+    parsed = 3;
 
     i = 0;
     while (certificates_length > 0) {
         cur_cert_length = input[0]<<16 | input[1]<<8 | input[2];
         input += 3;
-        ssl_state->bytes_processed += 3;
+        parsed += 3;
 
         cert = DecodeDer(input, cur_cert_length);
         if (cert == NULL) {
@@ -141,10 +142,10 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
 
         i++;
         certificates_length -= (cur_cert_length + 3);
-        ssl_state->bytes_processed += cur_cert_length;
+        parsed += cur_cert_length;
         input += cur_cert_length;
     }
 
-    ssl_state->bytes_processed = input_len;
-    return 0;
+    return parsed;
 }
+

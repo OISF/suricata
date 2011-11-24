@@ -164,6 +164,10 @@ static int SSLv3ParseHandshakeType(SSLState *ssl_state, uint8_t *input,
 
             rc = DecodeTLSHandshakeServerCertificate(ssl_state, ssl_state->trec, ssl_state->trec_pos);
             if (rc > 0) {
+                ssl_state->bytes_processed += rc;
+                input += rc;
+            }
+            if (rc == 0) {
                 /* packet is incomplete - do not mark as parsed */
             }
             if (rc < 0) {
