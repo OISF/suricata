@@ -4446,7 +4446,7 @@ static inline int StreamTcpValidateAck(TcpStream *stream, Packet *p)
     uint32_t ack = TCP_GET_ACK(p);
 
     /* fast track */
-    if (SEQ_GT(ack, stream->last_ack) && SEQ_LEQ(ack + p->payload_len, stream->next_win))
+    if (SEQ_GT(ack, stream->last_ack) && SEQ_LEQ(ack, stream->next_win))
     {
         SCLogDebug("ACK in bounds");
         SCReturnInt(0);
@@ -4479,6 +4479,8 @@ static inline int StreamTcpValidateAck(TcpStream *stream, Packet *p)
         goto invalid;
     }
 
+    SCLogDebug("default path leading to invalid: ACK %"PRIu32", last_ack %"PRIu32
+        " next_win %"PRIu32, ack, stream->last_ack, stream->next_win);
 invalid:
     StreamTcpSetEvent(p, STREAM_PKT_INVALID_ACK);
     SCReturnInt(-1);
