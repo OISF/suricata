@@ -360,6 +360,8 @@ static int Unified2StreamTypeAlertIPv4 (Unified2AlertThread *aun,
         IPV4Hdr ip4h;
         TCPHdr tcph;
     } fakehdr;
+    EthernetHdr ethhdr = { {0,0,0,0,0,0}, {0,0,0,0,0,0}, htons(ETHERNET_TYPE_IP) };
+    int eth_offset = 0;
     Unified2Packet phdr;
     Unified2AlertFileHeader hdr;
     int ret;
@@ -391,7 +393,14 @@ static int Unified2StreamTypeAlertIPv4 (Unified2AlertThread *aun,
     fakehdr.tcph.th_dport = p->tcph->th_dport;
     fakehdr.tcph.th_offx2 = 0x50; /* just the TCP header, no options */
 
-    aun->length += (int)pkt_len;
+
+    if (p->datalink == DLT_EN10MB) {
+        eth_offset = 14;
+        phdr.linktype = htonl(DLT_EN10MB);
+    } else {
+        phdr.linktype = htonl(DLT_RAW);
+    }
+    aun->length += (int)pkt_len + eth_offset;
 
     if (aun->length > aun->datalen) {
         SCLogError(SC_ERR_INVALID_VALUE, "len is too big for thread data: %d vs %d",
@@ -400,10 +409,9 @@ static int Unified2StreamTypeAlertIPv4 (Unified2AlertThread *aun,
     }
 
     hdr.type = htonl(UNIFIED2_PACKET_TYPE);
-    hdr.length = htonl(UNIFIED2_PACKET_SIZE + pkt_len);
+    hdr.length = htonl(UNIFIED2_PACKET_SIZE + pkt_len + eth_offset);
 
     phdr.sensor_id = 0;
-    phdr.linktype = htonl(DLT_RAW);
     phdr.event_id = event_id;
     phdr.event_second = phdr.packet_second = htonl(p->ts.tv_sec);
     phdr.packet_microsecond = htonl(p->ts.tv_usec);
@@ -413,9 +421,13 @@ static int Unified2StreamTypeAlertIPv4 (Unified2AlertThread *aun,
 
     memcpy(aun->data + aun->offset + sizeof(Unified2AlertFileHeader),
             &phdr, UNIFIED2_PACKET_SIZE);
-    memcpy(aun->data + aun->offset + sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE,
+    if (p->datalink == DLT_EN10MB) {
+        memcpy(aun->data + aun->offset + sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE,
+            &ethhdr, eth_offset);
+    }
+    memcpy(aun->data + aun->offset + sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE + eth_offset,
             &fakehdr, sizeof(fakehdr));
-    memcpy(aun->data + aun->offset + sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE + sizeof(fakehdr),
+    memcpy(aun->data + aun->offset + sizeof(Unified2AlertFileHeader) + UNIFIED2_PACKET_SIZE + sizeof(fakehdr) + eth_offset,
             stream_msg->data.data, stream_msg->data.data_len);
 
     ret = Unified2Write(aun);
@@ -539,8 +551,11 @@ static int Unified2PrintStreamSegmentCallback(Packet *p, void *data, uint8_t *bu
     }
 
     aun->hdr->length = htonl(UNIFIED2_PACKET_SIZE +
+                             ((p->datalink == DLT_EN10MB) ? 14 : 0) +
                              buflen + hdr_length);
-    aun->phdr->packet_length = htonl(buflen + hdr_length);
+    aun->phdr->packet_length = htonl(buflen + hdr_length +
+                                     ((p->datalink == DLT_EN10MB) ? 14 : 0)
+                                    );
 
     aun->length += buflen;
     if (aun->length > aun->datalen) {
@@ -631,8 +646,10 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
         SCLogDebug("logging the state");
         uint8_t flag;
 
-        /* We have raw data here */
-        phdr->linktype = htonl(DLT_RAW);
+        if (p->datalink != DLT_EN10MB) {
+            /* We have raw data here */
+            phdr->linktype = htonl(DLT_RAW);
+        }
         aun->length = len;
 
         /* IDS mode reverse the data */
