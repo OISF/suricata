@@ -3608,6 +3608,28 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                 {
                     SCLogDebug("reusing closed TCP session");
 
+                    /* return segments */
+                    StreamTcpReturnStreamSegments(&ssn->client);
+                    StreamTcpReturnStreamSegments(&ssn->server);
+                    /* free SACK list */
+                    StreamTcpSackFreeList(&ssn->client);
+                    StreamTcpSackFreeList(&ssn->server);
+                    /* reset the app layer state */
+                    AppLayerParserCleanupState(p->flow);
+                    FlowL7DataPtrInit(p->flow);
+
+                    ssn->state = 0;
+                    ssn->flags = 0;
+                    ssn->client.flags = 0;
+                    ssn->server.flags = 0;
+
+                    /* set state the NONE, also pulls flow out of closed queue */
+                    StreamTcpPacketSetState(p, ssn, TCP_NONE);
+
+                    p->flow->alproto = ALPROTO_UNKNOWN;
+                    p->flow->flags &= ~FLOW_TS_PM_PP_ALPROTO_DETECT_DONE;
+                    p->flow->flags &= ~FLOW_TS_PM_PP_ALPROTO_DETECT_DONE;
+
                     if (StreamTcpPacketStateNone(tv,p,stt,ssn, &stt->pseudo_queue)) {
                         goto error;
                     }

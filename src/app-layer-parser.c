@@ -176,6 +176,9 @@ static int AlpStoreField(AppLayerParserResult *output, uint16_t idx,
 
 void AppLayerSetEOF(Flow *f)
 {
+    if (f == NULL || f->aldata == NULL)
+        return;
+
     AppLayerParserStateStore *parser_state_store =
         (AppLayerParserStateStore *)f->aldata[app_layer_sid];
     if (parser_state_store != NULL) {
