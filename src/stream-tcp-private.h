@@ -43,32 +43,29 @@ typedef struct TcpSegment_ {
 } TcpSegment;
 
 typedef struct TcpStream_ {
-    uint32_t isn;       /**< initial sequence number */
-    uint32_t next_seq;  /**< next expected sequence number */
-    uint32_t last_ack;  /**< last ack'd sequence number in this stream */
-    uint32_t next_win;  /**< next max seq within window */
-    uint32_t window;    /**< current window setting */
+    uint16_t flags;                 /**< Flag specific to the stream e.g. Timestamp */
+    uint8_t wscale;                 /**< wscale setting in this direction */
+    uint8_t os_policy;              /**< target based OS policy used for reassembly and handling packets*/
 
-    uint32_t last_ts; /**< Time stamp (TSVAL) of the last seen packet for this stream*/
-    uint32_t last_pkt_ts; /**< Time of last seen packet for this stream (needed for PAWS update)
-                                This will be used to validate the last_ts, when connection has been idle for
-                                longer time.(RFC 1323)*/
+    uint32_t isn;                   /**< initial sequence number */
+    uint32_t next_seq;              /**< next expected sequence number */
+    uint32_t last_ack;              /**< last ack'd sequence number in this stream */
+    uint32_t next_win;              /**< next max seq within window */
+    uint32_t window;                /**< current window setting, after wscale is applied */
 
+    uint32_t last_ts;               /**< Time stamp (TSVAL) of the last seen packet for this stream*/
+    uint32_t last_pkt_ts;           /**< Time of last seen packet for this stream (needed for PAWS update)
+                                         This will be used to validate the last_ts, when connection has been idle for
+                                         longer time.(RFC 1323)*/
     /* reassembly */
-    uint32_t ra_app_base_seq; /**< reassembled seq. We've reassembled up to this point. */
-    uint32_t tmp_ra_app_base_seq;   /**< Temporary reassembled seq, to be used until
-                                     app layer protocol has not been detected,
-                                     beacuse every smsg needs to contain all the
-                                     initial segments too */
-    uint32_t ra_raw_base_seq; /**< reassembled seq. We've reassembled up to this point. */
-    TcpSegment *seg_list; /**< list of TCP segments that are not yet (fully) used in reassembly */
-    uint8_t wscale;     /**< wscale setting in this direction */
-    uint8_t os_policy; /**< target based OS policy used for reassembly and handling packets*/
-    uint16_t flags;      /**< Flag specific to the stream e.g. Timestamp */
-    TcpSegment *seg_list_tail;  /**< Last segment in the reassembled stream seg list*/
+    uint32_t ra_app_base_seq;       /**< reassembled seq. We've reassembled up to this point. */
+    uint32_t ra_raw_base_seq;       /**< reassembled seq. We've reassembled up to this point. */
 
-    StreamTcpSackRecord *sack_head;
-    StreamTcpSackRecord *sack_tail;
+    TcpSegment *seg_list;           /**< list of TCP segments that are not yet (fully) used in reassembly */
+    TcpSegment *seg_list_tail;      /**< Last segment in the reassembled stream seg list*/
+
+    StreamTcpSackRecord *sack_head; /**< head of list of SACK records */
+    StreamTcpSackRecord *sack_tail; /**< tail of list of SACK records */
 } TcpStream;
 
 /* from /usr/include/netinet/tcp.h */
@@ -164,7 +161,6 @@ enum
     do { \
         (stream)->ra_raw_base_seq = (seq); \
         (stream)->ra_app_base_seq = (seq); \
-        (stream)->tmp_ra_app_base_seq = (seq); \
     } while(0); \
 }
 
