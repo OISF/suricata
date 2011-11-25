@@ -173,9 +173,27 @@ void FlowUpdateQueue(Flow *f)
             FlowRequeue(f, &flow_est_q[f->protomap], &flow_est_q[f->protomap], 1);
         }
     } else if (f->flags & FLOW_CLOSED_LIST){
-        /* Pull and put back -- this way the flows on
-         * top of the list are least recently used. */
-        FlowRequeue(f, &flow_close_q[f->protomap], &flow_close_q[f->protomap], 1);
+        /* for the case of ssn reuse in TCP sessions we need to be able to pull
+         * a flow back from the dungeon and inject adrenalin straight into it's
+         * heart. */
+        if (flow_proto[f->protomap].GetProtoState != NULL) {
+            uint8_t state = flow_proto[f->protomap].GetProtoState(f->protoctx);
+            if (state == FLOW_STATE_NEW) {
+                f->flags |= FLOW_NEW_LIST; /* transition */
+                f->flags &=~ FLOW_CLOSED_LIST;
+
+                SCLogDebug("flow %p was put into new queue ts %"PRIuMAX"", f, (uintmax_t)f->lastts_sec);
+                FlowRequeue(f, &flow_close_q[f->protomap], &flow_new_q[f->protomap], 1);
+            } else {
+                /* Pull and put back -- this way the flows on
+                 * top of the list are least recently used. */
+                FlowRequeue(f, &flow_close_q[f->protomap], &flow_close_q[f->protomap], 1);
+            }
+        } else {
+            /* Pull and put back -- this way the flows on
+             * top of the list are least recently used. */
+            FlowRequeue(f, &flow_close_q[f->protomap], &flow_close_q[f->protomap], 1);
+        }
     }
 
     return;
