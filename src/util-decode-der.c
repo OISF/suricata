@@ -505,12 +505,15 @@ static Asn1Generic * DecodeAsn1DerOctetString(const unsigned char *buffer, uint3
         return NULL;
     a->type = ASN1_OCTETSTRING;
     a->strlen = length;
-    a->str = SCMalloc(length);
+    /* Add one to the octet string for the 0. This will then
+     * allow us to use the string in printf */
+    a->str = SCMalloc(length + 1);
     if (a->str == NULL) {
         SCFree(a);
         return NULL;
     }
     memcpy(a->str, (const char*)d_ptr, length);
+    a->str[length] = 0;
 
     d_ptr += length;
 
