@@ -1894,12 +1894,25 @@ static int StreamTcpReassembleInlineAppLayer (TcpReassemblyThreadCtx *ra_ctx,
     for (; seg != NULL;) {
         SCLogDebug("seg %p", seg);
 
-        /* if app layer protocol has been detected, then remove all the segments
-           which has been previously processed and reassembled */
-        if ((ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED) &&
-                (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
-                StreamTcpAppLayerSegmentProcessed(stream, seg))
-        {
+        if (p->flow->flags & FLOW_NO_APPLAYER_INSPECTION) {
+            if (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) {
+                SCLogDebug("removing seg %p seq %"PRIu32
+                           " len %"PRIu16"", seg, seg->seq, seg->payload_len);
+
+                TcpSegment *next_seg = seg->next;
+                StreamTcpRemoveSegmentFromStream(stream, seg);
+                StreamTcpSegmentReturntoPool(seg);
+                seg = next_seg;
+                continue;
+            } else {
+                break;
+            }
+
+            /* if app layer protocol has been detected, then remove all the segments
+             * which has been previously processed and reassembled */
+        } else if ((ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED) &&
+                   (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
+                   StreamTcpAppLayerSegmentProcessed(stream, seg)) {
             SCLogDebug("segment(%p) of length %"PRIu16" has been processed,"
                     " so return it to pool", seg, seg->payload_len);
             TcpSegment *next_seg = seg->next;
