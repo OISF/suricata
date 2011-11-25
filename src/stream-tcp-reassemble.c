@@ -1839,15 +1839,6 @@ static int StreamTcpReassembleInlineAppLayer (TcpReassemblyThreadCtx *ra_ctx,
 
     SCLogDebug("pcap_cnt %"PRIu64", len %u", p->pcap_cnt, p->payload_len);
 
-    /* check if toserver reassembly has started before reassembling toclient. */
-    if (PKT_IS_TOCLIENT(p) &&
-        !(ssn->flags & STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED))
-    {
-        SCLogDebug("toserver reassembling is not done yet, so "
-                "skipping reassembling at the moment for to_client");
-        SCReturnInt(0);
-    }
-
     SCLogDebug("stream->seg_list %p", stream->seg_list);
 #ifdef DEBUG
     PrintList(stream->seg_list);
@@ -1885,22 +1876,6 @@ static int StreamTcpReassembleInlineAppLayer (TcpReassemblyThreadCtx *ra_ctx,
 
     if (stream->flags & STREAMTCP_STREAM_FLAG_GAP) {
         SCReturnInt(0);
-    }
-
-    /* check if we have detected the app layer protocol or not. If it has been
-       detected then, process data normally, as we have sent one smsg from
-       toserver side already to the app layer */
-    if (ssn->state <= TCP_ESTABLISHED) {
-        if (!(ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED)) {
-            /* Do not perform reassembling of data from server, until the app layer
-               proto has been detected and we have sent atleast one smsg from client
-               data to app layer */
-            if (PKT_IS_TOCLIENT(p)) {
-                SCLogDebug("we didn't detected the app layer protocol till "
-                        "yet, so not doing toclient reassembling");
-                SCReturnInt(0);
-            }
-        }
     }
 
     uint32_t ra_base_seq = stream->ra_app_base_seq;
