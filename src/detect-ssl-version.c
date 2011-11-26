@@ -431,7 +431,6 @@ static int DetectSslVersionTestDetect01(void)
     f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -472,7 +471,7 @@ static int DetectSslVersionTestDetect01(void)
         goto end;
     }
 
-    SSLState *app_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    SSLState *app_state = f.alstate;
     if (app_state == NULL) {
         printf("no ssl state: ");
         goto end;
@@ -507,7 +506,6 @@ end:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
 
@@ -548,7 +546,6 @@ static int DetectSslVersionTestDetect02(void)
     f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -589,7 +586,7 @@ static int DetectSslVersionTestDetect02(void)
         goto end;
     }
 
-    SSLState *app_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    SSLState *app_state = f.alstate;
     if (app_state == NULL) {
         printf("no ssl state: ");
         goto end;
@@ -620,7 +617,6 @@ end:
     SigCleanSignatures(de_ctx);
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
@@ -663,7 +659,6 @@ static int DetectSslVersionTestDetect03(void)
     f.proto = p->proto;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     StreamMsg *stream_msg = StreamMsgGetFromPool();
     if (stream_msg == NULL) {
@@ -720,7 +715,7 @@ static int DetectSslVersionTestDetect03(void)
         goto end;
     }
 
-    SSLState *app_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    SSLState *app_state = f.alstate;
     if (app_state == NULL) {
         printf("no ssl state: ");
         goto end;
@@ -754,7 +749,6 @@ end:
         DetectEngineCtxFree(de_ctx);
     }
 
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);

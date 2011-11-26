@@ -169,10 +169,10 @@ typedef struct TcpSession_ {
     uint16_t flags;
     TcpStream server;
     TcpStream client;
-    struct StreamMsg_ *toserver_smsg_head; /**< list of stream msgs (for detection inspection) */
-    struct StreamMsg_ *toserver_smsg_tail; /**< list of stream msgs (for detection inspection) */
-    struct StreamMsg_ *toclient_smsg_head; /**< list of stream msgs (for detection inspection) */
-    struct StreamMsg_ *toclient_smsg_tail; /**< list of stream msgs (for detection inspection) */
+    struct StreamMsg_ *toserver_smsg_head;  /**< list of stream msgs (for detection inspection) */
+    struct StreamMsg_ *toserver_smsg_tail;  /**< list of stream msgs (for detection inspection) */
+    struct StreamMsg_ *toclient_smsg_head;  /**< list of stream msgs (for detection inspection) */
+    struct StreamMsg_ *toclient_smsg_tail;  /**< list of stream msgs (for detection inspection) */
 } TcpSession;
 
 #endif /* __STREAM_TCP_PRIVATE_H__ */

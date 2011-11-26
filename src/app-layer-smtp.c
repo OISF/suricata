@@ -736,7 +736,6 @@ int SMTPParserTest01(void)
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
                       request1, request1_len);
@@ -744,7 +743,7 @@ int SMTPParserTest01(void)
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
-    SMTPState *smtp_state = f.aldata[AlpGetStateIdx(ALPROTO_SMTP)];
+    SMTPState *smtp_state = f.alstate;
     if (smtp_state == NULL) {
         printf("no smtp state: ");
         goto end;
@@ -826,7 +825,6 @@ int SMTPParserTest01(void)
 
     result = 1;
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -1078,7 +1076,6 @@ int SMTPParserTest02(void)
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
                       request1, request1_len);
@@ -1086,7 +1083,7 @@ int SMTPParserTest02(void)
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
-    SMTPState *smtp_state = f.aldata[AlpGetStateIdx(ALPROTO_SMTP)];
+    SMTPState *smtp_state = f.alstate;
     if (smtp_state == NULL) {
         printf("no smtp state: ");
         goto end;
@@ -1522,7 +1519,6 @@ int SMTPParserTest02(void)
 
     result = 1;
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -1624,7 +1620,6 @@ int SMTPParserTest03(void)
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
                       request1, request1_len);
@@ -1632,7 +1627,7 @@ int SMTPParserTest03(void)
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
-    SMTPState *smtp_state = f.aldata[AlpGetStateIdx(ALPROTO_SMTP)];
+    SMTPState *smtp_state = f.alstate;
     if (smtp_state == NULL) {
         printf("no smtp state: ");
         goto end;
@@ -1709,7 +1704,6 @@ int SMTPParserTest03(void)
 
     result = 1;
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -1755,7 +1749,6 @@ int SMTPParserTest04(void)
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
                       request1, request1_len);
@@ -1763,7 +1756,7 @@ int SMTPParserTest04(void)
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
-    SMTPState *smtp_state = f.aldata[AlpGetStateIdx(ALPROTO_SMTP)];
+    SMTPState *smtp_state = f.alstate;
     if (smtp_state == NULL) {
         printf("no smtp state: ");
         goto end;
@@ -1794,7 +1787,6 @@ int SMTPParserTest04(void)
 
     result = 1;
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -1895,7 +1887,6 @@ int SMTPParserTest05(void)
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
                       request1, request1_len);
@@ -1903,7 +1894,7 @@ int SMTPParserTest05(void)
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
-    SMTPState *smtp_state = f.aldata[AlpGetStateIdx(ALPROTO_SMTP)];
+    SMTPState *smtp_state = f.alstate;
     if (smtp_state == NULL) {
         printf("no smtp state: ");
         goto end;
@@ -2013,7 +2004,6 @@ int SMTPParserTest05(void)
 
     result = 1;
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -2169,7 +2159,6 @@ int SMTPParserTest06(void)
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     r = AppLayerParse(&f, ALPROTO_SMTP, STREAM_TOSERVER,
                       request1, request1_len);
@@ -2177,7 +2166,7 @@ int SMTPParserTest06(void)
         printf("smtp check returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
-    SMTPState *smtp_state = f.aldata[AlpGetStateIdx(ALPROTO_SMTP)];
+    SMTPState *smtp_state = f.alstate;
     if (smtp_state == NULL) {
         printf("no smtp state: ");
         goto end;
@@ -2331,7 +2320,6 @@ int SMTPParserTest06(void)
 
     result = 1;
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;

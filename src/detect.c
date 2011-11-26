@@ -4677,7 +4677,6 @@ static int SigTest06Real (int mpm_type) {
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -4724,7 +4723,6 @@ static int SigTest06Real (int mpm_type) {
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -4773,7 +4771,6 @@ static int SigTest07Real (int mpm_type) {
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -4812,7 +4809,6 @@ static int SigTest07Real (int mpm_type) {
 
 end:
     UTHFreePackets(&p, 1);
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     AppLayerParserCleanupState(&f);
     FLOW_DESTROY(&f);
@@ -4869,7 +4865,6 @@ static int SigTest08Real (int mpm_type) {
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -4916,7 +4911,6 @@ static int SigTest08Real (int mpm_type) {
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -4965,7 +4959,6 @@ static int SigTest09Real (int mpm_type) {
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -5009,7 +5002,6 @@ static int SigTest09Real (int mpm_type) {
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -5053,7 +5045,6 @@ static int SigTest10Real (int mpm_type) {
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -5097,7 +5088,6 @@ static int SigTest10Real (int mpm_type) {
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -5140,7 +5130,6 @@ static int SigTest11Real (int mpm_type) {
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -5172,7 +5161,6 @@ static int SigTest11Real (int mpm_type) {
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -10036,7 +10024,6 @@ static int SigTestDropFlow01(void)
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -10061,7 +10048,7 @@ static int SigTestDropFlow01(void)
         goto end;
     }
 
-    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -10134,7 +10121,6 @@ static int SigTestDropFlow02(void)
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -10159,7 +10145,7 @@ static int SigTestDropFlow02(void)
         goto end;
     }
 
-    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -10250,7 +10236,6 @@ static int SigTestDropFlow03(void)
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -10285,7 +10270,7 @@ static int SigTestDropFlow03(void)
         goto end;
     }
 
-    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -10415,7 +10400,6 @@ static int SigTestDropFlow04(void)
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -10449,7 +10433,7 @@ static int SigTestDropFlow04(void)
         goto end;
     }
 
-    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;

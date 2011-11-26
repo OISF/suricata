@@ -1157,7 +1157,6 @@ static int DetectDceOpnumTestParse08(void)
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1183,7 +1182,7 @@ static int DetectDceOpnumTestParse08(void)
         goto end;
     }
 
-    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    dcerpc_state = f.alstate;
     if (dcerpc_state == NULL) {
         SCLogDebug("no dcerpc state: ");
         goto end;
@@ -1203,7 +1202,7 @@ static int DetectDceOpnumTestParse08(void)
         goto end;
     }
 
-    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    dcerpc_state = f.alstate;
     if (dcerpc_state == NULL) {
         SCLogDebug("no dcerpc state: ");
         goto end;
@@ -1224,7 +1223,6 @@ static int DetectDceOpnumTestParse08(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
 
@@ -1684,7 +1682,6 @@ static int DetectDceOpnumTestParse09(void)
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1710,7 +1707,7 @@ static int DetectDceOpnumTestParse09(void)
         goto end;
     }
 
-    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    dcerpc_state = f.alstate;
     if (dcerpc_state == NULL) {
         SCLogDebug("no dcerpc state: ");
         goto end;
@@ -1731,7 +1728,6 @@ static int DetectDceOpnumTestParse09(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
 
@@ -1882,7 +1878,6 @@ static int DetectDceOpnumTestParse10(void)
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1909,7 +1904,7 @@ static int DetectDceOpnumTestParse10(void)
         goto end;
     }
 
-    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    dcerpc_state = f.alstate;
     if (dcerpc_state == NULL) {
         SCLogDebug("no dcerpc state: ");
         goto end;
@@ -2051,7 +2046,6 @@ static int DetectDceOpnumTestParse10(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
 
@@ -2175,7 +2169,6 @@ static int DetectDceOpnumTestParse11(void)
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2203,7 +2196,7 @@ static int DetectDceOpnumTestParse11(void)
         goto end;
     }
 
-    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    dcerpc_state = f.alstate;
     if (dcerpc_state == NULL) {
         SCLogDebug("no dcerpc state: ");
         printf("no dcerpc state: ");
@@ -2312,7 +2305,6 @@ static int DetectDceOpnumTestParse11(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
 
@@ -2451,7 +2443,6 @@ static int DetectDceOpnumTestParse12(void)
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2477,7 +2468,7 @@ static int DetectDceOpnumTestParse12(void)
     p->flowflags |= FLOW_PKT_TOSERVER;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    dcerpc_state = f.alstate;
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         goto end;
@@ -2503,7 +2494,7 @@ static int DetectDceOpnumTestParse12(void)
         goto end;
     }
 
-    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    dcerpc_state = f.alstate;
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         goto end;
@@ -2533,7 +2524,7 @@ static int DetectDceOpnumTestParse12(void)
         goto end;
     }
 
-    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    dcerpc_state = f.alstate;
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         goto end;
@@ -2563,7 +2554,7 @@ static int DetectDceOpnumTestParse12(void)
         goto end;
     }
 
-    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    dcerpc_state = f.alstate;
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         goto end;
@@ -2593,7 +2584,7 @@ static int DetectDceOpnumTestParse12(void)
         goto end;
     }
 
-    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    dcerpc_state = f.alstate;
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         goto end;
@@ -2624,7 +2615,6 @@ end:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
 
@@ -2736,7 +2726,6 @@ static int DetectDceOpnumTestParse13(void)
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -2763,7 +2752,7 @@ static int DetectDceOpnumTestParse13(void)
         goto end;
     }
 
-    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    dcerpc_state = f.alstate;
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         goto end;
@@ -2791,7 +2780,7 @@ static int DetectDceOpnumTestParse13(void)
         goto end;
     }
 
-    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    dcerpc_state = f.alstate;
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         goto end;
@@ -2820,7 +2809,7 @@ static int DetectDceOpnumTestParse13(void)
         goto end;
     }
 
-    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    dcerpc_state = f.alstate;
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         goto end;
@@ -2848,7 +2837,7 @@ static int DetectDceOpnumTestParse13(void)
         goto end;
     }
 
-    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    dcerpc_state = f.alstate;
     if (dcerpc_state == NULL) {
         printf("no dcerpc state: ");
         goto end;
@@ -2877,7 +2866,6 @@ static int DetectDceOpnumTestParse13(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
 

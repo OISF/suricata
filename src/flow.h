@@ -194,17 +194,12 @@ typedef struct Flow_
 
     uint16_t alproto; /**< \brief application level protocol */
 
-    /** \brief array of application level storage ptrs.
+    /** application level storage ptrs.
      *
-     * The size of array is ALPROTO_MAX and thus depends on the number of protocol
-     * supported. Regarding the memeber of the arrays, for an HTTP flow member
-     * can point to a ::HtpState.
-     *
-     * Use AppLayerGetProtoStateFromPacket() to get a pointer to the application
-     * layer the packet belongs to.
      */
+    void *alparser;     /**< parser internal state */
+    void *alstate;      /**< application layer state */
 
-    void **aldata;
     /** detection engine state */
     struct DetectEngineState_ *de_state;
 
@@ -290,8 +285,7 @@ static inline void FlowSetSessionNoApplayerInspectionFlag(Flow *);
 
 int FlowGetPacketDirection(Flow *, Packet *);
 
-void FlowL7DataPtrInit(Flow *);
-void FlowL7DataPtrFree(Flow *);
+void FlowCleanupAppLayer(Flow *);
 
 /** ----- Inline functions ----- */
 

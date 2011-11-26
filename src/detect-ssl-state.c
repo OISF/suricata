@@ -716,7 +716,6 @@ static int DetectSslStateTest07(void)
     f.alproto = ALPROTO_TLS;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -761,7 +760,7 @@ static int DetectSslStateTest07(void)
         goto end;
     }
 
-    ssl_state = f.aldata[AlpGetStateIdx(ALPROTO_TLS)];
+    ssl_state = f.alstate;
     if (ssl_state == NULL) {
         printf("no ssl state: ");
         goto end;
@@ -867,7 +866,6 @@ static int DetectSslStateTest07(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);

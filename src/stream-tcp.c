@@ -3616,7 +3616,6 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                     StreamTcpSackFreeList(&ssn->server);
                     /* reset the app layer state */
                     AppLayerParserCleanupState(p->flow);
-                    FlowL7DataPtrInit(p->flow);
 
                     ssn->state = 0;
                     ssn->flags = 0;
@@ -4703,7 +4702,7 @@ static int StreamTcpTest01 (void) {
     }
     f.protoctx = ssn;
 
-    if (f.aldata != NULL) {
+    if (f.alparser != NULL) {
         printf("AppLayer field not set to NULL: ");
         goto end;
     }

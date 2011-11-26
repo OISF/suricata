@@ -926,7 +926,6 @@ int DCERPCUDPParserTest01(void) {
     FLOW_INITIALIZE(&f);
 
 	StreamTcpInitConfig(TRUE);
-	FlowL7DataPtrInit(&f);
 
 	int r = AppLayerParse(&f, ALPROTO_DCERPC_UDP, STREAM_TOSERVER|STREAM_START, dcerpcrequest, requestlen);
 	if (r != 0) {
@@ -935,7 +934,7 @@ int DCERPCUDPParserTest01(void) {
 		goto end;
 	}
 
-	DCERPCUDPState *dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC_UDP)];
+	DCERPCUDPState *dcerpc_state = f.alstate;
 	if (dcerpc_state == NULL) {
 		printf("no dcerpc state: ");
 		result = 0;
@@ -966,7 +965,6 @@ int DCERPCUDPParserTest01(void) {
 	}
 
 end:
-	FlowL7DataPtrFree(&f);
 	StreamTcpFreeConfig(TRUE);
 	return result;
 }

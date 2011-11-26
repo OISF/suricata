@@ -1551,7 +1551,6 @@ static int AlpDetectTestSig1(void)
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1576,7 +1575,7 @@ static int AlpDetectTestSig1(void)
         goto end;
     }
 
-    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -1642,7 +1641,6 @@ static int AlpDetectTestSig2(void)
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1667,7 +1665,7 @@ static int AlpDetectTestSig2(void)
         goto end;
     }
 
-    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -1733,7 +1731,6 @@ static int AlpDetectTestSig3(void)
     f.alproto = ALPROTO_HTTP;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1758,7 +1755,7 @@ static int AlpDetectTestSig3(void)
         goto end;
     }
 
-    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f.alstate;
     if (http_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -1794,7 +1791,6 @@ static int AlpDetectTestSig4(void)
 {
     int result = 0;
     Flow f;
-    HtpState *http_state = NULL;
     uint8_t http_buf1[] = "MPUT one\r\n";
     uint32_t http_buf1_len = sizeof(http_buf1) - 1;
     TcpSession ssn;
@@ -1821,7 +1817,6 @@ static int AlpDetectTestSig4(void)
     f.alproto = ALPROTO_FTP;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -1843,12 +1838,6 @@ static int AlpDetectTestSig4(void)
     int r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        goto end;
-    }
-
-    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
-    if (http_state != NULL) {
-        printf("this is not http: ");
         goto end;
     }
 
@@ -1918,7 +1907,6 @@ static int AlpDetectTestSig5(void)
     }
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     StreamMsg *stream_msg = StreamMsgGetFromPool();
     if (stream_msg == NULL) {

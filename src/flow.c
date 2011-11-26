@@ -86,51 +86,12 @@ int FlowKill(FlowQueue *);
 /* Run mode selected at suricata.c */
 extern int run_mode;
 
-/** \brief Initialize the l7data ptr in the Flow session used by the L7 Modules
- *         for data storage.
- *
- *  \param f Flow to init the ptrs for
- *  \param cnt number of items in the array
- *
- *  \todo VJ use a pool?
- */
-void FlowL7DataPtrInit(Flow *f)
-{
-    if (f->aldata != NULL)
-        return;
-
-    uint32_t size = (uint32_t)(sizeof (void *) * AppLayerGetStorageSize());
-
-    // XXXPR pass to flow memcap   if (StreamTcpCheckMemcap(size) == 0)
-    // XXXPR pass to flow memcap        return;
-
-    f->aldata = (void **) SCMalloc(size);
-    if (f->aldata != NULL) {
-        // StreamTcpIncrMemuse(size);
-        uint8_t u;
-        for (u = 0; u < AppLayerGetStorageSize(); u++) {
-            f->aldata[u] = NULL;
-        }
-    }
-
-    return;
-}
-
-void FlowL7DataPtrFree(Flow *f)
+void FlowCleanupAppLayer(Flow *f)
 {
     if (f == NULL)
         return;
 
-    if (f->aldata == NULL)
-        return;
-
     AppLayerParserCleanupState(f);
-    SCFree(f->aldata);
-    f->aldata = NULL;
-
-    // uint32_t size = (uint32_t)(sizeof (void *) * StreamL7GetStorageSize());
-    // StreamTcpDecrMemuse(size);
-
     return;
 }
 

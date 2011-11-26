@@ -335,7 +335,6 @@ static int DetectSshSoftwareVersionTestDetect01(void) {
     f.alproto = ALPROTO_SSH;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -376,7 +375,7 @@ static int DetectSshSoftwareVersionTestDetect01(void) {
         goto end;
     }
 
-    SshState *ssh_state = f.aldata[AlpGetStateIdx(ALPROTO_SSH)];
+    SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -398,7 +397,6 @@ end:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
 
@@ -439,7 +437,6 @@ static int DetectSshSoftwareVersionTestDetect02(void) {
     f.alproto = ALPROTO_SSH;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -480,7 +477,7 @@ static int DetectSshSoftwareVersionTestDetect02(void) {
         goto end;
     }
 
-    SshState *ssh_state = f.aldata[AlpGetStateIdx(ALPROTO_SSH)];
+    SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -502,7 +499,6 @@ end:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
 
@@ -543,7 +539,6 @@ static int DetectSshSoftwareVersionTestDetect03(void) {
     f.alproto = ALPROTO_SSH;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
@@ -584,7 +579,7 @@ static int DetectSshSoftwareVersionTestDetect03(void) {
         goto end;
     }
 
-    SshState *ssh_state = f.aldata[AlpGetStateIdx(ALPROTO_SSH)];
+    SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -606,7 +601,6 @@ end:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
 

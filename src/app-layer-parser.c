@@ -56,10 +56,9 @@
 
 #include "util-debug.h"
 
-uint16_t app_layer_sid = 0;
 static AppLayerProto al_proto_table[ALPROTO_MAX];   /**< Application layer protocol
-                                                       table mapped to their
-                                                       corresponding parsers */
+                                                         table mapped to their
+                                                         corresponding parsers */
 
 #define MAX_PARSERS 100
 static AppLayerParserTableElement al_parser_table[MAX_PARSERS];
@@ -176,11 +175,11 @@ static int AlpStoreField(AppLayerParserResult *output, uint16_t idx,
 
 void AppLayerSetEOF(Flow *f)
 {
-    if (f == NULL || f->aldata == NULL)
+    if (f == NULL)
         return;
 
     AppLayerParserStateStore *parser_state_store =
-        (AppLayerParserStateStore *)f->aldata[app_layer_sid];
+        (AppLayerParserStateStore *)f->alparser;
     if (parser_state_store != NULL) {
         parser_state_store->id_flags |= APP_LAYER_TRANSACTION_EOF;
         parser_state_store->to_client.flags |= APP_LAYER_PARSER_EOF;
@@ -484,30 +483,6 @@ int AlpParseFieldByDelimiter(AppLayerParserResult *output, AppLayerParserState *
     SCReturnInt(0);
 }
 
-/** app layer id counter */
-static uint8_t al_module_id = 0;
-
-/** \brief Get a unique app layer id
- */
-uint8_t AppLayerRegisterModule(void) {
-    uint8_t id = al_module_id;
-    al_module_id++;
-    return id;
-}
-
-uint8_t AppLayerGetStorageSize(void) {
-    return al_module_id;
-}
-
-/** \brief Get the Parsers id for storing the parser state.
- *
- * \retval Parser subsys id
- */
-uint16_t AppLayerParserGetStorageId(void)
-{
-    return app_layer_sid;
-}
-
 uint16_t AppLayerGetProtoByName(const char *name)
 {
     uint8_t u = 1;
@@ -535,7 +510,6 @@ uint16_t AppLayerGetProtoByName(const char *name)
  * \todo do we need recursive, so a "http" and a "request_line" where the engine
  *       knows it's actually "http.request_line"... same difference maybe.
  * \param AppLayerParser pointer to the parser function
- * \param max_outputs max number of unique outputs the parser can generate
  *
  * \retval 0 on success
  * \retval -1 on error
@@ -560,9 +534,9 @@ int AppLayerRegisterParser(char *name, uint16_t proto, uint16_t parser_id,
     al_parser_table[al_max_parsers].AppLayerParser = AppLayerParser;
 
     SCLogDebug("registered %p at proto %" PRIu32 ", al_proto_table idx "
-               "%" PRIu32 ", storage_id %" PRIu32 ", parser_local_id %" PRIu32 "",
+               "%" PRIu32 ", parser_local_id %" PRIu32 "",
                 AppLayerParser, proto, al_max_parsers,
-                al_proto_table[proto].storage_id, parser_id);
+                parser_id);
     return 0;
 }
 
@@ -601,13 +575,9 @@ int AppLayerRegisterProto(char *name, uint8_t proto, uint8_t flags,
         al_proto_table[proto].to_client = al_max_parsers;
     }
 
-    if (al_proto_table[proto].storage_id == 0) {
-        al_proto_table[proto].storage_id = AppLayerRegisterModule();
-    }
-
     SCLogDebug("registered %p at proto %" PRIu32 " flags %02X, al_proto_table "
-                "idx %" PRIu32 ", storage_id %" PRIu32 " %s", AppLayerParser, proto,
-                flags, al_max_parsers, al_proto_table[proto].storage_id, name);
+                "idx %" PRIu32 ", %s", AppLayerParser, proto,
+                flags, al_max_parsers, name);
     return 0;
 }
 
@@ -632,11 +602,6 @@ void AppLayerRegisterLogger(uint16_t proto) {
     al_proto_table[proto].logger = TRUE;
 }
 
-
-uint16_t AlpGetStateIdx(uint16_t proto)
-{
-    return al_proto_table[proto].storage_id;
-}
 
 AppLayerParserStateStore *AppLayerParserStateStoreAlloc(void)
 {
@@ -701,8 +666,12 @@ static int AppLayerDoParse(Flow *f, void *app_layer_state, AppLayerParserState *
         if (r == -1) {
             AppLayerParserResultCleanup(&result);
             SCReturnInt(-1);
+#ifdef DEBUG
         } else {
             BUG_ON(r);  /* this is not supposed to happen!! */
+#else
+            SCReturnInt(-1);
+#endif
         }
     }
 
@@ -741,8 +710,12 @@ static int AppLayerDoParse(Flow *f, void *app_layer_state, AppLayerParserState *
             if (r == -1) {
                 retval = -1;
                 break;
+#ifdef DEBUG
             } else {
-                BUG_ON(r);
+                BUG_ON(r);  /* this is not supposed to happen!! */
+#else
+                SCReturnInt(-1);
+#endif
             }
         }
     }
@@ -824,25 +797,13 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
     }
 
     /* Get the parser state (if any) */
-    AppLayerParserStateStore *parser_state_store = NULL;
+    AppLayerParserStateStore *parser_state_store = f->alparser;
+    if (parser_state_store == NULL) {
+        parser_state_store = AppLayerParserStateStoreAlloc();
+        if (parser_state_store == NULL)
+            goto error;
 
-    if (f->aldata != NULL) {
-        parser_state_store = (AppLayerParserStateStore *)
-                                                    f->aldata[app_layer_sid];
-        if (parser_state_store == NULL) {
-            parser_state_store = AppLayerParserStateStoreAlloc();
-            if (parser_state_store == NULL)
-                goto error;
-
-            f->aldata[app_layer_sid] = (void *)parser_state_store;
-        }
-    } else {
-        SCLogDebug("No App Layer Data");
-        /* Nothing is there to clean up, so just return from here after setting
-         * up the no reassembly flags */
-        FlowSetSessionNoApplayerInspectionFlag(f);
-
-        SCReturnInt(-1);
+        f->alparser = (void *)parser_state_store;
     }
 
     parser_state_store->version++;
@@ -887,9 +848,7 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
         parser_state->flags |= APP_LAYER_PARSER_EOF;
 
     /* See if we already have a 'app layer' state */
-    void *app_layer_state = NULL;
-    app_layer_state = f->aldata[p->storage_id];
-
+    void *app_layer_state = f->alstate;
     if (app_layer_state == NULL) {
         /* lock the allocation of state as we may
          * alloc more than one otherwise */
@@ -898,12 +857,12 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
             goto error;
         }
 
-        f->aldata[p->storage_id] = app_layer_state;
-        SCLogDebug("alloced new app layer state %p (p->storage_id %u, name %s)",
-                app_layer_state, p->storage_id, al_proto_table[f->alproto].name);
+        f->alstate = app_layer_state;
+        SCLogDebug("alloced new app layer state %p (name %s)",
+                app_layer_state, al_proto_table[f->alproto].name);
     } else {
-        SCLogDebug("using existing app layer state %p (p->storage_id %u, name %s))",
-                app_layer_state, p->storage_id, al_proto_table[f->alproto].name);
+        SCLogDebug("using existing app layer state %p (name %s))",
+                app_layer_state, al_proto_table[f->alproto].name);
     }
 
     /* invoke the recursive parser, but only on data. We may get empty msgs on EOF */
@@ -997,14 +956,8 @@ error:
 int AppLayerTransactionGetBaseId(Flow *f) {
     SCEnter();
 
-    /* Get the parser state (if any) */
-    if (f->aldata == NULL) {
-        SCLogDebug("no aldata");
-        goto error;
-    }
-
     AppLayerParserStateStore *parser_state_store =
-        (AppLayerParserStateStore *)f->aldata[app_layer_sid];
+        (AppLayerParserStateStore *)f->alparser;
 
     if (parser_state_store == NULL) {
         SCLogDebug("no state store");
@@ -1021,14 +974,8 @@ error:
 int AppLayerTransactionGetInspectId(Flow *f) {
     SCEnter();
 
-    /* Get the parser state (if any) */
-    if (f->aldata == NULL) {
-        SCLogDebug("no aldata");
-        goto error;
-    }
-
     AppLayerParserStateStore *parser_state_store =
-        (AppLayerParserStateStore *)f->aldata[app_layer_sid];
+        (AppLayerParserStateStore *)f->alparser;
 
     if (parser_state_store == NULL) {
         SCLogDebug("no state store");
@@ -1045,14 +992,8 @@ error:
 int AppLayerTransactionGetLoggableId(Flow *f) {
     SCEnter();
 
-    /* Get the parser state (if any) */
-    if (f->aldata == NULL) {
-        SCLogDebug("no aldata");
-        goto error;
-    }
-
     AppLayerParserStateStore *parser_state_store =
-        (AppLayerParserStateStore *)f->aldata[app_layer_sid];
+        (AppLayerParserStateStore *)f->alparser;
 
     if (parser_state_store == NULL) {
         SCLogDebug("no state store");
@@ -1078,14 +1019,8 @@ error:
 void AppLayerTransactionUpdateLoggedId(Flow *f) {
     SCEnter();
 
-    /* Get the parser state (if any) */
-    if (f->aldata == NULL) {
-        SCLogDebug("no aldata");
-        goto error;
-    }
-
     AppLayerParserStateStore *parser_state_store =
-        (AppLayerParserStateStore *)f->aldata[app_layer_sid];
+        (AppLayerParserStateStore *)f->alparser;
 
     if (parser_state_store == NULL) {
         SCLogDebug("no state store");
@@ -1102,14 +1037,8 @@ error:
 int AppLayerTransactionGetLoggedId(Flow *f) {
     SCEnter();
 
-    /* Get the parser state (if any) */
-    if (f->aldata == NULL) {
-        SCLogDebug("no aldata");
-        goto error;
-    }
-
     AppLayerParserStateStore *parser_state_store =
-        (AppLayerParserStateStore *)f->aldata[app_layer_sid];
+        (AppLayerParserStateStore *)f->alparser;
 
     if (parser_state_store == NULL) {
         SCLogDebug("no state store");
@@ -1133,12 +1062,9 @@ uint16_t AppLayerGetStateVersion(Flow *f) {
     uint16_t version = 0;
     AppLayerParserStateStore *parser_state_store = NULL;
 
-    /* Get the parser state (if any) */
-    if (f->aldata != NULL) {
-        parser_state_store = (AppLayerParserStateStore *)f->aldata[app_layer_sid];
-        if (parser_state_store != NULL) {
-            version = parser_state_store->version;
-        }
+    parser_state_store = (AppLayerParserStateStore *)f->alparser;
+    if (parser_state_store != NULL) {
+        version = parser_state_store->version;
     }
 
     SCReturnUInt(version);
@@ -1157,47 +1083,43 @@ int AppLayerTransactionUpdateInspectId(Flow *f, char direction)
     SCEnter();
 
     int r = 0;
-
-    /* Get the parser state (if any) */
     AppLayerParserStateStore *parser_state_store = NULL;
 
-    if (f->aldata != NULL) {
-        parser_state_store = (AppLayerParserStateStore *)f->aldata[app_layer_sid];
-        if (parser_state_store != NULL) {
-            /* update inspect_id and see if it there are other transactions
-             * as well */
+    parser_state_store = (AppLayerParserStateStore *)f->alparser;
+    if (parser_state_store != NULL) {
+        /* update inspect_id and see if it there are other transactions
+         * as well */
 
-            SCLogDebug("avail_id %"PRIu16", inspect_id %"PRIu16,
-                    parser_state_store->avail_id, parser_state_store->inspect_id);
+        SCLogDebug("avail_id %"PRIu16", inspect_id %"PRIu16,
+                parser_state_store->avail_id, parser_state_store->inspect_id);
 
-            if (direction == STREAM_TOSERVER)
-                parser_state_store->id_flags |= APP_LAYER_TRANSACTION_TOSERVER;
-            else
-                parser_state_store->id_flags |= APP_LAYER_TRANSACTION_TOCLIENT;
+        if (direction == STREAM_TOSERVER)
+            parser_state_store->id_flags |= APP_LAYER_TRANSACTION_TOSERVER;
+        else
+            parser_state_store->id_flags |= APP_LAYER_TRANSACTION_TOCLIENT;
 
-            if ((parser_state_store->inspect_id+1) < parser_state_store->avail_id &&
-                    (parser_state_store->id_flags & APP_LAYER_TRANSACTION_TOCLIENT) &&
-                    (parser_state_store->id_flags & APP_LAYER_TRANSACTION_TOSERVER))
-            {
-                parser_state_store->id_flags &=~ APP_LAYER_TRANSACTION_TOCLIENT;
-                parser_state_store->id_flags &=~ APP_LAYER_TRANSACTION_TOSERVER;
+        if ((parser_state_store->inspect_id+1) < parser_state_store->avail_id &&
+                (parser_state_store->id_flags & APP_LAYER_TRANSACTION_TOCLIENT) &&
+                (parser_state_store->id_flags & APP_LAYER_TRANSACTION_TOSERVER))
+        {
+            parser_state_store->id_flags &=~ APP_LAYER_TRANSACTION_TOCLIENT;
+            parser_state_store->id_flags &=~ APP_LAYER_TRANSACTION_TOSERVER;
 
-                parser_state_store->inspect_id = parser_state_store->avail_id - 1;
-                if (parser_state_store->inspect_id < parser_state_store->avail_id) {
-                    /* done and more transactions available */
-                    r = 2;
+            parser_state_store->inspect_id = parser_state_store->avail_id - 1;
+            if (parser_state_store->inspect_id < parser_state_store->avail_id) {
+                /* done and more transactions available */
+                r = 2;
 
-                    SCLogDebug("inspect_id %"PRIu16", avail_id %"PRIu16,
-                            parser_state_store->inspect_id,
-                            parser_state_store->avail_id);
-                } else {
-                    /* done but no more transactions available */
-                    r = 1;
+                SCLogDebug("inspect_id %"PRIu16", avail_id %"PRIu16,
+                        parser_state_store->inspect_id,
+                        parser_state_store->avail_id);
+            } else {
+                /* done but no more transactions available */
+                r = 1;
 
-                    SCLogDebug("inspect_id %"PRIu16", avail_id %"PRIu16,
-                            parser_state_store->inspect_id,
-                            parser_state_store->avail_id);
-                }
+                SCLogDebug("inspect_id %"PRIu16", avail_id %"PRIu16,
+                        parser_state_store->inspect_id,
+                        parser_state_store->avail_id);
             }
         }
     }
@@ -1210,8 +1132,6 @@ void RegisterAppLayerParsers(void)
     /** \todo move to general init function */
     memset(&al_proto_table, 0, sizeof(al_proto_table));
     memset(&al_parser_table, 0, sizeof(al_parser_table));
-
-    app_layer_sid = AppLayerRegisterModule();
 
     /** setup result pool
      * \todo Per thread pool */
@@ -1254,25 +1174,17 @@ void AppLayerParserCleanupState(Flow *f)
 
     /* free the parser protocol state */
     AppLayerProto *p = &al_proto_table[f->alproto];
-    if (p->StateFree != NULL && f->aldata != NULL) {
-        if (f->aldata[p->storage_id] != NULL) {
-            SCLogDebug("calling StateFree");
-            p->StateFree(f->aldata[p->storage_id]);
-            f->aldata[p->storage_id] = NULL;
-        }
+    if (p->StateFree != NULL && f->alstate != NULL) {
+        SCLogDebug("calling StateFree");
+        p->StateFree(f->alstate);
+        f->alstate = NULL;
     }
 
     /* free the app layer parser api state */
-    if (f->aldata != NULL) {
-        if (f->aldata[app_layer_sid] != NULL) {
-            SCLogDebug("calling AppLayerParserStateStoreFree");
-            AppLayerParserStateStoreFree(f->aldata[app_layer_sid]);
-            f->aldata[app_layer_sid] = NULL;
-        }
-
-        //StreamTcpDecrMemuse((uint32_t)(StreamL7GetStorageSize() * sizeof(void *)));
-        SCFree(f->aldata);
-        f->aldata = NULL;
+    if (f->alparser != NULL) {
+        SCLogDebug("calling AppLayerParserStateStoreFree");
+        AppLayerParserStateStoreFree(f->alparser);
+        f->alparser = NULL;
     }
 }
 
@@ -1952,7 +1864,6 @@ static int AppLayerParserTest01 (void)
     f.proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
                           testlen);
@@ -1969,7 +1880,6 @@ static int AppLayerParserTest01 (void)
 
     result = 1;
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     return result;
@@ -2014,7 +1924,6 @@ static int AppLayerParserTest02 (void)
     f.proto = IPPROTO_UDP;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
                           testlen);
@@ -2025,7 +1934,6 @@ static int AppLayerParserTest02 (void)
     }
 
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }

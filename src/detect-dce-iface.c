@@ -874,7 +874,6 @@ static int DetectDceIfaceTestParse12(void)
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -901,7 +900,7 @@ static int DetectDceIfaceTestParse12(void)
         goto end;
     }
 
-    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    dcerpc_state = f.alstate;
     if (dcerpc_state == NULL) {
         SCLogDebug("no dcerpc state: ");
         goto end;
@@ -956,7 +955,6 @@ end:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
@@ -1106,7 +1104,6 @@ static int DetectDceIfaceTestParse13(void)
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1131,7 +1128,7 @@ static int DetectDceIfaceTestParse13(void)
         goto end;
     }
 
-    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    dcerpc_state = f.alstate;
     if (dcerpc_state == NULL) {
         SCLogDebug("no dcerpc state: ");
         goto end;
@@ -1289,7 +1286,6 @@ static int DetectDceIfaceTestParse13(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     UTHFreePackets(&p, 1);
     return result;
@@ -1362,7 +1358,6 @@ static int DetectDceIfaceTestParse14(void)
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1387,7 +1382,7 @@ static int DetectDceIfaceTestParse14(void)
         goto end;
     }
 
-    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    dcerpc_state = f.alstate;
     if (dcerpc_state == NULL) {
         SCLogDebug("no dcerpc state: ");
         goto end;
@@ -1438,7 +1433,6 @@ static int DetectDceIfaceTestParse14(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);
@@ -1553,7 +1547,6 @@ static int DetectDceIfaceTestParse15(void)
     f.alproto = ALPROTO_DCERPC;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -1585,7 +1578,7 @@ static int DetectDceIfaceTestParse15(void)
         goto end;
     }
 
-    dcerpc_state = f.aldata[AlpGetStateIdx(ALPROTO_DCERPC)];
+    dcerpc_state = f.alstate;
     if (dcerpc_state == NULL) {
         SCLogDebug("no dcerpc state: ");
         goto end;
@@ -1722,7 +1715,6 @@ static int DetectDceIfaceTestParse15(void)
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
     UTHFreePackets(&p, 1);

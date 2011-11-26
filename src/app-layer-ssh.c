@@ -774,7 +774,6 @@ static int SSHParserTest01(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER|STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
@@ -783,7 +782,7 @@ static int SSHParserTest01(void) {
         goto end;
     }
 
-    SshState *ssh_state = f.aldata[AlpGetStateIdx(ALPROTO_SSH)];
+    SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         result = 0;
@@ -823,7 +822,6 @@ static int SSHParserTest01(void) {
     result = 1;
 
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -843,7 +841,6 @@ static int SSHParserTest02(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER|STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
@@ -852,7 +849,7 @@ static int SSHParserTest02(void) {
         goto end;
     }
 
-    SshState *ssh_state = f.aldata[AlpGetStateIdx(ALPROTO_SSH)];
+    SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         result = 0;
@@ -892,7 +889,6 @@ static int SSHParserTest02(void) {
     result = 1;
 
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -912,7 +908,6 @@ static int SSHParserTest03(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER|STREAM_EOF, sshbuf, sshlen);
     if (r == 0) {
@@ -922,7 +917,7 @@ static int SSHParserTest03(void) {
     }
     /* Ok, it returned an error. Let's make sure we didn't parse the string at all */
 
-    SshState *ssh_state = f.aldata[AlpGetStateIdx(ALPROTO_SSH)];
+    SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         result = 0;
@@ -948,7 +943,6 @@ static int SSHParserTest03(void) {
     result = 1;
 
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -966,7 +960,6 @@ static int SSHParserTest04(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT|STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
@@ -975,7 +968,7 @@ static int SSHParserTest04(void) {
         goto end;
     }
 
-    SshState *ssh_state = f.aldata[AlpGetStateIdx(ALPROTO_SSH)];
+    SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         result = 0;
@@ -1015,7 +1008,6 @@ static int SSHParserTest04(void) {
     result = 1;
 
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1035,7 +1027,6 @@ static int SSHParserTest05(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT|STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
@@ -1044,7 +1035,7 @@ static int SSHParserTest05(void) {
         goto end;
     }
 
-    SshState *ssh_state = f.aldata[AlpGetStateIdx(ALPROTO_SSH)];
+    SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         result = 0;
@@ -1084,7 +1075,6 @@ static int SSHParserTest05(void) {
     result = 1;
 
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1104,7 +1094,6 @@ static int SSHParserTest06(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT|STREAM_EOF, sshbuf, sshlen);
     if (r == 0) {
@@ -1114,7 +1103,7 @@ static int SSHParserTest06(void) {
     }
     /* Ok, it returned an error. Let's make sure we didn't parse the string at all */
 
-    SshState *ssh_state = f.aldata[AlpGetStateIdx(ALPROTO_SSH)];
+    SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         result = 0;
@@ -1140,7 +1129,6 @@ static int SSHParserTest06(void) {
     result = 1;
 
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1159,7 +1147,6 @@ static int SSHParserTest07(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
     if (r != 0) {
@@ -1173,7 +1160,7 @@ static int SSHParserTest07(void) {
         goto end;
     }
 
-    SshState *ssh_state = f.aldata[AlpGetStateIdx(ALPROTO_SSH)];
+    SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1207,7 +1194,6 @@ static int SSHParserTest07(void) {
     result = 1;
 
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1229,7 +1215,6 @@ static int SSHParserTest08(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
     if (r != 0) {
@@ -1249,7 +1234,7 @@ static int SSHParserTest08(void) {
         goto end;
     }
 
-    SshState *ssh_state = f.aldata[AlpGetStateIdx(ALPROTO_SSH)];
+    SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1282,7 +1267,6 @@ static int SSHParserTest08(void) {
 
     result = 1;
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1301,7 +1285,6 @@ static int SSHParserTest09(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf1, sshlen1);
     if (r != 0) {
@@ -1315,7 +1298,7 @@ static int SSHParserTest09(void) {
         goto end;
     }
 
-    SshState *ssh_state = f.aldata[AlpGetStateIdx(ALPROTO_SSH)];
+    SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1349,7 +1332,6 @@ static int SSHParserTest09(void) {
     result = 1;
 
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1371,7 +1353,6 @@ static int SSHParserTest10(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf1, sshlen1);
     if (r != 0) {
@@ -1391,7 +1372,7 @@ static int SSHParserTest10(void) {
         goto end;
     }
 
-    SshState *ssh_state = f.aldata[AlpGetStateIdx(ALPROTO_SSH)];
+    SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1424,7 +1405,6 @@ static int SSHParserTest10(void) {
 
     result = 1;
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1446,7 +1426,6 @@ static int SSHParserTest11(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
     if (r != 0) {
@@ -1466,7 +1445,7 @@ static int SSHParserTest11(void) {
         goto end;
     }
 
-    SshState *ssh_state = f.aldata[AlpGetStateIdx(ALPROTO_SSH)];
+    SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1504,7 +1483,6 @@ static int SSHParserTest11(void) {
 
     result = 1;
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1528,7 +1506,6 @@ static int SSHParserTest12(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
     if (r != 0) {
@@ -1554,7 +1531,7 @@ static int SSHParserTest12(void) {
         goto end;
     }
 
-    SshState *ssh_state = f.aldata[AlpGetStateIdx(ALPROTO_SSH)];
+    SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1592,7 +1569,6 @@ static int SSHParserTest12(void) {
 
     result = 1;
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1614,7 +1590,6 @@ static int SSHParserTest13(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf1, sshlen1);
     if (r != 0) {
@@ -1634,7 +1609,7 @@ static int SSHParserTest13(void) {
         goto end;
     }
 
-    SshState *ssh_state = f.aldata[AlpGetStateIdx(ALPROTO_SSH)];
+    SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1672,7 +1647,6 @@ static int SSHParserTest13(void) {
 
     result = 1;
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
@@ -1696,7 +1670,6 @@ static int SSHParserTest14(void) {
     f.protoctx = (void *)&ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf1, sshlen1);
     if (r != 0) {
@@ -1722,7 +1695,7 @@ static int SSHParserTest14(void) {
         goto end;
     }
 
-    SshState *ssh_state = f.aldata[AlpGetStateIdx(ALPROTO_SSH)];
+    SshState *ssh_state = f.alstate;
     if (ssh_state == NULL) {
         printf("no ssh state: ");
         goto end;
@@ -1760,7 +1733,6 @@ static int SSHParserTest14(void) {
 
     result = 1;
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     return result;
 }
