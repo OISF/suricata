@@ -2,7 +2,11 @@
  * Copyright (c) 2009, 2010 Open Information Security Foundation
  *
  * \author Kirby Kuehl <kkuehl@gmail.com>
+ *
+ * \todo Updated by AS: Inspect the possibilities of sending junk start at the
+ *       start of udp session to avoid alproto detection.
  */
+
 #include "suricata-common.h"
 #include "suricata.h"
 

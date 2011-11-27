@@ -307,10 +307,6 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
         SCLogDebug("Detecting AL proto on udp mesg (len %" PRIu32 ")",
                     p->payload_len);
 
-        //printf("=> Init Stream Data -- start\n");
-        //PrintRawDataFp(stdout, smsg->init.data, smsg->init.data_len);
-        //printf("=> Init Stream Data -- end\n");
-
         f->alproto = AppLayerDetectGetProto(&alp_proto_ctx, dp_ctx, f,
                         p->payload, p->payload_len, flags, IPPROTO_UDP);
         if (f->alproto != ALPROTO_UNKNOWN) {
@@ -326,17 +322,14 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
         SCLogDebug("stream data (len %" PRIu32 " ), alproto "
                   "%"PRIu16" (flow %p)", p->payload_len, f->alproto, f);
 
-        //printf("=> Stream Data -- start\n");
-        //PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
-        //printf("=> Stream Data -- end\n");
-
         /* if we don't have a data object here we are not getting it
          * a start msg should have gotten us one */
         if (f->alproto != ALPROTO_UNKNOWN) {
             r = AppLayerParse(f, f->alproto, flags,
                         p->payload, p->payload_len);
         } else {
-            SCLogDebug(" udp session not start, but no l7 data? Weird");
+            SCLogDebug("udp session has started, but failed to detect alproto "
+                       "for l7");
         }
     }
 
