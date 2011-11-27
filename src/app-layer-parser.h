@@ -48,6 +48,7 @@ typedef struct AppLayerProto_ {
     void (*StateFree)(void *);
     void (*StateUpdateTransactionId)(void *, uint16_t *);
     void (*StateTransactionFree)(void *, uint16_t);
+    void *(*LocalStorageAlloc)(void);
 
 } AppLayerProto;
 
@@ -235,6 +236,7 @@ void AppLayerRegisterStateFuncs(uint16_t proto, void *(*StateAlloc)(void),
 void AppLayerRegisterTransactionIdFuncs(uint16_t proto,
         void (*StateTransactionId)(void *, uint16_t *),
         void (*StateTransactionFree)(void *, uint16_t id));
+void *AppLayerGetProtocolParserLocalStorage(uint16_t);
 void AppLayerRegisterLogger(uint16_t proto);
 uint16_t AppLayerGetProtoByName(const char *);
 

@@ -596,6 +596,15 @@ void AppLayerRegisterTransactionIdFuncs(uint16_t proto,
     al_proto_table[proto].StateTransactionFree = StateTransactionFree;
 }
 
+void *AppLayerGetProtocolParserLocalStorage(uint16_t proto)
+{
+    if (al_proto_table[proto].LocalStorageAlloc != NULL) {
+        return al_proto_table[proto].LocalStorageAlloc();
+    }
+
+    return NULL;
+}
+
 /** \brief Indicate to the app layer parser that a logger is active
  *         for this protocol.
  */

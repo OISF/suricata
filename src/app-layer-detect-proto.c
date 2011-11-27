@@ -282,6 +282,10 @@ void AlpProtoFinalizeThread(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx *tct
         PmqSetup(&tctx->toserver.pmq, sig_maxid, pat_maxid);
     }
 
+    int i;
+    for (i = 0; i < ALPROTO_MAX; i++) {
+        tctx->alproto_local_storage[i] = AppLayerGetProtocolParserLocalStorage(i);
+    }
 }
 
 void AlpProtoDeFinalize2Thread(AlpProtoDetectThreadCtx *tctx) {

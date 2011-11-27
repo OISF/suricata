@@ -490,6 +490,8 @@ typedef struct AlpProtoDetectThreadCtx_ {
     AlpProtoDetectDirectionThread toserver;
     AlpProtoDetectDirectionThread toclient;
 
+    void *alproto_local_storage[ALPROTO_MAX];
+
 #ifdef PROFILING
     uint64_t ticks_start;
     uint64_t ticks_end;
