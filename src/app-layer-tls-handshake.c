@@ -95,6 +95,7 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
     char buffer[256];
     int rc;
     int parsed;
+    uint8_t *start_data;
 
     if (input_len < 3)
         return 1;
@@ -104,6 +105,7 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
     if (input_len < certificates_length + 3)
         return 0;
 
+    start_data = input;
     input += 3;
     parsed = 3;
 
@@ -113,6 +115,10 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
         input += 3;
         parsed += 3;
 
+        if (input - start_data + cur_cert_length > input_len) {
+            SCLogWarning(SC_ERR_ALPARSER, "ASN.1 structure contains invalid length\n");
+            return -1;
+        }
         cert = DecodeDer(input, cur_cert_length);
         if (cert == NULL) {
             SCLogWarning(SC_ERR_ALPARSER, "decoding ASN.1 structure for X509 certificate failed\n");
