@@ -442,14 +442,14 @@ static int DetectHttpStatMsgSigTest01(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOCLIENT, httpbuf2, httplen2);
+    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOCLIENT, httpbuf2, httplen2);
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -541,14 +541,14 @@ static int DetectHttpStatMsgSigTest02(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOCLIENT, httpbuf2, httplen2);
+    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOCLIENT, httpbuf2, httplen2);
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -644,14 +644,14 @@ static int DetectHttpStatMsgSigTest03(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOCLIENT, httpbuf2, httplen2);
+    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOCLIENT, httpbuf2, httplen2);
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;

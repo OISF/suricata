@@ -209,7 +209,7 @@ static int SSHParseServerVersion(Flow *f, void *ssh_state, AppLayerParserState *
  */
 static int SSHParseServerRecord(Flow *f, void *ssh_state, AppLayerParserState *pstate,
                                 uint8_t *input, uint32_t input_len,
-                                AppLayerParserResult *output)
+                                void *local_data, AppLayerParserResult *output)
 {
     SshState *state = (SshState *)ssh_state;
     if (state->flags & SSH_FLAG_PARSER_DONE) {
@@ -540,7 +540,7 @@ static int SSHParseClientVersion(Flow *f, void *ssh_state, AppLayerParserState *
  */
 static int SSHParseClientRecord(Flow *f, void *ssh_state, AppLayerParserState *pstate,
                                 uint8_t *input, uint32_t input_len,
-                                AppLayerParserResult *output)
+                                void *local_data, AppLayerParserResult *output)
 {
     SshState *state = (SshState *)ssh_state;
     if (state->flags & SSH_FLAG_PARSER_DONE) {
@@ -775,7 +775,7 @@ static int SSHParserTest01(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER|STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER|STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -842,7 +842,7 @@ static int SSHParserTest02(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER|STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER|STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -909,7 +909,7 @@ static int SSHParserTest03(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER|STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER|STREAM_EOF, sshbuf, sshlen);
     if (r == 0) {
         printf("toclient chunk 1 returned %" PRId32 ", expected != 0: ", r);
         result = 0;
@@ -961,7 +961,7 @@ static int SSHParserTest04(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT|STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOCLIENT|STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1028,7 +1028,7 @@ static int SSHParserTest05(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT|STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOCLIENT|STREAM_EOF, sshbuf, sshlen);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -1095,7 +1095,7 @@ static int SSHParserTest06(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT|STREAM_EOF, sshbuf, sshlen);
+    int r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOCLIENT|STREAM_EOF, sshbuf, sshlen);
     if (r == 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected != 0: ", r);
         result = 0;
@@ -1148,13 +1148,13 @@ static int SSHParserTest07(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
+    r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1216,19 +1216,19 @@ static int SSHParserTest08(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
+    r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf3, sshlen3);
+    r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1286,13 +1286,13 @@ static int SSHParserTest09(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf1, sshlen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf2, sshlen2);
+    r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1354,19 +1354,19 @@ static int SSHParserTest10(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf1, sshlen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf2, sshlen2);
+    r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf3, sshlen3);
+    r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1427,19 +1427,19 @@ static int SSHParserTest11(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
+    r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf3, sshlen3);
+    r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1507,25 +1507,25 @@ static int SSHParserTest12(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
+    r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf3, sshlen3);
+    r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf4, sshlen4);
+    r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOSERVER, sshbuf4, sshlen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1591,19 +1591,19 @@ static int SSHParserTest13(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf1, sshlen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf2, sshlen2);
+    r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf3, sshlen3);
+    r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1671,25 +1671,25 @@ static int SSHParserTest14(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf1, sshlen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf1, sshlen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf2, sshlen2);
+    r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf2, sshlen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf3, sshlen3);
+    r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf3, sshlen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf4, sshlen4);
+    r = AppLayerParse(NULL, &f, ALPROTO_SSH, STREAM_TOCLIENT, sshbuf4, sshlen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         goto end;

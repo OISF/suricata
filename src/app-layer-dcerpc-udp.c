@@ -617,8 +617,10 @@ static int DCERPCUDPParseHeader(Flow *f, void *dcerpcudp_state,
 }
 
 static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
-		AppLayerParserState *pstate, uint8_t *input, uint32_t input_len,
-		AppLayerParserResult *output) {
+                          AppLayerParserState *pstate,
+                          uint8_t *input, uint32_t input_len,
+                          void *local_data, AppLayerParserResult *output)
+{
 	uint32_t retval = 0;
 	uint32_t parsed = 0;
 	int hdrretval = 0;
@@ -931,7 +933,7 @@ int DCERPCUDPParserTest01(void) {
 
 	StreamTcpInitConfig(TRUE);
 
-	int r = AppLayerParse(&f, ALPROTO_DCERPC_UDP, STREAM_TOSERVER|STREAM_START, dcerpcrequest, requestlen);
+	int r = AppLayerParse(NULL, &f, ALPROTO_DCERPC_UDP, STREAM_TOSERVER|STREAM_START, dcerpcrequest, requestlen);
 	if (r != 0) {
 		printf("dcerpc header check returned %" PRId32 ", expected 0: ", r);
 		result = 0;

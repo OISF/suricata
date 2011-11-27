@@ -86,8 +86,8 @@ static int FTPParseRequestCommand(void *ftp_state, uint8_t *input,
  * \retval 1 when the command is parsed, 0 otherwise
  */
 static int FTPParseRequestCommandLine(Flow *f, void *ftp_state, AppLayerParserState
-                                     *pstate, uint8_t *input,uint32_t input_len,
-                                     AppLayerParserResult *output) {
+                                      *pstate, uint8_t *input,uint32_t input_len,
+                                      void *local_data, AppLayerParserResult *output) {
     SCEnter();
     //PrintRawDataFp(stdout, input,input_len);
 
@@ -155,9 +155,11 @@ static int FTPParseRequestCommandLine(Flow *f, void *ftp_state, AppLayerParserSt
  *
  * \retval 1 when the command is parsed, 0 otherwise
  */
-static int FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserState *pstate, uint8_t
-                           *input, uint32_t input_len, AppLayerParserResult
-                           *output) {
+static int FTPParseRequest(Flow *f, void *ftp_state,
+                           AppLayerParserState *pstate,
+                           uint8_t *input, uint32_t input_len,
+                           void *local_data, AppLayerParserResult *output)
+{
     SCEnter();
     /* PrintRawDataFp(stdout, input,input_len); */
 
@@ -195,7 +197,8 @@ static int FTPParseRequest(Flow *f, void *ftp_state, AppLayerParserState *pstate
  */
 static int FTPParseResponse(Flow *f, void *ftp_state, AppLayerParserState *pstate,
                             uint8_t *input, uint32_t input_len,
-                            AppLayerParserResult *output) {
+                            void *local_data, AppLayerParserResult *output)
+{
     SCEnter();
     //PrintRawDataFp(stdout, input,input_len);
 
@@ -304,7 +307,7 @@ int FTPParserTest01(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_EOF, ftpbuf, ftplen);
+    int r = AppLayerParse(NULL, &f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_EOF, ftpbuf, ftplen);
     if (r != 0) {
         SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -348,21 +351,21 @@ int FTPParserTest03(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_START, ftpbuf1, ftplen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_START, ftpbuf1, ftplen1);
     if (r != 0) {
         SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER, ftpbuf2, ftplen2);
+    r = AppLayerParse(NULL, &f, ALPROTO_FTP, STREAM_TOSERVER, ftpbuf2, ftplen2);
     if (r != 0) {
         SCLogDebug("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_EOF, ftpbuf3, ftplen3);
+    r = AppLayerParse(NULL, &f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_EOF, ftpbuf3, ftplen3);
     if (r != 0) {
         SCLogDebug("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -403,7 +406,7 @@ int FTPParserTest06(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, ftpbuf1, ftplen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, ftpbuf1, ftplen1);
     if (r != 0) {
         SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -447,14 +450,14 @@ int FTPParserTest07(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_START, ftpbuf1, ftplen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_START, ftpbuf1, ftplen1);
     if (r != 0) {
         SCLogDebug("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_EOF, ftpbuf2, ftplen2);
+    r = AppLayerParse(NULL, &f, ALPROTO_FTP, STREAM_TOSERVER|STREAM_EOF, ftpbuf2, ftplen2);
     if (r != 0) {
         SCLogDebug("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -505,7 +508,7 @@ int FTPParserTest10(void) {
         else if (u == (ftplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
         else flags = STREAM_TOSERVER;
 
-        r = AppLayerParse(&f, ALPROTO_FTP, flags, &ftpbuf1[u], 1);
+        r = AppLayerParse(NULL, &f, ALPROTO_FTP, flags, &ftpbuf1[u], 1);
         if (r != 0) {
             SCLogDebug("toserver chunk %" PRIu32 " returned %" PRId32 ", expected 0: ", u, r);
             result = 0;

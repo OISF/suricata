@@ -4702,7 +4702,7 @@ static int SigTest06Real (int mpm_type) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, buf, buflen);
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, buf, buflen);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4794,7 +4794,7 @@ static int SigTest07Real (int mpm_type) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, buf, buflen);
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, buf, buflen);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4887,7 +4887,7 @@ static int SigTest08Real (int mpm_type) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, buf, buflen);
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, buf, buflen);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -4980,7 +4980,7 @@ static int SigTest09Real (int mpm_type) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, buf, buflen);
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, buf, buflen);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -5065,7 +5065,7 @@ static int SigTest10Real (int mpm_type) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, buf, buflen);
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, buf, buflen);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -10037,7 +10037,7 @@ static int SigTestDropFlow01(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -10133,7 +10133,7 @@ static int SigTestDropFlow02(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -10257,7 +10257,7 @@ static int SigTestDropFlow03(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -10299,7 +10299,7 @@ static int SigTestDropFlow03(void)
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -10419,7 +10419,7 @@ static int SigTestDropFlow04(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -10459,7 +10459,7 @@ static int SigTestDropFlow04(void)
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
+    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf2, http_buf2_len);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         goto end;

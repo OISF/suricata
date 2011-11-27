@@ -517,9 +517,11 @@ uint16_t AppLayerGetProtoByName(const char *name)
  */
 int AppLayerRegisterParser(char *name, uint16_t proto, uint16_t parser_id,
                            int (*AppLayerParser)(Flow *f, void *protocol_state,
-                            AppLayerParserState *parser_state, uint8_t *input,
-                            uint32_t input_len, AppLayerParserResult *output),
-                            char *dependency)
+                                                 AppLayerParserState *parser_state,
+                                                 uint8_t *input, uint32_t input_len,
+                                                 void *local_data,
+                                                 AppLayerParserResult *output),
+                           char *dependency)
 {
 
     al_max_parsers++;
@@ -552,9 +554,10 @@ int AppLayerRegisterParser(char *name, uint16_t proto, uint16_t parser_id,
  * \retval -1 on error
  */
 int AppLayerRegisterProto(char *name, uint8_t proto, uint8_t flags,
-                         int (*AppLayerParser)(Flow *f, void *protocol_state,
-                         AppLayerParserState *parser_state, uint8_t *input,
-                         uint32_t input_len, AppLayerParserResult *output))
+                          int (*AppLayerParser)(Flow *f, void *protocol_state,
+                                                AppLayerParserState *parser_state,
+                                                uint8_t *input, uint32_t input_len,
+                                                void *local_data, AppLayerParserResult *output))
 {
 
     al_max_parsers++;
@@ -594,6 +597,16 @@ void AppLayerRegisterTransactionIdFuncs(uint16_t proto,
 {
     al_proto_table[proto].StateUpdateTransactionId = StateUpdateTransactionId;
     al_proto_table[proto].StateTransactionFree = StateTransactionFree;
+}
+
+void AppLayerRegisterLocalStorageFunc(uint16_t proto,
+                                      void *(*LocalStorageAlloc)(void),
+                                      void (*LocalStorageFree)(void *))
+{
+    al_proto_table[proto].LocalStorageAlloc = LocalStorageAlloc;
+    al_proto_table[proto].LocalStorageFree = LocalStorageFree;
+
+    return;
 }
 
 void *AppLayerGetProtocolParserLocalStorage(uint16_t proto)
@@ -656,8 +669,11 @@ static void AppLayerParserResultCleanup(AppLayerParserResult *result)
     }
 }
 
-static int AppLayerDoParse(Flow *f, void *app_layer_state, AppLayerParserState *parser_state,
-                           uint8_t *input, uint32_t input_len, uint16_t parser_idx,
+static int AppLayerDoParse(void *local_data, Flow *f,
+                           void *app_layer_state,
+                           AppLayerParserState *parser_state,
+                           uint8_t *input, uint32_t input_len,
+                           uint16_t parser_idx,
                            uint16_t proto)
 {
     SCEnter();
@@ -670,8 +686,10 @@ static int AppLayerDoParse(Flow *f, void *app_layer_state, AppLayerParserState *
     //printf("---\n");
 
     /* invoke the parser */
-    int r = al_parser_table[parser_idx].AppLayerParser(f, app_layer_state,
-                                       parser_state, input, input_len, &result);
+    int r = al_parser_table[parser_idx].
+        AppLayerParser(f, app_layer_state,
+                       parser_state, input, input_len,
+                       local_data, &result);
     if (r < 0) {
         if (r == -1) {
             AppLayerParserResultCleanup(&result);
@@ -708,7 +726,7 @@ static int AppLayerDoParse(Flow *f, void *app_layer_state, AppLayerParserState *
         parser_state->parse_field = 0;
         parser_state->flags |= APP_LAYER_PARSER_EOF;
 
-        r = AppLayerDoParse(f, app_layer_state, parser_state, e->data_ptr,
+        r = AppLayerDoParse(local_data, f, app_layer_state, parser_state, e->data_ptr,
                             e->data_len, idx, proto);
 
         /* restore */
@@ -788,8 +806,8 @@ uint32_t applayerhttperrors = 0;
  * \retval -1 error
  * \retval 0 ok
  */
-int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
-                  uint32_t input_len)
+int AppLayerParse(void *local_data, Flow *f, uint8_t proto,
+                  uint8_t flags, uint8_t *input, uint32_t input_len)
 {
     SCEnter();
 
@@ -877,8 +895,8 @@ int AppLayerParse(Flow *f, uint8_t proto, uint8_t flags, uint8_t *input,
 
     /* invoke the recursive parser, but only on data. We may get empty msgs on EOF */
     if (input_len > 0) {
-        int r = AppLayerDoParse(f, app_layer_state, parser_state, input, input_len,
-                parser_idx, proto);
+        int r = AppLayerDoParse(local_data, f, app_layer_state, parser_state,
+                                input, input_len, parser_idx, proto);
         if (r < 0)
             goto error;
     }
@@ -1806,8 +1824,8 @@ typedef struct TestState_ {
  *          parser of occurence of an error.
  */
 static int TestProtocolParser(Flow *f, void *test_state, AppLayerParserState *pstate,
-                                     uint8_t *input, uint32_t input_len,
-                                     AppLayerParserResult *output)
+                              uint8_t *input, uint32_t input_len,
+                              void *local_data, AppLayerParserResult *output)
 {
     return -1;
 }
@@ -1860,7 +1878,7 @@ static int AppLayerParserTest01 (void)
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
+    int r = AppLayerParse(NULL, f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
                           testlen);
     if (r != -1) {
         printf("returned %" PRId32 ", expected -1: ", r);
@@ -1905,7 +1923,7 @@ static int AppLayerParserTest02 (void)
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
+    int r = AppLayerParse(NULL, f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
                           testlen);
     if (r != -1) {
         printf("returned %" PRId32 ", expected -1: \n", r);

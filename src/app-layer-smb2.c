@@ -384,7 +384,8 @@ static uint32_t SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
 }
 
 static int SMB2Parse(Flow *f, void *smb2_state, AppLayerParserState *pstate,
-        uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
+                     uint8_t *input, uint32_t input_len,
+                     void *local_data, AppLayerParserResult *output) {
     SCEnter();
     SMB2State *sstate = (SMB2State *) smb2_state;
     uint32_t retval = 0;
@@ -471,7 +472,7 @@ int SMB2ParserTest01(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_SMB2, STREAM_TOSERVER|STREAM_EOF, smb2buf, smb2len);
+    int r = AppLayerParse(NULL, &f, ALPROTO_SMB2, STREAM_TOSERVER|STREAM_EOF, smb2buf, smb2len);
     if (r != 0) {
         printf("smb2 header check returned %" PRId32 ", expected 0: ", r);
         result = 0;

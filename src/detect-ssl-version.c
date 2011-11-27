@@ -447,25 +447,25 @@ static int DetectSslVersionTestDetect01(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf1, ssllen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf1, ssllen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf2, ssllen2);
+    r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf2, ssllen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf3, ssllen3);
+    r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf3, ssllen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf4, ssllen4);
+    r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf4, ssllen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -562,25 +562,25 @@ static int DetectSslVersionTestDetect02(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf1, ssllen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf1, ssllen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf2, ssllen2);
+    r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf2, ssllen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf3, ssllen3);
+    r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf3, ssllen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf4, ssllen4);
+    r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf4, ssllen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -691,25 +691,25 @@ static int DetectSslVersionTestDetect03(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf1, ssllen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf1, ssllen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf2, ssllen2);
+    r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf2, ssllen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf3, ssllen3);
+    r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf3, ssllen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf4, ssllen4);
+    r = AppLayerParse(NULL, &f, ALPROTO_TLS, STREAM_TOSERVER, sslbuf4, ssllen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         goto end;

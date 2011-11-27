@@ -666,7 +666,7 @@ static int DetectDceStubDataTestParse02(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_START,
+    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_START,
                           dcerpc_bind, dcerpc_bind_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
@@ -689,7 +689,7 @@ static int DetectDceStubDataTestParse02(void)
         goto end;
 
     /* do detect */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_bindack,
+    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_bindack,
                       dcerpc_bindack_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
@@ -705,7 +705,7 @@ static int DetectDceStubDataTestParse02(void)
     if (PacketAlertCheck(p, 1))
         goto end;
 
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_EOF,
+    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_EOF,
                       dcerpc_request, dcerpc_request_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
@@ -1207,7 +1207,7 @@ static int DetectDceStubDataTestParse03(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_START,
+    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_START,
                       dcerpc_request, dcerpc_request_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
@@ -1398,7 +1398,7 @@ static int DetectDceStubDataTestParse04(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_START,
+    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_START,
                       dcerpc_bind, dcerpc_bind_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
@@ -1414,7 +1414,7 @@ static int DetectDceStubDataTestParse04(void)
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_bindack,
+    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_bindack,
                       dcerpc_bindack_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
@@ -1425,7 +1425,7 @@ static int DetectDceStubDataTestParse04(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
     /* request1 */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, dcerpc_request1,
+    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER, dcerpc_request1,
                       dcerpc_request1_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
@@ -1441,7 +1441,7 @@ static int DetectDceStubDataTestParse04(void)
         goto end;
 
     /* response1 */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_response1,
+    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_response1,
                       dcerpc_response1_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
@@ -1457,7 +1457,7 @@ static int DetectDceStubDataTestParse04(void)
         goto end;
 
     /* request2 */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, dcerpc_request2,
+    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER, dcerpc_request2,
                       dcerpc_request2_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
@@ -1473,7 +1473,7 @@ static int DetectDceStubDataTestParse04(void)
         goto end;
 
     /* response2 */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_response2,
+    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOCLIENT, dcerpc_response2,
                       dcerpc_response2_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
@@ -1489,7 +1489,7 @@ static int DetectDceStubDataTestParse04(void)
         goto end;
 
     /* request3 */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER, dcerpc_request3,
+    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER, dcerpc_request3,
                       dcerpc_request3_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
@@ -1505,7 +1505,7 @@ static int DetectDceStubDataTestParse04(void)
         goto end;
 
     /* response3 */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT | STREAM_EOF,
+    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOCLIENT | STREAM_EOF,
                       dcerpc_response3, dcerpc_response3_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
@@ -1667,7 +1667,7 @@ static int DetectDceStubDataTestParse05(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
     /* request1 */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_START,
+    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER | STREAM_START,
                       dcerpc_request1, dcerpc_request1_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
@@ -1689,7 +1689,7 @@ static int DetectDceStubDataTestParse05(void)
         goto end;
 
     /* response1 */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT,
+    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOCLIENT,
                       dcerpc_response1, dcerpc_response1_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
@@ -1705,7 +1705,7 @@ static int DetectDceStubDataTestParse05(void)
         goto end;
 
     /* request2 */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
+    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER,
                       dcerpc_request2, dcerpc_request2_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
@@ -1721,7 +1721,7 @@ static int DetectDceStubDataTestParse05(void)
         goto end;
 
     /* response2 */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT,
+    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOCLIENT,
                       dcerpc_response2, dcerpc_response2_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
@@ -1737,7 +1737,7 @@ static int DetectDceStubDataTestParse05(void)
         goto end;
 
     /* request3 */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOSERVER,
+    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER,
                       dcerpc_request3, dcerpc_request3_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);
@@ -1753,7 +1753,7 @@ static int DetectDceStubDataTestParse05(void)
         goto end;
 
     /* response3 */
-    r = AppLayerParse(&f, ALPROTO_DCERPC, STREAM_TOCLIENT | STREAM_EOF,
+    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOCLIENT | STREAM_EOF,
                       dcerpc_response3, dcerpc_response3_len);
     if (r != 0) {
         SCLogDebug("AppLayerParse for dcerpc failed.  Returned %" PRId32, r);

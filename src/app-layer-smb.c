@@ -1024,7 +1024,7 @@ static int SMBParseHeader(Flow *f, void *smb_state,
 
 static int SMBParse(Flow *f, void *smb_state, AppLayerParserState *pstate,
                     uint8_t *input, uint32_t input_len,
-                    AppLayerParserResult *output)
+                    void *local_data, AppLayerParserResult *output)
 {
     SCEnter();
 
@@ -1426,7 +1426,7 @@ int SMBParserTest01(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOSERVER|STREAM_EOF, smbbuf, smblen);
+    int r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER|STREAM_EOF, smbbuf, smblen);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1495,7 +1495,7 @@ int SMBParserTest02(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOSERVER|STREAM_EOF, smbbuf, smblen);
+    int r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER|STREAM_EOF, smbbuf, smblen);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1783,7 +1783,7 @@ int SMBParserTest03(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOSERVER|STREAM_START, smbbuf1, smblen1);
+    r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER|STREAM_START, smbbuf1, smblen1);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1800,12 +1800,12 @@ int SMBParserTest03(void) {
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf2, smblen2);
+    r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf2, smblen2);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
-    r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf3, smblen3);
+    r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf3, smblen3);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1886,7 +1886,7 @@ int SMBParserTest04(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOSERVER|STREAM_START, smbbuf1, smblen1);
+    r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER|STREAM_START, smbbuf1, smblen1);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1903,17 +1903,17 @@ int SMBParserTest04(void) {
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf2, smblen2);
+    r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf2, smblen2);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
-    r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf3, smblen3);
+    r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf3, smblen3);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
-    r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf4, smblen4);
+    r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf4, smblen4);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2126,7 +2126,7 @@ int SMBParserTest07(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOCLIENT | STREAM_START, smbbuf1, smblen1);
+    r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOCLIENT | STREAM_START, smbbuf1, smblen1);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2192,7 +2192,7 @@ int SMBParserTest08(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOCLIENT | STREAM_START, smbbuf1, smblen1);
+    r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOCLIENT | STREAM_START, smbbuf1, smblen1);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2220,7 +2220,7 @@ int SMBParserTest08(void) {
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOCLIENT, smbbuf2, smblen2);
+    r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOCLIENT, smbbuf2, smblen2);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2295,7 +2295,7 @@ int SMBParserTest09(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOSERVER | STREAM_START, smbbuf1, smblen1);
+    r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER | STREAM_START, smbbuf1, smblen1);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -2323,7 +2323,7 @@ int SMBParserTest09(void) {
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf2, smblen2);
+    r = AppLayerParse(NULL, &f, ALPROTO_SMB, STREAM_TOSERVER, smbbuf2, smblen2);
     if (r != 0) {
         printf("smb header check returned %" PRId32 ", expected 0: ", r);
         goto end;

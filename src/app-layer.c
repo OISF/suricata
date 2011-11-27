@@ -148,7 +148,7 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
                 ssn->flags |= STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED;
 
                 PACKET_PROFILING_APP_START(dp_ctx, f->alproto);
-                r = AppLayerParse(f, f->alproto, flags, data, data_len);
+                r = AppLayerParse(dp_ctx->alproto_local_storage[f->alproto], f, f->alproto, flags, data, data_len);
                 PACKET_PROFILING_APP_END(dp_ctx, f->alproto);
             } else {
                 if (f->flags & FLOW_TS_PM_PP_ALPROTO_DETECT_DONE &&
@@ -173,7 +173,7 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
              * a start msg should have gotten us one */
             if (f->alproto != ALPROTO_UNKNOWN) {
                 PACKET_PROFILING_APP_START(dp_ctx, f->alproto);
-                r = AppLayerParse(f, f->alproto, flags, data, data_len);
+                r = AppLayerParse(dp_ctx->alproto_local_storage[f->alproto], f, f->alproto, flags, data, data_len);
                 PACKET_PROFILING_APP_END(dp_ctx, f->alproto);
             } else {
                 SCLogDebug(" smsg not start, but no l7 data? Weird");
@@ -312,8 +312,8 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
         if (f->alproto != ALPROTO_UNKNOWN) {
             f->flags |= FLOW_ALPROTO_DETECT_DONE;
 
-            r = AppLayerParse(f, f->alproto, flags,
-                           p->payload, p->payload_len);
+            r = AppLayerParse(dp_ctx->alproto_local_storage[f->alproto], f, f->alproto, flags,
+                              p->payload, p->payload_len);
         } else {
             f->flags |= FLOW_ALPROTO_DETECT_DONE;
             SCLogDebug("ALPROTO_UNKNOWN flow %p", f);
@@ -325,8 +325,8 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
         /* if we don't have a data object here we are not getting it
          * a start msg should have gotten us one */
         if (f->alproto != ALPROTO_UNKNOWN) {
-            r = AppLayerParse(f, f->alproto, flags,
-                        p->payload, p->payload_len);
+            r = AppLayerParse(dp_ctx->alproto_local_storage[f->alproto], f, f->alproto, flags,
+                              p->payload, p->payload_len);
         } else {
             SCLogDebug("udp session has started, but failed to detect alproto "
                        "for l7");

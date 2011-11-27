@@ -286,6 +286,8 @@ void AlpProtoFinalizeThread(AlpProtoDetectCtx *ctx, AlpProtoDetectThreadCtx *tct
     for (i = 0; i < ALPROTO_MAX; i++) {
         tctx->alproto_local_storage[i] = AppLayerGetProtocolParserLocalStorage(i);
     }
+
+    return;
 }
 
 void AlpProtoDeFinalize2Thread(AlpProtoDetectThreadCtx *tctx) {
@@ -1579,7 +1581,7 @@ static int AlpDetectTestSig1(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParse(f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+   int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1665,7 +1667,7 @@ static int AlpDetectTestSig2(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParse(f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1753,7 +1755,7 @@ static int AlpDetectTestSig3(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParse(f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1837,7 +1839,7 @@ static int AlpDetectTestSig4(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParse(f, ALPROTO_FTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParse(NULL, f, ALPROTO_FTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1933,7 +1935,7 @@ static int AlpDetectTestSig5(void)
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParse(f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
+    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER, http_buf1, http_buf1_len);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;

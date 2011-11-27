@@ -526,7 +526,7 @@ static int HTTPUriTest01(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
+    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
                           STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("AppLayerParse failed: r(%d) != 0: ", r);
@@ -593,7 +593,7 @@ static int HTTPUriTest02(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
+    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
                           STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("AppLayerParse failed: r(%d) != 0: ", r);
@@ -662,7 +662,7 @@ static int HTTPUriTest03(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
+    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
                           STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("AppLayerParse failed: r(%d) != 0: ", r);
@@ -732,7 +732,7 @@ static int HTTPUriTest04(void) {
 
     StreamTcpInitConfig(TRUE);
 
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
+    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
                           STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("AppLayerParse failed: r(%d) != 0: ", r);
@@ -895,7 +895,7 @@ static int DetectUriSigTest02(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1003,7 +1003,7 @@ static int DetectUriSigTest03(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1024,7 +1024,7 @@ static int DetectUriSigTest03(void) {
     }
 
 
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1341,7 +1341,7 @@ static int DetectUriSigTest05(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1474,7 +1474,7 @@ static int DetectUriSigTest06(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
@@ -1590,7 +1590,7 @@ static int DetectUriSigTest07(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
+    int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
