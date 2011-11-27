@@ -111,20 +111,21 @@ void FlowInit(Flow *f, Packet *p)
     f->proto = p->proto;
     f->recursion_level = p->recursion_level;
 
-    if (p->ip4h != NULL) { /* XXX MACRO */
-        SET_IPV4_SRC_ADDR(p,&f->src);
-        SET_IPV4_DST_ADDR(p,&f->dst);
-        f->src.family = AF_INET;
-        f->dst.family = AF_INET;
-    } else if (p->ip6h != NULL) { /* XXX MACRO */
-        SET_IPV6_SRC_ADDR(p,&f->src);
-        SET_IPV6_DST_ADDR(p,&f->dst);
-        f->src.family = AF_INET6;
-        f->dst.family = AF_INET6;
-    } /* XXX handle default */
+    if (PKT_IS_IPV4(p)) {
+        FLOW_SET_IPV4_SRC_ADDR_FROM_PACKET(p, &f->src);
+        FLOW_SET_IPV4_DST_ADDR_FROM_PACKET(p, &f->dst);
+        f->flags |= FLOW_IPV4;
+    } else if (PKT_IS_IPV6(p)) {
+        FLOW_SET_IPV6_SRC_ADDR_FROM_PACKET(p, &f->src);
+        FLOW_SET_IPV6_DST_ADDR_FROM_PACKET(p, &f->dst);
+        f->flags |= FLOW_IPV6;
+    }
+#ifdef DEBUG
+    /* XXX handle default */
     else {
         printf("FIXME: %s:%s:%" PRId32 "\n", __FILE__, __FUNCTION__, __LINE__);
     }
+#endif
 
     if (p->tcph != NULL) { /* XXX MACRO */
         SET_TCP_SRC_PORT(p,&f->sp);
@@ -142,10 +143,11 @@ void FlowInit(Flow *f, Packet *p)
         SET_SCTP_SRC_PORT(p,&f->sp);
         SET_SCTP_DST_PORT(p,&f->dp);
     } /* XXX handle default */
+#ifdef DEBUG
     else {
         printf("FIXME: %s:%s:%" PRId32 "\n", __FILE__, __FUNCTION__, __LINE__);
     }
-
+#endif
     COPY_TIMESTAMP(&p->ts, &f->startts);
 
     f->protomap = FlowGetProtoMapping(f->proto);

@@ -408,8 +408,7 @@ static int DetectHttpStatMsgSigTest01(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -515,8 +514,7 @@ static int DetectHttpStatMsgSigTest02(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -612,8 +610,7 @@ static int DetectHttpStatMsgSigTest03(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;

@@ -4831,34 +4831,26 @@ static int StreamTcpTestMissedPacket (TcpReassemblyThreadCtx *ra_ctx,
     TCPHdr tcph;
     Port sp;
     Port dp;
-    Address src;
-    Address dst;
     struct in_addr in;
+    ThreadVars tv;
     PacketQueue pq;
-    memset(&pq,0,sizeof(PacketQueue));
 
+    memset(&pq,0,sizeof(PacketQueue));
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
-    memset(&src, 0, sizeof(Address));
-    memset(&dst, 0, sizeof(Address));
-    ThreadVars tv;
     memset(&tv, 0, sizeof (ThreadVars));
 
-    inet_pton(AF_INET, "1.2.3.4", &in);
-
-    src.family = AF_INET;
-    src.addr_data32[0] = in.s_addr;
-    inet_pton(AF_INET, "1.2.3.5", &in);
-    dst.family = AF_INET;
-    dst.addr_data32[0] = in.s_addr;
     sp = 200;
     dp = 220;
 
     FLOW_INITIALIZE(&f);
-    f.src = src;
-    f.dst = dst;
+    inet_pton(AF_INET, "1.2.3.4", &in);
+    f.src.addr_data32[0] = in.s_addr;
+    inet_pton(AF_INET, "1.2.3.5", &in);
+    f.dst.addr_data32[0] = in.s_addr;
+    f.flags |= FLOW_IPV4;
     f.sp = sp;
     f.dp = dp;
     f.protoctx = ssn;
@@ -5914,8 +5906,6 @@ static int StreamTcpReassembleTest38 (void) {
     TCPHdr tcph;
     Port sp;
     Port dp;
-    Address src;
-    Address dst;
     struct in_addr in;
     TcpSession ssn;
 
@@ -5925,16 +5915,12 @@ static int StreamTcpReassembleTest38 (void) {
     memset(&pq,0,sizeof(PacketQueue));
     memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
-    memset(&src, 0, sizeof(Address));
-    memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
     ThreadVars tv;
     memset(&tv, 0, sizeof (ThreadVars));
 
-    FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    //AppLayerDetectProtoThreadInit();
 
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -5942,12 +5928,11 @@ static int StreamTcpReassembleTest38 (void) {
     uint8_t httpbuf2[] = "HTTP/1.0 200 OK\r\nServer: VictorServer/1.0\r\n\r\n";
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
 
+    FLOW_INITIALIZE(&f);
     inet_pton(AF_INET, "1.2.3.4", &in);
-    src.family = AF_INET;
-    src.addr_data32[0] = in.s_addr;
+    f.src.addr_data32[0] = in.s_addr;
     inet_pton(AF_INET, "1.2.3.5", &in);
-    dst.family = AF_INET;
-    dst.addr_data32[0] = in.s_addr;
+    f.dst.addr_data32[0] = in.s_addr;
     sp = 200;
     dp = 220;
 
@@ -5959,8 +5944,7 @@ static int StreamTcpReassembleTest38 (void) {
     ssn.client.last_ack = 60;
     f.alproto = ALPROTO_UNKNOWN;
 
-    f.src = src;
-    f.dst = dst;
+    f.flags |= FLOW_IPV4;
     f.sp = sp;
     f.dp = dp;
     f.protoctx = &ssn;
@@ -6073,31 +6057,21 @@ static int StreamTcpReassembleTest39 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (p == NULL)
         return 0;
-    Flow f;
+    Flow *f = NULL;
     TCPHdr tcph;
-    Port sp;
-    Port dp;
-    Address src;
-    Address dst;
-    struct in_addr in;
     TcpSession ssn;
 
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
-    memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
-    memset(&src, 0, sizeof(Address));
-    memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
     ThreadVars tv;
     memset(&tv, 0, sizeof (ThreadVars));
 
-    FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    //AppLayerDetectProtoThreadInit();
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 7);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 7);
 
@@ -6113,23 +6087,12 @@ static int StreamTcpReassembleTest39 (void) {
     ssn.client.ra_raw_base_seq = ssn.client.ra_app_base_seq= 9;
     ssn.client.isn = 9;
     ssn.client.last_ack = 160;
-    f.alproto = ALPROTO_UNKNOWN;
 
-    inet_pton(AF_INET, "1.2.3.4", &in);
-    src.family = AF_INET;
-    src.addr_data32[0] = in.s_addr;
-    inet_pton(AF_INET, "1.2.3.5", &in);
-    dst.family = AF_INET;
-    dst.addr_data32[0] = in.s_addr;
-    sp = 200;
-    dp = 220;
-
-    f.src = src;
-    f.dst = dst;
-    f.sp = sp;
-    f.dp = dp;
-    f.protoctx = &ssn;
-    p->flow = &f;
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 200, 220);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+    p->flow = f;
 
     SCLogDebug("check client seg list %p", ssn.client.seg_list);
     tcph.th_win = htons(5480);
@@ -6285,6 +6248,7 @@ end:
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
+    UTHFreeFlow(f);
     return ret;
 }
 
@@ -6300,33 +6264,23 @@ static int StreamTcpReassembleTest40 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (p == NULL)
         return 0;
-    Flow f;
+    Flow *f = NULL;
     TCPHdr tcph;
-    Port sp;
-    Port dp;
-    Address src;
-    Address dst;
-    struct in_addr in;
     TcpSession ssn;
 
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
-    memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
-    memset(&src, 0, sizeof(Address));
-    memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
     ThreadVars tv;
     memset(&tv, 0, sizeof (ThreadVars));
 
-    FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 130);
 
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    //AppLayerDetectProtoThreadInit();
 
     uint8_t httpbuf1[] = "P";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -6346,23 +6300,12 @@ static int StreamTcpReassembleTest40 (void) {
     ssn.client.ra_raw_base_seq = ssn.client.ra_app_base_seq = 9;
     ssn.client.isn = 9;
     ssn.client.last_ack = 10;
-    f.alproto = ALPROTO_UNKNOWN;
 
-    inet_pton(AF_INET, "1.2.3.4", &in);
-    src.family = AF_INET;
-    src.addr_data32[0] = in.s_addr;
-    inet_pton(AF_INET, "1.2.3.5", &in);
-    dst.family = AF_INET;
-    dst.addr_data32[0] = in.s_addr;
-    sp = 200;
-    dp = 220;
-
-    f.src = src;
-    f.dst = dst;
-    f.sp = sp;
-    f.dp = dp;
-    f.protoctx = &ssn;
-    p->flow = &f;
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 200, 220);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+    p->flow = f;
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -6535,7 +6478,7 @@ static int StreamTcpReassembleTest40 (void) {
         goto end;
     }
 
-    if (f.alproto != ALPROTO_HTTP) {
+    if (f->alproto != ALPROTO_HTTP) {
         printf("app layer proto has not been detected (18): ");
         goto end;
     }
@@ -6545,6 +6488,7 @@ end:
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
+    UTHFreeFlow(f);
     return ret;
 }
 
@@ -6562,31 +6506,21 @@ static int StreamTcpReassembleTest41 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (p == NULL)
         return 0;
-    Flow f;
+    Flow *f = NULL;
     TCPHdr tcph;
-    Port sp;
-    Port dp;
-    Address src;
-    Address dst;
-    struct in_addr in;
     TcpSession ssn;
 
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
-    memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
-    memset(&src, 0, sizeof(Address));
-    memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
     ThreadVars tv;
     memset(&tv, 0, sizeof (ThreadVars));
 
-    FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    //AppLayerDetectProtoThreadInit();
 
     uint8_t httpbuf1[] = "GET / HTTP/1.0\r\nUser-Agent: Victor/1.0"
                          "W2dyb3VwMV0NCnBob25lMT1wMDB3ODgyMTMxMzAyMTINCmxvZ2lu"
@@ -6620,23 +6554,12 @@ static int StreamTcpReassembleTest41 (void) {
     ssn.client.ra_raw_base_seq = ssn.client.ra_app_base_seq = 9;
     ssn.client.isn = 9;
     ssn.client.last_ack = 600;
-    f.alproto = ALPROTO_UNKNOWN;
 
-    inet_pton(AF_INET, "1.2.3.4", &in);
-    src.family = AF_INET;
-    src.addr_data32[0] = in.s_addr;
-    inet_pton(AF_INET, "1.2.3.5", &in);
-    dst.family = AF_INET;
-    dst.addr_data32[0] = in.s_addr;
-    sp = 200;
-    dp = 220;
-
-    f.src = src;
-    f.dst = dst;
-    f.sp = sp;
-    f.dp = dp;
-    f.protoctx = &ssn;
-    p->flow = &f;
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 200, 220);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+    p->flow = f;
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -6757,6 +6680,7 @@ end:
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
+    UTHFreeFlow(f);
     return ret;
 }
 
@@ -6771,31 +6695,21 @@ static int StreamTcpReassembleTest42 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (p == NULL)
         return 0;
-    Flow f;
+    Flow *f = NULL;
     TCPHdr tcph;
-    Port sp;
-    Port dp;
-    Address src;
-    Address dst;
-    struct in_addr in;
     TcpSession ssn;
 
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
-    memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
-    memset(&src, 0, sizeof(Address));
-    memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
     ThreadVars tv;
     memset(&tv, 0, sizeof (ThreadVars));
 
-    FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    //AppLayerDetectProtoThreadInit();
 
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -6812,23 +6726,12 @@ static int StreamTcpReassembleTest42 (void) {
     ssn.client.ra_raw_base_seq = ssn.client.ra_app_base_seq = 9;
     ssn.client.isn = 9;
     ssn.client.last_ack = 60;
-    f.alproto = ALPROTO_UNKNOWN;
 
-    inet_pton(AF_INET, "1.2.3.4", &in);
-    src.family = AF_INET;
-    src.addr_data32[0] = in.s_addr;
-    inet_pton(AF_INET, "1.2.3.5", &in);
-    dst.family = AF_INET;
-    dst.addr_data32[0] = in.s_addr;
-    sp = 200;
-    dp = 220;
-
-    f.src = src;
-    f.dst = dst;
-    f.sp = sp;
-    f.dp = dp;
-    f.protoctx = &ssn;
-    p->flow = &f;
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 200, 220);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+    p->flow = f;
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -6931,6 +6834,7 @@ end:
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
+    UTHFreeFlow(f);
     return ret;
 }
 
@@ -6945,31 +6849,21 @@ static int StreamTcpReassembleTest43 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (p == NULL)
         return 0;
-    Flow f;
+    Flow *f = NULL;
     TCPHdr tcph;
-    Port sp;
-    Port dp;
-    Address src;
-    Address dst;
-    struct in_addr in;
     TcpSession ssn;
 
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
-    memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
-    memset(&src, 0, sizeof(Address));
-    memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
     ThreadVars tv;
     memset(&tv, 0, sizeof (ThreadVars));
 
-    FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    //AppLayerDetectProtoThreadInit();
 
     uint8_t httpbuf1[] = "/ HTTP/1.0\r\nUser-Agent: Victor/1.0";
 
@@ -6996,23 +6890,12 @@ static int StreamTcpReassembleTest43 (void) {
     ssn.client.ra_raw_base_seq = ssn.client.ra_app_base_seq = 9;
     ssn.client.isn = 9;
     ssn.client.last_ack = 600;
-    f.alproto = ALPROTO_UNKNOWN;
 
-    inet_pton(AF_INET, "1.2.3.4", &in);
-    src.family = AF_INET;
-    src.addr_data32[0] = in.s_addr;
-    inet_pton(AF_INET, "1.2.3.5", &in);
-    dst.family = AF_INET;
-    dst.addr_data32[0] = in.s_addr;
-    sp = 200;
-    dp = 220;
-
-    f.src = src;
-    f.dst = dst;
-    f.sp = sp;
-    f.dp = dp;
-    f.protoctx = &ssn;
-    p->flow = &f;
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 200, 220);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+    p->flow = f;
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -7146,6 +7029,7 @@ end:
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
+    UTHFreeFlow(f);
     return ret;
 }
 
@@ -7203,23 +7087,15 @@ static int StreamTcpReassembleTest45 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (p == NULL)
         return 0;
-    Flow f;
+    Flow *f = NULL;
     TCPHdr tcph;
-    Port sp;
-    Port dp;
-    Address src;
-    Address dst;
-    struct in_addr in;
     TcpSession ssn;
 
     memset(p, 0, SIZE_OF_PACKET);
     p->pkt = (uint8_t *)(p + 1);
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
-    memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
-    memset(&src, 0, sizeof(Address));
-    memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
     ThreadVars tv;
     memset(&tv, 0, sizeof (ThreadVars));
@@ -7228,7 +7104,6 @@ static int StreamTcpReassembleTest45 (void) {
 
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
 
-    FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
 
@@ -7238,23 +7113,12 @@ static int StreamTcpReassembleTest45 (void) {
     STREAMTCP_SET_RA_BASE_SEQ(&ssn.client, 9);
     ssn.client.isn = 9;
     ssn.client.last_ack = 60;
-    f.alproto = ALPROTO_UNKNOWN;
 
-    inet_pton(AF_INET, "1.2.3.4", &in);
-    src.family = AF_INET;
-    src.addr_data32[0] = in.s_addr;
-    inet_pton(AF_INET, "1.2.3.5", &in);
-    dst.family = AF_INET;
-    dst.addr_data32[0] = in.s_addr;
-    sp = 200;
-    dp = 220;
-
-    f.src = src;
-    f.dst = dst;
-    f.sp = sp;
-    f.dp = dp;
-    f.protoctx = &ssn;
-    p->flow = &f;
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 200, 220);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+    p->flow = f;
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -7324,6 +7188,7 @@ end:
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
+    UTHFreeFlow(f);
     return ret;
 }
 
@@ -7340,13 +7205,8 @@ static int StreamTcpReassembleTest46 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (p == NULL)
         return 0;
-    Flow f;
+    Flow *f = NULL;
     TCPHdr tcph;
-    Port sp;
-    Port dp;
-    Address src;
-    Address dst;
-    struct in_addr in;
     TcpSession ssn;
     ThreadVars tv;
 
@@ -7354,17 +7214,13 @@ static int StreamTcpReassembleTest46 (void) {
     p->pkt = (uint8_t *)(p + 1);
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
-    memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
-    memset(&src, 0, sizeof(Address));
-    memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
     memset(&tv, 0, sizeof (ThreadVars));
 
     uint8_t httpbuf1[] = "/ HTTP/1.0\r\nUser-Agent: Victor/1.0";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
 
-    FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
 
@@ -7376,23 +7232,12 @@ static int StreamTcpReassembleTest46 (void) {
     ssn.client.isn = 9;
     ssn.client.last_ack = 60;
     ssn.client.next_seq = ssn.client.isn;
-    f.alproto = ALPROTO_UNKNOWN;
 
-    inet_pton(AF_INET, "1.2.3.4", &in);
-    src.family = AF_INET;
-    src.addr_data32[0] = in.s_addr;
-    inet_pton(AF_INET, "1.2.3.5", &in);
-    dst.family = AF_INET;
-    dst.addr_data32[0] = in.s_addr;
-    sp = 200;
-    dp = 220;
-
-    f.src = src;
-    f.dst = dst;
-    f.sp = sp;
-    f.dp = dp;
-    f.protoctx = &ssn;
-    p->flow = &f;
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 200, 220);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+    p->flow = f;
 
     tcph.th_win = htons(5480);
     tcph.th_seq = htonl(10);
@@ -7466,6 +7311,7 @@ end:
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
+    UTHFreeFlow(f);
     return ret;
 }
 
@@ -7481,13 +7327,8 @@ static int StreamTcpReassembleTest47 (void) {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (p == NULL)
         return 0;
-    Flow f;
+    Flow *f = NULL;
     TCPHdr tcph;
-    Port sp;
-    Port dp;
-    Address src;
-    Address dst;
-    struct in_addr in;
     TcpSession ssn;
     ThreadVars tv;
 
@@ -7495,10 +7336,7 @@ static int StreamTcpReassembleTest47 (void) {
     p->pkt = (uint8_t *)(p + 1);
     PacketQueue pq;
     memset(&pq,0,sizeof(PacketQueue));
-    memset(&f, 0, sizeof (Flow));
     memset(&tcph, 0, sizeof (TCPHdr));
-    memset(&src, 0, sizeof(Address));
-    memset(&dst, 0, sizeof(Address));
     memset(&ssn, 0, sizeof(TcpSession));
     memset(&tv, 0, sizeof (ThreadVars));
 
@@ -7506,22 +7344,11 @@ static int StreamTcpReassembleTest47 (void) {
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOSERVER, 0);
     StreamMsgQueueSetMinChunkLen(FLOW_PKT_TOCLIENT, 0);
 
-    FLOW_INITIALIZE(&f);
     StreamTcpInitConfig(TRUE);
     TcpReassemblyThreadCtx *ra_ctx = StreamTcpReassembleInitThreadCtx();
-    //AppLayerDetectProtoThreadInit();
 
     uint8_t httpbuf1[] = "GET /EVILSUFF HTTP/1.1\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
-
-    inet_pton(AF_INET, "1.2.3.4", &in);
-    src.family = AF_INET;
-    src.addr_data32[0] = in.s_addr;
-    inet_pton(AF_INET, "1.2.3.5", &in);
-    dst.family = AF_INET;
-    dst.addr_data32[0] = in.s_addr;
-    sp = 200;
-    dp = 220;
 
     ssn.server.ra_raw_base_seq = ssn.server.ra_app_base_seq = 572799781UL;
     ssn.server.isn = 572799781UL;
@@ -7529,14 +7356,13 @@ static int StreamTcpReassembleTest47 (void) {
     ssn.client.ra_raw_base_seq = ssn.client.ra_app_base_seq = 4294967289UL;
     ssn.client.isn = 4294967289UL;
     ssn.client.last_ack = 21;
-    f.alproto = ALPROTO_UNKNOWN;
 
-    f.src = src;
-    f.dst = dst;
-    f.sp = sp;
-    f.dp = dp;
-    f.protoctx = &ssn;
-    p->flow = &f;
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 200, 220);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+    p->flow = f;
+
     tcph.th_win = htons(5480);
     ssn.state = TCP_ESTABLISHED;
     TcpStream *s = NULL;
@@ -7580,7 +7406,7 @@ static int StreamTcpReassembleTest47 (void) {
         }
     }
 
-    if (f.alproto != ALPROTO_HTTP) {
+    if (f->alproto != ALPROTO_HTTP) {
         printf("App layer protocol (HTTP) should have been detected\n");
         goto end;
     }
@@ -7590,6 +7416,7 @@ end:
     StreamTcpReassembleFreeThreadCtx(ra_ctx);
     StreamTcpFreeConfig(TRUE);
     SCFree(p);
+    UTHFreeFlow(f);
     return ret;
 }
 
@@ -8627,15 +8454,18 @@ static int StreamTcpReassembleInlineTest10(void) {
     TcpReassemblyThreadCtx *ra_ctx = NULL;
     ThreadVars tv;
     TcpSession ssn;
-    Flow f;
+    Flow *f = NULL;
 
     memset(&tv, 0x00, sizeof(tv));
 
     StreamTcpUTInit(&ra_ctx);
     StreamTcpUTSetupSession(&ssn);
     StreamTcpUTSetupStream(&ssn.server, 1);
-    FLOW_INITIALIZE(&f);
-    f.src.family = f.dst.family = AF_INET;
+
+    f = UTHBuildFlow(AF_INET, "1.1.1.1", "2.2.2.2", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
 
     uint8_t stream_payload1[] = "GE";
     uint8_t stream_payload2[] = "T /";
@@ -8647,7 +8477,7 @@ static int StreamTcpReassembleInlineTest10(void) {
         goto end;
     }
     p->tcph->th_seq = htonl(7);
-    p->flow = &f;
+    p->flow = f;
     p->flowflags |= FLOW_PKT_TOSERVER;
 
     if (StreamTcpUTAddSegmentWithPayload(&tv, ra_ctx, &ssn.server,  2, stream_payload1, 2) == -1) {
@@ -8697,6 +8527,7 @@ end:
     StreamTcpUTClearSession(&ssn);
     StreamTcpUTDeinit(ra_ctx);
 #endif
+    UTHFreeFlow(f);
     return ret;
 }
 

@@ -100,20 +100,22 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
     else
         p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
-    if (direction == 0) {
-        COPY_ADDRESS(&f->src, &p->src);
-        COPY_ADDRESS(&f->dst, &p->dst);
-        p->sp = f->sp;
-        p->dp = f->dp;
-    } else {
-        COPY_ADDRESS(&f->src, &p->dst);
-        COPY_ADDRESS(&f->dst, &p->src);
-        p->sp = f->dp;
-        p->dp = f->sp;
-    }
     p->payload = NULL;
     p->payload_len = 0;
-    if (f->src.family == AF_INET) {
+
+    if (FLOW_IS_IPV4(f)) {
+        if (direction == 0) {
+            FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->src, &p->src);
+            FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->dst, &p->dst);
+            p->sp = f->sp;
+            p->dp = f->dp;
+        } else {
+            FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->src, &p->dst);
+            FLOW_COPY_IPV4_ADDR_TO_PACKET(&f->dst, &p->src);
+            p->sp = f->dp;
+            p->dp = f->sp;
+        }
+
         /* set the ip header */
         p->ip4h = (IPV4Hdr *)GET_PKT_DATA(p);
         /* version 4 and length 20 bytes for the tcp header */
@@ -136,7 +138,19 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
         /* set the tcp header */
         p->tcph = (TCPHdr *)((uint8_t *)GET_PKT_DATA(p) + 20);
 
-    } else {
+    } else if (FLOW_IS_IPV6(f)) {
+        if (direction == 0) {
+            FLOW_COPY_IPV6_ADDR_TO_PACKET(&f->src, &p->src);
+            FLOW_COPY_IPV6_ADDR_TO_PACKET(&f->dst, &p->dst);
+            p->sp = f->sp;
+            p->dp = f->dp;
+        } else {
+            FLOW_COPY_IPV6_ADDR_TO_PACKET(&f->src, &p->dst);
+            FLOW_COPY_IPV6_ADDR_TO_PACKET(&f->dst, &p->src);
+            p->sp = f->dp;
+            p->dp = f->sp;
+        }
+
         /* set the ip header */
         p->ip6h = (IPV6Hdr *)GET_PKT_DATA(p);
         /* version 6 */
@@ -203,10 +217,10 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
         }
     }
 
-    if (f->src.family == AF_INET) {
+    if (FLOW_IS_IPV4(f)) {
         p->tcph->th_sum = TCPCalculateChecksum((uint16_t *)&(p->ip4h->ip_src),
                                                (uint16_t *)p->tcph, 20);
-    } else {
+    } else if (FLOW_IS_IPV6(f)) {
         p->tcph->th_sum = TCPCalculateChecksum((uint16_t *)&(p->ip6h->ip6_src),
                                                (uint16_t *)p->tcph, 20);
     }

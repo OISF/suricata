@@ -421,6 +421,54 @@ void UTHFreePacket(Packet *p) {
     SCFree(p);
 }
 
+Flow *UTHBuildFlow(int family, char *src, char *dst, Port sp, Port dp) {
+    struct in_addr in;
+
+    Flow *f = SCMalloc(sizeof(Flow));
+    if (f == NULL) {
+        printf("FlowAlloc failed\n");;
+        return NULL;
+    }
+    memset(f, 0x00, sizeof(Flow));
+
+    FLOW_INITIALIZE(f);
+
+    if (family == AF_INET) {
+        f->flags |= FLOW_IPV4;
+    } else if (family == AF_INET6) {
+        f->flags |= FLOW_IPV6;
+    }
+
+    if (src != NULL) {
+        if (family == AF_INET) {
+            inet_pton(AF_INET, src, &in);
+            f->src.addr_data32[0] = in.s_addr;
+        } else {
+            BUG_ON(1);
+        }
+    }
+    if (dst != NULL) {
+        if (family == AF_INET) {
+            inet_pton(AF_INET, src, &in);
+            f->dst.addr_data32[0] = in.s_addr;
+        } else {
+            BUG_ON(1);
+        }
+    }
+
+    f->sp = sp;
+    f->dp = dp;
+
+    return f;
+}
+
+void UTHFreeFlow(Flow *flow) {
+    if (flow != NULL) {
+        FLOW_DESTROY(flow);
+        FlowFree(flow);
+    }
+}
+
 /**
  * \brief UTHGenericTest: function that perfom a generic check taking care of
  *                      as maximum common unittest elements as possible.

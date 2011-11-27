@@ -413,8 +413,7 @@ static int DetectHttpHeaderTest06(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
@@ -513,8 +512,7 @@ static int DetectHttpHeaderTest07(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
@@ -631,8 +629,7 @@ static int DetectHttpHeaderTest08(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
@@ -750,8 +747,7 @@ static int DetectHttpHeaderTest09(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
@@ -870,8 +866,7 @@ static int DetectHttpHeaderTest10(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
     p1->flowflags |= FLOW_PKT_ESTABLISHED;
@@ -985,8 +980,7 @@ static int DetectHttpHeaderTest11(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
@@ -1080,8 +1074,7 @@ static int DetectHttpHeaderTest12(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
@@ -1175,8 +1168,7 @@ static int DetectHttpHeaderTest13(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;

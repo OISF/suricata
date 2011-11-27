@@ -990,8 +990,7 @@ static int DeStateSigTest01(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -1122,8 +1121,7 @@ static int DeStateSigTest02(void) {
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;

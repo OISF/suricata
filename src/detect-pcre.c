@@ -1544,8 +1544,7 @@ static int DetectPcreTestSig01Real(int mpm_type) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
     f.alproto = ALPROTO_HTTP;
 
     p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
@@ -1788,8 +1787,7 @@ static int DetectPcreModifPTest04(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -1912,8 +1910,7 @@ static int DetectPcreModifPTest05(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -2097,8 +2094,7 @@ static int DetectPcreTestSig09(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -2186,8 +2182,7 @@ static int DetectPcreTestSig10(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -2275,8 +2270,7 @@ static int DetectPcreTestSig11(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -2364,8 +2358,7 @@ static int DetectPcreTestSig12(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -2453,8 +2446,7 @@ static int DetectPcreTestSig13(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -2542,8 +2534,7 @@ static int DetectPcreTestSig14(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -2636,8 +2627,7 @@ static int DetectPcreTxBodyChunksTest01(void) {
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -2784,8 +2774,7 @@ static int DetectPcreTxBodyChunksTest02(void) {
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -3008,8 +2997,7 @@ static int DetectPcreTxBodyChunksTest03(void) {
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
     f.proto = IPPROTO_TCP;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;

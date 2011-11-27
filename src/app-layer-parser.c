@@ -55,6 +55,7 @@
 #include "util-spm.h"
 
 #include "util-debug.h"
+#include "util-unittest-helper.h"
 
 static AppLayerProto al_proto_table[ALPROTO_MAX];   /**< Application layer protocol
                                                          table mapped to their
@@ -915,7 +916,7 @@ error:
         FlowSetSessionNoApplayerInspectionFlag(f);
         AppLayerSetEOF(f);
 
-        if (f->src.family == AF_INET) {
+        if (FLOW_IS_IPV4(f)) {
             char src[16];
             char dst[16];
             PrintInet(AF_INET, (const void*)&f->src.addr_data32[0], src,
@@ -930,7 +931,7 @@ error:
                        "dst port %"PRIu16"", al_proto_table[f->alproto].name,
                        f->proto, src, dst, f->sp, f->dp);
             fflush(stdout);
-        } else {
+        } else if (FLOW_IS_IPV6(f)) {
             char dst6[46];
             char src6[46];
 
@@ -1827,19 +1828,12 @@ static void TestProtocolStateFree(void *s)
 static int AppLayerParserTest01 (void)
 {
     int result = 0;
-    Flow f;
+    Flow *f = NULL;
     uint8_t testbuf[] = { 0x11 };
     uint32_t testlen = sizeof(testbuf);
     TcpSession ssn;
-    struct in_addr addr;
-    struct in_addr addr1;
-    Address src;
-    Address dst;
 
-    memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
-    memset(&src, 0, sizeof(src));
-    memset(&dst, 0, sizeof(dst));
 
     /* Register the Test protocol state and parser functions */
     AppLayerRegisterProto("test", ALPROTO_TEST, STREAM_TOSERVER,
@@ -1847,32 +1841,24 @@ static int AppLayerParserTest01 (void)
     AppLayerRegisterStateFuncs(ALPROTO_TEST, TestProtocolStateAlloc,
                                 TestProtocolStateFree);
 
-    FLOW_INITIALIZE(&f);
-    f.alproto = ALPROTO_TEST;
-    f.protoctx = (void *)&ssn;
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "4.3.2.1", 20, 40);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
 
-    inet_pton(AF_INET, "1.2.3.4", &addr.s_addr);
-    src.family = AF_INET;
-    src.addr_data32[0] = addr.s_addr;
-    inet_pton(AF_INET, "4.3.2.1", &addr1.s_addr);
-    dst.family = AF_INET;
-    dst.addr_data32[0] = addr1.s_addr;
-    f.src = src;
-    f.dst = dst;
-    f.sp = htons(20);
-    f.dp = htons(40);
-    f.proto = IPPROTO_TCP;
+    f->alproto = ALPROTO_TEST;
+    f->proto = IPPROTO_TCP;
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
+    int r = AppLayerParse(f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
                           testlen);
     if (r != -1) {
         printf("returned %" PRId32 ", expected -1: ", r);
         goto end;
     }
 
-    if (!(f.flags & FLOW_NO_APPLAYER_INSPECTION))
+    if (!(f->flags & FLOW_NO_APPLAYER_INSPECTION))
     {
         printf("flag should have been set, but is not: ");
         goto end;
@@ -1881,7 +1867,8 @@ static int AppLayerParserTest01 (void)
     result = 1;
 end:
     StreamTcpFreeConfig(TRUE);
-    FLOW_DESTROY(&f);
+
+    UTHFreeFlow(f);
     return result;
 }
 
@@ -1891,17 +1878,9 @@ end:
 static int AppLayerParserTest02 (void)
 {
     int result = 1;
-    Flow f;
+    Flow *f = NULL;
     uint8_t testbuf[] = { 0x11 };
     uint32_t testlen = sizeof(testbuf);
-    struct in_addr addr;
-    struct in_addr addr1;
-    Address src;
-    Address dst;
-
-    memset(&f, 0, sizeof(f));
-    memset(&src, 0, sizeof(src));
-    memset(&dst, 0, sizeof(dst));
 
     /* Register the Test protocol state and parser functions */
     AppLayerRegisterProto("test", ALPROTO_TEST, STREAM_TOSERVER,
@@ -1909,23 +1888,15 @@ static int AppLayerParserTest02 (void)
     AppLayerRegisterStateFuncs(ALPROTO_TEST, TestProtocolStateAlloc,
                                 TestProtocolStateFree);
 
-    f.alproto = ALPROTO_TEST;
-
-    inet_pton(AF_INET, "1.2.3.4", &addr.s_addr);
-    src.family = AF_INET;
-    src.addr_data32[0] = addr.s_addr;
-    inet_pton(AF_INET, "4.3.2.1", &addr1.s_addr);
-    dst.family = AF_INET;
-    dst.addr_data32[0] = addr1.s_addr;
-    f.src = src;
-    f.dst = dst;
-    f.sp = htons(20);
-    f.dp = htons(40);
-    f.proto = IPPROTO_UDP;
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "4.3.2.1", 20, 40);
+    if (f == NULL)
+        goto end;
+    f->alproto = ALPROTO_TEST;
+    f->proto = IPPROTO_UDP;
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
+    int r = AppLayerParse(f, ALPROTO_TEST, STREAM_TOSERVER|STREAM_EOF, testbuf,
                           testlen);
     if (r != -1) {
         printf("returned %" PRId32 ", expected -1: \n", r);
@@ -1935,6 +1906,7 @@ static int AppLayerParserTest02 (void)
 
 end:
     StreamTcpFreeConfig(TRUE);
+    UTHFreeFlow(f);
     return result;
 }
 

@@ -522,8 +522,7 @@ static int HTTPUriTest01(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     StreamTcpInitConfig(TRUE);
 
@@ -590,8 +589,7 @@ static int HTTPUriTest02(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     StreamTcpInitConfig(TRUE);
 
@@ -660,8 +658,7 @@ static int HTTPUriTest03(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     StreamTcpInitConfig(TRUE);
 
@@ -731,8 +728,7 @@ static int HTTPUriTest04(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     StreamTcpInitConfig(TRUE);
 
@@ -857,8 +853,7 @@ static int DetectUriSigTest02(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -966,8 +961,7 @@ static int DetectUriSigTest03(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -1294,8 +1288,7 @@ static int DetectUriSigTest05(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -1416,8 +1409,7 @@ static int DetectUriSigTest06(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -1546,8 +1538,7 @@ static int DetectUriSigTest07(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;

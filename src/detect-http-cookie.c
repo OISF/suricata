@@ -654,8 +654,7 @@ static int DetectHttpCookieSigTest01(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -753,8 +752,7 @@ static int DetectHttpCookieSigTest02(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -839,8 +837,7 @@ static int DetectHttpCookieSigTest03(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -926,8 +923,7 @@ static int DetectHttpCookieSigTest04(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -1013,8 +1009,7 @@ static int DetectHttpCookieSigTest05(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -1100,8 +1095,7 @@ static int DetectHttpCookieSigTest06(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -1186,8 +1180,7 @@ static int DetectHttpCookieSigTest07(void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;

@@ -579,8 +579,7 @@ static int DetectEngineHttpClientBodyTest01(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -694,8 +693,7 @@ static int DetectEngineHttpClientBodyTest02(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -797,8 +795,7 @@ static int DetectEngineHttpClientBodyTest03(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -915,8 +912,7 @@ static int DetectEngineHttpClientBodyTest04(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -1032,8 +1028,7 @@ static int DetectEngineHttpClientBodyTest05(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -1149,8 +1144,7 @@ static int DetectEngineHttpClientBodyTest06(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -1266,8 +1260,7 @@ static int DetectEngineHttpClientBodyTest07(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -1383,8 +1376,7 @@ static int DetectEngineHttpClientBodyTest08(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -1500,8 +1492,7 @@ static int DetectEngineHttpClientBodyTest09(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -1618,8 +1609,7 @@ static int DetectEngineHttpClientBodyTest10(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -1736,8 +1726,7 @@ static int DetectEngineHttpClientBodyTest11(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -1854,8 +1843,7 @@ static int DetectEngineHttpClientBodyTest12(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -1972,8 +1960,7 @@ static int DetectEngineHttpClientBodyTest13(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -2090,8 +2077,7 @@ static int DetectEngineHttpClientBodyTest14(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -2208,8 +2194,7 @@ static int DetectEngineHttpClientBodyTest15(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -2326,8 +2311,7 @@ static int DetectEngineHttpClientBodyTest16(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -2432,8 +2416,7 @@ static int DetectEngineHttpClientBodyTest17(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -2504,8 +2487,7 @@ static int DetectEngineHttpClientBodyTest18(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -2576,8 +2558,7 @@ static int DetectEngineHttpClientBodyTest19(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -2648,8 +2629,7 @@ static int DetectEngineHttpClientBodyTest20(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -2732,8 +2712,7 @@ static int DetectEngineHttpClientBodyTest21(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -2850,8 +2829,7 @@ static int DetectEngineHttpClientBodyTest22(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -2968,8 +2946,7 @@ static int DetectEngineHttpClientBodyTest23(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -3086,8 +3063,7 @@ static int DetectEngineHttpClientBodyTest24(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -3204,8 +3180,7 @@ static int DetectEngineHttpClientBodyTest25(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -3322,8 +3297,7 @@ static int DetectEngineHttpClientBodyTest26(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -3440,8 +3414,7 @@ static int DetectEngineHttpClientBodyTest27(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;
@@ -3558,8 +3531,7 @@ static int DetectEngineHttpClientBodyTest28(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p1->flow = &f;
     p1->flowflags |= FLOW_PKT_TOSERVER;

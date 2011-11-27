@@ -523,8 +523,7 @@ static int UriTestSig01(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -637,8 +636,7 @@ static int UriTestSig02(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -751,8 +749,7 @@ static int UriTestSig03(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -865,8 +862,7 @@ static int UriTestSig04(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -979,8 +975,7 @@ static int UriTestSig05(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -1093,8 +1088,7 @@ static int UriTestSig06(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -1207,8 +1201,7 @@ static int UriTestSig07(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -1321,8 +1314,7 @@ static int UriTestSig08(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -1435,8 +1427,7 @@ static int UriTestSig09(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -1549,8 +1540,7 @@ static int UriTestSig10(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -1663,8 +1653,7 @@ static int UriTestSig11(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -1778,8 +1767,7 @@ static int UriTestSig12(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -1893,8 +1881,7 @@ static int UriTestSig13(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -2008,8 +1995,7 @@ static int UriTestSig14(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -2123,8 +2109,7 @@ static int UriTestSig15(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -2238,8 +2223,7 @@ static int UriTestSig16(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -2349,8 +2333,7 @@ static int UriTestSig17(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -2439,8 +2422,7 @@ static int UriTestSig18(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -2529,8 +2511,7 @@ static int UriTestSig19(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -2620,8 +2601,7 @@ static int UriTestSig20(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -2710,8 +2690,7 @@ static int UriTestSig21(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -2800,8 +2779,7 @@ static int UriTestSig22(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -2888,8 +2866,7 @@ static int UriTestSig23(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -2976,8 +2953,7 @@ static int UriTestSig24(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -3064,8 +3040,7 @@ static int UriTestSig25(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flowflags |= FLOW_PKT_TOSERVER;
@@ -3152,8 +3127,7 @@ static int UriTestSig26(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -3240,8 +3214,7 @@ static int UriTestSig27(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -3360,8 +3333,7 @@ static int UriTestSig28(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -3447,8 +3419,7 @@ static int UriTestSig29(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -3534,8 +3505,7 @@ static int UriTestSig30(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -3621,8 +3591,7 @@ static int UriTestSig31(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
@@ -3708,8 +3677,7 @@ static int UriTestSig32(void)
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f.flags |= FLOW_IPV4;
 
     p->flow = &f;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;

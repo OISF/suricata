@@ -805,9 +805,9 @@ int DetectTagTestPacket04 (void) {
 
     FLOW_INITIALIZE(&f);
     f.protoctx = (void *)&ssn;
-    f.dst.family = AF_INET;
-    inet_pton(f.src.family, "192.168.1.5", f.src.addr_data32);
-    inet_pton(f.dst.family, "192.168.1.1", f.dst.addr_data32);
+    f.flags |= FLOW_IPV4;
+    inet_pton(AF_INET, "192.168.1.5", f.src.addr_data32);
+    inet_pton(AF_INET, "192.168.1.1", f.dst.addr_data32);
 
     DecodeThreadVars dtv;
     ThreadVars th_v;

@@ -40,6 +40,9 @@ Packet *UTHBuildPacketFromEth(uint8_t *, uint16_t);
 void UTHFreePacket(Packet *);
 void UTHFreePackets(Packet **, int);
 
+Flow *UTHBuildFlow(int family, char *src, char *dst, Port sp, Port dp);
+void UTHFreeFlow(Flow *flow);
+
 int UTHAppendSigs(DetectEngineCtx *, char **, int);
 int UTHMatchPackets(DetectEngineCtx *, Packet **, int);
 int UTHPacketMatchSig(Packet *p, char *);

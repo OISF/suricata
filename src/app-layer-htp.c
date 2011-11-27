@@ -318,11 +318,11 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
         htp_cfg_t *htp = cfglist.cfg; /* Default to the global HTP config */
         SCRadixNode *cfgnode = NULL;
 
-        if (AF_INET == f->dst.family) {
+        if (FLOW_IS_IPV4(f)) {
             SCLogDebug("Looking up HTP config for ipv4 %08x", *GET_IPV4_DST_ADDR_PTR(f));
             cfgnode = SCRadixFindKeyIPV4BestMatch((uint8_t *)GET_IPV4_DST_ADDR_PTR(f), cfgtree);
         }
-        else if (AF_INET6 == f->dst.family) {
+        else if (FLOW_IS_IPV6(f)) {
             SCLogDebug("Looking up HTP config for ipv6");
             cfgnode = SCRadixFindKeyIPV6BestMatch((uint8_t *)GET_IPV6_DST_ADDR(f), cfgtree);
         }
@@ -1245,19 +1245,20 @@ static void HtpConfigRestoreBackup(void)
  *        response of the parser from HTP library. */
 int HTPParserTest01(void) {
     int result = 1;
-    Flow f;
+    Flow *f = NULL;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\nPost"
                          " Data is c0oL!";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-
     HtpState *htp_state =  NULL;
     int r = 0;
-    memset(&f, 0, sizeof(f));
+
     memset(&ssn, 0, sizeof(ssn));
-    f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
 
     StreamTcpInitConfig(TRUE);
 
@@ -1269,7 +1270,7 @@ int HTPParserTest01(void) {
         else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
         else flags = STREAM_TOSERVER;
 
-        r = AppLayerParse(&f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParse(f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -1278,7 +1279,7 @@ int HTPParserTest01(void) {
         }
     }
 
-    htp_state = f.alstate;
+    htp_state = f->alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1308,27 +1309,29 @@ end:
     StreamTcpFreeConfig(TRUE);
     if (htp_state != NULL)
         HTPStateFree(htp_state);
+    UTHFreeFlow(f);
     return result;
 }
 
 /** \test See how it deals with an incomplete request. */
 int HTPParserTest02(void) {
     int result = 1;
-    Flow f;
+    Flow *f = NULL;
     uint8_t httpbuf1[] = "POST";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
     HtpState *http_state = NULL;
 
-    memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
-    f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
+    int r = AppLayerParse(f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
                           STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
@@ -1336,7 +1339,7 @@ int HTPParserTest02(void) {
         goto end;
     }
 
-    http_state = f.alstate;
+    http_state = f->alstate;
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1360,6 +1363,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
+    UTHFreeFlow(f);
     return result;
 }
 
@@ -1367,18 +1371,19 @@ end:
  *        and check the response of the parser from HTP library. */
 int HTPParserTest03(void) {
     int result = 1;
-    Flow f;
+    Flow *f = NULL;
     uint8_t httpbuf1[] = "HELLO / HTTP/1.0\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
 
     HtpState *htp_state =  NULL;
     int r = 0;
-    memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
-    f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
 
     StreamTcpInitConfig(TRUE);
 
@@ -1390,7 +1395,7 @@ int HTPParserTest03(void) {
         else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
         else flags = STREAM_TOSERVER;
 
-        r = AppLayerParse(&f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParse(f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -1398,7 +1403,7 @@ int HTPParserTest03(void) {
             goto end;
         }
     }
-    htp_state = f.alstate;
+    htp_state = f->alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1425,6 +1430,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     if (htp_state != NULL)
         HTPStateFree(htp_state);
+    UTHFreeFlow(f);
     return result;
 }
 
@@ -1432,27 +1438,29 @@ end:
  *        parser from HTP library. */
 int HTPParserTest04(void) {
     int result = 1;
-    Flow f;
+    Flow *f = NULL;
     HtpState *htp_state = NULL;
     uint8_t httpbuf1[] = "World!\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
     int r = 0;
-    memset(&f, 0, sizeof(f));
+
     memset(&ssn, 0, sizeof(ssn));
-    f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
 
     StreamTcpInitConfig(TRUE);
 
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
+    r = AppLayerParse(f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|
                           STREAM_EOF, httpbuf1, httplen1);
     if (r != 0) {
         goto end;
     }
 
-    htp_state = f.alstate;
+    htp_state = f->alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1479,6 +1487,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     if (htp_state != NULL)
         HTPStateFree(htp_state);
+    UTHFreeFlow(f);
     return result;
 }
 
@@ -1486,7 +1495,7 @@ end:
  *        properly parsed them and also keeps them separated. */
 int HTPParserTest05(void) {
     int result = 1;
-    Flow f;
+    Flow *f = NULL;
     HtpState *http_state = NULL;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -1503,15 +1512,16 @@ int HTPParserTest05(void) {
     uint32_t httplen6 = sizeof(httpbuf6) - 1; /* minus the \0 */
     TcpSession ssn;
 
-    memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
-    f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START,
+    int r = AppLayerParse(f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START,
                           httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
@@ -1519,7 +1529,7 @@ int HTPParserTest05(void) {
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_START, httpbuf4,
+    r = AppLayerParse(f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_START, httpbuf4,
                       httplen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
@@ -1527,21 +1537,21 @@ int HTPParserTest05(void) {
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOCLIENT, httpbuf5, httplen5);
+    r = AppLayerParse(f, ALPROTO_HTTP, STREAM_TOCLIENT, httpbuf5, httplen5);
     if (r != 0) {
         printf("toserver chunk 5 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
+    r = AppLayerParse(f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf3,
+    r = AppLayerParse(f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf3,
                       httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
@@ -1549,7 +1559,7 @@ int HTPParserTest05(void) {
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_EOF, httpbuf6,
+    r = AppLayerParse(f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_EOF, httpbuf6,
                       httplen6);
     if (r != 0) {
         printf("toserver chunk 6 returned %" PRId32 ", expected 0: ", r);
@@ -1557,7 +1567,7 @@ int HTPParserTest05(void) {
         goto end;
     }
 
-    http_state = f.alstate;
+    http_state = f->alstate;
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1592,6 +1602,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
+    UTHFreeFlow(f);
     return result;
 }
 
@@ -1599,7 +1610,7 @@ end:
  */
 int HTPParserTest06(void) {
     int result = 1;
-    Flow f;
+    Flow *f = NULL;
     uint8_t httpbuf1[] = "GET /ld/index.php?id=412784631&cid=0064&version=4&"
                          "name=try HTTP/1.1\r\nAccept: */*\r\nUser-Agent: "
                          "LD-agent\r\nHost: 209.205.196.16\r\n\r\n";
@@ -1645,16 +1656,16 @@ int HTPParserTest06(void) {
     TcpSession ssn;
     HtpState *http_state = NULL;
 
-    memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
 
-    f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
 
     StreamTcpInitConfig(TRUE);
 
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START,
+    int r = AppLayerParse(f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START,
                           httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
@@ -1662,7 +1673,7 @@ int HTPParserTest06(void) {
         goto end;
     }
 
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_START, httpbuf2,
+    r = AppLayerParse(f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_START, httpbuf2,
                       httplen2);
     if (r != 0) {
         printf("toclient chunk 2 returned %" PRId32 ", expected 0: ", r);
@@ -1670,7 +1681,7 @@ int HTPParserTest06(void) {
         goto end;
     }
 
-    http_state = f.alstate;
+    http_state = f->alstate;
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1707,6 +1718,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
+    UTHFreeFlow(f);
     return result;
 }
 
@@ -1714,18 +1726,19 @@ end:
  */
 int HTPParserTest07(void) {
     int result = 0;
-    Flow f;
+    Flow *f = NULL;
     uint8_t httpbuf1[] = "GET /awstats.pl?/migratemigrate%20=%20| HTTP/1.0\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
-
     HtpState *htp_state =  NULL;
     int r = 0;
-    memset(&f, 0, sizeof(f));
+
     memset(&ssn, 0, sizeof(ssn));
-    f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
 
     StreamTcpInitConfig(TRUE);
 
@@ -1740,7 +1753,7 @@ int HTPParserTest07(void) {
         else
             flags = STREAM_TOSERVER;
 
-        r = AppLayerParse(&f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParse(f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -1748,7 +1761,7 @@ int HTPParserTest07(void) {
         }
     }
 
-    htp_state = f.alstate;
+    htp_state = f->alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
         goto end;
@@ -1783,6 +1796,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     if (htp_state != NULL)
         HTPStateFree(htp_state);
+    UTHFreeFlow(f);
     return result;
 }
 
@@ -1792,7 +1806,7 @@ end:
  */
 int HTPParserTest08(void) {
     int result = 0;
-    Flow f;
+    Flow *f = NULL;
     uint8_t httpbuf1[] = "GET /secondhouse/image/js/\%ce\%de\%ce\%fd_RentCity.js?v=2011.05.02 HTTP/1.0\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -1815,18 +1829,19 @@ libhtp:\n\
 
     HtpState *htp_state =  NULL;
     int r = 0;
-    memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
-    f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
 
     StreamTcpInitConfig(TRUE);
 
     uint8_t flags = 0;
     flags = STREAM_TOSERVER|STREAM_START|STREAM_EOF;
 
-    r = AppLayerParse(&f, ALPROTO_HTTP, flags, httpbuf1, httplen1);
+    r = AppLayerParse(f, ALPROTO_HTTP, flags, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk returned %" PRId32 ", expected"
                 " 0: ", r);
@@ -1834,7 +1849,7 @@ libhtp:\n\
         goto end;
     }
 
-    htp_state = f.alstate;
+    htp_state = f->alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1858,6 +1873,7 @@ end:
     ConfDeInit();
     ConfRestoreContextBackup();
     HtpConfigRestoreBackup();
+    UTHFreeFlow(f);
     return result;
 }
 
@@ -1865,7 +1881,7 @@ end:
  */
 int HTPParserTest09(void) {
     int result = 0;
-    Flow f;
+    Flow *f = NULL;
     uint8_t httpbuf1[] = "GET /secondhouse/image/js/\%ce\%de\%ce\%fd_RentCity.js?v=2011.05.02 HTTP/1.0\r\n\r\n";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
     TcpSession ssn;
@@ -1888,18 +1904,20 @@ libhtp:\n\
 
     HtpState *htp_state =  NULL;
     int r = 0;
-    memset(&f, 0, sizeof(f));
+
     memset(&ssn, 0, sizeof(ssn));
-    f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
 
     StreamTcpInitConfig(TRUE);
 
     uint8_t flags = 0;
     flags = STREAM_TOSERVER|STREAM_START|STREAM_EOF;
 
-    r = AppLayerParse(&f, ALPROTO_HTTP, flags, httpbuf1, httplen1);
+    r = AppLayerParse(f, ALPROTO_HTTP, flags, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk returned %" PRId32 ", expected"
                 " 0: ", r);
@@ -1907,7 +1925,7 @@ libhtp:\n\
         goto end;
     }
 
-    htp_state = f.alstate;
+    htp_state = f->alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -1931,6 +1949,7 @@ end:
     ConfDeInit();
     ConfRestoreContextBackup();
     HtpConfigRestoreBackup();
+    UTHFreeFlow(f);
     return result;
 }
 
@@ -2216,8 +2235,7 @@ end:
 int HTPParserConfigTest03(void)
 {
     int result = 1;
-    Flow f;
-    FLOW_INITIALIZE(&f);
+    Flow *f = NULL;
     uint8_t httpbuf1[] = "POST / HTTP/1.0\r\nUser-Agent: Victor/1.0\r\n\r\nPost"
                          " Data is c0oL!";
     uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
@@ -2254,17 +2272,19 @@ libhtp:\n\
 
     HTPConfigure();
 
-    const char *addr = "192.168.10.42";
+    char *addr = "192.168.10.42";
 
-    memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
-    f.protoctx = (void *)&ssn;
-    f.dst.family = AF_INET;
-    inet_pton(f.dst.family, addr, f.dst.addr_data32);
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", addr, 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
 
     SCRadixNode *cfgnode = NULL;
     htp_cfg_t *htp = cfglist.cfg;
-    cfgnode = SCRadixFindKeyIPV4BestMatch((uint8_t *)GET_IPV4_DST_ADDR_PTR(&f), cfgtree);
+
+    cfgnode = SCRadixFindKeyIPV4BestMatch((uint8_t *)f->dst.addr_data32, cfgtree);
     if (cfgnode != NULL) {
         HTPCfgRec *htp_cfg_rec = SC_RADIX_NODE_USERDATA(cfgnode, HTPCfgRec);
         if (htp_cfg_rec != NULL) {
@@ -2287,7 +2307,7 @@ libhtp:\n\
         else if (u == (httplen1 - 1)) flags = STREAM_TOSERVER|STREAM_EOF;
         else flags = STREAM_TOSERVER;
 
-        r = AppLayerParse(&f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        r = AppLayerParse(f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
         if (r != 0) {
             printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
                     " 0: ", u, r);
@@ -2296,7 +2316,7 @@ libhtp:\n\
         }
     }
 
-    htp_state = f.alstate;
+    htp_state = f->alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -2320,7 +2340,7 @@ end:
     StreamTcpFreeConfig(TRUE);
     if (htp_state != NULL)
         HTPStateFree(htp_state);
-    FLOW_DESTROY(&f);
+    UTHFreeFlow(f);
     return result;
 }
 
