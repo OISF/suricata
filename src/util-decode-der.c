@@ -206,6 +206,12 @@ static Asn1Generic * DecodeAsn1DerGeneric(const unsigned char *buffer, uint32_t 
                 d_ptr++;
             } else { /* long form 8.1.3.5 */
                 numbytes = c & 0x7f;
+                if (numbytes > el_max_size) {
+                    SCFree(child);
+                    SCLogWarning(SC_ERR_INVALID_VALUE,
+                                 "DER message requires to read over message");
+                    return NULL;
+                }
                 child->length = 0;
                 d_ptr++;
                 for (i=0; i<numbytes; i++) {
@@ -235,6 +241,13 @@ static Asn1Generic * DecodeAsn1DerInteger(const unsigned char *buffer, uint32_t 
     Asn1Generic *a;
 
     numbytes = d_ptr[1];
+
+    if (numbytes > size) {
+        SCLogWarning(SC_ERR_INVALID_VALUE,
+                     "DER message requires to read over available data");
+        return NULL;
+    }
+
     d_ptr += 2;
 
     value = 0;
