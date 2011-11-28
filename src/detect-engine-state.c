@@ -465,11 +465,11 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 SCLogDebug("inspecting http raw uri");
             }
             if (s->sm_lists[DETECT_SM_LIST_FILEMATCH] != NULL) {
-                inspect_flags |= DE_STATE_FLAG_FILE_INSPECT;
+                inspect_flags |= DE_STATE_FLAG_FILE_TS_INSPECT;
 
                 match = DetectFileInspectHttp(tv, det_ctx, f, s, alstate, flags);
                 if (match == 1) {
-                    match_flags |= DE_STATE_FLAG_FILE_MATCH;
+                    match_flags |= DE_STATE_FLAG_FILE_TS_MATCH;
                 } else if (match == 2) {
                     match_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
                 } else if (match == 3) {
@@ -518,12 +518,12 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 inspect_flags |= DE_STATE_FLAG_HRUD_INSPECT;
             }
             if (s->sm_lists[DETECT_SM_LIST_FILEMATCH] != NULL) {
-                inspect_flags |= DE_STATE_FLAG_FILE_INSPECT;
+                inspect_flags |= DE_STATE_FLAG_FILE_TC_INSPECT;
 
                 match = DetectFileInspectHttp(tv, det_ctx, f, s, alstate, flags);
                 SCLogDebug("match %d", match);
                 if (match == 1) {
-                    match_flags |= DE_STATE_FLAG_FILE_MATCH;
+                    match_flags |= DE_STATE_FLAG_FILE_TC_MATCH;
                 } else if (match == 2) {
                     match_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
                 } else if (match == 3) {
@@ -670,9 +670,18 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
 
             /* if we already fully matched previously, detect that here */
             if (item->flags & DE_STATE_FLAG_FULL_MATCH) {
-                if (item->flags & DE_STATE_FLAG_FILE_INSPECT && f->de_state->flags & DE_STATE_FILE_NEW) {
+                if (flags & STREAM_TOSERVER &&
+                        item->flags & DE_STATE_FLAG_FILE_TS_INSPECT &&
+                        f->de_state->flags & DE_STATE_FILE_TS_NEW)
+                {
                     /* new file, fall through */
-                    item->flags &= ~DE_STATE_FLAG_FILE_INSPECT;
+                    item->flags &= ~DE_STATE_FLAG_FILE_TS_INSPECT;
+                } else if (flags & STREAM_TOCLIENT &&
+                        item->flags & DE_STATE_FLAG_FILE_TC_INSPECT &&
+                        f->de_state->flags & DE_STATE_FILE_TC_NEW)
+                {
+                    /* new file, fall through */
+                    item->flags &= ~DE_STATE_FLAG_FILE_TC_INSPECT;
                 } else {
                     det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_FULL;
                     SCLogDebug("full match state");
@@ -682,10 +691,22 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
 
             /* if we know for sure we can't ever match, detect that here */
             if (item->flags & DE_STATE_FLAG_SIG_CANT_MATCH) {
-                if (item->flags & DE_STATE_FLAG_FILE_INSPECT && f->de_state->flags & DE_STATE_FILE_NEW) {
+                if (flags & STREAM_TOSERVER &&
+                        item->flags & DE_STATE_FLAG_FILE_TS_INSPECT &&
+                        f->de_state->flags & DE_STATE_FILE_TS_NEW) {
+
                     /* new file, fall through */
-                    item->flags &= ~DE_STATE_FLAG_FILE_INSPECT;
+                    item->flags &= ~DE_STATE_FLAG_FILE_TS_INSPECT;
                     item->flags &= ~DE_STATE_FLAG_SIG_CANT_MATCH;
+
+                } else if (flags & STREAM_TOCLIENT &&
+                        item->flags & DE_STATE_FLAG_FILE_TC_INSPECT &&
+                        f->de_state->flags & DE_STATE_FILE_TC_NEW) {
+
+                    /* new file, fall through */
+                    item->flags &= ~DE_STATE_FLAG_FILE_TC_INSPECT;
+                    item->flags &= ~DE_STATE_FLAG_SIG_CANT_MATCH;
+
                 } else {
                     det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NOMATCH;
                     continue;
@@ -789,12 +810,12 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                 }
 
                 if (s->sm_lists[DETECT_SM_LIST_FILEMATCH] != NULL) {
-                    if (!(item->flags & DE_STATE_FLAG_FILE_MATCH)) {
-                        inspect_flags |= DE_STATE_FLAG_FILE_INSPECT;
+                    if (!(item->flags & DE_STATE_FLAG_FILE_TS_MATCH)) {
+                        inspect_flags |= DE_STATE_FLAG_FILE_TS_INSPECT;
 
                         match = DetectFileInspectHttp(tv, det_ctx, f, s, alstate, flags);
                         if (match == 1) {
-                            match_flags |= DE_STATE_FLAG_FILE_MATCH;
+                            match_flags |= DE_STATE_FLAG_FILE_TS_MATCH;
                         } else if (match == 2) {
                             match_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
                         } else if (match == 3) {
@@ -844,12 +865,12 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                     inspect_flags |= DE_STATE_FLAG_HRUD_INSPECT;
                 }
                 if (s->sm_lists[DETECT_SM_LIST_FILEMATCH] != NULL) {
-                    if (!(item->flags & DE_STATE_FLAG_FILE_MATCH)) {
-                        inspect_flags |= DE_STATE_FLAG_FILE_INSPECT;
+                    if (!(item->flags & DE_STATE_FLAG_FILE_TC_MATCH)) {
+                        inspect_flags |= DE_STATE_FLAG_FILE_TC_INSPECT;
 
                         match = DetectFileInspectHttp(tv, det_ctx, f, s, alstate, flags);
                         if (match == 1) {
-                            match_flags |= DE_STATE_FLAG_FILE_MATCH;
+                            match_flags |= DE_STATE_FLAG_FILE_TC_MATCH;
                         } else if (match == 2) {
                             match_flags |= DE_STATE_FLAG_SIG_CANT_MATCH;
                         } else if (match == 3) {
@@ -968,7 +989,11 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
     }
 
 end:
-    f->de_state->flags &= ~DE_STATE_FILE_NEW;
+    if (flags & STREAM_TOCLIENT)
+        f->de_state->flags &= ~DE_STATE_FILE_TC_NEW;
+    else
+        f->de_state->flags &= ~DE_STATE_FILE_TS_NEW;
+
     SCMutexUnlock(&f->de_state_m);
     SCReturnInt(0);
 }
@@ -992,14 +1017,17 @@ int DeStateRestartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
     SCReturnInt(0);
 }
 
-void DeStateResetFileInspection(Flow *f) {
+void DeStateResetFileInspection(Flow *f, uint8_t direction) {
     if (f == NULL) {
         SCReturn;
     }
 
     SCMutexLock(&f->de_state_m);
     if (f->de_state != NULL) {
-        f->de_state->flags |= DE_STATE_FILE_NEW;
+        if (direction & STREAM_TOCLIENT)
+            f->de_state->flags |= DE_STATE_FILE_TC_NEW;
+        else
+            f->de_state->flags |= DE_STATE_FILE_TS_NEW;
     }
     SCMutexUnlock(&f->de_state_m);
 }

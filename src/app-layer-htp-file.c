@@ -96,14 +96,6 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
             }
         }
 
-        /* if the previous file is in the same txid, we
-         * reset the file part of the stateful detection
-         * engine. */
-        if (s->files_tc && s->files_tc->tail && s->files_tc->tail->txid == txid) {
-            SCLogDebug("new file in same tx, resetting de_state");
-            DeStateResetFileInspection(s->f);
-        }
-
         files = s->files_tc;
     } else {
         if (s->files_ts == NULL) {
@@ -114,15 +106,15 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
             }
         }
 
-        /* if the previous file is in the same txid, we
-         * reset the file part of the stateful detection
-         * engine. */
-        if (s->files_ts && s->files_ts->tail && s->files_ts->tail->txid == txid) {
-            SCLogDebug("new file in same tx, resetting de_state");
-            DeStateResetFileInspection(s->f);
-        }
-
         files = s->files_ts;
+    }
+
+    /* if the previous file is in the same txid, we
+     * reset the file part of the stateful detection
+     * engine. */
+    if (files != NULL && files->tail != NULL && files->tail->txid == txid) {
+        SCLogDebug("new file in same tx, resetting de_state");
+        DeStateResetFileInspection(s->f, direction);
     }
 
     if (s->f->flags & FLOW_FILE_NO_STORE) {
