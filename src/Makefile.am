@@ -116,6 +116,7 @@ detect-msg.c detect-msg.h \
 detect-id.c detect-id.h \
 detect-flow.c detect-flow.h \
 detect-dsize.c detect-dsize.h \
+detect-tos.c detect-tos.h \
 detect-stream_size.c detect-stream_size.h \
 detect-engine-event.c detect-engine-event.h \
 detect-ipopts.c detect-ipopts.h \

@@ -124,6 +124,7 @@
 #include "detect-engine-hrud.h"
 #include "detect-byte-extract.h"
 #include "detect-replace.h"
+#include "detect-tos.h"
 
 #include "util-rule-vars.h"
 
@@ -4266,6 +4267,7 @@ void SigTableSetup(void) {
     DetectCsumRegister();
     DetectStreamSizeRegister();
     DetectTtlRegister();
+    DetectTosRegister();
     DetectFastPatternRegister();
     DetectITypeRegister();
     DetectICodeRegister();
