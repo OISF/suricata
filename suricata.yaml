@@ -19,6 +19,10 @@
 # to get the runmode custom modes that can be used here for a particular runmode.
 #runmode: auto
 
+# Default pid file.
+# Will use this file if no --pidfile in command options.
+#pid-file: /var/run/suricata.pid
+
 # Preallocated size for packet. Default is 1514 which is the classical
 # size for pcap on ethernet. You should adjust this value to the highest
 # packet size (MTU + hardware header) on your system.

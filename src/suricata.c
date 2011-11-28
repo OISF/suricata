@@ -1383,6 +1383,11 @@ int main(int argc, char **argv)
 
     if (daemon == 1) {
         Daemonize();
+        if (pid_filename == NULL) {
+            if (ConfGet("pid-file", &pid_filename) == 1) {
+                SCLogInfo("Use pid file %s from config file.", pid_filename);
+           }
+        }
         if (pid_filename != NULL) {
             if (SCPidfileCreate(pid_filename) != 0) {
                 pid_filename = NULL;
