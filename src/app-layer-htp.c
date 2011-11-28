@@ -1152,9 +1152,12 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
 
         uint32_t header_len = header_end - header_start;
         SCLogDebug("header_len %u", header_len);
+        uint8_t *header = header_start;
 
-        uint8_t *header = header_start + (expected_boundary_len + 2); // + for 0d 0a
-        header_len -= (expected_boundary_len + 2);
+        if ((uint32_t)(expected_boundary_len + 2) <= header_len) {
+            header_len -= (expected_boundary_len + 2);
+            header = header_start + (expected_boundary_len + 2); // + for 0d 0a
+        }
 
         HtpRequestBodyMultipartParseHeader(header, header_len, &filename,
                 &filename_len, &filetype, &filetype_len);
