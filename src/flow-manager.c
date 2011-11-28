@@ -62,6 +62,9 @@
 /* Run mode selected at suricata.c */
 extern int run_mode;
 
+#define FLOW_UPDATE_DELAY 2
+#define NEW_FLOW_COUNT_COND 10
+
 /**
  * \brief Used to kill flow manager thread(s).
  *
@@ -72,6 +75,8 @@ void FlowKillFlowManagerThread(void)
 {
     ThreadVars *tv = NULL;
     int cnt = 0;
+
+    SCCondSignal(&flow_manager_cond);
 
     SCMutexLock(&tv_root_lock);
 
@@ -125,6 +130,8 @@ void *FlowManagerThread(void *td)
     int emerg = FALSE;
     int prev_emerg = FALSE;
     uint32_t last_sec = 0;
+    struct timespec cond_time;
+    int counter = 0;
 
     uint16_t flow_mgr_closing_cnt = SCPerfTVRegisterCounter("flow_mgr.closed_pruned", th_v,
             SC_PERF_TYPE_UINT64,
@@ -167,8 +174,10 @@ void *FlowManagerThread(void *td)
     {
         TmThreadTestThreadUnPaused(th_v);
 
-        if (sleeping >= 100 || flow_flags & FLOW_EMERGENCY)
-        {
+        if ((counter > NEW_FLOW_COUNT_COND) || (flow_flags & FLOW_EMERGENCY)) {
+
+            counter = 0;
+
             if (flow_flags & FLOW_EMERGENCY) {
                 emerg = TRUE;
 
@@ -240,8 +249,8 @@ void *FlowManagerThread(void *td)
                 SCMutexUnlock(&flow_spare_q.mutex_q);
 
                 SCLogDebug("flow_sparse_q.len = %"PRIu32" prealloc: %"PRIu32
-                           "flow_spare_q status: %"PRIu32"%% flows at the queue",
-                           len, flow_config.prealloc, len * 100 / flow_config.prealloc);
+                        "flow_spare_q status: %"PRIu32"%% flows at the queue",
+                        len, flow_config.prealloc, len * 100 / flow_config.prealloc);
                 /* only if we have pruned this "emergency_recovery" percentage
                  * of flows, we will unset the emergency bit */
                 if (len * 100 / flow_config.prealloc > flow_config.emergency_recovery) {
@@ -249,10 +258,10 @@ void *FlowManagerThread(void *td)
                     emerg = FALSE;
                     prev_emerg = FALSE;
                     SCLogInfo("Flow emergency mode over, back to normal... unsetting"
-                              " FLOW_EMERGENCY bit (ts.tv_sec: %"PRIuMAX", "
-                              "ts.tv_usec:%"PRIuMAX") flow_spare_q status(): %"PRIu32
-                              "%% flows at the queue", (uintmax_t)ts.tv_sec,
-                              (uintmax_t)ts.tv_usec, len * 100 / flow_config.prealloc);
+                            " FLOW_EMERGENCY bit (ts.tv_sec: %"PRIuMAX", "
+                            "ts.tv_usec:%"PRIuMAX") flow_spare_q status(): %"PRIu32
+                            "%% flows at the queue", (uintmax_t)ts.tv_sec,
+                            (uintmax_t)ts.tv_usec, len * 100 / flow_config.prealloc);
 
                     SCPerfCounterIncr(flow_emerg_mode_over, th_v->sc_perf_pca);
                 }
@@ -264,9 +273,18 @@ void *FlowManagerThread(void *td)
             break;
         }
 
+#if 0
         if (run_mode != RUNMODE_PCAP_FILE) {
-            usleep(10);
-            sleeping += 10;
+#endif
+            cond_time.tv_sec = time(NULL) + FLOW_UPDATE_DELAY;
+            cond_time.tv_nsec = 0;
+            SCMutexLock(&flow_manager_mutex);
+            if (SCCondTimedwait(&flow_manager_cond, &flow_manager_mutex, &cond_time) == ETIMEDOUT) {
+                counter = NEW_FLOW_COUNT_COND;
+            }
+            counter++;
+            SCMutexUnlock(&flow_manager_mutex);
+#if 0
         } else {
             /* If we are reading a pcap, how long the pcap timestamps
              * says that has passed */
@@ -290,6 +308,7 @@ void *FlowManagerThread(void *td)
                 usleep(1);
             }
         }
+#endif
 
         SCPerfSyncCountersIfSignalled(th_v, 0);
     }
@@ -319,6 +338,8 @@ void *FlowManagerThread(void *td)
 void FlowManagerThreadSpawn()
 {
     ThreadVars *tv_flowmgr = NULL;
+
+    SCCondInit(&flow_manager_cond, &flow_manager_mutex);
 
     tv_flowmgr = TmThreadCreateMgmtThread("FlowManagerThread",
                                           FlowManagerThread, 0);

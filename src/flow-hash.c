@@ -34,6 +34,7 @@
 #include "flow-hash.h"
 #include "flow-util.h"
 #include "flow-private.h"
+#include "flow-manager.h"
 #include "app-layer-parser.h"
 
 #include "util-time.h"
@@ -294,6 +295,7 @@ static inline int FlowCreateCheck(Packet *p) {
 static Flow *FlowGetNew(Packet *p) {
     Flow *f = NULL;
 
+
     if (FlowCreateCheck(p) == 0) {
         return NULL;
     }
@@ -351,6 +353,10 @@ static Flow *FlowGetNew(Packet *p) {
         /* flow has been recycled before it went into the spare queue */
 
         /* flow is initialized (recylced) but *unlocked* */
+
+        /* Important event for flow system, let's ask for a refresh to flow
+           manager */
+        SCCondSignal(&flow_manager_cond);
     }
 
     FlowIncrUsecnt(f);
