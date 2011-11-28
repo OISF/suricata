@@ -961,7 +961,8 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
     if (!(f->de_state->flags & DE_STATE_FILE_STORE_DISABLED)) {
         if (DeStateStoreFilestoreSigsCantMatch(det_ctx->sgh, f->de_state, flags) == 1) {
             SCLogDebug("disabling file storage for transaction");
-            FileDisableStoringForTransaction(f, det_ctx->tx_id);
+            FileDisableStoringForTransaction(f, flags & (STREAM_TOCLIENT|STREAM_TOSERVER),
+                    det_ctx->tx_id);
             f->de_state->flags |= DE_STATE_FILE_STORE_DISABLED;
         }
     }

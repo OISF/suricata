@@ -37,6 +37,8 @@
 
 #include "detect-filemagic.h"
 
+#include "stream.h"
+
 #include "util-print.h"
 #include "util-unittest.h"
 #include "util-privs.h"
@@ -179,17 +181,23 @@ static TmEcode LogFileLogWrap(ThreadVars *tv, Packet *p, void *data, PacketQueue
 {
     SCEnter();
     LogFileLogThread *aft = (LogFileLogThread *)data;
+    uint8_t flags = 0;
 
     /* no flow, no htp state */
     if (p->flow == NULL) {
         SCReturnInt(TM_ECODE_OK);
     }
 
+    if (p->flowflags & FLOW_PKT_TOCLIENT)
+        flags |= STREAM_TOCLIENT;
+    else
+        flags |= STREAM_TOSERVER;
+
     int file_close = (p->flags & PKT_PSEUDO_STREAM_END) ? 1 : 0;
 
     SCMutexLock(&p->flow->m);
 
-    FileContainer *ffc = AppLayerGetFilesFromFlow(p->flow);
+    FileContainer *ffc = AppLayerGetFilesFromFlow(p->flow, flags);
     SCLogDebug("ffc %p", ffc);
     if (ffc != NULL) {
         File *ff;

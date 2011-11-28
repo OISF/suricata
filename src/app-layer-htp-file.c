@@ -65,32 +65,64 @@
  *  \brief Open the file with "filename" and pass the first chunk
  *         of data if any.
  *
- *  \param f flow to store the file in
+ *  \param s http state
  *  \param filename name of the file
  *  \param filename_len length of the name
  *  \param data data chunk (if any)
  *  \param data_len length of the data portion
+ *  \param direction flow direction
  *
  *  \retval  0 ok
  *  \retval -1 error
  *  \retval -2 not handling files on this flow
  */
 int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
-        uint8_t *data, uint32_t data_len, uint16_t txid)
+        uint8_t *data, uint32_t data_len, uint16_t txid, uint8_t direction)
 {
     int retval = 0;
     uint8_t flags = 0;
+    FileContainer *files = NULL;
 
     if (s == NULL) {
         SCReturnInt(-1);
     }
 
-    if (s->files == NULL) {
-        s->files = FileContainerAlloc();
-        if (s->files == NULL) {
-            retval = -1;
-            goto end;
+    if (direction & STREAM_TOCLIENT) {
+        if (s->files_tc == NULL) {
+            s->files_tc = FileContainerAlloc();
+            if (s->files_tc == NULL) {
+                retval = -1;
+                goto end;
+            }
         }
+
+        /* if the previous file is in the same txid, we
+         * reset the file part of the stateful detection
+         * engine. */
+        if (s->files_tc && s->files_tc->tail && s->files_tc->tail->txid == txid) {
+            SCLogDebug("new file in same tx, resetting de_state");
+            DeStateResetFileInspection(s->f);
+        }
+
+        files = s->files_tc;
+    } else {
+        if (s->files_ts == NULL) {
+            s->files_ts = FileContainerAlloc();
+            if (s->files_ts == NULL) {
+                retval = -1;
+                goto end;
+            }
+        }
+
+        /* if the previous file is in the same txid, we
+         * reset the file part of the stateful detection
+         * engine. */
+        if (s->files_ts && s->files_ts->tail && s->files_ts->tail->txid == txid) {
+            SCLogDebug("new file in same tx, resetting de_state");
+            DeStateResetFileInspection(s->f);
+        }
+
+        files = s->files_ts;
     }
 
     if (s->f->flags & FLOW_FILE_NO_STORE) {
@@ -100,23 +132,15 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
         flags |= FILE_NOMAGIC;
     }
 
-    /* if the previous file is in the same txid, we
-     * reset the file part of the stateful detection
-     * engine. */
-    if (s->files && s->files->tail && s->files->tail->txid == txid) {
-        SCLogDebug("new file in same tx, resetting de_state");
-        DeStateResetFileInspection(s->f);
-    }
-
-    if (FileOpenFile(s->files, filename, filename_len,
+    if (FileOpenFile(files, filename, filename_len,
                 data, data_len, flags) == NULL)
     {
         retval = -1;
     }
 
-    FileSetTx(s->files->tail, txid);
+    FileSetTx(files->tail, txid);
 
-    FilePrune(s->files);
+    FilePrune(files);
 end:
     SCReturnInt(retval);
 }
@@ -124,31 +148,41 @@ end:
 /**
  *  \brief Store a chunk of data in the flow
  *
- *  \param f flow to store the file in
+ *  \param s http state
  *  \param data data chunk (if any)
  *  \param data_len length of the data portion
+ *  \param direction flow direction
  *
  *  \retval 0 ok
  *  \retval -1 error
  *  \retval -2 file doesn't need storing
  */
-int HTPFileStoreChunk(HtpState *s, uint8_t *data, uint32_t data_len) {
+int HTPFileStoreChunk(HtpState *s, uint8_t *data, uint32_t data_len,
+        uint8_t direction)
+{
     SCEnter();
 
     int retval = 0;
     int result = 0;
+    FileContainer *files = NULL;
 
     if (s == NULL) {
         SCReturnInt(-1);
     }
 
-    if (s->files == NULL) {
+    if (direction & STREAM_TOCLIENT) {
+        files = s->files_tc;
+    } else {
+        files = s->files_ts;
+    }
+
+    if (files == NULL) {
         SCLogDebug("no files in state");
         retval = -1;
         goto end;
     }
 
-    result = FileAppendData(s->files, data, data_len);
+    result = FileAppendData(files, data, data_len);
     if (result == -1) {
         SCLogDebug("appending data failed");
         retval = -1;
@@ -156,7 +190,7 @@ int HTPFileStoreChunk(HtpState *s, uint8_t *data, uint32_t data_len) {
         retval = -2;
     }
 
-    FilePrune(s->files);
+    FilePrune(files);
 end:
     SCReturnInt(retval);
 }
@@ -164,10 +198,11 @@ end:
 /**
  *  \brief Close the file in the flow
  *
- *  \param f flow to store in
+ *  \param s http state
  *  \param data data chunk if any
  *  \param data_len length of the data portion
  *  \param flags flags to indicate events
+ *  \param direction flow direction
  *
  *  Currently on the FLOW_FILE_TRUNCATED flag is implemented, indicating
  *  that the file isn't complete but we're stopping storing it.
@@ -176,27 +211,38 @@ end:
  *  \retval -1 error
  *  \retval -2 not storing files on this flow/tx
  */
-int HTPFileClose(HtpState *s, uint8_t *data, uint32_t data_len, uint8_t flags) {
+int HTPFileClose(HtpState *s, uint8_t *data, uint32_t data_len,
+        uint8_t flags, uint8_t direction)
+{
+    SCEnter();
+
     int retval = 0;
     int result = 0;
+    FileContainer *files = NULL;
 
     if (s == NULL) {
         SCReturnInt(-1);
     }
 
-    if (s->files == NULL) {
+    if (direction & STREAM_TOCLIENT) {
+        files = s->files_tc;
+    } else {
+        files = s->files_ts;
+    }
+
+    if (files == NULL) {
         retval = -1;
         goto end;
     }
 
-    result = FileCloseFile(s->files, data, data_len, flags);
+    result = FileCloseFile(files, data, data_len, flags);
     if (result == -1) {
         retval = -1;
     } else if (result == -2) {
         retval = -2;
     }
 
-    FilePrune(s->files);
+    FilePrune(files);
 end:
     SCReturnInt(retval);
 }
@@ -363,7 +409,8 @@ static int HTPFileParserTest02(void) {
         goto end;
     }
 
-    if (http_state->files == NULL || http_state->files->tail == NULL || http_state->files->tail->state != FILE_STATE_CLOSED) {
+    if (http_state->files_ts == NULL || http_state->files_ts->tail == NULL ||
+            http_state->files_ts->tail->state != FILE_STATE_CLOSED) {
         goto end;
     }
 
@@ -485,11 +532,12 @@ static int HTPFileParserTest03(void) {
         goto end;
     }
 
-    if (http_state->files == NULL || http_state->files->tail == NULL || http_state->files->tail->state != FILE_STATE_CLOSED) {
+    if (http_state->files_ts == NULL || http_state->files_ts->tail == NULL ||
+            http_state->files_ts->tail->state != FILE_STATE_CLOSED) {
         goto end;
     }
 
-    if (http_state->files->head->chunks_head->len != 11) {
+    if (http_state->files_ts->head->chunks_head->len != 11) {
         goto end;
     }
 
@@ -611,7 +659,8 @@ static int HTPFileParserTest04(void) {
         goto end;
     }
 
-    if (http_state->files == NULL || http_state->files->tail == NULL || http_state->files->tail->state != FILE_STATE_CLOSED) {
+    if (http_state->files_ts == NULL || http_state->files_ts->tail == NULL ||
+            http_state->files_ts->tail->state != FILE_STATE_CLOSED) {
         goto end;
     }
 
@@ -692,39 +741,40 @@ static int HTPFileParserTest05(void) {
         goto end;
     }
 
-    if (http_state->files == NULL || http_state->files->tail == NULL || http_state->files->tail->state != FILE_STATE_CLOSED) {
+    if (http_state->files_ts == NULL || http_state->files_ts->tail == NULL ||
+            http_state->files_ts->tail->state != FILE_STATE_CLOSED) {
         goto end;
     }
 
-    if (http_state->files->head == http_state->files->tail)
+    if (http_state->files_ts->head == http_state->files_ts->tail)
         goto end;
 
-    if (http_state->files->head->next != http_state->files->tail)
+    if (http_state->files_ts->head->next != http_state->files_ts->tail)
         goto end;
 
-    if (http_state->files->head->chunks_head->len != 11) {
+    if (http_state->files_ts->head->chunks_head->len != 11) {
         printf("expected 11 but file is %u bytes instead\n",
-                http_state->files->head->chunks_head->len);
-        PrintRawDataFp(stdout, http_state->files->head->chunks_head->data,
-                http_state->files->head->chunks_head->len);
+                http_state->files_ts->head->chunks_head->len);
+        PrintRawDataFp(stdout, http_state->files_ts->head->chunks_head->data,
+                http_state->files_ts->head->chunks_head->len);
         goto end;
     }
 
-    if (memcmp("filecontent", http_state->files->head->chunks_head->data,
-                http_state->files->head->chunks_head->len) != 0) {
+    if (memcmp("filecontent", http_state->files_ts->head->chunks_head->data,
+                http_state->files_ts->head->chunks_head->len) != 0) {
         goto end;
     }
 
-    if (http_state->files->tail->chunks_head->len != 11) {
+    if (http_state->files_ts->tail->chunks_head->len != 11) {
         printf("expected 11 but file is %u bytes instead\n",
-                http_state->files->tail->chunks_head->len);
-        PrintRawDataFp(stdout, http_state->files->tail->chunks_head->data,
-                http_state->files->tail->chunks_head->len);
+                http_state->files_ts->tail->chunks_head->len);
+        PrintRawDataFp(stdout, http_state->files_ts->tail->chunks_head->data,
+                http_state->files_ts->tail->chunks_head->len);
         goto end;
     }
 
-    if (memcmp("FILECONTENT", http_state->files->tail->chunks_head->data,
-                http_state->files->tail->chunks_head->len) != 0) {
+    if (memcmp("FILECONTENT", http_state->files_ts->tail->chunks_head->data,
+                http_state->files_ts->tail->chunks_head->len) != 0) {
         goto end;
     }
     result = 1;

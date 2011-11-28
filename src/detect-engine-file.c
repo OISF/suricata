@@ -180,6 +180,7 @@ int DetectFileInspectHttp(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flow *
     size_t start_tx = 0;
     size_t end_tx = 0;
     int match = 0;
+    FileContainer *ffc;
 
     /* locking the flow, we will inspect the htp state */
     SCMutexLock(&f->m);
@@ -189,6 +190,11 @@ int DetectFileInspectHttp(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flow *
         SCLogDebug("no HTTP state");
         goto end;
     }
+
+    if (flags & STREAM_TOCLIENT)
+        ffc = htp_state->files_tc;
+    else
+        ffc = htp_state->files_ts;
 
     if (htp_state->connp != NULL && htp_state->connp->conn != NULL)
     {
@@ -205,7 +211,7 @@ int DetectFileInspectHttp(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flow *
         /* inspect files for this transaction */
         det_ctx->tx_id = (uint16_t)idx;
 
-        match = DetectFileInspect(tv, det_ctx, f, s, htp_state->files);
+        match = DetectFileInspect(tv, det_ctx, f, s, ffc);
         if (match == 1) {
             r = 1;
         } else if (match == 2) {

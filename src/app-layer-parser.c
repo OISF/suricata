@@ -75,15 +75,16 @@ static uint32_t al_result_pool_elmts = 0;
 /** \brief Get the file container flow
  *  \param f flow pointer to a LOCKED flow
  *  \retval files void pointer to the state
+ *  \retval direction flow direction, either STREAM_TOCLIENT or STREAM_TOSERVER
  *  \retval NULL in case we have no state */
-FileContainer *AppLayerGetFilesFromFlow(Flow *f) {
+FileContainer *AppLayerGetFilesFromFlow(Flow *f, uint8_t direction) {
     uint16_t alproto = f->alproto;
 
     if (alproto == ALPROTO_UNKNOWN)
         return NULL;
 
     if (al_proto_table[alproto].StateGetFiles != NULL)
-        return al_proto_table[alproto].StateGetFiles(AppLayerGetProtoStateFromFlow(f));
+        return al_proto_table[alproto].StateGetFiles(AppLayerGetProtoStateFromFlow(f), direction);
     else
         return NULL;
 }
@@ -635,7 +636,7 @@ void *AppLayerGetProtocolParserLocalStorage(uint16_t proto)
 }
 
 void AppLayerRegisterGetFilesFunc(uint16_t proto,
-        FileContainer *(*StateGetFiles)(void *state))
+        FileContainer *(*StateGetFiles)(void *, uint8_t))
 {
     al_proto_table[proto].StateGetFiles = StateGetFiles;
 }

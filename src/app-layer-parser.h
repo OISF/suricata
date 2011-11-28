@@ -52,7 +52,7 @@ typedef struct AppLayerProto_ {
     void (*StateTransactionFree)(void *, uint16_t);
     void *(*LocalStorageAlloc)(void);
     void (*LocalStorageFree)(void *);
-    FileContainer *(*StateGetFiles)(void *);
+    FileContainer *(*StateGetFiles)(void *, uint8_t);
 
 } AppLayerProto;
 
@@ -249,7 +249,7 @@ void AppLayerRegisterLocalStorageFunc(uint16_t proto,
                                       void (*LocalStorageFree)(void *));
 void *AppLayerGetProtocolParserLocalStorage(uint16_t);
 void AppLayerRegisterGetFilesFunc(uint16_t proto,
-        FileContainer *(*StateGetFile)(void *));
+        FileContainer *(*StateGetFile)(void *, uint8_t));
 void AppLayerRegisterLogger(uint16_t proto);
 uint16_t AppLayerGetProtoByName(const char *);
 
@@ -283,6 +283,6 @@ void AppLayerFreeProbingParsersInfo(AppLayerProbingParserInfo *);
 void AppLayerPrintProbingParsers(AppLayerProbingParser *);
 
 uint16_t AppLayerGetStateVersion(Flow *f);
-FileContainer *AppLayerGetFilesFromFlow(Flow *);
+FileContainer *AppLayerGetFilesFromFlow(Flow *, uint8_t);
 
 #endif /* __APP_LAYER_PARSER_H__ */

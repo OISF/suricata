@@ -151,7 +151,8 @@ typedef struct HtpState_ {
     uint16_t transaction_done;
     uint32_t request_body_limit;
     uint32_t response_body_limit;
-    FileContainer *files;
+    FileContainer *files_ts;
+    FileContainer *files_tc;
 } HtpState;
 
 void RegisterHTPParsers(void);
