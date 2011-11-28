@@ -34,6 +34,8 @@
 #define PACKET_FANOUT_CPU              2
 #define PACKET_FANOUT_FLAG_DEFRAG      0x8000
 
+#else /* HAVE_PACKET_FANOUT */
+#include <linux/if_packet.h>
 #endif /* HAVE_PACKET_FANOUT */
 
 #define AFP_FILE_MAX_PKTS 256
