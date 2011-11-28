@@ -1775,17 +1775,31 @@ end:
                 p->flow->flags |= FLOW_SGH_TOCLIENT;
             }
 
-            /* if we know both sides of the flow have had their sgh check
-             * and both are null, we will never decide to store. So disable
-             * storage completely. */
-            if (p->flow->flags & FLOW_SGH_TOCLIENT && p->flow->flags & FLOW_SGH_TOSERVER &&
-                    (p->flow->sgh_toserver == NULL ||
+            if (p->flow->flags & FLOW_SGH_TOCLIENT && p->flow->flags & FLOW_SGH_TOSERVER) {
+                /* if we know both sides of the flow have had their sgh check
+                 * and both are null, we will never decide to store. So disable
+                 * storage completely. */
+                if ((p->flow->sgh_toserver == NULL ||
                      p->flow->sgh_toserver->filestore_cnt == 0)
                     &&
                     (p->flow->sgh_toclient == NULL ||
                      p->flow->sgh_toclient->filestore_cnt == 0))
-            {
-                FileDisableStoring(p->flow);
+                {
+                    FileDisableStoring(p->flow);
+                }
+
+                /* check if this flow needs magic, if not disable it */
+                if (!(FileForceMagic())) {
+                    if ((p->flow->sgh_toserver == NULL ||
+                                !(p->flow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILEMAGIC))
+                            &&
+                            (p->flow->sgh_toclient == NULL ||
+                             !(p->flow->sgh_toclient->flags & SIG_GROUP_HEAD_HAVEFILEMAGIC)))
+                    {
+                        SCLogInfo("disabling magic for flow");
+                        FileDisableMagic(p->flow);
+                    }
+                }
             }
         }
 

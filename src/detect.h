@@ -921,9 +921,6 @@ typedef struct SigGroupHead_ {
     /** the number of signatures in this sgh that have the filestore keyword
      *  set. */
     uint16_t filestore_cnt;
-#if __WORDSIZE == 64
-    uint32_t pad2;
-#endif
 
     /** Array with sig ptrs... size is sig_cnt * sizeof(Signature *) */
     Signature **match_array;

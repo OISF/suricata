@@ -61,7 +61,6 @@ static void LogFileLogDeInitCtx(OutputCtx *);
 
 SC_ATOMIC_DECLARE(unsigned int, file_id);
 static char g_logfile_base_dir[PATH_MAX] = "/tmp";
-static int g_logfile_force_magic = 0;
 
 void TmModuleLogFileLogRegister (void) {
     tmm_modules[TMM_FILELOG].name = MODULE_NAME;
@@ -84,7 +83,6 @@ typedef struct LogFileLogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     uint32_t file_cnt;
 } LogFileLogThread;
-
 
 static void CreateTimeString (const struct timeval *ts, char *str, size_t size) {
     time_t time = ts->tv_sec;
@@ -151,31 +149,30 @@ static void LogFileLogCloseMetaFile(File *ff) {
     char metafilename[PATH_MAX] = "";
     snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
     FILE *fp = fopen(metafilename, "a");
+    if (fp != NULL) {
+        fprintf(fp, "MAGIC:             %s\n",
+                ff->magic ? ff->magic : "<unknown>");
 
-    if (g_logfile_force_magic || ff->magic != NULL) {
-        if (g_logfile_force_magic && ff->magic == NULL) {
-            FilemagicLookup(ff);
+        switch (ff->state) {
+            case FILE_STATE_CLOSED:
+                fprintf(fp, "STATE:             CLOSED\n");
+                break;
+            case FILE_STATE_TRUNCATED:
+                fprintf(fp, "STATE:             TRUNCATED\n");
+                break;
+            case FILE_STATE_ERROR:
+                fprintf(fp, "STATE:             ERROR\n");
+                break;
+            default:
+                fprintf(fp, "STATE:             UNKNOWN\n");
+                break;
         }
-        fprintf(fp, "MAGIC:             %s\n", ff->magic ? ff->magic : "<unknown>");
-    }
+        fprintf(fp, "SIZE:              %"PRIu64"\n", ff->size);
 
-    switch (ff->state) {
-        case FILE_STATE_CLOSED:
-            fprintf(fp, "STATE:             CLOSED\n");
-            break;
-        case FILE_STATE_TRUNCATED:
-            fprintf(fp, "STATE:             TRUNCATED\n");
-            break;
-        case FILE_STATE_ERROR:
-            fprintf(fp, "STATE:             ERROR\n");
-            break;
-        default:
-            fprintf(fp, "STATE:             UNKNOWN\n");
-            break;
+        fclose(fp);
+    } else {
+        SCLogInfo("opening %s failed: %s", metafilename, strerror(errno));
     }
-    fprintf(fp, "SIZE:              %"PRIu64"\n", ff->size);
-
-    fclose(fp);
 }
 
 static TmEcode LogFileLogWrap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq, int ipver)
@@ -197,8 +194,11 @@ static TmEcode LogFileLogWrap(ThreadVars *tv, Packet *p, void *data, PacketQueue
     if (ffc != NULL) {
         File *ff;
         for (ff = ffc->head; ff != NULL; ff = ff->next) {
-            int file_open = 0;
             int file_fd = -1;
+
+            if (FileForceMagic() && ff->magic == NULL) {
+                FilemagicLookup(ff);
+            }
 
             SCLogDebug("ff %p", ff);
             if (ff->state == FILE_STATE_STORED) {
@@ -215,7 +215,7 @@ static TmEcode LogFileLogWrap(ThreadVars *tv, Packet *p, void *data, PacketQueue
             for (ffd = ff->chunks_head; ffd != NULL; ffd = ffd->next) {
                 SCLogDebug("ffd %p", ffd);
                 if (ffd->stored == 1) {
-                    if (file_close == 1) {
+                    if (file_close == 1 && ffd->next == NULL) {
                         LogFileLogCloseMetaFile(ff);
                         ff->state = FILE_STATE_STORED;
                     }
@@ -225,56 +225,65 @@ static TmEcode LogFileLogWrap(ThreadVars *tv, Packet *p, void *data, PacketQueue
                 /* store */
                 SCLogDebug("trying to open file");
 
+                char filename[PATH_MAX] = "";
+
                 if (ff->file_id == 0) {
                     ff->file_id = SC_ATOMIC_ADD(file_id, 1);
-                    file_open = 1;
-                }
 
-                char filename[PATH_MAX] = "";
-                snprintf(filename, sizeof(filename), "%s/file.%u",
-                        g_logfile_base_dir, ff->file_id);
+                    snprintf(filename, sizeof(filename), "%s/file.%u",
+                            g_logfile_base_dir, ff->file_id);
 
-                file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
-                if (file_fd == -1) {
-                    SCLogDebug("failed to open file");
-                    continue;
-                }
+                    file_fd = open(filename, O_CREAT | O_TRUNC | O_NOFOLLOW | O_WRONLY, 0644);
+                    if (file_fd == -1) {
+                        SCLogDebug("failed to open file");
+                        continue;
+                    }
 
-                if (file_open == 1) {
                     /* create a .meta file that contains time, src/dst/sp/dp/proto */
                     LogFileLogCreateMetaFile(p, ff, filename, ipver);
                     aft->file_cnt++;
                 } else {
-                    SCLogDebug("already open file");
+                    snprintf(filename, sizeof(filename), "%s/file.%u",
+                            g_logfile_base_dir, ff->file_id);
+
+                    file_fd = open(filename, O_APPEND | O_NOFOLLOW | O_WRONLY);
+                    if (file_fd == -1) {
+                        SCLogDebug("failed to open file %s: %s", filename, strerror(errno));
+                        continue;
+                    }
                 }
 
                 ssize_t r = write(file_fd, (const void *)ffd->data, (size_t)ffd->len);
                 if (r == -1) {
                     SCLogDebug("write failed: %s", strerror(errno));
+
+                    close(file_fd);
+                    file_fd = -1;
                     continue;
                 }
 
+                close(file_fd);
+                file_fd = -1;
+
                 if (ff->state == FILE_STATE_CLOSED ||
-                        ff->state == FILE_STATE_TRUNCATED ||
-                        ff->state == FILE_STATE_ERROR ||
-                        file_close == 1)
+                    ff->state == FILE_STATE_TRUNCATED ||
+                    ff->state == FILE_STATE_ERROR ||
+                    (file_close == 1 && ff->state < FILE_STATE_CLOSED))
                 {
                     if (ffd->next == NULL) {
                         LogFileLogCloseMetaFile(ff);
 
                         ff->state = FILE_STATE_STORED;
-
-                        if (file_fd != -1) {
-                            close(file_fd);
-                            file_fd = -1;
-                        }
                     }
                 }
 
                 ffd->stored = 1;
             }
         }
+
+        FilePrune(ffc);
     }
+
     SCMutexUnlock(&p->flow->m);
     SCReturnInt(TM_ECODE_OK);
 }
@@ -290,6 +299,7 @@ TmEcode LogFileLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
 TmEcode LogFileLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     SCEnter();
+    int r = TM_ECODE_OK;
 
     /* no flow, no htp state */
     if (p->flow == NULL) {
@@ -300,13 +310,15 @@ TmEcode LogFileLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
         SCReturnInt(TM_ECODE_OK);
     }
 
+    SCLogDebug("p->pcap_cnt %"PRIu64, p->pcap_cnt);
+
     if (PKT_IS_IPV4(p)) {
-        SCReturnInt(LogFileLogIPv4(tv, p, data, pq, postpq));
+        r = LogFileLogIPv4(tv, p, data, pq, postpq);
     } else if (PKT_IS_IPV6(p)) {
-        SCReturnInt(LogFileLogIPv6(tv, p, data, pq, postpq));
+        r = LogFileLogIPv6(tv, p, data, pq, postpq);
     }
 
-    SCReturnInt(TM_ECODE_OK);
+    SCReturnInt(r);
 }
 
 TmEcode LogFileLogThreadInit(ThreadVars *t, void *initdata, void **data)
@@ -395,7 +407,7 @@ OutputCtx *LogFileLogInitCtx(ConfNode *conf)
 
     const char *force_magic = ConfNodeLookupChildValue(conf, "force-magic");
     if (force_magic != NULL && ConfValIsTrue(force_magic)) {
-        g_logfile_force_magic = 1;
+        FileForceMagicEnable();
         SCLogInfo("forcing magic lookup for stored files");
     }
 

@@ -76,6 +76,7 @@
 
 /* state flags */
 #define DE_STATE_FILE_STORE_DISABLED    0x0001
+#define DE_STATE_FILE_NEW               0x0002
 
 /** per signature detection engine state */
 typedef enum {
@@ -137,6 +138,8 @@ int DeStateDetectContinueDetection(ThreadVars *, DetectEngineCtx *,
 
 const char *DeStateMatchResultToString(DeStateMatchResult);
 int DeStateUpdateInspectTransactionId(Flow *, char);
+
+void DeStateResetFileInspection(Flow *f);
 
 #endif /* __DETECT_ENGINE_STATE_H__ */
 

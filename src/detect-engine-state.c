@@ -596,6 +596,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
         }
     } else {
         if (inspect_flags != 0 && (inspect_flags == match_flags)) {
+            match_flags |= DE_STATE_FLAG_FULL_MATCH;
             r = 1;
         }
     }
@@ -667,19 +668,31 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
             SCLogDebug("id of signature to inspect: %"PRIuMAX,
                     (uintmax_t)s->id);
 
-            RULE_PROFILING_START;
-
             /* if we already fully matched previously, detect that here */
             if (item->flags & DE_STATE_FLAG_FULL_MATCH) {
-                det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_FULL;
-                goto next_sig;
+                if (item->flags & DE_STATE_FLAG_FILE_INSPECT && f->de_state->flags & DE_STATE_FILE_NEW) {
+                    /* new file, fall through */
+                    item->flags &= ~DE_STATE_FLAG_FILE_INSPECT;
+                } else {
+                    det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_FULL;
+                    SCLogDebug("full match state");
+                    continue;
+                }
             }
 
             /* if we know for sure we can't ever match, detect that here */
             if (item->flags & DE_STATE_FLAG_SIG_CANT_MATCH) {
-                det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NOMATCH;
-                goto next_sig;
+                if (item->flags & DE_STATE_FLAG_FILE_INSPECT && f->de_state->flags & DE_STATE_FILE_NEW) {
+                    /* new file, fall through */
+                    item->flags &= ~DE_STATE_FLAG_FILE_INSPECT;
+                    item->flags &= ~DE_STATE_FLAG_SIG_CANT_MATCH;
+                } else {
+                    det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_NOMATCH;
+                    continue;
+                }
             }
+
+            RULE_PROFILING_START;
 
             /* let's continue detection */
 
@@ -937,7 +950,6 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
             SCLogDebug("signature %"PRIu32" match state %s",
                     s->id, DeStateMatchResultToString(det_ctx->de_state_sig_array[item->sid]));
 
-next_sig:
             RULE_PROFILING_END(s, match);
 
         }
@@ -955,6 +967,7 @@ next_sig:
     }
 
 end:
+    f->de_state->flags &= ~DE_STATE_FILE_NEW;
     SCMutexUnlock(&f->de_state_m);
     SCReturnInt(0);
 }
@@ -976,6 +989,18 @@ int DeStateRestartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
     SCMutexUnlock(&f->de_state_m);
 
     SCReturnInt(0);
+}
+
+void DeStateResetFileInspection(Flow *f) {
+    if (f == NULL) {
+        SCReturn;
+    }
+
+    SCMutexLock(&f->de_state_m);
+    if (f->de_state != NULL) {
+        f->de_state->flags |= DE_STATE_FILE_NEW;
+    }
+    SCMutexUnlock(&f->de_state_m);
 }
 
 #ifdef UNITTESTS

@@ -93,8 +93,19 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
         }
     }
 
-    if (s->f->flags & FLOW_FILE_NO_HANDLING) {
+    if (s->f->flags & FLOW_FILE_NO_STORE) {
         flags |= FILE_NOSTORE;
+    }
+    if (s->f->flags & FLOW_FILE_NO_MAGIC) {
+        flags |= FILE_NOMAGIC;
+    }
+
+    /* if the previous file is in the same txid, we
+     * reset the file part of the stateful detection
+     * engine. */
+    if (s->files && s->files->tail && s->files->tail->txid == txid) {
+        SCLogDebug("new file in same tx, resetting de_state");
+        DeStateResetFileInspection(s->f);
     }
 
     if (FileOpenFile(s->files, filename, filename_len,
@@ -105,6 +116,7 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
 
     FileSetTx(s->files->tail, txid);
 
+    FilePrune(s->files);
 end:
     SCReturnInt(retval);
 }
@@ -144,6 +156,7 @@ int HTPFileStoreChunk(HtpState *s, uint8_t *data, uint32_t data_len) {
         retval = -2;
     }
 
+    FilePrune(s->files);
 end:
     SCReturnInt(retval);
 }
@@ -183,6 +196,7 @@ int HTPFileClose(HtpState *s, uint8_t *data, uint32_t data_len, uint8_t flags) {
         retval = -2;
     }
 
+    FilePrune(s->files);
 end:
     SCReturnInt(retval);
 }

@@ -74,6 +74,7 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flo
     SigMatch *sm = NULL;
     int r = 0;
     int match = 0;
+    int store_r = 0;
 
     SCLogDebug("file inspection... %p", ffc);
 
@@ -132,8 +133,11 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flo
                 }
             }
 
+            /* continue inspection for other files as we may want to store
+             * those as well. We'll return 1 (match) regardless of their
+             * results though */
             if (r == 1)
-                break;
+                store_r = 1;
 
             /* if this is a filestore sig, and the sig can't match
              * return 3 so we can distinguish */
@@ -145,6 +149,8 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flo
         }
     }
 
+    if (store_r == 1)
+        r = 1;
     SCReturnInt(r);
 }
 
@@ -189,7 +195,7 @@ int DetectFileInspectHttp(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flow *
         start_tx = AppLayerTransactionGetInspectId(f);
         /* tx cnt is incremented after request finishes, so we need to inspect
          * response one before the lowest. */
-        if (flags & STREAM_TOCLIENT && start_tx)
+        if ((flags & STREAM_TOCLIENT) && start_tx > 0)
             start_tx--;
         end_tx = list_size(htp_state->connp->conn->transactions);
     }

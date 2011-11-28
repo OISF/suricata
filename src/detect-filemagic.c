@@ -88,6 +88,7 @@ int FilemagicLookup(File *file) {
         SCReturnInt(-1);
     }
 
+    /* initial chunk already matching our requirement */
     if (file->chunks_head->len >= FILEMAGIC_MIN_SIZE) {
         file->magic = MagicLookup(file->chunks_head->data, FILEMAGIC_MIN_SIZE);
     } else {
@@ -271,6 +272,7 @@ static int DetectFilemagicSetup (DetectEngineCtx *de_ctx, Signature *s, char *st
 
     AppLayerHtpNeedFileInspection();
 
+    /** \todo remove this once we support more than http */
     s->alproto = ALPROTO_HTTP;
 
     s->file_flags |= (FILE_SIG_NEED_FILE|FILE_SIG_NEED_MAGIC);

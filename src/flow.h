@@ -91,7 +91,9 @@
 #define FLOW_TC_PM_PP_ALPROTO_DETECT_DONE 0x00400000
 #define FLOW_TIMEOUT_REASSEMBLY_DONE      0x00800000
 /** even if the flow has files, don't store 'm */
-#define FLOW_FILE_NO_HANDLING             0x01000000
+#define FLOW_FILE_NO_STORE                0x01000000
+/** no magic on files in this flow */
+#define FLOW_FILE_NO_MAGIC                0x02000000
 
 /** flow is ipv4 */
 #define FLOW_IPV4                         0x01000000
