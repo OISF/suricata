@@ -140,9 +140,19 @@ outputs:
       append: yes
 
   # output module to store extracted files to disk
+  #
+  # The files are stored to the log-dir in a format "file.<id>" where <id> is
+  # an incrementing number starting at 1. For each file "file.<id>" a meta
+  # file "file.<id>.meta" is created.
+  #
+  # File extraction depends on a lot of things to be fully done:
+  # - stream reassembly depth. For optimal results, set this to 0 (unlimited)
+  # - http request / response body sizes. Again set to 0 for optimal results.
+  # - rules that contain the "filestore" keyword.
   - file:
       enabled: no       # set to yes to enable
       log-dir: files    # directory to store the files
+      force-magic: no   # force logging magic on all stored files
 
 # When running in NFQ inline mode, it is possible to use a simulated
 # non-terminal NFQUEUE verdict.
@@ -729,13 +739,13 @@ asn1_max_frames: 256
 #
 # default-config:       Used when no server-config matches
 #   personality:        List of personalities used by default
-#   request_body_limit: Limit reassembly of request body for inspection
+#   request-body-limit: Limit reassembly of request body for inspection
 #                       by http_client_body & pcre /P option.
 #
 # server-config:        List of server configurations to use if address matches
 #   address:            List of ip addresses or networks for this block
 #   personalitiy:       List of personalities used by this block
-#   request_body_limit: Limit reassembly of request body for inspection
+#   request-body-limit: Limit reassembly of request body for inspection
 #                       by http_client_body & pcre /P option.
 #
 # Currently Available Personalities:
@@ -755,24 +765,24 @@ libhtp:
 
    default-config:
      personality: IDS
-     request_body_limit: 3072
-     response_body_limit: 3072
+     request-body-limit: 3072
+     response-body-limit: 3072
 
    server-config:
 
      - apache:
          address: [192.168.1.0/24, 127.0.0.0/8, "::1"]
          personality: Apache_2_2
-         request_body_limit: 4096
-         response_body_limit: 4096
+         request-body-limit: 4096
+         response-body-limit: 4096
 
      - iis7:
          address:
            - 192.168.0.0/24
            - 192.168.10.0/24
          personality: IIS_7_0
-         request_body_limit: 4096
-         response_body_limit: 4096
+         request-body-limit: 4096
+         response-body-limit: 4096
 
 # Profiling settings. Only effective if Suricata has been built with the
 # the --enable-profiling configure flag.
@@ -810,3 +820,4 @@ profiling:
       # performance impact if compiled in.
       enabled: no
       filename: packet_stats.csv
+
