@@ -1768,40 +1768,37 @@ end:
         SCMutexLock(&p->flow->m);
         if (!(sms_runflags & SMS_USE_FLOW_SGH)) {
             if (p->flowflags & FLOW_PKT_TOSERVER && !(p->flow->flags & FLOW_SGH_TOSERVER)) {
+                /* first time we see this toserver sgh, store it */
                 p->flow->sgh_toserver = det_ctx->sgh;
                 p->flow->flags |= FLOW_SGH_TOSERVER;
+
+                /* see if this sgh requires us to consider file storing */
+                if (p->flow->sgh_toserver == NULL || p->flow->sgh_toserver->filestore_cnt == 0) {
+                    FileDisableStoring(p->flow, STREAM_TOSERVER);
+                }
+
+                /* see if this sgh requires us to consider file magic */
+                if (!FileForceMagic() && (p->flow->sgh_toserver == NULL ||
+                            !(p->flow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILEMAGIC)))
+                {
+                    SCLogDebug("disabling magic for flow");
+                    FileDisableMagic(p->flow, STREAM_TOSERVER);
+                }
             } else if (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flow->flags & FLOW_SGH_TOCLIENT)) {
                 p->flow->sgh_toclient = det_ctx->sgh;
                 p->flow->flags |= FLOW_SGH_TOCLIENT;
-            }
 
-            if (p->flow->flags & FLOW_SGH_TOCLIENT && (p->flow->sgh_toclient == NULL ||
-                     p->flow->sgh_toclient->filestore_cnt == 0))
-            {
-                FileDisableStoring(p->flow, STREAM_TOCLIENT);
-            }
-            if (p->flow->flags & FLOW_SGH_TOSERVER && (p->flow->sgh_toserver == NULL ||
-                     p->flow->sgh_toserver->filestore_cnt == 0))
-            {
-                FileDisableStoring(p->flow, STREAM_TOSERVER);
-            }
+                if (p->flow->sgh_toclient == NULL || p->flow->sgh_toclient->filestore_cnt == 0) {
+                    FileDisableStoring(p->flow, STREAM_TOCLIENT);
+                }
 
-            /* check if this flow needs magic, if not disable it */
-            if (!(FileForceMagic())) {
-                if (p->flow->flags & FLOW_SGH_TOCLIENT && (p->flow->sgh_toclient == NULL ||
+                /* check if this flow needs magic, if not disable it */
+                if (!FileForceMagic() && (p->flow->sgh_toclient == NULL ||
                             !(p->flow->sgh_toclient->flags & SIG_GROUP_HEAD_HAVEFILEMAGIC)))
                 {
-                    SCLogInfo("disabling magic for flow");
+                    SCLogDebug("disabling magic for flow");
                     FileDisableMagic(p->flow, STREAM_TOCLIENT);
                 }
-
-                if (p->flow->flags & FLOW_SGH_TOSERVER && (p->flow->sgh_toserver == NULL ||
-                            !(p->flow->sgh_toserver->flags & SIG_GROUP_HEAD_HAVEFILEMAGIC)))
-                {
-                    SCLogInfo("disabling magic for flow");
-                    FileDisableMagic(p->flow, STREAM_TOSERVER);
-                }
-
             }
         }
 
