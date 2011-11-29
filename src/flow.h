@@ -96,9 +96,9 @@
 #define FLOW_FILE_NO_MAGIC                0x02000000
 
 /** flow is ipv4 */
-#define FLOW_IPV4                         0x01000000
+#define FLOW_IPV4                         0x04000000
 /** flow is ipv6 */
-#define FLOW_IPV6                         0x02000000
+#define FLOW_IPV6                         0x08000000
 
 #define FLOW_IS_IPV4(f) \
     (((f)->flags & FLOW_IPV4) == FLOW_IPV4)
