@@ -48,6 +48,7 @@
 #include "util-pidfile.h"
 #include "util-ioctl.h"
 #include "util-device.h"
+#include "util-misc.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
@@ -1144,7 +1145,8 @@ int main(int argc, char **argv)
 
     /* Pull the default packet size from the config, if not found fall
      * back on a sane default. */
-    if (ConfGetInt("default-packet-size", &default_packet_size) != 1) {
+    char *temp_default_packet_size;
+    if ((ConfGet("default-packet-size", &temp_default_packet_size)) != 1) {
         switch (run_mode) {
             case RUNMODE_PCAP_DEV:
             case RUNMODE_AFP_DEV:
@@ -1157,7 +1159,17 @@ int main(int argc, char **argv)
             default:
                 default_packet_size = DEFAULT_PACKET_SIZE;
         }
+    } else {
+        long double res;
+        if (ParseSizeString(temp_default_packet_size, &res) < 0) {
+            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing max-pending-packets "
+                       "from conf file - %s.  Killing engine",
+                       temp_default_packet_size);
+            exit(EXIT_FAILURE);
+        }
+        default_packet_size = res;
     }
+
     SCLogDebug("Default packet size set to %"PRIiMAX, default_packet_size);
 
 #ifdef NFQ
@@ -1363,7 +1375,7 @@ int main(int argc, char **argv)
         SCLogRegisterTests();
         SMTPParserRegisterTests();
         MagicRegisterTests();
-
+        UtilMiscRegisterTests();
         if (list_unittests) {
             UtListTests(regex_arg);
         }

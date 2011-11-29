@@ -210,6 +210,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_AFP_READ);
         CASE_CODE (SC_ERR_AFP_DISPATCH);
         CASE_CODE (SC_ERR_CMD_LINE);
+        CASE_CODE (SC_ERR_SIZE_PARSE);
 
         default:
             return "UNKNOWN_ERROR";

@@ -160,6 +160,7 @@ detect-ssl-state.c detect-ssl-state.h \
 detect-byte-extract.c detect-byte-extract.h \
 detect-replace.c detect-replace.h \
 util-magic.c util-magic.h \
+util-misc.c util-misc.h \
 util-atomic.h \
 util-print.c util-print.h \
 util-fmemopen.c util-fmemopen.h \

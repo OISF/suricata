@@ -58,6 +58,7 @@
 #include "util-spm.h"
 #include "util-debug.h"
 #include "util-time.h"
+#include "util-misc.h"
 
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
@@ -1737,23 +1738,14 @@ static void HTPConfigure(void)
             } else if (strcasecmp("request-body-limit", p->name) == 0 ||
                        strcasecmp("request_body_limit", p->name) == 0) {
 
-                /* limit */
-                int limit = atoi(p->val);
-
-                if (limit >= 0) {
-                    SCLogDebug("LIBHTP default: %s=%s (%d)",
-                            p->name, p->val, limit);
-
-                    cfglist.request_body_limit = (uint32_t)limit;
+                long double res;
+                if (ParseSizeString(p->val, &res) < 0) {
+                    SCLogError(SC_ERR_SIZE_PARSE, "Error parsing request-body-limit "
+                               "from conf file - %s.  Killing engine",
+                               p->val);
+                    exit(EXIT_FAILURE);
                 }
-                else {
-                    SCLogWarning(SC_ERR_UNKNOWN_VALUE,
-                            "LIBHTP malformed request-body-limit "
-                            "\"%s\", using default %u", p->val,
-                            HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT);
-                    cfglist.request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
-                    continue;
-                }
+                cfglist.request_body_limit = (uint32_t)res;
             } else if (strcasecmp("response-body-limit", p->name) == 0) {
 
                 /* limit */
@@ -1773,7 +1765,6 @@ static void HTPConfigure(void)
                     cfglist.response_body_limit = HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT;
                     continue;
                 }
-
             } else {
                 SCLogWarning(SC_ERR_UNKNOWN_VALUE,
                         "LIBHTP Ignoring unknown default config: %s",
@@ -1915,22 +1906,14 @@ static void HTPConfigure(void)
                     SCLogDebug("LIBHTP default: %s=%s",
                             p->name, p->val);
 
-                    int limit = atoi(p->val);
-
-                    if (limit >= 0) {
-                        SCLogDebug("LIBHTP default: %s=%s (%d)",
-                                p->name, p->val, limit);
-
-                        htprec->request_body_limit = (uint32_t)limit;
+                    long double res;
+                    if (ParseSizeString(p->val, &res) < 0) {
+                        SCLogError(SC_ERR_SIZE_PARSE, "Error parsing request-body-limit "
+                                   "from conf file - %s.  Killing engine",
+                                   p->val);
+                        exit(EXIT_FAILURE);
                     }
-                    else {
-                        SCLogWarning(SC_ERR_UNKNOWN_VALUE,
-                                "LIBHTP malformed request_body_limit "
-                                "\"%s\", using default %u", p->val,
-                                HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT);
-                        htprec->request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
-                        continue;
-                    }
+                    htprec->request_body_limit = (uint32_t)res;
                 } else if (strcasecmp("response-body-limit", p->name) == 0) {
 
                     /* limit */

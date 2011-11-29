@@ -44,6 +44,7 @@
 #include "util-debug.h"
 #include "util-time.h"
 #include "util-byte.h"
+#include "util-misc.h"
 
 #include "output.h"
 #include "alert-unified2-alert.h"
@@ -64,7 +65,7 @@
 #define DEFAULT_LIMIT 32
 
 /**< Minimum log file limit in MB. */
-#define MIN_LIMIT 1
+#define MIN_LIMIT 1 * 1024 * 1024
 
 /**
  * Unified2 file header struct
@@ -1172,12 +1173,14 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
     if (conf != NULL) {
         s_limit = ConfNodeLookupChildValue(conf, "limit");
         if (s_limit != NULL) {
-            if (ByteExtractStringUint64(&limit, 10, 0, s_limit) == -1) {
+            long double res;
+            if (ParseSizeString(s_limit, &res) < 0) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                     "Failed to initialize unified2 output, invalid limit: %s",
                     s_limit);
                 exit(EXIT_FAILURE);
             }
+            limit = res;
             if (limit < MIN_LIMIT) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                     "Failed to initialize unified2 output, limit less than "
@@ -1186,7 +1189,7 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
             }
         }
     }
-    file_ctx->size_limit = limit * 1024 * 1024;
+    file_ctx->size_limit = limit;
 
     ret = Unified2AlertOpenFileCtx(file_ctx, filename);
     if (ret < 0)

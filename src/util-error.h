@@ -225,6 +225,7 @@ typedef enum {
     SC_ERR_CMD_LINE,
     SC_ERR_MAGIC_OPEN,
     SC_ERR_MAGIC_LOAD,
+    SC_ERR_SIZE_PARSE,
 } SCError;
 
 const char *SCErrorToString(SCError);

@@ -53,6 +53,7 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 #include "util-byte.h"
+#include "util-misc.h"
 
 #include "util-debug.h"
 #include "util-privs.h"
@@ -860,15 +861,18 @@ void FlowInitConfig(char quiet)
     /* Check if we have memcap and hash_size defined at config */
     char *conf_val;
     uint32_t configval = 0;
-    uint64_t configval64 = 0;
 
     /** set config values for memcap, prealloc and hash_size */
     if ((ConfGet("flow.memcap", &conf_val)) == 1)
     {
-        if (ByteExtractStringUint64(&configval64, 10, strlen(conf_val),
-                                    conf_val) > 0) {
-            flow_config.memcap = configval64;
+        long double res;
+        if (ParseSizeString(conf_val, &res) < 0) {
+            SCLogError(SC_ERR_SIZE_PARSE, "Error parsing flow.memcap "
+                       "from conf file - %s.  Killing engine",
+                       conf_val);
+            exit(EXIT_FAILURE);
         }
+        flow_config.memcap = res;
     }
     if ((ConfGet("flow.hash_size", &conf_val)) == 1)
     {
