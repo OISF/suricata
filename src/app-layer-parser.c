@@ -1042,14 +1042,8 @@ error:
 uint16_t AppLayerTransactionGetAvailId(Flow *f) {
     SCEnter();
 
-    /* Get the parser state (if any) */
-    if (f->aldata == NULL) {
-        SCLogDebug("no aldata");
-        SCReturnUInt(0);
-    }
-
     AppLayerParserStateStore *parser_state_store =
-        (AppLayerParserStateStore *)f->aldata[app_layer_sid];
+        (AppLayerParserStateStore *)f->alparser;
 
     if (parser_state_store == NULL) {
         SCLogDebug("no state store");

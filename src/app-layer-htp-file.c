@@ -242,7 +242,7 @@ end:
 #ifdef UNITTESTS
 static int HTPFileParserTest01(void) {
     int result = 0;
-    Flow f;
+    Flow *f = NULL;
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
                          "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
@@ -260,18 +260,17 @@ static int HTPFileParserTest01(void) {
 
     TcpSession ssn;
     HtpState *http_state = NULL;
-
-    memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
-    f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -279,14 +278,14 @@ static int HTPFileParserTest01(void) {
     }
 
     SCLogDebug("\n>>>> processing chunk 2 size %u <<<<\n", httplen2);
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
+    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f->alstate;
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -306,16 +305,16 @@ static int HTPFileParserTest01(void) {
 
     result = 1;
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
+    UTHFreeFlow(f);
     return result;
 }
 
 static int HTPFileParserTest02(void) {
     int result = 0;
-    Flow f;
+    Flow *f = NULL;
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
                          "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
@@ -342,17 +341,17 @@ static int HTPFileParserTest02(void) {
     TcpSession ssn;
     HtpState *http_state = NULL;
 
-    memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
-    f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -360,7 +359,7 @@ static int HTPFileParserTest02(void) {
     }
 
     SCLogDebug("\n>>>> processing chunk 2 size %u <<<<\n", httplen2);
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
+    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -368,7 +367,7 @@ static int HTPFileParserTest02(void) {
     }
 
     SCLogDebug("\n>>>> processing chunk 3 size %u <<<<\n", httplen3);
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf3, httplen3);
+    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf3, httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -376,14 +375,14 @@ static int HTPFileParserTest02(void) {
     }
 
     SCLogDebug("\n>>>> processing chunk 4 size %u <<<<\n", httplen4);
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf4, httplen4);
+    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf4, httplen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f->alstate;
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -408,16 +407,16 @@ static int HTPFileParserTest02(void) {
 
     result = 1;
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
+    UTHFreeFlow(f);
     return result;
 }
 
 static int HTPFileParserTest03(void) {
     int result = 0;
-    Flow f;
+    Flow *f = NULL;
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
                          "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
@@ -449,17 +448,17 @@ static int HTPFileParserTest03(void) {
     TcpSession ssn;
     HtpState *http_state = NULL;
 
-    memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
-    f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -467,7 +466,7 @@ static int HTPFileParserTest03(void) {
     }
 
     SCLogDebug("\n>>>> processing chunk 2 size %u <<<<\n", httplen2);
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
+    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -475,7 +474,7 @@ static int HTPFileParserTest03(void) {
     }
 
     SCLogDebug("\n>>>> processing chunk 3 size %u <<<<\n", httplen3);
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf3, httplen3);
+    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf3, httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -483,7 +482,7 @@ static int HTPFileParserTest03(void) {
     }
 
     SCLogDebug("\n>>>> processing chunk 4 size %u <<<<\n", httplen4);
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf4, httplen4);
+    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf4, httplen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -491,7 +490,7 @@ static int HTPFileParserTest03(void) {
     }
 
     SCLogDebug("\n>>>> processing chunk 5 size %u <<<<\n", httplen5);
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf5, httplen5);
+    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf5, httplen5);
     if (r != 0) {
         printf("toserver chunk 5 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -499,14 +498,14 @@ static int HTPFileParserTest03(void) {
     }
 
     SCLogDebug("\n>>>> processing chunk 6 size %u <<<<\n", httplen6);
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf6, httplen6);
+    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf6, httplen6);
     if (r != 0) {
         printf("toserver chunk 6 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f->alstate;
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -535,16 +534,16 @@ static int HTPFileParserTest03(void) {
 
     result = 1;
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
+    UTHFreeFlow(f);
     return result;
 }
 
 static int HTPFileParserTest04(void) {
     int result = 0;
-    Flow f;
+    Flow *f = NULL;
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
                          "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
@@ -576,17 +575,17 @@ static int HTPFileParserTest04(void) {
     TcpSession ssn;
     HtpState *http_state = NULL;
 
-    memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
-    f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -594,7 +593,7 @@ static int HTPFileParserTest04(void) {
     }
 
     SCLogDebug("\n>>>> processing chunk 2 size %u <<<<\n", httplen2);
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
+    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -602,7 +601,7 @@ static int HTPFileParserTest04(void) {
     }
 
     SCLogDebug("\n>>>> processing chunk 3 size %u <<<<\n", httplen3);
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf3, httplen3);
+    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf3, httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -610,7 +609,7 @@ static int HTPFileParserTest04(void) {
     }
 
     SCLogDebug("\n>>>> processing chunk 4 size %u <<<<\n", httplen4);
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf4, httplen4);
+    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf4, httplen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -618,7 +617,7 @@ static int HTPFileParserTest04(void) {
     }
 
     SCLogDebug("\n>>>> processing chunk 5 size %u <<<<\n", httplen5);
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf5, httplen5);
+    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf5, httplen5);
     if (r != 0) {
         printf("toserver chunk 5 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -626,14 +625,14 @@ static int HTPFileParserTest04(void) {
     }
 
     SCLogDebug("\n>>>> processing chunk 6 size %u <<<<\n", httplen6);
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf6, httplen6);
+    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf6, httplen6);
     if (r != 0) {
         printf("toserver chunk 6 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f->alstate;
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -658,16 +657,16 @@ static int HTPFileParserTest04(void) {
 
     result = 1;
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
+    UTHFreeFlow(f);
     return result;
 }
 
 static int HTPFileParserTest05(void) {
     int result = 0;
-    Flow f;
+    Flow *f = NULL;
     uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
                          "Host: www.server.lan\r\n"
                          "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
@@ -690,17 +689,17 @@ static int HTPFileParserTest05(void) {
     TcpSession ssn;
     HtpState *http_state = NULL;
 
-    memset(&f, 0, sizeof(f));
     memset(&ssn, 0, sizeof(ssn));
-    f.protoctx = (void *)&ssn;
-    f.src.family = AF_INET;
-    f.dst.family = AF_INET;
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
 
     StreamTcpInitConfig(TRUE);
-    FlowL7DataPtrInit(&f);
 
     SCLogDebug("\n>>>> processing chunk 1 size %u <<<<\n", httplen1);
-    int r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         result = 0;
@@ -708,14 +707,14 @@ static int HTPFileParserTest05(void) {
     }
 
     SCLogDebug("\n>>>> processing chunk 2 size %u <<<<\n", httplen2);
-    r = AppLayerParse(&f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
+    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         result = 0;
         goto end;
     }
 
-    http_state = f.aldata[AlpGetStateIdx(ALPROTO_HTTP)];
+    http_state = f->alstate;
     if (http_state == NULL) {
         printf("no http state: ");
         result = 0;
@@ -771,10 +770,10 @@ static int HTPFileParserTest05(void) {
     }
     result = 1;
 end:
-    FlowL7DataPtrFree(&f);
     StreamTcpFreeConfig(TRUE);
     if (http_state != NULL)
         HTPStateFree(http_state);
+    UTHFreeFlow(f);
     return result;
 }
 
