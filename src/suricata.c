@@ -83,7 +83,6 @@
 #include "alert-pcapinfo.h"
 
 #include "log-droplog.h"
-#include "log-droplog.h"
 #include "log-httplog.h"
 #include "log-pcap.h"
 #include "log-file.h"
