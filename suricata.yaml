@@ -56,8 +56,9 @@ outputs:
       enabled: yes
       filename: unified2.alert
 
-      # Limit in MB.
-      #limit: 32
+      # File size limit.  Can be specified in kb, mb, gb.  Just a number
+      # is parsed as bytes.
+      #limit: 32mb
 
   # a line based log of HTTP requests (no alerts)
   - http-log:
@@ -90,7 +91,8 @@ outputs:
       enabled:  no
       filename: log.pcap
 
-      # Limit in MB.
+      # File size limit.  Can be specified in kb, mb, gb.  Just a number
+      # is parsed as bytes.
       limit: 1000
 
       # If set to a value will enable ring buffer mode. Will keep Maximum of "max_files" of size "limit"
@@ -325,6 +327,7 @@ cuda:
       packet_buffer_limit: 2400
       # The maximum length for a packet that we would buffer to the gpu.
       # Anything over this is MPM'ed on the CPU.  All entries > 0 are valid.
+      # Can be specified in kb, mb, gb.  Just a number indicates it's in bytes.
       packet_size_limit: 1500
       # No of packet buffers we initialize.  All entries > 0 are valid.
       packet_buffers: 10
@@ -417,9 +420,11 @@ pattern-matcher:
 # the emergency bit and it will try again with more agressive timeouts.
 # If that doesn't work, then it will try to kill the last time seen flows
 # not in use.
+# The memcap can be specified in kb, mb, gb.  Just a number indicates it's
+# in bytes.
 
 flow:
-  memcap: 33554432
+  memcap: 32mb
   hash_size: 65536
   prealloc: 10000
   emergency_recovery: 30
@@ -472,7 +477,8 @@ flow-timeouts:
 # engine is configured.
 #
 # stream:
-#   memcap: 33554432            # 32mb tcp session memcap
+#   memcap: 32mb                # Can be specified in kb, mb, gb.  Just a
+#                               # number indicates it's in bytes.
 #   checksum_validation: yes    # To validate the checksum of received
 #                               # packet. If csum validation is specified as
 #                               # "yes", then packet with invalid csum will not
@@ -487,19 +493,24 @@ flow-timeouts:
 #   inline: no                  # stream inline mode
 #
 #   reassembly:
-#     memcap: 67108864          # 64mb tcp reassembly memcap
-#     depth: 1048576            # 1 MB reassembly depth
+#     memcap: 64mb              # Can be specified in kb, mb, gb.  Just a number
+#                               # indicates it's in bytes.
+#     depth: 1mb                # Can be specified in kb, mb, gb.  Just a number
+#                               # indicates it's in bytes.
 #     toserver_chunk_size: 2560 # inspect raw stream in chunks of at least
-#                               # this size
+#                               # this size.  Can be specified in kb, mb,
+#                               # gb.  Just a number indicates it's in bytes.
 #     toclient_chunk_size: 2560 # inspect raw stream in chunks of at least
-#                               # this size
+#                               # this size.  Can be specified in kb, mb,
+#                               # gb.  Just a number indicates it's in bytes.
+
 stream:
-  memcap: 33554432              # 32mb
+  memcap: 32mb
   checksum_validation: yes      # reject wrong csums
   inline: no                    # no inline mode
   reassembly:
-    memcap: 67108864            # 64mb for reassembly
-    depth: 1048576              # reassemble 1mb into a stream
+    memcap: 64mb
+    depth: 1mb                  # reassemble 1mb into a stream
     toserver_chunk_size: 2560
     toclient_chunk_size: 2560
 
@@ -547,15 +558,15 @@ pfring:
     # Number of receive threads (>1 will enable experimental flow pinned
     # runmode)
     threads: 1
-  
+
     # Default interface we will listen on.
     interface: eth0
-  
+
     # Default clusterid.  PF_RING will load balance packets based on flow.
     # All threads/processes that will participate need to have the same
     # clusterid.
     cluster-id: 99
-  
+
     # Default PF_RING cluster type. PF_RING can load balance per flow or per hash.
     # This is only supported in versions of PF_RING > 4.1.1.
     cluster-type: cluster_round_robin
@@ -768,7 +779,9 @@ libhtp:
 
    default-config:
      personality: IDS
-     request-body-limit: 3072
+     # Can be specified in kb, mb, gb.  Just a number indicates
+     # it's in bytes.
+     request_body_limit: 3072
      response-body-limit: 3072
 
    server-config:
@@ -776,7 +789,9 @@ libhtp:
      - apache:
          address: [192.168.1.0/24, 127.0.0.0/8, "::1"]
          personality: Apache_2_2
-         request-body-limit: 4096
+         # Can be specified in kb, mb, gb.  Just a number indicates
+         # it's in bytes.
+         request_body_limit: 4096
          response-body-limit: 4096
 
      - iis7:
@@ -784,7 +799,9 @@ libhtp:
            - 192.168.0.0/24
            - 192.168.10.0/24
          personality: IIS_7_0
-         request-body-limit: 4096
+         # Can be specified in kb, mb, gb.  Just a number indicates
+         # it's in bytes.
+         request_body_limit: 4096
          response-body-limit: 4096
 
 # Profiling settings. Only effective if Suricata has been built with the
