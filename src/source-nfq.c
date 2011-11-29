@@ -636,6 +636,8 @@ void *NFQGetQueue(int number) {
 /**
  *  \brief Get a pointer to the NFQ thread at index
  *
+ *  This function is temporary used as configuration parser.
+ *
  *  \param number idx of the queue in our array
  *
  *  \retval ptr pointer to the NFQThreadVars at index
@@ -832,7 +834,12 @@ TmEcode NFQSetVerdict(Packet *p) {
     int iter = 0;
     int ret = 0;
     uint32_t verdict = NF_ACCEPT;
+    /* we could also have a direct pointer but we need to have a ref counf in this case */
     NFQQueueVars *t = nfq_q + p->nfq_v.nfq_index;
+
+    /** \todo add a test on validity of the entry NFQQueueVars could have been
+     *  wipeout
+     */
 
     /* can't verdict a "fake" packet */
     if (p->flags & PKT_PSEUDO_STREAM_END) {
