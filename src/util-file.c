@@ -1,0 +1,638 @@
+/* Copyright (C) 2007-2011 Open Information Security Foundation
+ *
+ * You can copy, redistribute or modify this Program under the terms of
+ * the GNU General Public License version 2 as published by the Free
+ * Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * version 2 along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+ * 02110-1301, USA.
+ */
+
+/**
+ * \file
+ *
+ * \author Victor Julien <victor@inliniac.net>
+ * \author Pablo Rincon <pablo.rincon.crespo@gmail.com>
+ *
+ */
+
+#include "suricata-common.h"
+#include "suricata.h"
+#include "debug.h"
+#include "flow.h"
+#include "util-hash.h"
+#include "util-debug.h"
+#include "util-memcmp.h"
+#include "util-print.h"
+#include "app-layer-parser.h"
+
+/** \brief switch to force magic checks on all files
+ *         regardless of the rules.
+ */
+static int g_file_force_magic = 0;
+
+/* prototypes */
+static void FileFree(File *);
+static void FileDataFree(FileData *);
+
+void FileForceMagicEnable(void) {
+    g_file_force_magic = 1;
+}
+
+int FileForceMagic(void) {
+    return g_file_force_magic;
+}
+
+int FileMagicSize(void) {
+    /** \todo make this size configurable */
+    return 512;
+}
+
+static int FileAppendFileDataFilePtr(File *ff, FileData *ffd) {
+    SCEnter();
+
+    if (ff == NULL) {
+        SCReturnInt(-1);
+    }
+
+    if (ff->chunks_tail == NULL) {
+        ff->chunks_head = ffd;
+        ff->chunks_tail = ffd;
+    } else {
+        ff->chunks_tail->next = ffd;
+        ff->chunks_tail = ffd;
+    }
+
+    ff->size += ffd->len;
+    SCLogDebug("file size %"PRIu64, ff->size);
+
+#ifdef DEBUG
+    ff->chunks_cnt++;
+    if (ff->chunks_cnt > ff->chunks_cnt_max)
+        ff->chunks_cnt_max = ff->chunks_cnt;
+#endif
+
+    SCReturnInt(0);
+}
+
+static int FileAppendFileData(FileContainer *ffc, FileData *ffd) {
+    SCEnter();
+
+    if (ffc == NULL) {
+        SCReturnInt(-1);
+    }
+
+    if (FileAppendFileDataFilePtr(ffc->tail, ffd) == -1)
+    {
+        SCReturnInt(-1);
+    }
+
+    SCReturnInt(0);
+}
+
+
+
+static void FilePruneFile(File *file) {
+    SCEnter();
+
+    SCLogDebug("file %p, file->chunks_cnt %"PRIu64, file, file->chunks_cnt);
+
+    if (!(file->flags & FILE_NOMAGIC)) {
+        /* need magic but haven't set it yet, bail out */
+        if (file->magic == NULL)
+            SCReturn;
+    }
+
+    /* okay, we now know we can prune */
+    FileData *fd = file->chunks_head;
+
+    while (fd != NULL) {
+        SCLogDebug("fd %p", fd);
+
+        if (file->store == -1 || fd->stored == 1) {
+            file->chunks_head = fd->next;
+            if (file->chunks_tail == fd)
+                file->chunks_tail = fd->next;
+
+            FileDataFree(fd);
+
+            fd = file->chunks_head;
+#ifdef DEBUG
+            file->chunks_cnt--;
+            SCLogDebug("file->chunks_cnt %"PRIu64, file->chunks_cnt);
+#endif
+        } else if (fd->stored == 0) {
+            fd = NULL;
+            break;
+        }
+    }
+
+    SCReturn;
+}
+
+void FilePrune(FileContainer *ffc) {
+    File *file;
+
+    for (file = ffc->head; file != NULL; file = file->next) {
+        FilePruneFile(file);
+    }
+}
+
+/**
+ *  \brief allocate a FileContainer
+ *
+ *  \retval new newly allocated FileContainer
+ *  \retval NULL error
+ */
+FileContainer *FileContainerAlloc(void) {
+    FileContainer *new = SCMalloc(sizeof(FileContainer));
+    if (new == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating mem");
+        return NULL;
+    }
+    memset(new, 0, sizeof(FileContainer));
+    new->head = new->tail = NULL;
+    return new;
+}
+
+/**
+ *  \brief Recycle a FileContainer
+ *
+ *  \param ffc FileContainer
+ */
+void FileContainerRecycle(FileContainer *ffc) {
+    if (ffc == NULL)
+        return;
+
+    File *cur = ffc->head;
+    File *next = NULL;
+    for (;cur != NULL; cur = next) {
+        next = cur->next;
+        FileFree(cur);
+    }
+    ffc->head = ffc->tail = NULL;
+}
+
+/**
+ *  \brief Free a FileContainer
+ *
+ *  \param ffc FileContainer
+ */
+void FileContainerFree(FileContainer *ffc) {
+    if (ffc == NULL)
+        return;
+
+    File *ptr = ffc->head;
+    File *next = NULL;
+    for (;ptr != NULL; ptr = next) {
+        next = ptr->next;
+        FileFree(ptr);
+    }
+    ffc->head = ffc->tail = NULL;
+    SCFree(ffc);
+}
+
+/**
+ *  \internal
+ *
+ *  \brief allocate a FileData chunk and set it up
+ *
+ *  \param data data chunk to store in the FileData
+ *  \param data_len lenght of the data
+ *
+ *  \retval new FileData object
+ */
+static FileData *FileDataAlloc(uint8_t *data, uint32_t data_len) {
+    FileData *new = SCMalloc(sizeof(FileData));
+    if (new == NULL) {
+        return NULL;
+    }
+    memset(new, 0, sizeof(FileData));
+
+    new->data = SCMalloc(data_len);
+    if (new->data == NULL) {
+        SCFree(new);
+        return NULL;
+    }
+
+    new->len = data_len;
+    memcpy(new->data, data, data_len);
+
+    new->next = NULL;
+    return new;
+}
+
+/**
+ *  \internal
+ *
+ *  \brief free a FileData object
+ *
+ *  \param ffd the flow file data object to free
+ */
+static void FileDataFree(FileData *ffd) {
+    if (ffd == NULL)
+        return;
+
+    if (ffd->data != NULL) {
+        SCFree(ffd->data);
+    }
+
+    SCFree(ffd);
+}
+
+/**
+ *  \brief Alloc a new File
+ *
+ *  \param name character array containing the name (not a string)
+ *  \param name_len length in bytes of the name
+ *
+ *  \retval new File object or NULL on error
+ */
+static File *FileAlloc(uint8_t *name, uint16_t name_len) {
+    File *new = SCMalloc(sizeof(File));
+    if (new == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating mem");
+        return NULL;
+    }
+    memset(new, 0, sizeof(File));
+
+    new->name = SCMalloc(name_len);
+    if (new->name == NULL) {
+        SCFree(new);
+        return NULL;
+    }
+
+    new->name_len = name_len;
+    memcpy(new->name, name, name_len);
+
+    return new;
+}
+
+static void FileFree(File *ff) {
+    if (ff == NULL)
+        return;
+
+    if (ff->name != NULL)
+        SCFree(ff->name);
+
+    /* magic returned by libmagic is strdup'd by MagicLookup. */
+    if (ff->magic != NULL)
+        SCFree(ff->magic);
+
+    if (ff->chunks_head != NULL) {
+        FileData *ffd = ff->chunks_head;
+
+        while (ffd != NULL) {
+            FileData *next_ffd = ffd->next;
+            FileDataFree(ffd);
+            ffd = next_ffd;
+        }
+    }
+
+    SCLogDebug("ff chunks_cnt %"PRIu64", chunks_cnt_max %"PRIu64,
+            ff->chunks_cnt, ff->chunks_cnt_max);
+    SCFree(ff);
+}
+
+void FileContainerAdd(FileContainer *ffc, File *ff) {
+    if (ffc->head == NULL) {
+        ffc->head = ffc->tail = ff;
+    } else {
+        ffc->tail->next = ff;
+        ffc->tail = ff;
+    }
+}
+
+/**
+ *  \brief Tag a file for storing
+ *
+ *  \param ff The file to store
+ */
+int FileStore(File *ff) {
+    ff->store = 1;
+    SCReturnInt(0);
+}
+
+/**
+ *  \brief Set the TX id for a file
+ *
+ *  \param ff The file to store
+ *  \param txid the tx id
+ */
+int FileSetTx(File *ff, uint16_t txid) {
+    SCLogDebug("ff %p txid %"PRIu16, ff, txid);
+    ff->txid = txid;
+    SCReturnInt(0);
+}
+
+/**
+ *  \brief check if we have stored enough
+ *
+ *  \param ff file
+ *
+ *  \retval 0 limit not reached yet
+ *  \retval 1 limit reached
+ */
+static int FileStoreNoStoreCheck(File *ff) {
+    SCEnter();
+
+    if (ff == NULL) {
+        SCReturnInt(0);
+    }
+
+
+    if (ff->store == -1) {
+        if (ff->state == FILE_STATE_OPENED &&
+                ff->size >= (uint64_t)FileMagicSize())
+        {
+            SCReturnInt(1);
+        }
+    }
+
+    SCReturnInt(0);
+}
+
+/**
+ *  \brief Store a chunk of file data in the flow. The open "flowfile"
+ *         will be used.
+ *
+ *  \param ffc the container
+ *  \param data data chunk
+ *  \param data_len data chunk len
+ *
+ *  \retval  0 ok
+ *  \retval -1 error
+ *  \retval -2 no store for this file
+ */
+int FileAppendData(FileContainer *ffc, uint8_t *data, uint32_t data_len) {
+    SCEnter();
+
+    if (ffc == NULL || ffc->tail == NULL || data == NULL || data_len == 0) {
+        SCReturnInt(-1);
+    }
+
+    if (ffc->tail->state != FILE_STATE_OPENED) {
+        if (ffc->tail->store == -1) {
+            SCReturnInt(-2);
+        }
+        SCReturnInt(-1);
+    }
+
+    if (FileStoreNoStoreCheck(ffc->tail) == 1) {
+        ffc->tail->state = FILE_STATE_CLOSED;
+        SCLogDebug("flowfile state transitioned to FILE_STATE_CLOSED");
+        SCReturnInt(-2);
+    }
+
+    SCLogDebug("appending %"PRIu32" bytes", data_len);
+
+    FileData *ffd = FileDataAlloc(data, data_len);
+    if (ffd == NULL) {
+        ffc->tail->state = FILE_STATE_ERROR;
+        SCReturnInt(-1);
+    }
+
+    /* append the data */
+    if (FileAppendFileData(ffc, ffd) < 0) {
+        ffc->tail->state = FILE_STATE_ERROR;
+        FileDataFree(ffd);
+        SCReturnInt(-1);
+    }
+    SCReturnInt(0);
+}
+
+/**
+ *  \brief Open a new File
+ *
+ *  \param ffc flow container
+ *  \param name filename character array
+ *  \param name_len filename len
+ *  \param data initial data
+ *  \param data_len initial data len
+ *  \param flags open flags
+ *
+ *  \retval ff flowfile object
+ *
+ *  \note filename is not a string, so it's not nul terminated.
+ */
+File *FileOpenFile(FileContainer *ffc, uint8_t *name,
+        uint16_t name_len, uint8_t *data, uint32_t data_len, uint8_t flags)
+{
+    SCEnter();
+
+    //PrintRawDataFp(stdout, name, name_len);
+
+    File *ff = FileAlloc(name, name_len);
+    if (ff == NULL) {
+        SCReturnPtr(NULL, "File");
+    }
+
+    if (flags & FILE_NOSTORE) {
+        ff->store = -1;
+    }
+    if (flags & FILE_NOMAGIC) {
+        ff->flags |= FILE_NOMAGIC;
+    }
+
+    ff->state = FILE_STATE_OPENED;
+    SCLogDebug("flowfile state transitioned to FILE_STATE_OPENED");
+
+    FileContainerAdd(ffc, ff);
+
+    if (data != NULL) {
+        //PrintRawDataFp(stdout, data, data_len);
+
+        FileData *ffd = FileDataAlloc(data, data_len);
+        if (ffd == NULL) {
+            ff->state = FILE_STATE_ERROR;
+            SCReturnPtr(NULL, "File");
+        }
+
+        /* append the data */
+        if (FileAppendFileData(ffc, ffd) < 0) {
+            ff->state = FILE_STATE_ERROR;
+            FileDataFree(ffd);
+            SCReturnPtr(NULL, "File");
+        }
+    }
+
+    SCReturnPtr(ff, "File");
+}
+
+static int FileCloseFilePtr(File *ff, uint8_t *data,
+        uint32_t data_len, uint8_t flags)
+{
+    SCEnter();
+
+    if (ff == NULL) {
+        SCReturnInt(-1);
+    }
+
+    if (ff->state != FILE_STATE_OPENED) {
+        SCReturnInt(-1);
+    }
+
+    if (data != NULL) {
+        //PrintRawDataFp(stdout, data, data_len);
+
+        FileData *ffd = FileDataAlloc(data, data_len);
+        if (ffd == NULL) {
+            ff->state = FILE_STATE_ERROR;
+            SCReturnInt(-1);
+        }
+
+        /* append the data */
+        if (FileAppendFileDataFilePtr(ff, ffd) < 0) {
+            ff->state = FILE_STATE_ERROR;
+            FileDataFree(ffd);
+            SCReturnInt(-1);
+        }
+    }
+
+    if (flags & FILE_TRUNCATED) {
+        ff->state = FILE_STATE_TRUNCATED;
+        SCLogDebug("flowfile state transitioned to FILE_STATE_TRUNCATED");
+
+        if (flags & FILE_NOSTORE) {
+            ff->store = -1;
+        }
+    } else {
+        ff->state = FILE_STATE_CLOSED;
+        SCLogDebug("flowfile state transitioned to FILE_STATE_CLOSED");
+    }
+
+    SCReturnInt(0);
+}
+
+/**
+ *  \brief Close a File
+ *
+ *  \param ffc the container
+ *  \param data final data if any
+ *  \param data_len data len if any
+ *  \param flags flags
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
+ */
+int FileCloseFile(FileContainer *ffc, uint8_t *data,
+        uint32_t data_len, uint8_t flags)
+{
+    SCEnter();
+
+    if (ffc == NULL || ffc->tail == NULL) {
+        SCReturnInt(-1);
+    }
+
+    if (FileCloseFilePtr(ffc->tail, data, data_len, flags) == -1) {
+        SCReturnInt(-1);
+    }
+
+    SCReturnInt(0);
+}
+
+/**
+ *  \brief disable file storage for a flow
+ *
+ *  \param f *LOCKED* flow
+ *  \param direction flow direction
+ */
+void FileDisableStoring(Flow *f, uint8_t direction) {
+    File *ptr = NULL;
+
+    SCEnter();
+
+    f->flags |= FLOW_FILE_NO_STORE;
+
+    FileContainer *ffc = AppLayerGetFilesFromFlow(f, direction);
+    if (ffc != NULL) {
+        for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
+            if (ptr->state == FILE_STATE_OPENED) {
+
+                if (ptr->store == 0) {
+                    ptr->store = -1;
+                }
+            }
+        }
+    }
+    SCReturn;
+}
+
+/**
+ *  \brief disable file magic lookups for this flow
+ *
+ *  \param f *LOCKED* flow
+ *  \param direction flow direction
+ */
+void FileDisableMagic(Flow *f, uint8_t direction) {
+    File *ptr = NULL;
+
+    SCEnter();
+
+    f->flags |= FLOW_FILE_NO_MAGIC;
+
+    FileContainer *ffc = AppLayerGetFilesFromFlow(f, direction);
+    if (ffc != NULL) {
+        for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
+            ptr->flags |= FILE_NOMAGIC;
+        }
+    }
+
+    SCReturn;
+}
+
+/**
+ *  \brief set no store flag, close file if needed
+ *
+ *  \param ff file
+ */
+void FileDisableStoringForFile(File *ff) {
+    SCEnter();
+
+    if (ff == NULL) {
+        SCReturn;
+    }
+
+    ff->store = -1;
+
+    if (ff->state == FILE_STATE_OPENED && ff->size >= (uint64_t)FileMagicSize()) {
+        (void)FileCloseFilePtr(ff, NULL, 0,
+                (FILE_TRUNCATED|FILE_NOSTORE));
+    }
+}
+
+/**
+ *  \brief disable file storing for files in a transaction
+ *
+ *  \param f flow
+ *  \param direction flow direction
+ *  \param tx_id transaction id
+ */
+void FileDisableStoringForTransaction(Flow *f, uint8_t direction, uint16_t tx_id) {
+    File *ptr = NULL;
+
+    SCEnter();
+
+    FileContainer *ffc = AppLayerGetFilesFromFlow(f, direction);
+    if (ffc != NULL) {
+        for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
+            if (ptr->state == FILE_STATE_OPENED && ptr->txid == tx_id) {
+                if (ptr->store == 1) {
+                    /* weird, already storing -- let it continue*/
+                    SCLogDebug("file is already being stored");
+                } else {
+                    FileDisableStoringForFile(ptr);
+                }
+            }
+        }
+    }
+
+    SCReturn;
+}
