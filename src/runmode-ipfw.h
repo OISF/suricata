@@ -24,6 +24,8 @@
 #define __RUNMODE_IPFW_H__
 
 int RunModeIpsIPFWAuto(DetectEngineCtx *);
+int RunModeIpsIPFWAutoFp(DetectEngineCtx *);
+int RunModeIpsIPFWWorker(DetectEngineCtx *);
 void RunModeIpsIPFWRegister(void);
 const char *RunModeIpsIPFWGetDefaultMode(void);
 

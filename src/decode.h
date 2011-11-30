@@ -32,6 +32,7 @@
 #include "threadvars.h"
 
 #include "source-nfq.h"
+#include "source-ipfw.h"
 
 #include "source-pcap.h"
 #include "action-globals.h"
@@ -352,6 +353,10 @@ typedef struct Packet_
 #ifdef NFQ
         NFQPacketVars nfq_v;
 #endif /* NFQ */
+#ifdef IPFW
+        IPFWPacketVars ipfw_v;
+#endif /* IPFW */
+
 
         /** libpcap vars: shared by Pcap Live mode and Pcap File mode */
         PcapPacketVars pcap_v;

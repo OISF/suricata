@@ -993,15 +993,16 @@ int main(int argc, char **argv)
             if (run_mode == RUNMODE_UNKNOWN) {
                 run_mode = RUNMODE_IPFW;
                 SET_ENGINE_MODE_IPS(engine_mode);
+                if (IPFWRegisterQueue(optarg) == -1)
+                    exit(EXIT_FAILURE);
+            } else if (run_mode == RUNMODE_IPFW) {
+                if (IPFWRegisterQueue(optarg) == -1)
+                    exit(EXIT_FAILURE);
             } else {
                 SCLogError(SC_ERR_MULTIPLE_RUN_MODE, "more than one run mode "
                                                      "has been specified");
                 usage(argv[0]);
                 exit(EXIT_SUCCESS);
-            }
-            if (ConfSet("ipfw.ipfw_divert_port", optarg, 0) != 1) {
-                fprintf(stderr, "ERROR: Failed to set ipfw_divert_port\n");
-                exit(EXIT_FAILURE);
             }
 #else
             SCLogError(SC_ERR_IPFW_NOSUPPORT,"IPFW not enabled. Make sure to pass --enable-ipfw to configure when building.");

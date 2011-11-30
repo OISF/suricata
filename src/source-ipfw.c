@@ -19,6 +19,7 @@
  * \file
  *
  * \author Nick Rogness <nick@rogness.net>
+ * \author Eric Leblond <eric@regit.org>
  *
  * IPFW packet acquisition support
  */
@@ -34,7 +35,9 @@
 #include "source-ipfw.h"
 #include "util-debug.h"
 #include "conf.h"
+#include "util-byte.h"
 #include "util-privs.h"
+#include "util-device.h"
 
 #define IPFW_ACCEPT 0
 #define IPFW_DROP 1
@@ -53,6 +56,7 @@
 TmEcode NoIPFWSupportExit(ThreadVars *, void *, void **);
 
 void TmModuleReceiveIPFWRegister (void) {
+
     tmm_modules[TMM_RECEIVEIPFW].name = "ReceiveIPFW";
     tmm_modules[TMM_RECEIVEIPFW].ThreadInit = NoIPFWSupportExit;
     tmm_modules[TMM_RECEIVEIPFW].Func = NULL;
@@ -100,6 +104,11 @@ typedef struct IPFWThreadVars_
     /* data link type for the thread, probably not needed */
     int datalink;
 
+    /* this one should be not changing after init */
+    uint16_t port_num;
+    /* position into the NFQ queue var array */
+    uint16_t ipfw_index;
+
     /* counters */
     uint32_t pkts;
     uint64_t bytes;
@@ -108,15 +117,16 @@ typedef struct IPFWThreadVars_
     uint32_t dropped;
 } IPFWThreadVars;
 
-/* Global socket handler for the divert socket */
-struct sockaddr_in ipfw_sin;
-socklen_t ipfw_sinlen;
-int ipfw_sock;
-static SCMutex ipfw_socket_lock;
+static IPFWThreadVars ipfw_t[IPFW_MAX_QUEUE];
+static IPFWQueueVars ipfw_q[IPFW_MAX_QUEUE];
+static uint16_t receive_port_num = 0;
+static SCMutex ipfw_init_lock;
 
 /* IPFW Prototypes */
+void *IPFWGetQueue(int number);
 TmEcode ReceiveIPFWThreadInit(ThreadVars *, void *, void **);
 TmEcode ReceiveIPFW(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot);
 void ReceiveIPFWThreadExitStats(ThreadVars *, void *);
 TmEcode ReceiveIPFWThreadDeinit(ThreadVars *, void *);
 
@@ -134,9 +144,12 @@ TmEcode DecodeIPFW(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *)
  * \todo Unit tests are needed for this module.
  */
 void TmModuleReceiveIPFWRegister (void) {
+    SCMutexInit(&ipfw_init_lock, NULL);
+
     tmm_modules[TMM_RECEIVEIPFW].name = "ReceiveIPFW";
     tmm_modules[TMM_RECEIVEIPFW].ThreadInit = ReceiveIPFWThreadInit;
     tmm_modules[TMM_RECEIVEIPFW].Func = ReceiveIPFW;
+    tmm_modules[TMM_RECEIVEIPFW].PktAcqLoop = ReceiveIPFWLoop;
     tmm_modules[TMM_RECEIVEIPFW].ThreadExitPrintStats = ReceiveIPFWThreadExitStats;
     tmm_modules[TMM_RECEIVEIPFW].ThreadDeinit = ReceiveIPFWThreadDeinit;
     tmm_modules[TMM_RECEIVEIPFW].cap_flags = SC_CAP_NET_ADMIN | SC_CAP_NET_RAW |
@@ -189,7 +202,8 @@ void TmModuleDecodeIPFWRegister (void) {
 TmEcode ReceiveIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     IPFWThreadVars *ptv = (IPFWThreadVars *)data;
-    char pkt[IP_MAXPACKET];
+    IPFWQueueVars *nq = IPFWGetQueue(ptv->ipfw_index);
+    uint8_t pkt[IP_MAXPACKET];
     int pktlen=0;
     int r = 0;
     struct pollfd IPFWpoll;
@@ -198,8 +212,8 @@ TmEcode ReceiveIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
 
     //printf("Entering RecieveIPFW\n");
 
-    IPFWpoll.fd=ipfw_sock;
-    IPFWpoll.events= POLLRDNORM;
+    IPFWpoll.fd = nq->fd;
+    IPFWpoll.events = POLLRDNORM;
 
     /* Read packets from divert socket */
     while (r == 0) {
@@ -218,18 +232,15 @@ TmEcode ReceiveIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
 
     } /* end while */
 
-    SCMutexLock(&ipfw_socket_lock);
-    if ((pktlen = recvfrom(ipfw_sock, pkt, sizeof(pkt), 0,(struct sockaddr *)&ipfw_sin, &ipfw_sinlen)) == -1) {
+    if ((pktlen = recvfrom(nq->fd, pkt, sizeof(pkt), 0,(struct sockaddr *)&nq->ipfw_sin, &nq->ipfw_sinlen)) == -1) {
 
         /* We received an error on socket read */
         if (errno == EINTR || errno == EWOULDBLOCK) {
             /* Nothing for us to process */
-            SCMutexUnlock(&ipfw_socket_lock);
             SCReturnInt(TM_ECODE_OK);
 
         } else {
             SCLogWarning(SC_WARN_IPFW_RECV,"Read from IPFW divert socket failed: %s",strerror(errno));
-            SCMutexUnlock(&ipfw_socket_lock);
             SCReturnInt(TM_ECODE_FAILED);
         }
 
@@ -239,8 +250,6 @@ TmEcode ReceiveIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
         gettimeofday(&IPFWts, NULL);
         r++;
     }
-
-    SCMutexUnlock(&ipfw_socket_lock);
 
     SCLogDebug("Received Packet Len: %d",pktlen);
 
@@ -254,6 +263,9 @@ TmEcode ReceiveIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
     ptv->bytes += pktlen;
 
     p->datalink = ptv->datalink;
+
+    p->ipfw_v.ipfw_index = ptv->ipfw_index;
+
     PacketCopyData(p, pkt, pktlen);
     SCLogDebug("Packet info: pkt_len: %" PRIu32 " (pkt %02x, pkt_data %02x)", GET_PKT_LEN(p), *pkt, GET_PKT_DATA(p));
 
@@ -262,6 +274,110 @@ TmEcode ReceiveIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
 
     SCReturnInt(TM_ECODE_OK);
 
+}
+
+
+TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
+{
+    IPFWThreadVars *ptv = (IPFWThreadVars *)data;
+    IPFWQueueVars *nq = NULL;
+    uint8_t pkt[IP_MAXPACKET];
+    int pktlen=0;
+    struct pollfd IPFWpoll;
+    struct timeval IPFWts;
+    Packet *p = NULL;
+    uint16_t packet_q_len = 0;
+    SCEnter();
+
+
+    if (ptv == NULL) {
+        SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Null data pointer");
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+    nq = IPFWGetQueue(ptv->ipfw_index);
+    if (nq == NULL) {
+        SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Can't get thread variable");
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    SCLogInfo("Thread '%s' will run on port %d (item %d)",
+              tv->name,
+              nq->port_num,
+              ptv->ipfw_index);
+    while (1) {
+        if (suricata_ctl_flags & SURICATA_STOP ||
+            suricata_ctl_flags & SURICATA_KILL)
+        {
+            SCReturnInt(TM_ECODE_OK);
+        }
+
+        IPFWpoll.fd = nq->fd;
+        IPFWpoll.events = POLLRDNORM;
+        /* Poll the socket for status */
+        if ( (poll(&IPFWpoll, 1, IPFW_SOCKET_POLL_MSEC)) > 0) {
+            if (!(IPFWpoll.revents & (POLLRDNORM | POLLERR)))
+                continue;
+        }
+
+        if ((pktlen = recvfrom(nq->fd, pkt, sizeof(pkt), 0,
+                               (struct sockaddr *)&nq->ipfw_sin,
+                               &nq->ipfw_sinlen)) == -1) {
+            /* We received an error on socket read */
+            if (errno == EINTR || errno == EWOULDBLOCK) {
+                /* Nothing for us to process */
+                continue;
+            } else {
+                SCLogWarning(SC_WARN_IPFW_RECV,
+                             "Read from IPFW divert socket failed: %s",
+                             strerror(errno));
+                SCReturnInt(TM_ECODE_FAILED);
+            }
+        } else {
+            /* We have a packet to process */
+            memset (&IPFWts, 0, sizeof(struct timeval));
+            gettimeofday(&IPFWts, NULL);
+        }
+
+        /* make sure we have at least one packet in the packet pool, to prevent
+         * us from alloc'ing packets at line rate */
+        do {
+            packet_q_len = PacketPoolSize();
+            if (unlikely(packet_q_len == 0)) {
+                PacketPoolWait();
+            }
+        } while (packet_q_len == 0);
+
+        p = PacketGetFromQueueOrAlloc();
+        if (p == NULL) {
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+
+        SCLogDebug("Received Packet Len: %d", pktlen);
+
+        p->ts.tv_sec = IPFWts.tv_sec;
+        p->ts.tv_usec = IPFWts.tv_usec;
+
+        ptv->pkts++;
+        ptv->bytes += pktlen;
+
+        p->datalink = ptv->datalink;
+
+        p->ipfw_v.ipfw_index = ptv->ipfw_index;
+
+        PacketCopyData(p, pkt, pktlen);
+        SCLogDebug("Packet info: pkt_len: %" PRIu32 " (pkt %02x, pkt_data %02x)",
+                   GET_PKT_LEN(p), *pkt, GET_PKT_DATA(p));
+
+        if (TmThreadsSlotProcessPkt(tv, ((TmSlot *) slot)->slot_next, p)
+                != TM_ECODE_OK) {
+            TmqhOutputPacketpool(tv, p);
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+
+        SCPerfSyncCountersIfSignalled(tv, 0);
+    }
+
+    SCReturnInt(TM_ECODE_OK);
 }
 
 /**
@@ -279,9 +395,8 @@ TmEcode ReceiveIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
 TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     struct timeval timev;
-
-    uint16_t divert_port=0;
-    char *tmpdivertport;
+    IPFWThreadVars *ntv = (IPFWThreadVars *) initdata;
+    IPFWQueueVars *nq = IPFWGetQueue(ntv->ipfw_index);
 
     sigset_t sigs;
     sigfillset(&sigs);
@@ -289,31 +404,9 @@ TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, void *initdata, void **data)
 
     SCEnter();
 
-    /* divert socket port to listen/send on */
-    if ((ConfGet("ipfw.ipfw_divert_port", &tmpdivertport)) != 1) {
-        SCLogError(SC_ERR_IPFW_NOPORT,"Please supply an IPFW divert port");
-        SCReturnInt(TM_ECODE_FAILED);
-
-    } else {
-        if (atoi(tmpdivertport) > 0 && atoi(tmpdivertport) <= 65535) {
-            divert_port = (uint16_t)atoi(tmpdivertport);
-            SCLogInfo("Using IPFW divert port %u",divert_port);
-
-        } else {
-            SCLogError(SC_ERR_IPFW_BIND,"Divert port: %s is invalid",tmpdivertport);
-            SCReturnInt(TM_ECODE_FAILED);
-        }
-    }
-
-    /* Setup Threadvars */
-    IPFWThreadVars *ptv = SCMalloc(sizeof(IPFWThreadVars));
-    if (ptv == NULL)
-        SCReturnInt(TM_ECODE_FAILED);
-    memset(ptv, 0, sizeof(IPFWThreadVars));
-
-    SCMutexInit(&ipfw_socket_lock, NULL);
+    SCMutexInit(&nq->socket_lock, NULL);
     /* We need a divert socket to play with */
-    if ((ipfw_sock = socket(PF_INET, SOCK_RAW, IPPROTO_DIVERT)) == -1) {
+    if ((nq->fd = socket(PF_INET, SOCK_RAW, IPPROTO_DIVERT)) == -1) {
         SCLogError(SC_ERR_IPFW_SOCK,"Can't create divert socket: %s", strerror(errno));
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -323,26 +416,26 @@ TmEcode ReceiveIPFWThreadInit(ThreadVars *tv, void *initdata, void **data)
     timev.tv_sec = 1;
     timev.tv_usec = 0;
 
-    if (setsockopt(ipfw_sock, SOL_SOCKET, SO_RCVTIMEO, &timev, sizeof(timev)) == -1) {
+    if (setsockopt(nq->fd, SOL_SOCKET, SO_RCVTIMEO, &timev, sizeof(timev)) == -1) {
         SCLogWarning(SC_WARN_IPFW_SETSOCKOPT,"Can't set IPFW divert socket timeout: %s", strerror(errno));
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    ipfw_sinlen=sizeof(ipfw_sin);
-    memset(&ipfw_sin, 0, ipfw_sinlen);
-    ipfw_sin.sin_family = PF_INET;
-    ipfw_sin.sin_addr.s_addr = INADDR_ANY;
-    ipfw_sin.sin_port = htons(divert_port);
+    nq->ipfw_sinlen=sizeof(nq->ipfw_sin);
+    memset(&nq->ipfw_sin, 0, nq->ipfw_sinlen);
+    nq->ipfw_sin.sin_family = PF_INET;
+    nq->ipfw_sin.sin_addr.s_addr = INADDR_ANY;
+    nq->ipfw_sin.sin_port = htons(nq->port_num);
 
     /* Bind that SOB */
-    if (bind(ipfw_sock, (struct sockaddr *)&ipfw_sin, ipfw_sinlen) == -1) {
-        SCLogError(SC_ERR_IPFW_BIND,"Can't bind divert socket on port %d: %s",divert_port,strerror(errno));
+    if (bind(nq->fd, (struct sockaddr *)&nq->ipfw_sin, nq->ipfw_sinlen) == -1) {
+        SCLogError(SC_ERR_IPFW_BIND,"Can't bind divert socket on port %d: %s",nq->port_num,strerror(errno));
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    ptv->datalink = DLT_RAW;
+    ntv->datalink = DLT_RAW;
 
-    *data = (void *)ptv;
+    *data = (void *)ntv;
 
     SCReturnInt(TM_ECODE_OK);
 }
@@ -373,11 +466,12 @@ void ReceiveIPFWThreadExitStats(ThreadVars *tv, void *data)
 TmEcode ReceiveIPFWThreadDeinit(ThreadVars *tv, void *data)
 {
     IPFWThreadVars *ptv = (IPFWThreadVars *)data;
+    IPFWQueueVars *nq = IPFWGetQueue(ptv->ipfw_index);
 
     SCEnter();
 
     /* Attempt to shut the socket down...close instead? */
-    if (shutdown(ipfw_sock,SHUT_RD) < 0) {
+    if (shutdown(nq->fd, SHUT_RD) < 0) {
         SCLogWarning(SC_WARN_IPFW_UNBIND,"Unable to disable ipfw socket: %s",strerror(errno));
         SCReturnInt(TM_ECODE_FAILED);
     }
@@ -465,11 +559,23 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
 {
     uint32_t verdict;
     struct pollfd IPFWpoll;
+    IPFWQueueVars *nq = NULL;
 
     SCEnter();
 
-    IPFWpoll.fd=ipfw_sock;
-    IPFWpoll.events= POLLWRNORM;
+    if (p == NULL) {
+        SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Packet is NULL");
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    nq = IPFWGetQueue(p->ipfw_v.ipfw_index);
+    if (nq == NULL) {
+        SCLogWarning(SC_ERR_INVALID_ARGUMENT, "No thread found");
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
+    IPFWpoll.fd = nq->fd;
+    IPFWpoll.events = POLLWRNORM;
 
     if (p->action & ACTION_DROP) {
         verdict = IPFW_DROP;
@@ -485,7 +591,7 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
         /* For divert sockets, accepting means writing the
          * packet back to the socket for ipfw to pick up
          */
-        SCLogDebug("IPFWSetVerdict writing to socket %d, %p, %u", ipfw_sock,GET_PKT_DATA(p),GET_PKT_LEN(p));
+        SCLogDebug("IPFWSetVerdict writing to socket %d, %p, %u", nq->fd, GET_PKT_DATA(p),GET_PKT_LEN(p));
 
 
         while ( (poll(&IPFWpoll,1,IPFW_SOCKET_POLL_MSEC)) < 1) {
@@ -496,14 +602,14 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
             }
         }
 
-        SCMutexLock(&ipfw_socket_lock);
-        if (sendto(ipfw_sock, GET_PKT_DATA(p), GET_PKT_LEN(p), 0,(struct sockaddr *)&ipfw_sin, ipfw_sinlen) == -1) {
+        SCMutexLock(&nq->socket_lock);
+        if (sendto(nq->fd, GET_PKT_DATA(p), GET_PKT_LEN(p), 0,(struct sockaddr *)&nq->ipfw_sin, nq->ipfw_sinlen) == -1) {
             SCLogWarning(SC_WARN_IPFW_XMIT,"Write to ipfw divert socket failed: %s",strerror(errno));
-            SCMutexUnlock(&ipfw_socket_lock);
+            SCMutexUnlock(&nq->socket_lock);
             SCReturnInt(TM_ECODE_FAILED);
         }
 
-        SCMutexUnlock(&ipfw_socket_lock);
+        SCMutexUnlock(&nq->socket_lock);
 
         SCLogDebug("Sent Packet back into IPFW Len: %d",GET_PKT_LEN(p));
 
@@ -569,7 +675,7 @@ TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
         /* don't verdict if we are not ready */
         if (verdict == 1) {
             SCLogDebug("Setting verdict on tunnel");
-            retval=IPFWSetVerdict(tv, ptv, p->root ? p->root : p);
+            retval = IPFWSetVerdict(tv, ptv, p->root ? p->root : p);
 
         } else {
             TUNNEL_INCR_PKT_RTV(p);
@@ -577,7 +683,7 @@ TmEcode VerdictIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
     } else {
         /* no tunnel, verdict normally */
         SCLogDebug("Setting verdict on non-tunnel");
-        retval=IPFWSetVerdict(tv, ptv, p);
+        retval = IPFWSetVerdict(tv, ptv, p);
     } /* IS_TUNNEL_PKT end */
 
     SCReturnInt(retval);
@@ -638,6 +744,85 @@ void VerdictIPFWThreadExitStats(ThreadVars *tv, void *data)
 {
     IPFWThreadVars *ptv = (IPFWThreadVars *)data;
     SCLogInfo("IPFW Processing: - (%s) Pkts accepted %" PRIu32 ", dropped %" PRIu32 "", tv->name, ptv->accepted, ptv->dropped);
+}
+
+/**
+ *  \brief Add an IPFW divert
+ *
+ *  \param string with the queue name
+ *
+ *  \retval 0 on success.
+ *  \retval -1 on failure.
+ */
+int IPFWRegisterQueue(char *queue)
+{
+    IPFWThreadVars *ntv = NULL;
+    IPFWQueueVars *nq = NULL;
+    /* Extract the queue number from the specified command line argument */
+    uint16_t port_num = 0;
+    if ((ByteExtractStringUint16(&port_num, 10, strlen(queue), queue)) < 0)
+    {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "specified queue number %s is not "
+                                        "valid", queue);
+        return -1;
+    }
+
+    SCMutexLock(&ipfw_init_lock);
+    if (receive_port_num >= IPFW_MAX_QUEUE) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT,
+                   "too much IPFW divert port registered (%d)",
+                   receive_port_num);
+        SCMutexUnlock(&ipfw_init_lock);
+        return -1;
+    }
+    if (receive_port_num == 0) {
+        memset(&ipfw_t, 0, sizeof(ipfw_t));
+        memset(&ipfw_q, 0, sizeof(ipfw_q));
+    }
+
+    ntv = &ipfw_t[receive_port_num];
+    ntv->ipfw_index = receive_port_num;
+
+    nq = &ipfw_q[receive_port_num];
+    nq->port_num = port_num;
+    receive_port_num++;
+    SCMutexUnlock(&ipfw_init_lock);
+    LiveRegisterDevice(queue);
+
+    SCLogDebug("Queue \"%s\" registered.", queue);
+    return 0;
+}
+
+/**
+ *  \brief Get a pointer to the IPFW queue at index
+ *
+ *  \param number idx of the queue in our array
+ *
+ *  \retval ptr pointer to the IPFWThreadVars at index
+ *  \retval NULL on error
+ */
+void *IPFWGetQueue(int number) {
+    if (number >= receive_port_num)
+        return NULL;
+
+    return (void *)&ipfw_q[number];
+}
+
+/**
+ *  \brief Get a pointer to the IPFW thread at index
+ *
+ *  This function is temporary used as configuration parser.
+ *
+ *  \param number idx of the queue in our array
+ *
+ *  \retval ptr pointer to the IPFWThreadVars at index
+ *  \retval NULL on error
+ */
+void *IPFWGetThread(int number) {
+    if (number >= receive_port_num)
+        return NULL;
+
+    return (void *)&ipfw_t[number];
 }
 
 #endif /* End ifdef IPFW */
