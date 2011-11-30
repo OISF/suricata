@@ -464,7 +464,6 @@ Flow *UTHBuildFlow(int family, char *src, char *dst, Port sp, Port dp) {
 
 void UTHFreeFlow(Flow *flow) {
     if (flow != NULL) {
-        FLOW_DESTROY(flow);
         FlowFree(flow);
     }
 }

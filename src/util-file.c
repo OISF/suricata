@@ -554,11 +554,8 @@ void FileDisableStoring(Flow *f, uint8_t direction) {
     FileContainer *ffc = AppLayerGetFilesFromFlow(f, direction);
     if (ffc != NULL) {
         for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
-            if (ptr->state == FILE_STATE_OPENED) {
-
-                if (ptr->store == 0) {
-                    ptr->store = -1;
-                }
+            if (ptr->store == 0) {
+                ptr->store = -1;
             }
         }
     }
@@ -623,7 +620,7 @@ void FileDisableStoringForTransaction(Flow *f, uint8_t direction, uint16_t tx_id
     FileContainer *ffc = AppLayerGetFilesFromFlow(f, direction);
     if (ffc != NULL) {
         for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
-            if (ptr->state == FILE_STATE_OPENED && ptr->txid == tx_id) {
+            if (ptr->txid == tx_id) {
                 if (ptr->store == 1) {
                     /* weird, already storing -- let it continue*/
                     SCLogDebug("file is already being stored");

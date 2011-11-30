@@ -78,15 +78,19 @@ static uint32_t al_result_pool_elmts = 0;
  *  \retval direction flow direction, either STREAM_TOCLIENT or STREAM_TOSERVER
  *  \retval NULL in case we have no state */
 FileContainer *AppLayerGetFilesFromFlow(Flow *f, uint8_t direction) {
+    SCEnter();
+
     uint16_t alproto = f->alproto;
 
     if (alproto == ALPROTO_UNKNOWN)
-        return NULL;
+        SCReturnPtr(NULL, "FileContainer");
 
-    if (al_proto_table[alproto].StateGetFiles != NULL)
-        return al_proto_table[alproto].StateGetFiles(AppLayerGetProtoStateFromFlow(f), direction);
-    else
-        return NULL;
+    if (al_proto_table[alproto].StateGetFiles != NULL) {
+        FileContainer *ptr = al_proto_table[alproto].StateGetFiles(AppLayerGetProtoStateFromFlow(f), direction);
+        SCReturnPtr(ptr, "FileContainer");
+    } else {
+        SCReturnPtr(NULL, "FileContainer");
+    }
 }
 
 /** \brief Alloc a AppLayerParserResultElmt func for the pool */
