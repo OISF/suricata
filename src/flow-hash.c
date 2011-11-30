@@ -325,6 +325,7 @@ static Flow *FlowGetNew(Packet *p) {
                             "(ts.tv_sec: %"PRIuMAX", ts.tv_usec:%"PRIuMAX")",
                             (uintmax_t)p->ts.tv_sec, (uintmax_t)p->ts.tv_usec);
                     flow_flags |= FLOW_EMERGENCY; /* XXX mutex this */
+                    SCCondSignal(&flow_manager_cond);
                 }
                 SCLogDebug("We need to prune some flows with emerg bit (2)");
 
@@ -353,10 +354,6 @@ static Flow *FlowGetNew(Packet *p) {
         /* flow has been recycled before it went into the spare queue */
 
         /* flow is initialized (recylced) but *unlocked* */
-
-        /* Important event for flow system, let's ask for a refresh to flow
-           manager */
-        SCCondSignal(&flow_manager_cond);
     }
 
     FlowIncrUsecnt(f);

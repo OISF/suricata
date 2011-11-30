@@ -62,7 +62,10 @@
 /* Run mode selected at suricata.c */
 extern int run_mode;
 
-#define FLOW_UPDATE_DELAY 2
+#define FLOW_NORMAL_MODE_UPDATE_DELAY_SEC 2
+#define FLOW_NORMAL_MODE_UPDATE_DELAY_NSEC 0
+#define FLOW_EMERG_MODE_UPDATE_DELAY_SEC 0
+#define FLOW_EMERG_MODE_UPDATE_DELAY_NSEC 10000000
 #define NEW_FLOW_COUNT_COND 10
 
 /**
@@ -124,14 +127,14 @@ void *FlowManagerThread(void *td)
 {
     ThreadVars *th_v = (ThreadVars *)td;
     struct timeval ts;
-    struct timeval tsdiff;
     uint32_t established_cnt = 0, new_cnt = 0, closing_cnt = 0, nowcnt;
     uint32_t sleeping = 0;
     int emerg = FALSE;
     int prev_emerg = FALSE;
     uint32_t last_sec = 0;
     struct timespec cond_time;
-    int counter = 0;
+    int flow_update_delay_sec = FLOW_NORMAL_MODE_UPDATE_DELAY_SEC;
+    int flow_update_delay_nsec = FLOW_NORMAL_MODE_UPDATE_DELAY_NSEC;
 
     uint16_t flow_mgr_closing_cnt = SCPerfTVRegisterCounter("flow_mgr.closed_pruned", th_v,
             SC_PERF_TYPE_UINT64,
@@ -174,9 +177,9 @@ void *FlowManagerThread(void *td)
     {
         TmThreadTestThreadUnPaused(th_v);
 
-        if ((counter > NEW_FLOW_COUNT_COND) || (flow_flags & FLOW_EMERGENCY)) {
-
-            counter = 0;
+        //if ((counter > NEW_FLOW_COUNT_COND) || (flow_flags & FLOW_EMERGENCY)) {
+        {
+            //counter = 0;
 
             if (flow_flags & FLOW_EMERGENCY) {
                 emerg = TRUE;
@@ -257,6 +260,8 @@ void *FlowManagerThread(void *td)
                     flow_flags &= ~FLOW_EMERGENCY;
                     emerg = FALSE;
                     prev_emerg = FALSE;
+                    flow_update_delay_sec = FLOW_NORMAL_MODE_UPDATE_DELAY_SEC;
+                    flow_update_delay_nsec = FLOW_NORMAL_MODE_UPDATE_DELAY_NSEC;
                     SCLogInfo("Flow emergency mode over, back to normal... unsetting"
                             " FLOW_EMERGENCY bit (ts.tv_sec: %"PRIuMAX", "
                             "ts.tv_usec:%"PRIuMAX") flow_spare_q status(): %"PRIu32
@@ -264,6 +269,9 @@ void *FlowManagerThread(void *td)
                             (uintmax_t)ts.tv_usec, len * 100 / flow_config.prealloc);
 
                     SCPerfCounterIncr(flow_emerg_mode_over, th_v->sc_perf_pca);
+                } else {
+                    flow_update_delay_sec = FLOW_EMERG_MODE_UPDATE_DELAY_SEC;
+                    flow_update_delay_nsec = FLOW_EMERG_MODE_UPDATE_DELAY_NSEC;
                 }
             }
         }
@@ -276,13 +284,10 @@ void *FlowManagerThread(void *td)
 #if 0
         if (run_mode != RUNMODE_PCAP_FILE) {
 #endif
-            cond_time.tv_sec = time(NULL) + FLOW_UPDATE_DELAY;
-            cond_time.tv_nsec = 0;
+            cond_time.tv_sec = time(NULL) + flow_update_delay_sec;
+            cond_time.tv_nsec = flow_update_delay_nsec;
             SCMutexLock(&flow_manager_mutex);
-            if (SCCondTimedwait(&flow_manager_cond, &flow_manager_mutex, &cond_time) == ETIMEDOUT) {
-                counter = NEW_FLOW_COUNT_COND;
-            }
-            counter++;
+            SCCondTimedwait(&flow_manager_cond, &flow_manager_mutex, &cond_time);
             SCMutexUnlock(&flow_manager_mutex);
 #if 0
         } else {
@@ -339,7 +344,7 @@ void FlowManagerThreadSpawn()
 {
     ThreadVars *tv_flowmgr = NULL;
 
-    SCCondInit(&flow_manager_cond, &flow_manager_mutex);
+    SCCondInit(&flow_manager_cond, NULL);
 
     tv_flowmgr = TmThreadCreateMgmtThread("FlowManagerThread",
                                           FlowManagerThread, 0);
