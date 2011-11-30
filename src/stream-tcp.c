@@ -2244,7 +2244,24 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                            "%" PRIu32 ", ACK %" PRIu32 "", ssn, p->payload_len,
                            TCP_GET_SEQ(p), TCP_GET_ACK(p));
 
-                if (TCP_GET_SEQ(p) != ssn->client.next_seq) {
+                if (StreamTcpValidateAck(&ssn->server, p) == -1) {
+                    SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
+                    StreamTcpSetEvent(p, STREAM_FIN1_INVALID_ACK);
+                    return -1;
+                }
+
+                if (SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->client.next_win) ||
+                        (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) ||
+                        ssn->flags & STREAMTCP_FLAG_ASYNC)
+                {
+                    SCLogDebug("ssn %p: seq %"PRIu32" in window, ssn->client.next_win "
+                            "%" PRIu32 "", ssn, TCP_GET_SEQ(p), ssn->client.next_win);
+
+                    if (TCP_GET_SEQ(p) == ssn->client.next_seq) {
+                        StreamTcpPacketSetState(p, ssn, TCP_FIN_WAIT2);
+                        SCLogDebug("ssn %p: state changed to TCP_FIN_WAIT2", ssn);
+                    }
+                } else {
                     SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 ""
                                " != %" PRIu32 " from stream", ssn,
                                 TCP_GET_SEQ(p), ssn->client.next_seq);
@@ -2252,15 +2269,6 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                     StreamTcpSetEvent(p, STREAM_FIN1_ACK_WRONG_SEQ);
                     return -1;
                 }
-
-                if (StreamTcpValidateAck(&ssn->server, p) == -1) {
-                    SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
-                    StreamTcpSetEvent(p, STREAM_FIN1_INVALID_ACK);
-                    return -1;
-                }
-
-                StreamTcpPacketSetState(p, ssn, TCP_FIN_WAIT2);
-                SCLogDebug("ssn %p: state changed to TCP_FIN_WAIT2", ssn);
 
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
@@ -2281,6 +2289,11 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                             ssn, ssn->client.next_seq);
                 }
 
+                StreamTcpSackUpdatePacket(&ssn->server, p);
+
+                /* update next_win */
+                StreamTcpUpdateNextWin(ssn, &ssn->server, (ssn->server.last_ack + ssn->server.window));
+
                 StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
                                                      &ssn->client, p, pq);
 
@@ -2294,22 +2307,30 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                            "%" PRIu32 ", ACK %" PRIu32 "", ssn, p->payload_len,
                            TCP_GET_SEQ(p), TCP_GET_ACK(p));
 
-                if (TCP_GET_SEQ(p) != ssn->server.next_seq) {
-                    SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 ""
-                               " != %" PRIu32 " from stream", ssn,
-                                TCP_GET_SEQ(p), ssn->server.next_seq);
-                    StreamTcpSetEvent(p, STREAM_FIN1_ACK_WRONG_SEQ);
-                    return -1;
-                }
-
                 if (StreamTcpValidateAck(&ssn->client, p) == -1) {
                     SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
                     StreamTcpSetEvent(p, STREAM_FIN1_INVALID_ACK);
                     return -1;
                 }
 
-                StreamTcpPacketSetState(p, ssn, TCP_FIN_WAIT2);
-                SCLogDebug("ssn %p: state changed to TCP_FIN_WAIT2", ssn);
+                if (SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->server.next_win) ||
+                        (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) ||
+                        ssn->flags & STREAMTCP_FLAG_ASYNC)
+                {
+                    SCLogDebug("ssn %p: seq %"PRIu32" in window, ssn->server.next_win "
+                            "%" PRIu32 "", ssn, TCP_GET_SEQ(p), ssn->server.next_win);
+
+                    if (TCP_GET_SEQ(p) == ssn->server.next_seq) {
+                        StreamTcpPacketSetState(p, ssn, TCP_FIN_WAIT2);
+                        SCLogDebug("ssn %p: state changed to TCP_FIN_WAIT2", ssn);
+                    }
+                } else {
+                    SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 ""
+                               " != %" PRIu32 " from stream", ssn,
+                                TCP_GET_SEQ(p), ssn->server.next_seq);
+                    StreamTcpSetEvent(p, STREAM_FIN1_ACK_WRONG_SEQ);
+                    return -1;
+                }
 
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
@@ -2329,6 +2350,11 @@ static int StreamTcpPacketStateFinWait1(ThreadVars *tv, Packet *p,
                     SCLogDebug("ssn %p: ssn->server.next_seq %" PRIu32 "",
                             ssn, ssn->server.next_seq);
                 }
+
+                StreamTcpSackUpdatePacket(&ssn->client, p);
+
+                /* update next_win */
+                StreamTcpUpdateNextWin(ssn, &ssn->client, (ssn->client.last_ack + ssn->client.window));
 
                 StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
                                                      &ssn->server, p, pq);
@@ -2539,22 +2565,26 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                            "%" PRIu32 ", ACK %" PRIu32 "", ssn, p->payload_len,
                             TCP_GET_SEQ(p), TCP_GET_ACK(p));
 
-                if (TCP_GET_SEQ(p) != ssn->client.next_seq) {
-                    SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 ""
-                               " != %" PRIu32 " from stream", ssn,
-                                TCP_GET_SEQ(p), ssn->client.next_seq);
-                    StreamTcpSetEvent(p, STREAM_FIN2_ACK_WRONG_SEQ);
-                    return -1;
-                }
-
                 if (StreamTcpValidateAck(&ssn->server, p) == -1) {
                     SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
                     StreamTcpSetEvent(p, STREAM_FIN2_INVALID_ACK);
                     return -1;
                 }
 
-                StreamTcpPacketSetState(p, ssn, TCP_TIME_WAIT);
-                SCLogDebug("ssn %p: state changed to TCP_TIME_WAIT", ssn);
+                if (SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->client.next_win) ||
+                        (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) ||
+                        ssn->flags & STREAMTCP_FLAG_ASYNC)
+                {
+                    SCLogDebug("ssn %p: seq %"PRIu32" in window, ssn->client.next_win "
+                            "%" PRIu32 "", ssn, TCP_GET_SEQ(p), ssn->client.next_win);
+
+                } else {
+                    SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 ""
+                               " != %" PRIu32 " from stream", ssn,
+                                TCP_GET_SEQ(p), ssn->client.next_seq);
+                    StreamTcpSetEvent(p, STREAM_FIN2_ACK_WRONG_SEQ);
+                    return -1;
+                }
 
                 ssn->server.window = TCP_GET_WINDOW(p) << ssn->server.wscale;
 
@@ -2570,6 +2600,11 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                             ssn, ssn->client.next_seq);
                 }
 
+                StreamTcpSackUpdatePacket(&ssn->server, p);
+
+                /* update next_win */
+                StreamTcpUpdateNextWin(ssn, &ssn->server, (ssn->server.last_ack + ssn->server.window));
+
                 StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
                                                         &ssn->client, p, pq);
 
@@ -2581,22 +2616,25 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                            "%" PRIu32 ", ACK %" PRIu32 "", ssn, p->payload_len,
                             TCP_GET_SEQ(p), TCP_GET_ACK(p));
 
-                if (TCP_GET_SEQ(p) != ssn->server.next_seq) {
-                    SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 ""
-                               " != %" PRIu32 " from stream", ssn,
-                                TCP_GET_SEQ(p), ssn->server.next_seq);
-                    StreamTcpSetEvent(p, STREAM_FIN2_ACK_WRONG_SEQ);
-                    return -1;
-                }
-
                 if (StreamTcpValidateAck(&ssn->client, p) == -1) {
                     SCLogDebug("ssn %p: rejecting because of invalid ack value", ssn);
                     StreamTcpSetEvent(p, STREAM_FIN2_INVALID_ACK);
                     return -1;
                 }
 
-                StreamTcpPacketSetState(p, ssn, TCP_TIME_WAIT);
-                SCLogDebug("ssn %p: state changed to TCP_TIME_WAIT", ssn);
+                if (SEQ_LEQ(TCP_GET_SEQ(p) + p->payload_len, ssn->server.next_win) ||
+                        (ssn->flags & STREAMTCP_FLAG_MIDSTREAM) ||
+                        ssn->flags & STREAMTCP_FLAG_ASYNC)
+                {
+                    SCLogDebug("ssn %p: seq %"PRIu32" in window, ssn->server.next_win "
+                            "%" PRIu32 "", ssn, TCP_GET_SEQ(p), ssn->server.next_win);
+                } else {
+                    SCLogDebug("ssn %p: -> SEQ mismatch, packet SEQ %" PRIu32 ""
+                               " != %" PRIu32 " from stream", ssn,
+                                TCP_GET_SEQ(p), ssn->server.next_seq);
+                    StreamTcpSetEvent(p, STREAM_FIN2_ACK_WRONG_SEQ);
+                    return -1;
+                }
 
                 ssn->client.window = TCP_GET_WINDOW(p) << ssn->client.wscale;
 
@@ -2611,6 +2649,11 @@ static int StreamTcpPacketStateFinWait2(ThreadVars *tv, Packet *p,
                     SCLogDebug("ssn %p: ssn->server.next_seq %" PRIu32 "",
                             ssn, ssn->server.next_seq);
                 }
+
+                StreamTcpSackUpdatePacket(&ssn->client, p);
+
+                /* update next_win */
+                StreamTcpUpdateNextWin(ssn, &ssn->client, (ssn->client.last_ack + ssn->client.window));
 
                 StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
                                                           &ssn->server, p, pq);
