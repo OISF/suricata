@@ -1830,8 +1830,9 @@ static void StreamTcpRemoveSegmentFromStream(TcpStream *stream, TcpSegment *seg)
  *
  *  \todo this function is too long, we need to break it up. It needs it BAD
  */
-static int StreamTcpReassembleInlineAppLayer (TcpReassemblyThreadCtx *ra_ctx,
-        TcpSession *ssn, TcpStream *stream, Packet *p)
+static int StreamTcpReassembleInlineAppLayer (ThreadVars *tv,
+        TcpReassemblyThreadCtx *ra_ctx, TcpSession *ssn, TcpStream *stream,
+        Packet *p)
 {
     SCEnter();
 
@@ -1984,6 +1985,7 @@ static int StreamTcpReassembleInlineAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                 /* flag reassembly as started, so the to_client part can start */
                 ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
 
+                SCPerfCounterIncr(ra_ctx->counter_tcp_reass_gap, tv->sc_perf_pca);
 #ifdef DEBUG
                 dbg_app_layer_gap++;
 #endif
@@ -2509,8 +2511,9 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
  *
  *  \todo this function is too long, we need to break it up. It needs it BAD
  */
-static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
-        TcpSession *ssn, TcpStream *stream, Packet *p)
+static int StreamTcpReassembleAppLayer (ThreadVars *tv,
+        TcpReassemblyThreadCtx *ra_ctx, TcpSession *ssn, TcpStream *stream,
+        Packet *p)
 {
     SCEnter();
 
@@ -2677,6 +2680,7 @@ static int StreamTcpReassembleAppLayer (TcpReassemblyThreadCtx *ra_ctx,
                 /* flag reassembly as started, so the to_client part can start */
                 ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
 
+                SCPerfCounterIncr(ra_ctx->counter_tcp_reass_gap, tv->sc_perf_pca);
 #ifdef DEBUG
                 dbg_app_layer_gap++;
 #endif
@@ -3244,8 +3248,8 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
  *
  *  \retval r 0 on success, -1 on error
  */
-int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
-        TcpSession *ssn, TcpStream *stream, Packet *p)
+int StreamTcpReassembleHandleSegmentUpdateACK (ThreadVars *tv,
+        TcpReassemblyThreadCtx *ra_ctx, TcpSession *ssn, TcpStream *stream, Packet *p)
 {
     SCEnter();
 
@@ -3253,7 +3257,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (TcpReassemblyThreadCtx *ra_ctx,
 
     int r = 0;
     if (!(StreamTcpInlineMode())) {
-        if (StreamTcpReassembleAppLayer(ra_ctx, ssn, stream, p) < 0)
+        if (StreamTcpReassembleAppLayer(tv, ra_ctx, ssn, stream, p) < 0)
             r = -1;
         if (StreamTcpReassembleRaw(ra_ctx, ssn, stream, p) < 0)
             r = -1;
@@ -3327,7 +3331,7 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
     }
 
     /* handle ack received */
-    if (StreamTcpReassembleHandleSegmentUpdateACK(ra_ctx, ssn, opposing_stream, p) != 0)
+    if (StreamTcpReassembleHandleSegmentUpdateACK(tv, ra_ctx, ssn, opposing_stream, p) != 0)
     {
         SCLogDebug("StreamTcpReassembleHandleSegmentUpdateACK error");
         SCReturnInt(-1);
@@ -3350,7 +3354,7 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
      * functions to handle EOF */
     if (StreamTcpInlineMode()) {
         int r = 0;
-        if (StreamTcpReassembleInlineAppLayer(ra_ctx, ssn, stream, p) < 0)
+        if (StreamTcpReassembleInlineAppLayer(tv, ra_ctx, ssn, stream, p) < 0)
             r = -1;
         if (StreamTcpReassembleInlineRaw(ra_ctx, ssn, stream, p) < 0)
             r = -1;
@@ -8486,7 +8490,7 @@ static int StreamTcpReassembleInlineTest10(void) {
     }
     ssn.server.next_seq = 4;
 
-    int r = StreamTcpReassembleInlineAppLayer(ra_ctx, &ssn, &ssn.server, p);
+    int r = StreamTcpReassembleInlineAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p);
     if (r < 0) {
         printf("StreamTcpReassembleInlineAppLayer failed: ");
         goto end;
@@ -8508,7 +8512,7 @@ static int StreamTcpReassembleInlineTest10(void) {
     }
     ssn.server.next_seq = 19;
 
-    r = StreamTcpReassembleInlineAppLayer(ra_ctx, &ssn, &ssn.server, p);
+    r = StreamTcpReassembleInlineAppLayer(&tv, ra_ctx, &ssn, &ssn.server, p);
     if (r < 0) {
         printf("StreamTcpReassembleInlineAppLayer failed: ");
         goto end;
