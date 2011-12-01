@@ -1985,6 +1985,7 @@ static int StreamTcpReassembleInlineAppLayer (ThreadVars *tv,
                 /* flag reassembly as started, so the to_client part can start */
                 ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
 
+                StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
                 SCPerfCounterIncr(ra_ctx->counter_tcp_reass_gap, tv->sc_perf_pca);
 #ifdef DEBUG
                 dbg_app_layer_gap++;
@@ -2680,6 +2681,7 @@ static int StreamTcpReassembleAppLayer (ThreadVars *tv,
                 /* flag reassembly as started, so the to_client part can start */
                 ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
 
+                StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
                 SCPerfCounterIncr(ra_ctx->counter_tcp_reass_gap, tv->sc_perf_pca);
 #ifdef DEBUG
                 dbg_app_layer_gap++;

@@ -177,6 +177,8 @@ enum {
     STREAM_REASSEMBLY_SEGMENT_BEFORE_BASE_SEQ,
     STREAM_REASSEMBLY_NO_SEGMENT,
 
+    STREAM_REASSEMBLY_SEQ_GAP,
+
     /* SCTP EVENTS */
     SCTP_PKT_TOO_SMALL,              /**< sctp packet smaller than minimum size */
 
