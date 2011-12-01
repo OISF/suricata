@@ -97,6 +97,11 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
         }
 
         files = s->files_tc;
+
+        if (s->flags & HTP_FLAG_STORE_FILES_TS ||
+                (s->flags & HTP_FLAG_STORE_FILES_TX_TS && txid == s->store_tx_id)) {
+            flags |= FILE_STORE;
+        }
     } else {
         if (s->files_ts == NULL) {
             s->files_ts = FileContainerAlloc();
@@ -107,6 +112,11 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
         }
 
         files = s->files_ts;
+
+        if (s->flags & HTP_FLAG_STORE_FILES_TC ||
+                (s->flags & HTP_FLAG_STORE_FILES_TX_TC && txid == s->store_tx_id)) {
+            flags |= FILE_STORE;
+        }
     }
 
     /* if the previous file is in the same txid, we
@@ -117,7 +127,7 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
         DeStateResetFileInspection(s->f, direction);
     }
 
-    if (s->f->flags & FLOW_FILE_NO_STORE) {
+    if (!(flags & FILE_STORE) && s->f->flags & FLOW_FILE_NO_STORE) {
         flags |= FILE_NOSTORE;
     }
     if (s->f->flags & FLOW_FILE_NO_MAGIC) {

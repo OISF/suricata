@@ -45,18 +45,23 @@
 /** a boundary should be smaller in size */
 #define HTP_BOUNDARY_MAX                            200U
 
-#define HTP_FLAG_STATE_OPEN         0x01    /**< Flag to indicate that HTTP
+#define HTP_FLAG_STATE_OPEN         0x0001    /**< Flag to indicate that HTTP
                                              connection is open */
-#define HTP_FLAG_STATE_CLOSED       0x02    /**< Flag to indicate that HTTP
+#define HTP_FLAG_STATE_CLOSED       0x0002    /**< Flag to indicate that HTTP
                                              connection is closed */
-#define HTP_FLAG_STATE_DATA         0x04    /**< Flag to indicate that HTTP
+#define HTP_FLAG_STATE_DATA         0x0004    /**< Flag to indicate that HTTP
                                              connection needs more data */
-#define HTP_FLAG_STATE_ERROR        0x08    /**< Flag to indicate that an error
+#define HTP_FLAG_STATE_ERROR        0x0008    /**< Flag to indicate that an error
                                              has been occured on HTTP
                                              connection */
-#define HTP_FLAG_NEW_BODY_SET       0x10    /**< Flag to indicate that HTTP
+#define HTP_FLAG_NEW_BODY_SET       0x0010    /**< Flag to indicate that HTTP
                                              has parsed a new body (for
                                              pcre) */
+#define HTP_FLAG_STORE_FILES_TS     0x0020
+#define HTP_FLAG_STORE_FILES_TC     0x0040
+#define HTP_FLAG_STORE_FILES_TX_TS  0x0080
+#define HTP_FLAG_STORE_FILES_TX_TC  0x0100
+
 enum {
     HTP_BODY_NONE = 0,                  /**< Flag to indicate the current
                                              operation */
@@ -146,9 +151,10 @@ typedef struct HtpState_ {
     htp_connp_t *connp;     /**< Connection parser structure for
                                  each connection */
     Flow *f;                /**< Needed to retrieve the original flow when usin HTPLib callbacks */
-    uint8_t flags;
+    uint16_t flags;
     uint16_t transaction_cnt;
     uint16_t transaction_done;
+    uint16_t store_tx_id;
     uint32_t request_body_limit;
     uint32_t response_body_limit;
     FileContainer *files_ts;

@@ -30,6 +30,8 @@
 #include "detect-parse.h"
 #include "detect-engine-state.h"
 
+#include "detect-filestore.h"
+
 #include "detect-engine-uri.h"
 #include "detect-engine-hcbd.h"
 #include "detect-engine-hhd.h"
@@ -70,7 +72,9 @@
  *
  *  \note flow is not locked at this time
  */
-static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flow *f, Signature *s, FileContainer *ffc) {
+static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
+        Flow *f, Signature *s, uint8_t flags, FileContainer *ffc)
+{
     SigMatch *sm = NULL;
     int r = 0;
     int match = 0;
@@ -122,7 +126,7 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flo
 
                 if (sigmatch_table[sm->type].AppLayerMatch != NULL) {
                     match = sigmatch_table[sm->type].
-                        AppLayerMatch(tv, det_ctx, f, 0, (void *)file, s, sm);
+                        AppLayerMatch(tv, det_ctx, f, flags, (void *)file, s, sm);
                     if (match == 0) {
                         r = 2;
                         break;
@@ -146,6 +150,20 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flo
 
             /* continue, this file may (or may not) be unable to match
              * maybe we have more that can :) */
+        }
+    } else {
+        /* if we have a filestore sm with a scope > file (so tx, ssn) we
+         * run it here */
+        sm = s->sm_lists[DETECT_SM_LIST_FILEMATCH];
+        if (sm != NULL && sm->next == NULL && sm->type == DETECT_FILESTORE) {
+            DetectFilestoreData *fd = sm->ctx;
+            if (fd->scope > FILESTORE_SCOPE_DEFAULT) {
+                match = sigmatch_table[sm->type].
+                    AppLayerMatch(tv, det_ctx, f, flags, NULL, s, sm);
+                if (match == 1) {
+                    r = 1;
+                }
+            }
         }
     }
 
@@ -211,7 +229,7 @@ int DetectFileInspectHttp(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flow *
         /* inspect files for this transaction */
         det_ctx->tx_id = (uint16_t)idx;
 
-        match = DetectFileInspect(tv, det_ctx, f, s, ffc);
+        match = DetectFileInspect(tv, det_ctx, f, s, flags, ffc);
         if (match == 1) {
             r = 1;
         } else if (match == 2) {

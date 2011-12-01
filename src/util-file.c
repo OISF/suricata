@@ -434,7 +434,9 @@ File *FileOpenFile(FileContainer *ffc, uint8_t *name,
         SCReturnPtr(NULL, "File");
     }
 
-    if (flags & FILE_NOSTORE) {
+    if (flags & FILE_STORE) {
+        ff->store = 1;
+    } else if (flags & FILE_NOSTORE) {
         ff->store = -1;
     }
     if (flags & FILE_NOMAGIC) {
@@ -633,3 +635,30 @@ void FileDisableStoringForTransaction(Flow *f, uint8_t direction, uint16_t tx_id
 
     SCReturn;
 }
+
+void FileStoreAllFilesForTx(FileContainer *fc, uint16_t tx_id) {
+    File *ptr = NULL;
+
+    SCEnter();
+
+    if (fc != NULL) {
+        for (ptr = fc->head; ptr != NULL; ptr = ptr->next) {
+            if (ptr->txid == tx_id) {
+                ptr->store = 1;
+            }
+        }
+    }
+}
+
+void FileStoreAllFiles(FileContainer *fc) {
+    File *ptr = NULL;
+
+    SCEnter();
+
+    if (fc != NULL) {
+        for (ptr = fc->head; ptr != NULL; ptr = ptr->next) {
+            ptr->store = 1;
+        }
+    }
+}
+

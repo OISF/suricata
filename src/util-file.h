@@ -28,6 +28,7 @@
 #define FILE_TRUNCATED  0x01
 #define FILE_NOSTORE    0x02
 #define FILE_NOMAGIC    0x04
+#define FILE_STORE      0x08
 
 typedef enum FileState_ {
     FILE_STATE_NONE = 0,    /**< no state */
@@ -159,5 +160,8 @@ void FilePrune(FileContainer *ffc);
 
 void FileForceMagicEnable(void);
 int FileForceMagic(void);
+
+void FileStoreAllFiles(FileContainer *);
+void FileStoreAllFilesForTx(FileContainer *, uint16_t);
 
 #endif /* __UTIL_FILE_H__ */
