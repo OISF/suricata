@@ -27,6 +27,8 @@
 SCCondT flow_manager_cond;
 SCMutex flow_manager_mutex;
 
+#define FlowWakeupFlowManagerThread() SCCondSignal(&flow_manager_cond)
+
 void FlowManagerThreadSpawn(void);
 void FlowKillFlowManagerThread(void);
 

@@ -325,7 +325,7 @@ static Flow *FlowGetNew(Packet *p) {
                             "(ts.tv_sec: %"PRIuMAX", ts.tv_usec:%"PRIuMAX")",
                             (uintmax_t)p->ts.tv_sec, (uintmax_t)p->ts.tv_usec);
                     flow_flags |= FLOW_EMERGENCY; /* XXX mutex this */
-                    SCCondSignal(&flow_manager_cond);
+                    FlowWakeupFlowManagerThread();
                 }
                 SCLogDebug("We need to prune some flows with emerg bit (2)");
 
