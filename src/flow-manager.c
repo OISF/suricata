@@ -128,7 +128,6 @@ void *FlowManagerThread(void *td)
     ThreadVars *th_v = (ThreadVars *)td;
     struct timeval ts;
     uint32_t established_cnt = 0, new_cnt = 0, closing_cnt = 0, nowcnt;
-    uint32_t sleeping = 0;
     int emerg = FALSE;
     int prev_emerg = FALSE;
     uint32_t last_sec = 0;
@@ -177,102 +176,95 @@ void *FlowManagerThread(void *td)
     {
         TmThreadTestThreadUnPaused(th_v);
 
-        //if ((counter > NEW_FLOW_COUNT_COND) || (flow_flags & FLOW_EMERGENCY)) {
-        {
-            //counter = 0;
+        if (flow_flags & FLOW_EMERGENCY) {
+            emerg = TRUE;
 
-            if (flow_flags & FLOW_EMERGENCY) {
-                emerg = TRUE;
+            if (emerg == TRUE && prev_emerg == FALSE) {
+                prev_emerg = TRUE;
 
-                if (emerg == TRUE && prev_emerg == FALSE) {
-                    prev_emerg = TRUE;
+                SCLogDebug("Flow emergency mode entered...");
 
-                    SCLogDebug("Flow emergency mode entered...");
+                SCPerfCounterIncr(flow_emerg_mode_enter, th_v->sc_perf_pca);
+            }
+        }
 
-                    SCPerfCounterIncr(flow_emerg_mode_enter, th_v->sc_perf_pca);
-                }
+        /* Get the time */
+        memset(&ts, 0, sizeof(ts));
+        TimeGet(&ts);
+        SCLogDebug("ts %" PRIdMAX "", (intmax_t)ts.tv_sec);
+
+        if (((uint32_t)ts.tv_sec - last_sec) > 600) {
+            FlowHashDebugPrint((uint32_t)ts.tv_sec);
+            last_sec = (uint32_t)ts.tv_sec;
+        }
+
+        /* see if we still have enough spare flows */
+        FlowUpdateSpareFlows();
+
+        int i;
+        closing_cnt = 0;
+        new_cnt = 0;
+        established_cnt = 0;
+        for (i = 0; i < FLOW_PROTO_MAX; i++) {
+            /* prune closing list */
+            nowcnt = FlowPruneFlowQueue(&flow_close_q[i], &ts);
+            if (nowcnt) {
+                SCLogDebug("Pruned %" PRIu32 " closing flows...", nowcnt);
+                closing_cnt += nowcnt;
             }
 
-            /* Get the time */
-            memset(&ts, 0, sizeof(ts));
-            TimeGet(&ts);
-            SCLogDebug("ts %" PRIdMAX "", (intmax_t)ts.tv_sec);
-
-            if (((uint32_t)ts.tv_sec - last_sec) > 600) {
-                FlowHashDebugPrint((uint32_t)ts.tv_sec);
-                last_sec = (uint32_t)ts.tv_sec;
+            /* prune new list */
+            nowcnt = FlowPruneFlowQueue(&flow_new_q[i], &ts);
+            if (nowcnt) {
+                SCLogDebug("Pruned %" PRIu32 " new flows...", nowcnt);
+                new_cnt += nowcnt;
             }
 
-            /* see if we still have enough spare flows */
-            FlowUpdateSpareFlows();
-
-            int i;
-            closing_cnt = 0;
-            new_cnt = 0;
-            established_cnt = 0;
-            for (i = 0; i < FLOW_PROTO_MAX; i++) {
-                /* prune closing list */
-                nowcnt = FlowPruneFlowQueue(&flow_close_q[i], &ts);
-                if (nowcnt) {
-                    SCLogDebug("Pruned %" PRIu32 " closing flows...", nowcnt);
-                    closing_cnt += nowcnt;
-                }
-
-                /* prune new list */
-                nowcnt = FlowPruneFlowQueue(&flow_new_q[i], &ts);
-                if (nowcnt) {
-                    SCLogDebug("Pruned %" PRIu32 " new flows...", nowcnt);
-                    new_cnt += nowcnt;
-                }
-
-                /* prune established list */
-                nowcnt = FlowPruneFlowQueue(&flow_est_q[i], &ts);
-                if (nowcnt) {
-                    SCLogDebug("Pruned %" PRIu32 " established flows...", nowcnt);
-                    established_cnt += nowcnt;
-                }
+            /* prune established list */
+            nowcnt = FlowPruneFlowQueue(&flow_est_q[i], &ts);
+            if (nowcnt) {
+                SCLogDebug("Pruned %" PRIu32 " established flows...", nowcnt);
+                established_cnt += nowcnt;
             }
-            SCPerfCounterAddUI64(flow_mgr_closing_cnt, th_v->sc_perf_pca, (uint64_t)closing_cnt);
-            SCPerfCounterAddUI64(flow_mgr_new_cnt, th_v->sc_perf_pca, (uint64_t)new_cnt);
-            SCPerfCounterAddUI64(flow_mgr_established_cnt, th_v->sc_perf_pca, (uint64_t)established_cnt);
-            long long unsigned int flow_memuse = SC_ATOMIC_GET(flow_memuse);
-            SCPerfCounterSetUI64(flow_mgr_memuse, th_v->sc_perf_pca, (uint64_t)flow_memuse);
+        }
+        SCPerfCounterAddUI64(flow_mgr_closing_cnt, th_v->sc_perf_pca, (uint64_t)closing_cnt);
+        SCPerfCounterAddUI64(flow_mgr_new_cnt, th_v->sc_perf_pca, (uint64_t)new_cnt);
+        SCPerfCounterAddUI64(flow_mgr_established_cnt, th_v->sc_perf_pca, (uint64_t)established_cnt);
+        long long unsigned int flow_memuse = SC_ATOMIC_GET(flow_memuse);
+        SCPerfCounterSetUI64(flow_mgr_memuse, th_v->sc_perf_pca, (uint64_t)flow_memuse);
 
-            sleeping = 0;
+        /* Don't fear, FlowManagerThread is here...
+         * clear emergency bit if we have at least xx flows pruned. */
+        if (emerg == TRUE) {
+            uint32_t len = 0;
 
-            /* Don't fear, FlowManagerThread is here...
-             * clear emergency bit if we have at least xx flows pruned. */
-            if (emerg == TRUE) {
-                uint32_t len = 0;
+            SCMutexLock(&flow_spare_q.mutex_q);
 
-                SCMutexLock(&flow_spare_q.mutex_q);
+            len = flow_spare_q.len;
 
-                len = flow_spare_q.len;
+            SCMutexUnlock(&flow_spare_q.mutex_q);
 
-                SCMutexUnlock(&flow_spare_q.mutex_q);
+            SCLogDebug("flow_sparse_q.len = %"PRIu32" prealloc: %"PRIu32
+                       "flow_spare_q status: %"PRIu32"%% flows at the queue",
+                       len, flow_config.prealloc, len * 100 / flow_config.prealloc);
+            /* only if we have pruned this "emergency_recovery" percentage
+             * of flows, we will unset the emergency bit */
+            if (len * 100 / flow_config.prealloc > flow_config.emergency_recovery) {
+                flow_flags &= ~FLOW_EMERGENCY;
+                emerg = FALSE;
+                prev_emerg = FALSE;
+                flow_update_delay_sec = FLOW_NORMAL_MODE_UPDATE_DELAY_SEC;
+                flow_update_delay_nsec = FLOW_NORMAL_MODE_UPDATE_DELAY_NSEC;
+                SCLogInfo("Flow emergency mode over, back to normal... unsetting"
+                          " FLOW_EMERGENCY bit (ts.tv_sec: %"PRIuMAX", "
+                          "ts.tv_usec:%"PRIuMAX") flow_spare_q status(): %"PRIu32
+                          "%% flows at the queue", (uintmax_t)ts.tv_sec,
+                          (uintmax_t)ts.tv_usec, len * 100 / flow_config.prealloc);
 
-                SCLogDebug("flow_sparse_q.len = %"PRIu32" prealloc: %"PRIu32
-                        "flow_spare_q status: %"PRIu32"%% flows at the queue",
-                        len, flow_config.prealloc, len * 100 / flow_config.prealloc);
-                /* only if we have pruned this "emergency_recovery" percentage
-                 * of flows, we will unset the emergency bit */
-                if (len * 100 / flow_config.prealloc > flow_config.emergency_recovery) {
-                    flow_flags &= ~FLOW_EMERGENCY;
-                    emerg = FALSE;
-                    prev_emerg = FALSE;
-                    flow_update_delay_sec = FLOW_NORMAL_MODE_UPDATE_DELAY_SEC;
-                    flow_update_delay_nsec = FLOW_NORMAL_MODE_UPDATE_DELAY_NSEC;
-                    SCLogInfo("Flow emergency mode over, back to normal... unsetting"
-                            " FLOW_EMERGENCY bit (ts.tv_sec: %"PRIuMAX", "
-                            "ts.tv_usec:%"PRIuMAX") flow_spare_q status(): %"PRIu32
-                            "%% flows at the queue", (uintmax_t)ts.tv_sec,
-                            (uintmax_t)ts.tv_usec, len * 100 / flow_config.prealloc);
-
-                    SCPerfCounterIncr(flow_emerg_mode_over, th_v->sc_perf_pca);
-                } else {
-                    flow_update_delay_sec = FLOW_EMERG_MODE_UPDATE_DELAY_SEC;
-                    flow_update_delay_nsec = FLOW_EMERG_MODE_UPDATE_DELAY_NSEC;
-                }
+                SCPerfCounterIncr(flow_emerg_mode_over, th_v->sc_perf_pca);
+            } else {
+                flow_update_delay_sec = FLOW_EMERG_MODE_UPDATE_DELAY_SEC;
+                flow_update_delay_nsec = FLOW_EMERG_MODE_UPDATE_DELAY_NSEC;
             }
         }
 
@@ -281,39 +273,11 @@ void *FlowManagerThread(void *td)
             break;
         }
 
-#if 0
-        if (run_mode != RUNMODE_PCAP_FILE) {
-#endif
-            cond_time.tv_sec = time(NULL) + flow_update_delay_sec;
-            cond_time.tv_nsec = flow_update_delay_nsec;
-            SCMutexLock(&flow_manager_mutex);
-            SCCondTimedwait(&flow_manager_cond, &flow_manager_mutex, &cond_time);
-            SCMutexUnlock(&flow_manager_mutex);
-#if 0
-        } else {
-            /* If we are reading a pcap, how long the pcap timestamps
-             * says that has passed */
-            memset(&tsdiff, 0, sizeof(tsdiff));
-            TimeGet(&tsdiff);
-
-            if (tsdiff.tv_sec == ts.tv_sec &&
-                tsdiff.tv_usec > ts.tv_usec &&
-                tsdiff.tv_usec - ts.tv_usec < 10) {
-                /* if it has passed less than 10 usec, sleep that usecs */
-                sleeping += tsdiff.tv_usec - ts.tv_usec;
-                usleep(tsdiff.tv_usec - ts.tv_usec);
-            } else {
-                /* Else update the sleeping var but don't sleep so long */
-                if (tsdiff.tv_sec == ts.tv_sec && tsdiff.tv_usec > ts.tv_usec)
-                    sleeping += tsdiff.tv_usec - ts.tv_usec;
-                else if (tsdiff.tv_sec == ts.tv_sec + 1)
-                    sleeping += tsdiff.tv_usec + (1000000 - ts.tv_usec);
-                else
-                    sleeping += 100;
-                usleep(1);
-            }
-        }
-#endif
+        cond_time.tv_sec = time(NULL) + flow_update_delay_sec;
+        cond_time.tv_nsec = flow_update_delay_nsec;
+        SCMutexLock(&flow_manager_mutex);
+        SCCondTimedwait(&flow_manager_cond, &flow_manager_mutex, &cond_time);
+        SCMutexUnlock(&flow_manager_mutex);
 
         SCPerfSyncCountersIfSignalled(th_v, 0);
     }
