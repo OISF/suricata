@@ -845,10 +845,10 @@ int AppLayerParse(void *local_data, Flow *f, uint8_t proto,
     /* Used only if it's TCP */
     ssn = f->protoctx;
 
-    /** Do this check before calling AppLayerParse */
+    /* Do this check before calling AppLayerParse */
     if (flags & STREAM_GAP) {
         SCLogDebug("stream gap detected (missing packets), this is not yet supported.");
-        goto error;
+        goto gap;
     }
 
     /* Get the parser state (if any) */
@@ -958,18 +958,9 @@ int AppLayerParse(void *local_data, Flow *f, uint8_t proto,
     }
 
     SCReturnInt(0);
+
 error:
     if (ssn != NULL) {
-#ifdef DEBUG
-        applayererrors++;
-        if (f->alproto == ALPROTO_HTTP)
-            applayerhttperrors++;
-#endif
-        /* Set the no app layer inspection flag for both
-         * the stream in this Flow */
-        FlowSetSessionNoApplayerInspectionFlag(f);
-        AppLayerSetEOF(f);
-
         if (FLOW_IS_IPV4(f)) {
             char src[16];
             char dst[16];
@@ -1002,6 +993,19 @@ error:
                        f->proto, src6, dst6, f->sp, f->dp);
             fflush(stdout);
         }
+    }
+
+gap:
+    if (ssn != NULL) {
+#ifdef DEBUG
+        applayererrors++;
+        if (f->alproto == ALPROTO_HTTP)
+            applayerhttperrors++;
+#endif
+        /* Set the no app layer inspection flag for both
+         * the stream in this Flow */
+        FlowSetSessionNoApplayerInspectionFlag(f);
+        AppLayerSetEOF(f);
     }
 
     SCReturnInt(-1);
