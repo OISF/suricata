@@ -24,7 +24,10 @@
 #ifndef __UTIL_MISC_H__
 #define __UTIL_MISC_H__
 
-int ParseSizeString(const char *, long double *);
+int ParseSizeStringU8(const char *, uint8_t *);
+int ParseSizeStringU16(const char *, uint16_t *);
+int ParseSizeStringU32(const char *, uint32_t *);
+int ParseSizeStringU64(const char *, uint64_t *);
 void UtilMiscRegisterTests(void);
 
 #endif /* __UTIL_MISC_H__ */

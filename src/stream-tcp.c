@@ -361,14 +361,12 @@ void StreamTcpInitConfig(char quiet)
 
     char *temp_stream_memcap_str;
     if (ConfGet("stream.memcap", &temp_stream_memcap_str) == 1) {
-        long double res;
-        if (ParseSizeString(temp_stream_memcap_str, &res) < 0) {
+        if (ParseSizeStringU64(temp_stream_memcap_str, &stream_config.memcap) < 0) {
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing stream.memcap "
                        "from conf file - %s.  Killing engine",
                        temp_stream_memcap_str);
             exit(EXIT_FAILURE);
         }
-        stream_config.memcap = res;
     } else {
         stream_config.memcap = STREAMTCP_DEFAULT_MEMCAP;
     }
@@ -418,15 +416,14 @@ void StreamTcpInitConfig(char quiet)
 
     char *temp_stream_reassembly_memcap_str;
     if (ConfGet("stream.reassembly.memcap", &temp_stream_reassembly_memcap_str) == 1) {
-        long double res;
-        if (ParseSizeString(temp_stream_reassembly_memcap_str, &res) < 0) {
+        if (ParseSizeStringU64(temp_stream_reassembly_memcap_str,
+                               &stream_config.reassembly_memcap) < 0) {
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
                        "stream.reassembly.memcap "
                        "from conf file - %s.  Killing engine",
                        temp_stream_reassembly_memcap_str);
             exit(EXIT_FAILURE);
         }
-        stream_config.reassembly_memcap = res;
     } else {
         stream_config.reassembly_memcap = STREAMTCP_DEFAULT_REASSEMBLY_MEMCAP;
     }
@@ -437,15 +434,14 @@ void StreamTcpInitConfig(char quiet)
 
     char *temp_stream_reassembly_depth_str;
     if (ConfGet("stream.reassembly.depth", &temp_stream_reassembly_depth_str) == 1) {
-        long double res;
-        if (ParseSizeString(temp_stream_reassembly_depth_str, &res) < 0) {
+        if (ParseSizeStringU32(temp_stream_reassembly_depth_str,
+                               &stream_config.reassembly_depth) < 0) {
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
                        "stream.reassembly.depth "
                        "from conf file - %s.  Killing engine",
                        temp_stream_reassembly_depth_str);
             exit(EXIT_FAILURE);
         }
-        stream_config.reassembly_depth = res;
     } else {
         stream_config.reassembly_depth = 0;
     }
@@ -457,16 +453,14 @@ void StreamTcpInitConfig(char quiet)
     char *temp_stream_reassembly_toserver_chunk_size_str;
     if (ConfGet("stream.reassembly.toserver_chunk_size",
                 &temp_stream_reassembly_toserver_chunk_size_str) == 1) {
-        long double res;
-        if (ParseSizeString(temp_stream_reassembly_toserver_chunk_size_str,
-                            &res) < 0) {
+        if (ParseSizeStringU16(temp_stream_reassembly_toserver_chunk_size_str,
+                               &stream_config.reassembly_toserver_chunk_size) < 0) {
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
                        "stream.reassembly.toserver_chunk_size "
                        "from conf file - %s.  Killing engine",
                        temp_stream_reassembly_toserver_chunk_size_str);
             exit(EXIT_FAILURE);
         }
-        stream_config.reassembly_toserver_chunk_size = res;
     } else {
         stream_config.reassembly_toserver_chunk_size =
             STREAMTCP_DEFAULT_TOSERVER_CHUNK_SIZE;
@@ -477,16 +471,14 @@ void StreamTcpInitConfig(char quiet)
     char *temp_stream_reassembly_toclient_chunk_size_str;
     if (ConfGet("stream.reassembly.toclient_chunk_size",
                 &temp_stream_reassembly_toclient_chunk_size_str) == 1) {
-        long double res;
-        if (ParseSizeString(temp_stream_reassembly_toclient_chunk_size_str,
-                            &res) < 0) {
+        if (ParseSizeStringU16(temp_stream_reassembly_toclient_chunk_size_str,
+                               &stream_config.reassembly_toclient_chunk_size) < 0) {
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
                        "stream.reassembly.toclient_chunk_size "
                        "from conf file - %s.  Killing engine",
                        temp_stream_reassembly_toclient_chunk_size_str);
             exit(EXIT_FAILURE);
         }
-        stream_config.reassembly_toclient_chunk_size = res;
     } else {
         stream_config.reassembly_toclient_chunk_size =
             STREAMTCP_DEFAULT_TOCLIENT_CHUNK_SIZE;

@@ -28,7 +28,7 @@
 #include "util-debug.h"
 #include "util-unittest.h"
 
-int ParseSizeString(const char *size, long double *res)
+static int ParseSizeString(const char *size, long double *res)
 {
 #define PARSE_REGEX "^\\s*(\\d+(?:.\\d+)?)\\s*([a-zA-Z]{2})?\\s*$"
 
@@ -44,18 +44,22 @@ int ParseSizeString(const char *size, long double *res)
     int r;
     int ov[MAX_SUBSTRINGS];
 
+    int retval = 0;
+
     *res = 0;
 
     parse_regex = pcre_compile(PARSE_REGEX, opts, &eb, &eo, NULL);
     if (parse_regex == NULL) {
         SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset "
                    "%" PRId32 ": %s", PARSE_REGEX, eo, eb);
+        retval = -2;
         goto error;
     }
 
     parse_regex_study = pcre_study(parse_regex, 0, &eb);
     if (eb != NULL) {
         SCLogError(SC_ERR_PCRE_STUDY, "pcre study failed: %s", eb);
+        retval = -2;
         goto error;
     }
 
@@ -70,6 +74,7 @@ int ParseSizeString(const char *size, long double *res)
                    "xxxmb or xxxMb or xxxMB or xxxmB <- indicates megabytes\n"
                    "xxxgb or xxxGb or xxxGB or xxxgB <- indicates gigabytes.",
                    size);
+        retval = -2;
         goto error;
     }
 
@@ -78,6 +83,7 @@ int ParseSizeString(const char *size, long double *res)
                              &str_ptr);
     if (r < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        retval = -2;
         goto error;
     }
 
@@ -86,9 +92,11 @@ int ParseSizeString(const char *size, long double *res)
     *res = strtold(size, &endptr);
     if (errno == ERANGE) {
         SCLogError(SC_ERR_NUMERIC_VALUE_ERANGE, "Numeric value out of range");
+        retval = -1;
         goto error;
     } else if (endptr == size) {
         SCLogError(SC_ERR_INVALID_NUMERIC_VALUE, "Invalid numeric value");
+        retval = -1;
         goto error;
     }
     pcre_free_substring(str_ptr);
@@ -98,6 +106,7 @@ int ParseSizeString(const char *size, long double *res)
                                  &str_ptr);
         if (r < 0) {
             SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+            retval = -2;
             goto error;
         }
 
@@ -116,6 +125,74 @@ int ParseSizeString(const char *size, long double *res)
     return 0;
  error:
     return -1;
+}
+
+int ParseSizeStringU8(const char *size, uint8_t *res)
+{
+    long double temp_res = 0;
+
+    *res = 0;
+    int r = ParseSizeString(size, &temp_res);
+    if (r < 0)
+        return r;
+
+    if (temp_res > UINT8_MAX)
+        return -1;
+
+    *res = temp_res;
+
+    return 0;
+}
+
+int ParseSizeStringU16(const char *size, uint16_t *res)
+{
+    long double temp_res = 0;
+
+    *res = 0;
+    int r = ParseSizeString(size, &temp_res);
+    if (r < 0)
+        return r;
+
+    if (temp_res > UINT16_MAX)
+        return -1;
+
+    *res = temp_res;
+
+    return 0;
+}
+
+int ParseSizeStringU32(const char *size, uint32_t *res)
+{
+    long double temp_res = 0;
+
+    *res = 0;
+    int r = ParseSizeString(size, &temp_res);
+    if (r < 0)
+        return r;
+
+    if (temp_res > UINT32_MAX)
+        return -1;
+
+    *res = temp_res;
+
+    return 0;
+}
+
+int ParseSizeStringU64(const char *size, uint64_t *res)
+{
+    long double temp_res = 0;
+
+    *res = 0;
+    int r = ParseSizeString(size, &temp_res);
+    if (r < 0)
+        return r;
+
+    if (temp_res > UINT64_MAX)
+        return -1;
+
+    *res = temp_res;
+
+    return 0;
 }
 
 /*********************************Unittests********************************/

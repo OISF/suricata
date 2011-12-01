@@ -865,14 +865,12 @@ void FlowInitConfig(char quiet)
     /** set config values for memcap, prealloc and hash_size */
     if ((ConfGet("flow.memcap", &conf_val)) == 1)
     {
-        long double res;
-        if (ParseSizeString(conf_val, &res) < 0) {
+        if (ParseSizeStringU64(conf_val, &flow_config.memcap) < 0) {
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing flow.memcap "
                        "from conf file - %s.  Killing engine",
                        conf_val);
             exit(EXIT_FAILURE);
         }
-        flow_config.memcap = res;
     }
     if ((ConfGet("flow.hash_size", &conf_val)) == 1)
     {

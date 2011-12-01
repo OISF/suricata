@@ -1160,14 +1160,12 @@ int main(int argc, char **argv)
                 default_packet_size = DEFAULT_PACKET_SIZE;
         }
     } else {
-        long double res;
-        if (ParseSizeString(temp_default_packet_size, &res) < 0) {
+        if (ParseSizeStringU32(temp_default_packet_size, &default_packet_size) < 0) {
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing max-pending-packets "
                        "from conf file - %s.  Killing engine",
                        temp_default_packet_size);
             exit(EXIT_FAILURE);
         }
-        default_packet_size = res;
     }
 
     SCLogDebug("Default packet size set to %"PRIiMAX, default_packet_size);

@@ -62,7 +62,7 @@
 #define DEFAULT_LOG_FILENAME "unified2.alert"
 
 /**< Default log file limit in MB. */
-#define DEFAULT_LIMIT 32
+#define DEFAULT_LIMIT 32 * 1024 * 1024
 
 /**< Minimum log file limit in MB. */
 #define MIN_LIMIT 1 * 1024 * 1024
@@ -1169,19 +1169,17 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
     file_ctx->prefix = SCStrdup(filename);
 
     const char *s_limit = NULL;
-    uint64_t limit = DEFAULT_LIMIT;
+    file_ctx->size_limit = DEFAULT_LIMIT;
     if (conf != NULL) {
         s_limit = ConfNodeLookupChildValue(conf, "limit");
         if (s_limit != NULL) {
-            long double res;
-            if (ParseSizeString(s_limit, &res) < 0) {
+            if (ParseSizeStringU64(s_limit, &file_ctx->size_limit) < 0) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                     "Failed to initialize unified2 output, invalid limit: %s",
                     s_limit);
                 exit(EXIT_FAILURE);
             }
-            limit = res;
-            if (limit < MIN_LIMIT) {
+            if (file_ctx->size_limit < MIN_LIMIT) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                     "Failed to initialize unified2 output, limit less than "
                     "allowed minimum: %d.", MIN_LIMIT);
@@ -1189,7 +1187,6 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
             }
         }
     }
-    file_ctx->size_limit = limit;
 
     ret = Unified2AlertOpenFileCtx(file_ctx, filename);
     if (ret < 0)
@@ -1202,7 +1199,7 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
     output_ctx->DeInit = Unified2AlertDeInitCtx;
 
     SCLogInfo("Unified2-alert initialized: filename %s, limit %"PRIu64" MB",
-       filename, limit);
+              filename, file_ctx->size_limit);
 
     SC_ATOMIC_INIT(unified2_event_id);
 

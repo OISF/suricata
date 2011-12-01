@@ -312,7 +312,7 @@ inline int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datale
 
     /* Do we have already an packet with allocated data */
     if (! p->ext_pkt) {
-        if (offset + datalen <= default_packet_size) {
+        if (offset + datalen <= (int)default_packet_size) {
             /* data will fit in memory allocated with packet */
             memcpy(p->pkt + offset, data, datalen);
         } else {

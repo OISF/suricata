@@ -58,7 +58,7 @@
 #define DEFAULT_LOG_FILENAME            "pcaplog"
 #define MODULE_NAME                     "PcapLog"
 #define MIN_LIMIT                       1 * 1024 * 1024
-#define DEFAULT_LIMIT                   100
+#define DEFAULT_LIMIT                   100 * 1024 * 1024
 #define DEFAULT_FILE_LIMIT              0
 
 #define LOGMODE_NORMAL                  0
@@ -425,20 +425,18 @@ OutputCtx *PcapLogInitCtx(ConfNode *conf)
             return NULL;
     }
 
-    uint64_t limit = DEFAULT_LIMIT;
+    pl->size_limit = DEFAULT_LIMIT;
     if (conf != NULL) {
         const char *s_limit = NULL;
         s_limit = ConfNodeLookupChildValue(conf, "limit");
         if (s_limit != NULL) {
-            long double res;
-            if (ParseSizeString(s_limit, &res) < 0) {
+            if (ParseSizeStringU64(s_limit, &pl->size_limit) < 0) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                     "Failed to initialize unified2 output, invalid limit: %s",
                     s_limit);
                 exit(EXIT_FAILURE);
             }
-            limit = res;
-            if (limit < MIN_LIMIT) {
+            if (pl->size_limit < MIN_LIMIT) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                     "Fail to initialize pcap-log output, limit less than "
                     "allowed minimum.");
@@ -446,7 +444,6 @@ OutputCtx *PcapLogInitCtx(ConfNode *conf)
             }
         }
     }
-    pl->size_limit = limit;
 
     if (conf != NULL) {
         const char *s_mode = NULL;

@@ -1738,14 +1738,12 @@ static void HTPConfigure(void)
             } else if (strcasecmp("request-body-limit", p->name) == 0 ||
                        strcasecmp("request_body_limit", p->name) == 0) {
 
-                long double res;
-                if (ParseSizeString(p->val, &res) < 0) {
+                if (ParseSizeStringU32(p->val, &cfglist.request_body_limit) < 0) {
                     SCLogError(SC_ERR_SIZE_PARSE, "Error parsing request-body-limit "
                                "from conf file - %s.  Killing engine",
                                p->val);
                     exit(EXIT_FAILURE);
                 }
-                cfglist.request_body_limit = (uint32_t)res;
             } else if (strcasecmp("response-body-limit", p->name) == 0) {
 
                 /* limit */
@@ -1906,14 +1904,12 @@ static void HTPConfigure(void)
                     SCLogDebug("LIBHTP default: %s=%s",
                             p->name, p->val);
 
-                    long double res;
-                    if (ParseSizeString(p->val, &res) < 0) {
+                    if (ParseSizeStringU32(p->val, &htprec->request_body_limit) < 0) {
                         SCLogError(SC_ERR_SIZE_PARSE, "Error parsing request-body-limit "
                                    "from conf file - %s.  Killing engine",
                                    p->val);
                         exit(EXIT_FAILURE);
                     }
-                    htprec->request_body_limit = (uint32_t)res;
                 } else if (strcasecmp("response-body-limit", p->name) == 0) {
 
                     /* limit */
