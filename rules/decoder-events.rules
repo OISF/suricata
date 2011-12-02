@@ -74,3 +74,11 @@ alert pkthdr any any -> any any (msg:"SURICATA FRAG IPv4 Fragmentation overlap";
 alert pkthdr any any -> any any (msg:"SURICATA FRAG IPv6 Packet size too large"; decode-event:ipv6.frag_too_large; sid:2200071; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA FRAG IPv6 Fragmentation overlap"; decode-event:ipv6.frag_overlap; sid:2200072; rev:1;)
 
+# checksum rules
+alert ip any any -> any any (msg:"SURICATA IPv4 invalid checksum"; ipv4-csum:invalid; sid:2200073; rev:1;)
+alert tcp any any -> any any (msg:"SURICATA TCPv4 invalid checksum"; tcpv4-csum:invalid; sid:2200074; rev:1;)
+alert udp any any -> any any (msg:"SURICATA UDPv4 invalid checksum"; udpv4-csum:invalid; sid:2200075; rev:1;)
+alert icmp any any -> any any (msg:"SURICATA ICMPv4 invalid checksum"; icmpv4-csum:invalid; sid:2200076; rev:1;)
+alert tcp any any -> any any (msg:"SURICATA TCPv6 invalid checksum"; tcpv6-csum:invalid; sid:2200077; rev:1;)
+alert udp any any -> any any (msg:"SURICATA UDPv6 invalid checksum"; udpv6-csum:invalid; sid:2200078; rev:1;)
+alert icmp any any -> any any (msg:"SURICATA ICMPv6 invalid checksum"; icmpv6-csum:invalid; sid:2200079; rev:1;)
