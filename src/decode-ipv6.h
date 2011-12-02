@@ -310,5 +310,7 @@ typedef struct IPV6ExtHdrs_
 #define IPV6_EXTHDR_SET_HH(p,pkt)     IPV6_EXTHDR_HH((p)) = (IPV6HopOptsHdr *)pkt
 #define IPV6_EXTHDR_ISSET_HH(p)       (IPV6_EXTHDR_HH((p)) != NULL)
 
+void DecodeIPV6RegisterTests(void);
+
 #endif /* __DECODE_IPV6_H__ */
 

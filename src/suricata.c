@@ -1316,6 +1316,7 @@ int main(int argc, char **argv)
         DecodeICMPV4RegisterTests();
         DecodeICMPV6RegisterTests();
         DecodeIPV4RegisterTests();
+        DecodeIPV6RegisterTests();
         DecodeTCPRegisterTests();
         DecodeUDPV4RegisterTests();
         DecodeGRERegisterTests();
