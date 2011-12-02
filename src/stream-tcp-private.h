@@ -164,6 +164,11 @@ enum
     } while(0); \
 }
 
+#define StreamTcpSetEvent(p, e) { \
+    SCLogDebug("setting event %"PRIu8" on pkt %p (%"PRIu64")", (e), p, (p)->pcap_cnt); \
+    ENGINE_SET_EVENT((p), (e)); \
+}
+
 typedef struct TcpSession_ {
     uint8_t state;
     uint16_t flags;
