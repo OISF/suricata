@@ -182,7 +182,7 @@ static int AlertDebugPrintStreamSegmentCallback(Packet *p, void *data, uint8_t *
 
 
 
-TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
     int i;
@@ -201,13 +201,18 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
         fprintf(aft->file_ctx->fp, "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt);
     }
 
-    char srcip[16], dstip[16];
-    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
-    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
+    char srcip[46], dstip[46];
+    if (PKT_IS_IPV4(p)) {
+        PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
+        PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
+    } else if (PKT_IS_IPV6(p)) {
+        PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
+        PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+    }
 
     fprintf(aft->file_ctx->fp, "SRC IP:            %s\n", srcip);
     fprintf(aft->file_ctx->fp, "DST IP:            %s\n", dstip);
-    fprintf(aft->file_ctx->fp, "PROTO:             %" PRIu32 "\n", IPV4_GET_IPPROTO(p));
+    fprintf(aft->file_ctx->fp, "PROTO:             %" PRIu32 "\n", p->proto);
     if (PKT_IS_TCP(p) || PKT_IS_UDP(p)) {
         fprintf(aft->file_ctx->fp, "SRC PORT:          %" PRIu32 "\n", p->sp);
         fprintf(aft->file_ctx->fp, "DST PORT:          %" PRIu32 "\n", p->dp);
@@ -316,77 +321,6 @@ TmEcode AlertDebugLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq
     return TM_ECODE_OK;
 }
 
-TmEcode AlertDebugLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
-{
-    AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
-    int i;
-    char timebuf[64];
-
-    if (p->alerts.cnt == 0)
-        return TM_ECODE_OK;
-
-    aft->file_ctx->alerts += p->alerts.cnt;
-
-    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
-
-    SCMutexLock(&aft->file_ctx->fp_mutex);
-    for (i = 0; i < p->alerts.cnt; i++) {
-        PacketAlert *pa = &p->alerts.alerts[i];
-        if (unlikely(pa->s == NULL)) {
-            continue;
-        }
-
-        char srcip[46], dstip[46];
-
-        PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
-        PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
-
-        fprintf(aft->file_ctx->fp, "%s  [**] [%" PRIu32 ":%" PRIu32 ":%" PRIu32 "] %s [**] [Classification: fixme] [Priority: %" PRIu32 "] {%" PRIu32 "} %s:%" PRIu32 " -> %s:%" PRIu32 "\n",
-            timebuf, pa->s->gid, pa->s->id, pa->s->rev, pa->s->msg, pa->s->prio, IPV6_GET_L4PROTO(p), srcip, p->sp, dstip, p->dp);
-    }
-
-    fprintf(aft->file_ctx->fp, "FLOW:              to_server: %s, to_client: %s\n",
-        p->flowflags & FLOW_PKT_TOSERVER ? "TRUE" : "FALSE",
-        p->flowflags & FLOW_PKT_TOCLIENT ? "TRUE" : "FALSE");
-
-    if (p->flow != NULL) {
-        SCMutexLock(&p->flow->m);
-        CreateTimeString(&p->flow->startts, timebuf, sizeof(timebuf));
-        fprintf(aft->file_ctx->fp, "FLOW Start TS:     %s\n",timebuf);
-#ifdef DEBUG
-        fprintf(aft->file_ctx->fp, "FLOW PKTS TODST:   %"PRIu32"\n",p->flow->todstpktcnt);
-        fprintf(aft->file_ctx->fp, "FLOW PKTS TOSRC:   %"PRIu32"\n",p->flow->tosrcpktcnt);
-        fprintf(aft->file_ctx->fp, "FLOW Total Bytes:  %"PRIu64"\n",p->flow->bytecnt);
-#endif
-        fprintf(aft->file_ctx->fp, "FLOW IPONLY SET:   TOSERVER: %s, TOCLIENT: %s\n",
-        p->flow->flags & FLOW_TOSERVER_IPONLY_SET ? "TRUE" : "FALSE",
-        p->flow->flags & FLOW_TOCLIENT_IPONLY_SET ? "TRUE" : "FALSE");
-        fprintf(aft->file_ctx->fp, "FLOW ACTION:       DROP: %s, PASS %s\n",
-        p->flow->flags & FLOW_ACTION_DROP ? "TRUE" : "FALSE",
-        p->flow->flags & FLOW_ACTION_PASS ? "TRUE" : "FALSE");
-        fprintf(aft->file_ctx->fp, "FLOW NOINSPECTION: PACKET: %s, PAYLOAD: %s, APP_LAYER: %s\n",
-        p->flow->flags & FLOW_NOPACKET_INSPECTION ? "TRUE" : "FALSE",
-        p->flow->flags & FLOW_NOPAYLOAD_INSPECTION ? "TRUE" : "FALSE",
-        p->flow->flags & FLOW_NO_APPLAYER_INSPECTION ? "TRUE" : "FALSE");
-        fprintf(aft->file_ctx->fp, "FLOW APP_LAYER:    DETECTED: %s, PROTO %"PRIu16"\n",
-                (p->flow->alproto != ALPROTO_UNKNOWN) ? "TRUE" : "FALSE", p->flow->alproto);
-        AlertDebugLogFlowVars(aft, p);
-        AlertDebugLogFlowBits(aft, p);
-        SCMutexUnlock(&p->flow->m);
-    }
-
-    AlertDebugLogPktVars(aft, p);
-
-    fprintf(aft->file_ctx->fp, "PACKET LEN:        %" PRIu32 "\n", GET_PKT_LEN(p));
-    fprintf(aft->file_ctx->fp, "PACKET:\n");
-    PrintRawDataFp(aft->file_ctx->fp, GET_PKT_DATA(p), GET_PKT_LEN(p));
-
-    fflush(aft->file_ctx->fp);
-    SCMutexUnlock(&aft->file_ctx->fp_mutex);
-
-    return TM_ECODE_OK;
-}
-
 TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
@@ -436,9 +370,9 @@ TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQ
 TmEcode AlertDebugLog (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
 {
     if (PKT_IS_IPV4(p)) {
-        return AlertDebugLogIPv4(tv, p, data, pq, postpq);
+        return AlertDebugLogger(tv, p, data, pq, postpq);
     } else if (PKT_IS_IPV6(p)) {
-        return AlertDebugLogIPv6(tv, p, data, pq, postpq);
+        return AlertDebugLogger(tv, p, data, pq, postpq);
     } else if (p->events.cnt > 0) {
         return AlertDebugLogDecoderEvent(tv, p, data, pq, postpq);
     }
