@@ -155,7 +155,9 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
         /* if we have a filestore sm with a scope > file (so tx, ssn) we
          * run it here */
         sm = s->sm_lists[DETECT_SM_LIST_FILEMATCH];
-        if (sm != NULL && sm->next == NULL && sm->type == DETECT_FILESTORE) {
+        if (sm != NULL && sm->next == NULL && sm->type == DETECT_FILESTORE &&
+                sm->ctx != NULL)
+        {
             DetectFilestoreData *fd = sm->ctx;
             if (fd->scope > FILESTORE_SCOPE_DEFAULT) {
                 match = sigmatch_table[sm->type].
