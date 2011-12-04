@@ -4494,6 +4494,11 @@ void StreamTcpSetSessionNoReassemblyFlag (TcpSession *ssn, char direction)
 }
 
 #define PSEUDO_PKT_SET_IPV4HDR(nipv4h,ipv4h) do { \
+        IPV4_SET_RAW_VER(nipv4h, IPV4_GET_RAW_VER(ipv4h)); \
+        IPV4_SET_RAW_HLEN(nipv4h, IPV4_GET_RAW_HLEN(ipv4h)); \
+        IPV4_SET_RAW_IPLEN(nipv4h, IPV4_GET_RAW_IPLEN(ipv4h)); \
+        IPV4_SET_RAW_IPTOS(nipv4h, IPV4_GET_RAW_IPTOS(ipv4h)); \
+        IPV4_SET_RAW_IPPROTO(nipv4h, IPV4_GET_RAW_IPPROTO(ipv4h)); \
         (nipv4h)->ip_src = IPV4_GET_RAW_IPDST(ipv4h); \
         (nipv4h)->ip_dst = IPV4_GET_RAW_IPSRC(ipv4h); \
     } while (0)
@@ -4586,10 +4591,10 @@ void StreamTcpPseudoPacketSetupHeader(Packet *np, Packet *p)
         PSEUDO_PKT_SET_TCPHDR(np->tcph, p->tcph);
 
         /* Setup the adress and port details */
-        SET_IPV4_SRC_ADDR(np, &np->src);
-        SET_IPV4_DST_ADDR(np, &np->dst);
-        SET_TCP_SRC_PORT(np, &np->sp);
-        SET_TCP_DST_PORT(np, &np->dp);
+        SET_IPV4_SRC_ADDR(p, &np->src);
+        SET_IPV4_DST_ADDR(p, &np->dst);
+        SET_TCP_SRC_PORT(p, &np->sp);
+        SET_TCP_DST_PORT(p, &np->dp);
 
     } else if (PKT_IS_IPV6(p)) {
         np->ip6h = (IPV6Hdr *)((uint8_t *)GET_PKT_DATA(np) + (GET_PKT_LEN(np) - IPV6_GET_PLEN(p) - IPV6_HEADER_LEN));
