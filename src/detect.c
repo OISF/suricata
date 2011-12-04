@@ -1298,6 +1298,14 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         SCMutexLock(&p->flow->m);
         {
+            /* set the iponly stuff */
+            if (p->flow != NULL) {
+                if (p->flow->flags & FLOW_TOCLIENT_IPONLY_SET)
+                    p->flowflags |= FLOW_PKT_TOCLIENT_IPONLY_SET;
+                if (p->flow->flags & FLOW_TOSERVER_IPONLY_SET)
+                    p->flowflags |= FLOW_PKT_TOSERVER_IPONLY_SET;
+            }
+
             /* Get the stored sgh from the flow (if any). Make sure we're not using
              * the sgh for icmp error packets part of the same stream. */
             if (IP_GET_IPPROTO(p) == p->flow->proto) { /* filter out icmp */

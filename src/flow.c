@@ -791,12 +791,6 @@ void FlowHandlePacket (ThreadVars *tv, Packet *p)
     /* update queue positions */
     FlowUpdateQueue(f);
 
-    /* set the iponly stuff */
-    if (f->flags & FLOW_TOCLIENT_IPONLY_SET)
-        p->flowflags |= FLOW_PKT_TOCLIENT_IPONLY_SET;
-    if (f->flags & FLOW_TOSERVER_IPONLY_SET)
-        p->flowflags |= FLOW_PKT_TOSERVER_IPONLY_SET;
-
     /*set the detection bypass flags*/
     if (f->flags & FLOW_NOPACKET_INSPECTION) {
         SCLogDebug("setting FLOW_NOPACKET_INSPECTION flag on flow %p", f);
