@@ -138,6 +138,8 @@
 #include "util-profiling.h"
 #include "util-magic.h"
 
+#include "util-coredump-config.h"
+
 #include "defrag.h"
 
 #include "runmodes.h"
@@ -1498,6 +1500,8 @@ int main(int argc, char **argv)
     AppLayerHtpRegisterExtraCallbacks();
     SCThresholdConfInitContext(de_ctx,NULL);
     SCAsn1LoadConfig();
+
+    CoredumpLoadConfig();
 
     struct timeval start_time;
     memset(&start_time, 0, sizeof(start_time));

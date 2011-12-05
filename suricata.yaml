@@ -824,3 +824,14 @@ profiling:
       enabled: no
       filename: packet_stats.csv
 
+# Suricata core dump configuration. Limits the size of the core dump file to
+# approximately max_dump. The actual core dump size will be a multiple of the
+# page size. Core dumps that would be larger than max_dump are truncated. On
+# Linux, the actual core dump size may be a few pages larger than max_dump.
+# Setting max_dump to 0 disables core dumping.
+# Setting max_dump to 'unlimited' will give the full core dump file.
+# On 32-bit Linux, a max_dump value >= ULONG_MAX may cause the core dump size
+# to be 'unlimited'.
+
+coredump:
+  max_dump: unlimited

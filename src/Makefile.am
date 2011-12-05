@@ -203,6 +203,7 @@ util-random.c util-random.h \
 util-classification-config.c util-classification-config.h \
 util-threshold-config.c util-threshold-config.h \
 util-reference-config.c util-reference-config.h \
+util-coredump-config.c util-coredump-config.h \
 util-strlcatu.c \
 util-strlcpyu.c \
 util-cuda.c util-cuda.h \
