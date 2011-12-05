@@ -472,14 +472,8 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
             ret = -1;
             break;
         case STREAM_STATE_DATA:
-            hstate->flags |= HTP_FLAG_STATE_DATA;
-            break;
         case STREAM_STATE_DATA_OTHER:
-            SCLogDebug("CONNECT not supported yet");
-            hstate->flags |= HTP_FLAG_STATE_ERROR;
-            hstate->flags &= ~HTP_FLAG_STATE_DATA;
-            hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
-            ret = -1;
+            hstate->flags |= HTP_FLAG_STATE_DATA;
             break;
         default:
             hstate->flags &= ~HTP_FLAG_STATE_DATA;
@@ -563,14 +557,8 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
             ret = -1;
             break;
         case STREAM_STATE_DATA:
-            hstate->flags |= HTP_FLAG_STATE_DATA;
-            break;
         case STREAM_STATE_DATA_OTHER:
-            SCLogDebug("CONNECT not supported yet");
-            hstate->flags = HTP_FLAG_STATE_ERROR;
-            hstate->flags &= ~HTP_FLAG_STATE_DATA;
-            hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
-            ret = -1;
+            hstate->flags |= HTP_FLAG_STATE_DATA;
             break;
         default:
             hstate->flags &= ~HTP_FLAG_STATE_DATA;
