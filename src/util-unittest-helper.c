@@ -41,6 +41,8 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
+#ifdef UNITTESTS
+
 /**
  *  \brief return the uint32_t for a ipv4 address string
  *
@@ -832,8 +834,10 @@ uint32_t UTHBuildPacketOfFlows(uint32_t start, uint32_t end, uint8_t dir) {
     return i;
 }
 
+/*
+ * unittests for the unittest helpers
+ */
 
-#ifdef UNITTESTS
 /**
  * \brief CheckUTHTestPacket wrapper to check packets for unittests
  */

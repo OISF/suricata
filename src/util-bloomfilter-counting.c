@@ -208,6 +208,11 @@ int BloomFilterCountingTest(BloomFilterCounting *bf, void *data, uint16_t datale
     return hit;
 }
 
+/*
+ * ONLY TESTS BELOW THIS COMMENT
+ */
+
+#ifdef UNITTESTS
 static uint32_t BloomHash(void *data, uint16_t datalen, uint8_t iter, uint32_t hash_size) {
      uint8_t *d = (uint8_t *)data;
      uint32_t i;
@@ -223,10 +228,6 @@ static uint32_t BloomHash(void *data, uint16_t datalen, uint8_t iter, uint32_t h
      hash %= hash_size;
      return hash;
 }
-
-/*
- * ONLY TESTS BELOW THIS COMMENT
- */
 
 static int BloomFilterCountingTestInit01 (void) {
     BloomFilterCounting *bf = BloomFilterCountingInit(1024, 4, 4, BloomHash);
@@ -371,8 +372,10 @@ end:
     if (bf != NULL) BloomFilterCountingFree(bf);
     return result;
 }
+#endif
 
 void BloomFilterCountingRegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("BloomFilterCountingTestInit01", BloomFilterCountingTestInit01, 1);
     UtRegisterTest("BloomFilterCountingTestInit02", BloomFilterCountingTestInit02, 1);
     UtRegisterTest("BloomFilterCountingTestInit03", BloomFilterCountingTestInit03, 1);
@@ -385,5 +388,6 @@ void BloomFilterCountingRegisterTests(void) {
 
     UtRegisterTest("BloomFilterCountingTestFull01", BloomFilterCountingTestFull01, 1);
     UtRegisterTest("BloomFilterCountingTestFull02", BloomFilterCountingTestFull02, 1);
+#endif
 }
 

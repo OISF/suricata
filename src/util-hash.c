@@ -231,6 +231,7 @@ char HashTableDefaultCompare(void *data1, uint16_t len1, void *data2, uint16_t l
  * ONLY TESTS BELOW THIS COMMENT
  */
 
+#ifdef UNITTESTS
 static int HashTableTestInit01 (void) {
     HashTable *ht = HashTableInit(1024, HashTableGenericHash, NULL, NULL);
     if (ht == NULL)
@@ -391,8 +392,10 @@ end:
     if (ht != NULL) HashTableFree(ht);
     return result;
 }
+#endif
 
 void HashTableRegisterTests(void) {
+#ifdef UNITTESTS
     UtRegisterTest("HashTableTestInit01", HashTableTestInit01, 1);
     UtRegisterTest("HashTableTestInit02", HashTableTestInit02, 1);
     UtRegisterTest("HashTableTestInit03", HashTableTestInit03, 1);
@@ -405,5 +408,6 @@ void HashTableRegisterTests(void) {
 
     UtRegisterTest("HashTableTestFull01", HashTableTestFull01, 1);
     UtRegisterTest("HashTableTestFull02", HashTableTestFull02, 1);
+#endif
 }
 

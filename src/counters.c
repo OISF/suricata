@@ -1799,6 +1799,7 @@ void SCPerfReleasePCA(SCPerfCounterArray *pca)
 
 /*----------------------------------Unit_Tests--------------------------------*/
 
+#ifdef UNITTESTS
 static int SCPerfTestCounterReg01()
 {
     SCPerfContext pctx;
@@ -2403,9 +2404,11 @@ static int SCPerfTestIntervalQual18()
 
     return result;
 }
+#endif
 
 void SCPerfRegisterTests()
 {
+#ifdef UNITTESTS
     UtRegisterTest("SCPerfTestCounterReg01", SCPerfTestCounterReg01, 0);
     UtRegisterTest("SCPerfTestCounterReg02", SCPerfTestCounterReg02, 0);
     UtRegisterTest("SCPerfTestCounterReg03", SCPerfTestCounterReg03, 1);
@@ -2425,6 +2428,5 @@ void SCPerfRegisterTests()
     UtRegisterTest("SCPerfTestIntervalQual16", SCPerfTestIntervalQual16, 1);
     UtRegisterTest("SCPerfTestIntervalQual17", SCPerfTestIntervalQual17, 1);
     UtRegisterTest("SCPerfTestIntervalQual18", SCPerfTestIntervalQual18, 1);
-
-    return;
+#endif
 }

@@ -156,8 +156,9 @@ void RunModeRegisterRunModes(void)
     RunModeErfFileRegister();
     RunModeErfDagRegister();
     RunModeIdsAFPRegister();
+#ifdef UNITTESTS
     UtRunModeRegister();
-
+#endif
     return;
 }
 

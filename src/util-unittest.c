@@ -31,6 +31,8 @@
 #include "util-time.h"
 #include "conf.h"
 
+#ifdef UNITTESTS
+
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
@@ -258,7 +260,9 @@ void UtRunModeRegister(void)
     return;
 }
 
-#ifdef UNITTESTS
+/*
+ * unittests for the unittests code
+ */
 
 /** \brief True test
  *
