@@ -176,6 +176,8 @@ SCEnumCharMap smtp_reply_map[ ] = {
  */
 static int SMTPGetLine(SMTPState *state)
 {
+    SCEnter();
+
     /* we have run out of input */
     if (state->input_len <= 0)
         return -1;
@@ -363,6 +365,8 @@ static int SMTPGetLine(SMTPState *state)
 
 static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state)
 {
+    SCEnter();
+
     if (state->cmds_cnt >= state->cmds_buffer_len) {
         int increment = SMTP_COMMAND_BUFFER_STEPS;
         if ((int)(state->cmds_buffer_len + SMTP_COMMAND_BUFFER_STEPS) > (int)USHRT_MAX) {
@@ -374,6 +378,7 @@ static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state)
                                 (state->cmds_buffer_len +
                                  increment));
         if (state->cmds == NULL) {
+            SCLogDebug("SCRalloc failure");
             return -1;
         }
         state->cmds_buffer_len += increment;
@@ -387,8 +392,10 @@ static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state)
     }
 
     /** \todo decoder event */
-    if ((int)(state->cmds_cnt + 1) > (int)USHRT_MAX)
+    if ((int)(state->cmds_cnt + 1) > (int)USHRT_MAX) {
+        SCLogDebug("command buffer overflow");
         return -1;
+    }
 
     state->cmds[state->cmds_cnt] = command;
     state->cmds_cnt++;
@@ -399,22 +406,26 @@ static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state)
 static int SMTPProcessCommandBDAT(SMTPState *state, Flow *f,
                                   AppLayerParserState *pstate)
 {
+    SCEnter();
+
     state->bdat_chunk_idx += (state->current_line_len +
                               state->current_line_delimiter_len);
     if (state->bdat_chunk_idx > state->bdat_chunk_len) {
         state->parser_state &= ~SMTP_PARSER_STATE_COMMAND_DATA_MODE;
         /* decoder event */
-        return -1;
+        SCReturnInt(-1);
     } else if (state->bdat_chunk_idx == state->bdat_chunk_len) {
         state->parser_state &= ~SMTP_PARSER_STATE_COMMAND_DATA_MODE;
     }
 
-    return 0;
+    SCReturnInt(0);
 }
 
 static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
                                    AppLayerParserState *pstate)
 {
+    SCEnter();
+
     if (!(state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
         /* looks like are still waiting for a confirmination from the server */
         return 0;
@@ -441,6 +452,8 @@ static int SMTPProcessCommandSTARTTLS(SMTPState *state, Flow *f,
 static int SMTPProcessReply(SMTPState *state, Flow *f,
                             AppLayerParserState *pstate)
 {
+    SCEnter();
+
     uint64_t reply_code = 0;
     PatternMatcherQueue *pmq = state->thread_local_data;
 
@@ -475,13 +488,16 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
                                              3);
     if (mpm_cnt == 0) {
         /* set decoder event - reply code invalid */
-        return -1;
+        SCLogDebug("invalid reply code %02x %02x %02x",
+                state->current_line[0], state->current_line[1], state->current_line[2]);
+        SCReturnInt(-1);
     }
     reply_code = smtp_reply_map[pmq->pattern_id_array[0]].enum_value;
 
     if (state->cmds_idx == state->cmds_cnt) {
         /* decoder event - unable to match reply with request */
-        return -1;
+        SCLogDebug("unable to match reply with request");
+        SCReturnInt(-1);
     }
 
     /* kinda hack needed for us.  Our parser logs commands, to be
@@ -541,6 +557,8 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
 
 static int SMTPParseCommandBDAT(SMTPState *state)
 {
+    SCEnter();
+
     int i = 4;
     while (i < state->current_line_len) {
         if (state->current_line[i] != ' ') {
@@ -570,6 +588,8 @@ static int SMTPParseCommandBDAT(SMTPState *state)
 static int SMTPProcessRequest(SMTPState *state, Flow *f,
                               AppLayerParserState *pstate)
 {
+    SCEnter();
+
     /* there are 2 commands that can push it into this COMMAND_DATA mode -
      * STARTTLS and DATA */
     if (!(state->parser_state & SMTP_PARSER_STATE_COMMAND_DATA_MODE)) {
@@ -584,8 +604,9 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
         } else if (state->current_line_len >= 4 &&
                    SCMemcmpLowercase("bdat", state->current_line, 4) == 0) {
             r = SMTPParseCommandBDAT(state);
-            if (r == -1)
-                return -1;
+            if (r == -1) {
+                SCReturnInt(-1);
+            }
             state->current_command = SMTP_COMMAND_BDAT;
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
         } else {
@@ -596,10 +617,10 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
          * against reply(ies) sent by the server */
         if (SMTPInsertCommandIntoCommandBuffer(state->current_command,
                                                state) == -1) {
-            return -1;
+            SCReturnInt(-1);
         }
 
-        return r;
+        SCReturnInt(r);
     }
 
     switch (state->current_command) {
@@ -615,7 +636,7 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
         default:
             /* we have nothing to do with any other command at this instant.
              * Just let it go through */
-            return 0;
+            SCReturnInt(0);
     }
 }
 
@@ -624,6 +645,8 @@ static int SMTPParse(int direction, Flow *f, SMTPState *state,
                      uint32_t input_len,
                      PatternMatcherQueue *local_data, AppLayerParserResult *output)
 {
+    SCEnter();
+
     state->input = input;
     state->input_len = input_len;
     state->direction = direction;
@@ -633,18 +656,18 @@ static int SMTPParse(int direction, Flow *f, SMTPState *state,
     if (direction == 0) {
         while (SMTPGetLine(state) >= 0) {
             if (SMTPProcessRequest(state, f, pstate) == -1)
-                return -1;
+                SCReturnInt(-1);
         }
 
         /* toclient */
     } else {
         while (SMTPGetLine(state) >= 0) {
             if (SMTPProcessReply(state, f, pstate) == -1)
-                return -1;
+                SCReturnInt(-1);
         }
     }
 
-    return 0;
+    SCReturnInt(0);
 }
 
 static int SMTPParseClientRecord(Flow *f, void *alstate,
@@ -652,6 +675,8 @@ static int SMTPParseClientRecord(Flow *f, void *alstate,
                                  uint8_t *input, uint32_t input_len,
                                  void *local_data, AppLayerParserResult *output)
 {
+    SCEnter();
+
     /* first arg 0 is toserver */
     return SMTPParse(0, f, alstate, pstate, input, input_len, local_data,
                      output);
@@ -662,6 +687,8 @@ static int SMTPParseServerRecord(Flow *f, void *alstate,
                                  uint8_t *input, uint32_t input_len,
                                  void *local_data, AppLayerParserResult *output)
 {
+    SCEnter();
+
     /* first arg 1 is toclient */
     return SMTPParse(1, f, alstate, pstate, input, input_len, local_data,
                      output);
