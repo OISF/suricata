@@ -912,7 +912,7 @@ static inline void SigMatchSignaturesBuildMatchArraySIMD(DetectEngineThreadCtx *
         /* convert into a bitarray */
         bm = ((uint64_t) _mm_movemask_epi8(r2.v));
 
-        SCLogDebug("bm1 %08x", bm);
+        SCLogDebug("bm1 %08"PRIx64, bm);
 
         /* load a batch of masks */
         sm.v = _mm_load_si128((const __m128i *)&det_ctx->sgh->mask_array[u+16]);
@@ -941,7 +941,7 @@ static inline void SigMatchSignaturesBuildMatchArraySIMD(DetectEngineThreadCtx *
         /* convert into a bitarray */
         bm |= ((uint64_t) _mm_movemask_epi8(r2.v)) << 48;
 
-        SCLogDebug("bm2 %08x", bm);
+        SCLogDebug("bm2 %08"PRIx64, bm);
 
         if (bm == 0) {
             continue;
