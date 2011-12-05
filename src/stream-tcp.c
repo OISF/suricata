@@ -4101,14 +4101,13 @@ int StreamTcpGetFlowState(void *s)
             SCReturnInt(FLOW_STATE_NEW);
 
         case TCP_ESTABLISHED:
-            SCReturnInt(FLOW_STATE_ESTABLISHED);
-
         case TCP_FIN_WAIT1:
         case TCP_FIN_WAIT2:
         case TCP_CLOSING:
+        case TCP_CLOSE_WAIT:
+            SCReturnInt(FLOW_STATE_ESTABLISHED);
         case TCP_LAST_ACK:
         case TCP_TIME_WAIT:
-        case TCP_CLOSE_WAIT:
         case TCP_CLOSED:
             SCReturnInt(FLOW_STATE_CLOSED);
     }
