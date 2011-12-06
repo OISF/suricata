@@ -457,10 +457,15 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
     SCLogDebug("co->id %"PRIu32, co->id);
 #endif
 
-    size_t idx = AppLayerTransactionGetInspectId(f);
+    int idx = AppLayerTransactionGetInspectId(f);
+    if (idx == -1) {
+        goto end;
+    }
+
     htp_tx_t *tx = NULL;
 
-    for ( ; idx < list_size(htp_state->connp->conn->transactions); idx++)
+    int size = (int)list_size(htp_state->connp->conn->transactions);
+    for ( ; idx < size; idx++)
     {
         tx = list_get(htp_state->connp->conn->transactions, idx);
         if (tx == NULL || tx->request_uri_normalized == NULL)

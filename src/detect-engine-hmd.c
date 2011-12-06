@@ -312,9 +312,8 @@ int DetectEngineRunHttpMethodMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
                                  HtpState *htp_state)
 {
     htp_tx_t *tx = NULL;
-    int i;
     uint32_t cnt = 0;
-    size_t idx;
+    int idx;
 
     /* we need to lock because the buffers are not actually true buffers
      * but are ones that point to a buffer given by libhtp */
@@ -331,8 +330,12 @@ int DetectEngineRunHttpMethodMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     }
 
     idx = AppLayerTransactionGetInspectId(f);
-    int list_size = list_size(htp_state->connp->conn->transactions) - idx;
-    for (i = 0; i < list_size; idx++, i++) {
+    if (idx == -1) {
+        goto end;
+    }
+
+    int size = (int)list_size(htp_state->connp->conn->transactions);
+    for (; idx < size; idx++) {
 
         tx = list_get(htp_state->connp->conn->transactions, idx);
         if (tx == NULL || tx->request_method == NULL)
@@ -370,8 +373,7 @@ int DetectEngineInspectHttpMethod(DetectEngineCtx *de_ctx,
     int r = 0;
     HtpState *htp_state = NULL;
     htp_tx_t *tx = NULL;
-    int i = 0;
-    size_t idx;
+    int idx;
 
     SCMutexLock(&f->m);
 
@@ -387,8 +389,12 @@ int DetectEngineInspectHttpMethod(DetectEngineCtx *de_ctx,
     }
 
     idx = AppLayerTransactionGetInspectId(f);
-    int list_size = list_size(htp_state->connp->conn->transactions) - idx;
-    for (i = 0; i < list_size; idx++, i++) {
+    if (idx == -1) {
+        goto end;
+    }
+
+    int size = (int)list_size(htp_state->connp->conn->transactions);
+    for (; idx < size; idx++) {
 
         tx = list_get(htp_state->connp->conn->transactions, idx);
         if (tx == NULL || tx->request_method == NULL)

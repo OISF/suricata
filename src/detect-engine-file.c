@@ -196,9 +196,9 @@ int DetectFileInspectHttp(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flow *
 
     int r = 0;
     HtpState *htp_state = NULL;
-    size_t idx = 0;
-    size_t start_tx = 0;
-    size_t end_tx = 0;
+    int idx = 0;
+    int start_tx = 0;
+    int end_tx = 0;
     int match = 0;
     FileContainer *ffc;
 
@@ -219,11 +219,15 @@ int DetectFileInspectHttp(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flow *
     if (htp_state->connp != NULL && htp_state->connp->conn != NULL)
     {
         start_tx = AppLayerTransactionGetInspectId(f);
+        if (start_tx == -1) {
+            goto end;
+        }
+
         /* tx cnt is incremented after request finishes, so we need to inspect
          * response one before the lowest. */
         if ((flags & STREAM_TOCLIENT) && start_tx > 0)
             start_tx--;
-        end_tx = list_size(htp_state->connp->conn->transactions);
+        end_tx = (int)list_size(htp_state->connp->conn->transactions);
     }
 
     for (idx = start_tx ; idx < end_tx; idx++)

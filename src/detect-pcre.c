@@ -192,7 +192,7 @@ int DetectPcreALDoMatchMethod(DetectEngineThreadCtx *det_ctx, Signature *s,
 
     int ret = 0;
     int toret = 0;
-    size_t idx;
+    int idx;
 
 #define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
@@ -227,8 +227,13 @@ int DetectPcreALDoMatchMethod(DetectEngineThreadCtx *det_ctx, Signature *s,
 
     htp_tx_t *tx = NULL;
 
-    for (idx = 0;//htp_state->new_in_tx_index;
-         idx < list_size(htp_state->connp->conn->transactions); idx++)
+    idx = AppLayerTransactionGetInspectId(f);
+    if (idx == -1) {
+        goto end;
+    }
+
+    int size = (int)list_size(htp_state->connp->conn->transactions);
+    for (; idx < size; idx++)
     {
         tx = list_get(htp_state->connp->conn->transactions, idx);
         if (tx == NULL)
@@ -302,7 +307,7 @@ int DetectPcreALDoMatchCookie(DetectEngineThreadCtx *det_ctx, Signature *s,
 
     int ret = 0;
     int toret = 0;
-    size_t idx;
+    int idx;
 
 #define MAX_SUBSTRINGS 30
     int ov[MAX_SUBSTRINGS];
@@ -337,8 +342,13 @@ int DetectPcreALDoMatchCookie(DetectEngineThreadCtx *det_ctx, Signature *s,
 
     htp_tx_t *tx = NULL;
 
-    for (idx = 0;//htp_state->new_in_tx_index;
-         idx < list_size(htp_state->connp->conn->transactions); idx++)
+    idx = AppLayerTransactionGetInspectId(f);
+    if (idx == -1) {
+        goto end;
+    }
+
+    int size = (int)list_size(htp_state->connp->conn->transactions);
+    for (; idx < size; idx++)
     {
         tx = list_get(htp_state->connp->conn->transactions, idx);
         if (tx == NULL)

@@ -103,7 +103,7 @@ int DetectHttpStatCodeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     SCEnter();
 
     int ret = 0;
-    size_t idx;
+    int idx;
 
     SCMutexLock(&f->m);
     SCLogDebug("got lock %p", &f->m);
@@ -132,7 +132,13 @@ int DetectHttpStatCodeMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
     htp_tx_t *tx = NULL;
 
-    for (idx = 0; idx < list_size(htp_state->connp->conn->transactions); idx++)
+    idx = AppLayerTransactionGetInspectId(f);
+    if (idx == -1) {
+        goto end;
+    }
+
+    int size = (int)list_size(htp_state->connp->conn->transactions);
+    for (; idx < size; idx++)
     {
         tx = list_get(htp_state->connp->conn->transactions, idx);
         if (tx == NULL)

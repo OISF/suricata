@@ -110,7 +110,7 @@ int DetectUrilenMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
 {
     SCEnter();
     int ret = 0;
-    size_t idx = 0;
+    int idx = 0;
     DetectUrilenData *urilend = (DetectUrilenData *) m->ctx;
 
     HtpState *htp_state = (HtpState *)state;
@@ -122,8 +122,13 @@ int DetectUrilenMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
     SCMutexLock(&f->m);
     htp_tx_t *tx = NULL;
 
-    for (idx = 0;//htp_state->new_in_tx_index;
-         idx < list_size(htp_state->connp->conn->transactions); idx++)
+    idx = AppLayerTransactionGetInspectId(f);
+    if (idx == -1) {
+        goto end;
+    }
+
+    int size = (int)list_size(htp_state->connp->conn->transactions);
+    for (; idx < size; idx++)
     {
         tx = list_get(htp_state->connp->conn->transactions, idx);
         if (tx == NULL || tx->request_uri_normalized == NULL)

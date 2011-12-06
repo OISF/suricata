@@ -321,7 +321,7 @@ match:
 static void DetectEngineBufferHttpClientBodies(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Flow *f, HtpState *htp_state)
 {
-    size_t idx = 0;
+    int idx = 0;
     htp_tx_t *tx = NULL;
     int i = 0;
 
@@ -365,8 +365,13 @@ static void DetectEngineBufferHttpClientBodies(DetectEngineCtx *de_ctx,
     }
     memset(det_ctx->hcbd_buffers_len, 0, det_ctx->hcbd_buffers_list_len * sizeof(uint32_t));
 
-    for (idx = AppLayerTransactionGetInspectId(f);
-         i < det_ctx->hcbd_buffers_list_len; idx++, i++) {
+    idx = AppLayerTransactionGetInspectId(f);
+    if (idx == -1) {
+        goto end;
+    }
+
+    int size = (int)list_size(htp_state->connp->conn->transactions);
+    for (; idx < size; idx++, i++) {
 
         tx = list_get(htp_state->connp->conn->transactions, idx);
         if (tx == NULL)

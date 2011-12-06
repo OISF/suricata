@@ -471,7 +471,7 @@ uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f, Htp
     SCEnter();
 
     uint32_t cnt = 0;
-    size_t idx = 0;
+    int idx = 0;
     htp_tx_t *tx = NULL;
 
     /* locking the flow, we will inspect the htp state */
@@ -483,8 +483,13 @@ uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f, Htp
         SCReturnUInt(0U);
     }
 
-    for (idx = AppLayerTransactionGetInspectId(f);
-         idx < list_size(htp_state->connp->conn->transactions); idx++)
+    idx = AppLayerTransactionGetInspectId(f);
+    if (idx == -1) {
+        goto end;
+    }
+
+    int size = (int)list_size(htp_state->connp->conn->transactions);
+    for (; idx < size; idx++)
     {
         tx = list_get(htp_state->connp->conn->transactions, idx);
         if (tx == NULL || tx->request_uri_normalized == NULL)
@@ -494,7 +499,7 @@ uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f, Htp
                 bstr_ptr(tx->request_uri_normalized),
                 bstr_len(tx->request_uri_normalized));
     }
-
+end:
     SCMutexUnlock(&f->m);
     SCReturnUInt(cnt);
 }

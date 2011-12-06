@@ -1029,7 +1029,10 @@ error:
     SCReturnInt(-1);
 }
 
-/** \brief get the base transaction id */
+/** \brief get the base transaction id
+ *
+ *  \retval txid or -1 on error
+ */
 int AppLayerTransactionGetInspectId(Flow *f) {
     SCEnter();
 
