@@ -50,6 +50,7 @@ outputs:
       enabled: yes
       filename: fast.log
       append: yes
+      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
   # alert output for use with Barnyard2
   - unified2-alert:
@@ -65,7 +66,8 @@ outputs:
       enabled: yes
       filename: http.log
       append: yes
-      #extended: yes # enable this for extended logging information
+      #extended: yes     # enable this for extended logging information
+      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
   # a line based log to used with pcap file study.
   # this module is dedicated to offline pcap parsing (empty output
@@ -109,6 +111,7 @@ outputs:
       enabled: no
       filename: alert-debug.log
       append: yes
+      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
   # alert output to prelude (http://www.prelude-technologies.com/) only
   # available if Suricata has been compiled with --enable-prelude
@@ -141,6 +144,7 @@ outputs:
       enabled: no
       filename: drop.log
       append: yes
+      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
   # output module to store extracted files to disk
   #
