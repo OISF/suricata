@@ -4590,10 +4590,10 @@ void StreamTcpPseudoPacketSetupHeader(Packet *np, Packet *p)
         PSEUDO_PKT_SET_TCPHDR(np->tcph, p->tcph);
 
         /* Setup the adress and port details */
-        SET_IPV4_SRC_ADDR(p, &np->src);
-        SET_IPV4_DST_ADDR(p, &np->dst);
-        SET_TCP_SRC_PORT(p, &np->sp);
-        SET_TCP_DST_PORT(p, &np->dp);
+        SET_IPV4_SRC_ADDR(p, &np->dst);
+        SET_IPV4_DST_ADDR(p, &np->src);
+        SET_TCP_SRC_PORT(p, &np->dp);
+        SET_TCP_DST_PORT(p, &np->sp);
 
     } else if (PKT_IS_IPV6(p)) {
         np->ip6h = (IPV6Hdr *)((uint8_t *)GET_PKT_DATA(np) + (GET_PKT_LEN(np) - IPV6_GET_PLEN(p) - IPV6_HEADER_LEN));
