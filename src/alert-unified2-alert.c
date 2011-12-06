@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2011 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,6 +19,7 @@
  * \file
  *
  * \author Breno Silva <breno.silva@gmail.com>
+ * \author Eric Leblond <eric@regit.org>
  *
  * Logs alerts in a format compatible to Snort's unified2 format, so it should
  * be readable by Barnyard2.
@@ -689,7 +690,7 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
                             len, aun->datalen - aun->offset);
                     return -1;
                 }
-                ethhdr.eth_type = htons(ETHERNET_TYPE_IPV6);
+                ethhdr.eth_type = htons(ETHERNET_TYPE_IP);
 
                 memcpy(aun->data + aun->offset, &ethhdr, 14);
                 aun->offset += ethh_offset;
@@ -701,7 +702,7 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
             aun->iphdr = (void *)(aun->data + aun->offset);
             aun->offset += hdr_length;
             aun->length += hdr_length;
-        } else {
+        } else { /* Implied IPv6 */
             FakeIPv6Hdr fakehdr;
             uint32_t hdr_length = sizeof(FakeIPv6Hdr);
 
@@ -716,7 +717,7 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, void *stream, 
                             len, aun->datalen - aun->offset);
                     return -1;
                 }
-                ethhdr.eth_type = htons(ETHERNET_TYPE_IP);
+                ethhdr.eth_type = htons(ETHERNET_TYPE_IPV6);
 
                 memcpy(aun->data + aun->offset, &ethhdr, 14);
                 aun->offset += ethh_offset;
