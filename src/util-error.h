@@ -227,6 +227,7 @@ typedef enum {
     SC_ERR_MAGIC_LOAD,
     SC_ERR_SIZE_PARSE,
     SC_ERR_RAWBYTES_FILE_DATA,
+    SC_ERR_SOCKET,
 } SCError;
 
 const char *SCErrorToString(SCError);
