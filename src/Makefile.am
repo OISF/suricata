@@ -279,7 +279,8 @@ util-action.c util-action.h \
 win32-syslog.h \
 util-profiling.c util-profiling.h \
 cuda-packet-batcher.c cuda-packet-batcher.h \
-util-ioctl.h util-ioctl.c
+util-ioctl.h util-ioctl.c \
+util-logopenfile.h util-logopenfile.c
 
 # set the include path found by configure
 INCLUDES= $(all_includes)
