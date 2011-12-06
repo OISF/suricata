@@ -53,6 +53,7 @@
 #include "util-privs.h"
 #include "util-print.h"
 #include "util-proto-name.h"
+#include "util-logopenfile.h"
 
 #define DEFAULT_LOG_FILENAME "drop.log"
 
@@ -66,7 +67,6 @@ TmEcode LogDropLogThreadInit(ThreadVars *, void *, void **);
 TmEcode LogDropLogThreadDeinit(ThreadVars *, void *);
 OutputCtx *LogDropLogInitCtx(ConfNode *);
 static void LogDropLogDeInitCtx(OutputCtx *);
-static int LogDropLogOpenFileCtx(LogFileCtx *, const char *, const char *);
 void LogDropLogRegisterTests(void);
 void LogDropLogExitPrintStats(ThreadVars *, void *);
 
@@ -152,15 +152,7 @@ OutputCtx *LogDropLogInitCtx(ConfNode *conf)
         return NULL;
     }
 
-    const char *filename = ConfNodeLookupChildValue(conf, "filename");
-    if (filename == NULL)
-        filename = DEFAULT_LOG_FILENAME;
-
-    const char *mode = ConfNodeLookupChildValue(conf, "append");
-    if (mode == NULL)
-        mode = DEFAULT_LOG_MODE_APPEND;
-
-    if (LogDropLogOpenFileCtx(logfile_ctx, filename, mode) < 0) {
+    if (SCConfLogOpenGeneric(conf, logfile_ctx, DEFAULT_LOG_FILENAME) < 0) {
         LogFileFreeCtx(logfile_ctx);
         return NULL;
     }
@@ -172,8 +164,6 @@ OutputCtx *LogDropLogInitCtx(ConfNode *conf)
     }
     output_ctx->data = logfile_ctx;
     output_ctx->DeInit = LogDropLogDeInitCtx;
-
-    SCLogInfo("Drop log output initialized, filename: %s", filename);
 
     return output_ctx;
 }
@@ -192,38 +182,6 @@ static void LogDropLogDeInitCtx(OutputCtx *output_ctx)
         }
         SCFree(output_ctx);
     }
-}
-
-/** \brief Read the config set the file pointer, open the file
- *  \param file_ctx pointer to a created LogFileCtx using LogFileNewCtx()
- *  \param filename name of log file
- *  \param mode append mode (bool)
- *  \return -1 if failure, 0 if succesful
- * */
-static int LogDropLogOpenFileCtx(LogFileCtx *file_ctx, const char *filename,
-                                    const char *mode)
-{
-    char log_path[PATH_MAX];
-    char *log_dir;
-
-    if (ConfGet("default-log-dir", &log_dir) != 1)
-        log_dir = DEFAULT_LOG_DIR;
-
-    snprintf(log_path, PATH_MAX, "%s/%s", log_dir, filename);
-
-    if (ConfValIsTrue(mode)) {
-        file_ctx->fp = fopen(log_path, "a");
-    } else {
-        file_ctx->fp = fopen(log_path, "w");
-    }
-
-    if (file_ctx->fp == NULL) {
-        SCLogError(SC_ERR_FOPEN, "failed to open %s: %s", log_path,
-                strerror(errno));
-        return -1;
-    }
-
-    return 0;
 }
 
 /** \brief Function to create the time string from the packet timestamp */
