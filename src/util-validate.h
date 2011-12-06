@@ -33,33 +33,56 @@
 
 #ifdef DEBUG_VALIDATION
 
+/** \brief validate the integrity of the flow
+ *
+ *  BUG_ON's on problems
+ */
+#define DEBUG_VALIDATE_FLOW(f) do {                 \
+    if ((f) != NULL) {                              \
+        SCMutexLock(&(f)->m);                       \
+        BUG_ON((f)->flags & FLOW_IPV4 &&            \
+               (f)->flags & FLOW_IPV6);             \
+        if ((f)->proto == IPPROTO_TCP) {            \
+            BUG_ON((f)->alstate != NULL &&          \
+                   (f)->alparser == NULL);          \
+        }                                           \
+        SCMutexUnlock(&(f)->m);                     \
+    }                                               \
+} while(0)
+
 /** \brief validate the integrity of the packet
  *
  *  BUG_ON's on problems
  */
-#define DEBUG_VALIDATE_PACKET(p) do {                   \
-        if ((p) != NULL) {                              \
-            if ((p)->proto == IPPROTO_TCP) {            \
-                BUG_ON((p)->tcph == NULL);              \
-            } else if ((p)->proto == IPPROTO_UDP) {     \
-                BUG_ON((p)->udph == NULL);              \
-            } else if ((p)->proto == IPPROTO_ICMP) {    \
-                BUG_ON((p)->icmpv4h == NULL);           \
-            } else if ((p)->proto == IPPROTO_SCTP) {    \
-                BUG_ON((p)->sctph == NULL);           \
-            } else if ((p)->proto == IPPROTO_ICMPV6) {  \
-                BUG_ON((p)->icmpv6h == NULL);           \
-            }                                           \
-            if ((p)->payload_len > 0) {                 \
-                BUG_ON((p)->payload == NULL);           \
-            }                                           \
-            BUG_ON((p)->ip4h != NULL && (p)->ip6h != NULL);     \
-            BUG_ON((p)->flowflags != 0 && (p)->flow == NULL);   \
-        }                                               \
-    } while(0)
+#define DEBUG_VALIDATE_PACKET(p) do {               \
+    if ((p) != NULL) {                              \
+        if ((p)->flow != NULL) {                    \
+            DEBUG_VALIDATE_FLOW((p)->flow);         \
+        }                                           \
+        if ((p)->proto == IPPROTO_TCP) {            \
+            BUG_ON((p)->tcph == NULL);              \
+        } else if ((p)->proto == IPPROTO_UDP) {     \
+            BUG_ON((p)->udph == NULL);              \
+        } else if ((p)->proto == IPPROTO_ICMP) {    \
+            BUG_ON((p)->icmpv4h == NULL);           \
+        } else if ((p)->proto == IPPROTO_SCTP) {    \
+            BUG_ON((p)->sctph == NULL);             \
+        } else if ((p)->proto == IPPROTO_ICMPV6) {  \
+            BUG_ON((p)->icmpv6h == NULL);           \
+        }                                           \
+        if ((p)->payload_len > 0) {                 \
+            BUG_ON((p)->payload == NULL);           \
+        }                                           \
+        BUG_ON((p)->ip4h != NULL && (p)->ip6h != NULL);     \
+        BUG_ON((p)->flowflags != 0 && (p)->flow == NULL);   \
+        BUG_ON((p)->flowflags & FLOW_PKT_TOSERVER &&\
+               (p)->flowflags & FLOW_PKT_TOCLIENT); \
+    }                                               \
+} while(0)
 
 #else /* DEBUG_VALIDATE */
 
+#define DEBUG_VALIDATE_FLOW(f)
 #define DEBUG_VALIDATE_PACKET(p)
 
 #endif /* DEBUG_VALIDATE */
