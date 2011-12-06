@@ -326,6 +326,7 @@ static int FlowPrune(FlowQueue *q, struct timeval *ts, int try_cnt)
         if (FlowForceReassemblyForFlowV2(f) == 1) {
             Flow *prev_f = f;
             f = f->lnext;
+            SCSpinUnlock(&prev_f->fb->s);
             SCMutexUnlock(&prev_f->m);
             continue;
         }
