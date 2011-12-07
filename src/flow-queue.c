@@ -172,3 +172,43 @@ void FlowRequeue(Flow *f, FlowQueue *srcq, FlowQueue *dstq, uint8_t need_srclock
     SCMutexUnlock(&dstq->mutex_q);
 }
 
+/**
+ *  \brief Move flow to bottom of queue
+ *
+ *  \param f the flow to be transfered
+ *  \param q the queue
+ */
+void FlowRequeueMoveToBot(Flow *f, FlowQueue *q)
+{
+#ifdef DEBUG
+    BUG_ON(q == NULL || f == NULL);
+#endif /* DEBUG */
+
+    SCMutexLock(&q->mutex_q);
+
+    /* remove from the queue */
+    if (q->top == f)
+        q->top = f->lnext;       /* remove from queue top */
+    if (q->bot == f)
+        q->bot = f->lprev;       /* remove from queue bot */
+    if (f->lprev != NULL)
+        f->lprev->lnext = f->lnext; /* remove from flow prev */
+    if (f->lnext != NULL)
+        f->lnext->lprev = f->lprev; /* remove from flow next */
+
+    /* readd to the queue (append) */
+    f->lprev = q->bot;
+
+    if (f->lprev != NULL)
+        f->lprev->lnext = f;
+
+    f->lnext = NULL;
+
+    q->bot = f;
+
+    if (q->top == NULL)
+        q->top = f;
+
+    SCMutexUnlock(&q->mutex_q);
+}
+

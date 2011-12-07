@@ -112,7 +112,7 @@ void FlowUpdateQueue(Flow *f)
             f->flags |= FLOW_EST_LIST; /* transition */
             f->flags &= ~FLOW_NEW_LIST;
         } else {
-            FlowRequeue(f, &flow_new_q[f->protomap], &flow_new_q[f->protomap], 1);
+            FlowRequeueMoveToBot(f, &flow_new_q[f->protomap]);
         }
     } else if (f->flags & FLOW_EST_LIST) {
         if (flow_proto[f->protomap].GetProtoState != NULL) {
@@ -126,12 +126,12 @@ void FlowUpdateQueue(Flow *f)
             } else {
                 /* Pull and put back -- this way the flows on
                  * top of the list are least recently used. */
-                FlowRequeue(f, &flow_est_q[f->protomap], &flow_est_q[f->protomap], 1);
+                FlowRequeueMoveToBot(f, &flow_est_q[f->protomap]);
             }
         } else {
             /* Pull and put back -- this way the flows on
              * top of the list are least recently used. */
-            FlowRequeue(f, &flow_est_q[f->protomap], &flow_est_q[f->protomap], 1);
+            FlowRequeueMoveToBot(f, &flow_est_q[f->protomap]);
         }
     } else if (f->flags & FLOW_CLOSED_LIST){
         /* for the case of ssn reuse in TCP sessions we need to be able to pull
@@ -148,12 +148,12 @@ void FlowUpdateQueue(Flow *f)
             } else {
                 /* Pull and put back -- this way the flows on
                  * top of the list are least recently used. */
-                FlowRequeue(f, &flow_close_q[f->protomap], &flow_close_q[f->protomap], 1);
+                FlowRequeueMoveToBot(f, &flow_close_q[f->protomap]);
             }
         } else {
             /* Pull and put back -- this way the flows on
              * top of the list are least recently used. */
-            FlowRequeue(f, &flow_close_q[f->protomap], &flow_close_q[f->protomap], 1);
+            FlowRequeueMoveToBot(f, &flow_close_q[f->protomap]);
         }
     }
 
