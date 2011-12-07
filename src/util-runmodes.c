@@ -50,7 +50,9 @@
 #include "util-runmodes.h"
 
 int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
-                              ConfigIfaceParserFunc ConfigParser, char *recv_mod_name,
+                              ConfigIfaceParserFunc ConfigParser,
+                              ConfigIfaceThreadsCountFunc ModThreadsCount,
+                              char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
                               const char *live_dev)
 {
@@ -69,6 +71,13 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
         if (aconf == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Single dev: Failed to allocate config");
             exit(EXIT_FAILURE);
+        }
+
+        if (ModThreadsCount(aconf) > 1) {
+            SCLogWarning(SC_ERR_UNIMPLEMENTED, "'Auto' running mode does not honor 'threads'"
+                         " variable (set on '%s'). Please use an other mode as"
+                         " 'autofp' or 'worker'",
+                         live_dev);
         }
 
         /* create the threads */
@@ -113,6 +122,13 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
                 SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate config for %s (%d)",
                        live_dev, thread);
                 exit(EXIT_FAILURE);
+            }
+
+            if (ModThreadsCount(aconf) > 1) {
+                SCLogWarning(SC_ERR_UNIMPLEMENTED, "'Auto' running mode does not honor 'threads'"
+                         " variable (set on '%s'). Please use an other mode as"
+                         " 'autofp' or 'worker'",
+                         live_dev);
             }
 
             snprintf(tname, sizeof(tname),"%s-%s", thread_name, live_dev);

@@ -403,7 +403,8 @@ int RunModeIdsPfringAuto(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
 
-    ret = RunModeSetLiveCaptureAuto(de_ctx, tparser, "ReceivePfring", "DecodePfring",
+    ret = RunModeSetLiveCaptureAuto(de_ctx, tparser, PfringConfigGeThreadsCount,
+                                    "ReceivePfring", "DecodePfring",
                                     "RxPFR", live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Runmode start failed");

@@ -28,7 +28,9 @@ typedef void *(*ConfigIfaceParserFunc) (const char *);
 typedef int (*ConfigIfaceThreadsCountFunc) (void *);
 
 int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
-                              ConfigIfaceParserFunc configparser, char *recv_mod_name,
+                              ConfigIfaceParserFunc configparser,
+                              ConfigIfaceThreadsCountFunc ModThreadsCount,
+                              char *recv_mod_name,
                               char *decode_mod_name, char *thread_name,
                               const char *live_dev);
 
