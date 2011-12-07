@@ -26,7 +26,6 @@
 #define _FILE_OFFSET_BITS 64
 #include "util-coredump-config.h"
 #include "conf.h"
-#include <sys/prctl.h>
 #include <sys/resource.h>
 
 /**
@@ -81,7 +80,8 @@ int32_t CoredumpLoadConfig (void)
     return 0;
 
 #elif !defined OS_FREEBSD && !defined __OpenBSD__
-    /* Linux specific core dump configuration; set dumpable flag if needed */
+/* Linux specific core dump configuration; set dumpable flag if needed */
+#include <sys/prctl.h>
     int dumpable = 0;
     dumpable = prctl (PR_GET_DUMPABLE, 0, 0, 0, 0);
     if (dumpable == -1) {
@@ -145,10 +145,16 @@ int32_t CoredumpLoadConfig (void)
         new_lim.rlim_cur = max_dump;
 
         /* check whether the hard limit needs to be adjusted */
-        if (lim.rlim_max == RLIM_SAVED_MAX || lim.rlim_max == RLIM_INFINITY) {
-            /* keep the current value (unknown or unlimited) for the hard limit */
+        if (lim.rlim_max == RLIM_INFINITY) {
+            /* keep the current value (unlimited) for the hard limit */
             new_lim.rlim_max = lim.rlim_max;
         }
+#ifdef RLIM_SAVED_MAX
+        else if (lim.rlim_max == RLIM_SAVED_MAX) {
+            /* keep the current value (unknown) for the hard limit */
+            new_lim.rlim_max = lim.rlim_max;
+        }
+#endif
         else if (lim.rlim_max <  max_dump) {
             /* need to raise the hard coredump size limit */
             new_lim.rlim_max =  max_dump;
@@ -164,9 +170,11 @@ int32_t CoredumpLoadConfig (void)
                 if (actual_lim.rlim_cur == RLIM_INFINITY) {
                     SCLogInfo ("Core dump size set to unlimited.");
                 }
+#ifdef RLIM_SAVED_CUR
                 else if (actual_lim.rlim_cur == RLIM_SAVED_CUR) {
                     SCLogInfo ("Core dump size set to soft limit.");
                 }
+#endif
                 else {
                     SCLogInfo ("Core dump size set to %llu", (unsigned long long) actual_lim.rlim_cur);
                 }
@@ -177,7 +185,11 @@ int32_t CoredumpLoadConfig (void)
         if (errno == EINVAL || errno == EPERM) {
             /* could't increase the hard limit, or the soft limit exceeded the hard
              * limit; try to raise the soft limit to the hard limit */
-            if (lim.rlim_cur == RLIM_SAVED_CUR || (lim.rlim_cur < max_dump && lim.rlim_cur < lim.rlim_max)) {
+            if ((lim.rlim_cur < max_dump && lim.rlim_cur < lim.rlim_max)
+#ifdef RLIM_SAVED_CUR
+                || (lim.rlim_cur == RLIM_SAVED_CUR)
+#endif
+            ){
                 new_lim.rlim_max = lim.rlim_max;
                 new_lim.rlim_cur = lim.rlim_max;
                 if (setrlimit (RLIMIT_CORE, &new_lim) == 0)  {
