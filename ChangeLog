@@ -1,3 +1,8 @@
+1.1.1 -- 2011-12-07
+
+- Fix for a error in the smtp parser that could crash Suricata.
+- Fix for AF_PACKET not compiling on modern linux systems like Fedora 16.
+
 1.1 -- 2011-11-10
 
 - CUDA build fixed
