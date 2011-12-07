@@ -613,9 +613,7 @@ int FlowUpdateSpareFlows(void)
             if (f == NULL)
                 return 0;
 
-            SCMutexLock(&flow_spare_q.mutex_q);
             FlowEnqueue(&flow_spare_q,f);
-            SCMutexUnlock(&flow_spare_q.mutex_q);
         }
     } else if (len > flow_config.prealloc) {
         tofree = len - flow_config.prealloc;

@@ -63,13 +63,24 @@ void FlowQueueDestroy (FlowQueue *q) {
     SCCondDestroy(&q->cond_q);
 }
 
+/**
+ *  \brief add a flow to a queue
+ *
+ *  \param q queue
+ *  \param f flow
+ */
 void FlowEnqueue (FlowQueue *q, Flow *f) {
-    /* more packets in queue */
+#ifdef DEBUG
+    BUG_ON(q == NULL || f == NULL);
+#endif
+
+    SCMutexLock(&q->mutex_q);
+    /* more flows in queue */
     if (q->top != NULL) {
         f->lnext = q->top;
         q->top->lprev = f;
         q->top = f;
-    /* only packet */
+    /* only flow */
     } else {
         q->top = f;
         q->bot = f;
@@ -79,8 +90,16 @@ void FlowEnqueue (FlowQueue *q, Flow *f) {
     if (q->len > q->dbg_maxlen)
         q->dbg_maxlen = q->len;
 #endif /* DBG_PERF */
+    SCMutexUnlock(&q->mutex_q);
 }
 
+/**
+ *  \brief remove a flow from the queue
+ *
+ *  \param q queue
+ *
+ *  \retval f flow or NULL if empty list.
+ */
 Flow *FlowDequeue (FlowQueue *q) {
     SCMutexLock(&q->mutex_q);
 
@@ -100,7 +119,11 @@ Flow *FlowDequeue (FlowQueue *q) {
         q->bot = NULL;
     }
 
-    q->len--;
+#ifdef DEBUG
+    BUG_ON(q->len == 0);
+#endif
+    if (q->len > 0)
+        q->len--;
 
     f->lnext = NULL;
     f->lprev = NULL;
