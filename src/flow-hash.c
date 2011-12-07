@@ -405,7 +405,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
         f->flags |= FLOW_NEW_LIST;
         f->fb = fb;
 
-        FlowRequeue(f, NULL, &flow_new_q[f->protomap], 1);
+        FlowRequeue(f, NULL, &flow_new_q[f->protomap]);
 
         SCSpinUnlock(&fb->s);
         FlowHashCountUpdate;
@@ -443,7 +443,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
                 f->flags |= FLOW_NEW_LIST;
                 f->fb = fb;
 
-                FlowRequeue(f, NULL, &flow_new_q[f->protomap], 1);
+                FlowRequeue(f, NULL, &flow_new_q[f->protomap]);
 
                 SCSpinUnlock(&fb->s);
                 FlowHashCountUpdate;

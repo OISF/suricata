@@ -107,7 +107,7 @@ void FlowUpdateQueue(Flow *f)
         /* in the new list -- we consider a flow no longer
          * new if we have seen at least 2 pkts in both ways. */
         if (f->flags & FLOW_TO_DST_SEEN && f->flags & FLOW_TO_SRC_SEEN) {
-            FlowRequeue(f, &flow_new_q[f->protomap], &flow_est_q[f->protomap], 1);
+            FlowRequeue(f, &flow_new_q[f->protomap], &flow_est_q[f->protomap]);
 
             f->flags |= FLOW_EST_LIST; /* transition */
             f->flags &= ~FLOW_NEW_LIST;
@@ -122,7 +122,7 @@ void FlowUpdateQueue(Flow *f)
                 f->flags &=~ FLOW_EST_LIST;
 
                 SCLogDebug("flow %p was put into closing queue ts %"PRIuMAX"", f, (uintmax_t)f->lastts_sec);
-                FlowRequeue(f, &flow_est_q[f->protomap], &flow_close_q[f->protomap], 1);
+                FlowRequeue(f, &flow_est_q[f->protomap], &flow_close_q[f->protomap]);
             } else {
                 /* Pull and put back -- this way the flows on
                  * top of the list are least recently used. */
@@ -144,7 +144,7 @@ void FlowUpdateQueue(Flow *f)
                 f->flags &=~ FLOW_CLOSED_LIST;
 
                 SCLogDebug("flow %p was put into new queue ts %"PRIuMAX"", f, (uintmax_t)f->lastts_sec);
-                FlowRequeue(f, &flow_close_q[f->protomap], &flow_new_q[f->protomap], 1);
+                FlowRequeue(f, &flow_close_q[f->protomap], &flow_new_q[f->protomap]);
             } else {
                 /* Pull and put back -- this way the flows on
                  * top of the list are least recently used. */

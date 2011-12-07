@@ -116,36 +116,38 @@ Flow *FlowDequeue (FlowQueue *q) {
  *  \param srcq the source queue, where the flow will be removed. The param may
  *              be NULL.
  *  \param dstq the dest queue where the flow will be placed
- *  \param need_srclock does the srcq need locking? 1 yes, 0 no
  *
  */
-void FlowRequeue(Flow *f, FlowQueue *srcq, FlowQueue *dstq, uint8_t need_srclock)
+void FlowRequeue(Flow *f, FlowQueue *srcq, FlowQueue *dstq)
 {
 #ifdef DEBUG
     BUG_ON(dstq == NULL);
 #endif /* DEBUG */
 
     if (srcq != NULL) {
-        if (need_srclock == 1) {
-            SCMutexLock(&srcq->mutex_q);
-        }
+        SCMutexLock(&srcq->mutex_q);
+
         /* remove from old queue */
         if (srcq->top == f)
             srcq->top = f->lnext;       /* remove from queue top */
         if (srcq->bot == f)
             srcq->bot = f->lprev;       /* remove from queue bot */
-        if (f->lprev)
+        if (f->lprev != NULL)
             f->lprev->lnext = f->lnext; /* remove from flow prev */
-        if (f->lnext)
+        if (f->lnext != NULL)
             f->lnext->lprev = f->lprev; /* remove from flow next */
 
-        srcq->len--; /* adjust len */
+#ifdef DEBUG
+        BUG_ON(srcq->len == 0);
+#endif
+        if (srcq->len > 0)
+            srcq->len--; /* adjust len */
 
         f->lnext = NULL;
         f->lprev = NULL;
 
         /* don't unlock if src and dst are the same */
-        if (srcq != dstq && need_srclock == 1) {
+        if (srcq != dstq) {
             SCMutexUnlock(&srcq->mutex_q);
         }
     }
@@ -157,7 +159,7 @@ void FlowRequeue(Flow *f, FlowQueue *srcq, FlowQueue *dstq, uint8_t need_srclock
 
     /* add to new queue (append) */
     f->lprev = dstq->bot;
-    if (f->lprev)
+    if (f->lprev != NULL)
         f->lprev->lnext = f;
     f->lnext = NULL;
     dstq->bot = f;
