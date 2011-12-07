@@ -330,14 +330,14 @@ static int FlowPrune(FlowQueue *q, struct timeval *ts, int try_cnt)
             SCMutexUnlock(&prev_f->m);
             continue;
         }
-
+#ifdef DEBUG
         /* this should not be possible */
         BUG_ON(SC_ATOMIC_GET(f->use_cnt) > 0);
-
+#endif
         /* remove from the hash */
-        if (f->hprev)
+        if (f->hprev != NULL)
             f->hprev->hnext = f->hnext;
-        if (f->hnext)
+        if (f->hnext != NULL)
             f->hnext->hprev = f->hprev;
         if (f->fb->f == f)
             f->fb->f = f->hnext;
