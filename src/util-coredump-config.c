@@ -78,8 +78,9 @@ int32_t CoredumpLoadConfig (void)
     /* todo: use the registry to get/set dump configuration */
     SCLogInfo("Configuring core dump is not yet supported on Windows.");
     return 0;
+#endif
 
-#elif !defined OS_FREEBSD && !defined __OpenBSD__
+#if !defined OS_FREEBSD && !defined __OpenBSD__ && !defined __CYGWIN__ && !defined OS_WIN32
 /* Linux specific core dump configuration; set dumpable flag if needed */
 #include <sys/prctl.h>
     int dumpable = 0;
