@@ -348,16 +348,18 @@ static int FlowPrune(FlowQueue *q, struct timeval *ts, int try_cnt)
         SCSpinUnlock(&f->fb->s);
         f->fb = NULL;
 
-        cnt++;
         FlowClearMemory (f, f->protomap);
         Flow *next_flow = f->lnext;
+
+        /* no one is referring to this flow, use_cnt 0, removed from hash
+         * so we can unlock it and move it back to the spare queue. */
+        SCMutexUnlock(&f->m);
 
         /* move to spare list */
         FlowRequeueMoveToSpare(f, q);
 
-        SCMutexUnlock(&f->m);
         f = next_flow;
-
+        cnt++;
     }
 
     SCMutexUnlock(&q->mutex_q);
@@ -508,13 +510,15 @@ int FlowKill (FlowQueue *q)
 
         FlowClearMemory (f, f->protomap);
 
+        /* no one is referring to this flow, use_cnt 0, removed from hash
+         * so we can unlock it and move it back to the spare queue. */
+        SCMutexUnlock(&f->m);
+
         /* move to spare list */
         FlowRequeueMoveToSpare(f, q);
 
-        SCMutexUnlock(&f->m);
-
         /* so.. we did it */
-        /* unlock list */
+        /* unlock queue */
         SCMutexUnlock(&q->mutex_q);
         return 1;
     } while (f != NULL);
@@ -655,7 +659,7 @@ void FlowSetIPOnlyFlagNoLock(Flow *f, char direction)
 {
     direction ? (f->flags |= FLOW_TOSERVER_IPONLY_SET) :
         (f->flags |= FLOW_TOCLIENT_IPONLY_SET);
-                 return;
+    return;
 }
 
 /**
@@ -803,11 +807,10 @@ void FlowHandlePacket (ThreadVars *tv, Packet *p)
         DecodeSetNoPayloadInspectionFlag(p);
     }
 
-    /* set the flow in the packet */
-    p->flow = f;
-
     SCMutexUnlock(&f->m);
 
+    /* set the flow in the packet */
+    p->flow = f;
     p->flags |= PKT_HAS_FLOW;
     return;
 }
