@@ -1179,7 +1179,12 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
                     s_limit);
                 exit(EXIT_FAILURE);
             }
-            if (file_ctx->size_limit < MIN_LIMIT) {
+            if (file_ctx->size_limit < 4096) {
+                SCLogInfo("unified2-alert \"limit\" value of %"PRIu64" assumed to be pre-1.2 "
+                        "style: setting limit to %"PRIu64"mb", file_ctx->size_limit, file_ctx->size_limit);
+                uint64_t size = file_ctx->size_limit * 1024 * 1024;
+                file_ctx->size_limit = size;
+            } else if (file_ctx->size_limit < MIN_LIMIT) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                     "Failed to initialize unified2 output, limit less than "
                     "allowed minimum: %d.", MIN_LIMIT);
@@ -1199,7 +1204,7 @@ OutputCtx *Unified2AlertInitCtx(ConfNode *conf)
     output_ctx->DeInit = Unified2AlertDeInitCtx;
 
     SCLogInfo("Unified2-alert initialized: filename %s, limit %"PRIu64" MB",
-              filename, file_ctx->size_limit);
+              filename, file_ctx->size_limit / (1024*1024));
 
     SC_ATOMIC_INIT(unified2_event_id);
 

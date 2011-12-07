@@ -436,7 +436,12 @@ OutputCtx *PcapLogInitCtx(ConfNode *conf)
                     s_limit);
                 exit(EXIT_FAILURE);
             }
-            if (pl->size_limit < MIN_LIMIT) {
+            if (pl->size_limit < 4096) {
+                SCLogInfo("pcap-log \"limit\" value of %"PRIu64" assumed to be pre-1.2 "
+                        "style: setting limit to %"PRIu64"mb", pl->size_limit, pl->size_limit);
+                uint64_t size = pl->size_limit * 1024 * 1024;
+                pl->size_limit = size;
+            } else if (pl->size_limit < MIN_LIMIT) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT,
                     "Fail to initialize pcap-log output, limit less than "
                     "allowed minimum.");
