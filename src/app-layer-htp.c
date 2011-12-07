@@ -1745,23 +1745,11 @@ static void HTPConfigure(void)
                     exit(EXIT_FAILURE);
                 }
             } else if (strcasecmp("response-body-limit", p->name) == 0) {
-
-                /* limit */
-                int limit = atoi(p->val);
-
-                if (limit >= 0) {
-                    SCLogDebug("LIBHTP default: %s=%s (%d)",
-                            p->name, p->val, limit);
-
-                    cfglist.response_body_limit = (uint32_t)limit;
-                }
-                else {
-                    SCLogWarning(SC_ERR_UNKNOWN_VALUE,
-                            "LIBHTP malformed response-body-limit "
-                            "\"%s\", using default %u", p->val,
-                            HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT);
-                    cfglist.response_body_limit = HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT;
-                    continue;
+                if (ParseSizeStringU32(p->val, &cfglist.response_body_limit) < 0) {
+                    SCLogError(SC_ERR_SIZE_PARSE, "Error parsing response-body-limit "
+                               "from conf file - %s.  Killing engine",
+                               p->val);
+                    exit(EXIT_FAILURE);
                 }
             } else {
                 SCLogWarning(SC_ERR_UNKNOWN_VALUE,
@@ -1911,23 +1899,11 @@ static void HTPConfigure(void)
                         exit(EXIT_FAILURE);
                     }
                 } else if (strcasecmp("response-body-limit", p->name) == 0) {
-
-                    /* limit */
-                    int limit = atoi(p->val);
-
-                    if (limit >= 0) {
-                        SCLogDebug("LIBHTP default: %s=%s (%d)",
-                                p->name, p->val, limit);
-
-                        htprec->response_body_limit = (uint32_t)limit;
-                    }
-                    else {
-                        SCLogWarning(SC_ERR_UNKNOWN_VALUE,
-                                "LIBHTP malformed response-body-limit "
-                                "\"%s\", using default %u", p->val,
-                                HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT);
-                        htprec->response_body_limit = HTP_CONFIG_DEFAULT_RESPONSE_BODY_LIMIT;
-                        continue;
+                    if (ParseSizeStringU32(p->val, &htprec->response_body_limit) < 0) {
+                        SCLogError(SC_ERR_SIZE_PARSE, "Error parsing response-body-limit "
+                                   "from conf file - %s.  Killing engine",
+                                   p->val);
+                        exit(EXIT_FAILURE);
                     }
                 } else {
                     SCLogWarning(SC_ERR_UNKNOWN_VALUE,
