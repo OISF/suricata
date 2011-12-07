@@ -1807,6 +1807,7 @@ static void HTPConfigure(void)
             }
 
             htprec->request_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
+            htprec->response_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
             htp_config_register_request(htp, HTPCallbackRequest);
             htp_config_register_response(htp, HTPCallbackResponse);
             htp_config_set_generate_request_uri_normalized(htp, 1);
