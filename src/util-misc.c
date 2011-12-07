@@ -34,16 +34,13 @@ static int ParseSizeString(const char *size, long double *res)
 
     pcre *parse_regex;
     pcre_extra *parse_regex_study;
-
     const char *eb;
     int eo;
     int opts = 0;
-
 #define MAX_SUBSTRINGS 30
     int pcre_exec_ret;
     int r;
     int ov[MAX_SUBSTRINGS];
-
     int retval = 0;
 
     *res = 0;
@@ -123,8 +120,8 @@ static int ParseSizeString(const char *size, long double *res)
     }
 
     return 0;
- error:
-    return -1;
+error:
+    return retval;
 }
 
 int ParseSizeStringU8(const char *size, uint8_t *res)

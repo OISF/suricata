@@ -1168,7 +1168,7 @@ int main(int argc, char **argv)
         }
     }
 
-    SCLogDebug("Default packet size set to %"PRIiMAX, default_packet_size);
+    SCLogDebug("Default packet size set to %"PRIu32, default_packet_size);
 
 #ifdef NFQ
     if (run_mode == RUNMODE_NFQ)
