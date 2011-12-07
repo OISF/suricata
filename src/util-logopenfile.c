@@ -47,7 +47,7 @@ SCLogOpenUnixSocketFp(const char *path, int sock_type)
     if (s < 0) goto err;
 
     sun.sun_family = AF_UNIX;
-    strncpy(sun.sun_path, path, sizeof(sun.sun_path) - 1);
+    strlcpy(sun.sun_path, path, sizeof(sun.sun_path));
 
     if (connect(s, (const struct sockaddr *)&sun, sizeof(sun)) < 0)
         goto err;
