@@ -10520,8 +10520,20 @@ static int SigTestDropFlow04(void)
         goto end;
     }
 
+    if (PacketAlertCheck(p1, 2)) {
+        printf("sig 2 alerted on p1, but it should not: ");
+        goto end;
+    }
+
     if ( !(p1->flow->flags & FLOW_ACTION_DROP)) {
         printf("sig 1 alerted but flow was not flagged correctly: ");
+        goto end;
+    }
+
+    if (!(p1->action & ACTION_DROP)) {
+        printf("A \"drop\" action was set from the flow to the packet "
+               "which is right, but setting the flag shouldn't disable "
+               "inspection on the packet in IDS mode");
         goto end;
     }
 
@@ -10550,7 +10562,7 @@ static int SigTestDropFlow04(void)
     SigMatchSignatures(&tv, de_ctx, det_ctx, p2);
 
     if (PacketAlertCheck(p2, 1)) {
-        printf("sig 1 alerted, but it should not since the no pkt inspection should be set: ");
+        printf("sig 1 alerted, but it should not: ");
         goto end;
     }
 
@@ -10559,8 +10571,10 @@ static int SigTestDropFlow04(void)
         goto end;
     }
 
-    if (p2->action & ACTION_DROP) {
-        printf("A \"drop\" action was set from the flow to the packet, but on IDS mode it whould not (it should be inspected as usual: ");
+    if (!(p2->action & ACTION_DROP)) {
+        printf("A \"drop\" action was set from the flow to the packet "
+               "which is right, but setting the flag shouldn't disable "
+               "inspection on the packet in IDS mode");
         goto end;
     }
 
