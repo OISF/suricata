@@ -26,6 +26,7 @@
 #include "suricata-common.h"
 #include "threads.h"
 #include "debug.h"
+#include "flow-private.h"
 #include "flow-queue.h"
 #include "flow-util.h"
 #include "util-error.h"
@@ -210,5 +211,58 @@ void FlowRequeueMoveToBot(Flow *f, FlowQueue *q)
         q->top = f;
 
     SCMutexUnlock(&q->mutex_q);
+}
+
+/**
+ *  \brief Transfer a flow from a queue to the spare queue
+ *
+ *  \param f the flow to be transfered
+ *  \param q the source queue, where the flow will be removed. This queue is locked.
+ *
+ *  \note spare queue needs locking
+ */
+void FlowRequeueMoveToSpare(Flow *f, FlowQueue *q)
+{
+#ifdef DEBUG
+    BUG_ON(q == NULL || f == NULL);
+#endif /* DEBUG */
+
+    /* remove from old queue */
+    if (q->top == f)
+        q->top = f->lnext;       /* remove from queue top */
+    if (q->bot == f)
+        q->bot = f->lprev;       /* remove from queue bot */
+    if (f->lprev != NULL)
+        f->lprev->lnext = f->lnext; /* remove from flow prev */
+    if (f->lnext != NULL)
+        f->lnext->lprev = f->lprev; /* remove from flow next */
+#ifdef DEBUG
+    BUG_ON(q->len == 0);
+#endif
+    if (q->len > 0)
+        q->len--; /* adjust len */
+
+    f->lnext = NULL;
+    f->lprev = NULL;
+
+    /* now put it in spare */
+    SCMutexLock(&flow_spare_q.mutex_q);
+
+    /* add to new queue (append) */
+    f->lprev = flow_spare_q.bot;
+    if (f->lprev != NULL)
+        f->lprev->lnext = f;
+    f->lnext = NULL;
+    flow_spare_q.bot = f;
+    if (flow_spare_q.top == NULL)
+        flow_spare_q.top = f;
+
+    flow_spare_q.len++;
+#ifdef DBG_PERF
+    if (flow_spare_q.len > flow_spare_q.dbg_maxlen)
+        flow_spare_q.dbg_maxlen = flow_spare_q.len;
+#endif /* DBG_PERF */
+
+    SCMutexUnlock(&flow_spare_q.mutex_q);
 }
 

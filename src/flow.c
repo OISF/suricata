@@ -351,8 +351,10 @@ static int FlowPrune(FlowQueue *q, struct timeval *ts, int try_cnt)
         cnt++;
         FlowClearMemory (f, f->protomap);
         Flow *next_flow = f->lnext;
+
         /* move to spare list */
-        FlowRequeue(f, q, &flow_spare_q, 0);
+        FlowRequeueMoveToSpare(f, q);
+
         SCMutexUnlock(&f->m);
         f = next_flow;
 
@@ -507,7 +509,7 @@ int FlowKill (FlowQueue *q)
         FlowClearMemory (f, f->protomap);
 
         /* move to spare list */
-        FlowRequeue(f, q, &flow_spare_q, 0);
+        FlowRequeueMoveToSpare(f, q);
 
         SCMutexUnlock(&f->m);
 
