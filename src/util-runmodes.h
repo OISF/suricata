@@ -25,6 +25,7 @@
 
 
 typedef void *(*ConfigIfaceParserFunc) (const char *);
+typedef void *(*ConfigIPSParserFunc) (int);
 typedef int (*ConfigIfaceThreadsCountFunc) (void *);
 
 int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
@@ -55,5 +56,21 @@ int RunModeSetLiveCaptureWorkers(DetectEngineCtx *de_ctx,
                               char *decode_mod_name, char *thread_name,
                               const char *live_dev);
 
+int RunModeSetIPSAuto(DetectEngineCtx *de_ctx,
+                      ConfigIPSParserFunc ConfigParser,
+                      char *recv_mod_name,
+                      char *verdict_mod_name,
+                      char *decode_mod_name);
 
+int RunModeSetIPSAutoFp(DetectEngineCtx *de_ctx,
+                        ConfigIPSParserFunc ConfigParser,
+                        char *recv_mod_name,
+                        char *verdict_mod_name,
+                        char *decode_mod_name);
+
+int RunModeSetIPSWorker(DetectEngineCtx *de_ctx,
+                        ConfigIPSParserFunc ConfigParser,
+                        char *recv_mod_name,
+                        char *verdict_mod_name,
+                        char *decode_mod_name);
 #endif /* __UTIL_RUNMODES_H__ */

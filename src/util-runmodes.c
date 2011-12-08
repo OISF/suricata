@@ -46,7 +46,6 @@
 #include "util-affinity.h"
 #include "util-device.h"
 
-
 #include "util-runmodes.h"
 
 int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
@@ -750,4 +749,481 @@ int RunModeSetLiveCaptureSingle(DetectEngineCtx *de_ctx,
                                  live_dev,
                                  aconf,
                                  1);
+}
+
+
+int RunModeSetIPSAuto(DetectEngineCtx *de_ctx,
+                      ConfigIPSParserFunc ConfigParser,
+                      char *recv_mod_name,
+                      char *verdict_mod_name,
+                      char *decode_mod_name)
+{
+    SCEnter();
+    char tname[16];
+    TmModule *tm_module ;
+    char *cur_queue = NULL;
+
+    /* Available cpus */
+    uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
+    int nqueue = LiveGetDeviceCount();
+
+    for (int i = 0; i < nqueue; i++) {
+        /* create the threads */
+        cur_queue = LiveGetDevice(i);
+        if (cur_queue == NULL) {
+            printf("ERROR: Invalid queue number\n");
+            exit(EXIT_FAILURE);
+        }
+        memset(tname, 0, sizeof(tname));
+        snprintf(tname, sizeof(tname), "Recv-Q%s", cur_queue);
+        if (tname == NULL) {
+            printf("ERROR: Unable to build thread name\n");
+            exit(EXIT_FAILURE);
+        }
+
+        char *thread_name = SCStrdup(tname);
+        ThreadVars *tv_receivenfq =
+            TmThreadCreatePacketHandler(thread_name,
+                                        "packetpool", "packetpool",
+                                        "pickup-queue", "simple",
+                                        "1slot_noinout");
+        if (tv_receivenfq == NULL) {
+            printf("ERROR: TmThreadsCreate failed\n");
+            exit(EXIT_FAILURE);
+        }
+        tm_module = TmModuleGetByName(recv_mod_name);
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName failed for %s\n", recv_mod_name);
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv_receivenfq, tm_module, (void *) ConfigParser(i));
+
+        TmThreadSetCPU(tv_receivenfq, RECEIVE_CPU_SET);
+
+        if (TmThreadSpawn(tv_receivenfq) != TM_ECODE_OK) {
+            printf("ERROR: TmThreadSpawn failed\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    /* decode and stream */
+    ThreadVars *tv_decode =
+        TmThreadCreatePacketHandler("Decode1",
+                                    "pickup-queue", "simple",
+                                    "decode-queue", "simple",
+                                    "varslot");
+    if (tv_decode == NULL) {
+        printf("ERROR: TmThreadsCreate failed for Decode1\n");
+        exit(EXIT_FAILURE);
+    }
+
+    tm_module = TmModuleGetByName(decode_mod_name);
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName %s failed\n", decode_mod_name);
+        exit(EXIT_FAILURE);
+    }
+    TmSlotSetFuncAppend(tv_decode,tm_module,NULL);
+
+    tm_module = TmModuleGetByName("StreamTcp");
+    if (tm_module == NULL) {
+        printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+        exit(EXIT_FAILURE);
+    }
+    TmSlotSetFuncAppend(tv_decode, tm_module, NULL);
+
+    TmThreadSetCPU(tv_decode, DECODE_CPU_SET);
+
+    if (TmThreadSpawn(tv_decode) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    /* always create at least one thread */
+    int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
+    if (thread_max == 0)
+        thread_max = ncpus * threading_detect_ratio;
+    if (thread_max < 1)
+        thread_max = 1;
+
+    int thread;
+    for (thread = 0; thread < thread_max; thread++) {
+        memset(tname, 0, sizeof(tname));
+        snprintf(tname, sizeof(tname), "Detect%"PRIu16, thread+1);
+
+        char *thread_name = SCStrdup(tname);
+        SCLogDebug("Assigning %s affinity", thread_name);
+
+        ThreadVars *tv_detect_ncpu =
+            TmThreadCreatePacketHandler(thread_name,
+                                        "decode-queue", "simple",
+                                        "verdict-queue", "simple",
+                                        "1slot");
+        if (tv_detect_ncpu == NULL) {
+            printf("ERROR: TmThreadsCreate failed\n");
+            exit(EXIT_FAILURE);
+        }
+        tm_module = TmModuleGetByName("Detect");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName Detect failed\n");
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
+
+        TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
+
+        char *thread_group_name = SCStrdup("Detect");
+        if (thread_group_name == NULL) {
+            printf("Error allocating memory\n");
+            exit(EXIT_FAILURE);
+        }
+        tv_detect_ncpu->thread_group_name = thread_group_name;
+
+        if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
+            printf("ERROR: TmThreadSpawn failed\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    /* create the threads */
+    for (int i = 0; i < nqueue; i++) {
+        memset(tname, 0, sizeof(tname));
+        snprintf(tname, sizeof(tname), "Verdict%"PRIu16, i);
+        if (tname == NULL) {
+            printf("ERROR: Unable to build thread name\n");
+            exit(EXIT_FAILURE);
+        }
+
+        char *thread_name = SCStrdup(tname);
+        ThreadVars *tv_verdict =
+            TmThreadCreatePacketHandler(thread_name,
+                                        "verdict-queue", "simple",
+                                        "alert-queue", "simple",
+                                        "varslot");
+        if (tv_verdict == NULL) {
+            printf("ERROR: TmThreadsCreate failed\n");
+            exit(EXIT_FAILURE);
+        }
+        tm_module = TmModuleGetByName(verdict_mod_name);
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName %s failed\n", verdict_mod_name);
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv_verdict, tm_module, (void *)ConfigParser(i));
+
+        tm_module = TmModuleGetByName("RespondReject");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName for RespondReject failed\n");
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv_verdict, tm_module, NULL);
+
+        TmThreadSetCPU(tv_verdict, VERDICT_CPU_SET);
+
+        if (TmThreadSpawn(tv_verdict) != TM_ECODE_OK) {
+            printf("ERROR: TmThreadSpawn failed\n");
+            exit(EXIT_FAILURE);
+        }
+    };
+
+    ThreadVars *tv_outputs =
+        TmThreadCreatePacketHandler("Outputs",
+                                    "alert-queue", "simple",
+                                    "packetpool", "packetpool",
+                                    "varslot");
+
+    if (tv_outputs == NULL) {
+        printf("ERROR: TmThreadCreatePacketHandler for Outputs failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    TmThreadSetCPU(tv_outputs, OUTPUT_CPU_SET);
+
+    SetupOutputs(tv_outputs);
+    if (TmThreadSpawn(tv_outputs) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    return 0;
+
+}
+
+int RunModeSetIPSAutoFp(DetectEngineCtx *de_ctx,
+                        ConfigIPSParserFunc ConfigParser,
+                        char *recv_mod_name,
+                        char *verdict_mod_name,
+                        char *decode_mod_name)
+{
+    SCEnter();
+    char tname[16];
+    char qname[16];
+    TmModule *tm_module ;
+    char *cur_queue = NULL;
+    char queues[2048] = "";
+    int thread;
+
+    /* Available cpus */
+    uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
+    int nqueue = LiveGetDeviceCount();
+
+    int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
+    /* always create at least one thread */
+    if (thread_max == 0)
+        thread_max = ncpus * threading_detect_ratio;
+    if (thread_max < 1)
+        thread_max = 1;
+
+    for (thread = 0; thread < thread_max; thread++) {
+        if (strlen(queues) > 0)
+            strlcat(queues, ",", sizeof(queues));
+
+        snprintf(qname, sizeof(qname),"pickup%"PRIu16, thread+1);
+        strlcat(queues, qname, sizeof(queues));
+    }
+    SCLogDebug("queues %s", queues);
+
+    for (int i = 0; i < nqueue; i++) {
+    /* create the threads */
+        cur_queue = LiveGetDevice(i);
+        if (cur_queue == NULL) {
+            printf("ERROR: Invalid queue number\n");
+            exit(EXIT_FAILURE);
+        }
+        memset(tname, 0, sizeof(tname));
+        snprintf(tname, sizeof(tname), "Recv-Q%s", cur_queue);
+        if (tname == NULL) {
+            printf("ERROR: Unable to build thread name\n");
+            exit(EXIT_FAILURE);
+        }
+
+        char *thread_name = SCStrdup(tname);
+
+        ThreadVars *tv_receive =
+            TmThreadCreatePacketHandler(thread_name,
+                    "packetpool", "packetpool",
+                    queues, "flow", "pktacqloop");
+        if (tv_receive == NULL) {
+            SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
+            exit(EXIT_FAILURE);
+        }
+        TmModule *tm_module = TmModuleGetByName(recv_mod_name);
+        if (tm_module == NULL) {
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName failed for %s", recv_mod_name);
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv_receive, tm_module, (void *) ConfigParser(i));
+
+        tm_module = TmModuleGetByName(decode_mod_name);
+        if (tm_module == NULL) {
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName %s failed", decode_mod_name);
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv_receive, tm_module, NULL);
+
+        TmThreadSetCPU(tv_receive, RECEIVE_CPU_SET);
+
+        if (TmThreadSpawn(tv_receive) != TM_ECODE_OK) {
+            SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
+            exit(EXIT_FAILURE);
+        }
+
+    }
+    for (thread = 0; thread < thread_max; thread++) {
+        snprintf(tname, sizeof(tname), "Detect%"PRIu16, thread+1);
+        snprintf(qname, sizeof(qname), "pickup%"PRIu16, thread+1);
+
+        SCLogDebug("tname %s, qname %s", tname, qname);
+
+        char *thread_name = SCStrdup(tname);
+        if (thread_name == NULL) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Can't allocate thread name");
+            exit(EXIT_FAILURE);
+        }
+        ThreadVars *tv_detect_ncpu =
+            TmThreadCreatePacketHandler(thread_name,
+                                        qname, "flow",
+                                        "verdict-queue", "simple",
+                                        "varslot");
+        if (tv_detect_ncpu == NULL) {
+            SCLogError(SC_ERR_RUNMODE, "TmThreadsCreate failed");
+            exit(EXIT_FAILURE);
+        }
+        TmModule *tm_module = TmModuleGetByName("StreamTcp");
+        if (tm_module == NULL) {
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName StreamTcp failed");
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
+
+        tm_module = TmModuleGetByName("Detect");
+        if (tm_module == NULL) {
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
+
+        TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
+
+        char *thread_group_name = SCStrdup("Detect");
+        if (thread_group_name == NULL) {
+            SCLogError(SC_ERR_RUNMODE, "Error allocating memory");
+            exit(EXIT_FAILURE);
+        }
+        tv_detect_ncpu->thread_group_name = thread_group_name;
+
+        if (TmThreadSpawn(tv_detect_ncpu) != TM_ECODE_OK) {
+            SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    /* create the threads */
+    for (int i = 0; i < nqueue; i++) {
+        memset(tname, 0, sizeof(tname));
+        snprintf(tname, sizeof(tname), "Verdict%"PRIu16, i);
+        if (tname == NULL) {
+            printf("ERROR: Unable to build thread name\n");
+            exit(EXIT_FAILURE);
+        }
+
+        char *thread_name = SCStrdup(tname);
+        ThreadVars *tv_verdict =
+            TmThreadCreatePacketHandler(thread_name,
+                                        "verdict-queue", "simple",
+                                        "alert-queue", "simple",
+                                        "varslot");
+        if (tv_verdict == NULL) {
+            printf("ERROR: TmThreadsCreate failed\n");
+            exit(EXIT_FAILURE);
+        }
+        tm_module = TmModuleGetByName(verdict_mod_name);
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName %s failed\n", verdict_mod_name);
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv_verdict, tm_module, (void *)ConfigParser(i));
+
+        tm_module = TmModuleGetByName("RespondReject");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName for RespondReject failed\n");
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv_verdict, tm_module, NULL);
+
+        TmThreadSetCPU(tv_verdict, VERDICT_CPU_SET);
+
+        if (TmThreadSpawn(tv_verdict) != TM_ECODE_OK) {
+            printf("ERROR: TmThreadSpawn failed\n");
+            exit(EXIT_FAILURE);
+        }
+    };
+
+    ThreadVars *tv_outputs =
+        TmThreadCreatePacketHandler("Outputs",
+                                    "alert-queue", "simple",
+                                    "packetpool", "packetpool",
+                                    "varslot");
+
+    if (tv_outputs == NULL) {
+        printf("ERROR: TmThreadCreatePacketHandler for Outputs failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+    TmThreadSetCPU(tv_outputs, OUTPUT_CPU_SET);
+
+    SetupOutputs(tv_outputs);
+    if (TmThreadSpawn(tv_outputs) != TM_ECODE_OK) {
+        printf("ERROR: TmThreadSpawn failed\n");
+        exit(EXIT_FAILURE);
+    }
+
+
+    return 0;
+}
+
+int RunModeSetIPSWorker(DetectEngineCtx *de_ctx,
+        ConfigIPSParserFunc ConfigParser,
+        char *recv_mod_name,
+        char *verdict_mod_name,
+        char *decode_mod_name)
+{
+    char tname[16];
+    ThreadVars *tv = NULL;
+    TmModule *tm_module = NULL;
+    char *cur_queue = NULL;
+
+    int nqueue = LiveGetDeviceCount();
+
+    for (int i = 0; i < nqueue; i++) {
+        /* create the threads */
+        cur_queue = LiveGetDevice(i);
+        if (cur_queue == NULL) {
+            printf("ERROR: Invalid queue number\n");
+            exit(EXIT_FAILURE);
+        }
+        memset(tname, 0, sizeof(tname));
+        snprintf(tname, sizeof(tname), "Worker-Q%s", cur_queue);
+        if (tname == NULL) {
+            printf("ERROR: Unable to build thread name\n");
+            exit(EXIT_FAILURE);
+        }
+
+        char *thread_name = SCStrdup(tname);
+        tv = TmThreadCreatePacketHandler(thread_name,
+                "packetpool", "packetpool",
+                "packetpool", "packetpool",
+                "pktacqloop");
+        if (tv == NULL) {
+            SCLogError(SC_ERR_THREAD_CREATE, "TmThreadsCreate failed");
+            exit(EXIT_FAILURE);
+        }
+
+        tm_module = TmModuleGetByName(recv_mod_name);
+        if (tm_module == NULL) {
+            SCLogError(SC_ERR_INVALID_VALUE, "TmModuleGetByName failed for %s", recv_mod_name);
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv, tm_module, (void *) ConfigParser(i));
+
+        tm_module = TmModuleGetByName(decode_mod_name);
+        if (tm_module == NULL) {
+            SCLogError(SC_ERR_INVALID_VALUE, "TmModuleGetByName %s failed", decode_mod_name);
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv, tm_module, NULL);
+
+        tm_module = TmModuleGetByName("StreamTcp");
+        if (tm_module == NULL) {
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName StreamTcp failed");
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv, tm_module, NULL);
+
+        tm_module = TmModuleGetByName("Detect");
+        if (tm_module == NULL) {
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv, tm_module, (void *)de_ctx);
+
+        tm_module = TmModuleGetByName(verdict_mod_name);
+        if (tm_module == NULL) {
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName %s failed", verdict_mod_name);
+            exit(EXIT_FAILURE);
+        }
+
+        TmSlotSetFuncAppend(tv, tm_module, (void *)de_ctx);
+
+
+        SetupOutputs(tv);
+
+        TmThreadSetCPU(tv, DETECT_CPU_SET);
+
+        if (TmThreadSpawn(tv) != TM_ECODE_OK) {
+            SCLogError(SC_ERR_RUNMODE, "TmThreadSpawn failed");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    return 0;
 }
