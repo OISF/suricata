@@ -38,6 +38,8 @@ enum {
     RUNMODE_MAX,
 };
 
+char *RunmodeGetActive(void);
+
 void RunModeListRunmodes(void);
 void RunModeDispatch(int, const char *, DetectEngineCtx *);
 void RunModeRegisterRunModes(void);
