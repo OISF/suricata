@@ -39,6 +39,7 @@ typedef struct IPFWQueueVars_
 {
     int fd;
     SCMutex socket_lock;
+    uint8_t use_mutex;
     /* this one should be not changing after init */
     uint16_t port_num;
     /* position into the ipfw queue var array */
