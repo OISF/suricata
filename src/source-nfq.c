@@ -49,6 +49,7 @@
 #include "util-error.h"
 #include "util-byte.h"
 #include "util-privs.h"
+#include "util-device.h"
 
 #ifndef NFQ
 /** Handle the case where no NFQ support is compiled in.
@@ -589,6 +590,7 @@ int NFQRegisterQueue(char *queue)
     nq->queue_num = queue_num;
     receive_queue_num++;
     SCMutexUnlock(&nfq_init_lock);
+    LiveRegisterDevice(queue);
 
     SCLogDebug("Queue \"%s\" registered.", queue);
     return 0;
@@ -612,7 +614,7 @@ int NFQGetQueueCount(void) {
  *  \retval NULL on error
  */
 void *NFQGetQueue(int number) {
-    if (number > receive_queue_num)
+    if (number >= receive_queue_num)
         return NULL;
 
     return (void *)&nfq_q[number];
@@ -642,7 +644,7 @@ int NFQGetQueueNum(int number) {
  *  \retval NULL on error
  */
 void *NFQGetThread(int number) {
-    if (number > receive_queue_num)
+    if (number >= receive_queue_num)
         return NULL;
 
     return (void *)&nfq_t[number];
