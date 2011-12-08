@@ -60,6 +60,7 @@ typedef struct NFQQueueVars_
     HANDLE fd;
     OVERLAPPED ovr;
 #endif
+    uint8_t use_mutex;
     /* 2 threads deal with the queue handle, so add a mutex */
     struct nfq_q_handle *qh;
     SCMutex mutex_qh;

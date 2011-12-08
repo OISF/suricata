@@ -253,6 +253,33 @@ void NFQInitConfig(char quiet)
 
 }
 
+static inline void NFQMutexInit(NFQQueueVars *nq)
+{
+    char *active_runmode = RunmodeGetActive();
+
+    if (active_runmode && !strcmp("worker", active_runmode)) {
+        nq->use_mutex = 0;
+        SCLogInfo("NFQ running in 'worker' runmode, will not use mutex.");
+    } else {
+        nq->use_mutex = 1;
+    }
+    if (nq->use_mutex)
+        SCMutexInit(&nq->mutex_qh, NULL);
+}
+
+static inline void NFQMutexLock(NFQQueueVars *nq)
+{
+    if (nq->use_mutex)
+        SCMutexLock(&nq->mutex_qh);
+}
+
+static inline void NFQMutexUnlock(NFQQueueVars *nq)
+{
+    if (nq->use_mutex)
+        SCMutexUnlock(&nq->mutex_qh);
+}
+
+
 int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
 {
     struct nfq_data *tb = (struct nfq_data *)data;
@@ -452,7 +479,7 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint32_t queue_maxlen)
 
     nfq_q->nh = nfq_nfnlh(nfq_q->h);
     nfq_q->fd = nfnl_fd(nfq_q->nh);
-    SCMutexInit(&nfq_q->mutex_qh, NULL);
+    NFQMutexInit(nfq_q);
 
     /* Set some netlink specific option on the socket to increase
 	performance */
@@ -479,7 +506,7 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint32_t queue_maxlen)
     SCLogDebug("nfq_q->h %p, nfq_q->nh %p, nfq_q->qh %p, nfq_q->fd %" PRId32 "",
             nfq_q->h, nfq_q->nh, nfq_q->qh, nfq_q->fd);
 #else /* OS_WIN32 */
-    SCMutexInit(&nfq_q->mutex_qh, NULL);
+    NFQMutexInit(nfq_q);
     nfq_q->ovr.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
     nfq_q->fd = nfq_fd(nfq_q->h);
     SCLogDebug("nfq_q->h %p, nfq_q->qh %p, nfq_q->fd %p", nfq_q->h, nfq_q->qh, nfq_q->fd);
@@ -536,13 +563,13 @@ TmEcode ReceiveNFQThreadDeinit(ThreadVars *t, void *data)
     }
     ntv->datalen = 0;
 
-    SCMutexLock(&nq->mutex_qh);
+    NFQMutexLock(nq);
     SCLogDebug("starting... will close queuenum %" PRIu32 "", nq->queue_num);
     if (nq->qh) {
         nfq_destroy_queue(nq->qh);
         nq->qh = NULL;
     }
-    SCMutexUnlock(&nq->mutex_qh);
+    NFQMutexUnlock(nq);
 
     return TM_ECODE_OK;
 }
@@ -560,12 +587,12 @@ TmEcode VerdictNFQThreadDeinit(ThreadVars *tv, void *data) {
     NFQQueueVars *nq = NFQGetQueue(ntv->nfq_index);
 
     SCLogDebug("starting... will close queuenum %" PRIu32 "", nq->queue_num);
-    SCMutexLock(&nq->mutex_qh);
+    NFQMutexLock(nq);
     if (nq->qh) {
         nfq_destroy_queue(nq->qh);
         nq->qh = NULL;
     }
-    SCMutexUnlock(&nq->mutex_qh);
+    NFQMutexUnlock(nq);
 
     return TM_ECODE_OK;
 }
@@ -668,9 +695,9 @@ void NFQRecvPkt(NFQQueueVars *t, NFQThreadVars *tv) {
             /* no error on timeout */
         } else {
 #ifdef COUNTERS
-            SCMutexLock(&t->mutex_qh);
+            NFQMutexLock(t);
             t->errs++;
-            SCMutexUnlock(&t->mutex_qh);
+            NFQMutexUnlock(t);
 #endif /* COUNTERS */
         }
     } else if(rv == 0) {
@@ -683,14 +710,14 @@ void NFQRecvPkt(NFQQueueVars *t, NFQThreadVars *tv) {
 
         //printf("NFQRecvPkt: t %p, rv = %" PRId32 "\n", t, rv);
 
-        SCMutexLock(&t->mutex_qh);
+        NFQMutexLock(t);
         if (t->qh != NULL) {
             ret = nfq_handle_packet(t->h, tv->data, rv);
         } else {
             SCLogWarning(SC_ERR_NFQ_HANDLE_PKT, "NFQ handle has been destroyed");
             ret = -1;
         }
-        SCMutexUnlock(&t->mutex_qh);
+        NFQMutexUnlock(t);
 
         if (ret != 0) {
             SCLogWarning(SC_ERR_NFQ_HANDLE_PKT, "nfq_handle_packet error %" PRId32 "", ret);
@@ -750,14 +777,14 @@ process_rv:
 
         //printf("NFQRecvPkt: t %p, rv = %" PRId32 "\n", t, rv);
 
-        SCMutexLock(&t->mutex_qh);
+        NFQMutexLock(t);
         if (t->qh) {
             ret = nfq_handle_packet(t->h, buf, rv);
         } else {
             SCLogWarning(SC_ERR_NFQ_HANDLE_PKT, "NFQ handle has been destroyed");
             ret = -1;
         }
-        SCMutexUnlock(&t->mutex_qh);
+        NFQMutexUnlock(t);
 
         if (ret != 0) {
             SCLogWarning(SC_ERR_NFQ_HANDLE_PKT, "nfq_handle_packet error %" PRId32 "", ret);
@@ -848,11 +875,11 @@ TmEcode NFQSetVerdict(Packet *p) {
     }
 
     //printf("%p verdicting on queue %" PRIu32 "\n", t, t->queue_num);
-    SCMutexLock(&t->mutex_qh);
+    NFQMutexLock(t);
 
     if (t->qh == NULL) {
         /* Somebody has started a clean-up, we leave */
-        SCMutexUnlock(&t->mutex_qh);
+        NFQMutexUnlock(t);
         return TM_ECODE_OK;
     }
 
@@ -949,7 +976,7 @@ TmEcode NFQSetVerdict(Packet *p) {
         }
     } while ((ret < 0) && (iter++ < NFQ_VERDICT_RETRY_TIME));
 
-    SCMutexUnlock(&t->mutex_qh);
+    NFQMutexUnlock(t);
 
     if (ret < 0) {
         SCLogWarning(SC_ERR_NFQ_SET_VERDICT, "nfq_set_verdict of %p failed %" PRId32 "", p, ret);
