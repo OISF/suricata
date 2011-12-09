@@ -270,13 +270,13 @@ TmEcode ReceiveIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
             SCLogWarning(SC_WARN_IPFW_RECV,"Read from IPFW divert socket failed: %s",strerror(errno));
             SCReturnInt(TM_ECODE_FAILED);
         }
-
-    } else {
-        /* We have a packet to process */
-        memset (&IPFWts, 0, sizeof(struct timeval));
-        gettimeofday(&IPFWts, NULL);
-        r++;
+        SCReturnInt(TM_ECODE_FAILED);
     }
+
+    /* We have a packet to process */
+    memset (&IPFWts, 0, sizeof(struct timeval));
+    gettimeofday(&IPFWts, NULL);
+    r++;
 
     SCLogDebug("Received Packet Len: %d",pktlen);
 
@@ -359,11 +359,11 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
                              strerror(errno));
                 SCReturnInt(TM_ECODE_FAILED);
             }
-        } else {
-            /* We have a packet to process */
-            memset (&IPFWts, 0, sizeof(struct timeval));
-            gettimeofday(&IPFWts, NULL);
+            SCReturnInt(TM_ECODE_FAILED);
         }
+        /* We have a packet to process */
+        memset (&IPFWts, 0, sizeof(struct timeval));
+        gettimeofday(&IPFWts, NULL);
 
         /* make sure we have at least one packet in the packet pool, to prevent
          * us from alloc'ing packets at line rate */
@@ -614,20 +614,20 @@ TmEcode IPFWSetVerdict(ThreadVars *tv, IPFWThreadVars *ptv, Packet *p)
         SCLogDebug("IPFW Verdict is to Accept");
         ptv->accepted++;
 
-
         /* For divert sockets, accepting means writing the
          * packet back to the socket for ipfw to pick up
          */
         SCLogDebug("IPFWSetVerdict writing to socket %d, %p, %u", nq->fd, GET_PKT_DATA(p),GET_PKT_LEN(p));
 
-
-        while ( (poll(&IPFWpoll,1,IPFW_SOCKET_POLL_MSEC)) < 1) {
+#if 0
+        while ((poll(&IPFWpoll,1,IPFW_SOCKET_POLL_MSEC)) < 1) {
             /* Did we receive a signal to shutdown */
             if (TmThreadsCheckFlag(tv, THV_KILL) || TmThreadsCheckFlag(tv, THV_PAUSE)) {
                 SCLogInfo("Received ThreadShutdown: IPFW divert socket writing interrupted");
                 SCReturnInt(TM_ECODE_OK);
             }
         }
+#endif
 
         IPFWMutexLock(nq);
         if (sendto(nq->fd, GET_PKT_DATA(p), GET_PKT_LEN(p), 0,(struct sockaddr *)&nq->ipfw_sin, nq->ipfw_sinlen) == -1) {
