@@ -128,6 +128,9 @@ void SupportFastPatternForSigMatchTypes(void)
     SupportFastPatternForSigMatchType(DETECT_AL_HTTP_CLIENT_BODY);
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_HCBDMATCH);
 
+    SupportFastPatternForSigMatchType(DETECT_AL_HTTP_SERVER_BODY);
+    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HSBDMATCH);
+
     SupportFastPatternForSigMatchType(DETECT_AL_HTTP_HEADER);
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_HHDMATCH);
 
@@ -210,6 +213,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
     if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL &&
         s->sm_lists_tail[DETECT_SM_LIST_UMATCH] == NULL &&
         s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH] == NULL &&
+        s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH] == NULL &&
         s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH] == NULL &&
         s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH] == NULL &&
         s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH] == NULL &&
@@ -218,21 +222,22 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
         SCLogWarning(SC_WARN_COMPATIBILITY, "fast_pattern found inside the "
                      "rule, without a preceding content based keyword.  "
                      "Currently we provide fast_pattern support for content, "
-                     "uricontent, http_client_body, http_header, "
+                     "uricontent, http_client_body, http_server_body, http_header, "
                      "http_raw_header, http_method, http_cookie or "
                      "http_raw_uri option");
         return -1;
     }
 
-    SigMatch *pm = SigMatchGetLastSMFromLists(s, 16,
-                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                              DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-                                              DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                              DETECT_AL_HTTP_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
-                                              DETECT_AL_HTTP_RAW_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
-                                              DETECT_AL_HTTP_METHOD, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-                                              DETECT_AL_HTTP_COOKIE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-                                              DETECT_AL_HTTP_RAW_URI, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]);
+    SigMatch *pm = SigMatchGetLastSMFromLists(s, 18,
+            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+            DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+            DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+            DETECT_AL_HTTP_SERVER_BODY, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+            DETECT_AL_HTTP_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
+            DETECT_AL_HTTP_RAW_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
+            DETECT_AL_HTTP_METHOD, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
+            DETECT_AL_HTTP_COOKIE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
+            DETECT_AL_HTTP_RAW_URI, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]);
     if (pm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
                    "the rule, without a content context. Please use a "

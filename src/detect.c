@@ -115,6 +115,7 @@
 #include "detect-urilen.h"
 #include "detect-detection-filter.h"
 #include "detect-http-client-body.h"
+#include "detect-http-server-body.h"
 #include "detect-http-header.h"
 #include "detect-http-raw-header.h"
 #include "detect-http-uri.h"
@@ -757,6 +758,15 @@ static inline int SigMatchSignaturesBuildMatchArrayAddSignature(DetectEngineThre
         }
     }
 
+    if (s->flags & SIG_FLAG_MPM_HSBDCONTENT) {
+        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
+                    (1 << (s->mpm_http_pattern_id % 8)))) {
+            if (!(s->flags & SIG_FLAG_MPM_HSBDCONTENT_NEG)) {
+                return 0;
+            }
+        }
+    }
+
     if (s->flags & SIG_FLAG_MPM_HHDCONTENT) {
         if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
                     (1 << (s->mpm_http_pattern_id % 8)))) {
@@ -1221,6 +1231,11 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                 PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HCBD);
                 DetectEngineRunHttpClientBodyMpm(de_ctx, det_ctx, p->flow, alstate);
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HCBD);
+            }
+            if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSBD) {
+                PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HSBD);
+                DetectEngineRunHttpServerBodyMpm(de_ctx, det_ctx, p->flow, alstate);
+                PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HSBD);
             }
             if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HHD) {
                 PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HHD);
@@ -1761,6 +1776,7 @@ end:
     PacketPatternCleanup(th_v, det_ctx);
 
     DetectEngineCleanHCBDBuffers(det_ctx);
+    DetectEngineCleanHSBDBuffers(det_ctx);
     DetectEngineCleanHHDBuffers(det_ctx);
 
     /* store the found sgh (or NULL) in the flow to save us from looking it
@@ -1978,6 +1994,9 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
     if (s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL)
         return 0;
 
+    if (s->sm_lists[DETECT_SM_LIST_HSBDMATCH] != NULL)
+        return 0;
+
     if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL)
         return 0;
 
@@ -2066,6 +2085,7 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, Signature *s) {
         s->sm_lists[DETECT_SM_LIST_UMATCH]    != NULL ||
         s->sm_lists[DETECT_SM_LIST_AMATCH]    != NULL ||
         s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HSBDMATCH] != NULL ||
         s->sm_lists[DETECT_SM_LIST_HHDMATCH]  != NULL ||
         s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL ||
         s->sm_lists[DETECT_SM_LIST_HMDMATCH]  != NULL ||
@@ -2177,6 +2197,11 @@ static int SignatureCreateMask(Signature *s) {
     }
 
     if (s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL) {
+        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
+        SCLogDebug("sig requires http app state");
+    }
+
+    if (s->sm_lists[DETECT_SM_LIST_HSBDMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
         SCLogDebug("sig requires http app state");
     }
@@ -4362,6 +4387,7 @@ void SigTableSetup(void) {
     DetectHttpHeaderRegister();
     DetectHttpRawHeaderRegister();
     DetectHttpClientBodyRegister();
+    DetectHttpServerBodyRegister();
     DetectHttpUriRegister();
     DetectHttpRawUriRegister();
     DetectAsn1Register();

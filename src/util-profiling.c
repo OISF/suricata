@@ -1130,6 +1130,7 @@ const char * PacketProfileDetectIdToString(PacketProfileDetectId id)
         CASE_CODE (PROF_DETECT_MPM_STREAM);
         CASE_CODE (PROF_DETECT_MPM_URI);
         CASE_CODE (PROF_DETECT_MPM_HCBD);
+        CASE_CODE (PROF_DETECT_MPM_HSBD);
         CASE_CODE (PROF_DETECT_MPM_HHD);
         CASE_CODE (PROF_DETECT_MPM_HRHD);
         CASE_CODE (PROF_DETECT_MPM_HMD);

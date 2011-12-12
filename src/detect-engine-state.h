@@ -55,19 +55,21 @@
 #define DE_STATE_FLAG_URI_MATCH         0x0002 /**< uri part of the sig matched */
 #define DE_STATE_FLAG_DCE_MATCH         0x0004 /**< dce payload inspection part matched */
 #define DE_STATE_FLAG_HCBD_MATCH        0x0008 /**< hcbd payload inspection part matched */
-#define DE_STATE_FLAG_HHD_MATCH         0x0010 /**< hhd payload inspection part matched */
-#define DE_STATE_FLAG_HRHD_MATCH        0x0020 /**< hrhd payload inspection part matched */
-#define DE_STATE_FLAG_HMD_MATCH         0x0040 /**< hmd payload inspection part matched */
-#define DE_STATE_FLAG_HCD_MATCH         0x0080 /**< hcd payload inspection part matched */
-#define DE_STATE_FLAG_HRUD_MATCH        0x0100 /**< hrud payload inspection part matched */
-#define DE_STATE_FLAG_FILE_TC_MATCH     0x0200
-#define DE_STATE_FLAG_FILE_TS_MATCH     0x0400
-#define DE_STATE_FLAG_FULL_MATCH        0x0800 /**< sig already fully matched */
-#define DE_STATE_FLAG_SIG_CANT_MATCH    0x1000 /**< signature has no chance of matching */
+#define DE_STATE_FLAG_HSBD_MATCH        0x0010 /**< hcbd payload inspection part matched */
+#define DE_STATE_FLAG_HHD_MATCH         0x0020 /**< hhd payload inspection part matched */
+#define DE_STATE_FLAG_HRHD_MATCH        0x0040 /**< hrhd payload inspection part matched */
+#define DE_STATE_FLAG_HMD_MATCH         0x0080 /**< hmd payload inspection part matched */
+#define DE_STATE_FLAG_HCD_MATCH         0x0100 /**< hcd payload inspection part matched */
+#define DE_STATE_FLAG_HRUD_MATCH        0x0200 /**< hrud payload inspection part matched */
+#define DE_STATE_FLAG_FILE_TC_MATCH     0x0400
+#define DE_STATE_FLAG_FILE_TS_MATCH     0x0800
+#define DE_STATE_FLAG_FULL_MATCH        0x1000 /**< sig already fully matched */
+#define DE_STATE_FLAG_SIG_CANT_MATCH    0x2000 /**< signature has no chance of matching */
 
 #define DE_STATE_FLAG_URI_INSPECT       DE_STATE_FLAG_URI_MATCH     /**< uri part of the sig inspected */
 #define DE_STATE_FLAG_DCE_INSPECT       DE_STATE_FLAG_DCE_MATCH     /**< dce payload inspection part inspected */
 #define DE_STATE_FLAG_HCBD_INSPECT      DE_STATE_FLAG_HCBD_MATCH    /**< hcbd payload inspection part inspected */
+#define DE_STATE_FLAG_HSBD_INSPECT      DE_STATE_FLAG_HSBD_MATCH    /**< hsbd payload inspection part inspected */
 #define DE_STATE_FLAG_HHD_INSPECT       DE_STATE_FLAG_HHD_MATCH     /**< hhd payload inspection part inspected */
 #define DE_STATE_FLAG_HRHD_INSPECT      DE_STATE_FLAG_HRHD_MATCH    /**< hrhd payload inspection part inspected */
 #define DE_STATE_FLAG_HMD_INSPECT       DE_STATE_FLAG_HMD_MATCH     /**< hmd payload inspection part inspected */

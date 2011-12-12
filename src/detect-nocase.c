@@ -180,45 +180,36 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
     }
 
     /* Search for the first previous SigMatch that supports nocase */
-    //SigMatch *pm = SigMatchGetLastNocasePattern(s);
-    SigMatch *pm = SigMatchGetLastSMFromLists(s, 16,
-                                              DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                              DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-                                              DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                              DETECT_AL_HTTP_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
-                                              DETECT_AL_HTTP_RAW_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
-                                              DETECT_AL_HTTP_METHOD, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-                                              DETECT_AL_HTTP_RAW_URI, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
-                                              DETECT_AL_HTTP_COOKIE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]);
+    SigMatch *pm = SigMatchGetLastSMFromLists(s, 18,
+            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+            DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+            DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+            DETECT_AL_HTTP_SERVER_BODY, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+            DETECT_AL_HTTP_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
+            DETECT_AL_HTTP_RAW_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
+            DETECT_AL_HTTP_METHOD, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
+            DETECT_AL_HTTP_RAW_URI, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
+            DETECT_AL_HTTP_COOKIE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]);
     if (pm == NULL) {
         SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "\"nocase\" needs a preceeding "
-                   "content, uricontent, http_client_body, http_header, "
-                   "http_method, http_uri, http_cookie or http_raw_uri option");
+                "content, uricontent, http_client_body, http_server_body, "
+                "http_header, http_method, http_uri, http_cookie or "
+                "http_raw_uri option");
         SCReturnInt(-1);
     }
 
-    DetectContentData *ud = NULL;
     DetectContentData *cd = NULL;
-    DetectContentData *dhcb = NULL;
-    DetectContentData *dhcd = NULL;
-    DetectContentData *dhhd = NULL;
-    DetectContentData *dhrhd = NULL;
-    DetectContentData *dhmd = NULL;
-    DetectContentData *dhrud = NULL;
 
     switch (pm->type) {
-        case DETECT_URICONTENT:
-            ud = (DetectContentData *)pm->ctx;
-            if (ud == NULL) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
-                SCReturnInt(-1);
-            }
-            ud->flags |= DETECT_CONTENT_NOCASE;
-            /* Recreate the context with nocase chars */
-            BoyerMooreCtxToNocase(ud->bm_ctx, ud->content, ud->content_len);
-            break;
-
         case DETECT_CONTENT:
+        case DETECT_URICONTENT:
+        case DETECT_AL_HTTP_CLIENT_BODY:
+        case DETECT_AL_HTTP_SERVER_BODY:
+        case DETECT_AL_HTTP_HEADER:
+        case DETECT_AL_HTTP_RAW_HEADER:
+        case DETECT_AL_HTTP_METHOD:
+        case DETECT_AL_HTTP_COOKIE:
+        case DETECT_AL_HTTP_RAW_URI:
             cd = (DetectContentData *)pm->ctx;
             if (cd == NULL) {
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
@@ -228,48 +219,12 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
             /* Recreate the context with nocase chars */
             BoyerMooreCtxToNocase(cd->bm_ctx, cd->content, cd->content_len);
             break;
-        case DETECT_AL_HTTP_CLIENT_BODY:
-            dhcb =(DetectContentData *) pm->ctx;
-            dhcb->flags |= DETECT_CONTENT_NOCASE;
-            /* Recreate the context with nocase chars */
-            BoyerMooreCtxToNocase(dhcb->bm_ctx, dhcb->content, dhcb->content_len);
-            break;
-        case DETECT_AL_HTTP_HEADER:
-            dhhd =(DetectContentData *) pm->ctx;
-            dhhd->flags |= DETECT_CONTENT_NOCASE;
-            /* Recreate the context with nocase chars */
-            BoyerMooreCtxToNocase(dhhd->bm_ctx, dhhd->content, dhhd->content_len);
-            break;
-        case DETECT_AL_HTTP_RAW_HEADER:
-            dhrhd =(DetectContentData *) pm->ctx;
-            dhrhd->flags |= DETECT_CONTENT_NOCASE;
-            /* Recreate the context with nocase chars */
-            BoyerMooreCtxToNocase(dhrhd->bm_ctx, dhrhd->content, dhrhd->content_len);
-            break;
-        case DETECT_AL_HTTP_METHOD:
-            dhmd =(DetectContentData *) pm->ctx;
-            dhmd->flags |= DETECT_CONTENT_NOCASE;
-            /* Recreate the context with nocase chars */
-            BoyerMooreCtxToNocase(dhmd->bm_ctx, dhmd->content, dhmd->content_len);
-            break;
-        case DETECT_AL_HTTP_COOKIE:
-            dhcd = (DetectContentData *) pm->ctx;
-            dhcd->flags |= DETECT_CONTENT_NOCASE;
-            /* Recreate the context with nocase chars */
-            BoyerMooreCtxToNocase(dhcd->bm_ctx, dhcd->content, dhcd->content_len);
-            break;
-        case DETECT_AL_HTTP_RAW_URI:
-            dhrud = (DetectContentData *) pm->ctx;
-            dhrud->flags |= DETECT_CONTENT_NOCASE;
-            /* Recreate the context with nocase chars */
-            BoyerMooreCtxToNocase(dhrud->bm_ctx, dhrud->content, dhrud->content_len);
-            break;
             /* should never happen */
         default:
-            SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "\"nocase\" needs a"
-                       " preceeding content, uricontent, http_client_body "
-                       "http_header, http_raw_header, http_method, "
-                       "http_cookie, http_raw_uri option");
+            SCLogError(SC_ERR_NOCASE_MISSING_PATTERN, "\"nocase\" needs a preceeding "
+                    "content, uricontent, http_client_body, http_server_body, "
+                    "http_header, http_method, http_uri, http_cookie or "
+                    "http_raw_uri option");
             SCReturnInt(-1);
             break;
     }

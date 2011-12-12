@@ -1356,6 +1356,7 @@ static int SigValidate(Signature *s) {
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
@@ -1371,6 +1372,7 @@ static int SigValidate(Signature *s) {
         if (s->sm_lists_tail[DETECT_SM_LIST_UMATCH] ||
                 s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH] ||
                 s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH] ||
+                s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH] ||
                 s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]  ||
                 s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH] ||
                 s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]  ||
@@ -1499,6 +1501,8 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
     if (sig->sm_lists[DETECT_SM_LIST_AMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_HCBDMATCH])
+        sig->flags |= SIG_FLAG_STATE_MATCH;
+    if (sig->sm_lists[DETECT_SM_LIST_HSBDMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_HHDMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
@@ -1705,6 +1709,8 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
     if (sig->sm_lists[DETECT_SM_LIST_AMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_HCBDMATCH])
+        sig->flags |= SIG_FLAG_STATE_MATCH;
+    if (sig->sm_lists[DETECT_SM_LIST_HSBDMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_HHDMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;

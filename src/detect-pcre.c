@@ -577,7 +577,7 @@ int DetectPcrePacketPayloadMatch(DetectEngineThreadCtx *det_ctx, Packet *p, Sign
     DetectPcreData *pe = (DetectPcreData *)sm->ctx;
 
     /* If we want to inspect the http body, we will use HTP L7 parser */
-    if (pe->flags & DETECT_PCRE_HTTP_BODY_AL)
+    if (pe->flags & DETECT_PCRE_HTTP_CLIENT_BODY)
         SCReturnInt(0);
 
     if (s->flags & SIG_FLAG_RECURSIVE) {
@@ -670,7 +670,7 @@ int DetectPcrePayloadDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
     DetectPcreData *pe = (DetectPcreData *)sm->ctx;
 
     /* If we want to inspect the http body, we will use HTP L7 parser */
-    if (pe->flags & DETECT_PCRE_HTTP_BODY_AL)
+    if (pe->flags & DETECT_PCRE_HTTP_CLIENT_BODY)
         SCReturnInt(0);
 
     if (s->flags & SIG_FLAG_RECURSIVE) {
@@ -872,8 +872,12 @@ DetectPcreData *DetectPcreParse (char *regexstr)
                     pd->flags |= DETECT_PCRE_MATCH_LIMIT;
                     break;
                 case 'P':
-                    /* snort's option (http body inspection, chunks loaded from HTP) */
-                    pd->flags |= DETECT_PCRE_HTTP_BODY_AL;
+                    /* snort's option (http request body inspection) */
+                    pd->flags |= DETECT_PCRE_HTTP_CLIENT_BODY;
+                    break;
+                case 'S':
+                    /* suricata extension (http response body inspection) */
+                    pd->flags |= DETECT_PCRE_HTTP_SERVER_BODY;
                     break;
                 default:
                     SCLogError(SC_ERR_UNKNOWN_REGEX_MOD, "unknown regex modifier '%c'", *op);
@@ -1043,7 +1047,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
                  (pd->flags & DETECT_PCRE_HEADER) ||
                  (pd->flags & DETECT_PCRE_RAW_HEADER) ||
                  (pd->flags & DETECT_PCRE_COOKIE) ||
-                 (pd->flags & DETECT_PCRE_HTTP_BODY_AL) ||
+                 (pd->flags & DETECT_PCRE_HTTP_CLIENT_BODY) ||
+                 (pd->flags & DETECT_PCRE_HTTP_SERVER_BODY) ||
                  (pd->flags & DETECT_PCRE_HTTP_RAW_URI) ) {
                 SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "Invalid option. "
                            "DCERPC rule has pcre keyword with http related modifier.");
@@ -1090,12 +1095,18 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         s->flags |= SIG_FLAG_APPLAYER;
 
         SigMatchAppendAppLayer(s, sm);
-    } else if (pd->flags & DETECT_PCRE_HTTP_BODY_AL) {
-        SCLogDebug("Body inspection modifier set");
+    } else if (pd->flags & DETECT_PCRE_HTTP_CLIENT_BODY) {
+        SCLogDebug("Request body inspection modifier set");
         s->flags |= SIG_FLAG_APPLAYER;
         AppLayerHtpEnableRequestBodyCallback();
 
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCBDMATCH);
+    } else if (pd->flags & DETECT_PCRE_HTTP_SERVER_BODY) {
+        SCLogDebug("Response body inspection modifier set");
+        s->flags |= SIG_FLAG_APPLAYER;
+        AppLayerHtpEnableResponseBodyCallback();
+
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
     } else if (pd->flags & DETECT_PCRE_URI) {
         s->flags |= SIG_FLAG_APPLAYER;
 
@@ -1124,13 +1135,13 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
             SigMatch *dm = NULL;
 
             pm = SigMatchGetLastSMFromLists(s, 6,
-                                            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                            DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                            DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                    DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                    DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
             dm = SigMatchGetLastSMFromLists(s, 6,
-                                            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                            DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                            DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                    DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                    DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
 
             if (pm == NULL) {
                 SigMatchAppendDcePayload(s, sm);
@@ -1150,14 +1161,15 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         SCReturnInt(0);
     }
 
-    prev_sm = SigMatchGetLastSMFromLists(s, 14,
-                                         DETECT_CONTENT, sm->prev,
-                                         DETECT_URICONTENT, sm->prev,
-                                         DETECT_AL_HTTP_CLIENT_BODY, sm->prev,
-                                         DETECT_AL_HTTP_HEADER, sm->prev,
-                                         DETECT_AL_HTTP_RAW_HEADER, sm->prev,
-                                         DETECT_AL_HTTP_RAW_URI, sm->prev,
-                                         DETECT_PCRE, sm->prev);
+    prev_sm = SigMatchGetLastSMFromLists(s, 16,
+            DETECT_CONTENT, sm->prev,
+            DETECT_URICONTENT, sm->prev,
+            DETECT_AL_HTTP_CLIENT_BODY, sm->prev,
+            DETECT_AL_HTTP_SERVER_BODY, sm->prev,
+            DETECT_AL_HTTP_HEADER, sm->prev,
+            DETECT_AL_HTTP_RAW_HEADER, sm->prev,
+            DETECT_AL_HTTP_RAW_URI, sm->prev,
+            DETECT_PCRE, sm->prev);
     if (prev_sm == NULL) {
         if (s->alproto == ALPROTO_DCERPC) {
             SCLogDebug("No preceding content or pcre keyword.  Possible "
@@ -1177,6 +1189,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         case DETECT_CONTENT:
         case DETECT_URICONTENT:
         case DETECT_AL_HTTP_CLIENT_BODY:
+        case DETECT_AL_HTTP_SERVER_BODY:
         case DETECT_AL_HTTP_HEADER:
         case DETECT_AL_HTTP_RAW_HEADER:
         case DETECT_AL_HTTP_RAW_URI:

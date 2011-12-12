@@ -58,6 +58,7 @@
 #include "detect-engine-dcepayload.h"
 #include "detect-engine-uri.h"
 #include "detect-engine-hcbd.h"
+#include "detect-engine-hsbd.h"
 #include "detect-engine-hhd.h"
 #include "detect-engine-hrhd.h"
 #include "detect-engine-hmd.h"
@@ -1365,6 +1366,7 @@ int main(int argc, char **argv)
         DetectRingBufferRegisterTests();
         MemcmpRegisterTests();
         DetectEngineHttpClientBodyRegisterTests();
+        DetectEngineHttpServerBodyRegisterTests();
         DetectEngineHttpHeaderRegisterTests();
         DetectEngineHttpRawHeaderRegisterTests();
         DetectEngineHttpMethodRegisterTests();

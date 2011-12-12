@@ -268,13 +268,13 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
         idad->flags & ISDATAAT_RELATIVE) {
 
         pm = SigMatchGetLastSMFromLists(s, 6,
-                                        DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                        DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
         dm = SigMatchGetLastSMFromLists(s, 6,
-                                        DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
-                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
-                                        DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
+                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
+                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
+                DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
 
         if (pm == NULL) {
             SigMatchAppendDcePayload(s, sm);
@@ -286,9 +286,9 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
             SigMatchAppendDcePayload(s, sm);
         }
         prev_pm = SigMatchGetLastSMFromLists(s, 6,
-                                             DETECT_CONTENT, sm->prev,
-                                             DETECT_BYTEJUMP, sm->prev,
-                                             DETECT_PCRE, sm->prev);
+                DETECT_CONTENT, sm->prev,
+                DETECT_BYTEJUMP, sm->prev,
+                DETECT_PCRE, sm->prev);
         if (prev_pm == NULL) {
             SCLogDebug("No preceding content or pcre keyword.  Possible "
                        "since this is a dce alproto sig.");
@@ -318,30 +318,31 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
             }
             return 0;
         }
-        pm = SigMatchGetLastSMFromLists(s, 40,
-                                        DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH], /* 1 */
-                                        DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-                                        DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                        DETECT_AL_HTTP_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
-                                        DETECT_AL_HTTP_RAW_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH], /* 5 */
-                                        DETECT_AL_HTTP_METHOD, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-                                        DETECT_AL_HTTP_COOKIE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-                                        DETECT_AL_HTTP_RAW_URI, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
-                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH], /* 10 */
-                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
-                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
-                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH], /* 15 */
-                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
-                                        DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                        DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                        DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
-                                        DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
-                                        DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                                        DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
-                                        DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_UMATCH]);
+        pm = SigMatchGetLastSMFromLists(s, 48,
+                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH], /* 1 */
+                DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+                DETECT_AL_HTTP_SERVER_BODY, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                DETECT_AL_HTTP_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH], /* 5 */
+                DETECT_AL_HTTP_RAW_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
+                DETECT_AL_HTTP_METHOD, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
+                DETECT_AL_HTTP_COOKIE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
+                DETECT_AL_HTTP_RAW_URI, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
+                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH], /* 10 */
+                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
+                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
+                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH], /* 15 */
+                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
+                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
+                DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH], /* 20 */
+                DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
+                DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_UMATCH]); /* 24 */
         if (pm == NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "isdataat relative seen "
                        "without a previous content uricontent, "
@@ -363,6 +364,9 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                     list_type = DETECT_SM_LIST_UMATCH;
                     break;
                 case DETECT_AL_HTTP_CLIENT_BODY:
+                    list_type = DETECT_SM_LIST_HCBDMATCH;
+                    break;
+                case DETECT_AL_HTTP_SERVER_BODY:
                     list_type = DETECT_SM_LIST_HCBDMATCH;
                     break;
                 case DETECT_AL_HTTP_RAW_HEADER:
@@ -417,6 +421,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
         case DETECT_CONTENT:
         case DETECT_URICONTENT:
         case DETECT_AL_HTTP_CLIENT_BODY:
+        case DETECT_AL_HTTP_SERVER_BODY:
         case DETECT_AL_HTTP_HEADER:
         case DETECT_AL_HTTP_RAW_HEADER:
         case DETECT_AL_HTTP_METHOD:
