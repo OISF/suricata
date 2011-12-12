@@ -339,6 +339,7 @@ typedef struct SignatureHeader_ {
     };
     union {
         struct {
+            uint8_t file_flags;
             uint8_t mpm_stream_pattern_id_mod_8;
             SigIntId num; /**< signature number, internal id */
             /** pattern in the mpm matcher */
@@ -380,31 +381,13 @@ typedef struct Signature_ {
     };
     union {
         struct {
+            uint8_t file_flags;
             uint8_t mpm_stream_pattern_id_mod_8;
             SigIntId num; /**< signature number, internal id */
             PatIntId mpm_http_pattern_id;
         };
         uint64_t hdr_copy3;
     };
-
-    /* mpm flags */
-//    uint32_t mpm_flags;
-
-    //PatIntId mpm_pattern_id;
-    //PatIntId mpm_stream_pattern_id;
-
-/*
-    //PatIntId mpm_pattern_id;
-    //PatIntId mpm_stream_pattern_id;
-    uint16_t mpm_pattern_id_div_8;
-    uint8_t mpm_pattern_id_mod_8;
-    uint8_t pad0;
-    //PatIntId mpm_pattern_id;
-    //PatIntId mpm_stream_pattern_id;
-    uint16_t mpm_stream_pattern_id_div_8;
-    uint8_t mpm_stream_pattern_id_mod_8;
-    uint8_t pad1;
-*/
 
     /* the fast pattern added from this signature */
     SigMatch *mpm_sm;
@@ -449,9 +432,6 @@ typedef struct Signature_ {
     /** classification id **/
     uint8_t class;
 
-    /* signature match mask */
-    //SignatureMask mask;
-
     int prio;
 
     char *msg;
@@ -474,8 +454,6 @@ typedef struct Signature_ {
     struct SigMatch_ *sm_lists[DETECT_SM_LIST_MAX];
     /* holds all sm lists' tails */
     struct SigMatch_ *sm_lists_tail[DETECT_SM_LIST_MAX];
-
-    uint8_t file_flags;
 
     /** address settings for this signature */
     DetectAddressHead src, dst;

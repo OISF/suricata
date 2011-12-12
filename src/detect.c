@@ -122,6 +122,7 @@
 #include "detect-http-raw-uri.h"
 #include "detect-http-stat-msg.h"
 #include "detect-engine-hcbd.h"
+#include "detect-engine-hsbd.h"
 #include "detect-engine-hhd.h"
 #include "detect-engine-hrhd.h"
 #include "detect-engine-hmd.h"
@@ -683,14 +684,14 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
  *  \brief See if we can prefilter a signature on inexpensive checks
  *
  *  Order of SignatureHeader access:
- *  1. mask
- *  2. flags
- *  3. alproto
- *  4. mpm_pattern_id_div8
+ *  1. flags
+ *  2. alproto
+ *  3. mpm_pattern_id_div8
  *  4. mpm_pattern_id_mod8
  *  5. mpm_stream_pattern_id_div8
- *  5. mpm_stream_pattern_id_mod8
- *  6. num
+ *  6. mpm_stream_pattern_id_mod8
+ *  7. mpm_http_pattern_id
+ *  8. num
  *
  *  \retval 0 can't match, don't inspect
  *  \retval 1 might match, further inspection required
@@ -725,8 +726,7 @@ static inline int SigMatchSignaturesBuildMatchArrayAddSignature(DetectEngineThre
                 SCLogDebug("but thats okay, we are looking for neg-content");
             }
         }
-    }
-    if (s->flags & SIG_FLAG_MPM_STREAM) {
+    } else if (s->flags & SIG_FLAG_MPM_STREAM) {
         /* filter out sigs that want pattern matches, but
          * have no matches */
         if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_stream_pattern_id_div_8)] & s->mpm_stream_pattern_id_mod_8)) {
@@ -738,72 +738,56 @@ static inline int SigMatchSignaturesBuildMatchArrayAddSignature(DetectEngineThre
                 SCLogDebug("but thats okay, we are looking for neg-content");
             }
         }
-    }
-
-    if (s->full_sig->flags & SIG_FLAG_MPM_URICONTENT) {
+    } else if (s->flags & SIG_FLAG_MPM_URICONTENT) {
         if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
                     (1 << (s->mpm_http_pattern_id % 8)))) {
             if (!(s->full_sig->flags & SIG_FLAG_MPM_URICONTENT_NEG)) {
                 return 0;
             }
         }
-    }
-
-    if (s->flags & SIG_FLAG_MPM_HCBDCONTENT) {
+    } else if (s->flags & SIG_FLAG_MPM_HCBDCONTENT) {
         if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
                     (1 << (s->mpm_http_pattern_id % 8)))) {
             if (!(s->flags & SIG_FLAG_MPM_HCBDCONTENT_NEG)) {
                 return 0;
             }
         }
-    }
-
-    if (s->flags & SIG_FLAG_MPM_HSBDCONTENT) {
+    } else if (s->flags & SIG_FLAG_MPM_HSBDCONTENT) {
         if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
                     (1 << (s->mpm_http_pattern_id % 8)))) {
             if (!(s->flags & SIG_FLAG_MPM_HSBDCONTENT_NEG)) {
                 return 0;
             }
         }
-    }
-
-    if (s->flags & SIG_FLAG_MPM_HHDCONTENT) {
+    } else if (s->flags & SIG_FLAG_MPM_HHDCONTENT) {
         if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
                     (1 << (s->mpm_http_pattern_id % 8)))) {
             if (!(s->flags & SIG_FLAG_MPM_HHDCONTENT_NEG)) {
                 return 0;
             }
         }
-    }
-
-    if (s->flags & SIG_FLAG_MPM_HRHDCONTENT) {
+    } else if (s->flags & SIG_FLAG_MPM_HRHDCONTENT) {
         if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
                     (1 << (s->mpm_http_pattern_id % 8)))) {
             if (!(s->flags & SIG_FLAG_MPM_HRHDCONTENT_NEG)) {
                 return 0;
             }
         }
-    }
-
-    if (s->flags & SIG_FLAG_MPM_HMDCONTENT) {
+    } else if (s->flags & SIG_FLAG_MPM_HMDCONTENT) {
         if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
                     (1 << (s->mpm_http_pattern_id % 8)))) {
             if (!(s->flags & SIG_FLAG_MPM_HMDCONTENT_NEG)) {
                 return 0;
             }
         }
-    }
-
-    if (s->flags & SIG_FLAG_MPM_HCDCONTENT) {
+    } else if (s->flags & SIG_FLAG_MPM_HCDCONTENT) {
         if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
                     (1 << (s->mpm_http_pattern_id % 8)))) {
             if (!(s->flags & SIG_FLAG_MPM_HCDCONTENT_NEG)) {
                 return 0;
             }
         }
-    }
-
-    if (s->flags & SIG_FLAG_MPM_HRUDCONTENT) {
+    } else if (s->flags & SIG_FLAG_MPM_HRUDCONTENT) {
         if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
                     (1 << (s->mpm_http_pattern_id % 8)))) {
             if (!(s->flags & SIG_FLAG_MPM_HRUDCONTENT_NEG)) {
