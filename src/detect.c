@@ -688,10 +688,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
  *  2. alproto
  *  3. mpm_pattern_id_div8
  *  4. mpm_pattern_id_mod8
- *  5. mpm_stream_pattern_id_div8
- *  6. mpm_stream_pattern_id_mod8
- *  7. mpm_http_pattern_id
- *  8. num
+ *  5. num
  *
  *  \retval 0 can't match, don't inspect
  *  \retval 1 might match, further inspection required
@@ -713,85 +710,56 @@ static inline int SigMatchSignaturesBuildMatchArrayAddSignature(DetectEngineThre
     }
 
     /* check for a pattern match of the one pattern in this sig. */
-    if (s->flags & SIG_FLAG_MPM_PACKET) {
+    if (s->flags & (SIG_FLAG_MPM_PACKET|SIG_FLAG_MPM_STREAM|SIG_FLAG_MPM_URICONTENT|
+            SIG_FLAG_MPM_HCBDCONTENT|SIG_FLAG_MPM_HSBDCONTENT|SIG_FLAG_MPM_HHDCONTENT|
+            SIG_FLAG_MPM_HRHDCONTENT|SIG_FLAG_MPM_HRHDCONTENT|SIG_FLAG_MPM_HMDCONTENT|
+            SIG_FLAG_MPM_HCDCONTENT|SIG_FLAG_MPM_HRUDCONTENT))
+    {
         /* filter out sigs that want pattern matches, but
          * have no matches */
         if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id_div_8)] & s->mpm_pattern_id_mod_8)) {
-            //if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_pattern_id / 8)] & (1<<(s->mpm_pattern_id % 8)))) {
-            //SCLogDebug("mpm sig without matches (pat id %"PRIu32" check in content).", s->mpm_pattern_id);
-
-            if (!(s->flags & SIG_FLAG_MPM_PACKET_NEG)) {
-                return 0;
-            } else {
-                SCLogDebug("but thats okay, we are looking for neg-content");
-            }
-        }
-    } else if (s->flags & SIG_FLAG_MPM_STREAM) {
-        /* filter out sigs that want pattern matches, but
-         * have no matches */
-        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_stream_pattern_id_div_8)] & s->mpm_stream_pattern_id_mod_8)) {
-            //SCLogDebug("mpm stream sig without matches (pat id %"PRIu32" check in content).", s->mpm_stream_pattern_id);
-
-            if (!(s->flags & SIG_FLAG_MPM_STREAM_NEG)) {
-                return 0;
-            } else {
-                SCLogDebug("but thats okay, we are looking for neg-content");
-            }
-        }
-    } else if (s->flags & SIG_FLAG_MPM_URICONTENT) {
-        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
-                    (1 << (s->mpm_http_pattern_id % 8)))) {
-            if (!(s->full_sig->flags & SIG_FLAG_MPM_URICONTENT_NEG)) {
-                return 0;
-            }
-        }
-    } else if (s->flags & SIG_FLAG_MPM_HCBDCONTENT) {
-        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
-                    (1 << (s->mpm_http_pattern_id % 8)))) {
-            if (!(s->flags & SIG_FLAG_MPM_HCBDCONTENT_NEG)) {
-                return 0;
-            }
-        }
-    } else if (s->flags & SIG_FLAG_MPM_HSBDCONTENT) {
-        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
-                    (1 << (s->mpm_http_pattern_id % 8)))) {
-            if (!(s->flags & SIG_FLAG_MPM_HSBDCONTENT_NEG)) {
-                return 0;
-            }
-        }
-    } else if (s->flags & SIG_FLAG_MPM_HHDCONTENT) {
-        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
-                    (1 << (s->mpm_http_pattern_id % 8)))) {
-            if (!(s->flags & SIG_FLAG_MPM_HHDCONTENT_NEG)) {
-                return 0;
-            }
-        }
-    } else if (s->flags & SIG_FLAG_MPM_HRHDCONTENT) {
-        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
-                    (1 << (s->mpm_http_pattern_id % 8)))) {
-            if (!(s->flags & SIG_FLAG_MPM_HRHDCONTENT_NEG)) {
-                return 0;
-            }
-        }
-    } else if (s->flags & SIG_FLAG_MPM_HMDCONTENT) {
-        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
-                    (1 << (s->mpm_http_pattern_id % 8)))) {
-            if (!(s->flags & SIG_FLAG_MPM_HMDCONTENT_NEG)) {
-                return 0;
-            }
-        }
-    } else if (s->flags & SIG_FLAG_MPM_HCDCONTENT) {
-        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
-                    (1 << (s->mpm_http_pattern_id % 8)))) {
-            if (!(s->flags & SIG_FLAG_MPM_HCDCONTENT_NEG)) {
-                return 0;
-            }
-        }
-    } else if (s->flags & SIG_FLAG_MPM_HRUDCONTENT) {
-        if (!(det_ctx->pmq.pattern_id_bitarray[(s->mpm_http_pattern_id / 8)] &
-                    (1 << (s->mpm_http_pattern_id % 8)))) {
-            if (!(s->flags & SIG_FLAG_MPM_HRUDCONTENT_NEG)) {
-                return 0;
+            if (s->flags & SIG_FLAG_MPM_PACKET) {
+                if (!(s->flags & SIG_FLAG_MPM_PACKET_NEG)) {
+                    return 0;
+                }
+            } else if (s->flags & SIG_FLAG_MPM_STREAM) {
+                /* filter out sigs that want pattern matches, but
+                 * have no matches */
+                if (!(s->flags & SIG_FLAG_MPM_STREAM_NEG)) {
+                    return 0;
+                }
+            } else if (s->flags & SIG_FLAG_MPM_URICONTENT) {
+                if (!(s->flags & SIG_FLAG_MPM_URICONTENT_NEG)) {
+                    return 0;
+                }
+            } else if (s->flags & SIG_FLAG_MPM_HCBDCONTENT) {
+                if (!(s->flags & SIG_FLAG_MPM_HCBDCONTENT_NEG)) {
+                    return 0;
+                }
+            } else if (s->flags & SIG_FLAG_MPM_HSBDCONTENT) {
+                if (!(s->flags & SIG_FLAG_MPM_HSBDCONTENT_NEG)) {
+                    return 0;
+                }
+            } else if (s->flags & SIG_FLAG_MPM_HHDCONTENT) {
+                if (!(s->flags & SIG_FLAG_MPM_HHDCONTENT_NEG)) {
+                    return 0;
+                }
+            } else if (s->flags & SIG_FLAG_MPM_HRHDCONTENT) {
+                if (!(s->flags & SIG_FLAG_MPM_HRHDCONTENT_NEG)) {
+                    return 0;
+                }
+            } else if (s->flags & SIG_FLAG_MPM_HMDCONTENT) {
+                if (!(s->flags & SIG_FLAG_MPM_HMDCONTENT_NEG)) {
+                    return 0;
+                }
+            } else if (s->flags & SIG_FLAG_MPM_HCDCONTENT) {
+                if (!(s->flags & SIG_FLAG_MPM_HCDCONTENT_NEG)) {
+                    return 0;
+                }
+            } else if (s->flags & SIG_FLAG_MPM_HRUDCONTENT) {
+                if (!(s->flags & SIG_FLAG_MPM_HRUDCONTENT_NEG)) {
+                    return 0;
+                }
             }
         }
     }
@@ -1531,7 +1499,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     if (det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray != NULL) {
                         /* filter out sigs that want pattern matches, but
                          * have no matches */
-                        if (!(det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray[(s->mpm_stream_pattern_id_div_8)] & s->mpm_stream_pattern_id_mod_8) &&
+                        if (!(det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray[(s->mpm_pattern_id_div_8)] & s->mpm_pattern_id_mod_8) &&
                                 (s->flags & SIG_FLAG_MPM_STREAM) && !(s->flags & SIG_FLAG_MPM_STREAM_NEG)) {
                             SCLogDebug("no match in this smsg");
                             continue;

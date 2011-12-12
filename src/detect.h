@@ -332,20 +332,15 @@ typedef struct SignatureHeader_ {
             uint16_t mpm_pattern_id_div_8;
             uint8_t mpm_pattern_id_mod_8;
             SignatureMask mask;
-            uint16_t alproto;
-            uint16_t mpm_stream_pattern_id_div_8;
         };
-        uint64_t hdr_copy2;
+        uint32_t hdr_copy2;
     };
     union {
         struct {
-            uint8_t file_flags;
-            uint8_t mpm_stream_pattern_id_mod_8;
+            uint16_t alproto;
             SigIntId num; /**< signature number, internal id */
-            /** pattern in the mpm matcher */
-            PatIntId mpm_http_pattern_id;
         };
-        uint64_t hdr_copy3;
+        uint32_t hdr_copy3;
     };
 
     /** pointer to the full signature */
@@ -374,19 +369,15 @@ typedef struct Signature_ {
             uint16_t mpm_pattern_id_div_8;
             uint8_t mpm_pattern_id_mod_8;
             SignatureMask mask;
-            uint16_t alproto;
-            uint16_t mpm_stream_pattern_id_div_8;
         };
-        uint64_t hdr_copy2;
+        uint32_t hdr_copy2;
     };
     union {
         struct {
-            uint8_t file_flags;
-            uint8_t mpm_stream_pattern_id_mod_8;
+            uint16_t alproto;
             SigIntId num; /**< signature number, internal id */
-            PatIntId mpm_http_pattern_id;
         };
-        uint64_t hdr_copy3;
+        uint32_t hdr_copy3;
     };
 
     /* the fast pattern added from this signature */
@@ -416,6 +407,7 @@ typedef struct Signature_ {
     uint16_t mpm_content_maxlen;
     uint16_t mpm_uricontent_maxlen;
 
+    uint8_t file_flags;
 
     /** number of sigmatches in the match and pmatch list */
     uint16_t sm_cnt;
