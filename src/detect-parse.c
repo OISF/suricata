@@ -969,7 +969,7 @@ static int SigParseBasics(Signature *s, char *sigstr, char ***result, uint8_t ad
 
     /* Check if it is bidirectional */
     if (strcmp(arr[CONFIG_DIREC], "<>") == 0)
-        s->init_flags |= SIG_FLAG_BIDIREC;
+        s->init_flags |= SIG_FLAG_INIT_BIDIREC;
 
     /* Parse Address & Ports */
     if (SigParseAddress(s, arr[CONFIG_SRC], SIG_DIREC_SRC ^ addrs_direction) < 0)
@@ -1487,10 +1487,10 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
                 if (sigmatch_table[sm->type].AppLayerMatch != NULL)
                     sig->flags |= SIG_FLAG_APPLAYER;
                 if (sigmatch_table[sm->type].Match != NULL)
-                    sig->init_flags |= SIG_FLAG_PACKET;
+                    sig->init_flags |= SIG_FLAG_INIT_PACKET;
             }
         } else {
-            sig->init_flags |= SIG_FLAG_PACKET;
+            sig->init_flags |= SIG_FLAG_INIT_PACKET;
         }
     }
 
@@ -1519,7 +1519,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
 
     SCLogDebug("sig %"PRIu32" SIG_FLAG_APPLAYER: %s, SIG_FLAG_PACKET: %s",
         sig->id, sig->flags & SIG_FLAG_APPLAYER ? "set" : "not set",
-        sig->init_flags & SIG_FLAG_PACKET ? "set" : "not set");
+        sig->init_flags & SIG_FLAG_INIT_PACKET ? "set" : "not set");
 
     SigBuildAddressMatchArray(sig);
 
@@ -1630,7 +1630,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
             }
         }
     }
-    if (sig->init_flags & SIG_FLAG_BIDIREC) {
+    if (sig->init_flags & SIG_FLAG_INIT_BIDIREC) {
         /* Allocate a copy of this signature with the addresses siwtched
            This copy will be installed at sig->next */
         sig->next = SigAlloc();
@@ -1695,10 +1695,10 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
                 if (sigmatch_table[sm->type].AppLayerMatch != NULL)
                     sig->flags |= SIG_FLAG_APPLAYER;
                 if (sigmatch_table[sm->type].Match != NULL)
-                    sig->init_flags |= SIG_FLAG_PACKET;
+                    sig->init_flags |= SIG_FLAG_INIT_PACKET;
             }
         } else {
-            sig->init_flags |= SIG_FLAG_PACKET;
+            sig->init_flags |= SIG_FLAG_INIT_PACKET;
         }
     }
 
@@ -1727,7 +1727,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
 
     SCLogDebug("sig %"PRIu32" SIG_FLAG_APPLAYER: %s, SIG_FLAG_PACKET: %s",
         sig->id, sig->flags & SIG_FLAG_APPLAYER ? "set" : "not set",
-        sig->init_flags & SIG_FLAG_PACKET ? "set" : "not set");
+        sig->init_flags & SIG_FLAG_INIT_PACKET ? "set" : "not set");
 
     /* validate signature, SigValidate will report the error reason */
     if (SigValidate(sig) == 0) {
@@ -1925,7 +1925,7 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
     if (sw_dup->s_prev == NULL) {
         SigDuplWrapper sw_temp;
         memset(&sw_temp, 0, sizeof(SigDuplWrapper));
-        if (sw_dup->s->init_flags & SIG_FLAG_BIDIREC) {
+        if (sw_dup->s->init_flags & SIG_FLAG_INIT_BIDIREC) {
             sw_temp.s = sw_dup->s->next->next;
             de_ctx->sig_list = sw_dup->s->next->next;
             SigFree(sw_dup->s->next);
@@ -1943,7 +1943,7 @@ static inline int DetectEngineSignatureIsDuplicate(DetectEngineCtx *de_ctx,
     } else {
         SigDuplWrapper sw_temp;
         memset(&sw_temp, 0, sizeof(SigDuplWrapper));
-        if (sw_dup->s->init_flags & SIG_FLAG_BIDIREC) {
+        if (sw_dup->s->init_flags & SIG_FLAG_INIT_BIDIREC) {
             sw_temp.s = sw_dup->s->next->next;
             sw_dup->s_prev->next = sw_dup->s->next->next;
             SigFree(sw_dup->s->next);
@@ -2013,7 +2013,7 @@ Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, char *sigstr)
                 sigstr);
     }
 
-    if (sig->init_flags & SIG_FLAG_BIDIREC) {
+    if (sig->init_flags & SIG_FLAG_INIT_BIDIREC) {
         if (sig->next != NULL) {
             sig->next->next = de_ctx->sig_list;
         } else {
@@ -2714,7 +2714,7 @@ int SigTestBidirec01 (void) {
         goto end;
     if (sig->next != NULL)
         goto end;
-    if (sig->init_flags & SIG_FLAG_BIDIREC)
+    if (sig->init_flags & SIG_FLAG_INIT_BIDIREC)
         goto end;
     if (de_ctx->signum != 1)
         goto end;
@@ -2747,7 +2747,7 @@ int SigTestBidirec02 (void) {
         goto end;
     if (de_ctx->sig_list != sig)
         goto end;
-    if (!(sig->init_flags & SIG_FLAG_BIDIREC))
+    if (!(sig->init_flags & SIG_FLAG_INIT_BIDIREC))
         goto end;
     if (sig->next == NULL)
         goto end;
@@ -2756,7 +2756,7 @@ int SigTestBidirec02 (void) {
     copy = sig->next;
     if (copy->next != NULL)
         goto end;
-    if (!(copy->init_flags & SIG_FLAG_BIDIREC))
+    if (!(copy->init_flags & SIG_FLAG_INIT_BIDIREC))
         goto end;
 
     result = 1;
@@ -2910,7 +2910,7 @@ int SigTestBidirec04 (void) {
     sig = DetectEngineAppendSig(de_ctx, "alert tcp 192.168.1.1 any <> any any (msg:\"SigTestBidirec03 sid 2 bidirectional\"; sid:2;)");
     if (sig == NULL)
         goto end;
-    if ( !(sig->init_flags & SIG_FLAG_BIDIREC))
+    if ( !(sig->init_flags & SIG_FLAG_INIT_BIDIREC))
         goto end;
     if (sig->next == NULL)
         goto end;

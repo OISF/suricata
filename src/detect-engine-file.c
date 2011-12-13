@@ -145,7 +145,7 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
 
             /* if this is a filestore sig, and the sig can't match
              * return 3 so we can distinguish */
-            if (s->init_flags & SIG_FLAG_FILESTORE && r == 2)
+            if (s->flags & SIG_FLAG_FILESTORE && r == 2)
                 r = 3;
 
             /* continue, this file may (or may not) be unable to match

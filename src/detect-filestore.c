@@ -327,7 +327,7 @@ static int DetectFilestoreSetup (DetectEngineCtx *de_ctx, Signature *s, char *st
 
     s->alproto = ALPROTO_HTTP;
 
-    s->init_flags |= SIG_FLAG_FILESTORE;
+    s->flags |= SIG_FLAG_FILESTORE;
     return 0;
 
 error:

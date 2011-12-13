@@ -1903,7 +1903,7 @@ int SignatureIsFilestoring(Signature *s) {
     if (s == NULL)
         return 0;
 
-    if (s->init_flags & SIG_FLAG_FILESTORE)
+    if (s->flags & SIG_FLAG_FILESTORE)
         return 1;
 
     return 0;
@@ -2290,7 +2290,7 @@ static int SignatureCreateMask(Signature *s) {
         SCLogDebug("sig requires flow");
     }
 
-    if (s->init_flags & SIG_FLAG_FLOW) {
+    if (s->init_flags & SIG_FLAG_INIT_FLOW) {
         s->mask |= SIG_MASK_REQUIRE_FLOW;
         SCLogDebug("sig requires flow");
     }
@@ -2394,12 +2394,12 @@ int SigAddressPrepareStage1(DetectEngineCtx *de_ctx) {
 
         /* see if any sig is inspecting the packet payload */
         } else if (SignatureIsInspectingPayload(de_ctx, tmp_s) == 1) {
-            tmp_s->init_flags |= SIG_FLAG_PAYLOAD;
+            tmp_s->init_flags |= SIG_FLAG_INIT_PAYLOAD;
             cnt_payload++;
 
             SCLogDebug("Signature %"PRIu32" is considered \"Payload inspecting\"", tmp_s->id);
         } else if (SignatureIsDEOnly(de_ctx, tmp_s) == 1) {
-            tmp_s->init_flags |= SIG_FLAG_DEONLY;
+            tmp_s->init_flags |= SIG_FLAG_INIT_DEONLY;
             SCLogDebug("Signature %"PRIu32" is considered \"Decoder Event only\"", tmp_s->id);
             cnt_deonly++;
         }
@@ -2546,7 +2546,7 @@ error:
 static int DetectEngineLookupFlowAddSig(DetectEngineCtx *de_ctx, Signature *s, int family) {
     uint8_t flags = 0;
 
-    if (s->init_flags & SIG_FLAG_FLOW) {
+    if (s->init_flags & SIG_FLAG_INIT_FLOW) {
         SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
         for ( ; sm != NULL; sm = sm->next) {
             if (sm->type != DETECT_FLOW)
@@ -2981,7 +2981,7 @@ int SigAddressPrepareStage2(DetectEngineCtx *de_ctx) {
         SCLogDebug("tmp_s->id %"PRIu32, tmp_s->id);
         if (tmp_s->flags & SIG_FLAG_IPONLY) {
             IPOnlyAddSignature(de_ctx, &de_ctx->io_ctx, tmp_s);
-        } else if (tmp_s->init_flags & SIG_FLAG_DEONLY) {
+        } else if (tmp_s->init_flags & SIG_FLAG_INIT_DEONLY) {
             DetectEngineAddDecoderEventSig(de_ctx, tmp_s);
         } else {
             DetectEngineLookupFlowAddSig(de_ctx, tmp_s, AF_INET);
@@ -8428,7 +8428,7 @@ int SigTest40NoPayloadInspection02(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    if (!(de_ctx->sig_list->init_flags & SIG_FLAG_PAYLOAD))
+    if (!(de_ctx->sig_list->init_flags & SIG_FLAG_INIT_PAYLOAD))
         result = 0;
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);

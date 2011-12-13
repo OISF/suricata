@@ -593,10 +593,6 @@ static int DetectTlsVersionTestDetect03(void) {
         goto end;
     }
 
-    if (s->init_flags & SIG_FLAG_PACKET) {
-        SCLogDebug("SIG_FLAG_PACKET flags");
-    }
-
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
