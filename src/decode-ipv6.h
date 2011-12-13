@@ -58,6 +58,7 @@ typedef struct IPV6Hdr_
 #define IPV6_GET_RAW_HLIM(ip6h)           ((ip6h)->s_ip6_hlim)
 
 #define IPV6_SET_RAW_VER(ip6h, value)     ((ip6h)->s_ip6_vfc = (((ip6h)->s_ip6_vfc & 0x0f) | (value << 4)))
+#define IPV6_SET_RAW_NH(ip6h, value)      ((ip6h)->s_ip6_nxt = (value))
 
 #define IPV6_SET_L4PROTO(p,proto)         (p)->ip6vars.l4proto = proto
 
