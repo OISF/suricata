@@ -220,33 +220,31 @@ typedef struct DetectPort_ {
 } DetectPort;
 
 /* Signature flags */
-#define SIG_FLAG_RECURSIVE              (((uint64_t)1))     /**< recursive capturing enabled */
+#define SIG_FLAG_RECURSIVE              (1)     /**< recursive capturing enabled */
 
-#define SIG_FLAG_SRC_ANY                (((uint64_t)1)<<1)  /**< source is any */
-#define SIG_FLAG_DST_ANY                (((uint64_t)1)<<2)  /**< destination is any */
-#define SIG_FLAG_SP_ANY                 (((uint64_t)1)<<3)  /**< source port is any */
-#define SIG_FLAG_DP_ANY                 (((uint64_t)1)<<4)  /**< destination port is any */
+#define SIG_FLAG_SRC_ANY                (1<<1)  /**< source is any */
+#define SIG_FLAG_DST_ANY                (1<<2)  /**< destination is any */
+#define SIG_FLAG_SP_ANY                 (1<<3)  /**< source port is any */
+#define SIG_FLAG_DP_ANY                 (1<<4)  /**< destination port is any */
 
-#define SIG_FLAG_NOALERT                (((uint64_t)1)<<5)  /**< no alert flag is set */
-#define SIG_FLAG_DSIZE                  (((uint64_t)1)<<6)  /**< signature has a dsize setting */
-#define SIG_FLAG_APPLAYER               (((uint64_t)1)<<7)  /**< signature applies to app layer instead of packets */
-#define SIG_FLAG_IPONLY                 (((uint64_t)1)<<8) /**< ip only signature */
+#define SIG_FLAG_NOALERT                (1<<5)  /**< no alert flag is set */
+#define SIG_FLAG_DSIZE                  (1<<6)  /**< signature has a dsize setting */
+#define SIG_FLAG_APPLAYER               (1<<7)  /**< signature applies to app layer instead of packets */
+#define SIG_FLAG_IPONLY                 (1<<8) /**< ip only signature */
 
-#define SIG_FLAG_STATE_MATCH            (((uint64_t)1)<<9) /**< signature has matches that require stateful inspection */
-#define SIG_FLAG_REQUIRE_PACKET         (((uint64_t)1)<<10) /**< signature is requiring packet match */
+#define SIG_FLAG_STATE_MATCH            (1<<9) /**< signature has matches that require stateful inspection */
+#define SIG_FLAG_REQUIRE_PACKET         (1<<10) /**< signature is requiring packet match */
 
-#define SIG_FLAG_MPM_PACKET             (((uint64_t)1)<<11)
-#define SIG_FLAG_MPM_PACKET_NEG         (((uint64_t)1)<<12)
+#define SIG_FLAG_MPM_PACKET             (1<<11)
+#define SIG_FLAG_MPM_PACKET_NEG         (1<<12)
+#define SIG_FLAG_MPM_STREAM             (1<<13)
+#define SIG_FLAG_MPM_STREAM_NEG         (1<<14)
+#define SIG_FLAG_MPM_HTTP               (1<<15)
+#define SIG_FLAG_MPM_HTTP_NEG           (1<<16)
 
-#define SIG_FLAG_MPM_STREAM             (((uint64_t)1)<<13)
-#define SIG_FLAG_MPM_STREAM_NEG         (((uint64_t)1)<<14)
+#define SIG_FLAG_REQUIRE_FLOWVAR        (1<<17) /**< signature can only match if a flowbit, flowvar or flowint is available. */
 
-#define SIG_FLAG_MPM_HTTP               (((uint64_t)1)<<15)
-#define SIG_FLAG_MPM_HTTP_NEG           (((uint64_t)1)<<16)
-
-#define SIG_FLAG_REQUIRE_FLOWVAR        (((uint64_t)1)<<31) /**< signature can only match if a flowbit, flowvar or flowint is available. */
-
-#define SIG_FLAG_FILESTORE              (((uint64_t)1)<<34) /**< signature has filestore keyword */
+#define SIG_FLAG_FILESTORE              (1<<18) /**< signature has filestore keyword */
 
 /* signature init flags */
 #define SIG_FLAG_INIT_DEONLY         1  /**< decode event only signature */
@@ -301,22 +299,27 @@ typedef struct IPOnlyCIDRItem_ {
 typedef struct SignatureHeader_ {
     union {
         struct {
-            uint64_t flags;
+            uint32_t flags;
+            uint16_t mpm_pattern_id_div_8;
+            uint8_t mpm_pattern_id_mod_8;
+            SignatureMask mask;
         };
         uint64_t hdr_copy1;
     };
     union {
         struct {
-            uint16_t mpm_pattern_id_div_8;
-            uint8_t mpm_pattern_id_mod_8;
-            SignatureMask mask;
+            uint16_t alproto;
+            SigIntId num; /**< signature number, internal id */
         };
         uint32_t hdr_copy2;
     };
     union {
         struct {
-            uint16_t alproto;
-            SigIntId num; /**< signature number, internal id */
+            SigIntId order_id;
+
+            /** inline -- action */
+            uint8_t action;
+            uint8_t file_flags;
         };
         uint32_t hdr_copy3;
     };
@@ -338,22 +341,27 @@ typedef struct SigMatch_ {
 typedef struct Signature_ {
     union {
         struct {
-            uint64_t flags;
+            uint32_t flags;
+            uint16_t mpm_pattern_id_div_8;
+            uint8_t mpm_pattern_id_mod_8;
+            SignatureMask mask;
         };
         uint64_t hdr_copy1;
     };
     union {
         struct {
-            uint16_t mpm_pattern_id_div_8;
-            uint8_t mpm_pattern_id_mod_8;
-            SignatureMask mask;
+            uint16_t alproto;
+            SigIntId num; /**< signature number, internal id */
         };
         uint32_t hdr_copy2;
     };
     union {
         struct {
-            uint16_t alproto;
-            SigIntId num; /**< signature number, internal id */
+            SigIntId order_id;
+
+            /** inline -- action */
+            uint8_t action;
+            uint8_t file_flags;
         };
         uint32_t hdr_copy3;
     };
@@ -385,15 +393,8 @@ typedef struct Signature_ {
     uint16_t mpm_content_maxlen;
     uint16_t mpm_uricontent_maxlen;
 
-    uint8_t file_flags;
-
     /** number of sigmatches in the match and pmatch list */
     uint16_t sm_cnt;
-
-    SigIntId order_id;
-
-    /** inline -- action */
-    uint8_t action;
 
     uint32_t id;  /**< sid, set by the 'sid' rule keyword */
     uint32_t gid; /**< generator id */
