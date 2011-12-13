@@ -911,11 +911,11 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                     }
                 }
                 /* tell matcher we are inspecting uri */
-                s->flags |= SIG_FLAG_MPM_URICONTENT;
+                s->flags |= SIG_FLAG_MPM_HTTP;
                 s->mpm_pattern_id_div_8 = ud->id / 8;
                 s->mpm_pattern_id_mod_8 = 1 << (ud->id % 8);
                 if (ud->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_URICONTENT_NEG;
+                    s->flags |= SIG_FLAG_MPM_HTTP_NEG;
 
                 sgh->flags |= SIG_GROUP_HEAD_MPM_URI;
 
@@ -967,11 +967,11 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                     }
                 }
                 /* tell matcher we are inspecting uri */
-                s->flags |= SIG_FLAG_MPM_HCBDCONTENT;
+                s->flags |= SIG_FLAG_MPM_HTTP;
                 s->mpm_pattern_id_div_8 = hcbd->id / 8;
                 s->mpm_pattern_id_mod_8 = 1 << (hcbd->id % 8);
                 if (hcbd->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_HCBDCONTENT_NEG;
+                    s->flags |= SIG_FLAG_MPM_HTTP_NEG;
 
                 sgh->flags |= SIG_GROUP_HEAD_MPM_HCBD;
 
@@ -1023,11 +1023,11 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                     }
                 }
                 /* tell matcher we are inspecting uri */
-                s->flags |= SIG_FLAG_MPM_HSBDCONTENT;
+                s->flags |= SIG_FLAG_MPM_HTTP;
                 s->mpm_pattern_id_div_8 = hsbd->id / 8;
                 s->mpm_pattern_id_mod_8 = 1 << (hsbd->id % 8);
                 if (hsbd->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_HSBDCONTENT_NEG;
+                    s->flags |= SIG_FLAG_MPM_HTTP_NEG;
 
                 sgh->flags |= SIG_GROUP_HEAD_MPM_HSBD;
 
@@ -1079,11 +1079,11 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                     }
                 }
                 /* tell matcher we are inspecting uri */
-                s->flags |= SIG_FLAG_MPM_HHDCONTENT;
+                s->flags |= SIG_FLAG_MPM_HTTP;
                 s->mpm_pattern_id_div_8 = hhd->id / 8;
                 s->mpm_pattern_id_mod_8 = 1 << (hhd->id % 8);
                 if (hhd->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_HHDCONTENT_NEG;
+                    s->flags |= SIG_FLAG_MPM_HTTP_NEG;
 
                 sgh->flags |= SIG_GROUP_HEAD_MPM_HHD;
 
@@ -1135,11 +1135,11 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                     }
                 }
                 /* tell matcher we are inspecting uri */
-                s->flags |= SIG_FLAG_MPM_HRHDCONTENT;
+                s->flags |= SIG_FLAG_MPM_HTTP;
                 s->mpm_pattern_id_div_8 = hrhd->id / 8;
                 s->mpm_pattern_id_mod_8 = 1 << (hrhd->id % 8);
                 if (hrhd->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_HRHDCONTENT_NEG;
+                    s->flags |= SIG_FLAG_MPM_HTTP_NEG;
 
                 sgh->flags |= SIG_GROUP_HEAD_MPM_HRHD;
 
@@ -1191,11 +1191,11 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                     }
                 }
                 /* tell matcher we are inspecting method */
-                s->flags |= SIG_FLAG_MPM_HMDCONTENT;
+                s->flags |= SIG_FLAG_MPM_HTTP;
                 s->mpm_pattern_id_div_8 = hmd->id / 8;
                 s->mpm_pattern_id_mod_8 = 1 << (hmd->id % 8);
                 if (hmd->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_HMDCONTENT_NEG;
+                    s->flags |= SIG_FLAG_MPM_HTTP_NEG;
 
                 sgh->flags |= SIG_GROUP_HEAD_MPM_HMD;
 
@@ -1247,11 +1247,11 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                     }
                 }
                 /* tell matcher we are inspecting cookie */
-                s->flags |= SIG_FLAG_MPM_HCDCONTENT;
+                s->flags |= SIG_FLAG_MPM_HTTP;
                 s->mpm_pattern_id_div_8 = hcd->id / 8;
                 s->mpm_pattern_id_mod_8 = 1 << (hcd->id % 8);
                 if (hcd->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_HCDCONTENT_NEG;
+                    s->flags |= SIG_FLAG_MPM_HTTP_NEG;
 
                 sgh->flags |= SIG_GROUP_HEAD_MPM_HCD;
 
@@ -1303,11 +1303,11 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                     }
                 }
                 /* tell matcher we are inspecting raw uri */
-                s->flags |= SIG_FLAG_MPM_HRUDCONTENT;
+                s->flags |= SIG_FLAG_MPM_HTTP;
                 s->mpm_pattern_id_div_8 = hrud->id / 8;
                 s->mpm_pattern_id_mod_8 = 1 << (hrud->id % 8);
                 if (hrud->flags & DETECT_CONTENT_NEGATED)
-                    s->flags |= SIG_FLAG_MPM_HRUDCONTENT_NEG;
+                    s->flags |= SIG_FLAG_MPM_HTTP_NEG;
 
                 sgh->flags |= SIG_GROUP_HEAD_MPM_HRUD;
 

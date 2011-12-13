@@ -221,52 +221,30 @@ typedef struct DetectPort_ {
 
 /* Signature flags */
 #define SIG_FLAG_RECURSIVE              (((uint64_t)1))     /**< recursive capturing enabled */
+
 #define SIG_FLAG_SRC_ANY                (((uint64_t)1)<<1)  /**< source is any */
 #define SIG_FLAG_DST_ANY                (((uint64_t)1)<<2)  /**< destination is any */
 #define SIG_FLAG_SP_ANY                 (((uint64_t)1)<<3)  /**< source port is any */
-
 #define SIG_FLAG_DP_ANY                 (((uint64_t)1)<<4)  /**< destination port is any */
+
 #define SIG_FLAG_NOALERT                (((uint64_t)1)<<5)  /**< no alert flag is set */
-// reserved
-// reserved
-#define SIG_FLAG_DSIZE                  (((uint64_t)1)<<8)  /**< signature has a dsize setting */
+#define SIG_FLAG_DSIZE                  (((uint64_t)1)<<6)  /**< signature has a dsize setting */
+#define SIG_FLAG_APPLAYER               (((uint64_t)1)<<7)  /**< signature applies to app layer instead of packets */
+#define SIG_FLAG_IPONLY                 (((uint64_t)1)<<8) /**< ip only signature */
 
-#define SIG_FLAG_APPLAYER               (((uint64_t)1)<<9)  /**< signature applies to app layer instead of packets */
-#define SIG_FLAG_IPONLY                 (((uint64_t)1)<<10) /**< ip only signature */
+#define SIG_FLAG_STATE_MATCH            (((uint64_t)1)<<9) /**< signature has matches that require stateful inspection */
+#define SIG_FLAG_REQUIRE_PACKET         (((uint64_t)1)<<10) /**< signature is requiring packet match */
 
-#define SIG_FLAG_STATE_MATCH            (((uint64_t)1)<<11) /**< signature has matches that require stateful inspection */
-#define SIG_FLAG_REQUIRE_PACKET         (((uint64_t)1)<<12) /**< signature is requiring packet match */
-#define SIG_FLAG_MPM_PACKET             (((uint64_t)1)<<13)
-#define SIG_FLAG_MPM_PACKET_NEG         (((uint64_t)1)<<14)
+#define SIG_FLAG_MPM_PACKET             (((uint64_t)1)<<11)
+#define SIG_FLAG_MPM_PACKET_NEG         (((uint64_t)1)<<12)
 
-#define SIG_FLAG_MPM_STREAM             (((uint64_t)1)<<15)
-#define SIG_FLAG_MPM_STREAM_NEG         (((uint64_t)1)<<16)
+#define SIG_FLAG_MPM_STREAM             (((uint64_t)1)<<13)
+#define SIG_FLAG_MPM_STREAM_NEG         (((uint64_t)1)<<14)
 
-#define SIG_FLAG_MPM_URICONTENT         (((uint64_t)1)<<17)
-#define SIG_FLAG_MPM_URICONTENT_NEG     (((uint64_t)1)<<18)
-
-#define SIG_FLAG_MPM_HHDCONTENT         (((uint64_t)1)<<19)
-#define SIG_FLAG_MPM_HHDCONTENT_NEG     (((uint64_t)1)<<20)
-
-#define SIG_FLAG_MPM_HRHDCONTENT        (((uint64_t)1)<<21)
-#define SIG_FLAG_MPM_HRHDCONTENT_NEG    (((uint64_t)1)<<22)
-
-#define SIG_FLAG_MPM_HCBDCONTENT        (((uint64_t)1)<<23)
-#define SIG_FLAG_MPM_HCBDCONTENT_NEG    (((uint64_t)1)<<24)
-
-#define SIG_FLAG_MPM_HMDCONTENT         (((uint64_t)1)<<25)
-#define SIG_FLAG_MPM_HMDCONTENT_NEG     (((uint64_t)1)<<26)
-
-#define SIG_FLAG_MPM_HCDCONTENT         (((uint64_t)1)<<27)
-#define SIG_FLAG_MPM_HCDCONTENT_NEG     (((uint64_t)1)<<28)
-
-#define SIG_FLAG_MPM_HRUDCONTENT        (((uint64_t)1)<<29)
-#define SIG_FLAG_MPM_HRUDCONTENT_NEG    (((uint64_t)1)<<30)
+#define SIG_FLAG_MPM_HTTP               (((uint64_t)1)<<15)
+#define SIG_FLAG_MPM_HTTP_NEG           (((uint64_t)1)<<16)
 
 #define SIG_FLAG_REQUIRE_FLOWVAR        (((uint64_t)1)<<31) /**< signature can only match if a flowbit, flowvar or flowint is available. */
-
-#define SIG_FLAG_MPM_HSBDCONTENT        (((uint64_t)1)<<32)
-#define SIG_FLAG_MPM_HSBDCONTENT_NEG    (((uint64_t)1)<<33)
 
 #define SIG_FLAG_FILESTORE              (((uint64_t)1)<<34) /**< signature has filestore keyword */
 

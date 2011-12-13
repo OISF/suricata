@@ -710,10 +710,7 @@ static inline int SigMatchSignaturesBuildMatchArrayAddSignature(DetectEngineThre
     }
 
     /* check for a pattern match of the one pattern in this sig. */
-    if (s->flags & (SIG_FLAG_MPM_PACKET|SIG_FLAG_MPM_STREAM|SIG_FLAG_MPM_URICONTENT|
-            SIG_FLAG_MPM_HCBDCONTENT|SIG_FLAG_MPM_HSBDCONTENT|SIG_FLAG_MPM_HHDCONTENT|
-            SIG_FLAG_MPM_HRHDCONTENT|SIG_FLAG_MPM_HRHDCONTENT|SIG_FLAG_MPM_HMDCONTENT|
-            SIG_FLAG_MPM_HCDCONTENT|SIG_FLAG_MPM_HRUDCONTENT))
+    if (s->flags & (SIG_FLAG_MPM_PACKET|SIG_FLAG_MPM_STREAM|SIG_FLAG_MPM_HTTP))
     {
         /* filter out sigs that want pattern matches, but
          * have no matches */
@@ -728,36 +725,8 @@ static inline int SigMatchSignaturesBuildMatchArrayAddSignature(DetectEngineThre
                 if (!(s->flags & SIG_FLAG_MPM_STREAM_NEG)) {
                     return 0;
                 }
-            } else if (s->flags & SIG_FLAG_MPM_URICONTENT) {
-                if (!(s->flags & SIG_FLAG_MPM_URICONTENT_NEG)) {
-                    return 0;
-                }
-            } else if (s->flags & SIG_FLAG_MPM_HCBDCONTENT) {
-                if (!(s->flags & SIG_FLAG_MPM_HCBDCONTENT_NEG)) {
-                    return 0;
-                }
-            } else if (s->flags & SIG_FLAG_MPM_HSBDCONTENT) {
-                if (!(s->flags & SIG_FLAG_MPM_HSBDCONTENT_NEG)) {
-                    return 0;
-                }
-            } else if (s->flags & SIG_FLAG_MPM_HHDCONTENT) {
-                if (!(s->flags & SIG_FLAG_MPM_HHDCONTENT_NEG)) {
-                    return 0;
-                }
-            } else if (s->flags & SIG_FLAG_MPM_HRHDCONTENT) {
-                if (!(s->flags & SIG_FLAG_MPM_HRHDCONTENT_NEG)) {
-                    return 0;
-                }
-            } else if (s->flags & SIG_FLAG_MPM_HMDCONTENT) {
-                if (!(s->flags & SIG_FLAG_MPM_HMDCONTENT_NEG)) {
-                    return 0;
-                }
-            } else if (s->flags & SIG_FLAG_MPM_HCDCONTENT) {
-                if (!(s->flags & SIG_FLAG_MPM_HCDCONTENT_NEG)) {
-                    return 0;
-                }
-            } else if (s->flags & SIG_FLAG_MPM_HRUDCONTENT) {
-                if (!(s->flags & SIG_FLAG_MPM_HRUDCONTENT_NEG)) {
+            } else if (s->flags & SIG_FLAG_MPM_HTTP) {
+                if (!(s->flags & SIG_FLAG_MPM_HTTP_NEG)) {
                     return 0;
                 }
             }
