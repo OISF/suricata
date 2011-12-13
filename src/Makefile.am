@@ -138,6 +138,7 @@ detect-http-header.c detect-http-header.h \
 detect-http-raw-header.c detect-http-raw-header.h \
 detect-http-uri.c detect-http-uri.h \
 detect-http-raw-uri.c detect-http-raw-uri.h \
+detect-file-data.c detect-file-data.h \
 detect-tls-version.c detect-tls-version.h \
 detect-ssh-proto-version.c detect-ssh-proto-version.h \
 detect-ssh-software-version.c detect-ssh-software-version.h \

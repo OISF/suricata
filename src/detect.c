@@ -129,6 +129,7 @@
 #include "detect-engine-hcd.h"
 #include "detect-engine-hrud.h"
 #include "detect-byte-extract.h"
+#include "detect-file-data.h"
 #include "detect-replace.h"
 #include "detect-tos.h"
 
@@ -4318,6 +4319,7 @@ void SigTableSetup(void) {
     DetectHttpStatCodeRegister();
     DetectSslVersionRegister();
     DetectByteExtractRegister();
+    DetectFiledataRegister();
     DetectFilenameRegister();
     DetectFileextRegister();
     DetectFilestoreRegister();
