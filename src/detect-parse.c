@@ -1306,7 +1306,7 @@ static int SigValidate(Signature *s) {
     SCEnter();
 
     /* check for uricontent + from_server/to_client */
-    if (s->flags & SIG_FLAG_MPM_URI) {
+    if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
         SigMatch *sm;
         for (sm = s->sm_lists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
             if (sm->type == DETECT_FLOW) {
@@ -1431,15 +1431,6 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
             sig->flags |= SIG_FLAG_MPM;
         }
     }
-    for (sm = sig->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
-        if (sm->type == DETECT_URICONTENT) {
-            DetectContentData *ud = (DetectContentData *)sm->ctx;
-            if (ud == NULL)
-                continue;
-
-            sig->flags |= SIG_FLAG_MPM_URI;
-        }
-    }
 
     /* set mpm_content_len */
 
@@ -1460,7 +1451,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
             }
         }
     }
-    if (sig->flags & SIG_FLAG_MPM_URI) {
+    if (sig->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
         sig->mpm_uricontent_maxlen = 0;
 
         for (sm = sig->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
@@ -1586,15 +1577,6 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
             sig->flags |= SIG_FLAG_MPM;
         }
     }
-    for (sm = sig->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
-        if (sm->type == DETECT_URICONTENT) {
-            DetectContentData *ud = (DetectContentData *)sm->ctx;
-            if (ud == NULL)
-                continue;
-
-            sig->flags |= SIG_FLAG_MPM_URI;
-        }
-    }
 
     /* set mpm_content_len */
 
@@ -1615,7 +1597,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
             }
         }
     }
-    if (sig->flags & SIG_FLAG_MPM_URI) {
+    if (sig->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
         sig->mpm_uricontent_maxlen = 0;
 
         for (sm = sig->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
@@ -1667,7 +1649,7 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
                 }
             }
         }
-        if (sig->next->flags & SIG_FLAG_MPM_URI) {
+        if (sig->next->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
             sig->next->mpm_uricontent_maxlen = 0;
 
             for (sm = sig->next->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {

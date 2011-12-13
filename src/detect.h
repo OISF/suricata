@@ -229,7 +229,7 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_NOALERT                (((uint64_t)1)<<5)  /**< no alert flag is set */
 
 #define SIG_FLAG_MPM                    (((uint64_t)1)<<6)  /**< sig has mpm portion (content) */
-#define SIG_FLAG_MPM_URI                (((uint64_t)1)<<7)  /**< sig has mpm portion (uricontent) */
+// reserved
 #define SIG_FLAG_DSIZE                  (((uint64_t)1)<<8)  /**< signature has a dsize setting */
 
 #define SIG_FLAG_APPLAYER               (((uint64_t)1)<<9)  /**< signature applies to app layer instead of packets */
