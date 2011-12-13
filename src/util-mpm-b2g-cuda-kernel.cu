@@ -18,7 +18,7 @@
 /**
  * \file
  *
- * \author Anoop Saldanha <poonaatsoc@gmail.com>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  *
  * The Cuda kernel for MPM B2G.
  *
