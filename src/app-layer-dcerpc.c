@@ -19,7 +19,7 @@
  * \file
  *
  * \author Kirby Kuehl <kkuehl@gmail.com>
- * \author Anoop Saldanha <poonaatsoc@gmail.com>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  *
  * \file DCE/RPC parser and decoder
  *

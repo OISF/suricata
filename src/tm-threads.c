@@ -19,7 +19,7 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
- * \author Anoop Saldanha <poonaatsoc@gmail.com>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  * \author Eric Leblond <eleblond@edenwall.com>
  *
  * Thread management functions.

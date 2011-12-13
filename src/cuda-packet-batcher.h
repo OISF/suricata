@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2010 Open Information Security Foundation.
  *
- * \author Anoop Saldanha <poonaatsoc@gmail.com>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
 #ifndef __CUDA_PACKET_BATCHER_H__

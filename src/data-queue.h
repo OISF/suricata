@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2009, 2010 Open Information Security Foundation.
  *
- * \author Anoop Saldanha <poonaatsoc@gmail.com>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  *
  * \file Generic queues.  Any instance that wants to get itself on the generic
  *       queue, would have to implement the template struct SCDQGenericQData_

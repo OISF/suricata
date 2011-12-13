@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2009, 2010 Open Information Security Foundation.
  *
- * \author Anoop Saldanha <poonaatsoc@gmail.com>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
 #include "suricata-common.h"

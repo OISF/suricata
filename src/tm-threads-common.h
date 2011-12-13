@@ -19,7 +19,7 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
- * \author Anoop Saldanha <poonaatsoc@gmail.com>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
 #ifndef __TM_THREADS_COMMON_H__

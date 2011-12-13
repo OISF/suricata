@@ -1,7 +1,7 @@
 /**
  * Copyright (c) 2010 Open Information Security Foundation.
  *
- * \author Anoop Saldanha <poonaatsoc@gmail.com>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  *
  * \todo
  *       1 Implement a gpu version of aho-corasick.  That should get rid of a

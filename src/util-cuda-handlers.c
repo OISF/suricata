@@ -18,7 +18,7 @@
 /**
  * \file Provides cuda utility functions.
  *
- * \author Anoop Saldanha <poonaatsoc@gmail.com>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  *
  *       A module in the engine that wants to use the cuda engine, might need
  *       some utilities to handle contexts, modules and device_pointers.

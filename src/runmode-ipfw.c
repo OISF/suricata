@@ -18,7 +18,7 @@
 /**
  * \file
  *
- * \author Anoop Saldanha <poonaatsoc@gmail.com>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  * \author Eric Leblond <eric@regit.org>
  *
  * Handling of ipfw runmodes.

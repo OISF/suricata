@@ -18,7 +18,7 @@
 /**
  * \file Provides cuda utility functions.
  *
- * \author Anoop Saldanha <poonaatsoc@gmail.com>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
 /* macros decides if cuda is enabled for the platform or not */
