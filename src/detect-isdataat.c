@@ -367,7 +367,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                     list_type = DETECT_SM_LIST_HCBDMATCH;
                     break;
                 case DETECT_AL_HTTP_SERVER_BODY:
-                    list_type = DETECT_SM_LIST_HCBDMATCH;
+                    list_type = DETECT_SM_LIST_HSBDMATCH;
                     break;
                 case DETECT_AL_HTTP_RAW_HEADER:
                     list_type = DETECT_SM_LIST_HRHDMATCH;
@@ -1015,6 +1015,54 @@ int DetectIsdataatTestParse13(void)
     return result;
 }
 
+static int DetectIsdataatTestParse14(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+    Signature *s = NULL;
+    DetectIsdataatData *data = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(msg:\"Testing file_data and isdataat\"; "
+                               "file_data; content:\"one\"; "
+                               "isdataat:!4,relative; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        goto end;
+    }
+
+    s = de_ctx->sig_list;
+    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH] == NULL) {
+        printf("server body list empty: ");
+        goto end;
+    }
+
+    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->type != DETECT_ISDATAAT) {
+        printf("last server body sm not isdataat: ");
+        goto end;
+    }
+
+    data = (DetectIsdataatData *)s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->ctx;
+    if ( !(data->flags & ISDATAAT_RELATIVE) ||
+         (data->flags & ISDATAAT_RAWBYTES) ||
+         !(data->flags & ISDATAAT_NEGATED) ) {
+        result = 0;
+        goto end;
+    }
+
+    result = 1;
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
 /**
  * \test DetectIsdataatTestPacket01 is a test to check matches of
  * isdataat, and isdataat relative
@@ -1122,7 +1170,7 @@ end:
  * \brief this function registers unit tests for DetectIsdataat
  */
 void DetectIsdataatRegisterTests(void) {
-    #ifdef UNITTESTS
+#ifdef UNITTESTS
     UtRegisterTest("DetectIsdataatTestParse01", DetectIsdataatTestParse01, 1);
     UtRegisterTest("DetectIsdataatTestParse02", DetectIsdataatTestParse02, 1);
     UtRegisterTest("DetectIsdataatTestParse03", DetectIsdataatTestParse03, 1);
@@ -1136,8 +1184,9 @@ void DetectIsdataatRegisterTests(void) {
     UtRegisterTest("DetectIsdataatTestParse11", DetectIsdataatTestParse11, 1);
     UtRegisterTest("DetectIsdataatTestParse12", DetectIsdataatTestParse12, 1);
     UtRegisterTest("DetectIsdataatTestParse13", DetectIsdataatTestParse13, 1);
+    UtRegisterTest("DetectIsdataatTestParse14", DetectIsdataatTestParse14, 1);
     UtRegisterTest("DetectIsdataatTestPacket01", DetectIsdataatTestPacket01, 1);
     UtRegisterTest("DetectIsdataatTestPacket02", DetectIsdataatTestPacket02, 1);
     UtRegisterTest("DetectIsdataatTestPacket03", DetectIsdataatTestPacket03, 1);
-    #endif
+#endif
 }

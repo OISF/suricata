@@ -506,25 +506,39 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                                             DETECT_AL_HTTP_SERVER_BODY, pm->prev,
                                             DETECT_PCRE, pm->prev);
             if (pm == NULL) {
-                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance for http_server_body "
-                           "needs preceeding http_server_body content");
-                goto error;
-            }
+                if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
+                    /* file_data; content:"abc"; distance:0; is valid, in this case
+                     * there will be no previous pm. We convert to offset in this case */
+                    cd->flags &= ~DETECT_CONTENT_DISTANCE;
 
-            if (pm->type == DETECT_PCRE) {
-                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
-                tmp_pd->flags |=  DETECT_PCRE_RELATIVE_NEXT;
-            } else {
-                /* reassigning cd */
-                cd = (DetectContentData *)pm->ctx;
-                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Previous keyword "
-                               "has a fast_pattern:only; set.  You can't "
-                               "have relative keywords around a fast_pattern "
-                               "only content");
+                    if (cd->distance < 0) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have negative distance relative to file_data");
+                        goto error;
+                    }
+
+                    SCLogDebug("converted distance to offset for content relative to file_data");
+                    cd->offset = cd->distance;
+                } else {
+                    SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance for http_server_body "
+                            "needs preceeding http_server_body content");
                     goto error;
                 }
-                cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+            } else {
+                if (pm->type == DETECT_PCRE) {
+                    DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                    tmp_pd->flags |=  DETECT_PCRE_RELATIVE_NEXT;
+                } else {
+                    /* reassigning cd */
+                    cd = (DetectContentData *)pm->ctx;
+                    if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "Previous keyword "
+                                "has a fast_pattern:only; set.  You can't "
+                                "have relative keywords around a fast_pattern "
+                                "only content");
+                        goto error;
+                    }
+                    cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+                }
             }
 
             break;

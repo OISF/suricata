@@ -45,6 +45,7 @@
 #include "detect-isdataat.h"
 #include "detect-bytetest.h"
 #include "detect-bytejump.h"
+#include "detect-byte-extract.h"
 
 #include "flow-util.h"
 #include "util-spm.h"
@@ -246,6 +247,37 @@ static int DoInspectHttpServerBody(DetectEngineCtx *de_ctx,
 
         } while(1);
 
+     } else if (sm->type == DETECT_ISDATAAT) {
+        {
+            SCLogDebug("inspecting isdataat");
+
+            DetectIsdataatData *id = (DetectIsdataatData *)sm->ctx;
+            if (id->flags & ISDATAAT_RELATIVE) {
+                if (det_ctx->payload_offset + id->dataat > payload_len) {
+                    SCLogDebug("det_ctx->payload_offset + id->dataat %"PRIu32" > %"PRIu32, det_ctx->payload_offset + id->dataat, payload_len);
+                    if (id->flags & ISDATAAT_NEGATED)
+                        goto match;
+                    SCReturnInt(0);
+                } else {
+                    SCLogDebug("relative isdataat match");
+                    if (id->flags & ISDATAAT_NEGATED)
+                        SCReturnInt(0);
+                    goto match;
+                }
+            } else {
+                if (id->dataat < payload_len) {
+                    SCLogDebug("absolute isdataat match");
+                    if (id->flags & ISDATAAT_NEGATED)
+                        SCReturnInt(0);
+                    goto match;
+                } else {
+                    SCLogDebug("absolute isdataat mismatch, id->isdataat %"PRIu32", payload_len %"PRIu32"", id->dataat,payload_len);
+                    if (id->flags & ISDATAAT_NEGATED)
+                        goto match;
+                    SCReturnInt(0);
+                }
+            }
+        }
     } else if (sm->type == DETECT_PCRE) {
         SCLogDebug("inspecting pcre");
         DetectPcreData *pe = (DetectPcreData *)sm->ctx;
@@ -286,6 +318,48 @@ static int DoInspectHttpServerBody(DetectEngineCtx *de_ctx,
             det_ctx->payload_offset = prev_payload_offset;
             det_ctx->pcre_match_start_offset = prev_offset;
         } while (1);
+    } else if (sm->type == DETECT_BYTETEST) {
+        DetectBytetestData *btd = (DetectBytetestData *)sm->ctx;
+        int32_t offset = btd->offset;
+        uint64_t value = btd->value;
+        if (btd->flags & DETECT_BYTETEST_OFFSET_BE) {
+            offset = det_ctx->bj_values[offset];
+        }
+        if (btd->flags & DETECT_BYTETEST_VALUE_BE) {
+            value = det_ctx->bj_values[value];
+        }
+
+        if (DetectBytetestDoMatch(det_ctx,s,sm,payload,payload_len, btd->flags,
+                    offset, value) != 1) {
+            SCReturnInt(0);
+        }
+
+        goto match;
+    } else if (sm->type == DETECT_BYTEJUMP) {
+        DetectBytejumpData *bjd = (DetectBytejumpData *)sm->ctx;
+        int32_t offset = bjd->offset;
+
+        if (bjd->flags & DETECT_BYTEJUMP_OFFSET_BE) {
+            offset = det_ctx->bj_values[offset];
+        }
+
+        if (DetectBytejumpDoMatch(det_ctx,s,sm,payload,payload_len,
+                    bjd->flags, offset) != 1) {
+            SCReturnInt(0);
+        }
+
+        goto match;
+    } else if (sm->type == DETECT_BYTE_EXTRACT) {
+        DetectByteExtractData *bed = (DetectByteExtractData *)sm->ctx;
+
+        if (DetectByteExtractDoMatch(det_ctx, sm, s, payload,
+                    payload_len,
+                    &det_ctx->bj_values[bed->local_id],
+                    bed->endian) != 1) {
+            SCReturnInt(0);
+        }
+
+        goto match;
     } else {
         /* we should never get here, but bail out just in case */
         SCLogDebug("sm->type %u", sm->type);

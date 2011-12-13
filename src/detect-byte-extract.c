@@ -580,7 +580,29 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         goto error;
     }
 
-    if (s->alproto == ALPROTO_DCERPC &&
+    if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
+        if (data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
+            SigMatch *prev_sm = NULL;
+            prev_sm = SigMatchGetLastSMFromLists(s, 8,
+                    DETECT_AL_HTTP_SERVER_BODY, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                    DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                    DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                    DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]);
+            if (prev_sm == NULL) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "No preceding content, "
+                        "byte_test or pcre option after file_data");
+                goto error;
+            }
+
+            s->flags |= SIG_FLAG_APPLAYER;
+            AppLayerHtpEnableResponseBodyCallback();
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
+        } else {
+            s->flags |= SIG_FLAG_APPLAYER;
+            AppLayerHtpEnableResponseBodyCallback();
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
+        }
+    } else if (s->alproto == ALPROTO_DCERPC &&
         data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
         SigMatch *pm = NULL;
         SigMatch *dm = NULL;
@@ -635,6 +657,10 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         } else {
             SigMatchAppendPayload(s, sm);
         }
+    }
+
+    if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
+        return 0;
     }
 
     if ( !(data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE)) {

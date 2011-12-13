@@ -54,8 +54,13 @@ static int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, char *nul
     SCEnter();
 
     if (nullstr != NULL) {
-        SCLogError(SC_ERR_INVALID_VALUE, "nocase has no value");
+        SCLogError(SC_ERR_INVALID_VALUE, "rawbytes has no value");
         return -1;
+    }
+
+    if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
+        SCLogError(SC_ERR_RAWBYTES_FILE_DATA, "\"rawbytes\" cannot be combined with \"file_data\"");
+        SCReturnInt(-1);
     }
 
     SigMatch *pm = DetectContentGetLastPattern(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);

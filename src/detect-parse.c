@@ -2489,6 +2489,31 @@ end:
     return result;
 }
 
+/**
+ * \test file_data with rawbytes
+ */
+static int SigParseTest12(void) {
+    int result = 0;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    Signature *s = NULL;
+
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (file_data; content:\"abc\"; rawbytes; sid:1;)");
+    if (s != NULL) {
+        printf("sig 1 should have given an error: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
 /** \test Direction operator validation (invalid) */
 int SigParseBidirecTest06 (void) {
     int result = 1;
@@ -3362,6 +3387,7 @@ void SigParseRegisterTests(void) {
     UtRegisterTest("SigParseTest09", SigParseTest09, 1);
     UtRegisterTest("SigParseTest10", SigParseTest10, 1);
     UtRegisterTest("SigParseTest11", SigParseTest11, 1);
+    UtRegisterTest("SigParseTest12", SigParseTest12, 1);
 
     UtRegisterTest("SigParseBidirecTest06", SigParseBidirecTest06, 1);
     UtRegisterTest("SigParseBidirecTest07", SigParseBidirecTest07, 1);

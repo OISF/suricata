@@ -73,5 +73,7 @@ static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, char *str
 {
     SCEnter();
 
+    s->init_flags |= SIG_FLAG_INIT_FILE_DATA;
+
     return 0;
 }

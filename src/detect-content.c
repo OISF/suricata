@@ -501,12 +501,30 @@ static int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, char *cont
 
     sm->type = DETECT_CONTENT;
     sm->ctx = (void *)cd;
-    //cd->id = DetectContentGetId(de_ctx->mpm_pattern_id_store, cd);
     cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_CONTENT);
 
     DetectContentPrint(cd);
 
     SigMatchAppendPayload(s, sm);
+
+    if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
+        cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_AL_HTTP_SERVER_BODY);
+        sm->type = DETECT_AL_HTTP_SERVER_BODY;
+
+        /* transfer the sm from the pmatch list to hsbdmatch list */
+        SigMatchTransferSigMatchAcrossLists(sm,
+                &s->sm_lists[DETECT_SM_LIST_PMATCH],
+                &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                &s->sm_lists[DETECT_SM_LIST_HSBDMATCH],
+                &s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]);
+
+        /* flag the signature to indicate that we scan the app layer data */
+        s->flags |= SIG_FLAG_APPLAYER;
+        s->alproto = ALPROTO_HTTP;
+
+        /* enable http request body callback in the http app layer parser */
+        AppLayerHtpEnableResponseBodyCallback();
+    }
 
     return 0;
 
@@ -1929,6 +1947,126 @@ int DetectContentParseTest35(void)
     return result;
 }
 
+/**
+ * \test Parsing test: file_data
+ */
+static int DetectContentParseTest36(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any "
+                               "(msg:\"test\"; file_data; content:\"abc\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        printf("content still in PMATCH list: ");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSBDMATCH] == NULL) {
+        printf("content not in HSBDMATCH list: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Parsing test: file_data
+ */
+static int DetectContentParseTest37(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any "
+                               "(msg:\"test\"; file_data; content:\"abc\"; content:\"def\"; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        printf("content still in PMATCH list: ");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSBDMATCH] == NULL) {
+        printf("content not in HSBDMATCH list: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Parsing test: file_data
+ */
+static int DetectContentParseTest38(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any "
+                               "(msg:\"test\"; file_data; content:\"abc\"; content:\"def\"; within:8; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        printf("content still in PMATCH list: ");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSBDMATCH] == NULL) {
+        printf("content not in HSBDMATCH list: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
 static int SigTestPositiveTestContent(char *rule, uint8_t *buf)
 {
     uint16_t buflen = strlen((char *)buf);
@@ -1970,6 +2108,86 @@ end:
     }
 
     UTHFreePackets(&p, 1);
+    return result;
+}
+
+/**
+ * \test Parsing test: file_data, within relative to file_data
+ */
+static int DetectContentParseTest39(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any "
+                               "(msg:\"test\"; file_data; content:\"abc\"; within:8; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        printf("content still in PMATCH list: ");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSBDMATCH] == NULL) {
+        printf("content not in HSBDMATCH list: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Parsing test: file_data, distance relative to file_data
+ */
+static int DetectContentParseTest40(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any "
+                               "(msg:\"test\"; file_data; content:\"abc\"; distance:3; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+        printf("content still in PMATCH list: ");
+        goto end;
+    }
+
+    if (de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSBDMATCH] == NULL) {
+        printf("content not in HSBDMATCH list: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
     return result;
 }
 
@@ -2392,6 +2610,11 @@ void DetectContentRegisterTests(void)
     UtRegisterTest("DetectContentParseTest33", DetectContentParseTest33, 1);
     UtRegisterTest("DetectContentParseTest34", DetectContentParseTest34, 1);
     UtRegisterTest("DetectContentParseTest35", DetectContentParseTest35, 1);
+    UtRegisterTest("DetectContentParseTest36", DetectContentParseTest36, 1);
+    UtRegisterTest("DetectContentParseTest37", DetectContentParseTest37, 1);
+    UtRegisterTest("DetectContentParseTest38", DetectContentParseTest38, 1);
+    UtRegisterTest("DetectContentParseTest39", DetectContentParseTest39, 1);
+    UtRegisterTest("DetectContentParseTest40", DetectContentParseTest40, 1);
 
     /* The reals */
     UtRegisterTest("DetectContentLongPatternMatchTest01", DetectContentLongPatternMatchTest01, 1);
