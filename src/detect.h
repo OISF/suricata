@@ -901,7 +901,6 @@ typedef struct SigGroupHead_ {
     MpmCtx *mpm_hcd_ctx;
     MpmCtx *mpm_hrud_ctx;
 
-    uint16_t mpm_streamcontent_maxlen;
     uint16_t mpm_uricontent_maxlen;
 
     /** the number of signatures in this sgh that have the filestore keyword

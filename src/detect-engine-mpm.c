@@ -461,9 +461,6 @@ uint32_t StreamPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p,
     uint8_t cnt = 0;
 
     for ( ; smsg != NULL; smsg = smsg->next) {
-        if (smsg->data.data_len < det_ctx->sgh->mpm_streamcontent_maxlen)
-            continue;
-
         //PrintRawDataFp(stdout, smsg->data.data, smsg->data.data_len);
 
         uint32_t r = mpm_table[det_ctx->sgh->mpm_stream_ctx->mpm_type].Search(det_ctx->sgh->mpm_stream_ctx,
@@ -1328,100 +1325,6 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
 
     return;
 }
-
-///**
-// * \internal
-// * \brief Helper function for PrepareGroupPopulateMpm.  Used to decide if a
-// *        pattern should be skipped or considered under certain conditions.
-// *
-// * \param sgh Pointer to the sgh.
-// * \param s   Pointer to the signature.
-// * \param sm  Pointer to the SigMatch which holds the content.
-// *
-// * \retval 1 If the content should be skipped.
-// * \retval 0 Otherwise.
-// */
-//static int PopulateMpmSkipContent(SigGroupHead *sgh, Signature *s, SigMatch *sm)
-//{
-//    switch (sm->type) {
-//        case DETECT_CONTENT:
-//        {
-//            if (s->flags & SIG_FLAG_HAS_NO_PKT_AND_STREAM_CONTENT) {
-//                return 1;
-//            }
-//
-//            if (!(sgh->flags & SIG_GROUP_HAVECONTENT &&
-//                  !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY)) &&
-//                !(sgh->flags & SIG_GROUP_HAVESTREAMCONTENT &&
-//                  !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY))) {
-//                return 1;
-//            }
-//
-//            DetectContentData *cd = sm->ctx;
-//            if (cd->flags & DETECT_CONTENT_FAST_PATTERN)
-//                return 0;
-//
-//            return 1;
-//
-//            if (sgh->flags & SIG_GROUP_HAVECONTENT &&
-//                !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY) &&
-//                sgh->flags & SIG_GROUP_HAVESTREAMCONTENT &&
-//                !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)) {
-//                if (sgh->mpm_content_maxlen == sgh->mpm_streamcontent_maxlen) {
-//                    if (cd->content_len < sgh->mpm_content_maxlen)
-//                        return 1;
-//                    else
-//                        return 0;
-//                } else if (sgh->mpm_content_maxlen < sgh->mpm_streamcontent_maxlen) {
-//                    if (cd->content_len < sgh->mpm_content_maxlen)
-//                        return 1;
-//                    else
-//                        return 0;
-//                } else {
-//                    if (cd->content_len < sgh->mpm_streamcontent_maxlen)
-//                        return 1;
-//                    else
-//                        return 0;
-//                }
-//            } else if (sgh->flags & SIG_GROUP_HAVECONTENT &&
-//                       !(sgh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
-//                if (cd->content_len < sgh->mpm_content_maxlen)
-//                    return 1;
-//                else
-//                    return 0;
-//            } else if (sgh->flags & SIG_GROUP_HAVESTREAMCONTENT &&
-//                       !(sgh->flags & SIG_GROUP_HEAD_MPM_STREAM_COPY)){
-//                if (cd->content_len < sgh->mpm_streamcontent_maxlen)
-//                    return 1;
-//                else
-//                    return 0;
-//            }
-//        }
-//
-//        case DETECT_URICONTENT:
-//        {
-//            if (!(sgh->flags & SIG_GROUP_HAVEURICONTENT &&
-//                  !(sgh->flags & SIG_GROUP_HEAD_MPM_URI_COPY))) {
-//                return 1;
-//            }
-//
-//            DetectContentData *cd = sm->ctx;
-//            if (cd->flags & DETECT_CONTENT_FAST_PATTERN)
-//                return 0;
-//
-//            return 1;
-//
-//            if (cd->content_len < sgh->mpm_uricontent_maxlen)
-//                return 1;
-//            else
-//                return 0;
-//        }
-//
-//        default:
-//            return 0;
-//    }
-//
-//}
 
 /**
  * \internal
