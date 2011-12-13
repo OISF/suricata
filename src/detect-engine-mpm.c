@@ -84,7 +84,7 @@ int SignatureHasPacketContent(Signature *s) {
         SCReturnInt(0);
     }
 
-    if (!(s->flags & SIG_FLAG_MPM)) {
+    if (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
         SCLogDebug("no mpm");
         SCReturnInt(0);
     }
@@ -117,7 +117,7 @@ int SignatureHasStreamContent(Signature *s) {
         SCReturnInt(0);
     }
 
-    if (!(s->flags & SIG_FLAG_MPM)) {
+    if (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
         SCLogDebug("no mpm");
         SCReturnInt(0);
     }

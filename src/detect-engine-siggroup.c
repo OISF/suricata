@@ -1023,7 +1023,7 @@ int SigGroupHeadAppendSig(DetectEngineCtx *de_ctx, SigGroupHead **sgh,
     (*sgh)->init->sig_array[s->num / 8] |= 1 << (s->num % 8);
 
     /* update maxlen for mpm */
-    if (s->flags & SIG_FLAG_MPM) {
+    if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
         /* check with the precalculated values from the sig */
         if (s->mpm_content_maxlen > 0) {
             if ((*sgh)->mpm_content_maxlen == 0)
@@ -1317,9 +1317,6 @@ int SigGroupHeadLoadContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
         if (s == NULL)
             continue;
 
-        if (!(s->flags & SIG_FLAG_MPM))
-            continue;
-
         if (s->alproto != ALPROTO_UNKNOWN)
             continue;
 
@@ -1490,11 +1487,6 @@ int SigGroupHeadLoadStreamContent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
 
         if (SignatureHasPacketContent(s)) {
             SCLogDebug("Sig has packet content");
-            continue;
-        }
-
-        if (!(s->flags & SIG_FLAG_MPM)) {
-            SCLogDebug("no mpm");
             continue;
         }
 

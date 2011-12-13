@@ -227,8 +227,7 @@ typedef struct DetectPort_ {
 
 #define SIG_FLAG_DP_ANY                 (((uint64_t)1)<<4)  /**< destination port is any */
 #define SIG_FLAG_NOALERT                (((uint64_t)1)<<5)  /**< no alert flag is set */
-
-#define SIG_FLAG_MPM                    (((uint64_t)1)<<6)  /**< sig has mpm portion (content) */
+// reserved
 // reserved
 #define SIG_FLAG_DSIZE                  (((uint64_t)1)<<8)  /**< signature has a dsize setting */
 
