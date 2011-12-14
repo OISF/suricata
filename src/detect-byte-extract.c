@@ -589,9 +589,7 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
                     DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
                     DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]);
             if (prev_sm == NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "No preceding content, "
-                        "byte_test or pcre option after file_data");
-                goto error;
+                data->flags &= ~DETECT_BYTE_EXTRACT_FLAG_RELATIVE;
             }
 
             s->flags |= SIG_FLAG_APPLAYER;
@@ -2405,32 +2403,6 @@ int DetectByteExtractTest42(void)
     return result;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 int DetectByteExtractTest43(void)
 {
     DetectEngineCtx *de_ctx = NULL;
@@ -2651,35 +2623,6 @@ int DetectByteExtractTest44(void)
 
     return result;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 int DetectByteExtractTest45(void)
 {
@@ -2902,32 +2845,6 @@ int DetectByteExtractTest46(void)
 
     return result;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 int DetectByteExtractTest47(void)
 {
@@ -3156,32 +3073,6 @@ int DetectByteExtractTest48(void)
 
     return result;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 int DetectByteExtractTest49(void)
 {
@@ -3414,39 +3305,6 @@ int DetectByteExtractTest50(void)
     return result;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 int DetectByteExtractTest51(void)
 {
     DetectEngineCtx *de_ctx = NULL;
@@ -3665,25 +3523,6 @@ int DetectByteExtractTest52(void)
 
     return result;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 int DetectByteExtractTest53(void)
 {
@@ -4917,6 +4756,58 @@ int DetectByteExtractTest61(void)
 
     return result;
 }
+
+static int DetectByteExtractTest62(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+    Signature *s = NULL;
+    SigMatch *sm = NULL;
+    DetectByteExtractData *bed = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                                   "(file_data; byte_extract:4,2,two,relative,string,hex; "
+                                   "sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        goto end;
+    }
+
+    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH] == NULL) {
+        goto end;
+    }
+
+    sm = s->sm_lists[DETECT_SM_LIST_HSBDMATCH];
+    if (sm->type != DETECT_BYTE_EXTRACT) {
+        result = 0;
+        goto end;
+    }
+    bed = (DetectByteExtractData *)sm->ctx;
+    if (bed->nbytes != 4 ||
+        bed->offset != 2 ||
+        strncmp(bed->name, "two", 3) != 0 ||
+        bed->flags != (DETECT_BYTE_EXTRACT_FLAG_STRING) ||
+        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_NONE ||
+        bed->base != DETECT_BYTE_EXTRACT_BASE_HEX ||
+        bed->align_value != 0 ||
+        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+        goto end;
+    }
+
+    result = 1;
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DetectByteExtractRegisterTests(void)
@@ -4991,6 +4882,7 @@ void DetectByteExtractRegisterTests(void)
     UtRegisterTest("DetectByteExtractTest59", DetectByteExtractTest59, 1);
     UtRegisterTest("DetectByteExtractTest60", DetectByteExtractTest60, 1);
     UtRegisterTest("DetectByteExtractTest61", DetectByteExtractTest61, 1);
+    UtRegisterTest("DetectByteExtractTest62", DetectByteExtractTest62, 1);
 #endif /* UNITTESTS */
 
     return;

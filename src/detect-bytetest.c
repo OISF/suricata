@@ -494,9 +494,7 @@ int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
                     DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
                     DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]);
             if (prev_sm == NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "No preceding content, "
-                        "byte_test or pcre option after file_data");
-                goto error;
+                data->flags &= ~DETECT_BYTETEST_RELATIVE;
             }
 
             s->flags |= SIG_FLAG_APPLAYER;
@@ -1287,6 +1285,59 @@ int DetectBytetestTestParse21(void)
 }
 
 /**
+ * \test Test file_data
+ */
+static int DetectBytetestTestParse22(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+    Signature *s = NULL;
+    DetectBytetestData *bd = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(file_data; byte_test:1,=,1,6,relative; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    s = de_ctx->sig_list;
+    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH] == NULL) {
+        printf("empty server body list: ");
+        goto end;
+    }
+
+    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->type != DETECT_BYTETEST) {
+        printf("bytetest not last sm in server body list: ");
+        goto end;
+    }
+
+    bd = (DetectBytetestData *)s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->ctx;
+    if (bd->flags & DETECT_BYTETEST_DCE &&
+        bd->flags & DETECT_BYTETEST_RELATIVE &&
+        (bd->flags & DETECT_BYTETEST_STRING) &&
+        (bd->flags & DETECT_BYTETEST_BIG) &&
+        (bd->flags & DETECT_BYTETEST_LITTLE) &&
+        (bd->flags & DETECT_BYTETEST_NEGOP) ) {
+        printf("wrong flags: ");
+        goto end;
+    }
+
+    result = 1;
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
  * \test DetectByteTestTestPacket01 is a test to check matches of
  * byte_test and byte_test relative works if the previous keyword is pcre
  * (bug 142)
@@ -1466,6 +1517,8 @@ void DetectBytetestRegisterTests(void) {
     UtRegisterTest("DetectBytetestTestParse19", DetectBytetestTestParse19, 1);
     UtRegisterTest("DetectBytetestTestParse20", DetectBytetestTestParse20, 1);
     UtRegisterTest("DetectBytetestTestParse21", DetectBytetestTestParse21, 1);
+    UtRegisterTest("DetectBytetestTestParse22", DetectBytetestTestParse22, 1);
+
     UtRegisterTest("DetectByteTestTestPacket01", DetectByteTestTestPacket01, 1);
     UtRegisterTest("DetectByteTestTestPacket02", DetectByteTestTestPacket02, 1);
     UtRegisterTest("DetectByteTestTestPacket03", DetectByteTestTestPacket03, 1);
