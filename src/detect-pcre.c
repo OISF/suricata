@@ -1153,7 +1153,15 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
                 SigMatchAppendDcePayload(s, sm);
             }
         } else {
-            SigMatchAppendPayload(s, sm);
+            if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
+                SCLogDebug("adding to http server body list because of file data");
+                s->flags |= SIG_FLAG_APPLAYER;
+                AppLayerHtpEnableResponseBodyCallback();
+
+                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
+            } else {
+                SigMatchAppendPayload(s, sm);
+            }
         }
     }
 
@@ -1176,9 +1184,15 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
                        "since this is an alproto sig.");
             SCReturnInt(0);
         } else {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "No preceding content "
-                       "or uricontent or pcre option");
-            SCReturnInt(-1);
+            if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
+                SCLogDebug("removing relative flag as we are relative to file_data");
+                pd->flags &= ~DETECT_PCRE_RELATIVE;
+                SCReturnInt(0);
+            } else {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "No preceding content "
+                        "or uricontent or pcre option");
+                SCReturnInt(-1);
+            }
         }
     }
 
@@ -1537,6 +1551,157 @@ int DetectPcreParseTest11(void)
         goto end;
     }
 
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Test pcre option with file data. pcre is relative to file_data,
+ *       so relative flag should be unset.
+ */
+static int DetectPcreParseTest12(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+    Signature *s = NULL;
+    DetectPcreData *data = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(file_data; pcre:/abc/R; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    s = de_ctx->sig_list;
+    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH] == NULL) {
+        printf("empty server body list: ");
+        goto end;
+    }
+
+    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->type != DETECT_PCRE) {
+        printf("last sm not pcre: ");
+        goto end;
+    }
+
+    data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->ctx;
+    if (data->flags & DETECT_PCRE_RAWBYTES ||
+        data->flags & DETECT_PCRE_RELATIVE ||
+        data->flags & DETECT_PCRE_URI) {
+        printf("flags not right: ");
+        goto end;
+    }
+
+    result = 1;
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Test pcre option with file data.
+ */
+static int DetectPcreParseTest13(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+    Signature *s = NULL;
+    DetectPcreData *data = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(file_data; content:\"abc\"; pcre:/def/R; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    s = de_ctx->sig_list;
+    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH] == NULL) {
+        printf("empty server body list: ");
+        goto end;
+    }
+
+    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->type != DETECT_PCRE) {
+        printf("last sm not pcre: ");
+        goto end;
+    }
+
+    data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->ctx;
+    if (data->flags & DETECT_PCRE_RAWBYTES ||
+        !(data->flags & DETECT_PCRE_RELATIVE) ||
+        data->flags & DETECT_PCRE_URI) {
+        printf("flags not right: ");
+        goto end;
+    }
+
+    result = 1;
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
+/**
+ * \test Test pcre option with file data.
+ */
+static int DetectPcreParseTest14(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+    Signature *s = NULL;
+    DetectPcreData *data = NULL;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
+                               "(file_data; pcre:/def/; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        printf("sig parse failed: ");
+        goto end;
+    }
+
+    s = de_ctx->sig_list;
+    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH] == NULL) {
+        printf("empty server body list: ");
+        goto end;
+    }
+
+    if (s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->type != DETECT_PCRE) {
+        printf("last sm not pcre: ");
+        goto end;
+    }
+
+    data = (DetectPcreData *)s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->ctx;
+    if (data->flags & DETECT_PCRE_RAWBYTES ||
+        data->flags & DETECT_PCRE_RELATIVE ||
+        data->flags & DETECT_PCRE_URI) {
+        printf("flags not right: ");
+        goto end;
+    }
+
+    result = 1;
  end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
@@ -3198,6 +3363,10 @@ void DetectPcreRegisterTests(void) {
     UtRegisterTest("DetectPcreParseTest09", DetectPcreParseTest09, 1);
     UtRegisterTest("DetectPcreParseTest10", DetectPcreParseTest10, 1);
     UtRegisterTest("DetectPcreParseTest11", DetectPcreParseTest11, 1);
+    UtRegisterTest("DetectPcreParseTest12", DetectPcreParseTest12, 1);
+    UtRegisterTest("DetectPcreParseTest13", DetectPcreParseTest13, 1);
+    UtRegisterTest("DetectPcreParseTest14", DetectPcreParseTest14, 1);
+
     UtRegisterTest("DetectPcreTestSig01B2g -- pcre test", DetectPcreTestSig01B2g, 1);
     UtRegisterTest("DetectPcreTestSig01B3g -- pcre test", DetectPcreTestSig01B3g, 1);
     UtRegisterTest("DetectPcreTestSig01Wm -- pcre test", DetectPcreTestSig01Wm, 1);
