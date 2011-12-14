@@ -1538,6 +1538,7 @@ static int AlpDetectTestSig1(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&ssn, 0, sizeof(TcpSession));
@@ -1564,7 +1565,7 @@ static int AlpDetectTestSig1(void)
 
     StreamTcpInitConfig(TRUE);
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         goto end;
     }
@@ -1632,6 +1633,7 @@ static int AlpDetectTestSig2(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&ssn, 0, sizeof(TcpSession));
@@ -1650,7 +1652,7 @@ static int AlpDetectTestSig2(void)
 
     StreamTcpInitConfig(TRUE);
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         goto end;
     }
@@ -1720,6 +1722,7 @@ static int AlpDetectTestSig3(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&ssn, 0, sizeof(TcpSession));
@@ -1738,7 +1741,7 @@ static int AlpDetectTestSig3(void)
 
     StreamTcpInitConfig(TRUE);
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         goto end;
     }
@@ -1804,6 +1807,7 @@ static int AlpDetectTestSig4(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&ssn, 0, sizeof(TcpSession));
@@ -1822,7 +1826,7 @@ static int AlpDetectTestSig4(void)
 
     StreamTcpInitConfig(TRUE);
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         goto end;
     }
@@ -1884,6 +1888,7 @@ static int AlpDetectTestSig5(void)
     Signature *s = NULL;
     ThreadVars tv;
     DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
 
     memset(&tv, 0, sizeof(ThreadVars));
     memset(&ssn, 0, sizeof(TcpSession));
@@ -1903,7 +1908,7 @@ static int AlpDetectTestSig5(void)
     p->flags |= PKT_STREAM_ADD;
     p->flags |= PKT_STREAM_EOF;
 
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL) {
         goto end;
     }
