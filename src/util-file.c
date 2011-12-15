@@ -636,6 +636,26 @@ void FileDisableStoringForTransaction(Flow *f, uint8_t direction, uint16_t tx_id
     SCReturn;
 }
 
+/**
+ *  \brief flag a file with id "file_id" to be stored.
+ *
+ *  \param fc file store
+ *  \param file_id the file's id
+ */
+void FileStoreFileById(FileContainer *fc, uint16_t file_id) {
+    File *ptr = NULL;
+
+    SCEnter();
+
+    if (fc != NULL) {
+        for (ptr = fc->head; ptr != NULL; ptr = ptr->next) {
+            if (ptr->file_id == file_id) {
+                ptr->store = 1;
+            }
+        }
+    }
+}
+
 void FileStoreAllFilesForTx(FileContainer *fc, uint16_t tx_id) {
     File *ptr = NULL;
 

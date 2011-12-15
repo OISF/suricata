@@ -97,6 +97,146 @@ error:
 }
 
 /**
+ *  \brief apply the post match filestore with options
+ */
+static int FilestorePostMatchWithOptions(Packet *p, Flow *f, DetectFilestoreData *filestore, FileContainer *fc,
+        uint16_t file_id, uint16_t tx_id)
+{
+    if (filestore == NULL) {
+        SCReturnInt(0);
+    }
+
+    int this_file = 0;
+    int this_tx = 0;
+    int this_flow = 0;
+    int rule_dir = 0;
+    int toserver_dir = 0;
+    int toclient_dir = 0;
+
+    switch (filestore->direction) {
+        case FILESTORE_DIR_DEFAULT:
+            rule_dir = 1;
+            break;
+        case FILESTORE_DIR_BOTH:
+            toserver_dir = 1;
+            toclient_dir = 1;
+            break;
+        case FILESTORE_DIR_TOSERVER:
+            toserver_dir = 1;
+            break;
+        case FILESTORE_DIR_TOCLIENT:
+            toclient_dir = 1;
+            break;
+    }
+
+    switch (filestore->scope) {
+        case FILESTORE_SCOPE_DEFAULT:
+            if (rule_dir) {
+                this_file = 1;
+            } else if (p->flowflags & FLOW_PKT_TOCLIENT && toclient_dir) {
+                this_file = 1;
+            } else if (p->flowflags & FLOW_PKT_TOSERVER && toserver_dir) {
+                this_file = 1;
+            }
+            break;
+        case FILESTORE_SCOPE_TX:
+            this_tx = 1;
+            break;
+        case FILESTORE_SCOPE_SSN:
+            this_flow = 1;
+            break;
+    }
+
+    if (this_file)  {
+        FileStoreFileById(fc, file_id);
+    } else if (this_tx) {
+        /* flag tx all files will be stored */
+        if (f->alproto == ALPROTO_HTTP && f->alstate != NULL) {
+            HtpState *htp_state = f->alstate;
+            if (toserver_dir) {
+                htp_state->flags |= HTP_FLAG_STORE_FILES_TX_TS;
+                FileStoreAllFilesForTx(htp_state->files_ts, tx_id);
+            }
+            if (toclient_dir) {
+                htp_state->flags |= HTP_FLAG_STORE_FILES_TX_TC;
+                FileStoreAllFilesForTx(htp_state->files_tc, tx_id);
+            }
+            htp_state->store_tx_id = tx_id;
+        }
+    } else if (this_flow) {
+        /* flag flow all files will be stored */
+        if (f->alproto == ALPROTO_HTTP && f->alstate != NULL) {
+            HtpState *htp_state = f->alstate;
+            if (toserver_dir) {
+                htp_state->flags |= HTP_FLAG_STORE_FILES_TS;
+                FileStoreAllFiles(htp_state->files_ts);
+            }
+            if (toclient_dir) {
+                htp_state->flags |= HTP_FLAG_STORE_FILES_TC;
+                FileStoreAllFiles(htp_state->files_tc);
+            }
+        }
+    } else {
+        FileStoreFileById(fc, file_id);
+    }
+
+    SCReturnInt(0);
+}
+
+/**
+ *  \brief post-match function for filestore
+ *
+ *  The match function for filestore records store candidates in the det_ctx.
+ *  When we are sure all parts of the signature matched, we run this function
+ *  to finalize the filestore.
+ */
+int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p) {
+    uint8_t flags = 0;
+
+    SCEnter();
+
+    if (det_ctx->filestore_cnt == 0) {
+        SCReturnInt(0);
+    }
+
+    if (det_ctx->filestore_sm == NULL || p->flow == NULL) {
+#ifndef DEBUG
+        SCReturnInt(0);
+#else
+        BUG_ON(1);
+#endif
+    }
+
+    if (p->flowflags & FLOW_PKT_TOCLIENT)
+        flags |= STREAM_TOCLIENT;
+    else
+        flags |= STREAM_TOSERVER;
+
+    SCMutexLock(&p->flow->m);
+
+    FileContainer *ffc = AppLayerGetFilesFromFlow(p->flow, flags);
+
+    /* filestore for single files only */
+    if (det_ctx->filestore_sm->ctx == NULL) {
+        uint16_t u;
+        for (u = 0; u < det_ctx->filestore_cnt; u++) {
+            FileStoreFileById(ffc, det_ctx->filestore[u].file_id);
+        }
+    } else {
+        DetectFilestoreData *filestore = det_ctx->filestore_sm->ctx;
+        uint16_t u;
+
+        for (u = 0; u < det_ctx->filestore_cnt; u++) {
+            FilestorePostMatchWithOptions(p, p->flow, filestore, ffc,
+                    det_ctx->filestore[u].file_id, det_ctx->filestore[u].tx_id);
+        }
+    }
+
+    SCMutexUnlock(&p->flow->m);
+    SCReturnInt(0);
+}
+
+/**
  * \brief match the specified filestore
  *
  * \param t pointer to thread vars
@@ -114,88 +254,22 @@ int DetectFilestoreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f
         uint8_t flags, void *state, Signature *s, SigMatch *m)
 {
     SCEnter();
-    DetectFilestoreData *filestore = m->ctx;
-    if (filestore != NULL) {
-        int this_file = 0;
-        int this_tx = 0;
-        int this_flow = 0;
-        int rule_dir = 0;
-        int toserver_dir = 0;
-        int toclient_dir = 0;
-
-        switch (filestore->direction) {
-            case FILESTORE_DIR_DEFAULT:
-                rule_dir = 1;
-                break;
-            case FILESTORE_DIR_BOTH:
-                toserver_dir = 1;
-                toclient_dir = 1;
-                break;
-            case FILESTORE_DIR_TOSERVER:
-                toserver_dir = 1;
-                break;
-            case FILESTORE_DIR_TOCLIENT:
-                toclient_dir = 1;
-                break;
-        }
-
-        switch (filestore->scope) {
-            case FILESTORE_SCOPE_DEFAULT:
-                if (rule_dir) {
-                    this_file = 1;
-                } else if (flags & STREAM_TOCLIENT && toclient_dir) {
-                    this_file = 1;
-                } else if (flags & STREAM_TOSERVER && toserver_dir) {
-                    this_file = 1;
-                }
-                break;
-            case FILESTORE_SCOPE_TX:
-                this_tx = 1;
-                break;
-            case FILESTORE_SCOPE_SSN:
-                this_flow = 1;
-                break;
-        }
-
-        if (this_file) {
-            File *file = (File *)state;
-            FileStore(file);
-        } else if (this_tx) {
-            /* flag tx all files will be stored */
-            if (f->alproto == ALPROTO_HTTP && f->alstate != NULL) {
-                HtpState *htp_state = f->alstate;
-                if (toserver_dir) {
-                    htp_state->flags |= HTP_FLAG_STORE_FILES_TX_TS;
-                    FileStoreAllFilesForTx(htp_state->files_ts, det_ctx->tx_id);
-                }
-                if (toclient_dir) {
-                    htp_state->flags |= HTP_FLAG_STORE_FILES_TX_TC;
-                    FileStoreAllFilesForTx(htp_state->files_tc, det_ctx->tx_id);
-                }
-                htp_state->store_tx_id = det_ctx->tx_id;
-            }
-
-        } else if (this_flow) {
-            /* flag flow all files will be stored */
-            if (f->alproto == ALPROTO_HTTP && f->alstate != NULL) {
-                HtpState *htp_state = f->alstate;
-                if (toserver_dir) {
-                    htp_state->flags |= HTP_FLAG_STORE_FILES_TS;
-                    FileStoreAllFiles(htp_state->files_ts);
-                }
-                if (toclient_dir) {
-                    htp_state->flags |= HTP_FLAG_STORE_FILES_TC;
-                    FileStoreAllFiles(htp_state->files_tc);
-                }
-            }
-        } else {
-            File *file = (File *)state;
-            FileStore(file);
-        }
-    } else {
-        File *file = (File *)state;
-        FileStore(file);
+    if (det_ctx->filestore_cnt > DETECT_FILESTORE_MAX) {
+        SCReturnInt(1);
     }
+
+    File *file = (File *)state;
+
+    det_ctx->filestore[det_ctx->filestore_cnt].file_id = file->file_id;
+    det_ctx->filestore[det_ctx->filestore_cnt].tx_id = det_ctx->tx_id;
+
+    SCLogDebug("%u, file %u, tx %u", det_ctx->filestore_cnt,
+        det_ctx->filestore[det_ctx->filestore_cnt].file_id,
+        det_ctx->filestore[det_ctx->filestore_cnt].tx_id);
+
+    det_ctx->filestore_cnt++;
+
+    det_ctx->filestore_sm = m;
     SCReturnInt(1);
 }
 

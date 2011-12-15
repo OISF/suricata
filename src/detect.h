@@ -662,6 +662,8 @@ enum {
     ENGINE_SGH_MPM_FACTORY_CONTEXT_AUTO
 };
 
+#define DETECT_FILESTORE_MAX 15
+
 /**
   * Detection engine thread data.
   */
@@ -677,33 +679,20 @@ typedef struct DetectionEngineThreadCtx_ {
     /* used by pcre match function alone */
     uint32_t pcre_match_start_offset;
 
-    /* http_uri stuff for uricontent */
-    //char de_have_httpuri;
-    //char de_mpm_scanned_uri;
-
-    /* detectione engine context for hcbd mpm */
-    //char de_have_hcbd;
-    //char de_mpm_scanned_hcbd;
-
-    /* detectione engine context for hhd mpm */
-    //char de_have_hhd;
-    //char de_mpm_scanned_hhd;
-
-    /* detectione engine context for hrhd mpm */
-    //char de_have_hrhd;
-    //char de_mpm_scanned_hrhd;
-
     uint8_t **hcbd_buffers;
     uint32_t *hcbd_buffers_len;
     uint16_t hcbd_buffers_list_len;
 
+    /* counter for the filestore array below -- up here for cache reasons. */
+    uint16_t filestore_cnt;
+
+    uint16_t hhd_buffers_list_len;
+    uint16_t hsbd_buffers_list_len;
     uint8_t **hsbd_buffers;
     uint32_t *hsbd_buffers_len;
-    uint16_t hsbd_buffers_list_len;
 
     uint8_t **hhd_buffers;
     uint32_t *hhd_buffers_len;
-    uint16_t hhd_buffers_list_len;
 
     /** id for alert counter */
     uint16_t counter_alerts;
@@ -772,6 +761,15 @@ typedef struct DetectionEngineThreadCtx_ {
 
     /* string to replace */
     DetectReplaceList *replist;
+
+    /* Array in which the filestore keyword stores file id and tx id. If the
+     * full signature matches, these are processed by a post-match filestore
+     * function to finalize the store. */
+    struct {
+        uint16_t file_id;
+        uint16_t tx_id;
+    } filestore[DETECT_FILESTORE_MAX];
+    SigMatch *filestore_sm;
 
     DetectEngineCtx *de_ctx;
 #ifdef __SC_CUDA_SUPPORT__

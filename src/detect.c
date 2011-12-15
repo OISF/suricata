@@ -1218,6 +1218,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
     p->alerts.cnt = 0;
     det_ctx->pkts++;
+    det_ctx->filestore_cnt = 0;
 
     /* No need to perform any detection on this packet, if the the given flag is set.*/
     if (p->flags & PKT_NOPACKET_INSPECTION) {
@@ -1583,6 +1584,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
             DetectReplaceExecute(p, det_ctx->replist);
             det_ctx->replist = NULL;
+            DetectFilestorePostMatch(th_v, det_ctx,p);
             if (!(s->flags & SIG_FLAG_NOALERT)) {
                 PacketAlertAppend(det_ctx, s, p, alert_flags, NULL);
             }
@@ -1604,6 +1606,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
                                 DetectReplaceExecute(p, det_ctx->replist);
                                 det_ctx->replist = NULL;
+                                DetectFilestorePostMatch(th_v, det_ctx,p);
                                 if (!(s->flags & SIG_FLAG_NOALERT)) {
                                     /* only add once */
                                     if (rmatch == 0) {
@@ -1644,6 +1647,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                             fmatch = 1;
                             DetectReplaceExecute(p, det_ctx->replist);
                             det_ctx->replist = NULL;
+                            DetectFilestorePostMatch(th_v, det_ctx,p);
 
                             if (!(s->flags & SIG_FLAG_NOALERT)) {
                                 PacketAlertAppend(det_ctx, s, p, alert_flags, alert_msg);
