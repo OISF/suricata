@@ -1430,6 +1430,8 @@ int main(int argc, char **argv)
     /* registering signals we use */
     SignalHandlerSetup(SIGINT, SignalHandlerSigint);
     SignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
+    SignalHandlerSetup(SIGPIPE, SIG_IGN);
+    SignalHandlerSetup(SIGSYS, SIG_IGN);
 
 #ifndef OS_WIN32
 	/* SIGHUP is not implemnetd on WIN32 */
