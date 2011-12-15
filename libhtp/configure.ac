@@ -70,7 +70,6 @@ AC_PROG_CC
 AM_PROG_LIBTOOL
 AM_SANITY_CHECK
 
-
 dnl -----------------------------------------------
 dnl Checks for libs.
 dnl -----------------------------------------------
@@ -84,6 +83,30 @@ if test "$ZLIB" = "no"; then
     exit 1
 fi
 
+dnl -----------------------------------------------
+dnl provides a read-only relocation table area in the final ELF
+dnl -----------------------------------------------
+AC_MSG_CHECKING(for -z relro)
+TMPLDFLAGS="${LDFLAGS}"
+LDFLAGS="${LDFLAGS} -z relro"
+AC_TRY_LINK(,,SECLDFLAGS="${SECLDFLAGS} -z relro"
+AC_MSG_RESULT(yes),
+AC_MSG_RESULT(no))
+LDFLAGS="${TMPLDFLAGS}"
+
+dnl -----------------------------------------------
+dnl forces all relocations to be resolved at run-time
+dnl -----------------------------------------------
+AC_MSG_CHECKING(for -z now)
+TMPLDFLAGS="${LDFLAGS}"
+LDFLAGS="${LDFLAGS} -z now"
+AC_TRY_LINK(,,SECLDFLAGS="${SECLDFLAGS} -z now"
+AC_MSG_RESULT(yes),
+AC_MSG_RESULT(no))
+LDFLAGS="${TMPLDFLAGS}"
+
+CFLAGS="${CFLAGS} ${SECCFLAGS}"
+LDFLAGS="${LDFLAGS} ${SECLDFLAGS}"
 
 dnl -----------------------------------------------
 dnl Generates Makefile's, configuration files and scripts
