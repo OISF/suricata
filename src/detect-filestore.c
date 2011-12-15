@@ -253,14 +253,22 @@ int DetectFilestorePostMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Pack
 int DetectFilestoreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
         uint8_t flags, void *state, Signature *s, SigMatch *m)
 {
+    uint16_t file_id = 0;
+
     SCEnter();
+
     if (det_ctx->filestore_cnt > DETECT_FILESTORE_MAX) {
         SCReturnInt(1);
     }
 
+    /* file can be NULL when a rule with filestore scope > file
+     * matches. */
     File *file = (File *)state;
+    if (file != NULL) {
+        file_id = file->file_id;
+    }
 
-    det_ctx->filestore[det_ctx->filestore_cnt].file_id = file->file_id;
+    det_ctx->filestore[det_ctx->filestore_cnt].file_id = file_id;
     det_ctx->filestore[det_ctx->filestore_cnt].tx_id = det_ctx->tx_id;
 
     SCLogDebug("%u, file %u, tx %u", det_ctx->filestore_cnt,
