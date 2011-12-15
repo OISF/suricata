@@ -80,9 +80,8 @@ int32_t CoredumpLoadConfig (void)
     return 0;
 #endif
 
-#if !defined OS_FREEBSD && !defined __OpenBSD__ && !defined __CYGWIN__ && !defined OS_WIN32
-/* Linux specific core dump configuration; set dumpable flag if needed */
-#include <sys/prctl.h>
+#ifdef HAVE_SYS_PRCTL_H
+    /* Linux specific core dump configuration; set dumpable flag if needed */
     int dumpable = 0;
     dumpable = prctl (PR_GET_DUMPABLE, 0, 0, 0, 0);
     if (dumpable == -1) {
