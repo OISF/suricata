@@ -35,7 +35,9 @@
 #ifdef HAVE_LIBCAP_NG
 
 #include <cap-ng.h>
+#ifdef HAVE_SYS_PRCTL_H
 #include <sys/prctl.h>
+#endif
 #include "threadvars.h"
 #include "util-cpu.h"
 #include "util-privs.h"
