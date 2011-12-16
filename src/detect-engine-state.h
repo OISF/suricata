@@ -144,8 +144,6 @@ int DeStateDetectContinueDetection(ThreadVars *, DetectEngineCtx *,
 const char *DeStateMatchResultToString(DeStateMatchResult);
 int DeStateUpdateInspectTransactionId(Flow *, char);
 
-void DeStateResetFileInspection(Flow *f, uint8_t);
-
 #endif /* __DETECT_ENGINE_STATE_H__ */
 
 /**

@@ -119,12 +119,18 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
         }
     }
 
-    /* if the previous file is in the same txid, we
-     * reset the file part of the stateful detection
-     * engine. */
+    /* if the previous file is in the same txid, we reset the file part of the
+     * stateful detection engine. We cannot do that here directly, because of
+     * locking order. Flow is locked at this point and we can't lock flow
+     * before de_state */
     if (files != NULL && files->tail != NULL && files->tail->txid == txid) {
-        SCLogDebug("new file in same tx, resetting de_state");
-        DeStateResetFileInspection(s->f, direction);
+        SCLogDebug("new file in same tx, flagging http state for de_state reset");
+
+        if (direction & STREAM_TOCLIENT) {
+            s->flags |= HTP_FLAG_NEW_FILE_TX_TC;
+        } else {
+            s->flags |= HTP_FLAG_NEW_FILE_TX_TS;
+        }
     }
 
     if (!(flags & FILE_STORE) && s->f->flags & FLOW_FILE_NO_STORE) {

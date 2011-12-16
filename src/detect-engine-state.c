@@ -85,6 +85,10 @@
 /** convert enum to string */
 #define CASE_CODE(E)  case E: return #E
 
+/* prototype */
+static void DeStateResetFileInspection(Flow *f, uint16_t alproto, void *alstate);
+
+
 int DeStateStoreFilestoreSigsCantMatch(SigGroupHead *sgh,
         DetectEngineState *de_state, uint8_t direction)
 {
@@ -681,6 +685,8 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
     if (f->de_state == NULL || f->de_state->cnt == 0)
         goto end;
 
+    DeStateResetFileInspection(f, alproto, alstate);
+
     /* loop through the stores */
     for (store = f->de_state->head; store != NULL; store = store->next)
     {
@@ -1093,19 +1099,25 @@ int DeStateRestartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, DetectEngin
     SCReturnInt(0);
 }
 
-void DeStateResetFileInspection(Flow *f, uint8_t direction) {
-    if (f == NULL) {
+/**
+ *  \brief Act on HTTP new file in same tx flag.
+ *
+ *  \param f flow with *LOCKED* de_state
+ */
+static void DeStateResetFileInspection(Flow *f, uint16_t alproto, void *alstate) {
+    if (f == NULL || alproto != ALPROTO_HTTP || alstate == NULL || f->de_state == NULL) {
         SCReturn;
     }
 
-    SCMutexLock(&f->de_state_m);
-    if (f->de_state != NULL) {
-        if (direction & STREAM_TOCLIENT)
-            f->de_state->flags |= DE_STATE_FILE_TC_NEW;
-        else
-            f->de_state->flags |= DE_STATE_FILE_TS_NEW;
-    }
-    SCMutexUnlock(&f->de_state_m);
+    SCMutexLock(&f->m);
+    HtpState *htp_state = (HtpState *)alstate;
+
+    if (htp_state->flags & HTP_FLAG_NEW_FILE_TX_TC)
+        f->de_state->flags |= DE_STATE_FILE_TC_NEW;
+    else if (htp_state->flags & HTP_FLAG_NEW_FILE_TX_TS)
+        f->de_state->flags |= DE_STATE_FILE_TS_NEW;
+
+    SCMutexUnlock(&f->m);
 }
 
 #ifdef UNITTESTS
