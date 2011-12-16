@@ -1244,6 +1244,7 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         uint16_t no_of_entries;
         uint16_t *ascii_codes;
         uint16_t **goto_table_mod_pointers = (uint16_t **)ctx->goto_table_mod_pointers;
+
         //int32_t *failure_table = ctx->failure_table;
         int i;
         /* \todo tried loop unrolling with register var, with no perf increase.  Need
@@ -1251,6 +1252,10 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         /* with so many var declarations the register declaration here is useless */
         register int32_t state = 0;
         for (i = 0; i < buflen; i++) {
+            if (state == 0) {
+                state = (goto_table_mod_pointers[0] + 258)[u8_tolower(buf[i])];
+            } else {
+
             /* get the goto state transition */
             no_of_entries = *(goto_table_mod_pointers[state & 0x7FFF]);
             if (no_of_entries == 0) {
@@ -1265,10 +1270,10 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         temp_state = SC_AC_GFBS_FAIL;
                 } else {
                     buf_local = u8_tolower(buf[i]);
-                    if (state == 0) {
-                        ascii_codes = goto_table_mod_pointers[state] + 2;
-                        temp_state = ((ascii_codes + no_of_entries))[buf_local];
-                    } else {
+                    //if (state == 0) {
+                    //    ascii_codes = goto_table_mod_pointers[state] + 2;
+                    //    temp_state = ((ascii_codes + no_of_entries))[buf_local];
+                    //} else {
                         ascii_codes = goto_table_mod_pointers[state & 0x7FFF] + 2;
                         int low = 0;
                         int high = no_of_entries;
@@ -1285,7 +1290,7 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                                 high = mid - 1;
                             }
                         }
-                    }
+                    //}
                 }
             }
             while (temp_state == SC_AC_GFBS_FAIL) {
@@ -1330,6 +1335,9 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
             } /* while (temp_state == SC_AC_GFBS_FAIL) */
 
             state = temp_state;
+
+            }
+
             if (state & 0x8000) {
                 uint32_t no_of_pid_entries = ctx->output_table[state & 0x7FFF].no_of_entries;
                 uint32_t *pids = ctx->output_table[state & 0x7FFF].pids;
@@ -1377,6 +1385,10 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
          * to dig deeper */
         register int32_t state = 0;
         for (i = 0; i < buflen; i++) {
+            if (state == 0) {
+                state = (goto_table_mod_pointers[0] + 258)[u8_tolower(buf[i])];
+            } else {
+
             /* get the goto state transition */
             no_of_entries = *(goto_table_mod_pointers[state & 0x00FFFFFF]);
             if (no_of_entries == 0) {
@@ -1391,10 +1403,10 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         temp_state = SC_AC_GFBS_FAIL;
                 } else {
                     buf_local = u8_tolower(buf[i]);
-                    if (state == 0) {
-                        ascii_codes = goto_table_mod_pointers[state] + 2;
-                        temp_state =  ((ascii_codes + no_of_entries))[buf_local];
-                    } else {
+                    //if (state == 0) {
+                    //    ascii_codes = goto_table_mod_pointers[state] + 2;
+                    //    temp_state =  ((ascii_codes + no_of_entries))[buf_local];
+                    //} else {
                         ascii_codes = goto_table_mod_pointers[state & 0x00FFFFFF] + 2;
                         int low = 0;
                         int high = no_of_entries;
@@ -1411,7 +1423,7 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                                 high = mid - 1;
                             }
                         }
-                    }
+                    //}
                 }
             }
             while (temp_state == SC_AC_GFBS_FAIL) {
@@ -1455,6 +1467,9 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                 } /* else - if (no_of_entries[0] == 0) */
             } /* while (temp_state == SC_AC_GFBS_FAIL) */
             state = temp_state;
+
+            }
+
             if (state & 0x01000000) {
                 uint32_t no_of_pid_entries = ctx->output_table[state & 0x00FFFFFF].no_of_entries;
                 uint32_t *pids = ctx->output_table[state & 0x00FFFFFF].pids;
