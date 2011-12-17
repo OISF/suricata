@@ -754,7 +754,7 @@ static inline void SCACGfbsCreateModGotoTable(MpmCtx *mpm_ctx)
          * alignment.  Technically 8 bits is all we need to store ascii codes,
          * but by avoiding it, we save a lot of time on handling alignment */
         int size = (ctx->state_count * sizeof(SC_AC_GFBS_STATE_TYPE_U16) * 4 +
-                    256 * sizeof(SC_AC_GFBS_STATE_TYPE_U16) * 2);
+                    256 * sizeof(SC_AC_GFBS_STATE_TYPE_U16) * 1);
         ctx->goto_table_mod = SCMalloc(size);
         if (ctx->goto_table_mod == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
@@ -802,7 +802,8 @@ static inline void SCACGfbsCreateModGotoTable(MpmCtx *mpm_ctx)
              * store the acii codes as well the corresponding states */
             if (k > 0) {
                 no_of_entries[0] = k;
-                curr_loc += k;
+                if (state != 0)
+                    curr_loc += k;
                 memcpy(curr_loc, temp_states, k * sizeof(SC_AC_GFBS_STATE_TYPE_U16));
                 curr_loc += k;
             }
@@ -815,7 +816,7 @@ static inline void SCACGfbsCreateModGotoTable(MpmCtx *mpm_ctx)
          * alignment.  Technically 8 bits is all we need to store ascii codes,
          * but by avoiding it, we save a lot of time on handling alignment */
         int size = (ctx->state_count * (sizeof(SC_AC_GFBS_STATE_TYPE_U32) * 4) +
-                    256 * (sizeof(SC_AC_GFBS_STATE_TYPE_U32) * 2));
+                    256 * (sizeof(SC_AC_GFBS_STATE_TYPE_U32) * 1));
         ctx->goto_table_mod = SCMalloc(size);
         if (ctx->goto_table_mod == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
@@ -863,7 +864,8 @@ static inline void SCACGfbsCreateModGotoTable(MpmCtx *mpm_ctx)
              * store the acii codes as well the corresponding states */
             if (k > 0) {
                 no_of_entries[0] = k;
-                curr_loc += k;
+                if (state != 0)
+                    curr_loc += k;
                 memcpy(curr_loc, temp_states, k * sizeof(SC_AC_GFBS_STATE_TYPE_U32));
                 curr_loc += k;
             }
@@ -893,7 +895,10 @@ static inline void SCACGfbsClubOutputStatePresenceWithModGotoTable(MpmCtx *mpm_c
                 *((uint16_t *)ctx->goto_table_mod_pointers[state] + 1) |= (1 << 15);
             }
 
-            states = ((uint16_t *)ctx->goto_table_mod_pointers[state] + 2 + no_of_entries);
+            if (state == 0)
+                states = ((uint16_t *)ctx->goto_table_mod_pointers[state] + 2);
+            else
+                states = ((uint16_t *)ctx->goto_table_mod_pointers[state] + 2 + no_of_entries);
             for (i = 0; i < no_of_entries; i++) {
                 if (states[i] == 0)
                     continue;
@@ -913,7 +918,10 @@ static inline void SCACGfbsClubOutputStatePresenceWithModGotoTable(MpmCtx *mpm_c
                 *((uint32_t *)ctx->goto_table_mod_pointers[state] + 1) |= (1 << 24);
             }
 
-            states = ((uint32_t *)ctx->goto_table_mod_pointers[state] + 2 + no_of_entries);
+            if (state == 0)
+                states = ((uint32_t *)ctx->goto_table_mod_pointers[state] + 2);
+            else
+                states = ((uint32_t *)ctx->goto_table_mod_pointers[state] + 2 + no_of_entries);
             for (i = 0; i < no_of_entries; i++) {
                 if (states[i] == 0)
                     continue;
@@ -1253,7 +1261,7 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         register int32_t state = 0;
         for (i = 0; i < buflen; i++) {
             if (state == 0) {
-                state = (goto_table_mod_pointers[0] + 258)[u8_tolower(buf[i])];
+                state = (goto_table_mod_pointers[0] + 2)[u8_tolower(buf[i])];
             } else {
 
             /* get the goto state transition */
@@ -1312,7 +1320,7 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         ascii_codes = goto_table_mod_pointers[state & 0x7FFF] + 2;
                         buf_local = u8_tolower(buf[i]);
                         if (state == 0) {
-                            temp_state = ((ascii_codes + no_of_entries))[buf_local];
+                            temp_state = (ascii_codes)[buf_local];
                         } else {
                             int low = 0;
                             int high = no_of_entries;
@@ -1386,7 +1394,7 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         register int32_t state = 0;
         for (i = 0; i < buflen; i++) {
             if (state == 0) {
-                state = (goto_table_mod_pointers[0] + 258)[u8_tolower(buf[i])];
+                state = (goto_table_mod_pointers[0] + 2)[u8_tolower(buf[i])];
             } else {
 
             /* get the goto state transition */
@@ -1445,7 +1453,7 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         ascii_codes = goto_table_mod_pointers[state & 0x00FFFFFF] + 2;
                         buf_local = u8_tolower(buf[i]);
                         if (state == 0) {
-                            temp_state = ((ascii_codes + no_of_entries))[buf_local];
+                            temp_state = (ascii_codes)[buf_local];
                         } else {
                             int low = 0;
                             int high = no_of_entries;
