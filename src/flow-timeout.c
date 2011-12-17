@@ -444,7 +444,7 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
                                     ssn->client.seg_list_tail->payload_len);
 
             FlowForceReassemblyPseudoPacketSetup(reassemble_p, 1, f, ssn, 1);
-            StreamTcpReassembleHandleSegment(stream_pseudo_pkt_detect_TV,
+            StreamTcpReassembleHandleSegment(stream_pseudo_pkt_stream_TV,
                                              stt->ra_ctx, ssn, &ssn->server,
                                              reassemble_p, NULL);
             StreamTcpReassembleProcessAppLayer(stt->ra_ctx);
@@ -457,7 +457,7 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
                                     ssn->server.seg_list_tail->payload_len);
 
             FlowForceReassemblyPseudoPacketSetup(reassemble_p, 0, f, ssn, 1);
-            StreamTcpReassembleHandleSegment(stream_pseudo_pkt_detect_TV,
+            StreamTcpReassembleHandleSegment(stream_pseudo_pkt_stream_TV,
                                              stt->ra_ctx, ssn, &ssn->client,
                                              reassemble_p, NULL);
             StreamTcpReassembleProcessAppLayer(stt->ra_ctx);
