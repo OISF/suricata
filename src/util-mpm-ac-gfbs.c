@@ -891,7 +891,8 @@ static inline void SCACGfbsClubOutputStatePresenceWithModGotoTable(MpmCtx *mpm_c
             if (no_of_entries == 0)
                 continue;
 
-            if (*((uint16_t *)ctx->goto_table_mod_pointers[state] + 1) != 0) {
+            //if (*((uint16_t *)ctx->goto_table_mod_pointers[state] + 1) != 0) {
+            if (ctx->output_table[((uint16_t *)ctx->goto_table_mod_pointers[state] + 1)[0]].no_of_entries != 0) {
                 *((uint16_t *)ctx->goto_table_mod_pointers[state] + 1) |= (1 << 15);
             }
 
@@ -900,7 +901,8 @@ static inline void SCACGfbsClubOutputStatePresenceWithModGotoTable(MpmCtx *mpm_c
             else
                 states = ((uint16_t *)ctx->goto_table_mod_pointers[state] + 2 + no_of_entries);
             for (i = 0; i < no_of_entries; i++) {
-                if (states[i] == 0)
+                //if (states[i] == 0)
+                if (ctx->output_table[states[i]].no_of_entries == 0)
                     continue;
 
                 states[i] |= (1 << 15);
@@ -914,7 +916,8 @@ static inline void SCACGfbsClubOutputStatePresenceWithModGotoTable(MpmCtx *mpm_c
             if (no_of_entries == 0)
                 continue;
 
-            if (*((uint32_t *)ctx->goto_table_mod_pointers[state] + 1) != 0) {
+            //if (*((uint32_t *)ctx->goto_table_mod_pointers[state] + 1) != 0) {
+            if (ctx->output_table[((uint32_t *)ctx->goto_table_mod_pointers[state] + 1)[0]].no_of_entries != 0) {
                 *((uint32_t *)ctx->goto_table_mod_pointers[state] + 1) |= (1 << 24);
             }
 
@@ -923,7 +926,8 @@ static inline void SCACGfbsClubOutputStatePresenceWithModGotoTable(MpmCtx *mpm_c
             else
                 states = ((uint32_t *)ctx->goto_table_mod_pointers[state] + 2 + no_of_entries);
             for (i = 0; i < no_of_entries; i++) {
-                if (states[i] == 0)
+                //if (states[i] == 0)
+                if (ctx->output_table[states[i]].no_of_entries == 0)
                     continue;
 
                 states[i] |= (1 << 24);
