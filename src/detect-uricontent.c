@@ -315,11 +315,20 @@ DetectContentData *DoDetectUricontentSetup (char * contentstr)
 
 #ifdef DEBUG
         if (SCLogDebugEnabled()) {
-            for (i = 0; i < x; i++) {
-                if (isprint(str[i])) printf("%c", str[i]);
-                else                 printf("\\x%02u", str[i]);
+            char *prstr = SCMalloc(3 * x);
+            char onechar[3];
+            memset(prstr, 0, 3 * x);
+            if (prstr != NULL) {
+                for (i = 0; i < x; i++) {
+                    if (isprint(str[i]))
+                        snprintf(onechar, 3, "%c", str[i]);
+                    else
+                        snprintf(onechar, 3, "\\x%02u", str[i]);
+                    strlcat(prstr, onechar, 3 * x);
+                }
+                SCLogDebug("\"%s\"", prstr);
+                SCFree(prstr);
             }
-            printf("\n");
         }
 #endif
 
