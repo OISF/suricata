@@ -1316,27 +1316,22 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         temp_state = SC_AC_GFBS_FAIL;
                 } else {
                     buf_local = u8_tolower(buf[i]);
-                    //if (state == 0) {
-                    //    ascii_codes = goto_table_mod_pointers[state] + 2;
-                    //    temp_state = ((ascii_codes + no_of_entries))[buf_local];
-                    //} else {
-                        ascii_codes = (uint8_t *)(goto_table_mod_pointers[state & 0x7FFF] + 2);
-                        int low = 0;
-                        int high = no_of_entries;
-                        int mid;
-                        temp_state = SC_AC_GFBS_FAIL;
-                        while (low <= high) {
-                            mid = (low + high) / 2;
-                            if (ascii_codes[mid] == buf_local) {
-                                temp_state = ((uint16_t *)(ascii_codes + ((no_of_entries + 1) & 0xFFE)))[mid];
-                                break;
-                            } else if (ascii_codes[mid] < buf_local) {
-                                low = mid + 1;
-                            } else {
-                                high = mid - 1;
-                            }
+                    ascii_codes = (uint8_t *)(goto_table_mod_pointers[state & 0x7FFF] + 2);
+                    int low = 0;
+                    int high = no_of_entries;
+                    int mid;
+                    temp_state = SC_AC_GFBS_FAIL;
+                    while (low <= high) {
+                        mid = (low + high) / 2;
+                        if (ascii_codes[mid] == buf_local) {
+                            temp_state = ((uint16_t *)(ascii_codes + ((no_of_entries + 1) & 0xFFE)))[mid];
+                            break;
+                        } else if (ascii_codes[mid] < buf_local) {
+                            low = mid + 1;
+                        } else {
+                            high = mid - 1;
                         }
-                    //}
+                    }
                 }
             }
             while (temp_state == SC_AC_GFBS_FAIL) {
@@ -1449,27 +1444,22 @@ uint32_t SCACGfbsSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         temp_state = SC_AC_GFBS_FAIL;
                 } else {
                     buf_local = u8_tolower(buf[i]);
-                    //if (state == 0) {
-                    //    ascii_codes = goto_table_mod_pointers[state] + 2;
-                    //    temp_state =  ((ascii_codes + no_of_entries))[buf_local];
-                    //} else {
-                        ascii_codes = (uint8_t *)(goto_table_mod_pointers[state & 0x00FFFFFF] + 2);
-                        int low = 0;
-                        int high = no_of_entries;
-                        int mid;
-                        temp_state = SC_AC_GFBS_FAIL;
-                        while (low <= high) {
-                            mid = (low + high) / 2;
-                            if (ascii_codes[mid] == buf_local) {
-                                temp_state = ((uint32_t *)(ascii_codes + ((no_of_entries + 3) & 0xFFC)))[mid];
-                                break;
-                            } else if (ascii_codes[mid] < buf_local) {
-                                low = mid + 1;
-                            } else {
-                                high = mid - 1;
-                            }
+                    ascii_codes = (uint8_t *)(goto_table_mod_pointers[state & 0x00FFFFFF] + 2);
+                    int low = 0;
+                    int high = no_of_entries;
+                    int mid;
+                    temp_state = SC_AC_GFBS_FAIL;
+                    while (low <= high) {
+                        mid = (low + high) / 2;
+                        if (ascii_codes[mid] == buf_local) {
+                            temp_state = ((uint32_t *)(ascii_codes + ((no_of_entries + 3) & 0xFFC)))[mid];
+                            break;
+                        } else if (ascii_codes[mid] < buf_local) {
+                            low = mid + 1;
+                        } else {
+                            high = mid - 1;
                         }
-                    //}
+                    }
                 }
             }
             while (temp_state == SC_AC_GFBS_FAIL) {
