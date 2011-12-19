@@ -612,6 +612,7 @@ static Asn1Generic * DecodeAsn1DerSequence(const unsigned char *buffer, uint32_t
         numbytes = c & 0x7f;
         d_ptr++;
         if (DecodeAsn1BuildValue(&d_ptr, &d_length, numbytes) == -1) {
+            free(node);
             return NULL;
         }
     }
@@ -667,6 +668,7 @@ static Asn1Generic * DecodeAsn1DerSet(const unsigned char *buffer, uint32_t max_
         numbytes = c & 0x7f;
         d_ptr++;
         if (DecodeAsn1BuildValue(&d_ptr, &d_length, numbytes) == -1) {
+            free(node);
             return NULL;
         }
     }
