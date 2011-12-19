@@ -906,7 +906,6 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         case TH_RST|TH_ACK|TH_PUSH|TH_ECN:
         case TH_RST|TH_ACK|TH_PUSH|TH_ECN|TH_CWR:
             StreamTcpSetEvent(p, STREAM_RST_BUT_NO_SESSION);
-            BUG_ON(p->flow->protoctx != NULL);
             SCLogDebug("RST packet received, no session setup");
             break;
         case TH_FIN:
@@ -917,7 +916,6 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
         case TH_FIN|TH_ACK|TH_PUSH|TH_ECN:
         case TH_FIN|TH_ACK|TH_PUSH|TH_ECN|TH_CWR:
             StreamTcpSetEvent(p, STREAM_FIN_BUT_NO_SESSION);
-            BUG_ON(p->flow->protoctx != NULL);
             SCLogDebug("FIN packet received, no session setup");
             break;
         default:
