@@ -618,8 +618,10 @@ static inline SCLogOPIfaceCtx *SCLogInitConsoleOPIface(const char *log_format,
     const char *tmp_log_format = log_format;
     const char *s = getenv(SC_LOG_ENV_LOG_FORMAT);
     if (s != NULL) {
+#if 0
         printf("Overriding setting for \"console.format\" because of env "
                 "var SC_LOG_FORMAT=\"%s\".\n", s);
+#endif
         tmp_log_format = s;
     }
 
@@ -635,8 +637,10 @@ static inline SCLogOPIfaceCtx *SCLogInitConsoleOPIface(const char *log_format,
     if (s != NULL) {
         SCLogLevel l = SCMapEnumNameToValue(s, sc_log_level_map);
         if (l > SC_LOG_NOTSET && l < SC_LOG_LEVEL_MAX) {
+#if 0
             printf("Overriding setting for \"console.level\" because of env "
                     "var SC_LOG_LEVEL=\"%s\".\n", s);
+#endif
             tmp_log_level = l;
         }
     }
@@ -755,10 +759,6 @@ static inline void SCLogSetLogLevel(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
     /* we also set it to a global var, as it is easier to access it */
     sc_log_global_log_level = sc_lc->log_level;
 
-#ifdef DEBUG
-    printf("sc_log_global_log_level: %d\n", sc_log_global_log_level);
-#endif
-
     return;
 }
 
@@ -798,10 +798,6 @@ static inline void SCLogSetLogFormat(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
         printf("Error allocating memory\n");
         exit(EXIT_FAILURE);
     }
-
-#ifdef DEBUG
-    printf("sc_lc->log_format: %s\n", sc_lc->log_format);
-#endif
 
     return;
 }
@@ -900,6 +896,7 @@ static inline void SCLogSetOPFilter(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
     }
 
     if (filter != NULL && strcmp(filter, "") != 0) {
+        sc_lc->op_filter = SCStrdup(filter);
         sc_lc->op_filter_regex = pcre_compile(filter, opts, &ep, &eo, NULL);
         if (sc_lc->op_filter_regex == NULL) {
             printf("pcre compile of \"%s\" failed at offset %d : %s\n", filter,
@@ -914,10 +911,6 @@ static inline void SCLogSetOPFilter(SCLogInitData *sc_lid, SCLogConfig *sc_lc)
             return;
         }
     }
-
-#ifdef DEBUG
-    printf("SCLogSetOPFilter: filter: %s\n", filter ? filter : "<no filter>");
-#endif
 
     return;
 }
@@ -974,6 +967,8 @@ static inline void SCLogFreeLogConfig(SCLogConfig *sc_lc)
             SCFree(sc_lc->startup_message);
         if (sc_lc->log_format != NULL)
             SCFree(sc_lc->log_format);
+        if (sc_lc->op_filter != NULL)
+            SCFree(sc_lc->op_filter);
 
         SCLogFreeLogOPIfaceCtx(sc_lc->op_ifaces);
         SCFree(sc_lc);
@@ -1214,6 +1209,11 @@ void SCLogLoadConfig(void)
     }
 
     SCLogInitLogModule(sc_lid);
+
+    SCLogDebug("sc_log_global_log_level: %d", sc_log_global_log_level);
+    SCLogDebug("sc_lc->log_format: %s", sc_log_config->log_format);
+    SCLogDebug("SCLogSetOPFilter: filter: %s", sc_log_config->op_filter);
+
     //exit(1);
     /* \todo Can we free sc_lid now? */
     if (sc_lid != NULL)

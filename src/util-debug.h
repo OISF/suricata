@@ -156,6 +156,7 @@ typedef struct SCLogConfig_ {
     SCLogLevel log_level;
     char *log_format;
 
+    char *op_filter;
     /* compiled pcre filter expression */
     pcre *op_filter_regex;
     pcre_extra *op_filter_regex_study;
