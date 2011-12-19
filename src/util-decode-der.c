@@ -291,6 +291,8 @@ static int DecodeAsn1BuildValue(const unsigned char **d_ptr, uint32_t *val, uint
         SCLogDebug("Invalid ASN.1 num bytes: %d", numbytes);
         /* too big won't fit: set it to 0xffffffff by convention */
         value = 0xffffffff;
+        *val = value;
+        return -1;
     } else {
         for (i=0; i<numbytes; i++) {
             value = value<<8 | (*d_ptr)[0];
