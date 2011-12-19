@@ -1,3 +1,27 @@
+1.2beta1 -- 2011-12-19
+
+- File name, type inspection and extraction for HTTP
+- filename, fileext, filemagic and filestore keywords added
+- "file" output for storing extracted files to disk
+- file_data keyword support, inspecting normalized, dechunked, decompressed HTTP response body (feature #241
+- new keyword http_server_body, pcre regex /S option
+- Option to enable/disable core dumping from the suricata.yaml (enabled by default)
+- Human readable size limit settings in suricata.yaml
+- PF_RING bpf support (required PF_RING >= 5.1) (feature #334)
+- tos keyword support (feature #364)
+- IPFW IPS mode does now support multiple divert sockets
+- New IPS running modes, Linux and FreeBSD do now support "worker" and "autofp"
+- Improved alert accuracy in autofp and single runmodes
+- major performance optimizations for the ac-gfbs pattern matcher implementation
+- unified2 output fixes
+- PF_RING supports privilege dropping now (bug #367)
+- Improved detection of duplicate signatures
+
+1.1.1 -- 2011-12-07
+
+- Fix for a error in the smtp parser that could crash Suricata.
+- Fix for AF_PACKET not compiling on modern linux systems like Fedora 16.
+
 1.1 -- 2011-11-10
 
 - CUDA build fixed
