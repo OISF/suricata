@@ -171,7 +171,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 DETECT_AL_HTTP_METHOD, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
                 DETECT_AL_HTTP_COOKIE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]);
         if (pm == NULL) {
-            SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs"
+            SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs "
                        "preceeding content, uricontent option, http_client_body, "
                        "http_server_body, http_header, http_raw_header, http_method, "
                        "http_cookie or http_raw_uri option");

@@ -73,7 +73,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
             if (pm == NULL) {
-                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "offset needs"
+                SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs "
                            "preceeding content option for dcerpc sig");
                 if (dubbed)
                     SCFree(str);
@@ -94,8 +94,8 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                     DETECT_AL_HTTP_COOKIE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
                     DETECT_AL_HTTP_RAW_URI, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]);
             if (pm == NULL) {
-                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "offset needs"
-                           "preceeding content or uricontent option, http_client_body "
+                SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs "
+                           "preceeding content or uricontent option, http_client_body, "
                            "http_header, http_raw_header, http_method, "
                            "http_cookie or http_raw_uri option");
                 if (dubbed)
