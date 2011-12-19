@@ -339,6 +339,8 @@ static Asn1Generic * DecodeAsn1DerNull(const unsigned char *buffer, uint32_t siz
         return NULL;
     }
     a = Asn1GenericNew();
+    if (a == NULL)
+        return NULL;
     a->type = ASN1_NULL;
     a->length = (d_ptr - buffer);
     a->value = 0;
@@ -673,6 +675,14 @@ static Asn1Generic * DecodeAsn1DerSet(const unsigned char *buffer, uint32_t max_
         }
     }
     node->length = d_length + (d_ptr - buffer);
+
+    if (node->length > max_size) {
+        SCLogInfo("Announced message length too big: %" PRIu32 " vs %" PRIu32,
+                  node->length,
+                  max_size);
+        free(node);
+        return NULL;
+    }
 
     seq_index = 0;
 
