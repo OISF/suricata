@@ -182,6 +182,12 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
      * so that is what we do here. */
     p->datalink = LINKTYPE_ETHERNET;
 
+    /* Packet is being sent */
+    if (h->extended_hdr.rx_direction == 0) {
+        /* Checksum can be offloaded */
+        p->flags |= PKT_IGNORE_CHECKSUM;
+    }
+
     SET_PKT_LEN(p, h->caplen);
 }
 
