@@ -160,6 +160,7 @@ typedef struct AFPThreadVars_
     /* socket buffer size */
     int buffer_size;
     int promisc;
+    int detect_offload;
 
     int cluster_id;
     int cluster_type;
@@ -522,13 +523,18 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         }
     }
 
-{ int    val = 1;
-    if (setsockopt(ptv->socket, SOL_PACKET, PACKET_AUXDATA, &val,
-                sizeof(val)) == -1 && errno != ENOPROTOOPT) {
-/* FIXME */
-        return -1;
+    if (ptv->detect_offload) {
+        int    val = 1;
+        if (setsockopt(ptv->socket, SOL_PACKET, PACKET_AUXDATA, &val,
+                    sizeof(val)) == -1 && errno != ENOPROTOOPT) {
+            SCLogError(SC_ERR_AFP_CREATE,
+                    "Couldn't active auxdata on iface %s, error %s",
+                    devname,
+                    strerror(errno));
+            close(ptv->socket);
+            return -1;
+        }
     }
-}
 
     /* set socket recv buffer size */
     if (ptv->buffer_size != 0) {
@@ -607,6 +613,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
     ptv->buffer_size = afpconfig->buffer_size;
 
     ptv->promisc = afpconfig->promisc;
+    ptv->detect_offload = afpconfig->detect_offload;
 
     ptv->threads = 1;
 #ifdef HAVE_PACKET_FANOUT

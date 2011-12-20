@@ -53,6 +53,8 @@ typedef struct AFPIfaceConfig_
     int cluster_type;
     /* promisc mode */
     int promisc;
+    /* no local packet */
+    int detect_offload;
     SC_ATOMIC_DECLARE(unsigned int, ref);
     void (*DerefFunc)(void *);
 } AFPIfaceConfig;

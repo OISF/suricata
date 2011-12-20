@@ -108,7 +108,7 @@ void *ParseAFPConfig(const char *iface)
     char *tmpclusterid;
     char *tmpctype;
     intmax_t value;
-    int dispromisc;
+    int boolval;
 
     if (iface == NULL) {
         return NULL;
@@ -125,6 +125,7 @@ void *ParseAFPConfig(const char *iface)
     aconf->cluster_id = 1;
     aconf->cluster_type = PACKET_FANOUT_HASH;
     aconf->promisc = 1;
+    aconf->detect_offload = 1;
     aconf->DerefFunc = AFPDerefConfig;
 
     /* Find initial node */
@@ -197,12 +198,20 @@ void *ParseAFPConfig(const char *iface)
         aconf->buffer_size = 0;
     }
 
-    ConfGetChildValueBool(if_root, "disable-promisc", (int *)&dispromisc);
-    if (dispromisc) {
+    ConfGetChildValueBool(if_root, "disable-promisc", (int *)&boolval);
+    if (boolval) {
         SCLogInfo("Disabling promiscuous mode on iface %s",
                 aconf->iface);
         aconf->promisc = 0;
     }
+    ConfGetChildValueBool(if_root, "detect-offload", (int *)&boolval);
+    if (! boolval) {
+        SCLogInfo("Disabling checksum offloading detection for %s",
+                aconf->iface);
+        aconf->detect_offload = 0;
+    }
+
+
 
     return aconf;
 }
