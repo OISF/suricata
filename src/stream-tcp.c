@@ -3828,6 +3828,9 @@ static inline int StreamTcpValidateChecksum(Packet *p)
 {
     int ret = 1;
 
+    if (p->flags & PKT_IGNORE_CHECKSUM)
+        return ret;
+
     if (p->tcpvars.comp_csum == -1) {
         if (PKT_IS_IPV4(p)) {
             p->tcpvars.comp_csum = TCPCalculateChecksum((uint16_t *)&(p->ip4h->ip_src),
