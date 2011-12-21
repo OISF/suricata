@@ -233,6 +233,10 @@ int DetectIPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (p->ip4h == NULL || PKT_IS_PSEUDOPKT(p))
         return 0;
 
+    if (p->flags & PKT_IGNORE_CHECKSUM) {
+        return cd->valid;
+    }
+
     if (p->ip4vars.comp_csum == -1)
         p->ip4vars.comp_csum = IPV4CalculateChecksum((uint16_t *)p->ip4h,
                                                   IPV4_GET_RAW_HLEN(p->ip4h));
@@ -322,6 +326,10 @@ int DetectTCPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
     if (p->ip4h == NULL || p->proto != IPPROTO_TCP || PKT_IS_PSEUDOPKT(p))
         return 0;
+
+    if (p->flags & PKT_IGNORE_CHECKSUM) {
+        return cd->valid;
+    }
 
     if (p->tcpvars.comp_csum == -1)
         p->tcpvars.comp_csum = TCPCalculateChecksum((uint16_t *)&(p->ip4h->ip_src),
@@ -414,6 +422,10 @@ int DetectTCPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (p->ip6h == NULL || p->proto != IPPROTO_TCP || PKT_IS_PSEUDOPKT(p))
         return 0;
 
+    if (p->flags & PKT_IGNORE_CHECKSUM) {
+        return cd->valid;
+    }
+
     if (p->tcpvars.comp_csum == -1)
         p->tcpvars.comp_csum = TCPV6CalculateChecksum((uint16_t *)&(p->ip6h->ip6_src),
                                                    (uint16_t *)p->tcph,
@@ -504,6 +516,10 @@ int DetectUDPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
     if (p->ip4h == NULL || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p))
         return 0;
+
+    if (p->flags & PKT_IGNORE_CHECKSUM) {
+        return cd->valid;
+    }
 
     if (p->udpvars.comp_csum == -1)
         p->udpvars.comp_csum = UDPV4CalculateChecksum((uint16_t *)&(p->ip4h->ip_src),
@@ -597,6 +613,10 @@ int DetectUDPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (p->ip6h == NULL || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p))
         return 0;
 
+    if (p->flags & PKT_IGNORE_CHECKSUM) {
+        return cd->valid;
+    }
+
     if (p->udpvars.comp_csum == -1)
         p->udpvars.comp_csum = UDPV6CalculateChecksum((uint16_t *)&(p->ip6h->ip6_src),
                                                    (uint16_t *)p->udph,
@@ -689,6 +709,10 @@ int DetectICMPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     if (p->ip4h == NULL || p->proto != IPPROTO_ICMP || PKT_IS_PSEUDOPKT(p))
         return 0;
 
+    if (p->flags & PKT_IGNORE_CHECKSUM) {
+        return cd->valid;
+    }
+
     if (p->icmpv4vars.comp_csum == -1)
         p->icmpv4vars.comp_csum = ICMPV4CalculateChecksum((uint16_t *)p->icmpv4h,
                                                        ntohs(IPV4_GET_RAW_IPLEN(p->ip4h)) -
@@ -779,6 +803,10 @@ int DetectICMPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
     if (p->ip6h == NULL || p->proto != IPPROTO_ICMPV6 || PKT_IS_PSEUDOPKT(p))
         return 0;
+
+    if (p->flags & PKT_IGNORE_CHECKSUM) {
+        return cd->valid;
+    }
 
     if (p->icmpv6vars.comp_csum == -1)
         p->icmpv6vars.comp_csum = ICMPV6CalculateChecksum((uint16_t *)&(p->ip6h->ip6_src),
