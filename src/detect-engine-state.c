@@ -1112,10 +1112,13 @@ static void DeStateResetFileInspection(Flow *f, uint16_t alproto, void *alstate)
     SCMutexLock(&f->m);
     HtpState *htp_state = (HtpState *)alstate;
 
-    if (htp_state->flags & HTP_FLAG_NEW_FILE_TX_TC)
+    if (htp_state->flags & HTP_FLAG_NEW_FILE_TX_TC) {
+        htp_state->flags &= ~HTP_FLAG_NEW_FILE_TX_TC;
         f->de_state->flags |= DE_STATE_FILE_TC_NEW;
-    else if (htp_state->flags & HTP_FLAG_NEW_FILE_TX_TS)
+    } else if (htp_state->flags & HTP_FLAG_NEW_FILE_TX_TS) {
+        htp_state->flags &= ~HTP_FLAG_NEW_FILE_TX_TS;
         f->de_state->flags |= DE_STATE_FILE_TS_NEW;
+    }
 
     SCMutexUnlock(&f->m);
 }
