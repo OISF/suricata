@@ -33,6 +33,7 @@ typedef struct DetectUrilenData_ {
     uint16_t urilen1;   /**< 1st Uri Length value in the signature*/
     uint16_t urilen2;   /**< 2nd Uri Length value in the signature*/
     uint8_t mode;   /**< operator used in the signature */
+    uint8_t raw_buffer;
 }DetectUrilenData;
 
 int DetectUrilenMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *,

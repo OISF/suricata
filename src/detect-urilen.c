@@ -42,7 +42,7 @@
 /**
  * \brief Regex for parsing our urilen
  */
-#define PARSE_REGEX  "^(?:\\s*)(<|>)?(?:\\s*)([0-9]{1,5})(?:\\s*)(?:(<>)(?:\\s*)([0-9]{1,5}))?(?:\\s*)$"
+#define PARSE_REGEX  "^(?:\\s*)(<|>)?(?:\\s*)([0-9]{1,5})(?:\\s*)(?:(<>)(?:\\s*)([0-9]{1,5}))?\\s*(?:,\\s*(norm|raw))?\\s*$"
 
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
@@ -176,13 +176,14 @@ DetectUrilenData *DetectUrilenParse (char *urilenstr)
     char *arg2 = NULL;
     char *arg3 = NULL;
     char *arg4 = NULL;
+    char *arg5 = NULL;
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
 
     ret = pcre_exec(parse_regex, parse_regex_study, urilenstr, strlen(urilenstr),
                     0, 0, ov, MAX_SUBSTRINGS);
-    if (ret < 3 || ret > 5) {
+    if (ret < 3 || ret > 6) {
         SCLogError(SC_ERR_PCRE_PARSE, "parse error, ret %" PRId32 "", ret);
         goto error;
     }
@@ -224,13 +225,21 @@ DetectUrilenData *DetectUrilenParse (char *urilenstr)
             arg4 = (char *) str_ptr;
             SCLogDebug("Arg4 \"%s\"", arg4);
         }
+        if (ret > 5) {
+            res = pcre_get_substring((char *)urilenstr, ov, MAX_SUBSTRINGS, 5, &str_ptr);
+            if (res < 0) {
+                SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+                goto error;
+            }
+            arg5 = (char *) str_ptr;
+            SCLogDebug("Arg5 \"%s\"", arg5);
+        }
     }
 
     urilend = SCMalloc(sizeof (DetectUrilenData));
     if (urilend == NULL)
         goto error;
-    urilend->urilen1 = 0;
-    urilend->urilen2 = 0;
+    memset(urilend, 0, sizeof(DetectUrilenData));
 
     if (arg1[0] == '<')
         urilend->mode = DETECT_URILEN_LT;
@@ -274,14 +283,22 @@ DetectUrilenData *DetectUrilenParse (char *urilenstr)
         }
     }
 
+    if (arg5 != NULL) {
+        if (strcasecmp("raw", arg5) == 0) {
+            urilend->raw_buffer = 1;
+        }
+    }
+
     if (arg1 != NULL)
-        SCFree(arg1);
+        pcre_free_substring(arg1);
     if (arg2 != NULL)
-        SCFree(arg2);
+        pcre_free_substring(arg2);
     if (arg3 != NULL)
-        SCFree(arg3);
+        pcre_free_substring(arg3);
     if (arg4 != NULL)
-        SCFree(arg4);
+        pcre_free_substring(arg4);
+    if (arg5 != NULL)
+        pcre_free_substring(arg5);
     return urilend;
 
 error:
@@ -367,7 +384,8 @@ static int DetectUrilenParseTest01(void)
 
     urilend = DetectUrilenParse("10");
     if (urilend != NULL) {
-        if (urilend->urilen1 == 10 && urilend->mode == DETECT_URILEN_EQ)
+        if (urilend->urilen1 == 10 && urilend->mode == DETECT_URILEN_EQ &&
+            !urilend->raw_buffer)
             ret = 1;
 
         DetectUrilenFree(urilend);
@@ -383,7 +401,8 @@ static int DetectUrilenParseTest02(void)
 
     urilend = DetectUrilenParse(" < 10  ");
     if (urilend != NULL) {
-        if (urilend->urilen1 == 10 && urilend->mode == DETECT_URILEN_LT)
+        if (urilend->urilen1 == 10 && urilend->mode == DETECT_URILEN_LT &&
+            !urilend->raw_buffer)
             ret = 1;
 
         DetectUrilenFree(urilend);
@@ -399,7 +418,8 @@ static int DetectUrilenParseTest03(void)
 
     urilend = DetectUrilenParse(" > 10 ");
     if (urilend != NULL) {
-        if (urilend->urilen1 == 10 && urilend->mode == DETECT_URILEN_GT)
+        if (urilend->urilen1 == 10 && urilend->mode == DETECT_URILEN_GT &&
+            !urilend->raw_buffer)
             ret = 1;
 
         DetectUrilenFree(urilend);
@@ -416,7 +436,112 @@ static int DetectUrilenParseTest04(void)
     urilend = DetectUrilenParse(" 5 <> 10 ");
     if (urilend != NULL) {
         if (urilend->urilen1 == 5 && urilend->urilen2 == 10 &&
-                urilend->mode == DETECT_URILEN_RA)
+            urilend->mode == DETECT_URILEN_RA &&
+            !urilend->raw_buffer)
+            ret = 1;
+
+        DetectUrilenFree(urilend);
+    }
+    return ret;
+}
+
+/** \test   Test the Urilen keyword setup */
+static int DetectUrilenParseTest05(void)
+{
+    int ret = 0;
+    DetectUrilenData *urilend = NULL;
+
+    urilend = DetectUrilenParse("5<>10,norm");
+    if (urilend != NULL) {
+        if (urilend->urilen1 == 5 && urilend->urilen2 == 10 &&
+            urilend->mode == DETECT_URILEN_RA &&
+            !urilend->raw_buffer)
+            ret = 1;
+
+        DetectUrilenFree(urilend);
+    }
+    return ret;
+}
+
+/** \test   Test the Urilen keyword setup */
+static int DetectUrilenParseTest06(void)
+{
+    int ret = 0;
+    DetectUrilenData *urilend = NULL;
+
+    urilend = DetectUrilenParse("5<>10,raw");
+    if (urilend != NULL) {
+        if (urilend->urilen1 == 5 && urilend->urilen2 == 10 &&
+            urilend->mode == DETECT_URILEN_RA &&
+            urilend->raw_buffer)
+            ret = 1;
+
+        DetectUrilenFree(urilend);
+    }
+    return ret;
+}
+
+/** \test   Test the Urilen keyword setup */
+static int DetectUrilenParseTest07(void)
+{
+    int ret = 0;
+    DetectUrilenData *urilend = NULL;
+
+    urilend = DetectUrilenParse(">10, norm ");
+    if (urilend != NULL) {
+        if (urilend->urilen1 == 10 && urilend->mode == DETECT_URILEN_GT &&
+            !urilend->raw_buffer)
+            ret = 1;
+
+        DetectUrilenFree(urilend);
+    }
+    return ret;
+}
+
+/** \test   Test the Urilen keyword setup */
+static int DetectUrilenParseTest08(void)
+{
+    int ret = 0;
+    DetectUrilenData *urilend = NULL;
+
+    urilend = DetectUrilenParse("<10, norm ");
+    if (urilend != NULL) {
+        if (urilend->urilen1 == 10 && urilend->mode == DETECT_URILEN_LT &&
+            !urilend->raw_buffer)
+            ret = 1;
+
+        DetectUrilenFree(urilend);
+    }
+    return ret;
+}
+
+/** \test   Test the Urilen keyword setup */
+static int DetectUrilenParseTest09(void)
+{
+    int ret = 0;
+    DetectUrilenData *urilend = NULL;
+
+    urilend = DetectUrilenParse(">10, raw ");
+    if (urilend != NULL) {
+        if (urilend->urilen1 == 10 && urilend->mode == DETECT_URILEN_GT &&
+            urilend->raw_buffer)
+            ret = 1;
+
+        DetectUrilenFree(urilend);
+    }
+    return ret;
+}
+
+/** \test   Test the Urilen keyword setup */
+static int DetectUrilenParseTest10(void)
+{
+    int ret = 0;
+    DetectUrilenData *urilend = NULL;
+
+    urilend = DetectUrilenParse("<10, raw ");
+    if (urilend != NULL) {
+        if (urilend->urilen1 == 10 && urilend->mode == DETECT_URILEN_LT &&
+            urilend->raw_buffer)
             ret = 1;
 
         DetectUrilenFree(urilend);
@@ -610,6 +735,12 @@ void DetectUrilenRegisterTests(void)
     UtRegisterTest("DetectUrilenParseTest02", DetectUrilenParseTest02, 1);
     UtRegisterTest("DetectUrilenParseTest03", DetectUrilenParseTest03, 1);
     UtRegisterTest("DetectUrilenParseTest04", DetectUrilenParseTest04, 1);
+    UtRegisterTest("DetectUrilenParseTest05", DetectUrilenParseTest05, 1);
+    UtRegisterTest("DetectUrilenParseTest06", DetectUrilenParseTest06, 1);
+    UtRegisterTest("DetectUrilenParseTest07", DetectUrilenParseTest07, 1);
+    UtRegisterTest("DetectUrilenParseTest08", DetectUrilenParseTest08, 1);
+    UtRegisterTest("DetectUrilenParseTest09", DetectUrilenParseTest09, 1);
+    UtRegisterTest("DetectUrilenParseTest10", DetectUrilenParseTest10, 1);
     UtRegisterTest("DetectUrilenSetpTest01", DetectUrilenSetpTest01, 1);
     UtRegisterTest("DetectUrilenSigTest01", DetectUrilenSigTest01, 1);
 #endif /* UNITTESTS */
