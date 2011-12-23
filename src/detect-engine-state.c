@@ -710,19 +710,21 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
 
             /* if we already fully matched previously, detect that here */
             if (item->flags & DE_STATE_FLAG_FULL_MATCH) {
-                if (flags & STREAM_TOSERVER &&
-                        item->flags & DE_STATE_FLAG_FILE_TS_INSPECT &&
-                        f->de_state->flags & DE_STATE_FILE_TS_NEW)
-                {
-                    /* new file, fall through */
-                    item->flags &= ~DE_STATE_FLAG_FILE_TS_INSPECT;
-                } else if (flags & STREAM_TOCLIENT &&
-                        item->flags & DE_STATE_FLAG_FILE_TC_INSPECT &&
-                        f->de_state->flags & DE_STATE_FILE_TC_NEW)
-                {
-                    /* new file, fall through */
-                    item->flags &= ~DE_STATE_FLAG_FILE_TC_INSPECT;
-                } else {
+                /* check first if we have received new files in the livetime of
+                 * this de_state (this tx). */
+                if (item->flags & (DE_STATE_FLAG_FILE_TC_INSPECT|DE_STATE_FLAG_FILE_TS_INSPECT)) {
+                    if (flags & STREAM_TOCLIENT && f->de_state->flags & DE_STATE_FILE_TC_NEW) {
+                        item->flags &= ~DE_STATE_FLAG_FILE_TC_INSPECT;
+                        item->flags &= ~DE_STATE_FLAG_FULL_MATCH;
+                    }
+
+                    if (flags & STREAM_TOSERVER && f->de_state->flags & DE_STATE_FILE_TS_NEW) {
+                        item->flags &= ~DE_STATE_FLAG_FILE_TS_INSPECT;
+                        item->flags &= ~DE_STATE_FLAG_FULL_MATCH;
+                    }
+                }
+
+                if (item->flags & DE_STATE_FLAG_FULL_MATCH) {
                     det_ctx->de_state_sig_array[item->sid] = DE_STATE_MATCH_FULL;
                     SCLogDebug("full match state");
                     continue;
@@ -1113,9 +1115,11 @@ static void DeStateResetFileInspection(Flow *f, uint16_t alproto, void *alstate)
     HtpState *htp_state = (HtpState *)alstate;
 
     if (htp_state->flags & HTP_FLAG_NEW_FILE_TX_TC) {
+        SCLogDebug("new file in the TC direction");
         htp_state->flags &= ~HTP_FLAG_NEW_FILE_TX_TC;
         f->de_state->flags |= DE_STATE_FILE_TC_NEW;
     } else if (htp_state->flags & HTP_FLAG_NEW_FILE_TX_TS) {
+        SCLogDebug("new file in the TS direction");
         htp_state->flags &= ~HTP_FLAG_NEW_FILE_TX_TS;
         f->de_state->flags |= DE_STATE_FILE_TS_NEW;
     }

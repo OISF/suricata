@@ -82,6 +82,7 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
     int retval = 0;
     uint8_t flags = 0;
     FileContainer *files = NULL;
+    FileContainer *files_opposite = NULL;
 
     SCLogDebug("data %p data_len %"PRIu32, data, data_len);
 
@@ -99,6 +100,7 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
         }
 
         files = s->files_tc;
+        files_opposite = s->files_ts;
 
         if (s->flags & HTP_FLAG_STORE_FILES_TS ||
                 (s->flags & HTP_FLAG_STORE_FILES_TX_TS && txid == s->store_tx_id)) {
@@ -114,6 +116,7 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
         }
 
         files = s->files_ts;
+        files_opposite = s->files_tc;
 
         if (s->flags & HTP_FLAG_STORE_FILES_TC ||
                 (s->flags & HTP_FLAG_STORE_FILES_TX_TC && txid == s->store_tx_id)) {
@@ -131,6 +134,17 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
         if (direction & STREAM_TOCLIENT) {
             s->flags |= HTP_FLAG_NEW_FILE_TX_TC;
         } else {
+            s->flags |= HTP_FLAG_NEW_FILE_TX_TS;
+        }
+    }
+    if (files_opposite != NULL && files_opposite->tail != NULL && files_opposite->tail->txid == txid) {
+        SCLogDebug("new file in same tx, flagging http state for de_state reset");
+
+        if (direction & STREAM_TOCLIENT) {
+            SCLogDebug("flagging TC");
+            s->flags |= HTP_FLAG_NEW_FILE_TX_TC;
+        } else {
+            SCLogDebug("flagging TS");
             s->flags |= HTP_FLAG_NEW_FILE_TX_TS;
         }
     }
