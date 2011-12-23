@@ -1982,6 +1982,7 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
             break;
         case TH_ACK|TH_URG:
         case TH_ACK:
+        case TH_ACK|TH_CWR:
         case TH_ACK|TH_ECN:
         case TH_ACK|TH_PUSH:
         case TH_ACK|TH_PUSH|TH_ECN:
