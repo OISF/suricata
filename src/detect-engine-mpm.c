@@ -727,8 +727,11 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
 {
     s->mpm_sm = mpm_sm;
 
-    /* now add the mpm_ch to the mpm ctx */
-    if (mpm_sm != NULL) {
+    if (mpm_sm == NULL) {
+        SCLogDebug("%"PRIu32" no mpm pattern selected", s->id);
+        return;
+    }
+
         uint8_t flags = 0;
 
         DetectContentData *cd = NULL;
@@ -1319,9 +1322,6 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
         SCLogDebug("%"PRIu32" adding cd->id %"PRIu32" to the mpm phase "
                    "(s->num %"PRIu32")", s->id,
                    ((DetectContentData *)mpm_sm->ctx)->id, s->num);
-    } else {
-        SCLogDebug("%"PRIu32" no mpm pattern selected", s->id);
-    } /* else - if (mpm_sm != NULL) */
 
     return;
 }
