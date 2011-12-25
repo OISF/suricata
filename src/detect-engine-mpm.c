@@ -19,6 +19,7 @@
  * \file
  *
  * \author Victor Julien <victor@inliniac.net>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  *
  * Multi pattern matcher
  */
@@ -735,14 +736,7 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
     uint8_t flags = 0;
 
     DetectContentData *cd = NULL;
-    DetectContentData *ud = NULL;
-    DetectContentData *hcbd = NULL;
-    DetectContentData *hsbd = NULL;
-    DetectContentData *hhd = NULL;
-    DetectContentData *hrhd = NULL;
-    DetectContentData *hmd = NULL;
-    DetectContentData *hcd = NULL;
-    DetectContentData *hrud = NULL;
+
     switch (mpm_sm->type) {
         case DETECT_CONTENT:
         {
@@ -870,453 +864,105 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
         } /* case DETECT_CONTENT */
 
         case DETECT_URICONTENT:
-        {
-            ud = (DetectContentData *)mpm_sm->ctx;
-            if (ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
-                /* add the content to the "uri" mpm */
-                if (ud->flags & DETECT_CONTENT_NOCASE) {
-                    mpm_table[sgh->mpm_uri_ctx->mpm_type].
-                        AddPatternNocase(sgh->mpm_uri_ctx,
-                                         ud->content + ud->fp_chop_offset,
-                                         ud->fp_chop_len,
-                                         0, 0, ud->id, s->num, flags);
-                } else {
-                    mpm_table[sgh->mpm_uri_ctx->mpm_type].
-                        AddPattern(sgh->mpm_uri_ctx,
-                                   ud->content + ud->fp_chop_offset,
-                                   ud->fp_chop_len,
-                                   0, 0, ud->id, s->num, flags);
-                }
-            } else {
-                if (ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    if (DETECT_CONTENT_IS_SINGLE(ud)) {
-                        ud->flags |= DETECT_CONTENT_URI_MPM;
-                    }
-
-                    /* see if we can bypass the match validation for this pattern */
-                } else {
-                    if (DETECT_CONTENT_IS_SINGLE(ud)) {
-                        ud->flags |= DETECT_CONTENT_URI_MPM;
-                    }
-                } /* else - if (ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
-
-                /* add the content to the "uri" mpm */
-                if (ud->flags & DETECT_CONTENT_NOCASE) {
-                    mpm_table[sgh->mpm_uri_ctx->mpm_type].
-                        AddPatternNocase(sgh->mpm_uri_ctx,
-                                         ud->content, ud->content_len,
-                                         0, 0, ud->id, s->num, flags);
-                } else {
-                    mpm_table[sgh->mpm_uri_ctx->mpm_type].
-                        AddPattern(sgh->mpm_uri_ctx,
-                                   ud->content, ud->content_len,
-                                   0, 0, ud->id, s->num, flags);
-                }
-            }
-            /* tell matcher we are inspecting uri */
-            s->flags |= SIG_FLAG_MPM_HTTP;
-            s->mpm_pattern_id_div_8 = ud->id / 8;
-            s->mpm_pattern_id_mod_8 = 1 << (ud->id % 8);
-            if (ud->flags & DETECT_CONTENT_NEGATED)
-                s->flags |= SIG_FLAG_MPM_HTTP_NEG;
-
-            sgh->flags |= SIG_GROUP_HEAD_MPM_URI;
-
-            break;
-        } /* case DETECT_URICONTENT */
-
+        case DETECT_AL_HTTP_RAW_URI:
         case DETECT_AL_HTTP_CLIENT_BODY:
-        {
-            hcbd = (DetectContentData *)mpm_sm->ctx;
-            if (hcbd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
-                /* add the content to the "hcbd" mpm */
-                if (hcbd->flags & DETECT_CONTENT_NOCASE) {
-                    mpm_table[sgh->mpm_hcbd_ctx->mpm_type].
-                        AddPatternNocase(sgh->mpm_hcbd_ctx,
-                                         hcbd->content + hcbd->fp_chop_offset,
-                                         hcbd->fp_chop_len,
-                                         0, 0, hcbd->id, s->num, flags);
-                } else {
-                    mpm_table[sgh->mpm_hcbd_ctx->mpm_type].
-                        AddPattern(sgh->mpm_hcbd_ctx,
-                                   hcbd->content + hcbd->fp_chop_offset,
-                                   hcbd->fp_chop_len,
-                                   0, 0, hcbd->id, s->num, flags);
-                }
-            } else {
-                if (hcbd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    if (DETECT_CONTENT_IS_SINGLE(hcbd)) {
-                        hcbd->flags |= DETECT_CONTENT_HCBD_MPM;
-                    }
-
-                    /* see if we can bypass the match validation for this pattern */
-                } else {
-                    if (DETECT_CONTENT_IS_SINGLE(hcbd)) {
-                        hcbd->flags |= DETECT_CONTENT_HCBD_MPM;
-                    }
-                } /* else - if (hcbd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
-
-                /* add the content to the "hcbd" mpm */
-                if (hcbd->flags & DETECT_CONTENT_NOCASE) {
-                    mpm_table[sgh->mpm_hcbd_ctx->mpm_type].
-                        AddPatternNocase(sgh->mpm_hcbd_ctx,
-                                         hcbd->content, hcbd->content_len,
-                                         0, 0, hcbd->id, s->num, flags);
-                } else {
-                    mpm_table[sgh->mpm_hcbd_ctx->mpm_type].
-                        AddPattern(sgh->mpm_hcbd_ctx,
-                                   hcbd->content, hcbd->content_len,
-                                   0, 0, hcbd->id, s->num, flags);
-                }
-            }
-            /* tell matcher we are inspecting uri */
-            s->flags |= SIG_FLAG_MPM_HTTP;
-            s->mpm_pattern_id_div_8 = hcbd->id / 8;
-            s->mpm_pattern_id_mod_8 = 1 << (hcbd->id % 8);
-            if (hcbd->flags & DETECT_CONTENT_NEGATED)
-                s->flags |= SIG_FLAG_MPM_HTTP_NEG;
-
-            sgh->flags |= SIG_GROUP_HEAD_MPM_HCBD;
-
-            break;
-        } /* case DETECT_AL_HTTP_CLIENT_BODY */
-
         case DETECT_AL_HTTP_SERVER_BODY:
-        {
-            hsbd = (DetectContentData *)mpm_sm->ctx;
-            if (hsbd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
-                /* add the content to the "hcbd" mpm */
-                if (hsbd->flags & DETECT_CONTENT_NOCASE) {
-                    mpm_table[sgh->mpm_hsbd_ctx->mpm_type].
-                        AddPatternNocase(sgh->mpm_hsbd_ctx,
-                                         hsbd->content + hsbd->fp_chop_offset,
-                                         hsbd->fp_chop_len,
-                                         0, 0, hsbd->id, s->num, flags);
-                } else {
-                    mpm_table[sgh->mpm_hsbd_ctx->mpm_type].
-                        AddPattern(sgh->mpm_hsbd_ctx,
-                                   hsbd->content + hsbd->fp_chop_offset,
-                                   hsbd->fp_chop_len,
-                                   0, 0, hsbd->id, s->num, flags);
-                }
-            } else {
-                if (hsbd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    if (DETECT_CONTENT_IS_SINGLE(hsbd)) {
-                        hsbd->flags |= DETECT_CONTENT_HSBD_MPM;
-                    }
-
-                    /* see if we can bypass the match validation for this pattern */
-                } else {
-                    if (DETECT_CONTENT_IS_SINGLE(hsbd)) {
-                        hsbd->flags |= DETECT_CONTENT_HSBD_MPM;
-                    }
-                } /* else - if (hcbd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
-
-                /* add the content to the "hsbd" mpm */
-                if (hsbd->flags & DETECT_CONTENT_NOCASE) {
-                    mpm_table[sgh->mpm_hsbd_ctx->mpm_type].
-                        AddPatternNocase(sgh->mpm_hsbd_ctx,
-                                         hsbd->content, hsbd->content_len,
-                                         0, 0, hsbd->id, s->num, flags);
-                } else {
-                    mpm_table[sgh->mpm_hsbd_ctx->mpm_type].
-                        AddPattern(sgh->mpm_hsbd_ctx,
-                                   hsbd->content, hsbd->content_len,
-                                   0, 0, hsbd->id, s->num, flags);
-                }
-            }
-            /* tell matcher we are inspecting uri */
-            s->flags |= SIG_FLAG_MPM_HTTP;
-            s->mpm_pattern_id_div_8 = hsbd->id / 8;
-            s->mpm_pattern_id_mod_8 = 1 << (hsbd->id % 8);
-            if (hsbd->flags & DETECT_CONTENT_NEGATED)
-                s->flags |= SIG_FLAG_MPM_HTTP_NEG;
-
-            sgh->flags |= SIG_GROUP_HEAD_MPM_HSBD;
-
-            break;
-        } /* case DETECT_AL_HTTP_CLIENT_BODY */
-
         case DETECT_AL_HTTP_HEADER:
-        {
-            hhd = (DetectContentData *)mpm_sm->ctx;
-            if (hhd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
-                /* add the content to the "hhd" mpm */
-                if (hhd->flags & DETECT_CONTENT_NOCASE) {
-                    mpm_table[sgh->mpm_hhd_ctx->mpm_type].
-                        AddPatternNocase(sgh->mpm_hhd_ctx,
-                                         hhd->content + hhd->fp_chop_offset,
-                                         hhd->fp_chop_len,
-                                         0, 0, hhd->id, s->num, flags);
-                } else {
-                    mpm_table[sgh->mpm_hhd_ctx->mpm_type].
-                        AddPattern(sgh->mpm_hhd_ctx,
-                                   hhd->content + hhd->fp_chop_offset,
-                                   hhd->fp_chop_len,
-                                   0, 0, hhd->id, s->num, flags);
-                }
-            } else {
-                if (hhd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    if (DETECT_CONTENT_IS_SINGLE(hhd)) {
-                        hhd->flags |= DETECT_CONTENT_HHD_MPM;
-                    }
-
-                    /* see if we can bypass the match validation for this pattern */
-                } else {
-                    if (DETECT_CONTENT_IS_SINGLE(hhd)) {
-                        hhd->flags |= DETECT_CONTENT_HHD_MPM;
-                    }
-                } /* else - if (hhd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
-
-                /* add the content to the "hhd" mpm */
-                if (hhd->flags & DETECT_CONTENT_NOCASE) {
-                    mpm_table[sgh->mpm_hhd_ctx->mpm_type].
-                        AddPatternNocase(sgh->mpm_hhd_ctx,
-                                         hhd->content, hhd->content_len,
-                                         0, 0, hhd->id, s->num, flags);
-                } else {
-                    mpm_table[sgh->mpm_hhd_ctx->mpm_type].
-                        AddPattern(sgh->mpm_hhd_ctx,
-                                   hhd->content, hhd->content_len,
-                                   0, 0, hhd->id, s->num, flags);
-                }
-            }
-            /* tell matcher we are inspecting uri */
-            s->flags |= SIG_FLAG_MPM_HTTP;
-            s->mpm_pattern_id_div_8 = hhd->id / 8;
-            s->mpm_pattern_id_mod_8 = 1 << (hhd->id % 8);
-            if (hhd->flags & DETECT_CONTENT_NEGATED)
-                s->flags |= SIG_FLAG_MPM_HTTP_NEG;
-
-            sgh->flags |= SIG_GROUP_HEAD_MPM_HHD;
-
-            break;
-        } /* case DETECT_AL_HTTP_HEADER */
-
         case DETECT_AL_HTTP_RAW_HEADER:
-        {
-            hrhd = (DetectContentData *)mpm_sm->ctx;
-            if (hrhd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
-                /* add the content to the "hrhd" mpm */
-                if (hrhd->flags & DETECT_CONTENT_NOCASE) {
-                    mpm_table[sgh->mpm_hrhd_ctx->mpm_type].
-                        AddPatternNocase(sgh->mpm_hrhd_ctx,
-                                         hrhd->content + hrhd->fp_chop_offset,
-                                         hrhd->fp_chop_len,
-                                         0, 0, hrhd->id, s->num, flags);
-                } else {
-                    mpm_table[sgh->mpm_hrhd_ctx->mpm_type].
-                        AddPattern(sgh->mpm_hrhd_ctx,
-                                   hrhd->content + hrhd->fp_chop_offset,
-                                   hrhd->fp_chop_len,
-                                   0, 0, hrhd->id, s->num, flags);
-                }
-            } else {
-                if (hrhd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    if (DETECT_CONTENT_IS_SINGLE(hrhd)) {
-                        hrhd->flags |= DETECT_CONTENT_HRHD_MPM;
-                    }
-
-                    /* see if we can bypass the match validation for this pattern */
-                } else {
-                    if (DETECT_CONTENT_IS_SINGLE(hrhd)) {
-                        hrhd->flags |= DETECT_CONTENT_HRHD_MPM;
-                    }
-                } /* else - if (hrhd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
-
-                /* add the content to the "hrhd" mpm */
-                if (hrhd->flags & DETECT_CONTENT_NOCASE) {
-                    mpm_table[sgh->mpm_hrhd_ctx->mpm_type].
-                        AddPatternNocase(sgh->mpm_hrhd_ctx,
-                                         hrhd->content, hrhd->content_len,
-                                         0, 0, hrhd->id, s->num, flags);
-                } else {
-                    mpm_table[sgh->mpm_hrhd_ctx->mpm_type].
-                        AddPattern(sgh->mpm_hrhd_ctx,
-                                   hrhd->content, hrhd->content_len,
-                                   0, 0, hrhd->id, s->num, flags);
-                }
-            }
-            /* tell matcher we are inspecting uri */
-            s->flags |= SIG_FLAG_MPM_HTTP;
-            s->mpm_pattern_id_div_8 = hrhd->id / 8;
-            s->mpm_pattern_id_mod_8 = 1 << (hrhd->id % 8);
-            if (hrhd->flags & DETECT_CONTENT_NEGATED)
-                s->flags |= SIG_FLAG_MPM_HTTP_NEG;
-
-            sgh->flags |= SIG_GROUP_HEAD_MPM_HRHD;
-
-            break;
-        } /* case DETECT_AL_HTTP_RAW_HEADER */
-
         case DETECT_AL_HTTP_METHOD:
-        {
-            hmd = (DetectContentData *)mpm_sm->ctx;
-            if (hmd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
-                /* add the content to the "hmd" mpm */
-                if (hmd->flags & DETECT_CONTENT_NOCASE) {
-                    mpm_table[sgh->mpm_hmd_ctx->mpm_type].
-                        AddPatternNocase(sgh->mpm_hmd_ctx,
-                                         hmd->content + hmd->fp_chop_offset,
-                                         hmd->fp_chop_len,
-                                         0, 0, hmd->id, s->num, flags);
-                } else {
-                    mpm_table[sgh->mpm_hmd_ctx->mpm_type].
-                        AddPattern(sgh->mpm_hmd_ctx,
-                                   hmd->content + hmd->fp_chop_offset,
-                                   hmd->fp_chop_len,
-                                   0, 0, hmd->id, s->num, flags);
-                }
-            } else {
-                if (hmd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    if (DETECT_CONTENT_IS_SINGLE(hmd)) {
-                        hmd->flags |= DETECT_CONTENT_HMD_MPM;
-                    }
-
-                    /* see if we can bypass the match validation for this pattern */
-                } else {
-                    if (DETECT_CONTENT_IS_SINGLE(hmd)) {
-                        hmd->flags |= DETECT_CONTENT_HMD_MPM;
-                    }
-                } /* else - if (hmd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
-
-                /* add the content to the "hmd" mpm */
-                if (hmd->flags & DETECT_CONTENT_NOCASE) {
-                    mpm_table[sgh->mpm_hmd_ctx->mpm_type].
-                        AddPatternNocase(sgh->mpm_hmd_ctx,
-                                         hmd->content, hmd->content_len,
-                                         0, 0, hmd->id, s->num, flags);
-                } else {
-                    mpm_table[sgh->mpm_hmd_ctx->mpm_type].
-                        AddPattern(sgh->mpm_hmd_ctx,
-                                   hmd->content, hmd->content_len,
-                                   0, 0, hmd->id, s->num, flags);
-                }
-            }
-            /* tell matcher we are inspecting method */
-            s->flags |= SIG_FLAG_MPM_HTTP;
-            s->mpm_pattern_id_div_8 = hmd->id / 8;
-            s->mpm_pattern_id_mod_8 = 1 << (hmd->id % 8);
-            if (hmd->flags & DETECT_CONTENT_NEGATED)
-                s->flags |= SIG_FLAG_MPM_HTTP_NEG;
-
-            sgh->flags |= SIG_GROUP_HEAD_MPM_HMD;
-
-            break;
-        } /* case DETECT_AL_HTTP_METHOD */
-
         case DETECT_AL_HTTP_COOKIE:
         {
-            hcd = (DetectContentData *)mpm_sm->ctx;
-            if (hcd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
-                /* add the content to the "hcd" mpm */
-                if (hcd->flags & DETECT_CONTENT_NOCASE) {
-                    mpm_table[sgh->mpm_hcd_ctx->mpm_type].
-                        AddPatternNocase(sgh->mpm_hcd_ctx,
-                                         hcd->content + hcd->fp_chop_offset,
-                                         hcd->fp_chop_len,
-                                         0, 0, hcd->id, s->num, flags);
+            MpmCtx *mpm_ctx = NULL;
+            uint32_t sgh_flags = 0;
+            uint32_t cd_flags = 0;
+
+            if (mpm_sm->type == DETECT_URICONTENT) {
+                mpm_ctx = sgh->mpm_uri_ctx;
+                sgh_flags = SIG_GROUP_HEAD_MPM_URI;
+                cd_flags = DETECT_CONTENT_URI_MPM;
+            } else if (mpm_sm->type == DETECT_AL_HTTP_CLIENT_BODY) {
+                mpm_ctx = sgh->mpm_hcbd_ctx;
+                sgh_flags = SIG_GROUP_HEAD_MPM_HCBD;
+                cd_flags = DETECT_CONTENT_HCBD_MPM;
+            } else if (mpm_sm->type == DETECT_AL_HTTP_SERVER_BODY) {
+                mpm_ctx = sgh->mpm_hsbd_ctx;
+                sgh_flags = SIG_GROUP_HEAD_MPM_HSBD;
+                cd_flags = DETECT_CONTENT_HSBD_MPM;
+            } else if (mpm_sm->type == DETECT_AL_HTTP_HEADER) {
+                mpm_ctx = sgh->mpm_hhd_ctx;
+                sgh_flags = SIG_GROUP_HEAD_MPM_HHD;
+                cd_flags = DETECT_CONTENT_HHD_MPM;
+            } else if (mpm_sm->type == DETECT_AL_HTTP_RAW_HEADER) {
+                mpm_ctx = sgh->mpm_hrhd_ctx;
+                sgh_flags = SIG_GROUP_HEAD_MPM_HRHD;
+                cd_flags = DETECT_CONTENT_HRHD_MPM;
+            } else if (mpm_sm->type == DETECT_AL_HTTP_METHOD) {
+                mpm_ctx = sgh->mpm_hmd_ctx;
+                sgh_flags = SIG_GROUP_HEAD_MPM_HMD;
+                cd_flags = DETECT_CONTENT_HMD_MPM;
+            } else if (mpm_sm->type == DETECT_AL_HTTP_COOKIE) {
+                mpm_ctx = sgh->mpm_hcd_ctx;
+                sgh_flags = SIG_GROUP_HEAD_MPM_HCD;
+                cd_flags = DETECT_CONTENT_HCD_MPM;
+            } else if (mpm_sm->type == DETECT_AL_HTTP_RAW_URI) {
+                mpm_ctx = sgh->mpm_hrud_ctx;
+                sgh_flags = SIG_GROUP_HEAD_MPM_HRUD;
+                cd_flags = DETECT_CONTENT_HRUD_MPM;
+            }
+
+            cd = (DetectContentData *)mpm_sm->ctx;
+            if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
+                /* add the content to the mpm */
+                if (cd->flags & DETECT_CONTENT_NOCASE) {
+                    mpm_table[mpm_ctx->mpm_type].
+                        AddPatternNocase(mpm_ctx,
+                                         cd->content + cd->fp_chop_offset,
+                                         cd->fp_chop_len,
+                                         0, 0, cd->id, s->num, flags);
                 } else {
-                    mpm_table[sgh->mpm_hcd_ctx->mpm_type].
-                        AddPattern(sgh->mpm_hcd_ctx,
-                                   hcd->content + hcd->fp_chop_offset,
-                                   hcd->fp_chop_len,
-                                   0, 0, hcd->id, s->num, flags);
+                    mpm_table[mpm_ctx->mpm_type].
+                        AddPattern(mpm_ctx,
+                                   cd->content + cd->fp_chop_offset,
+                                   cd->fp_chop_len,
+                                   0, 0, cd->id, s->num, flags);
                 }
             } else {
-                if (hcd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    if (DETECT_CONTENT_IS_SINGLE(hcd)) {
-                        hcd->flags |= DETECT_CONTENT_HCD_MPM;
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                    if (DETECT_CONTENT_IS_SINGLE(cd)) {
+                        cd->flags |= cd_flags;
                     }
 
                     /* see if we can bypass the match validation for this pattern */
                 } else {
-                    if (DETECT_CONTENT_IS_SINGLE(hcd)) {
-                        hcd->flags |= DETECT_CONTENT_HCD_MPM;
+                    if (DETECT_CONTENT_IS_SINGLE(cd)) {
+                        cd->flags |= cd_flags;
                     }
-                } /* else - if (hcd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
+                } /* else - if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
 
-                /* add the content to the "hcd" mpm */
-                if (hcd->flags & DETECT_CONTENT_NOCASE) {
-                    mpm_table[sgh->mpm_hcd_ctx->mpm_type].
-                        AddPatternNocase(sgh->mpm_hcd_ctx,
-                                         hcd->content, hcd->content_len,
-                                         0, 0, hcd->id, s->num, flags);
+                /* add the content to the "uri" mpm */
+                if (cd->flags & DETECT_CONTENT_NOCASE) {
+                    mpm_table[mpm_ctx->mpm_type].
+                        AddPatternNocase(mpm_ctx,
+                                         cd->content, cd->content_len,
+                                         0, 0, cd->id, s->num, flags);
                 } else {
-                    mpm_table[sgh->mpm_hcd_ctx->mpm_type].
-                        AddPattern(sgh->mpm_hcd_ctx,
-                                   hcd->content, hcd->content_len,
-                                   0, 0, hcd->id, s->num, flags);
+                    mpm_table[mpm_ctx->mpm_type].
+                        AddPattern(mpm_ctx,
+                                   cd->content, cd->content_len,
+                                   0, 0, cd->id, s->num, flags);
                 }
             }
-            /* tell matcher we are inspecting cookie */
+            /* tell matcher we are inspecting uri */
             s->flags |= SIG_FLAG_MPM_HTTP;
-            s->mpm_pattern_id_div_8 = hcd->id / 8;
-            s->mpm_pattern_id_mod_8 = 1 << (hcd->id % 8);
-            if (hcd->flags & DETECT_CONTENT_NEGATED)
+            s->mpm_pattern_id_div_8 = cd->id / 8;
+            s->mpm_pattern_id_mod_8 = 1 << (cd->id % 8);
+            if (cd->flags & DETECT_CONTENT_NEGATED)
                 s->flags |= SIG_FLAG_MPM_HTTP_NEG;
 
-            sgh->flags |= SIG_GROUP_HEAD_MPM_HCD;
+            sgh->flags |= sgh_flags;
 
             break;
-        } /* case DETECT_AL_HTTP_COOKIE */
-
-        case DETECT_AL_HTTP_RAW_URI:
-        {
-            hrud = (DetectContentData *)mpm_sm->ctx;
-            if (hrud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
-                /* add the content to the "hrud" mpm */
-                if (hrud->flags & DETECT_CONTENT_NOCASE) {
-                    mpm_table[sgh->mpm_hrud_ctx->mpm_type].
-                        AddPatternNocase(sgh->mpm_hrud_ctx,
-                                         hrud->content + hrud->fp_chop_offset,
-                                         hrud->fp_chop_len,
-                                         0, 0, hrud->id, s->num, flags);
-                } else {
-                    mpm_table[sgh->mpm_hrud_ctx->mpm_type].
-                        AddPattern(sgh->mpm_hrud_ctx,
-                                   hrud->content + hrud->fp_chop_offset,
-                                   hrud->fp_chop_len,
-                                   0, 0, hrud->id, s->num, flags);
-                }
-            } else {
-                if (hrud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    if (DETECT_CONTENT_IS_SINGLE(hrud)) {
-                        hrud->flags |= DETECT_CONTENT_HRUD_MPM;
-                    }
-
-                    /* see if we can bypass the match validation for this pattern */
-                } else {
-                    if (DETECT_CONTENT_IS_SINGLE(hrud)) {
-                        hrud->flags |= DETECT_CONTENT_HRUD_MPM;
-                    }
-                } /* else - if (hrud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) */
-
-                /* add the content to the "hrud" mpm */
-                if (hrud->flags & DETECT_CONTENT_NOCASE) {
-                    mpm_table[sgh->mpm_hrud_ctx->mpm_type].
-                        AddPatternNocase(sgh->mpm_hrud_ctx,
-                                         hrud->content, hrud->content_len,
-                                         0, 0, hrud->id, s->num, flags);
-                } else {
-                    mpm_table[sgh->mpm_hrud_ctx->mpm_type].
-                        AddPattern(sgh->mpm_hrud_ctx,
-                                   hrud->content, hrud->content_len,
-                                   0, 0, hrud->id, s->num, flags);
-                }
-            }
-            /* tell matcher we are inspecting raw uri */
-            s->flags |= SIG_FLAG_MPM_HTTP;
-            s->mpm_pattern_id_div_8 = hrud->id / 8;
-            s->mpm_pattern_id_mod_8 = 1 << (hrud->id % 8);
-            if (hrud->flags & DETECT_CONTENT_NEGATED)
-                s->flags |= SIG_FLAG_MPM_HTTP_NEG;
-
-            sgh->flags |= SIG_GROUP_HEAD_MPM_HRUD;
-
-            break;
-        } /* case DETECT_AL_HTTP_RAW_URI */
-
+        }
     } /* switch (mpm_sm->type) */
 
     SCLogDebug("%"PRIu32" adding cd->id %"PRIu32" to the mpm phase "
