@@ -209,13 +209,26 @@ uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
     SCEnter();
 
     uint32_t ret;
+    MpmCtx *mpm_ctx = NULL;
+
 
 #ifndef __SC_CUDA_SUPPORT__
-    ret = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Search(det_ctx->sgh->mpm_ctx,
-                                                            &det_ctx->mtc,
-                                                            &det_ctx->pmq,
-                                                            p->payload,
-                                                            p->payload_len);
+    if (p->proto == IPPROTO_TCP) {
+        mpm_ctx = det_ctx->sgh->mpm_proto_tcp_ctx;
+    } else if (p->proto == IPPROTO_UDP) {
+        mpm_ctx = det_ctx->sgh->mpm_proto_udp_ctx;
+    } else {
+        mpm_ctx = det_ctx->sgh->mpm_proto_other_ctx;
+    }
+
+    if (mpm_ctx == NULL)
+        SCReturnInt(0);
+
+    ret = mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                                              &det_ctx->mtc,
+                                              &det_ctx->pmq,
+                                              p->payload,
+                                              p->payload_len);
 #else
     /* if the user has enabled cuda support, but is not using the cuda mpm
      * algo, then we shouldn't take the path of the dispatcher.  Call the mpm
@@ -489,8 +502,17 @@ void PacketPatternCleanup(ThreadVars *t, DetectEngineThreadCtx *det_ctx) {
         return;
 
     /* content */
-    if (det_ctx->sgh->mpm_ctx != NULL && mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Cleanup != NULL) {
-        mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Cleanup(&det_ctx->mtc);
+    if (det_ctx->sgh->mpm_proto_tcp_ctx != NULL &&
+        mpm_table[det_ctx->sgh->mpm_proto_tcp_ctx->mpm_type].Cleanup != NULL) {
+        mpm_table[det_ctx->sgh->mpm_proto_tcp_ctx->mpm_type].Cleanup(&det_ctx->mtc);
+    }
+    if (det_ctx->sgh->mpm_proto_tcp_ctx != NULL &&
+        mpm_table[det_ctx->sgh->mpm_proto_tcp_ctx->mpm_type].Cleanup != NULL) {
+        mpm_table[det_ctx->sgh->mpm_proto_udp_ctx->mpm_type].Cleanup(&det_ctx->mtc);
+    }
+    if (det_ctx->sgh->mpm_proto_other_ctx != NULL &&
+        mpm_table[det_ctx->sgh->mpm_proto_other_ctx->mpm_type].Cleanup != NULL) {
+        mpm_table[det_ctx->sgh->mpm_proto_other_ctx->mpm_type].Cleanup(&det_ctx->mtc);
     }
     /* uricontent */
     if (det_ctx->sgh->mpm_uri_ctx != NULL && mpm_table[det_ctx->sgh->mpm_uri_ctx->mpm_type].Cleanup != NULL) {
@@ -540,16 +562,37 @@ void PatternMatchThreadPrepare(MpmThreadCtx *mpm_thread_ctx, uint16_t mpm_matche
 /* free the pattern matcher part of a SigGroupHead */
 void PatternMatchDestroyGroup(SigGroupHead *sh) {
     /* content */
-    if (sh->flags & SIG_GROUP_HAVECONTENT && sh->mpm_ctx != NULL &&
+    if (sh->flags & SIG_GROUP_HAVECONTENT &&
         !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
         SCLogDebug("destroying mpm_ctx %p (sh %p)", sh->mpm_ctx, sh);
-        if (!MpmFactoryIsMpmCtxAvailable(sh->mpm_ctx)) {
-            mpm_table[sh->mpm_ctx->mpm_type].DestroyCtx(sh->mpm_ctx);
-            SCFree(sh->mpm_ctx);
-        }
 
+        if (sh->mpm_proto_tcp_ctx != NULL &&
+            !MpmFactoryIsMpmCtxAvailable(sh->mpm_proto_tcp_ctx)) {
+            mpm_table[sh->mpm_proto_tcp_ctx->mpm_type].
+                DestroyCtx(sh->mpm_proto_tcp_ctx);
+            SCFree(sh->mpm_proto_tcp_ctx);
+        }
         /* ready for reuse */
-        sh->mpm_ctx = NULL;
+        sh->mpm_proto_tcp_ctx = NULL;
+
+        if (sh->mpm_proto_udp_ctx != NULL &&
+            !MpmFactoryIsMpmCtxAvailable(sh->mpm_proto_udp_ctx)) {
+            mpm_table[sh->mpm_proto_udp_ctx->mpm_type].
+                DestroyCtx(sh->mpm_proto_udp_ctx);
+            SCFree(sh->mpm_proto_udp_ctx);
+        }
+        /* ready for reuse */
+        sh->mpm_proto_udp_ctx = NULL;
+
+        if (sh->mpm_proto_other_ctx != NULL &&
+            !MpmFactoryIsMpmCtxAvailable(sh->mpm_proto_other_ctx)) {
+            mpm_table[sh->mpm_proto_other_ctx->mpm_type].
+                DestroyCtx(sh->mpm_proto_other_ctx);
+            SCFree(sh->mpm_proto_other_ctx);
+        }
+        /* ready for reuse */
+        sh->mpm_proto_other_ctx = NULL;
+
         sh->flags &= ~SIG_GROUP_HAVECONTENT;
     }
 
@@ -722,6 +765,44 @@ uint32_t PatternStrength(uint8_t *pat, uint16_t patlen) {
     return s;
 }
 
+static void PopulateMpmHelperAddPatternToPktCtx(MpmCtx *mpm_ctx,
+                                                DetectContentData *cd,
+                                                Signature *s, uint8_t flags,
+                                                int chop)
+{
+    if (cd->flags & DETECT_CONTENT_NOCASE) {
+        if (chop) {
+            mpm_table[mpm_ctx->mpm_type].
+                AddPatternNocase(mpm_ctx,
+                                 cd->content + cd->fp_chop_offset,
+                                 cd->fp_chop_len,
+                                 0, 0, cd->id, s->num, flags);
+        } else {
+            mpm_table[mpm_ctx->mpm_type].
+                AddPatternNocase(mpm_ctx,
+                                 cd->content,
+                                 cd->content_len,
+                                 0, 0, cd->id, s->num, flags);
+        }
+    } else {
+        if (chop) {
+            mpm_table[mpm_ctx->mpm_type].
+                AddPattern(mpm_ctx,
+                           cd->content + cd->fp_chop_offset,
+                           cd->fp_chop_len,
+                           0, 0, cd->id, s->num, flags);
+        } else {
+            mpm_table[mpm_ctx->mpm_type].
+                AddPattern(mpm_ctx,
+                           cd->content,
+                           cd->content_len,
+                           0, 0, cd->id, s->num, flags);
+        }
+    }
+
+    return;
+}
+
 static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                                        SigGroupHead *sgh, Signature *s,
                                        SigMatch *mpm_sm)
@@ -744,18 +825,23 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
             if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
                 /* add the content to the "packet" mpm */
                 if (SignatureHasPacketContent(s)) {
-                    if (cd->flags & DETECT_CONTENT_NOCASE) {
-                        mpm_table[sgh->mpm_ctx->mpm_type].
-                            AddPatternNocase(sgh->mpm_ctx,
-                                             cd->content + cd->fp_chop_offset,
-                                             cd->fp_chop_len,
-                                             0, 0, cd->id, s->num, flags);
-                    } else {
-                        mpm_table[sgh->mpm_ctx->mpm_type].
-                            AddPattern(sgh->mpm_ctx,
-                                       cd->content + cd->fp_chop_offset,
-                                       cd->fp_chop_len,
-                                       0, 0, cd->id, s->num, flags);
+                    if (s->proto.proto[6 / 8] & 1 << (6 % 8)) {
+                        PopulateMpmHelperAddPatternToPktCtx(sgh->mpm_proto_tcp_ctx,
+                                                            cd, s, flags, 1);
+                    }
+                    if (s->proto.proto[17 / 8] & 1 << (17 % 8)) {
+                        PopulateMpmHelperAddPatternToPktCtx(sgh->mpm_proto_udp_ctx,
+                                                            cd, s, flags, 1);
+                    }
+                    int i;
+                    for (i = 0; i < 256; i++) {
+                        if (i == 6 || i == 17)
+                            continue;
+                        if (s->proto.proto[i / 8] & (1 << (i % 8))) {
+                            PopulateMpmHelperAddPatternToPktCtx(sgh->mpm_proto_other_ctx,
+                                                                cd, s, flags, 1);
+                            break;
+                        }
                     }
                     /* tell matcher we are inspecting packet */
                     s->flags |= SIG_FLAG_MPM_PACKET;
@@ -810,16 +896,23 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
 
                 if (SignatureHasPacketContent(s)) {
                     /* add the content to the "packet" mpm */
-                    if (cd->flags & DETECT_CONTENT_NOCASE) {
-                        mpm_table[sgh->mpm_ctx->mpm_type].
-                            AddPatternNocase(sgh->mpm_ctx,
-                                             cd->content, cd->content_len,
-                                             0, 0, cd->id, s->num, flags);
-                    } else {
-                        mpm_table[sgh->mpm_ctx->mpm_type].
-                            AddPattern(sgh->mpm_ctx,
-                                       cd->content, cd->content_len,
-                                       0, 0, cd->id, s->num, flags);
+                    if (s->proto.proto[6 / 8] & 1 << (6 % 8)) {
+                        PopulateMpmHelperAddPatternToPktCtx(sgh->mpm_proto_tcp_ctx,
+                                                            cd, s, flags, 0);
+                    }
+                    if (s->proto.proto[17 / 8] & 1 << (17 % 8)) {
+                        PopulateMpmHelperAddPatternToPktCtx(sgh->mpm_proto_udp_ctx,
+                                                            cd, s, flags, 0);
+                    }
+                    int i;
+                    for (i = 0; i < 256; i++) {
+                        if (i == 6 || i == 17)
+                            continue;
+                        if (s->proto.proto[i / 8] & (1 << (i % 8))) {
+                            PopulateMpmHelperAddPatternToPktCtx(sgh->mpm_proto_other_ctx,
+                                                                cd, s, flags, 0);
+                            break;
+                        }
                     }
                     /* tell matcher we are inspecting packet */
                     s->flags |= SIG_FLAG_MPM_PACKET;
@@ -1251,21 +1344,52 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
     /* intialize contexes */
     if (sh->flags & SIG_GROUP_HAVECONTENT) {
         if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-            sh->mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_packet);
+            sh->mpm_proto_tcp_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_proto_tcp_packet);
         } else {
-            sh->mpm_ctx = MpmFactoryGetMpmCtxForProfile(MPM_CTX_FACTORY_UNIQUE_CONTEXT);
+            sh->mpm_proto_tcp_ctx = MpmFactoryGetMpmCtxForProfile(MPM_CTX_FACTORY_UNIQUE_CONTEXT);
         }
-        if (sh->mpm_ctx == NULL) {
-            SCLogDebug("sh->mpm_stream_ctx == NULL. This should never happen");
+        if (sh->mpm_proto_tcp_ctx == NULL) {
+            SCLogDebug("sh->mpm_proto_tcp_ctx == NULL. This should never happen");
             exit(EXIT_FAILURE);
         }
-
 #ifndef __SC_CUDA_SUPPORT__
-        MpmInitCtx(sh->mpm_ctx, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_proto_tcp_ctx, de_ctx->mpm_matcher, -1);
 #else
-        MpmInitCtx(sh->mpm_ctx, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
+        MpmInitCtx(sh->mpm_proto_tcp_ctx, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
 #endif
-    }
+
+        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
+            sh->mpm_proto_udp_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_proto_udp_packet);
+        } else {
+            sh->mpm_proto_udp_ctx = MpmFactoryGetMpmCtxForProfile(MPM_CTX_FACTORY_UNIQUE_CONTEXT);
+        }
+        if (sh->mpm_proto_udp_ctx == NULL) {
+            SCLogDebug("sh->mpm_proto_udp_ctx == NULL. This should never happen");
+            exit(EXIT_FAILURE);
+        }
+#ifndef __SC_CUDA_SUPPORT__
+        MpmInitCtx(sh->mpm_proto_udp_ctx, de_ctx->mpm_matcher, -1);
+#else
+        MpmInitCtx(sh->mpm_proto_udp_ctx, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
+#endif
+
+        if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
+            sh->mpm_proto_other_ctx =
+                MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_proto_other_packet);
+        } else {
+            sh->mpm_proto_other_ctx =
+                MpmFactoryGetMpmCtxForProfile(MPM_CTX_FACTORY_UNIQUE_CONTEXT);
+        }
+        if (sh->mpm_proto_other_ctx == NULL) {
+            SCLogDebug("sh->mpm_proto_other_ctx == NULL. This should never happen");
+            exit(EXIT_FAILURE);
+        }
+#ifndef __SC_CUDA_SUPPORT__
+        MpmInitCtx(sh->mpm_proto_other_ctx, de_ctx->mpm_matcher, -1);
+#else
+        MpmInitCtx(sh->mpm_proto_other_ctx, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
+#endif
+    } /* if (sh->flags & SIG_GROUP_HAVECONTENT) */
 
     if (sh->flags & SIG_GROUP_HAVESTREAMCONTENT) {
         if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
@@ -1443,15 +1567,43 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         PatternMatchPreparePopulateMpm(de_ctx, sh);
 
         if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) {
-            if (sh->mpm_ctx != NULL) {
-                if (sh->mpm_ctx->pattern_cnt == 0) {
-                    MpmFactoryReClaimMpmCtx(sh->mpm_ctx);
-                    sh->mpm_ctx = NULL;
+            if (sh->mpm_proto_tcp_ctx != NULL) {
+                if (sh->mpm_proto_tcp_ctx->pattern_cnt == 0) {
+                    MpmFactoryReClaimMpmCtx(sh->mpm_proto_tcp_ctx);
+                    sh->mpm_proto_tcp_ctx = NULL;
                 } else {
                     if (sh->flags & SIG_GROUP_HAVECONTENT) {
-                        if (mpm_table[sh->mpm_ctx->mpm_type].Prepare != NULL)
-                            mpm_table[sh->mpm_ctx->mpm_type].Prepare(sh->mpm_ctx);
+                        if (mpm_table[sh->mpm_proto_tcp_ctx->mpm_type].Prepare != NULL) {
+                            mpm_table[sh->mpm_proto_tcp_ctx->mpm_type].
+                                Prepare(sh->mpm_proto_tcp_ctx);
                         }
+                    }
+                }
+            }
+            if (sh->mpm_proto_udp_ctx != NULL) {
+                if (sh->mpm_proto_udp_ctx->pattern_cnt == 0) {
+                    MpmFactoryReClaimMpmCtx(sh->mpm_proto_udp_ctx);
+                    sh->mpm_proto_udp_ctx = NULL;
+                } else {
+                    if (sh->flags & SIG_GROUP_HAVECONTENT) {
+                        if (mpm_table[sh->mpm_proto_udp_ctx->mpm_type].Prepare != NULL) {
+                            mpm_table[sh->mpm_proto_udp_ctx->mpm_type].
+                                Prepare(sh->mpm_proto_udp_ctx);
+                        }
+                    }
+                }
+            }
+            if (sh->mpm_proto_other_ctx != NULL) {
+                if (sh->mpm_proto_other_ctx->pattern_cnt == 0) {
+                    MpmFactoryReClaimMpmCtx(sh->mpm_proto_other_ctx);
+                    sh->mpm_proto_other_ctx = NULL;
+                } else {
+                    if (sh->flags & SIG_GROUP_HAVECONTENT) {
+                        if (mpm_table[sh->mpm_proto_other_ctx->mpm_type].Prepare != NULL) {
+                            mpm_table[sh->mpm_proto_other_ctx->mpm_type].
+                                Prepare(sh->mpm_proto_other_ctx);
+                        }
+                    }
                 }
             }
             if (sh->mpm_stream_ctx != NULL) {
@@ -1556,8 +1708,12 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
         } /* if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL) */
     } else {
-        MpmFactoryReClaimMpmCtx(sh->mpm_ctx);
-        sh->mpm_ctx = NULL;
+        MpmFactoryReClaimMpmCtx(sh->mpm_proto_tcp_ctx);
+        sh->mpm_proto_tcp_ctx = NULL;
+        MpmFactoryReClaimMpmCtx(sh->mpm_proto_udp_ctx);
+        sh->mpm_proto_udp_ctx = NULL;
+        MpmFactoryReClaimMpmCtx(sh->mpm_proto_other_ctx);
+        sh->mpm_proto_other_ctx = NULL;
         MpmFactoryReClaimMpmCtx(sh->mpm_stream_ctx);
         sh->mpm_stream_ctx = NULL;
         MpmFactoryReClaimMpmCtx(sh->mpm_uri_ctx);

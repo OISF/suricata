@@ -630,7 +630,9 @@ typedef struct DetectEngineCtx_ {
     uint32_t sgh_array_cnt;
     uint32_t sgh_array_size;
 
-    int32_t sgh_mpm_context_packet;
+    int32_t sgh_mpm_context_proto_tcp_packet;
+    int32_t sgh_mpm_context_proto_udp_packet;
+    int32_t sgh_mpm_context_proto_other_packet;
     int32_t sgh_mpm_context_stream;
     int32_t sgh_mpm_context_uri;
     int32_t sgh_mpm_context_hcbd;
@@ -869,7 +871,9 @@ typedef struct SigGroupHead_ {
     SignatureHeader *head_array;
 
     /* pattern matcher instances */
-    MpmCtx *mpm_ctx;
+    MpmCtx *mpm_proto_other_ctx;
+    MpmCtx *mpm_proto_tcp_ctx;
+    MpmCtx *mpm_proto_udp_ctx;
     MpmCtx *mpm_stream_ctx;
     MpmCtx *mpm_uri_ctx;
     MpmCtx *mpm_hcbd_ctx;

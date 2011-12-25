@@ -2285,8 +2285,14 @@ static int SignatureCreateMask(Signature *s) {
 
 static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
 {
-    de_ctx->sgh_mpm_context_packet =
-        MpmFactoryRegisterMpmCtxProfile("packet",
+    de_ctx->sgh_mpm_context_proto_tcp_packet =
+        MpmFactoryRegisterMpmCtxProfile("packet_proto_tcp",
+                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
+    de_ctx->sgh_mpm_context_proto_udp_packet =
+        MpmFactoryRegisterMpmCtxProfile("packet_proto_udp",
+                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
+    de_ctx->sgh_mpm_context_proto_other_packet =
+        MpmFactoryRegisterMpmCtxProfile("packet_proto_other",
                                         MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
     de_ctx->sgh_mpm_context_uri =
         MpmFactoryRegisterMpmCtxProfile("uri",
@@ -3190,11 +3196,23 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressHead *hea
                     printf("PatternMatchPrepareGroup failed\n");
                     goto error;
                 }
-                if (sgr->sh->mpm_ctx != NULL) {
-                    if (de_ctx->mpm_max_patcnt < sgr->sh->mpm_ctx->pattern_cnt)
-                        de_ctx->mpm_max_patcnt = sgr->sh->mpm_ctx->pattern_cnt;
+                if (sgr->sh->mpm_proto_tcp_ctx != NULL) {
+                    if (de_ctx->mpm_max_patcnt < sgr->sh->mpm_proto_tcp_ctx->pattern_cnt)
+                        de_ctx->mpm_max_patcnt = sgr->sh->mpm_proto_tcp_ctx->pattern_cnt;
 
-                    de_ctx->mpm_tot_patcnt += sgr->sh->mpm_ctx->pattern_cnt;
+                    de_ctx->mpm_tot_patcnt += sgr->sh->mpm_proto_tcp_ctx->pattern_cnt;
+                }
+                if (sgr->sh->mpm_proto_udp_ctx != NULL) {
+                    if (de_ctx->mpm_max_patcnt < sgr->sh->mpm_proto_udp_ctx->pattern_cnt)
+                        de_ctx->mpm_max_patcnt = sgr->sh->mpm_proto_udp_ctx->pattern_cnt;
+
+                    de_ctx->mpm_tot_patcnt += sgr->sh->mpm_proto_udp_ctx->pattern_cnt;
+                }
+                if (sgr->sh->mpm_proto_other_ctx != NULL) {
+                    if (de_ctx->mpm_max_patcnt < sgr->sh->mpm_proto_other_ctx->pattern_cnt)
+                        de_ctx->mpm_max_patcnt = sgr->sh->mpm_proto_other_ctx->pattern_cnt;
+
+                    de_ctx->mpm_tot_patcnt += sgr->sh->mpm_proto_other_ctx->pattern_cnt;
                 }
                 if (sgr->sh->mpm_uri_ctx != NULL) {
                     if (de_ctx->mpm_uri_max_patcnt < sgr->sh->mpm_uri_ctx->pattern_cnt)
@@ -3203,8 +3221,14 @@ int BuildDestinationAddressHeads(DetectEngineCtx *de_ctx, DetectAddressHead *hea
                     de_ctx->mpm_uri_tot_patcnt += sgr->sh->mpm_uri_ctx->pattern_cnt;
                 }
                 /* dbg */
-                if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && sgr->sh->mpm_ctx) {
-                    de_ctx->mpm_memory_size += sgr->sh->mpm_ctx->memory_size;
+                if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && sgr->sh->mpm_proto_tcp_ctx) {
+                    de_ctx->mpm_memory_size += sgr->sh->mpm_proto_tcp_ctx->memory_size;
+                }
+                if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && sgr->sh->mpm_proto_udp_ctx) {
+                    de_ctx->mpm_memory_size += sgr->sh->mpm_proto_udp_ctx->memory_size;
+                }
+                if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && sgr->sh->mpm_proto_other_ctx) {
+                    de_ctx->mpm_memory_size += sgr->sh->mpm_proto_other_ctx->memory_size;
                 }
                 if (!(sgr->sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY) && sgr->sh->mpm_uri_ctx) {
                     de_ctx->mpm_memory_size += sgr->sh->mpm_uri_ctx->memory_size;
@@ -3441,11 +3465,23 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
                                     printf("PatternMatchPrepareGroup failed\n");
                                     goto error;
                                 }
-                                if (dp->sh->mpm_ctx != NULL) {
-                                    if (de_ctx->mpm_max_patcnt < dp->sh->mpm_ctx->pattern_cnt)
-                                        de_ctx->mpm_max_patcnt = dp->sh->mpm_ctx->pattern_cnt;
+                                if (dp->sh->mpm_proto_tcp_ctx != NULL) {
+                                    if (de_ctx->mpm_max_patcnt < dp->sh->mpm_proto_tcp_ctx->pattern_cnt)
+                                        de_ctx->mpm_max_patcnt = dp->sh->mpm_proto_tcp_ctx->pattern_cnt;
 
-                                    de_ctx->mpm_tot_patcnt += dp->sh->mpm_ctx->pattern_cnt;
+                                    de_ctx->mpm_tot_patcnt += dp->sh->mpm_proto_tcp_ctx->pattern_cnt;
+                                }
+                                if (dp->sh->mpm_proto_udp_ctx != NULL) {
+                                    if (de_ctx->mpm_max_patcnt < dp->sh->mpm_proto_udp_ctx->pattern_cnt)
+                                        de_ctx->mpm_max_patcnt = dp->sh->mpm_proto_udp_ctx->pattern_cnt;
+
+                                    de_ctx->mpm_tot_patcnt += dp->sh->mpm_proto_udp_ctx->pattern_cnt;
+                                }
+                                if (dp->sh->mpm_proto_other_ctx != NULL) {
+                                    if (de_ctx->mpm_max_patcnt < dp->sh->mpm_proto_other_ctx->pattern_cnt)
+                                        de_ctx->mpm_max_patcnt = dp->sh->mpm_proto_other_ctx->pattern_cnt;
+
+                                    de_ctx->mpm_tot_patcnt += dp->sh->mpm_proto_other_ctx->pattern_cnt;
                                 }
                                 if (dp->sh->mpm_uri_ctx != NULL) {
                                     if (de_ctx->mpm_uri_max_patcnt < dp->sh->mpm_uri_ctx->pattern_cnt)
@@ -3454,8 +3490,14 @@ int BuildDestinationAddressHeadsWithBothPorts(DetectEngineCtx *de_ctx, DetectAdd
                                     de_ctx->mpm_uri_tot_patcnt += dp->sh->mpm_uri_ctx->pattern_cnt;
                                 }
                                 /* dbg */
-                                if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && dp->sh->mpm_ctx) {
-                                    de_ctx->mpm_memory_size += dp->sh->mpm_ctx->memory_size;
+                                if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && dp->sh->mpm_proto_tcp_ctx) {
+                                    de_ctx->mpm_memory_size += dp->sh->mpm_proto_tcp_ctx->memory_size;
+                                }
+                                if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && dp->sh->mpm_proto_udp_ctx) {
+                                    de_ctx->mpm_memory_size += dp->sh->mpm_proto_udp_ctx->memory_size;
+                                }
+                                if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_COPY) && dp->sh->mpm_proto_other_ctx) {
+                                    de_ctx->mpm_memory_size += dp->sh->mpm_proto_other_ctx->memory_size;
                                 }
                                 if (!(dp->sh->flags & SIG_GROUP_HEAD_MPM_URI_COPY) && dp->sh->mpm_uri_ctx) {
                                     de_ctx->mpm_memory_size += dp->sh->mpm_uri_ctx->memory_size;
@@ -3854,7 +3896,13 @@ int SigAddressPrepareStage5(DetectEngineCtx *de_ctx) {
                         for ( ; dp != NULL; dp = dp->next) {
                             printf("   4 Dst port(range): "); DetectPortPrint(dp);
                             printf(" (sigs %" PRIu32 ", sgh %p, maxlen %" PRIu32 ")", dp->sh->sig_cnt, dp->sh, dp->sh->mpm_content_maxlen);
-                            printf(" mpm_ctx %p, mpm_stream_ctx %p", dp->sh->mpm_ctx, dp->sh->mpm_stream_ctx);
+                            printf(" mpm_proto_tcp_ctx %p, mpm_prooto_udp_ctx "
+                                   "%p, mpm_proto_other_ctx %p mpm_stream_ctx "
+                                   "%p",
+                                   dp->sh->mpm_proto_tcp_ctx,
+                                   dp->sh->mpm_proto_udp_ctx,
+                                   dp->sh->mpm_proto_other_ctx,
+                                   dp->sh->mpm_stream_ctx);
 #ifdef PRINTSIGS
                             printf(" - ");
                             for (u = 0; u < dp->sh->sig_cnt; u++) {
@@ -4171,7 +4219,19 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
 
     if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
         MpmCtx *mpm_ctx = NULL;
-        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_packet);
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_proto_tcp_packet);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+        //printf("packet- %d\n", mpm_ctx->pattern_cnt);
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_proto_udp_packet);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+        //printf("packet- %d\n", mpm_ctx->pattern_cnt);
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_proto_other_packet);
         if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
             mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
@@ -9306,8 +9366,11 @@ static int SigTestSgh05 (void) {
         goto end;
     }
 
-    if (sgh->mpm_ctx != NULL) {
-        printf("sgh->mpm_ctx != NULL: ");
+    if (sgh->mpm_proto_tcp_ctx != NULL ||
+        sgh->mpm_proto_udp_ctx != NULL || sgh->mpm_proto_other_ctx != NULL) {
+        printf("sgh->mpm_proto_tcp_ctx != NULL || "
+               "sgh->mpm_proto_udp_ctx != NULL || "
+               "sgh->mpm_proto_other_ctx != NULL: ");
         goto end;
     }
 
@@ -9317,7 +9380,7 @@ static int SigTestSgh05 (void) {
     }
 
     if (sgh->mpm_stream_ctx->mpm_type != MPM_WUMANBER) {
-        printf("sgh->mpm_type != MPM_WUMANBER, expected %d, got %d: ", MPM_WUMANBER, sgh->mpm_ctx->mpm_type);
+        printf("sgh->mpm_type != MPM_WUMANBER, expected %d, got %d: ", MPM_WUMANBER, sgh->mpm_stream_ctx->mpm_type);
         goto end;
     }
 
