@@ -706,13 +706,22 @@ TmEcode SCCudaPBBatchPackets(ThreadVars *tv, Packet *p, void *data, PacketQueue 
         return TM_ECODE_OK;
     }
 
+    MpmCtx *mpm_ctx = NULL;
+    if (p->proto == IPPROTO_TCP) {
+        mpm_ctx = sgh->mpm_proto_tcp_ctx;
+    } else if (p->proto == IPPROTO_UDP) {
+        mpm_ctx = sgh->mpm_proto_udp_ctx;
+    } else {
+        mpm_ctx = sgh->mpm_proto_other_ctx;
+    }
+
     /* if one of these conditions fail we don't have to run the mpm on this
      * packet.  Firstly if the payload_len is == 0, we don't have a payload
      * to match against.  Next if we don't have a mpm_context against this
      * sgh, indicating we don't have any patterns in this sgh, again we don't
      * have anything to run the PM against.  Finally if the flow doesn't want
      * to analyze packets for this flow, we can chuck this packet out as well */
-    if ( !(p->payload_len > 0 && sgh->mpm_ctx != NULL &&
+    if ( !(p->payload_len > 0 && mpm_ctx != NULL &&
            !(p->flags & PKT_NOPAYLOAD_INSPECTION)) ) {
         SCLogDebug("Either p->payload_len <= 0 or mpm_ctx for the packet is NULL "
                    "or PKT_NOPAYLOAD_INSPECTION set for this packet");
@@ -720,7 +729,7 @@ TmEcode SCCudaPBBatchPackets(ThreadVars *tv, Packet *p, void *data, PacketQueue 
     }
 
     /* the cuda b2g context */
-    B2gCudaCtx *ctx = sgh->mpm_ctx->ctx;
+    B2gCudaCtx *ctx = mpm_ctx->ctx;
 
     /* if we have a 1 byte search kernel set we don't buffer this packet for
      * cuda matching and instead run this non-cuda mpm function to be run on
@@ -767,8 +776,8 @@ TmEcode SCCudaPBBatchPackets(ThreadVars *tv, Packet *p, void *data, PacketQueue 
 
     /* store the data in the packets_buffer for this packet, which would be passed
      * over to the GPU for processing */
-    curr_packet->m = ((B2gCudaCtx *)(sgh->mpm_ctx->ctx))->m;
-    curr_packet->table = ((B2gCudaCtx *)(sgh->mpm_ctx->ctx))->cuda_B2G;
+    curr_packet->m = ((B2gCudaCtx *)(mpm_ctx->ctx))->m;
+    curr_packet->table = ((B2gCudaCtx *)(mpm_ctx->ctx))->cuda_B2G;
     curr_packet->payload_len = p->payload_len;
     memcpy(curr_packet->payload, p->payload, p->payload_len);
 

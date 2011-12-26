@@ -168,31 +168,9 @@ uint32_t PacketPatternSearchWithStreamCtx(DetectEngineThreadCtx *det_ctx,
 
     uint32_t ret;
 
-#ifndef __SC_CUDA_SUPPORT__
     ret = mpm_table[det_ctx->sgh->mpm_stream_ctx->mpm_type].
         Search(det_ctx->sgh->mpm_stream_ctx, &det_ctx->mtc, &det_ctx->pmq,
                p->payload, p->payload_len);
-#else
-    /* if the user has enabled cuda support, but is not using the cuda mpm
-     * algo, then we shouldn't take the path of the dispatcher.  Call the mpm
-     * directly */
-    if (det_ctx->sgh->mpm_stream_ctx->mpm_type != MPM_B2G_CUDA) {
-        ret = mpm_table[det_ctx->sgh->mpm_stream_ctx->mpm_type].
-            Search(det_ctx->sgh->mpm_stream_ctx, &det_ctx->mtc, &det_ctx->pmq,
-                   p->payload, p->payload_len);
-        SCReturnInt(ret);
-    }
-
-    if (p->cuda_mpm_enabled) {
-        ret = B2gCudaResultsPostProcessing(p, det_ctx->sgh->mpm_stream_ctx,
-                                           &det_ctx->mtc, &det_ctx->pmq);
-    } else {
-        ret = mpm_table[det_ctx->sgh->mpm_stream_ctx->mpm_type].
-            Search(det_ctx->sgh->mpm_stream_ctx, &det_ctx->mtc, &det_ctx->pmq,
-                   p->payload, p->payload_len);
-    }
-
-#endif
 
     SCReturnInt(ret);
 }
@@ -211,8 +189,6 @@ uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
     uint32_t ret;
     MpmCtx *mpm_ctx = NULL;
 
-
-#ifndef __SC_CUDA_SUPPORT__
     if (p->proto == IPPROTO_TCP) {
         mpm_ctx = det_ctx->sgh->mpm_proto_tcp_ctx;
     } else if (p->proto == IPPROTO_UDP) {
@@ -224,6 +200,7 @@ uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
     if (mpm_ctx == NULL)
         SCReturnInt(0);
 
+#ifndef __SC_CUDA_SUPPORT__
     ret = mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
                                               &det_ctx->mtc,
                                               &det_ctx->pmq,
@@ -233,26 +210,25 @@ uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
     /* if the user has enabled cuda support, but is not using the cuda mpm
      * algo, then we shouldn't take the path of the dispatcher.  Call the mpm
      * directly */
-    if (det_ctx->sgh->mpm_ctx->mpm_type != MPM_B2G_CUDA) {
-        ret = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Search(det_ctx->sgh->mpm_ctx,
-                                                                &det_ctx->mtc,
-                                                                &det_ctx->pmq,
-                                                                p->payload,
-                                                                p->payload_len);
+    if (mpm_ctx->mpm_type != MPM_B2G_CUDA) {
+        ret = mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                                                  &det_ctx->mtc,
+                                                  &det_ctx->pmq,
+                                                  p->payload,
+                                                  p->payload_len);
         SCReturnInt(ret);
     }
 
     if (p->cuda_mpm_enabled) {
-        ret = B2gCudaResultsPostProcessing(p, det_ctx->sgh->mpm_ctx,
-                                           &det_ctx->mtc, &det_ctx->pmq);
+        ret = B2gCudaResultsPostProcessing(p, mpm_ctx, &det_ctx->mtc,
+                                           &det_ctx->pmq);
     } else {
-        ret = mpm_table[det_ctx->sgh->mpm_ctx->mpm_type].Search(det_ctx->sgh->mpm_ctx,
-                                                                &det_ctx->mtc,
-                                                                &det_ctx->pmq,
-                                                                p->payload,
-                                                                p->payload_len);
+        ret = mpm_table[mpm_ctx->mpm_type].Search(mpm_ctx,
+                                                  &det_ctx->mtc,
+                                                  &det_ctx->pmq,
+                                                  p->payload,
+                                                  p->payload_len);
     }
-
 #endif
 
     SCReturnInt(ret);
@@ -564,8 +540,9 @@ void PatternMatchDestroyGroup(SigGroupHead *sh) {
     /* content */
     if (sh->flags & SIG_GROUP_HAVECONTENT &&
         !(sh->flags & SIG_GROUP_HEAD_MPM_COPY)) {
-        SCLogDebug("destroying mpm_ctx %p (sh %p)", sh->mpm_ctx, sh);
 
+        SCLogDebug("destroying mpm_ctx %p (sh %p)",
+                   sh->mpm_proto_tcp_ctx, sh);
         if (sh->mpm_proto_tcp_ctx != NULL &&
             !MpmFactoryIsMpmCtxAvailable(sh->mpm_proto_tcp_ctx)) {
             mpm_table[sh->mpm_proto_tcp_ctx->mpm_type].
@@ -575,6 +552,8 @@ void PatternMatchDestroyGroup(SigGroupHead *sh) {
         /* ready for reuse */
         sh->mpm_proto_tcp_ctx = NULL;
 
+        SCLogDebug("destroying mpm_ctx %p (sh %p)",
+                   sh->mpm_proto_udp_ctx, sh);
         if (sh->mpm_proto_udp_ctx != NULL &&
             !MpmFactoryIsMpmCtxAvailable(sh->mpm_proto_udp_ctx)) {
             mpm_table[sh->mpm_proto_udp_ctx->mpm_type].
@@ -584,6 +563,8 @@ void PatternMatchDestroyGroup(SigGroupHead *sh) {
         /* ready for reuse */
         sh->mpm_proto_udp_ctx = NULL;
 
+        SCLogDebug("destroying mpm_ctx %p (sh %p)",
+                   sh->mpm_proto_other_ctx, sh);
         if (sh->mpm_proto_other_ctx != NULL &&
             !MpmFactoryIsMpmCtxAvailable(sh->mpm_proto_other_ctx)) {
             mpm_table[sh->mpm_proto_other_ctx->mpm_type].

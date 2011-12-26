@@ -195,7 +195,7 @@ int32_t MpmFactoryIsMpmCtxAvailable(MpmCtx *);
  */
 typedef struct MpmCudaConf_ {
     int32_t packet_buffer_limit;
-    int16_t packet_size_limit;
+    uint16_t packet_size_limit;
     int8_t packet_buffers;
     double batching_timeout;
     int8_t page_locked;

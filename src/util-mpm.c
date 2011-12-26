@@ -41,6 +41,7 @@
 #include "detect-engine.h"
 #include "util-cuda-handlers.h"
 #include "util-cuda.h"
+#include "util-misc.h"
 #include "conf.h"
 #include "conf-yaml-loader.h"
 #include "queue.h"
@@ -541,14 +542,11 @@ MpmCudaConf *MpmCudaConfParse(void)
                 SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
                            "cuda.mpm.packet_size_limit.  Either NULL or empty");
             } else {
-                long double res;
-                if (ParseSizeString(packet_size_limit, &res) < 0) {
+                if (ParseSizeStringU16(packet_size_limit, &profile->packet_size_limit) < 0) {
                     SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
                                "cuda.mpm.packet_size_limit - %s", packet_size_limit);
                     exit(EXIT_FAILURE);
                 }
-
-                profile->packet_size_limit = res;
 
                 if (profile->packet_size_limit <= 0) {
                     SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry for "
