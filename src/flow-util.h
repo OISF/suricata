@@ -61,6 +61,7 @@
         (f)->hprev = NULL; \
         (f)->lnext = NULL; \
         (f)->lprev = NULL; \
+        (f)->autofp_tmqh_flow_qid = -1; \
         RESET_COUNTERS((f)); \
     } while (0)
 
@@ -91,6 +92,7 @@
         (f)->tag_list = NULL; \
         GenericVarFree((f)->flowvar); \
         (f)->flowvar = NULL; \
+        (f)->autofp_tmqh_flow_qid = -1; \
         RESET_COUNTERS((f)); \
     } while(0)
 

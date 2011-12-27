@@ -311,6 +311,8 @@ typedef struct Flow_
     uint32_t tosrcpktcnt;
     uint64_t bytecnt;
 #endif
+
+    int32_t autofp_tmqh_flow_qid;
 } Flow;
 
 enum {
