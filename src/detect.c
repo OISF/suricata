@@ -1457,8 +1457,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
             /* if we have stream msgs, inspect against those first,
              * but not for a "dsize" signature */
-            if (!(s->flags & SIG_FLAG_REQUIRE_PACKET) && smsg != NULL) {
+            if (!(s->flags & SIG_FLAG_REQUIRE_PACKET)) {
                 char pmatch = 0;
+                if (smsg != NULL) {
                 uint8_t pmq_idx = 0;
                 StreamMsg *smsg_inspect = smsg;
                 for ( ; smsg_inspect != NULL; smsg_inspect = smsg_inspect->next, pmq_idx++) {
@@ -1495,9 +1496,14 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     }
                 }
 
+                } /* if (smsg != NULL) */
+
                 /* no match? then inspect packet payload */
                 if (pmatch == 0) {
                     SCLogDebug("no match in smsg, fall back to packet payload");
+
+                    if (p->flags & PKT_STREAM_ADD)
+                        goto next;
 
                     if (sms_runflags & SMS_USED_PM) {
                         if (s->flags & SIG_FLAG_MPM_PACKET && !(s->flags & SIG_FLAG_MPM_PACKET_NEG) &&
@@ -1509,8 +1515,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                             goto next;
                         }
                     } else {
-                        if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1)
+                        if (DetectEngineInspectPacketPayload(de_ctx, det_ctx, s, p->flow, flags, alstate, p) != 1) {
                             goto next;
+                        }
                     }
                 }
             } else {
