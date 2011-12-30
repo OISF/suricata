@@ -320,7 +320,7 @@ match:
  * \warning Make sure flow is locked.
  */
 static void DetectEngineBufferHttpHeaders(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                          HtpState *htp_state)
+                                          HtpState *htp_state, uint8_t flags)
 {
     int idx = 0;
     htp_tx_t *tx = NULL;
@@ -374,12 +374,19 @@ static void DetectEngineBufferHttpHeaders(DetectEngineThreadCtx *det_ctx, Flow *
         if (tx == NULL)
             continue;
 
+        table_t *headers;
+        if (flags & STREAM_TOSERVER) {
+            headers = tx->request_headers;
+        } else {
+            headers = tx->response_headers;
+        }
+
         htp_header_t *h = NULL;
         uint8_t *headers_buffer = NULL;
         size_t headers_buffer_len = 0;
 
-        table_iterator_reset(tx->request_headers);
-        while (table_iterator_next(tx->request_headers, (void **)&h) != NULL) {
+        table_iterator_reset(headers);
+        while (table_iterator_next(headers, (void **)&h) != NULL) {
             size_t size1 = bstr_size(h->name);
             size_t size2 = bstr_size(h->value);
 
@@ -416,14 +423,15 @@ end:
  *  \brief run the mpm against the assembled http header buffer(s)
  *  \retval cnt Number of matches reported by the mpm algo.
  */
-int DetectEngineRunHttpHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f, HtpState *htp_state)
+int DetectEngineRunHttpHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
+                                 HtpState *htp_state, uint8_t flags)
 {
     int i;
     uint32_t cnt = 0;
 
     if (det_ctx->hhd_buffers_list_len == 0) {
         SCMutexLock(&f->m);
-        DetectEngineBufferHttpHeaders(det_ctx, f, htp_state);
+        DetectEngineBufferHttpHeaders(det_ctx, f, htp_state, flags);
         SCMutexUnlock(&f->m);
     }
 
@@ -460,7 +468,7 @@ int DetectEngineInspectHttpHeader(DetectEngineCtx *de_ctx,
 
     if (det_ctx->hhd_buffers_list_len == 0) {
         SCMutexLock(&f->m);
-        DetectEngineBufferHttpHeaders(det_ctx, f, alstate);
+        DetectEngineBufferHttpHeaders(det_ctx, f, alstate, flags);
         SCMutexUnlock(&f->m);
     }
 

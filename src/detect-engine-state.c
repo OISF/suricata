@@ -912,20 +912,24 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                     }
                 }
                 if (s->sm_lists[DETECT_SM_LIST_HHDMATCH] != NULL) {
-                    inspect_flags |= DE_STATE_FLAG_HHD_INSPECT;
-                    if (DetectEngineInspectHttpHeader(de_ctx, det_ctx, s, f,
-                                flags, alstate) == 1) {
-                        match_flags |= DE_STATE_FLAG_HHD_MATCH;
+                    if (!(item->flags & DE_STATE_FLAG_HHD_MATCH)) {
+                        inspect_flags |= DE_STATE_FLAG_HHD_INSPECT;
+                        if (DetectEngineInspectHttpHeader(de_ctx, det_ctx, s, f,
+                                                          flags, alstate) == 1) {
+                            match_flags |= DE_STATE_FLAG_HHD_MATCH;
+                        }
                     }
                     SCLogDebug("inspecting http header");
                 }
                 if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL) {
-                    inspect_flags |= DE_STATE_FLAG_HRHD_INSPECT;
-                    if (DetectEngineInspectHttpRawHeader(de_ctx, det_ctx, s, f,
-                                flags, alstate) == 1) {
-                        match_flags |= DE_STATE_FLAG_HRHD_MATCH;
+                    if (!(item->flags & DE_STATE_FLAG_HRHD_MATCH)) {
+                        inspect_flags |= DE_STATE_FLAG_HRHD_INSPECT;
+                        if (DetectEngineInspectHttpRawHeader(de_ctx, det_ctx, s, f,
+                                                             flags, alstate) == 1) {
+                            match_flags |= DE_STATE_FLAG_HRHD_MATCH;
+                        }
+                        SCLogDebug("inspecting http raw header");
                     }
-                    SCLogDebug("inspecting http raw header");
                 }
                 if (s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL) {
                     if (!(item->flags & DE_STATE_FLAG_HMD_MATCH)) {
@@ -933,12 +937,14 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                     }
                 }
                 if (s->sm_lists[DETECT_SM_LIST_HCDMATCH] != NULL) {
-                    inspect_flags |= DE_STATE_FLAG_HCD_INSPECT;
-                    if (DetectEngineInspectHttpCookie(de_ctx, det_ctx, s, f,
-                                flags, alstate) == 1) {
-                        match_flags |= DE_STATE_FLAG_HCD_MATCH;
+                    if (!(item->flags & DE_STATE_FLAG_HCD_MATCH)) {
+                        inspect_flags |= DE_STATE_FLAG_HCD_INSPECT;
+                        if (DetectEngineInspectHttpCookie(de_ctx, det_ctx, s, f,
+                                                          flags, alstate) == 1) {
+                            match_flags |= DE_STATE_FLAG_HCD_MATCH;
+                        }
+                        SCLogDebug("inspecting http cookie");
                     }
-                    SCLogDebug("inspecting http cookie");
                 }
                 if (s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL) {
                     if (!(item->flags & DE_STATE_FLAG_HRUD_MATCH)) {
