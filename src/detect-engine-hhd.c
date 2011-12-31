@@ -431,14 +431,58 @@ int DetectEngineRunHttpHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
 
     if (det_ctx->hhd_buffers_list_len == 0) {
         SCMutexLock(&f->m);
+        DetectEngineBufferHttpHeaders(det_ctx, f, htp_state,
+                                      (flags & STREAM_TOSERVER) ? STREAM_TOCLIENT : STREAM_TOSERVER);
+        SCMutexUnlock(&f->m);
+
+        for (i = 0; i < det_ctx->hhd_buffers_list_len; i++) {
+            cnt += HttpHeaderPatternSearch(det_ctx,
+                                           det_ctx->hhd_buffers[i],
+                                           det_ctx->hhd_buffers_len[i]);
+        }
+
+        DetectEngineCleanHHDBuffers(det_ctx);
+
+        SCMutexLock(&f->m);
         DetectEngineBufferHttpHeaders(det_ctx, f, htp_state, flags);
         SCMutexUnlock(&f->m);
-    }
 
-    for (i = 0; i < det_ctx->hhd_buffers_list_len; i++) {
-        cnt += HttpHeaderPatternSearch(det_ctx,
-                                       det_ctx->hhd_buffers[i],
-                                       det_ctx->hhd_buffers_len[i]);
+        for (i = 0; i < det_ctx->hhd_buffers_list_len; i++) {
+            cnt += HttpHeaderPatternSearch(det_ctx,
+                                           det_ctx->hhd_buffers[i],
+                                           det_ctx->hhd_buffers_len[i]);
+        }
+    } else {
+        for (i = 0; i < det_ctx->hhd_buffers_list_len; i++) {
+            cnt += HttpHeaderPatternSearch(det_ctx,
+                                           det_ctx->hhd_buffers[i],
+                                           det_ctx->hhd_buffers_len[i]);
+        }
+
+        uint16_t hhd_buffers_list_len = det_ctx->hhd_buffers_list_len;
+        uint8_t **hhd_buffers = det_ctx->hhd_buffers;
+        uint32_t *hhd_buffers_len = det_ctx->hhd_buffers_len;
+
+        det_ctx->hhd_buffers_list_len = 0;
+        det_ctx->hhd_buffers = NULL;
+        det_ctx->hhd_buffers_len = NULL;
+
+        SCMutexLock(&f->m);
+        DetectEngineBufferHttpHeaders(det_ctx, f, htp_state,
+                                      (flags & STREAM_TOSERVER) ? STREAM_TOCLIENT : STREAM_TOSERVER);
+        SCMutexUnlock(&f->m);
+
+        for (i = 0; i < det_ctx->hhd_buffers_list_len; i++) {
+            cnt += HttpHeaderPatternSearch(det_ctx,
+                                           det_ctx->hhd_buffers[i],
+                                           det_ctx->hhd_buffers_len[i]);
+        }
+
+        DetectEngineCleanHHDBuffers(det_ctx);
+
+        det_ctx->hhd_buffers_list_len = hhd_buffers_list_len;
+        det_ctx->hhd_buffers = hhd_buffers;
+        det_ctx->hhd_buffers_len = hhd_buffers_len;
     }
 
     return cnt;
