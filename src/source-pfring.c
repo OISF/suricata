@@ -43,6 +43,8 @@
 #include "source-pfring.h"
 #include "util-debug.h"
 #include "util-privs.h"
+#include "util-device.h"
+#include "runmodes.h"
 
 TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot);
 TmEcode ReceivePfringThreadInit(ThreadVars *, void *, void **);
@@ -117,7 +119,7 @@ typedef struct PfringThreadVars_
 
     ThreadVars *tv;
     TmSlot *slot;
-    
+
     /* threads count */
     int threads;
 
@@ -126,9 +128,12 @@ typedef struct PfringThreadVars_
 #endif /* HAVE_PFRING_CLUSTER_TYPE */
     uint8_t cluster_id;
     char *interface;
+    LiveDevice *livedev;
 #ifdef HAVE_PFRING_SET_BPF_FILTER
     char *bpf_filter;
 #endif /* HAVE_PFRING_SET_BPF_FILTER */
+
+     ChecksumValidationMode checksum_mode;
 } PfringThreadVars;
 
 /**
@@ -174,6 +179,8 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
 
     ptv->bytes += h->caplen;
     ptv->pkts++;
+    SC_ATOMIC_ADD(ptv->livedev->pkts, 1);
+    p->livedev = ptv->livedev;
 
     p->ts.tv_sec = h->ts.tv_sec;
     p->ts.tv_usec = h->ts.tv_usec;
@@ -182,10 +189,27 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
      * so that is what we do here. */
     p->datalink = LINKTYPE_ETHERNET;
 
-    /* Packet is being sent */
-    if (h->extended_hdr.rx_direction == 0) {
-        /* Checksum can be offloaded */
-        p->flags |= PKT_IGNORE_CHECKSUM;
+    switch (ptv->checksum_mode) {
+        case CHECKSUM_VALIDATION_RXONLY:
+            if (h->extended_hdr.rx_direction == 0) {
+                p->flags |= PKT_IGNORE_CHECKSUM;
+            }
+            break;
+        case CHECKSUM_VALIDATION_DISABLE:
+            p->flags |= PKT_IGNORE_CHECKSUM;
+            break;
+        case CHECKSUM_VALIDATION_AUTO:
+            if (ptv->livedev->ignore_checksum) {
+                p->flags |= PKT_IGNORE_CHECKSUM;
+            } else if (ChecksumAutoModeCheck(ptv->pkts,
+                        SC_ATOMIC_GET(ptv->livedev->pkts),
+                        SC_ATOMIC_GET(ptv->livedev->invalid_checksums))) {
+                ptv->livedev->ignore_checksum = 1;
+                p->flags |= PKT_IGNORE_CHECKSUM;
+            }
+            break;
+        default:
+            break;
     }
 
     SET_PKT_LEN(p, h->caplen);
@@ -303,6 +327,12 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     ptv->interface = SCStrdup(pfconf->iface);
 
+    ptv->livedev = LiveGetDevice(pfconf->iface);
+    if (ptv->livedev == NULL) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
+        SCReturnInt(TM_ECODE_FAILED);
+    }
+
     ptv->pd = pfring_open(ptv->interface, LIBPFRING_PROMISC, (uint32_t)default_packet_size, LIBPFRING_REENTRANT);
     if (ptv->pd == NULL) {
         SCLogError(SC_ERR_PF_RING_OPEN,"opening %s failed: pfring_open error",
@@ -313,6 +343,8 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
         pfring_set_application_name(ptv->pd, PROG_NAME);
         pfring_version(ptv->pd, &version);
     }
+
+    ptv->checksum_mode = pfconf->checksum_mode;
 
     /* We only set cluster info if the number of pfring threads is greater than 1 */
     ptv->threads = pfconf->threads;

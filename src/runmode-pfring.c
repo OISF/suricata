@@ -128,6 +128,7 @@ void *OldParsePfringConfig(const char *iface)
     pfconf->ctype = default_ctype;
 #endif
     pfconf->DerefFunc = PfringDerefConfig;
+    pfconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
     SC_ATOMIC_INIT(pfconf->ref);
     SC_ATOMIC_ADD(pfconf->ref, 1);
 
@@ -314,6 +315,23 @@ void *ParsePfringConfig(const char *iface)
             return NULL;
         }
     }
+
+    if (ConfGetChildValue(if_root, "checksum-checks", &tmpctype) != 1) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Could not get checksum-checks from config");
+    } else {
+        if (strcmp(tmpctype, "auto") == 0) {
+            pfconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
+        } else if (strcmp(tmpctype, "yes") == 0) {
+            pfconf->checksum_mode = CHECKSUM_VALIDATION_ENABLE;
+        } else if (strcmp(tmpctype, "no") == 0) {
+            pfconf->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
+        } else if (strcmp(tmpctype, "rx-only") == 0) {
+            pfconf->checksum_mode = CHECKSUM_VALIDATION_RXONLY;
+        } else {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid value for checksum-checks for %s", pfconf->iface);
+        }
+    }
+
 
 #endif
 

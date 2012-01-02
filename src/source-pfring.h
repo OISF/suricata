@@ -44,6 +44,7 @@ typedef struct PfringIfaceConfig_
 #ifdef HAVE_PFRING_SET_BPF_FILTER
     char *bpf_filter;
 #endif /* HAVE_PFRING_SET_BPF_FILTER */
+    ChecksumValidationMode checksum_mode;
     SC_ATOMIC_DECLARE(unsigned int, ref);
     void (*DerefFunc)(void *);
 } PfringIfaceConfig;
