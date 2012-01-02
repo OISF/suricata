@@ -204,7 +204,7 @@ int RunModeIdsPcapSingle(DetectEngineCtx *de_ctx)
 int RunModeIdsPcapAuto(DetectEngineCtx *de_ctx)
 {
     /* tname = Detect + cpuid, this is 11bytes length as max */
-    char *live_dev;
+    char *live_dev = NULL;
     int ret;
 
     SCEnter();
