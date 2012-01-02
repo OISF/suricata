@@ -165,7 +165,7 @@ void *ParseAFPConfig(const char *iface)
     }
 
     if (ConfGetChildValue(if_root, "cluster-type", &tmpctype) != 1) {
-        SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,"Could not get cluster-type fron config");
+        SCLogError(SC_ERR_GET_CLUSTER_TYPE_FAILED,"Could not get cluster-type from config");
     } else if (strcmp(tmpctype, "cluster_round_robin") == 0) {
         SCLogInfo("Using round-robin cluster mode for AF_PACKET (iface %s)",
                 aconf->iface);
