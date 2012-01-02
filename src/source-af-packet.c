@@ -160,13 +160,12 @@ typedef struct AFPThreadVars_
     /* socket buffer size */
     int buffer_size;
     int promisc;
-    int detect_offload;
+    ChecksumValidationMode checksum_mode;
 
     int cluster_id;
     int cluster_type;
 
     int threads;
-
 
 } AFPThreadVars;
 
@@ -290,20 +289,28 @@ int AFPRead(AFPThreadVars *ptv)
     SCLogDebug("pktlen: %" PRIu32 " (pkt %p, pkt data %p)",
                GET_PKT_LEN(p), p, GET_PKT_DATA(p));
 
-    for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
-        struct tpacket_auxdata *aux;
-
-        if (cmsg->cmsg_len < CMSG_LEN(sizeof(struct tpacket_auxdata)) ||
-                cmsg->cmsg_level != SOL_PACKET ||
-                cmsg->cmsg_type != PACKET_AUXDATA)
-            continue;
-
-        aux = (struct tpacket_auxdata *)CMSG_DATA(cmsg);
-
-        if (aux->tp_status & TP_STATUS_CSUMNOTREADY) {
+    /* We only check for checksum disable */
+    if (ptv->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
             p->flags |= PKT_IGNORE_CHECKSUM;
+    } else {
+        /* List is NULL if we don't have activated auxiliary data */
+        for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+            struct tpacket_auxdata *aux;
+
+            if (cmsg->cmsg_len < CMSG_LEN(sizeof(struct tpacket_auxdata)) ||
+                    cmsg->cmsg_level != SOL_PACKET ||
+                    cmsg->cmsg_type != PACKET_AUXDATA)
+                continue;
+
+            aux = (struct tpacket_auxdata *)CMSG_DATA(cmsg);
+
+            if (aux->tp_status & TP_STATUS_CSUMNOTREADY) {
+                p->flags |= PKT_IGNORE_CHECKSUM;
+            }
+            break;
         }
     }
+
 
     if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
         TmqhOutputPacketpool(ptv->tv, p);
@@ -523,7 +530,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         }
     }
 
-    if (ptv->detect_offload) {
+    if (ptv->checksum_mode == CHECKSUM_VALIDATION_KERNEL) {
         int    val = 1;
         if (setsockopt(ptv->socket, SOL_PACKET, PACKET_AUXDATA, &val,
                     sizeof(val)) == -1 && errno != ENOPROTOOPT) {
@@ -613,7 +620,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
     ptv->buffer_size = afpconfig->buffer_size;
 
     ptv->promisc = afpconfig->promisc;
-    ptv->detect_offload = afpconfig->detect_offload;
+    ptv->checksum_mode = afpconfig->checksum_mode;
 
     ptv->threads = 1;
 #ifdef HAVE_PACKET_FANOUT

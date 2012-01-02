@@ -125,7 +125,7 @@ void *ParseAFPConfig(const char *iface)
     aconf->cluster_id = 1;
     aconf->cluster_type = PACKET_FANOUT_HASH;
     aconf->promisc = 1;
-    aconf->detect_offload = 1;
+    aconf->checksum_mode = CHECKSUM_VALIDATION_KERNEL;
     aconf->DerefFunc = AFPDerefConfig;
 
     /* Find initial node */
@@ -204,14 +204,25 @@ void *ParseAFPConfig(const char *iface)
                 aconf->iface);
         aconf->promisc = 0;
     }
-    ConfGetChildValueBool(if_root, "detect-offload", (int *)&boolval);
-    if (! boolval) {
-        SCLogInfo("Disabling checksum offloading detection for %s",
-                aconf->iface);
-        aconf->detect_offload = 0;
+
+    if (ConfGetChildValue(if_root, "checksum-checks", &tmpctype) != 1) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "Could not get checksum-checks from config");
+    } else {
+        if (strcmp(tmpctype, "auto") == 0) {
+            SCLogError(SC_ERR_INVALID_ARGUMENT,"'auto' mode is currently not supported");
+            /*
+            aconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
+            */
+        } else if (strcmp(tmpctype, "yes") == 0) {
+            aconf->checksum_mode = CHECKSUM_VALIDATION_ENABLE;
+        } else if (strcmp(tmpctype, "no") == 0) {
+            aconf->checksum_mode = CHECKSUM_VALIDATION_DISABLE;
+        } else if (strcmp(tmpctype, "kernel") == 0) {
+            aconf->checksum_mode = CHECKSUM_VALIDATION_KERNEL;
+        } else {
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid value for checksum-checks for %s", aconf->iface);
+        }
     }
-
-
 
     return aconf;
 }
