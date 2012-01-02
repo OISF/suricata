@@ -127,6 +127,7 @@ void *ParseAFPConfig(const char *iface)
     aconf->promisc = 1;
     aconf->checksum_mode = CHECKSUM_VALIDATION_KERNEL;
     aconf->DerefFunc = AFPDerefConfig;
+    aconf->flags = 0;
 
     /* Find initial node */
     af_packet_node = ConfGetNode("af-packet");
@@ -204,6 +205,13 @@ void *ParseAFPConfig(const char *iface)
                 aconf->iface);
         aconf->promisc = 0;
     }
+    ConfGetChildValueBool(if_root, "use-mmap", (int *)&boolval);
+    if (boolval) {
+        SCLogInfo("Enabling mmaped capture on iface %s",
+                aconf->iface);
+        aconf->flags |= AFP_RING_MODE;
+    }
+
 
     if (ConfGetChildValue(if_root, "checksum-checks", &tmpctype) == 1) {
         if (strcmp(tmpctype, "auto") == 0) {

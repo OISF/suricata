@@ -38,6 +38,9 @@
 #include <linux/if_packet.h>
 #endif /* HAVE_PACKET_FANOUT */
 
+/* value for flags */
+#define AFP_RING_MODE (1<<0)
+
 #define AFP_FILE_MAX_PKTS 256
 #define AFP_IFACE_NAME_LENGTH 48
 
@@ -53,6 +56,8 @@ typedef struct AFPIfaceConfig_
     int cluster_type;
     /* promisc mode */
     int promisc;
+    /* misc use flags including ring mode */
+    int flags;
     ChecksumValidationMode checksum_mode;
     SC_ATOMIC_DECLARE(unsigned int, ref);
     void (*DerefFunc)(void *);
