@@ -31,10 +31,18 @@
 
 #include "threadvars.h"
 
+typedef enum {
+    CHECKSUM_VALIDATION_DISABLE,
+    CHECKSUM_VALIDATION_ENABLE,
+    CHECKSUM_VALIDATION_AUTO,
+    CHECKSUM_VALIDATION_RXONLY,
+    CHECKSUM_VALIDATION_KERNEL,
+} ChecksumValidationMode;
+
 #include "source-nfq.h"
 #include "source-ipfw.h"
-
 #include "source-pcap.h"
+
 #include "action-globals.h"
 
 #include "decode-ethernet.h"
