@@ -83,6 +83,8 @@ typedef struct PcapThreadVars_
     /* pcap buffer size */
     int pcap_buffer_size;
 
+    ChecksumValidationMode checksum_mode;
+
 #if LIBPCAP_VERSION_MAJOR == 0
     char iface[PCAP_IFACE_NAME_LENGTH];
 #endif
@@ -213,6 +215,10 @@ void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt) {
         SCReturn;
     }
 
+    if (ptv->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
+        p->flags |= PKT_IGNORE_CHECKSUM;
+    }
+
     if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
         pcap_breakloop(ptv->pcap_handle);
         ptv->cb_result = TM_ECODE_FAILED;
@@ -314,6 +320,8 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     memset(ptv, 0, sizeof(PcapThreadVars));
 
     ptv->tv = tv;
+
+    ptv->checksum_mode = pcapconfig->checksum_mode;
 
     SCLogInfo("using interface %s", (char *)pcapconfig->iface);
     /* XXX create a general pcap setup function */
