@@ -65,7 +65,7 @@
  *
  * \retval IPOnlyCIDRItem address of the new instance
  */
-IPOnlyCIDRItem *IPOnlyCIDRItemNew() {
+static IPOnlyCIDRItem *IPOnlyCIDRItemNew() {
     SCEnter();
     IPOnlyCIDRItem *item = NULL;
 
@@ -77,7 +77,7 @@ IPOnlyCIDRItem *IPOnlyCIDRItemNew() {
     SCReturnPtr(item, "IPOnlyCIDRItem");
 }
 
-uint8_t IPOnlyCIDRItemCompare(IPOnlyCIDRItem *head,
+static uint8_t IPOnlyCIDRItemCompare(IPOnlyCIDRItem *head,
                                          IPOnlyCIDRItem *item) {
     uint8_t i = 0;
     for (; i < head->netmask / 32 || i < 1; i++) {
@@ -86,518 +86,6 @@ uint8_t IPOnlyCIDRItemCompare(IPOnlyCIDRItem *head,
             return 1;
     }
     return 0;
-}
-
-
-/**
- * \brief This function insert a IPOnlyCIDRItem
- *        to a list of IPOnlyCIDRItems sorted by netmask
- *        ascending
- * \param head Pointer to the head of IPOnlyCIDRItems list
- * \param item Pointer to the item to insert in the list
- *
- * \retval IPOnlyCIDRItem address of the new head if apply
- */
-IPOnlyCIDRItem *IPOnlyCIDRItemInsertReal(IPOnlyCIDRItem *head,
-                                         IPOnlyCIDRItem *item)
-{
-    IPOnlyCIDRItem *it, *prev = NULL;
-
-    if (item == NULL)
-        return head;
-
-    /* Compare with the head */
-    if (item->netmask < head->netmask || (item->netmask == head->netmask && IPOnlyCIDRItemCompare(head, item))) {
-        item->next = head;
-        return item;
-    }
-
-    if (item->netmask == head->netmask && !IPOnlyCIDRItemCompare(head, item)) {
-        item->next = head->next;
-        head->next = item;
-        return head;
-    }
-
-    for (prev = it = head;
-         it != NULL && it->netmask < item->netmask;
-         it = it->next)
-        prev = it;
-
-    if (it == NULL) {
-        prev->next = item;
-        item->next = NULL;
-    } else {
-        item->next = it;
-        prev->next = item;
-    }
-
-    return head;
-}
-
-/**
- * \brief This function insert a IPOnlyCIDRItem list
- *        to a list of IPOnlyCIDRItems sorted by netmask
- *        ascending
- * \param head Pointer to the head of IPOnlyCIDRItems list
- * \param item Pointer to the list of items to insert in the list
- *
- * \retval IPOnlyCIDRItem address of the new head if apply
- */
-IPOnlyCIDRItem *IPOnlyCIDRItemInsert(IPOnlyCIDRItem *head,
-                                     IPOnlyCIDRItem *item)
-{
-    IPOnlyCIDRItem *it, *prev = NULL;
-
-    /* The first element */
-    if (head == NULL) {
-        SCLogDebug("Head is NULL to insert item (%p)",item);
-        return item;
-    }
-
-    if (item == NULL) {
-        SCLogDebug("Item is NULL");
-        return head;
-    }
-
-    SCLogDebug("Inserting item(%p)->netmask %u head %p", item, item->netmask, head);
-
-    prev = item;
-    while (prev != NULL) {
-        it = prev->next;
-
-        /* Separate from the item list */
-        prev->next = NULL;
-
-        //SCLogDebug("Before:");
-        //IPOnlyCIDRListPrint(head);
-        head = IPOnlyCIDRItemInsertReal(head, prev);
-        //SCLogDebug("After:");
-        //IPOnlyCIDRListPrint(head);
-        prev = it;
-    }
-
-    return head;
-}
-
-/**
- * \brief This function free a IPOnlyCIDRItem list
- * \param tmphead Pointer to the list
- */
-void IPOnlyCIDRListFree(IPOnlyCIDRItem *tmphead) {
-    SCEnter();
-    uint32_t i = 0;
-
-    IPOnlyCIDRItem *it, *next = NULL;
-
-    if (tmphead == NULL) {
-        SCLogDebug("temphead is NULL");
-        return;
-    }
-
-    it = tmphead;
-    next = it->next;
-
-    while (it != NULL) {
-        i++;
-        SCFree(it);
-        SCLogDebug("Item(%p) %"PRIu32" removed\n", it, i);
-        it = next;
-
-        if (next != NULL)
-            next = next->next;
-    }
-    SCReturn;
-}
-
-/**
- * \brief This function update a list of IPOnlyCIDRItems
- *        setting the signature internal id (signum) to "i"
- *
- * \param tmphead Pointer to the list
- * \param i number of signature internal id
- */
-void IPOnlyCIDRListSetSigNum(IPOnlyCIDRItem *tmphead, SigIntId i) {
-    while (tmphead != NULL) {
-        tmphead->signum = i;
-        tmphead = tmphead->next;
-    }
-}
-
-/**
- * \brief This function print a IPOnlyCIDRItem list
- * \param tmphead Pointer to the head of IPOnlyCIDRItems list
- */
-void IPOnlyCIDRListPrint(IPOnlyCIDRItem *tmphead) {
-    uint32_t i = 0;
-
-    while (tmphead != NULL) {
-        i++;
-        SCLogDebug("Item %"PRIu32" has netmask %"PRIu16" negated:"
-                   " %s; IP: %s; signum: %"PRIu16, i, tmphead->netmask,
-                   (tmphead->negated) ? "yes":"no",
-                   inet_ntoa(*(struct in_addr*)&tmphead->ip[0]),
-                   tmphead->signum);
-        tmphead = tmphead->next;
-    }
-}
-
-/**
- * \brief This function print a SigNumArray, it's used with the
- *        radix tree print function to help debugging
- * \param tmp Pointer to the head of SigNumArray
- */
-void SigNumArrayPrint(void *tmp) {
-    SigNumArray *sna = (SigNumArray *)tmp;
-    uint32_t u;
-
-    for (u = 0; u < sna->size; u++) {
-        uint8_t bitarray = sna->array[u];
-        uint8_t i = 0;
-
-        for (; i < 8; i++) {
-            if (bitarray & 0x01)
-                printf(", %"PRIu16"", u * 8 + i);
-            else
-                printf(", ");
-
-            bitarray = bitarray >> 1;
-        }
-    }
-}
-
-/**
- * \brief This function creates a new SigNumArray with the
- *        size fixed to the io_ctx->max_idx
- * \param de_ctx Pointer to the current detection context
- * \param io_ctx Pointer to the current ip only context
- *
- * \retval SigNumArray address of the new instance
- */
-SigNumArray *SigNumArrayNew(DetectEngineCtx *de_ctx,
-                            DetectEngineIPOnlyCtx *io_ctx)
-{
-    SigNumArray *new = SCMalloc(sizeof(SigNumArray));
-
-    if (new == NULL){
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SigNumArrayNew. Exiting...");
-        exit(EXIT_FAILURE);
-    }
-    memset(new, 0, sizeof(SigNumArray));
-
-    new->array = SCMalloc(io_ctx->max_idx / 8 + 1);
-    if (new->array == NULL) {
-       exit(EXIT_FAILURE);
-    }
-
-    memset(new->array, 0, io_ctx->max_idx / 8 + 1);
-    new->size = io_ctx->max_idx / 8 + 1;
-
-    SCLogDebug("max idx= %u", io_ctx->max_idx);
-
-    return new;
-}
-
-/**
- * \brief This function creates a new SigNumArray with the
- *        same data as the argument
- *
- * \param orig Pointer to the original SigNumArray to copy
- *
- * \retval SigNumArray address of the new instance
- */
-SigNumArray *SigNumArrayCopy(SigNumArray *orig) {
-    SigNumArray *new = SCMalloc(sizeof(SigNumArray));
-
-    if (new == NULL) {
-        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SigNumArrayCopy. Exiting...");
-        exit(EXIT_FAILURE);
-    }
-
-    memset(new, 0, sizeof(SigNumArray));
-    new->size = orig->size;
-
-    new->array = SCMalloc(orig->size);
-    if (new->array == NULL) {
-        exit(EXIT_FAILURE);
-    }
-
-    memcpy(new->array, orig->array, orig->size);
-    return new;
-}
-
-/**
- * \brief This function free() a SigNumArray
- * \param orig Pointer to the original SigNumArray to copy
- */
-void SigNumArrayFree(void *tmp) {
-    SigNumArray *sna = (SigNumArray *)tmp;
-
-    if (sna == NULL)
-        return;
-
-    if (sna->array != NULL)
-        SCFree(sna->array);
-
-    SCFree(sna);
-}
-
-/**
- * \brief This function parses and return a list of IPOnlyCIDRItem
- *
- * \param s Pointer to the string of the addresses
- *          (in the format of signatures)
- * \param negate flag to indicate if all this string is negated or not
- *
- * \retval 0 if success
- * \retval -1 if fails
- */
-IPOnlyCIDRItem *IPOnlyCIDRListParse2(char *s, int negate)
-{
-    size_t x = 0;
-    size_t u = 0;
-    int o_set = 0, n_set = 0, d_set = 0;
-    int depth = 0;
-    size_t size = strlen(s);
-    char address[1024] = "";
-    char *rule_var_address = NULL;
-    char *temp_rule_var_address = NULL;
-    IPOnlyCIDRItem *head;
-    IPOnlyCIDRItem *subhead;
-    head = subhead = NULL;
-
-    SCLogDebug("s %s negate %s", s, negate ? "true" : "false");
-
-    for (u = 0, x = 0; u < size && x < sizeof(address); u++) {
-        address[x] = s[u];
-        x++;
-
-        if (!o_set && s[u] == '!') {
-            n_set = 1;
-            x--;
-        } else if (s[u] == '[') {
-            if (!o_set) {
-                o_set = 1;
-                x = 0;
-            }
-            depth++;
-        } else if (s[u] == ']') {
-            if (depth == 1) {
-                address[x - 1] = '\0';
-                x = 0;
-
-                if ( (subhead = IPOnlyCIDRListParse2(address,
-                                                (negate + n_set) % 2)) == NULL)
-                    goto error;
-
-                head = IPOnlyCIDRItemInsert(head, subhead);
-                n_set = 0;
-            }
-            depth--;
-        } else if (depth == 0 && s[u] == ',') {
-            if (o_set == 1) {
-                o_set = 0;
-            } else if (d_set == 1) {
-                address[x - 1] = '\0';
-                x = 0;
-                rule_var_address = SCRuleVarsGetConfVar(address,
-                                                  SC_RULE_VARS_ADDRESS_GROUPS);
-                if (rule_var_address == NULL)
-                    goto error;
-
-                temp_rule_var_address = rule_var_address;
-                if ((negate + n_set) % 2) {
-                    temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
-
-                    if (temp_rule_var_address == NULL) {
-                        goto error;
-                    }
-
-                    snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
-                             "[%s]", rule_var_address);
-                }
-
-                subhead = IPOnlyCIDRListParse2(temp_rule_var_address,
-                                               (negate + n_set) % 2);
-                head = IPOnlyCIDRItemInsert(head, subhead);
-
-                d_set = 0;
-                n_set = 0;
-
-                if (temp_rule_var_address != rule_var_address)
-                    SCFree(temp_rule_var_address);
-
-            } else {
-                address[x - 1] = '\0';
-
-                subhead = IPOnlyCIDRItemNew();
-                if (subhead == NULL)
-                    goto error;
-
-                if (!((negate + n_set) % 2))
-                    subhead->negated = 0;
-                else
-                    subhead->negated = 1;
-
-                if (IPOnlyCIDRItemSetup(subhead, address) < 0) {
-                    IPOnlyCIDRListFree(subhead);
-                    subhead = NULL;
-                    goto error;
-                }
-                head = IPOnlyCIDRItemInsert(head, subhead);
-
-                n_set = 0;
-            }
-            x = 0;
-        } else if (depth == 0 && s[u] == '$') {
-            d_set = 1;
-        } else if (depth == 0 && u == size - 1) {
-            if (x == 1024) {
-                address[x - 1] = '\0';
-            } else {
-                address[x] = '\0';
-            }
-            x = 0;
-
-            if (d_set == 1) {
-                rule_var_address = SCRuleVarsGetConfVar(address,
-                                                    SC_RULE_VARS_ADDRESS_GROUPS);
-                if (rule_var_address == NULL)
-                    goto error;
-
-                temp_rule_var_address = rule_var_address;
-                if ((negate + n_set) % 2) {
-                    temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
-                    if (temp_rule_var_address == NULL) {
-                        goto error;
-                    }
-                    snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
-                            "[%s]", rule_var_address);
-                }
-                subhead = IPOnlyCIDRListParse2(temp_rule_var_address,
-                                               (negate + n_set) % 2);
-                head = IPOnlyCIDRItemInsert(head, subhead);
-
-                d_set = 0;
-
-                if (temp_rule_var_address != rule_var_address)
-                    SCFree(temp_rule_var_address);
-            } else {
-                subhead = IPOnlyCIDRItemNew();
-                if (subhead == NULL)
-                    goto error;
-
-                if (!((negate + n_set) % 2))
-                    subhead->negated = 0;
-                else
-                    subhead->negated = 1;
-
-                if (IPOnlyCIDRItemSetup(subhead, address) < 0) {
-                    IPOnlyCIDRListFree(subhead);
-                    subhead = NULL;
-                    goto error;
-                }
-                head = IPOnlyCIDRItemInsert(head, subhead);
-            }
-            n_set = 0;
-        }
-    }
-
-    return head;
-
-error:
-    SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC,"Error parsing addresses");
-    return head;
-}
-
-
-/**
- * \brief Parses an address group sent as a character string and updates the
- *        IPOnlyCIDRItem list
- *
- * \param gh  Pointer to the IPOnlyCIDRItem list
- * \param str Pointer to the character string containing the address group
- *            that has to be parsed.
- *
- * \retval  0 On success.
- * \retval -1 On failure.
- */
-int IPOnlyCIDRListParse(IPOnlyCIDRItem **gh, char *str)
-{
-    SCLogDebug("gh %p, str %s", gh, str);
-
-    if (gh == NULL)
-        goto error;
-
-    *gh = IPOnlyCIDRListParse2(str, 0);
-    if (*gh == NULL) {
-        SCLogDebug("DetectAddressParse2 returned null");
-        goto error;
-    }
-
-    return 0;
-
-error:
-    return -1;
-}
-
-/**
- * \brief Parses an address group sent as a character string and updates the
- *        IPOnlyCIDRItem lists src and dst of the Signature *s
- *
- * \param s Pointer to the signature structure
- * \param addrstr Pointer to the character string containing the address group
- *            that has to be parsed.
- * \param flag to indicate if we are parsing the src string or the dst string
- *
- * \retval  0 On success.
- * \retval -1 On failure.
- */
-int IPOnlySigParseAddress(Signature *s, const char *addrstr, char flag)
-{
-    SCLogDebug("Address Group \"%s\" to be parsed now", addrstr);
-    IPOnlyCIDRItem *tmp = NULL;
-
-    /* pass on to the address(list) parser */
-    if (flag == 0) {
-        if (strcasecmp(addrstr, "any") == 0) {
-            s->flags |= SIG_FLAG_SRC_ANY;
-
-            if (IPOnlyCIDRListParse(&s->CidrSrc, (char *)"0.0.0.0/0") < 0)
-                goto error;
-
-            if (IPOnlyCIDRListParse(&tmp, (char *)"::/0") < 0)
-                goto error;
-
-            s->CidrSrc = IPOnlyCIDRItemInsert(s->CidrSrc, tmp);
-
-        } else if (IPOnlyCIDRListParse(&s->CidrSrc, (char *)addrstr) < 0) {
-            goto error;
-        }
-
-        /* IPOnlyCIDRListPrint(s->CidrSrc); */
-    } else {
-        if (strcasecmp(addrstr, "any") == 0) {
-            s->flags |= SIG_FLAG_DST_ANY;
-
-            if (IPOnlyCIDRListParse(&tmp, (char *)"0.0.0.0/0") < 0)
-                goto error;
-
-            if (IPOnlyCIDRListParse(&s->CidrDst, (char *)"::/0") < 0)
-                goto error;
-
-            s->CidrDst = IPOnlyCIDRItemInsert(s->CidrDst, tmp);
-
-        } else if (IPOnlyCIDRListParse(&s->CidrDst, (char *)addrstr) < 0) {
-            goto error;
-        }
-
-        /* IPOnlyCIDRListPrint(s->CidrDst); */
-    }
-
-    return 0;
-
-error:
-    return -1;
 }
 
 /**
@@ -612,7 +100,7 @@ error:
  * \retval  0 On successfully parsing the address string.
  * \retval -1 On failure.
  */
-int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, char *str)
+static int IPOnlyCIDRItemParseSingle(IPOnlyCIDRItem *dd, char *str)
 {
     char *ipdup = SCStrdup(str);
     char *ip = NULL;
@@ -810,7 +298,7 @@ error:
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int IPOnlyCIDRItemSetup(IPOnlyCIDRItem *gh, char *s) {
+static int IPOnlyCIDRItemSetup(IPOnlyCIDRItem *gh, char *s) {
     SCLogDebug("gh %p, s %s", gh, s);
 
     /* parse the address */
@@ -823,8 +311,519 @@ int IPOnlyCIDRItemSetup(IPOnlyCIDRItem *gh, char *s) {
     return 0;
 
 error:
-    SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC, "IPOnlyCIDRItemSetup error");
-    /* XXX cleanup */
+    return -1;
+}
+
+
+/**
+ * \brief This function insert a IPOnlyCIDRItem
+ *        to a list of IPOnlyCIDRItems sorted by netmask
+ *        ascending
+ * \param head Pointer to the head of IPOnlyCIDRItems list
+ * \param item Pointer to the item to insert in the list
+ *
+ * \retval IPOnlyCIDRItem address of the new head if apply
+ */
+static IPOnlyCIDRItem *IPOnlyCIDRItemInsertReal(IPOnlyCIDRItem *head,
+                                         IPOnlyCIDRItem *item)
+{
+    IPOnlyCIDRItem *it, *prev = NULL;
+
+    if (item == NULL)
+        return head;
+
+    /* Compare with the head */
+    if (item->netmask < head->netmask || (item->netmask == head->netmask && IPOnlyCIDRItemCompare(head, item))) {
+        item->next = head;
+        return item;
+    }
+
+    if (item->netmask == head->netmask && !IPOnlyCIDRItemCompare(head, item)) {
+        item->next = head->next;
+        head->next = item;
+        return head;
+    }
+
+    for (prev = it = head;
+         it != NULL && it->netmask < item->netmask;
+         it = it->next)
+        prev = it;
+
+    if (it == NULL) {
+        prev->next = item;
+        item->next = NULL;
+    } else {
+        item->next = it;
+        prev->next = item;
+    }
+
+    return head;
+}
+
+/**
+ * \brief This function insert a IPOnlyCIDRItem list
+ *        to a list of IPOnlyCIDRItems sorted by netmask
+ *        ascending
+ * \param head Pointer to the head of IPOnlyCIDRItems list
+ * \param item Pointer to the list of items to insert in the list
+ *
+ * \retval IPOnlyCIDRItem address of the new head if apply
+ */
+static IPOnlyCIDRItem *IPOnlyCIDRItemInsert(IPOnlyCIDRItem *head,
+                                     IPOnlyCIDRItem *item)
+{
+    IPOnlyCIDRItem *it, *prev = NULL;
+
+    /* The first element */
+    if (head == NULL) {
+        SCLogDebug("Head is NULL to insert item (%p)",item);
+        return item;
+    }
+
+    if (item == NULL) {
+        SCLogDebug("Item is NULL");
+        return head;
+    }
+
+    SCLogDebug("Inserting item(%p)->netmask %u head %p", item, item->netmask, head);
+
+    prev = item;
+    while (prev != NULL) {
+        it = prev->next;
+
+        /* Separate from the item list */
+        prev->next = NULL;
+
+        //SCLogDebug("Before:");
+        //IPOnlyCIDRListPrint(head);
+        head = IPOnlyCIDRItemInsertReal(head, prev);
+        //SCLogDebug("After:");
+        //IPOnlyCIDRListPrint(head);
+        prev = it;
+    }
+
+    return head;
+}
+
+/**
+ * \brief This function free a IPOnlyCIDRItem list
+ * \param tmphead Pointer to the list
+ */
+void IPOnlyCIDRListFree(IPOnlyCIDRItem *tmphead) {
+    SCEnter();
+    uint32_t i = 0;
+
+    IPOnlyCIDRItem *it, *next = NULL;
+
+    if (tmphead == NULL) {
+        SCLogDebug("temphead is NULL");
+        return;
+    }
+
+    it = tmphead;
+    next = it->next;
+
+    while (it != NULL) {
+        i++;
+        SCFree(it);
+        SCLogDebug("Item(%p) %"PRIu32" removed\n", it, i);
+        it = next;
+
+        if (next != NULL)
+            next = next->next;
+    }
+    SCReturn;
+}
+
+/**
+ * \brief This function update a list of IPOnlyCIDRItems
+ *        setting the signature internal id (signum) to "i"
+ *
+ * \param tmphead Pointer to the list
+ * \param i number of signature internal id
+ */
+static void IPOnlyCIDRListSetSigNum(IPOnlyCIDRItem *tmphead, SigIntId i) {
+    while (tmphead != NULL) {
+        tmphead->signum = i;
+        tmphead = tmphead->next;
+    }
+}
+
+/**
+ * \brief This function print a IPOnlyCIDRItem list
+ * \param tmphead Pointer to the head of IPOnlyCIDRItems list
+ */
+static void IPOnlyCIDRListPrint(IPOnlyCIDRItem *tmphead) {
+    uint32_t i = 0;
+
+    while (tmphead != NULL) {
+        i++;
+        SCLogDebug("Item %"PRIu32" has netmask %"PRIu16" negated:"
+                   " %s; IP: %s; signum: %"PRIu16, i, tmphead->netmask,
+                   (tmphead->negated) ? "yes":"no",
+                   inet_ntoa(*(struct in_addr*)&tmphead->ip[0]),
+                   tmphead->signum);
+        tmphead = tmphead->next;
+    }
+}
+
+/**
+ * \brief This function print a SigNumArray, it's used with the
+ *        radix tree print function to help debugging
+ * \param tmp Pointer to the head of SigNumArray
+ */
+static void SigNumArrayPrint(void *tmp) {
+    SigNumArray *sna = (SigNumArray *)tmp;
+    uint32_t u;
+
+    for (u = 0; u < sna->size; u++) {
+        uint8_t bitarray = sna->array[u];
+        uint8_t i = 0;
+
+        for (; i < 8; i++) {
+            if (bitarray & 0x01)
+                printf(", %"PRIu16"", u * 8 + i);
+            else
+                printf(", ");
+
+            bitarray = bitarray >> 1;
+        }
+    }
+}
+
+/**
+ * \brief This function creates a new SigNumArray with the
+ *        size fixed to the io_ctx->max_idx
+ * \param de_ctx Pointer to the current detection context
+ * \param io_ctx Pointer to the current ip only context
+ *
+ * \retval SigNumArray address of the new instance
+ */
+static SigNumArray *SigNumArrayNew(DetectEngineCtx *de_ctx,
+                            DetectEngineIPOnlyCtx *io_ctx)
+{
+    SigNumArray *new = SCMalloc(sizeof(SigNumArray));
+
+    if (new == NULL){
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SigNumArrayNew. Exiting...");
+        exit(EXIT_FAILURE);
+    }
+    memset(new, 0, sizeof(SigNumArray));
+
+    new->array = SCMalloc(io_ctx->max_idx / 8 + 1);
+    if (new->array == NULL) {
+       exit(EXIT_FAILURE);
+    }
+
+    memset(new->array, 0, io_ctx->max_idx / 8 + 1);
+    new->size = io_ctx->max_idx / 8 + 1;
+
+    SCLogDebug("max idx= %u", io_ctx->max_idx);
+
+    return new;
+}
+
+/**
+ * \brief This function creates a new SigNumArray with the
+ *        same data as the argument
+ *
+ * \param orig Pointer to the original SigNumArray to copy
+ *
+ * \retval SigNumArray address of the new instance
+ */
+static SigNumArray *SigNumArrayCopy(SigNumArray *orig) {
+    SigNumArray *new = SCMalloc(sizeof(SigNumArray));
+
+    if (new == NULL) {
+        SCLogError(SC_ERR_FATAL, "Fatal error encountered in SigNumArrayCopy. Exiting...");
+        exit(EXIT_FAILURE);
+    }
+
+    memset(new, 0, sizeof(SigNumArray));
+    new->size = orig->size;
+
+    new->array = SCMalloc(orig->size);
+    if (new->array == NULL) {
+        exit(EXIT_FAILURE);
+    }
+
+    memcpy(new->array, orig->array, orig->size);
+    return new;
+}
+
+/**
+ * \brief This function free() a SigNumArray
+ * \param orig Pointer to the original SigNumArray to copy
+ */
+static void SigNumArrayFree(void *tmp) {
+    SigNumArray *sna = (SigNumArray *)tmp;
+
+    if (sna == NULL)
+        return;
+
+    if (sna->array != NULL)
+        SCFree(sna->array);
+
+    SCFree(sna);
+}
+
+/**
+ * \brief This function parses and return a list of IPOnlyCIDRItem
+ *
+ * \param s Pointer to the string of the addresses
+ *          (in the format of signatures)
+ * \param negate flag to indicate if all this string is negated or not
+ *
+ * \retval 0 if success
+ * \retval -1 if fails
+ */
+static IPOnlyCIDRItem *IPOnlyCIDRListParse2(char *s, int negate)
+{
+    size_t x = 0;
+    size_t u = 0;
+    int o_set = 0, n_set = 0, d_set = 0;
+    int depth = 0;
+    size_t size = strlen(s);
+    char address[1024] = "";
+    char *rule_var_address = NULL;
+    char *temp_rule_var_address = NULL;
+    IPOnlyCIDRItem *head;
+    IPOnlyCIDRItem *subhead;
+    head = subhead = NULL;
+
+    SCLogDebug("s %s negate %s", s, negate ? "true" : "false");
+
+    for (u = 0, x = 0; u < size && x < sizeof(address); u++) {
+        address[x] = s[u];
+        x++;
+
+        if (!o_set && s[u] == '!') {
+            n_set = 1;
+            x--;
+        } else if (s[u] == '[') {
+            if (!o_set) {
+                o_set = 1;
+                x = 0;
+            }
+            depth++;
+        } else if (s[u] == ']') {
+            if (depth == 1) {
+                address[x - 1] = '\0';
+                x = 0;
+
+                if ( (subhead = IPOnlyCIDRListParse2(address,
+                                                (negate + n_set) % 2)) == NULL)
+                    goto error;
+
+                head = IPOnlyCIDRItemInsert(head, subhead);
+                n_set = 0;
+            }
+            depth--;
+        } else if (depth == 0 && s[u] == ',') {
+            if (o_set == 1) {
+                o_set = 0;
+            } else if (d_set == 1) {
+                address[x - 1] = '\0';
+                x = 0;
+                rule_var_address = SCRuleVarsGetConfVar(address,
+                                                  SC_RULE_VARS_ADDRESS_GROUPS);
+                if (rule_var_address == NULL)
+                    goto error;
+
+                temp_rule_var_address = rule_var_address;
+                if ((negate + n_set) % 2) {
+                    temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
+
+                    if (temp_rule_var_address == NULL) {
+                        goto error;
+                    }
+
+                    snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
+                             "[%s]", rule_var_address);
+                }
+
+                subhead = IPOnlyCIDRListParse2(temp_rule_var_address,
+                                               (negate + n_set) % 2);
+                head = IPOnlyCIDRItemInsert(head, subhead);
+
+                d_set = 0;
+                n_set = 0;
+
+                if (temp_rule_var_address != rule_var_address)
+                    SCFree(temp_rule_var_address);
+
+            } else {
+                address[x - 1] = '\0';
+
+                subhead = IPOnlyCIDRItemNew();
+                if (subhead == NULL)
+                    goto error;
+
+                if (!((negate + n_set) % 2))
+                    subhead->negated = 0;
+                else
+                    subhead->negated = 1;
+
+                if (IPOnlyCIDRItemSetup(subhead, address) < 0) {
+                    IPOnlyCIDRListFree(subhead);
+                    subhead = NULL;
+                    goto error;
+                }
+                head = IPOnlyCIDRItemInsert(head, subhead);
+
+                n_set = 0;
+            }
+            x = 0;
+        } else if (depth == 0 && s[u] == '$') {
+            d_set = 1;
+        } else if (depth == 0 && u == size - 1) {
+            if (x == 1024) {
+                address[x - 1] = '\0';
+            } else {
+                address[x] = '\0';
+            }
+            x = 0;
+
+            if (d_set == 1) {
+                rule_var_address = SCRuleVarsGetConfVar(address,
+                                                    SC_RULE_VARS_ADDRESS_GROUPS);
+                if (rule_var_address == NULL)
+                    goto error;
+
+                temp_rule_var_address = rule_var_address;
+                if ((negate + n_set) % 2) {
+                    temp_rule_var_address = SCMalloc(strlen(rule_var_address) + 3);
+                    if (temp_rule_var_address == NULL) {
+                        goto error;
+                    }
+                    snprintf(temp_rule_var_address, strlen(rule_var_address) + 3,
+                            "[%s]", rule_var_address);
+                }
+                subhead = IPOnlyCIDRListParse2(temp_rule_var_address,
+                                               (negate + n_set) % 2);
+                head = IPOnlyCIDRItemInsert(head, subhead);
+
+                d_set = 0;
+
+                if (temp_rule_var_address != rule_var_address)
+                    SCFree(temp_rule_var_address);
+            } else {
+                subhead = IPOnlyCIDRItemNew();
+                if (subhead == NULL)
+                    goto error;
+
+                if (!((negate + n_set) % 2))
+                    subhead->negated = 0;
+                else
+                    subhead->negated = 1;
+
+                if (IPOnlyCIDRItemSetup(subhead, address) < 0) {
+                    IPOnlyCIDRListFree(subhead);
+                    subhead = NULL;
+                    goto error;
+                }
+                head = IPOnlyCIDRItemInsert(head, subhead);
+            }
+            n_set = 0;
+        }
+    }
+
+    return head;
+
+error:
+    SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC,"Error parsing addresses");
+    return head;
+}
+
+
+/**
+ * \brief Parses an address group sent as a character string and updates the
+ *        IPOnlyCIDRItem list
+ *
+ * \param gh  Pointer to the IPOnlyCIDRItem list
+ * \param str Pointer to the character string containing the address group
+ *            that has to be parsed.
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+static int IPOnlyCIDRListParse(IPOnlyCIDRItem **gh, char *str)
+{
+    SCLogDebug("gh %p, str %s", gh, str);
+
+    if (gh == NULL)
+        goto error;
+
+    *gh = IPOnlyCIDRListParse2(str, 0);
+    if (*gh == NULL) {
+        SCLogDebug("DetectAddressParse2 returned null");
+        goto error;
+    }
+
+    return 0;
+
+error:
+    return -1;
+}
+
+/**
+ * \brief Parses an address group sent as a character string and updates the
+ *        IPOnlyCIDRItem lists src and dst of the Signature *s
+ *
+ * \param s Pointer to the signature structure
+ * \param addrstr Pointer to the character string containing the address group
+ *            that has to be parsed.
+ * \param flag to indicate if we are parsing the src string or the dst string
+ *
+ * \retval  0 On success.
+ * \retval -1 On failure.
+ */
+int IPOnlySigParseAddress(Signature *s, const char *addrstr, char flag)
+{
+    SCLogDebug("Address Group \"%s\" to be parsed now", addrstr);
+    IPOnlyCIDRItem *tmp = NULL;
+
+    /* pass on to the address(list) parser */
+    if (flag == 0) {
+        if (strcasecmp(addrstr, "any") == 0) {
+            s->flags |= SIG_FLAG_SRC_ANY;
+
+            if (IPOnlyCIDRListParse(&s->CidrSrc, (char *)"0.0.0.0/0") < 0)
+                goto error;
+
+            if (IPOnlyCIDRListParse(&tmp, (char *)"::/0") < 0)
+                goto error;
+
+            s->CidrSrc = IPOnlyCIDRItemInsert(s->CidrSrc, tmp);
+
+        } else if (IPOnlyCIDRListParse(&s->CidrSrc, (char *)addrstr) < 0) {
+            goto error;
+        }
+
+        /* IPOnlyCIDRListPrint(s->CidrSrc); */
+    } else {
+        if (strcasecmp(addrstr, "any") == 0) {
+            s->flags |= SIG_FLAG_DST_ANY;
+
+            if (IPOnlyCIDRListParse(&tmp, (char *)"0.0.0.0/0") < 0)
+                goto error;
+
+            if (IPOnlyCIDRListParse(&s->CidrDst, (char *)"::/0") < 0)
+                goto error;
+
+            s->CidrDst = IPOnlyCIDRItemInsert(s->CidrDst, tmp);
+
+        } else if (IPOnlyCIDRListParse(&s->CidrDst, (char *)addrstr) < 0) {
+            goto error;
+        }
+
+        /* IPOnlyCIDRListPrint(s->CidrDst); */
+    }
+
+    return 0;
+
+error:
+    SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC, "failed to parse addresses");
     return -1;
 }
 
