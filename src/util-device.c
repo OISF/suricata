@@ -93,6 +93,34 @@ char *LiveGetDeviceName(int number) {
     return NULL;
 }
 
+/**
+ *  \brief Get a pointer to the device at idx
+ *
+ *  \param number idx of the device in our list
+ *
+ *  \retval ptr pointer to the string containing the device
+ *  \retval NULL on error
+ */
+LiveDevice *LiveGetDevice(char *name) {
+    int i = 0;
+    LiveDevice *pd;
+
+    if (name == NULL) {
+        SCLogWarning(SC_ERR_INVALID_VALUE, "Name of device should not be null");
+        return NULL;
+    }
+
+    TAILQ_FOREACH(pd, &live_devices, next) {
+        if (!strcmp(name, pd->dev)) {
+            return pd;
+        }
+
+        i++;
+    }
+
+    return NULL;
+}
+
 
 
 int LiveBuildDeviceList(char * runmode)
