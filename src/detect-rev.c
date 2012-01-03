@@ -61,7 +61,7 @@ static int DetectRevSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
                    "to rev keyword");
         goto error;
     }
-    s->rev = rev;
+    s->rev = (uint32_t)rev;
 
     if (dubbed)
         SCFree(str);
