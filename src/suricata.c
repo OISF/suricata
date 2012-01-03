@@ -479,6 +479,12 @@ void SCPrintBuildInfo(void) {
     char *endian = "<unknown>-endian";
     char features[2048] = "";
 
+#ifdef REVISION
+    SCLogInfo("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
+#else
+    SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
+#endif
+
 #ifdef DEBUG
     strlcat(features, "DEBUG ", sizeof(features));
 #endif
@@ -652,12 +658,6 @@ int main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 #endif /* OS_WIN32 */
-
-#ifdef REVISION
-    SCLogInfo("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
-#else
-    SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
-#endif
 
     /* Initialize the configuration module. */
     ConfInit();
@@ -1077,6 +1077,13 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
         }
     }
+
+#ifdef REVISION
+    SCLogInfo("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
+#else
+    SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
+#endif
+
     SetBpfString(optind, argv);
 
     UtilCpuPrintSummary();
