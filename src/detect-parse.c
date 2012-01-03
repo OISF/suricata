@@ -963,7 +963,7 @@ static int SigParseBasics(Signature *s, char *sigstr, char ***result, uint8_t ad
         goto error;
 
     if (strcmp(arr[CONFIG_DIREC], "<-") == 0) {
-        SCLogError(SC_ERR_INVALID_DIRECTION, "\"->\" is not a valid direction modifier, \"->\" and \"<>\" are supported.");
+        SCLogError(SC_ERR_INVALID_DIRECTION, "\"<-\" is not a valid direction modifier, \"->\" and \"<>\" are supported.");
         goto error;
     }
 
@@ -980,7 +980,7 @@ static int SigParseBasics(Signature *s, char *sigstr, char ***result, uint8_t ad
 
     /* For IPOnly */
     if (IPOnlySigParseAddress(s, arr[CONFIG_SRC], SIG_DIREC_SRC ^ addrs_direction) < 0)
-       goto error;
+        goto error;
 
     if (IPOnlySigParseAddress(s, arr[CONFIG_DST], SIG_DIREC_DST ^ addrs_direction) < 0)
         goto error;
