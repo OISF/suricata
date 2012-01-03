@@ -209,10 +209,7 @@ void *ParseAFPConfig(const char *iface)
         SCLogError(SC_ERR_INVALID_ARGUMENT, "Could not get checksum-checks from config");
     } else {
         if (strcmp(tmpctype, "auto") == 0) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT,"'auto' mode is currently not supported");
-            /*
             aconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
-            */
         } else if (strcmp(tmpctype, "yes") == 0) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_ENABLE;
         } else if (strcmp(tmpctype, "no") == 0) {
