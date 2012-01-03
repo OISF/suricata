@@ -153,6 +153,40 @@ int LogFileFreeCtx(LogFileCtx *lf_ctx)
     SCReturnInt(1);
 }
 
+void TmModuleRunInit(void) {
+    TmModule *t;
+    uint16_t i;
+
+    for (i = 0; i < TMM_SIZE; i++) {
+        t = &tmm_modules[i];
+
+        if (t->name == NULL)
+            continue;
+
+        if (t->Init == NULL)
+            continue;
+
+        t->Init();
+    }
+}
+
+void TmModuleRunDeInit(void) {
+    TmModule *t;
+    uint16_t i;
+
+    for (i = 0; i < TMM_SIZE; i++) {
+        t = &tmm_modules[i];
+
+        if (t->name == NULL)
+            continue;
+
+        if (t->DeInit == NULL)
+            continue;
+
+        t->DeInit();
+    }
+}
+
 /** \brief register all unittests for the tm modules */
 void TmModuleRegisterTests(void) {
 #ifdef UNITTESTS

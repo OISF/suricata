@@ -1412,6 +1412,8 @@ int main(int argc, char **argv)
     }
 #endif /* UNITTESTS */
 
+    TmModuleRunInit();
+
     if (daemon == 1) {
         Daemonize();
         if (pid_filename == NULL) {
@@ -1757,6 +1759,8 @@ int main(int argc, char **argv)
     DefragDestroy();
     TmqhPacketpoolDestroy();
     MagicDeinit();
+
+    TmModuleRunDeInit();
 
 #ifdef PROFILING
     if (profiling_rules_enabled)

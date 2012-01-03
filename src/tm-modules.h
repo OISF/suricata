@@ -43,6 +43,10 @@ typedef struct TmModule_ {
 
     TmEcode (*PktAcqLoop)(ThreadVars *, void *, void *);
 
+    /** global Init/DeInit */
+    TmEcode (*Init)(void);
+    TmEcode (*DeInit)(void);
+
     void (*RegisterTests)(void);
 
     uint8_t cap_flags;   /**< Flags to indicate the capability requierment of
@@ -104,6 +108,9 @@ TmEcode TmModuleRegister(char *name, int (*module_func)(ThreadVars *, Packet *, 
 void TmModuleDebugList(void);
 void TmModuleRegisterTests(void);
 const char * TmModuleTmmIdToString(TmmId id);
+
+void TmModuleRunInit(void);
+void TmModuleRunDeInit(void);
 
 #endif /* __TM_MODULES_H__ */
 
