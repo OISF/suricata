@@ -23,6 +23,9 @@
 /** storage for live device names */
 typedef struct LiveDevice_ {
     char *dev;  /**< the device (e.g. "eth0") */
+    int ignore_checksum;
+    SC_ATOMIC_DECLARE(uint32_t, pkts);
+    SC_ATOMIC_DECLARE(uint32_t, invalid_checksums);
     TAILQ_ENTRY(LiveDevice_) next;
 } LiveDevice;
 

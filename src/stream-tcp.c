@@ -48,6 +48,7 @@
 #include "util-unittest.h"
 #include "util-print.h"
 #include "util-debug.h"
+#include "util-device.h"
 
 #include "stream-tcp-private.h"
 #include "stream-tcp-reassemble.h"
@@ -3848,6 +3849,9 @@ static inline int StreamTcpValidateChecksum(Packet *p)
     if (p->tcpvars.comp_csum != p->tcph->th_sum) {
         ret = 0;
         SCLogDebug("Checksum of received packet %p is invalid",p);
+        if (p->livedev) {
+            SC_ATOMIC_ADD(p->livedev->invalid_checksums, 1);
+        }
     }
 
     return ret;

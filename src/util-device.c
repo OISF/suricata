@@ -48,6 +48,9 @@ int LiveRegisterDevice(char *dev)
     }
 
     pd->dev = SCStrdup(dev);
+    SC_ATOMIC_INIT(pd->pkts);
+    SC_ATOMIC_INIT(pd->invalid_checksums);
+    pd->ignore_checksum = 0;
     TAILQ_INSERT_TAIL(&live_devices, pd, next);
 
     SCLogDebug("Pcap device \"%s\" registered.", dev);

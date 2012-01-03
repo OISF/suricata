@@ -25,6 +25,8 @@
 
 #include "suricata-common.h"
 
+#include "util-checksum.h"
+
 int ReCalculateChecksum(Packet *p)
 {
     if (PKT_IS_IPV4(p)) {
@@ -55,5 +57,29 @@ int ReCalculateChecksum(Packet *p)
         }
     }
 
+    return 0;
+}
+
+
+int ChecksumAutoModeCheck(uint32_t thread_count,
+                                  uint32_t iface_count,
+                                  uint32_t iface_fail)
+{
+    if (thread_count == CHECKSUM_SAMPLE_COUNT) {
+        if (iface_fail != 0) {
+            if ((iface_count / iface_fail) < CHECKSUM_INVALID_RATIO) {
+                SCLogInfo("More than 1/10 of invalid checksum, assuming checksum offloading is used (%d/%d)",
+                          iface_fail,
+                          iface_count);
+                return 1;
+            } else {
+                SCLogInfo("Less than 1/10 of invalid checksum, assuming checksum offloading is NOT used (%d/%d)",
+                        iface_fail,
+                        iface_count);
+            }
+        } else {
+            SCLogInfo("No packet with invalid checksum, assuming checksum offloading is NOT used");
+        }
+    }
     return 0;
 }

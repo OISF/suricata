@@ -24,7 +24,14 @@
 #ifndef __UTIL_CHECKSUM_H__
 #define __UTIL_CHECKSUM_H__
 
-
 int ReCalculateChecksum(Packet *p);
+int ChecksumAutoModeCheck(uint32_t thread_count,
+                           uint32_t iface_count,
+                           uint32_t iface_fail);
+
+/* constant linked with detection of interface with
+ * invalid checksums */
+#define CHECKSUM_SAMPLE_COUNT 1000
+#define CHECKSUM_INVALID_RATIO 5
 
 #endif
