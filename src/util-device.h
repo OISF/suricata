@@ -29,7 +29,7 @@ typedef struct LiveDevice_ {
 
 int LiveRegisterDevice(char *dev);
 int LiveGetDeviceCount(void);
-char *LiveGetDevice(int number);
+char *LiveGetDeviceName(int number);
 int LiveBuildDeviceList(char * base);
 
 #endif /* __UTIL_DEVICE_H__ */

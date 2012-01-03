@@ -106,7 +106,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
         SCLogInfo("Using %d live device(s).", nlive);
 
         for (thread = 0; thread < nlive; thread++) {
-            char *live_dev = LiveGetDevice(thread);
+            char *live_dev = LiveGetDeviceName(thread);
             char *tnamec = NULL;
             void *aconf;
 
@@ -484,7 +484,7 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
         int lthread;
 
         for (lthread = 0; lthread < nlive; lthread++) {
-            char *live_dev = LiveGetDevice(lthread);
+            char *live_dev = LiveGetDeviceName(lthread);
             void *aconf;
             int threads_count;
 
@@ -701,7 +701,7 @@ int RunModeSetLiveCaptureWorkers(DetectEngineCtx *de_ctx,
                 exit(EXIT_FAILURE);
             }
         } else {
-            live_dev_c = LiveGetDevice(ldev);
+            live_dev_c = LiveGetDeviceName(ldev);
             aconf = ConfigParser(live_dev_c);
         }
         RunModeSetLiveCaptureWorkersForDevice(de_ctx,
@@ -736,7 +736,7 @@ int RunModeSetLiveCaptureSingle(DetectEngineCtx *de_ctx,
     if (live_dev != NULL) {
         aconf = ConfigParser(live_dev);
     } else {
-        char *live_dev_c = LiveGetDevice(0);
+        char *live_dev_c = LiveGetDeviceName(0);
         aconf = ConfigParser(live_dev_c);
         /* \todo Set threads number in config to 1 */
     }
@@ -769,7 +769,7 @@ int RunModeSetIPSAuto(DetectEngineCtx *de_ctx,
 
     for (int i = 0; i < nqueue; i++) {
         /* create the threads */
-        cur_queue = LiveGetDevice(i);
+        cur_queue = LiveGetDeviceName(i);
         if (cur_queue == NULL) {
             printf("ERROR: Invalid queue number\n");
             exit(EXIT_FAILURE);
@@ -984,7 +984,7 @@ int RunModeSetIPSAutoFp(DetectEngineCtx *de_ctx,
 
     for (int i = 0; i < nqueue; i++) {
     /* create the threads */
-        cur_queue = LiveGetDevice(i);
+        cur_queue = LiveGetDeviceName(i);
         if (cur_queue == NULL) {
             printf("ERROR: Invalid queue number\n");
             exit(EXIT_FAILURE);
@@ -1156,7 +1156,7 @@ int RunModeSetIPSWorker(DetectEngineCtx *de_ctx,
 
     for (int i = 0; i < nqueue; i++) {
         /* create the threads */
-        cur_queue = LiveGetDevice(i);
+        cur_queue = LiveGetDeviceName(i);
         if (cur_queue == NULL) {
             printf("ERROR: Invalid queue number\n");
             exit(EXIT_FAILURE);

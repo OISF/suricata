@@ -71,14 +71,14 @@ int LiveGetDeviceCount(void) {
 }
 
 /**
- *  \brief Get a pointer to the device at idx
+ *  \brief Get a pointer to the device name at idx
  *
  *  \param number idx of the device in our list
  *
  *  \retval ptr pointer to the string containing the device
  *  \retval NULL on error
  */
-char *LiveGetDevice(int number) {
+char *LiveGetDeviceName(int number) {
     int i = 0;
     LiveDevice *pd;
 
