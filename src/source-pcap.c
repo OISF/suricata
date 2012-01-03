@@ -44,6 +44,7 @@
 #include "util-privs.h"
 #include "util-device.h"
 #include "util-optimize.h"
+#include "util-checksum.h"
 #include "tmqh-packetpool.h"
 
 extern uint8_t suricata_ctl_flags;
@@ -88,6 +89,7 @@ typedef struct PcapThreadVars_
 #if LIBPCAP_VERSION_MAJOR == 0
     char iface[PCAP_IFACE_NAME_LENGTH];
 #endif
+    LiveDevice *livedev;
 } PcapThreadVars;
 
 TmEcode ReceivePcapThreadInit(ThreadVars *, void *, void **);
@@ -209,14 +211,30 @@ void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt) {
 
     ptv->pkts++;
     ptv->bytes += h->caplen;
+    SC_ATOMIC_ADD(ptv->livedev->pkts, 1);
+    p->livedev = ptv->livedev;
 
     if (unlikely(PacketCopyData(p, pkt, h->caplen))) {
         TmqhOutputPacketpool(ptv->tv, p);
         SCReturn;
     }
 
-    if (ptv->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
-        p->flags |= PKT_IGNORE_CHECKSUM;
+    switch (ptv->checksum_mode) {
+        case CHECKSUM_VALIDATION_AUTO:
+            if (ptv->livedev->ignore_checksum) {
+                p->flags |= PKT_IGNORE_CHECKSUM;
+            } else if (ChecksumAutoModeCheck(ptv->pkts,
+                        SC_ATOMIC_GET(ptv->livedev->pkts),
+                        SC_ATOMIC_GET(ptv->livedev->invalid_checksums))) {
+                ptv->livedev->ignore_checksum = 1;
+                p->flags |= PKT_IGNORE_CHECKSUM;
+            }
+            break;
+        case CHECKSUM_VALIDATION_DISABLE:
+            p->flags |= PKT_IGNORE_CHECKSUM;
+            break;
+        default:
+            break;
     }
 
     if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
@@ -321,9 +339,20 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     ptv->tv = tv;
 
-    ptv->checksum_mode = pcapconfig->checksum_mode;
+    ptv->livedev = LiveGetDevice(pcapconfig->iface);
+    if (ptv->livedev == NULL) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
+        SCReturnInt(TM_ECODE_FAILED);
+    }
 
     SCLogInfo("using interface %s", (char *)pcapconfig->iface);
+
+    ptv->checksum_mode = pcapconfig->checksum_mode;
+    if (ptv->checksum_mode == CHECKSUM_VALIDATION_AUTO) {
+        SCLogInfo("Running in 'auto' checksum mode. Detection of interface state will require "
+                  xstr(CHECKSUM_SAMPLE_COUNT) " packets.");
+    }
+
     /* XXX create a general pcap setup function */
     char errbuf[PCAP_ERRBUF_SIZE];
     ptv->pcap_handle = pcap_create((char *)pcapconfig->iface, errbuf);
