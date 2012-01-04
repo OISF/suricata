@@ -204,9 +204,17 @@ af-packet:
     # buffer-size: 32768
     # Set to yes to disable promiscuous mode
     # disable-promisc: no
-    # If your IDS do not treat any transmitted packets, you can set
-    # the following variable to no.
-    # detect-offload: yes
+    # Choose checksum verification mode for the interface. At the moment
+    # of the capture, some packets may be with an invalid checksum due to
+    # offloading to the network card of the checksum computation.
+    # Possible values are:
+    #  - kernel: use indication sent by kernel for each packet (default)
+    #  - yes: checksum validation is forced
+    #  - no: checksum validation is disabled
+    #  - auto: suricata uses a statistical approach to detect when
+    #  checksum off-loading is used.
+    # Warning: 'checksum_validation' must be set to yes to have any validation
+    #checksum-checks: kernel
   - interface: eth1
     threads: 1
     cluster-id: 98
@@ -494,7 +502,9 @@ flow-timeouts:
 #                               # be processed by the engine stream/app layer.
 #                               # Warning: locally generated trafic can be
 #                               # generated without checksum due to hardware offload
-#                               # of checksum
+#                               # of checksum. You can control the handling of checksum
+#				# on a per-interface basis via the 'checksum-checks'
+#				# option
 #   max_sessions: 262144        # 256k concurrent sessions
 #   prealloc_sessions: 32768    # 32k sessions prealloc'd
 #   midstream: false            # don't allow midstream session pickups
@@ -581,6 +591,17 @@ pfring:
     cluster-type: cluster_round_robin
     # bpf filter for this interface
     #bpf-filter: tcp
+    # Choose checksum verification mode for the interface. At the moment
+    # of the capture, some packets may be with an invalid checksum due to
+    # offloading to the network card of the checksum computation.
+    # Possible values are:
+    #  - rxonly: only compute checksum for packets received by network card.
+    #  - yes: checksum validation is forced
+    #  - no: checksum validation is disabled
+    #  - auto: suricata uses a statistical approach to detect when
+    #  checksum off-loading is used. (default)
+    # Warning: 'checksum_validation' must be set to yes to have any validation
+    #checksum-checks: auto
   # Second interface
   #- interface: eth1
   #  threads: 3
@@ -591,6 +612,16 @@ pcap:
   - interface: eth0
     #buffer-size: 32768
     #bpf-filter: "tcp and port 25"
+    # Choose checksum verification mode for the interface. At the moment
+    # of the capture, some packets may be with an invalid checksum due to
+    # offloading to the network card of the checksum computation.
+    # Possible values are:
+    #  - yes: checksum validation is forced
+    #  - no: checksum validation is disabled
+    #  - auto: suricata uses a statistical approach to detect when
+    #  checksum off-loading is used. (default)
+    # Warning: 'checksum_validation' must be set to yes to have any validation
+    #checksum-checks: auto
 
 # For FreeBSD ipfw(8) divert(4) support.
 # Please make sure you have ipfw_load="YES" and ipdivert_load="YES"
