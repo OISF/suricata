@@ -51,6 +51,8 @@
 #include "util-privs.h"
 #include "util-device.h"
 
+#include "runmodes.h"
+
 #include "source-nfq.h"
 
 #ifndef NFQ
