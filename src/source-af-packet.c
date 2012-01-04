@@ -301,7 +301,7 @@ int AFPRead(AFPThreadVars *ptv)
     } else if (ptv->checksum_mode == CHECKSUM_VALIDATION_AUTO) {
         if (ptv->livedev->ignore_checksum) {
             p->flags |= PKT_IGNORE_CHECKSUM;
-        } else if (ChecksumAutoModeSwitch(ptv->pkts,
+        } else if (ChecksumAutoModeCheck(ptv->pkts,
                                           SC_ATOMIC_GET(ptv->livedev->pkts),
                                           SC_ATOMIC_GET(ptv->livedev->invalid_checksums))) {
             ptv->livedev->ignore_checksum = 1;
@@ -548,12 +548,9 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         int val = 1;
         if (setsockopt(ptv->socket, SOL_PACKET, PACKET_AUXDATA, &val,
                     sizeof(val)) == -1 && errno != ENOPROTOOPT) {
-            SCLogError(SC_ERR_AFP_CREATE,
-                    "Couldn't active auxdata on iface %s, error %s",
-                    devname,
-                    strerror(errno));
-            close(ptv->socket);
-            return -1;
+            SCLogWarning(SC_ERR_NO_AF_PACKET,
+                         "'kernel' checksum mode not supported, failling back to full mode.");
+            ptv->checksum_mode = CHECKSUM_VALIDATION_ENABLE;
         }
     }
 
