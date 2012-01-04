@@ -455,11 +455,11 @@ static OutputCtx *LogFileLogInitCtx(ConfNode *conf)
 
     const char *s_base_dir = NULL;
     s_base_dir = ConfNodeLookupChildValue(conf, "log-dir");
-    if (s_base_dir == NULL) {
+    if (s_base_dir == NULL || strlen(s_base_dir) == 0) {
         strlcpy(g_logfile_base_dir,
                 s_default_log_dir, sizeof(g_logfile_base_dir));
     } else {
-        if (s_base_dir[0] == '/') {
+        if (PathIsAbsolute(s_base_dir)) {
             strlcpy(g_logfile_base_dir,
                     s_base_dir, sizeof(g_logfile_base_dir));
         } else {
@@ -476,7 +476,7 @@ static OutputCtx *LogFileLogInitCtx(ConfNode *conf)
 
     const char *waldo = ConfNodeLookupChildValue(conf, "waldo");
     if (waldo != NULL && strlen(waldo) > 0) {
-        if (waldo[0] == '/') {
+        if (PathIsAbsolute(waldo)) {
             snprintf(g_waldo, sizeof(g_waldo), "%s", waldo);
         } else {
             snprintf(g_waldo, sizeof(g_waldo), "%s/%s", s_default_log_dir, waldo);
