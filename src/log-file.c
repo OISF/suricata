@@ -59,10 +59,12 @@ TmEcode LogFileLogThreadInit(ThreadVars *, void *, void **);
 TmEcode LogFileLogThreadDeinit(ThreadVars *, void *);
 void LogFileLogExitPrintStats(ThreadVars *, void *);
 int LogFileLogOpenFileCtx(LogFileCtx* , const char *, const char *);
+static OutputCtx *LogFileLogInitCtx(ConfNode *);
 static void LogFileLogDeInitCtx(OutputCtx *);
 
 SC_ATOMIC_DECLARE(unsigned int, file_id);
 static char g_logfile_base_dir[PATH_MAX] = "/tmp";
+static char g_waldo[PATH_MAX] = "";
 
 void TmModuleLogFileLogRegister (void) {
     tmm_modules[TMM_FILELOG].name = MODULE_NAME;
@@ -381,11 +383,64 @@ void LogFileLogExitPrintStats(ThreadVars *tv, void *data) {
     SCLogInfo("(%s) Files extracted %" PRIu32 "", tv->name, aft->file_cnt);
 }
 
+/**
+ *  \internal
+ *
+ *  \brief Open the waldo file (if available) and load the file_id
+ *
+ *  \param path full path for the waldo file
+ */
+static void LogFileLogLoadWaldo(const char *path) {
+    char line[16] = "";
+    unsigned int id = 0;
+
+    FILE *fp = fopen(path, "r");
+    if (fp == NULL) {
+        SCLogInfo("couldn't open waldo: %s", strerror(errno));
+        SCReturn;
+    }
+
+    if (fgets(line, (int)sizeof(line), fp) != NULL) {
+        if (sscanf(line, "%10u", &id) == 1) {
+            SCLogInfo("id %u", id);
+            SC_ATOMIC_CAS(&file_id, 0, id);
+        }
+    }
+    fclose(fp);
+}
+
+/**
+ *  \internal
+ *
+ *  \brief Store the waldo file based on the file_id
+ *
+ *  \param path full path for the waldo file
+ */
+static void LogFileLogStoreWaldo(const char *path) {
+    char line[16] = "";
+
+    if (SC_ATOMIC_GET(file_id) == 0) {
+        SCReturn;
+    }
+
+    FILE *fp = fopen(path, "w");
+    if (fp == NULL) {
+        SCLogInfo("couldn't open waldo: %s", strerror(errno));
+        SCReturn;
+    }
+
+    snprintf(line, sizeof(line), "%u\n", SC_ATOMIC_GET(file_id));
+    if (fwrite(line, strlen(line), 1, fp) != 1) {
+        SCLogError(SC_ERR_FWRITE, "fwrite failed: %s", strerror(errno));
+    }
+    fclose(fp);
+}
+
 /** \brief Create a new http log LogFileCtx.
  *  \param conf Pointer to ConfNode containing this loggers configuration.
  *  \return NULL if failure, LogFileCtx* to the file_ctx if succesful
  * */
-OutputCtx *LogFileLogInitCtx(ConfNode *conf)
+static OutputCtx *LogFileLogInitCtx(ConfNode *conf)
 {
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (output_ctx == NULL)
@@ -419,16 +474,38 @@ OutputCtx *LogFileLogInitCtx(ConfNode *conf)
         SCLogInfo("forcing magic lookup for stored files");
     }
 
+    const char *waldo = ConfNodeLookupChildValue(conf, "waldo");
+    if (waldo != NULL && strlen(waldo) > 0) {
+        if (waldo[0] == '/') {
+            snprintf(g_waldo, sizeof(g_waldo), "%s", waldo);
+        } else {
+            snprintf(g_waldo, sizeof(g_waldo), "%s/%s", s_default_log_dir, waldo);
+        }
+
+        SCLogInfo("loading waldo file %s", g_waldo);
+        LogFileLogLoadWaldo(g_waldo);
+    }
     SCLogInfo("storing files in %s", g_logfile_base_dir);
 
     SCReturnPtr(output_ctx, "OutputCtx");
 }
 
+/**
+ *  \internal
+ *
+ *  \brief deinit the log ctx and write out the waldo
+ *
+ *  \param output_ctx output context to deinit
+ */
 static void LogFileLogDeInitCtx(OutputCtx *output_ctx)
 {
     LogFileCtx *logfile_ctx = (LogFileCtx *)output_ctx->data;
     LogFileFreeCtx(logfile_ctx);
     free(output_ctx);
+
+    if (g_waldo != NULL) {
+        LogFileLogStoreWaldo(g_waldo);
+    }
 }
 
 /** \brief Read the config set the file pointer, open the file

@@ -156,6 +156,7 @@ outputs:
       enabled: no       # set to yes to enable
       log-dir: files    # directory to store the files
       force-magic: no   # force logging magic on all stored files
+      #waldo: file.waldo # waldo file to store the file_id across runs
 
 # Magic file. The extension .mgc is added to the value here.
 #magic-file: /usr/share/file/magic

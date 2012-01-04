@@ -25,6 +25,5 @@
 #define __LOG_FILELOG_H__
 
 void TmModuleLogFileLogRegister (void);
-OutputCtx *LogFileLogInitCtx(ConfNode *);
 
 #endif /* __LOG_FILELOG_H__ */
