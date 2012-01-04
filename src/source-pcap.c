@@ -357,7 +357,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     char errbuf[PCAP_ERRBUF_SIZE];
     ptv->pcap_handle = pcap_create((char *)pcapconfig->iface, errbuf);
     if (ptv->pcap_handle == NULL) {
-        SCLogError(SC_ERR_PCAP_CREATE, "Coudn't create a new pcap handler, error %s", pcap_geterr(ptv->pcap_handle));
+        SCLogError(SC_ERR_PCAP_CREATE, "Couldn't create a new pcap handler, error %s", pcap_geterr(ptv->pcap_handle));
         SCFree(ptv);
         pcapconfig->DerefFunc(pcapconfig);
         SCReturnInt(TM_ECODE_FAILED);
