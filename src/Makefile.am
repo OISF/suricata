@@ -225,6 +225,7 @@ util-device.c util-device.h \
 util-checksum.c util-checksum.h \
 util-runmodes.c util-runmodes.h \
 util-file.c util-file.h \
+util-path.c util-path.h \
 tm-modules.c tm-modules.h \
 tm-queues.c tm-queues.h \
 tm-queuehandlers.c tm-queuehandlers.h \
