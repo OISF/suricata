@@ -106,6 +106,16 @@ int DetectProtoParse(DetectProto *dp, char *str)
         proto = IPPROTO_TCP;
         dp->proto[proto / 8] |= 1 << (proto % 8);
         SCLogDebug("TCP protocol detected");
+    } else if (strcasecmp(str, "tcp-pkt") == 0) {
+        proto = IPPROTO_TCP;
+        dp->proto[proto / 8] |= 1 << (proto % 8);
+        SCLogDebug("TCP protocol detected, packets only");
+        dp->flags |= DETECT_PROTO_ONLY_PKT;
+    } else if (strcasecmp(str, "tcp-stream") == 0) {
+        proto = IPPROTO_TCP;
+        dp->proto[proto / 8] |= 1 << (proto % 8);
+        SCLogDebug("TCP protocol detected, stream only");
+        dp->flags |= DETECT_PROTO_ONLY_STREAM;
     } else if (strcasecmp(str, "udp") == 0) {
         proto = IPPROTO_UDP;
         dp->proto[proto / 8] |= 1 << (proto % 8);
@@ -268,6 +278,7 @@ static int ProtoTestParse03 (void)
     SCLogDebug("ProtoTestParse03: Error in parsing the \"ip\" string");
     return 0;
 }
+
 /**
  * \test ProtoTestParse04 is a test to make sure that we do not parse the
  *  protocol, when given an invalid proto option.
@@ -286,6 +297,7 @@ static int ProtoTestParse04 (void)
     SCLogDebug("ProtoTestParse04: it should not parsing the \"4242\" string");
     return 0;
 }
+
 /**
  * \test ProtoTestParse05 is a test to make sure that we do not parse the
  *  protocol, when given an invalid proto option.
@@ -301,8 +313,54 @@ static int ProtoTestParse05 (void)
         return 1;
     }
 
-    SCLogDebug("ProtoTestParse05: it should not parsing the \"4242\" string");
+    SCLogDebug("ProtoTestParse05: it should not parsing the \"tcp/udp\" string");
     return 0;
+}
+
+/**
+ * \test make sure that we properly parse tcp-pkt
+ */
+static int ProtoTestParse06 (void)
+{
+    DetectProto dp;
+    memset(&dp,0,sizeof(DetectProto));
+
+    /* Check for a bad string */
+    int r = DetectProtoParse(&dp, "tcp-pkt");
+    if (r == -1) {
+        printf("parsing tcp-pkt failed: ");
+        return 0;
+    }
+
+    if (!(dp.flags & DETECT_PROTO_ONLY_PKT)) {
+        printf("DETECT_PROTO_ONLY_PKT flag not set: ");
+        return 0;
+    }
+
+    return 1;
+}
+
+/**
+ * \test make sure that we properly parse tcp-stream
+ */
+static int ProtoTestParse07 (void)
+{
+    DetectProto dp;
+    memset(&dp,0,sizeof(DetectProto));
+
+    /* Check for a bad string */
+    int r = DetectProtoParse(&dp, "tcp-stream");
+    if (r == -1) {
+        printf("parsing tcp-stream failed: ");
+        return 0;
+    }
+
+    if (!(dp.flags & DETECT_PROTO_ONLY_STREAM)) {
+        printf("DETECT_PROTO_ONLY_STREAM flag not set: ");
+        return 0;
+    }
+
+    return 1;
 }
 
 /**
@@ -441,6 +499,8 @@ void DetectProtoTests(void)
     UtRegisterTest("ProtoTestParse03", ProtoTestParse03, 1);
     UtRegisterTest("ProtoTestParse04", ProtoTestParse04, 1);
     UtRegisterTest("ProtoTestParse05", ProtoTestParse05, 1);
+    UtRegisterTest("ProtoTestParse06", ProtoTestParse06, 1);
+    UtRegisterTest("ProtoTestParse07", ProtoTestParse07, 1);
     UtRegisterTest("DetectProtoTestSetup01", DetectProtoTestSetup01, 1);
     UtRegisterTest("DetectProtoTestSig01", DetectProtoTestSig01, 1);
 #endif /* UNITTESTS */

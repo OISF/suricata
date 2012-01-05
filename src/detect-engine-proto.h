@@ -24,8 +24,12 @@
 #ifndef __DETECT_PROTO_H__
 #define __DETECT_PROTO_H__
 
-#define DETECT_PROTO_ANY 0x1 /**< Flag to indicate that given protocol
-                                  is considered as IP */
+#define DETECT_PROTO_ANY            0x01 /**< Indicate that given protocol
+                                              is considered as IP */
+#define DETECT_PROTO_ONLY_PKT       0x02 /**< Indicate that we only care
+                                              about packet payloads. */
+#define DETECT_PROTO_ONLY_STREAM    0x04 /**< Indicate that we only care
+                                              about stream payloads. */
 
 typedef struct DetectProto_ {
     uint8_t proto[256/8]; /**< bit array for 256 protocol bits */
