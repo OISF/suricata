@@ -194,8 +194,8 @@ void *ParsePfringConfig(const char *iface)
     ConfNode *pf_ring_node;
     PfringIfaceConfig *pfconf = SCMalloc(sizeof(*pfconf));
     char *tmpclusterid;
-#ifdef HAVE_PFRING_CLUSTER_TYPE
     char *tmpctype = NULL;
+#ifdef HAVE_PFRING_CLUSTER_TYPE
     cluster_type default_ctype = CLUSTER_ROUND_ROBIN;
     int getctype = 0;
 #endif
@@ -316,9 +316,9 @@ void *ParsePfringConfig(const char *iface)
         }
     }
 
-    if (ConfGetChildValue(if_root, "checksum-checks", &tmpctype) != 1) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Could not get checksum-checks from config");
-    } else {
+#endif /* HAVE_PFRING_CLUSTER_TYPE */
+
+    if (ConfGetChildValue(if_root, "checksum-checks", &tmpctype) == 1) {
         if (strcmp(tmpctype, "auto") == 0) {
             pfconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
         } else if (strcmp(tmpctype, "yes") == 0) {
@@ -331,9 +331,6 @@ void *ParsePfringConfig(const char *iface)
             SCLogError(SC_ERR_INVALID_ARGUMENT, "Invalid value for checksum-checks for %s", pfconf->iface);
         }
     }
-
-
-#endif
 
     return pfconf;
 }

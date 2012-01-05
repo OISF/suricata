@@ -205,9 +205,7 @@ void *ParseAFPConfig(const char *iface)
         aconf->promisc = 0;
     }
 
-    if (ConfGetChildValue(if_root, "checksum-checks", &tmpctype) != 1) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Could not get checksum-checks from config");
-    } else {
+    if (ConfGetChildValue(if_root, "checksum-checks", &tmpctype) == 1) {
         if (strcmp(tmpctype, "auto") == 0) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
         } else if (strcmp(tmpctype, "yes") == 0) {

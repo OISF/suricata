@@ -1,4 +1,4 @@
-/* Copyright (C) 2011 Open Information Security Foundation
+/* Copyright (C) 2011-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -24,8 +24,8 @@
 typedef struct LiveDevice_ {
     char *dev;  /**< the device (e.g. "eth0") */
     int ignore_checksum;
-    SC_ATOMIC_DECLARE(uint32_t, pkts);
-    SC_ATOMIC_DECLARE(uint32_t, invalid_checksums);
+    SC_ATOMIC_DECLARE(unsigned int, pkts);
+    SC_ATOMIC_DECLARE(unsigned int, invalid_checksums);
     TAILQ_ENTRY(LiveDevice_) next;
 } LiveDevice;
 

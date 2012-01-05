@@ -145,9 +145,7 @@ void *ParsePcapConfig(const char *iface)
         SCLogInfo("BPF filter set from command line or via old 'bpf-filter' option.");
     }
 
-    if (ConfGetChildValue(if_root, "checksum-checks", &tmpctype) != 1) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "Could not get checksum-checks from config");
-    } else {
+    if (ConfGetChildValue(if_root, "checksum-checks", &tmpctype) == 1) {
         if (strcmp(tmpctype, "auto") == 0) {
             aconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
         } else if (strcmp(tmpctype, "yes") == 0) {

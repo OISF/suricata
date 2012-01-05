@@ -1,4 +1,4 @@
-/* Copyright (C) 2011 Open Information Security Foundation
+/* Copyright (C) 2011-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -60,25 +60,30 @@ int ReCalculateChecksum(Packet *p)
     return 0;
 }
 
-
+/**
+ *  \brief Check if the number of invalid checksums indicate checksum
+ *         offloading in place.
+ *
+ *  \retval 1 yes, offloading in place
+ *  \retval 0 no, no offloading used
+ */
 int ChecksumAutoModeCheck(uint32_t thread_count,
-                                  uint32_t iface_count,
-                                  uint32_t iface_fail)
+        unsigned int iface_count, unsigned int iface_fail)
 {
     if (thread_count == CHECKSUM_SAMPLE_COUNT) {
         if (iface_fail != 0) {
             if ((iface_count / iface_fail) < CHECKSUM_INVALID_RATIO) {
-                SCLogInfo("More than 1/10 of invalid checksum, assuming checksum offloading is used (%d/%d)",
-                          iface_fail,
-                          iface_count);
+                SCLogInfo("More than 1/10th of packets have an invalid "
+                        "checksum, assuming checksum offloading is used (%d/%d)",
+                        iface_fail, iface_count);
                 return 1;
             } else {
-                SCLogInfo("Less than 1/10 of invalid checksum, assuming checksum offloading is NOT used (%d/%d)",
-                        iface_fail,
-                        iface_count);
+                SCLogInfo("Less than 1/10th of packet have an invalid "
+                        "checksum, assuming checksum offloading is NOT used (%d/%d)",
+                        iface_fail, iface_count);
             }
         } else {
-            SCLogInfo("No packet with invalid checksum, assuming checksum offloading is NOT used");
+            SCLogInfo("No packets with invalid checksum, assuming checksum offloading is NOT used");
         }
     }
     return 0;

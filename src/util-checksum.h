@@ -1,4 +1,4 @@
-/* Copyright (C) 2011 Open Information Security Foundation
+/* Copyright (C) 2011-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -26,8 +26,7 @@
 
 int ReCalculateChecksum(Packet *p);
 int ChecksumAutoModeCheck(uint32_t thread_count,
-                           uint32_t iface_count,
-                           uint32_t iface_fail);
+        unsigned int iface_count, unsigned int iface_fail);
 
 /* constant linked with detection of interface with
  * invalid checksums */
