@@ -53,7 +53,6 @@ void DetectFlowFree(void *);
 
 /**
  * \brief Registration function for flow: keyword
- * \todo add support for no_stream and stream_only
  */
 void DetectFlowRegister (void) {
     sigmatch_table[DETECT_FLOW].name = "flow";
@@ -94,7 +93,6 @@ error:
 
 /**
  * \brief This function is used to match flow flags set on a packet with those passed via flow:
- * \todo We need to add support for no_stream and stream_only flag checking
  *
  * \param t pointer to thread vars
  * \param det_ctx pointer to the pattern matcher thread
@@ -238,21 +236,21 @@ DetectFlowData *DetectFlowParse (char *flowstr)
                     goto error;
                 }
                 fd->flags |= FLOW_PKT_TOSERVER;
-            } else if (strcasecmp(args[i], "stream_only") == 0) {
-                if (fd->flags & FLOW_PKT_STREAMONLY) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set stream_only flag is already set");
+            } else if (strcasecmp(args[i], "only_stream") == 0) {
+                if (fd->flags & FLOW_PKT_ONLYSTREAM) {
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set only_stream flag is already set");
                     goto error;
                 } else if (fd->flags & FLOW_PKT_NOSTREAM) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set stream_only flag, FLOW_PKT_NOSTREAM already set");
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set only_stream flag, FLOW_PKT_NOSTREAM already set");
                     goto error;
                 }
-                fd->flags |= FLOW_PKT_STREAMONLY;
+                fd->flags |= FLOW_PKT_ONLYSTREAM;
             } else if (strcasecmp(args[i], "no_stream") == 0) {
                 if (fd->flags & FLOW_PKT_NOSTREAM) {
                     SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set no_stream flag is already set");
                     goto error;
-                } else if (fd->flags & FLOW_PKT_STREAMONLY) {
-                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set no_stream flag, FLOW_PKT_STREAMONLY already set");
+                } else if (fd->flags & FLOW_PKT_ONLYSTREAM) {
+                    SCLogError(SC_ERR_FLAGS_MODIFIER, "cannot set no_stream flag, FLOW_PKT_ONLYSTREAM already set");
                     goto error;
                 }
                 fd->flags |= FLOW_PKT_NOSTREAM;
@@ -302,7 +300,8 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, char *flowstr)
     //printf("DetectFlowSetup: \'%s\'\n", flowstr);
 
     fd = DetectFlowParse(flowstr);
-    if (fd == NULL) goto error;
+    if (fd == NULL)
+        goto error;
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
@@ -314,6 +313,13 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, char *flowstr)
     sm->ctx = (void *)fd;
 
     SigMatchAppendPacket(s, sm);
+
+    if (fd->flags & FLOW_PKT_ONLYSTREAM) {
+        s->flags |= SIG_FLAG_REQUIRE_STREAM;
+    }
+    if (fd->flags & FLOW_PKT_NOSTREAM) {
+        s->flags |= SIG_FLAG_REQUIRE_PACKET;
+    }
 
     s->init_flags |= SIG_FLAG_INIT_FLOW;
     return 0;
@@ -847,17 +853,17 @@ int DetectFlowTestParse17 (void) {
 }
 
 /**
- * \test DetectFlowTestParse18 is a test for setting the from_server,stateless,stream_only flow opts (order of state,dir reversed)
+ * \test DetectFlowTestParse18 is a test for setting the from_server,stateless,only_stream flow opts (order of state,dir reversed)
  */
 int DetectFlowTestParse18 (void) {
     int result = 0;
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("from_server,established,stream_only");
+    fd = DetectFlowParse("from_server,established,only_stream");
     if (fd != NULL) {
-        if (fd->flags & FLOW_PKT_ESTABLISHED && fd->flags & FLOW_PKT_TOCLIENT && fd->flags & FLOW_PKT_STREAMONLY && fd->match_cnt == 3) {
+        if (fd->flags & FLOW_PKT_ESTABLISHED && fd->flags & FLOW_PKT_TOCLIENT && fd->flags & FLOW_PKT_ONLYSTREAM && fd->match_cnt == 3) {
             result = 1;
         } else {
-            printf("expected 0x%02X cnt %" PRId32 " got 0x%02X cnt %" PRId32 ": ", FLOW_PKT_ESTABLISHED + FLOW_PKT_TOCLIENT + FLOW_PKT_STREAMONLY, 3,
+            printf("expected 0x%02X cnt %" PRId32 " got 0x%02X cnt %" PRId32 ": ", FLOW_PKT_ESTABLISHED + FLOW_PKT_TOCLIENT + FLOW_PKT_ONLYSTREAM, 3,
                     fd->flags, fd->match_cnt);
         }
         DetectFlowFree(fd);
@@ -867,17 +873,17 @@ int DetectFlowTestParse18 (void) {
 }
 
 /**
- * \test DetectFlowTestParseNocase18 is a test for setting the from_server,stateless,stream_only flow opts (order of state,dir reversed)
+ * \test DetectFlowTestParseNocase18 is a test for setting the from_server,stateless,only_stream flow opts (order of state,dir reversed)
  */
 int DetectFlowTestParseNocase18 (void) {
     int result = 0;
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("FROM_SERVER,ESTABLISHED,STREAM_ONLY");
+    fd = DetectFlowParse("FROM_SERVER,ESTABLISHED,ONLY_STREAM");
     if (fd != NULL) {
-        if (fd->flags & FLOW_PKT_ESTABLISHED && fd->flags & FLOW_PKT_TOCLIENT && fd->flags & FLOW_PKT_STREAMONLY && fd->match_cnt == 3) {
+        if (fd->flags & FLOW_PKT_ESTABLISHED && fd->flags & FLOW_PKT_TOCLIENT && fd->flags & FLOW_PKT_ONLYSTREAM && fd->match_cnt == 3) {
             result = 1;
         } else {
-            printf("expected 0x%02X cnt %" PRId32 " got 0x%02X cnt %" PRId32 ": ", FLOW_PKT_ESTABLISHED + FLOW_PKT_TOCLIENT + FLOW_PKT_STREAMONLY, 3,
+            printf("expected 0x%02X cnt %" PRId32 " got 0x%02X cnt %" PRId32 ": ", FLOW_PKT_ESTABLISHED + FLOW_PKT_TOCLIENT + FLOW_PKT_ONLYSTREAM, 3,
                     fd->flags, fd->match_cnt);
         }
         DetectFlowFree(fd);
@@ -893,7 +899,7 @@ int DetectFlowTestParseNocase18 (void) {
 int DetectFlowTestParse19 (void) {
     int result = 1;
     DetectFlowData *fd = NULL;
-    fd = DetectFlowParse("from_server,established,stream_only,a");
+    fd = DetectFlowParse("from_server,established,only_stream,a");
     if (fd != NULL) {
         printf("expected: NULL got 0x%02X %" PRId32 ": ",fd->flags, fd->match_cnt);
         result = 0;

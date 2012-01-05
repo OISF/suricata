@@ -819,6 +819,12 @@ int SigParseProto(Signature *s, const char *protostr) {
         SCReturnInt(-1);
     }
 
+    if (s->proto.flags & DETECT_PROTO_ONLY_PKT) {
+        s->flags |= SIG_FLAG_REQUIRE_PACKET;
+    } else if (s->proto.flags & DETECT_PROTO_ONLY_STREAM) {
+        s->flags |= SIG_FLAG_REQUIRE_STREAM;
+    }
+
     SCReturnInt(0);
 }
 
@@ -1304,6 +1310,12 @@ static void SigBuildAddressMatchArray(Signature *s) {
  */
 static int SigValidate(Signature *s) {
     SCEnter();
+
+    if (s->flags & SIG_FLAG_REQUIRE_PACKET &&
+        s->flags & SIG_FLAG_REQUIRE_STREAM) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't mix packet keywords with tcp-stream or flow:only_stream.");
+        SCReturnInt(0);
+    }
 
     /* check for uricontent + from_server/to_client */
     if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {

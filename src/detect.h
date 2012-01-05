@@ -233,18 +233,20 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_IPONLY                 (1<<8) /**< ip only signature */
 
 #define SIG_FLAG_STATE_MATCH            (1<<9) /**< signature has matches that require stateful inspection */
+
 #define SIG_FLAG_REQUIRE_PACKET         (1<<10) /**< signature is requiring packet match */
+#define SIG_FLAG_REQUIRE_STREAM         (1<<11) /**< signature is requiring stream match */
 
-#define SIG_FLAG_MPM_PACKET             (1<<11)
-#define SIG_FLAG_MPM_PACKET_NEG         (1<<12)
-#define SIG_FLAG_MPM_STREAM             (1<<13)
-#define SIG_FLAG_MPM_STREAM_NEG         (1<<14)
-#define SIG_FLAG_MPM_HTTP               (1<<15)
-#define SIG_FLAG_MPM_HTTP_NEG           (1<<16)
+#define SIG_FLAG_MPM_PACKET             (1<<12)
+#define SIG_FLAG_MPM_PACKET_NEG         (1<<13)
+#define SIG_FLAG_MPM_STREAM             (1<<14)
+#define SIG_FLAG_MPM_STREAM_NEG         (1<<15)
+#define SIG_FLAG_MPM_HTTP               (1<<16)
+#define SIG_FLAG_MPM_HTTP_NEG           (1<<17)
 
-#define SIG_FLAG_REQUIRE_FLOWVAR        (1<<17) /**< signature can only match if a flowbit, flowvar or flowint is available. */
+#define SIG_FLAG_REQUIRE_FLOWVAR        (1<<18) /**< signature can only match if a flowbit, flowvar or flowint is available. */
 
-#define SIG_FLAG_FILESTORE              (1<<18) /**< signature has filestore keyword */
+#define SIG_FLAG_FILESTORE              (1<<19) /**< signature has filestore keyword */
 
 /* signature init flags */
 #define SIG_FLAG_INIT_DEONLY         1  /**< decode event only signature */
