@@ -86,6 +86,12 @@ typedef struct StreamTcpThread_ {
     uint16_t counter_tcp_reused_ssn;
     /** sessions reused */
     uint16_t counter_tcp_memuse;
+    /** syn pkts */
+    uint16_t counter_tcp_syn;
+    /** syn/ack pkts */
+    uint16_t counter_tcp_synack;
+    /** rst pkts */
+    uint16_t counter_tcp_rst;
 
     /** tcp reassembly thread data */
     TcpReassemblyThreadCtx *ra_ctx;

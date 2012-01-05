@@ -3597,6 +3597,16 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
 
     TcpSession *ssn = (TcpSession *)p->flow->protoctx;
 
+    /* update counters */
+    if ((p->tcph->th_flags & (TH_SYN|TH_ACK)) == (TH_SYN|TH_ACK)) {
+        SCPerfCounterIncr(stt->counter_tcp_synack, tv->sc_perf_pca);
+    } else if (p->tcph->th_flags & (TH_SYN)) {
+        SCPerfCounterIncr(stt->counter_tcp_syn, tv->sc_perf_pca);
+    }
+    if (p->tcph->th_flags & (TH_RST)) {
+        SCPerfCounterIncr(stt->counter_tcp_rst, tv->sc_perf_pca);
+    }
+
     /* If we are on IPS mode, and got a drop action triggered from
      * the IP only module, or from a reassembled msg and/or from an
      * applayer detection, then drop the rest of the packets of the
@@ -3903,6 +3913,15 @@ TmEcode StreamTcpThreadInit(ThreadVars *tv, void *initdata, void **data)
                                                         "NULL");
     stt->counter_tcp_memuse = SCPerfTVRegisterCounter("tcp.memuse", tv,
                                                         SC_PERF_TYPE_Q_NORMAL,
+                                                        "NULL");
+    stt->counter_tcp_syn = SCPerfTVRegisterCounter("tcp.syn", tv,
+                                                        SC_PERF_TYPE_UINT64,
+                                                        "NULL");
+    stt->counter_tcp_synack = SCPerfTVRegisterCounter("tcp.synack", tv,
+                                                        SC_PERF_TYPE_UINT64,
+                                                        "NULL");
+    stt->counter_tcp_rst = SCPerfTVRegisterCounter("tcp.rst", tv,
+                                                        SC_PERF_TYPE_UINT64,
                                                         "NULL");
 
     /* init reassembly ctx */
