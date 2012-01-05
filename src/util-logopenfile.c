@@ -39,9 +39,11 @@
 static FILE *
 SCLogOpenUnixSocketFp(const char *path, int sock_type)
 {
-    struct sockaddr_un sun = {0};
+    struct sockaddr_un sun;
     int s = -1;
     FILE * ret = NULL;
+
+    memset(&sun, 0x00, sizeof(sun));
 
     s = socket(PF_UNIX, sock_type, 0);
     if (s < 0) goto err;

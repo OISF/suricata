@@ -443,7 +443,6 @@ static void AlertDebugLogDeInitCtx(OutputCtx *output_ctx)
  */
 OutputCtx *AlertDebugLogInitCtx(ConfNode *conf)
 {
-    int ret = 0;
     LogFileCtx *file_ctx = NULL;
 
     file_ctx = LogFileNewCtx();
