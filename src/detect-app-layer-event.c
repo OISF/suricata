@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -52,11 +52,11 @@ void DetectAppLayerEventRegisterTests(void);
 void DetectAppLayerEventFree(void *);
 
 /**
- * \brief Registers the keyword handlers for the "app_layer_event" keyword.
+ * \brief Registers the keyword handlers for the "app-layer-event" keyword.
  */
 void DetectAppLayerEventRegister(void)
 {
-    sigmatch_table[DETECT_AL_APP_LAYER_EVENT].name = "app_layer_event";
+    sigmatch_table[DETECT_AL_APP_LAYER_EVENT].name = "app-layer-event";
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].Match = NULL;
     sigmatch_table[DETECT_AL_APP_LAYER_EVENT].AppLayerMatch =
         DetectAppLayerEventMatch;
@@ -72,17 +72,20 @@ int DetectAppLayerEventMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                              Flow *f, uint8_t flags, void *state, Signature *s,
                              SigMatch *m)
 {
+    SCEnter();
+
     DetectAppLayerEventData *aled = (DetectAppLayerEventData *)m->ctx;
 
     AppLayerDecoderEvents *decoder_events = AppLayerGetDecoderEventsForFlow(f);
-    if (decoder_events == NULL)
-        return 0;
-
-    if (AppLayerDecoderEventsIsEventSet(decoder_events, aled->event_id)) {
-        return 1;
+    if (decoder_events == NULL) {
+        SCReturnInt(0);
     }
 
-    return 0;
+    if (AppLayerDecoderEventsIsEventSet(decoder_events, aled->event_id)) {
+        SCReturnInt(1);
+    }
+
+    SCReturnInt(0);
 }
 
 static DetectAppLayerEventData *DetectAppLayerEventParse(const char *arg)
@@ -91,7 +94,7 @@ static DetectAppLayerEventData *DetectAppLayerEventParse(const char *arg)
     const char *p_idx;
 
     if (arg == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "app_layer_event keyword supplied "
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword supplied "
                    "with no arguments.  This keyword needs an argument.");
         return NULL;
     }
@@ -102,15 +105,14 @@ static DetectAppLayerEventData *DetectAppLayerEventParse(const char *arg)
 
     p_idx = strchr(arg, '.');
     if (p_idx == NULL) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "app_layer_event keyword supplied "
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "app-layer-event keyword supplied "
                    "with an argument which is not in the right format.  The "
                    "right format is \"<alproto>.<event>\"");
         return NULL;
     }
 
-    char buffer[50];
-    strncpy(buffer, arg, p_idx - arg);
-    buffer[p_idx - arg] = '\0';
+    char buffer[50] = "";
+    strlcpy(buffer, arg, p_idx - arg + 1); /* + 1 for trailing \0 */
 
     //int module_id = DecoderEventModuleGetModuleId(buffer);
     //uint16_t alproto = AppLayerGetProtoByName(buffer);
@@ -284,7 +286,7 @@ int DetectAppLayerEventTest02(void)
 #endif /* UNITTESTS */
 
 /**
- * \brief This function registers unit tests for "app_layer_event" keyword.
+ * \brief This function registers unit tests for "app-layer-event" keyword.
  */
 void DetectAppLayerEventRegisterTests(void)
 {

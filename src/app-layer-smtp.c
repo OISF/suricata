@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -3091,7 +3091,7 @@ int SMTPParserTest12(void)
 
     s = DetectEngineAppendSig(de_ctx,"alert tcp any any -> any any "
                                    "(msg:\"SMTP event handling\"; "
-                                   "app_layer_event: smtp.invalid_reply; "
+                                   "app-layer-event: smtp.invalid_reply; "
                                    "sid:1;)");
     if (s == NULL)
         goto end;
@@ -3221,7 +3221,7 @@ int SMTPParserTest13(void)
 
     s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
                               "(msg:\"SMTP event handling\"; "
-                              "app_layer_event: "
+                              "app-layer-event: "
                               "smtp.invalid_pipelined_sequence; "
                               "sid:1;)");
     if (s == NULL)
