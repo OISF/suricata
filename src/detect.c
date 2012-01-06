@@ -2464,40 +2464,22 @@ error:
     return -1;
 }
 
-/* add signature to the right flow groups
+/**
+ *  \brief add signature to the right flow group(s)
  */
 static int DetectEngineLookupFlowAddSig(DetectEngineCtx *de_ctx, Signature *s, int family) {
-    uint8_t flags = 0;
+    SCLogDebug("s->id %u", s->id);
 
-    if (s->init_flags & SIG_FLAG_INIT_FLOW) {
-        SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH];
-        for ( ; sm != NULL; sm = sm->next) {
-            if (sm->type != DETECT_FLOW)
-                continue;
-
-            DetectFlowData *df = (DetectFlowData *)sm->ctx;
-            if (df == NULL)
-                continue;
-
-            flags = df->flags;
-        }
+    if (s->flags & SIG_FLAG_TOCLIENT) {
+        SCLogDebug("s->id %u (toclient)", s->id);
+        DetectEngineLookupBuildSourceAddressList(de_ctx,
+                &de_ctx->flow_gh[0], s, family);
     }
 
-    if (flags & FLOW_PKT_TOCLIENT) {
-        /* only toclient */
-        DetectEngineLookupBuildSourceAddressList(de_ctx, &de_ctx->flow_gh[0], s, family);
-
-    } else if (flags & FLOW_PKT_TOSERVER) {
-        /* only toserver */
-        DetectEngineLookupBuildSourceAddressList(de_ctx, &de_ctx->flow_gh[1], s, family);
-
-    } else {
-        //printf("DetectEngineLookupFlowAddSig: s->id %"PRIu32"\n", s->id);
-
-        /* both */
-        DetectEngineLookupBuildSourceAddressList(de_ctx, &de_ctx->flow_gh[0], s, family);
-        DetectEngineLookupBuildSourceAddressList(de_ctx, &de_ctx->flow_gh[1], s, family);
-
+    if (s->flags & SIG_FLAG_TOSERVER) {
+        SCLogDebug("s->id %u (toserver)", s->id);
+        DetectEngineLookupBuildSourceAddressList(de_ctx,
+                &de_ctx->flow_gh[1], s, family);
     }
 
     return 0;

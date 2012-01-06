@@ -297,8 +297,6 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, char *flowstr)
     DetectFlowData *fd = NULL;
     SigMatch *sm = NULL;
 
-    //printf("DetectFlowSetup: \'%s\'\n", flowstr);
-
     fd = DetectFlowParse(flowstr);
     if (fd == NULL)
         goto error;
@@ -314,6 +312,16 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, char *flowstr)
 
     SigMatchAppendPacket(s, sm);
 
+    /* set the signature direction flags */
+    if (fd->flags & FLOW_PKT_TOSERVER) {
+        s->flags |= SIG_FLAG_TOSERVER;
+    } else if (fd->flags & FLOW_PKT_TOCLIENT) {
+        s->flags |= SIG_FLAG_TOCLIENT;
+    } else {
+        s->flags |= SIG_FLAG_TOSERVER;
+        s->flags |= SIG_FLAG_TOCLIENT;
+    }
+
     if (fd->flags & FLOW_PKT_ONLYSTREAM) {
         s->flags |= SIG_FLAG_REQUIRE_STREAM;
     }
@@ -325,8 +333,10 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, char *flowstr)
     return 0;
 
 error:
-    if (fd != NULL) DetectFlowFree(fd);
-    if (sm != NULL) SCFree(sm);
+    if (fd != NULL)
+        DetectFlowFree(fd);
+    if (sm != NULL)
+        SCFree(sm);
     return -1;
 
 }
