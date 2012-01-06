@@ -1539,6 +1539,19 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
 
+        /* run the packet match functions */
+        if (s->sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+            sm = s->sm_lists[DETECT_SM_LIST_MATCH];
+
+            SCLogDebug("running match functions, sm %p", sm);
+            for ( ; sm != NULL; sm = sm->next) {
+                match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
+                if (match <= 0) {
+                    goto next;
+                }
+            }
+        }
+
         SCLogDebug("s->sm_lists[DETECT_SM_LIST_AMATCH] %p, "
                 "s->sm_lists[DETECT_SM_LIST_UMATCH] %p, "
                 "s->sm_lists[DETECT_SM_LIST_DMATCH] %p, "
@@ -1583,96 +1596,18 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             alert_flags |= PACKET_ALERT_FLAG_STATE_MATCH;
         }
 
-        /* if we get here but have no sigmatches to match against,
-         * we consider the sig matched. */
-        if (s->sm_lists[DETECT_SM_LIST_MATCH] == NULL) {
-            SCLogDebug("signature matched without sigmatches");
+        /* match! */
+        fmatch = 1;
+        DetectReplaceExecute(p, det_ctx->replist);
+        det_ctx->replist = NULL;
+        DetectFilestorePostMatch(th_v, det_ctx,p);
 
-            fmatch = 1;
-
-            DetectReplaceExecute(p, det_ctx->replist);
-            det_ctx->replist = NULL;
-            DetectFilestorePostMatch(th_v, det_ctx,p);
-            if (!(s->flags & SIG_FLAG_NOALERT)) {
-                PacketAlertAppend(det_ctx, s, p, alert_flags, NULL);
-            }
-        } else {
-            if (s->flags & SIG_FLAG_RECURSIVE) {
-                uint8_t rmatch = 0;
-                uint8_t recursion_cnt = 0;
-
-                do {
-                    sm = s->sm_lists[DETECT_SM_LIST_MATCH];
-                    while (sm) {
-                        match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
-                        if (match > 0) {
-                            /* okay, try the next match */
-                            sm = sm->next;
-
-                            /* only if the last matched as well, we have a hit */
-                            if (sm == NULL) {
-
-                                DetectReplaceExecute(p, det_ctx->replist);
-                                det_ctx->replist = NULL;
-                                DetectFilestorePostMatch(th_v, det_ctx,p);
-                                if (!(s->flags & SIG_FLAG_NOALERT)) {
-                                    /* only add once */
-                                    if (rmatch == 0) {
-                                        PacketAlertAppend(det_ctx, s, p, alert_flags, alert_msg);
-                                    }
-                                }
-                                rmatch = fmatch = 1;
-                                recursion_cnt++;
-                            }
-                        } else {
-                            /* done with this sig */
-                            sm = NULL;
-                            rmatch = 0;
-
-                            DetectReplaceFree(det_ctx->replist);
-                            det_ctx->replist = NULL;
-                        }
-                    }
-
-                    /* Limit the number of times we do this recursive thing.
-                     * XXX is this a sane limit? Should it be configurable? */
-                    if (recursion_cnt == 10)
-                        goto next;
-                } while (rmatch);
-
-            } else {
-                sm = s->sm_lists[DETECT_SM_LIST_MATCH];
-
-                SCLogDebug("running match functions, sm %p", sm);
-                while (sm) {
-                    match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
-                    if (match > 0) {
-                        /* okay, try the next match */
-                        sm = sm->next;
-
-                        /* only if the last matched as well, we have a hit */
-                        if (sm == NULL) {
-                            fmatch = 1;
-                            DetectReplaceExecute(p, det_ctx->replist);
-                            det_ctx->replist = NULL;
-                            DetectFilestorePostMatch(th_v, det_ctx,p);
-
-                            if (!(s->flags & SIG_FLAG_NOALERT)) {
-                                PacketAlertAppend(det_ctx, s, p, alert_flags, alert_msg);
-                            }
-                        }
-                    } else {
-                        DetectReplaceFree(det_ctx->replist);
-                        det_ctx->replist = NULL;
-                        /* done with this sig */
-                        sm = NULL;
-                    }
-                }
-
-                SCLogDebug("match functions done, sm %p", sm);
-            }
+        if (!(s->flags & SIG_FLAG_NOALERT)) {
+            PacketAlertAppend(det_ctx, s, p, alert_flags, alert_msg);
         }
-    next:
+next:
+        DetectReplaceFree(det_ctx->replist);
+        det_ctx->replist = NULL;
         RULE_PROFILING_END(s, match);
         continue;
     }
