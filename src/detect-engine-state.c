@@ -755,6 +755,12 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                 }
             }
 
+            /* only inspect in the right direction here */
+            if (flags & STREAM_TOSERVER && !(s->flags & SIG_FLAG_TOSERVER))
+                continue;
+            else if (flags & STREAM_TOCLIENT && !(s->flags & SIG_FLAG_TOCLIENT))
+                continue;
+
             RULE_PROFILING_START;
 
             /* let's continue detection */
