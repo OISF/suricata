@@ -118,6 +118,9 @@ enum
 #define STREAMTCP_FLAG_CLIENT_SACKOK                0x0800
 /** Flag to indicate both sides of the session permit SACK (SYN + SYN/ACK) */
 #define STREAMTCP_FLAG_SACKOK                       0x1000
+/** Flag for triggering RAW reassembly before the size limit is reached or
+    the stream reaches EOF. */
+#define STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY       0x2000
 
 /*
  * Per STREAM flags

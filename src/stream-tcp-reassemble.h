@@ -89,5 +89,7 @@ TcpSegment* StreamTcpGetSegment(ThreadVars *, TcpReassemblyThreadCtx *, uint16_t
 void StreamTcpReturnStreamSegments(TcpStream *);
 void StreamTcpSegmentReturntoPool(TcpSegment *);
 
+void StreamTcpReassembleTriggerRawReassembly(TcpSession *);
+
 #endif /* __STREAM_TCP_REASSEMBLE_H__ */
 

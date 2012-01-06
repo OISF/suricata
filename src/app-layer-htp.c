@@ -1831,6 +1831,9 @@ static int HTPCallbackRequest(htp_connp_t *connp) {
         }
     }
 
+    /* request done, do raw reassembly now to inspect state and stream
+     * at the same time. */
+    AppLayerTriggerRawStreamReassembly(hstate->f);
     SCReturnInt(HOOK_OK);
 }
 
@@ -1886,6 +1889,9 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
         htp_tx_destroy(tx);
     }
 
+    /* response done, do raw reassembly now to inspect state and stream
+     * at the same time. */
+    AppLayerTriggerRawStreamReassembly(hstate->f);
     SCReturnInt(HOOK_OK);
 }
 

@@ -291,4 +291,6 @@ uint16_t AppLayerGetStateVersion(Flow *f);
 FileContainer *AppLayerGetFilesFromFlow(Flow *, uint8_t);
 AppLayerDecoderEvents *AppLayerGetDecoderEventsForFlow(Flow *);
 
+void AppLayerTriggerRawStreamReassembly(Flow *);
+
 #endif /* __APP_LAYER_PARSER_H__ */

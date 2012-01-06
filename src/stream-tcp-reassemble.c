@@ -1733,6 +1733,12 @@ static int StreamTcpReassembleRawCheckLimit(TcpSession *ssn, TcpStream *stream,
 {
     SCEnter();
 
+    if (ssn->flags & STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY) {
+        SCLogDebug("reassembling now as STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY is set");
+        ssn->flags &= ~STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY;
+        SCReturnInt(1);
+    }
+
     /* some states mean we reassemble no matter how much data we have */
     if (ssn->state >= TCP_TIME_WAIT)
         SCReturnInt(1);
@@ -3503,6 +3509,30 @@ TcpSegment* StreamTcpGetSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_ctx, 
 #endif
 
     return seg;
+}
+
+/**
+ *  \brief Trigger RAW stream reassembly
+ *
+ *  Used by AppLayerTriggerRawStreamReassembly to trigger RAW stream
+ *  reassembly from the applayer, for example upon completion of a
+ *  HTTP request.
+ *
+ *  Works by setting a flag in the TcpSession that is unset as soon
+ *  as it's checked. Since everything happens when operating under
+ *  a single lock period, no side effects are expected.
+ *
+ *  \param ssn TcpSession
+ */
+void StreamTcpReassembleTriggerRawReassembly(TcpSession *ssn) {
+#ifdef DEBUG
+    BUG_ON(ssn == NULL);
+#endif
+
+    if (ssn != NULL) {
+        SCLogDebug("flagged ssn %p for immediate raw reassembly", ssn);
+        ssn->flags |= STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY;
+    }
 }
 
 #ifdef UNITTESTS
@@ -6011,9 +6041,10 @@ static int StreamTcpReassembleTest38 (void) {
         goto end;
     }
 
-    /* Check if we have stream smsgs in queue */
-    if (ra_ctx->stream_q->len != 0) {
-        printf("there should be no stream smsgs in the queue (6): ");
+    /* we should now have a smsg as the http request is complete and triggered
+     * reassembly */
+    if (ra_ctx->stream_q->len != 1) {
+        printf("there should one stream smsg in the queue (6): ");
         goto end;
     }
 

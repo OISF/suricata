@@ -1218,6 +1218,30 @@ AppLayerDecoderEvents *AppLayerGetDecoderEventsForFlow(Flow *f)
     return NULL;
 }
 
+/**
+ *  \brief Trigger "raw" stream reassembly from the app layer.
+ *
+ *  This way HTTP for example, can trigger raw stream inspection right
+ *  when the full request body is received. This is often smaller than
+ *  our raw reassembly size limit.
+ *
+ *  \param f flow, for access the stream state
+ */
+void AppLayerTriggerRawStreamReassembly(Flow *f) {
+    SCEnter();
+
+#ifdef DEBUG
+    BUG_ON(f == NULL);
+#endif
+
+    if (f != NULL && f->protoctx != NULL) {
+        TcpSession *ssn = (TcpSession *)f->protoctx;
+        StreamTcpReassembleTriggerRawReassembly(ssn);
+    }
+
+    SCReturn;
+}
+
 void RegisterAppLayerParsers(void)
 {
     /** \todo move to general init function */
