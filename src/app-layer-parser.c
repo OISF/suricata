@@ -56,6 +56,7 @@
 #include "util-spm.h"
 
 #include "util-debug.h"
+#include "decode-events.h"
 #include "util-unittest-helper.h"
 
 static AppLayerProto al_proto_table[ALPROTO_MAX];   /**< Application layer protocol
@@ -676,6 +677,8 @@ void AppLayerParserStateStoreFree(AppLayerParserStateStore *s)
         SCFree(s->to_server.store);
     if (s->to_client.store != NULL)
         SCFree(s->to_client.store);
+    if (s->decoder_events != NULL)
+        AppLayerDecoderEventsFreeEvents(s->decoder_events);
 
     SCFree(s);
 }
@@ -1201,6 +1204,23 @@ int AppLayerTransactionUpdateInspectId(Flow *f, char direction)
     }
 
     SCReturnInt(r);
+}
+
+AppLayerDecoderEvents *AppLayerGetDecoderEventsForFlow(Flow *f)
+{
+    /* Get the parser state (if any) */
+    AppLayerParserStateStore *parser_state_store = NULL;
+
+    if (f == NULL || f->alparser == NULL) {
+        return NULL;
+    }
+
+    parser_state_store = (AppLayerParserStateStore *)f->alparser;
+    if (parser_state_store != NULL) {
+        return parser_state_store->decoder_events;
+    }
+
+    return NULL;
 }
 
 void RegisterAppLayerParsers(void)

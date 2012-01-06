@@ -598,7 +598,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
             if (sigmatch_table[sm->type].AppLayerMatch != NULL &&
                 (alproto == s->alproto ||
-                 alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) )
+                 alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2))
             {
                 if (alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
                     SMBState *smb_state = (SMBState *)alstate;

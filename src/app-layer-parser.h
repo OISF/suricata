@@ -24,6 +24,8 @@
 #ifndef __APP_LAYER_PARSER_H__
 #define __APP_LAYER_PARSER_H__
 
+#include "decode-events.h"
+
 #include "util-file.h"
 
 /** Mapping between local parser id's (e.g. HTTP_FIELD_REQUEST_URI) and
@@ -124,6 +126,9 @@ typedef struct AppLayerParserStateStore_ {
 
     uint16_t version;       /**< state version, incremented for each update,
                              *   can wrap around */
+
+    /* Used to store decoder events */
+    AppLayerDecoderEvents *decoder_events;
 } AppLayerParserStateStore;
 
 typedef struct AppLayerParserTableElement_ {
@@ -284,5 +289,6 @@ void AppLayerPrintProbingParsers(AppLayerProbingParser *);
 
 uint16_t AppLayerGetStateVersion(Flow *f);
 FileContainer *AppLayerGetFilesFromFlow(Flow *, uint8_t);
+AppLayerDecoderEvents *AppLayerGetDecoderEventsForFlow(Flow *);
 
 #endif /* __APP_LAYER_PARSER_H__ */
