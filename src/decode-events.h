@@ -343,6 +343,7 @@ static inline int AppLayerDecoderEventsIsEventSet(AppLayerDecoderEvents *devents
             if ((devents)->events != NULL)                  \
                 SCFree((devents)->events);                  \
         }                                                   \
+        SCFree((devents));                                  \
     } while (0)
 
 void AppLayerDecoderEventsModuleRegister(uint16_t, SCEnumCharMap *);

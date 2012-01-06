@@ -49,6 +49,7 @@
 #include "detect-parse.h"
 
 #include "conf.h"
+#include "decode-events.h"
 
 #define SMTP_MAX_REQUEST_AND_REPLY_LINE_LENGTH 510
 
@@ -91,6 +92,26 @@
 #define SMTP_EHLO_EXTENSION_STARTTLS
 #define SMTP_EHLO_EXTENSION_8BITMIME
 
+SCEnumCharMap smtp_decoder_event_table[ ] = {
+    { "INVALID_REPLY",           SMTP_DECODER_EVENT_INVALID_REPLY },
+    { "UNABLE_TO_MATCH_REPLY_WITH_REQUEST",
+      SMTP_DECODER_EVENT_UNABLE_TO_MATCH_REPLY_WITH_REQUEST },
+    { "MAX_COMMAND_LINE_LEN_EXCEEDED",
+      SMTP_DECODER_EVENT_MAX_COMMAND_LINE_LEN_EXCEEDED },
+    { "MAX_REPLY_LINE_LEN_EXCEEDED",
+      SMTP_DECODER_EVENT_MAX_REPLY_LINE_LEN_EXCEEDED },
+    { "INVALID_PIPELINED_SEQUENCE",
+      SMTP_DECODER_EVENT_INVALID_PIPELINED_SEQUENCE },
+    { "BDAT_CHUNK_LEN_EXCEEDED",
+      SMTP_DECODER_EVENT_BDAT_CHUNK_LEN_EXCEEDED },
+    { "NO_SERVER_WELCOME_MESSAGE",
+      SMTP_DECODER_EVENT_NO_SERVER_WELCOME_MESSAGE },
+    { "TLS_REJECTED",
+      SMTP_DECODER_EVENT_TLS_REJECTED },
+    { "DATA_COMMAND_REJECTED",
+      SMTP_DECODER_EVENT_DATA_COMMAND_REJECTED },
+    { NULL,                      -1 },
+};
 
 #define SMTP_MPM MPM_AC
 
@@ -201,7 +222,12 @@ static int SMTPGetLine(SMTPState *state)
         uint8_t *lf_idx = memchr(state->input, 0x0a, state->input_len);
 
         if (lf_idx == NULL) {
-            /* Fragmented line - set decoder event */
+            /* fragmented lines.  Decoder event for special cases.  Not all
+             * fragmented lines should be treated as a possible evasion
+             * attempt.  With multi payload smtp chunks we can have valid
+             * cases of fragmentation.  But within the same segment chunk
+             * if we see fragmentation then it's definitely something you
+             * should alert about */
             if (state->ts_current_line_db == 0) {
                 state->ts_db = SCMalloc(state->input_len);
                 if (state->ts_db == NULL) {
@@ -260,7 +286,6 @@ static int SMTPGetLine(SMTPState *state)
                     state->current_line_len--;
                     state->current_line_delimiter_len = 2;
                 } else {
-                    /* set decoder event for just LF delimiter */
                     state->current_line_delimiter_len = 1;
                 }
             }
@@ -290,7 +315,12 @@ static int SMTPGetLine(SMTPState *state)
         uint8_t *lf_idx = memchr(state->input, 0x0a, state->input_len);
 
         if (lf_idx == NULL) {
-            /* Fragmented line - set decoder event */
+            /* fragmented lines.  Decoder event for special cases.  Not all
+             * fragmented lines should be treated as a possible evasion
+             * attempt.  With multi payload smtp chunks we can have valid
+             * cases of fragmentation.  But within the same segment chunk
+             * if we see fragmentation then it's definitely something you
+             * should alert about */
             if (state->tc_current_line_db == 0) {
                 state->tc_db = SCMalloc(state->input_len);
                 if (state->tc_db == NULL) {
@@ -349,7 +379,6 @@ static int SMTPGetLine(SMTPState *state)
                     state->current_line_len--;
                     state->current_line_delimiter_len = 2;
                 } else {
-                    /* set decoder event for just LF delimiter */
                     state->current_line_delimiter_len = 1;
                 }
             }
@@ -363,7 +392,7 @@ static int SMTPGetLine(SMTPState *state)
 
 }
 
-static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state)
+static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state, Flow *f)
 {
     SCEnter();
 
@@ -387,6 +416,8 @@ static int SMTPInsertCommandIntoCommandBuffer(uint8_t command, SMTPState *state)
         ((state->cmds[state->cmds_cnt - 1] == SMTP_COMMAND_STARTTLS) ||
          (state->cmds[state->cmds_cnt - 1] == SMTP_COMMAND_DATA))) {
         /* decoder event */
+        AppLayerDecoderEventsSetEvent(f,
+                                      SMTP_DECODER_EVENT_INVALID_PIPELINED_SEQUENCE);
         /* we have to have EHLO, DATA, VRFY, EXPN, TURN, QUIT, NOOP,
          * STARTTLS as the last command in pipelined mode */
     }
@@ -413,6 +444,8 @@ static int SMTPProcessCommandBDAT(SMTPState *state, Flow *f,
     if (state->bdat_chunk_idx > state->bdat_chunk_len) {
         state->parser_state &= ~SMTP_PARSER_STATE_COMMAND_DATA_MODE;
         /* decoder event */
+        AppLayerDecoderEventsSetEvent(f,
+                                      SMTP_DECODER_EVENT_BDAT_CHUNK_LEN_EXCEEDED);
         SCReturnInt(-1);
     } else if (state->bdat_chunk_idx == state->bdat_chunk_len) {
         state->parser_state &= ~SMTP_PARSER_STATE_COMMAND_DATA_MODE;
@@ -422,7 +455,7 @@ static int SMTPProcessCommandBDAT(SMTPState *state, Flow *f,
 }
 
 static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
-                                   AppLayerParserState *pstate)
+                                  AppLayerParserState *pstate)
 {
     SCEnter();
 
@@ -437,7 +470,7 @@ static int SMTPProcessCommandDATA(SMTPState *state, Flow *f,
          * acknowledged with a reply.  We insert a dummy command to
          * the command buffer to be used by the reply handler to match
          * the reply received */
-        SMTPInsertCommandIntoCommandBuffer(SMTP_COMMAND_DATA_MODE, state);
+        SMTPInsertCommandIntoCommandBuffer(SMTP_COMMAND_DATA_MODE, state, f);
     }
 
     return 0;
@@ -461,6 +494,8 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
      * reply code */
     if (state->current_line_len < 3) {
         /* decoder event */
+        AppLayerDecoderEventsSetEvent(f,
+                                      SMTP_DECODER_EVENT_INVALID_REPLY);
         return -1;
     }
 
@@ -488,6 +523,8 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
                                              3);
     if (mpm_cnt == 0) {
         /* set decoder event - reply code invalid */
+        AppLayerDecoderEventsSetEvent(f,
+                                      SMTP_DECODER_EVENT_INVALID_REPLY);
         SCLogDebug("invalid reply code %02x %02x %02x",
                 state->current_line[0], state->current_line[1], state->current_line[2]);
         SCReturnInt(-1);
@@ -513,6 +550,8 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
             return 0;
         } else {
             /* set decoder event - first reply from server not a welcome message */
+            AppLayerDecoderEventsSetEvent(f,
+                                          SMTP_DECODER_EVENT_NO_SERVER_WELCOME_MESSAGE);
         }
     }
 
@@ -525,6 +564,8 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
             pstate->flags |= APP_LAYER_PARSER_NO_REASSEMBLY;
         } else {
             /* decoder event */
+            AppLayerDecoderEventsSetEvent(f,
+                                          SMTP_DECODER_EVENT_TLS_REJECTED);
         }
     } else if (state->cmds[state->cmds_idx] == SMTP_COMMAND_DATA) {
         if (reply_code == SMTP_REPLY_354) {
@@ -532,6 +573,8 @@ static int SMTPProcessReply(SMTPState *state, Flow *f,
             state->parser_state |= SMTP_PARSER_STATE_COMMAND_DATA_MODE;
         } else {
             /* decoder event */
+            AppLayerDecoderEventsSetEvent(f,
+                                          SMTP_DECODER_EVENT_DATA_COMMAND_REJECTED);
         }
     } else {
         /* we don't care for any other command for now */
@@ -616,7 +659,7 @@ static int SMTPProcessRequest(SMTPState *state, Flow *f,
         /* Every command is inserted into a command buffer, to be matched
          * against reply(ies) sent by the server */
         if (SMTPInsertCommandIntoCommandBuffer(state->current_command,
-                                               state) == -1) {
+                                               state, f) == -1) {
             SCReturnInt(-1);
         }
 
@@ -816,6 +859,7 @@ void RegisterSMTPParsers(void)
                           SMTPParseClientRecord);
     AppLayerRegisterProto("smtp", ALPROTO_SMTP, STREAM_TOCLIENT,
                           SMTPParseServerRecord);
+    AppLayerDecoderEventsModuleRegister(ALPROTO_SMTP, smtp_decoder_event_table);
 
     AppLayerRegisterLocalStorageFunc(ALPROTO_SMTP, SMTPLocalStorageAlloc,
                                      SMTPLocalStorageFree);
@@ -2995,6 +3039,264 @@ end:
     return result;
 }
 
+int SMTPParserTest12(void)
+{
+    int result = 0;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    Packet *p = NULL;
+    Flow f;
+    TcpSession ssn;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+    SMTPState *smtp_state = NULL;
+    int r = 0;
+
+    /* EHLO boo.com<CR><LF> */
+    uint8_t request1[] = {
+        0x45, 0x48, 0x4c, 0x4f, 0x20, 0x62, 0x6f, 0x6f,
+        0x2e, 0x63, 0x6f, 0x6d, 0x0d, 0x0a,
+    };
+    int32_t request1_len = sizeof(request1);
+
+    /* 388<CR><LF>
+     */
+    uint8_t reply1[] = {
+        0x31, 0x38, 0x38, 0x0d, 0x0a,
+    };
+    uint32_t reply1_len = sizeof(reply1);
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    f.alproto = ALPROTO_SMTP;
+
+    StreamTcpInitConfig(TRUE);
+    void *thread_local_data = SMTPLocalStorageAlloc();
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx,"alert tcp any any -> any any "
+                                   "(msg:\"SMTP event handling\"; "
+                                   "app_layer_event: smtp.invalid_reply; "
+                                   "sid:1;)");
+    if (s == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    r = AppLayerParse(thread_local_data, &f, ALPROTO_SMTP, STREAM_TOSERVER | STREAM_START,
+                      request1, request1_len);
+    if (r != 0) {
+        printf("AppLayerParse for smtp failed.  Returned %" PRId32, r);
+        goto end;
+    }
+
+    smtp_state = f.alstate;
+    if (smtp_state == NULL) {
+        printf("no smtp state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (PacketAlertCheck(p, 1)) {
+        printf("sid 1 matched.  It shouldn't match: ");
+        goto end;
+    }
+
+    r = AppLayerParse(thread_local_data, &f, ALPROTO_SMTP, STREAM_TOCLIENT | STREAM_TOCLIENT,
+                      reply1, reply1_len);
+    if (r == 0) {
+        printf("AppLayerParse for smtp failed.  Returned %" PRId32, r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (!PacketAlertCheck(p, 1)) {
+        printf("sid 1 didn't match.  Should have matched: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    SMTPLocalStorageFree(thread_local_data);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
+int SMTPParserTest13(void)
+{
+    int result = 0;
+    Signature *s = NULL;
+    ThreadVars th_v;
+    Packet *p = NULL;
+    Flow f;
+    TcpSession ssn;
+    DetectEngineThreadCtx *det_ctx = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+    SMTPState *smtp_state = NULL;
+    int r = 0;
+
+    /* EHLO boo.com<CR><LF> */
+    uint8_t request1[] = {
+        0x45, 0x48, 0x4c, 0x4f, 0x20, 0x62, 0x6f, 0x6f,
+        0x2e, 0x63, 0x6f, 0x6d, 0x0d, 0x0a,
+    };
+    int32_t request1_len = sizeof(request1);
+
+    /* 250<CR><LF>
+     */
+    uint8_t reply1[] = {
+        0x32, 0x35, 0x30, 0x0d, 0x0a,
+    };
+    uint32_t reply1_len = sizeof(reply1);
+
+    /* MAIL FROM:pbsf@asdfs.com<CR><LF>
+     * RCPT TO:pbsf@asdfs.com<CR><LF>
+     * DATA<CR><LF>
+     * STARTTLS<CR><LF>
+     */
+    uint8_t request2[] = {
+        0x4d, 0x41, 0x49, 0x4c, 0x20, 0x46, 0x52, 0x4f,
+        0x4d, 0x3a, 0x70, 0x62, 0x73, 0x66, 0x40, 0x61,
+        0x73, 0x64, 0x66, 0x73, 0x2e, 0x63, 0x6f, 0x6d,
+        0x0d, 0x0a, 0x52, 0x43, 0x50, 0x54, 0x20, 0x54,
+        0x4f, 0x3a, 0x70, 0x62, 0x73, 0x66, 0x40, 0x61,
+        0x73, 0x64, 0x66, 0x73, 0x2e, 0x63, 0x6f, 0x6d,
+        0x0d, 0x0a, 0x44, 0x41, 0x54, 0x41, 0x0d, 0x0a,
+        0x53, 0x54, 0x41, 0x52, 0x54, 0x54, 0x4c, 0x53,
+        0x0d, 0x0a
+    };
+    uint32_t request2_len = sizeof(request2);
+
+    memset(&th_v, 0, sizeof(th_v));
+    memset(&f, 0, sizeof(f));
+    memset(&ssn, 0, sizeof(ssn));
+
+    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
+
+    FLOW_INITIALIZE(&f);
+    f.protoctx = (void *)&ssn;
+    p->flow = &f;
+    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_ESTABLISHED;
+    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
+    f.alproto = ALPROTO_SMTP;
+
+    StreamTcpInitConfig(TRUE);
+    void *thread_local_data = SMTPLocalStorageAlloc();
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any "
+                              "(msg:\"SMTP event handling\"; "
+                              "app_layer_event: "
+                              "smtp.invalid_pipelined_sequence; "
+                              "sid:1;)");
+    if (s == NULL)
+        goto end;
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    r = AppLayerParse(thread_local_data, &f, ALPROTO_SMTP, STREAM_TOSERVER | STREAM_START,
+                      request1, request1_len);
+    if (r != 0) {
+        printf("AppLayerParse for smtp failed.  Returned %" PRId32, r);
+        goto end;
+    }
+
+    smtp_state = f.alstate;
+    if (smtp_state == NULL) {
+        printf("no smtp state: ");
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (PacketAlertCheck(p, 1)) {
+        printf("sid 1 matched.  It shouldn't match: ");
+        goto end;
+    }
+
+    r = AppLayerParse(thread_local_data, &f, ALPROTO_SMTP, STREAM_TOCLIENT,
+                      reply1, reply1_len);
+    if (r != 0) {
+        printf("AppLayerParse for smtp failed.  Returned %" PRId32, r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (PacketAlertCheck(p, 1)) {
+        printf("sid 1 matched.  It shouldn't match: ");
+        goto end;
+    }
+
+    r = AppLayerParse(thread_local_data, &f, ALPROTO_SMTP, STREAM_TOSERVER,
+                      request2, request2_len);
+    if (r != 0) {
+        printf("AppLayerParse for smtp failed.  Returned %" PRId32, r);
+        goto end;
+    }
+
+    /* do detect */
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+
+    if (!PacketAlertCheck(p, 1)) {
+        printf("sid 1 didn't match.  Should have matched: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    StreamTcpFreeConfig(TRUE);
+    SMTPLocalStorageFree(thread_local_data);
+    FLOW_DESTROY(&f);
+    UTHFreePackets(&p, 1);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void SMTPParserRegisterTests(void)
@@ -3011,6 +3313,8 @@ void SMTPParserRegisterTests(void)
     UtRegisterTest("SMTPParserTest09", SMTPParserTest09, 1);
     UtRegisterTest("SMTPParserTest10", SMTPParserTest10, 1);
     UtRegisterTest("SMTPParserTest11", SMTPParserTest11, 1);
+    UtRegisterTest("SMTPParserTest12", SMTPParserTest12, 1);
+    UtRegisterTest("SMTPParserTest13", SMTPParserTest13, 1);
 #endif /* UNITTESTS */
 
     return;

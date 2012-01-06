@@ -679,6 +679,7 @@ void AppLayerParserStateStoreFree(AppLayerParserStateStore *s)
         SCFree(s->to_client.store);
     if (s->decoder_events != NULL)
         AppLayerDecoderEventsFreeEvents(s->decoder_events);
+    s->decoder_events = NULL;
 
     SCFree(s);
 }
