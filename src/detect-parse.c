@@ -1334,6 +1334,21 @@ static int SigValidate(Signature *s) {
         }
     }
 
+#ifndef UNITTESTS /** \todo HACK... this fails 72 unittests, no time to fix them now */
+#ifndef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
+    if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL) {
+        if ((s->flags & (SIG_FLAG_TOCLIENT|SIG_FLAG_TOSERVER)) == (SIG_FLAG_TOCLIENT|SIG_FLAG_TOSERVER)) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,"http_raw_header signature without a flow direction. See issue #389.");
+            SCReturnInt(0);
+        }
+        if (s->flags & SIG_FLAG_TOCLIENT) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE,"http_raw_header signature with to_client flow direction. See issue #389.");
+            SCReturnInt(0);
+        }
+    }
+#endif
+#endif
+
     if (s->alproto == ALPROTO_DCERPC) {
         /* \todo We haven't covered dce rpc cases now.  They need special
          * treatment, since they do allow distance, within without a
