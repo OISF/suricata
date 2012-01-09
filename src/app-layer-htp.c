@@ -105,6 +105,50 @@ static uint8_t need_htp_request_file = 0;
 /** part of the engine needs the request body (e.g. file_data keyword) */
 static uint8_t need_htp_response_body = 0;
 
+SCEnumCharMap http_decoder_event_table[ ] = {
+    { "UNKNOWN_ERROR",
+        HTTP_DECODER_EVENT_UNKNOWN_ERROR},
+    { "GZIP_DECOMPRESSION_FAILED",
+        HTTP_DECODER_EVENT_GZIP_DECOMPRESSION_FAILED},
+    { "REQUEST_FIELD_MISSING_COLON",
+        HTTP_DECODER_EVENT_REQUEST_FIELD_MISSING_COLON},
+    { "INVALID_REQUEST_CHUNK_LEN",
+        HTTP_DECODER_EVENT_INVALID_REQUEST_CHUNK_LEN},
+    { "INVALID_RESPONSE_CHUNK_LEN",
+        HTTP_DECODER_EVENT_INVALID_RESPONSE_CHUNK_LEN},
+    { "INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST",
+        HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST},
+    { "INVALID_TRANSFER_ENCODING_VALUE_IN_RESPONSE",
+        HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_RESPONSE},
+    { "INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST",
+        HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST},
+    { "INVALID_CONTENT_LENGTH_FIELD_IN_RESPONSE",
+        HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_RESPONSE},
+    { "100_CONTINUE_ALREADY_SEEN",
+        HTTP_DECODER_EVENT_100_CONTINUE_ALREADY_SEEN},
+    { "UNABLE_TO_MATCH_RESPONSE_TO_REQUEST",
+        HTTP_DECODER_EVENT_UNABLE_TO_MATCH_RESPONSE_TO_REQUEST},
+    { "INVALID_SERVER_PORT_IN_REQUEST",
+        HTTP_DECODER_EVENT_INVALID_SERVER_PORT_IN_REQUEST},
+    { "INVALID_AUTHORITY_PORT",
+        HTTP_DECODER_EVENT_INVALID_AUTHORITY_PORT},
+    { "HEADER_INVALID",
+        HTTP_DECODER_EVENT_REQUEST_HEADER_INVALID},
+    { "MISSING_HOST_HEADER",
+        HTTP_DECODER_EVENT_MISSING_HOST_HEADER},
+    { "HOST_HEADER_AMBIGUOUS",
+        HTTP_DECODER_EVENT_HOST_HEADER_AMBIGUOUS},
+    { "INVALID_REQUEST_FIELD_FOLDING",
+        HTTP_DECODER_EVENT_INVALID_REQUEST_FIELD_FOLDING},
+    { "INVALID_RESPONSE_FIELD_FOLDING",
+        HTTP_DECODER_EVENT_INVALID_RESPONSE_FIELD_FOLDING},
+    { "REQUEST_FIELD_TOO_LONG",
+        HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG},
+    { "RESPONSE_FIELD_TOO_LONG",
+        HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG},
+    { NULL,                      -1 },
+};
+
 #ifdef DEBUG
 /**
  * \internal
@@ -346,6 +390,151 @@ void AppLayerHtpNeedFileInspection(void)
     SCReturn;
 }
 
+struct {
+    char *msg;
+    int  de;
+} htp_errors[] = {
+    { "GZip decompressor: inflateInit2 failed", HTTP_DECODER_EVENT_GZIP_DECOMPRESSION_FAILED},
+    { "Request field invalid: colon missing", HTTP_DECODER_EVENT_REQUEST_FIELD_MISSING_COLON},
+    { "Request chunk encoding: Invalid chunk length", HTTP_DECODER_EVENT_INVALID_REQUEST_CHUNK_LEN},
+    { "Response chunk encoding: Invalid chunk length", HTTP_DECODER_EVENT_INVALID_RESPONSE_CHUNK_LEN},
+    { "Invalid T-E value in request", HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_REQUEST},
+    { "Invalid T-E value in response", HTTP_DECODER_EVENT_INVALID_TRANSFER_ENCODING_VALUE_IN_RESPONSE},
+    { "Invalid C-L field in request", HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_REQUEST},
+    { "Invalid C-L field in response", HTTP_DECODER_EVENT_INVALID_CONTENT_LENGTH_FIELD_IN_RESPONSE},
+    { "Already seen 100-Continue", HTTP_DECODER_EVENT_100_CONTINUE_ALREADY_SEEN},
+    { "Unable to match response to request", HTTP_DECODER_EVENT_UNABLE_TO_MATCH_RESPONSE_TO_REQUEST},
+    { "Invalid server port information in request", HTTP_DECODER_EVENT_INVALID_SERVER_PORT_IN_REQUEST},
+    { "Invalid authority port", HTTP_DECODER_EVENT_INVALID_AUTHORITY_PORT},
+    { "Request field over", HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG},
+    { "Response field over", HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG},
+};
+
+struct {
+    char *msg;
+    int  de;
+} htp_warnings[] = {
+    { "GZip decompressor:", HTTP_DECODER_EVENT_GZIP_DECOMPRESSION_FAILED},
+    { "Request field invalid", HTTP_DECODER_EVENT_REQUEST_HEADER_INVALID},
+    { "Request header name is not a token", HTTP_DECODER_EVENT_REQUEST_HEADER_INVALID},
+    { "Host information in request headers required by HTTP/1.1", HTTP_DECODER_EVENT_MISSING_HOST_HEADER},
+    { "Host information ambiguous", HTTP_DECODER_EVENT_HOST_HEADER_AMBIGUOUS},
+    { "Invalid request field folding", HTTP_DECODER_EVENT_INVALID_REQUEST_FIELD_FOLDING},
+    { "Invalid response field folding", HTTP_DECODER_EVENT_INVALID_RESPONSE_FIELD_FOLDING},
+};
+
+#define HTP_ERROR_MAX (sizeof(htp_errors) / sizeof(htp_errors[0]))
+#define HTP_WARNING_MAX (sizeof(htp_warnings) / sizeof(htp_warnings[0]))
+
+/**
+ *  \internal
+ *
+ *  \brief Get the warning id for the warning msg.
+ *
+ *  \param msg warning message
+ *
+ *  \retval id the id or 0 in case of not found
+ */
+static int HTPHandleWarningGetId(const char *msg) {
+    size_t idx;
+    for (idx = 0; idx < HTP_WARNING_MAX; idx++) {
+        if (strncmp(htp_warnings[idx].msg, msg,
+                    strlen(htp_warnings[idx].msg)) == 0)
+        {
+            return htp_warnings[idx].de;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ *  \internal
+ *
+ *  \brief Get the error id for the error msg.
+ *
+ *  \param msg error message
+ *
+ *  \retval id the id or 0 in case of not found
+ */
+static int HTPHandleErrorGetId(const char *msg) {
+    size_t idx;
+    for (idx = 0; idx < HTP_ERROR_MAX; idx++) {
+        if (strncmp(htp_errors[idx].msg, msg,
+                    strlen(htp_errors[idx].msg)) == 0)
+        {
+            return htp_errors[idx].de;
+        }
+    }
+
+    return 0;
+}
+
+/**
+ *  \internal
+ *
+ *  \brief Check state for errors, warnings and add any as events
+ *
+ *  \param s state
+ */
+static void HTPHandleError(HtpState *s) {
+    if (s == NULL || s->connp == NULL || s->connp->conn == NULL ||
+        s->connp->conn->messages == NULL) {
+        return;
+    }
+
+    size_t size = list_size(s->connp->conn->messages);
+    size_t msg;
+
+    for (msg = 0; msg < size; msg++) {
+        htp_log_t *log = list_get(s->connp->conn->messages, msg);
+        if (log == NULL)
+            continue;
+
+        int id = HTPHandleErrorGetId(log->msg);
+        if (id > 0) {
+            AppLayerDecoderEventsSetEvent(s->f, id);
+        } else {
+            id = HTPHandleWarningGetId(log->msg);
+            if (id > 0) {
+                AppLayerDecoderEventsSetEvent(s->f, id);
+            } else {
+                AppLayerDecoderEventsSetEvent(s->f,
+                        HTTP_DECODER_EVENT_UNKNOWN_ERROR);
+            }
+        }
+    }
+}
+
+/**
+ *  \internal
+ *
+ *  \brief Check state for warnings and add any as events
+ *
+ *  \param s state
+ */
+static void HTPHandleWarning(HtpState *s) {
+    if (s == NULL || s->connp == NULL || s->connp->conn == NULL ||
+        s->connp->conn->messages == NULL) {
+        return;
+    }
+
+    size_t size = list_size(s->connp->conn->messages);
+    size_t msg;
+
+    for (msg = 0; msg < size; msg++) {
+        htp_log_t *log = list_get(s->connp->conn->messages, msg);
+        if (log == NULL)
+            continue;
+
+        int id = HTPHandleWarningGetId(log->msg);
+        if (id > 0) {
+            AppLayerDecoderEventsSetEvent(s->f, id);
+        } else {
+            AppLayerDecoderEventsSetEvent(s->f, HTTP_DECODER_EVENT_UNKNOWN_ERROR);
+        }
+    }
+}
 
 /**
  *  \brief  Function to handle the reassembled data from client and feed it to
@@ -456,17 +645,8 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
 
     switch(r) {
         case STREAM_STATE_ERROR:
-            if (hstate->connp->last_error != NULL) {
-                SCLogError(SC_ERR_ALPARSER, "Error in parsing HTTP client "
-                                    "request: [%"PRId32"] [%s] [%"PRId32"] %s",
-                                    hstate->connp->last_error->level,
-                                    hstate->connp->last_error->file,
-                                    hstate->connp->last_error->line,
-                                    hstate->connp->last_error->msg);
-            } else {
-                SCLogError(SC_ERR_ALPARSER, "Error in parsing HTTP client "
-                                            "request");
-            }
+            HTPHandleError(hstate);
+
             hstate->flags |= HTP_FLAG_STATE_ERROR;
             hstate->flags &= ~HTP_FLAG_STATE_DATA;
             hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
@@ -474,9 +654,12 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
             break;
         case STREAM_STATE_DATA:
         case STREAM_STATE_DATA_OTHER:
+            HTPHandleWarning(hstate);
+
             hstate->flags |= HTP_FLAG_STATE_DATA;
             break;
         default:
+            HTPHandleWarning(hstate);
             hstate->flags &= ~HTP_FLAG_STATE_DATA;
             hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
     }
@@ -541,17 +724,8 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
     r = htp_connp_res_data(hstate->connp, 0, input, input_len);
     switch(r) {
         case STREAM_STATE_ERROR:
-            if (hstate->connp->last_error != NULL) {
-                SCLogError(SC_ERR_ALPARSER, "Error in parsing HTTP server "
-                                    "response: [%"PRId32"] [%s] [%"PRId32"] %s",
-                                    hstate->connp->last_error->level,
-                                    hstate->connp->last_error->file,
-                                    hstate->connp->last_error->line,
-                                    hstate->connp->last_error->msg);
-            } else {
-                SCLogError(SC_ERR_ALPARSER, "Error in parsing HTTP server "
-                                            "response");
-            }
+            HTPHandleError(hstate);
+
             hstate->flags = HTP_FLAG_STATE_ERROR;
             hstate->flags &= ~HTP_FLAG_STATE_DATA;
             hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
@@ -559,9 +733,11 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
             break;
         case STREAM_STATE_DATA:
         case STREAM_STATE_DATA_OTHER:
+            HTPHandleWarning(hstate);
             hstate->flags |= HTP_FLAG_STATE_DATA;
             break;
         default:
+            HTPHandleWarning(hstate);
             hstate->flags &= ~HTP_FLAG_STATE_DATA;
             hstate->flags &= ~HTP_FLAG_NEW_BODY_SET;
      }
@@ -2039,6 +2215,8 @@ void RegisterHTPParsers(void)
     AppLayerRegisterStateFuncs(ALPROTO_HTTP, HTPStateAlloc, HTPStateFree);
     AppLayerRegisterTransactionIdFuncs(ALPROTO_HTTP, HTPStateUpdateTransactionId, HTPStateTransactionFree);
     AppLayerRegisterGetFilesFunc(ALPROTO_HTTP, HTPStateGetFiles);
+
+    AppLayerDecoderEventsModuleRegister(ALPROTO_HTTP, http_decoder_event_table);
 
     AppLayerRegisterProto("http", ALPROTO_HTTP, STREAM_TOSERVER,
                           HTPHandleRequestData);
