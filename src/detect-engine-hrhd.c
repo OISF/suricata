@@ -346,12 +346,14 @@ int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
                                               (uint8_t *)bstr_ptr(raw_headers),
                                               bstr_len(raw_headers));
         }
+#ifdef __LIBHTP_026GT_RESPONSE_HEADER_SUPPORT__
         raw_headers = htp_tx_get_response_headers_raw(tx);
         if (raw_headers != NULL) {
             cnt += HttpRawHeaderPatternSearch(det_ctx,
                                               (uint8_t *)bstr_ptr(raw_headers),
                                               bstr_len(raw_headers));
         }
+#endif
     }
 
  end:
@@ -407,12 +409,15 @@ int DetectEngineInspectHttpRawHeader(DetectEngineCtx *de_ctx,
         if (tx == NULL)
             continue;
 
-        bstr *raw_headers;
+        bstr *raw_headers = NULL;
         if (flags & STREAM_TOSERVER) {
             raw_headers = htp_tx_get_request_headers_raw(tx);
-        } else {
+        }
+#ifdef __LIBHTP_026GT_RESPONSE_HEADER_SUPPORT__
+        else {
             raw_headers = htp_tx_get_response_headers_raw(tx);
         }
+#endif
         if (raw_headers == NULL)
             continue;
 
