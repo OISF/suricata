@@ -529,6 +529,9 @@ void SCPrintBuildInfo(void) {
 #ifdef HAVE_HTP_URI_NORMALIZE_HOOK
     strlcat(features, "HAVE_HTP_URI_NORMALIZE_HOOK ", sizeof(features));
 #endif
+#ifdef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
+    strlcat(features, "HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW ", sizeof(features));
+#endif
 #ifdef PCRE_HAVE_JIT
     strlcat(features, "PCRE_JIT ", sizeof(features));
 #endif

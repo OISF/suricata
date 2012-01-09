@@ -346,14 +346,14 @@ int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
                                               (uint8_t *)bstr_ptr(raw_headers),
                                               bstr_len(raw_headers));
         }
-#ifdef __LIBHTP_026GT_RESPONSE_HEADER_SUPPORT__
+#ifdef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
         raw_headers = htp_tx_get_response_headers_raw(tx);
         if (raw_headers != NULL) {
             cnt += HttpRawHeaderPatternSearch(det_ctx,
                                               (uint8_t *)bstr_ptr(raw_headers),
                                               bstr_len(raw_headers));
         }
-#endif
+#endif /* HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW */
     }
 
  end:
@@ -3013,6 +3013,7 @@ end:
 
 static int DetectEngineHttpRawHeaderTest28(void)
 {
+#ifdef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
     TcpSession ssn;
     Packet *p1 = NULL;
     Packet *p2 = NULL;
@@ -3128,6 +3129,9 @@ end:
     UTHFreePackets(&p1, 1);
     UTHFreePackets(&p2, 1);
     return result;
+#else
+    return 1;
+#endif
 }
 
 static int DetectEngineHttpRawHeaderTest29(void)
