@@ -26,7 +26,8 @@
 #include "app-layer-htp.h"
 
 int DetectEngineInspectHttpRawHeader(DetectEngineCtx *, DetectEngineThreadCtx *, Signature *, Flow *, uint8_t, void *);
-int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *, Flow *, HtpState *);
+int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *, Flow *, HtpState *,
+                                    uint8_t);
 void DetectEngineHttpRawHeaderRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_HHD_H__ */
