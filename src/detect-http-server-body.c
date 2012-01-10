@@ -1435,7 +1435,7 @@ static int DetectHttpServerBodyTest14(void) {
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP;
@@ -1449,12 +1449,12 @@ static int DetectHttpServerBodyTest14(void) {
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"GET\"; http_method; content:\"Mozilla\"; http_header; content:\"dummy1\"; http_cookie; content:\"one\"; http_server_body; sid:1; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; content:\"one\"; http_server_body; sid:1; rev:1;)");
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
     }
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"GET\"; http_method; content:\"Firefox\"; http_header; content:\"dummy2\"; http_cookie; content:\"two\"; http_server_body; sid:2; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; content:\"two\"; http_server_body; sid:2; rev:1;)");
     if (s == NULL) {
         printf("sig2 parse failed: ");
         goto end;
@@ -1463,28 +1463,23 @@ static int DetectHttpServerBodyTest14(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
+    SCLogDebug("add chunk 1");
+
     int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
 
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 alerted (tx 1): ");
-        goto end;
-    }
-    p->alerts.cnt = 0;
-
-    p->flowflags &= ~FLOW_PKT_TOSERVER;
-    p->flowflags |= FLOW_PKT_TOCLIENT;
+    SCLogDebug("add chunk 2");
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOCLIENT, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
+
+    SCLogDebug("inspect chunk 1");
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -1494,8 +1489,7 @@ static int DetectHttpServerBodyTest14(void) {
     }
     p->alerts.cnt = 0;
 
-    p->flowflags &= ~FLOW_PKT_TOCLIENT;
-    p->flowflags |= FLOW_PKT_TOSERVER;
+    SCLogDebug("add chunk 3");
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf3, httplen3);
     if (r != 0) {
@@ -1503,26 +1497,15 @@ static int DetectHttpServerBodyTest14(void) {
         goto end;
     }
 
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 matched, but shouldn't have (tx 2): ");
-        goto end;
-    }
-    if ((PacketAlertCheck(p, 2))) {
-        printf("sig 2 alerted (tx 2): ");
-        goto end;
-    }
-    p->alerts.cnt = 0;
-
-    p->flowflags &= ~FLOW_PKT_TOSERVER;
-    p->flowflags |= FLOW_PKT_TOCLIENT;
+    SCLogDebug("add chunk 4");
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_EOF, httpbuf4, httplen4);
     if (r != 0) {
         printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
+
+    SCLogDebug("inspect chunk 4");
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -1608,7 +1591,7 @@ static int DetectHttpServerBodyTest15(void) {
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP;
@@ -1622,12 +1605,12 @@ static int DetectHttpServerBodyTest15(void) {
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"GET\"; http_method; content:\"index1\"; http_uri; content:\"Mozilla\"; http_header; content:\"dummy1\"; http_cookie; content:\"one\"; http_server_body; sid:1; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; content:\"one\"; http_server_body; sid:1; rev:1;)");
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
     }
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"GET\"; http_method; content:\"index2\"; http_uri; content:\"Firefox\"; http_header; content:\"dummy2\"; http_cookie; content:\"two\"; http_server_body; sid:2; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; content:\"two\"; http_server_body; sid:2; rev:1;)");
     if (s == NULL) {
         printf("sig2 parse failed: ");
         goto end;
@@ -1642,17 +1625,6 @@ static int DetectHttpServerBodyTest15(void) {
         goto end;
     }
 
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 alerted (tx 1): ");
-        goto end;
-    }
-    p->alerts.cnt = 0;
-
-    p->flowflags &= ~FLOW_PKT_TOSERVER;
-    p->flowflags |= FLOW_PKT_TOCLIENT;
-
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOCLIENT, httpbuf2, httplen2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
@@ -1665,31 +1637,17 @@ static int DetectHttpServerBodyTest15(void) {
         printf("sig 1 didn't alert (tx 1): ");
         goto end;
     }
+    if (PacketAlertCheck(p, 2)) {
+        printf("sig 2 alerted (tx 1): ");
+        goto end;
+    }
     p->alerts.cnt = 0;
-
-    p->flowflags &= ~FLOW_PKT_TOCLIENT;
-    p->flowflags |= FLOW_PKT_TOSERVER;
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf3, httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 matched, but shouldn't have (tx 2): ");
-        goto end;
-    }
-    if ((PacketAlertCheck(p, 2))) {
-        printf("sig 2 alerted (tx 2): ");
-        goto end;
-    }
-    p->alerts.cnt = 0;
-
-    p->flowflags &= ~FLOW_PKT_TOSERVER;
-    p->flowflags |= FLOW_PKT_TOCLIENT;
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_EOF, httpbuf4, httplen4);
     if (r != 0) {
@@ -3353,7 +3311,7 @@ static int DetectHttpServerBodyFileDataTest06(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
+                               "(msg:\"http file_data test\"; "
                                "file_data; content:!\"MaSSaGE\"; nocase; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -3483,7 +3441,7 @@ static int DetectHttpServerBodyFileDataTest07(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
+                               "(msg:\"http file_data test\"; "
                                "file_data; content:!\"MeSSaGE\"; nocase; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -3699,7 +3657,7 @@ static int DetectHttpServerBodyFileDataTest09(void) {
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP;
@@ -3713,12 +3671,12 @@ static int DetectHttpServerBodyFileDataTest09(void) {
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"GET\"; http_method; content:\"Mozilla\"; http_header; content:\"dummy1\"; http_cookie; file_data; content:\"one\"; sid:1; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; file_data; content:\"one\"; sid:1; rev:1;)");
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
     }
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"GET\"; http_method; content:\"Firefox\"; http_header; content:\"dummy2\"; http_cookie; file_data; content:\"two\"; sid:2; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; file_data; content:\"two\"; sid:2; rev:1;)");
     if (s == NULL) {
         printf("sig2 parse failed: ");
         goto end;
@@ -3732,17 +3690,6 @@ static int DetectHttpServerBodyFileDataTest09(void) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 alerted (tx 1): ");
-        goto end;
-    }
-    p->alerts.cnt = 0;
-
-    p->flowflags &= ~FLOW_PKT_TOSERVER;
-    p->flowflags |= FLOW_PKT_TOCLIENT;
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOCLIENT, httpbuf2, httplen2);
     if (r != 0) {
@@ -3758,29 +3705,11 @@ static int DetectHttpServerBodyFileDataTest09(void) {
     }
     p->alerts.cnt = 0;
 
-    p->flowflags &= ~FLOW_PKT_TOCLIENT;
-    p->flowflags |= FLOW_PKT_TOSERVER;
-
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf3, httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 matched, but shouldn't have (tx 2): ");
-        goto end;
-    }
-    if ((PacketAlertCheck(p, 2))) {
-        printf("sig 2 alerted (tx 2): ");
-        goto end;
-    }
-    p->alerts.cnt = 0;
-
-    p->flowflags &= ~FLOW_PKT_TOSERVER;
-    p->flowflags |= FLOW_PKT_TOCLIENT;
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_EOF, httpbuf4, httplen4);
     if (r != 0) {
@@ -3872,7 +3801,7 @@ static int DetectHttpServerBodyFileDataTest10(void) {
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP;
@@ -3886,12 +3815,12 @@ static int DetectHttpServerBodyFileDataTest10(void) {
 
     de_ctx->flags |= DE_QUIET;
 
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"GET\"; http_method; content:\"index1\"; http_uri; content:\"Mozilla\"; http_header; content:\"dummy1\"; http_cookie; file_data; content:\"one\";  sid:1; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; file_data; content:\"one\";  sid:1; rev:1;)");
     if (s == NULL) {
         printf("sig parse failed: ");
         goto end;
     }
-    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (content:\"GET\"; http_method; content:\"index2\"; http_uri; content:\"Firefox\"; http_header; content:\"dummy2\"; http_cookie; file_data; content:\"two\"; sid:2; rev:1;)");
+    s = DetectEngineAppendSig(de_ctx, "alert tcp any any -> any any (flow:established,to_client; file_data; content:\"two\"; sid:2; rev:1;)");
     if (s == NULL) {
         printf("sig2 parse failed: ");
         goto end;
@@ -3905,17 +3834,6 @@ static int DetectHttpServerBodyFileDataTest10(void) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 alerted (tx 1): ");
-        goto end;
-    }
-    p->alerts.cnt = 0;
-
-    p->flowflags &= ~FLOW_PKT_TOSERVER;
-    p->flowflags |= FLOW_PKT_TOCLIENT;
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOCLIENT, httpbuf2, httplen2);
     if (r != 0) {
@@ -3931,29 +3849,11 @@ static int DetectHttpServerBodyFileDataTest10(void) {
     }
     p->alerts.cnt = 0;
 
-    p->flowflags &= ~FLOW_PKT_TOCLIENT;
-    p->flowflags |= FLOW_PKT_TOSERVER;
-
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER, httpbuf3, httplen3);
     if (r != 0) {
         printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
         goto end;
     }
-
-    /* do detect */
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    if (PacketAlertCheck(p, 1)) {
-        printf("sig 1 matched, but shouldn't have (tx 2): ");
-        goto end;
-    }
-    if ((PacketAlertCheck(p, 2))) {
-        printf("sig 2 alerted (tx 2): ");
-        goto end;
-    }
-    p->alerts.cnt = 0;
-
-    p->flowflags &= ~FLOW_PKT_TOSERVER;
-    p->flowflags |= FLOW_PKT_TOCLIENT;
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_EOF, httpbuf4, httplen4);
     if (r != 0) {

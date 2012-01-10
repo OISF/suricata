@@ -1167,10 +1167,13 @@ int AppLayerTransactionUpdateInspectId(Flow *f, char direction)
         SCLogDebug("avail_id %"PRIu16", inspect_id %"PRIu16,
                 parser_state_store->avail_id, parser_state_store->inspect_id);
 
-        if (direction == STREAM_TOSERVER)
+        if (direction == STREAM_TOSERVER) {
+            SCLogDebug("toserver");
             parser_state_store->id_flags |= APP_LAYER_TRANSACTION_TOSERVER;
-        else
+        } else {
+            SCLogDebug("toclient");
             parser_state_store->id_flags |= APP_LAYER_TRANSACTION_TOCLIENT;
+        }
 
         if ((parser_state_store->inspect_id+1) < parser_state_store->avail_id &&
                 (parser_state_store->id_flags & APP_LAYER_TRANSACTION_TOCLIENT) &&
