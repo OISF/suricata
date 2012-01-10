@@ -1862,7 +1862,7 @@ static int SCSigTestSignatureOrdering08(void)
     prevsig->next = sig;
     prevsig = sig;
 
-    sig = SigInit(de_ctx, "drop tcp any !21:902 -> any any (msg:\"Testing sigordering drop\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; sid:6; rev:4; priority:1;)");
+    sig = SigInit(de_ctx, "reject tcp any !21:902 -> any any (msg:\"Testing sigordering drop\"; content:\"220\"; offset:11; depth:4; pcre:\"/220[- ]/\"; sid:6; rev:4; priority:1;)");
     if (sig == NULL) {
         goto end;
     }

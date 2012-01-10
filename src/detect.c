@@ -1523,7 +1523,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                                 pmatch = 1;
                                 /* Tell the engine that this reassembled stream can drop the
                                  * rest of the pkts with no further inspection */
-                                if (s->action == ACTION_DROP)
+                                if (s->action & ACTION_DROP)
                                     alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
 
                                 /* store ptr to current smsg */
@@ -1630,7 +1630,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
 
             /* match */
-            if (s->action == ACTION_DROP)
+            if (s->action & ACTION_DROP)
                 alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
 
             alert_flags |= PACKET_ALERT_FLAG_STATE_MATCH;
