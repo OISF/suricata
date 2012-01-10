@@ -1700,7 +1700,9 @@ int main(int argc, char **argv)
     struct timeval end_time;
     memset(&end_time, 0, sizeof(end_time));
     gettimeofday(&end_time, NULL);
-    SCLogInfo("time elapsed %" PRIuMAX "s", (uintmax_t)(end_time.tv_sec - start_time.tv_sec));
+    uint64_t milliseconds = ((end_time.tv_sec - start_time.tv_sec) * 1000) +
+        (((1000000 + end_time.tv_usec - start_time.tv_usec) / 1000) - 1000);
+    SCLogInfo("time elapsed %.3fs", (float)milliseconds/(float)1000);
 
     TmThreadKillThreads();
     SCPerfReleaseResources();
