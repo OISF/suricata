@@ -1046,10 +1046,16 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
         REVISION=`cat ./revision`
         CFLAGS="${CFLAGS} -DREVISION=\"${REVISION}\""
     else
+        AC_MSG_CHECKING(git command available)
         GIT=`which git`
-        if test "$GIT" != ""; then
-            REVISION=`git rev-parse --short HEAD`
-            CFLAGS="${CFLAGS} -DREVISION=\"${REVISION}\""
+        if [ test "$GIT" != ""]; then
+            AC_MSG_RESULT(yes)
+            if [ test -d .git ]; then
+                REVISION=`git rev-parse --short HEAD`
+                CFLAGS="${CFLAGS} -DREVISION=\"${REVISION}\""
+            fi
+        else
+            AC_MSG_RESULT(no)
         fi
     fi
 
