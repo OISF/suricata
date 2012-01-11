@@ -515,5 +515,6 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx)
         else
             cpu++;
     }
+
     return 0;
 }

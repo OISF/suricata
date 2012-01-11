@@ -19,6 +19,14 @@
 # to get the runmode custom modes that can be used here for a particular runmode.
 #runmode: auto
 
+# Specifies the kind of q scheduler used by flow pinned autofp mode.
+# Supported scheduler are :
+# round_robin - Flow alloted to queue in a round robin fashion.
+# active-packets - Flow alloted to queue that has the least no of
+#                  unprocessed packets.
+# active-flows - Flow alloted to queue that has least no of active flows.
+autofp-scheduler: round-robin
+
 # Default pid file.
 # Will use this file if no --pidfile in command options.
 #pid-file: /var/run/suricata.pid

@@ -25,6 +25,7 @@
 #define __FLOW_UTIL_H__
 
 #include "detect-engine-state.h"
+#include "tmqh-flow.h"
 
 #define COPY_TIMESTAMP(src,dst) ((dst)->tv_sec = (src)->tv_sec, (dst)->tv_usec = (src)->tv_usec)
 
@@ -92,7 +93,10 @@
         (f)->tag_list = NULL; \
         GenericVarFree((f)->flowvar); \
         (f)->flowvar = NULL; \
-        (f)->autofp_tmqh_flow_qid = -1; \
+        if ((f)->autofp_tmqh_flow_qid != -1) {  \
+            TmqhFlowUpdateActiveFlows((f));     \
+            (f)->autofp_tmqh_flow_qid = -1;     \
+        }                                       \
         RESET_COUNTERS((f)); \
     } while(0)
 
@@ -107,6 +111,9 @@
         DetectTagDataListFree((f)->tag_list); \
         GenericVarFree((f)->flowvar); \
         SCMutexDestroy(&(f)->de_state_m); \
+        if ((f)->autofp_tmqh_flow_qid != -1) {  \
+            TmqhFlowUpdateActiveFlows((f));     \
+        }                                       \
         (f)->tag_list = NULL; \
     } while(0)
 
