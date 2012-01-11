@@ -1055,6 +1055,15 @@ void IPOnlyMatchPacket(ThreadVars *tv,
                     SCLogDebug("Signum %"PRIu16" match (sid: %"PRIu16", msg: %s)",
                                u * 8 + i, s->id, s->msg);
 
+                    if (s->sm_lists[DETECT_SM_LIST_POSTMATCH] != NULL) {
+                        SigMatch *sm = s->sm_lists[DETECT_SM_LIST_POSTMATCH];
+
+                        SCLogDebug("running match functions, sm %p", sm);
+
+                        for ( ; sm != NULL; sm = sm->next) {
+                            (void)sigmatch_table[sm->type].Match(tv, det_ctx, p, s, sm);
+                        }
+                    }
                     if ( !(s->flags & SIG_FLAG_NOALERT)) {
                         if (s->action & ACTION_DROP)
                             PacketAlertAppend(det_ctx, s, p, PACKET_ALERT_FLAG_DROP_FLOW, NULL);
