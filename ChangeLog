@@ -1,3 +1,22 @@
+1.2rc1 -- 2012-01-11
+
+- app-layer-events keyword: similar to the decoder-events and stream-events, this will allow matching on HTTP and SMTP events
+- auto detection of checksum offloading per interface (#311)
+- urilen options to match on raw or normalized URI (#341)
+- flow keyword option "only_stream" and "no_stream"
+- unixsock output options for all outputs except unified2 (PoC python script in the qa/ dir) (#250)
+- in IPS mode, reject rules now also drop (#399)
+- http_header now also inspects response headers (#389)
+- "worker" runmodes for NFQ and IPFW
+- performance improvement for "ac" pattern matcher
+- allow empty/non-initialized flowints to be incremented
+- PCRE-JIT is now enabled by default if available (#356)
+- many file inspection and extraction improvements
+- flowbits and flowints are now modified in a post-match action list
+- general performance increasements
+- fixed parsing really high sid numbers >2 Billion (#393)
+- fixed ICMPv6 not matching in IP-only sigs (#363)
+
 1.2beta1 -- 2011-12-19
 
 - File name, type inspection and extraction for HTTP
