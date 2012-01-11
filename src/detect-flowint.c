@@ -375,7 +375,24 @@ static int DetectFlowintSetup(DetectEngineCtx *de_ctx, Signature *s, char *rawst
     sm->type = DETECT_FLOWINT;
     sm->ctx = (void *)sfd;
 
-    SigMatchAppendPacket(s, sm);
+    switch (sfd->modifier) {
+        case FLOWINT_MODIFIER_SET:
+        case FLOWINT_MODIFIER_ADD:
+        case FLOWINT_MODIFIER_SUB:
+            SigMatchAppendPostMatch(s, sm);
+            break;
+
+        case FLOWINT_MODIFIER_LT:
+        case FLOWINT_MODIFIER_LE:
+        case FLOWINT_MODIFIER_NE:
+        case FLOWINT_MODIFIER_EQ:
+        case FLOWINT_MODIFIER_GE:
+        case FLOWINT_MODIFIER_GT:
+        case FLOWINT_MODIFIER_ISSET:
+        case FLOWINT_MODIFIER_NOTSET:
+            SigMatchAppendPacket(s, sm);
+            break;
+    }
 
     return 0;
 

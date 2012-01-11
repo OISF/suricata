@@ -944,6 +944,28 @@ static void SigMatchSignaturesBuildMatchArray(DetectEngineThreadCtx *det_ctx,
 #endif
 }
 
+static int SigMatchSignaturesRunPostMatch(ThreadVars *tv,
+        DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx, Packet *p,
+        Signature *s)
+{
+    /* run the packet match functions */
+    if (s->sm_lists[DETECT_SM_LIST_POSTMATCH] != NULL) {
+        SigMatch *sm = s->sm_lists[DETECT_SM_LIST_POSTMATCH];
+
+        SCLogDebug("running match functions, sm %p", sm);
+
+        for ( ; sm != NULL; sm = sm->next) {
+            (void)sigmatch_table[sm->type].Match(tv, det_ctx, p, s, sm);
+        }
+    }
+
+    DetectReplaceExecute(p, det_ctx->replist);
+    det_ctx->replist = NULL;
+    DetectFilestorePostMatch(tv, det_ctx,p);
+
+    return 1;
+}
+
 /**
  *  \brief Get the SigGroupHead for a packet.
  *
@@ -1638,9 +1660,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         /* match! */
         fmatch = 1;
-        DetectReplaceExecute(p, det_ctx->replist);
-        det_ctx->replist = NULL;
-        DetectFilestorePostMatch(th_v, det_ctx,p);
+
+        SigMatchSignaturesRunPostMatch(th_v, de_ctx, det_ctx, p, s);
 
         if (!(s->flags & SIG_FLAG_NOALERT)) {
             PacketAlertAppend(det_ctx, s, p, alert_flags, alert_msg);

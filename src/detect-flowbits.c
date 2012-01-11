@@ -208,7 +208,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
         goto error;
     }
 
-    switch(fb_cmd)  {
+    switch (fb_cmd) {
         case DETECT_FLOWBITS_CMD_NOALERT:
             if(fb_name != NULL)
                 goto error;
@@ -249,7 +249,23 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
     sm->type = DETECT_FLOWBITS;
     sm->ctx = (void *)cd;
 
-    SigMatchAppendPacket(s, sm);
+    switch (fb_cmd) {
+        case DETECT_FLOWBITS_CMD_NOALERT:
+            /* nothing to do */
+            break;
+
+        case DETECT_FLOWBITS_CMD_ISNOTSET:
+        case DETECT_FLOWBITS_CMD_ISSET:
+            /* checks, so packet list */
+            SigMatchAppendPacket(s, sm);
+
+        case DETECT_FLOWBITS_CMD_SET:
+        case DETECT_FLOWBITS_CMD_UNSET:
+        case DETECT_FLOWBITS_CMD_TOGGLE:
+            /* modifiers, only run when entire sig has matched */
+            SigMatchAppendPostMatch(s, sm);
+            break;
+    }
 
     return 0;
 
