@@ -1214,6 +1214,12 @@ int RunModeSetIPSWorker(DetectEngineCtx *de_ctx,
 
         TmSlotSetFuncAppend(tv, tm_module, (void *)de_ctx);
 
+        tm_module = TmModuleGetByName("RespondReject");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName for RespondReject failed\n");
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv, tm_module, NULL);
 
         SetupOutputs(tv);
 
