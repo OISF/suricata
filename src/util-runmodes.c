@@ -585,6 +585,13 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
         }
         tv_detect_ncpu->thread_group_name = thread_group_name;
 
+        tm_module = TmModuleGetByName("RespondReject");
+        if (tm_module == NULL) {
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName RespondReject failed");
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, NULL);
+
         /* add outputs as well */
         SetupOutputs(tv_detect_ncpu);
 
@@ -668,6 +675,13 @@ static int RunModeSetLiveCaptureWorkersForDevice(DetectEngineCtx *de_ctx,
             exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend(tv, tm_module, (void *)de_ctx);
+
+        tm_module = TmModuleGetByName("RespondReject");
+        if (tm_module == NULL) {
+            SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName RespondReject failed");
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv, tm_module, NULL);
 
         SetupOutputs(tv);
 
