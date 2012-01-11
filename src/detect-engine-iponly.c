@@ -449,6 +449,7 @@ static void IPOnlyCIDRListSetSigNum(IPOnlyCIDRItem *tmphead, SigIntId i) {
     }
 }
 
+#ifdef UNITTESTS
 /**
  * \brief This function print a IPOnlyCIDRItem list
  * \param tmphead Pointer to the head of IPOnlyCIDRItems list
@@ -466,6 +467,7 @@ static void IPOnlyCIDRListPrint(IPOnlyCIDRItem *tmphead) {
         tmphead = tmphead->next;
     }
 }
+#endif
 
 /**
  * \brief This function print a SigNumArray, it's used with the
@@ -624,7 +626,7 @@ static IPOnlyCIDRItem *IPOnlyCIDRListParse2(char *s, int negate)
                 o_set = 0;
             } else if (d_set == 1) {
                 address[x - 1] = '\0';
-                x = 0;
+
                 rule_var_address = SCRuleVarsGetConfVar(address,
                                                   SC_RULE_VARS_ADDRESS_GROUPS);
                 if (rule_var_address == NULL)

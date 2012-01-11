@@ -96,7 +96,6 @@ void PrintRawDataFp(FILE *fp, uint8_t *buf, uint32_t buflen) {
 
     for (u = 0; u < buflen; u+=16) {
         fprintf(fp ," %04X  ", u);
-        ch = 0;
         for (ch = 0; (u+ch) < buflen && ch < 16; ch++) {
              fprintf(fp, "%02X ", (uint8_t)buf[u+ch]);
 

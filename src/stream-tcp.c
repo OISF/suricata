@@ -4467,7 +4467,6 @@ static int StreamTcpHandleTimestamp (TcpSession *ssn, Packet *p)
                 {
                     sender_stream->last_ts = ts;
                     sender_stream->last_pkt_ts = p->ts.tv_sec;
-                    ret = 1;
 
                     SCLogDebug("timestamp considered valid anyway");
                 } else {

@@ -268,12 +268,10 @@ static TmEcode LogFileLogWrap(ThreadVars *tv, Packet *p, void *data, PacketQueue
                     SCLogDebug("write failed: %s", strerror(errno));
 
                     close(file_fd);
-                    file_fd = -1;
                     continue;
                 }
 
                 close(file_fd);
-                file_fd = -1;
 
                 if (ff->state == FILE_STATE_CLOSED ||
                     ff->state == FILE_STATE_TRUNCATED ||

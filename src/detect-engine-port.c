@@ -1054,7 +1054,7 @@ static int DetectPortParseDo(DetectPort **head, DetectPort **nhead, char *s,
                 o_set = 0;
             } else if (d_set == 1) {
                 address[x - 1] = '\0';
-                x = 0;
+
                 rule_var_port = SCRuleVarsGetConfVar(address,
                                                      SC_RULE_VARS_PORT_GROUPS);
                 if (rule_var_port == NULL)

@@ -433,9 +433,6 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
     while (f != NULL) {
         PACKET_RECYCLE(reassemble_p);
 
-        client_ok = 0;
-        server_ok = 0;
-
         /* Get the tcp session for the flow */
         ssn = (TcpSession *)f->protoctx;
 

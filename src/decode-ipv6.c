@@ -309,10 +309,6 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 /* set the header ptr first */
                 IPV6_EXTHDR_SET_FH(p, pkt);
 
-                nh = *pkt;
-                pkt += hdrextlen;
-                plen -= hdrextlen;
-
                 /* the rest is parsed upon reassembly */
                 SCReturn;
 

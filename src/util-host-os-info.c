@@ -304,13 +304,15 @@ int SCHInfoAddHostOSInfo(char *host_os, char *host_os_ip_range, int is_ipv4)
     }
 
     if (recursive == TRUE) {
-        recursive = FALSE;
         SCHInfoAddHostOSInfo(host_os, ip_str_rem, is_ipv4);
     }
 
-    if (ip_str != NULL) SCFree(ip_str);
-    if (ipv4_addr != NULL) SCFree(ipv4_addr);
-    if (ipv6_addr != NULL) SCFree(ipv6_addr);
+    if (ip_str != NULL)
+        SCFree(ip_str);
+    if (ipv4_addr != NULL)
+        SCFree(ipv4_addr);
+    if (ipv6_addr != NULL)
+        SCFree(ipv6_addr);
     return *user_data;
 }
 

@@ -1104,7 +1104,6 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
                     if (end_after == TRUE || end_same == TRUE) {
                         StreamTcpSegmentDataReplace(list_seg, seg, overlap_point,
                                 overlap);
-                        end_after = FALSE;
                     } else {
                         SCLogDebug("using old data in starts before list case, "
                                 "list_seg->seq %" PRIu32 " policy %" PRIu32 " "
@@ -1297,7 +1296,6 @@ static int HandleSegmentStartsAtSameListSegment(ThreadVars *tv, TcpReassemblyThr
                 case OS_POLICY_HPUX11:
                     if (end_after == TRUE || end_same == TRUE) {
                         StreamTcpSegmentDataReplace(list_seg, seg, seg->seq, overlap);
-                        end_after = FALSE;
                     } else {
                         SCLogDebug("using old data in starts at list case, "
                                 "list_seg->seq %" PRIu32 " policy %" PRIu32 " "
@@ -1498,7 +1496,6 @@ static int HandleSegmentStartsAfterListSegment(ThreadVars *tv, TcpReassemblyThre
                 case OS_POLICY_HPUX11:
                     if (end_after == TRUE) {
                         StreamTcpSegmentDataReplace(list_seg, seg, seg->seq, overlap);
-                        end_after = FALSE;
                     } else {
                         SCLogDebug("using old data in starts beyond list case, "
                                 "list_seg->seq %" PRIu32 " policy %" PRIu32 " "
@@ -1970,8 +1967,6 @@ static int StreamTcpReassembleInlineAppLayer (ThreadVars *tv,
                         next_seq, seg->seq, stream->last_ack, gap_len);
 #endif
 
-                next_seq = seg->seq;
-
                 /* We have missed the packet and end host has ack'd it, so
                  * IDS should advance it's ra_base_seq and should not consider this
                  * packet any longer, even if it is retransmitted, as end host will
@@ -2128,8 +2123,6 @@ static int StreamTcpReassembleInlineAppLayer (ThreadVars *tv,
                         segment_done = TRUE;
                     }
                 }
-            } else {
-                payload_offset = 0;
             }
         }
 
@@ -2460,8 +2453,6 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
                         segment_done = TRUE;
                     }
                 }
-            } else {
-                payload_offset = 0;
             }
         }
 
@@ -2665,9 +2656,6 @@ static int StreamTcpReassembleAppLayer (ThreadVars *tv,
                         "stream->last_ack %" PRIu32 ". Seq gap %" PRIu32"",
                         next_seq, seg->seq, stream->last_ack, gap_len);
 #endif
-
-                next_seq = seg->seq;
-
                 /* We have missed the packet and end host has ack'd it, so
                  * IDS should advance it's ra_base_seq and should not consider this
                  * packet any longer, even if it is retransmitted, as end host will
@@ -2861,8 +2849,6 @@ static int StreamTcpReassembleAppLayer (ThreadVars *tv,
                         segment_done = TRUE;
                     }
                 }
-            } else {
-                payload_offset = 0;
             }
         }
 
@@ -3042,8 +3028,6 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                 SCLogDebug("expected next_seq %" PRIu32 ", got %" PRIu32 " , "
                         "stream->last_ack %" PRIu32 ". Seq gap %" PRIu32"",
                         next_seq, seg->seq, stream->last_ack, gap_len);
-
-                next_seq = seg->seq;
 
                 if (smsg == NULL) {
                     smsg = StreamMsgGetFromPool();
@@ -3230,8 +3214,6 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                         segment_done = TRUE;
                     }
                 }
-            } else {
-                payload_offset = 0;
             }
         }
 

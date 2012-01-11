@@ -405,7 +405,6 @@ int DetectAddressInsert(DetectEngineCtx *de_ctx, DetectAddressHead *gh,
     /* see if it already exists or overlaps with existing ag's */
     if (head != NULL) {
         cur = NULL;
-        r = 0;
 
         for (cur = head; cur != NULL; cur = cur->next) {
             r = DetectAddressCmp(new, cur);
@@ -965,7 +964,7 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
                 o_set = 0;
             } else if (d_set == 1) {
                 address[x - 1] = '\0';
-                x = 0;
+
                 rule_var_address = SCRuleVarsGetConfVar(address,
                                                         SC_RULE_VARS_ADDRESS_GROUPS);
                 if (rule_var_address == NULL)
