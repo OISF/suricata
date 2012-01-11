@@ -129,6 +129,17 @@ static inline int SCSigGetFlowbitsType(Signature *sig)
         sm = sm->next;
     }
 
+    sm = sig->sm_lists[DETECT_SM_LIST_POSTMATCH];
+    while (sm != NULL) {
+        if (sm->type == DETECT_FLOWBITS) {
+            fb = (DetectFlowbitsData *)sm->ctx;
+            if (flowbits > fb->cmd)
+                flowbits = fb->cmd;
+        }
+
+        sm = sm->next;
+    }
+
     if (flowbits == DETECT_FLOWBITS_CMD_SET ||
         flowbits == DETECT_FLOWBITS_CMD_UNSET ||
         flowbits == DETECT_FLOWBITS_CMD_TOGGLE) {
