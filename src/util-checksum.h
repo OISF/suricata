@@ -31,6 +31,6 @@ int ChecksumAutoModeCheck(uint32_t thread_count,
 /* constant linked with detection of interface with
  * invalid checksums */
 #define CHECKSUM_SAMPLE_COUNT 1000
-#define CHECKSUM_INVALID_RATIO 5
+#define CHECKSUM_INVALID_RATIO 10
 
 #endif
