@@ -44,6 +44,7 @@ void TmqhOutputFlowActiveFlows(ThreadVars *t, Packet *p);
 void TmqhOutputFlowActivePackets(ThreadVars *t, Packet *p);
 void TmqhOutputFlowRoundRobin(ThreadVars *t, Packet *p);
 void *TmqhOutputFlowSetupCtx(char *queue_str);
+void TmqhOutputFlowFreeCtx(void *ctx);
 void TmqhFlowRegisterTests(void);
 
 TmqhFlowCtx *tmqh_flow_outctx = NULL;
@@ -53,7 +54,7 @@ void TmqhFlowRegister(void)
     tmqh_table[TMQH_FLOW].name = "flow";
     tmqh_table[TMQH_FLOW].InHandler = TmqhInputFlow;
     tmqh_table[TMQH_FLOW].OutHandlerCtxSetup = TmqhOutputFlowSetupCtx;
-    tmqh_table[TMQH_FLOW].OutHandlerCtxFree = NULL;
+    tmqh_table[TMQH_FLOW].OutHandlerCtxFree = TmqhOutputFlowFreeCtx;
     tmqh_table[TMQH_FLOW].RegisterTests = TmqhFlowRegisterTests;
 
     char *scheduler = NULL;
@@ -192,6 +193,22 @@ error:
     if (str != NULL)
         SCFree(str);
     return NULL;
+}
+
+void TmqhOutputFlowFreeCtx(void *ctx)
+{
+    int i;
+    TmqhFlowCtx *fctx = (TmqhFlowCtx *)ctx;
+
+    for (i = 0; i < fctx->size; i++) {
+        SC_ATOMIC_DESTROY(fctx->queues[i].active_flows);
+    }
+
+    SCFree(fctx->queues);
+
+    tmqh_flow_outctx = NULL;
+
+    return;
 }
 
 /**
@@ -398,6 +415,8 @@ static int TmqhOutputFlowSetupCtxTest01(void)
 
     retval = 1;
 end:
+    if (fctx != NULL)
+        TmqhOutputFlowFreeCtx(fctx);
     TmqResetQueues();
     return retval;
 }
@@ -441,6 +460,8 @@ static int TmqhOutputFlowSetupCtxTest02(void)
 
     retval = 1;
 end:
+    if (fctx != NULL)
+        TmqhOutputFlowFreeCtx(fctx);
     TmqResetQueues();
     return retval;
 }
@@ -476,6 +497,8 @@ static int TmqhOutputFlowSetupCtxTest03(void)
 
     retval = 1;
 end:
+    if (fctx != NULL)
+        TmqhOutputFlowFreeCtx(fctx);
     TmqResetQueues();
     return retval;
 }
