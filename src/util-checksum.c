@@ -73,14 +73,14 @@ int ChecksumAutoModeCheck(uint32_t thread_count,
     if (thread_count == CHECKSUM_SAMPLE_COUNT) {
         if (iface_fail != 0) {
             if ((iface_count / iface_fail) < CHECKSUM_INVALID_RATIO) {
-                SCLogInfo("More than 1/10th of packets have an invalid "
+                SCLogInfo("More than 1/%dth of packets have an invalid "
                         "checksum, assuming checksum offloading is used (%d/%d)",
-                        iface_fail, iface_count);
+                        CHECKSUM_INVALID_RATIO, iface_fail, iface_count);
                 return 1;
             } else {
-                SCLogInfo("Less than 1/10th of packet have an invalid "
+                SCLogInfo("Less than 1/%dth of packets have an invalid "
                         "checksum, assuming checksum offloading is NOT used (%d/%d)",
-                        iface_fail, iface_count);
+                        CHECKSUM_INVALID_RATIO, iface_fail, iface_count);
             }
         } else {
             SCLogInfo("No packets with invalid checksum, assuming checksum offloading is NOT used");
