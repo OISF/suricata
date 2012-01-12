@@ -331,7 +331,6 @@ void TmqhFlowPrintStatistics(void)
 
 #ifdef UNITTESTS
 
-#if 0
 static int TmqhOutputFlowSetupCtxTest01(void) {
     int retval = 0;
     Tmq *tmq = NULL;
@@ -365,13 +364,13 @@ static int TmqhOutputFlowSetupCtxTest01(void) {
     if (fctx->queues == NULL)
         goto end;
 
-    if (fctx->queues[0] != 0)
+    if (fctx->queues[0].q != &trans_q[0])
         goto end;
-    if (fctx->queues[1] != 1)
+    if (fctx->queues[1].q != &trans_q[1])
         goto end;
-    if (fctx->queues[2] != 2)
+    if (fctx->queues[2].q != &trans_q[2])
         goto end;
-    if (fctx->queues[3] != 3)
+    if (fctx->queues[3].q != &trans_q[3])
         goto end;
 
     retval = 1;
@@ -413,7 +412,7 @@ static int TmqhOutputFlowSetupCtxTest02(void) {
     if (fctx->queues == NULL)
         goto end;
 
-    if (fctx->queues[0] != 0)
+    if (fctx->queues[0].q != &trans_q[0])
         goto end;
 
     retval = 1;
@@ -441,13 +440,13 @@ static int TmqhOutputFlowSetupCtxTest03(void) {
     if (fctx->queues == NULL)
         goto end;
 
-    if (fctx->queues[0] != 0)
+    if (fctx->queues[0].q != &trans_q[0])
         goto end;
-    if (fctx->queues[1] != 1)
+    if (fctx->queues[1].q != &trans_q[1])
         goto end;
-    if (fctx->queues[2] != 2)
+    if (fctx->queues[2].q != &trans_q[2])
         goto end;
-    if (fctx->queues[3] != 3)
+    if (fctx->queues[3].q != &trans_q[3])
         goto end;
 
     retval = 1;
@@ -455,17 +454,14 @@ end:
     TmqResetQueues();
     return retval;
 }
-#endif
 
 #endif /* UNITTESTS */
 
 void TmqhFlowRegisterTests(void) {
 #ifdef UNITTESTS
-#if 0
     UtRegisterTest("TmqhOutputFlowSetupCtxTest01", TmqhOutputFlowSetupCtxTest01, 1);
     UtRegisterTest("TmqhOutputFlowSetupCtxTest02", TmqhOutputFlowSetupCtxTest02, 1);
     UtRegisterTest("TmqhOutputFlowSetupCtxTest03", TmqhOutputFlowSetupCtxTest03, 1);
-#endif
 #endif
 }
 
