@@ -1069,9 +1069,11 @@ int main(int argc, char **argv)
             break;
         case 'V':
 #ifdef REVISION
-            printf("\nThis is %s version %s (rev %s)\n\n", PROG_NAME, PROG_VER, xstr(REVISION));
+            printf("This is %s version %s (rev %s)\n", PROG_NAME, PROG_VER, xstr(REVISION));
+#elif defined RELEASE
+            printf("This is %s version %s RELEASE\n", PROG_NAME, PROG_VER);
 #else
-            printf("\nThis is %s version %s\n\n", PROG_NAME, PROG_VER);
+            printf("This is %s version %s\n", PROG_NAME, PROG_VER);
 #endif
             exit(EXIT_SUCCESS);
         case 'F':
@@ -1085,6 +1087,8 @@ int main(int argc, char **argv)
 
 #ifdef REVISION
     SCLogInfo("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
+#elif defined RELEASE
+    SCLogInfo("This is %s version %s RELEASE", PROG_NAME, PROG_VER);
 #else
     SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
 #endif
