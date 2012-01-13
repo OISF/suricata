@@ -814,8 +814,7 @@ void FlowHandlePacket (ThreadVars *tv, Packet *p)
  *  \warning Not thread safe */
 void FlowInitConfig(char quiet)
 {
-    if (quiet == FALSE)
-        SCLogInfo("initializing flow engine...");
+    SCLogDebug("initializing flow engine...");
 
     memset(&flow_config,  0, sizeof(flow_config));
     SC_ATOMIC_INIT(flow_memuse);

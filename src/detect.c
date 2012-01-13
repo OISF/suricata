@@ -454,13 +454,13 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
     int lineno = 0, multiline = 0;
 
     if (sig_file == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "ERROR opening rule file null.");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "opening rule file null");
         return -1;
     }
 
     FILE *fp = fopen(sig_file, "r");
     if (fp == NULL) {
-        SCLogError(SC_ERR_OPENING_RULE_FILE, "ERROR opening rule file %s:"
+        SCLogError(SC_ERR_OPENING_RULE_FILE, "opening rule file %s:"
                    " %s.", sig_file, strerror(errno));
         return -1;
     }
@@ -504,7 +504,7 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
             SCLogDebug("signature %"PRIu32" loaded", sig->id);
             good++;
         } else {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Error parsing signature \"%s\" from "
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "error parsing signature \"%s\" from "
                  "file %s at line %"PRId32"", line, sig_file, lineno - multiline);
             if (de_ctx->failure_fatal == 1) {
                 exit(EXIT_FAILURE);
@@ -3672,12 +3672,12 @@ int SigAddressPrepareStage3(DetectEngineCtx *de_ctx) {
     DetectPortSpHashFree(de_ctx);
 
     if (!(de_ctx->flags & DE_QUIET)) {
-        SCLogInfo("MPM memory %" PRIuMAX " (dynamic %" PRIu32 ", ctxs %" PRIuMAX ", avg per ctx %" PRIu32 ")",
+        SCLogDebug("MPM memory %" PRIuMAX " (dynamic %" PRIu32 ", ctxs %" PRIuMAX ", avg per ctx %" PRIu32 ")",
             de_ctx->mpm_memory_size + ((de_ctx->mpm_unique + de_ctx->mpm_uri_unique) * (uintmax_t)sizeof(MpmCtx)),
             de_ctx->mpm_memory_size, ((de_ctx->mpm_unique + de_ctx->mpm_uri_unique) * (uintmax_t)sizeof(MpmCtx)),
             de_ctx->mpm_unique ? de_ctx->mpm_memory_size / de_ctx->mpm_unique: 0);
 
-        SCLogInfo("max sig id %" PRIu32 ", array size %" PRIu32 "", DetectEngineGetMaxSigId(de_ctx), DetectEngineGetMaxSigId(de_ctx) / 8 + 1);
+        SCLogDebug("max sig id %" PRIu32 ", array size %" PRIu32 "", DetectEngineGetMaxSigId(de_ctx), DetectEngineGetMaxSigId(de_ctx) / 8 + 1);
         SCLogDebug("signature group heads: unique %" PRIu32 ", copies %" PRIu32 ".", de_ctx->gh_unique, de_ctx->gh_reuse);
         SCLogDebug("MPM instances: %" PRIu32 " unique, copies %" PRIu32 " (none %" PRIu32 ").",
                 de_ctx->mpm_unique, de_ctx->mpm_reuse, de_ctx->mpm_none);

@@ -275,7 +275,7 @@ void ReceivePcapFileThreadExitStats(ThreadVars *tv, void *data) {
     SCEnter();
     PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
 
-    SCLogInfo(" - (%s) Packets %" PRIu32 ", bytes %" PRIu64 ".", tv->name, ptv->pkts, ptv->bytes);
+    SCLogInfo("Pcap-file module read %" PRIu32 " packets, %" PRIu64 " bytes", ptv->pkts, ptv->bytes);
     return;
 }
 

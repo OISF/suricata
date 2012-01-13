@@ -92,8 +92,9 @@ int32_t CoredumpLoadConfig (void)
         if (prctl (PR_SET_DUMPABLE, 1, 0, 0, 0) == -1) {
             SCLogInfo ("Unable to make this process dumpable.");
             return 0;
+        } else {
+            SCLogDebug ("Process is dumpable.");
         }
-        else SCLogInfo ("Process is dumpable.");
     }
     /* don't clear dumpable flag since this will have other effects;
      * just set dump size to 0 below */

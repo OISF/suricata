@@ -481,6 +481,8 @@ void SCPrintBuildInfo(void) {
 
 #ifdef REVISION
     SCLogInfo("This is %s version %s (rev %s)", PROG_NAME, PROG_VER, xstr(REVISION));
+#elif defined RELEASE
+    SCLogInfo("This is %s version %s RELEASE", PROG_NAME, PROG_VER);
 #else
     SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
 #endif
@@ -1629,7 +1631,7 @@ int main(int argc, char **argv)
     int engine_retval = EXIT_SUCCESS;
     while(1) {
         if (suricata_ctl_flags != 0) {
-            SCLogInfo("signal received");
+            SCLogDebug("signal received");
 
             if (suricata_ctl_flags & SURICATA_STOP)  {
                 struct timeval ts_start;
@@ -1638,7 +1640,7 @@ int main(int argc, char **argv)
                 memset(&ts_start, 0x00, sizeof(ts_start));
                 gettimeofday(&ts_start, NULL);
 
-                SCLogInfo("EngineStop received");
+                SCLogInfo("stopping engine, waiting for outstanding packets");
 
                 /* Stop the engine so it quits after processing the pcap file
                  * but first make sure all packets are processed by all other

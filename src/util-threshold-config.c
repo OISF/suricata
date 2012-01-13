@@ -188,7 +188,7 @@ int SCThresholdConfInitContext(DetectEngineCtx *de_ctx, FILE *utfd)
     SCThresholdConfParseFile(de_ctx, fd);
     SCThresholdConfDeInitContext(de_ctx, fd);
 
-    SCLogInfo("Global thresholding options defined");
+    SCLogDebug("Global thresholding options defined");
     return 0;
 
 error:

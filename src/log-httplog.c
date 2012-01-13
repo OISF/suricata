@@ -394,7 +394,7 @@ void LogHttpLogExitPrintStats(ThreadVars *tv, void *data) {
         return;
     }
 
-    SCLogInfo("(%s) HTTP requests %" PRIu32 "", tv->name, aft->uri_cnt);
+    SCLogInfo("HTTP logger logged %" PRIu32 " requests", aft->uri_cnt);
 }
 
 /** \brief Create a new http log LogFileCtx.
@@ -436,7 +436,7 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
     output_ctx->data = httplog_ctx;
     output_ctx->DeInit = LogHttpLogDeInitCtx;
 
-    SCLogInfo("HTTP log output initialized");
+    SCLogDebug("HTTP log output initialized");
 
     return output_ctx;
 }

@@ -463,7 +463,7 @@ OutputCtx *AlertDebugLogInitCtx(ConfNode *conf)
     output_ctx->data = file_ctx;
     output_ctx->DeInit = AlertDebugLogDeInitCtx;
 
-    SCLogInfo("Alert debug log output initialized");
+    SCLogDebug("Alert debug log output initialized");
     return output_ctx;
 
 error:
