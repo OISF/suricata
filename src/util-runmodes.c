@@ -685,6 +685,8 @@ static int RunModeSetLiveCaptureWorkersForDevice(DetectEngineCtx *de_ctx,
 
         SetupOutputs(tv);
 
+        TmThreadSetCPU(tv, DETECT_CPU_SET);
+
         if (TmThreadSpawn(tv) != TM_ECODE_OK) {
             SCLogError(SC_ERR_THREAD_SPAWN, "TmThreadSpawn failed");
             exit(EXIT_FAILURE);
