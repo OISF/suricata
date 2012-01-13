@@ -228,6 +228,7 @@ typedef enum {
     SC_ERR_SIZE_PARSE,
     SC_ERR_RAWBYTES_FILE_DATA,
     SC_ERR_SOCKET,
+    SC_ERR_PCAP_TRANSLATE,          /* failed to translate ip to dev */
 } SCError;
 
 const char *SCErrorToString(SCError);

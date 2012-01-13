@@ -213,6 +213,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_SIZE_PARSE);
         CASE_CODE (SC_ERR_RAWBYTES_FILE_DATA);
         CASE_CODE (SC_ERR_SOCKET);
+        CASE_CODE (SC_ERR_PCAP_TRANSLATE);
 
         default:
             return "UNKNOWN_ERROR";
