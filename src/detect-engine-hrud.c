@@ -342,7 +342,7 @@ match:
  * \retval cnt Number of matches reported by the mpm algo.
  */
 int DetectEngineRunHttpRawUriMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                 HtpState *htp_state)
+                                 HtpState *htp_state, uint8_t flags)
 {
     SCEnter();
 
@@ -376,7 +376,7 @@ int DetectEngineRunHttpRawUriMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
 
         cnt += HttpRawUriPatternSearch(det_ctx,
                                        (uint8_t *)bstr_ptr(tx->request_uri),
-                                       bstr_len(tx->request_uri));
+                                       bstr_len(tx->request_uri), flags);
     }
 
 end:
@@ -2378,7 +2378,7 @@ static int DetectEngineHttpRawUriTest17(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p1);
-    uint32_t r = HttpRawUriPatternSearch(det_ctx, http1_buf, http1_len);
+    uint32_t r = HttpRawUriPatternSearch(det_ctx, http1_buf, http1_len, STREAM_TOSERVER);
     if (r != 1) {
         printf("expected 1 result, got %"PRIu32": ", r);
         goto end;
@@ -2449,7 +2449,7 @@ static int DetectEngineHttpRawUriTest18(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p1);
-    uint32_t r = HttpRawUriPatternSearch(det_ctx, http1_buf, http1_len);
+    uint32_t r = HttpRawUriPatternSearch(det_ctx, http1_buf, http1_len, STREAM_TOSERVER);
     if (r != 0) {
         printf("expected 0 result, got %"PRIu32": ", r);
         goto end;
@@ -2520,7 +2520,7 @@ static int DetectEngineHttpRawUriTest19(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p1);
-    uint32_t r = HttpRawUriPatternSearch(det_ctx, http1_buf, http1_len);
+    uint32_t r = HttpRawUriPatternSearch(det_ctx, http1_buf, http1_len, STREAM_TOSERVER);
     if (r != 0) {
         printf("expected 0 result, got %"PRIu32": ", r);
         goto end;
@@ -2591,7 +2591,7 @@ static int DetectEngineHttpRawUriTest20(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p1);
-    uint32_t r = HttpRawUriPatternSearch(det_ctx, http1_buf, http1_len);
+    uint32_t r = HttpRawUriPatternSearch(det_ctx, http1_buf, http1_len, STREAM_TOSERVER);
     if (r != 2) {
         printf("expected 2 result, got %"PRIu32": ", r);
         goto end;

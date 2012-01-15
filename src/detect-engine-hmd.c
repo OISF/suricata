@@ -309,7 +309,7 @@ match:
 }
 
 int DetectEngineRunHttpMethodMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                 HtpState *htp_state)
+                                 HtpState *htp_state, uint8_t flags)
 {
     htp_tx_t *tx = NULL;
     uint32_t cnt = 0;
@@ -343,7 +343,8 @@ int DetectEngineRunHttpMethodMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
 
         cnt += HttpMethodPatternSearch(det_ctx,
                                        (uint8_t *)bstr_ptr(tx->request_method),
-                                       bstr_len(tx->request_method));
+                                       bstr_len(tx->request_method),
+                                       flags);
     }
 
  end:

@@ -28,7 +28,8 @@
 #include "app-layer-htp.h"
 
 int DetectEngineRunHttpClientBodyMpm(DetectEngineCtx *,
-        DetectEngineThreadCtx *, Flow *f, HtpState *);
+                                     DetectEngineThreadCtx *, Flow *f,
+                                     HtpState *, uint8_t);
 int DetectEngineInspectHttpClientBody(DetectEngineCtx *,
         DetectEngineThreadCtx *, Signature *, Flow *, uint8_t, void *);
 

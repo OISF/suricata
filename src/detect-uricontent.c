@@ -436,7 +436,7 @@ error:
  * \retval 1 if the uri contents match; 0 no match
  */
 static inline int DoDetectAppLayerUricontentMatch (DetectEngineThreadCtx *det_ctx,
-                                     uint8_t *uri, uint16_t uri_len)
+                                                   uint8_t *uri, uint16_t uri_len, uint8_t flags)
 {
     int ret = 0;
     /* run the pattern matcher against the uri */
@@ -456,7 +456,7 @@ static inline int DoDetectAppLayerUricontentMatch (DetectEngineThreadCtx *det_ct
         else if (det_ctx->sgh->mpm_uricontent_maxlen == 4) det_ctx->pkts_uri_searched4++;
         else det_ctx->pkts_uri_searched++;
 
-        ret += UriPatternSearch(det_ctx, uri, uri_len);
+        ret += UriPatternSearch(det_ctx, uri, uri_len, flags);
 
         SCLogDebug("post search: cnt %" PRIu32, ret);
     }
@@ -476,7 +476,9 @@ static inline int DoDetectAppLayerUricontentMatch (DetectEngineThreadCtx *det_ct
  *  \warning Make sure the flow/state is locked
  *  \todo what should we return? Just the fact that we matched?
  */
-uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f, HtpState *htp_state) {
+uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
+                                    HtpState *htp_state, uint8_t flags)
+{
     SCEnter();
 
     uint32_t cnt = 0;
@@ -505,8 +507,9 @@ uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f, Htp
             continue;
 
         cnt += DoDetectAppLayerUricontentMatch(det_ctx, (uint8_t *)
-                bstr_ptr(tx->request_uri_normalized),
-                bstr_len(tx->request_uri_normalized));
+                                               bstr_ptr(tx->request_uri_normalized),
+                                               bstr_len(tx->request_uri_normalized),
+                                               flags);
     }
 end:
     SCMutexUnlock(&f->m);

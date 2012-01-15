@@ -446,7 +446,8 @@ end:
 }
 
 int DetectEngineRunHttpClientBodyMpm(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, Flow *f, HtpState *htp_state)
+                                     DetectEngineThreadCtx *det_ctx, Flow *f,
+                                     HtpState *htp_state, uint8_t flags)
 {
     int i;
     uint32_t cnt = 0;
@@ -461,7 +462,8 @@ int DetectEngineRunHttpClientBodyMpm(DetectEngineCtx *de_ctx,
     for (i = 0; i < det_ctx->hcbd_buffers_list_len; i++) {
         cnt += HttpClientBodyPatternSearch(det_ctx,
                                            det_ctx->hcbd_buffers[i],
-                                           det_ctx->hcbd_buffers_len[i]);
+                                           det_ctx->hcbd_buffers_len[i],
+                                           flags);
     }
 
     return cnt;
@@ -2444,7 +2446,7 @@ static int DetectEngineHttpClientBodyTest17(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p1);
-    uint32_t r = HttpClientBodyPatternSearch(det_ctx, http1_buf, http1_len);
+    uint32_t r = HttpClientBodyPatternSearch(det_ctx, http1_buf, http1_len, STREAM_TOSERVER);
     if (r != 1) {
         printf("expected 1 result, got %"PRIu32": ", r);
         goto end;
@@ -2515,7 +2517,7 @@ static int DetectEngineHttpClientBodyTest18(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p1);
-    uint32_t r = HttpClientBodyPatternSearch(det_ctx, http1_buf, http1_len);
+    uint32_t r = HttpClientBodyPatternSearch(det_ctx, http1_buf, http1_len, STREAM_TOSERVER);
     if (r != 0) {
         printf("expected 1 result, got %"PRIu32": ", r);
         goto end;
@@ -2586,7 +2588,7 @@ static int DetectEngineHttpClientBodyTest19(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p1);
-    uint32_t r = HttpClientBodyPatternSearch(det_ctx, http1_buf, http1_len);
+    uint32_t r = HttpClientBodyPatternSearch(det_ctx, http1_buf, http1_len, STREAM_TOSERVER);
     if (r != 0) {
         printf("expected 1 result, got %"PRIu32": ", r);
         goto end;
@@ -2657,7 +2659,7 @@ static int DetectEngineHttpClientBodyTest20(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p1);
-    uint32_t r = HttpClientBodyPatternSearch(det_ctx, http1_buf, http1_len);
+    uint32_t r = HttpClientBodyPatternSearch(det_ctx, http1_buf, http1_len, STREAM_TOSERVER);
     if (r != 2) {
         printf("expected 1 result, got %"PRIu32": ", r);
         goto end;

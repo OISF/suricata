@@ -881,17 +881,30 @@ typedef struct SigGroupHead_ {
 
     /* pattern matcher instances */
     MpmCtx *mpm_proto_other_ctx;
-    MpmCtx *mpm_proto_tcp_ctx;
-    MpmCtx *mpm_proto_udp_ctx;
-    MpmCtx *mpm_stream_ctx;
-    MpmCtx *mpm_uri_ctx;
-    MpmCtx *mpm_hcbd_ctx;
-    MpmCtx *mpm_hsbd_ctx;
-    MpmCtx *mpm_hhd_ctx;
-    MpmCtx *mpm_hrhd_ctx;
-    MpmCtx *mpm_hmd_ctx;
-    MpmCtx *mpm_hcd_ctx;
-    MpmCtx *mpm_hrud_ctx;
+
+    MpmCtx *mpm_proto_tcp_ctx_ts;
+    MpmCtx *mpm_proto_udp_ctx_ts;
+    MpmCtx *mpm_stream_ctx_ts;
+    MpmCtx *mpm_uri_ctx_ts;
+    MpmCtx *mpm_hcbd_ctx_ts;
+    MpmCtx *mpm_hsbd_ctx_ts;
+    MpmCtx *mpm_hhd_ctx_ts;
+    MpmCtx *mpm_hrhd_ctx_ts;
+    MpmCtx *mpm_hmd_ctx_ts;
+    MpmCtx *mpm_hcd_ctx_ts;
+    MpmCtx *mpm_hrud_ctx_ts;
+
+    MpmCtx *mpm_proto_tcp_ctx_tc;
+    MpmCtx *mpm_proto_udp_ctx_tc;
+    MpmCtx *mpm_stream_ctx_tc;
+    MpmCtx *mpm_uri_ctx_tc;
+    MpmCtx *mpm_hcbd_ctx_tc;
+    MpmCtx *mpm_hsbd_ctx_tc;
+    MpmCtx *mpm_hhd_ctx_tc;
+    MpmCtx *mpm_hrhd_ctx_tc;
+    MpmCtx *mpm_hmd_ctx_tc;
+    MpmCtx *mpm_hcd_ctx_tc;
+    MpmCtx *mpm_hrud_ctx_tc;
 
     uint16_t mpm_uricontent_maxlen;
 

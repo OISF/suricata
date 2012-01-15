@@ -27,7 +27,7 @@
 #include "app-layer-htp.h"
 
 int DetectEngineRunHttpRawUriMpm(DetectEngineThreadCtx *,
-                                 Flow *f, HtpState *);
+                                 Flow *f, HtpState *, uint8_t);
 int DetectEngineInspectHttpRawUri(DetectEngineCtx *, DetectEngineThreadCtx *,
                                   Signature *, Flow *, uint8_t, void *);
 void DetectEngineHttpRawUriRegisterTests(void);

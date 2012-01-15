@@ -128,7 +128,8 @@ typedef struct MpmCtx_ {
 
 typedef struct MpmCtxFactoryItem_ {
     char *name;
-    MpmCtx *mpm_ctx;
+    MpmCtx *mpm_ctx_ts;
+    MpmCtx *mpm_ctx_tc;
     int32_t id;
     uint8_t flags;
 } MpmCtxFactoryItem;
@@ -183,7 +184,7 @@ MpmTableElmt mpm_table[MPM_TABLE_SIZE];
 
 int32_t MpmFactoryRegisterMpmCtxProfile(const char *, uint8_t);
 void MpmFactoryReClaimMpmCtx(MpmCtx *);
-MpmCtx *MpmFactoryGetMpmCtxForProfile(int32_t);
+MpmCtx *MpmFactoryGetMpmCtxForProfile(int32_t, int);
 void MpmFactoryDeRegisterAllMpmCtxProfiles(void);
 int32_t MpmFactoryIsMpmCtxAvailable(MpmCtx *);
 

@@ -344,7 +344,7 @@ int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
         if (raw_headers != NULL) {
             cnt += HttpRawHeaderPatternSearch(det_ctx,
                                               (uint8_t *)bstr_ptr(raw_headers),
-                                              bstr_len(raw_headers));
+                                              bstr_len(raw_headers), flags);
         }
 #ifdef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
         raw_headers = htp_tx_get_response_headers_raw(tx);
@@ -2003,7 +2003,7 @@ static int DetectEngineHttpRawHeaderTest18(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    uint32_t r = HttpRawHeaderPatternSearch(det_ctx, http_buf, http_len);
+    uint32_t r = HttpRawHeaderPatternSearch(det_ctx, http_buf, http_len, STREAM_TOSERVER);
     if (r != 2) {
         printf("expected result 2, got %"PRIu32": ", r);
         goto end;
@@ -2077,7 +2077,7 @@ static int DetectEngineHttpRawHeaderTest19(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    uint32_t r = HttpRawHeaderPatternSearch(det_ctx, http_buf, http_len);
+    uint32_t r = HttpRawHeaderPatternSearch(det_ctx, http_buf, http_len, STREAM_TOSERVER);
     if (r != 1) {
         printf("expected result 1, got %"PRIu32": ", r);
         goto end;

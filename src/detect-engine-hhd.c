@@ -438,7 +438,8 @@ int DetectEngineRunHttpHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
         for (i = 0; i < det_ctx->hhd_buffers_list_len; i++) {
             cnt += HttpHeaderPatternSearch(det_ctx,
                                            det_ctx->hhd_buffers[i],
-                                           det_ctx->hhd_buffers_len[i]);
+                                           det_ctx->hhd_buffers_len[i],
+                                           flags);
         }
 
         DetectEngineCleanHHDBuffers(det_ctx);
@@ -450,13 +451,15 @@ int DetectEngineRunHttpHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
         for (i = 0; i < det_ctx->hhd_buffers_list_len; i++) {
             cnt += HttpHeaderPatternSearch(det_ctx,
                                            det_ctx->hhd_buffers[i],
-                                           det_ctx->hhd_buffers_len[i]);
+                                           det_ctx->hhd_buffers_len[i],
+                                           flags);
         }
     } else {
         for (i = 0; i < det_ctx->hhd_buffers_list_len; i++) {
             cnt += HttpHeaderPatternSearch(det_ctx,
                                            det_ctx->hhd_buffers[i],
-                                           det_ctx->hhd_buffers_len[i]);
+                                           det_ctx->hhd_buffers_len[i],
+                                           flags);
         }
 
         uint16_t hhd_buffers_list_len = det_ctx->hhd_buffers_list_len;
@@ -475,7 +478,8 @@ int DetectEngineRunHttpHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
         for (i = 0; i < det_ctx->hhd_buffers_list_len; i++) {
             cnt += HttpHeaderPatternSearch(det_ctx,
                                            det_ctx->hhd_buffers[i],
-                                           det_ctx->hhd_buffers_len[i]);
+                                           det_ctx->hhd_buffers_len[i],
+                                           flags);
         }
 
         DetectEngineCleanHHDBuffers(det_ctx);
@@ -2129,7 +2133,7 @@ static int DetectEngineHttpHeaderTest18(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    uint32_t r = HttpHeaderPatternSearch(det_ctx, http_buf, http_len);
+    uint32_t r = HttpHeaderPatternSearch(det_ctx, http_buf, http_len, STREAM_TOSERVER);
     if (r != 2) {
         printf("expected result 2, got %"PRIu32": ", r);
         goto end;
@@ -2203,7 +2207,7 @@ static int DetectEngineHttpHeaderTest19(void)
 
     /* start the search phase */
     det_ctx->sgh = SigMatchSignaturesGetSgh(de_ctx, det_ctx, p);
-    uint32_t r = HttpHeaderPatternSearch(det_ctx, http_buf, http_len);
+    uint32_t r = HttpHeaderPatternSearch(det_ctx, http_buf, http_len, STREAM_TOSERVER);
     if (r != 1) {
         printf("expected result 1, got %"PRIu32": ", r);
         goto end;
