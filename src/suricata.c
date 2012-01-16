@@ -945,7 +945,7 @@ int main(int argc, char **argv)
 
             if (strcmp(pcap_dev, optarg) != 0) {
                 SCLogInfo("translated %s to pcap device %s", optarg, pcap_dev);
-            } else {
+            } else if (strlen(pcap_dev) > 0 && isdigit(pcap_dev[0])) {
                 SCLogError(SC_ERR_PCAP_TRANSLATE, "failed to find a pcap device for IP %s", optarg);
                 exit(EXIT_FAILURE);
             }
