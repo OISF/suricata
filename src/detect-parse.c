@@ -327,6 +327,15 @@ void SigMatchAppendPacket(Signature *s, SigMatch *new) {
     s->sm_cnt++;
 }
 
+/** \brief Append a sig match to the signatures threshold list
+ *
+ *  \param s signature
+ *  \param new sigmatch to append
+ */
+void SigMatchAppendThreshold(Signature *s, SigMatch *new) {
+    SigMatchAppendSMToList(s, new, DETECT_SM_LIST_THRESHOLD);
+}
+
 /** \brief Append a sig match to the signatures post-match list
  *
  *  \param s signature

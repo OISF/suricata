@@ -60,6 +60,7 @@ void SigMatchReplaceContentToUricontent(Signature *, SigMatch *, SigMatch *);
 void SigMatchAppendPayload(Signature *, SigMatch *);
 void SigMatchAppendDcePayload(Signature *, SigMatch *);
 void SigMatchAppendPacket(Signature *, SigMatch *);
+void SigMatchAppendThreshold(Signature *, SigMatch *);
 void SigMatchAppendPostMatch(Signature *, SigMatch *);
 void SigMatchAppendUricontent(Signature *, SigMatch *);
 void SigMatchAppendAppLayer(Signature *, SigMatch *);

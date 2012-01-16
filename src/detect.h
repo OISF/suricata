@@ -103,7 +103,11 @@ enum {
 
     DETECT_SM_LIST_FILEMATCH,
 
+    /* list for post match actions: flowbit set, flowint increment, etc */
     DETECT_SM_LIST_POSTMATCH,
+
+    /* list for alert thresholding */
+    DETECT_SM_LIST_THRESHOLD,
     DETECT_SM_LIST_MAX,
 };
 

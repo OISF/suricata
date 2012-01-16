@@ -259,7 +259,7 @@ static int DetectThresholdSetup (DetectEngineCtx *de_ctx, Signature *s, char *ra
     sm->type = DETECT_THRESHOLD;
     sm->ctx = (void *)de;
 
-    SigMatchAppendPacket(s, sm);
+    SigMatchAppendThreshold(s, sm);
 
     return 0;
 

@@ -250,7 +250,7 @@ int DetectDetectionFilterSetup (DetectEngineCtx *de_ctx, Signature *s, char *raw
     sm->type = DETECT_DETECTION_FILTER;
     sm->ctx = (void *)df;
 
-    SigMatchAppendPacket(s, sm);
+    SigMatchAppendThreshold(s, sm);
 
     return 0;
 

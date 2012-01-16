@@ -83,7 +83,7 @@ DetectThresholdData *SigGetThresholdTypeIter(Signature *sig, Packet *p, SigMatch
         return NULL;
 
     if (*psm == NULL) {
-        sm = sig->sm_lists_tail[DETECT_SM_LIST_MATCH];
+        sm = sig->sm_lists_tail[DETECT_SM_LIST_THRESHOLD];
     } else {
         /* Iteration in progress, using provided value */
         sm = *psm;
