@@ -1439,6 +1439,19 @@ static int SigValidate(Signature *s) {
         }
     }
 
+#ifdef DEBUG
+    int i;
+    for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+        if (s->sm_lists[i] != NULL) {
+            SigMatch *sm;
+            for (sm = s->sm_lists[i]; sm != NULL; sm = sm->next) {
+                BUG_ON(sm == sm->prev);
+                BUG_ON(sm == sm->next);
+            }
+        }
+    }
+#endif
+
     SCReturnInt(1);
 }
 

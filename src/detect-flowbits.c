@@ -258,6 +258,7 @@ int DetectFlowbitSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
         case DETECT_FLOWBITS_CMD_ISSET:
             /* checks, so packet list */
             SigMatchAppendPacket(s, sm);
+            break;
 
         case DETECT_FLOWBITS_CMD_SET:
         case DETECT_FLOWBITS_CMD_UNSET:
