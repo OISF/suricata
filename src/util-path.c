@@ -40,7 +40,7 @@ int PathIsAbsolute(const char *path) {
         return 1;
     }
 
-#ifdef OS_WIN32
+#if (defined OS_WIN32 || defined __CYGWIN__)
     if (strlen(path) > 2) {
         if (isalpha(path[0]) && path[1] == ':') {
             return 1;

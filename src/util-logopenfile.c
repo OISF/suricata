@@ -132,7 +132,11 @@ SCConfLogOpenGeneric(ConfNode *conf,
     if (ConfGet("default-log-dir", &log_dir) != 1)
         log_dir = DEFAULT_LOG_DIR;
 
-    snprintf(log_path, PATH_MAX, "%s/%s", log_dir, filename);
+    if (PathIsAbsolute(filename)) {
+        snprintf(log_path, PATH_MAX, "%s", filename);
+    } else {
+        snprintf(log_path, PATH_MAX, "%s/%s", log_dir, filename);
+    }
 
     filetype = ConfNodeLookupChildValue(conf, "filetype");
     if (filetype == NULL)
