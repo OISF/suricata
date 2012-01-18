@@ -1878,3 +1878,65 @@ bstr *htp_tx_get_request_headers_raw(htp_tx_t *tx) {
 
     return tx->request_headers_raw;
 }
+
+/**
+ * Construct a bstr that contains the raw response headers.
+ *
+ * @param tx
+ * @return
+ */
+bstr *htp_tx_generate_response_headers_raw(htp_tx_t *tx) {
+    bstr *response_headers_raw = NULL;
+    size_t i, len = 0;
+
+    for (i = 0; i < list_size(tx->response_header_lines); i++) {
+        htp_header_line_t *hl = list_get(tx->response_header_lines, i);
+        len += bstr_len(hl->line);
+    }
+
+    response_headers_raw = bstr_alloc(len);
+    if (response_headers_raw == NULL) {
+        htp_log(tx->connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0, "Failed to allocate bstring of %d bytes", len);
+        return NULL;
+    }
+
+    for (i = 0; i < list_size(tx->response_header_lines); i++) {
+        htp_header_line_t *hl = list_get(tx->response_header_lines, i);
+        bstr_add_str_noex(response_headers_raw, hl->line);
+    }
+
+    return response_headers_raw;
+}
+
+/**
+ * Get a bstr that contains the raw response headers. This method will always
+ * return an up-to-date buffer, containing the last known headers. Thus, if
+ * it is called once after RESPONSE_HEADERS phase it will return one buffer, but
+ * it may return a different buffer if called after RESPONSE_TRAILERS phase (but
+ * only if the response actually contains trailer headers). Do not retain the
+ * bstr pointer, as the buffer may change. If there are no changes to the
+ * response header structure, only one buffer will be contstructed and used. (Multiple
+ * invocations of this method will not cause multiple buffers to be created.)
+ *
+ * @param tx
+ * @return
+ */
+bstr *htp_tx_get_response_headers_raw(htp_tx_t *tx) {
+    // Check that we are not called too early
+    if (tx->progress < TX_PROGRESS_RES_HEADERS) return NULL;
+
+    if (tx->response_headers_raw == NULL) {
+        tx->response_headers_raw = htp_tx_generate_response_headers_raw(tx);
+        tx->response_headers_raw_lines = list_size(tx->response_header_lines);
+    } else {
+        // Check that the buffer we have is not obsolete
+        if (tx->response_headers_raw_lines < list_size(tx->response_header_lines)) {
+            // Rebuild raw buffer
+            bstr_free(tx->response_headers_raw);
+            tx->response_headers_raw = htp_tx_generate_response_headers_raw(tx);
+            tx->response_headers_raw_lines = list_size(tx->response_header_lines);
+        }
+    }
+
+    return tx->response_headers_raw;
+}

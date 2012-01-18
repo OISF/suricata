@@ -41,7 +41,7 @@ typedef struct htp_urldecoder_t htp_urldecoder_t;
 
 // -- Defines -------------------------------------------------------------------------------------
 
-#define HTP_BASE_VERSION_TEXT	"0.2.6"
+#define HTP_BASE_VERSION_TEXT	"0.2.7"
 
 #define HTP_ERROR              -1
 #define HTP_OK                  0
@@ -884,6 +884,16 @@ struct htp_tx_t {
     /** Parsed response headers. */
     table_t *response_headers;
 
+    /** Contains raw response headers. This field is generated on demand, use
+     *  htp_tx_get_response_headers_raw() to get it.
+     */
+    bstr *response_headers_raw;
+
+    /** How many response header lines have been included in the raw
+     *  buffer (above).
+     */
+    size_t response_headers_raw_lines;
+
     /** The actual message length (the length _after_ transformations
      *  have been applied). This field will change as a request body is being
      *  received, with the final value available once the entire body has
@@ -1129,6 +1139,7 @@ char *htp_tx_progress_as_string(htp_tx_t *tx);
 bstr *htp_unparse_uri_noencode(htp_uri_t *uri);
 
 bstr *htp_tx_get_request_headers_raw(htp_tx_t *tx);
+bstr *htp_tx_get_response_headers_raw(htp_tx_t *tx);
 
 #endif	/* _HTP_H */
 

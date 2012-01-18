@@ -107,7 +107,7 @@ int htp_parse_response_header_generic(htp_connp_t *connp, htp_header_t *h, char 
         if (!(connp->out_tx->flags & HTP_FIELD_UNPARSEABLE)) {
             connp->out_tx->flags |= HTP_FIELD_UNPARSEABLE;
             // Only log once per transaction
-            htp_log(connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0, "Request field invalid: colon missing");
+            htp_log(connp, HTP_LOG_MARK, HTP_LOG_ERROR, 0, "Response field invalid: colon missing");
         }
 
         return HTP_ERROR;
@@ -120,7 +120,7 @@ int htp_parse_response_header_generic(htp_connp_t *connp, htp_header_t *h, char 
         if (!(connp->out_tx->flags & HTP_FIELD_INVALID)) {
             connp->out_tx->flags |= HTP_FIELD_INVALID;
             // Only log once per transaction
-            htp_log(connp, HTP_LOG_MARK, HTP_LOG_WARNING, 0, "Request field invalid: empty name");
+            htp_log(connp, HTP_LOG_MARK, HTP_LOG_WARNING, 0, "Response field invalid: empty name");
         }
     }
 
@@ -136,7 +136,7 @@ int htp_parse_response_header_generic(htp_connp_t *connp, htp_header_t *h, char 
 
         if (!(connp->out_tx->flags & HTP_FIELD_INVALID)) {
             connp->out_tx->flags |= HTP_FIELD_INVALID;
-            htp_log(connp, HTP_LOG_MARK, HTP_LOG_WARNING, 0, "Request field invalid: LWS after name");
+            htp_log(connp, HTP_LOG_MARK, HTP_LOG_WARNING, 0, "Response field invalid: LWS after name");
         }
     }
 
@@ -173,7 +173,7 @@ int htp_parse_response_header_generic(htp_connp_t *connp, htp_header_t *h, char 
 
             if (!(connp->out_tx->flags & HTP_FIELD_INVALID)) {
                 connp->out_tx->flags |= HTP_FIELD_INVALID;
-                htp_log(connp, HTP_LOG_MARK, HTP_LOG_WARNING, 0, "Request header name is not a token");
+                htp_log(connp, HTP_LOG_MARK, HTP_LOG_WARNING, 0, "Response header name is not a token");
             }
 
             break;
