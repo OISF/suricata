@@ -413,11 +413,11 @@ int DetectEngineInspectHttpRawHeader(DetectEngineCtx *de_ctx,
         if (flags & STREAM_TOSERVER) {
             raw_headers = htp_tx_get_request_headers_raw(tx);
         }
-#ifdef __LIBHTP_026GT_RESPONSE_HEADER_SUPPORT__
+#ifdef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
         else {
             raw_headers = htp_tx_get_response_headers_raw(tx);
         }
-#endif
+#endif /* HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW */
         if (raw_headers == NULL)
             continue;
 
