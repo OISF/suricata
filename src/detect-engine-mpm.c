@@ -85,6 +85,10 @@ int SignatureHasPacketContent(Signature *s) {
         SCReturnInt(0);
     }
 
+    if (!(s->proto.proto[6 / 8] & 1 << (6 % 8))) {
+        SCReturnInt(1);
+    }
+
     if (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
         SCLogDebug("no mpm");
         SCReturnInt(0);
