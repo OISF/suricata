@@ -101,7 +101,7 @@ outputs:
       max_files: 2000
 
       mode: normal # normal or sguil.
-      #dir: /nsm_data/
+      #sguil-base-dir: /nsm_data/
       #ts_format: usec # sec or usec second format (default) is filename.sec usec is filename.sec.usec
       use_stream_depth: no #If set to "yes" packets seen after reaching stream inspection depth are ignored. "no" logs all packets
 

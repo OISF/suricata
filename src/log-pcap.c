@@ -467,12 +467,15 @@ OutputCtx *PcapLogInitCtx(ConfNode *conf)
         const char *s_dir = NULL;
         s_dir = ConfNodeLookupChildValue(conf, "dir");
         if (s_dir == NULL) {
-            s_dir = ConfNodeLookupChildValue(conf, "sguil_base_dir");
+            s_dir = ConfNodeLookupChildValue(conf, "sguil-base-dir");
+            if (s_dir == NULL) {
+                s_dir = ConfNodeLookupChildValue(conf, "sguil_base_dir");
+            }
         }
         if (s_dir == NULL) {
             if (pl->mode == LOGMODE_SGUIL) {
                 SCLogError(SC_ERR_LOGPCAP_SGUIL_BASE_DIR_MISSING,
-                    "log-pcap \"sguil\" mode requires \"dir\" "
+                    "log-pcap \"sguil\" mode requires \"sguil-base-dir\" "
                     "option to be set.");
                 exit(EXIT_FAILURE);
             } else {
@@ -485,9 +488,26 @@ OutputCtx *PcapLogInitCtx(ConfNode *conf)
                     SCLogInfo("Using log dir %s", pl->dir);
             }
         } else {
-            strlcpy(pl->dir,
-                    s_dir, sizeof(pl->dir));
-                    SCLogInfo("Using log dir %s", pl->dir);
+            if (PathIsAbsolute(s_dir)) {
+                strlcpy(pl->dir,
+                        s_dir, sizeof(pl->dir));
+            } else {
+                char *log_dir = NULL;
+                if (ConfGet("default-log-dir", &log_dir) != 1)
+                    log_dir = DEFAULT_LOG_DIR;
+
+                snprintf(pl->dir, sizeof(pl->dir), "%s/%s",
+                    log_dir, s_dir);
+            }
+
+            struct stat stat_buf;
+            if (stat(pl->dir, &stat_buf) != 0) {
+                SCLogError(SC_ERR_LOGDIR_CONFIG, "The sguil-base-dir directory \"%s\" "
+                        "supplied doesn't exist. Shutting down the engine",
+                        pl->dir);
+                exit(EXIT_FAILURE);
+            }
+            SCLogInfo("Using log dir %s", pl->dir);
         }
     }
 
