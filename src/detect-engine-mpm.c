@@ -176,21 +176,11 @@ uint32_t PacketPatternSearchWithStreamCtx(DetectEngineThreadCtx *det_ctx,
         ret = mpm_table[det_ctx->sgh->mpm_stream_ctx_ts->mpm_type].
             Search(det_ctx->sgh->mpm_stream_ctx_ts, &det_ctx->mtc, &det_ctx->pmq,
                    p->payload, p->payload_len);
-    } else { //if (p->flowflags & FLOW_PKT_TOCLIENT) {
+    } else {
         ret = mpm_table[det_ctx->sgh->mpm_stream_ctx_tc->mpm_type].
             Search(det_ctx->sgh->mpm_stream_ctx_tc, &det_ctx->mtc, &det_ctx->pmq,
                    p->payload, p->payload_len);
     }
-    //else {
-    //    printf("packet pattern search with stream ctx");
-    //    exit(0);
-    //    ret = mpm_table[det_ctx->sgh->mpm_stream_ctx_ts->mpm_type].
-    //        Search(det_ctx->sgh->mpm_stream_ctx_ts, &det_ctx->mtc, &det_ctx->pmq,
-    //               p->payload, p->payload_len);
-    //    ret = mpm_table[det_ctx->sgh->mpm_stream_ctx_tc->mpm_type].
-    //        Search(det_ctx->sgh->mpm_stream_ctx_tc, &det_ctx->mtc, &det_ctx->pmq,
-    //               p->payload, p->payload_len);
-    //}
 
     SCReturnInt(ret);
 }
@@ -208,38 +198,22 @@ uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
 
     uint32_t ret;
     MpmCtx *mpm_ctx = NULL;
-    MpmCtx *mpm_ctx1 = NULL;
 
     if (p->proto == IPPROTO_TCP) {
         if (p->flowflags & FLOW_PKT_TOSERVER) {
             mpm_ctx = det_ctx->sgh->mpm_proto_tcp_ctx_ts;
-        } else { // if (p->flowflags & FLOW_PKT_TOCLIENT) {
+        } else {
             mpm_ctx = det_ctx->sgh->mpm_proto_tcp_ctx_tc;
         }
-        //else {
-        //    mpm_ctx = det_ctx->sgh->mpm_proto_tcp_ctx_ts;
-        //    mpm_ctx1 = det_ctx->sgh->mpm_proto_tcp_ctx_tc;
-        //}
     } else if (p->proto == IPPROTO_UDP) {
         if (p->flowflags & FLOW_PKT_TOSERVER) {
             mpm_ctx = det_ctx->sgh->mpm_proto_udp_ctx_ts;
-        } else { //if (p->flowflags & FLOW_PKT_TOCLIENT) {
+        } else {
             mpm_ctx = det_ctx->sgh->mpm_proto_udp_ctx_tc;
         }
-        //else {
-        //    mpm_ctx = det_ctx->sgh->mpm_proto_udp_ctx_ts;
-        //    mpm_ctx1 = det_ctx->sgh->mpm_proto_udp_ctx_tc;
-        //}
     } else {
         mpm_ctx = det_ctx->sgh->mpm_proto_other_ctx;
     }
-        //else {
-        //    printf("packet pattern search");
-        //    exit(0);
-        //    mpm_ctx = det_ctx->sgh->mpm_proto_other_ctx_ts;
-        //    mpm_ctx1 = det_ctx->sgh->mpm_proto_other_ctx_tc;
-        //}
-
 
     if (mpm_ctx == NULL)
         SCReturnInt(0);
@@ -250,13 +224,6 @@ uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
                                               &det_ctx->pmq,
                                               p->payload,
                                               p->payload_len);
-    if (mpm_ctx1 != NULL) {
-        ret += mpm_table[mpm_ctx1->mpm_type].Search(mpm_ctx1,
-                                                    &det_ctx->mtc,
-                                                    &det_ctx->pmq,
-                                                    p->payload,
-                                                    p->payload_len);
-    }
 #else
     /* if the user has enabled cuda support, but is not using the cuda mpm
      * algo, then we shouldn't take the path of the dispatcher.  Call the mpm
@@ -267,13 +234,6 @@ uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
                                                   &det_ctx->pmq,
                                                   p->payload,
                                                   p->payload_len);
-        if (mpm_ctx1 != NULL) {
-            ret += mpm_table[mpm_ctx1->mpm_type].Search(mpm_ctx1,
-                                                        &det_ctx->mtc,
-                                                        &det_ctx->pmq,
-                                                        p->payload,
-                                                        p->payload_len);
-        }
         SCReturnInt(ret);
     }
 
@@ -286,13 +246,6 @@ uint32_t PacketPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p)
                                                   &det_ctx->pmq,
                                                   p->payload,
                                                   p->payload_len);
-        if (mpm_ctx1 != NULL) {
-            ret = mpm_table[mpm_ctx1->mpm_type].Search(mpm_ctx1,
-                                                       &det_ctx->mtc,
-                                                       &det_ctx->pmq,
-                                                       p->payload,
-                                                       p->payload_len);
-        }
     }
 #endif
 
@@ -319,7 +272,7 @@ uint32_t UriPatternSearch(DetectEngineThreadCtx *det_ctx,
         ret = mpm_table[det_ctx->sgh->mpm_uri_ctx_ts->mpm_type].
             Search(det_ctx->sgh->mpm_uri_ctx_ts,
                    &det_ctx->mtcu, &det_ctx->pmq, uri, uri_len);
-    } else { //if (flags & STREAM_TOCLIENT) {
+    } else {
         if (det_ctx->sgh->mpm_uri_ctx_tc == NULL)
             SCReturnUInt(0U);
 
@@ -327,23 +280,8 @@ uint32_t UriPatternSearch(DetectEngineThreadCtx *det_ctx,
             Search(det_ctx->sgh->mpm_uri_ctx_tc,
                    &det_ctx->mtcu, &det_ctx->pmq, uri, uri_len);
     }
-    //else {
-    //    printf("uri pattern search");
-    //    exit(0);
-    //    if (det_ctx->sgh->mpm_uri_ctx_ts != NULL) {
-    //        ret = mpm_table[det_ctx->sgh->mpm_uri_ctx_ts->mpm_type].
-    //            Search(det_ctx->sgh->mpm_uri_ctx_ts,
-    //                   &det_ctx->mtcu, &det_ctx->pmq, uri, uri_len);
-    //    }
-    //    if (det_ctx->sgh->mpm_uri_ctx_tc != NULL) {
-    //        ret += mpm_table[det_ctx->sgh->mpm_uri_ctx_tc->mpm_type].
-    //            Search(det_ctx->sgh->mpm_uri_ctx_tc,
-    //                   &det_ctx->mtcu, &det_ctx->pmq, uri, uri_len);
-    //    }
-    //}
 
     //PrintRawDataFp(stdout, uri, uri_len);
-
 
     SCReturnUInt(ret);
 }
@@ -370,7 +308,7 @@ uint32_t HttpClientBodyPatternSearch(DetectEngineThreadCtx *det_ctx,
         ret = mpm_table[det_ctx->sgh->mpm_hcbd_ctx_ts->mpm_type].
             Search(det_ctx->sgh->mpm_hcbd_ctx_ts, &det_ctx->mtcu,
                    &det_ctx->pmq, body, body_len);
-    } else { //if (flags & STREAM_TOCLIENT) {
+    } else {
         if (det_ctx->sgh->mpm_hcbd_ctx_tc == NULL)
             SCReturnUInt(0);
 
@@ -378,20 +316,6 @@ uint32_t HttpClientBodyPatternSearch(DetectEngineThreadCtx *det_ctx,
             Search(det_ctx->sgh->mpm_hcbd_ctx_tc, &det_ctx->mtcu,
                    &det_ctx->pmq, body, body_len);
     }
-    //else {
-    //    printf("hcbd pattern search");
-    //    exit(0);
-    //    if (det_ctx->sgh->mpm_hcbd_ctx_ts != NULL) {
-    //        ret = mpm_table[det_ctx->sgh->mpm_hcbd_ctx_ts->mpm_type].
-    //            Search(det_ctx->sgh->mpm_hcbd_ctx_ts, &det_ctx->mtcu,
-    //                   &det_ctx->pmq, body, body_len);
-    //    }
-    //    if (det_ctx->sgh->mpm_hcbd_ctx_tc != NULL) {
-    //        ret += mpm_table[det_ctx->sgh->mpm_hcbd_ctx_tc->mpm_type].
-    //            Search(det_ctx->sgh->mpm_hcbd_ctx_tc, &det_ctx->mtcu,
-    //                   &det_ctx->pmq, body, body_len);
-    //    }
-    //}
 
     SCReturnUInt(ret);
 }
@@ -418,7 +342,7 @@ uint32_t HttpServerBodyPatternSearch(DetectEngineThreadCtx *det_ctx,
         ret = mpm_table[det_ctx->sgh->mpm_hsbd_ctx_ts->mpm_type].
             Search(det_ctx->sgh->mpm_hsbd_ctx_ts, &det_ctx->mtcu,
                    &det_ctx->pmq, body, body_len);
-    } else { //if (flags & STREAM_TOCLIENT) {
+    } else {
         if (det_ctx->sgh->mpm_hsbd_ctx_tc == NULL)
             SCReturnUInt(0);
 
@@ -426,20 +350,6 @@ uint32_t HttpServerBodyPatternSearch(DetectEngineThreadCtx *det_ctx,
             Search(det_ctx->sgh->mpm_hsbd_ctx_tc, &det_ctx->mtcu,
                    &det_ctx->pmq, body, body_len);
     }
-    //else {
-    //    printf("hsbd pattern search");
-    //    exit(0);
-    //    if (det_ctx->sgh->mpm_hsbd_ctx_ts != NULL) {
-    //        ret = mpm_table[det_ctx->sgh->mpm_hsbd_ctx_ts->mpm_type].
-    //            Search(det_ctx->sgh->mpm_hsbd_ctx_ts, &det_ctx->mtcu,
-    //                   &det_ctx->pmq, body, body_len);
-    //    }
-    //    if (det_ctx->sgh->mpm_hsbd_ctx_tc != NULL) {
-    //        ret += mpm_table[det_ctx->sgh->mpm_hsbd_ctx_tc->mpm_type].
-    //            Search(det_ctx->sgh->mpm_hsbd_ctx_tc, &det_ctx->mtcu,
-    //                   &det_ctx->pmq, body, body_len);
-    //    }
-    //}
 
     SCReturnUInt(ret);
 }
@@ -466,7 +376,7 @@ uint32_t HttpHeaderPatternSearch(DetectEngineThreadCtx *det_ctx,
         ret = mpm_table[det_ctx->sgh->mpm_hhd_ctx_ts->mpm_type].
             Search(det_ctx->sgh->mpm_hhd_ctx_ts, &det_ctx->mtcu,
                    &det_ctx->pmq, headers, headers_len);
-    } else { //if (flags & STREAM_TOCLIENT) {
+    } else {
         if (det_ctx->sgh->mpm_hhd_ctx_tc == NULL)
             SCReturnUInt(0);
 
@@ -474,20 +384,6 @@ uint32_t HttpHeaderPatternSearch(DetectEngineThreadCtx *det_ctx,
             Search(det_ctx->sgh->mpm_hhd_ctx_tc, &det_ctx->mtcu,
                    &det_ctx->pmq, headers, headers_len);
     }
-    //else {
-    //    printf("hhd pattern search");
-    //    exit(0);
-    //    if (det_ctx->sgh->mpm_hhd_ctx_ts != NULL) {
-    //        ret = mpm_table[det_ctx->sgh->mpm_hhd_ctx_ts->mpm_type].
-    //            Search(det_ctx->sgh->mpm_hhd_ctx_ts, &det_ctx->mtcu,
-    //                   &det_ctx->pmq, headers, headers_len);
-    //    }
-    //    if (det_ctx->sgh->mpm_hhd_ctx_tc != NULL) {
-    //        ret += mpm_table[det_ctx->sgh->mpm_hhd_ctx_tc->mpm_type].
-    //            Search(det_ctx->sgh->mpm_hhd_ctx_tc, &det_ctx->mtcu,
-    //                   &det_ctx->pmq, headers, headers_len);
-    //    }
-    //}
 
     SCReturnUInt(ret);
 }
@@ -514,7 +410,7 @@ uint32_t HttpRawHeaderPatternSearch(DetectEngineThreadCtx *det_ctx,
         ret = mpm_table[det_ctx->sgh->mpm_hrhd_ctx_ts->mpm_type].
             Search(det_ctx->sgh->mpm_hrhd_ctx_ts, &det_ctx->mtcu,
                    &det_ctx->pmq, raw_headers, raw_headers_len);
-    } else { //if (flags & STREAM_TOCLIENT) {
+    } else {
         if (det_ctx->sgh->mpm_hrhd_ctx_tc == NULL)
             SCReturnUInt(0);
 
@@ -522,20 +418,6 @@ uint32_t HttpRawHeaderPatternSearch(DetectEngineThreadCtx *det_ctx,
             Search(det_ctx->sgh->mpm_hrhd_ctx_tc, &det_ctx->mtcu,
                    &det_ctx->pmq, raw_headers, raw_headers_len);
     }
-    //else {
-    //    printf("hrhd pattern search");
-    //    exit(0);
-    //    if (det_ctx->sgh->mpm_hrhd_ctx_ts != NULL) {
-    //        ret = mpm_table[det_ctx->sgh->mpm_hrhd_ctx_ts->mpm_type].
-    //            Search(det_ctx->sgh->mpm_hrhd_ctx_ts, &det_ctx->mtcu,
-    //                   &det_ctx->pmq, raw_headers, raw_headers_len);
-    //    }
-    //    if (det_ctx->sgh->mpm_hrhd_ctx_tc != NULL) {
-    //        ret += mpm_table[det_ctx->sgh->mpm_hrhd_ctx_tc->mpm_type].
-    //            Search(det_ctx->sgh->mpm_hrhd_ctx_tc, &det_ctx->mtcu,
-    //                   &det_ctx->pmq, raw_headers, raw_headers_len);
-    //    }
-    //}
 
     SCReturnUInt(ret);
 }
@@ -562,7 +444,7 @@ uint32_t HttpMethodPatternSearch(DetectEngineThreadCtx *det_ctx,
         ret = mpm_table[det_ctx->sgh->mpm_hmd_ctx_ts->mpm_type].
             Search(det_ctx->sgh->mpm_hmd_ctx_ts, &det_ctx->mtcu,
                    &det_ctx->pmq, raw_method, raw_method_len);
-    } else { //if (flags & STREAM_TOCLIENT) {
+    } else {
         if (det_ctx->sgh->mpm_hmd_ctx_tc == NULL)
             SCReturnUInt(0);
 
@@ -570,20 +452,6 @@ uint32_t HttpMethodPatternSearch(DetectEngineThreadCtx *det_ctx,
             Search(det_ctx->sgh->mpm_hmd_ctx_tc, &det_ctx->mtcu,
                    &det_ctx->pmq, raw_method, raw_method_len);
     }
-    //else {
-    //    printf("hmd pattern search");
-    //    exit(0);
-    //    if (det_ctx->sgh->mpm_hmd_ctx_ts != NULL) {
-    //        ret = mpm_table[det_ctx->sgh->mpm_hmd_ctx_ts->mpm_type].
-    //            Search(det_ctx->sgh->mpm_hmd_ctx_ts, &det_ctx->mtcu,
-    //                   &det_ctx->pmq, raw_method, raw_method_len);
-    //    }
-    //    if (det_ctx->sgh->mpm_hmd_ctx_tc != NULL) {
-    //        ret += mpm_table[det_ctx->sgh->mpm_hmd_ctx_tc->mpm_type].
-    //            Search(det_ctx->sgh->mpm_hmd_ctx_tc, &det_ctx->mtcu,
-    //                   &det_ctx->pmq, raw_method, raw_method_len);
-    //    }
-    //}
 
     SCReturnUInt(ret);
 }
@@ -610,7 +478,7 @@ uint32_t HttpCookiePatternSearch(DetectEngineThreadCtx *det_ctx,
         ret = mpm_table[det_ctx->sgh->mpm_hcd_ctx_ts->mpm_type].
             Search(det_ctx->sgh->mpm_hcd_ctx_ts, &det_ctx->mtcu,
                    &det_ctx->pmq, cookie, cookie_len);
-    } else { //if (flags & STREAM_TOCLIENT) {
+    } else {
         if (det_ctx->sgh->mpm_hcd_ctx_tc == NULL)
             SCReturnUInt(0);
 
@@ -618,20 +486,6 @@ uint32_t HttpCookiePatternSearch(DetectEngineThreadCtx *det_ctx,
             Search(det_ctx->sgh->mpm_hcd_ctx_tc, &det_ctx->mtcu,
                    &det_ctx->pmq, cookie, cookie_len);
     }
-    //else {
-    //    printf("hcd pattern search");
-    //    exit(0);
-    //    if (det_ctx->sgh->mpm_hcd_ctx_ts != NULL) {
-    //        ret = mpm_table[det_ctx->sgh->mpm_hcd_ctx_ts->mpm_type].
-    //            Search(det_ctx->sgh->mpm_hcd_ctx_ts, &det_ctx->mtcu,
-    //                   &det_ctx->pmq, cookie, cookie_len);
-    //    }
-    //    if (det_ctx->sgh->mpm_hcd_ctx_tc != NULL) {
-    //        ret += mpm_table[det_ctx->sgh->mpm_hcd_ctx_tc->mpm_type].
-    //            Search(det_ctx->sgh->mpm_hcd_ctx_tc, &det_ctx->mtcu,
-    //                   &det_ctx->pmq, cookie, cookie_len);
-    //    }
-    //}
 
     SCReturnUInt(ret);
 }
@@ -658,7 +512,7 @@ uint32_t HttpRawUriPatternSearch(DetectEngineThreadCtx *det_ctx,
         ret = mpm_table[det_ctx->sgh->mpm_hrud_ctx_ts->mpm_type].
             Search(det_ctx->sgh->mpm_hrud_ctx_ts, &det_ctx->mtcu,
                    &det_ctx->pmq, uri, uri_len);
-    } else { //if (flags & STREAM_TOCLIENT) {
+    } else {
         if (det_ctx->sgh->mpm_hrud_ctx_tc == NULL)
             SCReturnUInt(0);
 
@@ -666,20 +520,6 @@ uint32_t HttpRawUriPatternSearch(DetectEngineThreadCtx *det_ctx,
             Search(det_ctx->sgh->mpm_hrud_ctx_tc, &det_ctx->mtcu,
                    &det_ctx->pmq, uri, uri_len);
     }
-    //else {
-    //    printf("hrud pattern search");
-    //    exit(0);
-    //    if (det_ctx->sgh->mpm_hrud_ctx_ts == NULL) {
-    //        ret = mpm_table[det_ctx->sgh->mpm_hrud_ctx_ts->mpm_type].
-    //            Search(det_ctx->sgh->mpm_hrud_ctx_ts, &det_ctx->mtcu,
-    //                   &det_ctx->pmq, uri, uri_len);
-    //    }
-    //    if (det_ctx->sgh->mpm_hrud_ctx_tc == NULL) {
-    //        ret += mpm_table[det_ctx->sgh->mpm_hrud_ctx_tc->mpm_type].
-    //            Search(det_ctx->sgh->mpm_hrud_ctx_tc, &det_ctx->mtcu,
-    //                   &det_ctx->pmq, uri, uri_len);
-    //    }
-    //}
 
     SCReturnUInt(ret);
 }
@@ -721,7 +561,7 @@ uint32_t StreamPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p,
 
             cnt++;
         }
-    } else { //if (flags & STREAM_TOCLIENT) {
+    } else {
         for ( ; smsg != NULL; smsg = smsg->next) {
             r = mpm_table[det_ctx->sgh->mpm_stream_ctx_tc->mpm_type].
                 Search(det_ctx->sgh->mpm_stream_ctx_tc, &det_ctx->mtcs,
@@ -739,29 +579,6 @@ uint32_t StreamPatternSearch(DetectEngineThreadCtx *det_ctx, Packet *p,
             cnt++;
         }
     }
-    //else {
-    //    printf("stream pattern search");
-    //    exit(0);
-    //    for ( ; smsg != NULL; smsg = smsg->next) {
-    //        r = mpm_table[det_ctx->sgh->mpm_stream_ctx_ts->mpm_type].
-    //            Search(det_ctx->sgh->mpm_stream_ctx_ts, &det_ctx->mtcs,
-    //                   &det_ctx->smsg_pmq[cnt], smsg->data.data,
-    //                   smsg->data.data_len);
-    //        r += mpm_table[det_ctx->sgh->mpm_stream_ctx_tc->mpm_type].
-    //            Search(det_ctx->sgh->mpm_stream_ctx_tc, &det_ctx->mtcs,
-    //                   &det_ctx->smsg_pmq[cnt], smsg->data.data,
-    //                   smsg->data.data_len);
-    //        if (r > 0) {
-    //            ret += r;
-    //
-    //            SCLogDebug("smsg match stored in det_ctx->smsg_pmq[%u]", cnt);
-    //
-    //            /* merge results with overall pmq */
-    //            PmqMerge(&det_ctx->smsg_pmq[cnt], &det_ctx->pmq);
-    //        }
-    //    } /* for */
-    //
-    //} /* else */
 
     SCReturnInt(ret);
 }
