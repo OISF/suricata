@@ -142,7 +142,11 @@ void *TmThreadsSlot1NoIn(void *td)
         /* handle error */
         if (r == TM_ECODE_FAILED) {
             TmqhReleasePacketsToPacketPool(&s->slot_pre_pq);
+
+            SCMutexLock(&s->slot_post_pq.mutex_q);
             TmqhReleasePacketsToPacketPool(&s->slot_post_pq);
+            SCMutexUnlock(&s->slot_post_pq.mutex_q);
+
             if (p != NULL)
                 TmqhOutputPacketpool(tv, p);
             TmThreadsSetFlag(tv, THV_FAILED);
@@ -383,7 +387,11 @@ void *TmThreadsSlot1(void *td)
             /* handle error */
             if (r == TM_ECODE_FAILED) {
                 TmqhReleasePacketsToPacketPool(&s->slot_pre_pq);
+
+                SCMutexLock(&s->slot_post_pq.mutex_q);
                 TmqhReleasePacketsToPacketPool(&s->slot_post_pq);
+                SCMutexUnlock(&s->slot_post_pq.mutex_q);
+
                 TmqhOutputPacketpool(tv, p);
                 TmThreadsSetFlag(tv, THV_FAILED);
                 break;
@@ -464,7 +472,11 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
         if (unlikely(r == TM_ECODE_FAILED)) {
             /* Encountered error.  Return packets to packetpool and return */
             TmqhReleasePacketsToPacketPool(&s->slot_pre_pq);
+
+            SCMutexLock(&s->slot_post_pq.mutex_q);
             TmqhReleasePacketsToPacketPool(&s->slot_post_pq);
+            SCMutexUnlock(&s->slot_post_pq.mutex_q);
+
             TmThreadsSetFlag(tv, THV_FAILED);
             return TM_ECODE_FAILED;
         }
@@ -480,7 +492,11 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
                 r = TmThreadsSlotVarRun(tv, extra_p, s->slot_next);
                 if (unlikely(r == TM_ECODE_FAILED)) {
                     TmqhReleasePacketsToPacketPool(&s->slot_pre_pq);
+
+                    SCMutexLock(&s->slot_post_pq.mutex_q);
                     TmqhReleasePacketsToPacketPool(&s->slot_post_pq);
+                    SCMutexUnlock(&s->slot_post_pq.mutex_q);
+
                     TmqhOutputPacketpool(tv, extra_p);
                     TmThreadsSetFlag(tv, THV_FAILED);
                     return TM_ECODE_FAILED;
@@ -667,20 +683,26 @@ void *TmThreadsSlotVar(void *td)
             tv->tmqh_out(tv, p);
 
         } /* if (p != NULL) */
+
         /* now handle the post_pq packets */
         TmSlot *slot;
         for (slot = s; slot != NULL; slot = slot->slot_next) {
             if (slot->slot_post_pq.top != NULL) {
-                SCMutexLock(&slot->slot_post_pq.mutex_q);
-                while (slot->slot_post_pq.top != NULL) {
+                while (1) {
+                    SCMutexLock(&slot->slot_post_pq.mutex_q);
                     Packet *extra_p = PacketDequeue(&slot->slot_post_pq);
+                    SCMutexUnlock(&slot->slot_post_pq.mutex_q);
+
                     if (extra_p == NULL)
                         break;
 
                     if (slot->slot_next != NULL) {
                         r = TmThreadsSlotVarRun(tv, extra_p, slot->slot_next);
                         if (r == TM_ECODE_FAILED) {
+                            SCMutexLock(&slot->slot_post_pq.mutex_q);
                             TmqhReleasePacketsToPacketPool(&slot->slot_post_pq);
+                            SCMutexUnlock(&slot->slot_post_pq.mutex_q);
+
                             TmqhOutputPacketpool(tv, extra_p);
                             TmThreadsSetFlag(tv, THV_FAILED);
                             break;
@@ -689,7 +711,6 @@ void *TmThreadsSlotVar(void *td)
                     /* output the packet */
                     tv->tmqh_out(tv, extra_p);
                 } /* while */
-                SCMutexUnlock(&slot->slot_post_pq.mutex_q);
             } /* if */
         } /* for */
 

@@ -131,7 +131,10 @@ static inline TmEcode TmThreadsSlotProcessPkt(ThreadVars *tv, TmSlot *s, Packet 
         TmqhOutputPacketpool(tv, p);
         TmSlot *slot = s;
         while (slot != NULL) {
+            SCMutexLock(&slot->slot_post_pq.mutex_q);
             TmqhReleasePacketsToPacketPool(&slot->slot_post_pq);
+            SCMutexUnlock(&slot->slot_post_pq.mutex_q);
+
             slot = slot->slot_next;
         }
         TmThreadsSetFlag(tv, THV_FAILED);
@@ -139,27 +142,33 @@ static inline TmEcode TmThreadsSlotProcessPkt(ThreadVars *tv, TmSlot *s, Packet 
 
     } else {
         tv->tmqh_out(tv, p);
+
         /* post process pq */
         TmSlot *slot = s;
         while (slot != NULL) {
             if (slot->slot_post_pq.top != NULL) {
-                SCMutexLock(&slot->slot_post_pq.mutex_q);
-                while (slot->slot_post_pq.top != NULL) {
+                while (1) {
+                    SCMutexLock(&slot->slot_post_pq.mutex_q);
                     Packet *extra_p = PacketDequeue(&slot->slot_post_pq);
-                    if (extra_p != NULL) {
-                        if (slot->slot_next != NULL) {
-                            r = TmThreadsSlotVarRun(tv, extra_p, slot->slot_next);
-                            if (r == TM_ECODE_FAILED) {
-                                TmqhReleasePacketsToPacketPool(&slot->slot_post_pq);
-                                TmqhOutputPacketpool(tv, extra_p);
-                                TmThreadsSetFlag(tv, THV_FAILED);
-                                break;
-                            }
+                    SCMutexUnlock(&slot->slot_post_pq.mutex_q);
+
+                    if (extra_p == NULL)
+                        break;
+
+                    if (slot->slot_next != NULL) {
+                        r = TmThreadsSlotVarRun(tv, extra_p, slot->slot_next);
+                        if (r == TM_ECODE_FAILED) {
+                            SCMutexLock(&slot->slot_post_pq.mutex_q);
+                            TmqhReleasePacketsToPacketPool(&slot->slot_post_pq);
+                            SCMutexUnlock(&slot->slot_post_pq.mutex_q);
+
+                            TmqhOutputPacketpool(tv, extra_p);
+                            TmThreadsSetFlag(tv, THV_FAILED);
+                            break;
                         }
-                        tv->tmqh_out(tv, extra_p);
                     }
-                } /* while (slot->slot_post_pq.top != NULL) */
-                SCMutexUnlock(&slot->slot_post_pq.mutex_q);
+                    tv->tmqh_out(tv, extra_p);
+                }
             } /* if (slot->slot_post_pq.top != NULL) */
             slot = slot->slot_next;
         } /* while (slot != NULL) */
