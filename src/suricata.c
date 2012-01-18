@@ -1102,6 +1102,11 @@ int main(int argc, char **argv)
     SCLogInfo("This is %s version %s", PROG_NAME, PROG_VER);
 #endif
 
+#ifndef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
+    SCLogWarning(SC_WARN_OUTDATED_LIBHTP, "libhtp < 0.2.7 detected. Keyword "
+        "http_raw_header will not be able to inspect response headers.");
+#endif
+
     SetBpfString(optind, argv);
 
     UtilCpuPrintSummary();

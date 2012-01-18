@@ -214,6 +214,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_RAWBYTES_FILE_DATA);
         CASE_CODE (SC_ERR_SOCKET);
         CASE_CODE (SC_ERR_PCAP_TRANSLATE);
+        CASE_CODE (SC_WARN_OUTDATED_LIBHTP);
 
         default:
             return "UNKNOWN_ERROR";
