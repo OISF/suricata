@@ -70,6 +70,9 @@ void TmModuleLogHttpLogRegister (void) {
     tmm_modules[TMM_LOGHTTPLOG].cap_flags = 0;
 
     OutputRegisterModule(MODULE_NAME, "http-log", LogHttpLogInitCtx);
+
+    /* enable the logger for the app layer */
+    AppLayerRegisterLogger(ALPROTO_HTTP);
 }
 
 void TmModuleLogHttpLogIPv4Register (void) {
@@ -366,9 +369,6 @@ TmEcode LogHttpLogThreadInit(ThreadVars *t, void *initdata, void **data)
     }
     /* Use the Ouptut Context (file pointer and mutex) */
     aft->httplog_ctx= ((OutputCtx *)initdata)->data;
-
-    /* enable the logger for the app layer */
-    AppLayerRegisterLogger(ALPROTO_HTTP);
 
     *data = (void *)aft;
     return TM_ECODE_OK;

@@ -266,7 +266,7 @@ pcre:
 # If the argument specified is 0, the engine uses an internally defined
 # default limit.  On not specifying a value, we use no limits on the recursion.
 detect-engine:
-  - profile: medium
+  - profile: low
   - custom-values:
       toclient_src_groups: 2
       toclient_dst_groups: 2
@@ -276,7 +276,7 @@ detect-engine:
       toserver_dst_groups: 4
       toserver_sp_groups: 2
       toserver_dp_groups: 25
-  - sgh-mpm-context: auto
+  - sgh-mpm-context: single
   - inspection-recursion-limit: 3000
 
 # Suricata is multi-threaded. Here the threading can be influenced.
@@ -381,7 +381,7 @@ cuda:
 # compiled with --enable-cuda: b2g_cuda. Make sure to update your
 # max-pending-packets setting above as well if you use b2g_cuda.
 
-mpm-algo: ac
+mpm-algo: ac-gfbs
 
 # The memory settings for hash size of these algorithms can vary from lowest
 # (2048) - low (4096) - medium (8192) - high (16384) - higher (32768) - max

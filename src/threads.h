@@ -258,7 +258,7 @@ enum {
 #define SCSpinlock               pthread_spinlock_t
 
 /** If posix spin not supported, use mutex */
-#if ((_POSIX_SPIN_LOCKS - 200112L) < 0L)
+#if ((_POSIX_SPIN_LOCKS - 200112L) < 0L) || defined HELGRIND
 #define pthread_spinlock_t                        pthread_mutex_t
 #define pthread_spin_init(target,arg)             SCMutexInit(target, NULL)
 #define pthread_spin_lock(spin)                   SCMutexLock(spin)
