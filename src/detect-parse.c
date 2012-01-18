@@ -1360,20 +1360,23 @@ static int SigValidate(Signature *s) {
         }
     }
 
-#ifndef UNITTESTS /** \todo HACK... this fails 72 unittests, no time to fix them now */
-#ifndef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
     if (s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL) {
         if ((s->flags & (SIG_FLAG_TOCLIENT|SIG_FLAG_TOSERVER)) == (SIG_FLAG_TOCLIENT|SIG_FLAG_TOSERVER)) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,"http_raw_header signature without a flow direction. See issue #389.");
+            SCLogError(SC_ERR_INVALID_SIGNATURE,"http_raw_header signature "
+                    "without a flow direction. Use flow:to_server for "
+                    "inspecting request headers or flow:to_client for "
+                    "inspecting response headers.");
             SCReturnInt(0);
         }
+#ifndef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
         if (s->flags & SIG_FLAG_TOCLIENT) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE,"http_raw_header signature with to_client flow direction. See issue #389.");
+            SCLogError(SC_ERR_INVALID_SIGNATURE,"http_raw_header signature with "
+                    "to_client flow direction. See issues #389 and #397. Update "
+                    "libhtp to at least 0.2.7.");
             SCReturnInt(0);
         }
+#endif /* HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW */
     }
-#endif
-#endif
 
     if (s->alproto == ALPROTO_DCERPC) {
         /* \todo We haven't covered dce rpc cases now.  They need special

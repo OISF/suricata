@@ -931,7 +931,7 @@ int DetectIsdataatTestParse11(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing bytejump_body\"; "
-                               "content:\"one\"; http_raw_header; "
+                               "flow:to_server; content:\"one\"; http_raw_header; "
                                "isdataat:!4,relative; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;

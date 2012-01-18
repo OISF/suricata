@@ -481,7 +481,7 @@ static int DetectEngineHttpRawHeaderTest01(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
+                               "(msg:\"http header test\"; flow:to_server; "
                                "content:\"one\"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -570,7 +570,7 @@ static int DetectEngineHttpRawHeaderTest02(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
+                               "(msg:\"http header test\"; flow:to_server; "
                                "content:\"one\"; depth:15; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -659,7 +659,7 @@ static int DetectEngineHttpRawHeaderTest03(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
+                               "(msg:\"http header test\"; flow:to_server; "
                                "content:!\"one\"; depth:5; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -748,7 +748,7 @@ static int DetectEngineHttpRawHeaderTest04(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
+                               "(msg:\"http header test\"; flow:to_server; "
                                "content:\"one\"; depth:5; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -837,7 +837,7 @@ static int DetectEngineHttpRawHeaderTest05(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
+                               "(msg:\"http header test\"; flow:to_server; "
                                "content:!\"one\"; depth:15; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -926,7 +926,7 @@ static int DetectEngineHttpRawHeaderTest06(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
+                               "(msg:\"http header test\"; flow:to_server; "
                                "content:\"one\"; offset:10; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -1015,7 +1015,7 @@ static int DetectEngineHttpRawHeaderTest07(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
+                               "(msg:\"http header test\"; flow:to_server; "
                                "content:!\"one\"; offset:15; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -1104,7 +1104,7 @@ static int DetectEngineHttpRawHeaderTest08(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
+                               "(msg:\"http header test\"; flow:to_server; "
                                "content:\"one\"; offset:15; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -1193,7 +1193,7 @@ static int DetectEngineHttpRawHeaderTest09(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
+                               "(msg:\"http header test\"; flow:to_server; "
                                "content:!\"one\"; offset:10; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -1282,7 +1282,7 @@ static int DetectEngineHttpRawHeaderTest10(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
+                               "(msg:\"http header test\"; flow:to_server; "
                                "content:\"one\"; http_raw_header; content:\"three\"; http_raw_header; within:10; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -1371,7 +1371,7 @@ static int DetectEngineHttpRawHeaderTest11(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
+                               "(msg:\"http header test\"; flow:to_server; "
                                "content:\"one\"; http_raw_header; content:!\"three\"; http_raw_header; within:5; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -1460,7 +1460,7 @@ static int DetectEngineHttpRawHeaderTest12(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
+                               "(msg:\"http header test\"; flow:to_server; "
                                "content:\"one\"; http_raw_header; content:!\"three\"; http_raw_header; within:10; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -1549,7 +1549,7 @@ static int DetectEngineHttpRawHeaderTest13(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
+                               "(msg:\"http header test\"; flow:to_server; "
                                "content:\"one\"; http_raw_header; content:\"three\"; http_raw_header; within:5; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -1638,7 +1638,7 @@ static int DetectEngineHttpRawHeaderTest14(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
+                               "(msg:\"http header test\"; flow:to_server; "
                                "content:\"one\"; http_raw_header; content:\"five\"; http_raw_header; distance:7; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -1727,7 +1727,7 @@ static int DetectEngineHttpRawHeaderTest15(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
+                               "(msg:\"http header test\"; flow:to_server; "
                                "content:\"one\"; http_raw_header; content:!\"five\"; http_raw_header; distance:15; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -1816,7 +1816,7 @@ static int DetectEngineHttpRawHeaderTest16(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
+                               "(msg:\"http header test\"; flow:to_server; "
                                "content:\"one\"; http_raw_header; content:!\"five\"; http_raw_header; distance:7; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -1905,7 +1905,7 @@ static int DetectEngineHttpRawHeaderTest17(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
+                               "(msg:\"http header test\"; flow:to_server; "
                                "content:\"one\"; http_raw_header; content:\"five\"; http_raw_header; distance:15; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -1992,7 +1992,7 @@ static int DetectEngineHttpRawHeaderTest18(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
+                               "(msg:\"http header test\"; flow:to_server; "
                                "content:\"one\"; http_raw_header; content:\"five\"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -2066,7 +2066,7 @@ static int DetectEngineHttpRawHeaderTest19(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
+                               "(msg:\"http header test\"; flow:to_server; "
                                "content:\"one\"; http_raw_header; fast_pattern; content:\"five\"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -2149,7 +2149,7 @@ static int DetectEngineHttpRawHeaderTest20(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
+                               "(msg:\"http client body test\"; flow:to_server; "
                                "pcre:/body1/D; "
                                "content:!\"dummy\"; http_raw_header; within:7; "
                                "sid:1;)");
@@ -2263,7 +2263,7 @@ static int DetectEngineHttpRawHeaderTest21(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
+                               "(msg:\"http client body test\"; flow:to_server; "
                                "pcre:/body1/D; "
                                "content:!\"dummy\"; within:7; http_raw_header; "
                                "sid:1;)");
@@ -2377,7 +2377,7 @@ static int DetectEngineHttpRawHeaderTest22(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
+                               "(msg:\"http client body test\"; flow:to_server; "
                                "pcre:/body1/D; "
                                "content:!\"dummy\"; distance:3; http_raw_header; "
                                "sid:1;)");
@@ -2491,7 +2491,7 @@ static int DetectEngineHttpRawHeaderTest23(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
+                               "(msg:\"http client body test\"; flow:to_server; "
                                "pcre:/body1/D; "
                                "content:!\"dummy\"; distance:13; http_raw_header; "
                                "sid:1;)");
@@ -2605,7 +2605,7 @@ static int DetectEngineHttpRawHeaderTest24(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
+                               "(msg:\"http client body test\"; flow:to_server; "
                                "pcre:/body1/D; "
                                "content:\"dummy\"; within:15; http_raw_header; "
                                "sid:1;)");
@@ -2719,7 +2719,7 @@ static int DetectEngineHttpRawHeaderTest25(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
+                               "(msg:\"http client body test\"; flow:to_server; "
                                "pcre:/body1/D; "
                                "content:\"dummy\"; within:10; http_raw_header; "
                                "sid:1;)");
@@ -2833,7 +2833,7 @@ static int DetectEngineHttpRawHeaderTest26(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
+                               "(msg:\"http client body test\"; flow:to_server; "
                                "pcre:/body1/D; "
                                "content:\"dummy\"; distance:8; http_raw_header; "
                                "sid:1;)");
@@ -2947,7 +2947,7 @@ static int DetectEngineHttpRawHeaderTest27(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http client body test\"; "
+                               "(msg:\"http client body test\"; flow:to_server; "
                                "pcre:/body1/D; "
                                "content:\"dummy\"; distance:14; http_raw_header; "
                                "sid:1;)");
@@ -3067,7 +3067,7 @@ static int DetectEngineHttpRawHeaderTest28(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
+                               "(msg:\"http header test\"; flow:to_client; "
                                "content:\"Content-Length: 6\"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -3189,7 +3189,7 @@ static int DetectEngineHttpRawHeaderTest29(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
-                               "(msg:\"http header test\"; "
+                               "(msg:\"http header test\"; flow:to_client; "
                                "content:\"Content-Length: 7\"; http_raw_header; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
