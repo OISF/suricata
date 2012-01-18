@@ -1036,7 +1036,7 @@ int SCACGfbsPreparePatterns(MpmCtx *mpm_ctx)
     SCACGfbsCtx *ctx = (SCACGfbsCtx *)mpm_ctx->ctx;
 
     if (mpm_ctx->pattern_cnt == 0) {
-        SCLogInfo("No patterns supplied to this mpm_ctx");
+        SCLogDebug("No patterns supplied to this mpm_ctx");
         return 0;
     }
 
