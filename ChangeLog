@@ -1,3 +1,9 @@
+1.2 -- 2012-01-19
+
+- improved Windows/CYGWIN path handling (#387)
+- fixed some issues with passing an interface or ip address with -i
+- make live worker runmode threads adhere to the 'detect' cpu affinity settings
+
 1.2rc1 -- 2012-01-11
 
 - app-layer-events keyword: similar to the decoder-events and stream-events, this will allow matching on HTTP and SMTP events
