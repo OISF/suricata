@@ -417,7 +417,7 @@ static int Unified2StreamTypeAlertIPv4 (Unified2AlertThread *aun,
     phdr.event_id = event_id;
     phdr.event_second = phdr.packet_second = htonl(p->ts.tv_sec);
     phdr.packet_microsecond = htonl(p->ts.tv_usec);
-    phdr.packet_length = htonl(pkt_len);
+    phdr.packet_length = htonl(pkt_len + eth_offset);
 
     memcpy(aun->data + aun->offset, &hdr, sizeof(Unified2AlertFileHeader));
 
