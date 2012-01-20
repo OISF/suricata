@@ -282,7 +282,7 @@ int FlowForceReassemblyForFlowV2(Flow *f)
 
     /* if state is not fully closed we assume that we haven't fully
      * inspected the app layer state yet */
-    if (ssn->state != TCP_CLOSED) {
+    if (ssn->state >= TCP_ESTABLISHED && ssn->state != TCP_CLOSED) {
         if (client_ok != 1)
             client_ok = 2;
         if (server_ok != 1)
@@ -470,7 +470,9 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
         }
 
         /* insert a pseudo packet in the toserver direction */
-        if (client_ok || ssn->state != TCP_CLOSED) {
+        if (client_ok ||
+                (ssn->state >= TCP_ESTABLISHED && ssn->state != TCP_CLOSED))
+        {
             Packet *p = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
             if (p == NULL) {
                 TmqhOutputPacketpool(NULL, reassemble_p);
@@ -494,7 +496,9 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
                 }
             }
         } /* if (ssn->client.seg_list != NULL) */
-        if (server_ok  || ssn->state != TCP_CLOSED) {
+        if (server_ok ||
+                (ssn->state >= TCP_ESTABLISHED && ssn->state != TCP_CLOSED))
+        {
             Packet *p = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p == NULL) {
                 TmqhOutputPacketpool(NULL, reassemble_p);
