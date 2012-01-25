@@ -148,7 +148,7 @@ static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     if (cd->flags & DETECT_CONTENT_WITHIN || cd->flags & DETECT_CONTENT_DISTANCE) {
         SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
                                                    DETECT_CONTENT, sm->prev,
-                                                   DETECT_PCRE, sm->prev);
+                                                   DETECT_PCRE_HTTPCOOKIE, sm->prev);
         if (pm != NULL) {
             /* pm is never NULL.  So no NULL check */
             if (pm->type == DETECT_CONTENT) {
@@ -164,7 +164,7 @@ static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
         pm = SigMatchGetLastSMFromLists(s, 4,
                                         DETECT_AL_HTTP_COOKIE,
                                         s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-                                        DETECT_PCRE,
+                                        DETECT_PCRE_HTTPCOOKIE,
                                         s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]);
         if (pm == NULL) {
             SCLogError(SC_ERR_HTTP_COOKIE_RELATIVE_MISSING, "http_cookie with "

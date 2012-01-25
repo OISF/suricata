@@ -235,7 +235,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                                             DETECT_PCRE, pm->prev,
                                             DETECT_BYTEJUMP, pm->prev);
             if (pm == NULL) {
-                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "within needs two "
+                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance needs two "
                            "preceeding content or uricontent options");
                 goto error;
             }
@@ -717,7 +717,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
             /* reassigning pm */
             pm = SigMatchGetLastSMFromLists(s, 4,
                                             DETECT_AL_HTTP_METHOD, pm->prev,
-                                            DETECT_PCRE, pm->prev);
+                                            DETECT_PCRE_HTTPMETHOD, pm->prev);
             if (pm == NULL) {
                 SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance for "
                            "http_method needs preceeding http_method "
@@ -725,7 +725,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 goto error;
             }
 
-            if (pm->type == DETECT_PCRE) {
+            if (pm->type == DETECT_PCRE_HTTPMETHOD) {
                 DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
                 tmp_pd->flags |=  DETECT_PCRE_RELATIVE_NEXT;
             } else {
@@ -784,7 +784,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
             /* reassigning pm */
             pm = SigMatchGetLastSMFromLists(s, 4,
                                             DETECT_AL_HTTP_COOKIE, pm->prev,
-                                            DETECT_PCRE, pm->prev);
+                                            DETECT_PCRE_HTTPCOOKIE, pm->prev);
             if (pm == NULL) {
                 SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance for "
                            "http_cookie needs preceeding http_cookie "
@@ -792,7 +792,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 goto error;
             }
 
-            if (pm->type == DETECT_PCRE) {
+            if (pm->type == DETECT_PCRE_HTTPCOOKIE) {
                 DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
                 tmp_pd->flags |=  DETECT_PCRE_RELATIVE_NEXT;
             } else {

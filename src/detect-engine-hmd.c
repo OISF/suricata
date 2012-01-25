@@ -246,7 +246,7 @@ static int DoInspectHttpMethod(DetectEngineCtx *de_ctx,
 
         } while(1);
 
-    } else if (sm->type == DETECT_PCRE) {
+    } else if (sm->type == DETECT_PCRE_HTTPMETHOD) {
         SCLogDebug("inspecting pcre");
         DetectPcreData *pe = (DetectPcreData *)sm->ctx;
         uint32_t prev_payload_offset = det_ctx->payload_offset;
