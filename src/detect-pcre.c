@@ -902,6 +902,10 @@ DetectPcreData *DetectPcreParse (char *regexstr)
                     /* suricata extension (http response body inspection) */
                     pd->flags |= DETECT_PCRE_HTTP_SERVER_BODY;
                     break;
+                case 'Y':
+                    /* snort's option */
+                    pd->flags |= DETECT_PCRE_HTTP_STAT_MSG;
+                    break;
                 default:
                     SCLogError(SC_ERR_UNKNOWN_REGEX_MOD, "unknown regex modifier '%c'", *op);
                     goto error;
@@ -1070,6 +1074,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
                  (pd->flags & DETECT_PCRE_HEADER) ||
                  (pd->flags & DETECT_PCRE_RAW_HEADER) ||
                  (pd->flags & DETECT_PCRE_COOKIE) ||
+                 (pd->flags & DETECT_PCRE_HTTP_STAT_MSG) ||
                  (pd->flags & DETECT_PCRE_HTTP_CLIENT_BODY) ||
                  (pd->flags & DETECT_PCRE_HTTP_SERVER_BODY) ||
                  (pd->flags & DETECT_PCRE_HTTP_RAW_URI) ) {
@@ -1152,6 +1157,16 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         s->alproto = ALPROTO_HTTP;
 
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRUDMATCH);
+    } else if (pd->flags & DETECT_PCRE_HTTP_STAT_MSG) {
+        s->flags |= SIG_FLAG_APPLAYER;
+        if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
+            SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting"
+                       " keywords.");
+            goto error;
+        }
+        s->alproto = ALPROTO_HTTP;
+
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSMDMATCH);
     } else {
         if (s->alproto == ALPROTO_DCERPC && pd->flags & DETECT_PCRE_RELATIVE) {
             SigMatch *pm = NULL;
@@ -1192,7 +1207,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         SCReturnInt(0);
     }
 
-    prev_sm = SigMatchGetLastSMFromLists(s, 24,
+    prev_sm = SigMatchGetLastSMFromLists(s, 26,
             DETECT_CONTENT, sm->prev,
             DETECT_URICONTENT, sm->prev,
             DETECT_AL_HTTP_CLIENT_BODY, sm->prev,
@@ -1204,7 +1219,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
             DETECT_AL_HTTP_METHOD, sm->prev,
             DETECT_PCRE, sm->prev,
             DETECT_PCRE_HTTPCOOKIE, sm->prev,
-            DETECT_PCRE_HTTPMETHOD, sm->prev);
+            DETECT_PCRE_HTTPMETHOD, sm->prev,
+            DETECT_AL_HTTP_STAT_MSG, sm->prev);
     if (prev_sm == NULL) {
         if (s->alproto == ALPROTO_DCERPC) {
             SCLogDebug("No preceding content or pcre keyword.  Possible "
@@ -1233,6 +1249,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         case DETECT_AL_HTTP_SERVER_BODY:
         case DETECT_AL_HTTP_HEADER:
         case DETECT_AL_HTTP_RAW_HEADER:
+        case DETECT_AL_HTTP_STAT_MSG:
         case DETECT_AL_HTTP_RAW_URI:
         case DETECT_AL_HTTP_COOKIE:
         case DETECT_AL_HTTP_METHOD:

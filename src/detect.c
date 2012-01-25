@@ -128,6 +128,7 @@
 #include "detect-engine-hmd.h"
 #include "detect-engine-hcd.h"
 #include "detect-engine-hrud.h"
+#include "detect-engine-hsmd.h"
 #include "detect-byte-extract.h"
 #include "detect-file-data.h"
 #include "detect-replace.h"
@@ -1208,6 +1209,11 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
                 DetectEngineRunHttpRawUriMpm(det_ctx, p->flow, alstate, flags);
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HRUD);
             }
+            if (det_ctx->sgh->flags & SIG_GROUP_HEAD_MPM_HSMD) {
+                PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM_HSMD);
+                DetectEngineRunHttpStatMsgMpm(det_ctx, p->flow, alstate);
+                PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM_HSMD);
+            }
         }
     } else {
         SCLogDebug("NOT p->flowflags & FLOW_PKT_ESTABLISHED");
@@ -1944,6 +1950,9 @@ int SignatureIsIPOnly(DetectEngineCtx *de_ctx, Signature *s) {
     if (s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL)
         return 0;
 
+    if (s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL)
+        return 0;
+
     if (s->sm_lists[DETECT_SM_LIST_AMATCH] != NULL)
         return 0;
 
@@ -2022,6 +2031,7 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, Signature *s) {
         s->sm_lists[DETECT_SM_LIST_HRHDMATCH] != NULL ||
         s->sm_lists[DETECT_SM_LIST_HMDMATCH]  != NULL ||
         s->sm_lists[DETECT_SM_LIST_HCDMATCH]  != NULL ||
+        s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL ||
         s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL)
     {
         SCReturnInt(0);
@@ -2159,6 +2169,11 @@ static int SignatureCreateMask(Signature *s) {
     }
 
     if (s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL) {
+        s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
+        SCLogDebug("sig requires http app state");
+    }
+
+    if (s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL) {
         s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
         SCLogDebug("sig requires http app state");
     }
@@ -2323,6 +2338,9 @@ static void SigInitStandardMpmFactoryContexts(DetectEngineCtx *de_ctx)
                                         MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
     de_ctx->sgh_mpm_context_hrud =
         MpmFactoryRegisterMpmCtxProfile("hrud",
+                                        MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
+    de_ctx->sgh_mpm_context_hsmd =
+        MpmFactoryRegisterMpmCtxProfile("hsmd",
                                         MPM_CTX_FACTORY_FLAGS_PREPARE_WITH_SIG_GROUP_BUILD);
     de_ctx->sgh_mpm_context_app_proto_detect =
         MpmFactoryRegisterMpmCtxProfile("app_proto_detect", 0);
@@ -4359,6 +4377,18 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
             mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
         }
         //printf("stream- %d\n", mpm_ctx->pattern_cnt);
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_hsmd, 0);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+        //printf("hsmd- %d\n", mpm_ctx->pattern_cnt);
+
+        mpm_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_hsmd, 1);
+        if (mpm_table[de_ctx->mpm_matcher].Prepare != NULL) {
+            mpm_table[de_ctx->mpm_matcher].Prepare(mpm_ctx);
+        }
+        //printf("hsmd- %d\n", mpm_ctx->pattern_cnt);
     }
 
 //    SigAddressPrepareStage5(de_ctx);

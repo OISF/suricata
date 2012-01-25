@@ -65,6 +65,7 @@
 #define DE_STATE_FLAG_FILE_TS_MATCH     0x0800
 #define DE_STATE_FLAG_FULL_MATCH        0x1000 /**< sig already fully matched */
 #define DE_STATE_FLAG_SIG_CANT_MATCH    0x2000 /**< signature has no chance of matching */
+#define DE_STATE_FLAG_HSMD_MATCH        0x4000 /**< hsmd payload inspection part matched */
 
 #define DE_STATE_FLAG_URI_INSPECT       DE_STATE_FLAG_URI_MATCH     /**< uri part of the sig inspected */
 #define DE_STATE_FLAG_DCE_INSPECT       DE_STATE_FLAG_DCE_MATCH     /**< dce payload inspection part inspected */
@@ -77,6 +78,7 @@
 #define DE_STATE_FLAG_HRUD_INSPECT      DE_STATE_FLAG_HRUD_MATCH    /**< hrud payload inspection part inspected */
 #define DE_STATE_FLAG_FILE_TC_INSPECT   DE_STATE_FLAG_FILE_TC_MATCH
 #define DE_STATE_FLAG_FILE_TS_INSPECT   DE_STATE_FLAG_FILE_TS_MATCH
+#define DE_STATE_FLAG_HSMD_INSPECT      DE_STATE_FLAG_HSMD_MATCH    /**< hsmd payload inspection part inspected */
 
 /* state flags */
 #define DE_STATE_FILE_STORE_DISABLED    0x0001

@@ -43,8 +43,9 @@
 #define DETECT_PCRE_COOKIE              0x0800
 #define DETECT_PCRE_METHOD              0x1000
 #define DETECT_PCRE_HTTP_RAW_URI        0x2000
+#define DETECT_PCRE_HTTP_STAT_MSG       0x4000
 
-#define DETECT_PCRE_NEGATE              0x4000
+#define DETECT_PCRE_NEGATE              0x8000
 
 typedef struct DetectPcreData_ {
     /* pcre options */

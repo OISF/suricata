@@ -26,6 +26,7 @@
  * \file
  *
  * \author Gurvinder Singh <gurvindersinghdahiya@gmail.com>
+ * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  *
  * Implements the http_stat_msg keyword
  */
@@ -39,6 +40,8 @@
 #include "detect-parse.h"
 #include "detect-engine.h"
 #include "detect-content.h"
+#include "detect-pcre.h"
+#include "detect-engine-mpm.h"
 
 #include "flow.h"
 #include "flow-var.h"
@@ -72,7 +75,7 @@ void DetectHttpStatMsgFree(void *);
 void DetectHttpStatMsgRegister (void) {
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].name = "http_stat_msg";
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].Match = NULL;
-    sigmatch_table[DETECT_AL_HTTP_STAT_MSG].AppLayerMatch = DetectHttpStatMsgMatch;
+    sigmatch_table[DETECT_AL_HTTP_STAT_MSG].AppLayerMatch = NULL;
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].Setup = DetectHttpStatMsgSetup;
     sigmatch_table[DETECT_AL_HTTP_STAT_MSG].Free  = DetectHttpStatMsgFree;
@@ -96,7 +99,7 @@ void DetectHttpStatMsgRegister (void) {
  * \retval 0 no match
  * \retval 1 match
  */
-int DetectHttpStatMsgMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
+int DetectHttpStatMsgMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                            Flow *f, uint8_t flags, void *state, Signature *s,
                            SigMatch *sm)
 {
@@ -204,92 +207,95 @@ void DetectHttpStatMsgFree(void *ptr)
  * \retval -1 On failure
  */
 
-static int DetectHttpStatMsgSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
+static int DetectHttpStatMsgSetup (DetectEngineCtx *de_ctx, Signature *s, char *arg)
 {
-    DetectContentData *hd = NULL;
+    DetectContentData *cd = NULL;
     SigMatch *sm = NULL;
 
-    /** new sig match to replace previous content */
-    SigMatch *nm = NULL;
-
-    if (str != NULL && strcmp(str, "") != 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "http_stat_msg shouldn't be supplied"
-                " with an argument");
+    if (arg != NULL && strcmp(arg, "") != 0) {
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "http_client_body supplied with args");
         return -1;
     }
 
-    SigMatch *pm = DetectContentGetLastPattern(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
-    if (pm == NULL) {
-        SCLogWarning(SC_ERR_INVALID_SIGNATURE, "http_stat_msg found inside "
-                "the rule, without a content context.  Please use a "
-                "content keyword before using http_stat_msg");
+    sm = DetectContentGetLastPattern(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+    /* if still we are unable to find any content previous keywords, it is an
+     * invalid rule */
+    if (sm == NULL) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "\"http_stat_msg\" keyword "
+                   "found inside the rule without a content context.  "
+                   "Please use a \"content\" keyword before using the "
+                   "\"http_stat_msg\" keyword");
         return -1;
     }
 
-    /* http_stat_msg should not be used with the fast_pattern rule */
-    if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_FAST_PATTERN) {
-        SCLogWarning(SC_WARN_COMPATIBILITY, "http_stat_msg rule can not "
-                "be used with the fast_pattern rule keyword. "
-                "Unsetting fast_pattern on this modifier. Signature ==> %s",
-                s->sig_str);
-        ((DetectContentData *)pm->ctx)->flags &= ~DETECT_CONTENT_FAST_PATTERN;
+    cd = (DetectContentData *)sm->ctx;
 
-        /* http_stat_msg should not be used with the rawbytes rule */
-    } else if (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_RAWBYTES) {
+    /* http_stat_msg should not be used with the rawbytes rule */
+    if (cd->flags & DETECT_CONTENT_RAWBYTES) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "http_stat_msg rule can not "
-                "be used with the rawbytes rule keyword");
+                   "be used with the rawbytes rule keyword");
         return -1;
     }
-
-    nm = SigMatchAlloc();
-    if (nm == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "SigMatchAlloc failed");
-        goto error;
-    }
-
-    /* Setup the HttpStatMsg data from Content data structure */
-    hd = SCMalloc(sizeof(DetectContentData));
-    if (hd == NULL)
-        goto error;
-
-    memset(hd, 0, sizeof(DetectContentData));
-
-    /* Setup the http_stat_msg keyword data */
-    hd->content_len = ((DetectContentData *)pm->ctx)->content_len;
-    hd->content = ((DetectContentData *)pm->ctx)->content;
-    hd->flags |= (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_NOCASE) ?
-        DETECT_CONTENT_NOCASE : 0x00;
-    hd->flags |= (((DetectContentData *)pm->ctx)->flags & DETECT_CONTENT_NEGATED) ?
-        DETECT_CONTENT_NEGATED : 0x00;
-    nm->type = DETECT_AL_HTTP_STAT_MSG;
-    nm->ctx = (void *)hd;
-
-    /* pull the previous content from the pmatch list, append
-     * the new match to the match list */
-    SigMatchReplaceContent(s, pm, nm);
-
-    /* free the old content sigmatch, the content pattern memory
-     * is taken over by the new sigmatch */
-    BoyerMooreCtxDeInit(((DetectContentData *)pm->ctx)->bm_ctx);
-    SCFree(pm->ctx);
-    SCFree(pm);
-
-    /* Flagged the signature as to inspect the app layer data */
-    s->flags |= SIG_FLAG_APPLAYER;
 
     if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting"
-                " keywords.");
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains a non http "
+                   "alproto set");
         goto error;
     }
 
+    if (cd->flags & DETECT_CONTENT_WITHIN || cd->flags & DETECT_CONTENT_DISTANCE) {
+        SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
+                                                   DETECT_CONTENT, sm->prev,
+                                                   DETECT_PCRE, sm->prev);
+        /* pm can be NULL now.  To accomodate parsing sigs like -
+         * content:one; http_modifier; content:two; distance:0; http_modifier */
+        if (pm != NULL) {
+            if (pm->type == DETECT_CONTENT) {
+                DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+                tmp_cd->flags &= ~DETECT_CONTENT_RELATIVE_NEXT;
+            } else {
+                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                tmp_pd->flags &= ~ DETECT_PCRE_RELATIVE_NEXT;
+            }
+
+        } /* if (pm != NULL) */
+
+        /* reassigning pm */
+        pm = SigMatchGetLastSMFromLists(s, 4,
+                                        DETECT_AL_HTTP_STAT_MSG, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
+                                        DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH]);
+        if (pm == NULL) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "http_stat_msg seen with a "
+                       "distance or within without a previous http_stat_msg "
+                       "content.  Invalidating signature.");
+            goto error;
+        }
+        if (pm->type == DETECT_PCRE) {
+            DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+            tmp_pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
+        } else {
+            DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
+            tmp_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+        }
+    }
+    cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_AL_HTTP_STAT_MSG);
+    sm->type = DETECT_AL_HTTP_STAT_MSG;
+
+    /* transfer the sm from the pmatch list to hcbdmatch list */
+    SigMatchTransferSigMatchAcrossLists(sm,
+                                        &s->sm_lists[DETECT_SM_LIST_PMATCH],
+                                        &s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
+                                        &s->sm_lists[DETECT_SM_LIST_HSMDMATCH],
+                                        &s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH]);
+
+    /* flag the signature to indicate that we scan the app layer data */
+    s->flags |= SIG_FLAG_APPLAYER;
     s->alproto = ALPROTO_HTTP;
+
     return 0;
+
 error:
-    if (hd != NULL)
-        DetectHttpStatMsgFree(hd);
-    if (sm != NULL)
-        SCFree(sm);
+
     return -1;
 }
 
@@ -322,10 +328,11 @@ int DetectHttpStatMsgTest01(void)
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"Testing http_stat_msg\"; content:\"one\";"
-            "fast_pattern; http_stat_msg;sid:1;)");
-    if (de_ctx->sig_list == NULL ||
-            ((DetectContentData *)de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH]->ctx)->flags &
-            DETECT_CONTENT_FAST_PATTERN)
+            "fast_pattern; http_stat_msg; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+    if (!(((DetectContentData *)de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSMDMATCH]->ctx)->flags &
+        DETECT_CONTENT_FAST_PATTERN))
     {
         goto end;
     }
@@ -362,7 +369,7 @@ int DetectHttpStatMsgTest02(void)
     }
 
     result = 0;
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_AMATCH];
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSMDMATCH];
     if (sm == NULL) {
         printf("no sigmatch(es): ");
         goto end;
@@ -417,7 +424,7 @@ static int DetectHttpStatMsgSigTest01(void) {
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP;
@@ -440,7 +447,7 @@ static int DetectHttpStatMsgSigTest01(void) {
 
     s->next = SigInit(de_ctx,"alert http any any -> any any (msg:\"HTTP "
                       "Status message nocase\"; content:\"ok\"; nocase; "
-            "http_stat_msg; sid:2;)");
+                      "http_stat_msg; sid:2;)");
     if (s->next == NULL) {
         goto end;
     }
@@ -523,7 +530,7 @@ static int DetectHttpStatMsgSigTest02(void) {
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP;
@@ -619,7 +626,7 @@ static int DetectHttpStatMsgSigTest03(void) {
     f.flags |= FLOW_IPV4;
 
     p->flow = &f;
-    p->flowflags |= FLOW_PKT_TOSERVER;
+    p->flowflags |= FLOW_PKT_TOCLIENT;
     p->flowflags |= FLOW_PKT_ESTABLISHED;
     p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
     f.alproto = ALPROTO_HTTP;

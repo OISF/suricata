@@ -83,7 +83,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
             break;
 
         default:
-            pm = SigMatchGetLastSMFromLists(s, 18,
+            pm = SigMatchGetLastSMFromLists(s, 20,
                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                     DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                     DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
@@ -92,12 +92,13 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                     DETECT_AL_HTTP_RAW_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                     DETECT_AL_HTTP_METHOD, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
                     DETECT_AL_HTTP_COOKIE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
+                    DETECT_AL_HTTP_STAT_MSG, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
                     DETECT_AL_HTTP_RAW_URI, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]);
             if (pm == NULL) {
                 SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs "
                            "preceeding content or uricontent option, http_client_body, "
                            "http_header, http_raw_header, http_method, "
-                           "http_cookie or http_raw_uri option");
+                           "http_cookie, http_raw_uri or http_stat_msg option");
                 if (dubbed)
                     SCFree(str);
                 return -1;
@@ -477,6 +478,50 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
             break;
 
         case DETECT_AL_HTTP_RAW_URI:
+            cd = (DetectContentData *)pm->ctx;
+            if (cd->flags & DETECT_CONTENT_NEGATED) {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "negated keyword set along with a fast_pattern");
+                    goto error;
+                }
+            } else {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "keyword set along with a fast_pattern:only;");
+                    goto error;
+                }
+            }
+
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in offset - %s\n", str);
+                    goto error;
+                }
+                cd->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_OFFSET_BE;
+            } else {
+                cd->offset = (uint32_t)atoi(str);
+                if (cd->depth != 0) {
+                    if (cd->depth < cd->content_len) {
+                        SCLogDebug("depth increased to %"PRIu32" to match pattern len",
+                                   cd->content_len);
+                        cd->depth = cd->content_len;
+                    }
+                    /* Updating the depth as is relative to the offset */
+                    cd->depth += cd->offset;
+                }
+            }
+
+            cd->flags |= DETECT_CONTENT_OFFSET;
+
+            break;
+
+        case DETECT_AL_HTTP_STAT_MSG:
             cd = (DetectContentData *)pm->ctx;
             if (cd->flags & DETECT_CONTENT_NEGATED) {
                 if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
