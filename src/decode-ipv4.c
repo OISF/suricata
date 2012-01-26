@@ -551,7 +551,7 @@ void DecodeIPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
 #endif /* DEBUG */
 
     /* check what next decoder to invoke */
-    switch (IPV4_GET_IPPROTO(p)) {
+    switch (p->proto = IPV4_GET_IPPROTO(p)) {
         case IPPROTO_TCP:
             DecodeTCP(tv, dtv, p, pkt + IPV4_GET_HLEN(p),
                       IPV4_GET_IPLEN(p) - IPV4_GET_HLEN(p), pq);
