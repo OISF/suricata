@@ -136,6 +136,12 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                 }
             }
 
+            if (cd->flags & DETECT_CONTENT_WITHIN || cd->flags & DETECT_CONTENT_DISTANCE) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't use a relative keyword "
+                               "with a non-relative keyword for the same content." );
+                goto error;
+            }
+
             if (str[0] != '-' && isalpha(str[0])) {
                 SigMatch *bed_sm =
                     DetectByteExtractRetrieveSMVar(str, s,

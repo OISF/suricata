@@ -212,6 +212,12 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 }
             }
 
+            if (cd->flags & DETECT_CONTENT_DEPTH || cd->flags & DETECT_CONTENT_OFFSET) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't use a relative keyword "
+                               "with a non-relative keyword for the same content." );
+                goto error;
+            }
+
             if (str[0] != '-' && isalpha(str[0])) {
                 SigMatch *bed_sm =
                     DetectByteExtractRetrieveSMVar(str, s,
