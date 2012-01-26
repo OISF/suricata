@@ -1763,6 +1763,8 @@ Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_HCDMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
+    if (sig->sm_lists[DETECT_SM_LIST_HRUDMATCH])
+        sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_FILEMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
 
