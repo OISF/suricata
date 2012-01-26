@@ -85,6 +85,7 @@ detect-engine-hmd.c detect-engine-hmd.h \
 detect-engine-hcd.c detect-engine-hcd.h \
 detect-engine-hrud.c detect-engine-hrud.h \
 detect-engine-hsmd.c detect-engine-hsmd.h \
+detect-engine-hscd.c detect-engine-hscd.h \
 detect-engine-state.c detect-engine-state.h \
 detect-engine-file.c detect-engine-file.h \
 detect-parse.c detect-parse.h \

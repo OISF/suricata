@@ -2460,7 +2460,7 @@ int DetectHttpServerBodyTest34(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(pcre:/one/S; "
+                               "(pcre:/one/Q; "
                                "content:\"two\"; within:5; http_server_body; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
@@ -2512,7 +2512,7 @@ int DetectHttpServerBodyTest35(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
                                "(content:\"two\"; http_server_body; "
-                               "pcre:/one/SR; sid:1;)");
+                               "pcre:/one/QR; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
         goto end;
@@ -2562,7 +2562,7 @@ int DetectHttpServerBodyTest36(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(pcre:/one/S; "
+                               "(pcre:/one/Q; "
                                "content:\"two\"; distance:5; http_server_body; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");

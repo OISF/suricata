@@ -213,7 +213,7 @@ static int DetectHttpStatMsgSetup (DetectEngineCtx *de_ctx, Signature *s, char *
     SigMatch *sm = NULL;
 
     if (arg != NULL && strcmp(arg, "") != 0) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT, "http_client_body supplied with args");
+        SCLogError(SC_ERR_INVALID_ARGUMENT, "http_stat_msg supplied with args");
         return -1;
     }
 

@@ -2212,7 +2212,7 @@ static int DetectEngineHttpServerBodyTest14(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http server body test\"; "
-                               "pcre:/ab/S; "
+                               "pcre:/ab/Q; "
                                "content:\"ef\"; http_server_body; distance:2; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)
@@ -2331,7 +2331,7 @@ static int DetectEngineHttpServerBodyTest15(void)
 
     de_ctx->sig_list = SigInit(de_ctx,"alert http any any -> any any "
                                "(msg:\"http server body test\"; "
-                               "pcre:/abc/S; "
+                               "pcre:/abc/Q; "
                                "content:!\"xyz\"; http_server_body; distance:0; within:3; "
                                "sid:1;)");
     if (de_ctx->sig_list == NULL)

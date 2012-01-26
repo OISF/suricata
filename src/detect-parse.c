@@ -1426,6 +1426,7 @@ static int SigValidate(Signature *s) {
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
+                DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
                 DETECT_REPLACE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]);
         if (pm != NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature has"
@@ -1443,6 +1444,7 @@ static int SigValidate(Signature *s) {
                 s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH] ||
                 s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]  ||
                 s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH] ||
+                s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH] ||
                 s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH])
         {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature combines packet "
@@ -1570,6 +1572,8 @@ static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
     if (sig->sm_lists[DETECT_SM_LIST_FILEMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
     if (sig->sm_lists[DETECT_SM_LIST_HSMDMATCH])
+        sig->flags |= SIG_FLAG_STATE_MATCH;
+    if (sig->sm_lists[DETECT_SM_LIST_HSCDMATCH])
         sig->flags |= SIG_FLAG_STATE_MATCH;
 
     if (!(sig->init_flags & SIG_FLAG_INIT_FLOW)) {

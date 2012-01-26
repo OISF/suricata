@@ -351,7 +351,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
             }
             return 0;
         }
-        pm = SigMatchGetLastSMFromLists(s, 52,
+        pm = SigMatchGetLastSMFromLists(s, 54,
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH], /* 1 */
                 DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                 DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
@@ -362,6 +362,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                 DETECT_AL_HTTP_COOKIE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
                 DETECT_AL_HTTP_RAW_URI, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
                 DETECT_AL_HTTP_STAT_MSG, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
+                DETECT_AL_HTTP_STAT_CODE, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
                 DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH], /* 10 */
                 DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                 DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
@@ -383,8 +384,8 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                        "without a previous content uricontent, "
                        "http_client_body, http_header, http_raw_header, "
                        "http_method, http_cookie, http_raw_uri, "
-                       "http_stat_msg, byte_test, byte_extract, byte_jump "
-                       "keyword");
+                       "http_stat_msg, http_stat_code, byte_test, "
+                       "byte_extract, byte_jump keyword");
             goto error;
         } else {
             int list_type = -1;
@@ -422,6 +423,9 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                     break;
                 case DETECT_AL_HTTP_STAT_MSG:
                     list_type = DETECT_SM_LIST_HSMDMATCH;
+                    break;
+                case DETECT_AL_HTTP_STAT_CODE:
+                    list_type = DETECT_SM_LIST_HSCDMATCH;
                     break;
                 default:
                     /* would never happen */
@@ -467,6 +471,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
         case DETECT_AL_HTTP_COOKIE:
         case DETECT_AL_HTTP_RAW_URI:
         case DETECT_AL_HTTP_STAT_MSG:
+        case DETECT_AL_HTTP_STAT_CODE:
             /* Set the relative next flag on the prev sigmatch */
             cd = (DetectContentData *)prev_pm->ctx;
             if (cd == NULL) {

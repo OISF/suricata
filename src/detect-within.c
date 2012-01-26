@@ -163,7 +163,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
             }
         }
     } else {
-        pm = SigMatchGetLastSMFromLists(s, 20,
+        pm = SigMatchGetLastSMFromLists(s, 22,
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                 DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                 DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
@@ -173,13 +173,14 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 DETECT_AL_HTTP_METHOD, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
                 DETECT_AL_HTTP_COOKIE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
                 DETECT_AL_HTTP_STAT_MSG, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
+                DETECT_AL_HTTP_STAT_CODE, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
                 DETECT_AL_HTTP_RAW_URI, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]);
         if (pm == NULL) {
             SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs"
                        "preceeding content, uricontent, http_client_body, "
                        "http_server_body, http_header, http_raw_header, "
-                       "http_method, http_cookie, http_raw_uri or "
-                       "http_stat_msg option");
+                       "http_method, http_cookie, http_raw_uri, "
+                       "http_stat_msg or http_stat_code option");
             if (dubbed)
                 SCFree(str);
             return -1;
@@ -937,6 +938,74 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
             if (pm == NULL) {
                 SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance for http_stat_msg "
                            "needs preceeding http_stat_msg content");
+                goto error;
+            }
+
+            if (pm->type == DETECT_PCRE) {
+                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
+                tmp_pd->flags |=  DETECT_PCRE_RELATIVE_NEXT;
+            } else {
+                /* reassigning cd */
+                cd = (DetectContentData *)pm->ctx;
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Previous keyword "
+                               "has a fast_pattern:only; set.  You can't "
+                               "have relative keywords around a fast_pattern "
+                               "only content");
+                    goto error;
+                }
+                cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
+            }
+
+            break;
+
+        case DETECT_AL_HTTP_STAT_CODE:
+            cd = (DetectContentData *)pm->ctx;
+            if (cd->flags & DETECT_CONTENT_NEGATED) {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "negated keyword set along with a fast_pattern");
+                    goto error;
+                }
+            } else {
+                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                               "keyword set along with a fast_pattern:only;");
+                    goto error;
+                }
+            }
+
+            if (str[0] != '-' && isalpha(str[0])) {
+                SigMatch *bed_sm =
+                    DetectByteExtractRetrieveSMVar(str, s,
+                                                   SigMatchListSMBelongsTo(s, pm));
+                if (bed_sm == NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                               "seen in within - %s\n", str);
+                    goto error;
+                }
+                cd->within = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
+                cd->flags |= DETECT_CONTENT_WITHIN_BE;
+            } else {
+                cd->within = strtol(str, NULL, 10);
+                if (cd->within < (int32_t)cd->content_len) {
+                    SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
+                               "less than the content length \"%"PRIu32"\" which is invalid, since "
+                               "this will never match.  Invalidating signature", cd->within,
+                               cd->content_len);
+                    goto error;
+                }
+            }
+
+            cd->flags |= DETECT_CONTENT_WITHIN;
+
+            /* reassigning pm */
+            pm = SigMatchGetLastSMFromLists(s, 4,
+                                            DETECT_AL_HTTP_STAT_CODE, pm->prev,
+                                            DETECT_PCRE, pm->prev);
+            if (pm == NULL) {
+                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance for http_stat_code "
+                           "needs preceeding http_stat_code content");
                 goto error;
             }
 

@@ -65,6 +65,7 @@
 #include "detect-engine-hcd.h"
 #include "detect-engine-hrud.h"
 #include "detect-engine-hsmd.h"
+#include "detect-engine-hscd.h"
 #include "detect-engine-dcepayload.h"
 #include "detect-engine-file.h"
 
@@ -498,6 +499,10 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             if (s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL) {
                 inspect_flags |= DE_STATE_FLAG_HSMD_INSPECT;
             }
+            /* not inspecting in toserver direction */
+            if (s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
+                inspect_flags |= DE_STATE_FLAG_HSCD_INSPECT;
+            }
         } else if (flags & STREAM_TOCLIENT) {
             /* For to client set the flags in inspect so it can't match
              * if the sig requires something only the request has. The rest
@@ -574,6 +579,14 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                     match_flags |= DE_STATE_FLAG_HSMD_MATCH;
                 }
                 SCLogDebug("inspecting http stat msg");
+            }
+            if (s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
+                inspect_flags |= DE_STATE_FLAG_HSCD_INSPECT;
+                if (DetectEngineInspectHttpStatCode(de_ctx, det_ctx, s, f,
+                                                    flags, alstate) == 1) {
+                    match_flags |= DE_STATE_FLAG_HSCD_MATCH;
+                }
+                SCLogDebug("inspecting http stat code");
             }
         }
     } else if (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
@@ -904,6 +917,12 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                         inspect_flags |= DE_STATE_FLAG_HSMD_INSPECT;
                     }
                 }
+                /* not inspecting in toserver direction */
+                if (s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
+                    if (!(item->flags & DE_STATE_FLAG_HSCD_MATCH)) {
+                        inspect_flags |= DE_STATE_FLAG_HSCD_INSPECT;
+                    }
+                }
             } else if (alproto == ALPROTO_HTTP && (flags & STREAM_TOCLIENT)) {
                 /* For to client set the flags in inspect so it can't match
                  * if the sig requires something only the request has. The rest
@@ -1001,6 +1020,18 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                                                            flags, alstate) == 1) {
                             SCLogDebug("http stat msg matched");
                             match_flags |= DE_STATE_FLAG_HSMD_MATCH;
+                        }
+                    }
+                }
+                if (s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
+                    if (!(item->flags & DE_STATE_FLAG_HSCD_MATCH)) {
+                        SCLogDebug("inspecting http stat code data");
+                        inspect_flags |= DE_STATE_FLAG_HSCD_INSPECT;
+
+                        if (DetectEngineInspectHttpStatCode(de_ctx, det_ctx, s, f,
+                                                            flags, alstate) == 1) {
+                            SCLogDebug("http stat code matched");
+                            match_flags |= DE_STATE_FLAG_HSCD_MATCH;
                         }
                     }
                 }
