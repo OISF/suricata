@@ -77,6 +77,7 @@ enum {
     MPM_AC,
     /* aho-corasick-goto-failure state based */
     MPM_AC_GFBS,
+    MPM_AC_BS,
     /* table size */
     MPM_TABLE_SIZE,
 };
