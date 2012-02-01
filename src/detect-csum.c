@@ -324,7 +324,7 @@ int DetectTCPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 {
     DetectCsumData *cd = (DetectCsumData *)m->ctx;
 
-    if (p->ip4h == NULL || p->proto != IPPROTO_TCP || PKT_IS_PSEUDOPKT(p))
+    if (p->ip4h == NULL || p->tcph == NULL || p->proto != IPPROTO_TCP || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->flags & PKT_IGNORE_CHECKSUM) {
@@ -419,7 +419,7 @@ int DetectTCPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 {
     DetectCsumData *cd = (DetectCsumData *)m->ctx;
 
-    if (p->ip6h == NULL || p->proto != IPPROTO_TCP || PKT_IS_PSEUDOPKT(p))
+    if (p->ip6h == NULL || p->tcph == NULL || p->proto != IPPROTO_TCP || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->flags & PKT_IGNORE_CHECKSUM) {
@@ -514,7 +514,7 @@ int DetectUDPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 {
     DetectCsumData *cd = (DetectCsumData *)m->ctx;
 
-    if (p->ip4h == NULL || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p))
+    if (p->ip4h == NULL || p->udph == NULL || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->flags & PKT_IGNORE_CHECKSUM) {
@@ -610,7 +610,7 @@ int DetectUDPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 {
     DetectCsumData *cd = (DetectCsumData *)m->ctx;
 
-    if (p->ip6h == NULL || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p))
+    if (p->ip6h == NULL || p->udph == NULL || p->proto != IPPROTO_UDP || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->flags & PKT_IGNORE_CHECKSUM) {
@@ -706,7 +706,7 @@ int DetectICMPV4CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 {
     DetectCsumData *cd = (DetectCsumData *)m->ctx;
 
-    if (p->ip4h == NULL || p->proto != IPPROTO_ICMP || PKT_IS_PSEUDOPKT(p))
+    if (p->ip4h == NULL || p->icmpv4h == NULL || p->proto != IPPROTO_ICMP || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->flags & PKT_IGNORE_CHECKSUM) {
@@ -801,7 +801,7 @@ int DetectICMPV6CsumMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 {
     DetectCsumData *cd = (DetectCsumData *)m->ctx;
 
-    if (p->ip6h == NULL || p->proto != IPPROTO_ICMPV6 || PKT_IS_PSEUDOPKT(p))
+    if (p->ip6h == NULL || p->icmpv6h == NULL || p->proto != IPPROTO_ICMPV6 || PKT_IS_PSEUDOPKT(p))
         return 0;
 
     if (p->flags & PKT_IGNORE_CHECKSUM) {
