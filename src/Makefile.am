@@ -264,6 +264,7 @@ alert-syslog.c alert-syslog.h \
 alert-pcapinfo.c alert-pcapinfo.h \
 log-droplog.c log-droplog.h \
 log-httplog.c log-httplog.h \
+log-tlslog.c log-tlslog.h \
 log-pcap.c log-pcap.h \
 log-file.c log-file.h \
 log-filestore.c log-filestore.h \
