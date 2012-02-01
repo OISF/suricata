@@ -75,6 +75,11 @@ outputs:
       #customformat: "%{%D-%H:%M:%S}t.%z %{X-Forwarded-For}i %H %m %h %u %s %B %a:%p -> %A:%P"
       #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
 
+  # a line based log of TLS handshake parameters (no alerts)
+  - tls-log:
+      enabled: no  # Log TLS connections.
+      filename: tls.log # File to store TLS logs.
+
   # a line based log to used with pcap file study.
   # this module is dedicated to offline pcap parsing (empty output
   # if used with an other kind of input). It can interoperate with
