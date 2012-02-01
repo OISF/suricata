@@ -8846,6 +8846,182 @@ end:
     return result;
 }
 
+static int DetectIPProtoTestSig2(void)
+{
+    int result = 0;
+
+    uint8_t raw_eth[] = {
+        0x01, 0x00, 0x5e, 0x00, 0x00, 0x0d, 0x00, 0x26,
+        0x88, 0x61, 0x3a, 0x80, 0x08, 0x00, 0x45, 0xc0,
+        0x00, 0x36, 0xe4, 0xcd, 0x00, 0x00, 0x01, 0x67,
+        0xc7, 0xab, 0xac, 0x1c, 0x7f, 0xfe, 0xe0, 0x00,
+        0x00, 0x0d, 0x20, 0x00, 0x90, 0x20, 0x00, 0x01,
+        0x00, 0x02, 0x00, 0x69, 0x00, 0x02, 0x00, 0x04,
+        0x81, 0xf4, 0x07, 0xd0, 0x00, 0x13, 0x00, 0x04,
+        0x00, 0x00, 0x00, 0x01, 0x00, 0x14, 0x00, 0x04,
+        0x4a, 0xea, 0x7a, 0x8e,
+    };
+
+    Packet *p = UTHBuildPacket((uint8_t *)"boom", 4, IPPROTO_TCP);
+    //Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
+    //memset(p, 0, SIZE_OF_PACKET);
+
+    DecodeThreadVars dtv;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    p->pkt = ((uint8_t *)p) + sizeof(*p);
+    p->proto = 0;
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&th_v, 0, sizeof(th_v));
+
+    FlowInitConfig(FLOW_QUIET);
+    DecodeEthernet(&th_v, &dtv, p, raw_eth, sizeof(raw_eth), NULL);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->mpm_matcher = MPM_AC;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert ip any any -> any any (msg:\"Check ipproto usage\"; "
+                               "ip_proto:!103; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (PacketAlertCheck(p, 1) == 0) {
+        result = 1;
+        goto end;
+    } else {
+        result = 0;
+    }
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    FlowShutdown();
+
+    SCFree(p);
+    return result;
+
+end:
+    if (de_ctx) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+    }
+
+    if (det_ctx)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    if (de_ctx)
+        DetectEngineCtxFree(de_ctx);
+
+    FlowShutdown();
+    SCFree(p);
+
+    return result;
+}
+
+static int DetectIPProtoTestSig3(void)
+{
+    int result = 0;
+
+    uint8_t raw_eth[] = {
+        0x01, 0x00, 0x5e, 0x00, 0x00, 0x0d, 0x00, 0x26,
+        0x88, 0x61, 0x3a, 0x80, 0x08, 0x00, 0x45, 0xc0,
+        0x00, 0x36, 0xe4, 0xcd, 0x00, 0x00, 0x01, 0x67,
+        0xc7, 0xab, 0xac, 0x1c, 0x7f, 0xfe, 0xe0, 0x00,
+        0x00, 0x0d, 0x20, 0x00, 0x90, 0x20, 0x00, 0x01,
+        0x00, 0x02, 0x00, 0x69, 0x00, 0x02, 0x00, 0x04,
+        0x81, 0xf4, 0x07, 0xd0, 0x00, 0x13, 0x00, 0x04,
+        0x00, 0x00, 0x00, 0x01, 0x00, 0x14, 0x00, 0x04,
+        0x4a, 0xea, 0x7a, 0x8e,
+    };
+
+    Packet *p = UTHBuildPacket((uint8_t *)"boom", 4, IPPROTO_TCP);
+    //Packet *p = SCMalloc(SIZE_OF_PACKET);
+    if (p == NULL)
+        return 0;
+    //memset(p, 0, SIZE_OF_PACKET);
+
+    DecodeThreadVars dtv;
+    ThreadVars th_v;
+    DetectEngineThreadCtx *det_ctx = NULL;
+
+    p->pkt = ((uint8_t *)p) + sizeof(*p);
+    p->proto = 0;
+    memset(&dtv, 0, sizeof(DecodeThreadVars));
+    memset(&th_v, 0, sizeof(th_v));
+
+    FlowInitConfig(FLOW_QUIET);
+    DecodeEthernet(&th_v, &dtv, p, raw_eth, sizeof(raw_eth), NULL);
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->mpm_matcher = MPM_AC;
+    de_ctx->flags |= DE_QUIET;
+
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert ip any any -> any any (msg:\"Check ipproto usage\"; "
+                               "ip_proto:103; sid:1;)");
+    if (de_ctx->sig_list == NULL) {
+        result = 0;
+        goto end;
+    }
+
+    SigGroupBuild(de_ctx);
+    DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
+
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (!PacketAlertCheck(p, 1)) {
+        result = 0;
+        goto end;
+    } else {
+        result = 1;
+    }
+
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+
+    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    DetectEngineCtxFree(de_ctx);
+    FlowShutdown();
+
+    SCFree(p);
+    return result;
+
+end:
+    if (de_ctx) {
+        SigGroupCleanup(de_ctx);
+        SigCleanSignatures(de_ctx);
+    }
+
+    if (det_ctx)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    if (de_ctx)
+        DetectEngineCtxFree(de_ctx);
+
+    FlowShutdown();
+    SCFree(p);
+
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 /**
@@ -9004,5 +9180,7 @@ static void DetectIPProtoRegisterTests(void)
     UtRegisterTest("DetectIPProtoTestSetup145", DetectIPProtoTestSetup145, 1);
 
     UtRegisterTest("DetectIPProtoTestSig1", DetectIPProtoTestSig1, 1);
+    UtRegisterTest("DetectIPProtoTestSig2", DetectIPProtoTestSig2, 1);
+    UtRegisterTest("DetectIPProtoTestSig3", DetectIPProtoTestSig3, 1);
 #endif /* UNITTESTS */
 }
