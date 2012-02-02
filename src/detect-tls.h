@@ -39,6 +39,7 @@ typedef struct DetectTlsData_ {
     uint32_t flags; /** flags containing match variant (Negation for example) */
     char * subject; /** tls certificate subject substring to match */
     char * issuerdn; /** tls certificate issuerDN substring to match */
+    char * fingerprint; /** tls fingerprint substring to match */
 } DetectTlsData;
 
 /* prototypes */
