@@ -100,6 +100,7 @@ typedef struct SSLStateConnp_ {
 
     char *cert0_subject;
     char *cert0_issuerdn;
+    char *cert0_fingerprint;
 
     /* buffer for the tls record.
      * We use a malloced buffer, if the record is fragmented */
