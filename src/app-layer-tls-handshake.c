@@ -50,6 +50,8 @@
 #include "util-decode-der.h"
 #include "util-decode-der-get.h"
 
+#include "util-crypt.h"
+
 #define SSLV3_RECORD_LEN 5
 
 static void TLSCertificateErrCodeToWarning(SSLState *ssl_state, uint32_t errcode)
@@ -143,6 +145,32 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
                 }
             }
             DerFree(cert);
+
+            if (i == 0 && ssl_state->server_connp.cert0_fingerprint == NULL) {
+                int msg_len = cur_cert_length;
+                int hash_len = 20;
+                int out_len = 60;
+                char out[out_len];
+                unsigned char* hash;
+                hash = ComputeSHA1((unsigned char*) input, (int) msg_len);
+                char *p = out;
+                int j = 0;
+
+                if (hash == NULL) {
+                    SCLogWarning(SC_ERR_MEM_ALLOC, "Can not allocate fingerprint string");
+                } else {
+
+                    for (j = 0; j < hash_len; j++, p += 3) {
+                        snprintf(p, 4, j == hash_len - 1 ? "%02x" : "%02x:", hash[j]);
+                    }
+                    SCFree(hash);
+                    ssl_state->server_connp.cert0_fingerprint = SCStrdup(out);
+                    if (ssl_state->server_connp.cert0_fingerprint == NULL) {
+                        SCLogWarning(SC_ERR_MEM_ALLOC, "Can not allocate fingerprint string");
+                    }
+                }
+            }
+
         }
 
         i++;
@@ -152,5 +180,6 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
     }
 
     return parsed;
+
 }
 
