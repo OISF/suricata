@@ -8862,17 +8862,16 @@ static int DetectIPProtoTestSig2(void)
         0x4a, 0xea, 0x7a, 0x8e,
     };
 
-    Packet *p = UTHBuildPacket((uint8_t *)"boom", 4, IPPROTO_TCP);
-    //Packet *p = SCMalloc(SIZE_OF_PACKET);
+    Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (p == NULL)
         return 0;
-    //memset(p, 0, SIZE_OF_PACKET);
+    memset(p, 0, SIZE_OF_PACKET);
+    p->pkt = (uint8_t *)(p + 1);
 
     DecodeThreadVars dtv;
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
 
-    p->pkt = ((uint8_t *)p) + sizeof(*p);
     p->proto = 0;
     memset(&dtv, 0, sizeof(DecodeThreadVars));
     memset(&th_v, 0, sizeof(th_v));
