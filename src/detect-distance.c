@@ -221,11 +221,6 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 ud->flags |= DETECT_CONTENT_DISTANCE_BE;
             } else {
                 ud->distance = strtol(str, NULL, 10);
-                if (ud->flags & DETECT_CONTENT_WITHIN) {
-                    if ((ud->distance + ud->content_len) > ud->within) {
-                        ud->within = ud->distance + ud->content_len;
-                    }
-                }
             }
 
             ud->flags |= DETECT_CONTENT_DISTANCE;
@@ -322,11 +317,6 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 cd->flags |= DETECT_CONTENT_DISTANCE_BE;
             } else {
                 cd->distance = strtol(str, NULL, 10);
-                if (cd->flags & DETECT_CONTENT_WITHIN) {
-                    if ((cd->distance + cd->content_len) > cd->within) {
-                        cd->within = cd->distance + cd->content_len;
-                    }
-                }
             }
 
             cd->flags |= DETECT_CONTENT_DISTANCE;
@@ -411,11 +401,6 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 cd->flags |= DETECT_CONTENT_DISTANCE_BE;
             } else {
                 cd->distance = strtol(str, NULL, 10);
-                if (cd->flags & DETECT_CONTENT_WITHIN) {
-                    if ((cd->distance + cd->content_len) > cd->within) {
-                        cd->within = cd->distance + cd->content_len;
-                    }
-                }
             }
 
             if (cd->flags & DETECT_CONTENT_NEGATED) {
@@ -478,11 +463,6 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 cd->flags |= DETECT_CONTENT_DISTANCE_BE;
             } else {
                 cd->distance = strtol(str, NULL, 10);
-                if (cd->flags & DETECT_CONTENT_WITHIN) {
-                    if ((cd->distance + cd->content_len) > cd->within) {
-                        cd->within = cd->distance + cd->content_len;
-                    }
-                }
             }
 
             if (cd->flags & DETECT_CONTENT_NEGATED) {
@@ -572,11 +552,6 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 cd->flags |= DETECT_CONTENT_DISTANCE_BE;
             } else {
                 cd->distance = strtol(str, NULL, 10);
-                if (cd->flags & DETECT_CONTENT_WITHIN) {
-                    if ((cd->distance + cd->content_len) > cd->within) {
-                        cd->within = cd->distance + cd->content_len;
-                    }
-                }
             }
 
             cd->flags |= DETECT_CONTENT_DISTANCE;
@@ -638,11 +613,6 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 cd->flags |= DETECT_CONTENT_DISTANCE_BE;
             } else {
                 cd->distance = strtol(str, NULL, 10);
-                if (cd->flags & DETECT_CONTENT_WITHIN) {
-                    if ((cd->distance + cd->content_len) > cd->within) {
-                        cd->within = cd->distance + cd->content_len;
-                    }
-                }
             }
 
             cd->flags |= DETECT_CONTENT_DISTANCE;
@@ -705,11 +675,6 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 cd->flags |= DETECT_CONTENT_DISTANCE_BE;
             } else {
                 cd->distance = strtol(str, NULL, 10);
-                if (cd->flags & DETECT_CONTENT_WITHIN) {
-                    if ((cd->distance + cd->content_len) > cd->within) {
-                        cd->within = cd->distance + cd->content_len;
-                    }
-                }
             }
 
             cd->flags |= DETECT_CONTENT_DISTANCE;
@@ -772,11 +737,6 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 cd->flags |= DETECT_CONTENT_DISTANCE_BE;
             } else {
                 cd->distance = strtol(str, NULL, 10);
-                if (cd->flags & DETECT_CONTENT_WITHIN) {
-                    if ((cd->distance + cd->content_len) > cd->within) {
-                        cd->within = cd->distance + cd->content_len;
-                    }
-                }
             }
 
             cd->flags |= DETECT_CONTENT_DISTANCE;
@@ -839,11 +799,6 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 cd->flags |= DETECT_CONTENT_DISTANCE_BE;
             } else {
                 cd->distance = strtol(str, NULL, 10);
-                if (cd->flags & DETECT_CONTENT_WITHIN) {
-                    if ((cd->distance + cd->content_len) > cd->within) {
-                        cd->within = cd->distance + cd->content_len;
-                    }
-                }
             }
 
             cd->flags |= DETECT_CONTENT_DISTANCE;

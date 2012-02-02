@@ -234,12 +234,6 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
 
             ud->flags |= DETECT_CONTENT_WITHIN;
 
-            if (ud->flags & DETECT_CONTENT_DISTANCE) {
-                if ((ud->distance + ud->content_len) > ud->within) {
-                    ud->within = ud->distance + ud->content_len;
-                }
-            }
-
             pm = SigMatchGetLastSMFromLists(s, 6,
                                             DETECT_URICONTENT, pm->prev,
                                             DETECT_PCRE, pm->prev,
@@ -343,12 +337,6 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
             }
 
             cd->flags |= DETECT_CONTENT_WITHIN;
-
-            if (cd->flags & DETECT_CONTENT_DISTANCE) {
-                if ((cd->distance + cd->content_len) > cd->within) {
-                    cd->within = cd->distance + cd->content_len;
-                }
-            }
 
             pm = SigMatchGetLastSMFromLists(s, 6,
                                             DETECT_CONTENT, pm->prev,
