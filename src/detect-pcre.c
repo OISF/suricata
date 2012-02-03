@@ -1818,7 +1818,7 @@ int DetectPcreParseTest17(void)
     de_ctx->sig_list = SigInit(de_ctx,
                                "alert tcp any any -> any any "
                                "(msg:\"Testing pcre relative http_raw_header\"; "
-                               "content:\"test\"; "
+                               "flow:to_server; content:\"test\"; "
                                "http_raw_header; pcre:\"/abc/RD\"; sid:1;)");
 
     if (de_ctx->sig_list != NULL) {
