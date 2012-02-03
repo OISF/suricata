@@ -64,9 +64,6 @@
 #define PARSE_CAPTURE_REGEX "\\(\\?P\\<([A-z]+)\\_([A-z0-9_]+)\\>"
 #define PARSE_REGEX         "(?<!\\\\)/(.*(?<!(?<!\\\\)\\\\))/([^\"]*)"
 
-#define DEFAULT_MATCH_LIMIT 10000000
-#define DEFAULT_MATCH_LIMIT_RECURSION 10000000
-
 #define SC_MATCH_LIMIT_DEFAULT 3500
 #define SC_MATCH_LIMIT_RECURSION_DEFAULT 1500
 
