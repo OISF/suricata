@@ -893,7 +893,7 @@ static int DetectDistanceTest01(void)
     }
 
     /* within needs to be 23: distance + content_len as Snort auto fixes this */
-    if (co->within != 23) {
+    if (co->within != 19) {
         printf("within %"PRIi32", expected 23: ", co->within);
         goto end;
     }
