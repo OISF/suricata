@@ -419,7 +419,7 @@ int DetectEngineInspectHttpStatCode(DetectEngineCtx *de_ctx,
     }
 
 #ifdef DEBUG
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_HSMDMATCH];
+    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_HSCDMATCH];
     DetectContentData *co = (DetectContentData *)sm->ctx;
     SCLogDebug("co->id %"PRIu32, co->id);
 #endif
