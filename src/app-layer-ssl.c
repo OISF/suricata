@@ -860,6 +860,8 @@ void *SSLStateAlloc(void)
     if (ssl_state == NULL)
         return NULL;
     memset(ssl_state, 0, sizeof(SSLState));
+    ((SSLState*)ssl_state)->client_connp.cert_log_flag |= SSL_TLS_NOLOG_PEM;
+    ((SSLState*)ssl_state)->server_connp.cert_log_flag |= SSL_TLS_NOLOG_PEM;
 
     return ssl_state;
 }

@@ -85,6 +85,9 @@ static void DetectTlsIssuerDNFree(void *);
 static int DetectTlsFingerprintMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
 static int DetectTlsFingerprintSetup (DetectEngineCtx *, Signature *, char *);
 static void DetectTlsFingerprintFree(void *);
+static int DetectTlsStoreSetup (DetectEngineCtx *, Signature *, char *);
+static int DetectTlsStoreMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
+
 /**
  * \brief Registration function for keyword: tls.version
  */
@@ -112,6 +115,15 @@ void DetectTlsRegister (void) {
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].Setup = DetectTlsFingerprintSetup;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].Free  = DetectTlsFingerprintFree;
     sigmatch_table[DETECT_AL_TLS_FINGERPRINT].RegisterTests = NULL;
+
+    sigmatch_table[DETECT_AL_TLS_STORE].name = "tls.store";
+    sigmatch_table[DETECT_AL_TLS_STORE].Match = NULL;
+    sigmatch_table[DETECT_AL_TLS_STORE].AppLayerMatch = DetectTlsStoreMatch;
+    sigmatch_table[DETECT_AL_TLS_STORE].alproto = ALPROTO_TLS;
+    sigmatch_table[DETECT_AL_TLS_STORE].Setup = DetectTlsStoreSetup;
+    sigmatch_table[DETECT_AL_TLS_STORE].Free  = NULL;
+    sigmatch_table[DETECT_AL_TLS_STORE].RegisterTests = NULL;
+    sigmatch_table[DETECT_AL_TLS_STORE].flags |= SIGMATCH_NOOPT;
 
     const char *eb;
     int eo;
@@ -750,6 +762,66 @@ static void DetectTlsFingerprintFree(void *ptr) {
         SCFree(id_d->fingerprint);
     SCFree(id_d);
 }
+
+/**
+ * \brief this function is used to add the parsed "store" option
+ * \brief into the current signature
+ *
+ * \param de_ctx pointer to the Detection Engine Context
+ * \param s pointer to the Current Signature
+ * \param idstr pointer to the user provided "store" option
+ *
+ * \retval 0 on Success
+ * \retval -1 on Failure
+ */
+static int DetectTlsStoreSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
+{
+    SigMatch *sm = NULL;
+
+    s->flags |= SIG_FLAG_TLSSTORE;
+
+    sm = SigMatchAlloc();
+    if (sm == NULL)
+        goto error;
+
+    sm->type = DETECT_AL_TLS_STORE;
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
+
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_TLS) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting keywords.");
+        goto error;
+    }
+
+    s->alproto = ALPROTO_TLS;
+    return 0;
+
+error:
+    if (sm != NULL) SCFree(sm);
+        return -1;
+
+}
+
+static int DetectTlsStoreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, uint8_t flags, void *state, Signature *s, SigMatch *m)
+{
+    SCEnter();
+
+    SSLState *ssl_state = (SSLState *)state;
+    if (ssl_state == NULL) {
+        SCLogDebug("no tls state, no match");
+        SCReturnInt(1);
+    }
+
+    FLOWLOCK_RDLOCK(f);
+    if (s->flags & SIG_FLAG_TLSSTORE &&
+        (ssl_state->curr_connp->cert_input != NULL) &&
+        (ssl_state->curr_connp->cert_input_len)) {
+        ssl_state->curr_connp->cert_log_flag |= SSL_TLS_LOG_PEM;
+    }
+
+    FLOWLOCK_UNLOCK(f);
+    SCReturnInt(1);
+}
+
 
 /**
  * \brief this function registers unit tests for DetectTlsIssuerDN
