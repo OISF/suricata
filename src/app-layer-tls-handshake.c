@@ -124,8 +124,8 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
             } else {
                 //SCLogInfo("TLS Cert %d: %s\n", i, buffer);
                 if (i==0) {
-                    ssl_state->curr_connp->cert0_subject = SCStrdup(buffer);
-                    if (ssl_state->curr_connp->cert0_subject == NULL) {
+                    ssl_state->server_connp.cert0_subject = SCStrdup(buffer);
+                    if (ssl_state->server_connp.cert0_subject == NULL) {
                         DerFree(cert);
                         return -1;
                     }
@@ -137,8 +137,8 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
             } else {
                 //SCLogInfo("TLS IssuerDN %d: %s\n", i, buffer);
                 if (i==0) {
-                    ssl_state->curr_connp->cert0_issuerdn = SCStrdup(buffer);
-                    if (ssl_state->curr_connp->cert0_issuerdn == NULL) {
+                    ssl_state->server_connp.cert0_issuerdn = SCStrdup(buffer);
+                    if (ssl_state->server_connp.cert0_issuerdn == NULL) {
                         DerFree(cert);
                         return -1;
                     }
@@ -161,6 +161,8 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
                 SCFree(hash);
                 ssl_state->server_connp.cert0_fingerprint = SCStrdup(out);
 
+                ssl_state->server_connp.cert_input = input;
+                ssl_state->server_connp.cert_input_len = cur_cert_length;
             }
 
         }
