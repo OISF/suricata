@@ -1468,19 +1468,12 @@ static int SigValidate(Signature *s) {
 }
 
 /**
- * \brief Parses a signature and adds it to the Detection Engine Context
- * This function is going to be deprecated. Should use DetectEngineAppendSig()
- * or SigInitReal() if you want to control the sig_list building.
- *
- * \param de_ctx Pointer to the Detection Engine Context
- * \param sigstr Pointer to a character string containing the signature to be
- *               parsed
- *
- * \retval Pointer to the Signature instance on success; NULL on failure
+ * \internal
+ * \brief Helper function for SigInit().
  */
-Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
-    SCEnter();
-
+static Signature *SigInitHelper(DetectEngineCtx *de_ctx, char *sigstr,
+                                uint8_t dir)
+{
     Signature *sig = SigAlloc();
     if (sig == NULL)
         goto error;
@@ -1488,7 +1481,7 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
     /* default gid to 1 */
     sig->gid = 1;
 
-    if (SigParse(de_ctx, sig, sigstr, SIG_DIREC_NORMAL) < 0)
+    if (SigParse(de_ctx, sig, sigstr, dir) < 0)
         goto error;
 
     /* signature priority hasn't been overwritten.  Using default priority */
@@ -1591,6 +1584,49 @@ Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr) {
         goto error;
     }
 
+    return sig;
+
+error:
+    if (sig != NULL) {
+        SigFree(sig);
+    }
+
+    if (de_ctx->failure_fatal == 1) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature parsing failed: "
+                   "\"%s\"", sigstr);
+        exit(EXIT_FAILURE);
+    }
+    return NULL;
+}
+
+/**
+ * \brief Parses a signature and adds it to the Detection Engine Context.
+ *
+ * \param de_ctx Pointer to the Detection Engine Context.
+ * \param sigstr Pointer to a character string containing the signature to be
+ *               parsed.
+ *
+ * \retval Pointer to the Signature instance on success; NULL on failure.
+ */
+Signature *SigInit(DetectEngineCtx *de_ctx, char *sigstr)
+{
+    SCEnter();
+
+    uint32_t oldsignum = de_ctx->signum;
+
+    Signature *sig;
+
+    if ((sig = SigInitHelper(de_ctx, sigstr, SIG_DIREC_NORMAL)) == NULL) {
+        goto error;
+    }
+
+    if (sig->init_flags & SIG_FLAG_INIT_BIDIREC) {
+        sig->next = SigInitHelper(de_ctx, sigstr, SIG_DIREC_SWITCHED);
+        if (sig->next == NULL) {
+            goto error;
+        }
+    }
+
     SCReturnPtr(sig, "Signature");
 
 error:
@@ -1599,10 +1635,16 @@ error:
     }
 
     if (de_ctx->failure_fatal == 1) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE,"Signature parsing failed: \"%s\"", sigstr);
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Signature parsing failed: "
+                   "\"%s\"", sigstr);
         exit(EXIT_FAILURE);
     }
-    SCReturnPtr(NULL,"Signature");
+
+    /* if something failed, restore the old signum count
+     * since we didn't install it */
+    de_ctx->signum = oldsignum;
+
+    SCReturnPtr(NULL, "Signature");
 }
 
 /**
@@ -1617,192 +1659,190 @@ error:
  *
  * \retval Pointer to the Signature instance on success; NULL on failure
  */
-Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
-    Signature *sig = SigAlloc();
-    uint32_t oldsignum = de_ctx->signum;
-
-    if (sig == NULL)
-        goto error;
-
-    /* default gid to 1 */
-    sig->gid = 1;
-
-    if (SigParse(de_ctx, sig, sigstr, SIG_DIREC_NORMAL) < 0)
-        goto error;
-
-    /* signature priority hasn't been overwritten.  Using default priority */
-    if (sig->prio == -1)
-        sig->prio = 3;
-
-    /* assign an unique id in this de_ctx */
-    sig->num = de_ctx->signum;
-    de_ctx->signum++;
-
-    SigMatch *sm;
-    /* set mpm_content_len */
-
-    /* determine the length of the longest pattern in the sig */
-    if (sig->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
-        sig->mpm_content_maxlen = 0;
-
-        for (sm = sig->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_CONTENT) {
-                DetectContentData *cd = (DetectContentData *)sm->ctx;
-                if (cd == NULL)
-                    continue;
-
-                if (sig->mpm_content_maxlen == 0)
-                    sig->mpm_content_maxlen = cd->content_len;
-                if (sig->mpm_content_maxlen < cd->content_len)
-                    sig->mpm_content_maxlen = cd->content_len;
-            }
-        }
-    }
-    if (sig->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
-        sig->mpm_uricontent_maxlen = 0;
-
-        for (sm = sig->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_URICONTENT) {
-                DetectContentData *ud = (DetectContentData *)sm->ctx;
-                if (ud == NULL)
-                    continue;
-                if (sig->mpm_uricontent_maxlen == 0)
-                    sig->mpm_uricontent_maxlen = ud->content_len;
-                if (sig->mpm_uricontent_maxlen < ud->content_len)
-                    sig->mpm_uricontent_maxlen = ud->content_len;
-            }
-        }
-    }
-    if (sig->init_flags & SIG_FLAG_INIT_BIDIREC) {
-        /* Allocate a copy of this signature with the addresses siwtched
-           This copy will be installed at sig->next */
-        sig->next = SigAlloc();
-        sig->next->prio = sig->prio;
-        sig->next->gid = sig->gid;
-
-        if (sig->next == NULL)
-            goto error;
-
-        if (SigParse(de_ctx, sig->next, sigstr, SIG_DIREC_SWITCHED) < 0)
-            goto error;
-
-        /* assign an unique id in this de_ctx */
-        sig->next->num = de_ctx->signum;
-        de_ctx->signum++;
-
-        /* set mpm_content_len */
-
-        /* determine the length of the longest pattern in the sig */
-        if (sig->next->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
-            sig->next->mpm_content_maxlen = 0;
-
-            SigMatch *sm;
-            for (sm = sig->next->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
-                if (sm->type == DETECT_CONTENT) {
-                    DetectContentData *cd = (DetectContentData *)sm->ctx;
-                    if (cd == NULL)
-                        continue;
-
-                    if (sig->next->mpm_content_maxlen == 0)
-                        sig->next->mpm_content_maxlen = cd->content_len;
-                    if (sig->next->mpm_content_maxlen < cd->content_len)
-                        sig->next->mpm_content_maxlen = cd->content_len;
-                }
-            }
-        }
-        if (sig->next->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
-            sig->next->mpm_uricontent_maxlen = 0;
-
-            for (sm = sig->next->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
-                if (sm->type == DETECT_URICONTENT) {
-                    DetectContentData *ud = (DetectContentData *)sm->ctx;
-                    if (ud == NULL)
-                        continue;
-
-                    if (sig->next->mpm_uricontent_maxlen == 0)
-                        sig->next->mpm_uricontent_maxlen = ud->content_len;
-                    if (sig->next->mpm_uricontent_maxlen < ud->content_len)
-                        sig->next->mpm_uricontent_maxlen = ud->content_len;
-                }
-            }
-        }
-    }
-
-    /* set the packet and app layer flags, but only if the
-     * app layer flag wasn't already set in which case we
-     * only consider the app layer */
-    if (!(sig->flags & SIG_FLAG_APPLAYER)) {
-        if (sig->sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
-            SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
-            for ( ; sm != NULL; sm = sm->next) {
-                if (sigmatch_table[sm->type].AppLayerMatch != NULL)
-                    sig->flags |= SIG_FLAG_APPLAYER;
-                if (sigmatch_table[sm->type].Match != NULL)
-                    sig->init_flags |= SIG_FLAG_INIT_PACKET;
-            }
-        } else {
-            sig->init_flags |= SIG_FLAG_INIT_PACKET;
-        }
-    }
-
-    if (sig->sm_lists[DETECT_SM_LIST_UMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_DMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_AMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HCBDMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HSBDMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HHDMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HRHDMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HMDMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HCDMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_HRUDMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-    if (sig->sm_lists[DETECT_SM_LIST_FILEMATCH])
-        sig->flags |= SIG_FLAG_STATE_MATCH;
-
-    if (!(sig->init_flags & SIG_FLAG_INIT_FLOW)) {
-        sig->flags |= SIG_FLAG_TOSERVER;
-        sig->flags |= SIG_FLAG_TOCLIENT;
-    }
-
-    SigBuildAddressMatchArray(sig);
-
-    SCLogDebug("sig %"PRIu32" SIG_FLAG_APPLAYER: %s, SIG_FLAG_PACKET: %s",
-        sig->id, sig->flags & SIG_FLAG_APPLAYER ? "set" : "not set",
-        sig->init_flags & SIG_FLAG_INIT_PACKET ? "set" : "not set");
-
-    /* validate signature, SigValidate will report the error reason */
-    if (SigValidate(sig) == 0) {
-        goto error;
-    }
-
-    /**
-     * In SigInitReal, the signature returned will point from the ptr next
-     * to the cloned signatures with the switched addresses if it has
-     * the bidirectional operator set
-     */
-    return sig;
-
-error:
-    if (sig != NULL) {
-        if (sig->next != NULL) {
-            SigFree(sig->next);
-        }
-        SigFree(sig);
-    }
-    /* if something failed, restore the old signum count
-     * since we didn't install it */
-    de_ctx->signum = oldsignum;
-    return NULL;
-}
+//Signature *SigInitReal(DetectEngineCtx *de_ctx, char *sigstr) {
+//    Signature *sig = SigAlloc();
+//    uint32_t oldsignum = de_ctx->signum;
+//
+//    if (sig == NULL)
+//        goto error;
+//
+//    /* default gid to 1 */
+//    sig->gid = 1;
+//
+//    if (SigParse(de_ctx, sig, sigstr, SIG_DIREC_NORMAL) < 0)
+//        goto error;
+//
+//    /* signature priority hasn't been overwritten.  Using default priority */
+//    if (sig->prio == -1)
+//        sig->prio = 3;
+//
+//    /* assign an unique id in this de_ctx */
+//    sig->num = de_ctx->signum;
+//    de_ctx->signum++;
+//
+//    SigMatch *sm;
+//    /* set mpm_content_len */
+//
+//    /* determine the length of the longest pattern in the sig */
+//    if (sig->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+//        sig->mpm_content_maxlen = 0;
+//
+//        for (sm = sig->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
+//            if (sm->type == DETECT_CONTENT) {
+//                DetectContentData *cd = (DetectContentData *)sm->ctx;
+//                if (cd == NULL)
+//                    continue;
+//
+//                if (sig->mpm_content_maxlen == 0)
+//                    sig->mpm_content_maxlen = cd->content_len;
+//                if (sig->mpm_content_maxlen < cd->content_len)
+//                    sig->mpm_content_maxlen = cd->content_len;
+//            }
+//        }
+//    }
+//    if (sig->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
+//        sig->mpm_uricontent_maxlen = 0;
+//
+//        for (sm = sig->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
+//            if (sm->type == DETECT_URICONTENT) {
+//                DetectContentData *ud = (DetectContentData *)sm->ctx;
+//                if (ud == NULL)
+//                    continue;
+//                if (sig->mpm_uricontent_maxlen == 0)
+//                    sig->mpm_uricontent_maxlen = ud->content_len;
+//                if (sig->mpm_uricontent_maxlen < ud->content_len)
+//                    sig->mpm_uricontent_maxlen = ud->content_len;
+//            }
+//        }
+//    }
+//    if (sig->init_flags & SIG_FLAG_INIT_BIDIREC) {
+//        /* Allocate a copy of this signature with the addresses siwtched
+//           This copy will be installed at sig->next */
+//        sig->next = SigAlloc();
+//        sig->next->prio = sig->prio;
+//        sig->next->gid = sig->gid;
+//
+//        if (sig->next == NULL)
+//            goto error;
+//
+//        if (SigParse(de_ctx, sig->next, sigstr, SIG_DIREC_SWITCHED) < 0)
+//            goto error;
+//
+//        /* assign an unique id in this de_ctx */
+//        sig->next->num = de_ctx->signum;
+//        de_ctx->signum++;
+//
+//        /* set mpm_content_len */
+//
+//        /* determine the length of the longest pattern in the sig */
+//        if (sig->next->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
+//            sig->next->mpm_content_maxlen = 0;
+//
+//            SigMatch *sm;
+//            for (sm = sig->next->sm_lists[DETECT_SM_LIST_PMATCH]; sm != NULL; sm = sm->next) {
+//                if (sm->type == DETECT_CONTENT) {
+//                    DetectContentData *cd = (DetectContentData *)sm->ctx;
+//                    if (cd == NULL)
+//                        continue;
+//
+//                    if (sig->next->mpm_content_maxlen == 0)
+//                        sig->next->mpm_content_maxlen = cd->content_len;
+//                    if (sig->next->mpm_content_maxlen < cd->content_len)
+//                        sig->next->mpm_content_maxlen = cd->content_len;
+//                }
+//            }
+//        }
+//        if (sig->next->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
+//            sig->next->mpm_uricontent_maxlen = 0;
+//
+//            for (sm = sig->next->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
+//                if (sm->type == DETECT_URICONTENT) {
+//                    DetectContentData *ud = (DetectContentData *)sm->ctx;
+//                    if (ud == NULL)
+//                        continue;
+//
+//                    if (sig->next->mpm_uricontent_maxlen == 0)
+//                        sig->next->mpm_uricontent_maxlen = ud->content_len;
+//                    if (sig->next->mpm_uricontent_maxlen < ud->content_len)
+//                        sig->next->mpm_uricontent_maxlen = ud->content_len;
+//                }
+//            }
+//        }
+//    }
+//
+//    /* set the packet and app layer flags, but only if the
+//     * app layer flag wasn't already set in which case we
+//     * only consider the app layer */
+//    if (!(sig->flags & SIG_FLAG_APPLAYER)) {
+//        if (sig->sm_lists[DETECT_SM_LIST_MATCH] != NULL) {
+//            SigMatch *sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
+//            for ( ; sm != NULL; sm = sm->next) {
+//                if (sigmatch_table[sm->type].AppLayerMatch != NULL)
+//                    sig->flags |= SIG_FLAG_APPLAYER;
+//                if (sigmatch_table[sm->type].Match != NULL)
+//                    sig->init_flags |= SIG_FLAG_INIT_PACKET;
+//            }
+//        } else {
+//            sig->init_flags |= SIG_FLAG_INIT_PACKET;
+//        }
+//    }
+//
+//    if (sig->sm_lists[DETECT_SM_LIST_UMATCH])
+//        sig->flags |= SIG_FLAG_STATE_MATCH;
+//    if (sig->sm_lists[DETECT_SM_LIST_DMATCH])
+//        sig->flags |= SIG_FLAG_STATE_MATCH;
+//    if (sig->sm_lists[DETECT_SM_LIST_AMATCH])
+//        sig->flags |= SIG_FLAG_STATE_MATCH;
+//    if (sig->sm_lists[DETECT_SM_LIST_HCBDMATCH])
+//        sig->flags |= SIG_FLAG_STATE_MATCH;
+//    if (sig->sm_lists[DETECT_SM_LIST_HSBDMATCH])
+//        sig->flags |= SIG_FLAG_STATE_MATCH;
+//    if (sig->sm_lists[DETECT_SM_LIST_HHDMATCH])
+//        sig->flags |= SIG_FLAG_STATE_MATCH;
+//    if (sig->sm_lists[DETECT_SM_LIST_HRHDMATCH])
+//        sig->flags |= SIG_FLAG_STATE_MATCH;
+//    if (sig->sm_lists[DETECT_SM_LIST_HMDMATCH])
+//        sig->flags |= SIG_FLAG_STATE_MATCH;
+//    if (sig->sm_lists[DETECT_SM_LIST_HCDMATCH])
+//        sig->flags |= SIG_FLAG_STATE_MATCH;
+//    if (sig->sm_lists[DETECT_SM_LIST_FILEMATCH])
+//        sig->flags |= SIG_FLAG_STATE_MATCH;
+//
+//    if (!(sig->init_flags & SIG_FLAG_INIT_FLOW)) {
+//        sig->flags |= SIG_FLAG_TOSERVER;
+//        sig->flags |= SIG_FLAG_TOCLIENT;
+//    }
+//
+//    SigBuildAddressMatchArray(sig);
+//
+//    SCLogDebug("sig %"PRIu32" SIG_FLAG_APPLAYER: %s, SIG_FLAG_PACKET: %s",
+//        sig->id, sig->flags & SIG_FLAG_APPLAYER ? "set" : "not set",
+//        sig->init_flags & SIG_FLAG_INIT_PACKET ? "set" : "not set");
+//
+//    /* validate signature, SigValidate will report the error reason */
+//    if (SigValidate(sig) == 0) {
+//        goto error;
+//    }
+//
+//    /**
+//     * In SigInitReal, the signature returned will point from the ptr next
+//     * to the cloned signatures with the switched addresses if it has
+//     * the bidirectional operator set
+//     */
+//    return sig;
+//
+//error:
+//    if (sig != NULL) {
+//        if (sig->next != NULL) {
+//            SigFree(sig->next);
+//        }
+//        SigFree(sig);
+//    }
+//    /* if something failed, restore the old signum count
+//     * since we didn't install it */
+//    de_ctx->signum = oldsignum;
+//    return NULL;
+//}
 
 /**
  * \brief The hash free function to be the used by the hash table -
@@ -2045,7 +2085,7 @@ end:
  */
 Signature *DetectEngineAppendSig(DetectEngineCtx *de_ctx, char *sigstr)
 {
-    Signature *sig = SigInitReal(de_ctx, sigstr);
+    Signature *sig = SigInit(de_ctx, sigstr);
     if (sig == NULL) {
         return NULL;
     }
