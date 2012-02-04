@@ -80,6 +80,7 @@ outputs:
       enabled: no  # Log TLS connections.
       filename: tls.log # File to store TLS logs.
       #extended: yes # Log extended information like fingerprint
+      certs-log-dir: certs # directory to store the certificates files
 
   # a line based log to used with pcap file study.
   # this module is dedicated to offline pcap parsing (empty output

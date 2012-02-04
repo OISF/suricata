@@ -261,6 +261,8 @@ typedef struct DetectPort_ {
 #define SIG_FLAG_TOSERVER               (1<<19)
 #define SIG_FLAG_TOCLIENT               (1<<20)
 
+#define SIG_FLAG_TLSSTORE               (1<<21)
+
 /* signature init flags */
 #define SIG_FLAG_INIT_DEONLY         1  /**< decode event only signature */
 #define SIG_FLAG_INIT_PACKET         (1<<1)  /**< signature has matches against a packet (as opposed to app layer) */
@@ -996,6 +998,7 @@ enum {
     DETECT_AL_TLS_SUBJECT,
     DETECT_AL_TLS_ISSUERDN,
     DETECT_AL_TLS_FINGERPRINT,
+    DETECT_AL_TLS_STORE,
 
     DETECT_AL_HTTP_COOKIE,
     DETECT_AL_HTTP_METHOD,

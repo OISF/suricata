@@ -64,6 +64,9 @@ enum {
 #define SSL_AL_FLAG_STATE_SERVER_KEYX           0x1000
 #define SSL_AL_FLAG_STATE_UNKNOWN               0x2000
 
+#define SSL_TLS_LOG_PEM                         (1 << 0)
+
+
 
 /* SSL versions.  We'll use a unified format for all, with the top byte
  * holding the major version and the lower byte the minor version */
@@ -101,6 +104,11 @@ typedef struct SSLStateConnp_ {
     char *cert0_subject;
     char *cert0_issuerdn;
     char *cert0_fingerprint;
+
+    uint8_t *cert_input;
+    uint32_t cert_input_len;
+
+    uint32_t cert_log_flag;
 
     /* buffer for the tls record.
      * We use a malloced buffer, if the record is fragmented */
