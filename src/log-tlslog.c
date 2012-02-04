@@ -53,6 +53,9 @@
 
 #define OUTPUT_BUFFER_SIZE 65535
 
+#define LOG_TLS_DEFAULT     0
+#define LOG_TLS_EXTENDED    1
+
 TmEcode LogTlsLog(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode LogTlsLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode LogTlsLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
@@ -118,6 +121,13 @@ static void CreateTimeString(const struct timeval *ts, char *str, size_t size)
     struct tm *t = (struct tm *) localtime_r(&time, &local_tm);
 
     snprintf(str, size, "%02d/%02d/%02d-%02d:%02d:%02d.%06u", t->tm_mon + 1, t->tm_mday, t->tm_year + 1900, t->tm_hour, t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
+}
+
+static void LogTlsLogExtended(LogTlsLogThread *aft, SSLState * state)
+{
+    if (state->server_connp.cert0_fingerprint != NULL) {
+        MemBufferWriteString(aft->buffer, " SHA1='%s'\n", state->server_connp.cert0_fingerprint);
+    }
 }
 
 static TmEcode LogTlsLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq, int ipproto)
@@ -194,11 +204,16 @@ static TmEcode LogTlsLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQ
     MemBufferReset(aft->buffer);
 
     MemBufferWriteString(aft->buffer,
-                         "%s %s:%d -> %s:%d  TLS: Subject='%s' Issuerdn='%s'\n",
+                         "%s %s:%d -> %s:%d  TLS: Subject='%s' Issuerdn='%s'",
                          timebuf, srcip, sp, dstip, dp,
                          ssl_state->server_connp.cert0_subject, ssl_state->server_connp.cert0_issuerdn);
 
     AppLayerTransactionUpdateLoggedId(p->flow);
+    if (hlog->flags & LOG_TLS_EXTENDED) {
+        LogTlsLogExtended(aft, ssl_state);
+    } else {
+        MemBufferWriteString(aft->buffer, "\n");
+    }
 
     aft->tls_cnt ++;
 
@@ -207,7 +222,7 @@ static TmEcode LogTlsLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQ
     fflush(hlog->file_ctx->fp);
     SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 
-    end:
+end:
     SCMutexUnlock(&p->flow->m);
     SCReturnInt(TM_ECODE_OK);
 
@@ -319,6 +334,16 @@ OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
     if (tlslog_ctx == NULL)
         return NULL;
     tlslog_ctx->file_ctx = file_ctx;
+
+    const char *extended = ConfNodeLookupChildValue(conf, "extended");
+    if (extended == NULL) {
+        tlslog_ctx->flags |= LOG_TLS_DEFAULT;
+    } else {
+        if (ConfValIsTrue(extended)) {
+            tlslog_ctx->flags |= LOG_TLS_EXTENDED;
+        }
+    }
+
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (output_ctx == NULL)
