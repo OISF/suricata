@@ -1430,9 +1430,12 @@ uint32_t SCACBSSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         state = *(ascii_codes + no_of_entries);;
                     } else {
                         state = zero_state[buf_local];
-                        continue;
                     }
                 } else {
+                    if (no_of_entries == 0) {
+                        state = zero_state[u8_tolower(buf[i])];
+                        goto match_u16;
+                    }
                     buf_local = u8_tolower(buf[i]);
                     ascii_codes = state_table_mod_pointers[state & 0x7FFF] + 1;
                     int low = 0;
@@ -1451,7 +1454,6 @@ uint32_t SCACBSSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         }
                     } /* while */
                     state = zero_state[buf_local];
-                    continue;
                 } /* else - if (no_of_entires == 1) */
             }
 
@@ -1502,7 +1504,6 @@ uint32_t SCACBSSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
         for (i = 0; i < buflen; i++) {
             if (state == 0) {
                 state = zero_state[u8_tolower(buf[i])];
-                continue;
             } else {
                 no_of_entries = *(state_table_mod_pointers[state & 0x00FFFFFF]);
                 if (no_of_entries == 1) {
@@ -1512,9 +1513,12 @@ uint32_t SCACBSSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         state = *(ascii_codes + no_of_entries);;
                     } else {
                         state = zero_state[buf_local];;
-                        continue;
                     }
                 } else {
+                    if (no_of_entries == 0) {
+                        state = zero_state[u8_tolower(buf[i])];
+                        goto match_u32;
+                    }
                     buf_local = u8_tolower(buf[i]);
                     ascii_codes = state_table_mod_pointers[state & 0x00FFFFFF] + 1;
                     int low = 0;
@@ -1533,7 +1537,6 @@ uint32_t SCACBSSearch(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx,
                         }
                     } /* while */
                     state = zero_state[buf_local];
-                    continue;
                 } /* else - if (no_of_entires == 1) */
             }
 
