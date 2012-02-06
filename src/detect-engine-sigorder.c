@@ -1824,6 +1824,7 @@ end:
  */
 static int SCSigTestSignatureOrdering08(void)
 {
+#ifdef HAVE_LIBNET11
     int result = 0;
     Signature *prevsig = NULL, *sig = NULL;
     extern uint8_t action_order_sigs[4];
@@ -1940,6 +1941,9 @@ end:
     if (de_ctx != NULL)
         DetectEngineCtxFree(de_ctx);
     return result;
+#else
+    return 1;
+#endif
 }
 
 /**
