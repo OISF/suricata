@@ -226,10 +226,12 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
     if (sgh_mpm_context == NULL || strcmp(sgh_mpm_context, "auto") == 0) {
         /* for now, since we still haven't implemented any intelligence into
          * understanding the patterns and distributing mpm_ctx across sgh */
-        if (de_ctx->mpm_matcher == MPM_AC || de_ctx->mpm_matcher == MPM_AC_GFBS)
+        if (de_ctx->mpm_matcher == MPM_AC || de_ctx->mpm_matcher == MPM_AC_GFBS ||
+            de_ctx->mpm_matcher == MPM_AC_BS) {
             de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE;
-        else
+        } else {
             de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
+        }
     } else {
         if (strcmp(sgh_mpm_context, "single") == 0) {
             de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE;
