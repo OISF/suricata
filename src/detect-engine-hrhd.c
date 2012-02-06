@@ -351,7 +351,7 @@ int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
         if (raw_headers != NULL) {
             cnt += HttpRawHeaderPatternSearch(det_ctx,
                                               (uint8_t *)bstr_ptr(raw_headers),
-                                              bstr_len(raw_headers));
+                                              bstr_len(raw_headers), flags);
         }
 #endif /* HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW */
     }
