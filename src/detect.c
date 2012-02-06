@@ -1161,8 +1161,7 @@ static inline void DetectMpmPrefilter(DetectEngineCtx *de_ctx,
 
             *sms_runflags |= SMS_USED_STREAM_PM;
         } else {
-            SCLogDebug("smsg NULL (%p) or det_ctx->sgh->mpm_stream_ctx "
-                       "NULL (%p)", smsg, det_ctx->sgh->mpm_stream_ctx);
+            SCLogDebug("smsg NULL or no stream mpm for this sgh");
         }
 
         /* all http based mpms */
