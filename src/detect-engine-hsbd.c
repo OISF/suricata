@@ -46,6 +46,7 @@
 #include "detect-bytetest.h"
 #include "detect-bytejump.h"
 #include "detect-byte-extract.h"
+#include "detect-engine-content-inspection.h"
 
 #include "flow-util.h"
 #include "util-spm.h"
@@ -580,8 +581,13 @@ int DetectEngineInspectHttpServerBody(DetectEngineCtx *de_ctx,
         if (hsbd_buffer == NULL)
             continue;
 
-        r = DoInspectHttpServerBody(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HSBDMATCH],
-                                    hsbd_buffer, hsbd_buffer_len);
+        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HSBDMATCH],
+                                          f,
+                                          hsbd_buffer,
+                                          hsbd_buffer_len,
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_HSBD, NULL);
+        //r = DoInspectHttpServerBody(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HSBDMATCH],
+        //hsbd_buffer, hsbd_buffer_len);
         if (r == 1) {
             break;
         }

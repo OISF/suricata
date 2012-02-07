@@ -1107,36 +1107,42 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     if (pd->flags & DETECT_PCRE_HEADER) {
         SCLogDebug("Header inspection modifier set");
         s->flags |= SIG_FLAG_APPLAYER;
+        s->alproto = ALPROTO_HTTP;
 
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HHDMATCH);
     } else if (pd->flags & DETECT_PCRE_RAW_HEADER) {
         SCLogDebug("Raw header inspection modifier set");
         s->flags |= SIG_FLAG_APPLAYER;
+        s->alproto = ALPROTO_HTTP;
 
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRHDMATCH);
     } else if (pd->flags & DETECT_PCRE_COOKIE) {
-        sm->type = DETECT_PCRE_HTTPCOOKIE;
+        //sm->type = DETECT_PCRE_HTTPCOOKIE;
 
         SCLogDebug("Cookie inspection modifier set");
         s->flags |= SIG_FLAG_APPLAYER;
+        s->alproto = ALPROTO_HTTP;
 
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCDMATCH);
     } else if (pd->flags & DETECT_PCRE_METHOD) {
-        sm->type = DETECT_PCRE_HTTPMETHOD;
+        //sm->type = DETECT_PCRE_HTTPMETHOD;
 
         SCLogDebug("Method inspection modifier set");
         s->flags |= SIG_FLAG_APPLAYER;
+        s->alproto = ALPROTO_HTTP;
 
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HMDMATCH);
     } else if (pd->flags & DETECT_PCRE_HTTP_CLIENT_BODY) {
         SCLogDebug("Request body inspection modifier set");
         s->flags |= SIG_FLAG_APPLAYER;
+        s->alproto = ALPROTO_HTTP;
         AppLayerHtpEnableRequestBodyCallback();
 
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HCBDMATCH);
     } else if (pd->flags & DETECT_PCRE_HTTP_SERVER_BODY) {
         SCLogDebug("Response body inspection modifier set");
         s->flags |= SIG_FLAG_APPLAYER;
+        s->alproto = ALPROTO_HTTP;
         AppLayerHtpEnableResponseBodyCallback();
 
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
@@ -1222,7 +1228,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         SCReturnInt(0);
     }
 
-    prev_sm = SigMatchGetLastSMFromLists(s, 28,
+    prev_sm = SigMatchGetLastSMFromLists(s, 24,
             DETECT_CONTENT, sm->prev,
             DETECT_URICONTENT, sm->prev,
             DETECT_AL_HTTP_CLIENT_BODY, sm->prev,
@@ -1233,8 +1239,6 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
             DETECT_AL_HTTP_COOKIE, sm->prev,
             DETECT_AL_HTTP_METHOD, sm->prev,
             DETECT_PCRE, sm->prev,
-            DETECT_PCRE_HTTPCOOKIE, sm->prev,
-            DETECT_PCRE_HTTPMETHOD, sm->prev,
             DETECT_AL_HTTP_STAT_MSG, sm->prev,
             DETECT_AL_HTTP_STAT_CODE, sm->prev);
     if (prev_sm == NULL) {
@@ -1281,8 +1285,6 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
             break;
 
         case DETECT_PCRE:
-        case DETECT_PCRE_HTTPCOOKIE:
-        case DETECT_PCRE_HTTPMETHOD:
             pe = (DetectPcreData *) prev_sm->ctx;
             if (pe == NULL) {
                 SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre not setup properly");

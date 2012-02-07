@@ -35,6 +35,7 @@
 #include "detect-bytetest.h"
 #include "detect-bytejump.h"
 #include "detect-byte-extract.h"
+#include "detect-engine-content-inspection.h"
 
 #include "util-spm.h"
 #include "util-spm-bm.h"
@@ -504,8 +505,13 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
         det_ctx->discontinue_matching = 0;
         det_ctx->inspection_recursion_counter = 0;
 
-        r = DoInspectDcePayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_DMATCH], f,
-                                dce_stub_data, dce_stub_data_len, dcerpc_state);
+        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_DMATCH],
+                                          f,
+                                          dce_stub_data,
+                                          dce_stub_data_len,
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_DCE, dcerpc_state);
+        //r = DoInspectDcePayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_DMATCH], f,
+        //dce_stub_data, dce_stub_data_len, dcerpc_state);
         if (r == 1) {
             SCReturnInt(1);
         }
@@ -521,8 +527,13 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
         det_ctx->discontinue_matching = 0;
         det_ctx->inspection_recursion_counter = 0;
 
-        r = DoInspectDcePayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_DMATCH], f,
-                                dce_stub_data, dce_stub_data_len, dcerpc_state);
+        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_DMATCH],
+                                          f,
+                                          dce_stub_data,
+                                          dce_stub_data_len,
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_DCE, dcerpc_state);
+        //r = DoInspectDcePayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_DMATCH], f,
+        //dce_stub_data, dce_stub_data_len, dcerpc_state);
         if (r == 1) {
             SCReturnInt(1);
         }

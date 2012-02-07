@@ -131,7 +131,7 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
     if (cd->flags & DETECT_CONTENT_WITHIN || cd->flags & DETECT_CONTENT_DISTANCE) {
         SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
                                                    DETECT_CONTENT, sm->prev,
-                                                   DETECT_PCRE_HTTPMETHOD, sm->prev);
+                                                   DETECT_PCRE, sm->prev);
         if (pm != NULL) {
             /* pm is never NULL.  So no NULL check */
             if (pm->type == DETECT_CONTENT) {
@@ -147,7 +147,7 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
         pm = SigMatchGetLastSMFromLists(s, 4,
                                         DETECT_AL_HTTP_METHOD,
                                         s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
-                                        DETECT_PCRE_HTTPMETHOD,
+                                        DETECT_PCRE,
                                         s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]);
         if (pm == NULL) {
             SCLogError(SC_ERR_HTTP_METHOD_RELATIVE_MISSING, "http_method with "
@@ -155,7 +155,7 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
                     "content, but none was found");
             goto error;
         }
-        if (pm->type == DETECT_PCRE_HTTPMETHOD) {
+        if (pm->type == DETECT_PCRE) {
             DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
             tmp_pd->flags |= DETECT_PCRE_RELATIVE_NEXT;
         } else {

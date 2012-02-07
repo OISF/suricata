@@ -44,6 +44,7 @@
 #include "detect-isdataat.h"
 #include "detect-bytetest.h"
 #include "detect-bytejump.h"
+#include "detect-engine-content-inspection.h"
 
 #include "flow-util.h"
 #include "util-spm.h"
@@ -421,9 +422,14 @@ int DetectEngineInspectHttpRawHeader(DetectEngineCtx *de_ctx,
         if (raw_headers == NULL)
             continue;
 
-        r = DoInspectHttpRawHeader(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HRHDMATCH],
-                                   (uint8_t *)bstr_ptr(raw_headers),
-                                   bstr_len(raw_headers));
+        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HRHDMATCH],
+                                          f,
+                                          (uint8_t *)bstr_ptr(raw_headers),
+                                          bstr_len(raw_headers),
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_HRHD, NULL);
+        //r = DoInspectHttpRawHeader(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HRHDMATCH],
+        //(uint8_t *)bstr_ptr(raw_headers),
+        //bstr_len(raw_headers));
         if (r == 1) {
             break;
         }

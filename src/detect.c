@@ -2205,9 +2205,7 @@ static int SignatureCreateMask(Signature *s) {
             case DETECT_AL_HTTP_URI:
             case DETECT_AL_HTTP_RAW_URI:
             case DETECT_PCRE_HTTPBODY:
-            case DETECT_PCRE_HTTPCOOKIE:
             case DETECT_PCRE_HTTPHEADER:
-            case DETECT_PCRE_HTTPMETHOD:
                 s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
                 SCLogDebug("sig requires dce http state");
                 break;

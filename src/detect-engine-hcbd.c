@@ -44,6 +44,7 @@
 #include "detect-isdataat.h"
 #include "detect-bytetest.h"
 #include "detect-bytejump.h"
+#include "detect-engine-content-inspection.h"
 
 #include "flow-util.h"
 #include "util-spm.h"
@@ -505,8 +506,13 @@ int DetectEngineInspectHttpClientBody(DetectEngineCtx *de_ctx,
         if (hcbd_buffer == NULL)
             continue;
 
-        r = DoInspectHttpClientBody(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HCBDMATCH],
-                                    hcbd_buffer, hcbd_buffer_len);
+        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HCBDMATCH],
+                                          f,
+                                          hcbd_buffer,
+                                          hcbd_buffer_len,
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_HCBD, NULL);
+        //r = DoInspectHttpClientBody(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HCBDMATCH],
+        //hcbd_buffer, hcbd_buffer_len);
         if (r == 1) {
             break;
         }

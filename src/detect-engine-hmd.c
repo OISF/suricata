@@ -44,6 +44,7 @@
 #include "detect-isdataat.h"
 #include "detect-bytetest.h"
 #include "detect-bytejump.h"
+#include "detect-engine-content-inspection.h"
 
 #include "flow-util.h"
 #include "util-spm.h"
@@ -401,9 +402,14 @@ int DetectEngineInspectHttpMethod(DetectEngineCtx *de_ctx,
         if (tx == NULL || tx->request_method == NULL)
             continue;
 
-        r = DoInspectHttpMethod(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HMDMATCH],
-                                   (uint8_t *)bstr_ptr(tx->request_method),
-                                   bstr_len(tx->request_method));
+        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HMDMATCH],
+                                          f,
+                                          (uint8_t *)bstr_ptr(tx->request_method),
+                                          bstr_len(tx->request_method),
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_HMD, NULL);
+        //r = DoInspectHttpMethod(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HMDMATCH],
+        //(uint8_t *)bstr_ptr(tx->request_method),
+        //bstr_len(tx->request_method));
         if (r == 1) {
             break;
         }

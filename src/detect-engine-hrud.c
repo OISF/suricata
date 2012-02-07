@@ -44,6 +44,7 @@
 #include "detect-isdataat.h"
 #include "detect-bytetest.h"
 #include "detect-bytejump.h"
+#include "detect-engine-content-inspection.h"
 
 #include "flow-util.h"
 #include "util-spm.h"
@@ -479,10 +480,15 @@ int DetectEngineInspectHttpRawUri(DetectEngineCtx *de_ctx,
 
         /* Inspect all the uricontents fetched on each
          * transaction at the app layer */
-        r = DoInspectHttpRawUri(de_ctx, det_ctx, s,
-                                s->sm_lists[DETECT_SM_LIST_HRUDMATCH],
-                                (uint8_t *)bstr_ptr(tx->request_uri),
-                                bstr_len(tx->request_uri));
+        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HRUDMATCH],
+                                          f,
+                                          (uint8_t *)bstr_ptr(tx->request_uri),
+                                          bstr_len(tx->request_uri),
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_HRUD, NULL);
+        //r = DoInspectHttpRawUri(de_ctx, det_ctx, s,
+        //                        s->sm_lists[DETECT_SM_LIST_HRUDMATCH],
+        //                        (uint8_t *)bstr_ptr(tx->request_uri),
+        //                        bstr_len(tx->request_uri));
         if (r == 1) {
             goto end;
         }

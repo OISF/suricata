@@ -38,6 +38,7 @@
 #include "detect-bytejump.h"
 #include "detect-byte-extract.h"
 #include "detect-replace.h"
+#include "detect-engine-content-inspection.h"
 
 #include "util-spm.h"
 #include "util-spm-bm.h"
@@ -478,7 +479,10 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
     det_ctx->replist = NULL;
     //det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_INSPECTING_PACKET;
 
-    r = DoInspectPacketPayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_PMATCH], p, f, p->payload, p->payload_len);
+    r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_PMATCH],
+                                      f, p->payload, p->payload_len,
+                                      DETECT_ENGINE_CONTENT_INSPECTION_MODE_PAYLOAD, p);
+    //r = DoInspectPacketPayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_PMATCH], p, f, p->payload, p->payload_len);
     //det_ctx->flags &= ~DETECT_ENGINE_THREAD_CTX_INSPECTING_PACKET;
     if (r == 1) {
         SCReturnInt(1);
@@ -517,10 +521,14 @@ int DetectEngineInspectStreamPayload(DetectEngineCtx *de_ctx,
     det_ctx->payload_offset = 0;
     det_ctx->discontinue_matching = 0;
     det_ctx->inspection_recursion_counter = 0;
-    det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_INSPECTING_STREAM;
+    //det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_INSPECTING_STREAM;
 
-    r = DoInspectPacketPayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_PMATCH], NULL, f, payload, payload_len);
-    det_ctx->flags &= ~DETECT_ENGINE_THREAD_CTX_INSPECTING_STREAM;
+    r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_PMATCH],
+                                      f, payload, payload_len,
+                                      DETECT_ENGINE_CONTENT_INSPECTION_MODE_STREAM, NULL);
+
+    //r = DoInspectPacketPayload(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_PMATCH], NULL, f, payload, payload_len);
+    //det_ctx->flags &= ~DETECT_ENGINE_THREAD_CTX_INSPECTING_STREAM;
     if (r == 1) {
         SCReturnInt(1);
     }
