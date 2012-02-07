@@ -1,0 +1,70 @@
+#!/usr/bin/python
+# Copyright(C) 2012 Open Information Security Foundation
+
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+
+import simplejson as json
+import readline
+import re
+from socket import socket, AF_UNIX, error
+from time import sleep
+import sys
+
+VERSION = "0.1"
+SOCKET_PATH = "@e_localstatedir@/run/suricata/suricata-command.socket"
+SIZE = 4096
+COMMANDS_REGEX = re.compile("^(?:shutdown|quit)$")
+
+socket = socket(AF_UNIX)
+socket.connect(SOCKET_PATH)
+
+#send version
+socket.send(json.dumps({"version": VERSION}))
+
+# get return
+data = socket.recv(SIZE)
+#decode json message
+cmdret = json.loads(data)
+
+# if ok loop
+if cmdret["return"] == "NOK":
+    sys.stderr.write("Error: %s" % (cmdret["message"]))
+    sys.exit(1)
+
+# if ok loop
+try:
+    readline.parse_and_bind('tab: complete')
+    while True:
+        command = raw_input(">>> ").strip()
+        if COMMANDS_REGEX.match(command):
+            if command == "quit":
+                break;
+            cmdmsg = {}
+            cmdmsg["command"] = command
+            socket.send(json.dumps(cmdmsg))
+            data = socket.recv(SIZE)
+            #decode json message
+            cmdret = json.loads(data)
+            if cmdret["return"] == "NOK":
+                print "Error: %s" % (cmdret["message"])
+            else:
+                print "Success: %s" % (cmdret["message"])
+        else:
+            print "Unknown command: %s" % (command)
+except KeyboardInterrupt:
+    print "[!] Interrupted"
+
+print "[+] Quit command client"
+
+sys.exit(1)
