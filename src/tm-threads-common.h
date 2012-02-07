@@ -92,6 +92,7 @@ typedef enum {
 enum {
     TVT_PPT,
     TVT_MGMT,
+    TVT_CMD,
     TVT_MAX,
 };
 
