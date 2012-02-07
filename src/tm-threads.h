@@ -82,11 +82,14 @@ ThreadVars *TmThreadCreate(char *, char *, char *, char *, char *, char *,
 ThreadVars *TmThreadCreatePacketHandler(char *, char *, char *, char *, char *,
                                         char *);
 ThreadVars *TmThreadCreateMgmtThread(char *name, void *(fn_p)(void *), int);
+ThreadVars *TmThreadCreateCmdThread(char *name, void *(fn_p)(void *), int);
 TmEcode TmThreadSpawn(ThreadVars *);
 void TmThreadSetFlags(ThreadVars *, uint8_t);
 void TmThreadSetAOF(ThreadVars *, uint8_t);
 void TmThreadKillThread(ThreadVars *);
+void TmThreadKillThreadsFamily(int family);
 void TmThreadKillThreads(void);
+void TmThreadClearThreadsFamily(int family);
 void TmThreadAppend(ThreadVars *, int);
 void TmThreadRemove(ThreadVars *, int);
 
