@@ -131,6 +131,7 @@
 #include "pkt-var.h"
 
 #include "host.h"
+#include "unix-manager.h"
 
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
@@ -1852,6 +1853,15 @@ int main(int argc, char **argv)
 
     /* Spawn the flow manager thread */
     FlowManagerThreadSpawn();
+#ifdef BUILD_UNIX_SOCKET
+    /* Spawn the unix socket manager thread */
+    int unix_socket = 0;
+    if (ConfGetBool("unix-command", &unix_socket) != 1)
+        unix_socket = 0;
+    if (unix_socket == 1) {
+        UnixManagerThreadSpawn();
+    }
+#endif
 
     StreamTcpInitConfig(STREAM_VERBOSE);
 
