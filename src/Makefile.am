@@ -252,6 +252,7 @@ util-file.c util-file.h \
 util-path.c util-path.h \
 util-buffer.c util-buffer.h \
 util-crypt.c util-crypt.h \
+unix-manager.c unix-manager.h \
 tm-modules.c tm-modules.h \
 tm-queues.c tm-queues.h \
 tm-queuehandlers.c tm-queuehandlers.h \
@@ -378,6 +379,7 @@ endif
 
 
 #suricata_CFLAGS = -Wall -fno-strict-aliasing 
+AM_CFLAGS = -DLOCAL_STATE_DIR=\"$(localstatedir)\"
 
 if BUILD_UNITTESTS
 check-am:
