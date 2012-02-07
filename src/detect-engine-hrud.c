@@ -39,6 +39,7 @@
 #include "detect-engine-mpm.h"
 #include "detect-parse.h"
 #include "detect-engine-state.h"
+#include "detect-urilen.h"
 #include "detect-pcre.h"
 #include "detect-isdataat.h"
 #include "detect-bytetest.h"
@@ -314,6 +315,38 @@ static int DoInspectHttpRawUri(DetectEngineCtx *de_ctx,
                 SCReturnInt(0);
             }
         }
+    } else if (sm->type == DETECT_AL_URILEN) {
+        SCLogDebug("inspecting uri len");
+
+        int r = 0;
+        DetectUrilenData *urilend = (DetectUrilenData *) sm->ctx;
+
+        switch (urilend->mode) {
+            case DETECT_URILEN_EQ:
+                if (payload_len == urilend->urilen1)
+                    r = 1;
+                break;
+            case DETECT_URILEN_LT:
+                if (payload_len < urilend->urilen1)
+                    r = 1;
+                break;
+            case DETECT_URILEN_GT:
+                if (payload_len > urilend->urilen1)
+                    r = 1;
+                break;
+            case DETECT_URILEN_RA:
+                if (payload_len > urilend->urilen1 &&
+                    payload_len < urilend->urilen2) {
+                    r = 1;
+                }
+                break;
+        }
+
+        if (r == 1) {
+            goto match;
+        }
+
+        SCReturnInt(0);
     } else {
         /* we should never get here, but bail out just in case */
         SCLogDebug("sm->type %u", sm->type);

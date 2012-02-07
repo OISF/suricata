@@ -342,7 +342,10 @@ static int DetectUrilenSetup (DetectEngineCtx *de_ctx, Signature *s, char *urile
     sm->type = DETECT_AL_URILEN;
     sm->ctx = (void *)urilend;
 
-    SigMatchAppendUricontent(s,sm);
+    if (urilend->raw_buffer)
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HRUDMATCH);
+    else
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_UMATCH);
 
     /* Flagged the signature as to inspect the app layer data */
     s->flags |= SIG_FLAG_APPLAYER;

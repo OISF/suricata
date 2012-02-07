@@ -78,8 +78,7 @@
 static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
                               DetectEngineThreadCtx *det_ctx,
                               Signature *s, SigMatch *sm,
-                              uint8_t *payload, uint32_t payload_len,
-                              htp_tx_t *tx)
+                              uint8_t *payload, uint32_t payload_len)
 {
     SCEnter();
 
@@ -273,7 +272,7 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
                 /* see if the next payload keywords match. If not, we will
                  * search for another occurence of this uricontent and see
                  * if the others match then until we run out of matches */
-                int r = DoInspectPacketUri(de_ctx,det_ctx,s,sm->next, payload, payload_len, tx);
+                int r = DoInspectPacketUri(de_ctx,det_ctx,s,sm->next, payload, payload_len);
                 if (r == 1) {
                     SCReturnInt(1);
                 }
@@ -315,7 +314,7 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
              * search for another occurence of this pcre and see
              * if the others match, until we run out of matches */
             r = DoInspectPacketUri(de_ctx, det_ctx, s, sm->next,
-                                   payload, payload_len, tx);
+                                   payload, payload_len);
             if (r == 1) {
                 SCReturnInt(1);
             }
@@ -360,27 +359,25 @@ static int DoInspectPacketUri(DetectEngineCtx *de_ctx,
 
         int r = 0;
         DetectUrilenData *urilend = (DetectUrilenData *) sm->ctx;
-        uint32_t p_len = payload_len;
-        if (urilend->raw_buffer)
-            p_len = bstr_len(tx->request_uri);
 
         switch (urilend->mode) {
             case DETECT_URILEN_EQ:
-                if (p_len == urilend->urilen1)
+                if (payload_len == urilend->urilen1)
                     r = 1;
                 break;
             case DETECT_URILEN_LT:
-                if (p_len < urilend->urilen1)
+                if (payload_len < urilend->urilen1)
                     r = 1;
                 break;
             case DETECT_URILEN_GT:
-                if (p_len > urilend->urilen1)
+                if (payload_len > urilend->urilen1)
                     r = 1;
                 break;
             case DETECT_URILEN_RA:
-                if (p_len > urilend->urilen1 &&
-                        p_len < urilend->urilen2)
+                if (payload_len > urilend->urilen1 &&
+                    payload_len < urilend->urilen2) {
                     r = 1;
+                }
                 break;
         }
 
@@ -413,7 +410,7 @@ match:
      * the payload portion of the signature matched. */
     if (sm->next != NULL) {
         int r = DoInspectPacketUri(de_ctx, det_ctx, s, sm->next, payload,
-                                   payload_len, tx);
+                                   payload_len);
         SCReturnInt(r);
     } else {
         SCReturnInt(1);
@@ -486,7 +483,7 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
          * transaction at the app layer */
         r = DoInspectPacketUri(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_UMATCH],
                                (uint8_t *)bstr_ptr(tx->request_uri_normalized),
-                               bstr_len(tx->request_uri_normalized), tx);
+                               bstr_len(tx->request_uri_normalized));
         if (r == 1) {
             break;
         }
