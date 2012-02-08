@@ -347,6 +347,8 @@ AC_INIT(configure.in)
        else
            AC_MSG_RESULT(yes)
        fi
+    else
+       AC_MSG_RESULT(no)
     fi
 
 #libyaml
