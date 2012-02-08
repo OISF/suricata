@@ -17,16 +17,17 @@ install-full: install-conf install-rules
 
 install-conf:
 	install -d $(sysconfdir)
-	test -e $(sysconfdir)/suricata.yaml || install -m 600 $(top_srcdir)/suricata.yaml $(sysconfdir)
-	test -e $(sysconfdir)/classification.config || install -m 600 $(top_srcdir)/classification.config $(sysconfdir)
-	test -e $(sysconfdir)/reference.config || install -m 600 $(top_srcdir)/reference.config $(sysconfdir)
+	@test -e $(sysconfdir)/suricata.yaml || install -m 600 $(top_srcdir)/suricata.yaml $(sysconfdir)
+	@test -e $(sysconfdir)/classification.config || install -m 600 $(top_srcdir)/classification.config $(sysconfdir)
+	@test -e $(sysconfdir)/reference.config || install -m 600 $(top_srcdir)/reference.config $(sysconfdir)
 	install -d $(localstatedir)/log/suricata
 
 install-rules:
 	install -d $(sysconfdir)/rules
-	wget -qO - http://rules.emergingthreats.net/open/suricata/emerging.rules.tar.gz | tar zkxv -C $(sysconfdir)
-	test -e $(sysconfdir)/rules/decoder-events.rules || install -m 600 $(top_srcdir)/rules/decoder-events.rules $(sysconfdir)/rules/
-	test -e $(sysconfdir)/rules/stream-events.rules || install -m 600 $(top_srcdir)/rules/stream-events.rules $(sysconfdir)/rules/
-	test -e $(sysconfdir)/rules/smtp-events.rules || install -m 600 $(top_srcdir)/rules/smtp-events.rules $(sysconfdir)/rules/
-	test -e $(sysconfdir)/rules/http-events.rules || install -m 600 $(top_srcdir)/rules/http-events.rules $(sysconfdir)/rules/
-	@echo "You can now start suricata by running as root something like '$(bindir)/suricata -c $(sysconfdir)/suricata.yaml -i eth0'"
+	wget -qO - http://rules.emergingthreats.net/open/suricata/emerging.rules.tar.gz | tar zkx -C $(sysconfdir)
+	@test -e $(sysconfdir)/rules/decoder-events.rules || install -m 600 $(top_srcdir)/rules/decoder-events.rules $(sysconfdir)/rules/
+	@test -e $(sysconfdir)/rules/stream-events.rules || install -m 600 $(top_srcdir)/rules/stream-events.rules $(sysconfdir)/rules/
+	@test -e $(sysconfdir)/rules/smtp-events.rules || install -m 600 $(top_srcdir)/rules/smtp-events.rules $(sysconfdir)/rules/
+	@test -e $(sysconfdir)/rules/http-events.rules || install -m 600 $(top_srcdir)/rules/http-events.rules $(sysconfdir)/rules/
+	@echo "You can now start suricata by running as root something like '$(bindir)/suricata -c $(sysconfdir)/suricata.yaml -i eth0'."
+	@echo "If a library like libhtp.so is not found, you can run suricata with 'LD_LIBRARY_PATH=$(prefix)/lib $(bindir)/suricata -c $(sysconfdir)/suricata.yaml -i eth0'."
