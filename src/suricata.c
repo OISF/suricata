@@ -103,6 +103,7 @@
 
 #include "source-erf-file.h"
 #include "source-erf-dag.h"
+#include "source-napatech.h"
 
 #include "source-af-packet.h"
 
@@ -467,6 +468,9 @@ void usage(const char *progname)
 #ifdef HAVE_DAG
     printf("\t--dag <dag0,dag1,...>        : process ERF records from 0,1,...,n DAG input streams\n");
 #endif
+#ifdef HAVE_NAPATECH
+    printf("\t--napatech <adapter>          : run Napatech feeds using <adapter>\n");
+#endif
     printf("\n");
     printf("\nTo run the engine with default configuration on "
             "interface eth0 with signature file \"signatures.rules\", run the "
@@ -694,6 +698,7 @@ int main(int argc, char **argv)
         {"group", required_argument, 0, 0},
         {"erf-in", required_argument, 0, 0},
         {"dag", required_argument, 0, 0},
+        {"napatech", required_argument, 0, 0},
         {"build-info", 0, &build_info, 1},
         {NULL, 0, NULL, 0}
     };
@@ -909,6 +914,19 @@ int main(int argc, char **argv)
 						" to receieve packets using --dag.");
 				exit(EXIT_FAILURE);
 #endif /* HAVE_DAG */
+		}
+                else if (strcmp((long_opts[option_index]).name, "napatech") == 0) {
+#ifdef HAVE_NAPATECH
+                run_mode = RUNMODE_NAPATECH;
+                if (ConfSet("napatech.adapter", optarg, 0) != 1) {
+                    fprintf(stderr, "ERROR: Failed to set napatech.adapter\n");
+                    exit(EXIT_FAILURE);
+                }
+#else
+                SCLogError(SC_ERR_NAPATECH_REQUIRED, "libntcommoninterface and a Napatech adapter are required"
+                                                    " to capture packets using --napatech.");
+                exit(EXIT_FAILURE);
+#endif /* HAVE_NAPATECH */
 			}
             else if(strcmp((long_opts[option_index]).name, "pcap-buffer-size") == 0) {
 #ifdef HAVE_PCAP_SET_BUFF
@@ -1307,6 +1325,8 @@ int main(int argc, char **argv)
     TmModuleDecodeErfFileRegister();
     TmModuleReceiveErfDagRegister();
     TmModuleDecodeErfDagRegister();
+    TmModuleNapatechFeedRegister();
+    TmModuleNapatechDecodeRegister();
     TmModuleDebugList();
 
     AppLayerHtpNeedFileInspection();
