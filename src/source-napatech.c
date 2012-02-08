@@ -64,7 +64,7 @@ void TmModuleNapatechDecodeRegister (void) {
 
 TmEcode NoNapatechSupportExit(ThreadVars *tv, void *initdata, void **data)
 {
-    SCLogError(SC_ERR_NAPTECH_NOSUPPORT,
+    SCLogError(SC_ERR_NAPATECH_NOSUPPORT,
                "Error creating thread %s: you do not have support for Napatech adapter "
                "enabled please recompile with --enable-napatech", tv->name);
     exit(EXIT_FAILURE);

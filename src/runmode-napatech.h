@@ -23,7 +23,9 @@
 #ifndef __RUNMODE_NAPATECH_H__
 #define __RUNMODE_NAPATECH_H__
 
+#ifdef HAVE_NAPATECH
 #include "ntfeeds.h"
+#endif
 
 int RunModeNapatechAuto(DetectEngineCtx *);
 void RunModeNapatechRegister(void);

@@ -25,8 +25,6 @@
 
 #include "alert-fastlog.h"
 #include "alert-prelude.h"
-#include "alert-unified-log.h"
-#include "alert-unified-alert.h"
 #include "alert-unified2-alert.h"
 #include "alert-debuglog.h"
 
@@ -47,17 +45,19 @@ const char *RunModeNapatechGetDefaultMode(void)
 
 void RunModeNapatechRegister(void)
 {
+#ifdef HAVE_NAPATECH
     default_mode = "auto";
     RunModeRegisterNewRunMode(RUNMODE_NAPATECH, "auto",
                               "Multi threaded Napatech  mode",
                               RunModeNapatechAuto2);
     return;
+#endif
 }
 
 #define MAX_NAPATECH_DETECT  2
 
 int RunModeNapatechAuto(DetectEngineCtx *de_ctx) {
-
+#ifdef HAVE_NAPATECH
     int i;
     uint16_t feed, cpu;
     char tname [128];
@@ -198,11 +198,12 @@ int RunModeNapatechAuto(DetectEngineCtx *de_ctx) {
         }
 
     }
+#endif
     return 0;
 }
 
 int RunModeNapatechAuto2(DetectEngineCtx *de_ctx) {
-
+#ifdef HAVE_NAPATECH
     int i;
     uint16_t feed, cpu;
     char tname [128];
@@ -374,5 +375,7 @@ int RunModeNapatechAuto2(DetectEngineCtx *de_ctx) {
         }
 #endif
     }
+#endif /* HAVE_NAPATECH */
     return 0;
 }
+
