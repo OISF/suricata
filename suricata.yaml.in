@@ -663,7 +663,6 @@ rule-files:
  - emerging-attack_response.rules
  - emerging-chat.rules
  - emerging-current_events.rules
- - emerging-deleted.rules
  - emerging-dns.rules
  - emerging-dos.rules
  - emerging-exploit.rules
