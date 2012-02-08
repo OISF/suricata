@@ -102,8 +102,7 @@ TmEcode NapatechDecode(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueu
 /**
  * \brief Register the Napatech receiver (reader) module.
  */
-    void
-TmModuleNapatechFeedRegister(void)
+void TmModuleNapatechFeedRegister(void)
 {
     tmm_modules[TMM_RECEIVENAPATECH].name = "NapatechFeed";
     tmm_modules[TMM_RECEIVENAPATECH].ThreadInit = NapatechFeedThreadInit;
@@ -118,8 +117,7 @@ TmModuleNapatechFeedRegister(void)
 /**
  * \brief Register the Napatech decoder module.
  */
-    void
-TmModuleNapatechDecodeRegister(void)
+void TmModuleNapatechDecodeRegister(void)
 {
     tmm_modules[TMM_DECODENAPATECH].name = "NapatechDecode";
     tmm_modules[TMM_DECODENAPATECH].ThreadInit = NapatechDecodeThreadInit;
@@ -146,8 +144,7 @@ TmModuleNapatechDecodeRegister(void)
  * \param data      data pointer gets populated with
  *
  */
-    TmEcode
-NapatechFeedThreadInit(ThreadVars *tv, void *initdata, void **data)
+TmEcode NapatechFeedThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     SCEnter();
     char *feedName = (char *) initdata;
@@ -273,8 +270,7 @@ TmEcode NapatechFeedLoop(ThreadVars *tv, void *data, void *slot)
  * \param tv Pointer to ThreadVars.
  * \param data Pointer to data, ErfFileThreadVars.
  */
-    void
-NapatechFeedThreadExitStats(ThreadVars *tv, void *data)
+void NapatechFeedThreadExitStats(ThreadVars *tv, void *data)
 {
     NapatechThreadVars *ntv = (NapatechThreadVars *)data;
     if (napatech_statistics(ntv->feed, &ntv->pkts, &ntv->drops, &ntv->bytes)==0) {
@@ -333,7 +329,7 @@ TmEcode NapatechDecode(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->sc_perf_pca, p->pktlen);
     SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca, p->pktlen);
 
-    switch(p->datalink) {
+    switch (p->datalink) {
         case LINKTYPE_ETHERNET:
             DecodeEthernet(tv, dtv, p, GET_PKT_DATA(p), GET_PKT_LEN(p), pq);
             break;
