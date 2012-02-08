@@ -65,8 +65,8 @@ void TmModuleNapatechDecodeRegister (void) {
 TmEcode NoNapatechSupportExit(ThreadVars *tv, void *initdata, void **data)
 {
     SCLogError(SC_ERR_NAPATECH_NOSUPPORT,
-               "Error creating thread %s: you do not have support for Napatech adapter "
-               "enabled please recompile with --enable-napatech", tv->name);
+            "Error creating thread %s: you do not have support for Napatech adapter "
+            "enabled please recompile with --enable-napatech", tv->name);
     exit(EXIT_FAILURE);
 }
 
@@ -102,7 +102,7 @@ TmEcode NapatechDecode(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueu
 /**
  * \brief Register the Napatech receiver (reader) module.
  */
-void
+    void
 TmModuleNapatechFeedRegister(void)
 {
     tmm_modules[TMM_RECEIVENAPATECH].name = "NapatechFeed";
@@ -118,7 +118,7 @@ TmModuleNapatechFeedRegister(void)
 /**
  * \brief Register the Napatech decoder module.
  */
-void
+    void
 TmModuleNapatechDecodeRegister(void)
 {
     tmm_modules[TMM_DECODENAPATECH].name = "NapatechDecode";
@@ -146,7 +146,7 @@ TmModuleNapatechDecodeRegister(void)
  * \param data      data pointer gets populated with
  *
  */
-TmEcode
+    TmEcode
 NapatechFeedThreadInit(ThreadVars *tv, void *initdata, void **data)
 {
     SCEnter();
@@ -161,7 +161,7 @@ NapatechFeedThreadInit(ThreadVars *tv, void *initdata, void **data)
     NapatechThreadVars *ntv = SCMalloc(sizeof(NapatechThreadVars));
     if (ntv == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC,
-                   "Failed to allocate memory for NAPATECH thread vars.");
+                "Failed to allocate memory for NAPATECH thread vars.");
         exit(EXIT_FAILURE);
     }
 
@@ -171,7 +171,7 @@ NapatechFeedThreadInit(ThreadVars *tv, void *initdata, void **data)
     ntv->tv = tv;
 
     /*  Use max_pending_packets as our maximum number of packets read
-     from the NAPATECH buffer.
+        from the NAPATECH buffer.
      */
     ntv->max_read_packets = max_pending_packets;
     SCLogInfo("Opening NAPATECH %d:%d for processing", ntv->adapter_number, ntv->feed_number);
@@ -210,7 +210,7 @@ TmEcode NapatechFeedLoop(ThreadVars *tv, void *data, void *slot)
 
     while (1) {
         if (suricata_ctl_flags & SURICATA_STOP ||
-            suricata_ctl_flags & SURICATA_KILL)
+                suricata_ctl_flags & SURICATA_KILL)
         {
             SCReturnInt(TM_ECODE_OK);
         }
@@ -223,7 +223,7 @@ TmEcode NapatechFeedLoop(ThreadVars *tv, void *data, void *slot)
             }
         } while (packet_q_len == 0);
 
-		/*
+        /*
          * Napatech returns frames in segment chunks.  Function ntci_next_frame
          * returns 1 for a frame, 0 if the segment is empty, and -1 on error
          */
@@ -232,35 +232,35 @@ TmEcode NapatechFeedLoop(ThreadVars *tv, void *data, void *slot)
             /*
              * no frames currently available
              */
-             continue;
+            continue;
         }
         else if (status < 0) {
             SCLogError(SC_ERR_NAPATECH_FEED_NEXT_FAILED,
-                           "Failed to read from Napatech feed %d:%d",
-                            ntv->adapter_number, ntv->feed_number);
+                    "Failed to read from Napatech feed %d:%d",
+                    ntv->adapter_number, ntv->feed_number);
             SCReturnInt(TM_ECODE_FAILED);
         }
-	// beware that storelen is aligned; therefore, it may be larger than "caplen"
-	caplen = (header->wireLen < header->storeLen) ? header->wireLen : header->storeLen;
-	Packet *p = PacketGetFromQueueOrAlloc();
-	if (unlikely(p == NULL)) {
+        // beware that storelen is aligned; therefore, it may be larger than "caplen"
+        caplen = (header->wireLen < header->storeLen) ? header->wireLen : header->storeLen;
+        Packet *p = PacketGetFromQueueOrAlloc();
+        if (unlikely(p == NULL)) {
             SCReturnInt(TM_ECODE_FAILED);
-	}
+        }
 
-	p->ts.tv_sec = header->ts.tv_sec;
-	p->ts.tv_usec = header->ts.tv_usec;
-	SCLogDebug("p->ts.tv_sec %"PRIuMAX"", (uintmax_t)p->ts.tv_sec);
-	p->datalink = LINKTYPE_ETHERNET;
+        p->ts.tv_sec = header->ts.tv_sec;
+        p->ts.tv_usec = header->ts.tv_usec;
+        SCLogDebug("p->ts.tv_sec %"PRIuMAX"", (uintmax_t)p->ts.tv_sec);
+        p->datalink = LINKTYPE_ETHERNET;
 
-	ntv->pkts++;
-	ntv->bytes += caplen;
+        ntv->pkts++;
+        ntv->bytes += caplen;
 
-	if (unlikely(PacketCopyData(p, frame, caplen))) {
-		TmqhOutputPacketpool(ntv->tv, p);
-		SCReturnInt(TM_ECODE_FAILED);
-	}
+        if (unlikely(PacketCopyData(p, frame, caplen))) {
+            TmqhOutputPacketpool(ntv->tv, p);
+            SCReturnInt(TM_ECODE_FAILED);
+        }
 
-	TmThreadsSlotProcessPkt(ntv->tv, ntv->slot, p);
+        TmThreadsSlotProcessPkt(ntv->tv, ntv->slot, p);
 
     }
 
@@ -273,7 +273,7 @@ TmEcode NapatechFeedLoop(ThreadVars *tv, void *data, void *slot)
  * \param tv Pointer to ThreadVars.
  * \param data Pointer to data, ErfFileThreadVars.
  */
-void
+    void
 NapatechFeedThreadExitStats(ThreadVars *tv, void *data)
 {
     NapatechThreadVars *ntv = (NapatechThreadVars *)data;
@@ -315,7 +315,7 @@ TmEcode NapatechFeedThreadDeinit(ThreadVars *tv, void *data)
  * \param pq pointer to the current PacketQueue
  */
 TmEcode NapatechDecode(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
-                       PacketQueue *postpq)
+        PacketQueue *postpq)
 {
     SCEnter();
 
@@ -328,7 +328,7 @@ TmEcode NapatechDecode(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     SCPerfCounterAddUI64(dtv->counter_bytes, tv->sc_perf_pca, p->pktlen);
     SCPerfCounterAddDouble(dtv->counter_bytes_per_sec, tv->sc_perf_pca, p->pktlen);
     SCPerfCounterAddDouble(dtv->counter_mbit_per_sec, tv->sc_perf_pca,
-                           (p->pktlen * 8)/1000000.0);
+            (p->pktlen * 8)/1000000.0);
 
     SCPerfCounterAddUI64(dtv->counter_avg_pkt_size, tv->sc_perf_pca, p->pktlen);
     SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca, p->pktlen);
@@ -339,8 +339,8 @@ TmEcode NapatechDecode(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
             break;
         default:
             SCLogError(SC_ERR_DATALINK_UNIMPLEMENTED,
-                "Error: datalink type %" PRId32 " not yet supported in module DecodeNapatech",
-                p->datalink);
+                    "Error: datalink type %" PRId32 " not yet supported in module DecodeNapatech",
+                    p->datalink);
             break;
     }
     SCReturnInt(TM_ECODE_OK);

@@ -48,13 +48,11 @@ void RunModeNapatechRegister(void)
 #ifdef HAVE_NAPATECH
     default_mode = "auto";
     RunModeRegisterNewRunMode(RUNMODE_NAPATECH, "auto",
-                              "Multi threaded Napatech  mode",
-                              RunModeNapatechAuto2);
+            "Multi threaded Napatech  mode",
+            RunModeNapatechAuto2);
     return;
 #endif
 }
-
-#define MAX_NAPATECH_DETECT  2
 
 int RunModeNapatechAuto(DetectEngineCtx *de_ctx) {
 #ifdef HAVE_NAPATECH
@@ -106,33 +104,33 @@ int RunModeNapatechAuto(DetectEngineCtx *de_ctx) {
 
         /* create the threads */
         ThreadVars *tv_napatechFeed = TmThreadCreatePacketHandler(threadName,"packetpool",
-                                                                  "packetpool",outQueueName,
-                                                                  "simple","pktacqloop");
+                "packetpool",outQueueName,
+                "simple","pktacqloop");
         if (tv_napatechFeed == NULL) {
-                fprintf(stderr, "ERROR: TmThreadsCreate failed\n");
-                exit(EXIT_FAILURE);
+            fprintf(stderr, "ERROR: TmThreadsCreate failed\n");
+            exit(EXIT_FAILURE);
         }
         TmModule *tm_module = TmModuleGetByName("NapatechFeed");
         if (tm_module == NULL) {
-                fprintf(stderr, "ERROR: TmModuleGetByName failed for NapatechFeed\n");
-                exit(EXIT_FAILURE);
+            fprintf(stderr, "ERROR: TmModuleGetByName failed for NapatechFeed\n");
+            exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend (tv_napatechFeed,tm_module,feedName);
 
         tm_module = TmModuleGetByName("NapatechDecode");
         if (tm_module == NULL) {
-                fprintf(stderr, "ERROR: TmModuleGetByName failed for NapatechDecode\n");
-                exit(EXIT_FAILURE);
+            fprintf(stderr, "ERROR: TmModuleGetByName failed for NapatechDecode\n");
+            exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend(tv_napatechFeed,tm_module,feedName);
 
         if (threading_set_cpu_affinity) {
-                TmThreadSetCPUAffinity(tv_napatechFeed, feed);
+            TmThreadSetCPUAffinity(tv_napatechFeed, feed);
         }
 
         if (TmThreadSpawn(tv_napatechFeed) != TM_ECODE_OK) {
-                printf("ERROR: TmThreadSpawn failed\n");
-                exit(EXIT_FAILURE);
+            printf("ERROR: TmThreadSpawn failed\n");
+            exit(EXIT_FAILURE);
         }
         /*
          * -------------------------------------------
@@ -141,60 +139,60 @@ int RunModeNapatechAuto(DetectEngineCtx *de_ctx) {
         /* hard code it for now */
         uint16_t detect=0;
         /* always create at least one thread */
-	int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
-	if (thread_max == 0)
-		thread_max = ncpus * threading_detect_ratio;
-	if (thread_max < 1)
-		thread_max = 1;
+        int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
+        if (thread_max == 0)
+            thread_max = ncpus * threading_detect_ratio;
+        if (thread_max < 1)
+            thread_max = 1;
 
         for (i=0; i< thread_max; i++)
         {
-                snprintf(tname, sizeof(tname),"Detect%"PRIu16"/%"PRIu16,feed,detect++);
-                threadName = SCStrdup(tname);
-                snprintf(tname, sizeof(tname),"feed-queue%"PRIu16,feed);
-                inQueueName = SCStrdup(tname);
+            snprintf(tname, sizeof(tname),"Detect%"PRIu16"/%"PRIu16,feed,detect++);
+            threadName = SCStrdup(tname);
+            snprintf(tname, sizeof(tname),"feed-queue%"PRIu16,feed);
+            inQueueName = SCStrdup(tname);
 
-                ThreadVars *tv_detect = TmThreadCreatePacketHandler(threadName,
-                                                                    inQueueName,"simple",
-                                                                    "packetpool","packetpool","varslot");
-                if (tv_detect == NULL) {
-                        fprintf(stderr,"ERROR: TmThreadsCreate failed\n");
-                        exit(EXIT_FAILURE);
-                }
+            ThreadVars *tv_detect = TmThreadCreatePacketHandler(threadName,
+                    inQueueName,"simple",
+                    "packetpool","packetpool","varslot");
+            if (tv_detect == NULL) {
+                fprintf(stderr,"ERROR: TmThreadsCreate failed\n");
+                exit(EXIT_FAILURE);
+            }
 
-                tm_module = TmModuleGetByName("StreamTcp");
-                if (tm_module == NULL) {
-                        fprintf(stderr, "ERROR: TmModuleGetByName StreamTcp failed\n");
-                        exit(EXIT_FAILURE);
-                }
-                TmSlotSetFuncAppend(tv_detect,tm_module,NULL);
+            tm_module = TmModuleGetByName("StreamTcp");
+            if (tm_module == NULL) {
+                fprintf(stderr, "ERROR: TmModuleGetByName StreamTcp failed\n");
+                exit(EXIT_FAILURE);
+            }
+            TmSlotSetFuncAppend(tv_detect,tm_module,NULL);
 
-                tm_module = TmModuleGetByName("Detect");
-                if (tm_module == NULL) {
-                        fprintf(stderr, "ERROR: TmModuleGetByName Detect failed\n");
-                        exit(EXIT_FAILURE);
-                }
-                TmSlotSetFuncAppend(tv_detect,tm_module,(void *)de_ctx);
+            tm_module = TmModuleGetByName("Detect");
+            if (tm_module == NULL) {
+                fprintf(stderr, "ERROR: TmModuleGetByName Detect failed\n");
+                exit(EXIT_FAILURE);
+            }
+            TmSlotSetFuncAppend(tv_detect,tm_module,(void *)de_ctx);
 
-                thread_group_name = SCStrdup("Detect");
-                if (thread_group_name == NULL) {
-                        fprintf(stderr, "Error allocating memory\n");
-                        exit(EXIT_FAILURE);
-                }
-                tv_detect->thread_group_name = thread_group_name;
+            thread_group_name = SCStrdup("Detect");
+            if (thread_group_name == NULL) {
+                fprintf(stderr, "Error allocating memory\n");
+                exit(EXIT_FAILURE);
+            }
+            tv_detect->thread_group_name = thread_group_name;
 
-		SetupOutputs(tv_detect);
-		thread_group_name = SCStrdup("Outputs");
-		if (thread_group_name == NULL) {
-			fprintf(stderr, "Error allocating memory\n");
-			exit(EXIT_FAILURE);
-		}
-		tv_detect->thread_group_name = thread_group_name;
+            SetupOutputs(tv_detect);
+            thread_group_name = SCStrdup("Outputs");
+            if (thread_group_name == NULL) {
+                fprintf(stderr, "Error allocating memory\n");
+                exit(EXIT_FAILURE);
+            }
+            tv_detect->thread_group_name = thread_group_name;
 
-                if (TmThreadSpawn(tv_detect) != TM_ECODE_OK) {
-                        fprintf(stderr, "ERROR: TmThreadSpawn failed\n");
-                        exit(EXIT_FAILURE);
-                }
+            if (TmThreadSpawn(tv_detect) != TM_ECODE_OK) {
+                fprintf(stderr, "ERROR: TmThreadSpawn failed\n");
+                exit(EXIT_FAILURE);
+            }
         }
 
     }
@@ -252,62 +250,62 @@ int RunModeNapatechAuto2(DetectEngineCtx *de_ctx) {
 
         /* create the threads */
         ThreadVars *tv_napatechFeed = TmThreadCreatePacketHandler(threadName,"packetpool",
-                                                                  "packetpool","packetpool",
-                                                                  "packetpool","pktacqloop");
+                "packetpool","packetpool",
+                "packetpool","pktacqloop");
         if (tv_napatechFeed == NULL) {
-                fprintf(stderr, "ERROR: TmThreadsCreate failed\n");
-                exit(EXIT_FAILURE);
+            fprintf(stderr, "ERROR: TmThreadsCreate failed\n");
+            exit(EXIT_FAILURE);
         }
         TmModule *tm_module = TmModuleGetByName("NapatechFeed");
         if (tm_module == NULL) {
-                fprintf(stderr, "ERROR: TmModuleGetByName failed for NapatechFeed\n");
-                exit(EXIT_FAILURE);
+            fprintf(stderr, "ERROR: TmModuleGetByName failed for NapatechFeed\n");
+            exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend (tv_napatechFeed,tm_module,feedName);
 
         tm_module = TmModuleGetByName("NapatechDecode");
         if (tm_module == NULL) {
-                fprintf(stderr, "ERROR: TmModuleGetByName failed for NapatechDecode\n");
-                exit(EXIT_FAILURE);
+            fprintf(stderr, "ERROR: TmModuleGetByName failed for NapatechDecode\n");
+            exit(EXIT_FAILURE);
         }
         TmSlotSetFuncAppend(tv_napatechFeed,tm_module,feedName);
 
         if (threading_set_cpu_affinity) {
-                TmThreadSetCPUAffinity(tv_napatechFeed, feed);
+            TmThreadSetCPUAffinity(tv_napatechFeed, feed);
         }
 
-	tm_module = TmModuleGetByName("StreamTcp");
-	if (tm_module == NULL) {
-		fprintf(stderr, "ERROR: TmModuleGetByName StreamTcp failed\n");
-		exit(EXIT_FAILURE);
-	}
-	TmSlotSetFuncAppend(tv_napatechFeed,tm_module,NULL);
+        tm_module = TmModuleGetByName("StreamTcp");
+        if (tm_module == NULL) {
+            fprintf(stderr, "ERROR: TmModuleGetByName StreamTcp failed\n");
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv_napatechFeed,tm_module,NULL);
 
-	tm_module = TmModuleGetByName("Detect");
-	if (tm_module == NULL) {
-		fprintf(stderr, "ERROR: TmModuleGetByName Detect failed\n");
-		exit(EXIT_FAILURE);
-	}
-	TmSlotSetFuncAppend(tv_napatechFeed,tm_module,(void *)de_ctx);
+        tm_module = TmModuleGetByName("Detect");
+        if (tm_module == NULL) {
+            fprintf(stderr, "ERROR: TmModuleGetByName Detect failed\n");
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv_napatechFeed,tm_module,(void *)de_ctx);
 
-	thread_group_name = SCStrdup("Detect");
-	if (thread_group_name == NULL) {
-		fprintf(stderr, "Error allocating memory\n");
-		exit(EXIT_FAILURE);
-	}
-	tv_napatechFeed->thread_group_name = thread_group_name;
+        thread_group_name = SCStrdup("Detect");
+        if (thread_group_name == NULL) {
+            fprintf(stderr, "Error allocating memory\n");
+            exit(EXIT_FAILURE);
+        }
+        tv_napatechFeed->thread_group_name = thread_group_name;
 
-	SetupOutputs(tv_napatechFeed);
-	thread_group_name = SCStrdup("Outputs");
-	if (thread_group_name == NULL) {
-		fprintf(stderr, "Error allocating memory\n");
-		exit(EXIT_FAILURE);
-	}
-	tv_napatechFeed->thread_group_name = thread_group_name;
+        SetupOutputs(tv_napatechFeed);
+        thread_group_name = SCStrdup("Outputs");
+        if (thread_group_name == NULL) {
+            fprintf(stderr, "Error allocating memory\n");
+            exit(EXIT_FAILURE);
+        }
+        tv_napatechFeed->thread_group_name = thread_group_name;
 
         if (TmThreadSpawn(tv_napatechFeed) != TM_ECODE_OK) {
-                printf("ERROR: TmThreadSpawn failed\n");
-                exit(EXIT_FAILURE);
+            printf("ERROR: TmThreadSpawn failed\n");
+            exit(EXIT_FAILURE);
         }
 
 #if 0
@@ -318,60 +316,60 @@ int RunModeNapatechAuto2(DetectEngineCtx *de_ctx) {
         /* hard code it for now */
         uint16_t detect=0;
         /* always create at least one thread */
-	int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
-	if (thread_max == 0)
-		thread_max = ncpus * threading_detect_ratio;
-	if (thread_max < 1)
-		thread_max = 1;
+        int thread_max = TmThreadGetNbThreads(DETECT_CPU_SET);
+        if (thread_max == 0)
+            thread_max = ncpus * threading_detect_ratio;
+        if (thread_max < 1)
+            thread_max = 1;
 
         for (i=0; i< thread_max; i++)
         {
-                snprintf(tname, sizeof(tname),"Detect%"PRIu16"/%"PRIu16,feed,detect++);
-                threadName = SCStrdup(tname);
-                snprintf(tname, sizeof(tname),"feed-queue%"PRIu16,feed);
-                inQueueName = SCStrdup(tname);
+            snprintf(tname, sizeof(tname),"Detect%"PRIu16"/%"PRIu16,feed,detect++);
+            threadName = SCStrdup(tname);
+            snprintf(tname, sizeof(tname),"feed-queue%"PRIu16,feed);
+            inQueueName = SCStrdup(tname);
 
-                ThreadVars *tv_detect = TmThreadCreatePacketHandler(threadName,
-                                                                    inQueueName,"simple",
-                                                                    "packetpool","packetpool","varslot");
-                if (tv_detect == NULL) {
-                        fprintf(stderr,"ERROR: TmThreadsCreate failed\n");
-                        exit(EXIT_FAILURE);
-                }
+            ThreadVars *tv_detect = TmThreadCreatePacketHandler(threadName,
+                    inQueueName,"simple",
+                    "packetpool","packetpool","varslot");
+            if (tv_detect == NULL) {
+                fprintf(stderr,"ERROR: TmThreadsCreate failed\n");
+                exit(EXIT_FAILURE);
+            }
 
-                tm_module = TmModuleGetByName("StreamTcp");
-                if (tm_module == NULL) {
-                        fprintf(stderr, "ERROR: TmModuleGetByName StreamTcp failed\n");
-                        exit(EXIT_FAILURE);
-                }
-                TmSlotSetFuncAppend(tv_detect,tm_module,NULL);
+            tm_module = TmModuleGetByName("StreamTcp");
+            if (tm_module == NULL) {
+                fprintf(stderr, "ERROR: TmModuleGetByName StreamTcp failed\n");
+                exit(EXIT_FAILURE);
+            }
+            TmSlotSetFuncAppend(tv_detect,tm_module,NULL);
 
-                tm_module = TmModuleGetByName("Detect");
-                if (tm_module == NULL) {
-                        fprintf(stderr, "ERROR: TmModuleGetByName Detect failed\n");
-                        exit(EXIT_FAILURE);
-                }
-                TmSlotSetFuncAppend(tv_detect,tm_module,(void *)de_ctx);
+            tm_module = TmModuleGetByName("Detect");
+            if (tm_module == NULL) {
+                fprintf(stderr, "ERROR: TmModuleGetByName Detect failed\n");
+                exit(EXIT_FAILURE);
+            }
+            TmSlotSetFuncAppend(tv_detect,tm_module,(void *)de_ctx);
 
-                thread_group_name = SCStrdup("Detect");
-                if (thread_group_name == NULL) {
-                        fprintf(stderr, "Error allocating memory\n");
-                        exit(EXIT_FAILURE);
-                }
-                tv_detect->thread_group_name = thread_group_name;
+            thread_group_name = SCStrdup("Detect");
+            if (thread_group_name == NULL) {
+                fprintf(stderr, "Error allocating memory\n");
+                exit(EXIT_FAILURE);
+            }
+            tv_detect->thread_group_name = thread_group_name;
 
-		SetupOutputs(tv_detect);
-		thread_group_name = SCStrdup("Outputs");
-		if (thread_group_name == NULL) {
-			fprintf(stderr, "Error allocating memory\n");
-			exit(EXIT_FAILURE);
-		}
-		tv_detect->thread_group_name = thread_group_name;
+            SetupOutputs(tv_detect);
+            thread_group_name = SCStrdup("Outputs");
+            if (thread_group_name == NULL) {
+                fprintf(stderr, "Error allocating memory\n");
+                exit(EXIT_FAILURE);
+            }
+            tv_detect->thread_group_name = thread_group_name;
 
-                if (TmThreadSpawn(tv_detect) != TM_ECODE_OK) {
-                        fprintf(stderr, "ERROR: TmThreadSpawn failed\n");
-                        exit(EXIT_FAILURE);
-                }
+            if (TmThreadSpawn(tv_detect) != TM_ECODE_OK) {
+                fprintf(stderr, "ERROR: TmThreadSpawn failed\n");
+                exit(EXIT_FAILURE);
+            }
         }
 #endif
     }
