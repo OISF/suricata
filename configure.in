@@ -1214,26 +1214,32 @@ AC_OUTPUT(Makefile src/Makefile qa/Makefile qa/coccinelle/Makefile rules/Makefil
 
 echo "
 Suricata Configuration:
-  NFQueue support:          ${enable_nfqueue}
-  IPFW support:             ${enable_ipfw}
-  PF_RING support:          ${enable_pfring}
-  AF_PACKET support:        ${enable_af_packet}
-  Prelude support:          ${enable_prelude}
-  Unit tests enabled:       ${enable_unittests}
-  Debug output enabled:     ${enable_debug}
-  Debug validation enabled: ${enable_debug_validation}
-  CUDA enabled:             ${enable_cuda}
-  DAG enabled:              ${enable_dag}
-  Napatech enabled:         ${enable_napatech}
-  Profiling enabled:        ${enable_profiling}
-  GCC Protect enabled:      ${enable_gccprotect}
-  GCC march native enabled: ${enable_gccmarch_native}
-  GCC Profile enabled:      ${enable_gccprofile}
-  Old barnyard2 support:    ${enable_old_barnyard2}
-  Non-bundled htp:          ${enable_non_bundled_htp}
-  PCRE jit:                 ${pcre_jit_available}"
+  NFQueue support:                         ${enable_nfqueue}
+  IPFW support:                            ${enable_ipfw}
+  PF_RING support:                         ${enable_pfring}
+  AF_PACKET support:                       ${enable_af_packet}
+  Prelude support:                         ${enable_prelude}
+  Unit tests enabled:                      ${enable_unittests}
+  Debug output enabled:                    ${enable_debug}
+  Debug validation enabled:                ${enable_debug_validation}
+  CUDA enabled:                            ${enable_cuda}
+  DAG enabled:                             ${enable_dag}
+  Napatech enabled:                        ${enable_napatech}
+  Profiling enabled:                       ${enable_profiling}
+  Old barnyard2 support:                   ${enable_old_barnyard2}
+  Non-bundled htp:                         ${enable_non_bundled_htp}
+  PCRE jit:                                ${pcre_jit_available}
 
-echo "
+Generic build parameters:
+  Installation prefix (--prefix):          ${prefix}
+  Configuration directory (--sysconfdir):  ${e_sysconfdir}
+  Log directory (--localstatedir) :        ${e_logdir}
+  Host:                                    ${host}
+  GCC binary:                              ${CC}
+  GCC Protect enabled:                     ${enable_gccprotect}
+  GCC march native enabled:                ${enable_gccmarch_native}
+  GCC Profile enabled:                     ${enable_gccprofile}
+
 To build and install run 'make' and 'make install'.
-You can run 'make install-conf' if you want to install initial configuration files.
+You can run 'make install-conf' if you want to install initial configuration files to ${e_sysconfdir}.
 Running 'make install-full' will install configuration and rules and provide you a ready-to-run suricata."
