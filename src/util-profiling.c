@@ -1268,6 +1268,20 @@ ProfilingGenericTicksTest01(void) {
     ticks_end = UtilCpuGetTicks();
     printf("SCSpinDestroy() %"PRIu64"\n", (ticks_end - ticks_start)/TEST_RUNS);
 
+    SC_ATOMIC_DECL_AND_INIT(unsigned int, test);
+    ticks_start = UtilCpuGetTicks();
+    for (i = 0; i < TEST_RUNS; i++) {
+        SC_ATOMIC_ADD(test,1);
+    }
+    ticks_end = UtilCpuGetTicks();
+    printf("SC_ATOMIC_ADD %"PRIu64"\n", (ticks_end - ticks_start)/TEST_RUNS);
+
+    ticks_start = UtilCpuGetTicks();
+    for (i = 0; i < TEST_RUNS; i++) {
+        SC_ATOMIC_CAS(&test,i,i+1);
+    }
+    ticks_end = UtilCpuGetTicks();
+    printf("SC_ATOMIC_CAS %"PRIu64"\n", (ticks_end - ticks_start)/TEST_RUNS);
     return 1;
 }
 
