@@ -41,15 +41,27 @@ static int htp_gzip_decompressor_decompress(htp_decompressor_gzip_t *drec, htp_t
                 return -1;
             }
 
-            if (d->data[3] != 0) {
+            if (d->data[3] == 0) {
+                drec->initialized = 1;
+                consumed = 10;
+            } else if (d->data[3] & (1 << 3) || d->data[3] & (1 << 4)) {
+                /* skip past
+                 * - FNAME extension, which is a name ended in a NUL terminator
+                 * or
+                 * - FCOMMENT extension, which is a commend ended in a NULL terminator
+                 */
+
+                size_t len;
+                for (len = 10; len < d->len && d->data[len] != '\0'; len++);
+
+                drec->initialized = 1;
+                consumed = len + 1;
+            } else {
                 htp_log(d->tx->connp, HTP_LOG_MARK, HTP_LOG_WARNING, 0,
                     "GZip decompressor: Unable to handle flags: %d", d->data[3]);
                 drec->initialized = -1;
                 return -1;
             }
-
-            drec->initialized = 1;
-            consumed = 10;
         } else {
             // We do not (or did not) have enough bytes, so we have
             // to copy some data into our internal header buffer.
