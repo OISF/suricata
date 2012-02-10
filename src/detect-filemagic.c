@@ -174,9 +174,7 @@ int DetectFilemagicMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f
             if (!(filemagic->flags & DETECT_CONTENT_NEGATED)) {
                 ret = 1;
             }
-        }
-
-        if (ret == 0 && filemagic->flags & DETECT_CONTENT_NEGATED) {
+        } else if (filemagic->flags & DETECT_CONTENT_NEGATED) {
             SCLogDebug("negated match");
             ret = 1;
         }
