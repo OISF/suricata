@@ -452,6 +452,7 @@ struct {
  *  \retval id the id or 0 in case of not found
  */
 static int HTPHandleWarningGetId(const char *msg) {
+    SCLogDebug("received warning \"%s\"", msg);
     size_t idx;
     for (idx = 0; idx < HTP_WARNING_MAX; idx++) {
         if (strncmp(htp_warnings[idx].msg, msg,
@@ -474,6 +475,8 @@ static int HTPHandleWarningGetId(const char *msg) {
  *  \retval id the id or 0 in case of not found
  */
 static int HTPHandleErrorGetId(const char *msg) {
+    SCLogDebug("received error \"%s\"", msg);
+
     size_t idx;
     for (idx = 0; idx < HTP_ERROR_MAX; idx++) {
         if (strncmp(htp_errors[idx].msg, msg,
