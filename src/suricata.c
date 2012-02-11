@@ -1153,6 +1153,21 @@ int main(int argc, char **argv)
             /* Error already displayed. */
             exit(EXIT_FAILURE);
         }
+
+        ConfNode *file;
+        ConfNode *includes = ConfGetNode("include");
+        if (includes != NULL) {
+            TAILQ_FOREACH(file, &includes->head, next) {
+                char *ifile = ConfLoadCompleteIncludePath(file->val);
+                SCLogInfo("Including: %s", ifile);
+
+                if (ConfYamlLoadFile(ifile) != 0) {
+                    /* Error already displayed. */
+                    exit(EXIT_FAILURE);
+                }
+            }
+        }
+
     } else if (run_mode != RUNMODE_UNITTEST){
         SCLogError(SC_ERR_OPENING_FILE, "Configuration file has not been provided");
         usage(argv[0]);

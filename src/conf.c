@@ -42,6 +42,7 @@
 #include "conf.h"
 #include "util-unittest.h"
 #include "util-debug.h"
+#include "util-path.h"
 
 static ConfNode *root = NULL;
 static ConfNode *root_backup = NULL;
@@ -701,6 +702,41 @@ ConfNodeChildValueIsTrue(ConfNode *node, const char *key)
 
     return val != NULL ? ConfValIsTrue(val) : 0;
 }
+
+/**
+ *  \brief Create the path for an include entry
+ *  \param file The name of the file
+ *  \retval str Pointer to the string path + sig_file
+ */
+char *ConfLoadCompleteIncludePath(char *file)
+{
+    char *defaultpath = NULL;
+    char *path = NULL;
+
+    /* Path not specified */
+    if (PathIsRelative(file)) {
+        if (ConfGet("include-path", &defaultpath) == 1) {
+            SCLogDebug("Default path: %s", defaultpath);
+            size_t path_len = sizeof(char) * (strlen(defaultpath) +
+                          strlen(file) + 2);
+            path = SCMalloc(path_len);
+            if (path == NULL)
+                return NULL;
+            strlcpy(path, defaultpath, path_len);
+            if (path[strlen(path) - 1] != '/')
+                strlcat(path, "/", path_len);
+            strlcat(path, file, path_len);
+       } else {
+            path = SCStrdup(file);
+        }
+    } else {
+        path = SCStrdup(file);
+    }
+    return path;
+}
+
+
+
 
 #ifdef UNITTESTS
 
