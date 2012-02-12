@@ -173,6 +173,7 @@
 #include "util-validate.h"
 #include "util-optimize.h"
 #include "util-vector.h"
+#include "util-path.h"
 
 extern uint8_t engine_mode;
 
@@ -210,17 +211,18 @@ void DetectExitPrintStats(ThreadVars *tv, void *data) {
         return;
 }
 
-/** \brief Create the path if default-rule-path was specified
+/**
+ *  \brief Create the path if default-rule-path was specified
  *  \param sig_file The name of the file
  *  \retval str Pointer to the string path + sig_file
- *  \retval 0 ok
  */
 char *DetectLoadCompleteSigPath(char *sig_file)
 {
     char *defaultpath = NULL;
     char *path = NULL;
+
     /* Path not specified */
-    if (index(sig_file, '/') == NULL) {
+    if (PathIsRelative(sig_file)) {
         if (ConfGet("default-rule-path", &defaultpath) == 1) {
             SCLogDebug("Default path: %s", defaultpath);
             size_t path_len = sizeof(char) * (strlen(defaultpath) +
