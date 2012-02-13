@@ -2164,7 +2164,7 @@ int DetectHttpServerBodyTest26(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
                                "(content:\"one\"; offset:10; http_server_body; pcre:/two/; "
-                               "content:\"three\"; distance:10; http_server_body; depth:10; "
+                               "content:\"three\"; distance:10; http_server_body; within:10; "
                                "content:\"four\"; distance:10; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
@@ -2190,7 +2190,7 @@ int DetectHttpServerBodyTest26(void)
         memcmp(cd2->content, "four", cd2->content_len) != 0 ||
         hsbd1->flags != (DETECT_CONTENT_RELATIVE_NEXT | DETECT_CONTENT_OFFSET) ||
         memcmp(hsbd1->content, "one", hsbd1->content_len) != 0 ||
-        hsbd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_DEPTH) ||
+        hsbd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_WITHIN) ||
         memcmp(hsbd2->content, "three", hsbd1->content_len) != 0) {
         goto end;
     }

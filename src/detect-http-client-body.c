@@ -2124,7 +2124,7 @@ int DetectHttpClientBodyTest26(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
                                "(content:\"one\"; offset:10; http_client_body; pcre:/two/; "
-                               "content:\"three\"; distance:10; http_client_body; depth:10; "
+                               "content:\"three\"; distance:10; http_client_body; within:10; "
                                "content:\"four\"; distance:10; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");
@@ -2150,8 +2150,9 @@ int DetectHttpClientBodyTest26(void)
         memcmp(cd2->content, "four", cd2->content_len) != 0 ||
         hcbd1->flags != (DETECT_CONTENT_RELATIVE_NEXT | DETECT_CONTENT_OFFSET) ||
         memcmp(hcbd1->content, "one", hcbd1->content_len) != 0 ||
-        hcbd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_DEPTH) ||
+        hcbd2->flags != (DETECT_CONTENT_DISTANCE | DETECT_CONTENT_WITHIN) ||
         memcmp(hcbd2->content, "three", hcbd1->content_len) != 0) {
+        printf ("failed: http_client_body incorrect flags");
         goto end;
     }
 
@@ -2180,7 +2181,7 @@ int DetectHttpClientBodyTest27(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
                                "(content:\"one\"; offset:10; http_client_body; pcre:/two/; distance:10; "
-                               "content:\"three\"; distance:10; http_client_body; depth:10; "
+                               "content:\"three\"; distance:10; http_client_body; within:10; "
                                "content:\"four\"; distance:10; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list == NULL\n");

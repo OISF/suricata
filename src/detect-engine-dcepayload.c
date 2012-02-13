@@ -7273,99 +7273,6 @@ end:
 }
 
 /**
- * \test Test the working of consecutive relative matches with offset.
- */
-int DcePayloadTest24(void)
-{
-    int result = 0;
-
-    uint8_t request1[] = {
-        0x05, 0x00, 0x00, 0x03, 0x10, 0x00, 0x00, 0x00,
-        0x68, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00,
-        0x50, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1a, 0x00,
-        0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, /* "        " */
-        0x20, 0x74, 0x68, 0x75, 0x73, 0x20, 0x74, 0x68, /* " thus th" */
-        0x75, 0x73, 0x20, 0x69, 0x73, 0x20, 0x61, 0x20, /* "us is a " */
-        0x62, 0x69, 0x67 };                             /* "big" */
-    uint32_t request1_len = sizeof(request1);
-
-    TcpSession ssn;
-    Packet *p = NULL;
-    ThreadVars tv;
-    DetectEngineCtx *de_ctx = NULL;
-    DetectEngineThreadCtx *det_ctx = NULL;
-    Flow f;
-    int r;
-
-    char *sig1 = "alert tcp any any -> any any "
-        "(msg:\"testing dce consecutive relative matches\"; dce_stub_data; "
-        "content:\"thus\"; distance:0; offset:8; content:\"is\"; within:6; "
-        "content:\"big\"; within:8; sid:1;)";
-
-    Signature *s;
-
-    memset(&tv, 0, sizeof(ThreadVars));
-    memset(&f, 0, sizeof(Flow));
-    memset(&ssn, 0, sizeof(TcpSession));
-
-    p = UTHBuildPacket(NULL, 0, IPPROTO_TCP);
-    p->flow = &f;
-    p->flags |= PKT_HAS_FLOW|PKT_STREAM_EST;
-    p->flowflags |= FLOW_PKT_TOSERVER;
-    p->flowflags |= FLOW_PKT_ESTABLISHED;
-
-    FLOW_INITIALIZE(&f);
-    f.protoctx = (void *)&ssn;
-    f.flags |= FLOW_IPV4;
-    f.alproto = ALPROTO_DCERPC;
-
-    StreamTcpInitConfig(TRUE);
-
-    de_ctx = DetectEngineCtxInit();
-    if (de_ctx == NULL)
-        goto end;
-    de_ctx->flags |= DE_QUIET;
-
-    de_ctx->sig_list = SigInit(de_ctx, sig1);
-    s = de_ctx->sig_list;
-    if (s == NULL)
-        goto end;
-
-    SigGroupBuild(de_ctx);
-    DetectEngineThreadCtxInit(&tv, (void *)de_ctx, (void *)&det_ctx);
-
-    /* request 1 */
-    r = AppLayerParse(NULL, &f, ALPROTO_DCERPC, STREAM_TOSERVER, request1, request1_len);
-    if (r != 0) {
-        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
-        goto end;
-    }
-    /* detection phase */
-    SigMatchSignatures(&tv, de_ctx, det_ctx, p);
-    if (!(PacketAlertCheck(p, 1))) {
-        printf("sid 1 didn't match but should have for packet: ");
-        goto end;
-    }
-
-    result = 1;
-
-end:
-    if (de_ctx != NULL) {
-        SigGroupCleanup(de_ctx);
-        SigCleanSignatures(de_ctx);
-
-        DetectEngineThreadCtxDeinit(&tv, (void *)det_ctx);
-        DetectEngineCtxFree(de_ctx);
-    }
-
-    StreamTcpFreeConfig(TRUE);
-
-    UTHFreePackets(&p, 1);
-    return result;
-}
-
-/**
  * \test Test content for dce sig.
  */
 int DcePayloadParseTest25(void)
@@ -10030,7 +9937,6 @@ void DcePayloadRegisterTests(void)
     UtRegisterTest("DcePayloadTest21", DcePayloadTest21, 1);
     UtRegisterTest("DcePayloadTest22", DcePayloadTest22, 1);
     UtRegisterTest("DcePayloadTest23", DcePayloadTest23, 1);
-    UtRegisterTest("DcePayloadTest24", DcePayloadTest24, 1);
 
     UtRegisterTest("DcePayloadParseTest25", DcePayloadParseTest25, 1);
     UtRegisterTest("DcePayloadParseTest26", DcePayloadParseTest26, 1);

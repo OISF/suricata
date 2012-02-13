@@ -3743,13 +3743,13 @@ int DetectByteExtractTest55(void)
 
     de_ctx->flags |= DE_QUIET;
     s = de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
-                                   "(msg:\"Testing bytejump_body\"; "
+                                   "(msg:\"Testing byte_extract\"; "
                                    "content:\"one\"; "
                                    "byte_extract:4,0,two,string,hex; "
                                    "byte_extract:4,0,three,string,hex; "
                                    "byte_extract:4,0,four,string,hex; "
                                    "byte_extract:4,0,five,string,hex; "
-                                   "content: \"four\"; within:two; distance:three; offset:four; depth:five; "
+                                   "content: \"four\"; within:two; distance:three; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
@@ -3830,17 +3830,11 @@ int DetectByteExtractTest55(void)
     cd = (DetectContentData *)sm->ctx;
     if (strncmp((char *)cd->content, "four", cd->content_len) != 0 ||
         cd->flags != (DETECT_CONTENT_DISTANCE_BE |
-                      DETECT_CONTENT_DEPTH_BE |
-                      DETECT_CONTENT_OFFSET_BE |
                       DETECT_CONTENT_WITHIN_BE |
                       DETECT_CONTENT_DISTANCE |
-                      DETECT_CONTENT_DEPTH |
-                      DETECT_CONTENT_OFFSET |
                       DETECT_CONTENT_WITHIN) ||
         cd->within != bed1->local_id ||
-        cd->distance != bed2->local_id ||
-        cd->offset != bed3->local_id ||
-        cd->depth != bed4->local_id) {
+        cd->distance != bed2->local_id) {
         printf("four failed\n");
         result = 0;
         goto end;
@@ -3885,7 +3879,7 @@ int DetectByteExtractTest56(void)
                                    "byte_extract:4,0,three,string,hex; "
                                    "byte_extract:4,0,four,string,hex; "
                                    "byte_extract:4,0,five,string,hex; "
-                                   "content: \"four\"; within:two; distance:three; offset:four; depth:five; "
+                                   "content: \"four\"; within:two; distance:three; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
@@ -3988,17 +3982,11 @@ int DetectByteExtractTest56(void)
     cd = (DetectContentData *)sm->ctx;
     if (strncmp((char *)cd->content, "four", cd->content_len) != 0 ||
         cd->flags != (DETECT_CONTENT_DISTANCE_BE |
-                      DETECT_CONTENT_DEPTH_BE |
-                      DETECT_CONTENT_OFFSET_BE |
                       DETECT_CONTENT_WITHIN_BE |
                       DETECT_CONTENT_DISTANCE |
-                      DETECT_CONTENT_DEPTH |
-                      DETECT_CONTENT_OFFSET |
                       DETECT_CONTENT_WITHIN) ||
         cd->within != bed1->local_id ||
-        cd->distance != bed2->local_id ||
-        cd->offset != bed3->local_id ||
-        cd->depth != bed4->local_id) {
+        cd->distance != bed2->local_id ) {
         printf("four failed\n");
         result = 0;
         goto end;
@@ -4043,7 +4031,7 @@ int DetectByteExtractTest57(void)
                                    "byte_extract:4,0,three,string,hex,relative; "
                                    "byte_extract:4,0,four,string,hex,relative; "
                                    "byte_extract:4,0,five,string,hex,relative; "
-                                   "uricontent: \"four\"; within:two; distance:three; offset:four; depth:five; "
+                                   "uricontent: \"four\"; within:two; distance:three; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
         result = 0;
@@ -4159,17 +4147,11 @@ int DetectByteExtractTest57(void)
     cd = (DetectContentData *)sm->ctx;
     if (strncmp((char *)cd->content, "four", cd->content_len) != 0 ||
         cd->flags != (DETECT_CONTENT_DISTANCE_BE |
-                      DETECT_CONTENT_DEPTH_BE |
-                      DETECT_CONTENT_OFFSET_BE |
                       DETECT_CONTENT_WITHIN_BE |
                       DETECT_CONTENT_DISTANCE |
-                      DETECT_CONTENT_DEPTH |
-                      DETECT_CONTENT_OFFSET |
                       DETECT_CONTENT_WITHIN) ||
         cd->within != bed1->local_id ||
-        cd->distance != bed2->local_id ||
-        cd->offset != bed3->local_id ||
-        cd->depth != bed4->local_id) {
+        cd->distance != bed2->local_id)  {
         printf("four failed\n");
         result = 0;
         goto end;
