@@ -78,7 +78,7 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
         dce_stub_data = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer;
         dce_stub_data_len = dcerpc_state->dcerpc.dcerpcrequest.stub_data_buffer_len;
 
-        det_ctx->payload_offset = 0;
+        det_ctx->buffer_offset = 0;
         det_ctx->discontinue_matching = 0;
         det_ctx->inspection_recursion_counter = 0;
 
@@ -100,7 +100,7 @@ int DetectEngineInspectDcePayload(DetectEngineCtx *de_ctx,
         dce_stub_data = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer;
         dce_stub_data_len = dcerpc_state->dcerpc.dcerpcresponse.stub_data_buffer_len;
 
-        det_ctx->payload_offset = 0;
+        det_ctx->buffer_offset = 0;
         det_ctx->discontinue_matching = 0;
         det_ctx->inspection_recursion_counter = 0;
 

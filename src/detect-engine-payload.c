@@ -64,7 +64,7 @@ int DetectEngineInspectPacketPayload(DetectEngineCtx *de_ctx,
         SCReturnInt(0);
     }
 
-    det_ctx->payload_offset = 0;
+    det_ctx->buffer_offset = 0;
     det_ctx->discontinue_matching = 0;
     det_ctx->inspection_recursion_counter = 0;
     det_ctx->replist = NULL;
@@ -109,7 +109,7 @@ int DetectEngineInspectStreamPayload(DetectEngineCtx *de_ctx,
         SCReturnInt(0);
     }
 
-    det_ctx->payload_offset = 0;
+    det_ctx->buffer_offset = 0;
     det_ctx->discontinue_matching = 0;
     det_ctx->inspection_recursion_counter = 0;
     //det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_INSPECTING_STREAM;

@@ -160,7 +160,7 @@ int DetectEngineInspectHttpRawUri(DetectEngineCtx *de_ctx,
             continue;
 
         det_ctx->discontinue_matching = 0;
-        det_ctx->payload_offset = 0;
+        det_ctx->buffer_offset = 0;
         det_ctx->inspection_recursion_counter = 0;
 
         /* Inspect all the uricontents fetched on each

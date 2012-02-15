@@ -102,7 +102,7 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
             continue;
 
         det_ctx->discontinue_matching = 0;
-        det_ctx->payload_offset = 0;
+        det_ctx->buffer_offset = 0;
         det_ctx->inspection_recursion_counter = 0;
 
         //PrintRawDataFp(stdout, (uint8_t *)bstr_ptr(tx->request_uri_normalized),

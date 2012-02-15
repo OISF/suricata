@@ -37,23 +37,13 @@
 #include "detect-engine-hscd.h"
 #include "detect-parse.h"
 #include "detect-engine-state.h"
-#include "detect-pcre.h"
-#include "detect-isdataat.h"
-#include "detect-bytetest.h"
-#include "detect-bytejump.h"
+#include "detect-engine-content-inspection.h"
 
 #include "flow-util.h"
-#include "util-spm.h"
 #include "util-debug.h"
 #include "util-print.h"
 #include "flow.h"
-#include "detect-flow.h"
-#include "flow-var.h"
-#include "threads.h"
-#include "flow-alert-sid.h"
 
-#include "stream-tcp.h"
-#include "stream.h"
 #include "app-layer-parser.h"
 
 #include "util-unittest.h"
@@ -61,278 +51,6 @@
 #include "app-layer.h"
 #include "app-layer-htp.h"
 #include "app-layer-protos.h"
-
-/**
- * \brief Run the actual payload match function for http stat code.
- *
- *        For accounting the last match in relative matching the
- *        det_ctx->payload_offset var is used.
- *
- * \param de_ctx      Detection engine context.
- * \param det_ctx     Detection engine thread context.
- * \param s           Signature to inspect.
- * \param sm          SigMatch to inspect.
- * \param payload     Ptr to the http stat code to inspect.
- * \param payload_len Length of the http stat code.
- *
- * \retval 0 no match.
- * \retval 1 match.
- */
-static int DoInspectHttpStatCode(DetectEngineCtx *de_ctx,
-                                 DetectEngineThreadCtx *det_ctx,
-                                 Signature *s, SigMatch *sm,
-                                 uint8_t *payload, uint32_t payload_len)
-{
-    SCEnter();
-
-    det_ctx->inspection_recursion_counter++;
-
-    if (det_ctx->inspection_recursion_counter == de_ctx->inspection_recursion_limit) {
-        det_ctx->discontinue_matching = 1;
-        SCReturnInt(0);
-    }
-
-    if (sm == NULL) {
-        SCReturnInt(0);
-    }
-
-    if (sm->type == DETECT_AL_HTTP_STAT_CODE) {
-        if (payload_len == 0) {
-            SCReturnInt(0);
-        }
-
-        DetectContentData *cd = (DetectContentData *)sm->ctx;
-
-        /* disabled to avoid the FP from inspecting multiple transactions */
-        //if (cd->flags & DETECT_CONTENT_HRUD_MPM && !(cd->flags & DETECT_CONTENT_NEGATED))
-        //    goto match;
-
-        /* rule parsers should take care of this */
-#ifdef DEBUG
-        BUG_ON(cd->depth != 0 && cd->depth <= cd->offset);
-#endif
-
-        /* search for our pattern, checking the matches recursively.
-         * if we match we look for the next SigMatch as well */
-        uint8_t *found = NULL;
-        uint32_t offset = 0;
-        uint32_t depth = payload_len;
-        uint32_t prev_offset = 0; /**< used in recursive searching */
-        uint32_t prev_payload_offset = det_ctx->payload_offset;
-
-        do {
-            if (cd->flags & DETECT_CONTENT_DISTANCE ||
-                cd->flags & DETECT_CONTENT_WITHIN) {
-                SCLogDebug("prev_payload_offset %"PRIu32, prev_payload_offset);
-
-                offset = prev_payload_offset;
-                depth = payload_len;
-
-                if (cd->flags & DETECT_CONTENT_DISTANCE) {
-                    if (cd->distance < 0 && (uint32_t)(abs(cd->distance)) > offset)
-                        offset = 0;
-                    else
-                        offset += cd->distance;
-                }
-
-                if (cd->flags & DETECT_CONTENT_WITHIN) {
-                    if ((int32_t)depth > (int32_t)(prev_payload_offset + cd->within + cd->distance)) {
-                        depth = prev_payload_offset + cd->within + cd->distance;
-                    }
-                }
-
-                if (cd->depth != 0) {
-                    if ((cd->depth + prev_payload_offset) < depth) {
-                        depth = prev_payload_offset + cd->depth;
-                    }
-                }
-
-                if (cd->offset > offset) {
-                    offset = cd->offset;
-                }
-            } else { /* implied no relative matches */
-                /* set depth */
-                if (cd->depth != 0) {
-                    depth = cd->depth;
-                }
-
-                /* set offset */
-                offset = cd->offset;
-                prev_payload_offset = 0;
-            }
-
-            /* update offset with prev_offset if we're searching for
-             * matches after the first occurence. */
-            if (prev_offset != 0)
-                offset = prev_offset;
-
-            if (depth > payload_len)
-                depth = payload_len;
-
-            /* if offset is bigger than depth we can never match on a pattern.
-             * We can however, "match" on a negated pattern. */
-            if (offset > depth || depth == 0) {
-                if (cd->flags & DETECT_CONTENT_NEGATED) {
-                    goto match;
-                } else {
-                    SCReturnInt(0);
-                }
-            }
-
-            uint8_t *spayload = payload + offset;
-            uint32_t spayload_len = depth - offset;
-            uint32_t match_offset = 0;
-#ifdef DEBUG
-            BUG_ON(spayload_len > payload_len);
-#endif
-
-            /* do the actual search with boyer moore precooked ctx */
-            if (cd->flags & DETECT_CONTENT_NOCASE) {
-                found = BoyerMooreNocase(cd->content, cd->content_len,
-                                         spayload, spayload_len,
-                                         cd->bm_ctx->bmGs, cd->bm_ctx->bmBc);
-            } else {
-                found = BoyerMoore(cd->content, cd->content_len,
-                                   spayload, spayload_len,
-                                   cd->bm_ctx->bmGs, cd->bm_ctx->bmBc);
-            }
-
-            /* next we evaluate the result in combination with the
-             * negation flag. */
-            if (found == NULL && !(cd->flags & DETECT_CONTENT_NEGATED)) {
-                SCReturnInt(0);
-            } else if (found == NULL && cd->flags & DETECT_CONTENT_NEGATED) {
-                goto match;
-            } else if (found != NULL && cd->flags & DETECT_CONTENT_NEGATED) {
-                det_ctx->discontinue_matching = 1;
-                SCReturnInt(0);
-            } else {
-                match_offset = (uint32_t)((found - payload) + cd->content_len);
-                det_ctx->payload_offset = match_offset;
-
-                if (!(cd->flags & DETECT_CONTENT_RELATIVE_NEXT)) {
-                    SCLogDebug("no relative match coming up, so this is a match");
-                    goto match;
-                }
-
-                /* bail out if we have no next match. Technically this is an
-                 * error, as the current cd has the DETECT_CONTENT_RELATIVE_NEXT
-                 * flag set. */
-                if (sm->next == NULL) {
-                    SCReturnInt(0);
-                }
-
-                /* see if the next payload keywords match. If not, we will
-                 * search for another occurence of this http header content and
-                 * see if the others match then until we run out of matches */
-                int r = DoInspectHttpStatCode(de_ctx, det_ctx, s, sm->next,
-                                              payload, payload_len);
-                if (r == 1) {
-                    SCReturnInt(1);
-                }
-
-                if (det_ctx->discontinue_matching)
-                    SCReturnInt(0);
-
-                /* set the previous match offset to the start of this match + 1 */
-                prev_offset = (match_offset - (cd->content_len - 1));
-                SCLogDebug("trying to see if there is another match after "
-                           "prev_offset %"PRIu32, prev_offset);
-            }
-
-        } while(1);
-
-    } else if (sm->type == DETECT_PCRE) {
-        SCLogDebug("inspecting pcre");
-        DetectPcreData *pe = (DetectPcreData *)sm->ctx;
-        uint32_t prev_payload_offset = det_ctx->payload_offset;
-        uint32_t prev_offset = 0;
-        int r = 0;
-
-        det_ctx->pcre_match_start_offset = 0;
-        do {
-            r = DetectPcrePayloadMatch(det_ctx, s, sm, NULL, NULL,
-                                       payload, payload_len);
-
-            if (r == 0) {
-                det_ctx->discontinue_matching = 1;
-                SCReturnInt(0);
-            }
-
-            if (!(pe->flags & DETECT_PCRE_RELATIVE_NEXT)) {
-                SCLogDebug("no relative match coming up, so this is a match");
-                goto match;
-            }
-
-            /* save it, in case we need to do a pcre match once again */
-            prev_offset = det_ctx->pcre_match_start_offset;
-
-            /* see if the next payload keywords match. If not, we will
-             * search for another occurence of this pcre and see
-             * if the others match, until we run out of matches */
-            int r = DoInspectHttpStatCode(de_ctx, det_ctx, s, sm->next,
-                                         payload, payload_len);
-            if (r == 1) {
-                SCReturnInt(1);
-            }
-
-            if (det_ctx->discontinue_matching)
-                SCReturnInt(0);
-
-            det_ctx->payload_offset = prev_payload_offset;
-            det_ctx->pcre_match_start_offset = prev_offset;
-        } while (1);
-
-    } else if (sm->type == DETECT_ISDATAAT) {
-        SCLogDebug("inspecting isdataat");
-
-        DetectIsdataatData *id = (DetectIsdataatData *)sm->ctx;
-        if (id->flags & ISDATAAT_RELATIVE) {
-            if (det_ctx->payload_offset + id->dataat > payload_len) {
-                SCLogDebug("det_ctx->payload_offset + id->dataat %"PRIu32" > %"PRIu32, det_ctx->payload_offset + id->dataat, payload_len);
-                if (id->flags & ISDATAAT_NEGATED)
-                    goto match;
-                SCReturnInt(0);
-            } else {
-                SCLogDebug("relative isdataat match");
-                if (id->flags & ISDATAAT_NEGATED)
-                    SCReturnInt(0);
-                goto match;
-            }
-        } else {
-            if (id->dataat < payload_len) {
-                SCLogDebug("absolute isdataat match");
-                if (id->flags & ISDATAAT_NEGATED)
-                    SCReturnInt(0);
-                goto match;
-            } else {
-                SCLogDebug("absolute isdataat mismatch, id->isdataat %"PRIu32", payload_len %"PRIu32"", id->dataat,payload_len);
-                if (id->flags & ISDATAAT_NEGATED)
-                    goto match;
-                SCReturnInt(0);
-            }
-        }
-    } else {
-        /* we should never get here, but bail out just in case */
-        SCLogDebug("sm->type %u", sm->type);
-#ifdef DEBUG
-        BUG_ON(1);
-#endif
-    }
-
-    SCReturnInt(0);
-
-match:
-    /* this sigmatch matched, inspect the next one. If it was the last,
-     * the payload portion of the signature matched. */
-    if (sm->next != NULL) {
-        int r = DoInspectHttpStatCode(de_ctx, det_ctx, s, sm->next, payload,
-                                      payload_len);
-        SCReturnInt(r);
-    } else {
-        SCReturnInt(1);
-    }
-}
 
 /**
  * \brief Run the mpm against http stat code.
@@ -439,13 +157,15 @@ int DetectEngineInspectHttpStatCode(DetectEngineCtx *de_ctx,
             continue;
 
         det_ctx->discontinue_matching = 0;
-        det_ctx->payload_offset = 0;
+        det_ctx->buffer_offset = 0;
         det_ctx->inspection_recursion_counter = 0;
 
-        r = DoInspectHttpStatCode(de_ctx, det_ctx, s,
-                                  s->sm_lists[DETECT_SM_LIST_HSCDMATCH],
-                                  (uint8_t *)bstr_ptr(tx->response_status),
-                                  bstr_len(tx->response_status));
+        r = DetectEngineContentInspection(de_ctx, det_ctx, s,
+                                          s->sm_lists[DETECT_SM_LIST_HSCDMATCH],
+                                          f,
+                                          (uint8_t *)bstr_ptr(tx->response_status),
+                                          bstr_len(tx->response_status),
+                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_HSCD, NULL);
         if (r == 1) {
             goto end;
         }

@@ -254,6 +254,10 @@ int DetectEngineInspectHttpServerBody(DetectEngineCtx *de_ctx,
         if (hsbd_buffer == NULL)
             continue;
 
+        det_ctx->buffer_offset = 0;
+        det_ctx->discontinue_matching = 0;
+        det_ctx->inspection_recursion_counter = 0;
+
         r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HSBDMATCH],
                                           f,
                                           hsbd_buffer,

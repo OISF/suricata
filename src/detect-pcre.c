@@ -491,11 +491,11 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
     //    SCReturnInt(0);
 
     if (s->flags & SIG_FLAG_RECURSIVE) {
-        ptr = payload + det_ctx->payload_offset;
-        len = payload_len - det_ctx->payload_offset;
+        ptr = payload + det_ctx->buffer_offset;
+        len = payload_len - det_ctx->buffer_offset;
     } else if (pe->flags & DETECT_PCRE_RELATIVE) {
-        ptr = payload + det_ctx->payload_offset;
-        len = payload_len - det_ctx->payload_offset;
+        ptr = payload + det_ctx->buffer_offset;
+        len = payload_len - det_ctx->buffer_offset;
     } else {
         ptr = payload;
         len = payload_len;
@@ -546,7 +546,7 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
             }
 
             /* update offset for pcre RELATIVE */
-            det_ctx->payload_offset = (ptr + ov[1]) - payload;
+            det_ctx->buffer_offset = (ptr + ov[1]) - payload;
             det_ctx->pcre_match_start_offset = (ptr + ov[0] + 1) - payload;
 
             ret = 1;
@@ -588,11 +588,11 @@ int DetectPcrePacketPayloadMatch(DetectEngineThreadCtx *det_ctx, Packet *p, Sign
         SCReturnInt(0);
 
     if (s->flags & SIG_FLAG_RECURSIVE) {
-        ptr = p->payload + det_ctx->payload_offset;
-        len = p->payload_len - det_ctx->payload_offset;
+        ptr = p->payload + det_ctx->buffer_offset;
+        len = p->payload_len - det_ctx->buffer_offset;
     } else if (pe->flags & DETECT_PCRE_RELATIVE) {
-        ptr = p->payload + det_ctx->payload_offset;
-        len = p->payload_len - det_ctx->payload_offset;
+        ptr = p->payload + det_ctx->buffer_offset;
+        len = p->payload_len - det_ctx->buffer_offset;
         if (ptr == NULL || len == 0)
             SCReturnInt(0);
     } else {
@@ -635,7 +635,7 @@ int DetectPcrePacketPayloadMatch(DetectEngineThreadCtx *det_ctx, Packet *p, Sign
             }
 
             /* update offset for pcre RELATIVE */
-            det_ctx->payload_offset = (ptr+ov[1]) - p->payload;
+            det_ctx->buffer_offset = (ptr+ov[1]) - p->payload;
 
             ret = 1;
         }
@@ -681,11 +681,11 @@ int DetectPcrePayloadDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
         SCReturnInt(0);
 
     if (s->flags & SIG_FLAG_RECURSIVE) {
-        ptr = data + det_ctx->payload_offset;
-        len = data_len - det_ctx->payload_offset;
+        ptr = data + det_ctx->buffer_offset;
+        len = data_len - det_ctx->buffer_offset;
     } else if (pe->flags & DETECT_PCRE_RELATIVE) {
-        ptr = data + det_ctx->payload_offset;
-        len = data_len - det_ctx->payload_offset;
+        ptr = data + det_ctx->buffer_offset;
+        len = data_len - det_ctx->buffer_offset;
         if (ptr == NULL || len == 0)
             SCReturnInt(0);
     } else {
@@ -728,7 +728,7 @@ int DetectPcrePayloadDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
             }
 
             /* update offset for pcre RELATIVE */
-            det_ctx->payload_offset = (ptr + ov[1]) - data;
+            det_ctx->buffer_offset = (ptr + ov[1]) - data;
 
             ret = 1;
         }

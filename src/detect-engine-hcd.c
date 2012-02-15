@@ -160,6 +160,10 @@ int DetectEngineInspectHttpCookie(DetectEngineCtx *de_ctx,
             continue;
         }
 
+        det_ctx->buffer_offset = 0;
+        det_ctx->discontinue_matching = 0;
+        det_ctx->inspection_recursion_counter = 0;
+
         r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HCDMATCH],
                                           f,
                                           (uint8_t *)bstr_ptr(h->value),

@@ -52,6 +52,41 @@
 #include "util-unittest.h"
 #include "util-unittest-helper.h"
 
+/**
+ * \brief Run the actual payload match functions
+ *
+ * The following keywords are inspected:
+ * - content, including all the http and dce modified contents
+ * - isdaatat
+ * - pcre
+ * - bytejump
+ * - bytetest
+ * - byte_extract
+ * - urilen
+ * -
+ *
+ * All keywords are evaluated against the buffer with buffer_len.
+ *
+ * For accounting the last match in relative matching the
+ * det_ctx->buffer_offset int is used.
+ *
+ * \param de_ctx          Detection engine context
+ * \param det_ctx         Detection engine thread context
+ * \param s               Signature to inspect
+ * \param sm              SigMatch to inspect
+ * \param f               Flow (for pcre flowvar storage)
+ * \param buffer          Ptr to the buffer to inspect
+ * \param buffer_len      Length of the payload
+ * \param inspection_mode Refers to the engine inspection mode we are currently
+ *                        inspecting.  Can be payload, stream, one of the http
+ *                        buffer inspection modes or dce inspection mode.
+ * \param data            Used to send some custom data.  For example in
+ *                        payload inspection mode, data contains packet ptr,
+ *                        and under dce inspection mode, contains dce state.
+ *
+ *  \retval 0 no match
+ *  \retval 1 match
+ */
 int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
                                   Signature *s, SigMatch *sm,
                                   Flow *f,
@@ -80,7 +115,9 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         sm->type == DETECT_AL_HTTP_CLIENT_BODY ||
         sm->type == DETECT_AL_HTTP_SERVER_BODY ||
         sm->type == DETECT_AL_HTTP_COOKIE ||
-        sm->type == DETECT_AL_HTTP_METHOD) {
+        sm->type == DETECT_AL_HTTP_METHOD ||
+        sm->type == DETECT_AL_HTTP_STAT_CODE ||
+        sm->type == DETECT_AL_HTTP_STAT_MSG) {
 
         DetectContentData *cd = (DetectContentData *)sm->ctx;
         SCLogDebug("inspecting content %"PRIu32" buffer_len %"PRIu32, cd->id, buffer_len);
@@ -105,12 +142,12 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         uint32_t offset = 0;
         uint32_t depth = buffer_len;
         uint32_t prev_offset = 0; /**< used in recursive searching */
-        uint32_t prev_buffer_offset = det_ctx->payload_offset;
+        uint32_t prev_buffer_offset = det_ctx->buffer_offset;
 
         do {
             if (cd->flags & DETECT_CONTENT_DISTANCE ||
                 cd->flags & DETECT_CONTENT_WITHIN) {
-                SCLogDebug("det_ctx->payload_offset %"PRIu32, det_ctx->payload_offset);
+                SCLogDebug("det_ctx->buffer_offset %"PRIu32, det_ctx->buffer_offset);
 
                 offset = prev_buffer_offset;
                 depth = buffer_len;
@@ -139,7 +176,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
                             depth = prev_buffer_offset + cd->within + distance;
                         }
 
-                        SCLogDebug("cd->within %"PRIi32", det_ctx->payload_offset %"PRIu32", depth %"PRIu32,
+                        SCLogDebug("cd->within %"PRIi32", det_ctx->buffer_offset %"PRIu32", depth %"PRIu32,
                                    cd->within, prev_buffer_offset, depth);
                     }
                 }
@@ -240,7 +277,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
             } else {
                 match_offset = (uint32_t)((found - buffer) + cd->content_len);
                 SCLogDebug("content %"PRIu32" matched at offset %"PRIu32"", cd->id, match_offset);
-                det_ctx->payload_offset = match_offset;
+                det_ctx->buffer_offset = match_offset;
 
                 /* Match branch, add replace to the list if needed */
                 if (cd->flags & DETECT_CONTENT_REPLACE) {
@@ -288,8 +325,8 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
         DetectIsdataatData *id = (DetectIsdataatData *)sm->ctx;
         if (id->flags & ISDATAAT_RELATIVE) {
-            if (det_ctx->payload_offset + id->dataat > buffer_len) {
-                SCLogDebug("det_ctx->payload_offset + id->dataat %"PRIu32" > %"PRIu32, det_ctx->payload_offset + id->dataat, buffer_len);
+            if (det_ctx->buffer_offset + id->dataat > buffer_len) {
+                SCLogDebug("det_ctx->buffer_offset + id->dataat %"PRIu32" > %"PRIu32, det_ctx->buffer_offset + id->dataat, buffer_len);
                 if (id->flags & ISDATAAT_NEGATED)
                     goto match;
                 SCReturnInt(0);
@@ -316,7 +353,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
     } else if (sm->type == DETECT_PCRE) {
         SCLogDebug("inspecting pcre");
         DetectPcreData *pe = (DetectPcreData *)sm->ctx;
-        uint32_t prev_buffer_offset = det_ctx->payload_offset;
+        uint32_t prev_buffer_offset = det_ctx->buffer_offset;
         uint32_t prev_offset = 0;
         int r = 0;
 
@@ -352,7 +389,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
             if (det_ctx->discontinue_matching)
                 SCReturnInt(0);
 
-            det_ctx->payload_offset = prev_buffer_offset;
+            det_ctx->buffer_offset = prev_buffer_offset;
             det_ctx->pcre_match_start_offset = prev_offset;
         } while (1);
 

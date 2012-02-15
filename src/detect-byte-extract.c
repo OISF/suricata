@@ -152,11 +152,11 @@ int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, SigMatch *sm,
      * the packet from that point.
      */
     if (data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
-        SCLogDebug("relative, working with det_ctx->payload_offset %"PRIu32", "
-                   "data->offset %"PRIu32"", det_ctx->payload_offset, data->offset);
+        SCLogDebug("relative, working with det_ctx->buffer_offset %"PRIu32", "
+                   "data->offset %"PRIu32"", det_ctx->buffer_offset, data->offset);
 
-        ptr = payload + det_ctx->payload_offset;
-        len = payload_len - det_ctx->payload_offset;
+        ptr = payload + det_ctx->buffer_offset;
+        len = payload_len - det_ctx->buffer_offset;
 
         /* No match if there is no relative base */
         if (len == 0) {
@@ -217,7 +217,7 @@ int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, SigMatch *sm,
 
     ptr += extbytes;
 
-    det_ctx->payload_offset = ptr - payload;
+    det_ctx->buffer_offset = ptr - payload;
 
     *value = val;
 

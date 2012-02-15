@@ -695,7 +695,6 @@ typedef struct DetectionEngineThreadCtx_ {
     /** offset into the payload of the last match by:
      *  content, pcre, etc */
     uint32_t buffer_offset;
-    uint32_t payload_offset;
     /* used by pcre match function alone */
     uint32_t pcre_match_start_offset;
 
@@ -723,14 +722,6 @@ typedef struct DetectionEngineThreadCtx_ {
 
     /* holds the current recursion depth on content inspection */
     int inspection_recursion_counter;
-
-    /* dce stub data */
-    uint8_t *dce_stub_data;
-    /* dce stub data len */
-    uint32_t dce_stub_data_len;
-    /* offset into the payload of the last match for dce related sigmatches,
-     * stored in s->sm_lists[DETECT_SM_LIST_DMATCH], by content, pcre, etc */
-    uint32_t dce_payload_offset;
 
     /** array of signature pointers we're going to inspect in the detection
      *  loop. */
