@@ -102,7 +102,6 @@ detect-pcre.c detect-pcre.h \
 detect-depth.c detect-depth.h \
 detect-nocase.c detect-nocase.h \
 detect-fast-pattern.c detect-fast-pattern.h \
-detect-recursive.c detect-recursive.h \
 detect-rawbytes.c detect-rawbytes.h \
 detect-bytetest.c detect-bytetest.h \
 detect-bytejump.c detect-bytejump.h \
