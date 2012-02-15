@@ -534,17 +534,26 @@ uint32_t HttpRawUriPatternSearch(DetectEngineThreadCtx *det_ctx,
  *  \retval ret Number of matches.
  */
 uint32_t HttpStatMsgPatternSearch(DetectEngineThreadCtx *det_ctx,
-                                  uint8_t *stat_msg, uint32_t stat_msg_len)
+                                  uint8_t *stat_msg, uint32_t stat_msg_len, uint8_t flags)
 {
     SCEnter();
 
-    if (det_ctx->sgh->mpm_hsmd_ctx == NULL)
-        SCReturnUInt(0);
-
     uint32_t ret;
-    ret = mpm_table[det_ctx->sgh->mpm_hsmd_ctx->mpm_type].
-        Search(det_ctx->sgh->mpm_hsmd_ctx, &det_ctx->mtcu,
-               &det_ctx->pmq, stat_msg, stat_msg_len);
+    if (flags & STREAM_TOSERVER) {
+        if (det_ctx->sgh->mpm_hsmd_ctx_ts == NULL)
+            SCReturnUInt(0);
+
+        ret = mpm_table[det_ctx->sgh->mpm_hsmd_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_hsmd_ctx_ts, &det_ctx->mtcu,
+                   &det_ctx->pmq, stat_msg, stat_msg_len);
+    } else {
+        if (det_ctx->sgh->mpm_hsmd_ctx_tc == NULL)
+            SCReturnUInt(0);
+
+        ret = mpm_table[det_ctx->sgh->mpm_hsmd_ctx_tc->mpm_type].
+            Search(det_ctx->sgh->mpm_hsmd_ctx_tc, &det_ctx->mtcu,
+                   &det_ctx->pmq, stat_msg, stat_msg_len);
+    }
 
     SCReturnUInt(ret);
 }
@@ -559,17 +568,26 @@ uint32_t HttpStatMsgPatternSearch(DetectEngineThreadCtx *det_ctx,
  *  \retval ret Number of matches.
  */
 uint32_t HttpStatCodePatternSearch(DetectEngineThreadCtx *det_ctx,
-                                   uint8_t *stat_code, uint32_t stat_code_len)
+                                   uint8_t *stat_code, uint32_t stat_code_len, uint8_t flags)
 {
     SCEnter();
 
-    if (det_ctx->sgh->mpm_hscd_ctx == NULL)
-        SCReturnUInt(0);
-
     uint32_t ret;
-    ret = mpm_table[det_ctx->sgh->mpm_hscd_ctx->mpm_type].
-        Search(det_ctx->sgh->mpm_hscd_ctx, &det_ctx->mtcu,
-               &det_ctx->pmq, stat_code, stat_code_len);
+    if (flags & STREAM_TOSERVER) {
+        if (det_ctx->sgh->mpm_hscd_ctx_ts == NULL)
+            SCReturnUInt(0);
+
+        ret = mpm_table[det_ctx->sgh->mpm_hscd_ctx_ts->mpm_type].
+            Search(det_ctx->sgh->mpm_hscd_ctx_ts, &det_ctx->mtcu,
+                   &det_ctx->pmq, stat_code, stat_code_len);
+    } else {
+        if (det_ctx->sgh->mpm_hscd_ctx_tc == NULL)
+            SCReturnUInt(0);
+
+        ret = mpm_table[det_ctx->sgh->mpm_hscd_ctx_tc->mpm_type].
+            Search(det_ctx->sgh->mpm_hscd_ctx_tc, &det_ctx->mtcu,
+                   &det_ctx->pmq, stat_code, stat_code_len);
+    }
 
     SCReturnUInt(ret);
 }
@@ -1295,11 +1313,17 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
                 sgh_flags = SIG_GROUP_HEAD_MPM_HRUD;
                 cd_flags = DETECT_CONTENT_HRUD_MPM;
             } else if (mpm_sm->type == DETECT_AL_HTTP_STAT_MSG) {
-                mpm_ctx = sgh->mpm_hsmd_ctx;
+                if (s->flags & SIG_FLAG_TOSERVER)
+                    mpm_ctx_ts = sgh->mpm_hsmd_ctx_ts;
+                if (s->flags & SIG_FLAG_TOCLIENT)
+                    mpm_ctx_tc = sgh->mpm_hsmd_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_HSMD;
                 cd_flags = DETECT_CONTENT_HSMD_MPM;
             } else if (mpm_sm->type == DETECT_AL_HTTP_STAT_CODE) {
-                mpm_ctx = sgh->mpm_hscd_ctx;
+                if (s->flags & SIG_FLAG_TOSERVER)
+                    mpm_ctx_ts = sgh->mpm_hscd_ctx_ts;
+                if (s->flags & SIG_FLAG_TOCLIENT)
+                    mpm_ctx_tc = sgh->mpm_hscd_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_HSCD;
                 cd_flags = DETECT_CONTENT_HSCD_MPM;
             }
@@ -1952,37 +1976,45 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 
     if (sh->flags & SIG_GROUP_HAVEHSMDCONTENT) {
         if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-            sh->mpm_hsmd_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_hsmd);
+            sh->mpm_hsmd_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_hsmd, 0);
+            sh->mpm_hsmd_ctx_tc = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_hsmd, 1);
         } else {
-            sh->mpm_hsmd_ctx = MpmFactoryGetMpmCtxForProfile(MPM_CTX_FACTORY_UNIQUE_CONTEXT);
+            sh->mpm_hsmd_ctx_ts = MpmFactoryGetMpmCtxForProfile(MPM_CTX_FACTORY_UNIQUE_CONTEXT, 0);
+            sh->mpm_hsmd_ctx_tc = MpmFactoryGetMpmCtxForProfile(MPM_CTX_FACTORY_UNIQUE_CONTEXT, 1);
         }
-        if (sh->mpm_hsmd_ctx == NULL) {
+        if (sh->mpm_hsmd_ctx_ts == NULL || sh->mpm_hsmd_ctx_tc == NULL) {
             SCLogDebug("sh->mpm_hsmd_ctx == NULL. This should never happen");
             exit(EXIT_FAILURE);
         }
 
 #ifndef __SC_CUDA_SUPPORT__
-        MpmInitCtx(sh->mpm_hsmd_ctx, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_hsmd_ctx_ts, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_hsmd_ctx_tc, de_ctx->mpm_matcher, -1);
 #else
-        MpmInitCtx(sh->mpm_hsmd_ctx, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
+        MpmInitCtx(sh->mpm_hsmd_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
+        MpmInitCtx(sh->mpm_hsmd_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
 #endif
     }
 
     if (sh->flags & SIG_GROUP_HAVEHSCDCONTENT) {
         if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-            sh->mpm_hscd_ctx = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_hscd);
+            sh->mpm_hscd_ctx_ts = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_hscd, 0);
+            sh->mpm_hscd_ctx_tc = MpmFactoryGetMpmCtxForProfile(de_ctx->sgh_mpm_context_hscd, 1);
         } else {
-            sh->mpm_hscd_ctx = MpmFactoryGetMpmCtxForProfile(MPM_CTX_FACTORY_UNIQUE_CONTEXT);
+            sh->mpm_hscd_ctx_ts = MpmFactoryGetMpmCtxForProfile(MPM_CTX_FACTORY_UNIQUE_CONTEXT, 0);
+            sh->mpm_hscd_ctx_tc = MpmFactoryGetMpmCtxForProfile(MPM_CTX_FACTORY_UNIQUE_CONTEXT, 1);
         }
-        if (sh->mpm_hscd_ctx == NULL) {
+        if (sh->mpm_hscd_ctx_ts == NULL || sh->mpm_hscd_ctx_tc == NULL) {
             SCLogDebug("sh->mpm_hscd_ctx == NULL. This should never happen");
             exit(EXIT_FAILURE);
         }
 
 #ifndef __SC_CUDA_SUPPORT__
-        MpmInitCtx(sh->mpm_hscd_ctx, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_hscd_ctx_ts, de_ctx->mpm_matcher, -1);
+        MpmInitCtx(sh->mpm_hscd_ctx_tc, de_ctx->mpm_matcher, -1);
 #else
-        MpmInitCtx(sh->mpm_hscd_ctx, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
+        MpmInitCtx(sh->mpm_hscd_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle, 0);
+        MpmInitCtx(sh->mpm_hscd_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle, 1);
 #endif
     }
 
@@ -2299,27 +2331,51 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
                  }
              }
          }
-         if (sh->mpm_hsmd_ctx != NULL) {
-             if (sh->mpm_hsmd_ctx->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(sh->mpm_hsmd_ctx);
-                 sh->mpm_hsmd_ctx = NULL;
+         if (sh->mpm_hsmd_ctx_ts != NULL) {
+             if (sh->mpm_hsmd_ctx_ts->pattern_cnt == 0) {
+                 MpmFactoryReClaimMpmCtx(sh->mpm_hsmd_ctx_ts);
+                 sh->mpm_hsmd_ctx_ts = NULL;
              } else {
                  if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL &&
                      sh->flags & SIG_GROUP_HAVEHSMDCONTENT) {
-                     if (mpm_table[sh->mpm_hsmd_ctx->mpm_type].Prepare != NULL)
-                         mpm_table[sh->mpm_hsmd_ctx->mpm_type].Prepare(sh->mpm_hsmd_ctx);
+                     if (mpm_table[sh->mpm_hsmd_ctx_ts->mpm_type].Prepare != NULL)
+                         mpm_table[sh->mpm_hsmd_ctx_ts->mpm_type].Prepare(sh->mpm_hsmd_ctx_ts);
                  }
              }
          }
-         if (sh->mpm_hscd_ctx != NULL) {
-             if (sh->mpm_hscd_ctx->pattern_cnt == 0) {
-                 MpmFactoryReClaimMpmCtx(sh->mpm_hscd_ctx);
-                 sh->mpm_hscd_ctx = NULL;
+         if (sh->mpm_hsmd_ctx_tc != NULL) {
+             if (sh->mpm_hsmd_ctx_tc->pattern_cnt == 0) {
+                 MpmFactoryReClaimMpmCtx(sh->mpm_hsmd_ctx_tc);
+                 sh->mpm_hsmd_ctx_tc = NULL;
+             } else {
+                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL &&
+                     sh->flags & SIG_GROUP_HAVEHSMDCONTENT) {
+                     if (mpm_table[sh->mpm_hsmd_ctx_tc->mpm_type].Prepare != NULL)
+                         mpm_table[sh->mpm_hsmd_ctx_tc->mpm_type].Prepare(sh->mpm_hsmd_ctx_tc);
+                 }
+             }
+         }
+         if (sh->mpm_hscd_ctx_ts != NULL) {
+             if (sh->mpm_hscd_ctx_ts->pattern_cnt == 0) {
+                 MpmFactoryReClaimMpmCtx(sh->mpm_hscd_ctx_ts);
+                 sh->mpm_hscd_ctx_ts = NULL;
              } else {
                  if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL &&
                      sh->flags & SIG_GROUP_HAVEHSCDCONTENT) {
-                     if (mpm_table[sh->mpm_hscd_ctx->mpm_type].Prepare != NULL)
-                         mpm_table[sh->mpm_hscd_ctx->mpm_type].Prepare(sh->mpm_hscd_ctx);
+                     if (mpm_table[sh->mpm_hscd_ctx_ts->mpm_type].Prepare != NULL)
+                         mpm_table[sh->mpm_hscd_ctx_ts->mpm_type].Prepare(sh->mpm_hscd_ctx_ts);
+                 }
+             }
+         }
+         if (sh->mpm_hscd_ctx_tc != NULL) {
+             if (sh->mpm_hscd_ctx_tc->pattern_cnt == 0) {
+                 MpmFactoryReClaimMpmCtx(sh->mpm_hscd_ctx_tc);
+                 sh->mpm_hscd_ctx_tc = NULL;
+             } else {
+                 if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL &&
+                     sh->flags & SIG_GROUP_HAVEHSCDCONTENT) {
+                     if (mpm_table[sh->mpm_hscd_ctx_tc->mpm_type].Prepare != NULL)
+                         mpm_table[sh->mpm_hscd_ctx_tc->mpm_type].Prepare(sh->mpm_hscd_ctx_tc);
                  }
              }
          }

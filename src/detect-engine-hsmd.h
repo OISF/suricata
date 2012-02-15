@@ -26,9 +26,9 @@
 #include "app-layer-htp.h"
 
 int DetectEngineRunHttpStatMsgMpm(DetectEngineThreadCtx *,
-                          Flow *f, HtpState *);
+                                  Flow *f, HtpState *, uint8_t);
 int DetectEngineInspectHttpStatMsg(DetectEngineCtx *, DetectEngineThreadCtx *,
-                           Signature *, Flow *, uint8_t, void *);
+                                   Signature *, Flow *, uint8_t, void *);
 void DetectEngineHttpStatMsgRegisterTests(void);
 
 #endif /* __DETECT_ENGINE_HSMD_H__ */

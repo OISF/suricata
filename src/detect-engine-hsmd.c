@@ -340,7 +340,7 @@ match:
  * \retval cnt Number of matches reported by the mpm algo.
  */
 int DetectEngineRunHttpStatMsgMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
-                                  HtpState *htp_state)
+                                  HtpState *htp_state, uint8_t flags)
 {
     SCEnter();
 
@@ -374,7 +374,7 @@ int DetectEngineRunHttpStatMsgMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
 
         cnt += HttpStatMsgPatternSearch(det_ctx,
                                         (uint8_t *)bstr_ptr(tx->response_message),
-                                        bstr_len(tx->response_message));
+                                        bstr_len(tx->response_message), flags);
     }
 
 end:
