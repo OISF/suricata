@@ -93,24 +93,6 @@ void DetectPcreRegister (void) {
 
     sigmatch_table[DETECT_PCRE].flags |= SIGMATCH_PAYLOAD;
 
-    sigmatch_table[DETECT_PCRE_HTTPCOOKIE].name = "__pcre_http_cookie__"; /* not a real keyword */
-    sigmatch_table[DETECT_PCRE_HTTPCOOKIE].Match = NULL;
-    sigmatch_table[DETECT_PCRE_HTTPCOOKIE].AppLayerMatch = DetectPcreALMatchCookie;
-    sigmatch_table[DETECT_PCRE_HTTPCOOKIE].alproto = ALPROTO_HTTP;
-    sigmatch_table[DETECT_PCRE_HTTPCOOKIE].Setup = NULL;
-    sigmatch_table[DETECT_PCRE_HTTPCOOKIE].Free  = DetectPcreFree;
-    sigmatch_table[DETECT_PCRE_HTTPCOOKIE].RegisterTests  = NULL;
-    sigmatch_table[DETECT_PCRE_HTTPCOOKIE].flags |= SIGMATCH_PAYLOAD;
-
-    sigmatch_table[DETECT_PCRE_HTTPMETHOD].name = "__pcre_http_method__"; /* not a real keyword */
-    sigmatch_table[DETECT_PCRE_HTTPMETHOD].Match = NULL;
-    sigmatch_table[DETECT_PCRE_HTTPMETHOD].AppLayerMatch = DetectPcreALMatchMethod;
-    sigmatch_table[DETECT_PCRE_HTTPMETHOD].alproto = ALPROTO_HTTP;
-    sigmatch_table[DETECT_PCRE_HTTPMETHOD].Setup = NULL;
-    sigmatch_table[DETECT_PCRE_HTTPMETHOD].Free  = DetectPcreFree;
-    sigmatch_table[DETECT_PCRE_HTTPMETHOD].RegisterTests  = NULL;
-    sigmatch_table[DETECT_PCRE_HTTPMETHOD].flags |= SIGMATCH_PAYLOAD;
-
     const char *eb;
     int eo;
     int opts = 0;
@@ -490,10 +472,7 @@ int DetectPcrePayloadMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
     //if (pe->flags & DETECT_PCRE_HTTP_BODY_AL)
     //    SCReturnInt(0);
 
-    if (s->flags & SIG_FLAG_RECURSIVE) {
-        ptr = payload + det_ctx->buffer_offset;
-        len = payload_len - det_ctx->buffer_offset;
-    } else if (pe->flags & DETECT_PCRE_RELATIVE) {
+    if (pe->flags & DETECT_PCRE_RELATIVE) {
         ptr = payload + det_ctx->buffer_offset;
         len = payload_len - det_ctx->buffer_offset;
     } else {
@@ -587,10 +566,7 @@ int DetectPcrePacketPayloadMatch(DetectEngineThreadCtx *det_ctx, Packet *p, Sign
     if (pe->flags & DETECT_PCRE_HTTP_CLIENT_BODY)
         SCReturnInt(0);
 
-    if (s->flags & SIG_FLAG_RECURSIVE) {
-        ptr = p->payload + det_ctx->buffer_offset;
-        len = p->payload_len - det_ctx->buffer_offset;
-    } else if (pe->flags & DETECT_PCRE_RELATIVE) {
+    if (pe->flags & DETECT_PCRE_RELATIVE) {
         ptr = p->payload + det_ctx->buffer_offset;
         len = p->payload_len - det_ctx->buffer_offset;
         if (ptr == NULL || len == 0)
@@ -680,10 +656,7 @@ int DetectPcrePayloadDoMatch(DetectEngineThreadCtx *det_ctx, Signature *s,
     if (pe->flags & DETECT_PCRE_HTTP_CLIENT_BODY)
         SCReturnInt(0);
 
-    if (s->flags & SIG_FLAG_RECURSIVE) {
-        ptr = data + det_ctx->buffer_offset;
-        len = data_len - det_ctx->buffer_offset;
-    } else if (pe->flags & DETECT_PCRE_RELATIVE) {
+    if (pe->flags & DETECT_PCRE_RELATIVE) {
         ptr = data + det_ctx->buffer_offset;
         len = data_len - det_ctx->buffer_offset;
         if (ptr == NULL || len == 0)

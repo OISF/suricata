@@ -230,36 +230,34 @@ typedef struct DetectPort_ {
 } DetectPort;
 
 /* Signature flags */
-#define SIG_FLAG_RECURSIVE              (1)     /**< recursive capturing enabled */
+#define SIG_FLAG_SRC_ANY                (1)  /**< source is any */
+#define SIG_FLAG_DST_ANY                (1<<1)  /**< destination is any */
+#define SIG_FLAG_SP_ANY                 (1<<2)  /**< source port is any */
+#define SIG_FLAG_DP_ANY                 (1<<3)  /**< destination port is any */
 
-#define SIG_FLAG_SRC_ANY                (1<<1)  /**< source is any */
-#define SIG_FLAG_DST_ANY                (1<<2)  /**< destination is any */
-#define SIG_FLAG_SP_ANY                 (1<<3)  /**< source port is any */
-#define SIG_FLAG_DP_ANY                 (1<<4)  /**< destination port is any */
+#define SIG_FLAG_NOALERT                (1<<4)  /**< no alert flag is set */
+#define SIG_FLAG_DSIZE                  (1<<5)  /**< signature has a dsize setting */
+#define SIG_FLAG_APPLAYER               (1<<6)  /**< signature applies to app layer instead of packets */
+#define SIG_FLAG_IPONLY                 (1<<7) /**< ip only signature */
 
-#define SIG_FLAG_NOALERT                (1<<5)  /**< no alert flag is set */
-#define SIG_FLAG_DSIZE                  (1<<6)  /**< signature has a dsize setting */
-#define SIG_FLAG_APPLAYER               (1<<7)  /**< signature applies to app layer instead of packets */
-#define SIG_FLAG_IPONLY                 (1<<8) /**< ip only signature */
+#define SIG_FLAG_STATE_MATCH            (1<<8) /**< signature has matches that require stateful inspection */
 
-#define SIG_FLAG_STATE_MATCH            (1<<9) /**< signature has matches that require stateful inspection */
+#define SIG_FLAG_REQUIRE_PACKET         (1<<9) /**< signature is requiring packet match */
+#define SIG_FLAG_REQUIRE_STREAM         (1<<10) /**< signature is requiring stream match */
 
-#define SIG_FLAG_REQUIRE_PACKET         (1<<10) /**< signature is requiring packet match */
-#define SIG_FLAG_REQUIRE_STREAM         (1<<11) /**< signature is requiring stream match */
+#define SIG_FLAG_MPM_PACKET             (1<<11)
+#define SIG_FLAG_MPM_PACKET_NEG         (1<<12)
+#define SIG_FLAG_MPM_STREAM             (1<<13)
+#define SIG_FLAG_MPM_STREAM_NEG         (1<<14)
+#define SIG_FLAG_MPM_HTTP               (1<<15)
+#define SIG_FLAG_MPM_HTTP_NEG           (1<<16)
 
-#define SIG_FLAG_MPM_PACKET             (1<<12)
-#define SIG_FLAG_MPM_PACKET_NEG         (1<<13)
-#define SIG_FLAG_MPM_STREAM             (1<<14)
-#define SIG_FLAG_MPM_STREAM_NEG         (1<<15)
-#define SIG_FLAG_MPM_HTTP               (1<<16)
-#define SIG_FLAG_MPM_HTTP_NEG           (1<<17)
+#define SIG_FLAG_REQUIRE_FLOWVAR        (1<<17) /**< signature can only match if a flowbit, flowvar or flowint is available. */
 
-#define SIG_FLAG_REQUIRE_FLOWVAR        (1<<18) /**< signature can only match if a flowbit, flowvar or flowint is available. */
+#define SIG_FLAG_FILESTORE              (1<<18) /**< signature has filestore keyword */
 
-#define SIG_FLAG_FILESTORE              (1<<19) /**< signature has filestore keyword */
-
-#define SIG_FLAG_TOSERVER               (1<<20)
-#define SIG_FLAG_TOCLIENT               (1<<21)
+#define SIG_FLAG_TOSERVER               (1<<19)
+#define SIG_FLAG_TOCLIENT               (1<<20)
 
 /* signature init flags */
 #define SIG_FLAG_INIT_DEONLY         1  /**< decode event only signature */
@@ -949,10 +947,6 @@ enum {
     DETECT_CONTENT,
     DETECT_URICONTENT,
     DETECT_PCRE,
-    DETECT_PCRE_HTTPBODY,
-    DETECT_PCRE_HTTPCOOKIE,
-    DETECT_PCRE_HTTPHEADER,
-    DETECT_PCRE_HTTPMETHOD,
     DETECT_ACK,
     DETECT_SEQ,
     DETECT_DEPTH,
@@ -962,7 +956,6 @@ enum {
     DETECT_REPLACE,
     DETECT_NOCASE,
     DETECT_FAST_PATTERN,
-    DETECT_RECURSIVE,
     DETECT_RAWBYTES,
     DETECT_BYTETEST,
     DETECT_BYTEJUMP,
@@ -997,9 +990,6 @@ enum {
     DETECT_ICMP_SEQ,
     DETECT_DETECTION_FILTER,
 
-    DETECT_ADDRESS,
-    DETECT_PROTO,
-    DETECT_PORT,
     DETECT_DECODE_EVENT,
     DETECT_IPOPTS,
     DETECT_FLAGS,
@@ -1064,6 +1054,7 @@ int SigGroupCleanup (DetectEngineCtx *de_ctx);
 void SigAddressPrepareBidirectionals (DetectEngineCtx *);
 
 int SigLoadSignatures (DetectEngineCtx *, char *, int);
+void SigTableList(void);
 void SigTableSetup(void);
 int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx,
                        DetectEngineThreadCtx *det_ctx, Packet *p);

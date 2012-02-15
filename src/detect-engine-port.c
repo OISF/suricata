@@ -47,7 +47,6 @@
 #include "util-debug.h"
 #include "util-error.h"
 
-void DetectPortTests(void);
 static int DetectPortCutNot(DetectPort *, DetectPort **);
 static int DetectPortCut(DetectEngineCtx *, DetectPort *, DetectPort *,
                          DetectPort **);
@@ -58,16 +57,6 @@ int DetectPortIsValidRange(char *);
 static uint32_t detect_port_memory = 0;
 static uint32_t detect_port_init_cnt = 0;
 static uint32_t detect_port_free_cnt = 0;
-
-/** DetectPort module registration */
-void DetectPortRegister(void) {
-    sigmatch_table[DETECT_PORT].name = "__port__";
-    sigmatch_table[DETECT_PORT].Match = NULL;
-    sigmatch_table[DETECT_PORT].Setup = NULL;
-    sigmatch_table[DETECT_PORT].Free = NULL;
-    sigmatch_table[DETECT_PORT].RegisterTests = DetectPortTests;
-}
-
 
 /**
  * \brief Alloc a DetectPort structure and update counters

@@ -44,21 +44,6 @@
 #include "util-unittest-helper.h"
 #include "util-debug.h"
 
-/*Prototypes*/
-void DetectProtoTests (void);
-
-/**
- *  \brief   To register the protocol detection function
- */
-void DetectProtoRegister (void)
-{
-    sigmatch_table[DETECT_PROTO].name = "__proto__";
-    sigmatch_table[DETECT_PROTO].Match = NULL;
-    sigmatch_table[DETECT_PROTO].Setup = NULL;
-    sigmatch_table[DETECT_PROTO].Free = NULL;
-    sigmatch_table[DETECT_PROTO].RegisterTests = DetectProtoTests;
-}
-
 /**
  *  \brief   Function to initialize the protocol detection and
  *           allocate memory to the DetectProto structure.

@@ -37,9 +37,10 @@ typedef struct DetectProto_ {
 } DetectProto;
 
 /* prototypes */
-void DetectProtoRegister (void);
 int DetectProtoParse(DetectProto *dp, char *str);
 int DetectProtoContainsProto(DetectProto *, int);
+
+void DetectProtoTests(void);
 
 #endif /* __DETECT_PROTO_H__ */
 

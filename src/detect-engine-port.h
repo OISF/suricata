@@ -25,8 +25,6 @@
 #define __DETECT_PORT_H__
 
 /* prototypes */
-void DetectPortRegister (void);
-
 int DetectPortParse(DetectPort **head, char *str);
 
 DetectPort *DetectPortCopy(DetectEngineCtx *, DetectPort *);
@@ -61,6 +59,8 @@ void DetectPortPrint(DetectPort *);
 void DetectPortPrintList(DetectPort *head);
 int DetectPortCmp(DetectPort *, DetectPort *);
 void DetectPortFree(DetectPort *);
+
+void DetectPortTests(void);
 
 #endif /* __DETECT_PORT_H__ */
 

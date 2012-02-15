@@ -44,17 +44,6 @@
 #include "util-debug.h"
 #include "util-print.h"
 
-void DetectAddressTests(void);
-
-void DetectAddressRegister(void)
-{
-    sigmatch_table[DETECT_ADDRESS].name = "__address__";
-    sigmatch_table[DETECT_ADDRESS].Match = NULL;
-    sigmatch_table[DETECT_ADDRESS].Setup = NULL;
-    sigmatch_table[DETECT_ADDRESS].Free = NULL;
-    sigmatch_table[DETECT_ADDRESS].RegisterTests = DetectAddressTests;
-}
-
 /* prototypes */
 void DetectAddressPrint(DetectAddress *);
 static int DetectAddressCutNot(DetectAddress *, DetectAddress **);

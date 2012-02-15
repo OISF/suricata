@@ -52,6 +52,9 @@
 
 #include "detect-parse.h"
 #include "detect-engine.h"
+#include "detect-engine-address.h"
+#include "detect-engine-proto.h"
+#include "detect-engine-port.h"
 #include "detect-engine-mpm.h"
 #include "detect-engine-sigorder.h"
 #include "detect-engine-payload.h"
@@ -434,6 +437,7 @@ void usage(const char *progname)
     printf("\t-u                           : run the unittests and exit\n");
     printf("\t-U, --unittest-filter=REGEX  : filter unittests with a regex\n");
     printf("\t--list-unittests             : list unit tests\n");
+    printf("\t--list-keywords              : list all keywords implemented by the engine\n");
     printf("\t--fatal-unittests            : enable fatal failure on unittest error\n");
 #endif /* UNITTESTS */
 #ifdef __SC_CUDA_SUPPORT__
@@ -610,6 +614,7 @@ int main(int argc, char **argv)
     int list_unittests = 0;
     int list_cuda_cards = 0;
     int list_runmodes = 0;
+    int list_keywords = 0;
     const char *runmode_custom_mode = NULL;
     int daemon = 0;
 #ifndef OS_WIN32
@@ -686,6 +691,7 @@ int main(int argc, char **argv)
         {"list-unittests", 0, &list_unittests, 1},
         {"list-cuda-cards", 0, &list_cuda_cards, 1},
         {"list-runmodes", 0, &list_runmodes, 1},
+        {"list-keywords", 0, &list_keywords, 1},
         {"runmode", required_argument, NULL, 0},
         {"engine-analysis", 0, &engine_analysis, 1},
 #ifdef OS_WIN32
@@ -835,6 +841,8 @@ int main(int argc, char **argv)
             } else if (strcmp((long_opts[option_index]).name, "list-runmodes") == 0) {
                 RunModeListRunmodes();
                 exit(EXIT_SUCCESS);
+            } else if (strcmp((long_opts[option_index]).name, "list-keywords") == 0) {
+                // do nothing
             } else if (strcmp((long_opts[option_index]).name, "runmode") == 0) {
                 runmode_custom_mode = optarg;
             } else if(strcmp((long_opts[option_index]).name, "engine-analysis") == 0) {
@@ -1170,7 +1178,8 @@ int main(int argc, char **argv)
             }
         }
 
-    } else if (run_mode != RUNMODE_UNITTEST){
+    } else if (run_mode != RUNMODE_UNITTEST &&
+               !list_keywords){
         SCLogError(SC_ERR_OPENING_FILE, "Configuration file has not been provided");
         usage(argv[0]);
         exit(EXIT_FAILURE);
@@ -1256,7 +1265,7 @@ int main(int argc, char **argv)
     DefragInit();
 
     if (run_mode == RUNMODE_UNKNOWN) {
-        if (!engine_analysis) {
+        if (!engine_analysis && !list_keywords) {
             usage(argv[0]);
             exit(EXIT_FAILURE);
         }
@@ -1287,7 +1296,12 @@ int main(int argc, char **argv)
     /* hardcoded initialization code */
     MpmTableSetup(); /* load the pattern matchers */
     SigTableSetup(); /* load the rule keywords */
+    if (list_keywords) {
+        SigTableList();
+        exit(EXIT_FAILURE);
+    }
     TmqhSetup();
+
 
     CIDRInit();
     SigParsePrepare();
@@ -1446,6 +1460,9 @@ int main(int argc, char **argv)
         SMTPParserRegisterTests();
         MagicRegisterTests();
         UtilMiscRegisterTests();
+        DetectAddressTests();
+        DetectProtoTests();
+        DetectPortTests();
         if (list_unittests) {
             UtListTests(regex_arg);
         }
