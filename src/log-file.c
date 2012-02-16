@@ -140,6 +140,29 @@ static void LogFileMetaGetHost(FILE *fp, Packet *p, File *ff) {
     fprintf(fp, "<unknown>");
 }
 
+static void LogFileMetaGetReferer(FILE *fp, Packet *p, File *ff) {
+    HtpState *htp_state = (HtpState *)p->flow->alstate;
+    if (htp_state != NULL) {
+        htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, ff->txid);
+        if (tx != NULL) {
+            table_t *headers;
+            headers = tx->request_headers;
+            htp_header_t *h = NULL;
+
+            table_iterator_reset(headers);
+            while (table_iterator_next(headers, (void **)&h) != NULL) {
+                if (strcasecmp("Referer", bstr_tocstr(h->name)) == 0) {
+                    PrintRawUriFp(fp, (uint8_t *)bstr_ptr(h->value),
+                        bstr_len(h->value));
+                    return;
+                }
+            }
+        }
+    }
+
+    fprintf(fp, "<unknown>");
+}
+
 static void LogFileLogCreateMetaFile(Packet *p, File *ff, char *filename, int ipver) {
     char metafilename[PATH_MAX] = "";
     snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
@@ -185,6 +208,9 @@ static void LogFileLogCreateMetaFile(Packet *p, File *ff, char *filename, int ip
         fprintf(fp, "\n");
         fprintf(fp, "HTTP HOST:         ");
         LogFileMetaGetHost(fp, p, ff);
+        fprintf(fp, "\n");
+        fprintf(fp, "HTTP REFERER:      ");
+        LogFileMetaGetReferer(fp, p, ff);
         fprintf(fp, "\n");
         fprintf(fp, "FILENAME:          ");
         PrintRawUriFp(fp, ff->name, ff->name_len);
@@ -289,6 +315,10 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, Packet *p, File *ff, i
 
     fprintf(fp, "\"http_host\": \"");
     LogFileMetaGetHost(fp, p, ff);
+    fprintf(fp, "\", ");
+
+    fprintf(fp, "\"http_referer\": \"");
+    LogFileMetaGetReferer(fp, p, ff);
     fprintf(fp, "\", ");
 
     fprintf(fp, "\"filename\": \"");
