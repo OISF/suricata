@@ -80,7 +80,7 @@ void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen)
     uint32_t u = 0;
 
     for (u = 0; u < buflen; u++) {
-        if (isprint(buf[u])) {
+        if (isprint(buf[u]) && buf[u] != '\"') {
             snprintf(temp, sizeof(temp), "%c", buf[u]);
         } else {
             snprintf(temp, sizeof(temp), "\\x%02X", buf[u]);
