@@ -49,8 +49,13 @@
 #include "output.h"
 
 #include "log-file.h"
+#include "util-logopenfile.h"
+
+#include "app-layer-htp.h"
 
 #define MODULE_NAME "LogFileLog"
+
+#define DEFAULT_LOG_FILENAME "files-json.log"
 
 TmEcode LogFileLog (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode LogFileLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
@@ -98,6 +103,43 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
             t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
 }
 
+static void LogFileMetaGetUri(FILE *fp, Packet *p, File *ff) {
+    HtpState *htp_state = (HtpState *)p->flow->alstate;
+    if (htp_state != NULL) {
+        htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, ff->txid);
+        if (tx != NULL && tx->request_uri_normalized != NULL) {
+            PrintRawUriFp(fp, (uint8_t *)bstr_ptr(tx->request_uri_normalized),
+                    bstr_len(tx->request_uri_normalized));
+            return;
+        }
+    }
+
+    fprintf(fp, "<unknown>");
+}
+
+static void LogFileMetaGetHost(FILE *fp, Packet *p, File *ff) {
+    HtpState *htp_state = (HtpState *)p->flow->alstate;
+    if (htp_state != NULL) {
+        htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, ff->txid);
+        if (tx != NULL) {
+            table_t *headers;
+            headers = tx->request_headers;
+            htp_header_t *h = NULL;
+
+            table_iterator_reset(headers);
+            while (table_iterator_next(headers, (void **)&h) != NULL) {
+                if (strcasecmp("Host", bstr_tocstr(h->name)) == 0) {
+                    PrintRawUriFp(fp, (uint8_t *)bstr_ptr(h->value),
+                        bstr_len(h->value));
+                    return;
+                }
+            }
+        }
+    }
+
+    fprintf(fp, "<unknown>");
+}
+
 static void LogFileLogCreateMetaFile(Packet *p, File *ff, char *filename, int ipver) {
     char metafilename[PATH_MAX] = "";
     snprintf(metafilename, sizeof(metafilename), "%s.meta", filename);
@@ -138,6 +180,12 @@ static void LogFileLogCreateMetaFile(Packet *p, File *ff, char *filename, int ip
             fprintf(fp, "SRC PORT:          %" PRIu16 "\n", sp);
             fprintf(fp, "DST PORT:          %" PRIu16 "\n", dp);
         }
+        fprintf(fp, "HTTP URI:          ");
+        LogFileMetaGetUri(fp, p, ff);
+        fprintf(fp, "\n");
+        fprintf(fp, "HTTP HOST:         ");
+        LogFileMetaGetHost(fp, p, ff);
+        fprintf(fp, "\n");
         fprintf(fp, "FILENAME:          ");
         PrintRawUriFp(fp, ff->name, ff->name_len);
         fprintf(fp, "\n");
@@ -187,6 +235,100 @@ static void LogFileLogCloseMetaFile(File *ff) {
     }
 }
 
+/**
+ *  \internal
+ *  \brief Write meta data on a single line json record
+ */
+static void LogFileWriteJsonRecord(LogFileLogThread *aft, Packet *p, File *ff, int ipver) {
+    SCMutexLock(&aft->file_ctx->fp_mutex);
+
+    FILE *fp = aft->file_ctx->fp;
+    char timebuf[64];
+    CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
+
+    fprintf(fp, "{ \"id\": %u, ", ff->file_id);
+    fprintf(fp, "\"timestamp\": \"%s\", ", timebuf);
+    if (p->pcap_cnt > 0) {
+        fprintf(fp, "\"pcap_pkt_num\": %"PRIu64", ", p->pcap_cnt);
+    }
+
+    fprintf(fp, "\"ipver\": %d, ", ipver == AF_INET ? 4 : 6);
+
+    char srcip[46], dstip[46];
+    Port sp, dp;
+    switch (ipver) {
+        case AF_INET:
+            PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
+            PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
+            break;
+        case AF_INET6:
+            PrintInet(AF_INET6, (const void *)GET_IPV6_SRC_ADDR(p), srcip, sizeof(srcip));
+            PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
+            break;
+        default:
+            strlcpy(srcip, "<unknown>", sizeof(srcip));
+            strlcpy(dstip, "<unknown>", sizeof(dstip));
+            break;
+    }
+    sp = p->sp;
+    dp = p->dp;
+
+    fprintf(fp, "\"srcip\": \"%s\", ", srcip);
+    fprintf(fp, "\"dstip\": \"%s\", ", dstip);
+    fprintf(fp, "\"protocol\": %" PRIu32 ", ", p->proto);
+    if (PKT_IS_TCP(p) || PKT_IS_UDP(p)) {
+        fprintf(fp, "\"sp\": %" PRIu16 ", ", sp);
+        fprintf(fp, "\"dp\": %" PRIu16 ", ", dp);
+    }
+
+    fprintf(fp, "\"http_uri\": \"");
+    LogFileMetaGetUri(fp, p, ff);
+    fprintf(fp, "\", ");
+
+    fprintf(fp, "\"http_host\": \"");
+    LogFileMetaGetHost(fp, p, ff);
+    fprintf(fp, "\", ");
+
+    fprintf(fp, "\"filename\": \"");
+    PrintRawUriFp(fp, ff->name, ff->name_len);
+    fprintf(fp, "\", ");
+
+    fprintf(fp, "\"magic\": \"");
+    if (ff->magic) {
+        PrintRawUriFp(fp, (uint8_t *)ff->magic, strlen(ff->magic));
+    } else {
+        fprintf(fp, "unknown");
+    }
+    fprintf(fp, "\", ");
+
+    switch (ff->state) {
+        case FILE_STATE_CLOSED:
+            fprintf(fp, "\"state\": \"CLOSED\", ");
+            if (ff->flags & FILE_MD5) {
+                fprintf(fp, "\"md5\": \"");
+                size_t x;
+                for (x = 0; x < sizeof(ff->md5); x++) {
+                    fprintf(fp, "%02x", ff->md5[x]);
+                }
+                fprintf(fp, "\", ");
+            }
+            break;
+        case FILE_STATE_TRUNCATED:
+            fprintf(fp, "\"state\": \"TRUNCATED\", ");
+            break;
+        case FILE_STATE_ERROR:
+            fprintf(fp, "\"state\": \"ERROR\", ");
+            break;
+        default:
+            fprintf(fp, "\"state\": \"UNKOWN\", ");
+            break;
+    }
+    fprintf(fp, "\"size\": %"PRIu64" ", ff->size);
+    fprintf(fp, "}\n");
+    fflush(fp);
+    SCMutexUnlock(&aft->file_ctx->fp_mutex);
+}
+
 static TmEcode LogFileLogWrap(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq, int ipver)
 {
     SCEnter();
@@ -234,6 +376,7 @@ static TmEcode LogFileLogWrap(ThreadVars *tv, Packet *p, void *data, PacketQueue
                 SCLogDebug("ffd %p", ffd);
                 if (ffd->stored == 1) {
                     if (file_close == 1 && ffd->next == NULL) {
+                        LogFileWriteJsonRecord(aft, p, ff, ipver);
                         LogFileLogCloseMetaFile(ff);
                         ff->state = FILE_STATE_STORED;
                     }
@@ -288,6 +431,7 @@ static TmEcode LogFileLogWrap(ThreadVars *tv, Packet *p, void *data, PacketQueue
                 {
                     if (ffd->next == NULL) {
                         LogFileLogCloseMetaFile(ff);
+                        LogFileWriteJsonRecord(aft, p, ff, ipver);
 
                         ff->state = FILE_STATE_STORED;
                     }
@@ -448,11 +592,22 @@ static void LogFileLogStoreWaldo(const char *path) {
  * */
 static OutputCtx *LogFileLogInitCtx(ConfNode *conf)
 {
+    LogFileCtx *logfile_ctx = LogFileNewCtx();
+    if (logfile_ctx == NULL) {
+        SCLogDebug("Could not create new LogFileCtx");
+        return NULL;
+    }
+
+    if (SCConfLogOpenGeneric(conf, logfile_ctx, DEFAULT_LOG_FILENAME) < 0) {
+        LogFileFreeCtx(logfile_ctx);
+        return NULL;
+    }
+
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (output_ctx == NULL)
         return NULL;
 
-    output_ctx->data = NULL;
+    output_ctx->data = logfile_ctx;
     output_ctx->DeInit = LogFileLogDeInitCtx;
 
     char *s_default_log_dir = NULL;
