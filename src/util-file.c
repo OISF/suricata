@@ -92,8 +92,10 @@ static int FileAppendFileDataFilePtr(File *ff, FileData *ffd) {
         ff->chunks_cnt_max = ff->chunks_cnt;
 #endif
 
+#ifdef HAVE_NSS
     if (ff->md5_ctx)
         HASH_Update(ff->md5_ctx, ffd->data, ffd->len);
+#endif
     SCReturnInt(0);
 }
 
@@ -287,12 +289,14 @@ static File *FileAlloc(uint8_t *name, uint16_t name_len) {
     new->name_len = name_len;
     memcpy(new->name, name, name_len);
 
+#ifdef HAVE_NSS
     if (g_file_force_md5) {
         new->md5_ctx = HASH_Create(HASH_AlgMD5);
         if (new->md5_ctx != NULL) {
             HASH_Begin(new->md5_ctx);
         }
     }
+#endif
     return new;
 }
 
@@ -317,9 +321,10 @@ static void FileFree(File *ff) {
         }
     }
 
+#ifdef HAVE_NSS
     if (ff->md5_ctx)
         HASH_Destroy(ff->md5_ctx);
-
+#endif
     SCLogDebug("ff chunks_cnt %"PRIu64", chunks_cnt_max %"PRIu64,
             ff->chunks_cnt, ff->chunks_cnt_max);
     SCFree(ff);
@@ -533,11 +538,13 @@ static int FileCloseFilePtr(File *ff, uint8_t *data,
         ff->state = FILE_STATE_CLOSED;
         SCLogDebug("flowfile state transitioned to FILE_STATE_CLOSED");
 
+#ifdef HAVE_NSS
         if (ff->md5_ctx) {
             unsigned int len = 0;
             HASH_End(ff->md5_ctx, ff->md5, &len, sizeof(ff->md5));
             ff->flags |= FILE_MD5;
         }
+#endif
     }
 
     SCReturnInt(0);

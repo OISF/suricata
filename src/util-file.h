@@ -25,7 +25,9 @@
 #ifndef __UTIL_FILE_H__
 #define __UTIL_FILE_H__
 
-#include "nss/sechash.h"
+#ifdef HAVE_NSS
+#include <nss/sechash.h>
+#endif
 
 #define FILE_TRUNCATED  0x01
 #define FILE_NOSTORE    0x02
@@ -66,8 +68,10 @@ typedef struct File_ {
     FileData *chunks_head;
     FileData *chunks_tail;
     struct File_ *next;
+#ifdef HAVE_NSS
     HASHContext *md5_ctx;
     uint8_t md5[MD5_LENGTH];
+#endif
 #ifdef DEBUG
     uint64_t chunks_cnt;
     uint64_t chunks_cnt_max;

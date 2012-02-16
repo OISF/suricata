@@ -1025,22 +1025,23 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
         CPPFLAGS="${CPPFLAGS} -I${with_libnspr_includes}"
     fi
 
-    AC_CHECK_HEADER(nspr.h,,[AC_ERROR(nspr.h not found ...)])
+    AC_CHECK_HEADER(nspr/nspr.h,NSPR="yes",NSPR="no")
+    if test "$NSPR" = "yes"; then
+        if test "$with_libnspr_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS}  -L${with_libnspr_libraries}"
+        fi
 
-    if test "$with_libnspr_libraries" != "no"; then
-        LDFLAGS="${LDFLAGS}  -L${with_libnspr_libraries}"
+        AC_CHECK_LIB(nspr4, PR_GetCurrentThread,, NSPR="no")
+
+        if test "$NSPR" = "no"; then
+            echo
+            echo "   ERROR!  libnspr library not found, go get it"
+            echo "   from Mozilla."
+            echo
+            exit 1
+        fi
     fi
 
-    MAGIC=""
-    AC_CHECK_LIB(nspr4, PR_GetCurrentThread,, NSPR="no")
-
-    if test "$NSPR" = "no"; then
-        echo
-        echo "   ERROR!  libnspr library not found, go get it"
-        echo "   from Mozilla."
-        echo
-        exit 1
-    fi
 #libnss
     AC_ARG_WITH(libnss_includes,
             [  --with-libnss-includes=DIR  libnss include directory],
@@ -1053,21 +1054,23 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
         CPPFLAGS="${CPPFLAGS} -I${with_libnss_includes}"
     fi
 
-    AC_CHECK_HEADER(sechash.h,,[AC_ERROR(sechash.h not found ...)])
+    AC_CHECK_HEADER(sechash.h,NSS="yes",NSS="no")
+    if test "$NSS" = "yes"; then
+        if test "$with_libnss_libraries" != "no"; then
+            LDFLAGS="${LDFLAGS}  -L${with_libnss_libraries}"
+        fi
 
-    if test "$with_libnss_libraries" != "no"; then
-        LDFLAGS="${LDFLAGS}  -L${with_libnss_libraries}"
-    fi
+        AC_CHECK_LIB(nss3, HASH_Begin,, NSS="no")
 
-    MAGIC=""
-    AC_CHECK_LIB(nss3, HASH_Begin,, NSS="no")
+        if test "$NSS" = "no"; then
+            echo
+            echo "   ERROR!  libnss library not found, go get it"
+            echo "   from Mozilla."
+            echo
+            exit 1
+        fi
 
-    if test "$NSS" = "no"; then
-        echo
-        echo "   ERROR!  libnss library not found, go get it"
-        echo "   from Mozilla."
-        echo
-        exit 1
+        AC_DEFINE([HAVE_NSS],[1],[libnss available for md5])
     fi
 
 #libmagic

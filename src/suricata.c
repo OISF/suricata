@@ -28,7 +28,9 @@
 #include <signal.h>
 #include <pthread.h>
 
+#ifdef HAVE_NSS
 #include <nss.h>
+#endif
 
 #include "suricata.h"
 #include "decode.h"
@@ -549,6 +551,9 @@ void SCPrintBuildInfo(void) {
 #ifdef PCRE_HAVE_JIT
     strlcat(features, "PCRE_JIT ", sizeof(features));
 #endif
+#ifdef HAVE_NSS
+    strlcat(features, "HAVE_NSS ", sizeof(features));
+#endif
     if (strlen(features) == 0) {
         strlcat(features, "none", sizeof(features));
     }
@@ -640,8 +645,10 @@ int main(int argc, char **argv)
 
     SC_ATOMIC_INIT(engine_stage);
 
+#ifdef HAVE_NSS
     /* init NSS for md5 */
     NSS_NoDB_Init(NULL);
+#endif
 
     /* initialize the logging subsys */
     SCLogInitLogModule(NULL);

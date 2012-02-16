@@ -208,6 +208,7 @@ static void LogFileLogCloseMetaFile(File *ff) {
         switch (ff->state) {
             case FILE_STATE_CLOSED:
                 fprintf(fp, "STATE:             CLOSED\n");
+#ifdef HAVE_NSS
                 if (ff->flags & FILE_MD5) {
                     fprintf(fp, "MD5:               ");
                     size_t x;
@@ -216,6 +217,7 @@ static void LogFileLogCloseMetaFile(File *ff) {
                     }
                     fprintf(fp, "\n");
                 }
+#endif
                 break;
             case FILE_STATE_TRUNCATED:
                 fprintf(fp, "STATE:             TRUNCATED\n");
@@ -304,6 +306,7 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, Packet *p, File *ff, i
     switch (ff->state) {
         case FILE_STATE_CLOSED:
             fprintf(fp, "\"state\": \"CLOSED\", ");
+#ifdef HAVE_NSS
             if (ff->flags & FILE_MD5) {
                 fprintf(fp, "\"md5\": \"");
                 size_t x;
@@ -312,6 +315,7 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, Packet *p, File *ff, i
                 }
                 fprintf(fp, "\", ");
             }
+#endif
             break;
         case FILE_STATE_TRUNCATED:
             fprintf(fp, "\"state\": \"TRUNCATED\", ");
