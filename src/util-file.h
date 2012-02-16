@@ -25,10 +25,13 @@
 #ifndef __UTIL_FILE_H__
 #define __UTIL_FILE_H__
 
+#include "nss/sechash.h"
+
 #define FILE_TRUNCATED  0x01
 #define FILE_NOSTORE    0x02
 #define FILE_NOMAGIC    0x04
 #define FILE_STORE      0x08
+#define FILE_MD5        0x10
 
 typedef enum FileState_ {
     FILE_STATE_NONE = 0,    /**< no state */
@@ -63,6 +66,8 @@ typedef struct File_ {
     FileData *chunks_head;
     FileData *chunks_tail;
     struct File_ *next;
+    HASHContext *md5_ctx;
+    uint8_t md5[MD5_LENGTH];
 #ifdef DEBUG
     uint64_t chunks_cnt;
     uint64_t chunks_cnt_max;
@@ -160,6 +165,9 @@ void FilePrune(FileContainer *ffc);
 
 void FileForceMagicEnable(void);
 int FileForceMagic(void);
+
+void FileForceMd5Enable(void);
+int FileForceMd5(void);
 
 void FileStoreAllFiles(FileContainer *);
 void FileStoreAllFilesForTx(FileContainer *, uint16_t);

@@ -28,6 +28,8 @@
 #include <signal.h>
 #include <pthread.h>
 
+#include <nss.h>
+
 #include "suricata.h"
 #include "decode.h"
 #include "detect.h"
@@ -637,6 +639,9 @@ int main(int argc, char **argv)
     sc_set_caps = FALSE;
 
     SC_ATOMIC_INIT(engine_stage);
+
+    /* init NSS for md5 */
+    NSS_NoDB_Init(NULL);
 
     /* initialize the logging subsys */
     SCLogInitLogModule(NULL);

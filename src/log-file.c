@@ -160,6 +160,14 @@ static void LogFileLogCloseMetaFile(File *ff) {
         switch (ff->state) {
             case FILE_STATE_CLOSED:
                 fprintf(fp, "STATE:             CLOSED\n");
+                if (ff->flags & FILE_MD5) {
+                    fprintf(fp, "MD5:               ");
+                    size_t x;
+                    for (x = 0; x < sizeof(ff->md5); x++) {
+                        fprintf(fp, "%02x", ff->md5[x]);
+                    }
+                    fprintf(fp, "\n");
+                }
                 break;
             case FILE_STATE_TRUNCATED:
                 fprintf(fp, "STATE:             TRUNCATED\n");
@@ -470,6 +478,12 @@ static OutputCtx *LogFileLogInitCtx(ConfNode *conf)
     if (force_magic != NULL && ConfValIsTrue(force_magic)) {
         FileForceMagicEnable();
         SCLogInfo("forcing magic lookup for stored files");
+    }
+
+    const char *force_md5 = ConfNodeLookupChildValue(conf, "force-md5");
+    if (force_md5 != NULL && ConfValIsTrue(force_md5)) {
+        FileForceMd5Enable();
+        SCLogInfo("forcing md5 calculation for stored files");
     }
 
     const char *waldo = ConfNodeLookupChildValue(conf, "waldo");

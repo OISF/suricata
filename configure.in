@@ -1013,6 +1013,63 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
         fi
     fi
 
+#libnspr
+    AC_ARG_WITH(libnspr_includes,
+            [  --with-libnspr-includes=DIR  libnspr include directory],
+            [with_libnspr_includes="$withval"],[with_libnspr_includes=no])
+    AC_ARG_WITH(libnspr_libraries,
+            [  --with-libnspr-libraries=DIR    libnspr library directory],
+            [with_libnspr_libraries="$withval"],[with_libnspr_libraries="no"])
+
+    if test "$with_libnspr_includes" != "no"; then
+        CPPFLAGS="${CPPFLAGS} -I${with_libnspr_includes}"
+    fi
+
+    AC_CHECK_HEADER(nspr.h,,[AC_ERROR(nspr.h not found ...)])
+
+    if test "$with_libnspr_libraries" != "no"; then
+        LDFLAGS="${LDFLAGS}  -L${with_libnspr_libraries}"
+    fi
+
+    MAGIC=""
+    AC_CHECK_LIB(nspr4, PR_GetCurrentThread,, NSPR="no")
+
+    if test "$NSPR" = "no"; then
+        echo
+        echo "   ERROR!  libnspr library not found, go get it"
+        echo "   from Mozilla."
+        echo
+        exit 1
+    fi
+#libnss
+    AC_ARG_WITH(libnss_includes,
+            [  --with-libnss-includes=DIR  libnss include directory],
+            [with_libnss_includes="$withval"],[with_libnss_includes=no])
+    AC_ARG_WITH(libnss_libraries,
+            [  --with-libnss-libraries=DIR    libnss library directory],
+            [with_libnss_libraries="$withval"],[with_libnss_libraries="no"])
+
+    if test "$with_libnss_includes" != "no"; then
+        CPPFLAGS="${CPPFLAGS} -I${with_libnss_includes}"
+    fi
+
+    AC_CHECK_HEADER(sechash.h,,[AC_ERROR(sechash.h not found ...)])
+
+    if test "$with_libnss_libraries" != "no"; then
+        LDFLAGS="${LDFLAGS}  -L${with_libnss_libraries}"
+    fi
+
+    MAGIC=""
+    AC_CHECK_LIB(nss3, HASH_Begin,, NSS="no")
+
+    if test "$NSS" = "no"; then
+        echo
+        echo "   ERROR!  libnss library not found, go get it"
+        echo "   from Mozilla."
+        echo
+        exit 1
+    fi
+
 #libmagic
     AC_ARG_WITH(libmagic_includes,
             [  --with-libmagic-includes=DIR  libmagic include directory],
