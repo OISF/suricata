@@ -65,6 +65,7 @@
 #include "util-checksum.h"
 #include "tmqh-packetpool.h"
 #include "source-af-packet.h"
+#include "runmodes.h"
 
 #ifdef HAVE_AF_PACKET
 #include <sys/ioctl.h>
@@ -390,11 +391,16 @@ int AFPReadFromRing(AFPThreadVars *ptv)
     }
 
     p->datalink = ptv->datalink;
-    /* FIXME switch to no copy */
-    SET_PKT_LEN(p, h.h2->tp_len);
-    if (PacketCopyData(p, (unsigned char*)h.raw + h.h2->tp_mac, GET_PKT_LEN(p)) == -1) {
-        TmqhOutputPacketpool(ptv->tv, p);
-        SCReturnInt(AFP_FAILURE);
+    if (ptv->flags & AFP_ZERO_COPY) {
+        if (PacketSetData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_len) == -1) {
+            TmqhOutputPacketpool(ptv->tv, p);
+            SCReturnInt(AFP_FAILURE);
+        }
+    } else {
+        if (PacketCopyData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_len) == -1) {
+            TmqhOutputPacketpool(ptv->tv, p);
+            SCReturnInt(AFP_FAILURE);
+        }
     }
     /* Timestamp */
     p->ts.tv_sec = h.h2->tp_sec;
@@ -419,16 +425,19 @@ int AFPReadFromRing(AFPThreadVars *ptv)
                 p->flags |= PKT_IGNORE_CHECKSUM;
         }
     }
-    /* tell kernel it can use the buffer */
+
+    if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
+        h.h2->tp_status = TP_STATUS_KERNEL;
+        if (++ptv->frame_offset >= ptv->req.tp_frame_nr) {
+            ptv->frame_offset = 0;
+        }
+        TmqhOutputPacketpool(ptv->tv, p);
+        SCReturnInt(AFP_FAILURE);
+    }
+
     h.h2->tp_status = TP_STATUS_KERNEL;
     if (++ptv->frame_offset >= ptv->req.tp_frame_nr) {
         ptv->frame_offset = 0;
-    }
-
-
-    if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
-        TmqhOutputPacketpool(ptv->tv, p);
-        SCReturnInt(AFP_FAILURE);
     }
 
     SCReturnInt(AFP_READ_OK);
@@ -889,6 +898,13 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
     }
 #endif
     ptv->flags = afpconfig->flags;
+
+    char *active_runmode = RunmodeGetActive();
+
+    if (active_runmode && !strcmp("workers", active_runmode)) {
+        ptv->flags |= AFP_ZERO_COPY;
+        SCLogInfo("Enabling zero copy mode");
+    }
 
     r = AFPCreateSocket(ptv, ptv->iface, 1);
     if (r < 0) {

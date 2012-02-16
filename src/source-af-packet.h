@@ -40,6 +40,7 @@
 
 /* value for flags */
 #define AFP_RING_MODE (1<<0)
+#define AFP_ZERO_COPY (1<<1)
 
 #define AFP_FILE_MAX_PKTS 256
 #define AFP_IFACE_NAME_LENGTH 48

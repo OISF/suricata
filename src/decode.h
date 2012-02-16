@@ -895,6 +895,7 @@ void AddressDebugPrint(Address *);
 #define PKT_TUNNEL_VERDICTED            0x2000
 
 #define PKT_IGNORE_CHECKSUM             0x4000    /**< Packet checksum is not computed (TX packet for example) */
+#define PKT_ZERO_COPY                   0x8000    /**< Packet comes from zero copy (ext_pkt must not be freed) */
 
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) ((p)->flags & PKT_PSEUDO_STREAM_END)
