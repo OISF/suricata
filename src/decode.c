@@ -345,6 +345,27 @@ inline int PacketCopyData(Packet *p, uint8_t *pktdata, int pktlen)
     SET_PKT_LEN(p, (size_t)pktlen);
     return PacketCopyDataOffset(p, 0, pktdata, pktlen);
 }
+
+
+/**
+ * \brief Set data for Packet and set length when zeo copy is used
+ *
+ *  \param Pointer to the Packet to modify
+ *  \param Pointer to the data
+ *  \param Length of the data
+ */
+inline int PacketSetData(Packet *p, uint8_t *pktdata, int pktlen)
+{
+    SET_PKT_LEN(p, (size_t)pktlen);
+    if (!pktdata) {
+        return -1;
+    }
+    p->ext_pkt = pktdata;
+    p->flags |= PKT_ZERO_COPY;
+
+    return 0;
+}
+
 /**
  * @}
  */
