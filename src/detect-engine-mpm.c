@@ -2671,27 +2671,13 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_type)
         exit(EXIT_FAILURE);
     }
 
-    /* if uricontent had used content and content_len as its struct members
-     * we wouldn't have needed this if/else here */
-    if (sm_type == DETECT_URICONTENT) {
-        DetectContentData *ud = ctx;
-        e->pattern = SCMalloc(ud->content_len);
-        if (e->pattern == NULL) {
-            exit(EXIT_FAILURE);
-        }
-        memcpy(e->pattern, ud->content, ud->content_len);
-        e->pattern_len = ud->content_len;
-
-        /* CONTENT, HTTP_(CLIENT_BODY|METHOD|URI|COOKIE|HEADER) */
-    } else {
-        DetectContentData *cd = ctx;
-        e->pattern = SCMalloc(cd->content_len);
-        if (e->pattern == NULL) {
-            exit(EXIT_FAILURE);
-        }
-        memcpy(e->pattern, cd->content, cd->content_len);
-        e->pattern_len = cd->content_len;
+    DetectContentData *cd = ctx;
+    e->pattern = SCMalloc(cd->content_len);
+    if (e->pattern == NULL) {
+        exit(EXIT_FAILURE);
     }
+    memcpy(e->pattern, cd->content, cd->content_len);
+    e->pattern_len = cd->content_len;
     e->dup_count = 1;
     e->sm_type = sm_type;
     e->id = 0;
