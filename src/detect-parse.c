@@ -189,15 +189,6 @@ void SigMatchRemoveSMFromList(Signature *s, SigMatch *sm, int sm_list)
     return;
 }
 
-/** \brief Append a sig match to the signatures threshold list
- *
- *  \param s signature
- *  \param new sigmatch to append
- */
-void SigMatchAppendThreshold(Signature *s, SigMatch *new) {
-    SigMatchAppendSMToList(s, new, DETECT_SM_LIST_THRESHOLD);
-}
-
 /** \brief Pull a content 'old' from the pmatch list, append 'new' to amatch list.
   * Used for replacing contents that have http_cookie, etc modifiers.
   */

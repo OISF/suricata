@@ -573,7 +573,7 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
                     de_ctx->ths_ctx.th_size++;
                 }
             }
-            SigMatchAppendThreshold(s, sm);
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD);
             s = ns;
         }
 
@@ -644,7 +644,7 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
                         de_ctx->ths_ctx.th_size++;
                     }
                 }
-                SigMatchAppendThreshold(s, sm);
+                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_THRESHOLD);
             }
             s = ns;
         }
@@ -718,7 +718,7 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
                 }
             }
 
-            SigMatchAppendThreshold(sig, sm);
+            SigMatchAppendSMToList(sig, sm, DETECT_SM_LIST_THRESHOLD);
         }
 
     }
