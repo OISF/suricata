@@ -73,6 +73,25 @@ void PrintRawLineHexBuf(char *retbuf, uint32_t retbuflen, uint8_t *buf, uint32_t
     }
 }
 
+void PrintRawJsonFp(FILE *fp, uint8_t *buf, uint32_t buflen)
+{
+    char nbuf[2048] = "";
+    char temp[5] = "";
+    uint32_t u = 0;
+
+    for (u = 0; u < buflen; u++) {
+        if (buf[u] == '\\' || buf[u] == '/' || buf[u] == '\"') {
+            snprintf(temp, sizeof(temp), "\\%c", buf[u]);
+        } else if (isprint(buf[u])) {
+            snprintf(temp, sizeof(temp), "%c", buf[u]);
+        } else {
+            snprintf(temp, sizeof(temp), "\\\\x%02X", buf[u]);
+        }
+        strlcat(nbuf, temp, sizeof(nbuf));
+    }
+    fprintf(fp, "%s", nbuf);
+}
+
 void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen)
 {
     char nbuf[2048] = "";

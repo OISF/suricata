@@ -108,7 +108,7 @@ static void LogFileMetaGetUri(FILE *fp, Packet *p, File *ff) {
     if (htp_state != NULL) {
         htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, ff->txid);
         if (tx != NULL && tx->request_uri_normalized != NULL) {
-            PrintRawUriFp(fp, (uint8_t *)bstr_ptr(tx->request_uri_normalized),
+            PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(tx->request_uri_normalized),
                     bstr_len(tx->request_uri_normalized));
             return;
         }
@@ -129,7 +129,7 @@ static void LogFileMetaGetHost(FILE *fp, Packet *p, File *ff) {
             table_iterator_reset(headers);
             while (table_iterator_next(headers, (void **)&h) != NULL) {
                 if (strcasecmp("Host", bstr_tocstr(h->name)) == 0) {
-                    PrintRawUriFp(fp, (uint8_t *)bstr_ptr(h->value),
+                    PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(h->value),
                         bstr_len(h->value));
                     return;
                 }
@@ -152,7 +152,7 @@ static void LogFileMetaGetReferer(FILE *fp, Packet *p, File *ff) {
             table_iterator_reset(headers);
             while (table_iterator_next(headers, (void **)&h) != NULL) {
                 if (strcasecmp("Referer", bstr_tocstr(h->name)) == 0) {
-                    PrintRawUriFp(fp, (uint8_t *)bstr_ptr(h->value),
+                    PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(h->value),
                         bstr_len(h->value));
                     return;
                 }
@@ -275,7 +275,9 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, Packet *p, File *ff, i
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
     fprintf(fp, "{ \"id\": %u, ", ff->file_id);
-    fprintf(fp, "\"timestamp\": \"%s\", ", timebuf);
+    fprintf(fp, "\"timestamp\": \"");
+    PrintRawJsonFp(fp, (uint8_t *)timebuf, strlen(timebuf));
+    fprintf(fp, "\", ");
     if (p->pcap_cnt > 0) {
         fprintf(fp, "\"pcap_pkt_num\": %"PRIu64", ", p->pcap_cnt);
     }
@@ -322,12 +324,12 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, Packet *p, File *ff, i
     fprintf(fp, "\", ");
 
     fprintf(fp, "\"filename\": \"");
-    PrintRawUriFp(fp, ff->name, ff->name_len);
+    PrintRawJsonFp(fp, ff->name, ff->name_len);
     fprintf(fp, "\", ");
 
     fprintf(fp, "\"magic\": \"");
     if (ff->magic) {
-        PrintRawUriFp(fp, (uint8_t *)ff->magic, strlen(ff->magic));
+        PrintRawJsonFp(fp, (uint8_t *)ff->magic, strlen(ff->magic));
     } else {
         fprintf(fp, "unknown");
     }
