@@ -117,8 +117,6 @@ SigMatch *DetectContentFindNextApplicableSM(SigMatch *);
  * a Pattern before the SigMatch passed as argument */
 SigMatch *DetectContentHasPrevSMPattern(SigMatch *);
 
-SigMatch *SigMatchGetLastPattern(Signature *s);
-
 void DetectContentFree(void *);
 
 #endif /* __DETECT_CONTENT_H__ */

@@ -420,36 +420,6 @@ SigMatch *DetectContentGetLastPattern(SigMatch *sm)
     return sm;
 }
 
-/** \brief get the last pattern sigmatch, content or uricontent
- *
- *  \param s signature
- *
- *  \retval sm sigmatch of either content or uricontent that is the last
- *             or NULL if none was found
- */
-SigMatch *SigMatchGetLastPattern(Signature *s) {
-    SCEnter();
-
-    BUG_ON(s == NULL);
-
-    SigMatch *co_sm = DetectContentGetLastPattern(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
-    SigMatch *ur_sm = SigMatchGetLastSM(s->sm_lists_tail[DETECT_SM_LIST_UMATCH], DETECT_URICONTENT);
-    SigMatch *sm = NULL;
-
-    if (co_sm != NULL && ur_sm != NULL) {
-        if (co_sm->idx > ur_sm->idx)
-            sm = co_sm;
-        else
-            sm = ur_sm;
-    } else if (co_sm != NULL) {
-        sm = co_sm;
-    } else if (ur_sm != NULL) {
-        sm = ur_sm;
-    }
-
-    SCReturnPtr(sm, "SigMatch");
-}
-
 /**
  * \brief Print list of DETECT_CONTENT SigMatch's allocated in a
  * SigMatch list, from the current sm to the end
