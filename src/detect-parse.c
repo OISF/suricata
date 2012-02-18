@@ -173,33 +173,6 @@ void SigMatchAppendSMToList(Signature *s, SigMatch *new, int list)
     s->sm_cnt++;
 }
 
-/** \brief Append a sig match to the signatures tag match list
- *         This is done on other list because the tag keyword
- *         should be always the last inspected (never ordered)
- *
- *  \param s signature
- *  \param new sigmatch to append
- */
-void SigMatchAppendTag(Signature *s, SigMatch *new) {
-    if (s->sm_lists[DETECT_SM_LIST_TMATCH] == NULL) {
-        s->sm_lists[DETECT_SM_LIST_TMATCH] = new;
-        s->sm_lists_tail[DETECT_SM_LIST_TMATCH] = new;
-        new->next = NULL;
-        new->prev = NULL;
-    } else {
-        SigMatch *cur = s->sm_lists_tail[DETECT_SM_LIST_TMATCH];
-        cur->next = new;
-        new->prev = cur;
-        new->next = NULL;
-        s->sm_lists_tail[DETECT_SM_LIST_TMATCH] = new;
-    }
-
-    new->idx = s->sm_cnt;
-    s->sm_cnt++;
-
-    return;
-}
-
 void SigMatchRemoveSMFromList(Signature *s, SigMatch *sm, int sm_list)
 {
     if (sm == s->sm_lists[sm_list]) {

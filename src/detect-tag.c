@@ -377,7 +377,7 @@ int DetectTagSetup (DetectEngineCtx *de_ctx, Signature *s, char *tagstr)
     sm->ctx = (void *)td;
 
     /* Append it to the list of tags */
-    SigMatchAppendTag(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_TMATCH);
 
     return 0;
 

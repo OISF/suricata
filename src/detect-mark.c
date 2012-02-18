@@ -221,7 +221,7 @@ static int DetectMarkSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawstr)
         sm->ctx = (void *)data;
 
         /* Append it to the list of tags */
-        SigMatchAppendTag(s, sm);
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_TMATCH);
         return 0;
     }
 #else
