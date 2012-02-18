@@ -149,7 +149,7 @@ static int DetectHttpUriSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
         DetectContentData *tmp_cd = (DetectContentData *)pm->ctx;
         tmp_cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
     }
-    cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_URICONTENT);
+    cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_UMATCH);
     sm->type = DETECT_URICONTENT;
 
     /* transfer the sm from the pmatch list to hcbdmatch list */

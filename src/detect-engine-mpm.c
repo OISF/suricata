@@ -2448,7 +2448,7 @@ typedef struct MpmPatternIdTableElmt_ {
     uint16_t pattern_len;   /**< pattern len */
     PatIntId id;            /**< pattern id */
     uint16_t dup_count;     /**< duplicate count */
-    uint8_t sm_type;        /**< SigMatch type */
+    uint8_t sm_list;        /**< SigMatch list */
 } MpmPatternIdTableElmt;
 
 /** \brief Hash compare func for MpmPatternId api
@@ -2464,7 +2464,7 @@ static char MpmPatternIdCompare(void *p1, uint16_t len1, void *p2, uint16_t len2
     MpmPatternIdTableElmt *e2 = (MpmPatternIdTableElmt *)p2;
 
     if (e1->pattern_len != e2->pattern_len ||
-        e1->sm_type != e2->sm_type) {
+        e1->sm_list != e2->sm_list) {
         SCReturnInt(0);
     }
 
@@ -2613,7 +2613,7 @@ uint32_t DetectUricontentGetId(MpmPatternIdStore *ht, DetectContentData *co) {
     BUG_ON(e->pattern == NULL);
     memcpy(e->pattern, co->content, co->content_len);
     e->pattern_len = co->content_len;
-    e->sm_type = DETECT_URICONTENT;
+    e->sm_list = DETECT_SM_LIST_UMATCH;
     e->dup_count = 1;
     e->id = 0;
 
@@ -2658,7 +2658,7 @@ uint32_t DetectUricontentGetId(MpmPatternIdStore *ht, DetectContentData *co) {
  *
  * \retval id Pattern id.
  */
-uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_type)
+uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_list)
 {
     SCEnter();
 
@@ -2679,7 +2679,7 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_type)
     memcpy(e->pattern, cd->content, cd->content_len);
     e->pattern_len = cd->content_len;
     e->dup_count = 1;
-    e->sm_type = sm_type;
+    e->sm_list = sm_list;
     e->id = 0;
 
     r = HashTableLookup(ht->hash, (void *)e, sizeof(MpmPatternIdTableElmt));
@@ -2687,7 +2687,7 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_type)
         /* we don't have a duplicate with this pattern + id type.  If the id is
          * for content, then it is the first entry for such a
          * pattern + id combination.  Let us create an entry for it */
-        if (sm_type == DETECT_CONTENT) {
+        if (sm_list == DETECT_SM_LIST_PMATCH) {
             e->id = ht->max_id;
             ht->max_id++;
             id = e->id;
@@ -2704,7 +2704,7 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_type)
              * So we would have seen a content before coming across this http_
              * modifier.  Let's retrieve this content entry that has already
              * been registered. */
-            e->sm_type = DETECT_CONTENT;
+            e->sm_list = DETECT_SM_LIST_PMATCH;
             MpmPatternIdTableElmt *tmp_r = HashTableLookup(ht->hash, (void *)e, sizeof(MpmPatternIdTableElmt));
             if (tmp_r == NULL) {
                 SCLogError(SC_ERR_FATAL, "How can this happen?  We have to have "
@@ -2717,7 +2717,7 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_type)
              * first entry made(dup_count is 1) for that content.  Let us just
              * reset the sm_type to the http_ keyword's sm_type */
             if (tmp_r->dup_count == 1) {
-                tmp_r->sm_type = sm_type;
+                tmp_r->sm_list = sm_list;
                 id = tmp_r->id;
 
                 /* interestingly we have more than one entry for this content.
@@ -2727,7 +2727,7 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_type)
             } else {
                 tmp_r->dup_count--;
                 /* reset the sm_type, since we changed it to DETECT_CONTENT prev */
-                e->sm_type = sm_type;
+                e->sm_list = sm_list;
                 e->id = ht->max_id;
                 ht->max_id++;
                 id = e->id;
@@ -2743,7 +2743,7 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_type)
     } else {
         /* oh cool!  It is a duplicate for content, uricontent types.  Update the
          * dup_count and get out */
-        if (sm_type == DETECT_CONTENT) {
+        if (sm_list == DETECT_SM_LIST_PMATCH) {
             r->dup_count++;
             id = r->id;
             goto end;
@@ -2756,7 +2756,7 @@ uint32_t DetectPatternGetId(MpmPatternIdStore *ht, void *ctx, uint8_t sm_type)
 
         /* let's get the content entry associated with the http keyword we are
          * currently operating on */
-        e->sm_type = DETECT_CONTENT;
+        e->sm_list = DETECT_SM_LIST_PMATCH;
         MpmPatternIdTableElmt *tmp_r = HashTableLookup(ht->hash, (void *)e, sizeof(MpmPatternIdTableElmt));
         if (tmp_r == NULL) {
             SCLogError(SC_ERR_FATAL, "How can this happen?  We have to have "

@@ -501,14 +501,14 @@ static int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, char *cont
 
     sm->type = DETECT_CONTENT;
     sm->ctx = (void *)cd;
-    cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_CONTENT);
+    cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_PMATCH);
 
     DetectContentPrint(cd);
 
     SigMatchAppendPayload(s, sm);
 
     if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
-        cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_AL_HTTP_SERVER_BODY);
+        cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_HSBDMATCH);
         sm->type = DETECT_AL_HTTP_SERVER_BODY;
 
         /* transfer the sm from the pmatch list to hsbdmatch list */
