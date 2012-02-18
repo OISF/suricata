@@ -154,32 +154,6 @@ void DetectUricontentPrint(DetectContentData *cd)
     SCLogDebug("-----------");
 }
 
-
-/**
- * \brief Search the first DETECT_URICONTENT
- * \retval pointer to the SigMatch holding the DetectUricontent
- * \param sm pointer to the current SigMatch of a parsing process
- * \retval null if no applicable DetectUricontent was found
- * \retval pointer to the SigMatch that has the previous SigMatch
- *                 of type DetectUricontent
- */
-SigMatch *DetectUricontentGetLastPattern(SigMatch *sm)
-{
-    if (sm == NULL)
-        return NULL;
-    while (sm != NULL && sm->type != DETECT_URICONTENT)
-        sm = sm->prev;
-
-    if (sm == NULL)
-        return NULL;
-
-    DetectContentData *cd = (DetectContentData*) sm->ctx;
-    if (cd == NULL)
-        return NULL;
-
-    return sm;
-}
-
 /**
  * \brief   Setup the detecturicontent keyword data from the string defined in
  *          the rule set.
