@@ -158,7 +158,7 @@ int DetectAppLayerEventSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         s->alproto = ((DetectAppLayerEventData *)sm->ctx)->alproto;
     }
 
-    SigMatchAppendAppLayer(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
     s->flags |= SIG_FLAG_APPLAYER;
 
     return 0;

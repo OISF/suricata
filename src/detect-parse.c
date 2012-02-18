@@ -148,29 +148,6 @@ SigTableElmt *SigTableGet(char *name) {
 }
 
 /**
- * \brief append a app layer SigMatch to the Signature structure
- * \param s pointer to the Signature
- * \param new pointer to the SigMatch of type uricontent to be appended
- */
-void SigMatchAppendAppLayer(Signature *s, SigMatch *new) {
-    if (s->sm_lists[DETECT_SM_LIST_AMATCH] == NULL) {
-        s->sm_lists[DETECT_SM_LIST_AMATCH] = new;
-        s->sm_lists_tail[DETECT_SM_LIST_AMATCH] = new;
-        new->next = NULL;
-        new->prev = NULL;
-    } else {
-        SigMatch *cur = s->sm_lists_tail[DETECT_SM_LIST_AMATCH];
-        cur->next = new;
-        new->prev = cur;
-        new->next = NULL;
-        s->sm_lists_tail[DETECT_SM_LIST_AMATCH] = new;
-    }
-
-    new->idx = s->sm_cnt;
-    s->sm_cnt++;
-}
-
-/**
  * \brief Append a SigMatch to the list type.
  *
  * \param s    Signature.

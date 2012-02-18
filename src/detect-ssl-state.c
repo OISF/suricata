@@ -312,7 +312,7 @@ int DetectSslStateSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     }
     s->alproto = ALPROTO_TLS;
 
-    SigMatchAppendAppLayer(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_AMATCH);
 
     return 0;
 
