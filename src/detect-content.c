@@ -352,31 +352,6 @@ void DetectContentPrint(DetectContentData *cd)
 }
 
 /**
- * \brief Search the first DETECT_CONTENT
- * \retval pointer to the SigMatch holding the DetectContent
- * \param sm pointer to the current SigMatch of a parsing process
- * \retval null if no applicable DetectContent was found
- * \retval pointer to the SigMatch that has the previous SigMatch
- *                 of type DetectContent
- */
-SigMatch *DetectContentGetLastPattern(SigMatch *sm)
-{
-    if (sm == NULL)
-        return NULL;
-    while (sm != NULL && sm->type != DETECT_CONTENT)
-        sm = sm->prev;
-
-    if (sm == NULL)
-        return NULL;
-
-    DetectContentData *cd = (DetectContentData*) sm->ctx;
-    if (cd == NULL)
-        return NULL;
-
-    return sm;
-}
-
-/**
  * \brief Print list of DETECT_CONTENT SigMatch's allocated in a
  * SigMatch list, from the current sm to the end
  * \param sm pointer to the current SigMatch to start printing from

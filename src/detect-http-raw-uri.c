@@ -96,7 +96,8 @@ static int DetectHttpRawUriSetup(DetectEngineCtx *de_ctx, Signature *s, char *ar
         goto error;
     }
 
-    sm = DetectContentGetLastPattern(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+    sm =  SigMatchGetLastSMFromLists(s, 2,
+                                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
     if (sm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "\"http_raw_uri\" keyword "
                    "found inside the rule without a content context.  "

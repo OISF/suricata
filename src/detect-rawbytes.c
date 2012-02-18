@@ -29,6 +29,7 @@
 
 #include "decode.h"
 #include "detect.h"
+#include "detect-parse.h"
 #include "flow-var.h"
 
 #include "detect-content.h"
@@ -63,7 +64,8 @@ static int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, char *nul
         SCReturnInt(-1);
     }
 
-    SigMatch *pm = DetectContentGetLastPattern(s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
+    SigMatch *pm =  SigMatchGetLastSMFromLists(s, 2,
+                                               DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
     if (pm == NULL) {
         SCLogError(SC_ERR_RAWBYTES_MISSING_CONTENT, "\"rawbytes\" needs a preceeding content option");
         SCReturnInt(-1);

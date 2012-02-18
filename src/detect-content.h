@@ -104,11 +104,6 @@ DetectContentData *DetectContentParseEncloseQuotes(char *);
 
 void DetectContentPrint(DetectContentData *);
 
-/** This function search backwards the first applicable SigMatch holding
- * a DETECT_CONTENT context (If it belongs to a chunk group, the first chunk
- * of the group will be returned). Modifiers must call this */
-SigMatch *DetectContentGetLastPattern(SigMatch *);
-
 void DetectContentFree(void *);
 
 #endif /* __DETECT_CONTENT_H__ */
