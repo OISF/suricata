@@ -113,10 +113,6 @@ SigMatch *DetectContentGetLastPattern(SigMatch *);
  * a DETECT_CONTENT context. The Match process call this */
 SigMatch *DetectContentFindNextApplicableSM(SigMatch *);
 
-/** This function search backwards if we have a SigMatch holding
- * a Pattern before the SigMatch passed as argument */
-SigMatch *DetectContentHasPrevSMPattern(SigMatch *);
-
 void DetectContentFree(void *);
 
 #endif /* __DETECT_CONTENT_H__ */

@@ -371,31 +371,6 @@ SigMatch *DetectContentFindNextApplicableSM(SigMatch *sm)
 }
 
 /**
- * \brief Helper function to determine if there are patterns before this one,
- *        this is used before installing a new within or distance modifier
- *        because if this return NULL, it will never match!
- *
- * \param sm pointer to the current SigMatch of a parsing process
- *
- * \retval null if no applicable SigMatch pattern was found
- * \retval pointer to the SigMatch that has the previous SigMatch
- *                 of type DetectContent
- *
- * \todo: should we add here DETECT_PCRE, DETECT_URI_CONTENT, etc?
- */
-SigMatch *DetectContentHasPrevSMPattern(SigMatch *sm)
-{
-    if (sm == NULL)
-        return NULL;
-
-    /* the current SM doesn't apply */
-    sm = sm->prev;
-    while (sm != NULL && sm->type != DETECT_CONTENT)
-        sm = sm->prev;
-    return sm;
-}
-
-/**
  * \brief Search the first DETECT_CONTENT
  * \retval pointer to the SigMatch holding the DetectContent
  * \param sm pointer to the current SigMatch of a parsing process
