@@ -619,7 +619,7 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         } else if (dm == NULL) {
             SigMatchAppendDcePayload(s, sm);
         } else if (pm->idx > dm->idx) {
-            SigMatchAppendPayload(s, sm);
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
         } else {
             SigMatchAppendDcePayload(s, sm);
         }
@@ -651,9 +651,9 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
             if (list == DETECT_SM_LIST_UMATCH)
                 SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_UMATCH);
             else
-                SigMatchAppendPayload(s, sm);
+                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
         } else {
-            SigMatchAppendPayload(s, sm);
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
         }
     }
 

@@ -1180,7 +1180,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
             } else if (dm == NULL) {
                 SigMatchAppendDcePayload(s, sm);
             } else if (pm->idx > dm->idx) {
-                SigMatchAppendPayload(s, sm);
+                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
             } else {
                 SigMatchAppendDcePayload(s, sm);
             }
@@ -1192,7 +1192,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
 
                 SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_HSBDMATCH);
             } else {
-                SigMatchAppendPayload(s, sm);
+                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
             }
         }
     }

@@ -600,12 +600,12 @@ int DetectBytejumpSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
         } else if (dm == NULL) {
             SigMatchAppendDcePayload(s, sm);
         } else if (pm->idx > dm->idx) {
-            SigMatchAppendPayload(s, sm);
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
         } else {
             SigMatchAppendDcePayload(s, sm);
         }
     } else {
-        SigMatchAppendPayload(s, sm);
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
     }
 
     if (offset != NULL) {

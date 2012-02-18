@@ -281,7 +281,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
         } else if (dm == NULL) {
             SigMatchAppendDcePayload(s, sm);
         } else if (pm->idx > dm->idx) {
-            SigMatchAppendPayload(s, sm);
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
         } else {
             SigMatchAppendDcePayload(s, sm);
         }
@@ -334,7 +334,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
         prev_pm = pm;
     } else {
         if (!(idad->flags & ISDATAAT_RELATIVE)) {
-            SigMatchAppendPayload(s, sm);
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
             if (offset != NULL) {
                 SigMatch *bed_sm =
                     DetectByteExtractRetrieveSMVar(offset, s,

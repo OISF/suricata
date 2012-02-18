@@ -406,7 +406,7 @@ static int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, char *cont
 
     DetectContentPrint(cd);
 
-    SigMatchAppendPayload(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
 
     if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
         cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_HSBDMATCH);

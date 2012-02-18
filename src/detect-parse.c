@@ -173,24 +173,6 @@ void SigMatchAppendSMToList(Signature *s, SigMatch *new, int list)
     s->sm_cnt++;
 }
 
-void SigMatchAppendPayload(Signature *s, SigMatch *new) {
-    if (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
-        s->sm_lists[DETECT_SM_LIST_PMATCH] = new;
-        s->sm_lists_tail[DETECT_SM_LIST_PMATCH] = new;
-        new->next = NULL;
-        new->prev = NULL;
-    } else {
-        SigMatch *cur = s->sm_lists_tail[DETECT_SM_LIST_PMATCH];
-        cur->next = new;
-        new->prev = cur;
-        new->next = NULL;
-        s->sm_lists_tail[DETECT_SM_LIST_PMATCH] = new;
-    }
-
-    new->idx = s->sm_cnt;
-    s->sm_cnt++;
-}
-
 void SigMatchAppendDcePayload(Signature *s, SigMatch *new) {
     SCLogDebug("Append SigMatch against s->sm_lists[DETECT_SM_LIST_DMATCH](dce) list");
     if (s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL) {
