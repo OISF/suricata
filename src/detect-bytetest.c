@@ -520,13 +520,13 @@ int DetectBytetestSetup(DetectEngineCtx *de_ctx, Signature *s, char *optstr)
                 DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
 
         if (pm == NULL) {
-            SigMatchAppendDcePayload(s, sm);
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
         } else if (dm == NULL) {
-            SigMatchAppendDcePayload(s, sm);
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
         } else if (pm->idx > dm->idx) {
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
         } else {
-            SigMatchAppendDcePayload(s, sm);
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
         }
     } else {
         SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);

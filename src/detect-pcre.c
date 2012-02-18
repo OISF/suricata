@@ -1176,13 +1176,13 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
                     DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
 
             if (pm == NULL) {
-                SigMatchAppendDcePayload(s, sm);
+                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
             } else if (dm == NULL) {
-                SigMatchAppendDcePayload(s, sm);
+                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
             } else if (pm->idx > dm->idx) {
                 SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
             } else {
-                SigMatchAppendDcePayload(s, sm);
+                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
             }
         } else {
             if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {

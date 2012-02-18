@@ -615,13 +615,13 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
                                         DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_DMATCH]);
 
         if (pm == NULL) {
-            SigMatchAppendDcePayload(s, sm);
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
         } else if (dm == NULL) {
-            SigMatchAppendDcePayload(s, sm);
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
         } else if (pm->idx > dm->idx) {
             SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_PMATCH);
         } else {
-            SigMatchAppendDcePayload(s, sm);
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_DMATCH);
         }
     } else {
         if (data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {

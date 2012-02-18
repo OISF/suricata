@@ -173,27 +173,6 @@ void SigMatchAppendSMToList(Signature *s, SigMatch *new, int list)
     s->sm_cnt++;
 }
 
-void SigMatchAppendDcePayload(Signature *s, SigMatch *new) {
-    SCLogDebug("Append SigMatch against s->sm_lists[DETECT_SM_LIST_DMATCH](dce) list");
-    if (s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL) {
-        s->sm_lists[DETECT_SM_LIST_DMATCH] = new;
-        s->sm_lists_tail[DETECT_SM_LIST_DMATCH] = new;
-        new->next = NULL;
-        new->prev = NULL;
-    } else {
-        SigMatch *cur = s->sm_lists_tail[DETECT_SM_LIST_DMATCH];
-        cur->next = new;
-        new->prev = cur;
-        new->next = NULL;
-        s->sm_lists_tail[DETECT_SM_LIST_DMATCH] = new;
-    }
-
-    new->idx = s->sm_cnt;
-    s->sm_cnt++;
-
-    return;
-}
-
 /** \brief Append a sig match to the signatures tag match list
  *         This is done on other list because the tag keyword
  *         should be always the last inspected (never ordered)
