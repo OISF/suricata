@@ -233,7 +233,7 @@ static int DetectIcmpSeqSetup (DetectEngineCtx *de_ctx, Signature *s, char *icmp
     sm->type = DETECT_ICMP_SEQ;
     sm->ctx = (void *)iseq;
 
-    SigMatchAppendPacket(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
     return 0;
 

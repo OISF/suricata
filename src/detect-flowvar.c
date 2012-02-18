@@ -236,7 +236,7 @@ static int DetectFlowvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *raws
     sm->type = DETECT_FLOWVAR;
     sm->ctx = (void *)cd;
 
-    SigMatchAppendPacket(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
     if (dubbed) SCFree(str);
     return 0;

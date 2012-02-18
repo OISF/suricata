@@ -285,7 +285,7 @@ int DetectRpcSetup (DetectEngineCtx *de_ctx, Signature *s, char *rpcstr)
     sm->type = DETECT_RPC;
     sm->ctx = (void *)rd;
 
-    SigMatchAppendPacket(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;

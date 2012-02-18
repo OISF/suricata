@@ -283,7 +283,7 @@ static int DetectIPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csum
 
     sm->ctx = (void *)cd;
 
-    SigMatchAppendPacket(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
     return 0;
 
@@ -378,7 +378,7 @@ static int DetectTCPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csu
 
     sm->ctx = (void *)cd;
 
-    SigMatchAppendPacket(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
     return 0;
 
@@ -473,7 +473,7 @@ static int DetectTCPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csu
 
     sm->ctx = (void *)cd;
 
-    SigMatchAppendPacket(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
     return 0;
 
@@ -569,7 +569,7 @@ static int DetectUDPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csu
 
     sm->ctx = (void *)cd;
 
-    SigMatchAppendPacket(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
     return 0;
 
@@ -665,7 +665,7 @@ static int DetectUDPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *csu
 
     sm->ctx = (void *)cd;
 
-    SigMatchAppendPacket(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
     return 0;
 
@@ -760,7 +760,7 @@ static int DetectICMPV4CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *cs
 
     sm->ctx = (void *)cd;
 
-    SigMatchAppendPacket(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
     return 0;
 
@@ -853,7 +853,7 @@ static int DetectICMPV6CsumSetup(DetectEngineCtx *de_ctx, Signature *s, char *cs
 
     sm->ctx = (void *)cd;
 
-    SigMatchAppendPacket(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
     return 0;
 

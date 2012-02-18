@@ -207,7 +207,7 @@ static int _DetectEngineEventSetup (DetectEngineCtx *de_ctx, Signature *s, char 
     sm->type = smtype;
     sm->ctx = (void *)de;
 
-    SigMatchAppendPacket(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     return 0;
 
 error:

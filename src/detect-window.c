@@ -216,7 +216,7 @@ int DetectWindowSetup (DetectEngineCtx *de_ctx, Signature *s, char *windowstr)
     sm->type = DETECT_WINDOW;
     sm->ctx = (void *)wd;
 
-    SigMatchAppendPacket(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;

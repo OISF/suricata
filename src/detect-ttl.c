@@ -281,7 +281,7 @@ static int DetectTtlSetup (DetectEngineCtx *de_ctx, Signature *s, char *ttlstr) 
     sm->type = DETECT_TTL;
     sm->ctx = (void *)ttld;
 
-    SigMatchAppendPacket(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
     s->flags |= SIG_FLAG_REQUIRE_PACKET;
 
     return 0;

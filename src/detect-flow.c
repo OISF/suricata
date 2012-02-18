@@ -310,7 +310,7 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, char *flowstr)
     sm->type = DETECT_FLOW;
     sm->ctx = (void *)fd;
 
-    SigMatchAppendPacket(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
     /* set the signature direction flags */
     if (fd->flags & FLOW_PKT_TOSERVER) {

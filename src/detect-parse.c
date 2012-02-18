@@ -189,32 +189,6 @@ void SigMatchRemoveSMFromList(Signature *s, SigMatch *sm, int sm_list)
     return;
 }
 
-/** \brief Append a sig match to the signatures non-payload match list
- *
- *  \param s signature
- *  \param new sigmatch to append
- */
-void SigMatchAppendPacket(Signature *s, SigMatch *new) {
-    if (s->sm_lists[DETECT_SM_LIST_MATCH] == NULL) {
-        s->sm_lists[DETECT_SM_LIST_MATCH] = new;
-        s->sm_lists_tail[DETECT_SM_LIST_MATCH] = new;
-        new->next = NULL;
-        new->prev = NULL;
-    } else {
-        SigMatch *cur = s->sm_lists[DETECT_SM_LIST_MATCH];
-
-        for ( ; cur->next != NULL; cur = cur->next);
-
-        cur->next = new;
-        new->next = NULL;
-        new->prev = cur;
-        s->sm_lists_tail[DETECT_SM_LIST_MATCH] = new;
-    }
-
-    new->idx = s->sm_cnt;
-    s->sm_cnt++;
-}
-
 /** \brief Append a sig match to the signatures threshold list
  *
  *  \param s signature

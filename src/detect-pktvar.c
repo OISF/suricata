@@ -231,7 +231,7 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawst
     sm->type = DETECT_PKTVAR;
     sm->ctx = (void *)cd;
 
-    SigMatchAppendPacket(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
     if (dubbed) SCFree(str);
     return 0;

@@ -319,7 +319,7 @@ static int DetectStreamSizeSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
     sm->type = DETECT_STREAM_SIZE;
     sm->ctx = (void *)sd;
 
-    SigMatchAppendPacket(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
     return 0;
 

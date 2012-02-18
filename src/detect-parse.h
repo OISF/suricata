@@ -57,7 +57,6 @@ void SigMatchReplace(Signature *, SigMatch *, SigMatch *);
 void SigMatchReplaceContent(Signature *, SigMatch *, SigMatch *);
 void SigMatchReplaceContentToUricontent(Signature *, SigMatch *, SigMatch *);
 
-void SigMatchAppendPacket(Signature *, SigMatch *);
 void SigMatchAppendThreshold(Signature *, SigMatch *);
 void SigMatchAppendPostMatch(Signature *, SigMatch *);
 void SigMatchAppendSMToList(Signature *, SigMatch *, int);

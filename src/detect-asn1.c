@@ -301,7 +301,7 @@ int DetectAsn1Setup(DetectEngineCtx *de_ctx, Signature *s, char *asn1str) {
     sm->type = DETECT_ASN1;
     sm->ctx = (void *)ad;
 
-    SigMatchAppendPacket(s, sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
 
     return 0;
 

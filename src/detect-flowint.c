@@ -390,7 +390,7 @@ static int DetectFlowintSetup(DetectEngineCtx *de_ctx, Signature *s, char *rawst
         case FLOWINT_MODIFIER_GT:
         case FLOWINT_MODIFIER_ISSET:
         case FLOWINT_MODIFIER_NOTSET:
-            SigMatchAppendPacket(s, sm);
+            SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_MATCH);
             break;
     }
 
