@@ -513,12 +513,14 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
 
             ns = s->next;
 
-            m = SigMatchGetLastSM(s->sm_lists[DETECT_SM_LIST_THRESHOLD], DETECT_THRESHOLD);
+            m = SigMatchGetLastSMFromLists(s, 2,
+                                           DETECT_THRESHOLD, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
             if(m != NULL)
                 goto end;
 
-            m = SigMatchGetLastSM(s->sm_lists[DETECT_SM_LIST_THRESHOLD], DETECT_DETECTION_FILTER);
+            m = SigMatchGetLastSMFromLists(s, 2,
+                                           DETECT_DETECTION_FILTER, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
             if(m != NULL)
                 goto end;
@@ -582,12 +584,14 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
 
             if(s->gid == gid)   {
 
-                m = SigMatchGetLastSM(s->sm_lists[DETECT_SM_LIST_THRESHOLD], DETECT_THRESHOLD);
+                m = SigMatchGetLastSMFromLists(s, 2,
+                                               DETECT_THRESHOLD, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
                 if(m != NULL)
                     goto end;
 
-                m = SigMatchGetLastSM(s->sm_lists[DETECT_SM_LIST_THRESHOLD], DETECT_DETECTION_FILTER);
+                m = SigMatchGetLastSMFromLists(s, 2,
+                                               DETECT_DETECTION_FILTER, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
                 if(m != NULL)
                     goto end;
@@ -653,12 +657,14 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
                 goto end;
             }
 
-            m = SigMatchGetLastSM(sig->sm_lists[DETECT_SM_LIST_THRESHOLD], DETECT_THRESHOLD);
+            m = SigMatchGetLastSMFromLists(sig, 2,
+                                           DETECT_THRESHOLD, sig->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
             if(m != NULL)
                 goto end;
 
-            m = SigMatchGetLastSM(sig->sm_lists[DETECT_SM_LIST_THRESHOLD], DETECT_DETECTION_FILTER);
+            m = SigMatchGetLastSMFromLists(sig, 2,
+                                           DETECT_DETECTION_FILTER, sig->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
             if(m != NULL)
                 goto end;
@@ -1132,7 +1138,8 @@ int SCThresholdConfTest01(void)
     fd = SCThresholdConfGenerateValidDummyFD01();
     SCThresholdConfInitContext(de_ctx,fd);
 
-    m = SigMatchGetLastSM(sig->sm_lists[DETECT_SM_LIST_THRESHOLD], DETECT_THRESHOLD);
+    m = SigMatchGetLastSMFromLists(sig, 2,
+                                   DETECT_THRESHOLD, sig->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
     if(m != NULL)   {
         de = (DetectThresholdData *)m->ctx;
@@ -1176,7 +1183,8 @@ int SCThresholdConfTest02(void)
     fd = SCThresholdConfGenerateValidDummyFD01();
     SCThresholdConfInitContext(de_ctx,fd);
 
-    m = SigMatchGetLastSM(sig->sm_lists[DETECT_SM_LIST_THRESHOLD], DETECT_THRESHOLD);
+    m = SigMatchGetLastSMFromLists(sig, 2,
+                                   DETECT_THRESHOLD, sig->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
     if(m != NULL)   {
         de = (DetectThresholdData *)m->ctx;
@@ -1219,7 +1227,8 @@ int SCThresholdConfTest03(void)
     fd = SCThresholdConfGenerateValidDummyFD01();
     SCThresholdConfInitContext(de_ctx,fd);
 
-    m = SigMatchGetLastSM(sig->sm_lists[DETECT_SM_LIST_THRESHOLD], DETECT_THRESHOLD);
+    m = SigMatchGetLastSMFromLists(sig, 2,
+                                   DETECT_THRESHOLD, sig->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
     if(m != NULL)   {
         de = (DetectThresholdData *)m->ctx;
@@ -1262,7 +1271,8 @@ int SCThresholdConfTest04(void)
     fd = SCThresholdConfGenerateInValidDummyFD02();
     SCThresholdConfInitContext(de_ctx,fd);
 
-    m = SigMatchGetLastSM(sig->sm_lists[DETECT_SM_LIST_THRESHOLD], DETECT_THRESHOLD);
+    m = SigMatchGetLastSMFromLists(sig, 2,
+                                   DETECT_THRESHOLD, sig->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
     if(m != NULL)   {
         de = (DetectThresholdData *)m->ctx;
@@ -1323,7 +1333,8 @@ int SCThresholdConfTest05(void)
 
         if(s->id == 1 || s->id == 10 || s->id == 100) {
 
-            m = SigMatchGetLastSM(s->sm_lists[DETECT_SM_LIST_THRESHOLD], DETECT_THRESHOLD);
+            m = SigMatchGetLastSMFromLists(s, 2,
+                                           DETECT_THRESHOLD, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
             if(m == NULL)   {
                 goto end;
@@ -1376,7 +1387,8 @@ int SCThresholdConfTest06(void)
     fd = SCThresholdConfGenerateValidDummyFD04();
     SCThresholdConfInitContext(de_ctx,fd);
 
-    m = SigMatchGetLastSM(sig->sm_lists[DETECT_SM_LIST_THRESHOLD], DETECT_THRESHOLD);
+    m = SigMatchGetLastSMFromLists(sig, 2,
+                                   DETECT_THRESHOLD, sig->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
     if(m != NULL)   {
         de = (DetectThresholdData *)m->ctx;
@@ -1420,7 +1432,8 @@ int SCThresholdConfTest07(void)
     fd = SCThresholdConfGenerateValidDummyFD05();
     SCThresholdConfInitContext(de_ctx,fd);
 
-    m = SigMatchGetLastSM(sig->sm_lists[DETECT_SM_LIST_THRESHOLD], DETECT_DETECTION_FILTER);
+    m = SigMatchGetLastSMFromLists(sig, 2,
+                                   DETECT_DETECTION_FILTER, sig->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
     if(m != NULL)   {
         de = (DetectThresholdData *)m->ctx;
@@ -1465,7 +1478,8 @@ int SCThresholdConfTest08(void)
     fd = SCThresholdConfGenerateValidDummyFD06();
     SCThresholdConfInitContext(de_ctx,fd);
 
-    m = SigMatchGetLastSM(sig->sm_lists[DETECT_SM_LIST_THRESHOLD], DETECT_DETECTION_FILTER);
+    m = SigMatchGetLastSMFromLists(sig, 2,
+                                   DETECT_DETECTION_FILTER, sig->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
     if(m != NULL)   {
         de = (DetectThresholdData *)m->ctx;
@@ -1930,7 +1944,8 @@ int SCThresholdConfTest13(void)
     fd = SCThresholdConfGenerateValidDummyFD11();
     SCThresholdConfInitContext(de_ctx,fd);
 
-    m = SigMatchGetLastSM(sig->sm_lists[DETECT_SM_LIST_THRESHOLD], DETECT_THRESHOLD);
+    m = SigMatchGetLastSMFromLists(sig, 2,
+                                   DETECT_THRESHOLD, sig->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
     if(m != NULL)   {
         de = (DetectThresholdData *)m->ctx;

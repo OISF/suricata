@@ -528,7 +528,7 @@ void SigMatchReplace(Signature *s, SigMatch *m, SigMatch *new) {
  *
  * \retval match Pointer to the last SigMatch instance of type 'type'.
  */
-SigMatch *SigMatchGetLastSM(SigMatch *sm, uint8_t type)
+static inline SigMatch *SigMatchGetLastSM(SigMatch *sm, uint8_t type)
 {
     while (sm != NULL) {
         if (sm->type == type) {
