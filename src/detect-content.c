@@ -352,25 +352,6 @@ void DetectContentPrint(DetectContentData *cd)
 }
 
 /**
- * \brief Search the next applicable DETECT_CONTENT SigMatch
-          (includes the current sm)
- *
- * \param sm pointer to the current SigMatch of a parsing process
- *
- * \retval null if no applicable DetectContent was found
- * \retval pointer to the SigMatch next DETECT_CONTENT SigMatch
- */
-SigMatch *DetectContentFindNextApplicableSM(SigMatch *sm)
-{
-    if (sm == NULL)
-        return NULL;
-    while ( sm != NULL && sm->type != DETECT_CONTENT)
-        sm = sm->next;
-
-    return sm;
-}
-
-/**
  * \brief Search the first DETECT_CONTENT
  * \retval pointer to the SigMatch holding the DetectContent
  * \param sm pointer to the current SigMatch of a parsing process
