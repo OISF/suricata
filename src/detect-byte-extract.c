@@ -649,7 +649,7 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
             }
             int list = SigMatchListSMBelongsTo(s, pm);
             if (list == DETECT_SM_LIST_UMATCH)
-                SigMatchAppendUricontent(s,sm);
+                SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_UMATCH);
             else
                 SigMatchAppendPayload(s, sm);
         } else {

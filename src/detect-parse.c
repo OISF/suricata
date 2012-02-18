@@ -173,29 +173,6 @@ void SigMatchAppendSMToList(Signature *s, SigMatch *new, int list)
     s->sm_cnt++;
 }
 
-/**
- * \brief append a SigMatch of type uricontent to the Signature structure
- * \param s pointer to the Signature
- * \param new pointer to the SigMatch of type uricontent to be appended
- */
-void SigMatchAppendUricontent(Signature *s, SigMatch *new) {
-    if (s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL) {
-        s->sm_lists[DETECT_SM_LIST_UMATCH] = new;
-        s->sm_lists_tail[DETECT_SM_LIST_UMATCH] = new;
-        new->next = NULL;
-        new->prev = NULL;
-    } else {
-        SigMatch *cur = s->sm_lists_tail[DETECT_SM_LIST_UMATCH];
-        cur->next = new;
-        new->prev = cur;
-        new->next = NULL;
-        s->sm_lists_tail[DETECT_SM_LIST_UMATCH] = new;
-    }
-
-    new->idx = s->sm_cnt;
-    s->sm_cnt++;
-}
-
 void SigMatchAppendPayload(Signature *s, SigMatch *new) {
     if (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
         s->sm_lists[DETECT_SM_LIST_PMATCH] = new;

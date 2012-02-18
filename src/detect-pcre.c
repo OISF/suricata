@@ -1130,7 +1130,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
 
         s->alproto = ALPROTO_HTTP;
 
-        SigMatchAppendUricontent(s, sm);
+        SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_UMATCH);
     } else if (pd->flags & DETECT_PCRE_HTTP_RAW_URI) {
         s->flags |= SIG_FLAG_APPLAYER;
         if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {

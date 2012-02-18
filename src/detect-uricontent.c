@@ -387,7 +387,7 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contents
 
     s->alproto = ALPROTO_HTTP;
 
-    SigMatchAppendUricontent(s,sm);
+    SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_UMATCH);
 
     SCReturnInt(0);
 
