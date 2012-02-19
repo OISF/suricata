@@ -1201,10 +1201,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         SCReturnInt(0);
     }
 
-    prev_sm = SigMatchGetLastSMFromLists(s, 24,
+    prev_sm = SigMatchGetLastSMFromLists(s, 20,
             DETECT_CONTENT, sm->prev,
-            DETECT_CONTENT, sm->prev,
-            DETECT_AL_HTTP_CLIENT_BODY, sm->prev,
             DETECT_AL_HTTP_SERVER_BODY, sm->prev,
             DETECT_AL_HTTP_HEADER, sm->prev,
             DETECT_AL_HTTP_RAW_HEADER, sm->prev,
@@ -1237,7 +1235,6 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
 
     switch (prev_sm->type) {
         case DETECT_CONTENT:
-        case DETECT_AL_HTTP_CLIENT_BODY:
         case DETECT_AL_HTTP_SERVER_BODY:
         case DETECT_AL_HTTP_HEADER:
         case DETECT_AL_HTTP_RAW_HEADER:

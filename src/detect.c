@@ -271,16 +271,30 @@ static inline void EngineAnalysisWriteFastPattern(Signature *s, SigMatch *mpm_sm
 
     fprintf(fp_engine_analysis_FD, "== Sid: %u ==\n", s->id);
     fprintf(fp_engine_analysis_FD, "    Fast pattern matcher: ");
-    if (mpm_sm->type == DETECT_CONTENT)
+    int list_type = SigMatchListSMBelongsTo(s, mpm_sm);
+    if (list_type == DETECT_SM_LIST_PMATCH)
         fprintf(fp_engine_analysis_FD, "content\n");
-    else if (mpm_sm->type == DETECT_CONTENT)
-        fprintf(fp_engine_analysis_FD, "uricontent\n");
-    else if (mpm_sm->type == DETECT_AL_HTTP_CLIENT_BODY)
-        fprintf(fp_engine_analysis_FD, "http_client_body\n");
-    else if (mpm_sm->type == DETECT_AL_HTTP_HEADER)
-        fprintf(fp_engine_analysis_FD, "http_header\n");
-    else if (mpm_sm->type == DETECT_AL_HTTP_RAW_HEADER)
-        fprintf(fp_engine_analysis_FD, "http_raw_header\n");
+    else if (list_type == DETECT_SM_LIST_UMATCH)
+        fprintf(fp_engine_analysis_FD, "http uri content\n");
+    else if (list_type == DETECT_SM_LIST_HRUDMATCH)
+        fprintf(fp_engine_analysis_FD, "http raw uri content\n");
+    else if (list_type == DETECT_SM_LIST_HHDMATCH)
+        fprintf(fp_engine_analysis_FD, "http header content\n");
+    else if (list_type == DETECT_SM_LIST_HRHDMATCH)
+        fprintf(fp_engine_analysis_FD, "http raw header content\n");
+    else if (list_type == DETECT_SM_LIST_HMDMATCH)
+        fprintf(fp_engine_analysis_FD, "http method content\n");
+    else if (list_type == DETECT_SM_LIST_HCDMATCH)
+        fprintf(fp_engine_analysis_FD, "http cookie content\n");
+    else if (list_type == DETECT_SM_LIST_HCBDMATCH)
+        fprintf(fp_engine_analysis_FD, "http client body content\n");
+    else if (list_type == DETECT_SM_LIST_HSBDMATCH)
+        fprintf(fp_engine_analysis_FD, "http server body content\n");
+    else if (list_type == DETECT_SM_LIST_HSCDMATCH)
+        fprintf(fp_engine_analysis_FD, "http stat code content\n");
+    else if (list_type == DETECT_SM_LIST_HSMDMATCH)
+        fprintf(fp_engine_analysis_FD, "http stat msg content\n");
+
     fprintf(fp_engine_analysis_FD, "    Fast pattern set: %s\n", fast_pattern_set ? "yes" : "no");
     fprintf(fp_engine_analysis_FD, "    Fast pattern only set: %s\n",
             fast_pattern_only_set ? "yes" : "no");
@@ -2198,7 +2212,6 @@ static int SignatureCreateMask(Signature *s) {
             case DETECT_AL_HTTP_COOKIE:
             case DETECT_AL_HTTP_METHOD:
             case DETECT_AL_URILEN:
-            case DETECT_AL_HTTP_CLIENT_BODY:
             case DETECT_AL_HTTP_HEADER:
             case DETECT_AL_HTTP_RAW_HEADER:
             case DETECT_AL_HTTP_URI:

@@ -111,7 +111,6 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
         sm->type == DETECT_AL_HTTP_RAW_URI ||
         sm->type == DETECT_AL_HTTP_HEADER ||
         sm->type == DETECT_AL_HTTP_RAW_HEADER ||
-        sm->type == DETECT_AL_HTTP_CLIENT_BODY ||
         sm->type == DETECT_AL_HTTP_SERVER_BODY ||
         sm->type == DETECT_AL_HTTP_COOKIE ||
         sm->type == DETECT_AL_HTTP_METHOD ||

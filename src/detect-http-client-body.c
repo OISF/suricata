@@ -147,7 +147,7 @@ int DetectHttpClientBodySetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 
         /* reassigning pm */
         pm = SigMatchGetLastSMFromLists(s, 4,
-                                        DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
+                                        DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
                                         DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]);
         if (pm == NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "http_client_body seen with a "
@@ -164,7 +164,7 @@ int DetectHttpClientBodySetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         }
     }
     cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_HCBDMATCH);
-    sm->type = DETECT_AL_HTTP_CLIENT_BODY;
+    sm->type = DETECT_CONTENT;
 
     /* transfer the sm from the pmatch list to hcbdmatch list */
     SigMatchTransferSigMatchAcrossLists(sm,
@@ -243,7 +243,7 @@ static int DetectHttpClientBodyTest01(void)
 
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_MATCH];
     if (sm != NULL) {
-        result &= (sm->type == DETECT_AL_HTTP_CLIENT_BODY);
+        result &= (sm->type == DETECT_CONTENT);
         result &= (sm->next == NULL);
     }
 
@@ -2182,8 +2182,8 @@ int DetectHttpClientBodyTest27(void)
                                "(content:\"one\"; offset:10; http_client_body; pcre:/two/; distance:10; "
                                "content:\"three\"; distance:10; http_client_body; depth:10; "
                                "content:\"four\"; distance:10; sid:1;)");
-    if (de_ctx->sig_list != NULL) {
-        printf("de_ctx->sig_list != NULL\n");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
         goto end;
     }
 
@@ -2374,7 +2374,7 @@ int DetectHttpClientBodyTest32(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
                                "(content:\"one\"; http_client_body; within:5; sid:1;)");
-    if (de_ctx->sig_list != NULL) {
+    if (de_ctx->sig_list == NULL) {
         printf("de_ctx->sig_list != NULL\n");
         goto end;
     }
@@ -2439,7 +2439,7 @@ int DetectHttpClientBodyTest34(void)
     }
 
     if (de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH] == NULL ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]->type != DETECT_AL_HTTP_CLIENT_BODY ||
+        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]->type != DETECT_CONTENT ||
         de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]->prev == NULL ||
         de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]->prev->type != DETECT_PCRE) {
 
@@ -2492,7 +2492,7 @@ int DetectHttpClientBodyTest35(void)
     if (de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH] == NULL ||
         de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]->type != DETECT_PCRE ||
         de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]->prev == NULL ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]->prev->type != DETECT_AL_HTTP_CLIENT_BODY) {
+        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]->prev->type != DETECT_CONTENT) {
 
         goto end;
     }
@@ -2541,7 +2541,7 @@ int DetectHttpClientBodyTest36(void)
     }
 
     if (de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH] == NULL ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]->type != DETECT_AL_HTTP_CLIENT_BODY ||
+        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]->type != DETECT_CONTENT ||
         de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]->prev == NULL ||
         de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH]->prev->type != DETECT_PCRE) {
 
