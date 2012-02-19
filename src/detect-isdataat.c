@@ -358,7 +358,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH], /* 5 */
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
-                DETECT_AL_HTTP_METHOD, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
+                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
                 DETECT_AL_HTTP_COOKIE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
                 DETECT_AL_HTTP_RAW_URI, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
                 DETECT_AL_HTTP_STAT_MSG, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
@@ -419,7 +419,6 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
 
     switch (prev_pm->type) {
         case DETECT_CONTENT:
-        case DETECT_AL_HTTP_METHOD:
         case DETECT_AL_HTTP_COOKIE:
         case DETECT_AL_HTTP_RAW_URI:
         case DETECT_AL_HTTP_STAT_MSG:

@@ -67,7 +67,7 @@ void DetectUrilenRegister(void)
     sigmatch_table[DETECT_AL_URILEN].Setup = DetectUrilenSetup;
     sigmatch_table[DETECT_AL_URILEN].Free = DetectUrilenFree;
     sigmatch_table[DETECT_AL_URILEN].RegisterTests = DetectUrilenRegisterTests;
-    sigmatch_table[DETECT_AL_HTTP_METHOD].flags |= SIGMATCH_PAYLOAD;
+    sigmatch_table[DETECT_AL_URILEN].flags |= SIGMATCH_PAYLOAD;
 
     const char *eb;
     int eo;

@@ -146,7 +146,7 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
 
         /* please note.  reassigning pm */
         pm = SigMatchGetLastSMFromLists(s, 4,
-                                        DETECT_AL_HTTP_METHOD,
+                                        DETECT_CONTENT,
                                         s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
                                         DETECT_PCRE,
                                         s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH]);
@@ -165,7 +165,7 @@ static int DetectHttpMethodSetup(DetectEngineCtx *de_ctx, Signature *s, char *st
         }
     }
     cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_HMDMATCH);
-    sm->type = DETECT_AL_HTTP_METHOD;
+    sm->type = DETECT_CONTENT;
 
     /* transfer the sm from the pmatch list to hmdmatch list */
     SigMatchTransferSigMatchAcrossLists(sm,
@@ -675,7 +675,7 @@ int DetectHttpMethodTest14(void)
                                "content:\"AD\"; "
                                "http_method; within:2; sid:1;)");
 
-    if (de_ctx->sig_list == NULL) {
+    if (de_ctx->sig_list != NULL) {
         result = 1;
     }
 

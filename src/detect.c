@@ -2210,7 +2210,6 @@ static int SignatureCreateMask(Signature *s) {
     for (sm = s->sm_lists[DETECT_SM_LIST_AMATCH] ; sm != NULL; sm = sm->next) {
         switch(sm->type) {
             case DETECT_AL_HTTP_COOKIE:
-            case DETECT_AL_HTTP_METHOD:
             case DETECT_AL_URILEN:
             case DETECT_AL_HTTP_URI:
             case DETECT_AL_HTTP_RAW_URI:
