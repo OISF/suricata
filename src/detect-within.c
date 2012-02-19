@@ -167,7 +167,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
-                DETECT_AL_HTTP_SERVER_BODY, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
                 DETECT_AL_HTTP_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                 DETECT_AL_HTTP_RAW_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                 DETECT_AL_HTTP_METHOD, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
@@ -298,83 +298,6 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 }
             }
 
-            break;
-
-        case DETECT_AL_HTTP_SERVER_BODY:
-            cd = (DetectContentData *)pm->ctx;
-
-            if (str[0] != '-' && isalpha(str[0])) {
-                SigMatch *bed_sm =
-                    DetectByteExtractRetrieveSMVar(str, s,
-                                                   SigMatchListSMBelongsTo(s, pm));
-                if (bed_sm == NULL) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
-                               "seen in within - %s\n", str);
-                    goto error;
-                }
-                cd->within = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-                cd->flags |= DETECT_CONTENT_WITHIN_BE;
-            } else {
-                cd->within = strtol(str, NULL, 10);
-                if (cd->within < (int32_t)cd->content_len) {
-                    SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
-                               "less than the content length \"%"PRIu32"\" which is invalid, since "
-                               "this will never match.  Invalidating signature", cd->within,
-                               cd->content_len);
-                    goto error;
-                }
-            }
-
-            if (cd->flags & DETECT_CONTENT_NEGATED) {
-                if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
-                               "negated keyword set along with a fast_pattern");
-                    goto error;
-                }
-            } else {
-                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
-                               "keyword set along with a fast_pattern:only;");
-                    goto error;
-                }
-            }
-
-            cd->flags |= DETECT_CONTENT_WITHIN;
-
-            /* reassigning pm */
-            pm = SigMatchGetLastSMFromLists(s, 4,
-                                            DETECT_AL_HTTP_SERVER_BODY, pm->prev,
-                                            DETECT_PCRE, pm->prev);
-            if (pm == NULL) {
-                if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
-                    /* file_data; content:"abc"; within:3; is valid, in this case
-                     * there will be no previous pm. We convert to depth in this case */
-                    cd->flags &= ~DETECT_CONTENT_WITHIN;
-
-                    SCLogDebug("converted within to depth for content relative to file_data");
-                    cd->depth = cd->within;
-                } else {
-                    SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "within for http_server_body "
-                            "needs preceeding http_server_body content");
-                    goto error;
-                }
-            } else {
-                if (pm->type == DETECT_PCRE) {
-                    DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
-                    tmp_pd->flags |=  DETECT_PCRE_RELATIVE_NEXT;
-                } else {
-                    /* reassigning cd */
-                    cd = (DetectContentData *)pm->ctx;
-                    if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "Previous keyword "
-                                "has a fast_pattern:only; set.  You can't "
-                                "have relative keywords around a fast_pattern "
-                                "only content");
-                        goto error;
-                    }
-                    cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-                }
-            }
             break;
 
         case DETECT_AL_HTTP_HEADER:

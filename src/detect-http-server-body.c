@@ -148,7 +148,7 @@ int DetectHttpServerBodySetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 
         /* reassigning pm */
         pm = SigMatchGetLastSMFromLists(s, 4,
-                                        DETECT_AL_HTTP_SERVER_BODY, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
+                                        DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
                                         DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]);
         if (pm == NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "http_server_body seen with a "
@@ -165,7 +165,7 @@ int DetectHttpServerBodySetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         }
     }
     cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_HSBDMATCH);
-    sm->type = DETECT_AL_HTTP_SERVER_BODY;
+    sm->type = DETECT_CONTENT;
 
     /* transfer the sm from the pmatch list to hsbdmatch list */
     SigMatchTransferSigMatchAcrossLists(sm,
@@ -252,7 +252,7 @@ static int DetectHttpServerBodyTest01(void)
         goto end;
     }
 
-    if (sm->type != DETECT_AL_HTTP_SERVER_BODY) {
+    if (sm->type != DETECT_CONTENT) {
         printf("sm type not DETECT_AL_HTTP_SERVER_BODY: ");
         goto end;
     }
@@ -2222,8 +2222,8 @@ int DetectHttpServerBodyTest27(void)
                                "(content:\"one\"; offset:10; http_server_body; pcre:/two/; distance:10; "
                                "content:\"three\"; distance:10; http_server_body; depth:10; "
                                "content:\"four\"; distance:10; sid:1;)");
-    if (de_ctx->sig_list != NULL) {
-        printf("de_ctx->sig_list != NULL\n");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
         goto end;
     }
 
@@ -2414,8 +2414,8 @@ int DetectHttpServerBodyTest32(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
                                "(content:\"one\"; http_server_body; within:5; sid:1;)");
-    if (de_ctx->sig_list != NULL) {
-        printf("de_ctx->sig_list != NULL\n");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
         goto end;
     }
 
@@ -2479,7 +2479,7 @@ int DetectHttpServerBodyTest34(void)
     }
 
     if (de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH] == NULL ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->type != DETECT_AL_HTTP_SERVER_BODY ||
+        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->type != DETECT_CONTENT ||
         de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->prev == NULL ||
         de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->prev->type != DETECT_PCRE) {
 
@@ -2532,7 +2532,7 @@ int DetectHttpServerBodyTest35(void)
     if (de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH] == NULL ||
         de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->type != DETECT_PCRE ||
         de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->prev == NULL ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->prev->type != DETECT_AL_HTTP_SERVER_BODY) {
+        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->prev->type != DETECT_CONTENT) {
 
         goto end;
     }
@@ -2581,7 +2581,7 @@ int DetectHttpServerBodyTest36(void)
     }
 
     if (de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH] == NULL ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->type != DETECT_AL_HTTP_SERVER_BODY ||
+        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->type != DETECT_CONTENT ||
         de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->prev == NULL ||
         de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH]->prev->type != DETECT_PCRE) {
 

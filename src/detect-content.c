@@ -410,7 +410,7 @@ static int DetectContentSetup (DetectEngineCtx *de_ctx, Signature *s, char *cont
 
     if (s->init_flags & SIG_FLAG_INIT_FILE_DATA) {
         cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_HSBDMATCH);
-        sm->type = DETECT_AL_HTTP_SERVER_BODY;
+        sm->type = DETECT_CONTENT;
 
         /* transfer the sm from the pmatch list to hsbdmatch list */
         SigMatchTransferSigMatchAcrossLists(sm,
