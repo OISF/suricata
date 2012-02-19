@@ -2212,7 +2212,6 @@ static int SignatureCreateMask(Signature *s) {
             case DETECT_AL_HTTP_COOKIE:
             case DETECT_AL_HTTP_METHOD:
             case DETECT_AL_URILEN:
-            case DETECT_AL_HTTP_HEADER:
             case DETECT_AL_HTTP_RAW_HEADER:
             case DETECT_AL_HTTP_URI:
             case DETECT_AL_HTTP_RAW_URI:

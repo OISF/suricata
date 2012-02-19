@@ -167,7 +167,7 @@ int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
 
         /* please note.  reassigning pm */
         pm = SigMatchGetLastSMFromLists(s, 4,
-                                        DETECT_AL_HTTP_HEADER,
+                                        DETECT_CONTENT,
                                         s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                                         DETECT_PCRE,
                                         s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]);
@@ -187,7 +187,7 @@ int DetectHttpHeaderSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         }
     }
     cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_HHDMATCH);
-    sm->type = DETECT_AL_HTTP_HEADER;
+    sm->type = DETECT_CONTENT;
 
     /* transfer the sm from the pmatch list to hhdmatch list */
     SigMatchTransferSigMatchAcrossLists(sm,
@@ -245,7 +245,7 @@ static int DetectHttpHeaderTest01(void)
 
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HHDMATCH];
     if (sm != NULL) {
-        result &= (sm->type == DETECT_AL_HTTP_HEADER);
+        result &= (sm->type == DETECT_CONTENT);
         result &= (sm->next == NULL);
     } else {
         result = 0;
@@ -1592,8 +1592,8 @@ int DetectHttpHeaderTest23(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
                                "(content:\"one\"; http_header; within:5; sid:1;)");
-    if (de_ctx->sig_list != NULL) {
-        printf("de_ctx->sig_list != NULL\n");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
         goto end;
     }
 
@@ -1657,7 +1657,7 @@ int DetectHttpHeaderTest25(void)
     }
 
     if (de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH] == NULL ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->type != DETECT_AL_HTTP_HEADER ||
+        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->type != DETECT_CONTENT ||
         de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev == NULL ||
         de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->type != DETECT_PCRE) {
 
@@ -1710,7 +1710,7 @@ int DetectHttpHeaderTest26(void)
     if (de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH] == NULL ||
         de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->type != DETECT_PCRE ||
         de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev == NULL ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->type != DETECT_AL_HTTP_HEADER) {
+        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->type != DETECT_CONTENT) {
 
         goto end;
     }
@@ -1759,7 +1759,7 @@ int DetectHttpHeaderTest27(void)
     }
 
     if (de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH] == NULL ||
-        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->type != DETECT_AL_HTTP_HEADER ||
+        de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->type != DETECT_CONTENT ||
         de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev == NULL ||
         de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HHDMATCH]->prev->type != DETECT_PCRE) {
 
