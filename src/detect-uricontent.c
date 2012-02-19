@@ -371,7 +371,7 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contents
     if (sm == NULL)
         goto error;
 
-    sm->type = DETECT_URICONTENT;
+    sm->type = DETECT_CONTENT;
     sm->ctx = (void *)cd;
 
     cd->id = DetectUricontentGetId(de_ctx->mpm_pattern_id_store, cd);
@@ -808,7 +808,7 @@ int DetectUriSigTest01(void)
     BUG_ON(de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH] == NULL);
 
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_UMATCH];
-    if (sm->type == DETECT_URICONTENT) {
+    if (sm->type == DETECT_CONTENT) {
         result = 1;
     } else {
         result = 0;

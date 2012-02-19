@@ -1403,7 +1403,7 @@ int SigGroupHeadLoadUricontent(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
             continue;
 
         for ( ;sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_URICONTENT) {
+            if (sm->type == DETECT_CONTENT) {
                 co = (DetectContentData *)sm->ctx;
 
                 sgh->init->uri_content_array[co->id / 8] |= 1 << (co->id % 8);

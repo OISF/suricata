@@ -165,7 +165,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
     } else {
         pm = SigMatchGetLastSMFromLists(s, 22,
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                 DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
                 DETECT_AL_HTTP_SERVER_BODY, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
                 DETECT_AL_HTTP_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
@@ -187,115 +187,10 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
         }
     }
 
-    DetectContentData *ud = NULL;
     DetectContentData *cd = NULL;
     DetectPcreData *pe = NULL;
 
     switch (pm->type) {
-        case DETECT_URICONTENT:
-            ud = (DetectContentData *)pm->ctx;
-            if (ud == NULL) {
-                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "Unknown previous keyword!\n");
-                goto error;
-            }
-
-            if (ud->flags & DETECT_CONTENT_NEGATED) {
-                if (ud->flags & DETECT_CONTENT_FAST_PATTERN) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
-                               "negated keyword set along with a fast_pattern");
-                    goto error;
-                }
-            } else {
-                if (ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
-                               "keyword set along with a fast_pattern:only;");
-                    goto error;
-                }
-            }
-
-            if (str[0] != '-' && isalpha(str[0])) {
-                SigMatch *bed_sm =
-                    DetectByteExtractRetrieveSMVar(str, s,
-                                                   SigMatchListSMBelongsTo(s, pm));
-                if (bed_sm == NULL) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
-                               "seen in within - %s\n", str);
-                    goto error;
-                }
-                ud->within = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-                ud->flags |= DETECT_CONTENT_WITHIN_BE;
-            } else {
-                ud->within = strtol(str, NULL, 10);
-                if (ud->within < (int32_t)ud->content_len) {
-                    SCLogError(SC_ERR_WITHIN_INVALID, "within argument \"%"PRIi32"\" is "
-                               "less than the content length \"%"PRIu32"\" which is invalid, since "
-                               "this will never match.  Invalidating signature", ud->within,
-                               ud->content_len);
-                    goto error;
-                }
-            }
-
-            ud->flags |= DETECT_CONTENT_WITHIN;
-
-            pm = SigMatchGetLastSMFromLists(s, 6,
-                                            DETECT_URICONTENT, pm->prev,
-                                            DETECT_PCRE, pm->prev,
-                                            DETECT_BYTEJUMP, pm->prev);
-            if (pm == NULL) {
-                SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two "
-                           "preceeding content or uricontent options");
-                goto error;
-            }
-
-            switch (pm->type) {
-                case DETECT_URICONTENT:
-                    /* Set the relative next flag on the prev sigmatch */
-                    ud = (DetectContentData *)pm->ctx;
-                    if (ud == NULL) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
-                                   "previous keyword!");
-                        goto error;
-                    }
-                    ud->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-
-                    if (ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "Previous keyword "
-                                   "has a fast_pattern:only; set.  You can't "
-                                   "have relative keywords around a fast_pattern "
-                                   "only content");
-                        goto error;
-                    }
-
-                    break;
-
-                case DETECT_PCRE:
-                    pe = (DetectPcreData *) pm->ctx;
-                    if (pe == NULL) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
-                                   "previous keyword!");
-                        goto error;
-                    }
-                    pe->flags |= DETECT_PCRE_RELATIVE_NEXT;
-
-                    break;
-
-                case DETECT_BYTEJUMP:
-                    SCLogDebug("No setting relative_next for bytejump.  We "
-                               "have no use for it");
-
-                    break;
-
-                default:
-                    /* this will never hit */
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
-                                   "previous keyword!");
-                    break;
-            }
-
-            DetectUricontentPrint(ud);
-
-            break;
-
         case DETECT_CONTENT:
             cd = (DetectContentData *)pm->ctx;
             if (cd == NULL) {

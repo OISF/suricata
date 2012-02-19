@@ -85,7 +85,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
         default:
             pm = SigMatchGetLastSMFromLists(s, 22,
                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                    DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                    DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                     DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
                     DETECT_AL_HTTP_SERVER_BODY, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
                     DETECT_AL_HTTP_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
@@ -110,60 +110,8 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
     }
 
     /* we can remove this switch now with the unified structure */
-    DetectContentData *ud = NULL;
     DetectContentData *cd = NULL;
     switch (pm->type) {
-        case DETECT_URICONTENT:
-            ud = (DetectContentData *)pm->ctx;
-            if (ud == NULL) {
-                SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
-                if (dubbed)
-                    SCFree(str);
-                return -1;
-            }
-
-            if (ud->flags & DETECT_CONTENT_NEGATED) {
-                if (ud->flags & DETECT_CONTENT_FAST_PATTERN) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
-                               "negated keyword set along with a fast_pattern");
-                    goto error;
-                }
-            } else {
-                if (ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
-                               "keyword set along with a fast_pattern:only;");
-                    goto error;
-                }
-            }
-
-            if (str[0] != '-' && isalpha(str[0])) {
-                SigMatch *bed_sm =
-                    DetectByteExtractRetrieveSMVar(str, s,
-                                                   SigMatchListSMBelongsTo(s, pm));
-                if (bed_sm == NULL) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
-                               "seen in offset - %s\n", str);
-                    goto error;
-                }
-                ud->offset = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-                ud->flags |= DETECT_CONTENT_OFFSET_BE;
-            } else {
-                ud->offset = (uint32_t)atoi(str);
-                if (ud->depth != 0) {
-                    if (ud->depth < ud->content_len) {
-                        SCLogDebug("depth increased to %"PRIu32" to match pattern len",
-                                   ud->content_len);
-                        ud->depth = ud->content_len;
-                    }
-                    /* Updating the depth as is relative to the offset */
-                    ud->depth += ud->offset;
-                }
-            }
-
-            ud->flags |= DETECT_CONTENT_OFFSET;
-
-            break;
-
         case DETECT_CONTENT:
             cd = (DetectContentData *)pm->ctx;
             if (cd == NULL) {

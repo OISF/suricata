@@ -353,7 +353,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
         }
         pm = SigMatchGetLastSMFromLists(s, 54,
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH], /* 1 */
-                DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                 DETECT_AL_HTTP_CLIENT_BODY, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
                 DETECT_AL_HTTP_SERVER_BODY, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
                 DETECT_AL_HTTP_HEADER, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH], /* 5 */
@@ -388,50 +388,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                        "byte_extract, byte_jump keyword");
             goto error;
         } else {
-            int list_type = -1;
-            if (pm->type == DETECT_PCRE || pm->type == DETECT_BYTEJUMP ||
-                pm->type == DETECT_BYTE_EXTRACT || pm->type == DETECT_BYTETEST) {
-                list_type = SigMatchListSMBelongsTo(s, pm);
-            } else {
-                switch (pm->type) {
-                case DETECT_CONTENT:
-                    list_type = DETECT_SM_LIST_PMATCH;
-                    break;
-                case DETECT_URICONTENT:
-                    list_type = DETECT_SM_LIST_UMATCH;
-                    break;
-                case DETECT_AL_HTTP_CLIENT_BODY:
-                    list_type = DETECT_SM_LIST_HCBDMATCH;
-                    break;
-                case DETECT_AL_HTTP_SERVER_BODY:
-                    list_type = DETECT_SM_LIST_HSBDMATCH;
-                    break;
-                case DETECT_AL_HTTP_RAW_HEADER:
-                    list_type = DETECT_SM_LIST_HRHDMATCH;
-                    break;
-                case DETECT_AL_HTTP_HEADER:
-                    list_type = DETECT_SM_LIST_HHDMATCH;
-                    break;
-                case DETECT_AL_HTTP_METHOD:
-                    list_type = DETECT_SM_LIST_HMDMATCH;
-                    break;
-                case DETECT_AL_HTTP_COOKIE:
-                    list_type = DETECT_SM_LIST_HCDMATCH;
-                    break;
-                case DETECT_AL_HTTP_RAW_URI:
-                    list_type = DETECT_SM_LIST_HRUDMATCH;
-                    break;
-                case DETECT_AL_HTTP_STAT_MSG:
-                    list_type = DETECT_SM_LIST_HSMDMATCH;
-                    break;
-                case DETECT_AL_HTTP_STAT_CODE:
-                    list_type = DETECT_SM_LIST_HSCDMATCH;
-                    break;
-                default:
-                    /* would never happen */
-                    break;
-                } /* switch */
-            } /* else */
+            int list_type = SigMatchListSMBelongsTo(s, pm);
             if (list_type == -1) {
                 goto error;
             }
@@ -462,7 +419,6 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
 
     switch (prev_pm->type) {
         case DETECT_CONTENT:
-        case DETECT_URICONTENT:
         case DETECT_AL_HTTP_CLIENT_BODY:
         case DETECT_AL_HTTP_SERVER_BODY:
         case DETECT_AL_HTTP_HEADER:

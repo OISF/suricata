@@ -627,7 +627,7 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         if (data->flags & DETECT_BYTE_EXTRACT_FLAG_RELATIVE) {
             SigMatch *pm =
                 SigMatchGetLastSMFromLists(s, 30,
-                                           DETECT_URICONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
+                                           DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                            DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                            DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                                            DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
@@ -666,9 +666,8 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     }
 
     SigMatch *prev_sm = NULL;
-    prev_sm = SigMatchGetLastSMFromLists(s, 8,
+    prev_sm = SigMatchGetLastSMFromLists(s, 6,
                                          DETECT_CONTENT, sm->prev,
-                                         DETECT_URICONTENT, sm->prev,
                                          DETECT_BYTEJUMP, sm->prev,
                                          DETECT_PCRE, sm->prev);
     if (prev_sm == NULL) {
@@ -684,7 +683,6 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     }
 
     DetectContentData *cd = NULL;
-    DetectContentData *ud = NULL;
     DetectPcreData *pe = NULL;
 
     switch (prev_sm->type) {
@@ -697,18 +695,6 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
                 return -1;
             }
             cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
-
-            break;
-
-        case DETECT_URICONTENT:
-            /* Set the relative next flag on the prev sigmatch */
-            ud = (DetectContentData *)prev_sm->ctx;
-            if (ud == NULL) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
-                           "previous keyword!");
-                return -1;
-            }
-            ud->flags |= DETECT_CONTENT_RELATIVE_NEXT;
 
             break;
 
@@ -1804,7 +1790,7 @@ int DetectByteExtractTest37(void)
     }
 
     sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
-    if (sm->type != DETECT_URICONTENT) {
+    if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
     }
@@ -1917,7 +1903,7 @@ int DetectByteExtractTest38(void)
     }
 
     sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
-    if (sm->type != DETECT_URICONTENT) {
+    if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
     }
@@ -2005,7 +1991,7 @@ int DetectByteExtractTest39(void)
     }
 
     sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
-    if (sm->type != DETECT_URICONTENT) {
+    if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
     }
@@ -2118,7 +2104,7 @@ int DetectByteExtractTest40(void)
     }
 
     sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
-    if (sm->type != DETECT_URICONTENT) {
+    if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
     }
@@ -2350,7 +2336,7 @@ int DetectByteExtractTest42(void)
         goto end;
 
     sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
-    if (sm->type != DETECT_URICONTENT) {
+    if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
     }
@@ -3912,7 +3898,7 @@ int DetectByteExtractTest56(void)
     }
 
     sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
-    if (sm->type != DETECT_URICONTENT) {
+    if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
     }
@@ -4092,7 +4078,7 @@ int DetectByteExtractTest57(void)
         goto end;
 
     sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
-    if (sm->type != DETECT_URICONTENT) {
+    if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
     }
@@ -4166,7 +4152,7 @@ int DetectByteExtractTest57(void)
     }
 
     sm = sm->next;
-    if (sm->type != DETECT_URICONTENT) {
+    if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
     }
@@ -4566,7 +4552,7 @@ int DetectByteExtractTest60(void)
     }
 
     sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
-    if (sm->type != DETECT_URICONTENT) {
+    if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
     }
@@ -4696,7 +4682,7 @@ int DetectByteExtractTest61(void)
     }
 
     sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
-    if (sm->type != DETECT_URICONTENT) {
+    if (sm->type != DETECT_CONTENT) {
         result = 0;
         goto end;
     }

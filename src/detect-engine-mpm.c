@@ -1040,12 +1040,16 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
         return;
     }
 
+    int sm_list = SigMatchListSMBelongsTo(s, mpm_sm);
+    if (sm_list == -1)
+        BUG_ON(SigMatchListSMBelongsTo(s, mpm_sm) == -1);
+
     uint8_t flags = 0;
 
     DetectContentData *cd = NULL;
 
-    switch (mpm_sm->type) {
-        case DETECT_CONTENT:
+    switch (sm_list) {
+        case DETECT_SM_LIST_PMATCH:
         {
             cd = (DetectContentData *)mpm_sm->ctx;
             if (cd->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) {
@@ -1240,86 +1244,86 @@ static void PopulateMpmAddPatternToMpm(DetectEngineCtx *de_ctx,
             break;
         } /* case DETECT_CONTENT */
 
-        case DETECT_URICONTENT:
-        case DETECT_AL_HTTP_RAW_URI:
-        case DETECT_AL_HTTP_CLIENT_BODY:
-        case DETECT_AL_HTTP_SERVER_BODY:
-        case DETECT_AL_HTTP_HEADER:
-        case DETECT_AL_HTTP_RAW_HEADER:
-        case DETECT_AL_HTTP_METHOD:
-        case DETECT_AL_HTTP_COOKIE:
-        case DETECT_AL_HTTP_STAT_MSG:
-        case DETECT_AL_HTTP_STAT_CODE:
+        case DETECT_SM_LIST_UMATCH:
+        case DETECT_SM_LIST_HRUDMATCH:
+        case DETECT_SM_LIST_HCBDMATCH:
+        case DETECT_SM_LIST_HSBDMATCH:
+        case DETECT_SM_LIST_HHDMATCH:
+        case DETECT_SM_LIST_HRHDMATCH:
+        case DETECT_SM_LIST_HMDMATCH:
+        case DETECT_SM_LIST_HCDMATCH:
+        case DETECT_SM_LIST_HSMDMATCH:
+        case DETECT_SM_LIST_HSCDMATCH:
         {
             MpmCtx *mpm_ctx_ts = NULL;
             MpmCtx *mpm_ctx_tc = NULL;
             uint32_t sgh_flags = 0;
             uint32_t cd_flags = 0;
 
-            if (mpm_sm->type == DETECT_URICONTENT) {
+            if (sm_list == DETECT_SM_LIST_UMATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_uri_ctx_ts;
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_uri_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_URI;
                 cd_flags = DETECT_CONTENT_URI_MPM;
-            } else if (mpm_sm->type == DETECT_AL_HTTP_CLIENT_BODY) {
+            } else if (sm_list == DETECT_SM_LIST_HCBDMATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_hcbd_ctx_ts;
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hcbd_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_HCBD;
                 cd_flags = DETECT_CONTENT_HCBD_MPM;
-            } else if (mpm_sm->type == DETECT_AL_HTTP_SERVER_BODY) {
+            } else if (sm_list == DETECT_SM_LIST_HSBDMATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_hsbd_ctx_ts;
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hsbd_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_HSBD;
                 cd_flags = DETECT_CONTENT_HSBD_MPM;
-            } else if (mpm_sm->type == DETECT_AL_HTTP_HEADER) {
+            } else if (sm_list == DETECT_SM_LIST_HHDMATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_hhd_ctx_ts;
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hhd_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_HHD;
                 cd_flags = DETECT_CONTENT_HHD_MPM;
-            } else if (mpm_sm->type == DETECT_AL_HTTP_RAW_HEADER) {
+            } else if (sm_list == DETECT_SM_LIST_HRHDMATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_hrhd_ctx_ts;
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hrhd_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_HRHD;
                 cd_flags = DETECT_CONTENT_HRHD_MPM;
-            } else if (mpm_sm->type == DETECT_AL_HTTP_METHOD) {
+            } else if (sm_list == DETECT_SM_LIST_HMDMATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_hmd_ctx_ts;
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hmd_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_HMD;
                 cd_flags = DETECT_CONTENT_HMD_MPM;
-            } else if (mpm_sm->type == DETECT_AL_HTTP_COOKIE) {
+            } else if (sm_list == DETECT_SM_LIST_HCDMATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_hcd_ctx_ts;
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hcd_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_HCD;
                 cd_flags = DETECT_CONTENT_HCD_MPM;
-            } else if (mpm_sm->type == DETECT_AL_HTTP_RAW_URI) {
+            } else if (sm_list == DETECT_SM_LIST_HRUDMATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_hrud_ctx_ts;
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hrud_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_HRUD;
                 cd_flags = DETECT_CONTENT_HRUD_MPM;
-            } else if (mpm_sm->type == DETECT_AL_HTTP_STAT_MSG) {
+            } else if (sm_list == DETECT_SM_LIST_HSMDMATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_hsmd_ctx_ts;
                 if (s->flags & SIG_FLAG_TOCLIENT)
                     mpm_ctx_tc = sgh->mpm_hsmd_ctx_tc;
                 sgh_flags = SIG_GROUP_HEAD_MPM_HSMD;
                 cd_flags = DETECT_CONTENT_HSMD_MPM;
-            } else if (mpm_sm->type == DETECT_AL_HTTP_STAT_CODE) {
+            } else if (sm_list == DETECT_SM_LIST_HSCDMATCH) {
                 if (s->flags & SIG_FLAG_TOSERVER)
                     mpm_ctx_ts = sgh->mpm_hscd_ctx_ts;
                 if (s->flags & SIG_FLAG_TOCLIENT)
@@ -1600,7 +1604,6 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
 int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
 {
     Signature *s = NULL;
-    SigMatch *sm = NULL;
     uint32_t has_co_packet = 0; /**< our sgh has packet payload inspecting content */
     uint32_t has_co_stream = 0; /**< our sgh has stream inspecting content */
     uint32_t has_co_uri = 0;    /**< our sgh has uri inspecting content */
@@ -1638,10 +1641,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
             has_co_stream = 1;
         }
 
-        for (sm = s->sm_lists[DETECT_SM_LIST_UMATCH]; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_URICONTENT) {
-                has_co_uri = 1;
-            }
+        if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
+            has_co_uri = 1;
         }
 
         if (s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL) {

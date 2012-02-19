@@ -273,7 +273,7 @@ static inline void EngineAnalysisWriteFastPattern(Signature *s, SigMatch *mpm_sm
     fprintf(fp_engine_analysis_FD, "    Fast pattern matcher: ");
     if (mpm_sm->type == DETECT_CONTENT)
         fprintf(fp_engine_analysis_FD, "content\n");
-    else if (mpm_sm->type == DETECT_URICONTENT)
+    else if (mpm_sm->type == DETECT_CONTENT)
         fprintf(fp_engine_analysis_FD, "uricontent\n");
     else if (mpm_sm->type == DETECT_AL_HTTP_CLIENT_BODY)
         fprintf(fp_engine_analysis_FD, "http_client_body\n");

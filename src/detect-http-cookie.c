@@ -383,7 +383,7 @@ int DetectHttpCookieTest06(void)
         goto end;
     }
 
-    if (s->sm_lists[DETECT_SM_LIST_UMATCH]->type != DETECT_URICONTENT) {
+    if (s->sm_lists[DETECT_SM_LIST_UMATCH]->type != DETECT_CONTENT) {
         goto end;
     }
 
