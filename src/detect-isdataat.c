@@ -362,7 +362,7 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
-                DETECT_AL_HTTP_STAT_CODE, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
+                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
                 DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH], /* 10 */
                 DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                 DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
@@ -419,7 +419,6 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
 
     switch (prev_pm->type) {
         case DETECT_CONTENT:
-        case DETECT_AL_HTTP_STAT_CODE:
             /* Set the relative next flag on the prev sigmatch */
             cd = (DetectContentData *)prev_pm->ctx;
             if (cd == NULL) {

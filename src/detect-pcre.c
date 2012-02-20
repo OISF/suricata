@@ -1201,10 +1201,9 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         SCReturnInt(0);
     }
 
-    prev_sm = SigMatchGetLastSMFromLists(s, 6,
-            DETECT_CONTENT, sm->prev,
-            DETECT_PCRE, sm->prev,
-            DETECT_AL_HTTP_STAT_CODE, sm->prev);
+    prev_sm = SigMatchGetLastSMFromLists(s, 4,
+                                         DETECT_CONTENT, sm->prev,
+                                         DETECT_PCRE, sm->prev);
     if (prev_sm == NULL) {
         if (s->alproto == ALPROTO_DCERPC) {
             SCLogDebug("No preceding content or pcre keyword.  Possible "
@@ -1228,7 +1227,6 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
 
     switch (prev_sm->type) {
         case DETECT_CONTENT:
-        case DETECT_AL_HTTP_STAT_CODE:
             /* Set the relative next flag on the prev sigmatch */
             cd = (DetectContentData *)prev_sm->ctx;
             if (cd == NULL) {

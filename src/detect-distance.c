@@ -170,7 +170,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-                DETECT_AL_HTTP_STAT_CODE, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
+                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH]);
         if (pm == NULL) {
             SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs "
@@ -287,73 +287,6 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                                        "previous keyword!");
                         break;
                 }
-            }
-
-            break;
-
-        case DETECT_AL_HTTP_STAT_CODE:
-            cd = (DetectContentData *)pm->ctx;
-            if (cd->flags & DETECT_CONTENT_NEGATED) {
-                if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
-                               "negated keyword set along with a fast_pattern");
-                    goto error;
-                }
-            } else {
-                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
-                               "keyword set along with a fast_pattern:only;");
-                    goto error;
-                }
-            }
-
-            if (str[0] != '-' && isalpha(str[0])) {
-                SigMatch *bed_sm =
-                    DetectByteExtractRetrieveSMVar(str, s,
-                                                   SigMatchListSMBelongsTo(s, pm));
-                if (bed_sm == NULL) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
-                               "seen in distance - %s\n", str);
-                    goto error;
-                }
-                cd->distance = ((DetectByteExtractData *)bed_sm->ctx)->local_id;
-                cd->flags |= DETECT_CONTENT_DISTANCE_BE;
-            } else {
-                cd->distance = strtol(str, NULL, 10);
-                if (cd->flags & DETECT_CONTENT_WITHIN) {
-                    if ((cd->distance + cd->content_len) > cd->within) {
-                        cd->within = cd->distance + cd->content_len;
-                    }
-                }
-            }
-
-            cd->flags |= DETECT_CONTENT_DISTANCE;
-
-            /* reassigning pm */
-            pm = SigMatchGetLastSMFromLists(s, 4,
-                                            DETECT_AL_HTTP_STAT_CODE, pm->prev,
-                                            DETECT_PCRE, pm->prev);
-            if (pm == NULL) {
-                SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "distance for "
-                           "http_stat_code needs preceeding http_stat_code "
-                           "content");
-                goto error;
-            }
-
-            if (pm->type == DETECT_PCRE) {
-                DetectPcreData *tmp_pd = (DetectPcreData *)pm->ctx;
-                tmp_pd->flags |=  DETECT_PCRE_RELATIVE_NEXT;
-            } else {
-                /* reassigning cd */
-                cd = (DetectContentData *)pm->ctx;
-                if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Previous keyword "
-                               "has a fast_pattern:only; set.  You can't "
-                               "have relative keywords around a fast_pattern "
-                               "only content");
-                    goto error;
-                }
-                cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
             }
 
             break;
