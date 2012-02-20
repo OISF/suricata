@@ -163,7 +163,7 @@ static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
 
         /* please note.  reassigning pm */
         pm = SigMatchGetLastSMFromLists(s, 4,
-                                        DETECT_AL_HTTP_COOKIE,
+                                        DETECT_CONTENT,
                                         s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
                                         DETECT_PCRE,
                                         s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]);
@@ -182,7 +182,7 @@ static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
         }
     }
     cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_HCDMATCH);
-    sm->type = DETECT_AL_HTTP_COOKIE;
+    sm->type = DETECT_CONTENT;
 
     /* transfer the sm from the pmatch list to hcdmatch list */
     SigMatchTransferSigMatchAcrossLists(sm,
@@ -287,10 +287,10 @@ int DetectHttpCookieTest03(void)
     }
 
     while (sm != NULL) {
-        if (sm->type == DETECT_AL_HTTP_COOKIE) {
+        if (sm->type == DETECT_CONTENT) {
             result = 1;
         } else {
-            printf("expected DETECT_AL_HTTP_COOKIE, got %d: ", sm->type);
+            printf("expected DETECT_CONTENT for http_cookie, got %d: ", sm->type);
             goto end;
         }
         sm = sm->next;
@@ -375,7 +375,7 @@ int DetectHttpCookieTest06(void)
 
     BUG_ON(s->sm_lists[DETECT_SM_LIST_HCDMATCH] == NULL);
 
-    if (s->sm_lists[DETECT_SM_LIST_HCDMATCH]->type != DETECT_AL_HTTP_COOKIE)
+    if (s->sm_lists[DETECT_SM_LIST_HCDMATCH]->type != DETECT_CONTENT)
         goto end;
 
     if (s->sm_lists[DETECT_SM_LIST_UMATCH] == NULL) {
