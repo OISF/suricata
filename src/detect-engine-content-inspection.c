@@ -108,8 +108,7 @@ int DetectEngineContentInspection(DetectEngineCtx *de_ctx, DetectEngineThreadCtx
 
     /* \todo unify this which is phase 2 of payload inspection unification */
     if (sm->type == DETECT_CONTENT ||
-        sm->type == DETECT_AL_HTTP_STAT_CODE ||
-        sm->type == DETECT_AL_HTTP_STAT_MSG) {
+        sm->type == DETECT_AL_HTTP_STAT_CODE) {
 
         DetectContentData *cd = (DetectContentData *)sm->ctx;
         SCLogDebug("inspecting content %"PRIu32" buffer_len %"PRIu32, cd->id, buffer_len);

@@ -263,7 +263,7 @@ static int DetectHttpStatMsgSetup (DetectEngineCtx *de_ctx, Signature *s, char *
 
         /* reassigning pm */
         pm = SigMatchGetLastSMFromLists(s, 4,
-                                        DETECT_AL_HTTP_STAT_MSG, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
+                                        DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
                                         DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH]);
         if (pm == NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "http_stat_msg seen with a "
@@ -280,7 +280,7 @@ static int DetectHttpStatMsgSetup (DetectEngineCtx *de_ctx, Signature *s, char *
         }
     }
     cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_HSMDMATCH);
-    sm->type = DETECT_AL_HTTP_STAT_MSG;
+    sm->type = DETECT_CONTENT;
 
     /* transfer the sm from the pmatch list to hcbdmatch list */
     SigMatchTransferSigMatchAcrossLists(sm,
@@ -378,10 +378,10 @@ int DetectHttpStatMsgTest02(void)
 
     SigMatch *prev = NULL;
     while (sm != NULL) {
-        if (sm->type == DETECT_AL_HTTP_STAT_MSG) {
+        if (sm->type == DETECT_CONTENT) {
             result = 1;
         } else {
-            printf("expected DETECT_AL_HTTP_STAT_MSG, got %d: ", sm->type);
+            printf("expected DETECT_CONTENT for http_stat_msg, got %d: ", sm->type);
             goto end;
         }
         prev = sm;

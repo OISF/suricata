@@ -83,7 +83,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
-            DETECT_AL_HTTP_STAT_MSG, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
+            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
             DETECT_AL_HTTP_STAT_CODE, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]);
     if (pm == NULL) {
@@ -98,7 +98,6 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
 
     switch (pm->type) {
         case DETECT_CONTENT:
-        case DETECT_AL_HTTP_STAT_MSG:
         case DETECT_AL_HTTP_STAT_CODE:
             cd = (DetectContentData *)pm->ctx;
             if (cd == NULL) {

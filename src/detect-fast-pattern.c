@@ -146,7 +146,7 @@ void SupportFastPatternForSigMatchTypes(void)
     SupportFastPatternForSigMatchType(DETECT_CONTENT);
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_HRUDMATCH);
 
-    SupportFastPatternForSigMatchType(DETECT_AL_HTTP_STAT_MSG);
+    SupportFastPatternForSigMatchType(DETECT_CONTENT);
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_HSMDMATCH);
 
     SupportFastPatternForSigMatchType(DETECT_AL_HTTP_STAT_CODE);
@@ -245,7 +245,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
-            DETECT_AL_HTTP_STAT_MSG, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
+            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
             DETECT_AL_HTTP_STAT_CODE, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]);
     if (pm == NULL) {
