@@ -139,7 +139,7 @@ static int DetectHttpRawUriSetup(DetectEngineCtx *de_ctx, Signature *s, char *ar
 
         /* reassigning pm */
         pm = SigMatchGetLastSMFromLists(s, 4,
-                                        DETECT_AL_HTTP_RAW_URI,
+                                        DETECT_CONTENT,
                                         s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
                                         DETECT_PCRE,
                                         s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]);
@@ -158,7 +158,7 @@ static int DetectHttpRawUriSetup(DetectEngineCtx *de_ctx, Signature *s, char *ar
         }
     }
     cd->id = DetectPatternGetId(de_ctx->mpm_pattern_id_store, cd, DETECT_SM_LIST_HRUDMATCH);
-    sm->type = DETECT_AL_HTTP_RAW_URI;
+    sm->type = DETECT_CONTENT;
 
     /* transfer the sm from the pmatch list to hrudmatch list */
     SigMatchTransferSigMatchAcrossLists(sm,
@@ -264,11 +264,11 @@ int DetectHttpRawUriTest03(void)
     }
 
     while (sm != NULL) {
-        if (sm->type == DETECT_AL_HTTP_RAW_URI) {
+        if (sm->type == DETECT_CONTENT) {
             result = 1;
         } else {
-            printf("expected DETECT_AL_HTTP_RAW_URI(%d), got %d: ",
-                   DETECT_AL_HTTP_RAW_URI, sm->type);
+            printf("expected DETECT_CONTENT for http_raw_uri(%d), got %d: ",
+                   DETECT_CONTENT, sm->type);
             goto end;
         }
         sm = sm->next;
@@ -331,7 +331,7 @@ int DetectHttpRawUriTest05(void)
     }
     if (s->sm_lists[DETECT_SM_LIST_HRUDMATCH] == NULL)
         goto end;
-    if (s->sm_lists[DETECT_SM_LIST_HRUDMATCH]->type != DETECT_AL_HTTP_RAW_URI) {
+    if (s->sm_lists[DETECT_SM_LIST_HRUDMATCH]->type != DETECT_CONTENT) {
         printf("wrong type\n");
         goto end;
     }
@@ -749,8 +749,8 @@ int DetectHttpRawUriTest15(void)
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
                                "(content:\"one\"; http_raw_uri; within:5; sid:1;)");
-    if (de_ctx->sig_list != NULL) {
-        printf("de_ctx->sig_list != NULL\n");
+    if (de_ctx->sig_list == NULL) {
+        printf("de_ctx->sig_list == NULL\n");
         goto end;
     }
 

@@ -143,7 +143,7 @@ void SupportFastPatternForSigMatchTypes(void)
     SupportFastPatternForSigMatchType(DETECT_CONTENT);
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_HCDMATCH);
 
-    SupportFastPatternForSigMatchType(DETECT_AL_HTTP_RAW_URI);
+    SupportFastPatternForSigMatchType(DETECT_CONTENT);
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_HRUDMATCH);
 
     SupportFastPatternForSigMatchType(DETECT_AL_HTTP_STAT_MSG);
@@ -247,7 +247,7 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
             DETECT_AL_HTTP_STAT_MSG, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
             DETECT_AL_HTTP_STAT_CODE, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
-            DETECT_AL_HTTP_RAW_URI, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]);
+            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]);
     if (pm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
                    "the rule, without a content context. Please use a "

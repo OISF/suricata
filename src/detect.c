@@ -2211,7 +2211,6 @@ static int SignatureCreateMask(Signature *s) {
         switch(sm->type) {
             case DETECT_AL_URILEN:
             case DETECT_AL_HTTP_URI:
-            case DETECT_AL_HTTP_RAW_URI:
                 s->mask |= SIG_MASK_REQUIRE_HTTP_STATE;
                 SCLogDebug("sig requires dce http state");
                 break;

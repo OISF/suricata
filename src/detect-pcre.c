@@ -1201,9 +1201,8 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         SCReturnInt(0);
     }
 
-    prev_sm = SigMatchGetLastSMFromLists(s, 10,
+    prev_sm = SigMatchGetLastSMFromLists(s, 8,
             DETECT_CONTENT, sm->prev,
-            DETECT_AL_HTTP_RAW_URI, sm->prev,
             DETECT_PCRE, sm->prev,
             DETECT_AL_HTTP_STAT_MSG, sm->prev,
             DETECT_AL_HTTP_STAT_CODE, sm->prev);
@@ -1232,7 +1231,6 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
         case DETECT_CONTENT:
         case DETECT_AL_HTTP_STAT_MSG:
         case DETECT_AL_HTTP_STAT_CODE:
-        case DETECT_AL_HTTP_RAW_URI:
             /* Set the relative next flag on the prev sigmatch */
             cd = (DetectContentData *)prev_sm->ctx;
             if (cd == NULL) {
