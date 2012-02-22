@@ -1553,10 +1553,22 @@ int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
         uint8_t *filename = NULL;
         uint32_t filename_len = 0;
 
-        /* get the name */
-        if (tx->parsed_uri != NULL && tx->parsed_uri->path != NULL) {
-            filename = (uint8_t *)bstr_ptr(tx->parsed_uri->path);
-            filename_len = bstr_len(tx->parsed_uri->path);
+        /* try Content-Disposition header first */
+        htp_header_t *h = (htp_header_t *)table_getc(tx->response_headers,
+                "Content-Disposition");
+        if (h != NULL && bstr_len(h->value) > 0) {
+            /* parse content-disposition */
+            (void)HTTPParseContentDispositionHeader((uint8_t *)"filename=", 9,
+                    (uint8_t *) bstr_ptr(h->value), bstr_len(h->value), &filename, (size_t *)&filename_len);
+        }
+
+        /* fall back to name from the uri */
+        if (filename == NULL) {
+            /* get the name */
+            if (tx->parsed_uri != NULL && tx->parsed_uri->path != NULL) {
+                filename = (uint8_t *)bstr_ptr(tx->parsed_uri->path);
+                filename_len = bstr_len(tx->parsed_uri->path);
+            }
         }
 
         result = HTPFileOpen(hstate, filename, filename_len,
