@@ -252,7 +252,7 @@ int UtilMiscParseSizeStringTest01(void)
     if (ParseSizeString(str, &result) > 0) {
         goto error;
     }
-    if (result != 10UL * 1024 * 1024 * 1024) {
+    if (result != 10737418240UL) {
         goto error;
     }
 
@@ -309,7 +309,7 @@ int UtilMiscParseSizeStringTest01(void)
     if (ParseSizeString(str, &result) > 0) {
         goto error;
     }
-    if (result != 10UL * 1024 * 1024 * 1024) {
+    if (result != 10737418240) {
         goto error;
     }
 
@@ -365,7 +365,7 @@ int UtilMiscParseSizeStringTest01(void)
     if (ParseSizeString(str, &result) > 0) {
         goto error;
     }
-    if (result != 10UL * 1024 * 1024 * 1024) {
+    if (result != 10737418240) {
         goto error;
     }
 
@@ -421,7 +421,7 @@ int UtilMiscParseSizeStringTest01(void)
     if (ParseSizeString(str, &result) > 0) {
         goto error;
     }
-    if (result != 10UL * 1024 * 1024 * 1024) {
+    if (result != 10737418240) {
         goto error;
     }
 
@@ -480,7 +480,7 @@ int UtilMiscParseSizeStringTest01(void)
     if (ParseSizeString(str, &result) > 0) {
         goto error;
     }
-    if (result != 10UL * 1024 * 1024 * 1024) {
+    if (result != 10737418240) {
         goto error;
     }
 
@@ -537,7 +537,7 @@ int UtilMiscParseSizeStringTest01(void)
     if (ParseSizeString(str, &result) > 0) {
         goto error;
     }
-    if (result != 10UL * 1024 * 1024 * 1024) {
+    if (result != 10737418240) {
         goto error;
     }
 
@@ -593,7 +593,7 @@ int UtilMiscParseSizeStringTest01(void)
     if (ParseSizeString(str, &result) > 0) {
         goto error;
     }
-    if (result != 10UL * 1024 * 1024 * 1024) {
+    if (result != 10737418240) {
         goto error;
     }
 
@@ -649,26 +649,9 @@ int UtilMiscParseSizeStringTest01(void)
     if (ParseSizeString(str, &result) > 0) {
         goto error;
     }
-    if (result != 10UL * 1024 * 1024 * 1024) {
+    if (result != 10737418240) {
         goto error;
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     /* no space */
 
@@ -1122,7 +1105,6 @@ int UtilMiscParseSizeStringTest01(void)
     if (result != 10.5 * 1024 * 1024 * 1024) {
         goto error;
     }
-
 
     return 1;
  error:
