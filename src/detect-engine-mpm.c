@@ -170,13 +170,19 @@ uint32_t PacketPatternSearchWithStreamCtx(DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
-    uint32_t ret;
+    uint32_t ret = 0;
 
-    if (p->flowflags & FLOW_PKT_TOSERVER && det_ctx->sgh->mpm_stream_ctx_ts != NULL) {
+    if (p->flowflags & FLOW_PKT_TOSERVER) {
+        if (det_ctx->sgh->mpm_stream_ctx_ts == NULL)
+            SCReturnInt(0);
+
         ret = mpm_table[det_ctx->sgh->mpm_stream_ctx_ts->mpm_type].
             Search(det_ctx->sgh->mpm_stream_ctx_ts, &det_ctx->mtc, &det_ctx->pmq,
                    p->payload, p->payload_len);
-    } else if (p->flowflags & FLOW_PKT_TOCLIENT && det_ctx->sgh->mpm_stream_ctx_tc != NULL) {
+    } else {
+        if (det_ctx->sgh->mpm_stream_ctx_tc == NULL)
+            SCReturnInt(0);
+
         ret = mpm_table[det_ctx->sgh->mpm_stream_ctx_tc->mpm_type].
             Search(det_ctx->sgh->mpm_stream_ctx_tc, &det_ctx->mtc, &det_ctx->pmq,
                    p->payload, p->payload_len);
