@@ -58,6 +58,7 @@
 #include "util-debug.h"
 #include "decode-events.h"
 #include "util-unittest-helper.h"
+#include "util-validate.h"
 
 static AppLayerProto al_proto_table[ALPROTO_MAX];   /**< Application layer protocol
                                                          table mapped to their
@@ -842,6 +843,8 @@ int AppLayerParse(void *local_data, Flow *f, uint8_t proto,
 {
     SCEnter();
 
+    DEBUG_ASSERT_FLOW_LOCKED(f);
+
     uint16_t parser_idx = 0;
     AppLayerProto *p = &al_proto_table[proto];
     TcpSession *ssn = NULL;
@@ -1034,6 +1037,8 @@ error:
 int AppLayerTransactionGetInspectId(Flow *f) {
     SCEnter();
 
+    DEBUG_ASSERT_FLOW_LOCKED(f);
+
     AppLayerParserStateStore *parser_state_store =
         (AppLayerParserStateStore *)f->alparser;
 
@@ -1051,6 +1056,8 @@ error:
 uint16_t AppLayerTransactionGetAvailId(Flow *f) {
     SCEnter();
 
+    DEBUG_ASSERT_FLOW_LOCKED(f);
+
     AppLayerParserStateStore *parser_state_store =
         (AppLayerParserStateStore *)f->alparser;
 
@@ -1065,6 +1072,8 @@ uint16_t AppLayerTransactionGetAvailId(Flow *f) {
 /** \brief get the highest loggable transaction id */
 int AppLayerTransactionGetLoggableId(Flow *f) {
     SCEnter();
+
+    DEBUG_ASSERT_FLOW_LOCKED(f);
 
     AppLayerParserStateStore *parser_state_store =
         (AppLayerParserStateStore *)f->alparser;
@@ -1093,6 +1102,8 @@ error:
 void AppLayerTransactionUpdateLoggedId(Flow *f) {
     SCEnter();
 
+    DEBUG_ASSERT_FLOW_LOCKED(f);
+
     AppLayerParserStateStore *parser_state_store =
         (AppLayerParserStateStore *)f->alparser;
 
@@ -1110,6 +1121,8 @@ error:
 /** \brief get the highest loggable transaction id */
 int AppLayerTransactionGetLoggedId(Flow *f) {
     SCEnter();
+
+    DEBUG_ASSERT_FLOW_LOCKED(f);
 
     AppLayerParserStateStore *parser_state_store =
         (AppLayerParserStateStore *)f->alparser;
@@ -1133,6 +1146,9 @@ error:
  */
 uint16_t AppLayerGetStateVersion(Flow *f) {
     SCEnter();
+
+    DEBUG_ASSERT_FLOW_LOCKED(f);
+
     uint16_t version = 0;
     AppLayerParserStateStore *parser_state_store = NULL;
 
@@ -1155,6 +1171,8 @@ uint16_t AppLayerGetStateVersion(Flow *f) {
 int AppLayerTransactionUpdateInspectId(Flow *f, char direction)
 {
     SCEnter();
+
+    DEBUG_ASSERT_FLOW_LOCKED(f);
 
     int r = 0;
     AppLayerParserStateStore *parser_state_store = NULL;
@@ -1206,6 +1224,8 @@ int AppLayerTransactionUpdateInspectId(Flow *f, char direction)
 
 AppLayerDecoderEvents *AppLayerGetDecoderEventsForFlow(Flow *f)
 {
+    DEBUG_ASSERT_FLOW_LOCKED(f);
+
     /* Get the parser state (if any) */
     AppLayerParserStateStore *parser_state_store = NULL;
 
@@ -1232,6 +1252,8 @@ AppLayerDecoderEvents *AppLayerGetDecoderEventsForFlow(Flow *f)
  */
 void AppLayerTriggerRawStreamReassembly(Flow *f) {
     SCEnter();
+
+    DEBUG_ASSERT_FLOW_LOCKED(f);
 
 #ifdef DEBUG
     BUG_ON(f == NULL);

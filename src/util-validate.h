@@ -33,6 +33,20 @@
 
 #ifdef DEBUG_VALIDATION
 
+/** \brief test if a flow is locked.
+ *
+ * If trylock returns 0 it got a lock. Which means
+ * the flow was previously unlocked.
+ */
+#define DEBUG_ASSERT_FLOW_LOCKED(f) do {            \
+    if ((f) != NULL) {                              \
+        int r = SCMutexTrylock(&(f)->m);            \
+        if (r == 0) {                               \
+            BUG_ON(1);                              \
+        }                                           \
+    }                                               \
+} while(0)
+
 /** \brief validate the integrity of the flow
  *
  *  BUG_ON's on problems
@@ -82,6 +96,7 @@
 
 #else /* DEBUG_VALIDATE */
 
+#define DEBUG_ASSERT_FLOW_LOCKED(f)
 #define DEBUG_VALIDATE_FLOW(f)
 #define DEBUG_VALIDATE_PACKET(p)
 

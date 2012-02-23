@@ -32,6 +32,7 @@
 #include "util-memcmp.h"
 #include "util-print.h"
 #include "app-layer-parser.h"
+#include "util-validate.h"
 
 /** \brief switch to force magic checks on all files
  *         regardless of the rules.
@@ -647,12 +648,14 @@ void FileDisableStoringForFile(File *ff) {
 /**
  *  \brief disable file storing for files in a transaction
  *
- *  \param f flow
+ *  \param f *LOCKED* flow
  *  \param direction flow direction
  *  \param tx_id transaction id
  */
 void FileDisableStoringForTransaction(Flow *f, uint8_t direction, uint16_t tx_id) {
     File *ptr = NULL;
+
+    DEBUG_ASSERT_FLOW_LOCKED(f);
 
     SCEnter();
 

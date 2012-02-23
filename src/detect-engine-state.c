@@ -676,8 +676,12 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
 
         if (DeStateStoreFilestoreSigsCantMatch(det_ctx->sgh, f->de_state, flags) == 1) {
             SCLogDebug("disabling file storage for transaction %u", det_ctx->tx_id);
+
+            SCMutexLock(&f->m);
             FileDisableStoringForTransaction(f, flags & (STREAM_TOCLIENT|STREAM_TOSERVER),
                     det_ctx->tx_id);
+            SCMutexUnlock(&f->m);
+
             f->de_state->flags |= DE_STATE_FILE_STORE_DISABLED;
         }
     }
@@ -1140,8 +1144,12 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
     if (!(f->de_state->flags & DE_STATE_FILE_STORE_DISABLED)) {
         if (DeStateStoreFilestoreSigsCantMatch(det_ctx->sgh, f->de_state, flags) == 1) {
             SCLogDebug("disabling file storage for transaction");
+
+            SCMutexLock(&f->m);
             FileDisableStoringForTransaction(f, flags & (STREAM_TOCLIENT|STREAM_TOSERVER),
                     det_ctx->tx_id);
+            SCMutexUnlock(&f->m);
+
             f->de_state->flags |= DE_STATE_FILE_STORE_DISABLED;
         }
     }

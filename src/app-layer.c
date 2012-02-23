@@ -34,6 +34,7 @@
 #include "util-debug.h"
 #include "util-print.h"
 #include "util-profiling.h"
+#include "util-validate.h"
 
 //#define PRINT
 extern uint8_t engine_mode;
@@ -78,6 +79,8 @@ void *AppLayerGetProtoStateFromPacket(Packet *p) {
 void *AppLayerGetProtoStateFromFlow(Flow *f) {
     SCEnter();
 
+    DEBUG_ASSERT_FLOW_LOCKED(f);
+
     if (f == NULL) {
         SCReturnPtr(NULL, "void");
     }
@@ -109,6 +112,8 @@ int AppLayerHandleTCPData(AlpProtoDetectThreadCtx *dp_ctx, Flow *f,
         TcpSession *ssn, uint8_t *data, uint32_t data_len, uint8_t flags)
 {
     SCEnter();
+
+    DEBUG_ASSERT_FLOW_LOCKED(f);
 
     int r = 0;
 
