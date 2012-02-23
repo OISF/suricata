@@ -1202,8 +1202,8 @@ if test "$WINDOWS_PATH" = "yes"; then
       ;;
   esac
 else
-  EXPAND_VARIABLE(localstatedir, e_logdir, "/log/suricata")
-  EXPAND_VARIABLE(sysconfdir, e_sysconfdir, "/")
+  EXPAND_VARIABLE(localstatedir, e_logdir, "/log/suricata/")
+  EXPAND_VARIABLE(sysconfdir, e_sysconfdir, "/suricata/")
   e_magic_file="/usr/share/file/magic"
 fi
 AC_SUBST(e_logdir)
@@ -1245,9 +1245,12 @@ Generic build parameters:
 
 To build and install run 'make' and 'make install'.
 
-You can run 'make install-conf' if you want to install initial configuration files to ${e_sysconfdir}.
-Running 'make install-full' will install configuration and rules and provide you a ready-to-run suricata."
+You can run 'make install-conf' if you want to install initial configuration
+files to ${e_sysconfdir}. Running 'make install-full' will install configuration
+and rules and provide you a ready-to-run suricata."
 echo
 echo "To install Suricata into /usr/bin/suricata, have the config in
 /etc/suricata and use /var/log/suricata as log dir, use:
-./configure --prefix=/usr/ --sysconfdir=/etc/suricata/ --localstatedir=/var/log/suricata/"
+./configure --prefix=/usr/ --sysconfdir=/etc/ --localstatedir=/var/"
+echo
+
