@@ -533,6 +533,9 @@ void SCPrintBuildInfo(void) {
 #ifdef HAVE_AF_PACKET
     strlcat(features, "AF_PACKET ", sizeof(features));
 #endif
+#ifdef HAVE_PACKET_FANOUT
+    strlcat(features, "HAVE_PACKET_FANOUT ", sizeof(features));
+#endif
 #ifdef HAVE_DAG
     strlcat(features, "DAG ", sizeof(features));
 #endif
