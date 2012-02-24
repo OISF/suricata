@@ -589,6 +589,8 @@ void FileDisableStoring(Flow *f, uint8_t direction) {
 
     SCEnter();
 
+    DEBUG_ASSERT_FLOW_LOCKED(f);
+
     f->flags |= FLOW_FILE_NO_STORE;
 
     FileContainer *ffc = AppLayerGetFilesFromFlow(f, direction);
@@ -612,6 +614,8 @@ void FileDisableMagic(Flow *f, uint8_t direction) {
     File *ptr = NULL;
 
     SCEnter();
+
+    DEBUG_ASSERT_FLOW_LOCKED(f);
 
     f->flags |= FLOW_FILE_NO_MAGIC;
 

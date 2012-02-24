@@ -82,6 +82,8 @@ static uint32_t al_result_pool_elmts = 0;
 FileContainer *AppLayerGetFilesFromFlow(Flow *f, uint8_t direction) {
     SCEnter();
 
+    DEBUG_ASSERT_FLOW_LOCKED(f);
+
     uint16_t alproto = f->alproto;
 
     if (alproto == ALPROTO_UNKNOWN)
@@ -709,6 +711,8 @@ static int AppLayerDoParse(void *local_data, Flow *f,
                            uint16_t proto)
 {
     SCEnter();
+    DEBUG_ASSERT_FLOW_LOCKED(f);
+
     int retval = 0;
     AppLayerParserResult result = { NULL, NULL, 0 };
 
@@ -1015,6 +1019,8 @@ error:
 /** \brief get the base transaction id */
 int AppLayerTransactionGetBaseId(Flow *f) {
     SCEnter();
+
+    DEBUG_ASSERT_FLOW_LOCKED(f);
 
     AppLayerParserStateStore *parser_state_store =
         (AppLayerParserStateStore *)f->alparser;

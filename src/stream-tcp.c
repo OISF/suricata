@@ -67,6 +67,7 @@
 #include "util-privs.h"
 #include "util-profiling.h"
 #include "util-misc.h"
+#include "util-validate.h"
 
 //#define DEBUG
 
@@ -3593,6 +3594,8 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
                             PacketQueue *pq)
 {
     SCEnter();
+
+    DEBUG_ASSERT_FLOW_LOCKED(p->flow);
 
     SCLogDebug("p->pcap_cnt %"PRIu64, p->pcap_cnt);
 

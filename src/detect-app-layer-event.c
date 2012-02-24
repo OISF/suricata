@@ -76,7 +76,9 @@ int DetectAppLayerEventMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
     DetectAppLayerEventData *aled = (DetectAppLayerEventData *)m->ctx;
 
+    SCMutexLock(&f->m);
     AppLayerDecoderEvents *decoder_events = AppLayerGetDecoderEventsForFlow(f);
+    SCMutexUnlock(&f->m);
     if (decoder_events == NULL) {
         SCReturnInt(0);
     }

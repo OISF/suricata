@@ -1055,6 +1055,8 @@ SigGroupHead *SigMatchSignaturesGetSgh(DetectEngineCtx *de_ctx, DetectEngineThre
 static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags) {
     SCEnter();
 
+    DEBUG_ASSERT_FLOW_LOCKED(f);
+
     StreamMsg *smsg = NULL;
 
     if (p->proto == IPPROTO_TCP && f->protoctx != NULL) {

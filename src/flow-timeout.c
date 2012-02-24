@@ -406,8 +406,14 @@ int FlowForceReassemblyForFlowV2(Flow *f)
  * \internal
  * \brief Forces reassembly for flows that need it.
  *
- *        Please note we don't use locks anywhere.  This function is to be
- *        called right when the engine is not doing anything.
+ * When this function is called we're running in virtually dead engine,
+ * so locking the flows is not strictly required. The reasons it is still
+ * done are:
+ * - code consistency
+ * - silence complaining profilers
+ * - allow us to aggressively check using debug valdation assertions
+ * - be robust in case of future changes
+ * - locking overhead if neglectable when no other thread fights us
  *
  * \param q The queue to process flows from.
  */
@@ -417,9 +423,7 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
     TcpSession *ssn;
     int client_ok;
     int server_ok;
-
-    /* no locks needed, since the engine is virtually dead.
-     * We are the kings here */
+    int tcp_needs_inspection;
 
     /* get the topmost flow from the QUEUE */
     f = q->top;
@@ -431,6 +435,8 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
 
     /* we need to loop through all the flows in the queue */
     while (f != NULL) {
+        SCMutexLock(&f->m);
+
         PACKET_RECYCLE(reassemble_p);
 
         /* Get the tcp session for the flow */
@@ -438,6 +444,7 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
 
         /* \todo Also skip flows that shouldn't be inspected */
         if (ssn == NULL) {
+            SCMutexUnlock(&f->m);
             f = f->lnext;
             continue;
         }
@@ -469,11 +476,20 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
             StreamTcpReassembleProcessAppLayer(stt->ra_ctx);
         }
 
+        if (ssn->state >= TCP_ESTABLISHED && ssn->state != TCP_CLOSED)
+            tcp_needs_inspection = 1;
+        else
+            tcp_needs_inspection = 0;
+
+        SCMutexUnlock(&f->m);
+
         /* insert a pseudo packet in the toserver direction */
-        if (client_ok ||
-                (ssn->state >= TCP_ESTABLISHED && ssn->state != TCP_CLOSED))
+        if (client_ok || tcp_needs_inspection)
         {
+            SCMutexLock(&f->m);
             Packet *p = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
+            SCMutexUnlock(&f->m);
+
             if (p == NULL) {
                 TmqhOutputPacketpool(NULL, reassemble_p);
                 return;
@@ -496,10 +512,12 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
                 }
             }
         } /* if (ssn->client.seg_list != NULL) */
-        if (server_ok ||
-                (ssn->state >= TCP_ESTABLISHED && ssn->state != TCP_CLOSED))
+        if (server_ok || tcp_needs_inspection)
         {
+            SCMutexLock(&f->m);
             Packet *p = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
+            SCMutexUnlock(&f->m);
+
             if (p == NULL) {
                 TmqhOutputPacketpool(NULL, reassemble_p);
                 return;
