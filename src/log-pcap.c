@@ -468,9 +468,6 @@ OutputCtx *PcapLogInitCtx(ConfNode *conf)
         s_dir = ConfNodeLookupChildValue(conf, "dir");
         if (s_dir == NULL) {
             s_dir = ConfNodeLookupChildValue(conf, "sguil-base-dir");
-            if (s_dir == NULL) {
-                s_dir = ConfNodeLookupChildValue(conf, "sguil_base_dir");
-            }
         }
         if (s_dir == NULL) {
             if (pl->mode == LOGMODE_SGUIL) {
