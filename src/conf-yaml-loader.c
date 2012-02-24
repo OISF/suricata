@@ -44,6 +44,24 @@ enum conf_state {
 };
 
 /**
+ * \brief Mangle unsupported characters.
+ *
+ * \param string A pointer to an null terminated string.
+ *
+ * \retval none
+ */
+static void
+Mangle(char *string)
+{
+    char *c;
+
+    while ((c = strchr(string, '_')))
+        *c = '-';
+
+    return;
+}
+
+/**
  * \brief Parse a YAML layer.
  *
  * \param parser A pointer to an active yaml_parser_t.
@@ -105,6 +123,8 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                     if (parent->is_seq) {
                         if (parent->val == NULL) {
                             parent->val = SCStrdup(value);
+                            if (parent->val && strchr(parent->val, '_'))
+                                Mangle(parent->val);
                         }
                     }
                     ConfNode *n0 = ConfNodeLookupChild(parent, value);
@@ -114,6 +134,16 @@ ConfYamlParse(yaml_parser_t *parser, ConfNode *parent, int inseq)
                     else {
                         node = ConfNodeNew();
                         node->name = SCStrdup(value);
+                        if (node->name && strchr(node->name, '_')) {
+                            if (!(parent->name &&
+                                   ((strcmp(parent->name, "address-groups") == 0) ||
+                                    (strcmp(parent->name, "port-groups") == 0)))) {
+                                Mangle(node->name);
+                                SCLogWarning(SC_WARN_DEPRECATED,
+                                    "%s is deprecated. Please use %s",
+                                    value, node->name);
+                            }
+                        }
                         TAILQ_INSERT_TAIL(&parent->head, node, next);
                     }
                     state = CONF_VAL;

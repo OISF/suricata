@@ -236,6 +236,7 @@ typedef enum {
     SC_ERR_SOCKET,
     SC_ERR_PCAP_TRANSLATE,          /* failed to translate ip to dev */
     SC_WARN_OUTDATED_LIBHTP,
+    SC_WARN_DEPRECATED,
 } SCError;
 
 const char *SCErrorToString(SCError);
