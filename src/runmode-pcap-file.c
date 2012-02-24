@@ -55,7 +55,7 @@ void RunModeFilePcapRegister(void)
     RunModeRegisterNewRunMode(RUNMODE_PCAP_FILE, "autofp",
                               "Multi threaded pcap file mode.  Packets from "
                               "each flow are assigned to a single detect thread, "
-                              "unlike \"pcap_file_auto\" where packets from "
+                              "unlike \"pcap-file-auto\" where packets from "
                               "the same flow can be processed by any detect "
                               "thread",
                               RunModeFilePcapAutoFp);
@@ -70,7 +70,7 @@ int RunModeFilePcapSingle(DetectEngineCtx *de_ctx)
 {
     char *file = NULL;
     if (ConfGet("pcap-file.file", &file) == 0) {
-        SCLogError(SC_ERR_RUNMODE, "Failed retrieving pcap_file from Conf");
+        SCLogError(SC_ERR_RUNMODE, "Failed retrieving pcap-file from Conf");
         exit(EXIT_FAILURE);
     }
 
@@ -155,7 +155,7 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx)
 
     char *file = NULL;
     if (ConfGet("pcap-file.file", &file) == 0) {
-        SCLogError(SC_ERR_RUNMODE, "Failed retrieving pcap_file from Conf");
+        SCLogError(SC_ERR_RUNMODE, "Failed retrieving pcap-file from Conf");
         exit(EXIT_FAILURE);
     }
     SCLogDebug("file %s", file);
@@ -408,7 +408,7 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx)
 
     char *file = NULL;
     if (ConfGet("pcap-file.file", &file) == 0) {
-        SCLogError(SC_ERR_RUNMODE, "Failed retrieving pcap_file from Conf");
+        SCLogError(SC_ERR_RUNMODE, "Failed retrieving pcap-file from Conf");
         exit(EXIT_FAILURE);
     }
     SCLogDebug("file %s", file);
