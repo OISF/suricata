@@ -34,6 +34,8 @@
 #define FILE_NOMAGIC    0x04
 #define FILE_STORE      0x08
 #define FILE_MD5        0x10
+#define FILE_LOGGED     0x20
+#define FILE_STORED     0x40
 
 typedef enum FileState_ {
     FILE_STATE_NONE = 0,    /**< no state */
@@ -42,7 +44,6 @@ typedef enum FileState_ {
                                      there will be no more data. */
     FILE_STATE_TRUNCATED,   /**< flow file is not complete, but
                                      there will be no more data. */
-    FILE_STATE_STORED,      /**< all fully written to disk */
     FILE_STATE_ERROR,       /**< file is in an error state */
     FILE_STATE_MAX
 } FileState;

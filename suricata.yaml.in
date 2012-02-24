@@ -156,11 +156,22 @@ outputs:
   # - stream reassembly depth. For optimal results, set this to 0 (unlimited)
   # - http request / response body sizes. Again set to 0 for optimal results.
   # - rules that contain the "filestore" keyword.
-  - file:
+  - file-store:
       enabled: no       # set to yes to enable
       log-dir: files    # directory to store the files
       force-magic: no   # force logging magic on all stored files
+      force-md5: no     # force logging of md5 checksums
       #waldo: file.waldo # waldo file to store the file_id across runs
+
+  # output module to log files tracked in a easily parsable json format
+  - file-log:
+      enabled: no
+      filename: files-json.log
+      append: yes
+      #filetype: regular # 'regular', 'unix_stream' or 'unix_dgram'
+
+      force-magic: no   # force logging magic on all logged files
+      force-md5: no     # force logging of md5 checksums
 
 # Magic file. The extension .mgc is added to the value here.
 #magic-file: /usr/share/file/magic

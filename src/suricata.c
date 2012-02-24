@@ -97,6 +97,7 @@
 #include "log-httplog.h"
 #include "log-pcap.h"
 #include "log-file.h"
+#include "log-filestore.h"
 
 #include "stream-tcp.h"
 
@@ -1363,6 +1364,7 @@ int main(int argc, char **argv)
     TmModuleLogHttpLogIPv6Register();
     TmModulePcapLogRegister();
     TmModuleLogFileLogRegister();
+    TmModuleLogFilestoreRegister();
 #ifdef __SC_CUDA_SUPPORT__
     TmModuleCudaMpmB2gRegister();
     TmModuleCudaPacketBatcherRegister();
