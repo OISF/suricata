@@ -838,22 +838,22 @@ void FlowInitConfig(char quiet)
     /* If we have specific config, overwrite the defaults with them,
      * otherwise, leave the default values */
     intmax_t val = 0;
-    if (ConfGetInt("flow.emergency_recovery", &val) == 1) {
+    if (ConfGetInt("flow.emergency-recovery", &val) == 1) {
         if (val <= 100 && val >= 1) {
             flow_config.emergency_recovery = (uint8_t)val;
         } else {
-            SCLogError(SC_ERR_INVALID_VALUE, "flow.emergency_recovery must be in the range of 1 and 100 (as percentage)");
+            SCLogError(SC_ERR_INVALID_VALUE, "flow.emergency-recovery must be in the range of 1 and 100 (as percentage)");
             flow_config.emergency_recovery = FLOW_DEFAULT_EMERGENCY_RECOVERY;
         }
     } else {
-        SCLogDebug("flow.emergency_recovery, using default value");
+        SCLogDebug("flow.emergency-recovery, using default value");
         flow_config.emergency_recovery = FLOW_DEFAULT_EMERGENCY_RECOVERY;
     }
 
-    if (ConfGetInt("flow.prune_flows", &val) == 1) {
+    if (ConfGetInt("flow.prune-flows", &val) == 1) {
             flow_config.flow_try_release = (uint8_t)val;
     } else {
-        SCLogDebug("flow.flow.prune_flows, using default value");
+        SCLogDebug("flow.flow.prune-flows, using default value");
         flow_config.flow_try_release = FLOW_DEFAULT_FLOW_PRUNE;
     }
 
@@ -871,7 +871,7 @@ void FlowInitConfig(char quiet)
             exit(EXIT_FAILURE);
         }
     }
-    if ((ConfGet("flow.hash_size", &conf_val)) == 1)
+    if ((ConfGet("flow.hash-size", &conf_val)) == 1)
     {
         if (ByteExtractStringUint32(&configval, 10, strlen(conf_val),
                                     conf_val) > 0) {
@@ -885,7 +885,7 @@ void FlowInitConfig(char quiet)
             flow_config.prealloc = configval;
         }
     }
-    SCLogDebug("Flow config from suricata.yaml: memcap: %"PRIu64", hash_size: "
+    SCLogDebug("Flow config from suricata.yaml: memcap: %"PRIu64", hash-size: "
                "%"PRIu32", prealloc: %"PRIu32, flow_config.memcap,
                flow_config.hash_size, flow_config.prealloc);
 
@@ -1113,11 +1113,11 @@ void FlowInitFlowProto(void)
             new = ConfNodeLookupChildValue(proto, "new");
             established = ConfNodeLookupChildValue(proto, "established");
             closed = ConfNodeLookupChildValue(proto, "closed");
-            emergency_new = ConfNodeLookupChildValue(proto, "emergency_new");
+            emergency_new = ConfNodeLookupChildValue(proto, "emergency-new");
             emergency_established = ConfNodeLookupChildValue(proto,
-                "emergency_established");
+                "emergency-established");
             emergency_closed = ConfNodeLookupChildValue(proto,
-                "emergency_closed");
+                "emergency-closed");
 
             if (new != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(new), new) > 0) {
@@ -1164,11 +1164,11 @@ void FlowInitFlowProto(void)
             new = ConfNodeLookupChildValue(proto, "new");
             established = ConfNodeLookupChildValue(proto, "established");
             closed = ConfNodeLookupChildValue(proto, "closed");
-            emergency_new = ConfNodeLookupChildValue(proto, "emergency_new");
+            emergency_new = ConfNodeLookupChildValue(proto, "emergency-new");
             emergency_established = ConfNodeLookupChildValue(proto,
-                "emergency_established");
+                "emergency-established");
             emergency_closed = ConfNodeLookupChildValue(proto,
-                "emergency_closed");
+                "emergency-closed");
 
             if (new != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(new), new) > 0) {
@@ -1214,9 +1214,9 @@ void FlowInitFlowProto(void)
         if (proto != NULL) {
             new = ConfNodeLookupChildValue(proto, "new");
             established = ConfNodeLookupChildValue(proto, "established");
-            emergency_new = ConfNodeLookupChildValue(proto, "emergency_new");
+            emergency_new = ConfNodeLookupChildValue(proto, "emergency-new");
             emergency_established = ConfNodeLookupChildValue(proto,
-                "emergency_established");
+                "emergency-established");
             if (new != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(new), new) > 0) {
 
@@ -1248,9 +1248,9 @@ void FlowInitFlowProto(void)
         if (proto != NULL) {
             new = ConfNodeLookupChildValue(proto, "new");
             established = ConfNodeLookupChildValue(proto, "established");
-            emergency_new = ConfNodeLookupChildValue(proto, "emergency_new");
+            emergency_new = ConfNodeLookupChildValue(proto, "emergency-new");
             emergency_established = ConfNodeLookupChildValue(proto,
-                "emergency_established");
+                "emergency-established");
 
             if (new != NULL &&
                 ByteExtractStringUint32(&configval, 10, strlen(new), new) > 0) {

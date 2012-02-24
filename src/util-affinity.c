@@ -188,14 +188,14 @@ static void build_cpuset(char *name, ConfNode *node, cpu_set_t *cpu)
 void AffinitySetupLoadFromConfig()
 {
 #if !defined __CYGWIN__ && !defined OS_WIN32 && !defined __OpenBSD__
-    ConfNode *root = ConfGetNode("threading.cpu_affinity");
+    ConfNode *root = ConfGetNode("threading.cpu-affinity");
     ConfNode *affinity;
 
     AffinitySetupInit();
 
     SCLogDebug("Load affinity from config\n");
     if (root == NULL) {
-        SCLogInfo("can't get cpu_affinity node");
+        SCLogInfo("can't get cpu-affinity node");
         return;
     }
 
@@ -205,7 +205,7 @@ void AffinitySetupLoadFromConfig()
         ConfNode *nprio = NULL;
 
         if (taf == NULL) {
-            SCLogError(SC_ERR_INVALID_ARGUMENT, "unknown cpu_affinity type");
+            SCLogError(SC_ERR_INVALID_ARGUMENT, "unknown cpu-affinity type");
             exit(EXIT_FAILURE);
         } else {
             SCLogInfo("Found affinity definition for \"%s\"",

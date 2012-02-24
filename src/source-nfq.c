@@ -225,15 +225,15 @@ void NFQInitConfig(char quiet)
         }
     }
 
-    if ((ConfGetInt("nfq.repeat_mark", &value)) == 1) {
+    if ((ConfGetInt("nfq.repeat-mark", &value)) == 1) {
         nfq_config.mark = (uint32_t)value;
     }
 
-    if ((ConfGetInt("nfq.repeat_mask", &value)) == 1) {
+    if ((ConfGetInt("nfq.repeat-mask", &value)) == 1) {
         nfq_config.mask = (uint32_t)value;
     }
 
-    if ((ConfGetInt("nfq.route_queue", &value)) == 1) {
+    if ((ConfGetInt("nfq.route-queue", &value)) == 1) {
         nfq_config.next_queue = ((uint32_t)value) << 16;
     }
 

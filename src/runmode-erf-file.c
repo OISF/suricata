@@ -64,8 +64,8 @@ int RunModeErfFileAuto(DetectEngineCtx *de_ctx)
     RunModeInitialize();
 
     char *file = NULL;
-    if (ConfGet("erf_file.file", &file) == 0) {
-        SCLogError(SC_ERR_RUNMODE, "Failed retrieving erf_file.file "
+    if (ConfGet("erf-file.file", &file) == 0) {
+        SCLogError(SC_ERR_RUNMODE, "Failed retrieving erf-file.file "
                    "from Conf");
         exit(EXIT_FAILURE);
     }

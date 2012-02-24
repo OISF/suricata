@@ -69,7 +69,7 @@ void RunModeFilePcapRegister(void)
 int RunModeFilePcapSingle(DetectEngineCtx *de_ctx)
 {
     char *file = NULL;
-    if (ConfGet("pcap_file.file", &file) == 0) {
+    if (ConfGet("pcap-file.file", &file) == 0) {
         SCLogError(SC_ERR_RUNMODE, "Failed retrieving pcap_file from Conf");
         exit(EXIT_FAILURE);
     }
@@ -154,7 +154,7 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx)
     uint16_t ncpus = UtilCpuGetNumProcessorsOnline();
 
     char *file = NULL;
-    if (ConfGet("pcap_file.file", &file) == 0) {
+    if (ConfGet("pcap-file.file", &file) == 0) {
         SCLogError(SC_ERR_RUNMODE, "Failed retrieving pcap_file from Conf");
         exit(EXIT_FAILURE);
     }
@@ -407,7 +407,7 @@ int RunModeFilePcapAutoFp(DetectEngineCtx *de_ctx)
     SCLogDebug("queues %s", queues);
 
     char *file = NULL;
-    if (ConfGet("pcap_file.file", &file) == 0) {
+    if (ConfGet("pcap-file.file", &file) == 0) {
         SCLogError(SC_ERR_RUNMODE, "Failed retrieving pcap_file from Conf");
         exit(EXIT_FAILURE);
     }

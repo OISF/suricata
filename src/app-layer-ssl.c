@@ -892,7 +892,7 @@ void RegisterSSLParsers(void)
     AppLayerRegisterStateFuncs(ALPROTO_TLS, SSLStateAlloc, SSLStateFree);
 
     /* Get the value of no reassembly option from the config file */
-    if (ConfGetBool("tls.no_reassemble", &ssl_config.no_reassemble) != 1)
+    if (ConfGetBool("tls.no-reassemble", &ssl_config.no_reassemble) != 1)
         ssl_config.no_reassemble = 1;
 
     return;

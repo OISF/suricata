@@ -180,7 +180,7 @@ uint32_t UtRunTests(char *regex_arg) {
     int ov[MAX_SUBSTRINGS];
     int failure_fatal;
 
-    if (ConfGetBool("unittests.failure_fatal", &failure_fatal) != 1) {
+    if (ConfGetBool("unittests.failure-fatal", &failure_fatal) != 1) {
         SCLogDebug("ConfGetBool could not load the value.");
         failure_fatal = 0;
     }

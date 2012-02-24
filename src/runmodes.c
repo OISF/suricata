@@ -436,16 +436,16 @@ float threading_detect_ratio = 1;
 void RunModeInitialize(void)
 {
     threading_set_cpu_affinity = FALSE;
-    if ((ConfGetBool("threading.set_cpu_affinity", &threading_set_cpu_affinity)) == 0) {
+    if ((ConfGetBool("threading.set-cpu-affinity", &threading_set_cpu_affinity)) == 0) {
         threading_set_cpu_affinity = FALSE;
     }
     /* try to get custom cpu mask value if needed */
     if (threading_set_cpu_affinity == TRUE) {
         AffinitySetupLoadFromConfig();
     }
-    if ((ConfGetFloat("threading.detect_thread_ratio", &threading_detect_ratio)) != 1) {
+    if ((ConfGetFloat("threading.detect-thread-ratio", &threading_detect_ratio)) != 1) {
         threading_detect_ratio = 1;
     }
 
-    SCLogDebug("threading_detect_ratio %f", threading_detect_ratio);
+    SCLogDebug("threading.detect-thread-ratio %f", threading_detect_ratio);
 }

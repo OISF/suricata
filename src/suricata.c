@@ -835,8 +835,8 @@ int main(int argc, char **argv)
                     exit(EXIT_FAILURE);
                 }
             } else if(strcmp((long_opts[option_index]).name, "init-errors-fatal") == 0) {
-                if (ConfSet("engine.init_failure_fatal", "1", 0) != 1) {
-                    fprintf(stderr, "ERROR: Failed to set engine init_failure_fatal.\n");
+                if (ConfSet("engine.init-failure-fatal", "1", 0) != 1) {
+                    fprintf(stderr, "ERROR: Failed to set engine init-failure-fatal.\n");
                     exit(EXIT_FAILURE);
                 }
             }
@@ -892,8 +892,8 @@ int main(int argc, char **argv)
             }
             else if(strcmp((long_opts[option_index]).name, "fatal-unittests") == 0) {
 #ifdef UNITTESTS
-                if (ConfSet("unittests.failure_fatal", "1", 0) != 1) {
-                    fprintf(stderr, "ERROR: Failed to set unittests failure_fatal.\n");
+                if (ConfSet("unittests.failure-fatal", "1", 0) != 1) {
+                    fprintf(stderr, "ERROR: Failed to set unittests failure-fatal.\n");
                     exit(EXIT_FAILURE);
                 }
 #else
@@ -923,15 +923,15 @@ int main(int argc, char **argv)
             }
             else if (strcmp((long_opts[option_index]).name, "erf-in") == 0) {
                 run_mode = RUNMODE_ERF_FILE;
-                if (ConfSet("erf_file.file", optarg, 0) != 1) {
-                    fprintf(stderr, "ERROR: Failed to set erf_file.file\n");
+                if (ConfSet("erf-file.file", optarg, 0) != 1) {
+                    fprintf(stderr, "ERROR: Failed to set erf-file.file\n");
                     exit(EXIT_FAILURE);
                 }
             }
 			else if (strcmp((long_opts[option_index]).name, "dag") == 0) {
 #ifdef HAVE_DAG
 				run_mode = RUNMODE_DAG;
-                if (ConfSet("erf_dag.iface", optarg, 0) != 1) {
+                if (ConfSet("erf-dag.iface", optarg, 0) != 1) {
                     fprintf(stderr, "ERROR: Failed to set erf_dag.iface\n");
                     exit(EXIT_FAILURE);
                 }
@@ -1077,8 +1077,8 @@ int main(int argc, char **argv)
                 usage(argv[0]);
                 exit(EXIT_SUCCESS);
             }
-            if (ConfSet("pcap_file.file", optarg, 0) != 1) {
-                fprintf(stderr, "ERROR: Failed to set pcap_file.file\n");
+            if (ConfSet("pcap-file.file", optarg, 0) != 1) {
+                fprintf(stderr, "ERROR: Failed to set pcap-file.file\n");
                 exit(EXIT_FAILURE);
             }
             break;

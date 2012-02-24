@@ -39,7 +39,7 @@ void SCAsn1LoadConfig() {
     intmax_t value = 0;
 
     /** set config defaults */
-    if ((ConfGetInt("asn1_max_frames", &value)) == 1) {
+    if ((ConfGetInt("asn1-max-frames", &value)) == 1) {
         asn1_max_frames_config = (uint16_t)value;
         SCLogDebug("Max stack frame set to %"PRIu16, asn1_max_frames_config);
     }

@@ -838,8 +838,8 @@ OutputCtx *AlertPreludeInitCtx(ConfNode *conf)
     if (prelude_profile_name == NULL)
         prelude_profile_name = DEFAULT_PRELUDE_PROFILE;
 
-    log_packet_content = ConfNodeLookupChildValue(conf, "log_packet_content");
-    log_packet_header = ConfNodeLookupChildValue(conf, "log_packet_header");
+    log_packet_content = ConfNodeLookupChildValue(conf, "log-packet-content");
+    log_packet_header = ConfNodeLookupChildValue(conf, "log-packet-header");
 
     ret = prelude_client_new(&client, prelude_profile_name);
     if ( ret < 0 || ! client ) {

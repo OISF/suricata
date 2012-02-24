@@ -337,7 +337,7 @@ void StreamTcpInitConfig(char quiet)
     memset(&stream_config,  0, sizeof(stream_config));
 
     /** set config defaults */
-    if ((ConfGetInt("stream.max_sessions", &value)) == 1) {
+    if ((ConfGetInt("stream.max-sessions", &value)) == 1) {
         stream_config.max_sessions = (uint32_t)value;
     } else {
         if (RunmodeIsUnittests())
@@ -346,10 +346,10 @@ void StreamTcpInitConfig(char quiet)
             stream_config.max_sessions = STREAMTCP_DEFAULT_SESSIONS;
     }
     if (!quiet) {
-        SCLogInfo("stream \"max_sessions\": %"PRIu32"", stream_config.max_sessions);
+        SCLogInfo("stream \"max-sessions\": %"PRIu32"", stream_config.max_sessions);
     }
 
-    if ((ConfGetInt("stream.prealloc_sessions", &value)) == 1) {
+    if ((ConfGetInt("stream.prealloc-sessions", &value)) == 1) {
         stream_config.prealloc_sessions = (uint32_t)value;
     } else {
         if (RunmodeIsUnittests())
@@ -358,7 +358,7 @@ void StreamTcpInitConfig(char quiet)
             stream_config.prealloc_sessions = STREAMTCP_DEFAULT_PREALLOC;
     }
     if (!quiet) {
-        SCLogInfo("stream \"prealloc_sessions\": %"PRIu32"", stream_config.prealloc_sessions);
+        SCLogInfo("stream \"prealloc-sessions\": %"PRIu32"", stream_config.prealloc_sessions);
     }
 
     char *temp_stream_memcap_str;
@@ -383,15 +383,15 @@ void StreamTcpInitConfig(char quiet)
         SCLogInfo("stream \"midstream\" session pickups: %s", stream_config.midstream ? "enabled" : "disabled");
     }
 
-    ConfGetBool("stream.async_oneside", &stream_config.async_oneside);
+    ConfGetBool("stream.async-oneside", &stream_config.async_oneside);
 
     if (!quiet) {
-        SCLogInfo("stream \"async_oneside\": %s", stream_config.async_oneside ? "enabled" : "disabled");
+        SCLogInfo("stream \"async-oneside\": %s", stream_config.async_oneside ? "enabled" : "disabled");
     }
 
     int csum = 0;
 
-    if ((ConfGetBool("stream.checksum_validation", &csum)) == 1) {
+    if ((ConfGetBool("stream.checksum-validation", &csum)) == 1) {
         if (csum == 1) {
             stream_config.flags |= STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION;
 	}
@@ -401,7 +401,7 @@ void StreamTcpInitConfig(char quiet)
     }
 
     if (!quiet) {
-        SCLogInfo("stream \"checksum_validation\": %s",
+        SCLogInfo("stream \"checksum-validation\": %s",
                 stream_config.flags & STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION ?
                 "enabled" : "disabled");
     }
@@ -453,12 +453,12 @@ void StreamTcpInitConfig(char quiet)
     }
 
     char *temp_stream_reassembly_toserver_chunk_size_str;
-    if (ConfGet("stream.reassembly.toserver_chunk_size",
+    if (ConfGet("stream.reassembly.toserver-chunk-size",
                 &temp_stream_reassembly_toserver_chunk_size_str) == 1) {
         if (ParseSizeStringU16(temp_stream_reassembly_toserver_chunk_size_str,
                                &stream_config.reassembly_toserver_chunk_size) < 0) {
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
-                       "stream.reassembly.toserver_chunk_size "
+                       "stream.reassembly.toserver-chunk-size "
                        "from conf file - %s.  Killing engine",
                        temp_stream_reassembly_toserver_chunk_size_str);
             exit(EXIT_FAILURE);
@@ -471,12 +471,12 @@ void StreamTcpInitConfig(char quiet)
             stream_config.reassembly_toserver_chunk_size);
 
     char *temp_stream_reassembly_toclient_chunk_size_str;
-    if (ConfGet("stream.reassembly.toclient_chunk_size",
+    if (ConfGet("stream.reassembly.toclient-chunk-size",
                 &temp_stream_reassembly_toclient_chunk_size_str) == 1) {
         if (ParseSizeStringU16(temp_stream_reassembly_toclient_chunk_size_str,
                                &stream_config.reassembly_toclient_chunk_size) < 0) {
             SCLogError(SC_ERR_SIZE_PARSE, "Error parsing "
-                       "stream.reassembly.toclient_chunk_size "
+                       "stream.reassembly.toclient-chunk-size "
                        "from conf file - %s.  Killing engine",
                        temp_stream_reassembly_toclient_chunk_size_str);
             exit(EXIT_FAILURE);
@@ -489,9 +489,9 @@ void StreamTcpInitConfig(char quiet)
             stream_config.reassembly_toclient_chunk_size);
 
     if (!quiet) {
-        SCLogInfo("stream.reassembly \"toserver_chunk_size\": %"PRIu16,
+        SCLogInfo("stream.reassembly \"toserver-chunk-size\": %"PRIu16,
             stream_config.reassembly_toserver_chunk_size);
-        SCLogInfo("stream.reassembly \"toclient_chunk_size\": %"PRIu16,
+        SCLogInfo("stream.reassembly \"toclient-chunk-size\": %"PRIu16,
             stream_config.reassembly_toclient_chunk_size);
     }
 
