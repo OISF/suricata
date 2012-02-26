@@ -545,7 +545,7 @@ stream:
     memcap: 64mb
     depth: 1mb                  # reassemble 1mb into a stream
     toserver-chunk-size: 2560
-    toclient-chunk_size: 2560
+    toclient-chunk-size: 2560
 
 # Logging configuration.  This is not about logging IDS alerts, but
 # IDS output about what its doing, errors, etc.
