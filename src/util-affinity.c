@@ -33,49 +33,49 @@
 
 ThreadsAffinityType thread_affinity[MAX_CPU_SET] = {
     {
-        .name = "receive_cpu_set",
+        .name = "receive-cpu-set",
         .mode_flag = EXCLUSIVE_AFFINITY,
         .prio = PRIO_MEDIUM,
         .lcpu = 0,
     },
     {
-        .name = "decode_cpu_set",
+        .name = "decode-cpu-set",
         .mode_flag = BALANCED_AFFINITY,
         .prio = PRIO_MEDIUM,
         .lcpu = 0,
     },
     {
-        .name = "stream_cpu_set",
+        .name = "stream-cpu-set",
         .mode_flag = BALANCED_AFFINITY,
         .prio = PRIO_MEDIUM,
         .lcpu = 0,
     },
     {
-        .name = "detect_cpu_set",
+        .name = "detect-cpu-set",
         .mode_flag = EXCLUSIVE_AFFINITY,
         .prio = PRIO_MEDIUM,
         .lcpu = 0,
     },
     {
-        .name = "verdict_cpu_set",
+        .name = "verdict-cpu-set",
         .mode_flag = BALANCED_AFFINITY,
         .prio = PRIO_MEDIUM,
         .lcpu = 0,
     },
     {
-        .name = "reject_cpu_set",
+        .name = "reject-cpu-set",
         .mode_flag = BALANCED_AFFINITY,
         .prio = PRIO_MEDIUM,
         .lcpu = 0,
     },
     {
-        .name = "output_cpu_set",
+        .name = "output-cpu-set",
         .mode_flag = BALANCED_AFFINITY,
         .prio = PRIO_MEDIUM,
         .lcpu = 0,
     },
     {
-        .name = "management_cpu_set",
+        .name = "management-cpu-set",
         .mode_flag = BALANCED_AFFINITY,
         .prio = PRIO_MEDIUM,
         .lcpu = 0,
