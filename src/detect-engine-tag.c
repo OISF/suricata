@@ -247,7 +247,6 @@ int TagHashAddTag(DetectTagHostCtx *tag_ctx, DetectTagDataEntry *tde, Packet *p)
     uint16_t num_tags = 0;
     /* local, just for searching */
     DetectTagDataEntryList tdl;
-    tdl.header_entry = NULL;
     tdl.header_entry = tde;
 
     SCMutexLock(&tag_ctx->lock);
