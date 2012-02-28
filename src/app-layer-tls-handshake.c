@@ -38,6 +38,9 @@
 #include "debug.h"
 #include "decode.h"
 
+#include "app-layer-parser.h"
+#include "decode-events.h"
+
 #include "app-layer-ssl.h"
 
 #include "app-layer-tls-handshake.h"
@@ -117,16 +120,19 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
 
         if (input - start_data + cur_cert_length > input_len) {
             SCLogWarning(SC_ERR_ALPARSER, "ASN.1 structure contains invalid length\n");
+            AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_CERTIFICATE);
             return -1;
         }
         cert = DecodeDer(input, cur_cert_length);
         if (cert == NULL) {
             SCLogWarning(SC_ERR_ALPARSER, "decoding ASN.1 structure for X509 certificate failed\n");
+            AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_CERTIFICATE);
         }
         if (cert != NULL) {
             rc = Asn1DerGetSubjectDN(cert, buffer, sizeof(buffer));
             if (rc != 0) {
                 SCLogWarning(SC_ERR_ALPARSER, "X509: could not get subject\n");
+                AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_CERTIFICATE_MISSING_FIELD);
             } else {
                 //SCLogInfo("TLS Cert %d: %s\n", i, buffer);
                 if (i==0) {
@@ -136,6 +142,7 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
             rc = Asn1DerGetIssuerDN(cert, buffer, sizeof(buffer));
             if (rc != 0) {
                 SCLogWarning(SC_ERR_ALPARSER, "X509: could not get issuerdn\n");
+                AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_CERTIFICATE_MISSING_FIELD);
             } else {
                 //SCLogInfo("TLS IssuerDN %d: %s\n", i, buffer);
                 if (i==0) {

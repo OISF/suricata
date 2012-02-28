@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,11 +19,25 @@
  * \file
  *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
+ * \author Pierre Chifflier <pierre.chifflier@ssi.gouv.fr>
  *
  */
 
 #ifndef __APP_LAYER_SSL_H__
 #define __APP_LAYER_SSL_H__
+
+#include "decode-events.h"
+
+enum {
+    /* TLS protocol messages */
+    TLS_DECODER_EVENT_INVALID_SSLV2_HEADER,
+    TLS_DECODER_EVENT_INVALID_TLS_HEADER,
+    TLS_DECODER_EVENT_INVALID_RECORD_TYPE,
+    TLS_DECODER_EVENT_INVALID_HANDSHAKE_MESSAGE,
+    /* Certificates decoding messages */
+    TLS_DECODER_EVENT_INVALID_CERTIFICATE,
+    TLS_DECODER_EVENT_CERTIFICATE_MISSING_FIELD,
+};
 
 /* Flag to indicate that server will now on send encrypted msgs */
 #define SSL_AL_FLAG_SERVER_CHANGE_CIPHER_SPEC   0x0001
@@ -64,6 +78,8 @@ enum {
  *        Structure to store the SSL state values.
  */
 typedef struct SSLState_ {
+    Flow *f;
+
     /* record length */
     uint32_t record_length;
     /* record length's length for SSLv2 */

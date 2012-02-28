@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -43,6 +43,7 @@
 #include "app-layer-tls-handshake.h"
 
 #include "conf.h"
+#include "decode-events.h"
 
 #include "util-spm.h"
 #include "util-unittest.h"
@@ -51,6 +52,18 @@
 #include "flow-private.h"
 
 #include "util-byte.h"
+
+SCEnumCharMap tls_decoder_event_table[ ] = {
+    /* TLS protocol messages */
+    { "INVALID_SSLV2_HEADER",       TLS_DECODER_EVENT_INVALID_SSLV2_HEADER },
+    { "INVALID_TLS_HEADER",         TLS_DECODER_EVENT_INVALID_TLS_HEADER },
+    { "INVALID_RECORD_TYPE",        TLS_DECODER_EVENT_INVALID_RECORD_TYPE },
+    { "INVALID_HANDSHAKE_MESSAGE",  TLS_DECODER_EVENT_INVALID_HANDSHAKE_MESSAGE },
+    /* Certificates decoding messages */
+    { "INVALID_CERTIFICATE",        TLS_DECODER_EVENT_INVALID_CERTIFICATE },
+    { "CERTIFICATE_MISSING_FIELD",  TLS_DECODER_EVENT_CERTIFICATE_MISSING_FIELD },
+    { NULL,                      -1 },
+};
 
 typedef struct SslConfig_ {
     int no_reassemble;
@@ -445,7 +458,7 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
     if (ssl_state->bytes_processed < (ssl_state->record_lengths_length + 1)) {
         retval = SSLv2ParseRecord(direction, ssl_state, input, input_len);
         if (retval == -1) {
-            SCLogDebug("Error parsing SSLv2Header");
+            AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_SSLV2_HEADER);
             return -1;
         } else {
             input += retval;
@@ -462,6 +475,7 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
             SCLogWarning(SC_ERR_ALPARSER, "SSLV2_MT_ERROR msg_type received.  "
                          "Error encountered in establishing the sslv2 "
                          "session, may be version");
+            AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_HANDSHAKE_MESSAGE);
 
             break;
 
@@ -654,7 +668,7 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
     if (ssl_state->bytes_processed < SSLV3_RECORD_LEN) {
         retval = SSLv3ParseRecord(direction, ssl_state, input, input_len);
         if (retval == -1) {
-            SCLogDebug("Error parsing SSLv3Header");
+            AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_TLS_HEADER);
             return -1;
         } else {
             parsed += retval;
@@ -696,7 +710,7 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
 
             retval = SSLv3ParseHandshakeProtocol(ssl_state, input + parsed, input_len);
             if (retval == -1) {
-                SCLogDebug("Error parsing SSLv3.x.  Let's get outta here");
+                AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_HANDSHAKE_MESSAGE);
                 return -1;
             } else {
                 if ((uint32_t)retval > input_len) {
@@ -716,7 +730,7 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
             break;
 
         default:
-            SCLogDebug("Bad ssl record type");
+            AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_RECORD_TYPE);
             return -1;
     }
 
@@ -757,12 +771,14 @@ static int SSLv3Decode(uint8_t direction, SSLState *ssl_state,
  *
  * \retval >=0 On success.
  */
-static int SSLDecode(uint8_t direction, void *alstate, AppLayerParserState *pstate,
+static int SSLDecode(Flow *f, uint8_t direction, void *alstate, AppLayerParserState *pstate,
                      uint8_t *input, uint32_t input_len)
 {
     SSLState *ssl_state = (SSLState *)alstate;
     int retval = 0;
     uint8_t counter = 0;
+
+    ssl_state->f = f;
 
     /* if we have more than one record */
     while (input_len) {
@@ -870,14 +886,14 @@ int SSLParseClientRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
                          uint8_t *input, uint32_t input_len,
                          void *local_data, AppLayerParserResult *output)
 {
-    return SSLDecode(0 /* toserver */, alstate, pstate, input, input_len);
+    return SSLDecode(f, 0 /* toserver */, alstate, pstate, input, input_len);
 }
 
 int SSLParseServerRecord(Flow *f, void *alstate, AppLayerParserState *pstate,
                          uint8_t *input, uint32_t input_len,
                          void *local_data, AppLayerParserResult *output)
 {
-    return SSLDecode(1 /* toclient */, alstate, pstate, input, input_len);
+    return SSLDecode(f, 1 /* toclient */, alstate, pstate, input, input_len);
 }
 
 /**
@@ -947,6 +963,7 @@ void RegisterSSLParsers(void)
 
     AppLayerRegisterProto(proto_name, ALPROTO_TLS, STREAM_TOCLIENT,
                           SSLParseServerRecord);
+    AppLayerDecoderEventsModuleRegister(ALPROTO_TLS, tls_decoder_event_table);
 
     AppLayerRegisterStateFuncs(ALPROTO_TLS, SSLStateAlloc, SSLStateFree);
 
