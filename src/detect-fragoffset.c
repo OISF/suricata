@@ -323,8 +323,8 @@ int DetectFragOffsetMatchTest01 (void) {
     p->src.addr_data32[0] = 0x01020304;
     p->dst.addr_data32[0] = 0x04030201;
 
-    ip4h.ip_src.s_addr = p->src.addr_data32[0];
-    ip4h.ip_dst.s_addr = p->dst.addr_data32[0];
+    ip4h.s_ip_src.s_addr = p->src.addr_data32[0];
+    ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
     ip4h.ip_off = 0x2222;
     p->ip4h = &ip4h;
 

@@ -54,6 +54,7 @@
 #include "util-logopenfile.h"
 
 #include "app-layer-htp.h"
+#include "util-memcmp.h"
 
 #define MODULE_NAME "LogFileLog"
 
@@ -124,7 +125,8 @@ static void LogFileMetaGetHost(FILE *fp, Packet *p, File *ff) {
 
             table_iterator_reset(headers);
             while (table_iterator_next(headers, (void **)&h) != NULL) {
-                if (strcasecmp("Host", bstr_tocstr(h->name)) == 0) {
+                if (bstr_len(h->name) >= 4 &&
+                        SCMemcmpLowercase((uint8_t *)"host", (uint8_t *)bstr_ptr(h->name), bstr_len(h->name)) == 0) {
                     PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(h->value),
                         bstr_len(h->value));
                     return;
@@ -147,7 +149,8 @@ static void LogFileMetaGetReferer(FILE *fp, Packet *p, File *ff) {
 
             table_iterator_reset(headers);
             while (table_iterator_next(headers, (void **)&h) != NULL) {
-                if (strcasecmp("Referer", bstr_tocstr(h->name)) == 0) {
+                if (bstr_len(h->name) >= 7 &&
+                        SCMemcmpLowercase((uint8_t *)"referer", (uint8_t *)bstr_ptr(h->name), bstr_len(h->name)) == 0) {
                     PrintRawJsonFp(fp, (uint8_t *)bstr_ptr(h->value),
                         bstr_len(h->value));
                     return;

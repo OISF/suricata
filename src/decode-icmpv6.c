@@ -76,15 +76,15 @@ void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
     p->icmpv6vars.emb_ipv6h = icmp6_ip6h;
 
     /** Get the IP6 address */
-    p->icmpv6vars.emb_ip6_src[0] = icmp6_ip6h->ip6_src[0];
-    p->icmpv6vars.emb_ip6_src[1] = icmp6_ip6h->ip6_src[1];
-    p->icmpv6vars.emb_ip6_src[2] = icmp6_ip6h->ip6_src[2];
-    p->icmpv6vars.emb_ip6_src[3] = icmp6_ip6h->ip6_src[3];
+    p->icmpv6vars.emb_ip6_src[0] = icmp6_ip6h->s_ip6_src[0];
+    p->icmpv6vars.emb_ip6_src[1] = icmp6_ip6h->s_ip6_src[1];
+    p->icmpv6vars.emb_ip6_src[2] = icmp6_ip6h->s_ip6_src[2];
+    p->icmpv6vars.emb_ip6_src[3] = icmp6_ip6h->s_ip6_src[3];
 
-    p->icmpv6vars.emb_ip6_dst[0] = icmp6_ip6h->ip6_dst[0];
-    p->icmpv6vars.emb_ip6_dst[1] = icmp6_ip6h->ip6_dst[1];
-    p->icmpv6vars.emb_ip6_dst[2] = icmp6_ip6h->ip6_dst[2];
-    p->icmpv6vars.emb_ip6_dst[3] = icmp6_ip6h->ip6_dst[3];
+    p->icmpv6vars.emb_ip6_dst[0] = icmp6_ip6h->s_ip6_dst[0];
+    p->icmpv6vars.emb_ip6_dst[1] = icmp6_ip6h->s_ip6_dst[1];
+    p->icmpv6vars.emb_ip6_dst[2] = icmp6_ip6h->s_ip6_dst[2];
+    p->icmpv6vars.emb_ip6_dst[3] = icmp6_ip6h->s_ip6_dst[3];
 
     /** Get protocol and ports inside the embedded ipv6 packet and set the pointers */
     p->icmpv6vars.emb_ip6_proto_next = icmp6_ip6h->s_ip6_nxt;

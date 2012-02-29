@@ -103,10 +103,10 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
     p->src.addr_data32[2] = in[2];
     p->src.addr_data32[3] = in[3];
     p->sp = sport;
-    p->ip6h->ip6_src[0] = in[0];
-    p->ip6h->ip6_src[1] = in[1];
-    p->ip6h->ip6_src[2] = in[2];
-    p->ip6h->ip6_src[3] = in[3];
+    p->ip6h->s_ip6_src[0] = in[0];
+    p->ip6h->s_ip6_src[1] = in[1];
+    p->ip6h->s_ip6_src[2] = in[2];
+    p->ip6h->s_ip6_src[3] = in[3];
 
     if (inet_pton(AF_INET6, dst, &in) <= 0)
         goto error;
@@ -115,10 +115,10 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
     p->dst.addr_data32[2] = in[2];
     p->dst.addr_data32[3] = in[3];
     p->dp = dport;
-    p->ip6h->ip6_dst[0] = in[0];
-    p->ip6h->ip6_dst[1] = in[1];
-    p->ip6h->ip6_dst[2] = in[2];
-    p->ip6h->ip6_dst[3] = in[3];
+    p->ip6h->s_ip6_dst[0] = in[0];
+    p->ip6h->s_ip6_dst[1] = in[1];
+    p->ip6h->s_ip6_dst[2] = in[2];
+    p->ip6h->s_ip6_dst[3] = in[3];
 
     p->tcph = SCMalloc(sizeof(TCPHdr));
     if (p->tcph == NULL)
@@ -192,8 +192,8 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
     if (p->ip4h == NULL)
         goto error;
 
-    p->ip4h->ip_src.s_addr = p->src.addr_data32[0];
-    p->ip4h->ip_dst.s_addr = p->dst.addr_data32[0];
+    p->ip4h->s_ip_src.s_addr = p->src.addr_data32[0];
+    p->ip4h->s_ip_dst.s_addr = p->dst.addr_data32[0];
     p->ip4h->ip_proto = ipproto;
     p->ip4h->ip_verhl = sizeof(IPV4Hdr);
     p->proto = ipproto;

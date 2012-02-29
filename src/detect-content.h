@@ -99,7 +99,7 @@ typedef struct DetectContentData_ {
 void DetectContentRegister (void);
 uint32_t DetectContentMaxId(DetectEngineCtx *);
 DetectContentData *DetectContentParse (char *contentstr);
-int DetectContentDataParse(char *contentstr, char** pstr, uint16_t *plen, int *flags);
+int DetectContentDataParse(char *keyword, char *contentstr, char** pstr, uint16_t *plen, int *flags);
 DetectContentData *DetectContentParseEncloseQuotes(char *);
 
 void DetectContentPrint(DetectContentData *);

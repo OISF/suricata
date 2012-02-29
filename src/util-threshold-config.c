@@ -1543,8 +1543,8 @@ int SCThresholdConfTest09(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
     if (alerts > 0) {
-        goto end;
         result = 0;
+        goto end;
     }
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -1636,8 +1636,8 @@ int SCThresholdConfTest10(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
     alerts += PacketAlertCheck(p2, 10);
     if (alerts > 0) {
-        goto end;
         result = 0;
+        goto end;
     }
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);

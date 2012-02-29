@@ -68,7 +68,7 @@ void PrintRawLineHexBuf(char *retbuf, uint32_t retbuflen, uint8_t *buf, uint32_t
     for (u = 0; u < buflen; u++) {
         written += (uint32_t)snprintf(temp, sizeof(temp), "%02X ", buf[u]);
         if (written < retbuflen) {
-            strlcat(retbuf, temp, sizeof(retbuf));
+            strlcat(retbuf, temp, retbuflen);
         }
     }
 }

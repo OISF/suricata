@@ -136,7 +136,7 @@ int LiveBuildDeviceList(char * runmode)
         return 0;
 
     TAILQ_FOREACH(child, &base->head, next) {
-        if (!strncmp(child->val, "interface", sizeof(child->val))) {
+        if (!strcmp(child->val, "interface")) {
             ConfNode *subchild;
             TAILQ_FOREACH(subchild, &child->head, next) {
                 if ((!strcmp(subchild->name, "interface"))) {

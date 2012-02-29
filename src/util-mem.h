@@ -157,8 +157,9 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     ptrmem = malloc((a)); \
     if (ptrmem == NULL) { \
         if (SC_ATOMIC_GET(engine_stage) == SURICATA_INIT) {\
+            uintmax_t size = (uintmax_t)(a); \
             SCLogError(SC_ERR_MEM_ALLOC, "SCMalloc failed: %s, while trying " \
-                "to allocate %"PRIuMAX" bytes", strerror(errno), (uintmax_t)(a)); \
+                "to allocate %"PRIuMAX" bytes", strerror(errno), size); \
             SCLogError(SC_ERR_FATAL, "Out of memory. The engine cannot be initialized. Exiting..."); \
             exit(EXIT_FAILURE); \
         } \

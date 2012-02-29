@@ -133,11 +133,6 @@ static int StreamTcpSackInsertRange(TcpStream *stream, uint32_t le, uint32_t re)
                             rec->re = re;
                             goto end;
                         }
-
-                        le = rec->re;
-                        //int r = StreamTcpSackInsertRange(stream, rec->re+1, re);
-                        //SCReturnInt(r);
-                        continue;
                     }
 
                     SCLogDebug("new range fully overlapped");

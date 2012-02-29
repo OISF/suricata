@@ -101,12 +101,9 @@ void DetectUricontentFree(void *ptr) {
     if (cd == NULL)
         SCReturn;
 
-    if (cd->content != NULL)
-        SCFree(cd->content);
-
     BoyerMooreCtxDeInit(cd->bm_ctx);
-
     SCFree(cd);
+
     SCReturn;
 }
 
@@ -159,183 +156,43 @@ void DetectUricontentPrint(DetectContentData *cd)
  *          the rule set.
  * \param   contentstr  Pointer to the string which has been defined in the rule
  */
-DetectContentData *DoDetectUricontentSetup (char * contentstr)
+DetectContentData *DoDetectUricontentSetup (char *contentstr)
 {
     DetectContentData *cd = NULL;
-    char *temp = NULL;
     char *str = NULL;
-    uint16_t len = 0;
-    uint16_t pos = 0;
-    uint16_t slen = 0;
+    uint16_t len;
+    int flags;
+    int ret;
 
-    if ((temp = SCStrdup(contentstr)) == NULL)
-        goto error;
-
-    if (strlen(temp) == 0) {
-        SCFree(temp);
+    ret = DetectContentDataParse("uricontent", contentstr, &str, &len, &flags);
+    if (ret == -1) {
         return NULL;
     }
 
-    cd = SCMalloc(sizeof(DetectContentData));
-    if (cd == NULL)
-        goto error;
-    memset(cd,0,sizeof(DetectContentData));
-
-    /* skip the first spaces */
-    slen = strlen(temp);
-    while (pos < slen && isspace(temp[pos])) {
-        pos++;
-    };
-
-    if (temp[pos] == '!') {
-        cd->flags |= DETECT_CONTENT_NEGATED;
-        pos++;
-    }
-
-    if (temp[pos] == '\"' && strlen(temp + pos) == 1)
-        goto error;
-
-    if (temp[pos] == '\"' && temp[pos + strlen(temp + pos) - 1] == '\"') {
-        if ((str = SCStrdup(temp + pos + 1)) == NULL)
-            goto error;
-        str[strlen(temp) - pos - 2] = '\0';
-    } else {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "uricontent keywords's argument "
-                   "should be always enclosed in double quotes.  Invalid "
-                   "content keyword passed in this rule - \"%s\"",
-                   contentstr);
-        goto error;
-    }
-    str[strlen(temp) - pos - 2] = '\0';
-
-    SCFree(temp);
-    temp = NULL;
-
-    len = strlen(str);
-    if (len == 0)
-        goto error;
-
-    SCLogDebug("\"%s\", len %" PRIu32 "", str, len);
-    char converted = 0;
-
-    {
-        uint8_t escape = 0;
-        uint16_t i, x;
-        uint8_t bin = 0, binstr[3] = "", binpos = 0;
-        uint16_t bin_count = 0;
-
-        for (i = 0, x = 0; i < len; i++) {
-            SCLogDebug("str[%02u]: %c", i, str[i]);
-            if (str[i] == '|') {
-                bin_count++;
-                if (bin) {
-                    bin = 0;
-                } else {
-                    bin = 1;
-                }
-            } else if(!escape && str[i] == '\\') {
-                escape = 1;
-            } else {
-                if (bin) {
-                    if (isdigit(str[i]) ||
-                        str[i] == 'A' || str[i] == 'a' ||
-                        str[i] == 'B' || str[i] == 'b' ||
-                        str[i] == 'C' || str[i] == 'c' ||
-                        str[i] == 'D' || str[i] == 'd' ||
-                        str[i] == 'E' || str[i] == 'e' ||
-                        str[i] == 'F' || str[i] == 'f') {
-                        SCLogDebug("part of binary: %c", str[i]);
-
-                        binstr[binpos] = (char)str[i];
-                        binpos++;
-
-                        if (binpos == 2) {
-                            uint8_t c = strtol((char *)binstr, (char **) NULL,
-                                                16) & 0xFF;
-                            binpos = 0;
-                            str[x] = c;
-                            x++;
-                            converted = 1;
-                        }
-                    } else if (str[i] == ' ') {
-                        SCLogDebug("space as part of binary string");
-                    }
-                } else if (escape) {
-                    if (str[i] == ':' ||
-                        str[i] == ';' ||
-                        str[i] == '\\' ||
-                        str[i] == '\"')
-                    {
-                        str[x] = str[i];
-                        x++;
-                    } else {
-                        //SCLogDebug("Can't escape %c", str[i]);
-                        goto error;
-                    }
-                    escape = 0;
-                    converted = 1;
-                } else {
-                    str[x] = str[i];
-                    x++;
-                }
-            }
-        }
-
-        if (bin_count % 2 != 0) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid hex code assembly in "
-                       "content - %s.  Invalidating signature", str);
-            goto error;
-        }
-
-#ifdef DEBUG
-        if (SCLogDebugEnabled()) {
-            char *prstr = SCMalloc(3 * x);
-            char onechar[3];
-            memset(prstr, 0, 3 * x);
-            if (prstr != NULL) {
-                for (i = 0; i < x; i++) {
-                    if (isprint(str[i]))
-                        snprintf(onechar, 3, "%c", str[i]);
-                    else
-                        snprintf(onechar, 3, "\\x%02u", str[i]);
-                    strlcat(prstr, onechar, 3 * x);
-                }
-                SCLogDebug("\"%s\"", prstr);
-                SCFree(prstr);
-            }
-        }
-#endif
-
-        if (converted)
-            len = x;
-    }
-
-    SCLogDebug("len %" PRIu32 "", len);
-
-    cd->content = SCMalloc(len);
-    if (cd->content == NULL) {
-        SCFree(cd);
+    cd = SCMalloc(sizeof(DetectContentData) + len);
+    if (cd == NULL) {
         SCFree(str);
-        return NULL;;
+        exit(EXIT_FAILURE);
     }
 
+    memset(cd, 0, sizeof(DetectContentData) + len);
+
+    if (flags == DETECT_CONTENT_NEGATED)
+        cd->flags |= DETECT_CONTENT_NEGATED;
+
+    cd->content = (uint8_t *)cd + sizeof(DetectContentData);
     memcpy(cd->content, str, len);
     cd->content_len = len;
+
+    /* Prepare Boyer Moore context for searching faster */
+    cd->bm_ctx = BoyerMooreCtxInit(cd->content, cd->content_len);
     cd->depth = 0;
     cd->offset = 0;
     cd->within = 0;
     cd->distance = 0;
 
-    /* Prepare Boyer Moore context for searching faster */
-    cd->bm_ctx = BoyerMooreCtxInit(cd->content, cd->content_len);
-
     SCFree(str);
     return cd;
-
-error:
-    SCFree(str);
-    if (cd) SCFree(cd);
-    return NULL;
 }
 
 /**
@@ -356,8 +213,9 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contents
     DetectContentData *cd = NULL;
     SigMatch *sm = NULL;
 
-    if (s->alproto == ALPROTO_DCERPC) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "uri content specified in a dcerpc sig");
+    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
+        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting"
+                " keywords.");
         goto error;
     }
 
@@ -379,12 +237,6 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contents
     /* Flagged the signature as to inspect the app layer data */
     s->flags |= SIG_FLAG_APPLAYER;
 
-    if (s->alproto != ALPROTO_UNKNOWN && s->alproto != ALPROTO_HTTP) {
-        SCLogError(SC_ERR_CONFLICTING_RULE_KEYWORDS, "rule contains conflicting"
-                " keywords.");
-        goto error;
-    }
-
     s->alproto = ALPROTO_HTTP;
 
     SigMatchAppendSMToList(s, sm, DETECT_SM_LIST_UMATCH);
@@ -392,8 +244,10 @@ int DetectUricontentSetup (DetectEngineCtx *de_ctx, Signature *s, char *contents
     SCReturnInt(0);
 
 error:
-    if (cd) SCFree(cd);
-    if (sm != NULL) SCFree(sm);
+    if (cd != NULL)
+        SCFree(cd);
+    if (sm != NULL)
+        SCFree(sm);
     SCReturnInt(-1);
 }
 
@@ -532,7 +386,7 @@ static int HTTPUriTest01(void) {
 
     htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
 
-    if (htp_state->connp == NULL || tx->request_method_number != M_GET ||
+    if (tx->request_method_number != M_GET ||
             tx->request_protocol_number != HTTP_1_1)
     {
         printf("expected method GET and got %s: , expected protocol "
@@ -599,7 +453,7 @@ static int HTTPUriTest02(void) {
 
     htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
 
-    if (htp_state->connp == NULL || tx->request_method_number != M_GET ||
+    if (tx->request_method_number != M_GET ||
             tx->request_protocol_number != HTTP_1_1)
     {
         printf("expected method GET and got %s: , expected protocol "
@@ -668,7 +522,7 @@ static int HTTPUriTest03(void) {
 
     htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
 
-    if (htp_state->connp == NULL || tx->request_method_number != M_UNKNOWN ||
+    if (tx->request_method_number != M_UNKNOWN ||
             tx->request_protocol_number != HTTP_1_1)
     {
         printf("expected method GET and got %s: , expected protocol "
@@ -739,7 +593,7 @@ static int HTTPUriTest04(void) {
 
     htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
 
-    if (htp_state->connp == NULL || tx->request_method_number != M_GET ||
+    if (tx->request_method_number != M_GET ||
             tx->request_protocol_number != HTTP_1_1)
     {
         printf("expected method GET and got %s: , expected protocol "
@@ -1061,8 +915,12 @@ end:
  */
 static int DetectUriSigTest04(void) {
     int result = 0;
-    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
     Signature *s = NULL;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
 
     s = SigInit(de_ctx,"alert tcp any any -> any any (msg:"
                                    "\" Test uricontent\"; "
@@ -1247,8 +1105,8 @@ static int DetectUriSigTest04(void) {
 
     result = 1;
 end:
-    if (de_ctx != NULL) SigCleanSignatures(de_ctx);
-    if (de_ctx != NULL) SigGroupCleanup(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -1363,7 +1221,8 @@ end:
     if (de_ctx != NULL) SigGroupCleanup(de_ctx);
     if (de_ctx != NULL) SigCleanSignatures(de_ctx);
     if (det_ctx != NULL) DetectEngineThreadCtxDeinit(&th_v, det_ctx);
-    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
 
     StreamTcpFreeConfig(TRUE);
     FLOW_DESTROY(&f);
@@ -2096,6 +1955,35 @@ int DetectUriContentParseTest23(void)
     return result;
 }
 
+/**
+ * \test Parsing test
+ */
+int DetectUriContentParseTest24(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 1;
+
+    de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx,
+                               "alert tcp any any -> any any "
+                               "(msg:\"test\"; uricontent:\"\"; sid:1;)");
+    if (de_ctx->sig_list != NULL) {
+        result = 0;
+        goto end;
+    }
+
+ end:
+    SigGroupCleanup(de_ctx);
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+
+    return result;
+}
+
 int DetectUricontentSigTest08(void)
 {
     DetectEngineCtx *de_ctx = NULL;
@@ -2345,6 +2233,8 @@ void HttpUriRegisterTests(void) {
     UtRegisterTest("DetectUriContentParseTest21", DetectUriContentParseTest21, 1);
     UtRegisterTest("DetectUriContentParseTest22", DetectUriContentParseTest22, 1);
     UtRegisterTest("DetectUriContentParseTest23", DetectUriContentParseTest23, 1);
+    UtRegisterTest("DetectUriContentParseTest24", DetectUriContentParseTest24, 1);
+
     UtRegisterTest("DetectUricontentSigTest08", DetectUricontentSigTest08, 1);
     UtRegisterTest("DetectUricontentSigTest09", DetectUricontentSigTest09, 1);
     UtRegisterTest("DetectUricontentSigTest10", DetectUricontentSigTest10, 1);

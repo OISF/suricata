@@ -260,6 +260,7 @@ SignalHandlerSetup(int sig, void (*handler)())
 	signal(sig, handler);
 #else
     struct sigaction action;
+    memset(&action, 0x00, sizeof(struct sigaction));
 
     action.sa_handler = handler;
     sigemptyset(&(action.sa_mask));
@@ -360,28 +361,27 @@ static void SetBpfStringFromFile(char *filename) {
         SCLogError(SC_ERR_FOPEN, "Failed to stat file %s", filename);
         exit(EXIT_FAILURE);
     }
-    bpf_len=st.st_size + 1;
+    bpf_len = st.st_size + 1;
 
-    bpf_filter = SCMalloc(bpf_len*sizeof(char));
-    if(bpf_filter == NULL) {
+    fp = fopen(filename,"r");
+    if (fp == NULL) {
+        SCLogError(SC_ERR_FOPEN, "Failed to open file %s", filename);
+        exit(EXIT_FAILURE);
+    }
+
+    bpf_filter = SCMalloc(bpf_len * sizeof(char));
+    if (bpf_filter == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC,
-        "Failed to allocate buffer for bpf filter in file %s", filename);
+                "Failed to allocate buffer for bpf filter in file %s", filename);
         exit(EXIT_FAILURE);
     }
     memset(bpf_filter, 0x00, bpf_len);
 
-    fp = fopen(filename,"r");
-    if(fp == NULL) {
-        SCLogError(SC_ERR_FOPEN, "Failed to open file %s", filename);
-        SCFree(bpf_filter);
-        exit(EXIT_FAILURE);
-    }else {
-        nm = fread(bpf_filter, bpf_len - 1, 1, fp);
-        if((ferror(fp) != 0)||( nm != 1)) {
-           *bpf_filter='\0';
-        }
-        fclose(fp);
+    nm = fread(bpf_filter, bpf_len - 1, 1, fp);
+    if((ferror(fp) != 0)||( nm != 1)) {
+        *bpf_filter='\0';
     }
+    fclose(fp);
 
     if(strlen(bpf_filter) > 0) {
         /*replace comments with space*/

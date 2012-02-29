@@ -75,8 +75,8 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, char *replacestr)
     int flags;
     SigMatch *pm = NULL;
     DetectContentData *ud = NULL;
-    int ret = DetectContentDataParse(replacestr, &str, &len, &flags);
 
+    int ret = DetectContentDataParse("replace", replacestr, &str, &len, &flags);
     if (ret == -1)
         goto error;
 

@@ -671,7 +671,7 @@ ConfNode *ConfNodeLookupKeyValue(ConfNode *base, const char *key, const char *va
     ConfNode *child;
 
     TAILQ_FOREACH(child, &base->head, next) {
-        if (!strncmp(child->val, key, sizeof(child->val))) {
+        if (!strncmp(child->val, key, strlen(child->val))) {
             ConfNode *subchild;
             TAILQ_FOREACH(subchild, &child->head, next) {
                 if ((!strcmp(subchild->name, key)) && (!strcmp(subchild->val, value))) {
@@ -844,7 +844,7 @@ ConfTestGetInt(void)
         return 0;
     if (ConfGetInt(name, &val) != 1)
         return 0;
-    return 1;
+
     if (val != 0)
         return 0;
 

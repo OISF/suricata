@@ -1940,8 +1940,10 @@ int SigParseTest06 (void) {
     }
 
 end:
-    if (sig != NULL) SigFree(sig);
-    if (de_ctx != NULL) DetectEngineCtxFree(de_ctx);
+    if (sig != NULL)
+        SigFree(sig);
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
     return result;
 }
 

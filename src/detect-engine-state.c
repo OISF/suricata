@@ -1155,10 +1155,12 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
     }
 
 end:
-    if (flags & STREAM_TOCLIENT)
-        f->de_state->flags &= ~DE_STATE_FILE_TC_NEW;
-    else
-        f->de_state->flags &= ~DE_STATE_FILE_TS_NEW;
+    if (f->de_state != NULL) {
+        if (flags & STREAM_TOCLIENT)
+            f->de_state->flags &= ~DE_STATE_FILE_TC_NEW;
+        else
+            f->de_state->flags &= ~DE_STATE_FILE_TS_NEW;
+    }
 
     SCMutexUnlock(&f->de_state_m);
     SCReturnInt(0);

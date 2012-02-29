@@ -414,7 +414,6 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
         SCFree(ptv);
         pcapconfig->DerefFunc(pcapconfig);
         SCReturnInt(TM_ECODE_FAILED);
-        ptv->pcap_state = PCAP_STATE_DOWN;
     } else {
         ptv->pcap_state = PCAP_STATE_UP;
     }

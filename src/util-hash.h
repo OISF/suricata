@@ -43,6 +43,8 @@ typedef struct HashTable_ {
     void (*Free)(void *);
 } HashTable;
 
+#define HASH_NO_SIZE 0
+
 /* prototypes */
 HashTable* HashTableInit(uint32_t, uint32_t (*Hash)(struct HashTable_ *, void *, uint16_t), char (*Compare)(void *, uint16_t, void *, uint16_t), void (*Free)(void *));
 void HashTableFree(HashTable *);

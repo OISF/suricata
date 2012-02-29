@@ -272,12 +272,9 @@ DetectStreamSizeData *DetectStreamSizeParse (char *streamstr) {
         goto error;
     }
 
-    if (mode != NULL)
-        SCFree(mode);
-    if (arg != NULL)
-        SCFree(arg);
-    if (value != NULL)
-        SCFree(value);
+    SCFree(mode);
+    SCFree(arg);
+    SCFree(value);
     return sd;
 
 error:

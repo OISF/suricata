@@ -40,27 +40,36 @@ typedef struct IPV6Hdr_
         uint8_t ip6_un2_vfc;   /* 4 bits version, top 4 bits class */
     } ip6_hdrun;
 
-    uint32_t ip6_src[4];
-    uint32_t ip6_dst[4];
+    union {
+        struct {
+            uint32_t ip6_src[4];
+            uint32_t ip6_dst[4];
+        } ip6_un2;
+        uint16_t ip6_addrs[16];
+    } ip6_hdrun2;
 } IPV6Hdr;
 
-#define s_ip6_vfc     ip6_hdrun.ip6_un2_vfc
-#define s_ip6_flow    ip6_hdrun.ip6_un1.ip6_un1_flow
-#define s_ip6_plen    ip6_hdrun.ip6_un1.ip6_un1_plen
-#define s_ip6_nxt     ip6_hdrun.ip6_un1.ip6_un1_nxt
-#define s_ip6_hlim    ip6_hdrun.ip6_un1.ip6_un1_hlim
+#define s_ip6_src                       ip6_hdrun2.ip6_un2.ip6_src
+#define s_ip6_dst                       ip6_hdrun2.ip6_un2.ip6_dst
+#define s_ip6_addrs                     ip6_hdrun2.ip6_addrs
 
-#define IPV6_GET_RAW_VER(ip6h)            (((ip6h)->s_ip6_vfc & 0xf0) >> 4)
-#define IPV6_GET_RAW_CLASS(ip6h)          ((ntohl((ip6h)->s_ip6_flow) & 0x0FF00000) >> 20)
-#define IPV6_GET_RAW_FLOW(ip6h)           (ntohl((ip6h)->s_ip6_flow) & 0x000FFFFF)
-#define IPV6_GET_RAW_NH(ip6h)             ((ip6h)->s_ip6_nxt)
-#define IPV6_GET_RAW_PLEN(ip6h)           (ntohs((ip6h)->s_ip6_plen))
-#define IPV6_GET_RAW_HLIM(ip6h)           ((ip6h)->s_ip6_hlim)
+#define s_ip6_vfc                       ip6_hdrun.ip6_un2_vfc
+#define s_ip6_flow                      ip6_hdrun.ip6_un1.ip6_un1_flow
+#define s_ip6_plen                      ip6_hdrun.ip6_un1.ip6_un1_plen
+#define s_ip6_nxt                       ip6_hdrun.ip6_un1.ip6_un1_nxt
+#define s_ip6_hlim                      ip6_hdrun.ip6_un1.ip6_un1_hlim
 
-#define IPV6_SET_RAW_VER(ip6h, value)     ((ip6h)->s_ip6_vfc = (((ip6h)->s_ip6_vfc & 0x0f) | (value << 4)))
-#define IPV6_SET_RAW_NH(ip6h, value)      ((ip6h)->s_ip6_nxt = (value))
+#define IPV6_GET_RAW_VER(ip6h)          (((ip6h)->s_ip6_vfc & 0xf0) >> 4)
+#define IPV6_GET_RAW_CLASS(ip6h)        ((ntohl((ip6h)->s_ip6_flow) & 0x0FF00000) >> 20)
+#define IPV6_GET_RAW_FLOW(ip6h)         (ntohl((ip6h)->s_ip6_flow) & 0x000FFFFF)
+#define IPV6_GET_RAW_NH(ip6h)           ((ip6h)->s_ip6_nxt)
+#define IPV6_GET_RAW_PLEN(ip6h)         (ntohs((ip6h)->s_ip6_plen))
+#define IPV6_GET_RAW_HLIM(ip6h)         ((ip6h)->s_ip6_hlim)
 
-#define IPV6_SET_L4PROTO(p,proto)         (p)->ip6vars.l4proto = proto
+#define IPV6_SET_RAW_VER(ip6h, value)   ((ip6h)->s_ip6_vfc = (((ip6h)->s_ip6_vfc & 0x0f) | (value << 4)))
+#define IPV6_SET_RAW_NH(ip6h, value)    ((ip6h)->s_ip6_nxt = (value))
+
+#define IPV6_SET_L4PROTO(p,proto)       (p)->ip6vars.l4proto = proto
 
 /* ONLY call these functions after making sure that:
  * 1. p->ip6h is set

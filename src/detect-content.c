@@ -64,68 +64,48 @@ uint32_t DetectContentMaxId(DetectEngineCtx *de_ctx) {
     return MpmPatternIdStoreGetMaxId(de_ctx->mpm_pattern_id_store);
 }
 
-int DetectContentDataParse(char *contentstr, char** pstr, uint16_t *plen, int *flags)
+int DetectContentDataParse(char *keyword, char *contentstr, char** pstr, uint16_t *plen, int *flags)
 {
     char *str = NULL;
-    char *temp = NULL;
     uint16_t len;
     uint16_t pos = 0;
     uint16_t slen = 0;
 
-    if ((temp = SCStrdup(contentstr)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory. Exiting...");
-        exit(EXIT_FAILURE);
-    }
-
-    if (strlen(temp) == 0) {
-        SCFree(temp);
+    slen = strlen(contentstr);
+    if (slen == 0) {
         return -1;
     }
 
     /* skip the first spaces */
-    slen = strlen(temp);
-    while (pos < slen && isspace(temp[pos])) {
+    while (pos < slen && isspace(contentstr[pos]))
         pos++;
-    };
 
-    if (temp[pos] == '!') {
-        SCFree(temp);
-        if ((temp = SCStrdup(contentstr + pos + 1)) == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "error allocating memory. exiting...");
-            exit(EXIT_FAILURE);
-        }
-
-        pos = 0;
+    if (contentstr[pos] == '!') {
         *flags = DETECT_CONTENT_NEGATED;
+        pos++;
     } else
         *flags = 0;
 
-    if (temp[pos] == '\"' && strlen(temp + pos) == 1)
+    if (contentstr[pos] == '\"' && ((slen - pos) <= 1))
         goto error;
 
-    if (temp[pos] == '\"' && temp[pos + strlen(temp + pos) - 1] == '\"') {
-        if ((str = SCStrdup(temp + pos + 1)) == NULL) {
-            SCLogError(SC_ERR_MEM_ALLOC, "error allocating memory. exiting...");
-            exit(EXIT_FAILURE);
-        }
-
-        str[strlen(temp) - pos - 2] = '\0';
-    } else {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "content keywords's argument "
+    if (!(contentstr[pos] == '\"' && contentstr[slen - 1] == '\"')) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "%s keyword arguments "
                    "should be always enclosed in double quotes.  Invalid "
                    "content keyword passed in this rule - \"%s\"",
-                   contentstr);
+                   keyword, contentstr);
         goto error;
     }
 
-    if ((str = SCStrdup(temp + pos + 1)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "error allocating memory. exiting...");
-        exit(EXIT_FAILURE);
-    }
-    str[strlen(temp) - pos - 2] = '\0';
+    if ((str = SCStrdup(contentstr + pos + 1)) == NULL)
+        goto error;
+    str[strlen(str) - 1] = '\0';
 
-    SCFree(temp);
-    temp = NULL;
+    len = strlen(str);
+    if (len == 0)
+        goto error;
+
+    SCLogDebug("\"%s\", len %" PRIu32 "", str, len);
 
     len = strlen(str);
     if (len == 0)
@@ -201,19 +181,9 @@ int DetectContentDataParse(char *contentstr, char** pstr, uint16_t *plen, int *f
 
         if (bin_count % 2 != 0) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid hex code assembly in "
-                       "content - %s.  Invalidating signature", str);
+                       "%s - %s.  Invalidating signature", keyword, contentstr);
             goto error;
         }
-
-#if 0//def DEBUG
-        if (SCLogDebugEnabled()) {
-            for (i = 0; i < x; i++) {
-                if (isprint(str[i])) SCLogDebug("%c", str[i]);
-                else                 SCLogDebug("\\x%02u", str[i]);
-            }
-            SCLogDebug("");
-        }
-#endif
 
         if (converted) {
             len = x;
@@ -225,8 +195,8 @@ int DetectContentDataParse(char *contentstr, char** pstr, uint16_t *plen, int *f
     return 0;
 
 error:
-    SCFree(str);
-    SCFree(temp);
+    if (str != NULL)
+        SCFree(str);
     return -1;
 }
 /**
@@ -241,30 +211,23 @@ DetectContentData *DetectContentParse (char *contentstr)
     int flags;
     int ret;
 
-    ret = DetectContentDataParse(contentstr, &str, &len, &flags);
-
+    ret = DetectContentDataParse("content", contentstr, &str, &len, &flags);
     if (ret == -1) {
         return NULL;
     }
 
-    cd = SCMalloc(sizeof(DetectContentData));
+    cd = SCMalloc(sizeof(DetectContentData) + len);
     if (cd == NULL) {
         SCFree(str);
         exit(EXIT_FAILURE);
     }
 
-    memset(cd, 0, sizeof(DetectContentData));
+    memset(cd, 0, sizeof(DetectContentData) + len);
 
     if (flags == DETECT_CONTENT_NEGATED)
         cd->flags |= DETECT_CONTENT_NEGATED;
 
-    cd->content = SCMalloc(len);
-    if (cd->content == NULL) {
-        SCFree(str);
-        SCFree(cd);
-        exit(EXIT_FAILURE);
-    }
-
+    cd->content = (uint8_t *)cd + sizeof(DetectContentData);
     memcpy(cd->content, str, len);
     cd->content_len = len;
 
@@ -448,9 +411,6 @@ void DetectContentFree(void *ptr) {
 
     if (cd == NULL)
         SCReturn;
-
-    if (cd->content != NULL)
-        SCFree(cd->content);
 
     BoyerMooreCtxDeInit(cd->bm_ctx);
 

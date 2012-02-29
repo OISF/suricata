@@ -281,15 +281,15 @@ int TagHashAddTag(DetectTagHostCtx *tag_ctx, DetectTagDataEntry *tde, Packet *p)
                 SCFree(new);
             } else {
                 new->header_entry = new_tde;
-            }
 
-            /* increment num_tags before adding to prevent a minor race,
-             * on setting and checking the first tag */
-            SC_ATOMIC_ADD(num_tags, 1);
-            if (!(TagHashAdd(tag_ctx, new, p))) {
-                SC_ATOMIC_SUB(num_tags, 1);
-                SCFree(new_tde);
-                SCFree(new);
+                /* increment num_tags before adding to prevent a minor race,
+                 * on setting and checking the first tag */
+                SC_ATOMIC_ADD(num_tags, 1);
+                if (!(TagHashAdd(tag_ctx, new, p))) {
+                    SC_ATOMIC_SUB(num_tags, 1);
+                    SCFree(new_tde);
+                    SCFree(new);
+                }
             }
         } else {
             SCLogDebug("Failed to allocate a new session");

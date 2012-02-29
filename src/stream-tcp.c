@@ -3837,12 +3837,12 @@ static inline int StreamTcpValidateChecksum(Packet *p)
 
     if (p->tcpvars.comp_csum == -1) {
         if (PKT_IS_IPV4(p)) {
-            p->tcpvars.comp_csum = TCPCalculateChecksum((uint16_t *)&(p->ip4h->ip_src),
+            p->tcpvars.comp_csum = TCPCalculateChecksum(p->ip4h->s_ip_addrs,
                                                  (uint16_t *)p->tcph,
                                                  (p->payload_len +
                                                   TCP_GET_HLEN(p)));
         } else if (PKT_IS_IPV6(p)) {
-            p->tcpvars.comp_csum = TCPV6CalculateChecksum((uint16_t *)&(p->ip6h->ip6_src),
+            p->tcpvars.comp_csum = TCPV6CalculateChecksum(p->ip6h->s_ip6_addrs,
                                                    (uint16_t *)p->tcph,
                                                    (p->payload_len +
                                                     TCP_GET_HLEN(p)));
@@ -4567,19 +4567,19 @@ void StreamTcpSetSessionNoReassemblyFlag (TcpSession *ssn, char direction)
         IPV4_SET_RAW_IPLEN(nipv4h, IPV4_GET_RAW_IPLEN(ipv4h)); \
         IPV4_SET_RAW_IPTOS(nipv4h, IPV4_GET_RAW_IPTOS(ipv4h)); \
         IPV4_SET_RAW_IPPROTO(nipv4h, IPV4_GET_RAW_IPPROTO(ipv4h)); \
-        (nipv4h)->ip_src = IPV4_GET_RAW_IPDST(ipv4h); \
-        (nipv4h)->ip_dst = IPV4_GET_RAW_IPSRC(ipv4h); \
+        (nipv4h)->s_ip_src = IPV4_GET_RAW_IPDST(ipv4h); \
+        (nipv4h)->s_ip_dst = IPV4_GET_RAW_IPSRC(ipv4h); \
     } while (0)
 
 #define PSEUDO_PKT_SET_IPV6HDR(nipv6h,ipv6h) do { \
-        (nipv6h)->ip6_src[0] = (ipv6h)->ip6_dst[0]; \
-        (nipv6h)->ip6_src[1] = (ipv6h)->ip6_dst[1]; \
-        (nipv6h)->ip6_src[2] = (ipv6h)->ip6_dst[2]; \
-        (nipv6h)->ip6_src[3] = (ipv6h)->ip6_dst[3]; \
-        (nipv6h)->ip6_dst[0] = (ipv6h)->ip6_src[0]; \
-        (nipv6h)->ip6_dst[1] = (ipv6h)->ip6_src[1]; \
-        (nipv6h)->ip6_dst[2] = (ipv6h)->ip6_src[2]; \
-        (nipv6h)->ip6_dst[3] = (ipv6h)->ip6_src[3]; \
+        (nipv6h)->s_ip6_src[0] = (ipv6h)->s_ip6_dst[0]; \
+        (nipv6h)->s_ip6_src[1] = (ipv6h)->s_ip6_dst[1]; \
+        (nipv6h)->s_ip6_src[2] = (ipv6h)->s_ip6_dst[2]; \
+        (nipv6h)->s_ip6_src[3] = (ipv6h)->s_ip6_dst[3]; \
+        (nipv6h)->s_ip6_dst[0] = (ipv6h)->s_ip6_src[0]; \
+        (nipv6h)->s_ip6_dst[1] = (ipv6h)->s_ip6_src[1]; \
+        (nipv6h)->s_ip6_dst[2] = (ipv6h)->s_ip6_src[2]; \
+        (nipv6h)->s_ip6_dst[3] = (ipv6h)->s_ip6_src[3]; \
         IPV6_SET_RAW_NH(nipv6h, IPV6_GET_RAW_NH(ipv6h));    \
     } while (0)
 

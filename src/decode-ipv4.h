@@ -77,9 +77,19 @@ typedef struct IPV4Hdr_
     uint8_t ip_ttl;       /**< time to live */
     uint8_t ip_proto;     /**< protocol (tcp, udp, etc) */
     uint16_t ip_csum;     /**< checksum */
-    struct in_addr ip_src;/**< source address */
-    struct in_addr ip_dst;/**< destination address */
+    union {
+        struct {
+            struct in_addr ip_src;/**< source address */
+            struct in_addr ip_dst;/**< destination address */
+        } ip4_un1;
+        uint16_t ip_addrs[4];
+    } ip4_hdrun1;
 } IPV4Hdr;
+
+
+#define s_ip_src                          ip4_hdrun1.ip4_un1.ip_src
+#define s_ip_dst                          ip4_hdrun1.ip4_un1.ip_dst
+#define s_ip_addrs                        ip4_hdrun1.ip_addrs
 
 #define IPV4_GET_RAW_VER(ip4h)            (((ip4h)->ip_verhl & 0xf0) >> 4)
 #define IPV4_GET_RAW_HLEN(ip4h)           ((ip4h)->ip_verhl & 0x0f)
@@ -89,13 +99,13 @@ typedef struct IPV4Hdr_
 #define IPV4_GET_RAW_IPOFFSET(ip4h)       ((ip4h)->ip_off)
 #define IPV4_GET_RAW_IPTTL(ip4h)          ((ip4h)->ip_ttl)
 #define IPV4_GET_RAW_IPPROTO(ip4h)        ((ip4h)->ip_proto)
-#define IPV4_GET_RAW_IPSRC(ip4h)          ((ip4h)->ip_src)
-#define IPV4_GET_RAW_IPDST(ip4h)          ((ip4h)->ip_dst)
+#define IPV4_GET_RAW_IPSRC(ip4h)          ((ip4h)->s_ip_src)
+#define IPV4_GET_RAW_IPDST(ip4h)          ((ip4h)->s_ip_dst)
 
 /** return the raw (directly from the header) src ip as uint32_t */
-#define IPV4_GET_RAW_IPSRC_U32(ip4h)      (uint32_t)((ip4h)->ip_src.s_addr)
+#define IPV4_GET_RAW_IPSRC_U32(ip4h)      (uint32_t)((ip4h)->s_ip_src.s_addr)
 /** return the raw (directly from the header) dst ip as uint32_t */
-#define IPV4_GET_RAW_IPDST_U32(ip4h)      (uint32_t)((ip4h)->ip_dst.s_addr)
+#define IPV4_GET_RAW_IPDST_U32(ip4h)      (uint32_t)((ip4h)->s_ip_dst.s_addr)
 
 /* we need to change them as well as get them */
 #define IPV4_SET_RAW_VER(ip4h, value)     ((ip4h)->ip_verhl = (((ip4h)->ip_verhl & 0x0f) | (value << 4)))

@@ -1485,7 +1485,7 @@ static AppLayerProbingParserElement *
 AppLayerDuplicateAppLayerProbingParserElement(AppLayerProbingParserElement *pe)
 {
     AppLayerProbingParserElement *new_pe = SCMalloc(sizeof(AppLayerProbingParserElement));
-    if (pe == NULL) {
+    if (new_pe == NULL) {
         return NULL;
     }
 

@@ -1050,7 +1050,7 @@ TmEcode TmThreadSetCPU(ThreadVars *tv, uint8_t type)
 
 int TmThreadGetNbThreads(uint8_t type)
 {
-    if (type > MAX_CPU_SET) {
+    if (type >= MAX_CPU_SET) {
         SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid cpu type family");
         return 0;
     }

@@ -52,6 +52,7 @@
 #include "util-logopenfile.h"
 
 #include "app-layer-htp.h"
+#include "util-memcmp.h"
 
 #define MODULE_NAME "LogFilestoreLog"
 
@@ -127,7 +128,8 @@ static void LogFilestoreMetaGetHost(FILE *fp, Packet *p, File *ff) {
 
             table_iterator_reset(headers);
             while (table_iterator_next(headers, (void **)&h) != NULL) {
-                if (strcasecmp("Host", bstr_tocstr(h->name)) == 0) {
+                if (bstr_len(h->name) >= 4 &&
+                        SCMemcmpLowercase((uint8_t *)"host", (uint8_t *)bstr_ptr(h->name), bstr_len(h->name)) == 0) {
                     PrintRawUriFp(fp, (uint8_t *)bstr_ptr(h->value),
                         bstr_len(h->value));
                     return;
@@ -150,7 +152,8 @@ static void LogFilestoreMetaGetReferer(FILE *fp, Packet *p, File *ff) {
 
             table_iterator_reset(headers);
             while (table_iterator_next(headers, (void **)&h) != NULL) {
-                if (strcasecmp("Referer", bstr_tocstr(h->name)) == 0) {
+                if (bstr_len(h->name) >= 7 &&
+                        SCMemcmpLowercase((uint8_t *)"referer", (uint8_t *)bstr_ptr(h->name), bstr_len(h->name)) == 0) {
                     PrintRawUriFp(fp, (uint8_t *)bstr_ptr(h->value),
                         bstr_len(h->value));
                     return;
@@ -600,7 +603,7 @@ static void LogFilestoreLogDeInitCtx(OutputCtx *output_ctx)
     LogFileFreeCtx(logfile_ctx);
     free(output_ctx);
 
-    if (g_waldo != NULL) {
+    if (strlen(g_waldo) > 0) {
         LogFilestoreLogStoreWaldo(g_waldo);
     }
 }

@@ -257,7 +257,7 @@ int DetectFilestoreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f
 
     SCEnter();
 
-    if (det_ctx->filestore_cnt > DETECT_FILESTORE_MAX) {
+    if (det_ctx->filestore_cnt >= DETECT_FILESTORE_MAX) {
         SCReturnInt(1);
     }
 

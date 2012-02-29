@@ -286,11 +286,11 @@ static int Unified2ForgeFakeIPv4Header(FakeIPv4Hdr *fakehdr, Packet *p, int pkt_
     fakehdr->ip4h.ip_verhl = p->ip4h->ip_verhl;
     fakehdr->ip4h.ip_proto = p->ip4h->ip_proto;
     if (! invert) {
-        fakehdr->ip4h.ip_src.s_addr = p->ip4h->ip_src.s_addr;
-        fakehdr->ip4h.ip_dst.s_addr = p->ip4h->ip_dst.s_addr;
+        fakehdr->ip4h.s_ip_src.s_addr = p->ip4h->s_ip_src.s_addr;
+        fakehdr->ip4h.s_ip_dst.s_addr = p->ip4h->s_ip_dst.s_addr;
     } else {
-        fakehdr->ip4h.ip_dst.s_addr = p->ip4h->ip_src.s_addr;
-        fakehdr->ip4h.ip_src.s_addr = p->ip4h->ip_dst.s_addr;
+        fakehdr->ip4h.s_ip_dst.s_addr = p->ip4h->s_ip_src.s_addr;
+        fakehdr->ip4h.s_ip_src.s_addr = p->ip4h->s_ip_dst.s_addr;
     }
     fakehdr->ip4h.ip_len = htons((uint16_t)pkt_len);
 
@@ -317,10 +317,10 @@ static int Unified2ForgeFakeIPv6Header(FakeIPv6Hdr *fakehdr, Packet *p, int pkt_
     fakehdr->ip6h.s_ip6_nxt = IPPROTO_TCP;
     fakehdr->ip6h.s_ip6_plen = htons(sizeof(TCPHdr));
     if (!invert) {
-        memcpy(fakehdr->ip6h.ip6_src, p->ip6h->ip6_src, 32);
+        memcpy(fakehdr->ip6h.s_ip6_addrs, p->ip6h->s_ip6_addrs, 32);
     } else {
-        memcpy(fakehdr->ip6h.ip6_src, p->ip6h->ip6_dst, 16);
-        memcpy(fakehdr->ip6h.ip6_dst, p->ip6h->ip6_src, 16);
+        memcpy(fakehdr->ip6h.s_ip6_src, p->ip6h->s_ip6_dst, 16);
+        memcpy(fakehdr->ip6h.s_ip6_dst, p->ip6h->s_ip6_src, 16);
     }
     if (! invert) {
         fakehdr->tcph.th_sport = p->tcph->th_sport;
@@ -387,8 +387,8 @@ static int Unified2StreamTypeAlertIPv4 (Unified2AlertThread *aun,
 
     fakehdr.ip4h.ip_verhl = p->ip4h->ip_verhl;
     fakehdr.ip4h.ip_proto = p->ip4h->ip_proto;
-    fakehdr.ip4h.ip_src.s_addr = p->ip4h->ip_src.s_addr;
-    fakehdr.ip4h.ip_dst.s_addr = p->ip4h->ip_dst.s_addr;
+    fakehdr.ip4h.s_ip_src.s_addr = p->ip4h->s_ip_src.s_addr;
+    fakehdr.ip4h.s_ip_dst.s_addr = p->ip4h->s_ip_dst.s_addr;
     fakehdr.ip4h.ip_len = htons((uint16_t)pkt_len);
 
     fakehdr.tcph.th_sport = p->tcph->th_sport;
@@ -487,12 +487,13 @@ static int Unified2StreamTypeAlertIPv6 (Unified2AlertThread *aun,
 
     fakehdr.ethh.eth_type = htons(ETHERNET_TYPE_IPV6);
     if (p->ethh != NULL) {
-        memcpy(&fakehdr.ethh.eth_dst, p->ethh->eth_dst, 12);
+        memcpy(&fakehdr.ethh.eth_src, p->ethh->eth_src, 6);
+        memcpy(&fakehdr.ethh.eth_dst, p->ethh->eth_dst, 6);
     }
     fakehdr.ip6h.s_ip6_vfc = p->ip6h->s_ip6_vfc;
     fakehdr.ip6h.s_ip6_nxt = IPPROTO_TCP;
     fakehdr.ip6h.s_ip6_plen = htons(sizeof(TCPHdr) + stream_msg->data.data_len);
-    memcpy(&fakehdr.ip6h.ip6_src, p->ip6h->ip6_src, 32);
+    memcpy(&fakehdr.ip6h.s_ip6_addrs, p->ip6h->s_ip6_addrs, 32);
     fakehdr.tcph.th_sport = p->tcph->th_sport;
     fakehdr.tcph.th_dport = p->tcph->th_dport;
     fakehdr.tcph.th_offx2 = 0x50; /* just the TCP header, no options */
@@ -573,12 +574,12 @@ static int Unified2PrintStreamSegmentCallback(Packet *p, void *data, uint8_t *bu
     if (PKT_IS_IPV6(p)) {
         FakeIPv6Hdr *fakehdr = (FakeIPv6Hdr *)aun->iphdr;
         fakehdr->tcph.th_sum = TCPV6CalculateChecksum(
-                (uint16_t *)&(fakehdr->ip6h.ip6_src),
+                fakehdr->ip6h.s_ip6_addrs,
                 (uint16_t *)&fakehdr->tcph, buflen + sizeof(TCPHdr));
     } else {
         FakeIPv4Hdr *fakehdr = (FakeIPv4Hdr *)aun->iphdr;
         fakehdr->tcph.th_sum = TCPCalculateChecksum(
-                (uint16_t *)&(fakehdr->ip4h.ip_src),
+                fakehdr->ip4h.s_ip_addrs,
                 (uint16_t *)&fakehdr->tcph, buflen + sizeof(TCPHdr));
         fakehdr->ip4h.ip_csum = IPV4CalculateChecksum(
                                     (uint16_t *)&fakehdr->ip4h,
@@ -905,8 +906,8 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
         SCMutexLock(&aun->file_ctx->fp_mutex);
         if ((aun->file_ctx->size_current +(sizeof(hdr) + sizeof(*phdr))) > aun->file_ctx->size_limit) {
             if (Unified2AlertRotateFile(t,aun) < 0) {
-                SCMutexUnlock(&aun->file_ctx->fp_mutex);
                 aun->file_ctx->alerts += i;
+                SCMutexUnlock(&aun->file_ctx->fp_mutex);
                 return -1;
             }
         }
@@ -919,15 +920,17 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
         ret = Unified2PacketTypeAlert(aun, p, pa->alert_msg, phdr->event_id, pa->flags & PACKET_ALERT_FLAG_STATE_MATCH ? 1 : 0);
         if (ret != 1) {
             SCLogError(SC_ERR_FWRITE, "Error: fwrite failed: %s", strerror(errno));
-            SCMutexUnlock(&aun->file_ctx->fp_mutex);
             aun->file_ctx->alerts += i;
+            SCMutexUnlock(&aun->file_ctx->fp_mutex);
             return -1;
         }
         fflush(aun->file_ctx->fp);
         SCMutexUnlock(&aun->file_ctx->fp_mutex);
     }
-    aun->file_ctx->alerts += p->alerts.cnt;
 
+    SCMutexLock(&aun->file_ctx->fp_mutex);
+    aun->file_ctx->alerts += p->alerts.cnt;
+    SCMutexUnlock(&aun->file_ctx->fp_mutex);
 
     return 0;
 }
@@ -972,8 +975,8 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
     gphdr.event_id = 0;
     gphdr.event_second =  htonl(p->ts.tv_sec);
     gphdr.event_microsecond = htonl(p->ts.tv_usec);
-    gphdr.src_ip = p->ip4h->ip_src.s_addr;
-    gphdr.dst_ip = p->ip4h->ip_dst.s_addr;
+    gphdr.src_ip = p->ip4h->s_ip_src.s_addr;
+    gphdr.dst_ip = p->ip4h->s_ip_dst.s_addr;
     gphdr.protocol = IPV4_GET_RAW_IPPROTO(p->ip4h);
 
 
@@ -1039,8 +1042,8 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
 
         if ((aun->file_ctx->size_current +(sizeof(hdr) +  sizeof(*phdr))) > aun->file_ctx->size_limit) {
             if (Unified2AlertRotateFile(tv,aun) < 0) {
-                SCMutexUnlock(&aun->file_ctx->fp_mutex);
                 aun->file_ctx->alerts += i;
+                SCMutexUnlock(&aun->file_ctx->fp_mutex);
                 return -1;
             }
         }
@@ -1056,15 +1059,17 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
         ret = Unified2PacketTypeAlert(aun, p, pa->alert_msg, event_id, pa->flags & PACKET_ALERT_FLAG_STATE_MATCH ? 1 : 0);
         if (ret != 1) {
             SCLogError(SC_ERR_FWRITE, "Error: PacketTypeAlert writing failed");
-            SCMutexUnlock(&aun->file_ctx->fp_mutex);
             aun->file_ctx->alerts += i;
+            SCMutexUnlock(&aun->file_ctx->fp_mutex);
             return -1;
         }
         fflush(aun->file_ctx->fp);
         SCMutexUnlock(&aun->file_ctx->fp_mutex);
     }
-    aun->file_ctx->alerts += p->alerts.cnt;
 
+    SCMutexLock(&aun->file_ctx->fp_mutex);
+    aun->file_ctx->alerts += p->alerts.cnt;
+    SCMutexUnlock(&aun->file_ctx->fp_mutex);
 
     return 0;
 }

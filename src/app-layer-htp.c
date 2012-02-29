@@ -2413,7 +2413,7 @@ int HTPParserTest01(void) {
     table_iterator_reset(tx->request_headers);
     table_iterator_next(tx->request_headers, (void **) & h);
 
-    if (htp_state->connp == NULL || strcmp(bstr_tocstr(h->value), "Victor/1.0")
+    if (strcmp(bstr_tocstr(h->value), "Victor/1.0")
             || tx->request_method_number != M_POST ||
             tx->request_protocol_number != HTTP_1_0)
     {
@@ -2537,7 +2537,7 @@ int HTPParserTest03(void) {
     table_iterator_reset(tx->request_headers);
     table_iterator_next(tx->request_headers, (void **) & h);
 
-    if (htp_state->connp == NULL || tx->request_method_number != M_UNKNOWN ||
+    if (tx->request_method_number != M_UNKNOWN ||
              h != NULL || tx->request_protocol_number != HTTP_1_0)
     {
         printf("expected method M_UNKNOWN and got %s: , expected protocol "
@@ -2594,7 +2594,7 @@ int HTPParserTest04(void) {
     table_iterator_reset(tx->request_headers);
     table_iterator_next(tx->request_headers, (void **) & h);
 
-    if (htp_state->connp == NULL || tx->request_method_number != M_UNKNOWN ||
+    if (tx->request_method_number != M_UNKNOWN ||
             h != NULL || tx->request_protocol_number != PROTOCOL_UNKNOWN)
     {
         printf("expected method M_UNKNOWN and got %s: , expected protocol "
@@ -2701,7 +2701,7 @@ int HTPParserTest05(void) {
     table_iterator_reset(tx->request_headers);
     table_iterator_next(tx->request_headers, (void **) & h);
 
-    if (http_state->connp == NULL || tx->request_method_number != M_POST ||
+    if (tx->request_method_number != M_POST ||
             h == NULL || tx->request_protocol_number != HTTP_1_0)
     {
         printf("expected method M_POST and got %s: , expected protocol "
@@ -2815,7 +2815,7 @@ int HTPParserTest06(void) {
     table_iterator_reset(tx->request_headers);
     table_iterator_next(tx->request_headers, (void **) & h);
 
-    if (http_state->connp == NULL || tx->request_method_number != M_GET ||
+    if (tx->request_method_number != M_GET ||
             h == NULL || tx->request_protocol_number != HTTP_1_1)
     {
         printf("expected method M_GET and got %s: , expected protocol "

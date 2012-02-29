@@ -33,11 +33,11 @@ int ReCalculateChecksum(Packet *p)
         if (PKT_IS_TCP(p)) {
             /* TCP */
             p->tcph->th_sum = 0;
-            p->tcph->th_sum = TCPCalculateChecksum((uint16_t *)&(p->ip4h->ip_src),
+            p->tcph->th_sum = TCPCalculateChecksum(p->ip4h->s_ip_addrs,
                     (uint16_t *)p->tcph, (p->payload_len + TCP_GET_HLEN(p)));
         } else if (PKT_IS_UDP(p)) {
             p->udph->uh_sum = 0;
-            p->udph->uh_sum = UDPV4CalculateChecksum((uint16_t *)&(p->ip4h->ip_src),
+            p->udph->uh_sum = UDPV4CalculateChecksum(p->ip4h->s_ip_addrs,
                     (uint16_t *)p->udph, (p->payload_len + UDP_HEADER_LEN));
         }
         /* IPV4 */
@@ -48,11 +48,11 @@ int ReCalculateChecksum(Packet *p)
         /* just TCP for IPV6 */
         if (PKT_IS_TCP(p)) {
             p->tcph->th_sum = 0;
-            p->tcph->th_sum = TCPV6CalculateChecksum((uint16_t *)&(p->ip6h->ip6_src),
+            p->tcph->th_sum = TCPV6CalculateChecksum(p->ip6h->s_ip6_addrs,
                     (uint16_t *)p->tcph, (p->payload_len + TCP_GET_HLEN(p)));
         } else if (PKT_IS_UDP(p)) {
             p->udph->uh_sum = 0;
-            p->udph->uh_sum = UDPV6CalculateChecksum((uint16_t *)&(p->ip6h->ip6_src),
+            p->udph->uh_sum = UDPV6CalculateChecksum(p->ip6h->s_ip6_addrs,
                     (uint16_t *)p->udph, (p->payload_len + UDP_HEADER_LEN));
         }
     }

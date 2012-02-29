@@ -128,11 +128,11 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
         p->ip4h->ip_proto = IPPROTO_TCP;
         //p->ip4h->ip_csum =
         if (direction == 0) {
-            p->ip4h->ip_src.s_addr = f->src.addr_data32[0];
-            p->ip4h->ip_dst.s_addr = f->dst.addr_data32[0];
+            p->ip4h->s_ip_src.s_addr = f->src.addr_data32[0];
+            p->ip4h->s_ip_dst.s_addr = f->dst.addr_data32[0];
         } else {
-            p->ip4h->ip_src.s_addr = f->dst.addr_data32[0];
-            p->ip4h->ip_dst.s_addr = f->src.addr_data32[0];
+            p->ip4h->s_ip_src.s_addr = f->dst.addr_data32[0];
+            p->ip4h->s_ip_dst.s_addr = f->src.addr_data32[0];
         }
 
         /* set the tcp header */
@@ -160,23 +160,23 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
         p->ip6h->s_ip6_plen = htons(20);
         p->ip6h->s_ip6_hlim = 64;
         if (direction == 0) {
-            p->ip6h->ip6_src[0] = f->src.addr_data32[0];
-            p->ip6h->ip6_src[1] = f->src.addr_data32[1];
-            p->ip6h->ip6_src[2] = f->src.addr_data32[2];
-            p->ip6h->ip6_src[3] = f->src.addr_data32[3];
-            p->ip6h->ip6_dst[0] = f->dst.addr_data32[0];
-            p->ip6h->ip6_dst[1] = f->dst.addr_data32[1];
-            p->ip6h->ip6_dst[2] = f->dst.addr_data32[2];
-            p->ip6h->ip6_dst[3] = f->dst.addr_data32[3];
+            p->ip6h->s_ip6_src[0] = f->src.addr_data32[0];
+            p->ip6h->s_ip6_src[1] = f->src.addr_data32[1];
+            p->ip6h->s_ip6_src[2] = f->src.addr_data32[2];
+            p->ip6h->s_ip6_src[3] = f->src.addr_data32[3];
+            p->ip6h->s_ip6_dst[0] = f->dst.addr_data32[0];
+            p->ip6h->s_ip6_dst[1] = f->dst.addr_data32[1];
+            p->ip6h->s_ip6_dst[2] = f->dst.addr_data32[2];
+            p->ip6h->s_ip6_dst[3] = f->dst.addr_data32[3];
         } else {
-            p->ip6h->ip6_src[0] = f->dst.addr_data32[0];
-            p->ip6h->ip6_src[1] = f->dst.addr_data32[1];
-            p->ip6h->ip6_src[2] = f->dst.addr_data32[2];
-            p->ip6h->ip6_src[3] = f->dst.addr_data32[3];
-            p->ip6h->ip6_dst[0] = f->src.addr_data32[0];
-            p->ip6h->ip6_dst[1] = f->src.addr_data32[1];
-            p->ip6h->ip6_dst[2] = f->src.addr_data32[2];
-            p->ip6h->ip6_dst[3] = f->src.addr_data32[3];
+            p->ip6h->s_ip6_src[0] = f->dst.addr_data32[0];
+            p->ip6h->s_ip6_src[1] = f->dst.addr_data32[1];
+            p->ip6h->s_ip6_src[2] = f->dst.addr_data32[2];
+            p->ip6h->s_ip6_src[3] = f->dst.addr_data32[3];
+            p->ip6h->s_ip6_dst[0] = f->src.addr_data32[0];
+            p->ip6h->s_ip6_dst[1] = f->src.addr_data32[1];
+            p->ip6h->s_ip6_dst[2] = f->src.addr_data32[2];
+            p->ip6h->s_ip6_dst[3] = f->src.addr_data32[3];
         }
 
         /* set the tcp header */
@@ -218,10 +218,10 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
     }
 
     if (FLOW_IS_IPV4(f)) {
-        p->tcph->th_sum = TCPCalculateChecksum((uint16_t *)&(p->ip4h->ip_src),
+        p->tcph->th_sum = TCPCalculateChecksum(p->ip4h->s_ip_addrs,
                                                (uint16_t *)p->tcph, 20);
     } else if (FLOW_IS_IPV6(f)) {
-        p->tcph->th_sum = TCPCalculateChecksum((uint16_t *)&(p->ip6h->ip6_src),
+        p->tcph->th_sum = TCPCalculateChecksum(p->ip6h->s_ip6_addrs,
                                                (uint16_t *)p->tcph, 20);
     }
 

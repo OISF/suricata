@@ -27,19 +27,24 @@
 
 #define DETECT_SSL_VERSION_NEGATED   0x01
 
-#define SSLv2   0
-#define SSLv3   1
-#define TLS10   2
-#define TLS11   3
-#define TLS12   4
+enum {
+    SSLv2 = 0,
+    SSLv3 = 1,
+    TLS10 = 2,
+    TLS11 = 3,
+    TLS12 = 4,
+
+    TLS_SIZE = 5,
+    TLS_UNKNOWN = 6,
+};
 
 typedef struct SSLVersionData_ {
     uint16_t ver; /** ssl version to match */
     uint8_t flags;
-}SSLVersionData;
+} SSLVersionData;
 
 typedef struct DetectSslVersionData_ {
-    SSLVersionData data[5];
+    SSLVersionData data[TLS_SIZE];
 } DetectSslVersionData;
 
 /* prototypes */

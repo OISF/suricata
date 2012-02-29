@@ -119,6 +119,10 @@ int DetectSslVersionMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 {
     SCEnter();
 
+    int ret = 0;
+    uint16_t ver = 0;
+    uint8_t sig_ver = TLS_UNKNOWN;
+
     DetectSslVersionData *ssl = (DetectSslVersionData *)m->ctx;
     SSLState *app_state = (SSLState *)state;
     if (app_state == NULL) {
@@ -128,9 +132,6 @@ int DetectSslVersionMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
     SCMutexLock(&f->m);
 
-    int ret = 0;
-    uint16_t ver = 0;
-    uint8_t sig_ver = -1;
     if (flags & STREAM_TOCLIENT) {
         SCLogDebug("server (toclient) version is 0x%02X",
                    app_state->server_version);
@@ -140,7 +141,10 @@ int DetectSslVersionMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                    app_state->client_version);
         ver = app_state->client_version;
     }
-    switch(ver) {
+
+    SCMutexUnlock(&f->m);
+
+    switch (ver) {
         case SSL_VERSION_2:
             if (ver == ssl->data[SSLv2].ver)
                 ret = 1;
@@ -168,7 +172,8 @@ int DetectSslVersionMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
             break;
     }
 
-    SCMutexUnlock(&f->m);
+    if (sig_ver == TLS_UNKNOWN)
+        SCReturnInt(0);
 
     SCReturnInt(ret ^ ((ssl->data[sig_ver].flags & DETECT_SSL_VERSION_NEGATED) ? 1 : 0));
 }

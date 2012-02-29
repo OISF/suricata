@@ -914,10 +914,8 @@ static void SigGroupHeadFreeSigArraysHash2(DetectEngineCtx *de_ctx,
             sgh->init->sig_size = 0;
         }
 
-        if (sgh->init != NULL) {
-            SigGroupHeadInitDataFree(sgh->init);
-            sgh->init = NULL;
-        }
+        SigGroupHeadInitDataFree(sgh->init);
+        sgh->init = NULL;
     }
 
     return;

@@ -187,7 +187,7 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 /* parse IP header plus 64 bytes */
-                if (len >= ICMPV4_HEADER_PKT_OFFSET) {
+                if (len > ICMPV4_HEADER_PKT_OFFSET) {
                     DecodePartialIPV4( p, (uint8_t *)(pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
 
                     /* ICMP ICMP_DEST_UNREACH influence TCP/UDP flows */
@@ -215,7 +215,7 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
-                if (len >= ICMPV4_HEADER_PKT_OFFSET)
+                if (len > ICMPV4_HEADER_PKT_OFFSET)
                     DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
             }
             break;
@@ -233,7 +233,7 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
-                if (len >= ICMPV4_HEADER_PKT_OFFSET)
+                if (len > ICMPV4_HEADER_PKT_OFFSET)
                     DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
             }
             break;
@@ -243,7 +243,7 @@ void DecodeICMPV4(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 ENGINE_SET_EVENT(p,ICMPV4_UNKNOWN_CODE);
             } else {
                 // parse IP header plus 64 bytes
-                if (len >= ICMPV4_HEADER_PKT_OFFSET)
+                if (len > ICMPV4_HEADER_PKT_OFFSET)
                     DecodePartialIPV4( p, (uint8_t*) (pkt + ICMPV4_HEADER_PKT_OFFSET), len - ICMPV4_HEADER_PKT_OFFSET );
             }
             break;
@@ -341,8 +341,8 @@ static int DecodeICMPV4test01(void) {
     p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");;
     p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");;
 
-    ip4h.ip_src.s_addr = p->src.addr_data32[0];
-    ip4h.ip_dst.s_addr = p->dst.addr_data32[0];
+    ip4h.s_ip_src.s_addr = p->src.addr_data32[0];
+    ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
     p->ip4h = &ip4h;
 
     DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
@@ -392,8 +392,8 @@ static int DecodeICMPV4test02(void) {
     p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");;
     p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");;
 
-    ip4h.ip_src.s_addr = p->src.addr_data32[0];
-    ip4h.ip_dst.s_addr = p->dst.addr_data32[0];
+    ip4h.s_ip_src.s_addr = p->src.addr_data32[0];
+    ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
     p->ip4h = &ip4h;
 
     DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
@@ -441,8 +441,8 @@ static int DecodeICMPV4test03(void) {
     p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");;
     p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");;
 
-    ip4h.ip_src.s_addr = p->src.addr_data32[0];
-    ip4h.ip_dst.s_addr = p->dst.addr_data32[0];
+    ip4h.s_ip_src.s_addr = p->src.addr_data32[0];
+    ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
     p->ip4h = &ip4h;
 
     DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
@@ -521,8 +521,8 @@ static int DecodeICMPV4test04(void) {
     p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");;
     p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");;
 
-    ip4h.ip_src.s_addr = p->src.addr_data32[0];
-    ip4h.ip_dst.s_addr = p->dst.addr_data32[0];
+    ip4h.s_ip_src.s_addr = p->src.addr_data32[0];
+    ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
     p->ip4h = &ip4h;
 
     DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
@@ -591,8 +591,8 @@ static int DecodeICMPV4test05(void) {
     p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");;
     p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");;
 
-    ip4h.ip_src.s_addr = p->src.addr_data32[0];
-    ip4h.ip_dst.s_addr = p->dst.addr_data32[0];
+    ip4h.s_ip_src.s_addr = p->src.addr_data32[0];
+    ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
     p->ip4h = &ip4h;
 
     DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
@@ -696,8 +696,8 @@ static int ICMPV4InvalidType07(void) {
     p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");;
     p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");;
 
-    ip4h.ip_src.s_addr = p->src.addr_data32[0];
-    ip4h.ip_dst.s_addr = p->dst.addr_data32[0];
+    ip4h.s_ip_src.s_addr = p->src.addr_data32[0];
+    ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
     p->ip4h = &ip4h;
 
     DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);
@@ -740,8 +740,8 @@ static int DecodeICMPV4test08(void) {
     p->src.addr_data32[0] = UTHSetIPv4Address("4.3.2.1");;
     p->dst.addr_data32[0] = UTHSetIPv4Address("1.2.3.4");;
 
-    ip4h.ip_src.s_addr = p->src.addr_data32[0];
-    ip4h.ip_dst.s_addr = p->dst.addr_data32[0];
+    ip4h.s_ip_src.s_addr = p->src.addr_data32[0];
+    ip4h.s_ip_dst.s_addr = p->dst.addr_data32[0];
     p->ip4h = &ip4h;
 
     DecodeICMPV4(&tv, &dtv, p, raw_icmpv4, sizeof(raw_icmpv4), NULL);

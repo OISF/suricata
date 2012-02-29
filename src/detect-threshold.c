@@ -582,7 +582,7 @@ static int DetectThresholdTestSig3(void) {
     ste = SCMalloc(sizeof(DetectThresholdEntry));
     if (ste == NULL)
         goto end;
-    memset(ste, 0x00, sizeof(ste));
+    memset(ste, 0x00, sizeof(*ste));
 
     if (PKT_IS_IPV4(p))
         ste->ipv = 4;

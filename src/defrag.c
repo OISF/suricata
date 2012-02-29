@@ -614,7 +614,7 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
 remove_tracker:
     /* Remove the frag tracker. */
     SCMutexLock(&dc->frag_table_lock);
-    HashListTableRemove(dc->frag_table, tracker, sizeof(*tracker));
+    HashListTableRemove(dc->frag_table, tracker, HASHLIST_NO_SIZE);
     SCMutexUnlock(&dc->frag_table_lock);
     DefragTrackerReset(tracker);
     SCMutexLock(&dc->tracker_pool_lock);
@@ -725,7 +725,7 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
 remove_tracker:
     /* Remove the frag tracker. */
     SCMutexLock(&dc->frag_table_lock);
-    HashListTableRemove(dc->frag_table, tracker, sizeof(*tracker));
+    HashListTableRemove(dc->frag_table, tracker, HASHLIST_NO_SIZE);
     SCMutexUnlock(&dc->frag_table_lock);
     DefragTrackerReset(tracker);
     SCMutexLock(&dc->tracker_pool_lock);
@@ -1026,7 +1026,7 @@ DefragTimeoutTracker(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
 
         if (tracker->timeout < (unsigned int)p->ts.tv_sec) {
             /* Tracker has timeout out. */
-            HashListTableRemove(dc->frag_table, tracker, sizeof(tracker));
+            HashListTableRemove(dc->frag_table, tracker, HASHLIST_NO_SIZE);
             DefragTrackerReset(tracker);
             PoolReturn(dc->tracker_pool, tracker);
             if (tv != NULL && dtv != NULL) {
@@ -1144,7 +1144,7 @@ DefragGetTracker(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
         tracker->dst_addr = lookup_key->dst_addr;
         tracker->policy = DefragGetOsPolicy(p);
 
-        if (HashListTableAdd(dc->frag_table, tracker, sizeof(*tracker)) != 0) {
+        if (HashListTableAdd(dc->frag_table, tracker, HASHLIST_NO_SIZE) != 0) {
             /* Failed to add new tracker. */
             SCLogError(SC_ERR_MEM_ALLOC,
                 "Defrag: Failed to add new tracker to hash table.");
@@ -1290,8 +1290,8 @@ BuildTestPacket(uint16_t id, uint16_t off, int mf, const char content,
     ip4h.ip_ttl = ttl;
     ip4h.ip_proto = IPPROTO_ICMP;
 
-    ip4h.ip_src.s_addr = 0x01010101; /* 1.1.1.1 */
-    ip4h.ip_dst.s_addr = 0x02020202; /* 2.2.2.2 */
+    ip4h.s_ip_src.s_addr = 0x01010101; /* 1.1.1.1 */
+    ip4h.s_ip_dst.s_addr = 0x02020202; /* 2.2.2.2 */
 
     /* copy content_len crap, we need full length */
     PacketCopyData(p, (uint8_t *)&ip4h, sizeof(ip4h) + content_len);
@@ -1354,14 +1354,14 @@ IPV6BuildTestPacket(uint32_t id, uint16_t off, int mf, const char content,
     ip6h.s_ip6_hlim = 2;
 
     /* Source and dest address - very bogus addresses. */
-    ip6h.ip6_src[0] = 0x01010101;
-    ip6h.ip6_src[1] = 0x01010101;
-    ip6h.ip6_src[2] = 0x01010101;
-    ip6h.ip6_src[3] = 0x01010101;
-    ip6h.ip6_dst[0] = 0x02020202;
-    ip6h.ip6_dst[1] = 0x02020202;
-    ip6h.ip6_dst[2] = 0x02020202;
-    ip6h.ip6_dst[3] = 0x02020202;
+    ip6h.s_ip6_src[0] = 0x01010101;
+    ip6h.s_ip6_src[1] = 0x01010101;
+    ip6h.s_ip6_src[2] = 0x01010101;
+    ip6h.s_ip6_src[3] = 0x01010101;
+    ip6h.s_ip6_dst[0] = 0x02020202;
+    ip6h.s_ip6_dst[1] = 0x02020202;
+    ip6h.s_ip6_dst[2] = 0x02020202;
+    ip6h.s_ip6_dst[3] = 0x02020202;
 
     /* copy content_len crap, we need full length */
     PacketCopyData(p, (uint8_t *)&ip6h, sizeof(IPV6Hdr) + sizeof(IPV6FragHdr) + content_len);

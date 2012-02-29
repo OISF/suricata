@@ -855,13 +855,17 @@ static inline SCSigSignatureWrapper *SCSigAllocSignatureWrapper(Signature *sig)
 
     sw->sig = sig;
 
-    if ( (sw->user = SCMalloc(SC_RADIX_USER_DATA_MAX * sizeof(int *))) == NULL)
+    if ( (sw->user = SCMalloc(SC_RADIX_USER_DATA_MAX * sizeof(int *))) == NULL) {
+        SCFree(sw);
         return NULL;
+    }
     memset(sw->user, 0, SC_RADIX_USER_DATA_MAX * sizeof(int *));
 
     for (i = 0; i < SC_RADIX_USER_DATA_MAX; i++) {
-        if ( (sw->user[i] = SCMalloc(sizeof(int))) == NULL)
+        if ( (sw->user[i] = SCMalloc(sizeof(int))) == NULL) {
+            SCFree(sw);
             return NULL;
+        }
         memset(sw->user[i], 0, sizeof(int));
     }
 
