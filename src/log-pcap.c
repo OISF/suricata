@@ -171,6 +171,18 @@ int PcapLogCloseFile(ThreadVars *t, PcapLogData *pl) {
     return 0;
 }
 
+static void PcapFileNameFree(PcapFileName *pf) {
+    if (pf != NULL) {
+        if (pf->filename != NULL) {
+            SCFree(pf->filename);
+        }
+        if (pf->dirname != NULL) {
+            SCFree(pf->dirname);
+        }
+        SCFree(pf);
+    }
+}
+
 /**
  *  \brief Function to rotate pcaplog file
  *
@@ -199,9 +211,8 @@ int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl) {
                  "failed to remove log file %s: %s",
                  pf->filename, strerror( errno ));
              TAILQ_REMOVE(&pcap_file_list, pf, next);
-             if (pf != NULL)
-                 free(pf);
 
+             PcapFileNameFree(pf);
              return -1;
          }
          else {
@@ -226,16 +237,15 @@ int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl) {
                               "failed to remove sguil log %s: %s",
                               pf->dirname, strerror( errno ));
                           TAILQ_REMOVE(&pcap_file_list, pf, next);
-                          if (pf != NULL)
-                              free(pf);
 
+                          PcapFileNameFree(pf);
                           return -1;
                       }
                  }
              }
+
              TAILQ_REMOVE(&pcap_file_list, pf, next);
-             if (pf != NULL)
-                 free(pf);
+             PcapFileNameFree(pf);
 
              pl->file_cnt--;
          }
@@ -619,7 +629,6 @@ int PcapLogOpenFileCtx(PcapLogData *pl)
     memset(&ts, 0x00, sizeof(struct timeval));
     TimeGet(&ts);
 
-
     /* Place to store the name of our PCAP file */
     PcapFileName *pf = SCMalloc(sizeof(PcapFileName));
     if (pf == NULL) {
@@ -646,12 +655,7 @@ int PcapLogOpenFileCtx(PcapLogData *pl)
 #endif
         if ((pf->dirname = SCStrdup(dirfull)) == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for directory name");
-            return -1;
-        }
-
-        if (strlen(pf->dirname) == 0) {
-            SCFree(pf->dirname);
-            return -1;
+            goto error;
         }
 
         if (pl->timestamp_format == TS_FORMAT_SEC) {
@@ -671,10 +675,14 @@ int PcapLogOpenFileCtx(PcapLogData *pl)
 
     if ((pf->filename = SCStrdup(pl->filename)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory. For filename");
-        return -1;
+        goto error;
     }
-    SCLogDebug("Opening pcap file log %s\n", pf->filename);
+    SCLogDebug("Opening pcap file log %s", pf->filename);
     TAILQ_INSERT_TAIL(&pcap_file_list, pf, next);
 
     return 0;
+
+error:
+    PcapFileNameFree(pf);
+    return -1;
 }

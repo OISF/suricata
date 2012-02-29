@@ -110,13 +110,15 @@ void *ParseAFPConfig(const char *iface)
     intmax_t value;
     int boolval;
 
-    if (iface == NULL) {
-        return NULL;
-    }
-
     if (aconf == NULL) {
         return NULL;
     }
+
+    if (iface == NULL) {
+        SCFree(aconf);
+        return NULL;
+    }
+
     strlcpy(aconf->iface, iface, sizeof(aconf->iface));
     aconf->threads = 1;
     SC_ATOMIC_INIT(aconf->ref);
@@ -190,6 +192,7 @@ void *ParseAFPConfig(const char *iface)
         aconf->cluster_type = PACKET_FANOUT_CPU;
     } else {
         SCLogError(SC_ERR_INVALID_CLUSTER_TYPE,"invalid cluster-type %s",tmpctype);
+        SCFree(aconf);
         return NULL;
     }
 

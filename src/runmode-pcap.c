@@ -85,13 +85,15 @@ void *ParsePcapConfig(const char *iface)
     char *tmpctype;
     intmax_t value;
 
-    if (iface == NULL) {
-        return NULL;
-    }
-
     if (aconf == NULL) {
         return NULL;
     }
+
+    if (iface == NULL) {
+        SCFree(aconf);
+        return NULL;
+    }
+
     strlcpy(aconf->iface, iface, sizeof(aconf->iface));
 
     aconf->buffer_size = 0;

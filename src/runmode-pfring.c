@@ -114,13 +114,15 @@ void *OldParsePfringConfig(const char *iface)
     cluster_type default_ctype = CLUSTER_ROUND_ROBIN;
 #endif
 
-    if (iface == NULL) {
-        return NULL;
-    }
-
     if (pfconf == NULL) {
         return NULL;
     }
+
+    if (iface == NULL) {
+        SCFree(pfconf);
+        return NULL;
+    }
+
     strlcpy(pfconf->iface, iface, sizeof(pfconf->iface));
     pfconf->threads = 1;
     pfconf->cluster_id = 1;
@@ -167,6 +169,7 @@ void *OldParsePfringConfig(const char *iface)
         pfconf->ctype = (cluster_type)tmpctype;
     } else {
         SCLogError(SC_ERR_INVALID_CLUSTER_TYPE,"invalid cluster-type %s",tmpctype);
+        SCFree(pfconf);
         return NULL;
     }
 #endif
@@ -203,13 +206,15 @@ void *ParsePfringConfig(const char *iface)
     char *bpf_filter = NULL;
 #endif /* HAVE_PFRING_SET_BPF_FILTER */
 
-    if (iface == NULL) {
-        return NULL;
-    }
-
     if (pfconf == NULL) {
         return NULL;
     }
+
+    if (iface == NULL) {
+        SCFree(pfconf);
+        return NULL;
+    }
+
     memset(pfconf, 0, sizeof(PfringIfaceConfig));
     strlcpy(pfconf->iface, iface, sizeof(pfconf->iface));
     pfconf->threads = 1;
@@ -312,6 +317,7 @@ void *ParsePfringConfig(const char *iface)
             SCLogError(SC_ERR_INVALID_CLUSTER_TYPE,
                        "invalid cluster-type %s",
                        tmpctype);
+            SCFree(pfconf);
             return NULL;
         }
     }

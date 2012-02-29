@@ -403,12 +403,9 @@ void LogHttpLogExitPrintStats(ThreadVars *tv, void *data) {
  * */
 OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
 {
-    LogFileCtx* file_ctx=LogFileNewCtx();
-
-    if(file_ctx == NULL)
-    {
-        SCLogError(SC_ERR_HTTP_LOG_GENERIC, "LogHttpLogInitCtx: Couldn't "
-                   "create new file_ctx");
+    LogFileCtx* file_ctx = LogFileNewCtx();
+    if(file_ctx == NULL) {
+        SCLogError(SC_ERR_HTTP_LOG_GENERIC, "couldn't create new file_ctx");
         return NULL;
     }
 
@@ -417,10 +414,15 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
         return NULL;
     }
 
-    LogHttpFileCtx *httplog_ctx = SCCalloc(1, sizeof(LogHttpFileCtx));
-    if (httplog_ctx == NULL)
+    LogHttpFileCtx *httplog_ctx = SCMalloc(sizeof(LogHttpFileCtx));
+    if (httplog_ctx == NULL) {
+        LogFileFreeCtx(file_ctx);
         return NULL;
+    }
+    memset(httplog_ctx, 0x00, sizeof(LogHttpFileCtx));
+
     httplog_ctx->file_ctx = file_ctx;
+
     const char *extended = ConfNodeLookupChildValue(conf, "extended");
     if (extended == NULL) {
         httplog_ctx->flags |= LOG_HTTP_DEFAULT;
@@ -431,8 +433,12 @@ OutputCtx *LogHttpLogInitCtx(ConfNode *conf)
     }
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
-    if (output_ctx == NULL)
+    if (output_ctx == NULL) {
+        LogFileFreeCtx(file_ctx);
+        SCFree(httplog_ctx);
         return NULL;
+    }
+
     output_ctx->data = httplog_ctx;
     output_ctx->DeInit = LogHttpLogDeInitCtx;
 

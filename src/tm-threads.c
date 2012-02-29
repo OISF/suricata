@@ -1216,7 +1216,10 @@ ThreadVars *TmThreadCreate(char *name, char *inq_name, char *inqh_name,
     return tv;
 
 error:
-    printf("ERROR: failed to setup a thread.\n");
+    SCLogError(SC_ERR_THREAD_CREATE, "failed to setup a thread");
+
+    if (tv != NULL)
+        SCFree(tv);
     return NULL;
 }
 

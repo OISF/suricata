@@ -878,6 +878,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
     ptv->livedev = LiveGetDevice(ptv->iface);
     if (ptv->livedev == NULL) {
         SCLogError(SC_ERR_INVALID_VALUE, "Unable to find Live device");
+        SCFree(ptv);
         SCReturnInt(TM_ECODE_FAILED);
     }
 
