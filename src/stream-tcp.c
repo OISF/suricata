@@ -667,6 +667,9 @@ void StreamTcpSetOSPolicy(TcpStream *stream, Packet *p)
  *  \param  tv      Thread Variable containig  input/output queue, cpu affinity
  *  \param  p       Packet which has to be handled in this TCP state.
  *  \param  stt     Strean Thread module registered to handle the stream handling
+ *
+ *  \retval 0 ok
+ *  \retval -1 error
  */
 static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
                         StreamTcpThread *stt, TcpSession *ssn, PacketQueue *pq)
@@ -924,6 +927,7 @@ static int StreamTcpPacketStateNone(ThreadVars *tv, Packet *p,
             SCLogDebug("default case");
             break;
     }
+
     return 0;
 }
 
@@ -3749,39 +3753,40 @@ static int StreamTcpPacket (ThreadVars *tv, Packet *p, StreamTcpThread *stt,
      * inject a fake packet into the system, forcing reassembly of the
      * opposing direction.
      * There should be only one, but to be sure we do a while loop. */
-    while (stt->pseudo_queue.len > 0) {
-        SCLogDebug("processing pseudo packet / stream end");
-        Packet *np = PacketDequeue(&stt->pseudo_queue);
-        if (np != NULL) {
-            /* process the opposing direction of the original packet */
-            if (PKT_IS_TOSERVER(np)) {
-                SCLogDebug("pseudo packet is to server");
-                StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                        &ssn->client, np, NULL);
-            } else {
-                SCLogDebug("pseudo packet is to client");
-                StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
-                        &ssn->server, np, NULL);
-            }
-
-            /* enqueue this packet so we inspect it in detect etc */
-            PacketEnqueue(pq, np);
-        }
-        SCLogDebug("processing pseudo packet / stream end done");
-    }
-
-    /* Process stream smsgs we may have in queue */
-    if (StreamTcpReassembleProcessAppLayer(stt->ra_ctx) < 0) {
-        goto error;
-    }
-
-    /* recalc the csum on the packet if it was modified */
-    if (p->flags & PKT_STREAM_MODIFIED) {
-        ReCalculateChecksum(p);
-    }
-
-    /* check for conditions that may make us not want to log this packet */
     if (ssn != NULL) {
+        while (stt->pseudo_queue.len > 0) {
+            SCLogDebug("processing pseudo packet / stream end");
+            Packet *np = PacketDequeue(&stt->pseudo_queue);
+            if (np != NULL) {
+                /* process the opposing direction of the original packet */
+                if (PKT_IS_TOSERVER(np)) {
+                    SCLogDebug("pseudo packet is to server");
+                    StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
+                            &ssn->client, np, NULL);
+                } else {
+                    SCLogDebug("pseudo packet is to client");
+                    StreamTcpReassembleHandleSegment(tv, stt->ra_ctx, ssn,
+                            &ssn->server, np, NULL);
+                }
+
+                /* enqueue this packet so we inspect it in detect etc */
+                PacketEnqueue(pq, np);
+            }
+            SCLogDebug("processing pseudo packet / stream end done");
+        }
+
+        /* Process stream smsgs we may have in queue */
+        if (StreamTcpReassembleProcessAppLayer(stt->ra_ctx) < 0) {
+            goto error;
+        }
+
+        /* recalc the csum on the packet if it was modified */
+        if (p->flags & PKT_STREAM_MODIFIED) {
+            ReCalculateChecksum(p);
+        }
+
+        /* check for conditions that may make us not want to log this packet */
+
         /* streams that hit depth */
         if ((ssn->client.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED ||
              ssn->server.flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED))

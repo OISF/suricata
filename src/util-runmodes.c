@@ -792,10 +792,6 @@ int RunModeSetIPSAuto(DetectEngineCtx *de_ctx,
         }
         memset(tname, 0, sizeof(tname));
         snprintf(tname, sizeof(tname), "Recv-Q%s", cur_queue);
-        if (tname == NULL) {
-            printf("ERROR: Unable to build thread name\n");
-            exit(EXIT_FAILURE);
-        }
 
         char *thread_name = SCStrdup(tname);
         ThreadVars *tv_receivenfq =
@@ -1003,10 +999,6 @@ int RunModeSetIPSAutoFp(DetectEngineCtx *de_ctx,
         }
         memset(tname, 0, sizeof(tname));
         snprintf(tname, sizeof(tname), "Recv-Q%s", cur_queue);
-        if (tname == NULL) {
-            printf("ERROR: Unable to build thread name\n");
-            exit(EXIT_FAILURE);
-        }
 
         char *thread_name = SCStrdup(tname);
 

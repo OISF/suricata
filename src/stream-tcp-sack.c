@@ -262,37 +262,21 @@ void StreamTcpSackPruneList(TcpStream *stream) {
     SCEnter();
 
     StreamTcpSackRecord *rec = stream->sack_head;
-    StreamTcpSackRecord *prev = NULL;
 
     while (rec != NULL) {
         if (SEQ_LT(rec->re, stream->last_ack)) {
             SCLogDebug("removing le %u re %u", rec->le, rec->re);
 
-            // fully before last_ack, remove
-            if (prev != NULL) {
-                if (rec == stream->sack_tail) {
-                    stream->sack_tail = prev;
-                    prev->next = NULL;
-                    SCFree(rec);
-                    break;
-                } else {
-                    prev->next = rec->next;
-                    SCFree(rec);
-                    rec = prev->next;
-                    continue;
-                }
+            if (rec->next != NULL) {
+                stream->sack_head = rec->next;
+                SCFree(rec);
+                rec = stream->sack_head;
+                continue;
             } else {
-                if (rec->next != NULL) {
-                    stream->sack_head = rec->next;
-                    SCFree(rec);
-                    rec = stream->sack_head;
-                    continue;
-                } else {
-                    stream->sack_head = NULL;
-                    stream->sack_tail = NULL;
-                    SCFree(rec);
-                    break;
-                }
+                stream->sack_head = NULL;
+                stream->sack_tail = NULL;
+                SCFree(rec);
+                break;
             }
         } else if (SEQ_LT(rec->le, stream->last_ack)) {
             SCLogDebug("adjusting record to le %u re %u", rec->le, rec->re);

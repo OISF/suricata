@@ -377,7 +377,6 @@ int FlowForceReassemblyForFlowV2(Flow *f)
         } else if (server_ok == 2) {
             p1 = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
             if (p1 == NULL) {
-                TmqhOutputPacketpool(NULL, p1);
                 return 1;
             }
         } else {

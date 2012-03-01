@@ -423,16 +423,18 @@ OutputCtx *PcapLogInitCtx(ConfNode *conf)
 {
     SCMutexLock(&plog_lock);
     const char *filename = NULL;
+
     if (conf != NULL) { /* To faciliate unit tests. */
         filename = ConfNodeLookupChildValue(conf, "filename");
     }
+
     if (filename == NULL)
         filename = DEFAULT_LOG_FILENAME;
 
     if ((pl->prefix = SCStrdup(filename)) == NULL) {
-
-            SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for directory name");
-            return NULL;
+        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for directory name");
+        SCMutexUnlock(&plog_lock);
+        return NULL;
     }
 
     pl->size_limit = DEFAULT_LIMIT;

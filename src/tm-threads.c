@@ -105,7 +105,6 @@ void *TmThreadsSlot1NoIn(void *td)
 {
     ThreadVars *tv = (ThreadVars *)td;
     TmSlot *s = (TmSlot *)tv->tm_slots;
-    Packet *p = NULL;
     char run = 1;
     TmEcode r = TM_ECODE_OK;
 
@@ -136,7 +135,7 @@ void *TmThreadsSlot1NoIn(void *td)
         TmThreadTestThreadUnPaused(tv);
 
         PACKET_PROFILING_TMM_START(p, s->tm_id);
-        r = s->SlotFunc(tv, p, s->slot_data, &s->slot_pre_pq, &s->slot_post_pq);
+        r = s->SlotFunc(tv, NULL, s->slot_data, &s->slot_pre_pq, &s->slot_post_pq);
         PACKET_PROFILING_TMM_END(p, s->tm_id);
 
         /* handle error */
@@ -147,8 +146,6 @@ void *TmThreadsSlot1NoIn(void *td)
             TmqhReleasePacketsToPacketPool(&s->slot_post_pq);
             SCMutexUnlock(&s->slot_post_pq.mutex_q);
 
-            if (p != NULL)
-                TmqhOutputPacketpool(tv, p);
             TmThreadsSetFlag(tv, THV_FAILED);
             break;
         }
@@ -159,10 +156,6 @@ void *TmThreadsSlot1NoIn(void *td)
             if (extra_p != NULL)
                 tv->tmqh_out(tv, extra_p);
         }
-
-        tv->tmqh_out(tv, p);
-        if (p != NULL)
-            tv->tmqh_out(tv, p);
 
         /* handle post queue */
         if (s->slot_post_pq.top != NULL) {
@@ -557,7 +550,7 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
         SCLogError(SC_ERR_FATAL, "TmSlot or ThreadVars badly setup: s=%p,"
                                  " PktAcqLoop=%p, tmqh_in=%p,"
                                  " tmqh_out=%p",
-                   s, s->PktAcqLoop, tv->tmqh_in, tv->tmqh_out);
+                   s, s ? s->PktAcqLoop : NULL, tv->tmqh_in, tv->tmqh_out);
         EngineKill();
 
         TmThreadsSetFlag(tv, THV_CLOSED);
