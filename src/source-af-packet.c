@@ -926,6 +926,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
     ptv->data = SCMalloc(T_DATA_SIZE);
     if (ptv->data == NULL) {
         afpconfig->DerefFunc(afpconfig);
+        SCFree(ptv);
         SCReturnInt(TM_ECODE_FAILED);
     }
     ptv->datalen = T_DATA_SIZE;
