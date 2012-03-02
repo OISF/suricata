@@ -1780,8 +1780,12 @@ static int Unified2TestRotate01(void)
     r = 1;
 
 error:
-    Unified2AlertThreadDeinit(&tv, data);
-    if (oc != NULL) Unified2AlertDeInitCtx(oc);
+    ret = Unified2AlertThreadDeinit(&tv, data);
+    if(ret == TM_ECODE_FAILED) {
+        printf("Unified2AlertThreadDeinit error");
+    }
+    if (oc != NULL)
+        Unified2AlertDeInitCtx(oc);
     if (filename != NULL)
         SCFree(filename);
     return r;

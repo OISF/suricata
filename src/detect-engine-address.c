@@ -2191,8 +2191,8 @@ int AddressTestMatch01(void)
     struct in_addr in;
     Address a;
 
-    inet_pton(AF_INET, "1.2.3.4", &in);
-
+    if (inet_pton(AF_INET, "1.2.3.4", &in) != 1)
+        return 0;
     memset(&a, 0, sizeof(Address));
     a.family = AF_INET;
     a.addr_data32[0] = in.s_addr;
@@ -2216,8 +2216,8 @@ int AddressTestMatch02(void)
     struct in_addr in;
     Address a;
 
-    inet_pton(AF_INET, "1.2.3.127", &in);
-
+    if (inet_pton(AF_INET, "1.2.3.127", &in) != 1)
+        return 0;
     memset(&a, 0, sizeof(Address));
     a.family = AF_INET;
     a.addr_data32[0] = in.s_addr;
@@ -2241,8 +2241,8 @@ int AddressTestMatch03(void)
     struct in_addr in;
     Address a;
 
-    inet_pton(AF_INET, "1.2.3.128", &in);
-
+    if (inet_pton(AF_INET, "1.2.3.128", &in) != 1)
+        return 0;
     memset(&a, 0, sizeof(Address));
     a.family = AF_INET;
     a.addr_data32[0] = in.s_addr;
@@ -2266,8 +2266,8 @@ int AddressTestMatch04(void)
     struct in_addr in;
     Address a;
 
-    inet_pton(AF_INET, "1.2.2.255", &in);
-
+    if (inet_pton(AF_INET, "1.2.2.255", &in) != 1)
+        return 0;
     memset(&a, 0, sizeof(Address));
     a.family = AF_INET;
     a.addr_data32[0] = in.s_addr;
@@ -2291,8 +2291,8 @@ int AddressTestMatch05(void)
     struct in_addr in;
     Address a;
 
-    inet_pton(AF_INET, "1.2.3.4", &in);
-
+    if (inet_pton(AF_INET, "1.2.3.4", &in) != 1)
+        return 0;
     memset(&a, 0, sizeof(Address));
     a.family = AF_INET;
     a.addr_data32[0] = in.s_addr;
@@ -2316,8 +2316,8 @@ int AddressTestMatch06(void)
     struct in_addr in;
     Address a;
 
-    inet_pton(AF_INET, "1.2.3.4", &in);
-
+    if (inet_pton(AF_INET, "1.2.3.4", &in) != 1)
+        return 0;
     memset(&a, 0, sizeof(Address));
     a.family = AF_INET;
     a.addr_data32[0] = in.s_addr;
@@ -2341,7 +2341,8 @@ int AddressTestMatch07(void)
     struct in6_addr in6;
     Address a;
 
-    inet_pton(AF_INET6, "2001::1", &in6);
+    if (inet_pton(AF_INET6, "2001::1", &in6) != 1)
+        return 0;
     memset(&a, 0, sizeof(Address));
     a.family = AF_INET6;
     memcpy(&a.addr_data32, &in6.s6_addr, sizeof(in6.s6_addr));
@@ -2365,7 +2366,8 @@ int AddressTestMatch08(void)
     struct in6_addr in6;
     Address a;
 
-    inet_pton(AF_INET6, "1999:ffff:ffff:ffff:ffff:ffff:ffff:ffff", &in6);
+    if (inet_pton(AF_INET6, "1999:ffff:ffff:ffff:ffff:ffff:ffff:ffff", &in6) != 1)
+        return 0;
     memset(&a, 0, sizeof(Address));
     a.family = AF_INET6;
     memcpy(&a.addr_data32, &in6.s6_addr, sizeof(in6.s6_addr));
@@ -2389,7 +2391,8 @@ int AddressTestMatch09(void)
     struct in6_addr in6;
     Address a;
 
-    inet_pton(AF_INET6, "2001::2", &in6);
+    if (inet_pton(AF_INET6, "2001::2", &in6) != 1)
+        return 0;
     memset(&a, 0, sizeof(Address));
     a.family = AF_INET6;
     memcpy(&a.addr_data32, &in6.s6_addr, sizeof(in6.s6_addr));
@@ -2413,7 +2416,8 @@ int AddressTestMatch10(void)
     struct in6_addr in6;
     Address a;
 
-    inet_pton(AF_INET6, "2001::2", &in6);
+    if (inet_pton(AF_INET6, "2001::2", &in6) != 1)
+        return 0;
     memset(&a, 0, sizeof(Address));
     a.family = AF_INET6;
     memcpy(&a.addr_data32, &in6.s6_addr, sizeof(in6.s6_addr));
@@ -2437,7 +2441,8 @@ int AddressTestMatch11(void)
     struct in6_addr in6;
     Address a;
 
-    inet_pton(AF_INET6, "2001::3", &in6);
+    if (inet_pton(AF_INET6, "2001::3", &in6) != 1)
+        return 0;
     memset(&a, 0, sizeof(Address));
     a.family = AF_INET6;
     memcpy(&a.addr_data32, &in6.s6_addr, sizeof(in6.s6_addr));

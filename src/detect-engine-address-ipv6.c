@@ -1176,10 +1176,12 @@ int AddressTestIPv6Le05(void)
     uint32_t b[4];
     struct in6_addr in6;
 
-    inet_pton(AF_INET6, "1999:ffff:ffff:ffff:ffff:ffff:ffff:ffff", &in6);
+    if (inet_pton(AF_INET6, "1999:ffff:ffff:ffff:ffff:ffff:ffff:ffff", &in6) != 1)
+        return 0;
     memcpy(&a, &in6.s6_addr, sizeof(in6.s6_addr));
 
-    inet_pton(AF_INET6, "2000::0", &in6);
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
+        return 0;
     memcpy(&b, &in6.s6_addr, sizeof(in6.s6_addr));
 
     if (AddressIPv6LeU32(a, b) == 1)
@@ -1248,10 +1250,12 @@ int AddressTestIPv6Ge05(void)
     uint32_t b[4];
     struct in6_addr in6;
 
-    inet_pton(AF_INET6, "1999:ffff:ffff:ffff:ffff:ffff:ffff:ffff", &in6);
+    if (inet_pton(AF_INET6, "1999:ffff:ffff:ffff:ffff:ffff:ffff:ffff", &in6) != 1)
+        return 0;
     memcpy(&a, &in6.s6_addr, sizeof(in6.s6_addr));
 
-    inet_pton(AF_INET6, "2000::0", &in6);
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
+        return 0;
     memcpy(&b, &in6.s6_addr, sizeof(in6.s6_addr));
 
     if (AddressIPv6GeU32(a, b) == 0)
@@ -1267,7 +1271,8 @@ int AddressTestIPv6SubOne01(void)
     uint32_t a[4], b[4];
     struct in6_addr in6;
 
-    inet_pton(AF_INET6, "2000::1", &in6);
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
+        return 0;
     memcpy(a, in6.s6_addr, sizeof(in6.s6_addr));
 
     a[0] = ntohl(a[0]);
@@ -1277,7 +1282,8 @@ int AddressTestIPv6SubOne01(void)
 
     AddressCutIPv6CopySubOne(a, b);
 
-    inet_pton(AF_INET6, "2000::0", &in6);
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
+        return 0;
     memcpy(a, in6.s6_addr, sizeof(in6.s6_addr));
     if (b[0] == a[0] && b[1] == a[1] &&
         b[2] == a[2] && b[3] == a[3]) {
@@ -1294,7 +1300,8 @@ int AddressTestIPv6SubOne02(void)
     uint32_t a[4], b[4];
     struct in6_addr in6;
 
-    inet_pton(AF_INET6, "2000::0", &in6);
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
+        return 0;
     memcpy(a, in6.s6_addr, sizeof(in6.s6_addr));
 
     a[0] = ntohl(a[0]);
@@ -1304,7 +1311,8 @@ int AddressTestIPv6SubOne02(void)
 
     AddressCutIPv6CopySubOne(a, b);
 
-    inet_pton(AF_INET6, "1FFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF", &in6);
+    if (inet_pton(AF_INET6, "1FFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF", &in6) != 1)
+        return 0;
     memcpy(a, in6.s6_addr, sizeof(in6.s6_addr));
     if (b[0] == a[0] && b[1] == a[1] &&
         b[2] == a[2] && b[3] == a[3]) {
@@ -1321,7 +1329,8 @@ int AddressTestIPv6AddOne01(void)
     uint32_t a[4], b[4];
     struct in6_addr in6;
 
-    inet_pton(AF_INET6, "2000::0", &in6);
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
+        return 0;
     memcpy(a, in6.s6_addr, sizeof(in6.s6_addr));
 
     a[0] = ntohl(a[0]);
@@ -1331,7 +1340,8 @@ int AddressTestIPv6AddOne01(void)
 
     AddressCutIPv6CopyAddOne(a, b);
 
-    inet_pton(AF_INET6, "2000::1", &in6);
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
+        return 0;
     memcpy(a, in6.s6_addr, sizeof(in6.s6_addr));
     if (b[0] == a[0] && b[1] == a[1] &&
         b[2] == a[2] && b[3] == a[3]) {
@@ -1348,7 +1358,8 @@ int AddressTestIPv6AddOne02(void)
     uint32_t a[4], b[4];
     struct in6_addr in6;
 
-    inet_pton(AF_INET6, "1FFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF", &in6);
+    if (inet_pton(AF_INET6, "1FFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF", &in6) != 1)
+        return 0;
     memcpy(a, in6.s6_addr, sizeof(in6.s6_addr));
 
     a[0] = ntohl(a[0]);
@@ -1358,7 +1369,8 @@ int AddressTestIPv6AddOne02(void)
 
     AddressCutIPv6CopyAddOne(a, b);
 
-    inet_pton(AF_INET6, "2000::0", &in6);
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
+        return 0;
      memcpy(a, in6.s6_addr, sizeof(in6.s6_addr));
     if (b[0] == a[0] && b[1] == a[1] &&
         b[2] == a[2] && b[3] == a[3]) {
@@ -1378,424 +1390,424 @@ static int AddressTestIPv6AddressCmp01(void)
     if (a == NULL || b == NULL)
         goto error;
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) == ADDRESS_EQ);
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::0", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) == ADDRESS_ES);
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::11", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::11", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) == ADDRESS_ES);
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::0", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) == ADDRESS_ES);
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::0", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::11", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::11", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) == ADDRESS_ES);
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::11", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::11", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) != ADDRESS_ES);
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::11", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::11", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) == ADDRESS_EB);
 
-    if (inet_pton(AF_INET6, "2000::0", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) == ADDRESS_EB);
 
-    if (inet_pton(AF_INET6, "2000::0", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::11", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::11", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) == ADDRESS_EB);
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::11", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::11", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::0", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) != ADDRESS_EB);
 
-    if (inet_pton(AF_INET6, "2000::0", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) == ADDRESS_LE);
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::15", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::15", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) == ADDRESS_LE);
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) != ADDRESS_LE);
 
-    if (inet_pton(AF_INET6, "2000::0", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) == ADDRESS_LE);
 
-    if (inet_pton(AF_INET6, "2000::0", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) != ADDRESS_LE);
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::15", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::15", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) == ADDRESS_LT);
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::15", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::15", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     /* we could get a LE */
     result &= (DetectAddressCmpIPv6(a, b) != ADDRESS_LT);
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     /* we could get a LE */
     result &= (DetectAddressCmpIPv6(a, b) != ADDRESS_LT);
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::19", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::19", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) != ADDRESS_LT);
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) != ADDRESS_LT);
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) != ADDRESS_LT);
 
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) == ADDRESS_GE);
 
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::15", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::15", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) == ADDRESS_GE);
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::15", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::15", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) != ADDRESS_GE);
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::0", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) == ADDRESS_GE);
 
-    if (inet_pton(AF_INET6, "2000::0", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::19", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::19", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) != ADDRESS_GE);
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::0", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) != ADDRESS_GE);
 
-    if (inet_pton(AF_INET6, "2000::15", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::15", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) == ADDRESS_GT);
 
-    if (inet_pton(AF_INET6, "2000::15", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::15", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::15", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::15", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) != ADDRESS_GT);
 
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&b->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&b->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCmpIPv6(a, b) != ADDRESS_GT);
@@ -1824,10 +1836,10 @@ static int AddressTestIPv6CutNot01(void)
     if ( (a = DetectAddressInit()) == NULL)
         goto error;
 
-    if (inet_pton(AF_INET6, "::", &in6) < 0)
+    if (inet_pton(AF_INET6, "::", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF", &in6) < 0)
+    if (inet_pton(AF_INET6, "FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCutNotIPv6(a, &b) == -1);
@@ -1859,20 +1871,20 @@ static int AddressTestIPv6CutNot02(void)
     if ( (temp = DetectAddressInit()) == NULL)
         goto error;
 
-    if (inet_pton(AF_INET6, "::", &in6) < 0)
+    if (inet_pton(AF_INET6, "::", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::0", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCutNotIPv6(a, &b) == 0);
 
     result &= (b == NULL);
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&temp->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF", &in6) < 0)
+    if (inet_pton(AF_INET6, "FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF", &in6) != 1)
         goto error;
     memcpy(&temp->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
 
@@ -1909,20 +1921,20 @@ static int AddressTestIPv6CutNot03(void)
     if ( (temp = DetectAddressInit()) == NULL)
         goto error;
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF", &in6) < 0)
+    if (inet_pton(AF_INET6, "FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCutNotIPv6(a, &b) == 0);
 
     result &= (b == NULL);
 
-    if (inet_pton(AF_INET6, "::", &in6) < 0)
+    if (inet_pton(AF_INET6, "::", &in6) != 1)
         goto error;
     memcpy(&temp->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::0", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
         goto error;
     memcpy(&temp->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
 
@@ -1959,18 +1971,18 @@ static int AddressTestIPv6CutNot04(void)
     if ( (temp = DetectAddressInit()) == NULL)
         goto error;
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCutNotIPv6(a, &b) == 0);
 
-    if (inet_pton(AF_INET6, "::", &in6) < 0)
+    if (inet_pton(AF_INET6, "::", &in6) != 1)
         goto error;
     memcpy(&temp->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::0", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
         goto error;
     memcpy(&temp->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result = (DetectAddressCmpIPv6(a, temp) == ADDRESS_EQ);
@@ -1978,10 +1990,10 @@ static int AddressTestIPv6CutNot04(void)
     result &= (b != NULL);
     if (result == 0)
         goto error;
-    if (inet_pton(AF_INET6, "2000::2", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::2", &in6) != 1)
         goto error;
     memcpy(&temp->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF", &in6) < 0)
+    if (inet_pton(AF_INET6, "FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF", &in6) != 1)
         goto error;
     memcpy(&temp->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result = (DetectAddressCmpIPv6(b, temp) == ADDRESS_EQ);
@@ -2017,18 +2029,18 @@ static int AddressTestIPv6CutNot05(void)
     if ( (temp = DetectAddressInit()) == NULL)
         goto error;
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&a->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&a->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result &= (DetectAddressCutNotIPv6(a, &b) == 0);
 
-    if (inet_pton(AF_INET6, "::", &in6) < 0)
+    if (inet_pton(AF_INET6, "::", &in6) != 1)
         goto error;
     memcpy(&temp->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::0", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::0", &in6) != 1)
         goto error;
     memcpy(&temp->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result = (DetectAddressCmpIPv6(a, temp) == ADDRESS_EQ);
@@ -2036,10 +2048,10 @@ static int AddressTestIPv6CutNot05(void)
     result &= (b != NULL);
     if (result == 0)
         goto error;
-    if (inet_pton(AF_INET6, "2000::21", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::21", &in6) != 1)
         goto error;
     memcpy(&temp->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF", &in6) < 0)
+    if (inet_pton(AF_INET6, "FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF:FFFF", &in6) != 1)
         goto error;
     memcpy(&temp->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result = (DetectAddressCmpIPv6(b, temp) == ADDRESS_EQ);
@@ -2074,121 +2086,121 @@ static int AddressTestIPv6Join01(void)
         goto error;
 
     /* case 1 */
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&target->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&target->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&source->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000:20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&source->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
 
     result &= (DetectAddressJoinIPv6(NULL, target, source) == 0);
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&temp->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&temp->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result = (DetectAddressCmpIPv6(target, temp) == ADDRESS_EQ);
 
     /* case 2 */
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&target->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&target->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
 
-    if (inet_pton(AF_INET6, "2000::2", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::2", &in6) != 1)
         goto error;
     memcpy(&source->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::19", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::19", &in6) != 1)
         goto error;
     memcpy(&source->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
 
     result &= (DetectAddressJoinIPv6(NULL, target, source) == 0);
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&temp->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&temp->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result = (DetectAddressCmpIPv6(target, temp) == ADDRESS_EQ);
 
     /* case 3 */
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&target->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::15", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::15", &in6) != 1)
         goto error;
     memcpy(&target->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
 
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&source->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&source->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
 
     result &= (DetectAddressJoinIPv6(NULL, target, source) == 0);
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&temp->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&temp->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result = (DetectAddressCmpIPv6(target, temp) == ADDRESS_EQ);
 
     /* case 4 */
-    if (inet_pton(AF_INET6, "2000::10", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::10", &in6) != 1)
         goto error;
     memcpy(&target->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&target->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&source->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&source->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
 
     result &= (DetectAddressJoinIPv6(NULL, target, source) == 0);
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&temp->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&temp->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result = (DetectAddressCmpIPv6(target, temp) == ADDRESS_EQ);
 
     /* case 5 */
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&target->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&target->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
 
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&source->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&source->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
 
     result &= (DetectAddressJoinIPv6(NULL, target, source) == 0);
-    if (inet_pton(AF_INET6, "2000::1", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::1", &in6) != 1)
         goto error;
     memcpy(&temp->ip.address, in6.s6_addr, sizeof(in6.s6_addr));
-    if (inet_pton(AF_INET6, "2000::20", &in6) < 0)
+    if (inet_pton(AF_INET6, "2000::20", &in6) != 1)
         goto error;
     memcpy(&temp->ip2.address, in6.s6_addr, sizeof(in6.s6_addr));
     result = (DetectAddressCmpIPv6(target, temp) == ADDRESS_EQ);
@@ -2208,6 +2220,7 @@ static int AddressTestIPv6Join01(void)
         DetectAddressFree(target);
     if (temp != NULL)
         DetectAddressFree(temp);
+
     return 0;
 }
 

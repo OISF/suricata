@@ -814,7 +814,7 @@ int SCThresholdConfLineLength(FILE *fd) {
     int len = 0;
     int c;
 
-    while ( (c = fgetc(fd)) && c != EOF && !feof(fd))
+    while ( (c = fgetc(fd)) && (char)c != '\n' && c != EOF && !feof(fd))
         len++;
 
     if (pos < 0)

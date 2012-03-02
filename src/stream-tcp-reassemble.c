@@ -4844,7 +4844,7 @@ static int StreamTcpTestMissedPacket (TcpReassemblyThreadCtx *ra_ctx,
 {
     Packet *p = SCMalloc(SIZE_OF_PACKET);
     if (p == NULL)
-        return 0;
+        return -1;
     Flow f;
     TCPHdr tcph;
     Port sp;
@@ -4864,9 +4864,15 @@ static int StreamTcpTestMissedPacket (TcpReassemblyThreadCtx *ra_ctx,
     dp = 220;
 
     FLOW_INITIALIZE(&f);
-    inet_pton(AF_INET, "1.2.3.4", &in);
+    if (inet_pton(AF_INET, "1.2.3.4", &in) != 1) {
+        SCFree(p);
+        return -1;
+    }
     f.src.addr_data32[0] = in.s_addr;
-    inet_pton(AF_INET, "1.2.3.5", &in);
+    if (inet_pton(AF_INET, "1.2.3.5", &in) != 1) {
+        SCFree(p);
+        return -1;
+    }
     f.dst.addr_data32[0] = in.s_addr;
     f.flags |= FLOW_IPV4;
     f.sp = sp;
@@ -5947,9 +5953,11 @@ static int StreamTcpReassembleTest38 (void) {
     uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
 
     FLOW_INITIALIZE(&f);
-    inet_pton(AF_INET, "1.2.3.4", &in);
+    if (inet_pton(AF_INET, "1.2.3.4", &in) != 1)
+        goto end;
     f.src.addr_data32[0] = in.s_addr;
-    inet_pton(AF_INET, "1.2.3.5", &in);
+    if (inet_pton(AF_INET, "1.2.3.5", &in) != 1)
+        goto end;
     f.dst.addr_data32[0] = in.s_addr;
     sp = 200;
     dp = 220;

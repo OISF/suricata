@@ -52,7 +52,10 @@
  */
 uint32_t UTHSetIPv4Address(char *str) {
     struct in_addr in;
-    inet_pton(AF_INET, str, &in);
+    if (inet_pton(AF_INET, str, &in) != 1) {
+        printf("invalid IPv6 address %s\n", str);
+        exit(EXIT_FAILURE);
+    }
     return (uint32_t)in.s_addr;
 }
 
@@ -96,7 +99,7 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
     p->ip6h->s_ip6_nxt = ipproto;
     p->ip6h->s_ip6_plen = htons(payload_len + sizeof(TCPHdr));
 
-    if (inet_pton(AF_INET6, src, &in) <= 0)
+    if (inet_pton(AF_INET6, src, &in) != 1)
         goto error;
     p->src.addr_data32[0] = in[0];
     p->src.addr_data32[1] = in[1];
@@ -108,7 +111,7 @@ Packet *UTHBuildPacketIPV6Real(uint8_t *payload, uint16_t payload_len,
     p->ip6h->s_ip6_src[2] = in[2];
     p->ip6h->s_ip6_src[3] = in[3];
 
-    if (inet_pton(AF_INET6, dst, &in) <= 0)
+    if (inet_pton(AF_INET6, dst, &in) != 1)
         goto error;
     p->dst.addr_data32[0] = in[0];
     p->dst.addr_data32[1] = in[1];
@@ -178,12 +181,12 @@ Packet *UTHBuildPacketReal(uint8_t *payload, uint16_t payload_len,
     p->payload_len = payload_len;
     p->proto = ipproto;
 
-    if (inet_pton(AF_INET, src, &in) <= 0)
+    if (inet_pton(AF_INET, src, &in) != 1)
         goto error;
     p->src.addr_data32[0] = in.s_addr;
     p->sp = sport;
 
-    if (inet_pton(AF_INET, dst, &in) <= 0)
+    if (inet_pton(AF_INET, dst, &in) != 1)
         goto error;
     p->dst.addr_data32[0] = in.s_addr;
     p->dp = dport;
@@ -443,7 +446,11 @@ Flow *UTHBuildFlow(int family, char *src, char *dst, Port sp, Port dp) {
 
     if (src != NULL) {
         if (family == AF_INET) {
-            inet_pton(AF_INET, src, &in);
+            if (inet_pton(AF_INET, src, &in) != 1) {
+                printf("invalid address %s\n", src);
+                SCFree(f);
+                return NULL;
+            }
             f->src.addr_data32[0] = in.s_addr;
         } else {
             BUG_ON(1);
@@ -451,7 +458,11 @@ Flow *UTHBuildFlow(int family, char *src, char *dst, Port sp, Port dp) {
     }
     if (dst != NULL) {
         if (family == AF_INET) {
-            inet_pton(AF_INET, src, &in);
+            if (inet_pton(AF_INET, src, &in) != 1) {
+                printf("invalid address %s\n", src);
+                SCFree(f);
+                return NULL;
+            }
             f->dst.addr_data32[0] = in.s_addr;
         } else {
             BUG_ON(1);

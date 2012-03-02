@@ -134,9 +134,7 @@ void *TmThreadsSlot1NoIn(void *td)
     while (run) {
         TmThreadTestThreadUnPaused(tv);
 
-        PACKET_PROFILING_TMM_START(p, s->tm_id);
         r = s->SlotFunc(tv, NULL, s->slot_data, &s->slot_pre_pq, &s->slot_post_pq);
-        PACKET_PROFILING_TMM_END(p, s->tm_id);
 
         /* handle error */
         if (r == TM_ECODE_FAILED) {
