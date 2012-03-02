@@ -150,6 +150,15 @@ SCEnumCharMap http_decoder_event_table[ ] = {
         HTTP_DECODER_EVENT_REQUEST_FIELD_TOO_LONG},
     { "RESPONSE_FIELD_TOO_LONG",
         HTTP_DECODER_EVENT_RESPONSE_FIELD_TOO_LONG},
+
+    /* suricata warnings/errors */
+    { "MULTIPART_GENERIC_ERROR",
+        HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR},
+    { "MULTIPART_NO_FILEDATA",
+        HTTP_DECODER_EVENT_MULTIPART_NO_FILEDATA},
+    { "MULTIPART_INVALID_HEADER",
+        HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER},
+
     { NULL,                      -1 },
 };
 
@@ -1098,7 +1107,8 @@ error:
 #define C_T_HDR "content-type:"
 #define C_T_HDR_LEN 13
 
-static void HtpRequestBodyMultipartParseHeader(uint8_t *header, uint32_t header_len,
+static void HtpRequestBodyMultipartParseHeader(HtpState *hstate,
+        uint8_t *header, uint32_t header_len,
         uint8_t **filename, uint16_t *filename_len,
         uint8_t **filetype, uint16_t *filetype_len)
 {
@@ -1122,6 +1132,18 @@ static void HtpRequestBodyMultipartParseHeader(uint8_t *header, uint32_t header_
             line_len = header_len;
         } else {
             line_len = next_line - header;
+        }
+
+        uint8_t *sc = (uint8_t *)memchr(line, ':', line_len);
+        if (sc == NULL) {
+            AppLayerDecoderEventsSetEvent(hstate->f,
+                    HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER);
+        } else {
+            /* if the : we found is the final char, it means we have
+             * no value */
+            if (line_len > 0 && sc == &line[line_len - 1])
+                AppLayerDecoderEventsSetEvent(hstate->f,
+                        HTTP_DECODER_EVENT_MULTIPART_INVALID_HEADER);
         }
 
 #ifdef PRINT
@@ -1274,7 +1296,11 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                 flags = FILE_TRUNCATED;
             }
 
-            BUG_ON(filedata_len > chunks_buffer_len);
+            if (filedata_len > chunks_buffer_len) {
+                AppLayerDecoderEventsSetEvent(hstate->f,
+                        HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR);
+                goto end;
+            }
 #ifdef PRINT
             printf("FILEDATA (final chunk) START: \n");
             PrintRawDataFp(stdout, filedata, filedata_len);
@@ -1343,8 +1369,8 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
             header = header_start + (expected_boundary_len + 2); // + for 0d 0a
         }
 
-        HtpRequestBodyMultipartParseHeader(header, header_len, &filename,
-                &filename_len, &filetype, &filetype_len);
+        HtpRequestBodyMultipartParseHeader(hstate, header, header_len,
+                &filename, &filename_len, &filetype, &filetype_len);
 
         if (filename != NULL) {
             uint8_t *filedata = NULL;
@@ -1361,7 +1387,18 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
             /* everything until the final boundary is the file */
             if (form_end != NULL) {
                 filedata = header_end + 4;
+                if (form_end == filedata) {
+                    AppLayerDecoderEventsSetEvent(hstate->f,
+                            HTTP_DECODER_EVENT_MULTIPART_NO_FILEDATA);
+                    goto end;
+                } else if (form_end < filedata) {
+                    AppLayerDecoderEventsSetEvent(hstate->f,
+                            HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR);
+                    goto end;
+                }
+
                 filedata_len = form_end - (header_end + 4 + 2);
+                SCLogDebug("filedata_len %"PRIuMAX, (uintmax_t)filedata_len);
 
                 /* or is it? */
                 uint8_t *header_next = Bs2bmSearch(filedata, filedata_len,
@@ -1370,8 +1407,12 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                     filedata_len -= (form_end - header_next);
                 }
 
+                if (filedata_len > chunks_buffer_len) {
+                    AppLayerDecoderEventsSetEvent(hstate->f,
+                            HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR);
+                    goto end;
+                }
                 SCLogDebug("filedata_len %"PRIuMAX, (uintmax_t)filedata_len);
-
 #ifdef PRINT
                 printf("FILEDATA START: \n");
                 PrintRawDataFp(stdout, filedata, filedata_len);
@@ -1399,6 +1440,12 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                 filedata = header_end + 4;
                 filedata_len = chunks_buffer_len - (filedata - chunks_buffer);
                 SCLogDebug("filedata_len %u (chunks_buffer_len %u)", filedata_len, chunks_buffer_len);
+
+                if (filedata_len > chunks_buffer_len) {
+                    AppLayerDecoderEventsSetEvent(hstate->f,
+                            HTTP_DECODER_EVENT_MULTIPART_GENERIC_ERROR);
+                    goto end;
+                }
 
 #ifdef PRINT
                 printf("FILEDATA START: \n");

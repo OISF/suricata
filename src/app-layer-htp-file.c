@@ -1010,6 +1010,175 @@ end:
     return result;
 }
 
+static int HTPFileParserTest08(void) {
+    int result = 0;
+    Flow *f = NULL;
+    uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
+                         "Host: www.server.lan\r\n"
+                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Length: 215\r\n"
+                         "\r\n"
+                         "-----------------------------277531038314945\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"somepicture1.jpg\"\r\n"
+                         "Content-Type: image/jpeg\r\n";
+
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    uint8_t httpbuf2[] = "filecontent\r\n\r\n"
+                         "-----------------------------277531038314945--";
+    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
+
+    TcpSession ssn;
+    HtpState *http_state = NULL;
+    memset(&ssn, 0, sizeof(ssn));
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+
+    StreamTcpInitConfig(TRUE);
+
+    SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
+    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    SCLogDebug("\n>>>> processing chunk 2 size %u <<<<\n", httplen2);
+    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
+    if (r != 0) {
+        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    http_state = f->alstate;
+    if (http_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    AppLayerDecoderEvents *decoder_events = AppLayerGetDecoderEventsForFlow(f);
+    if (decoder_events == NULL) {
+        printf("no app events: ");
+        goto end;
+    }
+
+    if (decoder_events->cnt != 2) {
+        printf("expected 2 events: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    if (http_state != NULL)
+        HTPStateFree(http_state);
+    UTHFreeFlow(f);
+    return result;
+}
+
+/** \test invalid header: Somereallylongheaderstr: has no value */
+static int HTPFileParserTest09(void) {
+    int result = 0;
+    Flow *f = NULL;
+    uint8_t httpbuf1[] = "POST /upload.cgi HTTP/1.1\r\n"
+                         "Host: www.server.lan\r\n"
+                         "Content-Type: multipart/form-data; boundary=---------------------------277531038314945\r\n"
+                         "Content-Length: 337\r\n"
+                         "\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+
+    uint8_t httpbuf2[] = "-----------------------------277531038314945\r\n"
+                         "Content-Disposition: form-data; name=\"email\"\r\n"
+                         "\r\n"
+                         "someaddress@somedomain.lan\r\n";
+    uint32_t httplen2 = sizeof(httpbuf2) - 1; /* minus the \0 */
+
+    uint8_t httpbuf3[] = "-----------------------------277531038314945\r\n"
+                         "Content-Disposition: form-data; name=\"uploadfile_0\"; filename=\"somepicture1.jpg\"\r\n"
+                         "Somereallylongheaderstr:\r\n"
+                         "\r\n";
+    uint32_t httplen3 = sizeof(httpbuf3) - 1; /* minus the \0 */
+
+    uint8_t httpbuf4[] = "filecontent\r\n"
+                         "-----------------------------277531038314945--";
+    uint32_t httplen4 = sizeof(httpbuf4) - 1; /* minus the \0 */
+
+    TcpSession ssn;
+    HtpState *http_state = NULL;
+
+    memset(&ssn, 0, sizeof(ssn));
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+
+    StreamTcpInitConfig(TRUE);
+
+    SCLogDebug("\n>>>> processing chunk 1 <<<<\n");
+    int r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START, httpbuf1, httplen1);
+    if (r != 0) {
+        printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    SCLogDebug("\n>>>> processing chunk 2 size %u <<<<\n", httplen2);
+    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf2, httplen2);
+    if (r != 0) {
+        printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    SCLogDebug("\n>>>> processing chunk 3 size %u <<<<\n", httplen3);
+    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf3, httplen3);
+    if (r != 0) {
+        printf("toserver chunk 3 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    SCLogDebug("\n>>>> processing chunk 4 size %u <<<<\n", httplen4);
+    r = AppLayerParse(NULL, f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_EOF, httpbuf4, httplen4);
+    if (r != 0) {
+        printf("toserver chunk 4 returned %" PRId32 ", expected 0: ", r);
+        result = 0;
+        goto end;
+    }
+
+    http_state = f->alstate;
+    if (http_state == NULL) {
+        printf("no http state: ");
+        result = 0;
+        goto end;
+    }
+
+    AppLayerDecoderEvents *decoder_events = AppLayerGetDecoderEventsForFlow(f);
+    if (decoder_events == NULL) {
+        printf("no app events: ");
+        goto end;
+    }
+
+    if (decoder_events->cnt != 1) {
+        printf("expected 1 event: ");
+        goto end;
+    }
+
+    result = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    if (http_state != NULL)
+        HTPStateFree(http_state);
+    UTHFreeFlow(f);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void HTPFileParserRegisterTests(void) {
@@ -1021,5 +1190,7 @@ void HTPFileParserRegisterTests(void) {
     UtRegisterTest("HTPFileParserTest05", HTPFileParserTest05, 1);
     UtRegisterTest("HTPFileParserTest06", HTPFileParserTest06, 1);
     UtRegisterTest("HTPFileParserTest07", HTPFileParserTest07, 1);
+    UtRegisterTest("HTPFileParserTest08", HTPFileParserTest08, 1);
+    UtRegisterTest("HTPFileParserTest09", HTPFileParserTest09, 1);
 #endif /* UNITTESTS */
 }
