@@ -458,8 +458,8 @@ Flow *UTHBuildFlow(int family, char *src, char *dst, Port sp, Port dp) {
     }
     if (dst != NULL) {
         if (family == AF_INET) {
-            if (inet_pton(AF_INET, src, &in) != 1) {
-                printf("invalid address %s\n", src);
+            if (inet_pton(AF_INET, dst, &in) != 1) {
+                printf("invalid address %s\n", dst);
                 SCFree(f);
                 return NULL;
             }
