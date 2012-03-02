@@ -454,9 +454,9 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
 
     /* we need to loop through all the flows in the queue */
     while (f != NULL) {
-        SCMutexLock(&f->m);
-
         PACKET_RECYCLE(reassemble_p);
+
+        SCMutexLock(&f->m);
 
         /* Get the tcp session for the flow */
         ssn = (TcpSession *)f->protoctx;
