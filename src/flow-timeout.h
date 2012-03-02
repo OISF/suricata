@@ -24,7 +24,9 @@
 #ifndef __FLOW_TIMEOUT_H__
 #define __FLOW_TIMEOUT_H__
 
-int FlowForceReassemblyForFlowV2(Flow *);
+int FlowForceReassemblyForFlowV2(Flow *f, int server, int client);
+int FlowForceReassemblyNeedReassmbly(Flow *f, int *server, int *client);
+//int FlowForceReassemblyForFlowV2(Flow *);
 void FlowForceReassembly(void);
 void FlowForceReassemblySetup(void);
 

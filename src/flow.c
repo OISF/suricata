@@ -170,6 +170,62 @@ static uint64_t prune_no_timeout = 0;
 static uint64_t prune_usecnt = 0;
 #endif
 
+/** \internal
+ *  \brief get timeout for flow
+ *
+ *  \param f flow
+ *  \param emergency bool indicating emergency mode 1 yes, 0 no
+ *
+ *  \retval timeout timeout in seconds
+ */
+static inline uint32_t FlowPruneGetFlowTimeout(Flow *f, int emergency) {
+    uint32_t timeout;
+
+    if (emergency) {
+        if (flow_proto[f->protomap].GetProtoState != NULL) {
+            switch(flow_proto[f->protomap].GetProtoState(f->protoctx)) {
+                default:
+                case FLOW_STATE_NEW:
+                    timeout = flow_proto[f->protomap].emerg_new_timeout;
+                    break;
+                case FLOW_STATE_ESTABLISHED:
+                    timeout = flow_proto[f->protomap].emerg_est_timeout;
+                    break;
+                case FLOW_STATE_CLOSED:
+                    timeout = flow_proto[f->protomap].emerg_closed_timeout;
+                    break;
+            }
+        } else {
+            if (f->flags & FLOW_EST_LIST)
+                timeout = flow_proto[f->protomap].emerg_est_timeout;
+            else
+                timeout = flow_proto[f->protomap].emerg_new_timeout;
+        }
+    } else { /* implies no emergency */
+        if (flow_proto[f->protomap].GetProtoState != NULL) {
+            switch(flow_proto[f->protomap].GetProtoState(f->protoctx)) {
+                default:
+                case FLOW_STATE_NEW:
+                    timeout = flow_proto[f->protomap].new_timeout;
+                    break;
+                case FLOW_STATE_ESTABLISHED:
+                    timeout = flow_proto[f->protomap].est_timeout;
+                    break;
+                case FLOW_STATE_CLOSED:
+                    timeout = flow_proto[f->protomap].closed_timeout;
+                    break;
+            }
+        } else {
+            if (f->flags & FLOW_EST_LIST)
+                timeout = flow_proto[f->protomap].est_timeout;
+            else
+                timeout = flow_proto[f->protomap].new_timeout;
+        }
+    }
+
+    return timeout;
+}
+
 /** FlowPrune
  *
  * Inspect top (last recently used) flow from the queue and see if
@@ -179,11 +235,10 @@ static uint64_t prune_usecnt = 0;
  *
  * \param q       Flow queue to prune
  * \param ts      Current time
- * \param timeout Timeout to enforce
  * \param try_cnt Tries to prune the first try_cnt no of flows in the q
  *
  * \retval 0 on error, failed block, nothing to prune
- * \retval 1 on successfully pruned one
+ * \retval cnt on successfully pruned, cnt flows were pruned
  */
 static int FlowPrune(FlowQueue *q, struct timeval *ts, int try_cnt)
 {
@@ -248,47 +303,7 @@ static int FlowPrune(FlowQueue *q, struct timeval *ts, int try_cnt)
 
         /*set the timeout value according to the flow operating mode, flow's state
           and protocol.*/
-        uint32_t timeout = 0;
-
-        if (flow_flags & FLOW_EMERGENCY) {
-            if (flow_proto[f->protomap].GetProtoState != NULL) {
-                switch(flow_proto[f->protomap].GetProtoState(f->protoctx)) {
-                case FLOW_STATE_NEW:
-                    timeout = flow_proto[f->protomap].emerg_new_timeout;
-                    break;
-                case FLOW_STATE_ESTABLISHED:
-                    timeout = flow_proto[f->protomap].emerg_est_timeout;
-                    break;
-                case FLOW_STATE_CLOSED:
-                    timeout = flow_proto[f->protomap].emerg_closed_timeout;
-                    break;
-                }
-            } else {
-                if (f->flags & FLOW_EST_LIST)
-                    timeout = flow_proto[f->protomap].emerg_est_timeout;
-                else
-                    timeout = flow_proto[f->protomap].emerg_new_timeout;
-            }
-        } else { /* implies no emergency */
-            if (flow_proto[f->protomap].GetProtoState != NULL) {
-                switch(flow_proto[f->protomap].GetProtoState(f->protoctx)) {
-                case FLOW_STATE_NEW:
-                    timeout = flow_proto[f->protomap].new_timeout;
-                    break;
-                case FLOW_STATE_ESTABLISHED:
-                    timeout = flow_proto[f->protomap].est_timeout;
-                    break;
-                case FLOW_STATE_CLOSED:
-                    timeout = flow_proto[f->protomap].closed_timeout;
-                    break;
-                }
-            } else {
-                if (f->flags & FLOW_EST_LIST)
-                    timeout = flow_proto[f->protomap].est_timeout;
-                else
-                    timeout = flow_proto[f->protomap].new_timeout;
-            }
-        }
+        uint32_t timeout = FlowPruneGetFlowTimeout(f, flow_flags & FLOW_EMERGENCY ? 1 : 0);
 
         SCLogDebug("got lock, now check: %" PRIdMAX "+%" PRIu32 "=(%" PRIdMAX ") < "
                    "%" PRIdMAX "", (intmax_t)f->lastts_sec,
@@ -317,18 +332,23 @@ static int FlowPrune(FlowQueue *q, struct timeval *ts, int try_cnt)
 #ifdef FLOW_PRUNE_DEBUG
             prune_usecnt++;
 #endif
-            Flow *prev_f = f;
+            SCSpinUnlock(&f->fb->s);
+            SCMutexUnlock(&f->m);
             f = f->lnext;
-            SCSpinUnlock(&prev_f->fb->s);
-            SCMutexUnlock(&prev_f->m);
             continue;
         }
 
-        if (FlowForceReassemblyForFlowV2(f) == 1) {
-            Flow *prev_f = f;
+        int server = 0, client = 0;
+        if (FlowForceReassemblyNeedReassmbly(f, &server, &client) == 1) {
+            /* we no longer need the fb lock. We know this flow won't be timed
+             * out just yet. So an incoming pkt is allowed to pick up this
+             * flow. */
+            SCSpinUnlock(&f->fb->s);
+
+            FlowForceReassemblyForFlowV2(f, server, client);
+            SCMutexUnlock(&f->m);
+
             f = f->lnext;
-            SCSpinUnlock(&prev_f->fb->s);
-            SCMutexUnlock(&prev_f->m);
             continue;
         }
 #ifdef DEBUG

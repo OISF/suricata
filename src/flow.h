@@ -302,12 +302,12 @@ typedef struct Flow_
 
     SCMutex de_state_m;          /**< mutex lock for the de_state object */
 
-    /* list flow ptrs
-     * NOTE!!! These are NOT protected by the
-     * above mutex, but by the FlowQ's */
+    /** hash list pointers, protected by fb->s */
     struct Flow_ *hnext; /* hash list */
     struct Flow_ *hprev;
     struct FlowBucket_ *fb;
+
+    /** queue list pointers, protected by queue mutex */
     struct Flow_ *lnext; /* list */
     struct Flow_ *lprev;
 
