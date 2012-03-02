@@ -1551,7 +1551,7 @@ static int HtpRequestBodyHandlePOST(HtpState *hstate, HtpTxUserData *htud,
     if (!(htud->flags & HTP_FILENAME_SET))
     {
         uint8_t *filename = NULL;
-        uint32_t filename_len = 0;
+        size_t filename_len = 0;
 
         /* get the name */
         if (tx->parsed_uri != NULL && tx->parsed_uri->path != NULL) {
@@ -1560,7 +1560,7 @@ static int HtpRequestBodyHandlePOST(HtpState *hstate, HtpTxUserData *htud,
         }
 
         if (filename != NULL) {
-            result = HTPFileOpen(hstate, filename, filename_len, data, data_len,
+            result = HTPFileOpen(hstate, filename, (uint32_t)filename_len, data, data_len,
                     hstate->transaction_cnt, STREAM_TOSERVER);
             if (result == -1) {
                 goto end;
@@ -1604,7 +1604,7 @@ static int HtpRequestBodyHandlePUT(HtpState *hstate, HtpTxUserData *htud,
     if (!(htud->flags & HTP_FILENAME_SET))
     {
         uint8_t *filename = NULL;
-        uint32_t filename_len = 0;
+        size_t filename_len = 0;
 
         /* get the name */
         if (tx->parsed_uri != NULL && tx->parsed_uri->path != NULL) {
@@ -1613,7 +1613,7 @@ static int HtpRequestBodyHandlePUT(HtpState *hstate, HtpTxUserData *htud,
         }
 
         if (filename != NULL) {
-            result = HTPFileOpen(hstate, filename, filename_len, data, data_len,
+            result = HTPFileOpen(hstate, filename, (uint32_t)filename_len, data, data_len,
                     hstate->transaction_cnt, STREAM_TOSERVER);
             if (result == -1) {
                 goto end;
@@ -1658,7 +1658,7 @@ int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
         SCLogDebug("setting up file name");
 
         uint8_t *filename = NULL;
-        uint32_t filename_len = 0;
+        size_t filename_len = 0;
 
         /* try Content-Disposition header first */
         htp_header_t *h = (htp_header_t *)table_getc(tx->response_headers,
@@ -1666,7 +1666,7 @@ int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
         if (h != NULL && bstr_len(h->value) > 0) {
             /* parse content-disposition */
             (void)HTTPParseContentDispositionHeader((uint8_t *)"filename=", 9,
-                    (uint8_t *) bstr_ptr(h->value), bstr_len(h->value), &filename, (size_t *)&filename_len);
+                    (uint8_t *) bstr_ptr(h->value), bstr_len(h->value), &filename, &filename_len);
         }
 
         /* fall back to name from the uri */
@@ -1679,7 +1679,7 @@ int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
         }
 
         if (filename != NULL) {
-            result = HTPFileOpen(hstate, filename, filename_len,
+            result = HTPFileOpen(hstate, filename, (uint32_t)filename_len,
                     data, data_len, hstate->transaction_cnt, STREAM_TOCLIENT);
             SCLogDebug("result %d", result);
             if (result == -1) {
