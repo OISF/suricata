@@ -812,9 +812,9 @@ int SCThresholdConfLineIsMultiline(char *line)
 int SCThresholdConfLineLength(FILE *fd) {
     long pos = ftell(fd);
     int len = 0;
-    char c;
+    int c;
 
-    while ( (c = fgetc(fd)) && c != '\n' && !feof(fd))
+    while ( (c = fgetc(fd)) && c != EOF && !feof(fd))
         len++;
 
     if (pos < 0)
