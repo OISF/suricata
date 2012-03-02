@@ -332,7 +332,7 @@ static void FileFree(File *ff) {
 }
 
 void FileContainerAdd(FileContainer *ffc, File *ff) {
-    if (ffc->head == NULL) {
+    if (ffc->head == NULL || ffc->tail == NULL) {
         ffc->head = ffc->tail = ff;
     } else {
         ffc->tail->next = ff;
@@ -358,7 +358,8 @@ int FileStore(File *ff) {
  */
 int FileSetTx(File *ff, uint16_t txid) {
     SCLogDebug("ff %p txid %"PRIu16, ff, txid);
-    ff->txid = txid;
+    if (ff != NULL)
+        ff->txid = txid;
     SCReturnInt(0);
 }
 

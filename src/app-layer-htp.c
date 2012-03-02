@@ -1559,15 +1559,17 @@ static int HtpRequestBodyHandlePOST(HtpState *hstate, HtpTxUserData *htud,
             filename_len = bstr_len(tx->parsed_uri->path);
         }
 
-        result = HTPFileOpen(hstate, filename, filename_len, data, data_len,
-                hstate->transaction_cnt, STREAM_TOSERVER);
-        if (result == -1) {
-            goto end;
-        } else if (result == -2) {
-            htud->flags |= HTP_DONTSTORE;
-        } else {
-            htud->flags |= HTP_FILENAME_SET;
-            htud->flags &= ~HTP_DONTSTORE;
+        if (filename != NULL) {
+            result = HTPFileOpen(hstate, filename, filename_len, data, data_len,
+                    hstate->transaction_cnt, STREAM_TOSERVER);
+            if (result == -1) {
+                goto end;
+            } else if (result == -2) {
+                htud->flags |= HTP_DONTSTORE;
+            } else {
+                htud->flags |= HTP_FILENAME_SET;
+                htud->flags &= ~HTP_DONTSTORE;
+            }
         }
     }
     else
@@ -1610,15 +1612,17 @@ static int HtpRequestBodyHandlePUT(HtpState *hstate, HtpTxUserData *htud,
             filename_len = bstr_len(tx->parsed_uri->path);
         }
 
-        result = HTPFileOpen(hstate, filename, filename_len, data, data_len,
-                hstate->transaction_cnt, STREAM_TOSERVER);
-        if (result == -1) {
-            goto end;
-        } else if (result == -2) {
-            htud->flags |= HTP_DONTSTORE;
-        } else {
-            htud->flags |= HTP_FILENAME_SET;
-            htud->flags &= ~HTP_DONTSTORE;
+        if (filename != NULL) {
+            result = HTPFileOpen(hstate, filename, filename_len, data, data_len,
+                    hstate->transaction_cnt, STREAM_TOSERVER);
+            if (result == -1) {
+                goto end;
+            } else if (result == -2) {
+                htud->flags |= HTP_DONTSTORE;
+            } else {
+                htud->flags |= HTP_FILENAME_SET;
+                htud->flags &= ~HTP_DONTSTORE;
+            }
         }
     }
     else
@@ -1674,16 +1678,18 @@ int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
             }
         }
 
-        result = HTPFileOpen(hstate, filename, filename_len,
+        if (filename != NULL) {
+            result = HTPFileOpen(hstate, filename, filename_len,
                     data, data_len, hstate->transaction_cnt, STREAM_TOCLIENT);
-        SCLogDebug("result %d", result);
-        if (result == -1) {
-            goto end;
-        } else if (result == -2) {
-            htud->flags |= HTP_DONTSTORE;
-        } else {
-            htud->flags |= HTP_FILENAME_SET;
-            htud->flags &= ~HTP_DONTSTORE;
+            SCLogDebug("result %d", result);
+            if (result == -1) {
+                goto end;
+            } else if (result == -2) {
+                htud->flags |= HTP_DONTSTORE;
+            } else {
+                htud->flags |= HTP_FILENAME_SET;
+                htud->flags &= ~HTP_DONTSTORE;
+            }
         }
     }
     else
