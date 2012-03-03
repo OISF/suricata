@@ -69,6 +69,10 @@ typedef struct SSLState_ {
     /* record length's length for SSLv2 */
     uint32_t record_lengths_length;
 
+    /* offset of the beginning of the current message (including header) */
+    uint32_t message_start;
+    uint32_t message_length;
+
     /* holds some state flags we need */
     uint32_t flags;
 

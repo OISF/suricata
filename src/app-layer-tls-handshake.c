@@ -84,8 +84,7 @@ int DecodeTLSHandshakeServerHello(SSLState *ssl_state, uint8_t *input, uint32_t 
 
     SCLogDebug("TLS Handshake Version %.4x Cipher %d Compression %d\n", version, ciphersuite, compressionmethod);
 
-    /* return the message length (TLS record - (handshake type + length)) */
-    return ssl_state->record_length-4;
+    return ssl_state->message_length;
 }
 
 int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uint32_t input_len)
