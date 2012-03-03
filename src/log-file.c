@@ -259,7 +259,7 @@ static void LogFileWriteJsonRecord(LogFileLogThread *aft, Packet *p, File *ff, i
             fprintf(fp, "\"state\": \"ERROR\", ");
             break;
         default:
-            fprintf(fp, "\"state\": \"UNKOWN\", ");
+            fprintf(fp, "\"state\": \"UNKNOWN\", ");
             break;
     }
     fprintf(fp, "\"stored\": %s, ", ff->flags & FILE_STORED ? "true" : "false");
