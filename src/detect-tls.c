@@ -203,7 +203,7 @@ static DetectTlsData *DetectTlsSubjectParse (char *str)
     ret = pcre_exec(subject_parse_regex, subject_parse_regex_study, str, strlen(str), 0, 0,
                     ov, MAX_SUBSTRINGS);
 
-    if (ret < 1 || ret > 3) {
+    if (ret != 3) {
         SCLogError(SC_ERR_PCRE_MATCH, "invalid tls.subject option");
         goto error;
     }

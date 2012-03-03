@@ -137,6 +137,10 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
                 //SCLogInfo("TLS Cert %d: %s\n", i, buffer);
                 if (i==0) {
                     ssl_state->cert0_subject = SCStrdup(buffer);
+                    if (ssl_state->cert0_subject == NULL) {
+                        DerFree(cert);
+                        return -1;
+                    }
                 }
             }
             rc = Asn1DerGetIssuerDN(cert, buffer, sizeof(buffer));
@@ -147,6 +151,10 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
                 //SCLogInfo("TLS IssuerDN %d: %s\n", i, buffer);
                 if (i==0) {
                     ssl_state->cert0_issuerdn = SCStrdup(buffer);
+                    if (ssl_state->cert0_issuerdn == NULL) {
+                        DerFree(cert);
+                        return -1;
+                    }
                 }
             }
             DerFree(cert);
