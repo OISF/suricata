@@ -47,6 +47,7 @@
 #define ASN1_OCTETSTRING 0x04
 #define ASN1_NULL        0x05
 #define ASN1_OID         0x06
+#define ASN1_UTF8STRING  0x0c
 #define ASN1_SEQUENCE    0x10
 #define ASN1_SET         0x11
 #define ASN1_PRINTSTRING 0x13

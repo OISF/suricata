@@ -166,15 +166,24 @@ int Asn1DerGetIssuerDN(const Asn1Generic *cert, char *buffer, uint32_t length)
             goto issuer_dn_error;
         node = node->next;
         node_str = node->data;
-        if (node_str == NULL
-            || !(node_str->type == ASN1_PRINTSTRING
-                 || node_str->type == ASN1_IA5STRING
-                 || node_str->type == ASN1_T61STRING))
+        if (node_str == NULL || node_str->str == NULL)
             goto issuer_dn_error;
 
-        strlcat(buffer, shortname, length);
-        strlcat(buffer, "=", length);
-        strlcat(buffer, node_str->str, length);
+        switch (node_str->type) {
+            case ASN1_PRINTSTRING:
+            case ASN1_IA5STRING:
+            case ASN1_T61STRING:
+            case ASN1_UTF8STRING:
+            case ASN1_OCTETSTRING:
+                strlcat(buffer, shortname, length);
+                strlcat(buffer, "=", length);
+                strlcat(buffer, node_str->str, length);
+                break;
+            default:
+                SCLogInfo("Unsupported 'string' type:'%d'", node_str->type);
+                goto issuer_dn_error;
+        }
+
         if (strcmp(shortname,"CN")==0)
             separator = "/";
         if (it->next != NULL)
@@ -224,21 +233,31 @@ int Asn1DerGetSubjectDN(const Asn1Generic *cert, char *buffer, uint32_t length)
             goto subject_dn_error;
         node = node->next;
         node_str = node->data;
-        if (node_str == NULL
-            || !(node_str->type == ASN1_PRINTSTRING
-                 || node_str->type == ASN1_IA5STRING
-                 || node_str->type == ASN1_T61STRING))
+        if (node_str == NULL || node_str->str == NULL)
             goto subject_dn_error;
 
-        strlcat(buffer, shortname, length);
-        strlcat(buffer, "=", length);
-        strlcat(buffer, node_str->str, length);
+        switch (node_str->type) {
+            case ASN1_PRINTSTRING:
+            case ASN1_IA5STRING:
+            case ASN1_T61STRING:
+            case ASN1_UTF8STRING:
+            case ASN1_OCTETSTRING:
+                strlcat(buffer, shortname, length);
+                strlcat(buffer, "=", length);
+                strlcat(buffer, node_str->str, length);
+                break;
+            default:
+                SCLogInfo("Unsupported 'string' type:'%d'", node_str->type);
+                goto subject_dn_error;
+        }
+
         if (strcmp(shortname,"CN")==0)
             separator = "/";
         if (it->next != NULL)
             strlcat(buffer, separator, length);
         it = it->next;
     }
+    SCLogDebug("read subject:'%s'", buffer);
 
     rc = 0;
 subject_dn_error:

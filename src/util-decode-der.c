@@ -66,6 +66,7 @@ static Asn1Generic * DecodeAsn1DerIA5String(const unsigned char *buffer, uint32_
 static Asn1Generic * DecodeAsn1DerInteger(const unsigned char *buffer, uint32_t size, uint8_t depth);
 static Asn1Generic * DecodeAsn1DerNull(const unsigned char *buffer, uint32_t size, uint8_t depth);
 static Asn1Generic * DecodeAsn1DerOctetString(const unsigned char *buffer, uint32_t size, uint8_t depth);
+static Asn1Generic * DecodeAsn1DerUTF8String(const unsigned char *buffer, uint32_t max_size, uint8_t depth);
 static Asn1Generic * DecodeAsn1DerOid(const unsigned char *buffer, uint32_t size, uint8_t depth);
 static Asn1Generic * DecodeAsn1DerPrintableString(const unsigned char *buffer, uint32_t size, uint8_t depth);
 static Asn1Generic * DecodeAsn1DerSequence(const unsigned char *buffer, uint32_t size, uint8_t depth);
@@ -170,6 +171,9 @@ static Asn1Generic * DecodeAsn1DerGeneric(const unsigned char *buffer, uint32_t 
             break;
         case ASN1_OCTETSTRING:
             child = DecodeAsn1DerOctetString(d_ptr, el_max_size, depth+1);
+            break;
+        case ASN1_UTF8STRING:
+            child = DecodeAsn1DerUTF8String(d_ptr, el_max_size, depth+1);
             break;
         case ASN1_PRINTSTRING:
             child = DecodeAsn1DerPrintableString(d_ptr, el_max_size, depth+1);
@@ -511,6 +515,14 @@ static Asn1Generic * DecodeAsn1DerOctetString(const unsigned char *buffer, uint3
     d_ptr += length;
 
     a->length = (d_ptr - buffer);
+    return a;
+}
+
+static Asn1Generic * DecodeAsn1DerUTF8String(const unsigned char *buffer, uint32_t max_size, uint8_t depth)
+{
+    Asn1Generic *a = DecodeAsn1DerOctetString(buffer, max_size, depth);
+    if (a != NULL)
+        a->type = ASN1_UTF8STRING;
     return a;
 }
 
