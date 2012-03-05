@@ -1031,7 +1031,7 @@ AC_CHECK_HEADER(pcap.h,,[AC_ERROR(pcap.h not found ...)])
         CPPFLAGS="${CPPFLAGS} -I${with_libnspr_includes}"
     fi
 
-    AC_CHECK_HEADER(nspr/nspr.h,NSPR="yes",NSPR="no")
+    AC_CHECK_HEADER(nspr.h,NSPR="yes",NSPR="no")
     if test "$NSPR" = "yes"; then
         if test "$with_libnspr_libraries" != "no"; then
             LDFLAGS="${LDFLAGS}  -L${with_libnspr_libraries}"
