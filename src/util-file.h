@@ -26,7 +26,7 @@
 #define __UTIL_FILE_H__
 
 #ifdef HAVE_NSS
-#include <nss/sechash.h>
+#include <sechash.h>
 #endif
 
 #define FILE_TRUNCATED  0x01
