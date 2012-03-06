@@ -825,6 +825,22 @@ DetectPcreData *DetectPcreParse (char *regexstr)
                     break;
 
                 case 'B': /* snort's option */
+                    if (pd->flags & DETECT_PCRE_URI) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'B' inconsistent with 'U'");
+                        goto error;
+                    }
+                    if (pd->flags & DETECT_PCRE_HEADER) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'B' inconsistent with 'H'");
+                        goto error;
+                    }
+                    if (pd->flags & DETECT_PCRE_COOKIE) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'B' inconsistent with 'C'");
+                        goto error;
+                    }
+                    if (pd->flags & DETECT_PCRE_METHOD) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'B' inconsistent with 'M'");
+                        goto error;
+                    }
                     pd->flags |= DETECT_PCRE_RAWBYTES;
                     break;
                 case 'R': /* snort's option */
@@ -832,36 +848,52 @@ DetectPcreData *DetectPcreParse (char *regexstr)
                     break;
                 case 'U': /* snort's option */
                     if (pd->flags & DETECT_PCRE_HTTP_RAW_URI) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier '%c' inconsistent with 'U'", *op);
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'U' inconsistent with 'I'");
                         goto error;
                     }
                     pd->flags |= DETECT_PCRE_URI;
                     break;
                 case 'H': /* snort's option */
                     if (pd->flags & DETECT_PCRE_RAW_HEADER) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier '%c' inconsistent with 'H'", *op);
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'H' inconsistent with 'D'");
+                        goto error;
+                    }
+                    if (pd->flags & DETECT_PCRE_RAWBYTES) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'H' inconsistent with 'B'");
                         goto error;
                     }
                     pd->flags |= DETECT_PCRE_HEADER;
                     break;
                 case 'I': /* snort's option */
                     if (pd->flags & DETECT_PCRE_URI) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier '%c' inconsistent with 'I'", *op);
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'I' inconsistent with 'U'");
+                        goto error;
+                    }
+                    if (pd->flags & DETECT_PCRE_RAWBYTES) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'I' inconsistent with 'B'");
                         goto error;
                     }
                     pd->flags |= DETECT_PCRE_HTTP_RAW_URI;
                     break;
                 case 'D': /* snort's option */
                     if (pd->flags & DETECT_PCRE_HEADER) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier '%c' inconsistent with 'D'", *op);
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'D' inconsistent with 'H'");
                         goto error;
                     }
                     pd->flags |= DETECT_PCRE_RAW_HEADER;
                     break;
                 case 'M': /* snort's option */
+                    if (pd->flags & DETECT_PCRE_RAWBYTES) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'M' inconsistent with 'B'");
+                        goto error;
+                    }
                     pd->flags |= DETECT_PCRE_METHOD;
                     break;
                 case 'C': /* snort's option */
+                    if (pd->flags & DETECT_PCRE_RAWBYTES) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'C' inconsistent with 'B'");
+                        goto error;
+                    }
                     pd->flags |= DETECT_PCRE_COOKIE;
                     break;
                 case 'O':
