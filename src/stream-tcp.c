@@ -7226,7 +7226,7 @@ static int StreamTcpTest23(void)
 //        goto end;
     }
 
-    if(ssn.client.seg_list_tail->payload_len != 4) {
+    if(ssn.client.seg_list_tail != NULL && ssn.client.seg_list_tail->payload_len != 4) {
         printf("failed in segment reassmebling: ");
         result &= 0;
     }
@@ -7314,7 +7314,7 @@ static int StreamTcpTest24(void)
         goto end;
     }
 
-    if(ssn.client.seg_list_tail->payload_len != 2) {
+    if(ssn.client.seg_list_tail != NULL && ssn.client.seg_list_tail->payload_len != 2) {
         printf("failed in segment reassmebling\n");
         result &= 0;
     }
