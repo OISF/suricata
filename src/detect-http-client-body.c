@@ -2180,7 +2180,7 @@ int DetectHttpClientBodyTest27(void)
 
     de_ctx->flags |= DE_QUIET;
     de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
-                               "(content:\"one\"; offset:10; http_client_body; pcre:/two/; distance:10; "
+                               "(content:\"one\"; offset:10; http_client_body; pcre:/two/; "
                                "content:\"three\"; distance:10; http_client_body; within:10; "
                                "content:\"four\"; distance:10; sid:1;)");
     if (de_ctx->sig_list == NULL) {
