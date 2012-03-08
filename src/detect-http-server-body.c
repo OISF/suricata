@@ -2209,6 +2209,7 @@ int DetectHttpServerBodyTest26(void)
     return result;
 }
 
+/** \test invalid combination for content: distance, depth, http_server_body */
 int DetectHttpServerBodyTest27(void)
 {
     DetectEngineCtx *de_ctx = NULL;
@@ -2222,8 +2223,8 @@ int DetectHttpServerBodyTest27(void)
                                "(content:\"one\"; offset:10; http_server_body; pcre:/two/; distance:10; "
                                "content:\"three\"; distance:10; http_server_body; depth:10; "
                                "content:\"four\"; distance:10; sid:1;)");
-    if (de_ctx->sig_list == NULL) {
-        printf("de_ctx->sig_list == NULL\n");
+    if (de_ctx->sig_list != NULL) {
+        printf("de_ctx->sig_list != NULL: ");
         goto end;
     }
 
