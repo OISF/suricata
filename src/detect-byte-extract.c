@@ -3734,8 +3734,6 @@ int DetectByteExtractTest55(void)
     DetectContentData *cd = NULL;
     DetectByteExtractData *bed1 = NULL;
     DetectByteExtractData *bed2 = NULL;
-    DetectByteExtractData *bed3 = NULL;
-    DetectByteExtractData *bed4 = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -3752,18 +3750,15 @@ int DetectByteExtractTest55(void)
                                    "content: \"four\"; within:two; distance:three; "
                                    "sid:1;)");
     if (de_ctx->sig_list == NULL) {
-        result = 0;
         goto end;
     }
 
     if (s->sm_lists_tail[DETECT_SM_LIST_PMATCH] == NULL) {
-        result = 0;
         goto end;
     }
 
     sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
     if (sm->type != DETECT_CONTENT) {
-        result = 0;
         goto end;
     }
     cd = (DetectContentData *)sm->ctx;
@@ -3775,14 +3770,12 @@ int DetectByteExtractTest55(void)
         cd->flags & DETECT_CONTENT_FAST_PATTERN ||
         !(cd->flags & DETECT_CONTENT_RELATIVE_NEXT) ||
         cd->flags & DETECT_CONTENT_NEGATED ) {
-        printf("one failed\n");
-        result = 0;
+        printf("one failed: ");
         goto end;
     }
 
     sm = sm->next;
     if (sm->type != DETECT_BYTE_EXTRACT) {
-        result = 0;
         goto end;
     }
     bed1 = (DetectByteExtractData *)sm->ctx;
@@ -3797,34 +3790,27 @@ int DetectByteExtractTest55(void)
         goto end;
     }
     if (bed1->local_id != 0) {
-        result = 0;
         goto end;
     }
 
     sm = sm->next;
     if (sm->type != DETECT_BYTE_EXTRACT) {
-        result = 0;
         goto end;
     }
     bed2 = (DetectByteExtractData *)sm->ctx;
 
     sm = sm->next;
     if (sm->type != DETECT_BYTE_EXTRACT) {
-        result = 0;
         goto end;
     }
-    bed3 = (DetectByteExtractData *)sm->ctx;
 
     sm = sm->next;
     if (sm->type != DETECT_BYTE_EXTRACT) {
-        result = 0;
         goto end;
     }
-    bed4 = (DetectByteExtractData *)sm->ctx;
 
     sm = sm->next;
     if (sm->type != DETECT_CONTENT) {
-        result = 0;
         goto end;
     }
     cd = (DetectContentData *)sm->ctx;
@@ -3835,8 +3821,7 @@ int DetectByteExtractTest55(void)
                       DETECT_CONTENT_WITHIN) ||
         cd->within != bed1->local_id ||
         cd->distance != bed2->local_id) {
-        printf("four failed\n");
-        result = 0;
+        printf("four failed: ");
         goto end;
     }
 
@@ -3863,8 +3848,6 @@ int DetectByteExtractTest56(void)
     DetectContentData *cd = NULL;
     DetectByteExtractData *bed1 = NULL;
     DetectByteExtractData *bed2 = NULL;
-    DetectByteExtractData *bed3 = NULL;
-    DetectByteExtractData *bed4 = NULL;
 
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
@@ -3965,14 +3948,12 @@ int DetectByteExtractTest56(void)
         result = 0;
         goto end;
     }
-    bed3 = (DetectByteExtractData *)sm->ctx;
 
     sm = sm->next;
     if (sm->type != DETECT_BYTE_EXTRACT) {
         result = 0;
         goto end;
     }
-    bed4 = (DetectByteExtractData *)sm->ctx;
 
     sm = sm->next;
     if (sm->type != DETECT_CONTENT) {

@@ -1454,7 +1454,7 @@ void TmThreadDisableReceiveThreads(void)
         TmSlot *slots = tv->tm_slots;
         TmModule *tm = TmModuleGetById(slots->tm_id);
 
-        if (!tm->flags & TM_FLAG_RECEIVE_TM) {
+        if (!(tm->flags & TM_FLAG_RECEIVE_TM)) {
             tv = tv->next;
             continue;
         }
