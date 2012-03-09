@@ -1145,7 +1145,7 @@ static int SCPerfOutputCounterFileIface()
 
                     break;
                 case SC_PERF_TYPE_DOUBLE:
-                    fprintf(sc_perf_op_ctx->fp, "%-25s | %-25s | %-lf\n",
+                    fprintf(sc_perf_op_ctx->fp, "%-25s | %-25s | %0.0lf\n",
                             pc->name->cname, pctmi->tm_name, double_result);
 
                     break;
