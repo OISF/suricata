@@ -27,6 +27,10 @@
 #ifndef __THREADS_H__
 #define __THREADS_H__
 
+#ifdef PROFILING
+#include "util-cpu.h"
+#endif
+
 #if defined OS_FREEBSD || __OpenBSD__
 
 #if ! defined __OpenBSD__
@@ -223,6 +227,31 @@ enum {
 #define SCMutexLock(mut) SCMutexLock_dbg(mut)
 #define SCMutexTrylock(mut) SCMutexTrylock_dbg(mut)
 #define SCMutexUnlock(mut) SCMutexUnlock_dbg(mut)
+#elif defined PROFILE_LOCKING
+#define SCMutexInit(mut, mutattr ) pthread_mutex_init(mut, mutattr)
+#define SCMutexUnlock(mut) pthread_mutex_unlock(mut)
+
+extern __thread uint64_t mutex_lock_contention;
+extern __thread uint64_t mutex_lock_wait_ticks;
+extern __thread uint64_t mutex_lock_cnt;
+
+//printf("%16s(%s:%d): (thread:%"PRIuMAX") locked mutex %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), mut, retl);
+#define SCMutexLock_profile(mut) ({ \
+    mutex_lock_cnt++; \
+    int retl = 0; \
+    uint64_t mutex_lock_start = UtilCpuGetTicks(); \
+    if (pthread_mutex_trylock((mut)) != 0) { \
+        mutex_lock_contention++; \
+        retl = pthread_mutex_lock(mut); \
+    } \
+    uint64_t mutex_lock_end = UtilCpuGetTicks(); \
+    mutex_lock_wait_ticks += (uint64_t)(mutex_lock_end - mutex_lock_start); \
+    retl; \
+})
+
+#define SCMutexLock(mut) SCMutexLock_profile(mut)
+#define SCMutexTrylock(mut) pthread_mutex_trylock(mut)
+
 #else
 #define SCMutexInit(mut, mutattr ) pthread_mutex_init(mut, mutattr)
 #define SCMutexLock(mut) pthread_mutex_lock(mut)
@@ -362,6 +391,32 @@ enum {
 #define SCSpinUnlock                            SCSpinUnlock_dbg
 #define SCSpinInit                              SCSpinInit_dbg
 #define SCSpinDestroy                           SCSpinDestroy_dbg
+#elif defined PROFILE_LOCKING
+
+extern __thread uint64_t spin_lock_contention;
+extern __thread uint64_t spin_lock_wait_ticks;
+extern __thread uint64_t spin_lock_cnt;
+
+//printf("%16s(%s:%d): (thread:%"PRIuMAX") locked mutex %p ret %" PRId32 "\n", __FUNCTION__, __FILE__, __LINE__, (uintmax_t)pthread_self(), mut, retl);
+#define SCSpinLock_profile(spin) ({ \
+    spin_lock_cnt++; \
+    int retl = 0; \
+    uint64_t spin_lock_start = UtilCpuGetTicks(); \
+    if (pthread_spin_trylock((spin)) != 0) { \
+        spin_lock_contention++; \
+        retl = pthread_spin_lock((spin)); \
+    } \
+    uint64_t spin_lock_end = UtilCpuGetTicks(); \
+    spin_lock_wait_ticks += (uint64_t)(spin_lock_end - spin_lock_start); \
+    retl; \
+})
+
+#define SCSpinLock(mut) SCSpinLock_profile(mut)
+#define SCSpinTrylock(spin)                     pthread_spin_trylock(spin)
+#define SCSpinUnlock(spin)                      pthread_spin_unlock(spin)
+#define SCSpinInit(spin, spin_attr)             pthread_spin_init(spin, spin_attr)
+#define SCSpinDestroy(spin)                     pthread_spin_destroy(spin)
+
 #else /* if no dbg threads defined... */
 #define SCSpinLock(spin)                        pthread_spin_lock(spin)
 #define SCSpinTrylock(spin)                     pthread_spin_trylock(spin)

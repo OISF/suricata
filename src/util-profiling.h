@@ -27,6 +27,8 @@
 
 #ifdef PROFILING
 
+//#define PROFILE_LOCKING
+
 #include "util-cpu.h"
 
 extern int profiling_rules_enabled;
@@ -67,16 +69,41 @@ void SCProfilingAddPacket(Packet *);
         SCProfilingAddPacket((p));                                  \
     }
 
+#ifdef PROFILE_LOCKING
+#define PACKET_PROFILING_RESET_LOCKS do {                           \
+        mutex_lock_cnt = 0;                                         \
+        mutex_lock_wait_ticks = 0;                                  \
+        mutex_lock_contention = 0;                                  \
+        spin_lock_cnt = 0;                                          \
+        spin_lock_wait_ticks = 0;                                   \
+        spin_lock_contention = 0;                                   \
+    } while (0)
+
+#define PACKET_PROFILING_COPY_LOCKS(p, id) do {                     \
+            (p)->profile.tmm[(id)].mutex_lock_cnt = mutex_lock_cnt; \
+            (p)->profile.tmm[(id)].mutex_lock_wait_ticks = mutex_lock_wait_ticks; \
+            (p)->profile.tmm[(id)].mutex_lock_contention = mutex_lock_contention; \
+            (p)->profile.tmm[(id)].spin_lock_cnt = spin_lock_cnt;   \
+            (p)->profile.tmm[(id)].spin_lock_wait_ticks = spin_lock_wait_ticks; \
+            (p)->profile.tmm[(id)].spin_lock_contention = spin_lock_contention; \
+    } while(0)
+#else
+#define PACKET_PROFILING_RESET_LOCKS
+#define PACKET_PROFILING_COPY_LOCKS(p, id)
+#endif
+
 #define PACKET_PROFILING_TMM_START(p, id)                           \
     if (profiling_packets_enabled) {                                \
         if ((id) < TMM_SIZE) {                                      \
             (p)->profile.tmm[(id)].ticks_start = UtilCpuGetTicks(); \
+            PACKET_PROFILING_RESET_LOCKS;                           \
         }                                                           \
     }
 
 #define PACKET_PROFILING_TMM_END(p, id)                             \
     if (profiling_packets_enabled) {                                \
         if ((id) < TMM_SIZE) {                                      \
+            PACKET_PROFILING_COPY_LOCKS((p), (id));                 \
             (p)->profile.tmm[(id)].ticks_end = UtilCpuGetTicks();   \
         }                                                           \
     }

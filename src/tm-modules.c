@@ -246,6 +246,8 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_LOGHTTPLOG4);
         CASE_CODE (TMM_LOGHTTPLOG6);
         CASE_CODE (TMM_PCAPLOG);
+        CASE_CODE (TMM_FILELOG);
+        CASE_CODE (TMM_FILESTORE);
         CASE_CODE (TMM_STREAMTCP);
         CASE_CODE (TMM_DECODEIPFW);
         CASE_CODE (TMM_VERDICTIPFW);
@@ -261,6 +263,7 @@ const char * TmModuleTmmIdToString(TmmId id)
         CASE_CODE (TMM_RECEIVENAPATECH);
         CASE_CODE (TMM_DECODENAPATECH);
         CASE_CODE (TMM_RECEIVEAFP);
+        CASE_CODE (TMM_ALERTPCAPINFO);
         CASE_CODE (TMM_DECODEAFP);
 
         default:

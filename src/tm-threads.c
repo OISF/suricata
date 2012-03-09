@@ -43,6 +43,16 @@
 #include "util-optimize.h"
 #include "util-profiling.h"
 
+#ifdef PROFILE_LOCKING
+__thread uint64_t mutex_lock_contention;
+__thread uint64_t mutex_lock_wait_ticks;
+__thread uint64_t mutex_lock_cnt;
+
+__thread uint64_t spin_lock_contention;
+__thread uint64_t spin_lock_wait_ticks;
+__thread uint64_t spin_lock_cnt;
+#endif
+
 #ifdef OS_FREEBSD
 #include <sched.h>
 #include <sys/param.h>

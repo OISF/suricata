@@ -87,6 +87,15 @@ typedef struct SCProfilePacketData_ {
     uint64_t max;
     uint64_t tot;
     uint64_t cnt;
+#ifdef PROFILE_LOCKING
+    uint64_t lock;
+    uint64_t ticks;
+    uint64_t contention;
+
+    uint64_t slock;
+    uint64_t sticks;
+    uint64_t scontention;
+#endif
 } SCProfilePacketData;
 SCProfilePacketData packet_profile_data4[257]; /**< all proto's + tunnel */
 SCProfilePacketData packet_profile_data6[257]; /**< all proto's + tunnel */
@@ -710,10 +719,22 @@ void SCProfilingDumpPacketStats(void) {
 
     fprintf(fp, "\nPer Thread module stats:\n");
 
-    fprintf(fp, "\n%-24s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s\n",
+    fprintf(fp, "\n%-24s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s",
             "Thread Module", "IP ver", "Proto", "cnt", "min", "max", "avg");
-    fprintf(fp, "%-24s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s\n",
+#ifdef PROFILE_LOCKING
+    fprintf(fp, "   %-10s   %-10s   %-12s   %-12s   %-10s   %-10s   %-12s   %-12s\n",
+            "locks", "ticks", "cont.", "cont.avg", "slocks", "sticks", "scont.", "scont.avg");
+#else
+    fprintf(fp, "\n");
+#endif
+    fprintf(fp, "%-24s   %-6s   %-5s   %-12s   %-12s   %-12s   %-12s",
             "------------------------", "------", "-----", "----------", "------------", "------------", "-----------");
+#ifdef PROFILE_LOCKING
+    fprintf(fp, "   %-10s   %-10s   %-12s   %-12s   %-10s   %-10s   %-12s   %-12s\n",
+            "--------", "--------", "----------", "-----------", "--------", "--------", "------------", "-----------");
+#else
+    fprintf(fp, "\n");
+#endif
     int m;
     for (m = 0; m < TMM_SIZE; m++) {
         int p;
@@ -724,8 +745,14 @@ void SCProfilingDumpPacketStats(void) {
                 continue;
             }
 
-            fprintf(fp, "%-24s    IPv4     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64"\n",
+            fprintf(fp, "%-24s    IPv4     %3d  %12"PRIu64"     %12"PRIu64"   %12"PRIu64"  %12"PRIu64,
                     TmModuleTmmIdToString(m), p, pd->cnt, pd->min, pd->max, (uint64_t)(pd->tot / pd->cnt));
+#ifdef PROFILE_LOCKING
+            fprintf(fp, "  %10.2f  %12"PRIu64"  %12"PRIu64"  %10.2f  %10.2f  %12"PRIu64"  %12"PRIu64"  %10.2f\n",
+                    (float)pd->lock/pd->cnt, (uint64_t)pd->ticks/pd->cnt, pd->contention, (float)pd->contention/pd->cnt, (float)pd->slock/pd->cnt, (uint64_t)pd->sticks/pd->cnt, pd->scontention, (float)pd->scontention/pd->cnt);
+#else
+            fprintf(fp, "\n");
+#endif
         }
     }
 
@@ -1015,6 +1042,15 @@ void SCProfilingUpdatePacketTmmRecord(int module, uint8_t proto, PktProfilingTmm
 
     pd->tot += (uint64_t)delta;
     pd->cnt ++;
+
+#ifdef PROFILE_LOCKING
+    pd->lock += pdt->mutex_lock_cnt;
+    pd->ticks += pdt->mutex_lock_wait_ticks;
+    pd->contention += pdt->mutex_lock_contention;
+    pd->slock += pdt->spin_lock_cnt;
+    pd->sticks += pdt->spin_lock_wait_ticks;
+    pd->scontention += pdt->spin_lock_contention;
+#endif
 }
 
 void SCProfilingUpdatePacketTmmRecords(Packet *p) {
