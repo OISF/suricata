@@ -1033,7 +1033,7 @@ AC_INIT(configure.in)
     fi
 
   # libnspr
-    enable_nspr = "no"
+    enable_nspr="no"
     AC_ARG_WITH(libnspr_includes,
             [  --with-libnspr-includes=DIR  libnspr include directory],
             [with_libnspr_includes="$withval"],[with_libnspr_includes=no])
@@ -1063,11 +1063,11 @@ AC_INIT(configure.in)
             echo
             exit 1
         fi
-        enable_nspr = "yes"
+        enable_nspr="yes"
     fi
 
   # libnss
-    enable_nss = "no"
+    enable_nss="no"
     AC_ARG_WITH(libnss_includes,
             [  --with-libnss-includes=DIR  libnss include directory],
             [with_libnss_includes="$withval"],[with_libnss_includes=no])
@@ -1099,7 +1099,7 @@ AC_INIT(configure.in)
         fi
 
         AC_DEFINE([HAVE_NSS],[1],[libnss available for md5])
-        enable_nss = "yes"
+        enable_nss="yes"
     fi
 
   # libmagic
