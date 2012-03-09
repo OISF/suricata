@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -78,25 +78,8 @@ FlowProto flow_proto[FLOW_PROTO_MAX];
 /** spare/unused/prealloced flows live here */
 FlowQueue flow_spare_q;
 
-/** Flows in the new/unreplied state live here */
-FlowQueue flow_new_q[FLOW_PROTO_MAX];
-
-/** All "established" flows live here, the top holds the
- *  last recently used (lru) flow, so we can remove
- *  that in case of memory problems and check it for
- *  timeouts. */
-FlowQueue flow_est_q[FLOW_PROTO_MAX];
-
-/** All "closing" flows live here, the top holds the
- *  last recently used (lru) flow, so we can remove
- *  that in case of memory problems and check it for
- *  timeouts. */
-FlowQueue flow_close_q[FLOW_PROTO_MAX];
-
 FlowBucket *flow_hash;
 FlowConfig flow_config;
-
-uint8_t flow_flags;
 
 /** flow memuse counter (atomic), for enforcing memcap limit */
 SC_ATOMIC_DECLARE(long long unsigned int, flow_memuse);

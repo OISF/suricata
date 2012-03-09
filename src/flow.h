@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -42,12 +42,7 @@
 /** At least on packet from the destination address was seen */
 #define FLOW_TO_DST_SEEN                  0x00000002
 
-/** Flow lives in the flow-state-NEW list */
-#define FLOW_NEW_LIST                     0x00000004
-/** Flow lives in the flow-state-EST (established) list */
-#define FLOW_EST_LIST                     0x00000008
-/** Flow lives in the flow-state-CLOSED list */
-#define FLOW_CLOSED_LIST                  0x00000010
+// vacany 3x
 
 /** Flow was inspected against IP-Only sigs in the toserver direction */
 #define FLOW_TOSERVER_IPONLY_SET          0x00000020
@@ -310,7 +305,6 @@ typedef struct Flow_
     /** queue list pointers, protected by queue mutex */
     struct Flow_ *lnext; /* list */
     struct Flow_ *lprev;
-
     struct timeval startts;
 #ifdef DEBUG
     uint32_t todstpktcnt;
@@ -346,9 +340,6 @@ void FlowSetIPOnlyFlagNoLock(Flow *, char);
 void FlowIncrUsecnt(Flow *);
 void FlowDecrUsecnt(Flow *);
 
-uint32_t FlowPruneFlowsCnt(struct timeval *, int);
-uint32_t FlowKillFlowsCnt(int);
-
 void FlowRegisterTests (void);
 int FlowSetProtoTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
 int FlowSetProtoEmergencyTimeout(uint8_t ,uint32_t ,uint32_t ,uint32_t);
@@ -359,7 +350,6 @@ void FlowUpdateQueue(Flow *);
 struct FlowQueue_;
 
 int FlowUpdateSpareFlows(void);
-uint32_t FlowPruneFlowQueue(struct FlowQueue_ *, struct timeval *);
 
 static inline void FlowLockSetNoPacketInspectionFlag(Flow *);
 static inline void FlowSetNoPacketInspectionFlag(Flow *);
@@ -437,6 +427,7 @@ static inline void FlowSetSessionNoApplayerInspectionFlag(Flow *f) {
     f->flags |= FLOW_NO_APPLAYER_INSPECTION;
 }
 
+int FlowClearMemory(Flow *,uint8_t );
 
 #endif /* __FLOW_H__ */
 

@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -41,6 +41,11 @@
 #include "util-debug.h"
 
 #define FLOW_DEFAULT_FLOW_PRUNE 5
+
+SC_ATOMIC_EXTERN(unsigned int, flow_prune_idx);
+SC_ATOMIC_EXTERN(unsigned char, flow_flags);
+
+static Flow *FlowGetUsedFlow(void);
 
 #ifdef FLOW_DEBUG_STATS
 #define FLOW_DEBUG_STATS_PROTO_ALL      0
@@ -300,56 +305,33 @@ static Flow *FlowGetNew(Packet *p) {
         return NULL;
     }
 
-    /* no, so get a new one */
+    /* get a flow from the spare queue */
     f = FlowDequeue(&flow_spare_q);
     if (f == NULL) {
-        /* If we reached the max memcap, try to clean some flows:
-         * 1- first by normal timeouts
-         * 2- by emergency mode timeouts
-         * 3- by last time seen
-         */
+        /* If we reached the max memcap, we get a used flow */
         if ((SC_ATOMIC_GET(flow_memuse) + sizeof(Flow)) > flow_config.memcap) {
-            uint32_t not_released = 0;
+            /* declare state of emergency */
+            if (!(SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY)) {
+                SC_ATOMIC_OR(flow_flags, FLOW_EMERGENCY);
 
-            SCLogDebug("We need to prune some flows(1)");
-
-            /* Ok, then try to release flow_try_release flows */
-            not_released = FlowPruneFlowsCnt(&p->ts, flow_config.flow_try_release);
-            if (not_released == (uint32_t)flow_config.flow_try_release) {
-                /* This means that none of the flows was released, so try again
-                 * with more agressive timeout values (emergency mode) */
-
-                if ( !(flow_flags & FLOW_EMERGENCY)) {
-                    SCLogWarning(SC_WARN_FLOW_EMERGENCY, "Warning, engine "
-                            "running with FLOW_EMERGENCY bit set "
-                            "(ts.tv_sec: %"PRIuMAX", ts.tv_usec:%"PRIuMAX")",
-                            (uintmax_t)p->ts.tv_sec, (uintmax_t)p->ts.tv_usec);
-                    flow_flags |= FLOW_EMERGENCY; /* XXX mutex this */
-                    FlowWakeupFlowManagerThread();
-                }
-                SCLogDebug("We need to prune some flows with emerg bit (2)");
-
-                not_released = FlowPruneFlowsCnt(&p->ts, FLOW_DEFAULT_FLOW_PRUNE);
-                if (not_released == (uint32_t)flow_config.flow_try_release) {
-                    /* Here the engine is on a real stress situation
-                     * Try to kill the last time seen "flow_try_release" flows
-                     * directly, ignoring timeouts */
-                    SCLogDebug("We need to KILL some flows (3)");
-                    not_released = FlowKillFlowsCnt(FLOW_DEFAULT_FLOW_PRUNE);
-                    if (not_released == (uint32_t)flow_config.flow_try_release) {
-                        return NULL;
-                    }
-                }
+                /* under high load, waking up the flow mgr each time leads
+                 * to high cpu usage. Flows are not timed out much faster if
+                 * we check a 1000 times a second. */
+                FlowWakeupFlowManagerThread();
             }
-        }
 
-        /* now see if we can alloc a new flow */
-        f = FlowAlloc();
-        if (f == NULL) {
-            return NULL;
-        }
+            f = FlowGetUsedFlow();
 
-        /* flow is initialized but *unlocked* */
+            /* freed a flow, but it's unlocked */
+        } else {
+            /* now see if we can alloc a new flow */
+            f = FlowAlloc();
+            if (f == NULL) {
+                return NULL;
+            }
+
+            /* flow is initialized but *unlocked* */
+        }
     } else {
         /* flow has been recycled before it went into the spare queue */
 
@@ -383,37 +365,36 @@ Flow *FlowGetFlowFromHash (Packet *p)
     uint32_t key = FlowGetKey(p);
     /* get our hash bucket and lock it */
     FlowBucket *fb = &flow_hash[key];
-    SCSpinLock(&fb->s);
+    FBLOCK_LOCK(fb);
 
-    SCLogDebug("fb %p fb->f %p", fb, fb->f);
+    SCLogDebug("fb %p fb->head %p", fb, fb->head);
 
     FlowHashCountIncr;
 
     /* see if the bucket already has a flow */
-    if (fb->f == NULL) {
-        f = fb->f = FlowGetNew(p);
+    if (fb->head == NULL) {
+        f = FlowGetNew(p);
         if (f == NULL) {
-            SCSpinUnlock(&fb->s);
+            FBLOCK_UNLOCK(fb);
             FlowHashCountUpdate;
             return NULL;
         }
 
         /* flow is locked */
+        fb->head = f;
+        fb->tail = f;
 
         /* got one, now lock, initialize and return */
         FlowInit(f,p);
-        f->flags |= FLOW_NEW_LIST;
         f->fb = fb;
 
-        FlowEnqueue(&flow_new_q[f->protomap], f);
-
-        SCSpinUnlock(&fb->s);
+        FBLOCK_UNLOCK(fb);
         FlowHashCountUpdate;
         return f;
     }
 
     /* ok, we have a flow in the bucket. Let's find out if it is our flow */
-    f = fb->f;
+    f = fb->head;
 
     /* see if this is the flow we are looking for */
     if (FlowCompare(f, p) == 0) {
@@ -428,10 +409,11 @@ Flow *FlowGetFlowFromHash (Packet *p)
             if (f == NULL) {
                 f = pf->hnext = FlowGetNew(p);
                 if (f == NULL) {
-                    SCSpinUnlock(&fb->s);
+                    FBLOCK_UNLOCK(fb);
                     FlowHashCountUpdate;
                     return NULL;
                 }
+                fb->tail = f;
 
                 /* flow is locked */
 
@@ -439,13 +421,9 @@ Flow *FlowGetFlowFromHash (Packet *p)
 
                 /* initialize and return */
                 FlowInit(f,p);
-
-                f->flags |= FLOW_NEW_LIST;
                 f->fb = fb;
 
-                FlowEnqueue(&flow_new_q[f->protomap], f);
-
-                SCSpinUnlock(&fb->s);
+                FBLOCK_UNLOCK(fb);
                 FlowHashCountUpdate;
                 return f;
             }
@@ -453,18 +431,25 @@ Flow *FlowGetFlowFromHash (Packet *p)
             if (FlowCompare(f, p) != 0) {
                 /* we found our flow, lets put it on top of the
                  * hash list -- this rewards active flows */
-                if (f->hnext) f->hnext->hprev = f->hprev;
-                if (f->hprev) f->hprev->hnext = f->hnext;
+                if (f->hnext) {
+                    f->hnext->hprev = f->hprev;
+                }
+                if (f->hprev) {
+                    f->hprev->hnext = f->hnext;
+                }
+                if (f == fb->tail) {
+                    fb->tail = f->hprev;
+                }
 
-                f->hnext = fb->f;
+                f->hnext = fb->head;
                 f->hprev = NULL;
-                fb->f->hprev = f;
-                fb->f = f;
+                fb->head->hprev = f;
+                fb->head = f;
 
                 /* found our flow, lock & return */
                 FlowIncrUsecnt(f);
                 SCMutexLock(&f->m);
-                SCSpinUnlock(&fb->s);
+                FBLOCK_UNLOCK(fb);
                 FlowHashCountUpdate;
                 return f;
             }
@@ -474,8 +459,79 @@ Flow *FlowGetFlowFromHash (Packet *p)
     /* lock & return */
     FlowIncrUsecnt(f);
     SCMutexLock(&f->m);
-    SCSpinUnlock(&fb->s);
+    FBLOCK_UNLOCK(fb);
     FlowHashCountUpdate;
     return f;
 }
 
+/** \internal
+ *  \brief Get a flow from the hash directly.
+ *
+ *  Called in conditions where the spare queue is empty and memcap is reached.
+ *
+ *  Walks the hash until a flow can be freed. Timeouts are disregarded, use_cnt
+ *  is adhered to. "flow_prune_idx" atomic int makes sure we don't start at the
+ *  top each time since that would clear the top of the hash leading to longer
+ *  and longer search times under high pressure (observed).
+ *
+ *  \retval f flow or NULL
+ */
+static Flow *FlowGetUsedFlow(void) {
+    uint32_t idx = SC_ATOMIC_GET(flow_prune_idx) % flow_config.hash_size;
+    uint32_t cnt = flow_config.hash_size;
+
+    while (cnt--) {
+        if (idx++ >= flow_config.hash_size)
+            idx = 0;
+
+        FlowBucket *fb = &flow_hash[idx];
+        if (fb == NULL)
+            continue;
+
+        if (FBLOCK_TRYLOCK(fb) != 0)
+            continue;
+
+        Flow *f = fb->tail;
+        if (f == NULL) {
+            FBLOCK_UNLOCK(fb);
+            continue;
+        }
+
+        if (SCMutexTrylock(&f->m) != 0) {
+            FBLOCK_UNLOCK(fb);
+            continue;
+        }
+
+        /** never prune a flow that is used by a packet or stream msg
+         *  we are currently processing in one of the threads */
+        if (SC_ATOMIC_GET(f->use_cnt) > 0) {
+            FBLOCK_UNLOCK(fb);
+            SCMutexUnlock(&f->m);
+            continue;
+        }
+
+        /* remove from the hash */
+        if (f->hprev != NULL)
+            f->hprev->hnext = f->hnext;
+        if (f->hnext != NULL)
+            f->hnext->hprev = f->hprev;
+        if (fb->head == f)
+            fb->head = f->hnext;
+        if (fb->tail == f)
+            fb->tail = f->hprev;
+
+        f->hnext = NULL;
+        f->hprev = NULL;
+        f->fb = NULL;
+        FBLOCK_UNLOCK(fb);
+
+        FlowClearMemory (f, f->protomap);
+
+        SCMutexUnlock(&f->m);
+
+        SC_ATOMIC_ADD(flow_prune_idx, (flow_config.hash_size - cnt));
+        return f;
+    }
+
+    return NULL;
+}

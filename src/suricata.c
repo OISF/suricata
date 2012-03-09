@@ -1794,7 +1794,6 @@ int main(int argc, char **argv)
     TmThreadKillThreads();
     SCPerfReleaseResources();
     FlowShutdown();
-    FlowPrintQueueInfo();
     StreamTcpFreeConfig(STREAM_VERBOSE);
     HTPFreeConfig();
     HTPAtExitPrintStats();

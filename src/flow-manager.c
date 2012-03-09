@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,6 +19,7 @@
  * \file
  *
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
+ * \author Victor Julien <victor@inliniac.net>
  */
 
 #include "suricata-common.h"
@@ -62,13 +63,21 @@
 /* Run mode selected at suricata.c */
 extern int run_mode;
 
-/* 0.4 seconds */
+SC_ATOMIC_EXTERN(unsigned char, flow_flags);
+
+/* 1 seconds */
 #define FLOW_NORMAL_MODE_UPDATE_DELAY_SEC 1
 #define FLOW_NORMAL_MODE_UPDATE_DELAY_NSEC 0
-/* 0.01 seconds */
+/* 0.1 seconds */
 #define FLOW_EMERG_MODE_UPDATE_DELAY_SEC 0
-#define FLOW_EMERG_MODE_UPDATE_DELAY_NSEC 10000000
+#define FLOW_EMERG_MODE_UPDATE_DELAY_NSEC 100000
 #define NEW_FLOW_COUNT_COND 10
+
+typedef struct FlowTimeoutCounters_ {
+    uint32_t new;
+    uint32_t est;
+    uint32_t clo;
+} FlowTimeoutCounters;
 
 /**
  * \brief Used to kill flow manager thread(s).
@@ -112,24 +121,257 @@ void FlowKillFlowManagerThread(void)
     return;
 }
 
-/** \brief Thread that manages the various queue's and removes timed out flows.
+/** \internal
+ *  \brief Get the flow's state
+ *
+ *  \param f flow
+ *
+ *  \retval state either FLOW_STATE_NEW, FLOW_STATE_ESTABLISHED or FLOW_STATE_CLOSED
+ */
+static inline int FlowGetFlowState(Flow *f) {
+    if (flow_proto[f->protomap].GetProtoState != NULL) {
+        return flow_proto[f->protomap].GetProtoState(f->protoctx);
+    } else {
+        if (f->flags & FLOW_TO_SRC_SEEN && f->flags & FLOW_TO_DST_SEEN)
+            return FLOW_STATE_ESTABLISHED;
+        else
+            return FLOW_STATE_NEW;
+    }
+}
+
+/** \internal
+ *  \brief get timeout for flow
+ *
+ *  \param f flow
+ *  \param state flow state
+ *  \param emergency bool indicating emergency mode 1 yes, 0 no
+ *
+ *  \retval timeout timeout in seconds
+ */
+static inline uint32_t FlowGetFlowTimeout(Flow *f, int state, int emergency) {
+    uint32_t timeout;
+
+    if (emergency) {
+        switch(state) {
+            default:
+            case FLOW_STATE_NEW:
+                timeout = flow_proto[f->protomap].emerg_new_timeout;
+                break;
+            case FLOW_STATE_ESTABLISHED:
+                timeout = flow_proto[f->protomap].emerg_est_timeout;
+                break;
+            case FLOW_STATE_CLOSED:
+                timeout = flow_proto[f->protomap].emerg_closed_timeout;
+                break;
+        }
+    } else { /* implies no emergency */
+        switch(state) {
+            default:
+            case FLOW_STATE_NEW:
+                timeout = flow_proto[f->protomap].new_timeout;
+                break;
+            case FLOW_STATE_ESTABLISHED:
+                timeout = flow_proto[f->protomap].est_timeout;
+                break;
+            case FLOW_STATE_CLOSED:
+                timeout = flow_proto[f->protomap].closed_timeout;
+                break;
+        }
+    }
+
+    return timeout;
+}
+
+/** \internal
+ *  \brief check if a flow is timed out
+ *
+ *  \param f flow
+ *  \param ts timestamp
+ *  \param emergency bool indicating emergency mode
+ *
+ *  \retval 0 not timed out
+ *  \retval 1 timed out
+ */
+static int FlowManagerFlowTimeout(Flow *f, int state, struct timeval *ts, int emergency) {
+    /* set the timeout value according to the flow operating mode,
+     * flow's state and protocol.*/
+    uint32_t timeout = FlowGetFlowTimeout(f, state, emergency);
+
+    /* do the timeout check */
+    if ((int32_t)(f->lastts_sec + timeout) >= ts->tv_sec) {
+        return 0;
+    }
+
+    return 1;
+}
+
+/** \internal
+ *  \brief See if we can really discard this flow. Check use_cnt reference
+ *         counter and force reassembly if necessary.
+ *
+ *  \param f flow
+ *  \param ts timestamp
+ *  \param emergency bool indicating emergency mode
+ *
+ *  \retval 0 not timed out just yet
+ *  \retval 1 fully timed out, lets kill it
+ */
+static int FlowManagerFlowTimedOut(Flow *f, struct timeval *ts) {
+    /** never prune a flow that is used by a packet or stream msg
+     *  we are currently processing in one of the threads */
+    if (SC_ATOMIC_GET(f->use_cnt) > 0) {
+        return 0;
+    }
+
+    int server = 0, client = 0;
+    if (FlowForceReassemblyNeedReassmbly(f, &server, &client) == 1) {
+        FlowForceReassemblyForFlowV2(f, server, client);
+        return 0;
+    }
+#ifdef DEBUG
+    /* this should not be possible */
+    BUG_ON(SC_ATOMIC_GET(f->use_cnt) > 0);
+#endif
+
+    return 1;
+}
+
+/**
+ *  \internal
+ *
+ *  \brief check all flows in a hash row for timing out
+ *
+ *  \param f last flow in the hash row
+ *  \param ts timestamp
+ *  \param emergency bool indicating emergency mode
+ *  \param counters ptr to FlowTimeoutCounters structure
+ *
+ *  \retval cnt timed out flows
+ */
+static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
+        int emergency, FlowTimeoutCounters *counters)
+{
+    uint32_t cnt = 0;
+
+    do {
+        if (SCMutexTrylock(&f->m) != 0) {
+            f = f->hprev;
+            continue;
+        }
+
+        Flow *next_flow = f->hprev;
+
+        int state = FlowGetFlowState(f);
+
+        /* timeout logic goes here */
+        if (FlowManagerFlowTimeout(f, state, ts, emergency) == 0) {
+            SCMutexUnlock(&f->m);
+            f = f->hprev;
+            continue;
+        }
+
+        /* check if the flow is fully timed out and
+         * ready to be discarded. */
+        if (FlowManagerFlowTimedOut(f, ts) == 1) {
+            /* remove from the hash */
+            if (f->hprev != NULL)
+                f->hprev->hnext = f->hnext;
+            if (f->hnext != NULL)
+                f->hnext->hprev = f->hprev;
+            if (f->fb->head == f)
+                f->fb->head = f->hnext;
+            if (f->fb->tail == f)
+                f->fb->tail = f->hprev;
+
+            f->hnext = NULL;
+            f->hprev = NULL;
+
+            FlowClearMemory (f, f->protomap);
+
+            /* no one is referring to this flow, use_cnt 0, removed from hash
+             * so we can unlock it and move it back to the spare queue. */
+            SCMutexUnlock(&f->m);
+
+            /* move to spare list */
+            FlowMoveToSpare(f);
+
+            cnt++;
+
+            switch (state) {
+                case FLOW_STATE_NEW:
+                default:
+                    counters->new++;
+                    break;
+                case FLOW_STATE_ESTABLISHED:
+                    counters->est++;
+                    break;
+                case FLOW_STATE_CLOSED:
+                    counters->clo++;
+                    break;
+            }
+        } else {
+            SCMutexUnlock(&f->m);
+        }
+
+        f = next_flow;
+    } while (f != NULL);
+
+    return cnt;
+}
+
+/**
+ *  \brief time out flows from the hash
+ *
+ *  \param ts timestamp
+ *  \param try_cnt number of flows to time out max (0 is unlimited)
+ *  \param counters ptr to FlowTimeoutCounters structure
+ *
+ *  \retval cnt number of timed out flow
+ */
+uint32_t FlowTimeoutHash(struct timeval *ts, uint32_t try_cnt, FlowTimeoutCounters *counters) {
+    uint32_t idx = 0;
+    uint32_t cnt = 0;
+    int emergency = 0;
+
+    if (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY)
+        emergency = 1;
+
+    for (idx = 0; idx < flow_config.hash_size; idx++) {
+        FlowBucket *fb = &flow_hash[idx];
+        if (fb == NULL)
+            continue;
+        if (FBLOCK_TRYLOCK(fb) != 0)
+            continue;
+
+        /* flow hash bucket is now locked */
+
+        if (fb->tail == NULL)
+            goto next;
+
+        /* we have a flow, or more than one */
+        cnt += FlowManagerHashRowTimeout(fb->tail, ts, emergency, counters);
+
+next:
+        FBLOCK_UNLOCK(fb);
+
+        if (try_cnt > 0 && cnt >= try_cnt)
+            break;
+    }
+
+    return cnt;
+}
+
+/** \brief Thread that manages the flow table and times out flows.
+ *
  *  \param td ThreadVars casted to void ptr
  *
- * IDEAS/TODO
- * Create a 'emergency mode' in which flow handling threads can indicate
- * we are/seem to be under attack..... maybe this thread should check
- * key indicators for that like:
- * - number of flows created in the last x time
- * - avg number of pkts per flow (how?)
- * - avg flow age
- *
- * Keep an eye on the spare list, alloc flows if needed...
+ *  Keeps an eye on the spare list, alloc flows if needed...
  */
 void *FlowManagerThread(void *td)
 {
     ThreadVars *th_v = (ThreadVars *)td;
     struct timeval ts;
-    uint32_t established_cnt = 0, new_cnt = 0, closing_cnt = 0, nowcnt;
+    uint32_t established_cnt = 0, new_cnt = 0, closing_cnt = 0;
     int emerg = FALSE;
     int prev_emerg = FALSE;
     uint32_t last_sec = 0;
@@ -137,16 +379,19 @@ void *FlowManagerThread(void *td)
     int flow_update_delay_sec = FLOW_NORMAL_MODE_UPDATE_DELAY_SEC;
     int flow_update_delay_nsec = FLOW_NORMAL_MODE_UPDATE_DELAY_NSEC;
 
-    uint16_t flow_mgr_closing_cnt = SCPerfTVRegisterCounter("flow_mgr.closed_pruned", th_v,
+    uint16_t flow_mgr_cnt_clo = SCPerfTVRegisterCounter("flow_mgr.closed_pruned", th_v,
             SC_PERF_TYPE_UINT64,
             "NULL");
-    uint16_t flow_mgr_new_cnt = SCPerfTVRegisterCounter("flow_mgr.new_pruned", th_v,
+    uint16_t flow_mgr_cnt_new = SCPerfTVRegisterCounter("flow_mgr.new_pruned", th_v,
             SC_PERF_TYPE_UINT64,
             "NULL");
-    uint16_t flow_mgr_established_cnt = SCPerfTVRegisterCounter("flow_mgr.est_pruned", th_v,
+    uint16_t flow_mgr_cnt_est = SCPerfTVRegisterCounter("flow_mgr.est_pruned", th_v,
             SC_PERF_TYPE_UINT64,
             "NULL");
     uint16_t flow_mgr_memuse = SCPerfTVRegisterCounter("flow.memuse", th_v,
+            SC_PERF_TYPE_Q_NORMAL,
+            "NULL");
+    uint16_t flow_mgr_spare = SCPerfTVRegisterCounter("flow.spare", th_v,
             SC_PERF_TYPE_Q_NORMAL,
             "NULL");
     uint16_t flow_emerg_mode_enter = SCPerfTVRegisterCounter("flow.emerg_mode_entered", th_v,
@@ -178,7 +423,7 @@ void *FlowManagerThread(void *td)
     {
         TmThreadTestThreadUnPaused(th_v);
 
-        if (flow_flags & FLOW_EMERGENCY) {
+        if (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY) {
             emerg = TRUE;
 
             if (emerg == TRUE && prev_emerg == FALSE) {
@@ -203,58 +448,36 @@ void *FlowManagerThread(void *td)
         /* see if we still have enough spare flows */
         FlowUpdateSpareFlows();
 
-        int i;
-        closing_cnt = 0;
-        new_cnt = 0;
-        established_cnt = 0;
-        for (i = 0; i < FLOW_PROTO_MAX; i++) {
-            /* prune closing list */
-            nowcnt = FlowPruneFlowQueue(&flow_close_q[i], &ts);
-            if (nowcnt) {
-                SCLogDebug("Pruned %" PRIu32 " closing flows...", nowcnt);
-                closing_cnt += nowcnt;
-            }
+        /* try to time out flows */
+        FlowTimeoutCounters counters = { 0, 0, 0, };
+        FlowTimeoutHash(&ts, 0 /* check all */, &counters);
 
-            /* prune new list */
-            nowcnt = FlowPruneFlowQueue(&flow_new_q[i], &ts);
-            if (nowcnt) {
-                SCLogDebug("Pruned %" PRIu32 " new flows...", nowcnt);
-                new_cnt += nowcnt;
-            }
-
-            /* prune established list */
-            nowcnt = FlowPruneFlowQueue(&flow_est_q[i], &ts);
-            if (nowcnt) {
-                SCLogDebug("Pruned %" PRIu32 " established flows...", nowcnt);
-                established_cnt += nowcnt;
-            }
-        }
-        SCPerfCounterAddUI64(flow_mgr_closing_cnt, th_v->sc_perf_pca, (uint64_t)closing_cnt);
-        SCPerfCounterAddUI64(flow_mgr_new_cnt, th_v->sc_perf_pca, (uint64_t)new_cnt);
-        SCPerfCounterAddUI64(flow_mgr_established_cnt, th_v->sc_perf_pca, (uint64_t)established_cnt);
+        SCPerfCounterAddUI64(flow_mgr_cnt_clo, th_v->sc_perf_pca, (uint64_t)counters.clo);
+        SCPerfCounterAddUI64(flow_mgr_cnt_new, th_v->sc_perf_pca, (uint64_t)counters.new);
+        SCPerfCounterAddUI64(flow_mgr_cnt_est, th_v->sc_perf_pca, (uint64_t)counters.est);
         long long unsigned int flow_memuse = SC_ATOMIC_GET(flow_memuse);
         SCPerfCounterSetUI64(flow_mgr_memuse, th_v->sc_perf_pca, (uint64_t)flow_memuse);
+
+        uint32_t len = 0;
+        FQLOCK_LOCK(&flow_spare_q);
+        len = flow_spare_q.len;
+        FQLOCK_UNLOCK(&flow_spare_q);
+        SCPerfCounterSetUI64(flow_mgr_spare, th_v->sc_perf_pca, (uint64_t)len);
 
         /* Don't fear, FlowManagerThread is here...
          * clear emergency bit if we have at least xx flows pruned. */
         if (emerg == TRUE) {
-            uint32_t len = 0;
-
-            SCMutexLock(&flow_spare_q.mutex_q);
-
-            len = flow_spare_q.len;
-
-            SCMutexUnlock(&flow_spare_q.mutex_q);
-
             SCLogDebug("flow_sparse_q.len = %"PRIu32" prealloc: %"PRIu32
                        "flow_spare_q status: %"PRIu32"%% flows at the queue",
                        len, flow_config.prealloc, len * 100 / flow_config.prealloc);
             /* only if we have pruned this "emergency_recovery" percentage
              * of flows, we will unset the emergency bit */
             if (len * 100 / flow_config.prealloc > flow_config.emergency_recovery) {
-                flow_flags &= ~FLOW_EMERGENCY;
+                SC_ATOMIC_AND(flow_flags, ~FLOW_EMERGENCY);
+
                 emerg = FALSE;
                 prev_emerg = FALSE;
+
                 flow_update_delay_sec = FLOW_NORMAL_MODE_UPDATE_DELAY_SEC;
                 flow_update_delay_nsec = FLOW_NORMAL_MODE_UPDATE_DELAY_NSEC;
                 SCLogInfo("Flow emergency mode over, back to normal... unsetting"
@@ -281,6 +504,8 @@ void *FlowManagerThread(void *td)
         SCCondTimedwait(&flow_manager_cond, &flow_manager_mutex, &cond_time);
         SCMutexUnlock(&flow_manager_mutex);
 
+        SCLogDebug("woke up... %s", SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY ? "emergency":"");
+
         SCPerfSyncCountersIfSignalled(th_v, 0);
     }
 
@@ -291,15 +516,6 @@ void *FlowManagerThread(void *td)
     SCLogInfo("%" PRIu32 " new flows, %" PRIu32 " established flows were "
               "timed out, %"PRIu32" flows in closed state", new_cnt,
               established_cnt, closing_cnt);
-
-#ifdef FLOW_PRUNE_DEBUG
-    SCLogInfo("prune_queue_lock %"PRIu64, prune_queue_lock);
-    SCLogInfo("prune_queue_empty %"PRIu64, prune_queue_empty);
-    SCLogInfo("prune_flow_lock %"PRIu64, prune_flow_lock);
-    SCLogInfo("prune_bucket_lock %"PRIu64, prune_bucket_lock);
-    SCLogInfo("prune_no_timeout %"PRIu64, prune_no_timeout);
-    SCLogInfo("prune_usecnt %"PRIu64, prune_usecnt);
-#endif
 
     TmThreadsSetFlag(th_v, THV_CLOSED);
     pthread_exit((void *) 0);
@@ -325,4 +541,280 @@ void FlowManagerThreadSpawn()
     }
 
     return;
+}
+
+#ifdef UNITTESTS
+
+/**
+ *  \test   Test the timing out of a flow with a fresh TcpSession
+ *          (just initialized, no data segments) in normal mode.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int FlowMgrTest01 (void) {
+    TcpSession ssn;
+    Flow f;
+    FlowBucket fb;
+    struct timeval ts;
+
+    FlowQueueInit(&flow_spare_q);
+
+    memset(&ssn, 0, sizeof(TcpSession));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ts, 0, sizeof(ts));
+    memset(&fb, 0, sizeof(FlowBucket));
+
+    FBLOCK_INIT(&fb);
+
+    FLOW_INITIALIZE(&f);
+    f.flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
+
+    TimeGet(&ts);
+    f.lastts_sec = ts.tv_sec - 5000;
+    f.protoctx = &ssn;
+    f.fb = &fb;
+
+    f.proto = IPPROTO_TCP;
+
+    int state = FlowGetFlowState(&f);
+    if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
+        FBLOCK_DESTROY(&fb);
+        FLOW_DESTROY(&f);
+        FlowQueueDestroy(&flow_spare_q);
+        return 0;
+    }
+
+    FBLOCK_DESTROY(&fb);
+    FLOW_DESTROY(&f);
+
+    FlowQueueDestroy(&flow_spare_q);
+    return 1;
+}
+
+/**
+ *  \test   Test the timing out of a flow with a TcpSession
+ *          (with data segments) in normal mode.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int FlowMgrTest02 (void) {
+    TcpSession ssn;
+    Flow f;
+    FlowBucket fb;
+    struct timeval ts;
+    TcpSegment seg;
+    TcpStream client;
+    uint8_t payload[3] = {0x41, 0x41, 0x41};
+
+    FlowQueueInit(&flow_spare_q);
+
+    memset(&ssn, 0, sizeof(TcpSession));
+    memset(&f, 0, sizeof(Flow));
+    memset(&fb, 0, sizeof(FlowBucket));
+    memset(&ts, 0, sizeof(ts));
+    memset(&seg, 0, sizeof(TcpSegment));
+    memset(&client, 0, sizeof(TcpSegment));
+
+    FBLOCK_INIT(&fb);
+    FLOW_INITIALIZE(&f);
+    f.flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
+
+    TimeGet(&ts);
+    seg.payload = payload;
+    seg.payload_len = 3;
+    seg.next = NULL;
+    seg.prev = NULL;
+    client.seg_list = &seg;
+    ssn.client = client;
+    ssn.server = client;
+    ssn.state = TCP_ESTABLISHED;
+    f.lastts_sec = ts.tv_sec - 5000;
+    f.protoctx = &ssn;
+    f.fb = &fb;
+    f.proto = IPPROTO_TCP;
+
+    int state = FlowGetFlowState(&f);
+    if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
+        FBLOCK_DESTROY(&fb);
+        FLOW_DESTROY(&f);
+        FlowQueueDestroy(&flow_spare_q);
+        return 0;
+    }
+    FBLOCK_DESTROY(&fb);
+    FLOW_DESTROY(&f);
+    FlowQueueDestroy(&flow_spare_q);
+    return 1;
+
+}
+
+/**
+ *  \test   Test the timing out of a flow with a fresh TcpSession
+ *          (just initialized, no data segments) in emergency mode.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int FlowMgrTest03 (void) {
+    TcpSession ssn;
+    Flow f;
+    FlowBucket fb;
+    struct timeval ts;
+
+    FlowQueueInit(&flow_spare_q);
+
+    memset(&ssn, 0, sizeof(TcpSession));
+    memset(&f, 0, sizeof(Flow));
+    memset(&ts, 0, sizeof(ts));
+    memset(&fb, 0, sizeof(FlowBucket));
+
+    FBLOCK_INIT(&fb);
+    FLOW_INITIALIZE(&f);
+    f.flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
+
+    TimeGet(&ts);
+    ssn.state = TCP_SYN_SENT;
+    f.lastts_sec = ts.tv_sec - 300;
+    f.protoctx = &ssn;
+    f.fb = &fb;
+    f.proto = IPPROTO_TCP;
+    f.flags |= FLOW_EMERGENCY;
+
+    int state = FlowGetFlowState(&f);
+    if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
+        FBLOCK_DESTROY(&fb);
+        FLOW_DESTROY(&f);
+        FlowQueueDestroy(&flow_spare_q);
+        return 0;
+    }
+
+    FBLOCK_DESTROY(&fb);
+    FLOW_DESTROY(&f);
+    FlowQueueDestroy(&flow_spare_q);
+    return 1;
+}
+
+/**
+ *  \test   Test the timing out of a flow with a TcpSession
+ *          (with data segments) in emergency mode.
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int FlowMgrTest04 (void) {
+
+    TcpSession ssn;
+    Flow f;
+    FlowBucket fb;
+    struct timeval ts;
+    TcpSegment seg;
+    TcpStream client;
+    uint8_t payload[3] = {0x41, 0x41, 0x41};
+
+    FlowQueueInit(&flow_spare_q);
+
+    memset(&ssn, 0, sizeof(TcpSession));
+    memset(&f, 0, sizeof(Flow));
+    memset(&fb, 0, sizeof(FlowBucket));
+    memset(&ts, 0, sizeof(ts));
+    memset(&seg, 0, sizeof(TcpSegment));
+    memset(&client, 0, sizeof(TcpSegment));
+
+    FBLOCK_INIT(&fb);
+    FLOW_INITIALIZE(&f);
+    f.flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
+
+    TimeGet(&ts);
+    seg.payload = payload;
+    seg.payload_len = 3;
+    seg.next = NULL;
+    seg.prev = NULL;
+    client.seg_list = &seg;
+    ssn.client = client;
+    ssn.server = client;
+    ssn.state = TCP_ESTABLISHED;
+    f.lastts_sec = ts.tv_sec - 5000;
+    f.protoctx = &ssn;
+    f.fb = &fb;
+    f.proto = IPPROTO_TCP;
+    f.flags |= FLOW_EMERGENCY;
+
+    int state = FlowGetFlowState(&f);
+    if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
+        FBLOCK_DESTROY(&fb);
+        FLOW_DESTROY(&f);
+        FlowQueueDestroy(&flow_spare_q);
+        return 0;
+    }
+
+    FBLOCK_DESTROY(&fb);
+    FLOW_DESTROY(&f);
+    FlowQueueDestroy(&flow_spare_q);
+    return 1;
+}
+
+/**
+ *  \test   Test flow allocations when it reach memcap
+ *
+ *
+ *  \retval On success it returns 1 and on failure 0.
+ */
+
+static int FlowMgrTest05 (void) {
+    int result = 0;
+
+    FlowInitConfig(FLOW_QUIET);
+    FlowConfig backup;
+    memcpy(&backup, &flow_config, sizeof(FlowConfig));
+
+    uint32_t ini = 0;
+    uint32_t end = flow_spare_q.len;
+    flow_config.memcap = 10000;
+    flow_config.prealloc = 100;
+
+    /* Let's get the flow_spare_q empty */
+    UTHBuildPacketOfFlows(ini, end, 0);
+
+    /* And now let's try to reach the memcap val */
+    while (SC_ATOMIC_GET(flow_memuse) + sizeof(Flow) < flow_config.memcap) {
+        ini = end + 1;
+        end = end + 2;
+        UTHBuildPacketOfFlows(ini, end, 0);
+    }
+
+    /* should time out normal */
+    TimeSetIncrementTime(2000);
+    ini = end + 1;
+    end = end + 2;;
+    UTHBuildPacketOfFlows(ini, end, 0);
+
+    struct timeval ts;
+    TimeGet(&ts);
+    /* try to time out flows */
+    FlowTimeoutCounters counters = { 0, 0, 0, };
+    FlowTimeoutHash(&ts, 0 /* check all */, &counters);
+
+    if (flow_spare_q.len > 0) {
+        result = 1;
+    }
+
+    memcpy(&flow_config, &backup, sizeof(FlowConfig));
+    FlowShutdown();
+
+    return result;
+}
+#endif /* UNITTESTS */
+
+/**
+ *  \brief   Function to register the Flow Unitests.
+ */
+void FlowMgrRegisterTests (void) {
+#ifdef UNITTESTS
+    UtRegisterTest("FlowMgrTest01 -- Timeout a flow having fresh TcpSession", FlowMgrTest01, 1);
+    UtRegisterTest("FlowMgrTest02 -- Timeout a flow having TcpSession with segments", FlowMgrTest02, 1);
+    UtRegisterTest("FlowMgrTest03 -- Timeout a flow in emergency having fresh TcpSession", FlowMgrTest03, 1);
+    UtRegisterTest("FlowMgrTest04 -- Timeout a flow in emergency having TcpSession with segments", FlowMgrTest04, 1);
+    UtRegisterTest("FlowMgrTest05 -- Test flow Allocations when it reach memcap", FlowMgrTest05, 1);
+#endif /* UNITTESTS */
 }

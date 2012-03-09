@@ -502,16 +502,18 @@ void StreamTcpInitConfig(char quiet)
     stream_memuse_max = 0;
     SCSpinUnlock(&stream_memuse_spinlock);
 
+    SCMutexInit(&ssn_pool_mutex, NULL);
+    SCMutexLock(&ssn_pool_mutex);
     ssn_pool = PoolInit(stream_config.max_sessions,
                         stream_config.prealloc_sessions,
                         StreamTcpSessionPoolAlloc, NULL,
                         StreamTcpSessionPoolFree);
     if (ssn_pool == NULL) {
         SCLogError(SC_ERR_POOL_INIT, "ssn_pool is not initialized");
+        SCMutexUnlock(&ssn_pool_mutex);
         exit(EXIT_FAILURE);
     }
-
-    SCMutexInit(&ssn_pool_mutex, NULL);
+    SCMutexUnlock(&ssn_pool_mutex);
 
     StreamTcpReassembleInit(quiet);
 
@@ -525,13 +527,14 @@ void StreamTcpFreeConfig(char quiet)
 {
     StreamTcpReassembleFree(quiet);
 
+    SCMutexLock(&ssn_pool_mutex);
     if (ssn_pool != NULL) {
         PoolFree(ssn_pool);
         ssn_pool = NULL;
-    } else {
-        SCLogError(SC_ERR_POOL_EMPTY, "ssn_pool is NULL");
-        exit(EXIT_FAILURE);
     }
+    SCMutexUnlock(&ssn_pool_mutex);
+    SCMutexDestroy(&ssn_pool_mutex);
+
     SCLogDebug("ssn_pool_cnt %"PRIu64"", ssn_pool_cnt);
 
     if (!quiet) {
@@ -540,8 +543,6 @@ void StreamTcpFreeConfig(char quiet)
             stream_memuse_max, stream_memuse);
         SCSpinUnlock(&stream_memuse_spinlock);
     }
-    SCMutexDestroy(&ssn_pool_mutex);
-
     SCSpinDestroy(&stream_memuse_spinlock);
 }
 
@@ -584,8 +585,6 @@ static void StreamTcpPacketSetState(Packet *p, TcpSession *ssn,
         return;
 
     ssn->state = state;
-
-    FlowUpdateQueue(p->flow);
 }
 
 /**

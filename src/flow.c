@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -21,9 +21,6 @@
  *  \author Victor Julien <victor@inliniac.net>
  *
  *  Flow implementation.
- *
- *  \todo Maybe place the flow that we get a packet for on top of the
- *    list in the bucket. This rewards active flows.
  */
 
 #include "suricata-common.h"
@@ -74,15 +71,23 @@
 
 #define FLOW_DEFAULT_PREALLOC    10000
 
+/** atomic int that is used when freeing a flow from the hash. In this
+ *  case we walk the hash to find a flow to free. This var records where
+ *  we left off in the hash. Without this only the top rows of the hash
+ *  are freed. This isn't just about fairness. Under severe presure, the
+ *  hash rows on top would be all freed and the time to find a flow to
+ *  free increased with every run. */
+SC_ATOMIC_DECLARE(unsigned int, flow_prune_idx);
+
+/** atomic flags */
+SC_ATOMIC_DECLARE(unsigned char, flow_flags);
+
 void FlowRegisterTests(void);
 void FlowInitFlowProto();
 int FlowSetProtoTimeout(uint8_t , uint32_t ,uint32_t ,uint32_t);
 int FlowSetProtoEmergencyTimeout(uint8_t , uint32_t ,uint32_t ,uint32_t);
-static int FlowClearMemory(Flow *,uint8_t );
 int FlowSetProtoFreeFunc(uint8_t, void (*Free)(void *));
 int FlowSetFlowStateFunc(uint8_t , int (*GetProtoState)(void *));
-static uint32_t FlowPruneFlowQueueCnt(FlowQueue *, struct timeval *, int);
-int FlowKill(FlowQueue *);
 
 /* Run mode selected at suricata.c */
 extern int run_mode;
@@ -94,520 +99,6 @@ void FlowCleanupAppLayer(Flow *f)
 
     AppLayerParserCleanupState(f);
     return;
-}
-
-/** \brief Update the flows position in the queue's
- *  \param f Flow to requeue.
- *  \todo if we have a flow state func rely on that soly
- *
- *  In-use flows are in the flow_new_q, flow_est_q lists or flow_close_q lists.
- */
-void FlowUpdateQueue(Flow *f)
-{
-    if (f->flags & FLOW_NEW_LIST) {
-        /* in the new list -- we consider a flow no longer
-         * new if we have seen at least 2 pkts in both ways. */
-        if (f->flags & FLOW_TO_DST_SEEN && f->flags & FLOW_TO_SRC_SEEN) {
-            FlowRequeue(f, &flow_new_q[f->protomap], &flow_est_q[f->protomap]);
-
-            f->flags |= FLOW_EST_LIST; /* transition */
-            f->flags &= ~FLOW_NEW_LIST;
-        } else {
-            FlowRequeueMoveToBot(f, &flow_new_q[f->protomap]);
-        }
-    } else if (f->flags & FLOW_EST_LIST) {
-        if (flow_proto[f->protomap].GetProtoState != NULL) {
-            uint8_t state = flow_proto[f->protomap].GetProtoState(f->protoctx);
-            if (state == FLOW_STATE_CLOSED) {
-                f->flags |= FLOW_CLOSED_LIST; /* transition */
-                f->flags &=~ FLOW_EST_LIST;
-
-                SCLogDebug("flow %p was put into closing queue ts %"PRIuMAX"", f, (uintmax_t)f->lastts_sec);
-                FlowRequeue(f, &flow_est_q[f->protomap], &flow_close_q[f->protomap]);
-            } else {
-                /* Pull and put back -- this way the flows on
-                 * top of the list are least recently used. */
-                FlowRequeueMoveToBot(f, &flow_est_q[f->protomap]);
-            }
-        } else {
-            /* Pull and put back -- this way the flows on
-             * top of the list are least recently used. */
-            FlowRequeueMoveToBot(f, &flow_est_q[f->protomap]);
-        }
-    } else if (f->flags & FLOW_CLOSED_LIST){
-        /* for the case of ssn reuse in TCP sessions we need to be able to pull
-         * a flow back from the dungeon and inject adrenalin straight into it's
-         * heart. */
-        if (flow_proto[f->protomap].GetProtoState != NULL) {
-            uint8_t state = flow_proto[f->protomap].GetProtoState(f->protoctx);
-            if (state == FLOW_STATE_NEW) {
-                f->flags |= FLOW_NEW_LIST; /* transition */
-                f->flags &=~ FLOW_CLOSED_LIST;
-
-                SCLogDebug("flow %p was put into new queue ts %"PRIuMAX"", f, (uintmax_t)f->lastts_sec);
-                FlowRequeue(f, &flow_close_q[f->protomap], &flow_new_q[f->protomap]);
-            } else {
-                /* Pull and put back -- this way the flows on
-                 * top of the list are least recently used. */
-                FlowRequeueMoveToBot(f, &flow_close_q[f->protomap]);
-            }
-        } else {
-            /* Pull and put back -- this way the flows on
-             * top of the list are least recently used. */
-            FlowRequeueMoveToBot(f, &flow_close_q[f->protomap]);
-        }
-    }
-
-    return;
-}
-
-#ifdef FLOW_PRUNE_DEBUG
-static uint64_t prune_queue_lock = 0;
-static uint64_t prune_queue_empty = 0;
-static uint64_t prune_flow_lock = 0;
-static uint64_t prune_bucket_lock = 0;
-static uint64_t prune_no_timeout = 0;
-static uint64_t prune_usecnt = 0;
-#endif
-
-/** \internal
- *  \brief get timeout for flow
- *
- *  \param f flow
- *  \param emergency bool indicating emergency mode 1 yes, 0 no
- *
- *  \retval timeout timeout in seconds
- */
-static inline uint32_t FlowPruneGetFlowTimeout(Flow *f, int emergency) {
-    uint32_t timeout;
-
-    if (emergency) {
-        if (flow_proto[f->protomap].GetProtoState != NULL) {
-            switch(flow_proto[f->protomap].GetProtoState(f->protoctx)) {
-                default:
-                case FLOW_STATE_NEW:
-                    timeout = flow_proto[f->protomap].emerg_new_timeout;
-                    break;
-                case FLOW_STATE_ESTABLISHED:
-                    timeout = flow_proto[f->protomap].emerg_est_timeout;
-                    break;
-                case FLOW_STATE_CLOSED:
-                    timeout = flow_proto[f->protomap].emerg_closed_timeout;
-                    break;
-            }
-        } else {
-            if (f->flags & FLOW_EST_LIST)
-                timeout = flow_proto[f->protomap].emerg_est_timeout;
-            else
-                timeout = flow_proto[f->protomap].emerg_new_timeout;
-        }
-    } else { /* implies no emergency */
-        if (flow_proto[f->protomap].GetProtoState != NULL) {
-            switch(flow_proto[f->protomap].GetProtoState(f->protoctx)) {
-                default:
-                case FLOW_STATE_NEW:
-                    timeout = flow_proto[f->protomap].new_timeout;
-                    break;
-                case FLOW_STATE_ESTABLISHED:
-                    timeout = flow_proto[f->protomap].est_timeout;
-                    break;
-                case FLOW_STATE_CLOSED:
-                    timeout = flow_proto[f->protomap].closed_timeout;
-                    break;
-            }
-        } else {
-            if (f->flags & FLOW_EST_LIST)
-                timeout = flow_proto[f->protomap].est_timeout;
-            else
-                timeout = flow_proto[f->protomap].new_timeout;
-        }
-    }
-
-    return timeout;
-}
-
-/** FlowPrune
- *
- * Inspect top (last recently used) flow from the queue and see if
- * we need to prune it.
- *
- * Use trylock here so prevent us from blocking the packet handling.
- *
- * \param q       Flow queue to prune
- * \param ts      Current time
- * \param try_cnt Tries to prune the first try_cnt no of flows in the q
- *
- * \retval 0 on error, failed block, nothing to prune
- * \retval cnt on successfully pruned, cnt flows were pruned
- */
-static int FlowPrune(FlowQueue *q, struct timeval *ts, int try_cnt)
-{
-    SCEnter();
-    int cnt = 0;
-    int try_cnt_temp = 0;
-
-    int mr = SCMutexTrylock(&q->mutex_q);
-    if (mr != 0) {
-        SCLogDebug("trylock failed");
-        if (mr == EBUSY)
-            SCLogDebug("was locked");
-        if (mr == EINVAL)
-            SCLogDebug("bad mutex value");
-
-#ifdef FLOW_PRUNE_DEBUG
-        prune_queue_lock++;
-#endif
-        return 0;
-    }
-
-    Flow *f = q->top;
-
-    /* label */
-    while (f != NULL) {
-        if (try_cnt != 0 && try_cnt_temp == try_cnt) {
-            SCMutexUnlock(&q->mutex_q);
-            return cnt;
-        }
-        try_cnt_temp++;
-
-        if (f == NULL) {
-            SCMutexUnlock(&q->mutex_q);
-            SCLogDebug("top is null");
-
-#ifdef FLOW_PRUNE_DEBUG
-            prune_queue_empty++;
-#endif
-            return cnt;
-        }
-
-        if (SCMutexTrylock(&f->m) != 0) {
-            SCLogDebug("cant lock 1");
-
-#ifdef FLOW_PRUNE_DEBUG
-            prune_flow_lock++;
-#endif
-            f = f->lnext;
-            continue;
-        }
-
-        if (SCSpinTrylock(&f->fb->s) != 0) {
-            SCMutexUnlock(&f->m);
-            SCLogDebug("cant lock 2");
-
-#ifdef FLOW_PRUNE_DEBUG
-            prune_bucket_lock++;
-#endif
-            f = f->lnext;
-            continue;
-        }
-
-        /*set the timeout value according to the flow operating mode, flow's state
-          and protocol.*/
-        uint32_t timeout = FlowPruneGetFlowTimeout(f, flow_flags & FLOW_EMERGENCY ? 1 : 0);
-
-        SCLogDebug("got lock, now check: %" PRIdMAX "+%" PRIu32 "=(%" PRIdMAX ") < "
-                   "%" PRIdMAX "", (intmax_t)f->lastts_sec,
-                   timeout, (intmax_t)f->lastts_sec + timeout,
-                   (intmax_t)ts->tv_sec);
-
-        /* do the timeout check */
-        if ((int32_t)(f->lastts_sec + timeout) >= ts->tv_sec) {
-            SCSpinUnlock(&f->fb->s);
-            SCMutexUnlock(&f->m);
-            SCMutexUnlock(&q->mutex_q);
-            SCLogDebug("timeout check failed");
-
-#ifdef FLOW_PRUNE_DEBUG
-            prune_no_timeout++;
-#endif
-            return cnt;
-        }
-
-        /** never prune a flow that is used by a packet or stream msg
-         *  we are currently processing in one of the threads */
-        if (SC_ATOMIC_GET(f->use_cnt) > 0) {
-            SCLogDebug("timed out but use_cnt > 0: %"PRIu16", %p, proto %"PRIu8"", SC_ATOMIC_GET(f->use_cnt), f, f->proto);
-            SCLogDebug("it is in one of the threads");
-
-#ifdef FLOW_PRUNE_DEBUG
-            prune_usecnt++;
-#endif
-            SCSpinUnlock(&f->fb->s);
-            SCMutexUnlock(&f->m);
-            f = f->lnext;
-            continue;
-        }
-
-        int server = 0, client = 0;
-        if (FlowForceReassemblyNeedReassmbly(f, &server, &client) == 1) {
-            /* we no longer need the fb lock. We know this flow won't be timed
-             * out just yet. So an incoming pkt is allowed to pick up this
-             * flow. */
-            SCSpinUnlock(&f->fb->s);
-
-            FlowForceReassemblyForFlowV2(f, server, client);
-            SCMutexUnlock(&f->m);
-
-            f = f->lnext;
-            continue;
-        }
-#ifdef DEBUG
-        /* this should not be possible */
-        BUG_ON(SC_ATOMIC_GET(f->use_cnt) > 0);
-#endif
-        /* remove from the hash */
-        if (f->hprev != NULL)
-            f->hprev->hnext = f->hnext;
-        if (f->hnext != NULL)
-            f->hnext->hprev = f->hprev;
-        if (f->fb->f == f)
-            f->fb->f = f->hnext;
-
-        f->hnext = NULL;
-        f->hprev = NULL;
-
-        SCSpinUnlock(&f->fb->s);
-        f->fb = NULL;
-
-        FlowClearMemory (f, f->protomap);
-        Flow *next_flow = f->lnext;
-
-        /* no one is referring to this flow, use_cnt 0, removed from hash
-         * so we can unlock it and move it back to the spare queue. */
-        SCMutexUnlock(&f->m);
-
-        /* move to spare list */
-        FlowRequeueMoveToSpare(f, q);
-
-        f = next_flow;
-        cnt++;
-    }
-
-    SCMutexUnlock(&q->mutex_q);
-    return cnt;
-}
-
-/** \brief Time out flows.
- *  \param q flow queue to time out flows from
- *  \param ts current time
- *  \param timeout timeout to consider
- *  \retval cnt number of flows that are timed out
- */
-uint32_t FlowPruneFlowQueue(FlowQueue *q, struct timeval *ts)
-{
-    SCEnter();
-    return FlowPrune(q, ts, 0);
-}
-
-/** \brief Time out flows on new/estabhlished/close queues for each proto until
- *         we release cnt flows as max
- *         Called from the FlowManager
- *  \param ts current time
- *  \retval cnt number of flows that are timed out
- */
-uint32_t FlowPruneFlowsCnt(struct timeval *ts, int cnt)
-{
-    SCEnter();
-    uint32_t nowcnt = 0;
-    int i = 0;
-
-    for (; i < FLOW_PROTO_MAX; i++) {
-        /* prune closing list */
-        nowcnt = FlowPruneFlowQueueCnt(&flow_close_q[i], ts, cnt);
-        if (nowcnt) {
-            cnt -= nowcnt;
-        }
-        if (cnt <= 0)
-            break;
-
-        /* prune new list */
-        nowcnt = FlowPruneFlowQueueCnt(&flow_new_q[i], ts, cnt);
-        if (nowcnt) {
-            cnt -= nowcnt;
-        }
-        if (cnt <= 0)
-            break;
-
-        /* prune established list */
-        nowcnt = FlowPruneFlowQueueCnt(&flow_est_q[i], ts, cnt);
-        if (nowcnt) {
-            cnt -= nowcnt;
-        }
-        if (cnt <= 0)
-            break;
-    }
-
-    return cnt;
-}
-
-/** \brief FlowKillFlowQueueCnt It will try to kill try_cnt count of flows
- *         It will return the number of flows released, and can be 0 or more.
- *  \param q flow queue to time out flows from
- *  \param try_cnt try to prune this number of flows
- *  \retval cnt number of flows that are timed out
- */
-static uint32_t FlowKillFlowQueueCnt(FlowQueue *q, int try_cnt, uint8_t mode)
-{
-    SCEnter();
-    uint32_t cnt = 0;
-    while (try_cnt--) {
-        cnt += FlowKill(q);
-    }
-    SCLogDebug("EMERGENCY mode, Flows killed: %"PRIu32, cnt);
-
-    return cnt;
-}
-
-/** FlowKill
- *
- * Inspect the top flows (last recently used) from the queue
- * and see if we can prune any it (this is if it's not in use).
- *
- * Use trylock here so prevent us from blocking the packet handling.
- *
- * \param q flow queue to prune
- *
- * \retval 0 on error, failed block, nothing to prune
- * \retval 1 on successfully pruned one
- */
-int FlowKill (FlowQueue *q)
-{
-    SCEnter();
-    int mr = SCMutexTrylock(&q->mutex_q);
-
-    if (mr != 0) {
-        SCLogDebug("trylock failed");
-        if (mr == EBUSY)
-            SCLogDebug("was locked");
-        if (mr == EINVAL)
-            SCLogDebug("bad mutex value");
-        return 0;
-    }
-
-    Flow *f = q->top;
-
-    /* This means that the queue is empty */
-    if (f == NULL) {
-        SCMutexUnlock(&q->mutex_q);
-        SCLogDebug("top is null");
-        return 0;
-    }
-
-    do {
-        if (SCMutexTrylock(&f->m) != 0) {
-            f = f->lnext;
-            /* Skip to the next */
-            continue;
-        }
-
-        if (SCSpinTrylock(&f->fb->s) != 0) {
-            SCMutexUnlock(&f->m);
-            f = f->lnext;
-            continue;
-        }
-
-        /** never prune a flow that is used by a packet or stream msg
-         *  we are currently processing in one of the threads */
-        if (SC_ATOMIC_GET(f->use_cnt) > 0) {
-            SCSpinUnlock(&f->fb->s);
-            SCMutexUnlock(&f->m);
-            f = f->lnext;
-            continue;
-        }
-
-        /* remove from the hash */
-        if (f->hprev)
-            f->hprev->hnext = f->hnext;
-        if (f->hnext)
-            f->hnext->hprev = f->hprev;
-        if (f->fb->f == f)
-            f->fb->f = f->hnext;
-
-        f->hnext = NULL;
-        f->hprev = NULL;
-
-        SCSpinUnlock(&f->fb->s);
-        f->fb = NULL;
-
-        FlowClearMemory (f, f->protomap);
-
-        /* no one is referring to this flow, use_cnt 0, removed from hash
-         * so we can unlock it and move it back to the spare queue. */
-        SCMutexUnlock(&f->m);
-
-        /* move to spare list */
-        FlowRequeueMoveToSpare(f, q);
-
-        /* so.. we did it */
-        /* unlock queue */
-        SCMutexUnlock(&q->mutex_q);
-        return 1;
-    } while (f != NULL);
-
-    /* If we reach this point, then we didn't prune any */
-    /* unlock list */
-    SCMutexUnlock(&q->mutex_q);
-
-    return 0;
-}
-
-
-/** \brief Try to kill cnt flows by last recently seen activity on new/estabhlished/close queues for each proto until
- *         we release cnt flows as max. Called only on emergency mode.
- * \param cnt number of flows to release
- * \retval cnt number of flows that are not killed (so 0 if we prune all of them)
- */
-uint32_t FlowKillFlowsCnt(int cnt)
-{
-    SCEnter();
-    uint32_t nowcnt = 0;
-    int i = 0;
-
-    /* Inspect the top of each protocol to select the last recently used */
-    for (; i < FLOW_PROTO_MAX; i++) {
-        /* prune closing list */
-        nowcnt = FlowKillFlowQueueCnt(&flow_close_q[i], cnt, 0);
-        if (nowcnt) {
-            cnt -= nowcnt;
-        }
-        if (cnt <= 0)
-            break;
-
-        /* prune new list */
-        nowcnt = FlowKillFlowQueueCnt(&flow_new_q[i], cnt, 0);
-        if (nowcnt) {
-            cnt -= nowcnt;
-        }
-        if (cnt <= 0)
-            break;
-
-        /* prune established list */
-        nowcnt = FlowKillFlowQueueCnt(&flow_est_q[i], cnt, 0);
-        if (nowcnt) {
-            cnt -= nowcnt;
-        }
-        if (cnt <= 0)
-            break;
-    }
-
-    return cnt;
-}
-
-/** \brief Time out flows will try to prune try_cnt count of flows
- *         It will return the number of flows released, and can be 0 or more.
- *         A more agressive aproach is calling this function with the emergency
- *         bit set (and there will be another even more agressive, killing
- *         flows without the criteria of time outs)
- *  \param q flow queue to time out flows from
- *  \param ts current time
- *  \param timeout timeout to consider
- *  \param try_cnt try to prune this number of flows if they are timed out
- *  \retval cnt number of flows that are timed out
- */
-static uint32_t FlowPruneFlowQueueCnt(FlowQueue *q, struct timeval *ts, int try_cnt)
-{
-    SCEnter();
-    return FlowPrune(q, ts, try_cnt);
 }
 
 /** \brief Make sure we have enough spare flows. 
@@ -623,11 +114,9 @@ int FlowUpdateSpareFlows(void)
     SCEnter();
     uint32_t toalloc = 0, tofree = 0, len;
 
-    SCMutexLock(&flow_spare_q.mutex_q);
-
+    FQLOCK_LOCK(&flow_spare_q);
     len = flow_spare_q.len;
-
-    SCMutexUnlock(&flow_spare_q.mutex_q);
+    FQLOCK_UNLOCK(&flow_spare_q);
 
     if (len < flow_config.prealloc) {
         toalloc = flow_config.prealloc - len;
@@ -809,9 +298,6 @@ void FlowHandlePacket (ThreadVars *tv, Packet *p)
         p->flowflags |= FLOW_PKT_ESTABLISHED;
     }
 
-    /* update queue positions */
-    FlowUpdateQueue(f);
-
     /*set the detection bypass flags*/
     if (f->flags & FLOW_NOPACKET_INSPECTION) {
         SCLogDebug("setting FLOW_NOPACKET_INSPECTION flag on flow %p", f);
@@ -837,15 +323,10 @@ void FlowInitConfig(char quiet)
     SCLogDebug("initializing flow engine...");
 
     memset(&flow_config,  0, sizeof(flow_config));
+    SC_ATOMIC_INIT(flow_flags);
     SC_ATOMIC_INIT(flow_memuse);
-
-    int ifq = 0;
+    SC_ATOMIC_INIT(flow_prune_idx);
     FlowQueueInit(&flow_spare_q);
-    for (ifq = 0; ifq < FLOW_PROTO_MAX; ifq++) {
-        FlowQueueInit(&flow_new_q[ifq]);
-        FlowQueueInit(&flow_est_q[ifq]);
-        FlowQueueInit(&flow_close_q[ifq]);
-    }
 
     unsigned int seed = RandomTimePreseed();
     /* set defaults */
@@ -915,11 +396,11 @@ void FlowInitConfig(char quiet)
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in FlowInitConfig. Exiting...");
         exit(EXIT_FAILURE);
     }
-    uint32_t i = 0;
-
     memset(flow_hash, 0, flow_config.hash_size * sizeof(FlowBucket));
+
+    uint32_t i = 0;
     for (i = 0; i < flow_config.hash_size; i++) {
-        SCSpinInit(&flow_hash[i].s, 0);
+        FBLOCK_INIT(&flow_hash[i]);
     }
     SC_ATOMIC_ADD(flow_memuse, (flow_config.hash_size * sizeof(FlowBucket)));
 
@@ -959,51 +440,12 @@ void FlowInitConfig(char quiet)
 
 /** \brief print some flow stats
  *  \warning Not thread safe */
-void FlowPrintQueueInfo (void)
+static void FlowPrintStats (void)
 {
-    int i;
-    SCLogDebug("flow queue info:");
-    SCLogDebug("spare flow queue %" PRIu32 "", flow_spare_q.len);
-#ifdef DBG_PERF
-    SCLogDebug("flow_spare_q.dbg_maxlen %" PRIu32 "", flow_spare_q.dbg_maxlen);
-#endif
-    for (i = 0; i < FLOW_PROTO_MAX; i++) {
-        SCLogDebug("proto [%"PRId32"] new flow queue %" PRIu32 " "
-#ifdef DBG_PERF
-                  " - flow_new_q.dbg_maxlen %" PRIu32 ""
-#endif
-                  ,i,flow_new_q[i].len
-#ifdef DBG_PERF
-                  ,flow_new_q[i].dbg_maxlen
-#endif
-                  );
-
-        SCLogDebug("proto [%"PRId32"] establised flow queue %" PRIu32 " "
-#ifdef DBG_PERF
-                  " - flow_est_q.dbg_maxlen %" PRIu32 ""
-#endif
-                  ,i,flow_est_q[i].len
-#ifdef DBG_PERF
-                  ,flow_est_q[i].dbg_maxlen
-#endif
-                  );
-
-        SCLogDebug("proto [%"PRId32"] closing flow queue %" PRIu32 " "
-#ifdef DBG_PERF
-                  " - flow_closing_q.dbg_maxlen %" PRIu32 ""
-#endif
-                  ,i,flow_close_q[i].len
-#ifdef DBG_PERF
-                  ,flow_close_q[i].dbg_maxlen
-#endif
-                  );
-
-    }
 #ifdef FLOWBITS_STATS
     SCLogInfo("flowbits added: %" PRIu32 ", removed: %" PRIu32 ", max memory usage: %" PRIu32 "",
         flowbits_added, flowbits_removed, flowbits_memuse_max);
 #endif /* FLOWBITS_STATS */
-
     return;
 }
 
@@ -1012,48 +454,39 @@ void FlowPrintQueueInfo (void)
 void FlowShutdown(void)
 {
     Flow *f;
-    int i;
     uint32_t u;
 
+    FlowPrintStats();
+
+    /* free spare queue */
     while((f = FlowDequeue(&flow_spare_q))) {
         FlowFree(f);
     }
-    for (i = 0; i < FLOW_PROTO_MAX; i++) {
-        while((f = FlowDequeue(&flow_new_q[i]))) {
-            uint8_t proto_map = FlowGetProtoMapping(f->proto);
-            FlowClearMemory(f, proto_map);
-            FlowFree(f);
-        }
-        while((f = FlowDequeue(&flow_est_q[i]))) {
-            uint8_t proto_map = FlowGetProtoMapping(f->proto);
-            FlowClearMemory(f, proto_map);
-            FlowFree(f);
-        }
-        while((f = FlowDequeue(&flow_close_q[i]))) {
-            uint8_t proto_map = FlowGetProtoMapping(f->proto);
-            FlowClearMemory(f, proto_map);
-            FlowFree(f);
-        }
-    }
 
+    /* clear and free the hash */
     if (flow_hash != NULL) {
         /* clean up flow mutexes */
         for (u = 0; u < flow_config.hash_size; u++) {
-            SCSpinDestroy(&flow_hash[u].s);
+            Flow *f = flow_hash[u].head;
+            while (f) {
+                Flow *n = f->hnext;
+                uint8_t proto_map = FlowGetProtoMapping(f->proto);
+                FlowClearMemory(f, proto_map);
+                FlowFree(f);
+                f = n;
+            }
+
+            FBLOCK_DESTROY(&flow_hash[u]);
         }
         SCFree(flow_hash);
         flow_hash = NULL;
     }
     SC_ATOMIC_SUB(flow_memuse, flow_config.hash_size * sizeof(FlowBucket));
-
-    int ifq = 0;
     FlowQueueDestroy(&flow_spare_q);
-    for (ifq = 0; ifq < FLOW_PROTO_MAX; ifq++) {
-        FlowQueueDestroy(&flow_new_q[ifq]);
-        FlowQueueDestroy(&flow_est_q[ifq]);
-        FlowQueueDestroy(&flow_close_q[ifq]);
-    }
 
+    SC_ATOMIC_DESTROY(flow_prune_idx);
+    SC_ATOMIC_DESTROY(flow_memuse);
+    SC_ATOMIC_DESTROY(flow_flags);
     return;
 }
 
@@ -1310,7 +743,7 @@ void FlowInitFlowProto(void)
  *  \param  proto_map   mapped value of the protocol to FLOW_PROTO's.
  */
 
-static int FlowClearMemory(Flow* f, uint8_t proto_map)
+int FlowClearMemory(Flow* f, uint8_t proto_map)
 {
     SCEnter();
 
@@ -1491,260 +924,6 @@ static int FlowTest02 (void) {
 }
 
 /**
- *  \brief   Function to test the prunning of the flow in different flow modes.
- *
- *  \param   f    Pointer to the flow to be prunned
- *  \param   ts   time value against which the flow will be checked
- *
- *  \retval on success returns 1 and on failure 0
- */
-
-static int FlowTestPrune(Flow *f, struct timeval *ts) {
-
-    FlowQueue *q = FlowQueueNew();
-    if (q == NULL) {
-        goto error;
-    }
-
-    q->top = NULL;
-
-    FlowEnqueue(q, f);
-    if (q->len != 1) {
-        printf("Failed in enqueue the flow in flowqueue: ");
-        goto error;
-    }
-
-    SCLogDebug("calling FlowPrune");
-    FlowPrune(q, ts, 0);
-    if (q->len != 0) {
-        printf("Failed in prunning the flow: ");
-        goto error;
-    }
-
-    if (f->protoctx != NULL){
-        printf("Failed in freeing the TcpSession: ");
-        goto error;
-    }
-
-    return 1;
-
-error:
-    if (q != NULL) {
-        FlowQueueDestroy(q);
-    }
-    return 0;
-}
-
-/**
- *  \test   Test the timing out of a flow with a fresh TcpSession
- *          (just initialized, no data segments) in normal mode.
- *
- *  \retval On success it returns 1 and on failure 0.
- */
-
-static int FlowTest03 (void) {
-
-    TcpSession ssn;
-    Flow f;
-    FlowBucket fb;
-    struct timeval ts;
-
-    FlowQueueInit(&flow_spare_q);
-
-    memset(&ssn, 0, sizeof(TcpSession));
-    memset(&f, 0, sizeof(Flow));
-    memset(&ts, 0, sizeof(ts));
-    memset(&fb, 0, sizeof(FlowBucket));
-
-    SCSpinInit(&fb.s, 0);
-
-    FLOW_INITIALIZE(&f);
-    f.flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
-
-    TimeGet(&ts);
-    f.lastts_sec = ts.tv_sec - 5000;
-    f.protoctx = &ssn;
-    f.fb = &fb;
-
-    f.proto = IPPROTO_TCP;
-
-    if (FlowTestPrune(&f, &ts) != 1) {
-        SCSpinDestroy(&fb.s);
-        FLOW_DESTROY(&f);
-        FlowQueueDestroy(&flow_spare_q);
-        return 0;
-    }
-
-    SCSpinDestroy(&fb.s);
-    FLOW_DESTROY(&f);
-
-    FlowQueueDestroy(&flow_spare_q);
-    return 1;
-}
-
-/**
- *  \test   Test the timing out of a flow with a TcpSession
- *          (with data segments) in normal mode.
- *
- *  \retval On success it returns 1 and on failure 0.
- */
-
-static int FlowTest04 (void) {
-
-    TcpSession ssn;
-    Flow f;
-    FlowBucket fb;
-    struct timeval ts;
-    TcpSegment seg;
-    TcpStream client;
-    uint8_t payload[3] = {0x41, 0x41, 0x41};
-
-    FlowQueueInit(&flow_spare_q);
-
-    memset(&ssn, 0, sizeof(TcpSession));
-    memset(&f, 0, sizeof(Flow));
-    memset(&fb, 0, sizeof(FlowBucket));
-    memset(&ts, 0, sizeof(ts));
-    memset(&seg, 0, sizeof(TcpSegment));
-    memset(&client, 0, sizeof(TcpSegment));
-
-    SCSpinInit(&fb.s, 0);
-    FLOW_INITIALIZE(&f);
-    f.flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
-
-    TimeGet(&ts);
-    seg.payload = payload;
-    seg.payload_len = 3;
-    seg.next = NULL;
-    seg.prev = NULL;
-    client.seg_list = &seg;
-    ssn.client = client;
-    ssn.server = client;
-    ssn.state = TCP_ESTABLISHED;
-    f.lastts_sec = ts.tv_sec - 5000;
-    f.protoctx = &ssn;
-    f.fb = &fb;
-    f.proto = IPPROTO_TCP;
-
-    if (FlowTestPrune(&f, &ts) != 1) {
-        SCSpinDestroy(&fb.s);
-        FLOW_DESTROY(&f);
-        FlowQueueDestroy(&flow_spare_q);
-        return 0;
-    }
-    SCSpinDestroy(&fb.s);
-    FLOW_DESTROY(&f);
-    FlowQueueDestroy(&flow_spare_q);
-    return 1;
-
-}
-
-/**
- *  \test   Test the timing out of a flow with a fresh TcpSession
- *          (just initialized, no data segments) in emergency mode.
- *
- *  \retval On success it returns 1 and on failure 0.
- */
-
-static int FlowTest05 (void) {
-
-    TcpSession ssn;
-    Flow f;
-    FlowBucket fb;
-    struct timeval ts;
-
-    FlowQueueInit(&flow_spare_q);
-
-    memset(&ssn, 0, sizeof(TcpSession));
-    memset(&f, 0, sizeof(Flow));
-    memset(&ts, 0, sizeof(ts));
-    memset(&fb, 0, sizeof(FlowBucket));
-
-    SCSpinInit(&fb.s, 0);
-    FLOW_INITIALIZE(&f);
-    f.flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
-
-    TimeGet(&ts);
-    ssn.state = TCP_SYN_SENT;
-    f.lastts_sec = ts.tv_sec - 300;
-    f.protoctx = &ssn;
-    f.fb = &fb;
-    f.proto = IPPROTO_TCP;
-    f.flags |= FLOW_EMERGENCY;
-
-    if (FlowTestPrune(&f, &ts) != 1) {
-        SCSpinDestroy(&fb.s);
-        FLOW_DESTROY(&f);
-        FlowQueueDestroy(&flow_spare_q);
-        return 0;
-    }
-
-    SCSpinDestroy(&fb.s);
-    FLOW_DESTROY(&f);
-    FlowQueueDestroy(&flow_spare_q);
-    return 1;
-}
-
-/**
- *  \test   Test the timing out of a flow with a TcpSession
- *          (with data segments) in emergency mode.
- *
- *  \retval On success it returns 1 and on failure 0.
- */
-
-static int FlowTest06 (void) {
-
-    TcpSession ssn;
-    Flow f;
-    FlowBucket fb;
-    struct timeval ts;
-    TcpSegment seg;
-    TcpStream client;
-    uint8_t payload[3] = {0x41, 0x41, 0x41};
-
-    FlowQueueInit(&flow_spare_q);
-
-    memset(&ssn, 0, sizeof(TcpSession));
-    memset(&f, 0, sizeof(Flow));
-    memset(&fb, 0, sizeof(FlowBucket));
-    memset(&ts, 0, sizeof(ts));
-    memset(&seg, 0, sizeof(TcpSegment));
-    memset(&client, 0, sizeof(TcpSegment));
-
-    SCSpinInit(&fb.s, 0);
-    FLOW_INITIALIZE(&f);
-    f.flags |= FLOW_TIMEOUT_REASSEMBLY_DONE;
-
-    TimeGet(&ts);
-    seg.payload = payload;
-    seg.payload_len = 3;
-    seg.next = NULL;
-    seg.prev = NULL;
-    client.seg_list = &seg;
-    ssn.client = client;
-    ssn.server = client;
-    ssn.state = TCP_ESTABLISHED;
-    f.lastts_sec = ts.tv_sec - 5000;
-    f.protoctx = &ssn;
-    f.fb = &fb;
-    f.proto = IPPROTO_TCP;
-    f.flags |= FLOW_EMERGENCY;
-
-    if (FlowTestPrune(&f, &ts) != 1) {
-        SCSpinDestroy(&fb.s);
-        FLOW_DESTROY(&f);
-        FlowQueueDestroy(&flow_spare_q);
-        return 0;
-    }
-
-    SCSpinDestroy(&fb.s);
-    FLOW_DESTROY(&f);
-    FlowQueueDestroy(&flow_spare_q);
-    return 1;
-
-}
-
-/**
  *  \test   Test flow allocations when it reach memcap
  *
  *
@@ -1780,8 +959,9 @@ static int FlowTest07 (void) {
     end = end + 2;;
     UTHBuildPacketOfFlows(ini, end, 0);
 
-    /* This means that the engine released 5 flows by normal timeout */
-    if (flow_spare_q.len == 5)
+    /* This means that the engine entered emerg mode: should happen as easy
+     * with flow mgr activated */
+    if (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY)
         result = 1;
 
     memcpy(&flow_config, &backup, sizeof(FlowConfig));
@@ -1828,7 +1008,7 @@ static int FlowTest08 (void) {
     UTHBuildPacketOfFlows(ini, end, 0);
 
     /* This means that the engine released 5 flows by emergency timeout */
-    if (flow_spare_q.len == 5 && (flow_flags & FLOW_EMERGENCY))
+    if (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY)
         result = 1;
 
     memcpy(&flow_config, &backup, sizeof(FlowConfig));
@@ -1873,8 +1053,8 @@ static int FlowTest09 (void) {
     end = end + 2;
     UTHBuildPacketOfFlows(ini, end, 0);
 
-    /* This means that the engine release 5 flows by killing them */
-    if (flow_spare_q.len == 5 && (flow_flags & FLOW_EMERGENCY))
+    /* engine in emerg mode */
+    if (SC_ATOMIC_GET(flow_flags) & FLOW_EMERGENCY)
         result = 1;
 
     memcpy(&flow_config, &backup, sizeof(FlowConfig));
@@ -1882,6 +1062,7 @@ static int FlowTest09 (void) {
 
     return result;
 }
+
 #endif /* UNITTESTS */
 
 /**
@@ -1891,12 +1072,10 @@ void FlowRegisterTests (void) {
 #ifdef UNITTESTS
     UtRegisterTest("FlowTest01 -- Protocol Specific Timeouts", FlowTest01, 1);
     UtRegisterTest("FlowTest02 -- Setting Protocol Specific Free Function", FlowTest02, 1);
-    UtRegisterTest("FlowTest03 -- Timeout a flow having fresh TcpSession", FlowTest03, 1);
-    UtRegisterTest("FlowTest04 -- Timeout a flow having TcpSession with segments", FlowTest04, 1);
-    UtRegisterTest("FlowTest05 -- Timeout a flow in emergency having fresh TcpSession", FlowTest05, 1);
-    UtRegisterTest("FlowTest06 -- Timeout a flow in emergency having TcpSession with segments", FlowTest06, 1);
     UtRegisterTest("FlowTest07 -- Test flow Allocations when it reach memcap", FlowTest07, 1);
     UtRegisterTest("FlowTest08 -- Test flow Allocations when it reach memcap", FlowTest08, 1);
     UtRegisterTest("FlowTest09 -- Test flow Allocations when it reach memcap", FlowTest09, 1);
+
+    FlowMgrRegisterTests();
 #endif /* UNITTESTS */
 }

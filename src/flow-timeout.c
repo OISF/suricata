@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -436,7 +436,7 @@ int FlowForceReassemblyForFlowV2(Flow *f, int server, int client)
  *
  * \param q The queue to process flows from.
  */
-static inline void FlowForceReassemblyForQ(FlowQueue *q)
+static inline void FlowForceReassemblyForHash(void)
 {
     Flow *f;
     TcpSession *ssn;
@@ -444,128 +444,137 @@ static inline void FlowForceReassemblyForQ(FlowQueue *q)
     int server_ok;
     int tcp_needs_inspection;
 
-    /* get the topmost flow from the QUEUE */
-    f = q->top;
+    uint32_t idx = 0;
 
     /* We use this packet just for reassembly purpose */
     Packet *reassemble_p = PacketGetFromAlloc();
     if (reassemble_p == NULL)
         return;
 
-    /* we need to loop through all the flows in the queue */
-    while (f != NULL) {
-        PACKET_RECYCLE(reassemble_p);
-
-        SCMutexLock(&f->m);
-
-        /* Get the tcp session for the flow */
-        ssn = (TcpSession *)f->protoctx;
-
-        /* \todo Also skip flows that shouldn't be inspected */
-        if (ssn == NULL) {
-            SCMutexUnlock(&f->m);
-            f = f->lnext;
+    for (idx = 0; idx < flow_config.hash_size; idx++) {
+        FlowBucket *fb = &flow_hash[idx];
+        if (fb == NULL)
             continue;
-        }
+        FBLOCK_LOCK(fb);
 
-        /* ah ah!  We have some unattended toserver segments */
-        if ((client_ok = StreamHasUnprocessedSegments(ssn, 0)) == 1) {
-            StreamTcpThread *stt = stream_pseudo_pkt_stream_tm_slot->slot_data;
+        /* get the topmost flow from the QUEUE */
+        f = fb->head;
 
-            ssn->client.last_ack = (ssn->client.seg_list_tail->seq +
-                                    ssn->client.seg_list_tail->payload_len);
+        /* we need to loop through all the flows in the queue */
+        while (f != NULL) {
+            PACKET_RECYCLE(reassemble_p);
 
-            FlowForceReassemblyPseudoPacketSetup(reassemble_p, 1, f, ssn, 1);
-            StreamTcpReassembleHandleSegment(stream_pseudo_pkt_stream_TV,
-                                             stt->ra_ctx, ssn, &ssn->server,
-                                             reassemble_p, NULL);
-            StreamTcpReassembleProcessAppLayer(stt->ra_ctx);
-        }
-        /* oh oh!  We have some unattended toclient segments */
-        if ((server_ok = StreamHasUnprocessedSegments(ssn, 1)) == 1) {
-            StreamTcpThread *stt = stream_pseudo_pkt_stream_tm_slot->slot_data;
-
-            ssn->server.last_ack = (ssn->server.seg_list_tail->seq +
-                                    ssn->server.seg_list_tail->payload_len);
-
-            FlowForceReassemblyPseudoPacketSetup(reassemble_p, 0, f, ssn, 1);
-            StreamTcpReassembleHandleSegment(stream_pseudo_pkt_stream_TV,
-                                             stt->ra_ctx, ssn, &ssn->client,
-                                             reassemble_p, NULL);
-            StreamTcpReassembleProcessAppLayer(stt->ra_ctx);
-        }
-
-        if (ssn->state >= TCP_ESTABLISHED && ssn->state != TCP_CLOSED)
-            tcp_needs_inspection = 1;
-        else
-            tcp_needs_inspection = 0;
-
-        SCMutexUnlock(&f->m);
-
-        /* insert a pseudo packet in the toserver direction */
-        if (client_ok || tcp_needs_inspection)
-        {
             SCMutexLock(&f->m);
-            Packet *p = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
+
+            /* Get the tcp session for the flow */
+            ssn = (TcpSession *)f->protoctx;
+
+            /* \todo Also skip flows that shouldn't be inspected */
+            if (ssn == NULL) {
+                SCMutexUnlock(&f->m);
+                f = f->hnext;
+                continue;
+            }
+
+            /* ah ah!  We have some unattended toserver segments */
+            if ((client_ok = StreamHasUnprocessedSegments(ssn, 0)) == 1) {
+                StreamTcpThread *stt = stream_pseudo_pkt_stream_tm_slot->slot_data;
+
+                ssn->client.last_ack = (ssn->client.seg_list_tail->seq +
+                        ssn->client.seg_list_tail->payload_len);
+
+                FlowForceReassemblyPseudoPacketSetup(reassemble_p, 1, f, ssn, 1);
+                StreamTcpReassembleHandleSegment(stream_pseudo_pkt_stream_TV,
+                        stt->ra_ctx, ssn, &ssn->server,
+                        reassemble_p, NULL);
+                StreamTcpReassembleProcessAppLayer(stt->ra_ctx);
+            }
+            /* oh oh!  We have some unattended toclient segments */
+            if ((server_ok = StreamHasUnprocessedSegments(ssn, 1)) == 1) {
+                StreamTcpThread *stt = stream_pseudo_pkt_stream_tm_slot->slot_data;
+
+                ssn->server.last_ack = (ssn->server.seg_list_tail->seq +
+                        ssn->server.seg_list_tail->payload_len);
+
+                FlowForceReassemblyPseudoPacketSetup(reassemble_p, 0, f, ssn, 1);
+                StreamTcpReassembleHandleSegment(stream_pseudo_pkt_stream_TV,
+                        stt->ra_ctx, ssn, &ssn->client,
+                        reassemble_p, NULL);
+                StreamTcpReassembleProcessAppLayer(stt->ra_ctx);
+            }
+
+            if (ssn->state >= TCP_ESTABLISHED && ssn->state != TCP_CLOSED)
+                tcp_needs_inspection = 1;
+            else
+                tcp_needs_inspection = 0;
+
             SCMutexUnlock(&f->m);
 
-            if (p == NULL) {
-                TmqhOutputPacketpool(NULL, reassemble_p);
-                return;
-            }
+            /* insert a pseudo packet in the toserver direction */
+            if (client_ok || tcp_needs_inspection)
+            {
+                SCMutexLock(&f->m);
+                Packet *p = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
+                SCMutexUnlock(&f->m);
 
-            if (stream_pseudo_pkt_detect_prev_TV != NULL) {
-                stream_pseudo_pkt_detect_prev_TV->
-                    tmqh_out(stream_pseudo_pkt_detect_prev_TV, p);
-            } else {
-                TmSlot *s = stream_pseudo_pkt_detect_tm_slot;
-                while (s != NULL) {
-                    s->SlotFunc(NULL, p, s->slot_data, &s->slot_pre_pq,
+                if (p == NULL) {
+                    TmqhOutputPacketpool(NULL, reassemble_p);
+                    return;
+                }
+
+                if (stream_pseudo_pkt_detect_prev_TV != NULL) {
+                    stream_pseudo_pkt_detect_prev_TV->
+                        tmqh_out(stream_pseudo_pkt_detect_prev_TV, p);
+                } else {
+                    TmSlot *s = stream_pseudo_pkt_detect_tm_slot;
+                    while (s != NULL) {
+                        s->SlotFunc(NULL, p, s->slot_data, &s->slot_pre_pq,
                                 &s->slot_post_pq);
-                    s = s->slot_next;
+                        s = s->slot_next;
+                    }
+
+                    if (stream_pseudo_pkt_detect_TV != NULL) {
+                        stream_pseudo_pkt_detect_TV->
+                            tmqh_out(stream_pseudo_pkt_detect_TV, p);
+                    }
+                }
+            } /* if (ssn->client.seg_list != NULL) */
+            if (server_ok || tcp_needs_inspection)
+            {
+                SCMutexLock(&f->m);
+                Packet *p = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
+                SCMutexUnlock(&f->m);
+
+                if (p == NULL) {
+                    TmqhOutputPacketpool(NULL, reassemble_p);
+                    return;
                 }
 
-                if (stream_pseudo_pkt_detect_TV != NULL) {
-                    stream_pseudo_pkt_detect_TV->
-                        tmqh_out(stream_pseudo_pkt_detect_TV, p);
-                }
-            }
-        } /* if (ssn->client.seg_list != NULL) */
-        if (server_ok || tcp_needs_inspection)
-        {
-            SCMutexLock(&f->m);
-            Packet *p = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
-            SCMutexUnlock(&f->m);
-
-            if (p == NULL) {
-                TmqhOutputPacketpool(NULL, reassemble_p);
-                return;
-            }
-
-            if (stream_pseudo_pkt_detect_prev_TV != NULL) {
-                stream_pseudo_pkt_detect_prev_TV->
-                    tmqh_out(stream_pseudo_pkt_detect_prev_TV, p);
-            } else {
-                TmSlot *s = stream_pseudo_pkt_detect_tm_slot;
-                while (s != NULL) {
-                    s->SlotFunc(NULL, p, s->slot_data, &s->slot_pre_pq,
+                if (stream_pseudo_pkt_detect_prev_TV != NULL) {
+                    stream_pseudo_pkt_detect_prev_TV->
+                        tmqh_out(stream_pseudo_pkt_detect_prev_TV, p);
+                } else {
+                    TmSlot *s = stream_pseudo_pkt_detect_tm_slot;
+                    while (s != NULL) {
+                        s->SlotFunc(NULL, p, s->slot_data, &s->slot_pre_pq,
                                 &s->slot_post_pq);
-                    s = s->slot_next;
-                }
+                        s = s->slot_next;
+                    }
 
-                if (stream_pseudo_pkt_detect_TV != NULL) {
-                    stream_pseudo_pkt_detect_TV->
-                        tmqh_out(stream_pseudo_pkt_detect_TV, p);
+                    if (stream_pseudo_pkt_detect_TV != NULL) {
+                        stream_pseudo_pkt_detect_TV->
+                            tmqh_out(stream_pseudo_pkt_detect_TV, p);
+                    }
                 }
-            }
-        } /* if (ssn->server.seg_list != NULL) */
+            } /* if (ssn->server.seg_list != NULL) */
 
-        /* next flow in the queue */
-        f = f->lnext;
-    } /* while (f != NULL) */
+            /* next flow in the queue */
+            f = f->hnext;
+        } /* while (f != NULL) */
+        FBLOCK_UNLOCK(fb);
+    }
 
     TmqhOutputPacketpool(NULL, reassemble_p);
-
     return;
 }
 
@@ -610,9 +619,7 @@ void FlowForceReassembly(void)
 
     /** ----- Part 3 ----- **/
     /* Carry out flow reassembly for unattended flows */
-    FlowForceReassemblyForQ(&flow_new_q[FLOW_PROTO_TCP]);
-    FlowForceReassemblyForQ(&flow_est_q[FLOW_PROTO_TCP]);
-    FlowForceReassemblyForQ(&flow_close_q[FLOW_PROTO_TCP]);
+    FlowForceReassemblyForHash();
 
     return;
 }

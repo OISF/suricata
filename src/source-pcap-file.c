@@ -305,7 +305,7 @@ TmEcode DecodePcapFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
     SCPerfCounterSetUI64(dtv->counter_max_pkt_size, tv->sc_perf_pca, GET_PKT_LEN(p));
 
     double curr_ts = p->ts.tv_sec + p->ts.tv_usec / 1000.0;
-    if (curr_ts < prev_signaled_ts || (curr_ts - prev_signaled_ts) > 2.0) {
+    if (curr_ts < prev_signaled_ts || (curr_ts - prev_signaled_ts) > 60.0) {
         prev_signaled_ts = curr_ts;
         FlowWakeupFlowManagerThread();
     }

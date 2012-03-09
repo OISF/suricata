@@ -300,12 +300,14 @@ int StreamTcpReassembleInit(char quiet)
     uint16_t u16 = 0;
     for (u16 = 0; u16 < segment_pool_num; u16++)
     {
+        SCMutexInit(&segment_pool_mutex[u16], NULL);
+        SCMutexLock(&segment_pool_mutex[u16]);
         segment_pool[u16] = PoolInit(segment_pool_poolsizes[u16],
                                      segment_pool_poolsizes_prealloc[u16],
                                      TcpSegmentPoolAlloc, (void *) &
                                      segment_pool_pktsizes[u16],
                                      TcpSegmentPoolFree);
-        SCMutexInit(&segment_pool_mutex[u16], NULL);
+        SCMutexUnlock(&segment_pool_mutex[u16]);
     }
 
     uint16_t idx = 0;
@@ -339,6 +341,7 @@ void StreamTcpReassembleFree(char quiet)
 {
     uint16_t u16 = 0;
     for (u16 = 0; u16 < segment_pool_num; u16++) {
+        SCMutexLock(&segment_pool_mutex[u16]);
         PoolPrintSaturation(segment_pool[u16]);
 
         if (quiet == FALSE) {
@@ -351,6 +354,7 @@ void StreamTcpReassembleFree(char quiet)
         }
         PoolFree(segment_pool[u16]);
 
+        SCMutexUnlock(&segment_pool_mutex[u16]);
         SCMutexDestroy(&segment_pool_mutex[u16]);
     }
 
