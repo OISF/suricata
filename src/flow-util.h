@@ -59,8 +59,7 @@
         SCMutexInit(&(f)->de_state_m, NULL); \
         (f)->hnext = NULL; \
         (f)->hprev = NULL; \
-        (f)->lnext = NULL; \
-        (f)->lprev = NULL; \
+        (f)->stack_next = NULL; \
         RESET_COUNTERS((f)); \
     } while (0)
 

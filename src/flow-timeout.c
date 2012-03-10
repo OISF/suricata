@@ -33,7 +33,6 @@
 #include "util-time.h"
 
 #include "flow.h"
-#include "flow-queue.h"
 #include "flow-hash.h"
 #include "flow-util.h"
 #include "flow-var.h"

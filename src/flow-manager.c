@@ -34,7 +34,6 @@
 #include "util-time.h"
 
 #include "flow.h"
-#include "flow-queue.h"
 #include "flow-hash.h"
 #include "flow-util.h"
 #include "flow-var.h"
@@ -293,7 +292,7 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
             SCMutexUnlock(&f->m);
 
             /* move to spare list */
-            FlowMoveToSpare(f);
+            FlowSpareStore(f);
 
             cnt++;
 
@@ -458,10 +457,7 @@ void *FlowManagerThread(void *td)
         long long unsigned int flow_memuse = SC_ATOMIC_GET(flow_memuse);
         SCPerfCounterSetUI64(flow_mgr_memuse, th_v->sc_perf_pca, (uint64_t)flow_memuse);
 
-        uint32_t len = 0;
-        FQLOCK_LOCK(&flow_spare_q);
-        len = flow_spare_q.len;
-        FQLOCK_UNLOCK(&flow_spare_q);
+        uint32_t len = FlowSpareSize();
         SCPerfCounterSetUI64(flow_mgr_spare, th_v->sc_perf_pca, (uint64_t)len);
 
         /* Don't fear, FlowManagerThread is here...
@@ -558,7 +554,7 @@ static int FlowMgrTest01 (void) {
     FlowBucket fb;
     struct timeval ts;
 
-    FlowQueueInit(&flow_spare_q);
+    FlowSpareInit();
 
     memset(&ssn, 0, sizeof(TcpSession));
     memset(&f, 0, sizeof(Flow));
@@ -581,14 +577,15 @@ static int FlowMgrTest01 (void) {
     if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
-        FlowQueueDestroy(&flow_spare_q);
+
+        FlowSpareDestroy();
         return 0;
     }
 
     FBLOCK_DESTROY(&fb);
     FLOW_DESTROY(&f);
 
-    FlowQueueDestroy(&flow_spare_q);
+    FlowSpareDestroy();
     return 1;
 }
 
@@ -608,7 +605,7 @@ static int FlowMgrTest02 (void) {
     TcpStream client;
     uint8_t payload[3] = {0x41, 0x41, 0x41};
 
-    FlowQueueInit(&flow_spare_q);
+    FlowSpareInit();
 
     memset(&ssn, 0, sizeof(TcpSession));
     memset(&f, 0, sizeof(Flow));
@@ -639,12 +636,12 @@ static int FlowMgrTest02 (void) {
     if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
-        FlowQueueDestroy(&flow_spare_q);
+        FlowSpareDestroy();
         return 0;
     }
     FBLOCK_DESTROY(&fb);
     FLOW_DESTROY(&f);
-    FlowQueueDestroy(&flow_spare_q);
+    FlowSpareDestroy();
     return 1;
 
 }
@@ -662,7 +659,7 @@ static int FlowMgrTest03 (void) {
     FlowBucket fb;
     struct timeval ts;
 
-    FlowQueueInit(&flow_spare_q);
+    FlowSpareInit();
 
     memset(&ssn, 0, sizeof(TcpSession));
     memset(&f, 0, sizeof(Flow));
@@ -685,13 +682,13 @@ static int FlowMgrTest03 (void) {
     if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
-        FlowQueueDestroy(&flow_spare_q);
+        FlowSpareDestroy();
         return 0;
     }
 
     FBLOCK_DESTROY(&fb);
     FLOW_DESTROY(&f);
-    FlowQueueDestroy(&flow_spare_q);
+    FlowSpareDestroy();
     return 1;
 }
 
@@ -712,7 +709,7 @@ static int FlowMgrTest04 (void) {
     TcpStream client;
     uint8_t payload[3] = {0x41, 0x41, 0x41};
 
-    FlowQueueInit(&flow_spare_q);
+    FlowSpareInit();
 
     memset(&ssn, 0, sizeof(TcpSession));
     memset(&f, 0, sizeof(Flow));
@@ -744,13 +741,13 @@ static int FlowMgrTest04 (void) {
     if (FlowManagerFlowTimeout(&f, state, &ts, 0) != 1 && FlowManagerFlowTimedOut(&f, &ts) != 1) {
         FBLOCK_DESTROY(&fb);
         FLOW_DESTROY(&f);
-        FlowQueueDestroy(&flow_spare_q);
+        FlowSpareDestroy();
         return 0;
     }
 
     FBLOCK_DESTROY(&fb);
     FLOW_DESTROY(&f);
-    FlowQueueDestroy(&flow_spare_q);
+    FlowSpareDestroy();
     return 1;
 }
 
@@ -769,7 +766,7 @@ static int FlowMgrTest05 (void) {
     memcpy(&backup, &flow_config, sizeof(FlowConfig));
 
     uint32_t ini = 0;
-    uint32_t end = flow_spare_q.len;
+    uint32_t end = FlowSpareSize();
     flow_config.memcap = 10000;
     flow_config.prealloc = 100;
 
@@ -795,7 +792,7 @@ static int FlowMgrTest05 (void) {
     FlowTimeoutCounters counters = { 0, 0, 0, };
     FlowTimeoutHash(&ts, 0 /* check all */, &counters);
 
-    if (flow_spare_q.len > 0) {
+    if (FlowSpareSize() > 0) {
         result = 1;
     }
 

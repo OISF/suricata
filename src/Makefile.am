@@ -3,7 +3,7 @@ noinst_HEADERS = action-globals.h \
     debug.h \
 	flow-private.h queue.h source-nfq-prototypes.h \
 	suricata-common.h threadvars.h util-binsearch.h \
-    util-atomic.h util-validate.h
+    util-atomic.h util-validate.h util-stack.h
 bin_PROGRAMS = suricata
 suricata_SOURCES = suricata.c suricata.h \
 runmodes.c runmodes.h \
@@ -46,7 +46,6 @@ decode-sctp.c decode-sctp.h \
 flow.c flow.h \
 flow-timeout.c flow-timeout.h \
 flow-manager.c flow-manager.h \
-flow-queue.c flow-queue.h \
 flow-hash.c flow-hash.h \
 flow-util.c flow-util.h \
 util-mem.h \
@@ -171,6 +170,7 @@ detect-replace.c detect-replace.h \
 util-magic.c util-magic.h \
 util-misc.c util-misc.h \
 util-atomic.h \
+util-stack.h \
 util-print.c util-print.h \
 util-fmemopen.c util-fmemopen.h \
 util-cpu.c util-cpu.h \
