@@ -103,6 +103,10 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
                 SCLogError(SC_ERR_INVALID_ARGUMENT, "invalid argument");
                 SCReturnInt(-1);
             }
+            if (cd->flags & DETECT_CONTENT_NOCASE) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't use multiple nocase modifiers with the same content; ignoring this option. ");
+                SCReturnInt(-1);
+            }
             cd->flags |= DETECT_CONTENT_NOCASE;
             /* Recreate the context with nocase chars */
             BoyerMooreCtxToNocase(cd->bm_ctx, cd->content, cd->content_len);

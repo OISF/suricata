@@ -75,6 +75,10 @@ static int DetectRawbytesSetup (DetectEngineCtx *de_ctx, Signature *s, char *nul
         case DETECT_CONTENT:
         {
             DetectContentData *cd = (DetectContentData *)pm->ctx;
+            if (cd->flags & DETECT_CONTENT_RAWBYTES) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't use multiple rawbytes modifiers for the same content. ");
+                SCReturnInt(-1);
+            }
             cd->flags |= DETECT_CONTENT_RAWBYTES;
             break;
         }

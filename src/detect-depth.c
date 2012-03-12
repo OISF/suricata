@@ -142,6 +142,11 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                 goto error;
             }
 
+            if (cd->flags & DETECT_CONTENT_DEPTH) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't use multiple depths for the same content.");
+                goto error;
+            }
+
             if (str[0] != '-' && isalpha(str[0])) {
                 SigMatch *bed_sm =
                     DetectByteExtractRetrieveSMVar(str, s,

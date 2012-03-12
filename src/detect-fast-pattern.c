@@ -269,6 +269,10 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
     }
 
     if (arg == NULL|| strcmp(arg, "") == 0) {
+        if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't use multiple fast_pattern options for the same content. ");
+            goto error;
+        }
         cd->flags |= DETECT_CONTENT_FAST_PATTERN;
         return 0;
     }

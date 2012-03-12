@@ -216,6 +216,11 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 goto error;
             }
 
+            if (cd->flags & DETECT_CONTENT_DISTANCE) {
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't use multiple distances with the same content. ");
+                goto error;
+            }
+
             if (str[0] != '-' && isalpha(str[0])) {
                 SigMatch *bed_sm =
                     DetectByteExtractRetrieveSMVar(str, s,
