@@ -24,8 +24,7 @@
 # round_robin - Flow alloted to queue in a round robin fashion.
 # active-packets - Flow alloted to queue that has the least no of
 #                  unprocessed packets.
-# active-flows - Flow alloted to queue that has least no of active flows.
-autofp-scheduler: round-robin
+#autofp-scheduler: active_packets
 
 # Default pid file.
 # Will use this file if no --pidfile in command options.

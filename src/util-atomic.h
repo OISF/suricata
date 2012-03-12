@@ -199,6 +199,21 @@
 })
 
 /**
+ *  \brief Set the value for the atomic variable.
+ *
+ *  \retval var value
+ */
+#define SC_ATOMIC_SET(name, val) ({       \
+    typeof(name ## _sc_atomic__) var; \
+    do { \
+        SCSpinLock(&(name ## _sc_lock__)); \
+        var = (name ## _sc_atomic__) = val; \
+        SCSpinUnlock(&(name ## _sc_lock__)); \
+    } while (0); \
+    var; \
+})
+
+/**
  *  \brief atomic Compare and Switch
  *
  *  \warning "name" is passed to us as "&var"
@@ -440,6 +455,16 @@
  */
 #define SC_ATOMIC_GET(name) \
     (name ## _sc_atomic__)
+
+/**
+ *  \brief Set the value for the atomic variable.
+ *
+ *  \retval var value
+ */
+#define SC_ATOMIC_SET(name, val) ({       \
+    while (SC_ATOMIC_CAS(&name, SC_ATOMIC_GET(name), val) == 0) \
+        ;                                                       \
+        })
 
 #endif /* !no atomic operations */
 #endif /* __UTIL_ATOMIC_H__ */

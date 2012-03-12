@@ -27,9 +27,8 @@
 typedef struct TmqhFlowMode_ {
     PacketQueue *q;
 
-    SC_ATOMIC_DECLARE(uint64_t, active_flows);
-    uint64_t total_packets;
-    uint64_t total_flows;
+    SC_ATOMIC_DECLARE(uint64_t, total_packets);
+    SC_ATOMIC_DECLARE(uint64_t, total_flows);
 } TmqhFlowMode;
 
 /** \brief Ctx for the flow queue handler
@@ -41,20 +40,10 @@ typedef struct TmqhFlowCtx_ {
 
     TmqhFlowMode *queues;
 
-    uint16_t round_robin_idx;
+    SC_ATOMIC_DECLARE(uint16_t, round_robin_idx);
 } TmqhFlowCtx;
-
-extern TmqhFlowCtx *tmqh_flow_outctx;
-
-static inline void TmqhFlowUpdateActiveFlows(Flow *f)
-{
-    SC_ATOMIC_SUB(tmqh_flow_outctx->queues[f->autofp_tmqh_flow_qid].active_flows, 1);
-
-    return;
-}
 
 void TmqhFlowRegister (void);
 void TmqhFlowRegisterTests(void);
-void TmqhFlowPrintStatistics(void);
 
 #endif /* __TMQH_FLOW_H__ */

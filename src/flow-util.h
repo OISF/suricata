@@ -62,7 +62,7 @@
         (f)->hprev = NULL; \
         (f)->lnext = NULL; \
         (f)->lprev = NULL; \
-        (f)->autofp_tmqh_flow_qid = -1; \
+        SC_ATOMIC_SET((f)->autofp_tmqh_flow_qid, -1);  \
         RESET_COUNTERS((f)); \
     } while (0)
 
@@ -93,9 +93,8 @@
         (f)->tag_list = NULL; \
         GenericVarFree((f)->flowvar); \
         (f)->flowvar = NULL; \
-        if ((f)->autofp_tmqh_flow_qid != -1) {  \
-            TmqhFlowUpdateActiveFlows((f));     \
-            (f)->autofp_tmqh_flow_qid = -1;     \
+        if (SC_ATOMIC_GET((f)->autofp_tmqh_flow_qid) != -1) {   \
+            SC_ATOMIC_SET((f)->autofp_tmqh_flow_qid, -1);   \
         }                                       \
         RESET_COUNTERS((f)); \
     } while(0)
@@ -111,8 +110,8 @@
         DetectTagDataListFree((f)->tag_list); \
         GenericVarFree((f)->flowvar); \
         SCMutexDestroy(&(f)->de_state_m); \
-        if ((f)->autofp_tmqh_flow_qid != -1) {  \
-            TmqhFlowUpdateActiveFlows((f));     \
+        if (SC_ATOMIC_GET((f)->autofp_tmqh_flow_qid) != -1) {   \
+            SC_ATOMIC_DESTROY((f)->autofp_tmqh_flow_qid);   \
         }                                       \
         (f)->tag_list = NULL; \
     } while(0)

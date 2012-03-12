@@ -1902,8 +1902,6 @@ int main(int argc, char **argv)
 #endif /* OS_WIN32 */
 
     SC_ATOMIC_DESTROY(engine_stage);
-    if (strcasecmp(RunmodeGetActive(), "autofp") == 0)
-        TmqhFlowPrintStatistics();
 
     exit(engine_retval);
 }

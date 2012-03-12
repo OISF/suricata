@@ -312,7 +312,7 @@ typedef struct Flow_
     uint64_t bytecnt;
 #endif
 
-    int32_t autofp_tmqh_flow_qid;
+    SC_ATOMIC_DECLARE(int, autofp_tmqh_flow_qid);
 } Flow;
 
 enum {
