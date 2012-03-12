@@ -25,8 +25,9 @@
 #define __FLOW_PRIVATE_H__
 
 #include "flow-hash.h"
+#include "flow-queue.h"
+
 #include "util-atomic.h"
-#include "util-stack.h"
 
 /* global flow flags */
 
@@ -75,41 +76,10 @@ enum {
 FlowProto flow_proto[FLOW_PROTO_MAX];
 
 /** spare/unused/prealloced flows live here */
-Stack flow_spare_stack;
-
-#define FlowSpareInit(void) do {                    \
-    STACK_INIT(&flow_spare_stack);                  \
-    SC_ATOMIC_INIT(flow_spare_cnt);                 \
-} while (0)
-
-#define FlowSpareDestroy(void) do {                 \
-    STACK_DESTROY(&flow_spare_stack);               \
-    SC_ATOMIC_DESTROY(flow_spare_cnt);              \
-} while (0)
-
-#define FlowSpareGet(void) ({                       \
-    Flow *f = STACK_POP(&flow_spare_stack, Flow_);  \
-    if (f != NULL) {                                \
-        FlowSpareDecr();                            \
-    }                                               \
-    f;                                              \
-})
-
-#define FlowSpareStore(f) ({                        \
-    STACK_PUSH(&flow_spare_stack, (f), Flow_);      \
-    FlowSpareIncr();                                \
-})
-
-#define FlowSpareSize(void)                         \
-    SC_ATOMIC_GET(flow_spare_cnt)
-#define FlowSpareIncr(void)                         \
-    SC_ATOMIC_ADD(flow_spare_cnt, 1)
-#define FlowSpareDecr(void)                         \
-    SC_ATOMIC_SUB(flow_spare_cnt, 1)
+FlowQueue flow_spare_q;
 
 FlowBucket *flow_hash;
 FlowConfig flow_config;
-SC_ATOMIC_DECLARE(unsigned int, flow_spare_cnt);
 
 /** flow memuse counter (atomic), for enforcing memcap limit */
 SC_ATOMIC_DECLARE(long long unsigned int, flow_memuse);

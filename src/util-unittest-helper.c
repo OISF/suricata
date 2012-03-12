@@ -960,11 +960,11 @@ int UTHBuildPacketOfFlowsTest01(void) {
     int result = 0;
 
     FlowInitConfig(FLOW_QUIET);
-    uint32_t flow_spare_q_len = FlowSpareSize();
+    uint32_t flow_spare_q_len = flow_spare_q.len;
 
     UTHBuildPacketOfFlows(0, 100, 0);
 
-    if (FlowSpareSize() != flow_spare_q_len - 100)
+    if (flow_spare_q.len != flow_spare_q_len - 100)
         result = 0;
     else
         result = 1;

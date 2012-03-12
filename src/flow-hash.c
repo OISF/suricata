@@ -306,7 +306,7 @@ static Flow *FlowGetNew(Packet *p) {
     }
 
     /* get a flow from the spare queue */
-    f = FlowSpareGet();
+    f = FlowDequeue(&flow_spare_q);
     if (f == NULL) {
         /* If we reached the max memcap, we get a used flow */
         if ((SC_ATOMIC_GET(flow_memuse) + sizeof(Flow)) > flow_config.memcap) {

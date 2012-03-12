@@ -27,7 +27,6 @@
 #include "decode.h"
 #include "util-var.h"
 #include "util-atomic.h"
-#include "util-stack.h"
 #include "detect-tag.h"
 
 #define FLOW_QUIET      TRUE
@@ -299,13 +298,13 @@ typedef struct Flow_
     SCMutex de_state_m;          /**< mutex lock for the de_state object */
 
     /** hash list pointers, protected by fb->s */
-    struct FlowBucket_ *fb;
     struct Flow_ *hnext; /* hash list */
     struct Flow_ *hprev;
+    struct FlowBucket_ *fb;
 
-    /* stack pointer for the spare stack */
-    struct Flow_ *stack_next;
-
+    /** queue list pointers, protected by queue mutex */
+    struct Flow_ *lnext; /* list */
+    struct Flow_ *lprev;
     struct timeval startts;
 #ifdef DEBUG
     uint32_t todstpktcnt;

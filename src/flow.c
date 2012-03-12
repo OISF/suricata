@@ -35,6 +35,7 @@
 #include "util-time.h"
 
 #include "flow.h"
+#include "flow-queue.h"
 #include "flow-hash.h"
 #include "flow-util.h"
 #include "flow-var.h"
@@ -113,7 +114,9 @@ int FlowUpdateSpareFlows(void)
     SCEnter();
     uint32_t toalloc = 0, tofree = 0, len;
 
-    len = FlowSpareSize();
+    FQLOCK_LOCK(&flow_spare_q);
+    len = flow_spare_q.len;
+    FQLOCK_UNLOCK(&flow_spare_q);
 
     if (len < flow_config.prealloc) {
         toalloc = flow_config.prealloc - len;
@@ -124,14 +127,15 @@ int FlowUpdateSpareFlows(void)
             if (f == NULL)
                 return 0;
 
-            FlowSpareStore(f);
+            FlowEnqueue(&flow_spare_q,f);
         }
     } else if (len > flow_config.prealloc) {
         tofree = len - flow_config.prealloc;
 
         uint32_t i;
         for (i = 0; i < tofree; i++) {
-            Flow *f = FlowSpareGet();
+            /* FlowDequeue locks the queue */
+            Flow *f = FlowDequeue(&flow_spare_q);
             if (f == NULL)
                 return 1;
 
@@ -322,7 +326,7 @@ void FlowInitConfig(char quiet)
     SC_ATOMIC_INIT(flow_flags);
     SC_ATOMIC_INIT(flow_memuse);
     SC_ATOMIC_INIT(flow_prune_idx);
-    FlowSpareInit();
+    FlowQueueInit(&flow_spare_q);
 
     unsigned int seed = RandomTimePreseed();
     /* set defaults */
@@ -419,13 +423,12 @@ void FlowInitConfig(char quiet)
             printf("ERROR: FlowAlloc failed: %s\n", strerror(errno));
             exit(1);
         }
-
-        FlowSpareStore(f);
+        FlowEnqueue(&flow_spare_q,f);
     }
 
     if (quiet == FALSE) {
         SCLogInfo("preallocated %" PRIu32 " flows of size %" PRIuMAX "",
-                FlowSpareSize(), (uintmax_t)sizeof(Flow));
+                flow_spare_q.len, (uintmax_t)sizeof(Flow));
         SCLogInfo("flow memory usage: %llu bytes, maximum: %"PRIu64,
                 SC_ATOMIC_GET(flow_memuse), flow_config.memcap);
     }
@@ -455,7 +458,8 @@ void FlowShutdown(void)
 
     FlowPrintStats();
 
-    while ((f = FlowSpareGet())) {
+    /* free spare queue */
+    while((f = FlowDequeue(&flow_spare_q))) {
         FlowFree(f);
     }
 
@@ -478,7 +482,7 @@ void FlowShutdown(void)
         flow_hash = NULL;
     }
     SC_ATOMIC_SUB(flow_memuse, flow_config.hash_size * sizeof(FlowBucket));
-    FlowSpareDestroy();
+    FlowQueueDestroy(&flow_spare_q);
 
     SC_ATOMIC_DESTROY(flow_prune_idx);
     SC_ATOMIC_DESTROY(flow_memuse);
@@ -935,7 +939,7 @@ static int FlowTest07 (void) {
     memcpy(&backup, &flow_config, sizeof(FlowConfig));
 
     uint32_t ini = 0;
-    uint32_t end = FlowSpareSize();
+    uint32_t end = flow_spare_q.len;
     flow_config.memcap = 10000;
     flow_config.prealloc = 100;
 
@@ -982,7 +986,7 @@ static int FlowTest08 (void) {
     memcpy(&backup, &flow_config, sizeof(FlowConfig));
 
     uint32_t ini = 0;
-    uint32_t end = FlowSpareSize();
+    uint32_t end = flow_spare_q.len;
     flow_config.memcap = 10000;
     flow_config.prealloc = 100;
 
@@ -1029,7 +1033,7 @@ static int FlowTest09 (void) {
     memcpy(&backup, &flow_config, sizeof(FlowConfig));
 
     uint32_t ini = 0;
-    uint32_t end = FlowSpareSize();
+    uint32_t end = flow_spare_q.len;
     flow_config.memcap = 10000;
     flow_config.prealloc = 100;
 
