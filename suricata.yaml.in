@@ -24,6 +24,7 @@
 # round_robin - Flow alloted to queue in a round robin fashion.
 # active-packets - Flow alloted to queue that has the least no of
 #                  unprocessed packets.
+# hash - Flow alloted usihng the address hash.  More of a random technique.
 #autofp-scheduler: active_packets
 
 # Default pid file.
