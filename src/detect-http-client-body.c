@@ -128,6 +128,11 @@ int DetectHttpClientBodySetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
         goto error;
     }
 
+    if (s->flags & SIG_FLAG_TOCLIENT) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "http_client_body can not be used with flow:to_client or flow:from_server. ");
+        goto error;
+    }
+
     if (cd->flags & DETECT_CONTENT_WITHIN || cd->flags & DETECT_CONTENT_DISTANCE) {
         SigMatch *pm =  SigMatchGetLastSMFromLists(s, 4,
                                                    DETECT_CONTENT, sm->prev,
