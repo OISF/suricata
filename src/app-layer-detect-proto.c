@@ -226,6 +226,7 @@ void AlpProtoAdd(AlpProtoDetectCtx *ctx, uint16_t ip_proto, uint16_t al_proto, c
 
     mpm_table[dir->mpm_ctx.mpm_type].AddPattern(&dir->mpm_ctx, cd->content, cd->content_len,
                                 cd->offset, cd->depth, cd->id, cd->id, 0);
+    BUG_ON(dir->id == ALP_DETECT_MAX);
     dir->map[dir->id] = al_proto;
     dir->id++;
 
