@@ -86,11 +86,14 @@ static const char *Oid2ShortStr(const char *oid)
  *
  * \retval The matching node, or NULL
  */
-const Asn1Generic * Asn1DerGet(const Asn1Generic *top, const uint8_t *seq_index, const uint32_t seqsz)
+const Asn1Generic * Asn1DerGet(const Asn1Generic *top, const uint8_t *seq_index, const uint32_t seqsz, uint32_t *errcode)
 {
     const Asn1Generic * node;
     uint8_t idx, i;
     uint8_t offset = 0;
+
+    if (errcode)
+        *errcode = ERR_DER_MISSING_ELEMENT;
 
     node = top;
     if (node == NULL || seq_index == NULL)
@@ -127,10 +130,13 @@ const Asn1Generic * Asn1DerGet(const Asn1Generic *top, const uint8_t *seq_index,
         node = node->data;
     }
 
+    if (errcode)
+        *errcode = 0;
+
     return node;
 }
 
-int Asn1DerGetIssuerDN(const Asn1Generic *cert, char *buffer, uint32_t length)
+int Asn1DerGetIssuerDN(const Asn1Generic *cert, char *buffer, uint32_t length, uint32_t *errcode)
 {
     const Asn1Generic *node_oid;
     const Asn1Generic *node, *it;
@@ -140,11 +146,14 @@ int Asn1DerGetIssuerDN(const Asn1Generic *cert, char *buffer, uint32_t length)
     int rc = -1;
     const char *separator = ", ";
 
+    if (errcode)
+        *errcode = ERR_DER_MISSING_ELEMENT;
+
     if (length < 10)
         goto issuer_dn_error;
     buffer[0] = '\0';
 
-    node = Asn1DerGet(cert, SEQ_IDX_ISSUER, sizeof(SEQ_IDX_ISSUER));
+    node = Asn1DerGet(cert, SEQ_IDX_ISSUER, sizeof(SEQ_IDX_ISSUER), errcode);
     if ((node == NULL) || node->type != ASN1_SEQUENCE)
         goto issuer_dn_error;
 
@@ -180,7 +189,8 @@ int Asn1DerGetIssuerDN(const Asn1Generic *cert, char *buffer, uint32_t length)
                 strlcat(buffer, node_str->str, length);
                 break;
             default:
-                SCLogInfo("Unsupported 'string' type:'%d'", node_str->type);
+                if (errcode)
+                    *errcode = ERR_DER_UNSUPPORTED_STRING;
                 goto issuer_dn_error;
         }
 
@@ -191,12 +201,15 @@ int Asn1DerGetIssuerDN(const Asn1Generic *cert, char *buffer, uint32_t length)
         it = it->next;
     }
 
+    if (errcode)
+        *errcode = 0;
+
     rc = 0;
 issuer_dn_error:
     return rc;
 }
 
-int Asn1DerGetSubjectDN(const Asn1Generic *cert, char *buffer, uint32_t length)
+int Asn1DerGetSubjectDN(const Asn1Generic *cert, char *buffer, uint32_t length, uint32_t *errcode)
 {
     const Asn1Generic *node_oid;
     const Asn1Generic *node, *it;
@@ -206,11 +219,14 @@ int Asn1DerGetSubjectDN(const Asn1Generic *cert, char *buffer, uint32_t length)
     int rc = -1;
     const char *separator = ", ";
 
+    if (errcode)
+        *errcode = ERR_DER_MISSING_ELEMENT;
+
     if (length < 10)
         goto subject_dn_error;
     buffer[0] = '\0';
 
-    node = Asn1DerGet(cert, SEQ_IDX_SUBJECT, sizeof(SEQ_IDX_SUBJECT));
+    node = Asn1DerGet(cert, SEQ_IDX_SUBJECT, sizeof(SEQ_IDX_SUBJECT), errcode);
 
     if ((node == NULL) || node->type != ASN1_SEQUENCE)
         goto subject_dn_error;
@@ -247,7 +263,8 @@ int Asn1DerGetSubjectDN(const Asn1Generic *cert, char *buffer, uint32_t length)
                 strlcat(buffer, node_str->str, length);
                 break;
             default:
-                SCLogInfo("Unsupported 'string' type:'%d'", node_str->type);
+                if (errcode)
+                    *errcode = ERR_DER_UNSUPPORTED_STRING;
                 goto subject_dn_error;
         }
 
@@ -257,7 +274,9 @@ int Asn1DerGetSubjectDN(const Asn1Generic *cert, char *buffer, uint32_t length)
             strlcat(buffer, separator, length);
         it = it->next;
     }
-    SCLogDebug("read subject:'%s'", buffer);
+
+    if (errcode)
+        *errcode = 0;
 
     rc = 0;
 subject_dn_error:

@@ -35,9 +35,9 @@
 #ifndef __UTIL_DECODE_DER_GET_H__
 #define __UTIL_DECODE_DER_GET_H__
 
-const Asn1Generic * Asn1DerGet(const Asn1Generic *top, const uint8_t *seq_index, const uint32_t seqsz);
+const Asn1Generic * Asn1DerGet(const Asn1Generic *top, const uint8_t *seq_index, const uint32_t seqsz, uint32_t *errcode);
 
-int Asn1DerGetIssuerDN(const Asn1Generic *cert, char *buffer, uint32_t length);
-int Asn1DerGetSubjectDN(const Asn1Generic *cert, char *buffer, uint32_t length);
+int Asn1DerGetIssuerDN(const Asn1Generic *cert, char *buffer, uint32_t length, uint32_t *errcode);
+int Asn1DerGetSubjectDN(const Asn1Generic *cert, char *buffer, uint32_t length, uint32_t *errcode);
 
 #endif /* __UTIL_DECODE_DER_GET_H__ */

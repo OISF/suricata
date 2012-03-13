@@ -52,6 +52,32 @@
 
 #define SSLV3_RECORD_LEN 5
 
+static void TLSCertificateErrCodeToWarning(SSLState *ssl_state, uint32_t errcode)
+{
+    if (errcode == 0)
+        return;
+
+    switch (errcode) {
+    case ERR_DER_ELEMENT_SIZE_TOO_BIG:
+    case ERR_DER_INVALID_SIZE:
+        AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_CERTIFICATE_INVALID_LENGTH);
+        break;
+    case ERR_DER_UNSUPPORTED_STRING:
+        AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_CERTIFICATE_INVALID_STRING);
+        break;
+    case ERR_DER_UNKNOWN_ELEMENT:
+        AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_CERTIFICATE_UNKNOWN_ELEMENT);
+        break;
+    case ERR_DER_MISSING_ELEMENT:
+        AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_CERTIFICATE_MISSING_ELEMENT);
+        break;
+    case ERR_DER_GENERIC:
+    default:
+        AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_CERTIFICATE);
+        break;
+    };
+}
+
 int DecodeTLSHandshakeServerHello(SSLState *ssl_state, uint8_t *input, uint32_t input_len)
 {
     uint32_t version, length, ciphersuite;
@@ -99,6 +125,7 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
     int rc;
     int parsed;
     uint8_t *start_data;
+    uint32_t errcode;
 
     if (input_len < 3)
         return 1;
@@ -119,20 +146,17 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
         parsed += 3;
 
         if (input - start_data + cur_cert_length > input_len) {
-            SCLogWarning(SC_ERR_ALPARSER, "ASN.1 structure contains invalid length\n");
             AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_CERTIFICATE);
             return -1;
         }
-        cert = DecodeDer(input, cur_cert_length);
+        cert = DecodeDer(input, cur_cert_length, &errcode);
         if (cert == NULL) {
-            SCLogWarning(SC_ERR_ALPARSER, "decoding ASN.1 structure for X509 certificate failed\n");
-            AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_CERTIFICATE);
+            TLSCertificateErrCodeToWarning(ssl_state, errcode);
         }
         if (cert != NULL) {
-            rc = Asn1DerGetSubjectDN(cert, buffer, sizeof(buffer));
+            rc = Asn1DerGetSubjectDN(cert, buffer, sizeof(buffer), &errcode);
             if (rc != 0) {
-                SCLogWarning(SC_ERR_ALPARSER, "X509: could not get subject\n");
-                AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_CERTIFICATE_MISSING_FIELD);
+                TLSCertificateErrCodeToWarning(ssl_state, errcode);
             } else {
                 //SCLogInfo("TLS Cert %d: %s\n", i, buffer);
                 if (i==0) {
@@ -143,10 +167,9 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
                     }
                 }
             }
-            rc = Asn1DerGetIssuerDN(cert, buffer, sizeof(buffer));
+            rc = Asn1DerGetIssuerDN(cert, buffer, sizeof(buffer), &errcode);
             if (rc != 0) {
-                SCLogWarning(SC_ERR_ALPARSER, "X509: could not get issuerdn\n");
-                AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_CERTIFICATE_MISSING_FIELD);
+                TLSCertificateErrCodeToWarning(ssl_state, errcode);
             } else {
                 //SCLogInfo("TLS IssuerDN %d: %s\n", i, buffer);
                 if (i==0) {
