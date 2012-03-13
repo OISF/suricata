@@ -192,7 +192,7 @@ static inline SCACBSPattern *SCACBSInitHashLookup(SCACBSCtx *ctx, uint8_t *pat,
 {
     uint32_t hash = SCACBSInitHashRaw(pat, patlen);
 
-    if (ctx->init_hash[hash] == NULL) {
+    if (ctx->init_hash == NULL || ctx->init_hash[hash] == NULL) {
         return NULL;
     }
 
@@ -292,6 +292,10 @@ static inline uint32_t SCACBSInitHash(SCACBSPattern *p)
 static inline int SCACBSInitHashAdd(SCACBSCtx *ctx, SCACBSPattern *p)
 {
     uint32_t hash = SCACBSInitHash(p);
+
+    if (ctx->init_hash == NULL) {
+        return 0;
+    }
 
     if (ctx->init_hash[hash] == NULL) {
         ctx->init_hash[hash] = p;
@@ -1162,7 +1166,7 @@ int SCACBSPreparePatterns(MpmCtx *mpm_ctx)
 {
     SCACBSCtx *ctx = (SCACBSCtx *)mpm_ctx->ctx;
 
-    if (mpm_ctx->pattern_cnt == 0) {
+    if (mpm_ctx->pattern_cnt == 0 || ctx->init_hash == NULL) {
         SCLogDebug("no patterns supplied to this mpm_ctx");
         return 0;
     }
