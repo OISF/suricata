@@ -1183,6 +1183,12 @@ int main(int argc, char **argv)
 
     /* Load yaml configuration file if provided. */
     if (conf_filename != NULL) {
+#ifdef UNITTESTS
+        if (run_mode == RUNMODE_UNITTEST) {
+            SCLogError(SC_ERR_CMD_LINE, "ERROR: Should not use a configuration file with unittests.\n");
+            exit(EXIT_FAILURE);
+        }
+#endif
         if (ConfYamlLoadFile(conf_filename) != 0) {
             /* Error already displayed. */
             exit(EXIT_FAILURE);
