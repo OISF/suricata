@@ -290,7 +290,7 @@ typedef struct Flow_
     struct SigGroupHead_ *sgh_toserver;
 
     /** List of tags of this flow (from "tag" keyword of type "session") */
-    DetectTagDataEntryList *tag_list;
+    void *tag_list;
 
     /* pointer to the var list */
     GenericVar *flowvar;

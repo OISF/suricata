@@ -55,6 +55,8 @@ flow-bit.c flow-bit.h \
 flow-alert-sid.c flow-alert-sid.h \
 pkt-var.c pkt-var.h \
 host.c host.h \
+host-queue.c host-queue.h \
+host-timeout.c host-timeout.h \
 reputation.c reputation.h \
 detect.c detect.h \
 detect-engine-sigorder.c detect-engine-sigorder.h \

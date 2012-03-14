@@ -525,14 +525,6 @@ typedef struct ThresholdCtx_    {
     uint32_t th_size;
 } ThresholdCtx;
 
-/** \brief tag ctx */
-typedef struct DetectTagHostCtx_ {
-    HashListTable *tag_hash_table_ipv4;   /**< Ipv4 hash table      */
-    HashListTable *tag_hash_table_ipv6;   /**< Ipv6 hash table      */
-    SCMutex lock;                         /**< Mutex for the ctx    */
-    struct timeval last_ts;               /**< Last time the ctx was pruned */
-} DetectTagHostCtx;
-
 /** \brief main detection engine ctx */
 typedef struct DetectEngineCtx_ {
     uint8_t flags;

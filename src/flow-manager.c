@@ -60,6 +60,8 @@
 
 #include "app-layer-parser.h"
 
+#include "host-timeout.h"
+
 /* Run mode selected at suricata.c */
 extern int run_mode;
 
@@ -378,7 +380,18 @@ void *FlowManagerThread(void *td)
     struct timespec cond_time;
     int flow_update_delay_sec = FLOW_NORMAL_MODE_UPDATE_DELAY_SEC;
     int flow_update_delay_nsec = FLOW_NORMAL_MODE_UPDATE_DELAY_NSEC;
-
+/* VJ leaving disabled for now, as hosts are only used by tags and the numbers
+ * are really low. Might confuse ppl
+    uint16_t flow_mgr_host_prune = SCPerfTVRegisterCounter("hosts.pruned", th_v,
+            SC_PERF_TYPE_UINT64,
+            "NULL");
+    uint16_t flow_mgr_host_active = SCPerfTVRegisterCounter("hosts.active", th_v,
+            SC_PERF_TYPE_Q_NORMAL,
+            "NULL");
+    uint16_t flow_mgr_host_spare = SCPerfTVRegisterCounter("hosts.spare", th_v,
+            SC_PERF_TYPE_Q_NORMAL,
+            "NULL");
+*/
     uint16_t flow_mgr_cnt_clo = SCPerfTVRegisterCounter("flow_mgr.closed_pruned", th_v,
             SC_PERF_TYPE_UINT64,
             "NULL");
@@ -452,6 +465,16 @@ void *FlowManagerThread(void *td)
         FlowTimeoutCounters counters = { 0, 0, 0, };
         FlowTimeoutHash(&ts, 0 /* check all */, &counters);
 
+
+        //uint32_t hosts_pruned =
+        HostTimeoutHash(&ts);
+/*
+        SCPerfCounterAddUI64(flow_mgr_host_prune, th_v->sc_perf_pca, (uint64_t)hosts_pruned);
+        uint32_t hosts_active = HostGetActiveCount();
+        SCPerfCounterSetUI64(flow_mgr_host_active, th_v->sc_perf_pca, (uint64_t)hosts_active);
+        uint32_t hosts_spare = HostGetSpareCount();
+        SCPerfCounterSetUI64(flow_mgr_host_spare, th_v->sc_perf_pca, (uint64_t)hosts_spare);
+*/
         SCPerfCounterAddUI64(flow_mgr_cnt_clo, th_v->sc_perf_pca, (uint64_t)counters.clo);
         SCPerfCounterAddUI64(flow_mgr_cnt_new, th_v->sc_perf_pca, (uint64_t)counters.new);
         SCPerfCounterAddUI64(flow_mgr_cnt_est, th_v->sc_perf_pca, (uint64_t)counters.est);

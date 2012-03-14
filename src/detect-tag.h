@@ -71,33 +71,35 @@ typedef struct DetectTagData_ {
 
 /** This is the installed data at the session/global or host table */
 typedef struct DetectTagDataEntry_ {
-    DetectTagData *td;                  /**< Pointer referencing the tag parameters */
+    uint8_t flags:3;
+    uint8_t metric:5;
+    uint8_t pad0;
+    uint16_t cnt_match;                 /**< number of times this tag was reset/updated */
+
+    uint32_t count;                     /**< count setting from rule */
     uint32_t sid;                       /**< sid originating the tag */
     uint32_t gid;                       /**< gid originating the tag */
-    uint32_t packets;                   /**< number of packets */
-    uint32_t bytes;                     /**< number of bytes */
-    struct timeval first_ts;            /**< First time seen (for metric = seconds) */
-    struct timeval last_ts;             /**< Last time seen (to prune old sessions) */
+    union {
+        uint32_t packets;               /**< number of packets (metric packets) */
+        uint32_t bytes;                 /**< number of bytes (metric bytes) */
+    };
+    uint32_t first_ts;                  /**< First time seen (for metric = seconds) */
+    uint32_t last_ts;                   /**< Last time seen (to prune old sessions) */
+#if __WORDSIZE == 64
+    uint32_t pad1;
+#endif
     struct DetectTagDataEntry_ *next;   /**< Pointer to the next tag of this
-                                         * session/src_host/dst_host (if any from other rule) */
-    uint16_t cnt_match;                 /**< number of times this tag was reset/updated */
-    uint8_t skipped_first;              /**< Used for output. The first packet write the
-                                             header with the data of the sig. The next packets use
-                                             gid/sid/rev of the tagging engine */
+                                         *   session/src_host/dst_host (if any from other rule) */
 } DetectTagDataEntry;
 
-typedef struct DetectTagDataEntryList_ {
-    DetectTagDataEntry *header_entry;
-    Address addr;                       /**< Var used to store dst or src addr */
-    uint8_t ipv;                        /**< IP Version */
-} DetectTagDataEntryList;
+#define TAG_ENTRY_FLAG_DIR_SRC          0x01
+#define TAG_ENTRY_FLAG_DIR_DST          0x02
+#define TAG_ENTRY_FLAG_SKIPPED_FIRST    0x04
 
 /* prototypes */
 void DetectTagRegister (void);
 void DetectTagDataFree(void *ptr);
-void DetectTagDataEntryFree(void *ptr);
 void DetectTagDataListFree(void *ptr);
-DetectTagDataEntry *DetectTagDataCopy(DetectTagDataEntry *dtd);
 
 #endif /* __DETECT_TAG_H__ */
 

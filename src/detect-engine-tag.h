@@ -27,9 +27,8 @@
 #ifndef __DETECT_ENGINE_TAG_H__
 #define __DETECT_ENGINE_TAG_H__
 
+#include "host.h"
 #include "detect.h"
-
-#define TAG_HASH_SIZE 0xffff
 
 /* This limit should be overwriten/predefined at the config file
  * to limit the options to prevent possible DOS situations. We should also
@@ -43,15 +42,17 @@
 #define TAG_SIG_GEN           2
 #define TAG_SIG_ID            1
 
-void TagHashInit(DetectTagHostCtx *);
-int TagHashAddTag(DetectTagHostCtx *, DetectTagDataEntry *, Packet *);
-void TagContextDestroy(DetectTagHostCtx *);
-void TagHandlePacket(DetectEngineCtx *, DetectEngineThreadCtx *,
-                     Packet *);
+int TagHashAddTag(DetectTagDataEntry *, Packet *);
+int TagFlowAdd(Packet *, DetectTagDataEntry *);
+
+void TagContextDestroy(void);
+void TagHandlePacket(DetectEngineCtx *, DetectEngineThreadCtx *, Packet *);
 
 void TagInitCtx(void);
 void TagDestroyCtx(void);
 void TagRestartCtx(void);
+
+int TagTimeoutCheck(Host *, struct timeval *);
 
 #endif /* __DETECT_ENGINE_TAG_H__ */
 

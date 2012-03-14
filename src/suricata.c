@@ -127,6 +127,8 @@
 #include "flow-alert-sid.h"
 #include "pkt-var.h"
 
+#include "host.h"
+
 #include "app-layer-detect-proto.h"
 #include "app-layer-parser.h"
 #include "app-layer-smb.h"
@@ -1578,6 +1580,7 @@ int main(int argc, char **argv)
     SCLogInfo("preallocated %"PRIiMAX" packets. Total memory %"PRIuMAX"",
         max_pending_packets, (uintmax_t)(max_pending_packets*SIZE_OF_PACKET));
 
+    HostInitConfig(HOST_VERBOSE);
     FlowInitConfig(FLOW_VERBOSE);
 
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
@@ -1794,6 +1797,7 @@ int main(int argc, char **argv)
     TmThreadKillThreads();
     SCPerfReleaseResources();
     FlowShutdown();
+    HostShutdown();
     StreamTcpFreeConfig(STREAM_VERBOSE);
     HTPFreeConfig();
     HTPAtExitPrintStats();

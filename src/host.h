@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -25,35 +25,91 @@
 #define __HOST_H__
 
 #include "decode.h"
-#include "util-hash.h"
-#include "util-bloomfilter-counting.h"
 
-typedef struct HostTable_ {
-    SCMutex m;
+/** Spinlocks or Mutex for the flow buckets. */
+//#define HRLOCK_SPIN
+#define HRLOCK_MUTEX
 
-    /* storage & lookup */
-    HashTable *hash;
-    BloomFilterCounting *bf;
+#ifdef HRLOCK_SPIN
+    #ifdef HRLOCK_MUTEX
+        #error Cannot enable both HRLOCK_SPIN and HRLOCK_MUTEX
+    #endif
+#endif
 
-    uint32_t cnt;
-} HostTable;
+#ifdef HRLOCK_SPIN
+    #define HRLOCK_TYPE SCSpinlock
+    #define HRLOCK_INIT(fb) SCSpinInit(&(fb)->lock, 0)
+    #define HRLOCK_DESTROY(fb) SCSpinDestroy(&(fb)->lock)
+    #define HRLOCK_LOCK(fb) SCSpinLock(&(fb)->lock)
+    #define HRLOCK_TRYLOCK(fb) SCSpinTrylock(&(fb)->lock)
+    #define HRLOCK_UNLOCK(fb) SCSpinUnlock(&(fb)->lock)
+#elif defined HRLOCK_MUTEX
+    #define HRLOCK_TYPE SCMutex
+    #define HRLOCK_INIT(fb) SCMutexInit(&(fb)->lock, NULL)
+    #define HRLOCK_DESTROY(fb) SCMutexDestroy(&(fb)->lock)
+    #define HRLOCK_LOCK(fb) SCMutexLock(&(fb)->lock)
+    #define HRLOCK_TRYLOCK(fb) SCMutexTrylock(&(fb)->lock)
+    #define HRLOCK_UNLOCK(fb) SCMutexUnlock(&(fb)->lock)
+#else
+    #error Enable HRLOCK_SPIN or HRLOCK_MUTEX
+#endif
 
 typedef struct Host_ {
+    /** host mutex */
     SCMutex m;
 
-    Address addr;
-    uint8_t os;
-    uint8_t reputation;
+    /** host address -- ipv4 or ipv6 */
+    Address a;
 
-    uint64_t bytes;
-    uint32_t pkts;
+    /** use cnt, reference counter */
+    uint16_t use_cnt;
+
+    /** pointers to tag and threshold storage */
+    void *tag;
+    void *threshold;
+
+    /** hash pointers, protected by hash row mutex/spin */
+    struct Host_ *hnext;
+    struct Host_ *hprev;
+
+    /** list pointers, protected by host-queue mutex/spin */
+    struct Host_ *lnext;
+    struct Host_ *lprev;
 } Host;
 
-#define HOST_OS_UNKNOWN 0
-/* XXX define more */
+typedef struct HostHashRow_ {
+    HRLOCK_TYPE lock;
+    Host *head;
+    Host *tail;
+} HostHashRow;
 
-#define HOST_REPU_UNKNOWN 0
-/* XXX see how we deal with this */
+/** host hash table */
+HostHashRow *host_hash;
+
+#define HOST_VERBOSE    0
+#define HOST_QUIET      1
+
+typedef struct HostConfig_ {
+    uint64_t memcap;
+    uint32_t hash_rand;
+    uint32_t hash_size;
+    uint32_t prealloc;
+} HostConfig;
+
+HostConfig host_config;
+SC_ATOMIC_DECLARE(unsigned long long int,host_memuse);
+SC_ATOMIC_DECLARE(unsigned int,host_counter);
+SC_ATOMIC_DECLARE(unsigned int,host_prune_idx);
+
+void HostInitConfig(char quiet);
+void HostShutdown(void);
+
+Host *HostLookupHostFromHash (Address *);
+Host *HostGetHostFromHash (Address *);
+void HostRelease(Host *);
+void HostClearMemory(Host *);
+void HostMoveToSpare(Host *);
+uint32_t HostSpareQueueGetSize(void);
 
 #endif /* __HOST_H__ */
 
