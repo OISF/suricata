@@ -255,8 +255,8 @@ void HostShutdown(void)
     SC_ATOMIC_SUB(host_memuse, host_config.hash_size * sizeof(HostHashRow));
     HostQueueDestroy(&host_spare_q);
 
-    SC_ATOMIC_DESTROY(flow_prune_idx);
-    SC_ATOMIC_DESTROY(flow_memuse);
+    SC_ATOMIC_DESTROY(host_prune_idx);
+    SC_ATOMIC_DESTROY(host_memuse);
     //SC_ATOMIC_DESTROY(flow_flags);
     return;
 }

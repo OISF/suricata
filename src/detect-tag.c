@@ -110,6 +110,8 @@ error:
 int DetectTagMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Signature *s, SigMatch *m)
 {
     DetectTagData *td = (DetectTagData *) m->ctx;
+    DetectTagDataEntry tde;
+    memset(&tde, 0, sizeof(DetectTagDataEntry));
 
     switch (td->type) {
         case DETECT_TAG_TYPE_HOST:
@@ -117,8 +119,6 @@ int DetectTagMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Si
             BUG_ON(!(td->direction == DETECT_TAG_DIR_SRC || td->direction == DETECT_TAG_DIR_DST));
 #endif
 
-            DetectTagDataEntry tde;
-            memset(&tde, 0, sizeof(DetectTagDataEntry));
             tde.sid = s->id;
             tde.gid = s->gid;
             tde.last_ts = tde.first_ts = p->ts.tv_sec;
@@ -135,8 +135,6 @@ int DetectTagMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, Si
         case DETECT_TAG_TYPE_SESSION:
             if (p->flow != NULL) {
                 /* If it already exists it will be updated */
-                DetectTagDataEntry tde;
-                memset(&tde, 0, sizeof(DetectTagDataEntry));
                 tde.sid = s->id;
                 tde.gid = s->gid;
                 tde.last_ts = tde.first_ts = p->ts.tv_usec;
