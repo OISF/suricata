@@ -31,6 +31,9 @@
  */
 
 #include "suricata-common.h"
+
+#include "host.h"
+
 #include "detect.h"
 #include "detect-engine.h"
 #include "detect-engine-address.h"
@@ -1507,6 +1510,8 @@ int SCThresholdConfTest09(void)
     int result = 0;
     FILE *fd = NULL;
 
+    HostInitConfig(HOST_QUIET);
+
     Packet *p = UTHBuildPacket((uint8_t*)"lalala", 6, IPPROTO_TCP);
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
@@ -1583,6 +1588,7 @@ end:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
+    HostShutdown();
     return result;
 }
 
@@ -1597,6 +1603,8 @@ int SCThresholdConfTest10(void)
     Signature *sig = NULL;
     int result = 0;
     FILE *fd = NULL;
+
+    HostInitConfig(HOST_QUIET);
 
     Packet *p = UTHBuildPacket((uint8_t*)"lalala", 6, IPPROTO_TCP);
     Packet *p2 = UTHBuildPacketSrcDst((uint8_t*)"lalala", 6, IPPROTO_TCP, "172.26.0.1", "172.26.0.10");
@@ -1680,6 +1688,7 @@ end:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
+    HostShutdown();
     return result;
 }
 
@@ -1694,6 +1703,8 @@ int SCThresholdConfTest11(void)
     Signature *sig = NULL;
     int result = 0;
     FILE *fd = NULL;
+
+    HostInitConfig(HOST_QUIET);
 
     Packet *p = UTHBuildPacket((uint8_t*)"lalala", 6, IPPROTO_TCP);
     ThreadVars th_v;
@@ -1796,6 +1807,7 @@ end:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
+    HostShutdown();
     return result;
 }
 
@@ -1810,6 +1822,8 @@ int SCThresholdConfTest12(void)
     Signature *sig = NULL;
     int result = 0;
     FILE *fd = NULL;
+
+    HostInitConfig(HOST_QUIET);
 
     Packet *p = UTHBuildPacket((uint8_t*)"lalala", 6, IPPROTO_TCP);
     ThreadVars th_v;
@@ -1913,6 +1927,7 @@ end:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
+    HostShutdown();
     return result;
 }
 
@@ -1930,6 +1945,8 @@ int SCThresholdConfTest13(void)
     SigMatch *m = NULL;
     int result = 0;
     FILE *fd = NULL;
+
+    HostInitConfig(HOST_QUIET);
 
     if (de_ctx == NULL)
         return result;
@@ -1958,6 +1975,7 @@ end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
+    HostShutdown();
     return result;
 }
 
@@ -1972,6 +1990,8 @@ int SCThresholdConfTest14(void)
     Signature *sig = NULL;
     int result = 0;
     FILE *fd = NULL;
+
+    HostInitConfig(HOST_QUIET);
 
     Packet *p = UTHBuildPacketReal((uint8_t*)"lalala", 6, IPPROTO_TCP, "192.168.0.10",
                                     "192.168.0.100", 1234, 24);
@@ -2020,6 +2040,7 @@ end:
     DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
+    HostShutdown();
     return result;
 }
 

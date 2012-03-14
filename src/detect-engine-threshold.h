@@ -26,17 +26,17 @@
 #define __DETECT_ENGINE_THRESHOLD_H__
 
 #include "detect.h"
-
-#define THRESHOLD_HASH_SIZE 0xffff
+#include "host.h"
 
 DetectThresholdData *SigGetThresholdType(Signature *, Packet *);
-DetectThresholdData *SigGetThresholdTypeIter(Signature *sig, Packet *p, SigMatch **psm);
+DetectThresholdData *SigGetThresholdTypeIter(Signature *, Packet *, SigMatch **);
 int PacketAlertThreshold(DetectEngineCtx *, DetectEngineThreadCtx *,
                           DetectThresholdData *, Packet *, Signature *);
-void ThresholdFreeFunc(void *data);
-char ThresholdCompareFunc(void *data1, uint16_t len1, void *data2,uint16_t len2);
-uint32_t ThresholdHashFunc(HashListTable *ht, void *data, uint16_t datalen);
-void ThresholdHashInit(DetectEngineCtx *de_ctx);
-void ThresholdContextDestroy(DetectEngineCtx *de_ctx);
+
+void ThresholdHashInit(DetectEngineCtx *);
+void ThresholdContextDestroy(DetectEngineCtx *);
+
+int ThresholdTimeoutCheck(Host *, struct timeval *);
+void ThresholdListFree(void *ptr);
 
 #endif /* __DETECT_ENGINE_THRESHOLD_H__ */

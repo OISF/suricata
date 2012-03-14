@@ -23,7 +23,9 @@
 
 #include "suricata-common.h"
 #include "host.h"
+
 #include "detect-engine-tag.h"
+#include "detect-engine-threshold.h"
 
 uint32_t HostGetSpareCount(void) {
     return HostSpareQueueGetSize();
@@ -55,8 +57,8 @@ static int HostHostTimedOut(Host *h, struct timeval *ts) {
     if (h->tag && TagTimeoutCheck(h, ts) == 0) {
         tags = 1;
     }
-    if (h->threshold) {
-        // run threshold cleanup
+    if (h->threshold && ThresholdTimeoutCheck(h, ts) == 0) {
+        thresholds = 1;
     }
 
     if (tags || thresholds)

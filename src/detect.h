@@ -514,10 +514,6 @@ typedef struct MpmPatternIdStore_ {
 
 /** \brief threshold ctx */
 typedef struct ThresholdCtx_    {
-    HashListTable *threshold_hash_table_dst;        /**< Ipv4 dst hash table */
-    HashListTable *threshold_hash_table_src;        /**< Ipv4 src hash table */
-    HashListTable *threshold_hash_table_dst_ipv6;   /**< Ipv6 dst hash table */
-    HashListTable *threshold_hash_table_src_ipv6;   /**< Ipv6 src hash table */
     SCMutex threshold_table_lock;                   /**< Mutex for hash table */
 
     /** to support rate_filter "by_rule" option */

@@ -29,6 +29,8 @@
 #include "decode.h"
 #include "detect.h"
 
+#include "host.h"
+
 #include "detect-detection-filter.h"
 #include "detect-threshold.h"
 #include "detect-parse.h"
@@ -404,6 +406,8 @@ static int DetectDetectionFilterTestSig1(void) {
     int result = 0;
     int alerts = 0;
 
+    HostInitConfig(HOST_QUIET);
+
     memset(&th_v, 0, sizeof(th_v));
 
     p = UTHBuildPacketReal(NULL, 0, IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
@@ -451,6 +455,7 @@ static int DetectDetectionFilterTestSig1(void) {
 
 end:
     UTHFreePackets(&p, 1);
+    HostShutdown();
     return result;
 }
 
@@ -471,6 +476,8 @@ static int DetectDetectionFilterTestSig2(void) {
     int result = 0;
     int alerts = 0;
     struct timeval ts;
+
+    HostInitConfig(HOST_QUIET);
 
     memset (&ts, 0, sizeof(struct timeval));
     TimeGet(&ts);
@@ -525,6 +532,7 @@ static int DetectDetectionFilterTestSig2(void) {
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
+    HostShutdown();
     return result;
 }
 

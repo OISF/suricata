@@ -36,6 +36,7 @@
 #include "host-queue.h"
 
 #include "detect-tag.h"
+#include "detect-engine-threshold.h"
 
 static Host *HostGetUsedHost(void);
 
@@ -61,6 +62,8 @@ Host *HostAlloc(void) {
     Host *h = SCMalloc(sizeof(Host));
     if (h == NULL)
         goto error;
+
+    memset(h, 0x00, sizeof(Host));
 
     SCMutexInit(&h->m, NULL);
     return h;
@@ -97,6 +100,10 @@ void HostClearMemory(Host *h) {
     if (h->tag != NULL) {
         DetectTagDataListFree(h->tag);
         h->tag = NULL;
+    }
+    if (h->threshold != NULL) {
+        ThresholdListFree(h->threshold);
+        h->threshold = NULL;
     }
 }
 

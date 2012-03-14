@@ -39,6 +39,7 @@
 #include "debug.h"
 #include "detect.h"
 #include "flow.h"
+#include "host.h"
 
 #include "detect-parse.h"
 #include "detect-engine-sigorder.h"
@@ -121,138 +122,56 @@ DetectThresholdData *SigGetThresholdType(Signature *sig, Packet *p)
 }
 
 /**
- * \brief Search for a threshold data into threshold hash table
- *
- * \param de_ctx Dectection Context
- * \param tsh_ptr Threshold element
- * \param p Packet structure
- *
- * \retval lookup_tsh Return the threshold element
- */
-DetectThresholdEntry *ThresholdHashSearch(DetectEngineCtx *de_ctx, DetectThresholdEntry *tsh_ptr, Packet *p)
-{
-    SCEnter();
-
-    DetectThresholdEntry *lookup_tsh = NULL;
-
-    SCLogDebug("tsh_ptr->track %u", tsh_ptr->track);
-
-    if (tsh_ptr->track == TRACK_DST) {
-        if (PKT_IS_IPV4(p)) {
-            SCLogDebug("ipv4 dst");
-            lookup_tsh = HashListTableLookup(de_ctx->ths_ctx.threshold_hash_table_dst, tsh_ptr, sizeof(DetectThresholdEntry));
-        } else if (PKT_IS_IPV6(p)) {
-            lookup_tsh = HashListTableLookup(de_ctx->ths_ctx.threshold_hash_table_dst_ipv6, tsh_ptr, sizeof(DetectThresholdEntry));
-        }
-    } else if (tsh_ptr->track == TRACK_SRC) {
-        if (PKT_IS_IPV4(p)) {
-            SCLogDebug("ipv4 src");
-            lookup_tsh = HashListTableLookup(de_ctx->ths_ctx.threshold_hash_table_src, tsh_ptr, sizeof(DetectThresholdEntry));
-        } else if (PKT_IS_IPV6(p))
-            lookup_tsh = HashListTableLookup(de_ctx->ths_ctx.threshold_hash_table_src_ipv6, tsh_ptr, sizeof(DetectThresholdEntry));
-    } else {
-        SCLogDebug("no track, weird");
-    }
-
-    SCReturnPtr(lookup_tsh, "DetectThresholdEntry");
-}
-
-/**
  * \brief Remove timeout threshold hash elements
  *
  * \param de_ctx Dectection Context
  *
  */
 
-/** \todo In some conditions HashListtableRemove returns at dt->array = NULL
- *  Must need to check it
- **/
-
-static inline void ThresholdTimeoutRemove(DetectEngineCtx *de_ctx, struct timeval *tv)
+int ThresholdTimeoutCheck(Host *host, struct timeval *tv)
 {
-    HashListTableBucket *next = NULL;
-    HashListTableBucket *buck = HashListTableGetListHead(de_ctx->ths_ctx.threshold_hash_table_src);
-    while (buck != NULL) {
-        /* get the next before we free "buck" */
-        next = HashListTableGetListNext(buck);
+    DetectThresholdEntry *tde = NULL;
+    DetectThresholdEntry *tmp = NULL;
+    DetectThresholdEntry *prev = NULL;
+    int retval = 1;
 
-        DetectThresholdEntry *tsh = HashListTableGetListData(buck);
-        if (tsh == NULL)
-            goto next;
+    if (host->threshold == NULL)
+        return 1;
 
-        if ((tv->tv_sec - tsh->tv_sec1) <= tsh->seconds)
-            goto next;
+    tmp = host->threshold;
 
-        switch(tsh->ipv) {
-            case 4:
-                if (tsh->track == TRACK_SRC) {
-                    HashListTableRemove(de_ctx->ths_ctx.threshold_hash_table_src,
-                            tsh, sizeof(DetectThresholdEntry));
-                } else if (tsh->track == TRACK_DST) {
-                    HashListTableRemove(de_ctx->ths_ctx.threshold_hash_table_dst,
-                            tsh, sizeof(DetectThresholdEntry));
-                }
-                break;
-            case 6:
-                if (tsh->track == TRACK_SRC) {
-                    HashListTableRemove(de_ctx->ths_ctx.threshold_hash_table_src_ipv6,
-                            tsh, sizeof(DetectThresholdEntry));
-                } else if (tsh->track == TRACK_DST) {
-                    HashListTableRemove(de_ctx->ths_ctx.threshold_hash_table_dst_ipv6,
-                            tsh, sizeof(DetectThresholdEntry));
-                }
-                break;
+    prev = NULL;
+    while (tmp != NULL) {
+        if ((tv->tv_sec - tmp->tv_sec1) <= tmp->seconds) {
+            prev = tmp;
+            tmp = tmp->next;
+            retval = 0;
+            continue;
         }
-    next:
-        buck = next;
+
+        /* timed out */
+
+        if (prev != NULL) {
+            prev->next = tmp->next;
+
+            tde = tmp;
+            tmp = tde->next;
+
+            SCFree(tde);
+        } else {
+            host->threshold = tmp->next;
+
+            tde = tmp;
+            tmp = tde->next;
+
+            SCFree(tde);
+        }
     }
 
-    return;
+    return retval;
 }
 
-/**
- * \brief Add threshold element into hash table
- *
- * \param de_ctx Dectection Context
- * \param tsh_ptr Threshold element
- * \param p Packet structure
- *
- */
-void ThresholdHashAdd(DetectEngineCtx *de_ctx, DetectThresholdEntry *tsh_ptr, Packet *p)
-{
-    SCEnter();
-
-    int ret = 0;
-
-    switch(tsh_ptr->ipv) {
-        case 4:
-            if (tsh_ptr->track == TRACK_DST) {
-                ret = HashListTableAdd(de_ctx->ths_ctx.threshold_hash_table_dst,
-                        tsh_ptr, sizeof(DetectThresholdEntry));
-            } else if (tsh_ptr->track == TRACK_SRC) {
-                ret = HashListTableAdd(de_ctx->ths_ctx.threshold_hash_table_src,
-                        tsh_ptr, sizeof(DetectThresholdEntry));
-            }
-            break;
-        case 6:
-            if (tsh_ptr->track == TRACK_DST)
-                ret = HashListTableAdd(de_ctx->ths_ctx.threshold_hash_table_dst_ipv6,
-                        tsh_ptr, sizeof(DetectThresholdEntry));
-            else if (tsh_ptr->track == TRACK_SRC)
-                ret =  HashListTableAdd(de_ctx->ths_ctx.threshold_hash_table_src_ipv6,
-                        tsh_ptr, sizeof(DetectThresholdEntry));
-            break;
-    }
-
-    if(ret == -1)   {
-        SCLogError(SC_ERR_THRESHOLD_HASH_ADD,
-                "failed to add element into the hash table");
-    }
-
-    SCReturn;
-}
-
-static inline DetectThresholdEntry *DetectThresholdEntryAlloc(DetectThresholdData *td, Packet *p, Signature *s) {
+static inline DetectThresholdEntry *DetectThresholdEntryAlloc(DetectThresholdData *td, Packet *p, uint32_t sid, uint32_t gid) {
     SCEnter();
 
     DetectThresholdEntry *ste = SCMalloc(sizeof(DetectThresholdEntry));
@@ -260,19 +179,8 @@ static inline DetectThresholdEntry *DetectThresholdEntryAlloc(DetectThresholdDat
         SCReturnPtr(NULL, "DetectThresholdEntry");
     }
 
-    if (PKT_IS_IPV4(p))
-        ste->ipv = 4;
-    else if (PKT_IS_IPV6(p))
-        ste->ipv = 6;
-
-    ste->sid = s->id;
-    ste->gid = s->gid;
-
-    if (td->track == TRACK_DST) {
-        COPY_ADDRESS(&p->dst, &ste->addr);
-    } else if (td->track == TRACK_SRC) {
-        COPY_ADDRESS(&p->src, &ste->addr);
-    }
+    ste->sid = sid;
+    ste->gid = gid;
 
     ste->track = td->track;
     ste->seconds = td->seconds;
@@ -281,66 +189,36 @@ static inline DetectThresholdEntry *DetectThresholdEntryAlloc(DetectThresholdDat
     SCReturnPtr(ste, "DetectThresholdEntry");
 }
 
-/**
- * \brief Make the threshold logic for signatures
- *
- * \param de_ctx Dectection Context
- * \param tsh_ptr Threshold element
- * \param p Packet structure
- * \param s Signature structure
- *
- * \retval 1 alert on this event
- * \retval 0 do not alert on this event
- */
-int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
-        DetectThresholdData *td, Packet *p, Signature *s)
+static DetectThresholdEntry *ThresholdHostLookupEntry(Host *h, uint32_t sid, uint32_t gid)
 {
-    SCEnter();
+    DetectThresholdEntry *e = h->threshold;
 
+    for (e = h->threshold; e != NULL; e = e->next) {
+        if (e->sid == sid && e->gid == gid)
+            break;
+    }
+
+    return e;
+}
+
+int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint32_t sid, uint32_t gid) {
     int ret = 0;
-    DetectThresholdEntry *lookup_tsh = NULL;
-    DetectThresholdEntry ste;
 
-    if (td == NULL) {
-        SCReturnInt(0);
-    }
+    DetectThresholdEntry *lookup_tsh = ThresholdHostLookupEntry(h, sid, gid);
+    SCLogDebug("lookup_tsh %p sid %u gid %u", lookup_tsh, sid, gid);
 
-    /* setup the Entry we use to search our hash with */
-    if (PKT_IS_IPV4(p))
-        ste.ipv = 4;
-    else if (PKT_IS_IPV6(p))
-        ste.ipv = 6;
-    else {
-        SCReturnInt(0);
-    }
-
-    ste.sid = s->id;
-    ste.gid = s->gid;
-
-    if (td->track == TRACK_DST) {
-        COPY_ADDRESS(&p->dst, &ste.addr);
-    } else if (td->track == TRACK_SRC) {
-        COPY_ADDRESS(&p->src, &ste.addr);
-    }
-
-    ste.track = td->track;
-    ste.seconds = td->seconds;
-
-    SCMutexLock(&de_ctx->ths_ctx.threshold_table_lock);
     switch(td->type)   {
         case TYPE_LIMIT:
         {
             SCLogDebug("limit");
 
-            lookup_tsh = ThresholdHashSearch(de_ctx, &ste, p);
-            SCLogDebug("lookup_tsh %p", lookup_tsh);
-
             if (lookup_tsh != NULL)  {
                 if ((p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
-                    if (lookup_tsh->current_count < td->count) {
+                    lookup_tsh->current_count++;
+
+                    if (lookup_tsh->current_count <= td->count) {
                         ret = 1;
                     }
-                    lookup_tsh->current_count++;
                 } else    {
                     lookup_tsh->tv_sec1 = p->ts.tv_sec;
                     lookup_tsh->current_count = 1;
@@ -348,18 +226,18 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                     ret = 1;
                 }
             } else {
-                DetectThresholdEntry *e = DetectThresholdEntryAlloc(td, p, s);
+                DetectThresholdEntry *e = DetectThresholdEntryAlloc(td, p, sid, gid);
                 if (e == NULL) {
                     break;
                 }
 
                 e->tv_sec1 = p->ts.tv_sec;
                 e->current_count = 1;
-                e->ipv = ste.ipv;
 
                 ret = 1;
 
-                ThresholdHashAdd(de_ctx, e, p);
+                e->next = h->threshold;
+                h->threshold = e;
             }
             break;
         }
@@ -367,7 +245,6 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
         {
             SCLogDebug("threshold");
 
-            lookup_tsh = ThresholdHashSearch(de_ctx, &ste, p);
             if (lookup_tsh != NULL)  {
                 if ((p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
                     lookup_tsh->current_count++;
@@ -384,16 +261,16 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                 if (td->count == 1)  {
                     ret = 1;
                 } else {
-                    DetectThresholdEntry *e = DetectThresholdEntryAlloc(td, p, s);
+                    DetectThresholdEntry *e = DetectThresholdEntryAlloc(td, p, sid, gid);
                     if (e == NULL) {
                         break;
                     }
 
                     e->current_count = 1;
                     e->tv_sec1 = p->ts.tv_sec;
-                    e->ipv = ste.ipv;
 
-                    ThresholdHashAdd(de_ctx, e, p);
+                    e->next = h->threshold;
+                    h->threshold = e;
                 }
             }
             break;
@@ -402,28 +279,35 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
         {
             SCLogDebug("both");
 
-            lookup_tsh = ThresholdHashSearch(de_ctx, &ste, p);
             if (lookup_tsh != NULL) {
                 if ((p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
+                    /* within time limit */
+
                     lookup_tsh->current_count++;
                     if (lookup_tsh->current_count == td->count) {
                         ret = 1;
                     }
-                } else    {
+                } else {
+                    /* expired, so reset */
                     lookup_tsh->tv_sec1 = p->ts.tv_sec;
                     lookup_tsh->current_count = 1;
+
+                    /* if we have a limit of 1, this is a match */
+                    if (lookup_tsh->current_count == td->count) {
+                        ret = 1;
+                    }
                 }
             } else {
-                DetectThresholdEntry *e = DetectThresholdEntryAlloc(td, p, s);
+                DetectThresholdEntry *e = DetectThresholdEntryAlloc(td, p, sid, gid);
                 if (e == NULL) {
                     break;
                 }
 
                 e->current_count = 1;
                 e->tv_sec1 = p->ts.tv_sec;
-                e->ipv = ste.ipv;
 
-                ThresholdHashAdd(de_ctx, e, p);
+                e->next = h->threshold;
+                h->threshold = e;
 
                 /* for the first match we return 1 to
                  * indicate we should alert */
@@ -438,32 +322,39 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
         {
             SCLogDebug("detection_filter");
 
-            lookup_tsh = ThresholdHashSearch(de_ctx, &ste, p);
             if (lookup_tsh != NULL) {
                 if ((p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
+                    /* within timeout */
+
                     lookup_tsh->current_count++;
                     if (lookup_tsh->current_count >= td->count) {
                         ret = 1;
                     }
                 } else {
+                    /* expired, reset */
+
                     lookup_tsh->tv_sec1 = p->ts.tv_sec;
                     lookup_tsh->current_count = 1;
+
+                    if (td->count == 1) {
+                        ret = 1;
+                    }
                 }
             } else {
                 if (td->count == 1) {
                     ret = 1;
                 }
 
-                DetectThresholdEntry *e = DetectThresholdEntryAlloc(td, p, s);
+                DetectThresholdEntry *e = DetectThresholdEntryAlloc(td, p, sid, gid);
                 if (e == NULL) {
                     break;
                 }
 
                 e->current_count = 1;
                 e->tv_sec1 = p->ts.tv_sec;
-                e->ipv = ste.ipv;
 
-                ThresholdHashAdd(de_ctx, e, p);
+                e->next = h->threshold;
+                h->threshold = e;
             }
             break;
         }
@@ -471,12 +362,6 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
         case TYPE_RATE:
         {
             SCLogDebug("rate_filter");
-
-            /* tracking by src/dst or by rule? */
-            if (td->track != TRACK_RULE)
-                lookup_tsh = ThresholdHashSearch(de_ctx, &ste, p);
-            else
-                lookup_tsh = (DetectThresholdEntry *)de_ctx->ths_ctx.th_entry[s->num];
 
             if (lookup_tsh != NULL) {
                 /* Check if we have a timeout enabled, if so,
@@ -543,7 +428,7 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                     ret = 1;
                 }
 
-                DetectThresholdEntry *e = DetectThresholdEntryAlloc(td, p, s);
+                DetectThresholdEntry *e = DetectThresholdEntryAlloc(td, p, sid, gid);
                 if (e == NULL) {
                     break;
                 }
@@ -551,13 +436,9 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                 e->current_count = 1;
                 e->tv_sec1 = p->ts.tv_sec;
                 e->tv_timeout = 0;
-                e->ipv = ste.ipv;
 
-                /** The track is by src/dst or by rule? */
-                if (td->track != TRACK_RULE)
-                    ThresholdHashAdd(de_ctx, e, p);
-                else
-                    de_ctx->ths_ctx.th_entry[s->num] = e;
+                e->next = h->threshold;
+                h->threshold = e;
             }
             break;
         }
@@ -585,74 +466,134 @@ int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
             SCLogError(SC_ERR_INVALID_VALUE, "type %d is not supported", td->type);
     }
 
-    /* handle timing out entries */
-    ThresholdTimeoutRemove(de_ctx, &p->ts);
+    return ret;
+}
 
-    SCMutexUnlock(&de_ctx->ths_ctx.threshold_table_lock);
+static int ThresholdHandlePacketRule(DetectEngineCtx *de_ctx, Packet *p, DetectThresholdData *td, Signature *s) {
+    int ret = 0;
+
+    if (td->type != TYPE_RATE)
+        return 1;
+
+    DetectThresholdEntry* lookup_tsh = (DetectThresholdEntry *)de_ctx->ths_ctx.th_entry[s->num];
+    if (lookup_tsh != NULL) {
+        /* Check if we have a timeout enabled, if so,
+         * we still matching (and enabling the new_action) */
+        if ( (p->ts.tv_sec - lookup_tsh->tv_timeout) > td->timeout) {
+            /* Ok, we are done, timeout reached */
+            td->timeout = 0;
+        } else {
+            /* Already matching */
+            /* Take the action to perform */
+            switch (td->new_action) {
+                case TH_ACTION_ALERT:
+                    ALERT_PACKET(p);
+                    break;
+                case TH_ACTION_DROP:
+                    DROP_PACKET(p);
+                    break;
+                case TH_ACTION_REJECT:
+                    REJECT_PACKET(p);
+                    break;
+                case TH_ACTION_PASS:
+                    PASS_PACKET(p);
+                    break;
+                default:
+                    /* Weird, leave the default action */
+                    break;
+            }
+            ret = 1;
+        }
+
+        /* Update the matching state with the timeout interval */
+        if ( (p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
+            lookup_tsh->current_count++;
+            if (lookup_tsh->current_count >= td->count) {
+                /* Then we must enable the new action by setting a
+                 * timeout */
+                lookup_tsh->tv_timeout = p->ts.tv_sec;
+                /* Take the action to perform */
+                switch (td->new_action) {
+                    case TH_ACTION_ALERT:
+                        ALERT_PACKET(p);
+                        break;
+                    case TH_ACTION_DROP:
+                        DROP_PACKET(p);
+                        break;
+                    case TH_ACTION_REJECT:
+                        REJECT_PACKET(p);
+                        break;
+                    case TH_ACTION_PASS:
+                        PASS_PACKET(p);
+                        break;
+                    default:
+                        /* Weird, leave the default action */
+                        break;
+                }
+                ret = 1;
+            }
+        } else {
+            lookup_tsh->tv_sec1 = p->ts.tv_sec;
+            lookup_tsh->current_count = 1;
+        }
+    } else {
+        if (td->count == 1) {
+            ret = 1;
+        }
+
+        DetectThresholdEntry *e = DetectThresholdEntryAlloc(td, p, s->id, s->gid);
+        if (e != NULL) {
+            e->current_count = 1;
+            e->tv_sec1 = p->ts.tv_sec;
+            e->tv_timeout = 0;
+
+            de_ctx->ths_ctx.th_entry[s->num] = e;
+        }
+    }
+
+    return ret;
+}
+
+/**
+ * \brief Make the threshold logic for signatures
+ *
+ * \param de_ctx Dectection Context
+ * \param tsh_ptr Threshold element
+ * \param p Packet structure
+ * \param s Signature structure
+ *
+ * \retval 1 alert on this event
+ * \retval 0 do not alert on this event
+ */
+int PacketAlertThreshold(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx,
+        DetectThresholdData *td, Packet *p, Signature *s)
+{
+    SCEnter();
+
+    int ret = 0;
+    if (td == NULL) {
+        SCReturnInt(0);
+    }
+
+    if (td->track == TRACK_SRC) {
+        Host *src = HostGetHostFromHash(&p->src);
+        if (src) {
+            ret = ThresholdHandlePacketHost(src,p,td,s->id,s->gid);
+            HostRelease(src);
+        }
+    } else if (td->track == TRACK_DST) {
+        Host *dst = HostGetHostFromHash(&p->dst);
+        if (dst) {
+            ret = ThresholdHandlePacketHost(dst,p,td,s->id,s->gid);
+            HostRelease(dst);
+        }
+    } else if (td->track == TRACK_RULE) {
+        SCMutexLock(&de_ctx->ths_ctx.threshold_table_lock);
+        ret = ThresholdHandlePacketRule(de_ctx,p,td,s);
+        SCMutexUnlock(&de_ctx->ths_ctx.threshold_table_lock);
+    }
+
     SCReturnInt(ret);
-}
-
-void ThresholdFreeFunc(void *data)
-{
-    if (data != NULL)
-        SCFree(data);
-    return;
-}
-
-/**
- * \brief Compare elements into the hash table
- *
- * \param data1 First element to compare
- * \param len1 length of first element
- * \param data2 Second element to compare
- * \param len2 length of second element
- *
- * \retval 1 Match or 0 No Match
- */
-char ThresholdCompareFunc(void *data1, uint16_t len1, void *data2,uint16_t len2)
-{
-    SCEnter();
-
-    DetectThresholdEntry *a = (DetectThresholdEntry *)data1;
-    DetectThresholdEntry *b = (DetectThresholdEntry *)data2;
-
-    if ((a->sid == b->sid) && (a->gid == b->gid) &&
-            (CMP_ADDR(&a->addr,&b->addr)))
-    {
-        SCReturnInt(1);
-    }
-
-    SCReturnInt(0);
-}
-
-/**
- * \brief Create the hash for threshold tables
- *
- * \param ht Hash Table
- * \param data Data that will be used to create the hash
- * \param datalen Data length
- *
- * \retval hash the hash
- */
-uint32_t ThresholdHashFunc(HashListTable *ht, void *data, uint16_t datalen)
-{
-    SCEnter();
-
-    DetectThresholdEntry *dt = (DetectThresholdEntry *)data;
-    uint32_t hash = 0;
-
-    if (dt->ipv == 4)
-        hash = (dt->sid + dt->gid + dt->addr.addr_data32[0]);
-    else if (dt->ipv == 6)
-        hash = (dt->sid + dt->gid + dt->addr.addr_data32[0] +
-                dt->addr.addr_data32[1] +
-                dt->addr.addr_data32[2] +
-                dt->addr.addr_data32[3]);
-    else {
-        SCLogDebug("no dt->ipv");
-    }
-
-    SCReturnInt(hash % THRESHOLD_HASH_SIZE);
 }
 
 /**
@@ -663,44 +604,10 @@ uint32_t ThresholdHashFunc(HashListTable *ht, void *data, uint16_t datalen)
  */
 void ThresholdHashInit(DetectEngineCtx *de_ctx)
 {
-    if (de_ctx->ths_ctx.threshold_hash_table_dst == NULL ||
-        de_ctx->ths_ctx.threshold_hash_table_src == NULL ||
-        de_ctx->ths_ctx.threshold_hash_table_src_ipv6 == NULL ||
-        de_ctx->ths_ctx.threshold_hash_table_dst_ipv6 == NULL) {
-
-        de_ctx->ths_ctx.threshold_hash_table_dst = HashListTableInit(THRESHOLD_HASH_SIZE, ThresholdHashFunc, ThresholdCompareFunc, ThresholdFreeFunc);
-        if(de_ctx->ths_ctx.threshold_hash_table_dst == NULL)    {
-            SCLogError(SC_ERR_MEM_ALLOC,
-                    "Threshold: Failed to initialize ipv4 dst hash table.");
-            exit(EXIT_FAILURE);
-        }
-
-        de_ctx->ths_ctx.threshold_hash_table_src = HashListTableInit(THRESHOLD_HASH_SIZE, ThresholdHashFunc, ThresholdCompareFunc, ThresholdFreeFunc);
-        if(de_ctx->ths_ctx.threshold_hash_table_dst == NULL)    {
-            SCLogError(SC_ERR_MEM_ALLOC,
-                    "Threshold: Failed to initialize ipv4 src hash table.");
-            exit(EXIT_FAILURE);
-        }
-
-        de_ctx->ths_ctx.threshold_hash_table_src_ipv6 = HashListTableInit(THRESHOLD_HASH_SIZE, ThresholdHashFunc, ThresholdCompareFunc, ThresholdFreeFunc);
-        if(de_ctx->ths_ctx.threshold_hash_table_dst == NULL)    {
-            SCLogError(SC_ERR_MEM_ALLOC,
-                    "Threshold: Failed to initialize ipv6 src hash table.");
-            exit(EXIT_FAILURE);
-        }
-
-        de_ctx->ths_ctx.threshold_hash_table_dst_ipv6 = HashListTableInit(THRESHOLD_HASH_SIZE, ThresholdHashFunc, ThresholdCompareFunc, ThresholdFreeFunc);
-        if(de_ctx->ths_ctx.threshold_hash_table_dst == NULL)    {
-            SCLogError(SC_ERR_MEM_ALLOC,
-                    "Threshold: Failed to initialize ipv6 dst hash table.");
-            exit(EXIT_FAILURE);
-        }
-
-        if (SCMutexInit(&de_ctx->ths_ctx.threshold_table_lock, NULL) != 0) {
-            SCLogError(SC_ERR_MEM_ALLOC,
-                    "Threshold: Failed to initialize hash table mutex.");
-            exit(EXIT_FAILURE);
-        }
+    if (SCMutexInit(&de_ctx->ths_ctx.threshold_table_lock, NULL) != 0) {
+        SCLogError(SC_ERR_MEM_ALLOC,
+                "Threshold: Failed to initialize hash table mutex.");
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -712,12 +619,27 @@ void ThresholdHashInit(DetectEngineCtx *de_ctx)
  */
 void ThresholdContextDestroy(DetectEngineCtx *de_ctx)
 {
-    HashListTableFree(de_ctx->ths_ctx.threshold_hash_table_dst);
-    HashListTableFree(de_ctx->ths_ctx.threshold_hash_table_src);
-    HashListTableFree(de_ctx->ths_ctx.threshold_hash_table_dst_ipv6);
-    HashListTableFree(de_ctx->ths_ctx.threshold_hash_table_src_ipv6);
     if (de_ctx->ths_ctx.th_entry != NULL)
         SCFree(de_ctx->ths_ctx.th_entry);
+    SCMutexDestroy(&de_ctx->ths_ctx.threshold_table_lock);
+}
+
+/**
+ * \brief this function will free all the entries of a list
+ *        DetectTagDataEntry
+ *
+ * \param td pointer to DetectTagDataEntryList
+ */
+void ThresholdListFree(void *ptr) {
+    if (ptr != NULL) {
+        DetectThresholdEntry *entry = ptr;
+
+        while (entry != NULL) {
+            DetectThresholdEntry *next_entry = entry->next;
+            SCFree(entry);
+            entry = next_entry;
+        }
+    }
 }
 
 /**

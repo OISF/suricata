@@ -35,6 +35,8 @@
 #include "suricata.h"
 #include "decode.h"
 
+#include "host.h"
+
 #include "detect.h"
 #include "detect-parse.h"
 
@@ -401,6 +403,8 @@ static int DetectThresholdTestSig1(void) {
     int result = 0;
     int alerts = 0;
 
+    HostInitConfig(HOST_QUIET);
+
     memset(&th_v, 0, sizeof(th_v));
 
     p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
@@ -428,20 +432,44 @@ static int DetectThresholdTestSig1(void) {
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts = PacketAlertCheck(p, 1);
+    if (alerts != 1) {
+        printf("alerts %"PRIi32", expected 1: ", alerts);
+    }
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
+    if (alerts != 2) {
+        printf("alerts %"PRIi32", expected 2: ", alerts);
+    }
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
+    if (alerts != 3) {
+        printf("alerts %"PRIi32", expected 3: ", alerts);
+    }
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
+    if (alerts != 4) {
+        printf("alerts %"PRIi32", expected 4: ", alerts);
+    }
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
+    if (alerts != 5) {
+        printf("alerts %"PRIi32", expected 5: ", alerts);
+    }
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
+    if (alerts != 5) {
+        printf("alerts %"PRIi32", expected 5: ", alerts);
+    }
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
+    if (alerts != 5) {
+        printf("alerts %"PRIi32", expected 5: ", alerts);
+    }
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
+    if (alerts != 5) {
+        printf("alerts %"PRIi32", expected 5: ", alerts);
+    }
 
     if(alerts == 5)
         result = 1;
@@ -455,6 +483,8 @@ static int DetectThresholdTestSig1(void) {
     DetectEngineCtxFree(de_ctx);
 
     UTHFreePackets(&p, 1);
+
+    HostShutdown();
 end:
     return result;
 }
@@ -475,6 +505,8 @@ static int DetectThresholdTestSig2(void) {
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
     int alerts = 0;
+
+    HostInitConfig(HOST_QUIET);
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -530,6 +562,7 @@ cleanup:
 
 end:
     UTHFreePackets(&p, 1);
+    HostShutdown();
     return result;
 }
 
@@ -550,9 +583,9 @@ static int DetectThresholdTestSig3(void) {
     int result = 0;
     int alerts = 0;
     struct timeval ts;
-    DetectThresholdData *td = NULL;
     DetectThresholdEntry *lookup_tsh = NULL;
-    DetectThresholdEntry *ste = NULL;
+
+    HostInitConfig(HOST_QUIET);
 
     memset (&ts, 0, sizeof(struct timeval));
     TimeGet(&ts);
@@ -576,41 +609,25 @@ static int DetectThresholdTestSig3(void) {
     SigGroupBuild(de_ctx);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx, (void *)&det_ctx);
 
-    td = SigGetThresholdType(s,p);
-
-    /* setup the Entry we use to search our hash with */
-    ste = SCMalloc(sizeof(DetectThresholdEntry));
-    if (ste == NULL)
-        goto end;
-    memset(ste, 0x00, sizeof(*ste));
-
-    if (PKT_IS_IPV4(p))
-        ste->ipv = 4;
-    else if (PKT_IS_IPV6(p))
-        ste->ipv = 6;
-
-    ste->sid = s->id;
-    ste->gid = s->gid;
-
-    if (td->track == TRACK_DST) {
-        COPY_ADDRESS(&p->dst, &ste->addr);
-    } else if (td->track == TRACK_SRC) {
-        COPY_ADDRESS(&p->src, &ste->addr);
-    }
-
-    ste->track = td->track;
-
     TimeGet(&p->ts);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    lookup_tsh = (DetectThresholdEntry *)HashListTableLookup(de_ctx->ths_ctx.threshold_hash_table_dst, ste, sizeof(DetectThresholdEntry));
+    Host *host = HostLookupHostFromHash(&p->dst);
+    if (host == NULL) {
+        printf("host not found: ");
+        goto cleanup;
+    }
+
+    lookup_tsh = (DetectThresholdEntry *)host->threshold;
     if (lookup_tsh == NULL) {
+        HostRelease(host);
         printf("lookup_tsh is NULL: ");
         goto cleanup;
     }
+    HostRelease(host);
 
     TimeSetIncrementTime(200);
     TimeGet(&p->ts);
@@ -619,8 +636,21 @@ static int DetectThresholdTestSig3(void) {
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
 
-    if (lookup_tsh)
-        alerts = lookup_tsh->current_count;
+    host = HostLookupHostFromHash(&p->dst);
+    if (host == NULL) {
+        printf("host not found: ");
+        goto cleanup;
+    }
+    HostRelease(host);
+
+    lookup_tsh = (DetectThresholdEntry *)host->threshold;
+    if (lookup_tsh == NULL) {
+        HostRelease(host);
+        printf("lookup_tsh is NULL: ");
+        goto cleanup;
+    }
+
+    alerts = lookup_tsh->current_count;
 
     if (alerts == 3)
         result = 1;
@@ -637,6 +667,7 @@ cleanup:
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
+    HostShutdown();
     return result;
 }
 
@@ -657,6 +688,8 @@ static int DetectThresholdTestSig4(void) {
     int result = 0;
     int alerts = 0;
     struct timeval ts;
+
+    HostInitConfig(HOST_QUIET);
 
     memset (&ts, 0, sizeof(struct timeval));
     TimeGet(&ts);
@@ -711,6 +744,7 @@ cleanup:
     DetectEngineCtxFree(de_ctx);
 end:
     UTHFreePackets(&p, 1);
+    HostShutdown();
     return result;
 }
 
@@ -730,6 +764,8 @@ static int DetectThresholdTestSig5(void) {
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
     int alerts = 0;
+
+    HostInitConfig(HOST_QUIET);
 
     memset(&th_v, 0, sizeof(th_v));
     p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
@@ -793,6 +829,7 @@ cleanup:
 
 end:
     UTHFreePackets(&p, 1);
+    HostShutdown();
     return result;
 }
 
@@ -803,6 +840,8 @@ static int DetectThresholdTestSig6Ticks(void) {
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
     int alerts = 0;
+
+    HostInitConfig(HOST_QUIET);
 
     memset(&th_v, 0, sizeof(th_v));
     p = UTHBuildPacketReal((uint8_t *)"A",1,IPPROTO_TCP, "1.1.1.1", "2.2.2.2", 1024, 80);
@@ -872,6 +911,7 @@ cleanup:
 
 end:
     UTHFreePackets(&p, 1);
+    HostShutdown();
     return result;
 }
 #endif /* UNITTESTS */
