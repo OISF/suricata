@@ -366,7 +366,7 @@ void DeStateStoreFileNoMatch(DetectEngineState *de_state, uint8_t direction,
  *  \retval 1 has state
  *  \retval 0 has no state
  */
-int DeStateFlowHasState(DetectEngineCtx *de_ctx, Flow *f, uint8_t flags, uint16_t alversion) {
+int DeStateFlowHasState(Flow *f, uint8_t flags, uint16_t alversion) {
     SCEnter();
 
     int r = 0;
@@ -679,15 +679,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
      * the last SigMatch that didn't match */
     if (f->de_state == NULL) {
         f->de_state = DetectEngineStateAlloc();
-        f->de_state->de_ctx_id = de_ctx->id;
-    } else {
-        if (f->de_state->de_ctx_id != de_ctx->id) {
-            DetectEngineStateReset(f->de_state);
-            f->de_state = DetectEngineStateAlloc();
-            f->de_state->de_ctx_id = de_ctx->id;
-        }
     }
-
     if (f->de_state != NULL) {
         /* \todo shift to an array to transfer these match values*/
         DeStateSignatureAppend(f->de_state, s, sm, match_flags);
@@ -734,13 +726,6 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
 
     if (f->de_state == NULL || f->de_state->cnt == 0)
         goto end;
-
-    if (f->de_state->de_ctx_id != de_ctx->id) {
-        DetectEngineStateReset(f->de_state);
-        f->de_state = NULL;
-        SCMutexUnlock(&f->de_state_m);
-        SCReturnInt(0);
-    }
 
     DeStateResetFileInspection(f, alproto, alstate);
 

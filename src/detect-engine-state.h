@@ -125,10 +125,6 @@ typedef struct DetectEngineState_ {
                                      *   cannot match in to client direction. */
     uint16_t toserver_filestore_cnt;/**< number of sigs with filestore that
                                      *   cannot match in to server direction. */
-
-    /* the de_ctx id that the state belongs to */
-    uint32_t de_ctx_id;
-
     uint16_t flags;
 } DetectEngineState;
 
@@ -141,7 +137,7 @@ void DetectEngineStateReset(DetectEngineState *state);
 DetectEngineState *DetectEngineStateAlloc(void);
 void DetectEngineStateFree(DetectEngineState *);
 
-int DeStateFlowHasState(DetectEngineCtx *, Flow *, uint8_t, uint16_t);
+int DeStateFlowHasState(Flow *, uint8_t, uint16_t);
 
 int DeStateDetectStartDetection(ThreadVars *, DetectEngineCtx *,
         DetectEngineThreadCtx *, Signature *, Flow *, uint8_t, void *,

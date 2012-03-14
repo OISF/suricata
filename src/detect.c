@@ -1304,6 +1304,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     Signature *s = NULL;
     SigMatch *sm = NULL;
     uint16_t alversion = 0;
+    int reset_de_state = 0;
 
     SCEnter();
 
@@ -1328,6 +1329,21 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         FLOWLOCK_WRLOCK(p->flow);
         {
+            /* live ruleswap check for flow updates */
+            if (p->flow->de_ctx_id == 0) {
+                /* first time this flow is inspected, set id */
+                p->flow->de_ctx_id = de_ctx->id;
+            } else if (p->flow->de_ctx_id != de_ctx->id) {
+                /* first time we inspect flow with this de_ctx, reset */
+                p->flow->flags &= ~FLOW_SGH_TOSERVER;
+                p->flow->flags &= ~FLOW_SGH_TOCLIENT;
+                p->flow->sgh_toserver = NULL;
+                p->flow->sgh_toclient = NULL;
+                reset_de_state = 1;
+
+                p->flow->de_ctx_id = de_ctx->id;
+            }
+
             /* set the iponly stuff */
             if (p->flow->flags & FLOW_TOCLIENT_IPONLY_SET)
                 p->flowflags |= FLOW_PKT_TOCLIENT_IPONLY_SET;
@@ -1339,19 +1355,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             if (IP_GET_IPPROTO(p) == p->flow->proto) { /* filter out icmp */
                 PACKET_PROFILING_DETECT_START(p, PROF_DETECT_GETSGH);
                 if (p->flowflags & FLOW_PKT_TOSERVER && p->flow->flags & FLOW_SGH_TOSERVER) {
-                    if (p->flow->sgh_toserver_de_ctx_id != de_ctx->id) {
-                        p->flow->flags &= ~FLOW_SGH_TOSERVER;
-                    } else {
-                        det_ctx->sgh = p->flow->sgh_toserver;
-                        sms_runflags |= SMS_USE_FLOW_SGH;
-                    }
+                    det_ctx->sgh = p->flow->sgh_toserver;
+                    sms_runflags |= SMS_USE_FLOW_SGH;
                 } else if (p->flowflags & FLOW_PKT_TOCLIENT && p->flow->flags & FLOW_SGH_TOCLIENT) {
-                    if (p->flow->sgh_toclient_de_ctx_id != de_ctx->id) {
-                        p->flow->flags &= ~FLOW_SGH_TOCLIENT;
-                    } else {
-                        det_ctx->sgh = p->flow->sgh_toclient;
-                        sms_runflags |= SMS_USE_FLOW_SGH;
-                    }
+                    det_ctx->sgh = p->flow->sgh_toclient;
+                    sms_runflags |= SMS_USE_FLOW_SGH;
                 }
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_GETSGH);
 
@@ -1392,8 +1400,13 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         }
         SCLogDebug("p->flowflags 0x%02x", p->flowflags);
 
+        /* reset because of ruleswap */
+        if (reset_de_state) {
+            SCMutexLock(&p->flow->de_state_m);
+            DetectEngineStateReset(p->flow->de_state);
+            SCMutexUnlock(&p->flow->de_state_m);
         /* see if we need to increment the inspect_id and reset the de_state */
-        if (alstate != NULL && alproto == ALPROTO_HTTP) {
+        } else if (alstate != NULL && alproto == ALPROTO_HTTP) {
             PACKET_PROFILING_DETECT_START(p, PROF_DETECT_STATEFUL);
             SCLogDebug("getting de_state_status");
             int de_state_status = DeStateUpdateInspectTransactionId(p->flow,
@@ -1488,7 +1501,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         memset(det_ctx->de_state_sig_array, 0x00, det_ctx->de_state_sig_array_len);
 
         /* if applicable, continue stateful detection */
-        int state = DeStateFlowHasState(de_ctx, p->flow, flags, alversion);
+        int state = DeStateFlowHasState(p->flow, flags, alversion);
         if (state == 1) {
             DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p->flow,
                     flags, alstate, alproto, alversion);
@@ -1776,7 +1789,6 @@ end:
             if (p->flowflags & FLOW_PKT_TOSERVER && !(p->flow->flags & FLOW_SGH_TOSERVER)) {
                 /* first time we see this toserver sgh, store it */
                 p->flow->sgh_toserver = det_ctx->sgh;
-                p->flow->sgh_toserver_de_ctx_id = de_ctx->id;
                 p->flow->flags |= FLOW_SGH_TOSERVER;
 
                 /* see if this sgh requires us to consider file storing */
@@ -1793,7 +1805,6 @@ end:
                 }
             } else if (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flow->flags & FLOW_SGH_TOCLIENT)) {
                 p->flow->sgh_toclient = det_ctx->sgh;
-                p->flow->sgh_toclient_de_ctx_id = de_ctx->id;
                 p->flow->flags |= FLOW_SGH_TOCLIENT;
 
                 if (p->flow->sgh_toclient == NULL || p->flow->sgh_toclient->filestore_cnt == 0) {

@@ -315,6 +315,11 @@ typedef struct Flow_
 
     uint16_t alproto; /**< \brief application level protocol */
 
+    /** detection engine ctx id used to inspect this flow. Set at initial
+     *  inspection. If it doesn't match the currently in use de_ctx, the
+     *  de_state and stored sgh ptrs are reset. */
+    uint32_t de_ctx_id;
+
     /** application level storage ptrs.
      *
      */
@@ -327,11 +332,9 @@ typedef struct Flow_
     /** toclient sgh for this flow. Only use when FLOW_SGH_TOCLIENT flow flag
      *  has been set. */
     struct SigGroupHead_ *sgh_toclient;
-    uint32_t sgh_toclient_de_ctx_id;
     /** toserver sgh for this flow. Only use when FLOW_SGH_TOSERVER flow flag
      *  has been set. */
     struct SigGroupHead_ *sgh_toserver;
-    uint32_t sgh_toserver_de_ctx_id;
 
     /** List of tags of this flow (from "tag" keyword of type "session") */
     void *tag_list;
