@@ -253,6 +253,9 @@ typedef struct Flow_
      */
     SC_ATOMIC_DECLARE(unsigned short, use_cnt);
 
+    /** flow queue id, used with autofp */
+    SC_ATOMIC_DECLARE(int, autofp_tmqh_flow_qid);
+
     uint32_t probing_parser_toserver_al_proto_masks;
     uint32_t probing_parser_toclient_al_proto_masks;
 
@@ -311,8 +314,6 @@ typedef struct Flow_
     uint32_t tosrcpktcnt;
     uint64_t bytecnt;
 #endif
-
-    SC_ATOMIC_DECLARE(int, autofp_tmqh_flow_qid);
 } Flow;
 
 enum {

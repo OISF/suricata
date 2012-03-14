@@ -59,14 +59,14 @@ void TmqhFlowRegister(void)
 
     char *scheduler = NULL;
     if (ConfGet("autofp-scheduler", &scheduler) == 1) {
-        if (strcasecmp(scheduler, "round_robin") == 0) {
-            SCLogInfo("AutoFP mode using \"Round Robin\" Q Handler");
+        if (strcasecmp(scheduler, "round-robin") == 0) {
+            SCLogInfo("AutoFP mode using \"Round Robin\" flow load balancer");
             tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowRoundRobin;
-        } else if (strcasecmp(scheduler, "active_packets") == 0) {
-            SCLogInfo("AutoFP mode using \"Active Packets\" Q Handler");
+        } else if (strcasecmp(scheduler, "active-packets") == 0) {
+            SCLogInfo("AutoFP mode using \"Active Packets\" flow load balancer");
             tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowActivePackets;
         } else if (strcasecmp(scheduler, "hash") == 0) {
-            SCLogInfo("AutoFP mode using \"Hash\" Q Handler");
+            SCLogInfo("AutoFP mode using \"Hash\" flow load balancer");
             tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowHash;
         } else {
             SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "Invalid entry \"%s\" "
@@ -75,7 +75,7 @@ void TmqhFlowRegister(void)
             exit(EXIT_FAILURE);
         }
     } else {
-        SCLogInfo("AutoFP mode using default \"Active Packets\" Q Handler");
+        SCLogInfo("AutoFP mode using default \"Active Packets\" flow load balancer");
         tmqh_table[TMQH_FLOW].OutHandler = TmqhOutputFlowActivePackets;
     }
 
@@ -87,13 +87,13 @@ Packet *TmqhInputFlow(ThreadVars *tv)
 {
     PacketQueue *q = &trans_q[tv->inq->id];
 
+    SCPerfSyncCountersIfSignalled(tv, 0);
+
     SCMutexLock(&q->mutex_q);
     if (q->len == 0) {
         /* if we have no packets in queue, wait... */
         SCCondWait(&q->cond_q, &q->mutex_q);
     }
-
-    SCPerfSyncCountersIfSignalled(tv, 0);
 
     if (q->len > 0) {
         Packet *p = PacketDequeue(q);
@@ -206,10 +206,9 @@ void TmqhOutputFlowFreeCtx(void *ctx)
     SCLogInfo("AutoFP - Total flow handler queues - %" PRIu16,
               tmqh_flow_outctx->size);
     for (i = 0; i < fctx->size; i++) {
-        SCLogInfo("AutoFP - Total Packets - Queue %"PRIu32 " - %"PRIu64 , i,
-                  SC_ATOMIC_GET(fctx->queues[i].total_packets));
-        SCLogInfo("AutoFP - Total Flows - Queue %"PRIu32 " - %"PRIu64 , i,
-                  SC_ATOMIC_GET(fctx->queues[i].total_flows));
+        SCLogInfo("AutoFP - Queue %-2"PRIu32 " - pkts: %-12"PRIu64" flows: %-12"PRIu64, i,
+                SC_ATOMIC_GET(fctx->queues[i].total_packets),
+                SC_ATOMIC_GET(fctx->queues[i].total_flows));
         SC_ATOMIC_DESTROY(fctx->queues[i].total_packets);
         SC_ATOMIC_DESTROY(fctx->queues[i].total_flows);
     }

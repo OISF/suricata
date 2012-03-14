@@ -20,12 +20,16 @@
 #runmode: auto
 
 # Specifies the kind of q scheduler used by flow pinned autofp mode.
-# Supported scheduler are :
-# round_robin - Flow alloted to queue in a round robin fashion.
-# active-packets - Flow alloted to queue that has the least no of
+#
+# Supported schedulers are:
+#
+# round-robin - Flows assigned to threads in a round robin fashion.
+# active-packets - Flows assigned to threads that have the lowest number of
 #                  unprocessed packets.
-# hash - Flow alloted usihng the address hash.  More of a random technique.
-#autofp-scheduler: active_packets
+# hash - Flow alloted usihng the address hash. More of a random technique. Was
+#        the default in 1.2.1 and older.
+#
+autofp-scheduler: active-packets
 
 # Default pid file.
 # Will use this file if no --pidfile in command options.

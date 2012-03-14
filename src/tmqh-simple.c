@@ -46,14 +46,14 @@ Packet *TmqhInputSimple(ThreadVars *t)
 {
     PacketQueue *q = &trans_q[t->inq->id];
 
+    SCPerfSyncCountersIfSignalled(t, 0);
+
     SCMutexLock(&q->mutex_q);
 
     if (q->len == 0) {
         /* if we have no packets in queue, wait... */
         SCCondWait(&q->cond_q, &q->mutex_q);
     }
-
-    SCPerfSyncCountersIfSignalled(t, 0);
 
     if (q->len > 0) {
         Packet *p = PacketDequeue(q);
