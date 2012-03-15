@@ -31,9 +31,11 @@
 #include "util-debug.h"
 #include "stream-tcp.h"
 
+#ifdef DEBUG
 static SCMutex stream_pool_memuse_mutex;
 static uint64_t stream_pool_memuse = 0;
 static uint64_t stream_pool_memcnt = 0;
+#endif
 
 /* per queue setting */
 static uint16_t toserver_min_chunk_len = 2560;
@@ -49,10 +51,12 @@ void *StreamMsgAlloc(void *null) {
 
     memset(s, 0, sizeof(StreamMsg));
 
+#ifdef DEBUG
     SCMutexLock(&stream_pool_memuse_mutex);
     stream_pool_memuse += sizeof(StreamMsg);
     stream_pool_memcnt ++;
     SCMutexUnlock(&stream_pool_memuse_mutex);
+#endif
     return s;
 }
 
@@ -151,8 +155,9 @@ void StreamMsgPutInQueue(StreamMsgQueue *q, StreamMsg *s)
 }
 
 void StreamMsgQueuesInit(void) {
+#ifdef DEBUG
     SCMutexInit(&stream_pool_memuse_mutex, NULL);
-
+#endif
     SCMutexLock(&stream_msg_pool_mutex);
     stream_msg_pool = PoolInit(0,250,StreamMsgAlloc,NULL,StreamMsgFree);
     if (stream_msg_pool == NULL)
@@ -165,10 +170,12 @@ void StreamMsgQueuesDeinit(char quiet) {
     PoolFree(stream_msg_pool);
     SCMutexUnlock(&stream_msg_pool_mutex);
 
+#ifdef DEBUG
     SCMutexDestroy(&stream_pool_memuse_mutex);
 
     if (quiet == FALSE)
         SCLogDebug("stream_pool_memuse %"PRIu64", stream_pool_memcnt %"PRIu64"", stream_pool_memuse, stream_pool_memcnt);
+#endif
 }
 
 /** \brief alloc a stream msg queue
