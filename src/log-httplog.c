@@ -209,6 +209,11 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
     }
     size_t loggable = (size_t)r;
 
+    /* nothing to do */
+    if (logged >= loggable) {
+        goto end;
+    }
+
     HtpState *htp_state = (HtpState *)AppLayerGetProtoStateFromPacket(p);
     if (htp_state == NULL) {
         SCLogDebug("no http state, so no request logging");
@@ -256,7 +261,6 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
         dp = p->sp;
     }
 
-    SCMutexLock(&hlog->file_ctx->fp_mutex);
     for (idx = logged; idx < loggable; idx++)
     {
         tx = list_get(htp_state->connp->conn->transactions, idx);
@@ -264,6 +268,9 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
             SCLogDebug("tx is NULL not logging !!");
             continue;
         }
+
+        /* output now starting, so get output lock */
+        SCMutexLock(&hlog->file_ctx->fp_mutex);
 
         SCLogDebug("got a HTTP request and now logging !!");
         /* time */
@@ -310,11 +317,11 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
                 srcip, sp, dstip, dp);
 
         aft->uri_cnt ++;
+        fflush(hlog->file_ctx->fp);
+        SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 
         AppLayerTransactionUpdateLoggedId(p->flow);
     }
-    fflush(hlog->file_ctx->fp);
-    SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 
 end:
     SCMutexUnlock(&p->flow->m);
