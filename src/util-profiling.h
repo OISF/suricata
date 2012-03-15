@@ -27,8 +27,6 @@
 
 #ifdef PROFILING
 
-//#define PROFILE_LOCKING
-
 #include "util-cpu.h"
 
 extern int profiling_rules_enabled;

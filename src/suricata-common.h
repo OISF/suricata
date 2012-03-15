@@ -30,6 +30,8 @@
 #define DBG_PERF
 #endif
 
+//#define PROFILE_LOCKING
+
 #define TRUE   1
 #define FALSE  0
 
