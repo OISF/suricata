@@ -1710,7 +1710,12 @@ int main(int argc, char **argv)
         }
     }
 
-    RunModeDispatch(run_mode, runmode_custom_mode, de_ctx);
+    if(conf_test == 1){
+        SCLogInfo("Configuration provided was successfully loaded. Exiting.");
+        exit(EXIT_SUCCESS);
+    } else {
+        RunModeDispatch(run_mode, runmode_custom_mode, de_ctx);
+    }
 
 #ifdef __SC_CUDA_SUPPORT__
     if (PatternMatchDefaultMatcher() == MPM_B2G_CUDA) {
@@ -1743,13 +1748,8 @@ int main(int argc, char **argv)
 
     SC_ATOMIC_CAS(&engine_stage, SURICATA_INIT, SURICATA_RUNTIME);
 
-    if(conf_test == 1){
-        SCLogInfo("Configuration provided was successfully loaded. Exiting.");
-        exit(EXIT_SUCCESS);
-    } else {
-        /* Un-pause all the paused threads */
-        TmThreadContinueThreads();
-    }
+    /* Un-pause all the paused threads */
+    TmThreadContinueThreads();
 
 #ifdef DBG_MEM_ALLOC
     SCLogInfo("Memory used at startup: %"PRIdMAX, (intmax_t)global_mem);
