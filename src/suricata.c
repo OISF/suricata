@@ -1185,7 +1185,7 @@ int main(int argc, char **argv)
     if (conf_filename != NULL) {
 #ifdef UNITTESTS
         if (run_mode == RUNMODE_UNITTEST) {
-            SCLogError(SC_ERR_CMD_LINE, "ERROR: Should not use a configuration file with unittests.\n");
+            SCLogError(SC_ERR_CMD_LINE, "should not use a configuration file with unittests");
             exit(EXIT_FAILURE);
         }
 #endif
