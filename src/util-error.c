@@ -222,6 +222,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_PCAP_TRANSLATE);
         CASE_CODE (SC_WARN_OUTDATED_LIBHTP);
         CASE_CODE (SC_WARN_DEPRECATED);
+        CASE_CODE (SC_WARN_PROFILE);
 
         default:
             return "UNKNOWN_ERROR";

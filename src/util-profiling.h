@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -27,6 +27,7 @@
 
 #ifdef PROFILING
 
+#include "util-profiling-locks.h"
 #include "util-cpu.h"
 
 extern int profiling_rules_enabled;
@@ -75,6 +76,14 @@ void SCProfilingAddPacket(Packet *);
         spin_lock_cnt = 0;                                          \
         spin_lock_wait_ticks = 0;                                   \
         spin_lock_contention = 0;                                   \
+        rww_lock_cnt = 0;                                           \
+        rww_lock_wait_ticks = 0;                                    \
+        rww_lock_contention = 0;                                    \
+        rwr_lock_cnt = 0;                                           \
+        rwr_lock_wait_ticks = 0;                                    \
+        rwr_lock_contention = 0;                                    \
+        locks_idx = 0;                                              \
+        record_locks = 1;\
     } while (0)
 
 #define PACKET_PROFILING_COPY_LOCKS(p, id) do {                     \
@@ -84,6 +93,14 @@ void SCProfilingAddPacket(Packet *);
             (p)->profile.tmm[(id)].spin_lock_cnt = spin_lock_cnt;   \
             (p)->profile.tmm[(id)].spin_lock_wait_ticks = spin_lock_wait_ticks; \
             (p)->profile.tmm[(id)].spin_lock_contention = spin_lock_contention; \
+            (p)->profile.tmm[(id)].rww_lock_cnt = rww_lock_cnt;   \
+            (p)->profile.tmm[(id)].rww_lock_wait_ticks = rww_lock_wait_ticks; \
+            (p)->profile.tmm[(id)].rww_lock_contention = rww_lock_contention; \
+            (p)->profile.tmm[(id)].rwr_lock_cnt = rwr_lock_cnt;   \
+            (p)->profile.tmm[(id)].rwr_lock_wait_ticks = rwr_lock_wait_ticks; \
+            (p)->profile.tmm[(id)].rwr_lock_contention = rwr_lock_contention; \
+        record_locks = 0;\
+        SCProfilingAddPacketLocks((p));                                  \
     } while(0)
 #else
 #define PACKET_PROFILING_RESET_LOCKS

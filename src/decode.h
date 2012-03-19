@@ -284,12 +284,20 @@ typedef struct PktVar_ {
 typedef struct PktProfilingTmmData_ {
     uint64_t ticks_start;
     uint64_t ticks_end;
+#ifdef PROFILE_LOCKING
     uint64_t mutex_lock_cnt;
     uint64_t mutex_lock_wait_ticks;
     uint64_t mutex_lock_contention;
     uint64_t spin_lock_cnt;
     uint64_t spin_lock_wait_ticks;
     uint64_t spin_lock_contention;
+    uint64_t rww_lock_cnt;
+    uint64_t rww_lock_wait_ticks;
+    uint64_t rww_lock_contention;
+    uint64_t rwr_lock_cnt;
+    uint64_t rwr_lock_wait_ticks;
+    uint64_t rwr_lock_contention;
+#endif
 } PktProfilingTmmData;
 
 typedef struct PktProfilingDetectData_ {

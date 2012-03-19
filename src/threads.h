@@ -29,6 +29,7 @@
 
 #ifdef PROFILING
 #include "util-cpu.h"
+#include "util-profiling-locks.h"
 #endif
 
 #if defined OS_FREEBSD || __OpenBSD__
@@ -231,6 +232,19 @@ enum {
 #define SCMutexInit(mut, mutattr ) pthread_mutex_init(mut, mutattr)
 #define SCMutexUnlock(mut) pthread_mutex_unlock(mut)
 
+typedef struct ProfilingLock_ {
+    char *file;
+    char *func;
+    int line;
+    int type;
+    uint32_t cont;
+    uint64_t ticks;
+} ProfilingLock;
+
+extern __thread ProfilingLock locks[PROFILING_MAX_LOCKS];
+extern __thread int locks_idx;
+extern __thread int record_locks;
+
 extern __thread uint64_t mutex_lock_contention;
 extern __thread uint64_t mutex_lock_wait_ticks;
 extern __thread uint64_t mutex_lock_cnt;
@@ -239,13 +253,25 @@ extern __thread uint64_t mutex_lock_cnt;
 #define SCMutexLock_profile(mut) ({ \
     mutex_lock_cnt++; \
     int retl = 0; \
+    int cont = 0; \
     uint64_t mutex_lock_start = UtilCpuGetTicks(); \
     if (pthread_mutex_trylock((mut)) != 0) { \
         mutex_lock_contention++; \
+        cont = 1; \
         retl = pthread_mutex_lock(mut); \
     } \
-    uint64_t mutex_lock_end = UtilCpuGetTicks(); \
-    mutex_lock_wait_ticks += (uint64_t)(mutex_lock_end - mutex_lock_start); \
+    uint64_t mutex_lock_end = UtilCpuGetTicks();                                \
+    mutex_lock_wait_ticks += (uint64_t)(mutex_lock_end - mutex_lock_start);     \
+    \
+    if (locks_idx < PROFILING_MAX_LOCKS && record_locks) {                      \
+        locks[locks_idx].file = (char *)__FILE__;                               \
+        locks[locks_idx].func = (char *)__func__;                               \
+        locks[locks_idx].line = (int)__LINE__;                                  \
+        locks[locks_idx].type = LOCK_MUTEX;                                     \
+        locks[locks_idx].cont = cont;                                           \
+        locks[locks_idx].ticks = (uint64_t)(mutex_lock_end - mutex_lock_start); \
+        locks_idx++;                                                            \
+    } \
     retl; \
 })
 
@@ -401,13 +427,25 @@ extern __thread uint64_t spin_lock_cnt;
 #define SCSpinLock_profile(spin) ({ \
     spin_lock_cnt++; \
     int retl = 0; \
+    int cont = 0; \
     uint64_t spin_lock_start = UtilCpuGetTicks(); \
     if (pthread_spin_trylock((spin)) != 0) { \
         spin_lock_contention++; \
+        cont = 1;   \
         retl = pthread_spin_lock((spin)); \
     } \
     uint64_t spin_lock_end = UtilCpuGetTicks(); \
     spin_lock_wait_ticks += (uint64_t)(spin_lock_end - spin_lock_start); \
+    \
+    if (locks_idx < PROFILING_MAX_LOCKS && record_locks) {                      \
+        locks[locks_idx].file = (char *)__FILE__;                               \
+        locks[locks_idx].func = (char *)__func__;                               \
+        locks[locks_idx].line = (int)__LINE__;                                  \
+        locks[locks_idx].type = LOCK_SPIN;                                      \
+        locks[locks_idx].cont = cont;                                           \
+        locks[locks_idx].ticks = (uint64_t)(spin_lock_end - spin_lock_start);   \
+        locks_idx++;                                                            \
+    } \
     retl; \
 })
 
@@ -585,6 +623,73 @@ extern __thread uint64_t spin_lock_cnt;
 #define SCRWLockTryWRLock(rwl) SCRWLockTryWRLock_dbg(rwl)
 #define SCRWLockTryRDLock(rwl) SCRWLockTryRDLock_dbg(rwl)
 #define SCRWLockUnlock(rwl) SCRWLockUnlock_dbg(rwl)
+#elif defined PROFILE_LOCKING
+#define SCRWLockInit(rwl, rwlattr ) pthread_rwlock_init(rwl, rwlattr)
+#define SCRWLockUnlock(rwl) pthread_rwlock_unlock(rwl)
+
+extern __thread uint64_t rww_lock_contention;
+extern __thread uint64_t rww_lock_wait_ticks;
+extern __thread uint64_t rww_lock_cnt;
+
+#define SCRWLockWRLock_profile(mut) ({ \
+    rww_lock_cnt++; \
+    int retl = 0; \
+    int cont = 0; \
+    uint64_t rww_lock_start = UtilCpuGetTicks(); \
+    if (pthread_rwlock_trywrlock((mut)) != 0) { \
+        rww_lock_contention++; \
+        cont = 1; \
+        retl = pthread_rwlock_wrlock(mut); \
+    } \
+    uint64_t rww_lock_end = UtilCpuGetTicks();                                  \
+    rww_lock_wait_ticks += (uint64_t)(rww_lock_end - rww_lock_start);           \
+    \
+    if (locks_idx < PROFILING_MAX_LOCKS && record_locks) {                      \
+        locks[locks_idx].file = (char *)__FILE__;                               \
+        locks[locks_idx].func = (char *)__func__;                               \
+        locks[locks_idx].line = (int)__LINE__;                                  \
+        locks[locks_idx].type = LOCK_RWW;                                       \
+        locks[locks_idx].cont = cont;                                           \
+        locks[locks_idx].ticks = (uint64_t)(rww_lock_end - rww_lock_start);     \
+        locks_idx++;                                                            \
+    } \
+    retl; \
+})
+
+extern __thread uint64_t rwr_lock_contention;
+extern __thread uint64_t rwr_lock_wait_ticks;
+extern __thread uint64_t rwr_lock_cnt;
+
+#define SCRWLockRDLock_profile(mut) ({ \
+    rwr_lock_cnt++; \
+    int retl = 0; \
+    int cont = 0; \
+    uint64_t rwr_lock_start = UtilCpuGetTicks(); \
+    if (pthread_rwlock_tryrdlock((mut)) != 0) { \
+        rwr_lock_contention++; \
+        cont = 1; \
+        retl = pthread_rwlock_rdlock(mut); \
+    } \
+    uint64_t rwr_lock_end = UtilCpuGetTicks();                                  \
+    rwr_lock_wait_ticks += (uint64_t)(rwr_lock_end - rwr_lock_start);           \
+    \
+    if (locks_idx < PROFILING_MAX_LOCKS && record_locks) {                      \
+        locks[locks_idx].file = (char *)__FILE__;                               \
+        locks[locks_idx].func = (char *)__func__;                               \
+        locks[locks_idx].line = (int)__LINE__;                                  \
+        locks[locks_idx].type = LOCK_RWR;                                       \
+        locks[locks_idx].cont = cont;                                           \
+        locks[locks_idx].ticks = (uint64_t)(rwr_lock_end - rwr_lock_start);     \
+        locks_idx++;                                                            \
+    } \
+    retl; \
+})
+
+#define SCRWLockWRLock(mut) SCRWLockWRLock_profile(mut)
+#define SCRWLockRDLock(mut) SCRWLockRDLock_profile(mut)
+
+#define SCRWLockTryWRLock(rwl) pthread_rwlock_trywrlock(rwl)
+#define SCRWLockTryRDLock(rwl) pthread_rwlock_tryrdlock(rwl)
 #else
 #define SCRWLockInit(rwl, rwlattr ) pthread_rwlock_init(rwl, rwlattr)
 #define SCRWLockWRLock(rwl) pthread_rwlock_wrlock(rwl)

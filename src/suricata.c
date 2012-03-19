@@ -560,6 +560,12 @@ void SCPrintBuildInfo(void) {
 #ifdef HAVE_NSS
     strlcat(features, "HAVE_NSS ", sizeof(features));
 #endif
+#ifdef PROFILING
+    strlcat(features, "PROFILING ", sizeof(features));
+#endif
+#ifdef PROFILE_LOCKING
+    strlcat(features, "PROFILE_LOCKING ", sizeof(features));
+#endif
     if (strlen(features) == 0) {
         strlcat(features, "none", sizeof(features));
     }
