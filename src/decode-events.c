@@ -73,9 +73,9 @@ int AppLayerDecoderEventsModuleGetEventId(uint16_t alproto,
     AppLayerDecoderEventsModule *dvm = decoder_events_module;
 
     while (dvm != NULL) {
-        if (dvm->alproto != alproto)
-            dvm = dvm->next;
-        break;
+        if (dvm->alproto == alproto)
+            break;
+        dvm = dvm->next;
     }
     if (dvm == NULL) {
         SCLogError(SC_ERR_FATAL, "decoder event module not found for "
