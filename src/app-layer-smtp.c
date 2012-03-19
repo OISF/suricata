@@ -848,16 +848,18 @@ static void SMTPSetMpmState(void)
  */
 void RegisterSMTPParsers(void)
 {
-    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SMTP, "EHLO", 4, 0,
+    char *proto_name = "smtp";
+
+    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMTP, "EHLO", 4, 0,
                 STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SMTP, "HELO", 4, 0,
+    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMTP, "HELO", 4, 0,
                 STREAM_TOSERVER);
 
     AppLayerRegisterStateFuncs(ALPROTO_SMTP, SMTPStateAlloc, SMTPStateFree);
 
-    AppLayerRegisterProto("smtp", ALPROTO_SMTP, STREAM_TOSERVER,
+    AppLayerRegisterProto(proto_name, ALPROTO_SMTP, STREAM_TOSERVER,
                           SMTPParseClientRecord);
-    AppLayerRegisterProto("smtp", ALPROTO_SMTP, STREAM_TOCLIENT,
+    AppLayerRegisterProto(proto_name, ALPROTO_SMTP, STREAM_TOCLIENT,
                           SMTPParseServerRecord);
     AppLayerDecoderEventsModuleRegister(ALPROTO_SMTP, smtp_decoder_event_table);
 

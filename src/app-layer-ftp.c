@@ -264,14 +264,16 @@ static void FTPStateFree(void *s) {
 
 
 void RegisterFTPParsers(void) {
-    /** FTP */
-    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_FTP, "USER ", 5, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_FTP, "PASS ", 5, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_FTP, "PORT ", 5, 0, STREAM_TOSERVER);
+    char *proto_name = "ftp";
 
-    AppLayerRegisterProto("ftp", ALPROTO_FTP, STREAM_TOSERVER,
+    /** FTP */
+    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "USER ", 5, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "PASS ", 5, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_FTP, "PORT ", 5, 0, STREAM_TOSERVER);
+
+    AppLayerRegisterProto(proto_name, ALPROTO_FTP, STREAM_TOSERVER,
                           FTPParseRequest);
-    AppLayerRegisterProto("ftp", ALPROTO_FTP, STREAM_TOCLIENT,
+    AppLayerRegisterProto(proto_name, ALPROTO_FTP, STREAM_TOCLIENT,
                           FTPParseResponse);
     AppLayerRegisterParser("ftp.request_command_line", ALPROTO_FTP,
                            FTP_FIELD_REQUEST_LINE, FTPParseRequestCommandLine,

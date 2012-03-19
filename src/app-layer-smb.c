@@ -1370,14 +1370,16 @@ static uint16_t SMBProbingParser(uint8_t *input, uint32_t ilen)
 }
 
 void RegisterSMBParsers(void) {
+    char *proto_name = "smb";
+
     /** SMB */
-    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SMB, "|ff|SMB", 8, 4, STREAM_TOSERVER);
+    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SMB, "|ff|SMB", 8, 4, STREAM_TOSERVER);
 
     /** SMB2 */
-    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOSERVER);
+    AlpProtoAdd(&alp_proto_ctx, "smb2", IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOSERVER);
 
-    AppLayerRegisterProto("smb", ALPROTO_SMB, STREAM_TOSERVER, SMBParse);
-    AppLayerRegisterProto("smb", ALPROTO_SMB, STREAM_TOCLIENT, SMBParse);
+    AppLayerRegisterProto(proto_name, ALPROTO_SMB, STREAM_TOSERVER, SMBParse);
+    AppLayerRegisterProto(proto_name, ALPROTO_SMB, STREAM_TOCLIENT, SMBParse);
     AppLayerRegisterStateFuncs(ALPROTO_SMB, SMBStateAlloc, SMBStateFree);
     AppLayerRegisterTransactionIdFuncs(ALPROTO_SMB,
             SMBUpdateTransactionId, NULL);
@@ -1979,12 +1981,12 @@ int SMBParserTest05(void)
     AlpProtoInit(&ctx);
 
     /** SMB */
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB, "|ff|SMB", 8, 4, STREAM_TOCLIENT);
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB, "|ff|SMB", 8, 4, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "smb", IPPROTO_TCP, ALPROTO_SMB, "|ff|SMB", 8, 4, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, "smb", IPPROTO_TCP, ALPROTO_SMB, "|ff|SMB", 8, 4, STREAM_TOSERVER);
 
     /** SMB2 */
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOCLIENT);
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "smb2", IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, "smb2", IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOSERVER);
 
     AppLayerRegisterProbingParser(&ctx,
                                   f.dp,
@@ -2063,12 +2065,12 @@ int SMBParserTest06(void)
     AlpProtoInit(&ctx);
 
     /** SMB */
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB, "|ff|SMB", 8, 4, STREAM_TOCLIENT);
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB, "|ff|SMB", 8, 4, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "smb", IPPROTO_TCP, ALPROTO_SMB, "|ff|SMB", 8, 4, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, "smb", IPPROTO_TCP, ALPROTO_SMB, "|ff|SMB", 8, 4, STREAM_TOSERVER);
 
     /** SMB2 */
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOCLIENT);
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "smb2", IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, "smb2", IPPROTO_TCP, ALPROTO_SMB2, "|fe|SMB", 8, 4, STREAM_TOSERVER);
 
     AppLayerRegisterProbingParser(&ctx,
                                   f.dp,

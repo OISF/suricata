@@ -203,7 +203,14 @@ end:
  *  \param offset Offset setting for the content. E.g. 4 mean that the content has to match after the first 4 bytes of the stream.
  *  \param flags Set STREAM_TOCLIENT or STREAM_TOSERVER for the direction in which to try to match the content.
  */
-void AlpProtoAdd(AlpProtoDetectCtx *ctx, uint16_t ip_proto, uint16_t al_proto, char *content, uint16_t depth, uint16_t offset, uint8_t flags) {
+void AlpProtoAdd(AlpProtoDetectCtx *ctx, char *name, uint16_t ip_proto, uint16_t al_proto, char *content, uint16_t depth, uint16_t offset, uint8_t flags)
+{
+    if (al_proto_table[al_proto].name != NULL) {
+        BUG_ON(strcmp(al_proto_table[al_proto].name, name) != 0);
+    } else {
+        al_proto_table[al_proto].name = name;
+    }
+
     DetectContentData *cd = DetectContentParseEncloseQuotes(content);
     if (cd == NULL) {
         return;
@@ -746,7 +753,7 @@ int AlpDetectTest01(void) {
 
     AlpProtoInit(&ctx);
 
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, "http", IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
     SCFree(buf);
 
     if (ctx.toclient.id != 1) {
@@ -754,7 +761,7 @@ int AlpDetectTest01(void) {
     }
 
     buf = SCStrdup("GET");
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "http", IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOSERVER);
     if (ctx.toserver.id != 1) {
         r = 0;
     }
@@ -787,7 +794,7 @@ int AlpDetectTest02(void) {
 
     AlpProtoInit(&ctx);
 
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, "http", IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
     SCFree(buf);
 
     if (ctx.toclient.id != 1) {
@@ -799,7 +806,7 @@ int AlpDetectTest02(void) {
     }
 
     buf = SCStrdup("220 ");
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, "ftp", IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
     SCFree(buf);
 
     if (ctx.toclient.id != 2) {
@@ -839,7 +846,7 @@ int AlpDetectTest03(void) {
 
     AlpProtoInit(&ctx);
 
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, "http", IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
     SCFree(buf);
 
     if (ctx.toclient.id != 1) {
@@ -851,7 +858,7 @@ int AlpDetectTest03(void) {
     }
 
     buf = SCStrdup("220 ");
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, "ftp", IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
     SCFree(buf);
 
     if (ctx.toclient.id != 2) {
@@ -908,7 +915,7 @@ int AlpDetectTest04(void) {
 
     AlpProtoInit(&ctx);
 
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, "http", IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
     SCFree(buf);
 
     if (ctx.toclient.id != 1) {
@@ -966,7 +973,7 @@ int AlpDetectTest05(void) {
 
     AlpProtoInit(&ctx);
 
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, "http", IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
     SCFree(buf);
 
     if (ctx.toclient.id != 1) {
@@ -978,7 +985,7 @@ int AlpDetectTest05(void) {
     }
 
     buf = SCStrdup("220 ");
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, "ftp", IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
     SCFree(buf);
 
     if (ctx.toclient.id != 2) {
@@ -1035,7 +1042,7 @@ int AlpDetectTest06(void) {
 
     AlpProtoInit(&ctx);
 
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, "http", IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
     SCFree(buf);
 
     if (ctx.toclient.id != 1) {
@@ -1047,7 +1054,7 @@ int AlpDetectTest06(void) {
     }
 
     buf = SCStrdup("220 ");
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, "ftp", IPPROTO_TCP, ALPROTO_FTP, buf, 4, 0, STREAM_TOCLIENT);
     SCFree(buf);
 
     if (ctx.toclient.id != 2) {
@@ -1104,7 +1111,7 @@ int AlpDetectTest07(void) {
 
     AlpProtoInit(&ctx);
 
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, "http", IPPROTO_TCP, ALPROTO_HTTP, buf, 4, 0, STREAM_TOCLIENT);
     SCFree(buf);
 
     if (ctx.toclient.id != 1) {
@@ -1172,7 +1179,7 @@ int AlpDetectTest08(void) {
 
     AlpProtoInit(&ctx);
 
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB, buf, 8, 4, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, "smb", IPPROTO_TCP, ALPROTO_SMB, buf, 8, 4, STREAM_TOCLIENT);
     SCFree(buf);
 
     if (ctx.toclient.id != 1) {
@@ -1237,7 +1244,7 @@ int AlpDetectTest09(void) {
 
     AlpProtoInit(&ctx);
 
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_SMB2, buf, 8, 4, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, "smb2", IPPROTO_TCP, ALPROTO_SMB2, buf, 8, 4, STREAM_TOCLIENT);
     SCFree(buf);
 
     if (ctx.toclient.id != 1) {
@@ -1297,7 +1304,7 @@ int AlpDetectTest10(void) {
 
     AlpProtoInit(&ctx);
 
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_DCERPC, buf, 4, 0, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, "dcerpc", IPPROTO_TCP, ALPROTO_DCERPC, buf, 4, 0, STREAM_TOCLIENT);
     SCFree(buf);
 
     if (ctx.toclient.id != 1) {
@@ -1347,13 +1354,13 @@ int AlpDetectTest11(void) {
 
     AlpProtoInit(&ctx);
 
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, "GET", 3, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, "PUT", 3, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, "POST", 4, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, "TRACE", 5, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, "OPTIONS", 7, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, "http", IPPROTO_TCP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "http", IPPROTO_TCP, ALPROTO_HTTP, "GET", 3, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "http", IPPROTO_TCP, ALPROTO_HTTP, "PUT", 3, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "http", IPPROTO_TCP, ALPROTO_HTTP, "POST", 4, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "http", IPPROTO_TCP, ALPROTO_HTTP, "TRACE", 5, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "http", IPPROTO_TCP, ALPROTO_HTTP, "OPTIONS", 7, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "http", IPPROTO_TCP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOCLIENT);
 
     if (ctx.toserver.id != 6) {
         printf("ctx.toserver.id %u != 6: ", ctx.toserver.id);
@@ -1390,7 +1397,7 @@ int AlpDetectTest12(void) {
     int r = 0;
 
     AlpProtoInit(&ctx);
-    AlpProtoAdd(&ctx, IPPROTO_TCP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "http", IPPROTO_TCP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOSERVER);
     AlpProtoFinalizeGlobal(&ctx);
 
     if (ctx.head == NULL) {
@@ -1436,13 +1443,13 @@ int AlpDetectTest13(void) {
 
     AlpProtoInit(&ctx);
 
-    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "GET", 3, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "PUT", 3, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "POST", 4, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "TRACE", 5, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "OPTIONS", 7, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, "http", IPPROTO_UDP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "http", IPPROTO_UDP, ALPROTO_HTTP, "GET", 3, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "http", IPPROTO_UDP, ALPROTO_HTTP, "PUT", 3, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "http", IPPROTO_UDP, ALPROTO_HTTP, "POST", 4, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "http", IPPROTO_UDP, ALPROTO_HTTP, "TRACE", 5, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "http", IPPROTO_UDP, ALPROTO_HTTP, "OPTIONS", 7, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "http", IPPROTO_UDP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOCLIENT);
 
     if (ctx.toserver.id != 6) {
         printf("ctx.toserver.id %u != 6: ", ctx.toserver.id);
@@ -1487,13 +1494,13 @@ int AlpDetectTest14(void) {
 
     AlpProtoInit(&ctx);
 
-    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "GET", 3, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "PUT", 3, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "POST", 4, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "TRACE", 5, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "OPTIONS", 7, 0, STREAM_TOSERVER);
-    AlpProtoAdd(&ctx, IPPROTO_UDP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOCLIENT);
+    AlpProtoAdd(&ctx, "http", IPPROTO_UDP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "http", IPPROTO_UDP, ALPROTO_HTTP, "GET", 3, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "http", IPPROTO_UDP, ALPROTO_HTTP, "PUT", 3, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "http", IPPROTO_UDP, ALPROTO_HTTP, "POST", 4, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "http", IPPROTO_UDP, ALPROTO_HTTP, "TRACE", 5, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "http", IPPROTO_UDP, ALPROTO_HTTP, "OPTIONS", 7, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&ctx, "http", IPPROTO_UDP, ALPROTO_HTTP, "HTTP", 4, 0, STREAM_TOCLIENT);
 
     if (ctx.toserver.id != 6) {
         printf("ctx.toserver.id %u != 6: ", ctx.toserver.id);

@@ -746,12 +746,14 @@ static void SSHStateFree(void *state)
  */
 void RegisterSSHParsers(void)
 {
-    /** SSH */
-    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_SSH, "SSH-", 4, 0, STREAM_TOSERVER);
+    char *proto_name = "ssh";
 
-    AppLayerRegisterProto("ssh", ALPROTO_SSH, STREAM_TOCLIENT,
+    /** SSH */
+    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_TCP, ALPROTO_SSH, "SSH-", 4, 0, STREAM_TOSERVER);
+
+    AppLayerRegisterProto(proto_name, ALPROTO_SSH, STREAM_TOCLIENT,
                           SSHParseServerRecord);
-    AppLayerRegisterProto("ssh", ALPROTO_SSH, STREAM_TOSERVER,
+    AppLayerRegisterProto(proto_name, ALPROTO_SSH, STREAM_TOSERVER,
                             SSHParseClientRecord);
 
     AppLayerRegisterStateFuncs(ALPROTO_SSH, SSHStateAlloc, SSHStateFree);

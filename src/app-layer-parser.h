@@ -187,6 +187,8 @@ typedef struct AppLayerProbingParserInfo_ {
 #define APP_LAYER_PROBING_PARSER_PRIORITY_MEDIUM 2
 #define APP_LAYER_PROBING_PARSER_PRIORITY_LOW    3
 
+extern AppLayerProto al_proto_table[];
+
 static inline
 AppLayerProbingParser *AppLayerGetProbingParsers(AppLayerProbingParser *probing_parsers,
                                                  uint16_t ip_proto,
@@ -288,6 +290,7 @@ void AppLayerFreeProbingParsersInfo(AppLayerProbingParserInfo *);
 void AppLayerPrintProbingParsers(AppLayerProbingParser *);
 
 uint16_t AppLayerGetStateVersion(Flow *f);
+void AppLayerListSupportedProtocols(void);
 FileContainer *AppLayerGetFilesFromFlow(Flow *, uint8_t);
 AppLayerDecoderEvents *AppLayerGetDecoderEventsForFlow(Flow *);
 

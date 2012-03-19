@@ -443,6 +443,7 @@ void usage(const char *progname)
 #ifdef UNITTESTS
     printf("\t-u                           : run the unittests and exit\n");
     printf("\t-U, --unittest-filter=REGEX  : filter unittests with a regex\n");
+    printf("\t--list-app-layer-protos      : list supported app layer protocols\n");
     printf("\t--list-unittests             : list unit tests\n");
     printf("\t--list-keywords              : list all keywords implemented by the engine\n");
     printf("\t--fatal-unittests            : enable fatal failure on unittest error\n");
@@ -630,6 +631,7 @@ int main(int argc, char **argv)
     char *regex_arg = NULL;
 #endif
     int dump_config = 0;
+    int list_app_layer_protocols = 0;
     int list_unittests = 0;
     int list_cuda_cards = 0;
     int list_runmodes = 0;
@@ -712,6 +714,7 @@ int main(int argc, char **argv)
         {"pcap", optional_argument, 0, 0},
         {"pcap-buffer-size", required_argument, 0, 0},
         {"unittest-filter", required_argument, 0, 'U'},
+        {"list-app-layer-protocols", 0, &list_app_layer_protocols, 1},
         {"list-unittests", 0, &list_unittests, 1},
         {"list-cuda-cards", 0, &list_cuda_cards, 1},
         {"list-runmodes", 0, &list_runmodes, 1},
@@ -847,6 +850,9 @@ int main(int argc, char **argv)
                     fprintf(stderr, "ERROR: Failed to set engine init-failure-fatal.\n");
                     exit(EXIT_FAILURE);
                 }
+            }
+            else if(strcmp((long_opts[option_index]).name, "list-app-layer-protocols") == 0) {
+                /* listing all supported app layer protocols */
             }
             else if(strcmp((long_opts[option_index]).name, "list-unittests") == 0) {
 #ifdef UNITTESTS
@@ -1181,6 +1187,10 @@ int main(int argc, char **argv)
     TimeInit();
     SupportFastPatternForSigMatchTypes();
 
+    /* load the pattern matchers */
+    MpmTableSetup();
+
+    /** \todo we need an api for these */
     /* Load yaml configuration file if provided. */
     if (conf_filename != NULL) {
 #ifdef UNITTESTS
@@ -1214,6 +1224,13 @@ int main(int argc, char **argv)
         usage(argv[0]);
         exit(EXIT_FAILURE);
     }
+
+    AppLayerDetectProtoThreadInit();
+    if (list_app_layer_protocols) {
+        AppLayerListSupportedProtocols();
+        exit(EXIT_SUCCESS);
+    }
+    AppLayerParsersInitPostProcess();
 
     if (dump_config) {
         ConfDump();
@@ -1324,7 +1341,6 @@ int main(int argc, char **argv)
     }
 
     /* hardcoded initialization code */
-    MpmTableSetup(); /* load the pattern matchers */
     SigTableSetup(); /* load the rule keywords */
     if (list_keywords) {
         SigTableList();
@@ -1392,10 +1408,6 @@ int main(int argc, char **argv)
     TmModuleDebugList();
 
     AppLayerHtpNeedFileInspection();
-
-    /** \todo we need an api for these */
-    AppLayerDetectProtoThreadInit();
-    AppLayerParsersInitPostProcess();
 
 #ifdef UNITTESTS
 

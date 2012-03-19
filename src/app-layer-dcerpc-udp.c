@@ -717,12 +717,14 @@ static void DCERPCUDPStateFree(void *s) {
 }
 
 void RegisterDCERPCUDPParsers(void) {
-    /** DCERPC */
-    AlpProtoAdd(&alp_proto_ctx, IPPROTO_UDP, ALPROTO_DCERPC_UDP, "|04 00|", 2, 0, STREAM_TOSERVER);
+    char *proto_name = "dcerpcudp";
 
-	AppLayerRegisterProto("dcerpcudp", ALPROTO_DCERPC_UDP, STREAM_TOSERVER,
+    /** DCERPC */
+    AlpProtoAdd(&alp_proto_ctx, proto_name, IPPROTO_UDP, ALPROTO_DCERPC_UDP, "|04 00|", 2, 0, STREAM_TOSERVER);
+
+	AppLayerRegisterProto(proto_name, ALPROTO_DCERPC_UDP, STREAM_TOSERVER,
 			DCERPCUDPParse);
-	AppLayerRegisterProto("dcerpcudp", ALPROTO_DCERPC_UDP, STREAM_TOCLIENT,
+	AppLayerRegisterProto(proto_name, ALPROTO_DCERPC_UDP, STREAM_TOCLIENT,
 			DCERPCUDPParse);
 	AppLayerRegisterStateFuncs(ALPROTO_DCERPC_UDP, DCERPCUDPStateAlloc,
 			DCERPCUDPStateFree);

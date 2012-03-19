@@ -60,9 +60,9 @@
 #include "util-unittest-helper.h"
 #include "util-validate.h"
 
-static AppLayerProto al_proto_table[ALPROTO_MAX];   /**< Application layer protocol
-                                                         table mapped to their
-                                                         corresponding parsers */
+AppLayerProto al_proto_table[ALPROTO_MAX];   /**< Application layer protocol
+                                                table mapped to their
+                                                corresponding parsers */
 
 #define MAX_PARSERS 100
 static AppLayerParserTableElement al_parser_table[MAX_PARSERS];
@@ -594,8 +594,6 @@ int AppLayerRegisterProto(char *name, uint8_t proto, uint8_t flags,
 
     al_parser_table[al_max_parsers].name = name;
     al_parser_table[al_max_parsers].AppLayerParser = AppLayerParser;
-
-    al_proto_table[proto].name = name;
 
     /* create proto, direction -- parser mapping */
     if (flags & STREAM_TOSERVER) {
@@ -1228,6 +1226,40 @@ int AppLayerTransactionUpdateInspectId(Flow *f, char direction)
     SCReturnInt(r);
 }
 
+void AppLayerListSupportedProtocols(void)
+{
+    uint32_t i;
+    uint32_t temp_alprotos_buf[ALPROTO_MAX];
+
+    printf("=========Supported App Layer Protocols=========\n");
+
+    /* for each proto, alloc the map array */
+    for (i = 0; i < ALPROTO_MAX; i++) {
+        if (al_proto_table[i].name == NULL)
+            continue;
+
+        temp_alprotos_buf[i] = 1;
+        printf("%s\n", al_proto_table[i].name);
+    }
+
+    AppLayerProbingParserInfo *pinfo = alp_proto_ctx.probing_parsers_info;
+    while (pinfo != NULL) {
+        if (temp_alprotos_buf[pinfo->al_proto] == 1) {
+            pinfo = pinfo->next;
+            continue;
+        }
+
+        printf("%s\n", pinfo->al_proto_name);
+        temp_alprotos_buf[pinfo->al_proto] = 1;
+        pinfo = pinfo->next;
+    }
+
+    printf("=====\n");
+
+
+    return;
+}
+
 AppLayerDecoderEvents *AppLayerGetDecoderEventsForFlow(Flow *f)
 {
     DEBUG_ASSERT_FLOW_LOCKED(f);
@@ -1294,11 +1326,11 @@ void RegisterAppLayerParsers(void)
 
     /** IMAP */
     //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_IMAP, "|2A 20|OK|20|", 5, 0, STREAM_TOCLIENT);
-    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_IMAP, "1|20|capability", 12, 0, STREAM_TOSERVER);
+    AlpProtoAdd(&alp_proto_ctx, "imap", IPPROTO_TCP, ALPROTO_IMAP, "1|20|capability", 12, 0, STREAM_TOSERVER);
 
     /** MSN Messenger */
     //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_MSN, "MSNP", 10, 6, STREAM_TOCLIENT);
-    AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_MSN, "MSNP", 10, 6, STREAM_TOSERVER);
+    AlpProtoAdd(&alp_proto_ctx, "msn", IPPROTO_TCP, ALPROTO_MSN, "MSNP", 10, 6, STREAM_TOSERVER);
 
     /** Jabber */
     //AlpProtoAdd(&alp_proto_ctx, IPPROTO_TCP, ALPROTO_JABBER, "xmlns='jabber|3A|client'", 74, 53, STREAM_TOCLIENT);

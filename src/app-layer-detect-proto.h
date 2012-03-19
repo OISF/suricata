@@ -95,7 +95,7 @@ uint16_t AppLayerDetectGetProtoProbingParser(AlpProtoDetectCtx *, Flow *,
 uint16_t AppLayerDetectGetProto(AlpProtoDetectCtx *, AlpProtoDetectThreadCtx *,
                                 Flow *, uint8_t *, uint32_t,
                                 uint8_t, uint8_t);
-void AlpProtoAdd(AlpProtoDetectCtx *, uint16_t, uint16_t, char *, uint16_t, uint16_t, uint8_t);
+void AlpProtoAdd(AlpProtoDetectCtx *, char *, uint16_t, uint16_t, char *, uint16_t, uint16_t, uint8_t);
 
 void AppLayerDetectProtoThreadSpawn(void);
 void AlpDetectRegisterTests(void);
