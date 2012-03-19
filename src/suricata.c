@@ -220,6 +220,9 @@ intmax_t max_pending_packets;
 /** set caps or not */
 int sc_set_caps;
 
+/** test configuration and exit */
+int conf_test = 0;
+
 int RunmodeIsUnittests(void) {
     if (run_mode == RUNMODE_UNITTEST)
         return 1;
@@ -742,7 +745,7 @@ int main(int argc, char **argv)
     /* getopt_long stores the option index here. */
     int option_index = 0;
 
-    char short_opts[] = "c:Dhi:l:q:d:r:us:S:U:VF:";
+    char short_opts[] = "c:TDhi:l:q:d:r:us:S:U:VF:";
 
     while ((opt = getopt_long(argc, argv, short_opts, long_opts, &option_index)) != -1) {
         switch (opt) {
@@ -987,6 +990,14 @@ int main(int argc, char **argv)
             break;
         case 'c':
             conf_filename = optarg;
+            break;
+        case 'T':
+            SCLogInfo("Running suricata under test mode");
+            conf_test = 1;
+            if (ConfSet("engine.init-failure-fatal", "1", 0) != 1) {
+                fprintf(stderr, "ERROR: Failed to set engine init-failure-fatal.\n");
+                exit(EXIT_FAILURE);
+            }
             break;
 #ifndef OS_WIN32
         case 'D':
@@ -1732,8 +1743,13 @@ int main(int argc, char **argv)
 
     SC_ATOMIC_CAS(&engine_stage, SURICATA_INIT, SURICATA_RUNTIME);
 
-    /* Un-pause all the paused threads */
-    TmThreadContinueThreads();
+    if(conf_test == 1){
+        SCLogInfo("Configuration provided was successfully loaded. Exiting.");
+        exit(EXIT_SUCCESS);
+    } else {
+        /* Un-pause all the paused threads */
+        TmThreadContinueThreads();
+    }
 
 #ifdef DBG_MEM_ALLOC
     SCLogInfo("Memory used at startup: %"PRIdMAX, (intmax_t)global_mem);
