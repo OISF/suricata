@@ -714,7 +714,7 @@ int main(int argc, char **argv)
         {"pcap", optional_argument, 0, 0},
         {"pcap-buffer-size", required_argument, 0, 0},
         {"unittest-filter", required_argument, 0, 'U'},
-        {"list-app-layer-protocols", 0, &list_app_layer_protocols, 1},
+        {"list-app-layer-protos", 0, &list_app_layer_protocols, 1},
         {"list-unittests", 0, &list_unittests, 1},
         {"list-cuda-cards", 0, &list_cuda_cards, 1},
         {"list-runmodes", 0, &list_runmodes, 1},
@@ -1219,7 +1219,8 @@ int main(int argc, char **argv)
         }
 
     } else if (run_mode != RUNMODE_UNITTEST &&
-               !list_keywords){
+                !list_keywords &&
+                !list_app_layer_protocols) {
         SCLogError(SC_ERR_OPENING_FILE, "Configuration file has not been provided");
         usage(argv[0]);
         exit(EXIT_FAILURE);
