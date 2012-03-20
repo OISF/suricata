@@ -1553,7 +1553,7 @@ end:
  *        (with the addresses switched) into the list.  Also handle duplicate
  *        signatures.  In case of duplicate sigs, use the ones that have the
  *        latest revision.  We use the sid and the msg to identifiy duplicate
- *        sigs.  If 2 sigs have the same sid and msg, they are duplicates.
+ *        sigs.  If 2 sigs have the same sid and gid, they are duplicates.
  *
  * \param de_ctx Pointer to the Detection Engine Context.
  * \param sigstr Pointer to a character string containing the signature to be
