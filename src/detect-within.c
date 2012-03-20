@@ -108,8 +108,8 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
         pm1 = SigMatchGetLastSMFromLists(s, 2, DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
 
         if (dm == NULL && pm1 == NULL) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid signature.  within "
-                       "needs a preceding content keyword");
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "\"within\" requires a "
+                    "preceding content keyword");
             goto error;
         }
 
@@ -176,7 +176,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]);
         if (pm == NULL) {
-            SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs"
+            SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "\"within\" requires "
                        "preceeding content, uricontent, http_client_body, "
                        "http_server_body, http_header, http_raw_header, "
                        "http_method, http_cookie, http_raw_uri, "
@@ -194,27 +194,27 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
         case DETECT_CONTENT:
             cd = (DetectContentData *)pm->ctx;
             if (cd == NULL) {
-                SCLogError(SC_ERR_RULE_KEYWORD_UNKNOWN, "Unknown previous keyword!\n");
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "content error");
                 goto error;
             }
 
             if (cd->flags & DETECT_CONTENT_NEGATED) {
                 if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
                                "negated keyword set along with a fast_pattern");
                     goto error;
                 }
             } else {
                 if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
-                               "keyword set along with a fast_pattern:only;");
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
+                               "keyword set along with a fast_pattern:only");
                     goto error;
                 }
             }
 
             if (cd->flags & DETECT_CONTENT_DEPTH || cd->flags & DETECT_CONTENT_OFFSET) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't use a relative keyword "
-                               "with a non-relative keyword for the same content." );
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a relative keyword "
+                               "with a non-relative keyword for the same content" );
                 goto error;
             }
 
@@ -223,7 +223,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                     DetectByteExtractRetrieveSMVar(str, s,
                                                    SigMatchListSMBelongsTo(s, pm));
                 if (bed_sm == NULL) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_extract var "
                                "seen in within - %s\n", str);
                     goto error;
                 }
@@ -249,7 +249,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
             if (pm == NULL) {
                 if (s->alproto == ALPROTO_DCERPC) {
                     SCLogDebug("content relative without a previous content based "
-                               "keyword.  Holds good only in the case of DCERPC "
+                               "keyword. Holds good only in the case of DCERPC "
                                "alproto like now.");
                 } else {
                     //SCLogError(SC_ERR_INVALID_SIGNATURE, "No related "
@@ -263,15 +263,14 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                         /* Set the relative next flag on the prev sigmatch */
                         cd = (DetectContentData *)pm->ctx;
                         if (cd == NULL) {
-                            SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
-                                       "previous keyword!");
+                            SCLogError(SC_ERR_INVALID_SIGNATURE, "content error");
                             goto error;
                         }
                         cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
 
                         if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                            SCLogError(SC_ERR_INVALID_SIGNATURE, "Previous keyword "
-                                       "has a fast_pattern:only; set.  You can't "
+                            SCLogError(SC_ERR_INVALID_SIGNATURE, "previous keyword "
+                                       "has a fast_pattern:only; set. Can't "
                                        "have relative keywords around a fast_pattern "
                                        "only content");
                             goto error;
@@ -282,8 +281,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                     case DETECT_PCRE:
                         pe = (DetectPcreData *) pm->ctx;
                         if (pe == NULL) {
-                            SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
-                                       "previous keyword!");
+                            SCLogError(SC_ERR_INVALID_SIGNATURE, "pcre error");
                             goto error;
                         }
                         pe->flags |= DETECT_PCRE_RELATIVE_NEXT;
@@ -291,15 +289,14 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                         break;
 
                     case DETECT_BYTEJUMP:
-                        SCLogDebug("No setting relative_next for bytejump.  We "
+                        SCLogDebug("no setting relative_next for bytejump. We "
                                    "have no use for it");
 
                         break;
 
                     default:
                         /* this will never hit */
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
-                                       "previous keyword!");
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "unsupported type %d", pm->type);
                         break;
                 }
             }

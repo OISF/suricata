@@ -104,7 +104,7 @@ static int DetectNocaseSetup (DetectEngineCtx *de_ctx, Signature *s, char *nulls
                 SCReturnInt(-1);
             }
             if (cd->flags & DETECT_CONTENT_NOCASE) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't use multiple nocase modifiers with the same content; ignoring this option. ");
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple nocase modifiers with the same content");
                 SCReturnInt(-1);
             }
             cd->flags |= DETECT_CONTENT_NOCASE;

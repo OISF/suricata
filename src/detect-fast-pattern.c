@@ -264,13 +264,14 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
 
         /* we can't have any of these if we are having "only" */
         SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern; cannot be "
-                   "used with negated content, along with relative modifiers.");
+                   "used with negated content, along with relative modifiers");
         goto error;
     }
 
     if (arg == NULL|| strcmp(arg, "") == 0) {
         if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
-            SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't use multiple fast_pattern options for the same content. ");
+            SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple fast_pattern "
+                    "options for the same content");
             goto error;
         }
         cd->flags |= DETECT_CONTENT_FAST_PATTERN;

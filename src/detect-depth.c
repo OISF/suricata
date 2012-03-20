@@ -124,26 +124,26 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
 
             if (cd->flags & DETECT_CONTENT_NEGATED) {
                 if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
                                "negated keyword set along with a fast_pattern");
                     goto error;
                 }
             } else {
                 if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
                                "keyword set along with a fast_pattern:only;");
                     goto error;
                 }
             }
 
             if (cd->flags & DETECT_CONTENT_WITHIN || cd->flags & DETECT_CONTENT_DISTANCE) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't use a relative keyword "
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a relative keyword "
                                "with a non-relative keyword for the same content." );
                 goto error;
             }
 
             if (cd->flags & DETECT_CONTENT_DEPTH) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't use multiple depths for the same content.");
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple depths for the same content.");
                 goto error;
             }
 
@@ -152,7 +152,7 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
                     DetectByteExtractRetrieveSMVar(str, s,
                                                    SigMatchListSMBelongsTo(s, pm));
                 if (bed_sm == NULL) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_extract var "
                                "seen in depth - %s\n", str);
                     goto error;
                 }

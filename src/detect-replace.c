@@ -116,12 +116,12 @@ int DetectReplaceSetup(DetectEngineCtx *de_ctx, Signature *s, char *replacestr)
         return -1;
     }
     if (ud->flags & DETECT_CONTENT_NEGATED) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
                 "negated keyword set along with a replacement");
         goto error;
     }
     if (ud->content_len != len) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a content "
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a content "
                 "length different from replace length");
         goto error;
     }

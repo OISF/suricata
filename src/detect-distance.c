@@ -198,26 +198,26 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
 
             if (cd->flags & DETECT_CONTENT_NEGATED) {
                 if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
                                "negated keyword set along with a fast_pattern");
                     goto error;
                 }
             } else {
                 if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't have a relative "
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have a relative "
                                "keyword set along with a fast_pattern:only;");
                     goto error;
                 }
             }
 
             if (cd->flags & DETECT_CONTENT_DEPTH || cd->flags & DETECT_CONTENT_OFFSET) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't use a relative keyword "
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a relative keyword "
                                "with a non-relative keyword for the same content." );
                 goto error;
             }
 
             if (cd->flags & DETECT_CONTENT_DISTANCE) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "You can't use multiple distances with the same content. ");
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple distances with the same content. ");
                 goto error;
             }
 
@@ -226,7 +226,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                     DetectByteExtractRetrieveSMVar(str, s,
                                                    SigMatchListSMBelongsTo(s, pm));
                 if (bed_sm == NULL) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown byte_extract var "
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown byte_extract var "
                                "seen in distance - %s\n", str);
                     goto error;
                 }
@@ -259,16 +259,16 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                         /* Set the relative next flag on the prev sigmatch */
                         cd = (DetectContentData *)pm->ctx;
                         if (cd == NULL) {
-                            SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                            SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown previous-"
                                        "previous keyword!");
                             goto error;
                         }
                         cd->flags |= DETECT_CONTENT_RELATIVE_NEXT;
 
                         if (cd->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) {
-                            SCLogError(SC_ERR_INVALID_SIGNATURE, "Previous keyword "
-                                       "has a fast_pattern:only; set.  You can't "
-                                       "have relative keywords around a fast_pattern "
+                            SCLogError(SC_ERR_INVALID_SIGNATURE, "previous keyword "
+                                       "has a fast_pattern:only; set. Can't have "
+                                       "relative keywords around a fast_pattern "
                                        "only content");
                             goto error;
                         }
@@ -278,7 +278,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                     case DETECT_PCRE:
                         pe = (DetectPcreData *) pm->ctx;
                         if (pe == NULL) {
-                            SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                            SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown previous-"
                                        "previous keyword!");
                             goto error;
                         }
@@ -287,14 +287,14 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                         break;
 
                     case DETECT_BYTEJUMP:
-                        SCLogDebug("No setting relative_next for bytejump.  We "
+                        SCLogDebug("no setting relative_next for bytejump.  We "
                                    "have no use for it");
 
                         break;
 
                     default:
                         /* this will never hit */
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "Unknown previous-"
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "unknown previous-"
                                        "previous keyword!");
                         break;
                 }

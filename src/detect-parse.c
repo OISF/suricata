@@ -217,7 +217,8 @@ SigMatch *SigMatchGetLastSMFromLists(Signature *s, int args, ...)
                    "(non zero as well) to this function, since we need a "
                    "SigMatch list for every SigMatch type(send a map of sm_type "
                    "and sm_list) sent");
-        return NULL;
+        /* as this is a bug we should abort to ease debugging */
+        BUG_ON(1);
     }
 
     SigMatch *sm_list[args / 2];

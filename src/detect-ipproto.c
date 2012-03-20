@@ -240,7 +240,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
     switch (data->op) {
         case DETECT_IPPROTO_OP_EQ:
             if (eq_set || gt_set || lt_set || not_set) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "We can't use a eq "
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a eq "
                            "ipproto without any operators attached to "
                            "them in the same sig");
                 goto error;
@@ -250,7 +250,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
 
         case DETECT_IPPROTO_OP_GT:
             if (eq_set || gt_set) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "We can't use a eq or gt "
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a eq or gt "
                            "ipproto along with a greater than ipproto in the "
                            "same sig ");
                 goto error;
@@ -271,7 +271,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                 if (temp_sm != NULL) {
                     DetectIPProtoData *data_temp = temp_sm->ctx;
                     if (data_temp->proto <= data->proto) {
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "We can't use a have "
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have "
                                 "both gt and lt ipprotos, with the lt being "
                                 "lower than gt value");
                         goto error;
@@ -317,7 +317,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                         /* Updated by AS.  Please do not remove this unused code.
                          * Need it as we redo this code once we solve ipproto
                          * multiple uses */
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "We can't use a have "
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have "
                                 "both gt and lt ipprotos, with the lt being "
                                 "lower than gt value");
                         goto error;
@@ -369,7 +369,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
 
         case DETECT_IPPROTO_OP_LT:
             if (eq_set || lt_set) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "We can't use a eq or lt "
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a eq or lt "
                            "ipproto along with a less than ipproto in the "
                            "same sig ");
                 goto error;
@@ -393,7 +393,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                         /* Updated by AS.  Please do not remove this unused code.
                          * Need it as we redo this code once we solve ipproto
                          * multiple uses */
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "We can't use a have "
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a have "
                                 "both gt and lt ipprotos, with the lt being "
                                 "lower than gt value");
                         goto error;
@@ -437,7 +437,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
                         /* Updated by AS.  Please do not remove this unused code.
                          * Need it as we redo this code once we solve ipproto
                          * multiple uses */
-                        SCLogError(SC_ERR_INVALID_SIGNATURE, "We can't use a have "
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't have "
                                 "both gt and lt ipprotos, with the lt being "
                                 "lower than gt value");
                         goto error;
@@ -489,7 +489,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
 
         case DETECT_IPPROTO_OP_NOT:
             if (eq_set) {
-                SCLogError(SC_ERR_INVALID_SIGNATURE, "We can't use a eq "
+                SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use a eq "
                            "ipproto along with a not ipproto in the "
                            "same sig ");
                 goto error;
