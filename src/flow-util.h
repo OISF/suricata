@@ -62,6 +62,7 @@
         (f)->hprev = NULL; \
         (f)->lnext = NULL; \
         (f)->lprev = NULL; \
+        SC_ATOMIC_INIT((f)->autofp_tmqh_flow_qid);  \
         SC_ATOMIC_SET((f)->autofp_tmqh_flow_qid, -1);  \
         RESET_COUNTERS((f)); \
     } while (0)
@@ -110,9 +111,7 @@
         DetectTagDataListFree((f)->tag_list); \
         GenericVarFree((f)->flowvar); \
         SCMutexDestroy(&(f)->de_state_m); \
-        if (SC_ATOMIC_GET((f)->autofp_tmqh_flow_qid) != -1) {   \
-            SC_ATOMIC_DESTROY((f)->autofp_tmqh_flow_qid);   \
-        }                                       \
+        SC_ATOMIC_DESTROY((f)->autofp_tmqh_flow_qid);   \
         (f)->tag_list = NULL; \
     } while(0)
 
