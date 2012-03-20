@@ -220,9 +220,6 @@ intmax_t max_pending_packets;
 /** set caps or not */
 int sc_set_caps;
 
-/** test configuration and exit */
-int conf_test = 0;
-
 int RunmodeIsUnittests(void) {
     if (run_mode == RUNMODE_UNITTEST)
         return 1;
@@ -629,6 +626,7 @@ int main(int argc, char **argv)
     char pcap_dev[128];
     char *sig_file = NULL;
     int sig_file_exclusive = FALSE;
+    int conf_test = 0;
     char *conf_filename = NULL;
     char *pid_filename = NULL;
 #ifdef UNITTESTS
@@ -1713,9 +1711,9 @@ int main(int argc, char **argv)
     if(conf_test == 1){
         SCLogInfo("Configuration provided was successfully loaded. Exiting.");
         exit(EXIT_SUCCESS);
-    } else {
-        RunModeDispatch(run_mode, runmode_custom_mode, de_ctx);
     }
+
+    RunModeDispatch(run_mode, runmode_custom_mode, de_ctx);
 
 #ifdef __SC_CUDA_SUPPORT__
     if (PatternMatchDefaultMatcher() == MPM_B2G_CUDA) {
