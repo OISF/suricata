@@ -640,6 +640,8 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
         SCLogError(SC_ERR_ALPARSER, "Inbound parser is in error state, no"
                 " need to feed data to libhtp");
         SCReturnInt(-1);
+    } else if (hstate->connp->in_status == STREAM_STATE_TUNNEL) {
+        SCReturnInt(0);
     }
 
     /* Unset the body inspection (the callback should
@@ -731,6 +733,8 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
         SCLogError(SC_ERR_ALPARSER, "Outbound parser is in error state, no"
                 " need to feed data to libhtp");
         SCReturnInt(-1);
+    } else if (hstate->connp->out_status == STREAM_STATE_TUNNEL) {
+        SCReturnInt(0);
     }
 
     /* Unset the body inspection (the callback should
