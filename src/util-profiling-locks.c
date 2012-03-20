@@ -195,8 +195,8 @@ void SCProfilingListLocks(void) {
         char str[128] = "";
         snprintf(str, sizeof(str), "(%s) %s:%d", lock,r->file, r->line);
 
-        fprintf(fp, "%-50s %-10u %-9u %-12"PRIu64" %-12"PRIu64" %-7u %-s\n",
-            str, r->ticks_cnt, (int)r->ticks_total/r->ticks_cnt, r->ticks_max, r->ticks_total, r->cont, r->func);
+        fprintf(fp, "%-50s %-10u %-9"PRIu64" %-12"PRIu64" %-12"PRIu64" %-7u %-s\n",
+            str, r->ticks_cnt, (uint64_t)((uint64_t)r->ticks_total/(uint64_t)r->ticks_cnt), r->ticks_max, r->ticks_total, r->cont, r->func);
 
         total += r->ticks_total;
         cnt += r->ticks_cnt;
@@ -206,7 +206,7 @@ void SCProfilingListLocks(void) {
     }
 
     fprintf(fp, "\nOverall: locks %"PRIu64", average cost %"PRIu64", contentions %"PRIu32", total ticks %"PRIu64"\n",
-        cnt, total/cnt, cont, total);
+        cnt, (uint64_t)((uint64_t)total/(uint64_t)cnt), cont, total);
 
     fclose(fp);
 }
