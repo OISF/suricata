@@ -781,7 +781,7 @@ static inline void SCACGfbsCreateModGotoTable(MpmCtx *mpm_ctx)
             exit(EXIT_FAILURE);
         }
         memset(ctx->goto_table_mod, 0, size);
-        printf("size- %d\n", size);
+        //printf("size- %d\n", size);
 
         mpm_ctx->memory_cnt++;
         mpm_ctx->memory_size += size;
