@@ -158,6 +158,11 @@ int DetectContentDataParse(char *keyword, char *contentstr, char** pstr, uint16_
                     } else if (str[i] == ' ') {
                         // SCLogDebug("space as part of binary string");
                     }
+                    else if (str[i] != ',') {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "Invalid hex code in "
+                                    "content - %s, hex %c. Invalidating signature", str, str[i]);
+                        goto error;
+                    }
                 } else if (escape) {
                     if (str[i] == ':' ||
                         str[i] == ';' ||
