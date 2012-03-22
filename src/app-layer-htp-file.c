@@ -106,6 +106,15 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
                 (s->flags & HTP_FLAG_STORE_FILES_TX_TS && txid == s->store_tx_id)) {
             flags |= FILE_STORE;
         }
+
+        if (s->f->flags & FLOW_FILE_NO_MAGIC_TC) {
+            SCLogDebug("no magic for this flow in toclient direction, so none for this file");
+            flags |= FILE_NOMAGIC;
+        }
+
+        if (!(flags & FILE_STORE) && s->f->flags & FLOW_FILE_NO_STORE_TC) {
+            flags |= FILE_NOSTORE;
+        }
     } else {
         if (s->files_ts == NULL) {
             s->files_ts = FileContainerAlloc();
@@ -121,6 +130,14 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
         if (s->flags & HTP_FLAG_STORE_FILES_TC ||
                 (s->flags & HTP_FLAG_STORE_FILES_TX_TC && txid == s->store_tx_id)) {
             flags |= FILE_STORE;
+        }
+        if (s->f->flags & FLOW_FILE_NO_MAGIC_TS) {
+            SCLogDebug("no magic for this flow in toserver direction, so none for this file");
+            flags |= FILE_NOMAGIC;
+        }
+
+        if (!(flags & FILE_STORE) && s->f->flags & FLOW_FILE_NO_STORE_TS) {
+            flags |= FILE_NOSTORE;
         }
     }
 
@@ -147,13 +164,6 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
             SCLogDebug("flagging TS");
             s->flags |= HTP_FLAG_NEW_FILE_TX_TS;
         }
-    }
-
-    if (!(flags & FILE_STORE) && s->f->flags & FLOW_FILE_NO_STORE) {
-        flags |= FILE_NOSTORE;
-    }
-    if (s->f->flags & FLOW_FILE_NO_MAGIC) {
-        flags |= FILE_NOMAGIC;
     }
 
     if (FileOpenFile(files, filename, filename_len,

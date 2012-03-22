@@ -27,6 +27,7 @@
 #include "suricata.h"
 #include "debug.h"
 #include "flow.h"
+#include "stream.h"
 #include "util-hash.h"
 #include "util-debug.h"
 #include "util-memcmp.h"
@@ -126,6 +127,10 @@ static void FilePruneFile(File *file) {
         /* need magic but haven't set it yet, bail out */
         if (file->magic == NULL)
             SCReturn;
+        else
+            SCLogDebug("file->magic %s", file->magic);
+    } else {
+        SCLogDebug("file->flags & FILE_NOMAGIC == true");
     }
 
     /* okay, we now know we can prune */
@@ -471,6 +476,7 @@ File *FileOpenFile(FileContainer *ffc, uint8_t *name,
         ff->store = -1;
     }
     if (flags & FILE_NOMAGIC) {
+        SCLogDebug("no doing magic for this file");
         ff->flags |= FILE_NOMAGIC;
     }
 
@@ -592,7 +598,10 @@ void FileDisableStoring(Flow *f, uint8_t direction) {
 
     DEBUG_ASSERT_FLOW_LOCKED(f);
 
-    f->flags |= FLOW_FILE_NO_STORE;
+    if (direction == STREAM_TOSERVER)
+        f->flags |= FLOW_FILE_NO_STORE_TS;
+    else
+        f->flags |= FLOW_FILE_NO_STORE_TC;
 
     FileContainer *ffc = AppLayerGetFilesFromFlow(f, direction);
     if (ffc != NULL) {
@@ -618,11 +627,16 @@ void FileDisableMagic(Flow *f, uint8_t direction) {
 
     DEBUG_ASSERT_FLOW_LOCKED(f);
 
-    f->flags |= FLOW_FILE_NO_MAGIC;
+    if (direction == STREAM_TOSERVER)
+        f->flags |= FLOW_FILE_NO_MAGIC_TS;
+    else
+        f->flags |= FLOW_FILE_NO_MAGIC_TC;
 
     FileContainer *ffc = AppLayerGetFilesFromFlow(f, direction);
     if (ffc != NULL) {
         for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
+            SCLogDebug("disabling magic for file %p from direction %s",
+                    ptr, direction == STREAM_TOSERVER ? "toserver":"toclient");
             ptr->flags |= FILE_NOMAGIC;
         }
     }
