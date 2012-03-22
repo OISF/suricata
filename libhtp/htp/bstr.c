@@ -351,6 +351,38 @@ int bstr_cmp_ex(char *s1, size_t l1, char *s2, size_t l2) {
 }
 
 /**
+ * Case-insensitive comparison of two memory regions.
+ *
+ * @param s1
+ * @param l1
+ * @param s2
+ * @param l2
+ * @return 0 if the memory regions are identical, -1 or +1 if they're not
+ */
+int bstr_cmp_nocase_ex(char *s1, size_t l1, char *s2, size_t l2) {
+    size_t p1 = 0, p2 = 0;
+
+    while ((p1 < l1) && (p2 < l2)) {
+        if (tolower((int)s1[p1]) != tolower((int)s2[p2])) {
+            // Difference
+            return (tolower((int)s1[p1]) < tolower((int)s2[p2])) ? -1 : 1;
+        }
+
+        p1++;
+        p2++;
+    }
+
+    if ((p1 == l2) && (p2 == l1)) {
+        // They're identical
+        return 0;
+    } else {
+        // One string is shorter
+        if (p1 == l1) return -1;
+        else return 1;
+    }
+}
+
+/**
  * Compare a bstring with a NUL-terminated string.
  *
  * @param b
@@ -370,6 +402,17 @@ int bstr_cmpc(bstr *b, char *c) {
  */
 int bstr_cmp(bstr *b1, bstr *b2) {
     return bstr_cmp_ex(bstr_ptr(b1), bstr_len(b1), bstr_ptr(b2), bstr_len(b2));
+}
+
+/**
+ * Case-insensitive comparison two bstrings.
+ *
+ * @param b1
+ * @param b2
+ * @return 0, -1 or +1
+ */
+int bstr_cmp_nocase(bstr *b1, bstr *b2) {
+    return bstr_cmp_nocase_ex(bstr_ptr(b1), bstr_len(b1), bstr_ptr(b2), bstr_len(b2));
 }
 
 /**

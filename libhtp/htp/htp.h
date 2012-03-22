@@ -41,7 +41,7 @@ typedef struct htp_urldecoder_t htp_urldecoder_t;
 
 // -- Defines -------------------------------------------------------------------------------------
 
-#define HTP_BASE_VERSION_TEXT	"0.2.7"
+#define HTP_BASE_VERSION_TEXT	"0.2.8-dev"
 
 #define HTP_ERROR              -1
 #define HTP_OK                  0
@@ -1003,7 +1003,7 @@ void htp_config_set_path_compress_separators(htp_cfg_t *cfg, int compress_separa
 void htp_config_set_path_control_char_handling(htp_cfg_t *cfg, int control_char_handling);
 void htp_config_set_path_convert_utf8(htp_cfg_t *cfg, int convert_utf8);
 void htp_config_set_path_decode_separators(htp_cfg_t *cfg, int backslash_separators);
-void htp_config_set_path_decode_separators(htp_cfg_t *cfg, int decode_u_encoding);
+void htp_config_set_path_decode_u_encoding(htp_cfg_t *cfg, int decode_u_encoding);
 void htp_config_set_path_invalid_encoding_handling(htp_cfg_t *cfg, int invalid_encoding_handling);
 void htp_config_set_path_invalid_utf8_handling(htp_cfg_t *cfg, int invalid_utf8_handling);
 void htp_config_set_path_nul_encoded_handling(htp_cfg_t *cfg, int nul_encoded_handling);
@@ -1024,7 +1024,7 @@ void htp_connp_destroy_all(htp_connp_t *connp);
  void htp_connp_set_user_data(htp_connp_t *connp, void *user_data);
 void *htp_connp_get_user_data(htp_connp_t *connp);
 
-htp_conn_t *htp_conn_create();
+htp_conn_t *htp_conn_create(htp_connp_t *connp);
        void htp_conn_destroy(htp_conn_t *conn);
         int htp_conn_remove_tx(htp_conn_t *conn, htp_tx_t *tx);
 

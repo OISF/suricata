@@ -42,6 +42,7 @@ int bstr_rchr(bstr *, int);
 
 int bstr_cmpc(bstr *, char *);
 int bstr_cmp(bstr *, bstr *);
+int bstr_cmp_nocase(bstr *, bstr *);
 
 bstr *bstr_dup_lower(bstr *);
 bstr *bstr_tolowercase(bstr *);

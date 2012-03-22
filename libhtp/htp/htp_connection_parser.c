@@ -272,3 +272,7 @@ void htp_connp_open(htp_connp_t *connp, const char *remote_addr, int remote_port
 void htp_connp_set_user_data(htp_connp_t *connp, void *user_data) {
     connp->user_data = user_data;
 }
+
+void *htp_connp_get_user_data(htp_connp_t *connp) {
+    return(connp->user_data);
+}
