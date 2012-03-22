@@ -45,7 +45,7 @@
  * \param str pointer to the pattern string
  * \param size length of the string
  */
-void BoyerMooreCtxToNocase(BmCtx *bm_ctx, uint8_t *needle, uint32_t needle_len) {
+void BoyerMooreCtxToNocase(BmCtx *bm_ctx, uint8_t *needle, uint16_t needle_len) {
 
     /* Prepare bad chars with nocase chars */
     PreBmBcNocase(needle, needle_len, bm_ctx->bmBc);
@@ -62,7 +62,7 @@ void BoyerMooreCtxToNocase(BmCtx *bm_ctx, uint8_t *needle, uint32_t needle_len) 
  * \retval BmCtx pointer to the newly created Context for the pattern
  * \initonly BoyerMoore contexts should be created at init
  */
-BmCtx *BoyerMooreCtxInit(uint8_t *needle, uint32_t needle_len) {
+BmCtx *BoyerMooreCtxInit(uint8_t *needle, uint16_t needle_len) {
     BmCtx *new = SCMalloc(sizeof(BmCtx));
     if (new == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in BoyerMooreCtxInit. Exiting...");
@@ -72,7 +72,7 @@ BmCtx *BoyerMooreCtxInit(uint8_t *needle, uint32_t needle_len) {
     /* Prepare bad chars */
     PreBmBc(needle, needle_len, new->bmBc);
 
-    new->bmGs = SCMalloc(sizeof(int32_t) * (needle_len + 1));
+    new->bmGs = SCMalloc(sizeof(uint16_t) * (needle_len + 1));
     if (new->bmGs == NULL) {
         exit(EXIT_FAILURE);
     }
@@ -113,7 +113,7 @@ void BoyerMooreCtxDeInit(BmCtx *bmctx)
  * \param size length of the string
  * \param result pointer to an empty array that will hold the badchars
  */
-void PreBmBc(const uint8_t *x, int32_t m, int32_t *bmBc) {
+void PreBmBc(const uint8_t *x, uint16_t m, uint16_t *bmBc) {
     int32_t i;
 
     for (i = 0; i < 256; ++i) {
@@ -131,7 +131,7 @@ void PreBmBc(const uint8_t *x, int32_t m, int32_t *bmBc) {
  * \param m length of the string
  * \param suff pointer to an empty array that will hold the prefixes (shifts)
  */
-void BoyerMooreSuffixes(const uint8_t *x, int32_t m, int32_t *suff) {
+void BoyerMooreSuffixes(const uint8_t *x, uint16_t m, uint16_t *suff) {
     int32_t f = 0, g, i;
     suff[m - 1] = m;
     g = m - 1;
@@ -157,11 +157,11 @@ void BoyerMooreSuffixes(const uint8_t *x, int32_t m, int32_t *suff) {
  * \param bmGs pointer to an empty array that will hold the prefixes (shifts)
  * \retval 0 ok, -1 failed
  */
-int PreBmGs(const uint8_t *x, int32_t m, int32_t *bmGs) {
+int PreBmGs(const uint8_t *x, uint16_t m, uint16_t *bmGs) {
     int32_t i, j;
-    int32_t *suff;
+    uint16_t *suff;
 
-    suff = SCMalloc(sizeof(int32_t) * (m + 1));
+    suff = SCMalloc(sizeof(uint16_t) * (m + 1));
     if (suff == NULL)
         return -1;
 
@@ -192,7 +192,7 @@ int PreBmGs(const uint8_t *x, int32_t m, int32_t *bmGs) {
  * \param size length of the string
  * \param result pointer to an empty array that will hold the badchars
  */
-void PreBmBcNocase(const uint8_t *x, int32_t m, int32_t *bmBc) {
+void PreBmBcNocase(const uint8_t *x, uint16_t m, uint16_t *bmBc) {
     int32_t i;
 
     for (i = 0; i < 256; ++i) {
@@ -203,7 +203,7 @@ void PreBmBcNocase(const uint8_t *x, int32_t m, int32_t *bmBc) {
     }
 }
 
-void BoyerMooreSuffixesNocase(const uint8_t *x, int32_t m, int32_t *suff) {
+void BoyerMooreSuffixesNocase(const uint8_t *x, uint16_t m, uint16_t *suff) {
     int32_t f = 0, g, i;
 
     suff[m - 1] = m;
@@ -232,11 +232,11 @@ void BoyerMooreSuffixesNocase(const uint8_t *x, int32_t m, int32_t *suff) {
  * \param m length of the string
  * \param bmGs pointer to an empty array that will hold the prefixes (shifts)
  */
-void PreBmGsNocase(const uint8_t *x, int32_t m, int32_t *bmGs) {
+void PreBmGsNocase(const uint8_t *x, uint16_t m, uint16_t *bmGs) {
     int32_t i, j;
-    int32_t* suff;
+    uint16_t* suff;
 
-    suff = SCMalloc(sizeof(int32_t) * (m + 1));
+    suff = SCMalloc(sizeof(uint16_t) * (m + 1));
     if (suff == NULL)
         return;
 
@@ -277,7 +277,7 @@ void PreBmGsNocase(const uint8_t *x, int32_t m, int32_t *bmGs) {
  *
  * \retval ptr to start of the match; NULL if no match
  */
-uint8_t *BoyerMoore(uint8_t *x, int32_t m, uint8_t *y, int32_t n, int32_t *bmGs, int32_t *bmBc) {
+uint8_t *BoyerMoore(uint8_t *x, uint16_t m, uint8_t *y, int32_t n, uint16_t *bmGs, uint16_t *bmBc) {
    int i, j, m1, m2;
 #if 0
     printf("\nBad:\n");
@@ -290,6 +290,7 @@ uint8_t *BoyerMoore(uint8_t *x, int32_t m, uint8_t *y, int32_t n, int32_t *bmGs,
     printf("\n");
 #endif
    j = 0;
+
    while (j <= n - m ) {
       for (i = m - 1; i >= 0 && x[i] == y[i + j]; --i);
 
@@ -321,7 +322,7 @@ uint8_t *BoyerMoore(uint8_t *x, int32_t m, uint8_t *y, int32_t n, int32_t *bmGs,
  *
  * \retval ptr to start of the match; NULL if no match
  */
-uint8_t *BoyerMooreNocase(uint8_t *x, int32_t m, uint8_t *y, int32_t n, int32_t *bmGs, int32_t *bmBc) {
+uint8_t *BoyerMooreNocase(uint8_t *x, uint16_t m, uint8_t *y, int32_t n, uint16_t *bmGs, uint16_t *bmBc) {
     int i, j, m1, m2;
 #if 0
     printf("\nBad:\n");

@@ -45,7 +45,7 @@
  *
  * \retval ptr to start of the match; NULL if no match
  */
-uint8_t *BasicSearch(const uint8_t *haystack, uint32_t haystack_len, const uint8_t *needle, uint32_t needle_len) {
+uint8_t *BasicSearch(const uint8_t *haystack, uint32_t haystack_len, const uint8_t *needle, uint16_t needle_len) {
     SCEnter();
 
     const uint8_t *h, *n;
@@ -98,7 +98,7 @@ uint8_t *BasicSearch(const uint8_t *haystack, uint32_t haystack_len, const uint8
  *
  * \retval ptr to start of the match; NULL if no match
  */
-uint8_t *BasicSearchNocase(const uint8_t *haystack, uint32_t haystack_len, const uint8_t *needle, uint32_t needle_len) {
+uint8_t *BasicSearchNocase(const uint8_t *haystack, uint32_t haystack_len, const uint8_t *needle, uint16_t needle_len) {
     const uint8_t *h, *n;
     const uint8_t *hmax = haystack + haystack_len;
     const uint8_t *nmax = needle + needle_len;

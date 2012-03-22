@@ -68,7 +68,7 @@
  * \param needle pattern to search for
  * \param needlelen length of the pattern
  */
-uint8_t *Bs2bmSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint32_t needlelen) {
+uint8_t *Bs2bmSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen) {
     uint8_t badchars[ALPHABET_SIZE];
     Bs2BmBadchars(needle, needlelen, badchars);
 
@@ -83,7 +83,7 @@ uint8_t *Bs2bmSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint32_t 
  * \param needle pattern to search for
  * \param needlelen length of the pattern
  */
-uint8_t *Bs2bmNocaseSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint32_t needlelen) {
+uint8_t *Bs2bmNocaseSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen) {
     uint8_t badchars[ALPHABET_SIZE];
     Bs2BmBadchars(needle, needlelen, badchars);
 
@@ -99,9 +99,9 @@ uint8_t *Bs2bmNocaseSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uin
  * \param needle pattern to search for
  * \param needlelen length of the pattern
  */
-uint8_t *BoyerMooreSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint32_t needlelen) {
-    int32_t bmBc[ALPHABET_SIZE];
-    int32_t *bmGs = SCMalloc(sizeof(int32_t)*(needlelen + 1));
+uint8_t *BoyerMooreSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen) {
+    uint16_t bmBc[ALPHABET_SIZE];
+    uint16_t *bmGs = SCMalloc(sizeof(uint16_t)*(needlelen + 1));
     if (bmGs == NULL)
         return NULL;
 
@@ -123,9 +123,9 @@ uint8_t *BoyerMooreSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint
  * \param needle pattern to search for
  * \param needlelen length of the pattern
  */
-uint8_t *BoyerMooreNocaseSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint32_t needlelen) {
-    int32_t bmBc[ALPHABET_SIZE];
-    int32_t *bmGs = SCMalloc(sizeof(int32_t)*(needlelen + 1));
+uint8_t *BoyerMooreNocaseSearch(uint8_t *text, uint32_t textlen, uint8_t *needle, uint16_t needlelen) {
+    uint16_t bmBc[ALPHABET_SIZE];
+    uint16_t *bmGs = SCMalloc(sizeof(uint16_t)*(needlelen + 1));
     if (bmGs == NULL)
         return NULL;
 
@@ -157,7 +157,7 @@ uint8_t *BoyerMooreNocaseSearch(uint8_t *text, uint32_t textlen, uint8_t *needle
  */
 uint8_t *BasicSearchWrapper(uint8_t *text, uint8_t *needle, int times) {
     uint32_t textlen = strlen((char *)text);
-    uint32_t needlelen = strlen((char *)needle);
+    uint16_t needlelen = strlen((char *)needle);
 
     uint8_t *ret = NULL;
     int i = 0;
@@ -176,7 +176,7 @@ uint8_t *BasicSearchWrapper(uint8_t *text, uint8_t *needle, int times) {
 
 uint8_t *BasicSearchNocaseWrapper(uint8_t *text, uint8_t *needle, int times) {
     uint32_t textlen = strlen((char *)text);
-    uint32_t needlelen = strlen((char *)needle);
+    uint16_t needlelen = strlen((char *)needle);
 
     uint8_t *ret = NULL;
     int i = 0;
@@ -192,7 +192,7 @@ uint8_t *BasicSearchNocaseWrapper(uint8_t *text, uint8_t *needle, int times) {
 
 uint8_t *Bs2bmWrapper(uint8_t *text, uint8_t *needle, int times) {
     uint32_t textlen = strlen((char *)text);
-    uint32_t needlelen = strlen((char *)needle);
+    uint16_t needlelen = strlen((char *)needle);
 
     uint8_t badchars[ALPHABET_SIZE];
     Bs2BmBadchars(needle, needlelen, badchars);
@@ -211,7 +211,7 @@ uint8_t *Bs2bmWrapper(uint8_t *text, uint8_t *needle, int times) {
 
 uint8_t *Bs2bmNocaseWrapper(uint8_t *text, uint8_t *needle, int times) {
     uint32_t textlen = strlen((char *)text);
-    uint32_t needlelen = strlen((char *)needle);
+    uint16_t needlelen = strlen((char *)needle);
 
     uint8_t badchars[ALPHABET_SIZE];
     Bs2BmBadchars(needle, needlelen, badchars);
@@ -230,10 +230,10 @@ uint8_t *Bs2bmNocaseWrapper(uint8_t *text, uint8_t *needle, int times) {
 
 uint8_t *BoyerMooreWrapper(uint8_t *text, uint8_t *needle, int times) {
     uint32_t textlen = strlen((char *)text);
-    uint32_t needlelen = strlen((char *)needle);
+    uint16_t needlelen = strlen((char *)needle);
 
-    int32_t bmBc[ALPHABET_SIZE];
-    int32_t *bmGs = SCMalloc(sizeof(int32_t)*(needlelen + 1));
+    uint16_t bmBc[ALPHABET_SIZE];
+    uint16_t *bmGs = SCMalloc(sizeof(uint16_t)*(needlelen + 1));
     if (bmGs == NULL)
         return NULL;
 
@@ -255,10 +255,10 @@ uint8_t *BoyerMooreWrapper(uint8_t *text, uint8_t *needle, int times) {
 
 uint8_t *BoyerMooreNocaseWrapper(uint8_t *text, uint8_t *needle, int times) {
     uint32_t textlen = strlen((char *)text);
-    uint32_t needlelen = strlen((char *)needle);
+    uint16_t needlelen = strlen((char *)needle);
 
-    int32_t bmBc[ALPHABET_SIZE];
-    int32_t *bmGs = SCMalloc(sizeof(int32_t)*(needlelen + 1));
+    uint16_t bmBc[ALPHABET_SIZE];
+    uint16_t *bmGs = SCMalloc(sizeof(uint16_t)*(needlelen + 1));
     if (bmGs == NULL)
         return NULL;
 
@@ -288,7 +288,7 @@ uint8_t *BoyerMooreNocaseWrapper(uint8_t *text, uint8_t *needle, int times) {
  */
 uint8_t *BasicSearchCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
     uint32_t textlen = strlen((char *)text);
-    uint32_t needlelen = strlen((char *)needle);
+    uint16_t needlelen = strlen((char *)needle);
 
     uint8_t *ret = NULL;
     int i = 0;
@@ -305,7 +305,7 @@ uint8_t *BasicSearchCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
 
 uint8_t *BasicSearchNocaseCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
     uint32_t textlen = strlen((char *)text);
-    uint32_t needlelen = strlen((char *)needle);
+    uint16_t needlelen = strlen((char *)needle);
 
     uint8_t *ret = NULL;
     int i = 0;
@@ -322,7 +322,7 @@ uint8_t *BasicSearchNocaseCtxWrapper(uint8_t *text, uint8_t *needle, int times) 
 
 uint8_t *Bs2bmCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
     uint32_t textlen = strlen((char *)text);
-    uint32_t needlelen = strlen((char *)needle);
+    uint16_t needlelen = strlen((char *)needle);
 
     uint8_t badchars[ALPHABET_SIZE];
 
@@ -342,7 +342,7 @@ uint8_t *Bs2bmCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
 
 uint8_t *Bs2bmNocaseCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
     uint32_t textlen = strlen((char *)text);
-    uint32_t needlelen = strlen((char *)needle);
+    uint16_t needlelen = strlen((char *)needle);
 
     uint8_t badchars[ALPHABET_SIZE];
 
@@ -362,10 +362,10 @@ uint8_t *Bs2bmNocaseCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
 
 uint8_t *BoyerMooreCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
     uint32_t textlen = strlen((char *)text);
-    uint32_t needlelen = strlen((char *)needle);
+    uint16_t needlelen = strlen((char *)needle);
 
-    int32_t bmBc[ALPHABET_SIZE];
-    int32_t *bmGs = SCMalloc(sizeof(int32_t)*(needlelen + 1));
+    uint16_t bmBc[ALPHABET_SIZE];
+    uint16_t *bmGs = SCMalloc(sizeof(uint16_t)*(needlelen + 1));
     if (bmGs == NULL)
         return NULL;
 
@@ -388,7 +388,7 @@ uint8_t *BoyerMooreCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
 
 uint8_t *RawCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
     uint32_t textlen = strlen((char *)text);
-    uint32_t needlelen = strlen((char *)needle);
+    uint16_t needlelen = strlen((char *)needle);
 
     uint8_t *ret = NULL;
     int i = 0;
@@ -404,10 +404,10 @@ uint8_t *RawCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
 
 uint8_t *BoyerMooreNocaseCtxWrapper(uint8_t *text, uint8_t *needle, int times) {
     uint32_t textlen = strlen((char *)text);
-    uint32_t needlelen = strlen((char *)needle);
+    uint16_t needlelen = strlen((char *)needle);
 
-    int32_t bmBc[ALPHABET_SIZE];
-    int32_t *bmGs = SCMalloc(sizeof(int32_t)*(needlelen + 1));
+    uint16_t bmBc[ALPHABET_SIZE];
+    uint16_t *bmGs = SCMalloc(sizeof(uint16_t)*(needlelen + 1));
     if (bmGs == NULL)
         return NULL;
 

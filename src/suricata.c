@@ -181,6 +181,7 @@
 #include "util-mem.h"
 #include "util-memcmp.h"
 #include "util-proto-name.h"
+#include "util-spm-bm.h"
 
 /*
  * we put this here, because we only use it here in main.
