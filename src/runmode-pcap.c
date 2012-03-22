@@ -54,7 +54,7 @@ void RunModeIdsPcapRegister(void)
     RunModeRegisterNewRunMode(RUNMODE_PCAP_DEV, "auto",
                               "Multi threaded pcap live mode",
                               RunModeIdsPcapAuto);
-    default_mode = "auto";
+    default_mode = "autofp";
     RunModeRegisterNewRunMode(RUNMODE_PCAP_DEV, "autofp",
                               "Multi threaded pcap live mode.  Packets from "
                               "each flow are assigned to a single detect thread, "

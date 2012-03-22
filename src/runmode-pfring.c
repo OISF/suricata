@@ -56,7 +56,7 @@ const char *RunModeIdsPfringGetDefaultMode(void)
 
 void RunModeIdsPfringRegister(void)
 {
-    default_mode_auto = "auto";
+    default_mode_auto = "autofp";
     RunModeRegisterNewRunMode(RUNMODE_PFRING, "auto",
                               "Multi threaded pfring mode",
                               RunModeIdsPfringAuto);

@@ -60,7 +60,7 @@ const char *RunModeAFPGetDefaultMode(void)
 
 void RunModeIdsAFPRegister(void)
 {
-    default_mode_auto = "auto";
+    default_mode_auto = "autofp";
     RunModeRegisterNewRunMode(RUNMODE_AFP_DEV, "auto",
                               "Multi threaded af-packet mode",
                               RunModeIdsAFPAuto);

@@ -57,7 +57,7 @@ const char *RunModeIpsIPFWGetDefaultMode(void)
 
 void RunModeIpsIPFWRegister(void)
 {
-    default_mode = "auto";
+    default_mode = "autofp";
     RunModeRegisterNewRunMode(RUNMODE_IPFW, "auto",
                               "Multi threaded IPFW IPS mode",
                               RunModeIpsIPFWAuto);

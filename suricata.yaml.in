@@ -7,29 +7,30 @@
 
 
 # Number of packets allowed to be processed simultaneously.  Default is a
-# conservative 50. a higher number will make sure CPU's/CPU cores will be
-# more easily kept busy, but will negatively impact caching.
+# conservative 1024. A higher number will make sure CPU's/CPU cores will be
+# more easily kept busy, but may negatively impact caching.
 #
 # If you are using the CUDA pattern matcher (b2g_cuda below), different rules
 # apply. In that case try something like 4000 or more. This is because the CUDA
 # pattern matcher scans many packets in parallel.
-#max-pending-packets: 50
+#max-pending-packets: 1024
 
-# Runmode custom mode the engine should run in.  Please check --list-runmodes
-# to get the runmode custom modes that can be used here for a particular runmode.
-#runmode: auto
+# Runmode the engine should use. Please check --list-runmodes to get the available
+# runmodes for each packet acquisition method. Defaults to "autofp" (auto flow pinned
+# load balancing).
+#runmode: autofp
 
-# Specifies the kind of q scheduler used by flow pinned autofp mode.
+# Specifies the kind of flow load balancer used by the flow pinned autofp mode.
 #
 # Supported schedulers are:
 #
-# round-robin - Flows assigned to threads in a round robin fashion.
-# active-packets - Flows assigned to threads that have the lowest number of
-#                  unprocessed packets.
-# hash - Flow alloted usihng the address hash. More of a random technique. Was
-#        the default in 1.2.1 and older.
+# round-robin       - Flows assigned to threads in a round robin fashion.
+# active-packets    - Flows assigned to threads that have the lowest number of
+#                     unprocessed packets (default).
+# hash              - Flow alloted usihng the address hash. More of a random
+#                     technique. Was the default in Suricata 1.2.1 and older.
 #
-autofp-scheduler: active-packets
+#autofp-scheduler: active-packets
 
 # Default pid file.
 # Will use this file if no --pidfile in command options.
@@ -39,15 +40,6 @@ autofp-scheduler: active-packets
 # size for pcap on ethernet. You should adjust this value to the highest
 # packet size (MTU + hardware header) on your system.
 #default-packet-size: 1514
-
-# Set the order of alerts bassed on actions
-# The default order is pass, drop, reject, alert
-action-order:
-  - pass
-  - drop
-  - reject
-  - alert
-
 
 # The default logging directory.  Any log or output file will be
 # placed here if its not specified with a full path name.  This can be
@@ -249,25 +241,6 @@ af-packet:
     # buffer-size: 32768
     # disable-promisc: no
 
-defrag:
-  max-frags: 65535
-  prealloc: yes
-  timeout: 60
-
-# When run with the option --engine-analysis, the engine will read each of
-# the parameters below, and print reports for each of the enabled sections
-# and exit.  The reports are printed to a file in the default log dir
-# given by the parameter "default-log-dir", with engine reporting
-# subsection below printing reports in its own report file.
-engine-analysis:
-  # enables printing reports for fast-pattern for every rule.
-  rules-fast-pattern: yes
-
-#recursion and match limits for PCRE where supported
-pcre:
-  match-limit: 3500
-  match-limit-recursion: 1500
-
 # You can specify a threshold config file by setting "threshold-file"
 # to the path of the threshold config file:
 # threshold-file: /etc/suricata/threshold.config
@@ -445,6 +418,13 @@ pattern-matcher:
   - wumanber:
       hash-size: low
       bf-size: medium
+
+# Defrag settings:
+
+defrag:
+  max-frags: 65535
+  prealloc: yes
+  timeout: 60
 
 # Flow settings:
 # By default, the reserved memory (memcap) for flows is 32MB. This is the limit
@@ -767,6 +747,16 @@ vars:
 
     SSH_PORTS: 22
 
+
+# Set the order of alerts bassed on actions
+# The default order is pass, drop, reject, alert
+action-order:
+  - pass
+  - drop
+  - reject
+  - alert
+
+
 # Host specific policies for defragmentation and TCP stream
 # reassembly.  The host OS lookup is done using a radix tree, just
 # like a routing table so the most specific entry matches.
@@ -789,6 +779,20 @@ host-os-policy:
 
 # Limit for the maximum number of asn1 frames to decode (default 256)
 asn1-max-frames: 256
+
+# When run with the option --engine-analysis, the engine will read each of
+# the parameters below, and print reports for each of the enabled sections
+# and exit.  The reports are printed to a file in the default log dir
+# given by the parameter "default-log-dir", with engine reporting
+# subsection below printing reports in its own report file.
+engine-analysis:
+  # enables printing reports for fast-pattern for every rule.
+  rules-fast-pattern: yes
+
+#recursion and match limits for PCRE where supported
+pcre:
+  match-limit: 3500
+  match-limit-recursion: 1500
 
 ###########################################################################
 # Configure libhtp.
