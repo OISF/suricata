@@ -391,6 +391,16 @@ void FlowInitConfig(char quiet)
                flow_config.hash_size, flow_config.prealloc);
 
     /* alloc hash memory */
+    uint64_t hash_size = flow_config.hash_size * sizeof(FlowBucket);
+    if (!(FLOW_CHECK_MEMCAP(hash_size))) {
+        SCLogError(SC_ERR_FLOW_INIT, "allocating flow hash failed: "
+                "max flow memcap is smaller than projected hash size. "
+                "Memcap: %"PRIu64", Hash table size %"PRIu64". Calculate "
+                "total hash size by multiplying \"flow.hash-size\" with %"PRIuMAX", "
+                "which is the hash bucket size.", flow_config.memcap, hash_size,
+                sizeof(FlowBucket));
+        exit(EXIT_FAILURE);
+    }
     flow_hash = SCCalloc(flow_config.hash_size, sizeof(FlowBucket));
     if (flow_hash == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in FlowInitConfig. Exiting...");

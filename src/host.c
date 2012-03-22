@@ -109,7 +109,7 @@ void HostClearMemory(Host *h) {
 
 #define HOST_DEFAULT_HASHSIZE 4096
 #define HOST_DEFAULT_MEMCAP 16777216
-#define HOST_DEFAULT_PREALLOC 10000
+#define HOST_DEFAULT_PREALLOC 1000
 
 /** \brief initialize the configuration
  *  \warning Not thread safe */
@@ -166,6 +166,16 @@ void HostInitConfig(char quiet)
                host_config.hash_size, host_config.prealloc);
 
     /* alloc hash memory */
+    uint64_t hash_size = host_config.hash_size * sizeof(HostHashRow);
+    if (!(HOST_CHECK_MEMCAP(hash_size))) {
+        SCLogError(SC_ERR_HOST_INIT, "allocating host hash failed: "
+                "max host memcap is smaller than projected hash size. "
+                "Memcap: %"PRIu64", Hash table size %"PRIu64". Calculate "
+                "total hash size by multiplying \"host.hash-size\" with %"PRIuMAX", "
+                "which is the hash bucket size.", host_config.memcap, hash_size,
+                sizeof(HostHashRow));
+        exit(EXIT_FAILURE);
+    }
     host_hash = SCCalloc(host_config.hash_size, sizeof(HostHashRow));
     if (host_hash == NULL) {
         SCLogError(SC_ERR_FATAL, "Fatal error encountered in HostInitConfig. Exiting...");
