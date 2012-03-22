@@ -96,6 +96,16 @@ typedef struct HostConfig_ {
     uint32_t prealloc;
 } HostConfig;
 
+/** \brief check if a memory alloc would fit in the memcap
+ *
+ *  \param size memory allocation size to check
+ *
+ *  \retval 1 it fits
+ *  \retval 0 no fit
+ */
+#define HOST_CHECK_MEMCAP(size) \
+    ((((uint64_t)SC_ATOMIC_GET(host_memuse) + (uint64_t)(size)) <= host_config.memcap))
+
 HostConfig host_config;
 SC_ATOMIC_DECLARE(unsigned long long int,host_memuse);
 SC_ATOMIC_DECLARE(unsigned int,host_counter);

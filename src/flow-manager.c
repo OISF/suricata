@@ -800,7 +800,7 @@ static int FlowMgrTest05 (void) {
     UTHBuildPacketOfFlows(ini, end, 0);
 
     /* And now let's try to reach the memcap val */
-    while (SC_ATOMIC_GET(flow_memuse) + sizeof(Flow) < flow_config.memcap) {
+    while (FLOW_CHECK_MEMCAP(sizeof(Flow))) {
         ini = end + 1;
         end = end + 2;
         UTHBuildPacketOfFlows(ini, end, 0);

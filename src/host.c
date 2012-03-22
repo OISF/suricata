@@ -53,7 +53,7 @@ void HostMoveToSpare(Host *h) {
 }
 
 Host *HostAlloc(void) {
-    if ((SC_ATOMIC_GET(host_memuse) + sizeof(Host)) > host_config.memcap) {
+    if (!(HOST_CHECK_MEMCAP(sizeof(Host)))) {
         return NULL;
     }
 
@@ -119,6 +119,7 @@ void HostInitConfig(char quiet)
 
     memset(&host_config,  0, sizeof(host_config));
     //SC_ATOMIC_INIT(flow_flags);
+    SC_ATOMIC_INIT(host_counter);
     SC_ATOMIC_INIT(host_memuse);
     SC_ATOMIC_INIT(host_prune_idx);
     HostQueueInit(&host_spare_q);
@@ -187,15 +188,18 @@ void HostInitConfig(char quiet)
 
     /* pre allocate hosts */
     for (i = 0; i < host_config.prealloc; i++) {
-        if ((SC_ATOMIC_GET(host_memuse) + sizeof(Host)) > host_config.memcap) {
-            printf("ERROR: HostAlloc failed (max host memcap reached): %s\n", strerror(errno));
-            exit(1);
+        if (!(HOST_CHECK_MEMCAP(sizeof(Host)))) {
+            SCLogError(SC_ERR_HOST_INIT, "preallocating hosts failed: "
+                    "max host memcap reached. Memcap %"PRIu64", "
+                    "Memuse %"PRIu64".", host_config.memcap,
+                    ((uint64_t)SC_ATOMIC_GET(host_memuse) + (uint64_t)sizeof(Host)));
+            exit(EXIT_FAILURE);
         }
 
         Host *h = HostAlloc();
         if (h == NULL) {
-            printf("ERROR: HostAlloc failed: %s\n", strerror(errno));
-            exit(1);
+            SCLogError(SC_ERR_HOST_INIT, "preallocating host failed: %s", strerror(errno));
+            exit(EXIT_FAILURE);
         }
         HostEnqueue(&host_spare_q,h);
     }
@@ -257,6 +261,7 @@ void HostShutdown(void)
 
     SC_ATOMIC_DESTROY(host_prune_idx);
     SC_ATOMIC_DESTROY(host_memuse);
+    SC_ATOMIC_DESTROY(host_counter);
     //SC_ATOMIC_DESTROY(flow_flags);
     return;
 }
@@ -306,7 +311,7 @@ static Host *HostGetNew(Address *a) {
     h = HostDequeue(&host_spare_q);
     if (h == NULL) {
         /* If we reached the max memcap, we get a used host */
-        if ((SC_ATOMIC_GET(host_memuse) + sizeof(Host)) > host_config.memcap) {
+        if (!(HOST_CHECK_MEMCAP(sizeof(Host)))) {
             /* declare state of emergency */
             //if (!(SC_ATOMIC_GET(host_flags) & HOST_EMERGENCY)) {
             //    SC_ATOMIC_OR(host_flags, HOST_EMERGENCY);
@@ -349,7 +354,6 @@ static Host *HostGetNew(Address *a) {
     (h)->use_cnt--
 
 void HostInit(Host *h, Address *a) {
-//    SCMutexLock(&h->m);
     COPY_ADDRESS(a, &h->a);
     HostIncrUsecnt(h);
 }

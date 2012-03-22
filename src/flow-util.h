@@ -115,6 +115,16 @@
         (f)->tag_list = NULL; \
     } while(0)
 
+/** \brief check if a memory alloc would fit in the memcap
+ *
+ *  \param size memory allocation size to check
+ *
+ *  \retval 1 it fits
+ *  \retval 0 no fit
+ */
+#define FLOW_CHECK_MEMCAP(size) \
+    ((((uint64_t)SC_ATOMIC_GET(flow_memuse) + (uint64_t)(size)) <= flow_config.memcap))
+
 Flow *FlowAlloc(void);
 Flow *FlowAllocDirect(void);
 void FlowFree(Flow *);

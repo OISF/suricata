@@ -238,6 +238,8 @@ typedef enum {
     SC_WARN_OUTDATED_LIBHTP,
     SC_WARN_DEPRECATED,
     SC_WARN_PROFILE,
+    SC_ERR_FLOW_INIT,
+    SC_ERR_HOST_INIT,
 } SCError;
 
 const char *SCErrorToString(SCError);

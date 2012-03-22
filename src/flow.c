@@ -413,16 +413,20 @@ void FlowInitConfig(char quiet)
 
     /* pre allocate flows */
     for (i = 0; i < flow_config.prealloc; i++) {
-        if ((SC_ATOMIC_GET(flow_memuse) + sizeof(Flow)) > flow_config.memcap) {
-            printf("ERROR: FlowAlloc failed (max flow memcap reached): %s\n", strerror(errno));
-            exit(1);
+        if (!(FLOW_CHECK_MEMCAP(sizeof(Flow)))) {
+            SCLogError(SC_ERR_FLOW_INIT, "preallocating flows failed: "
+                    "max flow memcap reached. Memcap %"PRIu64", "
+                    "Memuse %"PRIu64".", flow_config.memcap,
+                    ((uint64_t)SC_ATOMIC_GET(flow_memuse) + (uint64_t)sizeof(Flow)));
+            exit(EXIT_FAILURE);
         }
 
         Flow *f = FlowAlloc();
         if (f == NULL) {
-            printf("ERROR: FlowAlloc failed: %s\n", strerror(errno));
-            exit(1);
+            SCLogError(SC_ERR_FLOW_INIT, "preallocating flow failed: %s", strerror(errno));
+            exit(EXIT_FAILURE);
         }
+
         FlowEnqueue(&flow_spare_q,f);
     }
 
@@ -947,7 +951,7 @@ static int FlowTest07 (void) {
     UTHBuildPacketOfFlows(ini, end, 0);
 
     /* And now let's try to reach the memcap val */
-    while (SC_ATOMIC_GET(flow_memuse) + sizeof(Flow) < flow_config.memcap) {
+    while (FLOW_CHECK_MEMCAP(sizeof(Flow))) {
         ini = end + 1;
         end = end + 2;
         UTHBuildPacketOfFlows(ini, end, 0);
@@ -994,7 +998,7 @@ static int FlowTest08 (void) {
     UTHBuildPacketOfFlows(ini, end, 0);
 
     /* And now let's try to reach the memcap val */
-    while (SC_ATOMIC_GET(flow_memuse) + sizeof(Flow) < flow_config.memcap) {
+    while (FLOW_CHECK_MEMCAP(sizeof(Flow))) {
         ini = end + 1;
         end = end + 2;
         UTHBuildPacketOfFlows(ini, end, 0);
@@ -1041,7 +1045,7 @@ static int FlowTest09 (void) {
     UTHBuildPacketOfFlows(ini, end, 0);
 
     /* And now let's try to reach the memcap val */
-    while (SC_ATOMIC_GET(flow_memuse) + sizeof(Flow) < flow_config.memcap) {
+    while (FLOW_CHECK_MEMCAP(sizeof(Flow))) {
         ini = end + 1;
         end = end + 2;
         UTHBuildPacketOfFlows(ini, end, 0);

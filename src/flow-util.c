@@ -49,7 +49,7 @@ Flow *FlowAlloc(void)
 {
     Flow *f;
 
-    if ((SC_ATOMIC_GET(flow_memuse) + sizeof(Flow)) > flow_config.memcap) {
+    if (!(FLOW_CHECK_MEMCAP(sizeof(Flow)))) {
         return NULL;
     }
 
