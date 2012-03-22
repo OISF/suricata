@@ -539,6 +539,15 @@ stream:
     toserver-chunk-size: 2560
     toclient-chunk-size: 2560
 
+# Host table:
+#
+# Host table is used by tagging and per host thresholding subsystems.
+#
+host:
+  hash-size: 4096
+  prealloc: 1000
+  memcap: 16777216
+
 # Logging configuration.  This is not about logging IDS alerts, but
 # IDS output about what its doing, errors, etc.
 logging:
