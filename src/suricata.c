@@ -1323,7 +1323,7 @@ int main(int argc, char **argv)
     DefragInit();
 
     if (run_mode == RUNMODE_UNKNOWN) {
-        if (!engine_analysis && !list_keywords) {
+        if (!engine_analysis && !list_keywords && !conf_test) {
             usage(argv[0]);
             exit(EXIT_FAILURE);
         }
