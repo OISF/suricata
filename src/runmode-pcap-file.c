@@ -213,9 +213,9 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx)
         /* create the threads */
         ThreadVars *tv_receivepcap =
             TmThreadCreatePacketHandler("ReceivePcapFile",
-                    "packetpool", "packetpool",
-                    "stream-queue1", "simple",
-                    "pktacqloop");
+                                        "packetpool", "packetpool",
+                                        "cuda-pb", "simple",
+                                        "pktacqloop");
         if (tv_receivepcap == NULL) {
             printf("ERROR: TmThreadsCreate failed\n");
             exit(EXIT_FAILURE);
@@ -236,13 +236,6 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx)
         }
         TmSlotSetFuncAppend(tv_receivepcap, tm_module, NULL);
 
-        tm_module = TmModuleGetByName("StreamTcp");
-        if (tm_module == NULL) {
-            printf("ERROR: TmModuleGetByName StreamTcp failed\n");
-            exit(EXIT_FAILURE);
-        }
-        TmSlotSetFuncAppend(tv_receivepcap, tm_module, NULL);
-
         TmThreadSetCPU(tv_receivepcap, DECODE_CPU_SET);
 
         if (TmThreadSpawn(tv_receivepcap) != TM_ECODE_OK) {
@@ -252,7 +245,7 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx)
 
         ThreadVars *tv_cuda_PB =
             TmThreadCreate("CUDA_PB",
-                           "stream-queue1", "simple",
+                           "cuda-pb", "simple",
                            "detect-queue1", "simple",
                            "custom", SCCudaPBTmThreadsSlot1, 0);
         if (tv_cuda_PB == NULL) {
@@ -266,14 +259,20 @@ int RunModeFilePcapAuto(DetectEngineCtx *de_ctx)
             printf("ERROR: TmModuleGetByName CudaPacketBatcher failed\n");
             exit(EXIT_FAILURE);
         }
-        TmSlotSetFuncAppend(tv_cuda_PB, tm_module, (void *)de_ctx);
+        TmSlotSetFuncAppend(tv_cuda_PB, tm_module, de_ctx);
 
-        TmThreadSetCPU(tv_cuda_PB, DETECT_CPU_SET);
+        tm_module = TmModuleGetByName("StreamTcp");
+        if (tm_module == NULL) {
+            printf("ERROR: TmModuleGetByName StreamTcp failed\n");
+            exit(EXIT_FAILURE);
+        }
+        TmSlotSetFuncAppend(tv_cuda_PB, tm_module, NULL);
 
         if (TmThreadSpawn(tv_cuda_PB) != TM_ECODE_OK) {
             printf("ERROR: TmThreadSpawn failed\n");
             exit(EXIT_FAILURE);
         }
+
 #endif
     }
 
