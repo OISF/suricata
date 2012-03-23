@@ -191,9 +191,9 @@ static inline void memcpy_tolower(uint8_t *d, uint8_t *s, uint16_t len)
 
 static inline uint32_t B2gCudaInitHash(B2gCudaPattern *p)
 {
-    uint32_t hash = p->len * p->cs[0];
+    uint32_t hash = p->len * p->original_pat[0];
     if (p->len > 1)
-        hash += p->cs[1];
+        hash += p->original_pat[1];
 
     return (hash % INIT_HASH_SIZE);
 }
@@ -246,7 +246,8 @@ static inline int B2gCudaCmpPattern(B2gCudaPattern *p, uint8_t *pat,
 }
 
 static inline B2gCudaPattern *B2gCudaInitHashLookup(B2gCudaCtx *ctx, uint8_t *pat,
-                                                    uint16_t patlen, char flags)
+                                                    uint16_t patlen, char flags,
+                                                    uint32_t pid)
 {
     uint32_t hash = B2gCudaInitHashRaw(pat, patlen);
 
@@ -255,7 +256,8 @@ static inline B2gCudaPattern *B2gCudaInitHashLookup(B2gCudaCtx *ctx, uint8_t *pa
 
     B2gCudaPattern *t = ctx->init_hash[hash];
     for ( ; t != NULL; t = t->next) {
-        if (B2gCudaCmpPattern(t, pat, patlen, flags) == 1)
+        //if (B2gCudaCmpPattern(t, pat, patlen, flags) == 1)
+        if (t->flags == flags && t->id == pid)
             return t;
     }
 
@@ -298,7 +300,7 @@ static inline int B2gCudaAddPattern(MpmCtx *mpm_ctx, uint8_t *pat,
         return 0;
 
     /* get a memory piece */
-    B2gCudaPattern *p = B2gCudaInitHashLookup(ctx, pat, patlen, flags);
+    B2gCudaPattern *p = B2gCudaInitHashLookup(ctx, pat, patlen, flags, pid);
     if (p == NULL) {
         SCLogDebug("allocing new pattern");
 
@@ -309,6 +311,13 @@ static inline int B2gCudaAddPattern(MpmCtx *mpm_ctx, uint8_t *pat,
         p->len = patlen;
         p->flags = flags;
         p->id = pid;
+
+        p->original_pat = SCMalloc(patlen);
+        if (p->original_pat == NULL)
+            goto error;
+        mpm_ctx->memory_cnt++;
+        mpm_ctx->memory_size += patlen;
+        memcpy(p->original_pat, pat, patlen);
 
         /* setup the case insensitive part of the pattern */
         p->ci = SCMalloc(patlen);
@@ -349,6 +358,7 @@ static inline int B2gCudaAddPattern(MpmCtx *mpm_ctx, uint8_t *pat,
             printf("Max search words reached\n");
             exit(1);
         }
+
         mpm_ctx->pattern_cnt++;
 
         if (mpm_ctx->maxlen < patlen) mpm_ctx->maxlen = patlen;
@@ -619,6 +629,11 @@ int B2gCudaPreparePatterns(MpmCtx *mpm_ctx)
 {
     B2gCudaCtx *ctx = (B2gCudaCtx *)mpm_ctx->ctx;
 
+    if (mpm_ctx->pattern_cnt == 0 || ctx->init_hash == NULL) {
+        SCLogDebug("no patterns supplied to this mpm_ctx");
+        return 0;
+    }
+
     /* alloc the pattern array */
     ctx->parray = (B2gCudaPattern **)SCMalloc(mpm_ctx->pattern_cnt *
                                               sizeof(B2gCudaPattern *));
@@ -794,9 +809,10 @@ static void B2gGetConfig()
 
 void B2gCudaInitCtx(MpmCtx *mpm_ctx, int module_handle)
 {
-    SCLogDebug("mpm_ctx %p, ctx %p", mpm_ctx, mpm_ctx->ctx);
+    if (mpm_ctx->ctx != NULL)
+        return;
 
-    BUG_ON(mpm_ctx->ctx != NULL);
+    SCLogDebug("mpm_ctx %p, ctx %p", mpm_ctx, mpm_ctx->ctx);
 
     mpm_ctx->ctx = SCMalloc(sizeof(B2gCudaCtx));
     if (mpm_ctx->ctx == NULL)

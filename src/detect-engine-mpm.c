@@ -2020,8 +2020,8 @@ int PatternMatchPrepareGroup(DetectEngineCtx *de_ctx, SigGroupHead *sh)
         MpmInitCtx(sh->mpm_hscd_ctx_ts, de_ctx->mpm_matcher, -1);
         MpmInitCtx(sh->mpm_hscd_ctx_tc, de_ctx->mpm_matcher, -1);
 #else
-        MpmInitCtx(sh->mpm_hscd_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle, 0);
-        MpmInitCtx(sh->mpm_hscd_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle, 1);
+        MpmInitCtx(sh->mpm_hscd_ctx_ts, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
+        MpmInitCtx(sh->mpm_hscd_ctx_tc, de_ctx->mpm_matcher, de_ctx->cuda_rc_mod_handle);
 #endif
     }
 

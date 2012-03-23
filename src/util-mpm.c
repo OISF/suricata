@@ -544,19 +544,19 @@ MpmCudaConf *MpmCudaConfParse(void)
     TAILQ_FOREACH(seq_node, &cuda_node->head, next) {
         if (strcasecmp(seq_node->val, "mpm") == 0) {
             packet_buffer_limit = ConfNodeLookupChildValue
-                (seq_node->head.tqh_first, "packet_buffer_limit");
+                (seq_node->head.tqh_first, "packet-buffer-limit");
             packet_size_limit = ConfNodeLookupChildValue
-                (seq_node->head.tqh_first, "packet_size_limit");
+                (seq_node->head.tqh_first, "packet-size-limit");
             packet_buffers = ConfNodeLookupChildValue
-                (seq_node->head.tqh_first, "packet_buffers");
+                (seq_node->head.tqh_first, "packet-buffers");
             batching_timeout = ConfNodeLookupChildValue
-                (seq_node->head.tqh_first, "batching_timeout");
+                (seq_node->head.tqh_first, "batching-timeout");
             page_locked = ConfNodeLookupChildValue
-                (seq_node->head.tqh_first, "page_locked");
+                (seq_node->head.tqh_first, "page-locked");
             device_id = ConfNodeLookupChildValue
-                (seq_node->head.tqh_first, "device_id");
+                (seq_node->head.tqh_first, "device-id");
             cuda_streams = ConfNodeLookupChildValue
-                (seq_node->head.tqh_first, "cuda_streams");
+                (seq_node->head.tqh_first, "cuda-streams");
 
             /* packet_buffer_size */
             if (packet_buffer_limit == NULL || strcasecmp(packet_buffer_limit, "") == 0) {

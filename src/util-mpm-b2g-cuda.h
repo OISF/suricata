@@ -53,6 +53,7 @@ typedef struct B2gCudaPattern_ {
     uint8_t *ci;
     struct B2gCudaPattern_ *next;
     uint32_t id;
+    uint8_t *original_pat;
 } B2gCudaPattern;
 
 typedef struct B2gCudaHashItem_ {
