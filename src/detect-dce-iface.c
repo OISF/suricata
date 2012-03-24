@@ -286,7 +286,7 @@ int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
         SCReturnInt(0);
     }
 
-    SCMutexLock(&f->m);
+    FLOWLOCK_RDLOCK(f);
 
     /* we still haven't seen a request */
     if (!dcerpc_state->dcerpc.dcerpcrequest.first_request_seen)
@@ -332,7 +332,7 @@ int DetectDceIfaceMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
     }
 
 end:
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
     SCReturnInt(ret);
 }
 

@@ -464,14 +464,14 @@ static inline void FlowForceReassemblyForHash(void)
         while (f != NULL) {
             PACKET_RECYCLE(reassemble_p);
 
-            SCMutexLock(&f->m);
+            FLOWLOCK_WRLOCK(f);
 
             /* Get the tcp session for the flow */
             ssn = (TcpSession *)f->protoctx;
 
             /* \todo Also skip flows that shouldn't be inspected */
             if (ssn == NULL) {
-                SCMutexUnlock(&f->m);
+                FLOWLOCK_UNLOCK(f);
                 f = f->hnext;
                 continue;
             }
@@ -508,14 +508,14 @@ static inline void FlowForceReassemblyForHash(void)
             else
                 tcp_needs_inspection = 0;
 
-            SCMutexUnlock(&f->m);
+            FLOWLOCK_UNLOCK(f);
 
             /* insert a pseudo packet in the toserver direction */
             if (client_ok || tcp_needs_inspection)
             {
-                SCMutexLock(&f->m);
+                FLOWLOCK_WRLOCK(f);
                 Packet *p = FlowForceReassemblyPseudoPacketGet(0, f, ssn, 1);
-                SCMutexUnlock(&f->m);
+                FLOWLOCK_UNLOCK(f);
 
                 if (p == NULL) {
                     TmqhOutputPacketpool(NULL, reassemble_p);
@@ -541,9 +541,9 @@ static inline void FlowForceReassemblyForHash(void)
             } /* if (ssn->client.seg_list != NULL) */
             if (server_ok || tcp_needs_inspection)
             {
-                SCMutexLock(&f->m);
+                FLOWLOCK_WRLOCK(f);
                 Packet *p = FlowForceReassemblyPseudoPacketGet(1, f, ssn, 1);
-                SCMutexUnlock(&f->m);
+                FLOWLOCK_UNLOCK(f);
 
                 if (p == NULL) {
                     TmqhOutputPacketpool(NULL, reassemble_p);

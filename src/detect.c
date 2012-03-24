@@ -1302,7 +1302,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         FlowIncrUsecnt(p->flow);
 
-        SCMutexLock(&p->flow->m);
+        FLOWLOCK_WRLOCK(p->flow);
         {
             /* set the iponly stuff */
             if (p->flow->flags & FLOW_TOCLIENT_IPONLY_SET)
@@ -1349,7 +1349,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 SCLogDebug("packet doesn't have established flag set (proto %d)", p->proto);
             }
         }
-        SCMutexUnlock(&p->flow->m);
+        FLOWLOCK_UNLOCK(p->flow);
 
         if (p->flowflags & FLOW_PKT_TOSERVER) {
             flags |= STREAM_TOSERVER;
@@ -1488,9 +1488,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
          * and if so, if we actually have any in the flow. If not, the sig
          * can't match and we skip it. */
         if (p->flags & PKT_HAS_FLOW && s->flags & SIG_FLAG_REQUIRE_FLOWVAR) {
-            SCMutexLock(&p->flow->m);
+            FLOWLOCK_RDLOCK(p->flow);
             int m  = p->flow->flowvar ? 1 : 0;
-            SCMutexUnlock(&p->flow->m);
+            FLOWLOCK_UNLOCK(p->flow);
 
             /* no flowvars? skip this sig */
             if (m == 0) {
@@ -1747,7 +1747,7 @@ end:
             StreamPatternCleanup(th_v, det_ctx, smsg);
         }
 
-        SCMutexLock(&p->flow->m);
+        FLOWLOCK_WRLOCK(p->flow);
         if (!(sms_runflags & SMS_USE_FLOW_SGH)) {
             if (p->flowflags & FLOW_PKT_TOSERVER && !(p->flow->flags & FLOW_SGH_TOSERVER)) {
                 /* first time we see this toserver sgh, store it */
@@ -1791,7 +1791,7 @@ end:
             StreamMsgReturnListToPool(smsg);
         }
 
-        SCMutexUnlock(&p->flow->m);
+        FLOWLOCK_UNLOCK(p->flow);
 
         FlowDecrUsecnt(p->flow);
     }

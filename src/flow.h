@@ -171,6 +171,36 @@
 /** \todo only used by flow keyword internally. */
 #define FLOW_PKT_ONLYSTREAM             0x80
 
+/** Mutex or RWLocks for the flow. */
+//#define FLOWLOCK_RWLOCK
+#define FLOWLOCK_MUTEX
+
+#ifdef FLOWLOCK_RWLOCK
+    #ifdef FLOWLOCK_MUTEX
+        #error Cannot enable both FLOWLOCK_RWLOCK and FLOWLOCK_MUTEX
+    #endif
+#endif
+
+#ifdef FLOWLOCK_RWLOCK
+    #define FLOWLOCK_INIT(fb) SCRWLockInit(&(fb)->r, NULL)
+    #define FLOWLOCK_DESTROY(fb) SCRWLockDestroy(&(fb)->r)
+    #define FLOWLOCK_RDLOCK(fb) SCRWLockRDLock(&(fb)->r)
+    #define FLOWLOCK_WRLOCK(fb) SCRWLockWRLock(&(fb)->r)
+    #define FLOWLOCK_TRYRDLOCK(fb) SCRWLockTryRDLock(&(fb)->r)
+    #define FLOWLOCK_TRYWRLOCK(fb) SCRWLockTryWRLock(&(fb)->r)
+    #define FLOWLOCK_UNLOCK(fb) SCRWLockUnlock(&(fb)->r)
+#elif defined FLOWLOCK_MUTEX
+    #define FLOWLOCK_INIT(fb) SCMutexInit(&(fb)->m, NULL)
+    #define FLOWLOCK_DESTROY(fb) SCMutexDestroy(&(fb)->m)
+    #define FLOWLOCK_RDLOCK(fb) SCMutexLock(&(fb)->m)
+    #define FLOWLOCK_WRLOCK(fb) SCMutexLock(&(fb)->m)
+    #define FLOWLOCK_TRYRDLOCK(fb) SCMutexTrylock(&(fb)->m)
+    #define FLOWLOCK_TRYWRLOCK(fb) SCMutexTrylock(&(fb)->m)
+    #define FLOWLOCK_UNLOCK(fb) SCMutexUnlock(&(fb)->m)
+#else
+    #error Enable FLOWLOCK_RWLOCK or FLOWLOCK_MUTEX
+#endif
+
 /* global flow config */
 typedef struct FlowCnf_
 {
@@ -267,7 +297,13 @@ typedef struct Flow_
     /* ts of flow init and last update */
     int32_t lastts_sec;
 
+#ifdef FLOWLOCK_RWLOCK
+    SCRWLock r;
+#elif defined FLOWLOCK_MUTEX
     SCMutex m;
+#else
+    #error Enable FLOWLOCK_RWLOCK or FLOWLOCK_MUTEX
+#endif
 
     /** protocol specific data pointer, e.g. for TcpSession */
     void *protoctx;
@@ -377,9 +413,9 @@ static inline void FlowLockSetNoPacketInspectionFlag(Flow *f) {
     SCEnter();
 
     SCLogDebug("flow %p", f);
-    SCMutexLock(&f->m);
+    FLOWLOCK_WRLOCK(f);
     f->flags |= FLOW_NOPACKET_INSPECTION;
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
 
     SCReturn;
 }
@@ -405,9 +441,9 @@ static inline void FlowLockSetNoPayloadInspectionFlag(Flow *f) {
     SCEnter();
 
     SCLogDebug("flow %p", f);
-    SCMutexLock(&f->m);
+    FLOWLOCK_WRLOCK(f);
     f->flags |= FLOW_NOPAYLOAD_INSPECTION;
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
 
     SCReturn;
 }

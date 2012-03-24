@@ -176,14 +176,14 @@ int DetectFtpbounceALMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     }
 
     int ret = 0;
-    SCMutexLock(&f->m);
+    FLOWLOCK_RDLOCK(f);
 
     if (ftp_state->command == FTP_COMMAND_PORT) {
         ret = DetectFtpbounceMatchArgs(ftp_state->port_line,
                   ftp_state->port_line_len, f->src.address.address_un_data32[0],
                   ftp_state->arg_offset);
     }
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
 
     SCReturnInt(ret);
 }

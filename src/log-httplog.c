@@ -192,7 +192,7 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
     }
 
     /* check if we have HTTP state or not */
-    SCMutexLock(&p->flow->m);
+    FLOWLOCK_WRLOCK(p->flow); /* WRITE lock before we updated flow logged id */
     uint16_t proto = AppLayerGetProtoFromPacket(p);
     if (proto != ALPROTO_HTTP)
         goto end;
@@ -324,7 +324,7 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
     }
 
 end:
-    SCMutexUnlock(&p->flow->m);
+    FLOWLOCK_UNLOCK(p->flow);
     SCReturnInt(TM_ECODE_OK);
 
 }

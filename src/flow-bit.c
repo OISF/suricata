@@ -101,29 +101,29 @@ static void FlowBitRemove(Flow *f, uint16_t idx) {
 }
 
 void FlowBitSet(Flow *f, uint16_t idx) {
-    SCMutexLock(&f->m);
+    FLOWLOCK_WRLOCK(f);
 
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb == NULL) {
         FlowBitAdd(f, idx);
     }
 
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
 }
 
 void FlowBitUnset(Flow *f, uint16_t idx) {
-    SCMutexLock(&f->m);
+    FLOWLOCK_WRLOCK(f);
 
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb != NULL) {
         FlowBitRemove(f, idx);
     }
 
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
 }
 
 void FlowBitToggle(Flow *f, uint16_t idx) {
-    SCMutexLock(&f->m);
+    FLOWLOCK_WRLOCK(f);
 
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb != NULL) {
@@ -132,32 +132,32 @@ void FlowBitToggle(Flow *f, uint16_t idx) {
         FlowBitAdd(f, idx);
     }
 
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
 }
 
 int FlowBitIsset(Flow *f, uint16_t idx) {
     int r = 0;
-    SCMutexLock(&f->m);
+    FLOWLOCK_RDLOCK(f);
 
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb != NULL) {
         r = 1;
     }
 
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
     return r;
 }
 
 int FlowBitIsnotset(Flow *f, uint16_t idx) {
     int r = 0;
-    SCMutexLock(&f->m);
+    FLOWLOCK_RDLOCK(f);
 
     FlowBit *fb = FlowBitGet(f, idx);
     if (fb == NULL) {
         r = 1;
     }
 
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
     return r;
 }
 

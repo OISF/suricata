@@ -230,7 +230,7 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
 
                     if (p->flow != NULL) {
                         /* Update flow flags for iponly */
-                        SCMutexLock(&p->flow->m);
+                        FLOWLOCK_WRLOCK(p->flow);
                         FlowSetIPOnlyFlagNoLock(p->flow, p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0);
 
                         if (s->action & ACTION_DROP)
@@ -243,7 +243,7 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                             p->flow->flags |= FLOW_ACTION_DROP;
                         if (s->action & ACTION_PASS)
                             p->flow->flags |= FLOW_ACTION_PASS;
-                        SCMutexUnlock(&p->flow->m);
+                        FLOWLOCK_UNLOCK(p->flow);
                     }
                 }
             }
@@ -263,10 +263,10 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
                          (s->flags & SIG_FLAG_APPLAYER))
                        && p->flow != NULL)
             {
-                SCMutexLock(&p->flow->m);
+                FLOWLOCK_WRLOCK(p->flow);
                 /* This will apply only on IPS mode (check StreamTcpPacket) */
                 p->flow->flags |= FLOW_ACTION_DROP;
-                SCMutexUnlock(&p->flow->m);
+                FLOWLOCK_UNLOCK(p->flow);
             }
         }
         /* Because we removed the alert from the array, we should

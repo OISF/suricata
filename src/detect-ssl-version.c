@@ -130,7 +130,7 @@ int DetectSslVersionMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         SCReturnInt(0);
     }
 
-    SCMutexLock(&f->m);
+    FLOWLOCK_RDLOCK(f);
 
     if (flags & STREAM_TOCLIENT) {
         SCLogDebug("server (toclient) version is 0x%02X",
@@ -142,7 +142,7 @@ int DetectSslVersionMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         ver = app_state->client_version;
     }
 
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
 
     switch (ver) {
         case SSL_VERSION_2:

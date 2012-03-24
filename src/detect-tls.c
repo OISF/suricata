@@ -161,7 +161,7 @@ static int DetectTlsSubjectMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     }
 
     int ret = 0;
-    SCMutexLock(&f->m);
+    FLOWLOCK_RDLOCK(f);
 
     if (tls_data->flags & DETECT_CONTENT_NEGATED) {
         ret = 1;
@@ -180,7 +180,7 @@ static int DetectTlsSubjectMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         }
     }
 
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
 
     SCReturnInt(ret);
 }
@@ -355,7 +355,7 @@ static int DetectTlsIssuerDNMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx
     }
 
     int ret = 0;
-    SCMutexLock(&f->m);
+    FLOWLOCK_RDLOCK(f);
 
     if (tls_data->flags & DETECT_CONTENT_NEGATED) {
         ret = 1;
@@ -374,7 +374,7 @@ static int DetectTlsIssuerDNMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx
         }
     }
 
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
 
     SCReturnInt(ret);
 }

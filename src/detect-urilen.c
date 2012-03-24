@@ -119,7 +119,7 @@ int DetectUrilenMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
         SCReturnInt(ret);
     }
 
-    SCMutexLock(&f->m);
+    FLOWLOCK_RDLOCK(f);
     htp_tx_t *tx = NULL;
 
     idx = AppLayerTransactionGetInspectId(f);
@@ -155,7 +155,7 @@ int DetectUrilenMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f,
         }
     }
 end:
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
     SCReturnInt(ret);
 }
 

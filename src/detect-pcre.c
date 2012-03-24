@@ -190,9 +190,7 @@ int DetectPcreALDoMatchMethod(DetectEngineThreadCtx *det_ctx, Signature *s,
 
     DetectPcreData *pe = (DetectPcreData *)m->ctx;
 
-    /* define ptr & len */
-    SCMutexLock(&f->m);
-    SCLogDebug("got lock %p", &f->m);
+    FLOWLOCK_RDLOCK(f);
 
     HtpState *htp_state = (HtpState *)state;
     if (htp_state == NULL) {
@@ -270,8 +268,7 @@ int DetectPcreALDoMatchMethod(DetectEngineThreadCtx *det_ctx, Signature *s,
     }
 
 end:
-    SCMutexUnlock(&f->m);
-    SCLogDebug("released lock %p", &f->m);
+    FLOWLOCK_UNLOCK(f);
 
     SCReturnInt(toret);
 }
@@ -305,9 +302,7 @@ int DetectPcreALDoMatchCookie(DetectEngineThreadCtx *det_ctx, Signature *s,
 
     DetectPcreData *pe = (DetectPcreData *)m->ctx;
 
-    /* define ptr & len */
-    SCMutexLock(&f->m);
-    SCLogDebug("got lock %p", &f->m);
+    FLOWLOCK_RDLOCK(f);
 
     HtpState *htp_state = (HtpState *)state;
     if (htp_state == NULL) {
@@ -401,9 +396,7 @@ int DetectPcreALDoMatchCookie(DetectEngineThreadCtx *det_ctx, Signature *s,
     }
 
 end:
-    SCMutexUnlock(&f->m);
-    SCLogDebug("released lock %p", &f->m);
-
+    FLOWLOCK_UNLOCK(f);
     SCReturnInt(toret);
 }
 

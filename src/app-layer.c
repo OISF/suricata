@@ -299,7 +299,7 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
         SCReturnInt(r);
     }
 
-    SCMutexLock(&f->m);
+    FLOWLOCK_WRLOCK(f);
 
     uint8_t flags = 0;
     if (p->flowflags & FLOW_PKT_TOSERVER) {
@@ -342,7 +342,7 @@ int AppLayerHandleUdp(AlpProtoDetectThreadCtx *dp_ctx, Flow *f, Packet *p)
         }
     }
 
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
     SCReturnInt(r);
 }
 

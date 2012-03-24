@@ -228,7 +228,7 @@ TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         p->flowflags & FLOW_PKT_TOCLIENT ? "TRUE" : "FALSE");
 
     if (p->flow != NULL) {
-        SCMutexLock(&p->flow->m);
+        FLOWLOCK_RDLOCK(p->flow);
         CreateTimeString(&p->flow->startts, timebuf, sizeof(timebuf));
         fprintf(aft->file_ctx->fp, "FLOW Start TS:     %s\n",timebuf);
 #ifdef DEBUG
@@ -250,7 +250,7 @@ TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
                 (p->flow->alproto != ALPROTO_UNKNOWN) ? "TRUE" : "FALSE", p->flow->alproto);
         AlertDebugLogFlowVars(aft, p);
         AlertDebugLogFlowBits(aft, p);
-        SCMutexUnlock(&p->flow->m);
+        FLOWLOCK_UNLOCK(p->flow);
     }
 
     AlertDebugLogPktVars(aft, p);

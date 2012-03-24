@@ -62,7 +62,7 @@ FlowVar *FlowVarGet(Flow *f, uint8_t idx) {
 void FlowVarAddStr(Flow *f, uint8_t idx, uint8_t *value, uint16_t size) {
     //printf("Adding flow var \"%s\" with value(%" PRId32 ") \"%s\"\n", name, size, value);
 
-    SCMutexLock(&f->m);
+    FLOWLOCK_WRLOCK(f);
 
     FlowVar *fv = FlowVarGet(f, idx);
     if (fv == NULL) {
@@ -83,14 +83,14 @@ void FlowVarAddStr(Flow *f, uint8_t idx, uint8_t *value, uint16_t size) {
     }
 
 out:
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
 }
 
 /* add a flowvar to the flow, or update it */
 void FlowVarAddInt(Flow *f, uint8_t idx, uint32_t value) {
     //printf("Adding flow var \"%s\" with value(%" PRId32 ") \"%s\"\n", name, size, value);
 
-    SCMutexLock(&f->m);
+    FLOWLOCK_WRLOCK(f);
 
     FlowVar *fv = FlowVarGet(f, idx);
     if (fv == NULL) {
@@ -110,7 +110,7 @@ void FlowVarAddInt(Flow *f, uint8_t idx, uint32_t value) {
     }
 
 out:
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
 }
 
 void FlowVarFree(FlowVar *fv) {

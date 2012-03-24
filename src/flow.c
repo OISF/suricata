@@ -153,10 +153,10 @@ int FlowUpdateSpareFlows(void)
   */
 void FlowSetIPOnlyFlag(Flow *f, char direction)
 {
-    SCMutexLock(&f->m);
+    FLOWLOCK_WRLOCK(f);
     direction ? (f->flags |= FLOW_TOSERVER_IPONLY_SET) :
         (f->flags |= FLOW_TOCLIENT_IPONLY_SET);
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
     return;
 }
 
@@ -308,7 +308,7 @@ void FlowHandlePacket (ThreadVars *tv, Packet *p)
         DecodeSetNoPayloadInspectionFlag(p);
     }
 
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
 
     /* set the flow in the packet */
     p->flow = f;

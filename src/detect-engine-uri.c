@@ -74,7 +74,7 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
     }
 
     /* locking the flow, we will inspect the htp state */
-    SCMutexLock(&f->m);
+    FLOWLOCK_RDLOCK(f);
 
     if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
         SCLogDebug("HTP state has no conn(p)");
@@ -127,7 +127,7 @@ int DetectEngineInspectPacketUris(DetectEngineCtx *de_ctx,
         r = 0;
 
 end:
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
     SCReturnInt(r);
 }
 

@@ -45,7 +45,7 @@
         SC_ATOMIC_INIT((f)->use_cnt); \
         (f)->flags = 0; \
         (f)->lastts_sec = 0; \
-        SCMutexInit(&(f)->m, NULL); \
+        FLOWLOCK_INIT((f)); \
         (f)->protoctx = NULL; \
         (f)->alproto = 0; \
         (f)->probing_parser_toserver_al_proto_masks = 0; \
@@ -103,7 +103,7 @@
 #define FLOW_DESTROY(f) do { \
         SC_ATOMIC_DESTROY((f)->use_cnt); \
         \
-        SCMutexDestroy(&(f)->m); \
+        FLOWLOCK_DESTROY((f)); \
         FlowCleanupAppLayer((f)); \
         if ((f)->de_state != NULL) { \
             DetectEngineStateFree((f)->de_state); \

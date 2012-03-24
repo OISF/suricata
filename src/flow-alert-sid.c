@@ -109,29 +109,29 @@ static void FlowAlertSidRemove(Flow *f, uint32_t sid) {
 }
 
 void FlowAlertSidSet(Flow *f, uint32_t sid) {
-    SCMutexLock(&f->m);
+    FLOWLOCK_WRLOCK(f);
 
     FlowAlertSid *fb = FlowAlertSidGet(f, sid);
     if (fb == NULL) {
         FlowAlertSidAdd(f, sid);
     }
 
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
 }
 
 void FlowAlertSidUnset(Flow *f, uint32_t sid) {
-    SCMutexLock(&f->m);
+    FLOWLOCK_WRLOCK(f);
 
     FlowAlertSid *fb = FlowAlertSidGet(f, sid);
     if (fb != NULL) {
         FlowAlertSidRemove(f, sid);
     }
 
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
 }
 
 void FlowAlertSidToggle(Flow *f, uint32_t sid) {
-    SCMutexLock(&f->m);
+    FLOWLOCK_WRLOCK(f);
 
     FlowAlertSid *fb = FlowAlertSidGet(f, sid);
     if (fb != NULL) {
@@ -140,32 +140,32 @@ void FlowAlertSidToggle(Flow *f, uint32_t sid) {
         FlowAlertSidAdd(f, sid);
     }
 
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
 }
 
 int FlowAlertSidIsset(Flow *f, uint32_t sid) {
     int r = 0;
-    SCMutexLock(&f->m);
+    FLOWLOCK_RDLOCK(f);
 
     FlowAlertSid *fb = FlowAlertSidGet(f, sid);
     if (fb != NULL) {
         r = 1;
     }
 
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
     return r;
 }
 
 int FlowAlertSidIsnotset(Flow *f, uint32_t sid) {
     int r = 0;
-    SCMutexLock(&f->m);
+    FLOWLOCK_RDLOCK(f);
 
     FlowAlertSid *fb = FlowAlertSidGet(f, sid);
     if (fb == NULL) {
         r = 1;
     }
 
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
     return r;
 }
 

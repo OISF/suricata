@@ -73,21 +73,20 @@ int DetectAppLayerEventMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
                              SigMatch *m)
 {
     SCEnter();
+    int r = 0;
 
     DetectAppLayerEventData *aled = (DetectAppLayerEventData *)m->ctx;
 
-    SCMutexLock(&f->m);
+    FLOWLOCK_RDLOCK(f);
+
     AppLayerDecoderEvents *decoder_events = AppLayerGetDecoderEventsForFlow(f);
-    SCMutexUnlock(&f->m);
-    if (decoder_events == NULL) {
-        SCReturnInt(0);
+    if (decoder_events != NULL &&
+            AppLayerDecoderEventsIsEventSet(decoder_events, aled->event_id)) {
+        r = 1;
     }
 
-    if (AppLayerDecoderEventsIsEventSet(decoder_events, aled->event_id)) {
-        SCReturnInt(1);
-    }
-
-    SCReturnInt(0);
+    FLOWLOCK_UNLOCK(f);
+    SCReturnInt(r);
 }
 
 static DetectAppLayerEventData *DetectAppLayerEventParse(const char *arg)

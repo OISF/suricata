@@ -64,7 +64,7 @@ int DetectEngineRunHttpCookieMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
 
     /* we need to lock because the buffers are not actually true buffers
      * but are ones that point to a buffer given by libhtp */
-    SCMutexLock(&f->m);
+    FLOWLOCK_RDLOCK(f);
 
     if (htp_state == NULL) {
         SCLogDebug("no HTTP state");
@@ -101,7 +101,7 @@ int DetectEngineRunHttpCookieMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     }
 
  end:
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
     return cnt;
 }
 
@@ -129,7 +129,7 @@ int DetectEngineInspectHttpCookie(DetectEngineCtx *de_ctx,
     htp_tx_t *tx = NULL;
     int idx;
 
-    SCMutexLock(&f->m);
+    FLOWLOCK_RDLOCK(f);
 
     htp_state = (HtpState *)alstate;
     if (htp_state == NULL) {
@@ -178,7 +178,7 @@ int DetectEngineInspectHttpCookie(DetectEngineCtx *de_ctx,
     }
 
 end:
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
     SCReturnInt(r);
 }
 

@@ -340,7 +340,7 @@ static Flow *FlowGetNew(Packet *p) {
 
     FlowIncrUsecnt(f);
 
-    SCMutexLock(&f->m);
+    FLOWLOCK_WRLOCK(f);
     return f;
 }
 
@@ -448,7 +448,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
 
                 /* found our flow, lock & return */
                 FlowIncrUsecnt(f);
-                SCMutexLock(&f->m);
+                FLOWLOCK_WRLOCK(f);
                 FBLOCK_UNLOCK(fb);
                 FlowHashCountUpdate;
                 return f;
@@ -458,7 +458,7 @@ Flow *FlowGetFlowFromHash (Packet *p)
 
     /* lock & return */
     FlowIncrUsecnt(f);
-    SCMutexLock(&f->m);
+    FLOWLOCK_WRLOCK(f);
     FBLOCK_UNLOCK(fb);
     FlowHashCountUpdate;
     return f;
@@ -497,7 +497,7 @@ static Flow *FlowGetUsedFlow(void) {
             continue;
         }
 
-        if (SCMutexTrylock(&f->m) != 0) {
+        if (FLOWLOCK_TRYWRLOCK(f) != 0) {
             FBLOCK_UNLOCK(fb);
             continue;
         }
@@ -506,7 +506,7 @@ static Flow *FlowGetUsedFlow(void) {
          *  we are currently processing in one of the threads */
         if (SC_ATOMIC_GET(f->use_cnt) > 0) {
             FBLOCK_UNLOCK(fb);
-            SCMutexUnlock(&f->m);
+            FLOWLOCK_UNLOCK(f);
             continue;
         }
 
@@ -527,7 +527,7 @@ static Flow *FlowGetUsedFlow(void) {
 
         FlowClearMemory (f, f->protomap);
 
-        SCMutexUnlock(&f->m);
+        FLOWLOCK_UNLOCK(f);
 
         SC_ATOMIC_ADD(flow_prune_idx, (flow_config.hash_size - cnt));
         return f;

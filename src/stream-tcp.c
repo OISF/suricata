@@ -3859,9 +3859,9 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
 
     PACKET_PROFILING_APP_RESET(&stt->ra_ctx->dp_ctx);
 
-    SCMutexLock(&p->flow->m);
+    FLOWLOCK_WRLOCK(p->flow);
     ret = StreamTcpPacket(tv, p, stt, pq);
-    SCMutexUnlock(&p->flow->m);
+    FLOWLOCK_UNLOCK(p->flow);
 
     //if (ret)
       //  return TM_ECODE_FAILED;
@@ -4739,11 +4739,11 @@ int StreamTcpSegmentForEach(Packet *p, uint8_t flag, StreamSegmentCallback Callb
     if (p->flow == NULL)
         return 0;
 
-    SCMutexLock(&p->flow->m);
+    FLOWLOCK_RDLOCK(p->flow);
     ssn = (TcpSession *)p->flow->protoctx;
 
     if (ssn == NULL) {
-        SCMutexUnlock(&p->flow->m);
+        FLOWLOCK_UNLOCK(p->flow);
         return 0;
     }
 
@@ -4756,14 +4756,14 @@ int StreamTcpSegmentForEach(Packet *p, uint8_t flag, StreamSegmentCallback Callb
     for (; seg != NULL && SEQ_LT(seg->seq, stream->last_ack);) {
         ret = CallbackFunc(p, data, seg->payload, seg->payload_len);
         if (ret != 1) {
-            SCLogInfo("Callback function has failed");
-            SCMutexUnlock(&p->flow->m);
+            SCLogDebug("Callback function has failed");
+            FLOWLOCK_UNLOCK(p->flow);
             return -1;
         }
         seg = seg->next;
         cnt++;
     }
-    SCMutexUnlock(&p->flow->m);
+    FLOWLOCK_UNLOCK(p->flow);
     return cnt;
 }
 

@@ -314,11 +314,11 @@ uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     htp_tx_t *tx = NULL;
 
     /* locking the flow, we will inspect the htp state */
-    SCMutexLock(&f->m);
+    FLOWLOCK_RDLOCK(f);
 
     if (htp_state == NULL || htp_state->connp == NULL) {
         SCLogDebug("no HTTP state / no connp");
-        SCMutexUnlock(&f->m);
+        FLOWLOCK_UNLOCK(f);
         SCReturnUInt(0U);
     }
 
@@ -340,7 +340,7 @@ uint32_t DetectUricontentInspectMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
                                                flags);
     }
 end:
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
     SCReturnUInt(cnt);
 }
 

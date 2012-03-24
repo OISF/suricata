@@ -65,7 +65,7 @@
  * \param f         Pointer to the flow.
  * \param htp_state http state.
  *
- * \warning Make sure flow is locked.
+ * \warning Make sure flow is locked. Flow is modified, WRITE lock needed.
  */
 static void DetectEngineBufferHttpServerBodies(DetectEngineCtx *de_ctx,
         DetectEngineThreadCtx *det_ctx, Flow *f, HtpState *htp_state)
@@ -203,9 +203,9 @@ int DetectEngineRunHttpServerBodyMpm(DetectEngineCtx *de_ctx,
 
     /* bail before locking if we have nothing to do */
     if (det_ctx->hsbd_buffers_list_len == 0) {
-        SCMutexLock(&f->m);
+        FLOWLOCK_WRLOCK(f);
         DetectEngineBufferHttpServerBodies(de_ctx, det_ctx, f, htp_state);
-        SCMutexUnlock(&f->m);
+        FLOWLOCK_UNLOCK(f);
     }
 
     for (i = 0; i < det_ctx->hsbd_buffers_list_len; i++) {
@@ -242,9 +242,9 @@ int DetectEngineInspectHttpServerBody(DetectEngineCtx *de_ctx,
 
     /* bail before locking if we have nothing to do */
     if (det_ctx->hsbd_buffers_list_len == 0) {
-        SCMutexLock(&f->m);
+        FLOWLOCK_WRLOCK(f);
         DetectEngineBufferHttpServerBodies(de_ctx, det_ctx, f, alstate);
-        SCMutexUnlock(&f->m);
+        FLOWLOCK_UNLOCK(f);
     }
 
     for (i = 0; i < det_ctx->hsbd_buffers_list_len; i++) {

@@ -202,8 +202,9 @@ int DetectFileInspectHttp(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flow *
     int match = 0;
     FileContainer *ffc;
 
-    /* locking the flow, we will inspect the htp state */
-    SCMutexLock(&f->m);
+    /* locking the flow, we will inspect the htp state, files + we will set
+     * magic, so need a WRITE lock */
+    FLOWLOCK_WRLOCK(f);
 
     htp_state = (HtpState *)alstate;
     if (htp_state == NULL) {
@@ -252,6 +253,6 @@ int DetectFileInspectHttp(ThreadVars *tv, DetectEngineThreadCtx *det_ctx, Flow *
     }
 
 end:
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
     SCReturnInt(r);
 }

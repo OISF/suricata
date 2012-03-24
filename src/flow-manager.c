@@ -256,7 +256,7 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
     uint32_t cnt = 0;
 
     do {
-        if (SCMutexTrylock(&f->m) != 0) {
+        if (FLOWLOCK_TRYWRLOCK(f) != 0) {
             f = f->hprev;
             continue;
         }
@@ -267,7 +267,7 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
 
         /* timeout logic goes here */
         if (FlowManagerFlowTimeout(f, state, ts, emergency) == 0) {
-            SCMutexUnlock(&f->m);
+            FLOWLOCK_UNLOCK(f);
             f = f->hprev;
             continue;
         }
@@ -292,7 +292,7 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
 
             /* no one is referring to this flow, use_cnt 0, removed from hash
              * so we can unlock it and move it back to the spare queue. */
-            SCMutexUnlock(&f->m);
+            FLOWLOCK_UNLOCK(f);
 
             /* move to spare list */
             FlowMoveToSpare(f);
@@ -312,7 +312,7 @@ static uint32_t FlowManagerHashRowTimeout(Flow *f, struct timeval *ts,
                     break;
             }
         } else {
-            SCMutexUnlock(&f->m);
+            FLOWLOCK_UNLOCK(f);
         }
 
         f = next_flow;

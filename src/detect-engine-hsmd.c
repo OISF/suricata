@@ -70,7 +70,7 @@ int DetectEngineRunHttpStatMsgMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     }
 
     /* locking the flow, we will inspect the htp state */
-    SCMutexLock(&f->m);
+    FLOWLOCK_RDLOCK(f);
 
     if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
         SCLogDebug("HTP state has no conn(p)");
@@ -96,7 +96,7 @@ int DetectEngineRunHttpStatMsgMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
     }
 
 end:
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
     SCReturnInt(cnt);
 }
 
@@ -129,7 +129,7 @@ int DetectEngineInspectHttpStatMsg(DetectEngineCtx *de_ctx,
     }
 
     /* locking the flow, we will inspect the htp state */
-    SCMutexLock(&f->m);
+    FLOWLOCK_RDLOCK(f);
 
     if (htp_state->connp == NULL || htp_state->connp->conn == NULL) {
         SCLogDebug("HTP state has no conn(p)");
@@ -172,7 +172,7 @@ int DetectEngineInspectHttpStatMsg(DetectEngineCtx *de_ctx,
     }
 
 end:
-    SCMutexUnlock(&f->m);
+    FLOWLOCK_UNLOCK(f);
     SCReturnInt(r);
 }
 

@@ -102,7 +102,7 @@ int TagFlowAdd(Packet *p, DetectTagDataEntry *tde) {
     if (p->flow == NULL)
         return 1;
 
-    SCMutexLock(&p->flow->m);
+    FLOWLOCK_WRLOCK(p->flow);
 
     if (p->flow->tag_list != NULL) {
         iter = p->flow->tag_list;
@@ -140,7 +140,7 @@ int TagFlowAdd(Packet *p, DetectTagDataEntry *tde) {
         SCLogDebug("Max tags for sessions reached (%"PRIu16")", num_tags);
     }
 
-    SCMutexUnlock(&p->flow->m);
+    FLOWLOCK_UNLOCK(p->flow);
     return updated;
 }
 
@@ -467,9 +467,9 @@ void TagHandlePacket(DetectEngineCtx *de_ctx,
 
     /* First update and get session tags */
     if (p->flow != NULL) {
-        SCMutexLock(&p->flow->m);
+        FLOWLOCK_WRLOCK(p->flow);
         TagHandlePacketFlow(p->flow, p);
-        SCMutexUnlock(&p->flow->m);
+        FLOWLOCK_UNLOCK(p->flow);
     }
 
     Host *src = HostLookupHostFromHash(&p->src);
