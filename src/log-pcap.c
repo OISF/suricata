@@ -636,6 +636,7 @@ int PcapLogOpenFileCtx(PcapLogData *pl)
     if (pf == NULL) {
         return -1;
     }
+    memset(pf, 0, sizeof(PcapFileName));
 
     if (pl->mode == LOGMODE_SGUIL) {
         struct tm local_tm;
