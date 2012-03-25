@@ -207,13 +207,9 @@ int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl) {
          SCLogDebug("Removing pcap file %s", pf->filename);
 
          if (remove(pf->filename) != 0) {
-             SCLogError(SC_ERR_PCAP_FILE_DELETE_FAILED,
-                 "failed to remove log file %s: %s",
-                 pf->filename, strerror( errno ));
-             TAILQ_REMOVE(&pcap_file_list, pf, next);
-
-             PcapFileNameFree(pf);
-             return -1;
+             SCLogWarning(SC_ERR_PCAP_FILE_DELETE_FAILED,
+                          "failed to remove log file %s: %s",
+                          pf->filename, strerror( errno ));
          }
          else {
              SCLogDebug("success! removed log file %s", pf->filename);
@@ -233,22 +229,17 @@ int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl) {
                           pf->dirname, pfnext->dirname);
 
                       if (remove(pf->dirname) != 0) {
-                          SCLogError(SC_ERR_PCAP_FILE_DELETE_FAILED,
-                              "failed to remove sguil log %s: %s",
-                              pf->dirname, strerror( errno ));
-                          TAILQ_REMOVE(&pcap_file_list, pf, next);
-
-                          PcapFileNameFree(pf);
-                          return -1;
+                          SCLogWarning(SC_ERR_PCAP_FILE_DELETE_FAILED,
+                                       "failed to remove sguil log %s: %s",
+                                       pf->dirname, strerror( errno ));
                       }
                  }
              }
-
-             TAILQ_REMOVE(&pcap_file_list, pf, next);
-             PcapFileNameFree(pf);
-
-             pl->file_cnt--;
          }
+
+         TAILQ_REMOVE(&pcap_file_list, pf, next);
+         PcapFileNameFree(pf);
+         pl->file_cnt--;
     }
 
     if (PcapLogOpenFileCtx(pl) < 0) {
