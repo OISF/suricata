@@ -79,6 +79,12 @@ TmEcode PcapLogDataInit(ThreadVars *, void *, void **);
 TmEcode PcapLogDataDeinit(ThreadVars *, void *);
 static void PcapLogFileDeInitCtx(OutputCtx *);
 
+typedef struct PcapFileName_ {
+    char *filename;
+    char *dirname;
+    TAILQ_ENTRY(PcapFileName_) next; /**< Pointer to next Pcap File for tailq. */
+} PcapFileName;
+
 /**
  * PcapLog thread vars
  *
@@ -101,47 +107,14 @@ typedef struct PcapLogData_ {
     int timestamp_format;       /**< timestamp format sec or usec */
     int use_stream_depth;       /**< use stream depth i.e. ignore packets that reach limit */
     char dir[PATH_MAX];         /**< pcap log directory */
+
+    SCMutex plog_lock;
+    TAILQ_HEAD(, PcapFileName_) pcap_file_list;
 } PcapLogData;
 
-static PcapLogData *pl;         /**< pcap_dumper is not thread safe */
 int PcapLogOpenFileCtx(PcapLogData *);
-static SCMutex plog_lock;
-
-typedef struct PcapFileName_ {
-    char *filename;
-    char *dirname;
-    TAILQ_ENTRY(PcapFileName_) next; /**< Pointer to next Pcap File for tailq. */
-} PcapFileName;
-
-/** private file list */
-static TAILQ_HEAD(, PcapFileName_) pcap_file_list =
-    TAILQ_HEAD_INITIALIZER(pcap_file_list);
 
 void TmModulePcapLogRegister (void) {
-    SCMutexInit(&plog_lock, NULL);
-
-    pl = SCMalloc(sizeof(PcapLogData));
-    if (pl == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-            "Failed to allocate Memory for PcapLogData");
-        exit(EXIT_FAILURE);
-    }
-    memset(pl, 0, sizeof(PcapLogData));
-
-    pl->h = SCMalloc(sizeof(*pl->h));
-    if (pl->h == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-            "Failed to allocate Memory for pcap header struct");
-        exit(EXIT_FAILURE);
-    }
-
-    /* Set the defaults */
-    pl->mode = LOGMODE_NORMAL;
-    pl->max_files = DEFAULT_FILE_LIMIT;
-    pl->use_ringbuffer = RING_BUFFER_MODE_DISABLED;
-    pl->timestamp_format = TS_FORMAT_SEC;
-    pl->use_stream_depth = USE_STREAM_DEPTH_DISABLED;
-
     tmm_modules[TMM_PCAPLOG].name = MODULE_NAME;
     tmm_modules[TMM_PCAPLOG].ThreadInit = PcapLogDataInit;
     tmm_modules[TMM_PCAPLOG].Func = PcapLog;
@@ -203,7 +176,7 @@ int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl) {
     }
 
     if (pl->use_ringbuffer == RING_BUFFER_MODE_ENABLED && pl->file_cnt >= pl->max_files) {
-         pf = TAILQ_FIRST(&pcap_file_list);
+         pf = TAILQ_FIRST(&pl->pcap_file_list);
          SCLogDebug("Removing pcap file %s", pf->filename);
 
          if (remove(pf->filename) != 0) {
@@ -237,7 +210,7 @@ int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl) {
              }
          }
 
-         TAILQ_REMOVE(&pcap_file_list, pf, next);
+         TAILQ_REMOVE(&pl->pcap_file_list, pf, next);
          PcapFileNameFree(pf);
          pl->file_cnt--;
     }
@@ -269,6 +242,8 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, PacketQu
     int rotate = 0;
     int ret = 0;
 
+    PcapLogData *pl = (PcapLogData *)data;
+
     if (p->flags & PKT_PSEUDO_STREAM_END ||
             ((p->flags & PKT_STREAM_NOPCAPLOG) && (pl->use_stream_depth == USE_STREAM_DEPTH_ENABLED)) ||
             (IS_TUNNEL_PKT(p) && !IS_TUNNEL_ROOT_PKT(p)))
@@ -276,7 +251,7 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, PacketQu
         return TM_ECODE_OK;
     }
 
-    SCMutexLock(&plog_lock);
+    SCMutexLock(&pl->plog_lock);
 
     pl->pkt_cnt++;
     pl->h->ts.tv_sec = p->ts.tv_sec;
@@ -289,7 +264,7 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, PacketQu
         SCLogDebug("Opening PCAP log file %s", pl->filename);
         ret = PcapLogOpenFileCtx(pl);
         if (ret < 0) {
-            SCMutexUnlock(&plog_lock);
+            SCMutexUnlock(&pl->plog_lock);
             return TM_ECODE_FAILED;
         }
     }
@@ -306,7 +281,7 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, PacketQu
     if ((pl->size_current + len) > pl->size_limit || rotate) {
         if (PcapLogRotateFile(t,pl) < 0)
         {
-            SCMutexUnlock(&plog_lock);
+            SCMutexUnlock(&pl->plog_lock);
             SCLogDebug("rotation of pcap failed");
             return TM_ECODE_FAILED;
         }
@@ -322,7 +297,7 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, PacketQu
         {
             SCLogDebug("Error opening dead pcap handle");
 
-            SCMutexUnlock(&plog_lock);
+            SCMutexUnlock(&pl->plog_lock);
             return TM_ECODE_FAILED;
         }
     }
@@ -334,7 +309,7 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, PacketQu
         {
             SCLogInfo("Error opening dump file %s", pcap_geterr(pl->pcap_dead_handle));
 
-            SCMutexUnlock(&plog_lock);
+            SCMutexUnlock(&pl->plog_lock);
             return TM_ECODE_FAILED;
         }
     }
@@ -343,7 +318,7 @@ TmEcode PcapLog (ThreadVars *t, Packet *p, void *data, PacketQueue *pq, PacketQu
     pl->size_current += len;
     SCLogDebug("pl->size_current %"PRIu64",  pl->size_limit %"PRIu64, pl->size_current, pl->size_limit);
 
-    SCMutexUnlock(&plog_lock);
+    SCMutexUnlock(&pl->plog_lock);
     return TM_ECODE_OK;
 }
 
@@ -355,7 +330,9 @@ TmEcode PcapLogDataInit(ThreadVars *t, void *initdata, void **data)
         return TM_ECODE_FAILED;
     }
 
-    SCMutexLock(&plog_lock);
+    PcapLogData *pl = ((OutputCtx *)initdata)->data;
+
+    SCMutexLock(&pl->plog_lock);
 
     /** Use the Ouptut Context (file pointer and mutex) */
     pl->pkt_cnt = 0;
@@ -372,7 +349,7 @@ TmEcode PcapLogDataInit(ThreadVars *t, void *initdata, void **data)
 
     *data = (void *)pl;
 
-    SCMutexUnlock(&plog_lock);
+    SCMutexUnlock(&pl->plog_lock);
     return TM_ECODE_OK;
 }
 
@@ -387,23 +364,7 @@ TmEcode PcapLogDataInit(ThreadVars *t, void *initdata, void **data)
 
 TmEcode PcapLogDataDeinit(ThreadVars *t, void *data)
 {
-    SCMutexLock(&plog_lock);
-    if (pl == NULL) {
-        goto error;
-    }
-    SCLogInfo("Packets seen %" PRIu64 " at exit", pl->pkt_cnt);
-    /* clear memory */
-    memset(pl, 0, sizeof(PcapLogData));
-    SCMutexUnlock(&plog_lock);
     return TM_ECODE_OK;
-
-error:
-    /* clear memory */
-    if (pl != NULL) {
-        memset(pl, 0, sizeof(PcapLogData));
-    }
-    SCMutexUnlock(&plog_lock);
-    return TM_ECODE_FAILED;
 }
 
 /** \brief Fill in pcap logging struct from the provided ConfNode.
@@ -412,7 +373,34 @@ error:
  * */
 OutputCtx *PcapLogInitCtx(ConfNode *conf)
 {
-    SCMutexLock(&plog_lock);
+    PcapLogData *pl = SCMalloc(sizeof(PcapLogData));
+    if (pl == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC,
+            "Failed to allocate Memory for PcapLogData");
+        exit(EXIT_FAILURE);
+    }
+    memset(pl, 0, sizeof(PcapLogData));
+
+    pl->h = SCMalloc(sizeof(*pl->h));
+    if (pl->h == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC,
+            "Failed to allocate Memory for pcap header struct");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Set the defaults */
+    pl->mode = LOGMODE_NORMAL;
+    pl->max_files = DEFAULT_FILE_LIMIT;
+    pl->use_ringbuffer = RING_BUFFER_MODE_DISABLED;
+    pl->timestamp_format = TS_FORMAT_SEC;
+    pl->use_stream_depth = USE_STREAM_DEPTH_DISABLED;
+
+    TAILQ_INIT(&pl->pcap_file_list);
+
+    SCMutexInit(&pl->plog_lock, NULL);
+
+    /* conf params */
+
     const char *filename = NULL;
 
     if (conf != NULL) { /* To faciliate unit tests. */
@@ -424,7 +412,6 @@ OutputCtx *PcapLogInitCtx(ConfNode *conf)
 
     if ((pl->prefix = SCStrdup(filename)) == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for directory name");
-        SCMutexUnlock(&plog_lock);
         return NULL;
     }
 
@@ -567,14 +554,15 @@ OutputCtx *PcapLogInitCtx(ConfNode *conf)
             exit(EXIT_FAILURE);
         }
     }
-    SCMutexUnlock(&plog_lock);
+
+    /* create the output ctx and send it back */
 
     OutputCtx *output_ctx = SCCalloc(1, sizeof(OutputCtx));
     if (output_ctx == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate memory for OutputCtx.");
         exit(EXIT_FAILURE);
     }
-    output_ctx->data = NULL;
+    output_ctx->data = pl;
     output_ctx->DeInit = PcapLogFileDeInitCtx;
 
     return output_ctx;
@@ -582,18 +570,18 @@ OutputCtx *PcapLogInitCtx(ConfNode *conf)
 
 static void PcapLogFileDeInitCtx(OutputCtx *output_ctx)
 {
-    SCMutexLock(&plog_lock);
-    PcapFileName *pf;
+    PcapLogData *pl = output_ctx->data;
 
-    TAILQ_FOREACH(pf, &pcap_file_list, next) {
+    PcapFileName *pf = NULL;
+    TAILQ_FOREACH(pf, &pl->pcap_file_list, next) {
         SCLogDebug("PCAP files left at exit: %s\n", pf->filename);
     }
-    SCMutexUnlock(&plog_lock);
 
     if (output_ctx != NULL) {
         SCFree(output_ctx);
     }
 
+    return;
 }
 
 /**
@@ -672,7 +660,7 @@ int PcapLogOpenFileCtx(PcapLogData *pl)
         goto error;
     }
     SCLogDebug("Opening pcap file log %s", pf->filename);
-    TAILQ_INSERT_TAIL(&pcap_file_list, pf, next);
+    TAILQ_INSERT_TAIL(&pl->pcap_file_list, pf, next);
 
     return 0;
 
