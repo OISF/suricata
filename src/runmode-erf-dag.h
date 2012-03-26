@@ -23,7 +23,9 @@
 #ifndef __RUNMODE_ERF_DAG_H__
 #define __RUNMODE_ERF_DAG_H__
 
-int RunModeErfDagAuto(DetectEngineCtx *);
+int RunModeIdsErfDagAutoFp(DetectEngineCtx *);
+int RunModeIdsErfDagSingle(DetectEngineCtx *);
+int RunModeIdsErfDagWorkers(DetectEngineCtx *);
 void RunModeErfDagRegister(void);
 const char *RunModeErfDagGetDefaultMode(void);
 

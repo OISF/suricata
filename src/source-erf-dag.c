@@ -19,7 +19,7 @@
  * \file
  *
  * \author Endace Technology Limited.
- * \author Jason MacLulich <jason.maclulich@eendace.com>
+ * \author Jason MacLulich <jason.maclulich@endace.com>
  *
  * Support for reading ERF records from a DAG card.
  *
@@ -78,6 +78,8 @@ extern uint8_t suricata_ctl_flags;
 
 typedef struct ErfDagThreadVars_ {
     ThreadVars *tv;
+    TmSlot *slot;
+
     int dagfd;
     int dagstream;
     char dagname[DAGNAME_BUFSIZE];
@@ -100,12 +102,12 @@ typedef struct ErfDagThreadVars_ {
 
 } ErfDagThreadVars;
 
-TmEcode ReceiveErfDag(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+TmEcode ReceiveErfDagLoop(ThreadVars *, void *data, void *slot);
 TmEcode ReceiveErfDagThreadInit(ThreadVars *, void *, void **);
 void ReceiveErfDagThreadExitStats(ThreadVars *, void *);
 TmEcode ReceiveErfDagThreadDeinit(ThreadVars *, void *);
-TmEcode ProcessErfDagRecords(ErfDagThreadVars *ewtn, Packet *p, uint8_t* top,
-                             PacketQueue *postpq, uint32_t *pkts_read);
+TmEcode ProcessErfDagRecords(ErfDagThreadVars *ewtn, uint8_t* top,
+                             uint32_t *pkts_read);
 TmEcode ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec, Packet *p);
 
 TmEcode DecodeErfDagThreadInit(ThreadVars *, void *, void **);
@@ -120,7 +122,8 @@ TmModuleReceiveErfDagRegister(void)
 {
     tmm_modules[TMM_RECEIVEERFDAG].name = "ReceiveErfDag";
     tmm_modules[TMM_RECEIVEERFDAG].ThreadInit = ReceiveErfDagThreadInit;
-    tmm_modules[TMM_RECEIVEERFDAG].Func = ReceiveErfDag;
+    tmm_modules[TMM_RECEIVEERFDAG].Func = NULL;
+    tmm_modules[TMM_RECEIVEERFDAG].PktAcqLoop = ReceiveErfDagLoop;
     tmm_modules[TMM_RECEIVEERFDAG].ThreadExitPrintStats =
         ReceiveErfDagThreadExitStats;
     tmm_modules[TMM_RECEIVEERFDAG].ThreadDeinit = NULL;
@@ -300,37 +303,21 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
 }
 
 /**
- * \brief   Thread entry function for reading ERF records from a DAG card.
+ * \brief Receives packets from a DAG interface.
  *
- *          Reads a new ERF record the DAG input buffer and copies it to
- *          an internal Suricata packet buffer -- similar to the way the
- *          pcap packet handler works.
+ * \param tv pointer to ThreadVars
+ * \param data pointer to ErfDagThreadVars
+ * \param slot slot containing task information
  *
- *          We create new packet structures using PacketGetFromQueueOrAlloc
- *          for each packet between the top and btm pointers except for
- *          the first packet for which a Packet buffer is provided
- *          from the packetpool.
- *
- *          We always read up to dag_max_read_packets ERF packets from the
- *          DAG buffer, but we might read less. This differs from the
- *          ReceivePcap handler -- it will only read pkts up to a maximum
- *          of either the packetpool count or the pcap_max_read_packets.
- *
- * \param   tv pointer to ThreadVars
- * \param   p data pointer
- * \param   data
- * \param   pq pointer to the PacketQueue (not used here)
- * \param   postpq
- * \retval  TM_ECODE_FAILED on failure and TM_ECODE_OK on success.
- * \note    We also use the packetpool hack first used in the source-pcap
- *          handler so we don't keep producing packets without any dying.
- *          This implies that if we are in this situation we run the risk
- *          of dropping packets at the interface.
+ * \retval TM_ECODE_OK on success
+ * \retval TM_ECODE_FAILED on failure
  */
-TmEcode
-ReceiveErfDag(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
-               PacketQueue *postpq)
+TmEcode ReceiveErfDagLoop(ThreadVars *tv, void *data, void *slot)
 {
+    ErfDagThreadVars *dtv = (ErfDagThreadVars *)data;
+    TmSlot *s = (TmSlot *)slot;
+    dtv->slot = s->slot_next;
+
     SCEnter();
 
     uint16_t packet_q_len = 0;
@@ -339,97 +326,90 @@ ReceiveErfDag(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     uint8_t  *top = NULL;
     uint32_t pkts_read = 0;
 
-    assert(p);
-    assert(pq);
-    assert(postpq);
-
-    ErfDagThreadVars *ewtn = (ErfDagThreadVars *)data;
-
-    /* NOTE/JNM: Hack copied from source-pcap.c
-     *
-     * Make sure we have at least one packet in the packet pool, to
-     * prevent us from alloc'ing packets at line rate
-     */
-    while (packet_q_len == 0) {
-        packet_q_len = PacketPoolSize();
-        if (packet_q_len == 0) {
-            PacketPoolWait();
-        }
-    }
-
-    if (postpq == NULL) {
-        ewtn->dag_max_read_packets = 1;
-    }
-
-    while(pkts_read == 0)
+    while (1)
     {
-	    if (suricata_ctl_flags != 0) {
-            break;
+        if (suricata_ctl_flags & SURICATA_STOP ||
+            suricata_ctl_flags & SURICATA_KILL) {
+            SCReturnInt(TM_ECODE_FAILED);
         }
+
+        /* Make sure we have at least one packet in the packet pool,
+         * to prevent us from alloc'ing packets at line rate. */
+        do {
+            packet_q_len = PacketPoolSize();
+            if (unlikely(packet_q_len == 0)) {
+                PacketPoolWait();
+            }
+        } while (packet_q_len == 0);
 
         /* NOTE/JNM: This might not work well if we start restricting the
-	     * number of ERF records processed per call to a small number as
-	     * the over head required here could exceed the time it takes to
-	     * process a small number of ERF records.
-	     *
-	     * XXX/JNM: Possibly process the DAG stream buffer first if there
-	     * are ERF packets or else call dag_advance_stream and then process
-	     * the DAG stream buffer.
-	     */
-	    top = dag_advance_stream(ewtn->dagfd, ewtn->dagstream, &(ewtn->btm));
+         * number of ERF records processed per call to a small number as
+         * the over head required here could exceed the time it takes to
+         * process a small number of ERF records.
+         *
+         * XXX/JNM: Possibly process the DAG stream buffer first if there
+         * are ERF packets or else call dag_advance_stream and then process
+         * the DAG stream buffer.
+         */
+        top = dag_advance_stream(dtv->dagfd, dtv->dagstream, &(dtv->btm));
 
-	    if (NULL == top)
-	    {
-	        if((ewtn->dagstream & 0x1) && (errno == EAGAIN)) {
-	            usleep(10 * 1000);
-	            ewtn->btm = ewtn->top;
+        if (NULL == top)
+        {
+            if ((dtv->dagstream & 0x1) && (errno == EAGAIN)) {
+                usleep(10 * 1000);
+                dtv->btm = dtv->top;
                 continue;
-	        }
-	        else {
-	            SCLogError(SC_ERR_ERF_DAG_STREAM_READ_FAILED,
-	                       "Failed to read from stream: %d, DAG: %s when using dag_advance_stream",
-	                       ewtn->dagstream, ewtn->dagname);
-	            SCReturnInt(TM_ECODE_FAILED);
-	        }
-	    }
+            }
+            else {
+                SCLogError(SC_ERR_ERF_DAG_STREAM_READ_FAILED,
+                    "Failed to read from stream: %d, DAG: %s when using dag_advance_stream",
+                    dtv->dagstream, dtv->dagname);
+                SCReturnInt(TM_ECODE_FAILED);
+            }
+        }
 
-	    diff = top - ewtn->btm;
-	    if (diff == 0)
-	    {
-	        continue;
-	    }
+        diff = top - dtv->btm;
+        if (diff == 0)
+        {
+            continue;
+        }
 
-	    assert(diff >= dag_record_size);
+        assert(diff >= dag_record_size);
 
-	    err = ProcessErfDagRecords(ewtn, p, top, postpq, &pkts_read);
+        err = ProcessErfDagRecords(dtv, top, &pkts_read);
 
         if (err == TM_ECODE_FAILED) {
-             SCLogError(SC_ERR_ERF_DAG_STREAM_READ_FAILED,
-                   "Failed to read from stream: %d, DAG: %s",
-                   ewtn->dagstream, ewtn->dagname);
-            ReceiveErfDagCloseStream(ewtn->dagfd, ewtn->dagstream);
+            SCLogError(SC_ERR_ERF_DAG_STREAM_READ_FAILED,
+                "Failed to read from stream: %d, DAG: %s",
+                dtv->dagstream, dtv->dagname);
+            ReceiveErfDagCloseStream(dtv->dagfd, dtv->dagstream);
             SCReturnInt(err);
         }
     }
 
     SCLogDebug("Read %d records from stream: %d, DAG: %s",
-        pkts_read, ewtn->dagstream, ewtn->dagname);
+        pkts_read, dtv->dagstream, dtv->dagname);
 
     if (suricata_ctl_flags != 0) {
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    SCReturnInt(err);
+    SCReturnInt(TM_ECODE_OK);
 }
 
+/**
+ * \brief Process a chunk of records read from a DAG interface.
+ *
+ * This function takes a pointer to buffer read from the DAG interface
+ * and processes it individual records.
+ */
 TmEcode ProcessErfDagRecords(ErfDagThreadVars *ewtn,
-                             Packet *p,
                              uint8_t* top,
-                             PacketQueue *postpq,
                              uint32_t *pkts_read)
 {
     SCEnter();
 
+    Packet *p;
     int     err = 0;
     dag_record_t* dr = NULL;
     char    *prec = NULL;
@@ -458,8 +438,7 @@ TmEcode ProcessErfDagRecords(ErfDagThreadVars *ewtn,
         if ((top-(ewtn->btm)) < rlen)
             SCReturnInt(TM_ECODE_OK);
 
-        p = p ? p : PacketGetFromQueueOrAlloc();
-
+        p = PacketGetFromQueueOrAlloc();
         if (p == NULL) {
             SCLogError(SC_ERR_MEM_ALLOC,
                        "Failed to allocate a Packet on stream: %d, DAG: %s",
@@ -469,22 +448,19 @@ TmEcode ProcessErfDagRecords(ErfDagThreadVars *ewtn,
 
         err = ProcessErfDagRecord(ewtn, prec, p);
 
-        if (err != TM_ECODE_OK)
+        if (err != TM_ECODE_OK) {
+            TmqhOutputPacketpool(ewtn->tv, p);
             SCReturnInt(err);
+        }
 
         ewtn->btm += rlen;
 
-        /* XXX/JNM: Hack to get around the fact that the first Packet from
-         * Suricata is added explicitly by the Slot code and shouldn't go
-         * onto the post queue -- else it is added twice to the next queue.
-         */
-        if (*pkts_read) {
-            PacketEnqueue(postpq, p);
+        err = TmThreadsSlotProcessPkt(ewtn->tv, ewtn->slot, p);
+        if (err != TM_ECODE_OK) {
+            return err;
         }
 
         (*pkts_read)++;
-
-        p = NULL;
     }
 
     SCReturnInt(TM_ECODE_OK);
@@ -529,9 +505,6 @@ TmEcode ProcessErfDagRecord(ErfDagThreadVars *ewtn, char *prec, Packet *p)
      * after ther ERF header + pad.
      */
     PacketCopyData(p, pload->eth.dst, GET_PKT_LEN(p));
-
-    SCLogDebug("pktlen: %" PRIu32 " (pkt %02x, pkt data %02x)",
-               GET_PKT_LEN(p), *p, *GET_PKT_DATA(p));
 
     /* Convert ERF time to timeval - from libpcap. */
     uint64_t ts = dr->ts;

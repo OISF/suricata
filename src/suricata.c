@@ -481,7 +481,7 @@ void usage(const char *progname)
 #endif /* HAVE_LIBCAP_NG */
     printf("\t--erf-in <path>              : process an ERF file\n");
 #ifdef HAVE_DAG
-    printf("\t--dag <dag0,dag1,...>        : process ERF records from 0,1,...,n DAG input streams\n");
+    printf("\t--dag <dagX:Y>               : process ERF records from DAG interface X, stream Y\n");
 #endif
 #ifdef HAVE_NAPATECH
     printf("\t--napatech <adapter>          : run Napatech feeds using <adapter>\n");
@@ -944,17 +944,22 @@ int main(int argc, char **argv)
                     exit(EXIT_FAILURE);
                 }
             }
-			else if (strcmp((long_opts[option_index]).name, "dag") == 0) {
+            else if (strcmp((long_opts[option_index]).name, "dag") == 0) {
 #ifdef HAVE_DAG
-				run_mode = RUNMODE_DAG;
-                if (ConfSet("erf-dag.iface", optarg, 0) != 1) {
-                    fprintf(stderr, "ERROR: Failed to set erf_dag.iface\n");
+                if (run_mode == RUNMODE_UNKNOWN) {
+                    run_mode = RUNMODE_DAG;
+                }
+                else if (run_mode != RUNMODE_DAG) {
+                    SCLogError(SC_ERR_MULTIPLE_RUN_MODE,
+                        "more than one run mode has been specified");
+                    usage(argv[0]);
                     exit(EXIT_FAILURE);
                 }
+                LiveRegisterDevice(optarg);
 #else
-				SCLogError(SC_ERR_DAG_REQUIRED, "libdag and a DAG card are required"
+                SCLogError(SC_ERR_DAG_REQUIRED, "libdag and a DAG card are required"
 						" to receieve packets using --dag.");
-				exit(EXIT_FAILURE);
+                exit(EXIT_FAILURE);
 #endif /* HAVE_DAG */
 		}
                 else if (strcmp((long_opts[option_index]).name, "napatech") == 0) {
