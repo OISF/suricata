@@ -822,10 +822,11 @@ AC_INIT(configure.in)
            AS_HELP_STRING([--enable-af-packet], [Enable AF_PACKET support [default=yes]]),
                         ,[enable_af_packet=yes])
     AS_IF([test "x$enable_af_packet" = "xyes"], [
-        AC_CHECK_DECL([AF_PACKET],
+        AC_CHECK_DECL([TPACKET_V2],
             AC_DEFINE([HAVE_AF_PACKET],[1],[AF_PACKET support is available]),
-            [enable_af_packet=no],
-            [[#include <sys/socket.h>]])
+            [enable_af_packet="no"],
+            [[#include <sys/socket.h>
+              #include <linux/if_packet.h>]])
         AC_CHECK_DECL([PACKET_FANOUT],
             AC_DEFINE([HAVE_PACKET_FANOUT],[1],[Packet fanout support is available]),
             [],
