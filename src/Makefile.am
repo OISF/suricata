@@ -197,6 +197,7 @@ util-unittest.c util-unittest.h \
 util-unittest-helper.c util-unittest-helper.h \
 util-hash.c util-hash.h \
 util-hashlist.c util-hashlist.h \
+util-hash-lookup3.c util-hash-lookup3.h \
 util-bloomfilter.c util-bloomfilter.h \
 util-bloomfilter-counting.c util-bloomfilter-counting.h \
 util-pool.c util-pool.h \
