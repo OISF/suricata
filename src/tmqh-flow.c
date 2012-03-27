@@ -363,6 +363,7 @@ static int TmqhOutputFlowSetupCtxTest01(void)
 {
     int retval = 0;
     Tmq *tmq = NULL;
+    TmqhFlowCtx *fctx = NULL;
 
     TmqResetQueues();
 
@@ -385,7 +386,7 @@ static int TmqhOutputFlowSetupCtxTest01(void)
     if (ctx == NULL)
         goto end;
 
-    TmqhFlowCtx *fctx = (TmqhFlowCtx *)ctx;
+    fctx = (TmqhFlowCtx *)ctx;
 
     if (fctx->size != 4)
         goto end;
@@ -414,6 +415,7 @@ static int TmqhOutputFlowSetupCtxTest02(void)
 {
     int retval = 0;
     Tmq *tmq = NULL;
+    TmqhFlowCtx *fctx = NULL;
 
     TmqResetQueues();
 
@@ -436,7 +438,7 @@ static int TmqhOutputFlowSetupCtxTest02(void)
     if (ctx == NULL)
         goto end;
 
-    TmqhFlowCtx *fctx = (TmqhFlowCtx *)ctx;
+    fctx = (TmqhFlowCtx *)ctx;
 
     if (fctx->size != 1)
         goto end;
@@ -458,6 +460,7 @@ end:
 static int TmqhOutputFlowSetupCtxTest03(void)
 {
     int retval = 0;
+    TmqhFlowCtx *fctx = NULL;
 
     TmqResetQueues();
 
@@ -467,7 +470,7 @@ static int TmqhOutputFlowSetupCtxTest03(void)
     if (ctx == NULL)
         goto end;
 
-    TmqhFlowCtx *fctx = (TmqhFlowCtx *)ctx;
+    fctx = (TmqhFlowCtx *)ctx;
 
     if (fctx->size != 4)
         goto end;
