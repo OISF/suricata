@@ -70,8 +70,7 @@
 #define SC_ATOMIC_DECL_AND_INIT(type, name) \
     type name ## _sc_atomic__ = 0; \
     SCSpinlock name ## _sc_lock__; \
-    SCSpinInit(&(name ## _sc_lock__), 0) \
-}
+    SCSpinInit(&(name ## _sc_lock__), 0)
 
 /**
  *  \brief Initialize the previously declared atomic variable and it's
