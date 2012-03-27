@@ -38,6 +38,8 @@
 #include "detect-tag.h"
 #include "detect-engine-threshold.h"
 
+#include "util-hash-lookup3.h"
+
 static Host *HostGetUsedHost(void);
 
 /** queue with spare hosts */
@@ -286,11 +288,11 @@ uint32_t HostGetKey(Address *a) {
     uint32_t key;
 
     if (a->family == AF_INET) {
-        key = (host_config.hash_rand + a->addr_data32[0]) % host_config.hash_size;
+        uint32_t hash = hashword(&a->addr_data32[0], 1, host_config.hash_rand);
+        key = hash % host_config.hash_size;
     } else if (a->family == AF_INET6) {
-        key = (host_config.hash_rand + a->addr_data32[0] + \
-               a->addr_data32[1] + a->addr_data32[2] + \
-               a->addr_data32[3]) % host_config.hash_size;
+        uint32_t hash = hashword(a->addr_data32, 4, host_config.hash_rand);
+        key = hash % host_config.hash_size;
     } else
         key = 0;
 
