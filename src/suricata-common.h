@@ -155,8 +155,10 @@
             #define __WORDSIZE LONG_BIT
         #endif
     #endif
+#endif
 
 /** Windows does not define __WORDSIZE, but it uses __X86__ */
+#ifndef __WORDSIZE
 	#if defined(__X86__) || defined(_X86_)
 		#define __WORDSIZE 32
 	#else
