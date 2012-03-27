@@ -175,7 +175,7 @@ void HostInitConfig(char quiet)
                 "Memcap: %"PRIu64", Hash table size %"PRIu64". Calculate "
                 "total hash size by multiplying \"host.hash-size\" with %"PRIuMAX", "
                 "which is the hash bucket size.", host_config.memcap, hash_size,
-                sizeof(HostHashRow));
+                (uintmax_t)sizeof(HostHashRow));
         exit(EXIT_FAILURE);
     }
     host_hash = SCCalloc(host_config.hash_size, sizeof(HostHashRow));

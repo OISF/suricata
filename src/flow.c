@@ -398,7 +398,7 @@ void FlowInitConfig(char quiet)
                 "Memcap: %"PRIu64", Hash table size %"PRIu64". Calculate "
                 "total hash size by multiplying \"flow.hash-size\" with %"PRIuMAX", "
                 "which is the hash bucket size.", flow_config.memcap, hash_size,
-                sizeof(FlowBucket));
+                (uintmax_t)sizeof(FlowBucket));
         exit(EXIT_FAILURE);
     }
     flow_hash = SCCalloc(flow_config.hash_size, sizeof(FlowBucket));
