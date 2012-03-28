@@ -52,6 +52,8 @@
 
 #define MODULE_NAME "LogHttpLog"
 
+#define OUTPUT_BUFFER_SIZE 65535
+
 TmEcode LogHttpLog (ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode LogHttpLogIPv4(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 TmEcode LogHttpLogIPv6(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
@@ -105,7 +107,23 @@ typedef struct LogHttpLogThread_ {
     LogHttpFileCtx *httplog_ctx;
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     uint32_t uri_cnt;
+
+    char *data;
+    uint16_t data_offset;
 } LogHttpLogThread;
+
+#define LogHttpBufferData(aft, ...) do {                             \
+        int cw = snprintf((aft)->data + (aft)->data_offset,          \
+                          OUTPUT_BUFFER_SIZE - (aft)->data_offset,   \
+                          __VA_ARGS__);                                 \
+        if (cw >= 0) {                                                  \
+            if ( ((aft)->data_offset + cw) >= OUTPUT_BUFFER_SIZE) {     \
+                (aft)->data_offset = OUTPUT_BUFFER_SIZE - 1;            \
+            } else {                                                    \
+                (aft)->data_offset += cw;                               \
+            }                                                           \
+        }                                                               \
+    } while (0)
 
 static void CreateTimeString (const struct timeval *ts, char *str, size_t size) {
     time_t time = ts->tv_sec;
@@ -117,9 +135,9 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
             t->tm_min, t->tm_sec, (uint32_t) ts->tv_usec);
 }
 
-static void LogHttpLogExtended(LogHttpFileCtx * hlog, htp_tx_t *tx)
+static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
 {
-    fprintf(hlog->file_ctx->fp, " [**] ");
+    LogHttpBufferData(aft, " [**] ");
 
     /* referer */
     htp_header_t *h_referer = NULL;
@@ -127,53 +145,65 @@ static void LogHttpLogExtended(LogHttpFileCtx * hlog, htp_tx_t *tx)
         h_referer = table_getc(tx->request_headers, "referer");
     }
     if (h_referer != NULL) {
-        PrintRawUriFp(hlog->file_ctx->fp,
-                (uint8_t *)bstr_ptr(h_referer->value),
-                bstr_len(h_referer->value));
+        char temp_buf[2048] = "";
+        PrintRawUriBuf(temp_buf, sizeof(temp_buf),
+                       (uint8_t *)bstr_ptr(h_referer->value),
+                       bstr_len(h_referer->value));
+        LogHttpBufferData(aft, "%s", temp_buf);
     } else {
-        fprintf(hlog->file_ctx->fp, "<no referer>");
+        LogHttpBufferData(aft, "<no referer>");
     }
-    fprintf(hlog->file_ctx->fp, " [**] ");
+    LogHttpBufferData(aft, " [**] ");
 
     /* method */
     if (tx->request_method != NULL) {
-        PrintRawUriFp(hlog->file_ctx->fp,
-                (uint8_t *)bstr_ptr(tx->request_method),
-                bstr_len(tx->request_method));
+        char temp_buf[2048] = "";
+        PrintRawUriBuf(temp_buf, sizeof(temp_buf),
+                       (uint8_t *)bstr_ptr(tx->request_method),
+                       bstr_len(tx->request_method));
+        LogHttpBufferData(aft, "%s", temp_buf);
     }
-    fprintf(hlog->file_ctx->fp, " [**] ");
+    LogHttpBufferData(aft, " [**] ");
 
     /* protocol */
     if (tx->request_protocol != NULL) {
-        PrintRawUriFp(hlog->file_ctx->fp,
-                (uint8_t *)bstr_ptr(tx->request_protocol),
-                bstr_len(tx->request_protocol));
+        char temp_buf[2048] = "";
+        PrintRawUriBuf(temp_buf, sizeof(temp_buf),
+                       (uint8_t *)bstr_ptr(tx->request_protocol),
+                       bstr_len(tx->request_protocol));
+        LogHttpBufferData(aft, "%s", temp_buf);
     } else {
-        fprintf(hlog->file_ctx->fp, "<no protocol>");
+        LogHttpBufferData(aft, "<no protocol>");
     }
-    fprintf(hlog->file_ctx->fp, " [**] ");
+    LogHttpBufferData(aft, " [**] ");
 
     /* response status */
     if (tx->response_status != NULL) {
-        PrintRawUriFp(hlog->file_ctx->fp,
-                (uint8_t *)bstr_ptr(tx->response_status),
-                bstr_len(tx->response_status));
+        char temp_buf[2048] = "";
+        PrintRawUriBuf(temp_buf, sizeof(temp_buf),
+                       (uint8_t *)bstr_ptr(tx->response_status),
+                       bstr_len(tx->response_status));
+        LogHttpBufferData(aft, "%s", temp_buf);
+
         /* Redirect? */
         if ((tx->response_status_number > 300) && ((tx->response_status_number) < 303)) {
             htp_header_t *h_location = table_getc(tx->response_headers, "location");
             if (h_location != NULL) {
-                fprintf(hlog->file_ctx->fp, " => ");
-                PrintRawUriFp(hlog->file_ctx->fp,
-                        (uint8_t *)bstr_ptr(h_location->value),
-                        bstr_len(h_location->value));
+                LogHttpBufferData(aft,  " => ");
+
+                char temp_buf[2048] = "";
+                PrintRawUriBuf(temp_buf, sizeof(temp_buf),
+                               (uint8_t *)bstr_ptr(h_location->value),
+                               bstr_len(h_location->value));
+                LogHttpBufferData(aft, "%s", temp_buf);
             }
         }
     } else {
-        fprintf(hlog->file_ctx->fp, "<no status>");
+        LogHttpBufferData(aft, "<no status>");
     }
 
     /* length */
-    fprintf(hlog->file_ctx->fp, " [**] %"PRIuMAX" bytes", (uintmax_t)tx->response_message_len);
+    LogHttpBufferData(aft, " [**] %"PRIuMAX" bytes", (uintmax_t)tx->response_message_len);
 }
 
 static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
@@ -269,32 +299,38 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
             continue;
         }
 
-        /* output now starting, so get output lock */
-        SCMutexLock(&hlog->file_ctx->fp_mutex);
-
         SCLogDebug("got a HTTP request and now logging !!");
+
+        /* reset */
+        aft->data[0] = '\0';
+        aft->data_offset = 0;
+
         /* time */
-        fprintf(hlog->file_ctx->fp, "%s ", timebuf);
+        LogHttpBufferData(aft, "%s", timebuf);
 
         /* hostname */
         if (tx->parsed_uri != NULL &&
                 tx->parsed_uri->hostname != NULL)
         {
-            PrintRawUriFp(hlog->file_ctx->fp,
-                    (uint8_t *)bstr_ptr(tx->parsed_uri->hostname),
-                    bstr_len(tx->parsed_uri->hostname));
+            char temp_buf[2048] = "";
+            PrintRawUriBuf(temp_buf, sizeof(temp_buf),
+                           (uint8_t *)bstr_ptr(tx->parsed_uri->hostname),
+                           bstr_len(tx->parsed_uri->hostname));
+            LogHttpBufferData(aft, "%s", temp_buf);
         } else {
-            fprintf(hlog->file_ctx->fp, "<hostname unknown>");
+            LogHttpBufferData(aft, "<hostname unknown>");
         }
-        fprintf(hlog->file_ctx->fp, " [**] ");
+        LogHttpBufferData(aft, " [**] ");
 
         /* uri */
         if (tx->request_uri != NULL) {
-            PrintRawUriFp(hlog->file_ctx->fp,
-                            (uint8_t *)bstr_ptr(tx->request_uri),
-                            bstr_len(tx->request_uri));
+            char temp_buf[2048] = "";
+            PrintRawUriBuf(temp_buf, sizeof(temp_buf),
+                           (uint8_t *)bstr_ptr(tx->request_uri),
+                           bstr_len(tx->request_uri));
+            LogHttpBufferData(aft, "%s", temp_buf);
         }
-        fprintf(hlog->file_ctx->fp, " [**] ");
+        LogHttpBufferData(aft, " [**] ");
 
         /* user agent */
         htp_header_t *h_user_agent = NULL;
@@ -302,21 +338,26 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
             h_user_agent = table_getc(tx->request_headers, "user-agent");
         }
         if (h_user_agent != NULL) {
-            PrintRawUriFp(hlog->file_ctx->fp,
+            char temp_buf[2048] = "";
+            PrintRawUriBuf(temp_buf, sizeof(temp_buf),
                             (uint8_t *)bstr_ptr(h_user_agent->value),
                             bstr_len(h_user_agent->value));
+            LogHttpBufferData(aft, "%s", temp_buf);
         } else {
-            fprintf(hlog->file_ctx->fp, "<useragent unknown>");
+            LogHttpBufferData(aft, "<useragent unknown>");
         }
         if (hlog->flags & LOG_HTTP_EXTENDED) {
-            LogHttpLogExtended(hlog, tx);
+            LogHttpLogExtended(aft, tx);
         }
 
         /* ip/tcp header info */
-        fprintf(hlog->file_ctx->fp, " [**] %s:%" PRIu16 " -> %s:%" PRIu16 "\n",
-                srcip, sp, dstip, dp);
+        LogHttpBufferData(aft, " [**] %s:%" PRIu16 " -> %s:%" PRIu16 "\n",
+                          srcip, sp, dstip, dp);
 
         aft->uri_cnt ++;
+
+        SCMutexLock(&hlog->file_ctx->fp_mutex);
+        fprintf(hlog->file_ctx->fp, "%s", aft->data);
         fflush(hlog->file_ctx->fp);
         SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 
@@ -374,6 +415,14 @@ TmEcode LogHttpLogThreadInit(ThreadVars *t, void *initdata, void **data)
         SCFree(aft);
         return TM_ECODE_FAILED;
     }
+
+    aft->data = SCMalloc(OUTPUT_BUFFER_SIZE);
+    if (aft->data == NULL) {
+        return TM_ECODE_FAILED;
+    }
+    aft->data[0] = '\0';
+    aft->data_offset = 0;
+
     /* Use the Ouptut Context (file pointer and mutex) */
     aft->httplog_ctx= ((OutputCtx *)initdata)->data;
 

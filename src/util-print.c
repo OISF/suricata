@@ -109,6 +109,39 @@ void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen)
     fprintf(fp, "%s", nbuf);
 }
 
+void PrintRawUriBuf(char *retbuf, uint32_t retbuflen, uint8_t *buf, uint32_t buflen)
+{
+    char temp[5] = "";
+    uint32_t u = 0;
+    uint32_t offset = 0;
+
+    for (u = 0; u < buflen; u++) {
+        if (isprint(buf[u]) && buf[u] != '\"') {
+            int cw = snprintf(retbuf + offset, retbuflen - offset, "%c",
+                              buf[u]);
+            if (cw >= 0) {
+                if ((offset + cw) >= retbuflen) {
+                    offset = retbuflen - 1;
+                } else {
+                    offset += cw;
+                }
+            }
+        } else {
+            int cw = snprintf(retbuf + offset, retbuflen - offset, "\\x%02X",
+                              buf[u]);
+            if (cw >= 0) {
+                if ((offset + cw) >= retbuflen) {
+                    offset = retbuflen - 1;
+                } else {
+                    offset += cw;
+                }
+            }
+        }
+    }
+
+    return;
+}
+
 void PrintRawDataFp(FILE *fp, uint8_t *buf, uint32_t buflen) {
     int ch = 0;
     uint32_t u = 0;
