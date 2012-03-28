@@ -1395,40 +1395,34 @@ void TmThreadKillThread(ThreadVars *tv)
     TmThreadsSetFlag(tv, THV_KILL);
     TmThreadsSetFlag(tv, THV_DEINIT);
 
-    if (tv->inq != NULL) {
-        /* signal the queue for the number of users */
+    /* to be sure, signal more */
+    int cnt = 0;
+    while (1) {
+        if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
+            SCLogDebug("signalled the thread %" PRId32 " times", cnt);
+            break;
+        }
+
+        cnt++;
+
         if (tv->InShutdownHandler != NULL) {
             tv->InShutdownHandler(tv);
         }
-        for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
-            if (tv->inq->q_type == 0)
-                SCCondSignal(&trans_q[tv->inq->id].cond_q);
-            else
-                SCCondSignal(&data_queues[tv->inq->id].cond_q);
-        }
-
-        /* to be sure, signal more */
-        int cnt = 0;
-        while (1) {
-            if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
-                SCLogDebug("signalled the thread %" PRId32 " times", cnt);
-                break;
-            }
-
-            cnt++;
-
-            if (tv->InShutdownHandler != NULL) {
-                tv->InShutdownHandler(tv);
-            }
+        if (tv->inq != NULL) {
             for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
                 if (tv->inq->q_type == 0)
                     SCCondSignal(&trans_q[tv->inq->id].cond_q);
                 else
                     SCCondSignal(&data_queues[tv->inq->id].cond_q);
             }
-            usleep(100);
+            SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
         }
-        SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
+
+        if (tv->cond != NULL ) {
+            pthread_cond_broadcast(tv->cond);
+        }
+
+        usleep(100);
     }
 
     if (tv->outctx != NULL) {
@@ -1438,20 +1432,6 @@ void TmThreadKillThread(ThreadVars *tv)
 
         if (tmqh->OutHandlerCtxFree != NULL) {
             tmqh->OutHandlerCtxFree(tv->outctx);
-        }
-    }
-
-    if (tv->cond != NULL ) {
-        int cnt = 0;
-        while (1) {
-            if (TmThreadsCheckFlag(tv, THV_CLOSED)) {
-                SCLogDebug("signalled the thread %" PRId32 " times", cnt);
-                break;
-            }
-
-            cnt++;
-            pthread_cond_broadcast(tv->cond);
-            usleep(100);
         }
     }
 
