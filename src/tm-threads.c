@@ -140,7 +140,7 @@ void *TmThreadsSlot1NoIn(void *td)
         if (r != TM_ECODE_OK) {
             EngineKill();
 
-            TmThreadsSetFlag(tv, THV_CLOSED);
+            TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
             pthread_exit((void *) -1);
         }
     }
@@ -190,6 +190,7 @@ void *TmThreadsSlot1NoIn(void *td)
         }
     } /* while (run) */
 
+    TmThreadsSetFlag(tv, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv, THV_DEINIT);
 
     if (s->SlotThreadExitPrintStats != NULL) {
@@ -230,7 +231,7 @@ void *TmThreadsSlot1NoOut(void *td)
         if (r != TM_ECODE_OK) {
             EngineKill();
 
-            TmThreadsSetFlag(tv, THV_CLOSED);
+            TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
             pthread_exit((void *) -1);
         }
     }
@@ -262,6 +263,7 @@ void *TmThreadsSlot1NoOut(void *td)
         }
     } /* while (run) */
 
+    TmThreadsSetFlag(tv, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv, THV_DEINIT);
 
     if (s->SlotThreadExitPrintStats != NULL) {
@@ -303,7 +305,7 @@ void *TmThreadsSlot1NoInOut(void *td)
         if (r != TM_ECODE_OK) {
             EngineKill();
 
-            TmThreadsSetFlag(tv, THV_CLOSED);
+            TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
             pthread_exit((void *) -1);
         }
     }
@@ -329,6 +331,7 @@ void *TmThreadsSlot1NoInOut(void *td)
         }
     } /* while (run) */
 
+    TmThreadsSetFlag(tv, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv, THV_DEINIT);
 
     if (s->SlotThreadExitPrintStats != NULL) {
@@ -371,7 +374,7 @@ void *TmThreadsSlot1(void *td)
         if (r != TM_ECODE_OK) {
             EngineKill();
 
-            TmThreadsSetFlag(tv, THV_CLOSED);
+            TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
             pthread_exit((void *) -1);
         }
     }
@@ -435,6 +438,7 @@ void *TmThreadsSlot1(void *td)
         }
     } /* while (run) */
 
+    TmThreadsSetFlag(tv, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv, THV_DEINIT);
 
     if (s->SlotThreadExitPrintStats != NULL) {
@@ -569,7 +573,7 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
                    s, s ? s->PktAcqLoop : NULL, tv->tmqh_in, tv->tmqh_out);
         EngineKill();
 
-        TmThreadsSetFlag(tv, THV_CLOSED);
+        TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
         pthread_exit((void *) -1);
     }
 
@@ -579,7 +583,7 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
             if (r != TM_ECODE_OK) {
                 EngineKill();
 
-                TmThreadsSetFlag(tv, THV_CLOSED);
+                TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
                 pthread_exit((void *) -1);
             }
         }
@@ -602,6 +606,7 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
     }
     SCPerfSyncCounters(tv, 0);
 
+    TmThreadsSetFlag(tv, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv, THV_DEINIT);
 
     for (slot = s; slot != NULL; slot = slot->slot_next) {
@@ -649,7 +654,7 @@ void *TmThreadsSlotVar(void *td)
     if (s == NULL || tv->tmqh_in == NULL || tv->tmqh_out == NULL) {
         EngineKill();
 
-        TmThreadsSetFlag(tv, THV_CLOSED);
+        TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
         pthread_exit((void *) -1);
     }
 
@@ -659,7 +664,7 @@ void *TmThreadsSlotVar(void *td)
             if (r != TM_ECODE_OK) {
                 EngineKill();
 
-                TmThreadsSetFlag(tv, THV_CLOSED);
+                TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
                 pthread_exit((void *) -1);
             }
         }
@@ -729,6 +734,7 @@ void *TmThreadsSlotVar(void *td)
     } /* while (run) */
     SCPerfSyncCounters(tv, 0);
 
+    TmThreadsSetFlag(tv, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv, THV_DEINIT);
 
     s = (TmSlot *)tv->tm_slots;
@@ -1447,6 +1453,13 @@ void TmThreadKillThread(ThreadVars *tv)
  */
 void TmThreadDisableReceiveThreads(void)
 {
+    /* value in seconds */
+#define THREAD_KILL_MAX_WAIT_TIME 60
+    /* value in microseconds */
+#define WAIT_TIME 100
+
+    double total_wait_time = 0;
+
     ThreadVars *tv = NULL;
 
     SCMutexLock(&tv_root_lock);
@@ -1471,6 +1484,17 @@ void TmThreadDisableReceiveThreads(void)
         /* we found our receive TV.  Send it a KILL signal.  This is all
          * we need to do to kill receive threads */
         TmThreadsSetFlag(tv, THV_KILL);
+
+        while (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
+            usleep(WAIT_TIME);
+            total_wait_time += WAIT_TIME / 1000000.0;
+            if (total_wait_time > THREAD_KILL_MAX_WAIT_TIME) {
+                SCLogError(SC_ERR_FATAL, "Engine unable to "
+                          "disable receive thread - \"%s\".  "
+                          "Killing engine", tv->name);
+                exit(EXIT_FAILURE);
+            }
+        }
 
         tv = tv->next;
     }

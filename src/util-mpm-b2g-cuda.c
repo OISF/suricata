@@ -2238,7 +2238,7 @@ void *CudaMpmB2gThreadsSlot1(void *td)
         if (r != TM_ECODE_OK) {
             EngineKill();
 
-            TmThreadsSetFlag(tv, THV_CLOSED);
+            TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
             pthread_exit((void *) -1);
         }
     }
@@ -2287,6 +2287,7 @@ void *CudaMpmB2gThreadsSlot1(void *td)
         }
     }
 
+    TmThreadsSetFlag(tv, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv, THV_DEINIT);
 
     if (s->SlotThreadExitPrintStats != NULL) {

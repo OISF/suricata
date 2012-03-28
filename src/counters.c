@@ -448,6 +448,7 @@ static void *SCPerfMgmtThread(void *arg)
     if (sc_perf_op_ctx == NULL) {
         SCLogError(SC_ERR_PERF_STATS_NOT_INIT, "Perf Counter API not init"
                    "SCPerfInitCounterApi() has to be called first");
+        TmThreadsSetFlag(tv_local, THV_CLOSED | THV_RUNNING_DONE);
         return NULL;
     }
 
@@ -469,6 +470,7 @@ static void *SCPerfMgmtThread(void *arg)
         }
     }
 
+    TmThreadsSetFlag(tv_local, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv_local, THV_DEINIT);
 
     TmThreadsSetFlag(tv_local, THV_CLOSED);
@@ -502,6 +504,7 @@ static void *SCPerfWakeupThread(void *arg)
     if (sc_perf_op_ctx == NULL) {
         SCLogError(SC_ERR_PERF_STATS_NOT_INIT, "Perf Counter API not init"
                    "SCPerfInitCounterApi() has to be called first");
+        TmThreadsSetFlag(tv_local, THV_CLOSED | THV_RUNNING_DONE);
         return NULL;
     }
 
@@ -555,6 +558,7 @@ static void *SCPerfWakeupThread(void *arg)
         }
     }
 
+    TmThreadsSetFlag(tv_local, THV_RUNNING_DONE);
     TmThreadWaitForFlag(tv_local, THV_DEINIT);
 
     TmThreadsSetFlag(tv_local, THV_CLOSED);

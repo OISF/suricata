@@ -532,6 +532,7 @@ void *FlowManagerThread(void *td)
         SCPerfSyncCountersIfSignalled(th_v, 0);
     }
 
+    TmThreadsSetFlag(th_v, THV_RUNNING_DONE);
     TmThreadWaitForFlag(th_v, THV_DEINIT);
 
     FlowHashDebugDeinit();
