@@ -269,17 +269,15 @@ static inline void NFQMutexInit(NFQQueueVars *nq)
         SCMutexInit(&nq->mutex_qh, NULL);
 }
 
-static inline void NFQMutexLock(NFQQueueVars *nq)
-{
-    if (nq->use_mutex)
-        SCMutexLock(&nq->mutex_qh);
-}
+#define NFQMutexLock(nq) do {           \
+    if ((nq)->use_mutex)                \
+        SCMutexLock(&(nq)->mutex_qh);   \
+} while (0)
 
-static inline void NFQMutexUnlock(NFQQueueVars *nq)
-{
-    if (nq->use_mutex)
-        SCMutexUnlock(&nq->mutex_qh);
-}
+#define NFQMutexUnlock(nq) do {         \
+    if ((nq)->use_mutex)                \
+        SCMutexUnlock(&(nq)->mutex_qh); \
+} while (0)
 
 
 int NFQSetupPkt (Packet *p, struct nfq_q_handle *qh, void *data)
