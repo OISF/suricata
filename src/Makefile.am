@@ -298,6 +298,8 @@ cuda-packet-batcher.c cuda-packet-batcher.h \
 util-ioctl.h util-ioctl.c \
 util-logopenfile.h util-logopenfile.c
 
+EXTRA_DIST = util-mpm-b2g-cuda-kernel.cu ptxdump.py
+
 # set the include path found by configure
 INCLUDES= $(all_includes)
 
