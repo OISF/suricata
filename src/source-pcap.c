@@ -472,17 +472,17 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    SCLogInfo("using interface %s", (char *)initdata);
-    if(strlen(initdata)>PCAP_IFACE_NAME_LENGTH) {
+    SCLogInfo("using interface %s", pcapconfig->iface);
+    if (strlen(pcapconfig->iface) > PCAP_IFACE_NAME_LENGTH) {
         SCFree(ptv);
         /* Dereference config */
         pcapconfig->DerefFunc(pcapconfig);
         SCReturnInt(TM_ECODE_FAILED);
     }
-    strlcpy(ptv->iface, (char *)initdata, PCAP_IFACE_NAME_LENGTH);
+    strlcpy(ptv->iface, pcapconfig->iface, PCAP_IFACE_NAME_LENGTH);
 
     char errbuf[PCAP_ERRBUF_SIZE] = "";
-    ptv->pcap_handle = pcap_open_live((char *)initdata, LIBPCAP_SNAPLEN,
+    ptv->pcap_handle = pcap_open_live(ptv->iface, LIBPCAP_SNAPLEN,
                                         LIBPCAP_PROMISC, LIBPCAP_COPYWAIT, errbuf);
     if (ptv->pcap_handle == NULL) {
         SCLogError(SC_ERR_PCAP_OPEN_LIVE, "Problem creating pcap handler for live mode, error %s", errbuf);
