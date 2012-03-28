@@ -38,13 +38,21 @@
  */
 void PrintRawLineHexFp(FILE *fp, uint8_t *buf, uint32_t buflen)
 {
-    char nbuf[2048] = "";
-    char temp[5] = "";
+#define BUFFER_LENGTH 2048
+    char nbuf[BUFFER_LENGTH] = "";
+    uint32_t offset = 0;
     uint32_t u = 0;
 
     for (u = 0; u < buflen; u++) {
-        snprintf(temp, sizeof(temp), "%02X ", buf[u]);
-        strlcat(nbuf, temp, sizeof(nbuf));
+        int cw = snprintf(nbuf + offset, BUFFER_LENGTH - offset, "%02X ",
+                          buf[u]);
+        if (cw >= 0) {
+            if ((offset + cw) >= BUFFER_LENGTH) {
+                offset = BUFFER_LENGTH - 1;
+            } else {
+                offset += cw;
+            }
+        }
     }
     fprintf(fp, "%s", nbuf);
 }
@@ -61,57 +69,101 @@ void PrintRawLineHexFp(FILE *fp, uint8_t *buf, uint32_t buflen)
  */
 void PrintRawLineHexBuf(char *retbuf, uint32_t retbuflen, uint8_t *buf, uint32_t buflen)
 {
-    char temp[5] = "";
+    uint32_t offset = 0;
     uint32_t u = 0;
-    uint32_t written = 0;
 
     for (u = 0; u < buflen; u++) {
-        written += (uint32_t)snprintf(temp, sizeof(temp), "%02X ", buf[u]);
-        if (written < retbuflen) {
-            strlcat(retbuf, temp, retbuflen);
+        int cw = snprintf(retbuf + offset, retbuflen - offset, "%02X ",
+                          buf[u]);
+        if (cw >= 0) {
+            if ((offset + cw) >= retbuflen) {
+                offset = retbuflen - 1;
+            } else {
+                offset += cw;
+            }
         }
     }
 }
 
 void PrintRawJsonFp(FILE *fp, uint8_t *buf, uint32_t buflen)
 {
-    char nbuf[2048] = "";
-    char temp[5] = "";
+#define BUFFER_LENGTH 2048
+    char nbuf[BUFFER_LENGTH] = "";
+    uint32_t offset = 0;
     uint32_t u = 0;
 
     for (u = 0; u < buflen; u++) {
         if (buf[u] == '\\' || buf[u] == '/' || buf[u] == '\"') {
-            snprintf(temp, sizeof(temp), "\\%c", buf[u]);
+            int cw = snprintf(nbuf + offset, BUFFER_LENGTH - offset, "\\%c",
+                              buf[u]);
+            if (cw >= 0) {
+                if ((offset + cw) >= BUFFER_LENGTH) {
+                    offset = BUFFER_LENGTH - 1;
+                } else {
+                    offset += cw;
+                }
+            }
         } else if (isprint(buf[u])) {
-            snprintf(temp, sizeof(temp), "%c", buf[u]);
+            int cw = snprintf(nbuf + offset, BUFFER_LENGTH - offset, "%c",
+                              buf[u]);
+            if (cw >= 0) {
+                if ((offset + cw) >= BUFFER_LENGTH) {
+                    offset = BUFFER_LENGTH - 1;
+                } else {
+                    offset += cw;
+                }
+            }
         } else {
-            snprintf(temp, sizeof(temp), "\\\\x%02X", buf[u]);
+            int cw = snprintf(nbuf + offset, BUFFER_LENGTH - offset, "\\\\x%02X",
+                              buf[u]);
+            if (cw >= 0) {
+                if ((offset + cw) >= BUFFER_LENGTH) {
+                    offset = BUFFER_LENGTH - 1;
+                } else {
+                    offset += cw;
+                }
+            }
         }
-        strlcat(nbuf, temp, sizeof(nbuf));
     }
     fprintf(fp, "%s", nbuf);
 }
 
 void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen)
 {
-    char nbuf[2048] = "";
-    char temp[5] = "";
+#define BUFFER_LENGTH 2048
+    char nbuf[BUFFER_LENGTH] = "";
+    uint32_t offset = 0;
     uint32_t u = 0;
 
     for (u = 0; u < buflen; u++) {
         if (isprint(buf[u]) && buf[u] != '\"') {
-            snprintf(temp, sizeof(temp), "%c", buf[u]);
+            int cw = snprintf(nbuf + offset, BUFFER_LENGTH - offset, "%c",
+                              buf[u]);
+            if (cw >= 0) {
+                if ((offset + cw) >= BUFFER_LENGTH) {
+                    offset = BUFFER_LENGTH - 1;
+                } else {
+                    offset += cw;
+                }
+            }
         } else {
-            snprintf(temp, sizeof(temp), "\\x%02X", buf[u]);
+            int cw = snprintf(nbuf + offset, BUFFER_LENGTH - offset, "\\x%02X",
+                              buf[u]);
+            if (cw >= 0) {
+                if ((offset + cw) >= BUFFER_LENGTH) {
+                    offset = BUFFER_LENGTH - 1;
+                } else {
+                    offset += cw;
+                }
+            }
         }
-        strlcat(nbuf, temp, sizeof(nbuf));
     }
+
     fprintf(fp, "%s", nbuf);
 }
 
 void PrintRawUriBuf(char *retbuf, uint32_t retbuflen, uint8_t *buf, uint32_t buflen)
 {
-    char temp[5] = "";
     uint32_t u = 0;
     uint32_t offset = 0;
 
