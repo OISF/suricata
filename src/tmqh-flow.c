@@ -47,8 +47,6 @@ void *TmqhOutputFlowSetupCtx(char *queue_str);
 void TmqhOutputFlowFreeCtx(void *ctx);
 void TmqhFlowRegisterTests(void);
 
-TmqhFlowCtx *tmqh_flow_outctx = NULL;
-
 void TmqhFlowRegister(void)
 {
     tmqh_table[TMQH_FLOW].name = "flow";
@@ -184,8 +182,6 @@ void *TmqhOutputFlowSetupCtx(char *queue_str)
         tstr = comma ? (comma + 1) : comma;
     } while (tstr != NULL);
 
-    tmqh_flow_outctx = ctx;
-
     SC_ATOMIC_INIT(ctx->round_robin_idx);
 
     SCFree(str);
@@ -204,7 +200,7 @@ void TmqhOutputFlowFreeCtx(void *ctx)
     TmqhFlowCtx *fctx = (TmqhFlowCtx *)ctx;
 
     SCLogInfo("AutoFP - Total flow handler queues - %" PRIu16,
-              tmqh_flow_outctx->size);
+              fctx->size);
     for (i = 0; i < fctx->size; i++) {
         SCLogInfo("AutoFP - Queue %-2"PRIu32 " - pkts: %-12"PRIu64" flows: %-12"PRIu64, i,
                 SC_ATOMIC_GET(fctx->queues[i].total_packets),
@@ -214,8 +210,6 @@ void TmqhOutputFlowFreeCtx(void *ctx)
     }
 
     SCFree(fctx->queues);
-
-    tmqh_flow_outctx = NULL;
 
     return;
 }
