@@ -52,14 +52,17 @@ typedef struct DagRecord_ {
 } __attribute__((packed)) DagRecord;
 
 typedef struct ErfFileThreadVars_ {
-    FILE *erf;
     ThreadVars *tv;
+    TmSlot *slot;
+
+    FILE *erf;
 
     uint32_t pkts;
     uint64_t bytes;
 } ErfFileThreadVars;
 
-TmEcode ReceiveErfFile(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+static inline TmEcode ReadErfRecord(ThreadVars *, Packet *, void *);
+TmEcode ReceiveErfFileLoop(ThreadVars *, void *, void *);
 TmEcode ReceiveErfFileThreadInit(ThreadVars *, void *, void **);
 void ReceiveErfFileThreadExitStats(ThreadVars *, void *);
 TmEcode ReceiveErfFileThreadDeinit(ThreadVars *, void *);
@@ -75,7 +78,8 @@ TmModuleReceiveErfFileRegister(void)
 {
     tmm_modules[TMM_RECEIVEERFFILE].name = "ReceiveErfFile";
     tmm_modules[TMM_RECEIVEERFFILE].ThreadInit = ReceiveErfFileThreadInit;
-    tmm_modules[TMM_RECEIVEERFFILE].Func = ReceiveErfFile;
+    tmm_modules[TMM_RECEIVEERFFILE].Func = NULL;
+    tmm_modules[TMM_RECEIVEERFFILE].PktAcqLoop = ReceiveErfFileLoop;
     tmm_modules[TMM_RECEIVEERFFILE].ThreadExitPrintStats =
         ReceiveErfFileThreadExitStats;
     tmm_modules[TMM_RECEIVEERFFILE].ThreadDeinit = NULL;
@@ -100,13 +104,51 @@ TmModuleDecodeErfFileRegister(void)
 }
 
 /**
- * \brief Thread entry function for ERF reading.
- *
- * Reads a new ERF record from the file and sets up the Packet for
- * decoding.
+ * \brief ERF file reading loop.
  */
-TmEcode
-ReceiveErfFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+TmEcode ReceiveErfFileLoop(ThreadVars *tv, void *data, void *slot)
+{
+    ErfFileThreadVars *etv = (ErfFileThreadVars *)data;
+    etv->slot = ((TmSlot *)slot)->slot_next;
+    Packet *p;
+    uint16_t packet_q_len = 0;
+
+    while (1) {
+        if (suricata_ctl_flags & SURICATA_STOP ||
+            suricata_ctl_flags & SURICATA_KILL) {
+            SCReturnInt(TM_ECODE_OK);
+        }
+
+        /* Make sure we have at least one packet in the packet pool,
+         * to prevent us from alloc'ing packets at line rate. */
+        do {
+            packet_q_len = PacketPoolSize();
+            if (unlikely(packet_q_len == 0)) {
+                PacketPoolWait();
+            }
+        } while (packet_q_len == 0);
+
+        p = PacketGetFromQueueOrAlloc();
+        if (unlikely(p == NULL)) {
+            SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate a packet.");
+            EngineStop();
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+
+        if (ReadErfRecord(tv, p, data) != TM_ECODE_OK) {
+            TmqhOutputPacketpool(etv->tv, p);
+            EngineStop();
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+
+        if (TmThreadsSlotProcessPkt(etv->tv, etv->slot, p) != TM_ECODE_OK) {
+            EngineStop();
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+    }
+}
+
+static inline TmEcode ReadErfRecord(ThreadVars *tv, Packet *p, void *data)
 {
     SCEnter();
 
@@ -115,16 +157,24 @@ ReceiveErfFile(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
 
     int r = fread(&dr, sizeof(DagRecord), 1, etv->erf);
     if (r < 1) {
-        SCLogInfo("End of ERF file reached or an error occurred.");
-        EngineStop();
+        if (feof(etv->erf)) {
+            SCLogInfo("End of ERF file reached");
+        }
+        else {
+            SCLogInfo("Error reading ERF record");
+        }
         SCReturnInt(TM_ECODE_FAILED);
     }
     int rlen = ntohs(dr.rlen);
     int wlen = ntohs(dr.wlen);
     r = fread(GET_PKT_DATA(p), rlen - sizeof(DagRecord), 1, etv->erf);
     if (r < 1) {
-        SCLogInfo("End of ERF file reached or an error occurred.");
-        EngineStop();
+        if (feof(etv->erf)) {
+            SCLogInfo("End of ERF file reached");
+        }
+        else {
+            SCLogInfo("Error reading ERF record");
+        }
         SCReturnInt(TM_ECODE_FAILED);
     }
 
