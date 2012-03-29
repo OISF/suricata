@@ -1689,8 +1689,11 @@ TmEcode B2gCudaMpmDispThreadInit(ThreadVars *tv, void *initdata, void **data)
     MpmCudaConf *profile = NULL;
     SCCudaHlModuleData *module_data = (SCCudaHlModuleData *)initdata;
 
-    if (PatternMatchDefaultMatcher() != MPM_B2G_CUDA)
-        return TM_ECODE_OK;
+    if (PatternMatchDefaultMatcher() != MPM_B2G_CUDA) {
+        SCLogError(SC_ERR_B2G_CUDA_ERROR, "b2g cuda mpm sees mpm that is "
+                   "not b2g_cuda");
+        exit(EXIT_FAILURE);
+    }
 
     if (SCCudaCtxPushCurrent(module_data->cuda_context) == -1) {
         SCLogError(SC_ERR_B2G_CUDA_ERROR, "Error pushing cuda context");

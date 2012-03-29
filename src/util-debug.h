@@ -192,7 +192,7 @@ extern int sc_log_module_cleaned;
 
 
 #define SCLog(x, ...)         do {                                       \
-                                  char _sc_log_msg[SC_LOG_MAX_LOG_MSG_LEN]; \
+                                  char _sc_log_msg[SC_LOG_MAX_LOG_MSG_LEN] = ""; \
                                   char *_sc_log_temp = _sc_log_msg;      \
                                   if ( !(                                \
                                       (sc_log_global_log_level >= x) &&  \
@@ -211,7 +211,7 @@ extern int sc_log_module_cleaned;
                               } while(0)
 
 #define SCLogErr(x, err, ...) do {                                       \
-                                  char _sc_log_err_msg[SC_LOG_MAX_LOG_MSG_LEN]; \
+                                  char _sc_log_err_msg[SC_LOG_MAX_LOG_MSG_LEN] = ""; \
                                   char *_sc_log_err_temp = _sc_log_err_msg; \
                                   if ( !(                                \
                                       (sc_log_global_log_level >= x) &&  \
@@ -360,7 +360,7 @@ extern int sc_log_module_cleaned;
                                                    __FUNCTION__) == SC_OK) {    \
                                       snprintf(_sc_enter_temp, (SC_LOG_MAX_LOG_MSG_LEN - \
                                                       (_sc_enter_msg - _sc_enter_temp)), \
-                                               "%s", "Entering ... >>");        \
+                                               "Entering ... >>");        \
                                       SCLogOutputBuffer(SC_LOG_DEBUG,           \
                                                         _sc_enter_msg);         \
                                   }                                             \
@@ -467,9 +467,12 @@ extern int sc_log_module_cleaned;
  */
 #define SCReturnCharPtr(x)    do {                                           \
                                   if (sc_log_global_log_level >= SC_LOG_DEBUG) { \
-                                      SCLogDebug("Returning: %s ... <<", x); \
-                                      SCLogCheckFDFilterExit(__FUNCTION__);  \
-                                  }                                          \
+                                      if ((x) != NULL) {                    \
+                                          SCLogDebug("Returning: %s ... <<", x); \
+                                      } else {                          \
+                                          SCLogDebug("Returning: NULL ... <<"); \
+                                      } SCLogCheckFDFilterExit(__FUNCTION__); \
+                                  }                                     \
                                  return x;                                   \
                               } while(0)
 

@@ -65,10 +65,10 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     } \
     \
     global_mem += (a); \
-    if (print_mem_flag == 1) \
+    if (print_mem_flag == 1) {                               \
         SCLogInfo("SCMalloc return at %p of size %"PRIuMAX, \
             ptrmem, (uintmax_t)(a)); \
-    \
+    }                                \
     (void*)ptrmem; \
 })
 
@@ -88,10 +88,10 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     } \
     \
     global_mem += (a); \
-    if (print_mem_flag == 1) \
+    if (print_mem_flag == 1) {                                         \
         SCLogInfo("SCRealloc return at %p (old:%p) of size %"PRIuMAX, \
             ptrmem, (x), (uintmax_t)(a)); \
-    \
+    }                                     \
     (void*)ptrmem; \
 })
 
@@ -111,10 +111,10 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     } \
     \
     global_mem += (a)*(nm); \
-    if (print_mem_flag == 1) \
+    if (print_mem_flag == 1) {                                          \
         SCLogInfo("SCCalloc return at %p of size %"PRIuMAX" (nm) %"PRIuMAX, \
             ptrmem, (uintmax_t)(a), (uintmax_t)(nm)); \
-    \
+    }                                                 \
     (void*)ptrmem; \
 })
 
@@ -135,17 +135,18 @@ SC_ATOMIC_EXTERN(unsigned int, engine_stage);
     } \
     \
     global_mem += len; \
-    if (print_mem_flag == 1) \
+    if (print_mem_flag == 1) {                              \
         SCLogInfo("SCStrdup return at %p of size %"PRIuMAX, \
             ptrmem, (uintmax_t)len); \
-    \
+    }                                \
     (void*)ptrmem; \
 })
 
 #define SCFree(a) ({ \
     extern uint8_t print_mem_flag; \
-    if (print_mem_flag == 1) \
+    if (print_mem_flag == 1) {          \
         SCLogInfo("SCFree at %p", (a)); \
+    }                                   \
     free((a)); \
 })
 

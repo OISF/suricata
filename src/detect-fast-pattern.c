@@ -11209,8 +11209,8 @@ int DetectFastPatternTest387(void)
 
     result = 0;
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSMDMATCH];
-    DetectContentData *ud = sm->ctx;
     if (sm != NULL) {
+        DetectContentData *ud = sm->ctx;
         if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
             ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
             !(ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
@@ -11245,8 +11245,8 @@ int DetectFastPatternTest388(void)
 
     result = 0;
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSMDMATCH];
-    DetectContentData *ud = sm->ctx;
     if (sm != NULL) {
+        DetectContentData *ud = sm->ctx;
         if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
             !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
             ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
@@ -12392,8 +12392,8 @@ int DetectFastPatternTest428(void)
 
     result = 0;
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSCDMATCH];
-    DetectContentData *ud = sm->ctx;
     if (sm != NULL) {
+        DetectContentData *ud = sm->ctx;
         if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
             ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
             !(ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
@@ -12428,8 +12428,8 @@ int DetectFastPatternTest429(void)
 
     result = 0;
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSCDMATCH];
-    DetectContentData *ud = sm->ctx;
     if (sm != NULL) {
+        DetectContentData *ud = sm->ctx;
         if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
             !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
             ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
@@ -13576,8 +13576,8 @@ int DetectFastPatternTest469(void)
 
     result = 0;
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSCDMATCH];
-    DetectContentData *ud = sm->ctx;
     if (sm != NULL) {
+        DetectContentData *ud = sm->ctx;
         if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
             ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
             !(ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
@@ -13612,8 +13612,8 @@ int DetectFastPatternTest470(void)
 
     result = 0;
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSCDMATCH];
-    DetectContentData *ud = sm->ctx;
     if (sm != NULL) {
+        DetectContentData *ud = sm->ctx;
         if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
             !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
             ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
