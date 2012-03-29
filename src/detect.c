@@ -6872,7 +6872,7 @@ int SigTest29NegativeTCPV6Keyword(void)
     if (p2 == NULL)
         return 0;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
 
     memset(&th_v, 0, sizeof(ThreadVars));
@@ -6947,7 +6947,8 @@ int SigTest29NegativeTCPV6Keyword(void)
 end:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
     SCFree(p1);
     SCFree(p2);
@@ -6994,7 +6995,7 @@ int SigTest30UDPV4Keyword(void)
     if (p2 == NULL)
         return 0;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 1;
 
     uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0yyyyyyyyyyyyyyyy\r\n"
@@ -7052,7 +7053,6 @@ int SigTest30UDPV4Keyword(void)
     }
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
@@ -7069,8 +7069,8 @@ int SigTest30UDPV4Keyword(void)
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     SCFree(p1);
@@ -7118,7 +7118,7 @@ int SigTest31NegativeUDPV4Keyword(void)
     if (p2 == NULL)
         return 0;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 1;
 
     uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0yyyyyyyyyyyyyyyy\r\n"
@@ -7175,7 +7175,6 @@ int SigTest31NegativeUDPV4Keyword(void)
     }
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
@@ -7193,8 +7192,8 @@ int SigTest31NegativeUDPV4Keyword(void)
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     SCFree(p1);
@@ -7236,7 +7235,7 @@ int SigTest32UDPV6Keyword(void)
     if (p2 == NULL)
         return 0;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 1;
 
     uint8_t *buf = (uint8_t *)"GET /one/ HTTP\r\n"
@@ -7293,7 +7292,6 @@ int SigTest32UDPV6Keyword(void)
     }
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
@@ -7310,8 +7308,8 @@ int SigTest32UDPV6Keyword(void)
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     SCFree(p1);
@@ -7352,7 +7350,7 @@ int SigTest33NegativeUDPV6Keyword(void)
     if (p2 == NULL)
         return 0;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 1;
 
     uint8_t *buf = (uint8_t *)"GET /one/ HTTP\r\n"
@@ -7409,7 +7407,6 @@ int SigTest33NegativeUDPV6Keyword(void)
     }
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
@@ -7426,8 +7423,8 @@ int SigTest33NegativeUDPV6Keyword(void)
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     SCFree(p1);
@@ -7470,7 +7467,7 @@ int SigTest34ICMPV4Keyword(void)
     if (p2 == NULL)
         return 0;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 1;
 
     uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
@@ -7546,7 +7543,8 @@ int SigTest34ICMPV4Keyword(void)
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     SCFree(p1);
@@ -7649,7 +7647,6 @@ int SigTest35NegativeICMPV4Keyword(void)
     }
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
@@ -7667,8 +7664,8 @@ int SigTest35NegativeICMPV4Keyword(void)
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     SCFree(p1);
@@ -7721,7 +7718,7 @@ int SigTest36ICMPV6Keyword(void)
     if (p2 == NULL)
         return 0;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 1;
 
     uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
@@ -7779,7 +7776,6 @@ int SigTest36ICMPV6Keyword(void)
     }
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
@@ -7796,8 +7792,8 @@ int SigTest36ICMPV6Keyword(void)
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     SCFree(p1);
@@ -7850,7 +7846,7 @@ int SigTest37NegativeICMPV6Keyword(void)
     if (p2 == NULL)
         return 0;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 1;
 
     uint8_t *buf = (uint8_t *)"GET /one/ HTTP/1.0\r\n"
@@ -7908,7 +7904,6 @@ int SigTest37NegativeICMPV6Keyword(void)
     }
 
     SigGroupBuild(de_ctx);
-    //PatternMatchPrepare(mpm_ctx, MPM_B2G);
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
@@ -7925,8 +7920,8 @@ int SigTest37NegativeICMPV6Keyword(void)
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
-    //PatternMatchDestroy(mpm_ctx);
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 end:
     SCFree(p1);
@@ -7940,7 +7935,7 @@ int SigTest38Real(int mpm_type)
     if (p1 == NULL)
         return 0;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 1;
     uint8_t raw_eth[] = {
         0x00, 0x00, 0x03, 0x04, 0x00, 0x06, 0x00,
@@ -8059,7 +8054,8 @@ cleanup:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
 
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
 end:
@@ -8082,7 +8078,7 @@ int SigTest39Real(int mpm_type)
     if (p1 == NULL)
         return 0;
     ThreadVars th_v;
-    DetectEngineThreadCtx *det_ctx;
+    DetectEngineThreadCtx *det_ctx = NULL;
     int result = 1;
     uint8_t raw_eth[] = {
         0x00, 0x00, 0x03, 0x04, 0x00, 0x06, 0x00,
@@ -8205,8 +8201,8 @@ int SigTest39Real(int mpm_type)
 cleanup:
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
-
-    DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
+    if (det_ctx != NULL)
+        DetectEngineThreadCtxDeinit(&th_v, (void *)det_ctx);
     DetectEngineCtxFree(de_ctx);
 
 end:

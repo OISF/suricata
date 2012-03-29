@@ -191,7 +191,7 @@ static inline DetectThresholdEntry *DetectThresholdEntryAlloc(DetectThresholdDat
 
 static DetectThresholdEntry *ThresholdHostLookupEntry(Host *h, uint32_t sid, uint32_t gid)
 {
-    DetectThresholdEntry *e = h->threshold;
+    DetectThresholdEntry *e;
 
     for (e = h->threshold; e != NULL; e = e->next) {
         if (e->sid == sid && e->gid == gid)

@@ -1746,6 +1746,7 @@ static int Unified2TestRotate01(void)
     OutputCtx *oc;
     LogFileCtx *lf;
     void *data = NULL;
+    char *filename = NULL;
 
     oc = Unified2AlertInitCtx(NULL);
     if (oc == NULL)
@@ -1753,7 +1754,9 @@ static int Unified2TestRotate01(void)
     lf = (LogFileCtx *)oc->data;
     if (lf == NULL)
         return 0;
-    char *filename = SCStrdup(lf->filename);
+    filename = SCStrdup(lf->filename);
+    if (filename == NULL)
+        return 0;
 
     memset(&tv, 0, sizeof(ThreadVars));
 
