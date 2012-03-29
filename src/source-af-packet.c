@@ -391,13 +391,17 @@ int AFPReadFromRing(AFPThreadVars *ptv)
     }
 
     p->datalink = ptv->datalink;
+    if (h.h2->tp_len > h.h2->tp_snaplen) {
+        SCLogDebug("Packet length (%d) > snaplen (%d), truncating",
+                   h.h2->tp_len, h.h2->tp_snaplen);
+    }
     if (ptv->flags & AFP_ZERO_COPY) {
-        if (PacketSetData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_len) == -1) {
+        if (PacketSetData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
             TmqhOutputPacketpool(ptv->tv, p);
             SCReturnInt(AFP_FAILURE);
         }
     } else {
-        if (PacketCopyData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_len) == -1) {
+        if (PacketCopyData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
             TmqhOutputPacketpool(ptv->tv, p);
             SCReturnInt(AFP_FAILURE);
         }
@@ -641,7 +645,7 @@ frame size: TPACKET_ALIGN(snaplen + TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + siz
         return -1;
     }
     ptv->req.tp_frame_nr = max_pending_packets; /* Warrior mode */
-    ptv->req.tp_block_nr = ptv->req.tp_frame_nr / frames_per_block;
+    ptv->req.tp_block_nr = ptv->req.tp_frame_nr / frames_per_block + 1;
     /* exact division */
     ptv->req.tp_frame_nr = ptv->req.tp_block_nr * frames_per_block;
     SCLogInfo("AF_PACKET RX Ring params: block_size=%d block_nr=%d frame_size=%d frame_nr=%d",
