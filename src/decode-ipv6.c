@@ -309,6 +309,19 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 /* set the header ptr first */
                 IPV6_EXTHDR_SET_FH(p, pkt);
 
+                /* if FH has offset 0 and no more fragments are coming, we
+                 * parse this packet further right away, no defrag will be
+                 * needed. It is a useless FH then though, so we do set an
+                 * decoder event. */
+                if (IPV6_EXTHDR_GET_FH_FLAG(p) == 0 && IPV6_EXTHDR_GET_FH_OFFSET(p) == 0) {
+                    ENGINE_SET_EVENT(p, IPV6_EXTHDR_USELESS_FH);
+
+                    nh = *pkt;
+                    pkt += hdrextlen;
+                    plen -= hdrextlen;
+                    break;
+                }
+
                 /* the rest is parsed upon reassembly */
                 SCReturn;
 

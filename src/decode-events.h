@@ -61,6 +61,7 @@ enum {
     IPV6_TRUNC_PKT,                 /**< truncated ipv6 packet */
     IPV6_TRUNC_EXTHDR,              /**< truncated ipv6 extension header */
     IPV6_EXTHDR_DUPL_FH,            /**< duplicated "fragment" header in ipv6 extension headers */
+    IPV6_EXTHDR_USELESS_FH,         /**< useless FH: offset 0 + no more fragments */
     IPV6_EXTHDR_DUPL_RH,            /**< duplicated "routing" header in ipv6 extension headers */
     IPV6_EXTHDR_DUPL_HH,            /**< duplicated "hop-by-hop" header in ipv6 extension headers */
     IPV6_EXTHDR_DUPL_DH,            /**< duplicated "destination" header in ipv6 extension headers */

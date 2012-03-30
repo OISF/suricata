@@ -56,6 +56,7 @@ struct DetectEngineEvents_ {
     { "ipv6.trunc_pkt", IPV6_TRUNC_PKT, },
     { "ipv6.trunc_exthdr", IPV6_TRUNC_EXTHDR, },
     { "ipv6.exthdr_dupl_fh", IPV6_EXTHDR_DUPL_FH, },
+    { "ipv6.exthdr_useless_fh", IPV6_EXTHDR_USELESS_FH, },
     { "ipv6.exthdr_dupl_rh", IPV6_EXTHDR_DUPL_RH, },
     { "ipv6.exthdr_dupl_hh", IPV6_EXTHDR_DUPL_HH, },
     { "ipv6.exthdr_dupl_dh", IPV6_EXTHDR_DUPL_DH, },

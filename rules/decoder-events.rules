@@ -16,6 +16,7 @@ alert pkthdr any any -> any any (msg:"SURICATA IPv6 packet too small"; decode-ev
 alert pkthdr any any -> any any (msg:"SURICATA IPv6 truncated packet"; decode-event:ipv6.trunc_pkt; sid:2200013; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv6 truncated extension header"; decode-event:ipv6.trunc_exthdr; sid:2200014; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv6 duplicated Fragment extension header"; decode-event:ipv6.exthdr_dupl_fh; sid:2200015; rev:1;)
+alert pkthdr any any -> any any (msg:"SURICATA IPv6 useless Fragment extension header"; decode-event:ipv6.exthdr_useless_fh; sid:2200080; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv6 duplicated Routing extension header"; decode-event:ipv6.exthdr_dupl_rh; sid:2200016; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv6 duplicated Hop-By-Hop Options extension header"; decode-event:ipv6.exthdr_dupl_hh; sid:2200017; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv6 duplicated Destination Options extension header"; decode-event:ipv6.exthdr_dupl_dh; sid:2200018; rev:1;)
@@ -82,3 +83,6 @@ alert icmp any any -> any any (msg:"SURICATA ICMPv4 invalid checksum"; icmpv4-cs
 alert tcp any any -> any any (msg:"SURICATA TCPv6 invalid checksum"; tcpv6-csum:invalid; sid:2200077; rev:1;)
 alert udp any any -> any any (msg:"SURICATA UDPv6 invalid checksum"; udpv6-csum:invalid; sid:2200078; rev:1;)
 alert icmp any any -> any any (msg:"SURICATA ICMPv6 invalid checksum"; icmpv6-csum:invalid; sid:2200079; rev:1;)
+
+# next sid is 2200081
+
