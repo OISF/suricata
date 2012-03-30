@@ -26,9 +26,23 @@
 #ifndef __UTIL_PRINT_H__
 #define __UTIL_PRINT_H__
 
+#define PrintBufferData(buf, buf_offset_ptr, buf_size, ...) do {         \
+        int cw = snprintf((buf) + *(buf_offset_ptr),                    \
+                          (buf_size) - *(buf_offset_ptr),                \
+                          __VA_ARGS__);                                 \
+        if (cw >= 0) {                                                  \
+            if ( (*(buf_offset_ptr) + cw) >= buf_size) {                \
+                *(buf_offset_ptr) = buf_size - 1;                       \
+            } else {                                                    \
+                *(buf_offset_ptr) += cw;                                \
+            }                                                           \
+        }                                                               \
+    } while (0)
+
 void PrintRawLineHexFp(FILE *, uint8_t *, uint32_t);
 void PrintRawUriFp(FILE *, uint8_t *, uint32_t);
-void PrintRawUriBuf(char *, uint32_t, uint8_t *, uint32_t);
+void PrintRawUriBuf(char *, uint32_t *, uint32_t,
+                    uint8_t *, uint32_t);
 void PrintRawJsonFp(FILE *, uint8_t *, uint32_t);
 void PrintRawDataFp(FILE *, uint8_t *, uint32_t);
 void PrintRawLineHexBuf(char *, uint32_t, uint8_t *, uint32_t );
