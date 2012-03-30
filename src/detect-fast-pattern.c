@@ -11207,19 +11207,19 @@ int DetectFastPatternTest387(void)
     if (de_ctx->sig_list == NULL)
         goto end;
 
-    result = 0;
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSMDMATCH];
-    if (sm != NULL) {
-        DetectContentData *ud = sm->ctx;
-        if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+    if (sm == NULL) {
+        goto end;
+    }
+    DetectContentData *ud = sm->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
             ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
             !(ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
             ud->fp_chop_offset == 0 &&
             ud->fp_chop_len == 0) {
-            result = 1;
-        } else {
-            result = 0;
-        }
+        result = 1;
+    } else {
+        result = 0;
     }
 
  end:
@@ -11243,19 +11243,20 @@ int DetectFastPatternTest388(void)
     if (de_ctx->sig_list == NULL)
         goto end;
 
-    result = 0;
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSMDMATCH];
-    if (sm != NULL) {
-        DetectContentData *ud = sm->ctx;
-        if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+    if (sm == NULL) {
+        goto end;
+    }
+
+    DetectContentData *ud = sm->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
             !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
             ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
             ud->fp_chop_offset == 3 &&
             ud->fp_chop_len == 4) {
-            result = 1;
-        } else {
-            result = 0;
-        }
+        result = 1;
+    } else {
+        result = 0;
     }
 
  end:
@@ -12249,26 +12250,6 @@ int DetectFastPatternTest424(void)
     return result;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 int DetectFastPatternTest425(void)
 {
     DetectEngineCtx *de_ctx = NULL;
@@ -12390,19 +12371,20 @@ int DetectFastPatternTest428(void)
     if (de_ctx->sig_list == NULL)
         goto end;
 
-    result = 0;
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSCDMATCH];
-    if (sm != NULL) {
-        DetectContentData *ud = sm->ctx;
-        if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+    if (sm == NULL) {
+        goto end;
+    }
+
+    DetectContentData *ud = sm->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
             ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
             !(ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
             ud->fp_chop_offset == 0 &&
             ud->fp_chop_len == 0) {
-            result = 1;
-        } else {
-            result = 0;
-        }
+        result = 1;
+    } else {
+        result = 0;
     }
 
  end:
@@ -12426,19 +12408,20 @@ int DetectFastPatternTest429(void)
     if (de_ctx->sig_list == NULL)
         goto end;
 
-    result = 0;
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSCDMATCH];
-    if (sm != NULL) {
-        DetectContentData *ud = sm->ctx;
-        if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+    if (sm == NULL) {
+        goto end;
+    }
+
+    DetectContentData *ud = sm->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
             !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
             ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
             ud->fp_chop_offset == 3 &&
             ud->fp_chop_len == 4) {
-            result = 1;
-        } else {
-            result = 0;
-        }
+        result = 1;
+    } else {
+        result = 0;
     }
 
  end:
@@ -13432,27 +13415,6 @@ int DetectFastPatternTest465(void)
     return result;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 int DetectFastPatternTest466(void)
 {
     DetectEngineCtx *de_ctx = NULL;
@@ -13574,19 +13536,19 @@ int DetectFastPatternTest469(void)
     if (de_ctx->sig_list == NULL)
         goto end;
 
-    result = 0;
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSCDMATCH];
-    if (sm != NULL) {
-        DetectContentData *ud = sm->ctx;
-        if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+    if (sm == NULL) {
+        goto end;
+    }
+    DetectContentData *ud = sm->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
             ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
             !(ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
             ud->fp_chop_offset == 0 &&
             ud->fp_chop_len == 0) {
-            result = 1;
-        } else {
-            result = 0;
-        }
+        result = 1;
+    } else {
+        result = 0;
     }
 
  end:
@@ -13610,19 +13572,20 @@ int DetectFastPatternTest470(void)
     if (de_ctx->sig_list == NULL)
         goto end;
 
-    result = 0;
     sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HSCDMATCH];
-    if (sm != NULL) {
-        DetectContentData *ud = sm->ctx;
-        if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+    if (sm == NULL) {
+        goto end;
+    }
+
+    DetectContentData *ud = sm->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
             !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
             ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
             ud->fp_chop_offset == 3 &&
             ud->fp_chop_len == 4) {
-            result = 1;
-        } else {
-            result = 0;
-        }
+        result = 1;
+    } else {
+        result = 0;
     }
 
  end:

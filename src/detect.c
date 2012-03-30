@@ -6293,8 +6293,10 @@ int SigTest24IPV4Keyword(void)
     if (p1 == NULL)
         return 0;
     Packet *p2 = SCMalloc(SIZE_OF_PACKET);
-    if (p2 == NULL)
+    if (p2 == NULL) {
+        SCFree(p1);
         return 0;
+    }
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
@@ -6397,8 +6399,10 @@ int SigTest25NegativeIPV4Keyword(void)
     if (p1 == NULL)
         return 0;
     Packet *p2 = SCMalloc(SIZE_OF_PACKET);
-    if (p2 == NULL)
+    if (p2 == NULL) {
+        SCFree(p1);
         return 0;
+    }
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 1;
@@ -6508,8 +6512,10 @@ int SigTest26TCPV4Keyword(void)
         return 0;
 
     Packet *p2 = SCMalloc(SIZE_OF_PACKET);
-    if (p2 == NULL)
+    if (p2 == NULL) {
+        SCFree(p1);
         return 0;
+    }
 
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
@@ -6621,8 +6627,10 @@ int SigTest27NegativeTCPV4Keyword(void)
     if (p1 == NULL)
         return 0;
     Packet *p2 = SCMalloc(SIZE_OF_PACKET);
-    if (p2 == NULL)
+    if (p2 == NULL) {
+        SCFree(p1);
         return 0;
+    }
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
@@ -6745,8 +6753,10 @@ int SigTest28TCPV6Keyword(void)
     if (p1 == NULL)
         return 0;
     Packet *p2 = SCMalloc(SIZE_OF_PACKET);
-    if (p2 == NULL)
+    if (p2 == NULL) {
+        SCFree(p1);
         return 0;
+    }
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 0;
@@ -6869,8 +6879,10 @@ int SigTest29NegativeTCPV6Keyword(void)
     if (p1 == NULL)
         return 0;
     Packet *p2 = SCMalloc(SIZE_OF_PACKET);
-    if (p2 == NULL)
+    if (p2 == NULL) {
+        SCFree(p1);
         return 0;
+    }
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 0;
@@ -6992,8 +7004,10 @@ int SigTest30UDPV4Keyword(void)
     if (p1 == NULL)
         return 0;
     Packet *p2 = SCMalloc(SIZE_OF_PACKET);
-    if (p2 == NULL)
+    if (p2 == NULL) {
+        SCFree(p1);
         return 0;
+    }
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 1;
@@ -7115,8 +7129,10 @@ int SigTest31NegativeUDPV4Keyword(void)
     if (p1 == NULL)
         return 0;
     Packet *p2 = SCMalloc(SIZE_OF_PACKET);
-    if (p2 == NULL)
+    if (p2 == NULL) {
+        SCFree(p1);
         return 0;
+    }
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 1;
@@ -7232,8 +7248,10 @@ int SigTest32UDPV6Keyword(void)
     if (p1 == NULL)
         return 0;
     Packet *p2 = SCMalloc(SIZE_OF_PACKET);
-    if (p2 == NULL)
+    if (p2 == NULL) {
+        SCFree(p1);
         return 0;
+    }
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 1;
@@ -7347,8 +7365,10 @@ int SigTest33NegativeUDPV6Keyword(void)
     if (p1 == NULL)
         return 0;
     Packet *p2 = SCMalloc(SIZE_OF_PACKET);
-    if (p2 == NULL)
+    if (p2 == NULL) {
+        SCFree(p1);
         return 0;
+    }
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 1;
@@ -7464,8 +7484,10 @@ int SigTest34ICMPV4Keyword(void)
     if (p1 == NULL)
         return 0;
     Packet *p2 = SCMalloc(SIZE_OF_PACKET);
-    if (p2 == NULL)
+    if (p2 == NULL) {
+        SCFree(p1);
         return 0;
+    }
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 1;
@@ -7584,8 +7606,10 @@ int SigTest35NegativeICMPV4Keyword(void)
     if (p1 == NULL)
         return 0;
     Packet *p2 = SCMalloc(SIZE_OF_PACKET);
-    if (p2 == NULL)
+    if (p2 == NULL) {
+        SCFree(p1);
         return 0;
+    }
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx;
     int result = 1;
@@ -7715,8 +7739,10 @@ int SigTest36ICMPV6Keyword(void)
     if (p1 == NULL)
         return 0;
     Packet *p2 = SCMalloc(SIZE_OF_PACKET);
-    if (p2 == NULL)
+    if (p2 == NULL) {
+        SCFree(p1);
         return 0;
+    }
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 1;
@@ -7843,8 +7869,10 @@ int SigTest37NegativeICMPV6Keyword(void)
     if (p1 == NULL)
         return 0;
     Packet *p2 = SCMalloc(SIZE_OF_PACKET);
-    if (p2 == NULL)
+    if (p2 == NULL) {
+        SCFree(p1);
         return 0;
+    }
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
     int result = 1;

@@ -402,6 +402,9 @@ static int DetectDceIfaceTestParse01(void)
     SCEnter();
 
     Signature *s = SigAlloc();
+    if (s == NULL)
+        return 0;
+
     int result = 0;
     DetectDceIfaceData *did = NULL;
     uint8_t test_uuid[] = {0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34,
@@ -442,6 +445,9 @@ static int DetectDceIfaceTestParse02(void)
     SCEnter();
 
     Signature *s = SigAlloc();
+    if (s == NULL)
+        return 0;
+
     int result = 0;
     DetectDceIfaceData *did = NULL;
     uint8_t test_uuid[] = {0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34,
@@ -482,6 +488,9 @@ static int DetectDceIfaceTestParse03(void)
     SCEnter();
 
     Signature *s = SigAlloc();
+    if (s == NULL)
+        return 0;
+
     int result = 0;
     DetectDceIfaceData *did = NULL;
     uint8_t test_uuid[] = {0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34,
@@ -518,6 +527,9 @@ static int DetectDceIfaceTestParse04(void)
     SCEnter();
 
     Signature *s = SigAlloc();
+    if (s == NULL)
+        return 0;
+
     int result = 0;
     DetectDceIfaceData *did = NULL;
     uint8_t test_uuid[] = {0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34,
@@ -598,6 +610,9 @@ static int DetectDceIfaceTestParse06(void)
     SCEnter();
 
     Signature *s = SigAlloc();
+    if (s == NULL)
+        return 0;
+
     int result = 0;
     DetectDceIfaceData *did = NULL;
     uint8_t test_uuid[] = {0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34,
@@ -638,6 +653,9 @@ static int DetectDceIfaceTestParse07(void)
     SCEnter();
 
     Signature *s = SigAlloc();
+    if (s == NULL)
+        return 0;
+
     int result = 0;
     DetectDceIfaceData *did = NULL;
     uint8_t test_uuid[] = {0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34,
@@ -676,6 +694,9 @@ static int DetectDceIfaceTestParse07(void)
 static int DetectDceIfaceTestParse08(void)
 {
     Signature *s = SigAlloc();
+    if (s == NULL)
+        return 0;
+
     int result = 0;
     DetectDceIfaceData *did = NULL;
     uint8_t test_uuid[] = {0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34,
@@ -716,6 +737,9 @@ static int DetectDceIfaceTestParse09(void)
     SCEnter();
 
     Signature *s = SigAlloc();
+    if (s == NULL)
+        return 0;
+
     int result = 0;
     DetectDceIfaceData *did = NULL;
     uint8_t test_uuid[] = {0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34,
@@ -752,6 +776,9 @@ static int DetectDceIfaceTestParse10(void)
     SCEnter();
 
     Signature *s = SigAlloc();
+    if (s == NULL)
+        return 0;
+
     int result = 0;
     DetectDceIfaceData *did = NULL;
     uint8_t test_uuid[] = {0x12, 0x34, 0x56, 0x78, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34,
@@ -792,6 +819,9 @@ static int DetectDceIfaceTestParse11(void)
     SCEnter();
 
     Signature *s = SigAlloc();
+    if (s == NULL)
+        return 0;
+
     int result = 1;
 
     result &= (DetectDceIfaceSetup(NULL, s, "12345678-1234-1234-1234-123456789ABC,>1,ay_frag") == -1);

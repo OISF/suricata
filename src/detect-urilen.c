@@ -289,10 +289,8 @@ DetectUrilenData *DetectUrilenParse (char *urilenstr)
         }
     }
 
-    if (arg1 != NULL)
-        pcre_free_substring(arg1);
-    if (arg2 != NULL)
-        pcre_free_substring(arg2);
+    pcre_free_substring(arg1);
+    pcre_free_substring(arg2);
     if (arg3 != NULL)
         pcre_free_substring(arg3);
     if (arg4 != NULL)

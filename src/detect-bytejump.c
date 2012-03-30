@@ -874,6 +874,9 @@ int DetectBytejumpTestParse08(void) {
  */
 int DetectBytejumpTestParse09(void) {
     Signature *s = SigAlloc();
+    if (s == NULL)
+        return 0;
+
     int result = 1;
 
     s->alproto = ALPROTO_DCERPC;

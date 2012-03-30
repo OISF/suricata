@@ -4176,8 +4176,10 @@ int SCRadixTestIPV4NetblockInsertion26(void)
 
     str = SCStrdup("Hello1");
     bzero(&servaddr, sizeof(servaddr));
-    if (inet_pton(AF_INET, "0.0.0.0", &servaddr.sin_addr) <= 0)
+    if (inet_pton(AF_INET, "0.0.0.0", &servaddr.sin_addr) <= 0) {
+        SCFree(str);
         return 0;
+    }
     tmp = SCRadixAddKeyIPV4Netblock((uint8_t *)&servaddr.sin_addr, tree, str, 7);
     if (!tmp) {
         printf("Not inserted correctly 3 :");

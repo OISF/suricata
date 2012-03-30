@@ -1041,6 +1041,9 @@ int DetectContentParseTest18(void)
     SigFree(s);
 
     s = SigAlloc();
+    if (s == NULL)
+        return 0;
+
     result &= (DetectContentSetup(de_ctx, s, "\"one\"") == 0);
     result &= (s->sm_lists[DETECT_SM_LIST_DMATCH] == NULL && s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL);
 

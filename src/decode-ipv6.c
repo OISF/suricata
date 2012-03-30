@@ -637,8 +637,10 @@ static int DecodeIPV6FragTest01 (void)   {
     if (p1 == NULL)
         return 0;
     Packet *p2 = SCMalloc(SIZE_OF_PACKET);
-    if (p2 == NULL)
+    if (p2 == NULL) {
+        SCFree(p1);
         return 0;
+    }
     ThreadVars tv;
     DecodeThreadVars dtv;
     int result = 0;

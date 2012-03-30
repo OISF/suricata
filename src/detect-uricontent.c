@@ -389,25 +389,18 @@ static int HTTPUriTest01(void) {
     if (tx->request_method_number != M_GET ||
             tx->request_protocol_number != HTTP_1_1)
     {
-        printf("expected method GET and got %s: , expected protocol "
-                "HTTP/1.1 and got %s \n", bstr_tocstr(tx->request_method),
-                bstr_tocstr(tx->request_protocol));
         goto end;
     }
 
     if ((tx->parsed_uri->hostname == NULL) ||
             (bstr_cmpc(tx->parsed_uri->hostname, "www.example.com") != 0))
     {
-        printf("expected www.example.com as hostname, but got: %s \n",
-                bstr_tocstr(tx->parsed_uri->hostname));
         goto end;
     }
 
     if ((tx->parsed_uri->path == NULL) ||
             (bstr_cmpc(tx->parsed_uri->path, "/images.gif") != 0))
     {
-        printf("expected /images.gif as path, but got: %s \n",
-                bstr_tocstr(tx->parsed_uri->path));
         goto end;
     }
 
@@ -456,25 +449,18 @@ static int HTTPUriTest02(void) {
     if (tx->request_method_number != M_GET ||
             tx->request_protocol_number != HTTP_1_1)
     {
-        printf("expected method GET and got %s: , expected protocol "
-                "HTTP/1.1 and got %s \n", bstr_tocstr(tx->request_method),
-                bstr_tocstr(tx->request_protocol));
         goto end;
     }
 
     if ((tx->parsed_uri->hostname == NULL) ||
             (bstr_cmpc(tx->parsed_uri->hostname, "www.example.com") != 0))
     {
-        printf("expected www.example.com as hostname, but got: %s \n",
-                bstr_tocstr(tx->parsed_uri->hostname));
         goto end;
     }
 
     if ((tx->parsed_uri->path == NULL) ||
             (bstr_cmpc(tx->parsed_uri->path, "/images.gif") != 0))
     {
-        printf("expected /images.gif as path, but got: %s \n",
-                bstr_tocstr(tx->parsed_uri->path));
         goto end;
     }
 
@@ -525,25 +511,18 @@ static int HTTPUriTest03(void) {
     if (tx->request_method_number != M_UNKNOWN ||
             tx->request_protocol_number != HTTP_1_1)
     {
-        printf("expected method GET and got %s: , expected protocol "
-                "HTTP/1.1 and got %s \n", bstr_tocstr(tx->request_method),
-                bstr_tocstr(tx->request_protocol));
         goto end;
     }
 
    if ((tx->parsed_uri->hostname == NULL) ||
             (bstr_cmpc(tx->parsed_uri->hostname, "www.example.com") != 0))
     {
-        printf("expected www.example.com as hostname, but got: %s \n",
-                bstr_tocstr(tx->parsed_uri->hostname));
         goto end;
     }
 
     if ((tx->parsed_uri->path == NULL) ||
             (bstr_cmpc(tx->parsed_uri->path, "/images.gif") != 0))
     {
-        printf("expected /images.gif as path, but got: %s \n",
-                bstr_tocstr(tx->parsed_uri->path));
         goto end;
     }
 
@@ -587,7 +566,6 @@ static int HTTPUriTest04(void) {
     htp_state = f.alstate;
     if (htp_state == NULL) {
         printf("no http state: ");
-        result = 0;
         goto end;
     }
 
@@ -596,28 +574,18 @@ static int HTTPUriTest04(void) {
     if (tx->request_method_number != M_GET ||
             tx->request_protocol_number != HTTP_1_1)
     {
-        printf("expected method GET and got %s: , expected protocol "
-                "HTTP/1.1 and got %s \n", bstr_tocstr(tx->request_method),
-                bstr_tocstr(tx->request_protocol));
-        result = 0;
         goto end;
     }
 
     if ((tx->parsed_uri->hostname == NULL) ||
             (bstr_cmpc(tx->parsed_uri->hostname, "www.example.com") != 0))
     {
-        printf("expected www.example.com as hostname, but got: %s \n",
-                bstr_tocstr(tx->parsed_uri->hostname));
-        result = 0;
         goto end;
     }
 
     if ((tx->parsed_uri->path == NULL) ||
            (bstr_cmpc(tx->parsed_uri->path, "/images.gif") != 0))
     {
-        printf("expected /images.gif as path, but got: %s \n",
-                bstr_tocstr(tx->parsed_uri->path));
-        result = 0;
         goto end;
     }
 

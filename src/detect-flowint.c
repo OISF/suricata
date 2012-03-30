@@ -455,7 +455,7 @@ int DetectFlowintTestParseVal01(void)
     DetectEngineCtx *de_ctx;
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto error;
+        return 0;
     de_ctx->flags |= DE_QUIET;
 
     sfd = DetectFlowintParse(de_ctx, "myvar,=,35");
@@ -468,10 +468,6 @@ int DetectFlowintTestParseVal01(void)
 
     DetectEngineCtxFree(de_ctx);
 
-    return result;
-error:
-    if (de_ctx)
-        DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -486,7 +482,7 @@ int DetectFlowintTestParseVar01(void)
     DetectEngineCtx *de_ctx;
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto error;
+        return 0;
     de_ctx->flags |= DE_QUIET;
 
     sfd = DetectFlowintParse(de_ctx, "myvar,=,targetvar");
@@ -503,10 +499,6 @@ int DetectFlowintTestParseVar01(void)
     DetectEngineCtxFree(de_ctx);
 
     return result;
-error:
-    if (de_ctx)
-        DetectEngineCtxFree(de_ctx);
-    return result;
 }
 
 /**
@@ -520,7 +512,7 @@ int DetectFlowintTestParseVal02(void)
     DetectEngineCtx *de_ctx;
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto error;
+        return 0;
     de_ctx->flags |= DE_QUIET;
 
     sfd = DetectFlowintParse(de_ctx, "myvar,+,35");
@@ -533,10 +525,6 @@ int DetectFlowintTestParseVal02(void)
 
     DetectEngineCtxFree(de_ctx);
 
-    return result;
-error:
-    if (de_ctx)
-        DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -551,7 +539,7 @@ int DetectFlowintTestParseVar02(void)
     DetectEngineCtx *de_ctx;
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto error;
+        return 0;
     de_ctx->flags |= DE_QUIET;
 
     sfd = DetectFlowintParse(de_ctx, "myvar,+,targetvar");
@@ -568,10 +556,6 @@ int DetectFlowintTestParseVar02(void)
     DetectEngineCtxFree(de_ctx);
 
     return result;
-error:
-    if (de_ctx)
-        DetectEngineCtxFree(de_ctx);
-    return result;
 }
 
 /**
@@ -585,7 +569,7 @@ int DetectFlowintTestParseVal03(void)
     DetectEngineCtx *de_ctx;
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto error;
+        return 0;
     de_ctx->flags |= DE_QUIET;
 
     sfd = DetectFlowintParse(de_ctx, "myvar,-,35");
@@ -598,10 +582,6 @@ int DetectFlowintTestParseVal03(void)
 
     DetectEngineCtxFree(de_ctx);
 
-    return result;
-error:
-    if (de_ctx)
-        DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -616,7 +596,7 @@ int DetectFlowintTestParseVar03(void)
     DetectEngineCtx *de_ctx;
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto error;
+        return 0;
     de_ctx->flags |= DE_QUIET;
 
     sfd = DetectFlowintParse(de_ctx, "myvar,-,targetvar");
@@ -633,10 +613,6 @@ int DetectFlowintTestParseVar03(void)
     DetectEngineCtxFree(de_ctx);
 
     return result;
-error:
-    if (de_ctx)
-        DetectEngineCtxFree(de_ctx);
-    return result;
 }
 
 
@@ -651,7 +627,7 @@ int DetectFlowintTestParseVal04(void)
     DetectEngineCtx *de_ctx;
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto error;
+        return 0;
     de_ctx->flags |= DE_QUIET;
 
     sfd = DetectFlowintParse(de_ctx, "myvar,==,35");
@@ -664,10 +640,6 @@ int DetectFlowintTestParseVal04(void)
 
     DetectEngineCtxFree(de_ctx);
 
-    return result;
-error:
-    if (de_ctx)
-        DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -682,7 +654,7 @@ int DetectFlowintTestParseVar04(void)
     DetectEngineCtx *de_ctx;
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto error;
+        return 0;
     de_ctx->flags |= DE_QUIET;
 
     sfd = DetectFlowintParse(de_ctx, "myvar,==,targetvar");
@@ -699,10 +671,6 @@ int DetectFlowintTestParseVar04(void)
     DetectEngineCtxFree(de_ctx);
 
     return result;
-error:
-    if (de_ctx)
-        DetectEngineCtxFree(de_ctx);
-    return result;
 }
 
 /**
@@ -716,7 +684,7 @@ int DetectFlowintTestParseVal05(void)
     DetectEngineCtx *de_ctx;
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto error;
+        return 0;
     de_ctx->flags |= DE_QUIET;
 
     sfd = DetectFlowintParse(de_ctx, "myvar,!=,35");
@@ -729,10 +697,6 @@ int DetectFlowintTestParseVal05(void)
 
     DetectEngineCtxFree(de_ctx);
 
-    return result;
-error:
-    if (de_ctx)
-        DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -747,7 +711,7 @@ int DetectFlowintTestParseVar05(void)
     DetectEngineCtx *de_ctx;
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto error;
+        return 0;
     de_ctx->flags |= DE_QUIET;
 
     sfd = DetectFlowintParse(de_ctx, "myvar,!=,targetvar");
@@ -764,10 +728,6 @@ int DetectFlowintTestParseVar05(void)
     DetectEngineCtxFree(de_ctx);
 
     return result;
-error:
-    if (de_ctx)
-        DetectEngineCtxFree(de_ctx);
-    return result;
 }
 
 /**
@@ -781,7 +741,7 @@ int DetectFlowintTestParseVal06(void)
     DetectEngineCtx *de_ctx;
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto error;
+        return 0;
     de_ctx->flags |= DE_QUIET;
 
     sfd = DetectFlowintParse(de_ctx, "myvar, >,35");
@@ -794,10 +754,6 @@ int DetectFlowintTestParseVal06(void)
 
     DetectEngineCtxFree(de_ctx);
 
-    return result;
-error:
-    if (de_ctx)
-        DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -812,7 +768,7 @@ int DetectFlowintTestParseVar06(void)
     DetectEngineCtx *de_ctx;
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto error;
+        return 0;
     de_ctx->flags |= DE_QUIET;
 
     sfd = DetectFlowintParse(de_ctx, "myvar, >,targetvar");
@@ -829,10 +785,6 @@ int DetectFlowintTestParseVar06(void)
     DetectEngineCtxFree(de_ctx);
 
     return result;
-error:
-    if (de_ctx)
-        DetectEngineCtxFree(de_ctx);
-    return result;
 }
 
 /**
@@ -846,7 +798,7 @@ int DetectFlowintTestParseVal07(void)
     DetectEngineCtx *de_ctx;
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto error;
+        return 0;
     de_ctx->flags |= DE_QUIET;
 
     sfd = DetectFlowintParse(de_ctx, "myvar, >= ,35");
@@ -859,10 +811,6 @@ int DetectFlowintTestParseVal07(void)
 
     DetectEngineCtxFree(de_ctx);
 
-    return result;
-error:
-    if (de_ctx)
-        DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -877,7 +825,7 @@ int DetectFlowintTestParseVar07(void)
     DetectEngineCtx *de_ctx;
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto error;
+        return 0;
     de_ctx->flags |= DE_QUIET;
 
     sfd = DetectFlowintParse(de_ctx, "myvar, >= ,targetvar");
@@ -894,10 +842,6 @@ int DetectFlowintTestParseVar07(void)
     DetectEngineCtxFree(de_ctx);
 
     return result;
-error:
-    if (de_ctx)
-        DetectEngineCtxFree(de_ctx);
-    return result;
 }
 
 /**
@@ -911,7 +855,7 @@ int DetectFlowintTestParseVal08(void)
     DetectEngineCtx *de_ctx;
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto error;
+        return 0;
     de_ctx->flags |= DE_QUIET;
 
     sfd = DetectFlowintParse(de_ctx, "myvar, <= ,35");
@@ -924,10 +868,6 @@ int DetectFlowintTestParseVal08(void)
 
     DetectEngineCtxFree(de_ctx);
 
-    return result;
-error:
-    if (de_ctx)
-        DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -942,7 +882,7 @@ int DetectFlowintTestParseVar08(void)
     DetectEngineCtx *de_ctx;
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto error;
+        return 0;
     de_ctx->flags |= DE_QUIET;
 
     sfd = DetectFlowintParse(de_ctx, "myvar, <= ,targetvar");
@@ -959,10 +899,6 @@ int DetectFlowintTestParseVar08(void)
     DetectEngineCtxFree(de_ctx);
 
     return result;
-error:
-    if (de_ctx)
-        DetectEngineCtxFree(de_ctx);
-    return result;
 }
 
 /**
@@ -976,7 +912,7 @@ int DetectFlowintTestParseVal09(void)
     DetectEngineCtx *de_ctx;
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto error;
+        return 0;
     de_ctx->flags |= DE_QUIET;
 
     sfd = DetectFlowintParse(de_ctx, "myvar, < ,35");
@@ -989,10 +925,6 @@ int DetectFlowintTestParseVal09(void)
 
     DetectEngineCtxFree(de_ctx);
 
-    return result;
-error:
-    if (de_ctx)
-        DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -1007,7 +939,7 @@ int DetectFlowintTestParseVar09(void)
     DetectEngineCtx *de_ctx;
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto error;
+        return 0;
     de_ctx->flags |= DE_QUIET;
 
     sfd = DetectFlowintParse(de_ctx, "myvar, < ,targetvar");
@@ -1024,10 +956,6 @@ int DetectFlowintTestParseVar09(void)
     DetectEngineCtxFree(de_ctx);
 
     return result;
-error:
-    if (de_ctx)
-        DetectEngineCtxFree(de_ctx);
-    return result;
 }
 
 /**
@@ -1041,7 +969,7 @@ int DetectFlowintTestParseIsset10(void)
     DetectEngineCtx *de_ctx;
     de_ctx = DetectEngineCtxInit();
     if (de_ctx == NULL)
-        goto error;
+        return 0;
     de_ctx->flags |= DE_QUIET;
 
     sfd = DetectFlowintParse(de_ctx, "myvar, isset");
@@ -1070,10 +998,6 @@ int DetectFlowintTestParseIsset10(void)
     if (sfd) DetectFlowintFree(sfd);
     DetectEngineCtxFree(de_ctx);
 
-    return result;
-error:
-    if (de_ctx)
-        DetectEngineCtxFree(de_ctx);
     return result;
 }
 

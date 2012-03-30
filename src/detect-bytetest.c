@@ -1029,6 +1029,9 @@ int DetectBytetestTestParse18(void) {
  */
 int DetectBytetestTestParse19(void) {
     Signature *s = SigAlloc();
+    if (s == NULL)
+        return 0;
+
     int result = 1;
 
     s->alproto = ALPROTO_DCERPC;
