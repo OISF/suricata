@@ -71,6 +71,7 @@ typedef struct IPV6Hdr_
 
 #define IPV6_SET_L4PROTO(p,proto)       (p)->ip6vars.l4proto = proto
 
+
 /* ONLY call these functions after making sure that:
  * 1. p->ip6h is set
  * 2. p->ip6h is valid (len is correct)
@@ -90,6 +91,10 @@ typedef struct IPV6Hdr_
 /* XXX */
 #define IPV6_GET_L4PROTO(p) \
     ((p)->ip6vars.l4proto)
+
+/** \brief get the highest proto/next header field we know */
+#define IPV6_GET_UPPER_PROTO(p)         (p)->ip6eh.ip6_exthdrs_cnt ? \
+    (p)->ip6eh.ip6_exthdrs[(p)->ip6eh.ip6_exthdrs_cnt - 1].next : IPV6_GET_NH((p))
 
 /* helper structure with parsed ipv6 info */
 typedef struct IPV6Vars_

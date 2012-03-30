@@ -222,7 +222,7 @@ typedef uint16_t Port;
 
 /* Retrieve proto regardless of IP version */
 #define IP_GET_IPPROTO(p) \
-    (PKT_IS_IPV4((p))? IPV4_GET_IPPROTO((p)) : (PKT_IS_IPV6((p))? IPV6_GET_NH((p)) : 0))
+    (PKT_IS_IPV4((p))? IPV4_GET_IPPROTO((p)) : (PKT_IS_IPV6((p))? IPV6_GET_UPPER_PROTO((p)) : 0))
 
 /* structure to store the sids/gids/etc the detection engine
  * found in this packet */
