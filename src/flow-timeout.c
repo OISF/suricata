@@ -519,6 +519,7 @@ static inline void FlowForceReassemblyForHash(void)
 
                 if (p == NULL) {
                     TmqhOutputPacketpool(NULL, reassemble_p);
+                    FBLOCK_UNLOCK(fb);
                     return;
                 }
 
@@ -547,6 +548,7 @@ static inline void FlowForceReassemblyForHash(void)
 
                 if (p == NULL) {
                     TmqhOutputPacketpool(NULL, reassemble_p);
+                    FBLOCK_UNLOCK(fb);
                     return;
                 }
 
