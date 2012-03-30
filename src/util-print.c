@@ -44,15 +44,7 @@ void PrintRawLineHexFp(FILE *fp, uint8_t *buf, uint32_t buflen)
     uint32_t u = 0;
 
     for (u = 0; u < buflen; u++) {
-        int cw = snprintf(nbuf + offset, BUFFER_LENGTH - offset, "%02X ",
-                          buf[u]);
-        if (cw >= 0) {
-            if ((offset + cw) >= BUFFER_LENGTH) {
-                offset = BUFFER_LENGTH - 1;
-            } else {
-                offset += cw;
-            }
-        }
+        PrintBufferData(nbuf, &offset, BUFFER_LENGTH, "%02X ", buf[u]);
     }
     fprintf(fp, "%s", nbuf);
 }
@@ -73,15 +65,7 @@ void PrintRawLineHexBuf(char *retbuf, uint32_t retbuflen, uint8_t *buf, uint32_t
     uint32_t u = 0;
 
     for (u = 0; u < buflen; u++) {
-        int cw = snprintf(retbuf + offset, retbuflen - offset, "%02X ",
-                          buf[u]);
-        if (cw >= 0) {
-            if ((offset + cw) >= retbuflen) {
-                offset = retbuflen - 1;
-            } else {
-                offset += cw;
-            }
-        }
+        PrintBufferData(retbuf, &offset, retbuflen, "%02X ", buf[u]);
     }
 }
 
@@ -94,35 +78,14 @@ void PrintRawJsonFp(FILE *fp, uint8_t *buf, uint32_t buflen)
 
     for (u = 0; u < buflen; u++) {
         if (buf[u] == '\\' || buf[u] == '/' || buf[u] == '\"') {
-            int cw = snprintf(nbuf + offset, BUFFER_LENGTH - offset, "\\%c",
-                              buf[u]);
-            if (cw >= 0) {
-                if ((offset + cw) >= BUFFER_LENGTH) {
-                    offset = BUFFER_LENGTH - 1;
-                } else {
-                    offset += cw;
-                }
-            }
+            PrintBufferData(nbuf, &offset, BUFFER_LENGTH,
+                             "\\%c", buf[u]);
         } else if (isprint(buf[u])) {
-            int cw = snprintf(nbuf + offset, BUFFER_LENGTH - offset, "%c",
-                              buf[u]);
-            if (cw >= 0) {
-                if ((offset + cw) >= BUFFER_LENGTH) {
-                    offset = BUFFER_LENGTH - 1;
-                } else {
-                    offset += cw;
-                }
-            }
+            PrintBufferData(nbuf, &offset, BUFFER_LENGTH,
+                             "%c", buf[u]);
         } else {
-            int cw = snprintf(nbuf + offset, BUFFER_LENGTH - offset, "\\\\x%02X",
-                              buf[u]);
-            if (cw >= 0) {
-                if ((offset + cw) >= BUFFER_LENGTH) {
-                    offset = BUFFER_LENGTH - 1;
-                } else {
-                    offset += cw;
-                }
-            }
+            PrintBufferData(nbuf, &offset, BUFFER_LENGTH,
+                            "\\\\x%02X", buf[u]);
         }
     }
     fprintf(fp, "%s", nbuf);
@@ -137,25 +100,11 @@ void PrintRawUriFp(FILE *fp, uint8_t *buf, uint32_t buflen)
 
     for (u = 0; u < buflen; u++) {
         if (isprint(buf[u]) && buf[u] != '\"') {
-            int cw = snprintf(nbuf + offset, BUFFER_LENGTH - offset, "%c",
-                              buf[u]);
-            if (cw >= 0) {
-                if ((offset + cw) >= BUFFER_LENGTH) {
-                    offset = BUFFER_LENGTH - 1;
-                } else {
-                    offset += cw;
-                }
-            }
+            PrintBufferData(nbuf, &offset, BUFFER_LENGTH,
+                             "%c", buf[u]);
         } else {
-            int cw = snprintf(nbuf + offset, BUFFER_LENGTH - offset, "\\x%02X",
-                              buf[u]);
-            if (cw >= 0) {
-                if ((offset + cw) >= BUFFER_LENGTH) {
-                    offset = BUFFER_LENGTH - 1;
-                } else {
-                    offset += cw;
-                }
-            }
+            PrintBufferData(nbuf, &offset, BUFFER_LENGTH,
+                            "\\x%02X", buf[u]);
         }
     }
 
@@ -169,25 +118,11 @@ void PrintRawUriBuf(char *retbuf, uint32_t *offset, uint32_t retbuflen,
 
     for (u = 0; u < buflen; u++) {
         if (isprint(buf[u]) && buf[u] != '\"') {
-            int cw = snprintf(retbuf + *offset, retbuflen - *offset, "%c",
-                              buf[u]);
-            if (cw >= 0) {
-                if ((*offset + cw) >= retbuflen) {
-                    *offset = retbuflen - 1;
-                } else {
-                    *offset += cw;
-                }
-            }
+            PrintBufferData(retbuf, offset, retbuflen,
+                            "%c", buf[u]);
         } else {
-            int cw = snprintf(retbuf + *offset, retbuflen - *offset, "\\x%02X",
-                              buf[u]);
-            if (cw >= 0) {
-                if ((*offset + cw) >= retbuflen) {
-                    *offset = retbuflen - 1;
-                } else {
-                    *offset += cw;
-                }
-            }
+            PrintBufferData(retbuf, offset, retbuflen,
+                            "\\x%02X", buf[u]);
         }
     }
 
