@@ -471,6 +471,43 @@ cleanup:
 end:
     return result;
 }
+
+/**
+ * \test signature parsing with tcp-pkt and tcp-stream
+ */
+
+static int DetectProtoTestSig02(void) {
+    Signature *s = NULL;
+    int result = 0;
+
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL) {
+        goto end;
+    }
+
+    de_ctx->flags |= DE_QUIET;
+
+    s = de_ctx->sig_list = SigInit(de_ctx,"alert tcp-pkt any any -> any any "
+            "(msg:\"tcp-pkt\"; content:\"blah\"; sid:1;)");
+    if (s == NULL) {
+        printf("tcp-pkt sig parsing failed: ");
+        goto end;
+    }
+
+    s = s->next = SigInit(de_ctx,"alert tcp-stream any any -> any any "
+            "(msg:\"tcp-stream\"; content:\"blah\"; sid:2;)");
+    if (s == NULL) {
+        printf("tcp-pkt sig parsing failed: ");
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (de_ctx != NULL)
+        DetectEngineCtxFree(de_ctx);
+    return result;
+}
 #endif /* UNITTESTS */
 
 /**
@@ -488,6 +525,7 @@ void DetectProtoTests(void)
     UtRegisterTest("ProtoTestParse07", ProtoTestParse07, 1);
     UtRegisterTest("DetectProtoTestSetup01", DetectProtoTestSetup01, 1);
     UtRegisterTest("DetectProtoTestSig01", DetectProtoTestSig01, 1);
+    UtRegisterTest("DetectProtoTestSig02", DetectProtoTestSig02, 1);
 #endif /* UNITTESTS */
 }
 
