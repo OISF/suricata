@@ -68,6 +68,7 @@ Host *HostAlloc(void) {
     memset(h, 0x00, sizeof(Host));
 
     SCMutexInit(&h->m, NULL);
+    SC_ATOMIC_INIT(h->use_cnt);
     return h;
 
 error:
@@ -107,6 +108,7 @@ void HostClearMemory(Host *h) {
         ThresholdListFree(h->threshold);
         h->threshold = NULL;
     }
+    SC_ATOMIC_DESTROY(h->use_cnt);
 }
 
 #define HOST_DEFAULT_HASHSIZE 4096
@@ -248,7 +250,7 @@ void HostShutdown(void)
 
     /* free spare queue */
     while((h = HostDequeue(&host_spare_q))) {
-        BUG_ON(h->use_cnt > 0);
+        BUG_ON(SC_ATOMIC_GET(h->use_cnt) > 0);
         HostFree(h);
     }
 
@@ -361,9 +363,9 @@ static Host *HostGetNew(Address *a) {
 }
 
 #define HostIncrUsecnt(h) \
-    (h)->use_cnt++
+    SC_ATOMIC_ADD((h)->use_cnt, 1)
 #define HostDecrUsecnt(h) \
-    (h)->use_cnt--
+    SC_ATOMIC_SUB((h)->use_cnt, 1)
 
 void HostInit(Host *h, Address *a) {
     COPY_ADDRESS(a, &h->a);
@@ -584,7 +586,7 @@ static Host *HostGetUsedHost(void) {
 
         /** never prune a host that is used by a packets
          *  we are currently processing in one of the threads */
-        if (h->use_cnt > 0) {
+        if (SC_ATOMIC_GET(h->use_cnt) > 0) {
             HRLOCK_UNLOCK(hb);
             SCMutexUnlock(&h->m);
             continue;

@@ -62,7 +62,7 @@ typedef struct Host_ {
     Address a;
 
     /** use cnt, reference counter */
-    uint16_t use_cnt;
+    SC_ATOMIC_DECLARE(unsigned short, use_cnt);
 
     /** pointers to tag and threshold storage */
     void *tag;

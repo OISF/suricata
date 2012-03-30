@@ -50,7 +50,7 @@ static int HostHostTimedOut(Host *h, struct timeval *ts) {
 
     /** never prune a host that is used by a packet
      *  we are currently processing in one of the threads */
-    if (h->use_cnt > 0) {
+    if (SC_ATOMIC_GET(h->use_cnt) > 0) {
         return 0;
     }
 
