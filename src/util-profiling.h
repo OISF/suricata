@@ -185,7 +185,7 @@ void SCProfilingAddPacket(Packet *);
 
 #define PACKET_PROFILING_DETECT_END(p, id)                          \
     if (profiling_packets_enabled) {                                \
-        if ((id) < TMM_SIZE) {                                      \
+        if ((id) < PROF_DETECT_SIZE) {                              \
             (p)->profile.detect[(id)].ticks_end = UtilCpuGetTicks();\
             if ((p)->profile.detect[(id)].ticks_start != 0 &&       \
                     (p)->profile.detect[(id)].ticks_start < (p)->profile.detect[(id)].ticks_end) {  \
