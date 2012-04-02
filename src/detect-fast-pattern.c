@@ -202,7 +202,6 @@ void DetectFastPatternRegister(void)
  *
  * \param de_ctx   Pointer to the Detection Engine Context.
  * \param s        Pointer to the Signature to which the current keyword belongs.
- * \param m        Pointer to the SigMatch.
  * \param null_str Should hold an empty string always.
  *
  * \retval  0 On success.
@@ -273,6 +272,22 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
             SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use multiple fast_pattern "
                     "options for the same content");
             goto error;
+        }
+        else { /*allow only one content to have fast_pattern modifier*/
+            int list_id = 0;
+            for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
+                SigMatch *sm = NULL;
+                for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
+                    if (sm->type == DETECT_CONTENT) {
+                        cd = sm->ctx;
+                        if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+                            SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern "
+                                        "can be used on only one content in a rule");
+                            goto error;
+                        }
+                    }
+                } /* for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) */
+            }
         }
         cd->flags |= DETECT_CONTENT_FAST_PATTERN;
         return 0;
