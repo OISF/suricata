@@ -45,9 +45,9 @@ typedef struct StreamMsg_ {
     union {
         /* case !STREAM_EOF && !STREAM_GAP */
         struct {
-            uint8_t data[MSG_DATA_SIZE];/**< reassembled data */
-            uint32_t data_len;          /**< length of the data */
             uint32_t seq;               /**< sequence number */
+            uint32_t data_len;          /**< length of the data */
+            uint8_t data[MSG_DATA_SIZE];/**< reassembled data */
         } data;
         /* case STREAM_GAP */
         struct {
