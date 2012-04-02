@@ -285,7 +285,7 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
 
         /* time */
         PrintBufferData(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE,
-                         "%s", timebuf);
+                         "%s ", timebuf);
 
         /* hostname */
         if (tx->parsed_uri != NULL &&
