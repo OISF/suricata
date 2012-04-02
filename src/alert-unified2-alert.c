@@ -1064,12 +1064,9 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
             return -1;
         }
         fflush(aun->file_ctx->fp);
+        aun->file_ctx->alerts++;
         SCMutexUnlock(&aun->file_ctx->fp_mutex);
     }
-
-    SCMutexLock(&aun->file_ctx->fp_mutex);
-    aun->file_ctx->alerts += p->alerts.cnt;
-    SCMutexUnlock(&aun->file_ctx->fp_mutex);
 
     return 0;
 }

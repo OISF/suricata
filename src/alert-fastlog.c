@@ -130,8 +130,11 @@ TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
 
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
-    SCMutexLock(&aft->file_ctx->fp_mutex);
+    char srcip[16], dstip[16];
+    PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
+    PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
 
+    SCMutexLock(&aft->file_ctx->fp_mutex);
     aft->file_ctx->alerts += p->alerts.cnt;
 
     for (i = 0; i < p->alerts.cnt; i++) {
@@ -139,11 +142,6 @@ TmEcode AlertFastLogIPv4(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         if (unlikely(pa->s == NULL)) {
             continue;
         }
-
-        char srcip[16], dstip[16];
-
-        PrintInet(AF_INET, (const void *)GET_IPV4_SRC_ADDR_PTR(p), srcip, sizeof(srcip));
-        PrintInet(AF_INET, (const void *)GET_IPV4_DST_ADDR_PTR(p), dstip, sizeof(dstip));
 
         if (pa->action & ACTION_DROP && IS_ENGINE_MODE_IPS(engine_mode)) {
             action = "[Drop] ";
