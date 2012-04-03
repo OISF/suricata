@@ -197,10 +197,10 @@ TmEcode AlertFastLogIPv6(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         }
 
         char proto[16] = "";
-        if (SCProtoNameValid(IPV4_GET_IPPROTO(p)) == TRUE) {
+        if (SCProtoNameValid(IP_GET_IPPROTO(p)) == TRUE) {
             strlcpy(proto, known_proto[IP_GET_IPPROTO(p)], sizeof(proto));
         } else {
-            snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IPV4_GET_IPPROTO(p));
+            snprintf(proto, sizeof(proto), "PROTO:%03" PRIu32, IP_GET_IPPROTO(p));
         }
 
         SCMutexLock(&aft->file_ctx->fp_mutex);
@@ -253,10 +253,10 @@ TmEcode AlertFastLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQu
         PrintRawLineHexFp(aft->file_ctx->fp, GET_PKT_DATA(p), GET_PKT_LEN(p) < 32 ? GET_PKT_LEN(p) : 32);
 
         if (p->pcap_cnt != 0) {
-            fprintf(aft->file_ctx->fp, "] [pcap file packet: %"PRIu64"]", p->pcap_cnt);
+            fprintf(aft->file_ctx->fp, "] [pcap file packet: %"PRIu64"]\n", p->pcap_cnt);
+        } else {
+            fprintf(aft->file_ctx->fp, "]\n");
         }
-
-        fprintf(aft->file_ctx->fp,"\n");
 
         fflush(aft->file_ctx->fp);
         aft->file_ctx->alerts++;
