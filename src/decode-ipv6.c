@@ -488,7 +488,7 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
     if (IPV6_EXTHDR_ISSET_FH(p)) {
         Packet *rp = Defrag(tv, dtv, NULL, p);
         if (rp != NULL) {
-            DecodeIPV6(tv, dtv, rp, GET_PKT_DATA(rp), GET_PKT_LEN(rp), pq);
+            DecodeIPV6(tv, dtv, rp, (uint8_t *)rp->ip6h, IPV6_GET_PLEN(rp) + IPV6_HEADER_LEN, pq);
             PacketEnqueue(pq, rp);
 
             /* Not really a tunnel packet, but we're piggybacking that
