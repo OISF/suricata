@@ -1,3 +1,34 @@
+1.3beta1 -- 2012-04-04
+
+- TLS/SSL handshake parser, tls.subjectdn and tls.issuerdn keywords (#296, contributed by Pierre Chifflier)
+- Napatech capture card support (contributed by Randy Caldejon -- nPulse)
+- Scripts for looking up files / file md5's at Virus Total and others (contributed by Martin Holste)
+- Test mode: -T option to test the config (#271)
+- Ringbuffer and zero copy support for AF_PACKET
+- Commandline options to list supported app layer protocols and keywords (#344, #414)
+- File extraction for HTTP POST request that do not use multipart bodies
+- On the fly md5 checksum calculation of extracted files
+- Line based file log, in json format
+- Basic support for including other yaml files into the main yaml
+- New multi pattern engine: ac-bs
+- Profiling improvements, added lock profiling code
+- Improved HTTP CONNECT support in libhtp (#427, Brian Rectanus -- Qualys)
+- Unified yaml naming convention, including fallback support (by Nikolay Denev)
+- Improved Endace DAG support (#431, Jason Ish -- Endace)
+- New default runmode: "autofp" (#433)
+- Major rewrite of flow engine, improving scalability.
+- Improved http_stat_msg and http_stat_code keywords (#394)
+- Improved scalability for Tag and Threshold subsystems
+- Made the rule keyword parser much stricter in detecting syntax errors
+- Split "file" output into "file-store" and "file-log" outputs
+- Much improved file extraction
+- CUDA build fixes (#421)
+- Various FP's reported by Rmkml (#403, #405, #411)
+- IPv6 decoding and detection issues (reported by Michel Sarborde)
+- PCAP logging crash (#422)
+- Fixed many (potential) issues with the help of the Coverity source code analyzer
+- Fixed several (potential) issues with the help of the cppcheck and clang/scan-build source code analyzers
+
 1.2.1 -- 2012-01-20
 
 - fix malformed unified2 records when writing alerts trigger by stream inspection (#402)
