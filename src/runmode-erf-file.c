@@ -60,7 +60,6 @@ void RunModeErfFileRegister(void)
 
 int RunModeErfFileSingle(DetectEngineCtx *de_ctx)
 {
-    int ret;
     char *file;
 
     SCEnter();
