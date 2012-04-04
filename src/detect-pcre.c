@@ -844,6 +844,10 @@ DetectPcreData *DetectPcreParse (char *regexstr)
                         SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'U' inconsistent with 'I'");
                         goto error;
                     }
+                    if (pd->flags & DETECT_PCRE_RAWBYTES) {
+                        SCLogError(SC_ERR_INVALID_SIGNATURE, "regex modifier 'U' inconsistent with 'B'");
+                        goto error;
+                    }
                     pd->flags |= DETECT_PCRE_URI;
                     break;
                 case 'H': /* snort's option */
