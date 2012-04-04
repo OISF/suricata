@@ -548,7 +548,7 @@ Defrag4Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
 
     /* Allocate a Packet for the reassembled packet.  On failure we
      * SCFree all the resources held by this tracker. */
-    rp = PacketPseudoPktSetup(p, NULL, 0, IPV4_GET_IPPROTO(p));
+    rp = PacketDefragPktSetup(p, NULL, 0, IPV4_GET_IPPROTO(p));
     if (rp == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for "
                    "fragmentation re-assembly, dumping fragments.");
@@ -668,7 +668,7 @@ Defrag6Reassemble(ThreadVars *tv, DefragContext *dc, DefragTracker *tracker,
 
     /* Allocate a Packet for the reassembled packet.  On failure we
      * SCFree all the resources held by this tracker. */
-    rp = PacketPseudoPktSetup(p, (uint8_t *)p->ip6h,
+    rp = PacketDefragPktSetup(p, (uint8_t *)p->ip6h,
             IPV6_GET_PLEN(p) + sizeof(IPV6Hdr), 0);
     if (rp == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC, "Failed to allocate packet for "
