@@ -815,6 +815,70 @@ end:
     return result;
 }
 
+/*
+ * \test Test negative byte extract.
+ */
+static int PayloadTestSig25(void)
+{
+    uint8_t buf[] = {
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x35, /* the last byte is 2 */
+        0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D,
+        0x0E, 0x0F,
+    };
+    uint16_t buflen = sizeof(buf);
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
+        "content:\"|35 07 08 09|\"; "
+        "byte_extract:1,-4,one,string,dec,relative; "
+        "content:\"|0C 0D 0E 0F|\"; distance:one; sid:1;)";
+
+    if (UTHPacketMatchSigMpm(p, sig, MPM_AC) == 0) {
+        result = 0;
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
+/*
+ * \test Test negative byte extract.
+ */
+static int PayloadTestSig26(void)
+{
+    uint8_t buf[] = {
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x35, /* the last byte is 2 */
+        0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D,
+        0x0E, 0x0F,
+    };
+    uint16_t buflen = sizeof(buf);
+    Packet *p = UTHBuildPacket( buf, buflen, IPPROTO_TCP);
+    int result = 0;
+
+    char sig[] = "alert tcp any any -> any any (msg:\"dummy\"; "
+        "content:\"|35 07 08 09|\"; "
+        "byte_extract:1,-3000,one,string,dec,relative; "
+        "content:\"|0C 0D 0E 0F|\"; distance:one; sid:1;)";
+
+    if (UTHPacketMatchSigMpm(p, sig, MPM_AC) != 0) {
+        result = 0;
+        goto end;
+    }
+
+    result = 1;
+
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void PayloadRegisterTests(void) {
@@ -844,6 +908,8 @@ void PayloadRegisterTests(void) {
     UtRegisterTest("PayloadTestSig22", PayloadTestSig22, 1);
     UtRegisterTest("PayloadTestSig23", PayloadTestSig23, 1);
     UtRegisterTest("PayloadTestSig24", PayloadTestSig24, 1);
+    UtRegisterTest("PayloadTestSig25", PayloadTestSig25, 1);
+    UtRegisterTest("PayloadTestSig26", PayloadTestSig26, 1);
 #endif /* UNITTESTS */
 
     return;

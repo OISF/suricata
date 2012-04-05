@@ -77,7 +77,7 @@
 
 #define PARSE_REGEX "^"                                                  \
     "\\s*([0-9]+)\\s*"                                                   \
-    ",\\s*([0-9]+)\\s*"                                                  \
+    ",\\s*(-?[0-9]+)\\s*"                                               \
     ",\\s*([^\\s,]+)\\s*"                                                \
     "(?:(?:,\\s*([^\\s,]+)\\s*)|(?:,\\s*([^\\s,]+)\\s+([^\\s,]+)\\s*))?" \
     "(?:(?:,\\s*([^\\s,]+)\\s*)|(?:,\\s*([^\\s,]+)\\s+([^\\s,]+)\\s*))?" \
@@ -175,7 +175,7 @@ int DetectByteExtractDoMatch(DetectEngineThreadCtx *det_ctx, SigMatch *sm,
     }
 
     /* Validate that the to-be-extracted is within the packet */
-    if (data->nbytes > len) {
+    if (ptr < payload || data->nbytes > len) {
         SCLogDebug("Data not within payload pkt=%p, ptr=%p, len=%"PRIu32", nbytes=%d",
                     payload, ptr, len, data->nbytes);
         return 0;
@@ -4757,6 +4757,32 @@ static int DetectByteExtractTest62(void)
     return result;
 }
 
+int DetectByteExtractTest63(void)
+{
+    int result = 0;
+
+    DetectByteExtractData *bed = DetectByteExtractParse("4, -2, one");
+    if (bed == NULL)
+        goto end;
+
+    if (bed->nbytes != 4 ||
+        bed->offset != -2 ||
+        strcmp(bed->name, "one") != 0 ||
+        bed->flags != 0 ||
+        bed->endian != DETECT_BYTE_EXTRACT_ENDIAN_DEFAULT ||
+        bed->base != DETECT_BYTE_EXTRACT_BASE_NONE ||
+        bed->align_value != 0 ||
+        bed->multiplier_value != DETECT_BYTE_EXTRACT_MULTIPLIER_DEFAULT) {
+        goto end;
+    }
+
+    result = 1;
+ end:
+    if (bed != NULL)
+        DetectByteExtractFree(bed);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DetectByteExtractRegisterTests(void)
@@ -4832,6 +4858,7 @@ void DetectByteExtractRegisterTests(void)
     UtRegisterTest("DetectByteExtractTest60", DetectByteExtractTest60, 1);
     UtRegisterTest("DetectByteExtractTest61", DetectByteExtractTest61, 1);
     UtRegisterTest("DetectByteExtractTest62", DetectByteExtractTest62, 1);
+    UtRegisterTest("DetectByteExtractTest63", DetectByteExtractTest63, 1);
 #endif /* UNITTESTS */
 
     return;
