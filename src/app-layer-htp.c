@@ -1368,7 +1368,10 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
         SCLogDebug("header_len %u", header_len);
         uint8_t *header = header_start;
 
-        if ((uint32_t)(expected_boundary_len + 2) <= header_len) {
+        /* skip empty records */
+        if (expected_boundary_len == header_len) {
+            goto next;
+        } else if ((uint32_t)(expected_boundary_len + 2) <= header_len) {
             header_len -= (expected_boundary_len + 2);
             header = header_start + (expected_boundary_len + 2); // + for 0d 0a
         }
@@ -1504,7 +1507,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
         } else {
             htud->request_body.body_parsed += (header_end - chunks_buffer);
         }
-
+next:
         SCLogDebug("header_start %p, header_end %p, form_end %p",
                 header_start, header_end, form_end);
 
