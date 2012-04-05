@@ -29,6 +29,19 @@
 
 #include "suricata-common.h"
 
+typedef enum {
+    SC_SHA_1_OK,
+    SC_SHA_1_NOK,
+    SC_SHA_1_INVALID_ARG,
+
+    SC_BASE64_OK,
+    SC_BASE64_INVALID_ARG,
+    SC_BASE64_OVERFLOW,
+
+} CryptId;
+
+#ifndef HAVE_NSS
+
 #define LOAD32H(x, y)                            \
      { x = ((unsigned long)((y)[0] & 255)<<24) | \
            ((unsigned long)((y)[1] & 255)<<16) | \
@@ -49,17 +62,6 @@
 #define ROLc(x, y) ( (((unsigned long)(x)<<(unsigned long)((y)&31)) | (((unsigned long)(x)&0xFFFFFFFFUL)>>(unsigned long)(32-((y)&31)))) & 0xFFFFFFFFUL)
 #define MIN(x, y) ( ((x)<(y))?(x):(y) )
 
-typedef enum {
-    SC_SHA_1_OK,
-    SC_SHA_1_NOK,
-    SC_SHA_1_INVALID_ARG,
-
-    SC_BASE64_OK,
-    SC_BASE64_INVALID_ARG,
-    SC_BASE64_OVERFLOW,
-
-} CryptId;
-
 typedef struct Sha1State_ {
     uint64_t length;
     uint32_t state[5], curlen;
@@ -71,6 +73,8 @@ typedef union HashState_ {
     Sha1State sha1;
     void *data;
 } HashState;
+
+#endif /* don't HAVE_NSS */
 
 unsigned char* ComputeSHA1(unsigned char* buff, int bufflen);
 int Base64Encode(const unsigned char *in,  unsigned long inlen, unsigned char *out, unsigned long *outlen);
