@@ -45,6 +45,7 @@
 #include "app-layer-htp.h"
 #include "app-layer.h"
 #include "util-privs.h"
+#include "util-buffer.h"
 
 #include "util-logopenfile.h"
 
@@ -108,8 +109,7 @@ typedef struct LogHttpLogThread_ {
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
     uint32_t uri_cnt;
 
-    char *data;
-    uint32_t data_offset;
+    MemBuffer *buffer;
 } LogHttpLogThread;
 
 static void CreateTimeString (const struct timeval *ts, char *str, size_t size) {
@@ -124,7 +124,7 @@ static void CreateTimeString (const struct timeval *ts, char *str, size_t size) 
 
 static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
 {
-    PrintBufferData(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE, " [**] ");
+    MemBufferWriteString(aft->buffer, " [**] ");
 
     /* referer */
     htp_header_t *h_referer = NULL;
@@ -132,56 +132,54 @@ static void LogHttpLogExtended(LogHttpLogThread *aft, htp_tx_t *tx)
         h_referer = table_getc(tx->request_headers, "referer");
     }
     if (h_referer != NULL) {
-        PrintRawUriBuf(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE,
+        PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
                        (uint8_t *)bstr_ptr(h_referer->value),
                        bstr_len(h_referer->value));
     } else {
-        PrintBufferData(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE, "<no referer>");
+        MemBufferWriteString(aft->buffer, "<no referer>");
     }
-    PrintBufferData(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE, " [**] ");
+    MemBufferWriteString(aft->buffer, " [**] ");
 
     /* method */
     if (tx->request_method != NULL) {
-        PrintRawUriBuf(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE,
+        PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
                        (uint8_t *)bstr_ptr(tx->request_method),
                        bstr_len(tx->request_method));
     }
-    PrintBufferData(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE, " [**] ");
+    MemBufferWriteString(aft->buffer, " [**] ");
 
     /* protocol */
     if (tx->request_protocol != NULL) {
-        PrintRawUriBuf(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE,
+        PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
                        (uint8_t *)bstr_ptr(tx->request_protocol),
                        bstr_len(tx->request_protocol));
     } else {
-        PrintBufferData(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE, "<no protocol>");
+        MemBufferWriteString(aft->buffer, "<no protocol>");
     }
-    PrintBufferData(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE, " [**] ");
+    MemBufferWriteString(aft->buffer, " [**] ");
 
     /* response status */
     if (tx->response_status != NULL) {
-        PrintRawUriBuf(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE,
+        PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
                        (uint8_t *)bstr_ptr(tx->response_status),
                        bstr_len(tx->response_status));
-
         /* Redirect? */
         if ((tx->response_status_number > 300) && ((tx->response_status_number) < 303)) {
             htp_header_t *h_location = table_getc(tx->response_headers, "location");
             if (h_location != NULL) {
-                PrintBufferData(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE, " => ");
+                MemBufferWriteString(aft->buffer, " => ");
 
-                PrintRawUriBuf(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE,
+                PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
                                (uint8_t *)bstr_ptr(h_location->value),
                                bstr_len(h_location->value));
             }
         }
     } else {
-        PrintBufferData(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE, "<no status>");
+        MemBufferWriteString(aft->buffer, "<no status>");
     }
 
     /* length */
-    PrintBufferData(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE,
-                    " [**] %"PRIuMAX" bytes", (uintmax_t)tx->response_message_len);
+    MemBufferWriteString(aft->buffer, " [**] %"PRIuMAX" bytes", (uintmax_t)tx->response_message_len);
 }
 
 static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
@@ -280,33 +278,30 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
         SCLogDebug("got a HTTP request and now logging !!");
 
         /* reset */
-        aft->data[0] = '\0';
-        aft->data_offset = 0;
+        MemBufferReset(aft->buffer);
 
         /* time */
-        PrintBufferData(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE,
-                         "%s ", timebuf);
+        MemBufferWriteString(aft->buffer, "%s", timebuf);
 
         /* hostname */
         if (tx->parsed_uri != NULL &&
                 tx->parsed_uri->hostname != NULL)
         {
-            PrintRawUriBuf(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE,
+            PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
                            (uint8_t *)bstr_ptr(tx->parsed_uri->hostname),
                            bstr_len(tx->parsed_uri->hostname));
         } else {
-            PrintBufferData(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE,
-                            "<hostname unknown>");
+            MemBufferWriteString(aft->buffer, "<hostname unknown>");
         }
-        PrintBufferData(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE, " [**] ");
+        MemBufferWriteString(aft->buffer, " [**] ");
 
         /* uri */
         if (tx->request_uri != NULL) {
-            PrintRawUriBuf(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE,
+            PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
                            (uint8_t *)bstr_ptr(tx->request_uri),
                            bstr_len(tx->request_uri));
         }
-        PrintBufferData(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE, " [**] ");
+        MemBufferWriteString(aft->buffer, " [**] ");
 
         /* user agent */
         htp_header_t *h_user_agent = NULL;
@@ -314,27 +309,25 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
             h_user_agent = table_getc(tx->request_headers, "user-agent");
         }
         if (h_user_agent != NULL) {
-            PrintRawUriBuf(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE,
+            PrintRawUriBuf((char *)aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
                             (uint8_t *)bstr_ptr(h_user_agent->value),
                             bstr_len(h_user_agent->value));
         } else {
-            PrintBufferData(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE,
-                            "<useragent unknown>");
+            MemBufferWriteString(aft->buffer, "<useragent unknown>");
         }
         if (hlog->flags & LOG_HTTP_EXTENDED) {
             LogHttpLogExtended(aft, tx);
         }
 
         /* ip/tcp header info */
-        PrintBufferData(aft->data, &aft->data_offset, OUTPUT_BUFFER_SIZE,
-                        " [**] %s:%" PRIu16 " -> %s:%" PRIu16 "\n",
-                        srcip, sp, dstip, dp);
-
+        MemBufferWriteString(aft->buffer,
+                             " [**] %s:%" PRIu16 " -> %s:%" PRIu16 "\n",
+                             srcip, sp, dstip, dp);
 
         aft->uri_cnt ++;
 
         SCMutexLock(&hlog->file_ctx->fp_mutex);
-        fprintf(hlog->file_ctx->fp, "%s", aft->data);
+        MemBufferPrintToFPAsString(aft->buffer, hlog->file_ctx->fp);
         fflush(hlog->file_ctx->fp);
         SCMutexUnlock(&hlog->file_ctx->fp_mutex);
 
@@ -393,12 +386,10 @@ TmEcode LogHttpLogThreadInit(ThreadVars *t, void *initdata, void **data)
         return TM_ECODE_FAILED;
     }
 
-    aft->data = SCMalloc(OUTPUT_BUFFER_SIZE);
-    if (aft->data == NULL) {
+    aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
+    if (aft->buffer == NULL) {
         return TM_ECODE_FAILED;
     }
-    aft->data[0] = '\0';
-    aft->data_offset = 0;
 
     /* Use the Ouptut Context (file pointer and mutex) */
     aft->httplog_ctx= ((OutputCtx *)initdata)->data;
@@ -416,6 +407,7 @@ TmEcode LogHttpLogThreadDeinit(ThreadVars *t, void *data)
 
     /* clear memory */
     memset(aft, 0, sizeof(LogHttpLogThread));
+    MemBufferFree(aft->buffer);
 
     SCFree(aft);
     return TM_ECODE_OK;
