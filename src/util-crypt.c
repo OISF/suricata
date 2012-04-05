@@ -24,7 +24,11 @@
  * Based on the libtomcrypt library ( http://libtom.org/?page=features&newsitems=5&whatfile=crypt )
  */
 
+#include "suricata-common.h"
+#include "suricata.h"
 #include "util-crypt.h"
+
+#ifndef HAVE_NSS
 
 #define F0(x,y,z)  (z ^ (x & (y ^ z)))
 #define F1(x,y,z)  (x ^ y ^ z)
@@ -224,6 +228,31 @@ unsigned char* ComputeSHA1(unsigned char* buff, int bufflen)
     Sha1Done(&md, lResult);
     return lResult;
 }
+
+#else /* HAVE_NSS */
+
+unsigned char* ComputeSHA1(unsigned char* buff, int bufflen)
+{
+    HASHContext *sha1_ctx = HASH_Create(HASH_AlgSHA1);
+    unsigned char* lResult = NULL;
+    if (sha1_ctx == NULL) {
+        return NULL;
+    }
+
+    lResult = (unsigned char*) SCMalloc((sizeof(unsigned char) * 20));
+    if (lResult == NULL) {
+        HASH_Destroy(sha1_ctx);
+        return NULL;
+    }
+    HASH_Begin(sha1_ctx);
+    HASH_Update(&md, buff, bufflen);
+    HASH_End(sha1_ctx, lResult, (sizeof(unsigned char) * 20));
+    HASH_Destroy(sha1_ctx);
+
+    return lResult;
+}
+
+#endif /* HAVE_NSS */
 
 static const char *b64codes = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 

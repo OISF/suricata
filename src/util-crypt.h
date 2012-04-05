@@ -29,6 +29,8 @@
 
 #include "suricata-common.h"
 
+#ifndef HAVE_NSS
+
 #define LOAD32H(x, y)                            \
      { x = ((unsigned long)((y)[0] & 255)<<24) | \
            ((unsigned long)((y)[1] & 255)<<16) | \
@@ -71,6 +73,8 @@ typedef union HashState {
     struct Sha1State sha1;
     void *data;
 } hashstate;
+
+#endif /* don't HAVE_NSS */
 
 unsigned char* ComputeSHA1(unsigned char* buff, int bufflen);
 int Base64Encode(const unsigned char *in,  unsigned long inlen, unsigned char *out, unsigned long *outlen);
