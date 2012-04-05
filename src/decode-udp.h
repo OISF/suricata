@@ -72,7 +72,7 @@ static inline uint16_t UDPV6CalculateChecksum(uint16_t *, uint16_t *, uint16_t);
  * \retval csum Checksum for the UDP packet
  */
 static inline uint16_t UDPV4CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
-                                       uint16_t tlen)
+                                              uint16_t tlen)
 {
     uint16_t pad = 0;
     uint32_t csum = shdr[0];
@@ -118,7 +118,11 @@ static inline uint16_t UDPV4CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
     csum = (csum >> 16) + (csum & 0x0000FFFF);
     csum += (csum >> 16);
 
-    return (uint16_t)~csum;
+    uint16_t csum_u16 = (uint16_t)~csum;
+    if (csum_u16 == 0)
+        return 0xFFFF;
+    else
+        return csum_u16;
 }
 
 /**
@@ -132,7 +136,7 @@ static inline uint16_t UDPV4CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
  * \retval csum Checksum for the UDP packet
  */
 static inline uint16_t UDPV6CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
-                                       uint16_t tlen)
+                                              uint16_t tlen)
 {
     uint16_t pad = 0;
     uint32_t csum = shdr[0];
@@ -179,6 +183,12 @@ static inline uint16_t UDPV6CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
 
     csum = (csum >> 16) + (csum & 0x0000FFFF);
     csum += (csum >> 16);
+
+    uint16_t csum_u16 = (uint16_t)~csum;
+    if (csum_u16 == 0)
+        return 0xFFFF;
+    else
+        return csum_u16;
 
     return (uint16_t)~csum;
 }

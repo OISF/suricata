@@ -182,7 +182,7 @@ static inline uint16_t TCPV6CalculateChecksum(uint16_t *, uint16_t *, uint16_t);
  * \retval csum Checksum for the TCP packet
  */
 static inline uint16_t TCPCalculateChecksum(uint16_t *shdr, uint16_t *pkt,
-                                     uint16_t tlen)
+                                            uint16_t tlen)
 {
     uint16_t pad = 0;
     uint32_t csum = shdr[0];

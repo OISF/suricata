@@ -339,6 +339,7 @@ static inline uint16_t ICMPV4CalculateChecksum(uint16_t *pkt, uint16_t tlen)
     }
 
     csum = (csum >> 16) + (csum & 0x0000FFFF);
+    csum += (csum >> 16);
 
     return (uint16_t) ~csum;
 }

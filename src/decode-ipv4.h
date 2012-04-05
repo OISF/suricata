@@ -212,39 +212,40 @@ static inline uint16_t IPV4CalculateChecksum(uint16_t *pkt, uint16_t hlen)
 
     if (hlen == 0) {
         ;
-    }
-    if (hlen == 4)
+    } else if (hlen == 4) {
         csum += pkt[0] + pkt[1];
-    else if (hlen == 8)
+    } else if (hlen == 8) {
         csum += pkt[0] + pkt[1] + pkt[2] + pkt[3];
-    else if (hlen == 12)
+    } else if (hlen == 12) {
         csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5];
-    else if (hlen == 16)
+    } else if (hlen == 16) {
         csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
             pkt[7];
-    else if (hlen == 20)
+    } else if (hlen == 20) {
         csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
             pkt[7] + pkt[8] + pkt[9];
-    else if (hlen == 24)
+    } else if (hlen == 24) {
         csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
             pkt[7] + pkt[8] + pkt[9] + pkt[10] + pkt[11];
-    else if (hlen == 28)
+    } else if (hlen == 28) {
         csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
             pkt[7] + pkt[8] + pkt[9] + pkt[10] + pkt[11] + pkt[12] + pkt[13];
-    else if (hlen == 32)
+    } else if (hlen == 32) {
         csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
             pkt[7] + pkt[8] + pkt[9] + pkt[10] + pkt[11] + pkt[12] + pkt[13] +
             pkt[14] + pkt[15];
-    if (hlen == 36)
+    } else if (hlen == 36) {
         csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
             pkt[7] + pkt[8] + pkt[9] + pkt[10] + pkt[11] + pkt[12] + pkt[13] +
             pkt[14] + pkt[15] + pkt[16] + pkt[17];
-    if (hlen == 40)
+    } else if (hlen == 40) {
         csum += pkt[0] + pkt[1] + pkt[2] + pkt[3] + pkt[4] + pkt[5] + pkt[6] +
             pkt[7] + pkt[8] + pkt[9] + pkt[10] + pkt[11] + pkt[12] + pkt[13] +
             pkt[14] + pkt[15] + pkt[16] + pkt[17] + pkt[18] + pkt[19];
+    }
 
     csum = (csum >> 16) + (csum & 0x0000FFFF);
+    csum += (csum >> 16);
 
     return (uint16_t) ~csum;
 }
