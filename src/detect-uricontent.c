@@ -276,14 +276,6 @@ static inline int DoDetectAppLayerUricontentMatch (DetectEngineThreadCtx *det_ct
                 "%" PRIu32 ")", det_ctx->sgh, det_ctx->sgh->
                 mpm_uricontent_maxlen, det_ctx->sgh->sig_cnt);
 
-        det_ctx->uris++;
-
-        if (det_ctx->sgh->mpm_uricontent_maxlen == 1) det_ctx->pkts_uri_searched1++;
-        else if (det_ctx->sgh->mpm_uricontent_maxlen == 2) det_ctx->pkts_uri_searched2++;
-        else if (det_ctx->sgh->mpm_uricontent_maxlen == 3) det_ctx->pkts_uri_searched3++;
-        else if (det_ctx->sgh->mpm_uricontent_maxlen == 4) det_ctx->pkts_uri_searched4++;
-        else det_ctx->pkts_uri_searched++;
-
         ret += UriPatternSearch(det_ctx, uri, uri_len, flags);
 
         SCLogDebug("post search: cnt %" PRIu32, ret);

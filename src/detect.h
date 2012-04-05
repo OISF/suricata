@@ -667,6 +667,13 @@ enum {
     ENGINE_SGH_MPM_FACTORY_CONTEXT_AUTO
 };
 
+typedef struct HttpReassembledBody_ {
+    uint8_t *buffer;
+    uint32_t buffer_size;   /**< size of the buffer itself */
+    uint32_t buffer_len;    /**< data len in the buffer */
+    uint64_t offset;        /**< data offset */
+} HttpReassembledBody;
+
 #define DETECT_FILESTORE_MAX 15
 
 /**
@@ -684,17 +691,16 @@ typedef struct DetectionEngineThreadCtx_ {
     /* used by pcre match function alone */
     uint32_t pcre_match_start_offset;
 
-    uint8_t **hcbd_buffers;
-    uint32_t *hcbd_buffers_len;
-    uint16_t hcbd_buffers_list_len;
-
     /* counter for the filestore array below -- up here for cache reasons. */
     uint16_t filestore_cnt;
 
     uint16_t hhd_buffers_list_len;
+
+    uint16_t hcbd_buffers_list_len;
     uint16_t hsbd_buffers_list_len;
-    uint8_t **hsbd_buffers;
-    uint32_t *hsbd_buffers_len;
+
+    HttpReassembledBody *hsbd;
+    HttpReassembledBody *hcbd;
 
     uint8_t **hhd_buffers;
     uint32_t *hhd_buffers_len;
@@ -705,6 +711,9 @@ typedef struct DetectionEngineThreadCtx_ {
     /* used to discontinue any more matching */
     uint16_t discontinue_matching;
     uint16_t flags;
+
+    /** ID of the transaction currently being inspected. */
+    uint16_t tx_id;
 
     /* holds the current recursion depth on content inspection */
     int inspection_recursion_counter;
@@ -731,24 +740,6 @@ typedef struct DetectionEngineThreadCtx_ {
     MpmThreadCtx mtcs;  /**< thread ctx for stream mpm */
     PatternMatcherQueue pmq;
     PatternMatcherQueue smsg_pmq[256];
-
-    /** ID of the transaction currently being inspected. */
-    uint16_t tx_id;
-
-    /* counters */
-    uint32_t pkts;
-    uint32_t pkts_searched;
-    uint32_t pkts_searched1;
-    uint32_t pkts_searched2;
-    uint32_t pkts_searched3;
-    uint32_t pkts_searched4;
-
-    uint32_t uris;
-    uint32_t pkts_uri_searched;
-    uint32_t pkts_uri_searched1;
-    uint32_t pkts_uri_searched2;
-    uint32_t pkts_uri_searched3;
-    uint32_t pkts_uri_searched4;
 
     /** ip only rules ctx */
     DetectEngineIPOnlyThreadCtx io_ctx;

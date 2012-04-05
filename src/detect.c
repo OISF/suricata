@@ -1285,7 +1285,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     SCLogDebug("pcap_cnt %"PRIu64, p->pcap_cnt);
 
     p->alerts.cnt = 0;
-    det_ctx->pkts++;
     det_ctx->filestore_cnt = 0;
 
     /* No need to perform any detection on this packet, if the the given flag is set.*/
@@ -8648,9 +8647,6 @@ int SigTest40NoPayloadInspection02(void) {
         result &= 0;
     else
         result &= 1;
-
-    if (det_ctx->pkts_searched == 1)
-        result &= 0;
 
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);

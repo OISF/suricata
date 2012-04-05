@@ -562,14 +562,12 @@ static int DetectHttpServerBodyTest07(void)
     int r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOSERVER|STREAM_START|STREAM_EOF, http_buf1, http_len1);
     if (r != 0) {
         printf("toserver chunk 1 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         goto end;
     }
 
     r = AppLayerParse(NULL, &f, ALPROTO_HTTP, STREAM_TOCLIENT|STREAM_START, http_buf2, http_len2);
     if (r != 0) {
         printf("toserver chunk 2 returned %" PRId32 ", expected 0: ", r);
-        result = 0;
         goto end;
     }
 
@@ -582,8 +580,8 @@ static int DetectHttpServerBodyTest07(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
-    if (!(PacketAlertCheck(p1, 1))) {
-        printf("sid 1 didn't match on p1 but should have: ");
+    if ((PacketAlertCheck(p1, 1))) {
+        printf("sid 1 matched on chunk2 but should have: ");
         goto end;
     }
 
@@ -595,8 +593,8 @@ static int DetectHttpServerBodyTest07(void)
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    if (PacketAlertCheck(p2, 1)) {
-        printf("sid 1 matched on p2 but shouldn't have: ");
+    if (!(PacketAlertCheck(p2, 1))) {
+        printf("sid 1 didn't match on p2 (chunk3) but should have: ");
         goto end;
     }
 
@@ -2805,8 +2803,8 @@ static int DetectHttpServerBodyFileDataTest02(void)
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
-    if (!(PacketAlertCheck(p1, 1))) {
-        printf("sid 1 didn't match on p1 but should have: ");
+    if (PacketAlertCheck(p1, 1)) {
+        printf("sid 1 matched on p1 but should have: ");
         goto end;
     }
 
@@ -2818,8 +2816,8 @@ static int DetectHttpServerBodyFileDataTest02(void)
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    if (PacketAlertCheck(p2, 1)) {
-        printf("sid 1 matched on p2 but shouldn't have: ");
+    if (!(PacketAlertCheck(p2, 1))) {
+        printf("sid 1 didn't match on p2 but should have: ");
         goto end;
     }
 

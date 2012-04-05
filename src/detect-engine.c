@@ -484,6 +484,25 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data) {
     if (det_ctx->bj_values != NULL)
         SCFree(det_ctx->bj_values);
 
+    if (det_ctx->hsbd != NULL) {
+        SCLogDebug("det_ctx hsbd %u", det_ctx->hsbd_buffers_list_len);
+        for (i = 0; i < det_ctx->hsbd_buffers_list_len; i++) {
+            if (det_ctx->hsbd[i].buffer != NULL)
+                SCFree(det_ctx->hsbd[i].buffer);
+        }
+        SCFree(det_ctx->hsbd);
+    }
+
+    if (det_ctx->hcbd != NULL) {
+        SCLogDebug("det_ctx hcbd %u", det_ctx->hcbd_buffers_list_len);
+        for (i = 0; i < det_ctx->hcbd_buffers_list_len; i++) {
+            if (det_ctx->hcbd[i].buffer != NULL)
+                SCFree(det_ctx->hcbd[i].buffer);
+            SCLogDebug("det_ctx->hcbd[i].buffer_size %u", det_ctx->hcbd[i].buffer_size);
+        }
+        SCFree(det_ctx->hcbd);
+    }
+
     SCFree(det_ctx);
 
     return TM_ECODE_OK;

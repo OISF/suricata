@@ -1284,7 +1284,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
 
     /* if we're in the file storage process, deal with that now */
     if (htud->flags & HTP_FILENAME_SET) {
-        if (header_start != NULL || form_end != NULL || htud->flags & HTP_BODY_COMPLETE) {
+        if (header_start != NULL || form_end != NULL || htud->flags & HTP_REQ_BODY_COMPLETE) {
             SCLogDebug("reached the end of the file");
 
             uint8_t *filedata = chunks_buffer;
@@ -1297,7 +1297,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                 filedata_len = form_end - filedata;
             } else if (form_end != NULL && form_end == header_start) {
                 filedata_len = form_end - filedata - 2; /* 0d 0a */
-            } else if (htud->flags & HTP_BODY_COMPLETE) {
+            } else if (htud->flags & HTP_REQ_BODY_COMPLETE) {
                 filedata_len = chunks_buffer_len;
                 flags = FILE_TRUNCATED;
             }
@@ -1758,14 +1758,14 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
             SCLogDebug("POST");
             int r = HtpRequestBodySetupMultipart(d, htud);
             if (r == 1) {
-                htud->request_body.type = HTP_BODY_REQUEST_MULTIPART;
+                htud->request_body_type = HTP_BODY_REQUEST_MULTIPART;
             } else if (r == 0) {
-                htud->request_body.type = HTP_BODY_REQUEST_POST;
+                htud->request_body_type = HTP_BODY_REQUEST_POST;
                 SCLogDebug("not multipart");
             }
         } else if (d->tx->request_method_number == M_PUT) {
             if (HtpRequestBodySetupPUT(d, htud) == 0) {
-                htud->request_body.type = HTP_BODY_REQUEST_PUT;
+                htud->request_body_type = HTP_BODY_REQUEST_PUT;
             }
         }
 
@@ -1791,19 +1791,19 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
         int r = HtpBodyAppendChunk(htud, &htud->request_body, (uint8_t *)d->data, len);
         if (r < 0) {
-            htud->flags |= HTP_BODY_COMPLETE;
+            htud->flags |= HTP_REQ_BODY_COMPLETE;
         } else if (hstate->request_body_limit > 0 &&
             htud->request_body.content_len_so_far >= hstate->request_body_limit)
         {
-            htud->flags |= HTP_BODY_COMPLETE;
+            htud->flags |= HTP_REQ_BODY_COMPLETE;
         } else if (htud->request_body.content_len_so_far == htud->request_body.content_len) {
-            htud->flags |= HTP_BODY_COMPLETE;
+            htud->flags |= HTP_REQ_BODY_COMPLETE;
         }
 
         uint8_t *chunks_buffer = NULL;
         uint32_t chunks_buffer_len = 0;
 
-        if (htud->request_body.type == HTP_BODY_REQUEST_MULTIPART) {
+        if (htud->request_body_type == HTP_BODY_REQUEST_MULTIPART) {
             /* multi-part body handling starts here */
             if (!(htud->flags & HTP_BOUNDARY_SET)) {
                 goto end;
@@ -1824,9 +1824,9 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
             if (chunks_buffer != NULL) {
                 SCFree(chunks_buffer);
             }
-        } else if (htud->request_body.type == HTP_BODY_REQUEST_POST) {
+        } else if (htud->request_body_type == HTP_BODY_REQUEST_POST) {
             HtpRequestBodyHandlePOST(hstate, htud, d->tx, (uint8_t *)d->data, (uint32_t)d->len);
-        } else if (htud->request_body.type == HTP_BODY_REQUEST_PUT) {
+        } else if (htud->request_body_type == HTP_BODY_REQUEST_PUT) {
             HtpRequestBodyHandlePUT(hstate, htud, d->tx, (uint8_t *)d->data, (uint32_t)d->len);
         }
 
@@ -1868,6 +1868,10 @@ int HTPCallbackResponseBodyData(htp_tx_data_t *d)
         memset(htud, 0, sizeof(HtpTxUserData));
         htud->operation = HTP_BODY_RESPONSE;
 
+        htp_header_t *cl = table_getc(d->tx->response_headers, "content-length");
+        if (cl != NULL)
+            htud->response_body.content_len = htp_parse_content_length(cl->value);
+
         /* Set the user data for handling body chunks on this transaction */
         htp_tx_set_user_data(d->tx, htud);
     }
@@ -1890,13 +1894,13 @@ int HTPCallbackResponseBodyData(htp_tx_data_t *d)
 
         int r = HtpBodyAppendChunk(htud, &htud->response_body, (uint8_t *)d->data, len);
         if (r < 0) {
-            htud->flags |= HTP_BODY_COMPLETE;
+            htud->flags |= HTP_RES_BODY_COMPLETE;
         } else if (hstate->response_body_limit > 0 &&
             htud->response_body.content_len_so_far >= hstate->response_body_limit)
         {
-            htud->flags |= HTP_BODY_COMPLETE;
+            htud->flags |= HTP_RES_BODY_COMPLETE;
         } else if (htud->response_body.content_len_so_far == htud->response_body.content_len) {
-            htud->flags |= HTP_BODY_COMPLETE;
+            htud->flags |= HTP_RES_BODY_COMPLETE;
         }
 
         HtpResponseBodyHandle(hstate, htud, d->tx, (uint8_t *)d->data, (uint32_t)d->len);

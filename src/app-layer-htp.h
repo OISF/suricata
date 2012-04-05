@@ -121,38 +121,37 @@ enum {
                                              matched on some rule */
 
 /** Struct used to hold chunks of a body on a request */
-typedef struct HtpBodyChunk_ {
+struct HtpBodyChunk_ {
     uint8_t *data;              /**< Pointer to the data of the chunk */
-    uint32_t len;               /**< Length of the chunk */
-    uint32_t id;                /**< number of chunk of the current body */
     struct HtpBodyChunk_ *next; /**< Pointer to the next chunk */
     uint64_t stream_offset;
-} HtpBodyChunk;
+    uint32_t len;               /**< Length of the chunk */
+} __attribute__((__packed__));
+typedef struct HtpBodyChunk_ HtpBodyChunk;
 
 /** Struct used to hold all the chunks of a body on a request */
 typedef struct HtpBody_ {
     HtpBodyChunk *first; /**< Pointer to the first chunk */
     HtpBodyChunk *last;  /**< Pointer to the last chunk */
-    uint32_t nchunks;    /**< Number of chunks in the current operation */
-    uint8_t type;
 
     /* Holds the length of the htp request body */
     uint64_t content_len;
     /* Holds the length of the htp request body seen so far */
     uint64_t content_len_so_far;
-
+    /* parser tracker */
     uint64_t body_parsed;
-
-    /* pahole: padding: 3 */
+    /* inspection tracker */
+    uint64_t body_inspected;
 } HtpBody;
 
-#define HTP_BODY_COMPLETE       0x01    /**< body is complete or limit is reached,
+#define HTP_REQ_BODY_COMPLETE   0x01    /**< body is complete or limit is reached,
                                              either way, this is it. */
-#define HTP_CONTENTTYPE_SET     0x02    /**< We have the content type */
-#define HTP_BOUNDARY_SET        0x04    /**< We have a boundary string */
-#define HTP_BOUNDARY_OPEN       0x08    /**< We have a boundary string */
-#define HTP_FILENAME_SET        0x10    /**< filename is registered in the flow */
-#define HTP_DONTSTORE           0x20    /**< not storing this file */
+#define HTP_RES_BODY_COMPLETE   0x02
+#define HTP_CONTENTTYPE_SET     0x04    /**< We have the content type */
+#define HTP_BOUNDARY_SET        0x08    /**< We have a boundary string */
+#define HTP_BOUNDARY_OPEN       0x10    /**< We have a boundary string */
+#define HTP_FILENAME_SET        0x20    /**< filename is registered in the flow */
+#define HTP_DONTSTORE           0x40    /**< not storing this file */
 
 #define HTP_TX_HAS_FILE             0x01
 #define HTP_TX_HAS_FILENAME         0x02    /**< filename is known at this time */
@@ -180,6 +179,10 @@ typedef struct HtpTxUserData_ {
     uint8_t flags;
 
     int16_t operation;
+
+    uint8_t request_body_type;
+    uint8_t response_body_type;
+
 } HtpTxUserData;
 
 typedef struct HtpState_ {

@@ -84,7 +84,7 @@ int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32
         SCReturnInt(0);
     }
 
-    if (body->nchunks == 0) {
+    if (body->first == NULL) {
         /* New chunk */
         bd = (HtpBodyChunk *)SCMalloc(sizeof(HtpBodyChunk));
         if (bd == NULL)
@@ -93,7 +93,6 @@ int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32
         bd->len = len;
         bd->stream_offset = 0;
         bd->next = NULL;
-        bd->id = 0;
 
         bd->data = SCMalloc(len);
         if (bd->data == NULL) {
@@ -102,7 +101,6 @@ int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32
         memcpy(bd->data, data, len);
 
         body->first = body->last = bd;
-        body->nchunks++;
 
         body->content_len_so_far = len;
     } else {
@@ -113,7 +111,6 @@ int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32
         bd->len = len;
         bd->stream_offset = body->content_len_so_far;
         bd->next = NULL;
-        bd->id = body->nchunks + 1;
 
         bd->data = SCMalloc(len);
         if (bd->data == NULL) {
@@ -123,12 +120,10 @@ int HtpBodyAppendChunk(HtpTxUserData *htud, HtpBody *body, uint8_t *data, uint32
 
         body->last->next = bd;
         body->last = bd;
-        body->nchunks++;
 
         body->content_len_so_far += len;
     }
-    SCLogDebug("Body %p; Chunk id: %"PRIu32", data %p, len %"PRIu32"", body,
-                bd->id, bd->data, (uint32_t)bd->len);
+    SCLogDebug("Body %p; data %p, len %"PRIu32, body, bd->data, (uint32_t)bd->len);
 
     SCReturnInt(0);
 
@@ -152,17 +147,15 @@ void HtpBodyPrint(HtpBody *body)
     if (SCLogDebugEnabled()||1) {
         SCEnter();
 
-        if (body->nchunks == 0)
+        if (body->first == NULL)
             return;
 
         HtpBodyChunk *cur = NULL;
         SCLogDebug("--- Start body chunks at %p ---", body);
         printf("--- Start body chunks at %p ---\n", body);
         for (cur = body->first; cur != NULL; cur = cur->next) {
-            SCLogDebug("Body %p; Chunk id: %"PRIu32", data %p, len %"PRIu32"\n",
-                        body, cur->id, cur->data, (uint32_t)cur->len);
-            printf("Body %p; Chunk id: %"PRIu32", data %p, len %"PRIu32"\n",
-                        body, cur->id, cur->data, (uint32_t)cur->len);
+            SCLogDebug("Body %p; data %p, len %"PRIu32, body, cur->data, (uint32_t)cur->len);
+            printf("Body %p; data %p, len %"PRIu32"\n", body, cur->data, (uint32_t)cur->len);
             PrintRawDataFp(stdout, (uint8_t*)cur->data, cur->len);
         }
         SCLogDebug("--- End body chunks at %p ---", body);
@@ -178,13 +171,11 @@ void HtpBodyFree(HtpBody *body)
 {
     SCEnter();
 
-    if (body->nchunks == 0)
+    if (body->first == NULL)
         return;
 
-    SCLogDebug("Removing chunks of Body %p; Last Chunk id: %"PRIu32", data %p,"
-               " len %"PRIu32, body, body->last->id, body->last->data,
-                (uint32_t)body->last->len);
-    body->nchunks = 0;
+    SCLogDebug("Removing chunks of Body %p; data %p, len %"PRIu32, body,
+            body->last->data, (uint32_t)body->last->len);
 
     HtpBodyChunk *cur = NULL;
     HtpBodyChunk *prev = NULL;
@@ -211,7 +202,7 @@ void HtpBodyPrune(HtpBody *body)
 {
     SCEnter();
 
-    if (body == NULL || body->nchunks == 0) {
+    if (body == NULL || body->first == NULL) {
         SCReturn;
     }
 
@@ -219,9 +210,8 @@ void HtpBodyPrune(HtpBody *body)
         SCReturn;
     }
 
-    SCLogDebug("Pruning chunks of Body %p; Last Chunk id: %"PRIu32", data %p,"
-               " len %"PRIu32, body, body->last->id, body->last->data,
-                (uint32_t)body->last->len);
+    SCLogDebug("Pruning chunks of Body %p; data %p, len %"PRIu32, body,
+            body->last->data, (uint32_t)body->last->len);
 
     HtpBodyChunk *cur = body->first;
     while (cur != NULL) {
@@ -231,7 +221,7 @@ void HtpBodyPrune(HtpBody *body)
                 "body->body_parsed %"PRIu64, cur->stream_offset, cur->len,
                 cur->stream_offset + cur->len, body->body_parsed);
 
-        if ((cur->stream_offset + cur->len) >= body->body_parsed) {
+        if (cur->stream_offset >= body->body_inspected) {
             break;
         }
 
@@ -239,9 +229,6 @@ void HtpBodyPrune(HtpBody *body)
         if (body->last == cur) {
             body->last = next;
         }
-
-        if (body->nchunks > 0)
-            body->nchunks--;
 
         if (cur->data != NULL) {
             SCFree(cur->data);

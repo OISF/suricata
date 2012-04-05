@@ -1609,7 +1609,7 @@ static int DetectHttpClientBodyTest15(void) {
     HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(t1);
 
     HtpBodyChunk *cur = htud->request_body.first;
-    if (htud->request_body.nchunks == 0) {
+    if (htud->request_body.first == NULL) {
         SCLogDebug("No body data in t1 (it should be removed only when the tx is destroyed): ");
         goto end;
     }
@@ -1622,7 +1622,7 @@ static int DetectHttpClientBodyTest15(void) {
     htud = (HtpTxUserData *) htp_tx_get_user_data(t2);
 
     cur = htud->request_body.first;
-    if (htud->request_body.nchunks == 0) {
+    if (htud->request_body.first == NULL) {
         SCLogDebug("No body data in t1 (it should be removed only when the tx is destroyed): ");
         goto end;
     }
