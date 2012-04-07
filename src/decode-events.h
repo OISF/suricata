@@ -319,8 +319,8 @@ static inline int AppLayerDecoderEventsIsEventSet(int module_id,
             }                                                           \
             devents->events_buffer_size += DECODER_EVENTS_BUFFER_STEPS; \
         }                                                               \
-        devents->events[devents->cnt++] = event;                        \
-        SCLogDebug("setting app-layer-event %u", event);                              \
+        devents->events[devents->cnt++] = (event);                      \
+        SCLogDebug("setting app-layer-event %u", (event));              \
     } while (0)
 
 static inline int AppLayerDecoderEventsIsEventSet(AppLayerDecoderEvents *devents,
