@@ -388,6 +388,7 @@ TmEcode LogHttpLogThreadInit(ThreadVars *t, void *initdata, void **data)
 
     aft->buffer = MemBufferCreateNew(OUTPUT_BUFFER_SIZE);
     if (aft->buffer == NULL) {
+        SCFree(aft);
         return TM_ECODE_FAILED;
     }
 
