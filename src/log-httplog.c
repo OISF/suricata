@@ -281,7 +281,7 @@ static TmEcode LogHttpLogIPWrapper(ThreadVars *tv, Packet *p, void *data, Packet
         MemBufferReset(aft->buffer);
 
         /* time */
-        MemBufferWriteString(aft->buffer, "%s", timebuf);
+        MemBufferWriteString(aft->buffer, "%s ", timebuf);
 
         /* hostname */
         if (tx->parsed_uri != NULL &&
