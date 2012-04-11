@@ -33,8 +33,7 @@ MemBuffer *MemBufferCreateNew(uint32_t size)
 {
     if (size > MAX_LIMIT) {
         SCLogWarning(SC_ERR_MEM_BUFFER_API, "Mem buffer asked to create "
-                     "buffer with size greater than API limit - %d\n",
-                     MAX_LIMIT);
+                     "buffer with size greater than API limit - %d", MAX_LIMIT);
         return NULL;
     }
 

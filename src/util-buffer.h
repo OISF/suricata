@@ -21,6 +21,9 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
+#ifndef __UTIL_BUFFER_H__
+#define __UTIL_BUFFER_H__
+
 typedef struct MemBuffer_ {
    uint8_t *buffer;
    uint32_t size;
@@ -154,3 +157,5 @@ void MemBufferFree(MemBuffer *buffer);
             }                                                           \
         }                                                               \
     } while (0)
+
+#endif /* __UTIL_BUFFER_H__ */
