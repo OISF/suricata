@@ -112,6 +112,7 @@ void TmModuleNapatechFeedRegister(void)
     tmm_modules[TMM_RECEIVENAPATECH].ThreadDeinit = NapatechFeedThreadDeinit;
     tmm_modules[TMM_RECEIVENAPATECH].RegisterTests = NULL;
     tmm_modules[TMM_RECEIVENAPATECH].cap_flags = SC_CAP_NET_RAW;
+    tmm_modules[TMM_RECEIVENAPATECH].flags = TM_FLAG_RECEIVE_TM;
 }
 
 /**
