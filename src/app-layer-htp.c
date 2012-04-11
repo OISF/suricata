@@ -507,6 +507,8 @@ static void HTPHandleError(HtpState *s) {
         if (log == NULL)
             continue;
 
+        SCLogDebug("message %s", log->msg);
+
         int id = HTPHandleErrorGetId(log->msg);
         if (id > 0) {
             AppLayerDecoderEventsSetEvent(s->f, id);
