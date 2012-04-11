@@ -156,6 +156,7 @@ void TmModuleReceiveIPFWRegister (void) {
                                              SC_CAP_NET_BIND_SERVICE |
                                              SC_CAP_NET_BROADCAST; /** \todo untested */
     tmm_modules[TMM_RECEIVEIPFW].RegisterTests = NULL;
+    tmm_modules[TMM_RECEIVEIPFW].flags = TM_FLAG_RECEIVE_TM;
 }
 
 /**

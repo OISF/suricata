@@ -176,6 +176,7 @@ void TmModuleReceiveNFQRegister (void) {
     tmm_modules[TMM_RECEIVENFQ].ThreadExitPrintStats = ReceiveNFQThreadExitStats;
     tmm_modules[TMM_RECEIVENFQ].ThreadDeinit = ReceiveNFQThreadDeinit;
     tmm_modules[TMM_RECEIVENFQ].RegisterTests = NULL;
+    tmm_modules[TMM_RECEIVENFQ].flags = TM_FLAG_RECEIVE_TM;
 }
 
 void TmModuleVerdictNFQRegister (void) {
