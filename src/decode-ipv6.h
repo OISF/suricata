@@ -93,8 +93,8 @@ typedef struct IPV6Hdr_
     ((p)->ip6vars.l4proto)
 
 /** \brief get the highest proto/next header field we know */
-#define IPV6_GET_UPPER_PROTO(p)         (p)->ip6eh.ip6_exthdrs_cnt ? \
-    (p)->ip6eh.ip6_exthdrs[(p)->ip6eh.ip6_exthdrs_cnt - 1].next : IPV6_GET_NH((p))
+//#define IPV6_GET_UPPER_PROTO(p)         (p)->ip6eh.ip6_exthdrs_cnt ?
+//    (p)->ip6eh.ip6_exthdrs[(p)->ip6eh.ip6_exthdrs_cnt - 1].next : IPV6_GET_NH((p))
 
 /* helper structure with parsed ipv6 info */
 typedef struct IPV6Vars_

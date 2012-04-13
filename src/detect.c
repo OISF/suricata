@@ -1012,6 +1012,7 @@ SigGroupHead *SigMatchSignaturesGetSgh(DetectEngineCtx *de_ctx, DetectEngineThre
         f = 1;
 
     SCLogDebug("f %d", f);
+    SCLogDebug("IP_GET_IPPROTO(p) %u", IP_GET_IPPROTO(p));
 
     /* find the right mpm instance */
     DetectAddress *ag = DetectAddressLookupInHead(de_ctx->flow_gh[f].src_gh[IP_GET_IPPROTO(p)], &p->src);
@@ -6600,7 +6601,7 @@ end:
     return result;
 }
 
-int SigTest27NegativeTCPV4Keyword(void)
+static int SigTest27NegativeTCPV4Keyword(void)
 {
     uint8_t raw_ipv4[] = {
         0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -6672,9 +6673,9 @@ int SigTest27NegativeTCPV4Keyword(void)
     de_ctx->flags |= DE_QUIET;
 
     de_ctx->sig_list = SigInit(de_ctx,
-                               "alert tcp any any -> any any "
-                               "(content:\"|DE 01 03|\"; tcpv4-csum:invalid; dsize:20; "
-                               "msg:\"tcpv4-csum keyword check(1)\"; sid:1;)");
+            "alert tcp any any -> any any "
+            "(content:\"|DE 01 03|\"; tcpv4-csum:invalid; dsize:20; "
+            "msg:\"tcpv4-csum keyword check(1)\"; sid:1;)");
     if (de_ctx->sig_list == NULL) {
         goto end;
     }
@@ -6682,7 +6683,7 @@ int SigTest27NegativeTCPV4Keyword(void)
     de_ctx->sig_list->next = SigInit(de_ctx,
                                      "alert tcp any any -> any any "
                                      "(content:\"|DE 01 03|\"; tcpv4-csum:valid; dsize:20; "
-                                     "msg:\"tcpv4-csum keyword check(1)\"; "
+                                     "msg:\"tcpv4-csum keyword check(2)\"; "
                                      "sid:2;)");
     if (de_ctx->sig_list->next == NULL) {
         goto end;
@@ -6692,12 +6693,14 @@ int SigTest27NegativeTCPV4Keyword(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    if (PacketAlertCheck(p1, 1)) {
+    if (!PacketAlertCheck(p1, 1)) {
+        printf("sig 1 didn't match on p1: ");
         goto end;
     }
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
     if (PacketAlertCheck(p2, 2)) {
+        printf("sig 2 matched on p2: ");
         goto end;
     }
 
@@ -6820,12 +6823,16 @@ int SigTest28TCPV6Keyword(void)
     DetectEngineThreadCtxInit(&th_v, (void *)de_ctx,(void *)&det_ctx);
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
-    if (!(PacketAlertCheck(p1, 1)))
+    if (!(PacketAlertCheck(p1, 1))) {
+        printf("sid 1 didn't match on p1: ");
         goto end;
+    }
 
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p2);
-    if (!(PacketAlertCheck(p2, 2)))
+    if (!(PacketAlertCheck(p2, 2))) {
+        printf("sid 2 didn't match on p2: ");
         goto end;
+    }
 
     result = 1;
 end:

@@ -89,6 +89,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 SCReturn;
 
             case IPPROTO_ROUTING:
+                IPV6_SET_L4PROTO(p,nh);
                 hdrextlen = 8 + (*(pkt+1) * 8);  /* 8 bytes + length in 8 octet units */
 
                 SCLogDebug("hdrextlen %"PRIu8, hdrextlen);
@@ -149,6 +150,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 IPV6OptJumbo *jumbo = NULL;
                 uint8_t optslen = 0;
 
+                IPV6_SET_L4PROTO(p,nh);
                 hdrextlen =  (*(pkt+1) + 1) << 3;
                 if (hdrextlen > plen) {
                     ENGINE_SET_EVENT(p, IPV6_TRUNC_EXTHDR);
@@ -274,6 +276,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
             }
 
             case IPPROTO_FRAGMENT:
+                IPV6_SET_L4PROTO(p,nh);
                 /* store the offset of this extension into the packet
                  * past the ipv6 header. We use it in defrag for creating
                  * a defragmented packet without the frag header */
@@ -326,6 +329,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
 
             case IPPROTO_ESP:
             {
+                IPV6_SET_L4PROTO(p,nh);
                 hdrextlen = sizeof(IPV6EspHdr);
                 if (hdrextlen > plen) {
                     ENGINE_SET_EVENT(p, IPV6_TRUNC_EXTHDR);
@@ -355,6 +359,7 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
             }
             case IPPROTO_AH:
             {
+                IPV6_SET_L4PROTO(p,nh);
                 /* we need the header as a minimum */
                 hdrextlen = sizeof(IPV6AuthHdr);
                 /* the payload len field is the number of extra 4 byte fields */
