@@ -119,7 +119,7 @@ void MemBufferFree(MemBuffer *buffer);
                                                                 \
         if (((raw_buffer_len) >= (dst)->size - (dst)->offset)) {        \
             SCLogDebug("Truncating data write since it exceeded buffer limit of " \
-                       "- %d\n", buffer->size);                         \
+                       "- %"PRIu32"\n", (dst)->size);                          \
             write_len = ((dst)->size - (dst)->offset) - 1;              \
         } else {                                                        \
             write_len = (raw_buffer_len);                               \
@@ -151,6 +151,8 @@ void MemBufferFree(MemBuffer *buffer);
                           __VA_ARGS__);                                 \
         if (cw >= 0) {                                                  \
             if ( ((dst)->offset + cw) >= (dst)->size) {                 \
+                SCLogDebug("Truncating data write since it exceeded buffer " \
+                           "limit of - %"PRIu32"\n", (dst)->size); \
                 (dst)->offset = (dst)->size - 1;                        \
             } else {                                                    \
                 (dst->offset) += cw;                                    \

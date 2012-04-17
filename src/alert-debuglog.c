@@ -46,6 +46,7 @@
 #include "util-unittest.h"
 
 #include "util-debug.h"
+#include "util-buffer.h"
 
 #include "output.h"
 #include "alert-debuglog.h"
@@ -82,6 +83,7 @@ void TmModuleAlertDebugLogRegister (void) {
 typedef struct AlertDebugLogThread_ {
     LogFileCtx *file_ctx;
     /** LogFileCtx has the pointer to the file and a mutex to allow multithreading */
+    MemBuffer *buffer;
 } AlertDebugLogThread;
 
 static void CreateTimeString (const struct timeval *ts, char *str, size_t size) {
@@ -110,16 +112,19 @@ static void AlertDebugLogFlowVars(AlertDebugLogThread *aft, Packet *p)
             FlowVar *fv = (FlowVar *) gv;
 
             if (fv->datatype == FLOWVAR_TYPE_STR) {
-                fprintf(aft->file_ctx->fp, "FLOWVAR idx(%"PRIu32"):    "
-                        ,fv->idx);
+                MemBufferWriteString(aft->buffer, "FLOWVAR idx(%"PRIu32"):    ",
+                                     fv->idx);
                 for (i = 0; i < fv->data.fv_str.value_len; i++) {
-                    if (isprint(fv->data.fv_str.value[i]))
-                        fprintf(aft->file_ctx->fp, "%c", fv->data.fv_str.value[i]);
-                    else
-                        fprintf(aft->file_ctx->fp, "\\%02X", fv->data.fv_str.value[i]);
+                    if (isprint(fv->data.fv_str.value[i])) {
+                        MemBufferWriteString(aft->buffer, "%c",
+                                             fv->data.fv_str.value[i]);
+                    } else {
+                        MemBufferWriteString(aft->buffer, "\\%02X",
+                                             fv->data.fv_str.value[i]);
+                    }
                 }
             } else if (fv->datatype == FLOWVAR_TYPE_INT) {
-                fprintf(aft->file_ctx->fp, "FLOWVAR idx(%"PRIu32"):   "
+                MemBufferWriteString(aft->buffer, "FLOWVAR idx(%"PRIu32"):   "
                         " %" PRIu32 "\"", fv->idx, fv->data.fv_int.value);
             }
         }
@@ -142,7 +147,8 @@ static void AlertDebugLogFlowBits(AlertDebugLogThread *aft, Packet *p)
             FlowBit *fb = (FlowBit *) gv;
             char *name = VariableIdxGetName(fb->idx, fb->type);
             if (name != NULL) {
-                fprintf(aft->file_ctx->fp, "FLOWBIT:           %s\n",name);
+                MemBufferWriteString(aft->buffer, "FLOWBIT:           %s\n",
+                                     name);
                 SCFree(name);
             }
         }
@@ -162,8 +168,9 @@ static void AlertDebugLogPktVars(AlertDebugLogThread *aft, Packet *p)
     PktVar *pv = p->pktvar;
 
     while(pv != NULL) {
-        fprintf(aft->file_ctx->fp, "PKTVAR:            %s\n", pv->name);
-        PrintRawDataFp(aft->file_ctx->fp, pv->value, pv->value_len);
+        MemBufferWriteString(aft->buffer, "PKTVAR:            %s\n", pv->name);
+        PrintRawDataToBuffer(aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
+                             pv->value, pv->value_len);
         pv = pv->next;
     }
 }
@@ -174,8 +181,9 @@ static int AlertDebugPrintStreamSegmentCallback(Packet *p, void *data, uint8_t *
 {
     AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
 
-    fprintf(aft->file_ctx->fp, "STREAM DATA:\n");
-    PrintRawDataFp(aft->file_ctx->fp, buf, buflen);
+    MemBufferWriteString(aft->buffer, "STREAM DATA:\n");
+    PrintRawDataToBuffer(aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
+                         buf, buflen);
 
     return 1;
 }
@@ -191,14 +199,14 @@ TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
+    MemBufferReset(aft->buffer);
+
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
-    SCMutexLock(&aft->file_ctx->fp_mutex);
-
-    fprintf(aft->file_ctx->fp, "+================\n");
-    fprintf(aft->file_ctx->fp, "TIME:              %s\n", timebuf);
+    MemBufferWriteString(aft->buffer, "+================\n"
+                         "TIME:              %s\n", timebuf);
     if (p->pcap_cnt > 0) {
-        fprintf(aft->file_ctx->fp, "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt);
+        MemBufferWriteString(aft->buffer, "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt);
     }
 
     char srcip[46], dstip[46];
@@ -210,44 +218,51 @@ TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         PrintInet(AF_INET6, (const void *)GET_IPV6_DST_ADDR(p), dstip, sizeof(dstip));
     }
 
-    fprintf(aft->file_ctx->fp, "SRC IP:            %s\n", srcip);
-    fprintf(aft->file_ctx->fp, "DST IP:            %s\n", dstip);
-    fprintf(aft->file_ctx->fp, "PROTO:             %" PRIu32 "\n", p->proto);
+    MemBufferWriteString(aft->buffer, "SRC IP:            %s\n"
+                         "DST IP:            %s\n"
+                         "PROTO:             %" PRIu32 "\n",
+                         srcip, dstip, p->proto);
     if (PKT_IS_TCP(p) || PKT_IS_UDP(p)) {
-        fprintf(aft->file_ctx->fp, "SRC PORT:          %" PRIu32 "\n", p->sp);
-        fprintf(aft->file_ctx->fp, "DST PORT:          %" PRIu32 "\n", p->dp);
+        MemBufferWriteString(aft->buffer, "SRC PORT:          %" PRIu32 "\n"
+                             "DST PORT:          %" PRIu32 "\n",
+                             p->sp, p->dp);
         if (PKT_IS_TCP(p)) {
-            fprintf(aft->file_ctx->fp, "TCP SEQ:           %"PRIu32"\n", TCP_GET_SEQ(p));
-            fprintf(aft->file_ctx->fp, "TCP ACK:           %"PRIu32"\n", TCP_GET_ACK(p));
+            MemBufferWriteString(aft->buffer, "TCP SEQ:           %"PRIu32"\n"
+                                 "TCP ACK:           %"PRIu32"\n",
+                                 TCP_GET_SEQ(p), TCP_GET_ACK(p));
         }
     }
 
     /* flow stuff */
-    fprintf(aft->file_ctx->fp, "FLOW:              to_server: %s, to_client: %s\n",
-        p->flowflags & FLOW_PKT_TOSERVER ? "TRUE" : "FALSE",
-        p->flowflags & FLOW_PKT_TOCLIENT ? "TRUE" : "FALSE");
+    MemBufferWriteString(aft->buffer, "FLOW:              to_server: %s, "
+                         "to_client: %s\n",
+                         p->flowflags & FLOW_PKT_TOSERVER ? "TRUE" : "FALSE",
+                         p->flowflags & FLOW_PKT_TOCLIENT ? "TRUE" : "FALSE");
 
     if (p->flow != NULL) {
         FLOWLOCK_RDLOCK(p->flow);
         CreateTimeString(&p->flow->startts, timebuf, sizeof(timebuf));
-        fprintf(aft->file_ctx->fp, "FLOW Start TS:     %s\n",timebuf);
+        MemBufferWriteString(aft->buffer, "FLOW Start TS:     %s\n", timebuf);
 #ifdef DEBUG
-        fprintf(aft->file_ctx->fp, "FLOW PKTS TODST:   %"PRIu32"\n",p->flow->todstpktcnt);
-        fprintf(aft->file_ctx->fp, "FLOW PKTS TOSRC:   %"PRIu32"\n",p->flow->tosrcpktcnt);
-        fprintf(aft->file_ctx->fp, "FLOW Total Bytes:  %"PRIu64"\n",p->flow->bytecnt);
+        MemBufferWriteString(aft->buffer, "FLOW PKTS TODST:   %"PRIu32"\n",
+                             "FLOW PKTS TOSRC:   %"PRIu32"\n"
+                             "FLOW Total Bytes:  %"PRIu64"\n",
+                             p->flow->todstpktcnt, p->flow->tosrcpktcnt,
+                             p->flow->bytecnt);
 #endif
-        fprintf(aft->file_ctx->fp, "FLOW IPONLY SET:   TOSERVER: %s, TOCLIENT: %s\n",
-                p->flow->flags & FLOW_TOSERVER_IPONLY_SET ? "TRUE" : "FALSE",
-                p->flow->flags & FLOW_TOCLIENT_IPONLY_SET ? "TRUE" : "FALSE");
-        fprintf(aft->file_ctx->fp, "FLOW ACTION:       DROP: %s, PASS %s\n",
-                p->flow->flags & FLOW_ACTION_DROP ? "TRUE" : "FALSE",
-                p->flow->flags & FLOW_ACTION_PASS ? "TRUE" : "FALSE");
-        fprintf(aft->file_ctx->fp, "FLOW NOINSPECTION: PACKET: %s, PAYLOAD: %s, APP_LAYER: %s\n",
-                p->flow->flags & FLOW_NOPACKET_INSPECTION ? "TRUE" : "FALSE",
-                p->flow->flags & FLOW_NOPAYLOAD_INSPECTION ? "TRUE" : "FALSE",
-                p->flow->flags & FLOW_NO_APPLAYER_INSPECTION ? "TRUE" : "FALSE");
-        fprintf(aft->file_ctx->fp, "FLOW APP_LAYER:    DETECTED: %s, PROTO %"PRIu16"\n",
-                (p->flow->alproto != ALPROTO_UNKNOWN) ? "TRUE" : "FALSE", p->flow->alproto);
+        MemBufferWriteString(aft->buffer,
+                             "FLOW IPONLY SET:   TOSERVER: %s, TOCLIENT: %s\n"
+                             "FLOW ACTION:       DROP: %s, PASS %s\n"
+                             "FLOW NOINSPECTION: PACKET: %s, PAYLOAD: %s, APP_LAYER: %s\n"
+                             "FLOW APP_LAYER:    DETECTED: %s, PROTO %"PRIu16"\n",
+                             p->flow->flags & FLOW_TOSERVER_IPONLY_SET ? "TRUE" : "FALSE",
+                             p->flow->flags & FLOW_TOCLIENT_IPONLY_SET ? "TRUE" : "FALSE",
+                             p->flow->flags & FLOW_ACTION_DROP ? "TRUE" : "FALSE",
+                             p->flow->flags & FLOW_ACTION_PASS ? "TRUE" : "FALSE",
+                             p->flow->flags & FLOW_NOPACKET_INSPECTION ? "TRUE" : "FALSE",
+                             p->flow->flags & FLOW_NOPAYLOAD_INSPECTION ? "TRUE" : "FALSE",
+                             p->flow->flags & FLOW_NO_APPLAYER_INSPECTION ? "TRUE" : "FALSE",
+                             (p->flow->alproto != ALPROTO_UNKNOWN) ? "TRUE" : "FALSE", p->flow->alproto);
         AlertDebugLogFlowVars(aft, p);
         AlertDebugLogFlowBits(aft, p);
         FLOWLOCK_UNLOCK(p->flow);
@@ -258,11 +273,15 @@ TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
 /* any stuff */
 /* Sig details? */
 
-    fprintf(aft->file_ctx->fp, "PACKET LEN:        %" PRIu32 "\n", GET_PKT_LEN(p));
-    fprintf(aft->file_ctx->fp, "PACKET:\n");
-    PrintRawDataFp(aft->file_ctx->fp, GET_PKT_DATA(p), GET_PKT_LEN(p));
+    MemBufferWriteString(aft->buffer,
+                         "PACKET LEN:        %" PRIu32 "\n"
+                         "PACKET:\n",
+                         GET_PKT_LEN(p));
+    PrintRawDataToBuffer(aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
+                         GET_PKT_DATA(p), GET_PKT_LEN(p));
 
-    fprintf(aft->file_ctx->fp, "ALERT CNT:           %" PRIu32 "\n", p->alerts.cnt);
+    MemBufferWriteString(aft->buffer, "ALERT CNT:           %" PRIu32 "\n",
+                         p->alerts.cnt);
 
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
@@ -270,19 +289,30 @@ TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
             continue;
         }
 
-        fprintf(aft->file_ctx->fp, "ALERT MSG [%02d]:      %s\n", i, pa->s->msg);
-        fprintf(aft->file_ctx->fp, "ALERT GID [%02d]:      %" PRIu32 "\n", i, pa->s->gid);
-        fprintf(aft->file_ctx->fp, "ALERT SID [%02d]:      %" PRIu32 "\n", i, pa->s->id);
-        fprintf(aft->file_ctx->fp, "ALERT REV [%02d]:      %" PRIu32 "\n", i, pa->s->rev);
-        fprintf(aft->file_ctx->fp, "ALERT CLASS [%02d]:    %s\n", i, pa->s->class_msg ? pa->s->class_msg : "<none>");
-        fprintf(aft->file_ctx->fp, "ALERT PRIO [%02d]:     %" PRIu32 "\n", i, pa->s->prio);
-        fprintf(aft->file_ctx->fp, "ALERT FOUND IN [%02d]: %s\n", i,
-                pa->flags & PACKET_ALERT_FLAG_STREAM_MATCH  ? "STREAM" :
-                (pa->flags & PACKET_ALERT_FLAG_STATE_MATCH ? "STATE" : "PACKET"));
+        MemBufferWriteString(aft->buffer,
+                             "ALERT MSG [%02d]:      %s\n"
+                             "ALERT GID [%02d]:      %" PRIu32 "\n"
+                             "ALERT SID [%02d]:      %" PRIu32 "\n"
+                             "ALERT REV [%02d]:      %" PRIu32 "\n"
+                             "ALERT CLASS [%02d]:    %s\n"
+                             "ALERT PRIO [%02d]:     %" PRIu32 "\n"
+                             "ALERT FOUND IN [%02d]: %s\n",
+                             i, pa->s->msg,
+                             i, pa->s->gid,
+                             i, pa->s->id,
+                             i, pa->s->rev,
+                             i, pa->s->class_msg ? pa->s->class_msg : "<none>",
+                             i, pa->s->prio,
+                             i,
+                             pa->flags & PACKET_ALERT_FLAG_STREAM_MATCH  ? "STREAM" :
+                             (pa->flags & PACKET_ALERT_FLAG_STATE_MATCH ? "STATE" : "PACKET"));
         if (p->payload_len > 0) {
-            fprintf(aft->file_ctx->fp, "PAYLOAD LEN:       %" PRIu32 "\n", p->payload_len);
-            fprintf(aft->file_ctx->fp, "PAYLOAD:\n");
-            PrintRawDataFp(aft->file_ctx->fp, p->payload, p->payload_len);
+            MemBufferWriteString(aft->buffer,
+                                 "PAYLOAD LEN:       %" PRIu32 "\n"
+                                 "PAYLOAD:\n",
+                                 p->payload_len);
+            PrintRawDataToBuffer(aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
+                                 p->payload, p->payload_len);
         }
         if (pa->flags & PACKET_ALERT_FLAG_STATE_MATCH ||
             pa->flags & PACKET_ALERT_FLAG_STREAM_MATCH) {
@@ -291,7 +321,6 @@ TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
             uint8_t flag;
             if ((! PKT_IS_TCP(p)) || p->flow == NULL ||
                     p->flow->protoctx == NULL) {
-                SCMutexUnlock(&aft->file_ctx->fp_mutex);
                 return TM_ECODE_OK;
             }
             /* IDS mode reverse the data */
@@ -305,15 +334,15 @@ TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
                                  AlertDebugPrintStreamSegmentCallback,
                                  (void *)aft);
             if (ret < 0) {
-                SCMutexUnlock(&aft->file_ctx->fp_mutex);
                 return TM_ECODE_FAILED;
             }
         }
     }
 
-    aft->file_ctx->alerts += p->alerts.cnt;
-
+    SCMutexLock(&aft->file_ctx->fp_mutex);
+    MemBufferPrintToFPAsString(aft->buffer, aft->file_ctx->fp);
     fflush(aft->file_ctx->fp);
+    aft->file_ctx->alerts += p->alerts.cnt;
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
 
     return TM_ECODE_OK;
@@ -328,16 +357,19 @@ TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQ
     if (p->alerts.cnt == 0)
         return TM_ECODE_OK;
 
+    MemBufferReset(aft->buffer);
+
     CreateTimeString(&p->ts, timebuf, sizeof(timebuf));
 
-    SCMutexLock(&aft->file_ctx->fp_mutex);
-
-    fprintf(aft->file_ctx->fp, "+================\n");
-    fprintf(aft->file_ctx->fp, "TIME:              %s\n", timebuf);
+    MemBufferWriteString(aft->buffer,
+                         "+================\n"
+                         "TIME:              %s\n", timebuf);
     if (p->pcap_cnt > 0) {
-        fprintf(aft->file_ctx->fp, "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt);
+        MemBufferWriteString(aft->buffer,
+                             "PCAP PKT NUM:      %"PRIu64"\n", p->pcap_cnt);
     }
-    fprintf(aft->file_ctx->fp, "ALERT CNT:         %" PRIu32 "\n", p->alerts.cnt);
+    MemBufferWriteString(aft->buffer,
+                         "ALERT CNT:         %" PRIu32 "\n", p->alerts.cnt);
 
     for (i = 0; i < p->alerts.cnt; i++) {
         PacketAlert *pa = &p->alerts.alerts[i];
@@ -345,21 +377,32 @@ TmEcode AlertDebugLogDecoderEvent(ThreadVars *tv, Packet *p, void *data, PacketQ
             continue;
         }
 
-        fprintf(aft->file_ctx->fp, "ALERT MSG [%02d]:    %s\n", i, pa->s->msg);
-        fprintf(aft->file_ctx->fp, "ALERT GID [%02d]:    %" PRIu32 "\n", i, pa->s->gid);
-        fprintf(aft->file_ctx->fp, "ALERT SID [%02d]:    %" PRIu32 "\n", i, pa->s->id);
-        fprintf(aft->file_ctx->fp, "ALERT REV [%02d]:    %" PRIu32 "\n", i, pa->s->rev);
-        fprintf(aft->file_ctx->fp, "ALERT CLASS [%02d]:  %s\n", i, pa->s->class_msg);
-        fprintf(aft->file_ctx->fp, "ALERT PRIO [%02d]:   %" PRIu32 "\n", i, pa->s->prio);
+        MemBufferWriteString(aft->buffer,
+                             "ALERT MSG [%02d]:    %s\n"
+                             "ALERT GID [%02d]:    %" PRIu32 "\n"
+                             "ALERT SID [%02d]:    %" PRIu32 "\n"
+                             "ALERT REV [%02d]:    %" PRIu32 "\n"
+                             "ALERT CLASS [%02d]:  %s\n"
+                             "ALERT PRIO [%02d]:   %" PRIu32 "\n",
+                             i, pa->s->msg,
+                             i, pa->s->gid,
+                             i, pa->s->id,
+                             i, pa->s->rev,
+                             i, pa->s->class_msg,
+                             i, pa->s->prio);
     }
 
-    aft->file_ctx->alerts += p->alerts.cnt;
+    MemBufferWriteString(aft->buffer,
+                         "PACKET LEN:        %" PRIu32 "\n"
+                         "PACKET:\n",
+                         GET_PKT_LEN(p));
+    PrintRawDataToBuffer(aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
+                         GET_PKT_DATA(p), GET_PKT_LEN(p));
 
-    fprintf(aft->file_ctx->fp, "PACKET LEN:        %" PRIu32 "\n", GET_PKT_LEN(p));
-    fprintf(aft->file_ctx->fp, "PACKET:\n");
-    PrintRawDataFp(aft->file_ctx->fp, GET_PKT_DATA(p), GET_PKT_LEN(p));
-
+    SCMutexLock(&aft->file_ctx->fp_mutex);
+    MemBufferPrintToFPAsString(aft->buffer, aft->file_ctx->fp);
     fflush(aft->file_ctx->fp);
+    aft->file_ctx->alerts += p->alerts.cnt;
     SCMutexUnlock(&aft->file_ctx->fp_mutex);
 
     return TM_ECODE_OK;
@@ -394,6 +437,13 @@ TmEcode AlertDebugLogThreadInit(ThreadVars *t, void *initdata, void **data)
     /** Use the Ouptut Context (file pointer and mutex) */
     aft->file_ctx = ((OutputCtx *)initdata)->data;
 
+    /* 1 mb seems sufficient enough */
+    aft->buffer = MemBufferCreateNew(1 * 1024 * 1024);
+    if (aft->buffer == NULL) {
+        SCFree(aft);
+        return TM_ECODE_FAILED;
+    }
+
     *data = (void *)aft;
     return TM_ECODE_OK;
 }
@@ -405,6 +455,7 @@ TmEcode AlertDebugLogThreadDeinit(ThreadVars *t, void *data)
         return TM_ECODE_OK;
     }
 
+    MemBufferFree(aft->buffer);
     /* clear memory */
     memset(aft, 0, sizeof(AlertDebugLogThread));
 

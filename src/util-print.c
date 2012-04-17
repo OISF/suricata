@@ -168,6 +168,54 @@ void PrintRawDataFp(FILE *fp, uint8_t *buf, uint32_t buflen) {
         fprintf(fp, "\n");
 }
 
+void PrintRawDataToBuffer(uint8_t *dst_buf, uint32_t *dst_buf_offset_ptr, uint32_t dst_buf_size,
+                          uint8_t *src_buf, uint32_t src_buf_len)
+{
+    int ch = 0;
+    uint32_t u = 0;
+
+    for (u = 0; u < src_buf_len; u+=16) {
+        PrintBufferData((char *)dst_buf, dst_buf_offset_ptr, dst_buf_size,
+                        " %04X  ", u);
+        for (ch = 0; (u + ch) < src_buf_len && ch < 16; ch++) {
+            PrintBufferData((char *)dst_buf, dst_buf_offset_ptr, dst_buf_size,
+                            "%02X ", (uint8_t)src_buf[u + ch]);
+
+            if (ch == 7) {
+                PrintBufferData((char *)dst_buf, dst_buf_offset_ptr, dst_buf_size,
+                                " ");
+            }
+        }
+        if (ch == 16) {
+            PrintBufferData((char *)dst_buf, dst_buf_offset_ptr, dst_buf_size, "  ");
+        } else if (ch < 8) {
+            int spaces = (16 - ch) * 3 + 2 + 1;
+            int s = 0;
+            for ( ; s < spaces; s++)
+                PrintBufferData((char *)dst_buf, dst_buf_offset_ptr, dst_buf_size, " ");
+        } else if(ch < 16) {
+            int spaces = (16 - ch) * 3 + 2;
+            int s = 0;
+            for ( ; s < spaces; s++)
+                PrintBufferData((char *)dst_buf, dst_buf_offset_ptr, dst_buf_size, " ");
+        }
+
+        for (ch = 0; (u+ch) < src_buf_len && ch < 16; ch++) {
+            PrintBufferData((char *)dst_buf, dst_buf_offset_ptr, dst_buf_size,
+                            "%c",
+                            isprint((uint8_t)src_buf[u + ch]) ? (uint8_t)src_buf[u + ch] : '.');
+
+             if (ch == 7)
+                 PrintBufferData((char *)dst_buf, dst_buf_offset_ptr, dst_buf_size, " ");
+             if (ch == 15)
+                 PrintBufferData((char *)dst_buf, dst_buf_offset_ptr, dst_buf_size, "\n");
+        }
+    }
+    if (ch != 16)
+        PrintBufferData((char *)dst_buf, dst_buf_offset_ptr, dst_buf_size, "\n");
+
+    return;
+}
 
 #ifndef s6_addr16
 # define s6_addr16 __u6_addr.__u6_addr16
