@@ -1014,18 +1014,18 @@ AC_INIT(configure.in)
 
     if test "$enable_dag" = "yes"; then
 
-	    if test "$with_dag_includes" != "no"; then
+	if test "$with_dag_includes" != "no"; then
             CPPFLAGS="${CPPFLAGS} -I${with_dag_includes}"
         fi
 
         if test "$with_dag_libraries" != "no"; then
-            LDFLAGS="${LDFLAGS} -I${with_dag_libraries}"
+            LDFLAGS="${LDFLAGS} -L${with_dag_libraries}"
         fi
 
         AC_CHECK_HEADER(dagapi.h,DAG="yes",DAG="no")
         if test "$DAG" != "no"; then
             DAG=""
-	        AC_CHECK_LIB(dag,dag_open,DAG="yes",DAG="no")
+	    AC_CHECK_LIB(dag,dag_open,,DAG="no",)
         fi
 
         if test "$DAG" != "no"; then
