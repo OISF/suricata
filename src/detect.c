@@ -1555,37 +1555,30 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                     uint8_t pmq_idx = 0;
                     StreamMsg *smsg_inspect = smsg;
                     for ( ; smsg_inspect != NULL; smsg_inspect = smsg_inspect->next, pmq_idx++) {
-                        //if (det_ctx->smsg_pmq[pmq_idx].pattern_id_array_cnt == 0) {
-                        //    SCLogDebug("no match in smsg_inspect %p (%u), idx %d", smsg_inspect, smsg_inspect->data.data_len, pmq_idx);
-                        //    continue;
-                        //}
+                        /* filter out sigs that want pattern matches, but
+                         * have no matches */
+                        if ((s->flags & SIG_FLAG_MPM_STREAM) && !(s->flags & SIG_FLAG_MPM_STREAM_NEG) &&
+                            !(det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray[(s->mpm_pattern_id_div_8)] & s->mpm_pattern_id_mod_8)) {
+                            SCLogDebug("no match in this smsg");
+                            continue;
+                        }
 
-                        //if (det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray != NULL) {
-                            /* filter out sigs that want pattern matches, but
-                             * have no matches */
-                            if ((s->flags & SIG_FLAG_MPM_STREAM) && !(s->flags & SIG_FLAG_MPM_STREAM_NEG) &&
-                                !(det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray[(s->mpm_pattern_id_div_8)] & s->mpm_pattern_id_mod_8)) {
-                                SCLogDebug("no match in this smsg");
-                                continue;
+                        if (DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, p->flow, smsg_inspect->data.data, smsg_inspect->data.data_len) == 1) {
+                            SCLogDebug("match in smsg %p", smsg);
+                            pmatch = 1;
+                            /* Tell the engine that this reassembled stream can drop the
+                             * rest of the pkts with no further inspection */
+                            if (s->action & ACTION_DROP)
+                                alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
+
+                            /* store ptr to current smsg */
+                            if (alert_msg == NULL) {
+                                alert_msg = smsg_inspect;
+                                p->alerts.alert_msgs = smsg;
                             }
 
-                            if (DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, p->flow, smsg_inspect->data.data, smsg_inspect->data.data_len) == 1) {
-                                SCLogDebug("match in smsg %p", smsg);
-                                pmatch = 1;
-                                /* Tell the engine that this reassembled stream can drop the
-                                 * rest of the pkts with no further inspection */
-                                if (s->action & ACTION_DROP)
-                                    alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
-
-                                /* store ptr to current smsg */
-                                if (alert_msg == NULL) {
-                                    alert_msg = smsg_inspect;
-                                    p->alerts.alert_msgs = smsg;
-                                }
-
-                                break;
-                            }
-                        //}
+                            break;
+                        }
                     }
 
                 } /* if (smsg != NULL) */
