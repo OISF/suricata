@@ -1560,11 +1560,11 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                         //    continue;
                         //}
 
-                        if (det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray != NULL) {
+                        //if (det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray != NULL) {
                             /* filter out sigs that want pattern matches, but
                              * have no matches */
-                            if (!(det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray[(s->mpm_pattern_id_div_8)] & s->mpm_pattern_id_mod_8) &&
-                                (s->flags & SIG_FLAG_MPM_STREAM) && !(s->flags & SIG_FLAG_MPM_STREAM_NEG)) {
+                            if ((s->flags & SIG_FLAG_MPM_STREAM) && !(s->flags & SIG_FLAG_MPM_STREAM_NEG) &&
+                                !(det_ctx->smsg_pmq[pmq_idx].pattern_id_bitarray[(s->mpm_pattern_id_div_8)] & s->mpm_pattern_id_mod_8)) {
                                 SCLogDebug("no match in this smsg");
                                 continue;
                             }
@@ -1585,7 +1585,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
                                 break;
                             }
-                        }
+                        //}
                     }
 
                 } /* if (smsg != NULL) */
