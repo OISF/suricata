@@ -2392,15 +2392,20 @@ void RegisterHTPParsers(void)
 void AppLayerHtpRegisterExtraCallbacks(void) {
     SCEnter();
     SCLogDebug("Registering extra htp callbacks");
-    if (need_htp_request_body == 1) {
-        SCLogDebug("Registering callback htp_config_register_request_body_data on htp");
-        htp_config_register_request_body_data(cfglist.cfg,
-                                              HTPCallbackRequestBodyData);
-    }
-    if (need_htp_response_body == 1) {
-        SCLogDebug("Registering callback htp_config_register_response_body_data on htp");
-        htp_config_register_response_body_data(cfglist.cfg,
-                                              HTPCallbackResponseBodyData);
+
+    HTPCfgRec *p_cfglist = &cfglist;
+    while (p_cfglist != NULL) {
+        if (need_htp_request_body == 1) {
+            SCLogDebug("Registering callback htp_config_register_request_body_data on htp");
+            htp_config_register_request_body_data(p_cfglist->cfg,
+                                                  HTPCallbackRequestBodyData);
+        }
+        if (need_htp_response_body == 1) {
+            SCLogDebug("Registering callback htp_config_register_response_body_data on htp");
+            htp_config_register_response_body_data(p_cfglist->cfg,
+                                                   HTPCallbackResponseBodyData);
+        }
+        p_cfglist = p_cfglist->next;
     }
     SCReturn;
 }
