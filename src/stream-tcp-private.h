@@ -112,15 +112,13 @@ enum
 /** Flag to indicate that this session is possible trying to evade the detection
  *  (http://www.packetstan.com/2010/06/recently-ive-been-on-campaign-to-make.html) */
 #define STREAMTCP_FLAG_DETECTION_EVASION_ATTEMPT    0x0200
-/** Flag to indicate that this stream direction has reassembled chunks */
-#define STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED  0x0400
 /** Flag to indicate the client (SYN pkt) permits SACK */
-#define STREAMTCP_FLAG_CLIENT_SACKOK                0x0800
+#define STREAMTCP_FLAG_CLIENT_SACKOK                0x0400
 /** Flag to indicate both sides of the session permit SACK (SYN + SYN/ACK) */
-#define STREAMTCP_FLAG_SACKOK                       0x1000
+#define STREAMTCP_FLAG_SACKOK                       0x0800
 /** Flag for triggering RAW reassembly before the size limit is reached or
     the stream reaches EOF. */
-#define STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY       0x2000
+#define STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY       0x1000
 
 /*
  * Per STREAM flags

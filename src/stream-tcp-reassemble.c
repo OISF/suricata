@@ -1826,10 +1826,6 @@ static int StreamTcpReassembleInlineAppLayer (ThreadVars *tv,
                     NULL, 0, flags|STREAM_EOF);
             PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
 
-            /* even if app layer detection failed, we will now move on to
-             * release reassembly for both directions. */
-            ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
-
         } else {
             SCLogDebug("no segments in the list to reassemble");
         }
@@ -1949,8 +1945,6 @@ static int StreamTcpReassembleInlineAppLayer (ThreadVars *tv,
                 /* set a GAP flag and make sure not bothering this stream anymore */
                 SCLogDebug("set STREAMTCP_STREAM_FLAG_GAP flag");
                 stream->flags |= STREAMTCP_STREAM_FLAG_GAP;
-                /* flag reassembly as started, so the to_client part can start */
-                ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
 
                 StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
                 SCPerfCounterIncr(ra_ctx->counter_tcp_reass_gap, tv->sc_perf_pca);
@@ -2111,13 +2105,6 @@ static int StreamTcpReassembleInlineAppLayer (ThreadVars *tv,
         data_sent += data_len;
     }
 
-    if (ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED) {
-        SCLogDebug("proto detection already completed");
-        ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
-    } else {
-        SCLogDebug("protocol detection not yet completed");
-    }
-
     if (data_sent == 0 && ssn->state > TCP_ESTABLISHED) {
         SCLogDebug("sending empty eof message");
         /* send EOF to app layer */
@@ -2125,10 +2112,6 @@ static int StreamTcpReassembleInlineAppLayer (ThreadVars *tv,
         AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
                 NULL, 0, flags|STREAM_EOF);
         PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
-
-        /* even if app layer detection failed, we will now move on to
-         * release reassembly for both directions. */
-        ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
     }
 
     /* store ra_base_seq in the stream */
@@ -2504,10 +2487,6 @@ static int StreamTcpReassembleAppLayer (ThreadVars *tv,
                     NULL, 0, flags|STREAM_EOF);
             PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
 
-            /* even if app layer detection failed, we will now move on to
-             * release reassembly for both directions. */
-            ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
-
             SCReturnInt(0);
         }
     }
@@ -2638,8 +2617,6 @@ static int StreamTcpReassembleAppLayer (ThreadVars *tv,
                 /* set a GAP flag and make sure not bothering this stream anymore */
                 SCLogDebug("STREAMTCP_STREAM_FLAG_GAP set");
                 stream->flags |= STREAMTCP_STREAM_FLAG_GAP;
-                /* flag reassembly as started, so the to_client part can start */
-                ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
 
                 StreamTcpSetEvent(p, STREAM_REASSEMBLY_SEQ_GAP);
                 SCPerfCounterIncr(ra_ctx->counter_tcp_reass_gap, tv->sc_perf_pca);
@@ -2841,13 +2818,6 @@ static int StreamTcpReassembleAppLayer (ThreadVars *tv,
         PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
     }
 
-    if (ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED) {
-        SCLogDebug("proto detection already completed");
-        ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
-    } else {
-        SCLogDebug("protocol detection not yet completed");
-    }
-
     /* store ra_base_seq in the stream */
     if ((ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED)) {
         stream->ra_app_base_seq = ra_base_seq;
@@ -2865,15 +2835,7 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
 {
     SCEnter();
     SCLogDebug("start p %p", p);
-#if 0
-    if (PKT_IS_TOSERVER(p) &&
-        !(ssn->flags & STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED))
-    {
-        SCLogDebug("toserver reassembling is not done yet, so "
-                "skipping reassembling at the moment for to_client");
-        SCReturnInt(0);
-    }
-#endif
+
     if (stream->seg_list == NULL) {
         /* send an empty EOF msg if we have no segments but TCP state
          * is beyond ESTABLISHED */
@@ -2885,10 +2847,6 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
             }
             StreamTcpSetupMsg(ssn, stream, p, smsg);
             StreamMsgPutInQueue(ra_ctx->stream_q,smsg);
-
-            /* even if app layer detection failed, we will now move on to
-             * release reassembly for both directions. */
-            ssn->flags |= STREAMTCP_FLAG_TOSERVER_REASSEMBLY_STARTED;
 
         } else {
             SCLogDebug("no segments in the list to reassemble");
