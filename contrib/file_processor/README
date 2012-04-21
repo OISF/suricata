@@ -4,5 +4,5 @@ To create new plugins, use the existing modules as a guide.  Drop a new file wit
 
 INSTALLATION
 You will need a few Perl modules to get going.  I recommend using the excellent cpanm utility which can be installed by typing "cpan App::cpanminus."  After cpanm is installed, you can install everything in one command like this:
-cpanm Moose Module::Pluggable Log::Log4perl Config::JSON File::Tail LWP::UserAgent
+cpanm Moose Module::Pluggable Log::Log4perl Config::JSON File::Tail LWP::UserAgent Sys::Syslog
 Alternatively, you may wish to install using your operating system's package manager, though that may not use the latest code for these modules.

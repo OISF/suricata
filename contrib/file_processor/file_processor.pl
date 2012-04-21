@@ -50,13 +50,14 @@ sub process {
 	#$self->log->debug('got line ' . $line);
 	eval {
 		my $data = $self->json->decode($line);
-		return unless $data->{md5};
 		$data->{processors} = {};
-		foreach my $processor_plugin ($self->processors){
-			next unless exists $self->conf->{processors}->{$processor_plugin};
-			my $processor = $processor_plugin->new(conf => $self->conf, log => $self->log, md5 => $data->{md5});
-			$self->log->debug('processing with plugin ' . $processor->description);
-			$data->{processors}->{ $processor->name } = $processor->process();
+		if($data->{md5}){
+			foreach my $processor_plugin ($self->processors){
+				next unless exists $self->conf->{processors}->{$processor_plugin};
+				my $processor = $processor_plugin->new(conf => $self->conf, log => $self->log, md5 => $data->{md5});
+				$self->log->debug('processing with plugin ' . $processor->description);
+				$data->{processors}->{ $processor->name } = $processor->process();
+			}
 		}
 		#$self->log->debug('data: ' . Dumper($data));
 		foreach my $action_plugin ($self->actions){
@@ -89,7 +90,8 @@ my $Conf = {
 	logdir => '/tmp',
 	debug_level => 'TRACE',
 	actions => {
-		'Action::Log' => 1
+		'Action::Log' => 1,
+		'Action::Syslog' => 1,
 	},
 	processors => {
 		'Processor::Anubis' => 1,
