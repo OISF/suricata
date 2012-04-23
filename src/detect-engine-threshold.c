@@ -327,7 +327,7 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
                     /* within timeout */
 
                     lookup_tsh->current_count++;
-                    if (lookup_tsh->current_count >= td->count) {
+                    if (lookup_tsh->current_count > td->count) {
                         ret = 1;
                     }
                 } else {
@@ -335,16 +335,8 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
 
                     lookup_tsh->tv_sec1 = p->ts.tv_sec;
                     lookup_tsh->current_count = 1;
-
-                    if (td->count == 1) {
-                        ret = 1;
-                    }
                 }
             } else {
-                if (td->count == 1) {
-                    ret = 1;
-                }
-
                 DetectThresholdEntry *e = DetectThresholdEntryAlloc(td, p, sid, gid);
                 if (e == NULL) {
                     break;
