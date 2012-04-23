@@ -135,6 +135,14 @@ int DetectFlowMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p, S
         cnt++;
     }
 
+    if (det_ctx->flags & DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH) {
+        if (fd->flags & FLOW_PKT_ONLYSTREAM)
+            cnt++;
+    } else {
+        if (fd->flags & FLOW_PKT_NOSTREAM)
+            cnt++;
+    }
+
     int ret = (fd->match_cnt == cnt) ? 1 : 0;
     SCLogDebug("returning %" PRId32 " cnt %" PRIu8 " fd->match_cnt %" PRId32 " fd->flags 0x%02X p->flowflags 0x%02X",
         ret, cnt, fd->match_cnt, fd->flags, p->flowflags);

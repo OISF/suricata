@@ -1566,6 +1566,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                         if (DetectEngineInspectStreamPayload(de_ctx, det_ctx, s, p->flow, smsg_inspect->data.data, smsg_inspect->data.data_len) == 1) {
                             SCLogDebug("match in smsg %p", smsg);
                             pmatch = 1;
+                            det_ctx->flags |= DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH;
                             /* Tell the engine that this reassembled stream can drop the
                              * rest of the pkts with no further inspection */
                             if (s->action & ACTION_DROP)
@@ -1635,6 +1636,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 }
             }
         }
+        if (det_ctx->flags & DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH)
+            det_ctx->flags &= ~DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH;
 
         SCLogDebug("s->sm_lists[DETECT_SM_LIST_AMATCH] %p, "
                 "s->sm_lists[DETECT_SM_LIST_UMATCH] %p, "
