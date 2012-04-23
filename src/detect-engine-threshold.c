@@ -323,7 +323,10 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
             SCLogDebug("detection_filter");
 
             if (lookup_tsh != NULL) {
-                if ((p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
+                long double time_diff = ((p->ts.tv_sec + p->ts.tv_usec/1000000.0) -
+                                         (lookup_tsh->tv_sec1 + lookup_tsh->tv_usec1/1000000.0));
+
+                if (time_diff < td->seconds) {
                     /* within timeout */
 
                     lookup_tsh->current_count++;
@@ -334,6 +337,7 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
                     /* expired, reset */
 
                     lookup_tsh->tv_sec1 = p->ts.tv_sec;
+                    lookup_tsh->tv_usec1 = p->ts.tv_usec;
                     lookup_tsh->current_count = 1;
                 }
             } else {
@@ -344,6 +348,7 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
 
                 e->current_count = 1;
                 e->tv_sec1 = p->ts.tv_sec;
+                e->tv_usec1 = p->ts.tv_usec;
 
                 e->next = h->threshold;
                 h->threshold = e;
