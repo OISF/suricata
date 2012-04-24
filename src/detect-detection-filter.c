@@ -444,7 +444,7 @@ static int DetectDetectionFilterTestSig1(void) {
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 1);
 
-    if(alerts == 5)
+    if(alerts == 4)
         result = 1;
 
     SigGroupCleanup(de_ctx);
@@ -522,7 +522,7 @@ static int DetectDetectionFilterTestSig2(void) {
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
     alerts += PacketAlertCheck(p, 10);
 
-    if (alerts == 1)
+    if (alerts == 0)
         result = 1;
 
     SigGroupCleanup(de_ctx);
