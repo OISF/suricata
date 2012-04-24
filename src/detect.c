@@ -1636,8 +1636,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 }
             }
         }
-        if (det_ctx->flags & DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH)
-            det_ctx->flags &= ~DETECT_ENGINE_THREAD_CTX_STREAM_CONTENT_MATCH;
 
         SCLogDebug("s->sm_lists[DETECT_SM_LIST_AMATCH] %p, "
                 "s->sm_lists[DETECT_SM_LIST_UMATCH] %p, "
@@ -1695,6 +1693,8 @@ next:
         DetectReplaceFree(det_ctx->replist);
         det_ctx->replist = NULL;
         RULE_PROFILING_END(s, match);
+
+        det_ctx->flags = 0;
         continue;
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_RULES);
