@@ -1100,7 +1100,9 @@ int DetectAddressMergeNot(DetectAddressHead *gh, DetectAddressHead *ghn)
     /* check if the negated list covers the entire ip space. If so
      * the user screwed up the rules/vars. */
     if (DetectAddressIsCompleteIPSpace(ghn) == 1) {
-        SCLogDebug("DetectAddressMergeNot: complete IP space negated");
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Complete IP space negated.  "
+                   "Rule address range is NIL.  Probably have a !any or "
+                   "a address range that supplies a NULL address range");
         goto error;
     }
 
