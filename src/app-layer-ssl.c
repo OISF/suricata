@@ -932,6 +932,21 @@ void SSLStateFree(void *p)
     return;
 }
 
+static uint16_t SSLProbingParser(uint8_t *input, uint32_t ilen)
+{
+    /* probably a rst/fin sending an eof */
+    if (ilen == 0)
+        return ALPROTO_UNKNOWN;
+
+    /* for now just the 3 byte header ones */
+    /* \todo Detect the 2 byte ones */
+    if ((input[0] & 0x80) && (input[2] == 0x01)) {
+        return ALPROTO_TLS;
+    }
+
+    return ALPROTO_FAILED;
+}
+
 /**
  * \brief Function to register the SSL protocol parser and other functions
  */
@@ -969,6 +984,16 @@ void RegisterSSLParsers(void)
     AppLayerDecoderEventsModuleRegister(ALPROTO_TLS, tls_decoder_event_table);
 
     AppLayerRegisterStateFuncs(ALPROTO_TLS, SSLStateAlloc, SSLStateFree);
+
+    AppLayerRegisterProbingParser(&alp_proto_ctx,
+                                  443,
+                                  IPPROTO_TCP,
+                                  proto_name,
+                                  ALPROTO_TLS,
+                                  0, 3,
+                                  STREAM_TOSERVER,
+                                  APP_LAYER_PROBING_PARSER_PRIORITY_HIGH, 1,
+                                  SSLProbingParser);
 
     /* Get the value of no reassembly option from the config file */
     if (ConfGetBool("tls.no-reassemble", &ssl_config.no_reassemble) != 1)
