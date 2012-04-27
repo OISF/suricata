@@ -92,6 +92,7 @@ AC_INIT(configure.in)
     AC_CHECK_HEADERS([arpa/inet.h inttypes.h limits.h netdb.h poll.h signal.h stdint.h stdlib.h string.h syslog.h sys/ioctl.h sys/prctl.h sys/socket.h sys/syscall.h netinet/in.h sys/time.h unistd.h windows.h winsock2.h ws2tcpip.h])
     AC_CHECK_HEADERS([sys/socket.h net/if.h sys/mman.h], [], [],
     [[#ifdef HAVE_SYS_SOCKET_H
+#include <sys/types.h>
 #include <sys/socket.h>
 #endif
     ]])

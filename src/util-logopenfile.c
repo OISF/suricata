@@ -23,6 +23,7 @@
  *
  * File-like output for logging:  regular files and sockets.
  */
+#include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/un.h>
 
