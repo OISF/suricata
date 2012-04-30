@@ -72,7 +72,10 @@ void DetectFiledataRegister(void) {
 static int DetectFiledataSetup (DetectEngineCtx *de_ctx, Signature *s, char *str)
 {
     SCEnter();
-
+    if (s->init_flags & SIG_FLAG_INIT_FLOW && s->flags & SIG_FLAG_TOSERVER && !(s->flags & SIG_FLAG_TOCLIENT)) {
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "Can't use file_data with flow:to_server or from_client with http.");
+        return -1;
+    }
     s->init_flags |= SIG_FLAG_INIT_FILE_DATA;
 
     return 0;
