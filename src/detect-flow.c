@@ -309,6 +309,12 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, char *flowstr)
     if (fd == NULL)
         goto error;
 
+    /*ensure only one flow option*/
+    if (s->init_flags & SIG_FLAG_INIT_FLOW) {
+        SCLogError (SC_ERR_INVALID_SIGNATURE, "A signature may have only one flow option.");
+        goto error;
+    }
+
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
     sm = SigMatchAlloc();
@@ -329,7 +335,6 @@ int DetectFlowSetup (DetectEngineCtx *de_ctx, Signature *s, char *flowstr)
         s->flags |= SIG_FLAG_TOSERVER;
         s->flags |= SIG_FLAG_TOCLIENT;
     }
-
     if (fd->flags & FLOW_PKT_ONLYSTREAM) {
         s->flags |= SIG_FLAG_REQUIRE_STREAM;
     }
