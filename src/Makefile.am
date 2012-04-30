@@ -94,6 +94,7 @@ detect-engine-hsmd.c detect-engine-hsmd.h \
 detect-engine-hscd.c detect-engine-hscd.h \
 detect-engine-state.c detect-engine-state.h \
 detect-engine-file.c detect-engine-file.h \
+detect-engine-analyzer.c detect-engine-analyzer.h \
 detect-parse.c detect-parse.h \
 detect-ack.c detect-ack.h \
 detect-seq.c detect-seq.h \

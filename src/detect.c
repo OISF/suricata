@@ -46,6 +46,7 @@
 #include "detect-engine-dcepayload.h"
 #include "detect-engine-uri.h"
 #include "detect-engine-state.h"
+#include "detect-engine-analyzer.h"
 
 #include "detect-http-cookie.h"
 #include "detect-http-method.h"
@@ -182,6 +183,7 @@ extern uint8_t engine_mode;
 
 extern int engine_analysis;
 static int fp_engine_analysis_set = 0;
+static int rule_engine_analysis_set = 0;
 static FILE *fp_engine_analysis_FD = NULL;
 
 SigMatch *SigMatchAlloc(void);
@@ -523,6 +525,9 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
             if (fp_engine_analysis_set) {
                 EngineAnalysisFastPattern(sig);
             }
+            if (rule_engine_analysis_set) {
+                EngineAnalysisRules(sig, line);
+            }
             SCLogDebug("signature %"PRIu32" loaded", sig->id);
             good++;
         } else {
@@ -571,7 +576,6 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
                       "report.");
             fp_engine_analysis_set = 0;
         }
-
         if (fp_engine_analysis_set) {
             char *log_dir;
             if (ConfGet("default-log-dir", &log_dir) != 1)
@@ -597,9 +601,11 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
                     tms->tm_min, tms->tm_sec);
             fprintf(fp_engine_analysis_FD, "----------------------------------------------"
                     "---------------------\n");
-        } else {
+        }
+        else {
             SCLogInfo("Engine-Analysis for fast_pattern disabled in conf file.");
         }
+        rule_engine_analysis_set = SetupRuleAnalyzer(log_path);
     }
 
     /* ok, let's load signature files from the general config */
@@ -697,6 +703,9 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
                 fclose(fp_engine_analysis_FD);
                 fp_engine_analysis_FD = NULL;
             }
+        }
+        if (rule_engine_analysis_set) {
+            CleanupRuleAnalyzer(log_path);
         }
     }
 
@@ -2061,7 +2070,7 @@ static int SignatureIsDEOnly(DetectEngineCtx *de_ctx, Signature *s) {
             SCReturnInt(0);
     }
 
-    /* need at least one decode event keyword to be condered decode event. */
+    /* need at least one decode event keyword to be considered decode event. */
     sm = s->sm_lists[DETECT_SM_LIST_MATCH];
     for ( ;sm != NULL; sm = sm->next) {
         if (sm->type == DETECT_DECODE_EVENT)
