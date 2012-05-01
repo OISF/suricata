@@ -279,8 +279,8 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
                 SigMatch *sm = NULL;
                 for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
                     if (sm->type == DETECT_CONTENT) {
-                        cd = sm->ctx;
-                        if (cd->flags & DETECT_CONTENT_FAST_PATTERN) {
+                        DetectContentData *tmp_cd = sm->ctx;
+                        if (tmp_cd->flags & DETECT_CONTENT_FAST_PATTERN) {
                             SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern "
                                         "can be used on only one content in a rule");
                             goto error;
@@ -437,7 +437,6 @@ int DetectFastPatternTest01(void)
  */
 int DetectFastPatternTest02(void)
 {
-    SigMatch *sm = NULL;
     DetectEngineCtx *de_ctx = NULL;
     int result = 0;
 
@@ -449,23 +448,10 @@ int DetectFastPatternTest02(void)
                                "(content:\"/one/\"; fast_pattern; "
                                "content:\"boo\"; fast_pattern; "
                                "msg:\"Testing fast_pattern\"; sid:1;)");
-    if (de_ctx->sig_list == NULL)
+    if (de_ctx->sig_list != NULL)
         goto end;
 
-    result = 0;
-    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_PMATCH];
-    while (sm != NULL) {
-        if (sm->type == DETECT_CONTENT) {
-            if (((DetectContentData *)sm->ctx)->flags &
-                DETECT_CONTENT_FAST_PATTERN) {
-                result = 1;
-            } else {
-                result = 0;
-                break;
-            }
-        }
-        sm = sm->next;
-    }
+    result = 1;
 
  end:
     SigCleanSignatures(de_ctx);
@@ -885,7 +871,7 @@ int DetectFastPatternTest11(void)
 
     de_ctx->sig_list = SigInit(de_ctx, "alert tcp any any -> any any "
                                "(msg:\"fast_pattern test\"; content:\"string1\"; "
-                               "content:\"string2\"; content:\"strings3\"; fast_pattern; "
+                               "content:\"string2\"; content:\"strings3\"; "
                                "content:\"strings4_imp\"; fast_pattern; "
                                "content:\"strings_string5\"; sid:1;)");
     if (de_ctx->sig_list == NULL)
