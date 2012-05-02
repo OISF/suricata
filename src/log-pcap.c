@@ -417,8 +417,7 @@ OutputCtx *PcapLogInitCtx(ConfNode *conf)
         filename = DEFAULT_LOG_FILENAME;
 
     if ((pl->prefix = SCStrdup(filename)) == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory for directory name");
-        return NULL;
+        exit(EXIT_FAILURE);
     }
 
     pl->size_limit = DEFAULT_LIMIT;
@@ -576,15 +575,14 @@ OutputCtx *PcapLogInitCtx(ConfNode *conf)
 
 static void PcapLogFileDeInitCtx(OutputCtx *output_ctx)
 {
+    if (output_ctx == NULL)
+        return;
+
     PcapLogData *pl = output_ctx->data;
 
     PcapFileName *pf = NULL;
     TAILQ_FOREACH(pf, &pl->pcap_file_list, next) {
         SCLogDebug("PCAP files left at exit: %s\n", pf->filename);
-    }
-
-    if (output_ctx != NULL) {
-        SCFree(output_ctx);
     }
 
     return;

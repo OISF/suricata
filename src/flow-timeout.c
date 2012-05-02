@@ -487,7 +487,11 @@ static inline void FlowForceReassemblyForHash(void)
                 StreamTcpReassembleHandleSegment(stream_pseudo_pkt_stream_TV,
                         stt->ra_ctx, ssn, &ssn->server,
                         reassemble_p, NULL);
-                StreamTcpReassembleProcessAppLayer(stt->ra_ctx);
+                if (StreamTcpReassembleProcessAppLayer(stt->ra_ctx) < 0) {
+                    SCLogDebug("shutdown flow timeout "
+                               "StreamTcpReassembleProcessAppLayer() erroring "
+                               "over something");
+                }
             }
             /* oh oh!  We have some unattended toclient segments */
             if ((server_ok = StreamHasUnprocessedSegments(ssn, 1)) == 1) {
@@ -500,7 +504,11 @@ static inline void FlowForceReassemblyForHash(void)
                 StreamTcpReassembleHandleSegment(stream_pseudo_pkt_stream_TV,
                         stt->ra_ctx, ssn, &ssn->client,
                         reassemble_p, NULL);
-                StreamTcpReassembleProcessAppLayer(stt->ra_ctx);
+                if (StreamTcpReassembleProcessAppLayer(stt->ra_ctx) < 0) {
+                    SCLogDebug("shutdown flow timeout "
+                               "StreamTcpReassembleProcessAppLayer() erroring "
+                               "over something");
+                }
             }
 
             if (ssn->state >= TCP_ESTABLISHED && ssn->state != TCP_CLOSED)

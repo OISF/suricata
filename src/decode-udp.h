@@ -189,8 +189,6 @@ static inline uint16_t UDPV6CalculateChecksum(uint16_t *shdr, uint16_t *pkt,
         return 0xFFFF;
     else
         return csum_u16;
-
-    return (uint16_t)~csum;
 }
 
 

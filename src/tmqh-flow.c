@@ -119,10 +119,10 @@ static int StoreQueueId(TmqhFlowCtx *ctx, char *name)
     if (ctx->queues == NULL) {
         ctx->size = 1;
         ctx->queues = SCMalloc(ctx->size * sizeof(TmqhFlowMode));
-        memset(ctx->queues, 0, ctx->size * sizeof(TmqhFlowMode));
         if (ctx->queues == NULL) {
             return -1;
         }
+        memset(ctx->queues, 0, ctx->size * sizeof(TmqhFlowMode));
     } else {
         ctx->size++;
         ctx->queues = SCRealloc(ctx->queues, ctx->size * sizeof(TmqhFlowMode));
