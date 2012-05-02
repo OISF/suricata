@@ -832,7 +832,6 @@ AC_INIT(configure.in)
             AC_DEFINE([HAVE_PACKET_FANOUT],[1],[Packet fanout support is available]),
             [],
             [[#include <linux/if_packet.h>]])
-        CFLAGS="${CFLAGS} -DUNITTESTS"
     ])
 
 
