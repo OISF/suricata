@@ -587,8 +587,10 @@ int SCLogCheckFDFilterEntry(const char *function)
         return 1;
     }
 
-    if ( (thread_list_temp = SCMalloc(sizeof(SCLogFDFilterThreadList))) == NULL)
+    if ( (thread_list_temp = SCMalloc(sizeof(SCLogFDFilterThreadList))) == NULL) {
+        SCMutexUnlock(&sc_log_fd_filters_tl_m);
         return 0;
+    }
     memset(thread_list_temp, 0, sizeof(SCLogFDFilterThreadList));
 
     thread_list_temp->t = self;

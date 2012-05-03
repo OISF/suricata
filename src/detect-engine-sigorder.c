@@ -185,9 +185,6 @@ static inline int SCSigGetFlowvarType(Signature *sig)
         sm = sm->next;
     }
 
-    if (type != DETECT_FLOWVAR_NOT_USED)
-        return type;
-
     sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
     pd = NULL;
     while (sm != NULL) {
@@ -232,9 +229,6 @@ static inline int SCSigGetPktvarType(Signature *sig)
 
         sm = sm->next;
     }
-
-    if (type != DETECT_PKTVAR_NOT_USED)
-        return type;
 
     sm = sig->sm_lists[DETECT_SM_LIST_MATCH];
     pd = NULL;

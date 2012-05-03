@@ -1482,14 +1482,18 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
 
     /* get me the bugger who wrote this junk of a code :P */
     if (pctmi == NULL) {
-        if ( (temp = SCMalloc(sizeof(SCPerfClubTMInst))) == NULL)
+        if ( (temp = SCMalloc(sizeof(SCPerfClubTMInst))) == NULL) {
+            SCMutexUnlock(&sc_perf_op_ctx->pctmi_lock);
             return 0;
+        }
         memset(temp, 0, sizeof(SCPerfClubTMInst));
 
         temp->size = 1;
         temp->head = SCMalloc(sizeof(SCPerfContext **));
-        if (temp->head == NULL)
+        if (temp->head == NULL) {
+            SCMutexUnlock(&sc_perf_op_ctx->pctmi_lock);
             return 0;
+        }
         temp->head[0] = pctx;
         temp->tm_name = SCStrdup(tm_name);
 
@@ -1514,8 +1518,10 @@ int SCPerfAddToClubbedTMTable(char *tm_name, SCPerfContext *pctx)
 
     pctmi->head = SCRealloc(pctmi->head,
                           (pctmi->size + 1) * sizeof(SCPerfContext **));
-    if (pctmi->head == NULL)
+    if (pctmi->head == NULL) {
+        SCMutexUnlock(&sc_perf_op_ctx->pctmi_lock);
         return 0;
+    }
     hpctx = pctmi->head;
 
     hpctx[pctmi->size] = pctx;

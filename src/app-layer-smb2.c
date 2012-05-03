@@ -132,7 +132,7 @@ static uint32_t SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
                     sstate->smb2.MessageId = *(p + 24);
                     sstate->smb2.MessageId |= *(p + 25) << 8;
                     sstate->smb2.MessageId |= *(p + 26) << 16;
-                    sstate->smb2.MessageId |= *(p + 27) << 24;
+                    sstate->smb2.MessageId |= (uint64_t) *(p + 27) << 24;
                     sstate->smb2.MessageId |= (uint64_t) *(p + 28) << 32;
                     sstate->smb2.MessageId |= (uint64_t) *(p + 29) << 40;
                     sstate->smb2.MessageId |= (uint64_t) *(p + 30) << 48;
@@ -148,7 +148,7 @@ static uint32_t SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
                     sstate->smb2.SessionId = *(p + 40);
                     sstate->smb2.SessionId |= *(p + 41) << 8;
                     sstate->smb2.SessionId |= *(p + 42) << 16;
-                    sstate->smb2.SessionId |= *(p + 43) << 24;
+                    sstate->smb2.SessionId |= (uint64_t) *(p + 43) << 24;
                     sstate->smb2.SessionId |= (uint64_t) *(p + 44) << 32;
                     sstate->smb2.SessionId |= (uint64_t) *(p + 45) << 40;
                     sstate->smb2.SessionId |= (uint64_t) *(p + 46) << 48;
@@ -266,7 +266,7 @@ static uint32_t SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
                 sstate->smb2.MessageId = *(p++) << 16;
                 if (!(--input_len)) break;
             case 31:
-                sstate->smb2.MessageId = *(p++) << 24;
+                sstate->smb2.MessageId = (uint64_t) *(p++) << 24;
                 if (!(--input_len)) break;
             case 32:
                 sstate->smb2.MessageId = (uint64_t) *(p++) << 32;
@@ -314,7 +314,7 @@ static uint32_t SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
                 sstate->smb2.SessionId |= *(p++) << 16;
                 if (!(--input_len)) break;
             case 47:
-                sstate->smb2.SessionId |= *(p++) << 24;
+                sstate->smb2.SessionId |= (uint64_t) *(p++) << 24;
                 if (!(--input_len)) break;
             case 48:
                 sstate->smb2.SessionId |= (uint64_t) *(p++) << 32;

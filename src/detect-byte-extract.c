@@ -751,6 +751,9 @@ void DetectByteExtractFree(void *ptr)
 
 SigMatch *DetectByteExtractRetrieveSMVar(const char *arg, Signature *s, int list)
 {
+    if (list == -1)
+        return NULL;
+
     DetectByteExtractData *bed = NULL;
     SigMatch *sm = s->sm_lists[list];
 

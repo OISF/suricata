@@ -194,7 +194,7 @@ static int DCERPCUDPParseHeader(Flow *f, void *dcerpcudp_state,
 					sstate->dcerpc.dcerpchdrudp.if_vers = *(p + 60);
 					sstate->dcerpc.dcerpchdrudp.if_vers |= *(p + 61) << 8;
 					sstate->dcerpc.dcerpchdrudp.if_vers |= *(p + 62) << 16;
-					sstate->dcerpc.dcerpchdrudp.if_vers |= *(p + 63) >> 24;
+					sstate->dcerpc.dcerpchdrudp.if_vers |= *(p + 63) << 24;
 					sstate->dcerpc.dcerpchdrudp.seqnum = *(p + 64);
 					sstate->dcerpc.dcerpchdrudp.seqnum |= *(p + 65) << 8;
 					sstate->dcerpc.dcerpchdrudp.seqnum |= *(p + 66) << 16;
