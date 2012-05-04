@@ -919,7 +919,7 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
     int o_set = 0, n_set = 0, d_set = 0;
     int depth = 0;
     size_t size = strlen(s);
-    char address[1024] = "";
+    char address[8196] = "";
     char *rule_var_address = NULL;
     char *temp_rule_var_address = NULL;
 
@@ -995,7 +995,7 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
         } else if (depth == 0 && s[u] == '$') {
             d_set = 1;
         } else if (depth == 0 && u == size - 1) {
-            if (x == 1024) {
+            if (x == sizeof(address)) {
                 address[x - 1] = '\0';
             } else {
                 address[x] = '\0';
