@@ -926,6 +926,12 @@ int DetectAddressParse2(DetectAddressHead *gh, DetectAddressHead *ghn, char *s,
     SCLogDebug("s %s negate %s", s, negate ? "true" : "false");
 
     for (u = 0, x = 0; u < size && x < sizeof(address); u++) {
+        if (x == (sizeof(address) - 1)) {
+            SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC, "Hit the address buffer"
+                       " limit for the supplied address.  Invalidating sig.  "
+                       "Please file a bug report on this.");
+            goto error;
+        }
         address[x] = s[u];
         x++;
 
