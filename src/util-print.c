@@ -119,8 +119,13 @@ void PrintRawUriBuf(char *retbuf, uint32_t *offset, uint32_t retbuflen,
 
     for (u = 0; u < buflen; u++) {
         if (isprint(buf[u]) && buf[u] != '\"') {
-            PrintBufferData(retbuf, offset, retbuflen,
-                            "%c", buf[u]);
+            if (buf[u] == '\\') {
+                PrintBufferData(retbuf, offset, retbuflen,
+                                "\\\\");
+            } else {
+                PrintBufferData(retbuf, offset, retbuflen,
+                                "%c", buf[u]);
+            }
         } else {
             PrintBufferData(retbuf, offset, retbuflen,
                             "\\x%02X", buf[u]);
