@@ -481,6 +481,10 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
             if (ByteExtractStringUint32(&parsed_count, 10, strlen(th_count), th_count) <= 0) {
                 goto error;
             }
+            if (parsed_count == 0) {
+                SCLogError(SC_ERR_INVALID_VALUE, "rate filter count should be > 0");
+                goto error;
+            }
 
             if (ByteExtractStringUint32(&parsed_seconds, 10, strlen(th_seconds), th_seconds) <= 0) {
                 goto error;

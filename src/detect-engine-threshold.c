@@ -360,6 +360,8 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
         {
             SCLogDebug("rate_filter");
 
+            ret = 1;
+
             if (lookup_tsh != NULL) {
                 /* Check if we have a timeout enabled, if so,
                  * we still matching (and enabling the new_action) */
@@ -392,7 +394,7 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
                 /* Update the matching state with the timeout interval */
                 if ( (p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
                     lookup_tsh->current_count++;
-                    if (lookup_tsh->current_count >= td->count) {
+                    if (lookup_tsh->current_count > td->count) {
                         /* Then we must enable the new action by setting a
                          * timeout */
                         lookup_tsh->tv_timeout = p->ts.tv_sec;

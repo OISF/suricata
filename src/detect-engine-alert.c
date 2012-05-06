@@ -251,14 +251,14 @@ void PacketAlertFinalize(DetectEngineCtx *de_ctx, DetectEngineThreadCtx *det_ctx
             /* set verdict on packet */
             p->action |= p->alerts.alerts[i].action;
 
-            if (p->alerts.alerts[i].action & ACTION_PASS) {
+            if (p->action & ACTION_PASS) {
                 /* Ok, reset the alert cnt to end in the previous of pass
                  * so we ignore the rest with less prio */
                 p->alerts.cnt = i;
                 break;
             /* if the signature wants to drop, check if the
              * PACKET_ALERT_FLAG_DROP_FLOW flag is set. */
-            } else if (p->alerts.alerts[i].action & ACTION_DROP &&
+            } else if (p->action & ACTION_DROP &&
                     ((p->alerts.alerts[i].flags & PACKET_ALERT_FLAG_DROP_FLOW) ||
                          (s->flags & SIG_FLAG_APPLAYER))
                        && p->flow != NULL)
