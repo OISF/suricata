@@ -133,7 +133,7 @@ AC_INIT(configure.in)
                     LDFLAGS="${LDFLAGS} -L/usr/local/lib -L/usr/local/lib/libnet11"
                     ;;
            *-*-openbsd*)
-                    CFLAGS="${CFLAGS} -D__OpenBSD__"
+                    CFLAGS="${CFLAGS} -D__OpenBSD__ -fgnu89-inline"
                     CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet-1.1"
                     LDFLAGS="${LDFLAGS} -L/usr/local/lib -I/usr/local/lib/libnet-1.1"
                     ;;

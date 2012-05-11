@@ -72,23 +72,6 @@ void B3gPrintInfo(MpmCtx *);
 void B3gPrintSearchStats(MpmThreadCtx *);
 void B3gRegisterTests(void);
 
-void MpmB3gRegister (void) {
-    mpm_table[MPM_B3G].name = "b3g";
-    mpm_table[MPM_B3G].max_pattern_length = B3G_WORD_SIZE;
-    mpm_table[MPM_B3G].InitCtx = B3gInitCtx;
-    mpm_table[MPM_B3G].InitThreadCtx = B3gThreadInitCtx;
-    mpm_table[MPM_B3G].DestroyCtx = B3gDestroyCtx;
-    mpm_table[MPM_B3G].DestroyThreadCtx = B3gThreadDestroyCtx;
-    mpm_table[MPM_B3G].AddPattern = B3gAddPatternCS;
-    mpm_table[MPM_B3G].AddPatternNocase = B3gAddPatternCI;
-    mpm_table[MPM_B3G].Prepare = B3gPreparePatterns;
-    mpm_table[MPM_B3G].Search = B3gSearchWrap;
-    mpm_table[MPM_B3G].Cleanup = NULL;
-    mpm_table[MPM_B3G].PrintCtx = B3gPrintInfo;
-    mpm_table[MPM_B3G].PrintThreadCtx = B3gPrintSearchStats;
-    mpm_table[MPM_B3G].RegisterUnittests = B3gRegisterTests;
-}
-
 /** \todo XXX Unused??? */
 #if 0
 static void prt (uint8_t *buf, uint16_t buflen) {
@@ -1219,6 +1202,23 @@ uint32_t B3gSearch1(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx, PatternMatche
         cnt += ctx->MBSearch(mpm_ctx, mpm_thread_ctx, pmq, bufmin, buflen);
     }
     return cnt;
+}
+
+void MpmB3gRegister (void) {
+    mpm_table[MPM_B3G].name = "b3g";
+    mpm_table[MPM_B3G].max_pattern_length = B3G_WORD_SIZE;
+    mpm_table[MPM_B3G].InitCtx = B3gInitCtx;
+    mpm_table[MPM_B3G].InitThreadCtx = B3gThreadInitCtx;
+    mpm_table[MPM_B3G].DestroyCtx = B3gDestroyCtx;
+    mpm_table[MPM_B3G].DestroyThreadCtx = B3gThreadDestroyCtx;
+    mpm_table[MPM_B3G].AddPattern = B3gAddPatternCS;
+    mpm_table[MPM_B3G].AddPatternNocase = B3gAddPatternCI;
+    mpm_table[MPM_B3G].Prepare = B3gPreparePatterns;
+    mpm_table[MPM_B3G].Search = B3gSearchWrap;
+    mpm_table[MPM_B3G].Cleanup = NULL;
+    mpm_table[MPM_B3G].PrintCtx = B3gPrintInfo;
+    mpm_table[MPM_B3G].PrintThreadCtx = B3gPrintSearchStats;
+    mpm_table[MPM_B3G].RegisterUnittests = B3gRegisterTests;
 }
 
 /*

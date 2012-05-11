@@ -125,6 +125,65 @@ Packet *PacketGetFromQueueOrAlloc(void)
 }
 
 /**
+ *  \brief Copy data to Packet payload at given offset
+ *
+ * This function copies data/payload to a Packet. It uses the
+ * space allocated at Packet creation (pointed by Packet::pkt)
+ * or allocate some memory (pointed by Packet::ext_pkt) if the
+ * data size is to big to fit in initial space (of size
+ * default_packet_size).
+ *
+ *  \param Pointer to the Packet to modify
+ *  \param Offset of the copy relatively to payload of Packet
+ *  \param Pointer to the data to copy
+ *  \param Length of the data to copy
+ */
+inline int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datalen)
+{
+    if (offset + datalen > MAX_PAYLOAD_SIZE) {
+        /* too big */
+        return -1;
+    }
+
+    /* Do we have already an packet with allocated data */
+    if (! p->ext_pkt) {
+        if (offset + datalen <= (int)default_packet_size) {
+            /* data will fit in memory allocated with packet */
+            memcpy(p->pkt + offset, data, datalen);
+        } else {
+            /* here we need a dynamic allocation */
+            p->ext_pkt = SCMalloc(MAX_PAYLOAD_SIZE);
+            if (p->ext_pkt == NULL) {
+                SET_PKT_LEN(p, 0);
+                return -1;
+            }
+            /* copy initial data */
+            memcpy(p->ext_pkt, GET_PKT_DIRECT_DATA(p), GET_PKT_DIRECT_MAX_SIZE(p));
+            /* copy data as asked */
+            memcpy(p->ext_pkt + offset, data, datalen);
+        }
+    } else {
+        memcpy(p->ext_pkt + offset, data, datalen);
+    }
+    return 0;
+}
+
+/**
+ *  \brief Copy data to Packet payload and set packet length
+ *
+ *  \param Pointer to the Packet to modify
+ *  \param Pointer to the data to copy
+ *  \param Length of the data to copy
+ */
+inline int PacketCopyData(Packet *p, uint8_t *pktdata, int pktlen)
+{
+    SET_PKT_LEN(p, (size_t)pktlen);
+    return PacketCopyDataOffset(p, 0, pktdata, pktlen);
+}
+
+
+
+/**
  *  \brief Setup a pseudo packet (tunnel)
  *
  *  \param parent parent packet for this pseudo pkt
@@ -339,63 +398,6 @@ DecodeThreadVars *DecodeThreadVarsAlloc() {
     AlpProtoFinalize2Thread(&dtv->udp_dp_ctx);
 
     return dtv;
-}
-
-/**
- *  \brief Copy data to Packet payload at given offset
- *
- * This function copies data/payload to a Packet. It uses the
- * space allocated at Packet creation (pointed by Packet::pkt)
- * or allocate some memory (pointed by Packet::ext_pkt) if the
- * data size is to big to fit in initial space (of size
- * default_packet_size).
- *
- *  \param Pointer to the Packet to modify
- *  \param Offset of the copy relatively to payload of Packet
- *  \param Pointer to the data to copy
- *  \param Length of the data to copy
- */
-inline int PacketCopyDataOffset(Packet *p, int offset, uint8_t *data, int datalen)
-{
-    if (offset + datalen > MAX_PAYLOAD_SIZE) {
-        /* too big */
-        return -1;
-    }
-
-    /* Do we have already an packet with allocated data */
-    if (! p->ext_pkt) {
-        if (offset + datalen <= (int)default_packet_size) {
-            /* data will fit in memory allocated with packet */
-            memcpy(p->pkt + offset, data, datalen);
-        } else {
-            /* here we need a dynamic allocation */
-            p->ext_pkt = SCMalloc(MAX_PAYLOAD_SIZE);
-            if (p->ext_pkt == NULL) {
-                SET_PKT_LEN(p, 0);
-                return -1;
-            }
-            /* copy initial data */
-            memcpy(p->ext_pkt, GET_PKT_DIRECT_DATA(p), GET_PKT_DIRECT_MAX_SIZE(p));
-            /* copy data as asked */
-            memcpy(p->ext_pkt + offset, data, datalen);
-        }
-    } else {
-        memcpy(p->ext_pkt + offset, data, datalen);
-    }
-    return 0;
-}
-
-/**
- *  \brief Copy data to Packet payload and set packet length
- *
- *  \param Pointer to the Packet to modify
- *  \param Pointer to the data to copy
- *  \param Length of the data to copy
- */
-inline int PacketCopyData(Packet *p, uint8_t *pktdata, int pktlen)
-{
-    SET_PKT_LEN(p, (size_t)pktlen);
-    return PacketCopyDataOffset(p, 0, pktdata, pktlen);
 }
 
 

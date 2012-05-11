@@ -89,32 +89,6 @@ static uint8_t lowercasetable[256];
 #define COUNT(counter)
 #endif /* WUMANBER_COUNTERS */
 
-void MpmWuManberRegister (void) {
-    mpm_table[MPM_WUMANBER].name = "wumanber";
-    mpm_table[MPM_WUMANBER].max_pattern_length = 0;
-    mpm_table[MPM_WUMANBER].InitCtx = WmInitCtx;
-    mpm_table[MPM_WUMANBER].InitThreadCtx = WmThreadInitCtx;
-    mpm_table[MPM_WUMANBER].DestroyCtx = WmDestroyCtx;
-    mpm_table[MPM_WUMANBER].DestroyThreadCtx = WmThreadDestroyCtx;
-    mpm_table[MPM_WUMANBER].AddPattern = WmAddPatternCS;
-    mpm_table[MPM_WUMANBER].AddPatternNocase = WmAddPatternCI;
-    mpm_table[MPM_WUMANBER].Prepare = WmPreparePatterns;
-    mpm_table[MPM_WUMANBER].Search = WmSearch;
-    mpm_table[MPM_WUMANBER].Cleanup = NULL;
-    mpm_table[MPM_WUMANBER].PrintCtx = WmPrintInfo;
-    mpm_table[MPM_WUMANBER].PrintThreadCtx = WmPrintSearchStats;
-    mpm_table[MPM_WUMANBER].RegisterUnittests = WmRegisterTests;
-
-    /* create table for O(1) lowercase conversion lookup */
-    uint8_t c = 0;
-    for ( ; c < 255; c++) {
-       if (c >= 'A' && c <= 'Z')
-           lowercasetable[c] = (c + ('a' - 'A'));
-       else
-           lowercasetable[c] = c;
-    }
-}
-
 void prt (uint8_t *buf, uint16_t buflen) {
     uint16_t i;
 
@@ -1447,6 +1421,32 @@ void WmThreadDestroyCtx(MpmCtx *mpm_ctx, MpmThreadCtx *mpm_thread_ctx) {
         mpm_thread_ctx->memory_cnt--;
         mpm_thread_ctx->memory_size -= sizeof(WmThreadCtx);
         SCFree(mpm_thread_ctx->ctx);
+    }
+}
+
+void MpmWuManberRegister (void) {
+    mpm_table[MPM_WUMANBER].name = "wumanber";
+    mpm_table[MPM_WUMANBER].max_pattern_length = 0;
+    mpm_table[MPM_WUMANBER].InitCtx = WmInitCtx;
+    mpm_table[MPM_WUMANBER].InitThreadCtx = WmThreadInitCtx;
+    mpm_table[MPM_WUMANBER].DestroyCtx = WmDestroyCtx;
+    mpm_table[MPM_WUMANBER].DestroyThreadCtx = WmThreadDestroyCtx;
+    mpm_table[MPM_WUMANBER].AddPattern = WmAddPatternCS;
+    mpm_table[MPM_WUMANBER].AddPatternNocase = WmAddPatternCI;
+    mpm_table[MPM_WUMANBER].Prepare = WmPreparePatterns;
+    mpm_table[MPM_WUMANBER].Search = WmSearch;
+    mpm_table[MPM_WUMANBER].Cleanup = NULL;
+    mpm_table[MPM_WUMANBER].PrintCtx = WmPrintInfo;
+    mpm_table[MPM_WUMANBER].PrintThreadCtx = WmPrintSearchStats;
+    mpm_table[MPM_WUMANBER].RegisterUnittests = WmRegisterTests;
+
+    /* create table for O(1) lowercase conversion lookup */
+    uint8_t c = 0;
+    for ( ; c < 255; c++) {
+       if (c >= 'A' && c <= 'Z')
+           lowercasetable[c] = (c + ('a' - 'A'));
+       else
+           lowercasetable[c] = c;
     }
 }
 
