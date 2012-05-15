@@ -1519,7 +1519,6 @@ int SCThresholdConfTest09(void)
     Packet *p = UTHBuildPacket((uint8_t*)"lalala", 6, IPPROTO_TCP);
     ThreadVars th_v;
     DetectEngineThreadCtx *det_ctx = NULL;
-    int alerts = 0;
 
     memset(&th_v, 0, sizeof(th_v));
 
@@ -1547,18 +1546,26 @@ int SCThresholdConfTest09(void)
 
     TimeGet(&p->ts);
 
+    p->alerts.cnt = 0;
+    p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts = PacketAlertCheck(p, 10);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 10);
-    if (alerts > 0) {
+    if (p->alerts.cnt != 1 || p->action & ACTION_DROP) {
         result = 0;
         goto end;
     }
 
+    p->alerts.cnt = 0;
+    p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 10);
-    if (alerts != 1) {
+    if (p->alerts.cnt != 1 || p->action & ACTION_DROP) {
+        result = 0;
+        goto end;
+    }
+
+    p->alerts.cnt = 0;
+    p->action = 0;
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (p->alerts.cnt != 1 || p->action & ACTION_DROP) {
         result = 0;
         goto end;
     }
@@ -1566,9 +1573,21 @@ int SCThresholdConfTest09(void)
     TimeSetIncrementTime(2);
     TimeGet(&p->ts);
 
+    p->alerts.cnt = 0;
+    p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 10);
-    if (alerts != 2) {
+    if (p->alerts.cnt != 1 || !(p->action & ACTION_DROP)) {
+        result = 0;
+        goto end;
+    }
+
+    TimeSetIncrementTime(3);
+    TimeGet(&p->ts);
+
+    p->alerts.cnt = 0;
+    p->action = 0;
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (p->alerts.cnt != 1 || !(p->action & ACTION_DROP)) {
         result = 0;
         goto end;
     }
@@ -1576,13 +1595,23 @@ int SCThresholdConfTest09(void)
     TimeSetIncrementTime(10);
     TimeGet(&p->ts);
 
+    p->alerts.cnt = 0;
+    p->action = 0;
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 10);
-    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
-    alerts += PacketAlertCheck(p, 10);
+    if (p->alerts.cnt != 1 || p->action & ACTION_DROP) {
+        result = 0;
+        goto end;
+    }
 
-    if (alerts == 2)
-        result = 1;
+    p->alerts.cnt = 0;
+    p->action = 0;
+    SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
+    if (p->alerts.cnt != 1 || p->action & ACTION_DROP) {
+        result = 0;
+        goto end;
+    }
+
+    result = 1;
 
 end:
     UTHFreePacket(p);
