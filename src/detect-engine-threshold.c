@@ -398,24 +398,24 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
                         /* Then we must enable the new action by setting a
                          * timeout */
                         lookup_tsh->tv_timeout = p->ts.tv_sec;
-                    /* Take the action to perform */
-                    switch (td->new_action) {
-                        case TH_ACTION_ALERT:
-                            ALERT_PACKET(p);
-                            break;
-                        case TH_ACTION_DROP:
-                            DROP_PACKET(p);
-                            break;
-                        case TH_ACTION_REJECT:
-                            REJECT_PACKET(p);
-                            break;
-                        case TH_ACTION_PASS:
-                            PASS_PACKET(p);
-                            break;
-                        default:
-                            /* Weird, leave the default action */
-                            break;
-                    }
+                        /* Take the action to perform */
+                        switch (td->new_action) {
+                            case TH_ACTION_ALERT:
+                                ALERT_PACKET(p);
+                                break;
+                            case TH_ACTION_DROP:
+                                DROP_PACKET(p);
+                                break;
+                            case TH_ACTION_REJECT:
+                                REJECT_PACKET(p);
+                                break;
+                            case TH_ACTION_PASS:
+                                PASS_PACKET(p);
+                                break;
+                            default:
+                                /* Weird, leave the default action */
+                                break;
+                        }
                         ret = 1;
                     }
                 } else {
