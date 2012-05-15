@@ -365,39 +365,12 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
             if (lookup_tsh != NULL) {
                 /* Check if we have a timeout enabled, if so,
                  * we still matching (and enabling the new_action) */
-                if ( (p->ts.tv_sec - lookup_tsh->tv_timeout) > td->timeout) {
-                    /* Ok, we are done, timeout reached */
-                    td->timeout = 0;
-                } else {
-                    /* Already matching */
-                    /* Take the action to perform */
-                    switch (td->new_action) {
-                        case TH_ACTION_ALERT:
-                            ALERT_PACKET(p);
-                            break;
-                        case TH_ACTION_DROP:
-                            DROP_PACKET(p);
-                            break;
-                        case TH_ACTION_REJECT:
-                            REJECT_PACKET(p);
-                            break;
-                        case TH_ACTION_PASS:
-                            PASS_PACKET(p);
-                            break;
-                        default:
-                            /* Weird, leave the default action */
-                            break;
-                    }
-                    ret = 1;
-                }
-
-                /* Update the matching state with the timeout interval */
-                if ( (p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
-                    lookup_tsh->current_count++;
-                    if (lookup_tsh->current_count > td->count) {
-                        /* Then we must enable the new action by setting a
-                         * timeout */
-                        lookup_tsh->tv_timeout = p->ts.tv_sec;
+                if (lookup_tsh->tv_timeout != 0) {
+                    if ((p->ts.tv_sec - lookup_tsh->tv_timeout) > td->timeout) {
+                        /* Ok, we are done, timeout reached */
+                        lookup_tsh->tv_timeout = 0;
+                    } else {
+                        /* Already matching */
                         /* Take the action to perform */
                         switch (td->new_action) {
                             case TH_ACTION_ALERT:
@@ -417,11 +390,41 @@ int ThresholdHandlePacketHost(Host *h, Packet *p, DetectThresholdData *td, uint3
                                 break;
                         }
                         ret = 1;
-                    }
+                    } /* else - if ((p->ts.tv_sec - lookup_tsh->tv_timeout) > td->timeout) */
+
                 } else {
-                    lookup_tsh->tv_sec1 = p->ts.tv_sec;
-                    lookup_tsh->current_count = 1;
-                }
+                    /* Update the matching state with the timeout interval */
+                    if ( (p->ts.tv_sec - lookup_tsh->tv_sec1) < td->seconds) {
+                        lookup_tsh->current_count++;
+                        if (lookup_tsh->current_count > td->count) {
+                            /* Then we must enable the new action by setting a
+                             * timeout */
+                            lookup_tsh->tv_timeout = p->ts.tv_sec;
+                            /* Take the action to perform */
+                            switch (td->new_action) {
+                                case TH_ACTION_ALERT:
+                                    ALERT_PACKET(p);
+                                    break;
+                                case TH_ACTION_DROP:
+                                    DROP_PACKET(p);
+                                    break;
+                                case TH_ACTION_REJECT:
+                                    REJECT_PACKET(p);
+                                    break;
+                                case TH_ACTION_PASS:
+                                    PASS_PACKET(p);
+                                    break;
+                                default:
+                                    /* Weird, leave the default action */
+                                    break;
+                            }
+                            ret = 1;
+                        }
+                    } else {
+                        lookup_tsh->tv_sec1 = p->ts.tv_sec;
+                        lookup_tsh->current_count = 1;
+                    }
+                } /* else - if (lookup_tsh->tv_timeout != 0) */
             } else {
                 if (td->count == 1) {
                     ret = 1;
