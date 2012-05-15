@@ -45,6 +45,7 @@
 #include "flow-util.h"
 #include "util-debug.h"
 #include "util-print.h"
+#include "util-memcmp.h"
 #include "flow.h"
 
 #include "app-layer-parser.h"
@@ -136,6 +137,11 @@ static void DetectEngineBufferHttpHeaders(DetectEngineThreadCtx *det_ctx, Flow *
         while (table_iterator_next(headers, (void **)&h) != NULL) {
             size_t size1 = bstr_size(h->name);
             size_t size2 = bstr_size(h->value);
+
+            if (size1 == 6 &&
+                SCMemcmpLowercase(bstr_ptr(h->name), "Cookie", 6) == 0) {
+                continue;
+            }
 
             /* the extra 4 bytes if for ": " and "\r\n" */
             headers_buffer = SCRealloc(headers_buffer, headers_buffer_len + size1 + size2 + 4);
