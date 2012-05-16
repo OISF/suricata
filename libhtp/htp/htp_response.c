@@ -238,6 +238,7 @@ int htp_connp_RES_BODY_IDENTITY(htp_connp_t *connp) {
                     return HTP_OK;
                 }
             } else {
+                d.len++;
                 // We don't know the length of the response body, which means
                 // that the body will consume all data until the connection
                 // is closed.
