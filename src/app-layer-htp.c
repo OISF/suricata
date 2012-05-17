@@ -686,12 +686,13 @@ static int HTPHandleRequestData(Flow *f, void *htp_state,
 
     /* if the TCP connection is closed, then close the HTTP connection */
     if ((pstate->flags & APP_LAYER_PARSER_EOF) &&
-            ! (hstate->flags & HTP_FLAG_STATE_CLOSED) &&
-            ! (hstate->flags & HTP_FLAG_STATE_DATA))
-    {
-        htp_connp_close(hstate->connp, 0);
-        hstate->flags |= HTP_FLAG_STATE_CLOSED;
-        SCLogDebug("stream eof encountered, closing htp handle");
+        !(hstate->flags & HTP_FLAG_STATE_CLOSED_TS)) {
+        hstate->connp->in_status = STREAM_STATE_CLOSED;
+        // Call the parsers one last time, which will allow them
+        // to process the events that depend on stream closure
+        htp_connp_req_data(hstate->connp, 0, NULL, 0);
+        hstate->flags |= HTP_FLAG_STATE_CLOSED_TS;
+        SCLogDebug("stream eof encountered, closing htp handle for ts");
     }
 
     SCLogDebug("hstate->connp %p", hstate->connp);
@@ -766,11 +767,12 @@ static int HTPHandleResponseData(Flow *f, void *htp_state,
 
     /* if we the TCP connection is closed, then close the HTTP connection */
     if ((pstate->flags & APP_LAYER_PARSER_EOF) &&
-            ! (hstate->flags & HTP_FLAG_STATE_CLOSED) &&
-            ! (hstate->flags & HTP_FLAG_STATE_DATA))
-    {
-        htp_connp_close(hstate->connp, 0);
-        hstate->flags |= HTP_FLAG_STATE_CLOSED;
+        !(hstate->flags & HTP_FLAG_STATE_CLOSED_TC)) {
+        hstate->connp->out_status = STREAM_STATE_CLOSED;
+        // Call the parsers one last time, which will allow them
+        // to process the events that depend on stream closure
+        htp_connp_res_data(hstate->connp, 0, NULL, 0);
+        hstate->flags |= HTP_FLAG_STATE_CLOSED_TC;
     }
 
     SCLogDebug("hstate->connp %p", hstate->connp);

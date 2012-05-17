@@ -132,6 +132,8 @@ enum
 #define STREAMTCP_STREAM_FLAG_PAUSE_REASSEMBLY  0x04
 /** Stream has reached it's reassembly depth, all further packets are ignored */
 #define STREAMTCP_STREAM_FLAG_DEPTH_REACHED     0x08
+/** Stream has sent a FIN/RST */
+#define STREAMTCP_STREAM_FLAG_CLOSE_INITIATED   0x10
 
 /*
  * Per SEGMENT flags

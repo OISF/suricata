@@ -1624,7 +1624,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     if (!(ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED)) {\
         flag |= STREAM_START; \
     } \
-    if ((ssn)->state > TCP_ESTABLISHED) { \
+    if (stream->flags & STREAMTCP_STREAM_FLAG_CLOSE_INITIATED) {    \
         flag |= STREAM_EOF; \
     } \
     if ((p)->flowflags & FLOW_PKT_TOSERVER) { \
@@ -1639,7 +1639,7 @@ int StreamTcpReassembleHandleSegmentHandleData(ThreadVars *tv, TcpReassemblyThre
     if (!(ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED)) {\
         flag |= STREAM_START; \
     } \
-    if ((ssn)->state > TCP_ESTABLISHED) { \
+    if (stream->flags & STREAMTCP_STREAM_FLAG_CLOSE_INITIATED) {    \
         flag |= STREAM_EOF; \
     } \
     if ((p)->flowflags & FLOW_PKT_TOSERVER) { \
@@ -1660,7 +1660,7 @@ static void StreamTcpSetupMsg(TcpSession *ssn, TcpStream *stream, Packet *p,
         SCLogDebug("setting STREAM_START");
         smsg->flags = STREAM_START;
     }
-    if (ssn->state > TCP_ESTABLISHED) {
+    if (stream->flags & STREAMTCP_STREAM_FLAG_CLOSE_INITIATED) {
         SCLogDebug("setting STREAM_EOF");
         smsg->flags |= STREAM_EOF;
     }
@@ -1823,7 +1823,7 @@ static int StreamTcpReassembleInlineAppLayer (ThreadVars *tv,
             /* send EOF to app layer */
             STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
             AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
-                    NULL, 0, flags|STREAM_EOF);
+                    NULL, 0, flags);
             PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
 
         } else {
@@ -2110,7 +2110,7 @@ static int StreamTcpReassembleInlineAppLayer (ThreadVars *tv,
         /* send EOF to app layer */
         STREAM_SET_INLINE_FLAGS(ssn, stream, p, flags);
         AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
-                NULL, 0, flags|STREAM_EOF);
+                NULL, 0, flags);
         PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
     }
 
@@ -2484,7 +2484,7 @@ static int StreamTcpReassembleAppLayer (ThreadVars *tv,
             /* send EOF to app layer */
             STREAM_SET_FLAGS(ssn, stream, p, flags);
             AppLayerHandleTCPData(&ra_ctx->dp_ctx, p->flow, ssn,
-                    NULL, 0, flags|STREAM_EOF);
+                    NULL, 0, flags);
             PACKET_PROFILING_APP_STORE(&ra_ctx->dp_ctx, p);
 
             SCReturnInt(0);
