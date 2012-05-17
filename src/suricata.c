@@ -1638,6 +1638,11 @@ int main(int argc, char **argv)
     if (MagicInit() != 0)
         exit(EXIT_FAILURE);
 
+    if (DetectAddressTestConfVars() < 0)
+        exit(0);
+    if (DetectPortTestConfVars() < 0)
+        exit(0);
+
     if (SigLoadSignatures(de_ctx, sig_file, sig_file_exclusive) < 0) {
         if (sig_file == NULL) {
             SCLogError(SC_ERR_OPENING_FILE, "Signature file has not been provided");

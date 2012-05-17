@@ -56,6 +56,8 @@ int DetectAddressCmp(DetectAddress *, DetectAddress *);
 int DetectAddressMatchIPv4(DetectMatchAddressIPv4 *, uint16_t, Address *);
 int DetectAddressMatchIPv6(DetectMatchAddressIPv6 *, uint16_t, Address *);
 
+int DetectAddressTestConfVars(void);
+
 void DetectAddressTests(void);
 
 #endif /* __DETECT_ADDRESS_H__ */

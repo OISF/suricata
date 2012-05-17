@@ -60,6 +60,8 @@ void DetectPortPrintList(DetectPort *head);
 int DetectPortCmp(DetectPort *, DetectPort *);
 void DetectPortFree(DetectPort *);
 
+int DetectPortTestConfVars(void);
+
 void DetectPortTests(void);
 
 #endif /* __DETECT_PORT_H__ */

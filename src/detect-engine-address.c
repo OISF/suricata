@@ -34,6 +34,7 @@
 #include "util-cidr.h"
 #include "util-unittest.h"
 #include "util-rule-vars.h"
+#include "conf.h"
 
 #include "detect-engine-siggroup.h"
 #include "detect-engine-address.h"
@@ -1224,6 +1225,53 @@ int DetectAddressMergeNot(DetectAddressHead *gh, DetectAddressHead *ghn)
     return 0;
 
 error:
+    return -1;
+}
+
+int DetectAddressTestConfVars(void)
+{
+    SCLogDebug("Testing address conf vars for any misconfigured values");
+
+    ConfNode *address_vars_node = ConfGetNode("vars.address-groups");
+    if (address_vars_node == NULL) {
+        return 0;
+    }
+
+    ConfNode *seq_node;
+    TAILQ_FOREACH(seq_node, &address_vars_node->head, next) {
+        SCLogDebug("Testing %s - %s\n", seq_node->name, seq_node->val);
+
+        DetectAddressHead *gh = DetectAddressHeadInit();
+        if (gh == NULL) {
+            goto error;
+        }
+        DetectAddressHead *ghn = DetectAddressHeadInit();
+        if (ghn == NULL) {
+            goto error;
+        }
+
+        int r = DetectAddressParse2(gh, ghn, seq_node->val, /* start with negate no */0);
+        if (r < 0) {
+            goto error;
+        }
+
+        if (DetectAddressIsCompleteIPSpace(ghn)) {
+            SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC,
+                       "Address var - \"%s\" has the complete IP space negated "
+                       "with it's value \"%s\".  Rule address range is NIL. "
+                       "Probably have a !any or an address range that supplies "
+                       "a NULL address range", seq_node->name, seq_node->val);
+            goto error;
+        }
+
+        if (gh != NULL)
+            DetectAddressHeadFree(gh);
+        if (ghn != NULL)
+            DetectAddressHeadFree(ghn);
+    }
+
+    return 0;
+ error:
     return -1;
 }
 
