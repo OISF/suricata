@@ -184,7 +184,7 @@ DetectUrilenData *DetectUrilenParse (char *urilenstr)
     ret = pcre_exec(parse_regex, parse_regex_study, urilenstr, strlen(urilenstr),
                     0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 3 || ret > 6) {
-        SCLogError(SC_ERR_PCRE_PARSE, "parse error, ret %" PRId32 "", ret);
+        SCLogError(SC_ERR_PCRE_PARSE, "urilen option pcre parse error: \"%s\"", urilenstr);
         goto error;
     }
     const char *str_ptr;
