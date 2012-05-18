@@ -168,10 +168,19 @@ static int DetectTlsSubjectMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx,
     } else {
         ret = 0;
     }
-    if (ssl_state->cert0_subject != NULL) {
-        SCLogDebug("TLS: Subject is [%s], looking for [%s]\n", ssl_state->cert0_subject, tls_data->subject);
 
-        if (strstr(ssl_state->cert0_subject, tls_data->subject) != NULL) {
+    SSLStateConnp *connp = NULL;
+    if (flags & STREAM_TOSERVER) {
+        connp = &ssl_state->client_connp;
+    } else {
+        connp = &ssl_state->server_connp;
+    }
+
+    if (connp->cert0_subject != NULL) {
+        SCLogDebug("TLS: Subject is [%s], looking for [%s]\n",
+                   connp->cert0_subject, tls_data->subject);
+
+        if (strstr(connp->cert0_subject, tls_data->subject) != NULL) {
             if (tls_data->flags & DETECT_CONTENT_NEGATED) {
                 ret = 0;
             } else {
@@ -362,10 +371,19 @@ static int DetectTlsIssuerDNMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx
     } else {
         ret = 0;
     }
-    if (ssl_state->cert0_issuerdn != NULL) {
-        SCLogDebug("TLS: IssuerDN is [%s], looking for [%s]\n", ssl_state->cert0_issuerdn, tls_data->issuerdn);
 
-        if (strstr(ssl_state->cert0_issuerdn, tls_data->issuerdn) != NULL) {
+    SSLStateConnp *connp = NULL;
+    if (flags & STREAM_TOSERVER) {
+        connp = &ssl_state->client_connp;
+    } else {
+        connp = &ssl_state->server_connp;
+    }
+
+    if (connp->cert0_issuerdn != NULL) {
+        SCLogDebug("TLS: IssuerDN is [%s], looking for [%s]\n",
+                   connp->cert0_issuerdn, tls_data->issuerdn);
+
+        if (strstr(connp->cert0_issuerdn, tls_data->issuerdn) != NULL) {
             if (tls_data->flags & DETECT_CONTENT_NEGATED) {
                 ret = 0;
             } else {

@@ -134,12 +134,12 @@ int DetectSslVersionMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
 
     if (flags & STREAM_TOCLIENT) {
         SCLogDebug("server (toclient) version is 0x%02X",
-                   app_state->server_version);
-        ver = app_state->server_version;
+                   app_state->server_connp.version);
+        ver = app_state->server_connp.version;
     } else if (flags & STREAM_TOSERVER) {
         SCLogDebug("client (toserver) version is 0x%02X",
-                   app_state->client_version);
-        ver = app_state->client_version;
+                   app_state->client_connp.ersion);
+        ver = app_state->client_connp.version;
     }
 
     FLOWLOCK_UNLOCK(f);
@@ -482,18 +482,18 @@ static int DetectSslVersionTestDetect01(void)
         goto end;
     }
 
-    if (app_state->client_content_type != 0x16) {
-        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x16, app_state->client_content_type);
+    if (app_state->client_connp.content_type != 0x16) {
+        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x16, app_state->client_connp.content_type);
         goto end;
     }
 
-    if (app_state->client_version != TLS_VERSION_10) {
-        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", TLS_VERSION_10, app_state->client_version);
+    if (app_state->client_connp.version != TLS_VERSION_10) {
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", TLS_VERSION_10, app_state->client_connp.version);
         goto end;
     }
 
-    SCLogDebug("app_state is at %p, app_state->server_version 0x%02X app_state->client_version 0x%02X",
-        app_state, app_state->server_version, app_state->client_version);
+    SCLogDebug("app_state is at %p, app_state->server_connp.version 0x%02X app_state->client_connp.version 0x%02X",
+        app_state, app_state->server_connp.version, app_state->client_connp.version);
 
     /* do detect */
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p);
@@ -597,13 +597,13 @@ static int DetectSslVersionTestDetect02(void)
         goto end;
     }
 
-    if (app_state->client_content_type != 0x16) {
-        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x16, app_state->client_content_type);
+    if (app_state->client_connp.content_type != 0x16) {
+        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x16, app_state->client_connp.content_type);
         goto end;
     }
 
-    if (app_state->client_version != TLS_VERSION_10) {
-        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", TLS_VERSION_10, app_state->client_version);
+    if (app_state->client_connp.version != TLS_VERSION_10) {
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", TLS_VERSION_10, app_state->client_connp.version);
         goto end;
     }
 
@@ -722,13 +722,13 @@ static int DetectSslVersionTestDetect03(void)
         goto end;
     }
 
-    if (app_state->client_content_type != 0x16) {
-        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x16, app_state->client_content_type);
+    if (app_state->client_connp.content_type != 0x16) {
+        printf("expected content_type %" PRIu8 ", got %" PRIu8 ": ", 0x16, app_state->client_connp.content_type);
         goto end;
     }
 
-    if (app_state->client_version != TLS_VERSION_10) {
-        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", TLS_VERSION_10, app_state->client_version);
+    if (app_state->client_connp.version != TLS_VERSION_10) {
+        printf("expected version %04" PRIu16 ", got %04" PRIu16 ": ", TLS_VERSION_10, app_state->client_connp.version);
         goto end;
     }
 

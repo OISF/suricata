@@ -75,14 +75,7 @@ enum {
     TLS_VERSION_12 = 0x0303,
 };
 
-/**
- * \brief SSLv[2.0|3.[0|1|2|3]] state structure.
- *
- *        Structure to store the SSL state values.
- */
-typedef struct SSLState_ {
-    Flow *f;
-
+typedef struct SSLStateConnp_ {
     /* record length */
     uint32_t record_length;
     /* record length's length for SSLv2 */
@@ -92,33 +85,17 @@ typedef struct SSLState_ {
     uint32_t message_start;
     uint32_t message_length;
 
-    /* holds some state flags we need */
-    uint32_t flags;
+    uint16_t version;
+    uint8_t content_type;
 
-    uint16_t client_version;
-    uint16_t server_version;
-    uint8_t client_content_type;
-    uint8_t server_content_type;
-
-    /* dummy var.  You can replace this if you want to */
-    uint8_t pad0;
-
-    uint8_t cur_content_type;
+    uint8_t handshake_type;
     uint32_t handshake_length;
-    uint16_t handshake_client_hello_ssl_version;
-    uint16_t handshake_server_hello_ssl_version;
+
     /* the no of bytes processed in the currently parsed record */
     uint16_t bytes_processed;
 
-    uint16_t cur_ssl_version;
-    uint8_t handshake_type;
-
     /* sslv2 client hello session id length */
     uint16_t session_id_length;
-
-    /* the ciphersuite, chosen by the server */
-    uint16_t ciphersuite;
-    uint8_t compressionmethod;
 
     char *cert0_subject;
     char *cert0_issuerdn;
@@ -128,6 +105,23 @@ typedef struct SSLState_ {
     uint8_t *trec;
     uint16_t trec_len;
     uint16_t trec_pos;
+} SSLStateConnp;
+
+/**
+ * \brief SSLv[2.0|3.[0|1|2|3]] state structure.
+ *
+ *        Structure to store the SSL state values.
+ */
+typedef struct SSLState_ {
+    Flow *f;
+
+    /* holds some state flags we need */
+    uint32_t flags;
+
+    SSLStateConnp *curr_connp;
+
+    SSLStateConnp client_connp;
+    SSLStateConnp server_connp;
 } SSLState;
 
 void RegisterSSLParsers(void);

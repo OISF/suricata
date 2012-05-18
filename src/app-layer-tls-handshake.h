@@ -35,7 +35,6 @@
 #ifndef __APP_LAYER_TLS_HANDSHAKE_H__
 #define __APP_LAYER_TLS_HANDSHAKE_H__
 
-int DecodeTLSHandshakeServerHello(SSLState *ssl_state, uint8_t *input, uint32_t input_len);
 int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uint32_t input_len);
 
 #endif /* __APP_LAYER_TLS_HANDSHAKE_H__ */
