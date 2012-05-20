@@ -569,7 +569,7 @@ SCProfilingDump(void)
 
     gettimeofday(&tval, NULL);
     struct tm local_tm;
-    tms = (struct tm *)localtime_r(&tval.tv_sec, &local_tm);
+    tms = (struct tm *)SCLocalTime(tval.tv_sec, &local_tm);
 
     fprintf(fp, "  ----------------------------------------------"
             "----------------------------\n");

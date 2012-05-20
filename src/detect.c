@@ -587,7 +587,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
             struct tm *tms;
             gettimeofday(&tval, NULL);
             struct tm local_tm;
-            tms = (struct tm *)localtime_r(&tval.tv_sec, &local_tm);
+            tms = (struct tm *)SCLocalTime(tval.tv_sec, &local_tm);
             fprintf(fp_engine_analysis_FD, "----------------------------------------------"
                     "---------------------\n");
             fprintf(fp_engine_analysis_FD, "Date: %" PRId32 "/%" PRId32 "/%04d -- "

@@ -111,3 +111,8 @@ void TimeSetIncrementTime(uint32_t tv_sec) {
     TimeSet(&tv);
 }
 
+
+struct tm *SCLocalTime(time_t timep, struct tm *result)
+{
+    return localtime_r(&timep, result);
+}
