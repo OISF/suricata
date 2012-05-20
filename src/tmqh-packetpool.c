@@ -38,6 +38,7 @@
 #include "flow.h"
 
 #include "stream.h"
+#include "stream-tcp-reassemble.h"
 
 #include "tm-queuehandlers.h"
 
@@ -133,6 +134,14 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     if (p->alerts.alert_msgs != NULL) {
         StreamMsgReturnListToPool(p->alerts.alert_msgs);
         p->alerts.alert_msgs = NULL;
+    }
+    /** \todo make this a callback
+     *  Release tcp segments. Done here after alerting can use them. */
+    if (p->flow != NULL && p->proto == IPPROTO_TCP) {
+        SCMutexLock(&p->flow->m);
+        StreamTcpPruneSession(p->flow, p->flowflags & FLOW_PKT_TOSERVER ?
+                STREAM_TOSERVER : STREAM_TOCLIENT);
+        SCMutexUnlock(&p->flow->m);
     }
 
     if (IS_TUNNEL_PKT(p)) {

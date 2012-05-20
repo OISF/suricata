@@ -2296,7 +2296,7 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
 
                 StreamTcpSetupMsg(ssn, stream, p, smsg);
             }
-            smsg->data.seq = ra_base_seq;
+            smsg->data.seq = ra_base_seq+1;
 
             /* copy the data into the smsg */
             uint16_t copy_size = sizeof (smsg->data.data) - smsg_offset;
@@ -2359,7 +2359,7 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
                     smsg_offset = 0;
 
                     StreamTcpSetupMsg(ssn, stream,p,smsg);
-                    smsg->data.seq = ra_base_seq;
+                    smsg->data.seq = ra_base_seq+1;
 
                     copy_size = sizeof(smsg->data.data) - smsg_offset;
                     if (copy_size > (seg->payload_len - payload_offset)) {
@@ -2448,6 +2448,97 @@ static int StreamTcpReassembleInlineRaw (TcpReassemblyThreadCtx *ra_ctx,
     }
     SCLogDebug("stream->ra_raw_base_seq %u", stream->ra_raw_base_seq);
     SCReturnInt(0);
+}
+
+/** \internal
+ *  \brief check if we can remove a segment from our segment list
+ *
+ *  If a segment is entirely before the oldest smsg, we can discard it. Otherwise
+ *  we keep it around to be able to log it.
+ *
+ *  \retval 1 yes
+ *  \retval 0 no
+ */
+static inline int StreamTcpReturnSegmentCheck(TcpSession *ssn, TcpStream *stream, TcpSegment *seg) {
+    if (stream == &ssn->client && ssn->toserver_smsg_head != NULL) {
+        /* not (seg is entirely before first smsg, skip) */
+        if (!(SEQ_LEQ(seg->seq + seg->payload_len, ssn->toserver_smsg_head->data.seq))) {
+            SCReturnInt(0);
+        }
+    } else if (stream == &ssn->server && ssn->toclient_smsg_head != NULL) {
+        /* not (seg is entirely before first smsg, skip) */
+        if (!(SEQ_LEQ(seg->seq + seg->payload_len, ssn->toclient_smsg_head->data.seq))) {
+            SCReturnInt(0);
+        }
+    }
+    SCReturnInt(1);
+}
+
+/** \brief Remove idle TcpSegments from TcpSession
+ *
+ *  \param f flow
+ *  \param flags direction flags
+ */
+void StreamTcpPruneSession(Flow *f, uint8_t flags) {
+    if (f == NULL || f->protoctx == NULL ||
+            ((flags & (STREAM_TOSERVER|STREAM_TOCLIENT)) == 0))
+        return;
+
+    TcpSession *ssn = f->protoctx;
+    TcpStream *stream = NULL;
+
+    if (flags & STREAM_TOSERVER) {
+        stream = &ssn->client;
+    } else if (flags & STREAM_TOCLIENT) {
+        stream = &ssn->server;
+    }
+
+    /* loop through the segments and fill one or more msgs */
+    TcpSegment *seg = stream->seg_list;
+    uint32_t ra_base_seq = stream->ra_app_base_seq;
+
+    for (; seg != NULL && SEQ_LT(seg->seq, stream->last_ack);)
+    {
+        SCLogDebug("seg %p, SEQ %"PRIu32", LEN %"PRIu16", SUM %"PRIu32,
+                seg, seg->seq, seg->payload_len,
+                (uint32_t)(seg->seq + seg->payload_len));
+
+        if (SEQ_LEQ((seg->seq + seg->payload_len), (ra_base_seq+1)) &&
+                   seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED &&
+                   seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED) {
+            if (StreamTcpReturnSegmentCheck(ssn, stream, seg) == 0) {
+                seg = seg->next;
+                break;
+            }
+
+            SCLogDebug("removing pre ra_base_seq %"PRIu32" seg %p seq %"PRIu32
+                    " len %"PRIu16"", ra_base_seq, seg, seg->seq, seg->payload_len);
+
+            TcpSegment *next_seg = seg->next;
+            StreamTcpRemoveSegmentFromStream(stream, seg);
+            StreamTcpSegmentReturntoPool(seg);
+            seg = next_seg;
+            continue;
+
+        } else if ((ssn->flags & STREAMTCP_FLAG_APPPROTO_DETECTION_COMPLETED) &&
+                (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
+                (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))
+        {
+            if (StreamTcpReturnSegmentCheck(ssn, stream, seg) == 0) {
+                seg = seg->next;
+                break;
+            }
+
+            SCLogDebug("segment(%p) of length %"PRIu16" has been processed,"
+                    " so return it to pool", seg, seg->payload_len);
+            TcpSegment *next_seg = seg->next;
+            seg = next_seg;
+            continue;
+        } else {
+            /* give up */
+            break;
+        }
+    }
 }
 
 /**
@@ -2549,6 +2640,11 @@ static int StreamTcpReassembleAppLayer (ThreadVars *tv,
         } else if (SEQ_LEQ((seg->seq + seg->payload_len), (ra_base_seq+1)) &&
                    seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED &&
                    seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED) {
+            if (StreamTcpReturnSegmentCheck(ssn, stream, seg) == 0) {
+                seg = seg->next;
+                continue;
+            }
+
             SCLogDebug("removing pre ra_base_seq %"PRIu32" seg %p seq %"PRIu32
                     " len %"PRIu16"", ra_base_seq, seg, seg->seq, seg->payload_len);
 
@@ -2565,6 +2661,12 @@ static int StreamTcpReassembleAppLayer (ThreadVars *tv,
                 (seg->flags & SEGMENTTCP_FLAG_RAW_PROCESSED) &&
                 (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED))
         {
+            if (StreamTcpReturnSegmentCheck(ssn, stream, seg) == 0) {
+                next_seq = seg->seq + seg->payload_len;
+                seg = seg->next;
+                continue;
+            }
+
             SCLogDebug("segment(%p) of length %"PRIu16" has been processed,"
                     " so return it to pool", seg, seg->payload_len);
             next_seq = seg->seq + seg->payload_len;
@@ -2899,6 +3001,11 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
            As we are copying until the stream->last_ack only */
         if (SEQ_LEQ((seg->seq + seg->payload_len), ra_base_seq+1))
         {
+            if (StreamTcpReturnSegmentCheck(ssn, stream, seg) == 0) {
+                seg = seg->next;
+                continue;
+            }
+
             SCLogDebug("removing pre ra_base_seq %"PRIu32" seg %p seq %"PRIu32""
                         " len %"PRIu16"", ra_base_seq, seg, seg->seq,
                         seg->payload_len);
@@ -2919,6 +3026,11 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                 (seg->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED ||
                  stream->flags & STREAMTCP_STREAM_FLAG_GAP))
         {
+            if (StreamTcpReturnSegmentCheck(ssn, stream, seg) == 0) {
+                seg = seg->next;
+                continue;
+            }
+
             SCLogDebug("segment(%p) of length %"PRIu16" has been processed,"
                     " so return it to pool", seg, seg->payload_len);
             TcpSegment *next_seg = seg->next;
@@ -3038,7 +3150,7 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
 
                 StreamTcpSetupMsg(ssn, stream, p, smsg);
             }
-            smsg->data.seq = ra_base_seq;
+            smsg->data.seq = ra_base_seq+1;
 
 
             /* copy the data into the smsg */
@@ -3097,7 +3209,7 @@ static int StreamTcpReassembleRaw (TcpReassemblyThreadCtx *ra_ctx,
                     smsg_offset = 0;
 
                     StreamTcpSetupMsg(ssn, stream,p,smsg);
-                    smsg->data.seq = ra_base_seq;
+                    smsg->data.seq = ra_base_seq+1;
 
                     copy_size = sizeof(smsg->data.data) - smsg_offset;
                     if (copy_size > (seg->payload_len - payload_offset)) {
@@ -6183,6 +6295,8 @@ static int StreamTcpReassembleTest39 (void) {
         printf("segment list should not be empty (14): ");
         goto end;
     }
+
+    SCLogDebug("ssn.client.seg_list->flags %02x, seg %p", ssn.client.seg_list->flags, ssn.client.seg_list);
 
     if (!(ssn.client.seg_list->flags & SEGMENTTCP_FLAG_APPLAYER_PROCESSED)) {
         printf("segment should have flags SEGMENTTCP_FLAG_APPLAYER_PROCESSED set (15): ");
