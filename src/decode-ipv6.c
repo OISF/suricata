@@ -362,8 +362,10 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 IPV6_SET_L4PROTO(p,nh);
                 /* we need the header as a minimum */
                 hdrextlen = sizeof(IPV6AuthHdr);
-                /* the payload len field is the number of extra 4 byte fields */
-                hdrextlen += (*(pkt+1)) * 4;
+                /* the payload len field is the number of extra 4 byte fields,
+                 * IPV6AuthHdr already contains the first */
+                if (*(pkt+1) > 0)
+                    hdrextlen += ((*(pkt+1) - 1) * 4);
 
                 SCLogDebug("hdrextlen %"PRIu8, hdrextlen);
 
@@ -372,7 +374,12 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                     SCReturn;
                 }
 
-                if(p->IPV6_EH_CNT<IPV6_MAX_OPT)
+                IPV6AuthHdr *ahhdr = (IPV6AuthHdr *)pkt;
+                if (ahhdr->ip6ah_reserved != 0x0000) {
+                    ENGINE_SET_EVENT(p, IPV6_EXTHDR_AH_RES_NOT_NULL);
+                }
+
+                if(p->IPV6_EH_CNT < IPV6_MAX_OPT)
                 {
                     p->IPV6_EXTHDRS[p->IPV6_EH_CNT].type = nh;
                     p->IPV6_EXTHDRS[p->IPV6_EH_CNT].next = *pkt;

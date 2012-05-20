@@ -24,6 +24,8 @@ alert pkthdr any any -> any any (msg:"SURICATA IPv6 duplicated Authentication He
 alert pkthdr any any -> any any (msg:"SURICATA IPv6 duplicate ESP extension header"; decode-event:ipv6.exthdr_dupl_eh; sid:2200020; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv6 invalid option lenght in header"; decode-event:ipv6.exthdr_invalid_optlen; sid:2200021; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv6 wrong IP version"; decode-event:ipv6.wrong_ip_version; sid:2200022; rev:1;)
+# RFC 4302 states the reserved field should be 0.
+alert pkthdr any any -> any any (msg:"SURICATA IPv6 AH reserved field not 0"; decode-event:ipv6.exthdr_ah_res_not_null; sid:2200081; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA ICMPv4 packet too small"; decode-event:icmpv4.pkt_too_small; sid:2200023; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA ICMPv4 unknown type"; decode-event:icmpv4.unknown_type; sid:2200024; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA ICMPv4 unknown code"; decode-event:icmpv4.unknown_code; sid:2200025; rev:1;)
@@ -84,5 +86,5 @@ alert tcp any any -> any any (msg:"SURICATA TCPv6 invalid checksum"; tcpv6-csum:
 alert udp any any -> any any (msg:"SURICATA UDPv6 invalid checksum"; udpv6-csum:invalid; sid:2200078; rev:1;)
 alert icmp any any -> any any (msg:"SURICATA ICMPv6 invalid checksum"; icmpv6-csum:invalid; sid:2200079; rev:1;)
 
-# next sid is 2200081
+# next sid is 2200082
 

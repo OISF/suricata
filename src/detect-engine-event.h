@@ -64,6 +64,7 @@ struct DetectEngineEvents_ {
     { "ipv6.exthdr_dupl_eh", IPV6_EXTHDR_DUPL_EH, },
     { "ipv6.exthdr_invalid_optlen", IPV6_EXTHDR_INVALID_OPTLEN, },
     { "ipv6.wrong_ip_version", IPV6_WRONG_IP_VER, },
+    { "ipv6.exthdr_ah_res_not_null", IPV6_EXTHDR_AH_RES_NOT_NULL, },
     { "icmpv4.pkt_too_small", ICMPV4_PKT_TOO_SMALL, },
     { "icmpv4.unknown_type", ICMPV4_UNKNOWN_TYPE, },
     { "icmpv4.unknown_code", ICMPV4_UNKNOWN_CODE, },
