@@ -49,6 +49,8 @@ typedef struct PcapPacketVars_
 typedef struct PcapIfaceConfig_
 {
     char iface[PCAP_IFACE_NAME_LENGTH];
+    /* number of threads */
+    int threads;
     /* socket buffer size */
     int buffer_size;
     /* BPF filter */
