@@ -35,6 +35,7 @@
 #include "util-unittest.h"
 #include "util-rule-vars.h"
 #include "conf.h"
+#include "conf-yaml-loader.h"
 
 #include "detect-engine-siggroup.h"
 #include "detect-engine-address.h"
@@ -4165,6 +4166,150 @@ int AddressTestParseInvalidMask03(void)
     return result;
 }
 
+int AddressConfVarsTest01(void)
+{
+    static const char *dummy_conf_string =
+        "%YAML 1.1\n"
+        "---\n"
+        "\n"
+        "vars:\n"
+        "\n"
+        "  address-groups:\n"
+        "\n"
+        "    HOME_NET: \"any\"\n"
+        "\n"
+        "    EXTERNAL_NET: \"!any\"\n"
+        "\n"
+        "  port-groups:\n"
+        "\n"
+        "    HTTP_PORTS: \"any\"\n"
+        "\n"
+        "    SHELLCODE_PORTS: \"!any\"\n"
+        "\n";
+
+    int result = 0;
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+
+    if (DetectAddressTestConfVars() < 0 && DetectPortTestConfVars() < 0)
+        result = 1;
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return result;
+}
+
+int AddressConfVarsTest02(void)
+{
+    static const char *dummy_conf_string =
+        "%YAML 1.1\n"
+        "---\n"
+        "\n"
+        "vars:\n"
+        "\n"
+        "  address-groups:\n"
+        "\n"
+        "    HOME_NET: \"any\"\n"
+        "\n"
+        "    EXTERNAL_NET: \"any\"\n"
+        "\n"
+        "  port-groups:\n"
+        "\n"
+        "    HTTP_PORTS: \"any\"\n"
+        "\n"
+        "    SHELLCODE_PORTS: \"!any\"\n"
+        "\n";
+
+    int result = 0;
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+
+    if (DetectAddressTestConfVars() == 0 && DetectPortTestConfVars() < 0)
+        result = 1;
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return result;
+}
+
+int AddressConfVarsTest03(void)
+{
+    static const char *dummy_conf_string =
+        "%YAML 1.1\n"
+        "---\n"
+        "\n"
+        "vars:\n"
+        "\n"
+        "  address-groups:\n"
+        "\n"
+        "    HOME_NET: \"any\"\n"
+        "\n"
+        "    EXTERNAL_NET: \"!$HOME_NET\"\n"
+        "\n"
+        "  port-groups:\n"
+        "\n"
+        "    HTTP_PORTS: \"any\"\n"
+        "\n"
+        "    SHELLCODE_PORTS: \"!$HTTP_PORTS\"\n"
+        "\n";
+
+    int result = 0;
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+
+    if (DetectAddressTestConfVars() < 0 && DetectPortTestConfVars() < 0)
+        result = 1;
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return result;
+}
+
+int AddressConfVarsTest04(void)
+{
+    static const char *dummy_conf_string =
+        "%YAML 1.1\n"
+        "---\n"
+        "\n"
+        "vars:\n"
+        "\n"
+        "  address-groups:\n"
+        "\n"
+        "    HOME_NET: \"any\"\n"
+        "\n"
+        "    EXTERNAL_NET: \"$HOME_NET\"\n"
+        "\n"
+        "  port-groups:\n"
+        "\n"
+        "    HTTP_PORTS: \"any\"\n"
+        "\n"
+        "    SHELLCODE_PORTS: \"$HTTP_PORTS\"\n"
+        "\n";
+
+    int result = 0;
+
+    ConfCreateContextBackup();
+    ConfInit();
+    ConfYamlLoadString(dummy_conf_string, strlen(dummy_conf_string));
+
+    if (DetectAddressTestConfVars() == 0 && DetectPortTestConfVars() == 0)
+        result = 1;
+
+    ConfDeInit();
+    ConfRestoreContextBackup();
+
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void DetectAddressTests(void)
@@ -4337,5 +4482,11 @@ void DetectAddressTests(void)
                    AddressTestParseInvalidMask02, 1);
     UtRegisterTest("AddressTestParseInvalidMask03",
                    AddressTestParseInvalidMask03, 1);
+
+    UtRegisterTest("AddressConfVarsTest01 ", AddressConfVarsTest01, 1);
+    UtRegisterTest("AddressConfVarsTest02 ", AddressConfVarsTest02, 1);
+    UtRegisterTest("AddressConfVarsTest03 ", AddressConfVarsTest03, 1);
+    UtRegisterTest("AddressConfVarsTest04 ", AddressConfVarsTest04, 1);
+
 #endif /* UNITTESTS */
 }
