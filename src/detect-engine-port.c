@@ -1314,7 +1314,7 @@ int DetectPortTestConfVars(void)
         }
 
         if (DetectPortIsCompletePortSpace(ghn)) {
-            SCLogError(SC_ERR_PORT_ENGINE_GENERIC,
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
                        "Port var - \"%s\" has the complete Port range negated "
                        "with it's value \"%s\".  Port space range is NIL. "
                        "Probably have a !any or a port range that supplies "

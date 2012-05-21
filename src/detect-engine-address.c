@@ -1257,7 +1257,7 @@ int DetectAddressTestConfVars(void)
         }
 
         if (DetectAddressIsCompleteIPSpace(ghn)) {
-            SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC,
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
                        "Address var - \"%s\" has the complete IP space negated "
                        "with it's value \"%s\".  Rule address range is NIL. "
                        "Probably have a !any or an address range that supplies "
