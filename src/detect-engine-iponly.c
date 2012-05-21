@@ -1068,9 +1068,9 @@ void IPOnlyMatchPacket(ThreadVars *tv,
                     }
                     if ( !(s->flags & SIG_FLAG_NOALERT)) {
                         if (s->action & ACTION_DROP)
-                            PacketAlertAppend(det_ctx, s, p, PACKET_ALERT_FLAG_DROP_FLOW, NULL);
+                            PacketAlertAppend(det_ctx, s, p, PACKET_ALERT_FLAG_DROP_FLOW);
                         else
-                            PacketAlertAppend(det_ctx, s, p, 0, NULL);
+                            PacketAlertAppend(det_ctx, s, p, 0);
                     }
                 }
             }

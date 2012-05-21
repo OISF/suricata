@@ -276,19 +276,17 @@ TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         fprintf(aft->file_ctx->fp, "ALERT REV [%02d]:      %" PRIu32 "\n", i, pa->s->rev);
         fprintf(aft->file_ctx->fp, "ALERT CLASS [%02d]:    %s\n", i, pa->s->class_msg ? pa->s->class_msg : "<none>");
         fprintf(aft->file_ctx->fp, "ALERT PRIO [%02d]:     %" PRIu32 "\n", i, pa->s->prio);
-        fprintf(aft->file_ctx->fp, "ALERT FOUND IN [%02d]: %s\n", i, pa->alert_msg ? "STREAM" : "OTHER");
-        if (pa->alert_msg != NULL) {
-            fprintf(aft->file_ctx->fp, "ALERT STREAM LEN[%02d]:%"PRIu16"\n", i, ((StreamMsg *)pa->alert_msg)->data.data_len);
-            fprintf(aft->file_ctx->fp, "ALERT STREAM [%02d]:\n", i);
-            PrintRawDataFp(aft->file_ctx->fp, ((StreamMsg *)pa->alert_msg)->data.data,
-                    ((StreamMsg *)pa->alert_msg)->data.data_len);
-        } else if (p->payload_len > 0) {
+        fprintf(aft->file_ctx->fp, "ALERT FOUND IN [%02d]: %s\n", i,
+                pa->flags & PACKET_ALERT_FLAG_STREAM_MATCH  ? "STREAM" :
+                (pa->flags & PACKET_ALERT_FLAG_STATE_MATCH ? "STATE" : "PACKET"));
+        if (p->payload_len > 0) {
             fprintf(aft->file_ctx->fp, "PAYLOAD LEN:       %" PRIu32 "\n", p->payload_len);
             fprintf(aft->file_ctx->fp, "PAYLOAD:\n");
             PrintRawDataFp(aft->file_ctx->fp, p->payload, p->payload_len);
         }
-        if (pa->flags & PACKET_ALERT_FLAG_STATE_MATCH) {
-            /* This is an app layer alert */
+        if (pa->flags & PACKET_ALERT_FLAG_STATE_MATCH ||
+            pa->flags & PACKET_ALERT_FLAG_STREAM_MATCH) {
+            /* This is an app layer or stream alert */
             int ret;
             uint8_t flag;
             if ((! PKT_IS_TCP(p)) || p->flow == NULL ||

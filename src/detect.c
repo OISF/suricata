@@ -1478,7 +1478,6 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_RULES);
     /* inspect the sigs against the packet */
     for (idx = 0; idx < det_ctx->match_array_cnt; idx++) {
-        StreamMsg *alert_msg = NULL;
         RULE_PROFILING_START;
 
         s = det_ctx->match_array[idx];
@@ -1572,12 +1571,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                             if (s->action & ACTION_DROP)
                                 alert_flags |= PACKET_ALERT_FLAG_DROP_FLOW;
 
-                            /* store ptr to current smsg */
-                            if (alert_msg == NULL) {
-                                alert_msg = smsg_inspect;
-                                p->alerts.alert_msgs = smsg;
-                            }
-
+                            alert_flags |= PACKET_ALERT_FLAG_STREAM_MATCH;
                             break;
                         }
                     }
@@ -1687,7 +1681,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         SigMatchSignaturesRunPostMatch(th_v, de_ctx, det_ctx, p, s);
 
         if (!(s->flags & SIG_FLAG_NOALERT)) {
-            PacketAlertAppend(det_ctx, s, p, alert_flags, alert_msg);
+            PacketAlertAppend(det_ctx, s, p, alert_flags);
         }
 next:
         DetectReplaceFree(det_ctx->replist);
@@ -1782,10 +1776,7 @@ end:
 
         /* if we had no alerts that involved the smsgs,
          * we can get rid of them now. */
-        if (p->alerts.alert_msgs == NULL) {
-            /* if we have (a) smsg(s), return to the pool */
-            StreamMsgReturnListToPool(smsg);
-        }
+        StreamMsgReturnListToPool(smsg);
 
         FLOWLOCK_UNLOCK(p->flow);
 

@@ -29,7 +29,7 @@
 #include "detect.h"
 
 void PacketAlertFinalize(DetectEngineCtx *, DetectEngineThreadCtx *, Packet *);
-int PacketAlertAppend(DetectEngineThreadCtx *, Signature *, Packet *, uint8_t, /* (StreamMsg *) */void *);
+int PacketAlertAppend(DetectEngineThreadCtx *, Signature *, Packet *, uint8_t);
 int PacketAlertCheck(Packet *, uint32_t);
 int PacketAlertRemove(Packet *, uint16_t);
 void PacketAlertTagInit(void);

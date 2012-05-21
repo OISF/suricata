@@ -130,11 +130,6 @@ void TmqhOutputPacketpool(ThreadVars *t, Packet *p)
     SCEnter();
     SCLogDebug("Packet %p, p->root %p, alloced %s", p, p->root, p->flags & PKT_ALLOC ? "true" : "false");
 
-    /* final alerts cleanup... return smsgs to pool if needed */
-    if (p->alerts.alert_msgs != NULL) {
-        StreamMsgReturnListToPool(p->alerts.alert_msgs);
-        p->alerts.alert_msgs = NULL;
-    }
     /** \todo make this a callback
      *  Release tcp segments. Done here after alerting can use them. */
     if (p->flow != NULL && p->proto == IPPROTO_TCP) {

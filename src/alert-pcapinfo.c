@@ -106,8 +106,8 @@ TmEcode AlertPcapInfo (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, P
             PacketAlert *pa = &p->alerts.alerts[i];
 
             fprintf(aft->file_ctx->fp, "%" PRIu64 ":%" PRIu32 ":%" PRIu32 ":%d:%d:%d:%d:0:0:%s\n",
-                    p->pcap_cnt, pa->s->gid, pa->s->id,
-                    pa->s->rev, pa->alert_msg ? 1 : 0,
+                    p->pcap_cnt, pa->s->gid, pa->s->id, pa->s->rev,
+                    pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_STREAM_MATCH) ? 1 : 0,
                     p->flowflags & FLOW_PKT_TOSERVER ? 1 : 0,
                     p->flowflags & FLOW_PKT_TOCLIENT ? 1 : 0,
                     pa->s->msg);

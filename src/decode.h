@@ -232,32 +232,23 @@ typedef struct PacketAlert_ {
     SigIntId order_id; /* Internal num, used for sorting */
     uint8_t action; /* Internal num, used for sorting */
     uint8_t flags;
-
-    /** Pointer to stream message this signature matched on, or
-     *  NULL if the sig didn't match on a smsg */
-    void *alert_msg;
-
     struct Signature_ *s;
 } PacketAlert;
 
 /** After processing an alert by the thresholding module, if at
  *  last it gets triggered, we might want to stick the drop action to
  *  the flow on IPS mode */
-#define PACKET_ALERT_FLAG_DROP_FLOW 0x01
-/** Signature matched (partly) in the state. Used in unified logger to
- *  know if it needs to log the stream or the packet. */
-#define PACKET_ALERT_FLAG_STATE_MATCH 0x02
+#define PACKET_ALERT_FLAG_DROP_FLOW     0x01
+/** alert was generated based on state */
+#define PACKET_ALERT_FLAG_STATE_MATCH   0x02
+/** alert was generated based on stream */
+#define PACKET_ALERT_FLAG_STREAM_MATCH  0x04
 
 #define PACKET_ALERT_MAX 15
 
 typedef struct PacketAlerts_ {
     uint16_t cnt;
     PacketAlert alerts[PACKET_ALERT_MAX];
-
-    /** pointer to (list of) stream message(s)
-     *  that one or more of the signatures
-     *  matched on */
-    void *alert_msgs;
 } PacketAlerts;
 
 /** number of decoder events we support per packet. Power of 2 minus 1
@@ -379,7 +370,6 @@ typedef struct Packet_
 #ifdef IPFW
         IPFWPacketVars ipfw_v;
 #endif /* IPFW */
-
 
         /** libpcap vars: shared by Pcap Live mode and Pcap File mode */
         PcapPacketVars pcap_v;

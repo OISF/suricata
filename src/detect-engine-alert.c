@@ -147,7 +147,7 @@ int PacketAlertRemove(Packet *p, uint16_t pos)
  *  \param flags alert flags
  *  \param alert_msg ptr to StreamMsg object that the signature matched on
  */
-int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p, uint8_t flags, void *alert_msg)
+int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p, uint8_t flags)
 {
     int i = 0;
 
@@ -164,7 +164,6 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p, u
         p->alerts.alerts[p->alerts.cnt].order_id = s->order_id;
         p->alerts.alerts[p->alerts.cnt].action = s->action;
         p->alerts.alerts[p->alerts.cnt].flags = flags;
-        p->alerts.alerts[p->alerts.cnt].alert_msg = alert_msg;
         p->alerts.alerts[p->alerts.cnt].s = s;
     } else {
         /* We need to make room for this s->num
@@ -179,7 +178,6 @@ int PacketAlertAppend(DetectEngineThreadCtx *det_ctx, Signature *s, Packet *p, u
         p->alerts.alerts[i].order_id = s->order_id;
         p->alerts.alerts[i].action = s->action;
         p->alerts.alerts[i].flags = flags;
-        p->alerts.alerts[i].alert_msg = alert_msg;
         p->alerts.alerts[i].s = s;
     }
 
