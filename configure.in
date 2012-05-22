@@ -126,6 +126,7 @@ AC_INIT(configure.in)
     fi
     echo -n "installation for $host OS... \c"
 
+    e_magic_file="/usr/share/file/magic"
     case "$host" in
 	    *-*-*freebsd*)
 		    CFLAGS="${CFLAGS} -DOS_FREEBSD"
@@ -136,6 +137,7 @@ AC_INIT(configure.in)
                     CFLAGS="${CFLAGS} -D__OpenBSD__ -fgnu89-inline"
                     CPPFLAGS="${CPPFLAGS} -I/usr/local/include -I/usr/local/include/libnet-1.1"
                     LDFLAGS="${LDFLAGS} -L/usr/local/lib -I/usr/local/lib/libnet-1.1"
+		    e_magic_file="/usr/local/share/file/magic.mgc"
                     ;;
     	   *darwin*|*Darwin*)
                     CFLAGS="${CFLAGS} -DOS_DARWIN"
@@ -1237,7 +1239,6 @@ if test "$WINDOWS_PATH" = "yes"; then
 else
   EXPAND_VARIABLE(localstatedir, e_logdir, "/log/suricata/")
   EXPAND_VARIABLE(sysconfdir, e_sysconfdir, "/suricata/")
-  e_magic_file="/usr/share/file/magic"
 fi
 AC_SUBST(e_logdir)
 AC_SUBST(e_sysconfdir)
