@@ -513,6 +513,9 @@ int DetectLoadSigFile(DetectEngineCtx *de_ctx, char *sig_file, int *sigs_tot) {
         /* Reset offset. */
         offset = 0;
 
+        de_ctx->rule_file = sig_file;
+        de_ctx->rule_line = lineno - multiline;
+
         sig = DetectEngineAppendSig(de_ctx, line);
         (*sigs_tot)++;
         if (sig != NULL) {

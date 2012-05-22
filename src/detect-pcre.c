@@ -727,7 +727,7 @@ int DetectPcreMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Packet *p,
     SCReturnInt(r);
 }
 
-DetectPcreData *DetectPcreParse (char *regexstr)
+DetectPcreData *DetectPcreParse (DetectEngineCtx *de_ctx, char *regexstr)
 {
     int ec;
     const char *eb;
@@ -946,7 +946,12 @@ DetectPcreData *DetectPcreParse (char *regexstr)
     int jit = 0;
     ret = pcre_fullinfo(pd->re, pd->sd, PCRE_INFO_JIT, &jit);
     if (ret != 0 || jit != 1) {
-        SCLogWarning(SC_ERR_PCRE_STUDY, "PCRE JIT compiler does not support: %s", regexstr);
+        /* warning, so we won't print the sig after this. Adding
+         * file and line to the message so the admin can figure
+         * out what sig this is about */
+        SCLogWarning(SC_ERR_PCRE_STUDY, "PCRE JIT compiler does not support: %s. "
+                "Falling back to regular PCRE handling (%s:%d)",
+                regexstr, de_ctx->rule_file, de_ctx->rule_line);
     }
 #else
     pd->sd = pcre_study(pd->re, 0, &eb);
@@ -1067,7 +1072,7 @@ static int DetectPcreSetup (DetectEngineCtx *de_ctx, Signature *s, char *regexst
     SigMatch *sm = NULL;
     SigMatch *prev_sm = NULL;
 
-    pd = DetectPcreParse(regexstr);
+    pd = DetectPcreParse(de_ctx, regexstr);
     if (pd == NULL)
         goto error;
 
@@ -1329,13 +1334,18 @@ static int DetectPcreParseTest01 (void) {
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/blah/7";
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        return 0;
 
-    pd = DetectPcreParse(teststring);
+    pd = DetectPcreParse(de_ctx, teststring);
     if (pd != NULL) {
         printf("expected NULL: got %p", pd);
         result = 0;
         DetectPcreFree(pd);
     }
+
+    DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -1346,13 +1356,17 @@ static int DetectPcreParseTest02 (void) {
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/blah/Ui$";
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        return 0;
 
-    pd = DetectPcreParse(teststring);
+    pd = DetectPcreParse(de_ctx, teststring);
     if (pd != NULL) {
         printf("expected NULL: got %p", pd);
         result = 0;
         DetectPcreFree(pd);
     }
+    DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -1363,13 +1377,17 @@ static int DetectPcreParseTest03 (void) {
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/blah/UZi";
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        return 0;
 
-    pd = DetectPcreParse(teststring);
+    pd = DetectPcreParse(de_ctx, teststring);
     if (pd != NULL) {
         printf("expected NULL: got %p", pd);
         result = 0;
         DetectPcreFree(pd);
     }
+    DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -1380,14 +1398,18 @@ static int DetectPcreParseTest04 (void) {
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/b\\\"lah/i";
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        return 0;
 
-    pd = DetectPcreParse(teststring);
+    pd = DetectPcreParse(de_ctx, teststring);
     if (pd == NULL) {
         printf("expected %p: got NULL", pd);
         result = 0;
     }
 
     DetectPcreFree(pd);
+    DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -1398,14 +1420,18 @@ static int DetectPcreParseTest05 (void) {
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/b(l|a)h/";
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        return 0;
 
-    pd = DetectPcreParse(teststring);
+    pd = DetectPcreParse(de_ctx, teststring);
     if (pd == NULL) {
         printf("expected %p: got NULL", pd);
         result = 0;
     }
 
     DetectPcreFree(pd);
+    DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -1416,14 +1442,18 @@ static int DetectPcreParseTest06 (void) {
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/b(l|a)h/smi";
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        return 0;
 
-    pd = DetectPcreParse(teststring);
+    pd = DetectPcreParse(de_ctx, teststring);
     if (pd == NULL) {
         printf("expected %p: got NULL", pd);
         result = 0;
     }
 
     DetectPcreFree(pd);
+    DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -1434,14 +1464,18 @@ static int DetectPcreParseTest07 (void) {
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/blah/Ui";
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        return 0;
 
-    pd = DetectPcreParse(teststring);
+    pd = DetectPcreParse(de_ctx, teststring);
     if (pd == NULL) {
         printf("expected %p: got NULL", pd);
         result = 0;
     }
 
     DetectPcreFree(pd);
+    DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -1452,14 +1486,18 @@ static int DetectPcreParseTest08 (void) {
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/b(l|a)h/O";
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        return 0;
 
-    pd = DetectPcreParse(teststring);
+    pd = DetectPcreParse(de_ctx, teststring);
     if (pd == NULL) {
         printf("expected %p: got NULL", pd);
         result = 0;
     }
 
     DetectPcreFree(pd);
+    DetectEngineCtxFree(de_ctx);
     return result;
 }
 
@@ -1471,14 +1509,18 @@ static int DetectPcreParseTest09 (void) {
     int result = 1;
     DetectPcreData *pd = NULL;
     char *teststring = "/lala\\\\/";
+    DetectEngineCtx *de_ctx = DetectEngineCtxInit();
+    if (de_ctx == NULL)
+        return 0;
 
-    pd = DetectPcreParse(teststring);
+    pd = DetectPcreParse(de_ctx, teststring);
     if (pd == NULL) {
         printf("expected %p: got NULL", pd);
         result = 0;
     }
 
     DetectPcreFree(pd);
+    DetectEngineCtxFree(de_ctx);
     return result;
 }
 
