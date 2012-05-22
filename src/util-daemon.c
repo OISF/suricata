@@ -80,11 +80,6 @@ static void WaitForChild (pid_t pid) {
  *
  */
 static void SetupLogging (void) {
-    /* Close stdin, stdout, stderr */
-    close(0);
-    close(1);
-    close(2);
-
     /* Redirect stdin, stdout, stderr to /dev/null  */
     int fd = open("/dev/null", O_RDWR);
     if (fd < 0)
