@@ -181,7 +181,9 @@ static int AlertDebugPrintStreamSegmentCallback(Packet *p, void *data, uint8_t *
 {
     AlertDebugLogThread *aft = (AlertDebugLogThread *)data;
 
+    MemBufferWriteString(aft->buffer, "STREAM DATA LEN:     %"PRIu32"\n", buflen);
     MemBufferWriteString(aft->buffer, "STREAM DATA:\n");
+
     PrintRawDataToBuffer(aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
                          buf, buflen);
 
@@ -244,7 +246,7 @@ TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
         CreateTimeString(&p->flow->startts, timebuf, sizeof(timebuf));
         MemBufferWriteString(aft->buffer, "FLOW Start TS:     %s\n", timebuf);
 #ifdef DEBUG
-        MemBufferWriteString(aft->buffer, "FLOW PKTS TODST:   %"PRIu32"\n",
+        MemBufferWriteString(aft->buffer, "FLOW PKTS TODST:   %"PRIu32"\n"
                              "FLOW PKTS TOSRC:   %"PRIu32"\n"
                              "FLOW Total Bytes:  %"PRIu64"\n",
                              p->flow->todstpktcnt, p->flow->tosrcpktcnt,
@@ -308,7 +310,7 @@ TmEcode AlertDebugLogger(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq,
                              (pa->flags & PACKET_ALERT_FLAG_STATE_MATCH ? "STATE" : "PACKET"));
         if (p->payload_len > 0) {
             MemBufferWriteString(aft->buffer,
-                                 "PAYLOAD LEN:       %" PRIu32 "\n"
+                                 "PAYLOAD LEN:         %" PRIu32 "\n"
                                  "PAYLOAD:\n",
                                  p->payload_len);
             PrintRawDataToBuffer(aft->buffer->buffer, &aft->buffer->offset, aft->buffer->size,
