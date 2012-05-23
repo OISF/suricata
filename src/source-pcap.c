@@ -65,6 +65,7 @@ typedef struct PcapThreadVars_
     unsigned char pcap_state;
     /* thread specific bpf */
     struct bpf_program filter;
+    /* ptr to string from config */
     char *bpf_filter;
 
     /* data link type for the thread */
@@ -357,7 +358,13 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
     char errbuf[PCAP_ERRBUF_SIZE];
     ptv->pcap_handle = pcap_create((char *)pcapconfig->iface, errbuf);
     if (ptv->pcap_handle == NULL) {
-        SCLogError(SC_ERR_PCAP_CREATE, "Couldn't create a new pcap handler, error %s", pcap_geterr(ptv->pcap_handle));
+        if (strlen(errbuf)) {
+            SCLogError(SC_ERR_PCAP_CREATE, "Couldn't create a new pcap handler for %s, error %s",
+                    (char *)pcapconfig->iface, errbuf);
+        } else {
+            SCLogError(SC_ERR_PCAP_CREATE, "Couldn't create a new pcap handler for %s",
+                    (char *)pcapconfig->iface);
+        }
         SCFree(ptv);
         pcapconfig->DerefFunc(pcapconfig);
         SCReturnInt(TM_ECODE_FAILED);
@@ -421,9 +428,8 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     /* set bpf filter if we have one */
     if (pcapconfig->bpf_filter) {
-        ptv->bpf_filter = SCStrdup(pcapconfig->bpf_filter);
-        /* free bpf as we are using a copy */
-        SCFree(pcapconfig->bpf_filter);
+        ptv->bpf_filter = pcapconfig->bpf_filter;
+
         if(pcap_compile(ptv->pcap_handle,&ptv->filter,ptv->bpf_filter,1,0) < 0) {
             SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(ptv->pcap_handle));
             SCFree(ptv);
@@ -494,7 +500,7 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     /* set bpf filter if we have one */
     if (pcapconfig->bpf_filter) {
-        ptv->bpf_filter = SCStrdup(pcapconfig->bpf_filter);
+        ptv->bpf_filter = pcapconfig->bpf_filter;
         SCLogInfo("using bpf-filter \"%s\"", ptv->bpf_filter);
 
         if(pcap_compile(ptv->pcap_handle,&ptv->filter, ptv->bpf_filter,1,0) < 0) {
@@ -564,10 +570,6 @@ void ReceivePcapThreadExitStats(ThreadVars *tv, void *data) {
 TmEcode ReceivePcapThreadDeinit(ThreadVars *tv, void *data) {
     PcapThreadVars *ptv = (PcapThreadVars *)data;
 
-    if (ptv->bpf_filter) {
-        SCFree(ptv->bpf_filter);
-        ptv->bpf_filter = NULL;
-    }
     pcap_close(ptv->pcap_handle);
     SCReturnInt(TM_ECODE_OK);
 }
