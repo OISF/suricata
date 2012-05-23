@@ -101,6 +101,10 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot);
 TmEcode DecodePcapThreadInit(ThreadVars *, void *, void **);
 TmEcode DecodePcap(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
 
+/** protect pcap_compile and pcap_setfilter, as they are not thread safe:
+ *  http://seclists.org/tcpdump/2009/q1/62 */
+static SCMutex pcap_bpf_compile_lock = PTHREAD_MUTEX_INITIALIZER;
+
 /**
  * \brief Registration Function for RecievePcap.
  * \todo Unit tests are needed for this module.
@@ -428,21 +432,29 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     /* set bpf filter if we have one */
     if (pcapconfig->bpf_filter) {
+        SCMutexLock(&pcap_bpf_compile_lock);
+
         ptv->bpf_filter = pcapconfig->bpf_filter;
 
-        if(pcap_compile(ptv->pcap_handle,&ptv->filter,ptv->bpf_filter,1,0) < 0) {
-            SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(ptv->pcap_handle));
+        if (pcap_compile(ptv->pcap_handle,&ptv->filter,ptv->bpf_filter,1,0) < 0) {
+            SCLogError(SC_ERR_BPF, "bpf compilation error %s", pcap_geterr(ptv->pcap_handle));
+
+            SCMutexUnlock(&pcap_bpf_compile_lock);
             SCFree(ptv);
             pcapconfig->DerefFunc(pcapconfig);
             return TM_ECODE_FAILED;
         }
 
-        if(pcap_setfilter(ptv->pcap_handle,&ptv->filter) < 0) {
-            SCLogError(SC_ERR_BPF,"could not set bpf filter %s",pcap_geterr(ptv->pcap_handle));
+        if (pcap_setfilter(ptv->pcap_handle,&ptv->filter) < 0) {
+            SCLogError(SC_ERR_BPF, "could not set bpf filter %s", pcap_geterr(ptv->pcap_handle));
+
+            SCMutexUnlock(&pcap_bpf_compile_lock);
             SCFree(ptv);
             pcapconfig->DerefFunc(pcapconfig);
             return TM_ECODE_FAILED;
         }
+
+        SCMutexUnlock(&pcap_bpf_compile_lock);
     }
 
     ptv->datalink = pcap_datalink(ptv->pcap_handle);
@@ -500,11 +512,15 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     /* set bpf filter if we have one */
     if (pcapconfig->bpf_filter) {
+        SCMutexLock(&pcap_bpf_compile_lock);
+
         ptv->bpf_filter = pcapconfig->bpf_filter;
         SCLogInfo("using bpf-filter \"%s\"", ptv->bpf_filter);
 
         if(pcap_compile(ptv->pcap_handle,&ptv->filter, ptv->bpf_filter,1,0) < 0) {
             SCLogError(SC_ERR_BPF,"bpf compilation error %s",pcap_geterr(ptv->pcap_handle));
+
+            SCMutexUnlock(&pcap_bpf_compile_lock);
             SCFree(ptv);
             /* Dereference config */
             pcapconfig->DerefFunc(pcapconfig);
@@ -513,11 +529,15 @@ TmEcode ReceivePcapThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
         if(pcap_setfilter(ptv->pcap_handle,&ptv->filter) < 0) {
             SCLogError(SC_ERR_BPF,"could not set bpf filter %s",pcap_geterr(ptv->pcap_handle));
+
+            SCMutexUnlock(&pcap_bpf_compile_lock);
             SCFree(ptv);
             /* Dereference config */
             pcapconfig->DerefFunc(pcapconfig);
             return TM_ECODE_FAILED;
         }
+
+        SCMutexUnlock(&pcap_bpf_compile_lock);
     }
 
     ptv->datalink = pcap_datalink(ptv->pcap_handle);
