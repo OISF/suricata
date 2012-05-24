@@ -334,7 +334,12 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
         SCReturnInt(TM_ECODE_FAILED);
     }
 
+#ifdef HAVE_PFRING_OPEN_NEW
+    ptv->pd = pfring_open(ptv->interface, (uint32_t)default_packet_size,
+                          PF_RING_REENTRANT | PF_RING_LONG_HEADER | PF_RING_PROMISC);
+#else
     ptv->pd = pfring_open(ptv->interface, LIBPFRING_PROMISC, (uint32_t)default_packet_size, LIBPFRING_REENTRANT);
+#endif
     if (ptv->pd == NULL) {
         SCLogError(SC_ERR_PF_RING_OPEN,"opening %s failed: pfring_open error",
                 ptv->interface);

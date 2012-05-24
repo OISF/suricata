@@ -747,10 +747,7 @@ AC_INIT(configure.in)
                 ],
                 [
                     u_char *buffer;
-                    struct pfring_pkthdr hdr;
-                    pfring *pd; memset(&hdr, 0, sizeof(hdr));
-                    pd = pfring_open("eth1", 1,  1515, 1);
-                    pfring_recv(pd, &buffer, 0, &hdr, 1);
+                    pfring_recv(NULL, &buffer, 0, NULL, 1);
                 ],
                 [ pfring_recv_uchar_buff=yes ], [:])
 
@@ -762,6 +759,27 @@ AC_INIT(configure.in)
         else
             AC_MSG_RESULT(no)
         fi
+
+        # check if the argument to nfq_get_payload is signed or unsigned
+        AC_MSG_CHECKING([for post 5.4.0 pfring_open function])
+        STORECFLAGS="${CFLAGS}"
+        CFLAGS="${CFLAGS} -Werror"
+        AC_COMPILE_IFELSE(
+            [AC_LANG_PROGRAM(
+                [
+                #include <pfring.h>
+                ],
+                [
+                pfring_open(NULL, 0, 0);
+                ])],
+            [pfring_new_open="yes"],
+            [pfring_new_open="no"])
+        AC_MSG_RESULT($pfring_new_open)
+        if test "x$pfring_new_open" = "xyes"; then
+            AC_DEFINE([HAVE_PFRING_OPEN_NEW], [1], [For post 5.4.0 version of pfring_open])
+        fi
+        CFLAGS="${STORECFLAGS}"
+
     ])
 
 
