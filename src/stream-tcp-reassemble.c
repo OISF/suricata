@@ -2480,8 +2480,7 @@ static inline int StreamTcpReturnSegmentCheck(TcpSession *ssn, TcpStream *stream
  *  \param flags direction flags
  */
 void StreamTcpPruneSession(Flow *f, uint8_t flags) {
-    if (f == NULL || f->protoctx == NULL ||
-            ((flags & (STREAM_TOSERVER|STREAM_TOCLIENT)) == 0))
+    if (f == NULL || f->protoctx == NULL)
         return;
 
     TcpSession *ssn = f->protoctx;
@@ -2491,6 +2490,8 @@ void StreamTcpPruneSession(Flow *f, uint8_t flags) {
         stream = &ssn->client;
     } else if (flags & STREAM_TOCLIENT) {
         stream = &ssn->server;
+    } else {
+        return;
     }
 
     /* loop through the segments and fill one or more msgs */
