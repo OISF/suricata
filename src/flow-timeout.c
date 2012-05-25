@@ -88,6 +88,7 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
                                                            TcpSession *ssn,
                                                            int dummy)
 {
+    p->datalink = DLT_RAW;
     p->proto = IPPROTO_TCP;
     p->flow = f;
     FlowIncrUsecnt(f);
@@ -138,6 +139,8 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
         /* set the tcp header */
         p->tcph = (TCPHdr *)((uint8_t *)GET_PKT_DATA(p) + 20);
 
+        SET_PKT_LEN(p, 40); /* ipv4 hdr + tcp hdr */
+
     } else if (FLOW_IS_IPV6(f)) {
         if (direction == 0) {
             FLOW_COPY_IPV6_ADDR_TO_PACKET(&f->src, &p->src);
@@ -181,6 +184,8 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
 
         /* set the tcp header */
         p->tcph = (TCPHdr *)((uint8_t *)GET_PKT_DATA(p) + 40);
+
+        SET_PKT_LEN(p, 60); /* ipv6 hdr + tcp hdr */
     }
 
     p->tcph->th_offx2 = 0x50;
@@ -220,6 +225,10 @@ static inline Packet *FlowForceReassemblyPseudoPacketSetup(Packet *p,
     if (FLOW_IS_IPV4(f)) {
         p->tcph->th_sum = TCPCalculateChecksum(p->ip4h->s_ip_addrs,
                                                (uint16_t *)p->tcph, 20);
+        /* calc ipv4 csum as we may log it and barnyard might reject
+         * a wrong checksum */
+        p->ip4h->ip_csum = IPV4CalculateChecksum((uint16_t *)p->ip4h,
+                IPV4_GET_RAW_HLEN(p->ip4h));
     } else if (FLOW_IS_IPV6(f)) {
         p->tcph->th_sum = TCPCalculateChecksum(p->ip6h->s_ip6_addrs,
                                                (uint16_t *)p->tcph, 20);
