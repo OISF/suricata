@@ -155,6 +155,8 @@ DetectReplaceList * DetectReplaceAddToList(DetectReplaceList *replist, uint8_t *
     SCLogDebug("replace: Adding match");
 
     newlist = SCMalloc(sizeof(DetectReplaceList));
+    if (newlist == NULL)
+        return NULL;
     newlist->found = found;
     newlist->cd = cd;
     newlist->next = NULL;
