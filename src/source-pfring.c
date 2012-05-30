@@ -260,6 +260,9 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
             SCReturnInt(TM_ECODE_FAILED);
         }
 
+        /* Some flavours of PF_RING may fail to set timestamp - see PF-RING-enabled libpcap code*/
+        hdr.ts.tv_sec = 0;
+
         /* Depending on what compile time options are used for pfring we either return 0 or -1 on error and always 1 for success */
 #ifdef HAVE_PFRING_RECV_UCHAR
         int r = pfring_recv(ptv->pd, (u_char**)&GET_PKT_DIRECT_DATA(p),
@@ -276,6 +279,10 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
         if (r == 1) {
             //printf("RecievePfring src %" PRIu32 " sport %" PRIu32 " dst %" PRIu32 " dstport %" PRIu32 "\n",
             //        hdr.parsed_pkt.ipv4_src,hdr.parsed_pkt.l4_src_port, hdr.parsed_pkt.ipv4_dst,hdr.parsed_pkt.l4_dst_port);
+
+            /* PF_RING may fail to set timestamp */
+            if (hdr.ts.tv_sec == 0) gettimeofday((struct timeval*)&hdr.ts, NULL);
+
             PfringProcessPacket(ptv, &hdr, p);
             if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
                 TmqhOutputPacketpool(ptv->tv, p);
