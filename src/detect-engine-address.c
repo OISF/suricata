@@ -825,8 +825,8 @@ int DetectAddressSetup(DetectAddressHead *gh, char *s)
     ad = DetectAddressParseSingle(s);
     if (ad == NULL) {
         SCLogError(SC_ERR_ADDRESS_ENGINE_GENERIC,
-                   "DetectAddressParse error \"%s\"", s);
-        goto error;
+                "failed to parse address \"%s\"", s);
+        return -1;
     }
 
     if (ad->flags & ADDRESS_FLAG_ANY)
@@ -1240,7 +1240,7 @@ int DetectAddressTestConfVars(void)
 
     ConfNode *seq_node;
     TAILQ_FOREACH(seq_node, &address_vars_node->head, next) {
-        SCLogDebug("Testing %s - %s\n", seq_node->name, seq_node->val);
+        SCLogDebug("Testing %s - %s", seq_node->name, seq_node->val);
 
         DetectAddressHead *gh = DetectAddressHeadInit();
         if (gh == NULL) {
@@ -1253,12 +1253,15 @@ int DetectAddressTestConfVars(void)
 
         int r = DetectAddressParse2(gh, ghn, seq_node->val, /* start with negate no */0);
         if (r < 0) {
+            SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
+                        "failed to parse address var \"%s\" with value \"%s\". "
+                        "Please check it's syntax", seq_node->name, seq_node->val);
             goto error;
         }
 
         if (DetectAddressIsCompleteIPSpace(ghn)) {
             SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
-                       "Address var - \"%s\" has the complete IP space negated "
+                       "address var - \"%s\" has the complete IP space negated "
                        "with it's value \"%s\".  Rule address range is NIL. "
                        "Probably have a !any or an address range that supplies "
                        "a NULL address range", seq_node->name, seq_node->val);

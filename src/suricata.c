@@ -1373,6 +1373,18 @@ int main(int argc, char **argv)
 
     TagInitCtx();
 
+    if (DetectAddressTestConfVars() < 0) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
+                "basic address vars test failed. Please check %s for errors", conf_filename);
+        exit(EXIT_FAILURE);
+    }
+    if (DetectPortTestConfVars() < 0) {
+        SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY,
+                "basic port vars test failed. Please check %s for errors", conf_filename);
+        exit(EXIT_FAILURE);
+    }
+
+
     TmModuleReceiveNFQRegister();
     TmModuleVerdictNFQRegister();
     TmModuleDecodeNFQRegister();
@@ -1639,11 +1651,6 @@ int main(int argc, char **argv)
 
     if (MagicInit() != 0)
         exit(EXIT_FAILURE);
-
-    if (DetectAddressTestConfVars() < 0)
-        exit(0);
-    if (DetectPortTestConfVars() < 0)
-        exit(0);
 
     if (SigLoadSignatures(de_ctx, sig_file, sig_file_exclusive) < 0) {
         if (sig_file == NULL) {

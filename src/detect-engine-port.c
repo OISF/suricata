@@ -914,8 +914,8 @@ static int DetectPortParseInsertString(DetectPort **head, char *s) {
     /** parse the address */
     ad = PortParse(s);
     if (ad == NULL) {
-        SCLogError(SC_ERR_INVALID_ARGUMENT,"PortParse error \"%s\"",s);
-        goto error;
+        SCLogError(SC_ERR_INVALID_ARGUMENT," failed to parse port \"%s\"",s);
+        return -1;
     }
 
     if (ad->flags & PORT_FLAG_ANY) {
