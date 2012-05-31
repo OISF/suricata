@@ -3408,6 +3408,95 @@ end:
     return result;
 }
 
+/** \test Host:www.google.com0dName: Value0d0a <- missing space between name:value (rfc violation)
+ */
+int HTPParserTest13(void) {
+    int result = 0;
+    Flow *f = NULL;
+    uint8_t httpbuf1[] = "GET / HTTP/1.0\r\nHost:www.google.com\rName: Value\r\n\r\n";
+    uint32_t httplen1 = sizeof(httpbuf1) - 1; /* minus the \0 */
+    TcpSession ssn;
+    HtpState *htp_state =  NULL;
+    int r = 0;
+
+    memset(&ssn, 0, sizeof(ssn));
+
+    f = UTHBuildFlow(AF_INET, "1.2.3.4", "1.2.3.5", 1024, 80);
+    if (f == NULL)
+        goto end;
+    f->protoctx = &ssn;
+
+    StreamTcpInitConfig(TRUE);
+
+    uint32_t u;
+    for (u = 0; u < httplen1; u++) {
+        uint8_t flags = 0;
+
+        if (u == 0)
+            flags = STREAM_TOSERVER|STREAM_START;
+        else if (u == (httplen1 - 1))
+            flags = STREAM_TOSERVER|STREAM_EOF;
+        else
+            flags = STREAM_TOSERVER;
+
+        r = AppLayerParse(NULL, f, ALPROTO_HTTP, flags, &httpbuf1[u], 1);
+        if (r != 0) {
+            printf("toserver chunk %" PRIu32 " returned %" PRId32 ", expected"
+                    " 0: ", u, r);
+            goto end;
+        }
+    }
+
+    htp_state = f->alstate;
+    if (htp_state == NULL) {
+        printf("no http state: ");
+        goto end;
+    }
+
+    htp_tx_t *tx = list_get(htp_state->connp->conn->transactions, 0);
+    htp_header_t *h = NULL;
+    table_iterator_reset(tx->request_headers);
+    table_iterator_next(tx->request_headers, (void **) & h);
+
+    if (h == NULL) {
+        goto end;
+    }
+
+    char *name = bstr_tocstr(h->name);
+    if (name == NULL) {
+        goto end;
+    }
+
+    if (strcmp(name, "Host") != 0) {
+        printf("header name not \"Host\", instead \"%s\": ", name);
+        free(name);
+        goto end;
+    }
+    free(name);
+
+    char *value = bstr_tocstr(h->value);
+    if (value == NULL) {
+        goto end;
+    }
+
+    if (strcmp(value, "www.google.com\rName: Value") != 0) {
+        printf("header value not \"www.google.com\", instead \"");
+        PrintRawUriFp(stdout, (uint8_t *)value, strlen(value));
+        printf("\": ");
+        free(value);
+        goto end;
+    }
+    free(value);
+
+    result = 1;
+end:
+    StreamTcpFreeConfig(TRUE);
+    if (htp_state != NULL)
+        HTPStateFree(htp_state);
+    UTHFreeFlow(f);
+    return result;
+}
+
 /** \test Test basic config */
 int HTPParserConfigTest01(void)
 {
@@ -3818,6 +3907,7 @@ void HTPParserRegisterTests(void) {
     UtRegisterTest("HTPParserTest10", HTPParserTest10, 1);
     UtRegisterTest("HTPParserTest11", HTPParserTest11, 1);
     UtRegisterTest("HTPParserTest12", HTPParserTest12, 1);
+    UtRegisterTest("HTPParserTest13", HTPParserTest13, 1);
     UtRegisterTest("HTPParserConfigTest01", HTPParserConfigTest01, 1);
     UtRegisterTest("HTPParserConfigTest02", HTPParserConfigTest02, 1);
     UtRegisterTest("HTPParserConfigTest03", HTPParserConfigTest03, 1);
