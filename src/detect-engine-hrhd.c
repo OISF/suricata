@@ -59,6 +59,7 @@
 int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
                                     HtpState *htp_state, uint8_t flags)
 {
+    SCEnter();
     htp_tx_t *tx = NULL;
     uint32_t cnt = 0;
     int idx;
@@ -93,6 +94,8 @@ int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
             cnt += HttpRawHeaderPatternSearch(det_ctx,
                                               (uint8_t *)bstr_ptr(raw_headers),
                                               bstr_len(raw_headers), flags);
+        } else {
+            SCLogDebug("no raw headers");
         }
 #ifdef HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW
         raw_headers = htp_tx_get_response_headers_raw(tx);
@@ -100,13 +103,15 @@ int DetectEngineRunHttpRawHeaderMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
             cnt += HttpRawHeaderPatternSearch(det_ctx,
                                               (uint8_t *)bstr_ptr(raw_headers),
                                               bstr_len(raw_headers), flags);
+        } else {
+            SCLogDebug("no raw headers");
         }
 #endif /* HAVE_HTP_TX_GET_RESPONSE_HEADERS_RAW */
     }
 
- end:
+end:
     FLOWLOCK_UNLOCK(f);
-    return cnt;
+    SCReturnInt(cnt);
 }
 
 /**
