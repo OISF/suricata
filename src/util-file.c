@@ -422,6 +422,16 @@ int FileAppendData(FileContainer *ffc, uint8_t *data, uint32_t data_len) {
     }
 
     if (FileStoreNoStoreCheck(ffc->tail) == 1) {
+#ifdef HAVE_NSS
+        /* no storage but forced md5 */
+        if (g_file_force_md5) {
+            if (ffc->tail->md5_ctx)
+                HASH_Update(ffc->tail->md5_ctx, data, data_len);
+
+            ffc->tail->size += data_len;
+            SCReturnInt(0);
+        }
+#endif
         ffc->tail->state = FILE_STATE_CLOSED;
         SCLogDebug("flowfile state transitioned to FILE_STATE_CLOSED");
         SCReturnInt(-2);
@@ -521,17 +531,29 @@ static int FileCloseFilePtr(File *ff, uint8_t *data,
     if (data != NULL) {
         //PrintRawDataFp(stdout, data, data_len);
 
-        FileData *ffd = FileDataAlloc(data, data_len);
-        if (ffd == NULL) {
-            ff->state = FILE_STATE_ERROR;
-            SCReturnInt(-1);
-        }
+        if (ff->store == -1) {
+#ifdef HAVE_NSS
+            /* no storage but forced md5 */
+            if (g_file_force_md5) {
+                if (ff->md5_ctx)
+                    HASH_Update(ff->md5_ctx, data, data_len);
 
-        /* append the data */
-        if (FileAppendFileDataFilePtr(ff, ffd) < 0) {
-            ff->state = FILE_STATE_ERROR;
-            FileDataFree(ffd);
-            SCReturnInt(-1);
+                ff->size += data_len;
+            }
+#endif
+        } else {
+            FileData *ffd = FileDataAlloc(data, data_len);
+            if (ffd == NULL) {
+                ff->state = FILE_STATE_ERROR;
+                SCReturnInt(-1);
+            }
+
+            /* append the data */
+            if (FileAppendFileDataFilePtr(ff, ffd) < 0) {
+                ff->state = FILE_STATE_ERROR;
+                FileDataFree(ffd);
+                SCReturnInt(-1);
+            }
         }
     }
 
