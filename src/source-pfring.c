@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -19,6 +19,7 @@
  * \file
  *
  * \author William Metcalf <william.metcalf@gmail.com>
+ * \author Eric Leblond <eric@regit.org>
  *
  * PF_RING packet acquisition support
  *
@@ -183,6 +184,11 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
     SC_ATOMIC_ADD(ptv->livedev->pkts, 1);
     p->livedev = ptv->livedev;
 
+    /* PF_RING may fail to set timestamp */
+    if (h->ts.tv_sec == 0) {
+        gettimeofday((struct timeval *)&h->ts, NULL);
+    }
+
     p->ts.tv_sec = h->ts.tv_sec;
     p->ts.tv_usec = h->ts.tv_usec;
 
@@ -261,7 +267,7 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
         }
 
         /* Some flavours of PF_RING may fail to set timestamp - see PF-RING-enabled libpcap code*/
-        hdr.ts.tv_sec = 0;
+        hdr.ts.tv_sec = hdr.ts.tv_usec = 0;
 
         /* Depending on what compile time options are used for pfring we either return 0 or -1 on error and always 1 for success */
 #ifdef HAVE_PFRING_RECV_UCHAR
@@ -280,10 +286,8 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
             //printf("RecievePfring src %" PRIu32 " sport %" PRIu32 " dst %" PRIu32 " dstport %" PRIu32 "\n",
             //        hdr.parsed_pkt.ipv4_src,hdr.parsed_pkt.l4_src_port, hdr.parsed_pkt.ipv4_dst,hdr.parsed_pkt.l4_dst_port);
 
-            /* PF_RING may fail to set timestamp */
-            if (hdr.ts.tv_sec == 0) gettimeofday((struct timeval*)&hdr.ts, NULL);
-
             PfringProcessPacket(ptv, &hdr, p);
+
             if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
                 TmqhOutputPacketpool(ptv->tv, p);
                 SCReturnInt(TM_ECODE_FAILED);
