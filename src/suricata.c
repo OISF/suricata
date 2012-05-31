@@ -29,6 +29,7 @@
 #include <pthread.h>
 
 #ifdef HAVE_NSS
+#include <prinit.h>
 #include <nss.h>
 #endif
 
@@ -660,11 +661,6 @@ int main(int argc, char **argv)
     sc_set_caps = FALSE;
 
     SC_ATOMIC_INIT(engine_stage);
-
-#ifdef HAVE_NSS
-    /* init NSS for md5 */
-    NSS_NoDB_Init(NULL);
-#endif
 
     /* initialize the logging subsys */
     SCLogInitLogModule(NULL);
@@ -1573,6 +1569,12 @@ int main(int argc, char **argv)
             exit(EXIT_FAILURE);
         }
     }
+
+#ifdef HAVE_NSS
+    /* init NSS for md5 */
+    PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
+    NSS_NoDB_Init(NULL);
+#endif
 
     /* registering signals we use */
     SignalHandlerSetup(SIGINT, SignalHandlerSigint);
