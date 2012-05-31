@@ -704,7 +704,10 @@ struct htp_header_line_t {
 
     /** Parsing flags: HTP_FIELD_INVALID_NOT_FATAL, HTP_FIELD_INVALID_FATAL, HTP_FIELD_LONG */
     unsigned int flags;
-    
+
+    /** terminator characters, if NULL assume RFC compliant 0d 0a */
+    bstr *terminators;
+
     /** Header that uses this line. */
     htp_header_t *header;
 };

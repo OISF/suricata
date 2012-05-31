@@ -487,6 +487,7 @@ int htp_connp_RES_HEADERS(htp_connp_t *connp) {
             }
 
             // Prepare line for consumption
+            size_t raw_out_line_len = connp->out_line_len;
             htp_chomp(connp->out_line, &connp->out_line_len);
 
             // Check for header folding
@@ -517,6 +518,24 @@ int htp_connp_RES_HEADERS(htp_connp_t *connp) {
             }
 
             // Add the raw header line to the list
+
+            if (raw_out_line_len > connp->out_line_len) {
+                if (raw_out_line_len - connp->out_line_len == 2 &&
+                        connp->out_line[connp->out_line_len] == 0x0d &&
+                        connp->out_line[connp->out_line_len + 1] == 0x0a) {
+                    connp->out_header_line->terminators = NULL;
+                } else {
+                    connp->out_header_line->terminators =
+                        bstr_memdup((char *) connp->out_line + connp->out_line_len,
+                                raw_out_line_len - connp->out_line_len);
+                    if (connp->out_header_line->terminators == NULL) {
+                        return HTP_ERROR;
+                    }
+                }
+            } else {
+                connp->out_header_line->terminators = NULL;
+            }
+
             connp->out_header_line->line = bstr_memdup((char *) connp->out_line, connp->out_line_len);
             if (connp->out_header_line->line == NULL) {
                 return HTP_ERROR;
