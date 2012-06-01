@@ -693,26 +693,26 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
 
     uint16_t i = 0;
     for (; i < p->alerts.cnt + 1; i++) {
+        if (i < p->alerts.cnt)
+            pa = &p->alerts.alerts[i];
+        else {
+            if (!(p->flags & PKT_HAS_TAG))
+                break;
+            pa = PacketAlertGetTag();
+        }
+
+        if (unlikely(pa->s == NULL))
+            continue;
+
         /* reset length and offset */
         aun->offset = offset;
         aun->length = length;
         memset(aun->data + aun->offset, 0, aun->datalen - aun->offset);
 
-        if (i < p->alerts.cnt)
-            pa = &p->alerts.alerts[i];
-        else
-            if (p->flags & PKT_HAS_TAG)
-                pa = PacketAlertGetTag();
-            else
-                break;
-
-        if (unlikely(pa->s == NULL)) {
-            continue;
-        }
-
         /* copy the part common to all alerts */
         memcpy(aun->data, &hdr, sizeof(hdr));
         memcpy(phdr, &gphdr, sizeof(gphdr));
+
         /* fill the header structure with the data of the alert */
         event_id = htonl(SC_ATOMIC_ADD(unified2_event_id, 1));
         phdr->event_id = event_id;
@@ -723,7 +723,7 @@ int Unified2IPv6TypeAlert (ThreadVars *t, Packet *p, void *data, PacketQueue *pq
         phdr->priority_id = htonl(pa->s->prio);
 
         SCMutexLock(&aun->file_ctx->fp_mutex);
-        if ((aun->file_ctx->size_current + (sizeof(hdr) + sizeof(*phdr))) > aun->file_ctx->size_limit) {
+        if ((aun->file_ctx->size_current + length) > aun->file_ctx->size_limit) {
             if (Unified2AlertRotateFile(t,aun) < 0) {
                 aun->file_ctx->alerts += i;
                 SCMutexUnlock(&aun->file_ctx->fp_mutex);
@@ -829,22 +829,21 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
 
     uint16_t i = 0;
     for (; i < p->alerts.cnt + 1; i++) {
+        if (i < p->alerts.cnt)
+            pa = &p->alerts.alerts[i];
+        else {
+            if (!(p->flags & PKT_HAS_TAG))
+                break;
+            pa = PacketAlertGetTag();
+        }
+
+        if (unlikely(pa->s == NULL))
+            continue;
+
         /* reset length and offset */
         aun->offset = offset;
         aun->length = length;
         memset(aun->data + aun->offset, 0, aun->datalen - aun->offset);
-
-        if (i < p->alerts.cnt)
-            pa = &p->alerts.alerts[i];
-        else
-            if (p->flags & PKT_HAS_TAG)
-                pa = PacketAlertGetTag();
-            else
-                break;
-
-        if (unlikely(pa->s == NULL)) {
-            continue;
-        }
 
         /* copy the part common to all alerts */
         memcpy(aun->data, &hdr, sizeof(hdr));
@@ -862,7 +861,7 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
         /* check and enforce the filesize limit */
         SCMutexLock(&aun->file_ctx->fp_mutex);
 
-        if ((aun->file_ctx->size_current + (sizeof(hdr) + sizeof(*phdr))) > aun->file_ctx->size_limit) {
+        if ((aun->file_ctx->size_current + length) > aun->file_ctx->size_limit) {
             if (Unified2AlertRotateFile(tv,aun) < 0) {
                 aun->file_ctx->alerts += i;
                 SCMutexUnlock(&aun->file_ctx->fp_mutex);
@@ -883,12 +882,14 @@ int Unified2IPv4TypeAlert (ThreadVars *tv, Packet *p, void *data, PacketQueue *p
         /* Write the alert (it doesn't lock inside, since we
          * already locked here for rotation check)
          */
-        ret = Unified2PacketTypeAlert(aun, p, event_id, pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_STREAM_MATCH) ? 1 : 0);
+        ret = Unified2PacketTypeAlert(aun, p, event_id,
+                pa->flags & (PACKET_ALERT_FLAG_STATE_MATCH|PACKET_ALERT_FLAG_STREAM_MATCH) ? 1 : 0);
         if (ret != 1) {
             aun->file_ctx->alerts += i;
             SCMutexUnlock(&aun->file_ctx->fp_mutex);
             return -1;
         }
+
         fflush(aun->file_ctx->fp);
         aun->file_ctx->alerts++;
         SCMutexUnlock(&aun->file_ctx->fp_mutex);
