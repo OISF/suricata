@@ -13,7 +13,7 @@ SUBDIRS = $(HTP_DIR) src qa rules doc
 install-data-am:
 	@echo "Run 'make install-conf' if you want to install initial configuration files. Or 'make install-full' to install configuration and rules";
 
-install-full: install-conf install-rules
+install-full: install install-conf install-rules
 
 install-conf:
 	install -d $(e_sysconfdir)
