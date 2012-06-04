@@ -100,6 +100,9 @@ TmEcode NoPfringSupportExit(ThreadVars *tv, void *initdata, void **data)
 
 #else /* implied we do have PF_RING support */
 
+/** protect pfring_set_bpf_filter, as it is not thread safe */
+static SCMutex pfring_bpf_set_filter_lock = PTHREAD_MUTEX_INITIALIZER;
+
 /* XXX replace with user configurable options */
 #define LIBPFRING_SNAPLEN     1518
 #define LIBPFRING_PROMISC     1
@@ -395,7 +398,11 @@ TmEcode ReceivePfringThreadInit(ThreadVars *tv, void *initdata, void **data) {
 #ifdef HAVE_PFRING_SET_BPF_FILTER
     if (pfconf->bpf_filter) {
         ptv->bpf_filter = SCStrdup(pfconf->bpf_filter);
+
+        SCMutexLock(&pfring_bpf_set_filter_lock);
         rc = pfring_set_bpf_filter(ptv->pd, ptv->bpf_filter);
+        SCMutexUnlock(&pfring_bpf_set_filter_lock);
+
         if (rc < 0) {
             SCLogInfo("Set PF_RING bpf filter \"%s\" failed.", ptv->bpf_filter);
         }
