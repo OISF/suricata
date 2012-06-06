@@ -228,6 +228,7 @@ const char * SCErrorToString(SCError err)
         CASE_CODE (SC_ERR_FLOW_INIT);
         CASE_CODE (SC_ERR_HOST_INIT);
         CASE_CODE (SC_ERR_MEM_BUFFER_API);
+        CASE_CODE (SC_ERR_INVALID_MD5);
 
         default:
             return "UNKNOWN_ERROR";

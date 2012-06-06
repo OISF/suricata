@@ -21,28 +21,16 @@
  * \author Victor Julien <victor@inliniac.net>
  */
 
-#ifndef __UTIL_ROHASH_H__
-#define __UTIL_ROHASH_H__
+#ifndef __DETECT_FILEMD5_H__
+#define __DETECT_FILEMD5_H__
 
-#include "queue.h"
+#include "util-rohash.h"
 
-typedef struct ROHashTable_ {
-    uint8_t locked;
-    uint8_t hash_bits;
-    uint16_t item_size;
-    uint32_t items;
-    void *data;
-    TAILQ_HEAD(, ROHashTableItem_) head;
-} ROHashTable;
+typedef struct DetectFileMd5Data {
+    ROHashTable *hash;
+} DetectFileMd5Data;
 
-/* init time */
-ROHashTable *ROHashInit(uint8_t hash_bits, uint16_t item_size);
-int ROHashInitFinalize(ROHashTable *table);
-void ROHashFree(ROHashTable *table);
-int ROHashInitQueueValue(ROHashTable *table, void *value, uint16_t size);
-uint32_t ROHashMemorySize(ROHashTable *table);
+/* prototypes */
+void DetectFileMd5cRegister (void);
 
-/* run time */
-void *ROHashLookup(ROHashTable *table, void *data, uint16_t size);
-
-#endif /* __UTIL_ROHASH_H__ */
+#endif /* __DETECT_FILEMD5_H__ */

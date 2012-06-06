@@ -4529,6 +4529,7 @@ void SigTableSetup(void) {
     DetectFileextRegister();
     DetectFilestoreRegister();
     DetectFilemagicRegister();
+    DetectFileMd5Register();
     DetectAppLayerEventRegister();
 
     uint8_t i = 0;

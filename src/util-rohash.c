@@ -98,6 +98,11 @@ void ROHashFree(ROHashTable *table) {
     }
 }
 
+uint32_t ROHashMemorySize(ROHashTable *table) {
+    return (uint32_t)(hashsize(table->hash_bits) * sizeof(ROHashTableOffsets) +
+            table->items * table->item_size + sizeof(ROHashTable));
+}
+
 /**
  *  \retval NULL not found
  *  \retval ptr found
