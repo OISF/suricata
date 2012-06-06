@@ -15,7 +15,7 @@ p->pkt = E;
 )
 
 @pktfield depends on !init@
-identifier func !~= "^PacketCopyDataOffset$";
+identifier func !~ "^PacketCopyDataOffset$";
 Packet *p;
 position p1;
 @@
@@ -35,7 +35,7 @@ import sys
 sys.exit(1)
 
 @pktlenfield@
-identifier func !~= "^PacketCopyDataOffset$";
+identifier func !~ "^PacketCopyDataOffset$";
 Packet *p;
 position p1;
 @@
