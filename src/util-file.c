@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2011 Open Information Security Foundation
+/* Copyright (C) 2007-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -45,6 +45,11 @@ static int g_file_force_magic = 0;
  */
 static int g_file_force_md5 = 0;
 
+/** \brief switch to force tracking off all files
+ *         regardless of the rules.
+ */
+static int g_file_force_tracking = 0;
+
 /* prototypes */
 static void FileFree(File *);
 static void FileDataFree(FileData *);
@@ -63,6 +68,10 @@ int FileForceMagic(void) {
 
 int FileForceMd5(void) {
     return g_file_force_md5;
+}
+
+void FileForceTrackingEnable(void) {
+    g_file_force_tracking = 1;
 }
 
 int FileMagicSize(void) {
@@ -295,14 +304,6 @@ static File *FileAlloc(uint8_t *name, uint16_t name_len) {
     new->name_len = name_len;
     memcpy(new->name, name, name_len);
 
-#ifdef HAVE_NSS
-    if (g_file_force_md5) {
-        new->md5_ctx = HASH_Create(HASH_AlgMD5);
-        if (new->md5_ctx != NULL) {
-            HASH_Begin(new->md5_ctx);
-        }
-    }
-#endif
     return new;
 }
 
@@ -424,7 +425,7 @@ int FileAppendData(FileContainer *ffc, uint8_t *data, uint32_t data_len) {
     if (FileStoreNoStoreCheck(ffc->tail) == 1) {
 #ifdef HAVE_NSS
         /* no storage but forced md5 */
-        if (g_file_force_md5) {
+        if (g_file_force_tracking || ffc->tail->md5_ctx) {
             if (ffc->tail->md5_ctx)
                 HASH_Update(ffc->tail->md5_ctx, data, data_len);
 
@@ -432,8 +433,8 @@ int FileAppendData(FileContainer *ffc, uint8_t *data, uint32_t data_len) {
             SCReturnInt(0);
         }
 #endif
-        ffc->tail->state = FILE_STATE_CLOSED;
-        SCLogDebug("flowfile state transitioned to FILE_STATE_CLOSED");
+        ffc->tail->state = FILE_STATE_TRUNCATED;
+        SCLogDebug("flowfile state transitioned to FILE_STATE_TRUNCATED");
         SCReturnInt(-2);
     }
 
@@ -486,9 +487,22 @@ File *FileOpenFile(FileContainer *ffc, uint8_t *name,
         ff->store = -1;
     }
     if (flags & FILE_NOMAGIC) {
-        SCLogDebug("no doing magic for this file");
+        SCLogDebug("not doing magic for this file");
         ff->flags |= FILE_NOMAGIC;
     }
+    if (flags & FILE_NOMD5) {
+        SCLogDebug("not doing md5 for this file");
+        ff->flags |= FILE_NOMD5;
+    }
+
+#ifdef HAVE_NSS
+    if (!(ff->flags & FILE_NOMD5) || g_file_force_md5) {
+        ff->md5_ctx = HASH_Create(HASH_AlgMD5);
+        if (ff->md5_ctx != NULL) {
+            HASH_Begin(ff->md5_ctx);
+        }
+    }
+#endif
 
     ff->state = FILE_STATE_OPENED;
     SCLogDebug("flowfile state transitioned to FILE_STATE_OPENED");
@@ -533,14 +547,11 @@ static int FileCloseFilePtr(File *ff, uint8_t *data,
 
         if (ff->store == -1) {
 #ifdef HAVE_NSS
-            /* no storage but forced md5 */
-            if (g_file_force_md5) {
-                if (ff->md5_ctx)
-                    HASH_Update(ff->md5_ctx, data, data_len);
-
-                ff->size += data_len;
-            }
+            /* no storage but md5 */
+            if (ff->md5_ctx)
+                HASH_Update(ff->md5_ctx, data, data_len);
 #endif
+            ff->size += data_len;
         } else {
             FileData *ffd = FileDataAlloc(data, data_len);
             if (ffd == NULL) {
@@ -660,6 +671,42 @@ void FileDisableMagic(Flow *f, uint8_t direction) {
             SCLogDebug("disabling magic for file %p from direction %s",
                     ptr, direction == STREAM_TOSERVER ? "toserver":"toclient");
             ptr->flags |= FILE_NOMAGIC;
+        }
+    }
+
+    SCReturn;
+}
+
+/**
+ *  \brief disable file md5 calc for this flow
+ *
+ *  \param f *LOCKED* flow
+ *  \param direction flow direction
+ */
+void FileDisableMd5(Flow *f, uint8_t direction) {
+    File *ptr = NULL;
+
+    SCEnter();
+
+    DEBUG_ASSERT_FLOW_LOCKED(f);
+
+    if (direction == STREAM_TOSERVER)
+        f->flags |= FLOW_FILE_NO_MD5_TS;
+    else
+        f->flags |= FLOW_FILE_NO_MD5_TC;
+
+    FileContainer *ffc = AppLayerGetFilesFromFlow(f, direction);
+    if (ffc != NULL) {
+        for (ptr = ffc->head; ptr != NULL; ptr = ptr->next) {
+            SCLogDebug("disabling md5 for file %p from direction %s",
+                    ptr, direction == STREAM_TOSERVER ? "toserver":"toclient");
+            ptr->flags |= FILE_NOMD5;
+
+            /* destroy any ctx we may have so far */
+            if (ptr->md5_ctx != NULL) {
+                HASH_Destroy(ptr->md5_ctx);
+                ptr->md5_ctx = NULL;
+            }
         }
     }
 

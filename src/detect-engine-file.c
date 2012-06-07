@@ -120,7 +120,7 @@ static int DetectFileInspect(ThreadVars *tv, DetectEngineThreadCtx *det_ctx,
                 break;
             }
 
-            if (s->file_flags & FILE_SIG_NEED_FILEMD5 && (!(file->flags & FILE_MD5))) {
+            if (s->file_flags & FILE_SIG_NEED_MD5 && (!(file->flags & FILE_MD5))) {
                 SCLogDebug("sig needs file md5, but we don't have any");
                 r = 0;
                 break;

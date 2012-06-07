@@ -438,6 +438,7 @@ static OutputCtx *LogFileLogInitCtx(ConfNode *conf)
 #endif
     }
 
+    FileForceTrackingEnable();
     SCReturnPtr(output_ctx, "OutputCtx");
 }
 

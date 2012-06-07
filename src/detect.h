@@ -291,7 +291,7 @@ typedef struct DetectPort_ {
 #define FILE_SIG_NEED_TYPE          0x04
 #define FILE_SIG_NEED_MAGIC         0x08    /**< need the start of the file */
 #define FILE_SIG_NEED_FILECONTENT   0x10
-#define FILE_SIG_NEED_FILEMD5       0x20
+#define FILE_SIG_NEED_MD5           0x20
 
 /* Detection Engine flags */
 #define DE_QUIET           0x01     /**< DE is quiet (esp for unittests) */
@@ -829,6 +829,7 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HEAD_MPM_HSMD         (1 << 16)
 #define SIG_GROUP_HEAD_MPM_HSCD         (1 << 17)
 #define SIG_GROUP_HEAD_MPM_HUAD         (1 << 18)
+#define SIG_GROUP_HEAD_HAVEFILEMD5      (1 << 19)
 
 typedef struct SigGroupHeadInitData_ {
     /* list of content containers
@@ -1065,6 +1066,7 @@ Signature *DetectGetTagSignature(void);
 
 int SignatureIsFilestoring(Signature *);
 int SignatureIsFilemagicInspecting(Signature *);
+int SignatureIsFileMd5Inspecting(Signature *);
 
 #endif /* __DETECT_H__ */
 

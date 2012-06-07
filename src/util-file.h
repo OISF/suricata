@@ -36,6 +36,7 @@
 #define FILE_MD5        0x10
 #define FILE_LOGGED     0x20
 #define FILE_STORED     0x40
+#define FILE_NOMD5      0x80
 
 typedef enum FileState_ {
     FILE_STATE_NONE = 0,    /**< no state */
@@ -163,16 +164,19 @@ void FileDisableStoring(struct Flow_ *, uint8_t);
  */
 void FileDisableStoringForTransaction(struct Flow_ *, uint8_t, uint16_t);
 
-void FileDisableMagic(Flow *f, uint8_t);
 void FlowFileDisableStoringForTransaction(struct Flow_ *f, uint16_t tx_id);
 void FilePrune(FileContainer *ffc);
 
 
+void FileDisableMagic(Flow *f, uint8_t);
 void FileForceMagicEnable(void);
 int FileForceMagic(void);
 
+void FileDisableMd5(Flow *f, uint8_t);
 void FileForceMd5Enable(void);
 int FileForceMd5(void);
+
+void FileForceTrackingEnable(void);
 
 void FileStoreAllFiles(FileContainer *);
 void FileStoreAllFilesForTx(FileContainer *, uint16_t);

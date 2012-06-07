@@ -325,7 +325,7 @@ static int DetectFileMd5Setup (DetectEngineCtx *de_ctx, Signature *s, char *str)
     /** \todo remove this once we support more than http */
     s->alproto = ALPROTO_HTTP;
 
-    s->file_flags |= (FILE_SIG_NEED_FILE|FILE_SIG_NEED_FILEMD5);
+    s->file_flags |= (FILE_SIG_NEED_FILE|FILE_SIG_NEED_MD5);
     return 0;
 
 error:

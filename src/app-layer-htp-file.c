@@ -112,6 +112,11 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
             flags |= FILE_NOMAGIC;
         }
 
+        if (s->f->flags & FLOW_FILE_NO_MD5_TC) {
+            SCLogDebug("no md5 for this flow in toclient direction, so none for this file");
+            flags |= FILE_NOMD5;
+        }
+
         if (!(flags & FILE_STORE) && s->f->flags & FLOW_FILE_NO_STORE_TC) {
             flags |= FILE_NOSTORE;
         }
@@ -134,6 +139,11 @@ int HTPFileOpen(HtpState *s, uint8_t *filename, uint16_t filename_len,
         if (s->f->flags & FLOW_FILE_NO_MAGIC_TS) {
             SCLogDebug("no magic for this flow in toserver direction, so none for this file");
             flags |= FILE_NOMAGIC;
+        }
+
+        if (s->f->flags & FLOW_FILE_NO_MD5_TS) {
+            SCLogDebug("no md5 for this flow in toserver direction, so none for this file");
+            flags |= FILE_NOMD5;
         }
 
         if (!(flags & FILE_STORE) && s->f->flags & FLOW_FILE_NO_STORE_TS) {
