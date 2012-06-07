@@ -138,7 +138,7 @@ int DetectSslVersionMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
         ver = app_state->server_connp.version;
     } else if (flags & STREAM_TOSERVER) {
         SCLogDebug("client (toserver) version is 0x%02X",
-                   app_state->client_connp.ersion);
+                   app_state->client_connp.version);
         ver = app_state->client_connp.version;
     }
 

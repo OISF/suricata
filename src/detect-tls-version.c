@@ -126,11 +126,11 @@ int DetectTlsVersionMatch (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *
     SCLogDebug("looking for tls_data->ver 0x%02X (flags 0x%02X)", tls_data->ver, flags);
 
     if (flags & STREAM_TOCLIENT) {
-        SCLogDebug("server (toclient) version is 0x%02X", ssl_state->server_version);
+        SCLogDebug("server (toclient) version is 0x%02X", ssl_state->server_connp.version);
         if (tls_data->ver == ssl_state->server_connp.version)
             ret = 1;
     } else if (flags & STREAM_TOSERVER) {
-        SCLogDebug("client (toserver) version is 0x%02X", ssl_state->client_version);
+        SCLogDebug("client (toserver) version is 0x%02X", ssl_state->client_connp.version);
         if (tls_data->ver == ssl_state->client_connp.version)
             ret = 1;
     }

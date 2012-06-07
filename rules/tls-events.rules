@@ -15,4 +15,7 @@ alert tls any any -> any any (msg:"SURICATA TLS certificate missing element"; fl
 alert tls any any -> any any (msg:"SURICATA TLS certificate unknown element"; flow:established; app-layer-event:tls.certificate_unknown_element; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230006; rev:1;)
 alert tls any any -> any any (msg:"SURICATA TLS certificate invalid length"; flow:established; app-layer-event:tls.certificate_invalid_length; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230007; rev:1;)
 alert tls any any -> any any (msg:"SURICATA TLS certificate invalid string"; flow:established; app-layer-event:tls.certificate_invalid_string; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230008; rev:1;)
+alert tls any any -> any any (msg:"SURICATA TLS error message encountered"; flow:established; app-layer-event:tls.error_message_encountered; flowint:tls.anomaly.count,+,1; classtype:protocol-command-decode; sid:2230009; rev:1;)
+
+#next sid is 2230010
 
