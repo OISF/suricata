@@ -423,6 +423,7 @@ void usage(const char *progname)
 #endif
     printf("USAGE: %s\n\n", progname);
     printf("\t-c <path>                    : path to configuration file\n");
+    printf("\t-T                           : test configuration file (use with -c)\n");
     printf("\t-i <dev or ip>               : run in pcap live mode\n");
     printf("\t-F <bpf filter file>         : bpf filter file\n");
     printf("\t-r <path>                    : run in pcap file/offline mode\n");
