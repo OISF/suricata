@@ -411,10 +411,10 @@ static int SSLv2Decode(uint8_t direction, SSLState *ssl_state,
 
     switch (ssl_state->curr_connp->content_type) {
         case SSLV2_MT_ERROR:
-            SCLogWarning(SC_ERR_ALPARSER, "SSLV2_MT_ERROR msg_type received.  "
-                         "Error encountered in establishing the sslv2 "
-                         "session, may be version");
-            AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_INVALID_HANDSHAKE_MESSAGE);
+            SCLogDebug("SSLV2_MT_ERROR msg_type received.  "
+                       "Error encountered in establishing the sslv2 "
+                       "session, may be version");
+            AppLayerDecoderEventsSetEvent(ssl_state->f, TLS_DECODER_EVENT_ERROR_MSG_ENCOUNTERED);
 
             break;
 
