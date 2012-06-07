@@ -54,6 +54,31 @@
 #include "queue.h"
 #include "util-rohash.h"
 
+#ifndef HAVE_NSS
+
+static int DetectFileMd5SetupNoSupport (DetectEngineCtx *a, Signature *b, char *c) {
+    SCLogError(SC_ERR_NO_MD5_SUPPORT, "no MD5 calculation support built in, needed for filemd5 keyword");
+    return -1;
+}
+
+/**
+ * \brief Registration function for keyword: filemd5
+ */
+void DetectFileMd5Register(void) {
+    sigmatch_table[DETECT_FILEMD5].name = "filemd5";
+    sigmatch_table[DETECT_FILEMD5].Match = NULL;
+    sigmatch_table[DETECT_FILEMD5].AppLayerMatch = NULL;
+    sigmatch_table[DETECT_FILEMD5].alproto = ALPROTO_HTTP;
+    sigmatch_table[DETECT_FILEMD5].Setup = DetectFileMd5SetupNoSupport;
+    sigmatch_table[DETECT_FILEMD5].Free  = NULL;
+    sigmatch_table[DETECT_FILEMD5].RegisterTests = NULL;
+
+	SCLogDebug("registering filemd5 rule option");
+    return;
+}
+
+#else /* HAVE_NSS */
+
 int DetectFileMd5Match (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
 static int DetectFileMd5Setup (DetectEngineCtx *, Signature *, char *);
 void DetectFileMd5RegisterTests(void);
@@ -359,3 +384,6 @@ void DetectFileMd5RegisterTests(void) {
     UtRegisterTest("MD5MatchTest01", MD5MatchTest01, 1);
 #endif
 }
+
+#endif /* HAVE_NSS */
+

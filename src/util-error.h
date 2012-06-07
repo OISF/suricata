@@ -243,6 +243,7 @@ typedef enum {
     SC_ERR_HOST_INIT,
     SC_ERR_MEM_BUFFER_API,
     SC_ERR_INVALID_MD5,
+    SC_ERR_NO_MD5_SUPPORT,
 } SCError;
 
 const char *SCErrorToString(SCError);
