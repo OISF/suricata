@@ -2662,7 +2662,14 @@ end:
     return result;
 }
 
+/**
+ * \todo Needs to be rewritten
+ */
 int DCERPCParserTest04(void) {
+    /* AWS - Disabled this test since clamav FPs on the payloads used.
+     * We will have to rewrite this test with new payloads.  Will be done
+     * as a part of dcerpc update/fixes */
+#if 0
     int result = 1;
     Flow f;
     uint8_t bind[] = {
@@ -4006,6 +4013,8 @@ int DCERPCParserTest04(void) {
 end:
     StreamTcpFreeConfig(TRUE);
     return result;
+#endif
+    return 1;
 }
 
 /**
