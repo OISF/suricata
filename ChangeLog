@@ -1,3 +1,28 @@
+1.3beta2 -- 2012-04-08
+
+- experimental support for matching on large lists of known file MD5 checksums
+- Improved performance for file_data, http_server_body and http_client_body keywords
+- Improvements to HTTP handling: multipart parsing, gzip decompression
+- Byte_extract can support negative offsets now (#445)
+- Support for PF_RING 5.4 added. Many thanks to Chris Wakelin (#459)
+- HOME_NET and EXTERNAL_NET and the other vars are now checked for common errors (#454)
+- Improved error reporting when using too long address strings (#451)
+- MD5 calculation improvements for daemon mode and other cases (#449)
+- File inspection scripts: Added Syslog action for logging to local syslog. Thanks to Martin Holste.
+- Rule parser is made more strict.
+- Unified2 output overhaul, logging individual segments in more cases.
+- detection_filter keyword accuracy problem was fixed (#453)
+- Don't inspect cookie header with http header (#461)
+- Crash with a rule with two byte_extract keywords (#456)
+- SSL parser fixes. Thanks to Chris Wakelin for testing the patches! (#476)
+- Accuracy issues in HTTP inspection fixed. Thanks to Rmkml (#452)
+- Improve escaping of some characters in logs (#418)
+- Checksum calculation bugs fixed
+- IPv6 parsing issues fixed. Thanks to Michel Saborde.
+- Endace DAG issues fixed. Thanks to Jason Ish from Endace.
+- Various OpenBSD related fixes.
+- Fixes for bugs found by Coverity source code analyzer.
+
 1.3beta1 -- 2012-04-04
 
 - TLS/SSL handshake parser, tls.subjectdn and tls.issuerdn keywords (#296, contributed by Pierre Chifflier)
