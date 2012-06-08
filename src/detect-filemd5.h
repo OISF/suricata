@@ -31,6 +31,6 @@ typedef struct DetectFileMd5Data {
 } DetectFileMd5Data;
 
 /* prototypes */
-void DetectFileMd5cRegister (void);
+void DetectFileMd5Register (void);
 
 #endif /* __DETECT_FILEMD5_H__ */

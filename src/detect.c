@@ -93,6 +93,7 @@
 #include "detect-fileext.h"
 #include "detect-filestore.h"
 #include "detect-filemagic.h"
+#include "detect-filemd5.h"
 #include "detect-dsize.h"
 #include "detect-flowvar.h"
 #include "detect-flowint.h"
