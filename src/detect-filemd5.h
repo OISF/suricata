@@ -28,6 +28,7 @@
 
 typedef struct DetectFileMd5Data {
     ROHashTable *hash;
+    int negated;
 } DetectFileMd5Data;
 
 /* prototypes */

@@ -188,7 +188,15 @@ int DetectFileMd5Match (ThreadVars *t, DetectEngineThreadCtx *det_ctx, Flow *f, 
 
     if (file->flags & FILE_MD5) {
         if (MD5MatchLookupBuffer(filemd5->hash, file->md5, sizeof(file->md5)) == 1) {
-            ret = 1;
+            if (filemd5->negated == 0)
+                ret = 1;
+            else
+                ret = 0;
+        } else {
+            if (filemd5->negated == 0)
+                ret = 0;
+            else
+                ret = 1;
         }
     }
 
@@ -213,6 +221,11 @@ DetectFileMd5Data *DetectFileMd5Parse (char *str)
         goto error;
 
     memset(filemd5, 0x00, sizeof(DetectFileMd5Data));
+
+    if (strlen(str) && str[0] == '!') {
+        filemd5->negated = 1;
+        str++;
+    }
 
     filemd5->hash = ROHashInit(18, 16);
     if (filemd5->hash == NULL) {
@@ -261,7 +274,7 @@ DetectFileMd5Data *DetectFileMd5Parse (char *str)
     if (ROHashInitFinalize(filemd5->hash) != 1) {
         goto error;
     }
-    SCLogInfo("MD5 hash size %u bytes", ROHashMemorySize(filemd5->hash));
+    SCLogInfo("MD5 hash size %u bytes%s", ROHashMemorySize(filemd5->hash), filemd5->negated ? ", negated match" : "");
 
     return filemd5;
 
