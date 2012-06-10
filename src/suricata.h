@@ -73,6 +73,15 @@
 #define PROG_NAME "Suricata"
 #define PROG_VER "1.3dev"
 
+/* workaround SPlint error (don't know __gnuc_va_list) */
+#ifdef S_SPLINT_S
+#  include <err.h>
+#  define CONFIG_DIR "/etc/suricata"
+#endif
+
+#define DEFAULT_CONF_FILE CONFIG_DIR "/suricata.yaml"
+
+
 /* runtime engine control flags */
 #define SURICATA_STOP    0x01   /**< gracefully stop the engine: process all
                                      outstanding packets first */

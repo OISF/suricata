@@ -39,7 +39,7 @@
 #define SC_RCONF_REGEX "^\\s*config\\s+reference\\s*:\\s*([a-zA-Z][a-zA-Z0-9-_]*)\\s+(.+)\\s*$"
 
 /* Default path for the reference.conf file */
-#define SC_RCONF_DEFAULT_FILE_PATH "reference.config"
+#define SC_RCONF_DEFAULT_FILE_PATH CONFIG_DIR "/reference.config"
 
 /* Holds a pointer to the default path for the reference.config file */
 static const char *file_path = SC_RCONF_DEFAULT_FILE_PATH;

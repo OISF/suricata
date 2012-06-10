@@ -5,6 +5,9 @@ noinst_HEADERS = action-globals.h \
 	suricata-common.h threadvars.h util-binsearch.h \
     util-atomic.h util-validate.h
 bin_PROGRAMS = suricata
+
+AM_CPPFLAGS = -DCONFIG_DIR=\"$(sysconfdir)\"
+
 suricata_SOURCES = suricata.c suricata.h \
 runmodes.c runmodes.h \
 runmode-pcap.c runmode-pcap.h \

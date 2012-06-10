@@ -1202,6 +1202,12 @@ int main(int argc, char **argv)
     /* load the pattern matchers */
     MpmTableSetup();
 
+    if (run_mode != RUNMODE_UNITTEST &&
+            !list_keywords &&
+            !list_app_layer_protocols) {
+        conf_filename = DEFAULT_CONF_FILE;
+    }
+
     /** \todo we need an api for these */
     /* Load yaml configuration file if provided. */
     if (conf_filename != NULL) {
@@ -1229,13 +1235,6 @@ int main(int argc, char **argv)
                 }
             }
         }
-
-    } else if (run_mode != RUNMODE_UNITTEST &&
-                !list_keywords &&
-                !list_app_layer_protocols) {
-        SCLogError(SC_ERR_OPENING_FILE, "Configuration file has not been provided");
-        usage(argv[0]);
-        exit(EXIT_FAILURE);
     }
 
     AppLayerDetectProtoThreadInit();
