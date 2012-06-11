@@ -233,6 +233,8 @@ af-packet:
     #  checksum off-loading is used.
     # Warning: 'checksum-validation' must be set to yes to have any validation
     #checksum-checks: kernel
+    # BPF filter to apply to this interface. The pcap filter syntax apply here.
+    #bpf-filter: port 80 or udp
   - interface: eth1
     threads: 1
     cluster-id: 98

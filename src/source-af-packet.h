@@ -60,6 +60,7 @@ typedef struct AFPIfaceConfig_
     /* misc use flags including ring mode */
     int flags;
     ChecksumValidationMode checksum_mode;
+    char *bpf_filter;
     SC_ATOMIC_DECLARE(unsigned int, ref);
     void (*DerefFunc)(void *);
 } AFPIfaceConfig;

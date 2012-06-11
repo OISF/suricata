@@ -72,6 +72,10 @@
 #include <linux/if_ether.h>
 #include <linux/if_packet.h>
 #include <linux/if_arp.h>
+
+#include <pcap/pcap.h>
+#include <pcap/bpf.h>
+#include <linux/filter.h>
 #endif
 
 #include <sys/mman.h>
@@ -131,6 +135,9 @@ TmEcode NoAFPSupportExit(ThreadVars *tv, void *initdata, void **data)
 
 #define POLL_TIMEOUT 100
 
+/** protect pfring_set_bpf_filter, as it is not thread safe */
+static SCMutex afpacket_bpf_set_filter_lock = PTHREAD_MUTEX_INITIALIZER;
+
 enum {
     AFP_READ_OK,
     AFP_READ_FAILURE,
@@ -170,6 +177,9 @@ typedef struct AFPThreadVars_
     char iface[AFP_IFACE_NAME_LENGTH];
     LiveDevice *livedev;
 
+    /* Filter */
+    char *bpf_filter;
+
     /* socket buffer size */
     int buffer_size;
     int promisc;
@@ -198,6 +208,8 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot);
 
 TmEcode DecodeAFPThreadInit(ThreadVars *, void *, void **);
 TmEcode DecodeAFP(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
+
+TmEcode AFPSetBPFFilter(AFPThreadVars *ptv);
 
 /**
  * \brief Registration Function for RecieveAFP.
@@ -851,9 +863,62 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
             ptv->cooked = 1;
     }
 
+    TmEcode rc;
+    rc = AFPSetBPFFilter(ptv);
+    if (rc == TM_ECODE_FAILED) {
+        SCLogError(SC_ERR_AFP_CREATE, "Set AF_PACKET bpf filter \"%s\" failed.", ptv->bpf_filter);
+        return -1;
+    }
+
     /* Init is ok */
     ptv->afp_state = AFP_STATE_UP;
     return 0;
+}
+
+TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
+{
+    struct bpf_program filter;
+    struct sock_fprog  fcode;
+    int rc;
+
+    if (!ptv->bpf_filter)
+        return TM_ECODE_OK;
+
+    SCMutexLock(&afpacket_bpf_set_filter_lock);
+
+    SCLogInfo("Using BPF '%s' on iface '%s'",
+              ptv->bpf_filter,
+              ptv->iface);
+    if (pcap_compile_nopcap(default_packet_size,  /* snaplen_arg */
+                ptv->datalink,    /* linktype_arg */
+                &filter,       /* program */
+                ptv->bpf_filter, /* const char *buf */
+                0,             /* optimize */
+                0              /* mask */
+                ) == -1) {
+        SCLogError(SC_ERR_AFP_CREATE, "Filter compilation failed.");
+        SCMutexUnlock(&afpacket_bpf_set_filter_lock);
+        return TM_ECODE_FAILED;
+    }
+    SCMutexUnlock(&afpacket_bpf_set_filter_lock);
+
+    if (filter.bf_insns == NULL) {
+        SCLogError(SC_ERR_AFP_CREATE, "Filter badly setup.");
+        return TM_ECODE_FAILED;
+    }
+
+    fcode.len    = filter.bf_len;
+    fcode.filter = (struct sock_filter*)filter.bf_insns;
+
+    rc = setsockopt(ptv->socket, SOL_SOCKET, SO_ATTACH_FILTER, &fcode, sizeof(fcode));
+
+    if(rc == -1) {
+        SCLogError(SC_ERR_AFP_CREATE, "Failed to attach filter: %s", strerror(errno));
+        return TM_ECODE_FAILED;
+    }
+
+    SCMutexUnlock(&afpacket_bpf_set_filter_lock);
+    return TM_ECODE_OK;
 }
 
 
@@ -914,6 +979,10 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
 #endif
     ptv->flags = afpconfig->flags;
 
+    if (afpconfig->bpf_filter) {
+        ptv->bpf_filter = afpconfig->bpf_filter;
+    }
+
     char *active_runmode = RunmodeGetActive();
 
     if (active_runmode && !strcmp("workers", active_runmode)) {
@@ -940,7 +1009,6 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
     }
     ptv->datalen = T_DATA_SIZE;
 #undef T_DATA_SIZE
-
 
     *data = (void *)ptv;
 
@@ -986,6 +1054,8 @@ TmEcode ReceiveAFPThreadDeinit(ThreadVars *tv, void *data) {
         ptv->data = NULL;
     }
     ptv->datalen = 0;
+
+    ptv->bpf_filter = NULL;
 
     close(ptv->socket);
     SCReturnInt(TM_ECODE_OK);
