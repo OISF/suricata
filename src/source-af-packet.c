@@ -844,6 +844,13 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
     }
 #endif
 
+    ptv->datalink = AFPGetDevLinktype(ptv->socket, ptv->iface);
+    switch (ptv->datalink) {
+        case ARPHRD_PPP:
+        case ARPHRD_ATM:
+            ptv->cooked = 1;
+    }
+
     /* Init is ok */
     ptv->afp_state = AFP_STATE_UP;
     return 0;
@@ -922,12 +929,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
         SCReturnInt(TM_ECODE_FAILED);
     }
 
-    ptv->datalink = AFPGetDevLinktype(ptv->socket, ptv->iface);
-    switch (ptv->datalink) {
-        case ARPHRD_PPP:
-        case ARPHRD_ATM:
-            ptv->cooked = 1;
-    }
+
 
 #define T_DATA_SIZE 70000
     ptv->data = SCMalloc(T_DATA_SIZE);
