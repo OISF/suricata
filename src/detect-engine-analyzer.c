@@ -44,13 +44,17 @@ static pcre_extra *percent_re_study = NULL;
  */
 int SetupRuleAnalyzer(char *log_path)
 {
-    ConfNode *conf = ConfGetNode("engine-analysis.rules");
+    ConfNode *conf = ConfGetNode("engine-analysis");
     int enabled = 0;
     if (conf != NULL) {
-        ConfGetChildValueBool(conf, "enabled", &enabled);
+        const char *value = ConfNodeLookupChildValue(conf, "rules");
+        if (value && ConfValIsTrue(value)) {
+            enabled = 1;
+        } else if (value && strcasecmp(value, "warnings-only") == 0) {
+            enabled = 1;
+            rule_warnings_only = 1;
+        }
         if (enabled) {
-            //rule_engine_analysis_set = 1;
-            ConfGetChildValueBool(conf, "warnings-only", &rule_warnings_only);
             char *log_dir;
             if (ConfGet("default-log-dir", &log_dir) != 1)
                 log_dir = DEFAULT_LOG_DIR;
@@ -89,7 +93,7 @@ int SetupRuleAnalyzer(char *log_path)
         SCLogInfo("Engine-Analysis for rules disabled in conf file.");
         return 0;
     }
-    else return 1;
+    return 1;
 }
 
 void CleanupRuleAnalyzer(char *log_path) {
@@ -175,7 +179,7 @@ void EngineAnalysisRules(Signature *s, char *line)
     uint32_t rule_flow_nostream = 0;
     uint32_t rule_flowbits = 0;
     uint32_t rule_flowint = 0;
-    uint32_t rule_flowvar = 0;
+    //uint32_t rule_flowvar = 0;
     uint32_t rule_content_http = 0;
     uint32_t list_id = 0;
     uint32_t rule_warning = 0;
@@ -362,7 +366,7 @@ void EngineAnalysisRules(Signature *s, char *line)
             else if (sm->type == DETECT_FLAGS) {
                 DetectFlagsData *fd = (DetectFlagsData *)sm->ctx;
                 if (fd != NULL) {
-                        rule_flags = 1;
+                    rule_flags = 1;
                 }
             }
         } /* for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) */
