@@ -1205,7 +1205,8 @@ int main(int argc, char **argv)
     if (run_mode != RUNMODE_UNITTEST &&
             !list_keywords &&
             !list_app_layer_protocols) {
-        conf_filename = DEFAULT_CONF_FILE;
+        if (conf_filename == NULL)
+            conf_filename = DEFAULT_CONF_FILE;
     }
 
     /** \todo we need an api for these */
