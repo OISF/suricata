@@ -351,41 +351,43 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
             }
             return 0;
         }
-        pm = SigMatchGetLastSMFromLists(s, 54,
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH], /* 1 */
+        pm = SigMatchGetLastSMFromLists(s, 56,
+                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH], /* 5 */
+                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
-                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH], /* 10 */
+                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
+                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                 DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                 DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
                 DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HSBDMATCH],
                 DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HHDMATCH],
-                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH], /* 15 */
+                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HRHDMATCH],
                 DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
                 DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
                 DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
+                DETECT_PCRE, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH],
                 DETECT_BYTEJUMP, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
-                DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH], /* 20 */
+                DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                 DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
                 DETECT_BYTE_EXTRACT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                 DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                 DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_DMATCH],
-                DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_UMATCH]); /* 25 */
+                DETECT_BYTETEST, s->sm_lists_tail[DETECT_SM_LIST_UMATCH]);
         if (pm == NULL) {
             SCLogError(SC_ERR_INVALID_SIGNATURE, "isdataat relative seen "
                        "without a previous content uricontent, "
                        "http_client_body, http_header, http_raw_header, "
                        "http_method, http_cookie, http_raw_uri, "
                        "http_stat_msg, http_stat_code, byte_test, "
-                       "byte_extract, byte_jump keyword");
+                       "byte_extract, byte_jump or http_user_agent keyword");
             goto error;
         } else {
             int list_type = SigMatchListSMBelongsTo(s, pm);
@@ -457,10 +459,6 @@ int DetectIsdataatSetup (DetectEngineCtx *de_ctx, Signature *s, char *isdataatst
     return 0;
 
 error:
-    //if (idad != NULL)
-    //    DetectIsdataatFree(idad);
-    //if (sm != NULL)
-    //    SCFree(sm);
     return -1;
 }
 

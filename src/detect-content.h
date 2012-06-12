@@ -54,15 +54,16 @@
 #define DETECT_CONTENT_HRUD_MPM          0x00100000
 #define DETECT_CONTENT_HSMD_MPM          0x00200000
 #define DETECT_CONTENT_HSCD_MPM          0x00400000
+#define DETECT_CONTENT_HUAD_MPM          0x00800000
 
 /* BE - byte extract */
-#define DETECT_CONTENT_OFFSET_BE         0x00800000
-#define DETECT_CONTENT_DEPTH_BE          0x01000000
-#define DETECT_CONTENT_DISTANCE_BE       0x02000000
-#define DETECT_CONTENT_WITHIN_BE         0x04000000
+#define DETECT_CONTENT_OFFSET_BE         0x01000000
+#define DETECT_CONTENT_DEPTH_BE          0x02000000
+#define DETECT_CONTENT_DISTANCE_BE       0x04000000
+#define DETECT_CONTENT_WITHIN_BE         0x08000000
 
 /* replace data */
-#define DETECT_CONTENT_REPLACE           0x08000000
+#define DETECT_CONTENT_REPLACE           0x10000000
 
 #define DETECT_CONTENT_IS_SINGLE(c) (!((c)->flags & DETECT_CONTENT_DISTANCE || \
                                        (c)->flags & DETECT_CONTENT_WITHIN || \

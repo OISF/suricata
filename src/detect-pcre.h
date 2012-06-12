@@ -45,8 +45,10 @@
 #define DETECT_PCRE_HTTP_RAW_URI        0x02000
 #define DETECT_PCRE_HTTP_STAT_MSG       0x04000
 #define DETECT_PCRE_HTTP_STAT_CODE      0x08000
+#define DETECT_PCRE_HTTP_USER_AGENT     0x10000
 
-#define DETECT_PCRE_NEGATE              0x10000
+
+#define DETECT_PCRE_NEGATE              0x20000
 
 typedef struct DetectPcreData_ {
     /* pcre options */

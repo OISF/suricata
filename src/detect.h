@@ -104,6 +104,8 @@ enum {
     DETECT_SM_LIST_HSMDMATCH,
     /* list for http_stat_code keyword and the ones relative to it */
     DETECT_SM_LIST_HSCDMATCH,
+    /* list for http_user_agent keyword and the ones relative to it */
+    DETECT_SM_LIST_HUADMATCH,
 
     DETECT_SM_LIST_FILEMATCH,
 
@@ -645,6 +647,7 @@ typedef struct DetectEngineCtx_ {
     int32_t sgh_mpm_context_hrud;
     int32_t sgh_mpm_context_hsmd;
     int32_t sgh_mpm_context_hscd;
+    int32_t sgh_mpm_context_huad;
     int32_t sgh_mpm_context_app_proto_detect;
 
     /** sgh for signatures that match against invalid packets. In those cases
@@ -823,6 +826,8 @@ typedef struct SigTableElmt_ {
 #define SIG_GROUP_HEAD_MPM_HSMD         0x08000000
 #define SIG_GROUP_HAVEHSCDCONTENT       0x10000000
 #define SIG_GROUP_HEAD_MPM_HSCD         0x20000000
+#define SIG_GROUP_HAVEHUADCONTENT       0x40000000
+#define SIG_GROUP_HEAD_MPM_HUAD         0x80000000
 
 typedef struct SigGroupHeadInitData_ {
     /* list of content containers
@@ -880,6 +885,7 @@ typedef struct SigGroupHead_ {
     MpmCtx *mpm_hrud_ctx_ts;
     MpmCtx *mpm_hsmd_ctx_ts;
     MpmCtx *mpm_hscd_ctx_ts;
+    MpmCtx *mpm_huad_ctx_ts;
 
     MpmCtx *mpm_proto_tcp_ctx_tc;
     MpmCtx *mpm_proto_udp_ctx_tc;
@@ -894,6 +900,7 @@ typedef struct SigGroupHead_ {
     MpmCtx *mpm_hrud_ctx_tc;
     MpmCtx *mpm_hsmd_ctx_tc;
     MpmCtx *mpm_hscd_ctx_tc;
+    MpmCtx *mpm_huad_ctx_tc;
 
     uint16_t mpm_uricontent_maxlen;
 
@@ -998,6 +1005,7 @@ enum {
     DETECT_AL_HTTP_RAW_URI,
     DETECT_AL_HTTP_STAT_MSG,
     DETECT_AL_HTTP_STAT_CODE,
+    DETECT_AL_HTTP_USER_AGENT,
     DETECT_AL_SSH_PROTOVERSION,
     DETECT_AL_SSH_SOFTWAREVERSION,
     DETECT_AL_SSL_VERSION,

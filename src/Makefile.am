@@ -92,6 +92,7 @@ detect-engine-hcd.c detect-engine-hcd.h \
 detect-engine-hrud.c detect-engine-hrud.h \
 detect-engine-hsmd.c detect-engine-hsmd.h \
 detect-engine-hscd.c detect-engine-hscd.h \
+detect-engine-hua.c detect-engine-hua.h \
 detect-engine-state.c detect-engine-state.h \
 detect-engine-file.c detect-engine-file.h \
 detect-engine-analyzer.c detect-engine-analyzer.h \
@@ -149,6 +150,7 @@ detect-http-raw-header.c detect-http-raw-header.h \
 detect-http-uri.c detect-http-uri.h \
 detect-http-raw-uri.c detect-http-raw-uri.h \
 detect-file-data.c detect-file-data.h \
+detect-http-ua.c detect-http-ua.h \
 detect-tls.c detect-tls.h \
 detect-tls-version.c detect-tls-version.h \
 detect-ssh-proto-version.c detect-ssh-proto-version.h \

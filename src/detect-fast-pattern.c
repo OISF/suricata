@@ -152,6 +152,9 @@ void SupportFastPatternForSigMatchTypes(void)
     SupportFastPatternForSigMatchType(DETECT_CONTENT);
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_HSCDMATCH);
 
+    SupportFastPatternForSigMatchType(DETECT_CONTENT);
+    SupportFastPatternForSigMatchList(DETECT_SM_LIST_HUADMATCH);
+
     return;
 }
 
@@ -225,17 +228,19 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
         s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH] == NULL &&
         s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH] == NULL &&
         s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH] == NULL &&
-        s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH] == NULL) {
+        s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH] == NULL &&
+        s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH] == NULL) {
         SCLogWarning(SC_WARN_COMPATIBILITY, "fast_pattern found inside the "
                      "rule, without a preceding content based keyword.  "
                      "Currently we provide fast_pattern support for content, "
                      "uricontent, http_client_body, http_server_body, http_header, "
                      "http_raw_header, http_method, http_cookie, "
-                     "http_raw_uri, http_stat_msg or http_stat_code option");
+                     "http_raw_uri, http_stat_msg, http_stat_code or "
+                     "http_user_agent option");
         return -1;
     }
 
-    SigMatch *pm = SigMatchGetLastSMFromLists(s, 22,
+    SigMatch *pm = SigMatchGetLastSMFromLists(s, 24,
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCBDMATCH],
@@ -246,7 +251,8 @@ static int DetectFastPatternSetup(DetectEngineCtx *de_ctx, Signature *s, char *a
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
             DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
-            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH]);
+            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
+            DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]);
     if (pm == NULL) {
         SCLogError(SC_ERR_INVALID_SIGNATURE, "fast_pattern found inside "
                    "the rule, without a content context. Please use a "
@@ -15769,6 +15775,1188 @@ int DetectFastPatternTest547(void)
     return result;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int DetectFastPatternTest548(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:!\"oneonetwo\"; fast_pattern:3,4; http_user_agent; "
+                               "content:\"three\"; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->prev->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+        ud->flags & DETECT_CONTENT_NEGATED &&
+        !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
+        ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        ud->fp_chop_offset == 3 &&
+        ud->fp_chop_len == 4) {
+        result = 1;
+    } else {
+        result = 0;
+    }
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/**
+ * \test Checks if a fast_pattern is registered in a Signature for uricontent.
+ */
+int DetectFastPatternTest549(void)
+{
+    SigMatch *sm = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; fast_pattern:only; http_user_agent; "
+                               "msg:\"Testing fast_pattern\"; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    result = 0;
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HUADMATCH];
+    if (sm != NULL) {
+        if ( ((DetectContentData *)sm->ctx)->flags &
+             DETECT_CONTENT_FAST_PATTERN) {
+            result = 1;
+        } else {
+            result = 0;
+        }
+    }
+
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+/**
+ * \test Checks if a fast_pattern is registered in a Signature for uricontent.
+ */
+int DetectFastPatternTest550(void)
+{
+    SigMatch *sm = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"oneoneone\"; fast_pattern:3,4; http_user_agent; "
+                               "msg:\"Testing fast_pattern\"; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    result = 0;
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HUADMATCH];
+    if (sm != NULL) {
+        if ( ((DetectContentData *)sm->ctx)->flags &
+             DETECT_CONTENT_FAST_PATTERN) {
+            result = 1;
+        } else {
+            result = 0;
+        }
+    }
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest551(void)
+{
+    SigMatch *sm = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; fast_pattern:only; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HUADMATCH];
+    if (sm == NULL) {
+        goto end;
+    }
+    DetectContentData *ud = sm->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+            ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
+            !(ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
+            ud->fp_chop_offset == 0 &&
+            ud->fp_chop_len == 0) {
+        result = 1;
+    } else {
+        result = 0;
+    }
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest552(void)
+{
+    SigMatch *sm = NULL;
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"oneoneone\"; fast_pattern:3,4; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    sm = de_ctx->sig_list->sm_lists[DETECT_SM_LIST_HUADMATCH];
+    if (sm == NULL) {
+        goto end;
+    }
+
+    DetectContentData *ud = sm->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+            !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
+            ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+            ud->fp_chop_offset == 3 &&
+            ud->fp_chop_len == 4) {
+        result = 1;
+    } else {
+        result = 0;
+    }
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest553(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"two\"; fast_pattern:only; http_user_agent; distance:10; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest554(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"two\"; distance:10; fast_pattern:only; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest555(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"two\"; fast_pattern:only; http_user_agent; within:10; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest556(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"two\"; within:10; fast_pattern:only; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest557(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"two\"; fast_pattern:only; http_user_agent; offset:10; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest558(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"two\"; offset:10; fast_pattern:only; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest559(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"two\"; fast_pattern:only; http_user_agent; depth:10; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest560(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"two\"; depth:10; fast_pattern:only; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest561(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:!\"two\"; fast_pattern:only; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest562(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\" one\"; http_user_agent; "
+                               "content:\"two\"; http_user_agent; distance:30; "
+                               "content:\"two\"; fast_pattern:only; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+        ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
+        !(ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
+        ud->fp_chop_offset == 0 &&
+        ud->fp_chop_len == 0) {
+        result = 1;
+    } else {
+        result = 0;
+    }
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest563(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"two\"; http_user_agent; within:30; "
+                               "content:\"two\"; fast_pattern:only; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+        ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
+        !(ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
+        ud->fp_chop_offset == 0 &&
+        ud->fp_chop_len == 0) {
+        result = 1;
+    } else {
+        result = 0;
+    }
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest564(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"two\"; http_user_agent; offset:30; "
+                               "content:\"two\"; fast_pattern:only; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+        ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
+        !(ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
+        ud->fp_chop_offset == 0 &&
+        ud->fp_chop_len == 0) {
+        result = 1;
+    } else {
+        result = 0;
+    }
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest565(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"two\"; http_user_agent; depth:30; "
+                               "content:\"two\"; fast_pattern:only; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+        ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY &&
+        !(ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
+        ud->fp_chop_offset == 0 &&
+        ud->fp_chop_len == 0) {
+        result = 1;
+    } else {
+        result = 0;
+    }
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest566(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:!\"one\"; fast_pattern; http_user_agent; "
+                               "content:\"two\"; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->prev->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+        ud->flags & DETECT_CONTENT_NEGATED &&
+        !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
+        !(ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP) &&
+        ud->fp_chop_offset == 0 &&
+        ud->fp_chop_len == 0) {
+        result = 1;
+    } else {
+        result = 0;
+    }
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest567(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"two\"; http_user_agent; "
+                               "content:!\"one\"; fast_pattern; http_user_agent; distance:20; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest568(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"two\"; http_user_agent; "
+                               "content:!\"one\"; fast_pattern; http_user_agent; within:20; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest569(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"two\"; http_user_agent; "
+                               "content:!\"one\"; fast_pattern; http_user_agent; offset:20; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest570(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"two\"; http_user_agent; "
+                               "content:!\"one\"; fast_pattern; http_user_agent; depth:20; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest571(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"oneonetwo\"; fast_pattern:3,4; http_user_agent; "
+                               "content:\"three\"; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->prev->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+        !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
+        ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        ud->fp_chop_offset == 3 &&
+        ud->fp_chop_len == 4) {
+        result = 1;
+    } else {
+        result = 0;
+    }
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest572(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"oneonetwo\"; fast_pattern:3,4; http_user_agent; "
+                               "content:\"three\"; http_user_agent; distance:30; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->prev->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+        !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
+        ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        ud->fp_chop_offset == 3 &&
+        ud->fp_chop_len == 4) {
+        result = 1;
+    } else {
+        result = 0;
+    }
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest573(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"oneonetwo\"; fast_pattern:3,4; http_user_agent; "
+                               "content:\"three\"; http_user_agent; within:30; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->prev->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+        !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
+        ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        ud->fp_chop_offset == 3 &&
+        ud->fp_chop_len == 4) {
+        result = 1;
+    } else {
+        result = 0;
+    }
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest574(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"oneonetwo\"; fast_pattern:3,4; http_user_agent; "
+                               "content:\"three\"; http_user_agent; offset:30; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->prev->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+        !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
+        ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        ud->fp_chop_offset == 3 &&
+        ud->fp_chop_len == 4) {
+        result = 1;
+    } else {
+        result = 0;
+    }
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest575(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"oneonetwo\"; fast_pattern:3,4; http_user_agent; "
+                               "content:\"three\"; http_user_agent; depth:30; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->prev->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+        !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
+        ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        ud->fp_chop_offset == 3 &&
+        ud->fp_chop_len == 4) {
+        result = 1;
+    } else {
+        result = 0;
+    }
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest576(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"two\"; http_user_agent; distance:10; "
+                               "content:\"oneonethree\"; fast_pattern:3,4; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+        !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
+        ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        ud->fp_chop_offset == 3 &&
+        ud->fp_chop_len == 4) {
+        result = 1;
+    } else {
+        result = 0;
+    }
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest577(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"two\"; http_user_agent; within:10; "
+                               "content:\"oneonethree\"; fast_pattern:3,4; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+        !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
+        ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        ud->fp_chop_offset == 3 &&
+        ud->fp_chop_len == 4) {
+        result = 1;
+    } else {
+        result = 0;
+    }
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest578(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"two\"; http_user_agent; offset:10; "
+                               "content:\"oneonethree\"; fast_pattern:3,4; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+        !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
+        ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        ud->fp_chop_offset == 3 &&
+        ud->fp_chop_len == 4) {
+        result = 1;
+    } else {
+        result = 0;
+    }
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest579(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"two\"; http_user_agent; depth:10; "
+                               "content:\"oneonethree\"; fast_pattern:3,4; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+        !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
+        ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        ud->fp_chop_offset == 3 &&
+        ud->fp_chop_len == 4) {
+        result = 1;
+    } else {
+        result = 0;
+    }
+
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest580(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"two\"; fast_pattern:65977,4; http_user_agent; "
+                               "content:\"three\"; http_user_agent; distance:10; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest581(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\";  http_user_agent; "
+                               "content:\"oneonetwo\"; fast_pattern:3,65977; http_user_agent; "
+                               "content:\"three\"; distance:10; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest582(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:\"two\"; fast_pattern:65534,4; http_user_agent; "
+                               "content:\"three\"; http_user_agent; distance:10; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest583(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:!\"oneonetwo\"; fast_pattern:3,4; http_user_agent; "
+                               "content:\"three\"; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->prev->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+        ud->flags & DETECT_CONTENT_NEGATED &&
+        !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
+        ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        ud->fp_chop_offset == 3 &&
+        ud->fp_chop_len == 4) {
+        result = 1;
+    } else {
+        result = 0;
+    }
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest584(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:!\"oneonetwo\"; fast_pattern:3,4; http_user_agent; distance:10; "
+                               "content:\"three\"; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest585(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:!\"oneonetwo\"; fast_pattern:3,4; http_user_agent; within:10; "
+                               "content:\"three\"; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest586(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:!\"oneonetwo\"; fast_pattern:3,4; http_user_agent; offset:10; "
+                               "content:\"three\"; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest587(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:!\"oneonetwo\"; fast_pattern:3,4; http_user_agent; depth:10; "
+                               "content:\"three\"; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list != NULL)
+        goto end;
+
+    result = 1;
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+int DetectFastPatternTest588(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+    int result = 0;
+
+    if ( (de_ctx = DetectEngineCtxInit()) == NULL)
+        goto end;
+
+    de_ctx->flags |= DE_QUIET;
+    de_ctx->sig_list = SigInit(de_ctx, "alert icmp any any -> any any "
+                               "(content:\"one\"; http_user_agent; "
+                               "content:!\"oneonetwo\"; fast_pattern:3,4; http_user_agent; "
+                               "content:\"three\"; http_user_agent; sid:1;)");
+    if (de_ctx->sig_list == NULL)
+        goto end;
+    DetectContentData *ud = de_ctx->sig_list->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]->prev->ctx;
+    if (ud->flags & DETECT_CONTENT_FAST_PATTERN &&
+        ud->flags & DETECT_CONTENT_NEGATED &&
+        !(ud->flags & DETECT_CONTENT_FAST_PATTERN_ONLY) &&
+        ud->flags & DETECT_CONTENT_FAST_PATTERN_CHOP &&
+        ud->fp_chop_offset == 3 &&
+        ud->fp_chop_len == 4) {
+        result = 1;
+    } else {
+        result = 0;
+    }
+
+ end:
+    SigCleanSignatures(de_ctx);
+    DetectEngineCtxFree(de_ctx);
+    return result;
+}
+
+
 #endif
 
 void DetectFastPatternRegisterTests(void)
@@ -16348,6 +17536,49 @@ void DetectFastPatternRegisterTests(void)
     UtRegisterTest("DetectFastPatternTest545", DetectFastPatternTest545, 1);
     UtRegisterTest("DetectFastPatternTest546", DetectFastPatternTest546, 1);
     UtRegisterTest("DetectFastPatternTest547", DetectFastPatternTest547, 1);
+    /* file_data fast_pattern tests ^ */
+    /* http_user_agent fast_pattern tests v */
+    UtRegisterTest("DetectFastPatternTest548", DetectFastPatternTest548, 1);
+    UtRegisterTest("DetectFastPatternTest549", DetectFastPatternTest549, 1);
+    UtRegisterTest("DetectFastPatternTest550", DetectFastPatternTest550, 1);
+    UtRegisterTest("DetectFastPatternTest551", DetectFastPatternTest551, 1);
+    UtRegisterTest("DetectFastPatternTest552", DetectFastPatternTest552, 1);
+    UtRegisterTest("DetectFastPatternTest553", DetectFastPatternTest553, 1);
+    UtRegisterTest("DetectFastPatternTest554", DetectFastPatternTest554, 1);
+    UtRegisterTest("DetectFastPatternTest555", DetectFastPatternTest555, 1);
+    UtRegisterTest("DetectFastPatternTest556", DetectFastPatternTest556, 1);
+    UtRegisterTest("DetectFastPatternTest557", DetectFastPatternTest557, 1);
+    UtRegisterTest("DetectFastPatternTest558", DetectFastPatternTest558, 1);
+    UtRegisterTest("DetectFastPatternTest559", DetectFastPatternTest559, 1);
+    UtRegisterTest("DetectFastPatternTest560", DetectFastPatternTest560, 1);
+    UtRegisterTest("DetectFastPatternTest561", DetectFastPatternTest561, 1);
+    UtRegisterTest("DetectFastPatternTest562", DetectFastPatternTest562, 1);
+    UtRegisterTest("DetectFastPatternTest563", DetectFastPatternTest563, 1);
+    UtRegisterTest("DetectFastPatternTest564", DetectFastPatternTest564, 1);
+    UtRegisterTest("DetectFastPatternTest565", DetectFastPatternTest565, 1);
+    UtRegisterTest("DetectFastPatternTest566", DetectFastPatternTest566, 1);
+    UtRegisterTest("DetectFastPatternTest567", DetectFastPatternTest567, 1);
+    UtRegisterTest("DetectFastPatternTest568", DetectFastPatternTest568, 1);
+    UtRegisterTest("DetectFastPatternTest569", DetectFastPatternTest569, 1);
+    UtRegisterTest("DetectFastPatternTest570", DetectFastPatternTest570, 1);
+    UtRegisterTest("DetectFastPatternTest571", DetectFastPatternTest571, 1);
+    UtRegisterTest("DetectFastPatternTest572", DetectFastPatternTest572, 1);
+    UtRegisterTest("DetectFastPatternTest573", DetectFastPatternTest573, 1);
+    UtRegisterTest("DetectFastPatternTest574", DetectFastPatternTest574, 1);
+    UtRegisterTest("DetectFastPatternTest575", DetectFastPatternTest575, 1);
+    UtRegisterTest("DetectFastPatternTest576", DetectFastPatternTest576, 1);
+    UtRegisterTest("DetectFastPatternTest577", DetectFastPatternTest577, 1);
+    UtRegisterTest("DetectFastPatternTest578", DetectFastPatternTest578, 1);
+    UtRegisterTest("DetectFastPatternTest579", DetectFastPatternTest579, 1);
+    UtRegisterTest("DetectFastPatternTest580", DetectFastPatternTest580, 1);
+    UtRegisterTest("DetectFastPatternTest581", DetectFastPatternTest581, 1);
+    UtRegisterTest("DetectFastPatternTest582", DetectFastPatternTest582, 1);
+    UtRegisterTest("DetectFastPatternTest583", DetectFastPatternTest583, 1);
+    UtRegisterTest("DetectFastPatternTest584", DetectFastPatternTest584, 1);
+    UtRegisterTest("DetectFastPatternTest585", DetectFastPatternTest585, 1);
+    UtRegisterTest("DetectFastPatternTest586", DetectFastPatternTest586, 1);
+    UtRegisterTest("DetectFastPatternTest587", DetectFastPatternTest587, 1);
+    UtRegisterTest("DetectFastPatternTest588", DetectFastPatternTest588, 1);
 #endif
 
     return;

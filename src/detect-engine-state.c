@@ -66,6 +66,7 @@
 #include "detect-engine-hrud.h"
 #include "detect-engine-hsmd.h"
 #include "detect-engine-hscd.h"
+#include "detect-engine-hua.h"
 #include "detect-engine-dcepayload.h"
 #include "detect-engine-file.h"
 
@@ -264,7 +265,7 @@ int DeStateUpdateInspectTransactionId(Flow *f, char direction) {
  *       many args is slow.
  */
 static void DeStateSignatureAppend(DetectEngineState *state, Signature *s,
-                                   SigMatch *sm, uint16_t match_flags) {
+                                   SigMatch *sm, uint32_t match_flags) {
     DeStateStore *store = state->tail;
 
     if (store == NULL) {
@@ -396,8 +397,8 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     SigMatch *sm = s->sm_lists[DETECT_SM_LIST_AMATCH];
     int match = 0;
     int r = 0;
-    uint16_t inspect_flags = 0;
-    uint16_t match_flags = 0;
+    uint32_t inspect_flags = 0;
+    uint32_t match_flags = 0;
     uint16_t file_no_match = 0;
 
     if (alstate == NULL) {
@@ -503,6 +504,14 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
             if (s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
                 inspect_flags |= DE_STATE_FLAG_HSCD_INSPECT;
             }
+            if (s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL) {
+                inspect_flags |= DE_STATE_FLAG_HUAD_INSPECT;
+                if (DetectEngineInspectHttpUA(de_ctx, det_ctx, s, f,
+                                              flags, alstate) == 1) {
+                    match_flags |= DE_STATE_FLAG_HUAD_MATCH;
+                }
+                SCLogDebug("inspecting http cookie");
+            }
         } else if (flags & STREAM_TOCLIENT) {
             /* For to client set the flags in inspect so it can't match
              * if the sig requires something only the request has. The rest
@@ -588,6 +597,9 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
                 }
                 SCLogDebug("inspecting http stat code");
             }
+            if (s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL) {
+                inspect_flags |= DE_STATE_FLAG_HUAD_INSPECT;
+            }
         }
     } else if (alproto == ALPROTO_DCERPC || alproto == ALPROTO_SMB || alproto == ALPROTO_SMB2) {
         if (s->sm_lists[DETECT_SM_LIST_DMATCH] != NULL) {
@@ -659,7 +671,7 @@ int DeStateDetectStartDetection(ThreadVars *tv, DetectEngineCtx *de_ctx,
     }
 
     SCLogDebug("detection done, store results: sm %p, inspect_flags %04X, "
-            "match_flags %04X", sm, inspect_flags, match_flags);
+               "match_flags %04X", sm, inspect_flags, match_flags);
 
     SCMutexLock(&f->de_state_m);
     /* match or no match, we store the state anyway
@@ -701,8 +713,8 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
     SigIntId cnt = 0;
     SigIntId store_cnt = 0;
     DeStateStore *store = NULL;
-    uint16_t inspect_flags = 0;
-    uint16_t match_flags = 0;
+    uint32_t inspect_flags = 0;
+    uint32_t match_flags = 0;
     int match = 0;
     uint16_t file_no_match = 0;
 
@@ -927,6 +939,18 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                         inspect_flags |= DE_STATE_FLAG_HSCD_INSPECT;
                     }
                 }
+                if (s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL) {
+                    if (!(item->flags & DE_STATE_FLAG_HUAD_MATCH)) {
+                        SCLogDebug("inspecting http user agent data");
+                        inspect_flags |= DE_STATE_FLAG_HUAD_INSPECT;
+
+                        if (DetectEngineInspectHttpUA(de_ctx, det_ctx, s, f,
+                                                      flags, alstate) == 1) {
+                            SCLogDebug("http user agent matched");
+                            match_flags |= DE_STATE_FLAG_HUAD_MATCH;
+                        }
+                    }
+                }
             } else if (alproto == ALPROTO_HTTP && (flags & STREAM_TOCLIENT)) {
                 /* For to client set the flags in inspect so it can't match
                  * if the sig requires something only the request has. The rest
@@ -1037,6 +1061,11 @@ int DeStateDetectContinueDetection(ThreadVars *tv, DetectEngineCtx *de_ctx, Dete
                             SCLogDebug("http stat code matched");
                             match_flags |= DE_STATE_FLAG_HSCD_MATCH;
                         }
+                    }
+                }
+                if (s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL) {
+                    if (!(item->flags & DE_STATE_FLAG_HUAD_MATCH)) {
+                        inspect_flags |= DE_STATE_FLAG_HUAD_INSPECT;
                     }
                 }
 

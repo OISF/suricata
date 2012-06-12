@@ -160,7 +160,7 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
             }
         }
     } else {
-        pm = SigMatchGetLastSMFromLists(s, 22,
+        pm = SigMatchGetLastSMFromLists(s, 24,
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_UMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HRUDMATCH],
@@ -171,13 +171,14 @@ static int DetectDistanceSetup (DetectEngineCtx *de_ctx, Signature *s,
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HMDMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH],
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSCDMATCH],
-                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH]);
+                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HSMDMATCH],
+                DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]);
         if (pm == NULL) {
             SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs "
                        "preceeding content, uricontent option, http_client_body, "
                        "http_server_body, http_header, http_raw_header, http_method, "
-                       "http_cookie, http_raw_uri, http_stat_msg or http_stat_code "
-                       "option");
+                       "http_cookie, http_raw_uri, http_stat_msg, http_stat_code "
+                       "or http_user_agent option");
             if (dubbed)
                 SCFree(str);
             return -1;
