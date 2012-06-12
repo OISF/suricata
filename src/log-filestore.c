@@ -487,7 +487,7 @@ static void LogFilestoreLogLoadWaldo(const char *path) {
     if (fgets(line, (int)sizeof(line), fp) != NULL) {
         if (sscanf(line, "%10u", &id) == 1) {
             SCLogInfo("id %u", id);
-            SC_ATOMIC_CAS(&file_id, 0, id);
+            (void) SC_ATOMIC_CAS(&file_id, 0, id);
         }
     }
     fclose(fp);

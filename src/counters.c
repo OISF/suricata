@@ -442,7 +442,9 @@ static void *SCPerfMgmtThread(void *arg)
     struct timespec cond_time;
 
     /* Set the thread name */
-    SCSetThreadName(tv_local->name);
+    if (SCSetThreadName(tv_local->name) < 0) {
+        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
+    }
 
     /* Set the threads capability */
     tv_local->cap_flags = 0;
@@ -501,7 +503,9 @@ static void *SCPerfWakeupThread(void *arg)
     struct timespec cond_time;
 
     /* Set the thread name */
-    SCSetThreadName(tv_local->name);
+    if (SCSetThreadName(tv_local->name) < 0) {
+        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
+    }
 
     /* Set the threads capability */
     tv_local->cap_flags = 0;

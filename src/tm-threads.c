@@ -131,7 +131,9 @@ void *TmThreadsSlot1NoIn(void *td)
     TmEcode r = TM_ECODE_OK;
 
     /* Set the thread name */
-    SCSetThreadName(tv->name);
+    if (SCSetThreadName(tv->name) < 0) {
+        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
+    }
 
     /* Drop the capabilities for this thread */
     SCDropCaps(tv);
@@ -227,7 +229,9 @@ void *TmThreadsSlot1NoOut(void *td)
     TmEcode r = TM_ECODE_OK;
 
     /* Set the thread name */
-    SCSetThreadName(tv->name);
+    if (SCSetThreadName(tv->name) < 0) {
+        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
+    }
 
     /* Drop the capabilities for this thread */
     SCDropCaps(tv);
@@ -304,7 +308,9 @@ void *TmThreadsSlot1NoInOut(void *td)
     TmEcode r = TM_ECODE_OK;
 
     /* Set the thread name */
-    SCSetThreadName(tv->name);
+    if (SCSetThreadName(tv->name) < 0) {
+        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
+    }
 
     /* Drop the capabilities for this thread */
     SCDropCaps(tv);
@@ -378,7 +384,9 @@ void *TmThreadsSlot1(void *td)
     TmEcode r = TM_ECODE_OK;
 
     /* Set the thread name */
-    SCSetThreadName(tv->name);
+    if (SCSetThreadName(tv->name) < 0) {
+        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
+    }
 
     /* Drop the capabilities for this thread */
     SCDropCaps(tv);
@@ -581,7 +589,9 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
     TmSlot *slot = NULL;
 
     /* Set the thread name */
-    SCSetThreadName(tv->name);
+    if (SCSetThreadName(tv->name) < 0) {
+        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
+    }
 
     /* Drop the capabilities for this thread */
     SCDropCaps(tv);
@@ -671,7 +681,9 @@ void *TmThreadsSlotVar(void *td)
     TmEcode r = TM_ECODE_OK;
 
     /* Set the thread name */
-    SCSetThreadName(tv->name);
+    if (SCSetThreadName(tv->name) < 0) {
+        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
+    }
 
     /* Drop the capabilities for this thread */
     SCDropCaps(tv);

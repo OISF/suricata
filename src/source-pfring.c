@@ -186,7 +186,7 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
 
     ptv->bytes += h->caplen;
     ptv->pkts++;
-    SC_ATOMIC_ADD(ptv->livedev->pkts, 1);
+    (void) SC_ATOMIC_ADD(ptv->livedev->pkts, 1);
     p->livedev = ptv->livedev;
 
     /* PF_RING may fail to set timestamp */

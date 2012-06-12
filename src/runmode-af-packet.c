@@ -123,7 +123,7 @@ void *ParseAFPConfig(const char *iface)
     strlcpy(aconf->iface, iface, sizeof(aconf->iface));
     aconf->threads = 1;
     SC_ATOMIC_INIT(aconf->ref);
-    SC_ATOMIC_ADD(aconf->ref, 1);
+    (void) SC_ATOMIC_ADD(aconf->ref, 1);
     aconf->buffer_size = 0;
     aconf->cluster_id = 1;
     aconf->cluster_type = PACKET_FANOUT_HASH;
@@ -168,7 +168,7 @@ void *ParseAFPConfig(const char *iface)
     }
 
     SC_ATOMIC_RESET(aconf->ref);
-    SC_ATOMIC_ADD(aconf->ref, aconf->threads);
+    (void) SC_ATOMIC_ADD(aconf->ref, aconf->threads);
 
     if (ConfGetChildValue(if_root, "cluster-id", &tmpclusterid) != 1) {
         SCLogError(SC_ERR_INVALID_ARGUMENT,"Could not get cluster-id from config");

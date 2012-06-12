@@ -236,8 +236,8 @@ void TmqhOutputFlowRoundRobin(ThreadVars *tv, Packet *p)
                 SC_ATOMIC_RESET(ctx->round_robin_idx);
                 qid = 0;
             }
-            SC_ATOMIC_ADD(ctx->queues[qid].total_flows, 1);
-            SC_ATOMIC_SET(p->flow->autofp_tmqh_flow_qid, qid);
+            (void) SC_ATOMIC_ADD(ctx->queues[qid].total_flows, 1);
+            (void) SC_ATOMIC_SET(p->flow->autofp_tmqh_flow_qid, qid);
         }
     } else {
         qid = ctx->last++;
@@ -245,7 +245,7 @@ void TmqhOutputFlowRoundRobin(ThreadVars *tv, Packet *p)
         if (ctx->last == ctx->size)
             ctx->last = 0;
     }
-    SC_ATOMIC_ADD(ctx->queues[qid].total_packets, 1);
+    (void) SC_ATOMIC_ADD(ctx->queues[qid].total_packets, 1);
 
     PacketQueue *q = ctx->queues[qid].q;
     SCMutexLock(&q->mutex_q);
@@ -284,8 +284,8 @@ void TmqhOutputFlowActivePackets(ThreadVars *tv, Packet *p)
                 }
             }
             qid = lowest_id;
-            SC_ATOMIC_SET(p->flow->autofp_tmqh_flow_qid, lowest_id);
-            SC_ATOMIC_ADD(ctx->queues[qid].total_flows, 1);
+            (void) SC_ATOMIC_SET(p->flow->autofp_tmqh_flow_qid, lowest_id);
+            (void) SC_ATOMIC_ADD(ctx->queues[qid].total_flows, 1);
         }
     } else {
         qid = ctx->last++;
@@ -293,7 +293,7 @@ void TmqhOutputFlowActivePackets(ThreadVars *tv, Packet *p)
         if (ctx->last == ctx->size)
             ctx->last = 0;
     }
-    SC_ATOMIC_ADD(ctx->queues[qid].total_packets, 1);
+    (void) SC_ATOMIC_ADD(ctx->queues[qid].total_packets, 1);
 
     PacketQueue *q = ctx->queues[qid].q;
     SCMutexLock(&q->mutex_q);
@@ -331,8 +331,8 @@ void TmqhOutputFlowHash(ThreadVars *tv, Packet *p)
             /* we don't have to worry about possible overflow, since
              * ctx->size will be lesser than 2 ** 31 for sure */
             qid = addr % ctx->size;
-            SC_ATOMIC_SET(p->flow->autofp_tmqh_flow_qid, qid);
-            SC_ATOMIC_ADD(ctx->queues[qid].total_flows, 1);
+            (void) SC_ATOMIC_SET(p->flow->autofp_tmqh_flow_qid, qid);
+            (void) SC_ATOMIC_ADD(ctx->queues[qid].total_flows, 1);
         }
     } else {
         qid = ctx->last++;
@@ -340,7 +340,7 @@ void TmqhOutputFlowHash(ThreadVars *tv, Packet *p)
         if (ctx->last == ctx->size)
             ctx->last = 0;
     }
-    SC_ATOMIC_ADD(ctx->queues[qid].total_packets, 1);
+    (void) SC_ATOMIC_ADD(ctx->queues[qid].total_packets, 1);
 
     PacketQueue *q = ctx->queues[qid].q;
     SCMutexLock(&q->mutex_q);

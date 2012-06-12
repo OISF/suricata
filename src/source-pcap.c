@@ -217,7 +217,7 @@ void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt) {
 
     ptv->pkts++;
     ptv->bytes += h->caplen;
-    SC_ATOMIC_ADD(ptv->livedev->pkts, 1);
+    (void) SC_ATOMIC_ADD(ptv->livedev->pkts, 1);
     p->livedev = ptv->livedev;
 
     if (unlikely(PacketCopyData(p, pkt, h->caplen))) {

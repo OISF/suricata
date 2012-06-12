@@ -336,7 +336,7 @@ void DetectTagDataListFree(void *ptr) {
         while (entry != NULL) {
             DetectTagDataEntry *next_entry = entry->next;
             DetectTagDataEntryFree(entry);
-            SC_ATOMIC_SUB(num_tags, 1);
+            (void) SC_ATOMIC_SUB(num_tags, 1);
             entry = next_entry;
         }
     }

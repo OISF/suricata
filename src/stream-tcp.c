@@ -128,12 +128,12 @@ void TmModuleStreamTcpRegister (void)
 }
 
 void StreamTcpIncrMemuse(uint64_t size) {
-    SC_ATOMIC_ADD(st_memuse, size);
+    (void) SC_ATOMIC_ADD(st_memuse, size);
     return;
 }
 
 void StreamTcpDecrMemuse(uint64_t size) {
-    SC_ATOMIC_SUB(st_memuse, size);
+    (void) SC_ATOMIC_SUB(st_memuse, size);
     return;
 }
 
@@ -3865,7 +3865,7 @@ static inline int StreamTcpValidateChecksum(Packet *p)
         ret = 0;
         SCLogDebug("Checksum of received packet %p is invalid",p);
         if (p->livedev) {
-            SC_ATOMIC_ADD(p->livedev->invalid_checksums, 1);
+            (void) SC_ATOMIC_ADD(p->livedev->invalid_checksums, 1);
         }
     }
 

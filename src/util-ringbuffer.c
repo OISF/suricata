@@ -193,7 +193,7 @@ void *RingBufferSrSw8Get(RingBuffer8 *rb) {
     }
 
     ptr = rb->array[SC_ATOMIC_GET(rb->read)];
-    SC_ATOMIC_ADD(rb->read, 1);
+    (void) SC_ATOMIC_ADD(rb->read, 1);
 
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
@@ -212,7 +212,7 @@ int RingBufferSrSw8Put(RingBuffer8 *rb, void *ptr) {
     }
 
     rb->array[SC_ATOMIC_GET(rb->write)] = ptr;
-    SC_ATOMIC_ADD(rb->write, 1);
+    (void) SC_ATOMIC_ADD(rb->write, 1);
 
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
@@ -235,7 +235,7 @@ void *RingBufferSrMw8Get(RingBuffer8 *rb) {
     }
 
     ptr = rb->array[SC_ATOMIC_GET(rb->read)];
-    SC_ATOMIC_ADD(rb->read, 1);
+    (void) SC_ATOMIC_ADD(rb->read, 1);
 
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
@@ -286,7 +286,7 @@ retry:
 
     /* update the ring buffer */
     rb->array[SC_ATOMIC_GET(rb->write)] = ptr;
-    SC_ATOMIC_ADD(rb->write, 1);
+    (void) SC_ATOMIC_ADD(rb->write, 1);
     SCSpinUnlock(&rb->spin);
     SCLogDebug("ptr %p, done", ptr);
 
@@ -359,7 +359,7 @@ int RingBufferMrSw8Put(RingBuffer8 *rb, void *ptr) {
     }
 
     rb->array[SC_ATOMIC_GET(rb->write)] = ptr;
-    SC_ATOMIC_ADD(rb->write, 1);
+    (void) SC_ATOMIC_ADD(rb->write, 1);
 
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
@@ -431,7 +431,7 @@ int RingBufferMrSwPut(RingBuffer16 *rb, void *ptr) {
     }
 
     rb->array[SC_ATOMIC_GET(rb->write)] = ptr;
-    SC_ATOMIC_ADD(rb->write, 1);
+    (void) SC_ATOMIC_ADD(rb->write, 1);
 
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
@@ -455,7 +455,7 @@ void *RingBufferSrSwGet(RingBuffer16 *rb) {
     }
 
     ptr = rb->array[SC_ATOMIC_GET(rb->read)];
-    SC_ATOMIC_ADD(rb->read, 1);
+    (void) SC_ATOMIC_ADD(rb->read, 1);
 
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
@@ -474,7 +474,7 @@ int RingBufferSrSwPut(RingBuffer16 *rb, void *ptr) {
     }
 
     rb->array[SC_ATOMIC_GET(rb->write)] = ptr;
-    SC_ATOMIC_ADD(rb->write, 1);
+    (void) SC_ATOMIC_ADD(rb->write, 1);
 
 #ifdef RINGBUFFER_MUTEX_WAIT
     SCCondSignal(&rb->wait_cond);
@@ -605,7 +605,7 @@ retry:
 
     /* update the ring buffer */
     rb->array[SC_ATOMIC_GET(rb->write)] = ptr;
-    SC_ATOMIC_ADD(rb->write, 1);
+    (void) SC_ATOMIC_ADD(rb->write, 1);
     SCSpinUnlock(&rb->spin);
     SCLogDebug("ptr %p, done", ptr);
 
@@ -785,7 +785,7 @@ retry:
 
     /* update the ring buffer */
     rb->array[SC_ATOMIC_GET(rb->write)] = ptr;
-    SC_ATOMIC_ADD(rb->write, 1);
+    (void) SC_ATOMIC_ADD(rb->write, 1);
     SCSpinUnlock(&rb->spin);
     SCLogDebug("ptr %p, done", ptr);
 

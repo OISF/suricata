@@ -423,8 +423,11 @@ void *FlowManagerThread(void *td)
     FlowForceReassemblySetup();
 
     /* set the thread name */
-    SCSetThreadName(th_v->name);
-    SCLogDebug("%s started...", th_v->name);
+    if (SCSetThreadName(th_v->name) < 0) {
+        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
+    } else {
+        SCLogDebug("%s started...", th_v->name);
+    }
 
     th_v->sc_perf_pca = SCPerfGetAllCountersArray(&th_v->sc_perf_pctx);
     SCPerfAddToClubbedTMTable(th_v->name, &th_v->sc_perf_pctx);

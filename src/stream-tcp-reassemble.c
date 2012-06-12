@@ -116,7 +116,7 @@ void StreamTcpReassemblePseudoPacketCreate(TcpStream *, Packet *, PacketQueue *)
  *  \param  size Size of the TCP segment and its payload length memory allocated
  */
 void StreamTcpReassembleIncrMemuse(uint64_t size) {
-    SC_ATOMIC_ADD(ra_memuse, size);
+    (void) SC_ATOMIC_ADD(ra_memuse, size);
     return;
 }
 
@@ -127,7 +127,7 @@ void StreamTcpReassembleIncrMemuse(uint64_t size) {
  *  \param  size Size of the TCP segment and its payload length memory allocated
  */
 void StreamTcpReassembleDecrMemuse(uint64_t size) {
-    SC_ATOMIC_SUB(ra_memuse, size);
+    (void) SC_ATOMIC_SUB(ra_memuse, size);
     return;
 }
 

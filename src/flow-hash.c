@@ -633,7 +633,7 @@ static Flow *FlowGetUsedFlow(void) {
 
         FLOWLOCK_UNLOCK(f);
 
-        SC_ATOMIC_ADD(flow_prune_idx, (flow_config.hash_size - cnt));
+        (void) SC_ATOMIC_ADD(flow_prune_idx, (flow_config.hash_size - cnt));
         return f;
     }
 

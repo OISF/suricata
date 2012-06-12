@@ -64,7 +64,7 @@
         (f)->lnext = NULL; \
         (f)->lprev = NULL; \
         SC_ATOMIC_INIT((f)->autofp_tmqh_flow_qid);  \
-        SC_ATOMIC_SET((f)->autofp_tmqh_flow_qid, -1);  \
+        (void) SC_ATOMIC_SET((f)->autofp_tmqh_flow_qid, -1);  \
         RESET_COUNTERS((f)); \
     } while (0)
 
@@ -97,7 +97,7 @@
         GenericVarFree((f)->flowvar); \
         (f)->flowvar = NULL; \
         if (SC_ATOMIC_GET((f)->autofp_tmqh_flow_qid) != -1) {   \
-            SC_ATOMIC_SET((f)->autofp_tmqh_flow_qid, -1);   \
+            (void) SC_ATOMIC_SET((f)->autofp_tmqh_flow_qid, -1);   \
         }                                       \
         RESET_COUNTERS((f)); \
     } while(0)

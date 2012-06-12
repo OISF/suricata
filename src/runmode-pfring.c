@@ -132,7 +132,7 @@ void *OldParsePfringConfig(const char *iface)
     pfconf->DerefFunc = PfringDerefConfig;
     pfconf->checksum_mode = CHECKSUM_VALIDATION_AUTO;
     SC_ATOMIC_INIT(pfconf->ref);
-    SC_ATOMIC_ADD(pfconf->ref, 1);
+    (void) SC_ATOMIC_ADD(pfconf->ref, 1);
 
     /* Find initial node */
     if (ConfGet("pfring.threads", &threadsstr) != 1) {
@@ -147,7 +147,7 @@ void *OldParsePfringConfig(const char *iface)
     }
 
     SC_ATOMIC_RESET(pfconf->ref);
-    SC_ATOMIC_ADD(pfconf->ref, pfconf->threads);
+    (void) SC_ATOMIC_ADD(pfconf->ref, pfconf->threads);
 
     if (ConfGet("pfring.cluster-id", &tmpclusterid) != 1) {
         SCLogError(SC_ERR_INVALID_ARGUMENT,"Could not get cluster-id from config");
@@ -224,7 +224,7 @@ void *ParsePfringConfig(const char *iface)
 #endif
     pfconf->DerefFunc = PfringDerefConfig;
     SC_ATOMIC_INIT(pfconf->ref);
-    SC_ATOMIC_ADD(pfconf->ref, 1);
+    (void) SC_ATOMIC_ADD(pfconf->ref, 1);
 
     /* Find initial node */
     pf_ring_node = ConfGetNode("pfring");
@@ -256,7 +256,7 @@ void *ParsePfringConfig(const char *iface)
     }
 
     SC_ATOMIC_RESET(pfconf->ref);
-    SC_ATOMIC_ADD(pfconf->ref, pfconf->threads);
+    (void) SC_ATOMIC_ADD(pfconf->ref, pfconf->threads);
 
     /* command line value has precedence */
     if (ConfGet("pfring.cluster-id", &tmpclusterid) == 1) {

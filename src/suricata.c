@@ -1804,7 +1804,7 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    SC_ATOMIC_CAS(&engine_stage, SURICATA_INIT, SURICATA_RUNTIME);
+    (void) SC_ATOMIC_CAS(&engine_stage, SURICATA_INIT, SURICATA_RUNTIME);
 
     /* Un-pause all the paused threads */
     TmThreadContinueThreads();
@@ -1875,7 +1875,7 @@ int main(int argc, char **argv)
     }
 
     /* Update the engine stage/status flag */
-    SC_ATOMIC_CAS(&engine_stage, SURICATA_RUNTIME, SURICATA_DEINIT);
+    (void) SC_ATOMIC_CAS(&engine_stage, SURICATA_RUNTIME, SURICATA_DEINIT);
 
 
 #ifdef __SC_CUDA_SUPPORT__

@@ -327,7 +327,7 @@ int AFPRead(AFPThreadVars *ptv)
 
     ptv->pkts++;
     ptv->bytes += caplen + offset;
-    SC_ATOMIC_ADD(ptv->livedev->pkts, 1);
+    (void) SC_ATOMIC_ADD(ptv->livedev->pkts, 1);
     p->livedev = ptv->livedev;
 
     /* add forged header */
@@ -416,7 +416,7 @@ int AFPReadFromRing(AFPThreadVars *ptv)
 
     ptv->pkts++;
     ptv->bytes += h.h2->tp_len;
-    SC_ATOMIC_ADD(ptv->livedev->pkts, 1);
+    (void) SC_ATOMIC_ADD(ptv->livedev->pkts, 1);
     p->livedev = ptv->livedev;
 
     /* add forged header */

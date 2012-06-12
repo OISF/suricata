@@ -119,7 +119,7 @@ void *ParsePcapConfig(const char *iface)
     }
 
     SC_ATOMIC_INIT(aconf->ref);
-    SC_ATOMIC_ADD(aconf->ref, 1);
+    (void) SC_ATOMIC_ADD(aconf->ref, 1);
     aconf->DerefFunc = PcapDerefConfig;
     aconf->threads = 1;
 

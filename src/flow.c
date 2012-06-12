@@ -182,7 +182,7 @@ void FlowIncrUsecnt(Flow *f)
     if (f == NULL)
         return;
 
-    SC_ATOMIC_ADD(f->use_cnt, 1);
+    (void) SC_ATOMIC_ADD(f->use_cnt, 1);
     return;
 }
 /**
@@ -195,7 +195,7 @@ void FlowDecrUsecnt(Flow *f)
     if (f == NULL)
         return;
 
-    SC_ATOMIC_SUB(f->use_cnt, 1);
+    (void) SC_ATOMIC_SUB(f->use_cnt, 1);
     return;
 }
 
@@ -412,7 +412,7 @@ void FlowInitConfig(char quiet)
     for (i = 0; i < flow_config.hash_size; i++) {
         FBLOCK_INIT(&flow_hash[i]);
     }
-    SC_ATOMIC_ADD(flow_memuse, (flow_config.hash_size * sizeof(FlowBucket)));
+    (void) SC_ATOMIC_ADD(flow_memuse, (flow_config.hash_size * sizeof(FlowBucket)));
 
     if (quiet == FALSE) {
         SCLogInfo("allocated %llu bytes of memory for the flow hash... "
@@ -495,7 +495,7 @@ void FlowShutdown(void)
         SCFree(flow_hash);
         flow_hash = NULL;
     }
-    SC_ATOMIC_SUB(flow_memuse, flow_config.hash_size * sizeof(FlowBucket));
+    (void) SC_ATOMIC_SUB(flow_memuse, flow_config.hash_size * sizeof(FlowBucket));
     FlowQueueDestroy(&flow_spare_q);
 
     SC_ATOMIC_DESTROY(flow_prune_idx);

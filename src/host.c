@@ -51,7 +51,7 @@ uint32_t HostSpareQueueGetSize(void) {
 
 void HostMoveToSpare(Host *h) {
     HostEnqueue(&host_spare_q, h);
-    SC_ATOMIC_SUB(host_counter, 1);
+    (void) SC_ATOMIC_SUB(host_counter, 1);
 }
 
 Host *HostAlloc(void) {
@@ -59,7 +59,7 @@ Host *HostAlloc(void) {
         return NULL;
     }
 
-    SC_ATOMIC_ADD(host_memuse, sizeof(Host));
+    (void) SC_ATOMIC_ADD(host_memuse, sizeof(Host));
 
     Host *h = SCMalloc(sizeof(Host));
     if (h == NULL)
@@ -81,7 +81,7 @@ void HostFree(Host *h) {
 
         SCMutexDestroy(&h->m);
         SCFree(h);
-        SC_ATOMIC_SUB(host_memuse, sizeof(Host));
+        (void) SC_ATOMIC_SUB(host_memuse, sizeof(Host));
     }
 }
 
@@ -191,7 +191,7 @@ void HostInitConfig(char quiet)
     for (i = 0; i < host_config.hash_size; i++) {
         HRLOCK_INIT(&host_hash[i]);
     }
-    SC_ATOMIC_ADD(host_memuse, (host_config.hash_size * sizeof(HostHashRow)));
+    (void) SC_ATOMIC_ADD(host_memuse, (host_config.hash_size * sizeof(HostHashRow)));
 
     if (quiet == FALSE) {
         SCLogInfo("allocated %llu bytes of memory for the host hash... "
@@ -270,7 +270,7 @@ void HostShutdown(void)
         SCFree(host_hash);
         host_hash = NULL;
     }
-    SC_ATOMIC_SUB(host_memuse, host_config.hash_size * sizeof(HostHashRow));
+    (void) SC_ATOMIC_SUB(host_memuse, host_config.hash_size * sizeof(HostHashRow));
     HostQueueDestroy(&host_spare_q);
 
     SC_ATOMIC_DESTROY(host_prune_idx);
@@ -357,7 +357,7 @@ static Host *HostGetNew(Address *a) {
         /* host is initialized (recylced) but *unlocked* */
     }
 
-    SC_ATOMIC_ADD(host_counter, 1);
+    (void) SC_ATOMIC_ADD(host_counter, 1);
     SCMutexLock(&h->m);
     return h;
 }
@@ -369,11 +369,11 @@ static Host *HostGetNew(Address *a) {
 
 void HostInit(Host *h, Address *a) {
     COPY_ADDRESS(a, &h->a);
-    HostIncrUsecnt(h);
+    (void) HostIncrUsecnt(h);
 }
 
 void HostRelease(Host *h) {
-    HostDecrUsecnt(h);
+    (void) HostDecrUsecnt(h);
     SCMutexUnlock(&h->m);
 }
 
@@ -464,7 +464,7 @@ Host *HostGetHostFromHash (Address *a)
 
                 /* found our host, lock & return */
                 SCMutexLock(&h->m);
-                HostIncrUsecnt(h);
+                (void) HostIncrUsecnt(h);
                 HRLOCK_UNLOCK(hb);
                 return h;
             }
@@ -473,7 +473,7 @@ Host *HostGetHostFromHash (Address *a)
 
     /* lock & return */
     SCMutexLock(&h->m);
-    HostIncrUsecnt(h);
+    (void) HostIncrUsecnt(h);
     HRLOCK_UNLOCK(hb);
     return h;
 }
@@ -533,7 +533,7 @@ Host *HostLookupHostFromHash (Address *a)
 
                 /* found our host, lock & return */
                 SCMutexLock(&h->m);
-                HostIncrUsecnt(h);
+                (void) HostIncrUsecnt(h);
                 HRLOCK_UNLOCK(hb);
                 return h;
             }
@@ -542,7 +542,7 @@ Host *HostLookupHostFromHash (Address *a)
 
     /* lock & return */
     SCMutexLock(&h->m);
-    HostIncrUsecnt(h);
+    (void) HostIncrUsecnt(h);
     HRLOCK_UNLOCK(hb);
     return h;
 }
@@ -610,7 +610,7 @@ static Host *HostGetUsedHost(void) {
 
         SCMutexUnlock(&h->m);
 
-        SC_ATOMIC_ADD(host_prune_idx, (host_config.hash_size - cnt));
+        (void) SC_ATOMIC_ADD(host_prune_idx, (host_config.hash_size - cnt));
         return h;
     }
 
