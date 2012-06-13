@@ -186,6 +186,8 @@ typedef struct AFPThreadVars_
     ChecksumValidationMode checksum_mode;
 
     int flags;
+    uint16_t capture_kernel_packets;
+    uint16_t capture_kernel_drops;
 
     int cluster_id;
     int cluster_type;
@@ -244,6 +246,23 @@ void TmModuleDecodeAFPRegister (void) {
 
 static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose);
 
+static inline void AFPDumpCounters(AFPThreadVars *ptv, int forced)
+{
+    if (((ptv->pkts & 0xff) == 0) || forced) {
+#ifdef PACKET_STATISTICS
+        struct tpacket_stats kstats;
+        socklen_t len = sizeof (struct tpacket_stats);
+        if (getsockopt(ptv->socket, SOL_PACKET, PACKET_STATISTICS,
+                    &kstats, &len) > -1) {
+            SCLogDebug("(%s) Kernel: Packets %" PRIu32 ", dropped %" PRIu32 "",
+                    tv->name,
+                    kstats.tp_packets, kstats.tp_drops);
+            SCPerfCounterAddUI64(ptv->capture_kernel_packets, ptv->tv->sc_perf_pca, kstats.tp_packets);
+            SCPerfCounterAddUI64(ptv->capture_kernel_drops, ptv->tv->sc_perf_pca, kstats.tp_drops);
+        }
+#endif
+    }
+}
 
 /**
  * \brief AF packet read function.
@@ -268,6 +287,7 @@ int AFPRead(AFPThreadVars *ptv)
         struct cmsghdr cmsg;
         char buf[CMSG_SPACE(sizeof(struct tpacket_auxdata))];
     } cmsg_buf;
+    unsigned char aux_checksum = 0;
 
     msg.msg_name = &from;
     msg.msg_namelen = sizeof(from);
@@ -339,22 +359,24 @@ int AFPRead(AFPThreadVars *ptv)
             p->flags |= PKT_IGNORE_CHECKSUM;
         }
     } else {
-        /* List is NULL if we don't have activated auxiliary data */
-        for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
-            struct tpacket_auxdata *aux;
+        aux_checksum = 1;
+    }
 
-            if (cmsg->cmsg_len < CMSG_LEN(sizeof(struct tpacket_auxdata)) ||
-                    cmsg->cmsg_level != SOL_PACKET ||
-                    cmsg->cmsg_type != PACKET_AUXDATA)
-                continue;
+    /* List is NULL if we don't have activated auxiliary data */
+    for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+        struct tpacket_auxdata *aux;
 
-            aux = (struct tpacket_auxdata *)CMSG_DATA(cmsg);
+        if (cmsg->cmsg_len < CMSG_LEN(sizeof(struct tpacket_auxdata)) ||
+                cmsg->cmsg_level != SOL_PACKET ||
+                cmsg->cmsg_type != PACKET_AUXDATA)
+            continue;
 
-            if (aux->tp_status & TP_STATUS_CSUMNOTREADY) {
-                p->flags |= PKT_IGNORE_CHECKSUM;
-            }
-            break;
+        aux = (struct tpacket_auxdata *)CMSG_DATA(cmsg);
+
+        if (aux_checksum && (aux->tp_status & TP_STATUS_CSUMNOTREADY)) {
+            p->flags |= PKT_IGNORE_CHECKSUM;
         }
+        break;
     }
 
     if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
@@ -569,6 +591,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                     SCReturnInt(TM_ECODE_FAILED);
                     break;
                 case AFP_READ_OK:
+                    AFPDumpCounters(ptv, 0);
                     break;
             }
         } else if ((r < 0) && (errno != EINTR)) {
@@ -965,6 +988,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     ptv->promisc = afpconfig->promisc;
     ptv->checksum_mode = afpconfig->checksum_mode;
+    ptv->bpf_filter = NULL;
 
     ptv->threads = 1;
 #ifdef HAVE_PACKET_FANOUT
@@ -982,6 +1006,17 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (afpconfig->bpf_filter) {
         ptv->bpf_filter = afpconfig->bpf_filter;
     }
+
+#ifdef PACKET_STATISTICS
+    ptv->capture_kernel_packets = SCPerfTVRegisterCounter("capture.kernel_packets",
+            ptv->tv,
+            SC_PERF_TYPE_UINT64,
+            "NULL");
+    ptv->capture_kernel_drops = SCPerfTVRegisterCounter("capture.kernel_drops",
+            ptv->tv,
+            SC_PERF_TYPE_UINT64,
+            "NULL");
+#endif
 
     char *active_runmode = RunmodeGetActive();
 
@@ -1024,18 +1059,13 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
 void ReceiveAFPThreadExitStats(ThreadVars *tv, void *data) {
     SCEnter();
     AFPThreadVars *ptv = (AFPThreadVars *)data;
-#ifdef PACKET_STATISTICS
-    struct tpacket_stats kstats;
-    socklen_t len = sizeof (struct tpacket_stats);
-#endif
 
 #ifdef PACKET_STATISTICS
-    if (getsockopt(ptv->socket, SOL_PACKET, PACKET_STATISTICS,
-                &kstats, &len) > -1) {
-        SCLogInfo("(%s) Kernel: Packets %" PRIu32 ", dropped %" PRIu32 "",
-                tv->name,
-                kstats.tp_packets, kstats.tp_drops);
-    }
+    AFPDumpCounters(ptv, 1);
+    SCLogInfo("(%s) Kernel: Packets %" PRIu64 ", dropped %" PRIu64 "",
+            tv->name,
+            (uint64_t) SCPerfGetLocalCounterValue(ptv->capture_kernel_packets, tv->sc_perf_pca),
+            (uint64_t) SCPerfGetLocalCounterValue(ptv->capture_kernel_drops, tv->sc_perf_pca));
 #endif
 
     SCLogInfo("(%s) Packets %" PRIu32 ", bytes %" PRIu64 "", tv->name, ptv->pkts, ptv->bytes);
