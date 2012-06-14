@@ -525,6 +525,8 @@ int SigParseProto(Signature *s, const char *protostr) {
         SCReturnInt(-1);
     }
 
+    /* if any of these flags are set they are set in a mutually exclusive
+     * manner */
     if (s->proto.flags & DETECT_PROTO_ONLY_PKT) {
         s->flags |= SIG_FLAG_REQUIRE_PACKET;
     } else if (s->proto.flags & DETECT_PROTO_ONLY_STREAM) {
@@ -1019,7 +1021,8 @@ static int SigValidate(Signature *s) {
 
     if (s->flags & SIG_FLAG_REQUIRE_PACKET &&
         s->flags & SIG_FLAG_REQUIRE_STREAM) {
-        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't mix packet keywords with tcp-stream or flow:only_stream.");
+        SCLogError(SC_ERR_INVALID_SIGNATURE, "can't mix packet keywords with "
+                   "tcp-stream or flow:only_stream.  Invalidating signature.");
         SCReturnInt(0);
     }
 
@@ -1125,6 +1128,20 @@ static int SigValidate(Signature *s) {
                     "state matching by matching on app layer proto (like using "
                     "http_* keywords).");
             SCReturnInt(0);
+        }
+    }
+
+    if (!(s->flags & SIG_FLAG_REQUIRE_PACKET)) {
+        s->flags |= SIG_FLAG_REQUIRE_STREAM;
+        SigMatch *sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+        while (sm != NULL) {
+            if (sm->type == DETECT_CONTENT &&
+                (((DetectContentData *)(sm->ctx))->flags &
+                 (DETECT_CONTENT_DEPTH | DETECT_CONTENT_OFFSET))) {
+                s->flags |= SIG_FLAG_REQUIRE_PACKET;
+                break;
+            }
+            sm = sm->next;
         }
     }
 

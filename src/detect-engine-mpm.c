@@ -118,12 +118,16 @@ int SignatureHasStreamContent(Signature *s) {
         SCReturnInt(0);
     }
 
-    if (SignatureHasPacketContent(s)) {
+    if (!(s->proto.proto[6 / 8] & 1 << (6 % 8))) {
         SCReturnInt(0);
     }
 
     if (s->sm_lists[DETECT_SM_LIST_PMATCH] == NULL) {
         SCLogDebug("no mpm");
+        SCReturnInt(0);
+    }
+
+    if (!(s->flags & SIG_FLAG_REQUIRE_STREAM)) {
         SCReturnInt(0);
     }
 

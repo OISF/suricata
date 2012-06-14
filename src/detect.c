@@ -1568,7 +1568,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         if (s->sm_lists[DETECT_SM_LIST_PMATCH] != NULL) {
             /* if we have stream msgs, inspect against those first,
              * but not for a "dsize" signature */
-            if (!(s->flags & SIG_FLAG_REQUIRE_PACKET)) {
+            if (s->flags & SIG_FLAG_REQUIRE_STREAM) {
                 char pmatch = 0;
                 if (smsg != NULL) {
                     uint8_t pmq_idx = 0;
@@ -1602,8 +1602,10 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 if (pmatch == 0) {
                     SCLogDebug("no match in smsg, fall back to packet payload");
 
-                    if (p->flags & PKT_STREAM_ADD)
-                        goto next;
+                    if (!(s->flags & SIG_FLAG_REQUIRE_PACKET)) {
+                        if (p->flags & PKT_STREAM_ADD)
+                            goto next;
+                    }
 
                     if (sms_runflags & SMS_USED_PM) {
                         if (s->flags & SIG_FLAG_MPM_PACKET && !(s->flags & SIG_FLAG_MPM_PACKET_NEG) &&
