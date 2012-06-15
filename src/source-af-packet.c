@@ -368,6 +368,17 @@ int AFPRead(AFPThreadVars *ptv)
     SCReturnInt(AFP_READ_OK);
 }
 
+TmEcode AFPReleaseDataFromRing(ThreadVars *t, Packet *p)
+{
+    if (p->afp_v.relptr) {
+        union thdr h;
+        h.raw = p->afp_v.relptr;
+        h.h2->tp_status = TP_STATUS_KERNEL;
+        return TM_ECODE_OK;
+    }
+    return TM_ECODE_FAILED;
+}
+
 /**
  * \brief AF packet read function for ring
  *
@@ -388,6 +399,11 @@ int AFPReadFromRing(AFPThreadVars *ptv)
         h.raw = (((union thdr **)ptv->frame_buf)[ptv->frame_offset]);
         if (h.raw == NULL) {
             SCReturnInt(AFP_FAILURE);
+        } else {
+            if (ptv->flags & AFP_RING_MODE) {
+                p->afp_v.relptr = h.raw;
+                p->ReleaseData = AFPReleaseDataFromRing;
+            }
         }
         if (h.h2->tp_status == TP_STATUS_KERNEL) {
             SCReturnInt(AFP_READ_OK);
@@ -1011,6 +1027,13 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (active_runmode && !strcmp("workers", active_runmode)) {
         ptv->flags |= AFP_ZERO_COPY;
         SCLogInfo("Enabling zero copy mode");
+    }
+
+    /* If we are in RING mode, then we can use ZERO copy
+     * by using the data release mechanism */
+    if (ptv->flags & AFP_RING_MODE) {
+        ptv->flags |= AFP_ZERO_COPY;
+        SCLogInfo("Enabling zero copy mode by using data release call");
     }
 
     r = AFPCreateSocket(ptv, ptv->iface, 1);
