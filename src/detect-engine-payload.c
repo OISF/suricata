@@ -879,6 +879,58 @@ end:
     return result;
 }
 
+/*
+ * \test Test packet/stream sigs
+ */
+static int PayloadTestSig27(void)
+{
+    uint8_t buf[] = "dummypayload";
+    uint16_t buflen = sizeof(buf) - 1;
+    int result = 0;
+
+    Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
+
+    char sig[] = "alert tcp any any -> any any (content:\"dummy\"; "
+        "depth:5; sid:1;)";
+
+    p->flags |= PKT_STREAM_ADD;
+    if (UTHPacketMatchSigMpm(p, sig, MPM_AC) != 1)
+        goto end;
+
+    result = 1;
+
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
+/*
+ * \test Test packet/stream sigs
+ */
+static int PayloadTestSig28(void)
+{
+    uint8_t buf[] = "dummypayload";
+    uint16_t buflen = sizeof(buf) - 1;
+    int result = 0;
+
+    Packet *p = UTHBuildPacket(buf, buflen, IPPROTO_TCP);
+
+    char sig[] = "alert tcp any any -> any any (content:\"payload\"; "
+        "offset:4; depth:12; sid:1;)";
+
+    p->flags |= PKT_STREAM_ADD;
+    if (UTHPacketMatchSigMpm(p, sig, MPM_AC) != 1)
+        goto end;
+
+    result = 1;
+
+end:
+    if (p != NULL)
+        UTHFreePacket(p);
+    return result;
+}
+
 #endif /* UNITTESTS */
 
 void PayloadRegisterTests(void) {
@@ -910,6 +962,8 @@ void PayloadRegisterTests(void) {
     UtRegisterTest("PayloadTestSig24", PayloadTestSig24, 1);
     UtRegisterTest("PayloadTestSig25", PayloadTestSig25, 1);
     UtRegisterTest("PayloadTestSig26", PayloadTestSig26, 1);
+    UtRegisterTest("PayloadTestSig27", PayloadTestSig27, 1);
+    UtRegisterTest("PayloadTestSig28", PayloadTestSig28, 1);
 #endif /* UNITTESTS */
 
     return;
