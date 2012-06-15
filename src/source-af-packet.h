@@ -67,6 +67,13 @@ typedef struct AFPIfaceConfig_
     void (*DerefFunc)(void *);
 } AFPIfaceConfig;
 
+/* per packet AF_PACKET vars */
+typedef struct AFPPacketVars_
+{
+    void *relptr;
+} AFPPacketVars;
+
+
 void TmModuleReceiveAFPRegister (void);
 void TmModuleDecodeAFPRegister (void);
 
