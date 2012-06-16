@@ -56,6 +56,7 @@ void TmModuleDecodeErfDagRegister (void) {
     tmm_modules[TMM_DECODEERFDAG].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODEERFDAG].RegisterTests = NULL;
     tmm_modules[TMM_DECODEERFDAG].cap_flags = 0;
+    tmm_modules[TMM_DECODEERFDAG].flags = TM_FLAG_DECODE_TM;
 }
 
 TmEcode NoErfDagSupportExit(ThreadVars *tv, void *initdata, void **data)
@@ -137,6 +138,7 @@ TmModuleDecodeErfDagRegister(void)
     tmm_modules[TMM_DECODEERFDAG].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODEERFDAG].RegisterTests = NULL;
     tmm_modules[TMM_DECODEERFDAG].cap_flags = 0;
+    tmm_modules[TMM_DECODEERFDAG].flags = TM_FLAG_DECODE_TM;
 }
 
 /**

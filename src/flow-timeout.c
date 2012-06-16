@@ -685,7 +685,27 @@ void FlowForceReassemblySetup(void)
         stream_pseudo_pkt_detect_TV = NULL;
     }
 
-    stream_pseudo_pkt_decode_tm_slot = TmThreadGetFirstTmSlotForPartialPattern("Decode");
+
+    SCMutexLock(&tv_root_lock);
+    ThreadVars *tv = tv_root[TVT_PPT];
+    int done = 0;
+    while (tv) {
+        TmSlot *slots = tv->tm_slots;
+        while (slots) {
+            TmModule *tm = TmModuleGetById(slots->tm_id);
+            if (tm->flags & TM_FLAG_DECODE_TM) {
+                done = 1;
+                stream_pseudo_pkt_decode_tm_slot = slots;
+                break;
+            }
+            slots = slots->slot_next;
+        }
+        if (done)
+            break;
+        tv = tv->next;
+    }
+    SCMutexUnlock(&tv_root_lock);
+
     if (stream_pseudo_pkt_decode_tm_slot == NULL) {
         /* yes, this is fatal! */
         SCLogError(SC_ERR_TM_MODULES_ERROR, "Looks like we have failed to "

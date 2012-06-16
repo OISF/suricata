@@ -106,6 +106,7 @@ void TmModuleDecodeAFPRegister (void) {
     tmm_modules[TMM_DECODEAFP].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODEAFP].RegisterTests = NULL;
     tmm_modules[TMM_DECODEAFP].cap_flags = 0;
+    tmm_modules[TMM_DECODEAFP].flags = TM_FLAG_DECODE_TM;
 }
 
 /**
@@ -226,6 +227,7 @@ void TmModuleDecodeAFPRegister (void) {
     tmm_modules[TMM_DECODEAFP].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODEAFP].RegisterTests = NULL;
     tmm_modules[TMM_DECODEAFP].cap_flags = 0;
+    tmm_modules[TMM_DECODEAFP].flags = TM_FLAG_DECODE_TM;
 }
 
 static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose);

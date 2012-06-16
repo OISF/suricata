@@ -133,6 +133,7 @@ void TmModuleDecodePcapRegister (void) {
     tmm_modules[TMM_DECODEPCAP].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODEPCAP].RegisterTests = NULL;
     tmm_modules[TMM_DECODEPCAP].cap_flags = 0;
+    tmm_modules[TMM_DECODEPCAP].flags = TM_FLAG_DECODE_TM;
 }
 
 #if LIBPCAP_VERSION_MAJOR == 1

@@ -113,6 +113,7 @@ void TmModuleDecodePcapFileRegister (void) {
     tmm_modules[TMM_DECODEPCAPFILE].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODEPCAPFILE].RegisterTests = NULL;
     tmm_modules[TMM_DECODEPCAPFILE].cap_flags = 0;
+    tmm_modules[TMM_DECODEPCAPFILE].flags = TM_FLAG_DECODE_TM;
 }
 
 void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt) {

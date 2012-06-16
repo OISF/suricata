@@ -60,6 +60,7 @@ void TmModuleNapatechDecodeRegister (void) {
     tmm_modules[TMM_DECODENAPATECH].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODENAPATECH].RegisterTests = NULL;
     tmm_modules[TMM_DECODENAPATECH].cap_flags = 0;
+    tmm_modules[TMM_DECODENAPATECH].flags = TM_FLAG_DECODE_TM;
 }
 
 TmEcode NoNapatechSupportExit(ThreadVars *tv, void *initdata, void **data)
@@ -127,6 +128,7 @@ void TmModuleNapatechDecodeRegister(void)
     tmm_modules[TMM_DECODENAPATECH].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODENAPATECH].RegisterTests = NULL;
     tmm_modules[TMM_DECODENAPATECH].cap_flags = 0;
+    tmm_modules[TMM_DECODENAPATECH].flags = TM_FLAG_DECODE_TM;
 }
 
 /**

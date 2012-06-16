@@ -83,6 +83,7 @@ void TmModuleDecodeIPFWRegister (void) {
     tmm_modules[TMM_DECODEIPFW].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODEIPFW].RegisterTests = NULL;
     tmm_modules[TMM_DECODEIPFW].cap_flags = 0;
+    tmm_modules[TMM_DECODEIPFW].flags = TM_FLAG_DECODE_TM;
 }
 
 TmEcode NoIPFWSupportExit(ThreadVars *tv, void *initdata, void **data) {
@@ -185,6 +186,7 @@ void TmModuleDecodeIPFWRegister (void) {
     tmm_modules[TMM_DECODEIPFW].ThreadExitPrintStats = NULL;
     tmm_modules[TMM_DECODEIPFW].ThreadDeinit = NULL;
     tmm_modules[TMM_DECODEIPFW].RegisterTests = NULL;
+    tmm_modules[TMM_DECODEIPFW].flags = TM_FLAG_DECODE_TM;
 }
 
 static inline void IPFWMutexInit(IPFWQueueVars *nq)
