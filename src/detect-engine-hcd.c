@@ -88,11 +88,21 @@ int DetectEngineRunHttpCookieMpm(DetectEngineThreadCtx *det_ctx, Flow *f,
         if (tx == NULL)
             continue;
 
-        htp_header_t *h = (htp_header_t *)table_getc(tx->request_headers,
-                                                     "Cookie");
-        if (h == NULL) {
-            SCLogDebug("HTTP cookie header not present in this request");
-            continue;
+        htp_header_t *h = NULL;
+        if (flags & STREAM_TOSERVER) {
+            h = (htp_header_t *)table_getc(tx->request_headers,
+                                           "Cookie");
+            if (h == NULL) {
+                SCLogDebug("HTTP cookie header not present in this request");
+                continue;
+            }
+        } else {
+            h = (htp_header_t *)table_getc(tx->response_headers,
+                                           "Set-Cookie");
+            if (h == NULL) {
+                SCLogDebug("HTTP Set-Cookie header not present in this request");
+                continue;
+            }
         }
 
         cnt += HttpCookiePatternSearch(det_ctx,
@@ -153,11 +163,21 @@ int DetectEngineInspectHttpCookie(DetectEngineCtx *de_ctx,
         if (tx == NULL)
             continue;
 
-        htp_header_t *h = (htp_header_t *)table_getc(tx->request_headers,
-                                                     "Cookie");
-        if (h == NULL) {
-            SCLogDebug("HTTP cookie header not present in this request");
-            continue;
+        htp_header_t *h = NULL;
+        if (flags & STREAM_TOSERVER) {
+            h = (htp_header_t *)table_getc(tx->request_headers,
+                                           "Cookie");
+            if (h == NULL) {
+                SCLogDebug("HTTP cookie header not present in this request");
+                continue;
+            }
+        } else {
+            h = (htp_header_t *)table_getc(tx->response_headers,
+                                           "Set-Cookie");
+            if (h == NULL) {
+                SCLogDebug("HTTP Set-Cookie header not present in this request");
+                continue;
+            }
         }
 
         det_ctx->buffer_offset = 0;
