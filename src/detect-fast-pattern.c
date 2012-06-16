@@ -45,8 +45,6 @@ static pcre_extra *parse_regex_study = NULL;
 static int DetectFastPatternSetup(DetectEngineCtx *, Signature *, char *);
 void DetectFastPatternRegisterTests(void);
 
-/* holds the list of sm's that should be given fp support */
-SCFPSupportSMType *sm_fp_support_smtype_list = NULL;
 /* holds the list of sm match lists that need to be searched for a keyword
  * that has fp support */
 SCFPSupportSMList *sm_fp_support_smlist_list = NULL;
@@ -83,76 +81,21 @@ static void SupportFastPatternForSigMatchList(int list_id)
 }
 
 /**
- * \brief Lets one add a sigmatch type for fast pattern support(explains the weird
- *        name the function has).
- *
- * \param sm_type The sigmatch for which fp support has to be added.
- */
-static void SupportFastPatternForSigMatchType(uint8_t sm_type)
-{
-    if (sm_fp_support_smtype_list != NULL) {
-        SCFPSupportSMType *tmp_smtype_fp = sm_fp_support_smtype_list;
-        while (tmp_smtype_fp != NULL) {
-            if (tmp_smtype_fp->sm_type == sm_type) {
-                return;
-            }
-            tmp_smtype_fp = tmp_smtype_fp->next;
-        }
-    }
-
-    SCFPSupportSMType *new_smtype_fp = SCMalloc(sizeof(SCFPSupportSMType));
-    if (new_smtype_fp == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC, "Error allocating memory");
-        exit(EXIT_FAILURE);
-    }
-    memset(new_smtype_fp, 0, sizeof(SCFPSupportSMType));
-    new_smtype_fp->sm_type = sm_type;
-
-    new_smtype_fp->next = sm_fp_support_smtype_list;
-    sm_fp_support_smtype_list = new_smtype_fp;
-
-    return;
-}
-
-/**
  * \brief Registers the keywords(SMs) that should be given fp support.
  */
 void SupportFastPatternForSigMatchTypes(void)
 {
-    SupportFastPatternForSigMatchType(DETECT_CONTENT);
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_PMATCH);
-
-    SupportFastPatternForSigMatchType(DETECT_CONTENT);
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_UMATCH);
-
-    SupportFastPatternForSigMatchType(DETECT_CONTENT);
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_HCBDMATCH);
-
-    SupportFastPatternForSigMatchType(DETECT_CONTENT);
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_HSBDMATCH);
-
-    SupportFastPatternForSigMatchType(DETECT_CONTENT);
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_HHDMATCH);
-
-    SupportFastPatternForSigMatchType(DETECT_CONTENT);
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_HRHDMATCH);
-
-    SupportFastPatternForSigMatchType(DETECT_CONTENT);
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_HMDMATCH);
-
-    SupportFastPatternForSigMatchType(DETECT_CONTENT);
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_HCDMATCH);
-
-    SupportFastPatternForSigMatchType(DETECT_CONTENT);
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_HRUDMATCH);
-
-    SupportFastPatternForSigMatchType(DETECT_CONTENT);
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_HSMDMATCH);
-
-    SupportFastPatternForSigMatchType(DETECT_CONTENT);
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_HSCDMATCH);
-
-    SupportFastPatternForSigMatchType(DETECT_CONTENT);
     SupportFastPatternForSigMatchList(DETECT_SM_LIST_HUADMATCH);
 
     return;

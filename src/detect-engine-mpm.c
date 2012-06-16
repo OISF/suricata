@@ -1523,7 +1523,7 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
              * if we have a fast_pattern set in this Signature */
             for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
                 /* this keyword isn't registered for fp support */
-                if (!FastPatternSupportEnabledForSigMatchType(sm->type))
+                if (sm->type != DETECT_CONTENT)
                     continue;
 
                 //if (PopulateMpmSkipContent(sgh, s, sm)) {
@@ -1563,7 +1563,7 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                     continue;
 
                 for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
-                    if (!FastPatternSupportEnabledForSigMatchType(sm->type))
+                    if (sm->type != DETECT_CONTENT)
                         continue;
 
                     //if (PopulateMpmSkipContent(sgh, s, sm)) {
@@ -1585,7 +1585,7 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                 continue;
 
             for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
-                if (!FastPatternSupportEnabledForSigMatchType(sm->type))
+                if (sm->type != DETECT_CONTENT)
                     continue;
 
                 /* skip in case of:

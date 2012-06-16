@@ -371,7 +371,7 @@ void EngineAnalysisFastPattern(Signature *s)
          * if we have a fast_pattern set in this Signature */
         for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
             /* this keyword isn't registered for fp support */
-            if (!FastPatternSupportEnabledForSigMatchType(sm->type))
+            if (sm->type != DETECT_CONTENT)
                 continue;
 
             DetectContentData *cd = (DetectContentData *)sm->ctx;
@@ -395,7 +395,7 @@ void EngineAnalysisFastPattern(Signature *s)
                 continue;
 
             for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
-                if (!FastPatternSupportEnabledForSigMatchType(sm->type))
+                if (sm->type != DETECT_CONTENT)
                     continue;
 
                 DetectContentData *cd = (DetectContentData *)sm->ctx;
@@ -411,7 +411,7 @@ void EngineAnalysisFastPattern(Signature *s)
             continue;
 
         for (sm = s->sm_lists[list_id]; sm != NULL; sm = sm->next) {
-            if (!FastPatternSupportEnabledForSigMatchType(sm->type))
+            if (sm->type != DETECT_CONTENT)
                 continue;
 
             /* skip in case of:
