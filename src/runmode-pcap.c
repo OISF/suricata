@@ -102,6 +102,7 @@ void *ParsePcapConfig(const char *iface)
         return NULL;
     }
 
+    memset(aconf, 0x00, sizeof(*aconf));
     strlcpy(aconf->iface, iface, sizeof(aconf->iface));
 
     aconf->buffer_size = 0;
@@ -120,6 +121,7 @@ void *ParsePcapConfig(const char *iface)
     SC_ATOMIC_INIT(aconf->ref);
     SC_ATOMIC_ADD(aconf->ref, 1);
     aconf->DerefFunc = PcapDerefConfig;
+    aconf->threads = 1;
 
     /* Find initial node */
     pcap_node = ConfGetNode("pcap");

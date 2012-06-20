@@ -685,7 +685,6 @@ void FlowForceReassemblySetup(void)
         stream_pseudo_pkt_detect_TV = NULL;
     }
 
-
     SCMutexLock(&tv_root_lock);
     ThreadVars *tv = tv_root[TVT_PPT];
     int done = 0;
