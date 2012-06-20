@@ -796,38 +796,25 @@ typedef struct SigTableElmt_ {
     char *name;
 } SigTableElmt;
 
-#define SIG_GROUP_HAVECONTENT           0x00000001
-#define SIG_GROUP_HAVEURICONTENT        0x00000002
-#define SIG_GROUP_HAVESTREAMCONTENT     0x00000004
-#define SIG_GROUP_HAVEHCBDCONTENT       0x00000008
-#define SIG_GROUP_HAVEHHDCONTENT        0x00000010
-#define SIG_GROUP_HAVEHRHDCONTENT       0x00000020
-#define SIG_GROUP_HAVEHMDCONTENT        0x00000040
-#define SIG_GROUP_HAVEHCDCONTENT        0x00000080
-#define SIG_GROUP_HAVEHRUDCONTENT       0x00000100
-#define SIG_GROUP_HEAD_MPM_COPY         0x00000200
-#define SIG_GROUP_HEAD_MPM_URI_COPY     0x00000400
-#define SIG_GROUP_HEAD_MPM_STREAM_COPY  0x00000800
-#define SIG_GROUP_HEAD_FREE             0x00001000
-#define SIG_GROUP_HEAD_MPM_PACKET       0x00002000
-#define SIG_GROUP_HEAD_MPM_STREAM       0x00004000
-#define SIG_GROUP_HEAD_MPM_URI          0x00008000
-#define SIG_GROUP_HEAD_MPM_HCBD         0x00010000
-#define SIG_GROUP_HEAD_MPM_HHD          0x00020000
-#define SIG_GROUP_HEAD_MPM_HRHD         0x00040000
-#define SIG_GROUP_HEAD_MPM_HMD          0x00080000
-#define SIG_GROUP_HEAD_MPM_HCD          0x00100000
-#define SIG_GROUP_HEAD_MPM_HRUD         0x00200000
-#define SIG_GROUP_HEAD_REFERENCED       0x00400000 /**< sgh is being referenced by others, don't clear */
-#define SIG_GROUP_HEAD_HAVEFILEMAGIC    0x00800000
-#define SIG_GROUP_HAVEHSBDCONTENT       0x01000000
-#define SIG_GROUP_HEAD_MPM_HSBD         0x02000000
-#define SIG_GROUP_HAVEHSMDCONTENT       0x04000000
-#define SIG_GROUP_HEAD_MPM_HSMD         0x08000000
-#define SIG_GROUP_HAVEHSCDCONTENT       0x10000000
-#define SIG_GROUP_HEAD_MPM_HSCD         0x20000000
-#define SIG_GROUP_HAVEHUADCONTENT       0x40000000
-#define SIG_GROUP_HEAD_MPM_HUAD         0x80000000
+#define SIG_GROUP_HEAD_MPM_COPY         (1)
+#define SIG_GROUP_HEAD_MPM_URI_COPY     (1 << 1)
+#define SIG_GROUP_HEAD_MPM_STREAM_COPY  (1 << 2)
+#define SIG_GROUP_HEAD_FREE             (1 << 3)
+#define SIG_GROUP_HEAD_MPM_PACKET       (1 << 4)
+#define SIG_GROUP_HEAD_MPM_STREAM       (1 << 5)
+#define SIG_GROUP_HEAD_MPM_URI          (1 << 6)
+#define SIG_GROUP_HEAD_MPM_HCBD         (1 << 7)
+#define SIG_GROUP_HEAD_MPM_HHD          (1 << 8)
+#define SIG_GROUP_HEAD_MPM_HRHD         (1 << 9)
+#define SIG_GROUP_HEAD_MPM_HMD          (1 << 10)
+#define SIG_GROUP_HEAD_MPM_HCD          (1 << 11)
+#define SIG_GROUP_HEAD_MPM_HRUD         (1 << 12)
+#define SIG_GROUP_HEAD_REFERENCED       (1 << 13) /**< sgh is being referenced by others, don't clear */
+#define SIG_GROUP_HEAD_HAVEFILEMAGIC    (1 << 14)
+#define SIG_GROUP_HEAD_MPM_HSBD         (1 << 15)
+#define SIG_GROUP_HEAD_MPM_HSMD         (1 << 16)
+#define SIG_GROUP_HEAD_MPM_HSCD         (1 << 17)
+#define SIG_GROUP_HEAD_MPM_HUAD         (1 << 18)
 
 typedef struct SigGroupHeadInitData_ {
     /* list of content containers
