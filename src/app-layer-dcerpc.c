@@ -229,53 +229,53 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
         switch (dcerpc->dcerpcbindbindack.ctxbytesprocessed) {
             case 0:
                 if (input_len >= 44) {
-			if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
-						dcerpc->dcerpcbindbindack.ctxid = *(p);
-						dcerpc->dcerpcbindbindack.ctxid |= *(p + 1) << 8;
-						dcerpc->dcerpcbindbindack.uuid[3] = *(p + 4);
-						dcerpc->dcerpcbindbindack.uuid[2] = *(p + 5);
-						dcerpc->dcerpcbindbindack.uuid[1] = *(p + 6);
-						dcerpc->dcerpcbindbindack.uuid[0] = *(p + 7);
-						dcerpc->dcerpcbindbindack.uuid[5] = *(p + 8);
-						dcerpc->dcerpcbindbindack.uuid[4] = *(p + 9);
-						dcerpc->dcerpcbindbindack.uuid[7] = *(p + 10);
-						dcerpc->dcerpcbindbindack.uuid[6] = *(p + 11);
-						dcerpc->dcerpcbindbindack.uuid[8] = *(p + 12);
-						dcerpc->dcerpcbindbindack.uuid[9] = *(p + 13);
-						dcerpc->dcerpcbindbindack.uuid[10] = *(p + 14);
-						dcerpc->dcerpcbindbindack.uuid[11] = *(p + 15);
-						dcerpc->dcerpcbindbindack.uuid[12] = *(p + 16);
-						dcerpc->dcerpcbindbindack.uuid[13] = *(p + 17);
-						dcerpc->dcerpcbindbindack.uuid[14] = *(p + 18);
-						dcerpc->dcerpcbindbindack.uuid[15] = *(p + 19);
-						dcerpc->dcerpcbindbindack.version = *(p + 20);
-						dcerpc->dcerpcbindbindack.version |= *(p + 21) << 8;
-						dcerpc->dcerpcbindbindack.versionminor = *(p + 22);
-						dcerpc->dcerpcbindbindack.versionminor |= *(p + 23) << 8;
-			} else { /* Big Endian */
-				dcerpc->dcerpcbindbindack.ctxid = *(p) << 8;
-				dcerpc->dcerpcbindbindack.ctxid |= *(p + 1);
-				dcerpc->dcerpcbindbindack.uuid[0] = *(p + 4);
-				dcerpc->dcerpcbindbindack.uuid[1] = *(p + 5);
-				dcerpc->dcerpcbindbindack.uuid[2] = *(p + 6);
-				dcerpc->dcerpcbindbindack.uuid[3] = *(p + 7);
-				dcerpc->dcerpcbindbindack.uuid[4] = *(p + 8);
-				dcerpc->dcerpcbindbindack.uuid[5] = *(p + 9);
-				dcerpc->dcerpcbindbindack.uuid[6] = *(p + 10);
-				dcerpc->dcerpcbindbindack.uuid[7] = *(p + 11);
-				dcerpc->dcerpcbindbindack.uuid[8] = *(p + 12);
-				dcerpc->dcerpcbindbindack.uuid[9] = *(p + 13);
-				dcerpc->dcerpcbindbindack.uuid[10] = *(p + 14);
-				dcerpc->dcerpcbindbindack.uuid[11] = *(p + 15);
-				dcerpc->dcerpcbindbindack.uuid[12] = *(p + 16);
-				dcerpc->dcerpcbindbindack.uuid[13] = *(p + 17);
-				dcerpc->dcerpcbindbindack.uuid[14] = *(p + 18);
-				dcerpc->dcerpcbindbindack.uuid[15] = *(p + 19);
-				dcerpc->dcerpcbindbindack.version = *(p + 20) << 8;
-				dcerpc->dcerpcbindbindack.version |= *(p + 21);
-				dcerpc->dcerpcbindbindack.versionminor = *(p + 22) << 8;
-				dcerpc->dcerpcbindbindack.versionminor |= *(p + 23);
-			}
+                    if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+                        dcerpc->dcerpcbindbindack.ctxid = *(p);
+                        dcerpc->dcerpcbindbindack.ctxid |= *(p + 1) << 8;
+                        dcerpc->dcerpcbindbindack.uuid[3] = *(p + 4);
+                        dcerpc->dcerpcbindbindack.uuid[2] = *(p + 5);
+                        dcerpc->dcerpcbindbindack.uuid[1] = *(p + 6);
+                        dcerpc->dcerpcbindbindack.uuid[0] = *(p + 7);
+                        dcerpc->dcerpcbindbindack.uuid[5] = *(p + 8);
+                        dcerpc->dcerpcbindbindack.uuid[4] = *(p + 9);
+                        dcerpc->dcerpcbindbindack.uuid[7] = *(p + 10);
+                        dcerpc->dcerpcbindbindack.uuid[6] = *(p + 11);
+                        dcerpc->dcerpcbindbindack.uuid[8] = *(p + 12);
+                        dcerpc->dcerpcbindbindack.uuid[9] = *(p + 13);
+                        dcerpc->dcerpcbindbindack.uuid[10] = *(p + 14);
+                        dcerpc->dcerpcbindbindack.uuid[11] = *(p + 15);
+                        dcerpc->dcerpcbindbindack.uuid[12] = *(p + 16);
+                        dcerpc->dcerpcbindbindack.uuid[13] = *(p + 17);
+                        dcerpc->dcerpcbindbindack.uuid[14] = *(p + 18);
+                        dcerpc->dcerpcbindbindack.uuid[15] = *(p + 19);
+                        dcerpc->dcerpcbindbindack.version = *(p + 20);
+                        dcerpc->dcerpcbindbindack.version |= *(p + 21) << 8;
+                        dcerpc->dcerpcbindbindack.versionminor = *(p + 22);
+                        dcerpc->dcerpcbindbindack.versionminor |= *(p + 23) << 8;
+                    } else { /* Big Endian */
+                        dcerpc->dcerpcbindbindack.ctxid = *(p) << 8;
+                        dcerpc->dcerpcbindbindack.ctxid |= *(p + 1);
+                        dcerpc->dcerpcbindbindack.uuid[0] = *(p + 4);
+                        dcerpc->dcerpcbindbindack.uuid[1] = *(p + 5);
+                        dcerpc->dcerpcbindbindack.uuid[2] = *(p + 6);
+                        dcerpc->dcerpcbindbindack.uuid[3] = *(p + 7);
+                        dcerpc->dcerpcbindbindack.uuid[4] = *(p + 8);
+                        dcerpc->dcerpcbindbindack.uuid[5] = *(p + 9);
+                        dcerpc->dcerpcbindbindack.uuid[6] = *(p + 10);
+                        dcerpc->dcerpcbindbindack.uuid[7] = *(p + 11);
+                        dcerpc->dcerpcbindbindack.uuid[8] = *(p + 12);
+                        dcerpc->dcerpcbindbindack.uuid[9] = *(p + 13);
+                        dcerpc->dcerpcbindbindack.uuid[10] = *(p + 14);
+                        dcerpc->dcerpcbindbindack.uuid[11] = *(p + 15);
+                        dcerpc->dcerpcbindbindack.uuid[12] = *(p + 16);
+                        dcerpc->dcerpcbindbindack.uuid[13] = *(p + 17);
+                        dcerpc->dcerpcbindbindack.uuid[14] = *(p + 18);
+                        dcerpc->dcerpcbindbindack.uuid[15] = *(p + 19);
+                        dcerpc->dcerpcbindbindack.version = *(p + 20) << 8;
+                        dcerpc->dcerpcbindbindack.version |= *(p + 21);
+                        dcerpc->dcerpcbindbindack.versionminor = *(p + 22) << 8;
+                        dcerpc->dcerpcbindbindack.versionminor |= *(p + 23);
+                    }
                     //if (dcerpc->dcerpcbindbindack.ctxid == dcerpc->dcerpcbindbindack.numctxitems
                     //        - dcerpc->dcerpcbindbindack.numctxitemsleft) {
 
@@ -321,20 +321,20 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                     //    SCReturnUInt(0);
                     //}
                 } else {
-			if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
-				dcerpc->dcerpcbindbindack.ctxid = *(p++);
-			} else {
-				dcerpc->dcerpcbindbindack.ctxid = *(p++) << 8;
-			}
+                    if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+                        dcerpc->dcerpcbindbindack.ctxid = *(p++);
+                    } else {
+                        dcerpc->dcerpcbindbindack.ctxid = *(p++) << 8;
+                    }
                     if (!(--input_len))
                         break;
                 }
             case 1:
-		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
-			dcerpc->dcerpcbindbindack.ctxid |= *(p++) << 8;
-		} else {
-			dcerpc->dcerpcbindbindack.ctxid |= *(p++);
-		}
+                if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+                    dcerpc->dcerpcbindbindack.ctxid |= *(p++) << 8;
+                } else {
+                    dcerpc->dcerpcbindbindack.ctxid |= *(p++);
+                }
                 if (!(--input_len))
                     break;
             case 2:
@@ -348,72 +348,72 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                 if (!(--input_len))
                     break;
             case 4:
-		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
-			dcerpc->dcerpcbindbindack.uuid[3] = *(p++);
-		} else {
-			dcerpc->dcerpcbindbindack.uuid[0] = *(p++);
-		}
+                if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+                    dcerpc->dcerpcbindbindack.uuid[3] = *(p++);
+                } else {
+                    dcerpc->dcerpcbindbindack.uuid[0] = *(p++);
+                }
                 if (!(--input_len))
                     break;
             case 5:
-		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
-			dcerpc->dcerpcbindbindack.uuid[2] = *(p++);
-		} else {
-			dcerpc->dcerpcbindbindack.uuid[1] = *(p++);
-		}
+                if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+                    dcerpc->dcerpcbindbindack.uuid[2] = *(p++);
+                } else {
+                    dcerpc->dcerpcbindbindack.uuid[1] = *(p++);
+                }
                 if (!(--input_len))
                     break;
             case 6:
-		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
-			dcerpc->dcerpcbindbindack.uuid[1] = *(p++);
-		} else {
-			dcerpc->dcerpcbindbindack.uuid[2] = *(p++);
-		}
+                if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+                    dcerpc->dcerpcbindbindack.uuid[1] = *(p++);
+                } else {
+                    dcerpc->dcerpcbindbindack.uuid[2] = *(p++);
+                }
                 if (!(--input_len))
                     break;
             case 7:
-		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
-			dcerpc->dcerpcbindbindack.uuid[0] = *(p++);
-		} else {
-			dcerpc->dcerpcbindbindack.uuid[3] = *(p++);
-		}
+                if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+                    dcerpc->dcerpcbindbindack.uuid[0] = *(p++);
+                } else {
+                    dcerpc->dcerpcbindbindack.uuid[3] = *(p++);
+                }
                 if (!(--input_len))
                     break;
             case 8:
-		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
-			dcerpc->dcerpcbindbindack.uuid[5] = *(p++);
-		} else {
-			dcerpc->dcerpcbindbindack.uuid[4] = *(p++);
-		}
+                if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+                    dcerpc->dcerpcbindbindack.uuid[5] = *(p++);
+                } else {
+                    dcerpc->dcerpcbindbindack.uuid[4] = *(p++);
+                }
                 if (!(--input_len))
                     break;
             case 9:
-		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
-			dcerpc->dcerpcbindbindack.uuid[4] = *(p++);
-		} else {
-			dcerpc->dcerpcbindbindack.uuid[5] = *(p++);
-		}
+                if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+                    dcerpc->dcerpcbindbindack.uuid[4] = *(p++);
+                } else {
+                    dcerpc->dcerpcbindbindack.uuid[5] = *(p++);
+                }
                 if (!(--input_len))
                     break;
             case 10:
-		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
-			dcerpc->dcerpcbindbindack.uuid[7] = *(p++);
-		} else {
-			dcerpc->dcerpcbindbindack.uuid[6] = *(p++);
-		}
+                if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+                    dcerpc->dcerpcbindbindack.uuid[7] = *(p++);
+                } else {
+                    dcerpc->dcerpcbindbindack.uuid[6] = *(p++);
+                }
                 if (!(--input_len))
                     break;
             case 11:
-		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
-			dcerpc->dcerpcbindbindack.uuid[6] = *(p++);
-		} else {
-			dcerpc->dcerpcbindbindack.uuid[7] = *(p++);
-		}
+                if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+                    dcerpc->dcerpcbindbindack.uuid[6] = *(p++);
+                } else {
+                    dcerpc->dcerpcbindbindack.uuid[7] = *(p++);
+                }
                 if (!(--input_len))
                     break;
             case 12:
-		/* The following bytes are in the same order for both big and little endian */
-		dcerpc->dcerpcbindbindack.uuid[8] = *(p++);
+                /* The following bytes are in the same order for both big and little endian */
+                dcerpc->dcerpcbindbindack.uuid[8] = *(p++);
                 if (!(--input_len))
                     break;
             case 13:
@@ -445,35 +445,35 @@ static uint32_t DCERPCParseBINDCTXItem(DCERPC *dcerpc, uint8_t *input, uint32_t 
                 if (!(--input_len))
                     break;
             case 20:
-		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
-			dcerpc->dcerpcbindbindack.version = *(p++);
-		} else {
-			dcerpc->dcerpcbindbindack.version = *(p++) << 8;
-		}
+                if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+                    dcerpc->dcerpcbindbindack.version = *(p++);
+                } else {
+                    dcerpc->dcerpcbindbindack.version = *(p++) << 8;
+                }
                 if (!(--input_len))
                     break;
             case 21:
-		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
-			dcerpc->dcerpcbindbindack.version |= *(p++) << 8;
-		} else {
-			dcerpc->dcerpcbindbindack.version |= *(p++);
-		}
+                if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+                    dcerpc->dcerpcbindbindack.version |= *(p++) << 8;
+                } else {
+                    dcerpc->dcerpcbindbindack.version |= *(p++);
+                }
                 if (!(--input_len))
                     break;
             case 22:
-		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
-			dcerpc->dcerpcbindbindack.versionminor = *(p++);
-		} else {
-			dcerpc->dcerpcbindbindack.versionminor = *(p++) << 8;
-		}
+                if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+                    dcerpc->dcerpcbindbindack.versionminor = *(p++);
+                } else {
+                    dcerpc->dcerpcbindbindack.versionminor = *(p++) << 8;
+                }
                 if (!(--input_len))
                     break;
             case 23:
-		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
-			dcerpc->dcerpcbindbindack.versionminor |= *(p++) << 8;
-		} else {
-			dcerpc->dcerpcbindbindack.versionminor |= *(p++);
-		}
+                if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+                    dcerpc->dcerpcbindbindack.versionminor |= *(p++) << 8;
+                } else {
+                    dcerpc->dcerpcbindbindack.versionminor |= *(p++);
+                }
                 if (!(--input_len))
                     break;
             case 24:
@@ -618,13 +618,13 @@ static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, uint8_t *input, uint32
         switch (dcerpc->dcerpcbindbindack.ctxbytesprocessed) {
             case 0:
                 if (input_len >= 24) {
-			if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
-				dcerpc->dcerpcbindbindack.result = *p;
-				dcerpc->dcerpcbindbindack.result |= *(p + 1) << 8;
-			} else {
-				dcerpc->dcerpcbindbindack.result = *p << 8;
-				dcerpc->dcerpcbindbindack.result |= *(p + 1);
-			}
+                    if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+                        dcerpc->dcerpcbindbindack.result = *p;
+                        dcerpc->dcerpcbindbindack.result |= *(p + 1) << 8;
+                    } else {
+                        dcerpc->dcerpcbindbindack.result = *p << 8;
+                        dcerpc->dcerpcbindbindack.result |= *(p + 1);
+                    }
                     TAILQ_FOREACH(uuid_entry, &dcerpc->dcerpcbindbindack.uuid_list, next) {
                         if (uuid_entry->internal_id == dcerpc->dcerpcbindbindack.uuid_internal_id) {
                             uuid_entry->result = dcerpc->dcerpcbindbindack.result;
@@ -658,20 +658,20 @@ static uint32_t DCERPCParseBINDACKCTXItem(DCERPC *dcerpc, uint8_t *input, uint32
                     dcerpc->dcerpcbindbindack.ctxbytesprocessed += (24);
                     SCReturnUInt(24U);
                 } else {
-			if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
-				dcerpc->dcerpcbindbindack.result = *(p++);
-			} else {
-				dcerpc->dcerpcbindbindack.result = *(p++) << 8;
-			}
+                    if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+                        dcerpc->dcerpcbindbindack.result = *(p++);
+                    } else {
+                        dcerpc->dcerpcbindbindack.result = *(p++) << 8;
+                    }
                     if (!(--input_len))
                         break;
                 }
             case 1:
-		if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
-			dcerpc->dcerpcbindbindack.result |= *(p++) << 8;
-		} else {
-			dcerpc->dcerpcbindbindack.result |= *(p++);
-		}
+                if (dcerpc->dcerpchdr.packed_drep[0] & 0x10) {
+                    dcerpc->dcerpcbindbindack.result |= *(p++) << 8;
+                } else {
+                    dcerpc->dcerpcbindbindack.result |= *(p++);
+                }
                 if (!(--input_len))
                     break;
             case 2:
@@ -902,9 +902,9 @@ static uint32_t DCERPCParseBIND(DCERPC *dcerpc, uint8_t *input, uint32_t input_l
                 --input_len;
                 break;
             default:
-		dcerpc->bytesprocessed++;
-		SCReturnUInt(1);
-		break;
+                dcerpc->bytesprocessed++;
+                SCReturnUInt(1);
+                break;
         }
     }
     dcerpc->bytesprocessed += (p - input);
@@ -986,9 +986,9 @@ static uint32_t DCERPCParseBINDACK(DCERPC *dcerpc, uint8_t *input, uint32_t inpu
             --input_len;
             break;
         default:
-		dcerpc->bytesprocessed++;
-		SCReturnUInt(1);
-		break;
+            dcerpc->bytesprocessed++;
+            SCReturnUInt(1);
+            break;
     }
     dcerpc->bytesprocessed += (p - input);
     SCReturnUInt((uint32_t)(p - input));
@@ -1173,8 +1173,8 @@ end:
 static int DCERPCParseHeader(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
     SCEnter();
     uint8_t *p = input;
-    if (input_len) {
 
+    if (input_len) {
         SCLogDebug("dcerpc->bytesprocessed %u", dcerpc->bytesprocessed);
         switch (dcerpc->bytesprocessed) {
             case 0:
@@ -1259,35 +1259,35 @@ static int DCERPCParseHeader(DCERPC *dcerpc, uint8_t *input, uint32_t input_len)
                 if (!(--input_len))
                     break;
             case 8:
-		dcerpc->dcerpchdr.frag_length = *(p++);
+                dcerpc->dcerpchdr.frag_length = *(p++);
                 if (!(--input_len))
                     break;
             case 9:
-		dcerpc->dcerpchdr.frag_length |= *(p++) << 8;
+                dcerpc->dcerpchdr.frag_length |= *(p++) << 8;
                 if (!(--input_len))
                     break;
             case 10:
-		dcerpc->dcerpchdr.auth_length = *(p++);
+                dcerpc->dcerpchdr.auth_length = *(p++);
                 if (!(--input_len))
                     break;
             case 11:
-			dcerpc->dcerpchdr.auth_length |= *(p++) << 8;
+                dcerpc->dcerpchdr.auth_length |= *(p++) << 8;
                 if (!(--input_len))
                     break;
             case 12:
-			dcerpc->dcerpchdr.call_id = *(p++);
+                dcerpc->dcerpchdr.call_id = *(p++);
                 if (!(--input_len))
                     break;
             case 13:
-			dcerpc->dcerpchdr.call_id |= *(p++) << 8;
+                dcerpc->dcerpchdr.call_id |= *(p++) << 8;
                 if (!(--input_len))
                     break;
             case 14:
-			dcerpc->dcerpchdr.call_id |= *(p++) << 16;
+                dcerpc->dcerpchdr.call_id |= *(p++) << 16;
                 if (!(--input_len))
                     break;
             case 15:
-			dcerpc->dcerpchdr.call_id |= *(p++) << 24;
+                dcerpc->dcerpchdr.call_id |= *(p++) << 24;
                 if (!(dcerpc->dcerpchdr.packed_drep[0] & 0x10)) {
                     dcerpc->dcerpchdr.frag_length = SCByteSwap16(dcerpc->dcerpchdr.frag_length);
                     dcerpc->dcerpchdr.auth_length = SCByteSwap16(dcerpc->dcerpchdr.auth_length);
@@ -1359,7 +1359,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
      * all the endless loops cases */
     int counter = 0;
 
-    while(input_len) {
+    while (input_len) {
         /* in case we have any corner cases remainging, we have this */
         if (counter++ == 30) {
             SCLogDebug("Somehow seem to be stuck inside the dce "
@@ -1370,7 +1370,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
 
         while (dcerpc->bytesprocessed < DCERPC_HDR_LEN && input_len) {
             hdrretval = DCERPCParseHeader(dcerpc, input + parsed, input_len);
-            if (hdrretval == -1) {
+            if (hdrretval == -1 || hdrretval > (int32_t)input_len) {
                 SCLogDebug("Error parsing dce header.  Discarding "
                         "PDU and reseting parsing state to parse next PDU");
                 /* error parsing pdu header.  Let's clear the dce state */
@@ -1431,7 +1431,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                        && dcerpc->bytesprocessed < dcerpc->dcerpchdr.frag_length
                        && input_len) {
                     retval = DCERPCParseBIND(dcerpc, input + parsed, input_len);
-                    if (retval) {
+                    if (retval && retval <= input_len) {
                         parsed += retval;
                         input_len -= retval;
                     } else if (input_len) {
@@ -1450,7 +1450,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                 while (dcerpc->dcerpcbindbindack.numctxitemsleft && dcerpc->bytesprocessed
                        < dcerpc->dcerpchdr.frag_length && input_len) {
                     retval = DCERPCParseBINDCTXItem(dcerpc, input + parsed, input_len);
-                    if (retval) {
+                    if (retval && retval <= input_len) {
                         if (dcerpc->dcerpcbindbindack.ctxbytesprocessed == 44) {
                             dcerpc->dcerpcbindbindack.ctxbytesprocessed = 0;
                         }
@@ -1481,12 +1481,20 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                     if (input_len) {
                         retval = DCERPCThrowOutExtraData(dcerpc, input + parsed,
                                                          input_len);
-                        input_len -= retval;
-                        parsed += retval;
-                        if (dcerpc->bytesprocessed == dcerpc->dcerpchdr.frag_length) {
-                            DCERPCResetParsingState(dcerpc);
+                        if (retval && retval <= input_len) {
+                            input_len -= retval;
+                            parsed += retval;
+                            if (dcerpc->bytesprocessed == dcerpc->dcerpchdr.frag_length) {
+                                DCERPCResetParsingState(dcerpc);
+                            } else {
+                                dcerpc->pdu_fragged = 1;
+                            }
                         } else {
-                            dcerpc->pdu_fragged = 1;
+                            SCLogDebug("Error Parsing DCERPC");
+                            parsed = 0;
+                            input_len = 0;
+                            DCERPCResetParsingState(dcerpc);
+                            SCReturnInt(0);
                         }
                     } else {
                         dcerpc->pdu_fragged = 1;
@@ -1500,7 +1508,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                        && dcerpc->bytesprocessed < dcerpc->dcerpchdr.frag_length
                        && input_len) {
                     retval = DCERPCParseBINDACK(dcerpc, input + parsed, input_len);
-                    if (retval) {
+                    if (retval && retval <= input_len) {
                         parsed += retval;
                         input_len -= retval;
                         SCLogDebug("DCERPCParseBINDACK processed %u/%u input_len left %u",
@@ -1521,7 +1529,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                        + dcerpc->dcerpcbindbindack.secondaryaddrlen
                        && dcerpc->bytesprocessed < dcerpc->dcerpchdr.frag_length && input_len) {
                     retval = DCERPCParseSecondaryAddr(dcerpc, input + parsed, input_len);
-                    if (retval) {
+                    if (retval && retval <= input_len) {
                         parsed += retval;
                         input_len -= retval;
                         SCLogDebug("DCERPCParseSecondaryAddr %u/%u left %u secondaryaddr len(%u)",
@@ -1548,7 +1556,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                        + dcerpc->dcerpcbindbindack.secondaryaddrlen + dcerpc->pad
                        && dcerpc->bytesprocessed < dcerpc->dcerpchdr.frag_length && input_len) {
                     retval = PaddingParser(dcerpc, input + parsed, input_len);
-                    if (retval) {
+                    if (retval && retval <= input_len) {
                         parsed += retval;
                         input_len -= retval;
                         SCLogDebug("PaddingParser %u/%u left %u pad(%u)",
@@ -1568,7 +1576,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                        < DCERPC_HDR_LEN + 14 + dcerpc->pad + dcerpc->dcerpcbindbindack.secondaryaddrlen
                        && dcerpc->bytesprocessed < dcerpc->dcerpchdr.frag_length && input_len) {
                     retval = DCERPCGetCTXItems(dcerpc, input + parsed, input_len);
-                    if (retval) {
+                    if (retval && retval <= input_len) {
                         parsed += retval;
                         input_len -= retval;
                         SCLogDebug("DCERPCGetCTXItems %u/%u (%u)", dcerpc->bytesprocessed,
@@ -1590,7 +1598,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                 while (dcerpc->dcerpcbindbindack.numctxitemsleft && dcerpc->bytesprocessed
                        < dcerpc->dcerpchdr.frag_length && input_len) {
                     retval = DCERPCParseBINDACKCTXItem(dcerpc, input + parsed, input_len);
-                    if (retval) {
+                    if (retval && retval <= input_len) {
                         if (dcerpc->dcerpcbindbindack.ctxbytesprocessed == 24) {
                             dcerpc->dcerpcbindbindack.ctxbytesprocessed = 0;
                         }
@@ -1626,12 +1634,20 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                     if (input_len) {
                         retval = DCERPCThrowOutExtraData(dcerpc, input + parsed,
                                                              input_len);
-                        input_len -= retval;
-                        parsed += retval;
-                        if (dcerpc->bytesprocessed == dcerpc->dcerpchdr.frag_length) {
-                            DCERPCResetParsingState(dcerpc);
+                        if (retval && retval <= input_len) {
+                            input_len -= retval;
+                            parsed += retval;
+                            if (dcerpc->bytesprocessed == dcerpc->dcerpchdr.frag_length) {
+                                DCERPCResetParsingState(dcerpc);
+                            } else {
+                                dcerpc->pdu_fragged = 1;
+                            }
                         } else {
-                            dcerpc->pdu_fragged = 1;
+                            SCLogDebug("Error Parsing DCERPC");
+                            parsed = 0;
+                            input_len = 0;
+                            DCERPCResetParsingState(dcerpc);
+                            SCReturnInt(0);
                         }
                     } else {
                         dcerpc->pdu_fragged = 1;
@@ -1645,7 +1661,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                        && dcerpc->bytesprocessed < dcerpc->dcerpchdr.frag_length
                        && input_len) {
                     retval = DCERPCParseREQUEST(dcerpc, input + parsed, input_len);
-                    if (retval) {
+                    if (retval && retval <= input_len) {
                         parsed += retval;
                         input_len -= retval;
                         dcerpc->padleft = dcerpc->dcerpchdr.frag_length - dcerpc->bytesprocessed;
@@ -1664,7 +1680,7 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                        && dcerpc->bytesprocessed < dcerpc->dcerpchdr.frag_length
                        && dcerpc->padleft && input_len) {
                     retval = StubDataParser(dcerpc, input + parsed, input_len);
-                    if (retval) {
+                    if (retval && retval <= input_len) {
                         parsed += retval;
                         input_len -= retval;
                     } else if (input_len) {
@@ -1701,12 +1717,20 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                     if (input_len) {
                         retval = DCERPCThrowOutExtraData(dcerpc, input + parsed,
                                                              input_len);
-                        input_len -= retval;
-                        parsed += retval;
-                        if (dcerpc->bytesprocessed == dcerpc->dcerpchdr.frag_length) {
-                            DCERPCResetParsingState(dcerpc);
+                        if (retval && retval <= input_len) {
+                            input_len -= retval;
+                            parsed += retval;
+                            if (dcerpc->bytesprocessed == dcerpc->dcerpchdr.frag_length) {
+                                DCERPCResetParsingState(dcerpc);
+                            } else {
+                                dcerpc->pdu_fragged = 1;
+                            }
                         } else {
-                            dcerpc->pdu_fragged = 1;
+                            SCLogDebug("Error Parsing DCERPC");
+                            parsed = 0;
+                            input_len = 0;
+                            DCERPCResetParsingState(dcerpc);
+                            SCReturnInt(0);
                         }
                     } else {
                         dcerpc->pdu_fragged = 1;
@@ -1726,12 +1750,20 @@ int32_t DCERPCParser(DCERPC *dcerpc, uint8_t *input, uint32_t input_len) {
                 SCLogDebug("DCERPC Type 0x%02x not implemented yet", dcerpc->dcerpchdr.type);
                 retval = DCERPCThrowOutExtraData(dcerpc, input + parsed,
                                                  input_len);
-                input_len -= retval;
-                parsed += retval;
-                if (dcerpc->bytesprocessed == dcerpc->dcerpchdr.frag_length) {
-                    DCERPCResetParsingState(dcerpc);
+                if (retval && retval <= input_len) {
+                    input_len -= retval;
+                    parsed += retval;
+                    if (dcerpc->bytesprocessed == dcerpc->dcerpchdr.frag_length) {
+                        DCERPCResetParsingState(dcerpc);
+                    } else {
+                        dcerpc->pdu_fragged = 1;
+                    }
                 } else {
-                    dcerpc->pdu_fragged = 1;
+                    SCLogDebug("Error Parsing DCERPC");
+                    parsed = 0;
+                    input_len = 0;
+                    DCERPCResetParsingState(dcerpc);
+                    SCReturnInt(0);
                 }
                 break;
         }

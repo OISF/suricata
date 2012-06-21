@@ -70,7 +70,7 @@ static uint32_t FragmentDataParser(Flow *f, void *dcerpcudp_state,
     stub_len = (sstate->dcerpc.fraglenleft < input_len) ? sstate->dcerpc.fraglenleft : input_len;
 
     if (stub_len == 0) {
-	SCReturnUInt(0);
+        SCReturnUInt(0);
     }
     /* if the frag is the the first frag irrespective of it being a part of
      * a multi frag PDU or not, it indicates the previous PDU's stub would
@@ -630,14 +630,15 @@ static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
 	while (sstate->bytesprocessed < DCERPC_UDP_HDR_LEN && input_len) {
 		hdrretval = DCERPCUDPParseHeader(f, dcerpc_state, pstate, input,
 				input_len, output);
-		if(hdrretval == -1) {
+		if (hdrretval == -1 || hdrretval > (int32_t)input_len) {
 			sstate->bytesprocessed = 0;
 			SCReturnInt(hdrretval);
 		} else {
-			parsed += retval;
-			input_len -= retval;
+			parsed += hdrretval;
+			input_len -= hdrretval;
 		}
 	}
+
 #if 0
 	printf("Done with DCERPCUDPParseHeader bytesprocessed %u/%u left %u\n",
 			sstate->bytesprocessed, sstate->dcerpc.dcerpchdrudp.fraglen, input_len);
@@ -659,7 +660,7 @@ static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
 			&& input_len) {
 		retval = FragmentDataParser(f, dcerpc_state, pstate, input + parsed,
 				input_len, output);
-		if (retval) {
+		if (retval || retval > (int32_t)input_len) {
 			parsed += retval;
 			input_len -= retval;
 		} else if (input_len) {

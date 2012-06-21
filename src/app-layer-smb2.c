@@ -75,14 +75,17 @@ static uint32_t NBSSParseHeader(void *smb2_state, AppLayerParserState *pstate,
                     SCReturnUInt(4U);
                 } else {
                     sstate->nbss.type = *(p++);
-                    if (!(--input_len)) break;
+                    if (!(--input_len))
+                        break;
                 }
             case 1:
                 sstate->nbss.length = (*(p++) & 0x01) << 16;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 2:
                 sstate->nbss.length |= *(p++) << 8;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 3:
                 sstate->nbss.length |= *(p++);
                 --input_len;
@@ -96,8 +99,10 @@ static uint32_t NBSSParseHeader(void *smb2_state, AppLayerParserState *pstate,
 static uint32_t SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
         uint8_t *input, uint32_t input_len, AppLayerParserResult *output) {
     SCEnter();
+
     SMB2State *sstate = (SMB2State *) smb2_state;
     uint8_t *p = input;
+
     if (input_len) {
         switch (sstate->bytesprocessed) {
             case 4:
@@ -185,194 +190,256 @@ static uint32_t SMB2ParseHeader(void *smb2_state, AppLayerParserState *pstate,
                 //sstate->smb2.protocol[1] = *(p++);
                 if (*(p++) != 'S')
                     return 0;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 6:
                 //sstate->smb2.protocol[2] = *(p++);
                 if (*(p++) != 'M')
                     return 0;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 7:
                 //sstate->smb2.protocol[3] = *(p++);
                 if (*(p++) != 'B')
                     return 0;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 8:
                 sstate->smb2.StructureSize = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 9:
                 sstate->smb2.StructureSize |= *(p++) << 8;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 10:
                 sstate->smb2.CreditCharge = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 11:
                 sstate->smb2.CreditCharge |= *(p++) << 8;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 12:
                 sstate->smb2.Status = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 13:
                 sstate->smb2.Status |= *(p++) << 8;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 14:
                 sstate->smb2.Status |= *(p++) << 16;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 15:
                 sstate->smb2.Status |= *(p++) << 24;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 16:
                 sstate->smb2.Command = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 17:
                 sstate->smb2.Command |= *(p++) << 8;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 18:
                 sstate->smb2.CreditRequestResponse = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 19:
                 sstate->smb2.CreditRequestResponse |= *(p++) << 8;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 20:
                 sstate->smb2.Flags = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 21:
                 sstate->smb2.Flags |= *(p++) << 8;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 22:
                 sstate->smb2.Flags |= *(p++) << 16;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 23:
                 sstate->smb2.Flags |= *(p++) << 24;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 24:
                 sstate->smb2.NextCommand = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 25:
                 sstate->smb2.NextCommand |= *(p++) << 8;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 26:
                 sstate->smb2.NextCommand |= *(p++) << 16;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 27:
                 sstate->smb2.NextCommand |= *(p++) << 24;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 28:
                 sstate->smb2.MessageId = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 29:
                 sstate->smb2.MessageId = *(p++) << 8;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 30:
                 sstate->smb2.MessageId = *(p++) << 16;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 31:
                 sstate->smb2.MessageId = (uint64_t) *(p++) << 24;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 32:
                 sstate->smb2.MessageId = (uint64_t) *(p++) << 32;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 33:
                 sstate->smb2.MessageId = (uint64_t) *(p++) << 40;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 34:
                 sstate->smb2.MessageId = (uint64_t) *(p++) << 48;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 35:
                 sstate->smb2.MessageId = (uint64_t) *(p++) << 56;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 36:
                 sstate->smb2.ProcessId = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 37:
                 sstate->smb2.ProcessId |= *(p++) << 8;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 38:
                 sstate->smb2.ProcessId |= *(p++) << 16;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 39:
                 sstate->smb2.ProcessId |= *(p++) << 24;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 40:
                 sstate->smb2.TreeId = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 41:
                 sstate->smb2.TreeId |= *(p++) << 8;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 42:
                 sstate->smb2.TreeId |= *(p++) << 16;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 43:
                 sstate->smb2.TreeId |= *(p++) <<  24;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 44:
                 sstate->smb2.SessionId = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 45:
                 sstate->smb2.SessionId |= *(p++) << 8;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 46:
                 sstate->smb2.SessionId |= *(p++) << 16;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 47:
                 sstate->smb2.SessionId |= (uint64_t) *(p++) << 24;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 48:
                 sstate->smb2.SessionId |= (uint64_t) *(p++) << 32;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 49:
                 sstate->smb2.SessionId |= (uint64_t) *(p++) << 40;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 50:
                 sstate->smb2.SessionId |= (uint64_t) *(p++) << 48;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 51:
                 sstate->smb2.SessionId |= (uint64_t) *(p++) << 56;
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 52:
                 sstate->smb2.Signature[0] = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 53:
                 sstate->smb2.Signature[1] = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 54:
                 sstate->smb2.Signature[2] = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 55:
                 sstate->smb2.Signature[3] = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 56:
                 sstate->smb2.Signature[4] = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 57:
                 sstate->smb2.Signature[5] = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 58:
                 sstate->smb2.Signature[6] = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 59:
                 sstate->smb2.Signature[7] = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 60:
                 sstate->smb2.Signature[8] = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 61:
                 sstate->smb2.Signature[9] = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 62:
                 sstate->smb2.Signature[10] = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 63:
                 sstate->smb2.Signature[11] = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 64:
                 sstate->smb2.Signature[12] = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 65:
                 sstate->smb2.Signature[13] = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 66:
                 sstate->smb2.Signature[14] = *(p++);
-                if (!(--input_len)) break;
+                if (!(--input_len))
+                    break;
             case 67:
                 sstate->smb2.Signature[15] = *(p++);
                 --input_len;
@@ -396,8 +463,12 @@ static int SMB2Parse(Flow *f, void *smb2_state, AppLayerParserState *pstate,
 
     while (sstate->bytesprocessed <  NBSS_HDR_LEN && input_len) {
         retval = NBSSParseHeader(smb2_state, pstate, input, input_len, output);
-        parsed += retval;
-        input_len -= retval;
+        if (retval <= input_len) {
+            parsed += retval;
+            input_len -= retval;
+        } else {
+            return -1;
+        }
 
         SCLogDebug("NBSS Header (%u/%u) Type 0x%02x Length 0x%04x parsed %u input_len %u",
                 sstate->bytesprocessed, NBSS_HDR_LEN, sstate->nbss.type,
@@ -409,8 +480,12 @@ static int SMB2Parse(Flow *f, void *smb2_state, AppLayerParserState *pstate,
             while (input_len && (sstate->bytesprocessed >= NBSS_HDR_LEN &&
                         sstate->bytesprocessed < NBSS_HDR_LEN + SMB2_HDR_LEN)) {
                 retval = SMB2ParseHeader(smb2_state, pstate, input + parsed, input_len, output);
-                parsed += retval;
-                input_len -= retval;
+                if (retval <= input_len) {
+                    parsed += retval;
+                    input_len -= retval;
+                } else {
+                    return -1;
+                }
 
                 SCLogDebug("SMB2 Header (%u/%u) Command 0x%04x parsed %u input_len %u",
                         sstate->bytesprocessed, NBSS_HDR_LEN + SMB2_HDR_LEN,
