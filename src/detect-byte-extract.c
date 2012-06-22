@@ -89,8 +89,6 @@
 static pcre *parse_regex;
 static pcre_extra *parse_regex_study;
 
-int byte_extract_max_local_id = 0;
-
 int DetectByteExtractMatch(ThreadVars *, DetectEngineThreadCtx *,
                            Packet *, Signature *, SigMatch *);
 int DetectByteExtractSetup(DetectEngineCtx *, Signature *, char *);
@@ -568,8 +566,8 @@ int DetectByteExtractSetup(DetectEngineCtx *de_ctx, Signature *s, char *arg)
     } else {
         bed->local_id = ((DetectByteExtractData *)prev_bed_sm->ctx)->local_id + 1;
     }
-    if (bed->local_id > byte_extract_max_local_id)
-        byte_extract_max_local_id = bed->local_id;
+    if (bed->local_id > de_ctx->byte_extract_max_local_id)
+        de_ctx->byte_extract_max_local_id = bed->local_id;
 
     /* check bytetest modifiers against the signature alproto.  In case they conflict
      * chuck out invalid signature */

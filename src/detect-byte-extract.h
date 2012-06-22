@@ -59,9 +59,6 @@ typedef struct DetectByteExtractData_ {
 
 } DetectByteExtractData;
 
-/* the max local id used amongst all sigs */
-extern int byte_extract_max_local_id;
-
 void DetectByteExtractRegister(void);
 int DetectByteExtractSetup(DetectEngineCtx *, Signature *, char *);
 void DetectByteExtractFree(void *);

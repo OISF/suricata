@@ -656,6 +656,9 @@ typedef struct DetectEngineCtx_ {
     int32_t sgh_mpm_context_huad;
     int32_t sgh_mpm_context_app_proto_detect;
 
+    /* the max local id used amongst all sigs */
+    int32_t byte_extract_max_local_id;
+
     /** sgh for signatures that match against invalid packets. In those cases
      *  we can't lookup by proto, address, port as we don't have these */
     struct SigGroupHead_ *decoder_event_sgh;

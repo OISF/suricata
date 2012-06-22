@@ -453,7 +453,7 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
     /* this detection engine context belongs to this thread instance */
     det_ctx->tv = tv;
 
-    det_ctx->bj_values = SCMalloc(sizeof(*det_ctx->bj_values) * (byte_extract_max_local_id + 1));
+    det_ctx->bj_values = SCMalloc(sizeof(*det_ctx->bj_values) * de_ctx->byte_extract_max_local_id);
     if (det_ctx->bj_values == NULL) {
         return TM_ECODE_FAILED;
     }
