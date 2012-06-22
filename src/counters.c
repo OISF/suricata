@@ -433,6 +433,12 @@ static void SCPerfReleaseOPCtx()
  */
 static void *SCPerfMgmtThread(void *arg)
 {
+    /* block usr2.  usr2 to be handled by the main thread only */
+    sigset_t x;
+    sigemptyset(&x);
+    sigaddset(&x, SIGUSR2);
+    sigprocmask(SIG_BLOCK, &x, NULL);
+
     ThreadVars *tv_local = (ThreadVars *)arg;
     uint8_t run = 1;
     struct timespec cond_time;
@@ -487,6 +493,12 @@ static void *SCPerfMgmtThread(void *arg)
  */
 static void *SCPerfWakeupThread(void *arg)
 {
+    /* block usr2.  usr2 to be handled by the main thread only */
+    sigset_t x;
+    sigemptyset(&x);
+    sigaddset(&x, SIGUSR2);
+    sigprocmask(SIG_BLOCK, &x, NULL);
+
     ThreadVars *tv_local = (ThreadVars *)arg;
     uint8_t run = 1;
     ThreadVars *tv = NULL;

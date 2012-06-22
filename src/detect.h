@@ -659,6 +659,9 @@ typedef struct DetectEngineCtx_ {
     /* the max local id used amongst all sigs */
     int32_t byte_extract_max_local_id;
 
+    /* id used by every detect engine ctx instance */
+    uint32_t id;
+
     /** sgh for signatures that match against invalid packets. In those cases
      *  we can't lookup by proto, address, port as we don't have these */
     struct SigGroupHead_ *decoder_event_sgh;
@@ -732,6 +735,8 @@ typedef struct DetectionEngineThreadCtx_ {
 
     /** ID of the transaction currently being inspected. */
     uint16_t tx_id;
+
+    uint16_t so_far_used_by_detect;
 
     /* holds the current recursion depth on content inspection */
     int inspection_recursion_counter;

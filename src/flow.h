@@ -327,9 +327,11 @@ typedef struct Flow_
     /** toclient sgh for this flow. Only use when FLOW_SGH_TOCLIENT flow flag
      *  has been set. */
     struct SigGroupHead_ *sgh_toclient;
+    uint32_t sgh_toclient_de_ctx_id;
     /** toserver sgh for this flow. Only use when FLOW_SGH_TOSERVER flow flag
      *  has been set. */
     struct SigGroupHead_ *sgh_toserver;
+    uint32_t sgh_toserver_de_ctx_id;
 
     /** List of tags of this flow (from "tag" keyword of type "session") */
     void *tag_list;

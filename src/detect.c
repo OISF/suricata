@@ -208,6 +208,7 @@ void TmModuleDetectRegister (void) {
     tmm_modules[TMM_DETECT].ThreadDeinit = DetectThreadDeinit;
     tmm_modules[TMM_DETECT].RegisterTests = SigRegisterTests;
     tmm_modules[TMM_DETECT].cap_flags = 0;
+    tmm_modules[TMM_DETECT].flags = TM_FLAG_DETECT_TM;
 
     PacketAlertTagInit();
 }
@@ -1338,11 +1339,19 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             if (IP_GET_IPPROTO(p) == p->flow->proto) { /* filter out icmp */
                 PACKET_PROFILING_DETECT_START(p, PROF_DETECT_GETSGH);
                 if (p->flowflags & FLOW_PKT_TOSERVER && p->flow->flags & FLOW_SGH_TOSERVER) {
-                    det_ctx->sgh = p->flow->sgh_toserver;
-                    sms_runflags |= SMS_USE_FLOW_SGH;
+                    if (p->flow->sgh_toserver_de_ctx_id != de_ctx->id) {
+                        p->flow->flags &= ~FLOW_SGH_TOSERVER;
+                    } else {
+                        det_ctx->sgh = p->flow->sgh_toserver;
+                        sms_runflags |= SMS_USE_FLOW_SGH;
+                    }
                 } else if (p->flowflags & FLOW_PKT_TOCLIENT && p->flow->flags & FLOW_SGH_TOCLIENT) {
-                    det_ctx->sgh = p->flow->sgh_toclient;
-                    sms_runflags |= SMS_USE_FLOW_SGH;
+                    if (p->flow->sgh_toclient_de_ctx_id != de_ctx->id) {
+                        p->flow->flags &= ~FLOW_SGH_TOCLIENT;
+                    } else {
+                        det_ctx->sgh = p->flow->sgh_toclient;
+                        sms_runflags |= SMS_USE_FLOW_SGH;
+                    }
                 }
                 PACKET_PROFILING_DETECT_END(p, PROF_DETECT_GETSGH);
 
@@ -1479,7 +1488,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
         memset(det_ctx->de_state_sig_array, 0x00, det_ctx->de_state_sig_array_len);
 
         /* if applicable, continue stateful detection */
-        int state = DeStateFlowHasState(p->flow, flags, alversion);
+        int state = DeStateFlowHasState(de_ctx, p->flow, flags, alversion);
         if (state == 1) {
             DeStateDetectContinueDetection(th_v, de_ctx, det_ctx, p->flow,
                     flags, alstate, alproto, alversion);
@@ -1767,6 +1776,7 @@ end:
             if (p->flowflags & FLOW_PKT_TOSERVER && !(p->flow->flags & FLOW_SGH_TOSERVER)) {
                 /* first time we see this toserver sgh, store it */
                 p->flow->sgh_toserver = det_ctx->sgh;
+                p->flow->sgh_toserver_de_ctx_id = de_ctx->id;
                 p->flow->flags |= FLOW_SGH_TOSERVER;
 
                 /* see if this sgh requires us to consider file storing */
@@ -1783,6 +1793,7 @@ end:
                 }
             } else if (p->flowflags & FLOW_PKT_TOCLIENT && !(p->flow->flags & FLOW_SGH_TOCLIENT)) {
                 p->flow->sgh_toclient = det_ctx->sgh;
+                p->flow->sgh_toclient_de_ctx_id = de_ctx->id;
                 p->flow->flags |= FLOW_SGH_TOCLIENT;
 
                 if (p->flow->sgh_toclient == NULL || p->flow->sgh_toclient->filestore_cnt == 0) {
@@ -1840,6 +1851,12 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
     if (de_ctx == NULL) {
         printf("ERROR: Detect has no detection engine ctx\n");
         goto error;
+    }
+
+    if (det_ctx->so_far_used_by_detect == 0) {
+        det_ctx->so_far_used_by_detect = 1;
+        SCLogDebug("Detect Engine using new det_ctx - %p and de_ctx - %p",
+                  det_ctx, de_ctx);
     }
 
     /* see if the packet matches one or more of the sigs */

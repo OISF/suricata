@@ -28,6 +28,7 @@
 #include "tm-threads.h"
 
 /* prototypes */
+void DetectEngineSpawnLiveRuleSwapMgmtThread(void);
 DetectEngineCtx *DetectEngineCtxInit(void);
 void DetectEngineCtxFree(DetectEngineCtx *);
 

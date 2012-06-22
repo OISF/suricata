@@ -222,6 +222,8 @@ intmax_t max_pending_packets;
 /** set caps or not */
 int sc_set_caps;
 
+char *conf_filename = NULL;
+
 int RunmodeIsUnittests(void) {
     if (run_mode == RUNMODE_UNITTEST)
         return 1;
@@ -237,6 +239,41 @@ static void SignalHandlerSigterm(/*@unused@*/ int sig) {
     sigterm_count = 1;
     suricata_ctl_flags |= SURICATA_KILL;
 }
+
+void SignalHandlerSigusr2EngineShutdown(int sig)
+{
+    SCLogInfo("Live rule swap no longer possible.  Engine in shutdown mode.");
+
+    return;
+}
+
+static void SignalHandlerSigusr2Idle(int sig)
+{
+    if (run_mode == RUNMODE_UNKNOWN || run_mode == RUNMODE_UNITTEST) {
+        SCLogInfo("Ruleset load signal USR2 triggered for wrong runmode");
+        return;
+    }
+
+    SCLogInfo("Hang on buddy!  Ruleset load in progress.  New ruleset load "
+              "allowed after current is done");
+
+    return;
+}
+
+void SignalHandlerSigusr2(int sig)
+{
+    if (run_mode == RUNMODE_UNKNOWN || run_mode == RUNMODE_UNITTEST) {
+        SCLogInfo("Ruleset load signal USR2 triggered for wrong runmode");
+        return;
+    }
+
+    SignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
+
+    DetectEngineSpawnLiveRuleSwapMgmtThread();
+
+    return;
+}
+
 #if 0
 static void SignalHandlerSighup(/*@unused@*/ int sig) {
     sighup_count = 1;
@@ -258,8 +295,7 @@ uint8_t print_mem_flag = 1;
 #endif
 #endif
 
-static void
-SignalHandlerSetup(int sig, void (*handler)())
+void SignalHandlerSetup(int sig, void (*handler)())
 {
 #if defined (OS_WIN32)
 	signal(sig, handler);
@@ -630,7 +666,6 @@ int main(int argc, char **argv)
     char *sig_file = NULL;
     int sig_file_exclusive = FALSE;
     int conf_test = 0;
-    char *conf_filename = NULL;
     char *pid_filename = NULL;
 #ifdef UNITTESTS
     char *regex_arg = NULL;
@@ -1435,6 +1470,8 @@ int main(int argc, char **argv)
 
     AppLayerHtpNeedFileInspection();
 
+    SignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
+
 #ifdef UNITTESTS
 
     if (run_mode == RUNMODE_UNITTEST) {
@@ -1671,6 +1708,10 @@ int main(int argc, char **argv)
         exit(EXIT_SUCCESS);
     }
 
+    /* registering singal handlers we use.  We register usr2 here, so that one
+     * can't call it during the first sig load phase */
+    SignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
+
 #ifdef PROFILING
     SCProfilingInitRuleCounters(de_ctx);
 #endif /* PROFILING */
@@ -1838,6 +1879,8 @@ int main(int argc, char **argv)
         usleep(10* 1000);
     }
 
+    SignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2EngineShutdown);
+
     /* Update the engine stage/status flag */
     SC_ATOMIC_CAS(&engine_stage, SURICATA_RUNTIME, SURICATA_DEINIT);
 
@@ -1887,7 +1930,10 @@ int main(int argc, char **argv)
         }
     }
 #endif
+    /* updated by AS.  Don't clean up de_ctx.  Necessiated by live rule swap */
+#if 0
     SigGroupCleanup(de_ctx);
+#endif
 #ifdef __SC_CUDA_SUPPORT__
     if (PatternMatchDefaultMatcher() == MPM_B2G_CUDA) {
         /* pop the cuda context we just pushed before the call to SigGroupCleanup() */
@@ -1902,11 +1948,17 @@ int main(int argc, char **argv)
 
     AppLayerHtpPrintStats();
 
+    /* updated by AS.  Don't clean up de_ctx.  Necessiated by live rule swap */
+#if 0
     SigCleanSignatures(de_ctx);
+#endif
     if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
         MpmFactoryDeRegisterAllMpmCtxProfiles(de_ctx);
     }
+    /* updated by AS.  Don't clean up de_ctx.  Necessiated by live rule swap */
+#if 0
     DetectEngineCtxFree(de_ctx);
+#endif
     AlpProtoDestroy();
 
     TagDestroyCtx();

@@ -371,6 +371,12 @@ next:
  */
 void *FlowManagerThread(void *td)
 {
+    /* block usr1.  usr1 to be handled by the main thread only */
+    sigset_t x;
+    sigemptyset(&x);
+    sigaddset(&x, SIGUSR2);
+    sigprocmask(SIG_BLOCK, &x, NULL);
+
     ThreadVars *th_v = (ThreadVars *)td;
     struct timeval ts;
     uint32_t established_cnt = 0, new_cnt = 0, closing_cnt = 0;

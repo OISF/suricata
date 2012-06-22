@@ -121,6 +121,12 @@ void TmThreadsUnsetFlag(ThreadVars *tv, uint8_t flag)
 /* 1 slot functions */
 void *TmThreadsSlot1NoIn(void *td)
 {
+    /* block usr2.  usr2 to be handled by the main thread only */
+    sigset_t x;
+    sigemptyset(&x);
+    sigaddset(&x, SIGUSR2);
+    sigprocmask(SIG_BLOCK, &x, NULL);
+
     ThreadVars *tv = (ThreadVars *)td;
     TmSlot *s = (TmSlot *)tv->tm_slots;
     char run = 1;
@@ -213,6 +219,12 @@ void *TmThreadsSlot1NoIn(void *td)
 
 void *TmThreadsSlot1NoOut(void *td)
 {
+    /* block usr2.  usr2 to be handled by the main thread only */
+    sigset_t x;
+    sigemptyset(&x);
+    sigaddset(&x, SIGUSR2);
+    sigprocmask(SIG_BLOCK, &x, NULL);
+
     ThreadVars *tv = (ThreadVars *)td;
     TmSlot *s = (TmSlot *)tv->tm_slots;
     Packet *p = NULL;
@@ -288,6 +300,12 @@ void *TmThreadsSlot1NoOut(void *td)
 
 void *TmThreadsSlot1NoInOut(void *td)
 {
+    /* block usr2.  usr2 to be handled by the main thread only */
+    sigset_t x;
+    sigemptyset(&x);
+    sigaddset(&x, SIGUSR2);
+    sigprocmask(SIG_BLOCK, &x, NULL);
+
     ThreadVars *tv = (ThreadVars *)td;
     TmSlot *s = (TmSlot *)tv->tm_slots;
     char run = 1;
@@ -358,6 +376,12 @@ void *TmThreadsSlot1NoInOut(void *td)
 
 void *TmThreadsSlot1(void *td)
 {
+    /* block usr2.  usr2 to be handled by the main thread only */
+    sigset_t x;
+    sigemptyset(&x);
+    sigaddset(&x, SIGUSR2);
+    sigprocmask(SIG_BLOCK, &x, NULL);
+
     ThreadVars *tv = (ThreadVars *)td;
     TmSlot *s = (TmSlot *)tv->tm_slots;
     Packet *p = NULL;
@@ -558,6 +582,12 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
  */
 
 void *TmThreadsSlotPktAcqLoop(void *td) {
+    /* block usr2.  usr2 to be handled by the main thread only */
+    sigset_t x;
+    sigemptyset(&x);
+    sigaddset(&x, SIGUSR2);
+    sigprocmask(SIG_BLOCK, &x, NULL);
+
     ThreadVars *tv = (ThreadVars *)td;
     TmSlot *s = tv->tm_slots;
     char run = 1;
@@ -645,6 +675,12 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
  */
 void *TmThreadsSlotVar(void *td)
 {
+    /* block usr2.  usr2 to be handled by the main thread only */
+    sigset_t x;
+    sigemptyset(&x);
+    sigaddset(&x, SIGUSR2);
+    sigprocmask(SIG_BLOCK, &x, NULL);
+
     ThreadVars *tv = (ThreadVars *)td;
     TmSlot *s = (TmSlot *)tv->tm_slots;
     Packet *p = NULL;
