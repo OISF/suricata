@@ -715,6 +715,13 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
     return TM_ECODE_OK;
 }
 
+/**
+ * \internal
+ * \brief This thread is an exact duplicate of DetectEngineThreadCtxInit(),
+ *        except that the counters API 2 calls doesn't let us use the same
+ *        init function.  Once we have the new counters API it should let
+ *        us use the same init function.
+ */
 static TmEcode DetectEngineThreadCtxInitForLiveRuleSwap(ThreadVars *tv, void *initdata, void **data)
 {
     DetectEngineCtx *de_ctx = (DetectEngineCtx *)initdata;

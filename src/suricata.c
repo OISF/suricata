@@ -248,6 +248,13 @@ void SignalHandlerSigusr2EngineShutdown(int sig)
     return;
 }
 
+void SignalHandlerSigusr2SigFileStartup(int sig)
+{
+    SCLogInfo("Live rule not possible if -s or -S option used at runtime.");
+
+    return;
+}
+
 static void SignalHandlerSigusr2Idle(int sig)
 {
     if (run_mode == RUNMODE_UNKNOWN || run_mode == RUNMODE_UNITTEST) {
@@ -1455,7 +1462,10 @@ int main(int argc, char **argv)
 
     AppLayerHtpNeedFileInspection();
 
-    UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
+    if (sig_file == NULL)
+        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
+    else
+        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2SigFileStartup);
 
 #ifdef UNITTESTS
 
@@ -1696,7 +1706,8 @@ int main(int argc, char **argv)
 
     /* registering singal handlers we use.  We register usr2 here, so that one
      * can't call it during the first sig load phase */
-    UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
+    if (sig_file == NULL)
+        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
 
 #ifdef PROFILING
     SCProfilingInitRuleCounters(de_ctx);
