@@ -227,8 +227,7 @@ static void *DetectEngineLiveRuleSwap(void *arg)
             }
 
 
-            BUG_ON(SC_ATOMIC_CAS(&slots->slot_data, SC_ATOMIC_GET(slots->slot_data),
-                                 det_ctx) == 0);;
+            SC_ATOMIC_SET(slots->slot_data, det_ctx);
             SCLogDebug("swapping new det_ctx with older one");
 
             slots = slots->slot_next;
