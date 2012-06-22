@@ -208,8 +208,21 @@ error:
 void SCThresholdConfDeInitContext(DetectEngineCtx *de_ctx, FILE *fd)
 {
 
-    if(fd != NULL)
+    if (fd != NULL)
         fclose(fd);
+
+    regex_base = NULL;
+    regex_base_study = NULL;
+
+    regex_threshold = NULL;
+    regex_threshold_study = NULL;
+
+    regex_rate = NULL;
+    regex_rate_study = NULL;
+
+    regex_suppress = NULL;
+    regex_suppress_study = NULL;
+
     return;
 }
 
