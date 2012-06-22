@@ -48,6 +48,7 @@
 
 //#include "util-mpm.h"
 #include "util-classification-config.h"
+#include "util-reference-config.h"
 #include "util-error.h"
 #include "util-hash.h"
 #include "util-byte.h"
@@ -165,6 +166,7 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
         SCFree(de_ctx->sig_array);
 
     SCClassConfDeInitContext(de_ctx);
+    SCRConfDeInitContext(de_ctx);
 
     SCFree(de_ctx);
     //DetectAddressGroupPrintMemory();

@@ -69,7 +69,7 @@ static char *SCRConfGetConfFilename(void);
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-static int SCRConfInitContext(DetectEngineCtx *de_ctx)
+static int SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx)
 {
     char *filename = NULL;
     const char *eb = NULL;
@@ -83,7 +83,7 @@ static int SCRConfInitContext(DetectEngineCtx *de_ctx)
     if (de_ctx->reference_conf_ht == NULL) {
         SCLogError(SC_ERR_HASH_TABLE_INIT, "Error initializing the hash "
                    "table");
-        return -1;
+        goto error;
     }
 
     /* if it is not NULL, use the file descriptor.  The hack so that we can
@@ -124,6 +124,9 @@ static int SCRConfInitContext(DetectEngineCtx *de_ctx)
         fd = NULL;
     }
 
+    regex = NULL;
+    regex_study = NULL;
+
     return -1;
 }
 
@@ -145,14 +148,29 @@ static char *SCRConfGetConfFilename(void)
 }
 
 /**
- * \brief Releases resources used by the Reference Config API.
+ * \brief Releases local resources used by the Reference Config API.
  */
-static void SCRConfDeInitContext(DetectEngineCtx *de_ctx)
+static void SCRConfDeInitLocalResources(DetectEngineCtx *de_ctx)
 {
     if (fd != NULL)
         fclose(fd);
     file_path = SC_RCONF_DEFAULT_FILE_PATH;
     fd = NULL;
+    regex = NULL;
+    regex_study = NULL;
+
+    return;
+}
+
+/**
+ * \brief Releases de_ctx resources related to Reference Config API.
+ */
+void SCRConfDeInitContext(DetectEngineCtx *de_ctx)
+{
+    if (de_ctx->reference_conf_ht != NULL)
+        HashTableFree(de_ctx->reference_conf_ht);
+
+    de_ctx->reference_conf_ht = NULL;
 
     return;
 }
@@ -458,18 +476,40 @@ void SCRConfReferenceHashFree(void *data)
  */
 int SCRConfLoadReferenceConfigFile(DetectEngineCtx *de_ctx)
 {
-    if (SCRConfInitContext(de_ctx) == -1) {
-        printf("\nPlease check the \"reference-config-file\" option in your suricata.yaml file.\n");
+    if (SCRConfInitContextAndLocalResources(de_ctx) == -1) {
+        SCLogInfo("Please check the \"reference-config-file\" option in your suricata.yaml file");
         exit(EXIT_FAILURE);
-        return -1;
     }
 
     SCRConfParseFile(de_ctx);
-    SCRConfDeInitContext(de_ctx);
+    SCRConfDeInitLocalResources(de_ctx);
 
     return 0;
 }
 
+/**
+ * \brief Gets the refernce config from the corresponding hash table stored
+ *        in the Detection Engine Context's reference conf ht, given the
+ *        reference name.
+ *
+ * \param ct_name Pointer to the reference name that has to be looked up.
+ * \param de_ctx  Pointer to the Detection Engine Context.
+ *
+ * \retval lookup_rconf_info Pointer to the SCRConfReference instance from
+ *                           the hash table on success; NULL on failure.
+ */
+SCRConfReference *SCRConfGetReference(const char *rconf_name,
+                                      DetectEngineCtx *de_ctx)
+{
+    SCRConfReference *ref_conf = SCRConfAllocSCRConfReference(rconf_name, NULL);
+    if (ref_conf == NULL)
+        exit(EXIT_FAILURE);
+    SCRConfReference *lookup_ref_conf = HashTableLookup(de_ctx->reference_conf_ht,
+                                                        ref_conf, 0);
+
+    SCRConfDeAllocSCRConfReference(ref_conf);
+    return lookup_ref_conf;
+}
 
 /*----------------------------------Unittests---------------------------------*/
 
@@ -639,7 +679,6 @@ int SCRConfTest03(void)
 int SCRConfTest04(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    SCRConfReference *ref = NULL;
     int result = 1;
 
     if (de_ctx == NULL)
@@ -654,21 +693,10 @@ int SCRConfTest04(void)
 
     result = (de_ctx->reference_conf_ht->count == 3);
 
-    ref = SCRConfAllocSCRConfReference("one", "http://www.one.com");
-    result &= (HashTableLookup(de_ctx->reference_conf_ht, ref, 0) != NULL);
-    SCRConfDeAllocSCRConfReference(ref);
-
-    ref = SCRConfAllocSCRConfReference("two", "http://www.two.com");
-    result &= (HashTableLookup(de_ctx->reference_conf_ht, ref, 0) != NULL);
-    SCRConfDeAllocSCRConfReference(ref);
-
-    ref = SCRConfAllocSCRConfReference("three", "http://www.three.com");
-    result &= (HashTableLookup(de_ctx->reference_conf_ht, ref, 0) != NULL);
-    SCRConfDeAllocSCRConfReference(ref);
-
-    ref = SCRConfAllocSCRConfReference("four", "http://www.four.com");
-    result &= (HashTableLookup(de_ctx->reference_conf_ht, ref, 0) == NULL);
-    SCRConfDeAllocSCRConfReference(ref);
+    result &= (SCRConfGetReference("one", de_ctx) != NULL);
+    result &= (SCRConfGetReference("two", de_ctx) != NULL);
+    result &= (SCRConfGetReference("three", de_ctx) != NULL);
+    result &= (SCRConfGetReference("four", de_ctx) == NULL);
 
  end:
     if (de_ctx != NULL)
@@ -684,7 +712,6 @@ int SCRConfTest04(void)
 int SCRConfTest05(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    SCRConfReference *ref = NULL;
     int result = 1;
 
     if (de_ctx == NULL)
@@ -699,25 +726,11 @@ int SCRConfTest05(void)
 
     result = (de_ctx->reference_conf_ht->count == 0);
 
-    ref = SCRConfAllocSCRConfReference("one", "one");
-    result &= (HashTableLookup(de_ctx->reference_conf_ht, ref, 0) == NULL);
-    SCRConfDeAllocSCRConfReference(ref);
-
-    ref = SCRConfAllocSCRConfReference("two", "two");
-    result &= (HashTableLookup(de_ctx->reference_conf_ht, ref, 0) == NULL);
-    SCRConfDeAllocSCRConfReference(ref);
-
-    ref = SCRConfAllocSCRConfReference("three", "three");
-    result &= (HashTableLookup(de_ctx->reference_conf_ht, ref, 0) == NULL);
-    SCRConfDeAllocSCRConfReference(ref);
-
-    ref = SCRConfAllocSCRConfReference("four", "four");
-    result &= (HashTableLookup(de_ctx->reference_conf_ht, ref, 0) == NULL);
-    SCRConfDeAllocSCRConfReference(ref);
-
-    ref = SCRConfAllocSCRConfReference("five", "five");
-    result &= (HashTableLookup(de_ctx->reference_conf_ht, ref, 0) == NULL);
-    SCRConfDeAllocSCRConfReference(ref);
+    result &= (SCRConfGetReference("one", de_ctx) == NULL);
+    result &= (SCRConfGetReference("two", de_ctx) == NULL);
+    result &= (SCRConfGetReference("three", de_ctx) == NULL);
+    result &= (SCRConfGetReference("four", de_ctx) == NULL);
+    result &= (SCRConfGetReference("five", de_ctx) == NULL);
 
  end:
     if (de_ctx != NULL)
@@ -732,7 +745,6 @@ int SCRConfTest05(void)
 int SCRConfTest06(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    SCRConfReference *ref = NULL;
     int result = 1;
 
     if (de_ctx == NULL)
@@ -747,25 +759,11 @@ int SCRConfTest06(void)
 
     result = (de_ctx->reference_conf_ht->count == 1);
 
-    ref = SCRConfAllocSCRConfReference("one", "one");
-    result &= (HashTableLookup(de_ctx->reference_conf_ht, ref, 0) != NULL);
-    SCRConfDeAllocSCRConfReference(ref);
-
-    ref = SCRConfAllocSCRConfReference("two", "two");
-    result &= (HashTableLookup(de_ctx->reference_conf_ht, ref, 0) == NULL);
-    SCRConfDeAllocSCRConfReference(ref);
-
-    ref = SCRConfAllocSCRConfReference("three", "three");
-    result &= (HashTableLookup(de_ctx->reference_conf_ht, ref, 0) == NULL);
-    SCRConfDeAllocSCRConfReference(ref);
-
-    ref = SCRConfAllocSCRConfReference("four", "four");
-    result &= (HashTableLookup(de_ctx->reference_conf_ht, ref, 0) == NULL);
-    SCRConfDeAllocSCRConfReference(ref);
-
-    ref = SCRConfAllocSCRConfReference("five", "five");
-    result &= (HashTableLookup(de_ctx->reference_conf_ht, ref, 0) == NULL);
-    SCRConfDeAllocSCRConfReference(ref);
+    result &= (SCRConfGetReference("one", de_ctx) != NULL);
+    result &= (SCRConfGetReference("two", de_ctx) == NULL);
+    result &= (SCRConfGetReference("three", de_ctx) == NULL);
+    result &= (SCRConfGetReference("four", de_ctx) == NULL);
+    result &= (SCRConfGetReference("five", de_ctx) == NULL);
 
  end:
     if (de_ctx != NULL)

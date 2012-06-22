@@ -37,6 +37,9 @@ typedef struct SCRConfReference_ {
 SCRConfReference *SCRConfAllocSCRConfReference(const char *, const char *);
 void SCRConfDeAllocSCRConfReference(SCRConfReference *);
 int SCRConfLoadReferenceConfigFile(DetectEngineCtx *);
+void SCRConfDeInitContext(DetectEngineCtx *);
+SCRConfReference *SCRConfGetReference(const char *,
+                                      DetectEngineCtx *);
 void SCRConfRegisterTests(void);
 
 /* these below functions are only used by unittests */

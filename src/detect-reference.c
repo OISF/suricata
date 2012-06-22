@@ -148,9 +148,7 @@ static DetectReference *DetectReferenceParse(char *rawstr, DetectEngineCtx *de_c
     if (key == NULL || content == NULL)
         goto error;
 
-    SCRConfReference *ref_conf = SCRConfAllocSCRConfReference(key, NULL);
-    SCRConfReference *lookup_ref_conf = HashTableLookup(de_ctx->reference_conf_ht,
-                                                        ref_conf, 0);
+    SCRConfReference *lookup_ref_conf = SCRConfGetReference(key, de_ctx);
     if (lookup_ref_conf != NULL) {
         ref->key = lookup_ref_conf->url;
     } else {
@@ -159,7 +157,6 @@ static DetectReference *DetectReferenceParse(char *rawstr, DetectEngineCtx *de_c
                    "have a look at the conf param \"reference-config-file\"", key);
         goto error;
     }
-    SCRConfDeAllocSCRConfReference(ref_conf);
 
     /* make a copy so we can free pcre's substring */
     ref->reference = SCStrdup((char *)content);
