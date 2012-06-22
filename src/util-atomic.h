@@ -466,5 +466,8 @@
         })
 
 #endif /* !no atomic operations */
+
+void SCAtomicRegisterTests(void);
+
 #endif /* __UTIL_ATOMIC_H__ */
 

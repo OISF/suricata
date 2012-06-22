@@ -1570,6 +1570,7 @@ int main(int argc, char **argv)
         DetectAddressTests();
         DetectProtoTests();
         DetectPortTests();
+        SCAtomicRegisterTests();
         if (list_unittests) {
             UtListTests(regex_arg);
         }

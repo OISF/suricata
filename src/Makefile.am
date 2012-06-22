@@ -3,7 +3,7 @@ noinst_HEADERS = action-globals.h \
     debug.h \
 	flow-private.h queue.h source-nfq-prototypes.h \
 	suricata-common.h threadvars.h util-binsearch.h \
-    util-atomic.h util-validate.h
+        util-validate.h
 bin_PROGRAMS = suricata
 
 AM_CPPFLAGS = -DCONFIG_DIR=\"$(e_sysconfdir)\"
@@ -180,7 +180,7 @@ decode-events.c decode-events.h \
 detect-replace.c detect-replace.h \
 util-magic.c util-magic.h \
 util-misc.c util-misc.h \
-util-atomic.h \
+util-atomic.c util-atomic.h \
 util-print.c util-print.h \
 util-fmemopen.c util-fmemopen.h \
 util-cpu.c util-cpu.h \
