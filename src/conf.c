@@ -543,6 +543,7 @@ void
 ConfRestoreContextBackup(void)
 {
     root = root_backup;
+    root_backup = NULL;
 
     return;
 }
@@ -553,8 +554,10 @@ ConfRestoreContextBackup(void)
 void
 ConfDeInit(void)
 {
-    if (root != NULL)
+    if (root != NULL) {
         ConfNodeFree(root);
+        root = NULL;
+    }
 
     SCLogDebug("configuration module de-initialized");
 }
