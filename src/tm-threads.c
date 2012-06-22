@@ -136,13 +136,15 @@ void *TmThreadsSlot1NoIn(void *td)
         TmThreadSetupOptions(tv);
 
     if (s->SlotThreadInit != NULL) {
-        r = s->SlotThreadInit(tv, s->slot_initdata, &s->slot_data);
+        void *slot_data = NULL;
+        r = s->SlotThreadInit(tv, s->slot_initdata, &slot_data);
         if (r != TM_ECODE_OK) {
             EngineKill();
 
             TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
             pthread_exit((void *) -1);
         }
+        SC_ATOMIC_CAS(&s->slot_data, SC_ATOMIC_GET(s->slot_data), slot_data);
     }
     memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
     memset(&s->slot_post_pq, 0, sizeof(PacketQueue));
@@ -152,7 +154,7 @@ void *TmThreadsSlot1NoIn(void *td)
     while (run) {
         TmThreadTestThreadUnPaused(tv);
 
-        r = s->SlotFunc(tv, NULL, s->slot_data, &s->slot_pre_pq, &s->slot_post_pq);
+        r = s->SlotFunc(tv, NULL, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq, &s->slot_post_pq);
 
         /* handle error */
         if (r == TM_ECODE_FAILED) {
@@ -194,11 +196,11 @@ void *TmThreadsSlot1NoIn(void *td)
     TmThreadWaitForFlag(tv, THV_DEINIT);
 
     if (s->SlotThreadExitPrintStats != NULL) {
-        s->SlotThreadExitPrintStats(tv, s->slot_data);
+        s->SlotThreadExitPrintStats(tv, SC_ATOMIC_GET(s->slot_data));
     }
 
     if (s->SlotThreadDeinit != NULL) {
-        r = s->SlotThreadDeinit(tv, s->slot_data);
+        r = s->SlotThreadDeinit(tv, SC_ATOMIC_GET(s->slot_data));
         if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED);
             pthread_exit((void *) -1);
@@ -227,13 +229,15 @@ void *TmThreadsSlot1NoOut(void *td)
         TmThreadSetupOptions(tv);
 
     if (s->SlotThreadInit != NULL) {
-        r = s->SlotThreadInit(tv, s->slot_initdata, &s->slot_data);
+        void *slot_data = NULL;
+        r = s->SlotThreadInit(tv, s->slot_initdata, &slot_data);
         if (r != TM_ECODE_OK) {
             EngineKill();
 
             TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
             pthread_exit((void *) -1);
         }
+        SC_ATOMIC_CAS(&s->slot_data, SC_ATOMIC_GET(s->slot_data), slot_data);
     }
     memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
     memset(&s->slot_post_pq, 0, sizeof(PacketQueue));
@@ -246,7 +250,7 @@ void *TmThreadsSlot1NoOut(void *td)
         p = tv->tmqh_in(tv);
 
         PACKET_PROFILING_TMM_START(p, s->tm_id);
-        r = s->SlotFunc(tv, p, s->slot_data, /* no outqh no pq */ NULL,
+        r = s->SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), /* no outqh no pq */ NULL,
                         /* no outqh no pq */ NULL);
         PACKET_PROFILING_TMM_END(p, s->tm_id);
 
@@ -267,11 +271,11 @@ void *TmThreadsSlot1NoOut(void *td)
     TmThreadWaitForFlag(tv, THV_DEINIT);
 
     if (s->SlotThreadExitPrintStats != NULL) {
-        s->SlotThreadExitPrintStats(tv, s->slot_data);
+        s->SlotThreadExitPrintStats(tv, SC_ATOMIC_GET(s->slot_data));
     }
 
     if (s->SlotThreadDeinit != NULL) {
-        r = s->SlotThreadDeinit(tv, s->slot_data);
+        r = s->SlotThreadDeinit(tv, SC_ATOMIC_GET(s->slot_data));
         if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED);
             pthread_exit((void *) -1);
@@ -301,13 +305,15 @@ void *TmThreadsSlot1NoInOut(void *td)
     SCLogDebug("%s starting", tv->name);
 
     if (s->SlotThreadInit != NULL) {
-        r = s->SlotThreadInit(tv, s->slot_initdata, &s->slot_data);
+        void *slot_data = NULL;
+        r = s->SlotThreadInit(tv, s->slot_initdata, &slot_data);
         if (r != TM_ECODE_OK) {
             EngineKill();
 
             TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
             pthread_exit((void *) -1);
         }
+        SC_ATOMIC_CAS(&s->slot_data, SC_ATOMIC_GET(s->slot_data), slot_data);
     }
     memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
     memset(&s->slot_post_pq, 0, sizeof(PacketQueue));
@@ -317,7 +323,7 @@ void *TmThreadsSlot1NoInOut(void *td)
     while (run) {
         TmThreadTestThreadUnPaused(tv);
 
-        r = s->SlotFunc(tv, NULL, s->slot_data, /* no outqh, no pq */NULL, NULL);
+        r = s->SlotFunc(tv, NULL, SC_ATOMIC_GET(s->slot_data), /* no outqh, no pq */NULL, NULL);
 
         /* handle error */
         if (r == TM_ECODE_FAILED) {
@@ -335,11 +341,11 @@ void *TmThreadsSlot1NoInOut(void *td)
     TmThreadWaitForFlag(tv, THV_DEINIT);
 
     if (s->SlotThreadExitPrintStats != NULL) {
-        s->SlotThreadExitPrintStats(tv, s->slot_data);
+        s->SlotThreadExitPrintStats(tv, SC_ATOMIC_GET(s->slot_data));
     }
 
     if (s->SlotThreadDeinit != NULL) {
-        r = s->SlotThreadDeinit(tv, s->slot_data);
+        r = s->SlotThreadDeinit(tv, SC_ATOMIC_GET(s->slot_data));
         if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED);
             pthread_exit((void *) -1);
@@ -370,13 +376,15 @@ void *TmThreadsSlot1(void *td)
     SCLogDebug("%s starting", tv->name);
 
     if (s->SlotThreadInit != NULL) {
-        r = s->SlotThreadInit(tv, s->slot_initdata, &s->slot_data);
+        void *slot_data = NULL;
+        r = s->SlotThreadInit(tv, s->slot_initdata, &slot_data);
         if (r != TM_ECODE_OK) {
             EngineKill();
 
             TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
             pthread_exit((void *) -1);
         }
+        SC_ATOMIC_CAS(&s->slot_data, SC_ATOMIC_GET(s->slot_data), slot_data);
     }
     memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
     SCMutexInit(&s->slot_pre_pq.mutex_q, NULL);
@@ -392,7 +400,7 @@ void *TmThreadsSlot1(void *td)
 
         if (p != NULL) {
             PACKET_PROFILING_TMM_START(p, s->tm_id);
-            r = s->SlotFunc(tv, p, s->slot_data, &s->slot_pre_pq,
+            r = s->SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq,
                             &s->slot_post_pq);
             PACKET_PROFILING_TMM_END(p, s->tm_id);
 
@@ -442,11 +450,11 @@ void *TmThreadsSlot1(void *td)
     TmThreadWaitForFlag(tv, THV_DEINIT);
 
     if (s->SlotThreadExitPrintStats != NULL) {
-        s->SlotThreadExitPrintStats(tv, s->slot_data);
+        s->SlotThreadExitPrintStats(tv, SC_ATOMIC_GET(s->slot_data));
     }
 
     if (s->SlotThreadDeinit != NULL) {
-        r = s->SlotThreadDeinit(tv, s->slot_data);
+        r = s->SlotThreadDeinit(tv, SC_ATOMIC_GET(s->slot_data));
         if (r != TM_ECODE_OK) {
             TmThreadsSetFlag(tv, THV_CLOSED);
             pthread_exit((void *) -1);
@@ -474,9 +482,9 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
         PACKET_PROFILING_TMM_START(p, s->tm_id);
 
         if (unlikely(s->id == 0)) {
-            r = s->SlotFunc(tv, p, s->slot_data, &s->slot_pre_pq, &s->slot_post_pq);
+            r = s->SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq, &s->slot_post_pq);
         } else {
-            r = s->SlotFunc(tv, p, s->slot_data, &s->slot_pre_pq, NULL);
+            r = s->SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq, NULL);
         }
 
         PACKET_PROFILING_TMM_END(p, s->tm_id);
@@ -579,13 +587,15 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
 
     for (slot = s; slot != NULL; slot = slot->slot_next) {
         if (slot->SlotThreadInit != NULL) {
-            r = slot->SlotThreadInit(tv, slot->slot_initdata, &slot->slot_data);
+            void *slot_data = NULL;
+            r = slot->SlotThreadInit(tv, slot->slot_initdata, &slot_data);
             if (r != TM_ECODE_OK) {
                 EngineKill();
 
                 TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
                 pthread_exit((void *) -1);
             }
+            SC_ATOMIC_CAS(&slot->slot_data, SC_ATOMIC_GET(slot->slot_data), slot_data);
         }
         memset(&slot->slot_pre_pq, 0, sizeof(PacketQueue));
         SCMutexInit(&slot->slot_pre_pq.mutex_q, NULL);
@@ -598,7 +608,7 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
     while(run) {
         TmThreadTestThreadUnPaused(tv);
 
-        r = s->PktAcqLoop(tv, s->slot_data, s);
+        r = s->PktAcqLoop(tv, SC_ATOMIC_GET(s->slot_data), s);
 
         if (r == TM_ECODE_FAILED || TmThreadsCheckFlag(tv, THV_KILL)) {
             run = 0;
@@ -611,11 +621,11 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
 
     for (slot = s; slot != NULL; slot = slot->slot_next) {
         if (slot->SlotThreadExitPrintStats != NULL) {
-            slot->SlotThreadExitPrintStats(tv, slot->slot_data);
+            slot->SlotThreadExitPrintStats(tv, SC_ATOMIC_GET(slot->slot_data));
         }
 
         if (slot->SlotThreadDeinit != NULL) {
-            r = slot->SlotThreadDeinit(tv, slot->slot_data);
+            r = slot->SlotThreadDeinit(tv, SC_ATOMIC_GET(slot->slot_data));
             if (r != TM_ECODE_OK) {
                 TmThreadsSetFlag(tv, THV_CLOSED);
                 pthread_exit((void *) -1);
@@ -660,13 +670,15 @@ void *TmThreadsSlotVar(void *td)
 
     for (; s != NULL; s = s->slot_next) {
         if (s->SlotThreadInit != NULL) {
-            r = s->SlotThreadInit(tv, s->slot_initdata, &s->slot_data);
+            void *slot_data = NULL;
+            r = s->SlotThreadInit(tv, s->slot_initdata, &slot_data);
             if (r != TM_ECODE_OK) {
                 EngineKill();
 
                 TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
                 pthread_exit((void *) -1);
             }
+            SC_ATOMIC_CAS(&s->slot_data, SC_ATOMIC_GET(s->slot_data), slot_data);
         }
         memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
         SCMutexInit(&s->slot_pre_pq.mutex_q, NULL);
@@ -741,11 +753,11 @@ void *TmThreadsSlotVar(void *td)
 
     for ( ; s != NULL; s = s->slot_next) {
         if (s->SlotThreadExitPrintStats != NULL) {
-            s->SlotThreadExitPrintStats(tv, s->slot_data);
+            s->SlotThreadExitPrintStats(tv, SC_ATOMIC_GET(s->slot_data));
         }
 
         if (s->SlotThreadDeinit != NULL) {
-            r = s->SlotThreadDeinit(tv, s->slot_data);
+            r = s->SlotThreadDeinit(tv, SC_ATOMIC_GET(s->slot_data));
             if (r != TM_ECODE_OK) {
                 TmThreadsSetFlag(tv, THV_CLOSED);
                 pthread_exit((void *) -1);
@@ -850,6 +862,7 @@ void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data)
     if (slot == NULL)
         return;
     memset(slot, 0, sizeof(TmSlot));
+    SC_ATOMIC_INIT(slot->slot_data);
     slot->tv = tv;
     slot->SlotThreadInit = tm->ThreadInit;
     slot->slot_initdata = data;
