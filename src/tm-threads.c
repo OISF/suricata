@@ -42,6 +42,7 @@
 #include "util-cpu.h"
 #include "util-optimize.h"
 #include "util-profiling.h"
+#include "util-signal.h"
 
 #ifdef PROFILE_LOCKING
 __thread uint64_t mutex_lock_contention;
@@ -122,10 +123,7 @@ void TmThreadsUnsetFlag(ThreadVars *tv, uint8_t flag)
 void *TmThreadsSlot1NoIn(void *td)
 {
     /* block usr2.  usr2 to be handled by the main thread only */
-    sigset_t x;
-    sigemptyset(&x);
-    sigaddset(&x, SIGUSR2);
-    sigprocmask(SIG_BLOCK, &x, NULL);
+    UtilSignalBlock(SIGUSR2);
 
     ThreadVars *tv = (ThreadVars *)td;
     TmSlot *s = (TmSlot *)tv->tm_slots;
@@ -220,10 +218,7 @@ void *TmThreadsSlot1NoIn(void *td)
 void *TmThreadsSlot1NoOut(void *td)
 {
     /* block usr2.  usr2 to be handled by the main thread only */
-    sigset_t x;
-    sigemptyset(&x);
-    sigaddset(&x, SIGUSR2);
-    sigprocmask(SIG_BLOCK, &x, NULL);
+    UtilSignalBlock(SIGUSR2);
 
     ThreadVars *tv = (ThreadVars *)td;
     TmSlot *s = (TmSlot *)tv->tm_slots;
@@ -301,10 +296,7 @@ void *TmThreadsSlot1NoOut(void *td)
 void *TmThreadsSlot1NoInOut(void *td)
 {
     /* block usr2.  usr2 to be handled by the main thread only */
-    sigset_t x;
-    sigemptyset(&x);
-    sigaddset(&x, SIGUSR2);
-    sigprocmask(SIG_BLOCK, &x, NULL);
+    UtilSignalBlock(SIGUSR2);
 
     ThreadVars *tv = (ThreadVars *)td;
     TmSlot *s = (TmSlot *)tv->tm_slots;
@@ -377,10 +369,7 @@ void *TmThreadsSlot1NoInOut(void *td)
 void *TmThreadsSlot1(void *td)
 {
     /* block usr2.  usr2 to be handled by the main thread only */
-    sigset_t x;
-    sigemptyset(&x);
-    sigaddset(&x, SIGUSR2);
-    sigprocmask(SIG_BLOCK, &x, NULL);
+    UtilSignalBlock(SIGUSR2);
 
     ThreadVars *tv = (ThreadVars *)td;
     TmSlot *s = (TmSlot *)tv->tm_slots;
@@ -583,10 +572,7 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
 
 void *TmThreadsSlotPktAcqLoop(void *td) {
     /* block usr2.  usr2 to be handled by the main thread only */
-    sigset_t x;
-    sigemptyset(&x);
-    sigaddset(&x, SIGUSR2);
-    sigprocmask(SIG_BLOCK, &x, NULL);
+    UtilSignalBlock(SIGUSR2);
 
     ThreadVars *tv = (ThreadVars *)td;
     TmSlot *s = tv->tm_slots;
@@ -676,10 +662,7 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
 void *TmThreadsSlotVar(void *td)
 {
     /* block usr2.  usr2 to be handled by the main thread only */
-    sigset_t x;
-    sigemptyset(&x);
-    sigaddset(&x, SIGUSR2);
-    sigprocmask(SIG_BLOCK, &x, NULL);
+    UtilSignalBlock(SIGUSR2);
 
     ThreadVars *tv = (ThreadVars *)td;
     TmSlot *s = (TmSlot *)tv->tm_slots;

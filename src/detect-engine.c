@@ -49,7 +49,6 @@
 #include "detect-uricontent.h"
 #include "detect-engine-threshold.h"
 
-//#include "util-mpm.h"
 #include "util-classification-config.h"
 #include "util-reference-config.h"
 #include "util-threshold-config.h"
@@ -60,6 +59,7 @@
 #include "util-unittest.h"
 #include "util-action.h"
 #include "util-magic.h"
+#include "util-signal.h"
 
 #include "util-var-name.h"
 
@@ -82,10 +82,7 @@ static void *DetectEngineLiveRuleSwap(void *arg)
     ThreadVars *tv_local = (ThreadVars *)arg;
 
     /* block usr2.  usr2 to be handled by the main thread only */
-    sigset_t x;
-    sigemptyset(&x);
-    sigaddset(&x, SIGUSR2);
-    sigprocmask(SIG_BLOCK, &x, NULL);
+    UtilSignalBlock(SIGUSR2);
 
     ConfDeInit();
     ConfInit();
@@ -125,9 +122,6 @@ static void *DetectEngineLiveRuleSwap(void *arg)
         exit(EXIT_FAILURE);
     }
 
-    //if (MagicInit() != 0)
-    //    exit(EXIT_FAILURE);
-
     uint8_t local_need_htp_request_body = need_htp_request_body;
     uint8_t local_need_htp_request_multipart_hdr = need_htp_request_multipart_hdr;
     uint8_t local_need_htp_request_file = need_htp_request_file;
@@ -147,7 +141,7 @@ static void *DetectEngineLiveRuleSwap(void *arg)
                   "can't be enabled at runtime.  You will have to restart "
                   "engine to load the new ruleset =====");
         DetectEngineCtxFree(de_ctx);
-        SignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
+        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
 
         TmThreadsSetFlag(tv_local, THV_CLOSED);
 
@@ -174,7 +168,7 @@ static void *DetectEngineLiveRuleSwap(void *arg)
                 SCLogInfo("===== Live rule swap premature exit, since "
                           "suricta_ctl_flags != 0 =====");
 
-                SignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2EngineShutdown);
+                UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2EngineShutdown);
 
                 pthread_exit(NULL);
             }
@@ -227,7 +221,7 @@ static void *DetectEngineLiveRuleSwap(void *arg)
                           "swapping det_ctxs, since "
                           "suricta_ctl_flags != 0 =====");
 
-                SignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2EngineShutdown);
+                UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2EngineShutdown);
 
                 pthread_exit(NULL);
             }
@@ -257,7 +251,7 @@ static void *DetectEngineLiveRuleSwap(void *arg)
                 SCLogInfo("===== Live rule swap done, but premature exit at "
                           "de-init phase, since suricta_ctl_flags != 0 =====");
 
-                SignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2EngineShutdown);
+                UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2EngineShutdown);
 
                 pthread_exit(NULL);
             }
@@ -276,7 +270,7 @@ static void *DetectEngineLiveRuleSwap(void *arg)
             SCLogInfo("===== Live rule swap done, but premature exit at "
                       "de-init phase, since suricta_ctl_flags != 0 =====");
 
-            SignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2EngineShutdown);
+            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2EngineShutdown);
 
             pthread_exit(NULL);
         }
@@ -286,7 +280,7 @@ static void *DetectEngineLiveRuleSwap(void *arg)
     }
     DetectEngineCtxFree(old_de_ctx);
 
-    SignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
+    UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
 
     TmThreadsSetFlag(tv_local, THV_CLOSED);
 

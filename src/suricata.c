@@ -154,6 +154,7 @@
 #include "util-reference-config.h"
 #include "util-profiling.h"
 #include "util-magic.h"
+#include "util-signal.h"
 
 #include "util-coredump-config.h"
 
@@ -267,7 +268,7 @@ void SignalHandlerSigusr2(int sig)
         return;
     }
 
-    SignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
+    UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
 
     DetectEngineSpawnLiveRuleSwapMgmtThread();
 
@@ -294,22 +295,6 @@ uint8_t print_mem_flag = 1;
 #endif
 #endif
 #endif
-
-void SignalHandlerSetup(int sig, void (*handler)())
-{
-#if defined (OS_WIN32)
-	signal(sig, handler);
-#else
-    struct sigaction action;
-    memset(&action, 0x00, sizeof(struct sigaction));
-
-    action.sa_handler = handler;
-    sigemptyset(&(action.sa_mask));
-    sigaddset(&(action.sa_mask),sig);
-    action.sa_flags = 0;
-    sigaction(sig, &action, 0);
-#endif /* OS_WIN32 */
-}
 
 void GlobalInits()
 {
@@ -1470,7 +1455,7 @@ int main(int argc, char **argv)
 
     AppLayerHtpNeedFileInspection();
 
-    SignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
+    UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
 
 #ifdef UNITTESTS
 
@@ -1630,14 +1615,14 @@ int main(int argc, char **argv)
 #endif
 
     /* registering signals we use */
-    SignalHandlerSetup(SIGINT, SignalHandlerSigint);
-    SignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
-    SignalHandlerSetup(SIGPIPE, SIG_IGN);
-    SignalHandlerSetup(SIGSYS, SIG_IGN);
+    UtilSignalHandlerSetup(SIGINT, SignalHandlerSigint);
+    UtilSignalHandlerSetup(SIGTERM, SignalHandlerSigterm);
+    UtilSignalHandlerSetup(SIGPIPE, SIG_IGN);
+    UtilSignalHandlerSetup(SIGSYS, SIG_IGN);
 
 #ifndef OS_WIN32
 	/* SIGHUP is not implemnetd on WIN32 */
-    //SignalHandlerSetup(SIGHUP, SignalHandlerSighup);
+    //UtilSignalHandlerSetup(SIGHUP, SignalHandlerSighup);
 
     /* Get the suricata user ID to given user ID */
     if (do_setuid == TRUE) {
@@ -1711,7 +1696,7 @@ int main(int argc, char **argv)
 
     /* registering singal handlers we use.  We register usr2 here, so that one
      * can't call it during the first sig load phase */
-    SignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
+    UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
 
 #ifdef PROFILING
     SCProfilingInitRuleCounters(de_ctx);
@@ -1880,7 +1865,7 @@ int main(int argc, char **argv)
         usleep(10* 1000);
     }
 
-    SignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2EngineShutdown);
+    UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2EngineShutdown);
 
     /* Update the engine stage/status flag */
     SC_ATOMIC_CAS(&engine_stage, SURICATA_RUNTIME, SURICATA_DEINIT);

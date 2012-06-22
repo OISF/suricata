@@ -141,7 +141,6 @@ void EngineStop(void);
 void EngineKill(void);
 
 /* live rule swap required this to be made static */
-void SignalHandlerSetup(int, void (*handler)());
 void SignalHandlerSigusr2(int);
 void SignalHandlerSigusr2EngineShutdown(int);
 

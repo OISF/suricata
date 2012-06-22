@@ -28,6 +28,8 @@
 #include "util-debug.h"
 #include "util-unittest.h"
 
+/* size string parsing API */
+
 static int ParseSizeString(const char *size, double *res)
 {
 #define PARSE_REGEX "^\\s*(\\d+(?:.\\d+)?)\\s*([a-zA-Z]{2})?\\s*$"

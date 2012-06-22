@@ -33,6 +33,7 @@
 #include "util-unittest.h"
 #include "util-debug.h"
 #include "util-privs.h"
+#include "util-signal.h"
 
 /** \todo Get the default log directory from some global resource. */
 #define SC_PERF_DEFAULT_LOG_FILENAME "stats.log"
@@ -434,10 +435,7 @@ static void SCPerfReleaseOPCtx()
 static void *SCPerfMgmtThread(void *arg)
 {
     /* block usr2.  usr2 to be handled by the main thread only */
-    sigset_t x;
-    sigemptyset(&x);
-    sigaddset(&x, SIGUSR2);
-    sigprocmask(SIG_BLOCK, &x, NULL);
+    UtilSignalBlock(SIGUSR2);
 
     ThreadVars *tv_local = (ThreadVars *)arg;
     uint8_t run = 1;
@@ -494,10 +492,7 @@ static void *SCPerfMgmtThread(void *arg)
 static void *SCPerfWakeupThread(void *arg)
 {
     /* block usr2.  usr2 to be handled by the main thread only */
-    sigset_t x;
-    sigemptyset(&x);
-    sigaddset(&x, SIGUSR2);
-    sigprocmask(SIG_BLOCK, &x, NULL);
+    UtilSignalBlock(SIGUSR2);
 
     ThreadVars *tv_local = (ThreadVars *)arg;
     uint8_t run = 1;

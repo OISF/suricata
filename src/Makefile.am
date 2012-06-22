@@ -181,6 +181,7 @@ detect-replace.c detect-replace.h \
 util-magic.c util-magic.h \
 util-misc.c util-misc.h \
 util-atomic.c util-atomic.h \
+util-signal.c util-signal.h \
 util-print.c util-print.h \
 util-fmemopen.c util-fmemopen.h \
 util-cpu.c util-cpu.h \

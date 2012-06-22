@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -21,15 +21,10 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __UTIL_MISC_H__
-#define __UTIL_MISC_H__
+#ifndef __UTIL_STRING_H__
+#define __UTIL_STRING_H__
 
-/* size string parsing API */
+int UtilSignalBlock(int);
+void UtilSignalHandlerSetup(int, void (*handler)());;
 
-int ParseSizeStringU8(const char *, uint8_t *);
-int ParseSizeStringU16(const char *, uint16_t *);
-int ParseSizeStringU32(const char *, uint32_t *);
-int ParseSizeStringU64(const char *, uint64_t *);
-void UtilMiscRegisterTests(void);
-
-#endif /* __UTIL_MISC_H__ */
+#endif /* __UTIL_STRING_H__ */
