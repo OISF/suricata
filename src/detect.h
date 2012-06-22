@@ -571,6 +571,10 @@ typedef struct DetectEngineCtx_ {
     HashListTable *sport_hash_table;
     HashListTable *dport_hash_table;
 
+    HashListTable *variable_names;
+    HashListTable *variable_idxs;
+    uint16_t variable_names_idx;
+
     /* hash table used to cull out duplicate sigs */
     HashListTable *dup_sig_hash_table;
 

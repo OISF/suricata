@@ -24,11 +24,11 @@
 #ifndef __UTIL_VAR_NAME_H__
 #define __UTIL_VAR_NAME_H__
 
-int VariableNameInitHash();
-void VariableNameFreeHash();
+int VariableNameInitHash(DetectEngineCtx *);
+void VariableNameFreeHash(DetectEngineCtx *);
 
-uint16_t VariableNameGetIdx(char *, uint8_t);
-char * VariableIdxGetName(uint16_t , uint8_t);
+uint16_t VariableNameGetIdx(DetectEngineCtx *, char *, uint8_t);
+char * VariableIdxGetName(DetectEngineCtx *, uint16_t , uint8_t);
 
 #endif
 

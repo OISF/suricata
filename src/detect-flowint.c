@@ -115,7 +115,7 @@ int DetectFlowintMatch(ThreadVars *t, DetectEngineThreadCtx *det_ctx,
      * return zero(not match).
      */
     if (sfd->targettype == FLOWINT_TARGET_VAR) {
-        sfd->target.tvar.idx = VariableNameGetIdx(sfd->target.tvar.name, DETECT_FLOWINT);
+        sfd->target.tvar.idx = VariableNameGetIdx(det_ctx->de_ctx, sfd->target.tvar.name, DETECT_FLOWINT);
 
         fvt = FlowVarGet(p->flow, sfd->target.tvar.idx);
             /* We don't have that variable initialized yet */
@@ -335,7 +335,7 @@ DetectFlowintData *DetectFlowintParse(DetectEngineCtx *de_ctx,
     /* Set the name of the origin var to modify/compared with the target */
     sfd->name = SCStrdup(varname);
     if (de_ctx != NULL)
-        sfd->idx = VariableNameGetIdx(varname, DETECT_FLOWINT);
+        sfd->idx = VariableNameGetIdx(de_ctx, varname, DETECT_FLOWINT);
     sfd->target.value =(uint32_t) value_long;
 
     sfd->modifier = modifier;

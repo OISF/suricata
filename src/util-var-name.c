@@ -27,10 +27,6 @@
 #include "detect.h"
 #include "util-hashlist.h"
 
-HashListTable *variable_names;
-HashListTable *variable_idxs;
-uint16_t variable_names_idx;
-
 /** \brief Name2idx mapping structure for flowbits, flowvars and pktvars. */
 typedef struct VariableName_ {
     char *name;
@@ -104,26 +100,28 @@ static void VariableNameFree(void *data) {
  *  \retval -1 in case of error
  *  \retval 0 in case of success
  */
-int VariableNameInitHash() {
-    variable_names = HashListTableInit(4096, VariableNameHash, VariableNameCompare, VariableNameFree);
-    if (variable_names == NULL)
+int VariableNameInitHash(DetectEngineCtx *de_ctx) {
+    de_ctx->variable_names = HashListTableInit(4096, VariableNameHash, VariableNameCompare, VariableNameFree);
+    if (de_ctx->variable_names == NULL)
         return -1;
 
-    variable_idxs = HashListTableInit(4096, VariableIdxHash, VariableIdxCompare, NULL);
-    if (variable_idxs == NULL)
+    de_ctx->variable_idxs = HashListTableInit(4096, VariableIdxHash, VariableIdxCompare, NULL);
+    if (de_ctx->variable_idxs == NULL)
         return -1;
 
-    variable_names_idx = 0;
+    de_ctx->variable_names_idx = 0;
     return 0;
 }
 
-void VariableNameFreeHash() {
-    if (variable_names != NULL) {
-        HashListTableFree(variable_names);
-        HashListTableFree(variable_idxs);
-        variable_names = NULL;
-        variable_idxs = NULL;
+void VariableNameFreeHash(DetectEngineCtx *de_ctx) {
+    if (de_ctx->variable_names != NULL) {
+        HashListTableFree(de_ctx->variable_names);
+        HashListTableFree(de_ctx->variable_idxs);
+        de_ctx->variable_names = NULL;
+        de_ctx->variable_idxs = NULL;
     }
+
+    return;
 }
 
 /** \brief Get a name idx for a name. If the name is already used reuse the idx.
@@ -132,7 +130,7 @@ void VariableNameFreeHash() {
  *  \retval 0 in case of error
  *  \retval _ the idx.
  */
-uint16_t VariableNameGetIdx(char *name, uint8_t type) {
+uint16_t VariableNameGetIdx(DetectEngineCtx *de_ctx, char *name, uint8_t type) {
     uint16_t idx = 0;
 
     VariableName *fn = SCMalloc(sizeof(VariableName));
@@ -146,13 +144,13 @@ uint16_t VariableNameGetIdx(char *name, uint8_t type) {
     if (fn->name == NULL)
         goto error;
 
-    VariableName *lookup_fn = (VariableName *)HashListTableLookup(variable_names, (void *)fn, 0);
+    VariableName *lookup_fn = (VariableName *)HashListTableLookup(de_ctx->variable_names, (void *)fn, 0);
     if (lookup_fn == NULL) {
-        variable_names_idx++;
+        de_ctx->variable_names_idx++;
 
-        idx = fn->idx = variable_names_idx;
-        HashListTableAdd(variable_names, (void *)fn, 0);
-        HashListTableAdd(variable_idxs, (void *)fn, 0);
+        idx = fn->idx = de_ctx->variable_names_idx;
+        HashListTableAdd(de_ctx->variable_names, (void *)fn, 0);
+        HashListTableAdd(de_ctx->variable_idxs, (void *)fn, 0);
     } else {
         idx = lookup_fn->idx;
         VariableNameFree(fn);
@@ -170,7 +168,7 @@ error:
  *  \retval NULL in case of error
  *  \retval name of the variable if successful.
  */
-char *VariableIdxGetName(uint16_t idx, uint8_t type)
+char *VariableIdxGetName(DetectEngineCtx *de_ctx, uint16_t idx, uint8_t type)
 {
     VariableName *fn = SCMalloc(sizeof(VariableName));
     if (fn == NULL)
@@ -182,7 +180,7 @@ char *VariableIdxGetName(uint16_t idx, uint8_t type)
     fn->type = type;
     fn->idx = idx;
 
-    VariableName *lookup_fn = (VariableName *)HashListTableLookup(variable_idxs, (void *)fn, 0);
+    VariableName *lookup_fn = (VariableName *)HashListTableLookup(de_ctx->variable_idxs, (void *)fn, 0);
     if (lookup_fn != NULL) {
         name = SCStrdup(lookup_fn->name);
         if (name == NULL)

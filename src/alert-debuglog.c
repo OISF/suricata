@@ -145,12 +145,7 @@ static void AlertDebugLogFlowBits(AlertDebugLogThread *aft, Packet *p)
     while (gv != NULL) {
         if (gv->type == DETECT_FLOWBITS) {
             FlowBit *fb = (FlowBit *) gv;
-            char *name = VariableIdxGetName(fb->idx, fb->type);
-            if (name != NULL) {
-                MemBufferWriteString(aft->buffer, "FLOWBIT:           %s\n",
-                                     name);
-                SCFree(name);
-            }
+            MemBufferWriteString(aft->buffer, "FLOWBIT idx(%"PRIu32")\n", fb->idx);
         }
         gv = gv->next;
     }
