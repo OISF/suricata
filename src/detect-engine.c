@@ -238,8 +238,10 @@ static uint8_t DetectEngineCtxLoadConf(DetectEngineCtx *de_ctx) {
         } else if (strcmp(sgh_mpm_context, "full") == 0) {
             de_ctx->sgh_mpm_context = ENGINE_SGH_MPM_FACTORY_CONTEXT_FULL;
         } else {
-           SCLogWarning(SC_ERR_INVALID_YAML_CONF_ENTRY, "invalid conf value "
-                   "for detect-engine.sgh-mpm-context -- %s", sgh_mpm_context);
+           SCLogError(SC_ERR_INVALID_YAML_CONF_ENTRY, "You have supplied an "
+                      "invalid conf value for detect-engine.sgh-mpm-context-"
+                      "%s", sgh_mpm_context);
+           exit(EXIT_FAILURE);
         }
     }
 
