@@ -623,6 +623,8 @@ typedef struct DetectEngineCtx_ {
      *  id sharing and id tracking. */
     MpmPatternIdStore *mpm_pattern_id_store;
 
+    MpmCtxFactoryContainer *mpm_ctx_factory_container;
+
     /* maximum recursion depth for content inspection */
     int inspection_recursion_limit;
 
