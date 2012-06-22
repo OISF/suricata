@@ -24,7 +24,7 @@
 #ifndef __ACTION_ORDER_H__
 #define __ACTION_ORDER_H__
 #include "suricata-common.h"
-void ActionInitConfig();
+int ActionInitConfig();
 uint8_t ActionOrderVal(uint8_t);
 void UtilActionRegisterTests(void);
 

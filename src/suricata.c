@@ -1650,7 +1650,9 @@ int main(int argc, char **argv)
     SCClassConfLoadClassficationConfigFile(de_ctx);
     SCRConfLoadReferenceConfigFile(de_ctx);
 
-    ActionInitConfig();
+    if (ActionInitConfig() < 0) {
+        exit(EXIT_FAILURE);
+    }
 
     if (MagicInit() != 0)
         exit(EXIT_FAILURE);

@@ -90,9 +90,10 @@ uint8_t ActionAsciiToFlag(char *action) {
  * \brief Load the action order from config. If none is provided,
  *        it will be default to ACTION_PASS, ACTION_DROP,
  *        ACTION_REJECT, ACTION_ALERT (pass has the highest prio)
- * \retval none
+ *
+ * \retval 0 on success; -1 on fatal error;
  */
-void ActionInitConfig() {
+int ActionInitConfig() {
     uint8_t actions_used = 0;
     uint8_t action_flag = 0;
     uint8_t actions_config[4] = {0, 0, 0, 0};
@@ -112,7 +113,7 @@ void ActionInitConfig() {
                        " \"pass\",\"drop\",\"alert\",\"reject\". You have"
                        " to specify all of them, without quotes and without"
                        " capital letters", action->val);
-                return;
+                goto error;
             }
 
             if (actions_used & action_flag) {
@@ -120,7 +121,7 @@ void ActionInitConfig() {
                        " use \"pass\",\"drop\",\"alert\",\"reject\". You"
                        " have to specify all of them, without quotes and"
                        " without capital letters", action->val);
-                return;
+                goto error;
             }
 
             if (order >= 4) {
@@ -129,7 +130,7 @@ void ActionInitConfig() {
                        "\"drop\",\"alert\",\"reject\". You have to specify"
                        " all of them, without quotes and without capital"
                        " letters", action->val);
-                return;
+                goto error;
             }
             actions_used |= action_flag;
             actions_config[order++] = action_flag;
@@ -140,13 +141,18 @@ void ActionInitConfig() {
                "actions. Please, use \"pass\",\"drop\",\"alert\","
                "\"reject\". You have to specify all of them, without"
                " quotes and without capital letters");
-                return;
+        goto error;
     }
 
     /* Now, it's a valid config. Override the default preset */
     for (order = 0; order < 4; order++) {
         action_order_sigs[order] = actions_config[order];
     }
+
+    return 0;
+
+ error:
+    return -1;
 }
 
 #ifdef UNITTESTS
