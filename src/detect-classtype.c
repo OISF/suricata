@@ -119,28 +119,6 @@ static inline const char *DetectClasstypeParseRawString(char *rawstr)
 }
 
 /**
- * \brief Gets the classtype from the corresponding hash table stored
- *        in the Detection Engine Context, given the classtype name.
- *
- * \param ct_name Pointer to the classtype name that has to be looked up.
- * \param de_ctx  Pointer to the Detection Engine Context.
- *
- * \retval lookup_ct_info Pointer to the SCClassConfClasstype instance from
- *                        the hash table on success; NULL on failure.
- */
-static inline SCClassConfClasstype *DetectClasstypeGetClasstypeInfo(const char *ct_name,
-                                                                    DetectEngineCtx *de_ctx)
-{
-    SCClassConfClasstype *ct_info = SCClassConfAllocClasstype(0, ct_name, NULL,
-                                                              0);
-    SCClassConfClasstype *lookup_ct_info = HashTableLookup(de_ctx->class_conf_ht,
-                                                           ct_info, 0);
-
-    SCClassConfDeAllocClasstype(ct_info);
-    return lookup_ct_info;
-}
-
-/**
  * \brief The setup function that would be called when the Signature parsing
  *        module encounters the "Classtype" keyword.
  *
@@ -162,7 +140,7 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, char *raw
         goto error;
     }
 
-    ct = DetectClasstypeGetClasstypeInfo(parsed_ct_name, de_ctx);
+    ct = SCClassConfGetClasstype(parsed_ct_name, de_ctx);
     if (ct == NULL) {
         SCLogError(SC_ERR_UNKNOWN_VALUE, "Unknown Classtype: \"%s\".  Invalidating the Signature",
                    parsed_ct_name);
@@ -184,7 +162,8 @@ static int DetectClasstypeSetup(DetectEngineCtx *de_ctx, Signature *s, char *raw
     return 0;
 
  error:
-    if (parsed_ct_name != NULL) pcre_free_substring(parsed_ct_name);
+    if (parsed_ct_name != NULL)
+        pcre_free_substring(parsed_ct_name);
     return -1;
 }
 

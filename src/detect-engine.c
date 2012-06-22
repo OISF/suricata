@@ -47,6 +47,7 @@
 #include "detect-engine-threshold.h"
 
 //#include "util-mpm.h"
+#include "util-classification-config.h"
 #include "util-error.h"
 #include "util-hash.h"
 #include "util-byte.h"
@@ -163,8 +164,8 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
     if (de_ctx->sig_array)
         SCFree(de_ctx->sig_array);
 
-    if (de_ctx->class_conf_ht != NULL)
-        HashTableFree(de_ctx->class_conf_ht);
+    SCClassConfDeInitContext(de_ctx);
+
     SCFree(de_ctx);
     //DetectAddressGroupPrintMemory();
     //DetectSigGroupPrintMemory();

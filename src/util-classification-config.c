@@ -69,7 +69,7 @@ static char *SCClassConfGetConfFilename(void);
  * \retval  0 On success.
  * \retval -1 On failure.
  */
-int SCClassConfInitContext(DetectEngineCtx *de_ctx)
+int SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx)
 {
     char *filename = NULL;
     const char *eb = NULL;
@@ -83,7 +83,7 @@ int SCClassConfInitContext(DetectEngineCtx *de_ctx)
     if (de_ctx->class_conf_ht == NULL) {
         SCLogError(SC_ERR_HASH_TABLE_INIT, "Error initializing the hash "
                    "table");
-        return -1;
+        goto error;
     }
 
     /* if it is not NULL, use the file descriptor.  The hack so that we can
@@ -123,9 +123,10 @@ int SCClassConfInitContext(DetectEngineCtx *de_ctx)
         fd = NULL;
     }
 
-    printf("\nPlease check the \"classification-file\" option in your suricata.yaml file.\n");
-    exit(EXIT_FAILURE);
-//    return -1;
+    regex = NULL;
+    regex_study = NULL;
+
+    return -1;
 }
 
 
@@ -152,12 +153,28 @@ static char *SCClassConfGetConfFilename(void)
 /**
  * \brief Releases resources used by the Classification Config API.
  */
-static void SCClassConfDeInitContext(DetectEngineCtx *de_ctx)
+static void SCClassConfDeInitLocalResources(DetectEngineCtx *de_ctx)
 {
 
     fclose(fd);
     default_file_path = SC_CLASS_CONF_DEF_CONF_FILEPATH;
     fd = NULL;
+    regex = NULL;
+    regex_study = NULL;
+
+    return;
+}
+
+/**
+ * \brief Releases resources used by the Classification Config API.
+ */
+void SCClassConfDeInitContext(DetectEngineCtx *de_ctx)
+{
+    if (de_ctx->class_conf_ht != NULL)
+        HashTableFree(de_ctx->class_conf_ht);
+
+    de_ctx->class_conf_ht = NULL;
+
     return;
 }
 
@@ -485,17 +502,41 @@ void SCClassConfClasstypeHashFree(void *ch)
  */
 void SCClassConfLoadClassficationConfigFile(DetectEngineCtx *de_ctx)
 {
-    if (SCClassConfInitContext(de_ctx) == -1) {
-        SCLogDebug("Error initializing classification config API");
-        return;
+    if (SCClassConfInitContextAndLocalResources(de_ctx) == -1) {
+        SCLogInfo("Please check the \"classification-file\" option in your suricata.yaml file");
+        exit(EXIT_FAILURE);
     }
 
     SCClassConfParseFile(de_ctx);
-    SCClassConfDeInitContext(de_ctx);
+    SCClassConfDeInitLocalResources(de_ctx);
 
     return;
 }
 
+/**
+ * \brief Gets the classtype from the corresponding hash table stored
+ *        in the Detection Engine Context's class conf ht, given the
+ *        classtype name.
+ *
+ * \param ct_name Pointer to the classtype name that has to be looked up.
+ * \param de_ctx  Pointer to the Detection Engine Context.
+ *
+ * \retval lookup_ct_info Pointer to the SCClassConfClasstype instance from
+ *                        the hash table on success; NULL on failure.
+ */
+SCClassConfClasstype *SCClassConfGetClasstype(const char *ct_name,
+                                              DetectEngineCtx *de_ctx)
+{
+    SCClassConfClasstype *ct_info = SCClassConfAllocClasstype(0, ct_name, NULL,
+                                                              0);
+    if (ct_info == NULL)
+        exit(EXIT_FAILURE);
+    SCClassConfClasstype *lookup_ct_info = HashTableLookup(de_ctx->class_conf_ht,
+                                                           ct_info, 0);
+
+    SCClassConfDeAllocClasstype(ct_info);
+    return lookup_ct_info;
+}
 
 /*----------------------------------Unittests---------------------------------*/
 
@@ -668,7 +709,6 @@ int SCClassConfTest03(void)
 int SCClassConfTest04(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    SCClassConfClasstype *ct = NULL;
     int result = 1;
 
     if (de_ctx == NULL)
@@ -683,29 +723,12 @@ int SCClassConfTest04(void)
 
     result = (de_ctx->class_conf_ht->count == 3);
 
-    ct = SCClassConfAllocClasstype(0, "unknown", NULL, 0);
-    result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) != NULL);
-    SCClassConfDeAllocClasstype(ct);
-
-    ct = SCClassConfAllocClasstype(0, "unKnoWn", NULL, 0);
-    result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) != NULL);
-    SCClassConfDeAllocClasstype(ct);
-
-    ct = SCClassConfAllocClasstype(0, "bamboo", NULL, 0);
-    result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) == NULL);
-    SCClassConfDeAllocClasstype(ct);
-
-    ct = SCClassConfAllocClasstype(0, "bad-unknown", NULL, 0);
-    result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) != NULL);
-    SCClassConfDeAllocClasstype(ct);
-
-    ct = SCClassConfAllocClasstype(0, "BAD-UNKnOWN", NULL, 0);
-    result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) != NULL);
-    SCClassConfDeAllocClasstype(ct);
-
-    ct = SCClassConfAllocClasstype(0, "bed-unknown", NULL, 0);
-    result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) == NULL);
-    SCClassConfDeAllocClasstype(ct);
+    result &= (SCClassConfGetClasstype("unknown", de_ctx) != NULL);
+    result &= (SCClassConfGetClasstype("unKnoWn", de_ctx) != NULL);
+    result &= (SCClassConfGetClasstype("bamboo", de_ctx) == NULL);
+    result &= (SCClassConfGetClasstype("bad-unknown", de_ctx) != NULL);
+    result &= (SCClassConfGetClasstype("BAD-UNKnOWN", de_ctx) != NULL);
+    result &= (SCClassConfGetClasstype("bed-unknown", de_ctx) == NULL);
 
     DetectEngineCtxFree(de_ctx);
 
@@ -720,7 +743,6 @@ int SCClassConfTest04(void)
 int SCClassConfTest05(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    SCClassConfClasstype *ct = NULL;
     int result = 1;
 
     if (de_ctx == NULL)
@@ -735,29 +757,12 @@ int SCClassConfTest05(void)
 
     result = (de_ctx->class_conf_ht->count == 0);
 
-    ct = SCClassConfAllocClasstype(0, "unknown", NULL, 0);
-    result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) == NULL);
-    SCClassConfDeAllocClasstype(ct);
-
-    ct = SCClassConfAllocClasstype(0, "unKnoWn", NULL, 0);
-    result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) == NULL);
-    SCClassConfDeAllocClasstype(ct);
-
-    ct = SCClassConfAllocClasstype(0, "bamboo", NULL, 0);
-    result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) == NULL);
-    SCClassConfDeAllocClasstype(ct);
-
-    ct = SCClassConfAllocClasstype(0, "bad-unknown", NULL, 0);
-    result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) == NULL);
-    SCClassConfDeAllocClasstype(ct);
-
-    ct = SCClassConfAllocClasstype(0, "BAD-UNKnOWN", NULL, 0);
-    result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) == NULL);
-    SCClassConfDeAllocClasstype(ct);
-
-    ct = SCClassConfAllocClasstype(0, "bed-unknown", NULL, 0);
-    result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) == NULL);
-    SCClassConfDeAllocClasstype(ct);
+    result &= (SCClassConfGetClasstype("unknown", de_ctx) == NULL);
+    result &= (SCClassConfGetClasstype("unKnoWn", de_ctx) == NULL);
+    result &= (SCClassConfGetClasstype("bamboo", de_ctx) == NULL);
+    result &= (SCClassConfGetClasstype("bad-unknown", de_ctx) == NULL);
+    result &= (SCClassConfGetClasstype("BAD-UNKnOWN", de_ctx) == NULL);
+    result &= (SCClassConfGetClasstype("bed-unknown", de_ctx) == NULL);
 
     DetectEngineCtxFree(de_ctx);
 
@@ -771,7 +776,6 @@ int SCClassConfTest05(void)
 int SCClassConfTest06(void)
 {
     DetectEngineCtx *de_ctx = DetectEngineCtxInit();
-    SCClassConfClasstype *ct = NULL;
     int result = 1;
 
     if (de_ctx == NULL)
@@ -786,29 +790,12 @@ int SCClassConfTest06(void)
 
     result = (de_ctx->class_conf_ht->count == 3);
 
-    ct = SCClassConfAllocClasstype(0, "unknown", NULL, 0);
-    result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) == NULL);
-    SCClassConfDeAllocClasstype(ct);
-
-    ct = SCClassConfAllocClasstype(0, "not-suspicious", NULL, 0);
-    result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) != NULL);
-    SCClassConfDeAllocClasstype(ct);
-
-    ct = SCClassConfAllocClasstype(0, "bamboola1", NULL, 0);
-    result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) != NULL);
-    SCClassConfDeAllocClasstype(ct);
-
-    ct = SCClassConfAllocClasstype(0, "bamboola1", NULL, 0);
-    result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) != NULL);
-    SCClassConfDeAllocClasstype(ct);
-
-    ct = SCClassConfAllocClasstype(0, "BAMBOolA1", NULL, 0);
-    result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) != NULL);
-    SCClassConfDeAllocClasstype(ct);
-
-    ct = SCClassConfAllocClasstype(0, "unkNOwn", NULL, 0);
-    result &= (HashTableLookup(de_ctx->class_conf_ht, ct, 0) == NULL);
-    SCClassConfDeAllocClasstype(ct);
+    result &= (SCClassConfGetClasstype("unknown", de_ctx) == NULL);
+    result &= (SCClassConfGetClasstype("not-suspicious", de_ctx) != NULL);
+    result &= (SCClassConfGetClasstype("bamboola1", de_ctx) != NULL);
+    result &= (SCClassConfGetClasstype("bamboola1", de_ctx) != NULL);
+    result &= (SCClassConfGetClasstype("BAMBOolA1", de_ctx) != NULL);
+    result &= (SCClassConfGetClasstype("unkNOwn", de_ctx) == NULL);
 
     DetectEngineCtxFree(de_ctx);
 
