@@ -96,14 +96,14 @@ static uint64_t htp_state_memcnt = 0;
 #endif
 
 /** part of the engine needs the request body (e.g. http_client_body keyword) */
-static uint8_t need_htp_request_body = 0;
+uint8_t need_htp_request_body = 0;
 /** part of the engine needs the request body multipart header (e.g. filename
  *  and / or fileext keywords) */
-static uint8_t need_htp_request_multipart_hdr = 0;
+uint8_t need_htp_request_multipart_hdr = 0;
 /** part of the engine needs the request file (e.g. log-file module) */
-static uint8_t need_htp_request_file = 0;
+uint8_t need_htp_request_file = 0;
 /** part of the engine needs the request body (e.g. file_data keyword) */
-static uint8_t need_htp_response_body = 0;
+uint8_t need_htp_response_body = 0;
 
 SCEnumCharMap http_decoder_event_table[ ] = {
     { "UNKNOWN_ERROR",

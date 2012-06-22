@@ -202,6 +202,16 @@ typedef struct HtpState_ {
     FileContainer *files_tc;
 } HtpState;
 
+/** part of the engine needs the request body (e.g. http_client_body keyword) */
+extern uint8_t need_htp_request_body;
+/** part of the engine needs the request body multipart header (e.g. filename
+ *  and / or fileext keywords) */
+extern uint8_t need_htp_request_multipart_hdr;
+/** part of the engine needs the request file (e.g. log-file module) */
+extern uint8_t need_htp_request_file;
+/** part of the engine needs the request body (e.g. file_data keyword) */
+extern uint8_t need_htp_response_body;
+
 void RegisterHTPParsers(void);
 void HTPParserRegisterTests(void);
 void HTPAtExitPrintStats(void);
