@@ -227,8 +227,9 @@ static void *DetectEngineLiveRuleSwap(void *arg)
             }
 
 
+            SCLogDebug("swapping new det_ctx - %p with older one - %p", det_ctx,
+                       SC_ATOMIC_GET(slots->slot_data));
             SC_ATOMIC_SET(slots->slot_data, det_ctx);
-            SCLogDebug("swapping new det_ctx with older one");
 
             slots = slots->slot_next;
         }
@@ -417,6 +418,10 @@ void DetectEngineCtxFree(DetectEngineCtx *de_ctx) {
     SCRConfDeInitContext(de_ctx);
 
     SigGroupCleanup(de_ctx);
+
+    if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
+        MpmFactoryDeRegisterAllMpmCtxProfiles(de_ctx);
+    }
 
     SCFree(de_ctx);
     //DetectAddressGroupPrintMemory();

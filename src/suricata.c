@@ -1927,10 +1927,6 @@ int main(int argc, char **argv)
         }
     }
 #endif
-    /* updated by AS.  Don't clean up de_ctx.  Necessiated by live rule swap */
-#if 0
-    SigGroupCleanup(de_ctx);
-#endif
 #ifdef __SC_CUDA_SUPPORT__
     if (PatternMatchDefaultMatcher() == MPM_B2G_CUDA) {
         /* pop the cuda context we just pushed before the call to SigGroupCleanup() */
@@ -1945,13 +1941,6 @@ int main(int argc, char **argv)
 
     AppLayerHtpPrintStats();
 
-    /* updated by AS.  Don't clean up de_ctx.  Necessiated by live rule swap */
-#if 0
-    SigCleanSignatures(de_ctx);
-#endif
-    if (de_ctx->sgh_mpm_context == ENGINE_SGH_MPM_FACTORY_CONTEXT_SINGLE) {
-        MpmFactoryDeRegisterAllMpmCtxProfiles(de_ctx);
-    }
     /* updated by AS.  Don't clean up de_ctx.  Necessiated by live rule swap */
 #if 0
     DetectEngineCtxFree(de_ctx);
