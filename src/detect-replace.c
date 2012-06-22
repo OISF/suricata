@@ -328,16 +328,17 @@ int DetectReplaceLongPatternMatchTestWrp(char *sig, uint32_t sid, char *sig_rep,
     uint8_t p[sizeof(raw_eth_pkt)];
     uint16_t psize = sizeof(raw_eth_pkt);
 
+    /* would be unittest */
+    int run_mode_backup = run_mode;
     run_mode = RUNMODE_NFQ;
     ret = DetectReplaceLongPatternMatchTest(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt),
                              sig, sid, p, &psize);
-    if (ret != 1) {
-        return ret;
-    } else {
+    if (ret == 1) {
         SCLogDebug("replace: test1 phase1");
         ret = DetectReplaceLongPatternMatchTest(p, psize, sig_rep, sid_rep, NULL, NULL);
-        return ret;
     }
+    run_mode = run_mode_backup;
+    return ret;
 }
 
 
@@ -362,16 +363,16 @@ int DetectReplaceLongPatternMatchTestUDPWrp(char *sig, uint32_t sid, char *sig_r
     uint8_t p[sizeof(raw_eth_pkt)];
     uint16_t psize = sizeof(raw_eth_pkt);
 
+    int run_mode_backup = run_mode;
     run_mode = RUNMODE_NFQ;
     ret = DetectReplaceLongPatternMatchTest(raw_eth_pkt, (uint16_t)sizeof(raw_eth_pkt),
                              sig, sid, p, &psize);
-    if (ret != 1) {
-        return ret;
-    } else {
+    if (ret == 1) {
         SCLogDebug("replace: test1 phase1 ok: %" PRIuMAX" vs %d",(uintmax_t)sizeof(raw_eth_pkt),psize);
         ret = DetectReplaceLongPatternMatchTest(p, psize, sig_rep, sid_rep, NULL, NULL);
-        return ret;
     }
+    run_mode = run_mode_backup;
+    return ret;
 }
 
 /**
@@ -561,6 +562,9 @@ int DetectReplaceMatchTest15()
  */
 int DetectReplaceParseTest01(void)
 {
+    int run_mode_backup = run_mode;
+    run_mode = RUNMODE_NFQ;
+
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
 
@@ -578,6 +582,8 @@ int DetectReplaceParseTest01(void)
     }
 
  end:
+    run_mode = run_mode_backup;
+
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -590,6 +596,9 @@ int DetectReplaceParseTest01(void)
  */
 int DetectReplaceParseTest02(void)
 {
+    int run_mode_backup = run_mode;
+    run_mode = RUNMODE_NFQ;
+
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
 
@@ -607,6 +616,8 @@ int DetectReplaceParseTest02(void)
     }
 
  end:
+    run_mode = run_mode_backup;
+
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -620,6 +631,9 @@ int DetectReplaceParseTest02(void)
  */
 int DetectReplaceParseTest03(void)
 {
+    int run_mode_backup = run_mode;
+    run_mode = RUNMODE_NFQ;
+
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
 
@@ -637,6 +651,8 @@ int DetectReplaceParseTest03(void)
     }
 
  end:
+    run_mode = run_mode_backup;
+
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -649,6 +665,9 @@ int DetectReplaceParseTest03(void)
  */
 int DetectReplaceParseTest04(void)
 {
+    int run_mode_backup = run_mode;
+    run_mode = RUNMODE_NFQ;
+
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
 
@@ -666,6 +685,8 @@ int DetectReplaceParseTest04(void)
     }
 
  end:
+    run_mode = run_mode_backup;
+
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -678,6 +699,9 @@ int DetectReplaceParseTest04(void)
  */
 int DetectReplaceParseTest05(void)
 {
+    int run_mode_backup = run_mode;
+    run_mode = RUNMODE_NFQ;
+
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
 
@@ -695,6 +719,8 @@ int DetectReplaceParseTest05(void)
     }
 
  end:
+    run_mode = run_mode_backup;
+
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -707,6 +733,9 @@ int DetectReplaceParseTest05(void)
  */
 int DetectReplaceParseTest06(void)
 {
+    int run_mode_backup = run_mode;
+    run_mode = RUNMODE_NFQ;
+
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
 
@@ -724,6 +753,8 @@ int DetectReplaceParseTest06(void)
     }
 
  end:
+    run_mode = run_mode_backup;
+
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
@@ -736,6 +767,9 @@ int DetectReplaceParseTest06(void)
  */
 int DetectReplaceParseTest07(void)
 {
+    int run_mode_backup = run_mode;
+    run_mode = RUNMODE_NFQ;
+
     DetectEngineCtx *de_ctx = NULL;
     int result = 1;
 
@@ -753,6 +787,8 @@ int DetectReplaceParseTest07(void)
     }
 
  end:
+    run_mode = run_mode_backup;
+
     SigGroupCleanup(de_ctx);
     SigCleanSignatures(de_ctx);
     DetectEngineCtxFree(de_ctx);
