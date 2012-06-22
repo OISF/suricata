@@ -141,14 +141,19 @@ static void AlertDebugLogFlowVars(AlertDebugLogThread *aft, Packet *p)
  */
 static void AlertDebugLogFlowBits(AlertDebugLogThread *aft, Packet *p)
 {
-    GenericVar *gv = p->flow->flowvar;
-    while (gv != NULL) {
-        if (gv->type == DETECT_FLOWBITS) {
-            FlowBit *fb = (FlowBit *) gv;
-            MemBufferWriteString(aft->buffer, "FLOWBIT idx(%"PRIu32")\n", fb->idx);
+    int i;
+    for (i = 0; i < p->debuglog_flowbits_names_len; i++) {
+        if (p->debuglog_flowbits_names[i] != NULL) {
+            MemBufferWriteString(aft->buffer, "FLOWBIT:           %s\n",
+                                 p->debuglog_flowbits_names[i]);
         }
-        gv = gv->next;
     }
+
+    SCFree(p->debuglog_flowbits_names);
+    p->debuglog_flowbits_names = NULL;
+    p->debuglog_flowbits_names_len = 0;
+
+    return;
 }
 
 /**

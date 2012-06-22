@@ -381,6 +381,10 @@ typedef struct Packet_
     /* IPS action to take */
     uint8_t action;
 
+    /* used to hold flowbits only if debuglog is enabled */
+    int debuglog_flowbits_names_len;
+    const char **debuglog_flowbits_names;
+
     /* pkt vars */
     PktVar *pktvar;
 

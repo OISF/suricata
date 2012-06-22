@@ -50,6 +50,8 @@
 
 #include "source-pfring.h"
 
+int debuglog_enabled = 0;
+
 /**
  * \brief Holds description for a runmode.
  */
@@ -404,6 +406,9 @@ void RunModeInitializeOutputs(void)
                     "TmModuleGetByName for %s failed", module->name);
             exit(EXIT_FAILURE);
         }
+        if (strcmp(tmm_modules[TMM_ALERTDEBUGLOG].name, tm_module->name) == 0)
+            debuglog_enabled = 1;
+
         RunModeOutput *runmode_output = SCCalloc(1, sizeof(RunModeOutput));
         if (runmode_output == NULL)
             return;

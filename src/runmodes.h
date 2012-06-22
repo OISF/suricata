@@ -64,4 +64,6 @@ void RunModeShutDown(void);
 int threading_set_cpu_affinity;
 extern float threading_detect_ratio;
 
+extern int debuglog_enabled;
+
 #endif /* __RUNMODES_H__ */

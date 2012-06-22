@@ -29,6 +29,7 @@
 #include "detect.h"
 #include "flow.h"
 #include "flow-private.h"
+#include "flow-bit.h"
 
 #include "detect-parse.h"
 #include "detect-engine.h"
@@ -165,6 +166,7 @@
 #include "stream-tcp.h"
 #include "stream-tcp-inline.h"
 
+#include "util-var-name.h"
 #include "util-classification-config.h"
 #include "util-print.h"
 #include "util-unittest.h"
@@ -180,6 +182,8 @@
 #include "util-optimize.h"
 #include "util-vector.h"
 #include "util-path.h"
+
+#include "runmodes.h"
 
 extern uint8_t engine_mode;
 
@@ -1284,6 +1288,68 @@ static void DebugInspectIds(Packet *p, Flow *f, StreamMsg *smsg)
 }
 #endif
 
+static void AlertDebugLogModeSyncFlowbitsNamesToPacketStruct(Packet *p, DetectEngineCtx *de_ctx)
+{
+#define MALLOC_JUMP 5
+
+    int i = 0;
+
+    GenericVar *gv = p->flow->flowvar;
+
+    while (gv != NULL) {
+        i++;
+        gv = gv->next;
+    }
+    if (i == 0)
+        return;
+
+    p->debuglog_flowbits_names_len = i;
+
+    p->debuglog_flowbits_names = SCMalloc(sizeof(char *) *
+                                          p->debuglog_flowbits_names_len);
+    if (p->debuglog_flowbits_names == NULL) {
+        return;
+    }
+    memset(p->debuglog_flowbits_names, 0,
+           sizeof(char *) * p->debuglog_flowbits_names_len);
+
+    i = 0;
+    gv = p->flow->flowvar;
+    while (gv != NULL) {
+        if (gv->type != DETECT_FLOWBITS) {
+            gv = gv->next;
+            continue;
+        }
+
+        FlowBit *fb = (FlowBit *) gv;
+        char *name = VariableIdxGetName(de_ctx, fb->idx, fb->type);
+        if (name != NULL) {
+            p->debuglog_flowbits_names[i] = SCStrdup(name);
+            if (p->debuglog_flowbits_names[i] == NULL) {
+                return;
+            }
+            i++;
+        }
+
+        if (i == p->debuglog_flowbits_names_len) {
+            p->debuglog_flowbits_names_len += MALLOC_JUMP;
+            p->debuglog_flowbits_names = SCRealloc(p->debuglog_flowbits_names,
+                                                   sizeof(char *) *
+                                                   p->debuglog_flowbits_names_len);
+            if (p->debuglog_flowbits_names == NULL) {
+                return;
+            }
+            memset(p->debuglog_flowbits_names +
+                   p->debuglog_flowbits_names_len - MALLOC_JUMP,
+                   0, sizeof(char *) * MALLOC_JUMP);
+        }
+
+        gv = gv->next;
+    }
+
+    return;
+}
+
 /**
  *  \brief Signature match function
  *
@@ -1342,6 +1408,8 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
                 reset_de_state = 1;
 
                 p->flow->de_ctx_id = de_ctx->id;
+                GenericVarFree(p->flow->flowvar);
+                p->flow->flowvar = NULL;
             }
 
             /* set the iponly stuff */
@@ -1785,6 +1853,12 @@ end:
         }
 
         FLOWLOCK_WRLOCK(p->flow);
+        if (debuglog_enabled) {
+            if (p->alerts.cnt > 0) {
+                AlertDebugLogModeSyncFlowbitsNamesToPacketStruct(p, de_ctx);
+            }
+        }
+
         if (!(sms_runflags & SMS_USE_FLOW_SGH)) {
             if (p->flowflags & FLOW_PKT_TOSERVER && !(p->flow->flags & FLOW_SGH_TOSERVER)) {
                 /* first time we see this toserver sgh, store it */
