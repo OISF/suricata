@@ -97,10 +97,12 @@ static void DetectEngineBufferHttpClientBodies(DetectEngineCtx *de_ctx,
     size_t txs = list_size(htp_state->connp->conn->transactions) - tmp_idx;
     /* no transactions?!  cool.  get out of here */
     if (txs == 0) {
+        det_ctx->hcbd_buffers_list_len = 0;
         goto end;
     } else if (txs > det_ctx->hcbd_buffers_list_len) {
         det_ctx->hcbd = SCRealloc(det_ctx->hcbd, txs * sizeof(HttpReassembledBody));
         if (det_ctx->hcbd == NULL) {
+            det_ctx->hcbd_buffers_list_len = 0;
             goto end;
         }
 
@@ -233,14 +235,16 @@ int DetectEngineRunHttpClientBodyMpm(DetectEngineCtx *de_ctx,
     DetectEngineBufferHttpClientBodies(de_ctx, det_ctx, f, htp_state);
     FLOWLOCK_UNLOCK(f);
 
-    for (i = 0; i < det_ctx->hcbd_buffers_list_len; i++) {
-        if (det_ctx->hcbd[i].buffer_len == 0)
-            continue;
+    if (det_ctx->hcbd != NULL && det_ctx->hcbd_buffers_list_len) {
+        for (i = 0; i < det_ctx->hcbd_buffers_list_len; i++) {
+            if (det_ctx->hcbd[i].buffer_len == 0)
+                continue;
 
-        cnt += HttpClientBodyPatternSearch(det_ctx,
-                                           det_ctx->hcbd[i].buffer,
-                                           det_ctx->hcbd[i].buffer_len,
-                                           flags);
+            cnt += HttpClientBodyPatternSearch(det_ctx,
+                    det_ctx->hcbd[i].buffer,
+                    det_ctx->hcbd[i].buffer_len,
+                    flags);
+        }
     }
 
     return cnt;
@@ -272,24 +276,26 @@ int DetectEngineInspectHttpClientBody(DetectEngineCtx *de_ctx,
     DetectEngineBufferHttpClientBodies(de_ctx, det_ctx, f, alstate);
     FLOWLOCK_UNLOCK(f);
 
-    for (i = 0; i < det_ctx->hcbd_buffers_list_len; i++) {
-        uint8_t *hcbd_buffer = det_ctx->hcbd[i].buffer;
-        uint32_t hcbd_buffer_len = det_ctx->hcbd[i].buffer_len;
+    if (det_ctx->hcbd != NULL && det_ctx->hcbd_buffers_list_len) {
+        for (i = 0; i < det_ctx->hcbd_buffers_list_len; i++) {
+            uint8_t *hcbd_buffer = det_ctx->hcbd[i].buffer;
+            uint32_t hcbd_buffer_len = det_ctx->hcbd[i].buffer_len;
 
-        if (hcbd_buffer == NULL || hcbd_buffer_len == 0)
-            continue;
+            if (hcbd_buffer == NULL || hcbd_buffer_len == 0)
+                continue;
 
-        det_ctx->buffer_offset = 0;
-        det_ctx->discontinue_matching = 0;
-        det_ctx->inspection_recursion_counter = 0;
+            det_ctx->buffer_offset = 0;
+            det_ctx->discontinue_matching = 0;
+            det_ctx->inspection_recursion_counter = 0;
 
-        r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HCBDMATCH],
-                                          f,
-                                          hcbd_buffer,
-                                          hcbd_buffer_len,
-                                          DETECT_ENGINE_CONTENT_INSPECTION_MODE_HCBD, NULL);
-        if (r == 1) {
-            break;
+            r = DetectEngineContentInspection(de_ctx, det_ctx, s, s->sm_lists[DETECT_SM_LIST_HCBDMATCH],
+                    f,
+                    hcbd_buffer,
+                    hcbd_buffer_len,
+                    DETECT_ENGINE_CONTENT_INSPECTION_MODE_HCBD, NULL);
+            if (r == 1) {
+                break;
+            }
         }
     }
 
@@ -304,8 +310,10 @@ int DetectEngineInspectHttpClientBody(DetectEngineCtx *de_ctx,
 void DetectEngineCleanHCBDBuffers(DetectEngineThreadCtx *det_ctx)
 {
     int i;
-    for (i = 0; i < det_ctx->hcbd_buffers_list_len; i++) {
-        det_ctx->hcbd[i].buffer_len = 0;
+    if (det_ctx->hcbd != NULL && det_ctx->hcbd_buffers_list_len) {
+        for (i = 0; i < det_ctx->hcbd_buffers_list_len; i++) {
+            det_ctx->hcbd[i].buffer_len = 0;
+        }
     }
     return;
 }
