@@ -55,3 +55,13 @@ void UtilSignalHandlerSetup(int sig, void (*handler)())
 
     return;
 }
+
+int UtilSignalIsHandler(int sig, void (*handler)())
+{
+    struct sigaction action;
+    memset(&action, 0x00, sizeof(struct sigaction));
+
+    sigaction(sig, NULL, &action);
+
+    return (action.sa_handler == handler);
+}

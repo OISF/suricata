@@ -1536,6 +1536,77 @@ void TmThreadDisableReceiveThreads(void)
     return;
 }
 
+/**
+ * \brief Disable all detect threads.
+ */
+void TmThreadDisableDetectThreads(void)
+{
+    /* value in seconds */
+#define THREAD_KILL_MAX_WAIT_TIME 60
+    /* value in microseconds */
+#define WAIT_TIME 100
+
+    double total_wait_time = 0;
+
+    ThreadVars *tv = NULL;
+
+    SCMutexLock(&tv_root_lock);
+
+    /* all receive threads are part of packet processing threads */
+    tv = tv_root[TVT_PPT];
+
+    /* we do have to keep in mind that TVs are arranged in the order
+     * right from receive to log.  The moment we fail to find a
+     * receive TM amongst the slots in a tv, it indicates we are done
+     * with all receive threads */
+    while (tv) {
+        /* obtain the slots for this TV */
+        TmSlot *slots = tv->tm_slots;
+        while (slots != NULL) {
+            TmModule *tm = TmModuleGetById(slots->tm_id);
+
+            if (!(tm->flags & TM_FLAG_DETECT_TM)) {
+                slots = slots->slot_next;
+                continue;
+            }
+
+            /* we found our receive TV.  Send it a KILL signal.  This is all
+             * we need to do to kill receive threads */
+            TmThreadsSetFlag(tv, THV_KILL);
+
+            if (tv->inq != NULL) {
+                int i;
+                for (i = 0; i < (tv->inq->reader_cnt + tv->inq->writer_cnt); i++) {
+                    if (tv->inq->q_type == 0)
+                        SCCondSignal(&trans_q[tv->inq->id].cond_q);
+                    else
+                        SCCondSignal(&data_queues[tv->inq->id].cond_q);
+                }
+                SCLogDebug("signalled tv->inq->id %" PRIu32 "", tv->inq->id);
+            }
+
+            while (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
+                usleep(WAIT_TIME);
+                total_wait_time += WAIT_TIME / 1000000.0;
+                if (total_wait_time > THREAD_KILL_MAX_WAIT_TIME) {
+                    SCLogError(SC_ERR_FATAL, "Engine unable to "
+                               "disable detect thread - \"%s\".  "
+                               "Killing engine", tv->name);
+                    exit(EXIT_FAILURE);
+                }
+            }
+
+            break;
+        }
+
+        tv = tv->next;
+    }
+
+    SCMutexUnlock(&tv_root_lock);
+
+    return;
+}
+
 TmSlot *TmThreadGetFirstTmSlotForPartialPattern(const char *tm_name)
 {
     ThreadVars *tv = NULL;

@@ -241,13 +241,6 @@ static void SignalHandlerSigterm(/*@unused@*/ int sig) {
     suricata_ctl_flags |= SURICATA_KILL;
 }
 
-void SignalHandlerSigusr2EngineShutdown(int sig)
-{
-    SCLogInfo("Live rule swap no longer possible.  Engine in shutdown mode.");
-
-    return;
-}
-
 void SignalHandlerSigusr2SigFileStartup(int sig)
 {
     SCLogInfo("Live rule not possible if -s or -S option used at runtime.");
@@ -272,6 +265,11 @@ void SignalHandlerSigusr2(int sig)
 {
     if (run_mode == RUNMODE_UNKNOWN || run_mode == RUNMODE_UNITTEST) {
         SCLogInfo("Ruleset load signal USR2 triggered for wrong runmode");
+        return;
+    }
+
+    if (suricata_ctl_flags != 0) {
+        SCLogInfo("Live rule swap no longer possible.  Engine in shutdown mode.");
         return;
     }
 
@@ -1876,8 +1874,6 @@ int main(int argc, char **argv)
         usleep(10* 1000);
     }
 
-    UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2EngineShutdown);
-
     /* Update the engine stage/status flag */
     SC_ATOMIC_CAS(&engine_stage, SURICATA_RUNTIME, SURICATA_DEINIT);
 
@@ -1898,7 +1894,26 @@ int main(int argc, char **argv)
         (((1000000 + end_time.tv_usec - start_time.tv_usec) / 1000) - 1000);
     SCLogInfo("time elapsed %.3fs", (float)milliseconds/(float)1000);
 
+    /* Disable detect threads first.  This is required by live rule swap */
+    TmThreadDisableDetectThreads();
+
+    /* wait if live rule swap is in progress */
+    if (UtilSignalIsHandler(SIGUSR2, SignalHandlerSigusr2Idle)) {
+        SCLogInfo("Live rule swap in progress.  Waiting for it to end "
+                  "before we shut the engine/threads down");
+        while (UtilSignalIsHandler(SIGUSR2, SignalHandlerSigusr2Idle)) {
+            /* sleep for 0.5 seconds */
+            usleep(500000);
+        }
+        SCLogInfo("Received notification that live rule swap is done.  "
+                  "Continuing with engine/threads shutdown");
+    }
+
+    DetectEngineCtx *global_de_ctx = DetectEngineGetGlobalDeCtx();
+    BUG_ON(global_de_ctx == NULL);
+
     TmThreadKillThreads();
+
     SCPerfReleaseResources();
     FlowShutdown();
     HostShutdown();
@@ -1941,10 +1956,7 @@ int main(int argc, char **argv)
 
     AppLayerHtpPrintStats();
 
-    /* updated by AS.  Don't clean up de_ctx.  Necessiated by live rule swap */
-#if 0
-    DetectEngineCtxFree(de_ctx);
-#endif
+    DetectEngineCtxFree(global_de_ctx);
     AlpProtoDestroy();
 
     TagDestroyCtx();

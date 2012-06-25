@@ -26,5 +26,6 @@
 
 int UtilSignalBlock(int);
 void UtilSignalHandlerSetup(int, void (*handler)());;
+int UtilSignalIsHandler(int sig, void (*handler)());
 
 #endif /* __UTIL_STRING_H__ */

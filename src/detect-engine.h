@@ -30,6 +30,7 @@
 /* prototypes */
 void DetectEngineSpawnLiveRuleSwapMgmtThread(void);
 DetectEngineCtx *DetectEngineCtxInit(void);
+DetectEngineCtx *DetectEngineGetGlobalDeCtx(void);
 void DetectEngineCtxFree(DetectEngineCtx *);
 
 TmEcode DetectEngineThreadCtxInit(ThreadVars *, void *, void **);

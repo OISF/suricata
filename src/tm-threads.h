@@ -113,6 +113,7 @@ TmEcode TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *slot);
 
 ThreadVars *TmThreadsGetTVContainingSlot(TmSlot *);
 void TmThreadDisableReceiveThreads(void);
+void TmThreadDisableDetectThreads(void);
 TmSlot *TmThreadGetFirstTmSlotForPartialPattern(const char *);
 
 /**

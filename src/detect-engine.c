@@ -166,10 +166,10 @@ static void *DetectEngineLiveRuleSwap(void *arg)
                 TmThreadsSetFlag(tv_local, THV_CLOSED);
 
                 SCLogInfo("===== Live rule swap premature exit, since "
-                          "suricta_ctl_flags != 0 =====");
+                          "engine is in shutdown phase =====");
 
-                UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2EngineShutdown);
-
+                UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
+                SCMutexUnlock(&tv_root_lock);
                 pthread_exit(NULL);
             }
 
@@ -214,19 +214,6 @@ static void *DetectEngineLiveRuleSwap(void *arg)
             new_det_ctx[i] = det_ctx;
             i++;
 
-            if (suricata_ctl_flags != 0) {
-                TmThreadsSetFlag(tv_local, THV_CLOSED);
-
-                SCLogInfo("===== Live rule swap premature exit between "
-                          "swapping det_ctxs, since "
-                          "suricta_ctl_flags != 0 =====");
-
-                UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2EngineShutdown);
-
-                pthread_exit(NULL);
-            }
-
-
             SCLogDebug("swapping new det_ctx - %p with older one - %p", det_ctx,
                        SC_ATOMIC_GET(slots->slot_data));
             SC_ATOMIC_SET(slots->slot_data, det_ctx);
@@ -243,43 +230,54 @@ static void *DetectEngineLiveRuleSwap(void *arg)
               "along with the new de_ctx", no_of_detect_tvs);
 
     for (i = 0; i < no_of_detect_tvs; i++) {
+        int break_out = 0;
         while (new_det_ctx[i]->so_far_used_by_detect != 1) {
-            SCLogDebug("new_det_ctx - %p used by detect", new_det_ctx[i]);
             if (suricata_ctl_flags != 0) {
-                TmThreadsSetFlag(tv_local, THV_CLOSED);
-
-                SCLogInfo("===== Live rule swap done, but premature exit at "
-                          "de-init phase, since suricta_ctl_flags != 0 =====");
-
-                UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2EngineShutdown);
-
-                pthread_exit(NULL);
+                break_out = 1;
+                break;
             }
 
             usleep(1000);
         }
+        if (break_out)
+            break;
+        SCLogDebug("new_det_ctx - %p used by detect engine", new_det_ctx[i]);
     }
 
+    if (i != no_of_detect_tvs) {
+        ThreadVars *tv = tv_root[TVT_PPT];
+        while (tv) {
+            /* obtain the slots for this TV */
+            TmSlot *slots = tv->tm_slots;
+            while (slots != NULL) {
+                TmModule *tm = TmModuleGetById(slots->tm_id);
+
+                if (!(tm->flags & TM_FLAG_DETECT_TM)) {
+                    slots = slots->slot_next;
+                    continue;
+                }
+
+                while (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
+                    usleep(100);
+                }
+
+                slots = slots->slot_next;
+            }
+
+            tv = tv->next;
+        }
+    }
+
+    /* free all the ctxs */
     DetectEngineCtx *old_de_ctx = old_det_ctx[0]->de_ctx;
     for (i = 0; i < no_of_detect_tvs; i++) {
         SCLogDebug("Freeing old_det_ctx - %p used by detect",
                    old_det_ctx[i]);
-        if (suricata_ctl_flags != 0) {
-            TmThreadsSetFlag(tv_local, THV_CLOSED);
-
-            SCLogInfo("===== Live rule swap done, but premature exit at "
-                      "de-init phase, since suricta_ctl_flags != 0 =====");
-
-            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2EngineShutdown);
-
-            pthread_exit(NULL);
-        }
-
-
         DetectEngineThreadCtxDeinit(NULL, old_det_ctx[i]);
     }
     DetectEngineCtxFree(old_de_ctx);
 
+    /* reset the handler */
     UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
 
     TmThreadsSetFlag(tv_local, THV_CLOSED);
@@ -308,6 +306,36 @@ void DetectEngineSpawnLiveRuleSwapMgmtThread(void)
     }
 
     SCReturn;
+}
+
+DetectEngineCtx *DetectEngineGetGlobalDeCtx(void)
+{
+    DetectEngineCtx *de_ctx = NULL;
+
+    SCMutexLock(&tv_root_lock);
+
+    ThreadVars *tv = tv_root[TVT_PPT];
+    while (tv) {
+        /* obtain the slots for this TV */
+        TmSlot *slots = tv->tm_slots;
+        while (slots != NULL) {
+            TmModule *tm = TmModuleGetById(slots->tm_id);
+
+            if (tm->flags & TM_FLAG_DETECT_TM) {
+                DetectEngineThreadCtx *det_ctx = SC_ATOMIC_GET(slots->slot_data);
+                de_ctx = det_ctx->de_ctx;
+                SCMutexUnlock(&tv_root_lock);
+                return de_ctx;
+            }
+
+            slots = slots->slot_next;
+        }
+
+        tv = tv->next;
+    }
+
+    SCMutexUnlock(&tv_root_lock);
+    return NULL;
 }
 
 DetectEngineCtx *DetectEngineCtxInit(void) {
