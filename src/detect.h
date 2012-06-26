@@ -736,7 +736,7 @@ typedef struct DetectionEngineThreadCtx_ {
     /** ID of the transaction currently being inspected. */
     uint16_t tx_id;
 
-    uint16_t so_far_used_by_detect;
+    SC_ATOMIC_DECLARE(uint16_t, so_far_used_by_detect);
 
     /* holds the current recursion depth on content inspection */
     int inspection_recursion_counter;

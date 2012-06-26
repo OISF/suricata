@@ -124,8 +124,14 @@ static int SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx)
         fd = NULL;
     }
 
-    regex = NULL;
-    regex_study = NULL;
+    if (regex != NULL) {
+        pcre_free(regex);
+        regex = NULL;
+    }
+    if (regex_study != NULL) {
+        //pcre_free_study(regex_study);
+        regex_study = NULL;
+    }
 
     return -1;
 }
@@ -156,8 +162,15 @@ static void SCRConfDeInitLocalResources(DetectEngineCtx *de_ctx)
         fclose(fd);
     file_path = SC_RCONF_DEFAULT_FILE_PATH;
     fd = NULL;
-    regex = NULL;
-    regex_study = NULL;
+
+    if (regex != NULL) {
+        pcre_free(regex);
+        regex = NULL;
+    }
+    if (regex_study != NULL) {
+        //pcre_free_study(regex_study);
+        regex_study = NULL;
+    }
 
     return;
 }

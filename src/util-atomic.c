@@ -26,6 +26,8 @@
 #include "util-atomic.h"
 #include "util-unittest.h"
 
+#ifdef UNITTESTS
+
 static int SCAtomicTest01(void)
 {
     int result = 0;
@@ -59,9 +61,13 @@ static int SCAtomicTest01(void)
     return result;
 }
 
+#endif /* UNITTESTS */
+
 void SCAtomicRegisterTests(void)
 {
+#ifdef UNITTESTS
     UtRegisterTest("SCAtomicTest01", SCAtomicTest01, 1);
+#endif
 
     return;
 }

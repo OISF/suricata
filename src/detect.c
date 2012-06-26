@@ -1938,8 +1938,8 @@ TmEcode Detect(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQue
         goto error;
     }
 
-    if (det_ctx->so_far_used_by_detect == 0) {
-        det_ctx->so_far_used_by_detect = 1;
+    if (SC_ATOMIC_GET(det_ctx->so_far_used_by_detect) == 0) {
+        SC_ATOMIC_SET(det_ctx->so_far_used_by_detect, 1);
         SCLogDebug("Detect Engine using new det_ctx - %p and de_ctx - %p",
                   det_ctx, de_ctx);
     }

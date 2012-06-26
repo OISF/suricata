@@ -21,11 +21,11 @@
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
  */
 
-#ifndef __UTIL_STRING_H__
-#define __UTIL_STRING_H__
+#ifndef __UTIL_SIGNAL_H__
+#define __UTIL_SIGNAL_H__
 
 int UtilSignalBlock(int);
 void UtilSignalHandlerSetup(int, void (*handler)());;
 int UtilSignalIsHandler(int sig, void (*handler)());
 
-#endif /* __UTIL_STRING_H__ */
+#endif /* __UTIL_SIGNAL_H__ */

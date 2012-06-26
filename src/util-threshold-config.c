@@ -211,17 +211,41 @@ void SCThresholdConfDeInitContext(DetectEngineCtx *de_ctx, FILE *fd)
     if (fd != NULL)
         fclose(fd);
 
-    regex_base = NULL;
-    regex_base_study = NULL;
+    if (regex_base != NULL) {
+        pcre_free(regex_base);
+        regex_base = NULL;
+    }
+    if (regex_base_study != NULL) {
+        //pcre_free_study(regex_base_study);
+        regex_base_study = NULL;
+    }
 
-    regex_threshold = NULL;
-    regex_threshold_study = NULL;
+    if (regex_threshold != NULL) {
+        pcre_free(regex_threshold);
+        regex_threshold = NULL;
+    }
+    if (regex_threshold_study != NULL) {
+        //pcre_free_study(regex_threshold_study);
+        regex_threshold_study = NULL;
+    }
 
-    regex_rate = NULL;
-    regex_rate_study = NULL;
+    if (regex_rate != NULL) {
+        pcre_free(regex_rate);
+        regex_rate = NULL;
+    }
+    if (regex_rate_study != NULL) {
+        //pcre_free_study(regex_rate_study);
+        regex_rate_study = NULL;
+    }
 
-    regex_suppress = NULL;
-    regex_suppress_study = NULL;
+    if (regex_suppress != NULL) {
+        pcre_free(regex_suppress);
+        regex_suppress = NULL;
+    }
+    if (regex_suppress_study != NULL) {
+        //pcre_free_study(regex_suppress_study);
+        regex_suppress_study = NULL;
+    }
 
     return;
 }

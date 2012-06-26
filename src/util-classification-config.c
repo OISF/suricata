@@ -123,8 +123,14 @@ int SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx)
         fd = NULL;
     }
 
-    regex = NULL;
-    regex_study = NULL;
+    if (regex != NULL) {
+        pcre_free(regex);
+        regex = NULL;
+    }
+    if (regex_study != NULL) {
+        //pcre_free_study(regex_study);
+        regex_study = NULL;
+    }
 
     return -1;
 }
@@ -159,8 +165,14 @@ static void SCClassConfDeInitLocalResources(DetectEngineCtx *de_ctx)
     fclose(fd);
     default_file_path = SC_CLASS_CONF_DEF_CONF_FILEPATH;
     fd = NULL;
-    regex = NULL;
-    regex_study = NULL;
+    if (regex != NULL) {
+        pcre_free(regex_study);
+        regex = NULL;
+    }
+    if (regex_study != NULL) {
+        //pcre_free_study(regex_study);
+        regex_study = NULL;
+    }
 
     return;
 }
@@ -530,7 +542,7 @@ SCClassConfClasstype *SCClassConfGetClasstype(const char *ct_name,
     SCClassConfClasstype *ct_info = SCClassConfAllocClasstype(0, ct_name, NULL,
                                                               0);
     if (ct_info == NULL)
-        exit(EXIT_FAILURE);
+        return NULL;
     SCClassConfClasstype *lookup_ct_info = HashTableLookup(de_ctx->class_conf_ht,
                                                            ct_info, 0);
 

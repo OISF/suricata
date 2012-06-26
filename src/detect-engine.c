@@ -231,7 +231,7 @@ static void *DetectEngineLiveRuleSwap(void *arg)
 
     for (i = 0; i < no_of_detect_tvs; i++) {
         int break_out = 0;
-        while (new_det_ctx[i]->so_far_used_by_detect != 1) {
+        while (SC_ATOMIC_GET(new_det_ctx[i]->so_far_used_by_detect) != 1) {
             if (suricata_ctl_flags != 0) {
                 break_out = 1;
                 break;
@@ -244,6 +244,11 @@ static void *DetectEngineLiveRuleSwap(void *arg)
         SCLogDebug("new_det_ctx - %p used by detect engine", new_det_ctx[i]);
     }
 
+    /* this is to make sure that if someone initiated shutdown during a live
+     * rule swap, the live rule swap won't clean up the old det_ctx and
+     * de_ctx, till all detect threads have stopped working and sitting
+     * silently after setting RUNNING_DONE flag and while waiting for
+     * THV_DEINIT flag */
     if (i != no_of_detect_tvs) {
         ThreadVars *tv = tv_root[TVT_PPT];
         while (tv) {
@@ -742,6 +747,8 @@ TmEcode DetectEngineThreadCtxInit(ThreadVars *tv, void *initdata, void **data) {
         return TM_ECODE_FAILED;
     }
 
+    SC_ATOMIC_INIT(det_ctx->so_far_used_by_detect);
+
     *data = (void *)det_ctx;
 
     return TM_ECODE_OK;
@@ -819,6 +826,8 @@ static TmEcode DetectEngineThreadCtxInitForLiveRuleSwap(ThreadVars *tv, void *in
     if (det_ctx->bj_values == NULL) {
         return TM_ECODE_FAILED;
     }
+
+    SC_ATOMIC_INIT(det_ctx->so_far_used_by_detect);
 
     *data = (void *)det_ctx;
 
