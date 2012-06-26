@@ -660,7 +660,7 @@ static int DCERPCUDPParse(Flow *f, void *dcerpc_state,
 			&& input_len) {
 		retval = FragmentDataParser(f, dcerpc_state, pstate, input + parsed,
 				input_len, output);
-		if (retval || retval > (int32_t)input_len) {
+		if (retval || retval > input_len) {
 			parsed += retval;
 			input_len -= retval;
 		} else if (input_len) {
