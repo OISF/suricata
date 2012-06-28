@@ -516,20 +516,10 @@ int Unified2PacketTypeAlert (Unified2AlertThread *aun, Packet *p, uint32_t event
         SCLogDebug("logging the state");
         uint8_t flag;
 
-        /* IDS mode reverse the data */
-        /** \todo improve the order selection policy */
-        if (!StreamTcpInlineMode()) {
-            if (p->flowflags & FLOW_PKT_TOSERVER) {
-                flag = FLOW_PKT_TOCLIENT;
-            } else {
-                flag = FLOW_PKT_TOSERVER;
-            }
+        if (p->flowflags & FLOW_PKT_TOSERVER) {
+            flag = FLOW_PKT_TOCLIENT;
         } else {
-            if (p->flowflags & FLOW_PKT_TOSERVER) {
-                flag = FLOW_PKT_TOSERVER;
-            } else {
-                flag = FLOW_PKT_TOCLIENT;
-            }
+            flag = FLOW_PKT_TOSERVER;
         }
 
         /* make event id available to callback */
