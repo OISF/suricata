@@ -128,7 +128,7 @@ int SCClassConfInitContextAndLocalResources(DetectEngineCtx *de_ctx)
         regex = NULL;
     }
     if (regex_study != NULL) {
-        //pcre_free_study(regex_study);
+        pcre_free(regex_study);
         regex_study = NULL;
     }
 
@@ -166,11 +166,11 @@ static void SCClassConfDeInitLocalResources(DetectEngineCtx *de_ctx)
     default_file_path = SC_CLASS_CONF_DEF_CONF_FILEPATH;
     fd = NULL;
     if (regex != NULL) {
-        pcre_free(regex_study);
+        pcre_free(regex);
         regex = NULL;
     }
     if (regex_study != NULL) {
-        //pcre_free_study(regex_study);
+        pcre_free(regex_study);
         regex_study = NULL;
     }
 

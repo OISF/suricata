@@ -129,7 +129,7 @@ static int SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx)
         regex = NULL;
     }
     if (regex_study != NULL) {
-        //pcre_free_study(regex_study);
+        pcre_free(regex_study);
         regex_study = NULL;
     }
 
@@ -168,7 +168,7 @@ static void SCRConfDeInitLocalResources(DetectEngineCtx *de_ctx)
         regex = NULL;
     }
     if (regex_study != NULL) {
-        //pcre_free_study(regex_study);
+        pcre_free(regex_study);
         regex_study = NULL;
     }
 

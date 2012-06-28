@@ -216,7 +216,7 @@ void SCThresholdConfDeInitContext(DetectEngineCtx *de_ctx, FILE *fd)
         regex_base = NULL;
     }
     if (regex_base_study != NULL) {
-        //pcre_free_study(regex_base_study);
+        pcre_free(regex_base_study);
         regex_base_study = NULL;
     }
 
@@ -225,7 +225,7 @@ void SCThresholdConfDeInitContext(DetectEngineCtx *de_ctx, FILE *fd)
         regex_threshold = NULL;
     }
     if (regex_threshold_study != NULL) {
-        //pcre_free_study(regex_threshold_study);
+        pcre_free(regex_threshold_study);
         regex_threshold_study = NULL;
     }
 
@@ -234,7 +234,7 @@ void SCThresholdConfDeInitContext(DetectEngineCtx *de_ctx, FILE *fd)
         regex_rate = NULL;
     }
     if (regex_rate_study != NULL) {
-        //pcre_free_study(regex_rate_study);
+        pcre_free(regex_rate_study);
         regex_rate_study = NULL;
     }
 
@@ -243,7 +243,7 @@ void SCThresholdConfDeInitContext(DetectEngineCtx *de_ctx, FILE *fd)
         regex_suppress = NULL;
     }
     if (regex_suppress_study != NULL) {
-        //pcre_free_study(regex_suppress_study);
+        pcre_free(regex_suppress_study);
         regex_suppress_study = NULL;
     }
 
