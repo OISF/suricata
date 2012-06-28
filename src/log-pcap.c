@@ -188,31 +188,29 @@ int PcapLogRotateFile(ThreadVars *t, PcapLogData *pl)
         SCLogDebug("Removing pcap file %s", pf->filename);
 
         if (remove(pf->filename) != 0) {
-            SCLogWarning(SC_ERR_PCAP_FILE_DELETE_FAILED,
-                         "failed to remove log file %s: %s",
-                         pf->filename, strerror( errno ));
+            // VJ remove can fail because file is already gone
+            //LogWarning(SC_ERR_PCAP_FILE_DELETE_FAILED,
+            //           "failed to remove log file %s: %s",
+            //           pf->filename, strerror( errno ));
         }
-        else {
-            SCLogDebug("success! removed log file %s", pf->filename);
 
-            /* Remove directory if Sguil mode and no files left in sguil dir */
-            if (pl->mode == LOGMODE_SGUIL) {
-                pfnext = TAILQ_NEXT(pf,next);
+        /* Remove directory if Sguil mode and no files left in sguil dir */
+        if (pl->mode == LOGMODE_SGUIL) {
+            pfnext = TAILQ_NEXT(pf,next);
 
-                if (strcmp(pf->dirname, pfnext->dirname) == 0) {
-                    SCLogDebug("Current entry dir %s and next entry %s "
-                               "are equal: not removing dir",
-                               pf->dirname, pfnext->dirname);
-                } else {
-                    SCLogDebug("current entry %s and %s are "
-                               "not equal: removing dir",
-                               pf->dirname, pfnext->dirname);
+            if (strcmp(pf->dirname, pfnext->dirname) == 0) {
+                SCLogDebug("Current entry dir %s and next entry %s "
+                        "are equal: not removing dir",
+                        pf->dirname, pfnext->dirname);
+            } else {
+                SCLogDebug("current entry %s and %s are "
+                        "not equal: removing dir",
+                        pf->dirname, pfnext->dirname);
 
-                    if (remove(pf->dirname) != 0) {
-                        SCLogWarning(SC_ERR_PCAP_FILE_DELETE_FAILED,
-                                     "failed to remove sguil log %s: %s",
-                                     pf->dirname, strerror( errno ));
-                    }
+                if (remove(pf->dirname) != 0) {
+                    SCLogWarning(SC_ERR_PCAP_FILE_DELETE_FAILED,
+                            "failed to remove sguil log %s: %s",
+                            pf->dirname, strerror( errno ));
                 }
             }
         }
