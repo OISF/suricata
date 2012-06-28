@@ -702,11 +702,13 @@ void FileDisableMd5(Flow *f, uint8_t direction) {
                     ptr, direction == STREAM_TOSERVER ? "toserver":"toclient");
             ptr->flags |= FILE_NOMD5;
 
+#ifdef HAVE_NSS
             /* destroy any ctx we may have so far */
             if (ptr->md5_ctx != NULL) {
                 HASH_Destroy(ptr->md5_ctx);
                 ptr->md5_ctx = NULL;
             }
+#endif
         }
     }
 
