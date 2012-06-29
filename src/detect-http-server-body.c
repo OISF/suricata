@@ -584,7 +584,7 @@ static int DetectHttpServerBodyTest07(void)
     SigMatchSignatures(&th_v, de_ctx, det_ctx, p1);
 
     if ((PacketAlertCheck(p1, 1))) {
-        printf("sid 1 matched on chunk2 but should have: ");
+        printf("sid 1 matched on chunk2 but shouldn't have: ");
         goto end;
     }
 

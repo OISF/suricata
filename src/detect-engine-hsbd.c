@@ -71,7 +71,7 @@
  * \warning Make sure flow is locked. Flow is modified, WRITE lock needed.
  */
 static void DetectEngineBufferHttpServerBodies(DetectEngineCtx *de_ctx,
-        DetectEngineThreadCtx *det_ctx, Flow *f, HtpState *htp_state)
+        DetectEngineThreadCtx *det_ctx, Flow *f, HtpState *htp_state, uint8_t flags)
 {
     int idx = 0;
     htp_tx_t *tx = NULL;
@@ -163,6 +163,10 @@ static void DetectEngineBufferHttpServerBodies(DetectEngineCtx *de_ctx,
             }
         }
 
+        if (flags & STREAM_EOF) {
+            htud->flags |= HTP_RES_BODY_COMPLETE;
+        }
+
         /* inspect the body if the transfer is complete or we have hit
          * our body size limit */
         if (htud->response_body.content_len_so_far < BODY_MINIMAL_SIZE &&
@@ -228,7 +232,7 @@ int DetectEngineRunHttpServerBodyMpm(DetectEngineCtx *de_ctx,
     uint32_t cnt = 0;
 
     FLOWLOCK_WRLOCK(f);
-    DetectEngineBufferHttpServerBodies(de_ctx, det_ctx, f, htp_state);
+    DetectEngineBufferHttpServerBodies(de_ctx, det_ctx, f, htp_state, flags);
     FLOWLOCK_UNLOCK(f);
 
     if (det_ctx->hsbd != NULL && det_ctx->hsbd_buffers_list_len) {
@@ -269,7 +273,7 @@ int DetectEngineInspectHttpServerBody(DetectEngineCtx *de_ctx,
     int i = 0;
 
     FLOWLOCK_WRLOCK(f);
-    DetectEngineBufferHttpServerBodies(de_ctx, det_ctx, f, alstate);
+    DetectEngineBufferHttpServerBodies(de_ctx, det_ctx, f, alstate, flags);
     FLOWLOCK_UNLOCK(f);
 
     if (det_ctx->hsbd != NULL && det_ctx->hsbd_buffers_list_len) {
