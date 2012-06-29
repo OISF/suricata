@@ -163,6 +163,7 @@ void DecodePartialIPV6(Packet *p, uint8_t *partial_packet, uint16_t len )
 void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                   uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
+    int error_msg = 0;
     SCPerfCounterIncr(dtv->counter_icmpv6, tv->sc_perf_pca);
 
     if (len < ICMPV6_HEADER_LEN) {
@@ -192,6 +193,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                                   len - ICMPV6_HEADER_LEN );
             }
 
+            error_msg = 1;
             break;
         case ICMP6_PACKET_TOO_BIG:
             SCLogDebug("ICMP6_PACKET_TOO_BIG");
@@ -204,6 +206,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                                   len - ICMPV6_HEADER_LEN );
             }
 
+            error_msg = 1;
             break;
         case ICMP6_TIME_EXCEEDED:
             SCLogDebug("ICMP6_TIME_EXCEEDED");
@@ -215,6 +218,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                                   len - ICMPV6_HEADER_LEN );
             }
 
+            error_msg = 1;
             break;
         case ICMP6_PARAM_PROB:
             SCLogDebug("ICMP6_PARAM_PROB");
@@ -227,6 +231,7 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
                                   len - ICMPV6_HEADER_LEN );
             }
 
+            error_msg = 1;
             break;
         case ICMP6_ECHO_REQUEST:
             SCLogDebug("ICMP6_ECHO_REQUEST id: %u seq: %u",
@@ -258,12 +263,24 @@ void DecodeICMPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p,
             ENGINE_SET_EVENT(p, ICMPV6_UNKNOWN_TYPE);
     }
 
+    /* for a info message the header is just 4 bytes */
+    if (!error_msg) {
+        if (p->payload_len >= 4) {
+            p->payload_len -= 4;
+            p->payload = pkt + 4;
+        } else {
+            p->payload_len = 0;
+            p->payload = NULL;
+        }
+    }
 
+#ifdef DEBUG
     if (ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_CODE))
         SCLogDebug("Unknown Code, ICMPV6_UNKNOWN_CODE");
 
     if (ENGINE_ISSET_EVENT(p, ICMPV6_UNKNOWN_TYPE))
         SCLogDebug("Unknown Type, ICMPV6_UNKNOWN_TYPE");
+#endif
 
     /* Flow is an integral part of us */
     FlowHandlePacket(tv, p);

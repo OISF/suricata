@@ -47,7 +47,6 @@
 #define MLD_LISTENER_REPORT         131
 #define MLD_LISTENER_REDUCTION      132
 
-
 /** Destination Unreachable Message (type=1) Code: */
 
 #define ICMP6_DST_UNREACH_NOROUTE       0 /* no route to destination */
