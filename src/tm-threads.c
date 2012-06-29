@@ -150,7 +150,7 @@ void *TmThreadsSlot1NoIn(void *td)
             TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
             pthread_exit((void *) -1);
         }
-        SC_ATOMIC_CAS(&s->slot_data, SC_ATOMIC_GET(s->slot_data), slot_data);
+        SC_ATOMIC_SET(s->slot_data, slot_data);
     }
     memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
     memset(&s->slot_post_pq, 0, sizeof(PacketQueue));
@@ -248,7 +248,7 @@ void *TmThreadsSlot1NoOut(void *td)
             TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
             pthread_exit((void *) -1);
         }
-        SC_ATOMIC_CAS(&s->slot_data, SC_ATOMIC_GET(s->slot_data), slot_data);
+        SC_ATOMIC_SET(s->slot_data, slot_data);
     }
     memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
     memset(&s->slot_post_pq, 0, sizeof(PacketQueue));
@@ -329,7 +329,7 @@ void *TmThreadsSlot1NoInOut(void *td)
             TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
             pthread_exit((void *) -1);
         }
-        SC_ATOMIC_CAS(&s->slot_data, SC_ATOMIC_GET(s->slot_data), slot_data);
+        SC_ATOMIC_SET(s->slot_data, slot_data);
     }
     memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
     memset(&s->slot_post_pq, 0, sizeof(PacketQueue));
@@ -405,7 +405,7 @@ void *TmThreadsSlot1(void *td)
             TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
             pthread_exit((void *) -1);
         }
-        SC_ATOMIC_CAS(&s->slot_data, SC_ATOMIC_GET(s->slot_data), slot_data);
+        SC_ATOMIC_SET(s->slot_data, slot_data);
     }
     memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
     SCMutexInit(&s->slot_pre_pq.mutex_q, NULL);
@@ -621,7 +621,7 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
                 TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
                 pthread_exit((void *) -1);
             }
-            SC_ATOMIC_CAS(&slot->slot_data, SC_ATOMIC_GET(slot->slot_data), slot_data);
+            SC_ATOMIC_SET(slot->slot_data, slot_data);
         }
         memset(&slot->slot_pre_pq, 0, sizeof(PacketQueue));
         SCMutexInit(&slot->slot_pre_pq.mutex_q, NULL);
@@ -709,7 +709,7 @@ void *TmThreadsSlotVar(void *td)
                 TmThreadsSetFlag(tv, THV_CLOSED | THV_RUNNING_DONE);
                 pthread_exit((void *) -1);
             }
-            SC_ATOMIC_CAS(&s->slot_data, SC_ATOMIC_GET(s->slot_data), slot_data);
+            SC_ATOMIC_SET(s->slot_data, slot_data);
         }
         memset(&s->slot_pre_pq, 0, sizeof(PacketQueue));
         SCMutexInit(&s->slot_pre_pq.mutex_q, NULL);
