@@ -797,6 +797,8 @@ asn1-max-frames: 256
 engine-analysis:
   # enables printing reports for fast-pattern for every rule.
   rules-fast-pattern: yes
+  # enables printing reports for each rule
+  rules: yes
 
 #recursion and match limits for PCRE where supported
 pcre:
