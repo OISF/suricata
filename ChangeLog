@@ -1,4 +1,26 @@
-1.3beta2 -- 2012-04-08
+1.3rc1 -- 2012-06-29
+
+- experimental live rule reload by sending a USR2 signal (#279)
+- AF_PACKET BPF support (#449)
+- AF_PACKET live packet loss counters (#441)
+- Rule analyzer (#349)
+- add pcap workers runmode for use with libpcap wrappers that support load balancing, such as  Napatech's or Myricom's
+- negated filemd5 matching, allowing for md5 whitelisting
+- signatures with depth and/or offset are now checked against packets in addition to the stream (#404)
+- http_cookie keyword now also inspects "Set-Cookie" header (#479)
+- filemd5 keyword no longer depends on log-file output module (#447)
+- http_raw_header keyword inspects original header line terminators (#475)
+- deal with double encoded URI (#464)
+- improved SMB/SMB2/DCERPC robustness
+- ICMPv6 parsing fixes
+- improve HTTP body inspection
+- stream.inline accuracy issues fixed (#339)
+- general stability fixes (#482, #486)
+- missing unittests added (#471)
+- "threshold.conf not found" error made more clear (#446)
+- IPS mode segment logging for Unified2 improved
+
+1.3beta2 -- 2012-06-08
 
 - experimental support for matching on large lists of known file MD5 checksums
 - Improved performance for file_data, http_server_body and http_client_body keywords
