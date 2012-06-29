@@ -255,7 +255,7 @@ static inline void AFPDumpCounters(AFPThreadVars *ptv, int forced)
         if (getsockopt(ptv->socket, SOL_PACKET, PACKET_STATISTICS,
                     &kstats, &len) > -1) {
             SCLogDebug("(%s) Kernel: Packets %" PRIu32 ", dropped %" PRIu32 "",
-                    tv->name,
+                    ptv->tv->name,
                     kstats.tp_packets, kstats.tp_drops);
             SCPerfCounterAddUI64(ptv->capture_kernel_packets, ptv->tv->sc_perf_pca, kstats.tp_packets);
             SCPerfCounterAddUI64(ptv->capture_kernel_drops, ptv->tv->sc_perf_pca, kstats.tp_drops);
