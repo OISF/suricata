@@ -560,14 +560,24 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
             m = SigMatchGetLastSMFromLists(s, 2,
                                            DETECT_THRESHOLD, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
-            if(m != NULL)
+            if (m != NULL) {
+                SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
+                             "an event var set.  The signature event var is "
+                             "given precedence over the threshold.conf one.  "
+                             "We'll change this in the future though.", id);
                 goto end;
+            }
 
             m = SigMatchGetLastSMFromLists(s, 2,
                                            DETECT_DETECTION_FILTER, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
-            if(m != NULL)
+            if (m != NULL) {
+                SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
+                             "an event var set.  The signature event var is "
+                             "given precedence over the threshold.conf one.  "
+                             "We'll change this in the future though.", id);
                 goto end;
+            }
 
             de = SCMalloc(sizeof(DetectThresholdData));
             if (de == NULL)
@@ -631,14 +641,24 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
                 m = SigMatchGetLastSMFromLists(s, 2,
                                                DETECT_THRESHOLD, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
-                if(m != NULL)
+                if (m != NULL) {
+                    SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
+                                 "an event var set.  The signature event var is "
+                                 "given precedence over the threshold.conf one.  "
+                                 "We'll change this in the future though.", id);
                     goto end;
+                }
 
                 m = SigMatchGetLastSMFromLists(s, 2,
                                                DETECT_DETECTION_FILTER, s->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
-                if(m != NULL)
+                if (m != NULL) {
+                    SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
+                                 "an event var set.  The signature event var is "
+                                 "given precedence over the threshold.conf one.  "
+                                 "We'll change this in the future though.", id);
                     goto end;
+                }
 
                 de = SCMalloc(sizeof(DetectThresholdData));
                 if (de == NULL)
@@ -692,6 +712,11 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
             }
             s = ns;
         }
+    } else if (id > 0 && gid == 0) {
+        SCLogError(SC_ERR_INVALID_VALUE, "Can't use a event config that has "
+                   "sid > 0 and gid == 0.  Killing engine.  Please fix this "
+                   "in your threshold.conf file");
+        exit(EXIT_FAILURE);
     } else {
         sig = SigFindSignatureBySidGid(de_ctx,id,gid);
 
@@ -704,14 +729,24 @@ int SCThresholdConfAddThresholdtype(char *rawstr, DetectEngineCtx *de_ctx)
             m = SigMatchGetLastSMFromLists(sig, 2,
                                            DETECT_THRESHOLD, sig->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
-            if(m != NULL)
+            if (m != NULL) {
+                SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
+                             "an event var set.  The signature event var is "
+                             "given precedence over the threshold.conf one.  "
+                             "We'll change this in the future though.", id);
                 goto end;
+            }
 
             m = SigMatchGetLastSMFromLists(sig, 2,
                                            DETECT_DETECTION_FILTER, sig->sm_lists[DETECT_SM_LIST_THRESHOLD]);
 
-            if(m != NULL)
+            if (m != NULL) {
+                SCLogWarning(SC_ERR_EVENT_ENGINE, "signature sid:%"PRIu32 " has "
+                             "an event var set.  The signature event var is "
+                             "given precedence over the threshold.conf one.  "
+                             "We'll change this in the future though.", id);
                 goto end;
+            }
 
             de = SCMalloc(sizeof(DetectThresholdData));
             if (de == NULL)
