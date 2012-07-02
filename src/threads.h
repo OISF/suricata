@@ -467,18 +467,26 @@ extern __thread uint64_t spin_lock_cnt;
  * OS specific macro's for setting the thread name. "top" can display
  * this name.
  */
-#ifndef PR_SET_NAME /*PR_SET_NAME */
-#define SCSetThreadName(n)
-#elif defined OS_FREEBSD || __OpenBSD__ /* FreeBSD or OpenBSD */
+#if defined OS_FREEBSD /* FreeBSD */
 /** \todo Add implementation for FreeBSD */
-#define SCSetThreadName(n)
-#elif OS_WIN32 /* Windows */
+#define SCSetThreadName(n) ({ \
+    char tname[16] = ""; \
+    if (strlen(n) > 16) \
+        SCLogDebug("Thread name is too long, truncating it..."); \
+    strlcpy(tname, n, 16); \
+    pthread_set_name_np(pthread_self(), tname); \
+    0; \
+})
+#elif defined __OpenBSD__ /* OpenBSD */
+/** \todo Add implementation for OpenBSD */
+#define SCSetThreadName(n) (0)
+#elif defined OS_WIN32 /* Windows */
 /** \todo Add implementation for Windows */
-#define SCSetThreadName(n)
-#elif OS_DARWIN /* Mac OS X */
+#define SCSetThreadName(n) (0)
+#elif defined OS_DARWIN /* Mac OS X */
 /** \todo Add implementation for MacOS */
-#define SCSetThreadName(n)
-#else /* Linux */
+#define SCSetThreadName(n) (0)
+#elif defined PR_SET_NAME /*PR_SET_NAME */
 /**
  * \brief Set the threads name
  */
@@ -492,6 +500,8 @@ extern __thread uint64_t spin_lock_cnt;
         SCLogDebug("Error setting thread name \"%s\": %s", tname, strerror(errno)); \
     ret; \
 })
+#else
+#define SCSetThreadName(n) (0)
 #endif
 
 
