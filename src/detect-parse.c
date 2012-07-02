@@ -1434,7 +1434,7 @@ int DetectParseDupSigHashInit(DetectEngineCtx *de_ctx)
 void DetectParseDupSigHashFree(DetectEngineCtx *de_ctx)
 {
     if (de_ctx->dup_sig_hash_table != NULL)
-        SCFree(de_ctx->dup_sig_hash_table);
+        HashListTableFree(de_ctx->dup_sig_hash_table);
 
     de_ctx->dup_sig_hash_table = NULL;
 
