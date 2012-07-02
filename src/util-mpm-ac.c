@@ -234,6 +234,7 @@ static inline SCACPattern *SCACAllocPattern(MpmCtx *mpm_ctx)
  *
  * \param mpm_ctx Pointer to the mpm context.
  * \param p       Pointer to the SCACPattern instance to be freed.
+ * \param free    Free the above pointer or not.
  */
 static inline void SCACFreePattern(MpmCtx *mpm_ctx, SCACPattern *p)
 {
@@ -1174,6 +1175,25 @@ void SCACDestroyCtx(MpmCtx *mpm_ctx)
                                  sizeof(SC_AC_STATE_TYPE_U32) * 256);
     }
 
+    if (ctx->output_table != NULL) {
+        uint32_t state_count;
+        for (state_count = 0; state_count < ctx->state_count; state_count++) {
+            if (ctx->output_table[state_count].pids != NULL) {
+                SCFree(ctx->output_table[state_count].pids);
+            }
+        }
+        SCFree(ctx->output_table);
+    }
+
+    if (ctx->pid_pat_list != NULL) {
+        int i;
+        for (i = 0; i < (ctx->max_pat_id + 1); i++) {
+            if (ctx->pid_pat_list[i].cs != NULL)
+                SCFree(ctx->pid_pat_list[i].cs);
+        }
+        SCFree(ctx->pid_pat_list);
+    }
+
     SCFree(mpm_ctx->ctx);
     mpm_ctx->memory_cnt--;
     mpm_ctx->memory_size -= sizeof(SCACCtx);
@@ -2043,6 +2063,7 @@ static int SCACTest19(void)
         printf("1 != %" PRIu32 " ",cnt);
 
     SCACDestroyCtx(&mpm_ctx);
+    SCACDestroyThreadCtx(&mpm_ctx, &mpm_thread_ctx);
     PmqFree(&pmq);
     return result;
 }
