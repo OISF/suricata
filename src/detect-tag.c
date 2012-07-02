@@ -171,6 +171,7 @@ DetectTagData *DetectTagParse (char *tagstr)
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
+    const char *str_ptr = NULL;
 
     ret = pcre_exec(parse_regex, parse_regex_study, tagstr, strlen(tagstr), 0, 0, ov, MAX_SUBSTRINGS);
     if (ret < 1) {
@@ -178,7 +179,6 @@ DetectTagData *DetectTagParse (char *tagstr)
         goto error;
     }
 
-    const char *str_ptr;
     res = pcre_get_substring((char *)tagstr, ov, MAX_SUBSTRINGS, 1, &str_ptr);
     if (res < 0) {
         SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
@@ -193,6 +193,10 @@ DetectTagData *DetectTagParse (char *tagstr)
     } else {
         SCLogError(SC_ERR_INVALID_VALUE, "Invalid argument type. Must be session or host (%s)", tagstr);
         goto error;
+    }
+    if (str_ptr != NULL) {
+        pcre_free_substring(str_ptr);
+        str_ptr = NULL;
     }
 
     /* default tag is 256 packets from session or dst host */
@@ -212,6 +216,11 @@ DetectTagData *DetectTagParse (char *tagstr)
                     str_ptr) <= 0) {
             SCLogError(SC_ERR_INVALID_VALUE, "Invalid argument for count. Must be a value in the range of 0 to %"PRIu32" (%s)", UINT32_MAX, tagstr);
             goto error;
+        }
+
+        if (str_ptr != NULL) {
+            pcre_free_substring(str_ptr);
+            str_ptr = NULL;
         }
 
         res = pcre_get_substring((char *)tagstr, ov, MAX_SUBSTRINGS, 4, &str_ptr);
@@ -235,6 +244,11 @@ DetectTagData *DetectTagParse (char *tagstr)
             goto error;
         }
 
+        if (str_ptr != NULL) {
+            pcre_free_substring(str_ptr);
+            str_ptr = NULL;
+        }
+
         /* if specified, overwrite it */
         if (ret == 7) {
             res = pcre_get_substring((char *)tagstr, ov, MAX_SUBSTRINGS, 6, &str_ptr);
@@ -256,6 +270,11 @@ DetectTagData *DetectTagParse (char *tagstr)
             if (td.type != DETECT_TAG_TYPE_HOST) {
                 SCLogWarning(SC_ERR_INVALID_VALUE, "Argument direction doesn't make sense for type \"session\" (%s [%"PRIu8"])", tagstr, td.type);
             }
+
+            if (str_ptr != NULL) {
+                pcre_free_substring(str_ptr);
+                str_ptr = NULL;
+            }
         }
     }
 
@@ -266,9 +285,14 @@ DetectTagData *DetectTagParse (char *tagstr)
     }
 
     memcpy(real_td, &td, sizeof(DetectTagData));
+
+    if (str_ptr != NULL)
+        pcre_free_substring(str_ptr);
     return real_td;
 
 error:
+    if (str_ptr != NULL)
+        pcre_free_substring(str_ptr);
     return NULL;
 }
 
