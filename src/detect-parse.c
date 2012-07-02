@@ -829,13 +829,11 @@ void SigFree(Signature *s) {
     if (s == NULL)
         return;
 
-    /* XXX GS there seems to be a bug in the IPOnlyCIDR list, which causes
-      system abort. */
-    /*if (s->CidrDst != NULL)
+    if (s->CidrDst != NULL)
         IPOnlyCIDRListFree(s->CidrDst);
 
     if (s->CidrSrc != NULL)
-        IPOnlyCIDRListFree(s->CidrSrc);*/
+        IPOnlyCIDRListFree(s->CidrSrc);
 
     SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH], *nsm;
     while (sm != NULL) {

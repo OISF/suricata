@@ -1515,6 +1515,10 @@ void IPOnlyAddSignature(DetectEngineCtx *de_ctx, DetectEngineIPOnlyCtx *io_ctx,
 
     /* enable the sig in the bitarray */
     io_ctx->sig_init_array[(s->num/8)] |= 1 << (s->num % 8);
+
+    /** no longer ref to this, it's in the table now */
+    s->CidrSrc = NULL;
+    s->CidrDst = NULL;
 }
 
 #ifdef UNITTESTS
