@@ -835,39 +835,14 @@ void SigFree(Signature *s) {
     if (s->CidrSrc != NULL)
         IPOnlyCIDRListFree(s->CidrSrc);
 
-    SigMatch *sm = s->sm_lists[DETECT_SM_LIST_MATCH], *nsm;
-    while (sm != NULL) {
-        nsm = sm->next;
-        SigMatchFree(sm);
-        sm = nsm;
-    }
-
-    sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
-    while (sm != NULL) {
-        nsm = sm->next;
-        SigMatchFree(sm);
-        sm = nsm;
-    }
-
-    sm = s->sm_lists[DETECT_SM_LIST_UMATCH];
-    while (sm != NULL) {
-        nsm = sm->next;
-        SigMatchFree(sm);
-        sm = nsm;
-    }
-
-    sm = s->sm_lists[DETECT_SM_LIST_AMATCH];
-    while (sm != NULL) {
-        nsm = sm->next;
-        SigMatchFree(sm);
-        sm = nsm;
-    }
-
-    sm = s->sm_lists[DETECT_SM_LIST_TMATCH];
-    while (sm != NULL) {
-        nsm = sm->next;
-        SigMatchFree(sm);
-        sm = nsm;
+    int i;
+    for (i = 0; i < DETECT_SM_LIST_MAX; i++) {
+        SigMatch *sm = s->sm_lists[i], *nsm;
+        while (sm != NULL) {
+            nsm = sm->next;
+            SigMatchFree(sm);
+            sm = nsm;
+        }
     }
 
     DetectAddressHeadCleanup(&s->src);
