@@ -856,6 +856,8 @@ TmEcode DetectEngineThreadCtxDeinit(ThreadVars *tv, void *data) {
 
     if (det_ctx->de_state_sig_array != NULL)
         SCFree(det_ctx->de_state_sig_array);
+    if (det_ctx->match_array != NULL)
+        SCFree(det_ctx->match_array);
 
     if (det_ctx->bj_values != NULL)
         SCFree(det_ctx->bj_values);
