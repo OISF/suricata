@@ -75,6 +75,13 @@ void TmqhRingBufferRegister (void) {
     }
 }
 
+void TmqhRingBufferDestroy (void) {
+    int i = 0;
+    for (i = 0; i < 256; i++) {
+        RingBuffer8Destroy(ringbuffers[i]);
+    }
+}
+
 void TmqhInputRingBufferShutdownHandler(ThreadVars *tv) {
     if (tv == NULL || tv->inq == NULL) {
         return;

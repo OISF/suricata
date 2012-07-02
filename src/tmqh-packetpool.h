@@ -34,4 +34,7 @@ uint16_t PacketPoolSize(void);
 void PacketPoolStorePacket(Packet *);
 void PacketPoolWait(void);
 
+void PacketPoolInit(intmax_t max_pending_packets);
+void PacketPoolDestroy(void);
+
 #endif /* __TMQH_PACKETPOOL_H__ */

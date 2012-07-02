@@ -25,5 +25,6 @@
 #define __TMQH_RINGBUFFER_H__
 
 void TmqhRingBufferRegister (void);
+void TmqhRingBufferDestroy (void);
 
 #endif /* __TMQH_RINGBUFFER_H__ */

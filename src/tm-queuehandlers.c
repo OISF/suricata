@@ -46,6 +46,11 @@ void TmqhSetup (void) {
     TmqhRingBufferRegister();
 }
 
+/** \brief Clean up registration time allocs */
+void TmqhCleanup(void) {
+    TmqhRingBufferDestroy();
+}
+
 Tmqh* TmqhGetQueueHandlerByName(char *name) {
     int i;
 

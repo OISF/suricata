@@ -49,6 +49,7 @@ typedef struct Tmqh_ {
 Tmqh tmqh_table[TMQH_SIZE];
 
 void TmqhSetup (void);
+void TmqhCleanup(void);
 Tmqh* TmqhGetQueueHandlerByName(char *name);
 
 #endif /* __TM_QUEUEHANDLERS_H__ */
