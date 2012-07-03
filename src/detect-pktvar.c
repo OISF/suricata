@@ -218,6 +218,12 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawst
     }
 
     cd->name = SCStrdup(varname);
+    if (cd->name == NULL) {
+        SCFree(cd);
+        if (dubbed) SCFree(str);
+        return -1;
+    }
+
     memcpy(cd->content, str, len);
     cd->content_len = len;
     cd->flags = 0;
@@ -237,9 +243,15 @@ static int DetectPktvarSetup (DetectEngineCtx *de_ctx, Signature *s, char *rawst
     return 0;
 
 error:
-    if (dubbed) SCFree(str);
-    if (cd) SCFree(cd);
-    if (sm) SCFree(sm);
+    if (dubbed)
+        SCFree(str);
+    if (cd) {
+        if (cd->name)
+            SCFree(cd->name);
+        SCFree(cd);
+    }
+    if (sm)
+        SCFree(sm);
     return -1;
 }
 
