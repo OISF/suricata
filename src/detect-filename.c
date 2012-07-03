@@ -238,6 +238,8 @@ void DetectFilenameFree(void *ptr) {
         if (filename->bm_ctx != NULL) {
             BoyerMooreCtxDeInit(filename->bm_ctx);
         }
+        if (filename->name != NULL)
+            SCFree(filename->name);
         SCFree(filename);
     }
 }

@@ -59,6 +59,7 @@ static pcre_extra *parse_regex_study;
 
 int DetectFilestoreMatch (ThreadVars *, DetectEngineThreadCtx *, Flow *, uint8_t, void *, Signature *, SigMatch *);
 static int DetectFilestoreSetup (DetectEngineCtx *, Signature *, char *);
+static void DetectFilestoreFree(void *);
 
 /**
  * \brief Registration function for keyword: filestore
@@ -69,7 +70,7 @@ void DetectFilestoreRegister(void) {
     sigmatch_table[DETECT_FILESTORE].AppLayerMatch = DetectFilestoreMatch;
     sigmatch_table[DETECT_FILESTORE].alproto = ALPROTO_HTTP;
     sigmatch_table[DETECT_FILESTORE].Setup = DetectFilestoreSetup;
-    sigmatch_table[DETECT_FILESTORE].Free  = NULL;
+    sigmatch_table[DETECT_FILESTORE].Free  = DetectFilestoreFree;
     sigmatch_table[DETECT_FILESTORE].RegisterTests = NULL;
 
     const char *eb;
@@ -416,4 +417,10 @@ error:
     if (sm != NULL)
         SCFree(sm);
     return -1;
+}
+
+static void DetectFilestoreFree(void *ptr) {
+    if (ptr != NULL) {
+        SCFree(ptr);
+    }
 }

@@ -227,6 +227,8 @@ error:
 void DetectFileextFree(void *ptr) {
     if (ptr != NULL) {
         DetectFileextData *fileext = (DetectFileextData *)ptr;
+        if (fileext->ext != NULL)
+            SCFree(fileext->ext);
         SCFree(fileext);
     }
 }

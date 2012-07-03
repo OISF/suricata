@@ -297,6 +297,8 @@ void DetectFilemagicFree(void *ptr) {
         if (filemagic->bm_ctx != NULL) {
             BoyerMooreCtxDeInit(filemagic->bm_ctx);
         }
+        if (filemagic->name != NULL)
+            SCFree(filemagic->name);
         SCFree(filemagic);
     }
 }
