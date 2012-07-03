@@ -344,6 +344,8 @@ error:
 void DetectFileMd5Free(void *ptr) {
     if (ptr != NULL) {
         DetectFileMd5Data *filemd5 = (DetectFileMd5Data *)ptr;
+        if (filemd5->hash != NULL)
+            ROHashFree(filemd5->hash);
         SCFree(filemd5);
     }
 }
