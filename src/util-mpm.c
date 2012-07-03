@@ -230,7 +230,8 @@ void MpmFactoryReClaimMpmCtx(DetectEngineCtx *de_ctx, MpmCtx *mpm_ctx)
         return;
 
     if (!MpmFactoryIsMpmCtxAvailable(de_ctx, mpm_ctx)) {
-        mpm_table[mpm_ctx->mpm_type].DestroyCtx(mpm_ctx);
+        if (mpm_ctx->mpm_type != MPM_NOTSET)
+            mpm_table[mpm_ctx->mpm_type].DestroyCtx(mpm_ctx);
         SCFree(mpm_ctx);
     }
 
@@ -248,11 +249,13 @@ void MpmFactoryDeRegisterAllMpmCtxProfiles(DetectEngineCtx *de_ctx)
         if (items[i].name != NULL)
             SCFree(items[i].name);
         if (items[i].mpm_ctx_ts != NULL) {
-            mpm_table[items[i].mpm_ctx_ts->mpm_type].DestroyCtx(items[i].mpm_ctx_ts);
+            if (items[i].mpm_ctx_ts->mpm_type != MPM_NOTSET)
+                mpm_table[items[i].mpm_ctx_ts->mpm_type].DestroyCtx(items[i].mpm_ctx_ts);
             SCFree(items[i].mpm_ctx_ts);
         }
         if (items[i].mpm_ctx_tc != NULL) {
-            mpm_table[items[i].mpm_ctx_tc->mpm_type].DestroyCtx(items[i].mpm_ctx_tc);
+            if (items[i].mpm_ctx_tc->mpm_type != MPM_NOTSET)
+                mpm_table[items[i].mpm_ctx_tc->mpm_type].DestroyCtx(items[i].mpm_ctx_tc);
             SCFree(items[i].mpm_ctx_tc);
         }
     }

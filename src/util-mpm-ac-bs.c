@@ -1383,6 +1383,35 @@ void SCACBSDestroyCtx(MpmCtx *mpm_ctx)
                                  sizeof(SC_AC_BS_STATE_TYPE_U32) * 256);
     }
 
+    if (ctx->output_table != NULL) {
+        uint32_t state_count;
+        for (state_count = 0; state_count < ctx->state_count; state_count++) {
+            if (ctx->output_table[state_count].pids != NULL) {
+                SCFree(ctx->output_table[state_count].pids);
+            }
+        }
+        SCFree(ctx->output_table);
+    }
+
+    if (ctx->pid_pat_list != NULL) {
+        int i;
+        for (i = 0; i < (ctx->max_pat_id + 1); i++) {
+            if (ctx->pid_pat_list[i].cs != NULL)
+                SCFree(ctx->pid_pat_list[i].cs);
+        }
+        SCFree(ctx->pid_pat_list);
+    }
+
+    if (ctx->state_table_mod != NULL) {
+        SCFree(ctx->state_table_mod);
+        ctx->state_table_mod = NULL;
+    }
+
+    if (ctx->state_table_mod_pointers != NULL) {
+        SCFree(ctx->state_table_mod_pointers);
+        ctx->state_table_mod_pointers = NULL;
+    }
+
     SCFree(mpm_ctx->ctx);
     mpm_ctx->memory_cnt--;
     mpm_ctx->memory_size -= sizeof(SCACBSCtx);

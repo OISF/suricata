@@ -1260,6 +1260,25 @@ void SCACGfbsDestroyCtx(MpmCtx *mpm_ctx)
         mpm_ctx->memory_size -= ctx->state_count * sizeof(uint8_t *);
     }
 
+    if (ctx->output_table != NULL) {
+        int32_t state_count;
+        for (state_count = 0; state_count < ctx->state_count; state_count++) {
+            if (ctx->output_table[state_count].pids != NULL) {
+                SCFree(ctx->output_table[state_count].pids);
+            }
+        }
+        SCFree(ctx->output_table);
+    }
+
+    if (ctx->pid_pat_list != NULL) {
+        int i;
+        for (i = 0; i < (ctx->max_pat_id + 1); i++) {
+            if (ctx->pid_pat_list[i].cs != NULL)
+                SCFree(ctx->pid_pat_list[i].cs);
+        }
+        SCFree(ctx->pid_pat_list);
+    }
+
     SCFree(mpm_ctx->ctx);
     mpm_ctx->memory_cnt--;
     mpm_ctx->memory_size -= sizeof(SCACGfbsCtx);
