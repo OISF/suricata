@@ -57,7 +57,7 @@ int MagicInit(void) {
         goto error;
     }
 
-    ConfGet("magic-file", &filename);
+    (void)ConfGet("magic-file", &filename);
     if (filename != NULL) {
         SCLogInfo("using magic-file %s", filename);
 

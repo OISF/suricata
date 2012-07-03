@@ -223,13 +223,13 @@ void *ParseAFPConfig(const char *iface)
         aconf->buffer_size = 0;
     }
 
-    ConfGetChildValueBool(if_root, "disable-promisc", (int *)&boolval);
+    (void)ConfGetChildValueBool(if_root, "disable-promisc", (int *)&boolval);
     if (boolval) {
         SCLogInfo("Disabling promiscuous mode on iface %s",
                 aconf->iface);
         aconf->promisc = 0;
     }
-    ConfGetChildValueBool(if_root, "use-mmap", (int *)&boolval);
+    (void)ConfGetChildValueBool(if_root, "use-mmap", (int *)&boolval);
     if (boolval) {
         SCLogInfo("Enabling mmaped capture on iface %s",
                 aconf->iface);
@@ -290,7 +290,7 @@ int RunModeIdsAFPAuto(DetectEngineCtx *de_ctx)
 
     TimeModeSetLive();
 
-    ConfGet("af-packet.live-interface", &live_dev);
+    (void)ConfGet("af-packet.live-interface", &live_dev);
 
     ret = RunModeSetLiveCaptureAuto(de_ctx,
                                     ParseAFPConfig,
@@ -321,7 +321,7 @@ int RunModeIdsAFPAutoFp(DetectEngineCtx *de_ctx)
 
     TimeModeSetLive();
 
-    ConfGet("af-packet.live-interface", &live_dev);
+    (void)ConfGet("af-packet.live-interface", &live_dev);
 
     SCLogDebug("live_dev %s", live_dev);
 
@@ -358,7 +358,7 @@ int RunModeIdsAFPSingle(DetectEngineCtx *de_ctx)
     RunModeInitialize();
     TimeModeSetLive();
 
-    ConfGet("af-packet.live-interface", &live_dev);
+    (void)ConfGet("af-packet.live-interface", &live_dev);
 
     ret = RunModeSetLiveCaptureSingle(de_ctx,
                                     ParseAFPConfig,
@@ -395,7 +395,7 @@ int RunModeIdsAFPWorkers(DetectEngineCtx *de_ctx)
     RunModeInitialize();
     TimeModeSetLive();
 
-    ConfGet("af-packet.live-interface", &live_dev);
+    (void)ConfGet("af-packet.live-interface", &live_dev);
 
     ret = RunModeSetLiveCaptureWorkers(de_ctx,
                                     ParseAFPConfig,

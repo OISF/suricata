@@ -148,8 +148,10 @@ static int SCRConfInitContextAndLocalResources(DetectEngineCtx *de_ctx)
  */
 static char *SCRConfGetConfFilename(void)
 {
-    char *path = (char *)file_path;
-    ConfGet("reference-config-file", &path);
+    char *path = NULL;
+    if (ConfGet("reference-config-file", &path) != 1) {
+        return (char *)file_path;
+    }
     return path;
 }
 
