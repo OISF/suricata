@@ -159,18 +159,18 @@ static void DetectEngineBufferHttpServerBodies(DetectEngineCtx *de_ctx,
             if ((htud->response_body.content_len_so_far > 0) &&
                     tx->progress != TX_PROGRESS_REQ_BODY) {
                 /* final length of the body */
-                htud->flags |= HTP_RES_BODY_COMPLETE;
+                htud->tcflags |= HTP_RES_BODY_COMPLETE;
             }
         }
 
         if (flags & STREAM_EOF) {
-            htud->flags |= HTP_RES_BODY_COMPLETE;
+            htud->tcflags |= HTP_RES_BODY_COMPLETE;
         }
 
         /* inspect the body if the transfer is complete or we have hit
          * our body size limit */
         if (htud->response_body.content_len_so_far < BODY_MINIMAL_SIZE &&
-                !(htud->flags & HTP_RES_BODY_COMPLETE)) {
+                !(htud->tcflags & HTP_RES_BODY_COMPLETE)) {
             SCLogDebug("we still haven't seen the entire response body.  "
                     "Let's defer body inspection till we see the "
                     "entire body.");

@@ -1498,6 +1498,30 @@ static int HandleSegmentStartsAfterListSegment(ThreadVars *tv, TcpReassemblyThre
 }
 
 /**
+ *  \brief check if stream in pkt direction has depth reached
+ *
+ *  \param p packet with *LOCKED* flow
+ *
+ *  \retval 1 stream has depth reached
+ *  \retval 0 stream does not have depth reached
+ */
+int StreamTcpReassembleDepthReached(Packet *p) {
+    if (p->flow != NULL) {
+        TcpSession *ssn = p->flow->protoctx;
+        TcpStream *stream;
+        if (p->flowflags & FLOW_PKT_TOSERVER) {
+            stream = &ssn->client;
+        } else {
+            stream = &ssn->server;
+        }
+
+        return (stream->flags & STREAMTCP_STREAM_FLAG_DEPTH_REACHED) ? 1 : 0;
+    }
+
+    return 0;
+}
+
+/**
  *  \internal
  *  \brief Function to Check the reassembly depth valuer against the
  *        allowed max depth of the stream reassmbly for TCP streams.

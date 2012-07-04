@@ -1077,7 +1077,7 @@ static int HtpRequestBodySetupMultipart(htp_tx_data_t *d, HtpTxUserData *htud) {
                 htud->boundary_len = (uint8_t)boundary_len;
                 memcpy(htud->boundary, boundary, boundary_len);
 
-                htud->flags |= HTP_BOUNDARY_SET;
+                htud->tsflags |= HTP_BOUNDARY_SET;
             } else {
                 SCLogDebug("invalid boundary");
                 return -1;
@@ -1306,8 +1306,8 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
             expected_boundary_end, expected_boundary_end_len);
 
     /* if we're in the file storage process, deal with that now */
-    if (htud->flags & HTP_FILENAME_SET) {
-        if (header_start != NULL || form_end != NULL || htud->flags & HTP_REQ_BODY_COMPLETE) {
+    if (htud->tsflags & HTP_FILENAME_SET) {
+        if (header_start != NULL || form_end != NULL || htud->tsflags & HTP_REQ_BODY_COMPLETE) {
             SCLogDebug("reached the end of the file");
 
             uint8_t *filedata = chunks_buffer;
@@ -1320,7 +1320,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                 filedata_len = form_end - filedata;
             } else if (form_end != NULL && form_end == header_start) {
                 filedata_len = form_end - filedata - 2; /* 0d 0a */
-            } else if (htud->flags & HTP_REQ_BODY_COMPLETE) {
+            } else if (htud->tsflags & HTP_REQ_BODY_COMPLETE) {
                 filedata_len = chunks_buffer_len;
                 flags = FILE_TRUNCATED;
             }
@@ -1335,7 +1335,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
             PrintRawDataFp(stdout, filedata, filedata_len);
             printf("FILEDATA (final chunk) END: \n");
 #endif
-            if (!(htud->flags & HTP_DONTSTORE)) {
+            if (!(htud->tsflags & HTP_DONTSTORE)) {
                 if (HTPFileClose(hstate, filedata, filedata_len, flags,
                             STREAM_TOSERVER) == -1)
                 {
@@ -1343,7 +1343,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                 }
             }
 
-            htud->flags &=~ HTP_FILENAME_SET;
+            htud->tsflags &=~ HTP_FILENAME_SET;
 
             /* fall through */
         } else {
@@ -1358,14 +1358,14 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                 printf("FILEDATA (part) END: \n");
 #endif
 
-                if (!(htud->flags & HTP_DONTSTORE)) {
+                if (!(htud->tsflags & HTP_DONTSTORE)) {
                     result = HTPFileStoreChunk(hstate, filedata,
                             filedata_len, STREAM_TOSERVER);
                     if (result == -1) {
                         goto end;
                     } else if (result == -2) {
                         /* we know for sure we're not storing the file */
-                        htud->flags |= HTP_DONTSTORE;
+                        htud->tsflags |= HTP_DONTSTORE;
                     }
                 }
 
@@ -1410,8 +1410,8 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
 
             SCLogDebug("we have a filename");
 
-            htud->flags |= HTP_FILENAME_SET;
-            htud->flags &= ~HTP_DONTSTORE;
+            htud->tsflags |= HTP_FILENAME_SET;
+            htud->tsflags &= ~HTP_DONTSTORE;
 
             SCLogDebug("header_end %p", header_end);
             SCLogDebug("form_end %p", form_end);
@@ -1457,7 +1457,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                 if (result == -1) {
                     goto end;
                 } else if (result == -2) {
-                    htud->flags |= HTP_DONTSTORE;
+                    htud->tsflags |= HTP_DONTSTORE;
                 } else {
                     if (HTPFileClose(hstate, NULL, 0, 0, STREAM_TOSERVER) == -1) {
                         goto end;
@@ -1465,7 +1465,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                 }
 
                 htud->request_body.body_parsed += (header_end - chunks_buffer);
-                htud->flags &= ~HTP_FILENAME_SET;
+                htud->tsflags &= ~HTP_FILENAME_SET;
             } else {
                 SCLogDebug("chunk doesn't contain form end");
 
@@ -1505,7 +1505,7 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                     if (result == -1) {
                         goto end;
                     } else if (result == -2) {
-                        htud->flags |= HTP_DONTSTORE;
+                        htud->tsflags |= HTP_DONTSTORE;
                     }
                 } else {
                     filedata_len = header_next - filedata - 2;
@@ -1517,14 +1517,14 @@ int HtpRequestBodyHandleMultipart(HtpState *hstate, HtpTxUserData *htud,
                     if (result == -1) {
                         goto end;
                     } else if (result == -2) {
-                        htud->flags |= HTP_DONTSTORE;
+                        htud->tsflags |= HTP_DONTSTORE;
                     } else {
                         if (HTPFileClose(hstate, NULL, 0, 0, STREAM_TOSERVER) == -1) {
                             goto end;
                         }
                     }
 
-                    htud->flags &= ~HTP_FILENAME_SET;
+                    htud->tsflags &= ~HTP_FILENAME_SET;
                     htud->request_body.body_parsed += (header_end - chunks_buffer);
                 }
             }
@@ -1580,7 +1580,7 @@ static int HtpRequestBodyHandlePOST(HtpState *hstate, HtpTxUserData *htud,
     int result = 0;
 
     /* see if we need to open the file */
-    if (!(htud->flags & HTP_FILENAME_SET))
+    if (!(htud->tsflags & HTP_FILENAME_SET))
     {
         uint8_t *filename = NULL;
         size_t filename_len = 0;
@@ -1597,10 +1597,10 @@ static int HtpRequestBodyHandlePOST(HtpState *hstate, HtpTxUserData *htud,
             if (result == -1) {
                 goto end;
             } else if (result == -2) {
-                htud->flags |= HTP_DONTSTORE;
+                htud->tsflags |= HTP_DONTSTORE;
             } else {
-                htud->flags |= HTP_FILENAME_SET;
-                htud->flags &= ~HTP_DONTSTORE;
+                htud->tsflags |= HTP_FILENAME_SET;
+                htud->tsflags &= ~HTP_DONTSTORE;
             }
         }
     }
@@ -1608,13 +1608,13 @@ static int HtpRequestBodyHandlePOST(HtpState *hstate, HtpTxUserData *htud,
     {
         /* otherwise, just store the data */
 
-        if (!(htud->flags & HTP_DONTSTORE)) {
+        if (!(htud->tsflags & HTP_DONTSTORE)) {
             result = HTPFileStoreChunk(hstate, data, data_len, STREAM_TOSERVER);
             if (result == -1) {
                 goto end;
             } else if (result == -2) {
                 /* we know for sure we're not storing the file */
-                htud->flags |= HTP_DONTSTORE;
+                htud->tsflags |= HTP_DONTSTORE;
             }
         }
     }
@@ -1633,7 +1633,7 @@ static int HtpRequestBodyHandlePUT(HtpState *hstate, HtpTxUserData *htud,
     int result = 0;
 
     /* see if we need to open the file */
-    if (!(htud->flags & HTP_FILENAME_SET))
+    if (!(htud->tsflags & HTP_FILENAME_SET))
     {
         uint8_t *filename = NULL;
         size_t filename_len = 0;
@@ -1650,10 +1650,10 @@ static int HtpRequestBodyHandlePUT(HtpState *hstate, HtpTxUserData *htud,
             if (result == -1) {
                 goto end;
             } else if (result == -2) {
-                htud->flags |= HTP_DONTSTORE;
+                htud->tsflags |= HTP_DONTSTORE;
             } else {
-                htud->flags |= HTP_FILENAME_SET;
-                htud->flags &= ~HTP_DONTSTORE;
+                htud->tsflags |= HTP_FILENAME_SET;
+                htud->tsflags &= ~HTP_DONTSTORE;
             }
         }
     }
@@ -1661,13 +1661,13 @@ static int HtpRequestBodyHandlePUT(HtpState *hstate, HtpTxUserData *htud,
     {
         /* otherwise, just store the data */
 
-        if (!(htud->flags & HTP_DONTSTORE)) {
+        if (!(htud->tsflags & HTP_DONTSTORE)) {
             result = HTPFileStoreChunk(hstate, data, data_len, STREAM_TOSERVER);
             if (result == -1) {
                 goto end;
             } else if (result == -2) {
                 /* we know for sure we're not storing the file */
-                htud->flags |= HTP_DONTSTORE;
+                htud->tsflags |= HTP_DONTSTORE;
             }
         }
     }
@@ -1685,7 +1685,7 @@ int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
     int result = 0;
 
     /* see if we need to open the file */
-    if (!(htud->flags & HTP_FILENAME_SET))
+    if (!(htud->tcflags & HTP_FILENAME_SET))
     {
         SCLogDebug("setting up file name");
 
@@ -1717,10 +1717,10 @@ int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
             if (result == -1) {
                 goto end;
             } else if (result == -2) {
-                htud->flags |= HTP_DONTSTORE;
+                htud->tcflags |= HTP_DONTSTORE;
             } else {
-                htud->flags |= HTP_FILENAME_SET;
-                htud->flags &= ~HTP_DONTSTORE;
+                htud->tcflags |= HTP_FILENAME_SET;
+                htud->tcflags &= ~HTP_DONTSTORE;
             }
         }
     }
@@ -1728,14 +1728,14 @@ int HtpResponseBodyHandle(HtpState *hstate, HtpTxUserData *htud,
     {
         /* otherwise, just store the data */
 
-        if (!(htud->flags & HTP_DONTSTORE)) {
+        if (!(htud->tcflags & HTP_DONTSTORE)) {
             result = HTPFileStoreChunk(hstate, data, data_len, STREAM_TOCLIENT);
             SCLogDebug("result %d", result);
             if (result == -1) {
                 goto end;
             } else if (result == -2) {
                 /* we know for sure we're not storing the file */
-                htud->flags |= HTP_DONTSTORE;
+                htud->tcflags |= HTP_DONTSTORE;
             }
         }
     }
@@ -1814,13 +1814,13 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
         int r = HtpBodyAppendChunk(htud, &htud->request_body, (uint8_t *)d->data, len);
         if (r < 0) {
-            htud->flags |= HTP_REQ_BODY_COMPLETE;
+            htud->tsflags |= HTP_REQ_BODY_COMPLETE;
         } else if (hstate->request_body_limit > 0 &&
             htud->request_body.content_len_so_far >= hstate->request_body_limit)
         {
-            htud->flags |= HTP_REQ_BODY_COMPLETE;
+            htud->tsflags |= HTP_REQ_BODY_COMPLETE;
         } else if (htud->request_body.content_len_so_far == htud->request_body.content_len) {
-            htud->flags |= HTP_REQ_BODY_COMPLETE;
+            htud->tsflags |= HTP_REQ_BODY_COMPLETE;
         }
 
         uint8_t *chunks_buffer = NULL;
@@ -1828,7 +1828,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 
         if (htud->request_body_type == HTP_BODY_REQUEST_MULTIPART) {
             /* multi-part body handling starts here */
-            if (!(htud->flags & HTP_BOUNDARY_SET)) {
+            if (!(htud->tsflags & HTP_BOUNDARY_SET)) {
                 goto end;
             }
 
@@ -1917,13 +1917,13 @@ int HTPCallbackResponseBodyData(htp_tx_data_t *d)
 
         int r = HtpBodyAppendChunk(htud, &htud->response_body, (uint8_t *)d->data, len);
         if (r < 0) {
-            htud->flags |= HTP_RES_BODY_COMPLETE;
+            htud->tcflags |= HTP_RES_BODY_COMPLETE;
         } else if (hstate->response_body_limit > 0 &&
             htud->response_body.content_len_so_far >= hstate->response_body_limit)
         {
-            htud->flags |= HTP_RES_BODY_COMPLETE;
+            htud->tcflags |= HTP_RES_BODY_COMPLETE;
         } else if (htud->response_body.content_len_so_far == htud->response_body.content_len) {
-            htud->flags |= HTP_RES_BODY_COMPLETE;
+            htud->tcflags |= HTP_RES_BODY_COMPLETE;
         }
 
         HtpResponseBodyHandle(hstate, htud, d->tx, (uint8_t *)d->data, (uint32_t)d->len);
@@ -1994,10 +1994,10 @@ static int HTPCallbackRequest(htp_connp_t *connp) {
     if (connp->in_tx != NULL) {
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(connp->in_tx);
         if (htud != NULL) {
-            if (htud->flags & HTP_FILENAME_SET) {
+            if (htud->tsflags & HTP_FILENAME_SET) {
                 SCLogDebug("closing file that was being stored");
                 (void)HTPFileClose(hstate, NULL, 0, 0, STREAM_TOSERVER);
-                htud->flags &= ~HTP_FILENAME_SET;
+                htud->tsflags &= ~HTP_FILENAME_SET;
             }
         }
     }
@@ -2031,10 +2031,10 @@ static int HTPCallbackResponse(htp_connp_t *connp) {
     if (connp->out_tx != NULL) {
         HtpTxUserData *htud = (HtpTxUserData *) htp_tx_get_user_data(connp->out_tx);
         if (htud != NULL) {
-            if (htud->flags & HTP_FILENAME_SET) {
+            if (htud->tcflags & HTP_FILENAME_SET) {
                 SCLogDebug("closing file that was being stored");
                 (void)HTPFileClose(hstate, NULL, 0, 0, STREAM_TOCLIENT);
-                htud->flags &= ~HTP_FILENAME_SET;
+                htud->tcflags &= ~HTP_FILENAME_SET;
             }
         }
     }

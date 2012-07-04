@@ -178,7 +178,8 @@ typedef struct HtpTxUserData_ {
     uint8_t *boundary;
     uint8_t boundary_len;
 
-    uint8_t flags;
+    uint8_t tsflags;
+    uint8_t tcflags;
 
     int16_t operation;
 

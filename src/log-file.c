@@ -55,6 +55,7 @@
 
 #include "app-layer-htp.h"
 #include "util-memcmp.h"
+#include "stream-tcp-reassemble.h"
 
 #define MODULE_NAME "LogFileLog"
 
@@ -286,8 +287,10 @@ static TmEcode LogFileLogWrap(ThreadVars *tv, Packet *p, void *data, PacketQueue
         flags |= STREAM_TOSERVER;
 
     int file_close = (p->flags & PKT_PSEUDO_STREAM_END) ? 1 : 0;
+    int file_trunc = 0;
 
     FLOWLOCK_WRLOCK(p->flow);
+    file_trunc = StreamTcpReassembleDepthReached(p);
 
     FileContainer *ffc = AppLayerGetFilesFromFlow(p->flow, flags);
     SCLogDebug("ffc %p", ffc);
@@ -302,6 +305,9 @@ static TmEcode LogFileLogWrap(ThreadVars *tv, Packet *p, void *data, PacketQueue
             }
 
             SCLogDebug("ff %p", ff);
+
+            if (file_trunc && ff->state < FILE_STATE_CLOSED)
+                ff->state = FILE_STATE_TRUNCATED;
 
             if (ff->state == FILE_STATE_CLOSED ||
                     ff->state == FILE_STATE_TRUNCATED || ff->state == FILE_STATE_ERROR ||
