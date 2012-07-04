@@ -382,6 +382,14 @@ void RunModeInitializeOutputs(void)
                     "(see https://redmine.openinfosecfoundation.org/issues/353"
                     " for an explanation)");
             continue;
+        } else if (strcmp(output->val, "alert-prelude") == 0) {
+#ifndef PRELUDE
+            SCLogWarning(SC_ERR_INVALID_ARGUMENT,
+                    "Prelude support not compiled in. Reconfigure/"
+                    "recompile with --enable-prelude to add Prelude "
+                    "support.");
+            continue;
+#endif
         }
 
         OutputModule *module = OutputGetModuleByConfName(output->val);
