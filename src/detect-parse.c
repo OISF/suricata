@@ -999,17 +999,34 @@ static int SigValidate(Signature *s) {
         SCReturnInt(0);
     }
 
-    /* check for uricontent + from_server/to_client */
-    if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL) {
-        SigMatch *sm;
-        for (sm = s->sm_lists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
-            if (sm->type == DETECT_FLOW) {
-                DetectFlowData *fd = (DetectFlowData *)sm->ctx;
-                if (fd == NULL)
-                    continue;
+    SigMatch *sm;
+    for (sm = s->sm_lists[DETECT_SM_LIST_MATCH]; sm != NULL; sm = sm->next) {
+        if (sm->type == DETECT_FLOW) {
+            DetectFlowData *fd = (DetectFlowData *)sm->ctx;
+            if (fd == NULL)
+                continue;
 
-                if (fd->flags & FLOW_PKT_TOCLIENT) {
-                    SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use uricontent / http_uri with flow:to_client or flow:from_server");
+            if (fd->flags & FLOW_PKT_TOCLIENT) {
+                /* check for uricontent + from_server/to_client */
+                if (s->sm_lists[DETECT_SM_LIST_UMATCH] != NULL ||
+                    s->sm_lists[DETECT_SM_LIST_HRUDMATCH] != NULL ||
+                    s->sm_lists[DETECT_SM_LIST_HCBDMATCH] != NULL ||
+                    s->sm_lists[DETECT_SM_LIST_HMDMATCH] != NULL ||
+                    s->sm_lists[DETECT_SM_LIST_HUADMATCH] != NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use uricontent "
+                               "/http_uri , raw_uri, http_client_body, "
+                               "http_method, http_user_agent keywords "
+                               "with flow:to_client or flow:from_server");
+                    SCReturnInt(0);
+                }
+            } else if (fd->flags & FLOW_PKT_TOSERVER) {
+                /* check for uricontent + from_server/to_client */
+                if (s->sm_lists[DETECT_SM_LIST_HSBDMATCH] != NULL ||
+                    s->sm_lists[DETECT_SM_LIST_HSMDMATCH] != NULL ||
+                    s->sm_lists[DETECT_SM_LIST_HSCDMATCH] != NULL) {
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "can't use http_"
+                               "server_body, http_stat_msg, http_stat_code "
+                               "with flow:to_server or flow:from_client");
                     SCReturnInt(0);
                 }
             }
