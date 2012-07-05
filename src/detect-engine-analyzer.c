@@ -181,6 +181,7 @@ void EngineAnalysisRules(Signature *s, char *line)
     uint32_t rule_flowint = 0;
     //uint32_t rule_flowvar = 0;
     uint32_t rule_content_http = 0;
+    uint32_t rule_content_offset_depth = 0;
     uint32_t list_id = 0;
     uint32_t rule_warning = 0;
     uint32_t raw_http_buf = 0;
@@ -216,8 +217,7 @@ void EngineAnalysisRules(Signature *s, char *line)
 
     if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
         packet_buf += 1;
-    }
-    else {
+    } else if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
         stream_buf += 1;
     }
     for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
@@ -303,13 +303,13 @@ void EngineAnalysisRules(Signature *s, char *line)
                 }
                 else if (list_id == DETECT_SM_LIST_HCBDMATCH) {
                     rule_content_http += 1;
-                    http_client_body_buf += 1;
                     raw_http_buf += 1;
+                    http_client_body_buf += 1;
                 }
                 else if (list_id == DETECT_SM_LIST_HSBDMATCH) {
                     rule_content_http += 1;
-                    http_server_body_buf += 1;
                     raw_http_buf += 1;
+                    http_server_body_buf += 1;
                 }
                 else if (list_id == DETECT_SM_LIST_HRHDMATCH) {
                     rule_content_http += 1;
@@ -333,11 +333,16 @@ void EngineAnalysisRules(Signature *s, char *line)
                 }
                 else if (list_id == DETECT_SM_LIST_HMDMATCH) {
                     rule_content_http += 1;
-                    http_method_buf += 1;
                     raw_http_buf += 1;
+                    http_method_buf += 1;
                 }
-                else {
+                else if (list_id == DETECT_SM_LIST_PMATCH) {
                     rule_content += 1;
+                    DetectContentData *cd = (DetectContentData *)sm->ctx;
+                    if (cd->flags &
+                        (DETECT_CONTENT_OFFSET | DETECT_CONTENT_DEPTH)) {
+                        rule_content_offset_depth++;
+                    }
                 }
             }
             else if (sm->type == DETECT_FLOW) {
@@ -507,6 +512,22 @@ void EngineAnalysisRules(Signature *s, char *line)
         if (warn_pcre_method /*http_method_buf && rule_content == 0 && rule_content_http == 0
                                && (rule_pcre > 0 || rule_pcre_http > 0)*/) {
             fprintf(rule_engine_analysis_FD, "    Warning: Rule uses pcre with only a http_method content; possible performance issue.\n");
+        }
+        if (rule_content_offset_depth > 0) {
+            fprintf(rule_engine_analysis_FD, "    Warning: Rule has depth"
+                    "/offset with raw content keywords.  Please note the "
+                    "offset/depth will be checked against both packet "
+                    "payloads and stream.  If you meant to have the offset/"
+                    "depth checked against just the payload, you can update "
+                    "the signature as \"alert tcp-pkt...\"\n");
+        }
+        if (rule_content_offset_depth > 0 && s->alproto != ALPROTO_UNKNOWN) {
+            fprintf(rule_engine_analysis_FD, "    Warning: Rule has "
+                    "offset/depth set along with a match on a specific "
+                    "app layer protocol - %d.  This can lead to FNs if we "
+                    "have a offset/depth content match on a packet payload "
+                    "before we can detect the app layer protocol for the "
+                    "flow.\n", s->alproto);
         }
         if (rule_warning == 0) {
             fprintf(rule_engine_analysis_FD, "    No warnings for this rule.\n");
