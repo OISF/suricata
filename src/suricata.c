@@ -241,9 +241,16 @@ static void SignalHandlerSigterm(/*@unused@*/ int sig) {
     suricata_ctl_flags |= SURICATA_KILL;
 }
 
+void SignalHandlerSigusr2Disabled(int sig)
+{
+    SCLogInfo("Live rule reload not enabled in config.");
+
+    return;
+}
+
 void SignalHandlerSigusr2SigFileStartup(int sig)
 {
-    SCLogInfo("Live rule not possible if -s or -S option used at runtime.");
+    SCLogInfo("Live rule reload not possible if -s or -S option used at runtime.");
 
     return;
 }
@@ -255,7 +262,7 @@ static void SignalHandlerSigusr2Idle(int sig)
         return;
     }
 
-    SCLogInfo("Hang on buddy!  Ruleset load in progress.  New ruleset load "
+    SCLogInfo("Ruleset load in progress.  New ruleset load "
               "allowed after current is done");
 
     return;
@@ -269,7 +276,7 @@ void SignalHandlerSigusr2(int sig)
     }
 
     if (suricata_ctl_flags != 0) {
-        SCLogInfo("Live rule swap no longer possible.  Engine in shutdown mode.");
+        SCLogInfo("Live rule swap no longer possible. Engine in shutdown mode.");
         return;
     }
 
@@ -677,6 +684,7 @@ int main(int argc, char **argv)
     uint32_t groupid = 0;
 #endif /* OS_WIN32 */
     int build_info = 0;
+    int rule_reload = 0;
 
     char *log_dir;
 #ifdef OS_WIN32
@@ -1262,6 +1270,17 @@ int main(int argc, char **argv)
                 }
             }
         }
+
+        ConfNode *denode = NULL;
+        ConfNode *decnf = ConfGetNode("detect-engine");
+        if (decnf != NULL) {
+            TAILQ_FOREACH(denode, &decnf->head, next) {
+                if (strcmp(denode->val, "rule-reload") == 0) {
+                    (void)ConfGetChildValueBool(denode, "rule-reload", &rule_reload);
+                    SCLogInfo("Live rule reloads %s", rule_reload ? "enabled" : "disabled");
+                }
+            }
+        }
     }
 
     AppLayerDetectProtoThreadInit();
@@ -1459,10 +1478,14 @@ int main(int argc, char **argv)
 
     AppLayerHtpNeedFileInspection();
 
-    if (sig_file == NULL)
-        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
-    else
-        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2SigFileStartup);
+    if (rule_reload) {
+        if (sig_file == NULL)
+            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Idle);
+        else
+            UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2SigFileStartup);
+    } else {
+        UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2Disabled);
+    }
 
 #ifdef UNITTESTS
 
@@ -1687,7 +1710,7 @@ int main(int argc, char **argv)
 
     /* registering singal handlers we use.  We register usr2 here, so that one
      * can't call it during the first sig load phase */
-    if (sig_file == NULL)
+    if (sig_file == NULL && rule_reload == 1)
         UtilSignalHandlerSetup(SIGUSR2, SignalHandlerSigusr2);
 
 #ifdef PROFILING
@@ -1877,19 +1900,21 @@ int main(int argc, char **argv)
         (((1000000 + end_time.tv_usec - start_time.tv_usec) / 1000) - 1000);
     SCLogInfo("time elapsed %.3fs", (float)milliseconds/(float)1000);
 
-    /* Disable detect threads first.  This is required by live rule swap */
-    TmThreadDisableDetectThreads();
+    if (rule_reload == 1) {
+        /* Disable detect threads first.  This is required by live rule swap */
+        TmThreadDisableDetectThreads();
 
-    /* wait if live rule swap is in progress */
-    if (UtilSignalIsHandler(SIGUSR2, SignalHandlerSigusr2Idle)) {
-        SCLogInfo("Live rule swap in progress.  Waiting for it to end "
-                  "before we shut the engine/threads down");
-        while (UtilSignalIsHandler(SIGUSR2, SignalHandlerSigusr2Idle)) {
-            /* sleep for 0.5 seconds */
-            usleep(500000);
+        /* wait if live rule swap is in progress */
+        if (UtilSignalIsHandler(SIGUSR2, SignalHandlerSigusr2Idle)) {
+            SCLogInfo("Live rule swap in progress.  Waiting for it to end "
+                    "before we shut the engine/threads down");
+            while (UtilSignalIsHandler(SIGUSR2, SignalHandlerSigusr2Idle)) {
+                /* sleep for 0.5 seconds */
+                usleep(500000);
+            }
+            SCLogInfo("Received notification that live rule swap is done.  "
+                    "Continuing with engine/threads shutdown");
         }
-        SCLogInfo("Received notification that live rule swap is done.  "
-                  "Continuing with engine/threads shutdown");
     }
 
     DetectEngineCtx *global_de_ctx = DetectEngineGetGlobalDeCtx();
