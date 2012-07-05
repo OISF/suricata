@@ -50,6 +50,8 @@
 
 #include "source-af-packet.h"
 
+extern int max_pending_packets;
+
 static const char *default_mode_auto = NULL;
 static const char *default_mode_autofp = NULL;
 
@@ -221,6 +223,21 @@ void *ParseAFPConfig(const char *iface)
         aconf->buffer_size = value;
     } else {
         aconf->buffer_size = 0;
+    }
+    if ((ConfGetChildValueInt(if_root, "ring-size", &value)) == 1) {
+        aconf->ring_size = value;
+        if (value * aconf->threads < max_pending_packets) {
+            aconf->ring_size = max_pending_packets / aconf->threads + 1;
+            SCLogWarning(SC_ERR_AFP_CREATE, "Inefficient setup: ring-size < max_pending_packets. "
+                         "Resetting to decent value %d.", aconf->ring_size);
+            /* We want at least that max_pending_packets packets can be handled by the
+             * interface. This is generous if we have multiple interfaces listening. */
+        }
+    } else {
+        /* We want that max_pending_packets packets can be handled by suricata
+         * for this interface. To take burst into account we multiply the obtained
+         * size by 2. */
+        aconf->ring_size = max_pending_packets * 2 / aconf->threads;
     }
 
     (void)ConfGetChildValueBool(if_root, "disable-promisc", (int *)&boolval);
