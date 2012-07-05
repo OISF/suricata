@@ -217,7 +217,8 @@ void EngineAnalysisRules(Signature *s, char *line)
 
     if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
         packet_buf += 1;
-    } else if (s->flags & SIG_FLAG_REQUIRE_PACKET) {
+    }
+    if (s->flags & SIG_FLAG_REQUIRE_STREAM) {
         stream_buf += 1;
     }
     for (list_id = 0; list_id < DETECT_SM_LIST_MAX; list_id++) {
