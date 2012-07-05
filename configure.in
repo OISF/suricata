@@ -802,7 +802,7 @@ AC_INIT(configure.in)
     fi
 
     LIBPCAP=""
-    AC_CHECK_LIB(pcap, pcap_open_live,, LIBPCAP="no")
+    AC_CHECK_LIB(pcap, pcap_open_live,, LIBPCAP="no", [-lpthread])
     if test "$LIBPCAP" = "no"; then
         echo
         echo "   ERROR!  libpcap library not found, go get it"
