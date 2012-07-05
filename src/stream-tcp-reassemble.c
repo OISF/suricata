@@ -1506,7 +1506,7 @@ static int HandleSegmentStartsAfterListSegment(ThreadVars *tv, TcpReassemblyThre
  *  \retval 0 stream does not have depth reached
  */
 int StreamTcpReassembleDepthReached(Packet *p) {
-    if (p->flow != NULL) {
+    if (p->flow != NULL && p->flow->protoctx != NULL) {
         TcpSession *ssn = p->flow->protoctx;
         TcpStream *stream;
         if (p->flowflags & FLOW_PKT_TOSERVER) {
