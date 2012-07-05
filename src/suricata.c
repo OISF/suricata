@@ -1888,6 +1888,9 @@ int main(int argc, char **argv)
     SCCudaPBKillBatchingPackets();
 #endif
 
+    /* First we need to kill the flow manager thread */
+    FlowKillFlowManagerThread();
+
     /* Disable packet acquire thread first */
     TmThreadDisableReceiveThreads();
 
@@ -1902,7 +1905,7 @@ int main(int argc, char **argv)
 
     if (rule_reload == 1) {
         /* Disable detect threads first.  This is required by live rule swap */
-        TmThreadDisableDetectThreads();
+        TmThreadDisableUptoDetectThreads();
 
         /* wait if live rule swap is in progress */
         if (UtilSignalIsHandler(SIGUSR2, SignalHandlerSigusr2Idle)) {

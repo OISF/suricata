@@ -605,10 +605,6 @@ void FlowForceReassembly(void)
     /* Do remember.  We need to have packet acquire disabled by now */
 
     /** ----- Part 1 ----- **/
-    /* First we need to kill the flow manager thread */
-    FlowKillFlowManagerThread();
-
-    /** ----- Part 2 ----- **/
     /* Check if all threads are idle.  We need this so that we have all
      * packets freeds.  As a consequence, no flows are in use */
 
@@ -636,7 +632,7 @@ void FlowForceReassembly(void)
 
     SCMutexUnlock(&tv_root_lock);
 
-    /** ----- Part 3 ----- **/
+    /** ----- Part 2 ----- **/
     /* Carry out flow reassembly for unattended flows */
     FlowForceReassemblyForHash();
 

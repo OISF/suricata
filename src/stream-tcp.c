@@ -125,6 +125,7 @@ void TmModuleStreamTcpRegister (void)
     tmm_modules[TMM_STREAMTCP].ThreadDeinit = StreamTcpThreadDeinit;
     tmm_modules[TMM_STREAMTCP].RegisterTests = StreamTcpRegisterTests;
     tmm_modules[TMM_STREAMTCP].cap_flags = 0;
+    tmm_modules[TMM_STREAMTCP].flags = TM_FLAG_STREAM_TM;
 }
 
 void StreamTcpIncrMemuse(uint64_t size) {

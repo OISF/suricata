@@ -1549,9 +1549,9 @@ void TmThreadDisableReceiveThreads(void)
 }
 
 /**
- * \brief Disable all detect threads.
+ * \brief Disable all threads <= detect.
  */
-void TmThreadDisableDetectThreads(void)
+void TmThreadDisableUptoDetectThreads(void)
 {
     /* value in seconds */
 #define THREAD_KILL_MAX_WAIT_TIME 60
@@ -1572,14 +1572,34 @@ void TmThreadDisableDetectThreads(void)
      * receive TM amongst the slots in a tv, it indicates we are done
      * with all receive threads */
     while (tv) {
+        int disable = 0;
         /* obtain the slots for this TV */
         TmSlot *slots = tv->tm_slots;
         while (slots != NULL) {
             TmModule *tm = TmModuleGetById(slots->tm_id);
 
-            if (!(tm->flags & TM_FLAG_DETECT_TM)) {
-                slots = slots->slot_next;
-                continue;
+            if (tm->flags & (TM_FLAG_RECEIVE_TM | TM_FLAG_DECODE_TM |
+                             TM_FLAG_STREAM_TM | TM_FLAG_DETECT_TM)) {
+                disable = 1;
+                break;
+            }
+
+            slots = slots->slot_next;
+            continue;
+        }
+
+        if (disable) {
+            if (tv->inq != NULL) {
+                /* we wait till we dry out all the inq packets, before we
+                 * kill this thread.  Do note that you should have disabled
+                 * packet acquire by now using TmThreadDisableReceiveThreads()*/
+                if (!(strlen(tv->inq->name) == strlen("packetpool") &&
+                      strcasecmp(tv->inq->name, "packetpool") == 0)) {
+                    PacketQueue *q = &trans_q[tv->inq->id];
+                    while (q->len != 0) {
+                        usleep(1000);
+                    }
+                }
             }
 
             /* we found our receive TV.  Send it a KILL signal.  This is all
@@ -1607,8 +1627,6 @@ void TmThreadDisableDetectThreads(void)
                     exit(EXIT_FAILURE);
                 }
             }
-
-            break;
         }
 
         tv = tv->next;
