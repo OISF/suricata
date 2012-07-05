@@ -270,7 +270,14 @@ void RunModeDispatch(int runmode, const char *custom_mode, DetectEngineCtx *de_c
                 SCLogError(SC_ERR_UNKNOWN_RUN_MODE, "Unknown runtime mode. Aborting");
                 exit(EXIT_FAILURE);
         }
-    } /* if (custom_mode == NULL) */
+    } else { /* if (custom_mode == NULL) */
+        /* Add compability with old 'worker' name */
+        if (!strcmp("worker", custom_mode)) {
+            SCLogWarning(SC_ERR_RUNMODE, "'worker' mode have been renamed "
+                         "to 'workers', please modify your setup.");
+            custom_mode = SCStrdup("workers");
+        }
+    }
 
     RunMode *mode = RunModeGetCustomMode(runmode, custom_mode);
     if (mode == NULL) {

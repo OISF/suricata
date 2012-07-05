@@ -262,9 +262,9 @@ static inline void NFQMutexInit(NFQQueueVars *nq)
 {
     char *active_runmode = RunmodeGetActive();
 
-    if (active_runmode && !strcmp("worker", active_runmode)) {
+    if (active_runmode && !strcmp("workers", active_runmode)) {
         nq->use_mutex = 0;
-        SCLogInfo("NFQ running in 'worker' runmode, will not use mutex.");
+        SCLogInfo("NFQ running in 'workers' runmode, will not use mutex.");
     } else {
         nq->use_mutex = 1;
     }

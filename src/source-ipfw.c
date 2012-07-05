@@ -193,9 +193,9 @@ static inline void IPFWMutexInit(IPFWQueueVars *nq)
 {
     char *active_runmode = RunmodeGetActive();
 
-    if (active_runmode && !strcmp("worker", active_runmode)) {
+    if (active_runmode && !strcmp("workers", active_runmode)) {
         nq->use_mutex = 0;
-        SCLogInfo("IPFW running in 'worker' runmode, will not use mutex.");
+        SCLogInfo("IPFW running in 'workers' runmode, will not use mutex.");
     } else {
         nq->use_mutex = 1;
     }

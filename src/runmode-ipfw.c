@@ -66,7 +66,7 @@ void RunModeIpsIPFWRegister(void)
                               "Multi threaded IPFW IPS mode with respect to flow",
                               RunModeIpsIPFWAutoFp);
 
-    RunModeRegisterNewRunMode(RUNMODE_IPFW, "worker",
+    RunModeRegisterNewRunMode(RUNMODE_IPFW, "workers",
                               "Multi queue IPFW IPS mode with one thread per queue",
                               RunModeIpsIPFWWorker);
 
