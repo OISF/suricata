@@ -52,6 +52,8 @@ typedef struct AFPIfaceConfig_
     int threads;
     /* socket buffer size */
     int buffer_size;
+    /* ring size in number of packets */
+    int ring_size;
     /* cluster param */
     int cluster_id;
     int cluster_type;
