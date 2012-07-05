@@ -369,10 +369,6 @@ int ConfGetChildValueBool(ConfNode *base, char *name, int *val)
 
     *val = ConfValIsTrue(strval);
 
-
-
-    *val = ConfValIsTrue(strval);
-
     return 1;
 }
 
