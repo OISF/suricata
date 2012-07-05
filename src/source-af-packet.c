@@ -181,6 +181,7 @@ typedef struct AFPThreadVars_
     char *ring_buf;
     char *frame_buf;
     unsigned int frame_offset;
+    int ring_size;
 } AFPThreadVars;
 
 TmEcode ReceiveAFP(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
@@ -667,7 +668,7 @@ frame size: TPACKET_ALIGN(snaplen + TPACKET_ALIGN(TPACKET_ALIGN(tp_hdrlen) + siz
         SCLogInfo("frame size to big");
         return -1;
     }
-    ptv->req.tp_frame_nr = max_pending_packets; /* Warrior mode */
+    ptv->req.tp_frame_nr = ptv->ring_size;
     ptv->req.tp_block_nr = ptv->req.tp_frame_nr / frames_per_block + 1;
     /* exact division */
     ptv->req.tp_frame_nr = ptv->req.tp_block_nr * frames_per_block;
@@ -970,6 +971,7 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
     }
 
     ptv->buffer_size = afpconfig->buffer_size;
+    ptv->ring_size = afpconfig->ring_size;
 
     ptv->promisc = afpconfig->promisc;
     ptv->checksum_mode = afpconfig->checksum_mode;

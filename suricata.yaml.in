@@ -218,6 +218,12 @@ af-packet:
     defrag: yes
     # To use the ring feature of AF_PACKET, set 'use-mmap' to yes
     use-mmap: yes
+    # Ring size will be computed with respect to max_pending_packets and number
+    # of threads. You can set manually the ring size in number of packets by setting
+    # the following value. If you are using flow cluster-type and have really network
+    # intensive single-flow you could want to set the ring-size independantly of the number
+    # of threads:
+    #ring-size: 2048
     # recv buffer size, increase value could improve performance
     # buffer-size: 32768
     # Set to yes to disable promiscuous mode
