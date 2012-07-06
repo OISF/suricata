@@ -514,7 +514,7 @@ void EngineAnalysisRules(Signature *s, char *line)
                                && (rule_pcre > 0 || rule_pcre_http > 0)*/) {
             fprintf(rule_engine_analysis_FD, "    Warning: Rule uses pcre with only a http_method content; possible performance issue.\n");
         }
-        if (rule_content_offset_depth > 0) {
+        if (rule_content_offset_depth > 0 && s->flags & SIG_FLAG_REQUIRE_STREAM) {
             fprintf(rule_engine_analysis_FD, "    Warning: Rule has depth"
                     "/offset with raw content keywords.  Please note the "
                     "offset/depth will be checked against both packet "
