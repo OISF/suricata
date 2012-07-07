@@ -700,6 +700,10 @@ int main(int argc, char **argv)
     /* initialize the logging subsys */
     SCLogInitLogModule(NULL);
 
+    if (SCSetThreadName("Suricata-Main") < 0) {
+        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
+    }
+
     RunModeRegisterRunModes();
 
     /* By default use IDS mode, but if nfq or ipfw

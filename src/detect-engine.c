@@ -77,6 +77,10 @@ static void *DetectEngineLiveRuleSwap(void *arg)
 {
     SCEnter();
 
+    if (SCSetThreadName("LiveRuleSwap") < 0) {
+        SCLogWarning(SC_ERR_THREAD_INIT, "Unable to set thread name");
+    }
+
     SCLogInfo("===== Starting live rule swap triggered by user signal USR2 =====");
 
     ThreadVars *tv_local = (ThreadVars *)arg;
