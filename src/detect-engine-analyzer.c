@@ -210,6 +210,8 @@ void EngineAnalysisRules(Signature *s, char *line)
     uint32_t warn_method_serverbody = 0;
     uint32_t warn_pcre_method = 0;
     uint32_t warn_encoding_norm_http_buf = 0;
+    uint32_t warn_offset_depth_pkt_stream = 0;
+    uint32_t warn_offset_depth_alproto = 0;
 
     if (s->init_flags & SIG_FLAG_INIT_BIDIREC) {
         rule_bidirectional = 1;
@@ -437,6 +439,14 @@ void EngineAnalysisRules(Signature *s, char *line)
             warn_pcre_method = 1;
         }
     }
+    if (rule_content_offset_depth > 0 && stream_buf && packet_buf) {
+        rule_warning += 1;
+        warn_offset_depth_pkt_stream = 1;
+    }
+    if (rule_content_offset_depth > 0 && !stream_buf && packet_buf && s->alproto != ALPROTO_UNKNOWN) {
+        rule_warning += 1;
+        warn_offset_depth_alproto = 1;
+    }
 
     if (!rule_warnings_only || (rule_warnings_only && rule_warning > 0)) {
         fprintf(rule_engine_analysis_FD, "== Sid: %u ==\n", s->id);
@@ -514,7 +524,7 @@ void EngineAnalysisRules(Signature *s, char *line)
                                && (rule_pcre > 0 || rule_pcre_http > 0)*/) {
             fprintf(rule_engine_analysis_FD, "    Warning: Rule uses pcre with only a http_method content; possible performance issue.\n");
         }
-        if (rule_content_offset_depth > 0 && s->flags & SIG_FLAG_REQUIRE_STREAM) {
+        if (warn_offset_depth_pkt_stream) {
             fprintf(rule_engine_analysis_FD, "    Warning: Rule has depth"
                     "/offset with raw content keywords.  Please note the "
                     "offset/depth will be checked against both packet "
@@ -522,7 +532,7 @@ void EngineAnalysisRules(Signature *s, char *line)
                     "depth checked against just the payload, you can update "
                     "the signature as \"alert tcp-pkt...\"\n");
         }
-        if (rule_content_offset_depth > 0 && s->alproto != ALPROTO_UNKNOWN) {
+        if (warn_offset_depth_alproto) {
             fprintf(rule_engine_analysis_FD, "    Warning: Rule has "
                     "offset/depth set along with a match on a specific "
                     "app layer protocol - %d.  This can lead to FNs if we "

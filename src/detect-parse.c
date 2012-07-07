@@ -1121,7 +1121,7 @@ static int SigValidate(Signature *s) {
         }
     }
 
-    if (!(s->flags & SIG_FLAG_REQUIRE_PACKET)) {
+    if (!(s->flags & (SIG_FLAG_REQUIRE_PACKET | SIG_FLAG_REQUIRE_STREAM))) {
         s->flags |= SIG_FLAG_REQUIRE_STREAM;
         SigMatch *sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
         while (sm != NULL) {
