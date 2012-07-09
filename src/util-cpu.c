@@ -176,15 +176,41 @@ void UtilCpuPrintSummary() {
 
 /**
  * Get the current number of ticks from the CPU.
+ *
+ * \todo We'll have to deal with removig ticks from the extra cpuids inbetween
+ *       2 calls.
  */
 uint64_t UtilCpuGetTicks(void)
 {
     uint64_t val;
-#if defined(__GNUC__) && (defined(__x86_64) || defined(__i386))
+#if defined(__GNUC__)
+#if defined(__x86_64) || defined(_X86_64_) || defined(ia_64)
+    __asm__ __volatile__ (
+    "xorl %%eax,%%eax\n\t"
+    "cpuid\n\t"
+    ::: "%rax", "%rbx", "%rcx", "%rdx");
+#else
+    __asm__ __volatile__ (
+    "xorl %%eax,%%eax\n\t"
+    "cpuid\n\t"
+    ::: "%eax", "%ebx", "%ecx", "%edx");
+#endif
     uint32_t a, d;
     __asm__ __volatile__ ("rdtsc" : "=a" (a), "=d" (d));
     val = ((uint64_t)a) | (((uint64_t)d) << 32);
+#if defined(__x86_64) || defined(_X86_64_) || defined(ia_64)
+    __asm__ __volatile__ (
+    "xorl %%eax,%%eax\n\t"
+    "cpuid\n\t"
+    ::: "%rax", "%rbx", "%rcx", "%rdx");
 #else
+    __asm__ __volatile__ (
+    "xorl %%eax,%%eax\n\t"
+    "cpuid\n\t"
+    ::: "%eax", "%ebx", "%ecx", "%edx");
+#endif
+
+#else /* #if defined(__GNU__) */
 #warning Using inferior version of UtilCpuGetTicks
     struct timeval now;
     gettimeofday(&now, NULL);
