@@ -162,9 +162,11 @@ static int DetectDepthSetup (DetectEngineCtx *de_ctx, Signature *s, char *depths
             } else {
                 cd->depth = (uint32_t)atoi(str);
                 if (cd->depth < cd->content_len) {
-                    cd->depth = cd->content_len;
-                    SCLogDebug("depth increased to %"PRIu32" to match pattern len ",
-                               cd->depth);
+                    uint32_t content_len = cd->content_len;
+                    SCLogError(SC_ERR_INVALID_SIGNATURE, "depth - %"PRIu16
+                               " smaller than content length - %"PRIu32,
+                               cd->depth, content_len);
+                    goto error;
                 }
                 /* Now update the real limit, as depth is relative to the offset */
                 cd->depth += cd->offset;
