@@ -41,7 +41,11 @@
 #define DETECT_CLASSCONFIG_REGEX "^\\s*config\\s*classification\\s*:\\s*([a-zA-Z][a-zA-Z0-9-_]*)\\s*,\\s*(.+)\\s*,\\s*(\\d+)\\s*$"
 
 /* Default path for the classification.config file */
+#if defined OS_WIN32 || defined __CYGWIN__
+#define SC_CLASS_CONF_DEF_CONF_FILEPATH CONFIG_DIR "\\\\classification.config"
+#else
 #define SC_CLASS_CONF_DEF_CONF_FILEPATH CONFIG_DIR "/classification.config"
+#endif
 
 /* Holds a pointer to the default path for the classification.config file */
 static const char *default_file_path = SC_CLASS_CONF_DEF_CONF_FILEPATH;

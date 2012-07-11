@@ -75,7 +75,11 @@ typedef enum ThresholdRuleType {
 #define DETECT_SUPPRESS_REGEX "^,\\s*track\\s*(by_dst|by_src)\\s*,\\s*ip\\s*([\\d.:/]+)*\\s*$"
 
 /* Default path for the threshold.config file */
+#if defined OS_WIN32 || defined __CYGWIN__
+#define THRESHOLD_CONF_DEF_CONF_FILEPATH CONFIG_DIR "\\\\threshold.config"
+#else
 #define THRESHOLD_CONF_DEF_CONF_FILEPATH CONFIG_DIR "/threshold.config"
+#endif
 
 static pcre *regex_base = NULL;
 static pcre_extra *regex_base_study = NULL;
