@@ -1641,6 +1641,15 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
             }
         }
 
+        if ((s->proto.flags & DETECT_PROTO_IPV4) && !PKT_IS_IPV4(p)) {
+            SCLogDebug("ip version didn't match");
+            goto next;
+        }
+        if ((s->proto.flags & DETECT_PROTO_IPV6) && !PKT_IS_IPV6(p)) {
+            SCLogDebug("ip version didn't match");
+            goto next;
+        }
+
         if (DetectProtoContainsProto(&s->proto, IP_GET_IPPROTO(p)) == 0) {
             SCLogDebug("proto didn't match");
             goto next;

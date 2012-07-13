@@ -226,8 +226,12 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
         goto error;
     }
 
-    /* reset our "any" (or "ip") state */
-    if (s->proto.flags & DETECT_PROTO_ANY) {
+    /* Reset our "any" (or "ip") state: for ipv4, ipv6 and ip cases, the bitfield
+     * s->proto.proto have all bit set to 1 to be able to match any protocols. ipproto
+     * will refined the protocol list and thus it needs to reset the bitfield to zero
+     * before setting the value specified by the ip_proto keyword.
+     */
+    if (s->proto.flags & (DETECT_PROTO_ANY | DETECT_PROTO_IPV6 | DETECT_PROTO_IPV4)) {
         s->proto.flags &= ~DETECT_PROTO_ANY;
         memset(s->proto.proto, 0x00, sizeof(s->proto.proto));
     }
