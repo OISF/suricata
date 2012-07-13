@@ -112,6 +112,7 @@ detect-rawbytes.c detect-rawbytes.h \
 detect-bytetest.c detect-bytetest.h \
 detect-bytejump.c detect-bytejump.h \
 detect-sameip.c detect-sameip.h \
+detect-l3proto.c detect-l3proto.h \
 detect-ipproto.c detect-ipproto.h \
 detect-within.c detect-within.h \
 detect-distance.c detect-distance.h \

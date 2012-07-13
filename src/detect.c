@@ -72,6 +72,7 @@
 #include "detect-bytetest.h"
 #include "detect-bytejump.h"
 #include "detect-sameip.h"
+#include "detect-l3proto.h"
 #include "detect-ipproto.h"
 #include "detect-within.h"
 #include "detect-distance.h"
@@ -4726,6 +4727,7 @@ void SigTableSetup(void) {
     DetectBytetestRegister();
     DetectBytejumpRegister();
     DetectSameipRegister();
+    DetectL3ProtoRegister();
     DetectIPProtoRegister();
     DetectWithinRegister();
     DetectDistanceRegister();
