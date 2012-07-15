@@ -241,20 +241,19 @@ static inline void PfringProcessPacket(void *user, struct pfring_pkthdr *h, Pack
  */
 TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
 {
-    uint16_t packet_q_len = 0;
-    PfringThreadVars *ptv = (PfringThreadVars *)data;
-    TmSlot *s = (TmSlot *)slot;
-    ptv->slot = s->slot_next;
-    Packet *p = NULL;
-
-    struct pfring_pkthdr hdr;
-
     SCEnter();
 
+    uint16_t packet_q_len = 0;
+    PfringThreadVars *ptv = (PfringThreadVars *)data;
+    Packet *p = NULL;
+    struct pfring_pkthdr hdr;
+    TmSlot *s = (TmSlot *)slot;
+
+    ptv->slot = s->slot_next;
+
     while(1) {
-        if (suricata_ctl_flags & SURICATA_STOP ||
-                suricata_ctl_flags & SURICATA_KILL) {
-            SCReturnInt(TM_ECODE_FAILED);
+        if (suricata_ctl_flags & (SURICATA_STOP || SURICATA_KILL)) {
+            SCReturnInt(TM_ECODE_OK);
         }
 
         /* make sure we have at least one packet in the packet pool, to prevent
@@ -300,7 +299,7 @@ TmEcode ReceivePfringLoop(ThreadVars *tv, void *data, void *slot)
         } else {
             SCLogError(SC_ERR_PF_RING_RECV,"pfring_recv error  %" PRId32 "", r);
             TmqhOutputPacketpool(ptv->tv, p);
-            return TM_ECODE_FAILED;
+            SCReturnInt(TM_ECODE_FAILED);
         }
         SCPerfSyncCountersIfSignalled(tv, 0);
     }

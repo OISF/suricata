@@ -196,24 +196,24 @@ TmEcode NapatechFeedThreadInit(ThreadVars *tv, void *initdata, void **data)
  */
 TmEcode NapatechFeedLoop(ThreadVars *tv, void *data, void *slot)
 {
+    SCEnter();
+
     int32_t status;
     int32_t caplen;
     PCAP_HEADER *header;
     uint8_t *frame;
     uint16_t packet_q_len = 0;
     NapatechThreadVars *ntv = (NapatechThreadVars *)data;
-    TmSlot *s = (TmSlot *)slot;
-    ntv->slot = s->slot_next;
     int r;
+    TmSlot *s = (TmSlot *)slot;
 
-    SCEnter();
+    ntv->slot = s->slot_next;
 
     while (1) {
-        if (suricata_ctl_flags & SURICATA_STOP ||
-                suricata_ctl_flags & SURICATA_KILL)
-        {
+        if (suricata_ctl_flags & (SURICATA_STOP || SURICATA_KILL)) {
             SCReturnInt(TM_ECODE_OK);
         }
+
         /* make sure we have at least one packet in the packet pool, to prevent
          * us from alloc'ing packets at line rate */
         do {
@@ -233,11 +233,10 @@ TmEcode NapatechFeedLoop(ThreadVars *tv, void *data, void *slot)
              * no frames currently available
              */
             continue;
-        }
-        else if (status < 0) {
+        } else if (status < 0) {
             SCLogError(SC_ERR_NAPATECH_FEED_NEXT_FAILED,
-                    "Failed to read from Napatech feed %d:%d",
-                    ntv->adapter_number, ntv->feed_number);
+                       "Failed to read from Napatech feed %d:%d",
+                       ntv->adapter_number, ntv->feed_number);
             SCReturnInt(TM_ECODE_FAILED);
         }
         // beware that storelen is aligned; therefore, it may be larger than "caplen"
@@ -260,8 +259,10 @@ TmEcode NapatechFeedLoop(ThreadVars *tv, void *data, void *slot)
             SCReturnInt(TM_ECODE_FAILED);
         }
 
-        TmThreadsSlotProcessPkt(ntv->tv, ntv->slot, p);
-
+        if (TmThreadsSlotProcessPkt(ntv->tv, ntv->slot, p) != TM_ECODE_OK) {
+            TmqhOutputPacketpool(ntv->tv, p);
+            SCReturnInt(TM_ECODE_FAILED);
+        }
     }
 
     SCReturnInt(TM_ECODE_OK);

@@ -256,19 +256,18 @@ void PcapCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt) {
  */
 TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
 {
-    uint16_t packet_q_len = 0;
-    PcapThreadVars *ptv = (PcapThreadVars *)data;
-    TmSlot *s = (TmSlot *)slot;
-    ptv->slot = s->slot_next;
-    ptv->cb_result = TM_ECODE_OK;
-    int r;
-
     SCEnter();
 
+    uint16_t packet_q_len = 0;
+    PcapThreadVars *ptv = (PcapThreadVars *)data;
+    int r;
+    TmSlot *s = (TmSlot *)slot;
+
+    ptv->slot = s->slot_next;
+    ptv->cb_result = TM_ECODE_OK;
+
     while (1) {
-        if (suricata_ctl_flags & SURICATA_STOP ||
-            suricata_ctl_flags & SURICATA_KILL)
-        {
+        if (suricata_ctl_flags & (SURICATA_STOP || SURICATA_KILL)) {
             SCReturnInt(TM_ECODE_OK);
         }
 
@@ -283,11 +282,11 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
 
         /* Right now we just support reading packets one at a time. */
         r = pcap_dispatch(ptv->pcap_handle, (int)packet_q_len,
-                (pcap_handler)PcapCallbackLoop, (u_char *)ptv);
+                          (pcap_handler)PcapCallbackLoop, (u_char *)ptv);
         if (unlikely(r < 0)) {
             int dbreak = 0;
             SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s",
-                    r, pcap_geterr(ptv->pcap_handle));
+                       r, pcap_geterr(ptv->pcap_handle));
             do {
                 usleep(PCAP_RECONNECT_TIMEOUT);
                 if (suricata_ctl_flags != 0) {

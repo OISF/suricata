@@ -309,6 +309,8 @@ TmEcode ReceiveIPFW(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Pack
 
 TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
 {
+    SCEnter();
+
     IPFWThreadVars *ptv = (IPFWThreadVars *)data;
     IPFWQueueVars *nq = NULL;
     uint8_t pkt[IP_MAXPACKET];
@@ -317,13 +319,7 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
     struct timeval IPFWts;
     Packet *p = NULL;
     uint16_t packet_q_len = 0;
-    SCEnter();
 
-
-    if (ptv == NULL) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Null data pointer");
-        SCReturnInt(TM_ECODE_FAILED);
-    }
     nq = IPFWGetQueue(ptv->ipfw_index);
     if (nq == NULL) {
         SCLogWarning(SC_ERR_INVALID_ARGUMENT, "Can't get thread variable");
@@ -331,13 +327,9 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
     }
 
     SCLogInfo("Thread '%s' will run on port %d (item %d)",
-              tv->name,
-              nq->port_num,
-              ptv->ipfw_index);
+              tv->name, nq->port_num, ptv->ipfw_index);
     while (1) {
-        if (suricata_ctl_flags & SURICATA_STOP ||
-            suricata_ctl_flags & SURICATA_KILL)
-        {
+        if (suricata_ctl_flags & (SURICATA_STOP || SURICATA_KILL)) {
             SCReturnInt(TM_ECODE_OK);
         }
 
@@ -362,7 +354,6 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
                              strerror(errno));
                 SCReturnInt(TM_ECODE_FAILED);
             }
-            SCReturnInt(TM_ECODE_FAILED);
         }
         /* We have a packet to process */
         memset (&IPFWts, 0, sizeof(struct timeval));

@@ -302,21 +302,21 @@ ReceiveErfDagThreadInit(ThreadVars *tv, void *initdata, void **data)
  */
 TmEcode ReceiveErfDagLoop(ThreadVars *tv, void *data, void *slot)
 {
+    SCEnter();
+
     ErfDagThreadVars *dtv = (ErfDagThreadVars *)data;
-    TmSlot *s = (TmSlot *)slot;
-    dtv->slot = s->slot_next;
     uint32_t diff = 0;
     int      err;
     uint8_t  *top = NULL;
     uint32_t pkts_read = 0;
+    TmSlot *s = (TmSlot *)slot;
 
-    SCEnter();
+    dtv->slot = s->slot_next;
 
     while (1)
     {
-        if (suricata_ctl_flags & SURICATA_STOP ||
-            suricata_ctl_flags & SURICATA_KILL) {
-            SCReturnInt(TM_ECODE_FAILED);
+        if (suricata_ctl_flags & (SURICATA_STOP || SURICATA_KILL)) {
+            SCReturnInt(TM_ECODE_OK);
         }
 
         top = dag_advance_stream(dtv->dagfd, dtv->dagstream, &(dtv->btm));
@@ -327,11 +327,11 @@ TmEcode ReceiveErfDagLoop(ThreadVars *tv, void *data, void *slot)
                     dtv->btm = dtv->top;
                 }
                 continue;
-            }
-            else {
+            } else {
                 SCLogError(SC_ERR_ERF_DAG_STREAM_READ_FAILED,
-                    "Failed to read from stream: %d, DAG: %s when using dag_advance_stream",
-                    dtv->dagstream, dtv->dagname);
+                           "Failed to read from stream: %d, DAG: %s when "
+                           "using dag_advance_stream",
+                           dtv->dagstream, dtv->dagname);
                 SCReturnInt(TM_ECODE_FAILED);
             }
         }
@@ -347,18 +347,14 @@ TmEcode ReceiveErfDagLoop(ThreadVars *tv, void *data, void *slot)
 
         if (err == TM_ECODE_FAILED) {
             SCLogError(SC_ERR_ERF_DAG_STREAM_READ_FAILED,
-                "Failed to read from stream: %d, DAG: %s",
-                dtv->dagstream, dtv->dagname);
+                       "Failed to read from stream: %d, DAG: %s",
+                       dtv->dagstream, dtv->dagname);
             ReceiveErfDagCloseStream(dtv->dagfd, dtv->dagstream);
-            SCReturnInt(err);
+            SCReturnInt(TM_ECODE_FAILED);
         }
 
         SCLogDebug("Read %d records from stream: %d, DAG: %s",
-            pkts_read, dtv->dagstream, dtv->dagname);
-    }
-
-    if (suricata_ctl_flags != 0) {
-        SCReturnInt(TM_ECODE_FAILED);
+                   pkts_read, dtv->dagstream, dtv->dagname);
     }
 
     SCReturnInt(TM_ECODE_OK);

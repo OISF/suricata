@@ -510,14 +510,15 @@ static int AFPTryReopen(AFPThreadVars *ptv)
  */
 TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
 {
+    SCEnter();
+
     uint16_t packet_q_len = 0;
     AFPThreadVars *ptv = (AFPThreadVars *)data;
-    TmSlot *s = (TmSlot *)slot;
-    ptv->slot = s->slot_next;
     struct pollfd fds;
     int r;
+    TmSlot *s = (TmSlot *)slot;
 
-    SCEnter();
+    ptv->slot = s->slot_next;
 
     fds.fd = ptv->socket;
     fds.events = POLLIN;

@@ -109,14 +109,14 @@ TmModuleDecodeErfFileRegister(void)
  */
 TmEcode ReceiveErfFileLoop(ThreadVars *tv, void *data, void *slot)
 {
-    ErfFileThreadVars *etv = (ErfFileThreadVars *)data;
-    etv->slot = ((TmSlot *)slot)->slot_next;
-    Packet *p;
+    Packet *p = NULL;
     uint16_t packet_q_len = 0;
+    ErfFileThreadVars *etv = (ErfFileThreadVars *)data;
+
+    etv->slot = ((TmSlot *)slot)->slot_next;
 
     while (1) {
-        if (suricata_ctl_flags & SURICATA_STOP ||
-            suricata_ctl_flags & SURICATA_KILL) {
+        if (suricata_ctl_flags & (SURICATA_STOP || SURICATA_KILL)) {
             SCReturnInt(TM_ECODE_OK);
         }
 

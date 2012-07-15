@@ -154,20 +154,20 @@ void PcapFileCallbackLoop(char *user, struct pcap_pkthdr *h, u_char *pkt) {
 /**
  *  \brief Main PCAP file reading Loop function
  */
-TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot) {
-    uint16_t packet_q_len = 0;
-    PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
-    TmSlot *s = (TmSlot *)slot;
-    ptv->slot = s->slot_next;
-    ptv->cb_result = TM_ECODE_OK;
-    int r;
-
+TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot)
+{
     SCEnter();
 
+    uint16_t packet_q_len = 0;
+    PcapFileThreadVars *ptv = (PcapFileThreadVars *)data;
+    int r;
+    TmSlot *s = (TmSlot *)slot;
+
+    ptv->slot = s->slot_next;
+    ptv->cb_result = TM_ECODE_OK;
+
     while (1) {
-        if (suricata_ctl_flags & SURICATA_STOP ||
-            suricata_ctl_flags & SURICATA_KILL)
-        {
+        if (suricata_ctl_flags & (SURICATA_STOP || SURICATA_KILL)) {
             SCReturnInt(TM_ECODE_OK);
         }
 
@@ -182,10 +182,10 @@ TmEcode ReceivePcapFileLoop(ThreadVars *tv, void *data, void *slot) {
 
         /* Right now we just support reading packets one at a time. */
         r = pcap_dispatch(pcap_g.pcap_handle, (int)packet_q_len,
-                (pcap_handler)PcapFileCallbackLoop, (u_char *)ptv);
+                          (pcap_handler)PcapFileCallbackLoop, (u_char *)ptv);
         if (unlikely(r == -1)) {
             SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s",
-                    r, pcap_geterr(pcap_g.pcap_handle));
+                       r, pcap_geterr(pcap_g.pcap_handle));
 
             /* in the error state we just kill the engine */
             EngineKill();
