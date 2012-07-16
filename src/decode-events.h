@@ -192,6 +192,10 @@ enum {
     IPV6_FRAG_PKT_TOO_LARGE,
     IPV6_FRAG_OVERLAP,
 
+    /* IPv4 in IPv6 events */
+    IPV4_IN_IPV6_PKT_TOO_SMALL,
+    IPV4_IN_IPV6_WRONG_IP_VER,
+
     /* should always be last! */
     DECODE_EVENT_MAX,
 };

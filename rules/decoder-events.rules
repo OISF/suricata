@@ -86,5 +86,9 @@ alert tcp any any -> any any (msg:"SURICATA TCPv6 invalid checksum"; tcpv6-csum:
 alert udp any any -> any any (msg:"SURICATA UDPv6 invalid checksum"; udpv6-csum:invalid; sid:2200078; rev:1;)
 alert icmp any any -> any any (msg:"SURICATA ICMPv6 invalid checksum"; icmpv6-csum:invalid; sid:2200079; rev:1;)
 
-# next sid is 2200082
+# IPv4 in IPv6 rules
+alert pkthdr any any -> any any (msg:"SURICATA IPv4-in-IPv6 packet too short"; decode-event:ipv6.ipv4_in_ipv6_too_small; sid:2200082; rev:1;)
+alert pkthdr any any -> any any (msg:"SURICATA IPv4-in-IPv6 invalid protocol"; decode-event:ipv6.ipv4_in_ipv6_wrong_version; sid:2200083; rev:1;)
+
+# next sid is 2200084
 
