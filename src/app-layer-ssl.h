@@ -27,6 +27,7 @@
 #define __APP_LAYER_SSL_H__
 
 #include "decode-events.h"
+#include "queue.h"
 
 enum {
     /* TLS protocol messages */
@@ -79,6 +80,13 @@ enum {
     TLS_VERSION_12 = 0x0303,
 };
 
+typedef struct SSLCertsChain_ {
+    uint8_t *cert_data;
+    uint32_t cert_len;
+    TAILQ_ENTRY(SSLCertsChain_) next;
+} SSLCertsChain;
+
+
 typedef struct SSLStateConnp_ {
     /* record length */
     uint32_t record_length;
@@ -107,6 +115,8 @@ typedef struct SSLStateConnp_ {
 
     uint8_t *cert_input;
     uint32_t cert_input_len;
+
+    TAILQ_HEAD(, SSLCertsChain_) certs;
 
     uint32_t cert_log_flag;
 
