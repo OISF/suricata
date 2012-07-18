@@ -212,6 +212,7 @@ static void LogTlsLogPem(Packet *p, SSLState *state, LogTlsFileCtx *log, int ipp
     unsigned char* pembase64 = NULL;
     unsigned char* pembase64ptr = NULL;
     int ret;
+    SSLCertsChain *cert;
 
     CreateFileName(log, p, state, filename);
     if (strlen(filename) == 0) {
@@ -225,40 +226,43 @@ static void LogTlsLogPem(Packet *p, SSLState *state, LogTlsFileCtx *log, int ipp
         SCReturn;
     }
 
-    pemlen = (4 * (state->curr_connp->cert_input_len + 2) / 3) +1;
-    pembase64 = (unsigned char *) SCMalloc(sizeof(unsigned char*)*pemlen);
-    if (pembase64 == NULL) {
-        SCLogWarning(SC_ERR_FOPEN, "Can't create PEM filename");
-        goto end_fp;
-    }
+    TAILQ_FOREACH(cert, &state->curr_connp->certs, next) {
+        pemlen = (4 * (cert->cert_len + 2) / 3) +1;
+        pembase64 = (unsigned char *) SCMalloc(sizeof(unsigned char*)*pemlen);
+        if (pembase64 == NULL) {
+            SCLogWarning(SC_ERR_FOPEN, "Can't create PEM filename");
+            goto end_fp;
+        }
 
 
-    memset(pembase64, 0, pemlen);
-    ret = Base64Encode((unsigned char*) state->curr_connp->cert_input, state->curr_connp->cert_input_len, pembase64, &pemlen);
-    if (ret != SC_BASE64_OK) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "Invalid return of Base64Encode function");
-        goto end_pembase64;
-    }
+        memset(pembase64, 0, pemlen);
+        ret = Base64Encode((unsigned char*) cert->cert_data, cert->cert_len, pembase64, &pemlen);
+        if (ret != SC_BASE64_OK) {
+            SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "Invalid return of Base64Encode function");
+            goto end_pembase64;
+        }
 
-    fprintf(fp, PEMHEADER);
+       if (fprintf(fp, PEMHEADER)  < 0)
+           goto end_fwrite_fp;
 
-    pembase64ptr = pembase64;
-    while (pemlen > 0) {
-        unsigned int loffset = pemlen >= 64 ? 64 : pemlen;
-        if (fwrite(pembase64ptr, 1, loffset, fp) != loffset)
+        pembase64ptr = pembase64;
+        while (pemlen > 0) {
+            int loffset = pemlen >= 64 ? 64 : pemlen;
+            if (fwrite(pembase64ptr, 1, loffset, fp) != loffset)
+                goto end_fwrite_fp;
+            if (fwrite("\n", 1, 1, fp) != 1)
+                goto end_fwrite_fp;
+            pembase64ptr += 64;
+            if (pemlen < 64)
+                break;
+            pemlen -= 64;
+        }
+
+        SCFree(pembase64);
+        if (fprintf(fp, PEMFOOTER) < 0)
             goto end_fwrite_fp;
-        if (fwrite("\n", 1, 1, fp) != 1)
-            goto end_fwrite_fp;
-        pembase64ptr += 64;
-        if (pemlen < 64)
-            break;
-        pemlen -= 64;
     }
-
-    if (fprintf(fp, PEMFOOTER) < 0)
-        goto end_fwrite_fp;
     fclose(fp);
-    SCFree(pembase64);
 
     //Logging certificate informations
     memcpy(filename + (strlen(filename) - 3), "meta", 4);

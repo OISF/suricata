@@ -132,6 +132,10 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
                     }
                 }
                 ncert = (SSLCertsChain *)SCMalloc(sizeof(SSLCertsChain));
+                if (ncert == NULL) {
+                        DerFree(cert);
+                        return -1;
+                }
                 memset(ncert, 0, sizeof(*ncert));
                 ncert->cert_data = input;
                 ncert->cert_len = cur_cert_length;
