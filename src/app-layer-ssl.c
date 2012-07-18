@@ -862,6 +862,7 @@ void *SSLStateAlloc(void)
     memset(ssl_state, 0, sizeof(SSLState));
     ((SSLState*)ssl_state)->client_connp.cert_log_flag |= SSL_TLS_NOLOG_PEM;
     ((SSLState*)ssl_state)->server_connp.cert_log_flag |= SSL_TLS_NOLOG_PEM;
+    TAILQ_INIT(&((SSLState*)ssl_state)->server_connp.certs);
 
     return ssl_state;
 }
@@ -873,6 +874,7 @@ void *SSLStateAlloc(void)
 void SSLStateFree(void *p)
 {
     SSLState *ssl_state = (SSLState *)p;
+    SSLCertsChain *item;
 
     if (ssl_state->client_connp.trec)
         SCFree(ssl_state->client_connp.trec);
@@ -891,6 +893,13 @@ void SSLStateFree(void *p)
         SCFree(ssl_state->server_connp.cert0_issuerdn);
     if (ssl_state->server_connp.cert0_fingerprint)
         SCFree(ssl_state->server_connp.cert0_fingerprint);
+
+    /* Free certificate chain */
+    while ((item = TAILQ_FIRST(&ssl_state->server_connp.certs))) {
+        TAILQ_REMOVE(&ssl_state->server_connp.certs, item, next);
+        SCFree(item);
+    }
+    TAILQ_INIT(&ssl_state->server_connp.certs);
 
     SCFree(ssl_state);
 
