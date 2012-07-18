@@ -122,6 +122,7 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
             if (rc != 0) {
                 TLSCertificateErrCodeToWarning(ssl_state, errcode);
             } else {
+                SSLCertsChain *ncert;
                 //SCLogInfo("TLS Cert %d: %s\n", i, buffer);
                 if (i==0) {
                     ssl_state->server_connp.cert0_subject = SCStrdup(buffer);
@@ -130,6 +131,11 @@ int DecodeTLSHandshakeServerCertificate(SSLState *ssl_state, uint8_t *input, uin
                         return -1;
                     }
                 }
+                ncert = (SSLCertsChain *)SCMalloc(sizeof(SSLCertsChain));
+                memset(ncert, 0, sizeof(*ncert));
+                ncert->cert_data = input;
+                ncert->cert_len = cur_cert_length;
+                TAILQ_INSERT_TAIL(&ssl_state->server_connp.certs, ncert, next);
             }
             rc = Asn1DerGetIssuerDN(cert, buffer, sizeof(buffer), &errcode);
             if (rc != 0) {
