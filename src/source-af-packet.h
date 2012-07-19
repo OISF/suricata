@@ -1,4 +1,4 @@
-/* Copyright (C) 2011 Open Information Security Foundation
+/* Copyright (C) 2011,2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -33,7 +33,6 @@
 #define PACKET_FANOUT_LB               1
 #define PACKET_FANOUT_CPU              2
 #define PACKET_FANOUT_FLAG_DEFRAG      0x8000
-
 #else /* HAVE_PACKET_FANOUT */
 #include <linux/if_packet.h>
 #endif /* HAVE_PACKET_FANOUT */
@@ -41,6 +40,11 @@
 /* value for flags */
 #define AFP_RING_MODE (1<<0)
 #define AFP_ZERO_COPY (1<<1)
+#define AFP_SOCK_PROTECT (1<<2)
+
+#define AFP_COPY_MODE_NONE  0
+#define AFP_COPY_MODE_TAP   1
+#define AFP_COPY_MODE_IPS   2
 
 #define AFP_FILE_MAX_PKTS 256
 #define AFP_IFACE_NAME_LENGTH 48
@@ -61,8 +65,10 @@ typedef struct AFPIfaceConfig_
     int promisc;
     /* misc use flags including ring mode */
     int flags;
+    int copy_mode;
     ChecksumValidationMode checksum_mode;
     char *bpf_filter;
+    char *out_iface;
     SC_ATOMIC_DECLARE(unsigned int, ref);
     void (*DerefFunc)(void *);
 } AFPIfaceConfig;
@@ -71,6 +77,11 @@ typedef struct AFPIfaceConfig_
 typedef struct AFPPacketVars_
 {
     void *relptr;
+    int sockfd;
+    int if_idx;
+    int copy_mode;
+    /* FIXME will need this */
+    SCMutex *sock_protect;
 } AFPPacketVars;
 
 

@@ -1,4 +1,4 @@
-/* Copyright (C) 2011 Open Information Security Foundation
+/* Copyright (C) 2011,2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -166,6 +166,11 @@ typedef struct AFPThreadVars_
     int promisc;
     ChecksumValidationMode checksum_mode;
 
+    /* IPS stuff */
+    int sockfd;
+    int if_idx;
+    SCMutex sock_protect;
+
     int flags;
     uint16_t capture_kernel_packets;
     uint16_t capture_kernel_drops;
@@ -174,6 +179,7 @@ typedef struct AFPThreadVars_
     int cluster_type;
 
     int threads;
+    int copy_mode;
 
     struct tpacket_req req;
     unsigned int tp_hdrlen;
@@ -227,6 +233,7 @@ void TmModuleDecodeAFPRegister (void) {
 }
 
 static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose);
+static int AFPCreateWriteSocket(AFPThreadVars *ptv, char *devname, int verbose);
 
 static inline void AFPDumpCounters(AFPThreadVars *ptv, int forced)
 {
@@ -368,13 +375,57 @@ int AFPRead(AFPThreadVars *ptv)
     SCReturnInt(AFP_READ_OK);
 }
 
+TmEcode AFPWritePacket(Packet *p)
+{
+    struct sockaddr_ll socket_address;
+
+    if (p->afp_v.copy_mode == AFP_COPY_MODE_IPS) {
+        if (p->action & ACTION_DROP) {
+            return TM_ECODE_OK;
+        }
+    }
+
+    if (p->ethh == NULL) {
+        SCLogWarning(SC_ERR_INVALID_VALUE, "Should have an Ethernet header");
+        return TM_ECODE_FAILED;
+    }
+    /* Index of the network device */
+    socket_address.sll_ifindex = p->afp_v.if_idx;
+    /* Address length*/
+    socket_address.sll_halen = ETH_ALEN;
+    /* Destination MAC */
+    memcpy(socket_address.sll_addr, p->ethh, 6);
+
+    /* Send packet, locking the socket if necessary */
+    if (p->afp_v.sock_protect != NULL)
+        SCMutexLock(p->afp_v.sock_protect);
+    if (sendto(p->afp_v.sockfd, GET_PKT_DATA(p), GET_PKT_LEN(p), 0,
+               (struct sockaddr*) &socket_address,
+               sizeof(struct sockaddr_ll)) < 0) {
+        SCLogInfo("Send packet failed on socket %d", p->afp_v.sockfd);
+        if (p->afp_v.sock_protect != NULL)
+            SCMutexUnlock(p->afp_v.sock_protect);
+        return TM_ECODE_FAILED;
+    }
+    if (p->afp_v.sock_protect != NULL)
+        SCMutexUnlock(p->afp_v.sock_protect);
+
+    return TM_ECODE_OK;
+}
+
 TmEcode AFPReleaseDataFromRing(ThreadVars *t, Packet *p)
 {
+    int ret = TM_ECODE_OK;
+    /* Need to be in copy mode and need to detect early release
+       where Ethernet header could not be set (and pseudo packet) */
+    if ((p->afp_v.copy_mode != AFP_COPY_MODE_NONE) && !PKT_IS_PSEUDOPKT(p)) {
+        ret = AFPWritePacket(p);
+    }
     if (p->afp_v.relptr) {
         union thdr h;
         h.raw = p->afp_v.relptr;
         h.h2->tp_status = TP_STATUS_KERNEL;
-        return TM_ECODE_OK;
+        return ret;
     }
     return TM_ECODE_FAILED;
 }
@@ -402,6 +453,21 @@ int AFPReadFromRing(AFPThreadVars *ptv)
         } else {
             if (ptv->flags & AFP_RING_MODE) {
                 p->afp_v.relptr = h.raw;
+
+                p->afp_v.copy_mode = ptv->copy_mode;
+                if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
+                    p->afp_v.sockfd = ptv->sockfd;
+                    p->afp_v.if_idx = ptv->if_idx;
+                    if (ptv->flags & AFP_SOCK_PROTECT) {
+                        p->afp_v.sock_protect = &ptv->sock_protect;
+                    } else {
+                        p->afp_v.sock_protect = NULL;
+                    }
+                } else {
+                    p->afp_v.sockfd = 0;
+                    p->afp_v.if_idx = 0;
+                    p->afp_v.sock_protect = NULL;
+                }
                 p->ReleaseData = AFPReleaseDataFromRing;
             }
         }
@@ -900,6 +966,50 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
     return 0;
 }
 
+static int AFPCreateWriteSocket(AFPThreadVars *ptv, char *devname, int verbose)
+{
+    int sockfd;
+    struct ifreq if_idx;
+
+    /* Open RAW socket to send on */
+    if ((sockfd = socket(AF_PACKET, SOCK_RAW, IPPROTO_RAW)) == -1) {
+        SCLogError(SC_ERR_AFP_CREATE, "Unable to create RAW socket");
+    }
+
+    memset(&if_idx, 0, sizeof(struct ifreq));
+    strncpy(if_idx.ifr_name, devname, IFNAMSIZ-1);
+    if (ioctl(sockfd, SIOCGIFINDEX, &if_idx) < 0) {
+        SCLogError(SC_ERR_AFP_CREATE, "Unable to get iface index: %s",
+                devname);
+        return -1;
+    } else {
+        ptv->if_idx =  if_idx.ifr_ifindex;
+        ptv->sockfd = sockfd;
+        SCLogInfo("Using IPS mode for %s (sock: %d inject on %s)",
+                ptv->iface, ptv->sockfd, devname);
+    }
+
+    /* set socket recv buffer size */
+    if (ptv->buffer_size != 0) {
+        /*
+         * Set the socket buffer size to the specified value.
+         */
+        SCLogInfo("Setting AF_PACKET socket buffer to %d", ptv->buffer_size);
+        if (setsockopt(ptv->sockfd, SOL_SOCKET, SO_RCVBUF,
+                    &ptv->buffer_size,
+                    sizeof(ptv->buffer_size)) == -1) {
+            SCLogError(SC_ERR_AFP_CREATE,
+                    "Couldn't set buffer size to %d on iface %s, error %s",
+                    ptv->buffer_size,
+                    devname,
+                    strerror(errno));
+            close(ptv->socket);
+            return -1;
+        }
+    }
+    return 0;
+}
+
 TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
 {
     struct bpf_program filter;
@@ -1026,6 +1136,10 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
     if (active_runmode && !strcmp("workers", active_runmode)) {
         ptv->flags |= AFP_ZERO_COPY;
         SCLogInfo("Enabling zero copy mode");
+    } else {
+        /* If we are using copy mode we need a lock */
+        SCMutexInit(&ptv->sock_protect, NULL);
+        ptv->flags |= AFP_SOCK_PROTECT;
     }
 
     /* If we are in RING mode, then we can use ZERO copy
@@ -1043,6 +1157,16 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
         SCReturnInt(TM_ECODE_FAILED);
     }
 
+    ptv->copy_mode = afpconfig->copy_mode;
+    if (ptv->copy_mode != AFP_COPY_MODE_NONE) {
+        if (AFPCreateWriteSocket(ptv, afpconfig->out_iface, 1) != 0) {
+            SCLogError(SC_ERR_AFP_CREATE,
+                       "Couldn't init AF_PACKET write socket");
+            SCFree(ptv);
+            afpconfig->DerefFunc(afpconfig);
+            SCReturnInt(TM_ECODE_FAILED);
+        }
+    }
 
 
 #define T_DATA_SIZE 70000
@@ -1098,6 +1222,13 @@ TmEcode ReceiveAFPThreadDeinit(ThreadVars *tv, void *data) {
     ptv->bpf_filter = NULL;
 
     close(ptv->socket);
+
+    if (ptv->sockfd) {
+        close(ptv->sockfd);
+    }
+    if (ptv->flags & AFP_SOCK_PROTECT) {
+        SCMutexDestroy(&ptv->sock_protect);
+    }
     SCReturnInt(TM_ECODE_OK);
 }
 
