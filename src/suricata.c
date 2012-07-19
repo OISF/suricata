@@ -1861,52 +1861,7 @@ int main(int argc, char **argv)
     int engine_retval = EXIT_SUCCESS;
     while(1) {
         if (suricata_ctl_flags != 0) {
-            SCLogDebug("signal received");
-
-            if (suricata_ctl_flags & SURICATA_STOP)  {
-                struct timeval ts_start;
-                struct timeval ts_cur;
-
-                memset(&ts_start, 0x00, sizeof(ts_start));
-                gettimeofday(&ts_start, NULL);
-
-                SCLogInfo("stopping engine, waiting for outstanding packets");
-
-                /* Stop the engine so it quits after processing the pcap file
-                 * but first make sure all packets are processed by all other
-                 * threads. */
-                char done = 0;
-                do {
-                    if (suricata_ctl_flags & SURICATA_KILL)
-                        break;
-
-                    /* if all packets are returned to the packetpool
-                     * we are done */
-                    if (PacketPoolSize() == max_pending_packets)
-                        done = 1;
-
-                    if (done == 0) {
-                        memset(&ts_cur, 0x00, sizeof(ts_cur));
-                        gettimeofday(&ts_cur, NULL);
-
-                        if (ts_cur.tv_sec - ts_start.tv_sec >= 120) {
-                            SCLogError(SC_ERR_SHUTDOWN, "shutdown taking too "
-                                    "long, likely a bug! (%"PRIuMAX
-                                    " != %"PRIuMAX").", (uintmax_t)PacketPoolSize(),
-                                    (uintmax_t)max_pending_packets);
-#ifdef DEBUG
-                            BUG_ON(1);
-#endif
-                            engine_retval = EXIT_FAILURE;
-                            break;
-                        }
-
-                        usleep(100);
-                    }
-                } while (done == 0);
-
-                SCLogInfo("all packets processed by threads, stopping engine");
-            }
+            SCLogInfo("Signal Received.  Stopping engine.");
 
             break;
         }
@@ -1918,7 +1873,6 @@ int main(int argc, char **argv)
 
     /* Update the engine stage/status flag */
     (void) SC_ATOMIC_CAS(&engine_stage, SURICATA_RUNTIME, SURICATA_DEINIT);
-
 
 #ifdef __SC_CUDA_SUPPORT__
     SCCudaPBKillBatchingPackets();
