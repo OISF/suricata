@@ -1965,14 +1965,15 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
             StreamTcpSetEvent(p, STREAM_EST_SYNACK_RESEND);
             return -1;
             break;
-        case TH_ACK|TH_URG:
         case TH_ACK:
+        case TH_ACK|TH_URG:
         case TH_ACK|TH_CWR:
         case TH_ACK|TH_ECN:
         case TH_ACK|TH_PUSH:
         case TH_ACK|TH_PUSH|TH_ECN:
         case TH_ACK|TH_PUSH|TH_ECN|TH_CWR:
         case TH_ACK|TH_PUSH|TH_URG:
+        case TH_ACK|TH_PUSH|TH_CWR:
             /* Urgent pointer size can be more than the payload size, as it tells
              * the future coming data from the sender will be handled urgently
              * until data of size equal to urgent offset has been processed
