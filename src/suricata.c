@@ -2015,6 +2015,8 @@ int main(int argc, char **argv)
     TmqhCleanup();
     TmModuleRunDeInit();
 
+    AFPPeersListClean();
+
 #ifdef PROFILING
     if (profiling_rules_enabled)
         SCProfilingDump();

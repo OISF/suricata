@@ -109,9 +109,11 @@ void *ParseAFPConfig(const char *iface)
     AFPIfaceConfig *aconf = SCMalloc(sizeof(*aconf));
     char *tmpclusterid;
     char *tmpctype;
+    char *copymodestr;
     intmax_t value;
     int boolval;
     char *bpf_filter = NULL;
+    char *out_iface = NULL;
 
     if (aconf == NULL) {
         return NULL;
@@ -134,6 +136,7 @@ void *ParseAFPConfig(const char *iface)
     aconf->DerefFunc = AFPDerefConfig;
     aconf->flags = 0;
     aconf->bpf_filter = NULL;
+    aconf->out_iface = NULL;
 
     if (ConfGet("bpf-filter", &bpf_filter) == 1) {
         if (strlen(bpf_filter) > 0) {
@@ -167,6 +170,44 @@ void *ParseAFPConfig(const char *iface)
     }
     if (aconf->threads == 0) {
         aconf->threads = 1;
+    }
+
+    if (ConfGetChildValue(if_root, "copy-iface", &out_iface) == 1) {
+        if (strlen(out_iface) > 0) {
+            aconf->out_iface = out_iface;
+        }
+    }
+
+    (void)ConfGetChildValueBool(if_root, "use-mmap", (int *)&boolval);
+    if (boolval) {
+        SCLogInfo("Enabling mmaped capture on iface %s",
+                aconf->iface);
+        aconf->flags |= AFP_RING_MODE;
+    }
+
+    aconf->copy_mode = AFP_COPY_MODE_NONE;
+    if (ConfGetChildValue(if_root, "copy-mode", &copymodestr) == 1) {
+        if (aconf->out_iface == NULL) {
+            SCLogInfo("Copy mode activated but no destination"
+                      " iface. Disabling feature");
+        } else if (!(aconf->flags & AFP_RING_MODE)) {
+            SCLogInfo("Copy mode activated but use-mmap "
+                      "set to no. Disabling feature");
+        } else if (strlen(copymodestr) <= 0) {
+            aconf->out_iface = NULL;
+        } else if (strcmp(copymodestr, "ips") == 0) {
+            SCLogInfo("AF_PACKET IPS mode activated %s->%s",
+                    iface,
+                    aconf->out_iface);
+            aconf->copy_mode = AFP_COPY_MODE_IPS;
+        } else if (strcmp(copymodestr, "tap") == 0) {
+            SCLogInfo("AF_PACKET TAP mode activated %s->%s",
+                    iface,
+                    aconf->out_iface);
+            aconf->copy_mode = AFP_COPY_MODE_TAP;
+        } else {
+            SCLogInfo("Invalid mode (not in tap, ips)");
+        }
     }
 
     SC_ATOMIC_RESET(aconf->ref);
@@ -246,13 +287,6 @@ void *ParseAFPConfig(const char *iface)
                 aconf->iface);
         aconf->promisc = 0;
     }
-    (void)ConfGetChildValueBool(if_root, "use-mmap", (int *)&boolval);
-    if (boolval) {
-        SCLogInfo("Enabling mmaped capture on iface %s",
-                aconf->iface);
-        aconf->flags |= AFP_RING_MODE;
-    }
-
 
     if (ConfGetChildValue(if_root, "checksum-checks", &tmpctype) == 1) {
         if (strcmp(tmpctype, "auto") == 0) {
@@ -309,6 +343,11 @@ int RunModeIdsAFPAuto(DetectEngineCtx *de_ctx)
 
     (void)ConfGet("af-packet.live-interface", &live_dev);
 
+    if (AFPPeersListInit() != TM_ECODE_OK) {
+        SCLogError(SC_ERR_RUNMODE, "Unable to init peers list.");
+        exit(EXIT_FAILURE);
+    }
+
     ret = RunModeSetLiveCaptureAuto(de_ctx,
                                     ParseAFPConfig,
                                     AFPConfigGeThreadsCount,
@@ -317,6 +356,12 @@ int RunModeIdsAFPAuto(DetectEngineCtx *de_ctx)
                                     live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
+        exit(EXIT_FAILURE);
+    }
+
+    /* In IPS mode each threads must have a peer */
+    if (AFPPeersListCheck() != TM_ECODE_OK) {
+        SCLogError(SC_ERR_RUNMODE, "Some IPS capture threads did not peer.");
         exit(EXIT_FAILURE);
     }
 
@@ -342,6 +387,11 @@ int RunModeIdsAFPAutoFp(DetectEngineCtx *de_ctx)
 
     SCLogDebug("live_dev %s", live_dev);
 
+    if (AFPPeersListInit() != TM_ECODE_OK) {
+        SCLogError(SC_ERR_RUNMODE, "Unable to init peers list.");
+        exit(EXIT_FAILURE);
+    }
+
     ret = RunModeSetLiveCaptureAutoFp(de_ctx,
                               ParseAFPConfig,
                               AFPConfigGeThreadsCount,
@@ -353,8 +403,13 @@ int RunModeIdsAFPAutoFp(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
 
-    SCLogInfo("RunModeIdsAFPAutoFp initialised");
+    /* In IPS mode each threads must have a peer */
+    if (AFPPeersListCheck() != TM_ECODE_OK) {
+        SCLogError(SC_ERR_RUNMODE, "Some IPS capture threads did not peer.");
+        exit(EXIT_FAILURE);
+    }
 
+    SCLogInfo("RunModeIdsAFPAutoFp initialised");
 #endif /* HAVE_AF_PACKET */
 
     SCReturnInt(0);
@@ -377,6 +432,11 @@ int RunModeIdsAFPSingle(DetectEngineCtx *de_ctx)
 
     (void)ConfGet("af-packet.live-interface", &live_dev);
 
+    if (AFPPeersListInit() != TM_ECODE_OK) {
+        SCLogError(SC_ERR_RUNMODE, "Unable to init peers list.");
+        exit(EXIT_FAILURE);
+    }
+
     ret = RunModeSetLiveCaptureSingle(de_ctx,
                                     ParseAFPConfig,
                                     AFPConfigGeThreadsCount,
@@ -385,6 +445,12 @@ int RunModeIdsAFPSingle(DetectEngineCtx *de_ctx)
                                     live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
+        exit(EXIT_FAILURE);
+    }
+
+    /* In IPS mode each threads must have a peer */
+    if (AFPPeersListCheck() != TM_ECODE_OK) {
+        SCLogError(SC_ERR_RUNMODE, "Some IPS capture threads did not peer.");
         exit(EXIT_FAILURE);
     }
 
@@ -414,6 +480,11 @@ int RunModeIdsAFPWorkers(DetectEngineCtx *de_ctx)
 
     (void)ConfGet("af-packet.live-interface", &live_dev);
 
+    if (AFPPeersListInit() != TM_ECODE_OK) {
+        SCLogError(SC_ERR_RUNMODE, "Unable to init peers list.");
+        exit(EXIT_FAILURE);
+    }
+
     ret = RunModeSetLiveCaptureWorkers(de_ctx,
                                     ParseAFPConfig,
                                     AFPConfigGeThreadsCount,
@@ -422,6 +493,12 @@ int RunModeIdsAFPWorkers(DetectEngineCtx *de_ctx)
                                     live_dev);
     if (ret != 0) {
         SCLogError(SC_ERR_RUNMODE, "Unable to start runmode");
+        exit(EXIT_FAILURE);
+    }
+
+    /* In IPS mode each threads must have a peer */
+    if (AFPPeersListCheck() != TM_ECODE_OK) {
+        SCLogError(SC_ERR_RUNMODE, "Some IPS capture threads did not peer.");
         exit(EXIT_FAILURE);
     }
 
