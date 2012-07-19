@@ -112,8 +112,7 @@ void TmThreadWaitForFlag(ThreadVars *, uint8_t);
 TmEcode TmThreadsSlotVarRun (ThreadVars *tv, Packet *p, TmSlot *slot);
 
 ThreadVars *TmThreadsGetTVContainingSlot(TmSlot *);
-void TmThreadDisableReceiveThreads(void);
-void TmThreadDisableUptoDetectThreads(void);
+void TmThreadDisableThreadsWithTMS(uint8_t tm_flags);
 TmSlot *TmThreadGetFirstTmSlotForPartialPattern(const char *);
 
 /**

@@ -1441,50 +1441,75 @@ int main(int argc, char **argv)
     }
 
 
+    /* nfq */
     TmModuleReceiveNFQRegister();
     TmModuleVerdictNFQRegister();
     TmModuleDecodeNFQRegister();
+    /* ipfw */
     TmModuleReceiveIPFWRegister();
     TmModuleVerdictIPFWRegister();
     TmModuleDecodeIPFWRegister();
+    /* pcap live */
     TmModuleReceivePcapRegister();
     TmModuleDecodePcapRegister();
-    TmModuleReceiveAFPRegister();
-    TmModuleDecodeAFPRegister();
-    TmModuleReceivePfringRegister();
-    TmModuleDecodePfringRegister();
+    /* pcap file */
     TmModuleReceivePcapFileRegister();
     TmModuleDecodePcapFileRegister();
+    /* af-packet */
+    TmModuleReceiveAFPRegister();
+    TmModuleDecodeAFPRegister();
+    /* pfring */
+    TmModuleReceivePfringRegister();
+    TmModuleDecodePfringRegister();
+    /* dag file */
+    TmModuleReceiveErfFileRegister();
+    TmModuleDecodeErfFileRegister();
+    /* dag live */
+    TmModuleReceiveErfDagRegister();
+    TmModuleDecodeErfDagRegister();
+    /* napatech */
+    TmModuleNapatechFeedRegister();
+    TmModuleNapatechDecodeRegister();
+
+    /* stream engine */
+    TmModuleStreamTcpRegister();
+    /* detection */
     TmModuleDetectRegister();
-    TmModuleAlertFastLogRegister();
-    TmModuleAlertDebugLogRegister();
-    TmModuleAlertPreludeRegister();
+    /* respond-reject */
     TmModuleRespondRejectRegister();
+
+    /* fast log */
+    TmModuleAlertFastLogRegister();
     TmModuleAlertFastLogIPv4Register();
     TmModuleAlertFastLogIPv6Register();
+    /* debug log */
+    TmModuleAlertDebugLogRegister();
+    /* prelue log */
+    TmModuleAlertPreludeRegister();
+    /* syslog log */
+    TmModuleAlertSyslogRegister();
     TmModuleAlertSyslogIPv4Register();
     TmModuleAlertSyslogIPv6Register();
+    /* unified2 log */
     TmModuleUnified2AlertRegister();
-    TmModuleAlertSyslogRegister();
+    /* pcap info log */
     TmModuleAlertPcapInfoRegister();
+    /* drop log */
     TmModuleLogDropLogRegister();
-    TmModuleStreamTcpRegister();
+    /* http log */
     TmModuleLogHttpLogRegister();
     TmModuleLogHttpLogIPv4Register();
     TmModuleLogHttpLogIPv6Register();
+    /* pcap log */
     TmModulePcapLogRegister();
+    /* file log */
     TmModuleLogFileLogRegister();
     TmModuleLogFilestoreRegister();
+    /* cuda */
 #ifdef __SC_CUDA_SUPPORT__
     TmModuleCudaMpmB2gRegister();
     TmModuleCudaPacketBatcherRegister();
 #endif
-    TmModuleReceiveErfFileRegister();
-    TmModuleDecodeErfFileRegister();
-    TmModuleReceiveErfDagRegister();
-    TmModuleDecodeErfDagRegister();
-    TmModuleNapatechFeedRegister();
-    TmModuleNapatechDecodeRegister();
     TmModuleDebugList();
 
     AppLayerHtpNeedFileInspection();
@@ -1903,7 +1928,7 @@ int main(int argc, char **argv)
     FlowKillFlowManagerThread();
 
     /* Disable packet acquire thread first */
-    TmThreadDisableReceiveThreads();
+    TmThreadDisableThreadsWithTMS(TM_FLAG_RECEIVE_TM | TM_FLAG_DECODE_TM);
 
     FlowForceReassembly();
 
@@ -1916,7 +1941,8 @@ int main(int argc, char **argv)
 
     if (rule_reload == 1) {
         /* Disable detect threads first.  This is required by live rule swap */
-        TmThreadDisableUptoDetectThreads();
+        TmThreadDisableThreadsWithTMS(TM_FLAG_RECEIVE_TM | TM_FLAG_DECODE_TM |
+                                      TM_FLAG_STREAM_TM | TM_FLAG_DETECT_TM);
 
         /* wait if live rule swap is in progress */
         if (UtilSignalIsHandler(SIGUSR2, SignalHandlerSigusr2Idle)) {

@@ -72,6 +72,29 @@ static ThreadVars *stream_pseudo_pkt_decode_TV = NULL;
 
 /**
  * \internal
+ * \brief Flush out if we have any unattended packets.
+ */
+static inline void FlowForceReassemblyFlushPendingPseudoPackets(void)
+{
+    /* we don't lock the queue, since flow manager is dead */
+    if (stream_pseudo_pkt_decode_tm_slot->slot_post_pq.len == 0)
+        return;
+
+    SCMutexLock(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq.mutex_q);
+    Packet *p = PacketDequeue(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq);
+    SCMutexUnlock(&stream_pseudo_pkt_decode_tm_slot->slot_post_pq.mutex_q);
+    if (TmThreadsSlotProcessPkt(stream_pseudo_pkt_decode_TV,
+                                stream_pseudo_pkt_decode_tm_slot,
+                                p) != TM_ECODE_OK) {
+        SCLogError(SC_ERR_TM_THREADS_ERROR, "Received error from FFR on "
+                   "flushing packets through decode->.. TMs");
+    }
+
+    return;
+}
+
+/**
+ * \internal
  * \brief Pseudo packet setup for flow forced reassembly.
  *
  * \param direction Direction of the packet.  0 indicates toserver and 1
@@ -604,7 +627,11 @@ void FlowForceReassembly(void)
 {
     /* Do remember.  We need to have packet acquire disabled by now */
 
-    /** ----- Part 1 ----- **/
+    /** ----- Part 1 ------*/
+    /* Flush out unattended packets */
+    FlowForceReassemblyFlushPendingPseudoPackets();
+
+    /** ----- Part 2 ----- **/
     /* Check if all threads are idle.  We need this so that we have all
      * packets freeds.  As a consequence, no flows are in use */
 
@@ -632,7 +659,7 @@ void FlowForceReassembly(void)
 
     SCMutexUnlock(&tv_root_lock);
 
-    /** ----- Part 2 ----- **/
+    /** ----- Part 3 ----- **/
     /* Carry out flow reassembly for unattended flows */
     FlowForceReassemblyForHash();
 

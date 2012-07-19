@@ -1494,65 +1494,9 @@ void TmThreadKillThread(ThreadVars *tv)
 }
 
 /**
- * \brief Disable receive threads.
+ * \brief Disable all threads having the specified TMs.
  */
-void TmThreadDisableReceiveThreads(void)
-{
-    /* value in seconds */
-#define THREAD_KILL_MAX_WAIT_TIME 60
-    /* value in microseconds */
-#define WAIT_TIME 100
-
-    double total_wait_time = 0;
-
-    ThreadVars *tv = NULL;
-
-    SCMutexLock(&tv_root_lock);
-
-    /* all receive threads are part of packet processing threads */
-    tv = tv_root[TVT_PPT];
-
-    /* we do have to keep in mind that TVs are arranged in the order
-     * right from receive to log.  The moment we fail to find a
-     * receive TM amongst the slots in a tv, it indicates we are done
-     * with all receive threads */
-    while (tv) {
-        /* obtain the slots for this TV */
-        TmSlot *slots = tv->tm_slots;
-        TmModule *tm = TmModuleGetById(slots->tm_id);
-
-        if (!(tm->flags & TM_FLAG_RECEIVE_TM)) {
-            tv = tv->next;
-            continue;
-        }
-
-        /* we found our receive TV.  Send it a KILL signal.  This is all
-         * we need to do to kill receive threads */
-        TmThreadsSetFlag(tv, THV_KILL);
-
-        while (!TmThreadsCheckFlag(tv, THV_RUNNING_DONE)) {
-            usleep(WAIT_TIME);
-            total_wait_time += WAIT_TIME / 1000000.0;
-            if (total_wait_time > THREAD_KILL_MAX_WAIT_TIME) {
-                SCLogError(SC_ERR_FATAL, "Engine unable to "
-                          "disable receive thread - \"%s\".  "
-                          "Killing engine", tv->name);
-                exit(EXIT_FAILURE);
-            }
-        }
-
-        tv = tv->next;
-    }
-
-    SCMutexUnlock(&tv_root_lock);
-
-    return;
-}
-
-/**
- * \brief Disable all threads <= detect.
- */
-void TmThreadDisableUptoDetectThreads(void)
+void TmThreadDisableThreadsWithTMS(uint8_t tm_flags)
 {
     /* value in seconds */
 #define THREAD_KILL_MAX_WAIT_TIME 60
@@ -1579,8 +1523,7 @@ void TmThreadDisableUptoDetectThreads(void)
         while (slots != NULL) {
             TmModule *tm = TmModuleGetById(slots->tm_id);
 
-            if (tm->flags & (TM_FLAG_RECEIVE_TM | TM_FLAG_DECODE_TM |
-                             TM_FLAG_STREAM_TM | TM_FLAG_DETECT_TM)) {
+            if (tm->flags & tm_flags) {
                 disable = 1;
                 break;
             }
