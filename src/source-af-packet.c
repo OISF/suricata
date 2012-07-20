@@ -22,25 +22,6 @@
  *
  * AF_PACKET socket acquisition support
  *
- * Fanouts socket from David Miller:
- * we need to support the split of flow in different socket
- * option:
- *  - packet_fanout type
- *  - fanout ID ?? seems it could be useful
- *  - protocol is the IEEE 802.3 protocol number in network order (filtering
- *    is great)
- *  - runmode -> family of threads in parallel (acccount)
- *  - add a new ratio or threads number (overwritten by cpu_affinity)
- *  - add af_max_read_packets for batched reading
- *
- * architecture
- *  loop with read
- *  code needed for iface name to int mapping
- * socket opening
- *   socket call
- *   bind
- *   must switch to promiscous mode -> use PACKET_MR_PROMISC socket option
- *
  * \todo watch other interface event to detect suppression of the monitored
  *       interface
  */
