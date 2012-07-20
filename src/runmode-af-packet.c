@@ -501,7 +501,7 @@ int RunModeIdsAFPWorkers(DetectEngineCtx *de_ctx)
         exit(EXIT_FAILURE);
     }
 
-    SCLogInfo("RunModeIdsAFPSingle initialised");
+    SCLogInfo("RunModeIdsAFPWorkers initialised");
 
 #endif /* HAVE_AF_PACKET */
     SCReturnInt(0);
