@@ -55,6 +55,7 @@
 #endif
 
 #define DEFAULT_DEFRAG_HASH_SIZE 0xffff
+#define DEFAULT_DEFRAG_POOL_SIZE 0xffff
 
 /**
  * Default timeout (in seconds) before a defragmentation tracker will
@@ -449,7 +450,10 @@ DefragContextNew(void)
     }
 
     /* Initialize the pool of frags. */
-    int frag_pool_size = 0xffff;
+    int frag_pool_size;
+    if (!ConfGetInt("defrag.max-frags", &frag_pool_size)) {
+        frag_pool_size = DEFAULT_DEFRAG_POOL_SIZE;
+    }
     int frag_pool_prealloc = frag_pool_size / 4;
     dc->frag_pool = PoolInit(frag_pool_size, frag_pool_prealloc,
         DefragFragNew, dc, DefragFragFree);
