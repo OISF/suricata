@@ -450,11 +450,11 @@ DefragContextNew(void)
     }
 
     /* Initialize the pool of frags. */
-    int frag_pool_size;
+    intmax_t frag_pool_size;
     if (!ConfGetInt("defrag.max-frags", &frag_pool_size)) {
         frag_pool_size = DEFAULT_DEFRAG_POOL_SIZE;
     }
-    int frag_pool_prealloc = frag_pool_size / 4;
+    intmax_t frag_pool_prealloc = frag_pool_size / 4;
     dc->frag_pool = PoolInit(frag_pool_size, frag_pool_prealloc,
         DefragFragNew, dc, DefragFragFree);
     if (dc->frag_pool == NULL) {
@@ -491,8 +491,8 @@ DefragContextNew(void)
     SCLogDebug("\tTimeout: %"PRIuMAX, (uintmax_t)dc->timeout);
     SCLogDebug("\tMaximum defrag trackers: %"PRIuMAX, tracker_pool_size);
     SCLogDebug("\tPreallocated defrag trackers: %"PRIuMAX, tracker_pool_size);
-    SCLogDebug("\tMaximum fragments: %d", frag_pool_size);
-    SCLogDebug("\tPreallocated fragments: %d", frag_pool_prealloc);
+    SCLogDebug("\tMaximum fragments: %ld", frag_pool_size);
+    SCLogDebug("\tPreallocated fragments: %ld", frag_pool_prealloc);
 
     return dc;
 }
