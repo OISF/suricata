@@ -24,9 +24,12 @@
 #ifndef __UTIL_POOL_H__
 #define __UTIL_POOL_H__
 
+#define POOL_BUCKET_PREALLOCATED    (1 << 0)
+
 /* pool bucket structure */
 typedef struct PoolBucket_ {
     void *data;
+    uint8_t flags;
     struct PoolBucket_ *next;
 } PoolBucket;
 
@@ -40,6 +43,9 @@ typedef struct Pool_ {
 
     PoolBucket *empty_list;
     uint32_t empty_list_size;
+
+    PoolBucket *pb_buffer;
+    void *data_buffer;
 
     void *(*Alloc)(void *);
     void *AllocData;
