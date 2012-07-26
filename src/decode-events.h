@@ -191,6 +191,11 @@ enum {
     IPV4_FRAG_OVERLAP,
     IPV6_FRAG_PKT_TOO_LARGE,
     IPV6_FRAG_OVERLAP,
+    IPV4_FRAG_TOO_LARGE,
+    IPV6_FRAG_TOO_LARGE,
+    /* Fragment ignored due to internal error */
+    IPV4_FRAG_IGNORED,
+    IPV6_FRAG_IGNORED,
 
     /* should always be last! */
     DECODE_EVENT_MAX,

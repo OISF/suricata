@@ -933,6 +933,11 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
 
 insert:
     if (data_len - ltrim <= 0) {
+        if (af == AF_INET) {
+            ENGINE_SET_EVENT(p, IPV4_FRAG_TOO_LARGE);
+        } else {
+            ENGINE_SET_EVENT(p, IPV6_FRAG_TOO_LARGE);
+        }
         goto done;
     }
 
@@ -941,6 +946,11 @@ insert:
     Frag *new = PoolGet(dc->frag_pool);
     SCMutexUnlock(&dc->frag_pool_lock);
     if (new == NULL) {
+        if (af == AF_INET) {
+            ENGINE_SET_EVENT(p, IPV4_FRAG_IGNORED);
+        } else {
+            ENGINE_SET_EVENT(p, IPV6_FRAG_IGNORED);
+        }
         goto done;
     }
     new->pkt = SCMalloc(GET_PKT_LEN(p));
@@ -948,6 +958,11 @@ insert:
         SCMutexLock(&dc->frag_pool_lock);
         PoolReturn(dc->frag_pool, new);
         SCMutexUnlock(&dc->frag_pool_lock);
+        if (af == AF_INET) {
+            ENGINE_SET_EVENT(p, IPV4_FRAG_IGNORED);
+        } else {
+            ENGINE_SET_EVENT(p, IPV6_FRAG_IGNORED);
+        }
         goto done;
     }
     memcpy(new->pkt, GET_PKT_DATA(p) + ltrim, GET_PKT_LEN(p) - ltrim);
