@@ -417,14 +417,6 @@ DefragContextNew(void)
     if (dc == NULL)
         return NULL;
 
-    /* Initialize the hash table. */
-    dc->frag_table = HashListTableInit(DEFAULT_DEFRAG_HASH_SIZE, DefragHashFunc,
-        DefragHashCompare, DefragHashFree);
-    if (dc->frag_table == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-            "Defrag: Failed to initialize hash table.");
-        exit(EXIT_FAILURE);
-    }
     if (SCMutexInit(&dc->frag_table_lock, NULL) != 0) {
         SCLogError(SC_ERR_MEM_ALLOC,
             "Defrag: Failed to initialize hash table mutex.");
@@ -446,6 +438,15 @@ DefragContextNew(void)
     if (SCMutexInit(&dc->tracker_pool_lock, NULL) != 0) {
         SCLogError(SC_ERR_MUTEX,
             "Defrag: Failed to initialize tracker pool mutex.");
+        exit(EXIT_FAILURE);
+    }
+
+    /* Initialize the hash table. */
+    dc->frag_table = HashListTableInit(tracker_pool_size / 4, DefragHashFunc,
+        DefragHashCompare, DefragHashFree);
+    if (dc->frag_table == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC,
+            "Defrag: Failed to initialize hash table.");
         exit(EXIT_FAILURE);
     }
 
