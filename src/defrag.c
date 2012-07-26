@@ -442,7 +442,7 @@ DefragContextNew(void)
     }
 
     /* Initialize the hash table. */
-    dc->frag_table = HashListTableInit(tracker_pool_size / 4, DefragHashFunc,
+    dc->frag_table = HashListTableInit(tracker_pool_size, DefragHashFunc,
         DefragHashCompare, DefragHashFree);
     if (dc->frag_table == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC,
@@ -1240,9 +1240,13 @@ DefragInit(void)
     /* Initialize random value for hashing and hash table size. */
     unsigned int seed = RandomTimePreseed();
     /* set defaults */
-    defrag_hash_rand = (int)( DEFAULT_DEFRAG_HASH_SIZE * (rand_r(&seed) / RAND_MAX + 1.0));
+    intmax_t tracker_pool_size;
+    if (!ConfGetInt("defrag.trackers", &tracker_pool_size)) {
+        tracker_pool_size = DEFAULT_DEFRAG_HASH_SIZE;
+    }
 
-    defrag_hash_size = DEFAULT_DEFRAG_HASH_SIZE;
+    defrag_hash_rand = (int)( tracker_pool_size * (rand_r(&seed) / RAND_MAX + 1.0));
+    defrag_hash_size = tracker_pool_size;
 
     /* Allocate the DefragContext. */
     defrag_context = DefragContextNew();
