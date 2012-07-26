@@ -303,14 +303,18 @@ DefragFragReset(Frag *frag)
  * \brief Allocate a new frag for use in a pool.
  */
 static void *
-DefragFragNew(void *arg)
+DefragFragNew(void *arg, void *data)
 {
     DefragContext *dc = arg;
-    Frag *frag;
+    Frag *frag = NULL;
 
-    frag = SCCalloc(1, sizeof(*frag));
-    if (frag == NULL)
-        return NULL;
+    if (data == NULL) {
+        frag = SCCalloc(1, sizeof(*frag));
+        if (frag == NULL)
+            return NULL;
+    } else {
+        frag = data;
+    }
     frag->dc = dc;
 
     return (void *)frag;
@@ -369,14 +373,18 @@ DefragTrackerReset(DefragTracker *tracker)
  * \retval A new DefragTracker if successfull, NULL on failure.
  */
 static void *
-DefragTrackerNew(void *arg)
+DefragTrackerNew(void *arg, void *data)
 {
     DefragContext *dc = arg;
     DefragTracker *tracker;
 
-    tracker = SCCalloc(1, sizeof(*tracker));
-    if (tracker == NULL)
-        return NULL;
+    if (data == NULL) {
+        tracker = SCCalloc(1, sizeof(*tracker));
+        if (tracker == NULL)
+            return NULL;
+    } else {
+        tracker = data;
+    }
     if (SCMutexInit(&tracker->lock, NULL) != 0) {
         SCFree(tracker);
         return NULL;
@@ -436,6 +444,7 @@ DefragContextNew(void)
         tracker_pool_size = DEFAULT_DEFRAG_HASH_SIZE;
     }
     dc->tracker_pool = PoolInit(tracker_pool_size, tracker_pool_size,
+        sizeof(DefragTracker),
         DefragTrackerNew, dc, DefragTrackerFree);
     if (dc->tracker_pool == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC,
@@ -452,6 +461,7 @@ DefragContextNew(void)
     int frag_pool_size = 0xffff;
     int frag_pool_prealloc = frag_pool_size / 4;
     dc->frag_pool = PoolInit(frag_pool_size, frag_pool_prealloc,
+        sizeof(Frag),
         DefragFragNew, dc, DefragFragFree);
     if (dc->frag_pool == NULL) {
         SCLogError(SC_ERR_MEM_ALLOC,
