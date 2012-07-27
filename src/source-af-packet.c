@@ -400,85 +400,88 @@ int AFPReadFromRing(AFPThreadVars *ptv)
     Packet *p = NULL;
     union thdr h;
 
-    /* Read packet from ring */
-    h.raw = (((union thdr **)ptv->frame_buf)[ptv->frame_offset]);
-    if (h.raw == NULL) {
-        SCReturnInt(AFP_FAILURE);
-    }
-    if (h.h2->tp_status == 0) {
-        SCReturnInt(AFP_READ_OK);
-    }
-
-    p = PacketGetFromQueueOrAlloc();
-    if (p == NULL) {
-        SCReturnInt(AFP_FAILURE);
-    }
-
-    ptv->pkts++;
-    ptv->bytes += h.h2->tp_len;
-    (void) SC_ATOMIC_ADD(ptv->livedev->pkts, 1);
-    p->livedev = ptv->livedev;
-
-    /* add forged header */
-    if (ptv->cooked) {
-        SllHdr * hdrp = (SllHdr *)ptv->data;
-        struct sockaddr_ll *from = (void *)h.raw + TPACKET_ALIGN(ptv->tp_hdrlen);
-        /* XXX this is minimalist, but this seems enough */
-        hdrp->sll_protocol = from->sll_protocol;
-    }
-
-    p->datalink = ptv->datalink;
-    if (h.h2->tp_len > h.h2->tp_snaplen) {
-        SCLogDebug("Packet length (%d) > snaplen (%d), truncating",
-                   h.h2->tp_len, h.h2->tp_snaplen);
-    }
-    if (ptv->flags & AFP_ZERO_COPY) {
-        if (PacketSetData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
-            TmqhOutputPacketpool(ptv->tv, p);
+    /* Loop till we have packets available */
+    while (1) {
+        /* Read packet from ring */
+        h.raw = (((union thdr **)ptv->frame_buf)[ptv->frame_offset]);
+        if (h.raw == NULL) {
             SCReturnInt(AFP_FAILURE);
         }
-    } else {
-        if (PacketCopyData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
-            TmqhOutputPacketpool(ptv->tv, p);
+        if (h.h2->tp_status == TP_STATUS_KERNEL) {
+            SCReturnInt(AFP_READ_OK);
+        }
+
+        p = PacketGetFromQueueOrAlloc();
+        if (p == NULL) {
             SCReturnInt(AFP_FAILURE);
         }
-    }
-    /* Timestamp */
-    p->ts.tv_sec = h.h2->tp_sec;
-    p->ts.tv_usec = h.h2->tp_nsec/1000;
-    SCLogDebug("pktlen: %" PRIu32 " (pkt %p, pkt data %p)",
-               GET_PKT_LEN(p), p, GET_PKT_DATA(p));
 
-    /* We only check for checksum disable */
-    if (ptv->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
-        p->flags |= PKT_IGNORE_CHECKSUM;
-    } else if (ptv->checksum_mode == CHECKSUM_VALIDATION_AUTO) {
-        if (ptv->livedev->ignore_checksum) {
-            p->flags |= PKT_IGNORE_CHECKSUM;
-        } else if (ChecksumAutoModeCheck(ptv->pkts,
-                    SC_ATOMIC_GET(ptv->livedev->pkts),
-                    SC_ATOMIC_GET(ptv->livedev->invalid_checksums))) {
-            ptv->livedev->ignore_checksum = 1;
-            p->flags |= PKT_IGNORE_CHECKSUM;
+        ptv->pkts++;
+        ptv->bytes += h.h2->tp_len;
+        (void) SC_ATOMIC_ADD(ptv->livedev->pkts, 1);
+        p->livedev = ptv->livedev;
+
+        /* add forged header */
+        if (ptv->cooked) {
+            SllHdr * hdrp = (SllHdr *)ptv->data;
+            struct sockaddr_ll *from = (void *)h.raw + TPACKET_ALIGN(ptv->tp_hdrlen);
+            /* XXX this is minimalist, but this seems enough */
+            hdrp->sll_protocol = from->sll_protocol;
         }
-    } else {
-        if (h.h2->tp_status & TP_STATUS_CSUMNOTREADY) {
+
+        p->datalink = ptv->datalink;
+        if (h.h2->tp_len > h.h2->tp_snaplen) {
+            SCLogDebug("Packet length (%d) > snaplen (%d), truncating",
+                    h.h2->tp_len, h.h2->tp_snaplen);
+        }
+        if (ptv->flags & AFP_ZERO_COPY) {
+            if (PacketSetData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
+                TmqhOutputPacketpool(ptv->tv, p);
+                SCReturnInt(AFP_FAILURE);
+            }
+        } else {
+            if (PacketCopyData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
+                TmqhOutputPacketpool(ptv->tv, p);
+                SCReturnInt(AFP_FAILURE);
+            }
+        }
+        /* Timestamp */
+        p->ts.tv_sec = h.h2->tp_sec;
+        p->ts.tv_usec = h.h2->tp_nsec/1000;
+        SCLogDebug("pktlen: %" PRIu32 " (pkt %p, pkt data %p)",
+                GET_PKT_LEN(p), p, GET_PKT_DATA(p));
+
+        /* We only check for checksum disable */
+        if (ptv->checksum_mode == CHECKSUM_VALIDATION_DISABLE) {
+            p->flags |= PKT_IGNORE_CHECKSUM;
+        } else if (ptv->checksum_mode == CHECKSUM_VALIDATION_AUTO) {
+            if (ptv->livedev->ignore_checksum) {
                 p->flags |= PKT_IGNORE_CHECKSUM;
+            } else if (ChecksumAutoModeCheck(ptv->pkts,
+                        SC_ATOMIC_GET(ptv->livedev->pkts),
+                        SC_ATOMIC_GET(ptv->livedev->invalid_checksums))) {
+                ptv->livedev->ignore_checksum = 1;
+                p->flags |= PKT_IGNORE_CHECKSUM;
+            }
+        } else {
+            if (h.h2->tp_status & TP_STATUS_CSUMNOTREADY) {
+                p->flags |= PKT_IGNORE_CHECKSUM;
+            }
         }
-    }
 
-    if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
+        if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
+            h.h2->tp_status = TP_STATUS_KERNEL;
+            if (++ptv->frame_offset >= ptv->req.tp_frame_nr) {
+                ptv->frame_offset = 0;
+            }
+            TmqhOutputPacketpool(ptv->tv, p);
+            SCReturnInt(AFP_FAILURE);
+        }
+
         h.h2->tp_status = TP_STATUS_KERNEL;
         if (++ptv->frame_offset >= ptv->req.tp_frame_nr) {
             ptv->frame_offset = 0;
         }
-        TmqhOutputPacketpool(ptv->tv, p);
-        SCReturnInt(AFP_FAILURE);
-    }
-
-    h.h2->tp_status = TP_STATUS_KERNEL;
-    if (++ptv->frame_offset >= ptv->req.tp_frame_nr) {
-        ptv->frame_offset = 0;
     }
 
     SCReturnInt(AFP_READ_OK);
