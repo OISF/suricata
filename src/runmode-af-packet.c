@@ -190,6 +190,13 @@ void *ParseAFPConfig(const char *iface)
                 aconf->iface);
         aconf->flags |= AFP_RING_MODE;
     }
+    (void)ConfGetChildValueBool(if_root, "use-emergency-flush", (int *)&boolval);
+    if (boolval) {
+        SCLogInfo("Enabling ring emergency flush on iface %s",
+                aconf->iface);
+        aconf->flags |= AFP_EMERGENCY_MODE;
+    }
+
 
     aconf->copy_mode = AFP_COPY_MODE_NONE;
     if (ConfGetChildValue(if_root, "copy-mode", &copymodestr) == 1) {
