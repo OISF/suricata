@@ -231,12 +231,12 @@ DefragHashFunc(HashListTable *ht, void *data, uint16_t datalen)
     uint32_t key;
 
     if (p->af == AF_INET) {
-        key = (defrag_hash_rand + p->af +
+        key = (defrag_hash_rand + p->id +
             p->src_addr.addr_data32[0] + p->dst_addr.addr_data32[0]) %
             defrag_hash_size;
     }
     else if (p->af == AF_INET6) {
-        key = (defrag_hash_rand + p->af +
+        key = (defrag_hash_rand + p->id +
             p->src_addr.addr_data32[0] + p->src_addr.addr_data32[1] +
             p->src_addr.addr_data32[2] + p->src_addr.addr_data32[3] +
             p->dst_addr.addr_data32[0] + p->dst_addr.addr_data32[1] +
