@@ -129,6 +129,7 @@ enum {
     AFP_READ_OK,
     AFP_READ_FAILURE,
     AFP_FAILURE,
+    AFP_KERNEL_DROP,
 };
 
 union thdr {
@@ -610,6 +611,7 @@ int AFPReadFromRing(AFPThreadVars *ptv)
     Packet *p = NULL;
     union thdr h;
     struct sockaddr_ll *from;
+    uint8_t emergency_flush = 0;
 
     /* Loop till we have packets available */
     while (1) {
@@ -620,7 +622,15 @@ int AFPReadFromRing(AFPThreadVars *ptv)
         }
 
         if (h.h2->tp_status == TP_STATUS_KERNEL) {
-            SCReturnInt(AFP_READ_OK);
+            if ((emergency_flush) && (ptv->flags & AFP_EMERGENCY_MODE)) {
+                SCReturnInt(AFP_KERNEL_DROP);
+            } else {
+                SCReturnInt(AFP_READ_OK);
+            }
+        }
+        if ((ptv->flags & AFP_EMERGENCY_MODE) && (emergency_flush == 1)) {
+            h.h2->tp_status = TP_STATUS_KERNEL;
+            goto next_frame;
         }
 
         p = PacketGetFromQueueOrAlloc();
@@ -704,6 +714,9 @@ int AFPReadFromRing(AFPThreadVars *ptv)
             if (h.h2->tp_status & TP_STATUS_CSUMNOTREADY) {
                 p->flags |= PKT_IGNORE_CHECKSUM;
             }
+            if (h.h2->tp_status & TP_STATUS_LOSING) {
+                emergency_flush = 1;
+            }
         }
 
         if (TmThreadsSlotProcessPkt(ptv->tv, ptv->slot, p) != TM_ECODE_OK) {
@@ -715,7 +728,11 @@ int AFPReadFromRing(AFPThreadVars *ptv)
             SCReturnInt(AFP_FAILURE);
         }
 
-        h.h2->tp_status = TP_STATUS_KERNEL;
+        /* release frame if not in zero copy mode */
+        if (!(ptv->flags &  AFP_ZERO_COPY)) {
+            h.h2->tp_status = TP_STATUS_KERNEL;
+        }
+next_frame:
         if (++ptv->frame_offset >= ptv->req.tp_frame_nr) {
             ptv->frame_offset = 0;
         }
@@ -837,6 +854,9 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                     break;
                 case AFP_READ_OK:
                     AFPDumpCounters(ptv, 0);
+                    break;
+                case AFP_KERNEL_DROP:
+                    AFPDumpCounters(ptv, 1);
                     break;
             }
         } else if ((r < 0) && (errno != EINTR)) {
