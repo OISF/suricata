@@ -455,7 +455,7 @@ DefragContextNew(void)
     if (!ConfGetInt("defrag.max-frags", &frag_pool_size)) {
         frag_pool_size = DEFAULT_DEFRAG_POOL_SIZE;
     }
-    intmax_t frag_pool_prealloc = frag_pool_size / 4;
+    intmax_t frag_pool_prealloc = frag_pool_size / 2;
     dc->frag_pool = PoolInit(frag_pool_size, frag_pool_prealloc,
         DefragFragNew, dc, DefragFragFree);
     if (dc->frag_pool == NULL) {
