@@ -224,6 +224,9 @@ af-packet:
     # intensive single-flow you could want to set the ring-size independantly of the number
     # of threads:
     #ring-size: 2048
+    # On busy system, this could help to set it to yes to recover from a packet drop
+    # phase. This will result and some packets (at max a ring flush) being non treated.
+    #use-emergency-flush: yes
     # recv buffer size, increase value could improve performance
     # buffer-size: 32768
     # Set to yes to disable promiscuous mode

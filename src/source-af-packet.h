@@ -41,6 +41,7 @@
 #define AFP_RING_MODE (1<<0)
 #define AFP_ZERO_COPY (1<<1)
 #define AFP_SOCK_PROTECT (1<<2)
+#define AFP_EMERGENCY_MODE (1<<3)
 
 #define AFP_COPY_MODE_NONE  0
 #define AFP_COPY_MODE_TAP   1
