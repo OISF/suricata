@@ -744,6 +744,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                     ptv->afp_state = AFP_STATE_DOWN;
                     continue;
                 case AFP_FAILURE:
+                    ptv->afp_state = AFP_STATE_DOWN;
                     SCReturnInt(TM_ECODE_FAILED);
                     break;
                 case AFP_READ_OK:
@@ -956,23 +957,6 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         ptv->frame_offset = 0;
     }
 
-    r = bind(ptv->socket, (struct sockaddr *)&bind_address, sizeof(bind_address));
-    if (r < 0) {
-        if (verbose) {
-            if (errno == ENETDOWN) {
-                SCLogError(SC_ERR_AFP_CREATE,
-                        "Couldn't bind AF_PACKET socket, iface %s is down",
-                        devname);
-            } else {
-                SCLogError(SC_ERR_AFP_CREATE,
-                        "Couldn't bind AF_PACKET socket to iface %s, error %s",
-                        devname,
-                        strerror(errno));
-            }
-        }
-        close(ptv->socket);
-        return -1;
-    }
     if (ptv->promisc != 0) {
         /* Force promiscuous mode */
         memset(&sock_params, 0, sizeof(sock_params));
@@ -1016,6 +1000,24 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
             close(ptv->socket);
             return -1;
         }
+    }
+
+    r = bind(ptv->socket, (struct sockaddr *)&bind_address, sizeof(bind_address));
+    if (r < 0) {
+        if (verbose) {
+            if (errno == ENETDOWN) {
+                SCLogError(SC_ERR_AFP_CREATE,
+                        "Couldn't bind AF_PACKET socket, iface %s is down",
+                        devname);
+            } else {
+                SCLogError(SC_ERR_AFP_CREATE,
+                        "Couldn't bind AF_PACKET socket to iface %s, error %s",
+                        devname,
+                        strerror(errno));
+            }
+        }
+        close(ptv->socket);
+        return -1;
     }
 
 #ifdef HAVE_PACKET_FANOUT
@@ -1202,13 +1204,13 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
         SCReturnInt(TM_ECODE_FAILED);
     }
 
+
     ptv->copy_mode = afpconfig->copy_mode;
     if (ptv->copy_mode != AFP_COPY_MODE_NONE) {
         strlcpy(ptv->out_iface, afpconfig->out_iface, AFP_IFACE_NAME_LENGTH);
         ptv->out_iface[AFP_IFACE_NAME_LENGTH - 1]= '\0';
         AFPPeersListAdd(ptv);
     }
-
 
 #define T_DATA_SIZE 70000
     ptv->data = SCMalloc(T_DATA_SIZE);
