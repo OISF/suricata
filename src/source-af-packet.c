@@ -533,6 +533,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
                     break;
                 }
                 r = AFPTryReopen(ptv);
+                fds.fd = ptv->socket;
             } while (r < 0);
             if (dbreak == 1)
                 break;
