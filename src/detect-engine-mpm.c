@@ -1751,6 +1751,8 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
         }
 
         int max_len = 0;
+        int max_len_negated = 0;
+        int max_len_non_negated = 0;
         /* get the longest pattern in the sig */
         if (!fast_pattern[sig]) {
             SigMatch *sm = NULL;
@@ -1768,10 +1770,24 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                     //}
 
                     DetectContentData *cd = (DetectContentData *)sm->ctx;
-                    if (max_len < cd->content_len)
-                        max_len = cd->content_len;
-                }
-            }
+                    if (cd->flags & DETECT_CONTENT_NEGATED) {
+                        if (max_len_negated < cd->content_len)
+                            max_len_negated = cd->content_len;
+                    } else {
+                        if (max_len_non_negated < cd->content_len)
+                            max_len_non_negated = cd->content_len;
+                    }
+                } /* for ( ; list_id.. */
+            } /* for (sm = s->sm_lists.. */
+        } /* if */
+
+        int skip_negated_content = 0;
+        if (max_len_non_negated == 0) {
+            max_len = max_len_negated;
+            skip_negated_content = 0;
+        } else {
+            max_len = max_len_non_negated;
+            skip_negated_content = 1;
         }
 
         SigMatch *mpm_sm = NULL;
@@ -1802,6 +1818,8 @@ static int PatternMatchPreparePopulateMpm(DetectEngineCtx *de_ctx,
                     //}
 
                     DetectContentData *cd = (DetectContentData *)sm->ctx;
+                    if ((cd->flags & DETECT_CONTENT_NEGATED) && skip_negated_content)
+                        continue;
                     if (cd->content_len < max_len)
                         continue;
 
