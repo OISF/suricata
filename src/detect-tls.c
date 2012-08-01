@@ -63,7 +63,7 @@
 /**
  * \brief Regex for parsing "id" option, matching number or "number"
  */
-#define PARSE_REGEX  "^\\s*(\\!*)\\s*([A-z0-9\\.=\\*]+|\"[A-z0-9\\.\\*= ]+\")\\s*$"
+#define PARSE_REGEX  "^\\s*(\\!*)\\s*([A-z0-9\\s\\-\\.=,\\*]+|\"[A-z0-9\\s\\-\\.=,\\*]+\")\\s*$"
 
 static pcre *subject_parse_regex;
 static pcre_extra *subject_parse_regex_study;
