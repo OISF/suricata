@@ -4341,8 +4341,8 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
     }
 
 #ifdef __SC_CUDA_SUPPORT__
-    unsigned int cuda_total = 0;
-    unsigned int cuda_free_before_alloc = 0;
+    size_t cuda_total = 0;
+    size_t cuda_free_before_alloc = 0;
     /* we register a module that would require cuda handler service.  This
      * module would hold the context for all the patterns in the rules */
     de_ctx->cuda_rc_mod_handle = SCCudaHlRegisterModule("SC_RULES_CONTENT_B2G_CUDA");
@@ -4375,7 +4375,7 @@ int SigGroupBuild (DetectEngineCtx *de_ctx) {
     }
 
 #ifdef __SC_CUDA_SUPPORT__
-    unsigned int cuda_free_after_alloc = 0;
+    size_t cuda_free_after_alloc = 0;
     /* if a user has selected some other mpm algo other than b2g_cuda, inspite of
      * enabling cuda support, then no cuda contexts or cuda vars would be created.
      * Pop the cuda context, only on confirming that the MPM algo selected is the
