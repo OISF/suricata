@@ -163,7 +163,7 @@ void DetectTlsRegister (void) {
 
     fingerprint_parse_regex = pcre_compile(PARSE_REGEX_FINGERPRINT, opts, &eb, &eo, NULL);
     if (fingerprint_parse_regex == NULL) {
-        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX, eo, eb);
+        SCLogError(SC_ERR_PCRE_COMPILE, "Compile of \"%s\" failed at offset %" PRId32 ": %s", PARSE_REGEX_FINGERPRINT, eo, eb);
         goto error;
     }
 
