@@ -167,9 +167,11 @@ typedef struct AFPThreadVars_
     ChecksumValidationMode checksum_mode;
 
     /* IPS stuff */
-    int sockfd;
     int if_idx;
+    int peer_idx;
     SCMutex sock_protect;
+    char out_iface[AFP_IFACE_NAME_LENGTH];
+    struct AFPThreadVars_ * peer;
 
     int flags;
     uint16_t capture_kernel_packets;
@@ -188,6 +190,8 @@ typedef struct AFPThreadVars_
     char *frame_buf;
     unsigned int frame_offset;
     int ring_size;
+
+    TAILQ_ENTRY(AFPThreadVars_) next;
 } AFPThreadVars;
 
 TmEcode ReceiveAFP(ThreadVars *, Packet *, void *, PacketQueue *, PacketQueue *);
@@ -217,6 +221,65 @@ void TmModuleReceiveAFPRegister (void) {
     tmm_modules[TMM_RECEIVEAFP].flags = TM_FLAG_RECEIVE_TM;
 }
 
+typedef struct AFPPeersList_ {
+    TAILQ_HEAD(, AFPThreadVars_) threads; /**< Head of list of fragments. */
+    int cnt;
+    int peered;
+} AFPPeersList;
+
+AFPPeersList peerslist;
+
+TmEcode AFPPeersListInit()
+{
+    SCEnter();
+    TAILQ_INIT(&peerslist.threads);
+    peerslist.peered = 0;
+    peerslist.cnt = 0;
+    SCReturnInt(TM_ECODE_OK);
+}
+
+TmEcode AFPPeersListCheck()
+{
+#define AFP_PEERS_MAX_TRY 4
+#define AFP_PEERS_WAIT 20000
+    int try = 0;
+    SCEnter();
+    while (try < AFP_PEERS_MAX_TRY) {
+        if (peerslist.cnt != peerslist.peered) {
+            usleep(AFP_PEERS_WAIT);
+        } else {
+            SCReturnInt(TM_ECODE_OK);
+        }
+        try++;
+    }
+    SCLogError(SC_ERR_AFP_CREATE, "Threads number not equals");
+    SCReturnInt(TM_ECODE_FAILED);
+}
+
+TmEcode AFPPeersListAdd(AFPThreadVars *ptv)
+{
+    SCEnter();
+    AFPThreadVars *pitem;
+
+    /* add element to iface list */
+    TAILQ_INSERT_TAIL(&peerslist.threads, ptv, next);
+    peerslist.cnt++;
+
+    /* Iter to find a peer */
+    TAILQ_FOREACH(pitem, &peerslist.threads, next) {
+        if (pitem->peer)
+            continue;
+        if (strcmp(pitem->iface, ptv->out_iface))
+            continue;
+        ptv->peer = pitem;
+        pitem->peer = ptv;
+        peerslist.peered += 2;
+        break;
+    }
+
+    SCReturnInt(TM_ECODE_OK);
+}
+
 /**
  * \brief Registration Function for DecodeAFP.
  * \todo Unit tests are needed for this module.
@@ -232,8 +295,8 @@ void TmModuleDecodeAFPRegister (void) {
     tmm_modules[TMM_DECODEAFP].flags = TM_FLAG_DECODE_TM;
 }
 
+
 static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose);
-static int AFPCreateWriteSocket(AFPThreadVars *ptv, char *devname, int verbose);
 
 static inline void AFPDumpCounters(AFPThreadVars *ptv, int forced)
 {
@@ -402,7 +465,9 @@ TmEcode AFPWritePacket(Packet *p)
     if (sendto(p->afp_v.sockfd, GET_PKT_DATA(p), GET_PKT_LEN(p), 0,
                (struct sockaddr*) &socket_address,
                sizeof(struct sockaddr_ll)) < 0) {
-        SCLogInfo("Send packet failed on socket %d", p->afp_v.sockfd);
+        SCLogInfo("Send packet failed on socket %d: %s",
+                  p->afp_v.sockfd,
+                  strerror(errno));
         if (p->afp_v.sock_protect != NULL)
             SCMutexUnlock(p->afp_v.sock_protect);
         return TM_ECODE_FAILED;
@@ -443,6 +508,7 @@ int AFPReadFromRing(AFPThreadVars *ptv)
 {
     Packet *p = NULL;
     union thdr h;
+    struct sockaddr_ll *from;
 
     /* Loop till we have packets available */
     while (1) {
@@ -450,27 +516,8 @@ int AFPReadFromRing(AFPThreadVars *ptv)
         h.raw = (((union thdr **)ptv->frame_buf)[ptv->frame_offset]);
         if (h.raw == NULL) {
             SCReturnInt(AFP_FAILURE);
-        } else {
-            if (ptv->flags & AFP_RING_MODE) {
-                p->afp_v.relptr = h.raw;
-
-                p->afp_v.copy_mode = ptv->copy_mode;
-                if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
-                    p->afp_v.sockfd = ptv->sockfd;
-                    p->afp_v.if_idx = ptv->if_idx;
-                    if (ptv->flags & AFP_SOCK_PROTECT) {
-                        p->afp_v.sock_protect = &ptv->sock_protect;
-                    } else {
-                        p->afp_v.sock_protect = NULL;
-                    }
-                } else {
-                    p->afp_v.sockfd = 0;
-                    p->afp_v.if_idx = 0;
-                    p->afp_v.sock_protect = NULL;
-                }
-                p->ReleaseData = AFPReleaseDataFromRing;
-            }
         }
+
         if (h.h2->tp_status == TP_STATUS_KERNEL) {
             SCReturnInt(AFP_READ_OK);
         }
@@ -480,6 +527,28 @@ int AFPReadFromRing(AFPThreadVars *ptv)
             SCReturnInt(AFP_FAILURE);
         }
 
+        if (ptv->flags & AFP_RING_MODE) {
+            p->afp_v.relptr = h.raw;
+            p->ReleaseData = AFPReleaseDataFromRing;
+
+            p->afp_v.copy_mode = ptv->copy_mode;
+            if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
+                p->afp_v.sockfd = ptv->peer->socket;
+                p->afp_v.if_idx = ptv->peer->if_idx;
+                if (ptv->flags & AFP_SOCK_PROTECT) {
+                    p->afp_v.sock_protect = &ptv->peer->sock_protect;
+                } else {
+                    p->afp_v.sock_protect = NULL;
+                }
+            } else {
+                p->afp_v.sockfd = 0;
+                p->afp_v.if_idx = 0;
+                p->afp_v.sock_protect = NULL;
+            }
+        }
+
+        from = (void *)h.raw + TPACKET_ALIGN(ptv->tp_hdrlen);
+
         ptv->pkts++;
         ptv->bytes += h.h2->tp_len;
         (void) SC_ATOMIC_ADD(ptv->livedev->pkts, 1);
@@ -488,7 +557,6 @@ int AFPReadFromRing(AFPThreadVars *ptv)
         /* add forged header */
         if (ptv->cooked) {
             SllHdr * hdrp = (SllHdr *)ptv->data;
-            struct sockaddr_ll *from = (void *)h.raw + TPACKET_ALIGN(ptv->tp_hdrlen);
             /* XXX this is minimalist, but this seems enough */
             hdrp->sll_protocol = from->sll_protocol;
         }
@@ -502,6 +570,26 @@ int AFPReadFromRing(AFPThreadVars *ptv)
             if (PacketSetData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
                 TmqhOutputPacketpool(ptv->tv, p);
                 SCReturnInt(AFP_FAILURE);
+            } else {
+                if (ptv->flags & AFP_RING_MODE) {
+                    p->afp_v.relptr = h.raw;
+
+                    p->afp_v.copy_mode = ptv->copy_mode;
+                    if (p->afp_v.copy_mode != AFP_COPY_MODE_NONE) {
+                        p->afp_v.sockfd = ptv->peer->socket;
+                        p->afp_v.if_idx = ptv->peer->if_idx;
+                        if (ptv->flags & AFP_SOCK_PROTECT) {
+                            p->afp_v.sock_protect = &(ptv->peer->sock_protect);
+                        } else {
+                            p->afp_v.sock_protect = NULL;
+                        }
+                    } else {
+                        p->afp_v.sockfd = 0;
+                        p->afp_v.if_idx = 0;
+                        p->afp_v.sock_protect = NULL;
+                    }
+                    p->ReleaseData = AFPReleaseDataFromRing;
+                }
             }
         } else {
             if (PacketCopyData(p, (unsigned char*)h.raw + h.h2->tp_mac, h.h2->tp_snaplen) == -1) {
@@ -774,12 +862,13 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         SCLogError(SC_ERR_AFP_CREATE, "Couldn't create a AF_PACKET socket, error %s", strerror(errno));
         return -1;
     }
-    SCLogDebug("using interface %s", (char *)devname);
+    SCLogInfo("Using interface '%s' via socket %d", (char *)devname, ptv->socket);
+    ptv ->if_idx = AFPGetIfnumByDev(ptv->socket, devname, verbose);
     /* bind socket */
     memset(&bind_address, 0, sizeof(bind_address));
     bind_address.sll_family = AF_PACKET;
     bind_address.sll_protocol = htons(ETH_P_ALL);
-    bind_address.sll_ifindex = AFPGetIfnumByDev(ptv->socket, devname, verbose);
+    bind_address.sll_ifindex = ptv->if_idx;
     if (bind_address.sll_ifindex == -1) {
         if (verbose)
             SCLogError(SC_ERR_AFP_CREATE, "Couldn't find iface %s", devname);
@@ -966,50 +1055,6 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
     return 0;
 }
 
-static int AFPCreateWriteSocket(AFPThreadVars *ptv, char *devname, int verbose)
-{
-    int sockfd;
-    struct ifreq if_idx;
-
-    /* Open RAW socket to send on */
-    if ((sockfd = socket(AF_PACKET, SOCK_RAW, IPPROTO_RAW)) == -1) {
-        SCLogError(SC_ERR_AFP_CREATE, "Unable to create RAW socket");
-    }
-
-    memset(&if_idx, 0, sizeof(struct ifreq));
-    strncpy(if_idx.ifr_name, devname, IFNAMSIZ-1);
-    if (ioctl(sockfd, SIOCGIFINDEX, &if_idx) < 0) {
-        SCLogError(SC_ERR_AFP_CREATE, "Unable to get iface index: %s",
-                devname);
-        return -1;
-    } else {
-        ptv->if_idx =  if_idx.ifr_ifindex;
-        ptv->sockfd = sockfd;
-        SCLogInfo("Using IPS mode for %s (sock: %d inject on %s)",
-                ptv->iface, ptv->sockfd, devname);
-    }
-
-    /* set socket recv buffer size */
-    if (ptv->buffer_size != 0) {
-        /*
-         * Set the socket buffer size to the specified value.
-         */
-        SCLogInfo("Setting AF_PACKET socket buffer to %d", ptv->buffer_size);
-        if (setsockopt(ptv->sockfd, SOL_SOCKET, SO_RCVBUF,
-                    &ptv->buffer_size,
-                    sizeof(ptv->buffer_size)) == -1) {
-            SCLogError(SC_ERR_AFP_CREATE,
-                    "Couldn't set buffer size to %d on iface %s, error %s",
-                    ptv->buffer_size,
-                    devname,
-                    strerror(errno));
-            close(ptv->socket);
-            return -1;
-        }
-    }
-    return 0;
-}
-
 TmEcode AFPSetBPFFilter(AFPThreadVars *ptv)
 {
     struct bpf_program filter;
@@ -1159,13 +1204,9 @@ TmEcode ReceiveAFPThreadInit(ThreadVars *tv, void *initdata, void **data) {
 
     ptv->copy_mode = afpconfig->copy_mode;
     if (ptv->copy_mode != AFP_COPY_MODE_NONE) {
-        if (AFPCreateWriteSocket(ptv, afpconfig->out_iface, 1) != 0) {
-            SCLogError(SC_ERR_AFP_CREATE,
-                       "Couldn't init AF_PACKET write socket");
-            SCFree(ptv);
-            afpconfig->DerefFunc(afpconfig);
-            SCReturnInt(TM_ECODE_FAILED);
-        }
+        strlcpy(ptv->out_iface, afpconfig->out_iface, AFP_IFACE_NAME_LENGTH);
+        ptv->out_iface[AFP_IFACE_NAME_LENGTH - 1]= '\0';
+        AFPPeersListAdd(ptv);
     }
 
 
@@ -1223,9 +1264,6 @@ TmEcode ReceiveAFPThreadDeinit(ThreadVars *tv, void *data) {
 
     close(ptv->socket);
 
-    if (ptv->sockfd) {
-        close(ptv->sockfd);
-    }
     if (ptv->flags & AFP_SOCK_PROTECT) {
         SCMutexDestroy(&ptv->sock_protect);
     }
