@@ -1393,14 +1393,14 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     }
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_STATEFUL);
 
+    /* create our prefilter mask */
+    SignatureMask mask = 0;
+    PacketCreateMask(p, &mask, alproto, alstate, smsg, app_decoder_events_cnt);
+
     /* run the mpm for each type */
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_MPM);
     DetectMpmPrefilter(de_ctx, det_ctx, smsg, p, flags, alproto, alstate, &sms_runflags);
     PACKET_PROFILING_DETECT_END(p, PROF_DETECT_MPM);
-
-    /* create our prefilter mask */
-    SignatureMask mask = 0;
-    PacketCreateMask(p, &mask, alproto, alstate, smsg, app_decoder_events_cnt);
 
     PACKET_PROFILING_DETECT_START(p, PROF_DETECT_PREFILTER);
     /* build the match array */
