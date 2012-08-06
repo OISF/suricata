@@ -62,7 +62,6 @@
 #include "app-layer-parser.h"
 
 #define FLOW_DEFAULT_EMERGENCY_RECOVERY 30
-#define FLOW_DEFAULT_FLOW_PRUNE 5
 
 //#define FLOW_DEFAULT_HASHSIZE    262144
 #define FLOW_DEFAULT_HASHSIZE    65536
@@ -349,13 +348,6 @@ void FlowInitConfig(char quiet)
     } else {
         SCLogDebug("flow.emergency-recovery, using default value");
         flow_config.emergency_recovery = FLOW_DEFAULT_EMERGENCY_RECOVERY;
-    }
-
-    if (ConfGetInt("flow.prune-flows", &val) == 1) {
-            flow_config.flow_try_release = (uint8_t)val;
-    } else {
-        SCLogDebug("flow.flow.prune-flows, using default value");
-        flow_config.flow_try_release = FLOW_DEFAULT_FLOW_PRUNE;
     }
 
     /* Check if we have memcap and hash_size defined at config */

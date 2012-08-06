@@ -443,7 +443,7 @@ defrag:
 # prune before unsetting the emergency state. The emergency state is activated
 # when the memcap limit is reached, allowing to create new flows, but
 # prunning them with the emergency timeouts (they are defined below).
-# If the memcap is reached, the engine will try to prune prune-flows
+# If the memcap is reached, the engine will try to prune flows
 # with the default timeouts. If it doens't find a flow to prune, it will set
 # the emergency bit and it will try again with more agressive timeouts.
 # If that doesn't work, then it will try to kill the last time seen flows
@@ -456,7 +456,6 @@ flow:
   hash-size: 65536
   prealloc: 10000
   emergency-recovery: 30
-  prune-flows: 5
 
 # Specific timeouts for flows. Here you can specify the timeouts that the
 # active flows will wait to transit from the current state to another, on each
