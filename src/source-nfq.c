@@ -156,11 +156,14 @@ typedef enum NFQMode_ {
     NFQ_ROUTE_MODE,
 } NFQMode;
 
+#define NFQ_FLAG_FAIL_OPEN  (1 << 0)
+
 typedef struct NFQCnf_ {
     NFQMode mode;
     uint32_t mark;
     uint32_t mask;
     uint32_t next_queue;
+    uint32_t flags;
 } NFQCnf;
 
 NFQCnf nfq_config;
@@ -208,6 +211,7 @@ void NFQInitConfig(char quiet)
 {
     intmax_t value = 0;
     char* nfq_mode = NULL;
+    int boolval;
 
     SCLogDebug("Initializing NFQ");
 
@@ -226,6 +230,17 @@ void NFQInitConfig(char quiet)
             SCLogError(SC_LOG_ERROR, "Unknown nfq.mode");
             exit(EXIT_FAILURE);
         }
+    }
+
+    (void)ConfGetBool("nfq.fail-open", (int *)&boolval);
+    if (boolval) {
+#ifdef HAVE_NFQ_SET_QUEUE_FLAGS
+        SCLogInfo("Enabling fail-open on queue");
+        nfq_config.flags |= NFQ_FLAG_FAIL_OPEN;
+#else
+        SCLogError(SC_ERR_NFQ_NOSUPPORT,
+                   "nfq.fail-open set but NFQ library has no support for it.");
+#endif
     }
 
     if ((ConfGetInt("nfq.repeat-mark", &value)) == 1) {
@@ -495,6 +510,21 @@ TmEcode NFQInitThread(NFQThreadVars *nfq_t, uint32_t queue_maxlen)
 	packets instead */
 #ifdef NETLINK_NO_ENOBUFS
     setsockopt(nfq_q->fd, SOL_NETLINK, NETLINK_NO_ENOBUFS, &opt, sizeof(int));
+#endif
+
+#ifdef HAVE_NFQ_SET_QUEUE_FLAGS
+    if (nfq_config.flags & NFQ_FLAG_FAIL_OPEN) {
+        uint32_t flags = NFQA_CFG_F_FAIL_OPEN;
+        uint32_t mask = NFQA_CFG_F_FAIL_OPEN;
+        int r = nfq_set_queue_flags(nfq_q->qh, mask, flags);
+
+        if (r == -1) {
+            SCLogWarning(SC_ERR_NFQ_SET_MODE, "can't set fail-open mode: %s",
+                         strerror(errno));
+        } else {
+            SCLogInfo("fail-open mode should be set on queue");
+        }
+    }
 #endif
 
     /* set a timeout to the socket so we can check for a signal

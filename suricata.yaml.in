@@ -189,11 +189,14 @@ magic-file: @e_magic_file@
 # this mode, you need to set mode to 'repeat'
 # If you want packet to be sent to another queue after an ACCEPT decision
 # set mode to 'route' and set next-queue value.
+# On linux >= 3.6, you can set the fail-open option to yes to have the kernel
+# accept the packet if suricata is not able to keep pace.
 nfq:
 #  mode: accept
 #  repeat-mark: 1
 #  repeat-mask: 1
 #  route-queue: 2
+#  fail-open: yes
 
 # af-packet support
 # Set threads to > 1 to use PACKET_FANOUT support
