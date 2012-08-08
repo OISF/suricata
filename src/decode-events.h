@@ -200,6 +200,9 @@ enum {
     /* IPv4 in IPv6 events */
     IPV4_IN_IPV6_PKT_TOO_SMALL,
     IPV4_IN_IPV6_WRONG_IP_VER,
+    /* IP6 in IP6 events */
+    IP6_IN_IP6_PKT_TOO_SMALL,
+    IP6_IN_IP6_WRONG_IP_VER,
 
     /* should always be last! */
     DECODE_EVENT_MAX,
