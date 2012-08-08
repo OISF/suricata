@@ -71,6 +71,32 @@ static void DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, u
     return;
 }
 
+/**
+ * \brief Function to decode IPv4 in IPv6 packets
+ *
+ */
+static void DecodeIP6inIP6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t plen, PacketQueue *pq)
+{
+
+    if (unlikely(plen < IPV6_HEADER_LEN)) {
+        ENGINE_SET_EVENT(p, IPV6_IN_IPV6_PKT_TOO_SMALL);
+        return;
+    }
+    if (IP_GET_RAW_VER(pkt) == 6) {
+        if (pq != NULL) {
+            Packet *tp = PacketPseudoPktSetup(p, pkt, plen, IPPROTO_IPV6);
+            if (tp != NULL) {
+                DecodeTunnel(tv, dtv, tp, pkt, plen, pq, IPPROTO_IPV6);
+                PacketEnqueue(pq,tp);
+                return;
+            }
+        }
+    } else {
+        ENGINE_SET_EVENT(p, IPV6_IN_IPV6_WRONG_IP_VER);
+    }
+    return;
+}
+
 static void
 DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
@@ -515,6 +541,8 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
         case IPPROTO_IPIP:
             IPV6_SET_L4PROTO(p, IPPROTO_IPIP);
             return DecodeIPv4inIPv6(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p), pq);
+        case IPPROTO_IPV6:
+            return DecodeIP6inIP6(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p), pq);
         case IPPROTO_FRAGMENT:
         case IPPROTO_HOPOPTS:
         case IPPROTO_ROUTING:
