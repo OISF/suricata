@@ -89,6 +89,9 @@ alert icmp any any -> any any (msg:"SURICATA ICMPv6 invalid checksum"; icmpv6-cs
 # IPv4 in IPv6 rules
 alert pkthdr any any -> any any (msg:"SURICATA IPv4-in-IPv6 packet too short"; decode-event:ipv6.ipv4_in_ipv6_too_small; sid:2200082; rev:1;)
 alert pkthdr any any -> any any (msg:"SURICATA IPv4-in-IPv6 invalid protocol"; decode-event:ipv6.ipv4_in_ipv6_wrong_version; sid:2200083; rev:1;)
+# IPv6 in IPv6 rules
+alert pkthdr any any -> any any (msg:"SURICATA IPv6-in-IPv6 packet too short"; decode-event:ipv6.ipv6_in_ipv6_too_small; sid:2200084; rev:1;)
+alert pkthdr any any -> any any (msg:"SURICATA IPv6-in-IPv6 invalid protocol"; decode-event:ipv6.ipv6_in_ipv6_wrong_version; sid:2200085; rev:1;)
 
-# next sid is 2200084
+# next sid is 2200086
 
