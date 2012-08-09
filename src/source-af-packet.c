@@ -691,6 +691,7 @@ TmEcode ReceiveAFPLoop(ThreadVars *tv, void *data, void *slot)
     fds.fd = ptv->socket;
     fds.events = POLLIN;
 
+    SCLogInfo("%s starting receiving packets.", tv->name);
     while (1) {
         /* Start by checking the state of our interface */
         if (unlikely(ptv->afp_state == AFP_STATE_DOWN)) {
@@ -883,7 +884,7 @@ static int AFPCreateSocket(AFPThreadVars *ptv, char *devname, int verbose)
         SCLogError(SC_ERR_AFP_CREATE, "Couldn't create a AF_PACKET socket, error %s", strerror(errno));
         return -1;
     }
-    SCLogInfo("Using interface '%s' via socket %d", (char *)devname, ptv->socket);
+    SCLogInfo("%s using interface '%s' via socket %d", ptv->tv->name, (char *)devname, ptv->socket);
     ptv ->if_idx = AFPGetIfnumByDev(ptv->socket, devname, verbose);
     /* bind socket */
     memset(&bind_address, 0, sizeof(bind_address));
