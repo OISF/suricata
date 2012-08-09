@@ -615,13 +615,13 @@ static Asn1Generic * DecodeAsn1DerSequence(const unsigned char *buffer, uint32_t
         numbytes = c & 0x7f;
         d_ptr++;
         if (DecodeAsn1BuildValue(&d_ptr, &d_length, numbytes, errcode) == -1) {
-            free(node);
+            SCFree(node);
             return NULL;
         }
     }
     node->length = d_length + (d_ptr - buffer);
     if (node->length > max_size) {
-        free(node);
+        SCFree(node);
         return NULL;
     }
 
@@ -671,7 +671,7 @@ static Asn1Generic * DecodeAsn1DerSet(const unsigned char *buffer, uint32_t max_
         numbytes = c & 0x7f;
         d_ptr++;
         if (DecodeAsn1BuildValue(&d_ptr, &d_length, numbytes, errcode) == -1) {
-            free(node);
+            SCFree(node);
             return NULL;
         }
     }
@@ -680,7 +680,7 @@ static Asn1Generic * DecodeAsn1DerSet(const unsigned char *buffer, uint32_t max_
     if (node->length > max_size) {
         if (errcode)
             *errcode = ERR_DER_ELEMENT_SIZE_TOO_BIG;
-        free(node);
+        SCFree(node);
         return NULL;
     }
 
@@ -761,7 +761,7 @@ void DerFree(Asn1Generic *a)
             DerFree(it->data);
         }
         if (it->str)
-            free(it->str);
+            SCFree(it->str);
         memset(it, 0xff, sizeof(Asn1Generic));
         SCFree(it);
         it = n;
