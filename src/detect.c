@@ -1384,7 +1384,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     uint8_t sms_runflags = 0;   /* function flags */
     uint8_t alert_flags = 0;
     uint16_t alproto = ALPROTO_UNKNOWN;
-    int match = 0;
+#ifdef PROFILING
+    int smatch = 0; /* signature match: 1, no match: 0 */
+#endif
     int fmatch = 0;
     uint32_t idx;
     uint8_t flags = 0;          /* flow/state flags */
@@ -1615,6 +1617,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
     /* inspect the sigs against the packet */
     for (idx = 0; idx < det_ctx->match_array_cnt; idx++) {
         RULE_PROFILING_START;
+#ifdef PROFILING
+        smatch = 0;
+#endif
 
         s = det_ctx->match_array[idx];
         SCLogDebug("inspecting signature id %"PRIu32"", s->id);
@@ -1762,8 +1767,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
             SCLogDebug("running match functions, sm %p", sm);
             for ( ; sm != NULL; sm = sm->next) {
-                match = sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm);
-                if (match <= 0) {
+                if (sigmatch_table[sm->type].Match(th_v, det_ctx, p, s, sm) <= 0) {
                     goto next;
                 }
             }
@@ -1815,6 +1819,9 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 
         /* match! */
         fmatch = 1;
+#ifdef PROFILING
+        smatch = 1;
+#endif
 
         SigMatchSignaturesRunPostMatch(th_v, de_ctx, det_ctx, p, s);
 
@@ -1824,7 +1831,7 @@ int SigMatchSignatures(ThreadVars *th_v, DetectEngineCtx *de_ctx, DetectEngineTh
 next:
         DetectReplaceFree(det_ctx->replist);
         det_ctx->replist = NULL;
-        RULE_PROFILING_END(s, match);
+        RULE_PROFILING_END(s, smatch);
 
         det_ctx->flags = 0;
         continue;
