@@ -1710,6 +1710,8 @@ TmEcode TmThreadSpawn(ThreadVars *tv)
         return TM_ECODE_FAILED;
     }
 
+    TmThreadWaitForFlag(tv, THV_INIT_DONE);
+
     TmThreadAppend(tv, tv->type);
 
     return TM_ECODE_OK;
