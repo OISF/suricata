@@ -636,7 +636,8 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
 
         r = s->PktAcqLoop(tv, SC_ATOMIC_GET(s->slot_data), s);
 
-        if (r == TM_ECODE_FAILED || TmThreadsCheckFlag(tv, THV_KILL)) {
+        if (r == TM_ECODE_FAILED || TmThreadsCheckFlag(tv, THV_KILL)
+            || suricata_ctl_flags) {
             run = 0;
         }
     }
