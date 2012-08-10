@@ -1,4 +1,4 @@
-/* Copyright (C) 2007-2010 Open Information Security Foundation
+/* Copyright (C) 2007-2012 Open Information Security Foundation
  *
  * You can copy, redistribute or modify this Program under the terms of
  * the GNU General Public License version 2 as published by the Free
@@ -20,7 +20,7 @@
  *
  * \author Victor Julien <victor@inliniac.net>
  * \author Anoop Saldanha <anoopsaldanha@gmail.com>
- * \author Eric Leblond <eleblond@edenwall.com>
+ * \author Eric Leblond <eric@regit.org>
  *
  * Thread management functions.
  */
@@ -43,6 +43,7 @@
 #include "util-optimize.h"
 #include "util-profiling.h"
 #include "util-signal.h"
+#include "queue.h"
 
 #ifdef PROFILE_LOCKING
 __thread uint64_t mutex_lock_contention;
@@ -119,6 +120,16 @@ void TmThreadsUnsetFlag(ThreadVars *tv, uint8_t flag)
     SC_ATOMIC_AND(tv->flags, ~flag);
 }
 
+/**
+ * \brief Function to use as dummy stack function
+ *
+ * \retval TM_ECODE_OK
+ */
+TmEcode TmDummyFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+{
+    return TM_ECODE_OK;
+}
+
 /* 1 slot functions */
 void *TmThreadsSlot1NoIn(void *td)
 {
@@ -159,8 +170,9 @@ void *TmThreadsSlot1NoIn(void *td)
 
     while (run) {
         TmThreadTestThreadUnPaused(tv);
+        TmSlotFunc SlotFunc = SC_ATOMIC_GET(s->SlotFunc);
 
-        r = s->SlotFunc(tv, NULL, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq, &s->slot_post_pq);
+        r = SlotFunc(tv, NULL, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq, &s->slot_post_pq);
 
         /* handle error */
         if (r == TM_ECODE_FAILED) {
@@ -257,11 +269,12 @@ void *TmThreadsSlot1NoOut(void *td)
 
     while (run) {
         TmThreadTestThreadUnPaused(tv);
+        TmSlotFunc SlotFunc = SC_ATOMIC_GET(s->SlotFunc);
 
         p = tv->tmqh_in(tv);
 
         PACKET_PROFILING_TMM_START(p, s->tm_id);
-        r = s->SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), /* no outqh no pq */ NULL,
+        r = SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), /* no outqh no pq */ NULL,
                         /* no outqh no pq */ NULL);
         PACKET_PROFILING_TMM_END(p, s->tm_id);
 
@@ -337,9 +350,10 @@ void *TmThreadsSlot1NoInOut(void *td)
     TmThreadsSetFlag(tv, THV_INIT_DONE);
 
     while (run) {
+        TmSlotFunc SlotFunc = SC_ATOMIC_GET(s->SlotFunc);
         TmThreadTestThreadUnPaused(tv);
 
-        r = s->SlotFunc(tv, NULL, SC_ATOMIC_GET(s->slot_data), /* no outqh, no pq */NULL, NULL);
+        r = SlotFunc(tv, NULL, SC_ATOMIC_GET(s->slot_data), /* no outqh, no pq */NULL, NULL);
 
         /* handle error */
         if (r == TM_ECODE_FAILED) {
@@ -420,8 +434,9 @@ void *TmThreadsSlot1(void *td)
         p = tv->tmqh_in(tv);
 
         if (p != NULL) {
+            TmSlotFunc SlotFunc = SC_ATOMIC_GET(s->SlotFunc);
             PACKET_PROFILING_TMM_START(p, s->tm_id);
-            r = s->SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq,
+            r = SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq,
                             &s->slot_post_pq);
             PACKET_PROFILING_TMM_END(p, s->tm_id);
 
@@ -500,12 +515,13 @@ TmEcode TmThreadsSlotVarRun(ThreadVars *tv, Packet *p,
     Packet *extra_p;
 
     for (s = slot; s != NULL; s = s->slot_next) {
+        TmSlotFunc SlotFunc = SC_ATOMIC_GET(s->SlotFunc);
         PACKET_PROFILING_TMM_START(p, s->tm_id);
 
         if (unlikely(s->id == 0)) {
-            r = s->SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq, &s->slot_post_pq);
+            r = SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq, &s->slot_post_pq);
         } else {
-            r = s->SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq, NULL);
+            r = SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq, NULL);
         }
 
         PACKET_PROFILING_TMM_END(p, s->tm_id);
@@ -885,20 +901,23 @@ ThreadVars *TmThreadsGetTVContainingSlot(TmSlot *tm_slot)
  * \param tv   TV the slot is attached to.
  * \param tm   TM to append.
  * \param data Data to be passed on to the slot init function.
+ *
+ * \retval The allocated TmSlot or NULL if there is an error
  */
-void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data)
+static inline TmSlot * _TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data)
 {
     TmSlot *s = (TmSlot *)tv->tm_slots;
 
     TmSlot *slot = SCMalloc(sizeof(TmSlot));
     if (slot == NULL)
-        return;
+        return NULL;
     memset(slot, 0, sizeof(TmSlot));
     SC_ATOMIC_INIT(slot->slot_data);
     slot->tv = tv;
     slot->SlotThreadInit = tm->ThreadInit;
     slot->slot_initdata = data;
-    slot->SlotFunc = tm->Func;
+    SC_ATOMIC_INIT(slot->SlotFunc);
+    SC_ATOMIC_SET(slot->SlotFunc, tm->Func);
     slot->PktAcqLoop = tm->PktAcqLoop;
     slot->SlotThreadExitPrintStats = tm->ThreadExitPrintStats;
     slot->SlotThreadDeinit = tm->ThreadDeinit;
@@ -925,7 +944,104 @@ void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data)
         }
     }
 
+    return slot;
+}
+
+/**
+ * \brief Appends a new entry to the slots.
+ *
+ * \param tv   TV the slot is attached to.
+ * \param tm   TM to append.
+ * \param data Data to be passed on to the slot init function.
+ */
+void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data)
+{
+    _TmSlotSetFuncAppend(tv, tm, data);
+}
+
+typedef struct TmDummySlot_ {
+    TmSlot *slot;
+    TmEcode (*SlotFunc)(ThreadVars *, Packet *, void *, PacketQueue *,
+                        PacketQueue *);
+    TmEcode (*SlotThreadInit)(ThreadVars *, void *, void **);
+    TAILQ_ENTRY(TmDummySlot_) next;
+} TmDummySlot;
+
+static TAILQ_HEAD(, TmDummySlot_) dummy_slots =
+    TAILQ_HEAD_INITIALIZER(dummy_slots);
+
+/**
+ * \brief Appends a new entry to the slots with a delayed option.
+ *
+ * \param tv   TV the slot is attached to.
+ * \param tm   TM to append.
+ * \param data Data to be passed on to the slot init function.
+ * \param delayed Delayed start of slot if equal to 1
+ */
+void TmSlotSetFuncAppendDelayed(ThreadVars *tv, TmModule *tm, void *data,
+                                int delayed)
+{
+    TmSlot *slot = _TmSlotSetFuncAppend(tv, tm, data);
+    TmDummySlot *dslot = NULL;
+
+    if ((slot == NULL) || (delayed == 0)) {
+        return;
+    }
+
+    dslot = SCMalloc(sizeof(TmDummySlot));
+    if (dslot == NULL) {
+        return;
+    }
+
+    memset(dslot, 0, sizeof(*dslot));
+
+    dslot->SlotFunc = SC_ATOMIC_GET(slot->SlotFunc);
+    SC_ATOMIC_SET(slot->SlotFunc, TmDummyFunc);
+    dslot->SlotThreadInit = slot->SlotThreadInit;
+    slot->SlotThreadInit = NULL;
+    dslot->slot = slot;
+
+    TAILQ_INSERT_TAIL(&dummy_slots, dslot, next);
+
     return;
+}
+
+/**
+ * \brief Activate slots that have been started in delayed mode
+ */
+void TmThreadActivateDummySlot()
+{
+    TmDummySlot *dslot;
+    TmSlot *s;
+    TmEcode r = TM_ECODE_OK;
+
+    TAILQ_FOREACH(dslot, &dummy_slots, next) {
+        void *slot_data = NULL;
+        s = dslot->slot;
+        if (dslot->SlotThreadInit != NULL) {
+            s->SlotThreadInit = dslot->SlotThreadInit;
+            r = s->SlotThreadInit(s->tv, s->slot_initdata, &slot_data);
+            if (r != TM_ECODE_OK) {
+                EngineKill();
+                TmThreadsSetFlag(s->tv, THV_CLOSED | THV_RUNNING_DONE);
+            }
+            SC_ATOMIC_SET(s->slot_data, slot_data);
+        }
+        SC_ATOMIC_CAS(&s->SlotFunc, TmDummyFunc, dslot->SlotFunc);
+    }
+}
+
+/**
+ * \brief Deactivate slots that have been started in delayed mode.
+ */
+void TmThreadDeActivateDummySlot()
+{
+    TmDummySlot *dslot;
+
+    TAILQ_FOREACH(dslot, &dummy_slots, next) {
+        SC_ATOMIC_CAS(&dslot->slot->SlotFunc, dslot->SlotFunc, TmDummyFunc);
+        dslot->slot->SlotThreadInit = NULL;
+    }
 }
 
 /**
