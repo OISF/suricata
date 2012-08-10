@@ -338,6 +338,7 @@ void *SCCudaPBTmThreadsSlot1(void *td)
 
     TmThreadsSetFlag(tv, THV_INIT_DONE);
     while(run) {
+        TmSlotFunc SlotFunc = SC_ATOMIC_GET(s->SlotFunc);
         TmThreadTestThreadUnPaused(tv);
 
         /* input a packet */
@@ -354,9 +355,9 @@ void *SCCudaPBTmThreadsSlot1(void *td)
              * the Batcher TM(which is waiting on a cond from the previous
              * feeder TM).  Please handle the NULL packet case in the
              * function that you now call */
-            r = s->SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), NULL, NULL);
+            r = SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), NULL, NULL);
         } else {
-            r = s->SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), NULL, NULL);
+            r = SlotFunc(tv, p, SC_ATOMIC_GET(s->slot_data), NULL, NULL);
             /* handle error */
             if (r == TM_ECODE_FAILED) {
                 TmqhOutputPacketpool(tv, p);

@@ -671,6 +671,9 @@ typedef struct DetectEngineCtx_ {
     /** Store rule file and line so that parsers can use them in errors. */
     char *rule_file;
     int rule_line;
+
+    /** Is detect engine using a delayed init */
+    int delayed_detect;
 } DetectEngineCtx;
 
 /* Engine groups profiles (low, medium, high, custom) */
