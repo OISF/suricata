@@ -685,6 +685,7 @@ int main(int argc, char **argv)
 #endif /* OS_WIN32 */
     int build_info = 0;
     int rule_reload = 0;
+    int delayed_detect = 1;
 
     char *log_dir;
 #ifdef OS_WIN32
@@ -1730,18 +1731,42 @@ int main(int argc, char **argv)
     if (MagicInit() != 0)
         exit(EXIT_FAILURE);
 
-    if (SigLoadSignatures(de_ctx, sig_file, sig_file_exclusive) < 0) {
-        if (sig_file == NULL) {
-            SCLogError(SC_ERR_OPENING_FILE, "Signature file has not been provided");
-        } else {
-            SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
+    /* In offline mode delayed init of detect is a bad idea */
+    if ((run_mode == RUNMODE_PCAP_FILE) ||
+        (run_mode == RUNMODE_ERF_FILE) ||
+        engine_analysis) {
+        delayed_detect = 0;
+    } else {
+        ConfNode *denode = NULL;
+        ConfNode *decnf = ConfGetNode("detect-engine");
+        if (decnf != NULL) {
+            TAILQ_FOREACH(denode, &decnf->head, next) {
+                if (strcmp(denode->val, "delayed-detect") == 0) {
+                    (void)ConfGetChildValueBool(denode, "delayed-detect", &delayed_detect);
+                }
+            }
         }
-        if (de_ctx->failure_fatal)
-            exit(EXIT_FAILURE);
+    }
+    de_ctx->delayed_detect = delayed_detect;
+
+    SCLogInfo("Delayed detect %s", delayed_detect ? "enabled" : "disabled");
+    if (delayed_detect) {
+        SCLogInfo("Packets will start being processed before signatures are active.");
     }
 
-    if (engine_analysis) {
-        exit(EXIT_SUCCESS);
+    if (!delayed_detect) {
+        if (SigLoadSignatures(de_ctx, sig_file, sig_file_exclusive) < 0) {
+            if (sig_file == NULL) {
+                SCLogError(SC_ERR_OPENING_FILE, "Signature file has not been provided");
+            } else {
+                SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
+            }
+            if (de_ctx->failure_fatal)
+                exit(EXIT_FAILURE);
+        }
+        if (engine_analysis) {
+            exit(EXIT_SUCCESS);
+        }
     }
 
     /* registering singal handlers we use.  We register usr2 here, so that one
@@ -1850,6 +1875,21 @@ int main(int argc, char **argv)
 
     /* Un-pause all the paused threads */
     TmThreadContinueThreads();
+
+    if (delayed_detect) {
+        if (SigLoadSignatures(de_ctx, sig_file, sig_file_exclusive) < 0) {
+            if (sig_file == NULL) {
+                SCLogError(SC_ERR_OPENING_FILE, "Signature file has not been provided");
+            } else {
+                SCLogError(SC_ERR_NO_RULES_LOADED, "Loading signatures failed.");
+            }
+            if (de_ctx->failure_fatal)
+                exit(EXIT_FAILURE);
+        }
+        TmThreadActivateDummySlot();
+        SCLogInfo("Signature(s) loaded, Detect thread(s) activated.");
+    }
+
 
 #ifdef DBG_MEM_ALLOC
     SCLogInfo("Memory used at startup: %"PRIdMAX, (intmax_t)global_mem);
