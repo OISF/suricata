@@ -72,6 +72,7 @@ extern ThreadVars *tv_root[TVT_MAX];
 extern SCMutex tv_root_lock;
 
 void TmSlotSetFuncAppend(ThreadVars *, TmModule *, void *);
+void TmSlotSetFuncAppendDelayed(ThreadVars *, TmModule *, void *, int delayed);
 TmSlot *TmSlotGetSlotForTM(int);
 
 ThreadVars *TmThreadCreate(char *, char *, char *, char *, char *, char *,
@@ -103,6 +104,9 @@ void TmThreadPauseThreads(void);
 void TmThreadCheckThreadState(void);
 TmEcode TmThreadWaitOnThreadInit(void);
 ThreadVars *TmThreadsGetCallingThread(void);
+
+void TmThreadActivateDummySlot(void);
+void TmThreadDeActivateDummySlot(void);
 
 int TmThreadsCheckFlag(ThreadVars *, uint8_t);
 void TmThreadsSetFlag(ThreadVars *, uint8_t);
