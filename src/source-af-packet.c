@@ -50,6 +50,7 @@
 #include "util-privs.h"
 #include "util-optimize.h"
 #include "util-checksum.h"
+#include "util-ioctl.h"
 #include "tmqh-packetpool.h"
 #include "source-af-packet.h"
 #include "runmodes.h"
@@ -322,6 +323,7 @@ TmEcode AFPPeersListAdd(AFPThreadVars *ptv)
     SCEnter();
     AFPPeer *peer = SCMalloc(sizeof(AFPPeer));
     AFPPeer *pitem;
+    int mtu, out_mtu;
 
     if (peer == NULL) {
         SCReturnInt(TM_ECODE_FAILED);
@@ -351,6 +353,16 @@ TmEcode AFPPeersListAdd(AFPThreadVars *ptv)
             continue;
         peer->peer = pitem;
         pitem->peer = peer;
+        mtu = GetIfaceMTU(ptv->iface);
+        out_mtu = GetIfaceMTU(ptv->out_iface);
+        if (mtu != out_mtu) {
+            SCLogError(SC_ERR_AFP_CREATE,
+                      "MTU on %s (%d) and %s (%d) are not equal, "
+                      "transmission of packets bigger than %d will fail.",
+                      ptv->iface, mtu,
+                      ptv->out_iface, out_mtu,
+                      (out_mtu > mtu) ? mtu : out_mtu);
+        }
         peerslist.peered += 2;
         break;
     }
