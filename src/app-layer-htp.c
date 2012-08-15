@@ -95,16 +95,6 @@ static uint64_t htp_state_memuse = 0;
 static uint64_t htp_state_memcnt = 0;
 #endif
 
-/** part of the engine needs the request body (e.g. http_client_body keyword) */
-uint8_t need_htp_request_body = 0;
-/** part of the engine needs the request body multipart header (e.g. filename
- *  and / or fileext keywords) */
-uint8_t need_htp_request_multipart_hdr = 0;
-/** part of the engine needs the request file (e.g. log-file module) */
-uint8_t need_htp_request_file = 0;
-/** part of the engine needs the request body (e.g. file_data keyword) */
-uint8_t need_htp_response_body = 0;
-
 SCEnumCharMap http_decoder_event_table[ ] = {
     { "UNKNOWN_ERROR",
         HTTP_DECODER_EVENT_UNKNOWN_ERROR},
@@ -356,7 +346,8 @@ void HTPStateTransactionFree(void *state, uint16_t id) {
 void AppLayerHtpEnableRequestBodyCallback(void)
 {
     SCEnter();
-    need_htp_request_body = 1;
+
+    SC_ATOMIC_OR(htp_need, HTP_REQUEST_BODY);
     SCReturn;
 }
 
@@ -368,7 +359,8 @@ void AppLayerHtpEnableRequestBodyCallback(void)
 void AppLayerHtpEnableResponseBodyCallback(void)
 {
     SCEnter();
-    need_htp_response_body = 1;
+
+    SC_ATOMIC_OR(htp_need, HTP_RESPONSE_BODY);
     SCReturn;
 }
 
@@ -382,7 +374,7 @@ void AppLayerHtpNeedMultipartHeader(void) {
     SCEnter();
     AppLayerHtpEnableRequestBodyCallback();
 
-    need_htp_request_multipart_hdr = 1;
+    SC_ATOMIC_OR(htp_need, HTP_REQUEST_MULTIPART);
     SCReturn;
 }
 
@@ -399,7 +391,7 @@ void AppLayerHtpNeedFileInspection(void)
     AppLayerHtpEnableRequestBodyCallback();
     AppLayerHtpEnableResponseBodyCallback();
 
-    need_htp_request_file = 1;
+    SC_ATOMIC_OR(htp_need, HTP_REQUEST_FILE);
     SCReturn;
 }
 
@@ -1779,7 +1771,7 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 {
     SCEnter();
 
-    if (need_htp_request_body == 0)
+    if (SC_ATOMIC_GET(htp_need) & HTP_REQUEST_BODY)
         SCReturnInt(HOOK_OK);
 
 #ifdef PRINT
@@ -1902,7 +1894,8 @@ int HTPCallbackResponseBodyData(htp_tx_data_t *d)
 {
     SCEnter();
 
-    if (need_htp_response_body == 0)
+
+    if (SC_ATOMIC_GET(htp_need) & HTP_RESPONSE_BODY)
         SCReturnInt(HOOK_OK);
 
     HtpState *hstate = (HtpState *)d->tx->connp->user_data;
@@ -2485,6 +2478,7 @@ void RegisterHTPParsers(void)
     AppLayerRegisterProto(proto_name, ALPROTO_HTTP, STREAM_TOCLIENT,
                           HTPHandleResponseData);
 
+    SC_ATOMIC_INIT(htp_need);
     HTPConfigure();
     SCReturn;
 }
