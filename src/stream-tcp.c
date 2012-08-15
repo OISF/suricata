@@ -5066,18 +5066,28 @@ static int StreamTcpTest06 (void) {
     tcph.th_flags = TH_FIN;
     p->tcph = &tcph;
 
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
+    /* StreamTcpPacket returns -1 on unsolicited FIN */
+    if (StreamTcpPacket(&tv, p, &stt, &pq) != -1) {
+        printf("StreamTcpPacket failed: ");
         goto end;
+    }
 
-    if (((TcpSession *)(p->flow->protoctx)) != NULL)
+    if (((TcpSession *)(p->flow->protoctx)) != NULL) {
+        printf("we have a ssn while we shouldn't: ");
         goto end;
+    }
 
     p->tcph->th_flags = TH_RST;
-    if (StreamTcpPacket(&tv, p, &stt, &pq) == -1)
+    /* StreamTcpPacket returns -1 on unsolicited RST */
+    if (StreamTcpPacket(&tv, p, &stt, &pq) != -1) {
+        printf("StreamTcpPacket failed (2): ");
         goto end;
+    }
 
-    if (((TcpSession *)(p->flow->protoctx)) != NULL)
+    if (((TcpSession *)(p->flow->protoctx)) != NULL) {
+        printf("we have a ssn while we shouldn't (2): ");
         goto end;
+    }
 
     ret = 1;
 end:
