@@ -1779,6 +1779,9 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 {
     SCEnter();
 
+    if (need_htp_request_body == 0)
+        SCReturnInt(HOOK_OK);
+
 #ifdef PRINT
     printf("HTPBODY START: \n");
     PrintRawDataFp(stdout, (uint8_t *)d->data, d->len);
@@ -1898,6 +1901,9 @@ end:
 int HTPCallbackResponseBodyData(htp_tx_data_t *d)
 {
     SCEnter();
+
+    if (need_htp_response_body == 0)
+        SCReturnInt(HOOK_OK);
 
     HtpState *hstate = (HtpState *)d->tx->connp->user_data;
     if (hstate == NULL) {
@@ -2135,6 +2141,10 @@ static void HTPConfigure(void)
             HTPCallbackRequestUriNormalizeQuery);
 #endif
     htp_config_set_generate_request_uri_normalized(cfglist.cfg, 1);
+    htp_config_register_request_body_data(cfglist.cfg,
+                                          HTPCallbackRequestBodyData);
+    htp_config_register_response_body_data(cfglist.cfg,
+                                           HTPCallbackResponseBodyData);
 
     default_config = ConfGetNode("libhtp.default-config");
     if (NULL != default_config) {
@@ -2275,6 +2285,10 @@ static void HTPConfigure(void)
             htprec->response_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
             htp_config_register_request(htp, HTPCallbackRequest);
             htp_config_register_response(htp, HTPCallbackResponse);
+            htp_config_register_request_body_data(htp,
+                                                  HTPCallbackRequestBodyData);
+            htp_config_register_response_body_data(htp,
+                                                   HTPCallbackResponseBodyData);
 #ifdef HAVE_HTP_URI_NORMALIZE_HOOK
             htp_config_register_request_uri_normalize(htp,
                     HTPCallbackRequestUriNormalizeQuery);
@@ -2474,34 +2488,6 @@ void RegisterHTPParsers(void)
     HTPConfigure();
     SCReturn;
 }
-
-/**
- * \brief This function is called at the end of SigLoadSignatures.  This function
- *        enables the htp layer to register a callback for the http request body.
- *        need_htp_request_body is a flag that informs the htp app layer that
- *        a module in the engine needs the http request body.
- */
-void AppLayerHtpRegisterExtraCallbacks(void) {
-    SCEnter();
-    SCLogDebug("Registering extra htp callbacks");
-
-    HTPCfgRec *p_cfglist = &cfglist;
-    while (p_cfglist != NULL) {
-        if (need_htp_request_body == 1) {
-            SCLogDebug("Registering callback htp_config_register_request_body_data on htp");
-            htp_config_register_request_body_data(p_cfglist->cfg,
-                                                  HTPCallbackRequestBodyData);
-        }
-        if (need_htp_response_body == 1) {
-            SCLogDebug("Registering callback htp_config_register_response_body_data on htp");
-            htp_config_register_response_body_data(p_cfglist->cfg,
-                                                   HTPCallbackResponseBodyData);
-        }
-        p_cfglist = p_cfglist->next;
-    }
-    SCReturn;
-}
-
 
 #ifdef UNITTESTS
 static HTPCfgRec cfglist_backup;
