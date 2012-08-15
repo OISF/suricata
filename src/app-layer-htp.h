@@ -224,7 +224,6 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *);
 int HtpTransactionGetLoggableId(Flow *);
 void HtpBodyPrint(HtpBody *);
 void HtpBodyFree(HtpBody *);
-void AppLayerHtpRegisterExtraCallbacks(void);
 /* To free the state from unittests using app-layer-htp */
 void HTPStateFree(void *);
 void AppLayerHtpEnableRequestBodyCallback(void);

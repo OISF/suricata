@@ -1538,7 +1538,6 @@ int main(int argc, char **argv)
 
         AppLayerHtpEnableRequestBodyCallback();
         AppLayerHtpNeedFileInspection();
-        AppLayerHtpRegisterExtraCallbacks();
 
         UtInitialize();
         UTHRegisterTests();
@@ -1782,7 +1781,6 @@ int main(int argc, char **argv)
     SCCudaPBSetUpQueuesAndBuffers();
 #endif /* __SC_CUDA_SUPPORT__ */
 
-    AppLayerHtpRegisterExtraCallbacks();
     SCThresholdConfInitContext(de_ctx,NULL);
     SCAsn1LoadConfig();
 
