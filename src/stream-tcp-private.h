@@ -119,6 +119,11 @@ enum
 /** Flag for triggering RAW reassembly before the size limit is reached or
     the stream reaches EOF. */
 #define STREAMTCP_FLAG_TRIGGER_RAW_REASSEMBLY       0x1000
+/** 3WHS confirmed by server -- if suri sees 3whs ACK but server doesn't (pkt
+ *  is lost on the way to server), SYN/ACK is retransmitted. If server sends
+ *  normal packet we assume 3whs to be completed. Only used for SYN/ACK resend
+ *  event. */
+#define STREAMTCP_FLAG_3WHS_CONFIRMED               0x2000
 
 /*
  * Per STREAM flags

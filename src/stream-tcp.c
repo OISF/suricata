@@ -1957,9 +1957,19 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
             return -1;
         }
 
-        /* a resend of a SYN while we are established already -- fishy */
-        StreamTcpSetEvent(p, STREAM_EST_SYNACK_RESEND);
-        return -1;
+        if (ssn->flags & STREAMTCP_FLAG_3WHS_CONFIRMED) {
+            /* a resend of a SYN while we are established already -- fishy */
+            StreamTcpSetEvent(p, STREAM_EST_SYNACK_RESEND);
+            return -1;
+        }
+
+        SCLogDebug("ssn %p: SYN/ACK packet on state ESTABLISHED... resent. "
+                "Likely due server not receiving final ACK in 3whs", ssn);
+
+        /* resetting state to TCP_SYN_RECV as we should get another ACK now */
+        StreamTcpPacketSetState(p, ssn, TCP_SYN_RECV);
+        SCLogDebug("ssn %p: =~ ssn state is now reset to TCP_SYN_RECV", ssn);
+        return 0;
 
     } else if (p->tcph->th_flags & TH_SYN) {
         SCLogDebug("ssn %p: SYN packet on state ESTABLISED... resent", ssn);
@@ -2006,6 +2016,8 @@ static int StreamTcpPacketStateEstablished(ThreadVars *tv, Packet *p,
                     ,ssn->client.next_win, ssn->client.window);
 
         } else { /* implied to client */
+            ssn->flags |= STREAMTCP_FLAG_3WHS_CONFIRMED;
+            SCLogDebug("3whs is now confirmed by server");
 
             /* Process the received packet to client */
             HandleEstablishedPacketToClient(tv, ssn, p, stt, pq);
