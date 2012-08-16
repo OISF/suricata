@@ -380,7 +380,7 @@ void StreamTcpInitConfig(char quiet)
     if ((ConfGetBool("stream.checksum-validation", &csum)) == 1) {
         if (csum == 1) {
             stream_config.flags |= STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION;
-	}
+        }
     /* Default is that we validate the checksum of all the packets */
     } else {
         stream_config.flags |= STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION;
@@ -3737,11 +3737,13 @@ TmEcode StreamTcp (ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, Packe
         return TM_ECODE_OK;
     }
 
-    if ((stream_config.flags & STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION) &&
-            (StreamTcpValidateChecksum(p) == 0))
-    {
-        SCPerfCounterIncr(stt->counter_tcp_invalid_checksum, tv->sc_perf_pca);
-        return TM_ECODE_OK;
+    if (stream_config.flags & STREAMTCP_INIT_FLAG_CHECKSUM_VALIDATION) {
+        if (StreamTcpValidateChecksum(p) == 0) {
+            SCPerfCounterIncr(stt->counter_tcp_invalid_checksum, tv->sc_perf_pca);
+            return TM_ECODE_OK;
+        }
+    } else {
+        p->flags |= PKT_IGNORE_CHECKSUM;
     }
 
     PACKET_PROFILING_APP_RESET(&stt->ra_ctx->dp_ctx);
