@@ -1121,17 +1121,20 @@ static int SigValidate(Signature *s) {
         }
     }
 
-    if (!(s->flags & (SIG_FLAG_REQUIRE_PACKET | SIG_FLAG_REQUIRE_STREAM))) {
-        s->flags |= SIG_FLAG_REQUIRE_STREAM;
-        SigMatch *sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
-        while (sm != NULL) {
-            if (sm->type == DETECT_CONTENT &&
-                (((DetectContentData *)(sm->ctx))->flags &
-                 (DETECT_CONTENT_DEPTH | DETECT_CONTENT_OFFSET))) {
-                s->flags |= SIG_FLAG_REQUIRE_PACKET;
-                break;
+    /* TCP: pkt vs stream vs depth/offset */
+    if (s->proto.proto[IPPROTO_TCP / 8] & (1 << (IPPROTO_TCP % 8))) {
+        if (!(s->flags & (SIG_FLAG_REQUIRE_PACKET | SIG_FLAG_REQUIRE_STREAM))) {
+            s->flags |= SIG_FLAG_REQUIRE_STREAM;
+            SigMatch *sm = s->sm_lists[DETECT_SM_LIST_PMATCH];
+            while (sm != NULL) {
+                if (sm->type == DETECT_CONTENT &&
+                        (((DetectContentData *)(sm->ctx))->flags &
+                         (DETECT_CONTENT_DEPTH | DETECT_CONTENT_OFFSET))) {
+                    s->flags |= SIG_FLAG_REQUIRE_PACKET;
+                    break;
+                }
+                sm = sm->next;
             }
-            sm = sm->next;
         }
     }
 
