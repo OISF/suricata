@@ -813,16 +813,24 @@ pcre:
 # Configure libhtp.
 #
 #
-# default-config:       Used when no server-config matches
-#   personality:        List of personalities used by default
-#   request-body-limit: Limit reassembly of request body for inspection
-#                       by http_client_body & pcre /P option.
+# default-config:           Used when no server-config matches
+#   personality:            List of personalities used by default
+#   request-body-limit:     Limit reassembly of request body for inspection
+#                           by http_client_body & pcre /P option.
+#   response-body-limit:    Limit reassembly of response body for inspection
+#                           by file_data, http_server_body & pcre /Q option.
+#   double-decode-path:     Double decode path section of the URI
+#   double-decode-query:    Double decode query section of the URI
 #
-# server-config:        List of server configurations to use if address matches
-#   address:            List of ip addresses or networks for this block
-#   personalitiy:       List of personalities used by this block
-#   request-body-limit: Limit reassembly of request body for inspection
-#                       by http_client_body & pcre /P option.
+# server-config:            List of server configurations to use if address matches
+#   address:                List of ip addresses or networks for this block
+#   personalitiy:           List of personalities used by this block
+#   request-body-limit:     Limit reassembly of request body for inspection
+#                           by http_client_body & pcre /P option.
+#   response-body-limit:    Limit reassembly of response body for inspection
+#                           by file_data, http_server_body & pcre /Q option.
+#   double-decode-path:     Double decode path section of the URI
+#   double-decode-query:    Double decode query section of the URI
 #
 # Currently Available Personalities:
 #   Minimal
@@ -845,6 +853,8 @@ libhtp:
      # it's in bytes.
      request-body-limit: 3072
      response-body-limit: 3072
+     double-decode-path: no
+     double-decode-query: no
 
    server-config:
 
@@ -855,6 +865,8 @@ libhtp:
          # it's in bytes.
          request-body-limit: 4096
          response-body-limit: 4096
+         double-decode-path: no
+         double-decode-query: no
 
      - iis7:
          address:
@@ -865,6 +877,8 @@ libhtp:
          # it's in bytes.
          request-body-limit: 4096
          response-body-limit: 4096
+         double-decode-path: no
+         double-decode-query: no
 
 # Profiling settings. Only effective if Suricata has been built with the
 # the --enable-profiling configure flag.
