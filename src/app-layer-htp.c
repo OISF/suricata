@@ -873,6 +873,18 @@ static int HTPCallbackRequestUriNormalizePath(htp_connp_t *c)
     if (c->in_tx->parsed_uri->path != NULL) {
         htp_decode_path_inplace(c->cfg, c->in_tx,
                 c->in_tx->parsed_uri->path);
+
+        /* Handle UTF-8 in path */
+        if (c->cfg->path_convert_utf8) {
+            /* Decode Unicode characters into a single-byte stream, using best-fit mapping */
+            htp_utf8_decode_path_inplace(c->cfg, c->in_tx, c->in_tx->parsed_uri->path);
+        } else {
+            /* Only validate path as a UTF-8 stream */
+            htp_utf8_validate_path(c->in_tx, c->in_tx->parsed_uri->path);
+        }
+
+        /* normalize after decoding */
+        htp_normalize_uri_path_inplace(c->in_tx->parsed_uri->path);
     }
 
     SCReturnInt(HOOK_OK);
