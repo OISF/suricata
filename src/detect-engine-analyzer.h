@@ -26,8 +26,8 @@
 
 #include <stdint.h>
 
-int SetupRuleAnalyzer(char *log_path);
-void CleanupRuleAnalyzer (char *log_path);
+int SetupRuleAnalyzer(void);
+void CleanupRuleAnalyzer (void);
 int PerCentEncodingSetup ();
 int PerCentEncodingMatch (uint8_t *content, uint8_t content_len);
 void EngineAnalysisRules(Signature *s, char *line);

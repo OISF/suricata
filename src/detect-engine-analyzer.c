@@ -36,13 +36,14 @@ static int rule_warnings_only = 0;
 static FILE *rule_engine_analysis_FD = NULL;
 static pcre *percent_re = NULL;
 static pcre_extra *percent_re_study = NULL;
+static char log_path[PATH_MAX];
 
 /**
  * \brief Sets up the rule analyzer according to the config
  * \retval 1 if rule analyzer successfully enabled
  * \retval 0 if not enabled
  */
-int SetupRuleAnalyzer(char *log_path)
+int SetupRuleAnalyzer(void)
 {
     ConfNode *conf = ConfGetNode("engine-analysis");
     int enabled = 0;
@@ -58,10 +59,10 @@ int SetupRuleAnalyzer(char *log_path)
             char *log_dir;
             if (ConfGet("default-log-dir", &log_dir) != 1)
                 log_dir = DEFAULT_LOG_DIR;
-            snprintf(log_path, 256, "%s/%s", log_dir, "rules_analysis.txt");
+            snprintf(log_path, sizeof(log_path), "%s/%s", log_dir, "rules_analysis.txt");
             rule_engine_analysis_FD = fopen(log_path, "w");
             if (rule_engine_analysis_FD == NULL) {
-                SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", log_path, strerror(errno));
+                SCLogError(SC_ERR_FOPEN, "failed to open %s: %s", log_path, strerror(errno));
                 return 0;
             }
 
@@ -96,7 +97,7 @@ int SetupRuleAnalyzer(char *log_path)
     return 1;
 }
 
-void CleanupRuleAnalyzer(char *log_path) {
+void CleanupRuleAnalyzer(void) {
     if (rule_engine_analysis_FD != NULL) {
          SCLogInfo("Engine-Analyis for rules printed to file - %s", log_path);
         fclose(rule_engine_analysis_FD);

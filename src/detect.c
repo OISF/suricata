@@ -596,7 +596,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
     char *sfile = NULL;
 
     /* needed by engine_analysis */
-    char log_path[256];
+    char log_path[PATH_MAX];
 
     if (engine_analysis) {
         if ((ConfGetBool("engine-analysis.rules-fast-pattern",
@@ -610,11 +610,11 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
             char *log_dir;
             if (ConfGet("default-log-dir", &log_dir) != 1)
                 log_dir = DEFAULT_LOG_DIR;
-            snprintf(log_path, 256, "%s/%s", log_dir, "rules_fast_pattern.txt");
+            snprintf(log_path, sizeof(log_path), "%s/%s", log_dir, "rules_fast_pattern.txt");
 
             fp_engine_analysis_FD = fopen(log_path, "w");
             if (fp_engine_analysis_FD == NULL) {
-                SCLogError(SC_ERR_FOPEN, "ERROR: failed to open %s: %s", log_path,
+                SCLogError(SC_ERR_FOPEN, "failed to open %s: %s", log_path,
                            strerror(errno));
                 return -1;
             }
@@ -635,7 +635,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
         else {
             SCLogInfo("Engine-Analysis for fast_pattern disabled in conf file.");
         }
-        rule_engine_analysis_set = SetupRuleAnalyzer(log_path);
+        rule_engine_analysis_set = SetupRuleAnalyzer();
     }
 
     /* ok, let's load signature files from the general config */
@@ -735,7 +735,7 @@ int SigLoadSignatures(DetectEngineCtx *de_ctx, char *sig_file, int sig_file_excl
             }
         }
         if (rule_engine_analysis_set) {
-            CleanupRuleAnalyzer(log_path);
+            CleanupRuleAnalyzer();
         }
     }
 
