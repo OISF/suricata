@@ -561,6 +561,9 @@ int AFPReadFromRing(AFPThreadVars *ptv)
                 } else {
                     p->afp_v.sock_protect = NULL;
                 }
+                if (ptv->copy_mode == AFP_COPY_MODE_IPS) {
+                    p->flags |= PKT_INLINE;
+                }
             } else {
                 p->afp_v.sockfd = 0;
                 p->afp_v.if_idx = 0;
