@@ -169,9 +169,7 @@ void StreamTcpInlineSegmentReplacePacket(Packet *p, TcpSegment *seg) {
         BUG_ON(range > 65536);
 
         if (range) {
-            /* update the packets payload. As payload is a ptr to either
-             * p->pkt or p->ext_pkt that is updated as well */
-            memcpy(p->payload+poff, seg->payload+toff, range);
+            PacketCopyDataOffset(p, poff, seg->payload+toff, range);
 
             /* flag as modified so we can reinject / replace after
              * recalculating the checksum */
