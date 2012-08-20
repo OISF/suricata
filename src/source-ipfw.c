@@ -394,6 +394,8 @@ TmEcode ReceiveIPFWLoop(ThreadVars *tv, void *data, void *slot)
 
         p->ipfw_v.ipfw_index = ptv->ipfw_index;
 
+        p->flags |= PKT_INLINE;
+
         PacketCopyData(p, pkt, pktlen);
         SCLogDebug("Packet info: pkt_len: %" PRIu32 " (pkt %02x, pkt_data %02x)",
                    GET_PKT_LEN(p), *pkt, GET_PKT_DATA(p));
