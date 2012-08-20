@@ -199,6 +199,7 @@ void EngineAnalysisRules(Signature *s, char *line)
     uint32_t http_stat_msg_buf = 0;
     uint32_t http_raw_header_buf = 0;
     uint32_t http_raw_uri_buf = 0;
+    uint32_t http_ua_buf = 0;
     uint32_t warn_pcre_no_content = 0;
     uint32_t warn_pcre_http_content = 0;
     uint32_t warn_pcre_http = 0;
@@ -278,6 +279,11 @@ void EngineAnalysisRules(Signature *s, char *line)
                     rule_pcre_http += 1;
                     raw_http_buf += 1;
                     http_stat_code_buf += 1;
+                }
+                else if (list_id == DETECT_SM_LIST_HUADMATCH) {
+                    rule_pcre_http += 1;
+                    norm_http_buf += 1;
+                    http_ua_buf += 1;
                 }
                 else {
                     rule_pcre += 1;
@@ -468,6 +474,7 @@ void EngineAnalysisRules(Signature *s, char *line)
         if (http_client_body_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http client body buffer.\n");
         if (http_stat_msg_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http stat msg buffer.\n");
         if (http_stat_code_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http stat code buffer.\n");
+        if (http_ua_buf) fprintf(rule_engine_analysis_FD, "    Rule matches on http user agent buffer.\n");
         if (s->alproto != ALPROTO_UNKNOWN) {
             fprintf(rule_engine_analysis_FD, "    App layer protocol is %s.\n", TmModuleAlprotoToString(s->alproto));
         }
