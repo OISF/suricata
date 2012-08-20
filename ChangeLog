@@ -1,3 +1,22 @@
+1.3.1 -- 2012-08-21
+
+- AF_PACKET performance improvements
+- Defrag engine performance improvements
+- HTTP: add per server options to enable/disable double decoding of URI (#464, #504)
+- Stream engine packet handling for packets with non-standard flag combinations (#508)
+- Improved stream engine handling of packet loss (#523)
+- Stream engine checksum alerting fixed
+- Various rule analyzer fixes (#495, #496, #497)
+- (Rule) profiling fixed and improved (#460, #466)
+- Enforce limit on max-pending-packets (#510)
+- fast_pattern on negated content improved
+- TLS rule keyword parsing issues
+- Windows build fixes (#502)
+- Host OS parsing issues fixed (#499)
+- Reject signatures where content length is bigger than "depth" setting (#505)
+- Removed unused "prune-flows" option
+- Set main thread and live reload thread names (#498)
+
 1.3 -- 2012-07-06
 
 - make live rule reloads optional and disabled by default
