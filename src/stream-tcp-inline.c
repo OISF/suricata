@@ -41,7 +41,9 @@ extern int stream_inline;
  *  \retval 0 no
  *  \retval 1 yes
  */
-int StreamTcpInlineMode(void) {
+int StreamTcpInlineMode(Packet *p) {
+    if (p->flags & PKT_INLINE)
+        return 1;
     return stream_inline;
 }
 

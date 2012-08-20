@@ -3678,7 +3678,7 @@ error:
         ReCalculateChecksum(p);
     }
 
-    if (StreamTcpInlineMode()) {
+    if (StreamTcpInlineMode(p)) {
         p->action |= ACTION_DROP;
     }
     SCReturnInt(-1);
