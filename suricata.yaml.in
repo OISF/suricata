@@ -935,3 +935,7 @@ profiling:
 
 coredump:
   max-dump: unlimited
+
+# If set to no, the loading of signatures will be made before the engine
+# is started.
+#delayed-detect: no

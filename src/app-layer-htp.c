@@ -95,16 +95,6 @@ static uint64_t htp_state_memuse = 0;
 static uint64_t htp_state_memcnt = 0;
 #endif
 
-/** part of the engine needs the request body (e.g. http_client_body keyword) */
-uint8_t need_htp_request_body = 0;
-/** part of the engine needs the request body multipart header (e.g. filename
- *  and / or fileext keywords) */
-uint8_t need_htp_request_multipart_hdr = 0;
-/** part of the engine needs the request file (e.g. log-file module) */
-uint8_t need_htp_request_file = 0;
-/** part of the engine needs the request body (e.g. file_data keyword) */
-uint8_t need_htp_response_body = 0;
-
 SCEnumCharMap http_decoder_event_table[ ] = {
     { "UNKNOWN_ERROR",
         HTTP_DECODER_EVENT_UNKNOWN_ERROR},
@@ -356,7 +346,8 @@ void HTPStateTransactionFree(void *state, uint16_t id) {
 void AppLayerHtpEnableRequestBodyCallback(void)
 {
     SCEnter();
-    need_htp_request_body = 1;
+
+    SC_ATOMIC_OR(htp_need, HTP_REQUEST_BODY);
     SCReturn;
 }
 
@@ -368,7 +359,8 @@ void AppLayerHtpEnableRequestBodyCallback(void)
 void AppLayerHtpEnableResponseBodyCallback(void)
 {
     SCEnter();
-    need_htp_response_body = 1;
+
+    SC_ATOMIC_OR(htp_need, HTP_RESPONSE_BODY);
     SCReturn;
 }
 
@@ -382,7 +374,7 @@ void AppLayerHtpNeedMultipartHeader(void) {
     SCEnter();
     AppLayerHtpEnableRequestBodyCallback();
 
-    need_htp_request_multipart_hdr = 1;
+    SC_ATOMIC_OR(htp_need, HTP_REQUEST_MULTIPART);
     SCReturn;
 }
 
@@ -399,7 +391,7 @@ void AppLayerHtpNeedFileInspection(void)
     AppLayerHtpEnableRequestBodyCallback();
     AppLayerHtpEnableResponseBodyCallback();
 
-    need_htp_request_file = 1;
+    SC_ATOMIC_OR(htp_need, HTP_REQUEST_FILE);
     SCReturn;
 }
 
@@ -1779,6 +1771,9 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *d)
 {
     SCEnter();
 
+    if (SC_ATOMIC_GET(htp_need) & HTP_REQUEST_BODY)
+        SCReturnInt(HOOK_OK);
+
 #ifdef PRINT
     printf("HTPBODY START: \n");
     PrintRawDataFp(stdout, (uint8_t *)d->data, d->len);
@@ -1898,6 +1893,10 @@ end:
 int HTPCallbackResponseBodyData(htp_tx_data_t *d)
 {
     SCEnter();
+
+
+    if (SC_ATOMIC_GET(htp_need) & HTP_RESPONSE_BODY)
+        SCReturnInt(HOOK_OK);
 
     HtpState *hstate = (HtpState *)d->tx->connp->user_data;
     if (hstate == NULL) {
@@ -2135,6 +2134,10 @@ static void HTPConfigure(void)
             HTPCallbackRequestUriNormalizeQuery);
 #endif
     htp_config_set_generate_request_uri_normalized(cfglist.cfg, 1);
+    htp_config_register_request_body_data(cfglist.cfg,
+                                          HTPCallbackRequestBodyData);
+    htp_config_register_response_body_data(cfglist.cfg,
+                                           HTPCallbackResponseBodyData);
 
     default_config = ConfGetNode("libhtp.default-config");
     if (NULL != default_config) {
@@ -2275,6 +2278,10 @@ static void HTPConfigure(void)
             htprec->response_body_limit = HTP_CONFIG_DEFAULT_REQUEST_BODY_LIMIT;
             htp_config_register_request(htp, HTPCallbackRequest);
             htp_config_register_response(htp, HTPCallbackResponse);
+            htp_config_register_request_body_data(htp,
+                                                  HTPCallbackRequestBodyData);
+            htp_config_register_response_body_data(htp,
+                                                   HTPCallbackResponseBodyData);
 #ifdef HAVE_HTP_URI_NORMALIZE_HOOK
             htp_config_register_request_uri_normalize(htp,
                     HTPCallbackRequestUriNormalizeQuery);
@@ -2471,37 +2478,10 @@ void RegisterHTPParsers(void)
     AppLayerRegisterProto(proto_name, ALPROTO_HTTP, STREAM_TOCLIENT,
                           HTPHandleResponseData);
 
+    SC_ATOMIC_INIT(htp_need);
     HTPConfigure();
     SCReturn;
 }
-
-/**
- * \brief This function is called at the end of SigLoadSignatures.  This function
- *        enables the htp layer to register a callback for the http request body.
- *        need_htp_request_body is a flag that informs the htp app layer that
- *        a module in the engine needs the http request body.
- */
-void AppLayerHtpRegisterExtraCallbacks(void) {
-    SCEnter();
-    SCLogDebug("Registering extra htp callbacks");
-
-    HTPCfgRec *p_cfglist = &cfglist;
-    while (p_cfglist != NULL) {
-        if (need_htp_request_body == 1) {
-            SCLogDebug("Registering callback htp_config_register_request_body_data on htp");
-            htp_config_register_request_body_data(p_cfglist->cfg,
-                                                  HTPCallbackRequestBodyData);
-        }
-        if (need_htp_response_body == 1) {
-            SCLogDebug("Registering callback htp_config_register_response_body_data on htp");
-            htp_config_register_response_body_data(p_cfglist->cfg,
-                                                   HTPCallbackResponseBodyData);
-        }
-        p_cfglist = p_cfglist->next;
-    }
-    SCReturn;
-}
-
 
 #ifdef UNITTESTS
 static HTPCfgRec cfglist_backup;
