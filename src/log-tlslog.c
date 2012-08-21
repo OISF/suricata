@@ -535,7 +535,6 @@ OutputCtx *LogTlsLogInitCtx(ConfNode *conf)
         }
     }
 
-    /* FIXME config variable here */
     if (SCConfLogOpenGeneric(conf, file_ctx, DEFAULT_LOG_FILENAME) < 0) {
         LogFileFreeCtx(file_ctx);
         return NULL;
