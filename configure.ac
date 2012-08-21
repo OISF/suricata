@@ -1,6 +1,6 @@
 #TODO A better place for default CFLAGS?
 
-AC_INIT(configure.in)
+AC_INIT(configure.ac)
 
     AM_CONFIG_HEADER(config.h)
     AM_INIT_AUTOMAKE(suricata, 1.3dev)
@@ -139,18 +139,18 @@ AC_INIT(configure.in)
                     LDFLAGS="${LDFLAGS} -L/usr/local/lib -I/usr/local/lib/libnet-1.1"
 		    e_magic_file="/usr/local/share/file/magic.mgc"
                     ;;
-    	   *darwin*|*Darwin*)
+	   *darwin*|*Darwin*)
                     CFLAGS="${CFLAGS} -DOS_DARWIN"
                     CPPFLAGS="${CPPFLAGS} -I/opt/local/include"
                     LDFLAGS="${LDFLAGS} -L/opt/local/lib"
-        		    ;;
+			    ;;
            *-*-linux*)
                     #for now do nothing
                     ;;
            *-*-mingw32*)
                     CFLAGS="${CFLAGS} -DOS_WIN32"
                     LDFLAGS="${LDFLAGS} -lws2_32"
-          		    WINDOWS_PATH="yes"
+			    WINDOWS_PATH="yes"
                     ;;
            *-*-cygwin)
 		              WINDOWS_PATH="yes"
@@ -585,7 +585,7 @@ AC_INIT(configure.in)
         echo "   for headers etc. when the --with-libnfq-includes directive"
         echo "   is used"
         echo
-        exit 1 
+        exit 1
     fi
   ])
 
@@ -1315,4 +1315,3 @@ echo "To install Suricata into /usr/bin/suricata, have the config in
 /etc/suricata and use /var/log/suricata as log dir, use:
 ./configure --prefix=/usr/ --sysconfdir=/etc/ --localstatedir=/var/"
 echo
-
