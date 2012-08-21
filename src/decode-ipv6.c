@@ -45,6 +45,32 @@
 #define IPV6_EXTHDRS     ip6eh.ip6_exthdrs
 #define IPV6_EH_CNT      ip6eh.ip6_exthdrs_cnt
 
+/**
+ * \brief Function to decode IPv4 in IPv6 packets
+ *
+ * \retval 0 if packet is not a IPv4 in IPv6 packet, 1 if it is
+ */
+static int DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t plen, PacketQueue *pq)
+{
+    /* Try to detect IPv4 in IPv6 */
+    if (IP_GET_RAW_VER(pkt) == 4) {
+        if (unlikely(plen < IPV4_HEADER_LEN + IPV4_HEADER_LEN)) {
+            ENGINE_SET_EVENT(p, IPV4_PKT_TOO_SMALL);
+            return 0;
+        }
+        if (pq != NULL) {
+            Packet *tp = PacketPseudoPktSetup(p, pkt, plen, IPPROTO_IP);
+            if (tp != NULL) {
+                DecodeTunnel(tv, dtv, tp, GET_PKT_DATA(tp),
+                        GET_PKT_LEN(tp), pq, IPPROTO_IP);
+                PacketEnqueue(pq,tp);
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
 static void
 DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
@@ -408,6 +434,9 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 SCReturn;
 
             default:
+                if (DecodeIPv4inIPv6(tv, dtv, p, pkt, plen, pq) == 1) {
+                    SCReturn;
+                }
                 IPV6_SET_L4PROTO(p,nh);
                 SCReturn;
         }
@@ -492,6 +521,9 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
             DecodeIPV6ExtHdrs(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p), pq);
             break;
         default:
+            if (DecodeIPv4inIPv6(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p), pq) == 1) {
+                SCReturn;
+            }
             p->proto = IPV6_GET_NH(p);
             break;
     }
