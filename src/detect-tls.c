@@ -292,8 +292,7 @@ static DetectTlsData *DetectTlsSubjectParse (char *str)
         }
 
         /* Let's see if we need to escape "'s */
-        if (tmp_str[0] == '"')
-        {
+        if (tmp_str[0] == '"') {
             tmp_str[strlen(tmp_str) - 1] = '\0';
             tmp_str += 1;
         }
@@ -534,7 +533,8 @@ static int DetectTlsIssuerDNSetup (DetectEngineCtx *de_ctx, Signature *s, char *
     SigMatch *sm = NULL;
 
     tls = DetectTlsIssuerDNParse(str);
-    if (tls == NULL) goto error;
+    if (tls == NULL)
+        goto error;
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
@@ -556,8 +556,10 @@ static int DetectTlsIssuerDNSetup (DetectEngineCtx *de_ctx, Signature *s, char *
     return 0;
 
 error:
-    if (tls != NULL) DetectTlsIssuerDNFree(tls);
-    if (sm != NULL) SCFree(sm);
+    if (tls != NULL)
+        DetectTlsIssuerDNFree(tls);
+    if (sm != NULL)
+        SCFree(sm);
     return -1;
 
 }
@@ -723,7 +725,8 @@ static int DetectTlsFingerprintSetup (DetectEngineCtx *de_ctx, Signature *s, cha
     SigMatch *sm = NULL;
 
     tls = DetectTlsFingerprintParse(str);
-    if (tls == NULL) goto error;
+    if (tls == NULL)
+        goto error;
 
     /* Okay so far so good, lets get this into a SigMatch
      * and put it in the Signature. */
@@ -745,8 +748,10 @@ static int DetectTlsFingerprintSetup (DetectEngineCtx *de_ctx, Signature *s, cha
     return 0;
 
 error:
-    if (tls != NULL) DetectTlsFingerprintFree(tls);
-    if (sm != NULL) SCFree(sm);
+    if (tls != NULL)
+        DetectTlsFingerprintFree(tls);
+    if (sm != NULL)
+        SCFree(sm);
     return -1;
 
 }
@@ -796,8 +801,9 @@ static int DetectTlsStoreSetup (DetectEngineCtx *de_ctx, Signature *s, char *str
     return 0;
 
 error:
-    if (sm != NULL) SCFree(sm);
-        return -1;
+    if (sm != NULL)
+        SCFree(sm);
+    return -1;
 
 }
 
