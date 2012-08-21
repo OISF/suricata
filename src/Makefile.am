@@ -247,6 +247,7 @@ util-runmodes.c util-runmodes.h \
 util-file.c util-file.h \
 util-path.c util-path.h \
 util-buffer.c util-buffer.h \
+util-crypt.c util-crypt.h \
 tm-modules.c tm-modules.h \
 tm-queues.c tm-queues.h \
 tm-queuehandlers.c tm-queuehandlers.h \
@@ -264,6 +265,7 @@ alert-syslog.c alert-syslog.h \
 alert-pcapinfo.c alert-pcapinfo.h \
 log-droplog.c log-droplog.h \
 log-httplog.c log-httplog.h \
+log-tlslog.c log-tlslog.h \
 log-pcap.c log-pcap.h \
 log-file.c log-file.h \
 log-filestore.c log-filestore.h \
