@@ -636,7 +636,8 @@ void *TmThreadsSlotPktAcqLoop(void *td) {
 
         r = s->PktAcqLoop(tv, SC_ATOMIC_GET(s->slot_data), s);
 
-        if (r == TM_ECODE_FAILED || TmThreadsCheckFlag(tv, THV_KILL)) {
+        if (r == TM_ECODE_FAILED || TmThreadsCheckFlag(tv, THV_KILL)
+            || suricata_ctl_flags) {
             run = 0;
         }
     }
@@ -1709,6 +1710,8 @@ TmEcode TmThreadSpawn(ThreadVars *tv)
         printf("ERROR; return code from pthread_create() is %" PRId32 "\n", rc);
         return TM_ECODE_FAILED;
     }
+
+    TmThreadWaitForFlag(tv, THV_INIT_DONE);
 
     TmThreadAppend(tv, tv->type);
 
