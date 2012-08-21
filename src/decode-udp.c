@@ -33,6 +33,7 @@
 #include "suricata-common.h"
 #include "decode.h"
 #include "decode-udp.h"
+#include "decode-teredo.h"
 #include "decode-events.h"
 #include "util-unittest.h"
 #include "util-debug.h"
@@ -71,6 +72,7 @@ static int DecodeUDPPacket(ThreadVars *t, Packet *p, uint8_t *pkt, uint16_t len)
 
 void DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
+    unsigned char *start = NULL;
     SCPerfCounterIncr(dtv->counter_udp, tv->sc_perf_pca);
 
     if (DecodeUDPPacket(tv, p,pkt,len) < 0) {
@@ -80,6 +82,11 @@ void DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
     SCLogDebug("UDP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 "",
         UDP_GET_SRC_PORT(p), UDP_GET_DST_PORT(p), UDP_HEADER_LEN, p->payload_len);
+
+    /* Check if we have a Teredo tunnel */
+    if (DecodeTeredo(tv, dtv, p, pkt, len, pq) == 1) {
+        return;
+    }
 
     /* Flow is an integral part of us */
     FlowHandlePacket(tv, p);
