@@ -430,7 +430,8 @@ pattern-matcher:
 # Defrag settings:
 
 defrag:
-  max-frags: 65535
+  trackers: 65535 # number of defragmented flows to follow
+  max-frags: 65535 # number of fragments to keep (higher than trackers)
   prealloc: yes
   timeout: 60
 
