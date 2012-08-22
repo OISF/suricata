@@ -93,6 +93,7 @@ int DecodeTeredo(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt,
                                  pq, IPPROTO_IPV6);
                     /* add the tp to the packet queue. */
                     PacketEnqueue(pq,tp);
+                    SCPerfCounterIncr(dtv->counter_teredo, tv->sc_perf_pca);
                     return 1;
                 }
             }
