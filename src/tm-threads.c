@@ -43,6 +43,7 @@
 #include "util-optimize.h"
 #include "util-profiling.h"
 #include "util-signal.h"
+#include "queue.h"
 
 #ifdef PROFILE_LOCKING
 __thread uint64_t mutex_lock_contention;
@@ -117,6 +118,12 @@ void TmThreadsSetFlag(ThreadVars *tv, uint8_t flag)
 void TmThreadsUnsetFlag(ThreadVars *tv, uint8_t flag)
 {
     SC_ATOMIC_AND(tv->flags, ~flag);
+}
+
+
+TmEcode TmDummyFunc(ThreadVars *tv, Packet *p, void *data, PacketQueue *pq, PacketQueue *postpq)
+{
+    return TM_ECODE_OK;
 }
 
 /* 1 slot functions */
@@ -886,13 +893,14 @@ ThreadVars *TmThreadsGetTVContainingSlot(TmSlot *tm_slot)
  * \param tm   TM to append.
  * \param data Data to be passed on to the slot init function.
  */
-void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data)
+
+static inline TmSlot * _TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data)
 {
     TmSlot *s = (TmSlot *)tv->tm_slots;
 
     TmSlot *slot = SCMalloc(sizeof(TmSlot));
     if (slot == NULL)
-        return;
+        return NULL;
     memset(slot, 0, sizeof(TmSlot));
     SC_ATOMIC_INIT(slot->slot_data);
     slot->tv = tv;
@@ -925,8 +933,83 @@ void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data)
         }
     }
 
+    return slot;
+}
+
+void TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data)
+{
+    _TmSlotSetFuncAppend(tv, tm, data);
+}
+
+typedef struct TmDummySlot_ {
+    TmSlot *slot;
+    TmEcode (*SlotFunc)(ThreadVars *, Packet *, void *, PacketQueue *,
+                        PacketQueue *);
+    TmEcode (*SlotThreadInit)(ThreadVars *, void *, void **);
+    TAILQ_ENTRY(TmDummySlot_) next;
+} TmDummySlot;
+
+static TAILQ_HEAD(, TmDummySlot_) dummy_slots =
+    TAILQ_HEAD_INITIALIZER(dummy_slots);
+
+void TmSlotSetFuncAppendDelayed(ThreadVars *tv, TmModule *tm, void *data)
+{
+    TmSlot *slot = _TmSlotSetFuncAppend(tv, tm, data);
+    TmDummySlot *dslot = SCMalloc(sizeof(TmDummySlot));
+
+    if (slot == NULL) {
+        return;
+    }
+    if (dslot == NULL) {
+        return;
+    }
+
+    memset(dslot, 0, sizeof(*dslot));
+
+    dslot->SlotFunc = slot->SlotFunc;
+    slot->SlotFunc = TmDummyFunc;
+    dslot->SlotThreadInit = slot->SlotThreadInit;
+    slot->SlotThreadInit = NULL;
+    dslot->slot = slot;
+
+    TAILQ_INSERT_TAIL(&dummy_slots, dslot, next);
+
     return;
 }
+
+void TmThreadActivateDummySlot()
+{
+    TmDummySlot *dslot;
+    TmSlot *s;
+    TmEcode r = TM_ECODE_OK;
+
+    TAILQ_FOREACH(dslot, &dummy_slots, next) {
+        void *slot_data = NULL;
+        s = dslot->slot;
+        if (dslot->SlotThreadInit != NULL) {
+            s->SlotThreadInit = dslot->SlotThreadInit;
+            r = s->SlotThreadInit(s->tv, s->slot_initdata, &slot_data);
+            if (r != TM_ECODE_OK) {
+                EngineKill();
+                TmThreadsSetFlag(s->tv, THV_CLOSED | THV_RUNNING_DONE);
+            }
+            SC_ATOMIC_SET(s->slot_data, slot_data);
+        }
+        s->SlotFunc = dslot->SlotFunc;
+    }
+}
+
+void TmThreadDeActivateDummySlot()
+{
+    TmDummySlot *dslot;
+
+    TAILQ_FOREACH(dslot, &dummy_slots, next) {
+        dslot->slot->SlotFunc = TmDummyFunc;
+        dslot->slot->SlotThreadInit = NULL;
+    }
+}
+
+
 
 /**
  * \brief Returns the slot holding a TM with the particular tm_id.
