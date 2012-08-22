@@ -118,6 +118,8 @@ struct DetectEngineEvents_ {
     { "ipv6.frag_overlap", IPV6_FRAG_OVERLAP, },
     { "ipv6.ipv4_in_ipv6_too_small", IPV4_IN_IPV6_PKT_TOO_SMALL, },
     { "ipv6.ipv4_in_ipv6_wrong_version", IPV4_IN_IPV6_WRONG_IP_VER, },
+    { "ipv6.ip6_in_ip6_too_small", IP6_IN_IP6_PKT_TOO_SMALL, },
+    { "ipv6.ip6_in_ip6_wrong_version", IP6_IN_IP6_WRONG_IP_VER, },
     { "stream.3whs_ack_in_wrong_dir", STREAM_3WHS_ACK_IN_WRONG_DIR, },
     { "stream.3whs_async_wrong_seq", STREAM_3WHS_ASYNC_WRONG_SEQ, },
     { "stream.3whs_right_seq_wrong_ack_evasion", STREAM_3WHS_RIGHT_SEQ_WRONG_ACK_EVASION, },
