@@ -55,6 +55,7 @@
 #endif
 
 #define DEFAULT_DEFRAG_HASH_SIZE 0xffff
+#define DEFAULT_DEFRAG_POOL_SIZE 0xffff
 
 /**
  * Default timeout (in seconds) before a defragmentation tracker will
@@ -416,14 +417,6 @@ DefragContextNew(void)
     if (dc == NULL)
         return NULL;
 
-    /* Initialize the hash table. */
-    dc->frag_table = HashListTableInit(DEFAULT_DEFRAG_HASH_SIZE, DefragHashFunc,
-        DefragHashCompare, DefragHashFree);
-    if (dc->frag_table == NULL) {
-        SCLogError(SC_ERR_MEM_ALLOC,
-            "Defrag: Failed to initialize hash table.");
-        exit(EXIT_FAILURE);
-    }
     if (SCMutexInit(&dc->frag_table_lock, NULL) != 0) {
         SCLogError(SC_ERR_MEM_ALLOC,
             "Defrag: Failed to initialize hash table mutex.");
@@ -448,9 +441,21 @@ DefragContextNew(void)
         exit(EXIT_FAILURE);
     }
 
+    /* Initialize the hash table. */
+    dc->frag_table = HashListTableInit(tracker_pool_size, DefragHashFunc,
+        DefragHashCompare, DefragHashFree);
+    if (dc->frag_table == NULL) {
+        SCLogError(SC_ERR_MEM_ALLOC,
+            "Defrag: Failed to initialize hash table.");
+        exit(EXIT_FAILURE);
+    }
+
     /* Initialize the pool of frags. */
-    int frag_pool_size = 0xffff;
-    int frag_pool_prealloc = frag_pool_size / 4;
+    intmax_t frag_pool_size;
+    if (!ConfGetInt("defrag.max-frags", &frag_pool_size)) {
+        frag_pool_size = DEFAULT_DEFRAG_POOL_SIZE;
+    }
+    intmax_t frag_pool_prealloc = frag_pool_size / 2;
     dc->frag_pool = PoolInit(frag_pool_size, frag_pool_prealloc,
         DefragFragNew, dc, DefragFragFree);
     if (dc->frag_pool == NULL) {
@@ -487,8 +492,8 @@ DefragContextNew(void)
     SCLogDebug("\tTimeout: %"PRIuMAX, (uintmax_t)dc->timeout);
     SCLogDebug("\tMaximum defrag trackers: %"PRIuMAX, tracker_pool_size);
     SCLogDebug("\tPreallocated defrag trackers: %"PRIuMAX, tracker_pool_size);
-    SCLogDebug("\tMaximum fragments: %d", frag_pool_size);
-    SCLogDebug("\tPreallocated fragments: %d", frag_pool_prealloc);
+    SCLogDebug("\tMaximum fragments: %ld", frag_pool_size);
+    SCLogDebug("\tPreallocated fragments: %ld", frag_pool_prealloc);
 
     return dc;
 }
@@ -928,6 +933,11 @@ DefragInsertFrag(ThreadVars *tv, DecodeThreadVars *dtv, DefragContext *dc,
 
 insert:
     if (data_len - ltrim <= 0) {
+        if (af == AF_INET) {
+            ENGINE_SET_EVENT(p, IPV4_FRAG_TOO_LARGE);
+        } else {
+            ENGINE_SET_EVENT(p, IPV6_FRAG_TOO_LARGE);
+        }
         goto done;
     }
 
@@ -936,6 +946,11 @@ insert:
     Frag *new = PoolGet(dc->frag_pool);
     SCMutexUnlock(&dc->frag_pool_lock);
     if (new == NULL) {
+        if (af == AF_INET) {
+            ENGINE_SET_EVENT(p, IPV4_FRAG_IGNORED);
+        } else {
+            ENGINE_SET_EVENT(p, IPV6_FRAG_IGNORED);
+        }
         goto done;
     }
     new->pkt = SCMalloc(GET_PKT_LEN(p));
@@ -943,6 +958,11 @@ insert:
         SCMutexLock(&dc->frag_pool_lock);
         PoolReturn(dc->frag_pool, new);
         SCMutexUnlock(&dc->frag_pool_lock);
+        if (af == AF_INET) {
+            ENGINE_SET_EVENT(p, IPV4_FRAG_IGNORED);
+        } else {
+            ENGINE_SET_EVENT(p, IPV6_FRAG_IGNORED);
+        }
         goto done;
     }
     memcpy(new->pkt, GET_PKT_DATA(p) + ltrim, GET_PKT_LEN(p) - ltrim);
@@ -1235,9 +1255,13 @@ DefragInit(void)
     /* Initialize random value for hashing and hash table size. */
     unsigned int seed = RandomTimePreseed();
     /* set defaults */
-    defrag_hash_rand = (int)( DEFAULT_DEFRAG_HASH_SIZE * (rand_r(&seed) / RAND_MAX + 1.0));
+    intmax_t tracker_pool_size;
+    if (!ConfGetInt("defrag.trackers", &tracker_pool_size)) {
+        tracker_pool_size = DEFAULT_DEFRAG_HASH_SIZE;
+    }
 
-    defrag_hash_size = DEFAULT_DEFRAG_HASH_SIZE;
+    defrag_hash_rand = (int)( tracker_pool_size * (rand_r(&seed) / RAND_MAX + 1.0));
+    defrag_hash_size = tracker_pool_size;
 
     /* Allocate the DefragContext. */
     defrag_context = DefragContextNew();
