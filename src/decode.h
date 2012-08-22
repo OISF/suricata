@@ -554,6 +554,7 @@ typedef struct DecodeThreadVars_
     uint16_t counter_gre;
     uint16_t counter_vlan;
     uint16_t counter_pppoe;
+    uint16_t counter_teredo;
     uint16_t counter_avg_pkt_size;
     uint16_t counter_max_pkt_size;
 
