@@ -2411,13 +2411,13 @@ DefragTimeoutTest(void)
     int ret = 0;
     DefragContext *dc = NULL;
 
-    DefragInit();
-
     /* Setup a small numberr of trackers. */
     if (ConfSet("defrag.trackers", "16", 1) != 1) {
         printf("ConfSet failed: ");
         goto end;
     }
+
+    DefragInit();
 
     dc = DefragContextNew();
     if (dc == NULL)
