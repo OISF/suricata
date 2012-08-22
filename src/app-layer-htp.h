@@ -204,14 +204,16 @@ typedef struct HtpState_ {
 } HtpState;
 
 /** part of the engine needs the request body (e.g. http_client_body keyword) */
-extern uint8_t need_htp_request_body;
+#define HTP_REQUIRE_REQUEST_BODY        (1 << 0)
 /** part of the engine needs the request body multipart header (e.g. filename
  *  and / or fileext keywords) */
-extern uint8_t need_htp_request_multipart_hdr;
+#define HTP_REQUIRE_REQUEST_MULTIPART   (1 << 1)
 /** part of the engine needs the request file (e.g. log-file module) */
-extern uint8_t need_htp_request_file;
+#define HTP_REQUIRE_REQUEST_FILE        (1 << 2)
 /** part of the engine needs the request body (e.g. file_data keyword) */
-extern uint8_t need_htp_response_body;
+#define HTP_REQUIRE_RESPONSE_BODY       (1 << 3)
+
+SC_ATOMIC_DECLARE(uint32_t, htp_config_flags);
 
 void RegisterHTPParsers(void);
 void HTPParserRegisterTests(void);
@@ -224,7 +226,6 @@ int HTPCallbackRequestBodyData(htp_tx_data_t *);
 int HtpTransactionGetLoggableId(Flow *);
 void HtpBodyPrint(HtpBody *);
 void HtpBodyFree(HtpBody *);
-void AppLayerHtpRegisterExtraCallbacks(void);
 /* To free the state from unittests using app-layer-htp */
 void HTPStateFree(void *);
 void AppLayerHtpEnableRequestBodyCallback(void);
