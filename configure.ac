@@ -1,6 +1,6 @@
 #TODO A better place for default CFLAGS?
 
-AC_INIT(configure.in)
+AC_INIT(configure.ac)
 
     AM_CONFIG_HEADER(config.h)
     AM_INIT_AUTOMAKE(suricata, 1.3dev)
@@ -557,7 +557,11 @@ AC_INIT(configure.in)
         # check if the argument to nfq_get_payload is signed or unsigned
         AC_MSG_CHECKING([for signed nfq_get_payload payload argument])
         STORECFLAGS="${CFLAGS}"
-        CFLAGS="${CFLAGS} -Werror"
+        if test `basename $CC` = "clang"; then
+            CFLAGS="${CFLAGS} -Werror=incompatible-pointer-types"
+        else
+            CFLAGS="${CFLAGS} -Werror=pointer-sign"
+        fi
         AC_COMPILE_IFELSE(
             [AC_LANG_PROGRAM(
                 [
@@ -571,7 +575,7 @@ AC_INIT(configure.in)
             [libnetfilter_queue_nfq_get_payload_signed="no"])
         AC_MSG_RESULT($libnetfilter_queue_nfq_get_payload_signed)
         if test "x$libnetfilter_queue_nfq_get_payload_signed" = "xyes"; then
-            AC_DEFINE([NFQ_GET_PAYLOAD_SIGNED], [], [For signed version of nfq_get_payload])
+            AC_DEFINE([NFQ_GET_PAYLOAD_SIGNED], [1], [For signed version of nfq_get_payload])
         fi
         CFLAGS="${STORECFLAGS}"
     ;;

@@ -597,9 +597,6 @@ pfring:
     # runmode)
     threads: 1
 
-    # Default interface we will listen on.
-    interface: eth0
-
     # Default clusterid.  PF_RING will load balance packets based on flow.
     # All threads/processes that will participate need to have the same
     # clusterid.
