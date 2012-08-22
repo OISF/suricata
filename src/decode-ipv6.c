@@ -45,6 +45,32 @@
 #define IPV6_EXTHDRS     ip6eh.ip6_exthdrs
 #define IPV6_EH_CNT      ip6eh.ip6_exthdrs_cnt
 
+/**
+ * \brief Function to decode IPv4 in IPv6 packets
+ *
+ */
+static void DecodeIPv4inIPv6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t plen, PacketQueue *pq)
+{
+
+    if (unlikely(plen < IPV4_HEADER_LEN)) {
+        ENGINE_SET_EVENT(p, IPV4_IN_IPV6_PKT_TOO_SMALL);
+        return;
+    }
+    if (IP_GET_RAW_VER(pkt) == 4) {
+        if (pq != NULL) {
+            Packet *tp = PacketPseudoPktSetup(p, pkt, plen, IPPROTO_IP);
+            if (tp != NULL) {
+                DecodeTunnel(tv, dtv, tp, pkt, plen, pq, IPPROTO_IP);
+                PacketEnqueue(pq,tp);
+                return;
+            }
+        }
+    } else {
+        ENGINE_SET_EVENT(p, IPV4_IN_IPV6_WRONG_IP_VER);
+    }
+    return;
+}
+
 static void
 DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, uint16_t len, PacketQueue *pq)
 {
@@ -403,6 +429,10 @@ DecodeIPV6ExtHdrs(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt
                 plen -= hdrextlen;
                 break;
             }
+            case IPPROTO_IPIP:
+                IPV6_SET_L4PROTO(p,nh);
+                DecodeIPv4inIPv6(tv, dtv, p, pkt, plen, pq);
+                SCReturn;
             case IPPROTO_NONE:
                 IPV6_SET_L4PROTO(p,nh);
                 SCReturn;
@@ -482,6 +512,9 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
         case IPPROTO_SCTP:
             IPV6_SET_L4PROTO (p, IPPROTO_SCTP);
             return DecodeSCTP(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p), pq);
+        case IPPROTO_IPIP:
+            IPV6_SET_L4PROTO(p, IPPROTO_IPIP);
+            return DecodeIPv4inIPv6(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p), pq);
         case IPPROTO_FRAGMENT:
         case IPPROTO_HOPOPTS:
         case IPPROTO_ROUTING:
@@ -491,6 +524,7 @@ void DecodeIPV6(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, 
         case IPPROTO_ESP:
             DecodeIPV6ExtHdrs(tv, dtv, p, pkt + IPV6_HEADER_LEN, IPV6_GET_PLEN(p), pq);
             break;
+
         default:
             p->proto = IPV6_GET_NH(p);
             break;
