@@ -34,6 +34,7 @@ decode-ethernet.c decode-ethernet.h \
 decode-vlan.c decode-vlan.h \
 decode-sll.c decode-sll.h \
 decode-gre.c decode-gre.h \
+decode-teredo.c decode-teredo.h \
 decode-ppp.c decode-ppp.h \
 decode-pppoe.c decode-pppoe.h \
 decode-ipv4.c decode-ipv4.h \
