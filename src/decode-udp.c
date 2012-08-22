@@ -33,6 +33,7 @@
 #include "suricata-common.h"
 #include "decode.h"
 #include "decode-udp.h"
+#include "decode-teredo.h"
 #include "decode-events.h"
 #include "util-unittest.h"
 #include "util-debug.h"
@@ -80,6 +81,13 @@ void DecodeUDP(ThreadVars *tv, DecodeThreadVars *dtv, Packet *p, uint8_t *pkt, u
 
     SCLogDebug("UDP sp: %" PRIu32 " -> dp: %" PRIu32 " - HLEN: %" PRIu32 " LEN: %" PRIu32 "",
         UDP_GET_SRC_PORT(p), UDP_GET_DST_PORT(p), UDP_HEADER_LEN, p->payload_len);
+
+    if (DecodeTeredo(tv, dtv, p, p->payload, p->payload_len, pq) == 1) {
+        /* Here we have a Teredo packet and don't need to handle app
+         * layer */
+        FlowHandlePacket(tv, p);
+        return;
+    }
 
     /* Flow is an integral part of us */
     FlowHandlePacket(tv, p);
