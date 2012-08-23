@@ -27,6 +27,7 @@
 #define __APP_LAYER_SSL_H__
 
 #include "decode-events.h"
+#include "queue.h"
 
 enum {
     /* TLS protocol messages */
@@ -64,6 +65,9 @@ enum {
 #define SSL_AL_FLAG_STATE_SERVER_KEYX           0x1000
 #define SSL_AL_FLAG_STATE_UNKNOWN               0x2000
 
+#define SSL_TLS_LOG_PEM                         (1 << 0)
+
+
 
 /* SSL versions.  We'll use a unified format for all, with the top byte
  * holding the major version and the lower byte the minor version */
@@ -75,6 +79,13 @@ enum {
     TLS_VERSION_11 = 0x0302,
     TLS_VERSION_12 = 0x0303,
 };
+
+typedef struct SSLCertsChain_ {
+    uint8_t *cert_data;
+    uint32_t cert_len;
+    TAILQ_ENTRY(SSLCertsChain_) next;
+} SSLCertsChain;
+
 
 typedef struct SSLStateConnp_ {
     /* record length */
@@ -100,6 +111,14 @@ typedef struct SSLStateConnp_ {
 
     char *cert0_subject;
     char *cert0_issuerdn;
+    char *cert0_fingerprint;
+
+    uint8_t *cert_input;
+    uint32_t cert_input_len;
+
+    TAILQ_HEAD(, SSLCertsChain_) certs;
+
+    uint32_t cert_log_flag;
 
     /* buffer for the tls record.
      * We use a malloced buffer, if the record is fragmented */
