@@ -215,6 +215,7 @@ static void LogTlsLogPem(LogTlsLogThread *aft, Packet *p, SSLState *state, LogTl
     unsigned long pemlen;
     unsigned char* pembase64ptr = NULL;
     int ret;
+    SSLCertsChain *cert;
 
     if ((state->server_connp.cert_input == NULL) || (state->server_connp.cert_input_len == 0))
         SCReturn;
@@ -231,42 +232,44 @@ static void LogTlsLogPem(LogTlsLogThread *aft, Packet *p, SSLState *state, LogTl
         SCReturn;
     }
 
-    pemlen = (4 * (state->server_connp.cert_input_len + 2) / 3) +1;
-    if (pemlen > aft->enc_buf_len) {
-        aft->enc_buf = (uint8_t*) SCRealloc(aft->enc_buf, sizeof(uint8_t*) * pemlen);
-        if (aft->enc_buf == NULL) {
-            SCLogWarning(SC_ERR_MEM_ALLOC, "Can't allocate data for base64 encoding");
-            goto end_fp;
+    TAILQ_FOREACH(cert, &state->server_connp.certs, next) {
+        pemlen = (4 * (cert->cert_len + 2) / 3) +1;
+        if (pemlen > aft->enc_buf_len) {
+            aft->enc_buf = (uint8_t*) SCRealloc(aft->enc_buf, sizeof(uint8_t*) * pemlen);
+            if (aft->enc_buf == NULL) {
+                SCLogWarning(SC_ERR_MEM_ALLOC, "Can't allocate data for base64 encoding");
+                goto end_fp;
+            }
+            aft->enc_buf_len = pemlen;
         }
-        aft->enc_buf_len = pemlen;
-    }
 
-    memset(aft->enc_buf, 0, aft->enc_buf_len);
+        memset(aft->enc_buf, 0, aft->enc_buf_len);
 
-    ret = Base64Encode((unsigned char*) state->server_connp.cert_input, state->server_connp.cert_input_len, aft->enc_buf, &pemlen);
-    if (ret != SC_BASE64_OK) {
-        SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "Invalid return of Base64Encode function");
-        goto end_fwrite_fp;
-    }
-
-    if (fprintf(fp, PEMHEADER) < 0)
-        goto end_fwrite_fp;
-
-    pembase64ptr = aft->enc_buf;
-    while (pemlen > 0) {
-        size_t loffset = pemlen >= 64 ? 64 : pemlen;
-        if (fwrite(pembase64ptr, 1, loffset, fp) != loffset)
+        ret = Base64Encode((unsigned char*) cert->cert_data, cert->cert_len, aft->enc_buf, &pemlen);
+        if (ret != SC_BASE64_OK) {
+            SCLogWarning(SC_ERR_INVALID_ARGUMENTS, "Invalid return of Base64Encode function");
             goto end_fwrite_fp;
-        if (fwrite("\n", 1, 1, fp) != 1)
-            goto end_fwrite_fp;
-        pembase64ptr += 64;
-        if (pemlen < 64)
-            break;
-        pemlen -= 64;
-    }
+        }
 
-    if (fprintf(fp, PEMFOOTER) < 0)
-        goto end_fwrite_fp;
+        if (fprintf(fp, PEMHEADER)  < 0)
+            goto end_fwrite_fp;
+
+        pembase64ptr = aft->enc_buf;
+        while (pemlen > 0) {
+            size_t loffset = pemlen >= 64 ? 64 : pemlen;
+            if (fwrite(pembase64ptr, 1, loffset, fp) != loffset)
+                goto end_fwrite_fp;
+            if (fwrite("\n", 1, 1, fp) != 1)
+                goto end_fwrite_fp;
+            pembase64ptr += 64;
+            if (pemlen < 64)
+                break;
+            pemlen -= 64;
+        }
+
+        if (fprintf(fp, PEMFOOTER) < 0)
+            goto end_fwrite_fp;
+    }
     fclose(fp);
 
     //Logging certificate informations
