@@ -223,6 +223,15 @@ af-packet:
     defrag: yes
     # To use the ring feature of AF_PACKET, set 'use-mmap' to yes
     use-mmap: yes
+    # Ring size will be computed with respect to max_pending_packets and number
+    # of threads. You can set manually the ring size in number of packets by setting
+    # the following value. If you are using flow cluster-type and have really network
+    # intensive single-flow you could want to set the ring-size independantly of the number
+    # of threads:
+    #ring-size: 2048
+    # On busy system, this could help to set it to yes to recover from a packet drop
+    # phase. This will result and some packets (at max a ring flush) being non treated.
+    #use-emergency-flush: yes
     # recv buffer size, increase value could improve performance
     # buffer-size: 32768
     # Set to yes to disable promiscuous mode
@@ -240,6 +249,13 @@ af-packet:
     #checksum-checks: kernel
     # BPF filter to apply to this interface. The pcap filter syntax apply here.
     #bpf-filter: port 80 or udp
+    # You can use the following variables to activate AF_PACKET tap od IPS mode.
+    # If copy-mode is set to ips or tap, the traffic coming to the current
+    # interface will be copied to the copy-iface interface. If 'tap' is set, the
+    # copy is complete. If 'ips' is set, the packet matching a 'drop' action
+    # will not be copied.
+    #copy-mode: ips
+    #copy-iface: eth1 
   - interface: eth1
     threads: 1
     cluster-id: 98

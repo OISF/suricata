@@ -393,6 +393,7 @@ static int NFQCallBack(struct nfq_q_handle *qh, struct nfgenmsg *nfmsg,
         TmqhOutputPacketpool(tv, p);
         return 0;
     }
+    p->flags |= PKT_INLINE;
 
 #ifdef COUNTERS
     NFQQueueVars *nfq_q = NFQGetQueue(ntv->nfq_index);

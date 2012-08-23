@@ -1108,7 +1108,7 @@ static StreamMsg *SigMatchSignaturesGetSmsg(Flow *f, Packet *p, uint8_t flags) {
         TcpSession *ssn = (TcpSession *)f->protoctx;
 
         /* at stream eof, or in inline mode, inspect all smsg's */
-        if (flags & STREAM_EOF || StreamTcpInlineMode()) {
+        if (flags & STREAM_EOF || StreamTcpInlineMode(p)) {
             if (p->flowflags & FLOW_PKT_TOSERVER) {
                 smsg = ssn->toserver_smsg_head;
                 /* deref from the ssn */

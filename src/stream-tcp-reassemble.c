@@ -1059,7 +1059,7 @@ static int HandleSegmentStartsBeforeListSegment(ThreadVars *tv, TcpReassemblyThr
             }
         }
 
-        if (StreamTcpInlineMode()) {
+        if (StreamTcpInlineMode(p)) {
             if (StreamTcpInlineSegmentCompare(seg, list_seg) != 0) {
                 StreamTcpInlineSegmentReplacePacket(p, list_seg);
             }
@@ -1251,7 +1251,7 @@ static int HandleSegmentStartsAtSameListSegment(ThreadVars *tv, TcpReassemblyThr
             }
         }
 
-        if (StreamTcpInlineMode()) {
+        if (StreamTcpInlineMode(p)) {
             if (StreamTcpInlineSegmentCompare(list_seg, seg) != 0) {
                 StreamTcpInlineSegmentReplacePacket(p, list_seg);
             }
@@ -1452,7 +1452,7 @@ static int HandleSegmentStartsAfterListSegment(ThreadVars *tv, TcpReassemblyThre
             }
         }
 
-        if (StreamTcpInlineMode()) {
+        if (StreamTcpInlineMode(p)) {
             if (StreamTcpInlineSegmentCompare(list_seg, seg) != 0) {
                 StreamTcpInlineSegmentReplacePacket(p, list_seg);
             }
@@ -1689,8 +1689,8 @@ static void StreamTcpSetupMsg(TcpSession *ssn, TcpStream *stream, Packet *p,
         smsg->flags |= STREAM_EOF;
     }
 
-    if ((!StreamTcpInlineMode() && p->flowflags & FLOW_PKT_TOSERVER) ||
-        ( StreamTcpInlineMode() && p->flowflags & FLOW_PKT_TOCLIENT))
+    if ((!StreamTcpInlineMode(p) && p->flowflags & FLOW_PKT_TOSERVER) ||
+        ( StreamTcpInlineMode(p) && p->flowflags & FLOW_PKT_TOCLIENT))
     {
         smsg->flags |= STREAM_TOCLIENT;
         SCLogDebug("stream mesage is to_client");
@@ -3307,7 +3307,7 @@ int StreamTcpReassembleHandleSegmentUpdateACK (ThreadVars *tv,
     SCLogDebug("stream->seg_list %p", stream->seg_list);
 
     int r = 0;
-    if (!(StreamTcpInlineMode())) {
+    if (!(StreamTcpInlineMode(p))) {
         if (StreamTcpReassembleAppLayer(tv, ra_ctx, ssn, stream, p) < 0)
             r = -1;
         if (StreamTcpReassembleRaw(ra_ctx, ssn, stream, p) < 0)
@@ -3403,7 +3403,7 @@ int StreamTcpReassembleHandleSegment(ThreadVars *tv, TcpReassemblyThreadCtx *ra_
 
     /* in stream inline mode even if we have no data we call the reassembly
      * functions to handle EOF */
-    if (StreamTcpInlineMode()) {
+    if (StreamTcpInlineMode(p)) {
         int r = 0;
         if (StreamTcpReassembleInlineAppLayer(tv, ra_ctx, ssn, stream, p) < 0)
             r = -1;

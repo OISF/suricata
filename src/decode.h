@@ -42,6 +42,7 @@ typedef enum {
 #include "source-nfq.h"
 #include "source-ipfw.h"
 #include "source-pcap.h"
+#include "source-af-packet.h"
 
 #include "action-globals.h"
 
@@ -355,7 +356,7 @@ typedef struct Packet_
     uint8_t recursion_level;
 
     /* Pkt Flags */
-    uint16_t flags;
+    uint32_t flags;
     /* flow */
     uint8_t flowflags;
     struct Flow_ *flow;
@@ -370,6 +371,9 @@ typedef struct Packet_
 #ifdef IPFW
         IPFWPacketVars ipfw_v;
 #endif /* IPFW */
+#ifdef AF_PACKET
+        AFPPacketVars afp_v;
+#endif
 
         /** libpcap vars: shared by Pcap Live mode and Pcap File mode */
         PcapPacketVars pcap_v;
@@ -384,6 +388,9 @@ typedef struct Packet_
     /* used to hold flowbits only if debuglog is enabled */
     int debuglog_flowbits_names_len;
     const char **debuglog_flowbits_names;
+
+    /** The release function for packet data */
+    TmEcode (*ReleaseData)(ThreadVars *, struct Packet_ *);
 
     /* pkt vars */
     PktVar *pktvar;
@@ -889,24 +896,25 @@ void AddressDebugPrint(Address *);
 #define VLAN_OVER_GRE       13
 
 /*Packet Flags*/
-#define PKT_NOPACKET_INSPECTION         0x0001    /**< Flag to indicate that packet header or contents should not be inspected*/
-#define PKT_NOPAYLOAD_INSPECTION        0x0002    /**< Flag to indicate that packet contents should not be inspected*/
-#define PKT_ALLOC                       0x0004    /**< Packet was alloc'd this run, needs to be freed */
-#define PKT_HAS_TAG                     0x0008    /**< Packet has matched a tag */
-#define PKT_STREAM_ADD                  0x0010    /**< Packet payload was added to reassembled stream */
-#define PKT_STREAM_EST                  0x0020    /**< Packet is part of establised stream */
-#define PKT_STREAM_EOF                  0x0040    /**< Stream is in eof state */
-#define PKT_HAS_FLOW                    0x0080
-#define PKT_PSEUDO_STREAM_END           0x0100    /**< Pseudo packet to end the stream */
-#define PKT_STREAM_MODIFIED             0x0200    /**< Packet is modified by the stream engine, we need to recalc the csum and reinject/replace */
-#define PKT_MARK_MODIFIED               0x0400    /**< Packet mark is modified */
-#define PKT_STREAM_NOPCAPLOG            0x0800    /**< Exclude packet from pcap logging as it's part of a stream that has reassembly depth reached. */
+#define PKT_NOPACKET_INSPECTION         1 << 0    /**< Flag to indicate that packet header or contents should not be inspected*/
+#define PKT_NOPAYLOAD_INSPECTION        1 << 1    /**< Flag to indicate that packet contents should not be inspected*/
+#define PKT_ALLOC                       1 << 2    /**< Packet was alloc'd this run, needs to be freed */
+#define PKT_HAS_TAG                     1 << 3    /**< Packet has matched a tag */
+#define PKT_STREAM_ADD                  1 << 4    /**< Packet payload was added to reassembled stream */
+#define PKT_STREAM_EST                  1 << 5    /**< Packet is part of establised stream */
+#define PKT_STREAM_EOF                  1 << 6    /**< Stream is in eof state */
+#define PKT_HAS_FLOW                    1 << 7
+#define PKT_PSEUDO_STREAM_END           1 << 8    /**< Pseudo packet to end the stream */
+#define PKT_STREAM_MODIFIED             1 << 9    /**< Packet is modified by the stream engine, we need to recalc the csum and reinject/replace */
+#define PKT_MARK_MODIFIED               1 << 10    /**< Packet mark is modified */
+#define PKT_STREAM_NOPCAPLOG            1 << 11    /**< Exclude packet from pcap logging as it's part of a stream that has reassembly depth reached. */
 
-#define PKT_TUNNEL                      0x1000
-#define PKT_TUNNEL_VERDICTED            0x2000
+#define PKT_TUNNEL                      1 << 12
+#define PKT_TUNNEL_VERDICTED            1 << 13
 
-#define PKT_IGNORE_CHECKSUM             0x4000    /**< Packet checksum is not computed (TX packet for example) */
-#define PKT_ZERO_COPY                   0x8000    /**< Packet comes from zero copy (ext_pkt must not be freed) */
+#define PKT_IGNORE_CHECKSUM             1 << 14    /**< Packet checksum is not computed (TX packet for example) */
+#define PKT_ZERO_COPY                   1 << 15    /**< Packet comes from zero copy (ext_pkt must not be freed) */
+#define PKT_INLINE                      1 << 16    /**< Packet comes from an inline capture */
 
 /** \brief return 1 if the packet is a pseudo packet */
 #define PKT_IS_PSEUDOPKT(p) ((p)->flags & PKT_PSEUDO_STREAM_END)
