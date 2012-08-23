@@ -448,6 +448,10 @@ static DetectTlsData *DetectTlsIssuerDNParse(char *str)
 #define MAX_SUBSTRINGS 30
     int ret = 0, res = 0;
     int ov[MAX_SUBSTRINGS];
+    const char *str_ptr;
+    char *orig;
+    char *tmp_str;
+    uint32_t flag = 0;
 
     ret = pcre_exec(issuerdn_parse_regex, issuerdn_parse_regex_study, str, strlen(str), 0, 0,
                     ov, MAX_SUBSTRINGS);
@@ -457,52 +461,45 @@ static DetectTlsData *DetectTlsIssuerDNParse(char *str)
         goto error;
     }
 
-    if (ret == 3) {
-        const char *str_ptr;
-        char *orig;
-        char *tmp_str;
-        uint32_t flag = 0;
-
-        res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-            goto error;
-        }
-        if (str_ptr[0] == '!')
-            flag = DETECT_CONTENT_NEGATED;
-
-        res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 2, &str_ptr);
-        if (res < 0) {
-            SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
-            goto error;
-        }
-
-        /* We have a correct id option */
-        tls = SCMalloc(sizeof(DetectTlsData));
-        if (tls == NULL)
-            goto error;
-        tls->issuerdn = NULL;
-        tls->flags = flag;
-
-        orig = SCStrdup((char*)str_ptr);
-        tmp_str=orig;
-        if (tmp_str == NULL) {
-            goto error;
-        }
-
-        /* Let's see if we need to escape "'s */
-        if (tmp_str[0] == '"')
-        {
-            tmp_str[strlen(tmp_str) - 1] = '\0';
-            tmp_str += 1;
-        }
-
-        tls->issuerdn = SCStrdup(tmp_str);
-
-        SCFree(orig);
-
-        SCLogDebug("will look for TLS issuerdn %s", tls->issuerdn);
+    res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 1, &str_ptr);
+    if (res < 0) {
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        goto error;
     }
+    if (str_ptr[0] == '!')
+        flag = DETECT_CONTENT_NEGATED;
+
+    res = pcre_get_substring((char *)str, ov, MAX_SUBSTRINGS, 2, &str_ptr);
+    if (res < 0) {
+        SCLogError(SC_ERR_PCRE_GET_SUBSTRING, "pcre_get_substring failed");
+        goto error;
+    }
+
+    /* We have a correct id option */
+    tls = SCMalloc(sizeof(DetectTlsData));
+    if (tls == NULL)
+        goto error;
+    tls->issuerdn = NULL;
+    tls->flags = flag;
+
+    orig = SCStrdup((char*)str_ptr);
+    tmp_str=orig;
+    if (tmp_str == NULL) {
+        goto error;
+    }
+
+    /* Let's see if we need to escape "'s */
+    if (tmp_str[0] == '"')
+    {
+        tmp_str[strlen(tmp_str) - 1] = '\0';
+        tmp_str += 1;
+    }
+
+    tls->issuerdn = SCStrdup(tmp_str);
+
+    SCFree(orig);
+
+    SCLogDebug("Will look for TLS issuerdn %s", tls->issuerdn);
 
     return tls;
 
