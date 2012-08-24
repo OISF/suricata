@@ -227,7 +227,7 @@ static int DetectIPProtoSetup(DetectEngineCtx *de_ctx, Signature *s, char *optst
     }
 
     /* reset our "any" (or "ip") state */
-    if (s->proto.flags & DETECT_PROTO_ANY) {
+    if (s->proto.flags & (DETECT_PROTO_ANY | DETECT_PROTO_IPV6 | DETECT_PROTO_IPV4)) {
         s->proto.flags &= ~DETECT_PROTO_ANY;
         memset(s->proto.proto, 0x00, sizeof(s->proto.proto));
     }

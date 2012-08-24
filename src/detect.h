@@ -1031,6 +1031,8 @@ enum {
     DETECT_FILEMAGIC,
     DETECT_FILEMD5,
 
+    DETECT_L3PROTO,
+
     /* make sure this stays last */
     DETECT_TBLSIZE,
 };
