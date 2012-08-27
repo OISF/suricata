@@ -2267,7 +2267,8 @@ void *CudaMpmB2gThreadsSlot1(void *td)
              * If the MPM is configured to use multiple CUstreams, buffer (1) and buffer (2) are
              * processed in parallel using multiple streams; In this case
              * data_queues[tctx->tmq_streamq->id] will contain the results of packet buffer (2). */
-            r = s->SlotFunc(tv,
+            TmSlotFunc SlotFunc = SC_ATOMIC_GET(s->SlotFunc);
+            r = SlotFunc(tv,
                               (Packet *)data,
                               (void *)tctx,
                               (PacketQueue *)&data_queues[tv->inq->id],

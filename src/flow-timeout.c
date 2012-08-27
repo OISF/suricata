@@ -569,7 +569,8 @@ static inline void FlowForceReassemblyForHash(void)
                 } else {
                     TmSlot *s = stream_pseudo_pkt_detect_tm_slot;
                     while (s != NULL) {
-                        s->SlotFunc(NULL, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq,
+                        TmSlotFunc SlotFunc = SC_ATOMIC_GET(s->SlotFunc);
+                        SlotFunc(NULL, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq,
                                     &s->slot_post_pq);
                         s = s->slot_next;
                     }
@@ -598,7 +599,8 @@ static inline void FlowForceReassemblyForHash(void)
                 } else {
                     TmSlot *s = stream_pseudo_pkt_detect_tm_slot;
                     while (s != NULL) {
-                        s->SlotFunc(NULL, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq,
+                        TmSlotFunc SlotFunc = SC_ATOMIC_GET(s->SlotFunc);
+                        SlotFunc(NULL, p, SC_ATOMIC_GET(s->slot_data), &s->slot_pre_pq,
                                     &s->slot_post_pq);
                         s = s->slot_next;
                     }
