@@ -330,7 +330,8 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
             SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
             exit(EXIT_FAILURE);
         }
-        TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
+        TmSlotSetFuncAppendDelayed(tv_detect_ncpu, tm_module,
+                                   (void *)de_ctx, de_ctx->delayed_detect);
 
         TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
 
@@ -574,7 +575,8 @@ int RunModeSetLiveCaptureAutoFp(DetectEngineCtx *de_ctx,
             SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
             exit(EXIT_FAILURE);
         }
-        TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
+        TmSlotSetFuncAppendDelayed(tv_detect_ncpu, tm_module,
+                                   (void *)de_ctx, de_ctx->delayed_detect);
 
         TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
 
@@ -674,7 +676,8 @@ static int RunModeSetLiveCaptureWorkersForDevice(DetectEngineCtx *de_ctx,
             SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
             exit(EXIT_FAILURE);
         }
-        TmSlotSetFuncAppend(tv, tm_module, (void *)de_ctx);
+        TmSlotSetFuncAppendDelayed(tv, tm_module,
+                                   (void *)de_ctx, de_ctx->delayed_detect);
 
         tm_module = TmModuleGetByName("RespondReject");
         if (tm_module == NULL) {
@@ -879,7 +882,8 @@ int RunModeSetIPSAuto(DetectEngineCtx *de_ctx,
             printf("ERROR: TmModuleGetByName Detect failed\n");
             exit(EXIT_FAILURE);
         }
-        TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
+        TmSlotSetFuncAppendDelayed(tv_detect_ncpu, tm_module,
+                                   (void *)de_ctx, de_ctx->delayed_detect);
 
         TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
 
@@ -1064,7 +1068,8 @@ int RunModeSetIPSAutoFp(DetectEngineCtx *de_ctx,
             SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
             exit(EXIT_FAILURE);
         }
-        TmSlotSetFuncAppend(tv_detect_ncpu, tm_module, (void *)de_ctx);
+        TmSlotSetFuncAppendDelayed(tv_detect_ncpu, tm_module,
+                                   (void *)de_ctx, de_ctx->delayed_detect);
 
         TmThreadSetCPU(tv_detect_ncpu, DETECT_CPU_SET);
 
@@ -1181,7 +1186,8 @@ int RunModeSetIPSWorker(DetectEngineCtx *de_ctx,
             SCLogError(SC_ERR_RUNMODE, "TmModuleGetByName Detect failed");
             exit(EXIT_FAILURE);
         }
-        TmSlotSetFuncAppend(tv, tm_module, (void *)de_ctx);
+        TmSlotSetFuncAppendDelayed(tv, tm_module,
+                                   (void *)de_ctx, de_ctx->delayed_detect);
 
         tm_module = TmModuleGetByName(verdict_mod_name);
         if (tm_module == NULL) {
