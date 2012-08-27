@@ -287,9 +287,11 @@ TmEcode ReceivePcapLoop(ThreadVars *tv, void *data, void *slot)
             int dbreak = 0;
             SCLogError(SC_ERR_PCAP_DISPATCH, "error code %" PRId32 " %s",
                        r, pcap_geterr(ptv->pcap_handle));
+#ifdef PCAP_ERROR_BREAK
             if (r == PCAP_ERROR_BREAK) {
                 SCReturnInt(ptv->cb_result);
             }
+#endif
             do {
                 usleep(PCAP_RECONNECT_TIMEOUT);
                 if (suricata_ctl_flags != 0) {
