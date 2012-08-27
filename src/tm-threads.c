@@ -906,8 +906,6 @@ ThreadVars *TmThreadsGetTVContainingSlot(TmSlot *tm_slot)
  */
 static inline TmSlot * _TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *data)
 {
-    TmSlot *s = (TmSlot *)tv->tm_slots;
-
     TmSlot *slot = SCMalloc(sizeof(TmSlot));
     if (slot == NULL)
         return NULL;
@@ -927,11 +925,11 @@ static inline TmSlot * _TmSlotSetFuncAppend(ThreadVars *tv, TmModule *tm, void *
 
     tv->cap_flags |= tm->cap_flags;
 
-    if (s == NULL) {
+    if (tv->tm_slots == NULL) {
         tv->tm_slots = slot;
         slot->id = 0;
     } else {
-        TmSlot *a = s, *b = NULL;
+        TmSlot *a = (TmSlot *)tv->tm_slots, *b = NULL;
 
         /* get the last slot */
         for ( ; a != NULL; a = a->slot_next) {
