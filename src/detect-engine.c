@@ -88,6 +88,9 @@ static void *DetectEngineLiveRuleSwap(void *arg)
     /* block usr2.  usr2 to be handled by the main thread only */
     UtilSignalBlock(SIGUSR2);
 
+    /* release TmThreadSpawn */
+    TmThreadsSetFlag(tv_local, THV_INIT_DONE);
+
     ConfDeInit();
     ConfInit();
 
