@@ -178,7 +178,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
                 DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]);
         if (pm == NULL) {
             SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "\"within\" requires "
-                       "preceeding content, uricontent, http_client_body, "
+                       "preceding content, uricontent, http_client_body, "
                        "http_server_body, http_header, http_raw_header, "
                        "http_method, http_cookie, http_raw_uri, "
                        "http_stat_msg, http_stat_code or http_user_agent "
@@ -307,7 +307,7 @@ static int DetectWithinSetup (DetectEngineCtx *de_ctx, Signature *s, char *withi
 
         default:
             SCLogError(SC_ERR_WITHIN_MISSING_CONTENT, "within needs two "
-                       "preceeding content or uricontent options");
+                       "preceding content or uricontent options");
             goto error;
     }
 

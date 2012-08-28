@@ -84,7 +84,7 @@ outputs:
 
   # a line based log to used with pcap file study.
   # this module is dedicated to offline pcap parsing (empty output
-  # if used with an other kind of input). It can interoperate with
+  # if used with another kind of input). It can interoperate with
   # pcap parser like wireshark via the suriwire plugin.
   - pcap-info:
       enabled: no

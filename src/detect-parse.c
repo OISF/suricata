@@ -1068,7 +1068,7 @@ static int SigValidate(Signature *s) {
                                                               DETECT_BYTEJUMP, sm->prev);
                     if (pm == NULL) {
                         SCLogError(SC_ERR_DISTANCE_MISSING_CONTENT, "within needs two "
-                                   "preceeding content or uricontent options");
+                                   "preceding content or uricontent options");
                         SCReturnInt(0);
                     } else {
                         break;

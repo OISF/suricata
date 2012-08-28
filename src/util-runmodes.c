@@ -74,7 +74,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
 
         if (ModThreadsCount(aconf) > 1) {
             SCLogWarning(SC_ERR_UNIMPLEMENTED, "'Auto' running mode does not honor 'threads'"
-                         " variable (set on '%s'). Please use an other mode as"
+                         " variable (set on '%s'). Please use another mode as"
                          " 'autofp' or 'worker'",
                          live_dev);
         }
@@ -125,7 +125,7 @@ int RunModeSetLiveCaptureAuto(DetectEngineCtx *de_ctx,
 
             if (ModThreadsCount(aconf) > 1) {
                 SCLogWarning(SC_ERR_UNIMPLEMENTED, "'Auto' running mode does not honor 'threads'"
-                         " variable (set on '%s'). Please use an other mode as"
+                         " variable (set on '%s'). Please use another mode as"
                          " 'autofp' or 'worker'",
                          live_dev);
             }

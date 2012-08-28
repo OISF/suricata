@@ -1284,7 +1284,7 @@ void SigGroupHeadPrintContentCnt(DetectEngineCtx *de_ctx, SigGroupHead *sgh)
  * \param sgh    Pointer to the SigGroupHead.
  *
  * \retval  0 On success, i.e. on either the detection engine context being NULL
- *            or on succesfully allocating memory and updating it with relevant
+ *            or on successfully allocating memory and updating it with relevant
  *            data.
  * \retval -1 On failure.
  */
@@ -1364,7 +1364,7 @@ int SigGroupHeadClearContent(SigGroupHead *sh)
  * \param sgh    Pointer to the SigGroupHead.
  *
  * \retval  0 On success, i.e. on either the detection engine context being NULL
- *            or on succesfully allocating memory and updating it with relevant
+ *            or on successfully allocating memory and updating it with relevant
  *            data.
  * \retval -1 On failure.
  */
@@ -1444,7 +1444,7 @@ int SigGroupHeadClearUricontent(SigGroupHead *sh)
  * \param sgh    Pointer to the SigGroupHead.
  *
  * \retval  0 On success, i.e. on either the detection engine context being NULL
- *            or on succesfully allocating memory and updating it with relevant
+ *            or on successfully allocating memory and updating it with relevant
  *            data.
  * \retval -1 On failure.
  */

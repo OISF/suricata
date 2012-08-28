@@ -74,7 +74,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_PMATCH]);
             if (pm == NULL) {
                 SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs "
-                           "preceeding content option for dcerpc sig");
+                           "preceding content option for dcerpc sig");
                 if (dubbed)
                     SCFree(str);
                 return -1;
@@ -98,7 +98,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
                     DETECT_CONTENT, s->sm_lists_tail[DETECT_SM_LIST_HUADMATCH]);
             if (pm == NULL) {
                 SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs "
-                           "preceeding content or uricontent option, http_client_body, "
+                           "preceding content or uricontent option, http_client_body, "
                            "http_header, http_raw_header, http_method, "
                            "http_cookie, http_raw_uri, http_stat_msg, "
                            "http_stat_code or http_user_agent option");
@@ -176,7 +176,7 @@ int DetectOffsetSetup (DetectEngineCtx *de_ctx, Signature *s, char *offsetstr)
             break;
 
         default:
-            SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs a preceeding"
+            SCLogError(SC_ERR_OFFSET_MISSING_CONTENT, "offset needs a preceding"
                     " content keyword");
             goto error;
     }

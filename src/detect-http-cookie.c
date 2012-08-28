@@ -169,7 +169,7 @@ static int DetectHttpCookieSetup (DetectEngineCtx *de_ctx, Signature *s, char *s
                                         s->sm_lists_tail[DETECT_SM_LIST_HCDMATCH]);
         if (pm == NULL) {
             SCLogError(SC_ERR_HTTP_COOKIE_RELATIVE_MISSING, "http_cookie with "
-                    "a distance or within requires preceeding http_cookie "
+                    "a distance or within requires preceding http_cookie "
                     "content, but none was found");
             goto error;
         }

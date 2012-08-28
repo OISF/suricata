@@ -21,7 +21,7 @@
  * \author Eric Leblond <eric@regit.org>
  *
  * Logs alerts in a line based text format suitable for interaction
- * with wireshark or an other pcap file analysis tools.
+ * with wireshark or another pcap file analysis tools.
  *
  * The format of the logging is:
  *  Packet number:GID of matching signature:SID of signature:REV of signature:Flow:To Server:To Client:0:0:Signature Message
